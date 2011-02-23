@@ -175,6 +175,7 @@ function linux {
         mkdir ./releases/$3/OpenBOR/ScreenShots
       fi
       mv OpenBOR ./releases/$3/OpenBOR
+	  echo "moved binary to ./releases/$3/ !"
     fi
     make clean BUILD_LINUX=1
   fi
