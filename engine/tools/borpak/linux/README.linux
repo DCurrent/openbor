@@ -1,0 +1,5 @@
+Extract the tar file in this directory. If you're on a 32-bit system, rename 
+borpak32 to borpak; if you're on a 64-bit system, rename borpak64 to borpak. 
+Then copy borpak, packer, and paxplode to your /usr/bin directory as root. Now 
+you can build/extract PAK files anywhere, anytime.
+

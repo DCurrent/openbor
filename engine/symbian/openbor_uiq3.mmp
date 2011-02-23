@@ -1,0 +1,128 @@
+target openbor.exe
+targettype exe 
+systeminclude \epoc32\include \epoc32\include\libc \epoc32\include\esdl \epoc32\include\tremor
+userinclude ..\source ..\source\adpcmlib ..\source\gamelib ..\source\gfxlib ..\source\pcxlib ..\source\ramlib ..\source\randlib ..\source\scriptlib ..\source\tracelib .. ..\sdl
+MACRO SDL
+sourcepath .
+source symbian.cpp
+
+SOURCEPATH ..
+SOURCE openborscript.c openbor.c
+sourcepath ..\source\gamelib
+source filters.c
+sourcepath ..\sdl
+source joysticks.c control.c menu.c sblaster.c sdlport.c timer.c video.c
+sourcepath ..\source\adpcmlib
+source adpcm.c
+sourcepath ..\source\gfxlib
+source 2xSaI.c                                       \
+bilinear.c                                    \
+dotmatrix.c                                   \
+gfx.c                                         \
+hq2x.c                                        \
+motionblur.c                                  \
+scale2x.c                                     \
+scanline.c                                    \
+simple2x.c                                    \
+tv2x.c
+
+sourcepath ..\source\gamelib
+source draw.c                                       \
+draw16.c                                     \
+draw32.c                                     \
+font.c                                       \
+anigif.c                                     \
+bitmap.c 	                              \
+screen.c                                     \
+screen16.c                                   \
+screen32.c                                   \
+loadimg.c                                    \
+palette.c                                    \
+packfile.c                                   \
+filecache.c                                  \
+pixelformat.c                                \
+soundmix.c                                   \
+spritef.c                                    \
+spriteq.c                                    \
+spritex8p16.c                                \
+spritex8p32.c                                \
+texture.c                                    \
+texture16.c                                  \
+texture32.c
+
+
+sourcepath ..\source\scriptlib
+source StackedSymbolTable.c                       \
+ScriptVariant.c                            \
+SymbolTable.c                              \
+Instruction.c                              \
+Interpreter.c                              \
+ParserSet.c                                \
+Parser.c                                   \
+Lexer.c                                    \
+Stack.c                                    \
+List.c
+
+sourcepath ..\source\ramlib
+source ram.c
+sourcepath ..\source\randlib
+source rand32.c
+sourcepath ..\source\tracelib
+source tracemalloc.c
+sourcepath ..\source
+source utils.c stristr.c
+
+sourcepath ..\source\pcxlib
+source savepcx.c
+
+userinclude ..\source\xpmlib
+sourcepath ..\source\xpmlib
+source xpm.c
+
+staticlibrary esdl.lib  zlib.lib lpng.lib sdl_image.lib sdl_gfx.lib libtremor.lib
+
+LIBRARY cone.lib  eikcore.lib
+LIBRARY euser.lib apparc.lib fbscli.lib
+LIBRARY estlib.lib apgrfx.lib bafl.lib
+LIBRARY gdi.lib hal.lib bitgdi.lib
+LIBRARY mediaclientaudiostream.lib efsrv.lib ws32.lib
+LIBRARY qikcore.lib
+
+ALWAYS_BUILD_AS_ARM
+
+EPOCSTACKSIZE   81000
+EPOCHEAPSIZE    11192000 64000000
+UID 0x100039ce 0xA000E813
+
+CAPABILITY LocalServices ReadUserData NetworkServices
+
+MACRO UIQ3
+
+sourcepath .\uiq3
+START RESOURCE  openbor.rss
+HEADER
+TARGETPATH              \Resource\Apps
+LANG                    SC
+END
+
+sourcepath .
+START RESOURCE  openbor_reg.rss
+TARGETPATH              \private\10003a3f\apps
+END
+
+
+
+START BITMAP    OpenBOR.mbm
+TARGETPATH      \resource\apps
+HEADER
+SOURCEPATH      .\uiq3
+SOURCE		c16 OpenBOR_xl.bmp
+SOURCE          8   OpenBOR_xlm.bmp
+SOURCE          c16 OpenBOR_l.bmp
+SOURCE          8   OpenBOR_lm.bmp
+SOURCE          c16 OpenBOR_s.bmp
+SOURCE          8   OpenBOR_sm.bmp
+END
+
+OPTION			GCCE -Wno-multichar -Wno-reorder -Wno-unused -Wno-format -fsigned-char
+OPTION 			CW -char signed

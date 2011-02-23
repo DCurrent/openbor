@@ -1,0 +1,85 @@
+------------------------- Compiling using your own SDK(s) -------------------------
+
+Requirements:  Linux (Ubuntu) If you are like me (S.X.) then you like to build your own environments!
+
+
+PSPSDK:   svn://ps2dev.org/psp/trunk/psptoolchain 
+          svn://ps2dev.org/psp/trunk/zlib 
+          svn://ps2dev.org/psp/trunk/libpng
+
+
+PS2SDK:   svn://ps2dev.org/ps2/trunk/ps2toolchain 
+          svn://ps2dev.org/ps2/trunk/zlib 
+          svn://ps2dev.org/ps2/trunk/libpng
+
+
+Open2X:   http://wiki.open2x.org/open2x/wiki/index.php 
+          Grab Toolchain 
+          Grab Prebuilt Libraries
+
+
+KOS:      http://sourceforge.net/projects/cadcdev/
+
+
+PS3:      Refer to Linux components.
+
+Linux:    Install neccessary SDL Components with Synaptic Package Manager
+          SDL-devel (Debian/Ubuntu name: libsdl1.2-dev)
+          SDL_gfx-devel (Debian/Ubuntu name: libsdl-gfx1.2-dev)
+          SDL_mixer-devel (Debian/Ubuntu name: libsdl-mixer1.2-dev)
+          SDL_image-devel (Debian/Ubuntu name: libsdl-image1.2-dev)
+          zlib-devel (Debian/Ubuntu name: zlib1g-dev)
+          libpng-devel (Debian/Ubuntu name: libpng12-dev)
+          
+          For 64-bit Ubuntu/Debian, download getlibs 
+          (http://ubuntuforums.org/showthread.php?t=474790) and use it to 
+          install the SDL components listed above instead of Synaptic.
+          
+          For both 32-bit and 64-bit systems, yasm is also needed.
+          
+
+Windows:  http://www.bloodshed.net/ 
+          Install necessary SDL Components
+
+
+DOS:      http://www.lavalit.com/download 
+          Grab OpenWatcom v1.1
+
+
+XBoX:     Google Search!
+
+Execution:
+
+Build.sh  - Script file that compiles using various SDK environments (PSP, PS2, Dreamcast, Gp2x, Linux, Windows and XBOX)
+
+
+-----------------------------------------------------------------------------------
+
+
+------------------------- Compiling using prebuilt SDK(s) -------------------------
+
+Requirements:  Windows/DOS
+
+sdkPack-v1.1.rar:  Located Here @ http://www.lavalit.com/download/Development/Compilers/All-In-One/
+
+Execution:
+
+Build.bat - Batch file that compiles all platforms using prebuilt SDK(s)
+
+-----------------------------------------------------------------------------------
+
+
+------------------------------------- Notes ---------------------------------------
+
+All compilations are moved to Releases folder when using build.sh or built.bat
+
+-----------------------------------------------------------------------------------
+
+
+Happy Linking.....;p
+
+
+Any questions I can be contacted thru my site http://www.lavalit.com
+
+
+By S.X.

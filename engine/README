@@ -1,0 +1,233 @@
+
+OpenBOR
+----------------------
+OpenBOR is a continuation of the Beats Of Rage 2D game engine, which was originally
+created by the wonderful folks over at http://www.senileteam.com.
+
+
+History
+----------------------
+In 2004, Senile Team released Beats of Rage, a free beat-'em-up for DOS inspired 
+by SEGA's Streets of Rage series and using sprites from SNK Playmore's King of 
+Fighters series.  The game spread only by word of mouth, but it nonetheless 
+amassed popularity very quickly.  Senile Team soon released an edit pack allowing 
+anyone interested to create a mod for the BOR engine.
+
+In 2005, Kirby2000 asked Senile Team to open the source code to BOR.  They 
+agreed, and OpenBOR was born.  Development on the engine was continued by the 
+community, and still is to this day.
+
+
+Available Platforms
+----------------------
+OpenBOR has a very modular and portable design inherited from Beats of Rage. Ports 
+to the following platforms are currently supported:
+
+* Windows
+* Linux
+* Mac OS X
+* Wii
+* PSP
+* Dreamcast
+* GP2X
+* GP2X Wiz
+* Dingoo a320
+
+In addition to the above, the original Beats of Rage engine (downloadable from 
+the Senile Team website) is available for the following platforms:
+
+* DOS
+* Playstation 2
+* Xbox
+* GP32
+* Palmtop
+
+
+Source Code
+----------------------
+svn checkout https://lavalit.com/svn/openbor/trunk openbor
+
+You may get a security warning from your Subversion client.  This is because 
+LavaLit signs its own SSL certificate, and it can be safely ignored.  If you get 
+a *fatal* error, you should upgrade to a newer version of the Neon HTTP library. 
+This bug is fixed in neon 0.29.5 (released October 14, 2010).
+
+
+OpenBOR Team
+----------------------
+SumolX (2006-2011)
+Project Manager, Lead Programmer, Known for porting PSP, PS3, Linux, Wii, GP2X and 
+maintaining all other platforms and code base.
+
+uTunnels (2007-2010)
+Developed the scripting engine for OpenBOR and also added many exciting features.
+
+KBbandressen (2007-2011)
+New developer that is feature rich!
+
+Plombo (2009-2011)
+A developer who prefers to work on OpenBOR's supporting libraries and 
+platform-specific backends.  Known for maintaining the Wii port, writing the 
+GPU-accelerated video code for Wii and OpenGL, and a few engine features.
+
+Damon Caskey (2007-2011)
+Scripter, Tester and Developer.  What else can I say.
+
+CGRemakes (2005-2006)
+Main developer after Kirby2K.  Introduced many exicting features to engine.
+
+LordBall (2006)
+Developed offshoot engine based on OpenBOR.  Shared features with both engines.
+
+Tails (2006)
+Developed offshoot engine based on OpenBOR.  Shared features with both engines.
+
+Fugue (2006)
+Developed offshoot engine based on OpenBOR.  Shared features with both engines.
+
+Kirby2K (2004-2005)
+The original developer of OpenBOR who asked Senile Team for permission to open 
+up Beats Of Rage.
+
+
+
+Senile Team Members
+----------------------
+Roel (credited as "Opla" in BoR)
+The team's chieftain. Does most of the game design, programming and artwork.
+http://www.roelvanmastbergen.nl
+
+Jeroen (credited as "Leila" in BoR)
+Does all the things no one else does.
+
+Sander (credited as "Albatross" in BoR)
+3D artist and animation sequence editor.
+
+Ben
+Senile Team's composer, who is currently working on the soundtrack for Age of the Beast.
+
+Neill
+Neill was the first to port Beats of Rage to other systems, namely Playstation 2 
+and Dreamcast. He now supports Senile Team with advice regarding console hardware 
+and code compatibility, and has agreed to port Age of the Beast when it's ready.
+http://www.neillcorlett.com
+
+
+
+Websites
+----------------------
+LavaLit (home of OpenBOR development) - http://www.lavalit.com
+Senile Team (original authors of Beats of Rage) - http://www.senileteam.com
+
+
+
+OpenBOR File Layout
+----------------------
+
+***********************************************************************************
+*                                     Windows                                     *
+***********************************************************************************
+
+-> OpenBOR/
+      |
+      -> OpenBOR.exe
+      -> Paks/
+      -> ScreenShots/
+      -> Logs/
+      -> Saves/      
+
+
+***********************************************************************************
+*                                     Linux                                       *
+***********************************************************************************
+
+-> OpenBOR/
+      |
+      -> OpenBOR
+      |
+      -> Paks/
+      -> ScreenShots/
+      -> Logs/
+      -> Saves/
+      
+
+***********************************************************************************
+*                                       Wii                                       *
+***********************************************************************************
+
+-> apps/
+      | 
+      ->OpenBOR/
+          |
+          -> boot.dol
+          -> meta.xml
+          -> icon.png
+          -> Paks/
+          -> ScreenShots/
+          -> Logs/
+          -> Saves/
+
+
+***********************************************************************************
+*                                   Dreamcast                                     *
+***********************************************************************************
+
+-> 1st_READ.bin
+   bor.pak
+
+
+
+***********************************************************************************
+*                             PSP 3.71 m33-4 Required                             *
+***********************************************************************************
+
+-> ms0:/PSP/GAME/OpenBOR/
+                    |
+                    -> EBOOT.PBP
+                    |
+                    -> Images/
+                    |     |
+                    |     -> Menu.png
+                    |
+                    -> Modules/
+                    |     |
+                    |     -> ctrlhook.prx
+                    |     -> dvemgr.prx
+                    |     -> exception.prx
+                    |
+                    -> Logs/
+                    -> Saves/
+
+
+***********************************************************************************
+*                                 GamePark GP2X                                   *
+***********************************************************************************
+
+-> OpenBOR/
+      |
+      -> OpenBOR.gpe
+      -> mmuhack.o
+      |
+      -> Paks/
+      -> ScreenShots/
+      -> Logs/
+      -> Saves/
+
+
+***********************************************************************************
+*                                       XBOX                                      *
+***********************************************************************************
+
+-> OpenBOR/
+      |
+      -> default.xbe
+      |
+      -> Paks/
+      |     |
+      |     -> menu.pak
+      |
+      -> ScreenShots/
+      -> Logs/
+      -> Saves/
+
+
