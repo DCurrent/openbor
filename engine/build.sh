@@ -339,105 +339,114 @@ function darwin {
 }
 
 function build_all {
-    clean
-    version
-    if test -e "buildspec.sh"; then
-        source ./buildspec.sh
-    else
-        psp
-        #ps2
-        gp2x
-        linux_x86
-        linux_amd64
-        windows
-        dreamcast
-        wii
-        dingoo
-        wiz
-        darwin
-    fi
-    distribute
+  clean
+  version
+  if test -e "buildspec.sh"; then
+    source ./buildspec.sh
+  else
+    psp
+    #ps2
+    gp2x
+    linux_x86
+    linux_amd64
+    windows
+    dreamcast
+    wii
+    dingoo
+    wiz
+    darwin
+  fi
+  distribute
 }
 
 function print_help {
-   echo
-   echo "    run $0 with one of the below targets"
-   echo "-------------------------------------------------------"
-   echo "    0 = Distribute"
-   echo "    1 = PSP"
-   echo "    2 = PS2"
-   echo "    3 = Gp2x"
-   echo "    4 = Linux"
-   echo "        x86, amd64"
-   echo "        i.e. $0 4 amd64"
-   echo "    5 = Windows"
-   echo "    6 = Dreamcast"
-   echo "    7 = Wii"
-   echo "    8 = Dingoo"
-   echo "    9 = Wiz"
-   echo "   10 = Darwin"
-   echo "  all = build for all applicable targets"
-   echo "-------------------------------------------------------"
-   echo "i.e. $0 10"
-   echo
+  echo
+  echo "Run $0 with one of the below targets"
+  echo "-------------------------------------------------------"
+  echo "    0 = Distribute"
+  echo "    1 = PSP"
+  echo "    2 = PS2"
+  echo "    3 = Gp2x"
+  echo "    4 = Linux (x86, amd64) Example: $0 4 amd64"
+  echo "    5 = Windows"
+  echo "    6 = Dreamcast"
+  echo "    7 = Wii"
+  echo "    8 = Dingoo"
+  echo "    9 = Wiz"
+  echo "   10 = Darwin"
+  echo "  all = build for all applicable targets"
+  echo "-------------------------------------------------------"
+  echo "Example: $0 10"
+  echo
 }
 
 case $1 in
-0)
+  0)
     version
     distribute
     ;;
-1)
+
+  1)
     version
     psp
     ;;
-2)
+
+  2)
     version
     ps2
     ;;
-3)
+
+  3)
     version
     gp2x
     ;;
-4)
+
+  4)
     version
     linux_something $2
     ;;
-5)
+
+  5)
     version
     windows
     ;;
-6)
+
+  6)
     version
     dreamcast
     ;;
-7)
+
+  7)
     version
     wii
     ;;
-8)
+
+  8)
     version
     dingoo
     ;;
-9)
+
+  9)
     version
     wiz
     ;;
-10)
+
+  10)
     version
     darwin 
     ;;
-?)
-   version
-   print_help
-   ;;
 
-all)
-	build_all
-	;;
+  ?)
+    version
+    print_help
+    ;;
 
-*)
-	print_help
+  all)
+    build_all
+    ;;
+
+  *)
+    print_help
     ;;
 esac
 
