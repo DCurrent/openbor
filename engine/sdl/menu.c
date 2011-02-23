@@ -511,7 +511,8 @@ int ControlBGM()
 		case FLAG_START:
 		case FLAG_ATTACK:
             if(bgmPlay) StopBGM();
-            else PlayBGM(filelist[bgmCurrent].bgmTrack);
+            else //PlayBGM(filelist[bgmCurrent].bgmTrack);
+		PlayBGM();
 			break;
 
 		case FLAG_ATTACK2:

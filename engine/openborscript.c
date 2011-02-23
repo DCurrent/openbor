@@ -7099,7 +7099,8 @@ HRESULT openbor_findtarget(ScriptVariant** varlist , ScriptVariant** pretvar, in
     if(paramCount>1 && FAILED(ScriptVariant_IntegerValue(varlist[1], &anim))) return E_FAIL;
     tempself = self;
     self = ent;
-    target = normal_find_target((int)anim);
+//    target = normal_find_target((int)anim);
+    target = normal_find_target();
     if(!target) ScriptVariant_Clear(*pretvar);
     else (*pretvar)->ptrVal = (VOID*)target;
     self = tempself;

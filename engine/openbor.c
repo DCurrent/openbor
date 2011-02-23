@@ -20064,7 +20064,8 @@ void startup(){
     loadHighScoreFile();
     clearSavedGame();
 
-    init_videomodes(1);
+    //init_videomodes(1);
+    init_videomodes();
 	if(!video_set_mode(videomodes)) shutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
 
     printf("Loading menu.txt.............\t");
