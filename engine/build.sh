@@ -12,7 +12,7 @@
 
 # Display Version
 function version {
-  . version.sh
+  source ./version.sh
   make version
   cp README ./releases/README.txt
   cp LICENSE ./releases/LICENSE.txt
@@ -85,7 +85,7 @@ function distribute {
 
 # PSP Environment && Compile
 function psp {
-  . environ.sh 1
+  source ./environ.sh 1
   if test $PSPDEV; then
     make clean BUILD_PSP=1
     make BUILD_PSP=1
@@ -114,7 +114,7 @@ function psp {
 
 # PS2 Environment && Compile
 function ps2 {
-  . environ.sh 2
+  source ./environ.sh 2
   if test $PS2DEV; then
     make clean BUILD_PS2=1
     make BUILD_PS2=1
@@ -137,7 +137,7 @@ function ps2 {
 
 # Gp2x Environment && Compile
 function gp2x {
-  . environ.sh 3
+  source ./environ.sh 3
   if test $GP2XDEV; then
     make clean BUILD_GP2X=1
     make BUILD_GP2X=1
@@ -161,7 +161,7 @@ function gp2x {
 function linux {
   export GCC_TARGET=$1
   export TARGET_ARCH=$2
-  . environ.sh 4
+  source ./environ.sh 4
   if test $LNXDEV; then
     make clean BUILD_LINUX=1
     make BUILD_LINUX=1
@@ -210,7 +210,7 @@ function linux_something {
 
 # Windows Environment && Compile
 function windows {
-  . environ.sh 5
+  source ./environ.sh 5
   if test $WINDEV; then
     make clean BUILD_WIN=1
     make BUILD_WIN=1
@@ -231,7 +231,7 @@ function windows {
 
 # Dreamcast Environment && Compile
 function dreamcast {
-  . environ.sh 6
+  source ./environ.sh 6
   if test $KOS_BASE; then
     make clean BUILD_DC=1
     make BUILD_DC=1
@@ -248,7 +248,7 @@ function dreamcast {
 
 # Wii Environment && Compile
 function wii {
-  . environ.sh 7 
+  source ./environ.sh 7
   if test $DEVKITPPC; then
     make clean BUILD_WII=1
     make BUILD_WII=1
@@ -271,7 +271,7 @@ function wii {
 
 # Dingoo Environment && Compile
 function dingoo {
-  . environ.sh 8
+  source ./environ.sh 8
   if test $DINGUX_TOOLCHAIN; then
     make clean BUILD_DINGOO=1
     make BUILD_DINGOO=1
@@ -292,7 +292,7 @@ function dingoo {
 
 # WIZ Environment && Compile
 function wiz {
-  . environ.sh 9
+  source ./environ.sh 9
   if test $WIZDEV; then
     make clean BUILD_WIZ=1
     make BUILD_WIZ=1
@@ -316,7 +316,7 @@ function wiz {
 
 # Darwin Environment && Compile
 function darwin {
-  . environ.sh 10 
+  source ./environ.sh 10 
   if test $DWNDEV; then
     make clean BUILD_DARWIN=1
     make BUILD_DARWIN=1
@@ -405,7 +405,7 @@ case $1 in
     clean
     version
     if test -e "buildspec.sh"; then
-        . buildspec.sh
+        source ./buildspec.sh
     else
         psp
         #ps2
