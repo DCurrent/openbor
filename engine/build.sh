@@ -182,7 +182,7 @@ function linux {
 }
 
 # Compile for Linux under various architectures
-function linux-x86 {
+function linux_x86 {
   if [ `uname -s | grep -o "Linux"` ]; then
     linux i.86-.*linux.* x86 LINUX || # try standard 32-bit GCC
     [ `gcc -dumpmachine | grep -o x86_64-.*linux.*` ] && [ `gcc -print-multi-lib | grep -o '@m32'` ] && # check for x86_64 GCC with 32-bit multilib
@@ -190,7 +190,7 @@ function linux-x86 {
   fi
 }
 
-function linux-amd64 {
+function linux_amd64 {
   if [ `uname -s | grep -o "Linux"` ]; then
     linux x86_64-.*linux.* amd64 LINUX_AMD64 || # try standard 64-bit GCC
     [ `gcc -dumpmachine | grep -o i.86-.*linux.*` ] && [ `gcc -print-multi-lib | grep -o '@m64'` ] && # check for x86 GCC with 64-bit multilib
@@ -198,11 +198,11 @@ function linux-amd64 {
   fi
 }
 
-function linux-something {
+function linux_something {
   if [ ! $1 -o $1 = x86 ]; then 
-    linux-x86
+    linux_x86
   elif [ $1 = amd64 ]; then 
-    linux-amd64
+    linux_amd64
   else 
     echo "Error: unknown Linux architecture '$1'"
   fi
@@ -357,7 +357,7 @@ case $1 in
     ;;
 4)
     version
-    linux-something $2
+    linux_something $2
     ;;
 5)
     version
@@ -410,8 +410,8 @@ case $1 in
         psp
         #ps2
         gp2x
-        linux-x86
-        linux-amd64
+        linux_x86
+        linux_amd64
         windows
         dreamcast
         wii
