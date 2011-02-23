@@ -1,7 +1,0 @@
-This borpak version has been confirmed to compile and run correctly with GCC 3.x and 4.x under Ubuntu 9.04, MinGW, 
-and Cygwin.
-
-For Windows, run build-windows.sh (shell script) or 
-build-windows.bat (batch file) to build borpak.
-
-For Linux, run build-linux.sh to build borpak.
