@@ -11,7 +11,7 @@
 @setlocal
 @echo off
 set BUILDBATCH=1
-set TOOLS=tools/bin;tools/7-Zip;tools/svn/bin
+set TOOLS=../tools/bin;../tools/7-Zip;../tools/svn/bin
 set PATH=%TOOLS%;%PATH%
 bash.exe build.sh
 @endlocal
@@ -26,7 +26,7 @@ bash.exe build.sh
 @if not exist "%CD%\releases\DC\OpenBOR\1ST_READ.BIN" goto missing
 @if not exist "%CD%\releases\WINDOWS\OpenBOR\OpenBOR.exe" goto missing
 
-set TOOLS=tools/bin;tools/7-Zip;tools/svn/bin
+set TOOLS=../tools/bin;../tools/7-Zip;../tools/svn/bin
 set PATH=%TOOLS%;%PATH%
 call xbox/make.bat
 bash.exe version.sh 1
