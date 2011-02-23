@@ -394,7 +394,7 @@ endif
 
 
 ifdef BUILD_PSP
-CONSOLE	        = psp/control/control.o                                                             \
+GAME_CONSOLE	        = psp/control/control.o                                                             \
                   psp/dvemgr/dvemgr.o                                                               \
                   psp/kernel/kernel.o                                                               \
                   psp/graphics.o                                                                    \
@@ -411,7 +411,7 @@ endif
 
 
 ifdef BUILD_DC
-CONSOLE	        = dc/dcport.o                                                                       \
+GAME_CONSOLE	        = dc/dcport.o                                                                       \
                   dc/bios.o                                                                         \
                   dc/gdrom.o                                                                        \
                   dc/timer.o                                                                        \
@@ -422,7 +422,7 @@ endif
 
 
 ifdef BUILD_WII
-CONSOLE	        = wii/control.o                                                                     \
+GAME_CONSOLE	        = wii/control.o                                                                     \
                   wii/sblaster.o                                                                    \
                   wii/timer.o                                                                       \
                   wii/video.o                                                                       \
@@ -438,7 +438,7 @@ endif
 
 
 ifdef BUILD_SDL_IO
-CONSOLE	       += sdl/joysticks.o                                                                   \
+GAME_CONSOLE	       += sdl/joysticks.o                                                                   \
                   sdl/control.o                                                                     \
                   sdl/sblaster.o                                                                    \
                   sdl/timer.o                                                                       \
@@ -449,22 +449,22 @@ endif
 
 
 ifdef BUILD_OPENGL
-CONSOLE        += sdl/opengl.o
+GAME_CONSOLE        += sdl/opengl.o
 endif
 
 
 ifdef BUILD_LOADGL
-CONSOLE        += sdl/loadgl.o
+GAME_CONSOLE        += sdl/loadgl.o
 endif
 
 
 ifdef BUILD_GP2X
-CONSOLE	       += sdl/gp2x/gp2xport.o
+GAME_CONSOLE	       += sdl/gp2x/gp2xport.o
 endif
 
 
 ifdef BUILD_WIZ
-CONSOLE	       += sdl/gp2x/gp2xport.o
+GAME_CONSOLE	       += sdl/gp2x/gp2xport.o
 endif
 
 
@@ -472,7 +472,7 @@ endif
 MAIN            = openborscript.o					                                                \
                   openbor.o
 
-OBJS            = $(CONSOLE)                                                                        \
+OBJS            = $(GAME_CONSOLE)                                                                        \
                   $(ADPCM)                                                                          \
                   $(GFX)                                                                            \
                   $(GAME)                                                                           \
