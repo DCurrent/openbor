@@ -1,0 +1,4 @@
+PRJ_PLATFORMS
+DEFAULT gcce
+PRJ_MMPFILES
+..\openbor_uiq3.mmp

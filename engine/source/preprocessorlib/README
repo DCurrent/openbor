@@ -1,0 +1,23 @@
+preprocessorlib
+------------------------------------
+Implementation of a C preprocessor for OpenBOR's script engine, written by 
+Plombo.  Preprocessorlib development for now is done using git, hosted by 
+GitHub:
+
+https://github.com/Plombo/preprocessorlib
+
+It is part of the larger OpenBOR project, hosted at LavaLit.com.
+
+The OpenBOR source code, including preprocessorlib, can be found in the SVN 
+repository at:
+
+https://lavalit.com/svn/openbor
+
+It can be viewed online at:
+
+https://lavalit.com
+
+Preprocessorlib is dual-licensed under LGPLv3 and the OpenBOR license.  If you'd 
+like to use it in your project but are restricted by the licensing options, send 
+me a message on GitHub.
+

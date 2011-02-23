@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.lavalit.openbor</string>
+	<key>CFBundleShortVersionString</key>
+	<string>3.0 2832</string>
+	<key>CFBundleGetInfoString</key>
+	<string>OpenBOR 3.0 Build 2832</string>
+	<key>CFBundleLongVersionString</key>
+	<string>OpenBOR 3.0 Build 2832</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>OpenBOR 3.0 Build 2832</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleSignature</key>
+	<string>OBOR</string>
+	<key>CFBundleName</key>
+	<string>OpenBOR</string>
+	<key>CFBundleExecutable</key>
+	<string>OpenBOR</string>
+	<key>CFBundleVersion</key>
+	<string>3.0 Build 2832</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>LSRequiresCarbon</key>
+	<true/>
+	<key>LSMinimumSystemVersion</key>
+	<string>10.5</string>
+	<key>LSMultipleInstancesProhibited</key>
+	<true/>
+	<key>CFBundleIconFile</key>
+	<string>OpenBOR</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>pak</string>
+				<string>PAK</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>OpenBOR.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>PAK File</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>pak</string>
+				<string>PAK</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>spk</string>
+				<string>SPK</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>OpenBOR.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>SPK File</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>spk</string>
+				<string>SPK</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+	</array>
+</dict>
+</plist>
