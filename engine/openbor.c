@@ -12,9 +12,6 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include    "openbor.h"
-//#include <stddef.h>
-//#include <string.h>
-#include <assert.h>
 
 /////////////////////////////////////////////////////////////////////////////
 //  Global Variables                                                        //
@@ -866,7 +863,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
          var->lVal = (LONG)getUsedRam(KBYTES);
         break;
     default:
-		// We use indices now, but players/modders don't need to be exposed 
+		// We use indices now, but players/modders don't need to be exposed
 		// to that implementation detail, so we write "name" and not "index".
         printf("Unknown system property name.\n");
         return 0;
@@ -880,10 +877,10 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
     //char* tempstr = NULL;
     LONG ltemp;
     //DOUBLE dbltemp;
-	
-	// This enum is replicated in mapstrings_changesystemvariant in 
+
+	// This enum is replicated in mapstrings_changesystemvariant in
 	// openborscript.c. If you change one, you must change the other as well!!!!
-	enum changesystemvariant_enum 
+	enum changesystemvariant_enum
     {
 		_csv_blockade,
 		_csv_elapsed_time,
@@ -903,7 +900,7 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 		_csv_ypos,
 		_csv_the_end,
      };
-	
+
 	switch(index)
 	{
     case _csv_elapsed_time:
@@ -971,7 +968,7 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 	default:
 		return 0;
     }
-	
+
     return 1;
 }
 
@@ -981,19 +978,19 @@ int load_script(Script* script, char* file)
 	size_t size = 0;
 	int failed = 0;
 	char* buf = NULL;
-	
+
 	if(buffer_pakfile(file, &buf, &size)!=1) return 0;
 
 	failed = !Script_AppendText(script, buf, file);
-	
+
 	if(buf != NULL)
 	{
 		tracefree(buf);
 		buf = NULL;
 	}
-    
+
 	// text loaded but parsing failed, shutdown
-	if(failed) shutdown(1, "Failed to parse script file: '%s'!\n", file);    
+	if(failed) shutdown(1, "Failed to parse script file: '%s'!\n", file);
 	return !failed;
 }
 
@@ -1233,10 +1230,10 @@ void execute_onblocks_script(entity* ent)
         tempvar.ptrVal = (VOID*)ent;
         Script_Set_Local_Variant("self", &tempvar);
         Script_Execute(ent->onblocks_script);
-        
+
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
-        Script_Set_Local_Variant("self", &tempvar);        
+        Script_Set_Local_Variant("self", &tempvar);
     }
     pcurrentscript = ptempscript;
 }
@@ -2291,14 +2288,14 @@ int load_colourmap(s_model * model, char *image1, char *image2)
 	}
     if((bitmap1 = loadbitmap(image1, packfile, PIXEL_8)) == NULL)
 	{
-		tracefree(map); 
+		tracefree(map);
 		map = NULL;
 		return -3;
 	}
     if((bitmap2 = loadbitmap(image2, packfile, PIXEL_8)) == NULL)
 	{
 		freebitmap(bitmap1);
-		tracefree(map); 
+		tracefree(map);
 		map = NULL;
 		return -4;
 	}
@@ -2643,7 +2640,7 @@ void load_background(char *filename, int createtables)
 		{
 			shutdown(1, "Error loading background (PIXEL_8) file '%s'", filename);
 		}
-	}			
+	}
     else if(pixelformat==PIXEL_x8)
     {
 		if(!loadscreen(filename, packfile, NULL, PIXEL_x8, &background))
@@ -2726,7 +2723,7 @@ void load_cached_background(char *filename, int createtables)
 		memcpy(background->palette, bg_cache[index]->palette, PAL_BYTES);
 		memcpy(pal, background->palette, PAL_BYTES);
 	}
-    
+
 
 	if(createtables)
 	{
@@ -2747,7 +2744,7 @@ void cache_background(char *filename)
 {
 	s_screen *bg = allocscreen(videomodes.hRes, videomodes.vRes, pixelformat);
 	int index = -1;
-	
+
 	if(pixelformat==PIXEL_8)
 	{
 		if(!loadscreen(filename, packfile, pal, pixelformat, &bg))
@@ -2790,7 +2787,7 @@ void cache_background(char *filename)
 	else shutdown(1, "Error: unknown cached background '%s'", filename);
 
 	bg_cache[index] = bg;
-	
+
 	if(pixelformat==PIXEL_8)
 		memcpy(bg_palette_cache[index], pal, PAL_BYTES);
 
@@ -3795,7 +3792,7 @@ void add_cache_map(size_t size)
 			cache_map_max_items += 128;
 		}
 		while (size + 1 > cache_map_max_items);
-		
+
 		model_cache = tracerealloc(model_cache, sizeof(s_modelcache) * cache_map_max_items);
 		if(model_cache == NULL) shutdown(1, "Out Of Memory!  Failed to create a new cache_map\n");
 	}
@@ -3867,8 +3864,8 @@ void add_model_map(size_t size)
 		do {
 			model_map_max_items += 64;
 		}
-		while (size + 1 > model_map_max_items);		
-		
+		while (size + 1 > model_map_max_items);
+
 		model_map = tracerealloc(model_map, sizeof(s_model_map) * model_map_max_items);
 		if(model_map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new model_map\n");
 	}
@@ -3924,12 +3921,12 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		soundtoplay = -1,
 		aimoveset = 0,
 		maskindex = -1;
-	
+
 	size_t size = 0,
 		len = 0;
 	ptrdiff_t pos = 0,
 		index = 0;
-		
+
 	short bbox[5] = { 0,0,0,0,0 },
 		bbox_con[5] = { 0,0,0,0,0 },
 		abox[5] = { 0,0,0,0,0 },
@@ -3970,7 +3967,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	static const char* if_text = // this is the if expression of frame function
 		"        if(frame==%d)\n"
 		"        {\n";
-	
+
 	static const char* endif_text = // end of if
 		"\n"
 		"        }\n" ;
@@ -4377,7 +4374,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 			value = findarg(buf+pos, 1);
 			newchar->stats[atoi(value)] = atof(findarg(buf+pos, 2));
 		}
-		else if(stricmp(command, "health")==0){                          
+		else if(stricmp(command, "health")==0){
 			value = findarg(buf+pos, 1);
 			newchar->health = atoi(value);
 		}
@@ -6680,7 +6677,7 @@ x(stricmp(value, #y)==0)\
 			else if(stricmp(command, "counterrange")==0){
 				newanim->counterframe[0]	= atoi(findarg(buf+pos, 1));
 				newanim->counterframe[1]	= atoi(findarg(buf+pos, 2));
-				newanim->counterframe[2]	= atoi(findarg(buf+pos, 3));	
+				newanim->counterframe[2]	= atoi(findarg(buf+pos, 3));
 				newanim->counterframe[3]	= atoi(findarg(buf+pos, 4));
             }
             else if(stricmp(command, "weaponframe")==0){
@@ -7024,7 +7021,7 @@ int load_models()
 	{
 		clearscreen(vscreen);
 		spriteq_clear();
-	}	
+	}
     if(loadingbg[0][0])
     {
 	    standard_palette(1);
@@ -8737,7 +8734,7 @@ void load_level(char *filename){
 					printf("loadpanel :%s :%s :%s failed\n", findarg(buf+pos, 1), findarg(buf+pos, 2), findarg(buf+pos, 3));
 					assert(0);
 				}
-					
+
 			}
 			else if(stricmp(command, "stagenumber")==0){
 				current_stage = atoi(findarg(buf+pos, 1));
@@ -8754,7 +8751,7 @@ void load_level(char *filename){
 					if(j>='A' && j<='Z') j-='A';
 					else if(j>='a' && j<='z') j-='a';
 					else shutdown(1, "Illegal character in panel order: '%c' (%02Xh)", j, j);
-	
+
 					if(j >= panels_loaded) shutdown(1, "Illegal panel index: %i (only %i panels loaded)", j, panels_loaded);
 
 					level->order[level->numpanels] = j;
@@ -9338,7 +9335,7 @@ void pausemenu()
         _menutextm((pauselector==1), 0, 0, "End Game");
 
         update(1,0);
-		
+
         if(bothnewkeys & (FLAG_MOVEUP|FLAG_MOVEDOWN)){
             pauselector ^= 1;
             sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
@@ -10826,8 +10823,8 @@ int checkhit(entity *attacker, entity *target, int counter)
     if(attacker == target || !target->animation->bbox_coords ||
        !attacker->animation->attacks || !target->animation->vulnerable[target->animpos] ||
        ((attacker->modeldata.type == TYPE_PLAYER && target->modeldata.type == TYPE_PLAYER) && savedata.mode)) return 0;
-	
-	
+
+
     coords1 = attacker->animation->attacks[attacker->animpos]->attack_coords;
 
     if(!counter) coords2 = target->animation->bbox_coords[target->animpos];
@@ -11202,7 +11199,7 @@ void do_attack(entity *e)
     current_anim = e->animation;
 
     for(i=0; i<ent_max && !followed; i++)
-    {	
+    {
 
 		// if #0
         if( ent_list[i]->exists &&
@@ -11219,11 +11216,11 @@ void do_attack(entity *e)
              (attack->counterattack && checkhit(e, ent_list[i], 1)))  )// check counter, e.g. upper
         {
     		temp = self;
-            self = ent_list[i];		
-			
-			execute_ondoattack_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, current_attack_id);	//Execute on defender.			
+            self = ent_list[i];
+
+			execute_ondoattack_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, current_attack_id);	//Execute on defender.
 			execute_ondoattack_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, current_attack_id);	//Execute on attacker.
-			
+
 			if(!lasthitc){	return;	}	//12312010, DC: Allows modder to cancel engine's attack handling. Useful for parry systems, alternate blocking, or other scripted hit events.
 
             didhit = 1;
@@ -11336,10 +11333,10 @@ void do_attack(entity *e)
                     !self->frozen)// &&																								//Not frozen?
                     //(self->animation->counterframe[2] <= 1 && e->modeldata.type & them)) //&&												//Friend/foe?
                     //(self->animation->counterframe[2] <= 3 && !attack->no_block) &&														//Counter attack self couldn't block?
-                    //self->animation->counterframe[2] <= 2 || 
+                    //self->animation->counterframe[2] <= 2 ||
 					//self->animation->counterframe[2] <= 2 || !(self->direction == e->direction)) //&&										//Direction check.
                     //(self->animation->counterframe[2] <= 3 || !attack->freeze))															//Freeze attacks?
-					
+
 					//&& (!self->animation->counterframe[3] || self->health > force))													// Does damage matter?
                 {
                     if(self->animation->counterframe[3]) self->health -= force;					// Take damage?
@@ -11757,10 +11754,10 @@ void check_ai()
 			// use noaicontrol flag to turn of A.I. think
             if(!self->noaicontrol) self->think();
         }
-		
+
 		// Execute think script
 		execute_think_script(self);
-		
+
         // A.I. move
         if (self->xdir || self->zdir)
         {
@@ -13902,13 +13899,13 @@ void checkdamage(entity* other, s_attack* attack)
         force = (int)(force * other->modeldata.offense_factors[type]);
         force = (int)(force * self->modeldata.defense_factors[type]);
     }
-    
+
     self->health -= force; //Apply damage.
 
     if (self->health > self->modeldata.health) self->health = self->modeldata.health; //Cap negative damage to max health.
 
     execute_takedamage_script(self, other, force, attack->attack_drop, type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);                       //Execute the take damage script.
-    
+
     if (self->health <= 0)                                      //Health at 0?
     {
         if(!(self->a < PIT_DEPTH || self->lifespancountdown<0)) //Not a pit death or countdown?
@@ -14541,7 +14538,7 @@ int common_trymove(float xdir, float zdir)
             }
         }
     }
-   
+
 
     if(!xdir && !zdir) return 0;
     x = self->x + xdir;  z = self->z + zdir;
@@ -14791,7 +14788,7 @@ int common_try_jump()
 	can probably be moved to a function later.
 	*/
 	if(!j && validanim(self, ANI_RUNJUMP))														//Jump check failed and can run jump?
-	{	
+	{
 		//Check for wall in range of RUNJUMP.
 		xdir = 0; wall = -1;
 		rmin = (float)self->modeldata.animation[ANI_RUNJUMP]->range[0];
@@ -14821,7 +14818,7 @@ int common_try_jump()
     {
         if(self->running || j==2)
         {
-            if(validanim(self,ANI_RUNJUMP))														//Running or only within range of RUNJUMP?														
+            if(validanim(self,ANI_RUNJUMP))														//Running or only within range of RUNJUMP?
                 tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed*self->modeldata.runjumpdist, (self->modeldata.jumpmovez)?self->zdir:0, ANI_RUNJUMP);
             else if(validanim(self,ANI_FORWARDJUMP))
                 tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed*self->modeldata.runjumpdist, (self->modeldata.jumpmovez)?self->zdir:0, ANI_FORWARDJUMP);
@@ -15914,27 +15911,27 @@ int check_energy(int which, int ani)
 	{
 		iCost[2]	= self->modeldata.animation[ani]->energycost[2];			//Get disable flag.
 		iType		= self->modeldata.type;										//Get entity type.
-		
-		/* DC 05082010: It is now possible to individualy disable specials. In 
-		many cases (weapons in particular) this can	help cut down the need for 
-		superflous models when differing abilities are desired for players, 
+
+		/* DC 05082010: It is now possible to individualy disable specials. In
+		many cases (weapons in particular) this can	help cut down the need for
+		superflous models when differing abilities are desired for players,
 
 		enemies, or npcs. */
 		if(!(iCost[2]==iType													//Disabled by type?
-			|| (iCost[2]==-1)													//Disabled for all?		
+			|| (iCost[2]==-1)													//Disabled for all?
 			|| (iCost[2]==-2 && (iType == TYPE_ENEMY || iType == TYPE_NPC))		//Disabled for all AI?
 			|| (iCost[2]==-3 && (iType == TYPE_PLAYER || iType == TYPE_NPC))	//Disabled for players & NPCs?
 			|| (iCost[2]==-4 && (iType == TYPE_PLAYER || iType == TYPE_ENEMY))))//Disabled for all AI?
-		{		
+		{
 			iCost[0] = self->modeldata.animation[ani]->energycost[0];			//Get energy cost amount
 			iCost[1] = self->modeldata.animation[ani]->energycost[1];			//Get energy cost type.
-			
-			if(!self->seal || self->seal >= iCost[0])							//No seal or seal is less/same as energy cost?				
+
+			if(!self->seal || self->seal >= iCost[0])							//No seal or seal is less/same as energy cost?
 			{
 				if(validanim(self,ani) &&										//Validate the animation one more time.
 						((which &&												//Check magic validity
 						(iCost[1] != 2) &&										//2 = From health bar only, 0 from both
-						(self->mp >= iCost[0])) ||						
+						(self->mp >= iCost[0])) ||
 						(!which &&												//Checks health validity
 						(iCost[1] != 1) &&										//1 = From magic bar only, 0 from both
 						(self->health > iCost[0]))))
@@ -16788,14 +16785,14 @@ void player_jump_check()
     if(self->modeldata.jumpmovex&2) //move?
     {
        if(((player[(int)self->playerindex].keys & FLAG_MOVELEFT)&&self->xdir>0) ||
-          ((player[(int)self->playerindex].keys & FLAG_MOVERIGHT)&&self->xdir<0))	self->xdir = -self->xdir;		
-    }	
+          ((player[(int)self->playerindex].keys & FLAG_MOVERIGHT)&&self->xdir<0))	self->xdir = -self->xdir;
+    }
 	if(self->modeldata.jumpmovex&4) //Move x if vertical jump?
 	{
 		if(((player[(int)self->playerindex].keys & FLAG_MOVELEFT)&&self->xdir>0) ||
-          ((player[(int)self->playerindex].keys & FLAG_MOVERIGHT)&&self->xdir<0))	self->xdir = -self->xdir;		
+          ((player[(int)self->playerindex].keys & FLAG_MOVERIGHT)&&self->xdir<0))	self->xdir = -self->xdir;
 
-		if((player[(int)self->playerindex].keys & FLAG_MOVELEFT) && (!self->xdir)) 
+		if((player[(int)self->playerindex].keys & FLAG_MOVELEFT) && (!self->xdir))
 		{
 			self->xdir -= self->modeldata.speed;
 		}
@@ -16817,7 +16814,7 @@ void player_jump_check()
 		if(((player[(int)self->playerindex].keys & FLAG_MOVEUP)&&self->zdir>0) ||
           ((player[(int)self->playerindex].keys & FLAG_MOVEDOWN)&&self->zdir<0)) self->zdir = -self->zdir;
 
-		if((player[(int)self->playerindex].keys & FLAG_MOVEUP) && (!self->zdir)) 
+		if((player[(int)self->playerindex].keys & FLAG_MOVEUP) && (!self->zdir))
 		{
 			self->zdir -= (0.5 * self->modeldata.speed);
 		}
@@ -17978,7 +17975,7 @@ void dropweapon(int flag)
         }
         else set_weapon(self, 0, 0);
     }
-    
+
     if(self->modeldata.weaploss[1]>0)
     {
         set_weapon(self, self->modeldata.weaploss[1], 0);
@@ -19555,9 +19552,9 @@ void draw_textobjs()
     int i;
     s_textobj* textobj;
     for(i = 0;i < LEVEL_MAX_TEXTOBJS;i++)
-    {		
+    {
          textobj = level->textobjs + i;
-         
+
 		if(textobj->t && textobj->t <= time)		//If a time was set and passed, remove the text object.
 		{
 			level->textobjs[i].t	= 0;
@@ -19697,10 +19694,10 @@ void update(int ingame, int usevwait)
 
 
 // ----------------------------------------------------------------------
-/* Plombo 9/4/2010: New function that can use brightness/gamma correction  
+/* Plombo 9/4/2010: New function that can use brightness/gamma correction
  * independent from the global palette on platforms where it's available.
- * Hardware accelerated brightness/gamma correction is available on Wii and 
- * OpenGL platforms using TEV and GLSL, respectively. Returns 1 on success, 0 on 
+ * Hardware accelerated brightness/gamma correction is available on Wii and
+ * OpenGL platforms using TEV and GLSL, respectively. Returns 1 on success, 0 on
  * error. */
 int set_color_correction(int gm, int br)
 {
@@ -20102,13 +20099,13 @@ void startup(){
 	control_init(savedata.usejoy);
 	apply_controls();
 	printf("Done!\n");
-	
+
 #if WII
 	printf("Caching backgrounds..........\t");
 	cache_all_backgrounds();
 	printf("Done!\n");
 #endif
-	
+
 	printf("\n\n");
 
 	for(i=0; i<MAX_PAL_SIZE/4; i++) neontable[i] = i;
@@ -21343,7 +21340,7 @@ readfile:
 		printf("'%s' not found.\n", filename);
 		goto VIDEOMODES;
 	}
-	
+
 	printf("Reading video settings from '%s'.\n", filename);
 
     // Now interpret the contents of buf line by line
@@ -21541,7 +21538,7 @@ VIDEOMODES:
 						"6 - 960x540\n\n", videoMode);
 			break;
     }
-   
+
 #if SDL || WII
     video_stretch(savedata.stretch);
 #endif
@@ -22177,7 +22174,7 @@ void system_options(){
 
     while(!quit){
         _menutextm(2, -5, 0, "System Options");
-		
+
         _menutext(0, col1, -2, "Total RAM:");
         _menutext(0, col2, -2, "%s KBytes", commaprint(getSystemRam(KBYTES)));
 
@@ -22364,16 +22361,16 @@ void video_options(){
 #ifndef GP2X
         _menutext((selector==3), col1, 0, "Display Mode:");
         _menutext((selector==3), col2, 0, "%s", savedata.fullscreen ? "Full" : "Window");
-        
+
         _menutext((selector==4), col1, 1, "Video Backend:");
         _menutext((selector==4), col2, 1, savedata.fullscreen ? "Automatic (%s)" : "%s", opengl ? "OpenGL" : "SDL");
-        
+
         if(opengl)
         {
             _menutext((selector==5), col1, 2, "Screen:");
             if(savedata.fullscreen) _menutext((selector==5), col2, 2, "Automatic");
             else _menutext((selector==5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes*savedata.glscale), (int)(videomodes.vRes*savedata.glscale));
-            
+
             _menutext((selector==6), col1, 3, "Filters:");
             if(savedata.fullscreen) _menutext((selector==6), col2, 3, "Automatic (Bilinear)");
             else _menutext((selector==6), col2, 3, "%s", savedata.glscale!=1.0 ? (savedata.glfilter ? "Simple" : "Bilinear") : "Disabled");
@@ -22383,11 +22380,11 @@ void video_options(){
             _menutext((selector==5), col1, 2, "Screen:");
             if(savedata.screen[videoMode][0]) _menutext((selector==3), col2, 2, "%ix - %ix%i", savedata.screen[videoMode][0], videomodes.hRes*savedata.screen[videoMode][0], videomodes.vRes*savedata.screen[videoMode][0]);
             else _menutext((selector==5), col2, 2, "Disabled");
-            
+
             _menutext((selector==6), col1, 3, "Filters:");
             _menutext((selector==6), col2, 3, "%s", savedata.screen[videoMode][0]==2 ? GfxBlitterNames[(int)savedata.screen[videoMode][1]] : "Disabled");
         }
-        
+
         if(savedata.fullscreen)
         {
         	_menutext((selector==7), col1, 4, "Fullscreen Type:");
@@ -22791,7 +22788,7 @@ void display_logfile()
 void openborMain()
 {
 	sprite_map = NULL;
-	int quit = 0;    
+	int quit = 0;
 	int relback = 1;
 	int selector = 0;
 	u32 introtime = 0;
@@ -22899,7 +22896,7 @@ void openborMain()
     printf("Game Selected: %s\n\n", packfile);
     loadsettings();
 	startup();
-	
+
     // New alternative background path for PSP
 	if(custBkgrds != NULL)
 	{
