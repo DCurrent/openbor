@@ -589,6 +589,17 @@ LIBS 	       += -lpspgu -lpspaudio -lpsppower -lpsprtc
 endif
 
 
+ifdef BUILD_DARWIN
+LIBS           += -Wl,-syslibroot,$(SDKPATH) \
+                  -framework Cocoa \
+                  -framework OpenGL \
+                  -framework Carbon \
+                  -framework AudioUnit \
+                  -framework IOKit \
+                  -lSDLmain
+endif
+
+
 ifdef BUILD_SDL
 ifdef BUILD_WIZ
 LIBS           += -lSDL -lSDL_gfx -lts
@@ -605,16 +616,6 @@ endif
 
 ifdef BUILD_PTHREAD
 LIBS           += -lpthread 
-endif
-
-
-ifdef BUILD_DARWIN
-LIBS           += -Wl,-syslibroot,$(SDKPATH) \
-                  -framework Cocoa \
-                  -framework OpenGL \
-                  -framework Carbon \
-                  -framework AudioUnit \
-                  -framework IOKit
 endif
 
 
