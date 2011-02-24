@@ -13,6 +13,12 @@
 
 #include <string.h>
 
+#ifdef DEBUG
+#ifndef NO_RAM_DEBUGGER
+#define RAM_DEBUG 1
+#endif
+#endif
+
 /////////////////////////////////////////////////////////////////////////////
 
 extern size_t tracemalloc_total;
