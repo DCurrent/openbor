@@ -384,7 +384,8 @@ RAM             = source/ramlib/ram.o
 RAND	        = source/randlib/rand32.o
 TRACE           = source/tracelib/tracemalloc.o
 XPM             = source/xpmlib/xpm.o
-SOURCE	        = source/utils.o                                                                    \
+SOURCE	        = source/stringptr.o                                                                \
+				  source/utils.o                                                                    \
                   source/stristr.o
 
 
