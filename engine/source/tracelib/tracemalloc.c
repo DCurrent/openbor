@@ -24,25 +24,25 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #ifdef DEBUG
-static int *tracehead = NULL;
-unsigned long tracemalloc_total = 0;
+static ptrdiff_t *tracehead = NULL;
+size_t tracemalloc_total = 0;
 
 #if defined(GP2X) && !defined(WIZ)
 	#define TRACE_BYTES 20
 	#define TRACE_SIZE 4
-#else
-	#define TRACE_BYTES 16
+#else	
+	#define TRACE_BYTES 4 * sizeof(void*)
 	#define TRACE_SIZE 3
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
 
-static void tracemalloc_dump_collect(int *p, int *len, int *nalloc)
+static void tracemalloc_dump_collect(ptrdiff_t *p, size_t *len, size_t *nalloc)
 {
-	int name = p[2];
+    ptrdiff_t name = p[2];
     *len = 0;
     *nalloc = 0;
-    for(; p; p = (int*)(p[1]))
+    for(; p; p = (ptrdiff_t*)(p[1]))
     {
 		if(p[2] == name && p[TRACE_SIZE] > 0)
 		{
@@ -57,21 +57,21 @@ static void tracemalloc_dump_collect(int *p, int *len, int *nalloc)
 int tracemalloc_dump(void)
 {
 #ifdef DEBUG
-	int totalbytes = 0;
-	int *p, *pp;
-	for(p = tracehead; p; p = (int*)(p[1]))
+	size_t totalbytes = 0;
+	ptrdiff_t *p, *pp;
+	for(p = tracehead; p; p = (ptrdiff_t*)(p[1]))
 	{
 		if(p[TRACE_SIZE] > 0)
 		{
 			const char *name = (const char*)(p[2]);
-			int len = 0;
-			int nalloc = 0;
+			size_t len = 0;
+			size_t nalloc = 0;
 			tracemalloc_dump_collect(p, &len, &nalloc);
 			printf("%s: %d bytes in %d allocs\n", name, len, nalloc);
 			totalbytes += len;
 		}
 	}
-	for(p = tracehead; p; pp = p, p = (int*)(p[1]), free(pp))
+	for(p = tracehead; p; pp = p, p = (ptrdiff_t*)(p[1]), free(pp))
 		if(p[TRACE_SIZE] < 0) p[TRACE_SIZE] = -p[TRACE_SIZE];
     if(totalbytes)
 	{
@@ -82,9 +82,9 @@ int tracemalloc_dump(void)
 	return 0;
 }
 
-void *tracemalloc(const char *name, int len)
+void *tracemalloc(const char *name, size_t len)
 {
-	int *p;
+	ptrdiff_t *p;
 
 #ifndef DEBUG
 #if defined(GP2X) && !defined(WIZ)
@@ -97,7 +97,7 @@ void *tracemalloc(const char *name, int len)
 #endif
 
 #if defined(GP2X) && !defined(WIZ)
-	int uRam = 0;
+	ptrdiff_t uRam = 0;
 	if(!p)
 	{
 #ifdef DEBUG
@@ -121,10 +121,10 @@ void *tracemalloc(const char *name, int len)
 #endif
 
 #ifdef DEBUG
-	if(tracehead) tracehead[0] = (int)p;
+	if(tracehead) tracehead[0] = (ptrdiff_t)p;
 	p[0] = 0;
-	p[1] = (int)tracehead;
-	p[2] = (int)name;
+	p[1] = (ptrdiff_t)tracehead;
+	p[2] = (ptrdiff_t)name;
 #endif
 
 #if defined(GP2X) && !defined(WIZ)
@@ -149,14 +149,14 @@ void *tracemalloc(const char *name, int len)
 void tracefree(void *vp)
 {
 #ifdef DEBUG
-	int *p = NULL;
-	int *p_from_prev = NULL;
-	int *p_from_next = NULL;
-	p = ((int*)vp) - (TRACE_SIZE + 1);
+	ptrdiff_t *p = NULL;
+	ptrdiff_t *p_from_prev = NULL;
+	ptrdiff_t *p_from_next = NULL;
+	p = ((ptrdiff_t*)vp) - (TRACE_SIZE + 1);
 	tracemalloc_total -= TRACE_BYTES + p[TRACE_SIZE];
 	if(p == tracehead) p_from_prev = (void*)(&tracehead);
-	else               p_from_prev = (int*)(p[0] + 4);
-	p_from_next = (int*)(p[1]);
+	else               p_from_prev = (ptrdiff_t*)(p[0] + sizeof(ptrdiff_t));
+	p_from_next = (ptrdiff_t*)(p[1]);
 	if(p_from_prev) *p_from_prev = p[1];
 	if(p_from_next) *p_from_next = p[0];
 #endif
@@ -166,7 +166,7 @@ void tracefree(void *vp)
 	if(p[3]) UpperFree(p);
 	else free(p);
 #else
-	if(((int*)(vp))[0]) UpperFree(vp);
+	if(((ptrdiff_t*)(vp))[0]) UpperFree(vp);
 	else free(vp);
 #endif
 #else
@@ -180,7 +180,7 @@ void tracefree(void *vp)
 
 #ifdef WIN
 // The Windows CRT has a buggy realloc() implementation; use a generic substitute
-void *fakerealloc(void *vp, int len, int oldlen)
+void *fakerealloc(void *vp, size_t len, size_t oldlen)
 {
 	void *vp2 = tracemalloc("tracerealloc", len);
 	if(!vp2) return NULL;
@@ -192,7 +192,7 @@ void *fakerealloc(void *vp, int len, int oldlen)
 #endif
 
 // Plombo Nov 21 2010: add realloc() functionality to tracelib
-void *tracerealloc(void *vp, int len, int oldlen)
+void *tracerealloc(void *vp, size_t len)
 {
 	if(!vp) // realloc(NULL, len) == malloc(len)
 		return tracemalloc("tracerealloc", len);
@@ -205,7 +205,7 @@ void *tracerealloc(void *vp, int len, int oldlen)
 	{
 #ifdef DEBUG
 		char *p = ((char*)vp) - TRACE_BYTES;
-		int *vp2 = realloc(p, len + TRACE_BYTES);
+		ptrdiff_t *vp2 = realloc(p, len + TRACE_BYTES);
 		if(!vp2) return NULL;
 		tracemalloc_total -= vp2[TRACE_SIZE];
 		vp2[TRACE_SIZE] = len;
@@ -219,7 +219,7 @@ void *tracerealloc(void *vp, int len, int oldlen)
 }
 
 // Plombo 11/21/10: add a calloc() function to tracelib
-void *tracecalloc(const char *name, int len)
+void *tracecalloc(const char *name, size_t len)
 {
 	void *ptr = tracemalloc(name, len);
 	if(ptr) memset(ptr, 0, len);

@@ -17,6 +17,7 @@
 #include "gfx.h"
 #include "hankaku.h"
 #include "stristr.h"
+#include "stringptr.h"
 #include "xpm.h"
 #include "../resources/OpenBOR_Logo_320x240.h"
 #include "../resources/OpenBOR_Logo_480x272.h"
@@ -65,11 +66,10 @@ extern u32 bothkeys, bothnewkeys;
 fileliststruct *filelist;
 
 typedef struct{
-    char *buf;
+    stringptr *buf;
     int *pos;
     int line;
     int rows;
-    int size;
     char ready;
 }s_logfile;
 s_logfile logfile[2];
@@ -89,25 +89,24 @@ int Control()
 
 void getAllLogs()
 {
-    int i, j, k;
+    ptrdiff_t i, j, k;
     for(i=0; i<2; i++)
     {
         logfile[i].buf = readFromLogFile(i);
         if(logfile[i].buf != NULL)
-        {
-            logfile[i].size = strlen(logfile[i].buf);
+        {            
             logfile[i].pos = tracemalloc("pos #1", ++logfile[i].rows * sizeof(int));
             if(logfile[i].pos == NULL) return;
             memset(logfile[i].pos, 0, logfile[i].rows * sizeof(int));
 
-            for(k=0, j=0; j<logfile[i].size; j++)
+            for(k=0, j=0; j<logfile[i].buf->size; j++)
             {
                 if(!k)
                 {
                     logfile[i].pos[logfile[i].rows - 1] = j;
                     k = 1;
                 }
-                if(logfile[i].buf[j]=='\n')
+                if(logfile[i].buf->ptr[j]=='\n')
                 {
                     int *_pos = tracemalloc("_pos", ++logfile[i].rows * sizeof(int));
                     if(_pos == NULL) return;
@@ -120,10 +119,10 @@ void getAllLogs()
                     memcpy(logfile[i].pos, _pos, logfile[i].rows * sizeof(int));
                     tracefree(_pos);
                     _pos = NULL;
-                    logfile[i].buf[j] = 0;
+                    logfile[i].buf->ptr[j] = 0;
                     k = 0;
                 }
-                if(logfile[i].buf[j]=='\r') logfile[i].buf[j] = 0;
+                if(logfile[i].buf->ptr[j]=='\r') logfile[i].buf->ptr[j] = 0;
                 if(logfile[i].rows>0xFFFFFFFE) break;
             }
             logfile[i].ready = 1;
@@ -138,7 +137,7 @@ void freeAllLogs()
     {
         if(logfile[i].ready)
         {
-            tracefree(logfile[i].buf);
+            free_string(logfile[i].buf);
             logfile[i].buf = NULL;
             tracefree(logfile[i].pos);
             logfile[i].pos = NULL;
@@ -770,8 +769,8 @@ void drawLogs()
                     char textpad[480] = {""};
                     for(k=0; k<480; k++)
                     {
-                        if(!logfile[i].buf[logfile[i].pos[j]+k]) break;
-                        textpad[k] = logfile[i].buf[logfile[i].pos[j]+k];
+                        if(!logfile[i].buf->ptr[logfile[i].pos[j]+k]) break;
+                        textpad[k] = logfile[i].buf->ptr[logfile[i].pos[j]+k];
                     }
                     if(logfile[i].rows>0xFFFF)
                         printText(5, l*10, WHITE, 0, 0, "0x%08x:  %s", j, textpad);

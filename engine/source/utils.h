@@ -11,6 +11,7 @@
 
 // *** INCLUDES ***
 #include "types.h"
+#include "stringptr.h"
 
 // *** TYPE DECLARATIONS ***
 #define SCRIPT_LOG 0
@@ -27,7 +28,7 @@ void writeToScriptLog(const char *msg);
 #ifndef DC
 int fileExists(char *fnam);
 int dirExists(char *dname, int create);
-char* readFromLogFile(int which);
+stringptr* readFromLogFile(int which);
 #endif
 
 #if XBOX || DC

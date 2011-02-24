@@ -12,6 +12,9 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include    "openbor.h"
+//#include <stddef.h>
+//#include <string.h>
+#include <assert.h>
 
 /////////////////////////////////////////////////////////////////////////////
 //  Global Variables                                                        //
@@ -26,6 +29,10 @@ char                bgbuffer_updated    = 0;
 s_bitmap*           texture             = NULL;
 s_videomodes        videomodes;
 s_spawn_script_cache_node* spawn_script_cache_head = NULL;
+int sprite_map_max_items = 0;
+int model_map_max_items = 0;
+int cache_map_max_items = 0;
+
 
 //see types.h
 const s_drawmethod plainmethod = {
@@ -549,7 +556,7 @@ extern Script* pcurrentscript;//used by local script functions
 //-------------------------methods-------------------------------
 
 // returns: 1 - succeeded 0 - failed
-int buffer_pakfile(char* filename, char** pbuffer, int* psize)
+int buffer_pakfile(char* filename, char** pbuffer, size_t* psize)
 {
     int handle;
     *psize = 0;
@@ -971,139 +978,138 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 
 int load_script(Script* script, char* file)
 {
-    int size = 0;
-    int failed = 0;
-    char* buf = NULL;
-    
-    if(buffer_pakfile(file, &buf, &size)!=1) return 0;
+	size_t size = 0;
+	int failed = 0;
+	char* buf = NULL;
+	
+	if(buffer_pakfile(file, &buf, &size)!=1) return 0;
 
-    failed = !Script_AppendText(script, buf, file);
+	failed = !Script_AppendText(script, buf, file);
+	
+	if(buf != NULL)
+	{
+		tracefree(buf);
+		buf = NULL;
+	}
     
-    if(buf != NULL)
-    {
-        tracefree(buf);
-        buf = NULL;
-    }
-    
-    // text loaded but parsing failed, shutdown
-    if(failed) shutdown(1, "Failed to parse script file: '%s'!\n", file);
-    
-    return !failed;
+	// text loaded but parsing failed, shutdown
+	if(failed) shutdown(1, "Failed to parse script file: '%s'!\n", file);    
+	return !failed;
 }
 
 // this method is used by load_scripts, don't call it
 void init_scripts()
 {
-    int i;
-    Script_Global_Init();
-    Script_Init(&update_script,     "update",   1);
-    Script_Init(&level_script,      "level",    1);
-    Script_Init(&endlevel_script,   "endlevel", 1);
-    Script_Init(&key_script_all,    "keyall",   1);
-    Script_Init(&timetick_script,   "timetick", 1);
-    for(i=0; i<4; i++) Script_Init(&score_script[i],    "score",    1);
-    for(i=0; i<4; i++) Script_Init(&key_script[i],      "key",      1);
-    for(i=0; i<4; i++) Script_Init(&join_script[i],     "join",     1);
-    for(i=0; i<4; i++) Script_Init(&respawn_script[i],  "respawn",  1);
-    for(i=0; i<4; i++) Script_Init(&pdie_script[i],     "die",      1);
+	int i;
+	Script_Global_Init();
+	Script_Init(&update_script,     "update",   1);
+	Script_Init(&level_script,      "level",    1);
+	Script_Init(&endlevel_script,   "endlevel", 1);
+	Script_Init(&key_script_all,    "keyall",   1);
+	Script_Init(&timetick_script,   "timetick", 1);
+	for(i=0; i<4; i++) Script_Init(&score_script[i],    "score",    1);
+	for(i=0; i<4; i++) Script_Init(&key_script[i],      "key",      1);
+	for(i=0; i<4; i++) Script_Init(&join_script[i],     "join",     1);
+	for(i=0; i<4; i++) Script_Init(&respawn_script[i],  "respawn",  1);
+	for(i=0; i<4; i++) Script_Init(&pdie_script[i],     "die",      1);
 }
 
 // This method is called once when the engine starts, do not use it multiple times
 // It should be calld after load_script_setting
 void load_scripts()
 {
-    int i;
-    init_scripts();
-     //Script_Clear's second parameter set to 2, because the script fails to load,
-     //and will never have another chance to be loaded, so just clear the variable list in it
-    if(!load_script(&update_script,     "data/scripts/update.c"))   Script_Clear(&update_script,        2);
-    if(!load_script(&updated_script,    "data/scripts/updated.c"))  Script_Clear(&updated_script,       2);
-    if(!load_script(&level_script,      "data/scripts/level.c"))    Script_Clear(&level_script,         2);
-    if(!load_script(&endlevel_script,   "data/scripts/endlevel.c")) Script_Clear(&endlevel_script,      2);
-    if(!load_script(&key_script_all,    "data/scripts/keyall.c"))   Script_Clear(&key_script_all,       2);
-    if(!load_script(&timetick_script,   "data/scripts/timetick.c")) Script_Clear(&timetick_script,      2);
-    if(!load_script(&score_script[0],   "data/scripts/score1.c"))   Script_Clear(&score_script[0],      2);
-    if(!load_script(&score_script[1],   "data/scripts/score2.c"))   Script_Clear(&score_script[1],      2);
-    if(!load_script(&score_script[2],   "data/scripts/score3.c"))   Script_Clear(&score_script[2],      2);
-    if(!load_script(&score_script[3],   "data/scripts/score4.c"))   Script_Clear(&score_script[3],      2);
-    if(!load_script(&key_script[0],     "data/scripts/key1.c"))     Script_Clear(&key_script[0],        2);
-    if(!load_script(&key_script[1],     "data/scripts/key2.c"))     Script_Clear(&key_script[1],        2);
-    if(!load_script(&key_script[2],     "data/scripts/key3.c"))     Script_Clear(&key_script[2],        2);
-    if(!load_script(&key_script[3],     "data/scripts/key4.c"))     Script_Clear(&key_script[3],        2);
-    if(!load_script(&join_script[0],    "data/scripts/join1.c"))    Script_Clear(&join_script[0],       2);
-    if(!load_script(&join_script[1],    "data/scripts/join2.c"))    Script_Clear(&join_script[1],       2);
-    if(!load_script(&join_script[2],    "data/scripts/join3.c"))    Script_Clear(&join_script[2],       2);
-    if(!load_script(&join_script[3],    "data/scripts/join4.c"))    Script_Clear(&join_script[3],       2);
-    if(!load_script(&respawn_script[0], "data/scripts/respawn1.c")) Script_Clear(&respawn_script[0],    2);
-    if(!load_script(&respawn_script[1], "data/scripts/respawn2.c")) Script_Clear(&respawn_script[1],    2);
-    if(!load_script(&respawn_script[2], "data/scripts/respawn3.c")) Script_Clear(&respawn_script[2],    2);
-    if(!load_script(&respawn_script[3], "data/scripts/respawn4.c")) Script_Clear(&respawn_script[3],    2);
-    if(!load_script(&pdie_script[0],    "data/scripts/die1.c"))     Script_Clear(&pdie_script[0],       2);
-    if(!load_script(&pdie_script[1],    "data/scripts/die2.c"))     Script_Clear(&pdie_script[1],       2);
-    if(!load_script(&pdie_script[2],    "data/scripts/die3.c"))     Script_Clear(&pdie_script[2],       2);
-    if(!load_script(&pdie_script[3],    "data/scripts/die4.c"))     Script_Clear(&pdie_script[3],       2);
-    Script_Compile(&update_script);
-    Script_Compile(&updated_script);
-    Script_Compile(&level_script);
-    Script_Compile(&endlevel_script);
-    Script_Compile(&key_script_all);
-    Script_Compile(&timetick_script);
-    for(i=0; i<4; i++) Script_Compile(&score_script[i]);
-    for(i=0; i<4; i++) Script_Compile(&key_script[i]);
-    for(i=0; i<4; i++) Script_Compile(&join_script[i]);
-    for(i=0; i<4; i++) Script_Compile(&respawn_script[i]);
-    for(i=0; i<4; i++) Script_Compile(&pdie_script[i]);
+	int i;
+	init_scripts();
+	//Script_Clear's second parameter set to 2, because the script fails to load,
+	//and will never have another chance to be loaded, so just clear the variable list in it
+	if(!load_script(&update_script,     "data/scripts/update.c"))   Script_Clear(&update_script,        2);
+	if(!load_script(&updated_script,    "data/scripts/updated.c"))  Script_Clear(&updated_script,       2);
+	if(!load_script(&level_script,      "data/scripts/level.c"))    Script_Clear(&level_script,         2);
+	if(!load_script(&endlevel_script,   "data/scripts/endlevel.c")) Script_Clear(&endlevel_script,      2);
+	if(!load_script(&key_script_all,    "data/scripts/keyall.c"))   Script_Clear(&key_script_all,       2);
+	if(!load_script(&timetick_script,   "data/scripts/timetick.c")) Script_Clear(&timetick_script,      2);
+	if(!load_script(&score_script[0],   "data/scripts/score1.c"))   Script_Clear(&score_script[0],      2);
+	if(!load_script(&score_script[1],   "data/scripts/score2.c"))   Script_Clear(&score_script[1],      2);
+	if(!load_script(&score_script[2],   "data/scripts/score3.c"))   Script_Clear(&score_script[2],      2);
+	if(!load_script(&score_script[3],   "data/scripts/score4.c"))   Script_Clear(&score_script[3],      2);
+	if(!load_script(&key_script[0],     "data/scripts/key1.c"))     Script_Clear(&key_script[0],        2);
+	if(!load_script(&key_script[1],     "data/scripts/key2.c"))     Script_Clear(&key_script[1],        2);
+	if(!load_script(&key_script[2],     "data/scripts/key3.c"))     Script_Clear(&key_script[2],        2);
+	if(!load_script(&key_script[3],     "data/scripts/key4.c"))     Script_Clear(&key_script[3],        2);
+	if(!load_script(&join_script[0],    "data/scripts/join1.c"))    Script_Clear(&join_script[0],       2);
+	if(!load_script(&join_script[1],    "data/scripts/join2.c"))    Script_Clear(&join_script[1],       2);
+	if(!load_script(&join_script[2],    "data/scripts/join3.c"))    Script_Clear(&join_script[2],       2);
+	if(!load_script(&join_script[3],    "data/scripts/join4.c"))    Script_Clear(&join_script[3],       2);
+	if(!load_script(&respawn_script[0], "data/scripts/respawn1.c")) Script_Clear(&respawn_script[0],    2);
+	if(!load_script(&respawn_script[1], "data/scripts/respawn2.c")) Script_Clear(&respawn_script[1],    2);
+	if(!load_script(&respawn_script[2], "data/scripts/respawn3.c")) Script_Clear(&respawn_script[2],    2);
+	if(!load_script(&respawn_script[3], "data/scripts/respawn4.c")) Script_Clear(&respawn_script[3],    2);
+	if(!load_script(&pdie_script[0],    "data/scripts/die1.c"))     Script_Clear(&pdie_script[0],       2);
+	if(!load_script(&pdie_script[1],    "data/scripts/die2.c"))     Script_Clear(&pdie_script[1],       2);
+	if(!load_script(&pdie_script[2],    "data/scripts/die3.c"))     Script_Clear(&pdie_script[2],       2);
+	if(!load_script(&pdie_script[3],    "data/scripts/die4.c"))     Script_Clear(&pdie_script[3],       2);
+	Script_Compile(&update_script);
+	Script_Compile(&updated_script);
+	Script_Compile(&level_script);
+	Script_Compile(&endlevel_script);
+	Script_Compile(&key_script_all);
+	Script_Compile(&timetick_script);
+	for(i=0; i<4; i++) Script_Compile(&score_script[i]);
+	for(i=0; i<4; i++) Script_Compile(&key_script[i]);
+	for(i=0; i<4; i++) Script_Compile(&join_script[i]);
+	for(i=0; i<4; i++) Script_Compile(&respawn_script[i]);
+	for(i=0; i<4; i++) Script_Compile(&pdie_script[i]);
 }
 
 // This method is called once when the engine is shutting down, do not use it multiple times
 void clear_scripts()
 {
-    int i;
-     //Script_Clear's second parameter set to 2, because the script fails to load,
-     //and will never have another chance to be loaded, so just clear the variable list in it
-    Script_Clear(&update_script,    2);
-    Script_Clear(&updated_script,   2);
-    Script_Clear(&level_script,     2);
-    Script_Clear(&endlevel_script,  2);
-    Script_Clear(&key_script_all,   2);
-    Script_Clear(&timetick_script,  2);
-    for(i=0; i<4; i++)
-        Script_Clear(&score_script[i],      2);
-    for(i=0; i<4; i++)
-        Script_Clear(&key_script[i],        2);
-    for(i=0; i<4; i++)
-        Script_Clear(&join_script[i],       2);
-    for(i=0; i<4; i++)
-        Script_Clear(&respawn_script[i],    2);
-    for(i=0; i<4; i++)
-        Script_Clear(&pdie_script[i],       2);
-    Script_Global_Clear();
+	int i;
+	//Script_Clear's second parameter set to 2, because the script fails to load,
+	//and will never have another chance to be loaded, so just clear the variable list in it
+	Script_Clear(&update_script,    2);
+	Script_Clear(&updated_script,   2);
+	Script_Clear(&level_script,     2);
+	Script_Clear(&endlevel_script,  2);
+	Script_Clear(&key_script_all,   2);
+	Script_Clear(&timetick_script,  2);
+	for(i=0; i<4; i++)
+		Script_Clear(&score_script[i],      2);
+	for(i=0; i<4; i++)
+		Script_Clear(&key_script[i],        2);
+	for(i=0; i<4; i++)
+		Script_Clear(&join_script[i],       2);
+	for(i=0; i<4; i++)
+		Script_Clear(&respawn_script[i],    2);
+	for(i=0; i<4; i++)
+		Script_Clear(&pdie_script[i],       2);
+	Script_Global_Clear();
 }
 
 void execute_animation_script(entity* ent)
 {
-    ScriptVariant tempvar;
-    Script* ptempscript = pcurrentscript;
-    if(Script_IsInitialized(ent->animation_script))
-    {
-        ScriptVariant_Init(&tempvar);
-        ScriptVariant_ChangeType(&tempvar, VT_PTR);
-        tempvar.ptrVal = (VOID*)ent;
-        Script_Set_Local_Variant("self",    &tempvar);
-        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-        tempvar.lVal = (LONG)ent->animnum;
-        Script_Set_Local_Variant("animnum", &tempvar);
-        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-        tempvar.lVal = (LONG)ent->animpos;
-        Script_Set_Local_Variant("frame",   &tempvar);
-        Script_Execute(ent->animation_script);
-        //clear to save variant space
-        ScriptVariant_Clear(&tempvar);
-        Script_Set_Local_Variant("self",    &tempvar);
-        Script_Set_Local_Variant("animnum", &tempvar);
-        Script_Set_Local_Variant("frame",   &tempvar);
-    }
-    pcurrentscript = ptempscript;
+	ScriptVariant tempvar;
+	Script* ptempscript = pcurrentscript;
+	if(Script_IsInitialized(ent->animation_script))
+	{
+		ScriptVariant_Init(&tempvar);
+		ScriptVariant_ChangeType(&tempvar, VT_PTR);
+		tempvar.ptrVal = (VOID*)ent;
+		Script_Set_Local_Variant("self",    &tempvar);
+		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+		tempvar.lVal = (LONG)ent->animnum;
+		Script_Set_Local_Variant("animnum", &tempvar);
+		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+		tempvar.lVal = (LONG)ent->animpos;
+		Script_Set_Local_Variant("frame",   &tempvar);
+		Script_Execute(ent->animation_script);
+		//clear to save variant space
+		ScriptVariant_Clear(&tempvar);
+		Script_Set_Local_Variant("self",    &tempvar);
+		Script_Set_Local_Variant("animnum", &tempvar);
+		Script_Set_Local_Variant("frame",   &tempvar);
+	}
+	pcurrentscript = ptempscript;
 }
 
 void execute_takedamage_script(entity* ent, entity* other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd)
@@ -2107,8 +2113,9 @@ void saveScriptFile()
             disCcWarns = fwrite(global_var_list[i], sizeof(s_variantnode), 1, handle);
     }
     // indexed list
-    if(max_indexed_vars<=0) {fclose(handle);return; }
+    if(max_indexed_vars<=0) goto CLOSEF;
     disCcWarns = fwrite(indexed_var_list+i, sizeof(ScriptVariant), max_indexed_vars, handle);
+    CLOSEF:
     fclose(handle);
 #endif
 }
@@ -2118,7 +2125,8 @@ void loadScriptFile(){
 #ifndef DC
     int disCcWarns;
 
-    int size, l, c;
+    size_t size;
+    ptrdiff_t l, c;
 
     FILE *handle = NULL;
     char path[256] = {""};
@@ -2523,7 +2531,7 @@ void lifebar_colors()
 {
     char * filename = "data/lifebar.txt";
     char *buf;
-    int size;
+    size_t size;
     int pos;
 
     char * command;
@@ -2907,7 +2915,7 @@ void freepanels(){
 
 s_sprite * loadsprite2(char *filename, int* width, int* height)
 {
-    int size;
+    size_t size;
     s_bitmap *bitmap = NULL;
     s_sprite *sprite = NULL;
     int clipl, clipr, clipt, clipb;
@@ -2981,7 +2989,7 @@ int loadpanel(char *filename_normal, char *filename_neon, char *filename_screen)
 
 int loadfrontpanel(char *filename){
 
-    int size;
+    size_t size;
     s_bitmap *bitmap = NULL;
     int clipl, clipr, clipt, clipb;
 
@@ -3008,23 +3016,23 @@ int loadfrontpanel(char *filename){
 
 // Added to conserve memory
 void resourceCleanUp(){
-    freesprites();
-    free_models();
-    free_modelcache();
+	freesprites();
+	free_models();
+	free_modelcache();
 	load_special_sounds();
 	load_script_setting();
-    load_special_sprites();
-    load_levelorder();
-    load_models();
+	load_special_sprites();
+	load_levelorder();
+	load_models();
 }
 
 void freesprites()
 {
-    unsigned short i;
+	unsigned short i;
 	s_sprite_list *head;
-    for(i=0; i<=sprites_loaded; i++)
-    {
-        if(sprite_list != NULL)
+	for(i=0; i<=sprites_loaded; i++)
+	{
+		if(sprite_list != NULL)
 		{
 			tracefree(sprite_list->sprite);
 			sprite_list->sprite = NULL;
@@ -3034,35 +3042,24 @@ void freesprites()
 			tracefree(sprite_list);
 			sprite_list = head;
 		}
-    }
+	}
 	if(sprite_map != NULL)
 	{
 		tracefree(sprite_map);
 		sprite_map = NULL;
 	}
-    sprites_loaded = 0;
+	sprites_loaded = 0;
 }
 
-
-void add_sprite_map(int size)
+// allocate enough members for sprite_map
+void add_sprite_map(size_t size)
 {
-	s_sprite_map *copy;
-	if(sprite_map == NULL)
+	if(sprite_map == NULL || size + 1 > sprite_map_max_items )
 	{
-		sprite_map = tracemalloc("sprite_map", sizeof(s_sprite_map));
-	}
-	else
-	{
-		// We Create Copy then append new map to list.
-		copy = tracemalloc("copy_sprite_map", (size + 1) * sizeof(s_sprite_map));
-		if(copy == NULL) shutdown(1, "Out Of Memory!  Failed to create a copy of sprite_map\n");
-		memcpy(copy, sprite_map, (size + 1) * sizeof(s_sprite_map));
-		tracefree(sprite_map);
-		sprite_map = tracemalloc("add_sprite_map",(size + 1) *  (sizeof(s_sprite_map) + sizeof(s_sprite_map)));
+		printf("%s %p\n", "add_sprite_map was", sprite_map);
+		sprite_map_max_items += 256;
+		sprite_map = tracerealloc(sprite_map, sizeof(s_sprite_map) * sprite_map_max_items);
 		if(sprite_map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new sprite_map\n");
-		memcpy(sprite_map, copy, (size + 1) * sizeof(s_sprite_map));
-		tracefree(copy);
-		copy = NULL;
 	}
 }
 
@@ -3076,55 +3073,51 @@ void add_sprite_map(int size)
 //             pixel data, and the information is carried by the bitmap paramter.
 int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
 {
-    int i, size, len;
-    s_bitmap *bitmap = NULL;
-    int clipl, clipr, clipt, clipb;
+	ptrdiff_t i, size, len;
+	s_bitmap *bitmap = NULL;
+	int clipl, clipr, clipt, clipb;
 	s_sprite_list *curr = NULL, *head = NULL;
 
-    for(i=0; i<sprites_loaded; i++)
-	{
-        if(sprite_map != NULL)
-        {
-            if(stricmp(sprite_map[i].filename, filename) == 0)
-		    {
-			    if(sprite_map[i].ofsx == ofsx && sprite_map[i].ofsy == ofsy) return i;
-			    else
-			    {
-			        bitmap = loadbitmap(filename, packfile, bmpformat);
-				    if(bitmap == NULL) shutdown(1, "Unable to load file '%s'\n", filename);
-				    clipbitmap(bitmap, &clipl, &clipr, &clipt, &clipb);
+	for(i=0; i<sprites_loaded; i++) {
+		if(sprite_map != NULL) {
+			if(stricmp(sprite_map[i].filename, filename) == 0) {
+				if(sprite_map[i].ofsx == ofsx && sprite_map[i].ofsy == ofsy) return i;
+				else {
+					bitmap = loadbitmap(filename, packfile, bmpformat);
+					if(bitmap == NULL) shutdown(1, "Unable to load file '%s'\n", filename);
+					clipbitmap(bitmap, &clipl, &clipr, &clipt, &clipb);
 					add_sprite_map(sprites_loaded);
-                    sprite_map[sprites_loaded].filename = sprite_map[i].filename;
-				    sprite_map[sprites_loaded].sprite = sprite_map[i].sprite;
+					sprite_map[sprites_loaded].filename = sprite_map[i].filename;
+					sprite_map[sprites_loaded].sprite = sprite_map[i].sprite;
 					sprite_map[sprites_loaded].ofsx = ofsx;
-				    sprite_map[sprites_loaded].ofsy = ofsy;
-				    sprite_map[sprites_loaded].centerx = ofsx-clipl;
-				    sprite_map[sprites_loaded].centery = ofsy-clipt;
-				    freebitmap(bitmap);
-				    ++sprites_loaded;
-				    return sprites_loaded-1;
-                }
-		    }
-        }
-    }
+					sprite_map[sprites_loaded].ofsy = ofsy;
+					sprite_map[sprites_loaded].centerx = ofsx-clipl;
+					sprite_map[sprites_loaded].centery = ofsy-clipt;
+					freebitmap(bitmap);
+					++sprites_loaded;
+					return sprites_loaded-1;
+				}
+			}
+		}
+	}
 
-    bitmap = loadbitmap(filename, packfile, bmpformat);
-    if(bitmap == NULL) shutdown(1, "Unable to load file '%s'\n", filename);
+	bitmap = loadbitmap(filename, packfile, bmpformat);
+	if(bitmap == NULL) shutdown(1, "Unable to load file '%s'\n", filename);
 
-    clipbitmap(bitmap, &clipl, &clipr, &clipt, &clipb);
+	clipbitmap(bitmap, &clipl, &clipr, &clipt, &clipb);
 
 	len = strlen(filename);
-    size = fakey_encodesprite(bitmap);
-    curr = tracemalloc("sprite_list", sizeof(s_sprite_list));
+	size = fakey_encodesprite(bitmap);
+	curr = tracemalloc("sprite_list", sizeof(s_sprite_list));
 	curr->sprite = tracemalloc("loadsprite 1", size);
 	curr->filename = tracemalloc("sm_fn", len + 1);
-    if(curr == NULL || curr->sprite == NULL || curr->filename == NULL){
-        freebitmap(bitmap);
+	if(curr == NULL || curr->sprite == NULL || curr->filename == NULL){
+		freebitmap(bitmap);
 		shutdown(1, "loadsprite() Out of memory!\n");
-    }
-	strcpy(curr->filename, filename);
+	}
+	memcpy(curr->filename, filename,len);
 	curr->filename[len] = 0;
-    encodesprite(ofsx-clipl, ofsy-clipt, bitmap, curr->sprite);
+	encodesprite(ofsx-clipl, ofsy-clipt, bitmap, curr->sprite);
 	if(sprite_list == NULL){
 		sprite_list = curr;
 		sprite_list->next = NULL;
@@ -3143,21 +3136,21 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
 	sprite_map[sprites_loaded].centery = ofsy-clipt;
 	freebitmap(bitmap);
 	++sprites_loaded;
-    return sprites_loaded-1;
+	return sprites_loaded-1;
 }
 
 void load_special_sprites()
 {
-    memset(shadowsprites, -1, sizeof(shadowsprites[0])*6);
-    golsprite = gosprite = -1;
-    if(testpackfile("data/sprites/shadow1.gif", packfile) >=0) shadowsprites[0] = loadsprite("data/sprites/shadow1",9,3,pixelformat);
-    if(testpackfile("data/sprites/shadow2.gif", packfile) >=0) shadowsprites[1] = loadsprite("data/sprites/shadow2",14,5,pixelformat);
-    if(testpackfile("data/sprites/shadow3.gif", packfile) >=0) shadowsprites[2] = loadsprite("data/sprites/shadow3",19,6,pixelformat);
-    if(testpackfile("data/sprites/shadow4.gif", packfile) >=0) shadowsprites[3] = loadsprite("data/sprites/shadow4",24,8,pixelformat);
-    if(testpackfile("data/sprites/shadow5.gif", packfile) >=0) shadowsprites[4] = loadsprite("data/sprites/shadow5",29,9,pixelformat);
-    if(testpackfile("data/sprites/shadow6.gif", packfile) >=0) shadowsprites[5] = loadsprite("data/sprites/shadow6",34,11,pixelformat);
-    if(testpackfile("data/sprites/arrow.gif", packfile) >=0) gosprite  = loadsprite("data/sprites/arrow",35,23,pixelformat);
-    if(testpackfile("data/sprites/arrowl.gif", packfile) >=0) golsprite = loadsprite("data/sprites/arrowl",35,23,pixelformat);
+	memset(shadowsprites, -1, sizeof(shadowsprites[0])*6);
+	golsprite = gosprite = -1;
+	if(testpackfile("data/sprites/shadow1.gif", packfile) >=0) shadowsprites[0] = loadsprite("data/sprites/shadow1",9,3,pixelformat);
+	if(testpackfile("data/sprites/shadow2.gif", packfile) >=0) shadowsprites[1] = loadsprite("data/sprites/shadow2",14,5,pixelformat);
+	if(testpackfile("data/sprites/shadow3.gif", packfile) >=0) shadowsprites[2] = loadsprite("data/sprites/shadow3",19,6,pixelformat);
+	if(testpackfile("data/sprites/shadow4.gif", packfile) >=0) shadowsprites[3] = loadsprite("data/sprites/shadow4",24,8,pixelformat);
+	if(testpackfile("data/sprites/shadow5.gif", packfile) >=0) shadowsprites[4] = loadsprite("data/sprites/shadow5",29,9,pixelformat);
+	if(testpackfile("data/sprites/shadow6.gif", packfile) >=0) shadowsprites[5] = loadsprite("data/sprites/shadow6",34,11,pixelformat);
+	if(testpackfile("data/sprites/arrow.gif", packfile) >=0) gosprite  = loadsprite("data/sprites/arrow",35,23,pixelformat);
+	if(testpackfile("data/sprites/arrowl.gif", packfile) >=0) golsprite = loadsprite("data/sprites/arrowl",35,23,pixelformat);
 	if(timeicon_path[0]) timeicon = loadsprite(timeicon_path,0,0,pixelformat);
 	if(bgicon_path[0]) bgicon = loadsprite(bgicon_path,0,0,pixelformat);
 	if(olicon_path[0]) olicon = loadsprite(olicon_path,0,0,pixelformat);
@@ -3165,23 +3158,23 @@ void load_special_sprites()
 
 void unload_all_fonts()
 {
-    int i;
-    for(i=0; i<8; i++)
-    {
-        font_unload(i);
-    }
+	int i;
+	for(i=0; i<8; i++)
+	{
+		font_unload(i);
+	}
 }
 
 void load_all_fonts()
 {
 	if(!font_load(0, "data/sprites/font", packfile, fontmonospace[0])) shutdown(1, "Unable to load font #1!\n");
-    if(!font_load(1, "data/sprites/font2", packfile, fontmonospace[1])) shutdown(1, "Unable to load font #2!\n");
-    if(!font_load(2, "data/sprites/font3", packfile, fontmonospace[2])) shutdown(1, "Unable to load font #3!\n");
-    if(!font_load(3, "data/sprites/font4", packfile, fontmonospace[3])) shutdown(1, "Unable to load font #4!\n");
+	if(!font_load(1, "data/sprites/font2", packfile, fontmonospace[1])) shutdown(1, "Unable to load font #2!\n");
+	if(!font_load(2, "data/sprites/font3", packfile, fontmonospace[2])) shutdown(1, "Unable to load font #3!\n");
+	if(!font_load(3, "data/sprites/font4", packfile, fontmonospace[3])) shutdown(1, "Unable to load font #4!\n");
 	if(testpackfile("data/sprites/font5.gif", packfile) >=0) font_load(4, "data/sprites/font5", packfile, fontmonospace[4]);
-    if(testpackfile("data/sprites/font6.gif", packfile) >=0) font_load(5, "data/sprites/font6", packfile, fontmonospace[5]);
-    if(testpackfile("data/sprites/font7.gif", packfile) >=0) font_load(6, "data/sprites/font7", packfile, fontmonospace[6]);
-    if(testpackfile("data/sprites/font8.gif", packfile) >=0) font_load(7, "data/sprites/font8", packfile, fontmonospace[7]);
+	if(testpackfile("data/sprites/font6.gif", packfile) >=0) font_load(5, "data/sprites/font6", packfile, fontmonospace[5]);
+	if(testpackfile("data/sprites/font7.gif", packfile) >=0) font_load(6, "data/sprites/font7", packfile, fontmonospace[6]);
+	if(testpackfile("data/sprites/font8.gif", packfile) >=0) font_load(7, "data/sprites/font8", packfile, fontmonospace[7]);
 }
 
 void load_menu_txt()
@@ -3189,7 +3182,7 @@ void load_menu_txt()
     char * filename = "data/menu.txt";
     int pos;
     char *buf, *command;
-    int size;
+    size_t size;
 
     // Read file
     if(buffer_pakfile(filename, &buf, &size)!=1)
@@ -3494,7 +3487,7 @@ void model_map_sort()
 	}
 }
 
-s_model_map *model_map_delete(s_model_map *map, int size)
+s_model_map *model_map_delete(s_model_map *map, size_t size)
 {
 	s_model_map *copy;
 	if(map == NULL) return NULL;
@@ -3518,79 +3511,79 @@ void model_map_move(int offset)
 // Unload single model from memory
 int free_model(s_model* model, int mapid)
 {
-    int i;
+	int i;
 	if(model == NULL) return 0;
-    printf("Unloaded '%s'\n", model->name);
+	printf("Unloaded '%s'\n", model->name);
 	model_cache[model->index].model = NULL;
 	model_map_move(mapid);
 	model_list = model_list_delete(model_list, model);
 	for(i=0; i<max_animations; i++) anim_list = anim_list_delete(anim_list, model->index);
 	for(i=0; i<MAX_COLOUR_MAPS; i++)
 	{
-        if(model->colourmap[i] != NULL)
+		if(model->colourmap[i] != NULL)
 		{
-            tracefree(model->colourmap[i]);
-            model->colourmap[i] = NULL;
-        }
-    }
-    if(model->palette)                     {tracefree(model->palette);                model->palette                = NULL;}
-    if(model->weapon && model->ownweapons) {tracefree(model->weapon);                 model->weapon                 = NULL;}
-    if(model->branch)                      {tracefree(model->branch);                 model->branch                 = NULL;}
-    if(model->animation)                   {tracefree(model->animation);              model->animation              = NULL;}
-    if(model->defense_factors)             {tracefree(model->defense_factors);        model->defense_factors        = NULL;}
-    if(model->defense_pain)                {tracefree(model->defense_pain);           model->defense_pain           = NULL;}
-    if(model->defense_knockdown)           {tracefree(model->defense_knockdown);      model->defense_knockdown      = NULL;}
-    if(model->defense_blockpower)          {tracefree(model->defense_blockpower);     model->defense_blockpower     = NULL;}
-    if(model->defense_blockthreshold)      {tracefree(model->defense_blockthreshold); model->defense_blockthreshold = NULL;}
-    if(model->defense_blockratio)          {tracefree(model->defense_blockratio);     model->defense_blockratio     = NULL;}
-    if(model->defense_blocktype)           {tracefree(model->defense_blocktype);      model->defense_blocktype      = NULL;}
-    if(model->offense_factors)             {tracefree(model->offense_factors);        model->offense_factors        = NULL;}
-    if(model->special)                     {tracefree(model->special);                model->special                = NULL;}
-    if(model->smartbomb)                   {tracefree(model->smartbomb);              model->smartbomb              = NULL;}
-    Script_Clear(model->animation_script,   2);
-    Script_Clear(model->update_script,      2);
-    Script_Clear(model->think_script,       2);
-    Script_Clear(model->takedamage_script,  2);
-    Script_Clear(model->onfall_script,      2);
-    Script_Clear(model->onpain_script,      2);
-    Script_Clear(model->onblocks_script,    2);
-    Script_Clear(model->onblockw_script,    2);
-    Script_Clear(model->onblocko_script,    2);
-    Script_Clear(model->onblockz_script,    2);
-    Script_Clear(model->onblocka_script,    2);
-    Script_Clear(model->onmovex_script,     2);
-    Script_Clear(model->onmovez_script,     2);
-    Script_Clear(model->onmovea_script,     2);
-    Script_Clear(model->ondeath_script,     2);
-    Script_Clear(model->onkill_script,      2);
-    Script_Clear(model->didblock_script,    2);
+			tracefree(model->colourmap[i]);
+			model->colourmap[i] = NULL;
+		}
+	}
+	if(model->palette)                     {tracefree(model->palette);                model->palette                = NULL;}
+	if(model->weapon && model->ownweapons) {tracefree(model->weapon);                 model->weapon                 = NULL;}
+	if(model->branch)                      {tracefree(model->branch);                 model->branch                 = NULL;}
+	if(model->animation)                   {tracefree(model->animation);              model->animation              = NULL;}
+	if(model->defense_factors)             {tracefree(model->defense_factors);        model->defense_factors        = NULL;}
+	if(model->defense_pain)                {tracefree(model->defense_pain);           model->defense_pain           = NULL;}
+	if(model->defense_knockdown)           {tracefree(model->defense_knockdown);      model->defense_knockdown      = NULL;}
+	if(model->defense_blockpower)          {tracefree(model->defense_blockpower);     model->defense_blockpower     = NULL;}
+	if(model->defense_blockthreshold)      {tracefree(model->defense_blockthreshold); model->defense_blockthreshold = NULL;}
+	if(model->defense_blockratio)          {tracefree(model->defense_blockratio);     model->defense_blockratio     = NULL;}
+	if(model->defense_blocktype)           {tracefree(model->defense_blocktype);      model->defense_blocktype      = NULL;}
+	if(model->offense_factors)             {tracefree(model->offense_factors);        model->offense_factors        = NULL;}
+	if(model->special)                     {tracefree(model->special);                model->special                = NULL;}
+	if(model->smartbomb)                   {tracefree(model->smartbomb);              model->smartbomb              = NULL;}
+	Script_Clear(model->animation_script,   2);
+	Script_Clear(model->update_script,      2);
+	Script_Clear(model->think_script,       2);
+	Script_Clear(model->takedamage_script,  2);
+	Script_Clear(model->onfall_script,      2);
+	Script_Clear(model->onpain_script,      2);
+	Script_Clear(model->onblocks_script,    2);
+	Script_Clear(model->onblockw_script,    2);
+	Script_Clear(model->onblocko_script,    2);
+	Script_Clear(model->onblockz_script,    2);
+	Script_Clear(model->onblocka_script,    2);
+	Script_Clear(model->onmovex_script,     2);
+	Script_Clear(model->onmovez_script,     2);
+	Script_Clear(model->onmovea_script,     2);
+	Script_Clear(model->ondeath_script,     2);
+	Script_Clear(model->onkill_script,      2);
+	Script_Clear(model->didblock_script,    2);
 	Script_Clear(model->ondoattack_script,  2);
-    Script_Clear(model->didhit_script,      2);
-    Script_Clear(model->onspawn_script,     2);
-    Script_Clear(model->key_script,         2);
+	Script_Clear(model->didhit_script,      2);
+	Script_Clear(model->onspawn_script,     2);
+	Script_Clear(model->key_script,         2);
 	tracefree(model->animation_script);
-    tracefree(model->update_script);
+	tracefree(model->update_script);
 	tracefree(model->think_script);
-    tracefree(model->takedamage_script);
-    tracefree(model->onfall_script);
-    tracefree(model->onpain_script);
-    tracefree(model->onblocks_script);
-    tracefree(model->onblockw_script);
-    tracefree(model->onblocko_script);
-    tracefree(model->onblockz_script);
-    tracefree(model->onblocka_script);
-    tracefree(model->onmovex_script);
-    tracefree(model->onmovez_script);
-    tracefree(model->onmovea_script);
-    tracefree(model->ondeath_script);
-    tracefree(model->onkill_script);
-    tracefree(model->didblock_script);
+	tracefree(model->takedamage_script);
+	tracefree(model->onfall_script);
+	tracefree(model->onpain_script);
+	tracefree(model->onblocks_script);
+	tracefree(model->onblockw_script);
+	tracefree(model->onblocko_script);
+	tracefree(model->onblockz_script);
+	tracefree(model->onblocka_script);
+	tracefree(model->onmovex_script);
+	tracefree(model->onmovez_script);
+	tracefree(model->onmovea_script);
+	tracefree(model->ondeath_script);
+	tracefree(model->onkill_script);
+	tracefree(model->didblock_script);
 	tracefree(model->ondoattack_script);
-    tracefree(model->didhit_script);
-    tracefree(model->onspawn_script);
-    tracefree(model->key_script);
-    tracefree(model);
-    model = NULL;
+	tracefree(model->didhit_script);
+	tracefree(model->onspawn_script);
+	tracefree(model->key_script);
+	tracefree(model);
+	model = NULL;
 	if(models_loaded == 0 && model_map != NULL)
 	{
 		tracefree(model_map);
@@ -3604,23 +3597,23 @@ int free_model(s_model* model, int mapid)
 void free_models()
 {
 	if(!model_map) return;
-    while(free_model(model_map[models_loaded-1].model, models_loaded-1));
+	while(free_model(model_map[models_loaded-1].model, models_loaded-1));
 
 	// free animation ids
-    if(animdowns)       {tracefree(animdowns);       animdowns          = NULL;}
-    if(animups)         {tracefree(animups);         animups            = NULL;}
-    if(animbackwalks)   {tracefree(animbackwalks);   animbackwalks      = NULL;}
-    if(animwalks)       {tracefree(animwalks);       animwalks          = NULL;}
-    if(animidles)       {tracefree(animidles);       animidles          = NULL;}
-    if(animspecials)    {tracefree(animspecials);    animspecials       = NULL;}
-    if(animattacks)     {tracefree(animattacks);     animattacks        = NULL;}
-    if(animfollows)     {tracefree(animfollows);     animfollows        = NULL;}
-    if(animpains)       {tracefree(animpains);       animpains          = NULL;}
-    if(animfalls)       {tracefree(animfalls);       animfalls          = NULL;}
+	if(animdowns)       {tracefree(animdowns);       animdowns          = NULL;}
+	if(animups)         {tracefree(animups);         animups            = NULL;}
+	if(animbackwalks)   {tracefree(animbackwalks);   animbackwalks      = NULL;}
+	if(animwalks)       {tracefree(animwalks);       animwalks          = NULL;}
+	if(animidles)       {tracefree(animidles);       animidles          = NULL;}
+	if(animspecials)    {tracefree(animspecials);    animspecials       = NULL;}
+	if(animattacks)     {tracefree(animattacks);     animattacks        = NULL;}
+	if(animfollows)     {tracefree(animfollows);     animfollows        = NULL;}
+	if(animpains)       {tracefree(animpains);       animpains          = NULL;}
+	if(animfalls)       {tracefree(animfalls);       animfalls          = NULL;}
 	if(animrises)       {tracefree(animrises);       animrises          = NULL;}
 	if(animriseattacks) {tracefree(animriseattacks); animriseattacks    = NULL;}
 	if(animblkpains)    {tracefree(animblkpains);    animblkpains       = NULL;}
-    if(animdies)        {tracefree(animdies);        animdies           = NULL;}
+	if(animdies)        {tracefree(animdies);        animdies           = NULL;}
 }
 
 
@@ -3756,31 +3749,32 @@ int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned 
 
 void _peek_model_name(int index)
 {
-    int size = 0, pos = 0, len;
-    char *buf = NULL;
-    char *command, *value;
+	size_t size = 0;
+	ptrdiff_t pos = 0, len;
+	char *buf = NULL;
+	char *command, *value;
 
-    if(buffer_pakfile(model_cache[index].path, &buf, &size)!=1) return;
+	if(buffer_pakfile(model_cache[index].path, &buf, &size)!=1) return;
 
-    while(pos<size)
-    {
-        command = findarg(buf+pos, 0);
-        if(command[0]){
-            if(stricmp(command, "name")==0)
-            {
-                value = findarg(buf+pos, 1);
+	while(pos<size)
+	{
+		command = findarg(buf+pos, 0);
+		if(command[0]){
+			if(stricmp(command, "name")==0)
+			{
+				value = findarg(buf+pos, 1);
 				tracefree(model_cache[index].name);
 				model_cache[index].name = NULL;
 				len = strlen(value);
 				model_cache[index].name = tracemalloc("peek_name", len + 1);
-                strcpy(model_cache[index].name, value);
+				strcpy(model_cache[index].name, value);
 				model_cache[index].name[len] = 0;
-                break;
-            }
-        }
-        while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-        while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
-    }
+				break;
+			}
+		}
+		while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
+		while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+	}
 
 	if(buf != NULL)
 	{
@@ -3789,35 +3783,24 @@ void _peek_model_name(int index)
 	}
 }
 
-void add_cache_map(int size)
+void add_cache_map(size_t size)
 {
-	s_modelcache *copy;
-	if(model_cache == NULL)
+	if(model_cache== NULL || size + 1 > cache_map_max_items )
 	{
-		model_cache = tracemalloc("sprite_map", sizeof(s_modelcache));
-	}
-	else
-	{
-		// We Create Copy then append new map to list.
-		copy = tracemalloc("copy_cache_map", (size + 1) * sizeof(s_modelcache));
-		if(copy == NULL) shutdown(1, "Out Of Memory!  Failed to create a copy of cache_map\n");
-		memcpy(copy, model_cache, (size + 1) * sizeof(s_modelcache));
-		tracefree(model_cache);
-		model_cache = tracemalloc("add_cache_map", (size + 1) * (sizeof(s_modelcache) + sizeof(s_modelcache)));
+		printf("%s %p\n", "add_cache_map was", model_cache);
+		cache_map_max_items += 32;
+		model_cache = tracerealloc(model_cache, sizeof(s_modelcache) * cache_map_max_items);
 		if(model_cache == NULL) shutdown(1, "Out Of Memory!  Failed to create a new cache_map\n");
-		memcpy(model_cache, copy, (size + 1) * sizeof(s_modelcache));
-		tracefree(copy);
-		copy = NULL;
 	}
 }
 
 void cache_model(char *name, char *path, int flag)
 {
 	int len;
-    printf("Cacheing '%s'\n", name);
-    add_cache_map(models_cached);
+	printf("Cacheing '%s'\n", name);
+	add_cache_map(models_cached);
 	memset(&model_cache[models_cached], 0, sizeof(s_modelcache));
-    len = strlen(name);
+	len = strlen(name);
 	model_cache[models_cached].name = tracemalloc("model->name", len + 1);
 	strcpy(model_cache[models_cached].name, name);
 	model_cache[models_cached].name[len] = 0;
@@ -3825,211 +3808,199 @@ void cache_model(char *name, char *path, int flag)
 	model_cache[models_cached].path = tracemalloc("model->path", len + 1);
 	strcpy(model_cache[models_cached].path, path);
 	model_cache[models_cached].path[len] = 0;
-    model_cache[models_cached].loadflag = flag;
-    _peek_model_name(models_cached);
-    ++models_cached;
+	model_cache[models_cached].loadflag = flag;
+	_peek_model_name(models_cached);
+	++models_cached;
 }
 
 
 void free_modelcache()
 {
-    if(model_cache != NULL)
-    {
+	if(model_cache != NULL)
+	{
 		while(models_cached)
 		{
 			--models_cached;
-    	    tracefree(model_cache[models_cached].name);
-		    model_cache[models_cached].name = NULL;
-		    tracefree(model_cache[models_cached].path);
-		    model_cache[models_cached].path = NULL;
-        }
-        tracefree(model_cache);
-        model_cache = NULL;
-    }
+			tracefree(model_cache[models_cached].name);
+			model_cache[models_cached].name = NULL;
+			tracefree(model_cache[models_cached].path);
+			model_cache[models_cached].path = NULL;
+		}
+		tracefree(model_cache);
+		model_cache = NULL;
+	}
 }
 
 
 int get_cached_model_index(char * name)
 {
-    int i;
-    for(i=0; i<models_cached; i++)
-    {
-        if(stricmp(name, model_cache[i].name)==0) return i;
-    }
-    return -1;
+	int i;
+	for(i=0; i<models_cached; i++)
+	{
+		if(stricmp(name, model_cache[i].name)==0) return i;
+	}
+	return -1;
 }
 
 char *get_cached_model_path(char * name)
 {
-    int i;
-    for(i=0; i<models_cached; i++)
-    {
-        if(stricmp(name, model_cache[i].name)==0) return model_cache[i].path;
-    }
-    return NULL;
+	int i;
+	for(i=0; i<models_cached; i++)
+	{
+		if(stricmp(name, model_cache[i].name)==0) return model_cache[i].path;
+	}
+	return NULL;
 }
 
-s_model_map *model_map_add(s_model_map *map, int size)
+void add_model_map(size_t size)
 {
-	s_model_map *copy;
-	if(map == NULL)
+	if(model_map == NULL || size + 1 > model_map_max_items )
 	{
-		map = tracemalloc("model_map", sizeof(s_model_map));
-		if(map == NULL) shutdown(1, "Out Of Memory!  Failed to create a initial model_map\n");
+		printf("%s %p\n", "add_model_map was", sprite_map);
+		model_map_max_items += 32;
+		model_map = tracerealloc(model_map, sizeof(s_model_map) * model_map_max_items);
+		if(model_map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new model_map\n");
 	}
-	else
-	{
-		// We Create Copy then append new map to list.
-		copy = tracemalloc("copy_model_map", (size + 1) * sizeof(s_model_map));
-		if(copy == NULL) shutdown(1, "Out Of Memory!  Failed to create a copy of model_map\n");
-		memcpy(copy, map, (size + 1) * sizeof(s_model_map));
-		tracefree(map);
-		map = tracemalloc("model_map_add", (size + 1) * (sizeof(s_model_map) + sizeof(s_model_map)));
-		if(map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new model_map\n");
-		memcpy(map, copy, (size + 1) * sizeof(s_model_map));
-		tracefree(copy);
-		copy = NULL;
-	}
-	return map;
 }
 
 static void _readbarstatus(char*, s_barstatus*);
 s_model* load_cached_model(char * name, char * owner, char unload)
 {
-    s_model_list *curr = NULL,
-		         *head = NULL;
+	s_model_list *curr = NULL,
+	*head = NULL;
 
 	s_model *newchar = NULL,
-		    *tempmodel = NULL;
+	*tempmodel = NULL;
 
 	s_anim *newanim = NULL;
 
-    char *filename = NULL,
-		 *buf = NULL,
-		 *scriptbuf = NULL,
-	     *command = NULL,
-		 *value = NULL,
-	     *value2 = NULL,
-	     *value3 = NULL;
+	char *filename = NULL,
+	*buf = NULL,
+	*scriptbuf = NULL,
+	*command = NULL,
+	*value = NULL,
+	*value2 = NULL,
+	*value3 = NULL;
 
 	char cur_name[MAX_NAME_LEN+1] = {""},
-		 load_name[MAX_NAME_LEN+1],
-	     cur_owner[256] = {""},
-		 namebuf[256] = {""};
+		load_name[MAX_NAME_LEN+1],
+		cur_owner[256] = {""},
+		namebuf[256] = {""};
 
 	float tempFloat;
 
 	int ani_id = -1,
 		script_id = -1,
-	    i = 0,
+		i = 0,
 		j = 0,
-		len = 0,
 		tempInt = 0,
-        size = 0,
-		pos = 0,
-		index = 0,
-        framecount = 0,
+		framecount = 0,
 		frameset = 0,
-        peek = 0,
+		peek = 0,
 		cacheindex = 0,
-	    curframe = 0,
+		curframe = 0,
 		delay = 0,
-	    weap = 0,
+		weap = 0,
 		last = 0,
-	    errorVal = 0,
-	    shadow_set = 0,
+		errorVal = 0,
+		shadow_set = 0,
 		idle = 0,
-	    move = 0,
-	    movez = 0,
-	    movea = 0,
-	    seta = -1,			// Used for setting custom "a". Set to -1 to distinguish between disabled and setting "a" to 0
-	    frameshadow = -1,	// -1 will use default shadow for this entity, otherwise will use this value
-	    soundtoplay = -1,
-	    aimoveset = 0,
+		move = 0,
+		movez = 0,
+		movea = 0,
+		seta = -1,			// Used for setting custom "a". Set to -1 to distinguish between disabled and setting "a" to 0
+		frameshadow = -1,	// -1 will use default shadow for this entity, otherwise will use this value
+		soundtoplay = -1,
+		aimoveset = 0,
 		maskindex = -1;
+	
+	size_t size = 0,
+		len = 0;
+	ptrdiff_t pos = 0,
+		index = 0;
+		
+	short bbox[5] = { 0,0,0,0,0 },
+		bbox_con[5] = { 0,0,0,0,0 },
+		abox[5] = { 0,0,0,0,0 },
+		offset[2] = { 0,0 },
+		shadow_xz[2] = {0,0},
+		shadow_coords[2] = {0,0};
 
-    short bbox[5] = { 0,0,0,0,0 },
-          bbox_con[5] = { 0,0,0,0,0 },
-          abox[5] = { 0,0,0,0,0 },
-          offset[2] = { 0,0 },
-	      shadow_xz[2] = {0,0},
-	      shadow_coords[2] = {0,0};
-
-    float platform[8] = { 0,0,0,0,0,0,0,0 },
-         platform_con[8] = { 0,0,0,0,0,0,0,0 };
+	float platform[8] = { 0,0,0,0,0,0,0,0 },
+		platform_con[8] = { 0,0,0,0,0,0,0,0 };
 
 	s_attack attack,
-		     *pattack = NULL;
+	*pattack = NULL;
 
-    s_drawmethod drawmethod;
+	s_drawmethod drawmethod;
 
 	unsigned char mapflag[MAX_COLOUR_MAPS]; // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
-    static const char* pre_text =  // this is the skeleton of frame function
-        "void main()\n"
-        "{\n"
-        "    int frame = getlocalvar(\"frame\");\n"
-        "    int animnum = getlocalvar(\"animnum\");\n"
-        "\n}\n";
+	static const char* pre_text =  // this is the skeleton of frame function
+		"void main()\n"
+		"{\n"
+		"    int frame = getlocalvar(\"frame\");\n"
+		"    int animnum = getlocalvar(\"animnum\");\n"
+		"\n}\n";
 
-    static const char* sur_text = // end of function text
-        "\n}\n";
+	static const char* sur_text = // end of function text
+		"\n}\n";
 
-    static const char* ifid_text = // if expression to check animation id
-        "    if(animnum==%d)\n"
-        "    {\n"
-        "        return;\n"
-        "    }\n";
+	static const char* ifid_text = // if expression to check animation id
+		"    if(animnum==%d)\n"
+		"    {\n"
+		"        return;\n"
+		"    }\n";
 
-    static const char* endifid_text = // end of if
-        "        return;\n"
-        "    }\n";
+	static const char* endifid_text = // end of if
+		"        return;\n"
+		"    }\n";
 
-    static const char* if_text = // this is the if expression of frame function
-        "        if(frame==%d)\n"
-        "        {\n";
+	static const char* if_text = // this is the if expression of frame function
+		"        if(frame==%d)\n"
+		"        {\n";
+	
+	static const char* endif_text = // end of if
+		"\n"
+		"        }\n" ;
 
-    static const char* endif_text = // end of if
-        "\n"
-        "        }\n" ;
+	static const char* comma_text = // arguments separator
+		", ";
 
-    static const char* comma_text = // arguments separator
-        ", ";
+	static const char* call_text = //begin of function call
+		"            %s(";
 
-    static const char* call_text = //begin of function call
-        "            %s(";
-
-    static const char* endcall_text = //end of function call
-        ");\n";
+	static const char* endcall_text = //end of function call
+		");\n";
 
 	//printf("%s\n", name);
-    strcpy(cur_owner, owner);
-    owner = cur_owner;
-    strncpy(cur_name, name, MAX_NAME_LEN);
-    name = cur_name; // copy the name, cus the name might be a static variable pointer
+	strcpy(cur_owner, owner);
+	owner = cur_owner;
+	strncpy(cur_name, name, MAX_NAME_LEN);
+	name = cur_name; // copy the name, cus the name might be a static variable pointer
 
 	// Model already loaded but we might want to unload after level is completed.
-    if((tempmodel=find_model(name))!=NULL) {tempmodel->unload = unload; return tempmodel;}
+	if((tempmodel=find_model(name))!=NULL) {tempmodel->unload = unload; return tempmodel;}
 
-    cacheindex = get_cached_model_index(name);
-    if(cacheindex < 0) shutdown(1, "Fatal: No cache entry for '%s' within '%s'\n\n", name, owner);
+	cacheindex = get_cached_model_index(name);
+	if(cacheindex < 0) shutdown(1, "Fatal: No cache entry for '%s' within '%s'\n\n", name, owner);
 
-    filename = model_cache[cacheindex].path;
+	filename = model_cache[cacheindex].path;
 
-    if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Unable to open file '%s'\n\n", filename);
+	if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Unable to open file '%s'\n\n", filename);
 
-    scriptbuf = (char*)tracemalloc("load_cached_model #scriptbuf", size*2+1);
+	scriptbuf = (char*)tracemalloc("load_cached_model #scriptbuf", size*2+1);
 
-    if(scriptbuf==NULL){
-        shutdown(1, "Unable to create script buffer for file '%s' (%i bytes)", filename, size*2);
-    }
-    scriptbuf[0] = 0;
+	if(scriptbuf==NULL){
+		shutdown(1, "Unable to create script buffer for file '%s' (%i bytes)", filename, size*2);
+	}
+	scriptbuf[0] = 0;
 
-    // Alloc space for game model
+	// Alloc space for game model
 	curr = tracemalloc("model_list", sizeof(s_model_list));
 	curr->model = tracemalloc("curr->model", sizeof(s_model));
-    if(curr == NULL || curr->model == NULL) shutdown(1, "Out of memory loading model from '%s'", filename);
-    memset(curr->model, 0, sizeof(s_model));
+	if(curr == NULL || curr->model == NULL) shutdown(1, "Out of memory loading model from '%s'", filename);
+	memset(curr->model, 0, sizeof(s_model));
 	if(model_list == NULL){
 		model_list = curr;
 		model_list->next = NULL;
@@ -4039,134 +4010,134 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		model_list = curr;
 		model_list->next = head;
 	}
-    newchar = model_list->model;
-	model_map = model_map_add(model_map, models_loaded);
-    model_map[models_loaded++].model = newchar;
-    memset(newchar,0,sizeof(s_model));
-    newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
-    newchar->index = cacheindex;
-    model_map_sort(); // sort it might improve searching speed...
+	newchar = model_list->model;
+	add_model_map(models_loaded);
+	model_map[models_loaded++].model = newchar;
+	memset(newchar,0,sizeof(s_model));
+	newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
+	newchar->index = cacheindex;
+	model_map_sort(); // sort it might improve searching speed...
 
-    newchar->defense_factors        = (float*)tracemalloc("newchar->defense_factors",           sizeof(float)*max_attack_types);
-    newchar->defense_pain           = (float*)tracemalloc("newchar->defense_pain",              sizeof(float)*max_attack_types);
-    newchar->defense_knockdown      = (float*)tracemalloc("newchar->defense_knockdown",         sizeof(float)*max_attack_types);
-    newchar->defense_blockpower     = (float*)tracemalloc("newchar->defense_blockpower",        sizeof(float)*max_attack_types);
-    newchar->defense_blockthreshold = (float*)tracemalloc("newchar->defense_blockthreshold",    sizeof(float)*max_attack_types);
-    newchar->defense_blockratio     = (float*)tracemalloc("newchar->defense_blockratio",        sizeof(float)*max_attack_types);
-    newchar->defense_blocktype      = (float*)tracemalloc("newchar->defense_blocktype",         sizeof(float)*max_attack_types);
-    memset(newchar->defense_factors,        0,  sizeof(float)*max_attack_types);
-    memset(newchar->defense_pain,           0,  sizeof(float)*max_attack_types);
-    memset(newchar->defense_knockdown,      0,  sizeof(float)*max_attack_types);
-    memset(newchar->defense_blockpower,     0,  sizeof(float)*max_attack_types);
-    memset(newchar->defense_blockthreshold, 0,  sizeof(float)*max_attack_types);
-    memset(newchar->defense_blockratio,     0,  sizeof(float)*max_attack_types);
-    memset(newchar->defense_blocktype,      0,  sizeof(float)*max_attack_types);
+	newchar->defense_factors        = (float*)tracemalloc("newchar->defense_factors",           sizeof(float)*max_attack_types);
+	newchar->defense_pain           = (float*)tracemalloc("newchar->defense_pain",              sizeof(float)*max_attack_types);
+	newchar->defense_knockdown      = (float*)tracemalloc("newchar->defense_knockdown",         sizeof(float)*max_attack_types);
+	newchar->defense_blockpower     = (float*)tracemalloc("newchar->defense_blockpower",        sizeof(float)*max_attack_types);
+	newchar->defense_blockthreshold = (float*)tracemalloc("newchar->defense_blockthreshold",    sizeof(float)*max_attack_types);
+	newchar->defense_blockratio     = (float*)tracemalloc("newchar->defense_blockratio",        sizeof(float)*max_attack_types);
+	newchar->defense_blocktype      = (float*)tracemalloc("newchar->defense_blocktype",         sizeof(float)*max_attack_types);
+	memset(newchar->defense_factors,        0,  sizeof(float)*max_attack_types);
+	memset(newchar->defense_pain,           0,  sizeof(float)*max_attack_types);
+	memset(newchar->defense_knockdown,      0,  sizeof(float)*max_attack_types);
+	memset(newchar->defense_blockpower,     0,  sizeof(float)*max_attack_types);
+	memset(newchar->defense_blockthreshold, 0,  sizeof(float)*max_attack_types);
+	memset(newchar->defense_blockratio,     0,  sizeof(float)*max_attack_types);
+	memset(newchar->defense_blocktype,      0,  sizeof(float)*max_attack_types);
 
 	newchar->offense_factors = (float*)tracemalloc("newchar->offense_factors", sizeof(float)*max_attack_types);
-    memset(newchar->offense_factors, 0,sizeof(float)*max_attack_types);
+	memset(newchar->offense_factors, 0,sizeof(float)*max_attack_types);
 
-    newchar->special = tracemalloc("newchar->special", sizeof(*newchar->special)*max_freespecials);
-    memset(newchar->special, 0, sizeof(*newchar->special)*max_freespecials);
-    newchar->animation_script   = alloc_script();
-    newchar->update_script      = alloc_script();
+	newchar->special = tracemalloc("newchar->special", sizeof(*newchar->special)*max_freespecials);
+	memset(newchar->special, 0, sizeof(*newchar->special)*max_freespecials);
+	newchar->animation_script   = alloc_script();
+	newchar->update_script      = alloc_script();
 	newchar->think_script       = alloc_script();
-    newchar->didhit_script      = alloc_script();
-    newchar->onspawn_script     = alloc_script();
-    newchar->takedamage_script  = alloc_script();
-    newchar->onfall_script      = alloc_script();
-    newchar->onpain_script      = alloc_script();
-    newchar->onblocks_script    = alloc_script();
-    newchar->onblockw_script    = alloc_script();
-    newchar->onblocko_script    = alloc_script();
-    newchar->onblockz_script    = alloc_script();
-    newchar->onblocka_script    = alloc_script();
-    newchar->onmovex_script     = alloc_script();
-    newchar->onmovez_script     = alloc_script();
-    newchar->onmovea_script     = alloc_script();
-    newchar->ondeath_script     = alloc_script();
-    newchar->onkill_script      = alloc_script();
-    newchar->didblock_script    = alloc_script();
+	newchar->didhit_script      = alloc_script();
+	newchar->onspawn_script     = alloc_script();
+	newchar->takedamage_script  = alloc_script();
+	newchar->onfall_script      = alloc_script();
+	newchar->onpain_script      = alloc_script();
+	newchar->onblocks_script    = alloc_script();
+	newchar->onblockw_script    = alloc_script();
+	newchar->onblocko_script    = alloc_script();
+	newchar->onblockz_script    = alloc_script();
+	newchar->onblocka_script    = alloc_script();
+	newchar->onmovex_script     = alloc_script();
+	newchar->onmovez_script     = alloc_script();
+	newchar->onmovea_script     = alloc_script();
+	newchar->ondeath_script     = alloc_script();
+	newchar->onkill_script      = alloc_script();
+	newchar->didblock_script    = alloc_script();
 	newchar->ondoattack_script  = alloc_script();
-    newchar->key_script         = alloc_script();
-    newchar->unload             = unload;
-    newchar->jumpspeed          = -1;
-    newchar->jumpheight         = 4;		        // 28-12-2004   Set default jump height to 4, if not specified
-    newchar->runjumpheight      = 4;		        // Default jump height if a player is running
-    newchar->runjumpdist        = 1;		        // Default jump distane if a player is running
-    newchar->grabdistance       = 36;		        //  30-12-2004 Default grabdistance is same as originally set
-    newchar->throwdamage        = 21;		        // default throw damage
-    newchar->icon               = -1;
-    newchar->icondie            = -1;
-    newchar->iconpain           = -1;
-    newchar->iconget            = -1;
-    newchar->iconw              = -1;			    // No weapon icon set yet
-    newchar->diesound           = -1;
-    newchar->nolife             = 0;			    // default show life = 1 (yes)
-    newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
-    newchar->throwdist          = 2.5;
-    newchar->counter            = 3;			    // Default 3 times to drop a weapon / projectile
-    newchar->aimove             = -1;
-    newchar->aiattack           = -1;
-    newchar->throwframewait     = -1;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
-    newchar->path               = filename;         // Record path, so script can get it without looping the whole model collection.
+	newchar->key_script         = alloc_script();
+	newchar->unload             = unload;
+	newchar->jumpspeed          = -1;
+	newchar->jumpheight         = 4;		        // 28-12-2004   Set default jump height to 4, if not specified
+	newchar->runjumpheight      = 4;		        // Default jump height if a player is running
+	newchar->runjumpdist        = 1;		        // Default jump distane if a player is running
+	newchar->grabdistance       = 36;		        //  30-12-2004 Default grabdistance is same as originally set
+	newchar->throwdamage        = 21;		        // default throw damage
+	newchar->icon               = -1;
+	newchar->icondie            = -1;
+	newchar->iconpain           = -1;
+	newchar->iconget            = -1;
+	newchar->iconw              = -1;			    // No weapon icon set yet
+	newchar->diesound           = -1;
+	newchar->nolife             = 0;			    // default show life = 1 (yes)
+	newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
+	newchar->throwdist          = 2.5;
+	newchar->counter            = 3;			    // Default 3 times to drop a weapon / projectile
+	newchar->aimove             = -1;
+	newchar->aiattack           = -1;
+	newchar->throwframewait     = -1;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
+	newchar->path               = filename;         // Record path, so script can get it without looping the whole model collection.
 
-    for(i=0; i<3; i++) newchar->iconmp[i] = -1;    // No magicbar icon set yet
+	for(i=0; i<3; i++) newchar->iconmp[i] = -1;    // No magicbar icon set yet
 
 	// Default Attack1 in chain must be referenced if not used.
 	for(i=0; i<MAX_ATCHAIN; i++) newchar->atchain[i] = 1;
 	newchar->chainlength = 1;
 
-    if(magic_type == 1) newchar->mprate = 1;
-    else newchar->mprate                = 2;
-    newchar->chargerate = newchar->guardrate = 2;
-    newchar->risetime[0]                = -1;
-    newchar->sleepwait                  = 1000;
+	if(magic_type == 1) newchar->mprate = 1;
+	else newchar->mprate                = 2;
+	newchar->chargerate = newchar->guardrate = 2;
+	newchar->risetime[0]                = -1;
+	newchar->sleepwait                  = 1000;
 	newchar->jugglepoints[0] = newchar->jugglepoints[1] = 0;
 	newchar->guardpoints[0] = newchar->guardpoints[1] = 0;
 	newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
-    newchar->weaploss[0]                = -1;
-    newchar->weaploss[1]                = -1;
-    newchar->lifespan                   = (float)0xFFFFFFFF;
-    newchar->summonkill                 = 1;
-    newchar->candamage                  = -1;
-    newchar->hostile                    = -1;
-    newchar->projectilehit              = -1;
-    newchar->subject_to_wall            = -1;
-    newchar->subject_to_platform        = -1;
-    newchar->subject_to_obstacle        = -1;
-    newchar->subject_to_hole            = -1;
-    newchar->subject_to_gravity         = -1;
-    newchar->subject_to_screen          = -1;
-    newchar->subject_to_minz            = -1;
-    newchar->subject_to_maxz            = -1;
-    newchar->no_adjust_base             = -1;
-    newchar->pshotno                    = -1;
-    newchar->project                    = -1;
-    newchar->dust[0]                    = -1;
-    newchar->dust[1]                    = -1;
-    newchar->dust[2]                    = -1;
-    newchar->bomb                       = -1;
-    newchar->star                       = -1;
-    newchar->knife                      = -1;
+	newchar->weaploss[0]                = -1;
+	newchar->weaploss[1]                = -1;
+	newchar->lifespan                   = (float)0xFFFFFFFF;
+	newchar->summonkill                 = 1;
+	newchar->candamage                  = -1;
+	newchar->hostile                    = -1;
+	newchar->projectilehit              = -1;
+	newchar->subject_to_wall            = -1;
+	newchar->subject_to_platform        = -1;
+	newchar->subject_to_obstacle        = -1;
+	newchar->subject_to_hole            = -1;
+	newchar->subject_to_gravity         = -1;
+	newchar->subject_to_screen          = -1;
+	newchar->subject_to_minz            = -1;
+	newchar->subject_to_maxz            = -1;
+	newchar->no_adjust_base             = -1;
+	newchar->pshotno                    = -1;
+	newchar->project                    = -1;
+	newchar->dust[0]                    = -1;
+	newchar->dust[1]                    = -1;
+	newchar->dust[2]                    = -1;
+	newchar->bomb                       = -1;
+	newchar->star                       = -1;
+	newchar->knife                      = -1;
 
-    newchar->animation = (s_anim**)tracemalloc("newchar->animation", sizeof(s_anim*)*max_animations);
-    memset(newchar->animation, 0, sizeof(s_anim*)*max_animations);
+	newchar->animation = (s_anim**)tracemalloc("newchar->animation", sizeof(s_anim*)*max_animations);
+	memset(newchar->animation, 0, sizeof(s_anim*)*max_animations);
 
-    attack = emptyattack;      // empty attack
-    drawmethod = plainmethod;  // better than memset it to 0
-    memset(mapflag, 0, MAX_COLOUR_MAPS);
+	attack = emptyattack;      // empty attack
+	drawmethod = plainmethod;  // better than memset it to 0
+	memset(mapflag, 0, MAX_COLOUR_MAPS);
 
     // default string value, only by reference
-    newchar->rider = get_cached_model_index("K'");
-    newchar->flash = newchar->bflash = get_cached_model_index("flash");
+	newchar->rider = get_cached_model_index("K'");
+	newchar->flash = newchar->bflash = get_cached_model_index("flash");
 
     //Default offense/defense values.
-    for(i=0;i<max_attack_types;i++)
-    {
-        newchar->offense_factors[i]     = 1;
-        newchar->defense_factors[i]     = 1;
-        newchar->defense_knockdown[i]   = 1;
-    }
+	for(i=0;i<max_attack_types;i++)
+	{
+		newchar->offense_factors[i]     = 1;
+		newchar->defense_factors[i]     = 1;
+		newchar->defense_knockdown[i]   = 1;
+	}
 
 	for(i=0; i<3; i++)
 	{
@@ -4174,46 +4145,46 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		newchar->sight[i*2+1] = 9999;
 	}
 
-    newchar->offense_factors[ATK_BLAST]     = 1;
-    newchar->defense_factors[ATK_BLAST]     = 1;
-    newchar->defense_knockdown[ATK_BLAST]   = 1;
-    newchar->offense_factors[ATK_BURN]      = 1;
-    newchar->defense_factors[ATK_BURN]      = 1;
-    newchar->defense_knockdown[ATK_BURN]    = 1;
-    newchar->offense_factors[ATK_FREEZE]    = 1;
-    newchar->defense_factors[ATK_FREEZE]    = 1;
-    newchar->defense_knockdown[ATK_FREEZE]  = 1;
-    newchar->offense_factors[ATK_SHOCK]     = 1;
-    newchar->defense_factors[ATK_SHOCK]     = 1;
-    newchar->defense_knockdown[ATK_SHOCK]   = 1;
-    newchar->offense_factors[ATK_STEAL]     = 1;
-    newchar->defense_factors[ATK_STEAL]     = 1;
-    newchar->defense_knockdown[ATK_STEAL]   = 1;
+	newchar->offense_factors[ATK_BLAST]     = 1;
+	newchar->defense_factors[ATK_BLAST]     = 1;
+	newchar->defense_knockdown[ATK_BLAST]   = 1;
+	newchar->offense_factors[ATK_BURN]      = 1;
+	newchar->defense_factors[ATK_BURN]      = 1;
+	newchar->defense_knockdown[ATK_BURN]    = 1;
+	newchar->offense_factors[ATK_FREEZE]    = 1;
+	newchar->defense_factors[ATK_FREEZE]    = 1;
+	newchar->defense_knockdown[ATK_FREEZE]  = 1;
+	newchar->offense_factors[ATK_SHOCK]     = 1;
+	newchar->defense_factors[ATK_SHOCK]     = 1;
+	newchar->defense_knockdown[ATK_SHOCK]   = 1;
+	newchar->offense_factors[ATK_STEAL]     = 1;
+	newchar->defense_factors[ATK_STEAL]     = 1;
+	newchar->defense_knockdown[ATK_STEAL]   = 1;
 
     // Now interpret the contents of buf line by line
-    while(pos<size)
-    {
-        command = findarg(buf+pos, 0);
-        if(command[0]){
-            if(stricmp(command, "name")==0){
-                value = findarg(buf+pos, 1);
-                if((tempmodel=find_model(value)) && tempmodel!=newchar) shutdown(1, "Duplicate model name '%s'", value);
-                tempInt = get_cached_model_index(value);
-                model_cache[tempInt].model = newchar;
+	while(pos<size)
+	{
+		command = findarg(buf+pos, 0);
+		if(command[0]){
+			if(stricmp(command, "name")==0){
+				value = findarg(buf+pos, 1);
+				if((tempmodel=find_model(value)) && tempmodel!=newchar) shutdown(1, "Duplicate model name '%s'", value);
+				tempInt = get_cached_model_index(value);
+				model_cache[tempInt].model = newchar;
 				newchar->name = model_cache[tempInt].name;
-                if(stricmp(newchar->name, "steam")==0)
-                {
-                    newchar->alpha = 1;
-                }
-            }
-            else if(stricmp(command, "type")==0){    // Moved here to be able to access the character type later on
-                value = findarg(buf+pos, 1);
-                if(stricmp(value, "none")==0){
-                    newchar->type = TYPE_NONE;
-                }
-                else if(stricmp(value, "player")==0){
-                    newchar->type = TYPE_PLAYER;
-                    newchar->nopassiveblock = 1;
+				if(stricmp(newchar->name, "steam")==0)
+				{
+					newchar->alpha = 1;
+				}
+			}
+			else if(stricmp(command, "type")==0){    // Moved here to be able to access the character type later on
+				value = findarg(buf+pos, 1);
+				if(stricmp(value, "none")==0){
+					newchar->type = TYPE_NONE;
+				}
+				else if(stricmp(value, "player")==0){
+					newchar->type = TYPE_PLAYER;
+					newchar->nopassiveblock = 1;
 					for(i=0; i<MAX_ATCHAIN; i++)
 					{
 						if(i < 2 || i > 3) newchar->atchain[i] = 1;
@@ -4221,631 +4192,630 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					newchar->chainlength            = 4;
 					newchar->bounce                 = 1;
-                    newchar->subject_to_wall        = 1;
-                    newchar->subject_to_platform    = 1;
-                    newchar->subject_to_obstacle    = 1;
-                    newchar->subject_to_hole        = 1;
-                    newchar->subject_to_gravity     = 1;
-                    newchar->subject_to_screen      = 1;
-                    newchar->subject_to_minz        = 1;
-                    newchar->subject_to_maxz        = 1;
-                    newchar->no_adjust_base         = 0;
-                }
-                else if(stricmp(value, "enemy")==0){
-                    newchar->type                   = TYPE_ENEMY;
+					newchar->subject_to_wall        = 1;
+					newchar->subject_to_platform    = 1;
+					newchar->subject_to_obstacle    = 1;
+					newchar->subject_to_hole        = 1;
+					newchar->subject_to_gravity     = 1;
+					newchar->subject_to_screen      = 1;
+					newchar->subject_to_minz        = 1;
+					newchar->subject_to_maxz        = 1;
+					newchar->no_adjust_base         = 0;
+				}
+				else if(stricmp(value, "enemy")==0){
+					newchar->type                   = TYPE_ENEMY;
 					newchar->bounce                 = 1;
-                    newchar->subject_to_wall        = 1;
-                    newchar->subject_to_platform    = 1;
-                    newchar->subject_to_hole        = 1;
-                    newchar->subject_to_obstacle    = 1;
-                    newchar->subject_to_gravity     = 1;
-                    newchar->subject_to_minz        = 1;
-                    newchar->subject_to_maxz        = 1;
-                    newchar->no_adjust_base         = 0;
-                }
-                else if(stricmp(value, "item")==0){
-                    newchar->type                   = TYPE_ITEM;
-                    newchar->subject_to_wall        = 1;
-                    newchar->subject_to_platform    = 1;
-                    newchar->subject_to_hole        = 1;
-                    newchar->subject_to_obstacle    = 1;
-                    newchar->subject_to_gravity     = 1;
-                    newchar->subject_to_minz        = 1;
-                    newchar->subject_to_maxz        = 1;
-                    newchar->no_adjust_base         = 0;
-                }
-                else if(stricmp(value, "obstacle")==0){
-                    newchar->type                   = TYPE_OBSTACLE;
-                    newchar->subject_to_wall        = 1;
-                    newchar->subject_to_platform    = 1;
-                    newchar->subject_to_hole        = 1;
-                    newchar->subject_to_gravity     = 1;
-                    newchar->subject_to_minz        = 1;
-                    newchar->subject_to_maxz        = 1;
-                    newchar->no_adjust_base         = 0;
-                }
-                else if(stricmp(value, "steamer")==0){
-                    newchar->type = TYPE_STEAMER;
-                }
-                // my new types   7-1-2005
-                else if(stricmp(value, "pshot")==0){
-                    newchar->type = TYPE_SHOT;
-                    if(newchar->aimove==-1) newchar->aimove = 0;
-                    newchar->aimove |= AIMOVE1_ARROW;
-                    if(!newchar->offscreenkill) newchar->offscreenkill = 200;
-                    newchar->subject_to_hole                = 0;
-                    newchar->subject_to_gravity             = 1;
-                    newchar->subject_to_wall                = 0;
-                    newchar->subject_to_platform            = 0;
-                    newchar->subject_to_screen              = 0;
-                    newchar->subject_to_minz                = 1;
-                    newchar->subject_to_maxz                = 1;
-                    newchar->subject_to_platform            = 0;
-                    newchar->no_adjust_base                 = 1;
-                }
-                else if(stricmp(value, "trap")==0){
-                    newchar->type                   = TYPE_TRAP;
-                    newchar->subject_to_wall        = 1;
-                    newchar->subject_to_platform    = 1;
-                    newchar->subject_to_hole        = 1;
-                    newchar->subject_to_gravity     = 1;
-                    newchar->subject_to_minz        = 1;
-                    newchar->subject_to_maxz        = 1;
-                    newchar->no_adjust_base         = 0;
-                }
-                else if(stricmp(value, "text")==0){    // Used for displaying text/images and freezing the screen
-                    newchar->type                   = TYPE_TEXTBOX;
-                    newchar->subject_to_gravity     = 0;
-                    newchar->subject_to_minz        = 1;
-                    newchar->subject_to_maxz        = 1;
-                }
-                else if(stricmp(value, "endlevel")==0){    // Used for ending the level when the players reach a certain point
-                    newchar->type                   = TYPE_ENDLEVEL;
-                    newchar->subject_to_wall        = 1;
-                    newchar->subject_to_platform    = 1;
-                    newchar->subject_to_hole        = 1;
-                    newchar->subject_to_obstacle    = 1;
-                    newchar->subject_to_gravity     = 1;
-                }
-                else if(stricmp(value, "npc")==0){    // NPC type
-                    newchar->type                   = TYPE_NPC;
+					newchar->subject_to_wall        = 1;
+					newchar->subject_to_platform    = 1;
+					newchar->subject_to_hole        = 1;
+					newchar->subject_to_obstacle    = 1;
+					newchar->subject_to_gravity     = 1;
+					newchar->subject_to_minz        = 1;
+					newchar->subject_to_maxz        = 1;
+					newchar->no_adjust_base         = 0;
+				}
+				else if(stricmp(value, "item")==0){
+					newchar->type                   = TYPE_ITEM;
+					newchar->subject_to_wall        = 1;
+					newchar->subject_to_platform    = 1;
+					newchar->subject_to_hole        = 1;
+					newchar->subject_to_obstacle    = 1;
+					newchar->subject_to_gravity     = 1;
+					newchar->subject_to_minz        = 1;
+					newchar->subject_to_maxz        = 1;
+					newchar->no_adjust_base         = 0;
+				}
+				else if(stricmp(value, "obstacle")==0){
+					newchar->type                   = TYPE_OBSTACLE;
+					newchar->subject_to_wall        = 1;
+					newchar->subject_to_platform    = 1;
+					newchar->subject_to_hole        = 1;
+					newchar->subject_to_gravity     = 1;
+					newchar->subject_to_minz        = 1;
+					newchar->subject_to_maxz        = 1;
+					newchar->no_adjust_base         = 0;
+				}
+				else if(stricmp(value, "steamer")==0){
+					newchar->type = TYPE_STEAMER;
+				}
+				// my new types   7-1-2005
+				else if(stricmp(value, "pshot")==0){
+					newchar->type = TYPE_SHOT;
+					if(newchar->aimove==-1) newchar->aimove = 0;
+					newchar->aimove |= AIMOVE1_ARROW;
+					if(!newchar->offscreenkill) newchar->offscreenkill = 200;
+					newchar->subject_to_hole                = 0;
+					newchar->subject_to_gravity             = 1;
+					newchar->subject_to_wall                = 0;
+					newchar->subject_to_platform            = 0;
+					newchar->subject_to_screen              = 0;
+					newchar->subject_to_minz                = 1;
+					newchar->subject_to_maxz                = 1;
+					newchar->subject_to_platform            = 0;
+					newchar->no_adjust_base                 = 1;
+				}
+				else if(stricmp(value, "trap")==0){
+					newchar->type                   = TYPE_TRAP;
+					newchar->subject_to_wall        = 1;
+					newchar->subject_to_platform    = 1;
+					newchar->subject_to_hole        = 1;
+					newchar->subject_to_gravity     = 1;
+					newchar->subject_to_minz        = 1;
+					newchar->subject_to_maxz        = 1;
+					newchar->no_adjust_base         = 0;
+				}
+				else if(stricmp(value, "text")==0){    // Used for displaying text/images and freezing the screen
+					newchar->type                   = TYPE_TEXTBOX;
+					newchar->subject_to_gravity     = 0;
+					newchar->subject_to_minz        = 1;
+					newchar->subject_to_maxz        = 1;
+				}
+				else if(stricmp(value, "endlevel")==0){    // Used for ending the level when the players reach a certain point
+					newchar->type                   = TYPE_ENDLEVEL;
+					newchar->subject_to_wall        = 1;
+					newchar->subject_to_platform    = 1;
+					newchar->subject_to_hole        = 1;
+					newchar->subject_to_obstacle    = 1;
+					newchar->subject_to_gravity     = 1;
+				}
+				else if(stricmp(value, "npc")==0){    // NPC type
+					newchar->type                   = TYPE_NPC;
 					newchar->bounce                 = 1;
-                    newchar->subject_to_wall        = 1;
-                    newchar->subject_to_platform    = 1;
-                    newchar->subject_to_hole        = 1;
-                    newchar->subject_to_obstacle    = 1;
-                    newchar->subject_to_gravity     = 1;
-                    newchar->subject_to_minz        = 1;
-                    newchar->subject_to_maxz        = 1;
-                    newchar->no_adjust_base         = 0;
-                }
-                else if(stricmp(value, "panel")==0){    // NPC type
-                    newchar->type                   = TYPE_PANEL;
+					newchar->subject_to_wall        = 1;
+					newchar->subject_to_platform    = 1;
+					newchar->subject_to_hole        = 1;
+					newchar->subject_to_obstacle    = 1;
+					newchar->subject_to_gravity     = 1;
+					newchar->subject_to_minz        = 1;
+					newchar->subject_to_maxz        = 1;
+					newchar->no_adjust_base         = 0;
+				}
+				else if(stricmp(value, "panel")==0){    // NPC type
+					newchar->type                   = TYPE_PANEL;
 					newchar->antigravity            = 1.0; //float type
-                    newchar->subject_to_gravity     = 1;
-                    newchar->no_adjust_base         = 1;
-                }
-                else shutdown(1, "Model '%s' has invalid type: '%s'", filename, value);
-            }
-            else if(stricmp(command, "subtype")==0){
-                value = findarg(buf+pos, 1);
-                if(stricmp(value, "biker")==0){
-                    newchar->subtype                                        = SUBTYPE_BIKER;
-                    if(newchar->aimove==-1) newchar->aimove                 = 0;
-                    newchar->aimove |= AIMOVE1_BIKER;
-                    for(i=0; i<MAX_ATKS; i++) newchar->defense_factors[i]   = 2;
-                    if(!newchar->offscreenkill) newchar->offscreenkill = 300;
-                    newchar->subject_to_hole                                = 1;
-                    newchar->subject_to_gravity                             = 1;
-                    newchar->subject_to_wall                                = 0;
-                    newchar->subject_to_platform                            = 0;
-                    newchar->subject_to_screen                              = 0;
-                    newchar->subject_to_minz                                = 1;
-                    newchar->subject_to_maxz                                = 1;
-                    newchar->subject_to_platform                            = 0;
-                    newchar->no_adjust_base                                 = 0;
-                }
-                else if(stricmp(value, "arrow")==0){  // 7-1-2005 Arrow type
-                    newchar->subtype = SUBTYPE_ARROW;   // 7-1-2005 Arrow type
-                    if(newchar->aimove==-1) newchar->aimove = 0;
-                    newchar->aimove |= AIMOVE1_ARROW;
-                    if(!newchar->offscreenkill) newchar->offscreenkill = 200;
-                    newchar->subject_to_hole        = 0;
-                    newchar->subject_to_gravity     = 1;
-                    newchar->subject_to_wall        = 0;
-                    newchar->subject_to_platform    = 0;
-                    newchar->subject_to_screen      = 0;
-                    newchar->subject_to_minz        = 1;
-                    newchar->subject_to_maxz        = 1;
-                    newchar->subject_to_platform    = 0;
-                    newchar->no_adjust_base         = 1;
-                }
-                else if(stricmp(value, "notgrab")==0){  // 7-1-2005 notgrab type
-                    newchar->subtype = SUBTYPE_NOTGRAB;   // 7-1-2005 notgrab type
-                }
-                //    ltb 1-18-05  Item Subtype
-                else if(stricmp(value, "touch")==0){  // 7-1-2005 notgrab type
-                    newchar->subtype = SUBTYPE_TOUCH;   // 7-1-2005 notgrab type
-                }
-                else if(stricmp(value, "weapon")==0){  // 7-1-2005 notgrab type
-                    newchar->subtype = SUBTYPE_WEAPON;   // 7-1-2005 notgrab type
-                }
-                else if(stricmp(value, "noskip")==0){    // Text animation cannot be skipped if subtype noskip
-                    newchar->subtype = SUBTYPE_NOSKIP;
-                }
-                else if(stricmp(value, "flydie")==0){    // Obstacle will fly across the screen when hit if subtype flydie
-                    newchar->subtype = SUBTYPE_FLYDIE;
-                }
-                else if(stricmp(value, "both")==0){
-                    newchar->subtype = SUBTYPE_BOTH;
-                }
-                else if(stricmp(value, "project")==0){
-                    newchar->subtype = SUBTYPE_PROJECTILE;
-                }
-                else if(stricmp(value, "follow")==0){
-                    newchar->subtype = SUBTYPE_FOLLOW;
-                }
-                else if(stricmp(value, "chase")==0){
-                    newchar->subtype = SUBTYPE_CHASE;
-                }
-                //    end new subtype
-                else shutdown(1, "Model '%s' has invalid subtype: '%s'", filename, value);
-            }
-            else if(stricmp(command, "stats")==0){
-                value = findarg(buf+pos, 1);
-                newchar->stats[atoi(value)] = atof(findarg(buf+pos, 2));
-            }
-            else if(stricmp(command, "health")==0){                          
-                value = findarg(buf+pos, 1);
-                newchar->health = atoi(value);
-            }
-            else if(stricmp(command, "scroll")==0){
-                value = findarg(buf+pos, 1);
-                newchar->scroll = atof(value);
-            }
-            //Left for backward compatability. See mpset.
-            else if(stricmp(command, "mp")==0){// mp values to put max mp for player by tails
-                value = findarg(buf+pos, 1);
-                newchar->mp = atoi(value);
-            }
-            else if(stricmp(command, "nolife")==0){    // Feb 25, 2005 - Flag to display enemy life or not
-                newchar->nolife = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "makeinv")==0){    // Mar 12, 2005 - If a value is supplied, corresponds to amount of time the player spawns invincible
-                newchar->makeinv = atoi(findarg(buf+pos, 1)) * GAME_SPEED;
-                if(atoi(findarg(buf+pos, 2))) newchar->makeinv = -newchar->makeinv;
-            }
-            else if(stricmp(command, "riseinv")==0){
-                newchar->riseinv = atoi(findarg(buf+pos, 1)) * GAME_SPEED;
-                if(atoi(findarg(buf+pos, 2))) newchar->riseinv = -newchar->riseinv;
-            }
-            else if(stricmp(command, "load")==0){
-				strncpy(load_name, findarg(buf+pos, 1), MAX_NAME_LEN);
-                load_cached_model(load_name, name, atoi(findarg(buf+pos, 2)));
-            }
-            else if(stricmp(command, "score")==0){
-                newchar->score = atoi(findarg(buf+pos, 1));
-                newchar->multiple = atoi(findarg(buf+pos, 2));			// New var multiple for force/scoring
-            }
-            else if(stricmp(command, "smartbomb")==0){ //smartbomb now use a normal attack box
-                if(!newchar->smartbomb)
-                {
-                    newchar->smartbomb = tracemalloc("newchar->smartbomb", sizeof(s_attack));
-                    *(newchar->smartbomb) = emptyattack;
-                }
-                else shutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
-                newchar->smartbomb->attack_force = atoi(findarg(buf+pos, 1));			// Special force
-                newchar->smartbomb->attack_type = atoi(findarg(buf+pos, 2));			// Special attack type
-                newchar->smartbomb->attack_drop = 1; //by default
-                newchar->smartbomb->dropv[0] = 3;
-                if(newchar->smartbomb->attack_type==ATK_BLAST)
-                {
-                    newchar->smartbomb->blast = 1;
-                    newchar->smartbomb->dropv[1] = 2.5;
-                }
-                else
-                {
-                    newchar->smartbomb->dropv[1] = (float)1.2;
-                }
-                if(newchar->smartbomb->attack_type==ATK_FREEZE)
-                {
-                    newchar->smartbomb->freeze = 1;
-                    newchar->smartbomb->forcemap = -1;
-                    newchar->smartbomb->attack_drop = 0;
-                }
-                else if(newchar->smartbomb->attack_type==ATK_STEAL)
-                {
-                    newchar->smartbomb->steal = 1;
-                }
-                if(newchar->type == TYPE_ITEM)
-                {
-                    newchar->dofreeze = 0;								// Items don't animate
-                    newchar->smartbomb->freezetime = atoi(findarg(buf+pos, 3)) * GAME_SPEED;
-                }
-                else
-                {
-                    newchar->dofreeze = atoi(findarg(buf+pos, 3));		// Are all animations frozen during special
-                    newchar->smartbomb->freezetime = atoi(findarg(buf+pos, 4)) * GAME_SPEED;
-                }
-            }
-			else if(stricmp(command, "bounce")==0){						// Flag to determine if bounce/quake is to be used.
-                newchar->bounce = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "noquake")==0){					// Mar 12, 2005 - Flag to determine if entity shakes screen
-                newchar->noquake = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "blockback")==0){					// Flag to determine if attacks can be blocked from behind
-                newchar->blockback = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "hitenemy")==0){					// Flag to determine if an enemy projectile will hit enemies
-                value = findarg(buf+pos, 1);
-                if(atoi(value) == 1)
-                    newchar->candamage = newchar->hostile = TYPE_PLAYER | TYPE_ENEMY;
-                else if(atoi(value) == 2)
-                    newchar->candamage = newchar->hostile = TYPE_PLAYER;
-                newchar->ground = atoi(findarg(buf+pos, 2));    // Added to determine if enemies are damaged with mid air projectiles or ground only
-            }
-            else if(stricmp(command, "hostile")==0){
-                i = 1;
-                newchar->hostile = 0;
-                value = findarg(buf+pos, i);
-                while(value && value[0])
-                {
-                    if(stricmp(value, "enemy")==0){
-                        newchar->hostile |= TYPE_ENEMY;
-                    } else if(stricmp(value, "player")==0){
-                        newchar->hostile |= TYPE_PLAYER;
-                    } else if(stricmp(value, "obstacle")==0){
-                        newchar->hostile |= TYPE_OBSTACLE;
-                    } else if(stricmp(value, "shot")==0){
-                        newchar->hostile |= TYPE_SHOT;
-                    } else if(stricmp(value, "npc")==0){
-                        newchar->hostile |= TYPE_NPC;
-                    }
-                    i++;
-                    value = findarg(buf+pos, i);
-                }
-            }
-            else if(stricmp(command, "candamage")==0){
-                i = 1;
-                newchar->candamage = 0;
-                value = findarg(buf+pos, i);
-                while(value && value[0])
-                {
-                    if(stricmp(value, "enemy")==0){
-                        newchar->candamage |= TYPE_ENEMY;
-                    } else if(stricmp(value, "player")==0){
-                        newchar->candamage |= TYPE_PLAYER;
-                    } else if(stricmp(value, "obstacle")==0){
-                        newchar->candamage |= TYPE_OBSTACLE;
-                    } else if(stricmp(value, "shot")==0){
-                        newchar->candamage |= TYPE_SHOT;
-                    } else if(stricmp(value, "npc")==0){
-                        newchar->candamage |= TYPE_NPC;
-                    } else if(stricmp(value, "ground")==0){ // not really needed, though
-                        newchar->ground = 1;
-                    } //else {
-                    // wont shut down
-                    //}
-                    i++;
-                    value = findarg(buf+pos, i);
-                }
-            }
-            else if(stricmp(command, "projectilehit")==0){
-                i = 1;
-                newchar->projectilehit = 0;
-                value = findarg(buf+pos, i);
-                while(value && value[0])
-                {
-                    if(stricmp(value, "enemy")==0){
-
-                        newchar->projectilehit |= TYPE_ENEMY;
-                    } else if(stricmp(value, "player")==0){
-                        newchar->projectilehit |= TYPE_PLAYER;
-                    } else if(stricmp(value, "obstacle")==0){
-                        newchar->projectilehit |= TYPE_OBSTACLE;
-                    } else if(stricmp(value, "shot")==0){
-                        newchar->projectilehit |= TYPE_SHOT;
-                    } else if(stricmp(value, "npc")==0){
-                        newchar->projectilehit |= TYPE_NPC;
-                    } //else {
-                    // wont shut down
-                    //}
-                    i++;
-                    value = findarg(buf+pos, i);
-                }
-            }
-            else if(stricmp(command, "aimove")==0){
-                if(!aimoveset)
-                {
-                    newchar->aimove = 0;
-                    aimoveset = 1;
-                }
-                value = findarg(buf+pos, 1);
-                //main A.I. move switches
-                if(value && value[0])
-                {
-                    if(stricmp(value, "normal")==0){
-                        newchar->aimove |= AIMOVE1_NORMAL;
-                    }
-                    else if(stricmp(value, "chase")==0){
-                        newchar->aimove |= AIMOVE1_CHASE;
-                    }
-                    else if(stricmp(value, "chasex")==0){
-                        newchar->aimove |= AIMOVE1_CHASEX;
-                    }
-                    else if(stricmp(value, "chasez")==0){
-                        newchar->aimove |= AIMOVE1_CHASEZ;
-                    }
-                    else if(stricmp(value, "avoid")==0){
-                        newchar->aimove |= AIMOVE1_AVOID;
-                    }
-                    else if(stricmp(value, "avoidx")==0){
-                        newchar->aimove |= AIMOVE1_AVOIDX;
-                    }
-                    else if(stricmp(value, "avoidz")==0){
-                        newchar->aimove |= AIMOVE1_AVOIDZ;
-                    }
-                    else if(stricmp(value, "wander")==0){
-                        newchar->aimove |= AIMOVE1_WANDER;
-                    }
-                    else if(stricmp(value, "biker")==0){
-                        newchar->aimove |= AIMOVE1_BIKER;
-                    }
-                    else if(stricmp(value, "arrow")==0){
-                        newchar->aimove |= AIMOVE1_ARROW;
-                        if(!newchar->offscreenkill) newchar->offscreenkill = 200;
-                    }
-                    else if(stricmp(value, "star")==0){
-                        newchar->aimove |= AIMOVE1_STAR;
-                    }
-                    else if(stricmp(value, "bomb")==0){
-                        newchar->aimove |= AIMOVE1_BOMB;
-                    }
-                    else if(stricmp(value, "nomove")==0){
-                        newchar->aimove |= AIMOVE1_NOMOVE;
-                    }
-                    else shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
-                }
-                value = findarg(buf+pos, 2);
-                //sub A.I. move switches
-                if(value && value[0])
-                {
-                    if(stricmp(value, "normal")==0){
-                        newchar->aimove |= AIMOVE2_NORMAL;
-                    }
-                    else if(stricmp(value, "ignoreholes")==0){
-                        newchar->aimove |= AIMOVE2_IGNOREHOLES;
-                    }
-                    else shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
-                }
-            }
-            else if(stricmp(command, "aiattack")==0){
-                if(newchar->aiattack==-1) newchar->aiattack = 0;
-                 //do nothing for now, until ai attack is implemented
-            }
-            else if(stricmp(command, "subject_to_wall")==0)
-            {
-                newchar->subject_to_wall = (0!=atoi(findarg(buf+pos, 1)));
-            }
-            else if(stricmp(command, "subject_to_hole")==0)
-            {
-                newchar->subject_to_hole = (0!=atoi(findarg(buf+pos, 1)));
-            }
-            else if(stricmp(command, "subject_to_platform")==0)
-            {
-                newchar->subject_to_platform = (0!=atoi(findarg(buf+pos, 1)));
-            }
-            else if(stricmp(command, "subject_to_obstacle")==0)
-            {
-                newchar->subject_to_obstacle = (0!=atoi(findarg(buf+pos, 1)));
-            }
-            else if(stricmp(command, "subject_to_gravity")==0)
-            {
-                newchar->subject_to_gravity = (0!=atoi(findarg(buf+pos, 1)));
-            }
-            else if(stricmp(command, "subject_to_screen")==0)
-            {
-                newchar->subject_to_screen = (0!=atoi(findarg(buf+pos, 1)));
-            }
-            else if(stricmp(command, "subject_to_minz")==0)
-            {
-                newchar->subject_to_minz = (0!=atoi(findarg(buf+pos, 1)));
-            }
-            else if(stricmp(command, "subject_to_maxz")==0)
-            {
-                newchar->subject_to_maxz = (0!=atoi(findarg(buf+pos, 1)));
-            }
-            else if(stricmp(command, "no_adjust_base")==0)
-            {
-                newchar->no_adjust_base = (0!=atoi(findarg(buf+pos, 1)));
-            }
-            else if(stricmp(command, "instantitemdeath")==0)
-            {
-                newchar->instantitemdeath = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "secret")==0){
-                newchar->secret = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "modelflag")==0){ // model copy flag
-                newchar->model_flag = atoi(findarg(buf+pos, 1));
-            }
-            // weapons
-            else if(stricmp(command, "weaploss")==0){
-                newchar->weaploss[0] = atoi(findarg(buf+pos, 1));
-                newchar->weaploss[1] = atoi(findarg(buf+pos, 2));
-            }
-            else if(stricmp(command, "weapnum")==0){
-                newchar->weapnum = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "project")==0){  // New projectile subtype
-                value = findarg(buf+pos, 1);
-                if(stricmp(value, "none")==0) newchar->project = -1;
-                else newchar->project = get_cached_model_index(value);
-            }
-            else if(stricmp(command, "weapons")==0){
-                if(!newchar->weapon)
-                {
-                    newchar->weapon = tracemalloc("newchar->weapon", sizeof(*newchar->weapon));
-                    memset(newchar->weapon, 0xFF, sizeof(*newchar->weapon));
-                    newchar->ownweapons = 1;
-                }
-                for(weap = 0; weap<MAX_WEAPONS; weap++){
-                    value = findarg(buf+pos, weap+1);
-                    if(value[0]){
-                        if(stricmp(value, "none")!=0){
-                            (*newchar->weapon)[weap] = get_cached_model_index(value);
-                        } else { // make empty weapon slots  2007-2-16
-                            (*newchar->weapon)[weap] = -1;
-                        }
-                        last = weap;
-                    }
-                    else (*newchar->weapon)[weap] = (*newchar->weapon)[last];
-                }
-            }
-            //here weapons things like shoot rest type of weapon ect..by tails
-            else if(stricmp(command, "shootnum")==0){
-                newchar->shootnum = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "reload")==0){
-                newchar->reload = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "typeshot")==0){
-                newchar->typeshot = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "counter")==0){
-                newchar->counter = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "animal")==0){
-                newchar->animal = atoi(findarg(buf+pos, 1));
-            }
-            // end weapons
-            else if(stricmp(command, "rider")==0){
-                value = findarg(buf+pos, 1);
-                if(stricmp(value, "none")==0) newchar->rider = -1;
-                else newchar->rider = get_cached_model_index(value);
-            }
-            else if(stricmp(command, "knife")==0 ||
-	                stricmp(command, "fireb")==0 ||
-					stricmp(command, "playshot")==0 ||
-					stricmp(command, "playshotw")==0) {
-                value = findarg(buf+pos, 1);
-                if(stricmp(value, "none")==0) newchar->knife = -1;
-                else  newchar->knife = get_cached_model_index(value);
-            }
-			else if(stricmp(command, "playshotno")==0){
-                value = findarg(buf+pos, 1);
-                if(stricmp(value, "none")==0) newchar->pshotno = -1;
-                else newchar->pshotno = get_cached_model_index(value);
-            }
-            else if(stricmp(command, "star")==0){
-                value = findarg(buf+pos, 1);
-                if(stricmp(value, "none")==0) newchar->star = -1;
-                else newchar->star = get_cached_model_index(value);
-            }
-            else if(stricmp(command, "bomb")==0 ||
-				    stricmp(command, "playbomb")==0){
-                value = findarg(buf+pos, 1);
-                if(stricmp(value, "none")==0) newchar->bomb = -1;
-                else newchar->bomb = get_cached_model_index(value);
-            }
-            else if(stricmp(command, "flash")==0){    // Now all characters can have their own flash - even projectiles (useful for blood)
-                value = findarg(buf+pos, 1);
-                if(stricmp(value, "none")==0) newchar->flash = -1;
-                else newchar->flash = get_cached_model_index(value);
-            }
-            else if(stricmp(command, "bflash")==0){    // Flash that is spawned if an attack is blocked
-                value = findarg(buf+pos, 1);
-                if(stricmp(value, "none")==0) newchar->bflash = -1;
-                else newchar->bflash = get_cached_model_index(value);
-            }
-            else if(stricmp(command, "dust")==0){    // Spawned when hitting the ground to "kick up dust"
-                value = findarg(buf+pos, 1);
-                if(stricmp(value, "none")==0) newchar->dust[0] = -1;
-                else newchar->dust[0] = get_cached_model_index(value);
-                value = findarg(buf+pos, 2);
-                if(stricmp(value, "none")==0) newchar->dust[1] = -1;
-                else newchar->dust[1] = get_cached_model_index(value);
-                value = findarg(buf+pos, 3);
-                if(stricmp(value, "none")==0) newchar->dust[2] = -1;
-                else newchar->dust[2] = get_cached_model_index(value);
-            }
-            else if(stricmp(command, "branch")==0){    // for endlevel item's level branch
-                value = findarg(buf+pos, 1);
-                if(!newchar->branch)
-                {
-                    newchar->branch = tracemalloc("newchar->branch", MAX_NAME_LEN+1);
-                    newchar->branch[0] = 0;
-                }
-                strncpy(newchar->branch, value, MAX_NAME_LEN);
-            }
-            else if(stricmp(command, "cantgrab")==0 ||
-				    stricmp(command, "notgrab")==0){
-                tempInt = atoi(findarg(buf+pos, 1));
-                if(tempInt == 2) newchar->grabforce = -999999;
-                else             newchar->antigrab = 1;
-            }
-            else if(stricmp(command, "antigrab")==0) // a can grab b: a->antigrab - b->grabforce <=0
-            {
-                newchar->antigrab = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "grabforce")==0)
-            {
-                newchar->grabforce = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "grabback")==0){
-                newchar->grabback = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "offscreenkill")==0){
-                newchar->offscreenkill = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "falldie")==0 ||
-				    stricmp(command, "death")==0){
-                newchar->falldie = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "speed")==0){
-                value = findarg(buf+pos, 1);
-                newchar->speed = atof(value);
-                newchar->speed /= 10;
-                if(newchar->speed < 0.5) newchar->speed = 0.5;
-                if(newchar->speed > 30) newchar->speed = 30;
-            }
-            else if(stricmp(command, "speedf")==0){ // float speed
-                value = findarg(buf+pos, 1);
-                newchar->speed = atof(value);
-            }
-            else if(stricmp(command, "jumpspeed")==0){
-                value = findarg(buf+pos, 1);
-                newchar->jumpspeed = atof(value);
-                newchar->jumpspeed /= 10;
-            }
-            else if(stricmp(command, "jumpspeedf")==0){
-                value = findarg(buf+pos, 1);
-                newchar->jumpspeed = atof(value);
-            }
-            else if(stricmp(command, "antigravity")==0){
-                value = findarg(buf+pos, 1);
-                newchar->antigravity = atof(value);
-                newchar->antigravity /= 100;
-            }
-            else if(stricmp(command, "stealth")==0){
-                newchar->stealth[0] = atoi(findarg(buf+pos, 1));
-				newchar->stealth[1] = atoi(findarg(buf+pos, 2));
-            }
-			else if(stricmp(command, "jugglepoints")==0){
-                value = findarg(buf+pos, 1);
-                newchar->jugglepoints[0] = atoi(value);
-				newchar->jugglepoints[1] = atoi(value);
-            }
-			else if(stricmp(command, "riseattacktype")==0){
-                value = findarg(buf+pos, 1);
-                newchar->riseattacktype = atoi(value);
-            }
-			else if(stricmp(command, "guardpoints")==0){
-                value = findarg(buf+pos, 1);
-                newchar->guardpoints[0] = atoi(value);
-				newchar->guardpoints[1] = atoi(value);
-            }
+					newchar->subject_to_gravity     = 1;
+					newchar->no_adjust_base         = 1;
+				}
+				else shutdown(1, "Model '%s' has invalid type: '%s'", filename, value);
+			}
+			else if(stricmp(command, "subtype")==0){
+				value = findarg(buf+pos, 1);
+				if(stricmp(value, "biker")==0){
+				newchar->subtype                                        = SUBTYPE_BIKER;
+				if(newchar->aimove==-1) newchar->aimove                 = 0;
+				newchar->aimove |= AIMOVE1_BIKER;
+				for(i=0; i<MAX_ATKS; i++) newchar->defense_factors[i]   = 2;
+				if(!newchar->offscreenkill) newchar->offscreenkill = 300;
+				newchar->subject_to_hole                                = 1;
+				newchar->subject_to_gravity                             = 1;
+				newchar->subject_to_wall                                = 0;
+				newchar->subject_to_platform                            = 0;
+				newchar->subject_to_screen                              = 0;
+				newchar->subject_to_minz                                = 1;
+				newchar->subject_to_maxz                                = 1;
+				newchar->subject_to_platform                            = 0;
+				newchar->no_adjust_base                                 = 0;
+			}
+			else if(stricmp(value, "arrow")==0){  // 7-1-2005 Arrow type
+				newchar->subtype = SUBTYPE_ARROW;   // 7-1-2005 Arrow type
+				if(newchar->aimove==-1) newchar->aimove = 0;
+				newchar->aimove |= AIMOVE1_ARROW;
+				if(!newchar->offscreenkill) newchar->offscreenkill = 200;
+				newchar->subject_to_hole        = 0;
+				newchar->subject_to_gravity     = 1;
+				newchar->subject_to_wall        = 0;
+				newchar->subject_to_platform    = 0;
+				newchar->subject_to_screen      = 0;
+				newchar->subject_to_minz        = 1;
+				newchar->subject_to_maxz        = 1;
+				newchar->subject_to_platform    = 0;
+				newchar->no_adjust_base         = 1;
+			}
+			else if(stricmp(value, "notgrab")==0){  // 7-1-2005 notgrab type
+				newchar->subtype = SUBTYPE_NOTGRAB;   // 7-1-2005 notgrab type
+			}
+			//    ltb 1-18-05  Item Subtype
+			else if(stricmp(value, "touch")==0){  // 7-1-2005 notgrab type
+				newchar->subtype = SUBTYPE_TOUCH;   // 7-1-2005 notgrab type
+			}
+			else if(stricmp(value, "weapon")==0){  // 7-1-2005 notgrab type
+				newchar->subtype = SUBTYPE_WEAPON;   // 7-1-2005 notgrab type
+			}
+			else if(stricmp(value, "noskip")==0){    // Text animation cannot be skipped if subtype noskip
+				newchar->subtype = SUBTYPE_NOSKIP;
+			}
+			else if(stricmp(value, "flydie")==0){    // Obstacle will fly across the screen when hit if subtype flydie
+				newchar->subtype = SUBTYPE_FLYDIE;
+			}
+			else if(stricmp(value, "both")==0){
+				newchar->subtype = SUBTYPE_BOTH;
+			}
+			else if(stricmp(value, "project")==0){
+				newchar->subtype = SUBTYPE_PROJECTILE;
+			}
+			else if(stricmp(value, "follow")==0){
+				newchar->subtype = SUBTYPE_FOLLOW;
+			}
+			else if(stricmp(value, "chase")==0){
+				newchar->subtype = SUBTYPE_CHASE;
+			}
+			//    end new subtype
+			else shutdown(1, "Model '%s' has invalid subtype: '%s'", filename, value);
+		}
+		else if(stricmp(command, "stats")==0){
+			value = findarg(buf+pos, 1);
+			newchar->stats[atoi(value)] = atof(findarg(buf+pos, 2));
+		}
+		else if(stricmp(command, "health")==0){                          
+			value = findarg(buf+pos, 1);
+			newchar->health = atoi(value);
+		}
+		else if(stricmp(command, "scroll")==0){
+			value = findarg(buf+pos, 1);
+			newchar->scroll = atof(value);
+		}
+		//Left for backward compatability. See mpset.
+		else if(stricmp(command, "mp")==0){// mp values to put max mp for player by tails
+			value = findarg(buf+pos, 1);
+			newchar->mp = atoi(value);
+		}
+		else if(stricmp(command, "nolife")==0){    // Feb 25, 2005 - Flag to display enemy life or not
+			newchar->nolife = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "makeinv")==0){    // Mar 12, 2005 - If a value is supplied, corresponds to amount of time the player spawns invincible
+			newchar->makeinv = atoi(findarg(buf+pos, 1)) * GAME_SPEED;
+			if(atoi(findarg(buf+pos, 2))) newchar->makeinv = -newchar->makeinv;
+		}
+		else if(stricmp(command, "riseinv")==0){
+			newchar->riseinv = atoi(findarg(buf+pos, 1)) * GAME_SPEED;
+			if(atoi(findarg(buf+pos, 2))) newchar->riseinv = -newchar->riseinv;
+		}
+		else if(stricmp(command, "load")==0){
+			strncpy(load_name, findarg(buf+pos, 1), MAX_NAME_LEN);
+			load_cached_model(load_name, name, atoi(findarg(buf+pos, 2)));
+		}
+		else if(stricmp(command, "score")==0){
+			newchar->score = atoi(findarg(buf+pos, 1));
+			newchar->multiple = atoi(findarg(buf+pos, 2));			// New var multiple for force/scoring
+		}
+		else if(stricmp(command, "smartbomb")==0){ //smartbomb now use a normal attack box
+			if(!newchar->smartbomb)
+			{
+				newchar->smartbomb = tracemalloc("newchar->smartbomb", sizeof(s_attack));
+				*(newchar->smartbomb) = emptyattack;
+			}
+			else shutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
+			newchar->smartbomb->attack_force = atoi(findarg(buf+pos, 1));			// Special force
+			newchar->smartbomb->attack_type = atoi(findarg(buf+pos, 2));			// Special attack type
+			newchar->smartbomb->attack_drop = 1; //by default
+			newchar->smartbomb->dropv[0] = 3;
+			if(newchar->smartbomb->attack_type==ATK_BLAST)
+			{
+				newchar->smartbomb->blast = 1;
+				newchar->smartbomb->dropv[1] = 2.5;
+			}
+			else
+			{
+				newchar->smartbomb->dropv[1] = (float)1.2;
+			}
+			if(newchar->smartbomb->attack_type==ATK_FREEZE)
+			{
+				newchar->smartbomb->freeze = 1;
+				newchar->smartbomb->forcemap = -1;
+				newchar->smartbomb->attack_drop = 0;
+			}
+			else if(newchar->smartbomb->attack_type==ATK_STEAL)
+			{
+				newchar->smartbomb->steal = 1;
+			}
+			if(newchar->type == TYPE_ITEM)
+			{
+				newchar->dofreeze = 0;								// Items don't animate
+				newchar->smartbomb->freezetime = atoi(findarg(buf+pos, 3)) * GAME_SPEED;
+			}
+			else
+			{
+				newchar->dofreeze = atoi(findarg(buf+pos, 3));		// Are all animations frozen during special
+				newchar->smartbomb->freezetime = atoi(findarg(buf+pos, 4)) * GAME_SPEED;
+			}
+		}
+		else if(stricmp(command, "bounce")==0){						// Flag to determine if bounce/quake is to be used.
+			newchar->bounce = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "noquake")==0){					// Mar 12, 2005 - Flag to determine if entity shakes screen
+			newchar->noquake = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "blockback")==0){					// Flag to determine if attacks can be blocked from behind
+			newchar->blockback = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "hitenemy")==0){					// Flag to determine if an enemy projectile will hit enemies
+			value = findarg(buf+pos, 1);
+			if(atoi(value) == 1)
+			newchar->candamage = newchar->hostile = TYPE_PLAYER | TYPE_ENEMY;
+			else if(atoi(value) == 2)
+			newchar->candamage = newchar->hostile = TYPE_PLAYER;
+			newchar->ground = atoi(findarg(buf+pos, 2));    // Added to determine if enemies are damaged with mid air projectiles or ground only
+		}
+		else if(stricmp(command, "hostile")==0){
+			i = 1;
+			newchar->hostile = 0;
+			value = findarg(buf+pos, i);
+			while(value && value[0])
+			{
+				if(stricmp(value, "enemy")==0){
+					newchar->hostile |= TYPE_ENEMY;
+				} else if(stricmp(value, "player")==0){
+					newchar->hostile |= TYPE_PLAYER;
+				} else if(stricmp(value, "obstacle")==0){
+					newchar->hostile |= TYPE_OBSTACLE;
+				} else if(stricmp(value, "shot")==0){
+					newchar->hostile |= TYPE_SHOT;
+				} else if(stricmp(value, "npc")==0){
+					newchar->hostile |= TYPE_NPC;
+				}
+				i++;
+				value = findarg(buf+pos, i);
+			}
+		}
+		else if(stricmp(command, "candamage")==0){
+			i = 1;
+			newchar->candamage = 0;
+			value = findarg(buf+pos, i);
+			while(value && value[0])
+			{
+				if(stricmp(value, "enemy")==0){
+					newchar->candamage |= TYPE_ENEMY;
+				} else if(stricmp(value, "player")==0){
+					newchar->candamage |= TYPE_PLAYER;
+				} else if(stricmp(value, "obstacle")==0){
+					newchar->candamage |= TYPE_OBSTACLE;
+				} else if(stricmp(value, "shot")==0){
+					newchar->candamage |= TYPE_SHOT;
+				} else if(stricmp(value, "npc")==0){
+					newchar->candamage |= TYPE_NPC;
+				} else if(stricmp(value, "ground")==0){ // not really needed, though
+					newchar->ground = 1;
+				} //else {
+				// wont shut down
+				//}
+				i++;
+				value = findarg(buf+pos, i);
+			}
+		}
+		else if(stricmp(command, "projectilehit")==0){
+			i = 1;
+			newchar->projectilehit = 0;
+			value = findarg(buf+pos, i);
+			while(value && value[0])
+			{
+				if(stricmp(value, "enemy")==0){
+					newchar->projectilehit |= TYPE_ENEMY;
+				} else if(stricmp(value, "player")==0){
+					newchar->projectilehit |= TYPE_PLAYER;
+				} else if(stricmp(value, "obstacle")==0){
+					newchar->projectilehit |= TYPE_OBSTACLE;
+				} else if(stricmp(value, "shot")==0){
+					newchar->projectilehit |= TYPE_SHOT;
+				} else if(stricmp(value, "npc")==0){
+					newchar->projectilehit |= TYPE_NPC;
+				} //else {
+					// wont shut down
+					//}
+				i++;
+				value = findarg(buf+pos, i);
+			}
+		}
+		else if(stricmp(command, "aimove")==0){
+			if(!aimoveset)
+			{
+				newchar->aimove = 0;
+				aimoveset = 1;
+			}
+			value = findarg(buf+pos, 1);
+			//main A.I. move switches
+			if(value && value[0])
+			{
+				if(stricmp(value, "normal")==0){
+					newchar->aimove |= AIMOVE1_NORMAL;
+				}
+				else if(stricmp(value, "chase")==0){
+					newchar->aimove |= AIMOVE1_CHASE;
+				}
+				else if(stricmp(value, "chasex")==0){
+					newchar->aimove |= AIMOVE1_CHASEX;
+				}
+				else if(stricmp(value, "chasez")==0){
+					newchar->aimove |= AIMOVE1_CHASEZ;
+				}
+				else if(stricmp(value, "avoid")==0){
+					newchar->aimove |= AIMOVE1_AVOID;
+				}
+				else if(stricmp(value, "avoidx")==0){
+					newchar->aimove |= AIMOVE1_AVOIDX;
+				}
+				else if(stricmp(value, "avoidz")==0){
+					newchar->aimove |= AIMOVE1_AVOIDZ;
+				}
+				else if(stricmp(value, "wander")==0){
+					newchar->aimove |= AIMOVE1_WANDER;
+				}
+				else if(stricmp(value, "biker")==0){
+					newchar->aimove |= AIMOVE1_BIKER;
+				}
+				else if(stricmp(value, "arrow")==0){
+					newchar->aimove |= AIMOVE1_ARROW;
+					if(!newchar->offscreenkill) newchar->offscreenkill = 200;
+				}
+				else if(stricmp(value, "star")==0){
+					newchar->aimove |= AIMOVE1_STAR;
+				}
+				else if(stricmp(value, "bomb")==0){
+					newchar->aimove |= AIMOVE1_BOMB;
+				}
+				else if(stricmp(value, "nomove")==0){
+					newchar->aimove |= AIMOVE1_NOMOVE;
+				}
+				else shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
+			}
+			value = findarg(buf+pos, 2);
+			//sub A.I. move switches
+			if(value && value[0])
+			{
+				if(stricmp(value, "normal")==0){
+					newchar->aimove |= AIMOVE2_NORMAL;
+				}
+				else if(stricmp(value, "ignoreholes")==0){
+					newchar->aimove |= AIMOVE2_IGNOREHOLES;
+				}
+				else shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
+			}
+		}
+		else if(stricmp(command, "aiattack")==0){
+			if(newchar->aiattack==-1) newchar->aiattack = 0;
+			//do nothing for now, until ai attack is implemented
+		}
+		else if(stricmp(command, "subject_to_wall")==0)
+		{
+			newchar->subject_to_wall = (0!=atoi(findarg(buf+pos, 1)));
+		}
+		else if(stricmp(command, "subject_to_hole")==0)
+		{
+			newchar->subject_to_hole = (0!=atoi(findarg(buf+pos, 1)));
+		}
+		else if(stricmp(command, "subject_to_platform")==0)
+		{
+			newchar->subject_to_platform = (0!=atoi(findarg(buf+pos, 1)));
+		}
+		else if(stricmp(command, "subject_to_obstacle")==0)
+		{
+			newchar->subject_to_obstacle = (0!=atoi(findarg(buf+pos, 1)));
+		}
+		else if(stricmp(command, "subject_to_gravity")==0)
+		{
+			newchar->subject_to_gravity = (0!=atoi(findarg(buf+pos, 1)));
+		}
+		else if(stricmp(command, "subject_to_screen")==0)
+		{
+			newchar->subject_to_screen = (0!=atoi(findarg(buf+pos, 1)));
+		}
+		else if(stricmp(command, "subject_to_minz")==0)
+		{
+			newchar->subject_to_minz = (0!=atoi(findarg(buf+pos, 1)));
+		}
+		else if(stricmp(command, "subject_to_maxz")==0)
+		{
+			newchar->subject_to_maxz = (0!=atoi(findarg(buf+pos, 1)));
+		}
+		else if(stricmp(command, "no_adjust_base")==0)
+		{
+			newchar->no_adjust_base = (0!=atoi(findarg(buf+pos, 1)));
+		}
+		else if(stricmp(command, "instantitemdeath")==0)
+		{
+			newchar->instantitemdeath = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "secret")==0){
+			newchar->secret = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "modelflag")==0){ // model copy flag
+			newchar->model_flag = atoi(findarg(buf+pos, 1));
+		}
+		// weapons
+		else if(stricmp(command, "weaploss")==0){
+			newchar->weaploss[0] = atoi(findarg(buf+pos, 1));
+			newchar->weaploss[1] = atoi(findarg(buf+pos, 2));
+		}
+		else if(stricmp(command, "weapnum")==0){
+			newchar->weapnum = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "project")==0){  // New projectile subtype
+			value = findarg(buf+pos, 1);
+			if(stricmp(value, "none")==0) newchar->project = -1;
+			else newchar->project = get_cached_model_index(value);
+		}
+		else if(stricmp(command, "weapons")==0){
+			if(!newchar->weapon)
+			{
+				newchar->weapon = tracemalloc("newchar->weapon", sizeof(*newchar->weapon));
+				memset(newchar->weapon, 0xFF, sizeof(*newchar->weapon));
+				newchar->ownweapons = 1;
+			}
+			for(weap = 0; weap<MAX_WEAPONS; weap++){
+				value = findarg(buf+pos, weap+1);
+				if(value[0]){
+					if(stricmp(value, "none")!=0){
+						(*newchar->weapon)[weap] = get_cached_model_index(value);
+					} else { // make empty weapon slots  2007-2-16
+						(*newchar->weapon)[weap] = -1;
+					}
+					last = weap;
+				}
+				else (*newchar->weapon)[weap] = (*newchar->weapon)[last];
+			}
+		}
+		//here weapons things like shoot rest type of weapon ect..by tails
+		else if(stricmp(command, "shootnum")==0){
+			newchar->shootnum = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "reload")==0){
+			newchar->reload = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "typeshot")==0){
+			newchar->typeshot = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "counter")==0){
+			newchar->counter = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "animal")==0){
+			newchar->animal = atoi(findarg(buf+pos, 1));
+		}
+		// end weapons
+		else if(stricmp(command, "rider")==0){
+			value = findarg(buf+pos, 1);
+			if(stricmp(value, "none")==0) newchar->rider = -1;
+			else newchar->rider = get_cached_model_index(value);
+		}
+		else if(stricmp(command, "knife")==0 ||
+			stricmp(command, "fireb")==0 ||
+			stricmp(command, "playshot")==0 ||
+			stricmp(command, "playshotw")==0) {
+			value = findarg(buf+pos, 1);
+			if(stricmp(value, "none")==0) newchar->knife = -1;
+			else  newchar->knife = get_cached_model_index(value);
+		}
+		else if(stricmp(command, "playshotno")==0){
+			value = findarg(buf+pos, 1);
+			if(stricmp(value, "none")==0) newchar->pshotno = -1;
+			else newchar->pshotno = get_cached_model_index(value);
+		}
+		else if(stricmp(command, "star")==0){
+			value = findarg(buf+pos, 1);
+			if(stricmp(value, "none")==0) newchar->star = -1;
+			else newchar->star = get_cached_model_index(value);
+		}
+		else if(stricmp(command, "bomb")==0 ||
+			stricmp(command, "playbomb")==0){
+			value = findarg(buf+pos, 1);
+			if(stricmp(value, "none")==0) newchar->bomb = -1;
+			else newchar->bomb = get_cached_model_index(value);
+		}
+		else if(stricmp(command, "flash")==0){    // Now all characters can have their own flash - even projectiles (useful for blood)
+			value = findarg(buf+pos, 1);
+			if(stricmp(value, "none")==0) newchar->flash = -1;
+			else newchar->flash = get_cached_model_index(value);
+		}
+		else if(stricmp(command, "bflash")==0){    // Flash that is spawned if an attack is blocked
+			value = findarg(buf+pos, 1);
+			if(stricmp(value, "none")==0) newchar->bflash = -1;
+			else newchar->bflash = get_cached_model_index(value);
+		}
+		else if(stricmp(command, "dust")==0){    // Spawned when hitting the ground to "kick up dust"
+			value = findarg(buf+pos, 1);
+			if(stricmp(value, "none")==0) newchar->dust[0] = -1;
+			else newchar->dust[0] = get_cached_model_index(value);
+			value = findarg(buf+pos, 2);
+			if(stricmp(value, "none")==0) newchar->dust[1] = -1;
+			else newchar->dust[1] = get_cached_model_index(value);
+			value = findarg(buf+pos, 3);
+			if(stricmp(value, "none")==0) newchar->dust[2] = -1;
+			else newchar->dust[2] = get_cached_model_index(value);
+		}
+		else if(stricmp(command, "branch")==0){    // for endlevel item's level branch
+			value = findarg(buf+pos, 1);
+			if(!newchar->branch)
+			{
+				newchar->branch = tracemalloc("newchar->branch", MAX_NAME_LEN+1);
+				newchar->branch[0] = 0;
+			}
+			strncpy(newchar->branch, value, MAX_NAME_LEN);
+		}
+		else if(stricmp(command, "cantgrab")==0 ||
+			stricmp(command, "notgrab")==0){
+			tempInt = atoi(findarg(buf+pos, 1));
+			if(tempInt == 2) newchar->grabforce = -999999;
+			else             newchar->antigrab = 1;
+		}
+		else if(stricmp(command, "antigrab")==0) // a can grab b: a->antigrab - b->grabforce <=0
+		{
+			newchar->antigrab = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "grabforce")==0)
+		{
+			newchar->grabforce = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "grabback")==0){
+			newchar->grabback = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "offscreenkill")==0){
+			newchar->offscreenkill = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "falldie")==0 ||
+			stricmp(command, "death")==0){
+			newchar->falldie = atoi(findarg(buf+pos, 1));
+		}
+		else if(stricmp(command, "speed")==0){
+			value = findarg(buf+pos, 1);
+			newchar->speed = atof(value);
+			newchar->speed /= 10;
+			if(newchar->speed < 0.5) newchar->speed = 0.5;
+			if(newchar->speed > 30) newchar->speed = 30;
+		}
+		else if(stricmp(command, "speedf")==0){ // float speed
+			value = findarg(buf+pos, 1);
+			newchar->speed = atof(value);
+		}
+		else if(stricmp(command, "jumpspeed")==0){
+			value = findarg(buf+pos, 1);
+			newchar->jumpspeed = atof(value);
+			newchar->jumpspeed /= 10;
+		}
+		else if(stricmp(command, "jumpspeedf")==0){
+			value = findarg(buf+pos, 1);
+			newchar->jumpspeed = atof(value);
+		}
+		else if(stricmp(command, "antigravity")==0){
+			value = findarg(buf+pos, 1);
+			newchar->antigravity = atof(value);
+			newchar->antigravity /= 100;
+		}
+		else if(stricmp(command, "stealth")==0){
+			newchar->stealth[0] = atoi(findarg(buf+pos, 1));
+			newchar->stealth[1] = atoi(findarg(buf+pos, 2));
+		}
+		else if(stricmp(command, "jugglepoints")==0){
+			value = findarg(buf+pos, 1);
+			newchar->jugglepoints[0] = atoi(value);
+			newchar->jugglepoints[1] = atoi(value);
+		}
+		else if(stricmp(command, "riseattacktype")==0){
+			value = findarg(buf+pos, 1);
+			newchar->riseattacktype = atoi(value);
+		}
+		else if(stricmp(command, "guardpoints")==0){
+			value = findarg(buf+pos, 1);
+			newchar->guardpoints[0] = atoi(value);
+			newchar->guardpoints[1] = atoi(value);
+		}
 
 #define tempdef(x, y, z, p, k, b, t, r, e) \
 x(stricmp(value, #y)==0)\
@@ -4861,49 +4831,49 @@ x(stricmp(value, #y)==0)\
     /*newchar->r[ATK_##y] /= 100;*/\
     newchar->e[ATK_##y] = atof(findarg(buf+pos, 8));\
 }
-            else if(stricmp(command, "defense")==0){
-                value = findarg(buf+pos, 1);
-                tempdef(if, NORMAL, defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, NORMAL2,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, NORMAL3,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, NORMAL4,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, NORMAL5,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, NORMAL6,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, NORMAL7,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, NORMAL8,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, NORMAL9,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, NORMAL10,  defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, BLAST,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, STEAL,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, BURN,      defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, SHOCK,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                tempdef(else if, FREEZE,    defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-                else if(strnicmp(value, "normal", 6)==0)
-                {
-                    tempInt = atoi(value+6);
-                    if(tempInt<11) tempInt = 11;
-                    newchar->defense_factors[tempInt+STA_ATKS-1]        = atof(findarg(buf+pos, 2));
-                    newchar->defense_pain[tempInt+STA_ATKS-1]           = atof(findarg(buf+pos, 3));
-                    newchar->defense_knockdown[tempInt+STA_ATKS-1]      = atof(findarg(buf+pos, 4));
-                    newchar->defense_blockpower[tempInt+STA_ATKS-1]     = atof(findarg(buf+pos, 5));
-                    newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = atof(findarg(buf+pos, 6));
-                    newchar->defense_blockratio[tempInt+STA_ATKS-1]     = atof(findarg(buf+pos, 7));
-                    newchar->defense_blocktype[tempInt+STA_ATKS-1]      = atof(findarg(buf+pos, 8));
-                }
-                else if(stricmp(value, "ALL")==0)
-                {
-                    for(i=0;i<max_attack_types;i++)
-                    {
-                        newchar->defense_factors[i]         = atof(findarg(buf+pos, 2));
-                        newchar->defense_pain[i]            = atof(findarg(buf+pos, 3));
-                        newchar->defense_knockdown[i]       = atof(findarg(buf+pos, 4));
-                        newchar->defense_blockpower[i]      = atof(findarg(buf+pos, 5));
-                        newchar->defense_blockthreshold[i]  = atof(findarg(buf+pos, 6));
-                        newchar->defense_blockratio[i]      = atof(findarg(buf+pos, 7));
-                        newchar->defense_blocktype[i]       = atof(findarg(buf+pos, 8));
-                    }
-                }
-            }
+		else if(stricmp(command, "defense")==0){
+			value = findarg(buf+pos, 1);
+			tempdef(if, NORMAL, defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, NORMAL2,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, NORMAL3,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, NORMAL4,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, NORMAL5,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, NORMAL6,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, NORMAL7,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, NORMAL8,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, NORMAL9,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, NORMAL10,  defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, BLAST,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, STEAL,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, BURN,      defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, SHOCK,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			tempdef(else if, FREEZE,    defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+			else if(strnicmp(value, "normal", 6)==0)
+			{
+				tempInt = atoi(value+6);
+				if(tempInt<11) tempInt = 11;
+				newchar->defense_factors[tempInt+STA_ATKS-1]        = atof(findarg(buf+pos, 2));
+				newchar->defense_pain[tempInt+STA_ATKS-1]           = atof(findarg(buf+pos, 3));
+				newchar->defense_knockdown[tempInt+STA_ATKS-1]      = atof(findarg(buf+pos, 4));
+				newchar->defense_blockpower[tempInt+STA_ATKS-1]     = atof(findarg(buf+pos, 5));
+				newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = atof(findarg(buf+pos, 6));
+				newchar->defense_blockratio[tempInt+STA_ATKS-1]     = atof(findarg(buf+pos, 7));
+				newchar->defense_blocktype[tempInt+STA_ATKS-1]      = atof(findarg(buf+pos, 8));
+			}
+			else if(stricmp(value, "ALL")==0)
+			{
+				for(i=0;i<max_attack_types;i++)
+				{
+					newchar->defense_factors[i]         = atof(findarg(buf+pos, 2));
+					newchar->defense_pain[i]            = atof(findarg(buf+pos, 3));
+					newchar->defense_knockdown[i]       = atof(findarg(buf+pos, 4));
+					newchar->defense_blockpower[i]      = atof(findarg(buf+pos, 5));
+					newchar->defense_blockthreshold[i]  = atof(findarg(buf+pos, 6));
+					newchar->defense_blockratio[i]      = atof(findarg(buf+pos, 7));
+					newchar->defense_blocktype[i]       = atof(findarg(buf+pos, 8));
+				}
+			}
+		}
 #undef tempdef
 #define tempoff(x, y, z) \
 x(stricmp(value, #y)==0)\
@@ -6964,7 +6934,8 @@ int load_script_setting()
 {
     char * filename = "data/script.txt";
     char *buf, *command;
-    int pos = 0, size;
+    ptrdiff_t pos = 0;
+    size_t size = 0;
 
     if(buffer_pakfile(filename, &buf, &size)!=1) return 0;
 
@@ -7017,8 +6988,8 @@ int load_models()
     char filename[128] = "data/models.txt";
     int i;
     char *buf;
-    int size;
-    int pos;
+    size_t size;
+    ptrdiff_t pos;
     char * command;
     char value1[128];
     char value2[128];
@@ -7469,7 +7440,7 @@ void load_levelorder()
     char filename[128] = "";
     int i;
     char *buf;
-    int size;
+    size_t size;
     int pos;
     int current_set;
     char * command;
@@ -8391,27 +8362,27 @@ void unload_level(){
 }
 
 void load_level(char *filename){
-    char *buf;
-    int size, len;
-    int pos, oldpos;
-    char *command;
-    char *value, *value2;
-    char string[128] = {""};
-    s_spawn_entry next;
-    s_model *tempmodel, *cached_model;
+	char *buf;
+	size_t size, len;
+	ptrdiff_t pos, oldpos;
+	char *command;
+	char *value, *value2;
+	char string[128] = {""};
+	s_spawn_entry next;
+	s_model *tempmodel, *cached_model;
 	s_spawn_script_cache_node* tempnode;
 	s_spawn_script_cache_node* tempnode2;
 	s_spawn_script_list_node* templistnode;
-    int i, j, crlf = 0;
-    int usemap[MAX_BLENDINGS];
+	int i, j, crlf = 0;
+	int usemap[MAX_BLENDINGS];
 	char bgPath[128] = {""};
 	int  bgPosi[6] = {0,0,0,0,0};
-    char musicPath[128] = {""};
-    u32 musicOffset = 0;
+	char musicPath[128] = {""};
+	u32 musicOffset = 0;
 
-    unload_level();
+	unload_level();
 
-    printf("Level Loading:   '%s'\n", filename);
+	printf("Level Loading:   '%s'\n", filename);
 
 
 
@@ -8419,16 +8390,16 @@ void load_level(char *filename){
 
 	getRamStatus(BYTES);
 
-    if(loadingbg[1][0] > 0)
+	if(loadingbg[1][0] > 0)
 	{
-        if(custBkgrds != NULL)
+		if(custBkgrds != NULL)
 		{
-            strcpy(string, custBkgrds);
-            strcat(string, "loading2");
-            load_background(string, 0);
-        }
-        else load_cached_background("data/bgs/loading2", 0);
-    }
+		strcpy(string, custBkgrds);
+		strcat(string, "loading2");
+		load_background(string, 0);
+		}
+		else load_cached_background("data/bgs/loading2", 0);
+	}
 	else if(loadingbg[1][0] < 0)
 	{
 		clearscreen(vscreen);
@@ -8439,412 +8410,416 @@ void load_level(char *filename){
 	    standard_palette(1);
 	    lifebar_colors();
 	    init_colourtable();
-    }
+	}
 
 	memset(&next, 0, sizeof(s_spawn_entry));
 
-    level = tracemalloc("level",sizeof(s_level));
-    if(level == NULL) shutdown(1, "load_level() #1 FATAL: Out of memory!\n");
-    memset(level, 0, sizeof(s_level));
-    len = strlen(filename);
-    level->name = tracemalloc("level->name", len + 1);
-    if(level->name == NULL) shutdown(1, "load_level() #1 FATAL: Out of memory!\n");
-    strcpy(level->name, filename);
-    level->name[len] = 0;
+	level = tracemalloc("level",sizeof(s_level));
+	if(level == NULL) shutdown(1, "load_level() #1 FATAL: Out of memory!\n");
+	memset(level, 0, sizeof(s_level));
+	len = strlen(filename);
+	level->name = tracemalloc("level->name", len + 1);
+	if(level->name == NULL) shutdown(1, "load_level() #1 FATAL: Out of memory!\n");
+	strcpy(level->name, filename);
+	level->name[len] = 0;
 
-    if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Unable to load level file '%s'", filename);
+	if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Unable to load level file '%s'", filename);
 
-    level->settime = 100;    // Feb 25, 2005 - Default time limit set to 100
-    level->nospecial = 0;    // Default set to specials can be used during bonus levels
-    level->nohurt = 0;    // Default set to players can hurt each other during bonus levels
-    level->nohit = 0;    // Default able to hit the other player
-    level->spawn[0][2] = level->spawn[1][2] = level->spawn[2][2] = level->spawn[3][2] = 300;    // Set the default spawn a to 300
-    level->setweap = 0;
-    level->maxtossspeed = 100;
-    level->maxfallspeed = -6;
-    level->gravity = (float)-0.1;
-    level->scrolldir = SCROLL_RIGHT;
+	level->settime = 100;    // Feb 25, 2005 - Default time limit set to 100
+	level->nospecial = 0;    // Default set to specials can be used during bonus levels
+	level->nohurt = 0;    // Default set to players can hurt each other during bonus levels
+	level->nohit = 0;    // Default able to hit the other player
+	level->spawn[0][2] = level->spawn[1][2] = level->spawn[2][2] = level->spawn[3][2] = 300;    // Set the default spawn a to 300
+	level->setweap = 0;
+	level->maxtossspeed = 100;
+	level->maxfallspeed = -6;
+	level->gravity = (float)-0.1;
+	level->scrolldir = SCROLL_RIGHT;
 	level->cameraxoffset = 0;
 	level->camerazoffset = 0;
 	level->bosses = 0;
-    blendfx[BLEND_MULTIPLY] = 1;
-    bgtravelled = 0;
-    traveltime = 0;
-    texttime = 0;
+	blendfx[BLEND_MULTIPLY] = 1;
+	bgtravelled = 0;
+	traveltime = 0;
+	texttime = 0;
 	nopause = 0;
 	noscreenshot = 0;
 
 	reset_playable_list(1);
 
     // Now interpret the contents of buf line by line
-    pos = 0;
-    while(pos<size){
-        command = findarg(buf+pos, 0);
-        if(command[0]){
+	pos = 0;
+	while(pos<size){
+		command = findarg(buf+pos, 0);
+		if(command[0]){
 			if(stricmp(command, "loadingbg")==0){
 				load_background(findarg(buf+pos, 1), 0);
 				for(i=0; i<6; i++) bgPosi[i] = atoi(findarg(buf+pos, i+2));
-        	    standard_palette(1);
-        	    lifebar_colors();
-        	    init_colourtable();
+				standard_palette(1);
+				lifebar_colors();
+				init_colourtable();
 			}
-            else if(stricmp(command, "musicfade")==0){
-                memset(&next,0,sizeof(s_spawn_entry));
-                next.musicfade = atof(findarg(buf+pos, 1));
-            }
+			else if(stricmp(command, "musicfade")==0){
+				memset(&next,0,sizeof(s_spawn_entry));
+				next.musicfade = atof(findarg(buf+pos, 1));
+			}
 			else if(stricmp(command, "music")==0){
 				value = findarg(buf+pos, 1);
-                strncpy(string, value, 128);
-                musicOffset = atol(findarg(buf+pos, 2));
+				strncpy(string, value, 128);
+				musicOffset = atol(findarg(buf+pos, 2));
 				if(loadingmusic)
-                {
+				{
 					music(string, 1, musicOffset);
-                    musicPath[0] = 0;
-                }
+					musicPath[0] = 0;
+				}
 				else
-                {
-                    oldpos = pos;
-                    // Go to next line
-                    while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-                    while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
-                    if(pos<size && (command = findarg(buf+pos, 0)) &&
-                       command[0] && stricmp(command, "at")==0)
-                    {
-                        if(next.musicfade == 0) memset(&next,0,sizeof(s_spawn_entry));
-                        strncpy(next.music, string, 128);
-                        next.musicoffset = musicOffset;
-                    }
-                    else
-                    {
-                        strncpy(musicPath, string, 128);
-                    }
-                    pos = oldpos;
-                }
-            }
-            else if(stricmp(command, "allowselect")==0)
-            {
-                load_playable_list(buf+pos);
-            }
-            else if(stricmp(command, "load")==0){
+				{
+					oldpos = pos;
+					// Go to next line
+					while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
+					while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+					if(pos<size && (command = findarg(buf+pos, 0)) &&
+					command[0] && stricmp(command, "at")==0)
+					{
+						if(next.musicfade == 0) memset(&next,0,sizeof(s_spawn_entry));
+						strncpy(next.music, string, 128);
+						next.musicoffset = musicOffset;
+					}
+					else
+					{
+						strncpy(musicPath, string, 128);
+					}
+					pos = oldpos;
+				}
+			}
+			else if(stricmp(command, "allowselect")==0)
+			{
+				load_playable_list(buf+pos);
+			}
+			else if(stricmp(command, "load")==0){
 				strncpy(string, findarg(buf+pos, 1), 128);
-                load_cached_model(string, filename, atoi(findarg(buf+pos, 2)));
-            }
-            else if(stricmp(command, "background")==0){
+				load_cached_model(string, filename, atoi(findarg(buf+pos, 2)));
+			}
+			else if(stricmp(command, "background")==0){
 				value = findarg(buf+pos, 1);
 				strncpy(bgPath, value, strlen(value)+1);
-                level->bglayers[0].type = bg_screen;
-                level->bglayers[0].bgspeedratio = 1;
+				level->bglayers[0].type = bg_screen;
+				level->bglayers[0].bgspeedratio = 1;
 
-                level->bglayers[0].xratio = atof(findarg(buf+pos, 2)); // x ratio
-                level->bglayers[0].zratio = atof(findarg(buf+pos, 3)); // z ratio
-                level->bglayers[0].xoffset = atoi(findarg(buf+pos, 4)); // x start
-                level->bglayers[0].zoffset = atoi(findarg(buf+pos, 5)); // z start
-                level->bglayers[0].xspacing = atoi(findarg(buf+pos, 6)); // x spacing
-                level->bglayers[0].zspacing = atoi(findarg(buf+pos, 7)); // z spacing
-                level->bglayers[0].xrepeat = atoi(findarg(buf+pos, 8)); // x repeat
-                level->bglayers[0].zrepeat = atoi(findarg(buf+pos, 9)); // z repeat
-                // unused
-                level->bglayers[0].transparency = atoi(findarg(buf+pos, 10)); // transparency
-                level->bglayers[0].alpha = atoi(findarg(buf+pos, 11)); // alpha
-                level->bglayers[0].watermode = atoi(findarg(buf+pos, 12)); // amplitude
-                level->bglayers[0].amplitude = atoi(findarg(buf+pos, 13)); // amplitude
-                level->bglayers[0].wavelength = atoi(findarg(buf+pos, 14)); // wavelength
-                level->bglayers[0].wavespeed = atof(findarg(buf+pos, 15)); // waterspeed
-                level->bglayers[0].enabled = 1; // enabled
+				level->bglayers[0].xratio = atof(findarg(buf+pos, 2)); // x ratio
+				level->bglayers[0].zratio = atof(findarg(buf+pos, 3)); // z ratio
+				level->bglayers[0].xoffset = atoi(findarg(buf+pos, 4)); // x start
+				level->bglayers[0].zoffset = atoi(findarg(buf+pos, 5)); // z start
+				level->bglayers[0].xspacing = atoi(findarg(buf+pos, 6)); // x spacing
+				level->bglayers[0].zspacing = atoi(findarg(buf+pos, 7)); // z spacing
+				level->bglayers[0].xrepeat = atoi(findarg(buf+pos, 8)); // x repeat
+				level->bglayers[0].zrepeat = atoi(findarg(buf+pos, 9)); // z repeat
+				// unused
+				level->bglayers[0].transparency = atoi(findarg(buf+pos, 10)); // transparency
+				level->bglayers[0].alpha = atoi(findarg(buf+pos, 11)); // alpha
+				level->bglayers[0].watermode = atoi(findarg(buf+pos, 12)); // amplitude
+				level->bglayers[0].amplitude = atoi(findarg(buf+pos, 13)); // amplitude
+				level->bglayers[0].wavelength = atoi(findarg(buf+pos, 14)); // wavelength
+				level->bglayers[0].wavespeed = atof(findarg(buf+pos, 15)); // waterspeed
+				level->bglayers[0].enabled = 1; // enabled
 
-                if(findarg(buf+pos, 2)[0]==0) level->bglayers[0].xratio = 0.5;
-                if(findarg(buf+pos, 3)[0]==0) level->bglayers[0].zratio = 0.5;
+				if(findarg(buf+pos, 2)[0]==0) level->bglayers[0].xratio = 0.5;
+				if(findarg(buf+pos, 3)[0]==0) level->bglayers[0].zratio = 0.5;
 
-                if(findarg(buf+pos, 8)[0]==0) level->bglayers[0].xrepeat = 5000;
-                if(findarg(buf+pos, 9)[0]==0) level->bglayers[0].zrepeat = 5000;
+				if(findarg(buf+pos, 8)[0]==0) level->bglayers[0].xrepeat = 5000;
+				if(findarg(buf+pos, 9)[0]==0) level->bglayers[0].zrepeat = 5000;
 
 				if(level->numbglayers==0) level->numbglayers = 1;
-            }
-            else if(stricmp(command, "bglayer") == 0){
-                if(level->numbglayers >= LEVEL_MAX_BGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_BGLAYERS);
-                if(level->numbglayers==0) level->numbglayers = 1; // reserve for background
+			}
+			else if(stricmp(command, "bglayer") == 0){
+				if(level->numbglayers >= LEVEL_MAX_BGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_BGLAYERS);
+				if(level->numbglayers==0) level->numbglayers = 1; // reserve for background
 
-                level->bglayers[level->numbglayers].xratio = atof(findarg(buf+pos, 2)); // x ratio
-                level->bglayers[level->numbglayers].zratio = atof(findarg(buf+pos, 3)); // z ratio
-                level->bglayers[level->numbglayers].xoffset = atoi(findarg(buf+pos, 4)); // x start
-                level->bglayers[level->numbglayers].zoffset = atoi(findarg(buf+pos, 5)); // z start
-                level->bglayers[level->numbglayers].xspacing = atoi(findarg(buf+pos, 6)); // x spacing
-                level->bglayers[level->numbglayers].zspacing = atoi(findarg(buf+pos, 7)); // z spacing
-                level->bglayers[level->numbglayers].xrepeat = atoi(findarg(buf+pos, 8)); // x repeat
-                level->bglayers[level->numbglayers].zrepeat = atoi(findarg(buf+pos, 9)); // z repeat
-                level->bglayers[level->numbglayers].transparency = atoi(findarg(buf+pos, 10)); // transparency
-                level->bglayers[level->numbglayers].alpha = atoi(findarg(buf+pos, 11)); // alpha
-                level->bglayers[level->numbglayers].watermode = atoi(findarg(buf+pos, 12)); // amplitude
-                level->bglayers[level->numbglayers].amplitude = atoi(findarg(buf+pos, 13)); // amplitude
-                level->bglayers[level->numbglayers].wavelength = atoi(findarg(buf+pos, 14)); // wavelength
-                level->bglayers[level->numbglayers].wavespeed = atof(findarg(buf+pos, 15)); // waterspeed
-                level->bglayers[level->numbglayers].bgspeedratio = atof(findarg(buf+pos, 16)); // moving
-                level->bglayers[level->numbglayers].enabled = 1; // enabled
+				level->bglayers[level->numbglayers].xratio = atof(findarg(buf+pos, 2)); // x ratio
+				level->bglayers[level->numbglayers].zratio = atof(findarg(buf+pos, 3)); // z ratio
+				level->bglayers[level->numbglayers].xoffset = atoi(findarg(buf+pos, 4)); // x start
+				level->bglayers[level->numbglayers].zoffset = atoi(findarg(buf+pos, 5)); // z start
+				level->bglayers[level->numbglayers].xspacing = atoi(findarg(buf+pos, 6)); // x spacing
+				level->bglayers[level->numbglayers].zspacing = atoi(findarg(buf+pos, 7)); // z spacing
+				level->bglayers[level->numbglayers].xrepeat = atoi(findarg(buf+pos, 8)); // x repeat
+				level->bglayers[level->numbglayers].zrepeat = atoi(findarg(buf+pos, 9)); // z repeat
+				level->bglayers[level->numbglayers].transparency = atoi(findarg(buf+pos, 10)); // transparency
+				level->bglayers[level->numbglayers].alpha = atoi(findarg(buf+pos, 11)); // alpha
+				level->bglayers[level->numbglayers].watermode = atoi(findarg(buf+pos, 12)); // amplitude
+				level->bglayers[level->numbglayers].amplitude = atoi(findarg(buf+pos, 13)); // amplitude
+				level->bglayers[level->numbglayers].wavelength = atoi(findarg(buf+pos, 14)); // wavelength
+				level->bglayers[level->numbglayers].wavespeed = atof(findarg(buf+pos, 15)); // waterspeed
+				level->bglayers[level->numbglayers].bgspeedratio = atof(findarg(buf+pos, 16)); // moving
+				level->bglayers[level->numbglayers].enabled = 1; // enabled
 
-                if(findarg(buf+pos, 2)[0]==0) level->bglayers[level->numbglayers].xratio = 0.5;
-                if(findarg(buf+pos, 3)[0]==0) level->bglayers[level->numbglayers].zratio = 0.5;
+				if(findarg(buf+pos, 2)[0]==0) level->bglayers[level->numbglayers].xratio = 0.5;
+				if(findarg(buf+pos, 3)[0]==0) level->bglayers[level->numbglayers].zratio = 0.5;
 
-                if(findarg(buf+pos, 8)[0]==0) level->bglayers[level->numbglayers].xrepeat = 5000; // close enough to infinite, lol
-                if(findarg(buf+pos, 9)[0]==0) level->bglayers[level->numbglayers].zrepeat = 5000;
+				if(findarg(buf+pos, 8)[0]==0) level->bglayers[level->numbglayers].xrepeat = 5000; // close enough to infinite, lol
+				if(findarg(buf+pos, 9)[0]==0) level->bglayers[level->numbglayers].zrepeat = 5000;
 
-                if(blendfx_is_set==0 && level->bglayers[level->numbglayers].alpha) blendfx[level->bglayers[level->numbglayers].alpha-1] = 1;
+				if(blendfx_is_set==0 && level->bglayers[level->numbglayers].alpha) blendfx[level->bglayers[level->numbglayers].alpha-1] = 1;
 
-                load_bglayer(findarg(buf+pos, 1), level->numbglayers);
-                level->numbglayers++;
-            }
-            else if(stricmp(command, "fglayer") == 0){
-                if(level->numfglayers >= LEVEL_MAX_FGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_FGLAYERS);
+				load_bglayer(findarg(buf+pos, 1), level->numbglayers);
+				level->numbglayers++;
+			}
+			else if(stricmp(command, "fglayer") == 0){
+				if(level->numfglayers >= LEVEL_MAX_FGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_FGLAYERS);
 
-                level->fglayers[level->numfglayers].z = atoi(findarg(buf+pos, 2)); // z
-                level->fglayers[level->numfglayers].xratio = atof(findarg(buf+pos, 3)); // x ratio
-                level->fglayers[level->numfglayers].zratio = atof(findarg(buf+pos, 4)); // z ratio
-                level->fglayers[level->numfglayers].xoffset = atoi(findarg(buf+pos, 5)); // x start
-                level->fglayers[level->numfglayers].zoffset = atoi(findarg(buf+pos, 6)); // z start
-                level->fglayers[level->numfglayers].xspacing = atoi(findarg(buf+pos, 7)); // x spacing
-                level->fglayers[level->numfglayers].zspacing = atoi(findarg(buf+pos, 8)); // z spacing
-                level->fglayers[level->numfglayers].xrepeat = atoi(findarg(buf+pos, 9)); // x repeat
+				level->fglayers[level->numfglayers].z = atoi(findarg(buf+pos, 2)); // z
+				level->fglayers[level->numfglayers].xratio = atof(findarg(buf+pos, 3)); // x ratio
+				level->fglayers[level->numfglayers].zratio = atof(findarg(buf+pos, 4)); // z ratio
+				level->fglayers[level->numfglayers].xoffset = atoi(findarg(buf+pos, 5)); // x start
+				level->fglayers[level->numfglayers].zoffset = atoi(findarg(buf+pos, 6)); // z start
+				level->fglayers[level->numfglayers].xspacing = atoi(findarg(buf+pos, 7)); // x spacing
+				level->fglayers[level->numfglayers].zspacing = atoi(findarg(buf+pos, 8)); // z spacing
+				level->fglayers[level->numfglayers].xrepeat = atoi(findarg(buf+pos, 9)); // x repeat
 
-                level->fglayers[level->numfglayers].zrepeat = atoi(findarg(buf+pos, 10)); // z repeat
-                level->fglayers[level->numfglayers].transparency = atoi(findarg(buf+pos, 11)); // transparency
-                level->fglayers[level->numfglayers].alpha = atoi(findarg(buf+pos, 12)); // alpha
-                level->fglayers[level->numfglayers].watermode = atoi(findarg(buf+pos, 13)); // amplitude
-                level->fglayers[level->numfglayers].amplitude = atoi(findarg(buf+pos, 14)); // amplitude
-                level->fglayers[level->numfglayers].wavelength = atoi(findarg(buf+pos, 15)); // wavelength
-                level->fglayers[level->numfglayers].wavespeed = atof(findarg(buf+pos, 16)); // waterspeed
-                level->fglayers[level->numfglayers].bgspeedratio = atof(findarg(buf+pos, 17)); // moving
-                level->fglayers[level->numfglayers].enabled = 1;
+				level->fglayers[level->numfglayers].zrepeat = atoi(findarg(buf+pos, 10)); // z repeat
+				level->fglayers[level->numfglayers].transparency = atoi(findarg(buf+pos, 11)); // transparency
+				level->fglayers[level->numfglayers].alpha = atoi(findarg(buf+pos, 12)); // alpha
+				level->fglayers[level->numfglayers].watermode = atoi(findarg(buf+pos, 13)); // amplitude
+				level->fglayers[level->numfglayers].amplitude = atoi(findarg(buf+pos, 14)); // amplitude
+				level->fglayers[level->numfglayers].wavelength = atoi(findarg(buf+pos, 15)); // wavelength
+				level->fglayers[level->numfglayers].wavespeed = atof(findarg(buf+pos, 16)); // waterspeed
+				level->fglayers[level->numfglayers].bgspeedratio = atof(findarg(buf+pos, 17)); // moving
+				level->fglayers[level->numfglayers].enabled = 1;
 
-                if(findarg(buf+pos, 2)[0]==0) level->fglayers[level->numfglayers].xratio = 1.5;
-                if(findarg(buf+pos, 3)[0]==0) level->fglayers[level->numfglayers].zratio = 1.5;
+				if(findarg(buf+pos, 2)[0]==0) level->fglayers[level->numfglayers].xratio = 1.5;
+				if(findarg(buf+pos, 3)[0]==0) level->fglayers[level->numfglayers].zratio = 1.5;
 
-                if(findarg(buf+pos, 8)[0]==0) level->fglayers[level->numfglayers].xrepeat = 5000; // close enough to infinite, lol
-                if(findarg(buf+pos, 9)[0]==0) level->fglayers[level->numfglayers].zrepeat = 5000;
+				if(findarg(buf+pos, 8)[0]==0) level->fglayers[level->numfglayers].xrepeat = 5000; // close enough to infinite, lol
+				if(findarg(buf+pos, 9)[0]==0) level->fglayers[level->numfglayers].zrepeat = 5000;
 
-                if(blendfx_is_set==0 && level->fglayers[level->numfglayers].alpha) blendfx[level->fglayers[level->numfglayers].alpha-1] = 1;
+				if(blendfx_is_set==0 && level->fglayers[level->numfglayers].alpha) blendfx[level->fglayers[level->numfglayers].alpha-1] = 1;
 
-                load_fglayer(findarg(buf+pos, 1), level->numfglayers);
-                level->numfglayers++;
-            }
-            else if(stricmp(command, "water")==0){
-                load_texture(findarg(buf+pos, 1));
-                i = atoi(findarg(buf+pos, 2));
-                if(i<1) i = 1;
-                texture_set_wave((float)i);
-            }
-            else if(stricmp(command, "direction")==0){
-                value = findarg(buf+pos, 1);
-                if(stricmp(value, "up")==0) level->scrolldir = SCROLL_UP;
-                else if(stricmp(value, "down")==0) level->scrolldir = SCROLL_DOWN;
-                else if(stricmp(value, "left")==0) level->scrolldir = SCROLL_LEFT;
-                else if(stricmp(value, "both")==0 || stricmp(value, "rightleft")==0) level->scrolldir = SCROLL_BOTH;
-                else if(stricmp(value, "leftright")==0) level->scrolldir = SCROLL_LEFTRIGHT;
-                else if(stricmp(value, "right")==0) level->scrolldir = SCROLL_RIGHT;
-                else if(stricmp(value, "in")==0) level->scrolldir = SCROLL_INWARD;
-                else if(stricmp(value, "out")==0) level->scrolldir = SCROLL_OUTWARD;
-                else if(stricmp(value, "inout")==0) level->scrolldir = SCROLL_INOUT;
-                else if(stricmp(value, "outin")==0) level->scrolldir = SCROLL_OUTIN;
-            }
-            else if(stricmp(command, "facing")==0){
-                level->facing = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "rock")==0){
-                level->rocking = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "bgspeed")==0){
-                level->bgspeed = atof(findarg(buf+pos, 1));
-                if(atoi(findarg(buf+pos, 2)))level->bgspeed*=-1;
-            }
-            else if(stricmp(command, "mirror")==0){
-                level->mirror = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "bossmusic")==0){
-                strncpy(level->bossmusic, findarg(buf+pos, 1), 255);
+				load_fglayer(findarg(buf+pos, 1), level->numfglayers);
+				level->numfglayers++;
+			}
+			else if(stricmp(command, "water")==0){
+				load_texture(findarg(buf+pos, 1));
+				i = atoi(findarg(buf+pos, 2));
+				if(i<1) i = 1;
+				texture_set_wave((float)i);
+			}
+			else if(stricmp(command, "direction")==0){
+				value = findarg(buf+pos, 1);
+				if(stricmp(value, "up")==0) level->scrolldir = SCROLL_UP;
+				else if(stricmp(value, "down")==0) level->scrolldir = SCROLL_DOWN;
+				else if(stricmp(value, "left")==0) level->scrolldir = SCROLL_LEFT;
+				else if(stricmp(value, "both")==0 || stricmp(value, "rightleft")==0) level->scrolldir = SCROLL_BOTH;
+				else if(stricmp(value, "leftright")==0) level->scrolldir = SCROLL_LEFTRIGHT;
+				else if(stricmp(value, "right")==0) level->scrolldir = SCROLL_RIGHT;
+				else if(stricmp(value, "in")==0) level->scrolldir = SCROLL_INWARD;
+				else if(stricmp(value, "out")==0) level->scrolldir = SCROLL_OUTWARD;
+				else if(stricmp(value, "inout")==0) level->scrolldir = SCROLL_INOUT;
+				else if(stricmp(value, "outin")==0) level->scrolldir = SCROLL_OUTIN;
+			}
+			else if(stricmp(command, "facing")==0){
+				level->facing = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "rock")==0){
+				level->rocking = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "bgspeed")==0){
+				level->bgspeed = atof(findarg(buf+pos, 1));
+				if(atoi(findarg(buf+pos, 2)))level->bgspeed*=-1;
+			}
+			else if(stricmp(command, "mirror")==0){
+				level->mirror = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "bossmusic")==0){
+				strncpy(level->bossmusic, findarg(buf+pos, 1), 255);
 				level->bossmusic_offset = atol(findarg(buf+pos, 2));
-            }
+			}
 			else if(stricmp(command, "nopause")==0){
-                nopause = atoi(findarg(buf+pos, 1));
-            }
+				nopause = atoi(findarg(buf+pos, 1));
+			}
 			else if(stricmp(command, "noscreenshot")==0){
-                noscreenshot = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "settime")==0){    // If settime is found, overwrite the default 100 for time limit
-                if(atoi(findarg(buf+pos, 1)) > 100 || atoi(findarg(buf+pos, 1)) < 0) level->settime = 100;
-                else level->settime = atoi(findarg(buf+pos, 1)); // Feb 25, 2005 - Time limit loaded from individual .txt file
-            }
-            else if(stricmp(command, "setweap")==0){    // Specify a weapon for each level
-                level->setweap = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "notime")==0){    // Flag to if the time should be displayed 1 = no, else yes
-                level->notime = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "noreset")==0){    // Flag to if the time should be reset when players respawn 1 = no, else yes
-                level->noreset = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "noslow")==0){    // If set, level will not slow down when bosses are defeated
-                level->noslow = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "type")==0){
-                level->type = atoi(findarg(buf+pos, 1));    // Level type - 1 = bonus, else regular
+				noscreenshot = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "settime")==0){    // If settime is found, overwrite the default 100 for time limit
+				if(atoi(findarg(buf+pos, 1)) > 100 || atoi(findarg(buf+pos, 1)) < 0) level->settime = 100;
+				else level->settime = atoi(findarg(buf+pos, 1)); // Feb 25, 2005 - Time limit loaded from individual .txt file
+			}
+			else if(stricmp(command, "setweap")==0){    // Specify a weapon for each level
+				level->setweap = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "notime")==0){    // Flag to if the time should be displayed 1 = no, else yes
+				level->notime = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "noreset")==0){    // Flag to if the time should be reset when players respawn 1 = no, else yes
+				level->noreset = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "noslow")==0){    // If set, level will not slow down when bosses are defeated
+				level->noslow = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "type")==0){
+				level->type = atoi(findarg(buf+pos, 1));    // Level type - 1 = bonus, else regular
 
-                if(atoi(findarg(buf+pos, 2))) level->nospecial = atoi(findarg(buf+pos, 2));    // Can use specials during bonus levels (default 0 - yes)
-                if(atoi(findarg(buf+pos, 3))) level->nohurt = atoi(findarg(buf+pos, 3));    // Can hurt other players during bonus levels (default 0 - yes)
-            }
-            else if(stricmp(command, "nohit")==0){
-                level->nohit = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "gravity")==0){
-                level->gravity = atof(findarg(buf+pos, 1));
-                level->gravity /= 100;
-            }
-            else if(stricmp(command, "maxfallspeed")==0){
-                level->maxfallspeed = atof(findarg(buf+pos, 1));
-                level->maxfallspeed /= 10;
-            }
-            else if(stricmp(command, "maxtossspeed")==0){
-                level->maxtossspeed = atof(findarg(buf+pos, 1));
-                level->maxtossspeed /= 10;
-            }
-            else if(stricmp(command, "cameratype")==0){
-                cameratype = atoi(findarg(buf+pos, 1));
-            }
+				if(atoi(findarg(buf+pos, 2))) level->nospecial = atoi(findarg(buf+pos, 2));    // Can use specials during bonus levels (default 0 - yes)
+				if(atoi(findarg(buf+pos, 3))) level->nohurt = atoi(findarg(buf+pos, 3));    // Can hurt other players during bonus levels (default 0 - yes)
+			}
+			else if(stricmp(command, "nohit")==0){
+				level->nohit = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "gravity")==0){
+				level->gravity = atof(findarg(buf+pos, 1));
+				level->gravity /= 100;
+			}
+			else if(stricmp(command, "maxfallspeed")==0){
+				level->maxfallspeed = atof(findarg(buf+pos, 1));
+				level->maxfallspeed /= 10;
+			}
+			else if(stricmp(command, "maxtossspeed")==0){
+				level->maxtossspeed = atof(findarg(buf+pos, 1));
+				level->maxtossspeed /= 10;
+			}
+			else if(stricmp(command, "cameratype")==0){
+				cameratype = atoi(findarg(buf+pos, 1));
+			}
 			else if(stricmp(command, "cameraoffset")==0){
-                level->cameraxoffset = atoi(findarg(buf+pos, 1));
+				level->cameraxoffset = atoi(findarg(buf+pos, 1));
 				level->camerazoffset = atoi(findarg(buf+pos, 2));
-            }
-            else if(stricmp(command, "spawn1")==0){
-                level->spawn[0][0] = atoi(findarg(buf+pos, 1));
-                level->spawn[0][1] = atoi(findarg(buf+pos, 2));
-                level->spawn[0][2] = atoi(findarg(buf+pos, 3));
+			}
+			else if(stricmp(command, "spawn1")==0){
+				level->spawn[0][0] = atoi(findarg(buf+pos, 1));
+				level->spawn[0][1] = atoi(findarg(buf+pos, 2));
+				level->spawn[0][2] = atoi(findarg(buf+pos, 3));
 
-                if(level->spawn[0][1] > 232 || level->spawn[0][1] < 0) level->spawn[0][1] = 232;
+				if(level->spawn[0][1] > 232 || level->spawn[0][1] < 0) level->spawn[0][1] = 232;
 
-                if(level->spawn[0][2] < 0) level->spawn[0][2] = 300;
-            }
-            else if(stricmp(command, "spawn2")==0){
-                level->spawn[1][0] = atoi(findarg(buf+pos, 1));
-                level->spawn[1][1] = atoi(findarg(buf+pos, 2));
-                level->spawn[1][2] = atoi(findarg(buf+pos, 3));
+				if(level->spawn[0][2] < 0) level->spawn[0][2] = 300;
+			}
+			else if(stricmp(command, "spawn2")==0){
+				level->spawn[1][0] = atoi(findarg(buf+pos, 1));
+				level->spawn[1][1] = atoi(findarg(buf+pos, 2));
+				level->spawn[1][2] = atoi(findarg(buf+pos, 3));
 
-                if(level->spawn[1][1] > 232 || level->spawn[1][1] < 0) level->spawn[1][1] = 232;
-                if(level->spawn[1][2] < 0) level->spawn[1][2] = 300;
-            }
-            else if(stricmp(command, "spawn3")==0){
-                level->spawn[2][0] = atoi(findarg(buf+pos, 1));
-                level->spawn[2][1] = atoi(findarg(buf+pos, 2));
-                level->spawn[2][2] = atoi(findarg(buf+pos, 3));
+				if(level->spawn[1][1] > 232 || level->spawn[1][1] < 0) level->spawn[1][1] = 232;
+				if(level->spawn[1][2] < 0) level->spawn[1][2] = 300;
+			}
+			else if(stricmp(command, "spawn3")==0){
+				level->spawn[2][0] = atoi(findarg(buf+pos, 1));
+				level->spawn[2][1] = atoi(findarg(buf+pos, 2));
+				level->spawn[2][2] = atoi(findarg(buf+pos, 3));
 
-                if(level->spawn[2][1] > 232 || level->spawn[2][1] < 0) level->spawn[2][1] = 232;
-                if(level->spawn[2][2] < 0) level->spawn[2][2] = 300;
-            }
-            else if(stricmp(command, "spawn4")==0){
-                level->spawn[3][0] = atoi(findarg(buf+pos, 1));
-                level->spawn[3][1] = atoi(findarg(buf+pos, 2));
-                level->spawn[3][2] = atoi(findarg(buf+pos, 3));
+				if(level->spawn[2][1] > 232 || level->spawn[2][1] < 0) level->spawn[2][1] = 232;
+				if(level->spawn[2][2] < 0) level->spawn[2][2] = 300;
+			}
+			else if(stricmp(command, "spawn4")==0){
+				level->spawn[3][0] = atoi(findarg(buf+pos, 1));
+				level->spawn[3][1] = atoi(findarg(buf+pos, 2));
+				level->spawn[3][2] = atoi(findarg(buf+pos, 3));
 
-                if(level->spawn[3][1] > 232 || level->spawn[3][1] < 0) level->spawn[3][1] = 232;
-                if(level->spawn[3][2] < 0) level->spawn[3][2] = 300;
-            }
-            else if(stricmp(command, "frontpanel")==0){
-                value = findarg(buf+pos, 1);
+				if(level->spawn[3][1] > 232 || level->spawn[3][1] < 0) level->spawn[3][1] = 232;
+				if(level->spawn[3][2] < 0) level->spawn[3][2] = 300;
+			}
+			else if(stricmp(command, "frontpanel")==0){
+				value = findarg(buf+pos, 1);
 
-                if(!loadfrontpanel(value)) shutdown(1, "Unable to load '%s'!", value);
-            }
-            else if(stricmp(command, "panel")==0){
-                if(!loadpanel(findarg(buf+pos, 1), findarg(buf+pos, 2), findarg(buf+pos, 3))) shutdown(1, "Panel load error in '%s'!", filename);
-            }
+				if(!loadfrontpanel(value)) shutdown(1, "Unable to load '%s'!", value);
+			}
+			else if(stricmp(command, "panel")==0){
+				if(!loadpanel(findarg(buf+pos, 1), findarg(buf+pos, 2), findarg(buf+pos, 3)))  {
+					//shutdown(1, "Panel load error in '%s'!", filename);
+					printf("loadpanel :%s :%s :%s failed\n", findarg(buf+pos, 1), findarg(buf+pos, 2), findarg(buf+pos, 3));
+					assert(0);
+				}
+					
+			}
 			else if(stricmp(command, "stagenumber")==0){
-                current_stage = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "order")==0){
-                // Append to order
-                if(panels_loaded<1) shutdown(1, "You must load the panels before entering the level layout!");
+				current_stage = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "order")==0){
+				// Append to order
+				if(panels_loaded<1) shutdown(1, "You must load the panels before entering the level layout!");
 
-                value = findarg(buf+pos, 1);
-                i = 0;
+				value = findarg(buf+pos, 1);
+				i = 0;
+				while(value[i] && level->numpanels < LEVEL_MAX_PANELS){
+					j = value[i];
 
-                while(value[i] && level->numpanels < LEVEL_MAX_PANELS){
-                    j = value[i];
+					if(j>='A' && j<='Z') j-='A';
+					else if(j>='a' && j<='z') j-='a';
+					else shutdown(1, "Illegal character in panel order: '%c' (%02Xh)", j, j);
+	
+					if(j >= panels_loaded) shutdown(1, "Illegal panel index: %i (only %i panels loaded)", j, panels_loaded);
 
-                    if(j>='A' && j<='Z') j-='A';
-                    else if(j>='a' && j<='z') j-='a';
-                    else shutdown(1, "Illegal character in panel order: '%c' (%02Xh)", j, j);
+					level->order[level->numpanels] = j;
+					level->numpanels++;
+					i++;
+				}
+			}
+			else if(stricmp(command, "hole")==0){
+				value = findarg(buf+pos, 1);    // ltb    1-18-05  adjustable hole sprites
 
-                    if(j >= panels_loaded) shutdown(1, "Illegal panel index: %i (only %i panels loaded)", j, panels_loaded);
+				if(holesprite < 0)
+				{
+					if(testpackfile(value, packfile) >= 0) holesprite = loadsprite(value,0,0,pixelformat);// ltb 1-18-05  load new hole sprite
+					else holesprite = loadsprite("data/sprites/hole",0,0,pixelformat);    // ltb 1-18-05  no new sprite load the default
+				}
 
-                    level->order[level->numpanels] = j;
-                    level->numpanels++;
-                    i++;
-                }
-            }
-            else if(stricmp(command, "hole")==0){
-                value = findarg(buf+pos, 1);    // ltb    1-18-05  adjustable hole sprites
+				if(level->numholes >= LEVEL_MAX_HOLES) shutdown(1, "Too many holes in level (max %i)!", LEVEL_MAX_HOLES);
+				level->holes[level->numholes][0] = atof(findarg(buf+pos, 1));
+				level->holes[level->numholes][1] = atof(findarg(buf+pos,2));
+				level->holes[level->numholes][2] = atof(findarg(buf+pos,3));
+				level->holes[level->numholes][3] = atof(findarg(buf+pos,4));
+				level->holes[level->numholes][4] = atof(findarg(buf+pos,5));
+				level->holes[level->numholes][5] = atof(findarg(buf+pos,6));
+				level->holes[level->numholes][6] = atof(findarg(buf+pos,7));
 
-                if(holesprite < 0)
-                {
-                    if(testpackfile(value, packfile) >= 0) holesprite = loadsprite(value,0,0,pixelformat);// ltb 1-18-05  load new hole sprite
-                    else holesprite = loadsprite("data/sprites/hole",0,0,pixelformat);    // ltb 1-18-05  no new sprite load the default
-                }
-
-                if(level->numholes >= LEVEL_MAX_HOLES) shutdown(1, "Too many holes in level (max %i)!", LEVEL_MAX_HOLES);
-                level->holes[level->numholes][0] = atof(findarg(buf+pos, 1));
-                level->holes[level->numholes][1] = atof(findarg(buf+pos,2));
-                level->holes[level->numholes][2] = atof(findarg(buf+pos,3));
-                level->holes[level->numholes][3] = atof(findarg(buf+pos,4));
-                level->holes[level->numholes][4] = atof(findarg(buf+pos,5));
-                level->holes[level->numholes][5] = atof(findarg(buf+pos,6));
-                level->holes[level->numholes][6] = atof(findarg(buf+pos,7));
-
-                if(!level->holes[level->numholes][1]) level->holes[level->numholes][1] = 240;
-                if(!level->holes[level->numholes][2]) level->holes[level->numholes][2] = 12;
-                if(!level->holes[level->numholes][3]) level->holes[level->numholes][3] = 1;
-                if(!level->holes[level->numholes][4]) level->holes[level->numholes][4] = 200;
-                if(!level->holes[level->numholes][5]) level->holes[level->numholes][5] = 287;
-                if(!level->holes[level->numholes][6]) level->holes[level->numholes][6] = 45;
-                level->numholes++;
-            }
-            else if(stricmp(command, "wall")==0){
-                if(level->numwalls >= LEVEL_MAX_WALLS) shutdown(1, "Too many walls in level (max %i)!", LEVEL_MAX_WALLS);
-                level->walls[level->numwalls][0] = atof(findarg(buf+pos, 1));
-                level->walls[level->numwalls][1] = atof(findarg(buf+pos,2));
-                level->walls[level->numwalls][2] = atof(findarg(buf+pos,3));
-                level->walls[level->numwalls][3] = atof(findarg(buf+pos,4));
-                level->walls[level->numwalls][4] = atof(findarg(buf+pos,5));
-                level->walls[level->numwalls][5] = atof(findarg(buf+pos,6));
-                level->walls[level->numwalls][6] = atof(findarg(buf+pos,7));
-                level->walls[level->numwalls][7] = atof(findarg(buf+pos,8));
-                level->numwalls++;
-            }
-            else if(stricmp(command, "palette")==0){
-                if(level->numpalettes >= LEVEL_MAX_PALETTES) shutdown(1, "Too many palettes in level (max %i)!", LEVEL_MAX_PALETTES);
-                for(i=0; i<MAX_BLENDINGS; i++)
-                    usemap[i] = atoi(findarg(buf+pos, i+2));
-                if(!load_palette(level->palettes[level->numpalettes], findarg(buf+pos,1)) ||
-                   !create_blending_tables(level->palettes[level->numpalettes], level->blendings[level->numpalettes], usemap))
-                {
-                    shutdown(1, "Failed to create colour conversion tables for level! (Out of memory?)");
-                }
-                level->numpalettes++;
-            }
-            else if(stricmp(command, "updatescript")==0)
-            {
-                value = findarg(buf+pos, 1);
-                if(!Script_IsInitialized(&(level->update_script)))
-                    Script_Init(&(level->update_script), "levelupdatescript", 1);
-                else shutdown(1, "Multiple level update script: '%s'!", value);
-                if(load_script(&(level->update_script), value))
-                    Script_Compile(&(level->update_script));
-                else shutdown(1, "Failed loading level update script: '%s'!", value);
-            }
-            else if(stricmp(command, "updatedscript")==0)
-            {
-                value = findarg(buf+pos, 1);
-                if(!Script_IsInitialized(&(level->updated_script)))
-                    Script_Init(&(level->updated_script), "levelupdatedscript", 1);
-                else shutdown(1, "Multiple level updated script: '%s'!", value);
-                if(load_script(&(level->updated_script), value))
-                    Script_Compile(&(level->updated_script));
-                else shutdown(1, "Failed loading level updated script: '%s'!", value);
-            }
+				if(!level->holes[level->numholes][1]) level->holes[level->numholes][1] = 240;
+				if(!level->holes[level->numholes][2]) level->holes[level->numholes][2] = 12;
+				if(!level->holes[level->numholes][3]) level->holes[level->numholes][3] = 1;
+				if(!level->holes[level->numholes][4]) level->holes[level->numholes][4] = 200;
+				if(!level->holes[level->numholes][5]) level->holes[level->numholes][5] = 287;
+				if(!level->holes[level->numholes][6]) level->holes[level->numholes][6] = 45;
+				level->numholes++;
+			}
+				else if(stricmp(command, "wall")==0){
+					if(level->numwalls >= LEVEL_MAX_WALLS) shutdown(1, "Too many walls in level (max %i)!", LEVEL_MAX_WALLS);
+					level->walls[level->numwalls][0] = atof(findarg(buf+pos, 1));
+					level->walls[level->numwalls][1] = atof(findarg(buf+pos,2));
+					level->walls[level->numwalls][2] = atof(findarg(buf+pos,3));
+					level->walls[level->numwalls][3] = atof(findarg(buf+pos,4));
+					level->walls[level->numwalls][4] = atof(findarg(buf+pos,5));
+					level->walls[level->numwalls][5] = atof(findarg(buf+pos,6));
+					level->walls[level->numwalls][6] = atof(findarg(buf+pos,7));
+					level->walls[level->numwalls][7] = atof(findarg(buf+pos,8));
+					level->numwalls++;
+				}
+				else if(stricmp(command, "palette")==0){
+					if(level->numpalettes >= LEVEL_MAX_PALETTES) shutdown(1, "Too many palettes in level (max %i)!", LEVEL_MAX_PALETTES);
+					for(i=0; i<MAX_BLENDINGS; i++)
+					usemap[i] = atoi(findarg(buf+pos, i+2));
+					if(!load_palette(level->palettes[level->numpalettes], findarg(buf+pos,1)) ||
+					!create_blending_tables(level->palettes[level->numpalettes], level->blendings[level->numpalettes], usemap))
+					{
+						shutdown(1, "Failed to create colour conversion tables for level! (Out of memory?)");
+					}
+					level->numpalettes++;
+				}
+				else if(stricmp(command, "updatescript")==0)
+				{
+					value = findarg(buf+pos, 1);
+					if(!Script_IsInitialized(&(level->update_script)))
+						Script_Init(&(level->update_script), "levelupdatescript", 1);
+					else shutdown(1, "Multiple level update script: '%s'!", value);
+					if(load_script(&(level->update_script), value))
+						Script_Compile(&(level->update_script));
+					else shutdown(1, "Failed loading level update script: '%s'!", value);
+				}
+				else if(stricmp(command, "updatedscript")==0)
+				{
+					value = findarg(buf+pos, 1);
+					if(!Script_IsInitialized(&(level->updated_script)))
+						Script_Init(&(level->updated_script), "levelupdatedscript", 1);
+					else shutdown(1, "Multiple level updated script: '%s'!", value);
+					if(load_script(&(level->updated_script), value))
+						Script_Compile(&(level->updated_script));
+					else shutdown(1, "Failed loading level updated script: '%s'!", value);
+				}
             else if(stricmp(command, "keyscript")==0)
             {
                 value = findarg(buf+pos, 1);
@@ -20034,100 +20009,100 @@ void guistartup(){
 #endif
 
 void startup(){
-    int i;
+	int i;
 
 
 #if PSP || DC || GP2X || XBOX || MEMTEST || WII || DINGOO || SYMBIAN
 
-	int size;
+	size_t size;
 	printf("FileCaching System Init......\t");
 	if(!(size = pak_init())) shutdown(1, "FileCaching System failed to Initialize!\n");
 	printf("%d Bytes\n", size);
 #endif
 
 #if PSP
-    if(savedata.pspcpuspeed<0) savedata.pspcpuspeed = 2;
-    if(savedata.pspcpuspeed>2) savedata.pspcpuspeed = 0;
-    switch(savedata.pspcpuspeed){
-        case 0:
-            scePowerSetClockFrequency(222, 222, 111);
-            break;
-        case 1:
-            scePowerSetClockFrequency(266, 266, 133);
-            break;
-        case 2:
-            scePowerSetClockFrequency(333, 333, 166);
-            break;
-    }
+	if(savedata.pspcpuspeed<0) savedata.pspcpuspeed = 2;
+	if(savedata.pspcpuspeed>2) savedata.pspcpuspeed = 0;
+	switch(savedata.pspcpuspeed){
+		case 0:
+			scePowerSetClockFrequency(222, 222, 111);
+			break;
+		case 1:
+			scePowerSetClockFrequency(266, 266, 133);
+			break;
+		case 2:
+			scePowerSetClockFrequency(333, 333, 166);
+			break;
+	}
 #endif
 
-    loadHighScoreFile();
-    clearSavedGame();
+	loadHighScoreFile();
+	clearSavedGame();
 
-    init_videomodes(1);
+	init_videomodes(1);
 	if(!video_set_mode(videomodes)) shutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
 
-    printf("Loading menu.txt.............\t");
-    load_menu_txt();
+	printf("Loading menu.txt.............\t");
+	load_menu_txt();
 	printf("Done!\n");
 
-    printf("Loading fonts................\t");
-    load_all_fonts();
+	printf("Loading fonts................\t");
+	load_all_fonts();
 	printf("Done!\n");
 
-    printf("Timer init...................\t");
-    borTimerInit();
+	printf("Timer init...................\t");
+	borTimerInit();
 	printf("Done!\n");
 
-    printf("Initialize Sound..............\t");
-    if(savedata.usesound && sound_init(12)){
-        if(load_special_sounds()) printf("Done!\n");
+	printf("Initialize Sound..............\t");
+	if(savedata.usesound && sound_init(12)){
+		if(load_special_sounds()) printf("Done!\n");
 		else printf("\n");
 		if(!sound_start_playback(savedata.soundbits,savedata.soundrate)) printf("Warning: can't play sound at %u Hz!\n", savedata.soundrate);
-        SB_setvolume(SB_MASTERVOL, 15);
-        SB_setvolume(SB_VOICEVOL, savedata.soundvol);
-    }
-    else shutdown(1, "Unable to Initialize Sound.\n");
+		SB_setvolume(SB_MASTERVOL, 15);
+		SB_setvolume(SB_VOICEVOL, savedata.soundvol);
+	}
+	else shutdown(1, "Unable to Initialize Sound.\n");
 
 	printf("Loading sprites..............\t");
-    load_special_sprites();
+	load_special_sprites();
 	printf("Done!\n");
 
-    printf("Loading level order..........\t");
-    load_levelorder();
+	printf("Loading level order..........\t");
+	load_levelorder();
 	printf("Done!\n");
 
-    printf("Loading script settings......\t");
-    load_script_setting();
+	printf("Loading script settings......\t");
+	load_script_setting();
 	printf("Done!\n");
 
-    printf("Loading scripts..............\t");
-    load_scripts();
+	printf("Loading scripts..............\t");
+	load_scripts();
 	printf("Done!\n");
 
 	printf("Loading models...............\n\n");
-    load_models();
+	load_models();
 
-    printf("Object engine init...........\t");
-    if(!alloc_ents()) shutdown(1, "Not enough memory for game objects!\n");
+	printf("Object engine init...........\t");
+	if(!alloc_ents()) shutdown(1, "Not enough memory for game objects!\n");
 	printf("Done!\n");
 
-    printf("Input init...................\t");
-    control_init(savedata.usejoy);
-    apply_controls();
-    printf("Done!\n");
+	printf("Input init...................\t");
+	control_init(savedata.usejoy);
+	apply_controls();
+	printf("Done!\n");
 	
 #if WII
 	printf("Caching backgrounds..........\t");
-    cache_all_backgrounds();
-    printf("Done!\n");
+	cache_all_backgrounds();
+	printf("Done!\n");
 #endif
 	
 	printf("\n\n");
 
 	for(i=0; i<MAX_PAL_SIZE/4; i++) neontable[i] = i;
-    if(savedata.logo++ > 10) savedata.logo = 0;
-    savesettings();
+	if(savedata.logo++ > 10) savedata.logo = 0;
+	savesettings();
 }
 
 
@@ -20225,7 +20200,7 @@ int playgif(char *filename, int x, int y, int noskip){
 void playscene(char *filename)
 {
     char *buf;
-    int size;
+    size_t size;
     int pos;
     char * command = NULL;
     char giffile[256];
@@ -20600,7 +20575,8 @@ int selectplayer(int *players, char* filename)
     int immediate[MAX_PLAYERS]= {0,0,0,0};
     char string[128] = {""};
     char* buf, *command;
-    int size, pos=0;
+    size_t size = 0;
+    ptrdiff_t pos = 0;
 
     selectScreen = 1;
 	kill_all();
@@ -21310,13 +21286,15 @@ void term_videomodes()
 void init_videomodes(int log)
 
 {
-    char *filename = "data/video.txt";
-    int pos, size, len, bits = 8, tmp;
-    char *buf = NULL;
+	char *filename = "data/video.txt";
+	int bits = 8, tmp;
+	ptrdiff_t pos, len;
+	size_t size;
+	char *buf = NULL;
 	char *command = NULL;
 	char *value = NULL;
 
-    if(log)	printf("Initializing video............\n");
+	if(log) printf("Initializing video............\n");
 
     // Use an alternative video.txt if there is one.  Some of these are long filenames; create your PAKs with borpak and you'll be fine.
 #define tryfile(X) if((tmp=openpackfile(X,packfile))!=-1) { closepackfile(tmp); filename=X; goto readfile; }
@@ -21348,7 +21326,7 @@ void init_videomodes(int log)
 
 readfile:
     // Read file
-    if(buffer_pakfile(filename, &buf, &size)!=1)
+	if(buffer_pakfile(filename, &buf, &size)!=1)
 	{
 		videoMode = 0;
 		printf("'%s' not found.\n", filename);
@@ -21358,8 +21336,8 @@ readfile:
 	printf("Reading video settings from '%s'.\n", filename);
 
     // Now interpret the contents of buf line by line
-    pos = 0;
-    while(pos<size){
+	pos = 0;
+	while(pos<size){
         command = findarg(buf+pos, 0);
         if(command[0]){
 			if(stricmp(command, "video")==0){
@@ -21581,33 +21559,34 @@ void safe_set(int *arr, int index, int newkey, int oldkey){
 
 
 void keyboard_setup(int player){
-    int quit = 0,
-        selector = 0,
-        setting = -1,
-        i, k, ok = 0,
-	    pos, size, voffset,
-	    disabledkey[12] = {0,0,0,0,0,0,0,0,0,0,0,0},
-        col1 =-8, col2 = 6;
-    char *buf, *command, *filename = "data/menu.txt",
+	int quit = 0,
+		selector = 0,
+		setting = -1,
+		i, k, ok = 0,
+		disabledkey[12] = {0,0,0,0,0,0,0,0,0,0,0,0},
+		col1 =-8, col2 = 6;
+	ptrdiff_t pos, voffset;
+	size_t size;
+	char *buf, *command, *filename = "data/menu.txt",
 	     buttonnames[12][16];
 
 	printf("Loading control settings.......\t");
 
-    strncpy(buttonnames[0], "Move Up", 16);
-    strncpy(buttonnames[1], "Move Down", 16);
-    strncpy(buttonnames[2], "Move Left", 16);
-    strncpy(buttonnames[3], "Move Right", 16);
-    strncpy(buttonnames[4], "Attack 1", 16);
-    strncpy(buttonnames[5], "Attack 2", 16);
-    strncpy(buttonnames[6], "Attack 3", 16);
-    strncpy(buttonnames[7], "Attack 4", 16);
-    strncpy(buttonnames[8], "Jump", 16);
-    strncpy(buttonnames[9], "Special", 16);
-    strncpy(buttonnames[10], "Start", 16);
-    strncpy(buttonnames[11], "Screenshot", 16);
+	strncpy(buttonnames[0], "Move Up", 16);
+	strncpy(buttonnames[1], "Move Down", 16);
+	strncpy(buttonnames[2], "Move Left", 16);
+	strncpy(buttonnames[3], "Move Right", 16);
+	strncpy(buttonnames[4], "Attack 1", 16);
+	strncpy(buttonnames[5], "Attack 2", 16);
+	strncpy(buttonnames[6], "Attack 3", 16);
+	strncpy(buttonnames[7], "Attack 4", 16);
+	strncpy(buttonnames[8], "Jump", 16);
+	strncpy(buttonnames[9], "Special", 16);
+	strncpy(buttonnames[10], "Start", 16);
+	strncpy(buttonnames[11], "Screenshot", 16);
 
-    savesettings();
-    bothnewkeys = 0;
+	savesettings();
+	bothnewkeys = 0;
 
     // Read file
 	if(buffer_pakfile(filename, &buf, &size)){
@@ -22415,7 +22394,7 @@ void video_options(){
 		_menutext((selector==3), col2, 0, "%s", displayFormat[(int)videomodes.mode].name);
 		_menutext((selector==4), col1, 1, "Filters:");
 		_menutext((selector==4), col2, 1, "%s", filterName[(int)videomodes.filter]);
-        _menutext((selector==5), col1, 2, "Display:");
+		_menutext((selector==5), col1, 2, "Display:");
 		_menutext((selector==5), col2, 2, "%s", displayName[displayMode]);
 		_menutext((selector>=6 && selector<=9), col1, 3, "Overscan:");
 		_menutext((selector>=6 && selector<=9), col2+1.5, 3, ".");
@@ -22735,7 +22714,7 @@ void soundcard_options(){
 void display_logfile()
 {
 	int i, j, k;
-	char *logfile = NULL;
+	stringptr *logfile = NULL;
 	char textpad[128] = {""};
 	int currentline = 0;
 	int filesize = 0;
@@ -22750,7 +22729,7 @@ void display_logfile()
 		{
 			font_printf(5,3, 1, 0, "Log Viewer");
 			font_printf(259,3, 1, 0, "Quit : Escape");
-			filesize = strlen(logfile);
+			filesize = logfile->size;
 			if(bothkeys & FLAG_MOVEUP)
 			{
 				currentline -= 5;
@@ -22765,12 +22744,12 @@ void display_logfile()
 			j = 2;
 			for(i=currentline; i<filesize; i++)
 			{
-				if(logfile[i] >= 0x20 && logfile[i] <= 0x7e)
+				if(logfile->ptr[i] >= 0x20 && logfile->ptr[i] <= 0x7e)
 				{
-					textpad[k] = logfile[i];
+					textpad[k] = logfile->ptr[i];
 					k++;
 				}
-				else if(logfile[i] == 0x09)
+				else if(logfile->ptr[i] == 0x09)
 				{
 					textpad[k+0] = ' '; textpad[k+1] = ' ';
 					textpad[k+2] = ' '; textpad[k+3] = ' ';
@@ -22787,7 +22766,7 @@ void display_logfile()
 			if(bothkeys & FLAG_ESC) done = 1;
 			update(0,0);
 		}
-		tracefree(logfile);
+		free_string(logfile);
 		logfile = NULL;
 		unload_background();
 		load_background("menu/logo", 0);
@@ -22800,23 +22779,24 @@ void display_logfile()
 
 void openborMain()
 {
-    int quit = 0;
-    int relback = 1;
-    int selector = 0;
-    u32 introtime = 0;
-    int started = 0;
-    char tmpBuff[128] = {""};
+	sprite_map = NULL;
+	int quit = 0;    
+	int relback = 1;
+	int selector = 0;
+	u32 introtime = 0;
+	int started = 0;
+	char tmpBuff[128] = {""};
 	int players[MAX_PLAYERS];
 	int i;
 
 #if XBOX
-    int done = 0;
-    char pakname[128] = {""};
-    char listing[32] = {""};
-    int paks = 0;
-    int list = 0;
-    int lOffset=0;
-    u32 menutime = 0;
+	int done = 0;
+	char pakname[128] = {""};
+	char listing[32] = {""};
+	int paks = 0;
+	int list = 0;
+	int lOffset=0;
+	u32 menutime = 0;
 #endif
 
 	printf("OpenBoR %s, Compile Date: " __DATE__ "\n\n", VERSION);

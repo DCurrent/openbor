@@ -6,13 +6,17 @@
  * Copyright (c) 2004 - 2011 OpenBOR Team
  */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef STRINGPTR_H
+#define STRINGPTR_H
 
-#define VERSION_NAME "OpenBOR"
-#define VERSION_MAJOR "3"
-#define VERSION_MINOR "0"
-#define VERSION_BUILD "3030"
-#define VERSION ("v"VERSION_MAJOR"."VERSION_MINOR" Build "VERSION_BUILD)
+#include <string.h>
+
+typedef struct {
+	char *ptr;
+	size_t size;
+} stringptr;
+
+stringptr* new_string(size_t size);
+void free_string(stringptr* string);
 
 #endif

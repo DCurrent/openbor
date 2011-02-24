@@ -14,6 +14,7 @@
 #include <locale.h>
 #include <math.h>
 
+#include "stringptr.h"
 #include "utils.h"
 #include "stristr.h"
 #include "openbor.h"
@@ -155,21 +156,24 @@ int fileExists(char *fnam)
 	return 1;
 }
 
-char* readFromLogFile(int which)
+stringptr* readFromLogFile(int which)
 {
 	long  size;
     int disCcWarns;
 	FILE* handle = NULL;
-	char* buffer = NULL;
+	stringptr* buffer = NULL;
 	handle = READ_LOGFILE((which ? OPENBOR_LOG : SCRIPT_LOG));
 	if(handle == NULL) return NULL;
 	fseek(handle, 0, SEEK_END);
 	size = ftell(handle);
 	rewind(handle);
+	if (size == 0) goto CLOSE_AND_QUIT;
 	// allocate memory to contain the whole file:
-	buffer = (char*)tracemalloc("readFromLogFile()", sizeof(char)*size);
-	if(buffer == NULL) return NULL;
-	disCcWarns = fread(buffer, 1, size, handle);
+	//buffer = (char*)tracemalloc("readFromLogFile()", sizeof(char)*(size+1)); // alloc one additional byte for the 
+	buffer = new_string(size);
+	if(buffer == NULL) goto CLOSE_AND_QUIT;
+	disCcWarns = fread(buffer->ptr, 1, size, handle);
+	CLOSE_AND_QUIT:
 	fclose(handle);
 	return buffer;
 }
