@@ -11,15 +11,17 @@
 #ifndef TRACEMALLOC_H
 #define TRACEMALLOC_H
 
-/////////////////////////////////////////////////////////////////////////////
-
-extern unsigned long tracemalloc_total;
+#include <string.h>
 
 /////////////////////////////////////////////////////////////////////////////
 
-void *tracemalloc(const char *name, int len);
-void *tracecalloc(const char *name, int len);
-void *tracerealloc(void *p, int len, int oldlen);
+extern size_t tracemalloc_total;
+
+/////////////////////////////////////////////////////////////////////////////
+
+void *tracemalloc(const char *name, size_t len);
+void *tracecalloc(const char *name, size_t len);
+void *tracerealloc(void *p, size_t len);
 void tracefree(void *p);
 int tracemalloc_dump(void);
 

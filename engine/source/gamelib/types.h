@@ -9,6 +9,7 @@
 #ifndef GAMELIB_TYPES_H
 #define GAMELIB_TYPES_H
 
+
 #define	ANYNUMBER		 2
 
 #if SYMBIAN
@@ -105,7 +106,7 @@ typedef struct{
 	int	height;
 	char pixelformat;
 	unsigned char* palette;
-    unsigned char data[ANYNUMBER];
+	unsigned char data[ANYNUMBER];
 }s_bitmap;
 
 
@@ -114,9 +115,9 @@ typedef struct spritestruct{
 	int	centery;
 	int	width;
 	int	height;
-    char pixelformat;
+	char pixelformat;
 	struct spritestruct* mask;
-    unsigned char* palette;
+	unsigned char* palette;
 	int data[ANYNUMBER];
 }s_sprite;
 
@@ -129,11 +130,11 @@ typedef struct sprite_list s_sprite_list;
 s_sprite_list *sprite_list;
 
 typedef struct{
-    char *filename;
+	char *filename;
 	int  ofsx;
-    int	 ofsy;
+	int	 ofsy;
 	int  centerx;
-	int  centery;
+	int  centery;	
 	s_sprite *sprite;
 }s_sprite_map;
 s_sprite_map *sprite_map;

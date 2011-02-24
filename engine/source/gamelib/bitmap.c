@@ -10,6 +10,7 @@
 // 25-jan-2003
 
 #include <stdio.h>
+#include <stddef.h>
 #include "types.h"
 #include "tracemalloc.h"
 
@@ -19,19 +20,22 @@
 
 s_bitmap * allocbitmap(int width, int height, int format){
 	s_bitmap *b;
-	int psize, extrab;
+	ptrdiff_t psize, extrab;
 	if(width * height == 0) return NULL;
 	psize = width*height*pixelbytes[(int)format];
 	extrab = (4-psize%4)%4;
 	if(format==PIXEL_x8)
-        b = (s_bitmap *)tracemalloc("allocbitmap",4*sizeof(int) + psize + extrab +PAL_BYTES);
-    else b = (s_bitmap *)tracemalloc("allocbitmap#2",4*sizeof(int) + psize);
+		b = (s_bitmap *)tracemalloc("allocbitmap", sizeof(s_bitmap) + psize + extrab +PAL_BYTES);
+	else 
+		b = (s_bitmap *)tracemalloc("allocbitmap#2",sizeof(s_bitmap) + psize);
 	if(b){
 		b->width = width;
 		b->height = height;
 		b->pixelformat = format;
-		if(format==PIXEL_x8) b->palette = ((unsigned char*)b->data) + psize + extrab;
-		else                 b->palette = NULL;
+		if(format==PIXEL_x8)
+			b->palette = ((unsigned char*)b->data) + psize + extrab;
+		else
+			b->palette = NULL;
 	}
 	return b;
 }
@@ -43,13 +47,12 @@ void freebitmap(s_bitmap *bitmap){
 	}
 }
 
-
-
 // Sluggish getbitmap function. Should be redone in ASM.
 void getbitmap(int x, int y, int width, int height, s_bitmap *bitmap, s_screen *screen){
 
 	int s, d;
-	int i, j;
+	//int i;
+	int j;
 
 	// Clip width and height
 	if(x<0){
@@ -78,11 +81,15 @@ void getbitmap(int x, int y, int width, int height, s_bitmap *bitmap, s_screen *
 	d = 0;
 	for(j=0; j<height; j++){
 		s = x + (y+j) * screen->width;
+		memcpy(((char*)bitmap->data) + d, ((char*)screen->data) + s, width);
+		d+=width;		
+		/*
 		for(i=0; i<width; i++){
 			bitmap->data[d] = screen->data[s];
 			++d;
 			++s;
 		}
+		*/
 	}
 }
 

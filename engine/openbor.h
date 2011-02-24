@@ -15,6 +15,7 @@
 #ifndef OPENBOR_H
 #define OPENBOR_H
 
+
 /////////////////////////////////////////////////////////////////////////////
 
 #include	"types.h"
@@ -1388,7 +1389,7 @@ typedef struct
 {
     int pos;
     char *buf;
-    int size;
+    size_t size;
 }s_filestream;
 
 typedef struct
@@ -1451,7 +1452,7 @@ typedef struct
 }s_level;
 
 
-int     buffer_pakfile(char* filename, char** pbuffer, int* psize);
+int     buffer_pakfile(char* filename, char** pbuffer, size_t* psize);
 int     getsyspropertybyindex(ScriptVariant* var, int index);
 int     changesyspropertybyindex(int index, ScriptVariant* value);
 int     load_script(Script* script, char* path);

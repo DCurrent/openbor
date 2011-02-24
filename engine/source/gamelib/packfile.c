@@ -22,7 +22,7 @@
 	} rep
 	dword	headerstart
 */
-
+#include <assert.h>
 #ifndef SPK_SUPPORTED
 
 #include <fcntl.h>
@@ -199,6 +199,7 @@ char * casesearch(const char *dir, const char *filepath)
 	rest_of_path = strchr(filepath, '/');
 	if (rest_of_path != NULL) // directory
 	{
+		assert(rest_of_path-filepath > 0);
 		strncat(filename, filepath, rest_of_path-filepath);
 		rest_of_path++;
 	} else strcpy(filename, filepath); // file

@@ -27,6 +27,7 @@
 
 */
 
+#include <assert.h>
 #include "openborscript.h"
 #include "openbor.h"
 #include "soundmix.h"
@@ -111,64 +112,79 @@ int            max_script_vars = 0;
 //this function should be called before all script methods, for once
 void Script_Global_Init()
 {
-    int i;
-    if(max_global_vars>0)
-    {
-        global_var_list = tracemalloc("Script_Global_Init", sizeof(s_variantnode*)*max_global_vars);
-        memset(global_var_list, 0, sizeof(s_variantnode*)*max_global_vars);
-    }
-    for(i=0; i<max_global_vars; i++)
-    {
-        global_var_list[i] = tracemalloc("Script_Global_Init#1", sizeof(s_variantnode));
-        memset(global_var_list[i], 0, sizeof(s_variantnode));
-    }
-    max_global_var_index = -1;
-    memset(&spawnentry, 0, sizeof(s_spawn_entry));//clear up the spawn entry
-    drawmethod = plainmethod;
-    if(max_indexed_vars>0)
-    {
-        indexed_var_list = (ScriptVariant*)tracemalloc("Script_Global_Init#2", sizeof(ScriptVariant)*max_indexed_vars);
-        memset(indexed_var_list, 0, sizeof(ScriptVariant)*max_indexed_vars);
-    }
-    List_Init(&theFunctionList);
-    Script_LoadSystemFunctions();
-    List_Init(&scriptheap);
+	ptrdiff_t i;
+	size_t csize, psize;
+	if(max_global_vars>0)
+	{
+		psize = (sizeof(s_variantnode*) * max_global_vars);
+		csize = psize + (sizeof(s_variantnode) * max_global_vars); 
+		global_var_list = tracemalloc("Script_Global_Init", csize);
+		assert(global_var_list != NULL);
+		memset(global_var_list, 0, csize);
+		for (i=0; i < max_global_vars; i++) {
+			global_var_list[i] = (s_variantnode*) (((char*) global_var_list) + psize + (i * sizeof(s_variantnode))); 
+		}		
+	}
+	/*
+	for(i=0; i<max_global_vars; i++)
+	{
+		global_var_list[i] = tracemalloc("Script_Global_Init#1", sizeof(s_variantnode));
+		assert(global_var_list[i] != NULL);
+		memset(global_var_list[i], 0, sizeof(s_variantnode));
+	} */
+	max_global_var_index = -1;
+	memset(&spawnentry, 0, sizeof(s_spawn_entry));//clear up the spawn entry
+	drawmethod = plainmethod;
+	
+	if(max_indexed_vars>0)
+	{
+		csize = sizeof(ScriptVariant)*(max_indexed_vars + 1);
+		indexed_var_list = (ScriptVariant*)tracemalloc("Script_Global_Init#2", csize);
+		assert(indexed_var_list != NULL);
+		memset(indexed_var_list, 0, csize);
+	}
+	List_Init(&theFunctionList);
+	Script_LoadSystemFunctions();
+	List_Init(&scriptheap);
 }
 
 //this function should only be called when the engine is shutting down
 void Script_Global_Clear()
 {
-    int i, size;
-    List_Clear(&theFunctionList);
-    // dump all un-freed variants
-    size = List_GetSize(&scriptheap);
-    if(size>0) printf("\nWarning: %d script variants are not freed, dumping...\n", size);
-    for(i=0, List_Reset(&scriptheap); i<size; List_GotoNext(&scriptheap), i++)
-    {
-        printf("%s\n", List_GetName(&scriptheap));
-        tracefree(List_Retrieve(&scriptheap));
-    }
-    List_Clear(&scriptheap);
-    // clear the global list
-    if(global_var_list)
-    {
-        for(i=0; i<max_global_vars; i++)
-        {
-            if(global_var_list[i] != NULL) {ScriptVariant_Clear(&(global_var_list[i]->value));tracefree(global_var_list[i]);}
-            global_var_list[i] = NULL;
-        }
-        tracefree(global_var_list);
-        global_var_list = NULL;
-    }
-    if(indexed_var_list)
-    {
-        for(i=0; i<max_indexed_vars; i++) ScriptVariant_Clear(indexed_var_list+i);
-        tracefree(indexed_var_list);
-    }
-    indexed_var_list = NULL;
-    max_global_var_index = -1;
-    memset(&spawnentry, 0, sizeof(s_spawn_entry));//clear up the spawn entry
-    StrCache_Clear();
+	int i, size;
+	List_Clear(&theFunctionList);
+	// dump all un-freed variants
+	size = List_GetSize(&scriptheap);
+	if(size>0) printf("\nWarning: %d script variants are not freed, dumping...\n", size);
+	for(i=0, List_Reset(&scriptheap); i<size; List_GotoNext(&scriptheap), i++)
+	{
+		printf("%s\n", List_GetName(&scriptheap));
+		tracefree(List_Retrieve(&scriptheap));
+	}
+	List_Clear(&scriptheap);
+	// clear the global list
+	if(global_var_list)
+	{
+		for(i=0; i<max_global_vars; i++)
+		{
+			if(global_var_list[i] != NULL) {
+				ScriptVariant_Clear(&(global_var_list[i]->value));
+				//tracefree(global_var_list[i]);
+			}
+			//global_var_list[i] = NULL;
+		}
+		tracefree(global_var_list);
+		global_var_list = NULL;
+	}
+	if(indexed_var_list)
+	{
+		for(i=0; i<max_indexed_vars; i++) ScriptVariant_Clear(indexed_var_list+i);
+		tracefree(indexed_var_list);
+	}
+	indexed_var_list = NULL;
+	max_global_var_index = -1;
+	memset(&spawnentry, 0, sizeof(s_spawn_entry));//clear up the spawn entry
+	StrCache_Clear();
 }
 
 

@@ -67,8 +67,8 @@ int font_load(int which, char *filename, char *packfile, int monospace){
 	font_heights[which] = th = screen->height/16;
 	if(!(bitmap = allocbitmap(tw,th,pixelformat))) goto err;
 
-    if(bitmap->palette && screen->palette)
-        memcpy(bitmap->palette, screen->palette, PAL_BYTES);
+	if(bitmap->palette && screen->palette)
+		memcpy(bitmap->palette, screen->palette, PAL_BYTES);
 
 	// grab tokens
 	for(y=0; y<16; y++){
