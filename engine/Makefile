@@ -525,6 +525,9 @@ endif
 CFLAGS 	       += -fno-ident -freorder-blocks -fomit-frame-pointer
 else
 CFLAGS 	       += -DDEBUG -O0
+ifdef NO_RAM_DEBUGGER
+CFLAGS         += -DNO_RAM_DEBUGGER 
+endif
 endif
 
 

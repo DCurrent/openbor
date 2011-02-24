@@ -23,7 +23,7 @@
 
 /////////////////////////////////////////////////////////////////////////////
 
-#ifdef DEBUG
+#ifdef RAM_DEBUG
 static ptrdiff_t *tracehead = NULL;
 size_t tracemalloc_total = 0;
 
@@ -56,7 +56,7 @@ static void tracemalloc_dump_collect(ptrdiff_t *p, size_t *len, size_t *nalloc)
 
 int tracemalloc_dump(void)
 {
-#ifdef DEBUG
+#ifdef RAM_DEBUG
 	size_t totalbytes = 0;
 	ptrdiff_t *p, *pp;
 	unsigned long long lc, nc;
@@ -89,7 +89,7 @@ void *tracemalloc(const char *name, size_t len)
 {
 	ptrdiff_t *p;
 
-#ifndef DEBUG
+#ifndef RAM_DEBUG
 #if defined(GP2X) && !defined(WIZ)
 	p = malloc(len + 1);
 #else
@@ -103,7 +103,7 @@ void *tracemalloc(const char *name, size_t len)
 	ptrdiff_t uRam = 0;
 	if(!p)
 	{
-#ifdef DEBUG
+#ifdef RAM_DEBUG
 		p = UpperMalloc(TRACE_BYTES + len);
 #else
 		p = UpperMalloc(1 + len);
@@ -123,7 +123,7 @@ void *tracemalloc(const char *name, size_t len)
 	}
 #endif
 
-#ifdef DEBUG
+#ifdef RAM_DEBUG
 	if(tracehead) tracehead[0] = (ptrdiff_t)p;
 	p[0] = 0;
 	p[1] = (ptrdiff_t)tracehead;
@@ -131,7 +131,7 @@ void *tracemalloc(const char *name, size_t len)
 #endif
 
 #if defined(GP2X) && !defined(WIZ)
-#ifdef DEBUG
+#ifdef RAM_DEBUG
 	p[3] = uRam;
 #else
 	p[0] = uRam;
@@ -139,7 +139,7 @@ void *tracemalloc(const char *name, size_t len)
 #endif
 #endif
 
-#ifdef DEBUG
+#ifdef RAM_DEBUG
 	p[TRACE_SIZE] = len;
 	tracehead = p;
 	tracemalloc_total += TRACE_BYTES + len;
@@ -151,7 +151,7 @@ void *tracemalloc(const char *name, size_t len)
 
 void tracefree(void *vp)
 {
-#ifdef DEBUG
+#ifdef RAM_DEBUG
 	ptrdiff_t *p = NULL;
 	ptrdiff_t *p_from_prev = NULL;
 	ptrdiff_t *p_from_next = NULL;
@@ -165,7 +165,7 @@ void tracefree(void *vp)
 #endif
 
 #if defined(GP2X) && !defined(WIZ)
-#ifdef DEBUG
+#ifdef RAM_DEBUG
 	if(p[3]) UpperFree(p);
 	else free(p);
 #else
@@ -173,7 +173,7 @@ void tracefree(void *vp)
 	else free(vp);
 #endif
 #else
-#ifdef DEBUG
+#ifdef RAM_DEBUG
 	free(p);
 #else
 	free(vp);
@@ -209,7 +209,7 @@ void *tracerealloc(void *vp, size_t len)
 	}
 	else // actually call realloc()
 	{
-#ifdef DEBUG
+#ifdef RAM_DEBUG
 		char *p = ((char*)vp) - TRACE_BYTES;
 		ptrdiff_t *vp2 = realloc(p, len + TRACE_BYTES);
 		if(!vp2) return NULL;
