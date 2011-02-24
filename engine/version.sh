@@ -11,12 +11,13 @@
 # a version.h as well as the environment variable to be used.
 
 function check_svn_bin {
-if [ `echo $(uname -s) | grep -o "windows"` ]; then
-  if [ ! -d "tools/svn/bin" ]; then
+HOST_PLATFORM=$(uname -s)
+if [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
+  if [ ! -d "../tools/svn/bin" ]; then
     echo "-------------------------------------------------------"
     echo "           SVN - Not Found, Installing SVN!"
     echo "-------------------------------------------------------"
-    7za x -y tools/svn/svn-win32-1.6.6.7z -otools/svn/
+    7za x -y ../tools/svn/svn-win32-1.6.6.7z -o../tools/svn/
     echo
     echo "-------------------------------------------------------"
     echo "           SVN - Installation Has Completed!"
