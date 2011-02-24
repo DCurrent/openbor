@@ -307,9 +307,14 @@ function wiz {
         mkdir ./releases/WIZ/OpenBOR/ScreenShots
       fi  
       mv OpenBOR.gpe ./releases/WIZ/OpenBOR/
-      cp /opt/openwiz/toolchain/arm-openwiz-linux-gnu/lib/warm_2.6.24.ko ./releases/WIZ/OpenBOR/
-      cp /opt/openwiz/toolchain/arm-openwiz-linux-gnu/lib/libSDL-1.2.so.0.11.2 ./releases/WIZ/OpenBOR/
-      cp /opt/openwiz/toolchain/arm-openwiz-linux-gnu/lib/libSDL_gfx.so.0.0.17 ./releases/WIZ/OpenBOR/libSDL_gfx.so.0
+      if [ `echo $HOST_PLATFORM | grep -o "SVN"` ]; then
+        cp $SDKPATH/lib/target/libSDL-1.2.so.0.11.2 ./releases/WIZ/OpenBOR/
+        cp $SDKPATH/lib/target/libSDL_gfx.so.0.0.17 ./releases/WIZ/OpenBOR/libSDL_gfx.so.0
+      else
+        cp $SDKPATH/lib/warm_2.6.24.ko ./releases/WIZ/OpenBOR/
+        cp $SDKPATH/lib/libSDL-1.2.so.0.11.2 ./releases/WIZ/OpenBOR/
+        cp $SDKPATH/lib/libSDL_gfx.so.0.0.17 ./releases/WIZ/OpenBOR/libSDL_gfx.so.0
+      fi
     fi  
     make clean BUILD_WIZ=1
   fi
