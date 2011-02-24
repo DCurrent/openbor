@@ -14,6 +14,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include	<stdio.h>
+#include    <assert.h>
 #include	"utils.h"
 #include	"tracemalloc.h"
 

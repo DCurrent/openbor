@@ -27,7 +27,6 @@
 
 */
 
-#include <assert.h>
 #include "openborscript.h"
 #include "openbor.h"
 #include "soundmix.h"
@@ -117,13 +116,13 @@ void Script_Global_Init()
 	if(max_global_vars>0)
 	{
 		psize = (sizeof(s_variantnode*) * max_global_vars);
-		csize = psize + (sizeof(s_variantnode) * max_global_vars); 
+		csize = psize + (sizeof(s_variantnode) * max_global_vars);
 		global_var_list = tracemalloc("Script_Global_Init", csize);
 		assert(global_var_list != NULL);
 		memset(global_var_list, 0, csize);
 		for (i=0; i < max_global_vars; i++) {
-			global_var_list[i] = (s_variantnode*) (((char*) global_var_list) + psize + (i * sizeof(s_variantnode))); 
-		}		
+			global_var_list[i] = (s_variantnode*) (((char*) global_var_list) + psize + (i * sizeof(s_variantnode)));
+		}
 	}
 	/*
 	for(i=0; i<max_global_vars; i++)
@@ -135,7 +134,7 @@ void Script_Global_Init()
 	max_global_var_index = -1;
 	memset(&spawnentry, 0, sizeof(s_spawn_entry));//clear up the spawn entry
 	drawmethod = plainmethod;
-	
+
 	if(max_indexed_vars>0)
 	{
 		csize = sizeof(ScriptVariant)*(max_indexed_vars + 1);
@@ -375,13 +374,13 @@ void Script_Clear(Script* pscript, int localclear)
 int Script_AppendText(Script* pscript, char* text, char* path)
 {
 	int success;
-	
+
     pcurrentscript = pscript; //used by local script functions
     //printf(text);
     Interpreter_Reset(pscript->pinterpreter);
-    
+
     success = SUCCEEDED(Interpreter_ParseText(pscript->pinterpreter, text, 1, path));
-    
+
     return success;
 }
 
@@ -513,7 +512,7 @@ void* Script_GetStringMapFunction(void* functionRef)
 	else return NULL;
 }
 
-/* Replace string constants with enum constants at compile time to speed up 
+/* Replace string constants with enum constants at compile time to speed up
    script execution. */
 int Script_MapStringConstants(Script* pscript)
 {
@@ -523,7 +522,7 @@ int Script_MapStringConstants(Script* pscript)
     //ScriptVariant* var;
     void (*pMapstrings)(ScriptVariant**, int);
     int i, j, k, size, paramCount;
-    
+
     size = List_GetSize(&(pinterpreter->theInstructionList));
     for(i=0; i<size; i++)
     {
@@ -532,14 +531,14 @@ int Script_MapStringConstants(Script* pscript)
         {
             params = (ScriptVariant**)pInstruction->theRefList->solidlist;
             paramCount = (int)pInstruction->theRef->lVal;
-            
+
             // Get the pointer to the correct mapstrings function, if one exists.
 			pMapstrings = Script_GetStringMapFunction(pInstruction->functionRef);
             if(pMapstrings)
             {
             	// Call the mapstrings function.
 				pMapstrings(params, paramCount);
-				
+
 				// Find the instruction containing each constant and update its value.
 				for(j=0; j<paramCount; j++)
 				{
@@ -557,7 +556,7 @@ int Script_MapStringConstants(Script* pscript)
             }
         }
     }
-	
+
     return 1;
 }
 
@@ -569,7 +568,7 @@ int Script_ReplaceInstructionList(Interpreter* pInterpreter, List* newList)
 	Instruction** oldList = (Instruction**)pInterpreter->theInstructionList.solidlist;
 	List_Solidify(newList);
 	char buf[256];
-	
+
 	for(i=0; i<newSize; i++)
 	{
 		pInstruction = (Instruction*)newList->solidlist[i];
@@ -593,11 +592,11 @@ int Script_ReplaceInstructionList(Interpreter* pInterpreter, List* newList)
 			}
 		}
 	}
-	
+
 	// replace new list with old list
 	List_Clear(&(pInterpreter->theInstructionList));
 	memcpy(&(pInterpreter->theInstructionList), newList, sizeof(List));
-	
+
 	return 1;
 }
 
@@ -608,11 +607,11 @@ void Script_LowerConstants(Script* pscript)
     Instruction* pInstruction, *pInstruction2;
     List* newInstructionList = tracemalloc("Script_LowerConstants", sizeof(List));
     int i, j, size;
-    
+
     List_Init(newInstructionList);
-    
+
     size = List_GetSize(&(pinterpreter->theInstructionList));
-    
+
     for(i=0; i<size; i++)
     {
         pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[i]);
@@ -647,7 +646,7 @@ void Script_LowerConstants(Script* pscript)
         		if(tmp->theVal == pInstruction->theRef || tmp->theVal2 == pInstruction->theRef)   pSrc1 = tmp;
         		if(tmp->theVal == pInstruction->theRef2 || tmp->theVal2 == pInstruction->theRef2) pSrc2 = tmp;
         	}
-        	
+
         	if(ISCONST(pSrc1) && ISCONST(pSrc2))
         	{
         		ScriptVariant* sum = ScriptVariant_Add(pSrc1->theVal2, pSrc2->theVal2);
@@ -668,7 +667,7 @@ void Script_LowerConstants(Script* pscript)
         }
 #undef ISCONST
     }
-    
+
     // replace old instruction list with optimized one (TODO: enable when this function actually does optimizations)
     //Script_ReplaceInstructionList(pinterpreter, &newInstructionList);
 }
@@ -680,9 +679,9 @@ int Script_DetectUnusedFunctions(Script* pScript)
     Instruction* pInstruction, *pInstruction2, **instructionList = (Instruction**)pInterpreter->theInstructionList.solidlist;
     List newInstructionList;
     int i, size = List_GetSize(&(pInterpreter->theInstructionList));
-    
+
     List_Init(&newInstructionList);
-    
+
     for(i=0; i<size; i++)
     {
     	pInstruction = instructionList[i];
@@ -690,14 +689,14 @@ int Script_DetectUnusedFunctions(Script* pScript)
     	if(pInstruction->OpCode == NOOP && pInstruction->theToken && strlen(pInstruction->theToken->theSource) > 0)
     	{
     		int j, numCalls = 0;
-    		
+
     		// find all calls to this function
     		for(j=0; j<size; j++)
     		{
     			pInstruction2 = instructionList[j];
     			if(pInstruction2->OpCode == CALL && pInstruction2->theJumpTargetIndex == i) numCalls++;
     		}
-            
+
             if(numCalls == 0 && strcmp(pInstruction->theToken->theSource, "main") != 0)
             {
                 printf("Unused function %s()\n", pInstruction->theToken->theSource);
@@ -711,12 +710,12 @@ int Script_DetectUnusedFunctions(Script* pScript)
             else List_InsertAfter(&newInstructionList, pInstruction, NULL);
         }
         else List_InsertAfter(&newInstructionList, pInstruction, NULL);
-        
+
         List_InsertAfter(&newInstructionList, pInstruction, NULL);
-        
+
         //if(pInstruction->theToken) {tracefree(pInstruction->theToken); pInstruction->theToken=NULL;} // TODO: move somewhere else
     }
-    
+
 	return Script_ReplaceInstructionList(pInterpreter, &newInstructionList);
 }
 
@@ -730,11 +729,11 @@ int Script_Compile(Script* pscript)
     if(!result) {Script_Clear(pscript, 1);shutdown(1, "Can't compile script!\n");}
     result = Script_MapStringConstants(pscript);
     if(!result) {Script_Clear(pscript, 1);shutdown(1, "Can't compile script!\n");}
-    
+
     //result = Script_DetectUnusedFunctions(pscript);
     //if(!result) {Script_Clear(pscript, 1);shutdown(1, "Script optimization failed!\n");}
     //Script_LowerConstants(pscript);
-    
+
     return result;
 }
 
@@ -959,7 +958,7 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                       (void*)openbor_loadsprite, "loadsprite");
     List_InsertAfter(&theFunctionList,
-                      (void*)openbor_playgif, "playgif");	    
+                      (void*)openbor_playgif, "playgif");
     List_InsertAfter(&theFunctionList,
                       (void*)openbor_strinfirst, "strinfirst");
     List_InsertAfter(&theFunctionList,
@@ -967,7 +966,7 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
                       (void*)openbor_strleft, "strleft");
 	List_InsertAfter(&theFunctionList,
-                      (void*)openbor_strlength, "strlength");	
+                      (void*)openbor_strlength, "strlength");
 	List_InsertAfter(&theFunctionList,
                       (void*)openbor_strright, "strright");
     List_InsertAfter(&theFunctionList,
@@ -1138,10 +1137,10 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
 	int prop;
-	
-	// This enum is replicated in getsyspropertybyindex in openbor.c. If you 
+
+	// This enum is replicated in getsyspropertybyindex in openbor.c. If you
 	// change one, you must change the other as well!!!!
-	enum systemvariant_enum 
+	enum systemvariant_enum
     {
 		_sv_branchname,
 		_sv_count_enemies,
@@ -1198,7 +1197,7 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 		_sv_ypos,
 		_sv_the_end,
      };
-	
+
 	// arranged list, for searching
     static const char* proplist[] = {
         "branchname",
@@ -1254,7 +1253,7 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
         "xpos",
         "ypos",
      };
-    
+
 	MAPSTRINGS(varlist[0], proplist, _sv_the_end,
 		"openborvariant: System variable name not found: '%s'\n");
 }
@@ -1295,10 +1294,10 @@ void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
 	int prop;
-	
-	// This enum is replicated in changesyspropertybyindex in openbor.c. If you 
+
+	// This enum is replicated in changesyspropertybyindex in openbor.c. If you
 	// change one, you must change the other as well!!!!
-	enum changesystemvariant_enum 
+	enum changesystemvariant_enum
     {
 		_csv_blockade,
 		_csv_elapsed_time,
@@ -1318,7 +1317,7 @@ void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount)
 		_csv_ypos,
 		_csv_the_end,
      };
-	
+
 	// arranged list, for searching
     static const char* proplist[] = {
         "blockade",
@@ -1338,7 +1337,7 @@ void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount)
 		"xpos",
 		"ypos",
      };
-	 
+
 	 MAPSTRINGS(varlist[0], proplist, _csv_the_end,
 		"changeopenborvariant: System variable name not found: '%s'\n");
 }
@@ -2030,28 +2029,28 @@ HRESULT openbor_setentityvar(ScriptVariant** varlist , ScriptVariant** pretvar, 
 
 //strinfirst(char string, char search_string);
 HRESULT openbor_strinfirst(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
-{   
-    char* tempstr = NULL;    
-    
+{
+    char* tempstr = NULL;
+
     if(paramCount < 2)
     {
         *pretvar = NULL;
         return E_FAIL;
     }
-    
+
     ScriptVariant_Clear(*pretvar);
 
     if(varlist[0]->vt!=VT_STR || varlist[1]->vt!=VT_STR)
     {
 		printf("\n Error, strinfirst({string}, {search string}): Strinfirst must be passed valid {string} and {search string}. \n");
-    }    
+    }
 
-    tempstr = strstr((char*)StrCache_Get(varlist[0]->strVal), (char*)StrCache_Get(varlist[1]->strVal));   
-    
+    tempstr = strstr((char*)StrCache_Get(varlist[0]->strVal), (char*)StrCache_Get(varlist[1]->strVal));
+
     if (tempstr != NULL)
     {
-        ScriptVariant_ChangeType(*pretvar, VT_STR); 
-        strcpy(StrCache_Get((*pretvar)->strVal), tempstr);        
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        strcpy(StrCache_Get((*pretvar)->strVal), tempstr);
     }
     else
     {
@@ -2063,28 +2062,28 @@ HRESULT openbor_strinfirst(ScriptVariant** varlist , ScriptVariant** pretvar, in
 
 //strinlast(char string, char search_string);
 HRESULT openbor_strinlast(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
-{   
-    char* tempstr = NULL;    
-    
+{
+    char* tempstr = NULL;
+
     if(paramCount < 2)
     {
         *pretvar = NULL;
         return E_FAIL;
     }
-    
+
     ScriptVariant_Clear(*pretvar);
 
     if(varlist[0]->vt!=VT_STR || varlist[1]->vt!=VT_STR)
     {
 		printf("\n Error, strinlast({string}, {search string}): Strinlast must be passed valid {string} and {search string}. \n");
-    }    
+    }
 
-    tempstr = strrchr((char*)StrCache_Get(varlist[0]->strVal), varlist[1]->strVal);   
-    
+    tempstr = strrchr((char*)StrCache_Get(varlist[0]->strVal), varlist[1]->strVal);
+
     if (tempstr != NULL)
     {
-        ScriptVariant_ChangeType(*pretvar, VT_STR); 
-        strcpy(StrCache_Get((*pretvar)->strVal), tempstr);        
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        strcpy(StrCache_Get((*pretvar)->strVal), tempstr);
     }
     else
     {
@@ -2096,7 +2095,7 @@ HRESULT openbor_strinlast(ScriptVariant** varlist , ScriptVariant** pretvar, int
 
 //strleft(char string, int i);
 HRESULT openbor_strleft(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
-{	
+{
 	char tempstr[66] = {0};
 
     if(paramCount < 2)
@@ -2114,21 +2113,21 @@ HRESULT openbor_strleft(ScriptVariant** varlist , ScriptVariant** pretvar, int p
 
 	if (tempstr != NULL)
     {
-        ScriptVariant_ChangeType(*pretvar, VT_STR); 
-        strcpy(StrCache_Get((*pretvar)->strVal),tempstr);        
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        strcpy(StrCache_Get((*pretvar)->strVal),tempstr);
     }
 	else
 	{
 		 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = -1;
 	}
-    
+
     return S_OK;
 }
 
 //strlength(char string);
 HRESULT openbor_strlength(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
-{    
+{
     if(paramCount < 1)
     {
         *pretvar = NULL;
@@ -2149,9 +2148,9 @@ HRESULT openbor_strlength(ScriptVariant** varlist , ScriptVariant** pretvar, int
 
 //strright(char string, int i);
 HRESULT openbor_strright(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
-{	
+{
     char* tempstr = NULL;
-	
+
     if(paramCount < 2)
     {
         *pretvar = NULL;
@@ -2161,27 +2160,27 @@ HRESULT openbor_strright(ScriptVariant** varlist , ScriptVariant** pretvar, int 
 	if(varlist[0]->vt!=VT_STR || varlist[1]->vt!=VT_INTEGER)
     {
 		printf("\n Error, strright({string}, {characters}): Invalid or missing parameter. Strright must be passed valid {string} and number of {characters}.\n");
-    }	
+    }
 
 	ScriptVariant_Clear(*pretvar);
-    tempstr = (char*)StrCache_Get(varlist[0]->strVal);	
+    tempstr = (char*)StrCache_Get(varlist[0]->strVal);
 
 	if (tempstr != NULL || strlen(tempstr)>0)
     {
-        ScriptVariant_ChangeType(*pretvar, VT_STR); 
-		strcpy(StrCache_Get((*pretvar)->strVal), &tempstr[varlist[1]->lVal]);        
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+		strcpy(StrCache_Get((*pretvar)->strVal), &tempstr[varlist[1]->lVal]);
     }
 	else
 	{
 		 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = -1;
 	}
-    
+
     return S_OK;
 }
 
 HRESULT openbor_getmodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
-{    	
+{
     int iArg;
 
     if(paramCount < 2)
@@ -2193,7 +2192,7 @@ HRESULT openbor_getmodelproperty(ScriptVariant** varlist , ScriptVariant** pretv
     if(varlist[0]->vt!=VT_INTEGER || varlist[1]->vt!=VT_INTEGER)
     {
         printf("\n Error, getmodelproperty({model}, {property}): Invalid or missing parameter. Getmodelproperty must be passed valid {model} and {property} indexes.\n");
-    }    
+    }
 
     iArg = varlist[0]->lVal;
 
@@ -2234,7 +2233,7 @@ HRESULT openbor_getmodelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 }
 
 HRESULT openbor_changemodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
-{    	
+{
     int iArg;
     LONG ltemp;
 
@@ -2247,7 +2246,7 @@ HRESULT openbor_changemodelproperty(ScriptVariant** varlist , ScriptVariant** pr
     if(varlist[0]->vt!=VT_INTEGER || varlist[1]->vt!=VT_INTEGER)
     {
         printf("\n Error, changemodelproperty({model}, {property}, {value}): Invalid or missing parameter. Changemodelproperty must be passed valid {model}, {property} and {value}.\n");
-    }    
+    }
 
     iArg = varlist[0]->lVal;
 
@@ -2273,7 +2272,7 @@ HRESULT openbor_changemodelproperty(ScriptVariant** varlist , ScriptVariant** pr
             strcpy(model_cache[iArg].model, (char*)StrCache_Get(varlist[2]->strVal));
             (*pretvar)->lVal = (LONG)1;
             break;
-            */            
+            */
         }
         case 2:
         {
@@ -2301,7 +2300,7 @@ HRESULT openbor_changemodelproperty(ScriptVariant** varlist , ScriptVariant** pr
             break;
             */
         }
-        case 4:                                                    
+        case 4:
         {
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
                 model_cache[iArg].selectable = (int)ltemp;
@@ -2331,7 +2330,7 @@ enum getentityproperty_enum {
     _gep_animpos,
     _gep_animvalid,
     _gep_antigravity,
-	_gep_attack,	
+	_gep_attack,
     _gep_attacking,
 	_gep_attackid,
     _gep_autokill,
@@ -2341,7 +2340,7 @@ enum getentityproperty_enum {
     _gep_blockback,
     _gep_blockpain,
     _gep_bounce,
-	_gep_chargerate,	
+	_gep_chargerate,
     _gep_colourmap,
 	_gep_colourtable,
     _gep_damage_on_landing,
@@ -2440,11 +2439,11 @@ enum getentityproperty_enum {
 	_gep_tosstime,
     _gep_tossv,
     _gep_type,
-	_gep_weapent,	
+	_gep_weapent,
     _gep_x,
     _gep_xdir,
     _gep_z,
-    _gep_zdir,	
+    _gep_zdir,
     _gep_the_end,
 };
 
@@ -2513,7 +2512,7 @@ enum gep_dot_enum {
 	_gep_dot_the_end,
 };
 
-enum gep_attack_enum {	
+enum gep_attack_enum {
 	_gep_attack_blast,
 	_gep_attack_blockflash,
 	_gep_attack_blocksound,
@@ -2537,7 +2536,7 @@ enum gep_attack_enum {
 	_gep_attack_guardcost,
 	_gep_attack_hitflash,
 	_gep_attack_hitsound,
-	_gep_attack_jugglecost,	
+	_gep_attack_jugglecost,
 	_gep_attack_maptime,
 	_gep_attack_noblock,
 	_gep_attack_noflash,
@@ -2545,21 +2544,21 @@ enum gep_attack_enum {
 	_gep_attack_otg,
 	_gep_attack_pause,
 	_gep_attack_seal,
-	_gep_attack_sealtime,	
+	_gep_attack_sealtime,
 	_gep_attack_staydown,
-	_gep_attack_steal,	
-	_gep_attack_type,	
+	_gep_attack_steal,
+	_gep_attack_type,
 	_gep_attack_the_end,
 };
 
 enum gep_range_enum {
 		_gep_range_amax,
-		_gep_range_amin,		
+		_gep_range_amin,
 		_gep_range_bmax,
-		_gep_range_bmin,	
+		_gep_range_bmin,
 		_gep_range_xmax,
 		_gep_range_xmin,
-		_gep_range_zmax,				
+		_gep_range_zmax,
 		_gep_range_zmin,
 		_gep_range_the_end,
 	};
@@ -2568,7 +2567,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
 	int prop;
-	
+
 	// arranged list, for searching
     static const char* proplist[] = {
         "a",
@@ -2589,7 +2588,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
         "antigravity",
 		"attack",
 		"attacking",
-		"attackid",		
+		"attackid",
         "autokill",
         "base",
 		"bbox",
@@ -2597,7 +2596,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
         "blockback",
         "blockpain",
         "bounce",
-		"chargerate",		
+		"chargerate",
         "colourmap",
 		"colourtable",
         "damage_on_landing",
@@ -2621,7 +2620,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"guardpoints",
         "health",
         "height",
-		"hitbyid",		
+		"hitbyid",
         "hmapl",
         "hmapu",
         "icon",
@@ -2657,7 +2656,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
         "nopain",
         "offense",
         "opponent",
-        "owner",        
+        "owner",
         "parent",
         "path",
         "playerindex",
@@ -2695,13 +2694,13 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"tosstime",
         "tossv",
         "type",
-		"weapent",		
+		"weapent",
         "x",
         "xdir",
         "z",
         "zdir",
     };
-	
+
 	static const char* proplist_edelay[] = {
 		"cap_max",
 		"cap_min",
@@ -2710,7 +2709,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"range_max",
 		"range_min",
 	};
-	
+
 	static const char* proplist_aiflag[] = {
 		"animating",
 		"attacking",
@@ -2733,7 +2732,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"toexplode",
 		"turning",
 	};
-	
+
 	static const char* proplist_defense[] = {
 		"blockpower",
 		"blockratio",
@@ -2743,7 +2742,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"knockdown",
 		"pain",
 	};
-	
+
 	static const char* proplist_running[] = {
 		"jumpx",
 		"jumpy",
@@ -2751,7 +2750,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"movez",
 		"speed",
 	};
-	
+
 	static const char* proplist_dot[] = {
 		"force",
 		"mode",
@@ -2760,7 +2759,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"time",
 		"type",
 	};
-	
+
 	static const char* proplist_attack[] = {
 		"blast",
 		"blockflash",
@@ -2785,7 +2784,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"guardcost",
 		"hitflash",
 		"hitsound",
-		"jugglecost",	
+		"jugglecost",
 		"maptime",
 		"noblock",
 		"noflash",
@@ -2793,45 +2792,45 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"otg",
 		"pause",
 		"seal",
-		"sealtime",	
+		"sealtime",
 		"staydown",
-		"steal",	
-		"type",		
+		"steal",
+		"type",
 	};
 
 	static const char* proplist_range[] = {
 		"amax",
-		"amin",		
+		"amin",
 		"bmax",
-		"bmin",	
+		"bmin",
 		"xmax",
 		"xmin",
-		"zmax",				
+		"zmax",
 		"zmin",
 	};
 
 	if(paramCount < 2) return;
-    
+
 	// map entity properties
 	MAPSTRINGS(varlist[1], proplist, _gep_the_end,
 		"Property name '%s' is not supported by function getentityproperty.\n");
-	
+
 	if(paramCount < 3) return;
-	
+
 	// map subproperties of edelay property
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_edelay))
 	{
 		MAPSTRINGS(varlist[2], proplist_edelay, _gep_edelay_the_end,
 			"'%s' is not a known subproperty of 'edelay'.\n");
 	}
-	
+
 	// map subproperties of aiflag property
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_aiflag))
 	{
 		MAPSTRINGS(varlist[2], proplist_aiflag, _gep_aiflag_the_end,
 			"'%s' is not a known subproperty of 'aiflag'.\n");
 	}
-	
+
 	// map subproperties of defense property
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_defense))
 	{
@@ -2841,32 +2840,32 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 				"'%s' is not a known subproperty of 'defense'.\n");
 		}
 	}
-	
+
 	// map subproperties of running
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_running))
 	{
-		MAPSTRINGS(varlist[2], proplist_running, _gep_running_the_end, 
+		MAPSTRINGS(varlist[2], proplist_running, _gep_running_the_end,
 			"Property name '%s' is not a known subproperty of 'running'.\n");
 	}
-	
+
 	// map subproperties of DOT
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_dot))
 	{
-		MAPSTRINGS(varlist[2], proplist_dot, _gep_dot_the_end, 
+		MAPSTRINGS(varlist[2], proplist_dot, _gep_dot_the_end,
 			"Property name '%s' is not a known subproperty of 'dot'.\n");
 	}
 
 	// map subproperties of Attack
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_attack))
 	{
-		MAPSTRINGS(varlist[2], proplist_attack, _gep_attack_the_end, 
+		MAPSTRINGS(varlist[2], proplist_attack, _gep_attack_the_end,
 			"Property name '%s' is not a known subproperty of 'attack'.\n");
 	}
 
 	// map subproperties of Range
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_range))
 	{
-		MAPSTRINGS(varlist[2], proplist_range, _gep_range_the_end, 
+		MAPSTRINGS(varlist[2], proplist_range, _gep_range_the_end,
 			"Property name '%s' is not a known subproperty of 'range'.\n");
 	}
 }
@@ -2909,7 +2908,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
     {
         printf("Function getentityproperty must have a string property name.\n");
     }
-	
+
     propind = arg->lVal;
 
     switch(propind)
@@ -3126,13 +3125,13 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
         if(arg->vt != VT_INTEGER)
         {
 			printf("Error, getentityproperty({ent}, 'icon', {type}): {type} parameter missing or invalid. \n {type}: \n 0 = Icon \n 1 = Icondie \n 2 = Iconget \n 3 = Iconmphigh \n 4 = Iconmphalf \n 5 = Iconmplow \n 6 = Iconpain \n 7 = Iconw \n 8 = Iconx \n 9 = Icony \n");
-            return E_FAIL;            
-        }        
+            return E_FAIL;
+        }
 
         switch(arg->lVal)
         {
             default:
-                i = ent->modeldata.icon;                
+                i = ent->modeldata.icon;
                 break;
             case 1:
                 i = ent->modeldata.icondie;
@@ -3160,12 +3159,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
                 break;
             case 9:
                 i = ent->modeldata.icony;
-                break;                
+                break;
         }
 
         if (i >= 0)
         {
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);        
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
             spr = sprite_map[i].sprite;
             spr->centerx = sprite_map[i].centerx;
             spr->centery = sprite_map[i].centery;
@@ -3256,7 +3255,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
         }
         ltemp = arg->lVal;
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        
+
         switch(ltemp)
 		{
 		case _gep_edelay_mode:
@@ -3296,22 +3295,22 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
         break;
     }
     case _gep_energycost:
-    {        
+    {
 		if(paramCount != 4						//Validate parameter count and types.
-			|| varlist[2]->vt != VT_INTEGER 
-			|| varlist[3]->vt != VT_INTEGER)	
+			|| varlist[2]->vt != VT_INTEGER
+			|| varlist[3]->vt != VT_INTEGER)
         {
 			printf("\n Error, getentityproperty({ent}, 'energycost', {animation}, {argument}): Missing or invalid parameter. \n");
-			return E_FAIL;    
+			return E_FAIL;
         }
-		
+
 		i	= varlist[2]->lVal;					//Animation.
-		
+
 		if(!validanim(ent,i))					//Bad or missing animation = instant crash, let's validate and pass user friendly error.
-		{			
+		{
 			printf("\n Error, getentityproperty({ent}, 'energycost', {animation}, {argument}): {animation} argument invalid. Make sure the animation exists. \n");
 			return E_FAIL;
-		}        
+		}
 
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost[varlist[3]->lVal];
@@ -3360,13 +3359,13 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)ent->modeldata.throwdamage;
         break;
-    }	
+    }
 	case _gep_throwdist:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.throwdist;
         break;
-    }	
+    }
 	case _gep_throwframewait:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -3468,7 +3467,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
              ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
              (*pretvar)->lVal = (LONG)ent->projectile;
 			 break;
-        }		
+        }
         case _gep_aiflag_frozen:
         {
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -3560,7 +3559,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->animating;
         break;
-    }	
+    }
     case _gep_invincible:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -3604,13 +3603,13 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
         if(arg->vt != VT_INTEGER)
         {
             printf("You must provide a Komap parameter index: \n 0 = Komap \n 1 = Komap type \n");
-            return E_FAIL;            
-        }        
+            return E_FAIL;
+        }
 
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->modeldata.komap[arg->lVal];
         break;
-    }    
+    }
     case _gep_lifespancountdown:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
@@ -3763,13 +3762,13 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
         break;
     }
 	case _gep_attackid:
-    {       
+    {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)ent->attack_id;
         break;
     }
 	case _gep_hitbyid:
-    {       
+    {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)ent->hit_by_attack_id;
         break;
@@ -3777,16 +3776,16 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	case _gep_bbox:
     {
         if(paramCount<6) break;
-        			
-		if(varlist[2]->vt != VT_INTEGER 
+
+		if(varlist[2]->vt != VT_INTEGER
 			|| varlist[3]->vt != VT_INTEGER
-			|| varlist[4]->vt != VT_INTEGER	
-			|| varlist[5]->vt != VT_INTEGER)			
+			|| varlist[4]->vt != VT_INTEGER
+			|| varlist[5]->vt != VT_INTEGER)
 		{
 			printf("\n Error, getentityproperty({ent}, 'bbox', {index}, {animation}, {frame}, {arg}): {index}, {Animation}, {frame}, or {arg} parameter is missing or invalid. \n");
-			return E_FAIL;    
+			return E_FAIL;
 		}
-		
+
 		//varlist[3]->lval;														//bbox index (multiple bbox support).
 		i		= varlist[3]->lVal;												//Animation parameter.
 		tempint	= varlist[4]->lVal;												//Frame parameter.
@@ -3797,7 +3796,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		}
 
 		coords = ent->modeldata.animation[i]->bbox_coords[tempint];
-				
+
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)coords[varlist[5]->lVal];
 		break;
@@ -3805,31 +3804,31 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	case _gep_range:
     {
         if(paramCount<4) break;
-        			
-		if(varlist[2]->vt != VT_INTEGER 
-			|| varlist[3]->vt != VT_INTEGER)					
+
+		if(varlist[2]->vt != VT_INTEGER
+			|| varlist[3]->vt != VT_INTEGER)
 		{
 			printf("\n Error, getentityproperty({ent}, 'range', {sub property}, {animation}): {Sub property} or {Animation} parameter is missing or invalid. \n");
-			return E_FAIL;    
+			return E_FAIL;
 		}
 		ltemp	= varlist[2]->lVal;												//Subproperty.
 		i		= varlist[3]->lVal;												//Animation.
-		
-		if(!validanim(ent,i))													//Verify animation.													
-		{			
+
+		if(!validanim(ent,i))													//Verify animation.
+		{
 			break;
-		} 
+		}
 
 		switch(ltemp)
 		{
 			case _gep_range_amax:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range[5];
-				 break;			
+				 break;
 			case _gep_range_amin:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range[4];
-				 break;	
+				 break;
 			case _gep_range_bmax:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range[7];
@@ -3854,9 +3853,9 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range[2];
 				 break;
-			default:			
+			default:
 				ScriptVariant_Clear(*pretvar);
-				return E_FAIL;			
+				return E_FAIL;
 		}
 		break;
 
@@ -3873,179 +3872,179 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 			printf("Error, getentityproperty({ent}, 'attack', {sub property}, {index}, {animation}, {frame}): You must give a string name for {sub property}.\n");
             return E_FAIL;
         }
-        ltemp = arg->lVal;		
-		
-		if(varlist[3]->vt != VT_INTEGER 
+        ltemp = arg->lVal;
+
+		if(varlist[3]->vt != VT_INTEGER
 			|| varlist[4]->vt != VT_INTEGER
-			|| varlist[5]->vt != VT_INTEGER)					
+			|| varlist[5]->vt != VT_INTEGER)
 		{
 			printf("\n Error, getentityproperty({ent}, 'attack', {sub property}, {index}, {animation}, {frame}): {Animation} or {frame} parameter is missing or invalid. \n");
-			return E_FAIL;    
+			return E_FAIL;
 		}
 
 		//varlist[3]->lval														//Attack box index (multiple attack boxes).
 		i		= varlist[4]->lVal;												//Animation parameter.
 		tempint	= varlist[5]->lVal;												//Frame parameter.
-				
-		if(!validanim(ent,i) || !ent->modeldata.animation[i]->attacks || !ent->modeldata.animation[i]->attacks[tempint])	//Verify animation and active attack on frame.													
-		{			
-			break;
-		}        
 
-		attack = ent->modeldata.animation[i]->attacks[tempint];					//Get attack struct. 
+		if(!validanim(ent,i) || !ent->modeldata.animation[i]->attacks || !ent->modeldata.animation[i]->attacks[tempint])	//Verify animation and active attack on frame.
+		{
+			break;
+		}
+
+		attack = ent->modeldata.animation[i]->attacks[tempint];					//Get attack struct.
 
         switch(ltemp)
 		{
 			case _gep_attack_blockflash:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->blockflash;
-				 break;			
-			case _gep_attack_blocksound:			
+				 break;
+			case _gep_attack_blocksound:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->blocksound;
-				 break;			
-			case _gep_attack_coords:					 
+				 break;
+			case _gep_attack_coords:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->attack_coords[varlist[6]->lVal];
-				 break;			       
-			case _gep_attack_counterattack:					 
+				 break;
+			case _gep_attack_counterattack:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->counterattack;
-				 break;			
-			case _gep_attack_direction:					 
+				 break;
+			case _gep_attack_direction:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->force_direction;
-				 break;			
-			case _gep_attack_dol:					 
+				 break;
+			case _gep_attack_dol:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->damage_on_landing;
-				 break;			
-			case _gep_attack_dot:					 
+				 break;
+			case _gep_attack_dot:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->dot;
-				 break;			
-			case _gep_attack_dotforce:					 
+				 break;
+			case _gep_attack_dotforce:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->dot_force;
-				 break;			
-			case _gep_attack_dotindex:					 
+				 break;
+			case _gep_attack_dotindex:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->dot_index;
-				 break;			
-			case _gep_attack_dotrate:					 
+				 break;
+			case _gep_attack_dotrate:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->dot_rate;
-				 break;			
-			case _gep_attack_dottime:					 
+				 break;
+			case _gep_attack_dottime:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->dot_time;
-				 break;			
-			case _gep_attack_drop:					 
+				 break;
+			case _gep_attack_drop:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->attack_drop;
-				 break;			
-			case _gep_attack_dropv:					
+				 break;
+			case _gep_attack_dropv:
 				 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 				 (*pretvar)->dblVal = (DOUBLE)attack->dropv[varlist[6]->lVal];
-				 break;			
-			case _gep_attack_force:					 
+				 break;
+			case _gep_attack_force:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->attack_force;
-				 break;			
-			case _gep_attack_forcemap:					 
+				 break;
+			case _gep_attack_forcemap:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->forcemap;
-				 break;			
-			case _gep_attack_freeze:						 
+				 break;
+			case _gep_attack_freeze:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->freeze;
-				 break;			
-			case _gep_attack_freezetime:						 
+				 break;
+			case _gep_attack_freezetime:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->freezetime;
-				 break;			
-			case _gep_attack_grab:			 
+				 break;
+			case _gep_attack_grab:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->grab;
-				 break;			
-			case _gep_attack_grabdistance:				 
+				 break;
+			case _gep_attack_grabdistance:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->grab_distance;
-				 break;			
-			case _gep_attack_guardcost:				 
+				 break;
+			case _gep_attack_guardcost:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->guardcost;
-				 break;			
-			case _gep_attack_hitflash:	
+				 break;
+			case _gep_attack_hitflash:
 				ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				(*pretvar)->lVal = (LONG)attack->hitflash;
-				break;			
-			case _gep_attack_hitsound:					 
+				break;
+			case _gep_attack_hitsound:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->hitsound;
-				 break;			
-			case _gep_attack_jugglecost:					 
+				 break;
+			case _gep_attack_jugglecost:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->jugglecost;
-				 break;			
-			case _gep_attack_maptime:					 
+				 break;
+			case _gep_attack_maptime:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->maptime;
-				 break;			
-			case _gep_attack_noblock:					 
+				 break;
+			case _gep_attack_noblock:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->no_block;
-				 break;			
-			case _gep_attack_noflash:						 
+				 break;
+			case _gep_attack_noflash:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->no_flash;
-				 break;			
-			case _gep_attack_nopain:						 
+				 break;
+			case _gep_attack_nopain:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->no_pain;
-				 break;			
-			case _gep_attack_otg:						 
+				 break;
+			case _gep_attack_otg:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->otg;
-				 break;			
-			case _gep_attack_pause:						 
+				 break;
+			case _gep_attack_pause:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->pause_add;
-				 break;			
-			case _gep_attack_seal:						 
+				 break;
+			case _gep_attack_seal:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->seal;
-				 break;			
-			case _gep_attack_sealtime:						 
+				 break;
+			case _gep_attack_sealtime:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->sealtime;
-				 break;			
-			case _gep_attack_staydown:						 
+				 break;
+			case _gep_attack_staydown:
 				 ScriptVariant_ChangeType(*pretvar, VT_PTR);
 				 (*pretvar)->ptrVal = (VOID*)attack->staydown;
-				 break;			
-			case _gep_attack_steal:						 
+				 break;
+			case _gep_attack_steal:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->steal;
-				 break;			
-			case _gep_attack_type:						 
+				 break;
+			case _gep_attack_type:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->attack_type;
-				 break;			
+				 break;
 			default:
 				ScriptVariant_Clear(*pretvar);
-				return E_FAIL;			
+				return E_FAIL;
 		}
 		break;
-    }	
+    }
 	case _gep_flash:
-    {       
+    {
         arg = varlist[2];
         if(paramCount<3 || arg->vt != VT_INTEGER)
         {
 			printf("Error, getentityproperty({ent}, 'flash', {argument}): Missing or invalid parameter. \n {argument}: \n 0 = Flash \n 1 = Noatflash \n 2=bflash \n");
-            return E_FAIL;            
-        }    
+            return E_FAIL;
+        }
 
 		switch (arg->lVal)
 		{
@@ -4132,7 +4131,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
     }
     case _gep_path:
     {
-        ScriptVariant_ChangeType(*pretvar, VT_STR);        
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
         tempstr = ent->modeldata.path;
 
         strcpy(StrCache_Get((*pretvar)->strVal), tempstr);
@@ -4241,7 +4240,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
         break;
     }
     case _gep_stats:
-    {    
+    {
         if(paramCount<4) break;
         arg = varlist[2];
         arg1 = varlist[3];
@@ -4249,40 +4248,40 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
         if(arg->vt != VT_INTEGER || arg1->vt != VT_INTEGER)
         {
             printf("Incorrect parameters: getentityproperty({ent}, 'stats', {type}, {index}) \n {type}: \n 0 = Model. \n 1 = Entity. \n");
-            return E_FAIL;            
-        }        
-        
-        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);        
+            return E_FAIL;
+        }
+
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 
         switch(arg->lVal)
         {
             default:
 				if (ent->modeldata.stats[arg1->lVal])
 				{
-					(*pretvar)->dblVal = (DOUBLE)ent->modeldata.stats[arg1->lVal]; 
+					(*pretvar)->dblVal = (DOUBLE)ent->modeldata.stats[arg1->lVal];
 				}
 				break;
             case 1:
 				if (ent->stats[arg1->lVal])
 				{
-					(*pretvar)->dblVal = (DOUBLE)ent->stats[arg1->lVal];            
+					(*pretvar)->dblVal = (DOUBLE)ent->stats[arg1->lVal];
 				}
-				break;                
-        }        
+				break;
+        }
         break;
     }
     case _gep_staydown:
-    {		
-        if(paramCount <4) break;        
-        arg = varlist[3];                
+    {
+        if(paramCount <4) break;
+        arg = varlist[3];
         if(arg->vt != VT_INTEGER)
         {
             printf("Incorrect parameters: getentityproperty({ent}, 'staydown', {type}) \n {type}: \n 0 = Staydown. \n 1 = Staydownatk. \n");
             return E_FAIL;
-        }        
+        }
 
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->staydown[arg->lVal];                
+        (*pretvar)->dblVal = (DOUBLE)ent->staydown[arg->lVal];
     }
     case _gep_gfxshadow:
     {
@@ -4428,7 +4427,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
              ScriptVariant_ChangeType(*pretvar, VT_PTR);
 			 (*pretvar)->ptrVal = (VOID*)ent->weapent;
 			 break;
-        }	
+        }
     default:
         //printf("Property name '%s' is not supported by function getentityproperty.\n", propname);
         *pretvar = NULL;
@@ -4612,7 +4611,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
 	int prop, i;
-	
+
 	static const char* proplist[] = {
         "aggression",
         "aiattack",
@@ -4720,7 +4719,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
         "velocity",
         "weapon",
     };
-	
+
 	static const char* proplist_takeaction[] = {
 		"bomb_explode",
 		"common_attack_proc",
@@ -4745,7 +4744,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"player_blink",
 		"suicide",
 	};
-	
+
 	static const char* proplist_hostile_candamage[] = {
 		"ground",
 		"type_enemy",
@@ -4754,7 +4753,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"type_player",
 		"type_shot",
 	};
-	
+
 	static const char* proplist_aiflag[] = {
 		"animating",
 		"attacking",
@@ -4776,22 +4775,22 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"toexplode",
 		"turning",
 	};
-	
+
 	if(paramCount < 3) return;
-	
+
 	// property name
 	MAPSTRINGS(varlist[1], proplist, _cep_the_end,
 		"Property name '%s' is not supported by function changeentityproperty.\n");
-	
+
 	// action for takeaction
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_takeaction))
     {
-		MAPSTRINGS(varlist[2], proplist_takeaction, _cep_ta_the_end, 
+		MAPSTRINGS(varlist[2], proplist_takeaction, _cep_ta_the_end,
 			"Action '%s' is not supported by 'takeaction'.\n");
 	}
-	
+
 	// entity type(s) for hostile and candamage
-	if((varlist[1]->vt == VT_INTEGER) && 
+	if((varlist[1]->vt == VT_INTEGER) &&
 		((varlist[1]->lVal == _cep_hostile) || (varlist[1]->lVal == _cep_candamage)))
 	{
 		for(i=2; i<paramCount; i++)
@@ -4800,7 +4799,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 				"Entity type '%s' is not supported by 'hostile' or 'candamage'\n");
 		}
 	}
-	
+
 	// AI flag name for aiflag
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_aiflag))
     {
@@ -4897,14 +4896,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			printf("You must give a string value for action type.\n");
 			goto changeentityproperty_error;
         }
-		
+
 		// otherwise, the parameter is a known action
         ltemp = varlist[2]->lVal;
 		if((ltemp >= 0) && (ltemp < _cep_ta_the_end))
 		{
 			ent->takeaction = actions[(int)ltemp];
 		}
-        
+
 		break;
     }
 	case _cep_candamage:
@@ -5482,7 +5481,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
             goto changeentityproperty_error;
         }
         if(paramCount<4) break;
-		
+
 		switch(varlist[2]->lVal)
 		{
         case _cep_aiflag_dead:
@@ -5886,21 +5885,21 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _cep_stats:
     {
         if(paramCount<4) break;
-        
+
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-        {           
+        {
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
             {
                 switch(varlist[2]->lVal)
                 {
                     default:
-                        ent->modeldata.stats[(int)ltemp] = (float)dbltemp; 
+                        ent->modeldata.stats[(int)ltemp] = (float)dbltemp;
                         break;
                     case 1:
-                        ent->stats[(int)ltemp] = (float)dbltemp;           
-                        break;                
+                        ent->stats[(int)ltemp] = (float)dbltemp;
+                        break;
                 }
-            }                
+            }
         }
         break;
     }
@@ -6069,41 +6068,41 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
         break;
     }
 	case _cep_energycost:
-	{		
+	{
 		if(paramCount != 6)
-        {			
+        {
 			printf("\n Error, changeentityproperty({ent}, 'energycost', {animation}, {cost}, {mponly}, {disable}): Invalid or missing parameter. \n");
-			goto changeentityproperty_error;		
+			goto changeentityproperty_error;
 		}
 
 		(*pretvar)->lVal = (LONG)1;
-		
+
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
 			i = (int)ltemp;
-		}		
+		}
 
 		if(!validanim(ent,i))
-		{			
+		{
 			printf("\n Error, changeentityproperty({ent}, 'energycost', {animation}, {cost}, {mponly}, {disable}): {animation} parameter invalid. Make sure the animation exists. \n");
 			goto changeentityproperty_error;
-		}		
-		
+		}
+
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-        {          
+        {
 			ent->modeldata.animation[i]->energycost[0] = (int)ltemp;
         }
-               
+
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
 		{
 			ent->modeldata.animation[i]->energycost[1] = (int)ltemp;
         }
 
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
-        {            
+        {
             ent->modeldata.animation[i]->energycost[2] = (int)ltemp;
-        } 
-		
+        }
+
         break;
 	}
 	case _cep_mpset:
@@ -6235,7 +6234,7 @@ void mapstrings_getplayerproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
 	int prop;
-	
+
 	static const char* proplist[] = {
 		"credits",
 		"ent",
@@ -6247,9 +6246,9 @@ void mapstrings_getplayerproperty(ScriptVariant** varlist, int paramCount)
 		"score",
 		"weaponum"
 	};
-	
+
 	if(paramCount < 2) return;
-	
+
 	// property name
 	MAPSTRINGS(varlist[1], proplist, _gpp_the_end,
 		"Property name '%s' is not supported by function getplayerproperty.\n");
@@ -6343,7 +6342,7 @@ HRESULT openbor_getplayerproperty(ScriptVariant** varlist , ScriptVariant** pret
 	case _gpp_weaponum:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)player[index].weapnum;		
+		(*pretvar)->lVal = (LONG)player[index].weapnum;
 		break;
     }
     //this property is not known
@@ -6369,7 +6368,7 @@ void mapstrings_changeplayerproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
 	int prop;
-	
+
 	static const char* proplist[] = {
 		"credits",
 		"lives",
@@ -6378,9 +6377,9 @@ void mapstrings_changeplayerproperty(ScriptVariant** varlist, int paramCount)
 		"score",
 		"weapon",
 	};
-	
+
 	if(paramCount < 3) return;
-	
+
 	// property name
 	MAPSTRINGS(varlist[1], proplist, _cpp_the_end,
 		"Property name '%s' is not supported by function changeplayerproperty.\n");
@@ -6401,7 +6400,7 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
         *pretvar = NULL;
         return E_FAIL;
     }
-	
+
 	mapstrings_changeplayerproperty(varlist, paramCount);
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
     (*pretvar)->lVal = (LONG)1;
@@ -6425,7 +6424,7 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
     prop = varlist[1]->lVal;
 
     arg = varlist[2];
-	
+
     //change the model
 	switch(prop)
 	{
@@ -6500,7 +6499,7 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
     //default:
     //    (*pretvar)->lVal = (LONG)0;
 	}
-	
+
     return S_OK;
 }
 
@@ -6873,7 +6872,7 @@ HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretv
         return E_FAIL;
     }
 
-    
+
 
 	arg = varlist[2];
 	if(FAILED(ScriptVariant_IntegerValue(arg, &appendtype)))
@@ -6883,7 +6882,7 @@ HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretv
 	strcpy(temp, level->filestreams[filestreamindex].buf);
 
 	if(appendtype == 0)
-	{		
+	{
 		strcat(temp, "\r\n");
 		strcat(temp, append);
 		temp[strlen(level->filestreams[filestreamindex].buf) + strlen(append) + 2] = ' ';
@@ -6897,7 +6896,7 @@ HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretv
 	}
 	tracefree(level->filestreams[filestreamindex].buf);
 	level->filestreams[filestreamindex].buf = temp;
-	
+
 	return S_OK;
 }
 
@@ -6994,7 +6993,7 @@ HRESULT openbor_savefilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	// add blank line so it can be read successfully
 	fwrite("\r\n", 1, 2, handle);
 	fclose(handle);
-	
+
 	return S_OK;
 }
 
@@ -7231,7 +7230,7 @@ void mapstrings_setspawnentry(ScriptVariant** varlist, int paramCount)
         "nolife",
         "weapon",
     };
-    
+
 	MAPSTRINGS(varlist[0], proplist, _sse_the_end,
 		"Property name '%s' is not supported by setspawnentry.\n");
 }
@@ -7262,7 +7261,7 @@ HRESULT openbor_setspawnentry(ScriptVariant** varlist, ScriptVariant** pretvar, 
         *pretvar = NULL;
         return E_FAIL;
     }
-    
+
     prop = varlist[0]->lVal;
 
     arg = varlist[1];
@@ -7504,13 +7503,13 @@ if(stricmp(#x, constname)==0) {\
 void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 {
 	char* constname = NULL;
-	
+
 	if(paramCount < 1) return;
-	
+
 	if(varlist[0]->vt == VT_STR)
     {
 		constname = (char*)StrCache_Get(varlist[0]->strVal);
-		
+
 		ICMPCONST(COMPATIBLEVERSION)
 		ICMPCONST(PIXEL_8)
 		ICMPCONST(PIXEL_x8)
@@ -7852,10 +7851,10 @@ HRESULT openbor_transconst(ScriptVariant** varlist , ScriptVariant** pretvar, in
         *pretvar = NULL;
         return E_FAIL;
     }
-	
+
 	mapstrings_transconst(varlist, paramCount);
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	
+
 	if(varlist[0]->vt == VT_INTEGER) // return value already determined by mapstrings
 	{
 		(*pretvar)->lVal = varlist[0]->lVal;
@@ -7866,7 +7865,7 @@ HRESULT openbor_transconst(ScriptVariant** varlist , ScriptVariant** pretvar, in
         *pretvar = NULL;
         return E_FAIL;
     }
-	
+
 	// if we get to this point, it's a dynamic animation id
     constname = StrCache_Get(varlist[0]->strVal);
 
@@ -7964,12 +7963,12 @@ HRESULT openbor_transconst(ScriptVariant** varlist , ScriptVariant** pretvar, in
 HRESULT openbor_rgbcolor(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	LONG r, g, b;
-	
+
 	if(paramCount != 3) goto rgbcolor_error;
 	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &r))) goto rgbcolor_error; // decimal/integer value for red?
 	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &g))) goto rgbcolor_error; // decimal/integer value for green?
 	if(FAILED(ScriptVariant_IntegerValue(varlist[2], &b))) goto rgbcolor_error; // decimal/integer value for blue?
-	
+
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 	(*pretvar)->lVal = _makecolour(r, g, b);
 	return S_OK;
@@ -8003,7 +8002,7 @@ void mapstrings_playerkeys(ScriptVariant** varlist, int paramCount)
 {
 	char* propname = NULL;
 	int i, prop;
-	
+
 	static const char* proplist[] = // for args 2+
 	{
 		"anybutton",
@@ -8021,7 +8020,7 @@ void mapstrings_playerkeys(ScriptVariant** varlist, int paramCount)
 		"special",
 		"start",
 	};
-	
+
 	for(i=2; i<paramCount; i++)
     {
 		MAPSTRINGS(varlist[i], proplist, _pk_the_end,
@@ -8046,7 +8045,7 @@ HRESULT openbor_playerkeys(ScriptVariant** varlist , ScriptVariant** pretvar, in
 
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
     (*pretvar)->lVal = (LONG)1;
-    
+
     mapstrings_playerkeys(varlist, paramCount);
 
     if(FAILED(ScriptVariant_IntegerValue((varlist[0]), &ltemp)))
@@ -8444,7 +8443,7 @@ void mapstrings_gettextobjproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname = NULL;
 	int prop;
-	
+
 	static const char* proplist[] = {
         "font",
         "text",
@@ -8453,9 +8452,9 @@ void mapstrings_gettextobjproperty(ScriptVariant** varlist, int paramCount)
         "y",
         "z",
     };
-    
+
 	if(paramCount < 2) return;
-	
+
 	MAPSTRINGS(varlist[1], proplist, _gtop_the_end,
 		"Property name '%s' is not supported by function gettextobjproperty.\n");
 }
@@ -8560,7 +8559,7 @@ void mapstrings_changetextobjproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname = NULL;
 	int prop;
-	
+
 	static const char* proplist[] = {
         "font",
         "text",
@@ -8569,7 +8568,7 @@ void mapstrings_changetextobjproperty(ScriptVariant** varlist, int paramCount)
         "y",
         "z",
     };
-    
+
 	if(paramCount < 2) return;
 	MAPSTRINGS(varlist[1], proplist, _ctop_the_end,
 		"Property name '%s' is not supported by function changetextobjproperty.\n");
@@ -8580,7 +8579,7 @@ HRESULT openbor_changetextobjproperty(ScriptVariant** varlist , ScriptVariant** 
     LONG ind;
     int propind;
     LONG ltemp;
-	
+
     if(paramCount < 3)
         goto changetextobjproperty_error;
 
@@ -8692,13 +8691,13 @@ HRESULT openbor_settextobj(ScriptVariant** varlist , ScriptVariant** pretvar, in
     LONG ltemp;
 
     if(paramCount < 6)
-        goto settextobj_error;	
+        goto settextobj_error;
 
     if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ind)))
     {
 		printf("Function's 1st argument must be a numeric value: settextobj(int index, int x, int y, int font, int z, char text, int time {optional})\n");
         goto settextobj_error;
-    }	
+    }
 
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
@@ -8713,7 +8712,7 @@ HRESULT openbor_settextobj(ScriptVariant** varlist , ScriptVariant** pretvar, in
         (*pretvar)->lVal = (LONG)1;
         level->textobjs[ind].x = (int)ltemp;
     }
-	
+
     if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
     {
         (*pretvar)->lVal = (LONG)1;
@@ -8724,13 +8723,13 @@ HRESULT openbor_settextobj(ScriptVariant** varlist , ScriptVariant** pretvar, in
     {
         (*pretvar)->lVal = (LONG)1;
         level->textobjs[ind].font = (int)ltemp;
-    }	
+    }
 
     if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
     {
         (*pretvar)->lVal = (LONG)1;
         level->textobjs[ind].z = (int)ltemp;
-    }	
+    }
 
     if(varlist[5]->vt != VT_STR)
     {
@@ -8739,21 +8738,21 @@ HRESULT openbor_settextobj(ScriptVariant** varlist , ScriptVariant** pretvar, in
     }
 
 	if(paramCount >= 7)
-	{		
+	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
-		{			
-			(*pretvar)->lVal = (LONG)1;			
+		{
+			(*pretvar)->lVal = (LONG)1;
 			level->textobjs[ind].t = (int)ltemp;
 		}
 	}
-	
+
     if(!level->textobjs[ind].text)
     {
         level->textobjs[ind].text = (char*)tracemalloc("alloctextobj",MAX_STR_VAR_LEN);
     }
     strncpy(level->textobjs[ind].text, (char*)StrCache_Get(varlist[5]->strVal), MAX_STR_VAR_LEN);
     (*pretvar)->lVal = (LONG)1;
-	
+
     return S_OK;
 
 settextobj_error:
@@ -8825,7 +8824,7 @@ void mapstrings_getbglayerproperty(ScriptVariant** varlist, int paramCount)
 {
 	char *propname = NULL;
 	int prop;
-	
+
 	static const char* proplist[] = {
         "alpha",
         "amplitude",
@@ -8844,7 +8843,7 @@ void mapstrings_getbglayerproperty(ScriptVariant** varlist, int paramCount)
         "zrepeat",
         "zspacing",
     };
-	
+
 	if(paramCount < 2) return;
 	MAPSTRINGS(varlist[1], proplist, _gbglp_the_end,
 		"Property name '%s' is not supported by function getbglayerproperty.\n");
@@ -8854,7 +8853,7 @@ HRESULT openbor_getbglayerproperty(ScriptVariant** varlist , ScriptVariant** pre
 {
     LONG ind;
     int propind;
-	
+
     if(paramCount < 2)
         goto getbglayerproperty_error;
 
@@ -9019,7 +9018,7 @@ void mapstrings_changebglayerproperty(ScriptVariant** varlist, int paramCount)
 {
 	char *propname = NULL;
 	int prop;
-	
+
 	static const char* proplist[] = {
         "alpha",
         "amplitude",
@@ -9038,7 +9037,7 @@ void mapstrings_changebglayerproperty(ScriptVariant** varlist, int paramCount)
         "zrepeat",
         "zspacing",
     };
-	
+
 	if(paramCount < 2) return;
 	MAPSTRINGS(varlist[1], proplist, _cbglp_the_end,
 		"Property name '%s' is not supported by function changebglayerproperty.\n");
@@ -9264,7 +9263,7 @@ void mapstrings_getfglayerproperty(ScriptVariant** varlist, int paramCount)
 {
 	char *propname = NULL;
 	int prop;
-	
+
 	static const char* proplist[] = {
         "alpha",
         "amplitude",
@@ -9283,7 +9282,7 @@ void mapstrings_getfglayerproperty(ScriptVariant** varlist, int paramCount)
         "zrepeat",
         "zspacing",
     };
-	
+
 	if(paramCount < 2) return;
 	MAPSTRINGS(varlist[1], proplist, _gfglp_the_end,
 		"Property name '%s' is not supported by function getfglayerproperty.\n");
@@ -9293,7 +9292,7 @@ HRESULT openbor_getfglayerproperty(ScriptVariant** varlist , ScriptVariant** pre
 {
     LONG ind;
     int propind;
-	
+
     if(paramCount < 2)
         goto getfglayerproperty_error;
 
@@ -9459,7 +9458,7 @@ void mapstrings_changefglayerproperty(ScriptVariant** varlist, int paramCount)
 {
 	char *propname = NULL;
 	int prop;
-	
+
 	static const char* proplist[] = {
         "alpha",
         "amplitude",
@@ -9478,7 +9477,7 @@ void mapstrings_changefglayerproperty(ScriptVariant** varlist, int paramCount)
         "zrepeat",
         "zspacing",
     };
-	
+
 	if(paramCount < 2) return;
 	MAPSTRINGS(varlist[1], proplist, _cfglp_the_end,
 		"Property name '%s' is not supported by function changefglayerproperty.\n");
@@ -9935,13 +9934,13 @@ allocscreen_error:
 HRESULT openbor_clearscreen(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
     s_screen* screen;
-    
+
     *pretvar = NULL;
     if(paramCount != 1) goto clearscreen_error;
     if(varlist[0]->vt != VT_PTR) goto clearscreen_error;
-    
+
     screen = (s_screen*)varlist[0]->ptrVal;
-    
+
     if(screen == NULL)
     {
         printf("Error: NULL pointer passed to clearscreen(void screen)\n");
