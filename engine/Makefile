@@ -65,6 +65,7 @@ BUILD_DEBUG     = 1
 endif
 endif
 
+
 ifdef BUILD_LINUX
 TARGET 	        = $(VERSION_NAME).elf
 TARGET_FINAL    = $(VERSION_NAME)
@@ -247,6 +248,7 @@ BUILD_DEBUG     = 1
 endif
 endif
 
+
 STRIP           = cp $(TARGET) $(TARGET_FINAL)
 ifndef BUILD_DEBUG
 ifdef BUILD_WIN
@@ -415,7 +417,7 @@ endif
 
 
 ifdef BUILD_PSP
-GAME_CONSOLE	        = psp/control/control.o                                                             \
+GAME_CONSOLE    = psp/control/control.o                                                             \
                   psp/dvemgr/dvemgr.o                                                               \
                   psp/kernel/kernel.o                                                               \
                   psp/graphics.o                                                                    \
@@ -432,7 +434,7 @@ endif
 
 
 ifdef BUILD_DC
-GAME_CONSOLE	        = dc/dcport.o                                                                       \
+GAME_CONSOLE    = dc/dcport.o                                                                       \
                   dc/bios.o                                                                         \
                   dc/gdrom.o                                                                        \
                   dc/timer.o                                                                        \
@@ -443,7 +445,7 @@ endif
 
 
 ifdef BUILD_WII
-GAME_CONSOLE	        = wii/control.o                                                                     \
+GAME_CONSOLE    = wii/control.o                                                                     \
                   wii/sblaster.o                                                                    \
                   wii/timer.o                                                                       \
                   wii/video.o                                                                       \
@@ -459,7 +461,7 @@ endif
 
 
 ifdef BUILD_SDL_IO
-GAME_CONSOLE	       += sdl/joysticks.o                                                                   \
+GAME_CONSOLE   += sdl/joysticks.o                                                                   \
                   sdl/control.o                                                                     \
                   sdl/sblaster.o                                                                    \
                   sdl/timer.o                                                                       \
@@ -470,22 +472,22 @@ endif
 
 
 ifdef BUILD_OPENGL
-GAME_CONSOLE        += sdl/opengl.o
+GAME_CONSOLE   += sdl/opengl.o
 endif
 
 
 ifdef BUILD_LOADGL
-GAME_CONSOLE        += sdl/loadgl.o
+GAME_CONSOLE   += sdl/loadgl.o
 endif
 
 
 ifdef BUILD_GP2X
-GAME_CONSOLE	       += sdl/gp2x/gp2xport.o
+GAME_CONSOLE   += sdl/gp2x/gp2xport.o
 endif
 
 
 ifdef BUILD_WIZ
-GAME_CONSOLE	       += sdl/gp2x/gp2xport.o
+GAME_CONSOLE   += sdl/gp2x/gp2xport.o
 endif
 
 
@@ -511,6 +513,8 @@ OBJS            = $(GAME_CONSOLE)                                               
 #----------------------------------------------------------------------------------------------------
 
 CFLAGS 	        = $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TARGET_PLATFORM)
+CFLAGS 	       += -g -Wall -Werror -fsigned-char 
+
 
 ifndef BUILD_DEBUG
 ifdef BUILD_DC
@@ -518,6 +522,9 @@ CFLAGS 	       += -O9
 else
 CFLAGS 	       += -O2
 endif
+CFLAGS 	       += -fno-ident -freorder-blocks -fomit-frame-pointer
+else
+CFLAGS 	       += -DDEBUG -O0
 endif
 
 
@@ -588,17 +595,6 @@ ifdef BUILD_GLES
 CFLAGS         += -DGLES
 endif
 
-
-ifdef BUILD_DEBUG
-CFLAGS 	       += -DDEBUG -O0
-endif
-
-
-CFLAGS 	       += -g -Wall -fsigned-char 
-
-ifndef BUILD_DEBUG
-CFLAGS + = -Werror -fno-ident -freorder-blocks -fomit-frame-pointer
-endif
 
 CXXFLAGS        = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS         = $(CFLAGS)
