@@ -3057,7 +3057,10 @@ void add_sprite_map(size_t size)
 	if(sprite_map == NULL || size + 1 > sprite_map_max_items )
 	{
 		printf("%s %p\n", "add_sprite_map was", sprite_map);
-		sprite_map_max_items += 256;
+		do {
+			sprite_map_max_items += 256;
+		}
+		while (size + 1 > sprite_map_max_items);
 		sprite_map = tracerealloc(sprite_map, sizeof(s_sprite_map) * sprite_map_max_items);
 		if(sprite_map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new sprite_map\n");
 	}
@@ -3788,7 +3791,11 @@ void add_cache_map(size_t size)
 	if(model_cache== NULL || size + 1 > cache_map_max_items )
 	{
 		printf("%s %p\n", "add_cache_map was", model_cache);
-		cache_map_max_items += 32;
+		do {
+			cache_map_max_items += 128;
+		}
+		while (size + 1 > cache_map_max_items);
+		
 		model_cache = tracerealloc(model_cache, sizeof(s_modelcache) * cache_map_max_items);
 		if(model_cache == NULL) shutdown(1, "Out Of Memory!  Failed to create a new cache_map\n");
 	}
@@ -3857,7 +3864,11 @@ void add_model_map(size_t size)
 	if(model_map == NULL || size + 1 > model_map_max_items )
 	{
 		printf("%s %p\n", "add_model_map was", sprite_map);
-		model_map_max_items += 32;
+		do {
+			model_map_max_items += 64;
+		}
+		while (size + 1 > model_map_max_items);		
+		
 		model_map = tracerealloc(model_map, sizeof(s_model_map) * model_map_max_items);
 		if(model_map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new model_map\n");
 	}
