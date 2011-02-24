@@ -163,7 +163,9 @@ function linux {
   export TARGET_ARCH=$2
   source ./environ.sh 4
   if test $LNXDEV; then
-    make clean BUILD_LINUX=1
+    if [[ ! $BUILD_DEBUG ]] ; then
+	    make clean BUILD_LINUX=1
+	fi
     make BUILD_LINUX=1
     if test -f "./OpenBOR"; then
       if test ! -e "./releases/$3"; then
@@ -177,7 +179,9 @@ function linux {
       mv OpenBOR ./releases/$3/OpenBOR
 	  echo "moved binary to ./releases/$3/ !"
     fi
-    make clean BUILD_LINUX=1
+    if [[ ! $BUILD_DEBUG ]] ; then
+	    make clean BUILD_LINUX=1
+	fi
   fi
   [ $LNXDEV ]
 }

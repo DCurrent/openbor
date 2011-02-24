@@ -225,7 +225,7 @@ u64 getUsedRam(int byte_size)
 
 void getRamStatus(int byte_size)
 {
-	printf("Total Ram: %llu Bytes\n Free Ram: %llu Bytes\n Used Ram: %llu Bytes\n\n",
+	printf("Total Ram: %"PRIu64" Bytes\n Free Ram: %"PRIu64" Bytes\n Used Ram: %"PRIu64" Bytes\n\n", 
 		   getSystemRam(byte_size),
 		   getFreeRam(byte_size),
 		   getUsedRam(byte_size));

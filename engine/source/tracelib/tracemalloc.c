@@ -59,6 +59,7 @@ int tracemalloc_dump(void)
 #ifdef DEBUG
 	size_t totalbytes = 0;
 	ptrdiff_t *p, *pp;
+	unsigned long long lc, nc;
 	for(p = tracehead; p; p = (ptrdiff_t*)(p[1]))
 	{
 		if(p[TRACE_SIZE] > 0)
@@ -67,7 +68,8 @@ int tracemalloc_dump(void)
 			size_t len = 0;
 			size_t nalloc = 0;
 			tracemalloc_dump_collect(p, &len, &nalloc);
-			printf("%s: %d bytes in %d allocs\n", name, len, nalloc);
+			lc = len; nc = nalloc;
+			printf("%s: %llu bytes in %llu allocs\n", name, lc, nc);
 			totalbytes += len;
 		}
 	}
@@ -75,7 +77,8 @@ int tracemalloc_dump(void)
 		if(p[TRACE_SIZE] < 0) p[TRACE_SIZE] = -p[TRACE_SIZE];
     if(totalbytes)
 	{
-		printf("Total Leaked Bytes %d\n", totalbytes);
+		lc = totalbytes;
+		printf("Total Leaked Bytes %llu\n", lc);
 		return 1;
 	}
 #endif
