@@ -53,7 +53,6 @@ BUILD_VORBIS    = 1
 BUILDING        = 1
 YASM 	        = yasm$(EXTENSION)
 CC              = $(WINDEV)/$(PREFIX)gcc$(EXTENSION)
-STRIP 	        = $(WINDEV)/$(PREFIX)strip$(EXTENSION) $(TARGET) -o $(TARGET_FINAL)
 INCLUDES        = $(SDKPATH)/include \
                   $(SDKPATH)/include/SDL
 LIBRARIES       = $(SDKPATH)/lib
@@ -65,7 +64,6 @@ ifeq ($(BUILD_WIN), 0)
 BUILD_DEBUG     = 1
 endif
 endif
-
 
 ifdef BUILD_LINUX
 TARGET 	        = $(VERSION_NAME).elf
@@ -82,7 +80,6 @@ BUILDING        = 1
 YASM 	        = yasm
 CC  	        = $(LNXDEV)/$(PREFIX)gcc
 OBJTYPE         = elf
-STRIP 	        = $(LNXDEV)/$(PREFIX)strip $(TARGET) -o $(TARGET_FINAL)
 INCLUDES        = $(SDKPATH)/include \
                   $(SDKPATH)/include/SDL
 ifeq ($(findstring 64, $(TARGET_ARCH)), 64)
@@ -117,7 +114,6 @@ BUILDING        = 1
 YASM            = yasm
 CC              = gcc
 OBJTYPE         = macho
-STRIP           = strip $(TARGET) -o $(TARGET_FINAL)
 INCLUDES        = $(DWNDEV)/include \
                   $(DWNDEV)/include/SDL \
                   $(SDKPATH)/usr/include/malloc
@@ -143,7 +139,6 @@ BUILD_SDL_IO    = 1
 BUILD_TREMOR    = 1
 BUILDING        = 1
 CC  	        = $(PNDDEV)/bin/arm-none-linux-gnueabi-gcc
-STRIP 	        = $(PNDDEV)/bin/arm-none-linux-gnueabi-strip $(TARGET) -o $(TARGET_FINAL)
 INCLUDES        = $(PNDDEV)/include \
                   $(PNDDEV)/include/SDL
 OBJTYPE         = elf
@@ -165,7 +160,6 @@ BUILD_SDL_IO    = 1
 BUILD_TREMOR    = 1
 BUILDING        = 1
 CC              = $(GP2XDEV)/arm-open2x-linux-gcc
-STRIP 	        = $(GP2XDEV)/arm-open2x-linux-strip $(TARGET) -o $(TARGET_FINAL)
 UNAME          := $(shell uname)
 INCLUDES        = $(SDKPATH)/include \
                   $(SDKPATH)/include/SDL
@@ -186,7 +180,6 @@ BUILD_SDL_IO    = 1
 BUILD_TREMOR    = 1
 BUILDING        = 1
 CC              = $(WIZDEV)/$(PREFIX)gcc$(EXTENSION)
-STRIP 	        = $(WIZDEV)/$(PREFIX)strip$(EXTENSION) $(TARGET) -o $(TARGET_FINAL)
 UNAME          := $(shell uname)
 INCLUDES        = $(SDKPATH)/include \
                   $(SDKPATH)/include/SDL
@@ -213,7 +206,6 @@ BUILD_SDL_IO    = 1
 BUILD_TREMOR    = 1
 BUILDING        = 1
 CC              = $(DINGUX_TOOLCHAIN_PREFIX)/bin/mipsel-linux-gcc
-STRIP           = $(DINGUX_TOOLCHAIN_PREFIX)/bin/mipsel-linux-strip $(TARGET) -o $(TARGET_FINAL)
 INCLUDES        = $(DINGUX_TOOLCHAIN_PREFIX)/include \
                   $(DINGUX_TOOLCHAIN_PREFIX)/include/SDL
 LIBRARIES       = $(DINGUX_TOOLCHAIN_PREFIX)/lib
@@ -246,13 +238,40 @@ TARGET_PLATFORM = WII
 BUILD_TREMOR    = 1
 BUILD_ELM       = 1
 BUILDING        = 1
-STRIP           = elf2dol $< $@
 INCLUDES        = $(DEVKITPRO)/portlibs/ppc/include \
                   $(DEVKITPRO)/libogc/include
 LIBRARIES       = $(DEVKITPRO)/portlibs/ppc/lib \
                   $(DEVKITPRO)/libogc/lib/wii
 ifeq ($(BUILD_WII), 0)
 BUILD_DEBUG     = 1
+endif
+endif
+
+STRIP           = cp $(TARGET) $(TARGET_FINAL)
+ifndef BUILD_DEBUG
+ifdef BUILD_WIN
+STRIP 	        = $(WINDEV)/$(PREFIX)strip$(EXTENSION) $(TARGET) -o $(TARGET_FINAL)
+endif
+ifdef BUILD_LINUX
+STRIP 	        = $(LNXDEV)/$(PREFIX)strip $(TARGET) -o $(TARGET_FINAL)
+endif
+ifdef BUILD_DARWIN
+STRIP           = strip $(TARGET) -o $(TARGET_FINAL)
+endif
+ifdef BUILD_PANDORA
+STRIP 	        = $(PNDDEV)/bin/arm-none-linux-gnueabi-strip $(TARGET) -o $(TARGET_FINAL)
+endif
+ifdef BUILD_GP2X
+STRIP 	        = $(GP2XDEV)/arm-open2x-linux-strip $(TARGET) -o $(TARGET_FINAL)
+endif
+ifdef BUILD_WIZ
+STRIP 	        = $(WIZDEV)/$(PREFIX)strip$(EXTENSION) $(TARGET) -o $(TARGET_FINAL)
+endif
+ifdef BUILD_DINGOO
+STRIP           = $(DINGUX_TOOLCHAIN_PREFIX)/bin/mipsel-linux-strip $(TARGET) -o $(TARGET_FINAL)
+endif
+ifdef BUILD_WII
+STRIP           = elf2dol $< $@
 endif
 endif
 
