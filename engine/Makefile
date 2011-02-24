@@ -591,9 +591,9 @@ endif
 
 ifdef BUILD_SDL
 ifdef BUILD_WIZ
-LIBS           += -lSDL -lSDLmain -lSDL_gfx -lts
+LIBS           += -lSDL -lSDL_gfx -lts
 else
-LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL -lSDLmain -lSDL_gfx
+LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL -lSDL_gfx
 endif
 endif
 
