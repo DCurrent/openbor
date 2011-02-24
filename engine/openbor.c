@@ -9233,7 +9233,7 @@ void load_level(char *filename){
 	if(crlf) printf("\n");
     printf("Level Loaded:    '%s'\n", level->name);
 	totalram = getSystemRam(BYTES); freeram = getFreeRam(BYTES); usedram = getUsedRam(BYTES);
-	printf("Total Ram: %llu Bytes\n Free Ram: %llu Bytes\n Used Ram: %llu Bytes\n\n", totalram, freeram, usedram);
+	printf("Total Ram: %"PRIu64" Bytes\n Free Ram: %"PRIu64" Bytes\n Used Ram: %"PRIu64" Bytes\n\n", totalram, freeram, usedram);
 }
 
 
