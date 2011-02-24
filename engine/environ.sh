@@ -313,7 +313,7 @@ case $1 in
      HOST_PLATFORM="SVN";
      export DEVKITPRO=../tools/devkitpro
      export DEVKITPPC=$DEVKITPRO/devkitPPC
-     export PATH=$PATH:$DEVKITPPC/bin
+     export PATH=$TOOLS:$DEVKITPPC/bin
    fi
    if test $DEVKITPPC; then
      echo "-------------------------------------------------------"

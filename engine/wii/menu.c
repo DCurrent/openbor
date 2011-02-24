@@ -106,11 +106,10 @@ fileliststruct *filelist;
 s_videomodes videomodes;
 
 typedef struct{
-    char *buf;
+    stringptr *buf;
     int *pos;
     int line;
     int rows;
-    int size;
     char ready;
 }s_logfile;
 s_logfile logfile[2];
@@ -625,8 +624,8 @@ void drawLogs()
                     char textpad[480] = {""};
                     for(k=0; k<480; k++)
                     {
-                        if(!logfile[i].buf[logfile[i].pos[j]+k]) break;
-                        textpad[k] = logfile[i].buf[logfile[i].pos[j]+k];
+                        if(!logfile[i].buf->ptr[logfile[i].pos[j]+k]) break;
+                        textpad[k] = logfile[i].buf->ptr[logfile[i].pos[j]+k];
                     }
                     if(logfile[i].rows>0xFFFF)
                         printText(5, l*10, WHITE, 0, 0, "0x%08x:  %s", j, textpad);
