@@ -15,6 +15,8 @@
 
 #include	<stdio.h>
 #include    <assert.h>
+#include    <inttypes.h>
+
 #include	"utils.h"
 #include	"tracemalloc.h"
 

@@ -141,7 +141,7 @@ void refreshInput()
 	unsigned long btns = 0;
 	unsigned short gcbtns;
 	WPADData *wpad;
-	
+
 	PAD_Init();
 	PAD_ScanPads();
 	gcbtns = PAD_ButtonsDown(0) | PAD_ButtonsHeld(0);
@@ -236,19 +236,18 @@ void getAllLogs()
         logfile[i].buf = readFromLogFile(i);
         if(logfile[i].buf != NULL)
         {
-            logfile[i].size = strlen(logfile[i].buf);
             logfile[i].pos = tracemalloc("pos #1", ++logfile[i].rows * sizeof(int));
             if(logfile[i].pos == NULL) return;
             memset(logfile[i].pos, 0, logfile[i].rows * sizeof(int));
 
-            for(k=0, j=0; j<logfile[i].size; j++)
+            for(k=0, j=0; j<logfile[i].buf->size; j++)
             {
                 if(!k)
                 {
                     logfile[i].pos[logfile[i].rows - 1] = j;
                     k = 1;
                 }
-                if(logfile[i].buf[j]=='\n')
+                if(logfile[i].buf->ptr[j]=='\n')
                 {
                     int *_pos = tracemalloc("_pos", ++logfile[i].rows * sizeof(int));
                     if(_pos == NULL) return;
@@ -261,10 +260,10 @@ void getAllLogs()
                     memcpy(logfile[i].pos, _pos, logfile[i].rows * sizeof(int));
                     tracefree(_pos);
                     _pos = NULL;
-                    logfile[i].buf[j] = 0;
+                    logfile[i].buf->ptr[j] = 0;
                     k = 0;
                 }
-                if(logfile[i].buf[j]=='\r') logfile[i].buf[j] = 0;
+                if(logfile[i].buf->ptr[j]=='\r') logfile[i].buf->ptr[j] = 0;
                 if(logfile[i].rows>0xFFFFFFFE) break;
             }
             logfile[i].ready = 1;
@@ -311,9 +310,9 @@ int findPaks(void)
     int i = 0;
     DIR* dp = NULL;
     struct dirent* ds;
-    
+
 	dp = opendir(paksDir);
-	
+
     while((ds = readdir(dp)) != NULL)
     {
         if(packfile_supported(ds))
@@ -472,7 +471,7 @@ int ControlMenu()
 
 		case DIR_RIGHT:
 			break;
-		
+
 		case WIIMOTE_PLUS:
 		case WIIMOTE_2:
 		case CC_PLUS:
@@ -482,7 +481,7 @@ int ControlMenu()
 			// Start Engine!
 			status = 1;
 			break;
-		
+
 		case WIIMOTE_HOME: // TODO? make a nice-looking Home menu
 		case CC_HOME:
 		case GC_Z:
@@ -509,7 +508,7 @@ void initMenu(int type)
 	// Read Logo or Menu from Array.
 	if(!type) Source = xpmToScreen(isWide ? OpenBOR_Logo_480x272 : OpenBOR_Logo_320x240);
 	else Source = xpmToScreen(isWide ? OpenBOR_Menu_480x272 : OpenBOR_Menu_320x240);
-	
+
 	// Depending on which mode we are in (WideScreen/FullScreen)
 	// allocate proper size for final screen.
 	Screen = allocscreen(Source->width, Source->height, PIXEL_32);
@@ -582,9 +581,9 @@ void drawMenu()
 #ifdef SPK_SUPPORTED
 	printText((isWide ? 324 : 192),(isWide ? 191 : 176), DARK_RED, 0, 0, "SecurePAK Edition");
 #endif
-	
+
 	drawScreens(Image, clipX, clipY);
-	
+
 	if(Image)
 	{
 		freescreen(&Image);
@@ -655,10 +654,10 @@ void drawLogo()
 	drawScreens(NULL, 0, 0);
 	vga_vwait();
 	time(&startTime);
-	
+
 	// The logo displays for 2 seconds.  Let's put that time to good use.
 	dListTotal = findPaks();
-	
+
 	while(1) { // display logo for remainder of time
 		time(&now);
 		if(difftime(now, startTime) >= 2.0) break;
@@ -719,7 +718,7 @@ void Menu()
 	// Set video mode based on aspect ratio
 	if(CONF_GetAspectRatio() == CONF_ASPECT_16_9) isWide = 1;
 	setVideoMode();
-	
+
 	drawLogo();
 	dListCurrentPosition = 0;
 	if(dListTotal != 1)
