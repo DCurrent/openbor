@@ -22,6 +22,7 @@ endif
 # Defines
 #----------------------------------------------------------------------------------------------------
 
+
 ifdef BUILD_PSP
 TARGET          = $(VERSION_NAME)
 TARGET_FINAL    = EBOOT.PBP
@@ -574,7 +575,12 @@ CFLAGS 	       += -DDEBUG -O0
 endif
 
 
-CFLAGS 	       += -g -Wall -Werror -fsigned-char -fomit-frame-pointer -fno-ident -freorder-blocks
+CFLAGS 	       += -g -Wall -fsigned-char 
+
+ifndef BUILD_DEBUG
+CFLAGS + = -Werror -fno-ident -freorder-blocks -fomit-frame-pointer
+endif
+
 CXXFLAGS        = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS         = $(CFLAGS)
 
