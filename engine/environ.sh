@@ -270,8 +270,8 @@ case $1 in
         echo "-------------------------------------------------------"
      fi
      HOST_PLATFORM="SVN";
-     . ../tools/dc-sdk/kos/environ.sh
-     export PATH=$TOOLS:$PATH     
+     export PATH=$TOOLS
+     . ../tools/dc-sdk/kos/environ.sh     
    fi
    if test $KOS_BASE; then
      echo "-------------------------------------------------------"
