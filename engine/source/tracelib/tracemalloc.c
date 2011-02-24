@@ -30,7 +30,7 @@ size_t tracemalloc_total = 0;
 #if defined(GP2X) && !defined(WIZ)
 	#define TRACE_BYTES 20
 	#define TRACE_SIZE 4
-#else	
+#else
 	#define TRACE_BYTES 4 * sizeof(void*)
 	#define TRACE_SIZE 3
 #endif
@@ -178,6 +178,8 @@ void tracefree(void *vp)
 #endif
 }
 
+// Anallyst needs to review his changes, seems incomplete and Windows complains.  by SX
+#if 0
 #ifdef WIN
 // The Windows CRT has a buggy realloc() implementation; use a generic substitute
 void *fakerealloc(void *vp, size_t len, size_t oldlen)
@@ -189,6 +191,7 @@ void *fakerealloc(void *vp, size_t len, size_t oldlen)
 	return vp2;
 }
 #define realloc(ptr, len) fakerealloc(ptr, len, oldlen)
+#endif
 #endif
 
 // Plombo Nov 21 2010: add realloc() functionality to tracelib
