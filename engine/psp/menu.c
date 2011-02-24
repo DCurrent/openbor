@@ -37,11 +37,10 @@ u32 bgmPlay = 0, bgmLoop = 0, bgmCycle = 0, bgmCurrent = 0, bgmStatus = 0;
 fileliststruct *filelist;
 
 typedef struct{
-    char *buf;
+    stringptr *buf;
     int *pos;
     int line;
     int rows;
-    int size;
     char ready;
 }s_logfile;
 s_logfile logfile[2];
@@ -162,19 +161,18 @@ void getAllLogs()
         logfile[i].buf = readFromLogFile(i);
         if(logfile[i].buf != NULL)
         {
-            logfile[i].size = strlen(logfile[i].buf);
             logfile[i].pos = tracemalloc("pos #1", ++logfile[i].rows * sizeof(int));
             if(logfile[i].pos == NULL) return;
             memset(logfile[i].pos, 0, logfile[i].rows * sizeof(int));
 
-            for(k=0, j=0; j<logfile[i].size; j++)
+            for(k=0, j=0; j<logfile[i].buf->size; j++)
             {
                 if(!k)
                 {
                     logfile[i].pos[logfile[i].rows - 1] = j;
                     k = 1;
                 }
-                if(logfile[i].buf[j]=='\n')
+                if(logfile[i].buf->ptr[j]=='\n')
                 {
                     int *_pos = tracemalloc("_pos", ++logfile[i].rows * sizeof(int));
                     if(_pos == NULL) return;
@@ -187,10 +185,10 @@ void getAllLogs()
                     memcpy(logfile[i].pos, _pos, logfile[i].rows * sizeof(int));
                     tracefree(_pos);
                     _pos = NULL;
-                    logfile[i].buf[j] = 0;
+                    logfile[i].buf->ptr[j] = 0;
                     k = 0;
                 }
-                if(logfile[i].buf[j]=='\r') logfile[i].buf[j] = 0;
+                if(logfile[i].buf->ptr[j]=='\r') logfile[i].buf->ptr[j] = 0;
                 if(logfile[i].rows>0xFFFFFFFE) break;
             }
             logfile[i].ready = 1;
@@ -408,8 +406,8 @@ void drawLogs()
                 char textpad[PSP_LCD_WIDTH] = {""};
                 for(k=0; k<PSP_LCD_WIDTH; k++)
                 {
-                    if(!logfile[i].buf[logfile[i].pos[j]+k]) break;
-                    textpad[k] = logfile[i].buf[logfile[i].pos[j]+k];
+                    if(!logfile[i].buf->ptr[logfile[i].pos[j]+k]) break;
+                    textpad[k] = logfile[i].buf->ptr[logfile[i].pos[j]+k];
                 }
                 if(logfile[i].rows>0xFFFF)
                     printText(text, 5, l*10, WHITE, 0, 0, "0x%08x:  %s", j, textpad);
