@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include "utils.h"
 #include "types.h"
 #include "borendian.h"
@@ -851,24 +852,36 @@ static int openimage(char *filename, char *packfile){
 }
 
 static int readimage(unsigned char *buf, unsigned char *pal, int maxwidth, int maxheight){
-    int result = 0;
-    switch(open_type){
-        case OT_GIF:
-            result = readgif(buf, pal, maxwidth, maxheight);
-            break;
-        case OT_PCX:
-            result = readpcx(buf, pal, maxwidth, maxheight);
-            break;
-        case OT_BMP:
-            result = readbmp(buf, pal, maxwidth, maxheight);
-            break;
-        case OT_PNG:
-            result = readpng(buf, pal, maxwidth, maxheight);
-            break;
-    }
-    if(pal)
-    memset(pal, 0, (PAL_BYTES)>>8);
-    return result;
+	int result = 0;
+	switch(open_type){
+		case OT_GIF:
+			result = readgif(buf, pal, maxwidth, maxheight);
+			#ifdef DEBUG
+			printf("calling readimage %s %s %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "GIF", result);
+			#endif			
+			break;
+		case OT_PCX:
+			result = readpcx(buf, pal, maxwidth, maxheight);
+			#ifdef DEBUG
+			printf("calling readimage %s %s %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "PCX", result);
+			#endif			
+			break;
+		case OT_BMP:
+			result = readbmp(buf, pal, maxwidth, maxheight);
+			#ifdef DEBUG
+			printf("calling readimage %s %s %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "BMP", result);
+			#endif			
+			break;
+		case OT_PNG:
+			result = readpng(buf, pal, maxwidth, maxheight);
+			#ifdef DEBUG
+			printf("calling readimage %s %s %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "PNG", result);
+			#endif			
+			break;
+	}
+	if(pal)
+		memset(pal, 0, (PAL_BYTES)>>8);
+	return result;
 }
 
 static void closeimage(){
@@ -883,26 +896,28 @@ static void closeimage(){
 // ============================== Interface ===============================
 
 int loadscreen(char *filename, char *packfile, unsigned char *pal, int format, s_screen **screen){
-    int result;
-    unsigned char* p;
-    if((*screen)) freescreen(screen);
-    if(!openimage(filename, packfile)) return 0;
+	int result;
+	unsigned char* p;
+	if((*screen)) freescreen(screen);
+	if(!openimage(filename, packfile)) return 0;
 	if(!(*screen) || ((*screen)->width != res[0] && (*screen)->height != res[1] && (*screen)->pixelformat != format)){
 		(*screen) = allocscreen(res[0], res[1], format);
 		if((*screen) == NULL){
 			closeimage();
+			assert(0);
 			return 0;
 		}
 	}
-    if(pal) p = pal;
-    else p = (*screen)->palette;
-    result = readimage((unsigned char*)(*screen)->data, p, (*screen)->width, (*screen)->height);
-    closeimage();
-    if(!result){
-        freescreen(screen);
-        return 0;
-    }
-    return 1;
+	if(pal) p = pal;
+	else p = (*screen)->palette;
+	result = readimage((unsigned char*)(*screen)->data, p, (*screen)->width, (*screen)->height);
+	closeimage();
+	if(!result){
+		freescreen(screen);
+		assert(0);
+		return 0;
+	}
+	return 1;
 }
 
 s_bitmap * loadbitmap(char *filename, char *packfile, int format){
