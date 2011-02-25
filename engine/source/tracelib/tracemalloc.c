@@ -181,22 +181,6 @@ void tracefree(void *vp)
 #endif
 }
 
-// Anallyst needs to review his changes, seems incomplete and Windows complains.  by SX
-#if 0
-#ifdef WIN
-// The Windows CRT has a buggy realloc() implementation; use a generic substitute
-void *fakerealloc(void *vp, size_t len, size_t oldlen)
-{
-	void *vp2 = tracemalloc("tracerealloc", len);
-	if(!vp2) return NULL;
-	memcpy(vp2, vp, oldlen);
-	tracefree(vp);
-	return vp2;
-}
-#define realloc(ptr, len) fakerealloc(ptr, len, oldlen)
-#endif
-#endif
-
 // Plombo Nov 21 2010: add realloc() functionality to tracelib
 void *tracerealloc(void *vp, size_t len)
 {
