@@ -181,3 +181,54 @@ void tracefree(void *vp)
 #endif
 }
 
+// Anallyst needs to review his changes, seems incomplete and Windows complains.  by SX
+#if 0
+#ifdef WIN
+// The Windows CRT has a buggy realloc() implementation; use a generic substitute
+void *fakerealloc(void *vp, size_t len, size_t oldlen)
+{
+	void *vp2 = tracemalloc("tracerealloc", len);
+	if(!vp2) return NULL;
+	memcpy(vp2, vp, oldlen);
+	tracefree(vp);
+	return vp2;
+}
+#define realloc(ptr, len) fakerealloc(ptr, len, oldlen)
+#endif
+#endif
+
+// Plombo Nov 21 2010: add realloc() functionality to tracelib
+void *tracerealloc(void *vp, size_t len)
+{
+	if(!vp) // realloc(NULL, len) == malloc(len)
+		return tracemalloc("tracerealloc", len);
+	else if(len == 0) // realloc(vp, 0) == free(vp)
+	{
+		tracefree(vp);
+		return NULL;
+	}
+	else // actually call realloc()
+	{
+#ifdef RAM_DEBUG
+		char *p = ((char*)vp) - TRACE_BYTES;
+		ptrdiff_t *vp2 = realloc(p, len + TRACE_BYTES);
+		if(!vp2) return NULL;
+		tracemalloc_total -= vp2[TRACE_SIZE];
+		vp2[TRACE_SIZE] = len;
+		tracemalloc_total += vp2[TRACE_SIZE];
+		vp2 += TRACE_SIZE + 1;
+		return (void*)vp2;
+#else
+		return realloc(vp, len);
+#endif
+	}
+}
+
+// Plombo 11/21/10: add a calloc() function to tracelib
+void *tracecalloc(const char *name, size_t len)
+{
+	void *ptr = tracemalloc(name, len);
+	if(ptr) memset(ptr, 0, len);
+	return ptr;
+}
+

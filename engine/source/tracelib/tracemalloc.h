@@ -26,6 +26,8 @@ extern size_t tracemalloc_total;
 /////////////////////////////////////////////////////////////////////////////
 
 void *tracemalloc(const char *name, size_t len);
+void *tracecalloc(const char *name, size_t len);
+void *tracerealloc(void *p, size_t len);
 void tracefree(void *p);
 int tracemalloc_dump(void);
 
