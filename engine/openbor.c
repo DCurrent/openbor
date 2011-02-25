@@ -2690,7 +2690,7 @@ void load_cached_background(char *filename, int createtables)
 	int index = -1;
 	unload_background();
 
-    if(strcmp(filename, "data/bgs/logo")==0)
+	if(strcmp(filename, "data/bgs/logo")==0)
 		index = 0;
 	else if(strcmp(filename, "data/bgs/title")==0)
 		index = 1;
@@ -2732,10 +2732,10 @@ void load_cached_background(char *filename, int createtables)
 			shutdown(1, "Failed to create colour conversion tables! (Out of memory?)");
 	}
 
-    video_clearscreen();
-    pal[0] = pal[1] = pal[2] = 0;
-    //palette_set_corrected(pal, savedata.gamma,savedata.gamma,savedata.gamma, savedata.brightness,savedata.brightness,savedata.brightness);
-    change_system_palette(0);
+	video_clearscreen();
+	pal[0] = pal[1] = pal[2] = 0;
+	//palette_set_corrected(pal, savedata.gamma,savedata.gamma,savedata.gamma, savedata.brightness,savedata.brightness,savedata.brightness);
+	change_system_palette(0);
 #endif
 }
 
@@ -6993,305 +6993,305 @@ int load_script_setting()
 // Load / cache all models
 int load_models()
 {
-    char filename[128] = "data/models.txt";
-    int i;
-    char *buf;
-    size_t size;
-    ptrdiff_t pos;
-    char * command;
-    char value1[128];
-    char value2[128];
+	char filename[128] = "data/models.txt";
+	int i;
+	char *buf;
+	size_t size;
+	ptrdiff_t pos;
+	char * command;
+	char value1[128];
+	char value2[128];
 	char tmpBuff[128] = {""};
-    int maxanim = MAX_ANIS; // temporary counter
+	int maxanim = MAX_ANIS; // temporary counter
 
-    free_modelcache();
+	free_modelcache();
 
-    if(loadingbg[0][0] > 0)
+	if(loadingbg[0][0] > 0)
 	{
-        // New alternative background path for PSP
-        if(custBkgrds != NULL)
+		// New alternative background path for PSP
+		if(custBkgrds != NULL)
 		{
-            strcpy(tmpBuff,custBkgrds);
-            strncat(tmpBuff,"loading", 7);
-            load_background(tmpBuff, 0);
-        }
-        else load_background("data/bgs/loading", 0);
-    }
+			strcpy(tmpBuff,custBkgrds);
+			strncat(tmpBuff,"loading", 7);
+			load_background(tmpBuff, 0);
+		}
+		else load_background("data/bgs/loading", 0);
+	}
 	else if(loadingbg[0][0] < 0)
 	{
 		clearscreen(vscreen);
 		spriteq_clear();
 	}
-    if(loadingbg[0][0])
-    {
-	    standard_palette(1);
-	    lifebar_colors();
-	    init_colourtable();
-    }
+	if(loadingbg[0][0])
+	{
+		standard_palette(1);
+		lifebar_colors();
+		init_colourtable();
+	}
 
-    // reload default values
-    max_idles        = MAX_IDLES;
-    max_walks        = MAX_WALKS;
-    max_ups          = MAX_UPS;
-    max_downs        = MAX_DOWNS;
-    max_backwalks    = MAX_BACKWALKS;
-    max_attack_types = MAX_ATKS;
-    max_freespecials = MAX_SPECIALS;
-    max_follows      = MAX_FOLLOWS;
-    max_attacks      = MAX_ATTACKS;
-    max_animations   = MAX_ANIS;
+	// reload default values
+	max_idles        = MAX_IDLES;
+	max_walks        = MAX_WALKS;
+	max_ups          = MAX_UPS;
+	max_downs        = MAX_DOWNS;
+	max_backwalks    = MAX_BACKWALKS;
+	max_attack_types = MAX_ATKS;
+	max_freespecials = MAX_SPECIALS;
+	max_follows      = MAX_FOLLOWS;
+	max_attacks      = MAX_ATTACKS;
+	max_animations   = MAX_ANIS;
 
-    // free old values
-    if(animspecials){tracefree(animspecials); animspecials = NULL;}
-    if(animattacks){tracefree(animattacks);  animattacks = NULL;}
-    if(animfollows){tracefree(animfollows);  animfollows = NULL;}
-    if(animpains){tracefree(animpains);    animpains = NULL;}
-    if(animfalls){tracefree(animfalls);    animfalls = NULL;}
+	// free old values
+	if(animspecials){tracefree(animspecials); animspecials = NULL;}
+	if(animattacks){tracefree(animattacks);  animattacks = NULL;}
+	if(animfollows){tracefree(animfollows);  animfollows = NULL;}
+	if(animpains){tracefree(animpains);    animpains = NULL;}
+	if(animfalls){tracefree(animfalls);    animfalls = NULL;}
 	if(animrises){tracefree(animrises);    animrises = NULL;}
 	if(animriseattacks){tracefree(animriseattacks);    animriseattacks = NULL;}
 	if(animblkpains) {tracefree(animblkpains); animblkpains = NULL;}
-    if(animdies){tracefree(animdies);     animdies = NULL;}
-    if(animwalks){tracefree(animwalks);     animwalks = NULL;}
-    if(animbackwalks){tracefree(animbackwalks);     animbackwalks = NULL;}
-    if(animidles){tracefree(animidles);     animidles = NULL;}
-    if(animups){tracefree(animups);     animups = NULL;}
-    if(animdowns){tracefree(animdowns);     animdowns = NULL;}
+	if(animdies){tracefree(animdies);     animdies = NULL;}
+	if(animwalks){tracefree(animwalks);     animwalks = NULL;}
+	if(animbackwalks){tracefree(animbackwalks);     animbackwalks = NULL;}
+	if(animidles){tracefree(animidles);     animidles = NULL;}
+	if(animups){tracefree(animups);     animups = NULL;}
+	if(animdowns){tracefree(animdowns);     animdowns = NULL;}
 
-    if(custModels != NULL)
-    {
-        strcpy(filename, "data/");
-        strcat(filename, custModels);
-    }
+	if(custModels != NULL)
+	{
+		strcpy(filename, "data/");
+		strcat(filename, custModels);
+	}
 
-    // Read file
-    if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Error loading model list from %s", filename);
+	// Read file
+	if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Error loading model list from %s", filename);
 
-    pos = 0;
-    while(pos<size) // peek global settings
-    {
-        command = findarg(buf+pos, 0);
-        if(command[0])
-        {
-            if(stricmp(command, "maxidles")==0) // max idle stances
-            {
-                max_idles = atoi(findarg(buf+pos, 1));
-                if(max_idles < MAX_IDLES) max_idles = MAX_IDLES;
-            }
-            if(stricmp(command, "maxwalks")==0) // max walks
-            {
-                max_walks = atoi(findarg(buf+pos, 1));
-                if(max_walks < MAX_WALKS) max_walks = MAX_WALKS;
-            }
-            if(stricmp(command, "maxbackwalks")==0) // max backward walks
-            {
-                max_backwalks = atoi(findarg(buf+pos, 1));
-                if(max_backwalks < MAX_BACKWALKS) max_backwalks = MAX_BACKWALKS;
-            }
-            if(stricmp(command, "maxups")==0) // max up walks
-            {
-                max_ups = atoi(findarg(buf+pos, 1));
-                if(max_ups < MAX_UPS) max_ups = MAX_UPS;
-            }
-            if(stricmp(command, "maxdowns")==0) // max down walks
-            {
-                max_downs = atoi(findarg(buf+pos, 1));
-                if(max_downs < MAX_DOWNS) max_downs = MAX_DOWNS;
-            }
-            if(stricmp(command, "maxattacktypes")==0) // max attacktype/pain/fall/die
-            {
-                max_attack_types = atoi(findarg(buf+pos, 1)) + STA_ATKS;
-                if(max_attack_types < MAX_ATKS) max_attack_types = MAX_ATKS;
-            }
-            else if(stricmp(command, "maxfollows")==0) // max follow-ups
-            {
-                max_follows = atoi(findarg(buf+pos, 1));
-                if(max_follows<MAX_FOLLOWS) max_follows = MAX_FOLLOWS;
-            }
-            else if(stricmp(command, "maxfreespecials")==0)// max freespecials
-            {
-                max_freespecials = atoi(findarg(buf+pos, 1));
-                if(max_freespecials<MAX_SPECIALS) max_freespecials = MAX_SPECIALS;
-            }
-            else if(stricmp(command, "maxattacks")==0) // max attacks
-            {
-                max_attacks = atoi(findarg(buf+pos, 1));
-                if(max_attacks<MAX_ATTACKS) max_attacks = MAX_ATTACKS;
-            }
-        }
-        // Go to next line
-        while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-        while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
-    }
-    // calculate max animations
-    max_animations += (max_attack_types - MAX_ATKS) * 6 +// multply by 5, for fall/die/pain/rise/blockpain/riseattack
-                      (max_follows - MAX_FOLLOWS) +
-                      (max_freespecials - MAX_SPECIALS) +
-                      (max_attacks - MAX_ATTACKS) +
-                      (max_idles - MAX_IDLES)+
-                      (max_walks - MAX_WALKS)+
-                      (max_ups - MAX_UPS)+
-                      (max_downs - MAX_DOWNS)+
-                      (max_backwalks - MAX_BACKWALKS);
+	pos = 0;
+	while(pos<size) // peek global settings
+	{
+		command = findarg(buf+pos, 0);
+		if(command[0])
+		{
+			if(stricmp(command, "maxidles")==0) // max idle stances
+			{
+				max_idles = atoi(findarg(buf+pos, 1));
+				if(max_idles < MAX_IDLES) max_idles = MAX_IDLES;
+			}
+			if(stricmp(command, "maxwalks")==0) // max walks
+			{
+				max_walks = atoi(findarg(buf+pos, 1));
+				if(max_walks < MAX_WALKS) max_walks = MAX_WALKS;
+			}
+			if(stricmp(command, "maxbackwalks")==0) // max backward walks
+			{
+				max_backwalks = atoi(findarg(buf+pos, 1));
+				if(max_backwalks < MAX_BACKWALKS) max_backwalks = MAX_BACKWALKS;
+			}
+			if(stricmp(command, "maxups")==0) // max up walks
+			{
+				max_ups = atoi(findarg(buf+pos, 1));
+				if(max_ups < MAX_UPS) max_ups = MAX_UPS;
+			}
+			if(stricmp(command, "maxdowns")==0) // max down walks
+			{
+				max_downs = atoi(findarg(buf+pos, 1));
+				if(max_downs < MAX_DOWNS) max_downs = MAX_DOWNS;
+			}
+			if(stricmp(command, "maxattacktypes")==0) // max attacktype/pain/fall/die
+			{
+				max_attack_types = atoi(findarg(buf+pos, 1)) + STA_ATKS;
+				if(max_attack_types < MAX_ATKS) max_attack_types = MAX_ATKS;
+			}
+			else if(stricmp(command, "maxfollows")==0) // max follow-ups
+			{
+				max_follows = atoi(findarg(buf+pos, 1));
+				if(max_follows<MAX_FOLLOWS) max_follows = MAX_FOLLOWS;
+			}
+			else if(stricmp(command, "maxfreespecials")==0)// max freespecials
+			{
+				max_freespecials = atoi(findarg(buf+pos, 1));
+				if(max_freespecials<MAX_SPECIALS) max_freespecials = MAX_SPECIALS;
+			}
+			else if(stricmp(command, "maxattacks")==0) // max attacks
+			{
+				max_attacks = atoi(findarg(buf+pos, 1));
+				if(max_attacks<MAX_ATTACKS) max_attacks = MAX_ATTACKS;
+			}
+		}
+		// Go to next line
+		while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
+		while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+	}
+	// calculate max animations
+	max_animations += (max_attack_types - MAX_ATKS) * 6 +// multply by 5, for fall/die/pain/rise/blockpain/riseattack
+			(max_follows - MAX_FOLLOWS) +
+			(max_freespecials - MAX_SPECIALS) +
+			(max_attacks - MAX_ATTACKS) +
+			(max_idles - MAX_IDLES)+
+			(max_walks - MAX_WALKS)+
+			(max_ups - MAX_UPS)+
+			(max_downs - MAX_DOWNS)+
+			(max_backwalks - MAX_BACKWALKS);
 
     // alloc indexed animation ids
-    animdowns       = (int*)tracemalloc("animdowns",        sizeof(int)*max_downs);
-    animups         = (int*)tracemalloc("animups",          sizeof(int)*max_ups);
-    animbackwalks   = (int*)tracemalloc("animbackwalks",    sizeof(int)*max_backwalks);
-    animwalks       = (int*)tracemalloc("animwalks",        sizeof(int)*max_walks);
-    animidles       = (int*)tracemalloc("animidles",        sizeof(int)*max_idles);
-    animpains       = (int*)tracemalloc("animpains",        sizeof(int)*max_attack_types);
-    animdies        = (int*)tracemalloc("animdies",         sizeof(int)*max_attack_types);
-    animfalls       = (int*)tracemalloc("animfalls",        sizeof(int)*max_attack_types);
+	animdowns       = (int*)tracemalloc("animdowns",        sizeof(int)*max_downs);
+	animups         = (int*)tracemalloc("animups",          sizeof(int)*max_ups);
+	animbackwalks   = (int*)tracemalloc("animbackwalks",    sizeof(int)*max_backwalks);
+	animwalks       = (int*)tracemalloc("animwalks",        sizeof(int)*max_walks);
+	animidles       = (int*)tracemalloc("animidles",        sizeof(int)*max_idles);
+	animpains       = (int*)tracemalloc("animpains",        sizeof(int)*max_attack_types);
+	animdies        = (int*)tracemalloc("animdies",         sizeof(int)*max_attack_types);
+	animfalls       = (int*)tracemalloc("animfalls",        sizeof(int)*max_attack_types);
 	animrises       = (int*)tracemalloc("animrises",        sizeof(int)*max_attack_types);
 	animriseattacks = (int*)tracemalloc("animriseattacks",  sizeof(int)*max_attack_types);
 	animblkpains    = (int*)tracemalloc("animblkpains",     sizeof(int)*max_attack_types);
-    animattacks     = (int*)tracemalloc("animattacks",      sizeof(int)*max_attacks);
-    animfollows     = (int*)tracemalloc("animfollows",      sizeof(int)*max_follows);
-    animspecials    = (int*)tracemalloc("animspecials",     sizeof(int)*max_freespecials);
+	animattacks     = (int*)tracemalloc("animattacks",      sizeof(int)*max_attacks);
+	animfollows     = (int*)tracemalloc("animfollows",      sizeof(int)*max_follows);
+	animspecials    = (int*)tracemalloc("animspecials",     sizeof(int)*max_freespecials);
 
-    // copy default values and new animation ids
-    memcpy(animdowns, downs, sizeof(int)*MAX_DOWNS);
-    for(i=MAX_DOWNS; i<max_downs; i++) animdowns[i] = maxanim++;
-    memcpy(animups, ups, sizeof(int)*MAX_UPS);
-    for(i=MAX_UPS; i<max_ups; i++) animups[i] = maxanim++;
-    memcpy(animbackwalks, backwalks, sizeof(int)*MAX_BACKWALKS);
-    for(i=MAX_BACKWALKS; i<max_backwalks; i++) animbackwalks[i] = maxanim++;
-    memcpy(animwalks, walks, sizeof(int)*MAX_WALKS);
-    for(i=MAX_WALKS; i<max_walks; i++) animwalks[i] = maxanim++;
-    memcpy(animidles, idles, sizeof(int)*MAX_IDLES);
-    for(i=MAX_IDLES; i<max_idles; i++) animidles[i] = maxanim++;
-    memcpy(animspecials, freespecials,   sizeof(int)*MAX_SPECIALS);
-    for(i=MAX_SPECIALS; i<max_freespecials; i++) animspecials[i] = maxanim++;
-    memcpy(animattacks,  normal_attacks, sizeof(int)*MAX_ATTACKS);
-    for(i=MAX_ATTACKS; i<max_attacks; i++) animattacks[i] = maxanim++;
-    memcpy(animfollows,  follows,        sizeof(int)*MAX_FOLLOWS);
-    for(i=MAX_FOLLOWS; i<max_follows; i++) animfollows[i] = maxanim++;
-    memcpy(animpains,    pains,          sizeof(int)*MAX_ATKS);
-    for(i=MAX_ATKS; i<max_attack_types; i++) animpains[i] = maxanim++;
-    memcpy(animfalls,    falls,          sizeof(int)*MAX_ATKS);
-    for(i=MAX_ATKS; i<max_attack_types; i++) animfalls[i] = maxanim++;
+	// copy default values and new animation ids
+	memcpy(animdowns, downs, sizeof(int)*MAX_DOWNS);
+	for(i=MAX_DOWNS; i<max_downs; i++) animdowns[i] = maxanim++;
+	memcpy(animups, ups, sizeof(int)*MAX_UPS);
+	for(i=MAX_UPS; i<max_ups; i++) animups[i] = maxanim++;
+	memcpy(animbackwalks, backwalks, sizeof(int)*MAX_BACKWALKS);
+	for(i=MAX_BACKWALKS; i<max_backwalks; i++) animbackwalks[i] = maxanim++;
+	memcpy(animwalks, walks, sizeof(int)*MAX_WALKS);
+	for(i=MAX_WALKS; i<max_walks; i++) animwalks[i] = maxanim++;
+	memcpy(animidles, idles, sizeof(int)*MAX_IDLES);
+	for(i=MAX_IDLES; i<max_idles; i++) animidles[i] = maxanim++;
+	memcpy(animspecials, freespecials,   sizeof(int)*MAX_SPECIALS);
+	for(i=MAX_SPECIALS; i<max_freespecials; i++) animspecials[i] = maxanim++;
+	memcpy(animattacks,  normal_attacks, sizeof(int)*MAX_ATTACKS);
+	for(i=MAX_ATTACKS; i<max_attacks; i++) animattacks[i] = maxanim++;
+	memcpy(animfollows,  follows,        sizeof(int)*MAX_FOLLOWS);
+	for(i=MAX_FOLLOWS; i<max_follows; i++) animfollows[i] = maxanim++;
+	memcpy(animpains,    pains,          sizeof(int)*MAX_ATKS);
+	for(i=MAX_ATKS; i<max_attack_types; i++) animpains[i] = maxanim++;
+	memcpy(animfalls,    falls,          sizeof(int)*MAX_ATKS);
+	for(i=MAX_ATKS; i<max_attack_types; i++) animfalls[i] = maxanim++;
 	memcpy(animrises,    rises,          sizeof(int)*MAX_ATKS);
-    for(i=MAX_ATKS; i<max_attack_types; i++) animrises[i] = maxanim++;
+	for(i=MAX_ATKS; i<max_attack_types; i++) animrises[i] = maxanim++;
 	memcpy(animriseattacks,    riseattacks,          sizeof(int)*MAX_ATKS);
-    for(i=MAX_ATKS; i<max_attack_types; i++) animriseattacks[i] = maxanim++;
+	for(i=MAX_ATKS; i<max_attack_types; i++) animriseattacks[i] = maxanim++;
 	memcpy(animblkpains,    blkpains,    sizeof(int)*MAX_ATKS);
 	for(i=MAX_ATKS; i<max_attack_types; i++) animblkpains[i] = maxanim++;
-    memcpy(animdies,     deaths,         sizeof(int)*MAX_ATKS);
-    for(i=MAX_ATKS; i<max_attack_types; i++) animdies[i] = maxanim++;
+	memcpy(animdies,     deaths,         sizeof(int)*MAX_ATKS);
+	for(i=MAX_ATKS; i<max_attack_types; i++) animdies[i] = maxanim++;
 
-    // Now interpret the contents of buf line by line
-    pos = 0;
-    while(pos<size)
-    {
-        command = findarg(buf+pos, 0);
-        if(command[0]){
+	// Now interpret the contents of buf line by line
+	pos = 0;
+	while(pos<size)
+	{
+		command = findarg(buf+pos, 0);
+		if(command[0]) {
 			if(stricmp(command, "music")==0){
 				strncpy(value1, findarg(buf+pos, 1), 127);
 				music(value1, 1, atol(findarg(buf+pos, 2)));
-            }
-            else if(stricmp(command, "load")==0){
-                // Add path to cache list
-                strncpy(value1, findarg(buf+pos, 1), 127);
-                strncpy(value2, findarg(buf+pos, 2), 127);
+			}
+			else if(stricmp(command, "load")==0){
+				// Add path to cache list
+				strncpy(value1, findarg(buf+pos, 1), 127);
+				strncpy(value2, findarg(buf+pos, 2), 127);
 				cache_model(value1, value2, 1);
-            }
-            else if(stricmp(command, "colourselect")==0){   // 6-2-2005 if string for colourselect found
-                colourselect =  atoi(findarg(buf+pos, 1));          //  6-2-2005
-            }
-            else if(stricmp(command, "spdirection")==0){                // Select Player Direction for select player screen
-                spdirection[0] =  atoi(findarg(buf+pos, 1));
-                spdirection[1] =  atoi(findarg(buf+pos, 2));
-                spdirection[2] =  atoi(findarg(buf+pos, 3));
-                spdirection[3] =  atoi(findarg(buf+pos, 4));
-            }
-            else if(stricmp(command, "autoland")==0){    // New flag to determine if a player auto lands when thrown by another player (2 completely disables the ability to land)
-                autoland = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "nolost")==0){    // this is use for dont lost your weapon if you grab a enemy flag it to 1 to no drop by tails
-                nolost = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "ajspecial")==0){    // Flag to determine if a + j executes special
-                ajspecial = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "nocost")==0){    // Nocost set in models.txt
-                nocost = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "nocheats")==0){ //disable cheat option in menu
-                forcecheatsoff =  atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "nodropen")==0){
-                nodropen = 1;
-            }
-            else if(stricmp(command, "know")==0){
+			}
+			else if(stricmp(command, "colourselect")==0){   // 6-2-2005 if string for colourselect found
+				colourselect =  atoi(findarg(buf+pos, 1));          //  6-2-2005
+			}
+			else if(stricmp(command, "spdirection")==0){                // Select Player Direction for select player screen
+				spdirection[0] =  atoi(findarg(buf+pos, 1));
+				spdirection[1] =  atoi(findarg(buf+pos, 2));
+				spdirection[2] =  atoi(findarg(buf+pos, 3));
+				spdirection[3] =  atoi(findarg(buf+pos, 4));
+			}
+			else if(stricmp(command, "autoland")==0){    // New flag to determine if a player auto lands when thrown by another player (2 completely disables the ability to land)
+				autoland = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "nolost")==0){    // this is use for dont lost your weapon if you grab a enemy flag it to 1 to no drop by tails
+				nolost = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "ajspecial")==0){    // Flag to determine if a + j executes special
+				ajspecial = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "nocost")==0){    // Nocost set in models.txt
+				nocost = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "nocheats")==0){ //disable cheat option in menu
+				forcecheatsoff =  atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "nodropen")==0){
+				nodropen = 1;
+			}
+			else if(stricmp(command, "know")==0){
 				// Just add path to cache list
-                strncpy(value1, findarg(buf+pos, 1), 127);
-                strncpy(value2, findarg(buf+pos, 2), 127);
-                cache_model(value1, value2, 0);
-            }
-            else if(stricmp(command, "noaircancel")==0){
-                noaircancel = atoi(findarg(buf+pos, 1));
-            }
+				strncpy(value1, findarg(buf+pos, 1), 127);
+				strncpy(value2, findarg(buf+pos, 2), 127);
+				cache_model(value1, value2, 0);
+			}
+			else if(stricmp(command, "noaircancel")==0){
+				noaircancel = atoi(findarg(buf+pos, 1));
+			}
 			else if(stricmp(command, "nomaxrushreset")==0){
-                nomaxrushreset[4] = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "mpblock")==0){               // Take from MP first?
-                mpblock = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "blockratio")==0){            // Nullify or reduce damage?
-                blockratio = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "nochipdeath")==0){
-                nochipdeath = atoi(findarg(buf+pos, 1));
-            }
-            else if(stricmp(command, "lifescore")==0){
-                lifescore =  atoi(findarg(buf+pos, 1));
-            }                    // Number of points needed to earn a 1-up
-            else if(stricmp(command, "credscore")==0){
-                credscore =  atoi(findarg(buf+pos, 1));
-            }                    // Number of points needed to earn a credit
-            else if(stricmp(command, "versusdamage")==0){
-                versusdamage =  atoi(findarg(buf+pos, 1));
-                if(versusdamage == 0 || versusdamage == 1) savedata.mode = versusdamage^1;
-            }
-            else if(!(stricmp(command, "maxdowns")==0 ||
-                      stricmp(command, "maxups")==0 ||
-                      stricmp(command, "maxbackwalks")==0 ||
-                      stricmp(command, "maxwalks")==0 ||
-                      stricmp(command, "maxidles")==0 ||
-                      stricmp(command, "maxattacktypes")==0 ||
-                      stricmp(command, "maxfollows")==0 ||
-                      stricmp(command, "maxfreespecials")==0 ||
-                      stricmp(command, "maxattacks")==0))
-            {
-                shutdown(1, "Command '%s' not understood in file '%s'!", command, filename);
-            }
+				nomaxrushreset[4] = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "mpblock")==0){               // Take from MP first?
+				mpblock = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "blockratio")==0){            // Nullify or reduce damage?
+				blockratio = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "nochipdeath")==0){
+				nochipdeath = atoi(findarg(buf+pos, 1));
+			}
+			else if(stricmp(command, "lifescore")==0){
+				lifescore =  atoi(findarg(buf+pos, 1));
+			}                    // Number of points needed to earn a 1-up
+			else if(stricmp(command, "credscore")==0){
+				credscore =  atoi(findarg(buf+pos, 1));
+			}                    // Number of points needed to earn a credit
+			else if(stricmp(command, "versusdamage")==0){
+				versusdamage =  atoi(findarg(buf+pos, 1));
+				if(versusdamage == 0 || versusdamage == 1) savedata.mode = versusdamage^1;
+			}
+			else if(!(stricmp(command, "maxdowns")==0 ||
+				stricmp(command, "maxups")==0 ||
+				stricmp(command, "maxbackwalks")==0 ||
+				stricmp(command, "maxwalks")==0 ||
+				stricmp(command, "maxidles")==0 ||
+				stricmp(command, "maxattacktypes")==0 ||
+				stricmp(command, "maxfollows")==0 ||
+				stricmp(command, "maxfreespecials")==0 ||
+				stricmp(command, "maxattacks")==0))
+			{
+				shutdown(1, "Command '%s' not understood in file '%s'!", command, filename);
+			}
 		}
 
 		// Go to next line
-        while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-        while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+		while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
+		while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
 		if(loadingbg[0][0]) update_loading(loadingbg[0][1]+videomodes.hShift, loadingbg[0][2]+videomodes.vShift, loadingbg[0][3], loadingbg[0][4]+videomodes.hShift, loadingbg[0][5]+videomodes.vShift, pos/2, size, loadingbg[0][6]);
-    }
+	}
 
-    if(buf != NULL)
-    {
-        tracefree(buf);
-        buf = NULL;
-    }
+	if(buf != NULL)
+	{
+		tracefree(buf);
+		buf = NULL;
+	}
 
     // Defer load_cached_model, so you can define models after their nested model.
 	printf("\n");
-    for(i=0; i<models_cached; i++)
-    {
-        //printf("Checking '%s' '%s'\n", model_cache[i].name, model_cache[i].path);
-        if(loadingbg[0][0]) update_loading(loadingbg[0][1]+videomodes.hShift, loadingbg[0][2]+videomodes.vShift, loadingbg[0][3], loadingbg[0][4]+videomodes.hShift, loadingbg[0][5]+videomodes.vShift, size/2 + i*size/2/models_cached, size, loadingbg[0][6]);
-        if(model_cache[i].loadflag)
-        {
-            load_cached_model(model_cache[i].name, "models.txt", 0);
-        }
-    }
+	for(i=0; i<models_cached; i++)
+	{
+		//printf("Checking '%s' '%s'\n", model_cache[i].name, model_cache[i].path);
+		if(loadingbg[0][0]) update_loading(loadingbg[0][1]+videomodes.hShift, loadingbg[0][2]+videomodes.vShift, loadingbg[0][3], loadingbg[0][4]+videomodes.hShift, loadingbg[0][5]+videomodes.vShift, size/2 + i*size/2/models_cached, size, loadingbg[0][6]);
+		if(model_cache[i].loadflag)
+		{
+		load_cached_model(model_cache[i].name, "models.txt", 0);
+		}
+	}
 	printf("\nLoading models...............\tDone!\n");
-    return 1;
+	return 1;
 }
 
 
@@ -8311,19 +8311,19 @@ void free_level(s_level* lv)
 void unload_level(){
 	int i, crlf = 0;
 	char name[128] = {""};
-    unload_background();
-    unload_texture();
-    freepanels();
+	unload_background();
+	unload_texture();
+	freepanels();
 	freescreen(&bgbuffer);
 
-    if(level != NULL){
+	if(level != NULL){
 		strcpy(name, level->name);
-        printf("Level Unloading: '%s'\n", name);
+		printf("Level Unloading: '%s'\n", name);
 		getRamStatus(BYTES);
 		tracefree(level->name);
 		level->name = NULL;
-        free_level(level);
-        level = NULL;
+		free_level(level);
+		level = NULL;
 		for(i=models_loaded; i; i--)
 		{
 			if(model_map[i-1].model->unload)
@@ -8335,38 +8335,35 @@ void unload_level(){
 		if(crlf) printf("\n");
 		printf("Level Unloaded:  '%s'\n", name);
 		getRamStatus(BYTES);
-    }
+	}
 
-
-
-
-    levelpos = 0;
-    advancex = 0;
-    advancey = 0;
-    advancetime = 0;
-    quake = 0;
-    quaketime = 0;
-    level_waiting = 0;
-    nojoin = 0;
-    current_spawn = 0;
-    groupmin = 100;
-    groupmax = 100;
-    scrollminz = 0;
-    scrollmaxz = 0;
-    blockade = 0;
-    level_completed = 0;
-    tospeedup = 0;    // Reset so it sets to normal speed for the next level
-    reached[0] = reached[1] = reached[2] = reached[3] = 0;    // TYPE_ENDLEVEL values reset after level completed //4player
-    showtimeover = 0;
-    pause = 0;
-    endgame = 0;
-    go_time = 0;
-    neon_time = 0;
-    time = 0;
-    cameratype = 0;
-    light[0] = 128;
-    light[1] = 64;
-    gfx_y_offset = 0;    // Added so select screen graphics display correctly
+	levelpos = 0;
+	advancex = 0;
+	advancey = 0;
+	advancetime = 0;
+	quake = 0;
+	quaketime = 0;
+	level_waiting = 0;
+	nojoin = 0;
+	current_spawn = 0;
+	groupmin = 100;
+	groupmax = 100;
+	scrollminz = 0;
+	scrollmaxz = 0;
+	blockade = 0;
+	level_completed = 0;
+	tospeedup = 0;    // Reset so it sets to normal speed for the next level
+	reached[0] = reached[1] = reached[2] = reached[3] = 0;    // TYPE_ENDLEVEL values reset after level completed //4player
+	showtimeover = 0;
+	pause = 0;
+	endgame = 0;
+	go_time = 0;
+	neon_time = 0;
+	time = 0;
+	cameratype = 0;
+	light[0] = 128;
+	light[1] = 64;
+	gfx_y_offset = 0;    // Added so select screen graphics display correctly
 }
 
 void load_level(char *filename){
@@ -22810,13 +22807,13 @@ void openborMain()
 	printf("OpenBoR %s, Compile Date: " __DATE__ "\n\n", VERSION);
 
 #if XBOX
-    loadsettings();
-    paks = findmods();
+	loadsettings();
+	paks = findmods();
 	if(paks==1) getBasePath(packfile, paklist[0].filename, 1);
 	else
 	{
-        strcpy(packfile, "d:\\Paks\\menu.pak");
-        guistartup();
+		strcpy(packfile, "d:\\Paks\\menu.pak");
+		guistartup();
 		load_background("menu/logo", 0);
 		while(!done)
 		{
@@ -22848,13 +22845,13 @@ void openborMain()
 				menutime = time + GAME_SPEED/8;
 			}
 #ifndef DC
-            if(bothkeys & FLAG_SPECIAL) display_logfile();
+			if(bothkeys & FLAG_SPECIAL) display_logfile();
 #endif
-            if(selector>paks-1) selector=paks-1;
-		    if(selector>17)
-	        {
-		        if((selector+lOffset)<paks) lOffset++;
-			    selector=17;
+			if(selector>paks-1) selector=paks-1;
+			if(selector>17)
+			{
+				if((selector+lOffset)<paks) lOffset++;
+				selector=17;
 			}
 			if(selector<0)
 			{
@@ -22886,176 +22883,179 @@ void openborMain()
 			unload_background();
 			freescreen(vscreen);
 			unload_all_fonts();
-            borTimerExit();
-            control_exit();
+			borTimerExit();
+			control_exit();
 		}
 	}
 #endif
 
 	// Load necessary components.
-    printf("Game Selected: %s\n\n", packfile);
-    loadsettings();
+	printf("Game Selected: %s\n\n", packfile);
+	loadsettings();
 	startup();
 
-    // New alternative background path for PSP
+	// New alternative background path for PSP
 	if(custBkgrds != NULL)
 	{
-        strcpy(tmpBuff,custBkgrds);
-        strncat(tmpBuff,"logo", 4);
-        load_background(tmpBuff, 0);
-    }
-    else load_cached_background("data/bgs/logo", 0);
+		strcpy(tmpBuff,custBkgrds);
+		strncat(tmpBuff,"logo", 4);
+		load_background(tmpBuff, 0);
+	}
+	else {
+		printf("use cached bg\n");
+		load_cached_background("data/bgs/logo", 0);
+	}	
 
-    while(time<GAME_SPEED*6 && !(bothnewkeys&(FLAG_ANYBUTTON|FLAG_ESC))) update(0,0);
+	while(time<GAME_SPEED*6 && !(bothnewkeys&(FLAG_ANYBUTTON|FLAG_ESC))) update(0,0);
 
-    music("data/music/remix", 1, 0);
+	music("data/music/remix", 1, 0);
 
     // New alternative scene path for PSP
 	if(custScenes != NULL)
 	{
-        strncpy(tmpBuff,custScenes, 128);
-        strncat(tmpBuff,"logo.txt", 8);
-        playscene(tmpBuff);
-    }
-    else playscene("data/scenes/logo.txt");
+		strncpy(tmpBuff,custScenes, 128);
+		strncat(tmpBuff,"logo.txt", 8);
+		playscene(tmpBuff);
+	}
+	else playscene("data/scenes/logo.txt");
 	clearscreen(background);
 
-    while(!quit)
-    {
-        if(time >= introtime)
-        {
-            // New alternative scene path for PSP
+	while(!quit)
+	{
+		if(time >= introtime)
+		{
+			// New alternative scene path for PSP
 			if(custScenes != NULL)
 			{
-                strncpy(tmpBuff,custScenes, 128);
-                strncat(tmpBuff,"intro.txt", 9);
-                playscene(tmpBuff);
-            }
-            else playscene("data/scenes/intro.txt");
-            update(0,0);
-            introtime = time + GAME_SPEED * 20;
-            relback = 1;
-            started = 0;
-        }
+				strncpy(tmpBuff,custScenes, 128);
+				strncat(tmpBuff,"intro.txt", 9);
+				playscene(tmpBuff);
+			}
+			else playscene("data/scenes/intro.txt");
+			update(0,0);
+			introtime = time + GAME_SPEED * 20;
+			relback = 1;
+			started = 0;
+		}
 
-        if(bothnewkeys & FLAG_ESC) quit = 1;
+		if(bothnewkeys & FLAG_ESC) quit = 1;
 
-        if(!started)
-        {
-            if((time%GAME_SPEED) < (GAME_SPEED/2)) _menutextm(0, 0, 0, "PRESS START");
-            if(bothnewkeys&(FLAG_ANYBUTTON))
-            {
-                started = 1;
-                relback = 1;
-            }
-        }
-        else
-        {
-            _menutextm((selector==0), 2, 0, "Start Game");
+		if(!started)
+		{
+			if((time%GAME_SPEED) < (GAME_SPEED/2)) _menutextm(0, 0, 0, "PRESS START");
+			if(bothnewkeys&(FLAG_ANYBUTTON))
+			{
+				started = 1;
+				relback = 1;
+			}
+		}
+		else
+		{
+			_menutextm((selector==0), 2, 0, "Start Game");
 #ifndef DC
-            _menutextm((selector==1), 3, 0, "Movie Mode");
+			_menutextm((selector==1), 3, 0, "Movie Mode");
 #else
-            _menutextm((selector==1), 3, 0, "Movie Options(Disabled)");
+			_menutextm((selector==1), 3, 0, "Movie Options(Disabled)");
 #endif
-            _menutextm((selector==2), 4, 0, "Options");
-            _menutextm((selector==3), 5, 0, "How To Play");
-            _menutextm((selector==4), 6, 0, "Hall Of Fame");
-            _menutextm((selector==5), 7, 0, "Quit");
-            if(selector<0) selector = 5;
-            if(selector>5) selector = 0;
+			_menutextm((selector==2), 4, 0, "Options");
+			_menutextm((selector==3), 5, 0, "How To Play");
+			_menutextm((selector==4), 6, 0, "Hall Of Fame");
+			_menutextm((selector==5), 7, 0, "Quit");
+			if(selector<0) selector = 5;
+			if(selector>5) selector = 0;
 
-            if(bothnewkeys) introtime = time + GAME_SPEED * 20;
+			if(bothnewkeys) introtime = time + GAME_SPEED * 20;
 
-            if(bothnewkeys & FLAG_MOVEUP)
-            {
-                --selector;
-                if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-            }
-            if(bothnewkeys & FLAG_MOVEDOWN)
-            {
-                ++selector;
-                if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-            }
-            if(bothnewkeys&(FLAG_ANYBUTTON))
-            {
-                if(SAMPLE_BEEP2 >= 0) sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
-                switch(selector)
-                {
-                case 0:
+			if(bothnewkeys & FLAG_MOVEUP)
+			{
+				--selector;
+				if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
+			}
+			if(bothnewkeys & FLAG_MOVEDOWN)
+			{
+				++selector;
+				if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
+			}
+			if(bothnewkeys&(FLAG_ANYBUTTON))
+			{
+				if(SAMPLE_BEEP2 >= 0) sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
+				switch(selector)
+				{
+				case 0:
 					for(i=0; i<MAX_PLAYERS; i++) players[i] = player[i].newkeys & (FLAG_ANYBUTTON);
-                    relback = choose_mode(players);
-                    if(relback) started = 0;
-                    break;
-                case 1:
+					relback = choose_mode(players);
+					if(relback) started = 0;
+					break;
+				case 1:
 #ifndef DC
-                    movie_options();
+					movie_options();
 #endif
-                    break;
-                case 2:
-                    if(!cheats) options();
-                    else
-                    {
-                        if(!forcecheatsoff) cheatoptions();
-                        else options();
-                    }
-                    break;
-                case 3:
-                    if(custScenes != NULL)
+					break;
+				case 2:
+					if(!cheats) options();
+					else
 					{
-                        strncpy(tmpBuff,custScenes, 128);
-                        strncat(tmpBuff,"howto.txt", 9);
-                        playscene(tmpBuff);
-                    }
-                    else playscene("data/scenes/howto.txt");
-                    relback = 1;
-                    break;
-                case 4:
-                    hallfame(0);
-                    relback = 1;
-                    break;
-                default:
-                    quit = 1;
-                    break;
-                }
-                introtime = time + GAME_SPEED * 20;
-            }
-        }
-        if(relback)
-        {
-            if(started)
-            {
+						if(!forcecheatsoff) cheatoptions();
+						else options();
+					}
+					break;
+				case 3:
+					if(custScenes != NULL)
+					{
+						strncpy(tmpBuff,custScenes, 128);
+						strncat(tmpBuff,"howto.txt", 9);
+						playscene(tmpBuff);
+					}
+					else playscene("data/scenes/howto.txt");
+					relback = 1;
+					break;
+				case 4:
+					hallfame(0);
+					relback = 1;
+					break;
+				default:
+					quit = 1;
+					break;
+				}
+				introtime = time + GAME_SPEED * 20;
+			}
+		}
+		if(relback)
+		{
+			if(started)
+			{
 				if(custBkgrds != NULL)
 				{
-                    strncpy(tmpBuff,custBkgrds, 128);
-                    strncat(tmpBuff,"titleb", 6);
-                    load_background(tmpBuff, 0);
-                }
-                else load_cached_background("data/bgs/titleb", 0);
-            }
-            else
-            {
-                if(custBkgrds != NULL)
+					strncpy(tmpBuff,custBkgrds, 128);
+					strncat(tmpBuff,"titleb", 6);
+					load_background(tmpBuff, 0);
+				}
+				else load_cached_background("data/bgs/titleb", 0);
+			}
+			else
+			{
+				if(custBkgrds != NULL)
 				{
-                    strncpy(tmpBuff,custBkgrds, 128);
-                    strncat(tmpBuff,"title", 5);
-                    load_background(tmpBuff, 0);
-                }
-                else load_cached_background("data/bgs/title", 0);
-            }
+					strncpy(tmpBuff,custBkgrds, 128);
+					strncat(tmpBuff,"title", 5);
+					load_background(tmpBuff, 0);
+				}
+				else load_cached_background("data/bgs/title", 0);
+			}
 
-            if(!sound_query_music(NULL,NULL)) music("data/music/remix", 1, 0);
-            relback = 0;
-        }
-        update(0,0);
+			if(!sound_query_music(NULL,NULL)) music("data/music/remix", 1, 0);
+			relback = 0;
+		}
+		update(0,0);
 	}
 
-    shutdown(0,
-        "OpenBoR %s, Compile Date: " __DATE__ "\n"
-        "Presented by Team Senile.\n"
-        "This Version is unofficial and based on the Senile Source Code.\n"
-        "\n"
-        "Special thanks to SEGA and SNK.\n\n",
-        VERSION
-        );
+	shutdown(0,
+		"OpenBoR %s, Compile Date: " __DATE__ "\n"
+		"Presented by Team Senile.\n"
+		"This Version is unofficial and based on the Senile Source Code.\n"
+		"\n"
+		"Special thanks to SEGA and SNK.\n\n",
+		VERSION
+	);
 }
 
