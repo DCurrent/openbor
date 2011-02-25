@@ -10,6 +10,7 @@
 // 25-jan-2003
 
 #include <stdio.h>
+#include <string.h>
 #include <stddef.h>
 #include "types.h"
 #include "tracemalloc.h"
@@ -26,7 +27,7 @@ s_bitmap * allocbitmap(int width, int height, int format){
 	extrab = (4-psize%4)%4;
 	if(format==PIXEL_x8)
 		b = (s_bitmap *)tracemalloc("allocbitmap", sizeof(s_bitmap) + psize + extrab +PAL_BYTES);
-	else 
+	else
 		b = (s_bitmap *)tracemalloc("allocbitmap#2",sizeof(s_bitmap) + psize);
 	if(b){
 		b->width = width;
@@ -82,7 +83,7 @@ void getbitmap(int x, int y, int width, int height, s_bitmap *bitmap, s_screen *
 	for(j=0; j<height; j++){
 		s = x + (y+j) * screen->width;
 		memcpy(((char*)bitmap->data) + d, ((char*)screen->data) + s, width);
-		d+=width;		
+		d+=width;
 		/*
 		for(i=0; i<width; i++){
 			bitmap->data[d] = screen->data[s];
