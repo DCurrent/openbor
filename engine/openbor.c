@@ -3051,15 +3051,23 @@ void freesprites()
 // allocate enough members for sprite_map
 void add_sprite_map(size_t size)
 {
-	if(sprite_map == NULL || size + 1 > sprite_map_max_items )
+	s_sprite_map *copy;
+	if(sprite_map == NULL)
 	{
-		printf("%s %p\n", "add_sprite_map was", sprite_map);
-		do {
-			sprite_map_max_items += 256;
-		}
-		while (size + 1 > sprite_map_max_items);
-		sprite_map = tracerealloc(sprite_map, sizeof(s_sprite_map) * sprite_map_max_items);
+		sprite_map = tracemalloc("sprite_map", sizeof(s_sprite_map));
+	}
+	else
+	{
+		// We Create Copy then append new map to list.
+		copy = tracemalloc("copy_sprite_map", (size + 1) * sizeof(s_sprite_map));
+		if(copy == NULL) shutdown(1, "Out Of Memory!  Failed to create a copy of sprite_map\n");
+		memcpy(copy, sprite_map, (size + 1) * sizeof(s_sprite_map));
+		tracefree(sprite_map);
+		sprite_map = tracemalloc("add_sprite_map",(size + 1) *  (sizeof(s_sprite_map) + sizeof(s_sprite_map)));
 		if(sprite_map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new sprite_map\n");
+		memcpy(sprite_map, copy, (size + 1) * sizeof(s_sprite_map));
+		tracefree(copy);
+		copy = NULL;
 	}
 }
 
@@ -3785,16 +3793,23 @@ void _peek_model_name(int index)
 
 void add_cache_map(size_t size)
 {
-	if(model_cache== NULL || size + 1 > cache_map_max_items )
+	s_modelcache *copy;
+	if(model_cache == NULL)
 	{
-		printf("%s %p\n", "add_cache_map was", model_cache);
-		do {
-			cache_map_max_items += 128;
-		}
-		while (size + 1 > cache_map_max_items);
-
-		model_cache = tracerealloc(model_cache, sizeof(s_modelcache) * cache_map_max_items);
+		model_cache = tracemalloc("sprite_map", sizeof(s_modelcache));
+	}
+	else
+	{
+		// We Create Copy then append new map to list.
+		copy = tracemalloc("copy_cache_map", (size + 1) * sizeof(s_modelcache));
+		if(copy == NULL) shutdown(1, "Out Of Memory!  Failed to create a copy of cache_map\n");
+		memcpy(copy, model_cache, (size + 1) * sizeof(s_modelcache));
+		tracefree(model_cache);
+		model_cache = tracemalloc("add_cache_map", (size + 1) * (sizeof(s_modelcache) + sizeof(s_modelcache)));
 		if(model_cache == NULL) shutdown(1, "Out Of Memory!  Failed to create a new cache_map\n");
+		memcpy(model_cache, copy, (size + 1) * sizeof(s_modelcache));
+		tracefree(copy);
+		copy = NULL;
 	}
 }
 
@@ -3856,19 +3871,28 @@ char *get_cached_model_path(char * name)
 	return NULL;
 }
 
-void add_model_map(size_t size)
+s_model_map *model_map_add(s_model_map *map, size_t size)
 {
-	if(model_map == NULL || size + 1 > model_map_max_items )
+	s_model_map *copy;
+	if(map == NULL)
 	{
-		printf("%s %p\n", "add_model_map was", sprite_map);
-		do {
-			model_map_max_items += 64;
-		}
-		while (size + 1 > model_map_max_items);
-
-		model_map = tracerealloc(model_map, sizeof(s_model_map) * model_map_max_items);
-		if(model_map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new model_map\n");
+		map = tracemalloc("model_map", sizeof(s_model_map));
+		if(map == NULL) shutdown(1, "Out Of Memory!  Failed to create a initial model_map\n");
 	}
+	else
+	{
+		// We Create Copy then append new map to list.
+		copy = tracemalloc("copy_model_map", (size + 1) * sizeof(s_model_map));
+		if(copy == NULL) shutdown(1, "Out Of Memory!  Failed to create a copy of model_map\n");
+		memcpy(copy, map, (size + 1) * sizeof(s_model_map));
+		tracefree(map);
+		map = tracemalloc("model_map_add", (size + 1) * (sizeof(s_model_map) + sizeof(s_model_map)));
+		if(map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new model_map\n");
+		memcpy(map, copy, (size + 1) * sizeof(s_model_map));
+		tracefree(copy);
+		copy = NULL;
+	}
+	return map;
 }
 
 static void _readbarstatus(char*, s_barstatus*);
@@ -4019,7 +4043,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		model_list->next = head;
 	}
 	newchar = model_list->model;
-	add_model_map(models_loaded);
+	model_map = model_map_add(model_map, models_loaded);
 	model_map[models_loaded++].model = newchar;
 	memset(newchar,0,sizeof(s_model));
 	newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
