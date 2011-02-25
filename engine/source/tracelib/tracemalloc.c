@@ -75,7 +75,7 @@ int tracemalloc_dump(void)
 	}
 	for(p = tracehead; p; pp = p, p = (ptrdiff_t*)(p[1]), free(pp))
 		if(p[TRACE_SIZE] < 0) p[TRACE_SIZE] = -p[TRACE_SIZE];
-    if(totalbytes)
+	if(totalbytes)
 	{
 		lc = totalbytes;
 		printf("Total Leaked Bytes %llu\n", lc);
@@ -85,29 +85,18 @@ int tracemalloc_dump(void)
 	return 0;
 }
 
+#ifdef RAM_DEBUG
 void *tracemalloc(const char *name, size_t len)
 {
 	ptrdiff_t *p;
 
-#ifndef RAM_DEBUG
-#if defined(GP2X) && !defined(WIZ)
-	p = malloc(len + 1);
-#else
-	p = malloc(len);
-#endif
-#else
 	p = malloc(TRACE_BYTES + len);
-#endif
 
 #if defined(GP2X) && !defined(WIZ)
 	ptrdiff_t uRam = 0;
 	if(!p)
 	{
-#ifdef RAM_DEBUG
 		p = UpperMalloc(TRACE_BYTES + len);
-#else
-		p = UpperMalloc(1 + len);
-#endif
 		if(!p)
 		{
 			writeToLogFile("name: %s Requested: %d Bytes, Remaining, %lu Bytes\n", name, len, getFreeRam(BYTES));
@@ -123,35 +112,25 @@ void *tracemalloc(const char *name, size_t len)
 	}
 #endif
 
-#ifdef RAM_DEBUG
 	if(tracehead) tracehead[0] = (ptrdiff_t)p;
 	p[0] = 0;
 	p[1] = (ptrdiff_t)tracehead;
 	p[2] = (ptrdiff_t)name;
-#endif
 
 #if defined(GP2X) && !defined(WIZ)
-#ifdef RAM_DEBUG
 	p[3] = uRam;
-#else
-	p[0] = uRam;
-	return (void*)(++p);
-#endif
 #endif
 
-#ifdef RAM_DEBUG
 	p[TRACE_SIZE] = len;
 	tracehead = p;
 	tracemalloc_total += TRACE_BYTES + len;
 	return (void*)(p + (TRACE_SIZE + 1));
-#else
-	return (void*)(p);
-#endif
 }
+#endif
 
+#ifdef RAM_DEBUG
 void tracefree(void *vp)
 {
-#ifdef RAM_DEBUG
 	ptrdiff_t *p = NULL;
 	ptrdiff_t *p_from_prev = NULL;
 	ptrdiff_t *p_from_next = NULL;
@@ -162,25 +141,17 @@ void tracefree(void *vp)
 	p_from_next = (ptrdiff_t*)(p[1]);
 	if(p_from_prev) *p_from_prev = p[1];
 	if(p_from_next) *p_from_next = p[0];
-#endif
 
 #if defined(GP2X) && !defined(WIZ)
-#ifdef RAM_DEBUG
 	if(p[3]) UpperFree(p);
 	else free(p);
 #else
-	if(((ptrdiff_t*)(vp))[0]) UpperFree(vp);
-	else free(vp);
-#endif
-#else
-#ifdef RAM_DEBUG
 	free(p);
-#else
-	free(vp);
-#endif
 #endif
 }
+#endif
 
+#ifdef RAM_DEBUG
 // Plombo Nov 21 2010: add realloc() functionality to tracelib
 void *tracerealloc(void *vp, size_t len)
 {
@@ -193,7 +164,6 @@ void *tracerealloc(void *vp, size_t len)
 	}
 	else // actually call realloc()
 	{
-#ifdef RAM_DEBUG
 		char *p = ((char*)vp) - TRACE_BYTES;
 		ptrdiff_t *vp2 = realloc(p, len + TRACE_BYTES);
 		if(!vp2) return NULL;
@@ -202,12 +172,12 @@ void *tracerealloc(void *vp, size_t len)
 		tracemalloc_total += vp2[TRACE_SIZE];
 		vp2 += TRACE_SIZE + 1;
 		return (void*)vp2;
-#else
-		return realloc(vp, len);
-#endif
 	}
 }
+#endif
 
+
+#ifdef RAM_DEBUG
 // Plombo 11/21/10: add a calloc() function to tracelib
 void *tracecalloc(const char *name, size_t len)
 {
@@ -215,4 +185,4 @@ void *tracecalloc(const char *name, size_t len)
 	if(ptr) memset(ptr, 0, len);
 	return ptr;
 }
-
+#endif
