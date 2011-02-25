@@ -8,24 +8,34 @@
 
 /////////////////////////////////////////////////////////////////////////////
 
-#define I_AM_TRACEMALLOC
+#include <malloc.h>
+
+/////////////////////////////////////////////////////////////////////////////
+
+#if !defined(DEBUG) || (!defined(NO_RAM_DEBUGGER) && defined(DEBUG))
+
+void tracefree(void *p) { free(p); }
+void *tracerealloc(void *p, size_t len) { return realloc(p, len); }
+void *tracemalloc(const char *name, size_t len) { return malloc(len); }
+void *tracecalloc(const char *name, size_t len) { return calloc(1, len); }
+int tracemalloc_dump() { return 0; };
+
+#else
 
 #ifdef PSP
 #include <pspsysmem.h>
 #endif
 
 #include <stdio.h>
-#include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include "ram.h"
 #include "globals.h"
 #include "tracemalloc.h"
 
 /////////////////////////////////////////////////////////////////////////////
 
-#ifdef RAM_DEBUG
 static ptrdiff_t *tracehead = NULL;
-size_t tracemalloc_total = 0;
+static size_t tracemalloc_total = 0;
 
 #if defined(GP2X) && !defined(WIZ)
 	#define TRACE_BYTES 20
@@ -52,11 +62,9 @@ static void tracemalloc_dump_collect(ptrdiff_t *p, size_t *len, size_t *nalloc)
 		}
 	}
 }
-#endif
 
-int tracemalloc_dump(void)
+int tracemalloc_dump()
 {
-#ifdef RAM_DEBUG
 	size_t totalbytes = 0;
 	ptrdiff_t *p, *pp;
 	unsigned long long lc, nc;
@@ -81,11 +89,9 @@ int tracemalloc_dump(void)
 		printf("Total Leaked Bytes %llu\n", lc);
 		return 1;
 	}
-#endif
 	return 0;
 }
 
-#ifdef RAM_DEBUG
 void *tracemalloc(const char *name, size_t len)
 {
 	ptrdiff_t *p;
@@ -126,9 +132,7 @@ void *tracemalloc(const char *name, size_t len)
 	tracemalloc_total += TRACE_BYTES + len;
 	return (void*)(p + (TRACE_SIZE + 1));
 }
-#endif
 
-#ifdef RAM_DEBUG
 void tracefree(void *vp)
 {
 	ptrdiff_t *p = NULL;
@@ -149,9 +153,7 @@ void tracefree(void *vp)
 	free(p);
 #endif
 }
-#endif
 
-#ifdef RAM_DEBUG
 // Plombo Nov 21 2010: add realloc() functionality to tracelib
 void *tracerealloc(void *vp, size_t len)
 {
@@ -174,10 +176,8 @@ void *tracerealloc(void *vp, size_t len)
 		return (void*)vp2;
 	}
 }
-#endif
 
 
-#ifdef RAM_DEBUG
 // Plombo 11/21/10: add a calloc() function to tracelib
 void *tracecalloc(const char *name, size_t len)
 {
@@ -185,4 +185,5 @@ void *tracecalloc(const char *name, size_t len)
 	if(ptr) memset(ptr, 0, len);
 	return ptr;
 }
+
 #endif
