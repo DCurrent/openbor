@@ -733,18 +733,6 @@ void menu(char *path)
 	text = createImage(PSP_LCD_WIDTH, PSP_LCD_HEIGHT);
 	fillImageRect(text, BLACK, 0, 0, PSP_LCD_WIDTH, PSP_LCD_HEIGHT);
 
-	if(getDevkitVersion() < 0x03070110)
-	{
-		printText(text, 80,  130, RED, 0, 0, "OpenBOR %s, Requires Custom Firmware >= 3.71 M33-3", VERSION);
-		blitImageToScreen(0, 0, PSP_LCD_WIDTH, PSP_LCD_HEIGHT, text, 0, 0);
-		sceDisplayWaitVblankStart();
-		flipScreen();
-		freeImage(text);
-		text = NULL;
-		sceKernelDelayThread(10000000);
-		borExit(0);
-	}
-
 	sprintf(buffer, "%s/Images/Loading.png", path);
 	if(fileExists(buffer)) pLoading = loadImage(buffer);
 	if(pLoading != NULL)
