@@ -245,6 +245,16 @@ void packfile_mode(int mode)
 
 /////////////////////////////////////////////////////////////////////////////
 
+int isRawData()
+{
+	DIR *d;
+	if ((d=opendir("data")) == NULL) return 0;
+	closedir(d);
+	return 1;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 int openpackfile(char *filename, char *packfilename)
 {
 	return pOpenPackfile(filename, packfilename);
@@ -764,12 +774,17 @@ int pak_init()
 		printf("pak_init already initialized!");
 		return 0;
 	}
-
+	
+	if(isRawData())
+	{
+		pak_initilized = 1;
+		return 0;
+	}
+	
 	pOpenPackfile = openPackfileCached;
     pReadPackfile = readPackfileCached;
     pSeekPackfile = seekPackfileCached;
     pClosePackfile = closePackfileCached;
-
 
 #if DC
 	if(cd_lba)
