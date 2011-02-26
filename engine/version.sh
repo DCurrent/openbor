@@ -102,7 +102,7 @@ echo "<?xml version="1.0" encoding="UTF-8"?>
 
 Beats of Rage © SenileTeam
 OpenBOR © LavaLit
-All Rights Reserved.</string>
+All Rights Reserved</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleSignature</key>
