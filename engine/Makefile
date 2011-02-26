@@ -542,7 +542,7 @@ endif
 
 
 ifdef BUILD_DARWIN
-CFLAGS 	       += -DLINUX -arch i386 -isysroot $(SDKPATH)
+CFLAGS 	       += -DLINUX -headerpad_max_install_names -arch i386 -isysroot $(SDKPATH)
 endif
 
 
