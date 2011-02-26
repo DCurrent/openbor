@@ -857,25 +857,25 @@ static int readimage(unsigned char *buf, unsigned char *pal, int maxwidth, int m
 		case OT_GIF:
 			result = readgif(buf, pal, maxwidth, maxheight);
 			#ifdef DEBUG
-			printf("calling readimage %s %s %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "GIF", result);
+			printf("calling readimage %p %p %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "GIF", result);
 			#endif			
 			break;
 		case OT_PCX:
 			result = readpcx(buf, pal, maxwidth, maxheight);
 			#ifdef DEBUG
-			printf("calling readimage %s %s %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "PCX", result);
+			printf("calling readimage %p %p %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "PCX", result);
 			#endif			
 			break;
 		case OT_BMP:
 			result = readbmp(buf, pal, maxwidth, maxheight);
 			#ifdef DEBUG
-			printf("calling readimage %s %s %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "BMP", result);
+			printf("calling readimage %p %p %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "BMP", result);
 			#endif			
 			break;
 		case OT_PNG:
 			result = readpng(buf, pal, maxwidth, maxheight);
 			#ifdef DEBUG
-			printf("calling readimage %s %s %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "PNG", result);
+			printf("calling readimage %p %p %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "PNG", result);
 			#endif			
 			break;
 	}
@@ -898,6 +898,9 @@ static void closeimage(){
 int loadscreen(char *filename, char *packfile, unsigned char *pal, int format, s_screen **screen){
 	int result;
 	unsigned char* p;
+#ifdef DEBUG
+	printf("loadscreen called packfile: %s, filename %s\n", packfile, filename);
+#endif	
 	if((*screen)) freescreen(screen);
 	if(!openimage(filename, packfile)) return 0;
 	if(!(*screen) || ((*screen)->width != res[0] && (*screen)->height != res[1] && (*screen)->pixelformat != format)){

@@ -13,7 +13,7 @@
 
 /////////////////////////////////////////////////////////////////////////////
 
-#if !defined(DEBUG) || (!defined(NO_RAM_DEBUGGER) && defined(DEBUG))
+#if !defined(DEBUG) || (defined(NO_RAM_DEBUGGER) && defined(DEBUG))
 
 void tracefree(void *p) { free(p); }
 void *tracerealloc(void *p, size_t len) { return realloc(p, len); }
