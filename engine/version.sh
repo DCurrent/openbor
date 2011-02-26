@@ -70,6 +70,7 @@ echo "/*
 #define VERSION (\"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD)
 
 #endif" >> version.h
+
 rm -rf resources/meta.xml
 echo "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
 <app version=\"1\">
@@ -78,8 +79,84 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
 	<release_date>$VERSION_DATE</release_date>
 	<coder>Plombo, SX</coder>
 	<short_description>Ultimate 2D Game Engine</short_description>
-	<long_description>OpenBOR is a highly advanced continuation of Senile Team's semi-2D game engine, Beats Of Rage.  Visit LavaLit.com for all news, events, and releases of the engine and game modules.
+	<long_description>OpenBOR is a highly advanced continuation of Senile Team's semi-2D game engine, Beats Of Rage.  Visit http://www.LavaLit.com for all news, events, and releases of the engine and game modules.
 </app>" >> resources/meta.xml
+
+rm -rf resources/Info.plist
+echo "<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Author</key>
+  <string>SX</string>
+  <key>Description</key>
+  <string>Ultimate 2D Game Engine</string>  
+  <key>ExtendedDescription</key>
+  <string>OpenBOR is a highly advanced continuation of Senile Team's semi-2D game engine, Beats Of Rage.  Visit http://www.LavaLit.com for all news, events, and releases of the engine and game modules.</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.lavalit.openbor</string>
+  <key>CFBundleShortVersionString</key>
+  <string>$VERSION_MAJOR.$VERSION_MINOR.$VERSION_BUILD</string>
+  <key>CFBundleGetInfoString</key>
+  <string>OpenBOR $VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD</string>
+  <key>CFBundleLongVersionString</key>
+  <string>OpenBOR $VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD</string>
+  <key>NSHumanReadableCopyright</key>
+  <string>OpenBOR $VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleSignature</key>
+  <string>OBOR</string>
+  <key>CFBundleName</key>
+  <string>OpenBOR</string>
+  <key>CFBundleExecutable</key>
+  <string>OpenBOR</string>
+  <key>CFBundleVersion</key>
+  <string>$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD</string>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>English</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>LSRequiresCarbon</key>
+  <true/>
+  <key>LSMinimumSystemVersion</key>
+  <string>10.5</string>
+  <key>LSMultipleInstancesProhibited</key>
+  <true/>
+  <key>CFBundleIconFile</key>
+  <string>OpenBOR</string>
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeExtensions</key>
+      <array>
+        <string>pak</string>
+	<string>PAK</string>
+      </array>
+      <key>CFBundleTypeIconFile</key>
+      <string>OpenBOR.icns</string>
+      <key>CFBundleTypeName</key>
+      <string>PAK File</string>
+      <key>CFBundleTypeOSTypes</key>
+      <string>pak</string>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+    </dict>
+    <dict>
+      <key>CFBundleTypeExtensions</key>
+      <string>spk</string>
+      <key>CFBundleTypeIconFile</key>
+      <string>OpenBOR.icns</string>
+      <key>CFBundleTypeName</key>
+      <string>SPK File</string>
+      <key>CFBundleTypeOSTypes</key>
+      <string>spk</string>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+    </dict>
+  </array>
+</dict>
+</plist>" >> resources/Info.plist
 }
 
 function archive_release {

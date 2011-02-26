@@ -337,11 +337,18 @@ function darwin {
         mkdir ./releases/DARWIN/OpenBOR.app/Contents
         mkdir ./releases/DARWIN/OpenBOR.app/Contents/MacOS
         mkdir ./releases/DARWIN/OpenBOR.app/Contents/Resources
+        mkdir ./releases/DARWIN/OpenBOR.app/Contents/Libraries
       fi
       mv OpenBOR ./releases/DARWIN/OpenBOR.app/Contents/MacOS
       cp ./resources/PkgInfo ./releases/DARWIN/OpenBOR.app/Contents
       cp ./resources/Info.plist ./releases/DARWIN/OpenBOR.app/Contents
       cp ./resources/OpenBOR.icns ./releases/DARWIN/OpenBOR.app/Contents/Resources
+      cp /opt/local/lib/libSDL-1.2.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+      cp /opt/local/lib/libSDL_gfx.13.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+      cp /opt/local/lib/libogg.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+      cp /opt/local/lib/libvorbisfile.3.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+      cp /opt/local/lib/libvorbis.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+      ./darwin.sh
     fi
     make clean BUILD_DARWIN=1
   fi
