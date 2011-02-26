@@ -78,7 +78,7 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
 	<version>$VERSION_MAJOR.$VERSION_MINOR.$VERSION_BUILD</version>
 	<release_date>$VERSION_DATE</release_date>
 	<coder>Plombo, SX</coder>
-	<short_description>Ultimate 2D Game Engine</short_description>
+	<short_description>The Ultimate 2D Game Engine</short_description>
 	<long_description>OpenBOR is a highly advanced continuation of Senile Team's semi-2D game engine, Beats Of Rage.  Visit http://www.LavaLit.com for all news, events, and releases of the engine and game modules.
 </app>" >> resources/meta.xml
 
@@ -90,19 +90,19 @@ echo "<?xml version="1.0" encoding="UTF-8"?>
   <key>Author</key>
   <string>SX</string>
   <key>Description</key>
-  <string>Ultimate 2D Game Engine</string>  
+  <string>The Ultimate 2D Game Engine</string>  
   <key>ExtendedDescription</key>
   <string>OpenBOR is a highly advanced continuation of Senile Team's semi-2D game engine, Beats Of Rage.  Visit http://www.LavaLit.com for all news, events, and releases of the engine and game modules.</string>
   <key>CFBundleIdentifier</key>
   <string>com.lavalit.openbor</string>
   <key>CFBundleShortVersionString</key>
-  <string>$VERSION_MAJOR.$VERSION_MINOR.$VERSION_BUILD</string>
-  <key>CFBundleGetInfoString</key>
-  <string>OpenBOR $VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD</string>
-  <key>CFBundleLongVersionString</key>
-  <string>OpenBOR $VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD</string>
+  <string>$VERSION_MAJOR.$VERSION_MINOR</string>
   <key>NSHumanReadableCopyright</key>
-  <string>OpenBOR $VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD</string>
+  <string>The Ultimate 2D Game Engine Presented by SX
+
+Beats of Rage © SenileTeam
+OpenBOR © LavaLit
+All Rights Reserved.</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleSignature</key>
@@ -112,7 +112,7 @@ echo "<?xml version="1.0" encoding="UTF-8"?>
   <key>CFBundleExecutable</key>
   <string>OpenBOR</string>
   <key>CFBundleVersion</key>
-  <string>$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD</string>
+  <string>$VERSION_BUILD</string>
   <key>CFBundleDevelopmentRegion</key>
   <string>English</string>
   <key>CFBundleInfoDictionaryVersion</key>
