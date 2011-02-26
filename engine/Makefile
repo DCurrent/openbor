@@ -599,6 +599,11 @@ CFLAGS         += -DGLES
 endif
 
 
+ifdef BUILD_VERBOSE
+CFLAGS         += -DVERBOSE
+endif
+
+
 CXXFLAGS        = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS         = $(CFLAGS)
 

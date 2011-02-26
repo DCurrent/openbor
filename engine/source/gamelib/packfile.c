@@ -192,7 +192,7 @@ char * casesearch(const char *dir, const char *filepath)
 	char filename[256] = {""}, *rest_of_path;
 	static char fullpath[256];
 	int i=0;
-#ifdef DEBUG
+#ifdef VERBOSE
 	printf("casesearch: %s, %s\n", dir, filepath);
 #endif
 	
@@ -263,7 +263,7 @@ int isRawData()
 
 int openpackfile(char *filename, char *packfilename)
 {
-#ifdef DEBUG
+#ifdef VERBOSE
 	char* pointsto;
 
 	if (pOpenPackfile == openPackfileCached)
@@ -288,7 +288,7 @@ int openPackfile(char *filename, char *packfilename)
 
 	for(h=0; h<MAXPACKHANDLES && packhandle[h]>-1; h++); // Find free handle
 	if(h>=MAXPACKHANDLES) {
-#ifdef DEBUG
+#ifdef VERBOSE
 		printf ("no free handles\n");
 #endif
 		return -1;			// No free handles
@@ -309,7 +309,7 @@ int openPackfile(char *filename, char *packfilename)
 	{
 		if((packfilesize[h]=lseek(handle,0,SEEK_END))==-1)
 		{
-			#ifdef DEBUG
+			#ifdef VERBOSE
 			printf ("err handles 1\n");
 			#endif			
 			close(handle);
@@ -317,7 +317,7 @@ int openPackfile(char *filename, char *packfilename)
 		}
 		if(lseek(handle,0,SEEK_SET)==-1)
 		{
-			#ifdef DEBUG
+			#ifdef VERBOSE
 			printf ("err handles 2\n");
 			#endif						
 			close(handle);
@@ -336,7 +336,7 @@ int openPackfile(char *filename, char *packfilename)
 		{
 			if((packfilesize[h]=lseek(handle,0,SEEK_END))==-1)
 			{
-				#ifdef DEBUG
+				#ifdef VERBOSE
 				printf ("err handles 3\n");
 				#endif				
 				close(handle);
@@ -344,7 +344,7 @@ int openPackfile(char *filename, char *packfilename)
 			}
 			if(lseek(handle,0,SEEK_SET)==-1)
 			{
-				#ifdef DEBUG
+				#ifdef VERBOSE
 				printf ("err handles 4\n");
 				#endif							
 				close(handle);
@@ -363,7 +363,7 @@ int openPackfile(char *filename, char *packfilename)
 
 	// Try to open packfile
 	if((handle=open(packfilename, O_RDONLY|O_BINARY, 777))==-1) {
-		#ifdef DEBUG
+		#ifdef VERBOSE
 		printf ("perm err\n");
 		#endif					
 		return -1;
@@ -373,7 +373,7 @@ int openPackfile(char *filename, char *packfilename)
 	// Read magic dword ("PACK" identifier)
 	if(read(handle,&magic,4)!=4 || magic!=SwapLSB32(PACKMAGIC))
 	{
-		#ifdef DEBUG
+		#ifdef VERBOSE
 		printf ("err magic\n");
 		#endif					
 		close(handle);
@@ -382,7 +382,7 @@ int openPackfile(char *filename, char *packfilename)
 	// Read version from packfile
 	if(read(handle,&version,4)!=4 || version!=SwapLSB32(PACKVERSION))
 	{
-		#ifdef DEBUG
+		#ifdef VERBOSE
 		printf ("err version\n");
 		#endif			
 		
@@ -393,7 +393,7 @@ int openPackfile(char *filename, char *packfilename)
 	// Seek to position of headerstart indicator
 	if(lseek(handle,-4,SEEK_END)==-1)
 	{
-		#ifdef DEBUG
+		#ifdef VERBOSE
 		printf ("seek failed\n");
 		#endif					
 		close(handle);
@@ -402,7 +402,7 @@ int openPackfile(char *filename, char *packfilename)
 	// Read headerstart
 	if(read(handle,&headerstart,4)!=4)
 	{
-		#ifdef DEBUG
+		#ifdef VERBOSE
 		printf ("err header\n");
 		#endif					
 		close(handle);
@@ -414,7 +414,7 @@ int openPackfile(char *filename, char *packfilename)
 	// Seek to headerstart
 	if(lseek(handle,headerstart,SEEK_SET)==-1)
 	{
-		#ifdef DEBUG
+		#ifdef VERBOSE
 		printf ("err headerstart 1\n");
 		#endif
 		close(handle);
@@ -440,7 +440,7 @@ int openPackfile(char *filename, char *packfilename)
 		p += pn.pns_len;
 		if(lseek(handle,p,SEEK_SET)==-1)
 		{
-			#ifdef DEBUG
+			#ifdef VERBOSE
 			printf ("err seek handles\n");
 			#endif						
 			close(handle);			
@@ -448,7 +448,7 @@ int openPackfile(char *filename, char *packfilename)
 		}
 	}
 	// Filename not found
-	#ifdef DEBUG
+	#ifdef VERBOSE
 	printf ("err filename not found\n");
 	#endif
 	close(handle);
@@ -603,7 +603,7 @@ int readPackfileCached(int handle, void *buf, int len)
 
 int closepackfile(int handle)
 {
-#ifdef DEBUG
+#ifdef VERBOSE
 	char* pointsto;
 	
 	if (pClosePackfile == closePackfileCached)
@@ -619,19 +619,19 @@ int closepackfile(int handle)
 
 int closePackfile(int handle)
 {
-#ifdef DEBUG
+#ifdef VERBOSE
 	printf ("closePackfile called: h: %d\n", handle);
 #endif	
 	
 	if(handle<0 || handle>=MAXPACKHANDLES) 
 	{
-#ifdef DEBUG
+#ifdef VERBOSE
 		printf("handle too small/big\n");
 #endif
 		return -1;
 	}
 	if(packhandle[handle] == -1) {
-#ifdef DEBUG
+#ifdef VERBOSE
 		printf("packhandle -1\n");
 #endif		
 		return -1;
