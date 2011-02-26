@@ -555,34 +555,38 @@ extern Script* pcurrentscript;//used by local script functions
 // returns: 1 - succeeded 0 - failed
 int buffer_pakfile(char* filename, char** pbuffer, size_t* psize)
 {
-    int handle;
-    *psize = 0;
-    *pbuffer = NULL;
-    // Read file
-    if((handle=openpackfile(filename,packfile)) < 0) return 0;
-    *psize = seekpackfile(handle,0,SEEK_END);
-    seekpackfile(handle,0,SEEK_SET);
+	int handle;
+	*psize = 0;
+	*pbuffer = NULL;
+	// Read file
+#ifdef DEBUG
+	printf("pakfile requested: %s.\n", filename); //ASDF
+#endif
 
-    *pbuffer = (char*)tracemalloc("buffer_packfile",*psize+1);
-    if(*pbuffer == NULL){
-        *psize = 0;
-        closepackfile(handle);
-        shutdown(1, "Can't create buffer for packfile '%s'", filename);
-        return 0;
-    }
-    if(readpackfile(handle, *pbuffer, *psize) != *psize){
-        if(*pbuffer != NULL){
-            tracefree(*pbuffer);
-            *pbuffer = NULL;
-            *psize = 0;
-        }
-        closepackfile(handle);
-        shutdown(1, "Can't read from packfile '%s'", filename);
-        return 0;
-    }
-    (*pbuffer)[*psize] = 0;        // Terminate string (important!)
-    closepackfile(handle);
-    return 1;
+	if((handle=openpackfile(filename,packfile)) < 0) return 0;
+	*psize = seekpackfile(handle,0,SEEK_END);
+	seekpackfile(handle,0,SEEK_SET);
+
+	*pbuffer = (char*)tracemalloc("buffer_packfile",*psize+1);
+	if(*pbuffer == NULL){
+		*psize = 0;
+		closepackfile(handle);
+		shutdown(1, "Can't create buffer for packfile '%s'", filename);
+		return 0;
+	}
+	if(readpackfile(handle, *pbuffer, *psize) != *psize){
+		if(*pbuffer != NULL){
+			tracefree(*pbuffer);
+			*pbuffer = NULL;
+			*psize = 0;
+		}
+		closepackfile(handle);
+		shutdown(1, "Can't read from packfile '%s'", filename);
+		return 0;
+	}
+	(*pbuffer)[*psize] = 0;        // Terminate string (important!)
+	closepackfile(handle);
+	return 1;
 }
 
 //this method is used by script engine, we move it here
@@ -4026,20 +4030,20 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	newchar->index = cacheindex;
 	model_map_sort(); // sort it might improve searching speed...
 
-	newchar->defense_factors        = (float*)tracemalloc("newchar->defense_factors",           sizeof(float)*max_attack_types);
-	newchar->defense_pain           = (float*)tracemalloc("newchar->defense_pain",              sizeof(float)*max_attack_types);
-	newchar->defense_knockdown      = (float*)tracemalloc("newchar->defense_knockdown",         sizeof(float)*max_attack_types);
-	newchar->defense_blockpower     = (float*)tracemalloc("newchar->defense_blockpower",        sizeof(float)*max_attack_types);
-	newchar->defense_blockthreshold = (float*)tracemalloc("newchar->defense_blockthreshold",    sizeof(float)*max_attack_types);
-	newchar->defense_blockratio     = (float*)tracemalloc("newchar->defense_blockratio",        sizeof(float)*max_attack_types);
-	newchar->defense_blocktype      = (float*)tracemalloc("newchar->defense_blocktype",         sizeof(float)*max_attack_types);
-	memset(newchar->defense_factors,        0,  sizeof(float)*max_attack_types);
-	memset(newchar->defense_pain,           0,  sizeof(float)*max_attack_types);
-	memset(newchar->defense_knockdown,      0,  sizeof(float)*max_attack_types);
-	memset(newchar->defense_blockpower,     0,  sizeof(float)*max_attack_types);
-	memset(newchar->defense_blockthreshold, 0,  sizeof(float)*max_attack_types);
-	memset(newchar->defense_blockratio,     0,  sizeof(float)*max_attack_types);
-	memset(newchar->defense_blocktype,      0,  sizeof(float)*max_attack_types);
+	newchar->defense_factors        = (float*)tracemalloc("newchar->defense_factors",           sizeof(float)*(max_attack_types + 1));
+	newchar->defense_pain           = (float*)tracemalloc("newchar->defense_pain",              sizeof(float)*(max_attack_types + 1));
+	newchar->defense_knockdown      = (float*)tracemalloc("newchar->defense_knockdown",         sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blockpower     = (float*)tracemalloc("newchar->defense_blockpower",        sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blockthreshold = (float*)tracemalloc("newchar->defense_blockthreshold",    sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blockratio     = (float*)tracemalloc("newchar->defense_blockratio",        sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blocktype      = (float*)tracemalloc("newchar->defense_blocktype",         sizeof(float)*(max_attack_types + 1));
+	memset(newchar->defense_factors,        0,  sizeof(float)*(max_attack_types+1));
+	memset(newchar->defense_pain,           0,  sizeof(float)*(max_attack_types+1));
+	memset(newchar->defense_knockdown,      0,  sizeof(float)*(max_attack_types+1));
+	memset(newchar->defense_blockpower,     0,  sizeof(float)*(max_attack_types+1));
+	memset(newchar->defense_blockthreshold, 0,  sizeof(float)*(max_attack_types+1));
+	memset(newchar->defense_blockratio,     0,  sizeof(float)*(max_attack_types+1));
+	memset(newchar->defense_blocktype,      0,  sizeof(float)*(max_attack_types+1));
 
 	newchar->offense_factors = (float*)tracemalloc("newchar->offense_factors", sizeof(float)*max_attack_types);
 	memset(newchar->offense_factors, 0,sizeof(float)*max_attack_types);
@@ -9386,6 +9390,8 @@ void predrawstatus(){
     int tperror=0;
     int icon = 0;
     int i,x;
+    unsigned long tmp;
+    
     s_model * model = NULL;
     s_drawmethod drawmethod = plainmethod;
 
@@ -9396,12 +9402,14 @@ void predrawstatus(){
     {
         if(player[i].ent)
         {
-            if(!pscore[i][2] && !pscore[i][3] && !pscore[i][4] && !pscore[i][5]) font_printf(videomodes.shiftpos[i]+pscore[i][0], savedata.windowpos+pscore[i][1], pscore[i][6], 0, (scoreformat ? "%s - %09lu" : "%s - %lu"), player[i].ent->name, player[i].score);
+		tmp = player[i].score; //work around issue on 64bit where sizeof(long) != sizeof(int)
+            if(!pscore[i][2] && !pscore[i][3] && !pscore[i][4] && !pscore[i][5]) 
+		    font_printf(videomodes.shiftpos[i]+pscore[i][0], savedata.windowpos+pscore[i][1], pscore[i][6], 0, (scoreformat ? "%s - %09lu" : "%s - %lu"), (char*)(player[i].ent->name), tmp);
             else
             {
                 font_printf(videomodes.shiftpos[i]+pscore[i][0], savedata.windowpos+pscore[i][1], pscore[i][6], 0, "%s", player[i].ent->name);
                 font_printf(videomodes.shiftpos[i]+pscore[i][2], savedata.windowpos+pscore[i][3], pscore[i][6], 0, "-");
-                font_printf(videomodes.shiftpos[i]+pscore[i][4], savedata.windowpos+pscore[i][5], pscore[i][6], 0, (scoreformat ? "%09lu" : "%lu"), player[i].score);
+                font_printf(videomodes.shiftpos[i]+pscore[i][4], savedata.windowpos+pscore[i][5], pscore[i][6], 0, (scoreformat ? "%09lu" : "%lu"), tmp);
             }
 
             if(player[i].ent->health <= 0) icon = player[i].ent->modeldata.icondie;
