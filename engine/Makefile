@@ -512,7 +512,7 @@ OBJS            = $(GAME_CONSOLE)                                               
 # Compiler Flags
 #----------------------------------------------------------------------------------------------------
 
-CFLAGS 	        = $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TARGET_PLATFORM)
+CFLAGS 	       += $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TARGET_PLATFORM)
 CFLAGS 	       += -g -Wall -Werror -fsigned-char 
 
 
