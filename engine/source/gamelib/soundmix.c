@@ -746,8 +746,7 @@ int sound_open_adpcm(char *filename, char *packname, int volume, int loop, u32 m
 
 	// Read header
 	if(readpackfile(adpcm_handle, &borhead, sizeof(bor_header)) != sizeof(bor_header)){
-		sound_close_music();
-		return 0;
+		goto error_exit;
 	}
 
 	borhead.version = SwapLSB32(borhead.version);
@@ -757,21 +756,18 @@ int sound_open_adpcm(char *filename, char *packname, int volume, int loop, u32 m
 
 	// Is it really a BOR music file?
 	if(strncmp(borhead.identifier, BOR_IDENTIFIER, 16)!=0){
-		sound_close_music();
-		return 0;
+		goto error_exit;
 	}
 
 	// Can I play it?
 	if((borhead.version!=BOR_MUSIC_VERSION_MONO && borhead.version!=BOR_MUSIC_VERSION_STEREO) ||
 	   (borhead.channels!=1 && borhead.channels!=2) ||
 		borhead.frequency<11025 || borhead.frequency>44100){
-			sound_close_music();
-			return 0;
+		goto error_exit;
 	}
 	// Seek to beginning of data
 	if(seekpackfile(adpcm_handle, borhead.datastart, SEEK_SET) != borhead.datastart){
-		sound_close_music();
-		return 0;
+		goto error_exit;
 	}
 
 	memset(&musicchannel, 0, sizeof(musicchannelstruct));
@@ -784,17 +780,11 @@ int sound_open_adpcm(char *filename, char *packname, int volume, int loop, u32 m
 	music_atend = 0;
 
 	adpcm_inbuf = tracemalloc("sound_open_music 1",MUSIC_BUF_SIZE / 2);
-	if(adpcm_inbuf==NULL){
-		sound_close_music();
-		return 0;
-	}
+	if(adpcm_inbuf==NULL) goto error_exit;
 
 	for(i=0; i<MUSIC_NUM_BUFFERS; i++){
 		musicchannel.buf[i] = tracemalloc("sound_open_music 2",MUSIC_BUF_SIZE*sizeof(short));
-		if(musicchannel.buf[i]==NULL){
-			sound_close_music();
-			return 0;
-		}
+		if(musicchannel.buf[i]==NULL) goto error_exit;
 		memset(musicchannel.buf[i], 0, MUSIC_BUF_SIZE*sizeof(short));
 	}
 
@@ -802,6 +792,10 @@ int sound_open_adpcm(char *filename, char *packname, int volume, int loop, u32 m
 	music_type = 0;
 
 	return 1;
+	error_exit:
+	sound_close_music();	
+	closepackfile(adpcm_handle);
+	return 0;
 }
 
 void sound_update_adpcm(){
@@ -944,8 +938,14 @@ int current_section, ogg_handle;
 // I/O functions used by libvorbisfile
 size_t readpackfile_callback(void *buf, size_t len, size_t nmembers, int *handle)
 { return readpackfile(*handle, buf, (int)(len * nmembers)); }
-int closepackfile_callback(int *handle)
-{ return closepackfile(*handle); }
+int closepackfile_callback(void *ptr)
+{
+#ifdef DEBUG
+	printf ("closepack cb %d\n", *(int*)ptr);
+#endif			
+	
+	return closepackfile(*(int*)ptr); 
+}
 int seekpackfile_callback(int *handle, ogg_int64_t offset, int whence)
 { return seekpackfile(*handle, (int)offset, whence); }
 int tellpackfile_callback(int *handle)
@@ -977,6 +977,9 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 #endif
 	// Open file, etcetera
 	ogg_handle = openpackfile(filename, packname);
+#ifdef DEBUG
+	printf ("ogg handle %d\n", ogg_handle);
+#endif		
 	if(ogg_handle<0) {
 #ifdef DEBUG
 		printf("couldn't get handle\n");
@@ -988,7 +991,7 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 #ifdef DEBUG
 		printf("ov_open_callbacks failed\n");
 #endif
-		return 0;
+		goto error_exit;
 	}
 
 	// Can I play it?
@@ -1000,7 +1003,7 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 			printf("NOT can i play it\n");
 #endif
 			
-			return 0;
+			goto error_exit;
 	}
 
 	memset(&musicchannel, 0, sizeof(musicchannelstruct));
@@ -1019,7 +1022,7 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 #ifdef DEBUG
 			printf("buf is null\n");
 #endif			
-			return 0;
+			goto error_exit;
 		}
 		memset(musicchannel.buf[i], 0, MUSIC_BUF_SIZE*sizeof(short));
 	}
@@ -1028,6 +1031,11 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 	music_type = 1;
 
 	return 1;
+	
+	error_exit:
+	closepackfile(ogg_handle);
+	return 0;
+	
 }
 
 void sound_update_ogg(){
