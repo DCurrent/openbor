@@ -212,10 +212,12 @@ char * casesearch(const char *dir, const char *filepath)
 			break;
 		}
 	}
-	if (closedir(d)) return NULL;
-	if (i == 0) return NULL;
 	
 	sprintf(fullpath, "%s/%s", dir, entry->d_name);
+	
+	if (closedir(d)) return NULL;
+	if (i == 0) return NULL;	
+	
 	return rest_of_path == NULL ? fullpath : casesearch(fullpath, rest_of_path);
 }
 
