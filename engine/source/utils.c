@@ -95,6 +95,8 @@
 #define COPY_PAKS_PATH(buf, name) strncpy(buf, "./Paks/", 7); strncat(buf, name, strlen(name));
 #endif
 
+FILE* openborLog = NULL;
+FILE* scriptLog = NULL;
 char debug_msg[2048];
 unsigned long debug_time = 0xFFFFFFFF;
 
@@ -143,6 +145,7 @@ int dirExists(char *dname, int create)
 #ifdef DARWIN
 		chmod(realName, 0777);
 #endif
+		return 1;
 	}
 #endif
 	return 0;
@@ -179,63 +182,42 @@ stringptr* readFromLogFile(int which)
 }
 #endif
 
-void writeToLogFile(const char *msg, ...)
+void writeToLogFile(const char * msg, ...)
 {
-#ifndef DC
-	static int removeLog = 1;
-    int disCcWarns;
-	FILE *handle = NULL;
-	char buf[1024] = "";
-	va_list arglist;
-    if(!savedata.uselog) return;
+#ifdef DC // no writable filesystem available, so log to standard output
 	va_start(arglist, msg);
-	vsprintf(buf, msg, arglist);
+	vfprintf(stdout, msg, arglist);
 	va_end(arglist);
-
-	if(CHECK_LOGFILE(OPENBOR_LOG))
+	fflush(stdout);
+#else // write message to log file
+	va_list arglist;
+	
+	if(openborLog == NULL)
 	{
-		if(removeLog)
-		{
-			handle = OPEN_LOGFILE(OPENBOR_LOG);
-			removeLog = 0;
-		}
-		else handle = APPEND_LOGFILE(OPENBOR_LOG);
+		openborLog = OPEN_LOGFILE(OPENBOR_LOG);
+		if(openborLog == NULL) return;
 	}
-	else
-	{
-		handle = OPEN_LOGFILE(OPENBOR_LOG);
-		removeLog = 0;
-	}
-	if(handle == NULL) return;
-	disCcWarns = fwrite(buf, 1, strlen(buf), handle);
-	fclose(handle);
+	
+	va_start(arglist, msg);
+	vfprintf(openborLog, msg, arglist);
+	va_end(arglist);
+	fflush(openborLog);
 #endif
 }
 
 void writeToScriptLog(const char *msg)
 {
 #ifndef DC
-    int disCcWarns;
-	static int removeLog = 1;
-	FILE *handle = NULL;
-    if(!savedata.uselog) return;
-	if(CHECK_LOGFILE(SCRIPT_LOG))
+	int disCcWarns;
+	
+	if(scriptLog == NULL)
 	{
-		if(removeLog)
-		{
-			handle = OPEN_LOGFILE(SCRIPT_LOG);
-			removeLog = 0;
-		}
-		else handle = APPEND_LOGFILE(SCRIPT_LOG);
+		scriptLog = OPEN_LOGFILE(SCRIPT_LOG);
+		if(scriptLog == NULL) return;
 	}
-	else
-	{
-		handle = OPEN_LOGFILE(SCRIPT_LOG);
-		removeLog = 0;
-	}
-	if(handle == NULL) return;
-	disCcWarns = fwrite(msg, 1, strlen(msg), handle);
-	fclose(handle);
+	
+	disCcWarns = fwrite(msg, 1, strlen(msg), scriptLog);
+	fflush(scriptLog);
 #endif
 }
 
