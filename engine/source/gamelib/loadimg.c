@@ -856,25 +856,25 @@ static int readimage(unsigned char *buf, unsigned char *pal, int maxwidth, int m
 	switch(open_type){
 		case OT_GIF:
 			result = readgif(buf, pal, maxwidth, maxheight);
-			#ifdef DEBUG
+			#ifdef VERBOSE
 			printf("calling readimage %p %p %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "GIF", result);
 			#endif			
 			break;
 		case OT_PCX:
 			result = readpcx(buf, pal, maxwidth, maxheight);
-			#ifdef DEBUG
+			#ifdef VERBOSE
 			printf("calling readimage %p %p %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "PCX", result);
 			#endif			
 			break;
 		case OT_BMP:
 			result = readbmp(buf, pal, maxwidth, maxheight);
-			#ifdef DEBUG
+			#ifdef VERBOSE
 			printf("calling readimage %p %p %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "BMP", result);
 			#endif			
 			break;
 		case OT_PNG:
 			result = readpng(buf, pal, maxwidth, maxheight);
-			#ifdef DEBUG
+			#ifdef VERBOSE
 			printf("calling readimage %p %p %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "PNG", result);
 			#endif			
 			break;
@@ -898,7 +898,7 @@ static void closeimage(){
 int loadscreen(char *filename, char *packfile, unsigned char *pal, int format, s_screen **screen){
 	int result;
 	unsigned char* p;
-#ifdef DEBUG
+#ifdef VERBOSE
 	printf("loadscreen called packfile: %s, filename %s\n", packfile, filename);
 #endif	
 	if((*screen)) freescreen(screen);
