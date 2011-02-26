@@ -19978,12 +19978,9 @@ void shutdown(int status, char *msg, ...)
     sound_exit();
 	if(!disablelog) printf("\tDone!\n");
 
-
-#if PSP || DC || GP2X || XBOX || MEMTEST || WII || DINGOO || SYMBIAN
     if(!disablelog) printf("Release FileCaching System...");
     pak_term();
 	if(!disablelog) printf("\tDone!\n");
-#endif
 
     if(!disablelog) printf("\n**************** Done *****************\n\n");
     if(!disablelog) printf("%s", buf);
@@ -20016,14 +20013,9 @@ void guistartup(){
 void startup(){
 	int i;
 
-
-#if PSP || DC || GP2X || XBOX || MEMTEST || WII || DINGOO || SYMBIAN
-
-	size_t size;
 	printf("FileCaching System Init......\t");
-	if(!(size = pak_init())) shutdown(1, "FileCaching System failed to Initialize!\n");
-	printf("%d Bytes\n", size);
-#endif
+	if(pak_init()) printf("Enabled\n");
+	else           printf("Disabled\n");
 
 #if PSP
 	if(savedata.pspcpuspeed<0) savedata.pspcpuspeed = 2;
