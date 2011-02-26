@@ -192,7 +192,10 @@ char * casesearch(const char *dir, const char *filepath)
 	char filename[256] = {""}, *rest_of_path;
 	static char fullpath[256];
 	int i=0;
-
+#ifdef DEBUG
+	printf("casesearch: %s, %s\n", dir, filepath);
+#endif
+	
 	if ((d=opendir(dir)) == NULL) return NULL;
 	
 	// are we searching for a file or a directory?
@@ -260,6 +263,17 @@ int isRawData()
 
 int openpackfile(char *filename, char *packfilename)
 {
+#ifdef DEBUG
+	char* pointsto;
+
+	if (pOpenPackfile == openPackfileCached)
+		pointsto = "oPackCached";
+	else if (pOpenPackfile == openPackfile)
+		pointsto = "openPackFile";
+	else 
+		pointsto = "unknown destination";
+	printf ("openpackfile called: f: %s, p: %s, dest: %s\n", filename, packfilename, pointsto);
+#endif
 	return pOpenPackfile(filename, packfilename);
 }
 
@@ -267,40 +281,51 @@ int openPackfile(char *filename, char *packfilename)
 {
 	int h, handle;
 	unsigned int magic, version, headerstart, p;
-    pnamestruct pn;
+	pnamestruct pn;
 #ifdef LINUX
 	char *fspath;
 #endif
 
-    for(h=0; h<MAXPACKHANDLES && packhandle[h]>-1; h++); // Find free handle
-    if(h>=MAXPACKHANDLES) return -1;			// No free handles
+	for(h=0; h<MAXPACKHANDLES && packhandle[h]>-1; h++); // Find free handle
+	if(h>=MAXPACKHANDLES) {
+#ifdef DEBUG
+		printf ("no free handles\n");
+#endif
+		return -1;			// No free handles
+	}
 
 #ifdef WIN
 	// Convert slashes to backslashes
-    filename = slashback(filename);
+	filename = slashback(filename);
 #else
 	// Convert backslashes to slashes
 	filename = slashfwd(filename);
 #endif
 
-    packfilepointer[h] = 0;
+	packfilepointer[h] = 0;
 
-    // Separate file present?
-    if((handle=open(filename, O_RDONLY|O_BINARY, 777))!=-1)
+	// Separate file present?
+	if((handle=open(filename, O_RDONLY|O_BINARY, 777))!=-1)
 	{
 		if((packfilesize[h]=lseek(handle,0,SEEK_END))==-1)
 		{
+			#ifdef DEBUG
+			printf ("err handles 1\n");
+			#endif			
 			close(handle);
 			return -1;
 		}
 		if(lseek(handle,0,SEEK_SET)==-1)
 		{
+			#ifdef DEBUG
+			printf ("err handles 2\n");
+			#endif						
 			close(handle);
 			return -1;
 		}
 		packhandle[h] = handle;
 		return h;
-    }
+	}
 
 #ifdef LINUX
 	// Try a case-insensitive search for a separate file.
@@ -311,11 +336,17 @@ int openPackfile(char *filename, char *packfilename)
 		{
 			if((packfilesize[h]=lseek(handle,0,SEEK_END))==-1)
 			{
+				#ifdef DEBUG
+				printf ("err handles 3\n");
+				#endif				
 				close(handle);
 				return -1;
 			}
 			if(lseek(handle,0,SEEK_SET)==-1)
 			{
+				#ifdef DEBUG
+				printf ("err handles 4\n");
+				#endif							
 				close(handle);
 				return -1;
 			}
@@ -327,55 +358,77 @@ int openPackfile(char *filename, char *packfilename)
 
 #ifndef WIN
 	// Convert slashes to backslashes
-    filename = slashback(filename);
+	filename = slashback(filename);
 #endif
 
-    // Try to open packfile
-    if((handle=open(packfilename, O_RDONLY|O_BINARY, 777))==-1) return -1;
+	// Try to open packfile
+	if((handle=open(packfilename, O_RDONLY|O_BINARY, 777))==-1) {
+		#ifdef DEBUG
+		printf ("perm err\n");
+		#endif					
+		return -1;
+	}
+	    
 
-    // Read magic dword ("PACK" identifier)
-    if(read(handle,&magic,4)!=4 || magic!=SwapLSB32(PACKMAGIC))
+	// Read magic dword ("PACK" identifier)
+	if(read(handle,&magic,4)!=4 || magic!=SwapLSB32(PACKMAGIC))
 	{
+		#ifdef DEBUG
+		printf ("err magic\n");
+		#endif					
 		close(handle);
 		return -1;
-    }
-    // Read version from packfile
+	}
+	// Read version from packfile
 	if(read(handle,&version,4)!=4 || version!=SwapLSB32(PACKVERSION))
 	{
+		#ifdef DEBUG
+		printf ("err version\n");
+		#endif			
+		
 		close(handle);
 		return -1;
-    }
+	}
 
-    // Seek to position of headerstart indicator
-    if(lseek(handle,-4,SEEK_END)==-1)
+	// Seek to position of headerstart indicator
+	if(lseek(handle,-4,SEEK_END)==-1)
 	{
+		#ifdef DEBUG
+		printf ("seek failed\n");
+		#endif					
 		close(handle);
 		return -1;
-    }
-    // Read headerstart
-    if(read(handle,&headerstart,4)!=4)
+	}
+	// Read headerstart
+	if(read(handle,&headerstart,4)!=4)
 	{
+		#ifdef DEBUG
+		printf ("err header\n");
+		#endif					
 		close(handle);
 		return -1;
-    }
+	}
 
 	headerstart = SwapLSB32(headerstart);
 
 	// Seek to headerstart
-    if(lseek(handle,headerstart,SEEK_SET)==-1)
+	if(lseek(handle,headerstart,SEEK_SET)==-1)
 	{
+		#ifdef DEBUG
+		printf ("err headerstart 1\n");
+		#endif
 		close(handle);
 		return -1;
-    }
+	}
 
-    p = headerstart;
+	p = headerstart;
 
     // Search for filename
-    while(read(handle,&pn,sizeof(pn))>12)
+	while(read(handle,&pn,sizeof(pn))>12)
 	{
 		pn.filesize = SwapLSB32(pn.filesize);
-        pn.filestart = SwapLSB32(pn.filestart);
-        pn.pns_len = SwapLSB32(pn.pns_len);
+		pn.filestart = SwapLSB32(pn.filestart);
+		pn.pns_len = SwapLSB32(pn.pns_len);
 
 		if(stricmp(filename,pn.namebuf)==0)
 		{
@@ -387,13 +440,19 @@ int openPackfile(char *filename, char *packfilename)
 		p += pn.pns_len;
 		if(lseek(handle,p,SEEK_SET)==-1)
 		{
-			close(handle);
+			#ifdef DEBUG
+			printf ("err seek handles\n");
+			#endif						
+			close(handle);			
 			return -1;
 		}
-    }
-    // Filename not found
-    close(handle);
-    return -1;
+	}
+	// Filename not found
+	#ifdef DEBUG
+	printf ("err filename not found\n");
+	#endif
+	close(handle);
+	return -1;
 }
 
 void update_filecache_vfd(int vfd)
@@ -544,16 +603,42 @@ int readPackfileCached(int handle, void *buf, int len)
 
 int closepackfile(int handle)
 {
+#ifdef DEBUG
+	char* pointsto;
+	
+	if (pClosePackfile == closePackfileCached)
+		pointsto = "closePackCached";
+	else if (pClosePackfile == closePackfile)
+		pointsto = "closePackFile";
+	else 
+		pointsto = "unknown destination";
+	printf ("closepackfile called: h: %d, dest: %s\n", handle, pointsto);
+#endif	
 	return pClosePackfile(handle);
 }
 
 int closePackfile(int handle)
 {
-    if(handle<0 || handle>=MAXPACKHANDLES) return -1;
-    if(packhandle[handle] == -1) return -1;
-    close(packhandle[handle]);
-    packhandle[handle] = -1;
-    return 0;
+#ifdef DEBUG
+	printf ("closePackfile called: h: %d\n", handle);
+#endif	
+	
+	if(handle<0 || handle>=MAXPACKHANDLES) 
+	{
+#ifdef DEBUG
+		printf("handle too small/big\n");
+#endif
+		return -1;
+	}
+	if(packhandle[handle] == -1) {
+#ifdef DEBUG
+		printf("packhandle -1\n");
+#endif		
+		return -1;
+	}
+	close(packhandle[handle]);
+	packhandle[handle] = -1;
+	return 0;
 }
 
 int closePackfileCached(int handle)
@@ -768,8 +853,8 @@ void pak_term()
 
 int pak_init()
 {
-    int i;
-    unsigned char *sectors;
+	int i;
+	unsigned char *sectors;
 	unsigned int magic, version;
 
 	if(pak_initilized)
@@ -785,20 +870,20 @@ int pak_init()
 	}
 	
 	pOpenPackfile = openPackfileCached;
-    pReadPackfile = readPackfileCached;
-    pSeekPackfile = seekPackfileCached;
-    pClosePackfile = closePackfileCached;
+	pReadPackfile = readPackfileCached;
+	pSeekPackfile = seekPackfileCached;
+	pClosePackfile = closePackfileCached;
 
 #if DC
 	if(cd_lba)
 	{
-    	paksize = 0;
-	    pakfd = find_iso_file(packfile, cd_lba, &paksize);
-	    if(pakfd <= 0) { printf("unable to find pak file on cd\n"); return 0; }
-    	pakfd = -pakfd;
+		paksize = 0;
+		pakfd = find_iso_file(packfile, cd_lba, &paksize);
+		if(pakfd <= 0) { printf("unable to find pak file on cd\n"); return 0; }
+		pakfd = -pakfd;
   	}
-    else
-    {
+	else
+	{
 #endif
 
 #ifdef PS2
@@ -807,20 +892,20 @@ int pak_init()
 	pakfd = open(packfile, O_RDONLY|O_BINARY, 777);
 #endif
 
-    if(pakfd < 0)
+	if(pakfd < 0)
 	{
-        printf("error opening %s (%d)\n", packfile, pakfd);
-        return 0;
-    }
+		printf("error opening %s (%d)\n", packfile, pakfd);
+		return 0;
+	}
 
 #ifdef PS2
 	paksize = sceLseek(pakfd, 0, SCE_SEEK_END);
 #else
-    paksize = lseek(pakfd, 0, SEEK_END);
+	paksize = lseek(pakfd, 0, SEEK_END);
 #endif
 
 #ifdef DC
-    }
+	}
 #endif
 
 	// Is it a valid Packfile
@@ -845,43 +930,43 @@ int pak_init()
 		return -1;
 	}
 
-    sectors = tracemalloc("pak_init 1",4096);
-    if(!sectors) { printf("sector malloc failed\n"); return 0; }
-    {
-		int getptrfrom = paksize - 4;
-        if(pak_getsectors(sectors, getptrfrom >> 11, 2) < 1)
-		{
-            printf("unable to read pak header pointer\n");
-            return 0;
-        }
-        pak_headerstart = readlsb32(sectors + (getptrfrom & 0x7FF));
-    }
-    tracefree(sectors);
-    if(pak_headerstart >= paksize || pak_headerstart < 0)
+	sectors = tracemalloc("pak_init 1",4096);
+	if(!sectors) { printf("sector malloc failed\n"); return 0; }
 	{
-        printf("invalid pak header pointer\n");
-        return 0;
-    }
-    pak_headersize = paksize - pak_headerstart;
-    {
-        // let's cache it on CD sector boundaries
-        int pak_cdheaderstart = pak_headerstart & (~0x7FF);
-        int pak_cdheadersize = ((paksize - pak_cdheaderstart) + 0x7FF) & (~0x7FF);
-        if(pak_cdheadersize > 524288)
+		int getptrfrom = paksize - 4;
+		if(pak_getsectors(sectors, getptrfrom >> 11, 2) < 1)
 		{
-            // Original value was 262144, which has been doubled.
-            // I can not find a reason why it was orginally set to
-            // this size.  Hence, I have doubled it.  This could
-            // pose a problem on optical media, but that is yet to be
-            // determined.
+			printf("unable to read pak header pointer\n");
+			return 0;
+		}
+		pak_headerstart = readlsb32(sectors + (getptrfrom & 0x7FF));
+	}
+	tracefree(sectors);
+	if(pak_headerstart >= paksize || pak_headerstart < 0)
+	{
+		printf("invalid pak header pointer\n");
+		return 0;
+	}
+	pak_headersize = paksize - pak_headerstart;
+	{
+		// let's cache it on CD sector boundaries
+		int pak_cdheaderstart = pak_headerstart & (~0x7FF);
+		int pak_cdheadersize = ((paksize - pak_cdheaderstart) + 0x7FF) & (~0x7FF);
+		if(pak_cdheadersize > 524288)
+		{
+			// Original value was 262144, which has been doubled.
+			// I can not find a reason why it was orginally set to
+			// this size.  Hence, I have doubled it.  This could
+			// pose a problem on optical media, but that is yet to be
+			// determined.
 			printf("pak header is too large: %d\n",pak_cdheadersize);
-            return 0;
-        }
-        pak_cdheader = tracemalloc("pak_init 2",pak_cdheadersize);
-        if(!pak_cdheader) { printf("pak_cdheader malloc failed\n"); return 0; }
-        if(pak_getsectors(pak_cdheader, pak_cdheaderstart >> 11, pak_cdheadersize >> 11) != (pak_cdheadersize >> 11))
+			return 0;
+		}
+		pak_cdheader = tracemalloc("pak_init 2",pak_cdheadersize);
+		if(!pak_cdheader) { printf("pak_cdheader malloc failed\n"); return 0; }
+		if(pak_getsectors(pak_cdheader, pak_cdheaderstart >> 11, pak_cdheadersize >> 11) != (pak_cdheadersize >> 11))
 		{
-            printf("unable to read pak header\n");
+			printf("unable to read pak header\n");
 			return 0;
 		}
 		// ok, header is now cached
@@ -898,9 +983,9 @@ int pak_init()
 	// initialize vfd table
 	for(i = 0; i < MAXPACKHANDLES; i++) pak_vfdexists[i] = 0;
 	// finally, initialize the filecache
-    filecache_init(pakfd, (paksize + 0x7FF) / 0x800, CACHEBLOCKSIZE, CACHEBLOCKS, MAXPACKHANDLES);
+	filecache_init(pakfd, (paksize + 0x7FF) / 0x800, CACHEBLOCKSIZE, CACHEBLOCKS, MAXPACKHANDLES);
 	pak_initilized = 1;
-    return (CACHEBLOCKSIZE * CACHEBLOCKS + 64);
+	return (CACHEBLOCKSIZE * CACHEBLOCKS + 64);
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -563,7 +563,12 @@ int buffer_pakfile(char* filename, char** pbuffer, size_t* psize)
 	printf("pakfile requested: %s.\n", filename); //ASDF
 #endif
 
-	if((handle=openpackfile(filename,packfile)) < 0) return 0;
+	if((handle=openpackfile(filename,packfile)) < 0) {
+#ifdef DEBUG
+		printf("couldnt get handle!\n");
+#endif
+		return 0;
+	}
 	*psize = seekpackfile(handle,0,SEEK_END);
 	seekpackfile(handle,0,SEEK_SET);
 
