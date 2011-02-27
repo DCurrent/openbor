@@ -25,9 +25,13 @@ typedef struct Interpreter {
    Parser theParser;
    pp_context theContext;
 
-   int currentCallIndex;
-   int mainEntryIndex;
-   int returnEntryIndex;
+   Instruction** pCurrentInstruction;
+   Instruction** pCurrentCall;
+   Instruction** pReturnEntry;
+   union { // we have to use the index before solidifying the instruction list
+      Instruction** pMainEntry;
+      int mainEntryIndex;
+   };
    int bHasImmediateCode;
 
    BOOL bCallCompleted;

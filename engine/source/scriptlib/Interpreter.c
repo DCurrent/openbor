@@ -180,20 +180,20 @@ HRESULT Interpreter_GetValueByRef(Interpreter* pinterpreter, LPCSTR variable, Sc
 HRESULT Interpreter_Call(Interpreter* pinterpreter)
 {
     HRESULT hr = E_FAIL;
-    int temp = pinterpreter->currentCallIndex;
-    int currentCallIndex = pinterpreter->theInstructionList.index;
+    Instruction** temp = pinterpreter->pCurrentCall;
+    Instruction** pCurrentCall = (Instruction**)(pinterpreter->pCurrentInstruction);
     Instruction* currentCall;
     ScriptVariant *pretvar;
 
-    if(currentCallIndex<0){
+    if(pCurrentCall==NULL){
         pinterpreter->bCallCompleted = FALSE;
         return E_FAIL;
     }
-    pinterpreter->currentCallIndex = currentCallIndex;
-    currentCall = (Instruction*)(pinterpreter->theInstructionList.solidlist[currentCallIndex]);
+    pinterpreter->pCurrentCall = pCurrentCall;
+    currentCall = *((Instruction**)(pinterpreter->pCurrentInstruction));
     //Search for the specified entry point.
-    if (currentCall->theJumpTargetIndex>=0){
-        pinterpreter->theInstructionList.index = currentCall->theJumpTargetIndex;
+    if (currentCall->ptheJumpTarget){
+        pinterpreter->pCurrentInstruction = currentCall->ptheJumpTarget;
         hr = Interpreter_EvaluateCall(pinterpreter);
     }
     else if( currentCall->functionRef)
@@ -213,9 +213,9 @@ HRESULT Interpreter_Call(Interpreter* pinterpreter)
     }
     //jump back
     if (SUCCEEDED(hr)){
-        pinterpreter->theInstructionList.index = currentCallIndex;
+        pinterpreter->pCurrentInstruction = pCurrentCall;
     }
-    pinterpreter->currentCallIndex = temp;
+    pinterpreter->pCurrentCall = temp;
 
     //Reset the m_bCallCompleted flag back to false
     pinterpreter->bCallCompleted = FALSE;
@@ -238,16 +238,16 @@ HRESULT Interpreter_EvaluateImmediate(Interpreter* pinterpreter)
     BOOL bImmediate = FALSE;
     HRESULT hr = S_OK;
     Instruction* pInstruction = NULL;
-    int size;
+    int size, index;
 
     if(pinterpreter->bHasImmediateCode)
     {
         //Run through all the instructions in the list, only executing those wrapped
         //by IMMEDIATE and DEFERRED.
         size = pinterpreter->theInstructionList.size;
-        for(pinterpreter->theInstructionList.index = 0; pinterpreter->theInstructionList.index<size; pinterpreter->theInstructionList.index++)
+        for(index = 0; index<size; index++)
         {
-            pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[pinterpreter->theInstructionList.index]);
+            pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[index]);
             //Check the current mode
             if (pInstruction->OpCode == IMMEDIATE)
                 bImmediate = TRUE;
@@ -256,8 +256,8 @@ HRESULT Interpreter_EvaluateImmediate(Interpreter* pinterpreter)
 
             //If the current mode is Immediate, then evaluate the instruction
             if (bImmediate){
+            	pinterpreter->pCurrentInstruction = ((Instruction**)pinterpreter->theInstructionList.solidlist) + index;
                 hr = Interpreter_EvalInstruction(pinterpreter);
-                pinterpreter->theInstructionList.index--; //step back, because later we'll do the ++ operation
             }
             //If we failed, then we need to break out of this loop
             if (FAILED(hr))
@@ -269,8 +269,8 @@ HRESULT Interpreter_EvaluateImmediate(Interpreter* pinterpreter)
     //known entry point into C code, so we call it as part of immediate execution.
     //Don't call "main" if it has already been called once.
     if (!pinterpreter->bMainCompleted){
-        if(pinterpreter->mainEntryIndex>=0) {
-            pinterpreter->theInstructionList.index = pinterpreter->mainEntryIndex;
+        if(pinterpreter->pMainEntry) {
+            pinterpreter->pCurrentInstruction = pinterpreter->pMainEntry;
             hr = Interpreter_EvaluateCall(pinterpreter);
         } else hr = E_FAIL;
         if (SUCCEEDED(hr))
@@ -616,6 +616,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
         }
         List_GotoNext(&(pinterpreter->theInstructionList));
     }
+    
     // clear some unused properties
     List_Reset(&(pinterpreter->theInstructionList));
     size = List_GetSize(&(pinterpreter->theInstructionList));
@@ -627,11 +628,28 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
         if(pInstruction->Label) {tracefree(pInstruction->Label); pInstruction->Label=NULL;}
         List_GotoNext(&(pinterpreter->theInstructionList));
     }
+    
     // make a solid list that can be referenced by index
     List_Solidify(&(pinterpreter->theInstructionList));
     StackedSymbolTable_Clear(&(pinterpreter->theSymbolTable));
     List_Clear(&(pinterpreter->theDataStack));
     List_Clear(&(pinterpreter->theLabelStack));
+    
+    // convert mainEntryIndex (int) to pMainEntry (Instruction**)
+    if(pinterpreter->mainEntryIndex >= 0)
+    	pinterpreter->pMainEntry = (Instruction**)(&(pinterpreter->theInstructionList.solidlist[pinterpreter->mainEntryIndex]));
+    else
+    	pinterpreter->pMainEntry = NULL;
+    
+    // convert theJumpTargetIndex (int) to ptheJumpTarget (Instruction**)
+    for(i=0; i<size; i++)
+    {
+    	pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[i]);
+    	if(pInstruction->theJumpTargetIndex >= 0)
+    		pInstruction->ptheJumpTarget = (Instruction**)&(pinterpreter->theInstructionList.solidlist[pInstruction->theJumpTargetIndex]);
+    	else
+    		pInstruction->ptheJumpTarget = NULL;
+    }
 
     return hr;
 }
@@ -651,7 +669,7 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
     Instruction* returnEntry;
 
     //Retrieve the current instruction from the list
-    pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[pinterpreter->theInstructionList.index]);
+    pInstruction = *((Instruction**)pinterpreter->pCurrentInstruction);
 
     if (pInstruction){
 
@@ -774,9 +792,9 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
          //Create a new CSymbol from a value on the stack and add it to the
          //symbol table.
         case PARAM:
-            if(pinterpreter->currentCallIndex>=0){
+            if(pinterpreter->pCurrentCall){
                 //copy value from the cached parameter
-                currentCall = (Instruction*)(pinterpreter->theInstructionList.solidlist[pinterpreter->currentCallIndex]);
+                currentCall = *(pinterpreter->pCurrentCall);
                 ScriptVariant_Copy(pInstruction->theVal, (ScriptVariant*)(currentCall->theRefList->solidlist[currentCall->theRefList->index]));
                 currentCall->theRefList->index++;
             }
@@ -797,26 +815,26 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 
        // return
        case JUMPR:
-            pinterpreter->returnEntryIndex = pinterpreter->theInstructionList.index;
-            if(pInstruction->theJumpTargetIndex<0)
+            pinterpreter->pReturnEntry = pinterpreter->pCurrentInstruction;
+            if(pInstruction->ptheJumpTarget==NULL)
                 hr = E_FAIL;
-            else pinterpreter->theInstructionList.index = pInstruction->theJumpTargetIndex;
+            else pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
             break;
 
          //Jump to the specified label
         case JUMP:
-            if(pInstruction->theJumpTargetIndex<0)
+            if(pInstruction->ptheJumpTarget==NULL)
                 hr = E_FAIL;
-            else pinterpreter->theInstructionList.index = pInstruction->theJumpTargetIndex;
+            else pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
             break;
 
          //Jump if the top ScriptVariant resolves to false
         case Branch_FALSE:
             if(!ScriptVariant_IsTrue(pInstruction->theRef))
             {
-                if(pInstruction->theJumpTargetIndex<0)
+                if(pInstruction->ptheJumpTarget==NULL)
                     hr = E_FAIL;
-                else pinterpreter->theInstructionList.index = pInstruction->theJumpTargetIndex;
+                else pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
             }
             break;
 
@@ -824,35 +842,38 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
         case Branch_TRUE:
             if(ScriptVariant_IsTrue(pInstruction->theRef))
             {
-                if(pInstruction->theJumpTargetIndex<0)
+                if(pInstruction->ptheJumpTarget==NULL)
                     hr = E_FAIL;
-                else pinterpreter->theInstructionList.index = pInstruction->theJumpTargetIndex;
+                else pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
             }
             break;
 
          //Set the m_bCallCompleted flag to true so we know to stop evalutating
          //instructions
         case RET:
-            if(pinterpreter->returnEntryIndex >= 0){
-                returnEntry = (Instruction*)(pinterpreter->theInstructionList.solidlist[pinterpreter->returnEntryIndex]);
-                if(returnEntry->theRef && pinterpreter->currentCallIndex>=0)
+            if(pinterpreter->pReturnEntry){
+                returnEntry = *(pinterpreter->pReturnEntry);
+                if(returnEntry->theRef && pinterpreter->pCurrentCall)
                 {
-                    currentCall = (Instruction*)(pinterpreter->theInstructionList.solidlist[pinterpreter->currentCallIndex]);
+                    currentCall = *(pinterpreter->pCurrentCall);
                     ScriptVariant_Copy(currentCall->theVal, returnEntry->theRef);
                 }
             }
-            pinterpreter->returnEntryIndex = -1;
+            pinterpreter->pReturnEntry = NULL;
             pinterpreter->bCallCompleted = TRUE;
             break;
 
          //Make sure the argument count on the top of the stack matches the
          //number of arguments we have
         case CHECKARG:
-            if(pinterpreter->currentCallIndex>=0 &&
-               pInstruction->theVal->lVal != ((Instruction*)(pinterpreter->theInstructionList.solidlist[pinterpreter->currentCallIndex]))->theRef->lVal)
+            if(pinterpreter->pCurrentCall)
             {
-                printf("Runtime error: argument count(%d) doesn't match, check your function call.\n", (int)pInstruction->theVal->lVal);
-                hr = E_FAIL;
+            	currentCall = *(pinterpreter->pCurrentCall);
+            	if(pInstruction->theVal->lVal != currentCall->theRef->lVal)
+            	{
+		            printf("Runtime error: argument count(%d) doesn't match, check your function call.\n", (int)pInstruction->theVal->lVal);
+		            hr = E_FAIL;
+                }
             }
             break;
 
@@ -896,7 +917,7 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
             printf("\nOpCode: %d\n", pInstruction->OpCode);
         }
       //Increment the instruction list
-        pinterpreter->theInstructionList.index++;
+        pinterpreter->pCurrentInstruction++;
     }
 
     //return the result of this token evaluation
@@ -979,9 +1000,9 @@ void Interpreter_OutputPCode(Interpreter* pinterpreter, LPCSTR fileName )
 ******************************************************************************/
 void Interpreter_Reset(Interpreter* pinterpreter)
 {
-    pinterpreter->currentCallIndex=-1;
-    pinterpreter->returnEntryIndex=-1;
-    pinterpreter->theInstructionList.index = 0;
+    pinterpreter->pCurrentCall=NULL;
+    pinterpreter->pReturnEntry=NULL;
+    pinterpreter->pCurrentInstruction = NULL;
     //Reset the main flag
     pinterpreter->bMainCompleted = FALSE;
 }
