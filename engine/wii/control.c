@@ -81,14 +81,7 @@ void wiimote_poweroff(int playernum)
 // Resetting returns to the Homebrew Channel.
 void respondToPowerReset()
 {
-	shutdown(hwbutton,
-		"OpenBoR %s, Compile Date: " __DATE__ "\n"
-		"Presented by Team Senile.\n"
-		"This Version is unofficial and based on the Senile Source Code.\n"
-		"\n"
-		"Special thanks to SEGA and SNK.\n\n",
-		VERSION
-		);
+	shutdown(hwbutton, DEFAULT_SHUTDOWN_MESSAGE);
 }
 
 static int flag_to_index(unsigned long flag)
