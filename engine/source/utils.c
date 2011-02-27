@@ -184,20 +184,19 @@ stringptr* readFromLogFile(int which)
 
 void writeToLogFile(const char * msg, ...)
 {
-#ifdef DC // no writable filesystem available, so log to standard output
+	va_list arglist;
+
+#ifdef DC
 	va_start(arglist, msg);
 	vfprintf(stdout, msg, arglist);
 	va_end(arglist);
 	fflush(stdout);
-#else // write message to log file
-	va_list arglist;
-	
+#else	
 	if(openborLog == NULL)
 	{
 		openborLog = OPEN_LOGFILE(OPENBOR_LOG);
 		if(openborLog == NULL) return;
 	}
-	
 	va_start(arglist, msg);
 	vfprintf(openborLog, msg, arglist);
 	va_end(arglist);
