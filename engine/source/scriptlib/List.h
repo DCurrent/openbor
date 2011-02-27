@@ -37,21 +37,21 @@
 #define NAME(s) ((s==NULL)?NULL:(strcpy((CHAR*)tracemalloc("NAME(s)", strlen(s)+1),s)))
 
 typedef struct Node{
-   //data members
-   void* value;                //data stored in a Node
-   LPCSTR name;                //optional name of the Node
-   struct Node* next;          //pointer to next Node
-}Node;
+	//struct Node* prev;          //pointer to previous Node
+	struct Node* next;          //pointer to next Node	
+	void* value;                //data stored in a Node
+	LPCSTR name;                //optional name of the Node
+} Node;
 
-typedef struct List{
-   //Data members
-   Node *first;
-   Node *current;
-   Node *last;
-   void **solidlist;
-   int  index;
-   int size;
-}List;
+typedef struct List {
+	//Data members
+	Node *first;
+	Node *current;
+	Node *last;
+	void **solidlist;
+	int index;
+	int size;
+} List;
 
 
 void Node_Clear(Node* node);
