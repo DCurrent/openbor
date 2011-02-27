@@ -833,9 +833,11 @@ bool pp_parser_eval_conditional(pp_parser* self, PP_TOKEN_TYPE directive)
  */
 void pp_parser_insert_macro(pp_parser* self, char* name)
 {
-	pp_parser* macroParser;
-	List_FindByName(&self->ctx->macros, name);
-	macroParser = pp_parser_alloc_macro(self, List_Retrieve(&self->ctx->macros), 0, PP_NORMAL_MACRO);
+	// don't waste time searching under normal circumstances
+	if(strcmp((char*)List_Retrieve(&self->ctx->macros), name)) 
+		List_FindByName(&self->ctx->macros, name);
+	
+	pp_parser_alloc_macro(self, List_Retrieve(&self->ctx->macros), 0, PP_NORMAL_MACRO);
 }
 
 /**
@@ -850,7 +852,8 @@ HRESULT pp_parser_insert_function_macro(pp_parser* self, char* name)
 	char paramBuffer[1024] = "", *tail;
 	
 	// find macro and get number of parameters
-	List_FindByName(&self->ctx->func_macros, name);
+	if(strcmp((char*)List_Retrieve(&self->ctx->func_macros), name))
+		List_FindByName(&self->ctx->func_macros, name);
 	params = List_Retrieve(&self->ctx->func_macros);
 	numParams = List_GetSize(params) - 1;
 	
