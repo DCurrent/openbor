@@ -23060,13 +23060,6 @@ void openborMain()
 		update(0,0);
 	}
 
-	shutdown(0,
-		"OpenBoR %s, Compile Date: " __DATE__ "\n"
-		"Presented by Team Senile.\n"
-		"This Version is unofficial and based on the Senile Source Code.\n"
-		"\n"
-		"Special thanks to SEGA and SNK.\n\n",
-		VERSION
-	);
+	shutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
 }
 
