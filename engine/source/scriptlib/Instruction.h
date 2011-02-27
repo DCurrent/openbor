@@ -31,8 +31,11 @@ typedef struct Instruction{
    ScriptVariant* theRef2;
    List* theRefList;
    HRESULT (*functionRef)(ScriptVariant**, ScriptVariant**, int);
-   //struct Instruction*   theJumpTarget;
-   int   theJumpTargetIndex;
+   union{
+      int theJumpTargetIndex;
+      struct Instruction** ptheJumpTarget;
+      //struct Instruction* theJumpTarget;
+   };
 }Instruction;
 
 
