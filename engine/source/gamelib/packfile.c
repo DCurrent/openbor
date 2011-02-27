@@ -128,26 +128,47 @@ static ClosePackfile pClosePackfile;
 //
 // Generic but useful functions
 //
-char myfilenametolower(char c)
+char tolowerOneChar(char* c)
 {
-    if(c >= 'A' && c <= 'Z') c += 'a' - 'A';
-    if(c == '\\') c = '/';
-    return c;
+	static const char diff = 'a' - 'A';
+	switch(*c) {
+		case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': 
+		case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': 
+		case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z': 
+			return *c + diff;
+		case '\\':
+			return '/';
+		default:
+			return *c;
+	}
+	return '\0'; //should never be reached
 }
 
-int myfilenamecmp(const char *a, const char *b)
+// we only return 0 on success, and non 0 on failure, to speed it up
+int myfilenamecmp(const char *a, size_t asize, const char *b, size_t bsize)
 {
-    for(;;)
-	{
-        char ca = *a++;
-        char cb = *b++;
-        if((!ca) && (!cb)) break;
-        ca = myfilenametolower(ca);
-        cb = myfilenametolower(cb);
-        if(ca < cb) return -1;
-        if(ca > cb) return 1;
-    }
-    return 0;
+	char* ca;
+	char* cb;
+	
+	if (a == b) return 0;
+	if(asize != bsize) return 1;
+	
+	ca = (char*) a;
+	cb = (char*) b;
+	
+	for (;;) {
+		if (!*ca) {
+			if (*cb) return -1;
+			else return 0; // default exit on match
+		}
+		if (!*cb) return 1;
+		if (*ca == *cb) goto cont;
+		if (tolowerOneChar(ca) != tolowerOneChar(cb)) return 1;
+		cont:
+		ca++;
+		cb++;		
+	}
+	return -2; // should never be reached
 }
 
 // Convert slashes (UNIX) to backslashes (DOS).
@@ -463,45 +484,56 @@ void update_filecache_vfd(int vfd)
 
 int openreadaheadpackfile(char *filename, char *packfilename, int readaheadsize, int prebuffersize)
 {
-    int hpos;
-    int vfd;
-
-    if(myfilenamecmp(packfilename, packfile))
-    {
-        printf("tried to open from unknown pack file (%s)\n", packfilename);
-        return -1;
-    }
+	int hpos;
+	int vfd;
+	size_t fnl;
+	size_t al;
+	char* target;   
+    
+	if(packfilename != packfile) {
+		fnl = strlen(packfile);
+		al = strlen(packfilename);
+		if(myfilenamecmp(packfilename, al, packfile, fnl))
+		{
+			printf("tried to open from unknown pack file (%s)\n", packfilename);
+			return -1;
+		}
+	}
 
     // find a free vfd
-    for(vfd = 0; vfd < MAXPACKHANDLES; vfd++) if(!pak_vfdexists[vfd]) break;
-    if(vfd >= MAXPACKHANDLES) return -1;
+	for(vfd = 0; vfd < MAXPACKHANDLES; vfd++) if(!pak_vfdexists[vfd]) break;
+	if(vfd >= MAXPACKHANDLES) return -1;
 
-    // look for filename in the header
-    hpos = 0;
-    for(;;)
-    {
-        if((hpos + 12) >= pak_headersize) return -1;
-        if(myfilenamecmp((char*)pak_header + hpos + 12, filename))
-        {
-            hpos += readlsb32(pak_header + hpos);
-            continue;
-        }
-        // found!
-        pak_vfdstart[vfd] = readlsb32(pak_header + hpos + 4);
-        pak_vfdsize[vfd] = readlsb32(pak_header + hpos + 8);
-        break;
-    }
+	// look for filename in the header
+	fnl = strlen(filename);
+	hpos = 0;
+	for(;;)
+	{
+		if((hpos + 12) >= pak_headersize) return -1;
+		target = (char*)pak_header + hpos + 12;
+		al = strlen(target);
+	
+		if(myfilenamecmp(target, al, filename, fnl))
+		{
+			hpos += readlsb32(pak_header + hpos);
+			continue;
+		}
+		// found!
+		pak_vfdstart[vfd] = readlsb32(pak_header + hpos + 4);
+		pak_vfdsize[vfd] = readlsb32(pak_header + hpos + 8);
+		break;
+	}
 
-    pak_vfdpos[vfd] = 0;
-    pak_vfdexists[vfd] = 1;
-    pak_vfdreadahead[vfd] = readaheadsize;
+	pak_vfdpos[vfd] = 0;
+	pak_vfdexists[vfd] = 1;
+	pak_vfdreadahead[vfd] = readaheadsize;
 
-    // notify filecache that we have a new vfd
-    update_filecache_vfd(vfd);
+	// notify filecache that we have a new vfd
+	update_filecache_vfd(vfd);
 
-    // if we want prebuffering, wait for it
-    if(prebuffersize > 0) filecache_wait_for_prebuffer(vfd, (prebuffersize + ((CACHEBLOCKSIZE)-1)) / CACHEBLOCKSIZE);
-    return vfd;
+	// if we want prebuffering, wait for it
+	if(prebuffersize > 0) filecache_wait_for_prebuffer(vfd, (prebuffersize + ((CACHEBLOCKSIZE)-1)) / CACHEBLOCKSIZE);
+	return vfd;
 }
 
 int openPackfileCached(char *filename, char *packfilename)
