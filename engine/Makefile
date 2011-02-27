@@ -57,7 +57,7 @@ INCLUDES        = $(SDKPATH)/include \
                   $(SDKPATH)/include/SDL
 LIBRARIES       = $(SDKPATH)/lib
 ARCHFLAGS       = -m32
-ifeq ($(findstring 86, $(MACHINENAME)), 86)
+ifeq ($(findstring 86, $(TARGET_ARCH)), 86)
 BUILD_MMX       = 1
 endif
 ifeq ($(BUILD_WIN), 0)
@@ -120,7 +120,7 @@ INCLUDES        = $(DWNDEV)/include \
                   $(SDKPATH)/usr/include/malloc
 LIBRARIES       = $(DWNDEV)/lib
 ARCHFLAGS       = -m32
-ifeq ($(findstring 86, $(MACHINENAME)), 86)
+ifeq ($(findstring 86, $(TARGET_ARCH)), 86)
 BUILD_MMX       = 1
 endif
 ifeq ($(BUILD_DARWIN), 0)
