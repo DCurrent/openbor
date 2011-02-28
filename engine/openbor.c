@@ -9518,6 +9518,7 @@ void predrawstatus(){
                 spriteq_add_sprite(videomodes.shiftpos[i]+picon[i][0],picon[i][1], 10000, icon, &drawmethod, 0);
             }
 
+
             if((player[i].playkeys & FLAG_ANYBUTTON || (skipselect&&(*skipselect)[current_set][i])) && !freezeall && !nojoin)    // Can't join while animations are frozen
             {
                 // reports error if players try to use the same character and sameplay mode is off
@@ -9808,7 +9809,7 @@ void update_loading(int pos_x, int pos_y, int size_x, int text_x, int text_y, in
 	video_copy_screen(vscreen);
 	spriteq_clear();
 	sound_update_music();
-	//inputrefresh();
+	control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
 }
 
 void addscore(int playerindex, int add){
@@ -17115,6 +17116,7 @@ void player_think()
         return;
     }
 
+
     // cant do anything if busy
 	if(!self->idling && !(self->animation->idle && self->animation->idle[self->animpos]))
     {
@@ -22848,6 +22850,7 @@ void openborMain()
 			if(bothkeys & FLAG_MOVEUP && time >= menutime)
 			{
 				--selector;
+
 				menutime = time + GAME_SPEED/8;
 			}
 			if(bothkeys & FLAG_MOVEDOWN && time >= menutime)
