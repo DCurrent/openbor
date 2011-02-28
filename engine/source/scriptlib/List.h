@@ -37,10 +37,11 @@
 #define NAME(s) ((s==NULL)?NULL:(strcpy((CHAR*)tracemalloc("NAME(s)", strlen(s)+1),s)))
 
 typedef struct Node{
-	//struct Node* prev;          //pointer to previous Node
+	struct Node* prev;          //pointer to previous Node
 	struct Node* next;          //pointer to next Node	
 	void* value;                //data stored in a Node
 	LPCSTR name;                //optional name of the Node
+	//unsigned int hash;
 } Node;
 
 typedef struct List {
@@ -53,7 +54,8 @@ typedef struct List {
 	int size;
 } List;
 
-
+Node* List_GetCurrent(List* list);
+void List_SetCurrent(List* list, Node* current);
 void Node_Clear(Node* node);
 void List_Init(List* list);
 void List_Solidify(List* list);
