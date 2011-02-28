@@ -8,16 +8,43 @@
 
 #include "List.h"
 #include "tracemalloc.h"
+#include <assert.h>
+
+void List_GotoLast(List* list)
+{
+	#ifdef LIST_DEBUG
+	printf("List_Last %p\n", list);
+	#endif
+	list->current = list->last;
+}
+
+void List_GotoFirst(List* list) {
+	#ifdef LIST_DEBUG
+	printf("List_First %p\n", list);
+	#endif
+	list->current = list->first;
+}
+
+Node* List_GetCurrent(List* list) {
+	return list == NULL ? NULL : list->current;
+}
+
+void List_SetCurrent(List* list, Node* current) {
+	if (list) list->current = current;
+}
+
 
 void Node_Clear(Node* node)
 {
 	if(!node) return;
 	if(node->name) tracefree((void*)node->name);
-	//memset(node, 0, sizeof(Node));
 }
 
 void List_Init(List* list)
 {
+	#ifdef LIST_DEBUG
+	printf("List_Init %p\n", list);
+	#endif
 	list->first = list->current = list->last = NULL;
 	list->size = list->index = 0;
 	list->solidlist = NULL;
@@ -25,20 +52,17 @@ void List_Init(List* list)
 
 void List_Solidify(List* list)
 {
-	int i;
-	Node *tp;
-	Node *nptr = list->first;
+	int i = 0;
+	#ifdef LIST_DEBUG
+	printf("List_Solid %p\n", list);
+	#endif
 	if(list->solidlist) tracefree(list->solidlist);
 	if(!list->size) return;
+	List_GotoFirst(list);
 	list->solidlist = (void**)tracemalloc("List_Solidify", sizeof(void*)*(list->size));
-	for(i=0; i<list->size; i++)
-	{
-		list->solidlist[i] = nptr->value;
-		if(nptr->name) tracefree((void*)nptr->name);
-		tp = nptr;
-		nptr = nptr->next;
-		tracefree(tp);
-		tp = NULL;
+	while(list->current) {
+		list->solidlist[i++] = list->current->value;
+		List_Remove(list);
 	}
 	list->first = list->current = list->last = NULL;
 	list->index = 0;
@@ -60,9 +84,13 @@ int List_GetIndex(List* list)
 
 void List_Copy(List* listdest, const List* listsrc)
 {
+	#ifdef LIST_DEBUG
+	printf("List_Copy %p %p\n", listsrc, listdest);
+	#endif
 	Node *lptr = listsrc->first;
 	Node *nptr;
-
+	int i = 0, curr = -1;
+	
 	//is the list we're copying empty
 	if (lptr == NULL)
 	{
@@ -71,54 +99,46 @@ void List_Copy(List* listdest, const List* listsrc)
 	}
 	else
 	{
-	//create the first Node
-		nptr = (Node*)tracemalloc("List_Copy #1", sizeof(Node));
+		List_Init(listdest);
+		//create the first Node
+		nptr = (Node*)tracemalloc("List Copy", sizeof(Node));
 		nptr->value = lptr->value;
 		nptr->name = NAME(lptr->name);
-
-		//check if the Node we're copying is the current Node of the other list
-		if (lptr == listsrc->current)
-			listdest->current = nptr;
-
-		//set the first pointer
-		listdest->first = nptr;
-
-		//move on to the next Node to copy
-		lptr = lptr->next;
-
-		while(lptr)
-		{
-			//create the next Node
-			nptr->next = (Node*)tracemalloc("List_Copy #2", sizeof(Node));
-			nptr = nptr->next;
-			nptr->value = lptr->value;
-			nptr->name = NAME(lptr->name);
-
-			//check if the Node we're copying is the current Node of the other list
-			if (lptr == listsrc->current)
-			listdest->current= nptr;
-
-			//move on to the next Node to copy
-			lptr = lptr->next;
-		}
-
-		//finish the last Node
+		nptr->prev = NULL;
 		nptr->next = NULL;
-
-		//set the last pointer
+		
+		listdest->current = nptr;
+		listdest->first = nptr;
 		listdest->last = nptr;
-
-		//set the size of the new list
-		listdest->size = listsrc->size;
+		listdest->size = 1;
+		
+		if (listsrc->current == lptr)
+			curr = i;
+		while ((lptr = lptr->next) != NULL) {
+			i++;
+			if (listsrc->current == lptr)
+				curr = i;
+			List_InsertAfter(listdest, lptr->value, lptr->name);
+			
+		}
+		assert(curr != -1);
+		List_GotoFirst(listdest);
+		for(i=0;i<curr;i++)
+			List_GotoNext(listdest); //setting current to the right value
+			
 	}
 }
 
 void List_Clear(List* list)
 {
+	#ifdef LIST_DEBUG
+	printf("List_clear %p \n", list);
+	#endif
+	
 	//Delete all the Nodes in the list.
 	Node* nptr = list->first;
 	list->current = list->first;
-
+	
 	while(list->current)
 	{
 		list->current = list->current->next;
@@ -138,46 +158,58 @@ void List_Clear(List* list)
 //Insertion functions
 void List_InsertBefore(List* list, void* e, LPCSTR theName)
 {
+	#ifdef LIST_DEBUG
+	printf("List_InsertBefore %p %s\n", list, theName ? theName : "no-name");
+	#endif
 	//Construct a new Node
 	Node *nptr = (Node*)tracemalloc("List_InsertBefore", sizeof(Node));
-
+	assert(nptr != NULL);
+	
+	nptr->value = e;
+	nptr->name = NAME(theName);
+	
 	if (list->size == 0)
 	{
-		nptr->value = e;
-		nptr->name = NAME(theName);
 		nptr->next = NULL;
+		nptr->prev = NULL;
 		list->current = list->first = list->last = nptr;
 	}
 	else
 	{
-		//To avoid traversals, insert after current and then swap values
-		nptr->value = list->current->value;
-		nptr->next = list->current->next;
-		nptr->name = list->current->name;
-		list->current->value = e;
-		list->current->next = nptr;
-		list->current->name = NAME(theName);
-		if (list->current == list->last)
-			list->last = nptr;
+		nptr->next = list->current;
+		nptr->prev = list->current->prev;
+		if (list->current->prev != NULL)
+			list->current->prev->next = nptr;
+		list->current->prev = nptr;
+		if (list->current == list->first) list->first = nptr;
+		list->current = nptr;
 	}
 	list->size++;
 }
 
-void List_InsertAfter(List* list, void* e, LPCSTR theName)
-{
+void List_InsertAfter(List* list, void* e, LPCSTR theName) {
+	#ifdef LIST_DEBUG
+	printf("List_InsertAfter %p %s\n", list, theName ? theName : "no-name");
+	#endif
+	
 	//Construct a new Node and fill it with the appropriate value
 	Node *nptr = (Node*)tracemalloc("List_InsertAfter", sizeof(Node));
+	
+	assert(nptr != NULL);
 	nptr->value = e;
 	nptr->name = NAME(theName);
-
+	
 	if (list->size == 0)
 	{
+		nptr->prev = NULL;
 		nptr->next = NULL;
 		list->current = list->first = list->last = nptr;
 	}
 	else
 	{
 		nptr->next = list->current->next;
+		nptr->prev = list->current;
+		if (list->current->next != NULL) list->current->next->prev = nptr;
 		list->current->next = nptr;
 		if (list->current == list->last)
 			list->last = nptr;
@@ -189,6 +221,10 @@ void List_InsertAfter(List* list, void* e, LPCSTR theName)
 void List_Remove(List* list)
 {
 	Node *nptr;
+	#ifdef LIST_DEBUG
+	printf("List_Remove %p\n", list);
+	#endif
+	
 	if (list->size == 0)
 	{
 		//OutputDebugString("Attempted to remove from empty list.\n");
@@ -200,52 +236,44 @@ void List_Remove(List* list)
 		tracefree(list->current);
 		list->first = list->current = list->last = NULL;
 	}
-	else if (list->current == list->last)
-	{
-		nptr = list->first;
-		while (nptr->next != list->current)
-			nptr = nptr->next;
-
-		nptr->next = NULL;
-		Node_Clear(list->current);
-		tracefree(list->current);
-
-		list->current = list->last = nptr;
-	}
 	else
 	{
-		nptr = list->current->next;
-		list->current->value = nptr->value;
-		if(list->current->name)tracefree( (void*)list->current->name);
-		list->current->name = NAME(nptr->name);
-		list->current->next = nptr->next;
-		if(list->last==nptr) list->last = list->current;
-		Node_Clear(nptr);
-		tracefree( (void*)nptr);
+		if(list->current->prev != NULL)
+			list->current->prev->next = list->current->next;
+		if(list->current->next)
+			list->current->next->prev = list->current->prev;
+		if (list->current == list->last)
+			nptr = list->current->prev;
+		else
+			nptr = list->current->next;
+		
+		Node_Clear(list->current);
+		tracefree(list->current);
+		if (list->current == list->last)
+			list->last = nptr;
+		if (list->current == list->first)
+			list->first = nptr;
+		list->current = nptr;
 	}
 	list->size--;
 }
 
 void List_GotoNext(List* list)
 {
+	#ifdef LIST_DEBUG
+	printf("List_Next %p\n", list);
+	#endif
 	if (list->current != list->last)
-	list->current = list->current->next;
+		list->current = list->current->next;
 }
 
 void List_GotoPrevious(List* list)
 {
-	if (list->current != list->first)
-	{
-		Node* nptr = list->first;
-		while (nptr->next != list->current)
-			nptr = nptr->next;
-		list->current = nptr;
-	}
-}
-
-void List_GotoLast(List* list)
-{
-	list->current = list->last;
+	#ifdef LIST_DEBUG
+	printf("List_Prev %p\n", list);
+	#endif
+	if (list->current->prev)
+		list->current = list->current->prev;
 }
 
 void* List_Retrieve(const List* list)
@@ -291,23 +319,22 @@ int List_Includes(List* list, void* e)
 int List_FindByName(List* list, LPCSTR theName )
 {
 	Node *nptr = list->first;
-
-	//This nasty chain of whiles and ifs is necessary because not all nodes
-	//may actually be named.
+	
 	while (nptr){
 		if (nptr->name){
 			if (strcmp( nptr->name, theName ) == 0)
-			break;
+				break;
 		}
 		nptr = nptr->next;
 	}
-
+	
 	if (nptr != NULL){
 		list->current = nptr;
 		return 1;
 	}
 	else
 		return 0;
+	
 }
 
 LPCSTR List_GetName(const List* list)
@@ -320,6 +347,9 @@ LPCSTR List_GetName(const List* list)
 
 void List_Reset(List* list)
 {
+	#ifdef LIST_DEBUG
+	printf("List_Reset %p\n", list);
+	#endif
 	list->current = list->first;
 }
 
@@ -327,4 +357,5 @@ int List_GetSize(const List* list)
 {
 	return list->size;
 }
+
 
