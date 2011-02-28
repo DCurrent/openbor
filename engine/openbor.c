@@ -552,6 +552,21 @@ Script pdie_script[4];      //player death scripts
 extern Script* pcurrentscript;//used by local script functions
 //-------------------------methods-------------------------------
 
+void setDrawMethod(s_anim* a, ptrdiff_t index, s_drawmethod* m) {
+	assert(index >= 0);
+	assert(a != NULL);
+	assert(m != NULL);
+	assert(index < a->numframes);
+	a->drawmethods[index] = m;
+}
+
+s_drawmethod* getDrawMethod(s_anim* a, ptrdiff_t index) {
+	assert(index >= 0);
+	assert(a != NULL);
+	assert(index < a->numframes);
+	return a->drawmethods[index];
+}
+
 // returns: 1 - succeeded 0 - failed
 int buffer_pakfile(char* filename, char** pbuffer, size_t* psize)
 {
@@ -3653,109 +3668,114 @@ int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned 
              short *bbox, s_attack* attack, short move, short movez,
              short movea, short seta, float* platform, int frameshadow, short* shadow_coords, int soundtoplay, s_drawmethod* drawmethod)
 {
-    if(framecount>0) alloc_frames(a, framecount);
-    else framecount = -framecount; // for alloc method, use a negative value
-
-    a->sprite[a->numframes] = spriteindex;
-    a->delay[a->numframes] = delay * GAME_SPEED / 100;
+	ptrdiff_t currentframe;	
+	if(framecount>0) alloc_frames(a, framecount);
+	else framecount = -framecount; // for alloc method, use a negative value
+	
+	currentframe = a->numframes;
+	++a->numframes;
+	
+	a->sprite[currentframe] = spriteindex;
+	a->delay[currentframe] = delay * GAME_SPEED / 100;
 
 	if((bbox[2]-bbox[0]) && (bbox[3]-bbox[1]))
-    {
-        if(!a->bbox_coords)
-        {
-            a->bbox_coords = tracemalloc("a->bbox_coords", framecount * sizeof(*a->bbox_coords));
-            memset(a->bbox_coords, 0, framecount * sizeof(*a->bbox_coords));
-        }
-        memcpy(a->bbox_coords[a->numframes], bbox, sizeof(*a->bbox_coords));
-        a->vulnerable[a->numframes] = 1;
-    }
-    if((attack->attack_coords[2]-attack->attack_coords[0]) &&
-       (attack->attack_coords[3]-attack->attack_coords[1]))
-    {
-        if(!a->attacks)
-        {
-            a->attacks = tracemalloc("a->attacks", framecount * sizeof(s_attack*));
-            memset(a->attacks, 0, framecount * sizeof(s_attack*));
-        }
-        a->attacks[a->numframes] = tracemalloc("addframe#attack", sizeof(s_attack));
-        memcpy(a->attacks[a->numframes], attack, sizeof(s_attack));
-    }
-    if(drawmethod->flag)
-    {
-        if(!a->drawmethods)
-        {
-            a->drawmethods = tracemalloc("a->drawmethods", framecount * sizeof(s_drawmethod*));
-            memset(a->drawmethods, 0, framecount * sizeof(s_drawmethod*));
-        }
-        a->drawmethods[a->numframes] = tracemalloc("addframe#drawmethod", sizeof(s_drawmethod));
-        memcpy(a->drawmethods[a->numframes], drawmethod, sizeof(s_drawmethod));
-    }
+	{
+		if(!a->bbox_coords)
+		{
+			a->bbox_coords = tracemalloc("a->bbox_coords", framecount * sizeof(*a->bbox_coords));
+			memset(a->bbox_coords, 0, framecount * sizeof(*a->bbox_coords));
+		}
+		memcpy(a->bbox_coords[currentframe], bbox, sizeof(*a->bbox_coords));
+		a->vulnerable[currentframe] = 1;
+	}
+	if((attack->attack_coords[2]-attack->attack_coords[0]) &&
+		(attack->attack_coords[3]-attack->attack_coords[1]))
+	{
+		if(!a->attacks)
+		{
+			a->attacks = tracemalloc("a->attacks", framecount * sizeof(s_attack*));
+			memset(a->attacks, 0, framecount * sizeof(s_attack*));
+		}
+		a->attacks[currentframe] = tracemalloc("addframe#attack", sizeof(s_attack));
+		memcpy(a->attacks[currentframe], attack, sizeof(s_attack));
+	}
+	if(drawmethod->flag)
+	{
+		if(!a->drawmethods)
+		{
+			a->drawmethods = tracemalloc("a->drawmethods", framecount * sizeof(s_drawmethod*));
+			memset(a->drawmethods, 0, framecount * sizeof(s_drawmethod*));
+		}
+		setDrawMethod(a, currentframe, tracemalloc("addframe#drawmethod", sizeof(s_drawmethod)));		
+		//a->drawmethods[currenframe] = tracemalloc("addframe#drawmethod", sizeof(s_drawmethod));
+		memcpy(getDrawMethod(a,currentframe), drawmethod, sizeof(s_drawmethod));
+		//memcpy(a->drawmethods[currentframe], drawmethod, sizeof(s_drawmethod));
+	}
 	if(idle && !a->idle)
 	{
 		a->idle = tracemalloc("a->idle", framecount*sizeof(*a->idle));
 		memset(a->idle, 0, framecount*sizeof(*a->idle));
 	}
-	if(a->idle) a->idle[a->numframes] = idle;
-    if(move && !a->move)
-    {
-        a->move = tracemalloc("a->move", framecount * sizeof(*a->move));
-        memset(a->move, 0, framecount * sizeof(*a->move));
-    }
-    if(a->move) a->move[a->numframes] = move;
-    if(movez && !a->movez)
-    {
-        a->movez = tracemalloc("a->movez", framecount * sizeof(*a->movez));
-        memset(a->movez, 0, framecount * sizeof(*a->movez));
-    }
-    if(a->movez) a->movez[a->numframes] = movez;						           // Move command for the "z" axis
-    if(movea && !a->movea)
-    {
-        a->movea = tracemalloc("a->movea", framecount * sizeof(*a->movea));
-        memset(a->movea, 0, framecount * sizeof(*a->movea));
-    }
-    if(a->movea) a->movea[a->numframes] = movea;						           // Move command for moving along the "a" axis
-    if(seta>=0 && !a->seta)
-    {
-        a->seta = tracemalloc("a->seta", framecount * sizeof(*a->seta));
-        memset(a->seta, -1, framecount * sizeof(*a->seta)); //default to -1
-    }
-    if(a->seta) a->seta[a->numframes] = seta;						               // Sets the "a" for the character on a frame/frame basis
-    if(frameshadow >= 0 && !a->shadow)
-    {
-        a->shadow = tracemalloc("a->shadow", framecount * sizeof(*a->shadow));
-        memset(a->shadow, -1, framecount * sizeof(*a->shadow)); //default to -1
-    }
-    if(a->shadow) a->shadow[a->numframes] = frameshadow;                          // shadow index for each frame
-    if(shadow_coords[0] || shadow_coords[1])
-    {
-        if(!a->shadow_coords)
-        {
-            a->shadow_coords=tracemalloc("a->shadow_coords", framecount * sizeof(*a->shadow_coords));
-            memset(a->shadow_coords, 0, framecount * sizeof(*a->shadow_coords));
-        }
-        memcpy(a->shadow_coords[a->numframes], shadow_coords, sizeof(*a->shadow_coords));
-    }
-    if(platform[7]) //height
-    {
-        if(!a->platform)
-        {
-            a->platform = tracemalloc("a->platform", framecount * sizeof(*a->platform));
-            memset(a->platform, 0, framecount * sizeof(*a->platform));
-        }
-        memcpy(a->platform[a->numframes], platform, sizeof(*a->platform));// Used so entity can be landed on
-    }
-    if(soundtoplay >= 0)
-    {
-        if(!a->soundtoplay)
-        {
-            a->soundtoplay = tracemalloc("a->soundtoplay", framecount * sizeof(*a->soundtoplay));
-            memset(a->soundtoplay, -1, framecount * sizeof(*a->soundtoplay)); // default to -1
-        }
-        a->soundtoplay[a->numframes] = soundtoplay;
-    }
-
-    ++a->numframes;
-    return a->numframes;
+	if(a->idle) a->idle[currentframe] = idle;
+	if(move && !a->move)
+	{
+		a->move = tracemalloc("a->move", framecount * sizeof(*a->move));
+		memset(a->move, 0, framecount * sizeof(*a->move));
+	}
+	if(a->move) a->move[currentframe] = move;
+	if(movez && !a->movez)
+	{
+		a->movez = tracemalloc("a->movez", framecount * sizeof(*a->movez));
+		memset(a->movez, 0, framecount * sizeof(*a->movez));
+	}
+	if(a->movez) a->movez[currentframe] = movez;						           // Move command for the "z" axis
+	if(movea && !a->movea)
+	{
+		a->movea = tracemalloc("a->movea", framecount * sizeof(*a->movea));
+		memset(a->movea, 0, framecount * sizeof(*a->movea));
+	}
+	if(a->movea) a->movea[currentframe] = movea;						           // Move command for moving along the "a" axis
+	if(seta>=0 && !a->seta)
+	{
+		a->seta = tracemalloc("a->seta", framecount * sizeof(*a->seta));
+		memset(a->seta, -1, framecount * sizeof(*a->seta)); //default to -1
+	}
+	if(a->seta) a->seta[currentframe] = seta;						               // Sets the "a" for the character on a frame/frame basis
+	if(frameshadow >= 0 && !a->shadow)
+	{
+		a->shadow = tracemalloc("a->shadow", framecount * sizeof(*a->shadow));
+		memset(a->shadow, -1, framecount * sizeof(*a->shadow)); //default to -1
+	}
+	if(a->shadow) a->shadow[currentframe] = frameshadow;                          // shadow index for each frame
+	if(shadow_coords[0] || shadow_coords[1])
+	{
+		if(!a->shadow_coords)
+		{
+			a->shadow_coords=tracemalloc("a->shadow_coords", framecount * sizeof(*a->shadow_coords));
+			memset(a->shadow_coords, 0, framecount * sizeof(*a->shadow_coords));
+		}
+		memcpy(a->shadow_coords[currentframe], shadow_coords, sizeof(*a->shadow_coords));
+	}
+	if(platform[7]) //height
+	{
+		if(!a->platform)
+		{
+			a->platform = tracemalloc("a->platform", framecount * sizeof(*a->platform));
+			memset(a->platform, 0, framecount * sizeof(*a->platform));
+		}
+		memcpy(a->platform[currentframe], platform, sizeof(*a->platform));// Used so entity can be landed on
+	}
+	if(soundtoplay >= 0)
+	{
+		if(!a->soundtoplay)
+		{
+			a->soundtoplay = tracemalloc("a->soundtoplay", framecount * sizeof(*a->soundtoplay));
+			memset(a->soundtoplay, -1, framecount * sizeof(*a->soundtoplay)); // default to -1
+		}
+		a->soundtoplay[currentframe] = soundtoplay;
+	}
+	
+	return a->numframes;
 }
 
 void _peek_model_name(int index)
@@ -6118,7 +6138,8 @@ x(stricmp(value, #y)==0)\
                 }
                 else shutdown(1, "Invalid animation name '%s'", value);
 
-                newchar->animation[ani_id] = newanim;
+                if (newanim->landframe[0] >= newanim->numframes) shutdown(1, "landframe is out of index! (hint: enumeration starts with 0)");
+		newchar->animation[ani_id] = newanim;
 
             }
             else if(stricmp(command, "loop")==0){
@@ -6799,6 +6820,8 @@ x(stricmp(value, #y)==0)\
         while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
         while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
     }
+    
+    
     tempInt = 1;
     if(scriptbuf[0]) {
         //printf("\n%s\n", scriptbuf);
@@ -6936,6 +6959,16 @@ x(stricmp(value, #y)==0)\
     }
 
 	printf("Loading '%s'\n", newchar->name);
+	
+	// check for sane settings
+	// if landframe is bigger than framecount the game will crash silently only when that animation is played
+	for(i=0; i<max_animations; i++) {
+		if (newchar->animation[i] && newchar->animation[i]->landframe[0] >= newchar->animation[i]->numframes) {			
+			shutdown(1, "invalid landframe index! index numbers start with 0\n");
+		}	
+	}
+	// end check sane settings
+	
     return newchar;
 }
 
@@ -10255,7 +10288,7 @@ void update_frame(entity* ent, int f)
     //important!
     tempself = self;
     self = ent;
-
+	assert(f < self->animation->numframes);
     self->animpos = f;
     //self->currentsprite = self->animation->sprite[f];
 
@@ -12462,7 +12495,8 @@ void display_ents()
 
                     if(checkhole(e->x, e->z)==2) z = PANEL_Z-1;        // place behind panels
 
-                    drawmethod = e->animation->drawmethods?e->animation->drawmethods[e->animpos]:NULL;
+                    drawmethod = e->animation->drawmethods?getDrawMethod(e->animation, e->animpos):NULL;
+		    //drawmethod = e->animation->drawmethods?e->animation->drawmethods[e->animpos]:NULL;
                     if(e->drawmethod.flag) drawmethod = &(e->drawmethod);
                     if(!drawmethod)
                         commonmethod = plainmethod;
@@ -19951,6 +19985,8 @@ void shutdown(int status, char *msg, ...)
 			break;
 		}
 	}
+	
+	if(!disablelog) printf("%s", buf);
 
 	getRamStatus(BYTES);
     savesettings();
@@ -20003,7 +20039,8 @@ void shutdown(int status, char *msg, ...)
     pak_term();
 	if(!disablelog) printf("\tDone!\n");
 
-    if(!disablelog) printf("\n**************** Done *****************\n\n");
+    if(!disablelog) printf("\n**************** Done *****************\n\n");       
+    
     if(!disablelog) printf("%s", buf);
 
 	exit(status);

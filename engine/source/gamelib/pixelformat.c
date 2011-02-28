@@ -281,13 +281,24 @@ void u16revpcpy(unsigned short* pdest, const unsigned char* psrc, unsigned short
 //copy with a remap table
 void u16pcpy(unsigned short* pdest, const unsigned char* psrc, unsigned short* pp, unsigned len)
 {
-    switch(len)
-    {
-    _pcpy
-    }
+/*
+	// plain testcode to measure if that fugly macro actually is that fast or just slows down compile time, and freezing my texteditor when selecting that line
+	unsigned l;
+	if (len) {
+		l = len;		
+		if(l < 961) 
+			do {
+				l--;
+				pdest[l] = pp[psrc[l]];
+			} while (l);
+	}
+	*/
+	switch(len)
+	{
+		_pcpy
+	}
 }
-//---------32bit
-// reverse copy with a remap table
+
 void u32revpcpy(unsigned* pdest, const unsigned char* psrc, unsigned* pp, unsigned len)
 {
     psrc -= 960 - (int)len;
