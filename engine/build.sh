@@ -112,32 +112,9 @@ function psp {
   fi
 }
 
-# PS2 Environment && Compile
-function ps2 {
-  . ./environ.sh 2
-  if test $PS2DEV; then
-    make clean BUILD_PS2=1
-    make BUILD_PS2=1
-    if test -f "./EBOOT.PBP"; then
-      if test ! -e "./releases/PS2"; then
-        mkdir ./releases/PS2
-        mkdir ./releases/PS2/OpenBOR
-        mkdir ./releases/PS2/OpenBOR/Images
-        mkdir ./releases/PS2/OpenBOR/Logs
-        mkdir ./releases/PS2/OpenBOR/Paks
-        mkdir ./releases/PS2/OpenBOR/Saves
-        mkdir ./releases/PS2/OpenBOR/ScreenShots
-      fi
-      mv EBOOT.PBP ./releases/PS2/OpenBOR/
-      cp ./ps2/data/Menu.png ./releases/PS2/OpenBOR/Images/
-    fi
-    make clean BUILD_PS2=1
-  fi 
-}
-
 # Gp2x Environment && Compile
 function gp2x {
-  . ./environ.sh 3
+  . ./environ.sh 2
   if test $GP2XDEV; then
     make clean BUILD_GP2X=1
     make BUILD_GP2X=1
@@ -161,7 +138,7 @@ function gp2x {
 function linux {
 	export GCC_TARGET=$1
 	export TARGET_ARCH=$2
-	. ./environ.sh 4
+	. ./environ.sh 3
 	if test $LNXDEV; then
 		if [[ ! $BUILD_DEBUG ]] ; then
 			make clean BUILD_LINUX=1
@@ -217,7 +194,7 @@ function linux_something {
 
 # Windows Environment && Compile
 function windows {
-  . ./environ.sh 5
+  . ./environ.sh 4
   if test $WINDEV; then
     make clean BUILD_WIN=1
     make BUILD_WIN=1
@@ -238,7 +215,7 @@ function windows {
 
 # Dreamcast Environment && Compile
 function dreamcast {
-  . ./environ.sh 6
+  . ./environ.sh 5
   if test $KOS_BASE; then
     make clean BUILD_DC=1
     make BUILD_DC=1
@@ -255,7 +232,7 @@ function dreamcast {
 
 # Wii Environment && Compile
 function wii {
-  . ./environ.sh 7
+  . ./environ.sh 6
   if test $DEVKITPPC; then
     make clean BUILD_WII=1
     make BUILD_WII=1
@@ -278,7 +255,7 @@ function wii {
 
 # Dingoo Environment && Compile
 function dingoo {
-  . ./environ.sh 8
+  . ./environ.sh 7
   if test $DINGUX_TOOLCHAIN; then
     make clean BUILD_DINGOO=1
     make BUILD_DINGOO=1
@@ -299,7 +276,7 @@ function dingoo {
 
 # WIZ Environment && Compile
 function wiz {
-  . ./environ.sh 9
+  . ./environ.sh 8
   if test $WIZDEV; then
     make clean BUILD_WIZ=1
     make BUILD_WIZ=1
@@ -328,7 +305,7 @@ function wiz {
 
 # Darwin Environment && Compile
 function darwin {
-  . ./environ.sh 10 
+  . ./environ.sh 9 
   if test $DWNDEV; then
     make clean BUILD_DARWIN=1
     make BUILD_DARWIN=1
@@ -363,7 +340,6 @@ function build_all {
     . ./buildspec.sh
   else
     psp
-    #ps2
     gp2x
     linux_x86
     linux_amd64
@@ -383,15 +359,14 @@ function print_help {
   echo "-------------------------------------------------------"
   echo "    0 = Distribute"
   echo "    1 = PSP"
-  echo "    2 = PS2"
-  echo "    3 = Gp2x"
-  echo "    4 = Linux (x86, amd64) Example: $0 4 amd64"
-  echo "    5 = Windows"
-  echo "    6 = Dreamcast"
-  echo "    7 = Wii"
-  echo "    8 = Dingoo"
-  echo "    9 = Wiz"
-  echo "   10 = Darwin"
+  echo "    2 = Gp2x"
+  echo "    3 = Linux (x86, amd64) Example: $0 4 amd64"
+  echo "    4 = Windows"
+  echo "    5 = Dreamcast"
+  echo "    6 = Wii"
+  echo "    7 = Dingoo"
+  echo "    8 = Wiz"
+  echo "    9 = Darwin"
   echo "  all = build for all applicable targets"
   echo "-------------------------------------------------------"
   echo "Example: $0 10"
@@ -411,45 +386,40 @@ case $1 in
 
   2)
     version
-    ps2
+    gp2x
     ;;
 
   3)
     version
-    gp2x
+    linux_something $2
     ;;
 
   4)
     version
-    linux_something $2
+    windows
     ;;
 
   5)
     version
-    windows
+    dreamcast
     ;;
 
   6)
     version
-    dreamcast
+    wii
     ;;
 
   7)
     version
-    wii
+    dingoo
     ;;
 
   8)
     version
-    dingoo
-    ;;
-
-  9)
-    version
     wiz
     ;;
 
-  10)
+  9)
     version
     darwin 
     ;;

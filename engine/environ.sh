@@ -73,58 +73,10 @@ case $1 in
 
 ############################################################################
 #                                                                          #
-#                              PS2 Environment                             #
-#                                                                          #
-############################################################################
-2)
-   if test -e "c:/Cygwin/usr/local/ps2dev"; then
-     export PS2DEV=c:/Cygwin/usr/local/ps2dev
-     export PS2SDK=$PS2DEV/ps2sdk
-   elif test -e "/usr/local/ps2dev"; then
-     export PS2DEV=/usr/local/ps2dev
-     export PS2SDK=$PS2DEV/ps2sdk
-   elif [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
-     if [ ! -d "../tools/ps2-sdk/bin" ]; then
-       echo "-------------------------------------------------------"
-       echo "        PS2 SDK - Not Found, Installing SDK!"
-       echo "-------------------------------------------------------"
-       ../tools/7-Zip/7za.exe x -y ../tools/ps2-sdk/ps2-sdk.7z -o../tools/ps2-sdk/
-       echo
-       echo "-------------------------------------------------------"
-       echo "        PS2 SDK - Installation Has Completed!"
-       echo "-------------------------------------------------------"
-     fi
-     export PS2DEV=../tools/ps2-sdk
-     export PS2SDK=$PS2DEV
-     HOST_PLATFORM="SVN"
-   fi
-   if test $PS2DEV; then
-     export PATH=$PATH:$PS2DEV/bin
-     export PATH=$PATH:$PS2DEV/ee/bin
-     export PATH=$PATH:$PS2DEV/iop/bin
-     export PATH=$PATH:$PS2DEV/dvp/bin
-     if [ $HOST_PLATFORM = SVN ]; then 
-       export PATH=$TOOLS:$PS2SDK/bin
-     else
-       export PATH=$PATH:$PS2SDK/bin
-     fi
-     echo "-------------------------------------------------------"
-     echo "          PS2 SDK ($HOST_PLATFORM) Environment Loaded!"
-     echo "-------------------------------------------------------"
-   else
-     echo "-------------------------------------------------------"
-     echo "            ERROR - PS2 Environment Failed"
-     echo "                   SDK Installed?"
-     echo "-------------------------------------------------------"
-   fi
-   ;;
-
-############################################################################
-#                                                                          #
 #                            GP2X Environment                              #
 #                                                                          #
 ############################################################################
-3)
+2)
    if test -e "c:/Cygwin/opt/open2x/gcc-4.1.1-glibc-2.3.6/bin/arm-open2x-linux-gcc.exe"; then
      export GP2XDEV=c:/Cygwin/opt/open2x/gcc-4.1.1-glibc-2.3.6/bin
      export SDKPATH=c:/Cygwin/opt/open2x/gcc-4.1.1-glibc-2.3.6
@@ -174,7 +126,7 @@ case $1 in
 #                           Linux Environment                              #
 #                                                                          #
 ############################################################################
-4)
+3)
    if [ `gcc -dumpmachine | grep -o $GCC_TARGET` ]; then
      export GCC_TARGET=`gcc -dumpmachine`
      export LNXDEV=`dirname \`which gcc\``
@@ -205,7 +157,7 @@ case $1 in
 #                           Windows Environment                            #
 #                                                                          #
 ############################################################################
-5)
+4)
    if test -e "/usr/i586-mingw32msvc"; then
      export WINDEV=/usr/bin
      export SDKPATH=/usr/i586-mingw32msvc
@@ -255,7 +207,7 @@ case $1 in
 #                           Dreamcast Environment                          #
 #                                                                          #
 ############################################################################
-6)
+5)
    if test -e "/usr/local/dcdev/kos"; then
      . /usr/local/dcdev/kos/environ.sh
    elif [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
@@ -290,7 +242,7 @@ case $1 in
 #                             Wii Environment                              #
 #                                                                          #
 ############################################################################
-7)
+6)
    if test -e "/opt/devkitpro"; then
      export DEVKITPRO=/opt/devkitpro
      export DEVKITPPC=$DEVKITPRO/devkitPPC
@@ -332,7 +284,7 @@ case $1 in
 #                          Dingoo Environment                              #
 #                                                                          #
 ############################################################################
-8)
+7)
    if test -e "/opt/mipsel-linux-uclibc"; then
      export DINGUX_TOOLCHAIN=/opt/mipsel-linux-uclibc
      export DINGUX_TOOLCHAIN_PREFIX=$DINGUX_TOOLCHAIN/usr
@@ -355,7 +307,7 @@ case $1 in
 #                             WIZ Environment                              #
 #                                                                          #
 ############################################################################
-9)
+8)
    if test -e "/opt/openwiz/toolchain/arm-openwiz-linux-gnu"; then
      export WIZDEV=/opt/openwiz/toolchain/arm-openwiz-linux-gnu/bin
      export SDKPATH=/opt/openwiz/toolchain/arm-openwiz-linux-gnu
@@ -396,7 +348,7 @@ case $1 in
 #                          Darwin Environment                              #
 #                                                                          #
 ############################################################################
-10)
+9)
    if test -e "/opt/mac"; then
      export DWNDEV=/opt/mac
      export SDKPATH=$DWNDEV/SDKs/MacOSX10.4u.sdk
@@ -426,16 +378,15 @@ case $1 in
 *)
    echo
    echo "-------------------------------------------------------"
-   echo "    1 = PSP"
-   echo "    2 = PS2"
-   echo "    3 = Gp2x"
-   echo "    4 = Linux"
-   echo "    5 = Windows"
-   echo "    6 = Dreamcast"
-   echo "    7 = Nintendo Wii"
-   echo "    8 = Dingoo-linux"
-   echo "    9 = Wiz"
-   echo "   10 = Darwin"
+   echo "   1 = PSP"
+   echo "   2 = Gp2x"
+   echo "   3 = Linux"
+   echo "   4 = Windows"
+   echo "   5 = Dreamcast"
+   echo "   6 = Nintendo Wii"
+   echo "   7 = Dingoo-linux"
+   echo "   8 = Wiz"
+   echo "   9 = Darwin"
    echo "-------------------------------------------------------"
    echo
    ;;
