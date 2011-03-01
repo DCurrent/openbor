@@ -252,6 +252,7 @@ endif
 
 STRIP           = cp $(TARGET) $(TARGET_FINAL)
 ifndef BUILD_DEBUG
+ifndef NO_STRIP
 ifdef BUILD_WIN
 STRIP 	        = $(WINDEV)/$(PREFIX)strip$(EXTENSION) $(TARGET) -o $(TARGET_FINAL)
 endif
@@ -275,6 +276,7 @@ STRIP           = $(DINGUX_TOOLCHAIN_PREFIX)/bin/mipsel-linux-strip $(TARGET) -o
 endif
 ifdef BUILD_WII
 STRIP           = elf2dol $< $@
+endif
 endif
 endif
 
