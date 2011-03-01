@@ -84,6 +84,7 @@ OBJTYPE         = elf
 INCLUDES        = $(SDKPATH)/include \
                   $(SDKPATH)/include/SDL
 ifeq ($(findstring 64, $(TARGET_ARCH)), 64)
+BUILD_AMD64     = 1
 ARCHFLAGS       = -m64
 LIBRARIES       = $(SDKPATH)/lib64
 else
@@ -522,7 +523,10 @@ CFLAGS 	       += -O9
 else
 CFLAGS 	       += -O2
 endif
-CFLAGS 	       += -fno-ident -freorder-blocks -fomit-frame-pointer
+CFLAGS 	       += -fno-ident -freorder-blocks 
+ifndef BUILD_AMD64
+CFLAGS         += -fomit-frame-pointer 
+endif
 else
 CFLAGS 	       += -DDEBUG -O0
 ifdef NO_RAM_DEBUGGER
