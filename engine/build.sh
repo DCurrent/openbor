@@ -159,31 +159,33 @@ function gp2x {
 
 # Linux Environment && Compile (common to all architectures)
 function linux {
-  export GCC_TARGET=$1
-  export TARGET_ARCH=$2
-  . ./environ.sh 4
-  if test $LNXDEV; then
-    if [[ ! $BUILD_DEBUG ]] ; then
-	    make clean BUILD_LINUX=1
+	export GCC_TARGET=$1
+	export TARGET_ARCH=$2
+	. ./environ.sh 4
+	if test $LNXDEV; then
+		if [[ ! $BUILD_DEBUG ]] ; then
+			make clean BUILD_LINUX=1
+		elif [[ "$TARGET_ARCH" == "amd64" ]] ; then
+			export NO_RAM_DEBUGGER=1
+		fi
+		make BUILD_LINUX=1
+		if test -f "./OpenBOR"; then
+			if test ! -e "./releases/$3"; then
+				mkdir ./releases/$3
+				mkdir ./releases/$3/OpenBOR
+				mkdir ./releases/$3/OpenBOR/Logs
+				mkdir ./releases/$3/OpenBOR/Paks
+				mkdir ./releases/$3/OpenBOR/Saves
+				mkdir ./releases/$3/OpenBOR/ScreenShots
+			fi
+			mv OpenBOR ./releases/$3/OpenBOR
+			echo "moved binary to ./releases/$3/ !"
+		fi
+		if [[ ! $BUILD_DEBUG ]] ; then
+			make clean BUILD_LINUX=1
+		fi
 	fi
-    make BUILD_LINUX=1
-    if test -f "./OpenBOR"; then
-      if test ! -e "./releases/$3"; then
-        mkdir ./releases/$3
-        mkdir ./releases/$3/OpenBOR
-        mkdir ./releases/$3/OpenBOR/Logs
-        mkdir ./releases/$3/OpenBOR/Paks
-        mkdir ./releases/$3/OpenBOR/Saves
-        mkdir ./releases/$3/OpenBOR/ScreenShots
-      fi
-      mv OpenBOR ./releases/$3/OpenBOR
-	  echo "moved binary to ./releases/$3/ !"
-    fi
-    if [[ ! $BUILD_DEBUG ]] ; then
-	    make clean BUILD_LINUX=1
-	fi
-  fi
-  [ $LNXDEV ]
+	[ $LNXDEV ]
 }
 
 # Compile for Linux under various architectures
