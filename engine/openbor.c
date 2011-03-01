@@ -6138,7 +6138,10 @@ x(stricmp(value, #y)==0)\
                 }
                 else shutdown(1, "Invalid animation name '%s'", value);
 
-                if (newanim->landframe[0] >= newanim->numframes) shutdown(1, "landframe is out of index! (hint: enumeration starts with 0)");
+                if (newanim->landframe[0] >= newanim->numframes) {
+			newanim->landframe[0] = -1;
+			printf("WARNING: landframe is out of index! (hint: enumeration starts with 0). landframe will be disabled!");
+		}
 		newchar->animation[ani_id] = newanim;
 
             }
@@ -6963,8 +6966,10 @@ x(stricmp(value, #y)==0)\
 	// check for sane settings
 	// if landframe is bigger than framecount the game will crash silently only when that animation is played
 	for(i=0; i<max_animations; i++) {
-		if (newchar->animation[i] && newchar->animation[i]->landframe[0] >= newchar->animation[i]->numframes) {			
-			shutdown(1, "invalid landframe index! index numbers start with 0\n");
+		if (newchar->animation[i] && newchar->animation[i]->landframe[0] >= newchar->animation[i]->numframes) {
+			newchar->animation[i]->landframe[0] = -1;
+			printf("WARNING: landframe is out of index! (hint: enumeration starts with 0). landframe will be disabled!");
+			//shutdown(1, "invalid landframe index! index numbers start with 0\n");
 		}	
 	}
 	// end check sane settings
