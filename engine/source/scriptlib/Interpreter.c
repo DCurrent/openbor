@@ -18,6 +18,8 @@ void Interpreter_Init(Interpreter* pinterpreter, LPCSTR name, List* pflist)
     StackedSymbolTable_Init(&(pinterpreter->theSymbolTable), name);
     Parser_Init(&(pinterpreter->theParser));
     pinterpreter->ptheFunctionList = pflist;
+    List_Init(&(pinterpreter->theInstructionList));
+    List_Init(&(pinterpreter->paramList));    
     pp_context_init(&(pinterpreter->theContext));
 }
 
