@@ -183,6 +183,18 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
          MAKETOKEN( PP_TOKEN_WHITESPACE );
          return S_OK;
       }
+      
+      //non-breaking space (A0 in Windows-1252 and ISO-8859-* encodings)
+      else if ( !strncmp(plexer->pcurChar, "\xa0", 1)){
+         //increment the offset counter and replace with a normal space
+         plexer->theTokenSource[strlen(plexer->theTokenSource)] = ' ';
+         plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\0';
+         plexer->pcurChar++;
+         plexer->offset++;
+         plexer->theTextPosition.col++;
+         MAKETOKEN( PP_TOKEN_WHITESPACE );
+         return S_OK;
+      }
 
       //an Identifier starts with an alphabetical character or underscore
       else if ( *plexer->pcurChar=='_' || (*plexer->pcurChar>= 'a' && *plexer->pcurChar <= 'z') ||
