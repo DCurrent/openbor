@@ -543,10 +543,8 @@ void List_Update(List* list, void* e)
 	#endif
 }
 
-/* SIDE EFFECT: Moves current to found entity.
-I really don't like that behaviour */
-int List_Includes(List* list, void* e)
-{
+/* returns the node that contains e, or NULL, if not found */
+Node* List_Contains(List* list, void* e) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
@@ -557,27 +555,40 @@ int List_Includes(List* list, void* e)
 	if(list->indices) {
 		h = ptrhash(e);
 		if (!list->indices[h]) 
-			return 0;
+			return NULL;
 		for(i=0; i<list->indices[h]->used; i++) {
 			//assert(list->indices[h]->nodes[i]); gets overwritten by update with NULL
 			if(list->indices[h]->nodes[i] && list->indices[h]->nodes[i]->value == e) {
 				//gotcha
-				//ok lets set current to the found node. stoopid.
-				list->current = list->indices[h]->nodes[i];
-				return 1;
+				return list->indices[h]->nodes[i];
 			}
 		}
-		return 0;
+		return NULL;
 	} else
 #endif
 	{
-	n = list->first;
-	while (n && (n->value != e))
-		n = n->next;
-	if (n)
+		n = list->first;
+		while (n && (n->value != e))
+			n = n->next;
+		return n;
+	}	
+}
+
+
+/* SIDE EFFECT: Moves list->current to found entity.
+use List_Contains if you dont like that.
+*/
+int List_Includes(List* list, void* e)
+{
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+	Node* n = List_Contains(list, e);
+	if (n) {
 		list->current = n;
-	return (n != NULL);
-	}
+		return 1;
+	}	
+	return 0;
 }
 
 int List_FindByName(List* list, LPCSTR theName )
