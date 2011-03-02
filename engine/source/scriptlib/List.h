@@ -9,6 +9,11 @@
 #ifndef LIST_H
 #define LIST_H
 
+// this switch enables the capability to create a hashmap for quick index lookups
+// speeds up search for "contains" and "getindex" type of queries.
+// it only consumes more ram if CreateIndices is actually called
+// but it can be disabled to reduce binary size and mem usage. however the mentioned
+// methods will be much slower.
 #define USE_INDEX
 
 #ifndef UNIT_TEST
@@ -106,6 +111,7 @@ LPCSTR List_GetName(const List* list);
 void List_Reset(List* list);
 int List_GetSize(const List* list);
 
+Node* List_Contains(List* list, void* e);
 int List_GetNodeIndex(List* list, Node* node);	
 #ifdef USE_INDEX
 void List_AddIndex(List* list, Node* node, size_t index);
