@@ -200,12 +200,10 @@ int List_GetNodeIndex(List* list, Node* node) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
-	unsigned char h;
 	int i;
 	Node* n;
-	
-	assert(list);
 	#ifdef USE_INDEX
+	unsigned char h;	
 	if(list->indices) {
 		h = ptrhash(node->value);
 		assert(list->indices[h]);
