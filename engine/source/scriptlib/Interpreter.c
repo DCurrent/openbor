@@ -353,18 +353,23 @@ HRESULT Interpreter_EvaluateCall(Interpreter* pinterpreter)
 
 HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 {
-    int i, j, size;
-    Instruction* pInstruction = NULL;
-    Token* pToken ;
-    Symbol* pSymbol = NULL;
-    LPCSTR pLabel = NULL;
-    ScriptVariant* pSVar1 = NULL;
-    ScriptVariant* pSVar2 = NULL;
-    ScriptVariant* pRetVal = NULL;
+	int i, j, size;
+	Instruction* pInstruction = NULL;
+	Token* pToken ;
+	Symbol* pSymbol = NULL;
+	LPCSTR pLabel = NULL;
+	ScriptVariant* pSVar1 = NULL;
+	ScriptVariant* pSVar2 = NULL;
+	ScriptVariant* pRetVal = NULL;
 	HRESULT hr = S_OK;
 	
 	// We are done appending to the script at this point, so free the preprocessor context
 	pp_context_destroy(&(pinterpreter->theContext));
+	
+	#ifdef USE_INDEX
+	// it seems the list is used readonly here, so lets create an index for faster lookup
+	List_CreateIndices(&(pinterpreter->theInstructionList));
+	#endif	
 
     if(List_FindByName(&(pinterpreter->theInstructionList), "main"))
         pinterpreter->mainEntryIndex = List_GetIndex(&(pinterpreter->theInstructionList));

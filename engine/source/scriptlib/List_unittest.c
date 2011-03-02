@@ -3,6 +3,10 @@
  *
  *  Created on: Feb 27, 2011
  *      Author: anallyst
+ *
+ * set -DDEBUG when compiling List.c
+ * to check access on non-initialized lists
+ * 
  */
 
 #include "List.h"
@@ -31,10 +35,10 @@ int eq (char* s1, char* s2) {
 	return (strcmp(s1, s2) == 0);
 }
 
-void main() {
+int main() {
 
 	List list, list2;
-	size_t dummy;
+	size_t dummy = 0x1234;
 	int i = 0;
 
 	Node* test;
@@ -154,24 +158,83 @@ void main() {
 	assert(list2.current->prev == NULL);
 
 
+	List_InsertAfter(&list, (void*) 0xDEADBEEF, int2str(++i));
+	assert(list.first->next->value == (void*) 0xDEADBEEF);
+	assert(list.current = list.first->next);
+
 	List_InsertAfter(&list, (void*) dummy, int2str(++i));
-	List_InsertAfter(&list, (void*) dummy, int2str(++i));
+	
 	List_InsertBefore(&list, (void*) dummy, int2str(++i));
 	List_InsertBefore(&list, (void*) dummy, int2str(++i));
 	List_InsertBefore(&list, (void*) dummy, int2str(++i));
-	assert(list.size == i - 2);
+	assert(list.size == i - 2); // i = 11
 	List_GotoFirst(&list);
-
 	List_GotoNext(&list);
-
 	List_GotoPrevious(&list);
+	
 	List_GotoLast(&list);
+	
+	test = list.last;
+	assert(list.current == list.last);
+	
 	List_Remove(&list);
+	assert(list.last != test);	
+	assert(list.current == list.last);
+	
+	List_Remove(&list);	
+	assert(list.current == list.last);
+	
+	List_Remove(&list);	
+	assert(list.current == list.last);
+	
 	List_Remove(&list);
-	List_Remove(&list);
-	List_Remove(&list);
+	
+	assert(list.current == list.last);
 	assert(list.size == i - 6);
-
+	
+	List_GotoPrevious(&list);
+	List_GotoPrevious(&list);
+	List_GotoPrevious(&list);
+	
+	assert(List_Retrieve(&list) == (void*)0xDEADBEEF);
+	List_Remove(&list);
+	assert(!List_Includes(&list, (void*)0xDEADBEEF));
+	assert(list.size == i - 7);
+	
+	List_GotoLast(&list);
+	List_InsertAfter(&list, (void*) 0xDEADBEEF, int2str(++i));
+	
+	#ifdef USE_INDEX
+	List_CreateIndices(&list);
+	assert(List_GetIndex(&list) == list.size -1);
+	assert(List_GetNodeIndex(&list, list.first) == 0);
+	assert(List_GetNodeIndex(&list, list.last->prev) == list.size -2);
+	assert(List_GetNodeIndex(&list, list.last->prev->prev) == list.size -3);
+	#endif
+	assert(List_Includes(&list, (void*)0xDEADBEEF));
+	
+	assert(list.current == list.last);	
+	assert(List_Retrieve(&list) == (void*)0xDEADBEEF);
+	
+	List_Update(&list, (void*)0xDEADC0DE);
+	assert(list.current == list.last);
+	assert(List_Retrieve(&list) == (void*)0xDEADC0DE);
+	assert(!List_Includes(&list, (void*)0xDEADBEEF));
+	List_Remove(&list);
+	assert(!List_Includes(&list, (void*)0xDEADC0DE));
+	#ifdef USE_INDEX
+	assert(list.indices);
+	assert(ptrhash((void*) dummy) != ptrhash((void*)0xDEADC0DE));
+	assert(ptrhash((void*) dummy) != ptrhash((void*)0xDEADBEEF));
+	assert(list.indices[ptrhash((void*)0xDEADC0DE)]);
+	assert(list.indices[ptrhash((void*)0xDEADC0DE)]->nodes[0] == NULL);
+	assert(list.indices[ptrhash((void*)0xDEADC0DE)]->used ==0);
+	// dead beef was updated, so used must be still 1
+	assert(list.indices[ptrhash((void*)0xDEADBEEF)]);
+	assert(list.indices[ptrhash((void*)0xDEADBEEF)]->nodes[0] == NULL);
+	assert(list.indices[ptrhash((void*)0xDEADBEEF)]->used == 1);	
+	#endif
+	
 	List_Clear(&list);
 	assert(list.size == 0);
 	List_Init(&list);
@@ -189,4 +252,5 @@ void main() {
 
 	List_Clear(&list);
 	freemem();
+	return 0;
 }

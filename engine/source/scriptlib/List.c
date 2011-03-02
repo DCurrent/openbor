@@ -7,29 +7,147 @@
  */
 
 #include "List.h"
-#include "tracemalloc.h"
 #include <assert.h>
+
+#ifdef DEBUG
+void chklist(List* list) {
+	assert(list);
+	assert(list->initdone == 1); // method called on uninitialised list
+}
+#endif
+
+#ifdef USE_INDEX
+unsigned char ptrhash(void* value) {
+	size_t tmp = (size_t) value;
+	tmp >>= 4;
+	return tmp % 256;
+}
+
+/* add a single node to the index list */
+void List_AddIndex(List* list, Node* node, size_t index) {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+	unsigned char h;
+	size_t save;
+	
+	assert(node);	
+	
+	if (!list->indices) list->indices = tracecalloc("create listindex pointer array", sizeof(LIndex*) * 256);
+	
+	h = ptrhash(node->value);
+	if (!list->indices[h]) {
+		list->indices[h] = tracecalloc("create listindex item", sizeof(LIndex));
+		list->indices[h]->nodes = tracecalloc("create listindex nodes", sizeof(Node*) * 8);
+		assert(list->indices[h]->nodes != NULL);
+		list->indices[h]->indices = tracecalloc("create listindex indices", sizeof(ptrdiff_t) * 8);
+		assert(list->indices[h]->nodes != NULL);		
+		list->indices[h]->size = 8;
+	}
+	
+	save = list->indices[h]->size;
+	assert(list->indices[h]->used <= save);
+	if (list->indices[h]->used == save) {
+		list->indices[h]->nodes = tracerealloc(list->indices[h]->nodes, sizeof(Node*) * (save * 2));
+		assert(list->indices[h]->nodes != NULL);
+		list->indices[h]->indices = tracerealloc(list->indices[h]->indices, sizeof(ptrdiff_t) * (save * 2));
+		assert(list->indices[h]->indices != NULL);		
+		list->indices[h]->size = save * 2;
+	}
+	
+	list->indices[h]->nodes[list->indices[h]->used] = node;
+	list->indices[h]->indices[list->indices[h]->used] = index;
+	list->indices[h]->used++;
+}
+
+/* removes the last element from the index list
+   only use on fully indexed list */
+void List_RemoveLastIndex(List* list) {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+	unsigned char h;
+	assert(list->last);
+	assert(list->current);
+	assert(list->current == list->last);
+	h = ptrhash(list->last->value);
+	assert(list->indices[h]);
+	assert(list->indices[h]->used > 0);
+	list->indices[h]->used--; // it would be wrong to do this to a random element, but it's ok for the last one, since it was added as last
+	list->indices[h]->nodes[list->indices[h]->used] = NULL;
+	list->indices[h]->indices[list->indices[h]->used] = 0;
+}
+
+/* build indices for entire list
+   the indices will be destroyed whenever an element is either 
+   inserted or removed from the list, 
+   except if it was the last node/inserted after the last node */
+void List_CreateIndices(List* list) {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+	Node* n = list->first;
+	size_t index = 0;
+	while(n) {
+		List_AddIndex(list, n, index);
+		index++;
+		n = n->next;
+	}		
+}
+
+/* free everything related to the index list 
+   usually you dont have to do it manually, since its called by List_Clear
+   but it won't hurt either */
+void List_FreeIndices(List* list) {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+	int i;
+	if(!list->indices) return;
+	for (i=0;i<256;i++) {
+		if(list->indices[i]) {
+			tracefree(list->indices[i]->indices);
+			tracefree(list->indices[i]->nodes);
+			tracefree(list->indices[i]);
+		}		
+	}
+	tracefree(list->indices);
+	list->indices = NULL;
+}
+#endif
 
 void List_GotoLast(List* list)
 {
-	#ifdef LIST_DEBUG
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+#ifdef LIST_DEBUG
 	printf("List_Last %p\n", list);
-	#endif
+#endif
 	list->current = list->last;
 }
 
 void List_GotoFirst(List* list) {
-	#ifdef LIST_DEBUG
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+#ifdef LIST_DEBUG
 	printf("List_First %p\n", list);
-	#endif
+#endif
 	list->current = list->first;
 }
 
 Node* List_GetCurrent(List* list) {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
 	return list == NULL ? NULL : list->current;
 }
 
 void List_SetCurrent(List* list, Node* current) {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
 	if (list) list->current = current;
 }
 
@@ -42,20 +160,29 @@ void Node_Clear(Node* node)
 
 void List_Init(List* list)
 {
-	#ifdef LIST_DEBUG
+#ifdef LIST_DEBUG
 	printf("List_Init %p\n", list);
-	#endif
+#endif
 	list->first = list->current = list->last = NULL;
 	list->size = list->index = 0;
 	list->solidlist = NULL;
+	#ifdef USE_INDEX
+	list->indices = NULL;	
+	#endif
+#ifdef DEBUG	
+	list->initdone = 1;
+#endif
 }
 
 void List_Solidify(List* list)
 {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
 	int i = 0;
-	#ifdef LIST_DEBUG
-	printf("List_Solid %p\n", list);
-	#endif
+#ifdef LIST_DEBUG
+	printf("List_Solidify %p\n", list);
+#endif
 	if(list->solidlist) tracefree(list->solidlist);
 	if(!list->size) return;
 	List_GotoFirst(list);
@@ -69,71 +196,101 @@ void List_Solidify(List* list)
 }
 
 
+int List_GetNodeIndex(List* list, Node* node) {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+	unsigned char h;
+	int i;
+	Node* n;
+	
+	assert(list);
+	#ifdef USE_INDEX
+	if(list->indices) {
+		h = ptrhash(node->value);
+		assert(list->indices[h]);
+		for(i=0; i<list->indices[h]->used; i++) {
+			//assert(list->indices[h]->nodes[i]); gets overwritten by update with NULL
+			if(list->indices[h]->nodes[i] && list->indices[h]->nodes[i] == node) 
+				return list->indices[h]->indices[i];
+		}
+		return -1;
+	} else	
+	#endif
+	{
+		n = list->first;
+		i = 0;
+		while(n) {
+			if(n == node) return i;
+			i++;
+			n = n->next;
+		}
+		return -1;
+	}
+}
+
 int List_GetIndex(List* list)
 {
-	int i;
-	Node *nptr = list->first;
-	//if(!list->size) return -1;
-	for(i=0; i<list->size; i++)
-	{
-		if(nptr == list->current) return i;
-		nptr = nptr->next;
-	}
-	return -1;
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+	return List_GetNodeIndex(list, list->current);
 }
 
 void List_Copy(List* listdest, const List* listsrc)
 {
-	#ifdef LIST_DEBUG
+#ifdef DEBUG
+	chklist((List*)listsrc);
+#endif
+#ifdef LIST_DEBUG
 	printf("List_Copy %p %p\n", listsrc, listdest);
-	#endif
+#endif
 	Node *lptr = listsrc->first;
 	Node *nptr;
 	int i = 0, curr = -1;
 	
-	//is the list we're copying empty
-	if (lptr == NULL)
-	{
-		listdest->current = listdest->first = listdest->last = NULL;
-		listdest->size = 0;
-	}
-	else
-	{
-		List_Init(listdest);
-		//create the first Node
-		nptr = (Node*)tracemalloc("List Copy", sizeof(Node));
-		nptr->value = lptr->value;
-		nptr->name = NAME(lptr->name);
-		nptr->prev = NULL;
-		nptr->next = NULL;
-		
-		listdest->current = nptr;
-		listdest->first = nptr;
-		listdest->last = nptr;
-		listdest->size = 1;
-		
+	List_Init(listdest);
+	if (lptr == NULL) return;
+	//create the first Node
+	nptr = (Node*)tracemalloc("List Copy", sizeof(Node));
+	nptr->value = lptr->value;
+	nptr->name = NAME(lptr->name);
+	nptr->prev = NULL;
+	nptr->next = NULL;
+	
+	listdest->current = nptr;
+	listdest->first = nptr;
+	listdest->last = nptr;
+	listdest->size = 1;
+	
+	if (listsrc->current == lptr)
+		curr = i;
+	while ((lptr = lptr->next) != NULL) {
+		i++;
 		if (listsrc->current == lptr)
 			curr = i;
-		while ((lptr = lptr->next) != NULL) {
-			i++;
-			if (listsrc->current == lptr)
-				curr = i;
-			List_InsertAfter(listdest, lptr->value, lptr->name);
-			
-		}
-		assert(curr != -1);
-		List_GotoFirst(listdest);
-		for(i=0;i<curr;i++)
-			List_GotoNext(listdest); //setting current to the right value
-			
+		List_InsertAfter(listdest, lptr->value, lptr->name);
+		
 	}
+	assert(curr != -1);
+	List_GotoFirst(listdest);
+	for(i=0;i<curr;i++)
+		List_GotoNext(listdest); //setting current to the right value
+		
+	#ifdef USE_INDEX
+	if(listsrc->indices)
+		List_CreateIndices(listdest);
+	#endif
 }
 
 void List_Clear(List* list)
 {
-	#ifdef LIST_DEBUG
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+#ifdef LIST_DEBUG
 	printf("List_clear %p \n", list);
-	#endif
+#endif
 	
 	//Delete all the Nodes in the list.
 	Node* nptr = list->first;
@@ -151,16 +308,28 @@ void List_Clear(List* list)
 		tracefree(list->solidlist);
 		list->solidlist = NULL;
 	}
-	list->first = list->current = list->last = NULL;
-	list->size = list->index = 0;
+	List_Init(list);
+
+	#ifdef USE_INDEX
+	if(list->indices)
+		List_FreeIndices(list);
+	#endif
 }
 
 //Insertion functions
 void List_InsertBefore(List* list, void* e, LPCSTR theName)
 {
-	#ifdef LIST_DEBUG
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+#ifdef LIST_DEBUG
 	printf("List_InsertBefore %p %s\n", list, theName ? theName : "no-name");
+#endif
+	#ifdef USE_INDEX
+	if (list->indices) 
+		List_FreeIndices(list); // inserting something before something else destroys our indices list.
 	#endif
+	
 	//Construct a new Node
 	Node *nptr = (Node*)tracemalloc("List_InsertBefore", sizeof(Node));
 	assert(nptr != NULL);
@@ -188,8 +357,20 @@ void List_InsertBefore(List* list, void* e, LPCSTR theName)
 }
 
 void List_InsertAfter(List* list, void* e, LPCSTR theName) {
-	#ifdef LIST_DEBUG
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+#ifdef LIST_DEBUG
 	printf("List_InsertAfter %p %s\n", list, theName ? theName : "no-name");
+#endif
+	#ifdef USE_INDEX
+	int doIndex = 0;
+	if (list->indices) {
+		if(list->current != list->last) 
+			List_FreeIndices(list); // inserting something in the middle of something else destroys our indices list.
+		else
+			doIndex = 1;
+	}
 	#endif
 	
 	//Construct a new Node and fill it with the appropriate value
@@ -214,16 +395,23 @@ void List_InsertAfter(List* list, void* e, LPCSTR theName) {
 		if (list->current == list->last)
 			list->last = nptr;
 		list->current = nptr;
-	}
+	}	
+	#ifdef USE_INDEX
+	if (doIndex) 
+		List_AddIndex(list, list->current, list->size);
+	#endif
 	list->size++;
 }
 
 void List_Remove(List* list)
 {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
 	Node *nptr;
-	#ifdef LIST_DEBUG
+#ifdef LIST_DEBUG
 	printf("List_Remove %p\n", list);
-	#endif
+#endif
 	
 	if (list->size == 0)
 	{
@@ -235,9 +423,21 @@ void List_Remove(List* list)
 		Node_Clear(list->current);
 		tracefree(list->current);
 		list->first = list->current = list->last = NULL;
+		#ifdef USE_INDEX
+		List_FreeIndices(list);
+		#endif
 	}
 	else
 	{
+		#ifdef USE_INDEX
+		if(list->indices) {
+			if (list->current != list->last)
+				List_FreeIndices(list); // removing something before something else destroys our indices list.
+			else
+				List_RemoveLastIndex(list);
+		}
+		#endif		
+		
 		if(list->current->prev != NULL)
 			list->current->prev->next = list->current->next;
 		if(list->current->next)
@@ -260,24 +460,33 @@ void List_Remove(List* list)
 
 void List_GotoNext(List* list)
 {
-	#ifdef LIST_DEBUG
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+#ifdef LIST_DEBUG
 	printf("List_Next %p\n", list);
-	#endif
+#endif
 	if (list->current != list->last)
 		list->current = list->current->next;
 }
 
 void List_GotoPrevious(List* list)
 {
-	#ifdef LIST_DEBUG
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+#ifdef LIST_DEBUG
 	printf("List_Prev %p\n", list);
-	#endif
+#endif
 	if (list->current->prev)
 		list->current = list->current->prev;
 }
 
 void* List_Retrieve(const List* list)
 {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
 	if (list->current)
 		return list->current->value;
 	else
@@ -286,6 +495,9 @@ void* List_Retrieve(const List* list)
 
 void* List_GetFirst(const List* list)
 {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
 	if (list->first)
 		return list->first->value;
 	else
@@ -294,6 +506,9 @@ void* List_GetFirst(const List* list)
 
 void* List_GetLast(const List* list)
 {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
 	if (list->last)
 		return list->last->value;
 	else
@@ -302,22 +517,74 @@ void* List_GetLast(const List* list)
 
 void List_Update(List* list, void* e)
 {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+	#ifdef USE_INDEX
+	unsigned char h;
+	ptrdiff_t save, i;
+	if(list->indices) {
+		h = ptrhash(list->current->value);
+		assert(list->indices[h]);
+		for(i=0;i<list->indices[h]->used;i++) {
+			if(list->indices[h]->nodes[i] == list->current) {
+				list->indices[h]->nodes[i] = NULL;
+				save = list->indices[h]->indices[i];
+				list->indices[h]->indices[i] = -1;
+				list->current->value = e;
+				List_AddIndex(list, list->current, save);
+				break;
+			}
+		}
+	}
+	#else
 	if (list->size != 0)
 		list->current->value = e;
+	#endif
 }
 
+/* SIDE EFFECT: Moves current to found entity.
+I really don't like that behaviour */
 int List_Includes(List* list, void* e)
 {
-	Node *nptr = list->first;
-	while (nptr && (nptr->value != e))
-		nptr = nptr->next;
-	if (nptr)
-		list->current = nptr;
-	return (nptr != NULL);
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+	Node *n;
+#ifdef USE_INDEX
+	unsigned char h;
+	ptrdiff_t i;
+	if(list->indices) {
+		h = ptrhash(e);
+		if (!list->indices[h]) 
+			return 0;
+		for(i=0; i<list->indices[h]->used; i++) {
+			//assert(list->indices[h]->nodes[i]); gets overwritten by update with NULL
+			if(list->indices[h]->nodes[i] && list->indices[h]->nodes[i]->value == e) {
+				//gotcha
+				//ok lets set current to the found node. stoopid.
+				list->current = list->indices[h]->nodes[i];
+				return 1;
+			}
+		}
+		return 0;
+	} else
+#endif
+	{
+	n = list->first;
+	while (n && (n->value != e))
+		n = n->next;
+	if (n)
+		list->current = n;
+	return (n != NULL);
+	}
 }
 
 int List_FindByName(List* list, LPCSTR theName )
 {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
 	Node *nptr = list->first;
 	
 	while (nptr){
@@ -339,6 +606,9 @@ int List_FindByName(List* list, LPCSTR theName )
 
 LPCSTR List_GetName(const List* list)
 {
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
 	if (list->size != 0)
 		return list->current->name;
 	else
@@ -347,14 +617,20 @@ LPCSTR List_GetName(const List* list)
 
 void List_Reset(List* list)
 {
-	#ifdef LIST_DEBUG
-	printf("List_Reset %p\n", list);
-	#endif
+#ifdef DEBUG
+	chklist(list);
+#endif
+#ifdef LIST_DEBUG
+	printf("List_Reset %p\n", list);	
+#endif
 	list->current = list->first;
 }
 
 int List_GetSize(const List* list)
 {
+#ifdef DEBUG	
+	chklist((List*)list);
+#endif
 	return list->size;
 }
 
