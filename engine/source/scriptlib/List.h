@@ -9,8 +9,21 @@
 #ifndef LIST_H
 #define LIST_H
 
+#define USE_INDEX
+
+#ifndef UNIT_TEST
 #include "depends.h"
 #include "tracemalloc.h"
+#else
+#include <stddef.h>
+typedef char* LPCSTR;
+typedef char CHAR;
+#define tracemalloc(a,b) malloc(b)
+#define tracefree(a) free(a)
+#define tracecalloc(a,b) calloc(1,b)
+#define tracerealloc(a,b) realloc(a,b)
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -44,6 +57,15 @@ typedef struct Node{
 	//unsigned int hash;
 } Node;
 
+#ifdef USE_INDEX
+typedef struct LIndex {
+	size_t size;
+	size_t used;
+	Node** nodes;
+	ptrdiff_t* indices;
+} LIndex;
+#endif
+
 typedef struct List {
 	//Data members
 	Node *first;
@@ -52,6 +74,12 @@ typedef struct List {
 	void **solidlist;
 	int index;
 	int size;
+#ifdef DEBUG	
+	int initdone;
+#endif
+#ifdef USE_INDEX
+	LIndex** indices;
+#endif	
 } List;
 
 Node* List_GetCurrent(List* list);
@@ -77,5 +105,15 @@ int List_FindByName(List* list, LPCSTR theName );
 LPCSTR List_GetName(const List* list);
 void List_Reset(List* list);
 int List_GetSize(const List* list);
+
+int List_GetNodeIndex(List* list, Node* node);	
+#ifdef USE_INDEX
+void List_AddIndex(List* list, Node* node, size_t index);
+void List_RemoveLastIndex(List* list);
+void List_CreateIndices(List* list);
+void List_FreeIndices(List* list);
+unsigned char ptrhash(void* value); // need to export that as well for unittest.
+#endif
+
 #endif
 
