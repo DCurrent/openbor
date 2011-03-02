@@ -16,6 +16,11 @@
 // methods will be much slower.
 #define USE_INDEX
 
+// this switch enables the capability to create a hashmap for quick string searches
+// speeds up search for "findByname" type of queries.
+// it will always be used, so memory usage will be slightly increased.
+#define USE_STRING_HASHES
+
 #ifndef UNIT_TEST
 #include "depends.h"
 #include "tracemalloc.h"
@@ -58,8 +63,7 @@ typedef struct Node{
 	struct Node* prev;          //pointer to previous Node
 	struct Node* next;          //pointer to next Node	
 	void* value;                //data stored in a Node
-	LPCSTR name;                //optional name of the Node
-	//unsigned int hash;
+	LPCSTR name;                //optional name of the Node	
 } Node;
 
 #ifdef USE_INDEX
@@ -69,6 +73,14 @@ typedef struct LIndex {
 	Node** nodes;
 	ptrdiff_t* indices;
 } LIndex;
+#endif
+
+#ifdef USE_STRING_HASHES
+typedef struct Bucket {
+	size_t size;
+	size_t used;
+	Node** nodes;	
+} Bucket;
 #endif
 
 typedef struct List {
@@ -84,7 +96,10 @@ typedef struct List {
 #endif
 #ifdef USE_INDEX
 	LIndex** indices;
-#endif	
+#endif
+#ifdef USE_STRING_HASHES
+	Bucket** buckets;
+#endif
 } List;
 
 Node* List_GetCurrent(List* list);

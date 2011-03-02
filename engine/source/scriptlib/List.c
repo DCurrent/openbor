@@ -16,6 +16,104 @@ void chklist(List* list) {
 }
 #endif
 
+#ifdef USE_STRING_HASHES
+unsigned char strhash(char* s) {	
+	ptrdiff_t tmp = 0;
+	char* p = s;
+	while(*p) {
+		tmp += *p - 'A';
+		p++;
+	}
+	return (size_t)tmp % 256;
+}
+
+/* add a single node to the hash list */
+void List_AddHash(List* list, Node* node) {
+	#ifdef DEBUG
+	chklist((List*)list);
+	#endif
+	unsigned char h;
+	size_t save;
+	
+	assert(node);
+	if(!node->name) return;
+	
+	if (!list->buckets) list->buckets = tracecalloc("create bucket pointer array", sizeof(Bucket*) * 256);
+	
+	h = strhash((char*)node->name);
+	if (!list->buckets[h]) {
+		list->buckets[h] = tracecalloc("create bucket item", sizeof(Bucket));
+		list->buckets[h]->nodes = tracecalloc("create bucket nodes", sizeof(Node*) * 8);
+		assert(list->buckets[h]->nodes != NULL);
+		list->buckets[h]->size = 8;
+	}
+	
+	save = list->buckets[h]->size;
+	assert(list->buckets[h]->used <= save);
+	if (list->buckets[h]->used == save) {
+		list->buckets[h]->nodes = tracerealloc(list->buckets[h]->nodes, sizeof(Node*) * (save * 2));
+		assert(list->buckets[h]->nodes != NULL);
+		list->buckets[h]->size = save * 2;
+	}
+	
+	list->buckets[h]->nodes[list->buckets[h]->used] = node;
+	list->buckets[h]->used++;
+}
+
+/* removes the last element from the index list
+only use on fully indexed list */
+void List_RemoveHash(List* list, Node* node) {
+	#ifdef DEBUG
+	chklist((List*)list);
+	#endif
+	unsigned char h;
+	size_t i;
+	if(!node->name) return;
+	h = strhash((char*)node->name);
+	assert(list->buckets[h]);
+	assert(list->buckets[h]->used > 0);
+	for(i=0;i<list->buckets[h]->used;i++) {
+		if (node ==  list->buckets[h]->nodes[i]) {
+			list->buckets[h]->nodes[i] = NULL;
+			break;
+		}
+	}
+}
+
+/* free everything related to the string hash list 
+usually you dont have to do it manually, since its called by List_Clear
+but it won't hurt either */
+void List_FreeHashes(List* list) {
+	#ifdef DEBUG
+	chklist((List*)list);
+	#endif
+	int i;
+	if(!list->buckets) return;
+	for (i=0;i<256;i++) {
+		if(list->buckets[i]) {
+			tracefree(list->buckets[i]->nodes);
+			tracefree(list->buckets[i]);
+		}		
+	}
+	tracefree(list->buckets);
+	list->buckets = NULL;
+}
+
+/* build hashes for entire list
+this is only required when doing a list copy.
+*/
+void List_CreateHashes(List* list) {
+	#ifdef DEBUG
+	chklist((List*)list);
+	#endif
+	Node* n = list->first;
+	while(n) {
+		List_AddHash(list, n);
+		n = n->next;
+	}		
+}
+#endif
+
 #ifdef USE_INDEX
 unsigned char ptrhash(void* value) {
 	size_t tmp = (size_t) value;
@@ -41,7 +139,7 @@ void List_AddIndex(List* list, Node* node, size_t index) {
 		list->indices[h]->nodes = tracecalloc("create listindex nodes", sizeof(Node*) * 8);
 		assert(list->indices[h]->nodes != NULL);
 		list->indices[h]->indices = tracecalloc("create listindex indices", sizeof(ptrdiff_t) * 8);
-		assert(list->indices[h]->nodes != NULL);		
+		assert(list->indices[h]->indices != NULL);		
 		list->indices[h]->size = 8;
 	}
 	
@@ -166,9 +264,12 @@ void List_Init(List* list)
 	list->first = list->current = list->last = NULL;
 	list->size = list->index = 0;
 	list->solidlist = NULL;
-	#ifdef USE_INDEX
+#ifdef USE_INDEX
 	list->indices = NULL;	
-	#endif
+#endif
+#ifdef USE_STRING_HASHES
+	list->buckets = NULL;
+#endif
 #ifdef DEBUG	
 	list->initdone = 1;
 #endif
@@ -279,6 +380,11 @@ void List_Copy(List* listdest, const List* listsrc)
 	if(listsrc->indices)
 		List_CreateIndices(listdest);
 	#endif
+	
+	#ifdef USE_STRING_HASHES
+	List_CreateHashes(listdest);
+	#endif
+	
 }
 
 void List_Clear(List* list)
@@ -312,6 +418,10 @@ void List_Clear(List* list)
 	if(list->indices)
 		List_FreeIndices(list);
 	#endif
+	
+	#ifdef USE_STRING_HASHES
+	List_FreeHashes(list);
+	#endif
 }
 
 //Insertion functions
@@ -334,6 +444,10 @@ void List_InsertBefore(List* list, void* e, LPCSTR theName)
 	
 	nptr->value = e;
 	nptr->name = NAME(theName);
+	
+	#ifdef USE_STRING_HASHES
+	List_AddHash(list, nptr);
+	#endif
 	
 	if (list->size == 0)
 	{
@@ -378,6 +492,10 @@ void List_InsertAfter(List* list, void* e, LPCSTR theName) {
 	nptr->value = e;
 	nptr->name = NAME(theName);
 	
+	#ifdef USE_STRING_HASHES
+	List_AddHash(list, nptr);
+	#endif	
+	
 	if (list->size == 0)
 	{
 		nptr->prev = NULL;
@@ -410,7 +528,6 @@ void List_Remove(List* list)
 #ifdef LIST_DEBUG
 	printf("List_Remove %p\n", list);
 #endif
-	
 	if (list->size == 0)
 	{
 		//OutputDebugString("Attempted to remove from empty list.\n");
@@ -418,6 +535,9 @@ void List_Remove(List* list)
 	}
 	else if (list->size == 1)
 	{
+		#ifdef USE_STRING_HASHES
+		List_RemoveHash(list, list->current);
+		#endif		
 		Node_Clear(list->current);
 		tracefree(list->current);
 		list->first = list->current = list->last = NULL;
@@ -434,7 +554,7 @@ void List_Remove(List* list)
 			else
 				List_RemoveLastIndex(list);
 		}
-		#endif		
+		#endif
 		
 		if(list->current->prev != NULL)
 			list->current->prev->next = list->current->next;
@@ -445,8 +565,13 @@ void List_Remove(List* list)
 		else
 			nptr = list->current->next;
 		
+		#ifdef USE_STRING_HASHES
+		List_RemoveHash(list, list->current);
+		#endif
+		
 		Node_Clear(list->current);
 		tracefree(list->current);
+		
 		if (list->current == list->last)
 			list->last = nptr;
 		if (list->current == list->first)
@@ -589,28 +714,51 @@ int List_Includes(List* list, void* e)
 	return 0;
 }
 
-int List_FindByName(List* list, LPCSTR theName )
+/* returns the first node of which name is equal to theName */
+Node* List_SearchName(List* list, LPCSTR theName )
 {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
-	Node *nptr = list->first;
+	if (theName == NULL) return NULL;
+	
+#ifdef USE_STRING_HASHES
+	size_t i;
+	unsigned char h = strhash((char*)theName);
+	if (!list->buckets || !list->buckets[h]) return 0;
+	for(i=0;i<list->buckets[h]->used;i++) {
+		if(strcmp(theName, list->buckets[h]->nodes[i]->name)==0) {
+			return list->buckets[h]->nodes[i];
+		}
+	}	
+	return NULL;
+#else
+	Node *nptr;
+	nptr = list->first;
 	
 	while (nptr){
 		if (nptr->name){
 			if (strcmp( nptr->name, theName ) == 0)
-				break;
+				return nptr;
 		}
 		nptr = nptr->next;
 	}
+	return NULL;
+#endif
 	
-	if (nptr != NULL){
-		list->current = nptr;
+}
+/* SIDE EFFECTS: sets list->current to the first found node */
+int List_FindByName(List* list, LPCSTR theName) {
+	#ifdef DEBUG
+	chklist((List*)list);
+	#endif
+	
+	Node* n = List_SearchName(list, theName);
+	if (n)  {
+		list->current = n;
 		return 1;
 	}
-	else
-		return 0;
-	
+	return 0;
 }
 
 LPCSTR List_GetName(const List* list)
