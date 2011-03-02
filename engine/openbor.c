@@ -2217,6 +2217,42 @@ void check_music(){
 
 // ----------------------- General ------------------------------
 
+int isNumeric(char* text) {
+	char* p = text;
+	assert(p);
+	if(!*p) return 0;
+	//assert(*p);
+	while(*p) {
+		switch (*p) {
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9':
+				p++;
+				break;
+			default:
+				return 0;
+		}
+	}
+	return 1;
+}
+
+int isFloat(char* text) {
+	char* p = text;
+	assert(p);
+	if(!*p) return 0;
+	//assert(*p);
+	while(*p) {
+		switch (*p) {
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9': case '.':
+				p++;
+				break;
+			default:
+				return 0;
+		}
+	}
+	return 1;
+}
+
 char *findarg(char *command, int which){
     int d;
     int argc;
@@ -3909,6 +3945,7 @@ void add_model_map(size_t size)
 static void _readbarstatus(char*, s_barstatus*);
 s_model* load_cached_model(char * name, char * owner, char unload)
 {
+	static const char* WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a nonnumeric value, where a number is expected!\nerroneus string: %s\n";
 	s_model_list *curr = NULL,
 	*head = NULL;
 
@@ -3976,6 +4013,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	*pattack = NULL;
 
 	s_drawmethod drawmethod;
+	
+	char* save; // you can use it wherever you like...
 
 	unsigned char mapflag[MAX_COLOUR_MAPS]; // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
@@ -4407,39 +4446,90 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		}
 		else if(stricmp(command, "stats")==0){
 			value = findarg(buf+pos, 1);
-			newchar->stats[atoi(value)] = atof(findarg(buf+pos, 2));
+			save = findarg(buf+pos, 2);
+			if(isNumeric(value) && isFloat(save)) {
+				newchar->stats[atoi(value)] = atof(save);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "health")==0){
 			value = findarg(buf+pos, 1);
-			newchar->health = atoi(value);
+			if(isNumeric(value)) {
+				newchar->health = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "scroll")==0){
 			value = findarg(buf+pos, 1);
-			newchar->scroll = atof(value);
+			if(isFloat(value))
+				newchar->scroll = atof(value);
+			else
+				printf(WARN_NUMBER_EXPECTED, filename, value);
 		}
 		//Left for backward compatability. See mpset.
 		else if(stricmp(command, "mp")==0){// mp values to put max mp for player by tails
 			value = findarg(buf+pos, 1);
-			newchar->mp = atoi(value);
+			if(isNumeric(value)) {
+				newchar->mp = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "nolife")==0){    // Feb 25, 2005 - Flag to display enemy life or not
-			newchar->nolife = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if(isNumeric(value)) {
+				newchar->nolife = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "makeinv")==0){    // Mar 12, 2005 - If a value is supplied, corresponds to amount of time the player spawns invincible
-			newchar->makeinv = atoi(findarg(buf+pos, 1)) * GAME_SPEED;
-			if(atoi(findarg(buf+pos, 2))) newchar->makeinv = -newchar->makeinv;
+			value = findarg(buf+pos, 1);
+			if(isNumeric(value)) {
+				newchar->makeinv = atoi(value) * GAME_SPEED;
+				value = findarg(buf+pos, 2);
+				if(isNumeric(value)) {
+					if(atoi(value)) newchar->makeinv = -newchar->makeinv;
+				} else {
+					printf(WARN_NUMBER_EXPECTED, filename, value);
+				}				
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}			
 		}
 		else if(stricmp(command, "riseinv")==0){
 			newchar->riseinv = atoi(findarg(buf+pos, 1)) * GAME_SPEED;
-			if(atoi(findarg(buf+pos, 2))) newchar->riseinv = -newchar->riseinv;
+			value = findarg(buf+pos, 2);
+			if(isNumeric(value)) {
+				if(atoi(value)) newchar->riseinv = -newchar->riseinv;
+			}
+			else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "load")==0){
 			strncpy(load_name, findarg(buf+pos, 1), MAX_NAME_LEN);
-			load_cached_model(load_name, name, atoi(findarg(buf+pos, 2)));
+			value = findarg(buf+pos, 2);
+			if(isNumeric(value))
+				load_cached_model(load_name, name, atoi(value));
+			else
+				printf(WARN_NUMBER_EXPECTED, filename, value);
 		}
 		else if(stricmp(command, "score")==0){
-			newchar->score = atoi(findarg(buf+pos, 1));
-			newchar->multiple = atoi(findarg(buf+pos, 2));			// New var multiple for force/scoring
+			value = findarg(buf+pos, 1);
+			if(isNumeric(value)) {
+				newchar->score = atoi(value);
+				value = findarg(buf+pos, 2);
+				if (isNumeric(value)) {
+					newchar->multiple = atoi(value);			// New var multiple for force/scoring
+				} else {
+					printf(WARN_NUMBER_EXPECTED, filename, value);
+				}
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "smartbomb")==0){ //smartbomb now use a normal attack box
 			if(!newchar->smartbomb)
@@ -4448,8 +4538,18 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				*(newchar->smartbomb) = emptyattack;
 			}
 			else shutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
-			newchar->smartbomb->attack_force = atoi(findarg(buf+pos, 1));			// Special force
-			newchar->smartbomb->attack_type = atoi(findarg(buf+pos, 2));			// Special attack type
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->smartbomb->attack_force = atoi(value);			// Special force
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
+			value = findarg(buf+pos, 2);
+			if (isNumeric(value)) {
+				newchar->smartbomb->attack_type = atoi(value);	// Special attack type
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 			newchar->smartbomb->attack_drop = 1; //by default
 			newchar->smartbomb->dropv[0] = 3;
 			if(newchar->smartbomb->attack_type==ATK_BLAST)
@@ -4473,31 +4573,70 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 			}
 			if(newchar->type == TYPE_ITEM)
 			{
-				newchar->dofreeze = 0;								// Items don't animate
-				newchar->smartbomb->freezetime = atoi(findarg(buf+pos, 3)) * GAME_SPEED;
+				newchar->dofreeze = 0;	// Items don't animate
+				value = findarg(buf+pos, 3);
+				if (isNumeric(value)) {
+					newchar->smartbomb->freezetime = atoi(value) * GAME_SPEED;
+				} else {
+					printf(WARN_NUMBER_EXPECTED, filename, value);
+				}
 			}
 			else
 			{
-				newchar->dofreeze = atoi(findarg(buf+pos, 3));		// Are all animations frozen during special
-				newchar->smartbomb->freezetime = atoi(findarg(buf+pos, 4)) * GAME_SPEED;
+				value = findarg(buf+pos, 3);
+				if (isNumeric(value)) {
+					newchar->dofreeze = atoi(value);		// Are all animations frozen during special
+				} else {
+					printf(WARN_NUMBER_EXPECTED, filename, value);
+				}
+				value = findarg(buf+pos, 4);
+				if (isNumeric(value)) {
+					newchar->smartbomb->freezetime = atoi(value) * GAME_SPEED;
+				} else {
+					printf(WARN_NUMBER_EXPECTED, filename, value);
+				}
 			}
 		}
 		else if(stricmp(command, "bounce")==0){						// Flag to determine if bounce/quake is to be used.
-			newchar->bounce = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->bounce = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "noquake")==0){					// Mar 12, 2005 - Flag to determine if entity shakes screen
-			newchar->noquake = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {				
+				newchar->noquake = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "blockback")==0){					// Flag to determine if attacks can be blocked from behind
-			newchar->blockback = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->blockback = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "hitenemy")==0){					// Flag to determine if an enemy projectile will hit enemies
 			value = findarg(buf+pos, 1);
-			if(atoi(value) == 1)
-			newchar->candamage = newchar->hostile = TYPE_PLAYER | TYPE_ENEMY;
-			else if(atoi(value) == 2)
-			newchar->candamage = newchar->hostile = TYPE_PLAYER;
-			newchar->ground = atoi(findarg(buf+pos, 2));    // Added to determine if enemies are damaged with mid air projectiles or ground only
+			if (isNumeric(value)) {
+				if(atoi(value) == 1)
+					newchar->candamage = newchar->hostile = TYPE_PLAYER | TYPE_ENEMY;
+				else if(atoi(value) == 2)
+					newchar->candamage = newchar->hostile = TYPE_PLAYER;
+				value = findarg(buf+pos, 2);
+				if (isNumeric(value)) {
+					newchar->ground = atoi(value);    // Added to determine if enemies are damaged with mid air projectiles or ground only
+				} else {
+					printf(WARN_NUMBER_EXPECTED, filename, value);
+				}
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "hostile")==0){
 			i = 1;
@@ -4639,58 +4778,132 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		}
 		else if(stricmp(command, "subject_to_wall")==0)
 		{
-			newchar->subject_to_wall = (0!=atoi(findarg(buf+pos, 1)));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->subject_to_wall = (0!=atoi(value));
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "subject_to_hole")==0)
 		{
-			newchar->subject_to_hole = (0!=atoi(findarg(buf+pos, 1)));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->subject_to_hole = (0!=atoi(value));
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "subject_to_platform")==0)
 		{
-			newchar->subject_to_platform = (0!=atoi(findarg(buf+pos, 1)));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->subject_to_platform = (0!=atoi(value));
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "subject_to_obstacle")==0)
 		{
-			newchar->subject_to_obstacle = (0!=atoi(findarg(buf+pos, 1)));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->subject_to_obstacle = (0!=atoi(value));
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "subject_to_gravity")==0)
 		{
-			newchar->subject_to_gravity = (0!=atoi(findarg(buf+pos, 1)));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->subject_to_gravity = (0!=atoi(value));
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "subject_to_screen")==0)
 		{
-			newchar->subject_to_screen = (0!=atoi(findarg(buf+pos, 1)));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->subject_to_screen = (0!=atoi(value));
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "subject_to_minz")==0)
 		{
-			newchar->subject_to_minz = (0!=atoi(findarg(buf+pos, 1)));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->subject_to_minz = (0!=atoi(value));
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "subject_to_maxz")==0)
 		{
-			newchar->subject_to_maxz = (0!=atoi(findarg(buf+pos, 1)));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->subject_to_maxz = (0!=atoi(value));
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "no_adjust_base")==0)
 		{
-			newchar->no_adjust_base = (0!=atoi(findarg(buf+pos, 1)));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->no_adjust_base = (0!=atoi(value));
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "instantitemdeath")==0)
 		{
-			newchar->instantitemdeath = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->instantitemdeath = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}			
 		}
 		else if(stricmp(command, "secret")==0){
-			newchar->secret = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->secret = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}			
 		}
 		else if(stricmp(command, "modelflag")==0){ // model copy flag
-			newchar->model_flag = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->model_flag = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}			
 		}
 		// weapons
 		else if(stricmp(command, "weaploss")==0){
-			newchar->weaploss[0] = atoi(findarg(buf+pos, 1));
-			newchar->weaploss[1] = atoi(findarg(buf+pos, 2));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->weaploss[0] = atoi(value);
+				value = findarg(buf+pos, 2);
+				if (isNumeric(value)) {
+					newchar->weaploss[1] = atoi(value);
+				} else {
+					printf(WARN_NUMBER_EXPECTED, filename, value);
+				}				
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "weapnum")==0){
-			newchar->weapnum = atoi(findarg(buf+pos, 1));
-		}
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->weapnum = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}			}
 		else if(stricmp(command, "project")==0){  // New projectile subtype
 			value = findarg(buf+pos, 1);
 			if(stricmp(value, "none")==0) newchar->project = -1;
@@ -4718,19 +4931,44 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		}
 		//here weapons things like shoot rest type of weapon ect..by tails
 		else if(stricmp(command, "shootnum")==0){
-			newchar->shootnum = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->shootnum = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}				
 		}
 		else if(stricmp(command, "reload")==0){
-			newchar->reload = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->reload = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}				
 		}
 		else if(stricmp(command, "typeshot")==0){
-			newchar->typeshot = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->typeshot = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "counter")==0){
-			newchar->counter = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->counter = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}				
 		}
 		else if(stricmp(command, "animal")==0){
-			newchar->animal = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->animal = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		// end weapons
 		else if(stricmp(command, "rider")==0){
@@ -4794,72 +5032,141 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		}
 		else if(stricmp(command, "cantgrab")==0 ||
 			stricmp(command, "notgrab")==0){
-			tempInt = atoi(findarg(buf+pos, 1));
-			if(tempInt == 2) newchar->grabforce = -999999;
-			else             newchar->antigrab = 1;
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				tempInt = atoi(value);
+				if(tempInt == 2) newchar->grabforce = -999999;
+				else             newchar->antigrab = 1;
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+				newchar->antigrab = 1;
+			}	
 		}
 		else if(stricmp(command, "antigrab")==0) // a can grab b: a->antigrab - b->grabforce <=0
 		{
-			newchar->antigrab = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->antigrab = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "grabforce")==0)
 		{
-			newchar->grabforce = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->grabforce = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "grabback")==0){
-			newchar->grabback = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->grabback = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "offscreenkill")==0){
-			newchar->offscreenkill = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->offscreenkill = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}			
 		}
 		else if(stricmp(command, "falldie")==0 ||
 			stricmp(command, "death")==0){
-			newchar->falldie = atoi(findarg(buf+pos, 1));
+			value = findarg(buf+pos, 1);
+			if (isNumeric(value)) {
+				newchar->falldie = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}			
 		}
 		else if(stricmp(command, "speed")==0){
 			value = findarg(buf+pos, 1);
-			newchar->speed = atof(value);
-			newchar->speed /= 10;
-			if(newchar->speed < 0.5) newchar->speed = 0.5;
-			if(newchar->speed > 30) newchar->speed = 30;
+			if (isFloat(value)) {
+				newchar->speed = atof(value);
+				newchar->speed /= 10;
+				if(newchar->speed < 0.5) newchar->speed = 0.5;
+				if(newchar->speed > 30) newchar->speed = 30;
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "speedf")==0){ // float speed
 			value = findarg(buf+pos, 1);
-			newchar->speed = atof(value);
+			if (isFloat(value)) {
+				newchar->speed = atof(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "jumpspeed")==0){
 			value = findarg(buf+pos, 1);
-			newchar->jumpspeed = atof(value);
-			newchar->jumpspeed /= 10;
+			if (isFloat(value)) {
+				newchar->jumpspeed = atof(value);
+				newchar->jumpspeed /= 10;
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "jumpspeedf")==0){
 			value = findarg(buf+pos, 1);
-			newchar->jumpspeed = atof(value);
+			if (isFloat(value)) {				
+				newchar->jumpspeed = atof(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "antigravity")==0){
 			value = findarg(buf+pos, 1);
-			newchar->antigravity = atof(value);
-			newchar->antigravity /= 100;
+			if (isFloat(value)) {
+				newchar->antigravity = atof(value);
+				newchar->antigravity /= 100;
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "stealth")==0){
-			newchar->stealth[0] = atoi(findarg(buf+pos, 1));
-			newchar->stealth[1] = atoi(findarg(buf+pos, 2));
+			value = findarg(buf+pos, 1);
+			save = findarg(buf+pos, 2);
+			if (isNumeric(value) && isNumeric(save)) {
+				newchar->stealth[0] = atoi(value);
+				newchar->stealth[1] = atoi(save);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "jugglepoints")==0){
 			value = findarg(buf+pos, 1);
-			newchar->jugglepoints[0] = atoi(value);
-			newchar->jugglepoints[1] = atoi(value);
+			if (isNumeric(value)) {
+				newchar->jugglepoints[0] = atoi(value);
+				newchar->jugglepoints[1] = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "riseattacktype")==0){
 			value = findarg(buf+pos, 1);
-			newchar->riseattacktype = atoi(value);
+			if (isNumeric(value)) {
+				newchar->riseattacktype = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
 		else if(stricmp(command, "guardpoints")==0){
 			value = findarg(buf+pos, 1);
-			newchar->guardpoints[0] = atoi(value);
-			newchar->guardpoints[1] = atoi(value);
+			if (isNumeric(value)) {
+				newchar->guardpoints[0] = atoi(value);
+				newchar->guardpoints[1] = atoi(value);
+			} else {
+				printf(WARN_NUMBER_EXPECTED, filename, value);
+			}
 		}
-
+//ok, i'm not gonna touch your code.
 #define tempdef(x, y, z, p, k, b, t, r, e) \
 x(stricmp(value, #y)==0)\
 {\
@@ -4893,27 +5200,59 @@ x(stricmp(value, #y)==0)\
 			tempdef(else if, FREEZE,    defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
 			else if(strnicmp(value, "normal", 6)==0)
 			{
-				tempInt = atoi(value+6);
-				if(tempInt<11) tempInt = 11;
-				newchar->defense_factors[tempInt+STA_ATKS-1]        = atof(findarg(buf+pos, 2));
-				newchar->defense_pain[tempInt+STA_ATKS-1]           = atof(findarg(buf+pos, 3));
-				newchar->defense_knockdown[tempInt+STA_ATKS-1]      = atof(findarg(buf+pos, 4));
-				newchar->defense_blockpower[tempInt+STA_ATKS-1]     = atof(findarg(buf+pos, 5));
-				newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = atof(findarg(buf+pos, 6));
-				newchar->defense_blockratio[tempInt+STA_ATKS-1]     = atof(findarg(buf+pos, 7));
-				newchar->defense_blocktype[tempInt+STA_ATKS-1]      = atof(findarg(buf+pos, 8));
+				save = value+6;
+				if (isNumeric(save)) {
+					tempInt = atoi(save);
+					if(tempInt<11) tempInt = 11;
+					newchar->defense_factors[tempInt+STA_ATKS-1]        = atof(findarg(buf+pos, 2));
+					newchar->defense_pain[tempInt+STA_ATKS-1]           = atof(findarg(buf+pos, 3));
+					newchar->defense_knockdown[tempInt+STA_ATKS-1]      = atof(findarg(buf+pos, 4));
+					newchar->defense_blockpower[tempInt+STA_ATKS-1]     = atof(findarg(buf+pos, 5));
+					newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = atof(findarg(buf+pos, 6));
+					newchar->defense_blockratio[tempInt+STA_ATKS-1]     = atof(findarg(buf+pos, 7));
+					newchar->defense_blocktype[tempInt+STA_ATKS-1]      = atof(findarg(buf+pos, 8));
+				} else {
+					printf(WARN_NUMBER_EXPECTED, filename, save);
+				}
 			}
 			else if(stricmp(value, "ALL")==0)
 			{
 				for(i=0;i<max_attack_types;i++)
 				{
-					newchar->defense_factors[i]         = atof(findarg(buf+pos, 2));
-					newchar->defense_pain[i]            = atof(findarg(buf+pos, 3));
-					newchar->defense_knockdown[i]       = atof(findarg(buf+pos, 4));
-					newchar->defense_blockpower[i]      = atof(findarg(buf+pos, 5));
-					newchar->defense_blockthreshold[i]  = atof(findarg(buf+pos, 6));
-					newchar->defense_blockratio[i]      = atof(findarg(buf+pos, 7));
-					newchar->defense_blocktype[i]       = atof(findarg(buf+pos, 8));
+					save = findarg(buf+pos, 2);
+					if (isFloat(save))
+						newchar->defense_factors[i]         = atof(save);
+					else printf(WARN_NUMBER_EXPECTED, filename, save);
+					
+					save = findarg(buf+pos, 3);
+					if (isFloat(save))						
+						newchar->defense_pain[i]            = atof(save);
+					else printf(WARN_NUMBER_EXPECTED, filename, save);
+
+					save = findarg(buf+pos, 4);
+					if (isFloat(save))						
+						newchar->defense_knockdown[i]       = atof(findarg(buf+pos, 4));
+					else printf(WARN_NUMBER_EXPECTED, filename, save);
+					
+					save = findarg(buf+pos, 5);
+					if (isFloat(save))
+						newchar->defense_blockpower[i]      = atof(findarg(buf+pos, 5));
+					else printf(WARN_NUMBER_EXPECTED, filename, save);
+
+					save = findarg(buf+pos, 6);
+					if (isFloat(save))
+						newchar->defense_blockthreshold[i]  = atof(findarg(buf+pos, 6));
+					else printf(WARN_NUMBER_EXPECTED, filename, save);
+					
+					save = findarg(buf+pos, 7);
+					if (isFloat(save))						
+						newchar->defense_blockratio[i]      = atof(findarg(buf+pos, 7));
+					else printf(WARN_NUMBER_EXPECTED, filename, save);
+					
+					save = findarg(buf+pos, 8);
+					if (isFloat(save))						
+						newchar->defense_blocktype[i]       = atof(findarg(buf+pos, 8));
+					else printf(WARN_NUMBER_EXPECTED, filename, save);
 				}
 			}
 		}
@@ -4958,7 +5297,10 @@ x(stricmp(value, #y)==0)\
             }
 #undef tempoff
             else if(stricmp(command, "height")==0){
-                newchar->height = atoi(findarg(buf+pos, 1));
+		    value = findarg(buf+pos, 1);
+		    if (isNumeric(value))
+			newchar->height = atoi(value);
+		    else printf(WARN_NUMBER_EXPECTED, filename, value);
             }
             else if(stricmp(command, "jumpheight")==0){        // 28-12-2004 if string for jump height found
                 newchar->jumpheight = atof(findarg(buf+pos, 1));
