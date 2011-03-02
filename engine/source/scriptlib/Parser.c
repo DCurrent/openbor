@@ -14,6 +14,7 @@ Parser* pcurParser = NULL;
 void Parser_Init(Parser* pparser)
 {
     memset(pparser, 0, sizeof(Parser));
+    Stack_Init(&(pparser->LabelStack));    
     ParserSet_Buildup(&(pparser->theParserSet));
     pparser->LabelCount = 0;
     pparser->theFieldToken.theType = END_OF_TOKENS;
