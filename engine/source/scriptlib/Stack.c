@@ -30,7 +30,6 @@ int Stack_IsEmpty(const Stack* stack)
   return (List_GetSize(stack)==0);
 }
 
-
-
-
-
+void Stack_Init(Stack* stack) {
+	List_Init(stack);
+}

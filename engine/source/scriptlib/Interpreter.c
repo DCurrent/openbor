@@ -19,7 +19,9 @@ void Interpreter_Init(Interpreter* pinterpreter, LPCSTR name, List* pflist)
     Parser_Init(&(pinterpreter->theParser));
     pinterpreter->ptheFunctionList = pflist;
     List_Init(&(pinterpreter->theInstructionList));
-    List_Init(&(pinterpreter->paramList));    
+    List_Init(&(pinterpreter->paramList));
+    Stack_Init(&(pinterpreter->theDataStack));
+    Stack_Init(&(pinterpreter->theLabelStack));
     pp_context_init(&(pinterpreter->theContext));
 }
 
