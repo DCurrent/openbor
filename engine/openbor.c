@@ -4877,9 +4877,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				else newchar->rider = get_cached_model_index(value);
 			}
 			else if(strcmp(command, "knife")==0 ||
-				strcmp(command, "fireb")==0 ||
-				strcmp(command, "playshot")==0 ||
-				strcmp(command, "playshotw")==0) {
+			strcmp(command, "fireb")==0 ||
+			strcmp(command, "playshot")==0 ||
+			strcmp(command, "playshotw")==0) {
 				value = GET_ARG(1);
 				if(stricmp(value, "none")==0) newchar->knife = -1;
 				else  newchar->knife = get_cached_model_index(value);
@@ -4895,7 +4895,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				else newchar->star = get_cached_model_index(value);
 			}
 			else if(strcmp(command, "bomb")==0 ||
-				strcmp(command, "playbomb")==0){
+			strcmp(command, "playbomb")==0){
 				value = GET_ARG(1);
 				if(stricmp(value, "none")==0) newchar->bomb = -1;
 				else newchar->bomb = get_cached_model_index(value);
@@ -4931,7 +4931,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				strncpy(newchar->branch, value, MAX_NAME_LEN);
 			}
 			else if(strcmp(command, "cantgrab")==0 ||
-				strcmp(command, "notgrab")==0){
+			strcmp(command, "notgrab")==0){
 				tempInt = atoi(GET_ARG(1));
 				if(tempInt == 2) newchar->grabforce = -999999;
 				else             newchar->antigrab = 1;
@@ -4951,7 +4951,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				newchar->offscreenkill = atoi(GET_ARG(1));
 			}
 			else if(strcmp(command, "falldie")==0 ||
-				strcmp(command, "death")==0){
+			strcmp(command, "death")==0){
 				newchar->falldie = atoi(GET_ARG(1));
 			}
 			else if(strcmp(command, "speed")==0){
@@ -6305,7 +6305,8 @@ x(stricmp(value, #y)==0)\
 				shadow_set=1;
 			}
 			// 1-10-05  adjust the energycost of specials
-			else if(strcmp(command, "energycost")==0 || strcmp(command, "mpcost")==0){
+			else if(strcmp(command, "energycost")==0 || 
+			strcmp(command, "mpcost")==0) {
 				newanim->energycost[0] = atoi(GET_ARG(1));
 				newanim->energycost[1] = atoi(GET_ARG(2));
 						newanim->energycost[2] = atoi(GET_ARG(3));
@@ -6334,9 +6335,9 @@ x(stricmp(value, #y)==0)\
 				attack.counterattack = atoi(GET_ARG(1));
 			}
 			else if(strcmp(command, "throwframe")==0 ||
-				strcmp(command, "pshotframe")==0 ||
-				strcmp(command, "pshotframew")==0 ||
-				strcmp(command, "pshotframeno")==0){
+			strcmp(command, "pshotframe")==0 ||
+			strcmp(command, "pshotframew")==0 ||
+			strcmp(command, "pshotframeno")==0) {
 				newanim->throwframe = atoi(GET_ARG(1));
 				newanim->throwa = atoi(GET_ARG(2));
 							if(!newanim->throwa) newanim->throwa = 70;
@@ -6349,21 +6350,21 @@ x(stricmp(value, #y)==0)\
 					newanim->throwa = 0;
 			}
 			else if(strcmp(command, "tossframe")==0 ||
-				strcmp(command, "pbombframe")==0){
+			strcmp(command, "pbombframe")==0){
 				newanim->tossframe = atoi(GET_ARG(1));
 				newanim->throwa = atoi(GET_ARG(2));
 				if(newanim->throwa < 0) newanim->throwa = -1;
 			}
 			else if(strcmp(command, "custknife")==0 ||
-				strcmp(command, "custpshot")==0 ||
-				strcmp(command, "custpshotw")==0){
+			strcmp(command, "custpshot")==0 ||
+			strcmp(command, "custpshotw")==0){
 				newanim->custknife= get_cached_model_index(GET_ARG(1));
 			}
 			else if(strcmp(command, "custpshotno")==0){
 				newanim->custpshotno= get_cached_model_index(GET_ARG(1));
 			}
 			else if(strcmp(command, "custbomb")==0 ||
-						strcmp(command, "custpbomb")==0){
+			strcmp(command, "custpbomb")==0){
 				newanim->custbomb= get_cached_model_index(GET_ARG(1));
 			}
 			else if(strcmp(command, "custstar")==0){
@@ -6557,9 +6558,12 @@ x(stricmp(value, #y)==0)\
 				drawmethod.flag = 0;
 			}
 			else if((strnicmp(command, "attack", 6)==0 &&
-				(!command[6]||(command[6]>='1' && command[6]<='9'))) ||
-				strcmp(command, "shock")==0 || strcmp(command, "burn")==0 ||
-				strcmp(command, "steal")==0 || strcmp(command, "freeze")==0 || strcmp(command, "itembox")==0){
+			(!command[6]||(command[6]>='1' && command[6]<='9'))) ||
+			strcmp(command, "shock")==0 || 
+			strcmp(command, "burn")==0 ||
+			strcmp(command, "steal")==0 || 
+			strcmp(command, "freeze")==0 ||
+			strcmp(command, "itembox")==0) {
 				abox[0] = atoi(GET_ARG(1));
 				abox[1] = atoi(GET_ARG(2));
 				abox[2] = atoi(GET_ARG(3));
@@ -6569,7 +6573,7 @@ x(stricmp(value, #y)==0)\
 				attack.dropv[2] = 0;
 				attack.attack_force = atoi(GET_ARG(5));
 
-							if(strcmp(command, "steal")==0) attack.steal = 1;
+				if(strcmp(command, "steal")==0) attack.steal = 1;
 
 				if(strcmp(command, "freeze")==0)
 				{
@@ -6585,7 +6589,9 @@ x(stricmp(value, #y)==0)\
 				attack.pause_add = atoi(GET_ARG(9));
 				attack.attack_coords[4] = atoi(GET_ARG(10)); // depth or z
 
-				if(strcmp(command, "attack")==0 || strcmp(command, "attack1")==0) attack.attack_type = ATK_NORMAL;
+				if(strcmp(command, "attack")==0 || 
+					strcmp(command, "attack1")==0) 
+						attack.attack_type = ATK_NORMAL;
 				else if(strcmp(command, "attack2")     ==0)    attack.attack_type  = ATK_NORMAL2;
 				else if(strcmp(command, "attack3")     ==0)    attack.attack_type  = ATK_NORMAL3;
 				else if(strcmp(command, "attack4")     ==0)    attack.attack_type  = ATK_NORMAL4;
@@ -6607,7 +6613,8 @@ x(stricmp(value, #y)==0)\
 					attack.attack_type = tempInt+STA_ATKS-1;
 				}
 				}
-			else if(strcmp(command, "attackz")==0 || strcmp(command, "hitz")==0){
+			else if(strcmp(command, "attackz")==0 || 
+			strcmp(command, "hitz")==0) {
 				attack.attack_coords[4] = atoi(GET_ARG(1));
 			}
 			else if(strcmp(command, "blast")==0){
@@ -6870,7 +6877,7 @@ x(stricmp(value, #y)==0)\
 						newanim->quakeframe[3] = 0;
 			}
 			else if(strcmp(command, "subentity")==0 ||
-				strcmp(command, "custentity")==0){
+			strcmp(command, "custentity")==0){
 				value = GET_ARG(1);
 				if(value[0]) newanim->subentity = get_cached_model_index(value);
 			}
