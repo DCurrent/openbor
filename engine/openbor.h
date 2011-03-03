@@ -1460,6 +1460,11 @@ typedef struct
 }s_level;
 
 
+typedef struct ArgList {
+	size_t count;
+	char* args[16];
+} ArgList;
+
 int     buffer_pakfile(char* filename, char** pbuffer, size_t* psize);
 int     getsyspropertybyindex(ScriptVariant* var, int index);
 int     changesyspropertybyindex(int index, ScriptVariant* value);
