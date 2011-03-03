@@ -4329,7 +4329,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		//command = GET_ARG(0);
 		
 		if(ParseArgs(&arglist,buf+pos,argbuf)){
-			command = arglist.args[0];
+			command = GET_ARG(0);
 			if(stricmp(command, "name")==0){
 				value = GET_ARG(1);
 				if((tempmodel=find_model(value)) && tempmodel!=newchar) shutdown(1, "Duplicate model name '%s'", value);
