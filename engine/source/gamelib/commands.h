@@ -49,7 +49,7 @@ typedef enum txtCommand {
 	CMD_MODELFLAG,
 	CMD_WEAPLOSS, 
 	CMD_WEAPNUM, 
-	CMD_PROJECTS, 
+	CMD_PROJECT, 
 	CMD_WEAPONS, 
 	CMD_SHOOTNUM, 
 	CMD_RELOAD, 
@@ -284,6 +284,7 @@ typedef enum txtCommand {
 	CMD_AT_SCRIPT, 
 	CMD_AT_CMD,
 	CMD_MPCOST,
+
 } txtCommands;
 
 List* createCommandList(void);
