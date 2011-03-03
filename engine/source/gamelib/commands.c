@@ -50,7 +50,7 @@ List* createCommandList(void) {
 	LIST_ADD(CMD_MODELFLAG, "modelflag");
 	LIST_ADD(CMD_WEAPLOSS, "weaploss");
 	LIST_ADD(CMD_WEAPNUM, "weapnum");
-	LIST_ADD(CMD_PROJECTS, "projects");
+	LIST_ADD(CMD_PROJECT, "project");
 	LIST_ADD(CMD_WEAPONS, "weapons");
 	LIST_ADD(CMD_SHOOTNUM, "shootnum");
 	LIST_ADD(CMD_RELOAD, "reload");
@@ -282,9 +282,10 @@ List* createCommandList(void) {
 	LIST_ADD(CMD_SPAWNFRAME, "spawnframe");
 	LIST_ADD(CMD_SUMMONFRAME, "summonframe");
 	LIST_ADD(CMD_UNSUMMONFRAME, "unsummonframe");
-	LIST_ADD(CMD_AT_SCRIPT, "at_script");
-	LIST_ADD(CMD_AT_CMD, "at_cmd");
-	LIST_ADD(CMD_MPCOST, "mpcost");	
+	LIST_ADD(CMD_AT_SCRIPT, "@script");
+	LIST_ADD(CMD_AT_CMD, "@cmd");
+	LIST_ADD(CMD_MPCOST, "mpcost");
+	
 	#undef LIST_ADD
 	return result;
 }
