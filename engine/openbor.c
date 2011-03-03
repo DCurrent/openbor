@@ -6500,7 +6500,7 @@ x(stricmp(value, #y)==0)\
             }
             else if(stricmp(command, "platform")==0){
                 //for(i=0;(GET_ARG(i+1)[0]; i++);
-		i = arglist.count;
+		for(i=0;i<arglist.count && arglist.args[i] && arglist.args[i][0];i++);
                 if(i<8)
                 {
                     for(i=0;i<6; i++) platform[i+2] = atof(GET_ARG(i+1));
@@ -7628,7 +7628,6 @@ static void _readbarstatus(char* buf, s_barstatus* pstatus)
     else return;
 }
 
-
 // Load list of levels
 void load_levelorder()
 {
@@ -8720,11 +8719,11 @@ void load_level(char *filename){
 				level->bglayers[0].wavespeed = atof(GET_ARG(15)); // waterspeed
 				level->bglayers[0].enabled = 1; // enabled
 
-				if(arglist.count > 2 && arglist.args[2][0]==0) level->bglayers[0].xratio = 0.5;
-				if(arglist.count > 3 && arglist.args[3][0]==0) level->bglayers[0].zratio = 0.5;
+				if((value=GET_ARG(2))[0]==0) level->bglayers[0].xratio = 0.5;
+				if((value=GET_ARG(3))[0]==0) level->bglayers[0].zratio = 0.5;
 
-				if(arglist.count > 8 && arglist.args[8][0]==0) level->bglayers[0].xrepeat = 5000;
-				if(arglist.count > 9 && arglist.args[9][0]==0) level->bglayers[0].zrepeat = 5000;
+				if((value=GET_ARG(8))[0]==0) level->bglayers[0].xrepeat = 5000;
+				if((value=GET_ARG(9))[0]==0) level->bglayers[0].zrepeat = 5000;
 
 				if(level->numbglayers==0) level->numbglayers = 1;
 			}
@@ -8749,11 +8748,11 @@ void load_level(char *filename){
 				level->bglayers[level->numbglayers].bgspeedratio = atof(GET_ARG(16)); // moving
 				level->bglayers[level->numbglayers].enabled = 1; // enabled
 
-				if(arglist.count > 2 && arglist.args[2][0]==0) level->bglayers[level->numbglayers].xratio = 0.5;
-				if(arglist.count > 3 && arglist.args[3][0]==0) level->bglayers[level->numbglayers].zratio = 0.5;
+				if((value=GET_ARG(2))[0]==0) level->bglayers[level->numbglayers].xratio = 0.5;
+				if((value=GET_ARG(3))[0]==0) level->bglayers[level->numbglayers].zratio = 0.5;
 
-				if(arglist.count > 8 && arglist.args[8][0]==0) level->bglayers[level->numbglayers].xrepeat = 5000; // close enough to infinite, lol
-				if(arglist.count > 9 && arglist.args[9][0]==0) level->bglayers[level->numbglayers].zrepeat = 5000;
+				if((value=GET_ARG(8))[0]==0) level->bglayers[level->numbglayers].xrepeat = 5000; // close enough to infinite, lol
+				if((value=GET_ARG(9))[0]==0) level->bglayers[level->numbglayers].zrepeat = 5000;
 
 				if(blendfx_is_set==0 && level->bglayers[level->numbglayers].alpha) blendfx[level->bglayers[level->numbglayers].alpha-1] = 1;
 
@@ -8782,11 +8781,11 @@ void load_level(char *filename){
 				level->fglayers[level->numfglayers].bgspeedratio = atof(GET_ARG(17)); // moving
 				level->fglayers[level->numfglayers].enabled = 1;
 
-				if(arglist.count > 2 && arglist.args[2][0]==0) level->fglayers[level->numfglayers].xratio = 1.5;
-				if(arglist.count > 3 && arglist.args[3][0]==0) level->fglayers[level->numfglayers].zratio = 1.5;
+				if((value=GET_ARG(2))[0]==0) level->fglayers[level->numfglayers].xratio = 1.5;
+				if((value=GET_ARG(3))[0]==0) level->fglayers[level->numfglayers].zratio = 1.5;
 
-				if(arglist.count > 8 && arglist.args[8][0]==0) level->fglayers[level->numfglayers].xrepeat = 5000; // close enough to infinite, lol
-				if(arglist.count > 9 && arglist.args[9][0]==0) level->fglayers[level->numfglayers].zrepeat = 5000;
+				if((value=GET_ARG(8))[0]==0) level->fglayers[level->numfglayers].xrepeat = 5000; // close enough to infinite, lol
+				if((value=GET_ARG(9))[0]==0) level->fglayers[level->numfglayers].zrepeat = 5000;
 
 				if(blendfx_is_set==0 && level->fglayers[level->numfglayers].alpha) blendfx[level->fglayers[level->numfglayers].alpha-1] = 1;
 
