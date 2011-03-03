@@ -34,6 +34,8 @@ int sprite_map_max_items = 0;
 int model_map_max_items = 0;
 int cache_map_max_items = 0;
 
+List* cmdlist;
+
 
 //see types.h
 const s_drawmethod plainmethod = {
@@ -20152,6 +20154,7 @@ void shutdown(int status, char *msg, ...)
 		}
 	}
 	
+	freeCommandList(cmdlist);
 	if(!disablelog) printf("%s", buf);
 
 	getRamStatus(BYTES);
@@ -23035,6 +23038,7 @@ void openborMain()
 #endif
 
 	printf("OpenBoR %s, Compile Date: " __DATE__ "\n\n", VERSION);
+	cmdlist = createCommandList();
 
 #if XBOX
 	loadsettings();

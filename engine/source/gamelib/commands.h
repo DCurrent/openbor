@@ -7,7 +7,12 @@
  * Copyright (c) 2004 - 2011 OpenBOR Team
  */
 
-enum txtCommands {
+#ifndef _COMMANDS_H_
+#define _COMMANDS_H_
+
+#include "List.h"
+
+typedef enum txtCommand {
 	CMD_NAME=1, 
 	CMD_TYPE, 
 	CMD_SUBTYPE, 
@@ -279,5 +284,10 @@ enum txtCommands {
 	CMD_AT_SCRIPT, 
 	CMD_AT_CMD,
 	CMD_MPCOST,
-};
-	
+} txtCommands;
+
+List* createCommandList(void);
+txtCommands getCommand(List* list, char* usercommand);
+void freeCommandList(List* list);
+
+#endif
