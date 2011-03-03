@@ -11,9 +11,11 @@
 //	Side-scrolling beat-'em-up                                              //
 /////////////////////////////////////////////////////////////////////////////
 
-#include    "openbor.h"
+#include "openbor.h"
+#include "commands.h"
 
 #define GET_ARG(z) arglist.count > z ? arglist.args[z] : ""
+#define GET_ARG_LEN(z) arglist.count > z ? arglist.arglen[z] : 0
 
 /////////////////////////////////////////////////////////////////////////////
 //  Global Variables                                                        //
@@ -2278,12 +2280,14 @@ size_t ParseArgs(ArgList* list, char* input, char* output) {
 	assert(list);
 	assert(input);
 	assert(output);
+	//static const char diff = 'a' - 'A';
 	
 	size_t pos = 0;
 	size_t wordstart = 0;
 	size_t item = 0;
 	int done = 0;
 	int space = 0;
+	//int makelower = 0;
 	
 	while(pos < MAX_ARG_LEN-1 && item < 18) {
 		switch(input[pos]) {
@@ -2293,15 +2297,23 @@ size_t ParseArgs(ArgList* list, char* input, char* output) {
 				output[pos] = '\0';
 				if(!space && wordstart != pos) {
 					list->args[item] = output + wordstart;
+					list->arglen[item] = pos - wordstart;
 					item++;
 				}	
 				space = 1;
-				break;
+				break; /*
+			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': 
+			case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': 
+			case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
+				makelower = 1; */
+				
 			default:
 				if(space) 
 					wordstart = pos;
+				/*output[pos] = makelower ? input[pos] + diff : input[pos];*/
 				output[pos] = input[pos];
 				space = 0;
+				//makelower = 0;
 		}
 		if(done)
 			break;
@@ -4017,6 +4029,7 @@ void add_model_map(size_t size)
 }
 
 static void _readbarstatus(char*, s_barstatus*);
+
 s_model* load_cached_model(char * name, char * owner, char unload)
 {
 	s_model_list *curr = NULL,
@@ -4087,6 +4100,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	s_attack attack,
 	*pattack = NULL;
+	size_t commandlen = 0;
 
 	s_drawmethod drawmethod;
 
@@ -4330,7 +4344,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		
 		if(ParseArgs(&arglist,buf+pos,argbuf)){
 			command = GET_ARG(0);
-			if(stricmp(command, "name")==0){
+			commandlen = GET_ARG_LEN(0);
+			for(i=0;i<commandlen;i++) 
+				command[i] = tolower(command[i]);
+			if(strcmp(command, "name")==0){
 				value = GET_ARG(1);
 				if((tempmodel=find_model(value)) && tempmodel!=newchar) shutdown(1, "Duplicate model name '%s'", value);
 				tempInt = get_cached_model_index(value);
@@ -4341,7 +4358,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->alpha = 1;
 				}
 			}
-			else if(stricmp(command, "type")==0){    // Moved here to be able to access the character type later on
+			else if(strcmp(command, "type")==0){    // Moved here to be able to access the character type later on
 				value = GET_ARG(1);
 				if(stricmp(value, "none")==0){
 					newchar->type = TYPE_NONE;
@@ -4462,524 +4479,524 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				}
 				else shutdown(1, "Model '%s' has invalid type: '%s'", filename, value);
 			}
-			else if(stricmp(command, "subtype")==0){
+			else if(strcmp(command, "subtype")==0){
 				value = GET_ARG(1);
 				if(stricmp(value, "biker")==0){
-				newchar->subtype                                        = SUBTYPE_BIKER;
-				if(newchar->aimove==-1) newchar->aimove                 = 0;
-				newchar->aimove |= AIMOVE1_BIKER;
-				for(i=0; i<MAX_ATKS; i++) newchar->defense_factors[i]   = 2;
-				if(!newchar->offscreenkill) newchar->offscreenkill = 300;
-				newchar->subject_to_hole                                = 1;
-				newchar->subject_to_gravity                             = 1;
-				newchar->subject_to_wall                                = 0;
-				newchar->subject_to_platform                            = 0;
-				newchar->subject_to_screen                              = 0;
-				newchar->subject_to_minz                                = 1;
-				newchar->subject_to_maxz                                = 1;
-				newchar->subject_to_platform                            = 0;
-				newchar->no_adjust_base                                 = 0;
-			}
-			else if(stricmp(value, "arrow")==0){  // 7-1-2005 Arrow type
-				newchar->subtype = SUBTYPE_ARROW;   // 7-1-2005 Arrow type
-				if(newchar->aimove==-1) newchar->aimove = 0;
-				newchar->aimove |= AIMOVE1_ARROW;
-				if(!newchar->offscreenkill) newchar->offscreenkill = 200;
-				newchar->subject_to_hole        = 0;
-				newchar->subject_to_gravity     = 1;
-				newchar->subject_to_wall        = 0;
-				newchar->subject_to_platform    = 0;
-				newchar->subject_to_screen      = 0;
-				newchar->subject_to_minz        = 1;
-				newchar->subject_to_maxz        = 1;
-				newchar->subject_to_platform    = 0;
-				newchar->no_adjust_base         = 1;
-			}
-			else if(stricmp(value, "notgrab")==0){  // 7-1-2005 notgrab type
-				newchar->subtype = SUBTYPE_NOTGRAB;   // 7-1-2005 notgrab type
-			}
-			//    ltb 1-18-05  Item Subtype
-			else if(stricmp(value, "touch")==0){  // 7-1-2005 notgrab type
-				newchar->subtype = SUBTYPE_TOUCH;   // 7-1-2005 notgrab type
-			}
-			else if(stricmp(value, "weapon")==0){  // 7-1-2005 notgrab type
-				newchar->subtype = SUBTYPE_WEAPON;   // 7-1-2005 notgrab type
-			}
-			else if(stricmp(value, "noskip")==0){    // Text animation cannot be skipped if subtype noskip
-				newchar->subtype = SUBTYPE_NOSKIP;
-			}
-			else if(stricmp(value, "flydie")==0){    // Obstacle will fly across the screen when hit if subtype flydie
-				newchar->subtype = SUBTYPE_FLYDIE;
-			}
-			else if(stricmp(value, "both")==0){
-				newchar->subtype = SUBTYPE_BOTH;
-			}
-			else if(stricmp(value, "project")==0){
-				newchar->subtype = SUBTYPE_PROJECTILE;
-			}
-			else if(stricmp(value, "follow")==0){
-				newchar->subtype = SUBTYPE_FOLLOW;
-			}
-			else if(stricmp(value, "chase")==0){
-				newchar->subtype = SUBTYPE_CHASE;
-			}
-			//    end new subtype
-			else shutdown(1, "Model '%s' has invalid subtype: '%s'", filename, value);
-		}
-		else if(stricmp(command, "stats")==0){
-			value = GET_ARG(1);
-			newchar->stats[atoi(value)] = atof(GET_ARG(2));
-		}
-		else if(stricmp(command, "health")==0){
-			value = GET_ARG(1);
-			newchar->health = atoi(value);
-		}
-		else if(stricmp(command, "scroll")==0){
-			value = GET_ARG(1);
-			newchar->scroll = atof(value);
-		}
-		//Left for backward compatability. See mpset.
-		else if(stricmp(command, "mp")==0){// mp values to put max mp for player by tails
-			value = GET_ARG(1);
-			newchar->mp = atoi(value);
-		}
-		else if(stricmp(command, "nolife")==0){    // Feb 25, 2005 - Flag to display enemy life or not
-			newchar->nolife = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "makeinv")==0){    // Mar 12, 2005 - If a value is supplied, corresponds to amount of time the player spawns invincible
-			newchar->makeinv = atoi(GET_ARG(1)) * GAME_SPEED;
-			if(atoi(GET_ARG(2))) newchar->makeinv = -newchar->makeinv;
-		}
-		else if(stricmp(command, "riseinv")==0){
-			newchar->riseinv = atoi(GET_ARG(1)) * GAME_SPEED;
-			if(atoi(GET_ARG(2))) newchar->riseinv = -newchar->riseinv;
-		}
-		else if(stricmp(command, "load")==0){
-			strncpy(load_name, GET_ARG(1), MAX_NAME_LEN);
-			load_cached_model(load_name, name, GET_INT_ARG(2));
-		}
-		else if(stricmp(command, "score")==0){
-			newchar->score = atoi(GET_ARG(1));
-			newchar->multiple = atoi(GET_ARG(2));			// New var multiple for force/scoring
-		}
-		else if(stricmp(command, "smartbomb")==0){ //smartbomb now use a normal attack box
-			if(!newchar->smartbomb)
-			{
-				newchar->smartbomb = tracemalloc("newchar->smartbomb", sizeof(s_attack));
-				*(newchar->smartbomb) = emptyattack;
-			}
-			else shutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
-			newchar->smartbomb->attack_force = atoi(GET_ARG(1));			// Special force
-			newchar->smartbomb->attack_type = atoi(GET_ARG(2));			// Special attack type
-			newchar->smartbomb->attack_drop = 1; //by default
-			newchar->smartbomb->dropv[0] = 3;
-			if(newchar->smartbomb->attack_type==ATK_BLAST)
-			{
-				newchar->smartbomb->blast = 1;
-				newchar->smartbomb->dropv[1] = 2.5;
-			}
-			else
-			{
-				newchar->smartbomb->dropv[1] = (float)1.2;
-			}
-			if(newchar->smartbomb->attack_type==ATK_FREEZE)
-			{
-				newchar->smartbomb->freeze = 1;
-				newchar->smartbomb->forcemap = -1;
-				newchar->smartbomb->attack_drop = 0;
-			}
-			else if(newchar->smartbomb->attack_type==ATK_STEAL)
-			{
-				newchar->smartbomb->steal = 1;
-			}
-			if(newchar->type == TYPE_ITEM)
-			{
-				newchar->dofreeze = 0;								// Items don't animate
-				newchar->smartbomb->freezetime = atoi(GET_ARG(3)) * GAME_SPEED;
-			}
-			else
-			{
-				newchar->dofreeze = atoi(GET_ARG(3));		// Are all animations frozen during special
-				newchar->smartbomb->freezetime = atoi(GET_ARG(4)) * GAME_SPEED;
-			}
-		}
-		else if(stricmp(command, "bounce")==0){						// Flag to determine if bounce/quake is to be used.
-			newchar->bounce = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "noquake")==0){					// Mar 12, 2005 - Flag to determine if entity shakes screen
-			newchar->noquake = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "blockback")==0){					// Flag to determine if attacks can be blocked from behind
-			newchar->blockback = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "hitenemy")==0){					// Flag to determine if an enemy projectile will hit enemies
-			value = GET_ARG(1);
-			if(atoi(value) == 1)
-			newchar->candamage = newchar->hostile = TYPE_PLAYER | TYPE_ENEMY;
-			else if(atoi(value) == 2)
-			newchar->candamage = newchar->hostile = TYPE_PLAYER;
-			newchar->ground = atoi(GET_ARG(2));    // Added to determine if enemies are damaged with mid air projectiles or ground only
-		}
-		else if(stricmp(command, "hostile")==0){
-			i = 1;
-			newchar->hostile = 0;
-			value = GET_ARG(i);
-			while(value && value[0])
-			{
-				if(stricmp(value, "enemy")==0){
-					newchar->hostile |= TYPE_ENEMY;
-				} else if(stricmp(value, "player")==0){
-					newchar->hostile |= TYPE_PLAYER;
-				} else if(stricmp(value, "obstacle")==0){
-					newchar->hostile |= TYPE_OBSTACLE;
-				} else if(stricmp(value, "shot")==0){
-					newchar->hostile |= TYPE_SHOT;
-				} else if(stricmp(value, "npc")==0){
-					newchar->hostile |= TYPE_NPC;
-				}
-				i++;
-				value = GET_ARG(i);
-			}
-		}
-		else if(stricmp(command, "candamage")==0){
-			i = 1;
-			newchar->candamage = 0;
-			value = GET_ARG(i);
-			while(value && value[0])
-			{
-				if(stricmp(value, "enemy")==0){
-					newchar->candamage |= TYPE_ENEMY;
-				} else if(stricmp(value, "player")==0){
-					newchar->candamage |= TYPE_PLAYER;
-				} else if(stricmp(value, "obstacle")==0){
-					newchar->candamage |= TYPE_OBSTACLE;
-				} else if(stricmp(value, "shot")==0){
-					newchar->candamage |= TYPE_SHOT;
-				} else if(stricmp(value, "npc")==0){
-					newchar->candamage |= TYPE_NPC;
-				} else if(stricmp(value, "ground")==0){ // not really needed, though
-					newchar->ground = 1;
-				} //else {
-				// wont shut down
-				//}
-				i++;
-				value = GET_ARG(i);
-			}
-		}
-		else if(stricmp(command, "projectilehit")==0){
-			i = 1;
-			newchar->projectilehit = 0;
-			value = GET_ARG(i);
-			while(value && value[0])
-			{
-				if(stricmp(value, "enemy")==0){
-					newchar->projectilehit |= TYPE_ENEMY;
-				} else if(stricmp(value, "player")==0){
-					newchar->projectilehit |= TYPE_PLAYER;
-				} else if(stricmp(value, "obstacle")==0){
-					newchar->projectilehit |= TYPE_OBSTACLE;
-				} else if(stricmp(value, "shot")==0){
-					newchar->projectilehit |= TYPE_SHOT;
-				} else if(stricmp(value, "npc")==0){
-					newchar->projectilehit |= TYPE_NPC;
-				} //else {
-					// wont shut down
-					//}
-				i++;
-				value = GET_ARG(i);
-			}
-		}
-		else if(stricmp(command, "aimove")==0){
-			if(!aimoveset)
-			{
-				newchar->aimove = 0;
-				aimoveset = 1;
-			}
-			value = GET_ARG(1);
-			//main A.I. move switches
-			if(value && value[0])
-			{
-				if(stricmp(value, "normal")==0){
-					newchar->aimove |= AIMOVE1_NORMAL;
-				}
-				else if(stricmp(value, "chase")==0){
-					newchar->aimove |= AIMOVE1_CHASE;
-				}
-				else if(stricmp(value, "chasex")==0){
-					newchar->aimove |= AIMOVE1_CHASEX;
-				}
-				else if(stricmp(value, "chasez")==0){
-					newchar->aimove |= AIMOVE1_CHASEZ;
-				}
-				else if(stricmp(value, "avoid")==0){
-					newchar->aimove |= AIMOVE1_AVOID;
-				}
-				else if(stricmp(value, "avoidx")==0){
-					newchar->aimove |= AIMOVE1_AVOIDX;
-				}
-				else if(stricmp(value, "avoidz")==0){
-					newchar->aimove |= AIMOVE1_AVOIDZ;
-				}
-				else if(stricmp(value, "wander")==0){
-					newchar->aimove |= AIMOVE1_WANDER;
-				}
-				else if(stricmp(value, "biker")==0){
+					newchar->subtype                                        = SUBTYPE_BIKER;
+					if(newchar->aimove==-1) newchar->aimove                 = 0;
 					newchar->aimove |= AIMOVE1_BIKER;
+					for(i=0; i<MAX_ATKS; i++) newchar->defense_factors[i]   = 2;
+					if(!newchar->offscreenkill) newchar->offscreenkill = 300;
+					newchar->subject_to_hole                                = 1;
+					newchar->subject_to_gravity                             = 1;
+					newchar->subject_to_wall                                = 0;
+					newchar->subject_to_platform                            = 0;
+					newchar->subject_to_screen                              = 0;
+					newchar->subject_to_minz                                = 1;
+					newchar->subject_to_maxz                                = 1;
+					newchar->subject_to_platform                            = 0;
+					newchar->no_adjust_base                                 = 0;
 				}
-				else if(stricmp(value, "arrow")==0){
+				else if(stricmp(value, "arrow")==0){  // 7-1-2005 Arrow type
+					newchar->subtype = SUBTYPE_ARROW;   // 7-1-2005 Arrow type
+					if(newchar->aimove==-1) newchar->aimove = 0;
 					newchar->aimove |= AIMOVE1_ARROW;
 					if(!newchar->offscreenkill) newchar->offscreenkill = 200;
+					newchar->subject_to_hole        = 0;
+					newchar->subject_to_gravity     = 1;
+					newchar->subject_to_wall        = 0;
+					newchar->subject_to_platform    = 0;
+					newchar->subject_to_screen      = 0;
+					newchar->subject_to_minz        = 1;
+					newchar->subject_to_maxz        = 1;
+					newchar->subject_to_platform    = 0;
+					newchar->no_adjust_base         = 1;
 				}
-				else if(stricmp(value, "star")==0){
-					newchar->aimove |= AIMOVE1_STAR;
+				else if(stricmp(value, "notgrab")==0){  // 7-1-2005 notgrab type
+					newchar->subtype = SUBTYPE_NOTGRAB;   // 7-1-2005 notgrab type
 				}
-				else if(stricmp(value, "bomb")==0){
-					newchar->aimove |= AIMOVE1_BOMB;
+				//    ltb 1-18-05  Item Subtype
+				else if(stricmp(value, "touch")==0){  // 7-1-2005 notgrab type
+					newchar->subtype = SUBTYPE_TOUCH;   // 7-1-2005 notgrab type
 				}
-				else if(stricmp(value, "nomove")==0){
-					newchar->aimove |= AIMOVE1_NOMOVE;
+				else if(stricmp(value, "weapon")==0){  // 7-1-2005 notgrab type
+					newchar->subtype = SUBTYPE_WEAPON;   // 7-1-2005 notgrab type
 				}
-				else shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
+				else if(stricmp(value, "noskip")==0){    // Text animation cannot be skipped if subtype noskip
+					newchar->subtype = SUBTYPE_NOSKIP;
+				}
+				else if(stricmp(value, "flydie")==0){    // Obstacle will fly across the screen when hit if subtype flydie
+					newchar->subtype = SUBTYPE_FLYDIE;
+				}
+				else if(stricmp(value, "both")==0){
+					newchar->subtype = SUBTYPE_BOTH;
+				}
+				else if(stricmp(value, "project")==0){
+					newchar->subtype = SUBTYPE_PROJECTILE;
+				}
+				else if(stricmp(value, "follow")==0){
+					newchar->subtype = SUBTYPE_FOLLOW;
+				}
+				else if(stricmp(value, "chase")==0){
+					newchar->subtype = SUBTYPE_CHASE;
+				}
+				//    end new subtype
+				else shutdown(1, "Model '%s' has invalid subtype: '%s'", filename, value);
 			}
-			value = GET_ARG(2);
-			//sub A.I. move switches
-			if(value && value[0])
-			{
-				if(stricmp(value, "normal")==0){
-					newchar->aimove |= AIMOVE2_NORMAL;
-				}
-				else if(stricmp(value, "ignoreholes")==0){
-					newchar->aimove |= AIMOVE2_IGNOREHOLES;
-				}
-				else shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
+			else if(strcmp(command, "stats")==0){
+				value = GET_ARG(1);
+				newchar->stats[atoi(value)] = atof(GET_ARG(2));
 			}
-		}
-		else if(stricmp(command, "aiattack")==0){
-			if(newchar->aiattack==-1) newchar->aiattack = 0;
-			//do nothing for now, until ai attack is implemented
-		}
-		else if(stricmp(command, "subject_to_wall")==0)
-		{
-			newchar->subject_to_wall = (0!=atoi(GET_ARG(1)));
-		}
-		else if(stricmp(command, "subject_to_hole")==0)
-		{
-			newchar->subject_to_hole = (0!=atoi(GET_ARG(1)));
-		}
-		else if(stricmp(command, "subject_to_platform")==0)
-		{
-			newchar->subject_to_platform = (0!=atoi(GET_ARG(1)));
-		}
-		else if(stricmp(command, "subject_to_obstacle")==0)
-		{
-			newchar->subject_to_obstacle = (0!=atoi(GET_ARG(1)));
-		}
-		else if(stricmp(command, "subject_to_gravity")==0)
-		{
-			newchar->subject_to_gravity = (0!=atoi(GET_ARG(1)));
-		}
-		else if(stricmp(command, "subject_to_screen")==0)
-		{
-			newchar->subject_to_screen = (0!=atoi(GET_ARG(1)));
-		}
-		else if(stricmp(command, "subject_to_minz")==0)
-		{
-			newchar->subject_to_minz = (0!=atoi(GET_ARG(1)));
-		}
-		else if(stricmp(command, "subject_to_maxz")==0)
-		{
-			newchar->subject_to_maxz = (0!=atoi(GET_ARG(1)));
-		}
-		else if(stricmp(command, "no_adjust_base")==0)
-		{
-			newchar->no_adjust_base = (0!=atoi(GET_ARG(1)));
-		}
-		else if(stricmp(command, "instantitemdeath")==0)
-		{
-			newchar->instantitemdeath = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "secret")==0){
-			newchar->secret = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "modelflag")==0){ // model copy flag
-			newchar->model_flag = atoi(GET_ARG(1));
-		}
-		// weapons
-		else if(stricmp(command, "weaploss")==0){
-			newchar->weaploss[0] = atoi(GET_ARG(1));
-			newchar->weaploss[1] = atoi(GET_ARG(2));
-		}
-		else if(stricmp(command, "weapnum")==0){
-			newchar->weapnum = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "project")==0){  // New projectile subtype
-			value = GET_ARG(1);
-			if(stricmp(value, "none")==0) newchar->project = -1;
-			else newchar->project = get_cached_model_index(value);
-		}
-		else if(stricmp(command, "weapons")==0){
-			if(!newchar->weapon)
-			{
-				newchar->weapon = tracemalloc("newchar->weapon", sizeof(*newchar->weapon));
-				memset(newchar->weapon, 0xFF, sizeof(*newchar->weapon));
-				newchar->ownweapons = 1;
+			else if(strcmp(command, "health")==0){
+				value = GET_ARG(1);
+				newchar->health = atoi(value);
 			}
-			for(weap = 0; weap<MAX_WEAPONS; weap++){
-				value = GET_ARG(weap+1);
-				if(value[0]){
-					if(stricmp(value, "none")!=0){
-						(*newchar->weapon)[weap] = get_cached_model_index(value);
-					} else { // make empty weapon slots  2007-2-16
-						(*newchar->weapon)[weap] = -1;
+			else if(strcmp(command, "scroll")==0){
+				value = GET_ARG(1);
+				newchar->scroll = atof(value);
+			}
+			//Left for backward compatability. See mpset.
+			else if(strcmp(command, "mp")==0){// mp values to put max mp for player by tails
+				value = GET_ARG(1);
+				newchar->mp = atoi(value);
+			}
+			else if(strcmp(command, "nolife")==0){    // Feb 25, 2005 - Flag to display enemy life or not
+				newchar->nolife = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "makeinv")==0){    // Mar 12, 2005 - If a value is supplied, corresponds to amount of time the player spawns invincible
+				newchar->makeinv = atoi(GET_ARG(1)) * GAME_SPEED;
+				if(atoi(GET_ARG(2))) newchar->makeinv = -newchar->makeinv;
+			}
+			else if(strcmp(command, "riseinv")==0){
+				newchar->riseinv = atoi(GET_ARG(1)) * GAME_SPEED;
+				if(atoi(GET_ARG(2))) newchar->riseinv = -newchar->riseinv;
+			}
+			else if(strcmp(command, "load")==0){
+				strncpy(load_name, GET_ARG(1), MAX_NAME_LEN);
+				load_cached_model(load_name, name, GET_INT_ARG(2));
+			}
+			else if(strcmp(command, "score")==0){
+				newchar->score = atoi(GET_ARG(1));
+				newchar->multiple = atoi(GET_ARG(2));			// New var multiple for force/scoring
+			}
+			else if(strcmp(command, "smartbomb")==0){ //smartbomb now use a normal attack box
+				if(!newchar->smartbomb)
+				{
+					newchar->smartbomb = tracemalloc("newchar->smartbomb", sizeof(s_attack));
+					*(newchar->smartbomb) = emptyattack;
+				}
+				else shutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
+				newchar->smartbomb->attack_force = atoi(GET_ARG(1));			// Special force
+				newchar->smartbomb->attack_type = atoi(GET_ARG(2));			// Special attack type
+				newchar->smartbomb->attack_drop = 1; //by default
+				newchar->smartbomb->dropv[0] = 3;
+				if(newchar->smartbomb->attack_type==ATK_BLAST)
+				{
+					newchar->smartbomb->blast = 1;
+					newchar->smartbomb->dropv[1] = 2.5;
+				}
+				else
+				{
+					newchar->smartbomb->dropv[1] = (float)1.2;
+				}
+				if(newchar->smartbomb->attack_type==ATK_FREEZE)
+				{
+					newchar->smartbomb->freeze = 1;
+					newchar->smartbomb->forcemap = -1;
+					newchar->smartbomb->attack_drop = 0;
+				}
+				else if(newchar->smartbomb->attack_type==ATK_STEAL)
+				{
+					newchar->smartbomb->steal = 1;
+				}
+				if(newchar->type == TYPE_ITEM)
+				{
+					newchar->dofreeze = 0;								// Items don't animate
+					newchar->smartbomb->freezetime = atoi(GET_ARG(3)) * GAME_SPEED;
+				}
+				else
+				{
+					newchar->dofreeze = atoi(GET_ARG(3));		// Are all animations frozen during special
+					newchar->smartbomb->freezetime = atoi(GET_ARG(4)) * GAME_SPEED;
+				}
+			}
+			else if(strcmp(command, "bounce")==0){						// Flag to determine if bounce/quake is to be used.
+				newchar->bounce = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "noquake")==0){					// Mar 12, 2005 - Flag to determine if entity shakes screen
+				newchar->noquake = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "blockback")==0){					// Flag to determine if attacks can be blocked from behind
+				newchar->blockback = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "hitenemy")==0){					// Flag to determine if an enemy projectile will hit enemies
+				value = GET_ARG(1);
+				if(atoi(value) == 1)
+				newchar->candamage = newchar->hostile = TYPE_PLAYER | TYPE_ENEMY;
+				else if(atoi(value) == 2)
+				newchar->candamage = newchar->hostile = TYPE_PLAYER;
+				newchar->ground = atoi(GET_ARG(2));    // Added to determine if enemies are damaged with mid air projectiles or ground only
+			}
+			else if(strcmp(command, "hostile")==0){
+				i = 1;
+				newchar->hostile = 0;
+				value = GET_ARG(i);
+				while(value && value[0])
+				{
+					if(stricmp(value, "enemy")==0){
+						newchar->hostile |= TYPE_ENEMY;
+					} else if(stricmp(value, "player")==0){
+						newchar->hostile |= TYPE_PLAYER;
+					} else if(stricmp(value, "obstacle")==0){
+						newchar->hostile |= TYPE_OBSTACLE;
+					} else if(stricmp(value, "shot")==0){
+						newchar->hostile |= TYPE_SHOT;
+					} else if(stricmp(value, "npc")==0){
+						newchar->hostile |= TYPE_NPC;
 					}
-					last = weap;
+					i++;
+					value = GET_ARG(i);
 				}
-				else (*newchar->weapon)[weap] = (*newchar->weapon)[last];
 			}
-		}
-		//here weapons things like shoot rest type of weapon ect..by tails
-		else if(stricmp(command, "shootnum")==0){
-			newchar->shootnum = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "reload")==0){
-			newchar->reload = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "typeshot")==0){
-			newchar->typeshot = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "counter")==0){
-			newchar->counter = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "animal")==0){
-			newchar->animal = atoi(GET_ARG(1));
-		}
-		// end weapons
-		else if(stricmp(command, "rider")==0){
-			value = GET_ARG(1);
-			if(stricmp(value, "none")==0) newchar->rider = -1;
-			else newchar->rider = get_cached_model_index(value);
-		}
-		else if(stricmp(command, "knife")==0 ||
-			stricmp(command, "fireb")==0 ||
-			stricmp(command, "playshot")==0 ||
-			stricmp(command, "playshotw")==0) {
-			value = GET_ARG(1);
-			if(stricmp(value, "none")==0) newchar->knife = -1;
-			else  newchar->knife = get_cached_model_index(value);
-		}
-		else if(stricmp(command, "playshotno")==0){
-			value = GET_ARG(1);
-			if(stricmp(value, "none")==0) newchar->pshotno = -1;
-			else newchar->pshotno = get_cached_model_index(value);
-		}
-		else if(stricmp(command, "star")==0){
-			value = GET_ARG(1);
-			if(stricmp(value, "none")==0) newchar->star = -1;
-			else newchar->star = get_cached_model_index(value);
-		}
-		else if(stricmp(command, "bomb")==0 ||
-			stricmp(command, "playbomb")==0){
-			value = GET_ARG(1);
-			if(stricmp(value, "none")==0) newchar->bomb = -1;
-			else newchar->bomb = get_cached_model_index(value);
-		}
-		else if(stricmp(command, "flash")==0){    // Now all characters can have their own flash - even projectiles (useful for blood)
-			value = GET_ARG(1);
-			if(stricmp(value, "none")==0) newchar->flash = -1;
-			else newchar->flash = get_cached_model_index(value);
-		}
-		else if(stricmp(command, "bflash")==0){    // Flash that is spawned if an attack is blocked
-			value = GET_ARG(1);
-			if(stricmp(value, "none")==0) newchar->bflash = -1;
-			else newchar->bflash = get_cached_model_index(value);
-		}
-		else if(stricmp(command, "dust")==0){    // Spawned when hitting the ground to "kick up dust"
-			value = GET_ARG(1);
-			if(stricmp(value, "none")==0) newchar->dust[0] = -1;
-			else newchar->dust[0] = get_cached_model_index(value);
-			value = GET_ARG(2);
-			if(stricmp(value, "none")==0) newchar->dust[1] = -1;
-			else newchar->dust[1] = get_cached_model_index(value);
-			value = GET_ARG(3);
-			if(stricmp(value, "none")==0) newchar->dust[2] = -1;
-			else newchar->dust[2] = get_cached_model_index(value);
-		}
-		else if(stricmp(command, "branch")==0){    // for endlevel item's level branch
-			value = GET_ARG(1);
-			if(!newchar->branch)
+			else if(strcmp(command, "candamage")==0){
+				i = 1;
+				newchar->candamage = 0;
+				value = GET_ARG(i);
+				while(value && value[0])
+				{
+					if(stricmp(value, "enemy")==0){
+						newchar->candamage |= TYPE_ENEMY;
+					} else if(stricmp(value, "player")==0){
+						newchar->candamage |= TYPE_PLAYER;
+					} else if(stricmp(value, "obstacle")==0){
+						newchar->candamage |= TYPE_OBSTACLE;
+					} else if(stricmp(value, "shot")==0){
+						newchar->candamage |= TYPE_SHOT;
+					} else if(stricmp(value, "npc")==0){
+						newchar->candamage |= TYPE_NPC;
+					} else if(stricmp(value, "ground")==0){ // not really needed, though
+						newchar->ground = 1;
+					} //else {
+					// wont shut down
+					//}
+					i++;
+					value = GET_ARG(i);
+				}
+			}
+			else if(strcmp(command, "projectilehit")==0){
+				i = 1;
+				newchar->projectilehit = 0;
+				value = GET_ARG(i);
+				while(value && value[0])
+				{
+					if(stricmp(value, "enemy")==0){
+						newchar->projectilehit |= TYPE_ENEMY;
+					} else if(stricmp(value, "player")==0){
+						newchar->projectilehit |= TYPE_PLAYER;
+					} else if(stricmp(value, "obstacle")==0){
+						newchar->projectilehit |= TYPE_OBSTACLE;
+					} else if(stricmp(value, "shot")==0){
+						newchar->projectilehit |= TYPE_SHOT;
+					} else if(stricmp(value, "npc")==0){
+						newchar->projectilehit |= TYPE_NPC;
+					} //else {
+						// wont shut down
+						//}
+					i++;
+					value = GET_ARG(i);
+				}
+			}
+			else if(strcmp(command, "aimove")==0){
+				if(!aimoveset)
+				{
+					newchar->aimove = 0;
+					aimoveset = 1;
+				}
+				value = GET_ARG(1);
+				//main A.I. move switches
+				if(value && value[0])
+				{
+					if(stricmp(value, "normal")==0){
+						newchar->aimove |= AIMOVE1_NORMAL;
+					}
+					else if(stricmp(value, "chase")==0){
+						newchar->aimove |= AIMOVE1_CHASE;
+					}
+					else if(stricmp(value, "chasex")==0){
+						newchar->aimove |= AIMOVE1_CHASEX;
+					}
+					else if(stricmp(value, "chasez")==0){
+						newchar->aimove |= AIMOVE1_CHASEZ;
+					}
+					else if(stricmp(value, "avoid")==0){
+						newchar->aimove |= AIMOVE1_AVOID;
+					}
+					else if(stricmp(value, "avoidx")==0){
+						newchar->aimove |= AIMOVE1_AVOIDX;
+					}
+					else if(stricmp(value, "avoidz")==0){
+						newchar->aimove |= AIMOVE1_AVOIDZ;
+					}
+					else if(stricmp(value, "wander")==0){
+						newchar->aimove |= AIMOVE1_WANDER;
+					}
+					else if(stricmp(value, "biker")==0){
+						newchar->aimove |= AIMOVE1_BIKER;
+					}
+					else if(stricmp(value, "arrow")==0){
+						newchar->aimove |= AIMOVE1_ARROW;
+						if(!newchar->offscreenkill) newchar->offscreenkill = 200;
+					}
+					else if(stricmp(value, "star")==0){
+						newchar->aimove |= AIMOVE1_STAR;
+					}
+					else if(stricmp(value, "bomb")==0){
+						newchar->aimove |= AIMOVE1_BOMB;
+					}
+					else if(stricmp(value, "nomove")==0){
+						newchar->aimove |= AIMOVE1_NOMOVE;
+					}
+					else shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
+				}
+				value = GET_ARG(2);
+				//sub A.I. move switches
+				if(value && value[0])
+				{
+					if(stricmp(value, "normal")==0){
+						newchar->aimove |= AIMOVE2_NORMAL;
+					}
+					else if(stricmp(value, "ignoreholes")==0){
+						newchar->aimove |= AIMOVE2_IGNOREHOLES;
+					}
+					else shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
+				}
+			}
+			else if(strcmp(command, "aiattack")==0){
+				if(newchar->aiattack==-1) newchar->aiattack = 0;
+				//do nothing for now, until ai attack is implemented
+			}
+			else if(strcmp(command, "subject_to_wall")==0)
 			{
-				newchar->branch = tracemalloc("newchar->branch", MAX_NAME_LEN+1);
-				newchar->branch[0] = 0;
+				newchar->subject_to_wall = (0!=atoi(GET_ARG(1)));
 			}
-			strncpy(newchar->branch, value, MAX_NAME_LEN);
-		}
-		else if(stricmp(command, "cantgrab")==0 ||
-			stricmp(command, "notgrab")==0){
-			tempInt = atoi(GET_ARG(1));
-			if(tempInt == 2) newchar->grabforce = -999999;
-			else             newchar->antigrab = 1;
-		}
-		else if(stricmp(command, "antigrab")==0) // a can grab b: a->antigrab - b->grabforce <=0
-		{
-			newchar->antigrab = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "grabforce")==0)
-		{
-			newchar->grabforce = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "grabback")==0){
-			newchar->grabback = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "offscreenkill")==0){
-			newchar->offscreenkill = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "falldie")==0 ||
-			stricmp(command, "death")==0){
-			newchar->falldie = atoi(GET_ARG(1));
-		}
-		else if(stricmp(command, "speed")==0){
-			value = GET_ARG(1);
-			newchar->speed = atof(value);
-			newchar->speed /= 10;
-			if(newchar->speed < 0.5) newchar->speed = 0.5;
-			if(newchar->speed > 30) newchar->speed = 30;
-		}
-		else if(stricmp(command, "speedf")==0){ // float speed
-			value = GET_ARG(1);
-			newchar->speed = atof(value);
-		}
-		else if(stricmp(command, "jumpspeed")==0){
-			value = GET_ARG(1);
-			newchar->jumpspeed = atof(value);
-			newchar->jumpspeed /= 10;
-		}
-		else if(stricmp(command, "jumpspeedf")==0){
-			value = GET_ARG(1);
-			newchar->jumpspeed = atof(value);
-		}
-		else if(stricmp(command, "antigravity")==0){
-			value = GET_ARG(1);
-			newchar->antigravity = atof(value);
-			newchar->antigravity /= 100;
-		}
-		else if(stricmp(command, "stealth")==0){
-			newchar->stealth[0] = atoi(GET_ARG(1));
-			newchar->stealth[1] = atoi(GET_ARG(2));
-		}
-		else if(stricmp(command, "jugglepoints")==0){
-			value = GET_ARG(1);
-			newchar->jugglepoints[0] = atoi(value);
-			newchar->jugglepoints[1] = atoi(value);
-		}
-		else if(stricmp(command, "riseattacktype")==0){
-			value = GET_ARG(1);
-			newchar->riseattacktype = atoi(value);
-		}
-		else if(stricmp(command, "guardpoints")==0){
-			value = GET_ARG(1);
-			newchar->guardpoints[0] = atoi(value);
-			newchar->guardpoints[1] = atoi(value);
-		}
+			else if(strcmp(command, "subject_to_hole")==0)
+			{
+				newchar->subject_to_hole = (0!=atoi(GET_ARG(1)));
+			}
+			else if(strcmp(command, "subject_to_platform")==0)
+			{
+				newchar->subject_to_platform = (0!=atoi(GET_ARG(1)));
+			}
+			else if(strcmp(command, "subject_to_obstacle")==0)
+			{
+				newchar->subject_to_obstacle = (0!=atoi(GET_ARG(1)));
+			}
+			else if(strcmp(command, "subject_to_gravity")==0)
+			{
+				newchar->subject_to_gravity = (0!=atoi(GET_ARG(1)));
+			}
+			else if(strcmp(command, "subject_to_screen")==0)
+			{
+				newchar->subject_to_screen = (0!=atoi(GET_ARG(1)));
+			}
+			else if(strcmp(command, "subject_to_minz")==0)
+			{
+				newchar->subject_to_minz = (0!=atoi(GET_ARG(1)));
+			}
+			else if(strcmp(command, "subject_to_maxz")==0)
+			{
+				newchar->subject_to_maxz = (0!=atoi(GET_ARG(1)));
+			}
+			else if(strcmp(command, "no_adjust_base")==0)
+			{
+				newchar->no_adjust_base = (0!=atoi(GET_ARG(1)));
+			}
+			else if(strcmp(command, "instantitemdeath")==0)
+			{
+				newchar->instantitemdeath = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "secret")==0){
+				newchar->secret = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "modelflag")==0){ // model copy flag
+				newchar->model_flag = atoi(GET_ARG(1));
+			}
+			// weapons
+			else if(strcmp(command, "weaploss")==0){
+				newchar->weaploss[0] = atoi(GET_ARG(1));
+				newchar->weaploss[1] = atoi(GET_ARG(2));
+			}
+			else if(strcmp(command, "weapnum")==0){
+				newchar->weapnum = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "project")==0){  // New projectile subtype
+				value = GET_ARG(1);
+				if(stricmp(value, "none")==0) newchar->project = -1;
+				else newchar->project = get_cached_model_index(value);
+			}
+			else if(strcmp(command, "weapons")==0){
+				if(!newchar->weapon)
+				{
+					newchar->weapon = tracemalloc("newchar->weapon", sizeof(*newchar->weapon));
+					memset(newchar->weapon, 0xFF, sizeof(*newchar->weapon));
+					newchar->ownweapons = 1;
+				}
+				for(weap = 0; weap<MAX_WEAPONS; weap++){
+					value = GET_ARG(weap+1);
+					if(value[0]){
+						if(stricmp(value, "none")!=0){
+							(*newchar->weapon)[weap] = get_cached_model_index(value);
+						} else { // make empty weapon slots  2007-2-16
+							(*newchar->weapon)[weap] = -1;
+						}
+						last = weap;
+					}
+					else (*newchar->weapon)[weap] = (*newchar->weapon)[last];
+				}
+			}
+			//here weapons things like shoot rest type of weapon ect..by tails
+			else if(strcmp(command, "shootnum")==0){
+				newchar->shootnum = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "reload")==0){
+				newchar->reload = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "typeshot")==0){
+				newchar->typeshot = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "counter")==0){
+				newchar->counter = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "animal")==0){
+				newchar->animal = atoi(GET_ARG(1));
+			}
+			// end weapons
+			else if(strcmp(command, "rider")==0){
+				value = GET_ARG(1);
+				if(stricmp(value, "none")==0) newchar->rider = -1;
+				else newchar->rider = get_cached_model_index(value);
+			}
+			else if(strcmp(command, "knife")==0 ||
+				strcmp(command, "fireb")==0 ||
+				strcmp(command, "playshot")==0 ||
+				strcmp(command, "playshotw")==0) {
+				value = GET_ARG(1);
+				if(stricmp(value, "none")==0) newchar->knife = -1;
+				else  newchar->knife = get_cached_model_index(value);
+			}
+			else if(strcmp(command, "playshotno")==0){
+				value = GET_ARG(1);
+				if(stricmp(value, "none")==0) newchar->pshotno = -1;
+				else newchar->pshotno = get_cached_model_index(value);
+			}
+			else if(strcmp(command, "star")==0){
+				value = GET_ARG(1);
+				if(stricmp(value, "none")==0) newchar->star = -1;
+				else newchar->star = get_cached_model_index(value);
+			}
+			else if(strcmp(command, "bomb")==0 ||
+				strcmp(command, "playbomb")==0){
+				value = GET_ARG(1);
+				if(stricmp(value, "none")==0) newchar->bomb = -1;
+				else newchar->bomb = get_cached_model_index(value);
+			}
+			else if(strcmp(command, "flash")==0){    // Now all characters can have their own flash - even projectiles (useful for blood)
+				value = GET_ARG(1);
+				if(stricmp(value, "none")==0) newchar->flash = -1;
+				else newchar->flash = get_cached_model_index(value);
+			}
+			else if(strcmp(command, "bflash")==0){    // Flash that is spawned if an attack is blocked
+				value = GET_ARG(1);
+				if(stricmp(value, "none")==0) newchar->bflash = -1;
+				else newchar->bflash = get_cached_model_index(value);
+			}
+			else if(strcmp(command, "dust")==0){    // Spawned when hitting the ground to "kick up dust"
+				value = GET_ARG(1);
+				if(stricmp(value, "none")==0) newchar->dust[0] = -1;
+				else newchar->dust[0] = get_cached_model_index(value);
+				value = GET_ARG(2);
+				if(stricmp(value, "none")==0) newchar->dust[1] = -1;
+				else newchar->dust[1] = get_cached_model_index(value);
+				value = GET_ARG(3);
+				if(stricmp(value, "none")==0) newchar->dust[2] = -1;
+				else newchar->dust[2] = get_cached_model_index(value);
+			}
+			else if(strcmp(command, "branch")==0){    // for endlevel item's level branch
+				value = GET_ARG(1);
+				if(!newchar->branch)
+				{
+					newchar->branch = tracemalloc("newchar->branch", MAX_NAME_LEN+1);
+					newchar->branch[0] = 0;
+				}
+				strncpy(newchar->branch, value, MAX_NAME_LEN);
+			}
+			else if(strcmp(command, "cantgrab")==0 ||
+				strcmp(command, "notgrab")==0){
+				tempInt = atoi(GET_ARG(1));
+				if(tempInt == 2) newchar->grabforce = -999999;
+				else             newchar->antigrab = 1;
+			}
+			else if(strcmp(command, "antigrab")==0) // a can grab b: a->antigrab - b->grabforce <=0
+			{
+				newchar->antigrab = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "grabforce")==0)
+			{
+				newchar->grabforce = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "grabback")==0){
+				newchar->grabback = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "offscreenkill")==0){
+				newchar->offscreenkill = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "falldie")==0 ||
+				strcmp(command, "death")==0){
+				newchar->falldie = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "speed")==0){
+				value = GET_ARG(1);
+				newchar->speed = atof(value);
+				newchar->speed /= 10;
+				if(newchar->speed < 0.5) newchar->speed = 0.5;
+				if(newchar->speed > 30) newchar->speed = 30;
+			}
+			else if(strcmp(command, "speedf")==0){ // float speed
+				value = GET_ARG(1);
+				newchar->speed = atof(value);
+			}
+			else if(strcmp(command, "jumpspeed")==0){
+				value = GET_ARG(1);
+				newchar->jumpspeed = atof(value);
+				newchar->jumpspeed /= 10;
+			}
+			else if(strcmp(command, "jumpspeedf")==0){
+				value = GET_ARG(1);
+				newchar->jumpspeed = atof(value);
+			}
+			else if(strcmp(command, "antigravity")==0){
+				value = GET_ARG(1);
+				newchar->antigravity = atof(value);
+				newchar->antigravity /= 100;
+			}
+			else if(strcmp(command, "stealth")==0){
+				newchar->stealth[0] = atoi(GET_ARG(1));
+				newchar->stealth[1] = atoi(GET_ARG(2));
+			}
+			else if(strcmp(command, "jugglepoints")==0){
+				value = GET_ARG(1);
+				newchar->jugglepoints[0] = atoi(value);
+				newchar->jugglepoints[1] = atoi(value);
+			}
+			else if(strcmp(command, "riseattacktype")==0){
+				value = GET_ARG(1);
+				newchar->riseattacktype = atoi(value);
+			}
+			else if(strcmp(command, "guardpoints")==0){
+				value = GET_ARG(1);
+				newchar->guardpoints[0] = atoi(value);
+				newchar->guardpoints[1] = atoi(value);
+			}
 
 #define tempdef(x, y, z, p, k, b, t, r, e) \
 x(stricmp(value, #y)==0)\
@@ -4995,49 +5012,49 @@ x(stricmp(value, #y)==0)\
     /*newchar->r[ATK_##y] /= 100;*/\
     newchar->e[ATK_##y] = atof(GET_ARG(8));\
 }
-		else if(stricmp(command, "defense")==0){
-			value = GET_ARG(1);
-			tempdef(if, NORMAL, defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, NORMAL2,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, NORMAL3,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, NORMAL4,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, NORMAL5,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, NORMAL6,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, NORMAL7,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, NORMAL8,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, NORMAL9,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, NORMAL10,  defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, BLAST,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, STEAL,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, BURN,      defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, SHOCK,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			tempdef(else if, FREEZE,    defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-			else if(strnicmp(value, "normal", 6)==0)
-			{
-				tempInt = atoi(value+6);
-				if(tempInt<11) tempInt = 11;
-				newchar->defense_factors[tempInt+STA_ATKS-1]        = atof(GET_ARG(2));
-				newchar->defense_pain[tempInt+STA_ATKS-1]           = atof(GET_ARG(3));
-				newchar->defense_knockdown[tempInt+STA_ATKS-1]      = atof(GET_ARG(4));
-				newchar->defense_blockpower[tempInt+STA_ATKS-1]     = atof(GET_ARG(5));
-				newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = atof(GET_ARG(6));
-				newchar->defense_blockratio[tempInt+STA_ATKS-1]     = atof(GET_ARG(7));
-				newchar->defense_blocktype[tempInt+STA_ATKS-1]      = atof(GET_ARG(8));
-			}
-			else if(stricmp(value, "ALL")==0)
-			{
-				for(i=0;i<max_attack_types;i++)
+			else if(strcmp(command, "defense")==0){
+				value = GET_ARG(1);
+				tempdef(if, NORMAL, defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, NORMAL2,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, NORMAL3,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, NORMAL4,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, NORMAL5,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, NORMAL6,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, NORMAL7,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, NORMAL8,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, NORMAL9,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, NORMAL10,  defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, BLAST,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, STEAL,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, BURN,      defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, SHOCK,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				tempdef(else if, FREEZE,    defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+				else if(strnicmp(value, "normal", 6)==0)
 				{
-					newchar->defense_factors[i]         = atof(GET_ARG(2));
-					newchar->defense_pain[i]            = atof(GET_ARG(3));
-					newchar->defense_knockdown[i]       = atof(GET_ARG(4));
-					newchar->defense_blockpower[i]      = atof(GET_ARG(5));
-					newchar->defense_blockthreshold[i]  = atof(GET_ARG(6));
-					newchar->defense_blockratio[i]      = atof(GET_ARG(7));
-					newchar->defense_blocktype[i]       = atof(GET_ARG(8));
+					tempInt = atoi(value+6);
+					if(tempInt<11) tempInt = 11;
+					newchar->defense_factors[tempInt+STA_ATKS-1]        = atof(GET_ARG(2));
+					newchar->defense_pain[tempInt+STA_ATKS-1]           = atof(GET_ARG(3));
+					newchar->defense_knockdown[tempInt+STA_ATKS-1]      = atof(GET_ARG(4));
+					newchar->defense_blockpower[tempInt+STA_ATKS-1]     = atof(GET_ARG(5));
+					newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = atof(GET_ARG(6));
+					newchar->defense_blockratio[tempInt+STA_ATKS-1]     = atof(GET_ARG(7));
+					newchar->defense_blocktype[tempInt+STA_ATKS-1]      = atof(GET_ARG(8));
+				}
+				else if(stricmp(value, "ALL")==0)
+				{
+					for(i=0;i<max_attack_types;i++)
+					{
+						newchar->defense_factors[i]         = atof(GET_ARG(2));
+						newchar->defense_pain[i]            = atof(GET_ARG(3));
+						newchar->defense_knockdown[i]       = atof(GET_ARG(4));
+						newchar->defense_blockpower[i]      = atof(GET_ARG(5));
+						newchar->defense_blockthreshold[i]  = atof(GET_ARG(6));
+						newchar->defense_blockratio[i]      = atof(GET_ARG(7));
+						newchar->defense_blocktype[i]       = atof(GET_ARG(8));
+					}
 				}
 			}
-		}
 #undef tempdef
 #define tempoff(x, y, z) \
 x(stricmp(value, #y)==0)\
@@ -5045,2043 +5062,2042 @@ x(stricmp(value, #y)==0)\
     newchar->z[ATK_##y] = atof(GET_ARG(2));\
     /*newchar->z[ATK_##y] /= 100;*/\
 }
-            else if(stricmp(command, "offense")==0){
-                value = GET_ARG(1);
-                tempoff(if,         NORMAL,     offense_factors)
-                tempoff(else if,    NORMAL2,    offense_factors)
-                tempoff(else if,    NORMAL3,    offense_factors)
-                tempoff(else if,    NORMAL4,    offense_factors)
-                tempoff(else if,    NORMAL5,    offense_factors)
-                tempoff(else if,    NORMAL6,    offense_factors)
-                tempoff(else if,    NORMAL7,    offense_factors)
-                tempoff(else if,    NORMAL8,    offense_factors)
-                tempoff(else if,    NORMAL9,    offense_factors)
-                tempoff(else if,    NORMAL10,   offense_factors)
-                tempoff(else if,    BLAST,      offense_factors)
-                tempoff(else if,    STEAL,      offense_factors)
-                tempoff(else if,    BURN,       offense_factors)
-                tempoff(else if,    SHOCK,      offense_factors)
-                tempoff(else if,    FREEZE,     offense_factors)
-                else if(strnicmp(value, "normal", 6)==0)
-                {
-                    tempInt = atoi(value+6);
-                    if(tempInt<11) tempInt = 11;
-                    newchar->offense_factors[tempInt+STA_ATKS-1] = atof(GET_ARG(2));
-                }
-                else if(stricmp(value, "ALL")==0)
-                {
-                    tempFloat = atof(GET_ARG(2));
-                    for(i=0;i<max_attack_types;i++)
-                    {
-                        newchar->offense_factors[i] = tempFloat;
-                    }
-                }
-            }
+			else if(strcmp(command, "offense")==0){
+				value = GET_ARG(1);
+				tempoff(if,         NORMAL,     offense_factors)
+				tempoff(else if,    NORMAL2,    offense_factors)
+				tempoff(else if,    NORMAL3,    offense_factors)
+				tempoff(else if,    NORMAL4,    offense_factors)
+				tempoff(else if,    NORMAL5,    offense_factors)
+				tempoff(else if,    NORMAL6,    offense_factors)
+				tempoff(else if,    NORMAL7,    offense_factors)
+				tempoff(else if,    NORMAL8,    offense_factors)
+				tempoff(else if,    NORMAL9,    offense_factors)
+				tempoff(else if,    NORMAL10,   offense_factors)
+				tempoff(else if,    BLAST,      offense_factors)
+				tempoff(else if,    STEAL,      offense_factors)
+				tempoff(else if,    BURN,       offense_factors)
+				tempoff(else if,    SHOCK,      offense_factors)
+				tempoff(else if,    FREEZE,     offense_factors)
+				else if(strnicmp(value, "normal", 6)==0)
+				{
+					tempInt = atoi(value+6);
+					if(tempInt<11) tempInt = 11;
+					newchar->offense_factors[tempInt+STA_ATKS-1] = atof(GET_ARG(2));
+				}
+				else if(stricmp(value, "ALL")==0)
+				{
+					tempFloat = atof(GET_ARG(2));
+					for(i=0;i<max_attack_types;i++)
+				{
+					newchar->offense_factors[i] = tempFloat;
+				}
+				}
+			}
 #undef tempoff
-            else if(stricmp(command, "height")==0){
-                newchar->height = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "jumpheight")==0){        // 28-12-2004 if string for jump height found
-                newchar->jumpheight = atof(GET_ARG(1));
-            }
-            else if(stricmp(command, "jumpmove")==0){    // see openbor.h for details
-                newchar->jumpmovex = atoi(GET_ARG(1));
-                newchar->jumpmovez = atoi(GET_ARG(2));
-            }
-            else if(stricmp(command, "knockdowncount")==0){
-                newchar->knockdowncount = atof(GET_ARG(1));
-            }
-            else if(stricmp(command, "grabdistance")==0){        // 30-12-2004 if string for grabdistance found
-                newchar->grabdistance = atof(GET_ARG(1));                    // 30-12-2004 and store for character
-            }
-            else if(stricmp(command, "grabfinish")==0){ // wait until grab animation is finished
-                newchar->grabfinish = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "throwdamage")==0){
-                newchar->throwdamage = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "shadow")==0){
-                newchar->shadow = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "gfxshadow")==0){
-                newchar->gfxshadow = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "aironly")==0){    // Shadows display in air only?
-                newchar->aironly = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "fmap")==0){    // Map that corresponds with the remap when a character is frozen
-                newchar->fmap = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "komap")==0){   // Remap when character is KO'd.
-                newchar->komap[0] = atoi(GET_ARG(1));  //Remap.
-                newchar->komap[1] = atoi(GET_ARG(2));  //Type: 0 start of fall/death, 1 last frame.
-            }
-            else if(stricmp(command, "hmap")==0){    // Maps range unavailable to player in select screen.
-                newchar->hmap1 = atoi(GET_ARG(1)); //First unavailable map.
-                newchar->hmap2 = atoi(GET_ARG(2)); //Last unavailable map.
-            }
-            else if(stricmp(command, "setlayer")==0){
-                newchar->setlayer = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "toflip")==0){    // Flag to determine if flashes images will be flipped or not
-                newchar->toflip = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "nodieblink")==0){    // Added to determine if dying animation blinks or not
-                newchar->nodieblink = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "noatflash")==0){    // Flag to determine if an opponents attack spawns their flash or not
-                newchar->noatflash = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "nomove")==0){    // If set, will be static (speed must be set to 0 or left blank)
-                newchar->nomove = atoi(GET_ARG(1));
-                newchar->noflip = atoi(GET_ARG(2));    // If set, static will not flip directions
-                if(newchar->nomove) newchar->nodrop = 1;
-            }
-            else if(stricmp(command, "nodrop")==0){
-                newchar->nodrop = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "thold")==0){    // Threshold for enemies/players block
-                newchar->thold = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "running")==0){    // The speed at which the player runs
-                newchar->runspeed = atof(GET_ARG(1));
-                newchar->runspeed /= 10;
-                newchar->runjumpheight = atof(GET_ARG(2));    // The height at which a player jumps when running
-                newchar->runjumpdist = atof(GET_ARG(3));    // The distance a player jumps when running
-                newchar->runupdown = atoi(GET_ARG(4));
-                newchar->runhold = atoi(GET_ARG(5));
-            }
-            else if(stricmp(command, "blockodds")==0){    // Odds that an attack will hit an enemy (1 : blockodds)
-                newchar->blockodds = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "holdblock")==0){
-                newchar->holdblock = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "blockpain")==0){
-                newchar->blockpain = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "nopassiveblock")==0){
-                newchar->nopassiveblock = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "edelay")==0){
-                newchar->edelay.mode        = atoi(GET_ARG(1));
-                newchar->edelay.factor      = atof(GET_ARG(2));
-                newchar->edelay.cap_min     = atoi(GET_ARG(3));
-                newchar->edelay.cap_max     = atoi(GET_ARG(4));
-                newchar->edelay.range_min   = atoi(GET_ARG(5));
-                newchar->edelay.range_max   = atoi(GET_ARG(6));
-            }
-            else if(stricmp(command, "paingrab")==0){
-                newchar->paingrab = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "throw")==0){
-                newchar->throwdist = atof(GET_ARG(1));
-                newchar->throwheight = atof(GET_ARG(2));
-            }
-            else if(stricmp(command, "grabwalk")==0){
-                newchar->grabwalkspeed = atof(GET_ARG(1));
-                newchar->grabwalkspeed /= 10;
+			else if(strcmp(command, "height")==0){
+				newchar->height = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "jumpheight")==0){        // 28-12-2004 if string for jump height found
+				newchar->jumpheight = atof(GET_ARG(1));
+			}
+			else if(strcmp(command, "jumpmove")==0){    // see openbor.h for details
+				newchar->jumpmovex = atoi(GET_ARG(1));
+				newchar->jumpmovez = atoi(GET_ARG(2));
+			}
+			else if(strcmp(command, "knockdowncount")==0){
+				newchar->knockdowncount = atof(GET_ARG(1));
+			}
+			else if(strcmp(command, "grabdistance")==0){        // 30-12-2004 if string for grabdistance found
+				newchar->grabdistance = atof(GET_ARG(1));                    // 30-12-2004 and store for character
+			}
+			else if(strcmp(command, "grabfinish")==0){ // wait until grab animation is finished
+				newchar->grabfinish = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "throwdamage")==0){
+				newchar->throwdamage = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "shadow")==0){
+				newchar->shadow = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "gfxshadow")==0){
+				newchar->gfxshadow = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "aironly")==0){    // Shadows display in air only?
+				newchar->aironly = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "fmap")==0){    // Map that corresponds with the remap when a character is frozen
+				newchar->fmap = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "komap")==0){   // Remap when character is KO'd.
+				newchar->komap[0] = atoi(GET_ARG(1));  //Remap.
+				newchar->komap[1] = atoi(GET_ARG(2));  //Type: 0 start of fall/death, 1 last frame.
+			}
+			else if(strcmp(command, "hmap")==0){    // Maps range unavailable to player in select screen.
+				newchar->hmap1 = atoi(GET_ARG(1)); //First unavailable map.
+				newchar->hmap2 = atoi(GET_ARG(2)); //Last unavailable map.
+			}
+			else if(strcmp(command, "setlayer")==0){
+				newchar->setlayer = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "toflip")==0){    // Flag to determine if flashes images will be flipped or not
+				newchar->toflip = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "nodieblink")==0){    // Added to determine if dying animation blinks or not
+				newchar->nodieblink = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "noatflash")==0){    // Flag to determine if an opponents attack spawns their flash or not
+				newchar->noatflash = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "nomove")==0){    // If set, will be static (speed must be set to 0 or left blank)
+				newchar->nomove = atoi(GET_ARG(1));
+				newchar->noflip = atoi(GET_ARG(2));    // If set, static will not flip directions
+				if(newchar->nomove) newchar->nodrop = 1;
+			}
+			else if(strcmp(command, "nodrop")==0){
+				newchar->nodrop = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "thold")==0){    // Threshold for enemies/players block
+				newchar->thold = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "running")==0){    // The speed at which the player runs
+				newchar->runspeed = atof(GET_ARG(1));
+				newchar->runspeed /= 10;
+				newchar->runjumpheight = atof(GET_ARG(2));    // The height at which a player jumps when running
+				newchar->runjumpdist = atof(GET_ARG(3));    // The distance a player jumps when running
+				newchar->runupdown = atoi(GET_ARG(4));
+				newchar->runhold = atoi(GET_ARG(5));
+			}
+			else if(strcmp(command, "blockodds")==0){    // Odds that an attack will hit an enemy (1 : blockodds)
+				newchar->blockodds = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "holdblock")==0){
+				newchar->holdblock = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "blockpain")==0){
+				newchar->blockpain = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "nopassiveblock")==0){
+				newchar->nopassiveblock = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "edelay")==0){
+				newchar->edelay.mode        = atoi(GET_ARG(1));
+				newchar->edelay.factor      = atof(GET_ARG(2));
+				newchar->edelay.cap_min     = atoi(GET_ARG(3));
+				newchar->edelay.cap_max     = atoi(GET_ARG(4));
+				newchar->edelay.range_min   = atoi(GET_ARG(5));
+				newchar->edelay.range_max   = atoi(GET_ARG(6));
+			}
+			else if(strcmp(command, "paingrab")==0){
+				newchar->paingrab = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "throw")==0){
+				newchar->throwdist = atof(GET_ARG(1));
+				newchar->throwheight = atof(GET_ARG(2));
+			}
+			else if(strcmp(command, "grabwalk")==0){
+				newchar->grabwalkspeed = atof(GET_ARG(1));
+				newchar->grabwalkspeed /= 10;
 
-                if(newchar->grabwalkspeed < 0.5) newchar->grabwalkspeed = 0.5;
-            }
-            else if(stricmp(command, "grabturn")==0){
-                newchar->grabturn = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "throwframewait")==0){
-                newchar->throwframewait = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "diesound")==0){
-                newchar->diesound = sound_load_sample(GET_ARG(1), packfile, 0);
-            }
-            else if(stricmp(command, "icon")==0){
-                value = GET_ARG(1);
+				if(newchar->grabwalkspeed < 0.5) newchar->grabwalkspeed = 0.5;
+			}
+			else if(strcmp(command, "grabturn")==0){
+				newchar->grabturn = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "throwframewait")==0){
+				newchar->throwframewait = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "diesound")==0){
+				newchar->diesound = sound_load_sample(GET_ARG(1), packfile, 0);
+			}
+			else if(strcmp(command, "icon")==0){
+				value = GET_ARG(1);
 
-                if(newchar->icon > -1) shutdown(1, "Error: model '%s' has multiple icons defined", filename);
+				if(newchar->icon > -1) shutdown(1, "Error: model '%s' has multiple icons defined", filename);
 
-                newchar->icon = loadsprite(value,0,0,pixelformat); //use same palette as the owner
-                newchar->iconpain = newchar->icon;
-                newchar->icondie = newchar->icon;
-                newchar->iconget = newchar->icon;
-            }
-            else if(stricmp(command, "iconpain")==0){    // 20-1-2005 New icons here
-                value = GET_ARG(1);
-                newchar->iconpain = loadsprite(value,0,0,pixelformat);
-            }
-            else if(stricmp(command, "icondie")==0){
-                value = GET_ARG(1);
-                newchar->icondie = loadsprite(value,0,0,pixelformat);
-            }
-            else if(stricmp(command, "iconget")==0){
-                value = GET_ARG(1);
-                newchar->iconget = loadsprite(value,0,0,pixelformat);
-            }                                // 20-1-2005 New icons finish here
-            else if(stricmp(command, "iconw")==0){
-                value = GET_ARG(1);
-                newchar->iconw = loadsprite(value,0,0,pixelformat);
-            }
-            else if(stricmp(command, "iconmphigh")==0){
-                value = GET_ARG(1);
-                newchar->iconmp[0] = loadsprite(value,0,0,pixelformat);
-            }
-            else if(stricmp(command, "iconmphalf")==0){
-                value = GET_ARG(1);
-                newchar->iconmp[1] = loadsprite(value,0,0,pixelformat);
-            }
-            else if(stricmp(command, "iconmplow")==0){
-                value = GET_ARG(1);
-                newchar->iconmp[2] = loadsprite(value,0,0,pixelformat);
-            }
-            else if(stricmp(command, "parrow")==0){    // Image that is displayed when player 1 spawns invincible
-                value = GET_ARG(1);
-                newchar->parrow[0][0] = loadsprite(value,0,0,pixelformat);
-                newchar->parrow[0][1] = atoi(GET_ARG(2));
-                newchar->parrow[0][2] = atoi(GET_ARG(3));
-            }
-            else if(stricmp(command, "parrow2")==0){    // Image that is displayed when player 2 spawns invincible
-                value = GET_ARG(1);
-                newchar->parrow[1][0] = loadsprite(value,0,0,pixelformat);
-                newchar->parrow[1][1] = atoi(GET_ARG(2));
-                newchar->parrow[1][2] = atoi(GET_ARG(3));
-            }
-            else if(stricmp(command, "parrow3")==0){    // Image that is displayed when player 3 spawns invincible
-                value = GET_ARG(1);
-                newchar->parrow[2][0] = loadsprite(value,0,0,pixelformat);
-                newchar->parrow[2][1] = atoi(GET_ARG(2));
-                newchar->parrow[2][2] = atoi(GET_ARG(3));
-            }
-            else if(stricmp(command, "parrow4")==0){    // Image that is displayed when player 4 spawns invincible
-                value = GET_ARG(1);
-                newchar->parrow[3][0] = loadsprite(value,0,0,pixelformat);
-                newchar->parrow[3][1] = atoi(GET_ARG(2));
-                newchar->parrow[3][2] = atoi(GET_ARG(3));
-            }
-            else if(stricmp(command, "atchain")==0)
-            {
-                newchar->chainlength = 0;
-                for(i = 0; i < MAX_ATCHAIN; i++)
-                {
-                    newchar->atchain[i] = atoi(GET_ARG(i + 1));
-                    if(newchar->atchain[i] < 0) newchar->atchain[i] = 0;
-                    if(newchar->atchain[i] > max_attacks) newchar->atchain[i] = max_attacks;
-                    if(newchar->atchain[i]) newchar->chainlength = i+1;
-                }
-            }
-            else if(stricmp(command, "combostyle")==0)
-            {
-                newchar->combostyle = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "credit")==0){
-                newchar->credit = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "nopain")==0){
-                newchar->nopain = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "escapehits")==0){      // How many times an enemy can be hit before retaliating
-                newchar->escapehits = atoi(GET_ARG(1));
-            }
-            //Left for backward compatability. See Mpset.
-            else if(stricmp(command, "chargerate")==0){      // How much mp does this character gain while recharging?
-                newchar->chargerate = atoi(GET_ARG(1));
-            }
-            //Left for backward compatability. See Mpset.
-            else if(stricmp(command, "mprate")==0){
-                newchar->mprate = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "mpset")==0){    // Mp bar wax/wane.
-                newchar->mp             = atoi(GET_ARG(1)); //Max MP.
-                newchar->mpstable       = atoi(GET_ARG(2)); //MP stable setting.
-                newchar->mpstableval    = atoi(GET_ARG(3)); //MP stable value (% Mp bar will try and maintain).
-                newchar->mprate         = atoi(GET_ARG(4)); //Rate MP value rises over time.
-                newchar->mpdroprate     = atoi(GET_ARG(5)); //Rate MP value drops over time.
-                newchar->chargerate     = atoi(GET_ARG(6)); //MP Chargerate.
-            }
-            else if(stricmp(command, "sleepwait")==0){
-                newchar->sleepwait = atoi(GET_ARG(1));
-            }
-			else if(stricmp(command, "guardrate")==0){
-                newchar->guardrate = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "aggression")==0){
-                newchar->aggression = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "risetime")==0){
-                newchar->risetime[0] = atoi(GET_ARG(1));
-				newchar->risetime[1] = atoi(GET_ARG(2));
-            }
-            else if(stricmp(command, "facing")==0){
-                newchar->facing = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "turndelay")==0){
-                newchar->turndelay = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "lifespan")==0){
-                newchar->lifespan = atof(GET_ARG(1))*GAME_SPEED;
-            }
-            else if(stricmp(command, "summonkill")==0){
-                newchar->summonkill = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "lifeposition")==0){
-                if((value=GET_ARG(1))[0]) newchar->hpx = atoi(value);
-                if((value=GET_ARG(2))[0]) newchar->hpy = atoi(value);
-            }
-            else if(stricmp(command, "lifebarstatus")==0)
-            {
-				_readbarstatus(buf+pos, &(newchar->hpbarstatus));
-				newchar->hpbarstatus.colourtable = &hpcolourtable;
-            }
-            else if(stricmp(command, "iconposition")==0){
-                if((value=GET_ARG(1))[0]) newchar->iconx = atoi(value);
-                if((value=GET_ARG(2))[0]) newchar->icony = atoi(value);
-            }
-            else if(stricmp(command, "nameposition")==0){
-                if((value=GET_ARG(1))[0]) newchar->namex = atoi(value);
-                if((value=GET_ARG(2))[0]) newchar->namey = atoi(value);
-            }
+				newchar->icon = loadsprite(value,0,0,pixelformat); //use same palette as the owner
+				newchar->iconpain = newchar->icon;
+				newchar->icondie = newchar->icon;
+				newchar->iconget = newchar->icon;
+			}
+			else if(strcmp(command, "iconpain")==0){    // 20-1-2005 New icons here
+				value = GET_ARG(1);
+				newchar->iconpain = loadsprite(value,0,0,pixelformat);
+			}
+			else if(strcmp(command, "icondie")==0){
+				value = GET_ARG(1);
+				newchar->icondie = loadsprite(value,0,0,pixelformat);
+			}
+			else if(strcmp(command, "iconget")==0){
+				value = GET_ARG(1);
+				newchar->iconget = loadsprite(value,0,0,pixelformat);
+			}                                // 20-1-2005 New icons finish here
+			else if(strcmp(command, "iconw")==0){
+				value = GET_ARG(1);
+				newchar->iconw = loadsprite(value,0,0,pixelformat);
+			}
+			else if(strcmp(command, "iconmphigh")==0){
+				value = GET_ARG(1);
+				newchar->iconmp[0] = loadsprite(value,0,0,pixelformat);
+			}
+			else if(strcmp(command, "iconmphalf")==0){
+				value = GET_ARG(1);
+				newchar->iconmp[1] = loadsprite(value,0,0,pixelformat);
+			}
+			else if(strcmp(command, "iconmplow")==0){
+				value = GET_ARG(1);
+				newchar->iconmp[2] = loadsprite(value,0,0,pixelformat);
+			}
+			else if(strcmp(command, "parrow")==0){    // Image that is displayed when player 1 spawns invincible
+				value = GET_ARG(1);
+				newchar->parrow[0][0] = loadsprite(value,0,0,pixelformat);
+				newchar->parrow[0][1] = atoi(GET_ARG(2));
+				newchar->parrow[0][2] = atoi(GET_ARG(3));
+			}
+			else if(strcmp(command, "parrow2")==0){    // Image that is displayed when player 2 spawns invincible
+				value = GET_ARG(1);
+				newchar->parrow[1][0] = loadsprite(value,0,0,pixelformat);
+				newchar->parrow[1][1] = atoi(GET_ARG(2));
+				newchar->parrow[1][2] = atoi(GET_ARG(3));
+			}
+			else if(strcmp(command, "parrow3")==0){    // Image that is displayed when player 3 spawns invincible
+				value = GET_ARG(1);
+				newchar->parrow[2][0] = loadsprite(value,0,0,pixelformat);
+				newchar->parrow[2][1] = atoi(GET_ARG(2));
+				newchar->parrow[2][2] = atoi(GET_ARG(3));
+			}
+			else if(strcmp(command, "parrow4")==0){    // Image that is displayed when player 4 spawns invincible
+				value = GET_ARG(1);
+				newchar->parrow[3][0] = loadsprite(value,0,0,pixelformat);
+				newchar->parrow[3][1] = atoi(GET_ARG(2));
+				newchar->parrow[3][2] = atoi(GET_ARG(3));
+			}
+			else if(strcmp(command, "atchain")==0)
+			{
+				newchar->chainlength = 0;
+				for(i = 0; i < MAX_ATCHAIN; i++)
+				{
+				newchar->atchain[i] = atoi(GET_ARG(i + 1));
+				if(newchar->atchain[i] < 0) newchar->atchain[i] = 0;
+				if(newchar->atchain[i] > max_attacks) newchar->atchain[i] = max_attacks;
+				if(newchar->atchain[i]) newchar->chainlength = i+1;
+				}
+			}
+			else if(strcmp(command, "combostyle")==0)
+			{
+				newchar->combostyle = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "credit")==0){
+				newchar->credit = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "nopain")==0){
+				newchar->nopain = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "escapehits")==0){      // How many times an enemy can be hit before retaliating
+				newchar->escapehits = atoi(GET_ARG(1));
+			}
+			//Left for backward compatability. See Mpset.
+			else if(strcmp(command, "chargerate")==0){      // How much mp does this character gain while recharging?
+				newchar->chargerate = atoi(GET_ARG(1));
+			}
+			//Left for backward compatability. See Mpset.
+			else if(strcmp(command, "mprate")==0){
+				newchar->mprate = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "mpset")==0){    // Mp bar wax/wane.
+				newchar->mp             = atoi(GET_ARG(1)); //Max MP.
+				newchar->mpstable       = atoi(GET_ARG(2)); //MP stable setting.
+				newchar->mpstableval    = atoi(GET_ARG(3)); //MP stable value (% Mp bar will try and maintain).
+				newchar->mprate         = atoi(GET_ARG(4)); //Rate MP value rises over time.
+				newchar->mpdroprate     = atoi(GET_ARG(5)); //Rate MP value drops over time.
+				newchar->chargerate     = atoi(GET_ARG(6)); //MP Chargerate.
+			}
+			else if(strcmp(command, "sleepwait")==0){
+				newchar->sleepwait = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "guardrate")==0){
+				newchar->guardrate = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "aggression")==0){
+				newchar->aggression = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "risetime")==0){
+				newchar->risetime[0] = atoi(GET_ARG(1));
+						newchar->risetime[1] = atoi(GET_ARG(2));
+			}
+			else if(strcmp(command, "facing")==0){
+				newchar->facing = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "turndelay")==0){
+				newchar->turndelay = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "lifespan")==0){
+				newchar->lifespan = atof(GET_ARG(1))*GAME_SPEED;
+			}
+			else if(strcmp(command, "summonkill")==0){
+				newchar->summonkill = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "lifeposition")==0){
+				if((value=GET_ARG(1))[0]) newchar->hpx = atoi(value);
+				if((value=GET_ARG(2))[0]) newchar->hpy = atoi(value);
+			}
+			else if(strcmp(command, "lifebarstatus")==0)
+			{
+						_readbarstatus(buf+pos, &(newchar->hpbarstatus));
+						newchar->hpbarstatus.colourtable = &hpcolourtable;
+			}
+			else if(strcmp(command, "iconposition")==0){
+				if((value=GET_ARG(1))[0]) newchar->iconx = atoi(value);
+				if((value=GET_ARG(2))[0]) newchar->icony = atoi(value);
+			}
+			else if(strcmp(command, "nameposition")==0){
+				if((value=GET_ARG(1))[0]) newchar->namex = atoi(value);
+				if((value=GET_ARG(2))[0]) newchar->namey = atoi(value);
+			}
 
-            // Section for custom freespecials starts here
+			// Section for custom freespecials starts here
 
-            else if(stricmp(command, "com")==0){
-                int i;
-                int t;
-                for(i = 0, t = 1; i < MAX_SPECIAL_INPUTS-3; i++, t++)
-                {
-                    value = GET_ARG(t);
-                    if(!value[0]) break;
-                    if(stricmp(value, "u")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_MOVEUP;
-                    }
-                    else if(stricmp(value, "d")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_MOVEDOWN;
-                    }
-                    else if(stricmp(value, "f")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_FORWARD;
-                    }
-                    else if(stricmp(value, "b")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_BACKWARD;
-                    }
-                    else if(stricmp(value, "a")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK;
-                    }
-					else if(stricmp(value, "a2")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK2;
-                    }
-					else if(stricmp(value, "a3")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK3;
-                    }
-					else if(stricmp(value, "a4")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK4;
-                    }
-                    else if(stricmp(value, "j")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_JUMP;
-                    }
-                    else if(stricmp(value, "s")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_SPECIAL;
-                    }
-                    else if(stricmp(value, "k")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_SPECIAL;
-                    }
-					else if(strnicmp(value, "freespecial", 11)==0 && (!value[11] || (value[11] >= '1' && value[11] <= '9'))){
-						tempInt = atoi(value+11);
-                        if(tempInt<1) tempInt = 1;
-						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-2] = animspecials[tempInt-1];
-                    }
-                    else shutdown(1, "Invalid freespecial command '%s'", value);
-                }
-                newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-3]=i-1; // max steps
-                newchar->specials_loaded++;
-				if(newchar->specials_loaded > max_freespecials) shutdown(1, "Too many Freespecials and/or Cancels. Please increase Maxfreespecials", value); // OX. This is to catch freespecials that use same animation.
-            }
+			else if(strcmp(command, "com")==0){
+				int i;
+				int t;
+				for(i = 0, t = 1; i < MAX_SPECIAL_INPUTS-3; i++, t++)
+				{
+				value = GET_ARG(t);
+				if(!value[0]) break;
+				if(stricmp(value, "u")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_MOVEUP;
+				}
+				else if(stricmp(value, "d")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_MOVEDOWN;
+				}
+				else if(stricmp(value, "f")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_FORWARD;
+				}
+				else if(stricmp(value, "b")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_BACKWARD;
+				}
+				else if(stricmp(value, "a")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK;
+				}
+							else if(stricmp(value, "a2")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK2;
+				}
+							else if(stricmp(value, "a3")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK3;
+				}
+							else if(stricmp(value, "a4")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK4;
+				}
+				else if(stricmp(value, "j")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_JUMP;
+				}
+				else if(stricmp(value, "s")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_SPECIAL;
+				}
+				else if(stricmp(value, "k")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_SPECIAL;
+				}
+							else if(strnicmp(value, "freespecial", 11)==0 && (!value[11] || (value[11] >= '1' && value[11] <= '9'))){
+								tempInt = atoi(value+11);
+					if(tempInt<1) tempInt = 1;
+								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-2] = animspecials[tempInt-1];
+				}
+				else shutdown(1, "Invalid freespecial command '%s'", value);
+				}
+				newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-3]=i-1; // max steps
+				newchar->specials_loaded++;
+						if(newchar->specials_loaded > max_freespecials) shutdown(1, "Too many Freespecials and/or Cancels. Please increase Maxfreespecials", value); // OX. This is to catch freespecials that use same animation.
+			}
 
-            // End section for custom freespecials
+			// End section for custom freespecials
 
-            // This command should not be used under 24bit mode, but for old mods, just give it a default palette
-            else if(stricmp(command, "remap")==0){
-                value = GET_ARG(1);
-                value2 = GET_ARG(2);
-                errorVal = load_colourmap(newchar, value, value2);
-                if(pixelformat==PIXEL_x8 && newchar->palette==NULL)
-                {
-                    newchar->palette = tracemalloc("newchar#remap#palette", PAL_BYTES);
-                    memcpy(newchar->palette, pal, PAL_BYTES);
-                }
-                mapflag[newchar->maps_loaded-1] = 1;
-                if(!errorVal){
-                    switch(errorVal){
-                        case 0:
-                            shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. Image Used Twice!", value, value2);
-                            break;
-                        case -1:
-                            shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. MAX_COLOUR_MAPS full!", value, value2);
-                            break;
-                        case -2:
-                            shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. Failed to tracemalloc(256)!", value, value2);
-                            break;
-                        case -3:
-                            shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. Failed to create bitmap1", value, value2);
-                            break;
-                        case -4:
-                            shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. Failed to create bitmap2", value, value2);
-                            break;
-                    }
-                }
-            }
-            // main palette for the entity under 24bit mode
-            else if(stricmp(command, "palette")==0)
-            {
-                if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
-                else if(newchar->palette==NULL)
-                {
-                    value = GET_ARG(1);
-                    newchar->palette = tracemalloc("newchar->palette", PAL_BYTES);
-                    if(loadimagepalette(value, packfile, newchar->palette)==0)
-                        shutdown(1, "Failed to load palette '%s' for '%s'", value, filename);
-                }
-            }
-            // remap for the entity under 24bit mode, this method can replace remap command
-            else if(stricmp(command, "alternatepal")==0)
-            {
-                if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
-                else if(newchar->maps_loaded<MAX_COLOUR_MAPS)
-                {
-                    value = GET_ARG(1);
-                    newchar->colourmap[(int)newchar->maps_loaded] = tracemalloc("newchar#alternatepal", PAL_BYTES);
-                    if(loadimagepalette(value, packfile, newchar->colourmap[(int)newchar->maps_loaded])==0)
-                        shutdown(1, "Failed to load palette '%s' for '%s'", value, filename);
-                    newchar->maps_loaded++;
-                }
-            }
-            // use global palette under 24bit mode, so some entity/panel/bg can still use palette feature, that saves some memory
-            else if(stricmp(command, "globalmap")==0)
-            {
-                if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
-                else newchar->globalmap = atoi(GET_ARG(1));
-            }
-            //new alpha effects by tails
-            else if(stricmp(command, "alpha")==0){
-                newchar->alpha = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "remove")==0){
-                newchar->remove = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "script")==0 ){//load the update script
-                Script_Init(newchar->update_script, "updateentityscript", 0);
-                if(load_script(newchar->update_script, GET_ARG(1)))
-                    Script_Compile(newchar->update_script);
-                else shutdown(1, "Unable to load entity update script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-			else if(stricmp(command, "thinkscript")==0){//load the think script
-                Script_Init(newchar->think_script, "thinkscript", 0);
-                if(load_script(newchar->think_script, GET_ARG(1)))
-                    Script_Compile(newchar->think_script);
-                else  shutdown(1, "Unable to load think script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "takedamagescript")==0){//load the takedamage script
-                Script_Init(newchar->takedamage_script, "takedamagescript", 0);
-                if(load_script(newchar->takedamage_script, GET_ARG(1)))
-                    Script_Compile(newchar->takedamage_script);
-                else shutdown(1, "Unable to load takedamage script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "onfallscript")==0){//load the onfall script
-                Script_Init(newchar->onfall_script, "onfallscript", 0);
-                if(load_script(newchar->onfall_script , GET_ARG(1)))
-                    Script_Compile(newchar->onfall_script);
-                else shutdown(1, "Unable to load onfall script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "onpainscript")==0){//load the onpain script
-                Script_Init(newchar->onpain_script, "onpainscript", 0);
-                if(load_script(newchar->onpain_script , GET_ARG(1)))
-                    Script_Compile(newchar->onpain_script);
-                else shutdown(1, "Unable to load onpain script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "onblocksscript")==0){//load the onblocks script
-                Script_Init(newchar->onblocks_script, "onblocksscript", 0);
-                if(load_script(newchar->onblocks_script , GET_ARG(1)))
-                    Script_Compile(newchar->onblocks_script);
-                else shutdown(1, "Unable to load onblocks script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "onblockwscript")==0){//load the onblockw script
-                Script_Init(newchar->onblockw_script, "onblockwscript", 0);
-                if(load_script(newchar->onblockw_script , GET_ARG(1)))
-                    Script_Compile(newchar->onblockw_script);
-                else shutdown(1, "Unable to load onblockw script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "onblockoscript")==0){//load the onblocko script
-                Script_Init(newchar->onblocko_script, "onblockoscript", 0);
-                if(load_script(newchar->onblocko_script , GET_ARG(1)))
-                    Script_Compile(newchar->onblocko_script);
-                else shutdown(1, "Unable to load onblocko script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "onblockzscript")==0){//load the onblockz script
-                Script_Init(newchar->onblockz_script, "onblockzscript", 0);
-                if(load_script(newchar->onblockz_script , GET_ARG(1)))
-                    Script_Compile(newchar->onblockz_script);
-                else shutdown(1, "Unable to load onblockz script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "onblockascript")==0){//load the onblocka script
-                Script_Init(newchar->onblocka_script, "onblockascript", 0);
-                if(load_script(newchar->onblocka_script , GET_ARG(1)))
-                    Script_Compile(newchar->onblocka_script);
-                else shutdown(1, "Unable to load onblocka script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "onmovexscript")==0){//load the onmovex script
-                Script_Init(newchar->onmovex_script, "onmovexscript", 0);
-                if(load_script(newchar->onmovex_script , GET_ARG(1)))
-                    Script_Compile(newchar->onmovex_script);
-                else shutdown(1, "Unable to load onmovex script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "onmovezscript")==0){//load the onmovez script
-                Script_Init(newchar->onmovez_script, "onmovezscript", 0);
-                if(load_script(newchar->onmovez_script , GET_ARG(1)))
-                    Script_Compile(newchar->onmovez_script);
-                else shutdown(1, "Unable to load onmovez script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "onmoveascript")==0){//load the onmovea script
-                Script_Init(newchar->onmovea_script, "onmoveascript", 0);
-                if(load_script(newchar->onmovea_script , GET_ARG(1)))
-                    Script_Compile(newchar->onmovea_script);
-                else shutdown(1, "Unable to load onmovea script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "ondeathscript")==0){//load the death script
-                Script_Init(newchar->ondeath_script, "ondeathscript", 0);
-                if(load_script(newchar->ondeath_script, GET_ARG(1)))
-                    Script_Compile(newchar->ondeath_script);
-                else shutdown(1, "Unable to load ondeath script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "onkillscript")==0){//load the kill script
-                Script_Init(newchar->onkill_script, "onkillscript", 0);
-                if(load_script(newchar->onkill_script, GET_ARG(1)))
-                    Script_Compile(newchar->onkill_script);
-                else shutdown(1, "Unable to load onkill script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "didblockscript")==0){//load the didblock script
-                Script_Init(newchar->didblock_script, "didblockscript", 0);
-                if(load_script(newchar->didblock_script, GET_ARG(1)))
-                    Script_Compile(newchar->didblock_script);
-                else shutdown(1, "Unable to load didblock script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-			else if(stricmp(command, "ondoattackscript")==0){//load the checkhit script
-                Script_Init(newchar->ondoattack_script, "ondoattackscript", 0);
-                if(load_script(newchar->ondoattack_script, GET_ARG(1)))
-                    Script_Compile(newchar->ondoattack_script);
-                else shutdown(1, "Unable to load ondoattack script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "didhitscript")==0){//load the didhit script
-                Script_Init(newchar->didhit_script, "didhitscript", 0);
-                if(load_script(newchar->didhit_script, GET_ARG(1)))
-                    Script_Compile(newchar->didhit_script);
-                else  shutdown(1, "Unable to load didhit script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "onspawnscript")==0){//load the onspawn script
-                Script_Init(newchar->onspawn_script, "onspawnscript", 0);
-                if(load_script(newchar->onspawn_script, GET_ARG(1)))
-                    Script_Compile(newchar->onspawn_script);
-                else  shutdown(1, "Unable to load onspawn script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "animationscript")==0){//load the animation script
-                Script_Init(newchar->animation_script, "animationscript", 0);
-                if(!load_script(newchar->animation_script, GET_ARG(1)))
-                    shutdown(1, "Unable to load animation script '%s' in file '%s'.\n", GET_ARG(1), filename);
-                //dont compile, until at end of this function
-            }
-            else if(stricmp(command, "keyscript")==0){//load the key script
-                Script_Init(newchar->key_script, "entitykeyscript", 0);
-                if(load_script(newchar->key_script, GET_ARG(1)))
-                    Script_Compile(newchar->key_script);
-                else  shutdown(1, "Unable to load key script '%s' in file '%s'.\n", GET_ARG(1), filename);
-            }
-            else if(stricmp(command, "anim")==0){
-                value = GET_ARG(1);
-                frameset = 0;
-                framecount = 0;
-                // Create new animation
-                newanim = alloc_anim();
-                if(newanim==NULL){
-                    if(buf != NULL){
-                        tracefree(buf);
-                        buf = NULL;
-                    }
-                    if(scriptbuf){
-                        tracefree(scriptbuf);
-                        scriptbuf = NULL;
-                    }
-                    shutdown(1, "Not enough memory for animations!");
-                }
-                newanim->model_index = newchar->index;
-                // Reset vars
-                curframe = 0;
-                memset(bbox, 0, sizeof(bbox));
-                memset(abox, 0, sizeof(abox));
-                memset(offset, 0, sizeof(offset));
-                memset(shadow_coords, 0, sizeof(shadow_coords));
-                memset(shadow_xz, 0, sizeof(shadow_xz));
-                memset(platform, 0, sizeof(platform));
-                shadow_set = 0;
-				attack = emptyattack;
-				attack.hitsound = -1;
-				attack.hitflash = -1;
-				attack.blockflash = -1;
-				attack.blocksound = -1;
-				drawmethod = plainmethod;
-				idle = 0;
-                move = 0;
-                movez = 0;
-                movea = 0;
-                seta = -1;
-                frameshadow = -1;
-                soundtoplay = -1;
+			// This command should not be used under 24bit mode, but for old mods, just give it a default palette
+			else if(strcmp(command, "remap")==0){
+				value = GET_ARG(1);
+				value2 = GET_ARG(2);
+				errorVal = load_colourmap(newchar, value, value2);
+				if(pixelformat==PIXEL_x8 && newchar->palette==NULL)
+				{
+				newchar->palette = tracemalloc("newchar#remap#palette", PAL_BYTES);
+				memcpy(newchar->palette, pal, PAL_BYTES);
+				}
+				mapflag[newchar->maps_loaded-1] = 1;
+				if(!errorVal){
+				switch(errorVal){
+					case 0:
+					shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. Image Used Twice!", value, value2);
+					break;
+					case -1:
+					shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. MAX_COLOUR_MAPS full!", value, value2);
+					break;
+					case -2:
+					shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. Failed to tracemalloc(256)!", value, value2);
+					break;
+					case -3:
+					shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. Failed to create bitmap1", value, value2);
+					break;
+					case -4:
+					shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. Failed to create bitmap2", value, value2);
+					break;
+				}
+				}
+			}
+			// main palette for the entity under 24bit mode
+			else if(strcmp(command, "palette")==0)
+			{
+				if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
+				else if(newchar->palette==NULL)
+				{
+				value = GET_ARG(1);
+				newchar->palette = tracemalloc("newchar->palette", PAL_BYTES);
+				if(loadimagepalette(value, packfile, newchar->palette)==0)
+					shutdown(1, "Failed to load palette '%s' for '%s'", value, filename);
+				}
+			}
+			// remap for the entity under 24bit mode, this method can replace remap command
+			else if(strcmp(command, "alternatepal")==0)
+			{
+				if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
+				else if(newchar->maps_loaded<MAX_COLOUR_MAPS)
+				{
+				value = GET_ARG(1);
+				newchar->colourmap[(int)newchar->maps_loaded] = tracemalloc("newchar#alternatepal", PAL_BYTES);
+				if(loadimagepalette(value, packfile, newchar->colourmap[(int)newchar->maps_loaded])==0)
+					shutdown(1, "Failed to load palette '%s' for '%s'", value, filename);
+				newchar->maps_loaded++;
+				}
+			}
+			// use global palette under 24bit mode, so some entity/panel/bg can still use palette feature, that saves some memory
+			else if(strcmp(command, "globalmap")==0)
+			{
+				if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
+				else newchar->globalmap = atoi(GET_ARG(1));
+			}
+			//new alpha effects by tails
+			else if(strcmp(command, "alpha")==0){
+				newchar->alpha = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "remove")==0){
+				newchar->remove = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "script")==0 ){//load the update script
+				Script_Init(newchar->update_script, "updateentityscript", 0);
+				if(load_script(newchar->update_script, GET_ARG(1)))
+				Script_Compile(newchar->update_script);
+				else shutdown(1, "Unable to load entity update script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "thinkscript")==0){//load the think script
+				Script_Init(newchar->think_script, "thinkscript", 0);
+				if(load_script(newchar->think_script, GET_ARG(1)))
+					Script_Compile(newchar->think_script);
+				else  shutdown(1, "Unable to load think script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "takedamagescript")==0){//load the takedamage script
+				Script_Init(newchar->takedamage_script, "takedamagescript", 0);
+				if(load_script(newchar->takedamage_script, GET_ARG(1)))
+				Script_Compile(newchar->takedamage_script);
+				else shutdown(1, "Unable to load takedamage script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "onfallscript")==0){//load the onfall script
+				Script_Init(newchar->onfall_script, "onfallscript", 0);
+				if(load_script(newchar->onfall_script , GET_ARG(1)))
+				Script_Compile(newchar->onfall_script);
+				else shutdown(1, "Unable to load onfall script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "onpainscript")==0){//load the onpain script
+				Script_Init(newchar->onpain_script, "onpainscript", 0);
+				if(load_script(newchar->onpain_script , GET_ARG(1)))
+				Script_Compile(newchar->onpain_script);
+				else shutdown(1, "Unable to load onpain script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "onblocksscript")==0){//load the onblocks script
+				Script_Init(newchar->onblocks_script, "onblocksscript", 0);
+				if(load_script(newchar->onblocks_script , GET_ARG(1)))
+				Script_Compile(newchar->onblocks_script);
+				else shutdown(1, "Unable to load onblocks script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "onblockwscript")==0){//load the onblockw script
+				Script_Init(newchar->onblockw_script, "onblockwscript", 0);
+				if(load_script(newchar->onblockw_script , GET_ARG(1)))
+				Script_Compile(newchar->onblockw_script);
+				else shutdown(1, "Unable to load onblockw script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "onblockoscript")==0){//load the onblocko script
+				Script_Init(newchar->onblocko_script, "onblockoscript", 0);
+				if(load_script(newchar->onblocko_script , GET_ARG(1)))
+				Script_Compile(newchar->onblocko_script);
+				else shutdown(1, "Unable to load onblocko script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "onblockzscript")==0){//load the onblockz script
+				Script_Init(newchar->onblockz_script, "onblockzscript", 0);
+				if(load_script(newchar->onblockz_script , GET_ARG(1)))
+				Script_Compile(newchar->onblockz_script);
+				else shutdown(1, "Unable to load onblockz script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "onblockascript")==0){//load the onblocka script
+				Script_Init(newchar->onblocka_script, "onblockascript", 0);
+				if(load_script(newchar->onblocka_script , GET_ARG(1)))
+				Script_Compile(newchar->onblocka_script);
+				else shutdown(1, "Unable to load onblocka script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "onmovexscript")==0){//load the onmovex script
+				Script_Init(newchar->onmovex_script, "onmovexscript", 0);
+				if(load_script(newchar->onmovex_script , GET_ARG(1)))
+				Script_Compile(newchar->onmovex_script);
+				else shutdown(1, "Unable to load onmovex script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "onmovezscript")==0){//load the onmovez script
+				Script_Init(newchar->onmovez_script, "onmovezscript", 0);
+				if(load_script(newchar->onmovez_script , GET_ARG(1)))
+				Script_Compile(newchar->onmovez_script);
+				else shutdown(1, "Unable to load onmovez script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "onmoveascript")==0){//load the onmovea script
+				Script_Init(newchar->onmovea_script, "onmoveascript", 0);
+				if(load_script(newchar->onmovea_script , GET_ARG(1)))
+				Script_Compile(newchar->onmovea_script);
+				else shutdown(1, "Unable to load onmovea script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "ondeathscript")==0){//load the death script
+				Script_Init(newchar->ondeath_script, "ondeathscript", 0);
+				if(load_script(newchar->ondeath_script, GET_ARG(1)))
+				Script_Compile(newchar->ondeath_script);
+				else shutdown(1, "Unable to load ondeath script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "onkillscript")==0){//load the kill script
+				Script_Init(newchar->onkill_script, "onkillscript", 0);
+				if(load_script(newchar->onkill_script, GET_ARG(1)))
+				Script_Compile(newchar->onkill_script);
+				else shutdown(1, "Unable to load onkill script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "didblockscript")==0){//load the didblock script
+				Script_Init(newchar->didblock_script, "didblockscript", 0);
+				if(load_script(newchar->didblock_script, GET_ARG(1)))
+				Script_Compile(newchar->didblock_script);
+				else shutdown(1, "Unable to load didblock script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "ondoattackscript")==0){//load the checkhit script
+				Script_Init(newchar->ondoattack_script, "ondoattackscript", 0);
+				if(load_script(newchar->ondoattack_script, GET_ARG(1)))
+					Script_Compile(newchar->ondoattack_script);
+				else shutdown(1, "Unable to load ondoattack script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "didhitscript")==0){//load the didhit script
+				Script_Init(newchar->didhit_script, "didhitscript", 0);
+				if(load_script(newchar->didhit_script, GET_ARG(1)))
+				Script_Compile(newchar->didhit_script);
+				else  shutdown(1, "Unable to load didhit script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "onspawnscript")==0){//load the onspawn script
+				Script_Init(newchar->onspawn_script, "onspawnscript", 0);
+				if(load_script(newchar->onspawn_script, GET_ARG(1)))
+				Script_Compile(newchar->onspawn_script);
+				else  shutdown(1, "Unable to load onspawn script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "animationscript")==0){//load the animation script
+				Script_Init(newchar->animation_script, "animationscript", 0);
+				if(!load_script(newchar->animation_script, GET_ARG(1)))
+				shutdown(1, "Unable to load animation script '%s' in file '%s'.\n", GET_ARG(1), filename);
+				//dont compile, until at end of this function
+			}
+			else if(strcmp(command, "keyscript")==0){//load the key script
+				Script_Init(newchar->key_script, "entitykeyscript", 0);
+				if(load_script(newchar->key_script, GET_ARG(1)))
+				Script_Compile(newchar->key_script);
+				else  shutdown(1, "Unable to load key script '%s' in file '%s'.\n", GET_ARG(1), filename);
+			}
+			else if(strcmp(command, "anim")==0){
+				value = GET_ARG(1);
+				frameset = 0;
+				framecount = 0;
+				// Create new animation
+				newanim = alloc_anim();
+				if(newanim==NULL){
+				if(buf != NULL){
+					tracefree(buf);
+					buf = NULL;
+				}
+				if(scriptbuf){
+					tracefree(scriptbuf);
+					scriptbuf = NULL;
+				}
+				shutdown(1, "Not enough memory for animations!");
+				}
+				newanim->model_index = newchar->index;
+				// Reset vars
+				curframe = 0;
+				memset(bbox, 0, sizeof(bbox));
+				memset(abox, 0, sizeof(abox));
+				memset(offset, 0, sizeof(offset));
+				memset(shadow_coords, 0, sizeof(shadow_coords));
+				memset(shadow_xz, 0, sizeof(shadow_xz));
+				memset(platform, 0, sizeof(platform));
+				shadow_set = 0;
+						attack = emptyattack;
+						attack.hitsound = -1;
+						attack.hitflash = -1;
+						attack.blockflash = -1;
+						attack.blocksound = -1;
+						drawmethod = plainmethod;
+						idle = 0;
+				move = 0;
+				movez = 0;
+				movea = 0;
+				seta = -1;
+				frameshadow = -1;
+				soundtoplay = -1;
 
-                if(!newanim->range[0]) newanim->range[0] = -10;
-				newanim->range[1] = (int)newchar->jumpheight*20;    //30-12-2004 default range affected by jump height
-				newanim->range[2] = (int)-newchar->grabdistance/3;  //zmin
-				newanim->range[3] = (int)newchar->grabdistance/3;   //zmax
-				newanim->range[4] = -1000;                          //amin
-				newanim->range[5] = 1000;                           //amax
-                newanim->range[6] = -1000;                          //Base min.
-                newanim->range[7] = 1000;                           //Base max.
+				if(!newanim->range[0]) newanim->range[0] = -10;
+						newanim->range[1] = (int)newchar->jumpheight*20;    //30-12-2004 default range affected by jump height
+						newanim->range[2] = (int)-newchar->grabdistance/3;  //zmin
+						newanim->range[3] = (int)newchar->grabdistance/3;   //zmax
+						newanim->range[4] = -1000;                          //amin
+						newanim->range[5] = 1000;                           //amax
+				newanim->range[6] = -1000;                          //Base min.
+				newanim->range[7] = 1000;                           //Base max.
 
-                newanim->jumpv = 0;    // Default disabled
-                newanim->fastattack = 0;
-                newanim->energycost[1] = 0;							//MP only.
-				newanim->energycost[2] = 0;							//Disable flag.
-                newanim->chargetime = 2;			// Default for backwards compatibility
-				newanim->shootframe = -1;
-                newanim->throwframe = -1;
-                newanim->tossframe = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
-                newanim->jumpframe = -1;
-                newanim->flipframe = -1;
-                newanim->attackone = -1;
-				newanim->dive[0] = newanim->dive[1] = 0;
-                newanim->followanim = 0;			// Default disabled
-                newanim->followcond = 0;
-                newanim->counterframe[0] = -1;		//Start frame.
-				newanim->counterframe[1] = -1;		//End frame.
-				newanim->counterframe[2] = 0;		//Counter cond.
-				newanim->counterframe[3] = 0;		//Counter damage.
-                newanim->unsummonframe = -1;
-                newanim->landframe[0] = -1;
-                newanim->dropframe = -1;
-				newanim->cancel = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
-				newanim->animhits = 0; //OX counts hits on a per anim basis for cancels.
-                newanim->subentity = newanim->custbomb = newanim->custknife = newanim->custstar = newanim->custpshotno = -1;
-				memset(newanim->quakeframe, 0, sizeof(newanim->quakeframe));
+				newanim->jumpv = 0;    // Default disabled
+				newanim->fastattack = 0;
+				newanim->energycost[1] = 0;							//MP only.
+						newanim->energycost[2] = 0;							//Disable flag.
+				newanim->chargetime = 2;			// Default for backwards compatibility
+						newanim->shootframe = -1;
+				newanim->throwframe = -1;
+				newanim->tossframe = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
+				newanim->jumpframe = -1;
+				newanim->flipframe = -1;
+				newanim->attackone = -1;
+						newanim->dive[0] = newanim->dive[1] = 0;
+				newanim->followanim = 0;			// Default disabled
+				newanim->followcond = 0;
+				newanim->counterframe[0] = -1;		//Start frame.
+						newanim->counterframe[1] = -1;		//End frame.
+						newanim->counterframe[2] = 0;		//Counter cond.
+						newanim->counterframe[3] = 0;		//Counter damage.
+				newanim->unsummonframe = -1;
+				newanim->landframe[0] = -1;
+				newanim->dropframe = -1;
+						newanim->cancel = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
+						newanim->animhits = 0; //OX counts hits on a per anim basis for cancels.
+				newanim->subentity = newanim->custbomb = newanim->custknife = newanim->custstar = newanim->custpshotno = -1;
+						memset(newanim->quakeframe, 0, sizeof(newanim->quakeframe));
 
-                if(strnicmp(value, "idle", 4)==0 &&
-					(!value[4] || (value[4] >= '1' && value[4]<='9'))){
-                    tempInt = atoi(value+4);
-                    if(tempInt<1) tempInt = 1;
-                    ani_id = animidles[tempInt-1];
-                }
-                else if(stricmp(value, "waiting")==0){
-                    ani_id = ANI_SELECT;
-                }
-                else if(strnicmp(value, "walk", 4)==0 &&
-					(!value[4] || (value[4] >= '1' && value[4]<='9'))){
-                    tempInt = atoi(value+4);
-                    if(tempInt<1) tempInt = 1;
-                    ani_id = animwalks[tempInt-1];
-                }
-                else if(stricmp(value, "sleep")==0){
-                    ani_id = ANI_SLEEP;
-                }
-                else if(stricmp(value, "run")==0){
-                    ani_id = ANI_RUN;
-                }
-                else if(strnicmp(value, "up", 2)==0 &&
-					(!value[2] || (value[2] >= '1' && value[2]<='9'))){
-                    tempInt = atoi(value+2);
-                    if(tempInt<1) tempInt = 1;
-                    ani_id = animups[tempInt-1];
-                }
-                else if(strnicmp(value, "down", 4)==0 &&
-					(!value[4] || (value[4] >= '1' && value[4]<='9'))){
-                    tempInt = atoi(value+4);
-                    if(tempInt<1) tempInt = 1;
-                    ani_id = animdowns[tempInt-1];
-                }
-                else if(strnicmp(value, "backwalk", 8)==0 &&
-					(!value[8] || (value[8] >= '1' && value[8]<='9'))){
-                    tempInt = atoi(value+8);
-                    if(tempInt<1) tempInt = 1;
-                    ani_id = animbackwalks[tempInt-1];
-                }
-                else if(stricmp(value, "jump")==0){
-                    ani_id = ANI_JUMP;
-                    newanim->range[0] = 50;    // Used for enemies that jump on walls
-                    newanim->range[1] = 60;    // Used for enemies that jump on walls
-                }
-                else if(stricmp(value, "duck")==0){
-                    ani_id = ANI_DUCK;
-                }
-                else if(stricmp(value, "land")==0){
-                    ani_id = ANI_LAND;
-                }
-                else if(stricmp(value, "pain")==0){
-                    ani_id = ANI_PAIN;
-                }
-                else if(strnicmp(value, "pain", 4)==0 && value[4]>='1' && value[4]<='9'){
-					tempInt = atoi(value+4);
-	                if(tempInt==1){
-						ani_id = ANI_PAIN;
-					}
-					else if(tempInt==2){
-						ani_id = ANI_PAIN2;
-					}
-					else if(tempInt==3){
-						ani_id = ANI_PAIN3;
-					}
-					else if(tempInt==4){
-						ani_id = ANI_PAIN4;
-					}
-					else if(tempInt==5){
-						ani_id = ANI_PAIN5;
-					}
-					else if(tempInt==6){
-						ani_id = ANI_PAIN6;
-					}
-					else if(tempInt==7){
-						ani_id = ANI_PAIN7;
-					}
-					else if(tempInt==8){
-						ani_id = ANI_PAIN8;
-					}
-					else if(tempInt==9){
-						ani_id = ANI_PAIN9;
-					}
-					else if(tempInt==10){
-						ani_id = ANI_PAIN10;
-					}
-					else{
-                        if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-	                    ani_id = animpains[tempInt+STA_ATKS-1];
-					}
-                }
-                else if(stricmp(value, "spain")==0){    // If shock attacks don't knock opponent down, play this
-                    ani_id = ANI_SHOCKPAIN;
-                }
-                else if(stricmp(value, "bpain")==0){    // If burn attacks don't knock opponent down, play this
-                    ani_id = ANI_BURNPAIN;
-                }
-                else if(stricmp(value, "fall")==0){
-                    ani_id = ANI_FALL;   // If no new animation, load fall animation into both "respawn" & "fall"
-                    newanim->bounce = 4;
-                }
-                else if(strnicmp(value, "fall", 4)==0 && value[4]>='1' && value[4]<='9'){
-                    tempInt = atoi(value+4);
+				if(strnicmp(value, "idle", 4)==0 &&
+							(!value[4] || (value[4] >= '1' && value[4]<='9'))){
+				tempInt = atoi(value+4);
+				if(tempInt<1) tempInt = 1;
+				ani_id = animidles[tempInt-1];
+				}
+				else if(stricmp(value, "waiting")==0){
+				ani_id = ANI_SELECT;
+				}
+				else if(strnicmp(value, "walk", 4)==0 &&
+							(!value[4] || (value[4] >= '1' && value[4]<='9'))){
+				tempInt = atoi(value+4);
+				if(tempInt<1) tempInt = 1;
+				ani_id = animwalks[tempInt-1];
+				}
+				else if(stricmp(value, "sleep")==0){
+				ani_id = ANI_SLEEP;
+				}
+				else if(stricmp(value, "run")==0){
+				ani_id = ANI_RUN;
+				}
+				else if(strnicmp(value, "up", 2)==0 &&
+							(!value[2] || (value[2] >= '1' && value[2]<='9'))){
+				tempInt = atoi(value+2);
+				if(tempInt<1) tempInt = 1;
+				ani_id = animups[tempInt-1];
+				}
+				else if(strnicmp(value, "down", 4)==0 &&
+							(!value[4] || (value[4] >= '1' && value[4]<='9'))){
+				tempInt = atoi(value+4);
+				if(tempInt<1) tempInt = 1;
+				ani_id = animdowns[tempInt-1];
+				}
+				else if(strnicmp(value, "backwalk", 8)==0 &&
+							(!value[8] || (value[8] >= '1' && value[8]<='9'))){
+				tempInt = atoi(value+8);
+				if(tempInt<1) tempInt = 1;
+				ani_id = animbackwalks[tempInt-1];
+				}
+				else if(stricmp(value, "jump")==0){
+				ani_id = ANI_JUMP;
+				newanim->range[0] = 50;    // Used for enemies that jump on walls
+				newanim->range[1] = 60;    // Used for enemies that jump on walls
+				}
+				else if(stricmp(value, "duck")==0){
+				ani_id = ANI_DUCK;
+				}
+				else if(stricmp(value, "land")==0){
+				ani_id = ANI_LAND;
+				}
+				else if(stricmp(value, "pain")==0){
+				ani_id = ANI_PAIN;
+				}
+				else if(strnicmp(value, "pain", 4)==0 && value[4]>='1' && value[4]<='9'){
+							tempInt = atoi(value+4);
 					if(tempInt==1){
-						ani_id = ANI_FALL;
-					}
-					else if(tempInt==2){
-						ani_id = ANI_FALL2;
-					}
-					else if(tempInt==3){
-						ani_id = ANI_FALL3;
-					}
-					else if(tempInt==4){
-						ani_id = ANI_FALL4;
-					}
-					else if(tempInt==5){
-						ani_id = ANI_FALL5;
-					}
-					else if(tempInt==6){
-						ani_id = ANI_FALL6;
-					}
-					else if(tempInt==7){
-						ani_id = ANI_FALL7;
-					}
-					else if(tempInt==8){
-						ani_id = ANI_FALL8;
-					}
-					else if(tempInt==9){
-						ani_id = ANI_FALL9;
-					}
-					else if(tempInt==10){
-						ani_id = ANI_FALL10;
-					}
-					else{
-						if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-						ani_id = animfalls[tempInt+STA_ATKS-1];
-					}
-                    newanim->bounce = 4;
-                }
-                else if(stricmp(value, "shock")==0){    // If shock attacks do knock opponent down, play this
-                    ani_id = ANI_SHOCK;
-                    newanim->bounce = 4;
-                }
-                else if(stricmp(value, "burn")==0){    // If burn attacks do knock opponent down, play this
-                    ani_id = ANI_BURN;
-                    newanim->bounce = 4;
-                }
-                else if(stricmp(value, "death")==0){      //  If new animation is present, overwrite new_anim with it.
-                    ani_id = ANI_DIE;
-                }
-                else if(strnicmp(value, "death", 5)==0 && value[5]>='1' && value[5]<='9'){
-                    tempInt = atoi(value+5);
-					if(tempInt==1){
-						ani_id = ANI_DIE;
-					}
-					else if(tempInt==2){
-						ani_id = ANI_DIE2;
-					}
-					else if(tempInt==3){
-						ani_id = ANI_DIE3;
-					}
-					else if(tempInt==4){
-						ani_id = ANI_DIE4;
-					}
-					else if(tempInt==5){
-						ani_id = ANI_DIE5;
-					}
-					else if(tempInt==6){
-						ani_id = ANI_DIE6;
-					}
-					else if(tempInt==7){
-						ani_id = ANI_DIE7;
-					}
-					else if(tempInt==8){
-						ani_id = ANI_DIE8;
-					}
-					else if(tempInt==9){
-						ani_id = ANI_DIE9;
-					}
-					else if(tempInt==10){
-						ani_id = ANI_DIE10;
-					}
-					else{
-                        if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-						ani_id = animdies[tempInt+STA_ATKS-1];
-					}
-                }
-                else if(stricmp(value, "sdie")==0){
-                    ani_id = ANI_SHOCKDIE;
-                }
-                else if(stricmp(value, "bdie")==0){
-                    ani_id = ANI_BURNDIE;
-                }
-				else if(stricmp(value, "chipdeath")==0){
-                    ani_id = ANI_CHIPDEATH;
-                }
-				else if(stricmp(value, "guardbreak")==0){
-                    ani_id = ANI_GUARDBREAK;
-                }
-				else if(stricmp(value, "riseb")==0){
-                    ani_id = ANI_RISEB;
-                }
+								ani_id = ANI_PAIN;
+							}
+							else if(tempInt==2){
+								ani_id = ANI_PAIN2;
+							}
+							else if(tempInt==3){
+								ani_id = ANI_PAIN3;
+							}
+							else if(tempInt==4){
+								ani_id = ANI_PAIN4;
+							}
+							else if(tempInt==5){
+								ani_id = ANI_PAIN5;
+							}
+							else if(tempInt==6){
+								ani_id = ANI_PAIN6;
+							}
+							else if(tempInt==7){
+								ani_id = ANI_PAIN7;
+							}
+							else if(tempInt==8){
+								ani_id = ANI_PAIN8;
+							}
+							else if(tempInt==9){
+								ani_id = ANI_PAIN9;
+							}
+							else if(tempInt==10){
+								ani_id = ANI_PAIN10;
+							}
+							else{
+					if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+					ani_id = animpains[tempInt+STA_ATKS-1];
+							}
+				}
+				else if(stricmp(value, "spain")==0){    // If shock attacks don't knock opponent down, play this
+				ani_id = ANI_SHOCKPAIN;
+				}
+				else if(stricmp(value, "bpain")==0){    // If burn attacks don't knock opponent down, play this
+				ani_id = ANI_BURNPAIN;
+				}
+				else if(stricmp(value, "fall")==0){
+				ani_id = ANI_FALL;   // If no new animation, load fall animation into both "respawn" & "fall"
+				newanim->bounce = 4;
+				}
+				else if(strnicmp(value, "fall", 4)==0 && value[4]>='1' && value[4]<='9'){
+				tempInt = atoi(value+4);
+							if(tempInt==1){
+								ani_id = ANI_FALL;
+							}
+							else if(tempInt==2){
+								ani_id = ANI_FALL2;
+							}
+							else if(tempInt==3){
+								ani_id = ANI_FALL3;
+							}
+							else if(tempInt==4){
+								ani_id = ANI_FALL4;
+							}
+							else if(tempInt==5){
+								ani_id = ANI_FALL5;
+							}
+							else if(tempInt==6){
+								ani_id = ANI_FALL6;
+							}
+							else if(tempInt==7){
+								ani_id = ANI_FALL7;
+							}
+							else if(tempInt==8){
+								ani_id = ANI_FALL8;
+							}
+							else if(tempInt==9){
+								ani_id = ANI_FALL9;
+							}
+							else if(tempInt==10){
+								ani_id = ANI_FALL10;
+							}
+							else{
+								if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+								ani_id = animfalls[tempInt+STA_ATKS-1];
+							}
+				newanim->bounce = 4;
+				}
+				else if(stricmp(value, "shock")==0){    // If shock attacks do knock opponent down, play this
+				ani_id = ANI_SHOCK;
+				newanim->bounce = 4;
+				}
+				else if(stricmp(value, "burn")==0){    // If burn attacks do knock opponent down, play this
+				ani_id = ANI_BURN;
+				newanim->bounce = 4;
+				}
+				else if(stricmp(value, "death")==0){      //  If new animation is present, overwrite new_anim with it.
+				ani_id = ANI_DIE;
+				}
+				else if(strnicmp(value, "death", 5)==0 && value[5]>='1' && value[5]<='9'){
+				tempInt = atoi(value+5);
+							if(tempInt==1){
+								ani_id = ANI_DIE;
+							}
+							else if(tempInt==2){
+								ani_id = ANI_DIE2;
+							}
+							else if(tempInt==3){
+								ani_id = ANI_DIE3;
+							}
+							else if(tempInt==4){
+								ani_id = ANI_DIE4;
+							}
+							else if(tempInt==5){
+								ani_id = ANI_DIE5;
+							}
+							else if(tempInt==6){
+								ani_id = ANI_DIE6;
+							}
+							else if(tempInt==7){
+								ani_id = ANI_DIE7;
+							}
+							else if(tempInt==8){
+								ani_id = ANI_DIE8;
+							}
+							else if(tempInt==9){
+								ani_id = ANI_DIE9;
+							}
+							else if(tempInt==10){
+								ani_id = ANI_DIE10;
+							}
+							else{
+					if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+								ani_id = animdies[tempInt+STA_ATKS-1];
+							}
+				}
+				else if(stricmp(value, "sdie")==0){
+				ani_id = ANI_SHOCKDIE;
+				}
+				else if(stricmp(value, "bdie")==0){
+				ani_id = ANI_BURNDIE;
+				}
+						else if(stricmp(value, "chipdeath")==0){
+				ani_id = ANI_CHIPDEATH;
+				}
+						else if(stricmp(value, "guardbreak")==0){
+				ani_id = ANI_GUARDBREAK;
+				}
+						else if(stricmp(value, "riseb")==0){
+				ani_id = ANI_RISEB;
+				}
 
 
-				else if(stricmp(value, "rises")==0){
-                    ani_id = ANI_RISES;
-                }
-                else if(stricmp(value, "rise")==0){
-                    ani_id = ANI_RISE;   // If no new animation, load fall animation into both "respawn" & "fall"
-                }
-                else if(strnicmp(value, "rise", 4)==0 && value[4]>='1' && value[4]<='9'){
-                    tempInt = atoi(value+4);
-					if(tempInt==1){
-						ani_id = ANI_RISE;
+						else if(stricmp(value, "rises")==0){
+				ani_id = ANI_RISES;
+				}
+				else if(stricmp(value, "rise")==0){
+				ani_id = ANI_RISE;   // If no new animation, load fall animation into both "respawn" & "fall"
+				}
+				else if(strnicmp(value, "rise", 4)==0 && value[4]>='1' && value[4]<='9'){
+				tempInt = atoi(value+4);
+							if(tempInt==1){
+								ani_id = ANI_RISE;
+							}
+							else if(tempInt==2){
+								ani_id = ANI_RISE2;
+							}
+							else if(tempInt==3){
+								ani_id = ANI_RISE3;
+							}
+							else if(tempInt==4){
+								ani_id = ANI_RISE4;
+							}
+							else if(tempInt==5){
+								ani_id = ANI_RISE5;
+							}
+							else if(tempInt==6){
+								ani_id = ANI_RISE6;
+							}
+							else if(tempInt==7){
+								ani_id = ANI_RISE7;
+							}
+							else if(tempInt==8){
+								ani_id = ANI_RISE8;
+							}
+							else if(tempInt==9){
+								ani_id = ANI_RISE9;
+							}
+							else if(tempInt==10){
+								ani_id = ANI_RISE10;
+							}
+							else{
+								if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+								ani_id = animrises[tempInt+STA_ATKS-1];
+							}
+				}
+						else if(stricmp(value, "riseattackb")==0){
+				ani_id = ANI_RISEATTACKB;
+				}
+						else if(stricmp(value, "riseattacks")==0){
+				ani_id = ANI_RISEATTACKS;
+				}
+				else if(stricmp(value, "riseattack")==0){
+				ani_id = ANI_RISEATTACK;   // If no new animation, load fall animation into both "respawn" & "fall"
+				}
+				else if(strnicmp(value, "riseattack", 10)==0 && value[10]>='1' && value[10]<='9'){
+				tempInt = atoi(value+10);
+							if(tempInt==1){
+								ani_id = ANI_RISEATTACK;
+							}
+							else if(tempInt==2){
+								ani_id = ANI_RISEATTACK2;
+							}
+							else if(tempInt==3){
+								ani_id = ANI_RISEATTACK3;
+							}
+							else if(tempInt==4){
+								ani_id = ANI_RISEATTACK4;
+							}
+							else if(tempInt==6){
+								ani_id = ANI_RISEATTACK5;
+							}
+							else if(tempInt==6){
+								ani_id = ANI_RISEATTACK6;
+							}
+							else if(tempInt==7){
+								ani_id = ANI_RISEATTACK7;
+							}
+							else if(tempInt==8){
+								ani_id = ANI_RISEATTACK8;
+							}
+							else if(tempInt==9){
+								ani_id = ANI_RISEATTACK9;
+							}
+							else if(tempInt==10){
+								ani_id = ANI_RISEATTACK10;
+							}
+							else{
+								if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+								ani_id = animriseattacks[tempInt+STA_ATKS-1];
+							}
+				}
+				else if(stricmp(value, "select")==0){
+				ani_id = ANI_PICK;
+				}
+				else if(strnicmp(value, "attack", 6)==0 &&
+					(!value[6] || (value[6] >= '1' && value[6]<='9')))
+				{
+				tempInt = atoi(value+6);
+				if(tempInt<1) tempInt = 1;
+				ani_id = animattacks[tempInt-1];
+				}
+				else if(stricmp(value, "throwattack")==0){
+				ani_id = ANI_THROWATTACK;
+				}
+				else if(stricmp(value, "upper")==0){
+				ani_id = ANI_UPPER;
+				attack.counterattack = 100; //default to 100
+				newanim->range[0] = -10;
+				newanim->range[1] = 120;
+				}
+				else if(stricmp(value, "cant")==0){
+				ani_id = ANI_CANT;
+				}
+				else if(stricmp(value, "jumpcant")==0){
+				ani_id = ANI_JUMPCANT;
+				}
+				else if(stricmp(value, "charge")==0){
+				ani_id = ANI_CHARGE;
+				}
+				else if(stricmp(value, "faint")==0){
+				ani_id = ANI_FAINT;
+				}
+				else if(stricmp(value, "dodge")==0){
+				ani_id = ANI_DODGE;
+				}
+				else if(stricmp(value, "special")==0 || stricmp(value, "special1")==0){
+				ani_id = ANI_SPECIAL;
+				newanim->energycost[0] = 6;
+				}
+				else if(stricmp(value, "special2")==0){
+				ani_id = ANI_SPECIAL2;
+				}
+				else if(stricmp(value, "special3")==0 || stricmp(value, "jumpspecial")==0){
+				ani_id = ANI_JUMPSPECIAL;
+				}
+						else if(strnicmp(value, "freespecial", 11)==0 && (!value[11] || (value[11] >= '1' && value[11] <= '9'))){
+							tempInt = atoi(value+11);
+				if(tempInt<1) tempInt = 1;
+				ani_id = animspecials[tempInt-1];
+				switch(tempInt) // old default values
+				{
+				case 1:
+					if(!is_set(newchar, ANI_FREESPECIAL))
+					{
+					newchar->special[newchar->specials_loaded][0] = FLAG_FORWARD;
+					newchar->special[newchar->specials_loaded][1] = FLAG_FORWARD;
+					newchar->special[newchar->specials_loaded][2] = FLAG_ATTACK;
+					newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-2] = ANI_FREESPECIAL;
+					newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-3] = 3;
+					newchar->specials_loaded++;
 					}
-					else if(tempInt==2){
-						ani_id = ANI_RISE2;
+					break;
+				case 2:
+					if(!is_set(newchar, ANI_FREESPECIAL2))
+					{
+					newchar->special[newchar->specials_loaded][0] = FLAG_MOVEDOWN;
+					newchar->special[newchar->specials_loaded][1] = FLAG_MOVEDOWN;
+					newchar->special[newchar->specials_loaded][2] = FLAG_ATTACK;
+					newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-2] = ANI_FREESPECIAL2;
+					newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-3] = 3;
+					newchar->specials_loaded++;
 					}
-					else if(tempInt==3){
-						ani_id = ANI_RISE3;
+					break;
+				case 3:
+					if(!is_set(newchar, ANI_FREESPECIAL3))
+					{
+					newchar->special[newchar->specials_loaded][0] = FLAG_MOVEUP;
+					newchar->special[newchar->specials_loaded][1] = FLAG_MOVEUP;
+					newchar->special[newchar->specials_loaded][2] = FLAG_ATTACK;
+					newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-2] = ANI_FREESPECIAL3;
+					newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-3] = 3;
+					newchar->specials_loaded++;
 					}
-					else if(tempInt==4){
-						ani_id = ANI_RISE4;
-					}
-					else if(tempInt==5){
-						ani_id = ANI_RISE5;
-					}
-					else if(tempInt==6){
-						ani_id = ANI_RISE6;
-					}
-					else if(tempInt==7){
-						ani_id = ANI_RISE7;
-					}
-					else if(tempInt==8){
-						ani_id = ANI_RISE8;
-					}
-					else if(tempInt==9){
-						ani_id = ANI_RISE9;
-					}
-					else if(tempInt==10){
-						ani_id = ANI_RISE10;
-					}
-					else{
-						if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-						ani_id = animrises[tempInt+STA_ATKS-1];
-					}
-                }
-				else if(stricmp(value, "riseattackb")==0){
-                    ani_id = ANI_RISEATTACKB;
-                }
-				else if(stricmp(value, "riseattacks")==0){
-                    ani_id = ANI_RISEATTACKS;
-                }
-                else if(stricmp(value, "riseattack")==0){
-                    ani_id = ANI_RISEATTACK;   // If no new animation, load fall animation into both "respawn" & "fall"
-                }
-                else if(strnicmp(value, "riseattack", 10)==0 && value[10]>='1' && value[10]<='9'){
-                    tempInt = atoi(value+10);
-					if(tempInt==1){
-						ani_id = ANI_RISEATTACK;
-					}
-					else if(tempInt==2){
-						ani_id = ANI_RISEATTACK2;
-					}
-					else if(tempInt==3){
-						ani_id = ANI_RISEATTACK3;
-					}
-					else if(tempInt==4){
-						ani_id = ANI_RISEATTACK4;
-					}
-					else if(tempInt==6){
-						ani_id = ANI_RISEATTACK5;
-					}
-					else if(tempInt==6){
-						ani_id = ANI_RISEATTACK6;
-					}
-					else if(tempInt==7){
-						ani_id = ANI_RISEATTACK7;
-					}
-					else if(tempInt==8){
-						ani_id = ANI_RISEATTACK8;
-					}
-					else if(tempInt==9){
-						ani_id = ANI_RISEATTACK9;
-					}
-					else if(tempInt==10){
-						ani_id = ANI_RISEATTACK10;
-					}
-					else{
-						if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-						ani_id = animriseattacks[tempInt+STA_ATKS-1];
-					}
-                }
-                else if(stricmp(value, "select")==0){
-                    ani_id = ANI_PICK;
-                }
-                else if(strnicmp(value, "attack", 6)==0 &&
-                        (!value[6] || (value[6] >= '1' && value[6]<='9')))
-                {
-                    tempInt = atoi(value+6);
-                    if(tempInt<1) tempInt = 1;
-                    ani_id = animattacks[tempInt-1];
-                }
-                else if(stricmp(value, "throwattack")==0){
-                    ani_id = ANI_THROWATTACK;
-                }
-                else if(stricmp(value, "upper")==0){
-                    ani_id = ANI_UPPER;
-                    attack.counterattack = 100; //default to 100
-                    newanim->range[0] = -10;
-                    newanim->range[1] = 120;
-                }
-                else if(stricmp(value, "cant")==0){
-                    ani_id = ANI_CANT;
-                }
-                else if(stricmp(value, "jumpcant")==0){
-                    ani_id = ANI_JUMPCANT;
-                }
-                else if(stricmp(value, "charge")==0){
-                    ani_id = ANI_CHARGE;
-                }
-                else if(stricmp(value, "faint")==0){
-                    ani_id = ANI_FAINT;
-                }
-                else if(stricmp(value, "dodge")==0){
-                    ani_id = ANI_DODGE;
-                }
-                else if(stricmp(value, "special")==0 || stricmp(value, "special1")==0){
-                    ani_id = ANI_SPECIAL;
-                    newanim->energycost[0] = 6;
-                }
-                else if(stricmp(value, "special2")==0){
-                    ani_id = ANI_SPECIAL2;
-                }
-                else if(stricmp(value, "special3")==0 || stricmp(value, "jumpspecial")==0){
-                    ani_id = ANI_JUMPSPECIAL;
-                }
-				else if(strnicmp(value, "freespecial", 11)==0 && (!value[11] || (value[11] >= '1' && value[11] <= '9'))){
-					tempInt = atoi(value+11);
-                    if(tempInt<1) tempInt = 1;
-                    ani_id = animspecials[tempInt-1];
-                    switch(tempInt) // old default values
-                    {
-                    case 1:
-                        if(!is_set(newchar, ANI_FREESPECIAL))
-                        {
-                            newchar->special[newchar->specials_loaded][0] = FLAG_FORWARD;
-                            newchar->special[newchar->specials_loaded][1] = FLAG_FORWARD;
-                            newchar->special[newchar->specials_loaded][2] = FLAG_ATTACK;
-                            newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-2] = ANI_FREESPECIAL;
-                            newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-3] = 3;
-                            newchar->specials_loaded++;
-                        }
-                        break;
-                    case 2:
-                        if(!is_set(newchar, ANI_FREESPECIAL2))
-                        {
-                            newchar->special[newchar->specials_loaded][0] = FLAG_MOVEDOWN;
-                            newchar->special[newchar->specials_loaded][1] = FLAG_MOVEDOWN;
-                            newchar->special[newchar->specials_loaded][2] = FLAG_ATTACK;
-                            newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-2] = ANI_FREESPECIAL2;
-                            newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-3] = 3;
-                            newchar->specials_loaded++;
-                        }
-                        break;
-                    case 3:
-                        if(!is_set(newchar, ANI_FREESPECIAL3))
-                        {
-                            newchar->special[newchar->specials_loaded][0] = FLAG_MOVEUP;
-                            newchar->special[newchar->specials_loaded][1] = FLAG_MOVEUP;
-                            newchar->special[newchar->specials_loaded][2] = FLAG_ATTACK;
-                            newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-2] = ANI_FREESPECIAL3;
-                            newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-3] = 3;
-                            newchar->specials_loaded++;
-                        }
-                        break;
-                    }
-                }
-                else if(stricmp(value, "jumpattack")==0){
-                    ani_id = ANI_JUMPATTACK;
-                    if(newchar->jumpheight==4)
-                    {
-                        newanim->range[0] = 150;
-                        newanim->range[1] = 200;
-                    }
-                }
-                else if(stricmp(value, "jumpattack2")==0){
-                    ani_id = ANI_JUMPATTACK2;
-                }
-                else if(stricmp(value, "jumpattack3")==0){
-                    ani_id = ANI_JUMPATTACK3;
-                }
-                else if(stricmp(value, "jumpforward")==0){
-                    ani_id = ANI_JUMPFORWARD;
-                }
-                else if(stricmp(value, "runjumpattack")==0){
-                    ani_id = ANI_RUNJUMPATTACK;
-                }
-                else if(stricmp(value, "runattack")==0){
-                    ani_id = ANI_RUNATTACK;    // New attack for when a player is running
-                }
-                else if(stricmp(value, "attackup")==0){
-                    ani_id = ANI_ATTACKUP;    // New attack for when a player presses u u
-                }
-                else if(stricmp(value, "attackdown")==0){
-                    ani_id = ANI_ATTACKDOWN;    // New attack for when a player presses d d
-                }
-                else if(stricmp(value, "attackforward")==0){
-                    ani_id = ANI_ATTACKFORWARD;    // New attack for when a player presses f f
-                }
-                else if(stricmp(value, "attackbackward")==0){
-                    ani_id = ANI_ATTACKBACKWARD;    // New attack for when a player presses b a
-                }
-                else if(stricmp(value, "attackboth")==0){    // Attack that is executed by holding down j and pressing a
-                    ani_id = ANI_ATTACKBOTH;
-                }
-                else if(stricmp(value, "get")==0){
-                    ani_id = ANI_GET;
-                }
-                else if(stricmp(value, "grab")==0){
-                    ani_id = ANI_GRAB;
-                }
-                else if(stricmp(value, "grabwalk")==0){
-                    ani_id = ANI_GRABWALK;
-                }
-                else if(stricmp(value, "grabwalkup")==0){
-                    ani_id = ANI_GRABWALKUP;
-                }
-                else if(stricmp(value, "grabwalkdown")==0){
-                    ani_id = ANI_GRABWALKDOWN;
-                }
-                else if(stricmp(value, "grabbackwalk")==0){
-                    ani_id = ANI_GRABBACKWALK;
-                }
-                else if(stricmp(value, "grabturn")==0){
-                    ani_id = ANI_GRABTURN;
-                }
-                else if(stricmp(value, "grabbed")==0){    // New grabbed animation for when grabbed
-                    ani_id = ANI_GRABBED;
-                }
-                else if(stricmp(value, "grabbedwalk")==0){    // New animation for when grabbed and forced to walk
-                    ani_id = ANI_GRABBEDWALK;
-                }
-                else if(stricmp(value, "grabbedwalkup")==0){
-                    ani_id = ANI_GRABWALKUP;
-                }
-                else if(stricmp(value, "grabbedwalkdown")==0){
-                    ani_id = ANI_GRABWALKDOWN;
-                }
-                else if(stricmp(value, "grabbedbackwalk")==0){
-                    ani_id = ANI_GRABBEDBACKWALK;
-                }
-                else if(stricmp(value, "grabbedturn")==0){
-                    ani_id = ANI_GRABBEDTURN;
-                }
-                else if(stricmp(value, "grabattack")==0){
-                    ani_id = ANI_GRABATTACK;
-                    newanim->attackone = 1; // default to 1, attack one one opponent
-                }
-                else if(stricmp(value, "grabattack2")==0){
-                    ani_id = ANI_GRABATTACK2;
-                    newanim->attackone = 1;
-                }
-                else if(stricmp(value, "grabforward")==0){    // New grab attack for when pressing forward attack
-                    ani_id = ANI_GRABFORWARD;
-                    newanim->attackone = 1;
-                }
-                else if(stricmp(value, "grabforward2")==0){    // New grab attack for when pressing forward attack
-                    ani_id = ANI_GRABFORWARD2;
-                    newanim->attackone = 1;
-                }
-                else if(stricmp(value, "grabbackward")==0){    // New grab attack for when pressing backward attack
-                    ani_id = ANI_GRABBACKWARD;
-                    newanim->attackone = 1;
-                }
-                else if(stricmp(value, "grabbackward2")==0){    // New grab attack for when pressing backward attack
-                    ani_id = ANI_GRABBACKWARD2;
-                    newanim->attackone = 1;
-                }
-                else if(stricmp(value, "grabup")==0){    // New grab attack for when pressing up attack
-                    ani_id = ANI_GRABUP;
-                    newanim->attackone = 1;
-                }
-                else if(stricmp(value, "grabup2")==0){    // New grab attack for when pressing up attack
-                    ani_id = ANI_GRABUP2;
-                    newanim->attackone = 1;
-                }
-                else if(stricmp(value, "grabdown")==0){    // New grab attack for when pressing down attack
-                    ani_id = ANI_GRABDOWN;
-                    newanim->attackone = 1;
-                }
-                else if(stricmp(value, "grabdown2")==0){    // New grab attack for when pressing down attack
-                    ani_id = ANI_GRABDOWN2;
-                    newanim->attackone = 1;
-                }
-                else if(stricmp(value, "spawn")==0){      //  spawn/respawn works separately now
-                    ani_id = ANI_SPAWN;
-                }
-                else if(stricmp(value, "respawn")==0){      //  spawn/respawn works separately now
-                    ani_id = ANI_RESPAWN;
-                }
-                else if(stricmp(value, "throw")==0){
-                    ani_id = ANI_THROW;
-                }
-                else if(stricmp(value, "block")==0){    // Now enemies can block attacks on occasion
-                    ani_id = ANI_BLOCK;
-                    newanim->range[0] = 1;
-                    newanim->range[1] = 100;
-                }
-                else if(strnicmp(value, "follow", 6)==0 && (!value[6] || (value[6]>='1' && value[6]<='9'))){
-                    tempInt = atoi(value+6);
-                    if(tempInt<1) tempInt = 1;
-                    ani_id = animfollows[tempInt-1];
-                }
-                else if(stricmp(value, "chargeattack")==0){
-                    ani_id = ANI_CHARGEATTACK;
-                }
-                else if(stricmp(value, "vault")==0){
-                    ani_id = ANI_VAULT;
-                }
-                else if(stricmp(value, "turn")==0){
-                    ani_id = ANI_TURN;
-                }
-                else if(stricmp(value, "forwardjump")==0){
-                    ani_id = ANI_FORWARDJUMP;
-                }
-                else if(stricmp(value, "runjump")==0){
-                    ani_id = ANI_RUNJUMP;
-                }
-                else if(stricmp(value, "jumpland")==0){
-                    ani_id = ANI_JUMPLAND;
-                }
-                else if(stricmp(value, "jumpdelay")==0){
-                    ani_id = ANI_JUMPDELAY;
-                }
-                else if(stricmp(value, "hitwall")==0){
-                    ani_id = ANI_HITWALL;
-                }
-                else if(stricmp(value, "slide")==0){
-                    ani_id = ANI_SLIDE;
-                }
-                else if(stricmp(value, "runslide")==0){
-                    ani_id = ANI_RUNSLIDE;
-                }
-				else if(stricmp(value, "blockpainb")==0){
-                    ani_id = ANI_BLOCKPAINB;
-                }
-				else if(stricmp(value, "blockpains")==0){
-                    ani_id = ANI_BLOCKPAINS;
-                }
-                else if(stricmp(value, "blockpain")==0){
-                    ani_id = ANI_BLOCKPAIN;   // If no new animation, load fall animation into both "respawn" & "fall"
-                }
-                else if(strnicmp(value, "blockpain", 9)==0 && value[9]>='1' && value[9]<='9'){
-                    tempInt = atoi(value+9);
-					if(tempInt==1){
-						ani_id = ANI_BLOCKPAIN;
-					}
-					else if(tempInt==2){
-						ani_id = ANI_BLOCKPAIN2;
-					}
-					else if(tempInt==3){
-						ani_id = ANI_BLOCKPAIN3;
-					}
-					else if(tempInt==4){
-						ani_id = ANI_BLOCKPAIN4;
-					}
-					else if(tempInt==5){
-						ani_id = ANI_BLOCKPAIN5;
-					}
-					else if(tempInt==6){
-						ani_id = ANI_BLOCKPAIN6;
-					}
-					else if(tempInt==7){
-						ani_id = ANI_BLOCKPAIN7;
-					}
-					else if(tempInt==8){
-						ani_id = ANI_BLOCKPAIN8;
-					}
-					else if(tempInt==9){
-						ani_id = ANI_BLOCKPAIN9;
-					}
-					else if(tempInt==10){
-						ani_id = ANI_BLOCKPAIN10;
-					}
-					else{
-						if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-						ani_id = animblkpains[tempInt+STA_ATKS-1];
-					}
-                }
-                else if(stricmp(value, "duckattack")==0){
-                    ani_id = ANI_DUCKATTACK;
-                }
-                else shutdown(1, "Invalid animation name '%s'", value);
+					break;
+				}
+				}
+				else if(stricmp(value, "jumpattack")==0){
+				ani_id = ANI_JUMPATTACK;
+				if(newchar->jumpheight==4)
+				{
+					newanim->range[0] = 150;
+					newanim->range[1] = 200;
+				}
+				}
+				else if(stricmp(value, "jumpattack2")==0){
+				ani_id = ANI_JUMPATTACK2;
+				}
+				else if(stricmp(value, "jumpattack3")==0){
+				ani_id = ANI_JUMPATTACK3;
+				}
+				else if(stricmp(value, "jumpforward")==0){
+				ani_id = ANI_JUMPFORWARD;
+				}
+				else if(stricmp(value, "runjumpattack")==0){
+				ani_id = ANI_RUNJUMPATTACK;
+				}
+				else if(stricmp(value, "runattack")==0){
+				ani_id = ANI_RUNATTACK;    // New attack for when a player is running
+				}
+				else if(stricmp(value, "attackup")==0){
+				ani_id = ANI_ATTACKUP;    // New attack for when a player presses u u
+				}
+				else if(stricmp(value, "attackdown")==0){
+				ani_id = ANI_ATTACKDOWN;    // New attack for when a player presses d d
+				}
+				else if(stricmp(value, "attackforward")==0){
+				ani_id = ANI_ATTACKFORWARD;    // New attack for when a player presses f f
+				}
+				else if(stricmp(value, "attackbackward")==0){
+				ani_id = ANI_ATTACKBACKWARD;    // New attack for when a player presses b a
+				}
+				else if(stricmp(value, "attackboth")==0){    // Attack that is executed by holding down j and pressing a
+				ani_id = ANI_ATTACKBOTH;
+				}
+				else if(stricmp(value, "get")==0){
+				ani_id = ANI_GET;
+				}
+				else if(stricmp(value, "grab")==0){
+				ani_id = ANI_GRAB;
+				}
+				else if(stricmp(value, "grabwalk")==0){
+				ani_id = ANI_GRABWALK;
+				}
+				else if(stricmp(value, "grabwalkup")==0){
+				ani_id = ANI_GRABWALKUP;
+				}
+				else if(stricmp(value, "grabwalkdown")==0){
+				ani_id = ANI_GRABWALKDOWN;
+				}
+				else if(stricmp(value, "grabbackwalk")==0){
+				ani_id = ANI_GRABBACKWALK;
+				}
+				else if(stricmp(value, "grabturn")==0){
+				ani_id = ANI_GRABTURN;
+				}
+				else if(stricmp(value, "grabbed")==0){    // New grabbed animation for when grabbed
+				ani_id = ANI_GRABBED;
+				}
+				else if(stricmp(value, "grabbedwalk")==0){    // New animation for when grabbed and forced to walk
+				ani_id = ANI_GRABBEDWALK;
+				}
+				else if(stricmp(value, "grabbedwalkup")==0){
+				ani_id = ANI_GRABWALKUP;
+				}
+				else if(stricmp(value, "grabbedwalkdown")==0){
+				ani_id = ANI_GRABWALKDOWN;
+				}
+				else if(stricmp(value, "grabbedbackwalk")==0){
+				ani_id = ANI_GRABBEDBACKWALK;
+				}
+				else if(stricmp(value, "grabbedturn")==0){
+				ani_id = ANI_GRABBEDTURN;
+				}
+				else if(stricmp(value, "grabattack")==0){
+				ani_id = ANI_GRABATTACK;
+				newanim->attackone = 1; // default to 1, attack one one opponent
+				}
+				else if(stricmp(value, "grabattack2")==0){
+				ani_id = ANI_GRABATTACK2;
+				newanim->attackone = 1;
+				}
+				else if(stricmp(value, "grabforward")==0){    // New grab attack for when pressing forward attack
+				ani_id = ANI_GRABFORWARD;
+				newanim->attackone = 1;
+				}
+				else if(stricmp(value, "grabforward2")==0){    // New grab attack for when pressing forward attack
+				ani_id = ANI_GRABFORWARD2;
+				newanim->attackone = 1;
+				}
+				else if(stricmp(value, "grabbackward")==0){    // New grab attack for when pressing backward attack
+				ani_id = ANI_GRABBACKWARD;
+				newanim->attackone = 1;
+				}
+				else if(stricmp(value, "grabbackward2")==0){    // New grab attack for when pressing backward attack
+				ani_id = ANI_GRABBACKWARD2;
+				newanim->attackone = 1;
+				}
+				else if(stricmp(value, "grabup")==0){    // New grab attack for when pressing up attack
+				ani_id = ANI_GRABUP;
+				newanim->attackone = 1;
+				}
+				else if(stricmp(value, "grabup2")==0){    // New grab attack for when pressing up attack
+				ani_id = ANI_GRABUP2;
+				newanim->attackone = 1;
+				}
+				else if(stricmp(value, "grabdown")==0){    // New grab attack for when pressing down attack
+				ani_id = ANI_GRABDOWN;
+				newanim->attackone = 1;
+				}
+				else if(stricmp(value, "grabdown2")==0){    // New grab attack for when pressing down attack
+				ani_id = ANI_GRABDOWN2;
+				newanim->attackone = 1;
+				}
+				else if(stricmp(value, "spawn")==0){      //  spawn/respawn works separately now
+				ani_id = ANI_SPAWN;
+				}
+				else if(stricmp(value, "respawn")==0){      //  spawn/respawn works separately now
+				ani_id = ANI_RESPAWN;
+				}
+				else if(stricmp(value, "throw")==0){
+				ani_id = ANI_THROW;
+				}
+				else if(stricmp(value, "block")==0){    // Now enemies can block attacks on occasion
+				ani_id = ANI_BLOCK;
+				newanim->range[0] = 1;
+				newanim->range[1] = 100;
+				}
+				else if(strnicmp(value, "follow", 6)==0 && (!value[6] || (value[6]>='1' && value[6]<='9'))){
+				tempInt = atoi(value+6);
+				if(tempInt<1) tempInt = 1;
+				ani_id = animfollows[tempInt-1];
+				}
+				else if(stricmp(value, "chargeattack")==0){
+				ani_id = ANI_CHARGEATTACK;
+				}
+				else if(stricmp(value, "vault")==0){
+				ani_id = ANI_VAULT;
+				}
+				else if(stricmp(value, "turn")==0){
+				ani_id = ANI_TURN;
+				}
+				else if(stricmp(value, "forwardjump")==0){
+				ani_id = ANI_FORWARDJUMP;
+				}
+				else if(stricmp(value, "runjump")==0){
+				ani_id = ANI_RUNJUMP;
+				}
+				else if(stricmp(value, "jumpland")==0){
+				ani_id = ANI_JUMPLAND;
+				}
+				else if(stricmp(value, "jumpdelay")==0){
+				ani_id = ANI_JUMPDELAY;
+				}
+				else if(stricmp(value, "hitwall")==0){
+				ani_id = ANI_HITWALL;
+				}
+				else if(stricmp(value, "slide")==0){
+				ani_id = ANI_SLIDE;
+				}
+				else if(stricmp(value, "runslide")==0){
+				ani_id = ANI_RUNSLIDE;
+				}
+						else if(stricmp(value, "blockpainb")==0){
+				ani_id = ANI_BLOCKPAINB;
+				}
+						else if(stricmp(value, "blockpains")==0){
+				ani_id = ANI_BLOCKPAINS;
+				}
+				else if(stricmp(value, "blockpain")==0){
+				ani_id = ANI_BLOCKPAIN;   // If no new animation, load fall animation into both "respawn" & "fall"
+				}
+				else if(strnicmp(value, "blockpain", 9)==0 && value[9]>='1' && value[9]<='9'){
+				tempInt = atoi(value+9);
+							if(tempInt==1){
+								ani_id = ANI_BLOCKPAIN;
+							}
+							else if(tempInt==2){
+								ani_id = ANI_BLOCKPAIN2;
+							}
+							else if(tempInt==3){
+								ani_id = ANI_BLOCKPAIN3;
+							}
+							else if(tempInt==4){
+								ani_id = ANI_BLOCKPAIN4;
+							}
+							else if(tempInt==5){
+								ani_id = ANI_BLOCKPAIN5;
+							}
+							else if(tempInt==6){
+								ani_id = ANI_BLOCKPAIN6;
+							}
+							else if(tempInt==7){
+								ani_id = ANI_BLOCKPAIN7;
+							}
+							else if(tempInt==8){
+								ani_id = ANI_BLOCKPAIN8;
+							}
+							else if(tempInt==9){
+								ani_id = ANI_BLOCKPAIN9;
+							}
+							else if(tempInt==10){
+								ani_id = ANI_BLOCKPAIN10;
+							}
+							else{
+								if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+								ani_id = animblkpains[tempInt+STA_ATKS-1];
+							}
+				}
+				else if(stricmp(value, "duckattack")==0){
+				ani_id = ANI_DUCKATTACK;
+				}
+				else shutdown(1, "Invalid animation name '%s'", value);
 
-                if (newanim->landframe[0] >= newanim->numframes) {
-			newanim->landframe[0] = -1;
-			printf("WARNING: landframe is out of index! (hint: enumeration starts with 0). landframe will be disabled!");
-		}
-		newchar->animation[ani_id] = newanim;
+				if (newanim->landframe[0] >= newanim->numframes) {
+					newanim->landframe[0] = -1;
+					printf("WARNING: landframe is out of index! (hint: enumeration starts with 0). landframe will be disabled!");
+				}
+				newchar->animation[ani_id] = newanim;
 
-            }
-            else if(stricmp(command, "loop")==0){
-                if(newanim == NULL) shutdown(1, "Can't set loop: no animation specified!");
-                newanim->loop[0] = atoi(GET_ARG(1)); //0 = Off, 1 = on.
-                newanim->loop[1] = atoi(GET_ARG(2)); //Loop to frame.
-                newanim->loop[2] = atoi(GET_ARG(3)); //Loop end frame.
-            }
-            else if(stricmp(command, "animheight")==0){
-                newanim->height = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "delay")==0){
-                delay = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "offset")==0){
-                offset[0] = atoi(GET_ARG(1));
-                offset[1] = atoi(GET_ARG(2));
-            }
-            else if(stricmp(command, "shadowcoords")==0){
-                shadow_xz[0] = atoi(GET_ARG(1));
-                shadow_xz[1] = atoi(GET_ARG(2));
-                shadow_set=1;
-            }
-            // 1-10-05  adjust the energycost of specials
-            else if(stricmp(command, "energycost")==0 || stricmp(command, "mpcost")==0){
-                newanim->energycost[0] = atoi(GET_ARG(1));
-                newanim->energycost[1] = atoi(GET_ARG(2));
-				newanim->energycost[2] = atoi(GET_ARG(3));
-            }
-            else if(stricmp(command, "mponly")==0){
-                newanim->energycost[1] = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "chargetime")==0){
-                newanim->chargetime = atof(GET_ARG(1));
-            }
-            //dive kicks for players like tmnt by tails
-            else if(stricmp(command, "dive")==0){
-                newanim->dive[0] = atof(GET_ARG(1));
-                newanim->dive[1] = atof(GET_ARG(2));
-            }
-            else if(stricmp(command, "dive1")==0){
-                newanim->dive[0] = atof(GET_ARG(1));
-            }
-            else if(stricmp(command, "dive2")==0){
-                newanim->dive[1] = atof(GET_ARG(1));
-            }
-            else if(stricmp(command, "attackone")==0){
-                newanim->attackone = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "counterattack")==0){
-                attack.counterattack = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "throwframe")==0 ||
-					stricmp(command, "pshotframe")==0 ||
-					stricmp(command, "pshotframew")==0 ||
-				    stricmp(command, "pshotframeno")==0){
-                    newanim->throwframe = atoi(GET_ARG(1));
-                    newanim->throwa = atoi(GET_ARG(2));
-					if(!newanim->throwa) newanim->throwa = 70;
-					else if(newanim->throwa == -1) newanim->throwa = 0;
-            }
-			else if(stricmp(command, "shootframe")==0){
-                    newanim->shootframe = atoi(GET_ARG(1));
-					newanim->throwa = atoi(GET_ARG(2));
-                    if(newanim->throwa == -1) newanim->throwa = 0;
-            }
-            else if(stricmp(command, "tossframe")==0 ||
-				    stricmp(command, "pbombframe")==0){
-                newanim->tossframe = atoi(GET_ARG(1));
-                newanim->throwa = atoi(GET_ARG(2));
-                if(newanim->throwa < 0) newanim->throwa = -1;
-            }
-            else if(stricmp(command, "custknife")==0 ||
-				    stricmp(command, "custpshot")==0 ||
-					stricmp(command, "custpshotw")==0){
-                newanim->custknife= get_cached_model_index(GET_ARG(1));
-            }
-			else if(stricmp(command, "custpshotno")==0){
-                newanim->custpshotno= get_cached_model_index(GET_ARG(1));
-            }
-            else if(stricmp(command, "custbomb")==0 ||
-				    stricmp(command, "custpbomb")==0){
-                newanim->custbomb= get_cached_model_index(GET_ARG(1));
-            }
-            else if(stricmp(command, "custstar")==0){
-                newanim->custstar= get_cached_model_index(GET_ARG(1));
-            }
-            else if(stricmp(command, "jumpframe")==0){
-                newanim->jumpframe = atoi(GET_ARG(1));
-                newanim->jumpv = atof(GET_ARG(2));    // Added so movement can be customized for jumpframes
-                value = GET_ARG(3);
-                if(value[0])
-                {
-                    newanim->jumpx = atof(GET_ARG(3));
-                    newanim->jumpz = atof(GET_ARG(4));
-                }
-                else // k, only for backward compatibility :((((((((((((((((
-                {
-                    if(newanim->jumpv <= 0)
-                    {
-                        if(newchar->type == TYPE_PLAYER)
-                        {
-                            newanim->jumpv = newchar->jumpheight / 2;
-                            newanim->jumpz = 0;
-                            newanim->jumpx = 2;
-                        }
-                        else
-                        {
-                            newanim->jumpv = newchar->jumpheight;
-                            newanim->jumpz = newanim->jumpx = 0;
-                        }
-                    }
-                    else
-                    {
-                        if(newchar->type != TYPE_ENEMY && newchar->type != TYPE_NPC)
-                            newanim->jumpz = newanim->jumpx = 0;
-                        else
-                        {
-                            newanim->jumpz = 0;
-                            newanim->jumpx = (float)1.3;
-                        }
-                    }
-                }
+			}
+			else if(strcmp(command, "loop")==0){
+				if(newanim == NULL) shutdown(1, "Can't set loop: no animation specified!");
+				newanim->loop[0] = atoi(GET_ARG(1)); //0 = Off, 1 = on.
+				newanim->loop[1] = atoi(GET_ARG(2)); //Loop to frame.
+				newanim->loop[2] = atoi(GET_ARG(3)); //Loop end frame.
+			}
+			else if(strcmp(command, "animheight")==0){
+				newanim->height = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "delay")==0){
+				delay = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "offset")==0){
+				offset[0] = atoi(GET_ARG(1));
+				offset[1] = atoi(GET_ARG(2));
+			}
+			else if(strcmp(command, "shadowcoords")==0){
+				shadow_xz[0] = atoi(GET_ARG(1));
+				shadow_xz[1] = atoi(GET_ARG(2));
+				shadow_set=1;
+			}
+			// 1-10-05  adjust the energycost of specials
+			else if(strcmp(command, "energycost")==0 || strcmp(command, "mpcost")==0){
+				newanim->energycost[0] = atoi(GET_ARG(1));
+				newanim->energycost[1] = atoi(GET_ARG(2));
+						newanim->energycost[2] = atoi(GET_ARG(3));
+			}
+			else if(strcmp(command, "mponly")==0){
+				newanim->energycost[1] = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "chargetime")==0){
+				newanim->chargetime = atof(GET_ARG(1));
+			}
+			//dive kicks for players like tmnt by tails
+			else if(strcmp(command, "dive")==0){
+				newanim->dive[0] = atof(GET_ARG(1));
+				newanim->dive[1] = atof(GET_ARG(2));
+			}
+			else if(strcmp(command, "dive1")==0){
+				newanim->dive[0] = atof(GET_ARG(1));
+			}
+			else if(strcmp(command, "dive2")==0){
+				newanim->dive[1] = atof(GET_ARG(1));
+			}
+			else if(strcmp(command, "attackone")==0){
+				newanim->attackone = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "counterattack")==0){
+				attack.counterattack = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "throwframe")==0 ||
+				strcmp(command, "pshotframe")==0 ||
+				strcmp(command, "pshotframew")==0 ||
+				strcmp(command, "pshotframeno")==0){
+				newanim->throwframe = atoi(GET_ARG(1));
+				newanim->throwa = atoi(GET_ARG(2));
+							if(!newanim->throwa) newanim->throwa = 70;
+							else if(newanim->throwa == -1) newanim->throwa = 0;
+			}
+			else if(strcmp(command, "shootframe")==0){
+				newanim->shootframe = atoi(GET_ARG(1));
+				newanim->throwa = atoi(GET_ARG(2));
+				if(newanim->throwa == -1) 
+					newanim->throwa = 0;
+			}
+			else if(strcmp(command, "tossframe")==0 ||
+				strcmp(command, "pbombframe")==0){
+				newanim->tossframe = atoi(GET_ARG(1));
+				newanim->throwa = atoi(GET_ARG(2));
+				if(newanim->throwa < 0) newanim->throwa = -1;
+			}
+			else if(strcmp(command, "custknife")==0 ||
+				strcmp(command, "custpshot")==0 ||
+				strcmp(command, "custpshotw")==0){
+				newanim->custknife= get_cached_model_index(GET_ARG(1));
+			}
+			else if(strcmp(command, "custpshotno")==0){
+				newanim->custpshotno= get_cached_model_index(GET_ARG(1));
+			}
+			else if(strcmp(command, "custbomb")==0 ||
+						strcmp(command, "custpbomb")==0){
+				newanim->custbomb= get_cached_model_index(GET_ARG(1));
+			}
+			else if(strcmp(command, "custstar")==0){
+				newanim->custstar= get_cached_model_index(GET_ARG(1));
+			}
+			else if(strcmp(command, "jumpframe")==0){
+				newanim->jumpframe = atoi(GET_ARG(1));
+				newanim->jumpv = atof(GET_ARG(2));    // Added so movement can be customized for jumpframes
+				value = GET_ARG(3);
+				if(value[0])
+				{
+				newanim->jumpx = atof(GET_ARG(3));
+				newanim->jumpz = atof(GET_ARG(4));
+				}
+				else // k, only for backward compatibility :((((((((((((((((
+				{
+				if(newanim->jumpv <= 0)
+				{
+					if(newchar->type == TYPE_PLAYER)
+					{
+					newanim->jumpv = newchar->jumpheight / 2;
+					newanim->jumpz = 0;
+					newanim->jumpx = 2;
+					}
+					else
+					{
+					newanim->jumpv = newchar->jumpheight;
+					newanim->jumpz = newanim->jumpx = 0;
+					}
+				}
+				else
+				{
+					if(newchar->type != TYPE_ENEMY && newchar->type != TYPE_NPC)
+					newanim->jumpz = newanim->jumpx = 0;
+					else
+					{
+					newanim->jumpz = 0;
+					newanim->jumpx = (float)1.3;
+					}
+				}
+				}
 
-				value = GET_ARG(5);
-				if(value[0]) newanim->jumpd = get_cached_model_index(value);
-                else newanim->jumpd = -1;
+						value = GET_ARG(5);
+						if(value[0]) newanim->jumpd = get_cached_model_index(value);
+				else newanim->jumpd = -1;
 
-            }
-            else if(stricmp(command, "bouncefactor")==0)
-            {
-                newanim->bounce = atof(GET_ARG(1));
-            }
-            else if(stricmp(command, "landframe")==0)
-            {
-                newanim->landframe[0] = atoi(GET_ARG(1));
-				value = GET_ARG(2);
-				if(value[0]) newanim->landframe[1] = get_cached_model_index(value);
-                else newanim->landframe[1] = -1;
-            }
-            else if(stricmp(command, "dropframe")==0)
-            {
-                newanim->dropframe = atoi(GET_ARG(1));
-            }
-			else if(stricmp(command, "cancel")==0) // OX. Cancel command.
-            {
-                int i;                                                                   // OX. Modified copy/paste of COM settings code
-                int t;
-				newanim->cancel = 3;
-				for(i = 0, t = 4; i < MAX_SPECIAL_INPUTS-6; i++, t++)
-                {
-                    value = GET_ARG(t);
-                    if(!value[0]) break;
-                    if(stricmp(value, "u")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_MOVEUP;
-                    }
-                    else if(stricmp(value, "d")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_MOVEDOWN;
-                    }
-                    else if(stricmp(value, "f")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_FORWARD;
-                    }
-                    else if(stricmp(value, "b")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_BACKWARD;
-                    }
-                    else if(stricmp(value, "a")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK;
-                    }
-					else if(stricmp(value, "a2")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK2;
-                    }
-					else if(stricmp(value, "a3")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK3;
-                    }
-					else if(stricmp(value, "a4")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK4;
-                    }
-                    else if(stricmp(value, "j")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_JUMP;
-                    }
-                    else if(stricmp(value, "s")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_SPECIAL;
-                    }
-                    else if(stricmp(value, "k")==0){
-                        newchar->special[newchar->specials_loaded][i] = FLAG_SPECIAL;
-                    }
-					else if(strnicmp(value, "freespecial", 11)==0 && (!value[11] || (value[11] >= '1' && value[11] <= '9'))){
-						tempInt = atoi(value+11);
-                        if(tempInt<1) tempInt = 1;
-						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-5] = animspecials[tempInt-1];
-						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-7] = atoi(GET_ARG(1)); // stores start frame
-				        newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-8] = atoi(GET_ARG(2)); // stores end frame
-						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-9] = ani_id;                    // stores current anim
-						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-10] = atoi(GET_ARG(3));// stores hits
-                    }
-                    else shutdown(1, "Invalid cancel command '%s'", value); // OX. Changed this line so that errors do not confuse modders.
-                }
-                newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-6]=i-1; // max steps
-                newchar->specials_loaded++;
-				if(newchar->specials_loaded > max_freespecials) shutdown(1, "Too many Freespecials and/or Cancels. Please increase Maxfreespecials", value); // OX. This is to catch freespecials that use same animation.
-            }
-            else if(stricmp(command, "sound")==0){
-                soundtoplay = sound_load_sample(GET_ARG(1), packfile, 0);
-            }
-            else if(stricmp(command, "hitfx")==0){
-                attack.hitsound = sound_load_sample(GET_ARG(1), packfile, 0);
-            }
-            else if(stricmp(command, "hitflash")==0){
-                value = GET_ARG(1);
-                if(stricmp(value, "none")==0) attack.hitflash = -1;
-                else attack.hitflash = get_cached_model_index(value);
-            }
-			else if(stricmp(command, "blockflash")==0){
-                value = GET_ARG(1);
-                if(stricmp(value, "none")==0) attack.blockflash = -1;
-                else attack.blockflash = get_cached_model_index(value);
-            }
-			else if(stricmp(command, "blockfx")==0){
-                attack.blocksound = sound_load_sample(GET_ARG(1), packfile, 0);
-            }
-            else if(stricmp(command, "fastattack")==0){
-                newanim->fastattack = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "bouncefactor")==0)
+			{
+				newanim->bounce = atof(GET_ARG(1));
+			}
+			else if(strcmp(command, "landframe")==0)
+			{
+				newanim->landframe[0] = atoi(GET_ARG(1));
+						value = GET_ARG(2);
+						if(value[0]) newanim->landframe[1] = get_cached_model_index(value);
+				else newanim->landframe[1] = -1;
+			}
+			else if(strcmp(command, "dropframe")==0)
+			{
+				newanim->dropframe = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "cancel")==0) // OX. Cancel command.
+			{
+				int i;                                                                   // OX. Modified copy/paste of COM settings code
+				int t;
+						newanim->cancel = 3;
+						for(i = 0, t = 4; i < MAX_SPECIAL_INPUTS-6; i++, t++)
+				{
+				value = GET_ARG(t);
+				if(!value[0]) break;
+				if(stricmp(value, "u")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_MOVEUP;
+				}
+				else if(stricmp(value, "d")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_MOVEDOWN;
+				}
+				else if(stricmp(value, "f")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_FORWARD;
+				}
+				else if(stricmp(value, "b")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_BACKWARD;
+				}
+				else if(stricmp(value, "a")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK;
+				}
+							else if(stricmp(value, "a2")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK2;
+				}
+							else if(stricmp(value, "a3")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK3;
+				}
+							else if(stricmp(value, "a4")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_ATTACK4;
+				}
+				else if(stricmp(value, "j")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_JUMP;
+				}
+				else if(stricmp(value, "s")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_SPECIAL;
+				}
+				else if(stricmp(value, "k")==0){
+					newchar->special[newchar->specials_loaded][i] = FLAG_SPECIAL;
+				}
+							else if(strnicmp(value, "freespecial", 11)==0 && (!value[11] || (value[11] >= '1' && value[11] <= '9'))){
+								tempInt = atoi(value+11);
+					if(tempInt<1) tempInt = 1;
+								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-5] = animspecials[tempInt-1];
+								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-7] = atoi(GET_ARG(1)); // stores start frame
+							newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-8] = atoi(GET_ARG(2)); // stores end frame
+								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-9] = ani_id;                    // stores current anim
+								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-10] = atoi(GET_ARG(3));// stores hits
+				}
+				else shutdown(1, "Invalid cancel command '%s'", value); // OX. Changed this line so that errors do not confuse modders.
+				}
+				newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-6]=i-1; // max steps
+				newchar->specials_loaded++;
+						if(newchar->specials_loaded > max_freespecials) shutdown(1, "Too many Freespecials and/or Cancels. Please increase Maxfreespecials", value); // OX. This is to catch freespecials that use same animation.
+			}
+			else if(strcmp(command, "sound")==0){
+				soundtoplay = sound_load_sample(GET_ARG(1), packfile, 0);
+			}
+			else if(strcmp(command, "hitfx")==0){
+				attack.hitsound = sound_load_sample(GET_ARG(1), packfile, 0);
+			}
+			else if(strcmp(command, "hitflash")==0){
+				value = GET_ARG(1);
+				if(stricmp(value, "none")==0) attack.hitflash = -1;
+				else attack.hitflash = get_cached_model_index(value);
+			}
+			else if(strcmp(command, "blockflash")==0){
+				value = GET_ARG(1);
+				if(stricmp(value, "none")==0) attack.blockflash = -1;
+				else attack.blockflash = get_cached_model_index(value);
+			}
+			else if(strcmp(command, "blockfx")==0){
+				attack.blocksound = sound_load_sample(GET_ARG(1), packfile, 0);
+			}
+			else if(strcmp(command, "fastattack")==0){
+				newanim->fastattack = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "bbox")==0){
+				bbox[0] = atoi(GET_ARG(1));
+				bbox[1] = atoi(GET_ARG(2));
+				bbox[2] = atoi(GET_ARG(3));
+				bbox[3] = atoi(GET_ARG(4));
+				bbox[4] = atoi(GET_ARG(5));
+			}
+			else if(strcmp(command, "bboxz")==0){
+				bbox[4] = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "platform")==0){
+				//for(i=0;(GET_ARG(i+1)[0]; i++);
+				for(i=0;i<arglist.count && arglist.args[i] && arglist.args[i][0];i++);
+				if(i<8)
+				{
+				for(i=0;i<6; i++) platform[i+2] = atof(GET_ARG(i+1));
+				platform[0] = 99999;
+				}
+				else for(i=0; i<8; i++) platform[i] = atof(GET_ARG(i+1));
+			}
+			else if(strcmp(command, "drawmethod")==0) // special effects
+			{
+				drawmethod.scalex = atoi(GET_ARG(1));
+				drawmethod.scaley = atoi(GET_ARG(2));
+				drawmethod.flipx = atoi(GET_ARG(3));
+				drawmethod.flipy = atoi(GET_ARG(4));
+				drawmethod.shiftx = atoi(GET_ARG(5));
+				drawmethod.alpha = atoi(GET_ARG(6));
+				if(!blendfx_is_set)
+				{
+				if(drawmethod.alpha>0 && drawmethod.alpha<=MAX_BLENDINGS)
+				{
+					blendfx[drawmethod.alpha-1] = 1;
+				}
+				}
+				drawmethod.remap = atoi(GET_ARG(7));
+				drawmethod.fillcolor = parsecolor(GET_ARG(8));
+				drawmethod.rotate = atoi(GET_ARG(9));
+				drawmethod.fliprotate = atoi(GET_ARG(10))%360;
+				if(drawmethod.scalex<0) {drawmethod.scalex = -drawmethod.scalex;drawmethod.flipx = !drawmethod.flipx;}
+				if(drawmethod.scaley<0) {drawmethod.scaley = - drawmethod.scaley;drawmethod.flipy = !drawmethod.flipy;}
+				if(drawmethod.rotate)
+				{
+				if(drawmethod.rotate<0) drawmethod.rotate += 360;
+				}
+				drawmethod.flag = 1;
+			}
+			else if(strcmp(command, "nodrawmethod")==0)//disable special effects
+			{
+				drawmethod.flag = 0;
+			}
+			else if((strnicmp(command, "attack", 6)==0 &&
+				(!command[6]||(command[6]>='1' && command[6]<='9'))) ||
+				strcmp(command, "shock")==0 || strcmp(command, "burn")==0 ||
+				strcmp(command, "steal")==0 || strcmp(command, "freeze")==0 || strcmp(command, "itembox")==0){
+				abox[0] = atoi(GET_ARG(1));
+				abox[1] = atoi(GET_ARG(2));
+				abox[2] = atoi(GET_ARG(3));
+				abox[3] = atoi(GET_ARG(4));
+				attack.dropv[0] = 3;
+				attack.dropv[1] = (float)1.2;
+				attack.dropv[2] = 0;
+				attack.attack_force = atoi(GET_ARG(5));
 
-            }
-            else if(stricmp(command, "bbox")==0){
-                bbox[0] = atoi(GET_ARG(1));
-                bbox[1] = atoi(GET_ARG(2));
-                bbox[2] = atoi(GET_ARG(3));
-                bbox[3] = atoi(GET_ARG(4));
-                bbox[4] = atoi(GET_ARG(5));
-            }
-            else if(stricmp(command, "bboxz")==0){
-                bbox[4] = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "platform")==0){
-                //for(i=0;(GET_ARG(i+1)[0]; i++);
-		for(i=0;i<arglist.count && arglist.args[i] && arglist.args[i][0];i++);
-                if(i<8)
-                {
-                    for(i=0;i<6; i++) platform[i+2] = atof(GET_ARG(i+1));
-                    platform[0] = 99999;
-                }
-                else for(i=0; i<8; i++) platform[i] = atof(GET_ARG(i+1));
-            }
-            else if(stricmp(command, "drawmethod")==0) // special effects
-            {
-                drawmethod.scalex = atoi(GET_ARG(1));
-                drawmethod.scaley = atoi(GET_ARG(2));
-                drawmethod.flipx = atoi(GET_ARG(3));
-                drawmethod.flipy = atoi(GET_ARG(4));
-                drawmethod.shiftx = atoi(GET_ARG(5));
-                drawmethod.alpha = atoi(GET_ARG(6));
-                if(!blendfx_is_set)
-                {
-                    if(drawmethod.alpha>0 && drawmethod.alpha<=MAX_BLENDINGS)
-                    {
-                        blendfx[drawmethod.alpha-1] = 1;
-                    }
-                }
-                drawmethod.remap = atoi(GET_ARG(7));
-                drawmethod.fillcolor = parsecolor(GET_ARG(8));
-                drawmethod.rotate = atoi(GET_ARG(9));
-                drawmethod.fliprotate = atoi(GET_ARG(10))%360;
-                if(drawmethod.scalex<0) {drawmethod.scalex = -drawmethod.scalex;drawmethod.flipx = !drawmethod.flipx;}
-                if(drawmethod.scaley<0) {drawmethod.scaley = - drawmethod.scaley;drawmethod.flipy = !drawmethod.flipy;}
-                if(drawmethod.rotate)
-                {
-                    if(drawmethod.rotate<0) drawmethod.rotate += 360;
-                }
-                drawmethod.flag = 1;
-            }
-            else if(stricmp(command, "nodrawmethod")==0)//disable special effects
-            {
-                drawmethod.flag = 0;
-            }
-            else if(
-                (strnicmp(command, "attack", 6)==0 &&
-                 (!command[6]||(command[6]>='1' && command[6]<='9'))) ||
-                stricmp(command, "shock")==0 || stricmp(command, "burn")==0 ||
-                stricmp(command, "steal")==0 || stricmp(command, "freeze")==0 || stricmp(command, "itembox")==0){
-                    abox[0] = atoi(GET_ARG(1));
-                    abox[1] = atoi(GET_ARG(2));
-                    abox[2] = atoi(GET_ARG(3));
-                    abox[3] = atoi(GET_ARG(4));
-                    attack.dropv[0] = 3;
-                    attack.dropv[1] = (float)1.2;
-                    attack.dropv[2] = 0;
-                    attack.attack_force = atoi(GET_ARG(5));
+							if(strcmp(command, "steal")==0) attack.steal = 1;
 
-					if(stricmp(command, "steal")==0) attack.steal = 1;
+				if(strcmp(command, "freeze")==0)
+				{
+					attack.freeze = 1;
+					attack.freezetime = atoi(GET_ARG(6)) * GAME_SPEED;
+					attack.forcemap = -1;
+					attack.attack_drop = 0;
+				}
+				else attack.attack_drop = atoi(GET_ARG(6));
 
-                    if(stricmp(command, "freeze")==0)
-                    {
-                        attack.freeze = 1;
-                        attack.freezetime = atoi(GET_ARG(6)) * GAME_SPEED;
-                        attack.forcemap = -1;
-                        attack.attack_drop = 0;
-                    }
-                    else attack.attack_drop = atoi(GET_ARG(6));
+				attack.no_block = atoi(GET_ARG(7));
+				attack.no_flash = atoi(GET_ARG(8));
+				attack.pause_add = atoi(GET_ARG(9));
+				attack.attack_coords[4] = atoi(GET_ARG(10)); // depth or z
 
-                    attack.no_block = atoi(GET_ARG(7));
-                    attack.no_flash = atoi(GET_ARG(8));
-                    attack.pause_add = atoi(GET_ARG(9));
-                    attack.attack_coords[4] = atoi(GET_ARG(10)); // depth or z
-
-                    if(stricmp(command, "attack")==0 || stricmp(command, "attack1")==0) attack.attack_type = ATK_NORMAL;
-                    else if(stricmp(command, "attack2")     ==0)    attack.attack_type  = ATK_NORMAL2;
-                    else if(stricmp(command, "attack3")     ==0)    attack.attack_type  = ATK_NORMAL3;
-                    else if(stricmp(command, "attack4")     ==0)    attack.attack_type  = ATK_NORMAL4;
-                    else if(stricmp(command, "attack5")     ==0)    attack.attack_type  = ATK_NORMAL5;
-                    else if(stricmp(command, "attack6")     ==0)    attack.attack_type  = ATK_NORMAL6;
-                    else if(stricmp(command, "attack7")     ==0)    attack.attack_type  = ATK_NORMAL7;
-                    else if(stricmp(command, "attack8")     ==0)    attack.attack_type  = ATK_NORMAL8;
-                    else if(stricmp(command, "attack9")     ==0)    attack.attack_type  = ATK_NORMAL9;
-                    else if(stricmp(command, "attack10")    ==0)    attack.attack_type  = ATK_NORMAL10;
-                    else if(stricmp(command, "shock")       ==0)    attack.attack_type  = ATK_SHOCK;
-                    else if(stricmp(command, "burn")        ==0)    attack.attack_type  = ATK_BURN;
-                    else if(stricmp(command, "steal")       ==0)    attack.attack_type  = ATK_STEAL;
-                    else if(stricmp(command, "freeze")      ==0)    attack.attack_type  = ATK_FREEZE;
-                    else if(stricmp(command, "itembox")     ==0)    attack.attack_type  = ATK_ITEM;
-                    else if(strnicmp(command, "attack", 6)  ==0)    // new attack types?
-                    {
-                        tempInt = atoi(command+6);
-                        if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-                        attack.attack_type = tempInt+STA_ATKS-1;
-                    }
-                }
-            else if(stricmp(command, "attackz")==0 || stricmp(command, "hitz")==0){
-                attack.attack_coords[4] = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "blast")==0){
-                abox[0] = atoi(GET_ARG(1));
-                abox[1] = atoi(GET_ARG(2));
-                abox[2] = atoi(GET_ARG(3));
-                abox[3] = atoi(GET_ARG(4));
-                attack.dropv[0] = 3;
-                attack.dropv[1] = 2.5;
-                attack.dropv[2] = 0;
-                attack.attack_force = atoi(GET_ARG(5));
-                attack.no_block = atoi(GET_ARG(6));
-                attack.no_flash = atoi(GET_ARG(7));
-                attack.pause_add = atoi(GET_ARG(8));
-                attack.attack_drop = 1;
-                attack.attack_type = ATK_BLAST;
-                attack.attack_coords[4] = atoi(GET_ARG(9)); // depth or z
-                attack.blast = 1;
-            }
-            else if(stricmp(command, "dropv")==0) // drop velocity add if the target is knocked down
-            {
-                pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->dropv[0] = atof(GET_ARG(1)); // height add
-                pattack->dropv[1] = atof(GET_ARG(2)); // xdir add
-                pattack->dropv[2] = atof(GET_ARG(3)); // zdir add
-            }
-			else if(stricmp(command, "otg")==0) // Over The Ground hit.
-            {
-                attack.otg = atoi(GET_ARG(1));
-            }
-			else if(stricmp(command, "jugglecost")==0) // if cost >= opponents jugglepoints , we can juggle
-            {
-                attack.jugglecost = atoi(GET_ARG(1));
-            }
-			else if(stricmp(command, "guardcost")==0) // if cost >= opponents guardpoints , opponent will play guardcrush anim
-            {
-                attack.guardcost = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "stun")==0) // DC, 12/19/2007. Like Freeze, but no auto remap.
-            {
-                pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->freeze = 1;
-                pattack->freezetime = atoi(GET_ARG(1)) * GAME_SPEED;
-                pattack->attack_drop = 0;
-            }
-            else if(stricmp(command, "grabin")==0) // fake grab distanse efffect, not link
-            {
-                pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->grab =  atoi(GET_ARG(1));
-                pattack->grab_distance = atof(GET_ARG(2));
-            }
-            else if(stricmp(command, "noreflect")==0) // only cost target's hp, don't knock down or cause pain, unless the target is killed
-            {
-                pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->no_pain = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "forcedirection")==0) // the attack direction
-            {
-                pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->force_direction = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "damageonlanding")==0) // fake throw damage on landing
-            {
-                pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->damage_on_landing = atoi(GET_ARG(1));
-                pattack->blast = atoi(GET_ARG(2));
-            }
-            else if(stricmp(command, "seal")==0) // Disable special moves for specified time.
-            {
-                pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->sealtime = atoi(GET_ARG(1)) * GAME_SPEED;
-                pattack->seal = atoi(GET_ARG(2));
-            }
-            else if(stricmp(command, "staydown")==0) // Disable special moves for specified time.
-            {
-                pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->staydown[0]    = atoi(GET_ARG(1)); //Risetime modifier.
-                pattack->staydown[1]    = atoi(GET_ARG(2)); //Riseattack time addition and toggle.
-            }
-            else if(stricmp(command, "dot")==0) // Cause damage over time effect.
-            {
-                attack.dot_index  = atoi(GET_ARG(1));  //Index.
-                attack.dot_time   = atoi(GET_ARG(2));  //Time to expiration.
-                attack.dot        = atoi(GET_ARG(3));  //Mode, see common_dot.
-                attack.dot_force  = atoi(GET_ARG(4));  //Amount per tick.
-                attack.dot_rate   = atoi(GET_ARG(5));  //Tick delay.
-            }
-            else if(stricmp(command, "forcemap")==0) // force color map change for specified time
-            {
-                pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->forcemap = atoi(GET_ARG(1));
-                pattack->maptime = atoi(GET_ARG(2)) * GAME_SPEED;
-            }
-			else if(stricmp(command, "idle")==0){
+				if(strcmp(command, "attack")==0 || strcmp(command, "attack1")==0) attack.attack_type = ATK_NORMAL;
+				else if(strcmp(command, "attack2")     ==0)    attack.attack_type  = ATK_NORMAL2;
+				else if(strcmp(command, "attack3")     ==0)    attack.attack_type  = ATK_NORMAL3;
+				else if(strcmp(command, "attack4")     ==0)    attack.attack_type  = ATK_NORMAL4;
+				else if(strcmp(command, "attack5")     ==0)    attack.attack_type  = ATK_NORMAL5;
+				else if(strcmp(command, "attack6")     ==0)    attack.attack_type  = ATK_NORMAL6;
+				else if(strcmp(command, "attack7")     ==0)    attack.attack_type  = ATK_NORMAL7;
+				else if(strcmp(command, "attack8")     ==0)    attack.attack_type  = ATK_NORMAL8;
+				else if(strcmp(command, "attack9")     ==0)    attack.attack_type  = ATK_NORMAL9;
+				else if(strcmp(command, "attack10")    ==0)    attack.attack_type  = ATK_NORMAL10;
+				else if(strcmp(command, "shock")       ==0)    attack.attack_type  = ATK_SHOCK;
+				else if(strcmp(command, "burn")        ==0)    attack.attack_type  = ATK_BURN;
+				else if(strcmp(command, "steal")       ==0)    attack.attack_type  = ATK_STEAL;
+				else if(strcmp(command, "freeze")      ==0)    attack.attack_type  = ATK_FREEZE;
+				else if(strcmp(command, "itembox")     ==0)    attack.attack_type  = ATK_ITEM;
+				else if(strnicmp(command, "attack", 6)  ==0)    // new attack types?
+				{
+					tempInt = atoi(command+6);
+					if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+					attack.attack_type = tempInt+STA_ATKS-1;
+				}
+				}
+			else if(strcmp(command, "attackz")==0 || strcmp(command, "hitz")==0){
+				attack.attack_coords[4] = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "blast")==0){
+				abox[0] = atoi(GET_ARG(1));
+				abox[1] = atoi(GET_ARG(2));
+				abox[2] = atoi(GET_ARG(3));
+				abox[3] = atoi(GET_ARG(4));
+				attack.dropv[0] = 3;
+				attack.dropv[1] = 2.5;
+				attack.dropv[2] = 0;
+				attack.attack_force = atoi(GET_ARG(5));
+				attack.no_block = atoi(GET_ARG(6));
+				attack.no_flash = atoi(GET_ARG(7));
+				attack.pause_add = atoi(GET_ARG(8));
+				attack.attack_drop = 1;
+				attack.attack_type = ATK_BLAST;
+				attack.attack_coords[4] = atoi(GET_ARG(9)); // depth or z
+				attack.blast = 1;
+			}
+			else if(strcmp(command, "dropv")==0) // drop velocity add if the target is knocked down
+			{
+				pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
+				pattack->dropv[0] = atof(GET_ARG(1)); // height add
+				pattack->dropv[1] = atof(GET_ARG(2)); // xdir add
+				pattack->dropv[2] = atof(GET_ARG(3)); // zdir add
+			}
+			else if(strcmp(command, "otg")==0) // Over The Ground hit.
+			{
+				attack.otg = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "jugglecost")==0) // if cost >= opponents jugglepoints , we can juggle
+			{
+				attack.jugglecost = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "guardcost")==0) // if cost >= opponents guardpoints , opponent will play guardcrush anim
+			{
+				attack.guardcost = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "stun")==0) // DC, 12/19/2007. Like Freeze, but no auto remap.
+			{
+				pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
+				pattack->freeze = 1;
+				pattack->freezetime = atoi(GET_ARG(1)) * GAME_SPEED;
+				pattack->attack_drop = 0;
+			}
+			else if(strcmp(command, "grabin")==0) // fake grab distanse efffect, not link
+			{
+				pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
+				pattack->grab =  atoi(GET_ARG(1));
+				pattack->grab_distance = atof(GET_ARG(2));
+			}
+			else if(strcmp(command, "noreflect")==0) // only cost target's hp, don't knock down or cause pain, unless the target is killed
+			{
+				pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
+				pattack->no_pain = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "forcedirection")==0) // the attack direction
+			{
+				pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
+				pattack->force_direction = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "damageonlanding")==0) // fake throw damage on landing
+			{
+				pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
+				pattack->damage_on_landing = atoi(GET_ARG(1));
+				pattack->blast = atoi(GET_ARG(2));
+			}
+			else if(strcmp(command, "seal")==0) // Disable special moves for specified time.
+			{
+				pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
+				pattack->sealtime = atoi(GET_ARG(1)) * GAME_SPEED;
+				pattack->seal = atoi(GET_ARG(2));
+			}
+			else if(strcmp(command, "staydown")==0) // Disable special moves for specified time.
+			{
+				pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
+				pattack->staydown[0]    = atoi(GET_ARG(1)); //Risetime modifier.
+				pattack->staydown[1]    = atoi(GET_ARG(2)); //Riseattack time addition and toggle.
+			}
+			else if(strcmp(command, "dot")==0) // Cause damage over time effect.
+			{
+				attack.dot_index  = atoi(GET_ARG(1));  //Index.
+				attack.dot_time   = atoi(GET_ARG(2));  //Time to expiration.
+				attack.dot        = atoi(GET_ARG(3));  //Mode, see common_dot.
+				attack.dot_force  = atoi(GET_ARG(4));  //Amount per tick.
+				attack.dot_rate   = atoi(GET_ARG(5));  //Tick delay.
+			}
+			else if(strcmp(command, "forcemap")==0) // force color map change for specified time
+			{
+				pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
+				pattack->forcemap = atoi(GET_ARG(1));
+				pattack->maptime = atoi(GET_ARG(2)) * GAME_SPEED;
+			}
+			else if(strcmp(command, "idle")==0){
 				idle = atoi(GET_ARG(1));
 			}
-            else if(stricmp(command, "move")==0){
-                move = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "movez")==0){
-                movez = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "movea")==0){
-                movea = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "seta")==0){
-                seta = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "fshadow")==0){
-                frameshadow = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "range")==0){
-                if(newanim==NULL) shutdown(1, "Cannot set range: no animation!");
-                newanim->range[0] = atoi(GET_ARG(1));
-                newanim->range[1] = atoi(GET_ARG(2));
-            }
-            else if(stricmp(command, "rangez")==0){
-                if(newanim==NULL) shutdown(1, "Cannot set rangez: no animation!");
-                newanim->range[2] = atoi(GET_ARG(1));
-                newanim->range[3] = atoi(GET_ARG(2));
-            }
-            else if(stricmp(command, "rangea")==0){
-                if(newanim==NULL) shutdown(1, "Cannot set rangea: no animation!");
-                newanim->range[4] = atoi(GET_ARG(1));
-                newanim->range[5] = atoi(GET_ARG(2));
-            }
-            else if(stricmp(command, "rangeb")==0){
-                if(newanim==NULL) shutdown(1, "Cannot set rangeb: no animation!");
-                newanim->range[6] = atoi(GET_ARG(1));
-                newanim->range[7] = atoi(GET_ARG(2));
-            }
-            else if(stricmp(command, "frame")==0){
-                if(newanim==NULL) shutdown(1, "Cannot add frame: animation not specified!");
-                peek = 0;
-                if(frameset && framecount>=0) framecount = -framecount;
-                while(!frameset){
-                    value3 = findarg(buf+pos+peek, 0);
-                    if(stricmp(value3, "frame")==0) framecount++;
-                    if((stricmp(value3, "anim")==0) || (pos+peek >= size)) frameset = 1;
-                    // Go to next line
-                    while(buf[pos+peek] && buf[pos+peek]!='\n' && buf[pos+peek]!='\r') ++peek;
-                    while(buf[pos+peek]=='\n' || buf[pos+peek]=='\r') ++peek;
-                }
-                value = GET_ARG(1);
-                //printf("frame count: %d\n",framecount);
-                //printf("Load sprite '%s'...\n", value);
-                index = loadsprite(value, offset[0], offset[1],PIXEL_8);//don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
-                if(pixelformat==PIXEL_x8)
-                {
-                    // for old mod just give it a default palette
-                    if(newchar->palette==NULL)
-                    {
-                        newchar->palette = tracemalloc("newchar#frame#palette", PAL_BYTES);
-                        if(loadimagepalette(value, packfile, newchar->palette)==0)
-                            shutdown(1, "Failed to load palette from '%s' in '%s'.", value, filename);
-                    }
-                    if(index>=0)
-                    {
-						sprite_map[index].sprite->palette = newchar->palette;
-						sprite_map[index].sprite->pixelformat = pixelformat;
-                    }
-                }
-                if((index>=0) && (maskindex>=0))
-				{
-					sprite_map[index].sprite->mask = sprite_map[maskindex].sprite;
-					maskindex = -1;
+			else if(strcmp(command, "move")==0){
+				move = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "movez")==0){
+				movez = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "movea")==0){
+				movea = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "seta")==0){
+				seta = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "fshadow")==0){
+				frameshadow = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "range")==0){
+				if(newanim==NULL) shutdown(1, "Cannot set range: no animation!");
+				newanim->range[0] = atoi(GET_ARG(1));
+				newanim->range[1] = atoi(GET_ARG(2));
+			}
+			else if(strcmp(command, "rangez")==0){
+				if(newanim==NULL) shutdown(1, "Cannot set rangez: no animation!");
+				newanim->range[2] = atoi(GET_ARG(1));
+				newanim->range[3] = atoi(GET_ARG(2));
+			}
+			else if(strcmp(command, "rangea")==0){
+				if(newanim==NULL) shutdown(1, "Cannot set rangea: no animation!");
+				newanim->range[4] = atoi(GET_ARG(1));
+				newanim->range[5] = atoi(GET_ARG(2));
+			}
+			else if(strcmp(command, "rangeb")==0){
+				if(newanim==NULL) shutdown(1, "Cannot set rangeb: no animation!");
+				newanim->range[6] = atoi(GET_ARG(1));
+				newanim->range[7] = atoi(GET_ARG(2));
+			}
+			else if(strcmp(command, "frame")==0){
+				if(newanim==NULL) shutdown(1, "Cannot add frame: animation not specified!");
+				peek = 0;
+				if(frameset && framecount>=0) framecount = -framecount;
+				while(!frameset){
+				value3 = findarg(buf+pos+peek, 0);
+				if(stricmp(value3, "frame")==0) framecount++;
+				if((stricmp(value3, "anim")==0) || (pos+peek >= size)) frameset = 1;
+				// Go to next line
+				while(buf[pos+peek] && buf[pos+peek]!='\n' && buf[pos+peek]!='\r') ++peek;
+				while(buf[pos+peek]=='\n' || buf[pos+peek]=='\r') ++peek;
 				}
-                // Adjust coords: add offsets and change size to coords
-                bbox_con[0] = bbox[0] - offset[0];
-                bbox_con[1] = bbox[1] - offset[1];
-                bbox_con[2] = bbox[2] + bbox_con[0];
-                bbox_con[3] = bbox[3] + bbox_con[1];
-                bbox_con[4] = bbox[4];
-                attack.attack_coords[0] = abox[0] - offset[0];
-                attack.attack_coords[1] = abox[1] - offset[1];
-                attack.attack_coords[2] = abox[2] + attack.attack_coords[0];
-                attack.attack_coords[3] = abox[3] + attack.attack_coords[1];
-                //attack.attack_coords[4] = abox[4];
-                if(platform[0]==99999) // old style
-                {
-                    platform_con[0] = 0;
-                    platform_con[1] = 3;
-                    platform_con[2] = platform[2] - offset[0];
-                    platform_con[3] = platform[3] - offset[0];
-                    platform_con[4] = platform[4] - offset[0];
-                    platform_con[5] = platform[5] - offset[0];
-                    platform_con[6] = platform[6]+3;
-                }
-                else // wall style
-                {
-                    platform_con[0] = platform[0] - offset[0];
-                    platform_con[1] = platform[1] - offset[1];
-                    platform_con[2] = platform[2];
-                    platform_con[3] = platform[3];
-                    platform_con[4] = platform[4];
-                    platform_con[5] = platform[5];
-                    platform_con[6] = platform[6];
-                }
-                platform_con[6] = platform[6];
-                platform_con[7] = platform[7];
-                if(shadow_set)
-                {
-                    shadow_coords[0] = shadow_xz[0] - offset[0];
-                    shadow_coords[1] = shadow_xz[1] - offset[1];
-                }
-                else
-                {
-                    shadow_coords[0] = shadow_coords[1] = 0;
-                }
+				value = GET_ARG(1);
+				//printf("frame count: %d\n",framecount);
+				//printf("Load sprite '%s'...\n", value);
+				index = loadsprite(value, offset[0], offset[1],PIXEL_8);//don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
+				if(pixelformat==PIXEL_x8)
+				{
+				// for old mod just give it a default palette
+				if(newchar->palette==NULL)
+				{
+					newchar->palette = tracemalloc("newchar#frame#palette", PAL_BYTES);
+					if(loadimagepalette(value, packfile, newchar->palette)==0)
+					shutdown(1, "Failed to load palette from '%s' in '%s'.", value, filename);
+				}
+				if(index>=0)
+				{
+								sprite_map[index].sprite->palette = newchar->palette;
+								sprite_map[index].sprite->pixelformat = pixelformat;
+				}
+				}
+				if((index>=0) && (maskindex>=0))
+						{
+							sprite_map[index].sprite->mask = sprite_map[maskindex].sprite;
+							maskindex = -1;
+						}
+				// Adjust coords: add offsets and change size to coords
+				bbox_con[0] = bbox[0] - offset[0];
+				bbox_con[1] = bbox[1] - offset[1];
+				bbox_con[2] = bbox[2] + bbox_con[0];
+				bbox_con[3] = bbox[3] + bbox_con[1];
+				bbox_con[4] = bbox[4];
+				attack.attack_coords[0] = abox[0] - offset[0];
+				attack.attack_coords[1] = abox[1] - offset[1];
+				attack.attack_coords[2] = abox[2] + attack.attack_coords[0];
+				attack.attack_coords[3] = abox[3] + attack.attack_coords[1];
+				//attack.attack_coords[4] = abox[4];
+				if(platform[0]==99999) // old style
+				{
+				platform_con[0] = 0;
+				platform_con[1] = 3;
+				platform_con[2] = platform[2] - offset[0];
+				platform_con[3] = platform[3] - offset[0];
+				platform_con[4] = platform[4] - offset[0];
+				platform_con[5] = platform[5] - offset[0];
+				platform_con[6] = platform[6]+3;
+				}
+				else // wall style
+				{
+				platform_con[0] = platform[0] - offset[0];
+				platform_con[1] = platform[1] - offset[1];
+				platform_con[2] = platform[2];
+				platform_con[3] = platform[3];
+				platform_con[4] = platform[4];
+				platform_con[5] = platform[5];
+				platform_con[6] = platform[6];
+				}
+				platform_con[6] = platform[6];
+				platform_con[7] = platform[7];
+				if(shadow_set)
+				{
+				shadow_coords[0] = shadow_xz[0] - offset[0];
+				shadow_coords[1] = shadow_xz[1] - offset[1];
+				}
+				else
+				{
+				shadow_coords[0] = shadow_coords[1] = 0;
+				}
 
-                curframe = addframe(newanim, index, framecount, delay, (unsigned char)idle,
-                                    bbox_con, &attack, move, movez,
-                                    movea, seta, platform_con, frameshadow, shadow_coords, soundtoplay, &drawmethod);
+				curframe = addframe(newanim, index, framecount, delay, (unsigned char)idle,
+						bbox_con, &attack, move, movez,
+						movea, seta, platform_con, frameshadow, shadow_coords, soundtoplay, &drawmethod);
 
-				memset(bbox_con, 0, sizeof(bbox_con));
-                soundtoplay = -1;
-            }
-			else if(stricmp(command, "alphamask")==0){
-                if(newanim==NULL) shutdown(1, "Cannot add alpha mask: animation not specified!");
+						memset(bbox_con, 0, sizeof(bbox_con));
+				soundtoplay = -1;
+			}
+			else if(strcmp(command, "alphamask")==0){
+				if(newanim==NULL) shutdown(1, "Cannot add alpha mask: animation not specified!");
 				if(maskindex>=0) shutdown(1, "Cannot add alpha mask: a mask has already been specified for this frame!");
-                value = GET_ARG(1);
-                //printf("frame count: %d\n",framecount);
-                //printf("Load sprite '%s'...\n", value);
-                index = loadsprite(value, offset[0], offset[1],PIXEL_8);//don't use palette for the mask
+				value = GET_ARG(1);
+				//printf("frame count: %d\n",framecount);
+				//printf("Load sprite '%s'...\n", value);
+				index = loadsprite(value, offset[0], offset[1],PIXEL_8);//don't use palette for the mask
 				maskindex = index;
-            }
-            else if(stricmp(command, "flipframe")==0){
-                newanim->flipframe = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "followanim")==0){
-                newanim->followanim = atoi(GET_ARG(1));
-                if(newanim->followanim > max_follows) newanim->followanim = max_follows;
-                if(newanim->followanim < 0) newanim->followanim = 0;
-            }
-            else if(stricmp(command, "followcond")==0){
-                newanim->followcond = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "counterframe")==0){
-				newanim->counterframe[0]	= atoi(GET_ARG(1));
-				newanim->counterframe[1]	= atoi(GET_ARG(1));
-				newanim->counterframe[2]	= atoi(GET_ARG(2));
-				newanim->counterframe[3]	= atoi(GET_ARG(3));
-            }
-			else if(stricmp(command, "counterrange")==0){
-				newanim->counterframe[0]	= atoi(GET_ARG(1));
-				newanim->counterframe[1]	= atoi(GET_ARG(2));
-				newanim->counterframe[2]	= atoi(GET_ARG(3));
-				newanim->counterframe[3]	= atoi(GET_ARG(4));
-            }
-            else if(stricmp(command, "weaponframe")==0){
+			}
+			else if(strcmp(command, "flipframe")==0){
+				newanim->flipframe = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "followanim")==0){
+				newanim->followanim = atoi(GET_ARG(1));
+				if(newanim->followanim > max_follows) newanim->followanim = max_follows;
+				if(newanim->followanim < 0) newanim->followanim = 0;
+			}
+			else if(strcmp(command, "followcond")==0){
+				newanim->followcond = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "counterframe")==0){
+						newanim->counterframe[0]	= atoi(GET_ARG(1));
+						newanim->counterframe[1]	= atoi(GET_ARG(1));
+						newanim->counterframe[2]	= atoi(GET_ARG(2));
+						newanim->counterframe[3]	= atoi(GET_ARG(3));
+			}
+			else if(strcmp(command, "counterrange")==0){
+						newanim->counterframe[0]	= atoi(GET_ARG(1));
+						newanim->counterframe[1]	= atoi(GET_ARG(2));
+						newanim->counterframe[2]	= atoi(GET_ARG(3));
+						newanim->counterframe[3]	= atoi(GET_ARG(4));
+			}
+			else if(strcmp(command, "weaponframe")==0){
 				newanim->weaponframe    = tracemalloc("weaponframe", 2 * sizeof(newanim->weaponframe));
 				memset(newanim->weaponframe, 0, 2 * sizeof(newanim->weaponframe));
-                newanim->weaponframe[0] = atoi(GET_ARG(1));
-                newanim->weaponframe[1] = atoi(GET_ARG(2));
-            }
-            else if(stricmp(command, "quakeframe")==0){
-                newanim->quakeframe[0] = atoi(GET_ARG(1));
-                newanim->quakeframe[1] = atoi(GET_ARG(2));
-                newanim->quakeframe[2] = atoi(GET_ARG(3));
-				newanim->quakeframe[3] = 0;
-            }
-            else if(stricmp(command, "subentity")==0 ||
-				    stricmp(command, "custentity")==0){
-                value = GET_ARG(1);
-                if(value[0]) newanim->subentity = get_cached_model_index(value);
-            }
-            else if(stricmp(command, "spawnframe")==0){
+				newanim->weaponframe[0] = atoi(GET_ARG(1));
+				newanim->weaponframe[1] = atoi(GET_ARG(2));
+			}
+			else if(strcmp(command, "quakeframe")==0){
+				newanim->quakeframe[0] = atoi(GET_ARG(1));
+				newanim->quakeframe[1] = atoi(GET_ARG(2));
+				newanim->quakeframe[2] = atoi(GET_ARG(3));
+						newanim->quakeframe[3] = 0;
+			}
+			else if(strcmp(command, "subentity")==0 ||
+				strcmp(command, "custentity")==0){
+				value = GET_ARG(1);
+				if(value[0]) newanim->subentity = get_cached_model_index(value);
+			}
+			else if(strcmp(command, "spawnframe")==0){
 				newanim->spawnframe    = tracemalloc("spawnframe", 5 * sizeof(newanim->spawnframe));
 				memset(newanim->spawnframe, 0, 5 * sizeof(newanim->spawnframe));
-                newanim->spawnframe[0] = atof(GET_ARG(1));
-                newanim->spawnframe[1] = atof(GET_ARG(2));
-                newanim->spawnframe[2] = atof(GET_ARG(3));
-                newanim->spawnframe[3] = atof(GET_ARG(4));
-                newanim->spawnframe[4] = atof(GET_ARG(5));
-            }
-            else if(stricmp(command, "summonframe")==0){
+				newanim->spawnframe[0] = atof(GET_ARG(1));
+				newanim->spawnframe[1] = atof(GET_ARG(2));
+				newanim->spawnframe[2] = atof(GET_ARG(3));
+				newanim->spawnframe[3] = atof(GET_ARG(4));
+				newanim->spawnframe[4] = atof(GET_ARG(5));
+			}
+			else if(strcmp(command, "summonframe")==0){
 				newanim->summonframe    = tracemalloc("summonframe", 5 * sizeof(newanim->summonframe));
 				memset(newanim->summonframe, 0, 5 * sizeof(newanim->summonframe));
-                newanim->summonframe[0] = atof(GET_ARG(1));
-                newanim->summonframe[1] = atof(GET_ARG(2));
-                newanim->summonframe[2] = atof(GET_ARG(3));
-                newanim->summonframe[3] = atof(GET_ARG(4));
-                newanim->summonframe[4] = atof(GET_ARG(5));
-            }
-            else if(stricmp(command, "unsummonframe")==0){
-                newanim->unsummonframe = atoi(GET_ARG(1));
-            }
-            else if(stricmp(command, "@script") == 0){
-                if(ani_id < 0)  shutdown(1, "command '@script' must follow an animation! file: '%s'", filename);
-                if(!scriptbuf[0]){ // if empty, paste the main function text here
-                    strcat(scriptbuf, pre_text);
-                }
-                scriptbuf[strlen(scriptbuf) - strlen(sur_text)] = 0; // cut last chars
-                if(script_id != ani_id){ // if expression 1
-                    sprintf(namebuf, ifid_text, ani_id);
-                    strcat(scriptbuf, namebuf);
-                    script_id = ani_id;
-                }
-                scriptbuf[strlen(scriptbuf) - strlen(endifid_text)] = 0; // cut last chars
-                while(strncmp(buf+pos, "@script", 7)){
-                    pos++;
-                }
-                pos += 7;
-                while(strncmp(buf+pos, "@end_script", 11)){
-                    len = strlen(scriptbuf);
-                    scriptbuf[len] = *(buf+pos);
-                    scriptbuf[len+1] = 0;
-                    pos++;
-                }
-                pos += 11;
-                strcat(scriptbuf, endifid_text); // put back last  chars
-                strcat(scriptbuf, sur_text); // put back last  chars
-            }
-            else if(stricmp(command, "@cmd")==0){ //translate @cmd into script function call
-                if(ani_id < 0) shutdown(1, "command '@cmd' must follow an animation! file: '%s'", filename);
-                if(!scriptbuf[0]){ // if empty, paste the main function text here
-                    strcat(scriptbuf, pre_text);
-                }
-                scriptbuf[strlen(scriptbuf) - strlen(sur_text)] = 0; // cut last chars
-                if(script_id != ani_id){ // if expression 1
-                    sprintf(namebuf, ifid_text, ani_id);
-                    strcat(scriptbuf, namebuf);
-                    script_id = ani_id;
-                }
-                j = 1;
-                value = GET_ARG(j);
-                scriptbuf[strlen(scriptbuf) - strlen(endifid_text)] = 0; // cut last chars
-                if(value && value[0]){
-                    sprintf(namebuf, if_text, curframe);//only execute in current frame
-                    strcat(scriptbuf, namebuf);
-                    sprintf(namebuf, call_text, value);
-                    strcat(scriptbuf, namebuf);
-                    do{ //argument and comma
-                        j++;
-                        value = GET_ARG(j);
-                        if(value && value[0]) {
-                            if(j!=2) strcat(scriptbuf, comma_text);
-                            strcat(scriptbuf, value);
-                        }
-                    }while(value && value[0]);
-                }
-                strcat(scriptbuf, endcall_text);
-                strcat(scriptbuf, endif_text); //end of if
-                strcat(scriptbuf, endifid_text); // put back last  chars
-                strcat(scriptbuf, sur_text); // put back last  chars
-            }
-            else shutdown(1, "Command '%s' not understood in file '%s'!", command, filename);
-        }
+				newanim->summonframe[0] = atof(GET_ARG(1));
+				newanim->summonframe[1] = atof(GET_ARG(2));
+				newanim->summonframe[2] = atof(GET_ARG(3));
+				newanim->summonframe[3] = atof(GET_ARG(4));
+				newanim->summonframe[4] = atof(GET_ARG(5));
+			}
+			else if(strcmp(command, "unsummonframe")==0){
+				newanim->unsummonframe = atoi(GET_ARG(1));
+			}
+			else if(strcmp(command, "@script") == 0){
+				if(ani_id < 0)  shutdown(1, "command '@script' must follow an animation! file: '%s'", filename);
+				if(!scriptbuf[0]){ // if empty, paste the main function text here
+				strcat(scriptbuf, pre_text);
+				}
+				scriptbuf[strlen(scriptbuf) - strlen(sur_text)] = 0; // cut last chars
+				if(script_id != ani_id){ // if expression 1
+				sprintf(namebuf, ifid_text, ani_id);
+				strcat(scriptbuf, namebuf);
+				script_id = ani_id;
+				}
+				scriptbuf[strlen(scriptbuf) - strlen(endifid_text)] = 0; // cut last chars
+				while(strncmp(buf+pos, "@script", 7)){
+				pos++;
+				}
+				pos += 7;
+				while(strncmp(buf+pos, "@end_script", 11)){
+				len = strlen(scriptbuf);
+				scriptbuf[len] = *(buf+pos);
+				scriptbuf[len+1] = 0;
+				pos++;
+				}
+				pos += 11;
+				strcat(scriptbuf, endifid_text); // put back last  chars
+				strcat(scriptbuf, sur_text); // put back last  chars
+			}
+			else if(strcmp(command, "@cmd")==0){ //translate @cmd into script function call
+				if(ani_id < 0) shutdown(1, "command '@cmd' must follow an animation! file: '%s'", filename);
+				if(!scriptbuf[0]){ // if empty, paste the main function text here
+				strcat(scriptbuf, pre_text);
+				}
+				scriptbuf[strlen(scriptbuf) - strlen(sur_text)] = 0; // cut last chars
+				if(script_id != ani_id){ // if expression 1
+				sprintf(namebuf, ifid_text, ani_id);
+				strcat(scriptbuf, namebuf);
+				script_id = ani_id;
+				}
+				j = 1;
+				value = GET_ARG(j);
+				scriptbuf[strlen(scriptbuf) - strlen(endifid_text)] = 0; // cut last chars
+				if(value && value[0]){
+				sprintf(namebuf, if_text, curframe);//only execute in current frame
+				strcat(scriptbuf, namebuf);
+				sprintf(namebuf, call_text, value);
+				strcat(scriptbuf, namebuf);
+				do{ //argument and comma
+					j++;
+					value = GET_ARG(j);
+					if(value && value[0]) {
+					if(j!=2) strcat(scriptbuf, comma_text);
+					strcat(scriptbuf, value);
+					}
+				}while(value && value[0]);
+				}
+				strcat(scriptbuf, endcall_text);
+				strcat(scriptbuf, endif_text); //end of if
+				strcat(scriptbuf, endifid_text); // put back last  chars
+				strcat(scriptbuf, sur_text); // put back last  chars
+			}
+			else shutdown(1, "Command '%s' not understood in file '%s'!", command, filename);
+		}
 
-        // Go to next line
-        while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-        while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
-    }
+		// Go to next line
+		while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
+		while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+	}
     
     
-    tempInt = 1;
-    if(scriptbuf[0]) {
-        //printf("\n%s\n", scriptbuf);
-        if(!Script_IsInitialized(newchar->animation_script))
-            Script_Init(newchar->animation_script, newchar->name, 0);
-        tempInt = Script_AppendText(newchar->animation_script, scriptbuf, filename);
-        //Interpreter_OutputPCode(newchar->animation_script.pinterpreter, "code");
-        writeToScriptLog("\n####animationscript function main#####\n# ");
-        writeToScriptLog(filename);
-        writeToScriptLog("\n########################################\n");
-        writeToScriptLog(scriptbuf);
-    }
-    Script_Compile(newchar->animation_script);
+	tempInt = 1;
+	if(scriptbuf[0]) {
+		//printf("\n%s\n", scriptbuf);
+		if(!Script_IsInitialized(newchar->animation_script))
+			Script_Init(newchar->animation_script, newchar->name, 0);
+		tempInt = Script_AppendText(newchar->animation_script, scriptbuf, filename);
+		//Interpreter_OutputPCode(newchar->animation_script.pinterpreter, "code");
+		writeToScriptLog("\n####animationscript function main#####\n# ");
+		writeToScriptLog(filename);
+		writeToScriptLog("\n########################################\n");
+		writeToScriptLog(scriptbuf);
+	}
+	Script_Compile(newchar->animation_script);
 
-    if(buf != NULL){
-        tracefree(buf);
-        buf = NULL;
-    }
-    if(scriptbuf){
-        tracefree(scriptbuf);
-        scriptbuf = NULL;
-    }
+	if(buf != NULL){
+		tracefree(buf);
+		buf = NULL;
+	}
+	if(scriptbuf){
+		tracefree(scriptbuf);
+		scriptbuf = NULL;
+	}
 
-    if(!tempInt)// parse script failed
-    {
-        shutdown(1, "Error parsing function main of animation script in file '%s'!", filename);
-    }
+	if(!tempInt)// parse script failed
+	{
+		shutdown(1, "Error parsing function main of animation script in file '%s'!", filename);
+	}
 
-    // We need a little more work to initialize the new A.I. types if they are not loaded from file
-    if(newchar->aiattack==-1) newchar->aiattack = 0;
-    if(newchar->aimove==-1) newchar->aimove = 0;
-    //if(!newchar->offscreenkill) newchar->offscreenkill = 1000;
+	// We need a little more work to initialize the new A.I. types if they are not loaded from file
+	if(newchar->aiattack==-1) newchar->aiattack = 0;
+	if(newchar->aimove==-1) newchar->aimove = 0;
+	//if(!newchar->offscreenkill) newchar->offscreenkill = 1000;
 
-    if(newchar->risetime[0]==-1)
-    {
-        if(newchar->type==TYPE_PLAYER)
-        {
-            if(newchar->animation[ANI_RISEATTACK]) newchar->risetime[0] = GAME_SPEED/2;
-            else newchar->risetime[0]=GAME_SPEED;
-        }
-        else if(newchar->type==TYPE_ENEMY || newchar->type==TYPE_NPC)
-        {
-            newchar->risetime[0] = 0;
-        }
-    }
+	if(newchar->risetime[0]==-1)
+	{
+		if(newchar->type==TYPE_PLAYER)
+		{
+			if(newchar->animation[ANI_RISEATTACK]) newchar->risetime[0] = GAME_SPEED/2;
+			else newchar->risetime[0]=GAME_SPEED;
+		}
+		else if(newchar->type==TYPE_ENEMY || newchar->type==TYPE_NPC)
+		{
+			newchar->risetime[0] = 0;
+		}
+	}
 
-    if(newchar->hostile<0) {// not been initialized, so initialize it
-        switch (newchar->type){
-             case TYPE_ENEMY:
-                 newchar->hostile = TYPE_PLAYER ;
-                 break;
-             case TYPE_PLAYER: // dont really needed, since you don't need A.I. control for players
-                 newchar->hostile = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
-                 break;
-             case TYPE_TRAP:
-                 newchar->hostile  = TYPE_ENEMY | TYPE_PLAYER;
-             case TYPE_OBSTACLE:
-                 newchar->hostile = 0;
-                 break;
-             case TYPE_SHOT:  // only target enemies
-                 newchar->hostile = TYPE_ENEMY ;
-                 break;
-             case TYPE_NPC: // default npc behivior
-                 newchar->hostile = TYPE_ENEMY ;
-                 break;
-        }
-    }
+	if(newchar->hostile<0) {// not been initialized, so initialize it
+		switch (newchar->type){
+		case TYPE_ENEMY:
+			newchar->hostile = TYPE_PLAYER ;
+			break;
+		case TYPE_PLAYER: // dont really needed, since you don't need A.I. control for players
+			newchar->hostile = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
+			break;
+		case TYPE_TRAP:
+			newchar->hostile  = TYPE_ENEMY | TYPE_PLAYER;
+		case TYPE_OBSTACLE:
+			newchar->hostile = 0;
+			break;
+		case TYPE_SHOT:  // only target enemies
+			newchar->hostile = TYPE_ENEMY ;
+			break;
+		case TYPE_NPC: // default npc behivior
+			newchar->hostile = TYPE_ENEMY ;
+			break;
+		}
+	}
 
-    if(newchar->candamage<0) {// not been initialized, so initialize it
-        switch (newchar->type){
-             case TYPE_ENEMY:
-                 newchar->candamage = TYPE_PLAYER | TYPE_SHOT;
-                 if(newchar->subtype == SUBTYPE_ARROW) newchar->candamage |= TYPE_OBSTACLE;
-                 break;
-             case TYPE_PLAYER:
-                 newchar->candamage = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
-                 break;
-             case TYPE_TRAP:
-                 newchar->candamage  = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
-             case TYPE_OBSTACLE:
-                 newchar->candamage = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
-                 break;
-             case TYPE_SHOT:
-                 newchar->candamage = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
-                 break;
-             case TYPE_NPC:
-                 newchar->candamage = TYPE_ENEMY | TYPE_OBSTACLE;
-                 break;
-             case TYPE_ITEM:
-                 newchar->candamage = TYPE_PLAYER;
-                 break;
-        }
-    }
+	if(newchar->candamage<0) {// not been initialized, so initialize it
+		switch (newchar->type){
+		case TYPE_ENEMY:
+			newchar->candamage = TYPE_PLAYER | TYPE_SHOT;
+			if(newchar->subtype == SUBTYPE_ARROW) newchar->candamage |= TYPE_OBSTACLE;
+			break;
+		case TYPE_PLAYER:
+			newchar->candamage = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
+			break;
+		case TYPE_TRAP:
+			newchar->candamage  = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+		case TYPE_OBSTACLE:
+			newchar->candamage = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
+			break;
+		case TYPE_SHOT:
+			newchar->candamage = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+			break;
+		case TYPE_NPC:
+			newchar->candamage = TYPE_ENEMY | TYPE_OBSTACLE;
+			break;
+		case TYPE_ITEM:
+			newchar->candamage = TYPE_PLAYER;
+			break;
+		}
+	}
 
-    if(newchar->projectilehit<0) {// not been initialized, so initialize it
-        switch (newchar->type){
-             case TYPE_ENEMY:
-                 newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
-                 break;
-             case TYPE_PLAYER:
-                 newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
-                 break;
-             case TYPE_TRAP: // hmm, don't really needed
-                 newchar->projectilehit  = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
-             case TYPE_OBSTACLE: // hmm, don't really needed
-                 newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
-                 break;
-             case TYPE_SHOT: // hmm, don't really needed
-                 newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
-                 break;
-             case TYPE_NPC:
-                 newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
-                 break;
-        }
-    }
+	if(newchar->projectilehit<0) {// not been initialized, so initialize it
+		switch (newchar->type){
+		case TYPE_ENEMY:
+			newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+			break;
+		case TYPE_PLAYER:
+			newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+			break;
+		case TYPE_TRAP: // hmm, don't really needed
+			newchar->projectilehit  = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+		case TYPE_OBSTACLE: // hmm, don't really needed
+			newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+			break;
+		case TYPE_SHOT: // hmm, don't really needed
+			newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+			break;
+		case TYPE_NPC:
+			newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+			break;
+		}
+	}
 
-    if(newchar->jumpspeed < 0) newchar->jumpspeed = MAX(newchar->speed, 1);
+	if(newchar->jumpspeed < 0) newchar->jumpspeed = MAX(newchar->speed, 1);
 
-    if(blendfx_is_set==0)
-    {
-        if(newchar->alpha)
-        {
-            blendfx[newchar->alpha-1] = 1;
-        }
-        if(newchar->gfxshadow || newchar->shadow)
-        {
-            blendfx[BLEND_MULTIPLY] = 1;
-        }
-    }
+	if(blendfx_is_set==0)
+	{
+		if(newchar->alpha)
+		{
+			blendfx[newchar->alpha-1] = 1;
+		}
+		if(newchar->gfxshadow || newchar->shadow)
+		{
+			blendfx[BLEND_MULTIPLY] = 1;
+		}
+	}
 
-    // we need to convert 8bit colourmap into 24bit palette
-    if(pixelformat==PIXEL_x8)
-    {
-        convert_map_to_palette(newchar, mapflag);
-    }
+	// we need to convert 8bit colourmap into 24bit palette
+	if(pixelformat==PIXEL_x8)
+	{
+		convert_map_to_palette(newchar, mapflag);
+	}
 
 	printf("Loading '%s'\n", newchar->name);
 	
@@ -7096,7 +7112,7 @@ x(stricmp(value, #y)==0)\
 	}
 	// end check sane settings
 	
-    return newchar;
+	return newchar;
 }
 
 

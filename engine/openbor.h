@@ -1462,6 +1462,7 @@ typedef struct
 
 typedef struct ArgList {
 	size_t count;
+	size_t arglen[18];
 	char* args[18];
 } ArgList;
 
