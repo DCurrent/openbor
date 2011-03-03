@@ -13,6 +13,8 @@
 
 #include    "openbor.h"
 
+#define GET_ARG(z) arglist.count > z ? arglist.args[z] : ""
+
 /////////////////////////////////////////////////////////////////////////////
 //  Global Variables                                                        //
 /////////////////////////////////////////////////////////////////////////////
@@ -114,8 +116,6 @@ unsigned char*      blendings[MAX_BLENDINGS] = {NULL, NULL, NULL, NULL, NULL, NU
 palette_table_function blending_table_functions[MAX_BLENDINGS] = {palette_table_screen, palette_table_multiply, palette_table_overlay,
                                          palette_table_hardlight, palette_table_dodge, palette_table_half};
 
-
-char                comment_mark[4] = {"#"};
 
 int                 current_set = 0;
 int                 current_level = 0;
@@ -2217,7 +2217,102 @@ void check_music(){
 
 // ----------------------- General ------------------------------
 
+int isNumeric(char* text) {
+	char* p = text;
+	assert(p);
+	if(!*p) return 0;
+	//assert(*p);
+	while(*p) {
+		switch (*p) {
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9':
+				p++;
+				break;
+			default:
+				return 0;
+		}
+	}
+	return 1;
+}
+
+int isFloat(char* text) {
+	char* p = text;
+	assert(p);
+	if(!*p) return 0;
+	//assert(*p);
+	while(*p) {
+		switch (*p) {
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9': case '.':
+				p++;
+				break;
+			default:
+				return 0;
+		}
+	}
+	return 1;
+}
+
+int getValidInt(char* text, char* file, char* cmd)  {
+	static const char* WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a nonnumeric value at %s, where a number is expected!\nerroneus string: %s\n";
+	if(isNumeric(text)) {
+		return atoi(text);
+	} else {
+		printf(WARN_NUMBER_EXPECTED, file, cmd, text);
+		return 0;
+	}
+	
+}
+
+float getValidFloat(char* text, char* file, char* cmd)  {
+	static const char* WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a nonnumeric value at %s, where a number is expected!\nerroneus string: %s\n";
+	if(isFloat(text)) {
+		return atof(text);
+	} else {
+		printf(WARN_NUMBER_EXPECTED, file, cmd, text);
+		return 0.0f;
+	}	
+}
+
+size_t ParseArgs(ArgList* list, char* input, char* output) {
+	assert(list);
+	assert(input);
+	assert(output);
+	
+	size_t pos = 0;
+	size_t wordstart = 0;
+	size_t item = 0;
+	int done = 0;
+	int space = 0;
+	
+	while(pos < MAX_ARG_LEN-1 && item < 16) {
+		switch(input[pos]) {
+			case '\r': case '\n': case '#': case '\0':
+				done = 1;
+			case ' ': case '\t':
+				output[pos] = '\0';
+				if(!space && wordstart != pos) {
+					list->args[item] = output + wordstart;
+					item++;
+				}	
+				space = 1;
+				break;
+			default:
+				if(space) 
+					wordstart = pos;
+				output[pos] = input[pos];
+				space = 0;
+		}
+		if(done)
+			break;
+		pos++;
+	}
+	list->count = item;
+	return item;
+}
+
 char *findarg(char *command, int which){
+	static const char comment_mark[4] = {"#"};
     int d;
     int argc;
     int inarg;
@@ -2554,6 +2649,9 @@ void lifebar_colors()
     char *buf;
     size_t size;
     int pos;
+    ArgList arglist;
+    char argbuf[MAX_ARG_LEN+1] = "";
+    
 
     char * command;
 
@@ -2578,37 +2676,38 @@ void lifebar_colors()
     pos = 0;
     colorbars=1;
     while(pos<size){
-        command = findarg(buf+pos, 0);
+	    ParseArgs(&arglist,buf+pos,argbuf);
+        command = GET_ARG(0);
         if(command[0])
         {
             if(stricmp(command, "blackbox")==0)
-                color_black = _makecolour(atoi(findarg(buf+pos, 1)), atoi(findarg(buf+pos, 2)), atoi(findarg(buf+pos, 3)));
+                color_black = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
             else if(stricmp(command, "whitebox")==0)
-                color_white = _makecolour(atoi(findarg(buf+pos, 1)), atoi(findarg(buf+pos, 2)), atoi(findarg(buf+pos, 3)));
+                color_white = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
             else if(stricmp(command, "color300")==0)
-                color_orange = _makecolour(atoi(findarg(buf+pos, 1)), atoi(findarg(buf+pos, 2)), atoi(findarg(buf+pos, 3)));
+                color_orange = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
             else if(stricmp(command, "color25")==0)
-                color_red = _makecolour(atoi(findarg(buf+pos, 1)), atoi(findarg(buf+pos, 2)), atoi(findarg(buf+pos, 3)));
+                color_red = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
             else if(stricmp(command, "color50")==0)
-                color_yellow = _makecolour(atoi(findarg(buf+pos, 1)), atoi(findarg(buf+pos, 2)), atoi(findarg(buf+pos, 3)));
+                color_yellow = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
             else if(stricmp(command, "color100")==0)
-                color_green = _makecolour(atoi(findarg(buf+pos, 1)), atoi(findarg(buf+pos, 2)), atoi(findarg(buf+pos, 3)));
+                color_green = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
             else if(stricmp(command, "color200")==0)
-                color_blue = _makecolour(atoi(findarg(buf+pos, 1)), atoi(findarg(buf+pos, 2)), atoi(findarg(buf+pos, 3)));
+                color_blue = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
             else if(stricmp(command, "color400")==0)
-                color_pink = _makecolour(atoi(findarg(buf+pos, 1)), atoi(findarg(buf+pos, 2)), atoi(findarg(buf+pos, 3)));
+                color_pink = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
             else if(stricmp(command, "color500")==0)
-                color_purple = _makecolour(atoi(findarg(buf+pos, 1)), atoi(findarg(buf+pos, 2)), atoi(findarg(buf+pos, 3)));
+                color_purple = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
             //magic bars color declarations by tails
             else if(stricmp(command, "colormagic")==0)
-                color_magic = _makecolour(atoi(findarg(buf+pos, 1)), atoi(findarg(buf+pos, 2)), atoi(findarg(buf+pos, 3)));
+                color_magic = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
             else if(stricmp(command, "colormagic2")==0)
-                color_magic2 = _makecolour(atoi(findarg(buf+pos, 1)), atoi(findarg(buf+pos, 2)), atoi(findarg(buf+pos, 3)));
+                color_magic2 = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
             //end of magic bars color declarations by tails
             else if(stricmp(command, "shadowcolor")==0)
-                shadowcolor = _makecolour(atoi(findarg(buf+pos, 1)), atoi(findarg(buf+pos, 2)), atoi(findarg(buf+pos, 3)));
+                shadowcolor = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
             else if(stricmp(command, "shadowalpha")==0) //gfxshadow alpha
-                shadowalpha = atoi(findarg(buf+pos, 1));
+                shadowalpha = atoi(GET_ARG(1));
             else printf("Warning: Unknown command in lifebar.txt: '%s'.\n", command);
         }
 
@@ -3209,6 +3308,8 @@ void load_menu_txt()
     int pos;
     char *buf, *command;
     size_t size;
+    ArgList arglist;
+    char argbuf[MAX_ARG_LEN+1] = "";    
 
     // Read file
     if(buffer_pakfile(filename, &buf, &size)!=1)
@@ -3218,8 +3319,9 @@ void load_menu_txt()
 
     // Now interpret the contents of buf line by line
     pos = 0;
-    while(pos<size){
-        command = findarg(buf+pos, 0);
+	while(pos<size){
+		ParseArgs(&arglist,buf+pos,argbuf);	    
+		command = GET_ARG(0);
         if(command[0]){
             if(stricmp(command, "disablekey")==0){
                 // here to keep from crashing
@@ -3229,14 +3331,14 @@ void load_menu_txt()
             }
             else if(stricmp(command, "fontmonospace")==0)
             {
-                fontmonospace[0] = atoi(findarg(buf+pos, 1));
-                fontmonospace[1] = atoi(findarg(buf+pos, 2));
-                fontmonospace[2] = atoi(findarg(buf+pos, 3));
-                fontmonospace[3] = atoi(findarg(buf+pos, 4));
-                fontmonospace[4] = atoi(findarg(buf+pos, 5));
-                fontmonospace[5] = atoi(findarg(buf+pos, 6));
-                fontmonospace[6] = atoi(findarg(buf+pos, 7));
-                fontmonospace[7] = atoi(findarg(buf+pos, 8));
+                fontmonospace[0] = atoi(GET_ARG(1));
+                fontmonospace[1] = atoi(GET_ARG(2));
+                fontmonospace[2] = atoi(GET_ARG(3));
+                fontmonospace[3] = atoi(GET_ARG(4));
+                fontmonospace[4] = atoi(GET_ARG(5));
+                fontmonospace[5] = atoi(GET_ARG(6));
+                fontmonospace[6] = atoi(GET_ARG(7));
+                fontmonospace[7] = atoi(GET_ARG(8));
             }
             else{
                 if(buf != NULL){
@@ -3375,8 +3477,13 @@ static void load_playable_list(char* buf)
 	int i, index;
 	char* value;
 	s_model *playermodels = NULL;
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN+1] = "";
+	
 	reset_playable_list(0);
-	for(i=1;(value=findarg(buf, i))[0];i++)
+	ParseArgs(&arglist,buf,argbuf);
+	
+	for(i=1;(value=GET_ARG(i))[0];i++)
 	{
 		playermodels = find_model(value);
 		if(playermodels == NULL) shutdown(1, "Player model '%s' is not loaded.\n", value);
@@ -3784,16 +3891,19 @@ void _peek_model_name(int index)
 	ptrdiff_t pos = 0, len;
 	char *buf = NULL;
 	char *command, *value;
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN+1] = "";
 
 	if(buffer_pakfile(model_cache[index].path, &buf, &size)!=1) return;
 
 	while(pos<size)
 	{
-		command = findarg(buf+pos, 0);
+		ParseArgs(&arglist,buf+pos,argbuf);		
+		command = GET_ARG(0);
 		if(command[0]){
 			if(stricmp(command, "name")==0)
 			{
-				value = findarg(buf+pos, 1);
+				value = GET_ARG(1);
 				tracefree(model_cache[index].name);
 				model_cache[index].name = NULL;
 				len = strlen(value);
@@ -3928,7 +4038,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	char cur_name[MAX_NAME_LEN+1] = {""},
 		load_name[MAX_NAME_LEN+1],
 		cur_owner[256] = {""},
-		namebuf[256] = {""};
+		namebuf[256] = {""},
+		argbuf[MAX_ARG_LEN+1] = "";
+		
+	ArgList arglist;
 
 	float tempFloat;
 
@@ -4017,7 +4130,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		");\n";
 
 	//printf("%s\n", name);
-	strcpy(cur_owner, owner);
+	strncpy(cur_owner, owner, 256);
 	owner = cur_owner;
 	strncpy(cur_name, name, MAX_NAME_LEN);
 	name = cur_name; // copy the name, cus the name might be a static variable pointer
@@ -4204,13 +4317,21 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	newchar->defense_factors[ATK_STEAL]     = 1;
 	newchar->defense_knockdown[ATK_STEAL]   = 1;
 
-    // Now interpret the contents of buf line by line
+	#define GET_INT_ARG(z) getValidInt(GET_ARG(z), filename, command)
+	#define GET_FLOAT_ARG(z) getValidFloat(GET_ARG(z), filename, command)
+	
+	//char* test = "load   knife 0";
+	//ParseArgs(&arglist,test,argbuf);
+	
+	// Now interpret the contents of buf line by line
 	while(pos<size)
 	{
-		command = findarg(buf+pos, 0);
-		if(command[0]){
+		//command = GET_ARG(0);
+		
+		if(ParseArgs(&arglist,buf+pos,argbuf)){
+			command = arglist.args[0];
 			if(stricmp(command, "name")==0){
-				value = findarg(buf+pos, 1);
+				value = GET_ARG(1);
 				if((tempmodel=find_model(value)) && tempmodel!=newchar) shutdown(1, "Duplicate model name '%s'", value);
 				tempInt = get_cached_model_index(value);
 				model_cache[tempInt].model = newchar;
@@ -4221,7 +4342,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				}
 			}
 			else if(stricmp(command, "type")==0){    // Moved here to be able to access the character type later on
-				value = findarg(buf+pos, 1);
+				value = GET_ARG(1);
 				if(stricmp(value, "none")==0){
 					newchar->type = TYPE_NONE;
 				}
@@ -4342,7 +4463,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				else shutdown(1, "Model '%s' has invalid type: '%s'", filename, value);
 			}
 			else if(stricmp(command, "subtype")==0){
-				value = findarg(buf+pos, 1);
+				value = GET_ARG(1);
 				if(stricmp(value, "biker")==0){
 				newchar->subtype                                        = SUBTYPE_BIKER;
 				if(newchar->aimove==-1) newchar->aimove                 = 0;
@@ -4406,40 +4527,40 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 			else shutdown(1, "Model '%s' has invalid subtype: '%s'", filename, value);
 		}
 		else if(stricmp(command, "stats")==0){
-			value = findarg(buf+pos, 1);
-			newchar->stats[atoi(value)] = atof(findarg(buf+pos, 2));
+			value = GET_ARG(1);
+			newchar->stats[atoi(value)] = atof(GET_ARG(2));
 		}
 		else if(stricmp(command, "health")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			newchar->health = atoi(value);
 		}
 		else if(stricmp(command, "scroll")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			newchar->scroll = atof(value);
 		}
 		//Left for backward compatability. See mpset.
 		else if(stricmp(command, "mp")==0){// mp values to put max mp for player by tails
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			newchar->mp = atoi(value);
 		}
 		else if(stricmp(command, "nolife")==0){    // Feb 25, 2005 - Flag to display enemy life or not
-			newchar->nolife = atoi(findarg(buf+pos, 1));
+			newchar->nolife = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "makeinv")==0){    // Mar 12, 2005 - If a value is supplied, corresponds to amount of time the player spawns invincible
-			newchar->makeinv = atoi(findarg(buf+pos, 1)) * GAME_SPEED;
-			if(atoi(findarg(buf+pos, 2))) newchar->makeinv = -newchar->makeinv;
+			newchar->makeinv = atoi(GET_ARG(1)) * GAME_SPEED;
+			if(atoi(GET_ARG(2))) newchar->makeinv = -newchar->makeinv;
 		}
 		else if(stricmp(command, "riseinv")==0){
-			newchar->riseinv = atoi(findarg(buf+pos, 1)) * GAME_SPEED;
-			if(atoi(findarg(buf+pos, 2))) newchar->riseinv = -newchar->riseinv;
+			newchar->riseinv = atoi(GET_ARG(1)) * GAME_SPEED;
+			if(atoi(GET_ARG(2))) newchar->riseinv = -newchar->riseinv;
 		}
 		else if(stricmp(command, "load")==0){
-			strncpy(load_name, findarg(buf+pos, 1), MAX_NAME_LEN);
-			load_cached_model(load_name, name, atoi(findarg(buf+pos, 2)));
+			strncpy(load_name, GET_ARG(1), MAX_NAME_LEN);
+			load_cached_model(load_name, name, GET_INT_ARG(2));
 		}
 		else if(stricmp(command, "score")==0){
-			newchar->score = atoi(findarg(buf+pos, 1));
-			newchar->multiple = atoi(findarg(buf+pos, 2));			// New var multiple for force/scoring
+			newchar->score = atoi(GET_ARG(1));
+			newchar->multiple = atoi(GET_ARG(2));			// New var multiple for force/scoring
 		}
 		else if(stricmp(command, "smartbomb")==0){ //smartbomb now use a normal attack box
 			if(!newchar->smartbomb)
@@ -4448,8 +4569,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				*(newchar->smartbomb) = emptyattack;
 			}
 			else shutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
-			newchar->smartbomb->attack_force = atoi(findarg(buf+pos, 1));			// Special force
-			newchar->smartbomb->attack_type = atoi(findarg(buf+pos, 2));			// Special attack type
+			newchar->smartbomb->attack_force = atoi(GET_ARG(1));			// Special force
+			newchar->smartbomb->attack_type = atoi(GET_ARG(2));			// Special attack type
 			newchar->smartbomb->attack_drop = 1; //by default
 			newchar->smartbomb->dropv[0] = 3;
 			if(newchar->smartbomb->attack_type==ATK_BLAST)
@@ -4474,35 +4595,35 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 			if(newchar->type == TYPE_ITEM)
 			{
 				newchar->dofreeze = 0;								// Items don't animate
-				newchar->smartbomb->freezetime = atoi(findarg(buf+pos, 3)) * GAME_SPEED;
+				newchar->smartbomb->freezetime = atoi(GET_ARG(3)) * GAME_SPEED;
 			}
 			else
 			{
-				newchar->dofreeze = atoi(findarg(buf+pos, 3));		// Are all animations frozen during special
-				newchar->smartbomb->freezetime = atoi(findarg(buf+pos, 4)) * GAME_SPEED;
+				newchar->dofreeze = atoi(GET_ARG(3));		// Are all animations frozen during special
+				newchar->smartbomb->freezetime = atoi(GET_ARG(4)) * GAME_SPEED;
 			}
 		}
 		else if(stricmp(command, "bounce")==0){						// Flag to determine if bounce/quake is to be used.
-			newchar->bounce = atoi(findarg(buf+pos, 1));
+			newchar->bounce = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "noquake")==0){					// Mar 12, 2005 - Flag to determine if entity shakes screen
-			newchar->noquake = atoi(findarg(buf+pos, 1));
+			newchar->noquake = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "blockback")==0){					// Flag to determine if attacks can be blocked from behind
-			newchar->blockback = atoi(findarg(buf+pos, 1));
+			newchar->blockback = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "hitenemy")==0){					// Flag to determine if an enemy projectile will hit enemies
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			if(atoi(value) == 1)
 			newchar->candamage = newchar->hostile = TYPE_PLAYER | TYPE_ENEMY;
 			else if(atoi(value) == 2)
 			newchar->candamage = newchar->hostile = TYPE_PLAYER;
-			newchar->ground = atoi(findarg(buf+pos, 2));    // Added to determine if enemies are damaged with mid air projectiles or ground only
+			newchar->ground = atoi(GET_ARG(2));    // Added to determine if enemies are damaged with mid air projectiles or ground only
 		}
 		else if(stricmp(command, "hostile")==0){
 			i = 1;
 			newchar->hostile = 0;
-			value = findarg(buf+pos, i);
+			value = GET_ARG(i);
 			while(value && value[0])
 			{
 				if(stricmp(value, "enemy")==0){
@@ -4517,13 +4638,13 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->hostile |= TYPE_NPC;
 				}
 				i++;
-				value = findarg(buf+pos, i);
+				value = GET_ARG(i);
 			}
 		}
 		else if(stricmp(command, "candamage")==0){
 			i = 1;
 			newchar->candamage = 0;
-			value = findarg(buf+pos, i);
+			value = GET_ARG(i);
 			while(value && value[0])
 			{
 				if(stricmp(value, "enemy")==0){
@@ -4542,13 +4663,13 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				// wont shut down
 				//}
 				i++;
-				value = findarg(buf+pos, i);
+				value = GET_ARG(i);
 			}
 		}
 		else if(stricmp(command, "projectilehit")==0){
 			i = 1;
 			newchar->projectilehit = 0;
-			value = findarg(buf+pos, i);
+			value = GET_ARG(i);
 			while(value && value[0])
 			{
 				if(stricmp(value, "enemy")==0){
@@ -4565,7 +4686,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					// wont shut down
 					//}
 				i++;
-				value = findarg(buf+pos, i);
+				value = GET_ARG(i);
 			}
 		}
 		else if(stricmp(command, "aimove")==0){
@@ -4574,7 +4695,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				newchar->aimove = 0;
 				aimoveset = 1;
 			}
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			//main A.I. move switches
 			if(value && value[0])
 			{
@@ -4620,7 +4741,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				}
 				else shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
 			}
-			value = findarg(buf+pos, 2);
+			value = GET_ARG(2);
 			//sub A.I. move switches
 			if(value && value[0])
 			{
@@ -4639,60 +4760,60 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		}
 		else if(stricmp(command, "subject_to_wall")==0)
 		{
-			newchar->subject_to_wall = (0!=atoi(findarg(buf+pos, 1)));
+			newchar->subject_to_wall = (0!=atoi(GET_ARG(1)));
 		}
 		else if(stricmp(command, "subject_to_hole")==0)
 		{
-			newchar->subject_to_hole = (0!=atoi(findarg(buf+pos, 1)));
+			newchar->subject_to_hole = (0!=atoi(GET_ARG(1)));
 		}
 		else if(stricmp(command, "subject_to_platform")==0)
 		{
-			newchar->subject_to_platform = (0!=atoi(findarg(buf+pos, 1)));
+			newchar->subject_to_platform = (0!=atoi(GET_ARG(1)));
 		}
 		else if(stricmp(command, "subject_to_obstacle")==0)
 		{
-			newchar->subject_to_obstacle = (0!=atoi(findarg(buf+pos, 1)));
+			newchar->subject_to_obstacle = (0!=atoi(GET_ARG(1)));
 		}
 		else if(stricmp(command, "subject_to_gravity")==0)
 		{
-			newchar->subject_to_gravity = (0!=atoi(findarg(buf+pos, 1)));
+			newchar->subject_to_gravity = (0!=atoi(GET_ARG(1)));
 		}
 		else if(stricmp(command, "subject_to_screen")==0)
 		{
-			newchar->subject_to_screen = (0!=atoi(findarg(buf+pos, 1)));
+			newchar->subject_to_screen = (0!=atoi(GET_ARG(1)));
 		}
 		else if(stricmp(command, "subject_to_minz")==0)
 		{
-			newchar->subject_to_minz = (0!=atoi(findarg(buf+pos, 1)));
+			newchar->subject_to_minz = (0!=atoi(GET_ARG(1)));
 		}
 		else if(stricmp(command, "subject_to_maxz")==0)
 		{
-			newchar->subject_to_maxz = (0!=atoi(findarg(buf+pos, 1)));
+			newchar->subject_to_maxz = (0!=atoi(GET_ARG(1)));
 		}
 		else if(stricmp(command, "no_adjust_base")==0)
 		{
-			newchar->no_adjust_base = (0!=atoi(findarg(buf+pos, 1)));
+			newchar->no_adjust_base = (0!=atoi(GET_ARG(1)));
 		}
 		else if(stricmp(command, "instantitemdeath")==0)
 		{
-			newchar->instantitemdeath = atoi(findarg(buf+pos, 1));
+			newchar->instantitemdeath = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "secret")==0){
-			newchar->secret = atoi(findarg(buf+pos, 1));
+			newchar->secret = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "modelflag")==0){ // model copy flag
-			newchar->model_flag = atoi(findarg(buf+pos, 1));
+			newchar->model_flag = atoi(GET_ARG(1));
 		}
 		// weapons
 		else if(stricmp(command, "weaploss")==0){
-			newchar->weaploss[0] = atoi(findarg(buf+pos, 1));
-			newchar->weaploss[1] = atoi(findarg(buf+pos, 2));
+			newchar->weaploss[0] = atoi(GET_ARG(1));
+			newchar->weaploss[1] = atoi(GET_ARG(2));
 		}
 		else if(stricmp(command, "weapnum")==0){
-			newchar->weapnum = atoi(findarg(buf+pos, 1));
+			newchar->weapnum = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "project")==0){  // New projectile subtype
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			if(stricmp(value, "none")==0) newchar->project = -1;
 			else newchar->project = get_cached_model_index(value);
 		}
@@ -4704,7 +4825,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				newchar->ownweapons = 1;
 			}
 			for(weap = 0; weap<MAX_WEAPONS; weap++){
-				value = findarg(buf+pos, weap+1);
+				value = GET_ARG(weap+1);
 				if(value[0]){
 					if(stricmp(value, "none")!=0){
 						(*newchar->weapon)[weap] = get_cached_model_index(value);
@@ -4718,23 +4839,23 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		}
 		//here weapons things like shoot rest type of weapon ect..by tails
 		else if(stricmp(command, "shootnum")==0){
-			newchar->shootnum = atoi(findarg(buf+pos, 1));
+			newchar->shootnum = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "reload")==0){
-			newchar->reload = atoi(findarg(buf+pos, 1));
+			newchar->reload = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "typeshot")==0){
-			newchar->typeshot = atoi(findarg(buf+pos, 1));
+			newchar->typeshot = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "counter")==0){
-			newchar->counter = atoi(findarg(buf+pos, 1));
+			newchar->counter = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "animal")==0){
-			newchar->animal = atoi(findarg(buf+pos, 1));
+			newchar->animal = atoi(GET_ARG(1));
 		}
 		// end weapons
 		else if(stricmp(command, "rider")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			if(stricmp(value, "none")==0) newchar->rider = -1;
 			else newchar->rider = get_cached_model_index(value);
 		}
@@ -4742,49 +4863,49 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 			stricmp(command, "fireb")==0 ||
 			stricmp(command, "playshot")==0 ||
 			stricmp(command, "playshotw")==0) {
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			if(stricmp(value, "none")==0) newchar->knife = -1;
 			else  newchar->knife = get_cached_model_index(value);
 		}
 		else if(stricmp(command, "playshotno")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			if(stricmp(value, "none")==0) newchar->pshotno = -1;
 			else newchar->pshotno = get_cached_model_index(value);
 		}
 		else if(stricmp(command, "star")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			if(stricmp(value, "none")==0) newchar->star = -1;
 			else newchar->star = get_cached_model_index(value);
 		}
 		else if(stricmp(command, "bomb")==0 ||
 			stricmp(command, "playbomb")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			if(stricmp(value, "none")==0) newchar->bomb = -1;
 			else newchar->bomb = get_cached_model_index(value);
 		}
 		else if(stricmp(command, "flash")==0){    // Now all characters can have their own flash - even projectiles (useful for blood)
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			if(stricmp(value, "none")==0) newchar->flash = -1;
 			else newchar->flash = get_cached_model_index(value);
 		}
 		else if(stricmp(command, "bflash")==0){    // Flash that is spawned if an attack is blocked
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			if(stricmp(value, "none")==0) newchar->bflash = -1;
 			else newchar->bflash = get_cached_model_index(value);
 		}
 		else if(stricmp(command, "dust")==0){    // Spawned when hitting the ground to "kick up dust"
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			if(stricmp(value, "none")==0) newchar->dust[0] = -1;
 			else newchar->dust[0] = get_cached_model_index(value);
-			value = findarg(buf+pos, 2);
+			value = GET_ARG(2);
 			if(stricmp(value, "none")==0) newchar->dust[1] = -1;
 			else newchar->dust[1] = get_cached_model_index(value);
-			value = findarg(buf+pos, 3);
+			value = GET_ARG(3);
 			if(stricmp(value, "none")==0) newchar->dust[2] = -1;
 			else newchar->dust[2] = get_cached_model_index(value);
 		}
 		else if(stricmp(command, "branch")==0){    // for endlevel item's level branch
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			if(!newchar->branch)
 			{
 				newchar->branch = tracemalloc("newchar->branch", MAX_NAME_LEN+1);
@@ -4794,68 +4915,68 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		}
 		else if(stricmp(command, "cantgrab")==0 ||
 			stricmp(command, "notgrab")==0){
-			tempInt = atoi(findarg(buf+pos, 1));
+			tempInt = atoi(GET_ARG(1));
 			if(tempInt == 2) newchar->grabforce = -999999;
 			else             newchar->antigrab = 1;
 		}
 		else if(stricmp(command, "antigrab")==0) // a can grab b: a->antigrab - b->grabforce <=0
 		{
-			newchar->antigrab = atoi(findarg(buf+pos, 1));
+			newchar->antigrab = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "grabforce")==0)
 		{
-			newchar->grabforce = atoi(findarg(buf+pos, 1));
+			newchar->grabforce = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "grabback")==0){
-			newchar->grabback = atoi(findarg(buf+pos, 1));
+			newchar->grabback = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "offscreenkill")==0){
-			newchar->offscreenkill = atoi(findarg(buf+pos, 1));
+			newchar->offscreenkill = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "falldie")==0 ||
 			stricmp(command, "death")==0){
-			newchar->falldie = atoi(findarg(buf+pos, 1));
+			newchar->falldie = atoi(GET_ARG(1));
 		}
 		else if(stricmp(command, "speed")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			newchar->speed = atof(value);
 			newchar->speed /= 10;
 			if(newchar->speed < 0.5) newchar->speed = 0.5;
 			if(newchar->speed > 30) newchar->speed = 30;
 		}
 		else if(stricmp(command, "speedf")==0){ // float speed
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			newchar->speed = atof(value);
 		}
 		else if(stricmp(command, "jumpspeed")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			newchar->jumpspeed = atof(value);
 			newchar->jumpspeed /= 10;
 		}
 		else if(stricmp(command, "jumpspeedf")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			newchar->jumpspeed = atof(value);
 		}
 		else if(stricmp(command, "antigravity")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			newchar->antigravity = atof(value);
 			newchar->antigravity /= 100;
 		}
 		else if(stricmp(command, "stealth")==0){
-			newchar->stealth[0] = atoi(findarg(buf+pos, 1));
-			newchar->stealth[1] = atoi(findarg(buf+pos, 2));
+			newchar->stealth[0] = atoi(GET_ARG(1));
+			newchar->stealth[1] = atoi(GET_ARG(2));
 		}
 		else if(stricmp(command, "jugglepoints")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			newchar->jugglepoints[0] = atoi(value);
 			newchar->jugglepoints[1] = atoi(value);
 		}
 		else if(stricmp(command, "riseattacktype")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			newchar->riseattacktype = atoi(value);
 		}
 		else if(stricmp(command, "guardpoints")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			newchar->guardpoints[0] = atoi(value);
 			newchar->guardpoints[1] = atoi(value);
 		}
@@ -4863,19 +4984,19 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 #define tempdef(x, y, z, p, k, b, t, r, e) \
 x(stricmp(value, #y)==0)\
 {\
-    newchar->z[ATK_##y] = atof(findarg(buf+pos, 2));\
+    newchar->z[ATK_##y] = atof(GET_ARG(2));\
     /*newchar->z[ATK_##y] /= 100;*/\
-    newchar->p[ATK_##y] = atof(findarg(buf+pos, 3));\
-    newchar->k[ATK_##y] = atof(findarg(buf+pos, 4));\
+    newchar->p[ATK_##y] = atof(GET_ARG(3));\
+    newchar->k[ATK_##y] = atof(GET_ARG(4));\
     /*newchar->k[ATK_##y] /= 100;*/\
-    newchar->b[ATK_##y] = atof(findarg(buf+pos, 5));\
-    newchar->t[ATK_##y] = atof(findarg(buf+pos, 6));\
-    newchar->r[ATK_##y] = atof(findarg(buf+pos, 7));\
+    newchar->b[ATK_##y] = atof(GET_ARG(5));\
+    newchar->t[ATK_##y] = atof(GET_ARG(6));\
+    newchar->r[ATK_##y] = atof(GET_ARG(7));\
     /*newchar->r[ATK_##y] /= 100;*/\
-    newchar->e[ATK_##y] = atof(findarg(buf+pos, 8));\
+    newchar->e[ATK_##y] = atof(GET_ARG(8));\
 }
 		else if(stricmp(command, "defense")==0){
-			value = findarg(buf+pos, 1);
+			value = GET_ARG(1);
 			tempdef(if, NORMAL, defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
 			tempdef(else if, NORMAL2,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
 			tempdef(else if, NORMAL3,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
@@ -4895,25 +5016,25 @@ x(stricmp(value, #y)==0)\
 			{
 				tempInt = atoi(value+6);
 				if(tempInt<11) tempInt = 11;
-				newchar->defense_factors[tempInt+STA_ATKS-1]        = atof(findarg(buf+pos, 2));
-				newchar->defense_pain[tempInt+STA_ATKS-1]           = atof(findarg(buf+pos, 3));
-				newchar->defense_knockdown[tempInt+STA_ATKS-1]      = atof(findarg(buf+pos, 4));
-				newchar->defense_blockpower[tempInt+STA_ATKS-1]     = atof(findarg(buf+pos, 5));
-				newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = atof(findarg(buf+pos, 6));
-				newchar->defense_blockratio[tempInt+STA_ATKS-1]     = atof(findarg(buf+pos, 7));
-				newchar->defense_blocktype[tempInt+STA_ATKS-1]      = atof(findarg(buf+pos, 8));
+				newchar->defense_factors[tempInt+STA_ATKS-1]        = atof(GET_ARG(2));
+				newchar->defense_pain[tempInt+STA_ATKS-1]           = atof(GET_ARG(3));
+				newchar->defense_knockdown[tempInt+STA_ATKS-1]      = atof(GET_ARG(4));
+				newchar->defense_blockpower[tempInt+STA_ATKS-1]     = atof(GET_ARG(5));
+				newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = atof(GET_ARG(6));
+				newchar->defense_blockratio[tempInt+STA_ATKS-1]     = atof(GET_ARG(7));
+				newchar->defense_blocktype[tempInt+STA_ATKS-1]      = atof(GET_ARG(8));
 			}
 			else if(stricmp(value, "ALL")==0)
 			{
 				for(i=0;i<max_attack_types;i++)
 				{
-					newchar->defense_factors[i]         = atof(findarg(buf+pos, 2));
-					newchar->defense_pain[i]            = atof(findarg(buf+pos, 3));
-					newchar->defense_knockdown[i]       = atof(findarg(buf+pos, 4));
-					newchar->defense_blockpower[i]      = atof(findarg(buf+pos, 5));
-					newchar->defense_blockthreshold[i]  = atof(findarg(buf+pos, 6));
-					newchar->defense_blockratio[i]      = atof(findarg(buf+pos, 7));
-					newchar->defense_blocktype[i]       = atof(findarg(buf+pos, 8));
+					newchar->defense_factors[i]         = atof(GET_ARG(2));
+					newchar->defense_pain[i]            = atof(GET_ARG(3));
+					newchar->defense_knockdown[i]       = atof(GET_ARG(4));
+					newchar->defense_blockpower[i]      = atof(GET_ARG(5));
+					newchar->defense_blockthreshold[i]  = atof(GET_ARG(6));
+					newchar->defense_blockratio[i]      = atof(GET_ARG(7));
+					newchar->defense_blocktype[i]       = atof(GET_ARG(8));
 				}
 			}
 		}
@@ -4921,11 +5042,11 @@ x(stricmp(value, #y)==0)\
 #define tempoff(x, y, z) \
 x(stricmp(value, #y)==0)\
 {\
-    newchar->z[ATK_##y] = atof(findarg(buf+pos, 2));\
+    newchar->z[ATK_##y] = atof(GET_ARG(2));\
     /*newchar->z[ATK_##y] /= 100;*/\
 }
             else if(stricmp(command, "offense")==0){
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 tempoff(if,         NORMAL,     offense_factors)
                 tempoff(else if,    NORMAL2,    offense_factors)
                 tempoff(else if,    NORMAL3,    offense_factors)
@@ -4945,11 +5066,11 @@ x(stricmp(value, #y)==0)\
                 {
                     tempInt = atoi(value+6);
                     if(tempInt<11) tempInt = 11;
-                    newchar->offense_factors[tempInt+STA_ATKS-1] = atof(findarg(buf+pos, 2));
+                    newchar->offense_factors[tempInt+STA_ATKS-1] = atof(GET_ARG(2));
                 }
                 else if(stricmp(value, "ALL")==0)
                 {
-                    tempFloat = atof(findarg(buf+pos, 2));
+                    tempFloat = atof(GET_ARG(2));
                     for(i=0;i<max_attack_types;i++)
                     {
                         newchar->offense_factors[i] = tempFloat;
@@ -4958,122 +5079,122 @@ x(stricmp(value, #y)==0)\
             }
 #undef tempoff
             else if(stricmp(command, "height")==0){
-                newchar->height = atoi(findarg(buf+pos, 1));
+                newchar->height = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "jumpheight")==0){        // 28-12-2004 if string for jump height found
-                newchar->jumpheight = atof(findarg(buf+pos, 1));
+                newchar->jumpheight = atof(GET_ARG(1));
             }
             else if(stricmp(command, "jumpmove")==0){    // see openbor.h for details
-                newchar->jumpmovex = atoi(findarg(buf+pos, 1));
-                newchar->jumpmovez = atoi(findarg(buf+pos, 2));
+                newchar->jumpmovex = atoi(GET_ARG(1));
+                newchar->jumpmovez = atoi(GET_ARG(2));
             }
             else if(stricmp(command, "knockdowncount")==0){
-                newchar->knockdowncount = atof(findarg(buf+pos, 1));
+                newchar->knockdowncount = atof(GET_ARG(1));
             }
             else if(stricmp(command, "grabdistance")==0){        // 30-12-2004 if string for grabdistance found
-                newchar->grabdistance = atof(findarg(buf+pos, 1));                    // 30-12-2004 and store for character
+                newchar->grabdistance = atof(GET_ARG(1));                    // 30-12-2004 and store for character
             }
             else if(stricmp(command, "grabfinish")==0){ // wait until grab animation is finished
-                newchar->grabfinish = atoi(findarg(buf+pos, 1));
+                newchar->grabfinish = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "throwdamage")==0){
-                newchar->throwdamage = atoi(findarg(buf+pos, 1));
+                newchar->throwdamage = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "shadow")==0){
-                newchar->shadow = atoi(findarg(buf+pos, 1));
+                newchar->shadow = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "gfxshadow")==0){
-                newchar->gfxshadow = atoi(findarg(buf+pos, 1));
+                newchar->gfxshadow = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "aironly")==0){    // Shadows display in air only?
-                newchar->aironly = atoi(findarg(buf+pos, 1));
+                newchar->aironly = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "fmap")==0){    // Map that corresponds with the remap when a character is frozen
-                newchar->fmap = atoi(findarg(buf+pos, 1));
+                newchar->fmap = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "komap")==0){   // Remap when character is KO'd.
-                newchar->komap[0] = atoi(findarg(buf+pos, 1));  //Remap.
-                newchar->komap[1] = atoi(findarg(buf+pos, 2));  //Type: 0 start of fall/death, 1 last frame.
+                newchar->komap[0] = atoi(GET_ARG(1));  //Remap.
+                newchar->komap[1] = atoi(GET_ARG(2));  //Type: 0 start of fall/death, 1 last frame.
             }
             else if(stricmp(command, "hmap")==0){    // Maps range unavailable to player in select screen.
-                newchar->hmap1 = atoi(findarg(buf+pos, 1)); //First unavailable map.
-                newchar->hmap2 = atoi(findarg(buf+pos, 2)); //Last unavailable map.
+                newchar->hmap1 = atoi(GET_ARG(1)); //First unavailable map.
+                newchar->hmap2 = atoi(GET_ARG(2)); //Last unavailable map.
             }
             else if(stricmp(command, "setlayer")==0){
-                newchar->setlayer = atoi(findarg(buf+pos, 1));
+                newchar->setlayer = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "toflip")==0){    // Flag to determine if flashes images will be flipped or not
-                newchar->toflip = atoi(findarg(buf+pos, 1));
+                newchar->toflip = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "nodieblink")==0){    // Added to determine if dying animation blinks or not
-                newchar->nodieblink = atoi(findarg(buf+pos, 1));
+                newchar->nodieblink = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "noatflash")==0){    // Flag to determine if an opponents attack spawns their flash or not
-                newchar->noatflash = atoi(findarg(buf+pos, 1));
+                newchar->noatflash = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "nomove")==0){    // If set, will be static (speed must be set to 0 or left blank)
-                newchar->nomove = atoi(findarg(buf+pos, 1));
-                newchar->noflip = atoi(findarg(buf+pos, 2));    // If set, static will not flip directions
+                newchar->nomove = atoi(GET_ARG(1));
+                newchar->noflip = atoi(GET_ARG(2));    // If set, static will not flip directions
                 if(newchar->nomove) newchar->nodrop = 1;
             }
             else if(stricmp(command, "nodrop")==0){
-                newchar->nodrop = atoi(findarg(buf+pos, 1));
+                newchar->nodrop = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "thold")==0){    // Threshold for enemies/players block
-                newchar->thold = atoi(findarg(buf+pos, 1));
+                newchar->thold = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "running")==0){    // The speed at which the player runs
-                newchar->runspeed = atof(findarg(buf+pos, 1));
+                newchar->runspeed = atof(GET_ARG(1));
                 newchar->runspeed /= 10;
-                newchar->runjumpheight = atof(findarg(buf+pos, 2));    // The height at which a player jumps when running
-                newchar->runjumpdist = atof(findarg(buf+pos, 3));    // The distance a player jumps when running
-                newchar->runupdown = atoi(findarg(buf+pos, 4));
-                newchar->runhold = atoi(findarg(buf+pos, 5));
+                newchar->runjumpheight = atof(GET_ARG(2));    // The height at which a player jumps when running
+                newchar->runjumpdist = atof(GET_ARG(3));    // The distance a player jumps when running
+                newchar->runupdown = atoi(GET_ARG(4));
+                newchar->runhold = atoi(GET_ARG(5));
             }
             else if(stricmp(command, "blockodds")==0){    // Odds that an attack will hit an enemy (1 : blockodds)
-                newchar->blockodds = atoi(findarg(buf+pos, 1));
+                newchar->blockodds = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "holdblock")==0){
-                newchar->holdblock = atoi(findarg(buf+pos, 1));
+                newchar->holdblock = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "blockpain")==0){
-                newchar->blockpain = atoi(findarg(buf+pos, 1));
+                newchar->blockpain = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "nopassiveblock")==0){
-                newchar->nopassiveblock = atoi(findarg(buf+pos, 1));
+                newchar->nopassiveblock = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "edelay")==0){
-                newchar->edelay.mode        = atoi(findarg(buf+pos, 1));
-                newchar->edelay.factor      = atof(findarg(buf+pos, 2));
-                newchar->edelay.cap_min     = atoi(findarg(buf+pos, 3));
-                newchar->edelay.cap_max     = atoi(findarg(buf+pos, 4));
-                newchar->edelay.range_min   = atoi(findarg(buf+pos, 5));
-                newchar->edelay.range_max   = atoi(findarg(buf+pos, 6));
+                newchar->edelay.mode        = atoi(GET_ARG(1));
+                newchar->edelay.factor      = atof(GET_ARG(2));
+                newchar->edelay.cap_min     = atoi(GET_ARG(3));
+                newchar->edelay.cap_max     = atoi(GET_ARG(4));
+                newchar->edelay.range_min   = atoi(GET_ARG(5));
+                newchar->edelay.range_max   = atoi(GET_ARG(6));
             }
             else if(stricmp(command, "paingrab")==0){
-                newchar->paingrab = atoi(findarg(buf+pos, 1));
+                newchar->paingrab = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "throw")==0){
-                newchar->throwdist = atof(findarg(buf+pos, 1));
-                newchar->throwheight = atof(findarg(buf+pos, 2));
+                newchar->throwdist = atof(GET_ARG(1));
+                newchar->throwheight = atof(GET_ARG(2));
             }
             else if(stricmp(command, "grabwalk")==0){
-                newchar->grabwalkspeed = atof(findarg(buf+pos, 1));
+                newchar->grabwalkspeed = atof(GET_ARG(1));
                 newchar->grabwalkspeed /= 10;
 
                 if(newchar->grabwalkspeed < 0.5) newchar->grabwalkspeed = 0.5;
             }
             else if(stricmp(command, "grabturn")==0){
-                newchar->grabturn = atoi(findarg(buf+pos, 1));
+                newchar->grabturn = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "throwframewait")==0){
-                newchar->throwframewait = atoi(findarg(buf+pos, 1));
+                newchar->throwframewait = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "diesound")==0){
-                newchar->diesound = sound_load_sample(findarg(buf+pos, 1), packfile, 0);
+                newchar->diesound = sound_load_sample(GET_ARG(1), packfile, 0);
             }
             else if(stricmp(command, "icon")==0){
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
 
                 if(newchar->icon > -1) shutdown(1, "Error: model '%s' has multiple icons defined", filename);
 
@@ -5083,63 +5204,63 @@ x(stricmp(value, #y)==0)\
                 newchar->iconget = newchar->icon;
             }
             else if(stricmp(command, "iconpain")==0){    // 20-1-2005 New icons here
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 newchar->iconpain = loadsprite(value,0,0,pixelformat);
             }
             else if(stricmp(command, "icondie")==0){
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 newchar->icondie = loadsprite(value,0,0,pixelformat);
             }
             else if(stricmp(command, "iconget")==0){
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 newchar->iconget = loadsprite(value,0,0,pixelformat);
             }                                // 20-1-2005 New icons finish here
             else if(stricmp(command, "iconw")==0){
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 newchar->iconw = loadsprite(value,0,0,pixelformat);
             }
             else if(stricmp(command, "iconmphigh")==0){
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 newchar->iconmp[0] = loadsprite(value,0,0,pixelformat);
             }
             else if(stricmp(command, "iconmphalf")==0){
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 newchar->iconmp[1] = loadsprite(value,0,0,pixelformat);
             }
             else if(stricmp(command, "iconmplow")==0){
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 newchar->iconmp[2] = loadsprite(value,0,0,pixelformat);
             }
             else if(stricmp(command, "parrow")==0){    // Image that is displayed when player 1 spawns invincible
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 newchar->parrow[0][0] = loadsprite(value,0,0,pixelformat);
-                newchar->parrow[0][1] = atoi(findarg(buf+pos, 2));
-                newchar->parrow[0][2] = atoi(findarg(buf+pos, 3));
+                newchar->parrow[0][1] = atoi(GET_ARG(2));
+                newchar->parrow[0][2] = atoi(GET_ARG(3));
             }
             else if(stricmp(command, "parrow2")==0){    // Image that is displayed when player 2 spawns invincible
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 newchar->parrow[1][0] = loadsprite(value,0,0,pixelformat);
-                newchar->parrow[1][1] = atoi(findarg(buf+pos, 2));
-                newchar->parrow[1][2] = atoi(findarg(buf+pos, 3));
+                newchar->parrow[1][1] = atoi(GET_ARG(2));
+                newchar->parrow[1][2] = atoi(GET_ARG(3));
             }
             else if(stricmp(command, "parrow3")==0){    // Image that is displayed when player 3 spawns invincible
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 newchar->parrow[2][0] = loadsprite(value,0,0,pixelformat);
-                newchar->parrow[2][1] = atoi(findarg(buf+pos, 2));
-                newchar->parrow[2][2] = atoi(findarg(buf+pos, 3));
+                newchar->parrow[2][1] = atoi(GET_ARG(2));
+                newchar->parrow[2][2] = atoi(GET_ARG(3));
             }
             else if(stricmp(command, "parrow4")==0){    // Image that is displayed when player 4 spawns invincible
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 newchar->parrow[3][0] = loadsprite(value,0,0,pixelformat);
-                newchar->parrow[3][1] = atoi(findarg(buf+pos, 2));
-                newchar->parrow[3][2] = atoi(findarg(buf+pos, 3));
+                newchar->parrow[3][1] = atoi(GET_ARG(2));
+                newchar->parrow[3][2] = atoi(GET_ARG(3));
             }
             else if(stricmp(command, "atchain")==0)
             {
                 newchar->chainlength = 0;
                 for(i = 0; i < MAX_ATCHAIN; i++)
                 {
-                    newchar->atchain[i] = atoi(findarg(buf+pos, i + 1));
+                    newchar->atchain[i] = atoi(GET_ARG(i + 1));
                     if(newchar->atchain[i] < 0) newchar->atchain[i] = 0;
                     if(newchar->atchain[i] > max_attacks) newchar->atchain[i] = max_attacks;
                     if(newchar->atchain[i]) newchar->chainlength = i+1;
@@ -5147,61 +5268,61 @@ x(stricmp(value, #y)==0)\
             }
             else if(stricmp(command, "combostyle")==0)
             {
-                newchar->combostyle = atoi(findarg(buf+pos, 1));
+                newchar->combostyle = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "credit")==0){
-                newchar->credit = atoi(findarg(buf+pos, 1));
+                newchar->credit = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "nopain")==0){
-                newchar->nopain = atoi(findarg(buf+pos, 1));
+                newchar->nopain = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "escapehits")==0){      // How many times an enemy can be hit before retaliating
-                newchar->escapehits = atoi(findarg(buf+pos, 1));
+                newchar->escapehits = atoi(GET_ARG(1));
             }
             //Left for backward compatability. See Mpset.
             else if(stricmp(command, "chargerate")==0){      // How much mp does this character gain while recharging?
-                newchar->chargerate = atoi(findarg(buf+pos, 1));
+                newchar->chargerate = atoi(GET_ARG(1));
             }
             //Left for backward compatability. See Mpset.
             else if(stricmp(command, "mprate")==0){
-                newchar->mprate = atoi(findarg(buf+pos, 1));
+                newchar->mprate = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "mpset")==0){    // Mp bar wax/wane.
-                newchar->mp             = atoi(findarg(buf+pos, 1)); //Max MP.
-                newchar->mpstable       = atoi(findarg(buf+pos, 2)); //MP stable setting.
-                newchar->mpstableval    = atoi(findarg(buf+pos, 3)); //MP stable value (% Mp bar will try and maintain).
-                newchar->mprate         = atoi(findarg(buf+pos, 4)); //Rate MP value rises over time.
-                newchar->mpdroprate     = atoi(findarg(buf+pos, 5)); //Rate MP value drops over time.
-                newchar->chargerate     = atoi(findarg(buf+pos, 6)); //MP Chargerate.
+                newchar->mp             = atoi(GET_ARG(1)); //Max MP.
+                newchar->mpstable       = atoi(GET_ARG(2)); //MP stable setting.
+                newchar->mpstableval    = atoi(GET_ARG(3)); //MP stable value (% Mp bar will try and maintain).
+                newchar->mprate         = atoi(GET_ARG(4)); //Rate MP value rises over time.
+                newchar->mpdroprate     = atoi(GET_ARG(5)); //Rate MP value drops over time.
+                newchar->chargerate     = atoi(GET_ARG(6)); //MP Chargerate.
             }
             else if(stricmp(command, "sleepwait")==0){
-                newchar->sleepwait = atoi(findarg(buf+pos, 1));
+                newchar->sleepwait = atoi(GET_ARG(1));
             }
 			else if(stricmp(command, "guardrate")==0){
-                newchar->guardrate = atoi(findarg(buf+pos, 1));
+                newchar->guardrate = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "aggression")==0){
-                newchar->aggression = atoi(findarg(buf+pos, 1));
+                newchar->aggression = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "risetime")==0){
-                newchar->risetime[0] = atoi(findarg(buf+pos, 1));
-				newchar->risetime[1] = atoi(findarg(buf+pos, 2));
+                newchar->risetime[0] = atoi(GET_ARG(1));
+				newchar->risetime[1] = atoi(GET_ARG(2));
             }
             else if(stricmp(command, "facing")==0){
-                newchar->facing = atoi(findarg(buf+pos, 1));
+                newchar->facing = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "turndelay")==0){
-                newchar->turndelay = atoi(findarg(buf+pos, 1));
+                newchar->turndelay = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "lifespan")==0){
-                newchar->lifespan = atof(findarg(buf+pos, 1))*GAME_SPEED;
+                newchar->lifespan = atof(GET_ARG(1))*GAME_SPEED;
             }
             else if(stricmp(command, "summonkill")==0){
-                newchar->summonkill = atoi(findarg(buf+pos, 1));
+                newchar->summonkill = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "lifeposition")==0){
-                if((value=findarg(buf+pos, 1))[0]) newchar->hpx = atoi(value);
-                if((value=findarg(buf+pos, 2))[0]) newchar->hpy = atoi(value);
+                if((value=GET_ARG(1))[0]) newchar->hpx = atoi(value);
+                if((value=GET_ARG(2))[0]) newchar->hpy = atoi(value);
             }
             else if(stricmp(command, "lifebarstatus")==0)
             {
@@ -5209,12 +5330,12 @@ x(stricmp(value, #y)==0)\
 				newchar->hpbarstatus.colourtable = &hpcolourtable;
             }
             else if(stricmp(command, "iconposition")==0){
-                if((value=findarg(buf+pos, 1))[0]) newchar->iconx = atoi(value);
-                if((value=findarg(buf+pos, 2))[0]) newchar->icony = atoi(value);
+                if((value=GET_ARG(1))[0]) newchar->iconx = atoi(value);
+                if((value=GET_ARG(2))[0]) newchar->icony = atoi(value);
             }
             else if(stricmp(command, "nameposition")==0){
-                if((value=findarg(buf+pos, 1))[0]) newchar->namex = atoi(value);
-                if((value=findarg(buf+pos, 2))[0]) newchar->namey = atoi(value);
+                if((value=GET_ARG(1))[0]) newchar->namex = atoi(value);
+                if((value=GET_ARG(2))[0]) newchar->namey = atoi(value);
             }
 
             // Section for custom freespecials starts here
@@ -5224,7 +5345,7 @@ x(stricmp(value, #y)==0)\
                 int t;
                 for(i = 0, t = 1; i < MAX_SPECIAL_INPUTS-3; i++, t++)
                 {
-                    value = findarg(buf+pos, t);
+                    value = GET_ARG(t);
                     if(!value[0]) break;
                     if(stricmp(value, "u")==0){
                         newchar->special[newchar->specials_loaded][i] = FLAG_MOVEUP;
@@ -5275,8 +5396,8 @@ x(stricmp(value, #y)==0)\
 
             // This command should not be used under 24bit mode, but for old mods, just give it a default palette
             else if(stricmp(command, "remap")==0){
-                value = findarg(buf+pos, 1);
-                value2 = findarg(buf+pos, 2);
+                value = GET_ARG(1);
+                value2 = GET_ARG(2);
                 errorVal = load_colourmap(newchar, value, value2);
                 if(pixelformat==PIXEL_x8 && newchar->palette==NULL)
                 {
@@ -5310,7 +5431,7 @@ x(stricmp(value, #y)==0)\
                 if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
                 else if(newchar->palette==NULL)
                 {
-                    value = findarg(buf+pos, 1);
+                    value = GET_ARG(1);
                     newchar->palette = tracemalloc("newchar->palette", PAL_BYTES);
                     if(loadimagepalette(value, packfile, newchar->palette)==0)
                         shutdown(1, "Failed to load palette '%s' for '%s'", value, filename);
@@ -5322,7 +5443,7 @@ x(stricmp(value, #y)==0)\
                 if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
                 else if(newchar->maps_loaded<MAX_COLOUR_MAPS)
                 {
-                    value = findarg(buf+pos, 1);
+                    value = GET_ARG(1);
                     newchar->colourmap[(int)newchar->maps_loaded] = tracemalloc("newchar#alternatepal", PAL_BYTES);
                     if(loadimagepalette(value, packfile, newchar->colourmap[(int)newchar->maps_loaded])==0)
                         shutdown(1, "Failed to load palette '%s' for '%s'", value, filename);
@@ -5333,143 +5454,143 @@ x(stricmp(value, #y)==0)\
             else if(stricmp(command, "globalmap")==0)
             {
                 if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
-                else newchar->globalmap = atoi(findarg(buf+pos, 1));
+                else newchar->globalmap = atoi(GET_ARG(1));
             }
             //new alpha effects by tails
             else if(stricmp(command, "alpha")==0){
-                newchar->alpha = atoi(findarg(buf+pos, 1));
+                newchar->alpha = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "remove")==0){
-                newchar->remove = atoi(findarg(buf+pos, 1));
+                newchar->remove = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "script")==0 ){//load the update script
                 Script_Init(newchar->update_script, "updateentityscript", 0);
-                if(load_script(newchar->update_script, findarg(buf+pos, 1)))
+                if(load_script(newchar->update_script, GET_ARG(1)))
                     Script_Compile(newchar->update_script);
-                else shutdown(1, "Unable to load entity update script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load entity update script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
 			else if(stricmp(command, "thinkscript")==0){//load the think script
                 Script_Init(newchar->think_script, "thinkscript", 0);
-                if(load_script(newchar->think_script, findarg(buf+pos, 1)))
+                if(load_script(newchar->think_script, GET_ARG(1)))
                     Script_Compile(newchar->think_script);
-                else  shutdown(1, "Unable to load think script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else  shutdown(1, "Unable to load think script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "takedamagescript")==0){//load the takedamage script
                 Script_Init(newchar->takedamage_script, "takedamagescript", 0);
-                if(load_script(newchar->takedamage_script, findarg(buf+pos, 1)))
+                if(load_script(newchar->takedamage_script, GET_ARG(1)))
                     Script_Compile(newchar->takedamage_script);
-                else shutdown(1, "Unable to load takedamage script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load takedamage script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "onfallscript")==0){//load the onfall script
                 Script_Init(newchar->onfall_script, "onfallscript", 0);
-                if(load_script(newchar->onfall_script , findarg(buf+pos, 1)))
+                if(load_script(newchar->onfall_script , GET_ARG(1)))
                     Script_Compile(newchar->onfall_script);
-                else shutdown(1, "Unable to load onfall script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load onfall script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "onpainscript")==0){//load the onpain script
                 Script_Init(newchar->onpain_script, "onpainscript", 0);
-                if(load_script(newchar->onpain_script , findarg(buf+pos, 1)))
+                if(load_script(newchar->onpain_script , GET_ARG(1)))
                     Script_Compile(newchar->onpain_script);
-                else shutdown(1, "Unable to load onpain script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load onpain script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "onblocksscript")==0){//load the onblocks script
                 Script_Init(newchar->onblocks_script, "onblocksscript", 0);
-                if(load_script(newchar->onblocks_script , findarg(buf+pos, 1)))
+                if(load_script(newchar->onblocks_script , GET_ARG(1)))
                     Script_Compile(newchar->onblocks_script);
-                else shutdown(1, "Unable to load onblocks script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load onblocks script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "onblockwscript")==0){//load the onblockw script
                 Script_Init(newchar->onblockw_script, "onblockwscript", 0);
-                if(load_script(newchar->onblockw_script , findarg(buf+pos, 1)))
+                if(load_script(newchar->onblockw_script , GET_ARG(1)))
                     Script_Compile(newchar->onblockw_script);
-                else shutdown(1, "Unable to load onblockw script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load onblockw script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "onblockoscript")==0){//load the onblocko script
                 Script_Init(newchar->onblocko_script, "onblockoscript", 0);
-                if(load_script(newchar->onblocko_script , findarg(buf+pos, 1)))
+                if(load_script(newchar->onblocko_script , GET_ARG(1)))
                     Script_Compile(newchar->onblocko_script);
-                else shutdown(1, "Unable to load onblocko script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load onblocko script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "onblockzscript")==0){//load the onblockz script
                 Script_Init(newchar->onblockz_script, "onblockzscript", 0);
-                if(load_script(newchar->onblockz_script , findarg(buf+pos, 1)))
+                if(load_script(newchar->onblockz_script , GET_ARG(1)))
                     Script_Compile(newchar->onblockz_script);
-                else shutdown(1, "Unable to load onblockz script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load onblockz script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "onblockascript")==0){//load the onblocka script
                 Script_Init(newchar->onblocka_script, "onblockascript", 0);
-                if(load_script(newchar->onblocka_script , findarg(buf+pos, 1)))
+                if(load_script(newchar->onblocka_script , GET_ARG(1)))
                     Script_Compile(newchar->onblocka_script);
-                else shutdown(1, "Unable to load onblocka script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load onblocka script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "onmovexscript")==0){//load the onmovex script
                 Script_Init(newchar->onmovex_script, "onmovexscript", 0);
-                if(load_script(newchar->onmovex_script , findarg(buf+pos, 1)))
+                if(load_script(newchar->onmovex_script , GET_ARG(1)))
                     Script_Compile(newchar->onmovex_script);
-                else shutdown(1, "Unable to load onmovex script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load onmovex script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "onmovezscript")==0){//load the onmovez script
                 Script_Init(newchar->onmovez_script, "onmovezscript", 0);
-                if(load_script(newchar->onmovez_script , findarg(buf+pos, 1)))
+                if(load_script(newchar->onmovez_script , GET_ARG(1)))
                     Script_Compile(newchar->onmovez_script);
-                else shutdown(1, "Unable to load onmovez script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load onmovez script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "onmoveascript")==0){//load the onmovea script
                 Script_Init(newchar->onmovea_script, "onmoveascript", 0);
-                if(load_script(newchar->onmovea_script , findarg(buf+pos, 1)))
+                if(load_script(newchar->onmovea_script , GET_ARG(1)))
                     Script_Compile(newchar->onmovea_script);
-                else shutdown(1, "Unable to load onmovea script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load onmovea script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "ondeathscript")==0){//load the death script
                 Script_Init(newchar->ondeath_script, "ondeathscript", 0);
-                if(load_script(newchar->ondeath_script, findarg(buf+pos, 1)))
+                if(load_script(newchar->ondeath_script, GET_ARG(1)))
                     Script_Compile(newchar->ondeath_script);
-                else shutdown(1, "Unable to load ondeath script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load ondeath script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "onkillscript")==0){//load the kill script
                 Script_Init(newchar->onkill_script, "onkillscript", 0);
-                if(load_script(newchar->onkill_script, findarg(buf+pos, 1)))
+                if(load_script(newchar->onkill_script, GET_ARG(1)))
                     Script_Compile(newchar->onkill_script);
-                else shutdown(1, "Unable to load onkill script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load onkill script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "didblockscript")==0){//load the didblock script
                 Script_Init(newchar->didblock_script, "didblockscript", 0);
-                if(load_script(newchar->didblock_script, findarg(buf+pos, 1)))
+                if(load_script(newchar->didblock_script, GET_ARG(1)))
                     Script_Compile(newchar->didblock_script);
-                else shutdown(1, "Unable to load didblock script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load didblock script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
 			else if(stricmp(command, "ondoattackscript")==0){//load the checkhit script
                 Script_Init(newchar->ondoattack_script, "ondoattackscript", 0);
-                if(load_script(newchar->ondoattack_script, findarg(buf+pos, 1)))
+                if(load_script(newchar->ondoattack_script, GET_ARG(1)))
                     Script_Compile(newchar->ondoattack_script);
-                else shutdown(1, "Unable to load ondoattack script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else shutdown(1, "Unable to load ondoattack script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "didhitscript")==0){//load the didhit script
                 Script_Init(newchar->didhit_script, "didhitscript", 0);
-                if(load_script(newchar->didhit_script, findarg(buf+pos, 1)))
+                if(load_script(newchar->didhit_script, GET_ARG(1)))
                     Script_Compile(newchar->didhit_script);
-                else  shutdown(1, "Unable to load didhit script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else  shutdown(1, "Unable to load didhit script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "onspawnscript")==0){//load the onspawn script
                 Script_Init(newchar->onspawn_script, "onspawnscript", 0);
-                if(load_script(newchar->onspawn_script, findarg(buf+pos, 1)))
+                if(load_script(newchar->onspawn_script, GET_ARG(1)))
                     Script_Compile(newchar->onspawn_script);
-                else  shutdown(1, "Unable to load onspawn script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else  shutdown(1, "Unable to load onspawn script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "animationscript")==0){//load the animation script
                 Script_Init(newchar->animation_script, "animationscript", 0);
-                if(!load_script(newchar->animation_script, findarg(buf+pos, 1)))
-                    shutdown(1, "Unable to load animation script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                if(!load_script(newchar->animation_script, GET_ARG(1)))
+                    shutdown(1, "Unable to load animation script '%s' in file '%s'.\n", GET_ARG(1), filename);
                 //dont compile, until at end of this function
             }
             else if(stricmp(command, "keyscript")==0){//load the key script
                 Script_Init(newchar->key_script, "entitykeyscript", 0);
-                if(load_script(newchar->key_script, findarg(buf+pos, 1)))
+                if(load_script(newchar->key_script, GET_ARG(1)))
                     Script_Compile(newchar->key_script);
-                else  shutdown(1, "Unable to load key script '%s' in file '%s'.\n", findarg(buf+pos, 1), filename);
+                else  shutdown(1, "Unable to load key script '%s' in file '%s'.\n", GET_ARG(1), filename);
             }
             else if(stricmp(command, "anim")==0){
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 frameset = 0;
                 framecount = 0;
                 // Create new animation
@@ -6147,97 +6268,97 @@ x(stricmp(value, #y)==0)\
             }
             else if(stricmp(command, "loop")==0){
                 if(newanim == NULL) shutdown(1, "Can't set loop: no animation specified!");
-                newanim->loop[0] = atoi(findarg(buf+pos, 1)); //0 = Off, 1 = on.
-                newanim->loop[1] = atoi(findarg(buf+pos, 2)); //Loop to frame.
-                newanim->loop[2] = atoi(findarg(buf+pos, 3)); //Loop end frame.
+                newanim->loop[0] = atoi(GET_ARG(1)); //0 = Off, 1 = on.
+                newanim->loop[1] = atoi(GET_ARG(2)); //Loop to frame.
+                newanim->loop[2] = atoi(GET_ARG(3)); //Loop end frame.
             }
             else if(stricmp(command, "animheight")==0){
-                newanim->height = atoi(findarg(buf+pos, 1));
+                newanim->height = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "delay")==0){
-                delay = atoi(findarg(buf+pos, 1));
+                delay = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "offset")==0){
-                offset[0] = atoi(findarg(buf+pos, 1));
-                offset[1] = atoi(findarg(buf+pos, 2));
+                offset[0] = atoi(GET_ARG(1));
+                offset[1] = atoi(GET_ARG(2));
             }
             else if(stricmp(command, "shadowcoords")==0){
-                shadow_xz[0] = atoi(findarg(buf+pos, 1));
-                shadow_xz[1] = atoi(findarg(buf+pos, 2));
+                shadow_xz[0] = atoi(GET_ARG(1));
+                shadow_xz[1] = atoi(GET_ARG(2));
                 shadow_set=1;
             }
             // 1-10-05  adjust the energycost of specials
             else if(stricmp(command, "energycost")==0 || stricmp(command, "mpcost")==0){
-                newanim->energycost[0] = atoi(findarg(buf+pos, 1));
-                newanim->energycost[1] = atoi(findarg(buf+pos, 2));
-				newanim->energycost[2] = atoi(findarg(buf+pos, 3));
+                newanim->energycost[0] = atoi(GET_ARG(1));
+                newanim->energycost[1] = atoi(GET_ARG(2));
+				newanim->energycost[2] = atoi(GET_ARG(3));
             }
             else if(stricmp(command, "mponly")==0){
-                newanim->energycost[1] = atoi(findarg(buf+pos, 1));
+                newanim->energycost[1] = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "chargetime")==0){
-                newanim->chargetime = atof(findarg(buf+pos, 1));
+                newanim->chargetime = atof(GET_ARG(1));
             }
             //dive kicks for players like tmnt by tails
             else if(stricmp(command, "dive")==0){
-                newanim->dive[0] = atof(findarg(buf+pos, 1));
-                newanim->dive[1] = atof(findarg(buf+pos, 2));
+                newanim->dive[0] = atof(GET_ARG(1));
+                newanim->dive[1] = atof(GET_ARG(2));
             }
             else if(stricmp(command, "dive1")==0){
-                newanim->dive[0] = atof(findarg(buf+pos, 1));
+                newanim->dive[0] = atof(GET_ARG(1));
             }
             else if(stricmp(command, "dive2")==0){
-                newanim->dive[1] = atof(findarg(buf+pos, 1));
+                newanim->dive[1] = atof(GET_ARG(1));
             }
             else if(stricmp(command, "attackone")==0){
-                newanim->attackone = atoi(findarg(buf+pos, 1));
+                newanim->attackone = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "counterattack")==0){
-                attack.counterattack = atoi(findarg(buf+pos, 1));
+                attack.counterattack = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "throwframe")==0 ||
 					stricmp(command, "pshotframe")==0 ||
 					stricmp(command, "pshotframew")==0 ||
 				    stricmp(command, "pshotframeno")==0){
-                    newanim->throwframe = atoi(findarg(buf+pos, 1));
-                    newanim->throwa = atoi(findarg(buf+pos, 2));
+                    newanim->throwframe = atoi(GET_ARG(1));
+                    newanim->throwa = atoi(GET_ARG(2));
 					if(!newanim->throwa) newanim->throwa = 70;
 					else if(newanim->throwa == -1) newanim->throwa = 0;
             }
 			else if(stricmp(command, "shootframe")==0){
-                    newanim->shootframe = atoi(findarg(buf+pos, 1));
-					newanim->throwa = atoi(findarg(buf+pos, 2));
+                    newanim->shootframe = atoi(GET_ARG(1));
+					newanim->throwa = atoi(GET_ARG(2));
                     if(newanim->throwa == -1) newanim->throwa = 0;
             }
             else if(stricmp(command, "tossframe")==0 ||
 				    stricmp(command, "pbombframe")==0){
-                newanim->tossframe = atoi(findarg(buf+pos, 1));
-                newanim->throwa = atoi(findarg(buf+pos, 2));
+                newanim->tossframe = atoi(GET_ARG(1));
+                newanim->throwa = atoi(GET_ARG(2));
                 if(newanim->throwa < 0) newanim->throwa = -1;
             }
             else if(stricmp(command, "custknife")==0 ||
 				    stricmp(command, "custpshot")==0 ||
 					stricmp(command, "custpshotw")==0){
-                newanim->custknife= get_cached_model_index(findarg(buf+pos, 1));
+                newanim->custknife= get_cached_model_index(GET_ARG(1));
             }
 			else if(stricmp(command, "custpshotno")==0){
-                newanim->custpshotno= get_cached_model_index(findarg(buf+pos, 1));
+                newanim->custpshotno= get_cached_model_index(GET_ARG(1));
             }
             else if(stricmp(command, "custbomb")==0 ||
 				    stricmp(command, "custpbomb")==0){
-                newanim->custbomb= get_cached_model_index(findarg(buf+pos, 1));
+                newanim->custbomb= get_cached_model_index(GET_ARG(1));
             }
             else if(stricmp(command, "custstar")==0){
-                newanim->custstar= get_cached_model_index(findarg(buf+pos, 1));
+                newanim->custstar= get_cached_model_index(GET_ARG(1));
             }
             else if(stricmp(command, "jumpframe")==0){
-                newanim->jumpframe = atoi(findarg(buf+pos, 1));
-                newanim->jumpv = atof(findarg(buf+pos, 2));    // Added so movement can be customized for jumpframes
-                value = findarg(buf+pos, 3);
+                newanim->jumpframe = atoi(GET_ARG(1));
+                newanim->jumpv = atof(GET_ARG(2));    // Added so movement can be customized for jumpframes
+                value = GET_ARG(3);
                 if(value[0])
                 {
-                    newanim->jumpx = atof(findarg(buf+pos, 3));
-                    newanim->jumpz = atof(findarg(buf+pos, 4));
+                    newanim->jumpx = atof(GET_ARG(3));
+                    newanim->jumpz = atof(GET_ARG(4));
                 }
                 else // k, only for backward compatibility :((((((((((((((((
                 {
@@ -6267,25 +6388,25 @@ x(stricmp(value, #y)==0)\
                     }
                 }
 
-				value = findarg(buf+pos, 5);
+				value = GET_ARG(5);
 				if(value[0]) newanim->jumpd = get_cached_model_index(value);
                 else newanim->jumpd = -1;
 
             }
             else if(stricmp(command, "bouncefactor")==0)
             {
-                newanim->bounce = atof(findarg(buf+pos, 1));
+                newanim->bounce = atof(GET_ARG(1));
             }
             else if(stricmp(command, "landframe")==0)
             {
-                newanim->landframe[0] = atoi(findarg(buf+pos, 1));
-				value = findarg(buf+pos, 2);
+                newanim->landframe[0] = atoi(GET_ARG(1));
+				value = GET_ARG(2);
 				if(value[0]) newanim->landframe[1] = get_cached_model_index(value);
                 else newanim->landframe[1] = -1;
             }
             else if(stricmp(command, "dropframe")==0)
             {
-                newanim->dropframe = atoi(findarg(buf+pos, 1));
+                newanim->dropframe = atoi(GET_ARG(1));
             }
 			else if(stricmp(command, "cancel")==0) // OX. Cancel command.
             {
@@ -6294,7 +6415,7 @@ x(stricmp(value, #y)==0)\
 				newanim->cancel = 3;
 				for(i = 0, t = 4; i < MAX_SPECIAL_INPUTS-6; i++, t++)
                 {
-                    value = findarg(buf+pos, t);
+                    value = GET_ARG(t);
                     if(!value[0]) break;
                     if(stricmp(value, "u")==0){
                         newchar->special[newchar->specials_loaded][i] = FLAG_MOVEUP;
@@ -6333,10 +6454,10 @@ x(stricmp(value, #y)==0)\
 						tempInt = atoi(value+11);
                         if(tempInt<1) tempInt = 1;
 						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-5] = animspecials[tempInt-1];
-						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-7] = atoi(findarg(buf+pos, 1)); // stores start frame
-				        newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-8] = atoi(findarg(buf+pos, 2)); // stores end frame
+						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-7] = atoi(GET_ARG(1)); // stores start frame
+				        newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-8] = atoi(GET_ARG(2)); // stores end frame
 						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-9] = ani_id;                    // stores current anim
-						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-10] = atoi(findarg(buf+pos, 3));// stores hits
+						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-10] = atoi(GET_ARG(3));// stores hits
                     }
                     else shutdown(1, "Invalid cancel command '%s'", value); // OX. Changed this line so that errors do not confuse modders.
                 }
@@ -6345,55 +6466,56 @@ x(stricmp(value, #y)==0)\
 				if(newchar->specials_loaded > max_freespecials) shutdown(1, "Too many Freespecials and/or Cancels. Please increase Maxfreespecials", value); // OX. This is to catch freespecials that use same animation.
             }
             else if(stricmp(command, "sound")==0){
-                soundtoplay = sound_load_sample(findarg(buf+pos, 1), packfile, 0);
+                soundtoplay = sound_load_sample(GET_ARG(1), packfile, 0);
             }
             else if(stricmp(command, "hitfx")==0){
-                attack.hitsound = sound_load_sample(findarg(buf+pos, 1), packfile, 0);
+                attack.hitsound = sound_load_sample(GET_ARG(1), packfile, 0);
             }
             else if(stricmp(command, "hitflash")==0){
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 if(stricmp(value, "none")==0) attack.hitflash = -1;
                 else attack.hitflash = get_cached_model_index(value);
             }
 			else if(stricmp(command, "blockflash")==0){
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 if(stricmp(value, "none")==0) attack.blockflash = -1;
                 else attack.blockflash = get_cached_model_index(value);
             }
 			else if(stricmp(command, "blockfx")==0){
-                attack.blocksound = sound_load_sample(findarg(buf+pos, 1), packfile, 0);
+                attack.blocksound = sound_load_sample(GET_ARG(1), packfile, 0);
             }
             else if(stricmp(command, "fastattack")==0){
-                newanim->fastattack = atoi(findarg(buf+pos, 1));
+                newanim->fastattack = atoi(GET_ARG(1));
 
             }
             else if(stricmp(command, "bbox")==0){
-                bbox[0] = atoi(findarg(buf+pos, 1));
-                bbox[1] = atoi(findarg(buf+pos, 2));
-                bbox[2] = atoi(findarg(buf+pos, 3));
-                bbox[3] = atoi(findarg(buf+pos, 4));
-                bbox[4] = atoi(findarg(buf+pos, 5));
+                bbox[0] = atoi(GET_ARG(1));
+                bbox[1] = atoi(GET_ARG(2));
+                bbox[2] = atoi(GET_ARG(3));
+                bbox[3] = atoi(GET_ARG(4));
+                bbox[4] = atoi(GET_ARG(5));
             }
             else if(stricmp(command, "bboxz")==0){
-                bbox[4] = atoi(findarg(buf+pos, 1));
+                bbox[4] = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "platform")==0){
-                for(i=0;findarg(buf+pos,i+1)[0]; i++);
+                //for(i=0;(GET_ARG(i+1)[0]; i++);
+		i = arglist.count;
                 if(i<8)
                 {
-                    for(i=0;i<6; i++) platform[i+2] = atof(findarg(buf+pos, i+1));
+                    for(i=0;i<6; i++) platform[i+2] = atof(GET_ARG(i+1));
                     platform[0] = 99999;
                 }
-                else for(i=0; i<8; i++) platform[i] = atof(findarg(buf+pos, i+1));
+                else for(i=0; i<8; i++) platform[i] = atof(GET_ARG(i+1));
             }
             else if(stricmp(command, "drawmethod")==0) // special effects
             {
-                drawmethod.scalex = atoi(findarg(buf+pos, 1));
-                drawmethod.scaley = atoi(findarg(buf+pos, 2));
-                drawmethod.flipx = atoi(findarg(buf+pos, 3));
-                drawmethod.flipy = atoi(findarg(buf+pos, 4));
-                drawmethod.shiftx = atoi(findarg(buf+pos, 5));
-                drawmethod.alpha = atoi(findarg(buf+pos, 6));
+                drawmethod.scalex = atoi(GET_ARG(1));
+                drawmethod.scaley = atoi(GET_ARG(2));
+                drawmethod.flipx = atoi(GET_ARG(3));
+                drawmethod.flipy = atoi(GET_ARG(4));
+                drawmethod.shiftx = atoi(GET_ARG(5));
+                drawmethod.alpha = atoi(GET_ARG(6));
                 if(!blendfx_is_set)
                 {
                     if(drawmethod.alpha>0 && drawmethod.alpha<=MAX_BLENDINGS)
@@ -6401,10 +6523,10 @@ x(stricmp(value, #y)==0)\
                         blendfx[drawmethod.alpha-1] = 1;
                     }
                 }
-                drawmethod.remap = atoi(findarg(buf+pos, 7));
-                drawmethod.fillcolor = parsecolor(findarg(buf+pos, 8));
-                drawmethod.rotate = atoi(findarg(buf+pos, 9));
-                drawmethod.fliprotate = atoi(findarg(buf+pos, 10))%360;
+                drawmethod.remap = atoi(GET_ARG(7));
+                drawmethod.fillcolor = parsecolor(GET_ARG(8));
+                drawmethod.rotate = atoi(GET_ARG(9));
+                drawmethod.fliprotate = atoi(GET_ARG(10))%360;
                 if(drawmethod.scalex<0) {drawmethod.scalex = -drawmethod.scalex;drawmethod.flipx = !drawmethod.flipx;}
                 if(drawmethod.scaley<0) {drawmethod.scaley = - drawmethod.scaley;drawmethod.flipy = !drawmethod.flipy;}
                 if(drawmethod.rotate)
@@ -6422,30 +6544,30 @@ x(stricmp(value, #y)==0)\
                  (!command[6]||(command[6]>='1' && command[6]<='9'))) ||
                 stricmp(command, "shock")==0 || stricmp(command, "burn")==0 ||
                 stricmp(command, "steal")==0 || stricmp(command, "freeze")==0 || stricmp(command, "itembox")==0){
-                    abox[0] = atoi(findarg(buf+pos, 1));
-                    abox[1] = atoi(findarg(buf+pos, 2));
-                    abox[2] = atoi(findarg(buf+pos, 3));
-                    abox[3] = atoi(findarg(buf+pos, 4));
+                    abox[0] = atoi(GET_ARG(1));
+                    abox[1] = atoi(GET_ARG(2));
+                    abox[2] = atoi(GET_ARG(3));
+                    abox[3] = atoi(GET_ARG(4));
                     attack.dropv[0] = 3;
                     attack.dropv[1] = (float)1.2;
                     attack.dropv[2] = 0;
-                    attack.attack_force = atoi(findarg(buf+pos, 5));
+                    attack.attack_force = atoi(GET_ARG(5));
 
 					if(stricmp(command, "steal")==0) attack.steal = 1;
 
                     if(stricmp(command, "freeze")==0)
                     {
                         attack.freeze = 1;
-                        attack.freezetime = atoi(findarg(buf+pos, 6)) * GAME_SPEED;
+                        attack.freezetime = atoi(GET_ARG(6)) * GAME_SPEED;
                         attack.forcemap = -1;
                         attack.attack_drop = 0;
                     }
-                    else attack.attack_drop = atoi(findarg(buf+pos, 6));
+                    else attack.attack_drop = atoi(GET_ARG(6));
 
-                    attack.no_block = atoi(findarg(buf+pos, 7));
-                    attack.no_flash = atoi(findarg(buf+pos, 8));
-                    attack.pause_add = atoi(findarg(buf+pos, 9));
-                    attack.attack_coords[4] = atoi(findarg(buf+pos, 10)); // depth or z
+                    attack.no_block = atoi(GET_ARG(7));
+                    attack.no_flash = atoi(GET_ARG(8));
+                    attack.pause_add = atoi(GET_ARG(9));
+                    attack.attack_coords[4] = atoi(GET_ARG(10)); // depth or z
 
                     if(stricmp(command, "attack")==0 || stricmp(command, "attack1")==0) attack.attack_type = ATK_NORMAL;
                     else if(stricmp(command, "attack2")     ==0)    attack.attack_type  = ATK_NORMAL2;
@@ -6470,136 +6592,136 @@ x(stricmp(value, #y)==0)\
                     }
                 }
             else if(stricmp(command, "attackz")==0 || stricmp(command, "hitz")==0){
-                attack.attack_coords[4] = atoi(findarg(buf+pos, 1));
+                attack.attack_coords[4] = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "blast")==0){
-                abox[0] = atoi(findarg(buf+pos, 1));
-                abox[1] = atoi(findarg(buf+pos, 2));
-                abox[2] = atoi(findarg(buf+pos, 3));
-                abox[3] = atoi(findarg(buf+pos, 4));
+                abox[0] = atoi(GET_ARG(1));
+                abox[1] = atoi(GET_ARG(2));
+                abox[2] = atoi(GET_ARG(3));
+                abox[3] = atoi(GET_ARG(4));
                 attack.dropv[0] = 3;
                 attack.dropv[1] = 2.5;
                 attack.dropv[2] = 0;
-                attack.attack_force = atoi(findarg(buf+pos, 5));
-                attack.no_block = atoi(findarg(buf+pos, 6));
-                attack.no_flash = atoi(findarg(buf+pos, 7));
-                attack.pause_add = atoi(findarg(buf+pos, 8));
+                attack.attack_force = atoi(GET_ARG(5));
+                attack.no_block = atoi(GET_ARG(6));
+                attack.no_flash = atoi(GET_ARG(7));
+                attack.pause_add = atoi(GET_ARG(8));
                 attack.attack_drop = 1;
                 attack.attack_type = ATK_BLAST;
-                attack.attack_coords[4] = atoi(findarg(buf+pos, 9)); // depth or z
+                attack.attack_coords[4] = atoi(GET_ARG(9)); // depth or z
                 attack.blast = 1;
             }
             else if(stricmp(command, "dropv")==0) // drop velocity add if the target is knocked down
             {
                 pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->dropv[0] = atof(findarg(buf+pos, 1)); // height add
-                pattack->dropv[1] = atof(findarg(buf+pos, 2)); // xdir add
-                pattack->dropv[2] = atof(findarg(buf+pos, 3)); // zdir add
+                pattack->dropv[0] = atof(GET_ARG(1)); // height add
+                pattack->dropv[1] = atof(GET_ARG(2)); // xdir add
+                pattack->dropv[2] = atof(GET_ARG(3)); // zdir add
             }
 			else if(stricmp(command, "otg")==0) // Over The Ground hit.
             {
-                attack.otg = atoi(findarg(buf+pos, 1));
+                attack.otg = atoi(GET_ARG(1));
             }
 			else if(stricmp(command, "jugglecost")==0) // if cost >= opponents jugglepoints , we can juggle
             {
-                attack.jugglecost = atoi(findarg(buf+pos, 1));
+                attack.jugglecost = atoi(GET_ARG(1));
             }
 			else if(stricmp(command, "guardcost")==0) // if cost >= opponents guardpoints , opponent will play guardcrush anim
             {
-                attack.guardcost = atoi(findarg(buf+pos, 1));
+                attack.guardcost = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "stun")==0) // DC, 12/19/2007. Like Freeze, but no auto remap.
             {
                 pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
                 pattack->freeze = 1;
-                pattack->freezetime = atoi(findarg(buf+pos, 1)) * GAME_SPEED;
+                pattack->freezetime = atoi(GET_ARG(1)) * GAME_SPEED;
                 pattack->attack_drop = 0;
             }
             else if(stricmp(command, "grabin")==0) // fake grab distanse efffect, not link
             {
                 pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->grab =  atoi(findarg(buf+pos, 1));
-                pattack->grab_distance = atof(findarg(buf+pos, 2));
+                pattack->grab =  atoi(GET_ARG(1));
+                pattack->grab_distance = atof(GET_ARG(2));
             }
             else if(stricmp(command, "noreflect")==0) // only cost target's hp, don't knock down or cause pain, unless the target is killed
             {
                 pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->no_pain = atoi(findarg(buf+pos, 1));
+                pattack->no_pain = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "forcedirection")==0) // the attack direction
             {
                 pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->force_direction = atoi(findarg(buf+pos, 1));
+                pattack->force_direction = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "damageonlanding")==0) // fake throw damage on landing
             {
                 pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->damage_on_landing = atoi(findarg(buf+pos, 1));
-                pattack->blast = atoi(findarg(buf+pos, 2));
+                pattack->damage_on_landing = atoi(GET_ARG(1));
+                pattack->blast = atoi(GET_ARG(2));
             }
             else if(stricmp(command, "seal")==0) // Disable special moves for specified time.
             {
                 pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->sealtime = atoi(findarg(buf+pos, 1)) * GAME_SPEED;
-                pattack->seal = atoi(findarg(buf+pos, 2));
+                pattack->sealtime = atoi(GET_ARG(1)) * GAME_SPEED;
+                pattack->seal = atoi(GET_ARG(2));
             }
             else if(stricmp(command, "staydown")==0) // Disable special moves for specified time.
             {
                 pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->staydown[0]    = atoi(findarg(buf+pos, 1)); //Risetime modifier.
-                pattack->staydown[1]    = atoi(findarg(buf+pos, 2)); //Riseattack time addition and toggle.
+                pattack->staydown[0]    = atoi(GET_ARG(1)); //Risetime modifier.
+                pattack->staydown[1]    = atoi(GET_ARG(2)); //Riseattack time addition and toggle.
             }
             else if(stricmp(command, "dot")==0) // Cause damage over time effect.
             {
-                attack.dot_index  = atoi(findarg(buf+pos, 1));  //Index.
-                attack.dot_time   = atoi(findarg(buf+pos, 2));  //Time to expiration.
-                attack.dot        = atoi(findarg(buf+pos, 3));  //Mode, see common_dot.
-                attack.dot_force  = atoi(findarg(buf+pos, 4));  //Amount per tick.
-                attack.dot_rate   = atoi(findarg(buf+pos, 5));  //Tick delay.
+                attack.dot_index  = atoi(GET_ARG(1));  //Index.
+                attack.dot_time   = atoi(GET_ARG(2));  //Time to expiration.
+                attack.dot        = atoi(GET_ARG(3));  //Mode, see common_dot.
+                attack.dot_force  = atoi(GET_ARG(4));  //Amount per tick.
+                attack.dot_rate   = atoi(GET_ARG(5));  //Tick delay.
             }
             else if(stricmp(command, "forcemap")==0) // force color map change for specified time
             {
                 pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-                pattack->forcemap = atoi(findarg(buf+pos, 1));
-                pattack->maptime = atoi(findarg(buf+pos, 2)) * GAME_SPEED;
+                pattack->forcemap = atoi(GET_ARG(1));
+                pattack->maptime = atoi(GET_ARG(2)) * GAME_SPEED;
             }
 			else if(stricmp(command, "idle")==0){
-				idle = atoi(findarg(buf+pos, 1));
+				idle = atoi(GET_ARG(1));
 			}
             else if(stricmp(command, "move")==0){
-                move = atoi(findarg(buf+pos, 1));
+                move = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "movez")==0){
-                movez = atoi(findarg(buf+pos, 1));
+                movez = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "movea")==0){
-                movea = atoi(findarg(buf+pos, 1));
+                movea = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "seta")==0){
-                seta = atoi(findarg(buf+pos, 1));
+                seta = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "fshadow")==0){
-                frameshadow = atoi(findarg(buf+pos, 1));
+                frameshadow = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "range")==0){
                 if(newanim==NULL) shutdown(1, "Cannot set range: no animation!");
-                newanim->range[0] = atoi(findarg(buf+pos, 1));
-                newanim->range[1] = atoi(findarg(buf+pos, 2));
+                newanim->range[0] = atoi(GET_ARG(1));
+                newanim->range[1] = atoi(GET_ARG(2));
             }
             else if(stricmp(command, "rangez")==0){
                 if(newanim==NULL) shutdown(1, "Cannot set rangez: no animation!");
-                newanim->range[2] = atoi(findarg(buf+pos, 1));
-                newanim->range[3] = atoi(findarg(buf+pos, 2));
+                newanim->range[2] = atoi(GET_ARG(1));
+                newanim->range[3] = atoi(GET_ARG(2));
             }
             else if(stricmp(command, "rangea")==0){
                 if(newanim==NULL) shutdown(1, "Cannot set rangea: no animation!");
-                newanim->range[4] = atoi(findarg(buf+pos, 1));
-                newanim->range[5] = atoi(findarg(buf+pos, 2));
+                newanim->range[4] = atoi(GET_ARG(1));
+                newanim->range[5] = atoi(GET_ARG(2));
             }
             else if(stricmp(command, "rangeb")==0){
                 if(newanim==NULL) shutdown(1, "Cannot set rangeb: no animation!");
-                newanim->range[6] = atoi(findarg(buf+pos, 1));
-                newanim->range[7] = atoi(findarg(buf+pos, 2));
+                newanim->range[6] = atoi(GET_ARG(1));
+                newanim->range[7] = atoi(GET_ARG(2));
             }
             else if(stricmp(command, "frame")==0){
                 if(newanim==NULL) shutdown(1, "Cannot add frame: animation not specified!");
@@ -6613,7 +6735,7 @@ x(stricmp(value, #y)==0)\
                     while(buf[pos+peek] && buf[pos+peek]!='\n' && buf[pos+peek]!='\r') ++peek;
                     while(buf[pos+peek]=='\n' || buf[pos+peek]=='\r') ++peek;
                 }
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 //printf("frame count: %d\n",framecount);
                 //printf("Load sprite '%s'...\n", value);
                 index = loadsprite(value, offset[0], offset[1],PIXEL_8);//don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
@@ -6690,72 +6812,72 @@ x(stricmp(value, #y)==0)\
 			else if(stricmp(command, "alphamask")==0){
                 if(newanim==NULL) shutdown(1, "Cannot add alpha mask: animation not specified!");
 				if(maskindex>=0) shutdown(1, "Cannot add alpha mask: a mask has already been specified for this frame!");
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 //printf("frame count: %d\n",framecount);
                 //printf("Load sprite '%s'...\n", value);
                 index = loadsprite(value, offset[0], offset[1],PIXEL_8);//don't use palette for the mask
 				maskindex = index;
             }
             else if(stricmp(command, "flipframe")==0){
-                newanim->flipframe = atoi(findarg(buf+pos, 1));
+                newanim->flipframe = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "followanim")==0){
-                newanim->followanim = atoi(findarg(buf+pos, 1));
+                newanim->followanim = atoi(GET_ARG(1));
                 if(newanim->followanim > max_follows) newanim->followanim = max_follows;
                 if(newanim->followanim < 0) newanim->followanim = 0;
             }
             else if(stricmp(command, "followcond")==0){
-                newanim->followcond = atoi(findarg(buf+pos, 1));
+                newanim->followcond = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "counterframe")==0){
-				newanim->counterframe[0]	= atoi(findarg(buf+pos, 1));
-				newanim->counterframe[1]	= atoi(findarg(buf+pos, 1));
-				newanim->counterframe[2]	= atoi(findarg(buf+pos, 2));
-				newanim->counterframe[3]	= atoi(findarg(buf+pos, 3));
+				newanim->counterframe[0]	= atoi(GET_ARG(1));
+				newanim->counterframe[1]	= atoi(GET_ARG(1));
+				newanim->counterframe[2]	= atoi(GET_ARG(2));
+				newanim->counterframe[3]	= atoi(GET_ARG(3));
             }
 			else if(stricmp(command, "counterrange")==0){
-				newanim->counterframe[0]	= atoi(findarg(buf+pos, 1));
-				newanim->counterframe[1]	= atoi(findarg(buf+pos, 2));
-				newanim->counterframe[2]	= atoi(findarg(buf+pos, 3));
-				newanim->counterframe[3]	= atoi(findarg(buf+pos, 4));
+				newanim->counterframe[0]	= atoi(GET_ARG(1));
+				newanim->counterframe[1]	= atoi(GET_ARG(2));
+				newanim->counterframe[2]	= atoi(GET_ARG(3));
+				newanim->counterframe[3]	= atoi(GET_ARG(4));
             }
             else if(stricmp(command, "weaponframe")==0){
 				newanim->weaponframe    = tracemalloc("weaponframe", 2 * sizeof(newanim->weaponframe));
 				memset(newanim->weaponframe, 0, 2 * sizeof(newanim->weaponframe));
-                newanim->weaponframe[0] = atoi(findarg(buf+pos, 1));
-                newanim->weaponframe[1] = atoi(findarg(buf+pos, 2));
+                newanim->weaponframe[0] = atoi(GET_ARG(1));
+                newanim->weaponframe[1] = atoi(GET_ARG(2));
             }
             else if(stricmp(command, "quakeframe")==0){
-                newanim->quakeframe[0] = atoi(findarg(buf+pos, 1));
-                newanim->quakeframe[1] = atoi(findarg(buf+pos, 2));
-                newanim->quakeframe[2] = atoi(findarg(buf+pos, 3));
+                newanim->quakeframe[0] = atoi(GET_ARG(1));
+                newanim->quakeframe[1] = atoi(GET_ARG(2));
+                newanim->quakeframe[2] = atoi(GET_ARG(3));
 				newanim->quakeframe[3] = 0;
             }
             else if(stricmp(command, "subentity")==0 ||
 				    stricmp(command, "custentity")==0){
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 if(value[0]) newanim->subentity = get_cached_model_index(value);
             }
             else if(stricmp(command, "spawnframe")==0){
 				newanim->spawnframe    = tracemalloc("spawnframe", 5 * sizeof(newanim->spawnframe));
 				memset(newanim->spawnframe, 0, 5 * sizeof(newanim->spawnframe));
-                newanim->spawnframe[0] = atof(findarg(buf+pos, 1));
-                newanim->spawnframe[1] = atof(findarg(buf+pos, 2));
-                newanim->spawnframe[2] = atof(findarg(buf+pos, 3));
-                newanim->spawnframe[3] = atof(findarg(buf+pos, 4));
-                newanim->spawnframe[4] = atof(findarg(buf+pos, 5));
+                newanim->spawnframe[0] = atof(GET_ARG(1));
+                newanim->spawnframe[1] = atof(GET_ARG(2));
+                newanim->spawnframe[2] = atof(GET_ARG(3));
+                newanim->spawnframe[3] = atof(GET_ARG(4));
+                newanim->spawnframe[4] = atof(GET_ARG(5));
             }
             else if(stricmp(command, "summonframe")==0){
 				newanim->summonframe    = tracemalloc("summonframe", 5 * sizeof(newanim->summonframe));
 				memset(newanim->summonframe, 0, 5 * sizeof(newanim->summonframe));
-                newanim->summonframe[0] = atof(findarg(buf+pos, 1));
-                newanim->summonframe[1] = atof(findarg(buf+pos, 2));
-                newanim->summonframe[2] = atof(findarg(buf+pos, 3));
-                newanim->summonframe[3] = atof(findarg(buf+pos, 4));
-                newanim->summonframe[4] = atof(findarg(buf+pos, 5));
+                newanim->summonframe[0] = atof(GET_ARG(1));
+                newanim->summonframe[1] = atof(GET_ARG(2));
+                newanim->summonframe[2] = atof(GET_ARG(3));
+                newanim->summonframe[3] = atof(GET_ARG(4));
+                newanim->summonframe[4] = atof(GET_ARG(5));
             }
             else if(stricmp(command, "unsummonframe")==0){
-                newanim->unsummonframe = atoi(findarg(buf+pos, 1));
+                newanim->unsummonframe = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "@script") == 0){
                 if(ani_id < 0)  shutdown(1, "command '@script' must follow an animation! file: '%s'", filename);
@@ -6795,7 +6917,7 @@ x(stricmp(value, #y)==0)\
                     script_id = ani_id;
                 }
                 j = 1;
-                value = findarg(buf+pos, j);
+                value = GET_ARG(j);
                 scriptbuf[strlen(scriptbuf) - strlen(endifid_text)] = 0; // cut last chars
                 if(value && value[0]){
                     sprintf(namebuf, if_text, curframe);//only execute in current frame
@@ -6804,7 +6926,7 @@ x(stricmp(value, #y)==0)\
                     strcat(scriptbuf, namebuf);
                     do{ //argument and comma
                         j++;
-                        value = findarg(buf+pos, j);
+                        value = GET_ARG(j);
                         if(value && value[0]) {
                             if(j!=2) strcat(scriptbuf, comma_text);
                             strcat(scriptbuf, value);
@@ -6997,37 +7119,40 @@ int load_script_setting()
     char *buf, *command;
     ptrdiff_t pos = 0;
     size_t size = 0;
+    ArgList arglist;
+    char argbuf[MAX_ARG_LEN+1] = "";    
 
     if(buffer_pakfile(filename, &buf, &size)!=1) return 0;
 
     while(pos<size)
     {
-        command = findarg(buf+pos, 0);
+		ParseArgs(&arglist,buf+pos,argbuf);	    
+		command = GET_ARG(0);
         if(command[0])
         {
             if(stricmp(command, "maxscriptvars")==0) // each script can have a variable list that can be accessed by index
             {
-                max_script_vars = atoi(findarg(buf+pos, 1)) ;
+                max_script_vars = atoi(GET_ARG(1)) ;
                 if(max_script_vars<0) max_script_vars = 0;
             }
             else if(stricmp(command, "maxentityvars")==0) // each entity can have a variable list that can be accessed by index
             {
-                max_entity_vars = atoi(findarg(buf+pos, 1)) ;
+                max_entity_vars = atoi(GET_ARG(1)) ;
                 if(max_entity_vars<0) max_entity_vars = 0;
             }
             else if(stricmp(command, "maxindexedvars")==0) // a global variable list that can be accessed by index
             {
-                max_indexed_vars = atoi(findarg(buf+pos, 1));
+                max_indexed_vars = atoi(GET_ARG(1));
                 if(max_indexed_vars<0) max_indexed_vars = 0;
             }
             else if(stricmp(command, "maxglobalvars")==0) // for global_var_list, default to 2048
             {
-                max_global_vars = atoi(findarg(buf+pos, 1));
+                max_global_vars = atoi(GET_ARG(1));
                 if(max_global_vars<0) max_global_vars = 0;
             }
 			else if(stricmp(command, "keyscriptrate")==0) // Rate that keyscripts fire when holding a key.
             {
-                keyscriptrate = atoi(findarg(buf+pos, 1));
+                keyscriptrate = atoi(GET_ARG(1));
             }
         }
         // Go to next line
@@ -7056,6 +7181,9 @@ int load_models()
 	char value2[128];
 	char tmpBuff[128] = {""};
 	int maxanim = MAX_ANIS; // temporary counter
+	
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN+1] = "";
 
 	free_modelcache();
 
@@ -7122,52 +7250,53 @@ int load_models()
 	pos = 0;
 	while(pos<size) // peek global settings
 	{
-		command = findarg(buf+pos, 0);
+		ParseArgs(&arglist,buf+pos,argbuf);
+		command = GET_ARG(0);
 		if(command[0])
 		{
 			if(stricmp(command, "maxidles")==0) // max idle stances
 			{
-				max_idles = atoi(findarg(buf+pos, 1));
+				max_idles = atoi(GET_ARG(1));
 				if(max_idles < MAX_IDLES) max_idles = MAX_IDLES;
 			}
 			if(stricmp(command, "maxwalks")==0) // max walks
 			{
-				max_walks = atoi(findarg(buf+pos, 1));
+				max_walks = atoi(GET_ARG(1));
 				if(max_walks < MAX_WALKS) max_walks = MAX_WALKS;
 			}
 			if(stricmp(command, "maxbackwalks")==0) // max backward walks
 			{
-				max_backwalks = atoi(findarg(buf+pos, 1));
+				max_backwalks = atoi(GET_ARG(1));
 				if(max_backwalks < MAX_BACKWALKS) max_backwalks = MAX_BACKWALKS;
 			}
 			if(stricmp(command, "maxups")==0) // max up walks
 			{
-				max_ups = atoi(findarg(buf+pos, 1));
+				max_ups = atoi(GET_ARG(1));
 				if(max_ups < MAX_UPS) max_ups = MAX_UPS;
 			}
 			if(stricmp(command, "maxdowns")==0) // max down walks
 			{
-				max_downs = atoi(findarg(buf+pos, 1));
+				max_downs = atoi(GET_ARG(1));
 				if(max_downs < MAX_DOWNS) max_downs = MAX_DOWNS;
 			}
 			if(stricmp(command, "maxattacktypes")==0) // max attacktype/pain/fall/die
 			{
-				max_attack_types = atoi(findarg(buf+pos, 1)) + STA_ATKS;
+				max_attack_types = atoi(GET_ARG(1)) + STA_ATKS;
 				if(max_attack_types < MAX_ATKS) max_attack_types = MAX_ATKS;
 			}
 			else if(stricmp(command, "maxfollows")==0) // max follow-ups
 			{
-				max_follows = atoi(findarg(buf+pos, 1));
+				max_follows = atoi(GET_ARG(1));
 				if(max_follows<MAX_FOLLOWS) max_follows = MAX_FOLLOWS;
 			}
 			else if(stricmp(command, "maxfreespecials")==0)// max freespecials
 			{
-				max_freespecials = atoi(findarg(buf+pos, 1));
+				max_freespecials = atoi(GET_ARG(1));
 				if(max_freespecials<MAX_SPECIALS) max_freespecials = MAX_SPECIALS;
 			}
 			else if(stricmp(command, "maxattacks")==0) // max attacks
 			{
-				max_attacks = atoi(findarg(buf+pos, 1));
+				max_attacks = atoi(GET_ARG(1));
 				if(max_attacks<MAX_ATTACKS) max_attacks = MAX_ATTACKS;
 			}
 		}
@@ -7236,74 +7365,75 @@ int load_models()
 	pos = 0;
 	while(pos<size)
 	{
-		command = findarg(buf+pos, 0);
+		ParseArgs(&arglist,buf+pos,argbuf);
+		command = GET_ARG(0);
 		if(command[0]) {
 			if(stricmp(command, "music")==0){
-				strncpy(value1, findarg(buf+pos, 1), 127);
-				music(value1, 1, atol(findarg(buf+pos, 2)));
+				strncpy(value1, GET_ARG(1), 127);
+				music(value1, 1, atol(GET_ARG(2)));
 			}
 			else if(stricmp(command, "load")==0){
 				// Add path to cache list
-				strncpy(value1, findarg(buf+pos, 1), 127);
-				strncpy(value2, findarg(buf+pos, 2), 127);
+				strncpy(value1, GET_ARG(1), 127);
+				strncpy(value2, GET_ARG(2), 127);
 				cache_model(value1, value2, 1);
 			}
 			else if(stricmp(command, "colourselect")==0){   // 6-2-2005 if string for colourselect found
-				colourselect =  atoi(findarg(buf+pos, 1));          //  6-2-2005
+				colourselect =  atoi(GET_ARG(1));          //  6-2-2005
 			}
 			else if(stricmp(command, "spdirection")==0){                // Select Player Direction for select player screen
-				spdirection[0] =  atoi(findarg(buf+pos, 1));
-				spdirection[1] =  atoi(findarg(buf+pos, 2));
-				spdirection[2] =  atoi(findarg(buf+pos, 3));
-				spdirection[3] =  atoi(findarg(buf+pos, 4));
+				spdirection[0] =  atoi(GET_ARG(1));
+				spdirection[1] =  atoi(GET_ARG(2));
+				spdirection[2] =  atoi(GET_ARG(3));
+				spdirection[3] =  atoi(GET_ARG(4));
 			}
 			else if(stricmp(command, "autoland")==0){    // New flag to determine if a player auto lands when thrown by another player (2 completely disables the ability to land)
-				autoland = atoi(findarg(buf+pos, 1));
+				autoland = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "nolost")==0){    // this is use for dont lost your weapon if you grab a enemy flag it to 1 to no drop by tails
-				nolost = atoi(findarg(buf+pos, 1));
+				nolost = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "ajspecial")==0){    // Flag to determine if a + j executes special
-				ajspecial = atoi(findarg(buf+pos, 1));
+				ajspecial = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "nocost")==0){    // Nocost set in models.txt
-				nocost = atoi(findarg(buf+pos, 1));
+				nocost = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "nocheats")==0){ //disable cheat option in menu
-				forcecheatsoff =  atoi(findarg(buf+pos, 1));
+				forcecheatsoff =  atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "nodropen")==0){
 				nodropen = 1;
 			}
 			else if(stricmp(command, "know")==0){
 				// Just add path to cache list
-				strncpy(value1, findarg(buf+pos, 1), 127);
-				strncpy(value2, findarg(buf+pos, 2), 127);
+				strncpy(value1, GET_ARG(1), 127);
+				strncpy(value2, GET_ARG(2), 127);
 				cache_model(value1, value2, 0);
 			}
 			else if(stricmp(command, "noaircancel")==0){
-				noaircancel = atoi(findarg(buf+pos, 1));
+				noaircancel = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "nomaxrushreset")==0){
-				nomaxrushreset[4] = atoi(findarg(buf+pos, 1));
+				nomaxrushreset[4] = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "mpblock")==0){               // Take from MP first?
-				mpblock = atoi(findarg(buf+pos, 1));
+				mpblock = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "blockratio")==0){            // Nullify or reduce damage?
-				blockratio = atoi(findarg(buf+pos, 1));
+				blockratio = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "nochipdeath")==0){
-				nochipdeath = atoi(findarg(buf+pos, 1));
+				nochipdeath = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "lifescore")==0){
-				lifescore =  atoi(findarg(buf+pos, 1));
+				lifescore =  atoi(GET_ARG(1));
 			}                    // Number of points needed to earn a 1-up
 			else if(stricmp(command, "credscore")==0){
-				credscore =  atoi(findarg(buf+pos, 1));
+				credscore =  atoi(GET_ARG(1));
 			}                    // Number of points needed to earn a credit
 			else if(stricmp(command, "versusdamage")==0){
-				versusdamage =  atoi(findarg(buf+pos, 1));
+				versusdamage =  atoi(GET_ARG(1));
 				if(versusdamage == 0 || versusdamage == 1) savedata.mode = versusdamage^1;
 			}
 			else if(!(stricmp(command, "maxdowns")==0 ||
@@ -7474,23 +7604,27 @@ void add_select(char *filename, int diff){
 static void _readbarstatus(char* buf, s_barstatus* pstatus)
 {
     char* value;
-    if((value=findarg(buf, 1))[0]) pstatus->sizex       = atoi(value);
+    ArgList arglist;
+    char argbuf[MAX_ARG_LEN+1] = "";
+    
+    ParseArgs(&arglist,buf,argbuf);
+    if((value=GET_ARG(1))[0]) pstatus->sizex       = atoi(value);
     else return;
-    if((value=findarg(buf, 2))[0]) pstatus->sizey       = atoi(value);
+    if((value=GET_ARG(2))[0]) pstatus->sizey       = atoi(value);
     else return;
-    if((value=findarg(buf, 3))[0]) pstatus->noborder    = atoi(value);
+    if((value=GET_ARG(3))[0]) pstatus->noborder    = atoi(value);
     else return;
-    if((value=findarg(buf, 4))[0]) pstatus->type        = atoi(value);
+    if((value=GET_ARG(4))[0]) pstatus->type        = atoi(value);
     else return;
-    if((value=findarg(buf, 5))[0]) pstatus->orientation = atoi(value);
+    if((value=GET_ARG(5))[0]) pstatus->orientation = atoi(value);
     else return;
-    if((value=findarg(buf, 6))[0]) pstatus->borderlayer = atoi(value);
+    if((value=GET_ARG(6))[0]) pstatus->borderlayer = atoi(value);
     else return;
-    if((value=findarg(buf, 7))[0]) pstatus->shadowlayer = atoi(value);
+    if((value=GET_ARG(7))[0]) pstatus->shadowlayer = atoi(value);
     else return;
-    if((value=findarg(buf, 8))[0]) pstatus->barlayer    = atoi(value);
+    if((value=GET_ARG(8))[0]) pstatus->barlayer    = atoi(value);
     else return;
-    if((value=findarg(buf, 9))[0]) pstatus->backlayer   = atoi(value);
+    if((value=GET_ARG(9))[0]) pstatus->backlayer   = atoi(value);
     else return;
 }
 
@@ -7518,6 +7652,9 @@ void load_levelorder()
     int enameused[4]  = {0,0,0,0};        // 4-7-2006 New custimizable variable for enemy names
     int pnameJused[4] = {0,0,0,0};        // 1-8-2006 New custimizable variable for players name Select Hero
     int pscoreUsed[4] = {0,0,0,0};        // 1-8-2006 New custimizable variable for players name Select Hero
+
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN+1] = "";
 
     unload_levelorder();
 
@@ -7588,13 +7725,14 @@ void load_levelorder()
     cbonus[8] = lbonus[8] = rbonus[8] = tscore[8] = 265;
 
 
-    while(pos<size){
-        command = findarg(buf+pos, 0);
-        if(command[0]){
+	while(pos<size){
+		ParseArgs(&arglist,buf+pos,argbuf);	    
+		command = GET_ARG(0);
+		if(command[0]){
 			if(stricmp(command, "blendfx")==0){
 				for(i=0; i<MAX_BLENDINGS; i++)
 				{
-					if(atoi(findarg(buf+pos, i+1))) blendfx[i] = 1;
+					if(atoi(GET_ARG(i+1))) blendfx[i] = 1;
 					else blendfx[i] = 0;
 				}
 				blendfx_is_set = 1;
@@ -7605,7 +7743,7 @@ void load_levelorder()
 
                 ++num_difficulties;
                 ++current_set;
-                strncpy(set_names[current_set], findarg(buf+pos, 1), MAX_NAME_LEN);
+                strncpy(set_names[current_set], GET_ARG(1), MAX_NAME_LEN);
                 ifcomplete[current_set] = 0;
                 cansave_flag[current_set] = 1; // default to 1, so the level can be saved
                 branch_name[0] = 0;
@@ -7614,7 +7752,7 @@ void load_levelorder()
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                ifcomplete[current_set] = atoi(findarg(buf+pos, 1));
+                ifcomplete[current_set] = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "skipselect")==0){
                 if(current_set<0)
@@ -7628,7 +7766,7 @@ void load_levelorder()
 
                 for(i=0; i<4;i++)
                 {
-                    if((arg=findarg(buf+pos, i+1))[0])
+			if((arg=GET_ARG(i+1))[0])
                     {
                         if(!(*skipselect)[current_set][i])
                             (*skipselect)[current_set][i] = tracemalloc("skipselect#2", MAX_NAME_LEN+1);
@@ -7640,21 +7778,21 @@ void load_levelorder()
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                strncpy(value, findarg(buf+pos, 1), 127);
+                strncpy(value, GET_ARG(1), 127);
                 add_level(value, current_set);
             }
             else if(stricmp(command, "scene")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                strncpy(value, findarg(buf+pos, 1), 127);
+                strncpy(value, GET_ARG(1), 127);
                 add_scene(value, current_set);
             }
             else if(stricmp(command, "select")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                strncpy(value, findarg(buf+pos, 1), 127);
+                strncpy(value, GET_ARG(1), 127);
                 add_select(value, current_set);
             }
             else if(stricmp(command, "next")==0){
@@ -7683,14 +7821,14 @@ void load_levelorder()
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                difflives[current_set] = atoi(findarg(buf+pos, 1));
+                difflives[current_set] = atoi(GET_ARG(1));
             }
 
 			else if(stricmp(command, "disablehof")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                noshowhof[current_set] = atoi(findarg(buf+pos, 1));
+                noshowhof[current_set] = atoi(GET_ARG(1));
             }
             // 07-12-31
             // 0 this set can't be saved
@@ -7700,323 +7838,323 @@ void load_levelorder()
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                cansave_flag[current_set] = atoi(findarg(buf+pos, 1));
+                cansave_flag[current_set] = atoi(GET_ARG(1));
             }
             //    2-10-05  adjust the walkable coordinates
             else if(stricmp(command, "z")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                z_coords[0] = atoi(findarg(buf+pos, 1));
-                z_coords[1] = atoi(findarg(buf+pos, 2));
-                z_coords[2] = atoi(findarg(buf+pos, 3));
+                z_coords[0] = atoi(GET_ARG(1));
+                z_coords[1] = atoi(GET_ARG(2));
+                z_coords[2] = atoi(GET_ARG(3));
             }
             //    2007-2-22 level branch name
             else if(stricmp(command, "branch")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                strncpy(branch_name, findarg(buf+pos, 1), MAX_NAME_LEN);
+                strncpy(branch_name, GET_ARG(1), MAX_NAME_LEN);
             }
             else if(stricmp(command, "p1life")==0){
-                if((arg=findarg(buf+pos, 1))[0]) plife[0][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) plife[0][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) plife[0][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) plife[0][1] = atoi(arg);
             }
             else if(stricmp(command, "p2life")==0){
-                if((arg=findarg(buf+pos, 1))[0]) plife[1][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) plife[1][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) plife[1][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) plife[1][1] = atoi(arg);
             }
             else if(stricmp(command, "p3life")==0){
-                if((arg=findarg(buf+pos, 1))[0]) plife[2][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) plife[2][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) plife[2][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) plife[2][1] = atoi(arg);
                 plifeUsed[0] = 1;
             }
             else if(stricmp(command, "p4life")==0){
-                if((arg=findarg(buf+pos, 1))[0]) plife[3][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) plife[3][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) plife[3][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) plife[3][1] = atoi(arg);
                 plifeUsed[1] = 1;
             }
             else if(stricmp(command, "p1mp")==0){
-                if((arg=findarg(buf+pos, 1))[0]) pmp[0][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) pmp[0][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) pmp[0][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) pmp[0][1] = atoi(arg);
                 pmpUsed[0] = 1;
             }
             else if(stricmp(command, "p2mp")==0){
-                if((arg=findarg(buf+pos, 1))[0]) pmp[1][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) pmp[1][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) pmp[1][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) pmp[1][1] = atoi(arg);
                 pmpUsed[1] = 1;
             }
             else if(stricmp(command, "p3mp")==0){
-                if((arg=findarg(buf+pos, 1))[0]) pmp[2][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) pmp[2][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) pmp[2][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) pmp[2][1] = atoi(arg);
                 pmpUsed[2] = 1;
             }
             else if(stricmp(command, "p4mp")==0){
-                if((arg=findarg(buf+pos, 1))[0]) pmp[3][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) pmp[3][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) pmp[3][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) pmp[3][1] = atoi(arg);
                 pmpUsed[3] = 1;
             }
             else if(stricmp(command, "p1lifex")==0){
 				for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) plifeX[0][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) plifeX[0][i] = atoi(arg);
                 plifeXused[0] = 1;
             }
             else if(stricmp(command, "p2lifex")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) plifeX[1][i] = atoi(arg);
+			if((arg=GET_ARG(i+1))[0]) plifeX[1][i] = atoi(arg);
                 plifeXused[1] = 1;
             }
             else if(stricmp(command, "p3lifex")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) plifeX[2][i] = atoi(arg);
+			if((arg=GET_ARG(i+1))[0]) plifeX[2][i] = atoi(arg);
                 plifeXused[2] = 1;
             }
             else if(stricmp(command, "p4lifex")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) plifeX[3][i] = atoi(arg);
+			if((arg=GET_ARG(i+1))[0]) plifeX[3][i] = atoi(arg);
                 plifeXused[3] = 1;
             }
             else if(stricmp(command, "p1lifen")==0){
 				for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) plifeN[0][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) plifeN[0][i] = atoi(arg);
                 plifeNused[0] = 1;
             }
             else if(stricmp(command, "p2lifen")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) plifeN[1][i] = atoi(arg);
+			if((arg=GET_ARG(i+1))[0]) plifeN[1][i] = atoi(arg);
                 plifeNused[1] = 1;
             }
             else if(stricmp(command, "p3lifen")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) plifeN[2][i] = atoi(arg);
+			if((arg=GET_ARG(i+1))[0]) plifeN[2][i] = atoi(arg);
                 plifeNused[2] = 1;
             }
             else if(stricmp(command, "p4lifen")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) plifeN[3][i] = atoi(arg);
+			if((arg=GET_ARG(i+1))[0]) plifeN[3][i] = atoi(arg);
                 plifeNused[3] = 1;
             }
             else if(stricmp(command, "e1life")==0){
-                if((arg=findarg(buf+pos, 1))[0]) elife[0][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) elife[0][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) elife[0][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) elife[0][1] = atoi(arg);
             }
             else if(stricmp(command, "e2life")==0){
-                if((arg=findarg(buf+pos, 1))[0]) elife[1][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) elife[1][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) elife[1][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) elife[1][1] = atoi(arg);
             }
             else if(stricmp(command, "e3life")==0){
-                if((arg=findarg(buf+pos, 1))[0]) elife[2][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) elife[2][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) elife[2][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) elife[2][1] = atoi(arg);
                 elifeUsed[0] = 1;
             }
             else if(stricmp(command, "e4life")==0){
-                if((arg=findarg(buf+pos, 1))[0]) elife[3][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) elife[3][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) elife[3][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) elife[3][1] = atoi(arg);
                 elifeUsed[1] = 1;
             }
             else if(stricmp(command, "p1icon")==0){
-                if((arg=findarg(buf+pos, 1))[0]) picon[0][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) picon[0][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) picon[0][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) picon[0][1] = atoi(arg);
             }
             else if(stricmp(command, "p2icon")==0){
-                if((arg=findarg(buf+pos, 1))[0]) picon[1][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) picon[1][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) picon[1][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) picon[1][1] = atoi(arg);
             }
             else if(stricmp(command, "p3icon")==0){
-                if((arg=findarg(buf+pos, 1))[0]) picon[2][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) picon[2][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) picon[2][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) picon[2][1] = atoi(arg);
                 piconUsed[0] = 1;
             }
             else if(stricmp(command, "p4icon")==0){
-                if((arg=findarg(buf+pos, 1))[0]) picon[3][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) picon[3][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) picon[3][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) picon[3][1] = atoi(arg);
                 piconUsed[1] = 1;
             }
             else if(stricmp(command, "p1iconw")==0){
-                if((arg=findarg(buf+pos, 1))[0]) piconw[0][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) piconw[0][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) piconw[0][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) piconw[0][1] = atoi(arg);
             }
             else if(stricmp(command, "p2iconw")==0){
-                if((arg=findarg(buf+pos, 1))[0]) piconw[1][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) piconw[1][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) piconw[1][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) piconw[1][1] = atoi(arg);
             }
             else if(stricmp(command, "p3iconw")==0){
-                if((arg=findarg(buf+pos, 1))[0]) piconw[2][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) piconw[2][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) piconw[2][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) piconw[2][1] = atoi(arg);
                 piconwUsed[0] = 1;
             }
             else if(stricmp(command, "p4iconw")==0){
-                if((arg=findarg(buf+pos, 1))[0]) piconw[3][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) piconw[3][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) piconw[3][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) piconw[3][1] = atoi(arg);
                 piconwUsed[1] = 1;
             }
             else if(stricmp(command, "mp1icon")==0){
-                if((arg=findarg(buf+pos, 1))[0]) mpicon[0][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) mpicon[0][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) mpicon[0][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) mpicon[0][1] = atoi(arg);
             }
             else if(stricmp(command, "mp2icon")==0){
-                if((arg=findarg(buf+pos, 1))[0]) mpicon[1][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) mpicon[1][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) mpicon[1][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) mpicon[1][1] = atoi(arg);
             }
             else if(stricmp(command, "mp3icon")==0){
-                if((arg=findarg(buf+pos, 1))[0]) mpicon[2][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) mpicon[2][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) mpicon[2][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) mpicon[2][1] = atoi(arg);
             }
             else if(stricmp(command, "mp4icon")==0){
-                if((arg=findarg(buf+pos, 1))[0]) mpicon[3][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) mpicon[3][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) mpicon[3][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) mpicon[3][1] = atoi(arg);
             }
             else if(stricmp(command, "p1namej")==0){
 				for(i=0; i<7; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) pnameJ[0][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pnameJ[0][i] = atoi(arg);
                 pnameJused[0] = 1;
             }
             else if(stricmp(command, "p2namej")==0){
 				for(i=0; i<7; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) pnameJ[1][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pnameJ[1][i] = atoi(arg);
                 pnameJused[1] = 1;
             }
             else if(stricmp(command, "p3namej")==0){
 				for(i=0; i<7; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) pnameJ[2][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pnameJ[2][i] = atoi(arg);
                 pnameJused[2] = 1;
             }
             else if(stricmp(command, "p4namej")==0){
 				for(i=0; i<7; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) pnameJ[3][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pnameJ[3][i] = atoi(arg);
                 pnameJused[3] = 1;
             }
             else if(stricmp(command, "p1score")==0){
 				for(i=0; i<7; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) pscore[0][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pscore[0][i] = atoi(arg);
                 pscoreUsed[0] = 1;
             }
             else if(stricmp(command, "p2score")==0){
 				for(i=0; i<7; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) pscore[1][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pscore[1][i] = atoi(arg);
                 pscoreUsed[1] = 1;
             }
             else if(stricmp(command, "p3score")==0){
 				for(i=0; i<7; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) pscore[2][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pscore[2][i] = atoi(arg);
                 pscoreUsed[2] = 1;
             }
             else if(stricmp(command, "p4score")==0){
 				for(i=0; i<7; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) pscore[3][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pscore[3][i] = atoi(arg);
                 pscoreUsed[3] = 1;
             }
             else if(stricmp(command, "p1shoot")==0){
 				for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) pshoot[0][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pshoot[0][i] = atoi(arg);
             }
             else if(stricmp(command, "p2shoot")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) pshoot[1][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pshoot[1][i] = atoi(arg);
             }
             else if(stricmp(command, "p3shoot")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) pshoot[2][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pshoot[2][i] = atoi(arg);
             }
             else if(stricmp(command, "p4shoot")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) pshoot[3][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pshoot[3][i] = atoi(arg);
             }
             else if(stricmp(command, "p1rush")==0){
 				for(i=0; i<8; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) prush[0][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) prush[0][i] = atoi(arg);
             }
             else if(stricmp(command, "p2rush")==0){
 				for(i=0; i<8; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) prush[1][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) prush[1][i] = atoi(arg);
             }
             else if(stricmp(command, "p3rush")==0){
 				for(i=0; i<8; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) prush[2][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) prush[2][i] = atoi(arg);
             }
             else if(stricmp(command, "p4rush")==0){
 				for(i=0; i<8; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) prush[3][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) prush[3][i] = atoi(arg);
             }
             else if(stricmp(command, "e1icon")==0){
-                if((arg=findarg(buf+pos, 1))[0]) eicon[0][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) eicon[0][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) eicon[0][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) eicon[0][1] = atoi(arg);
             }
             else if(stricmp(command, "e2icon")==0){
-                if((arg=findarg(buf+pos, 1))[0]) eicon[1][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) eicon[1][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) eicon[1][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) eicon[1][1] = atoi(arg);
             }
             else if(stricmp(command, "e3icon")==0){
-                if((arg=findarg(buf+pos, 1))[0]) eicon[2][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) eicon[2][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) eicon[2][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) eicon[2][1] = atoi(arg);
                 eiconUsed[0] = 1;
             }
             else if(stricmp(command, "e4icon")==0){
-                if((arg=findarg(buf+pos, 1))[0]) eicon[3][0] = atoi(arg);
-                if((arg=findarg(buf+pos, 2))[0]) eicon[3][1] = atoi(arg);
+                if((arg=GET_ARG(1))[0]) eicon[3][0] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) eicon[3][1] = atoi(arg);
                 eiconUsed[1] = 1;
             }
             else if(stricmp(command, "e1name")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) ename[0][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) ename[0][i] = atoi(arg);
                 enameused[0] = 1;
             }
             else if(stricmp(command, "e2name")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) ename[1][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) ename[1][i] = atoi(arg);
                 enameused[1] = 1;
             }
             else if(stricmp(command, "e3name")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) ename[2][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) ename[2][i] = atoi(arg);
                 enameused[2] = 1;
             }
             else if(stricmp(command, "e4name")==0){
                 for(i=0; i<3; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) ename[3][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) ename[3][i] = atoi(arg);
                 enameused[3] = 1;
             }
             else if(stricmp(command, "p1smenu")==0){
 				for(i=0; i<4; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) psmenu[0][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) psmenu[0][i] = atoi(arg);
             }
             else if(stricmp(command, "p2smenu")==0){
 				for(i=0; i<4; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) psmenu[1][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) psmenu[1][i] = atoi(arg);
             }
             else if(stricmp(command, "p3smenu")==0){
 				for(i=0; i<4; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) psmenu[2][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) psmenu[2][i] = atoi(arg);
             }
             else if(stricmp(command, "p4smenu")==0){
 				for(i=0; i<4; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) psmenu[3][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) psmenu[3][i] = atoi(arg);
             }
             else if(stricmp(command, "timeicon")==0){
-   				strncpy(timeicon_path, findarg(buf+pos, 1), 127);
+   				strncpy(timeicon_path, GET_ARG(1), 127);
                 timeicon = loadsprite(timeicon_path,0,0,pixelformat);
-                if((arg=findarg(buf+pos, 2))[0]) timeicon_offsets[0] = atoi(arg);
-                if((arg=findarg(buf+pos, 3))[0]) timeicon_offsets[1] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) timeicon_offsets[0] = atoi(arg);
+                if((arg=GET_ARG(3))[0]) timeicon_offsets[1] = atoi(arg);
             }
             else if(stricmp(command, "bgicon")==0){
-				strncpy(bgicon_path, findarg(buf+pos, 1), 127);
+				strncpy(bgicon_path, GET_ARG(1), 127);
                 bgicon = loadsprite(bgicon_path,0,0,pixelformat);
-                if((arg=findarg(buf+pos, 2))[0]) bgicon_offsets[0] = atoi(arg);
-                if((arg=findarg(buf+pos, 3))[0]) bgicon_offsets[1] = atoi(arg);
-				if((arg=findarg(buf+pos, 4))[0]) bgicon_offsets[2] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) bgicon_offsets[0] = atoi(arg);
+                if((arg=GET_ARG(3))[0]) bgicon_offsets[1] = atoi(arg);
+				if((arg=GET_ARG(4))[0]) bgicon_offsets[2] = atoi(arg);
 				else bgicon_offsets[2] = HUD_Z / 2;
             }
 			else if(stricmp(command, "olicon")==0){
-				strncpy(olicon_path, findarg(buf+pos, 1), 127);
+				strncpy(olicon_path, GET_ARG(1), 127);
                 olicon = loadsprite(olicon_path,0,0,pixelformat);
-                if((arg=findarg(buf+pos, 2))[0]) olicon_offsets[0] = atoi(arg);
-                if((arg=findarg(buf+pos, 3))[0]) olicon_offsets[1] = atoi(arg);
-				if((arg=findarg(buf+pos, 4))[0]) olicon_offsets[2] = atoi(arg);
+                if((arg=GET_ARG(2))[0]) olicon_offsets[0] = atoi(arg);
+                if((arg=GET_ARG(3))[0]) olicon_offsets[1] = atoi(arg);
+				if((arg=GET_ARG(4))[0]) olicon_offsets[2] = atoi(arg);
                 else olicon_offsets[2] = HUD_Z * 3;
             }
             else if(stricmp(command, "timeloc")==0){
 				for(i=0; i<6; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) timeloc[i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) timeloc[i] = atoi(arg);
             }
             else if(stricmp(command, "lbarsize")==0){
 				_readbarstatus(buf+pos, &lbarstatus);
@@ -8029,41 +8167,41 @@ void load_levelorder()
 			}
 			else if(stricmp(command, "lbartext")==0){
 				for(i=0; i<4; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) lbartext[i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) lbartext[i] = atoi(arg);
 			}
 			else if(stricmp(command, "mpbartext")==0){
 				for(i=0; i<4; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) mpbartext[i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) mpbartext[i] = atoi(arg);
 			}
             else if(stricmp(command, "showcomplete")==0){
 				for(i=0; i<6; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) scomplete[i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) scomplete[i] = atoi(arg);
             }
             else if(stricmp(command, "clearbonus")==0){
 				for(i=0; i<10; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) cbonus[i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) cbonus[i] = atoi(arg);
             }
 			else if(stricmp(command, "rushbonus")==0){
 				for(i=0; i<10; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) rbonus[i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) rbonus[i] = atoi(arg);
             }
             else if(stricmp(command, "lifebonus")==0){
 				for(i=0; i<10; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) lbonus[i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) lbonus[i] = atoi(arg);
             }
 			else if(stricmp(command, "scbonuses")==0){
 				for(i=0; i<4; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) scbonuses[i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) scbonuses[i] = atoi(arg);
             }
             else if(stricmp(command, "totalscore")==0){
 				for(i=0; i<10; i++)
-					if((arg=findarg(buf+pos, i+1))[0]) tscore[i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) tscore[i] = atoi(arg);
             }
             else if(stricmp(command, "musicoverlap")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                diffoverlap[current_set] = atoi(findarg(buf+pos, 1));
+                diffoverlap[current_set] = atoi(GET_ARG(1));
             }
 			else if(stricmp(command, "showrushbonus")==0){
                 showrushbonus = 1;
@@ -8081,13 +8219,13 @@ void load_levelorder()
                 completebg = 1;
             }
 			else if(stricmp(command, "loadingbg")==0){
-				for(i=0; i<7; i++) loadingbg[0][i] = atoi(findarg(buf+pos, i+1));
+				for(i=0; i<7; i++) loadingbg[0][i] = atoi(GET_ARG(i+1));
             }
 			else if(stricmp(command, "loadingbg2")==0){
-				for(i=0; i<7; i++) loadingbg[1][i] = atoi(findarg(buf+pos, i+1));
+				for(i=0; i<7; i++) loadingbg[1][i] = atoi(GET_ARG(i+1));
 	        }
 			else if(stricmp(command, "loadingmusic")==0){
-                loadingmusic = atoi(findarg(buf+pos, 1));
+                loadingmusic = atoi(GET_ARG(1));
 			}
             else if(stricmp(command, "unlockbg")==0){
                 unlockbg = 1;
@@ -8101,7 +8239,7 @@ void load_levelorder()
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                custfade[current_set] = atoi(findarg(buf+pos, 1));
+                custfade[current_set] = atoi(GET_ARG(1));
             }
             //8-2-2005 custom fade end
 			//continuescore
@@ -8109,21 +8247,21 @@ void load_levelorder()
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                continuescore[current_set] = atoi(findarg(buf+pos, 1));
+                continuescore[current_set] = atoi(GET_ARG(1));
             }
 
             else if(stricmp(command, "credits")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                diffcreds[current_set] = atoi(findarg(buf+pos, 1));
+                diffcreds[current_set] = atoi(GET_ARG(1));
             }
             //typemp for change for mp restored by time (0) to by enemys (1) or no restore (2) by tails
             else if(stricmp(command, "typemp")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                typemp[current_set] = atoi(findarg(buf+pos, 1));
+                typemp[current_set] = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "single")==0){
                 if(current_set<0)
@@ -8139,37 +8277,37 @@ void load_levelorder()
             else if(stricmp(command, "maxplayers")==0){
                 if(current_set<0)
                 {
-                    maxplayers[0] = atoi(findarg(buf+pos, 1));
+                    maxplayers[0] = atoi(GET_ARG(1));
                     for(i=0; i<MAX_DIFFICULTIES; i++)
                         maxplayers[i] = ctrlmaxplayers[i] = maxplayers[0];
                 }
                 else
                 {
-                    maxplayers[current_set] = ctrlmaxplayers[current_set] = atoi(findarg(buf+pos, 1));
+                    maxplayers[current_set] = ctrlmaxplayers[current_set] = atoi(GET_ARG(1));
                 }
             }
             else if(stricmp(command, "nosame")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                same[current_set] = atoi(findarg(buf+pos, 1));
+                same[current_set] = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "rush")==0){
-                rush[0] = atoi(findarg(buf+pos, 1));
-                rush[1] = atoi(findarg(buf+pos, 2));
-                strncpy(rush_names[0], findarg(buf+pos, 3), MAX_NAME_LEN);
-                rush[2] = atoi(findarg(buf+pos, 4));
-                rush[3] = atoi(findarg(buf+pos, 5));
-                strncpy(rush_names[1], findarg(buf+pos, 6), MAX_NAME_LEN);
-                rush[4] = atoi(findarg(buf+pos, 7));
-                rush[5] = atoi(findarg(buf+pos, 8));
+                rush[0] = atoi(GET_ARG(1));
+                rush[1] = atoi(GET_ARG(2));
+                strncpy(rush_names[0], GET_ARG(3), MAX_NAME_LEN);
+                rush[2] = atoi(GET_ARG(4));
+                rush[3] = atoi(GET_ARG(5));
+                strncpy(rush_names[1], GET_ARG(6), MAX_NAME_LEN);
+                rush[4] = atoi(GET_ARG(7));
+                rush[5] = atoi(GET_ARG(8));
             }
             else if(stricmp(command, "maxwallheight")==0){
-                MAX_WALL_HEIGHT = atoi(findarg(buf+pos, 1));
+                MAX_WALL_HEIGHT = atoi(GET_ARG(1));
                 if(MAX_WALL_HEIGHT < 0) MAX_WALL_HEIGHT = 1000;
             }
 			else if(stricmp(command, "scoreformat")==0){
-                scoreformat = atoi(findarg(buf+pos, 1));
+                scoreformat = atoi(GET_ARG(1));
             }
             else {
                 if(buf != NULL){
@@ -8437,12 +8575,12 @@ void load_level(char *filename){
 	int  bgPosi[6] = {0,0,0,0,0};
 	char musicPath[128] = {""};
 	u32 musicOffset = 0;
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN+1] = "";
 
 	unload_level();
 
 	printf("Level Loading:   '%s'\n", filename);
-
-
 
 
 
@@ -8508,23 +8646,24 @@ void load_level(char *filename){
     // Now interpret the contents of buf line by line
 	pos = 0;
 	while(pos<size){
-		command = findarg(buf+pos, 0);
+		ParseArgs(&arglist,buf+pos,argbuf);		
+		command = GET_ARG(0);
 		if(command[0]){
 			if(stricmp(command, "loadingbg")==0){
-				load_background(findarg(buf+pos, 1), 0);
-				for(i=0; i<6; i++) bgPosi[i] = atoi(findarg(buf+pos, i+2));
+				load_background(GET_ARG(1), 0);
+				for(i=0; i<6; i++) bgPosi[i] = atoi(GET_ARG(i+2));
 				standard_palette(1);
 				lifebar_colors();
 				init_colourtable();
 			}
 			else if(stricmp(command, "musicfade")==0){
 				memset(&next,0,sizeof(s_spawn_entry));
-				next.musicfade = atof(findarg(buf+pos, 1));
+				next.musicfade = atof(GET_ARG(1));
 			}
 			else if(stricmp(command, "music")==0){
-				value = findarg(buf+pos, 1);
+				value = GET_ARG(1);
 				strncpy(string, value, 128);
-				musicOffset = atol(findarg(buf+pos, 2));
+				musicOffset = atol(GET_ARG(2));
 				if(loadingmusic)
 				{
 					music(string, 1, musicOffset);
@@ -8536,7 +8675,7 @@ void load_level(char *filename){
 					// Go to next line
 					while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
 					while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
-					if(pos<size && (command = findarg(buf+pos, 0)) &&
+					if(pos<size && (command = GET_ARG(0)) &&
 					command[0] && stricmp(command, "at")==0)
 					{
 						if(next.musicfade == 0) memset(&next,0,sizeof(s_spawn_entry));
@@ -8555,37 +8694,37 @@ void load_level(char *filename){
 				load_playable_list(buf+pos);
 			}
 			else if(stricmp(command, "load")==0){
-				strncpy(string, findarg(buf+pos, 1), 128);
-				load_cached_model(string, filename, atoi(findarg(buf+pos, 2)));
+				strncpy(string, GET_ARG(1), 128);
+				load_cached_model(string, filename, atoi(GET_ARG(2)));
 			}
 			else if(stricmp(command, "background")==0){
-				value = findarg(buf+pos, 1);
+				value = GET_ARG(1);
 				strncpy(bgPath, value, strlen(value)+1);
 				level->bglayers[0].type = bg_screen;
 				level->bglayers[0].bgspeedratio = 1;
 
-				level->bglayers[0].xratio = atof(findarg(buf+pos, 2)); // x ratio
-				level->bglayers[0].zratio = atof(findarg(buf+pos, 3)); // z ratio
-				level->bglayers[0].xoffset = atoi(findarg(buf+pos, 4)); // x start
-				level->bglayers[0].zoffset = atoi(findarg(buf+pos, 5)); // z start
-				level->bglayers[0].xspacing = atoi(findarg(buf+pos, 6)); // x spacing
-				level->bglayers[0].zspacing = atoi(findarg(buf+pos, 7)); // z spacing
-				level->bglayers[0].xrepeat = atoi(findarg(buf+pos, 8)); // x repeat
-				level->bglayers[0].zrepeat = atoi(findarg(buf+pos, 9)); // z repeat
+				level->bglayers[0].xratio = atof(GET_ARG(2)); // x ratio
+				level->bglayers[0].zratio = atof(GET_ARG(3)); // z ratio
+				level->bglayers[0].xoffset = atoi(GET_ARG(4)); // x start
+				level->bglayers[0].zoffset = atoi(GET_ARG(5)); // z start
+				level->bglayers[0].xspacing = atoi(GET_ARG(6)); // x spacing
+				level->bglayers[0].zspacing = atoi(GET_ARG(7)); // z spacing
+				level->bglayers[0].xrepeat = atoi(GET_ARG(8)); // x repeat
+				level->bglayers[0].zrepeat = atoi(GET_ARG(9)); // z repeat
 				// unused
-				level->bglayers[0].transparency = atoi(findarg(buf+pos, 10)); // transparency
-				level->bglayers[0].alpha = atoi(findarg(buf+pos, 11)); // alpha
-				level->bglayers[0].watermode = atoi(findarg(buf+pos, 12)); // amplitude
-				level->bglayers[0].amplitude = atoi(findarg(buf+pos, 13)); // amplitude
-				level->bglayers[0].wavelength = atoi(findarg(buf+pos, 14)); // wavelength
-				level->bglayers[0].wavespeed = atof(findarg(buf+pos, 15)); // waterspeed
+				level->bglayers[0].transparency = atoi(GET_ARG(10)); // transparency
+				level->bglayers[0].alpha = atoi(GET_ARG(11)); // alpha
+				level->bglayers[0].watermode = atoi(GET_ARG(12)); // amplitude
+				level->bglayers[0].amplitude = atoi(GET_ARG(13)); // amplitude
+				level->bglayers[0].wavelength = atoi(GET_ARG(14)); // wavelength
+				level->bglayers[0].wavespeed = atof(GET_ARG(15)); // waterspeed
 				level->bglayers[0].enabled = 1; // enabled
 
-				if(findarg(buf+pos, 2)[0]==0) level->bglayers[0].xratio = 0.5;
-				if(findarg(buf+pos, 3)[0]==0) level->bglayers[0].zratio = 0.5;
+				if(arglist.count > 2 && arglist.args[2][0]==0) level->bglayers[0].xratio = 0.5;
+				if(arglist.count > 3 && arglist.args[3][0]==0) level->bglayers[0].zratio = 0.5;
 
-				if(findarg(buf+pos, 8)[0]==0) level->bglayers[0].xrepeat = 5000;
-				if(findarg(buf+pos, 9)[0]==0) level->bglayers[0].zrepeat = 5000;
+				if(arglist.count > 8 && arglist.args[8][0]==0) level->bglayers[0].xrepeat = 5000;
+				if(arglist.count > 9 && arglist.args[9][0]==0) level->bglayers[0].zrepeat = 5000;
 
 				if(level->numbglayers==0) level->numbglayers = 1;
 			}
@@ -8593,75 +8732,75 @@ void load_level(char *filename){
 				if(level->numbglayers >= LEVEL_MAX_BGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_BGLAYERS);
 				if(level->numbglayers==0) level->numbglayers = 1; // reserve for background
 
-				level->bglayers[level->numbglayers].xratio = atof(findarg(buf+pos, 2)); // x ratio
-				level->bglayers[level->numbglayers].zratio = atof(findarg(buf+pos, 3)); // z ratio
-				level->bglayers[level->numbglayers].xoffset = atoi(findarg(buf+pos, 4)); // x start
-				level->bglayers[level->numbglayers].zoffset = atoi(findarg(buf+pos, 5)); // z start
-				level->bglayers[level->numbglayers].xspacing = atoi(findarg(buf+pos, 6)); // x spacing
-				level->bglayers[level->numbglayers].zspacing = atoi(findarg(buf+pos, 7)); // z spacing
-				level->bglayers[level->numbglayers].xrepeat = atoi(findarg(buf+pos, 8)); // x repeat
-				level->bglayers[level->numbglayers].zrepeat = atoi(findarg(buf+pos, 9)); // z repeat
-				level->bglayers[level->numbglayers].transparency = atoi(findarg(buf+pos, 10)); // transparency
-				level->bglayers[level->numbglayers].alpha = atoi(findarg(buf+pos, 11)); // alpha
-				level->bglayers[level->numbglayers].watermode = atoi(findarg(buf+pos, 12)); // amplitude
-				level->bglayers[level->numbglayers].amplitude = atoi(findarg(buf+pos, 13)); // amplitude
-				level->bglayers[level->numbglayers].wavelength = atoi(findarg(buf+pos, 14)); // wavelength
-				level->bglayers[level->numbglayers].wavespeed = atof(findarg(buf+pos, 15)); // waterspeed
-				level->bglayers[level->numbglayers].bgspeedratio = atof(findarg(buf+pos, 16)); // moving
+				level->bglayers[level->numbglayers].xratio = atof(GET_ARG(2)); // x ratio
+				level->bglayers[level->numbglayers].zratio = atof(GET_ARG(3)); // z ratio
+				level->bglayers[level->numbglayers].xoffset = atoi(GET_ARG(4)); // x start
+				level->bglayers[level->numbglayers].zoffset = atoi(GET_ARG(5)); // z start
+				level->bglayers[level->numbglayers].xspacing = atoi(GET_ARG(6)); // x spacing
+				level->bglayers[level->numbglayers].zspacing = atoi(GET_ARG(7)); // z spacing
+				level->bglayers[level->numbglayers].xrepeat = atoi(GET_ARG(8)); // x repeat
+				level->bglayers[level->numbglayers].zrepeat = atoi(GET_ARG(9)); // z repeat
+				level->bglayers[level->numbglayers].transparency = atoi(GET_ARG(10)); // transparency
+				level->bglayers[level->numbglayers].alpha = atoi(GET_ARG(11)); // alpha
+				level->bglayers[level->numbglayers].watermode = atoi(GET_ARG(12)); // amplitude
+				level->bglayers[level->numbglayers].amplitude = atoi(GET_ARG(13)); // amplitude
+				level->bglayers[level->numbglayers].wavelength = atoi(GET_ARG(14)); // wavelength
+				level->bglayers[level->numbglayers].wavespeed = atof(GET_ARG(15)); // waterspeed
+				level->bglayers[level->numbglayers].bgspeedratio = atof(GET_ARG(16)); // moving
 				level->bglayers[level->numbglayers].enabled = 1; // enabled
 
-				if(findarg(buf+pos, 2)[0]==0) level->bglayers[level->numbglayers].xratio = 0.5;
-				if(findarg(buf+pos, 3)[0]==0) level->bglayers[level->numbglayers].zratio = 0.5;
+				if(arglist.count > 2 && arglist.args[2][0]==0) level->bglayers[level->numbglayers].xratio = 0.5;
+				if(arglist.count > 3 && arglist.args[3][0]==0) level->bglayers[level->numbglayers].zratio = 0.5;
 
-				if(findarg(buf+pos, 8)[0]==0) level->bglayers[level->numbglayers].xrepeat = 5000; // close enough to infinite, lol
-				if(findarg(buf+pos, 9)[0]==0) level->bglayers[level->numbglayers].zrepeat = 5000;
+				if(arglist.count > 8 && arglist.args[8][0]==0) level->bglayers[level->numbglayers].xrepeat = 5000; // close enough to infinite, lol
+				if(arglist.count > 9 && arglist.args[9][0]==0) level->bglayers[level->numbglayers].zrepeat = 5000;
 
 				if(blendfx_is_set==0 && level->bglayers[level->numbglayers].alpha) blendfx[level->bglayers[level->numbglayers].alpha-1] = 1;
 
-				load_bglayer(findarg(buf+pos, 1), level->numbglayers);
+				load_bglayer(GET_ARG(1), level->numbglayers);
 				level->numbglayers++;
 			}
 			else if(stricmp(command, "fglayer") == 0){
 				if(level->numfglayers >= LEVEL_MAX_FGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_FGLAYERS);
 
-				level->fglayers[level->numfglayers].z = atoi(findarg(buf+pos, 2)); // z
-				level->fglayers[level->numfglayers].xratio = atof(findarg(buf+pos, 3)); // x ratio
-				level->fglayers[level->numfglayers].zratio = atof(findarg(buf+pos, 4)); // z ratio
-				level->fglayers[level->numfglayers].xoffset = atoi(findarg(buf+pos, 5)); // x start
-				level->fglayers[level->numfglayers].zoffset = atoi(findarg(buf+pos, 6)); // z start
-				level->fglayers[level->numfglayers].xspacing = atoi(findarg(buf+pos, 7)); // x spacing
-				level->fglayers[level->numfglayers].zspacing = atoi(findarg(buf+pos, 8)); // z spacing
-				level->fglayers[level->numfglayers].xrepeat = atoi(findarg(buf+pos, 9)); // x repeat
+				level->fglayers[level->numfglayers].z = atoi(GET_ARG(2)); // z
+				level->fglayers[level->numfglayers].xratio = atof(GET_ARG(3)); // x ratio
+				level->fglayers[level->numfglayers].zratio = atof(GET_ARG(4)); // z ratio
+				level->fglayers[level->numfglayers].xoffset = atoi(GET_ARG(5)); // x start
+				level->fglayers[level->numfglayers].zoffset = atoi(GET_ARG(6)); // z start
+				level->fglayers[level->numfglayers].xspacing = atoi(GET_ARG(7)); // x spacing
+				level->fglayers[level->numfglayers].zspacing = atoi(GET_ARG(8)); // z spacing
+				level->fglayers[level->numfglayers].xrepeat = atoi(GET_ARG(9)); // x repeat
 
-				level->fglayers[level->numfglayers].zrepeat = atoi(findarg(buf+pos, 10)); // z repeat
-				level->fglayers[level->numfglayers].transparency = atoi(findarg(buf+pos, 11)); // transparency
-				level->fglayers[level->numfglayers].alpha = atoi(findarg(buf+pos, 12)); // alpha
-				level->fglayers[level->numfglayers].watermode = atoi(findarg(buf+pos, 13)); // amplitude
-				level->fglayers[level->numfglayers].amplitude = atoi(findarg(buf+pos, 14)); // amplitude
-				level->fglayers[level->numfglayers].wavelength = atoi(findarg(buf+pos, 15)); // wavelength
-				level->fglayers[level->numfglayers].wavespeed = atof(findarg(buf+pos, 16)); // waterspeed
-				level->fglayers[level->numfglayers].bgspeedratio = atof(findarg(buf+pos, 17)); // moving
+				level->fglayers[level->numfglayers].zrepeat = atoi(GET_ARG(10)); // z repeat
+				level->fglayers[level->numfglayers].transparency = atoi(GET_ARG(11)); // transparency
+				level->fglayers[level->numfglayers].alpha = atoi(GET_ARG(12)); // alpha
+				level->fglayers[level->numfglayers].watermode = atoi(GET_ARG(13)); // amplitude
+				level->fglayers[level->numfglayers].amplitude = atoi(GET_ARG(14)); // amplitude
+				level->fglayers[level->numfglayers].wavelength = atoi(GET_ARG(15)); // wavelength
+				level->fglayers[level->numfglayers].wavespeed = atof(GET_ARG(16)); // waterspeed
+				level->fglayers[level->numfglayers].bgspeedratio = atof(GET_ARG(17)); // moving
 				level->fglayers[level->numfglayers].enabled = 1;
 
-				if(findarg(buf+pos, 2)[0]==0) level->fglayers[level->numfglayers].xratio = 1.5;
-				if(findarg(buf+pos, 3)[0]==0) level->fglayers[level->numfglayers].zratio = 1.5;
+				if(arglist.count > 2 && arglist.args[2][0]==0) level->fglayers[level->numfglayers].xratio = 1.5;
+				if(arglist.count > 3 && arglist.args[3][0]==0) level->fglayers[level->numfglayers].zratio = 1.5;
 
-				if(findarg(buf+pos, 8)[0]==0) level->fglayers[level->numfglayers].xrepeat = 5000; // close enough to infinite, lol
-				if(findarg(buf+pos, 9)[0]==0) level->fglayers[level->numfglayers].zrepeat = 5000;
+				if(arglist.count > 8 && arglist.args[8][0]==0) level->fglayers[level->numfglayers].xrepeat = 5000; // close enough to infinite, lol
+				if(arglist.count > 9 && arglist.args[9][0]==0) level->fglayers[level->numfglayers].zrepeat = 5000;
 
 				if(blendfx_is_set==0 && level->fglayers[level->numfglayers].alpha) blendfx[level->fglayers[level->numfglayers].alpha-1] = 1;
 
-				load_fglayer(findarg(buf+pos, 1), level->numfglayers);
+				load_fglayer(GET_ARG(1), level->numfglayers);
 				level->numfglayers++;
 			}
 			else if(stricmp(command, "water")==0){
-				load_texture(findarg(buf+pos, 1));
-				i = atoi(findarg(buf+pos, 2));
+				load_texture(GET_ARG(1));
+				i = atoi(GET_ARG(2));
 				if(i<1) i = 1;
 				texture_set_wave((float)i);
 			}
 			else if(stricmp(command, "direction")==0){
-				value = findarg(buf+pos, 1);
+				value = GET_ARG(1);
 				if(stricmp(value, "up")==0) level->scrolldir = SCROLL_UP;
 				else if(stricmp(value, "down")==0) level->scrolldir = SCROLL_DOWN;
 				else if(stricmp(value, "left")==0) level->scrolldir = SCROLL_LEFT;
@@ -8674,126 +8813,126 @@ void load_level(char *filename){
 				else if(stricmp(value, "outin")==0) level->scrolldir = SCROLL_OUTIN;
 			}
 			else if(stricmp(command, "facing")==0){
-				level->facing = atoi(findarg(buf+pos, 1));
+				level->facing = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "rock")==0){
-				level->rocking = atoi(findarg(buf+pos, 1));
+				level->rocking = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "bgspeed")==0){
-				level->bgspeed = atof(findarg(buf+pos, 1));
-				if(atoi(findarg(buf+pos, 2)))level->bgspeed*=-1;
+				level->bgspeed = atof(GET_ARG(1));
+				if(atoi(GET_ARG(2)))level->bgspeed*=-1;
 			}
 			else if(stricmp(command, "mirror")==0){
-				level->mirror = atoi(findarg(buf+pos, 1));
+				level->mirror = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "bossmusic")==0){
-				strncpy(level->bossmusic, findarg(buf+pos, 1), 255);
-				level->bossmusic_offset = atol(findarg(buf+pos, 2));
+				strncpy(level->bossmusic, GET_ARG(1), 255);
+				level->bossmusic_offset = atol(GET_ARG(2));
 			}
 			else if(stricmp(command, "nopause")==0){
-				nopause = atoi(findarg(buf+pos, 1));
+				nopause = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "noscreenshot")==0){
-				noscreenshot = atoi(findarg(buf+pos, 1));
+				noscreenshot = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "settime")==0){    // If settime is found, overwrite the default 100 for time limit
-				if(atoi(findarg(buf+pos, 1)) > 100 || atoi(findarg(buf+pos, 1)) < 0) level->settime = 100;
-				else level->settime = atoi(findarg(buf+pos, 1)); // Feb 25, 2005 - Time limit loaded from individual .txt file
+				if(atoi(GET_ARG(1)) > 100 || atoi(GET_ARG(1)) < 0) level->settime = 100;
+				else level->settime = atoi(GET_ARG(1)); // Feb 25, 2005 - Time limit loaded from individual .txt file
 			}
 			else if(stricmp(command, "setweap")==0){    // Specify a weapon for each level
-				level->setweap = atoi(findarg(buf+pos, 1));
+				level->setweap = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "notime")==0){    // Flag to if the time should be displayed 1 = no, else yes
-				level->notime = atoi(findarg(buf+pos, 1));
+				level->notime = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "noreset")==0){    // Flag to if the time should be reset when players respawn 1 = no, else yes
-				level->noreset = atoi(findarg(buf+pos, 1));
+				level->noreset = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "noslow")==0){    // If set, level will not slow down when bosses are defeated
-				level->noslow = atoi(findarg(buf+pos, 1));
+				level->noslow = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "type")==0){
-				level->type = atoi(findarg(buf+pos, 1));    // Level type - 1 = bonus, else regular
+				level->type = atoi(GET_ARG(1));    // Level type - 1 = bonus, else regular
 
-				if(atoi(findarg(buf+pos, 2))) level->nospecial = atoi(findarg(buf+pos, 2));    // Can use specials during bonus levels (default 0 - yes)
-				if(atoi(findarg(buf+pos, 3))) level->nohurt = atoi(findarg(buf+pos, 3));    // Can hurt other players during bonus levels (default 0 - yes)
+				if(atoi(GET_ARG(2))) level->nospecial = atoi(GET_ARG(2));    // Can use specials during bonus levels (default 0 - yes)
+				if(atoi(GET_ARG(3))) level->nohurt = atoi(GET_ARG(3));    // Can hurt other players during bonus levels (default 0 - yes)
 			}
 			else if(stricmp(command, "nohit")==0){
-				level->nohit = atoi(findarg(buf+pos, 1));
+				level->nohit = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "gravity")==0){
-				level->gravity = atof(findarg(buf+pos, 1));
+				level->gravity = atof(GET_ARG(1));
 				level->gravity /= 100;
 			}
 			else if(stricmp(command, "maxfallspeed")==0){
-				level->maxfallspeed = atof(findarg(buf+pos, 1));
+				level->maxfallspeed = atof(GET_ARG(1));
 				level->maxfallspeed /= 10;
 			}
 			else if(stricmp(command, "maxtossspeed")==0){
-				level->maxtossspeed = atof(findarg(buf+pos, 1));
+				level->maxtossspeed = atof(GET_ARG(1));
 				level->maxtossspeed /= 10;
 			}
 			else if(stricmp(command, "cameratype")==0){
-				cameratype = atoi(findarg(buf+pos, 1));
+				cameratype = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "cameraoffset")==0){
-				level->cameraxoffset = atoi(findarg(buf+pos, 1));
-				level->camerazoffset = atoi(findarg(buf+pos, 2));
+				level->cameraxoffset = atoi(GET_ARG(1));
+				level->camerazoffset = atoi(GET_ARG(2));
 			}
 			else if(stricmp(command, "spawn1")==0){
-				level->spawn[0][0] = atoi(findarg(buf+pos, 1));
-				level->spawn[0][1] = atoi(findarg(buf+pos, 2));
-				level->spawn[0][2] = atoi(findarg(buf+pos, 3));
+				level->spawn[0][0] = atoi(GET_ARG(1));
+				level->spawn[0][1] = atoi(GET_ARG(2));
+				level->spawn[0][2] = atoi(GET_ARG(3));
 
 				if(level->spawn[0][1] > 232 || level->spawn[0][1] < 0) level->spawn[0][1] = 232;
 
 				if(level->spawn[0][2] < 0) level->spawn[0][2] = 300;
 			}
 			else if(stricmp(command, "spawn2")==0){
-				level->spawn[1][0] = atoi(findarg(buf+pos, 1));
-				level->spawn[1][1] = atoi(findarg(buf+pos, 2));
-				level->spawn[1][2] = atoi(findarg(buf+pos, 3));
+				level->spawn[1][0] = atoi(GET_ARG(1));
+				level->spawn[1][1] = atoi(GET_ARG(2));
+				level->spawn[1][2] = atoi(GET_ARG(3));
 
 				if(level->spawn[1][1] > 232 || level->spawn[1][1] < 0) level->spawn[1][1] = 232;
 				if(level->spawn[1][2] < 0) level->spawn[1][2] = 300;
 			}
 			else if(stricmp(command, "spawn3")==0){
-				level->spawn[2][0] = atoi(findarg(buf+pos, 1));
-				level->spawn[2][1] = atoi(findarg(buf+pos, 2));
-				level->spawn[2][2] = atoi(findarg(buf+pos, 3));
+				level->spawn[2][0] = atoi(GET_ARG(1));
+				level->spawn[2][1] = atoi(GET_ARG(2));
+				level->spawn[2][2] = atoi(GET_ARG(3));
 
 				if(level->spawn[2][1] > 232 || level->spawn[2][1] < 0) level->spawn[2][1] = 232;
 				if(level->spawn[2][2] < 0) level->spawn[2][2] = 300;
 			}
 			else if(stricmp(command, "spawn4")==0){
-				level->spawn[3][0] = atoi(findarg(buf+pos, 1));
-				level->spawn[3][1] = atoi(findarg(buf+pos, 2));
-				level->spawn[3][2] = atoi(findarg(buf+pos, 3));
+				level->spawn[3][0] = atoi(GET_ARG(1));
+				level->spawn[3][1] = atoi(GET_ARG(2));
+				level->spawn[3][2] = atoi(GET_ARG(3));
 
 				if(level->spawn[3][1] > 232 || level->spawn[3][1] < 0) level->spawn[3][1] = 232;
 				if(level->spawn[3][2] < 0) level->spawn[3][2] = 300;
 			}
 			else if(stricmp(command, "frontpanel")==0){
-				value = findarg(buf+pos, 1);
+				value = GET_ARG(1);
 
 				if(!loadfrontpanel(value)) shutdown(1, "Unable to load '%s'!", value);
 			}
 			else if(stricmp(command, "panel")==0){
-				if(!loadpanel(findarg(buf+pos, 1), findarg(buf+pos, 2), findarg(buf+pos, 3)))  {
+				if(!loadpanel(GET_ARG(1), GET_ARG(2), GET_ARG(3)))  {
 					//shutdown(1, "Panel load error in '%s'!", filename);
-					printf("loadpanel :%s :%s :%s failed\n", findarg(buf+pos, 1), findarg(buf+pos, 2), findarg(buf+pos, 3));
+					printf("loadpanel :%s :%s :%s failed\n", GET_ARG(1), GET_ARG(2), GET_ARG(3));
 					assert(0);
 				}
 
 			}
 			else if(stricmp(command, "stagenumber")==0){
-				current_stage = atoi(findarg(buf+pos, 1));
+				current_stage = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "order")==0){
 				// Append to order
 				if(panels_loaded<1) shutdown(1, "You must load the panels before entering the level layout!");
 
-				value = findarg(buf+pos, 1);
+				value = GET_ARG(1);
 				i = 0;
 				while(value[i] && level->numpanels < LEVEL_MAX_PANELS){
 					j = value[i];
@@ -8810,7 +8949,7 @@ void load_level(char *filename){
 				}
 			}
 			else if(stricmp(command, "hole")==0){
-				value = findarg(buf+pos, 1);    // ltb    1-18-05  adjustable hole sprites
+				value = GET_ARG(1);    // ltb    1-18-05  adjustable hole sprites
 
 				if(holesprite < 0)
 				{
@@ -8819,13 +8958,13 @@ void load_level(char *filename){
 				}
 
 				if(level->numholes >= LEVEL_MAX_HOLES) shutdown(1, "Too many holes in level (max %i)!", LEVEL_MAX_HOLES);
-				level->holes[level->numholes][0] = atof(findarg(buf+pos, 1));
-				level->holes[level->numholes][1] = atof(findarg(buf+pos,2));
-				level->holes[level->numholes][2] = atof(findarg(buf+pos,3));
-				level->holes[level->numholes][3] = atof(findarg(buf+pos,4));
-				level->holes[level->numholes][4] = atof(findarg(buf+pos,5));
-				level->holes[level->numholes][5] = atof(findarg(buf+pos,6));
-				level->holes[level->numholes][6] = atof(findarg(buf+pos,7));
+				level->holes[level->numholes][0] = atof(GET_ARG(1));
+				level->holes[level->numholes][1] = atof(GET_ARG(2));
+				level->holes[level->numholes][2] = atof(GET_ARG(3));
+				level->holes[level->numholes][3] = atof(GET_ARG(4));
+				level->holes[level->numholes][4] = atof(GET_ARG(5));
+				level->holes[level->numholes][5] = atof(GET_ARG(6));
+				level->holes[level->numholes][6] = atof(GET_ARG(7));
 
 				if(!level->holes[level->numholes][1]) level->holes[level->numholes][1] = 240;
 				if(!level->holes[level->numholes][2]) level->holes[level->numholes][2] = 12;
@@ -8837,21 +8976,21 @@ void load_level(char *filename){
 			}
 				else if(stricmp(command, "wall")==0){
 					if(level->numwalls >= LEVEL_MAX_WALLS) shutdown(1, "Too many walls in level (max %i)!", LEVEL_MAX_WALLS);
-					level->walls[level->numwalls][0] = atof(findarg(buf+pos, 1));
-					level->walls[level->numwalls][1] = atof(findarg(buf+pos,2));
-					level->walls[level->numwalls][2] = atof(findarg(buf+pos,3));
-					level->walls[level->numwalls][3] = atof(findarg(buf+pos,4));
-					level->walls[level->numwalls][4] = atof(findarg(buf+pos,5));
-					level->walls[level->numwalls][5] = atof(findarg(buf+pos,6));
-					level->walls[level->numwalls][6] = atof(findarg(buf+pos,7));
-					level->walls[level->numwalls][7] = atof(findarg(buf+pos,8));
+					level->walls[level->numwalls][0] = atof(GET_ARG(1));
+					level->walls[level->numwalls][1] = atof(GET_ARG(2));
+					level->walls[level->numwalls][2] = atof(GET_ARG(3));
+					level->walls[level->numwalls][3] = atof(GET_ARG(4));
+					level->walls[level->numwalls][4] = atof(GET_ARG(5));
+					level->walls[level->numwalls][5] = atof(GET_ARG(6));
+					level->walls[level->numwalls][6] = atof(GET_ARG(7));
+					level->walls[level->numwalls][7] = atof(GET_ARG(8));
 					level->numwalls++;
 				}
 				else if(stricmp(command, "palette")==0){
 					if(level->numpalettes >= LEVEL_MAX_PALETTES) shutdown(1, "Too many palettes in level (max %i)!", LEVEL_MAX_PALETTES);
 					for(i=0; i<MAX_BLENDINGS; i++)
-					usemap[i] = atoi(findarg(buf+pos, i+2));
-					if(!load_palette(level->palettes[level->numpalettes], findarg(buf+pos,1)) ||
+					usemap[i] = atoi(GET_ARG(i+2));
+					if(!load_palette(level->palettes[level->numpalettes], GET_ARG(1)) ||
 					!create_blending_tables(level->palettes[level->numpalettes], level->blendings[level->numpalettes], usemap))
 					{
 						shutdown(1, "Failed to create colour conversion tables for level! (Out of memory?)");
@@ -8860,7 +8999,7 @@ void load_level(char *filename){
 				}
 				else if(stricmp(command, "updatescript")==0)
 				{
-					value = findarg(buf+pos, 1);
+					value = GET_ARG(1);
 					if(!Script_IsInitialized(&(level->update_script)))
 						Script_Init(&(level->update_script), "levelupdatescript", 1);
 					else shutdown(1, "Multiple level update script: '%s'!", value);
@@ -8870,7 +9009,7 @@ void load_level(char *filename){
 				}
 				else if(stricmp(command, "updatedscript")==0)
 				{
-					value = findarg(buf+pos, 1);
+					value = GET_ARG(1);
 					if(!Script_IsInitialized(&(level->updated_script)))
 						Script_Init(&(level->updated_script), "levelupdatedscript", 1);
 					else shutdown(1, "Multiple level updated script: '%s'!", value);
@@ -8880,7 +9019,7 @@ void load_level(char *filename){
 				}
             else if(stricmp(command, "keyscript")==0)
             {
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 if(!Script_IsInitialized(&(level->key_script)))
                     Script_Init(&(level->key_script), "levelkeyscript", 1);
                 else shutdown(1, "Multiple level key script: '%s'!", value);
@@ -8890,7 +9029,7 @@ void load_level(char *filename){
             }
             else if(stricmp(command, "levelscript")==0)
             {
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 if(!Script_IsInitialized(&(level->level_script)))
                     Script_Init(&(level->level_script), command, 1);
                 else shutdown(1, "Multiple level script: '%s'!", value);
@@ -8900,7 +9039,7 @@ void load_level(char *filename){
             }
             else if(stricmp(command, "endlevelscript")==0)
             {
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 if(!Script_IsInitialized(&(level->endlevel_script)))
                     Script_Init(&(level->endlevel_script), command, 1);
                 else shutdown(1, "Multiple end-level script: '%s'!", value);
@@ -8909,10 +9048,10 @@ void load_level(char *filename){
                 else shutdown(1, "Failed loading end-level script: '%s'!", value);
             }
             else if(stricmp(command, "blocked")==0){
-                level->exit_blocked = atoi(findarg(buf+pos, 1));
+                level->exit_blocked = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "endhole")==0){
-                level->exit_hole = atoi(findarg(buf+pos, 1));
+                level->exit_hole = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "wait")==0){
                 // Clear spawn thing, set wait state instead
@@ -8931,44 +9070,44 @@ void load_level(char *filename){
             }
             else if(stricmp(command, "shadowcolor")==0){
                 memset(&next,0,sizeof(s_spawn_entry));
-				next.shadowcolor = atoi(findarg(buf+pos, 1));
+				next.shadowcolor = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "shadowalpha")==0){
                 memset(&next,0,sizeof(s_spawn_entry));
-				next.shadowalpha = atoi(findarg(buf+pos, 1));
+				next.shadowalpha = atoi(GET_ARG(1));
 				if(blendfx_is_set==0 && next.shadowalpha>0) blendfx[next.shadowalpha-1] = 1;
             }
             else if(stricmp(command, "light")==0){
                 memset(&next,0,sizeof(s_spawn_entry));
-			    next.light[0] = atoi(findarg(buf+pos, 1));
-				next.light[1] = atoi(findarg(buf+pos, 2));
+			    next.light[0] = atoi(GET_ARG(1));
+				next.light[1] = atoi(GET_ARG(2));
 				if(next.light[1] == 0) next.light[1] = 64;
             }
             else if(stricmp(command, "scrollz")==0 || stricmp(command, "scrollx")==0){
                 // now z scroll can be limited by this
                 // if the level is vertical, use scrollx, only different in name ..., but makes more sense
                 memset(&next,0,sizeof(s_spawn_entry));
-                next.scrollminz = atoi(findarg(buf+pos, 1));
-                next.scrollmaxz = atoi(findarg(buf+pos, 2));
+                next.scrollminz = atoi(GET_ARG(1));
+                next.scrollmaxz = atoi(GET_ARG(2));
                 if(next.scrollminz <= 0) next.scrollminz = 4;
                 if(next.scrollmaxz <= 0) next.scrollmaxz = 4;
             }
             else if(stricmp(command, "blockade")==0){
                 // now x scroll can be limited by this
                 memset(&next,0,sizeof(s_spawn_entry));
-                next.blockade = atoi(findarg(buf+pos, 1));
+                next.blockade = atoi(GET_ARG(1));
                 if(next.blockade==0) next.blockade = -1;
             }
             else if(stricmp(command, "setpalette")==0){
                 // change system palette
                 memset(&next,0,sizeof(s_spawn_entry));
-                next.palette = atoi(findarg(buf+pos, 1));
+                next.palette = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "group")==0){
                 // Clear spawn thing, set group instead
                 memset(&next,0,sizeof(s_spawn_entry));
-                next.groupmin = atoi(findarg(buf+pos, 1));
-                next.groupmax = atoi(findarg(buf+pos, 2));
+                next.groupmin = atoi(GET_ARG(1));
+                next.groupmax = atoi(GET_ARG(2));
                 if(next.groupmax < 1) next.groupmax = 1;
                 if(next.groupmin < 1) next.groupmin = 100;
             }
@@ -8979,7 +9118,7 @@ void load_level(char *filename){
                 next.index = next.itemindex = next.weaponindex = -1;
                 // Name of entry to be spawned
                 // Load model (if not loaded already)
-				strncpy(string, findarg(buf+pos, 1), 128);
+				strncpy(string, GET_ARG(1), 128);
 				cached_model = find_model(string);
 				if(cached_model) tempmodel = cached_model;
 				else tempmodel = load_cached_model(string, filename, 0);
@@ -9003,59 +9142,59 @@ void load_level(char *filename){
                 next.spawnplayer_count = 3;
             }
             else if(stricmp(command, "boss")==0){
-                next.boss = atoi(findarg(buf+pos, 1));
+                next.boss = atoi(GET_ARG(1));
 				level->bosses += next.boss ? 1 : 0;
             }
             else if(stricmp(command, "flip")==0){
-                next.flip = atoi(findarg(buf+pos, 1));
+                next.flip = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "health")==0){
-                next.health[0] = next.health[1] = next.health[2] = next.health[3] = atoi(findarg(buf+pos, 1));
+                next.health[0] = next.health[1] = next.health[2] = next.health[3] = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "2phealth")==0){    // Health the spawned entity will have if 2 people are playing
-                next.health[1] = next.health[2] = next.health[3] = atoi(findarg(buf+pos, 1));
+                next.health[1] = next.health[2] = next.health[3] = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "3phealth")==0){    // Health the spawned entity will have if 2 people are playing
-                next.health[2] = next.health[3] = atoi(findarg(buf+pos, 1));  //4player
+                next.health[2] = next.health[3] = atoi(GET_ARG(1));  //4player
             }
             else if(stricmp(command, "4phealth")==0){    // Health the spawned entity will have if 2 people are playing
-                next.health[3] = atoi(findarg(buf+pos, 1));  //4player
+                next.health[3] = atoi(GET_ARG(1));  //4player
             }
             else if(stricmp(command, "mp")==0){        // mp values to put max mp for player by tails
-                next.mp = atoi(findarg(buf+pos, 1));
+                next.mp = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "score")==0){    // So score can be overriden in the levels .txt file
-                next.score = atoi(findarg(buf+pos, 1));
+                next.score = atoi(GET_ARG(1));
                 if(next.score < 0) next.score = 0;    // So negative values cannot be added
-                next.multiple = atoi(findarg(buf+pos, 2));
+                next.multiple = atoi(GET_ARG(2));
                 if(next.multiple < 0) next.multiple = 0;    // So negative values cannot be added
             }
             else if(stricmp(command, "nolife")==0){    // Flag to determine if entity life is shown when hit
-                next.nolife = atoi(findarg(buf+pos, 1));
+                next.nolife = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "alias")==0){
                 // Alias (name displayed) of entry to be spawned
-                strncpy(next.alias, findarg(buf+pos, 1), MAX_NAME_LEN);
+                strncpy(next.alias, GET_ARG(1), MAX_NAME_LEN);
             }
             else if(stricmp(command, "map")==0){
                 // Colourmap for new entry
-                next.colourmap = atoi(findarg(buf+pos, 1));
+                next.colourmap = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "alpha")==0){
                 // Item to be contained by new entry
-                next.alpha = atoi(findarg(buf+pos, 1));
+                next.alpha = atoi(GET_ARG(1));
                 if(blendfx_is_set==0 && next.alpha) blendfx[next.alpha-1] = 1;
             }
             else if(stricmp(command, "dying")==0){    // Used to store which remake corresponds with the dying flash
-                next.dying = atoi(findarg(buf+pos, 1));
-                next.per1 = atoi(findarg(buf+pos, 2));
-                next.per2 = atoi(findarg(buf+pos, 3));
+                next.dying = atoi(GET_ARG(1));
+                next.per1 = atoi(GET_ARG(2));
+                next.per2 = atoi(GET_ARG(3));
             }
             else if(stricmp(command, "item")==0){
                 // Item to be contained by new entry
                 next.itemplayer_count = 0;
                 // Load model (if not loaded already)
-				strncpy(string, findarg(buf+pos, 1), 128);
+				strncpy(string, GET_ARG(1), 128);
 				cached_model = find_model(string);
 				if(cached_model) tempmodel = cached_model;
 				else tempmodel = load_cached_model(string, filename, 0);
@@ -9069,7 +9208,7 @@ void load_level(char *filename){
                 // Item only for 2p game
                 next.itemplayer_count = 1;
                 // Load model (if not loaded already)  // 2007-2-12, inserted by UTunnels
-				strncpy(string, findarg(buf+pos, 1), 128);
+				strncpy(string, GET_ARG(1), 128);
 				cached_model = find_model(string);
 				if(cached_model) tempmodel = cached_model;
 				else tempmodel = load_cached_model(string, filename, 0);
@@ -9083,7 +9222,7 @@ void load_level(char *filename){
                 // Item only for 2p game
                 next.itemplayer_count = 2;
                 // Load model (if not loaded already)  // 2007-2-12, inserted by UTunnels
-				strncpy(string, findarg(buf+pos, 1), 128);
+				strncpy(string, GET_ARG(1), 128);
 				cached_model = find_model(string);
 				if(cached_model) tempmodel = cached_model;
 				else tempmodel = load_cached_model(string, filename, 0);
@@ -9097,7 +9236,7 @@ void load_level(char *filename){
                 // Item only for 2p game
                 next.itemplayer_count = 3;
                 // Load model (if not loaded already) // 2007-2-12, inserted by UTunnels
-				strncpy(string, findarg(buf+pos, 1), 128);
+				strncpy(string, GET_ARG(1), 128);
 				cached_model = find_model(string);
 				if(cached_model) tempmodel = cached_model;
 				else tempmodel = load_cached_model(string, filename, 0);
@@ -9108,17 +9247,17 @@ void load_level(char *filename){
                 }
             }
             else if(stricmp(command, "itemmap")==0){
-                next.itemmap = atoi(findarg(buf+pos, 1));
+                next.itemmap = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "itemhealth")==0){
-                next.itemhealth = atoi(findarg(buf+pos, 1));
+                next.itemhealth = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "itemalias")==0){
-                strncpy(next.itemalias, findarg(buf+pos, 1), MAX_NAME_LEN);
+                strncpy(next.itemalias, GET_ARG(1), MAX_NAME_LEN);
             }
             else if(stricmp(command, "weapon")==0){  //spawn with a weapon 2007-2-12 by UTunnels
                 // Load model (if not loaded already)
-				strncpy(string, findarg(buf+pos, 1), 128);
+				strncpy(string, GET_ARG(1), 128);
 				cached_model = find_model(string);
 				if(cached_model) tempmodel = cached_model;
 				else tempmodel = load_cached_model(string, filename, 0);
@@ -9129,22 +9268,22 @@ void load_level(char *filename){
                 }
             }
             else if(stricmp(command, "aggression")==0){ // Aggression can be set per spawn.
-                next.aggression = next.aggression + atoi(findarg(buf+pos, 1));
+                next.aggression = next.aggression + atoi(GET_ARG(1));
             }
             else if(stricmp(command, "credit")==0){
-                next.credit = atoi(findarg(buf+pos, 1));
+                next.credit = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "itemtrans")==0 || stricmp(command, "itemalpha")==0){
-                next.itemtrans = atoi(findarg(buf+pos, 1));
+                next.itemtrans = atoi(GET_ARG(1));
             }
             else if(stricmp(command, "coords")==0){
-                next.x = atof(findarg(buf+pos, 1));
-                next.z = atof(findarg(buf+pos, 2));
-                next.a = atof(findarg(buf+pos, 3));
+                next.x = atof(GET_ARG(1));
+                next.z = atof(GET_ARG(2));
+                next.a = atof(GET_ARG(3));
             }
             else if(stricmp(command, "spawnscript")==0) // spawn entry script
             {
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
 				tempnode = spawn_script_cache_head;
 				if(!next.spawn_script_list_head) next.spawn_script_list_head = NULL;
 				templistnode = next.spawn_script_list_head;
@@ -9195,7 +9334,7 @@ void load_level(char *filename){
 	                    Script_Compile(templistnode->spawn_script);
 						if(tempnode)
 						{
-                            value2 = findarg(buf+pos, 1);
+                            value2 = GET_ARG(1);
                             len = strlen(value2);
 							tempnode2 = tracemalloc("spawn_script_node", sizeof(s_spawn_script_cache_node));
 							tempnode2->cached_spawn_script = templistnode->spawn_script;
@@ -9207,7 +9346,7 @@ void load_level(char *filename){
 						}
 						else
 						{
-                            value2 = findarg(buf+pos, 1);
+                            value2 = GET_ARG(1);
                             len = strlen(value2);
 							spawn_script_cache_head = tracemalloc("spawn_script_node", sizeof(s_spawn_script_cache_node));
 							spawn_script_cache_head->cached_spawn_script = templistnode->spawn_script;
@@ -9222,7 +9361,7 @@ void load_level(char *filename){
 			}
 			else if(stricmp(command, "at")==0){
                 // Place entry on queue
-                next.at = atoi(findarg(buf+pos, 1));
+                next.at = atoi(GET_ARG(1));
 
                 if(level->numspawns >= LEVEL_MAX_SPAWNS) shutdown(1, "Level error: too many entries (max. %i)", LEVEL_MAX_SPAWNS);
                 memcpy(&level->spawnpoints[level->numspawns], &next, sizeof(s_spawn_entry));
@@ -20266,6 +20405,9 @@ void playscene(char *filename)
     char giffile[256];
     int x=0, y=0, skipone=0, noskip=0;
     int closing = 0;
+    
+    ArgList arglist;
+    char argbuf[MAX_ARG_LEN+1] = "";    
 
     // Read file
     if(buffer_pakfile(filename, &buf, &size)!=1) return;
@@ -20273,17 +20415,18 @@ void playscene(char *filename)
     // Now interpret the contents of buf line by line
     pos = 0;
     while(buf[pos]){
-        command = findarg(buf+pos, 0);
+	    ParseArgs(&arglist,buf+pos,argbuf);
+        command = GET_ARG(0);
         if(command[0]){
             if(!closing && stricmp(command, "music")==0){
-                music(findarg(buf+pos, 1), atoi(findarg(buf+pos, 2)), atol(findarg(buf+pos, 3)));
+                music(GET_ARG(1), atoi(GET_ARG(2)), atol(GET_ARG(3)));
             }
             else if(!closing && stricmp(command, "animation")==0){
-                strcpy(giffile, findarg(buf+pos, 1));
-                x = atoi(findarg(buf+pos, 2));
-                y = atoi(findarg(buf+pos, 3));
-                skipone = atoi(findarg(buf+pos, 4));
-                noskip = atoi(findarg(buf+pos, 5));
+                strcpy(giffile, GET_ARG(1));
+                x = atoi(GET_ARG(2));
+                y = atoi(GET_ARG(3));
+                skipone = atoi(GET_ARG(4));
+                noskip = atoi(GET_ARG(5));
                 if(playgif(giffile, x, y, noskip) == -1 && !skipone) closing = 1;
             }
             else if(stricmp(command, "silence")==0){
@@ -20637,6 +20780,8 @@ int selectplayer(int *players, char* filename)
     char* buf, *command;
     size_t size = 0;
     ptrdiff_t pos = 0;
+    ArgList arglist;
+    char argbuf[MAX_ARG_LEN+1] = "";    
 
     selectScreen = 1;
 	kill_all();
@@ -20653,12 +20798,13 @@ int selectplayer(int *players, char* filename)
         if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Failed to load player select file '%s'", filename);
         while(pos < size)
         {
-            command = findarg(buf+pos, 0);
+		ParseArgs(&arglist,buf+pos,argbuf);
+            command = GET_ARG(0);
             if(command[0])
             {
                 if(stricmp(command, "music")==0)
                 {
-                    music(findarg(buf+pos, 1), atoi(findarg(buf+pos, 2)), atol(findarg(buf+pos, 3)));
+                    music(GET_ARG(1), atoi(GET_ARG(2)), atol(GET_ARG(3)));
                 }
                 else if(stricmp(command, "allowselect")==0)
                 {
@@ -20666,11 +20812,11 @@ int selectplayer(int *players, char* filename)
                 }
                 else if(stricmp(command, "background")==0)
                 {
-                    load_background(findarg(buf+pos, 1), 1);
+                    load_background(GET_ARG(1), 1);
                 }
                 else if(stricmp(command, "load")==0){
-                    strncpy(string, findarg(buf+pos, 1), 128);
-                    load_cached_model(string, filename, atoi(findarg(buf+pos, 2)));
+                    strncpy(string, GET_ARG(1), 128);
+                    load_cached_model(string, filename, atoi(GET_ARG(2)));
                 }
                 else shutdown(1, "Command '%s' is not understood in file '%s'", command, filename);
             }
@@ -21353,6 +21499,8 @@ void init_videomodes(int log)
 	char *buf = NULL;
 	char *command = NULL;
 	char *value = NULL;
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN+1] = "";
 
 	if(log) printf("Initializing video............\n");
 
@@ -21398,38 +21546,40 @@ readfile:
     // Now interpret the contents of buf line by line
 	pos = 0;
 	while(pos<size){
-        command = findarg(buf+pos, 0);
+		ParseArgs(&arglist,buf+pos,argbuf);
+		command = GET_ARG(0);
+	
         if(command[0]){
 			if(stricmp(command, "video")==0){
-				videoMode = atoi(findarg(buf+pos, 1));
+				videoMode = atoi(GET_ARG(1));
 			}
 			else if(stricmp(command, "scenes")==0){
-                len = strlen(findarg(buf+pos, 1));
+                len = strlen(GET_ARG(1));
                 custScenes = tracemalloc("custScenes", len + 1);
-				strcpy(custScenes, findarg(buf+pos, 1));
+				strcpy(custScenes, GET_ARG(1));
                 custScenes[len] = 0;
 			}
 			else if(stricmp(command, "backgrounds")==0){
-                len = strlen(findarg(buf+pos, 1));
+                len = strlen(GET_ARG(1));
                 custBkgrds = tracemalloc("custBkgrds", len + 1);
-				strcpy(custBkgrds, findarg(buf+pos, 1));
+				strcpy(custBkgrds, GET_ARG(1));
                 custBkgrds[len] = 0;
 			}
 			else if(stricmp(command, "levels")==0){
-                len = strlen(findarg(buf+pos, 1));
+                len = strlen(GET_ARG(1));
                 custLevels = tracemalloc("custLevels", len + 1);
-				strcpy(custLevels, findarg(buf+pos, 1));
+				strcpy(custLevels, GET_ARG(1));
                 custLevels[len] = 0;
 			}
 			else if(stricmp(command, "models")==0){
-                len = strlen(findarg(buf+pos, 1));
+                len = strlen(GET_ARG(1));
                 custModels = tracemalloc("custModels", len + 1);
-				strcpy(custModels, findarg(buf+pos, 1));
+				strcpy(custModels, GET_ARG(1));
                 custModels[len] = 0;
 			}
             else if(stricmp(command, "colourdepth")==0){
                 pixelformat=PIXEL_x8;
-                value = findarg(buf+pos, 1);
+                value = GET_ARG(1);
                 if(stricmp(value, "8bit")==0)
                 {
                     screenformat=PIXEL_8;
@@ -21627,6 +21777,8 @@ void keyboard_setup(int player){
 		col1 =-8, col2 = 6;
 	ptrdiff_t pos, voffset;
 	size_t size;
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN+1] = "";	
 	char *buf, *command, *filename = "data/menu.txt",
 	     buttonnames[12][16];
 
@@ -21653,60 +21805,61 @@ void keyboard_setup(int player){
 		// Now interpret the contents of buf line by line
 		pos = 0;
 		while(pos<size){
-			command = findarg(buf+pos, 0);
+			ParseArgs(&arglist,buf+pos,argbuf);
+			command = GET_ARG(0);
 			if(command[0]){
 				if(stricmp(command, "disablekey")==0){
 
-					if(stricmp(findarg(buf+pos, 1), "moveup")==0)
+					if(stricmp(GET_ARG(1), "moveup")==0)
 						disabledkey[0] = 1;
-					else if(stricmp(findarg(buf+pos, 1), "movedown")==0)
+					else if(stricmp(GET_ARG(1), "movedown")==0)
 						disabledkey[1] = 1;
-					else if(stricmp(findarg(buf+pos, 1), "moveleft")==0)
+					else if(stricmp(GET_ARG(1), "moveleft")==0)
 						disabledkey[2] = 1;
-					else if(stricmp(findarg(buf+pos, 1), "moveright")==0)
+					else if(stricmp(GET_ARG(1), "moveright")==0)
 						disabledkey[3] = 1;
-					else if(stricmp(findarg(buf+pos, 1), "attack")==0)
+					else if(stricmp(GET_ARG(1), "attack")==0)
 						disabledkey[4] = 1;
-					else if(stricmp(findarg(buf+pos, 1), "attack2") == 0)
+					else if(stricmp(GET_ARG(1), "attack2") == 0)
 						disabledkey[5] = 1;
-					else if(stricmp(findarg(buf+pos, 1), "attack3") == 0)
+					else if(stricmp(GET_ARG(1), "attack3") == 0)
 						disabledkey[6] = 1;
-					else if(stricmp(findarg(buf+pos, 1), "attack4") == 0)
+					else if(stricmp(GET_ARG(1), "attack4") == 0)
 						disabledkey[7] = 1;
-					else if(stricmp(findarg(buf+pos, 1), "jump") == 0)
+					else if(stricmp(GET_ARG(1), "jump") == 0)
 						disabledkey[8] = 1;
-					else if(stricmp(findarg(buf+pos, 1), "special") == 0)
+					else if(stricmp(GET_ARG(1), "special") == 0)
 						disabledkey[9] = 1;
-					else if(stricmp(findarg(buf+pos, 1), "start") == 0)
+					else if(stricmp(GET_ARG(1), "start") == 0)
 						disabledkey[10] = 1;
-					else if(stricmp(findarg(buf+pos, 1), "screenshot") == 0)
+					else if(stricmp(GET_ARG(1), "screenshot") == 0)
 						disabledkey[11] = 1;
 				}
 				else if(stricmp(command, "renamekey")==0){
-					if(stricmp(findarg(buf+pos, 1), "moveup") == 0)
-						strncpy(buttonnames[0], findarg(buf+pos, 2), 16);
-					else if(stricmp(findarg(buf+pos, 1), "movedown") == 0)
-						strncpy(buttonnames[1], findarg(buf+pos, 2), 16);
-					else if(stricmp(findarg(buf+pos, 1), "moveleft") == 0)
-						strncpy(buttonnames[2], findarg(buf+pos, 2), 16);
-					else if(stricmp(findarg(buf+pos, 1), "moveright") == 0)
-						strncpy(buttonnames[3], findarg(buf+pos, 2), 16);
-					else if(stricmp(findarg(buf+pos, 1), "attack") == 0)
-						strncpy(buttonnames[4], findarg(buf+pos, 2), 16);
-					else if(stricmp(findarg(buf+pos, 1), "attack2") == 0)
-						strncpy(buttonnames[5], findarg(buf+pos, 2), 16);
-					else if(stricmp(findarg(buf+pos, 1), "attack3") == 0)
-						strncpy(buttonnames[6], findarg(buf+pos, 2), 16);
-					else if(stricmp(findarg(buf+pos, 1), "attack4") == 0)
-						strncpy(buttonnames[7], findarg(buf+pos, 2), 16);
-					else if(stricmp(findarg(buf+pos, 1), "jump") == 0)
-						strncpy(buttonnames[8], findarg(buf+pos, 2), 16);
-					else if(stricmp(findarg(buf+pos, 1), "special") == 0)
-						strncpy(buttonnames[9], findarg(buf+pos, 2), 16);
-					else if(stricmp(findarg(buf+pos, 1), "start") == 0)
-						strncpy(buttonnames[10], findarg(buf+pos, 2), 16);
-					else if(stricmp(findarg(buf+pos, 1), "screenshot") == 0)
-						strncpy(buttonnames[11], findarg(buf+pos, 2), 16);
+					if(stricmp(GET_ARG(1), "moveup") == 0)
+						strncpy(buttonnames[0], GET_ARG(2), 16);
+					else if(stricmp(GET_ARG(1), "movedown") == 0)
+						strncpy(buttonnames[1], GET_ARG(2), 16);
+					else if(stricmp(GET_ARG(1), "moveleft") == 0)
+						strncpy(buttonnames[2], GET_ARG(2), 16);
+					else if(stricmp(GET_ARG(1), "moveright") == 0)
+						strncpy(buttonnames[3], GET_ARG(2), 16);
+					else if(stricmp(GET_ARG(1), "attack") == 0)
+						strncpy(buttonnames[4], GET_ARG(2), 16);
+					else if(stricmp(GET_ARG(1), "attack2") == 0)
+						strncpy(buttonnames[5], GET_ARG(2), 16);
+					else if(stricmp(GET_ARG(1), "attack3") == 0)
+						strncpy(buttonnames[6], GET_ARG(2), 16);
+					else if(stricmp(GET_ARG(1), "attack4") == 0)
+						strncpy(buttonnames[7], GET_ARG(2), 16);
+					else if(stricmp(GET_ARG(1), "jump") == 0)
+						strncpy(buttonnames[8], GET_ARG(2), 16);
+					else if(stricmp(GET_ARG(1), "special") == 0)
+						strncpy(buttonnames[9], GET_ARG(2), 16);
+					else if(stricmp(GET_ARG(1), "start") == 0)
+						strncpy(buttonnames[10], GET_ARG(2), 16);
+					else if(stricmp(GET_ARG(1), "screenshot") == 0)
+						strncpy(buttonnames[11], GET_ARG(2), 16);
 				}
 				else if(stricmp(command, "fontmonospace")==0){
 					 // here to keep from crashing
