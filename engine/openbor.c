@@ -4446,6 +4446,12 @@ void lcmHandleCommandWeapons(ArgList* arglist, s_model* newchar) {
 		else (*newchar->weapon)[weap] = (*newchar->weapon)[last];
 	}
 }
+void lcmHandleCommandScripts(ArgList* arglist, Script* script, char* scriptname, char* filename) {
+	Script_Init(script, scriptname, 0);
+	if(load_script(script, GET_ARGP(1)))
+		Script_Compile(script);
+	else shutdown(1, "Unable to load %s '%s' in file '%s'.\n", scriptname, GET_ARGP(1), filename);
+}
 
 s_model* load_cached_model(char * name, char * owner, char unload)
 {
@@ -5524,130 +5530,70 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_SCRIPT:
 					//load the update script
-					Script_Init(newchar->update_script, "updateentityscript", 0);
-					if(load_script(newchar->update_script, GET_ARG(1)))
-						Script_Compile(newchar->update_script);
-					else shutdown(1, "Unable to load entity update script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->update_script, "updateentityscript", filename);
 					break;
 				case CMD_THINKSCRIPT:
-					Script_Init(newchar->think_script, "thinkscript", 0);
-					if(load_script(newchar->think_script, GET_ARG(1)))
-						Script_Compile(newchar->think_script);
-					else  shutdown(1, "Unable to load think script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->think_script, "thinkscript", filename);
 					break;
 				case CMD_TAKEDAMAGESCRIPT:
-					Script_Init(newchar->takedamage_script, "takedamagescript", 0);
-					if(load_script(newchar->takedamage_script, GET_ARG(1)))
-						Script_Compile(newchar->takedamage_script);
-					else shutdown(1, "Unable to load takedamage script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->takedamage_script, "takedamagescript", filename);
 					break;
 				case CMD_ONFALLSCRIPT:	
-					Script_Init(newchar->onfall_script, "onfallscript", 0);
-					if(load_script(newchar->onfall_script , GET_ARG(1)))
-						Script_Compile(newchar->onfall_script);
-					else shutdown(1, "Unable to load onfall script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->onfall_script, "onfallscript", filename);
 					break;
 				case CMD_ONPAINSCRIPT:	
-					Script_Init(newchar->onpain_script, "onpainscript", 0);
-					if(load_script(newchar->onpain_script , GET_ARG(1)))
-						Script_Compile(newchar->onpain_script);
-					else shutdown(1, "Unable to load onpain script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->onpain_script, "onpainscript", filename);
 					break;
 				case CMD_ONBLOCKSSCRIPT:	
-					Script_Init(newchar->onblocks_script, "onblocksscript", 0);
-					if(load_script(newchar->onblocks_script , GET_ARG(1)))
-						Script_Compile(newchar->onblocks_script);
-					else shutdown(1, "Unable to load onblocks script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->onblocks_script, "onblocksscript", filename);
 					break;
 				case CMD_ONBLOCKWSCRIPT:	
-					Script_Init(newchar->onblockw_script, "onblockwscript", 0);
-					if(load_script(newchar->onblockw_script , GET_ARG(1)))
-						Script_Compile(newchar->onblockw_script);
-					else shutdown(1, "Unable to load onblockw script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->onblockw_script, "onblockwscript", filename);
 					break;
 				case CMD_ONBLOCKOSCRIPT:
-					Script_Init(newchar->onblocko_script, "onblockoscript", 0);
-					if(load_script(newchar->onblocko_script , GET_ARG(1)))
-						Script_Compile(newchar->onblocko_script);
-					else shutdown(1, "Unable to load onblocko script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->onblocko_script, "onblockoscript", filename);
 					break;
-				case CMD_ONBLOCKZSCRIPT:	
-					Script_Init(newchar->onblockz_script, "onblockzscript", 0);
-					if(load_script(newchar->onblockz_script , GET_ARG(1)))
-						Script_Compile(newchar->onblockz_script);
-					else shutdown(1, "Unable to load onblockz script '%s' in file '%s'.\n", GET_ARG(1), filename);
+				case CMD_ONBLOCKZSCRIPT:
+					lcmHandleCommandScripts(&arglist, newchar->onblockz_script, "onblockzscript", filename);
 					break;
 				case CMD_ONBLOCKASCRIPT:	
-					Script_Init(newchar->onblocka_script, "onblockascript", 0);
-					if(load_script(newchar->onblocka_script , GET_ARG(1)))
-						Script_Compile(newchar->onblocka_script);
-					else shutdown(1, "Unable to load onblocka script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->onblocka_script, "onblockascript", filename);
 					break;
 				case CMD_ONMOVEXSCRIPT:	
-					Script_Init(newchar->onmovex_script, "onmovexscript", 0);
-					if(load_script(newchar->onmovex_script , GET_ARG(1)))
-						Script_Compile(newchar->onmovex_script);
-					else shutdown(1, "Unable to load onmovex script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->onmovex_script, "onmovexscript", filename);
 					break;
 				case CMD_ONMOVEZSCRIPT:
-					Script_Init(newchar->onmovez_script, "onmovezscript", 0);
-					if(load_script(newchar->onmovez_script , GET_ARG(1)))
-						Script_Compile(newchar->onmovez_script);
-					else shutdown(1, "Unable to load onmovez script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->onmovez_script, "onmovezscript", filename);
 					break;
 				case CMD_ONMOVEASCRIPT:	
-					Script_Init(newchar->onmovea_script, "onmoveascript", 0);
-					if(load_script(newchar->onmovea_script , GET_ARG(1)))
-						Script_Compile(newchar->onmovea_script);
-					else shutdown(1, "Unable to load onmovea script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->onmovea_script, "onmoveascript", filename);
 					break;
 				case CMD_ONDEATHSCRIPT:	
-					Script_Init(newchar->ondeath_script, "ondeathscript", 0);
-					if(load_script(newchar->ondeath_script, GET_ARG(1)))
-						Script_Compile(newchar->ondeath_script);
-					else shutdown(1, "Unable to load ondeath script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->ondeath_script, "ondeathscript", filename);
 					break;
 				case CMD_ONKILLSCRIPT:
-					Script_Init(newchar->onkill_script, "onkillscript", 0);
-					if(load_script(newchar->onkill_script, GET_ARG(1)))
-						Script_Compile(newchar->onkill_script);
-					else shutdown(1, "Unable to load onkill script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->onkill_script, "onkillscript", filename);
 					break;
-				case CMD_DIDBLOCKSCRIPT:	
-					Script_Init(newchar->didblock_script, "didblockscript", 0);
-					if(load_script(newchar->didblock_script, GET_ARG(1)))
-						Script_Compile(newchar->didblock_script);
-					else shutdown(1, "Unable to load didblock script '%s' in file '%s'.\n", GET_ARG(1), filename);
+				case CMD_DIDBLOCKSCRIPT:
+					lcmHandleCommandScripts(&arglist, newchar->didblock_script, "didblockscript", filename);
 					break;
 				case CMD_ONDOATTACKSCRIPT:	
-					Script_Init(newchar->ondoattack_script, "ondoattackscript", 0);
-					if(load_script(newchar->ondoattack_script, GET_ARG(1)))
-						Script_Compile(newchar->ondoattack_script);
-					else shutdown(1, "Unable to load ondoattack script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->ondoattack_script, "ondoattackscript", filename);
 					break;
 				case CMD_DIDHITSCRIPT:
-					Script_Init(newchar->didhit_script, "didhitscript", 0);
-					if(load_script(newchar->didhit_script, GET_ARG(1)))
-						Script_Compile(newchar->didhit_script);
-					else  shutdown(1, "Unable to load didhit script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->didhit_script, "didhitscript", filename);
 					break;
 				case CMD_ONSPAWNSCRIPT:
-					Script_Init(newchar->onspawn_script, "onspawnscript", 0);
-					if(load_script(newchar->onspawn_script, GET_ARG(1)))
-						Script_Compile(newchar->onspawn_script);
-					else  shutdown(1, "Unable to load onspawn script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->onspawn_script, "onspawnscript", filename);
 					break;
-				case CMD_ANIMATIONSCRIPT:	
+				case CMD_ANIMATIONSCRIPT:					
 					Script_Init(newchar->animation_script, "animationscript", 0);
 					if(!load_script(newchar->animation_script, GET_ARG(1)))
 						shutdown(1, "Unable to load animation script '%s' in file '%s'.\n", GET_ARG(1), filename);
 					//dont compile, until at end of this function
 					break;
 				case CMD_KEYSCRIPT:
-					Script_Init(newchar->key_script, "entitykeyscript", 0);
-					if(load_script(newchar->key_script, GET_ARG(1)))
-						Script_Compile(newchar->key_script);
-					else  shutdown(1, "Unable to load key script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					lcmHandleCommandScripts(&arglist, newchar->key_script, "entitykeyscript", filename);
 					break;
 				case CMD_ANIM:	
 					{
