@@ -105,16 +105,16 @@ static unsigned char *pak_header;
 //
 // Pointers to the Real Functions
 //
-typedef int (*OpenPackfile)(char*, char*);
+typedef int (*OpenPackfile)(const char*, const char*);
 typedef int (*ReadPackfile)(int, void*, int);
 typedef int (*SeekPackfile)(int, int, int);
 typedef int (*ClosePackfile)(int);
 
-int openPackfile(char*, char*);
+int openPackfile(const char*, const char*);
 int readPackfile(int, void*, int);
 int seekPackfile(int, int, int);
 int closePackfile(int);
-int openPackfileCached(char*, char*);
+int openPackfileCached(const char*, const char*);
 int readPackfileCached(int, void*, int);
 int seekPackfileCached(int, int, int);
 int closePackfileCached(int);
@@ -128,7 +128,7 @@ static ClosePackfile pClosePackfile;
 //
 // Generic but useful functions
 //
-char tolowerOneChar(char* c)
+char tolowerOneChar(const char* c)
 {
 	static const char diff = 'a' - 'A';
 	switch(*c) {
@@ -173,7 +173,7 @@ int myfilenamecmp(const char *a, size_t asize, const char *b, size_t bsize)
 
 // Convert slashes (UNIX) to backslashes (DOS).
 // Return a pointer to buffer with filename converted to DOS format.
-static char * slashback(char *sz)
+static char * slashback(const char *sz)
 {
     int i=0;
     static char new[256];
@@ -190,7 +190,7 @@ static char * slashback(char *sz)
 #ifndef WIN
 // Convert backslashes (DOS) to forward slashes (everything else).
 // Return a pointer to buffer with filename using forward slash as separator.
-static char * slashfwd(char *sz)
+static char * slashfwd(const char *sz)
 {
     int i=0;
     static char new[256];
@@ -282,7 +282,7 @@ int isRawData()
 
 /////////////////////////////////////////////////////////////////////////////
 
-int openpackfile(char *filename, char *packfilename)
+int openpackfile(const char *filename, const char *packfilename)
 {
 #ifdef VERBOSE
 	char* pointsto;
@@ -298,7 +298,7 @@ int openpackfile(char *filename, char *packfilename)
 	return pOpenPackfile(filename, packfilename);
 }
 
-int openPackfile(char *filename, char *packfilename)
+int openPackfile(const char *filename, const char *packfilename)
 {
 	int h, handle;
 	unsigned int magic, version, headerstart, p;
@@ -482,7 +482,7 @@ void update_filecache_vfd(int vfd)
     else filecache_setvfd(vfd, -1, -1, 0);
 }
 
-int openreadaheadpackfile(char *filename, char *packfilename, int readaheadsize, int prebuffersize)
+int openreadaheadpackfile(const char *filename, const char *packfilename, int readaheadsize, int prebuffersize)
 {
 	int hpos;
 	int vfd;
@@ -536,7 +536,7 @@ int openreadaheadpackfile(char *filename, char *packfilename, int readaheadsize,
 	return vfd;
 }
 
-int openPackfileCached(char *filename, char *packfilename)
+int openPackfileCached(const char *filename, const char *packfilename)
 {
 	return openreadaheadpackfile(filename, packfilename, 0, 0);
 }
@@ -680,6 +680,7 @@ int closePackfileCached(int handle)
 	update_filecache_vfd(handle);
 	return 0;
 }
+
 
 /////////////////////////////////////////////////////////////////////////////
 

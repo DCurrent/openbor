@@ -55,7 +55,7 @@ typedef struct fileliststruct{
 #define testpackfile(filename, packfilename) closepackfile(openpackfile(filename, packfilename))
 
 // All of these return -1 on error
-int openpackfile(char *filename, char *packfilename);
+int openpackfile(const char *filename, const char *packfilename);
 int readpackfile(int handle, void *buf, int len);
 int closepackfile(int handle);
 int seekpackfile(int handle, int offset, int whence);
@@ -66,7 +66,7 @@ int pakopen(const char *filename, int mode);
 int pakread(int fd, void *buf, int len);
 void pakclose(int fd);
 int paklseek(int fd, int n, int whence);
-int openreadaheadpackfile(char *filename, char *packfilename, int readaheadsize, int prebuffersize);
+int openreadaheadpackfile(const char *filename, const char *packfilename, int readaheadsize, int prebuffersize);
 int readpackfile_noblock(int fd, void *buf, int len);
 int packfileeof(int fd);
 int packfile_supported(struct dirent* ds);
