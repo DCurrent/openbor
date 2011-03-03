@@ -2285,7 +2285,7 @@ size_t ParseArgs(ArgList* list, char* input, char* output) {
 	int done = 0;
 	int space = 0;
 	
-	while(pos < MAX_ARG_LEN-1 && item < 16) {
+	while(pos < MAX_ARG_LEN-1 && item < 18) {
 		switch(input[pos]) {
 			case '\r': case '\n': case '#': case '\0':
 				done = 1;
