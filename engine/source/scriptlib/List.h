@@ -126,6 +126,7 @@ LPCSTR List_GetName(const List* list);
 void List_Reset(List* list);
 int List_GetSize(const List* list);
 
+Node* List_SearchName(List* list, LPCSTR theName );
 Node* List_Contains(List* list, void* e);
 int List_GetNodeIndex(List* list, Node* node);	
 #ifdef USE_INDEX
