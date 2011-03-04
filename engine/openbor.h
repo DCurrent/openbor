@@ -1768,6 +1768,8 @@ void video_options();
 void options();
 void soundcard_options();
 void openborMain(void);
+int getValidInt(char* text, char* file, char* cmd);
+float getValidFloat(char* text, char* file, char* cmd);
 
 
 s_savelevel savelevel[MAX_DIFFICULTIES];
