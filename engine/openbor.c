@@ -18,6 +18,11 @@
 #define GET_ARG_LEN(z) arglist.count > z ? arglist.arglen[z] : 0
 #define GET_ARGP(z) arglist->count > z ? arglist->args[z] : ""
 #define GET_ARGP_LEN(z) arglist->count > z ? arglist->arglen[z] : 0
+#define GET_INT_ARG(z) getValidInt(GET_ARG(z), filename, command)
+#define GET_FLOAT_ARG(z) getValidFloat(GET_ARG(z), filename, command)
+#define GET_INT_ARGP(z) getValidInt(GET_ARGP(z), filename, command)
+#define GET_FLOAT_ARGP(z) getValidFloat(GET_ARGP(z), filename, command)
+
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2223,45 +2228,33 @@ void check_music(){
 }
 
 // ----------------------- General ------------------------------
-
+// atof and atoi return a valid number, if only the first char is one.
+// so we only check that.
 int isNumeric(char* text) {
 	char* p = text;
 	assert(p);
 	if(!*p) return 0;
-	//assert(*p);
-	while(*p) {
-		switch (*p) {
-			case '0': case '1': case '2': case '3': case '4':
-			case '5': case '6': case '7': case '8': case '9':
-				p++;
-				break;
-			default:
-				return 0;
-		}
+	switch(*p) {
+		case '-': case '+': 
+			p++;
+			break;
+		default:
+			break;
+	}	
+	switch (*p) {
+		case '0': case '1': case '2': case '3': case '4':
+		case '5': case '6': case '7': case '8': case '9':
+			return 1;
+		default:
+			return 0;
 	}
 	return 1;
 }
 
-int isFloat(char* text) {
-	char* p = text;
-	assert(p);
-	if(!*p) return 0;
-	//assert(*p);
-	while(*p) {
-		switch (*p) {
-			case '0': case '1': case '2': case '3': case '4':
-			case '5': case '6': case '7': case '8': case '9': case '.':
-				p++;
-				break;
-			default:
-				return 0;
-		}
-	}
-	return 1;
-}
 
 int getValidInt(char* text, char* file, char* cmd)  {
 	static const char* WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a nonnumeric value at %s, where a number is expected!\nerroneus string: %s\n";
+	if(!text) return 0;
 	if(isNumeric(text)) {
 		return atoi(text);
 	} else {
@@ -2273,7 +2266,8 @@ int getValidInt(char* text, char* file, char* cmd)  {
 
 float getValidFloat(char* text, char* file, char* cmd)  {
 	static const char* WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a nonnumeric value at %s, where a number is expected!\nerroneus string: %s\n";
-	if(isFloat(text)) {
+	if(!text) return 0.0f;
+	if(isNumeric(text)) {
 		return atof(text);
 	} else {
 		printf(WARN_NUMBER_EXPECTED, file, cmd, text);
@@ -2698,33 +2692,33 @@ void lifebar_colors()
         if(command[0])
         {
             if(stricmp(command, "blackbox")==0)
-                color_black = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
+                color_black = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
             else if(stricmp(command, "whitebox")==0)
-                color_white = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
+                color_white = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
             else if(stricmp(command, "color300")==0)
-                color_orange = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
+                color_orange = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
             else if(stricmp(command, "color25")==0)
-                color_red = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
+                color_red = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
             else if(stricmp(command, "color50")==0)
-                color_yellow = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
+                color_yellow = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
             else if(stricmp(command, "color100")==0)
-                color_green = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
+                color_green = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
             else if(stricmp(command, "color200")==0)
-                color_blue = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
+                color_blue = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
             else if(stricmp(command, "color400")==0)
-                color_pink = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
+                color_pink = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
             else if(stricmp(command, "color500")==0)
-                color_purple = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
+                color_purple = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
             //magic bars color declarations by tails
             else if(stricmp(command, "colormagic")==0)
-                color_magic = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
+                color_magic = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
             else if(stricmp(command, "colormagic2")==0)
-                color_magic2 = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
+                color_magic2 = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
             //end of magic bars color declarations by tails
             else if(stricmp(command, "shadowcolor")==0)
-                shadowcolor = _makecolour(atoi(GET_ARG(1)), atoi(GET_ARG(2)), atoi(GET_ARG(3)));
+                shadowcolor = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
             else if(stricmp(command, "shadowalpha")==0) //gfxshadow alpha
-                shadowalpha = atoi(GET_ARG(1));
+                shadowalpha = GET_INT_ARG(1);
             else printf("Warning: Unknown command in lifebar.txt: '%s'.\n", command);
         }
 
@@ -3348,14 +3342,14 @@ void load_menu_txt()
             }
             else if(stricmp(command, "fontmonospace")==0)
             {
-                fontmonospace[0] = atoi(GET_ARG(1));
-                fontmonospace[1] = atoi(GET_ARG(2));
-                fontmonospace[2] = atoi(GET_ARG(3));
-                fontmonospace[3] = atoi(GET_ARG(4));
-                fontmonospace[4] = atoi(GET_ARG(5));
-                fontmonospace[5] = atoi(GET_ARG(6));
-                fontmonospace[6] = atoi(GET_ARG(7));
-                fontmonospace[7] = atoi(GET_ARG(8));
+                fontmonospace[0] = GET_INT_ARG(1);
+                fontmonospace[1] = GET_INT_ARG(2);
+                fontmonospace[2] = GET_INT_ARG(3);
+                fontmonospace[3] = GET_INT_ARG(4);
+                fontmonospace[4] = GET_INT_ARG(5);
+                fontmonospace[5] = GET_INT_ARG(6);
+                fontmonospace[6] = GET_INT_ARG(7);
+                fontmonospace[7] = GET_INT_ARG(8);
             }
             else{
                 if(buf != NULL){
@@ -4753,10 +4747,6 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	newchar->offense_factors[ATK_STEAL]     = 1;
 	newchar->defense_factors[ATK_STEAL]     = 1;
 	newchar->defense_knockdown[ATK_STEAL]   = 1;
-
-	#define GET_INT_ARG(z) getValidInt(GET_ARG(z), filename, command)
-	#define GET_FLOAT_ARG(z) getValidFloat(GET_ARG(z), filename, command)
-	
 	//char* test = "load   knife 0";
 	//ParseArgs(&arglist,test,argbuf);
 	
@@ -4791,7 +4781,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_STATS:
 					value = GET_ARG(1);
-					newchar->stats[atoi(value)] = atof(GET_ARG(2));
+					newchar->stats[atoi(value)] = GET_FLOAT_ARG(2);
 					break;
 				case CMD_HEALTH:
 					value = GET_ARG(1);
@@ -4806,35 +4796,35 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->mp = atoi(value);
 					break;
 				case CMD_NOLIFE:	// Feb 25, 2005 - Flag to display enemy life or not
-					newchar->nolife = atoi(GET_ARG(1));
+					newchar->nolife = GET_INT_ARG(1);
 					break;
 				case CMD_MAKEINV:	// Mar 12, 2005 - If a value is supplied, corresponds to amount of time the player spawns invincible
-					newchar->makeinv = atoi(GET_ARG(1)) * GAME_SPEED;
-					if(atoi(GET_ARG(2))) newchar->makeinv = -newchar->makeinv;
+					newchar->makeinv = GET_INT_ARG(1) * GAME_SPEED;
+					if(GET_INT_ARG(2)) newchar->makeinv = -newchar->makeinv;
 					break;
 				case CMD_RISEINV:
-					newchar->riseinv = atoi(GET_ARG(1)) * GAME_SPEED;
-					if(atoi(GET_ARG(2))) newchar->riseinv = -newchar->riseinv;
+					newchar->riseinv = GET_INT_ARG(1) * GAME_SPEED;
+					if(GET_INT_ARG(2)) newchar->riseinv = -newchar->riseinv;
 					break;
 				case CMD_LOAD:
 					strncpy(load_name, GET_ARG(1), MAX_NAME_LEN);
 					load_cached_model(load_name, name, GET_INT_ARG(2));
 					break;
 				case CMD_SCORE:
-					newchar->score = atoi(GET_ARG(1));
-					newchar->multiple = atoi(GET_ARG(2));			// New var multiple for force/scoring
+					newchar->score = GET_INT_ARG(1);
+					newchar->multiple = GET_INT_ARG(2);			// New var multiple for force/scoring
 					break;
 				case CMD_SMARTBOMB:
 					lcmHandleCommandSmartbomb(&arglist, newchar, filename);
 					break;
 				case CMD_BOUNCE:
-					newchar->bounce = atoi(GET_ARG(1));
+					newchar->bounce = GET_INT_ARG(1);
 					break;
 				case CMD_NOQUAKE:  // Mar 12, 2005 - Flag to determine if entity shakes screen
-					newchar->noquake = atoi(GET_ARG(1));
+					newchar->noquake = GET_INT_ARG(1);
 					break;
 				case CMD_BLOCKBACK:	// Flag to determine if attacks can be blocked from behind
-					newchar->blockback = atoi(GET_ARG(1));
+					newchar->blockback = GET_INT_ARG(1);
 					break;
 				case CMD_HITENEMY:	// Flag to determine if an enemy projectile will hit enemies
 					value = GET_ARG(1);
@@ -4842,7 +4832,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newchar->candamage = newchar->hostile = TYPE_PLAYER | TYPE_ENEMY;
 					else if(atoi(value) == 2)
 						newchar->candamage = newchar->hostile = TYPE_PLAYER;
-					newchar->ground = atoi(GET_ARG(2));    // Added to determine if enemies are damaged with mid air projectiles or ground only
+					newchar->ground = GET_INT_ARG(2);    // Added to determine if enemies are damaged with mid air projectiles or ground only
 					break;
 				case CMD_HOSTILE:	
 					lcmHandleCommandHostile(&arglist, newchar);
@@ -4861,48 +4851,48 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					//do nothing for now, until ai attack is implemented
 					break;
 				case CMD_SUBJECT_TO_WALL:	
-					newchar->subject_to_wall = (0!=atoi(GET_ARG(1)));
+					newchar->subject_to_wall = (0!=GET_INT_ARG(1));
 					break;
 				case CMD_SUBJECT_TO_HOLE:
-					newchar->subject_to_hole = (0!=atoi(GET_ARG(1)));
+					newchar->subject_to_hole = (0!=GET_INT_ARG(1));
 					break;
 				case CMD_SUBJECT_TO_PLATFORM:
-					newchar->subject_to_platform = (0!=atoi(GET_ARG(1)));
+					newchar->subject_to_platform = (0!=GET_INT_ARG(1));
 					break;
 				case CMD_SUBJECT_TO_OBSTACLE:	
-					newchar->subject_to_obstacle = (0!=atoi(GET_ARG(1)));
+					newchar->subject_to_obstacle = (0!=GET_INT_ARG(1));
 					break;
 				case CMD_SUBJECT_TO_GRAVITY:	
-					newchar->subject_to_gravity = (0!=atoi(GET_ARG(1)));
+					newchar->subject_to_gravity = (0!=GET_INT_ARG(1));
 					break;
 				case CMD_SUBJECT_TO_SCREEN:
-					newchar->subject_to_screen = (0!=atoi(GET_ARG(1)));
+					newchar->subject_to_screen = (0!=GET_INT_ARG(1));
 					break;
 				case CMD_SUBJECT_TO_MINZ:
-					newchar->subject_to_minz = (0!=atoi(GET_ARG(1)));
+					newchar->subject_to_minz = (0!=GET_INT_ARG(1));
 					break;
 				case CMD_SUBJECT_TO_MAXZ:	
-					newchar->subject_to_maxz = (0!=atoi(GET_ARG(1)));
+					newchar->subject_to_maxz = (0!=GET_INT_ARG(1));
 					break;
 				case CMD_NO_ADJUST_BASE:
-					newchar->no_adjust_base = (0!=atoi(GET_ARG(1)));
+					newchar->no_adjust_base = (0!=GET_INT_ARG(1));
 					break;
 				case CMD_INSTANTITEMDEATH:
-					newchar->instantitemdeath = atoi(GET_ARG(1));
+					newchar->instantitemdeath = GET_INT_ARG(1);
 					break;
 				case CMD_SECRET:
-					newchar->secret = atoi(GET_ARG(1));
+					newchar->secret = GET_INT_ARG(1);
 					break;
 				case CMD_MODELFLAG: //model copy flag
-					newchar->model_flag = atoi(GET_ARG(1));
+					newchar->model_flag = GET_INT_ARG(1);
 					break;
 				// weapons	
 				case CMD_WEAPLOSS:
-					newchar->weaploss[0] = atoi(GET_ARG(1));
-					newchar->weaploss[1] = atoi(GET_ARG(2));
+					newchar->weaploss[0] = GET_INT_ARG(1);
+					newchar->weaploss[1] = GET_INT_ARG(2);
 					break;
 				case CMD_WEAPNUM:
-					newchar->weapnum = atoi(GET_ARG(1));
+					newchar->weapnum = GET_INT_ARG(1);
 					break;
 				case CMD_PROJECT: // New projectile subtype
 					value = GET_ARG(1);
@@ -4913,19 +4903,19 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					lcmHandleCommandWeapons(&arglist, newchar);
 					break;
 				case CMD_SHOOTNUM: //here weapons things like shoot rest type of weapon ect..by tails
-					newchar->shootnum = atoi(GET_ARG(1));
+					newchar->shootnum = GET_INT_ARG(1);
 					break;
 				case CMD_RELOAD:	
-					newchar->reload = atoi(GET_ARG(1));
+					newchar->reload = GET_INT_ARG(1);
 					break;
 				case CMD_TYPESHOT:	
-					newchar->typeshot = atoi(GET_ARG(1));
+					newchar->typeshot = GET_INT_ARG(1);
 					break;
 				case CMD_COUNTER:	
-					newchar->counter = atoi(GET_ARG(1));
+					newchar->counter = GET_INT_ARG(1);
 					break;
 				case CMD_ANIMAL:
-					newchar->animal = atoi(GET_ARG(1));
+					newchar->animal = GET_INT_ARG(1);
 					break;
 				case CMD_RIDER:
 					value = GET_ARG(1);
@@ -4983,24 +4973,24 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					strncpy(newchar->branch, value, MAX_NAME_LEN);
 					break;
 				case CMD_CANTGRAB: case CMD_NOTGRAB:
-					tempInt = atoi(GET_ARG(1));
+					tempInt = GET_INT_ARG(1);
 					if(tempInt == 2) newchar->grabforce = -999999;
 					else             newchar->antigrab = 1;
 					break;
 				case CMD_ANTIGRAB: // a can grab b: a->antigrab - b->grabforce <=0
-					newchar->antigrab = atoi(GET_ARG(1));
+					newchar->antigrab = GET_INT_ARG(1);
 					break;
 				case CMD_GRABFORCE:	
-					newchar->grabforce = atoi(GET_ARG(1));
+					newchar->grabforce = GET_INT_ARG(1);
 					break;
 				case CMD_GRABBACK:	
-					newchar->grabback = atoi(GET_ARG(1));
+					newchar->grabback = GET_INT_ARG(1);
 					break;
 				case CMD_OFFSCREENKILL:	
-					newchar->offscreenkill = atoi(GET_ARG(1));
+					newchar->offscreenkill = GET_INT_ARG(1);
 					break;
 				case CMD_FALLDIE: case CMD_DEATH:	
-					newchar->falldie = atoi(GET_ARG(1));
+					newchar->falldie = GET_INT_ARG(1);
 					break;
 				case CMD_SPEED:
 					value = GET_ARG(1);
@@ -5028,8 +5018,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->antigravity /= 100;
 					break;
 				case CMD_STEALTH:	
-					newchar->stealth[0] = atoi(GET_ARG(1));
-					newchar->stealth[1] = atoi(GET_ARG(2));
+					newchar->stealth[0] = GET_INT_ARG(1);
+					newchar->stealth[1] = GET_INT_ARG(2);
 					break;
 				case CMD_JUGGLEPOINTS:
 					value = GET_ARG(1);
@@ -5049,16 +5039,16 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					#define tempdef(x, y, z, p, k, b, t, r, e) \
 					x(stricmp(value, #y)==0)\
 					{\
-					newchar->z[ATK_##y] = atof(GET_ARG(2));\
+					newchar->z[ATK_##y] = GET_FLOAT_ARG(2);\
 					/*newchar->z[ATK_##y] /= 100;*/\
-					newchar->p[ATK_##y] = atof(GET_ARG(3));\
-					newchar->k[ATK_##y] = atof(GET_ARG(4));\
+					newchar->p[ATK_##y] = GET_FLOAT_ARG(3);\
+					newchar->k[ATK_##y] = GET_FLOAT_ARG(4);\
 					/*newchar->k[ATK_##y] /= 100;*/\
-					newchar->b[ATK_##y] = atof(GET_ARG(5));\
-					newchar->t[ATK_##y] = atof(GET_ARG(6));\
-					newchar->r[ATK_##y] = atof(GET_ARG(7));\
+					newchar->b[ATK_##y] = GET_FLOAT_ARG(5);\
+					newchar->t[ATK_##y] = GET_FLOAT_ARG(6);\
+					newchar->r[ATK_##y] = GET_FLOAT_ARG(7);\
 					/*newchar->r[ATK_##y] /= 100;*/\
-					newchar->e[ATK_##y] = atof(GET_ARG(8));\
+					newchar->e[ATK_##y] = GET_FLOAT_ARG(8);\
 					}
 					{
 						value = GET_ARG(1);
@@ -5081,25 +5071,25 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						{
 							tempInt = atoi(value+6);
 							if(tempInt<11) tempInt = 11;
-							newchar->defense_factors[tempInt+STA_ATKS-1]        = atof(GET_ARG(2));
-							newchar->defense_pain[tempInt+STA_ATKS-1]           = atof(GET_ARG(3));
-							newchar->defense_knockdown[tempInt+STA_ATKS-1]      = atof(GET_ARG(4));
-							newchar->defense_blockpower[tempInt+STA_ATKS-1]     = atof(GET_ARG(5));
-							newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = atof(GET_ARG(6));
-							newchar->defense_blockratio[tempInt+STA_ATKS-1]     = atof(GET_ARG(7));
-							newchar->defense_blocktype[tempInt+STA_ATKS-1]      = atof(GET_ARG(8));
+							newchar->defense_factors[tempInt+STA_ATKS-1]        = GET_FLOAT_ARG(2);
+							newchar->defense_pain[tempInt+STA_ATKS-1]           = GET_FLOAT_ARG(3);
+							newchar->defense_knockdown[tempInt+STA_ATKS-1]      = GET_FLOAT_ARG(4);
+							newchar->defense_blockpower[tempInt+STA_ATKS-1]     = GET_FLOAT_ARG(5);
+							newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = GET_FLOAT_ARG(6);
+							newchar->defense_blockratio[tempInt+STA_ATKS-1]     = GET_FLOAT_ARG(7);
+							newchar->defense_blocktype[tempInt+STA_ATKS-1]      = GET_FLOAT_ARG(8);
 						}
 						else if(stricmp(value, "ALL")==0)
 						{
 							for(i=0;i<max_attack_types;i++)
 							{
-								newchar->defense_factors[i]         = atof(GET_ARG(2));
-								newchar->defense_pain[i]            = atof(GET_ARG(3));
-								newchar->defense_knockdown[i]       = atof(GET_ARG(4));
-								newchar->defense_blockpower[i]      = atof(GET_ARG(5));
-								newchar->defense_blockthreshold[i]  = atof(GET_ARG(6));
-								newchar->defense_blockratio[i]      = atof(GET_ARG(7));
-								newchar->defense_blocktype[i]       = atof(GET_ARG(8));
+								newchar->defense_factors[i]         = GET_FLOAT_ARG(2);
+								newchar->defense_pain[i]            = GET_FLOAT_ARG(3);
+								newchar->defense_knockdown[i]       = GET_FLOAT_ARG(4);
+								newchar->defense_blockpower[i]      = GET_FLOAT_ARG(5);
+								newchar->defense_blockthreshold[i]  = GET_FLOAT_ARG(6);
+								newchar->defense_blockratio[i]      = GET_FLOAT_ARG(7);
+								newchar->defense_blocktype[i]       = GET_FLOAT_ARG(8);
 							}
 						}
 					}
@@ -5109,7 +5099,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					#define tempoff(x, y, z) \
 					x(stricmp(value, #y)==0)\
 					{\
-					newchar->z[ATK_##y] = atof(GET_ARG(2));\
+					newchar->z[ATK_##y] = GET_FLOAT_ARG(2);\
 					/*newchar->z[ATK_##y] /= 100;*/\
 					}
 					{
@@ -5133,11 +5123,11 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						{
 							tempInt = atoi(value+6);
 							if(tempInt<11) tempInt = 11;
-							newchar->offense_factors[tempInt+STA_ATKS-1] = atof(GET_ARG(2));
+							newchar->offense_factors[tempInt+STA_ATKS-1] = GET_FLOAT_ARG(2);
 						}
 						else if(stricmp(value, "ALL")==0)
 						{
-							tempFloat = atof(GET_ARG(2));
+							tempFloat = GET_FLOAT_ARG(2);
 							for(i=0;i<max_attack_types;i++)
 							{
 								newchar->offense_factors[i] = tempFloat;
@@ -5147,120 +5137,120 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					#undef tempoff
 					break;
 				case CMD_HEIGHT:	
-					newchar->height = atoi(GET_ARG(1));
+					newchar->height = GET_INT_ARG(1);
 					break;
 				case CMD_JUMPHEIGHT:	
-					newchar->jumpheight = atof(GET_ARG(1));
+					newchar->jumpheight = GET_FLOAT_ARG(1);
 					break;
 				case CMD_JUMPMOVE:	
-					newchar->jumpmovex = atoi(GET_ARG(1));
-					newchar->jumpmovez = atoi(GET_ARG(2));
+					newchar->jumpmovex = GET_INT_ARG(1);
+					newchar->jumpmovez = GET_INT_ARG(2);
 					break;
 				case CMD_KNOCKDOWNCOUNT:	
-					newchar->knockdowncount = atof(GET_ARG(1));
+					newchar->knockdowncount = GET_FLOAT_ARG(1);
 					break;
 				case CMD_GRABDISTANCE:	
-					newchar->grabdistance = atof(GET_ARG(1));                    // 30-12-2004 and store for character
+					newchar->grabdistance = GET_FLOAT_ARG(1);                    // 30-12-2004 and store for character
 					break;
 				case CMD_GRABFINISH:	
-					newchar->grabfinish = atoi(GET_ARG(1));
+					newchar->grabfinish = GET_INT_ARG(1);
 					break;
 				case CMD_THROWDAMAGE:
-					newchar->throwdamage = atoi(GET_ARG(1));
+					newchar->throwdamage = GET_INT_ARG(1);
 					break;
 				case CMD_SHADOW:	
-					newchar->shadow = atoi(GET_ARG(1));
+					newchar->shadow = GET_INT_ARG(1);
 					break;
 				case CMD_GFXSHADOW:	
-					newchar->gfxshadow = atoi(GET_ARG(1));
+					newchar->gfxshadow = GET_INT_ARG(1);
 					break;
 				case CMD_AIRONLY:	// Shadows display in air only?
-					newchar->aironly = atoi(GET_ARG(1));
+					newchar->aironly = GET_INT_ARG(1);
 					break;
 				case CMD_FMAP:	// Map that corresponds with the remap when a character is frozen
-					newchar->fmap = atoi(GET_ARG(1));
+					newchar->fmap = GET_INT_ARG(1);
 					break;
 				case CMD_KOMAP:	// Remap when character is KO'd.
-					newchar->komap[0] = atoi(GET_ARG(1));  //Remap.
-					newchar->komap[1] = atoi(GET_ARG(2));  //Type: 0 start of fall/death, 1 last frame.
+					newchar->komap[0] = GET_INT_ARG(1);  //Remap.
+					newchar->komap[1] = GET_INT_ARG(2);  //Type: 0 start of fall/death, 1 last frame.
 					break;
 				case CMD_HMAP:	// Maps range unavailable to player in select screen.
-					newchar->hmap1 = atoi(GET_ARG(1)); //First unavailable map.
-					newchar->hmap2 = atoi(GET_ARG(2)); //Last unavailable map.
+					newchar->hmap1 = GET_INT_ARG(1); //First unavailable map.
+					newchar->hmap2 = GET_INT_ARG(2); //Last unavailable map.
 					break;
 				case CMD_SETLAYER:	
-					newchar->setlayer = atoi(GET_ARG(1));
+					newchar->setlayer = GET_INT_ARG(1);
 					break;
 				case CMD_TOFLIP:	  // Flag to determine if flashes images will be flipped or not
-					newchar->toflip = atoi(GET_ARG(1));
+					newchar->toflip = GET_INT_ARG(1);
 					break;
 				case CMD_NODIEBLINK:	
 					// Added to determine if dying animation blinks or not
-					newchar->nodieblink = atoi(GET_ARG(1));
+					newchar->nodieblink = GET_INT_ARG(1);
 					break;
 				case CMD_NOATFLASH:	 // Flag to determine if an opponents attack spawns their flash or not
-					newchar->noatflash = atoi(GET_ARG(1));
+					newchar->noatflash = GET_INT_ARG(1);
 					break;
 				case CMD_NOMOVE:
 					// If set, will be static (speed must be set to 0 or left blank)
-					newchar->nomove = atoi(GET_ARG(1));
-					newchar->noflip = atoi(GET_ARG(2));    // If set, static will not flip directions
+					newchar->nomove = GET_INT_ARG(1);
+					newchar->noflip = GET_INT_ARG(2);    // If set, static will not flip directions
 					if(newchar->nomove) newchar->nodrop = 1;
 					break;
 				case CMD_NODROP:	
-					newchar->nodrop = atoi(GET_ARG(1));
+					newchar->nodrop = GET_INT_ARG(1);
 					break;
 				case CMD_THOLD:
 					// Threshold for enemies/players block
-					newchar->thold = atoi(GET_ARG(1));
+					newchar->thold = GET_INT_ARG(1);
 					break;
 				case CMD_RUNNING:	
 					// The speed at which the player runs
-					newchar->runspeed = atof(GET_ARG(1));
+					newchar->runspeed = GET_FLOAT_ARG(1);
 					newchar->runspeed /= 10;
-					newchar->runjumpheight = atof(GET_ARG(2));    // The height at which a player jumps when running
-					newchar->runjumpdist = atof(GET_ARG(3));    // The distance a player jumps when running
-					newchar->runupdown = atoi(GET_ARG(4));
-					newchar->runhold = atoi(GET_ARG(5));
+					newchar->runjumpheight = GET_FLOAT_ARG(2);    // The height at which a player jumps when running
+					newchar->runjumpdist = GET_FLOAT_ARG(3);    // The distance a player jumps when running
+					newchar->runupdown = GET_INT_ARG(4);
+					newchar->runhold = GET_INT_ARG(5);
 					break;
 				case CMD_BLOCKODDS:
 					// Odds that an attack will hit an enemy (1 : blockodds)
-					newchar->blockodds = atoi(GET_ARG(1));
+					newchar->blockodds = GET_INT_ARG(1);
 					break;
 				case CMD_HOLDBLOCK:	
-					newchar->holdblock = atoi(GET_ARG(1));
+					newchar->holdblock = GET_INT_ARG(1);
 					break;
 				case CMD_BLOCKPAIN:
-					newchar->blockpain = atoi(GET_ARG(1));
+					newchar->blockpain = GET_INT_ARG(1);
 					break;
 				case CMD_NOPASSIVEBLOCK:
-					newchar->nopassiveblock = atoi(GET_ARG(1));
+					newchar->nopassiveblock = GET_INT_ARG(1);
 					break;
 				case CMD_EDELAY:	
-					newchar->edelay.mode        = atoi(GET_ARG(1));
-					newchar->edelay.factor      = atof(GET_ARG(2));
-					newchar->edelay.cap_min     = atoi(GET_ARG(3));
-					newchar->edelay.cap_max     = atoi(GET_ARG(4));
-					newchar->edelay.range_min   = atoi(GET_ARG(5));
-					newchar->edelay.range_max   = atoi(GET_ARG(6));
+					newchar->edelay.mode        = GET_INT_ARG(1);
+					newchar->edelay.factor      = GET_FLOAT_ARG(2);
+					newchar->edelay.cap_min     = GET_INT_ARG(3);
+					newchar->edelay.cap_max     = GET_INT_ARG(4);
+					newchar->edelay.range_min   = GET_INT_ARG(5);
+					newchar->edelay.range_max   = GET_INT_ARG(6);
 					break;
 				case CMD_PAINGRAB:	
-					newchar->paingrab = atoi(GET_ARG(1));
+					newchar->paingrab = GET_INT_ARG(1);
 					break;
 				case CMD_THROW:	
-					newchar->throwdist = atof(GET_ARG(1));
-					newchar->throwheight = atof(GET_ARG(2));
+					newchar->throwdist = GET_FLOAT_ARG(1);
+					newchar->throwheight = GET_FLOAT_ARG(2);
 					break;
 				case CMD_GRABWALK:
-					newchar->grabwalkspeed = atof(GET_ARG(1));
+					newchar->grabwalkspeed = GET_FLOAT_ARG(1);
 					newchar->grabwalkspeed /= 10;					
 					if(newchar->grabwalkspeed < 0.5) newchar->grabwalkspeed = 0.5;
 					break;
 				case CMD_GRABTURN:	
-					newchar->grabturn = atoi(GET_ARG(1));
+					newchar->grabturn = GET_INT_ARG(1);
 					break;
 				case CMD_THROWFRAMEWAIT:
-					newchar->throwframewait = atoi(GET_ARG(1));
+					newchar->throwframewait = GET_INT_ARG(1);
 					break;
 				case CMD_DIESOUND:
 					newchar->diesound = sound_load_sample(GET_ARG(1), packfile, 0);
@@ -5305,91 +5295,91 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					// Image that is displayed when player 1 spawns invincible
 					value = GET_ARG(1);
 					newchar->parrow[0][0] = loadsprite(value,0,0,pixelformat);
-					newchar->parrow[0][1] = atoi(GET_ARG(2));
-					newchar->parrow[0][2] = atoi(GET_ARG(3));
+					newchar->parrow[0][1] = GET_INT_ARG(2);
+					newchar->parrow[0][2] = GET_INT_ARG(3);
 					break;
 				case CMD_PARROW2:
 					// Image that is displayed when player 2 spawns invincible
 					value = GET_ARG(1);
 					newchar->parrow[1][0] = loadsprite(value,0,0,pixelformat);
-					newchar->parrow[1][1] = atoi(GET_ARG(2));
-					newchar->parrow[1][2] = atoi(GET_ARG(3));
+					newchar->parrow[1][1] = GET_INT_ARG(2);
+					newchar->parrow[1][2] = GET_INT_ARG(3);
 					break;
 				case CMD_PARROW3:
 					value = GET_ARG(1);
 					newchar->parrow[2][0] = loadsprite(value,0,0,pixelformat);
-					newchar->parrow[2][1] = atoi(GET_ARG(2));
-					newchar->parrow[2][2] = atoi(GET_ARG(3));
+					newchar->parrow[2][1] = GET_INT_ARG(2);
+					newchar->parrow[2][2] = GET_INT_ARG(3);
 					break;
 				case CMD_PARROW4:	
 					value = GET_ARG(1);
 					newchar->parrow[3][0] = loadsprite(value,0,0,pixelformat);
-					newchar->parrow[3][1] = atoi(GET_ARG(2));
-					newchar->parrow[3][2] = atoi(GET_ARG(3));
+					newchar->parrow[3][1] = GET_INT_ARG(2);
+					newchar->parrow[3][2] = GET_INT_ARG(3);
 					break;
 				case CMD_ATCHAIN:
 					newchar->chainlength = 0;
 					for(i = 0; i < MAX_ATCHAIN; i++)
 					{
-						newchar->atchain[i] = atoi(GET_ARG(i + 1));
+						newchar->atchain[i] = GET_INT_ARG(i + 1);
 						if(newchar->atchain[i] < 0) newchar->atchain[i] = 0;
 						if(newchar->atchain[i] > max_attacks) newchar->atchain[i] = max_attacks;
 						if(newchar->atchain[i]) newchar->chainlength = i+1;
 					}
 					break;
 				case CMD_COMBOSTYLE:
-					newchar->combostyle = atoi(GET_ARG(1));
+					newchar->combostyle = GET_INT_ARG(1);
 					break;
 				case CMD_CREDIT:
-					newchar->credit = atoi(GET_ARG(1));
+					newchar->credit = GET_INT_ARG(1);
 					break;
 				case CMD_NOPAIN:	
-					newchar->nopain = atoi(GET_ARG(1));
+					newchar->nopain = GET_INT_ARG(1);
 					break;
 				case CMD_ESCAPEHITS:	
 					// How many times an enemy can be hit before retaliating
-					newchar->escapehits = atoi(GET_ARG(1));
+					newchar->escapehits = GET_INT_ARG(1);
 					break;
 				case CMD_CHARGERATE:	
 					// How much mp does this character gain while recharging?
-					newchar->chargerate = atoi(GET_ARG(1));
+					newchar->chargerate = GET_INT_ARG(1);
 					break;
 				case CMD_MPRATE:	
-					newchar->mprate = atoi(GET_ARG(1));
+					newchar->mprate = GET_INT_ARG(1);
 					break;
 				case CMD_MPSET:
 					// Mp bar wax/wane.
-					newchar->mp             = atoi(GET_ARG(1)); //Max MP.
-					newchar->mpstable       = atoi(GET_ARG(2)); //MP stable setting.
-					newchar->mpstableval    = atoi(GET_ARG(3)); //MP stable value (% Mp bar will try and maintain).
-					newchar->mprate         = atoi(GET_ARG(4)); //Rate MP value rises over time.
-					newchar->mpdroprate     = atoi(GET_ARG(5)); //Rate MP value drops over time.
-					newchar->chargerate     = atoi(GET_ARG(6)); //MP Chargerate.
+					newchar->mp             = GET_INT_ARG(1); //Max MP.
+					newchar->mpstable       = GET_INT_ARG(2); //MP stable setting.
+					newchar->mpstableval    = GET_INT_ARG(3); //MP stable value (% Mp bar will try and maintain).
+					newchar->mprate         = GET_INT_ARG(4); //Rate MP value rises over time.
+					newchar->mpdroprate     = GET_INT_ARG(5); //Rate MP value drops over time.
+					newchar->chargerate     = GET_INT_ARG(6); //MP Chargerate.
 					break;
 				case CMD_SLEEPWAIT:
-					newchar->sleepwait = atoi(GET_ARG(1));
+					newchar->sleepwait = GET_INT_ARG(1);
 					break;
 				case CMD_GUARDRATE:
-					newchar->guardrate = atoi(GET_ARG(1));
+					newchar->guardrate = GET_INT_ARG(1);
 					break;
 				case CMD_AGGRESSION:
-					newchar->aggression = atoi(GET_ARG(1));
+					newchar->aggression = GET_INT_ARG(1);
 					break;
 				case CMD_RISETIME:	
-					newchar->risetime[0] = atoi(GET_ARG(1));
-					newchar->risetime[1] = atoi(GET_ARG(2));
+					newchar->risetime[0] = GET_INT_ARG(1);
+					newchar->risetime[1] = GET_INT_ARG(2);
 					break;
 				case CMD_FACING:	
-					newchar->facing = atoi(GET_ARG(1));
+					newchar->facing = GET_INT_ARG(1);
 					break;
 				case CMD_TURNDELAY:	
-					newchar->turndelay = atoi(GET_ARG(1));
+					newchar->turndelay = GET_INT_ARG(1);
 					break;
 				case CMD_LIFESPAN:	
-					newchar->lifespan = atof(GET_ARG(1))*GAME_SPEED;
+					newchar->lifespan = GET_FLOAT_ARG(1)*GAME_SPEED;
 					break;
 				case CMD_SUMMONKILL:	
-					newchar->summonkill = atoi(GET_ARG(1));
+					newchar->summonkill = GET_INT_ARG(1);
 					break;
 				case CMD_LIFEPOSITION:
 					if((value=GET_ARG(1))[0]) newchar->hpx = atoi(value);
@@ -5520,13 +5510,13 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_GLOBALMAP:
 					// use global palette under 24bit mode, so some entity/panel/bg can still use palette feature, that saves some memory
 					if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
-					else newchar->globalmap = atoi(GET_ARG(1));
+					else newchar->globalmap = GET_INT_ARG(1);
 					break;
 				case CMD_ALPHA:
-					newchar->alpha = atoi(GET_ARG(1));
+					newchar->alpha = GET_INT_ARG(1);
 					break;
 				case CMD_REMOVE:	
-					newchar->remove = atoi(GET_ARG(1));
+					newchar->remove = GET_INT_ARG(1);
 					break;
 				case CMD_SCRIPT:
 					//load the update script
@@ -6275,69 +6265,69 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_LOOP:
 					if(newanim == NULL) shutdown(1, "Can't set loop: no animation specified!");
-					newanim->loop[0] = atoi(GET_ARG(1)); //0 = Off, 1 = on.
-					newanim->loop[1] = atoi(GET_ARG(2)); //Loop to frame.
-					newanim->loop[2] = atoi(GET_ARG(3)); //Loop end frame.
+					newanim->loop[0] = GET_INT_ARG(1); //0 = Off, 1 = on.
+					newanim->loop[1] = GET_INT_ARG(2); //Loop to frame.
+					newanim->loop[2] = GET_INT_ARG(3); //Loop end frame.
 					break;
 				case CMD_ANIMHEIGHT:	
-					newanim->height = atoi(GET_ARG(1));
+					newanim->height = GET_INT_ARG(1);
 					break;
 				case CMD_DELAY:	
-					delay = atoi(GET_ARG(1));
+					delay = GET_INT_ARG(1);
 					break;
 				case CMD_OFFSET:
-					offset[0] = atoi(GET_ARG(1));
-					offset[1] = atoi(GET_ARG(2));
+					offset[0] = GET_INT_ARG(1);
+					offset[1] = GET_INT_ARG(2);
 					break;
 				case CMD_SHADOWCOORDS:
-					shadow_xz[0] = atoi(GET_ARG(1));
-					shadow_xz[1] = atoi(GET_ARG(2));
+					shadow_xz[0] = GET_INT_ARG(1);
+					shadow_xz[1] = GET_INT_ARG(2);
 					shadow_set=1;
 					break;
 				case CMD_ENERGYCOST: case CMD_MPCOST:
-					newanim->energycost[0] = atoi(GET_ARG(1));
-					newanim->energycost[1] = atoi(GET_ARG(2));
-					newanim->energycost[2] = atoi(GET_ARG(3));
+					newanim->energycost[0] = GET_INT_ARG(1);
+					newanim->energycost[1] = GET_INT_ARG(2);
+					newanim->energycost[2] = GET_INT_ARG(3);
 					break;
 				case CMD_MPONLY:	
-					newanim->energycost[1] = atoi(GET_ARG(1));
+					newanim->energycost[1] = GET_INT_ARG(1);
 					break;
 				case CMD_CHARGETIME:
-					newanim->chargetime = atof(GET_ARG(1));
+					newanim->chargetime = GET_FLOAT_ARG(1);
 					break;
 				case CMD_DIVE:	//dive kicks
-					newanim->dive[0] = atof(GET_ARG(1));
-					newanim->dive[1] = atof(GET_ARG(2));
+					newanim->dive[0] = GET_FLOAT_ARG(1);
+					newanim->dive[1] = GET_FLOAT_ARG(2);
 					break;
 				case CMD_DIVE1:
-					newanim->dive[0] = atof(GET_ARG(1));
+					newanim->dive[0] = GET_FLOAT_ARG(1);
 					break;
 				case CMD_DIVE2:	
-					newanim->dive[1] = atof(GET_ARG(1));
+					newanim->dive[1] = GET_FLOAT_ARG(1);
 					break;
 				case CMD_ATTACKONE:
-					newanim->attackone = atoi(GET_ARG(1));
+					newanim->attackone = GET_INT_ARG(1);
 					break;
 				case CMD_COUNTERATTACK:	
-					attack.counterattack = atoi(GET_ARG(1));
+					attack.counterattack = GET_INT_ARG(1);
 					break;
 				case CMD_THROWFRAME:	case CMD_PSHOTFRAME: case CMD_PSHOTFRAMEW: case CMD_PSHOTFRAMENO:
-					newanim->throwframe = atoi(GET_ARG(1));
-					newanim->throwa = atoi(GET_ARG(2));
+					newanim->throwframe = GET_INT_ARG(1);
+					newanim->throwa = GET_INT_ARG(2);
 					if(!newanim->throwa) 
 						newanim->throwa = 70;
 					else if(newanim->throwa == -1)
 						newanim->throwa = 0;
 					break;
 				case CMD_SHOOTFRAME:
-					newanim->shootframe = atoi(GET_ARG(1));
-					newanim->throwa = atoi(GET_ARG(2));
+					newanim->shootframe = GET_INT_ARG(1);
+					newanim->throwa = GET_INT_ARG(2);
 					if(newanim->throwa == -1) 
 						newanim->throwa = 0;
 					break;
 				case CMD_TOSSFRAME: case CMD_PBOMBFRAME:
-					newanim->tossframe = atoi(GET_ARG(1));
-					newanim->throwa = atoi(GET_ARG(2));
+					newanim->tossframe = GET_INT_ARG(1);
+					newanim->throwa = GET_INT_ARG(2);
 					if(newanim->throwa < 0) newanim->throwa = -1;
 					break;					
 				case CMD_CUSTKNIFE: case CMD_CUSTPSHOT: case CMD_CUSTPSHOTW:
@@ -6354,13 +6344,13 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_JUMPFRAME:
 					{
-						newanim->jumpframe = atoi(GET_ARG(1));
-						newanim->jumpv = atof(GET_ARG(2));    // Added so movement can be customized for jumpframes
+						newanim->jumpframe = GET_INT_ARG(1);
+						newanim->jumpv = GET_FLOAT_ARG(2);    // Added so movement can be customized for jumpframes
 						value = GET_ARG(3);
 						if(value[0])
 						{
-							newanim->jumpx = atof(GET_ARG(3));
-							newanim->jumpz = atof(GET_ARG(4));
+							newanim->jumpx = GET_FLOAT_ARG(3);
+							newanim->jumpz = GET_FLOAT_ARG(4);
 						}
 						else // k, only for backward compatibility :((((((((((((((((
 						{
@@ -6397,16 +6387,16 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					break;
 				case CMD_BOUNCEFACTOR:	
-					newanim->bounce = atof(GET_ARG(1));
+					newanim->bounce = GET_FLOAT_ARG(1);
 					break;
 				case CMD_LANDFRAME:
-					newanim->landframe[0] = atoi(GET_ARG(1));
+					newanim->landframe[0] = GET_INT_ARG(1);
 					value = GET_ARG(2);
 					if(value[0]) newanim->landframe[1] = get_cached_model_index(value);
 					else newanim->landframe[1] = -1;
 					break;
 				case CMD_DROPFRAME:
-					newanim->dropframe = atoi(GET_ARG(1));
+					newanim->dropframe = GET_INT_ARG(1);
 					break;
 				case CMD_CANCEL:
 					{
@@ -6454,10 +6444,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 								tempInt = atoi(value+11);
 								if(tempInt<1) tempInt = 1;
 								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-5] = animspecials[tempInt-1];
-								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-7] = atoi(GET_ARG(1)); // stores start frame
-								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-8] = atoi(GET_ARG(2)); // stores end frame
+								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-7] = GET_INT_ARG(1); // stores start frame
+								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-8] = GET_INT_ARG(2); // stores end frame
 								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-9] = ani_id;                    // stores current anim
-								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-10] = atoi(GET_ARG(3));// stores hits
+								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-10] = GET_INT_ARG(3);// stores hits
 							}
 							else shutdown(1, "Invalid cancel command '%s'", value); // OX. Changed this line so that errors do not confuse modders.
 						}
@@ -6486,36 +6476,36 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					attack.blocksound = sound_load_sample(GET_ARG(1), packfile, 0);
 					break;
 				case CMD_FASTATTACK:
-					newanim->fastattack = atoi(GET_ARG(1));
+					newanim->fastattack = GET_INT_ARG(1);
 					break;
 				case CMD_BBOX:	
-					bbox[0] = atoi(GET_ARG(1));
-					bbox[1] = atoi(GET_ARG(2));
-					bbox[2] = atoi(GET_ARG(3));
-					bbox[3] = atoi(GET_ARG(4));
-					bbox[4] = atoi(GET_ARG(5));
+					bbox[0] = GET_INT_ARG(1);
+					bbox[1] = GET_INT_ARG(2);
+					bbox[2] = GET_INT_ARG(3);
+					bbox[3] = GET_INT_ARG(4);
+					bbox[4] = GET_INT_ARG(5);
 					break;
 				case CMD_BBOXZ:
-					bbox[4] = atoi(GET_ARG(1));
+					bbox[4] = GET_INT_ARG(1);
 					break;
 				case CMD_PLATFORM:	
 					//for(i=0;(GET_ARG(i+1)[0]; i++);
 					for(i=0;i<arglist.count && arglist.args[i] && arglist.args[i][0];i++);
 					if(i<8)
 					{
-						for(i=0;i<6; i++) platform[i+2] = atof(GET_ARG(i+1));
+						for(i=0;i<6; i++) platform[i+2] = GET_FLOAT_ARG(i+1);
 						platform[0] = 99999;
 					}
-					else for(i=0; i<8; i++) platform[i] = atof(GET_ARG(i+1));
+					else for(i=0; i<8; i++) platform[i] = GET_FLOAT_ARG(i+1);
 					break;
 				case CMD_DRAWMETHOD:
 					// special effects
-					drawmethod.scalex = atoi(GET_ARG(1));
-					drawmethod.scaley = atoi(GET_ARG(2));
-					drawmethod.flipx = atoi(GET_ARG(3));
-					drawmethod.flipy = atoi(GET_ARG(4));
-					drawmethod.shiftx = atoi(GET_ARG(5));
-					drawmethod.alpha = atoi(GET_ARG(6));
+					drawmethod.scalex = GET_INT_ARG(1);
+					drawmethod.scaley = GET_INT_ARG(2);
+					drawmethod.flipx = GET_INT_ARG(3);
+					drawmethod.flipy = GET_INT_ARG(4);
+					drawmethod.shiftx = GET_INT_ARG(5);
+					drawmethod.alpha = GET_INT_ARG(6);
 					if(!blendfx_is_set)
 					{
 						if(drawmethod.alpha>0 && drawmethod.alpha<=MAX_BLENDINGS)
@@ -6523,10 +6513,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							blendfx[drawmethod.alpha-1] = 1;
 						}
 					}
-					drawmethod.remap = atoi(GET_ARG(7));
+					drawmethod.remap = GET_INT_ARG(7);
 					drawmethod.fillcolor = parsecolor(GET_ARG(8));
-					drawmethod.rotate = atoi(GET_ARG(9));
-					drawmethod.fliprotate = atoi(GET_ARG(10))%360;
+					drawmethod.rotate = GET_INT_ARG(9);
+					drawmethod.fliprotate = GET_INT_ARG(10)%360;
 					if(drawmethod.scalex<0) {drawmethod.scalex = -drawmethod.scalex;drawmethod.flipx = !drawmethod.flipx;}
 					if(drawmethod.scaley<0) {drawmethod.scaley = - drawmethod.scaley;drawmethod.flipy = !drawmethod.flipy;}
 					if(drawmethod.rotate)
@@ -6543,30 +6533,30 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_ATTACK4: case CMD_ATTACK5: case CMD_ATTACK6: case CMD_ATTACK7: 
 				case CMD_ATTACK8: case CMD_ATTACK9: case CMD_ATTACK10:
 				case CMD_SHOCK: case CMD_BURN: case CMD_STEAL: case CMD_FREEZE: case CMD_ITEMBOX:
-					abox[0] = atoi(GET_ARG(1));
-					abox[1] = atoi(GET_ARG(2));
-					abox[2] = atoi(GET_ARG(3));
-					abox[3] = atoi(GET_ARG(4));
+					abox[0] = GET_INT_ARG(1);
+					abox[1] = GET_INT_ARG(2);
+					abox[2] = GET_INT_ARG(3);
+					abox[3] = GET_INT_ARG(4);
 					attack.dropv[0] = 3;
 					attack.dropv[1] = (float)1.2;
 					attack.dropv[2] = 0;
-					attack.attack_force = atoi(GET_ARG(5));
+					attack.attack_force = GET_INT_ARG(5);
 					
 					if(strcmp(command, "steal")==0) attack.steal = 1;
 					
 					if(strcmp(command, "freeze")==0)
 					{
 						attack.freeze = 1;
-						attack.freezetime = atoi(GET_ARG(6)) * GAME_SPEED;
+						attack.freezetime = GET_INT_ARG(6) * GAME_SPEED;
 						attack.forcemap = -1;
 						attack.attack_drop = 0;
 					}
-					else attack.attack_drop = atoi(GET_ARG(6));
+					else attack.attack_drop = GET_INT_ARG(6);
 					
-					attack.no_block = atoi(GET_ARG(7));
-					attack.no_flash = atoi(GET_ARG(8));
-					attack.pause_add = atoi(GET_ARG(9));
-					attack.attack_coords[4] = atoi(GET_ARG(10)); // depth or z
+					attack.no_block = GET_INT_ARG(7);
+					attack.no_flash = GET_INT_ARG(8);
+					attack.pause_add = GET_INT_ARG(9);
+					attack.attack_coords[4] = GET_INT_ARG(10); // depth or z
 					
 					if(strcmp(command, "attack")==0 || 
 						strcmp(command, "attack1")==0) 
@@ -6593,136 +6583,136 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					break;
 				case CMD_ATTACKZ: case CMD_HITZ:
-					attack.attack_coords[4] = atoi(GET_ARG(1));
+					attack.attack_coords[4] = GET_INT_ARG(1);
 					break;
 				case CMD_BLAST:
-					abox[0] = atoi(GET_ARG(1));
-					abox[1] = atoi(GET_ARG(2));
-					abox[2] = atoi(GET_ARG(3));
-					abox[3] = atoi(GET_ARG(4));
+					abox[0] = GET_INT_ARG(1);
+					abox[1] = GET_INT_ARG(2);
+					abox[2] = GET_INT_ARG(3);
+					abox[3] = GET_INT_ARG(4);
 					attack.dropv[0] = 3;
 					attack.dropv[1] = 2.5;
 					attack.dropv[2] = 0;
-					attack.attack_force = atoi(GET_ARG(5));
-					attack.no_block = atoi(GET_ARG(6));
-					attack.no_flash = atoi(GET_ARG(7));
-					attack.pause_add = atoi(GET_ARG(8));
+					attack.attack_force = GET_INT_ARG(5);
+					attack.no_block = GET_INT_ARG(6);
+					attack.no_flash = GET_INT_ARG(7);
+					attack.pause_add = GET_INT_ARG(8);
 					attack.attack_drop = 1;
 					attack.attack_type = ATK_BLAST;
-					attack.attack_coords[4] = atoi(GET_ARG(9)); // depth or z
+					attack.attack_coords[4] = GET_INT_ARG(9); // depth or z
 					attack.blast = 1;
 					break;
 				case CMD_DROPV:
 					// drop velocity add if the target is knocked down
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-					pattack->dropv[0] = atof(GET_ARG(1)); // height add
-					pattack->dropv[1] = atof(GET_ARG(2)); // xdir add
-					pattack->dropv[2] = atof(GET_ARG(3)); // zdir add
+					pattack->dropv[0] = GET_FLOAT_ARG(1); // height add
+					pattack->dropv[1] = GET_FLOAT_ARG(2); // xdir add
+					pattack->dropv[2] = GET_FLOAT_ARG(3); // zdir add
 					break;
 				case CMD_OTG:	
 					// Over The Ground hit.
-					attack.otg = atoi(GET_ARG(1));
+					attack.otg = GET_INT_ARG(1);
 					break;
 				case CMD_JUGGLECOST:	
 					// if cost >= opponents jugglepoints , we can juggle
-					attack.jugglecost = atoi(GET_ARG(1));
+					attack.jugglecost = GET_INT_ARG(1);
 					break;
 				case CMD_GUARDCOST:
 					// if cost >= opponents guardpoints , opponent will play guardcrush anim
-					attack.guardcost = atoi(GET_ARG(1));
+					attack.guardcost = GET_INT_ARG(1);
 					break;
 				case CMD_STUN:
 					//Like Freeze, but no auto remap.
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->freeze = 1;
-					pattack->freezetime = atoi(GET_ARG(1)) * GAME_SPEED;
+					pattack->freezetime = GET_INT_ARG(1) * GAME_SPEED;
 					pattack->attack_drop = 0;
 					break;
 				case CMD_GRABIN:
 					// fake grab distanse efffect, not link
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-					pattack->grab =  atoi(GET_ARG(1));
-					pattack->grab_distance = atof(GET_ARG(2));
+					pattack->grab =  GET_INT_ARG(1);
+					pattack->grab_distance = GET_FLOAT_ARG(2);
 					break;
 				case CMD_NOREFLECT:
 					// only cost target's hp, don't knock down or cause pain, unless the target is killed
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-					pattack->no_pain = atoi(GET_ARG(1));
+					pattack->no_pain = GET_INT_ARG(1);
 					break;
 				case CMD_FORCEDIRECTION:
 					// the attack direction
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-					pattack->force_direction = atoi(GET_ARG(1));
+					pattack->force_direction = GET_INT_ARG(1);
 					break;
 				case CMD_DAMAGEONLANDING:
 					// fake throw damage on landing
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-					pattack->damage_on_landing = atoi(GET_ARG(1));
-					pattack->blast = atoi(GET_ARG(2));
+					pattack->damage_on_landing = GET_INT_ARG(1);
+					pattack->blast = GET_INT_ARG(2);
 					break;
 				case CMD_SEAL:
 					// Disable special moves for specified time.
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-					pattack->sealtime = atoi(GET_ARG(1)) * GAME_SPEED;
-					pattack->seal = atoi(GET_ARG(2));
+					pattack->sealtime = GET_INT_ARG(1) * GAME_SPEED;
+					pattack->seal = GET_INT_ARG(2);
 					break;
 				case CMD_STAYDOWN:
 					// Disable special moves for specified time.
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-					pattack->staydown[0]    = atoi(GET_ARG(1)); //Risetime modifier.
-					pattack->staydown[1]    = atoi(GET_ARG(2)); //Riseattack time addition and toggle.
+					pattack->staydown[0]    = GET_INT_ARG(1); //Risetime modifier.
+					pattack->staydown[1]    = GET_INT_ARG(2); //Riseattack time addition and toggle.
 					break;
 				case CMD_DOT:
 					// Cause damage over time effect.
-					attack.dot_index  = atoi(GET_ARG(1));  //Index.
-					attack.dot_time   = atoi(GET_ARG(2));  //Time to expiration.
-					attack.dot        = atoi(GET_ARG(3));  //Mode, see common_dot.
-					attack.dot_force  = atoi(GET_ARG(4));  //Amount per tick.
-					attack.dot_rate   = atoi(GET_ARG(5));  //Tick delay.
+					attack.dot_index  = GET_INT_ARG(1);  //Index.
+					attack.dot_time   = GET_INT_ARG(2);  //Time to expiration.
+					attack.dot        = GET_INT_ARG(3);  //Mode, see common_dot.
+					attack.dot_force  = GET_INT_ARG(4);  //Amount per tick.
+					attack.dot_rate   = GET_INT_ARG(5);  //Tick delay.
 					break;
 				case CMD_FORCEMAP:	
 					// force color map change for specified time
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-					pattack->forcemap = atoi(GET_ARG(1));
-					pattack->maptime = atoi(GET_ARG(2)) * GAME_SPEED;
+					pattack->forcemap = GET_INT_ARG(1);
+					pattack->maptime = GET_INT_ARG(2) * GAME_SPEED;
 					break;
 				case CMD_IDLE:
-					idle = atoi(GET_ARG(1));
+					idle = GET_INT_ARG(1);
 					break;
 				case CMD_MOVE:
-					move = atoi(GET_ARG(1));
+					move = GET_INT_ARG(1);
 					break;
 				case CMD_MOVEZ:	
-					movez = atoi(GET_ARG(1));
+					movez = GET_INT_ARG(1);
 					break;
 				case CMD_MOVEA:
-					movea = atoi(GET_ARG(1));
+					movea = GET_INT_ARG(1);
 					break;
 				case CMD_SETA:
-					seta = atoi(GET_ARG(1));
+					seta = GET_INT_ARG(1);
 					break;
 				case CMD_FSHADOW:
-					frameshadow = atoi(GET_ARG(1));
+					frameshadow = GET_INT_ARG(1);
 					break;
 				case CMD_RANGE:
 					if(newanim==NULL) shutdown(1, "Cannot set range: no animation!");
-					newanim->range[0] = atoi(GET_ARG(1));
-					newanim->range[1] = atoi(GET_ARG(2));
+					newanim->range[0] = GET_INT_ARG(1);
+					newanim->range[1] = GET_INT_ARG(2);
 					break;
 				case CMD_RANGEZ:
 					if(newanim==NULL) shutdown(1, "Cannot set rangez: no animation!");
-					newanim->range[2] = atoi(GET_ARG(1));
-					newanim->range[3] = atoi(GET_ARG(2));
+					newanim->range[2] = GET_INT_ARG(1);
+					newanim->range[3] = GET_INT_ARG(2);
 					break;
 				case CMD_RANGEA:	
 					if(newanim==NULL) shutdown(1, "Cannot set rangea: no animation!");
-					newanim->range[4] = atoi(GET_ARG(1));
-					newanim->range[5] = atoi(GET_ARG(2));
+					newanim->range[4] = GET_INT_ARG(1);
+					newanim->range[5] = GET_INT_ARG(2);
 					break;
 				case CMD_RANGEB:
 					if(newanim==NULL) shutdown(1, "Cannot set rangeb: no animation!");
-					newanim->range[6] = atoi(GET_ARG(1));
-					newanim->range[7] = atoi(GET_ARG(2));
+					newanim->range[6] = GET_INT_ARG(1);
+					newanim->range[7] = GET_INT_ARG(2);
 					break;
 				case CMD_FRAME:	
 					{
@@ -6822,38 +6812,38 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					maskindex = index;
 					break;
 				case CMD_FLIPFRAME:
-					newanim->flipframe = atoi(GET_ARG(1));
+					newanim->flipframe = GET_INT_ARG(1);
 					break;
 				case CMD_FOLLOWANIM:	
-					newanim->followanim = atoi(GET_ARG(1));
+					newanim->followanim = GET_INT_ARG(1);
 					if(newanim->followanim > max_follows) newanim->followanim = max_follows;
 					if(newanim->followanim < 0) newanim->followanim = 0;
 					break;
 				case CMD_FOLLOWCOND:
-					newanim->followcond = atoi(GET_ARG(1));
+					newanim->followcond = GET_INT_ARG(1);
 					break;
 				case CMD_COUNTERFRAME:
-					newanim->counterframe[0]	= atoi(GET_ARG(1));
-					newanim->counterframe[1]	= atoi(GET_ARG(1));
-					newanim->counterframe[2]	= atoi(GET_ARG(2));
-					newanim->counterframe[3]	= atoi(GET_ARG(3));
+					newanim->counterframe[0]	= GET_INT_ARG(1);
+					newanim->counterframe[1]	= GET_INT_ARG(1);
+					newanim->counterframe[2]	= GET_INT_ARG(2);
+					newanim->counterframe[3]	= GET_INT_ARG(3);
 					break;
 				case CMD_COUNTERRANGE:
-					newanim->counterframe[0]	= atoi(GET_ARG(1));
-					newanim->counterframe[1]	= atoi(GET_ARG(2));
-					newanim->counterframe[2]	= atoi(GET_ARG(3));
-					newanim->counterframe[3]	= atoi(GET_ARG(4));
+					newanim->counterframe[0]	= GET_INT_ARG(1);
+					newanim->counterframe[1]	= GET_INT_ARG(2);
+					newanim->counterframe[2]	= GET_INT_ARG(3);
+					newanim->counterframe[3]	= GET_INT_ARG(4);
 					break;
 				case CMD_WEAPONFRAME:	
 					newanim->weaponframe    = tracemalloc("weaponframe", 2 * sizeof(newanim->weaponframe));
 					memset(newanim->weaponframe, 0, 2 * sizeof(newanim->weaponframe));
-					newanim->weaponframe[0] = atoi(GET_ARG(1));
-					newanim->weaponframe[1] = atoi(GET_ARG(2));
+					newanim->weaponframe[0] = GET_INT_ARG(1);
+					newanim->weaponframe[1] = GET_INT_ARG(2);
 					break;
 				case CMD_QUAKEFRAME:
-					newanim->quakeframe[0] = atoi(GET_ARG(1));
-					newanim->quakeframe[1] = atoi(GET_ARG(2));
-					newanim->quakeframe[2] = atoi(GET_ARG(3));
+					newanim->quakeframe[0] = GET_INT_ARG(1);
+					newanim->quakeframe[1] = GET_INT_ARG(2);
+					newanim->quakeframe[2] = GET_INT_ARG(3);
 					newanim->quakeframe[3] = 0;
 					break;
 				case CMD_SUBENTITY: case CMD_CUSTENTITY:
@@ -6863,23 +6853,23 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_SPAWNFRAME:
 					newanim->spawnframe    = tracemalloc("spawnframe", 5 * sizeof(newanim->spawnframe));
 					memset(newanim->spawnframe, 0, 5 * sizeof(newanim->spawnframe));
-					newanim->spawnframe[0] = atof(GET_ARG(1));
-					newanim->spawnframe[1] = atof(GET_ARG(2));
-					newanim->spawnframe[2] = atof(GET_ARG(3));
-					newanim->spawnframe[3] = atof(GET_ARG(4));
-					newanim->spawnframe[4] = atof(GET_ARG(5));
+					newanim->spawnframe[0] = GET_FLOAT_ARG(1);
+					newanim->spawnframe[1] = GET_FLOAT_ARG(2);
+					newanim->spawnframe[2] = GET_FLOAT_ARG(3);
+					newanim->spawnframe[3] = GET_FLOAT_ARG(4);
+					newanim->spawnframe[4] = GET_FLOAT_ARG(5);
 					break;
 				case CMD_SUMMONFRAME:
 					newanim->summonframe    = tracemalloc("summonframe", 5 * sizeof(newanim->summonframe));
 					memset(newanim->summonframe, 0, 5 * sizeof(newanim->summonframe));
-					newanim->summonframe[0] = atof(GET_ARG(1));
-					newanim->summonframe[1] = atof(GET_ARG(2));
-					newanim->summonframe[2] = atof(GET_ARG(3));
-					newanim->summonframe[3] = atof(GET_ARG(4));
-					newanim->summonframe[4] = atof(GET_ARG(5));
+					newanim->summonframe[0] = GET_FLOAT_ARG(1);
+					newanim->summonframe[1] = GET_FLOAT_ARG(2);
+					newanim->summonframe[2] = GET_FLOAT_ARG(3);
+					newanim->summonframe[3] = GET_FLOAT_ARG(4);
+					newanim->summonframe[4] = GET_FLOAT_ARG(5);
 					break;
 				case CMD_UNSUMMONFRAME:
-					newanim->unsummonframe = atoi(GET_ARG(1));
+					newanim->unsummonframe = GET_INT_ARG(1);
 					break;
 				case CMD_AT_SCRIPT:	
 					if(ani_id < 0)  shutdown(1, "command '@script' must follow an animation! file: '%s'", filename);
@@ -7137,27 +7127,27 @@ int load_script_setting()
         {
             if(stricmp(command, "maxscriptvars")==0) // each script can have a variable list that can be accessed by index
             {
-                max_script_vars = atoi(GET_ARG(1)) ;
+                max_script_vars = GET_INT_ARG(1) ;
                 if(max_script_vars<0) max_script_vars = 0;
             }
             else if(stricmp(command, "maxentityvars")==0) // each entity can have a variable list that can be accessed by index
             {
-                max_entity_vars = atoi(GET_ARG(1)) ;
+                max_entity_vars = GET_INT_ARG(1) ;
                 if(max_entity_vars<0) max_entity_vars = 0;
             }
             else if(stricmp(command, "maxindexedvars")==0) // a global variable list that can be accessed by index
             {
-                max_indexed_vars = atoi(GET_ARG(1));
+                max_indexed_vars = GET_INT_ARG(1);
                 if(max_indexed_vars<0) max_indexed_vars = 0;
             }
             else if(stricmp(command, "maxglobalvars")==0) // for global_var_list, default to 2048
             {
-                max_global_vars = atoi(GET_ARG(1));
+                max_global_vars = GET_INT_ARG(1);
                 if(max_global_vars<0) max_global_vars = 0;
             }
 			else if(stricmp(command, "keyscriptrate")==0) // Rate that keyscripts fire when holding a key.
             {
-                keyscriptrate = atoi(GET_ARG(1));
+                keyscriptrate = GET_INT_ARG(1);
             }
         }
         // Go to next line
@@ -7261,47 +7251,47 @@ int load_models()
 		{
 			if(stricmp(command, "maxidles")==0) // max idle stances
 			{
-				max_idles = atoi(GET_ARG(1));
+				max_idles = GET_INT_ARG(1);
 				if(max_idles < MAX_IDLES) max_idles = MAX_IDLES;
 			}
 			if(stricmp(command, "maxwalks")==0) // max walks
 			{
-				max_walks = atoi(GET_ARG(1));
+				max_walks = GET_INT_ARG(1);
 				if(max_walks < MAX_WALKS) max_walks = MAX_WALKS;
 			}
 			if(stricmp(command, "maxbackwalks")==0) // max backward walks
 			{
-				max_backwalks = atoi(GET_ARG(1));
+				max_backwalks = GET_INT_ARG(1);
 				if(max_backwalks < MAX_BACKWALKS) max_backwalks = MAX_BACKWALKS;
 			}
 			if(stricmp(command, "maxups")==0) // max up walks
 			{
-				max_ups = atoi(GET_ARG(1));
+				max_ups = GET_INT_ARG(1);
 				if(max_ups < MAX_UPS) max_ups = MAX_UPS;
 			}
 			if(stricmp(command, "maxdowns")==0) // max down walks
 			{
-				max_downs = atoi(GET_ARG(1));
+				max_downs = GET_INT_ARG(1);
 				if(max_downs < MAX_DOWNS) max_downs = MAX_DOWNS;
 			}
 			if(stricmp(command, "maxattacktypes")==0) // max attacktype/pain/fall/die
 			{
-				max_attack_types = atoi(GET_ARG(1)) + STA_ATKS;
+				max_attack_types = GET_INT_ARG(1) + STA_ATKS;
 				if(max_attack_types < MAX_ATKS) max_attack_types = MAX_ATKS;
 			}
 			else if(stricmp(command, "maxfollows")==0) // max follow-ups
 			{
-				max_follows = atoi(GET_ARG(1));
+				max_follows = GET_INT_ARG(1);
 				if(max_follows<MAX_FOLLOWS) max_follows = MAX_FOLLOWS;
 			}
 			else if(stricmp(command, "maxfreespecials")==0)// max freespecials
 			{
-				max_freespecials = atoi(GET_ARG(1));
+				max_freespecials = GET_INT_ARG(1);
 				if(max_freespecials<MAX_SPECIALS) max_freespecials = MAX_SPECIALS;
 			}
 			else if(stricmp(command, "maxattacks")==0) // max attacks
 			{
-				max_attacks = atoi(GET_ARG(1));
+				max_attacks = GET_INT_ARG(1);
 				if(max_attacks<MAX_ATTACKS) max_attacks = MAX_ATTACKS;
 			}
 		}
@@ -7384,28 +7374,28 @@ int load_models()
 				cache_model(value1, value2, 1);
 			}
 			else if(stricmp(command, "colourselect")==0){   // 6-2-2005 if string for colourselect found
-				colourselect =  atoi(GET_ARG(1));          //  6-2-2005
+				colourselect =  GET_INT_ARG(1);          //  6-2-2005
 			}
 			else if(stricmp(command, "spdirection")==0){                // Select Player Direction for select player screen
-				spdirection[0] =  atoi(GET_ARG(1));
-				spdirection[1] =  atoi(GET_ARG(2));
-				spdirection[2] =  atoi(GET_ARG(3));
-				spdirection[3] =  atoi(GET_ARG(4));
+				spdirection[0] =  GET_INT_ARG(1);
+				spdirection[1] =  GET_INT_ARG(2);
+				spdirection[2] =  GET_INT_ARG(3);
+				spdirection[3] =  GET_INT_ARG(4);
 			}
 			else if(stricmp(command, "autoland")==0){    // New flag to determine if a player auto lands when thrown by another player (2 completely disables the ability to land)
-				autoland = atoi(GET_ARG(1));
+				autoland = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "nolost")==0){    // this is use for dont lost your weapon if you grab a enemy flag it to 1 to no drop by tails
-				nolost = atoi(GET_ARG(1));
+				nolost = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "ajspecial")==0){    // Flag to determine if a + j executes special
-				ajspecial = atoi(GET_ARG(1));
+				ajspecial = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "nocost")==0){    // Nocost set in models.txt
-				nocost = atoi(GET_ARG(1));
+				nocost = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "nocheats")==0){ //disable cheat option in menu
-				forcecheatsoff =  atoi(GET_ARG(1));
+				forcecheatsoff =  GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "nodropen")==0){
 				nodropen = 1;
@@ -7417,28 +7407,28 @@ int load_models()
 				cache_model(value1, value2, 0);
 			}
 			else if(stricmp(command, "noaircancel")==0){
-				noaircancel = atoi(GET_ARG(1));
+				noaircancel = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "nomaxrushreset")==0){
-				nomaxrushreset[4] = atoi(GET_ARG(1));
+				nomaxrushreset[4] = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "mpblock")==0){               // Take from MP first?
-				mpblock = atoi(GET_ARG(1));
+				mpblock = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "blockratio")==0){            // Nullify or reduce damage?
-				blockratio = atoi(GET_ARG(1));
+				blockratio = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "nochipdeath")==0){
-				nochipdeath = atoi(GET_ARG(1));
+				nochipdeath = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "lifescore")==0){
-				lifescore =  atoi(GET_ARG(1));
+				lifescore =  GET_INT_ARG(1);
 			}                    // Number of points needed to earn a 1-up
 			else if(stricmp(command, "credscore")==0){
-				credscore =  atoi(GET_ARG(1));
+				credscore =  GET_INT_ARG(1);
 			}                    // Number of points needed to earn a credit
 			else if(stricmp(command, "versusdamage")==0){
-				versusdamage =  atoi(GET_ARG(1));
+				versusdamage =  GET_INT_ARG(1);
 				if(versusdamage == 0 || versusdamage == 1) savedata.mode = versusdamage^1;
 			}
 			else if(!(stricmp(command, "maxdowns")==0 ||
@@ -7736,7 +7726,7 @@ void load_levelorder()
 			if(stricmp(command, "blendfx")==0){
 				for(i=0; i<MAX_BLENDINGS; i++)
 				{
-					if(atoi(GET_ARG(i+1))) blendfx[i] = 1;
+					if(GET_INT_ARG(i+1)) blendfx[i] = 1;
 					else blendfx[i] = 0;
 				}
 				blendfx_is_set = 1;
@@ -7756,7 +7746,7 @@ void load_levelorder()
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                ifcomplete[current_set] = atoi(GET_ARG(1));
+                ifcomplete[current_set] = GET_INT_ARG(1);
             }
             else if(stricmp(command, "skipselect")==0){
                 if(current_set<0)
@@ -7825,14 +7815,14 @@ void load_levelorder()
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                difflives[current_set] = atoi(GET_ARG(1));
+                difflives[current_set] = GET_INT_ARG(1);
             }
 
 			else if(stricmp(command, "disablehof")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                noshowhof[current_set] = atoi(GET_ARG(1));
+                noshowhof[current_set] = GET_INT_ARG(1);
             }
             // 07-12-31
             // 0 this set can't be saved
@@ -7842,16 +7832,16 @@ void load_levelorder()
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                cansave_flag[current_set] = atoi(GET_ARG(1));
+                cansave_flag[current_set] = GET_INT_ARG(1);
             }
             //    2-10-05  adjust the walkable coordinates
             else if(stricmp(command, "z")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                z_coords[0] = atoi(GET_ARG(1));
-                z_coords[1] = atoi(GET_ARG(2));
-                z_coords[2] = atoi(GET_ARG(3));
+                z_coords[0] = GET_INT_ARG(1);
+                z_coords[1] = GET_INT_ARG(2);
+                z_coords[2] = GET_INT_ARG(3);
             }
             //    2007-2-22 level branch name
             else if(stricmp(command, "branch")==0){
@@ -8205,7 +8195,7 @@ void load_levelorder()
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                diffoverlap[current_set] = atoi(GET_ARG(1));
+                diffoverlap[current_set] = GET_INT_ARG(1);
             }
 			else if(stricmp(command, "showrushbonus")==0){
                 showrushbonus = 1;
@@ -8223,13 +8213,13 @@ void load_levelorder()
                 completebg = 1;
             }
 			else if(stricmp(command, "loadingbg")==0){
-				for(i=0; i<7; i++) loadingbg[0][i] = atoi(GET_ARG(i+1));
+				for(i=0; i<7; i++) loadingbg[0][i] = GET_INT_ARG(i+1);
             }
 			else if(stricmp(command, "loadingbg2")==0){
-				for(i=0; i<7; i++) loadingbg[1][i] = atoi(GET_ARG(i+1));
+				for(i=0; i<7; i++) loadingbg[1][i] = GET_INT_ARG(i+1);
 	        }
 			else if(stricmp(command, "loadingmusic")==0){
-                loadingmusic = atoi(GET_ARG(1));
+                loadingmusic = GET_INT_ARG(1);
 			}
             else if(stricmp(command, "unlockbg")==0){
                 unlockbg = 1;
@@ -8243,7 +8233,7 @@ void load_levelorder()
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                custfade[current_set] = atoi(GET_ARG(1));
+                custfade[current_set] = GET_INT_ARG(1);
             }
             //8-2-2005 custom fade end
 			//continuescore
@@ -8251,21 +8241,21 @@ void load_levelorder()
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                continuescore[current_set] = atoi(GET_ARG(1));
+                continuescore[current_set] = GET_INT_ARG(1);
             }
 
             else if(stricmp(command, "credits")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                diffcreds[current_set] = atoi(GET_ARG(1));
+                diffcreds[current_set] = GET_INT_ARG(1);
             }
             //typemp for change for mp restored by time (0) to by enemys (1) or no restore (2) by tails
             else if(stricmp(command, "typemp")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                typemp[current_set] = atoi(GET_ARG(1));
+                typemp[current_set] = GET_INT_ARG(1);
             }
             else if(stricmp(command, "single")==0){
                 if(current_set<0)
@@ -8281,37 +8271,37 @@ void load_levelorder()
             else if(stricmp(command, "maxplayers")==0){
                 if(current_set<0)
                 {
-                    maxplayers[0] = atoi(GET_ARG(1));
+                    maxplayers[0] = GET_INT_ARG(1);
                     for(i=0; i<MAX_DIFFICULTIES; i++)
                         maxplayers[i] = ctrlmaxplayers[i] = maxplayers[0];
                 }
                 else
                 {
-                    maxplayers[current_set] = ctrlmaxplayers[current_set] = atoi(GET_ARG(1));
+                    maxplayers[current_set] = ctrlmaxplayers[current_set] = GET_INT_ARG(1);
                 }
             }
             else if(stricmp(command, "nosame")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
 
-                same[current_set] = atoi(GET_ARG(1));
+                same[current_set] = GET_INT_ARG(1);
             }
             else if(stricmp(command, "rush")==0){
-                rush[0] = atoi(GET_ARG(1));
-                rush[1] = atoi(GET_ARG(2));
+                rush[0] = GET_INT_ARG(1);
+                rush[1] = GET_INT_ARG(2);
                 strncpy(rush_names[0], GET_ARG(3), MAX_NAME_LEN);
-                rush[2] = atoi(GET_ARG(4));
-                rush[3] = atoi(GET_ARG(5));
+                rush[2] = GET_INT_ARG(4);
+                rush[3] = GET_INT_ARG(5);
                 strncpy(rush_names[1], GET_ARG(6), MAX_NAME_LEN);
-                rush[4] = atoi(GET_ARG(7));
-                rush[5] = atoi(GET_ARG(8));
+                rush[4] = GET_INT_ARG(7);
+                rush[5] = GET_INT_ARG(8);
             }
             else if(stricmp(command, "maxwallheight")==0){
-                MAX_WALL_HEIGHT = atoi(GET_ARG(1));
+                MAX_WALL_HEIGHT = GET_INT_ARG(1);
                 if(MAX_WALL_HEIGHT < 0) MAX_WALL_HEIGHT = 1000;
             }
 			else if(stricmp(command, "scoreformat")==0){
-                scoreformat = atoi(GET_ARG(1));
+                scoreformat = GET_INT_ARG(1);
             }
             else {
                 if(buf != NULL){
@@ -8655,14 +8645,14 @@ void load_level(char *filename){
 		if(command[0]){
 			if(stricmp(command, "loadingbg")==0){
 				load_background(GET_ARG(1), 0);
-				for(i=0; i<6; i++) bgPosi[i] = atoi(GET_ARG(i+2));
+				for(i=0; i<6; i++) bgPosi[i] = GET_INT_ARG(i+2);
 				standard_palette(1);
 				lifebar_colors();
 				init_colourtable();
 			}
 			else if(stricmp(command, "musicfade")==0){
 				memset(&next,0,sizeof(s_spawn_entry));
-				next.musicfade = atof(GET_ARG(1));
+				next.musicfade = GET_FLOAT_ARG(1);
 			}
 			else if(stricmp(command, "music")==0){
 				value = GET_ARG(1);
@@ -8699,7 +8689,7 @@ void load_level(char *filename){
 			}
 			else if(stricmp(command, "load")==0){
 				strncpy(string, GET_ARG(1), 128);
-				load_cached_model(string, filename, atoi(GET_ARG(2)));
+				load_cached_model(string, filename, GET_INT_ARG(2));
 			}
 			else if(stricmp(command, "background")==0){
 				value = GET_ARG(1);
@@ -8707,21 +8697,21 @@ void load_level(char *filename){
 				level->bglayers[0].type = bg_screen;
 				level->bglayers[0].bgspeedratio = 1;
 
-				level->bglayers[0].xratio = atof(GET_ARG(2)); // x ratio
-				level->bglayers[0].zratio = atof(GET_ARG(3)); // z ratio
-				level->bglayers[0].xoffset = atoi(GET_ARG(4)); // x start
-				level->bglayers[0].zoffset = atoi(GET_ARG(5)); // z start
-				level->bglayers[0].xspacing = atoi(GET_ARG(6)); // x spacing
-				level->bglayers[0].zspacing = atoi(GET_ARG(7)); // z spacing
-				level->bglayers[0].xrepeat = atoi(GET_ARG(8)); // x repeat
-				level->bglayers[0].zrepeat = atoi(GET_ARG(9)); // z repeat
+				level->bglayers[0].xratio = GET_FLOAT_ARG(2); // x ratio
+				level->bglayers[0].zratio = GET_FLOAT_ARG(3); // z ratio
+				level->bglayers[0].xoffset = GET_INT_ARG(4); // x start
+				level->bglayers[0].zoffset = GET_INT_ARG(5); // z start
+				level->bglayers[0].xspacing = GET_INT_ARG(6); // x spacing
+				level->bglayers[0].zspacing = GET_INT_ARG(7); // z spacing
+				level->bglayers[0].xrepeat = GET_INT_ARG(8); // x repeat
+				level->bglayers[0].zrepeat = GET_INT_ARG(9); // z repeat
 				// unused
-				level->bglayers[0].transparency = atoi(GET_ARG(10)); // transparency
-				level->bglayers[0].alpha = atoi(GET_ARG(11)); // alpha
-				level->bglayers[0].watermode = atoi(GET_ARG(12)); // amplitude
-				level->bglayers[0].amplitude = atoi(GET_ARG(13)); // amplitude
-				level->bglayers[0].wavelength = atoi(GET_ARG(14)); // wavelength
-				level->bglayers[0].wavespeed = atof(GET_ARG(15)); // waterspeed
+				level->bglayers[0].transparency = GET_INT_ARG(10); // transparency
+				level->bglayers[0].alpha = GET_INT_ARG(11); // alpha
+				level->bglayers[0].watermode = GET_INT_ARG(12); // amplitude
+				level->bglayers[0].amplitude = GET_INT_ARG(13); // amplitude
+				level->bglayers[0].wavelength = GET_INT_ARG(14); // wavelength
+				level->bglayers[0].wavespeed = GET_FLOAT_ARG(15); // waterspeed
 				level->bglayers[0].enabled = 1; // enabled
 
 				if((value=GET_ARG(2))[0]==0) level->bglayers[0].xratio = 0.5;
@@ -8736,21 +8726,21 @@ void load_level(char *filename){
 				if(level->numbglayers >= LEVEL_MAX_BGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_BGLAYERS);
 				if(level->numbglayers==0) level->numbglayers = 1; // reserve for background
 
-				level->bglayers[level->numbglayers].xratio = atof(GET_ARG(2)); // x ratio
-				level->bglayers[level->numbglayers].zratio = atof(GET_ARG(3)); // z ratio
-				level->bglayers[level->numbglayers].xoffset = atoi(GET_ARG(4)); // x start
-				level->bglayers[level->numbglayers].zoffset = atoi(GET_ARG(5)); // z start
-				level->bglayers[level->numbglayers].xspacing = atoi(GET_ARG(6)); // x spacing
-				level->bglayers[level->numbglayers].zspacing = atoi(GET_ARG(7)); // z spacing
-				level->bglayers[level->numbglayers].xrepeat = atoi(GET_ARG(8)); // x repeat
-				level->bglayers[level->numbglayers].zrepeat = atoi(GET_ARG(9)); // z repeat
-				level->bglayers[level->numbglayers].transparency = atoi(GET_ARG(10)); // transparency
-				level->bglayers[level->numbglayers].alpha = atoi(GET_ARG(11)); // alpha
-				level->bglayers[level->numbglayers].watermode = atoi(GET_ARG(12)); // amplitude
-				level->bglayers[level->numbglayers].amplitude = atoi(GET_ARG(13)); // amplitude
-				level->bglayers[level->numbglayers].wavelength = atoi(GET_ARG(14)); // wavelength
-				level->bglayers[level->numbglayers].wavespeed = atof(GET_ARG(15)); // waterspeed
-				level->bglayers[level->numbglayers].bgspeedratio = atof(GET_ARG(16)); // moving
+				level->bglayers[level->numbglayers].xratio = GET_FLOAT_ARG(2); // x ratio
+				level->bglayers[level->numbglayers].zratio = GET_FLOAT_ARG(3); // z ratio
+				level->bglayers[level->numbglayers].xoffset = GET_INT_ARG(4); // x start
+				level->bglayers[level->numbglayers].zoffset = GET_INT_ARG(5); // z start
+				level->bglayers[level->numbglayers].xspacing = GET_INT_ARG(6); // x spacing
+				level->bglayers[level->numbglayers].zspacing = GET_INT_ARG(7); // z spacing
+				level->bglayers[level->numbglayers].xrepeat = GET_INT_ARG(8); // x repeat
+				level->bglayers[level->numbglayers].zrepeat = GET_INT_ARG(9); // z repeat
+				level->bglayers[level->numbglayers].transparency = GET_INT_ARG(10); // transparency
+				level->bglayers[level->numbglayers].alpha = GET_INT_ARG(11); // alpha
+				level->bglayers[level->numbglayers].watermode = GET_INT_ARG(12); // amplitude
+				level->bglayers[level->numbglayers].amplitude = GET_INT_ARG(13); // amplitude
+				level->bglayers[level->numbglayers].wavelength = GET_INT_ARG(14); // wavelength
+				level->bglayers[level->numbglayers].wavespeed = GET_FLOAT_ARG(15); // waterspeed
+				level->bglayers[level->numbglayers].bgspeedratio = GET_FLOAT_ARG(16); // moving
 				level->bglayers[level->numbglayers].enabled = 1; // enabled
 
 				if((value=GET_ARG(2))[0]==0) level->bglayers[level->numbglayers].xratio = 0.5;
@@ -8767,23 +8757,23 @@ void load_level(char *filename){
 			else if(stricmp(command, "fglayer") == 0){
 				if(level->numfglayers >= LEVEL_MAX_FGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_FGLAYERS);
 
-				level->fglayers[level->numfglayers].z = atoi(GET_ARG(2)); // z
-				level->fglayers[level->numfglayers].xratio = atof(GET_ARG(3)); // x ratio
-				level->fglayers[level->numfglayers].zratio = atof(GET_ARG(4)); // z ratio
-				level->fglayers[level->numfglayers].xoffset = atoi(GET_ARG(5)); // x start
-				level->fglayers[level->numfglayers].zoffset = atoi(GET_ARG(6)); // z start
-				level->fglayers[level->numfglayers].xspacing = atoi(GET_ARG(7)); // x spacing
-				level->fglayers[level->numfglayers].zspacing = atoi(GET_ARG(8)); // z spacing
-				level->fglayers[level->numfglayers].xrepeat = atoi(GET_ARG(9)); // x repeat
+				level->fglayers[level->numfglayers].z = GET_INT_ARG(2); // z
+				level->fglayers[level->numfglayers].xratio = GET_FLOAT_ARG(3); // x ratio
+				level->fglayers[level->numfglayers].zratio = GET_FLOAT_ARG(4); // z ratio
+				level->fglayers[level->numfglayers].xoffset = GET_INT_ARG(5); // x start
+				level->fglayers[level->numfglayers].zoffset = GET_INT_ARG(6); // z start
+				level->fglayers[level->numfglayers].xspacing = GET_INT_ARG(7); // x spacing
+				level->fglayers[level->numfglayers].zspacing = GET_INT_ARG(8); // z spacing
+				level->fglayers[level->numfglayers].xrepeat = GET_INT_ARG(9); // x repeat
 
-				level->fglayers[level->numfglayers].zrepeat = atoi(GET_ARG(10)); // z repeat
-				level->fglayers[level->numfglayers].transparency = atoi(GET_ARG(11)); // transparency
-				level->fglayers[level->numfglayers].alpha = atoi(GET_ARG(12)); // alpha
-				level->fglayers[level->numfglayers].watermode = atoi(GET_ARG(13)); // amplitude
-				level->fglayers[level->numfglayers].amplitude = atoi(GET_ARG(14)); // amplitude
-				level->fglayers[level->numfglayers].wavelength = atoi(GET_ARG(15)); // wavelength
-				level->fglayers[level->numfglayers].wavespeed = atof(GET_ARG(16)); // waterspeed
-				level->fglayers[level->numfglayers].bgspeedratio = atof(GET_ARG(17)); // moving
+				level->fglayers[level->numfglayers].zrepeat = GET_INT_ARG(10); // z repeat
+				level->fglayers[level->numfglayers].transparency = GET_INT_ARG(11); // transparency
+				level->fglayers[level->numfglayers].alpha = GET_INT_ARG(12); // alpha
+				level->fglayers[level->numfglayers].watermode = GET_INT_ARG(13); // amplitude
+				level->fglayers[level->numfglayers].amplitude = GET_INT_ARG(14); // amplitude
+				level->fglayers[level->numfglayers].wavelength = GET_INT_ARG(15); // wavelength
+				level->fglayers[level->numfglayers].wavespeed = GET_FLOAT_ARG(16); // waterspeed
+				level->fglayers[level->numfglayers].bgspeedratio = GET_FLOAT_ARG(17); // moving
 				level->fglayers[level->numfglayers].enabled = 1;
 
 				if((value=GET_ARG(2))[0]==0) level->fglayers[level->numfglayers].xratio = 1.5;
@@ -8799,7 +8789,7 @@ void load_level(char *filename){
 			}
 			else if(stricmp(command, "water")==0){
 				load_texture(GET_ARG(1));
-				i = atoi(GET_ARG(2));
+				i = GET_INT_ARG(2);
 				if(i<1) i = 1;
 				texture_set_wave((float)i);
 			}
@@ -8817,101 +8807,101 @@ void load_level(char *filename){
 				else if(stricmp(value, "outin")==0) level->scrolldir = SCROLL_OUTIN;
 			}
 			else if(stricmp(command, "facing")==0){
-				level->facing = atoi(GET_ARG(1));
+				level->facing = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "rock")==0){
-				level->rocking = atoi(GET_ARG(1));
+				level->rocking = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "bgspeed")==0){
-				level->bgspeed = atof(GET_ARG(1));
-				if(atoi(GET_ARG(2)))level->bgspeed*=-1;
+				level->bgspeed = GET_FLOAT_ARG(1);
+				if(GET_INT_ARG(2))level->bgspeed*=-1;
 			}
 			else if(stricmp(command, "mirror")==0){
-				level->mirror = atoi(GET_ARG(1));
+				level->mirror = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "bossmusic")==0){
 				strncpy(level->bossmusic, GET_ARG(1), 255);
 				level->bossmusic_offset = atol(GET_ARG(2));
 			}
 			else if(stricmp(command, "nopause")==0){
-				nopause = atoi(GET_ARG(1));
+				nopause = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "noscreenshot")==0){
-				noscreenshot = atoi(GET_ARG(1));
+				noscreenshot = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "settime")==0){    // If settime is found, overwrite the default 100 for time limit
-				if(atoi(GET_ARG(1)) > 100 || atoi(GET_ARG(1)) < 0) level->settime = 100;
-				else level->settime = atoi(GET_ARG(1)); // Feb 25, 2005 - Time limit loaded from individual .txt file
+				if(GET_INT_ARG(1) > 100 || GET_INT_ARG(1) < 0) level->settime = 100;
+				else level->settime = GET_INT_ARG(1); // Feb 25, 2005 - Time limit loaded from individual .txt file
 			}
 			else if(stricmp(command, "setweap")==0){    // Specify a weapon for each level
-				level->setweap = atoi(GET_ARG(1));
+				level->setweap = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "notime")==0){    // Flag to if the time should be displayed 1 = no, else yes
-				level->notime = atoi(GET_ARG(1));
+				level->notime = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "noreset")==0){    // Flag to if the time should be reset when players respawn 1 = no, else yes
-				level->noreset = atoi(GET_ARG(1));
+				level->noreset = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "noslow")==0){    // If set, level will not slow down when bosses are defeated
-				level->noslow = atoi(GET_ARG(1));
+				level->noslow = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "type")==0){
-				level->type = atoi(GET_ARG(1));    // Level type - 1 = bonus, else regular
+				level->type = GET_INT_ARG(1);    // Level type - 1 = bonus, else regular
 
-				if(atoi(GET_ARG(2))) level->nospecial = atoi(GET_ARG(2));    // Can use specials during bonus levels (default 0 - yes)
-				if(atoi(GET_ARG(3))) level->nohurt = atoi(GET_ARG(3));    // Can hurt other players during bonus levels (default 0 - yes)
+				if(GET_INT_ARG(2)) level->nospecial = GET_INT_ARG(2);    // Can use specials during bonus levels (default 0 - yes)
+				if(GET_INT_ARG(3)) level->nohurt = GET_INT_ARG(3);    // Can hurt other players during bonus levels (default 0 - yes)
 			}
 			else if(stricmp(command, "nohit")==0){
-				level->nohit = atoi(GET_ARG(1));
+				level->nohit = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "gravity")==0){
-				level->gravity = atof(GET_ARG(1));
+				level->gravity = GET_FLOAT_ARG(1);
 				level->gravity /= 100;
 			}
 			else if(stricmp(command, "maxfallspeed")==0){
-				level->maxfallspeed = atof(GET_ARG(1));
+				level->maxfallspeed = GET_FLOAT_ARG(1);
 				level->maxfallspeed /= 10;
 			}
 			else if(stricmp(command, "maxtossspeed")==0){
-				level->maxtossspeed = atof(GET_ARG(1));
+				level->maxtossspeed = GET_FLOAT_ARG(1);
 				level->maxtossspeed /= 10;
 			}
 			else if(stricmp(command, "cameratype")==0){
-				cameratype = atoi(GET_ARG(1));
+				cameratype = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "cameraoffset")==0){
-				level->cameraxoffset = atoi(GET_ARG(1));
-				level->camerazoffset = atoi(GET_ARG(2));
+				level->cameraxoffset = GET_INT_ARG(1);
+				level->camerazoffset = GET_INT_ARG(2);
 			}
 			else if(stricmp(command, "spawn1")==0){
-				level->spawn[0][0] = atoi(GET_ARG(1));
-				level->spawn[0][1] = atoi(GET_ARG(2));
-				level->spawn[0][2] = atoi(GET_ARG(3));
+				level->spawn[0][0] = GET_INT_ARG(1);
+				level->spawn[0][1] = GET_INT_ARG(2);
+				level->spawn[0][2] = GET_INT_ARG(3);
 
 				if(level->spawn[0][1] > 232 || level->spawn[0][1] < 0) level->spawn[0][1] = 232;
 
 				if(level->spawn[0][2] < 0) level->spawn[0][2] = 300;
 			}
 			else if(stricmp(command, "spawn2")==0){
-				level->spawn[1][0] = atoi(GET_ARG(1));
-				level->spawn[1][1] = atoi(GET_ARG(2));
-				level->spawn[1][2] = atoi(GET_ARG(3));
+				level->spawn[1][0] = GET_INT_ARG(1);
+				level->spawn[1][1] = GET_INT_ARG(2);
+				level->spawn[1][2] = GET_INT_ARG(3);
 
 				if(level->spawn[1][1] > 232 || level->spawn[1][1] < 0) level->spawn[1][1] = 232;
 				if(level->spawn[1][2] < 0) level->spawn[1][2] = 300;
 			}
 			else if(stricmp(command, "spawn3")==0){
-				level->spawn[2][0] = atoi(GET_ARG(1));
-				level->spawn[2][1] = atoi(GET_ARG(2));
-				level->spawn[2][2] = atoi(GET_ARG(3));
+				level->spawn[2][0] = GET_INT_ARG(1);
+				level->spawn[2][1] = GET_INT_ARG(2);
+				level->spawn[2][2] = GET_INT_ARG(3);
 
 				if(level->spawn[2][1] > 232 || level->spawn[2][1] < 0) level->spawn[2][1] = 232;
 				if(level->spawn[2][2] < 0) level->spawn[2][2] = 300;
 			}
 			else if(stricmp(command, "spawn4")==0){
-				level->spawn[3][0] = atoi(GET_ARG(1));
-				level->spawn[3][1] = atoi(GET_ARG(2));
-				level->spawn[3][2] = atoi(GET_ARG(3));
+				level->spawn[3][0] = GET_INT_ARG(1);
+				level->spawn[3][1] = GET_INT_ARG(2);
+				level->spawn[3][2] = GET_INT_ARG(3);
 
 				if(level->spawn[3][1] > 232 || level->spawn[3][1] < 0) level->spawn[3][1] = 232;
 				if(level->spawn[3][2] < 0) level->spawn[3][2] = 300;
@@ -8930,7 +8920,7 @@ void load_level(char *filename){
 
 			}
 			else if(stricmp(command, "stagenumber")==0){
-				current_stage = atoi(GET_ARG(1));
+				current_stage = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "order")==0){
 				// Append to order
@@ -8962,13 +8952,13 @@ void load_level(char *filename){
 				}
 
 				if(level->numholes >= LEVEL_MAX_HOLES) shutdown(1, "Too many holes in level (max %i)!", LEVEL_MAX_HOLES);
-				level->holes[level->numholes][0] = atof(GET_ARG(1));
-				level->holes[level->numholes][1] = atof(GET_ARG(2));
-				level->holes[level->numholes][2] = atof(GET_ARG(3));
-				level->holes[level->numholes][3] = atof(GET_ARG(4));
-				level->holes[level->numholes][4] = atof(GET_ARG(5));
-				level->holes[level->numholes][5] = atof(GET_ARG(6));
-				level->holes[level->numholes][6] = atof(GET_ARG(7));
+				level->holes[level->numholes][0] = GET_FLOAT_ARG(1);
+				level->holes[level->numholes][1] = GET_FLOAT_ARG(2);
+				level->holes[level->numholes][2] = GET_FLOAT_ARG(3);
+				level->holes[level->numholes][3] = GET_FLOAT_ARG(4);
+				level->holes[level->numholes][4] = GET_FLOAT_ARG(5);
+				level->holes[level->numholes][5] = GET_FLOAT_ARG(6);
+				level->holes[level->numholes][6] = GET_FLOAT_ARG(7);
 
 				if(!level->holes[level->numholes][1]) level->holes[level->numholes][1] = 240;
 				if(!level->holes[level->numholes][2]) level->holes[level->numholes][2] = 12;
@@ -8980,20 +8970,20 @@ void load_level(char *filename){
 			}
 				else if(stricmp(command, "wall")==0){
 					if(level->numwalls >= LEVEL_MAX_WALLS) shutdown(1, "Too many walls in level (max %i)!", LEVEL_MAX_WALLS);
-					level->walls[level->numwalls][0] = atof(GET_ARG(1));
-					level->walls[level->numwalls][1] = atof(GET_ARG(2));
-					level->walls[level->numwalls][2] = atof(GET_ARG(3));
-					level->walls[level->numwalls][3] = atof(GET_ARG(4));
-					level->walls[level->numwalls][4] = atof(GET_ARG(5));
-					level->walls[level->numwalls][5] = atof(GET_ARG(6));
-					level->walls[level->numwalls][6] = atof(GET_ARG(7));
-					level->walls[level->numwalls][7] = atof(GET_ARG(8));
+					level->walls[level->numwalls][0] = GET_FLOAT_ARG(1);
+					level->walls[level->numwalls][1] = GET_FLOAT_ARG(2);
+					level->walls[level->numwalls][2] = GET_FLOAT_ARG(3);
+					level->walls[level->numwalls][3] = GET_FLOAT_ARG(4);
+					level->walls[level->numwalls][4] = GET_FLOAT_ARG(5);
+					level->walls[level->numwalls][5] = GET_FLOAT_ARG(6);
+					level->walls[level->numwalls][6] = GET_FLOAT_ARG(7);
+					level->walls[level->numwalls][7] = GET_FLOAT_ARG(8);
 					level->numwalls++;
 				}
 				else if(stricmp(command, "palette")==0){
 					if(level->numpalettes >= LEVEL_MAX_PALETTES) shutdown(1, "Too many palettes in level (max %i)!", LEVEL_MAX_PALETTES);
 					for(i=0; i<MAX_BLENDINGS; i++)
-					usemap[i] = atoi(GET_ARG(i+2));
+					usemap[i] = GET_INT_ARG(i+2);
 					if(!load_palette(level->palettes[level->numpalettes], GET_ARG(1)) ||
 					!create_blending_tables(level->palettes[level->numpalettes], level->blendings[level->numpalettes], usemap))
 					{
@@ -9052,10 +9042,10 @@ void load_level(char *filename){
                 else shutdown(1, "Failed loading end-level script: '%s'!", value);
             }
             else if(stricmp(command, "blocked")==0){
-                level->exit_blocked = atoi(GET_ARG(1));
+                level->exit_blocked = GET_INT_ARG(1);
             }
             else if(stricmp(command, "endhole")==0){
-                level->exit_hole = atoi(GET_ARG(1));
+                level->exit_hole = GET_INT_ARG(1);
             }
             else if(stricmp(command, "wait")==0){
                 // Clear spawn thing, set wait state instead
@@ -9074,44 +9064,44 @@ void load_level(char *filename){
             }
             else if(stricmp(command, "shadowcolor")==0){
                 memset(&next,0,sizeof(s_spawn_entry));
-				next.shadowcolor = atoi(GET_ARG(1));
+				next.shadowcolor = GET_INT_ARG(1);
             }
             else if(stricmp(command, "shadowalpha")==0){
                 memset(&next,0,sizeof(s_spawn_entry));
-				next.shadowalpha = atoi(GET_ARG(1));
+				next.shadowalpha = GET_INT_ARG(1);
 				if(blendfx_is_set==0 && next.shadowalpha>0) blendfx[next.shadowalpha-1] = 1;
             }
             else if(stricmp(command, "light")==0){
                 memset(&next,0,sizeof(s_spawn_entry));
-			    next.light[0] = atoi(GET_ARG(1));
-				next.light[1] = atoi(GET_ARG(2));
+			    next.light[0] = GET_INT_ARG(1);
+				next.light[1] = GET_INT_ARG(2);
 				if(next.light[1] == 0) next.light[1] = 64;
             }
             else if(stricmp(command, "scrollz")==0 || stricmp(command, "scrollx")==0){
                 // now z scroll can be limited by this
                 // if the level is vertical, use scrollx, only different in name ..., but makes more sense
                 memset(&next,0,sizeof(s_spawn_entry));
-                next.scrollminz = atoi(GET_ARG(1));
-                next.scrollmaxz = atoi(GET_ARG(2));
+                next.scrollminz = GET_INT_ARG(1);
+                next.scrollmaxz = GET_INT_ARG(2);
                 if(next.scrollminz <= 0) next.scrollminz = 4;
                 if(next.scrollmaxz <= 0) next.scrollmaxz = 4;
             }
             else if(stricmp(command, "blockade")==0){
                 // now x scroll can be limited by this
                 memset(&next,0,sizeof(s_spawn_entry));
-                next.blockade = atoi(GET_ARG(1));
+                next.blockade = GET_INT_ARG(1);
                 if(next.blockade==0) next.blockade = -1;
             }
             else if(stricmp(command, "setpalette")==0){
                 // change system palette
                 memset(&next,0,sizeof(s_spawn_entry));
-                next.palette = atoi(GET_ARG(1));
+                next.palette = GET_INT_ARG(1);
             }
             else if(stricmp(command, "group")==0){
                 // Clear spawn thing, set group instead
                 memset(&next,0,sizeof(s_spawn_entry));
-                next.groupmin = atoi(GET_ARG(1));
-                next.groupmax = atoi(GET_ARG(2));
+                next.groupmin = GET_INT_ARG(1);
+                next.groupmax = GET_INT_ARG(2);
                 if(next.groupmax < 1) next.groupmax = 1;
                 if(next.groupmin < 1) next.groupmin = 100;
             }
@@ -9146,35 +9136,35 @@ void load_level(char *filename){
                 next.spawnplayer_count = 3;
             }
             else if(stricmp(command, "boss")==0){
-                next.boss = atoi(GET_ARG(1));
+                next.boss = GET_INT_ARG(1);
 				level->bosses += next.boss ? 1 : 0;
             }
             else if(stricmp(command, "flip")==0){
-                next.flip = atoi(GET_ARG(1));
+                next.flip = GET_INT_ARG(1);
             }
             else if(stricmp(command, "health")==0){
-                next.health[0] = next.health[1] = next.health[2] = next.health[3] = atoi(GET_ARG(1));
+                next.health[0] = next.health[1] = next.health[2] = next.health[3] = GET_INT_ARG(1);
             }
             else if(stricmp(command, "2phealth")==0){    // Health the spawned entity will have if 2 people are playing
-                next.health[1] = next.health[2] = next.health[3] = atoi(GET_ARG(1));
+                next.health[1] = next.health[2] = next.health[3] = GET_INT_ARG(1);
             }
             else if(stricmp(command, "3phealth")==0){    // Health the spawned entity will have if 2 people are playing
-                next.health[2] = next.health[3] = atoi(GET_ARG(1));  //4player
+                next.health[2] = next.health[3] = GET_INT_ARG(1);  //4player
             }
             else if(stricmp(command, "4phealth")==0){    // Health the spawned entity will have if 2 people are playing
-                next.health[3] = atoi(GET_ARG(1));  //4player
+                next.health[3] = GET_INT_ARG(1);  //4player
             }
             else if(stricmp(command, "mp")==0){        // mp values to put max mp for player by tails
-                next.mp = atoi(GET_ARG(1));
+                next.mp = GET_INT_ARG(1);
             }
             else if(stricmp(command, "score")==0){    // So score can be overriden in the levels .txt file
-                next.score = atoi(GET_ARG(1));
+                next.score = GET_INT_ARG(1);
                 if(next.score < 0) next.score = 0;    // So negative values cannot be added
-                next.multiple = atoi(GET_ARG(2));
+                next.multiple = GET_INT_ARG(2);
                 if(next.multiple < 0) next.multiple = 0;    // So negative values cannot be added
             }
             else if(stricmp(command, "nolife")==0){    // Flag to determine if entity life is shown when hit
-                next.nolife = atoi(GET_ARG(1));
+                next.nolife = GET_INT_ARG(1);
             }
             else if(stricmp(command, "alias")==0){
                 // Alias (name displayed) of entry to be spawned
@@ -9182,17 +9172,17 @@ void load_level(char *filename){
             }
             else if(stricmp(command, "map")==0){
                 // Colourmap for new entry
-                next.colourmap = atoi(GET_ARG(1));
+                next.colourmap = GET_INT_ARG(1);
             }
             else if(stricmp(command, "alpha")==0){
                 // Item to be contained by new entry
-                next.alpha = atoi(GET_ARG(1));
+                next.alpha = GET_INT_ARG(1);
                 if(blendfx_is_set==0 && next.alpha) blendfx[next.alpha-1] = 1;
             }
             else if(stricmp(command, "dying")==0){    // Used to store which remake corresponds with the dying flash
-                next.dying = atoi(GET_ARG(1));
-                next.per1 = atoi(GET_ARG(2));
-                next.per2 = atoi(GET_ARG(3));
+                next.dying = GET_INT_ARG(1);
+                next.per1 = GET_INT_ARG(2);
+                next.per2 = GET_INT_ARG(3);
             }
             else if(stricmp(command, "item")==0){
                 // Item to be contained by new entry
@@ -9251,10 +9241,10 @@ void load_level(char *filename){
                 }
             }
             else if(stricmp(command, "itemmap")==0){
-                next.itemmap = atoi(GET_ARG(1));
+                next.itemmap = GET_INT_ARG(1);
             }
             else if(stricmp(command, "itemhealth")==0){
-                next.itemhealth = atoi(GET_ARG(1));
+                next.itemhealth = GET_INT_ARG(1);
             }
             else if(stricmp(command, "itemalias")==0){
                 strncpy(next.itemalias, GET_ARG(1), MAX_NAME_LEN);
@@ -9272,18 +9262,18 @@ void load_level(char *filename){
                 }
             }
             else if(stricmp(command, "aggression")==0){ // Aggression can be set per spawn.
-                next.aggression = next.aggression + atoi(GET_ARG(1));
+                next.aggression = next.aggression + GET_INT_ARG(1);
             }
             else if(stricmp(command, "credit")==0){
-                next.credit = atoi(GET_ARG(1));
+                next.credit = GET_INT_ARG(1);
             }
             else if(stricmp(command, "itemtrans")==0 || stricmp(command, "itemalpha")==0){
-                next.itemtrans = atoi(GET_ARG(1));
+                next.itemtrans = GET_INT_ARG(1);
             }
             else if(stricmp(command, "coords")==0){
-                next.x = atof(GET_ARG(1));
-                next.z = atof(GET_ARG(2));
-                next.a = atof(GET_ARG(3));
+                next.x = GET_FLOAT_ARG(1);
+                next.z = GET_FLOAT_ARG(2);
+                next.a = GET_FLOAT_ARG(3);
             }
             else if(stricmp(command, "spawnscript")==0) // spawn entry script
             {
@@ -9365,7 +9355,7 @@ void load_level(char *filename){
 			}
 			else if(stricmp(command, "at")==0){
                 // Place entry on queue
-                next.at = atoi(GET_ARG(1));
+                next.at = GET_INT_ARG(1);
 
                 if(level->numspawns >= LEVEL_MAX_SPAWNS) shutdown(1, "Level error: too many entries (max. %i)", LEVEL_MAX_SPAWNS);
                 memcpy(&level->spawnpoints[level->numspawns], &next, sizeof(s_spawn_entry));
@@ -20424,14 +20414,14 @@ void playscene(char *filename)
         command = GET_ARG(0);
         if(command[0]){
             if(!closing && stricmp(command, "music")==0){
-                music(GET_ARG(1), atoi(GET_ARG(2)), atol(GET_ARG(3)));
+                music(GET_ARG(1), GET_INT_ARG(2), atol(GET_ARG(3)));
             }
             else if(!closing && stricmp(command, "animation")==0){
                 strcpy(giffile, GET_ARG(1));
-                x = atoi(GET_ARG(2));
-                y = atoi(GET_ARG(3));
-                skipone = atoi(GET_ARG(4));
-                noskip = atoi(GET_ARG(5));
+                x = GET_INT_ARG(2);
+                y = GET_INT_ARG(3);
+                skipone = GET_INT_ARG(4);
+                noskip = GET_INT_ARG(5);
                 if(playgif(giffile, x, y, noskip) == -1 && !skipone) closing = 1;
             }
             else if(stricmp(command, "silence")==0){
@@ -20809,7 +20799,7 @@ int selectplayer(int *players, char* filename)
             {
                 if(stricmp(command, "music")==0)
                 {
-                    music(GET_ARG(1), atoi(GET_ARG(2)), atol(GET_ARG(3)));
+                    music(GET_ARG(1), GET_INT_ARG(2), atol(GET_ARG(3)));
                 }
                 else if(stricmp(command, "allowselect")==0)
                 {
@@ -20821,7 +20811,7 @@ int selectplayer(int *players, char* filename)
                 }
                 else if(stricmp(command, "load")==0){
                     strncpy(string, GET_ARG(1), 128);
-                    load_cached_model(string, filename, atoi(GET_ARG(2)));
+                    load_cached_model(string, filename, GET_INT_ARG(2));
                 }
                 else shutdown(1, "Command '%s' is not understood in file '%s'", command, filename);
             }
@@ -21556,7 +21546,7 @@ readfile:
 	
         if(command[0]){
 			if(stricmp(command, "video")==0){
-				videoMode = atoi(GET_ARG(1));
+				videoMode = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "scenes")==0){
                 len = strlen(GET_ARG(1));
@@ -23267,3 +23257,11 @@ void openborMain()
 	shutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
 }
 
+#undef GET_ARG
+#undef GET_ARG_LEN
+#undef GET_ARGP
+#undef GET_ARGP_LEN
+#undef GET_INT_ARG
+#undef GET_FLOAT_ARG
+#undef GET_INT_ARGP
+#undef GET_FLOAT_ARGP
