@@ -13,44 +13,46 @@
 
 /////////////////////////////////////////////////////////////////////////////
 
-#include	<stdio.h>
-#include    <assert.h>
-#include    <inttypes.h>
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+#include <errno.h>
+#include <inttypes.h>
 
-#include	"utils.h"
-#include	"tracemalloc.h"
+#include "utils.h"
+#include "tracemalloc.h"
 
 #ifdef PSP
-#include    <stdarg.h>
-#include    <psppower.h>
-#include    "pspport.h"
-#include    "graphics.h"
+#include <stdarg.h>
+#include <psppower.h>
+#include "pspport.h"
+#include "graphics.h"
 #endif
 
 #ifdef SDL
-#include	"sdlport.h"
+#include "sdlport.h"
 #endif
 
 #ifdef GP2X
-#include	"gp2xport.h"
+#include "gp2xport.h"
 #endif
 
 #ifdef DOS
-#include	"dosport.h"
+#include "dosport.h"
 #endif
 
 #ifdef DC
-#include	"dcport.h"
+#include "dcport.h"
 #endif
 
 #ifdef XBOX
-#include    "xboxport.h"
+#include "xboxport.h"
 #endif
 
 #ifdef WII
-#include	<gctypes.h>
-#include	<ogc/conf.h>
-#include    "wiiport.h"
+#include <gctypes.h>
+#include <ogc/conf.h>
+#include "wiiport.h"
 #endif
 
 /////////////////////////////////////////////////////////////////////////////

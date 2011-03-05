@@ -132,9 +132,9 @@ char tolowerOneChar(const char* c)
 {
 	static const char diff = 'a' - 'A';
 	switch(*c) {
-		case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': 
-		case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': 
-		case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z': 
+		case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I':
+		case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R':
+		case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
 			return *c + diff;
 		case '\\':
 			return '/';
@@ -149,13 +149,13 @@ int myfilenamecmp(const char *a, size_t asize, const char *b, size_t bsize)
 {
 	char* ca;
 	char* cb;
-	
+
 	if (a == b) return 0;
 	if(asize != bsize) return 1;
-	
+
 	ca = (char*) a;
 	cb = (char*) b;
-	
+
 	for (;;) {
 		if (!*ca) {
 			if (*cb) return -1;
@@ -166,7 +166,7 @@ int myfilenamecmp(const char *a, size_t asize, const char *b, size_t bsize)
 		if (tolowerOneChar(ca) != tolowerOneChar(cb)) return 1;
 		cont:
 		ca++;
-		cb++;		
+		cb++;
 	}
 	return -2; // should never be reached
 }
@@ -216,9 +216,9 @@ char * casesearch(const char *dir, const char *filepath)
 #ifdef VERBOSE
 	printf("casesearch: %s, %s\n", dir, filepath);
 #endif
-	
+
 	if ((d=opendir(dir)) == NULL) return NULL;
-	
+
 	// are we searching for a file or a directory?
 	rest_of_path = strchr(filepath, '/');
 	if (rest_of_path != NULL) // directory
@@ -236,13 +236,13 @@ char * casesearch(const char *dir, const char *filepath)
 			break;
 		}
 	}
-	
+
 	if (entry != NULL && entry->d_name != NULL)
 		sprintf(fullpath, "%s/%s", dir, entry->d_name);
-	
+
 	if (closedir(d)) return NULL;
-	if (i == 0) return NULL;	
-	
+	if (i == 0) return NULL;
+
 	return rest_of_path == NULL ? fullpath : casesearch(fullpath, rest_of_path);
 }
 
@@ -291,7 +291,7 @@ int openpackfile(const char *filename, const char *packfilename)
 		pointsto = "oPackCached";
 	else if (pOpenPackfile == openPackfile)
 		pointsto = "openPackFile";
-	else 
+	else
 		pointsto = "unknown destination";
 	printf ("openpackfile called: f: %s, p: %s, dest: %s\n", filename, packfilename, pointsto);
 #endif
@@ -332,7 +332,7 @@ int openPackfile(const char *filename, const char *packfilename)
 		{
 			#ifdef VERBOSE
 			printf ("err handles 1\n");
-			#endif			
+			#endif
 			close(handle);
 			return -1;
 		}
@@ -340,7 +340,7 @@ int openPackfile(const char *filename, const char *packfilename)
 		{
 			#ifdef VERBOSE
 			printf ("err handles 2\n");
-			#endif						
+			#endif
 			close(handle);
 			return -1;
 		}
@@ -359,7 +359,7 @@ int openPackfile(const char *filename, const char *packfilename)
 			{
 				#ifdef VERBOSE
 				printf ("err handles 3\n");
-				#endif				
+				#endif
 				close(handle);
 				return -1;
 			}
@@ -367,7 +367,7 @@ int openPackfile(const char *filename, const char *packfilename)
 			{
 				#ifdef VERBOSE
 				printf ("err handles 4\n");
-				#endif							
+				#endif
 				close(handle);
 				return -1;
 			}
@@ -386,17 +386,17 @@ int openPackfile(const char *filename, const char *packfilename)
 	if((handle=open(packfilename, O_RDONLY|O_BINARY, 777))==-1) {
 		#ifdef VERBOSE
 		printf ("perm err\n");
-		#endif					
+		#endif
 		return -1;
 	}
-	    
+
 
 	// Read magic dword ("PACK" identifier)
 	if(read(handle,&magic,4)!=4 || magic!=SwapLSB32(PACKMAGIC))
 	{
 		#ifdef VERBOSE
 		printf ("err magic\n");
-		#endif					
+		#endif
 		close(handle);
 		return -1;
 	}
@@ -405,8 +405,8 @@ int openPackfile(const char *filename, const char *packfilename)
 	{
 		#ifdef VERBOSE
 		printf ("err version\n");
-		#endif			
-		
+		#endif
+
 		close(handle);
 		return -1;
 	}
@@ -416,7 +416,7 @@ int openPackfile(const char *filename, const char *packfilename)
 	{
 		#ifdef VERBOSE
 		printf ("seek failed\n");
-		#endif					
+		#endif
 		close(handle);
 		return -1;
 	}
@@ -425,7 +425,7 @@ int openPackfile(const char *filename, const char *packfilename)
 	{
 		#ifdef VERBOSE
 		printf ("err header\n");
-		#endif					
+		#endif
 		close(handle);
 		return -1;
 	}
@@ -463,8 +463,8 @@ int openPackfile(const char *filename, const char *packfilename)
 		{
 			#ifdef VERBOSE
 			printf ("err seek handles\n");
-			#endif						
-			close(handle);			
+			#endif
+			close(handle);
 			return -1;
 		}
 	}
@@ -488,8 +488,8 @@ int openreadaheadpackfile(const char *filename, const char *packfilename, int re
 	int vfd;
 	size_t fnl;
 	size_t al;
-	char* target;   
-    
+	char* target;
+
 	if(packfilename != packfile) {
 		fnl = strlen(packfile);
 		al = strlen(packfilename);
@@ -512,7 +512,7 @@ int openreadaheadpackfile(const char *filename, const char *packfilename, int re
 		if((hpos + 12) >= pak_headersize) return -1;
 		target = (char*)pak_header + hpos + 12;
 		al = strlen(target);
-	
+
 		if(myfilenamecmp(target, al, filename, fnl))
 		{
 			hpos += readlsb32(pak_header + hpos);
@@ -637,15 +637,15 @@ int closepackfile(int handle)
 {
 #ifdef VERBOSE
 	char* pointsto;
-	
+
 	if (pClosePackfile == closePackfileCached)
 		pointsto = "closePackCached";
 	else if (pClosePackfile == closePackfile)
 		pointsto = "closePackFile";
-	else 
+	else
 		pointsto = "unknown destination";
 	printf ("closepackfile called: h: %d, dest: %s\n", handle, pointsto);
-#endif	
+#endif
 	return pClosePackfile(handle);
 }
 
@@ -653,9 +653,9 @@ int closePackfile(int handle)
 {
 #ifdef VERBOSE
 	printf ("closePackfile called: h: %d\n", handle);
-#endif	
-	
-	if(handle<0 || handle>=MAXPACKHANDLES) 
+#endif
+
+	if(handle<0 || handle>=MAXPACKHANDLES)
 	{
 #ifdef VERBOSE
 		printf("handle too small/big\n");
@@ -665,7 +665,7 @@ int closePackfile(int handle)
 	if(packhandle[handle] == -1) {
 #ifdef VERBOSE
 		printf("packhandle -1\n");
-#endif		
+#endif
 		return -1;
 	}
 	close(packhandle[handle]);
@@ -895,13 +895,13 @@ int pak_init()
 		printf("pak_init already initialized!");
 		return 0;
 	}
-	
+
 	if(isRawData())
 	{
 		pak_initilized = 1;
 		return 0;
 	}
-	
+
 	pOpenPackfile = openPackfileCached;
 	pReadPackfile = readPackfileCached;
 	pSeekPackfile = seekPackfileCached;
@@ -927,7 +927,7 @@ int pak_init()
 
 	if(pakfd < 0)
 	{
-		printf("error opening %s (%d)\n", packfile, pakfd);
+		printf("error opening %s (%d) - could not get a valid device descriptor.\n%s\n", packfile, pakfd, strerror(errno));
 		return 0;
 	}
 
