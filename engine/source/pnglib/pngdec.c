@@ -100,6 +100,8 @@ SDL_Surface* pngToSurface(const void* data)
         sp += linew;
         dp += ds->pitch;
     }while(--h);
+    
+    freescreen(&src);
 
     return ds;
 }
