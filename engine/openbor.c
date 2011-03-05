@@ -2256,7 +2256,7 @@ int isNumeric(char* text) {
 
 int getValidInt(char* text, char* file, char* cmd)  {
 	static const char* WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a nonnumeric value at %s, where a number is expected!\nerroneus string: %s\n";
-	if(!text) return 0;
+	if(!text || !*text) return 0;
 	if(isNumeric(text)) {
 		return atoi(text);
 	} else {
@@ -2268,7 +2268,7 @@ int getValidInt(char* text, char* file, char* cmd)  {
 
 float getValidFloat(char* text, char* file, char* cmd)  {
 	static const char* WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a nonnumeric value at %s, where a number is expected!\nerroneus string: %s\n";
-	if(!text) return 0.0f;
+	if(!text || !*text) return 0.0f;
 	if(isNumeric(text)) {
 		return atof(text);
 	} else {
@@ -3398,25 +3398,16 @@ int load_special_sounds()
 	return 1;
 }
 
-// UT:
-// now the model list should be arranged first, if you find something wrong that means the model is not loaded through load_cached_model
 s_model * find_model(char *name)
 {
-    int result, first, last, mid;
-
-    if(models_loaded==0) return NULL;
-
-    first = 0;
-    last = models_loaded-1;
-    while(first<last)
-    {
-        mid = (first+last)>>1;
-        result = stricmp(model_map[mid].model->name, name);
-        if(result==0) return model_map[mid].model; // find here
-        if(result>0) last = mid-1;
-        else first = mid+1;
-    }
-    return (stricmp(model_map[first].model->name, name)==0)?model_map[first].model:NULL;
+	int result, i;
+	if(models_loaded==0) return NULL;
+	for(i=0;i<models_loaded-1;i++) {
+		result = stricmp(model_map[i].model->name, name);
+		if(!result) 
+			return model_map[i].model;
+	}
+	return NULL;
 }
 
 // Use by player select menus
@@ -3614,25 +3605,6 @@ s_model_list *model_list_delete(s_model_list *list, s_model *value)
 	return list;
 }
 
-void model_map_sort()
-{
-	int i, j;
-	s_model_map temp;
-	if(models_loaded<2) return;
-	for(j=models_loaded-1; j>0; j--)
-	{
-		for(i=0; i<j; i++)
-		{
-			if(stricmp(model_map[i].model->name, model_map[i+1].model->name)>0)
-			{
-				temp = model_map[i];
-				model_map[i] = model_map[i+1];
-				model_map[i+1] = temp;
-			}
-		}
-	}
-}
-
 s_model_map *model_map_delete(s_model_map *map, size_t size)
 {
 	s_model_map *copy;
@@ -3735,7 +3707,7 @@ int free_model(s_model* model, int mapid)
 		tracefree(model_map);
 		model_map = NULL;
 	}
-	model_map_sort();
+	//model_map_sort(); WTF ? sorting on free ? that's BS
 	return models_loaded;
 }
 
@@ -3957,7 +3929,7 @@ void add_cache_map(size_t size)
 void cache_model(char *name, char *path, int flag)
 {
 	int len;
-	printf("Cacheing '%s'\n", name);
+	printf("Cacheing '%s' from %s\n", name, path);
 	add_cache_map(models_cached);
 	memset(&model_cache[models_cached], 0, sizeof(s_modelcache));
 	len = strlen(name);
@@ -4031,11 +4003,14 @@ void add_model_map(size_t size)
 
 static void _readbarstatus(char*, s_barstatus*);
 
-void lcmHandleCommandName(ArgList* arglist, s_model* newchar) {
+s_model* lcmHandleCommandName(ArgList* arglist, s_model* newchar) {
 	char* value = GET_ARGP(1);
 	s_model* tempmodel;
 	int tempInt;
-	if((tempmodel=find_model(value)) && tempmodel!=newchar) shutdown(1, "Duplicate model name '%s'", value);
+	//if((tempmodel=find_model(value)) && tempmodel!=newchar) shutdown(1, "Duplicate model name '%s'", value);
+	if((tempmodel=find_model(value))) {
+		return tempmodel;
+	}	
 	tempInt = get_cached_model_index(value);
 	model_cache[tempInt].model = newchar;
 	newchar->name = model_cache[tempInt].name;
@@ -4043,6 +4018,7 @@ void lcmHandleCommandName(ArgList* arglist, s_model* newchar) {
 	{
 		newchar->alpha = 1;
 	}
+	return newchar;
 }
 
 void lcmHandleCommandType(ArgList* arglist, s_model* newchar, char* filename) {
@@ -4467,9 +4443,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	*value2 = NULL,
 	*value3 = NULL;
 
-	char cur_name[MAX_NAME_LEN+1] = {""},
-		load_name[MAX_NAME_LEN+1],
-		cur_owner[256] = {""},
+	char 
 		namebuf[256] = {""},
 		argbuf[MAX_ARG_LEN+1] = "";
 		
@@ -4562,12 +4536,6 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	
 	txtCommands cmd;	
 		
-	//printf("%s\n", name);
-	strncpy(cur_owner, owner, 256);
-	owner = cur_owner;
-	strncpy(cur_name, name, MAX_NAME_LEN);
-	name = cur_name; // copy the name, cus the name might be a static variable pointer
-
 	// Model already loaded but we might want to unload after level is completed.
 	if((tempmodel=find_model(name))!=NULL) {tempmodel->unload = unload; return tempmodel;}
 
@@ -4605,7 +4573,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	memset(newchar,0,sizeof(s_model));
 	newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
 	newchar->index = cacheindex;
-	model_map_sort(); // sort it might improve searching speed...
+	//model_map_sort(); // sort it might improve searching speed... // no, it doesnt
 
 	newchar->defense_factors        = (float*)tracemalloc("newchar->defense_factors",           sizeof(float)*(max_attack_types + 1));
 	newchar->defense_pain           = (float*)tracemalloc("newchar->defense_pain",              sizeof(float)*(max_attack_types + 1));
@@ -4773,7 +4741,13 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 			
 			switch(cmd) {
 				case CMD_NAME: 
-					lcmHandleCommandName(&arglist, newchar);
+					tempmodel = lcmHandleCommandName(&arglist, newchar);
+					if (tempmodel != newchar) {						
+						printf("loaded dup model: name = %s, filename = %s\n", GET_ARG(1), filename);
+						tracefree(buf);
+						if(scriptbuf) tracefree(scriptbuf);
+						return tempmodel;
+					}
 					break;
 				case CMD_TYPE:
 					lcmHandleCommandType(&arglist, newchar, filename);
@@ -4809,8 +4783,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(GET_INT_ARG(2)) newchar->riseinv = -newchar->riseinv;
 					break;
 				case CMD_LOAD:
-					strncpy(load_name, GET_ARG(1), MAX_NAME_LEN);
-					load_cached_model(load_name, name, GET_INT_ARG(2));
+					value = GET_ARG(1);
+					if(!find_model(value))
+						load_cached_model(value, name, GET_INT_ARG(2));
 					break;
 				case CMD_SCORE:
 					newchar->score = GET_INT_ARG(1);
@@ -7080,7 +7055,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		convert_map_to_palette(newchar, mapflag);
 	}
 
-	printf("Loading '%s'\n", newchar->name);
+	printf("Loading '%s' from %s\n", newchar->name, filename);
 	
 	// check for sane settings
 	// if landframe is bigger than framecount the game will crash silently only when that animation is played
@@ -8690,8 +8665,12 @@ void load_level(char *filename){
 				load_playable_list(buf+pos);
 			}
 			else if(stricmp(command, "load")==0){
-				strncpy(string, GET_ARG(1), 128);
-				load_cached_model(string, filename, GET_INT_ARG(2));
+				#ifdef DEBUG				
+				printf("loadlevel: load %s, %s\n", GET_ARG(1), filename);
+				#endif
+				
+				if (!find_model(GET_ARG(1)))
+					load_cached_model(GET_ARG(1), filename, GET_INT_ARG(2));
 			}
 			else if(stricmp(command, "background")==0){
 				value = GET_ARG(1);
@@ -9107,24 +9086,26 @@ void load_level(char *filename){
                 if(next.groupmax < 1) next.groupmax = 1;
                 if(next.groupmin < 1) next.groupmin = 100;
             }
-            else if(stricmp(command, "spawn")==0){
-                // Back to defaults
-                next.spawnplayer_count = 0;
-                memset(&next,0,sizeof(s_spawn_entry));
-                next.index = next.itemindex = next.weaponindex = -1;
-                // Name of entry to be spawned
-                // Load model (if not loaded already)
-				strncpy(string, GET_ARG(1), 128);
-				cached_model = find_model(string);
+			else if(stricmp(command, "spawn")==0){
+				// Back to defaults
+				next.spawnplayer_count = 0;
+				memset(&next,0,sizeof(s_spawn_entry));
+				next.index = next.itemindex = next.weaponindex = -1;
+				// Name of entry to be spawned
+				// Load model (if not loaded already)
+				cached_model = find_model(GET_ARG(1));
+				#ifdef DEBUG				
+				printf("loadlevel: spawn %s, %s, cached: %p\n", GET_ARG(1), filename, cached_model);
+				#endif				
 				if(cached_model) tempmodel = cached_model;
-				else tempmodel = load_cached_model(string, filename, 0);
-                if(tempmodel)
-                {
-                    next.name = tempmodel->name;
-                    next.index = get_cached_model_index(next.name);
+				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
+				if(tempmodel)
+				{
+					next.name = tempmodel->name;
+					next.index = get_cached_model_index(next.name);
 					crlf = 1;
-                }
-            }
+				}
+			}
             else if(stricmp(command, "2pspawn")==0){
                 // Entity only for 2p game
                 next.spawnplayer_count = 1;
@@ -9190,10 +9171,9 @@ void load_level(char *filename){
                 // Item to be contained by new entry
                 next.itemplayer_count = 0;
                 // Load model (if not loaded already)
-				strncpy(string, GET_ARG(1), 128);
-				cached_model = find_model(string);
+				cached_model = find_model(GET_ARG(1));
 				if(cached_model) tempmodel = cached_model;
-				else tempmodel = load_cached_model(string, filename, 0);
+				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
                 if(tempmodel)
                 {
                     next.item = tempmodel->name;
@@ -9203,11 +9183,10 @@ void load_level(char *filename){
             else if(stricmp(command, "2pitem")==0){
                 // Item only for 2p game
                 next.itemplayer_count = 1;
-                // Load model (if not loaded already)  // 2007-2-12, inserted by UTunnels
-				strncpy(string, GET_ARG(1), 128);
-				cached_model = find_model(string);
+                // Load model (if not loaded already)  // 2007-2-12, inserted by UTunnels				
+				cached_model = find_model(GET_ARG(1));
 				if(cached_model) tempmodel = cached_model;
-				else tempmodel = load_cached_model(string, filename, 0);
+				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
                 if(tempmodel)
                 {
                     next.item = tempmodel->name;
@@ -9218,10 +9197,9 @@ void load_level(char *filename){
                 // Item only for 2p game
                 next.itemplayer_count = 2;
                 // Load model (if not loaded already)  // 2007-2-12, inserted by UTunnels
-				strncpy(string, GET_ARG(1), 128);
-				cached_model = find_model(string);
+                cached_model = find_model(GET_ARG(1));
 				if(cached_model) tempmodel = cached_model;
-				else tempmodel = load_cached_model(string, filename, 0);
+				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
                 if(tempmodel)
                 {
                     next.item = tempmodel->name;
@@ -9232,10 +9210,9 @@ void load_level(char *filename){
                 // Item only for 2p game
                 next.itemplayer_count = 3;
                 // Load model (if not loaded already) // 2007-2-12, inserted by UTunnels
-				strncpy(string, GET_ARG(1), 128);
-				cached_model = find_model(string);
+				cached_model = find_model(GET_ARG(1));
 				if(cached_model) tempmodel = cached_model;
-				else tempmodel = load_cached_model(string, filename, 0);
+				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
                 if(tempmodel)
                 {
                     next.item = tempmodel->name;
@@ -9253,10 +9230,9 @@ void load_level(char *filename){
             }
             else if(stricmp(command, "weapon")==0){  //spawn with a weapon 2007-2-12 by UTunnels
                 // Load model (if not loaded already)
-				strncpy(string, GET_ARG(1), 128);
-				cached_model = find_model(string);
+				cached_model = find_model(GET_ARG(1));
 				if(cached_model) tempmodel = cached_model;
-				else tempmodel = load_cached_model(string, filename, 0);
+				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
                 if(tempmodel)
                 {
                     next.weapon = tempmodel->name;
@@ -10687,8 +10663,10 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 
     if(!model)
     {
-        if(index>=0) model = model_cache[index].model;
-        else if(name) model = find_model(name);
+        if(index>=0) 
+		model = model_cache[index].model;
+        else if(name) 
+		model = find_model(name);
     }
 
 	// Be a bit more tolerant...
@@ -20813,9 +20791,9 @@ int selectplayer(int *players, char* filename)
 				{
 					load_background(GET_ARG(1), 1);
 				}
-				else if(stricmp(command, "load")==0){
-					strncpy(string, GET_ARG(1), 128);
-					load_cached_model(string, filename, GET_INT_ARG(2));
+				else if(stricmp(command, "load")==0){					
+					if (!find_model(GET_ARG(1)))
+						load_cached_model(GET_ARG(1), filename, GET_INT_ARG(2));
 				}
 				else shutdown(1, "Command '%s' is not understood in file '%s'", command, filename);
 			}
