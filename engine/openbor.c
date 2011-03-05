@@ -4732,7 +4732,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 			
 			// lowercase the command so that we can find it using hashes.
 			for(i=0;i<commandlen;i++) 
-				command[i] = tolower(command[i]);
+				command[i] = tolower((int)command[i]);
 			
 			if(!command) 
 				cmd = (txtCommands) 0;
