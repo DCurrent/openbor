@@ -26,11 +26,11 @@
 #include "../resources/OpenBOR_Menu_320x240.h"
 #include "../resources/OpenBOR_Menu_480x272.h"
 #else
-#include "sdlpng.h"
-#include "../resources/openbor_menu_480x272_png.h"
-#include "../resources/openbor_menu_320x240_png.h"
-#include "../resources/openbor_logo_480x272_png.h"
-#include "../resources/openbor_logo_320x240_png.h"
+#include "pngdec.h"
+#include "../resources/OpenBOR_Menu_480x272_png.h"
+#include "../resources/OpenBOR_Menu_320x240_png.h"
+#include "../resources/OpenBOR_Logo_480x272_png.h"
+#include "../resources/OpenBOR_Logo_320x240_png.h"
 #endif
 
 #include <dirent.h>
@@ -577,10 +577,8 @@ void initMenu(int type)
 	if(!type) Source = xpmToSurface(isWide ? OpenBOR_Logo_480x272 : OpenBOR_Logo_320x240);
 	else Source = xpmToSurface(isWide ? OpenBOR_Menu_480x272 : OpenBOR_Menu_320x240);
 	#else
-	if(!type) Source = pngToSurface(isWide ? (void*) openbor_logo_480x272_png.data : (void*) openbor_logo_320x240_png.data, 
-		isWide ? openbor_logo_480x272_png.size : openbor_logo_320x240_png.size);
-	else Source = pngToSurface(isWide ? (void*) openbor_menu_480x272_png.data : (void*) openbor_menu_320x240_png.data, 
-		isWide ? openbor_menu_480x272_png.size : openbor_menu_320x240_png.size);
+	if(!type) Source = pngToSurface(isWide ? (void*) openbor_logo_480x272_png.data : (void*) openbor_logo_320x240_png.data);
+	else Source = pngToSurface(isWide ? (void*) openbor_menu_480x272_png.data : (void*) openbor_menu_320x240_png.data);
 	#endif
 	
 	// Depending on which mode we are in (WideScreen/FullScreen)
