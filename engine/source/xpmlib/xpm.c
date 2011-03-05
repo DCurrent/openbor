@@ -112,6 +112,8 @@ SDL_Surface* xpmToSurface(char *array[])
         sp += linew;
         dp += ds->pitch;
     }while(--h);
+    
+    freescreen(&src);
 
     return ds;
 }
