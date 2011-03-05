@@ -18,11 +18,21 @@
 #include "hankaku.h"
 #include "stristr.h"
 #include "stringptr.h"
+
+#ifdef USE_XPM
 #include "xpm.h"
 #include "../resources/OpenBOR_Logo_320x240.h"
 #include "../resources/OpenBOR_Logo_480x272.h"
 #include "../resources/OpenBOR_Menu_320x240.h"
 #include "../resources/OpenBOR_Menu_480x272.h"
+#else
+#include "sdlpng.h"
+#include "../resources/openbor_menu_480x272_png.h"
+#include "../resources/openbor_menu_320x240_png.h"
+#include "../resources/openbor_logo_480x272_png.h"
+#include "../resources/openbor_logo_320x240_png.h"
+#endif
+
 #include <dirent.h>
 
 extern int videoMode;
@@ -554,7 +564,7 @@ void initMenu(int type)
 #endif
 #endif
 
-    Init_Gfx(bpp==32 ? 888 : 565, bpp);
+	Init_Gfx(bpp==32 ? 888 : 565, bpp);
 	memset(pDeltaBuffer, 0x00, 1244160);
 #if !defined(DINGOO) && !defined(WIZ)
 	flags = isFull?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF);
@@ -563,8 +573,15 @@ void initMenu(int type)
 #endif
 
 	// Read Logo or Menu from Array. xpmToSurface
+	#ifdef USE_XPM
 	if(!type) Source = xpmToSurface(isWide ? OpenBOR_Logo_480x272 : OpenBOR_Logo_320x240);
 	else Source = xpmToSurface(isWide ? OpenBOR_Menu_480x272 : OpenBOR_Menu_320x240);
+	#else
+	if(!type) Source = pngToSurface(isWide ? (void*) openbor_logo_480x272_png.data : (void*) openbor_logo_320x240_png.data, 
+		isWide ? openbor_logo_480x272_png.size : openbor_logo_320x240_png.size);
+	else Source = pngToSurface(isWide ? (void*) openbor_menu_480x272_png.data : (void*) openbor_menu_320x240_png.data, 
+		isWide ? openbor_menu_480x272_png.size : openbor_menu_320x240_png.size);
+	#endif
 	
 	// Depending on which mode we are in (WideScreen/FullScreen)
 	// allocate proper size for SDL_Surface to perform final Blitting.

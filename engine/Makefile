@@ -471,6 +471,7 @@ GAME_CONSOLE   += sdl/joysticks.o                                               
                   sdl/timer.o                                                                       \
                   sdl/sdlport.o                                                                     \
                   sdl/video.o                                                                       \
+                  sdl/sdlpng.o                                                                      \
                   sdl/menu.o
 endif
 
@@ -641,7 +642,7 @@ ifdef BUILD_SDL
 ifdef BUILD_WIZ
 LIBS           += -lSDL -lSDL_gfx -lts
 else
-LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL -lSDL_gfx
+LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL -lSDL_gfx -lSDL_image
 endif
 endif
 
