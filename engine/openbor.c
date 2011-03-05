@@ -42,6 +42,8 @@ int sprite_map_max_items = 0;
 int model_map_max_items = 0;
 int cache_map_max_items = 0;
 
+
+int startup_done = 0; // startup is only called when a game is loaded. so when exitting from the menu we need a way to figure out which resources to free.
 List* cmdlist;
 
 
@@ -2887,14 +2889,14 @@ void cache_background(char *filename)
 			bg = NULL;
 		}
 	}
-    else if(pixelformat==PIXEL_x8)
-    {
+	else if(pixelformat==PIXEL_x8)
+	{
 		if(!loadscreen(filename, packfile, NULL, pixelformat, &bg))
 		{
 			freescreen(&bg);
 			bg = NULL;
 		}
-    }
+	}
 	else
 	{
 		shutdown(1, "Error caching background, Unknown Pixel Format!\n");
@@ -20100,15 +20102,15 @@ void display_credits()
 
 void shutdown(int status, char *msg, ...)
 {
-    char buf[1024] = "";
-    va_list arglist;
+	char buf[1024] = "";
+	va_list arglist;
 #if WII
 	int i;
 #endif
 
-    va_start(arglist, msg);
-    vsprintf(buf, msg, arglist);
-    va_end(arglist);
+	va_start(arglist, msg);
+	vsprintf(buf, msg, arglist);
+	va_end(arglist);
 
 	if(!disablelog)
 	{
@@ -20124,63 +20126,63 @@ void shutdown(int status, char *msg, ...)
 		}
 	}
 	
-	freeCommandList(cmdlist);
 	if(!disablelog) printf("%s", buf);
 
 	getRamStatus(BYTES);
-    savesettings();
+	savesettings();
 
 	if(status != 2) display_credits();
-    term_videomodes();
+	if(startup_done) term_videomodes();
 
 	if(!disablelog) printf("Release level data");
-    unload_levelorder();
+	if (startup_done) unload_levelorder();
 	if(!disablelog) printf("...........");
-    unload_level();
+	if(startup_done) unload_level();
 	if(!disablelog) printf("\tDone!\n");
 
 	if(!disablelog) printf("Release graphics data");
-    if(!disablelog) printf("..");
-	freescreen(&vscreen);
 	if(!disablelog) printf("..");
-	freescreen(&background);
-    if(!disablelog) printf("..");
+	if(startup_done) freescreen(&vscreen); // allocated by init_videomodes
+	if(!disablelog) printf("..");
+	if(startup_done) freescreen(&background);
+	if(!disablelog) printf("..");
 #if WII
-	for(i=0; i<MAX_CACHED_BACKGROUNDS; i++) freescreen(&bg_cache[i]);
+	if(startup_done) for(i=0; i<MAX_CACHED_BACKGROUNDS; i++) freescreen(&bg_cache[i]);
 	if(!disablelog) printf("..");
 #endif
-    freesprites();
+	if(startup_done) freesprites();
 	if(!disablelog) printf("..");
-    unload_all_fonts();
+	if(startup_done) unload_all_fonts();
 	if(!disablelog) printf("\tDone!\n");
 
 
-    if(!disablelog) printf("Release game data............\n\n");
-    free_ents();
-    free_models();
-    free_modelcache();
-    clear_scripts();
+	if(!disablelog) printf("Release game data............\n\n");
+    
+	if(startup_done) free_ents();
+	if(startup_done) free_models();
+	if(startup_done) free_modelcache();
+	if(startup_done) clear_scripts();
 	if(!disablelog) printf("\nRelease game data............\tDone!\n");
 
-    if(!disablelog) printf("Release timer................");
-    borTimerExit();
+	if(!disablelog) printf("Release timer................");
+	if(startup_done) borTimerExit();
 	if(!disablelog) printf("\tDone!\n");
 
-    if(!disablelog) printf("Release input hardware.......");
-    control_exit();
+	if(!disablelog) printf("Release input hardware.......");
+	if(startup_done) control_exit();
 	if(!disablelog) printf("\tDone!\n");
 
-    if(!disablelog) printf("Release sound system.........");
-    sound_exit();
+	if(!disablelog) printf("Release sound system.........");
+	if(startup_done) sound_exit();
 	if(!disablelog) printf("\tDone!\n");
 
-    if(!disablelog) printf("Release FileCaching System...");
-    pak_term();
+	if(!disablelog) printf("Release FileCaching System...");
+	if(startup_done) pak_term();
 	if(!disablelog) printf("\tDone!\n");
 
-    if(!disablelog) printf("\n**************** Done *****************\n\n");       
-    
-    if(!disablelog) printf("%s", buf);
+	if(!disablelog) printf("\n**************** Done *****************\n\n");       
+
+	if(!disablelog) printf("%s", buf);
 
 	exit(status);
 }
@@ -20297,6 +20299,8 @@ void startup(){
 	for(i=0; i<MAX_PAL_SIZE/4; i++) neontable[i] = i;
 	if(savedata.logo++ > 10) savedata.logo = 0;
 	savesettings();
+	startup_done = 1;
+	
 }
 
 
@@ -20310,15 +20314,15 @@ void startup(){
 // Returns 0 on error, -1 on escape
 int playgif(char *filename, int x, int y, int noskip){
 	unsigned char gifpal[768] = {0};
-    int code;
-    int delay;
-    u32 milliseconds;
-    u32 nextframe;
-    u32 lasttime;
-    u32 temptime, tempnewtime; // temporary patch for ingame gif play
-    int done;
-    int frame = 0;
-    int synctosound = 0;
+	int code;
+	int delay;
+	u32 milliseconds;
+	u32 nextframe;
+	u32 lasttime;
+	u32 temptime, tempnewtime; // temporary patch for ingame gif play
+	int done;
+	int frame = 0;
+	int synctosound = 0;
 
 	s_screen* tempbg = background;
 	background = allocscreen(videomodes.hRes, videomodes.vRes, pixelformat);
@@ -20332,59 +20336,59 @@ int playgif(char *filename, int x, int y, int noskip){
 		return 0;
 	}
 
-    temptime = time;
-    tempnewtime = newtime;
-    time = 0;
-    lasttime = 0;
-    milliseconds = 0;
-    nextframe = 0;
-    delay = 100;
-    code = ANIGIF_DECODE_RETRY;
-    done = 0;
-    synctosound = (sound_getinterval() != 0xFFFFFFFF);
+	temptime = time;
+	tempnewtime = newtime;
+	time = 0;
+	lasttime = 0;
+	milliseconds = 0;
+	nextframe = 0;
+	delay = 100;
+	code = ANIGIF_DECODE_RETRY;
+	done = 0;
+	synctosound = (sound_getinterval() != 0xFFFFFFFF);
 
-    while(!done){
-        if(milliseconds >= nextframe){
-            if(code != ANIGIF_DECODE_END){
-                while((code = anigif_decode(background, &delay, x, y)) == ANIGIF_DECODE_RETRY);
-                // if(code == ANIGIF_DECODE_FRAME){
-                // Set time for next frame
-                nextframe += delay * 10;
-                // }
-            }
-            else done = 1;
-        }
-        if(code == ANIGIF_DECODE_END) break;
+	while(!done){
+		if(milliseconds >= nextframe){
+			if(code != ANIGIF_DECODE_END){
+				while((code = anigif_decode(background, &delay, x, y)) == ANIGIF_DECODE_RETRY);
+				// if(code == ANIGIF_DECODE_FRAME){
+				// Set time for next frame
+				nextframe += delay * 10;
+			// }
+			}
+			else done = 1;
+		}
+		if(code == ANIGIF_DECODE_END) break;
 
-        if(frame==0){
-            vga_vwait();
-            if(!background->palette)
-            {
-                palette_set_corrected(gifpal, savedata.gamma,savedata.gamma,savedata.gamma, savedata.brightness,savedata.brightness,savedata.brightness);
-            }
-            update(0,0);
-        }
-        else update(0,1);
+		if(frame==0){
+			vga_vwait();
+			if(!background->palette)
+			{
+				palette_set_corrected(gifpal, savedata.gamma,savedata.gamma,savedata.gamma, savedata.brightness,savedata.brightness,savedata.brightness);
+			}
+			update(0,0);
+		}
+		else update(0,1);
 
-        ++frame;
+		++frame;
 
-        if(synctosound){
-            milliseconds += sound_getinterval();
-            if(milliseconds==0xFFFFFFFF) synctosound = 0;
-        }
-        if(!synctosound) milliseconds += (time-lasttime) * 1000 / GAME_SPEED;
-        lasttime = time;
+		if(synctosound){
+			milliseconds += sound_getinterval();
+			if(milliseconds==0xFFFFFFFF) synctosound = 0;
+		}
+		if(!synctosound) milliseconds += (time-lasttime) * 1000 / GAME_SPEED;
+		lasttime = time;
 
-        if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON))) done = 1;
-    }
-    anigif_close();
+		if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON))) done = 1;
+	}
+	anigif_close();
 
 	time = temptime;
-    newtime = tempnewtime;
+	newtime = tempnewtime;
 
 	freescreen(&background); background = tempbg;
-    if(bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)) return -1;
-    return 1;
+	if(bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)) return -1;
+	return 1;
 }
 
 
@@ -20553,31 +20557,31 @@ void hallfame(int addtoscore)
 // Level completed, show bonus stuff
 void showcomplete(int num)
 {
-    int done = 0;
-    int i, j, k;
+	int done = 0;
+	int i, j, k;
 	u32 clearbonus[4] = { 10000, 10000, 10000, 10000 };
-    u32 lifebonus[4] = { 10000, 10000, 10000, 10000 };
+	u32 lifebonus[4] = { 10000, 10000, 10000, 10000 };
 	u32 rushbonus[4] = { 10000, 10000, 10000, 10000 };
-    u32 nexttime = 0;
-    u32 finishtime = 0;
-    int chan = 0;
-    char tmpBuff[128] = {""};
+	u32 nexttime = 0;
+	u32 finishtime = 0;
+	int chan = 0;
+	char tmpBuff[128] = {""};
 
-    if(completebg)
+	if(completebg)
 	{
-        // New alternative background path for PSP
-        if(custBkgrds != NULL)
+		// New alternative background path for PSP
+		if(custBkgrds != NULL)
 		{
-            strcpy(tmpBuff,custBkgrds);
-            strncat(tmpBuff,"complete", 8);
-            load_background(tmpBuff, 0);
-        }
-        else load_cached_background("data/bgs/complete", 0);
-    }
+			strcpy(tmpBuff,custBkgrds);
+			strncat(tmpBuff,"complete", 8);
+			load_background(tmpBuff, 0);
+		}
+		else load_cached_background("data/bgs/complete", 0);
+	}
 
-    music("data/music/complete", 0, 0);
+	music("data/music/complete", 0, 0);
 
-    for(i=0; i<maxplayers[current_set]; i++)
+	for(i=0; i<maxplayers[current_set]; i++)
 	{
 		if(rush[0] >= 1 && showrushbonus == 1)
 		{
@@ -20588,88 +20592,88 @@ void showcomplete(int num)
 		lifebonus[i] = player[i].lives * scbonuses[1];
 	}
 
-    update(0,0);
+	update(0,0);
 
-    time = 0;
-    while(!done)
+	time = 0;
+	while(!done)
 	{
-        if(!scomplete[5]) font_printf(videomodes.hShift+scomplete[0],videomodes.vShift+scomplete[1], 3, 0, "Stage %i Complete!", num);
-        else
+		if(!scomplete[5]) font_printf(videomodes.hShift+scomplete[0],videomodes.vShift+scomplete[1], 3, 0, "Stage %i Complete!", num);
+		else
 		{
-            font_printf(videomodes.hShift+scomplete[0],videomodes.vShift+scomplete[1], 3, 0, "Stage");
-            font_printf(videomodes.hShift+scomplete[2],videomodes.vShift+scomplete[3], 3, 0, "%i",num);
-            font_printf(videomodes.hShift+scomplete[4],videomodes.vShift+scomplete[5], 3, 0, "Complete");
-        }
+			font_printf(videomodes.hShift+scomplete[0],videomodes.vShift+scomplete[1], 3, 0, "Stage");
+			font_printf(videomodes.hShift+scomplete[2],videomodes.vShift+scomplete[3], 3, 0, "%i",num);
+			font_printf(videomodes.hShift+scomplete[4],videomodes.vShift+scomplete[5], 3, 0, "Complete");
+		}
 
-        font_printf(videomodes.hShift+cbonus[0],videomodes.vShift+cbonus[1], 0, 0, "Clear Bonus");
+		font_printf(videomodes.hShift+cbonus[0],videomodes.vShift+cbonus[1], 0, 0, "Clear Bonus");
 		for(i=0, j=2, k=3; i < maxplayers[current_set]; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+cbonus[j],videomodes.vShift+cbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), clearbonus[i]);
 		font_printf(videomodes.hShift+lbonus[0],videomodes.vShift+lbonus[1], 0, 0, "Life bonus");
 		for(i=0, j=2, k=3; i < maxplayers[current_set]; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+lbonus[j],videomodes.vShift+lbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), lifebonus[i]);
 		if(rush[0] >= 1 && showrushbonus == 1)
 		{
 			font_printf(videomodes.hShift+rbonus[0],videomodes.vShift+rbonus[1], 0, 0, "Rush Bonus");
-		for(i=0, j=2, k=3; i < maxplayers[current_set]; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+rbonus[j],videomodes.vShift+rbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), rushbonus[i]);
+			for(i=0, j=2, k=3; i < maxplayers[current_set]; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+rbonus[j],videomodes.vShift+rbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), rushbonus[i]);
 		}
-        font_printf(videomodes.hShift+tscore[0],videomodes.vShift+tscore[1], 0, 0, "Total Score");
+		font_printf(videomodes.hShift+tscore[0],videomodes.vShift+tscore[1], 0, 0, "Total Score");
 		for(i=0, j=2, k=3; i < maxplayers[current_set]; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+tscore[j],videomodes.vShift+tscore[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), player[i].score);
 
-        while(time > nexttime)
+		while(time > nexttime)
 		{
-            if(!finishtime)    finishtime = time + 4 * GAME_SPEED;
+			if(!finishtime)    finishtime = time + 4 * GAME_SPEED;
 
-            for(i=0; i<maxplayers[current_set]; i++)
+			for(i=0; i<maxplayers[current_set]; i++)
 			{
-                if(player[i].lives > 0)
+				if(player[i].lives > 0)
 				{
-                    if(clearbonus[i] > 0)
+					if(clearbonus[i] > 0)
 					{
-                        addscore(i, 10);
-                        clearbonus[i] -= 10;
-                        finishtime = 0;
-                    }
-                    else if(lifebonus[i] > 0)
+						addscore(i, 10);
+						clearbonus[i] -= 10;
+						finishtime = 0;
+					}
+					else if(lifebonus[i] > 0)
 					{
-                        addscore(i, 10);
-                        lifebonus[i] -= 10;
-                        finishtime = 0;
-                    }
+						addscore(i, 10);
+						lifebonus[i] -= 10;
+						finishtime = 0;
+					}
 					else if(rush[0] >= 1 && showrushbonus == 1 && (rushbonus[i] > 0))
 					{
-                        addscore(i, 10);
-                        rushbonus[i] -= 10;
-                        finishtime = 0;
-                    }
-                }
-            }
+						addscore(i, 10);
+						rushbonus[i] -= 10;
+						finishtime = 0;
+					}
+				}
+			}
 
-            if(!finishtime && !(nexttime&15))
+			if(!finishtime && !(nexttime&15))
 			{
-                sound_stop_sample(chan);
-                chan = sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol/2,savedata.effectvol/2, 100);
-            }
-            nexttime++;
-        }
+				sound_stop_sample(chan);
+				chan = sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol/2,savedata.effectvol/2, 100);
+			}
+			nexttime++;
+		}
 
-        if(bothnewkeys & (FLAG_ANYBUTTON|FLAG_ESC)) done = 1;
-        if(finishtime && time>finishtime) done = 1;
+		if(bothnewkeys & (FLAG_ANYBUTTON|FLAG_ESC)) done = 1;
+		if(finishtime && time>finishtime) done = 1;
 
-        update(0,0);
-    }
+		update(0,0);
+	}
 
-    // Add remainder of score, incase player skips counter
-    for(i=0; i<maxplayers[current_set]; i++)
+	// Add remainder of score, incase player skips counter
+	for(i=0; i<maxplayers[current_set]; i++)
 	{
-        if(player[i].lives > 0)
+		if(player[i].lives > 0)
 		{
 			if(rush[0] >= 1 && showrushbonus == 1)
 			{
 				addscore(i, rushbonus[i]);
 			}
-            addscore(i, clearbonus[i]);
-            addscore(i, lifebonus[i]);
-        }
-    }
-    unload_background();
+		addscore(i, clearbonus[i]);
+		addscore(i, lifebonus[i]);
+		}
+	}
+	unload_background();
 }
 
 void savelevelinfo()
@@ -20761,329 +20765,325 @@ int playlevel(char *filename)
 
 int selectplayer(int *players, char* filename)
 {
-    entity *example[4] = {NULL,NULL,NULL,NULL};
-    int i,x;
-    int cmap[MAX_PLAYERS] = {0,1,2,3};
-    int tperror = 0;
-    int exit = 0;
-    int ready[MAX_PLAYERS] = {0,0,0,0};
-    int escape = 0;
-    int players_busy = 0;
-    int players_ready = 0;
-    int immediate[MAX_PLAYERS]= {0,0,0,0};
-    char string[128] = {""};
-    char* buf, *command;
-    size_t size = 0;
-    ptrdiff_t pos = 0;
-    ArgList arglist;
-    char argbuf[MAX_ARG_LEN+1] = "";    
+	entity *example[4] = {NULL,NULL,NULL,NULL};
+	int i,x;
+	int cmap[MAX_PLAYERS] = {0,1,2,3};
+	int tperror = 0;
+	int exit = 0;
+	int ready[MAX_PLAYERS] = {0,0,0,0};
+	int escape = 0;
+	int players_busy = 0;
+	int players_ready = 0;
+	int immediate[MAX_PLAYERS]= {0,0,0,0};
+	char string[128] = {""};
+	char* buf, *command;
+	size_t size = 0;
+	ptrdiff_t pos = 0;
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN+1] = "";    
 
-    selectScreen = 1;
+	selectScreen = 1;
 	kill_all();
 	reset_playable_list(1);
 
-    if(loadGameFile())
+	if(loadGameFile())
 	{
-        bonus = 0;
-        for(i=0; i<MAX_DIFFICULTIES; i++) if(savelevel[i].times_completed > 0) bonus += savelevel[i].times_completed;
-    }
+		bonus = 0;
+		for(i=0; i<MAX_DIFFICULTIES; i++) if(savelevel[i].times_completed > 0) bonus += savelevel[i].times_completed;
+	}
 
-   	if(filename && filename[0])
+	if(filename && filename[0])
 	{
-        if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Failed to load player select file '%s'", filename);
-        while(pos < size)
-        {
-		ParseArgs(&arglist,buf+pos,argbuf);
-            command = GET_ARG(0);
-            if(command[0])
-            {
-                if(stricmp(command, "music")==0)
-                {
-                    music(GET_ARG(1), GET_INT_ARG(2), atol(GET_ARG(3)));
-                }
-                else if(stricmp(command, "allowselect")==0)
-                {
-                    load_playable_list(buf+pos);
-                }
-                else if(stricmp(command, "background")==0)
-                {
-                    load_background(GET_ARG(1), 1);
-                }
-                else if(stricmp(command, "load")==0){
-                    strncpy(string, GET_ARG(1), 128);
-                    load_cached_model(string, filename, GET_INT_ARG(2));
-                }
-                else shutdown(1, "Command '%s' is not understood in file '%s'", command, filename);
-            }
-            while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-            while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
-        }
-        if(buf != NULL)
-        {
-            tracefree(buf);
-            buf = NULL;
-        }
-        for(i=0; i<maxplayers[current_set]; i++)
-        {
-            if(players[i])
-            {
-                if(!psmenu[i][0] && !psmenu[i][1])
-				{
-                    if(maxplayers[current_set] > 2) example[i] = spawn((float)((111-(maxplayers[current_set]*14))+((i*(320-(166/maxplayers[current_set]))/maxplayers[current_set])+videomodes.hShift)),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
-                    else example[i] = spawn((float)(83+(videomodes.hShift/2)+(i*(155+videomodes.hShift))),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
-                }
-                else example[i] = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodel(NULL));
-            }
-        }
-    }
-    else // without select.txt
-    {
-        if(skipselect&&(*skipselect)[current_set][0])
-        {
-            for(i=0; i<MAX_PLAYERS; i++)
-            {
-    			memset(&player[i], 0, sizeof(s_player));
-                if(!players[i]) continue;
-
-                if((*skipselect)[current_set][i]) // just in case or it will be an array overflow issue
-                    strncpy(player[i].name, (*skipselect)[current_set][i], MAX_NAME_LEN);
-                //else continue;
-    			if(!noshare) credits = CONTINUES;
-    			else
-    			{
-    				player[i].credits = CONTINUES;
-    				player[i].hasplayed = 1;
-    			}
-        		if(!creditscheat)
-    			{
-        			if(noshare) --player[i].credits;
-        			else --credits;
-    			}
-    			player[i].lives = PLAYER_LIVES;
-    		}
-            selectScreen = 0;
-            return 1;
-    	}
-
-        if(unlockbg && bonus)
-    	{
-            // New alternative background path for PSP
-            if(custBkgrds != NULL)
-    		{
-                strcpy(string, custBkgrds);
-                strncat(string, "unlockbg", 8);
-                load_background(string, 1);
-            }
-            else load_cached_background("data/bgs/unlockbg", 1);
-        }
-        else
-    	{
-            // New alternative background path for PSP
-    		if(custBkgrds != NULL)
-    		{
-                strncpy(string, custBkgrds, 128);
-                strncat(string, "select", 6);
-                load_background(string, 1);
-            }
-            else load_cached_background("data/bgs/select", 1);
-        }
-        music("data/music/menu", 1, 0);
-        if(!noshare) credits = CONTINUES;
-        for(i=0; i<MAX_PLAYERS; i++)
-        {
-        	memset(&player[i], 0, sizeof(s_player));
-        	immediate[i] = players[i];
-        }
-    }
-
-
-    while(!(exit || escape))
-	{
-        players_busy = 0;
-        players_ready = 0;
-        for(i=0; i<maxplayers[current_set]; i++)
+		if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Failed to load player select file '%s'", filename);
+		while(pos < size)
 		{
-            // you can't have that character!
-            if((tperror == i+1) && !ready[i]) font_printf(75+videomodes.hShift,123+videomodes.vShift,0, 0,"Player %d Choose a Different Character!", i+1);
-            if(!ready[i])
-            {
-                if(player[i].lives <= 0 && (noshare || credits>0) && ((player[i].newkeys & FLAG_ANYBUTTON) || immediate[i]))
+			ParseArgs(&arglist,buf+pos,argbuf);
+			command = GET_ARG(0);
+			if(command[0])
+			{
+				if(stricmp(command, "music")==0)
 				{
-                    if(noshare)
-                    {
-                        player[i].credits = CONTINUES;
-                        player[i].hasplayed = 1;
-                    }
+					music(GET_ARG(1), GET_INT_ARG(2), atol(GET_ARG(3)));
+				}
+				else if(stricmp(command, "allowselect")==0)
+				{
+					load_playable_list(buf+pos);
+				}
+				else if(stricmp(command, "background")==0)
+				{
+					load_background(GET_ARG(1), 1);
+				}
+				else if(stricmp(command, "load")==0){
+					strncpy(string, GET_ARG(1), 128);
+					load_cached_model(string, filename, GET_INT_ARG(2));
+				}
+				else shutdown(1, "Command '%s' is not understood in file '%s'", command, filename);
+			}
+			while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
+			while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+		}
+		if(buf != NULL)
+		{
+			tracefree(buf);
+			buf = NULL;
+		}
+		for(i=0; i<maxplayers[current_set]; i++)
+		{
+			if(players[i])
+			{
+				if(!psmenu[i][0] && !psmenu[i][1])
+				{
+					if(maxplayers[current_set] > 2) example[i] = spawn((float)((111-(maxplayers[current_set]*14))+((i*(320-(166/maxplayers[current_set]))/maxplayers[current_set])+videomodes.hShift)),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
+					else example[i] = spawn((float)(83+(videomodes.hShift/2)+(i*(155+videomodes.hShift))),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
+				}
+				else example[i] = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodel(NULL));
+			}
+		}
+	}
+	else // without select.txt
+	{
+		if(skipselect&&(*skipselect)[current_set][0])
+		{
+			for(i=0; i<MAX_PLAYERS; i++)
+			{
+				memset(&player[i], 0, sizeof(s_player));
+				if(!players[i]) continue;
 
-                    if(!creditscheat)
+				if((*skipselect)[current_set][i]) // just in case or it will be an array overflow issue
+				strncpy(player[i].name, (*skipselect)[current_set][i], MAX_NAME_LEN);
+				//else continue;
+				if(!noshare) credits = CONTINUES;
+				else
+				{
+					player[i].credits = CONTINUES;
+					player[i].hasplayed = 1;
+				}
+				if(!creditscheat)
+				{
+					if(noshare) --player[i].credits;
+					else --credits;
+				}
+				player[i].lives = PLAYER_LIVES;
+			}
+			selectScreen = 0;
+			return 1;
+		}
+
+		if(unlockbg && bonus)
+		{
+			// New alternative background path for PSP
+			if(custBkgrds != NULL)
+			{
+				strcpy(string, custBkgrds);
+				strncat(string, "unlockbg", 8);
+				load_background(string, 1);
+			}
+			else load_cached_background("data/bgs/unlockbg", 1);
+		}
+		else
+		{
+			// New alternative background path for PSP
+			if(custBkgrds != NULL)
+			{
+				strncpy(string, custBkgrds, 128);
+				strncat(string, "select", 6);
+				load_background(string, 1);
+			}
+			else load_cached_background("data/bgs/select", 1);
+		}
+		music("data/music/menu", 1, 0);
+		if(!noshare) credits = CONTINUES;
+		for(i=0; i<MAX_PLAYERS; i++)
+		{
+			memset(&player[i], 0, sizeof(s_player));
+			immediate[i] = players[i];
+		}
+	}
+
+
+	while(!(exit || escape))
+	{
+		players_busy = 0;
+		players_ready = 0;
+		for(i=0; i<maxplayers[current_set]; i++)
+		{
+			// you can't have that character!
+			if((tperror == i+1) && !ready[i]) font_printf(75+videomodes.hShift,123+videomodes.vShift,0, 0,"Player %d Choose a Different Character!", i+1);
+			if(!ready[i])
+			{
+				if(player[i].lives <= 0 && (noshare || credits>0) && ((player[i].newkeys & FLAG_ANYBUTTON) || immediate[i]))
+				{
+					if(noshare)
 					{
-                        if(noshare) --player[i].credits;
-                        else --credits;
-                    }
+						player[i].credits = CONTINUES;
+						player[i].hasplayed = 1;
+					}
 
-                    player[i].lives = PLAYER_LIVES;
-
-                    if(!psmenu[i][0] && !psmenu[i][1])
+					if(!creditscheat)
 					{
-                        if(maxplayers[current_set] > 2) example[i] = spawn((float)((111-(maxplayers[current_set]*14))+((i*(320-(166/maxplayers[current_set]))/maxplayers[current_set])+videomodes.hShift)),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
-                        else example[i] = spawn((float)(83+(videomodes.hShift/2)+(i*(155+videomodes.hShift))),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
-                    }
-                    else example[i] = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodel(NULL));
+						if(noshare) --player[i].credits;
+						else --credits;
+					}
 
-                    if(example[i]==NULL) shutdown(1, "Failed to create player selection object!");
+					player[i].lives = PLAYER_LIVES;
+
+					if(!psmenu[i][0] && !psmenu[i][1])
+					{
+						if(maxplayers[current_set] > 2) example[i] = spawn((float)((111-(maxplayers[current_set]*14))+((i*(320-(166/maxplayers[current_set]))/maxplayers[current_set])+videomodes.hShift)),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
+						else example[i] = spawn((float)(83+(videomodes.hShift/2)+(i*(155+videomodes.hShift))),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
+					}
+					else example[i] = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodel(NULL));
+
+					if(example[i]==NULL) shutdown(1, "Failed to create player selection object!");
 
 					// Select Player Direction for select player screen
-                    // example[i]->direction = spdirection[i]; // moved to spawn method
+					// example[i]->direction = spdirection[i]; // moved to spawn method
 
 					// Make player 2 different colour automatically
 					player[i].colourmap = i;
 
-                    while((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
-                        cmap[i] >= example[i]->modeldata.hmap1 &&
-                        cmap[i] <= example[i]->modeldata.hmap2
-                        )
-                    {
-                        cmap[i]++;
-                        if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
-                    }
+					while((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
+					cmap[i] >= example[i]->modeldata.hmap1 &&
+					cmap[i] <= example[i]->modeldata.hmap2 )
+					{
+						cmap[i]++;
+						if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
+					}
 
-                    player[i].playkeys = 0;
-                    ent_set_colourmap(example[i], cmap[i]);
+					player[i].playkeys = 0;
+					ent_set_colourmap(example[i], cmap[i]);
 
-                    if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-                }
-                else if(player[i].newkeys & FLAG_MOVELEFT && example[i])
+					if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
+				}
+				else if(player[i].newkeys & FLAG_MOVELEFT && example[i])
 				{
-                    if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-                    ent_set_model(example[i], prevplayermodel(example[i]->model)->name);
-                    cmap[i] = i;
+					if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
+					ent_set_model(example[i], prevplayermodel(example[i]->model)->name);
+					cmap[i] = i;
 
-    				while((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
-                        cmap[i] >= example[i]->modeldata.hmap1 &&
-                        cmap[i] <= example[i]->modeldata.hmap2
-                        )
-                    {
-                        cmap[i]++;
-                        if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
-                    }
+					while((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
+					cmap[i] >= example[i]->modeldata.hmap1 &&
+					cmap[i] <= example[i]->modeldata.hmap2 )
+					{
+						cmap[i]++;
+						if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
+					}
 
-                    ent_set_colourmap(example[i], cmap[i]);
+					ent_set_colourmap(example[i], cmap[i]);
 					tperror = 0;
-                }
+				}
 				else if(player[i].newkeys & FLAG_MOVERIGHT && example[i])
 				{
-                    if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-                    ent_set_model(example[i], nextplayermodel(example[i]->model)->name);
-                    cmap[i] = i;
+					if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
+					ent_set_model(example[i], nextplayermodel(example[i]->model)->name);
+					cmap[i] = i;
 
-                    while((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
-                        cmap[i] >= example[i]->modeldata.hmap1 && cmap[i] <= example[i]->modeldata.hmap2
-                        )
-                    {
-                        cmap[i]++;
-                        if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
-                    }
-
-                    ent_set_colourmap(example[i], cmap[i]);
-                    tperror = 0;
-                }
-                // oooh pretty colors! - selectable color scheme for player characters
-                else if(player[i].newkeys & FLAG_MOVEUP && colourselect && example[i])
-				{
-                    do
+					while((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
+					cmap[i] >= example[i]->modeldata.hmap1 && cmap[i] <= example[i]->modeldata.hmap2 )
 					{
-                        cmap[i]++;
-                        if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
-                    }
-                    while(
-                        (example[i]->modeldata.fmap &&
-                        cmap[i] - 1 == example[i]->modeldata.fmap - 1) ||
-                        ((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
-                        cmap[i] - 1 >= example[i]->modeldata.hmap1 - 1 &&
-                        cmap[i] - 1 <= example[i]->modeldata.hmap2 - 1)
-                        );
+						cmap[i]++;
+						if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
+					}
 
-                        ent_set_colourmap(example[i], cmap[i]);
-                }
-                else if(player[i].newkeys & FLAG_MOVEDOWN && colourselect && example[i])
+					ent_set_colourmap(example[i], cmap[i]);
+					tperror = 0;
+				}
+				// oooh pretty colors! - selectable color scheme for player characters
+				else if(player[i].newkeys & FLAG_MOVEUP && colourselect && example[i])
 				{
-                    do
+					do
 					{
-                        cmap[i]--;
-                        if(cmap[i] < 0) cmap[i] = example[i]->modeldata.maps_loaded;
-                    }
-                    while(
-                        (example[i]->modeldata.fmap &&
-                        cmap[i] - 1 == example[i]->modeldata.fmap - 1) ||
-                        ((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
-                        cmap[i] - 1 >= example[i]->modeldata.hmap1 - 1 &&
-                        cmap[i] - 1 <= example[i]->modeldata.hmap2 - 1)
-                        );
+						cmap[i]++;
+						if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
+					}
+					while(
+					(example[i]->modeldata.fmap &&
+					cmap[i] - 1 == example[i]->modeldata.fmap - 1) ||
+					((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
+					cmap[i] - 1 >= example[i]->modeldata.hmap1 - 1 &&
+					cmap[i] - 1 <= example[i]->modeldata.hmap2 - 1)
+					);
 
-                        ent_set_colourmap(example[i], cmap[i]);
-                }
-                else if((player[i].newkeys & FLAG_ANYBUTTON) && example[i])
+					ent_set_colourmap(example[i], cmap[i]);
+				}
+				else if(player[i].newkeys & FLAG_MOVEDOWN && colourselect && example[i])
+				{
+					do
+					{
+						cmap[i]--;
+						if(cmap[i] < 0) cmap[i] = example[i]->modeldata.maps_loaded;
+					}
+					while(
+					(example[i]->modeldata.fmap &&
+					cmap[i] - 1 == example[i]->modeldata.fmap - 1) ||
+					((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
+					cmap[i] - 1 >= example[i]->modeldata.hmap1 - 1 &&
+					cmap[i] - 1 <= example[i]->modeldata.hmap2 - 1)
+					);
+
+					ent_set_colourmap(example[i], cmap[i]);
+				}
+				else if((player[i].newkeys & FLAG_ANYBUTTON) && example[i])
 				{
 
-                    if(SAMPLE_BEEP2 >= 0) sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
-                    strcpy(player[i].name, example[i]->modeldata.name);
-                    player[i].colourmap = cmap[i];
+					if(SAMPLE_BEEP2 >= 0) sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
+					strcpy(player[i].name, example[i]->modeldata.name);
+					player[i].colourmap = cmap[i];
 
-                    // reports error if players try to use the same character and sameplay mode is off
-                    if(sameplayer)
+					// reports error if players try to use the same character and sameplay mode is off
+					if(sameplayer)
 					{
-                        for(x=0; x<maxplayers[current_set]; x++)
+						for(x=0; x<maxplayers[current_set]; x++)
 						{
-                            if((strncmp(player[i].name,player[x].name,strlen(player[i].name)) == 0) && (i != x))
+							if((strncmp(player[i].name,player[x].name,strlen(player[i].name)) == 0) && (i != x))
 							{
-                                tperror = i+1;
-                                break;
-                            }
-                        }
-                    }
+								tperror = i+1;
+								break;
+							}
+						}
+					}
 
-                    if(!tperror)
+					if(!tperror)
 					{
-                        time=0;
-                        // yay you picked me!
-                        if(validanim(example[i],ANI_PICK)) ent_set_anim(example[i], ANI_PICK, 0);
-                        while(!ready[i] && example[i] != NULL)
+						time=0;
+						// yay you picked me!
+						if(validanim(example[i],ANI_PICK)) ent_set_anim(example[i], ANI_PICK, 0);
+						while(!ready[i] && example[i] != NULL)
 						{
-                            update(0,0);
-                            if((!validanim(example[i],ANI_PICK) || example[i]->modeldata.animation[ANI_PICK]->loop[0]) && time>GAME_SPEED*2) ready[i] = 1;
+							update(0,0);
+							if((!validanim(example[i],ANI_PICK) || example[i]->modeldata.animation[ANI_PICK]->loop[0]) && time>GAME_SPEED*2) ready[i] = 1;
 							else if(!example[i]->animating) ready[i] = 1;
 							if(ready[i]) time=0;
-                        }
-                    }
-                }
-            }
-            else
+						}
+					}
+				}
+			}
+			else
 			{
-                if(!psmenu[i][2] && !psmenu[i][3])
+				if(!psmenu[i][2] && !psmenu[i][3])
 				{
-                    if(maxplayers[current_set] > 2) font_printf((95-(maxplayers[current_set]*14))+((i*(320-(166/maxplayers[current_set]))/maxplayers[current_set])+videomodes.hShift), 225+videomodes.vShift, 0, 0, "Ready!");
-                    else font_printf(67+(videomodes.hShift/2)+(i*(155+videomodes.hShift)), 225+videomodes.vShift, 0, 0, "Ready!");
-                }
-                else font_printf(psmenu[i][2], psmenu[i][3], 0, 0, "Ready!");
-            }
+					if(maxplayers[current_set] > 2) font_printf((95-(maxplayers[current_set]*14))+((i*(320-(166/maxplayers[current_set]))/maxplayers[current_set])+videomodes.hShift), 225+videomodes.vShift, 0, 0, "Ready!");
+					else font_printf(67+(videomodes.hShift/2)+(i*(155+videomodes.hShift)), 225+videomodes.vShift, 0, 0, "Ready!");
+				}
+				else font_printf(psmenu[i][2], psmenu[i][3], 0, 0, "Ready!");
+			}
 
-            if(example[i] != NULL) players_busy++;
-            if(ready[i]) players_ready++;
-        }
+			if(example[i] != NULL) players_busy++;
+			if(ready[i]) players_ready++;
+		}
 
-        if(players_busy && players_busy==players_ready && time>GAME_SPEED) exit = 1;
+		if(players_busy && players_busy==players_ready && time>GAME_SPEED) exit = 1;
+		update(0,0);
 
-        update(0,0);
-
-        if(bothnewkeys & FLAG_ESC) escape = 1;
-    }
+		if(bothnewkeys & FLAG_ESC) escape = 1;
+	}
 
 	// No longer at the select screen
-    selectScreen = 0;
-    kill_all();
-    sound_close_music();
+	selectScreen = 0;
+	kill_all();
+	sound_close_music();
 
-    return (!escape);
+	return (!escape);
 }
 
 void playgame(int *players,  unsigned which_set, int useSavedGame)
@@ -21485,7 +21485,6 @@ void term_videomodes()
 
 // Load Video Mode from file
 void init_videomodes(int log)
-
 {
 	char *filename = "data/video.txt";
 	int bits = 8, tmp;
@@ -21502,28 +21501,28 @@ void init_videomodes(int log)
     // Use an alternative video.txt if there is one.  Some of these are long filenames; create your PAKs with borpak and you'll be fine.
 #define tryfile(X) if((tmp=openpackfile(X,packfile))!=-1) { closepackfile(tmp); filename=X; goto readfile; }
 #if WIN || LINUX
-    tryfile("data/videopc.txt");
+	tryfile("data/videopc.txt");
 #elif WII
-    tryfile("data/videowii.txt");
-    if(CONF_GetAspectRatio() == CONF_ASPECT_16_9) { tryfile("data/video169.txt") }
-    else tryfile("data/video43.txt");
+	tryfile("data/videowii.txt");
+	if(CONF_GetAspectRatio() == CONF_ASPECT_16_9) { tryfile("data/video169.txt") }
+	else tryfile("data/video43.txt");
 #elif PSP
-    tryfile("data/videopsp.txt");
-    tryfile("data/video169.txt");
+	tryfile("data/videopsp.txt");
+	tryfile("data/video169.txt");
 #elif DC
-    tryfile("data/videodc.txt");
-    tryfile("data/video43.txt");
+	tryfile("data/videodc.txt");
+	tryfile("data/video43.txt");
 #elif WIZ
-    tryfile("data/videowiz.txt");
-    tryfile("data/video169.txt");
+	tryfile("data/videowiz.txt");
+	tryfile("data/video169.txt");
 #elif GP2X
-    tryfile("data/videogp2x.txt");
-    tryfile("data/video43.txt");
+	tryfile("data/videogp2x.txt");
+	tryfile("data/video43.txt");
 #elif DINGOO
-    tryfile("data/videodingoo.txt");
-    tryfile("data/video43.txt");
+	tryfile("data/videodingoo.txt");
+	tryfile("data/video43.txt");
 #elif SYMBIAN
-    tryfile("data/videosymbian.txt");
+	tryfile("data/videosymbian.txt");
 #endif
 #undef tryfile
 
@@ -21603,15 +21602,15 @@ readfile:
 #endif
 
 #if SYMBIAN
-    if(videoMode != 0 && videoMode != 2)
-    {
-    	videoMode = 0;
-    }
+	if(videoMode != 0 && videoMode != 2)
+	{
+		videoMode = 0;
+	}
 #endif
 
 VIDEOMODES:
-    switch (videoMode)
-    {
+	switch (videoMode)
+	{
 		// 320x240 - All Platforms
 		case 0:
 			videomodes.mode    = savedata.screen[videoMode][0];
@@ -21734,18 +21733,18 @@ VIDEOMODES:
 						"5 - 800x600\n"
 						"6 - 960x540\n\n", videoMode);
 			break;
-    }
+	}
 
 #if SDL || WII
-    video_stretch(savedata.stretch);
+	video_stretch(savedata.stretch);
 #endif
 
-    if((vscreen = allocscreen(videomodes.hRes, videomodes.vRes, screenformat)) == NULL) shutdown(1, "Not enough memory!\n");
+	if((vscreen = allocscreen(videomodes.hRes, videomodes.vRes, screenformat)) == NULL) shutdown(1, "Not enough memory!\n");
 	videomodes.pixel = pixelbytes[(int)vscreen->pixelformat];
 	video_set_mode(videomodes);
 	clearscreen(vscreen);
 
-    if(log) printf("Initialized video.............\t%dx%d (Mode: %d, Depth: %d Bit)\n\n",videomodes.hRes, videomodes.vRes, videoMode, bits);
+	if(log) printf("Initialized video.............\t%dx%d (Mode: %d, Depth: %d Bit)\n\n",videomodes.hRes, videomodes.vRes, videoMode, bits);
 }
 
 
@@ -23254,6 +23253,7 @@ void openborMain()
 		update(0,0);
 	}
 
+	freeCommandList(cmdlist); // moved here because list is not initialized if shutdown is initiated from inside the menu
 	shutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
 }
 
