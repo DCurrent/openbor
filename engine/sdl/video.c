@@ -29,8 +29,8 @@ extern int videoMode;
 #include "xpm.h"
 #include "../resources/OpenBOR_Icon_32x32.h"
 #else
-#include "sdlpng.h"
-#include "../resources/openbor_icon_32x32_png.h"
+#include "pngdec.h"
+#include "../resources/OpenBOR_Icon_32x32_png.h"
 #endif
 #endif
 
@@ -71,7 +71,7 @@ void initSDL()
 #ifdef USE_XPM	
 	SDL_WM_SetIcon((SDL_Surface*)xpmToSurface(OpenBOR_Icon_32x32), NULL);
 #else
-	SDL_WM_SetIcon((SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data, openbor_icon_32x32_png.size), NULL);
+	SDL_WM_SetIcon((SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data), NULL);
 #endif
 #endif
 #if WIN || LINUX && !DARWIN && !defined(GLES)

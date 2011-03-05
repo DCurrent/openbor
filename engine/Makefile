@@ -332,6 +332,7 @@ INCS 	       += .                                                               
                   source/randlib                                                                    \
                   source/scriptlib                                                                  \
                   source/tracelib                                                                   \
+                  source/pnglib                                                                     \
                   source/xpmlib
 
 ifndef BUILD_DC
@@ -409,6 +410,7 @@ SCRIPT          = source/scriptlib/StackedSymbolTable.o                         
 RAM             = source/ramlib/ram.o
 RAND	        = source/randlib/rand32.o
 TRACE           = source/tracelib/tracemalloc.o
+PNG             = source/pnglib/pngdec.o
 XPM             = source/xpmlib/xpm.o
 SOURCE	        = source/stringptr.o                                                                \
 				  source/utils.o                                                                    \
@@ -471,7 +473,6 @@ GAME_CONSOLE   += sdl/joysticks.o                                               
                   sdl/timer.o                                                                       \
                   sdl/sdlport.o                                                                     \
                   sdl/video.o                                                                       \
-                  sdl/sdlpng.o                                                                      \
                   sdl/menu.o
 endif
 
@@ -510,6 +511,7 @@ OBJS            = $(GAME_CONSOLE)                                               
                   $(RAM)                                                                            \
                   $(RAND)                                                                           \
                   $(TRACE)                                                                          \
+                  $(PNG)                                                                            \
                   $(XPM)                                                                            \
                   $(MAIN)
 		  
@@ -642,7 +644,7 @@ ifdef BUILD_SDL
 ifdef BUILD_WIZ
 LIBS           += -lSDL -lSDL_gfx -lts
 else
-LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL -lSDL_gfx -lSDL_image
+LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL -lSDL_gfx
 endif
 endif
 
