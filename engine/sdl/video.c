@@ -17,7 +17,6 @@
 #include "openbor.h"
 #include "gfxtypes.h"
 #include "gfx.h"
-#include "xpm.h"
 
 extern int videoMode;
 
@@ -26,7 +25,13 @@ extern int videoMode;
 #endif
 
 #ifndef SKIP_CODE
+#ifdef USE_XPM
+#include "xpm.h"
 #include "../resources/OpenBOR_Icon_32x32.h"
+#else
+#include "sdlpng.h"
+#include "../resources/openbor_icon_32x32_png.h"
+#endif
 #endif
 
 FPSmanager framerate_manager;
@@ -63,7 +68,11 @@ void initSDL()
 	atexit(SDL_Quit);
 #ifndef SKIP_CODE
 	SDL_WM_SetCaption("OpenBOR", NULL);
+#ifdef USE_XPM	
 	SDL_WM_SetIcon((SDL_Surface*)xpmToSurface(OpenBOR_Icon_32x32), NULL);
+#else
+	SDL_WM_SetIcon((SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data, openbor_icon_32x32_png.size), NULL);
+#endif
 #endif
 #if WIN || LINUX && !DARWIN && !defined(GLES)
 	if(SDL_GL_LoadLibrary(NULL) < 0)
