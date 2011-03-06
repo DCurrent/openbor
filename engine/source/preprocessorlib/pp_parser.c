@@ -76,6 +76,7 @@ void pp_context_destroy(pp_context* self)
 		tracefree(List_Retrieve(&self->macros));
 		List_Remove(&self->macros);
 	}
+	List_Clear(&self->macros);
 	
 	// undefine and free all function-style macros
 	List_Reset(&self->func_macros);
@@ -87,14 +88,17 @@ void pp_context_destroy(pp_context* self)
 			tracefree(List_Retrieve(params));
 			List_Remove(params);
 		}
+		List_Clear(params);
 		tracefree(params);
 		List_Remove(&self->func_macros);
 	}
+	List_Clear(&self->func_macros);
 	
 	// free the import list
 	List_Reset(&self->imports);
 	while(self->imports.size > 0)
 		List_Remove(&self->imports);
+	List_Clear(&self->imports);
 }
 
 /**
@@ -628,7 +632,10 @@ HRESULT pp_parser_parse_directive(pp_parser* self)
 		case PP_TOKEN_UNDEF:
 			if(FAILED(pp_parser_lex_token(self, true))) return E_FAIL;
 			if(List_FindByName(&self->ctx->macros, self->token.theSource))
+			{
+				tracefree(List_Retrieve(&self->ctx->macros));
 				List_Remove(&self->ctx->macros);
+			}
 			break;
 		case PP_TOKEN_IF:
 		case PP_TOKEN_IFDEF:
