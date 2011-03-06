@@ -182,6 +182,20 @@ static png_structp png_ptr = NULL;
 static png_infop info_ptr = NULL;
 static png_bytep * row_pointers = NULL;
 
+#if PNG_LIBPNG_VER_MAJOR == 1 && PNG_LIBPNG_VER_MINOR < 4
+png_voidp   png_get_io_ptr(png_structp png_ptr)                           { return png_ptr->io_ptr;     }
+png_uint_32 png_get_rowbytes(png_structp png_ptr, png_infop info_ptr)     { return info_ptr->rowbytes;  }
+png_byte    png_get_bit_depth(png_structp png_ptr, png_infop info_ptr)    { return info_ptr->bit_depth; }
+png_uint_32 png_get_image_width(png_structp png_ptr, png_infop info_ptr)  { return info_ptr->width;     }
+png_uint_32 png_get_image_height(png_structp png_ptr, png_infop info_ptr) { return info_ptr->height;    }
+png_uint_32 png_get_PLTE(png_structp png_ptr, png_infop info_ptr, png_colorp * palette, int * num_palette) 
+{ 
+	palette = info_ptr->palette; 
+	*num_palette = info_ptr->num_palette; 
+	return PNG_INFO_PLTE; 
+}
+#endif
+	
 #ifndef XBOX
 // SX: XBOX does not support PNG user memory allocations
 static png_voidp png_tracemalloc(png_structp pngp, png_size_t size)
@@ -198,7 +212,7 @@ static void png_tracefree(png_structp pngp, png_voidp ptr)
 
 static void png_read_fn(png_structp pngp, png_bytep outp, png_size_t size)
 {
-    readpackfile(*(int*)(pngp->io_ptr), outp, size);
+    readpackfile(*(int*)(png_get_io_ptr(pngp)), outp, size);
 }
 
 static void png_read_destroy_all()
@@ -263,16 +277,16 @@ static int openpng(char *filename, char *packfilename)
     png_read_info(png_ptr, info_ptr);
 
     //UT: not formal here, but just read what we need since we use only 8bit png for now
-    res[0] = info_ptr->width;
-    png_height = res[1] = info_ptr->height;
+    res[0] = png_get_image_width(png_ptr, info_ptr);
+    png_height = res[1] = png_get_image_height(png_ptr, info_ptr);
     // should only be a 8bit image by now
-    if( info_ptr->bit_depth != 8) goto openpng_abort;
+    if (png_get_bit_depth(png_ptr, info_ptr) != 8) goto openpng_abort;
 
     png_read_update_info(png_ptr, info_ptr);
 
     row_pointers = (png_bytep*) tracemalloc("openpng", sizeof(png_bytep) * png_height);
     for (y=0; y<png_height; y++)
-        row_pointers[y] = (png_byte*) tracemalloc("openpng", info_ptr->rowbytes);
+        row_pointers[y] = (png_byte*) tracemalloc("openpng", png_get_rowbytes(png_ptr, info_ptr));
 
     png_read_image(png_ptr, row_pointers);
     return 1;
@@ -284,7 +298,8 @@ openpng_abort:
 static int readpng(unsigned char *buf, unsigned char *pal, int maxwidth, int maxheight)
 {
     int i, j, cw, ch;
-    png_colorp png_pal_ptr;
+    png_colorp png_pal_ptr = 0;
+	int png_pal_num = 0;
     int pb = PAL_BYTES;
 
     cw = res[0]>maxwidth?maxwidth:res[0];
@@ -298,19 +313,24 @@ static int readpng(unsigned char *buf, unsigned char *pal, int maxwidth, int max
     }
     if(pal)
     {
-        png_pal_ptr = info_ptr->palette;
-        if(png_pal_ptr==NULL) return 0;
+	
+        if(png_get_PLTE(png_ptr, info_ptr, &png_pal_ptr, &png_pal_num) != PNG_INFO_PLTE || 
+		   png_pal_ptr == NULL)
+		{
+			return 0;
+		}
+		
         png_pal_ptr[0].red = png_pal_ptr[0].green = png_pal_ptr[0].blue = 0;
         if(pb==512) // 16bit 565
         {
-		    for(i=0, j=0; i<512 && j<info_ptr->num_palette; i+=2, j++)
+		    for(i=0, j=0; i<512 && j<png_pal_num; i+=2, j++)
 		    {
                 *(unsigned short*)(pal+i) = colour16(png_pal_ptr[j].red, png_pal_ptr[j].green, png_pal_ptr[j].blue);
             }
         }
         else if(pb==768) // 24bit
         {
-		    for(i=0;i<info_ptr->num_palette;i++)
+		    for(i=0;i<png_pal_num;i++)
 		    {
                 pal[i*3] = png_pal_ptr[i].red;
                 pal[i*3+1] = png_pal_ptr[i].green;
@@ -320,7 +340,7 @@ static int readpng(unsigned char *buf, unsigned char *pal, int maxwidth, int max
         else if(pb==1024) // 32bit
         {
 
-		    for(i=0, j=0; i<1024 && j<info_ptr->num_palette; i+=4, j++)
+		    for(i=0, j=0; i<1024 && j<png_pal_num; i+=4, j++)
 		    {
                 *(unsigned*)(pal+i) = colour32(png_pal_ptr[j].red, png_pal_ptr[j].green, png_pal_ptr[j].blue);
             }
