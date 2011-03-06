@@ -54,7 +54,7 @@ typedef struct Token {
 *  parser.
 ******************************************************************************/
 typedef struct Lexer {
-    LPSTR thePath;
+    LPCSTR thePath;
     LPCSTR ptheSource;
     pp_parser preprocessor;
     CHAR* pcurChar;
@@ -64,7 +64,7 @@ typedef struct Lexer {
 
 //Constructor
 void Token_Init(Token* ptoken, MY_TOKEN_TYPE theType, LPCSTR theSource, TEXTPOS theTextPosition, ULONG charOffset);
-void Lexer_Init(Lexer* plexer, pp_context* pcontext, LPSTR thePath, LPSTR theSource, TEXTPOS theStartingPosition);
+void Lexer_Init(Lexer* plexer, pp_context* pcontext, LPCSTR thePath, LPSTR theSource, TEXTPOS theStartingPosition);
 void Lexer_Clear(Lexer* plexer);
 HRESULT Lexer_GetNextToken(Lexer* plexer, Token* theNextToken);
 HRESULT Lexer_GetTokenIdentifier(Lexer* plexer, Token* theNextToken);

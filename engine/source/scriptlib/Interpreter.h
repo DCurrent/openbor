@@ -18,6 +18,7 @@ typedef HRESULT (*SCRIPTFUNCTION)(ScriptVariant** varlist , ScriptVariant** pret
 typedef struct Interpreter {
    StackedSymbolTable theSymbolTable;
    List* ptheFunctionList;               //external functionlist, to save some memory
+   List theImportList;
    List theInstructionList;
    List paramList;
    Stack theDataStack;
@@ -41,7 +42,7 @@ typedef struct Interpreter {
 void Interpreter_Init(Interpreter* pinterpreter, LPCSTR name, List* pflist);
 void Interpreter_Clear(Interpreter* pinterpreter);
 HRESULT Interpreter_ParseText(Interpreter* pinterpreter, LPSTR scriptText,
-                           ULONG startingLineNumber, LPSTR path);
+                           ULONG startingLineNumber, LPCSTR path);
 HRESULT Interpreter_PutValue(Interpreter* pinterpreter, LPCSTR variable, ScriptVariant* pValue, int refFlag );
 HRESULT Interpreter_GetValue(Interpreter* pinterpreter, LPCSTR variable, ScriptVariant* pValue);
 HRESULT Interpreter_GetValueByRef(Interpreter* pinterpreter, LPCSTR variable, ScriptVariant** pValue);
@@ -51,6 +52,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter);
 HRESULT Interpreter_Call(Interpreter* pinterpreter);
 HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter);
 void Interpreter_Reset(Interpreter* pinterpreter);
+void Interpreter_ClearImports(Interpreter* pinterpreter);
 
 
 #endif

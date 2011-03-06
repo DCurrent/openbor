@@ -7,6 +7,7 @@
  */
 
 #include "Interpreter.h"
+#include "ImportCache.h"
 #include "tracemalloc.h"
 #include <string.h>
 #include <stdio.h>
@@ -18,6 +19,7 @@ void Interpreter_Init(Interpreter* pinterpreter, LPCSTR name, List* pflist)
     StackedSymbolTable_Init(&(pinterpreter->theSymbolTable), name);
     Parser_Init(&(pinterpreter->theParser));
     pinterpreter->ptheFunctionList = pflist;
+    List_Init(&(pinterpreter->theImportList));
     List_Init(&(pinterpreter->theInstructionList));
     List_Init(&(pinterpreter->paramList));
     Stack_Init(&(pinterpreter->theDataStack));
@@ -35,6 +37,7 @@ void Interpreter_Clear(Interpreter* pinterpreter)
 
     StackedSymbolTable_Clear(&(pinterpreter->theSymbolTable));
     Parser_Clear(&(pinterpreter->theParser));
+    Interpreter_ClearImports(pinterpreter);
     if(pinterpreter->theInstructionList.solidlist)
     {
         size = pinterpreter->theInstructionList.size;
@@ -79,7 +82,7 @@ void Interpreter_Clear(Interpreter* pinterpreter)
 *  Returns: E_FAIL if parser errors found else S_OK
 ******************************************************************************/
 HRESULT Interpreter_ParseText(Interpreter* pinterpreter, LPSTR scriptText,
-                           ULONG startingLineNumber, LPSTR path)
+                           ULONG startingLineNumber, LPCSTR path)
 {
 
     //Parse the script
@@ -361,7 +364,20 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 	ScriptVariant* pSVar1 = NULL;
 	ScriptVariant* pSVar2 = NULL;
 	ScriptVariant* pRetVal = NULL;
+	ImportNode* pImport = NULL;
 	HRESULT hr = S_OK;
+	
+	// Import any scripts named in #import directives (parsed by the preprocessor)
+	size = pinterpreter->theContext.imports.size;
+	List_Reset(&(pinterpreter->theContext.imports));
+	for(i=0; i<size; i++)
+	{
+		pLabel = List_GetName(&(pinterpreter->theContext.imports));
+		pImport = ImportCache_Retrieve(pLabel);
+		if(pImport == NULL) return E_FAIL; // ImportCache should print out the error message
+		List_InsertAfter(&(pinterpreter->theImportList), pImport, pLabel);
+		List_GotoNext(&(pinterpreter->theContext.imports));
+	}
 	
 	// We are done appending to the script at this point, so free the preprocessor context
 	pp_context_destroy(&(pinterpreter->theContext));
@@ -369,7 +385,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 	#ifdef USE_INDEX
 	// it seems the list is used readonly here, so lets create an index for faster lookup
 	List_CreateIndices(&(pinterpreter->theInstructionList));
-	#endif	
+	#endif
 
     if(List_FindByName(&(pinterpreter->theInstructionList), "main"))
         pinterpreter->mainEntryIndex = List_GetIndex(&(pinterpreter->theInstructionList));
@@ -1016,4 +1032,22 @@ void Interpreter_Reset(Interpreter* pinterpreter)
     pinterpreter->bMainCompleted = FALSE;
 }
 
+/******************************************************************************
+*  ClearImports -- This method frees all of the #import references in the 
+*                  interpreter.
+*  Parameters: none
+*  Returns: none
+******************************************************************************/
+void Interpreter_ClearImports(Interpreter* pinterpreter)
+{
+    List_Reset(&(pinterpreter->theImportList));
+    while(pinterpreter->theImportList.size)
+    {
+#ifdef VERBOSE
+    	printf("Releasing import: %s\n", List_GetName(&(pinterpreter->theImportList)));
+#endif
+        ImportCache_Release(List_Retrieve(&(pinterpreter->theImportList)));
+        List_Remove(&(pinterpreter->theImportList));
+    }
+}
 

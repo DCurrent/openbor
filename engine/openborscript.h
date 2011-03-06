@@ -31,6 +31,7 @@ typedef struct Script
 }Script;
 
 extern s_variantnode** global_var_list;
+extern List           theFunctionList;
 extern ScriptVariant* indexed_var_list;
 extern int            max_indexed_vars;
 extern int            max_entity_vars;

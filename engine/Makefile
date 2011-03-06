@@ -400,6 +400,7 @@ SCRIPT          = source/scriptlib/StackedSymbolTable.o                         
                   source/scriptlib/SymbolTable.o                                                    \
                   source/scriptlib/Instruction.o                                                    \
                   source/scriptlib/Interpreter.o                                                    \
+                  source/scriptlib/ImportCache.o                                                    \
                   source/scriptlib/ParserSet.o                                                      \
                   source/scriptlib/Parser.o                                                         \
                   source/scriptlib/Lexer.o                                                          \
