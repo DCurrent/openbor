@@ -26,7 +26,6 @@ function clean {
 
 # Distribute Releases
 function distribute {
-  ERROR=0
   echo ------------------------------------------------------
   echo "          Validating Platforms Built w/Bash"
   echo ------------------------------------------------------
@@ -34,51 +33,49 @@ function distribute {
   
   if ! test "releases/PSP/OpenBOR/EBOOT.PBP"; then
     echo "PSP Platform Failed To Build!"
-    ERROR=1
+    exit 1
   fi
   if ! test -e "releases/GP2X/OpenBOR/OpenBOR.gpe"; then
     echo "GP2X Platform Failed To Build!"
-    ERROR=0
+    # exit 1
   fi
   if ! test -e "releases/WIZ/OpenBOR/OpenBOR.gpe"; then
     echo "WIZ Platform Failed To Build!"
-    ERROR=0
+    # exit 1
   fi
   if ! test -e "releases/DC/OpenBOR/1ST_READ.BIN"; then
     echo "Dreamcast Platform Failed To Build!"
-    ERROR=1
+    exit 1
   fi
   if ! test -e "releases/WINDOWS/OpenBOR/OpenBOR.exe"; then
     echo "Windows Platform Failed To Build!"
-    ERROR=1
+    exit 1
   fi
   if ! test -e "releases/WII/OpenBOR/boot.dol"; then
     echo "Wii Platform Failed To Build!"
-    ERROR=1
+    exit 1
   fi
   if ! test -e "releases/DINGOO/OpenBOR/OpenBOR.dge"; then
     echo "Dingoo Platform Failed To Build!"
-    ERROR=0
+    # exit 1
   fi
   if ! test -e "releases/LINUX/OpenBOR/OpenBOR"; then
     if [ `echo $HOST_PLATFORM | grep -o "Linux"` ]; then
       echo "Linux Platform Failed To Build!"
-      ERROR=1
+      exit 1
     fi
   fi
   if ! test -e "releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR"; then
     if [ `echo $HOST_PLATFORM | grep -o "Darwin"` ]; then
       echo "Darwin Platform Failed To Build!"
-      ERROR=1
+      exit 1
     fi
   fi
   
-  if [ $ERROR = 0 ]; then
-    echo "All Platforms Created Successfully"
-    if ! test "$BUILDBATCH"; then
-      svn log --verbose > ./releases/VERSION_INFO.txt
-      7za a -t7z -mx9 -r -x!.svn "./releases/OpenBOR $VERSION.7z" ./releases/*
-    fi
+  echo "All Platforms Created Successfully"
+  if ! test "$BUILDBATCH"; then
+    svn log --verbose > ./releases/VERSION_INFO.txt
+    7za a -t7z -mx9 -r -x!.svn "./releases/OpenBOR $VERSION.7z" ./releases/*
   fi
   echo
 }

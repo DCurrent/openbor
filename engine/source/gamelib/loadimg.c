@@ -190,7 +190,7 @@ png_uint_32 png_get_image_width(png_structp png_ptr, png_infop info_ptr)  { retu
 png_uint_32 png_get_image_height(png_structp png_ptr, png_infop info_ptr) { return info_ptr->height;    }
 png_uint_32 png_get_PLTE(png_structp png_ptr, png_infop info_ptr, png_colorp * palette, int * num_palette) 
 { 
-	palette = info_ptr->palette; 
+	*palette = info_ptr->palette; 
 	*num_palette = info_ptr->num_palette; 
 	return PNG_INFO_PLTE; 
 }
