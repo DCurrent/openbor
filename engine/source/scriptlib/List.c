@@ -412,7 +412,6 @@ void List_Clear(List* list)
 		tracefree(list->solidlist);
 		list->solidlist = NULL;
 	}
-	List_Init(list);
 
 	#ifdef USE_INDEX
 	if(list->indices)
@@ -422,6 +421,8 @@ void List_Clear(List* list)
 	#ifdef USE_STRING_HASHES
 	List_FreeHashes(list);
 	#endif
+	
+	List_Init(list);
 }
 
 //Insertion functions
@@ -720,6 +721,7 @@ Node* List_SearchName(List* list, LPCSTR theName )
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
+	Node *nptr;
 	if (theName == NULL) return NULL;
 	
 #ifdef USE_STRING_HASHES
@@ -727,13 +729,13 @@ Node* List_SearchName(List* list, LPCSTR theName )
 	unsigned char h = strhash((char*)theName);
 	if (!list->buckets || !list->buckets[h]) return 0;
 	for(i=0;i<list->buckets[h]->used;i++) {
-		if(strcmp(theName, list->buckets[h]->nodes[i]->name)==0) {
+		nptr = list->buckets[h]->nodes[i];
+		if(nptr && strcmp(theName, nptr->name)==0) {
 			return list->buckets[h]->nodes[i];
 		}
 	}	
 	return NULL;
 #else
-	Node *nptr;
 	nptr = list->first;
 	
 	while (nptr){
