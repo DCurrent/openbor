@@ -52,14 +52,13 @@ u8 pDeltaBuffer[480 * 2592];
 void initSDL()
 {
 	const SDL_VideoInfo* video_info;
-	
-#if !defined(DINGOO)
-	if(SDL_Init(SDL_INIT_EVERYTHING) < 0)
-#elif DINGOO
-	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK) < 0)
-#elif WII
-	if(SDL_Init(SDL_INIT_VIDEO) < 0)
+	int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK;
+
+#ifdef CUSTOM_SIGNAL_HANDLER
+	init_flags |= SDL_INIT_NOPARACHUTE;
 #endif
+	
+	if(SDL_Init(init_flags) < 0)
 	{
 		printf("SDL Failed to Init!!!! (%s)\n", SDL_GetError());
 		borExit(0);

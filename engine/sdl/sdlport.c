@@ -11,6 +11,7 @@
 #include "ram.h"
 #include "video.h"
 #include "menu.h"
+#include "stacktrace.h"
 
 #ifdef DARWIN
 #include <CoreFoundation/CoreFoundation.h>
@@ -48,6 +49,10 @@ void borExit(int reset)
 
 int main(int argc, char *argv[])
 {
+#ifdef CUSTOM_SIGNAL_HANDLER
+	struct sigaction sigact;
+#endif
+
 #ifdef DARWIN
 	char resourcePath[PATH_MAX];
 	CFBundleRef mainBundle;
@@ -62,6 +67,17 @@ int main(int argc, char *argv[])
 	chdir(resourcePath);
 #elif WII
 	fatInitDefault();
+#endif
+
+#ifdef CUSTOM_SIGNAL_HANDLER
+	sigact.sa_sigaction = handleFatalSignal;
+	sigact.sa_flags = SA_RESTART | SA_SIGINFO;
+
+	if(sigaction(SIGSEGV, &sigact, NULL) != 0)
+	{
+		printf("Error setting signal handler for %d (%s)\n", SIGSEGV, strsignal(SIGSEGV));
+		exit(EXIT_FAILURE);
+	}
 #endif
 
 	setSystemRam();
