@@ -3403,7 +3403,7 @@ s_model * find_model(char *name)
 {
 	int result, i;
 	if(models_loaded==0) return NULL;
-	for(i=0;i<models_loaded-1;i++) {
+	for(i=0;i<models_loaded;i++) {
 		result = stricmp(model_map[i].model->name, name);
 		if(!result) 
 			return model_map[i].model;
@@ -3991,20 +3991,19 @@ void prepare_model_map(size_t size)
 
 static void _readbarstatus(char*, s_barstatus*);
 
-s_model* lcmHandleCommandName(ArgList* arglist, s_model* newchar, int cacheindex) {
+void lcmHandleCommandName(ArgList* arglist, s_model* newchar, int cacheindex) {
 	char* value = GET_ARGP(1);
 	s_model* tempmodel;
-	//if((tempmodel=find_model(value)) && tempmodel!=newchar) shutdown(1, "Duplicate model name '%s'", value);
-	if((tempmodel=find_model(value))) {
+	if((tempmodel=find_model(value)) && tempmodel!=newchar) shutdown(1, "Duplicate model name '%s'", value);
+	/*if((tempmodel=find_model(value))) {
 		return tempmodel;
-	}	
+	}*/	
 	model_cache[cacheindex].model = newchar;
 	newchar->name = model_cache[cacheindex].name;
 	if(stricmp(newchar->name, "steam")==0)
 	{
 		newchar->alpha = 1;
-	}
-	return newchar;
+	}	
 }
 
 void lcmHandleCommandType(ArgList* arglist, s_model* newchar, char* filename) {
@@ -4563,6 +4562,10 @@ s_model* init_model(int cacheindex, int unload) {
 	return newchar;	
 }
 
+void update_model_loadflag(s_model* model, char unload) {
+	model->unload = unload;
+}
+
 s_model* load_cached_model(char * name, char * owner, char unload)
 {
 	s_model *newchar = NULL,
@@ -4672,7 +4675,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	txtCommands cmd;	
 		
 	// Model already loaded but we might want to unload after level is completed.
-	if((tempmodel=find_model(name))!=NULL) {tempmodel->unload = unload; return tempmodel;}
+	if((tempmodel=find_model(name))!=NULL) {
+		update_model_loadflag(tempmodel,unload); 
+		return tempmodel;
+	}
 
 	cacheindex = get_cached_model_index(name);
 	if(cacheindex < 0) shutdown(1, "Fatal: No cache entry for '%s' within '%s'\n\n", name, owner);
@@ -4691,6 +4697,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	
 	newchar = init_model(cacheindex, unload);
 	prepare_model_map(models_loaded+1);
+	//attention, we increase models_loaded here, this can be dangerous if we access that value later on,
+	//since recursive calls will change it!
 	model_map[models_loaded++].model = newchar;
 	
 	attack = emptyattack;      // empty attack
@@ -4719,13 +4727,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 			
 			switch(cmd) {
 				case CMD_NAME: 
-					tempmodel = lcmHandleCommandName(&arglist, newchar, cacheindex);
-					if (tempmodel != newchar) {						
-						printf("loaded dup model: name = %s, filename = %s\n", GET_ARG(1), filename);
-						tracefree(buf);
-						if(scriptbuf) tracefree(scriptbuf);
-						return tempmodel;
-					}
+					lcmHandleCommandName(&arglist, newchar, cacheindex);
 					break;
 				case CMD_TYPE:
 					lcmHandleCommandType(&arglist, newchar, filename);
@@ -4762,8 +4764,11 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_LOAD:
 					value = GET_ARG(1);
-					if(!find_model(value))
+					tempmodel = find_model(value);
+					if(!tempmodel)
 						load_cached_model(value, name, GET_INT_ARG(2));
+					else
+						update_model_loadflag(tempmodel, GET_INT_ARG(2));
 					break;
 				case CMD_SCORE:
 					newchar->score = GET_INT_ARG(1);
@@ -8646,9 +8651,11 @@ void load_level(char *filename){
 				#ifdef DEBUG				
 				printf("loadlevel: load %s, %s\n", GET_ARG(1), filename);
 				#endif
-				
-				if (!find_model(GET_ARG(1)))
+				tempmodel = find_model(GET_ARG(1));
+				if (!tempmodel)
 					load_cached_model(GET_ARG(1), filename, GET_INT_ARG(2));
+				else
+					update_model_loadflag(tempmodel, GET_INT_ARG(2));
 			}
 			else if(stricmp(command, "background")==0){
 				value = GET_ARG(1);
@@ -20723,6 +20730,7 @@ int playlevel(char *filename)
 
 int selectplayer(int *players, char* filename)
 {
+	s_model* tempmodel;
 	entity *example[4] = {NULL,NULL,NULL,NULL};
 	int i,x;
 	int cmap[MAX_PLAYERS] = {0,1,2,3};
@@ -20771,9 +20779,12 @@ int selectplayer(int *players, char* filename)
 				{
 					load_background(GET_ARG(1), 1);
 				}
-				else if(stricmp(command, "load")==0){					
-					if (!find_model(GET_ARG(1)))
+				else if(stricmp(command, "load")==0){
+					tempmodel = find_model(GET_ARG(1));
+					if (!tempmodel)
 						load_cached_model(GET_ARG(1), filename, GET_INT_ARG(2));
+					else
+						update_model_loadflag(tempmodel, GET_INT_ARG(2));
 				}
 				else shutdown(1, "Command '%s' is not understood in file '%s'", command, filename);
 			}
