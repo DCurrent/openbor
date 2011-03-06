@@ -7,11 +7,14 @@
  */
 
 #include <png.h>
-#include "SDL.h"
 #include "types.h"
 #include "screen.h"
 #include "tracemalloc.h"
 #include <assert.h>
+
+#ifdef SDL
+#include "SDL.h"
+#endif
 
 static void png_warning_fn(png_structp png_ptr, png_const_charp warning_msg)
 {
