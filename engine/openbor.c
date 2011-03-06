@@ -4429,24 +4429,16 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
 	newchar->index = cacheindex;
 	
-	newchar->defense_factors        = (float*)tracemalloc("newchar->defense_factors",           sizeof(float)*(max_attack_types + 1));
-	newchar->defense_pain           = (float*)tracemalloc("newchar->defense_pain",              sizeof(float)*(max_attack_types + 1));
-	newchar->defense_knockdown      = (float*)tracemalloc("newchar->defense_knockdown",         sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blockpower     = (float*)tracemalloc("newchar->defense_blockpower",        sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blockthreshold = (float*)tracemalloc("newchar->defense_blockthreshold",    sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blockratio     = (float*)tracemalloc("newchar->defense_blockratio",        sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blocktype      = (float*)tracemalloc("newchar->defense_blocktype",         sizeof(float)*(max_attack_types + 1));
-	memset(newchar->defense_factors,        0,  sizeof(float)*(max_attack_types+1));
-	memset(newchar->defense_pain,           0,  sizeof(float)*(max_attack_types+1));
-	memset(newchar->defense_knockdown,      0,  sizeof(float)*(max_attack_types+1));
-	memset(newchar->defense_blockpower,     0,  sizeof(float)*(max_attack_types+1));
-	memset(newchar->defense_blockthreshold, 0,  sizeof(float)*(max_attack_types+1));
-	memset(newchar->defense_blockratio,     0,  sizeof(float)*(max_attack_types+1));
-	memset(newchar->defense_blocktype,      0,  sizeof(float)*(max_attack_types+1));
+	newchar->defense_factors        = (float*)tracecalloc("newchar->defense_factors",           sizeof(float)*(max_attack_types + 1));
+	newchar->defense_pain           = (float*)tracecalloc("newchar->defense_pain",              sizeof(float)*(max_attack_types + 1));
+	newchar->defense_knockdown      = (float*)tracecalloc("newchar->defense_knockdown",         sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blockpower     = (float*)tracecalloc("newchar->defense_blockpower",        sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blockthreshold = (float*)tracecalloc("newchar->defense_blockthreshold",    sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blockratio     = (float*)tracecalloc("newchar->defense_blockratio",        sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blocktype      = (float*)tracecalloc("newchar->defense_blocktype",         sizeof(float)*(max_attack_types + 1));	
+	newchar->offense_factors        = (float*)tracecalloc("newchar->offense_factors",           sizeof(float)*(max_attack_types + 1));
 	
-	newchar->offense_factors = (float*)tracecalloc("newchar->offense_factors", sizeof(float)*max_attack_types);
-	if(!newchar->offense_factors) shutdown(1, (char*)E_OUT_OF_MEMORY);
-	newchar->special = tracecalloc("newchar->special", sizeof(*newchar->special)*max_freespecials);
+	newchar->special                = tracecalloc("newchar->special", sizeof(*newchar->special)*max_freespecials);
 	if(!newchar->special) shutdown(1, (char*)E_OUT_OF_MEMORY);
 	
 	newchar->animation_script   = alloc_script();
