@@ -181,20 +181,6 @@ static int png_height = 0;
 static png_structp png_ptr = NULL;
 static png_infop info_ptr = NULL;
 static png_bytep * row_pointers = NULL;
-
-#if PNG_LIBPNG_VER_MAJOR == 1 && PNG_LIBPNG_VER_MINOR < 4
-png_voidp   png_get_io_ptr(png_structp png_ptr)                           { return png_ptr->io_ptr;     }
-png_uint_32 png_get_rowbytes(png_structp png_ptr, png_infop info_ptr)     { return info_ptr->rowbytes;  }
-png_byte    png_get_bit_depth(png_structp png_ptr, png_infop info_ptr)    { return info_ptr->bit_depth; }
-png_uint_32 png_get_image_width(png_structp png_ptr, png_infop info_ptr)  { return info_ptr->width;     }
-png_uint_32 png_get_image_height(png_structp png_ptr, png_infop info_ptr) { return info_ptr->height;    }
-png_uint_32 png_get_PLTE(png_structp png_ptr, png_infop info_ptr, png_colorp * palette, int * num_palette) 
-{ 
-	*palette = info_ptr->palette; 
-	*num_palette = info_ptr->num_palette; 
-	return PNG_INFO_PLTE; 
-}
-#endif
 	
 #ifndef XBOX
 // SX: XBOX does not support PNG user memory allocations
