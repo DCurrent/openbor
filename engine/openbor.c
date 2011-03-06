@@ -4003,17 +4003,15 @@ void add_model_map(size_t size)
 
 static void _readbarstatus(char*, s_barstatus*);
 
-s_model* lcmHandleCommandName(ArgList* arglist, s_model* newchar) {
+s_model* lcmHandleCommandName(ArgList* arglist, s_model* newchar, int cacheindex) {
 	char* value = GET_ARGP(1);
 	s_model* tempmodel;
-	int tempInt;
 	//if((tempmodel=find_model(value)) && tempmodel!=newchar) shutdown(1, "Duplicate model name '%s'", value);
 	if((tempmodel=find_model(value))) {
 		return tempmodel;
 	}	
-	tempInt = get_cached_model_index(value);
-	model_cache[tempInt].model = newchar;
-	newchar->name = model_cache[tempInt].name;
+	model_cache[cacheindex].model = newchar;
+	newchar->name = model_cache[cacheindex].name;
 	if(stricmp(newchar->name, "steam")==0)
 	{
 		newchar->alpha = 1;
@@ -4425,6 +4423,15 @@ void lcmHandleCommandScripts(ArgList* arglist, Script* script, char* scriptname,
 	else shutdown(1, "Unable to load %s '%s' in file '%s'.\n", scriptname, GET_ARGP(1), filename);
 }
 
+void lc(char* buf, size_t size) {
+	int i;
+	for(i=0;i<size;i++) 
+		buf[i] = tolower((int)buf[i]);
+}
+
+void init_model(s_model* newchar, int cacheindex) {
+}
+
 s_model* load_cached_model(char * name, char * owner, char unload)
 {
 	s_model_list *curr = NULL,
@@ -4570,6 +4577,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	newchar = model_list->model;
 	add_model_map(models_loaded);
 	model_map[models_loaded++].model = newchar;
+		
+	
 	memset(newchar,0,sizeof(s_model));
 	newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
 	newchar->index = cacheindex;
@@ -4728,11 +4737,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		if(ParseArgs(&arglist,buf+pos,argbuf)){
 			command = GET_ARG(0);
 			commandlen = GET_ARG_LEN(0);
-			
-			
 			// lowercase the command so that we can find it using hashes.
-			for(i=0;i<commandlen;i++) 
-				command[i] = tolower((int)command[i]);
+			lc(command, commandlen);
 			
 			if(!command) 
 				cmd = (txtCommands) 0;
@@ -4741,7 +4747,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 			
 			switch(cmd) {
 				case CMD_NAME: 
-					tempmodel = lcmHandleCommandName(&arglist, newchar);
+					tempmodel = lcmHandleCommandName(&arglist, newchar, cacheindex);
 					if (tempmodel != newchar) {						
 						printf("loaded dup model: name = %s, filename = %s\n", GET_ARG(1), filename);
 						tracefree(buf);
