@@ -3186,12 +3186,12 @@ void freesprites()
 }
 
 // allocate enough members for sprite_map
-void add_sprite_map(size_t size)
+void prepare_sprite_map(size_t size)
 {
 	if(sprite_map == NULL || size + 1 > sprite_map_max_items )
 	{
 #ifdef VERBOSE
-		printf("%s %p\n", "add_sprite_map was", sprite_map);
+		printf("%s %p\n", "prepare_sprite_map was", sprite_map);
 #endif
 		do {
 			sprite_map_max_items += 256;
@@ -3225,7 +3225,7 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
 					bitmap = loadbitmap(filename, packfile, bmpformat);
 					if(bitmap == NULL) shutdown(1, "Unable to load file '%s'\n", filename);
 					clipbitmap(bitmap, &clipl, &clipr, &clipt, &clipb);
-					add_sprite_map(sprites_loaded);
+					prepare_sprite_map(sprites_loaded+1);
 					sprite_map[sprites_loaded].filename = sprite_map[i].filename;
 					sprite_map[sprites_loaded].sprite = sprite_map[i].sprite;
 					sprite_map[sprites_loaded].ofsx = ofsx;
@@ -3266,7 +3266,7 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
 		sprite_list = curr;
 		sprite_list->next = head;
 	}
-	add_sprite_map(sprites_loaded);
+	prepare_sprite_map(sprites_loaded+1);
 	sprite_map[sprites_loaded].filename = sprite_list->filename;
 	sprite_map[sprites_loaded].sprite = sprite_list->sprite;
 	sprite_map[sprites_loaded].ofsx = ofsx;
@@ -3897,12 +3897,12 @@ void _peek_model_name(int index)
 	}
 }
 
-void add_cache_map(size_t size)
+void prepare_cache_map(size_t size)
 {
 	if(model_cache== NULL || size + 1 > cache_map_max_items )
 	{
 #ifdef VERBOSE
-		printf("%s %p\n", "add_cache_map was", model_cache);
+		printf("%s %p\n", "prepare_cache_map was", model_cache);
 #endif
 		do {
 			cache_map_max_items += 128;
@@ -3918,7 +3918,7 @@ void cache_model(char *name, char *path, int flag)
 {
 	int len;
 	printf("Cacheing '%s' from %s\n", name, path);
-	add_cache_map(models_cached);
+	prepare_cache_map(models_cached+1);
 	memset(&model_cache[models_cached], 0, sizeof(s_modelcache));
 	len = strlen(name);
 	model_cache[models_cached].name = tracemalloc("model->name", len + 1);
@@ -3972,12 +3972,12 @@ char *get_cached_model_path(char * name)
 	return NULL;
 }
 
-void add_model_map(size_t size)
+void prepare_model_map(size_t size)
 {
 	if(model_map == NULL || size + 1 > model_map_max_items )
 	{
 #ifdef VERBOSE
-		printf("%s %p\n", "add_model_map was", sprite_map);
+		printf("%s %p\n", "prepare_model_map was", model_map);
 #endif
 		do {
 			model_map_max_items += 64;
@@ -4690,7 +4690,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	
 	newchar = init_model(cacheindex, unload);
-	add_model_map(models_loaded);
+	prepare_model_map(models_loaded+1);
 	model_map[models_loaded++].model = newchar;
 	
 	attack = emptyattack;      // empty attack
@@ -8872,9 +8872,8 @@ void load_level(char *filename){
 			}
 			else if(stricmp(command, "panel")==0){
 				if(!loadpanel(GET_ARG(1), GET_ARG(2), GET_ARG(3)))  {
-					//shutdown(1, "Panel load error in '%s'!", filename);
 					printf("loadpanel :%s :%s :%s failed\n", GET_ARG(1), GET_ARG(2), GET_ARG(3));
-					assert(0);
+					shutdown(1, "Panel load error in '%s'!", filename);
 				}
 
 			}
@@ -20062,6 +20061,9 @@ void shutdown(int status, char *msg, ...)
 	va_list arglist;
 #if WII
 	int i;
+#endif
+#ifdef DEBUG
+	assert(status == 0); // this way we can haz backtrace.
 #endif
 
 	va_start(arglist, msg);
