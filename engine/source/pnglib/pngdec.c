@@ -16,7 +16,7 @@
 #include "SDL.h"
 #endif
 
-#if PNG_LIBPNG_VER_MAJOR == 1 && PNG_LIBPNG_VER_MINOR == 2 && PNG_LIBPNG_VER_MINOR < 9
+#if PNG_LIBPNG_VER_MAJOR == 1 && PNG_LIBPNG_VER_MINOR == 2 && PNG_LIBPNG_VER_RELEASE < 9
 void png_set_expand_gray_1_2_4_to_8(png_structp png_ptr) { png_set_gray_1_2_4_to_8(png_ptr); }
 #endif
 
