@@ -3591,20 +3591,6 @@ void free_anim(s_anim * anim)
     }
 }
 
-s_model_list *model_list_delete(s_model_list *list, s_model *value)
-{
-	if(list == NULL) return NULL;
-	if(list->model == value)
-	{
-		s_model_list *next;
-		next = list->next;
-		tracefree(list);
-		return next;
-	}
-	list->next = model_list_delete(list->next, value);
-	return list;
-}
-
 s_model_map *model_map_delete(s_model_map *map, size_t size)
 {
 	s_model_map *copy;
@@ -3634,7 +3620,7 @@ int free_model(s_model* model, int mapid)
 	printf("Unloaded '%s'\n", model->name);
 	model_cache[model->index].model = NULL;
 	model_map_move(mapid);
-	model_list = model_list_delete(model_list, model);
+	
 	for(i=0; i<max_animations; i++) anim_list = anim_list_delete(anim_list, model->index);
 	for(i=0; i<MAX_COLOUR_MAPS; i++)
 	{
@@ -4434,9 +4420,6 @@ void init_model(s_model* newchar, int cacheindex) {
 
 s_model* load_cached_model(char * name, char * owner, char unload)
 {
-	s_model_list *curr = NULL,
-	*head = NULL;
-
 	s_model *newchar = NULL,
 	*tempmodel = NULL;
 
@@ -4560,21 +4543,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	}
 	scriptbuf[0] = 0;
 
-	// Alloc space for game model
-	curr = tracemalloc("model_list", sizeof(s_model_list));
-	curr->model = tracemalloc("curr->model", sizeof(s_model));
-	if(curr == NULL || curr->model == NULL) shutdown(1, "Out of memory loading model from '%s'", filename);
-	memset(curr->model, 0, sizeof(s_model));
-	if(model_list == NULL){
-		model_list = curr;
-		model_list->next = NULL;
-	}
-	else{
-		head = model_list;
-		model_list = curr;
-		model_list->next = head;
-	}
-	newchar = model_list->model;
+	newchar = tracecalloc("newchar", sizeof(s_model));
+	if(newchar == NULL) shutdown(1, "Out of memory loading model from '%s'", filename);
+
 	add_model_map(models_loaded);
 	model_map[models_loaded++].model = newchar;
 		

@@ -995,13 +995,6 @@ typedef struct
 	Script*         ondoattack_script;              //execute when attack passes do_attack checks.
 }s_model;
 
-struct modellist{
-	s_model *model;
-	struct modellist *next;
-};
-typedef struct modellist s_model_list;
-s_model_list *model_list;
-
 typedef struct{
 	s_model *model;
 }s_model_map;
