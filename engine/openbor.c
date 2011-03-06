@@ -23,6 +23,7 @@
 #define GET_INT_ARGP(z) getValidInt(GET_ARGP(z), filename, command)
 #define GET_FLOAT_ARGP(z) getValidFloat(GET_ARGP(z), filename, command)
 
+static const char* E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -3630,6 +3631,7 @@ int free_model(s_model* model, int mapid)
 			model->colourmap[i] = NULL;
 		}
 	}
+
 	if(model->palette)                     {tracefree(model->palette);                model->palette                = NULL;}
 	if(model->weapon && model->ownweapons) {tracefree(model->weapon);                 model->weapon                 = NULL;}
 	if(model->branch)                      {tracefree(model->branch);                 model->branch                 = NULL;}
@@ -4415,7 +4417,158 @@ void lc(char* buf, size_t size) {
 		buf[i] = tolower((int)buf[i]);
 }
 
-void init_model(s_model* newchar, int cacheindex) {
+
+//alloc a new model, and everything thats required,
+//set all values to defaults
+s_model* init_model(int cacheindex, int unload) {
+	//to free: newchar, newchar->offense_factors, newchar->special, newchar->animation - OK
+	int i;
+	
+	s_model* newchar = tracecalloc("newchar", sizeof(s_model));
+	if(!newchar) shutdown(1, (char*)E_OUT_OF_MEMORY);
+	newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
+	newchar->index = cacheindex;
+	
+	newchar->defense_factors        = (float*)tracemalloc("newchar->defense_factors",           sizeof(float)*(max_attack_types + 1));
+	newchar->defense_pain           = (float*)tracemalloc("newchar->defense_pain",              sizeof(float)*(max_attack_types + 1));
+	newchar->defense_knockdown      = (float*)tracemalloc("newchar->defense_knockdown",         sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blockpower     = (float*)tracemalloc("newchar->defense_blockpower",        sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blockthreshold = (float*)tracemalloc("newchar->defense_blockthreshold",    sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blockratio     = (float*)tracemalloc("newchar->defense_blockratio",        sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blocktype      = (float*)tracemalloc("newchar->defense_blocktype",         sizeof(float)*(max_attack_types + 1));
+	memset(newchar->defense_factors,        0,  sizeof(float)*(max_attack_types+1));
+	memset(newchar->defense_pain,           0,  sizeof(float)*(max_attack_types+1));
+	memset(newchar->defense_knockdown,      0,  sizeof(float)*(max_attack_types+1));
+	memset(newchar->defense_blockpower,     0,  sizeof(float)*(max_attack_types+1));
+	memset(newchar->defense_blockthreshold, 0,  sizeof(float)*(max_attack_types+1));
+	memset(newchar->defense_blockratio,     0,  sizeof(float)*(max_attack_types+1));
+	memset(newchar->defense_blocktype,      0,  sizeof(float)*(max_attack_types+1));
+	
+	newchar->offense_factors = (float*)tracecalloc("newchar->offense_factors", sizeof(float)*max_attack_types);
+	if(!newchar->offense_factors) shutdown(1, (char*)E_OUT_OF_MEMORY);
+	newchar->special = tracecalloc("newchar->special", sizeof(*newchar->special)*max_freespecials);
+	if(!newchar->special) shutdown(1, (char*)E_OUT_OF_MEMORY);
+	
+	newchar->animation_script   = alloc_script();
+	newchar->update_script      = alloc_script();
+	newchar->think_script       = alloc_script();
+	newchar->didhit_script      = alloc_script();
+	newchar->onspawn_script     = alloc_script();
+	newchar->takedamage_script  = alloc_script();
+	newchar->onfall_script      = alloc_script();
+	newchar->onpain_script      = alloc_script();
+	newchar->onblocks_script    = alloc_script();
+	newchar->onblockw_script    = alloc_script();
+	newchar->onblocko_script    = alloc_script();
+	newchar->onblockz_script    = alloc_script();
+	newchar->onblocka_script    = alloc_script();
+	newchar->onmovex_script     = alloc_script();
+	newchar->onmovez_script     = alloc_script();
+	newchar->onmovea_script     = alloc_script();
+	newchar->ondeath_script     = alloc_script();
+	newchar->onkill_script      = alloc_script();
+	newchar->didblock_script    = alloc_script();
+	newchar->ondoattack_script  = alloc_script();
+	newchar->key_script         = alloc_script();
+	newchar->unload             = unload;
+	newchar->jumpspeed          = -1;
+	newchar->jumpheight         = 4;		        // 28-12-2004   Set default jump height to 4, if not specified
+	newchar->runjumpheight      = 4;		        // Default jump height if a player is running
+	newchar->runjumpdist        = 1;		        // Default jump distane if a player is running
+	newchar->grabdistance       = 36;		        //  30-12-2004 Default grabdistance is same as originally set
+	newchar->throwdamage        = 21;		        // default throw damage
+	newchar->icon               = -1;
+	newchar->icondie            = -1;
+	newchar->iconpain           = -1;
+	newchar->iconget            = -1;
+	newchar->iconw              = -1;			    // No weapon icon set yet
+	newchar->diesound           = -1;
+	newchar->nolife             = 0;			    // default show life = 1 (yes)
+	newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
+	newchar->throwdist          = 2.5;
+	newchar->counter            = 3;			    // Default 3 times to drop a weapon / projectile
+	newchar->aimove             = -1;
+	newchar->aiattack           = -1;
+	newchar->throwframewait     = -1;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
+	newchar->path               = model_cache[cacheindex].path;         // Record path, so script can get it without looping the whole model collection.
+	
+	for(i=0; i<3; i++) newchar->iconmp[i] = -1;    // No magicbar icon set yet
+		
+		// Default Attack1 in chain must be referenced if not used.
+	for(i=0; i<MAX_ATCHAIN; i++) newchar->atchain[i] = 1;
+	newchar->chainlength = 1;
+	
+	if(magic_type == 1) newchar->mprate = 1;
+	else newchar->mprate                = 2;
+	newchar->chargerate = newchar->guardrate = 2;
+	newchar->risetime[0]                = -1;
+	newchar->sleepwait                  = 1000;
+	newchar->jugglepoints[0] = newchar->jugglepoints[1] = 0;
+	newchar->guardpoints[0] = newchar->guardpoints[1] = 0;
+	newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
+	newchar->weaploss[0]                = -1;
+	newchar->weaploss[1]                = -1;
+	newchar->lifespan                   = (float)0xFFFFFFFF;
+	newchar->summonkill                 = 1;
+	newchar->candamage                  = -1;
+	newchar->hostile                    = -1;
+	newchar->projectilehit              = -1;
+	newchar->subject_to_wall            = -1;
+	newchar->subject_to_platform        = -1;
+	newchar->subject_to_obstacle        = -1;
+	newchar->subject_to_hole            = -1;
+	newchar->subject_to_gravity         = -1;
+	newchar->subject_to_screen          = -1;
+	newchar->subject_to_minz            = -1;
+	newchar->subject_to_maxz            = -1;
+	newchar->no_adjust_base             = -1;
+	newchar->pshotno                    = -1;
+	newchar->project                    = -1;
+	newchar->dust[0]                    = -1;
+	newchar->dust[1]                    = -1;
+	newchar->dust[2]                    = -1;
+	newchar->bomb                       = -1;
+	newchar->star                       = -1;
+	newchar->knife                      = -1;
+	
+	newchar->animation = (s_anim**)tracecalloc("newchar->animation", sizeof(s_anim*)*max_animations);
+	if(!newchar->animation) shutdown(1, (char*)E_OUT_OF_MEMORY);
+	
+	// default string value, only by reference
+	newchar->rider = get_cached_model_index("K'");
+	newchar->flash = newchar->bflash = get_cached_model_index("flash");
+	
+	//Default offense/defense values.
+	for(i=0;i<max_attack_types;i++)
+	{
+		newchar->offense_factors[i]     = 1;
+		newchar->defense_factors[i]     = 1;
+		newchar->defense_knockdown[i]   = 1;
+	}
+	
+	for(i=0; i<3; i++)
+	{
+		newchar->sight[i*2] = -9999;
+		newchar->sight[i*2+1] = 9999;
+	}
+	
+	newchar->offense_factors[ATK_BLAST]     = 1;
+	newchar->defense_factors[ATK_BLAST]     = 1;
+	newchar->defense_knockdown[ATK_BLAST]   = 1;
+	newchar->offense_factors[ATK_BURN]      = 1;
+	newchar->defense_factors[ATK_BURN]      = 1;
+	newchar->defense_knockdown[ATK_BURN]    = 1;
+	newchar->offense_factors[ATK_FREEZE]    = 1;
+	newchar->defense_factors[ATK_FREEZE]    = 1;
+	newchar->defense_knockdown[ATK_FREEZE]  = 1;
+	newchar->offense_factors[ATK_SHOCK]     = 1;
+	newchar->defense_factors[ATK_SHOCK]     = 1;
+	newchar->defense_knockdown[ATK_SHOCK]   = 1;
+	newchar->offense_factors[ATK_STEAL]     = 1;
+	newchar->defense_factors[ATK_STEAL]     = 1;
+	newchar->defense_knockdown[ATK_STEAL]   = 1;
+	
+	return newchar;	
 }
 
 s_model* load_cached_model(char * name, char * owner, char unload)
@@ -4543,160 +4696,16 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	}
 	scriptbuf[0] = 0;
 
-	newchar = tracecalloc("newchar", sizeof(s_model));
-	if(newchar == NULL) shutdown(1, "Out of memory loading model from '%s'", filename);
-
+	
+	newchar = init_model(cacheindex, unload);
 	add_model_map(models_loaded);
 	model_map[models_loaded++].model = newchar;
-		
 	
-	memset(newchar,0,sizeof(s_model));
-	newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
-	newchar->index = cacheindex;
-	//model_map_sort(); // sort it might improve searching speed... // no, it doesnt
-
-	newchar->defense_factors        = (float*)tracemalloc("newchar->defense_factors",           sizeof(float)*(max_attack_types + 1));
-	newchar->defense_pain           = (float*)tracemalloc("newchar->defense_pain",              sizeof(float)*(max_attack_types + 1));
-	newchar->defense_knockdown      = (float*)tracemalloc("newchar->defense_knockdown",         sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blockpower     = (float*)tracemalloc("newchar->defense_blockpower",        sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blockthreshold = (float*)tracemalloc("newchar->defense_blockthreshold",    sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blockratio     = (float*)tracemalloc("newchar->defense_blockratio",        sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blocktype      = (float*)tracemalloc("newchar->defense_blocktype",         sizeof(float)*(max_attack_types + 1));
-	memset(newchar->defense_factors,        0,  sizeof(float)*(max_attack_types+1));
-	memset(newchar->defense_pain,           0,  sizeof(float)*(max_attack_types+1));
-	memset(newchar->defense_knockdown,      0,  sizeof(float)*(max_attack_types+1));
-	memset(newchar->defense_blockpower,     0,  sizeof(float)*(max_attack_types+1));
-	memset(newchar->defense_blockthreshold, 0,  sizeof(float)*(max_attack_types+1));
-	memset(newchar->defense_blockratio,     0,  sizeof(float)*(max_attack_types+1));
-	memset(newchar->defense_blocktype,      0,  sizeof(float)*(max_attack_types+1));
-
-	newchar->offense_factors = (float*)tracemalloc("newchar->offense_factors", sizeof(float)*max_attack_types);
-	memset(newchar->offense_factors, 0,sizeof(float)*max_attack_types);
-
-	newchar->special = tracemalloc("newchar->special", sizeof(*newchar->special)*max_freespecials);
-	memset(newchar->special, 0, sizeof(*newchar->special)*max_freespecials);
-	newchar->animation_script   = alloc_script();
-	newchar->update_script      = alloc_script();
-	newchar->think_script       = alloc_script();
-	newchar->didhit_script      = alloc_script();
-	newchar->onspawn_script     = alloc_script();
-	newchar->takedamage_script  = alloc_script();
-	newchar->onfall_script      = alloc_script();
-	newchar->onpain_script      = alloc_script();
-	newchar->onblocks_script    = alloc_script();
-	newchar->onblockw_script    = alloc_script();
-	newchar->onblocko_script    = alloc_script();
-	newchar->onblockz_script    = alloc_script();
-	newchar->onblocka_script    = alloc_script();
-	newchar->onmovex_script     = alloc_script();
-	newchar->onmovez_script     = alloc_script();
-	newchar->onmovea_script     = alloc_script();
-	newchar->ondeath_script     = alloc_script();
-	newchar->onkill_script      = alloc_script();
-	newchar->didblock_script    = alloc_script();
-	newchar->ondoattack_script  = alloc_script();
-	newchar->key_script         = alloc_script();
-	newchar->unload             = unload;
-	newchar->jumpspeed          = -1;
-	newchar->jumpheight         = 4;		        // 28-12-2004   Set default jump height to 4, if not specified
-	newchar->runjumpheight      = 4;		        // Default jump height if a player is running
-	newchar->runjumpdist        = 1;		        // Default jump distane if a player is running
-	newchar->grabdistance       = 36;		        //  30-12-2004 Default grabdistance is same as originally set
-	newchar->throwdamage        = 21;		        // default throw damage
-	newchar->icon               = -1;
-	newchar->icondie            = -1;
-	newchar->iconpain           = -1;
-	newchar->iconget            = -1;
-	newchar->iconw              = -1;			    // No weapon icon set yet
-	newchar->diesound           = -1;
-	newchar->nolife             = 0;			    // default show life = 1 (yes)
-	newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
-	newchar->throwdist          = 2.5;
-	newchar->counter            = 3;			    // Default 3 times to drop a weapon / projectile
-	newchar->aimove             = -1;
-	newchar->aiattack           = -1;
-	newchar->throwframewait     = -1;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
-	newchar->path               = filename;         // Record path, so script can get it without looping the whole model collection.
-
-	for(i=0; i<3; i++) newchar->iconmp[i] = -1;    // No magicbar icon set yet
-
-	// Default Attack1 in chain must be referenced if not used.
-	for(i=0; i<MAX_ATCHAIN; i++) newchar->atchain[i] = 1;
-	newchar->chainlength = 1;
-
-	if(magic_type == 1) newchar->mprate = 1;
-	else newchar->mprate                = 2;
-	newchar->chargerate = newchar->guardrate = 2;
-	newchar->risetime[0]                = -1;
-	newchar->sleepwait                  = 1000;
-	newchar->jugglepoints[0] = newchar->jugglepoints[1] = 0;
-	newchar->guardpoints[0] = newchar->guardpoints[1] = 0;
-	newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
-	newchar->weaploss[0]                = -1;
-	newchar->weaploss[1]                = -1;
-	newchar->lifespan                   = (float)0xFFFFFFFF;
-	newchar->summonkill                 = 1;
-	newchar->candamage                  = -1;
-	newchar->hostile                    = -1;
-	newchar->projectilehit              = -1;
-	newchar->subject_to_wall            = -1;
-	newchar->subject_to_platform        = -1;
-	newchar->subject_to_obstacle        = -1;
-	newchar->subject_to_hole            = -1;
-	newchar->subject_to_gravity         = -1;
-	newchar->subject_to_screen          = -1;
-	newchar->subject_to_minz            = -1;
-	newchar->subject_to_maxz            = -1;
-	newchar->no_adjust_base             = -1;
-	newchar->pshotno                    = -1;
-	newchar->project                    = -1;
-	newchar->dust[0]                    = -1;
-	newchar->dust[1]                    = -1;
-	newchar->dust[2]                    = -1;
-	newchar->bomb                       = -1;
-	newchar->star                       = -1;
-	newchar->knife                      = -1;
-
-	newchar->animation = (s_anim**)tracemalloc("newchar->animation", sizeof(s_anim*)*max_animations);
-	memset(newchar->animation, 0, sizeof(s_anim*)*max_animations);
-
 	attack = emptyattack;      // empty attack
 	drawmethod = plainmethod;  // better than memset it to 0
 	memset(mapflag, 0, MAX_COLOUR_MAPS);
-
-    // default string value, only by reference
-	newchar->rider = get_cached_model_index("K'");
-	newchar->flash = newchar->bflash = get_cached_model_index("flash");
-
-    //Default offense/defense values.
-	for(i=0;i<max_attack_types;i++)
-	{
-		newchar->offense_factors[i]     = 1;
-		newchar->defense_factors[i]     = 1;
-		newchar->defense_knockdown[i]   = 1;
-	}
-
-	for(i=0; i<3; i++)
-	{
-		newchar->sight[i*2] = -9999;
-		newchar->sight[i*2+1] = 9999;
-	}
-
-	newchar->offense_factors[ATK_BLAST]     = 1;
-	newchar->defense_factors[ATK_BLAST]     = 1;
-	newchar->defense_knockdown[ATK_BLAST]   = 1;
-	newchar->offense_factors[ATK_BURN]      = 1;
-	newchar->defense_factors[ATK_BURN]      = 1;
-	newchar->defense_knockdown[ATK_BURN]    = 1;
-	newchar->offense_factors[ATK_FREEZE]    = 1;
-	newchar->defense_factors[ATK_FREEZE]    = 1;
-	newchar->defense_knockdown[ATK_FREEZE]  = 1;
-	newchar->offense_factors[ATK_SHOCK]     = 1;
-	newchar->defense_factors[ATK_SHOCK]     = 1;
-	newchar->defense_knockdown[ATK_SHOCK]   = 1;
-	newchar->offense_factors[ATK_STEAL]     = 1;
-	newchar->defense_factors[ATK_STEAL]     = 1;
-	newchar->defense_knockdown[ATK_STEAL]   = 1;
+	
+		
 	//char* test = "load   knife 0";
 	//ParseArgs(&arglist,test,argbuf);
 	
