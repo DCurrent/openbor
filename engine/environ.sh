@@ -73,10 +73,18 @@ case $1 in
 
 ############################################################################
 #                                                                          #
-#                            GP2X Environment                              #
+#                          Nothing Here Anymore                            #
 #                                                                          #
 ############################################################################
 2)
+  ;;
+
+############################################################################
+#                                                                          #
+#                            GP2X Environment                              #
+#                                                                          #
+############################################################################
+3)
    if test -e "c:/Cygwin/opt/open2x/gcc-4.1.1-glibc-2.3.6/bin/arm-open2x-linux-gcc.exe"; then
      export GP2XDEV=c:/Cygwin/opt/open2x/gcc-4.1.1-glibc-2.3.6/bin
      export SDKPATH=c:/Cygwin/opt/open2x/gcc-4.1.1-glibc-2.3.6
@@ -126,7 +134,7 @@ case $1 in
 #                           Linux Environment                              #
 #                                                                          #
 ############################################################################
-3)
+4)
    if [ `gcc -dumpmachine | grep -o $GCC_TARGET` ]; then
      export GCC_TARGET=`gcc -dumpmachine`
      export LNXDEV=`dirname \`which gcc\``
@@ -157,7 +165,7 @@ case $1 in
 #                           Windows Environment                            #
 #                                                                          #
 ############################################################################
-4)
+5)
    if test -e "/usr/i586-mingw32msvc"; then
      export WINDEV=/usr/bin
      export SDKPATH=/usr/i586-mingw32msvc
@@ -207,9 +215,11 @@ case $1 in
 #                           Dreamcast Environment                          #
 #                                                                          #
 ############################################################################
-5)
+6)
    if test -e "/usr/local/dcdev/kos"; then
      . /usr/local/dcdev/kos/environ.sh
+   elif test -e "/opt/dcdev/kos"; then
+     . /opt/dcdev/kos/environ.sh
    elif [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
      if [ ! -d "../tools/dc-sdk/kos" ]; then
         echo "-------------------------------------------------------"
@@ -242,7 +252,7 @@ case $1 in
 #                             Wii Environment                              #
 #                                                                          #
 ############################################################################
-6)
+7)
    if test -e "/opt/devkitpro"; then
      export DEVKITPRO=/opt/devkitpro
      export DEVKITPPC=$DEVKITPRO/devkitPPC
@@ -284,7 +294,7 @@ case $1 in
 #                          Dingoo Environment                              #
 #                                                                          #
 ############################################################################
-7)
+8)
    if test -e "/opt/mipsel-linux-uclibc"; then
      export DINGUX_TOOLCHAIN=/opt/mipsel-linux-uclibc
      export DINGUX_TOOLCHAIN_PREFIX=$DINGUX_TOOLCHAIN/usr
@@ -307,7 +317,7 @@ case $1 in
 #                             WIZ Environment                              #
 #                                                                          #
 ############################################################################
-8)
+9)
    if test -e "/opt/openwiz/toolchain/arm-openwiz-linux-gnu"; then
      export WIZDEV=/opt/openwiz/toolchain/arm-openwiz-linux-gnu/bin
      export SDKPATH=/opt/openwiz/toolchain/arm-openwiz-linux-gnu
@@ -348,7 +358,7 @@ case $1 in
 #                          Darwin Environment                              #
 #                                                                          #
 ############################################################################
-9)
+10)
    if test -e "/opt/mac"; then
      export DWNDEV=/opt/mac
      export SDKPATH=$DWNDEV/SDKs/MacOSX10.4u.sdk
