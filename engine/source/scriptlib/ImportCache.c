@@ -124,7 +124,7 @@ void ImportCache_Clear()
 	ImportNode* node;
 	
 	List_Reset(&importCache);
-	while(importCache.size)
+	while(importCache.size > 0)
 	{
 		node = List_Retrieve(&importCache);
 		printf("Warning: imported script '%s' not freed (%d unreleased references)\n", List_GetName(&importCache), node->numRefs);
@@ -133,5 +133,6 @@ void ImportCache_Clear()
 			ImportCache_Release(node);
 		assert(!List_Contains(&importCache, node));
 	}
+	List_Clear(&importCache);
 }
 

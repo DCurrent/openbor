@@ -1049,5 +1049,6 @@ void Interpreter_ClearImports(Interpreter* pinterpreter)
         ImportCache_Release(List_Retrieve(&(pinterpreter->theImportList)));
         List_Remove(&(pinterpreter->theImportList));
     }
+    List_Clear(&(pinterpreter->theImportList));
 }
 
