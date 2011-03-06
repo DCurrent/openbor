@@ -31,6 +31,7 @@ HRESULT Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 	{
 		case PP_TOKEN_IDENTIFIER:
 		case PP_TOKEN_INCLUDE:
+		case PP_TOKEN_IMPORT:
 		case PP_TOKEN_DEFINE:
 		case PP_TOKEN_UNDEF:
 		case PP_TOKEN_PRAGMA:
@@ -188,12 +189,16 @@ HRESULT Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 		case PP_END_OF_TOKENS:
 			ptoken->theType = TOKEN_ERROR;
 			return E_FAIL;
+		default:
+			printf("Script error: unknown token type %d\n", ppToken->theType);
+			ptoken->theType = TOKEN_ERROR;
+			return E_FAIL;
 	}
 	
 	return S_OK;
 }
 
-void Lexer_Init(Lexer* plexer, pp_context* pcontext, LPSTR thePath, LPSTR theSource, TEXTPOS theStartingPosition)
+void Lexer_Init(Lexer* plexer, pp_context* pcontext, LPCSTR thePath, LPSTR theSource, TEXTPOS theStartingPosition)
 {
      plexer->thePath = thePath;
      plexer->ptheSource = theSource;

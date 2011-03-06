@@ -4,6 +4,7 @@
  */
 
 #include "../../../testing/data.MYMOD/scripts/blinkd.c"
+#import "data/scripts/somefile.c"
 
 // this is a comment and it is \
 continued on the next line using a backslash escape.

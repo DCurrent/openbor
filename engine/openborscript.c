@@ -31,6 +31,7 @@
 #include "openbor.h"
 #include "soundmix.h"
 #include "globals.h"
+#include "ImportCache.h"
 
 // Define macro for string mapping
 #define MAPSTRINGS(VAR, LIST, MAXINDEX, FAILMSG) \
@@ -93,7 +94,7 @@ extern unsigned char* blendings[MAX_BLENDINGS];
 extern int            current_palette;
 s_variantnode** global_var_list = NULL;
 Script* pcurrentscript = NULL;//used by local script functions
-static List   theFunctionList;
+List theFunctionList;
 static List   scriptheap;
 static s_spawn_entry spawnentry;
 extern s_drawmethod plainmethod;
@@ -145,6 +146,7 @@ void Script_Global_Init()
 	List_Init(&theFunctionList);
 	Script_LoadSystemFunctions();
 	List_Init(&scriptheap);
+	ImportCache_Init();
 }
 
 //this function should only be called when the engine is shutting down
@@ -184,6 +186,7 @@ void Script_Global_Clear()
 	max_global_var_index = -1;
 	memset(&spawnentry, 0, sizeof(s_spawn_entry));//clear up the spawn entry
 	StrCache_Clear();
+	ImportCache_Clear();
 }
 
 

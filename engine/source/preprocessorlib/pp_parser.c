@@ -53,6 +53,9 @@ void pp_context_init(pp_context* self)
 	List_Init(&self->macros);
 	List_Init(&self->func_macros);
 	
+	// initialize the import list
+	List_Init(&self->imports);
+	
 	// initialize the conditional stack
 	self->conditionals.all = 0;
 	self->num_conditionals = 0;
@@ -87,6 +90,11 @@ void pp_context_destroy(pp_context* self)
 		tracefree(params);
 		List_Remove(&self->func_macros);
 	}
+	
+	// free the import list
+	List_Reset(&self->imports);
+	while(self->imports.size > 0)
+		List_Remove(&self->imports);
 }
 
 /**
@@ -96,7 +104,7 @@ void pp_context_destroy(pp_context* self)
  * @param filename the name of the file to parse
  * @param sourceCode the source code to parse, in string form
  */
-void pp_parser_init(pp_parser* self, pp_context* ctx, char* filename, char* sourceCode, TEXTPOS initialPosition)
+void pp_parser_init(pp_parser* self, pp_context* ctx, const char* filename, char* sourceCode, TEXTPOS initialPosition)
 {
 	pp_lexer_Init(&self->lexer, sourceCode, initialPosition);
 	self->ctx = ctx;
@@ -119,7 +127,7 @@ void pp_parser_init(pp_parser* self, pp_context* ctx, char* filename, char* sour
  * @param filename the name of the file to parse
  * @param sourceCode the source code to parse, in string form
  */
-pp_parser* pp_parser_alloc(pp_parser* parent, char* filename, char* sourceCode, pp_parser_type type)
+pp_parser* pp_parser_alloc(pp_parser* parent, const char* filename, char* sourceCode, pp_parser_type type)
 {
 	pp_parser* self = tracemalloc("pp_parser_alloc", sizeof(pp_parser));
 	TEXTPOS initialPos = {1, 0};
@@ -314,7 +322,7 @@ pp_token* pp_parser_emit_token(pp_parser* self)
 				}
 				
 				// free the source code and filename if necessary
-				if(self->child->freeFilename) tracefree(self->child->filename);
+				if(self->child->freeFilename) tracefree((void*)self->child->filename);
 				if(self->child->freeSourceCode) tracefree(self->child->sourceCode);
 				
 				tracefree(self->child);
@@ -580,8 +588,11 @@ HRESULT pp_parser_parse_directive(pp_parser* self)
 	switch(self->token.theType)
 	{
 		case PP_TOKEN_INCLUDE:
+		case PP_TOKEN_IMPORT:
 		{
 			char* filename;
+			int type = self->token.theType;
+			
 			if(FAILED(pp_parser_lex_token(self, true))) return E_FAIL;
 			
 			if(self->token.theType != PP_TOKEN_STRING_LITERAL)
@@ -590,7 +601,14 @@ HRESULT pp_parser_parse_directive(pp_parser* self)
 			filename = self->token.theSource + 1; // trim first " mark
 			filename[strlen(filename)-1] = '\0'; // trim last " mark
 			
-			return pp_parser_include(self, filename);
+			
+			if(type == PP_TOKEN_INCLUDE)
+				return pp_parser_include(self, filename);
+			else // PP_TOKEN_IMPORT
+			{
+				List_InsertAfter(&self->ctx->imports, NULL, filename);
+				return S_OK;
+			}
 		}
 		case PP_TOKEN_DEFINE:
 		{

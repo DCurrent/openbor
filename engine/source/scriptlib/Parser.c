@@ -47,7 +47,7 @@ void Parser_Clear(Parser* pparser){
 *  Returns:
 ******************************************************************************/
 void Parser_ParseText(Parser* pparser, pp_context* pcontext, List* pIList, LPSTR scriptText,
-                     ULONG startingLineNumber, LPSTR path )
+                     ULONG startingLineNumber, LPCSTR path )
 {
    //Create a new CLexer for this script text.
    TEXTPOS thePosition;
@@ -92,7 +92,7 @@ void Parser_ParseText(Parser* pparser, pp_context* pcontext, List* pIList, LPSTR
 *  Returns:
 ******************************************************************************/
 void Parser_ParseExpression(Parser* pparser, List* pIList, LPSTR scriptText,
-                     ULONG startingLineNumber, LPSTR path )
+                     ULONG startingLineNumber, LPCSTR path )
 {
    TEXTPOS thePosition;
 

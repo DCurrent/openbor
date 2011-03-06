@@ -83,6 +83,11 @@ bool parseFile(char* filename)
 	// Don't forget to free the buffer!
 	free(buffer);
 	
+	// Print out all imports
+	int size, i;
+	fprintf(stderr, "Imports:\n");
+	FOREACH(ctx.imports, fprintf(stderr, "%s\n", List_GetName(&ctx.imports)););
+	
 	//printf("%s", ctx.tokens);
 	pp_context_destroy(&ctx);
 	
