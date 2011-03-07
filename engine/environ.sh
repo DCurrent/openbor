@@ -135,7 +135,13 @@ case $1 in
 #                                                                          #
 ############################################################################
 4)
-   if [ `gcc -dumpmachine | grep -o $GCC_TARGET` ]; then
+   if test -e "/usr/local/i386-linux-4.1.1"; then
+     export LNXDEV=/usr/local/i386-linux-4.1.1/bin
+     export SDKPATH=/usr/local/i386-linux-4.1.1
+     export PREFIX=i386-linux-
+     export PATH=$LNXDEV:$PATH
+	 export GCC_TARGET=`i386-linux-gcc -dumpmachine`
+   elif [ `gcc -dumpmachine | grep -o $GCC_TARGET` ]; then
      export GCC_TARGET=`gcc -dumpmachine`
      export LNXDEV=`dirname \`which gcc\``
      export PREFIX=
@@ -389,14 +395,15 @@ case $1 in
    echo
    echo "-------------------------------------------------------"
    echo "   1 = PSP"
-   echo "   2 = Gp2x"
-   echo "   3 = Linux"
-   echo "   4 = Windows"
-   echo "   5 = Dreamcast"
-   echo "   6 = Nintendo Wii"
-   echo "   7 = Dingoo-linux"
-   echo "   8 = Wiz"
-   echo "   9 = Darwin"
+   echo "   2 = (Not Used)"   
+   echo "   3 = Gp2x"
+   echo "   4 = Linux"
+   echo "   5 = Windows"
+   echo "   6 = Dreamcast"
+   echo "   7 = Nintendo Wii"
+   echo "   8 = Dingoo-linux"
+   echo "   9 = Wiz"
+   echo "  10 = Darwin"
    echo "-------------------------------------------------------"
    echo
    ;;
