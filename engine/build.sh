@@ -339,6 +339,8 @@ function darwin {
       cp /opt/local/lib/libogg.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
       cp /opt/local/lib/libvorbisfile.3.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
       cp /opt/local/lib/libvorbis.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+      cp /opt/local/lib/libpng14.14.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+      cp /opt/local/lib/libz.1.2.5.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
       ./darwin.sh
     fi
     make clean BUILD_DARWIN=1
