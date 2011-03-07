@@ -47,9 +47,14 @@ function distribute {
     echo "Dreamcast Platform Failed To Build!"
     exit 1
   fi
-  if ! test -e "releases/WINDOWS/OpenBOR/OpenBOR.exe"; then
+  if test -e "releases/WINDOWS/OpenBOR/OpenBOR.exe"; then
+    ../tools/borpak/source/build.sh win
+	cp ../tools/borpak/source/borpak.exe releases/WINDOWS/OpenBOR/
+	cp ../tools/borpak/scripts/packer.bat releases/WINDOWS/OpenBOR/
+	cp ../tools/borpak/scripts/paxplode.bat releases/WINDOWS/OpenBOR/
+  else
     echo "Windows Platform Failed To Build!"
-    exit 1
+    exit 1  
   fi
   if ! test -e "releases/WII/OpenBOR/boot.dol"; then
     echo "Wii Platform Failed To Build!"
@@ -59,13 +64,23 @@ function distribute {
     echo "Dingoo Platform Failed To Build!"
     # exit 1
   fi
-  if ! test -e "releases/LINUX/OpenBOR/OpenBOR"; then
+  if test -e "releases/LINUX/OpenBOR/OpenBOR"; then
+    ../tools/borpak/source/build.sh lin
+	cp ../tools/borpak/source/borpak releases/LINUX/OpenBOR/
+	cp ../tools/borpak/scripts/packer releases/LINUX/OpenBOR/
+	cp ../tools/borpak/scripts/paxplode releases/LINUX/OpenBOR/
+  else
     if [ `echo $HOST_PLATFORM | grep -o "Linux"` ]; then
       echo "Linux Platform Failed To Build!"
       exit 1
     fi
   fi
-  if ! test -e "releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR"; then
+  if test -e "releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR"; then
+    ../tools/borpak/source/build.sh mac
+	cp ../tools/borpak/source/borpak releases/DARWIN/OpenBOR.app/Contents/MacOS/
+	cp ../tools/borpak/scripts/packer releases/DARWIN/OpenBOR.app/Contents/MacOS/
+	cp ../tools/borpak/scripts/paxplode releases/DARWIN/OpenBOR.app/Contents/MacOS/
+  else
     if [ `echo $HOST_PLATFORM | grep -o "Darwin"` ]; then
       echo "Darwin Platform Failed To Build!"
       exit 1
