@@ -32,6 +32,11 @@ install_name_tool \
 @executable_path/../Libraries/libogg.0.dylib \
 releases/DARWIN/OpenBOR.app/Contents/Libraries/libvorbis.0.dylib
 
+install_name_tool \
+-change /opt/local/lib/libz.1.dylib \
+@executable_path/../Libraries/libz.1.2.5.dylib \
+releases/DARWIN/OpenBOR.app/Contents/Libraries/libpng14.14.dylib
+
 ######### Update Executable Library Paths ##########
 
 install_name_tool \
@@ -59,3 +64,12 @@ install_name_tool \
 @executable_path/../Libraries/libogg.0.dylib \
 releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR
 
+install_name_tool \
+-change /opt/local/lib/libpng14.14.dylib \
+@executable_path/../Libraries/libpng14.14.dylib \
+releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR
+
+install_name_tool \
+-change /opt/local/lib/libz.1.dylib \
+@executable_path/../Libraries/libz.1.2.5.dylib \
+releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR
