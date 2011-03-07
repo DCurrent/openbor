@@ -21,8 +21,6 @@
 
 // Prints a stack trace on *nix platforms if the engine crashes with SIGSEGV.
 void handleFatalSignal(int sig_num, siginfo_t * info, void * ucontext);
-#else
-#error fail
 #endif
 
 #endif
