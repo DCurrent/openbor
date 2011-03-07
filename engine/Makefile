@@ -106,7 +106,7 @@ ifdef BUILD_DARWIN
 TARGET          = $(VERSION_NAME).elf
 TARGET_FINAL    = $(VERSION_NAME)
 TARGET_PLATFORM = DARWIN
-TARGET_ARCH     = x86
+#TARGET_ARCH     = x86
 BUILD_SDL       = 1
 BUILD_GFX       = 1
 BUILD_LINUX     = 1
@@ -123,9 +123,11 @@ INCLUDES        = $(DWNDEV)/include \
                   $(DWNDEV)/include/SDL \
                   $(SDKPATH)/usr/include/malloc
 LIBRARIES       = $(DWNDEV)/lib
-ARCHFLAGS       = -m32
 ifeq ($(findstring 86, $(TARGET_ARCH)), 86)
 BUILD_MMX       = 1
+ARCHFLAGS       = -arch i386
+else
+ARCHFLAGS       = -arch i386 -arch x86_64
 endif
 ifeq ($(BUILD_DARWIN), 0)
 BUILD_DEBUG     = 1
@@ -557,7 +559,7 @@ endif
 
 
 ifdef BUILD_DARWIN
-CFLAGS 	       += -DLINUX -headerpad_max_install_names -arch i386 -isysroot $(SDKPATH)
+CFLAGS 	       += -DLINUX -headerpad_max_install_names -isysroot $(SDKPATH)
 endif
 
 
