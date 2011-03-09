@@ -4684,7 +4684,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	static const char* endcall_text = //end of function call
 		");\n";
 	
-	modelCommands cmd;	
+	modelCommands cmd;
+#ifdef DEBUG
+	printf("load_cached_model: %s, unload: %d\n", name, unload);
+#endif
 		
 	// Model already loaded but we might want to unload after level is completed.
 	if((tempmodel=find_model(name))!=NULL) {
@@ -9293,7 +9296,7 @@ void load_level(char *filename){
 				memset(&next,0,sizeof(s_spawn_entry));
 				break;
 			default:            
-				shutdown(1, "Command '%s' not understood!", command);
+				printf("Command '%s' not understood!", command);
 		}
 
 		// Go to next line
@@ -20044,9 +20047,6 @@ void shutdown(int status, char *msg, ...)
 #if WII
 	int i;
 #endif
-#ifdef DEBUG
-	assert(status == 0); // this way we can haz backtrace.
-#endif
 
 	va_start(arglist, msg);
 	vsprintf(buf, msg, arglist);
@@ -20067,6 +20067,7 @@ void shutdown(int status, char *msg, ...)
 	}
 	
 	if(!disablelog) printf("%s", buf);
+	
 
 	getRamStatus(BYTES);
 	savesettings();
@@ -20123,6 +20124,9 @@ void shutdown(int status, char *msg, ...)
 	if(!disablelog) printf("\n**************** Done *****************\n\n");       
 
 	if(!disablelog) printf("%s", buf);
+	#ifdef DEBUG
+	assert(status == 0); // this way we can haz backtrace.
+	#endif	
 
 	exit(status);
 }
