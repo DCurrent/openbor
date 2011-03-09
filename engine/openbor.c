@@ -3881,7 +3881,7 @@ void _peek_model_name(int index)
 		
 		if(command && command[0]){
 			cmd = getModelCommand(modelcmdlist, command);
-			if(cmd == CMD_NAME)
+			if(cmd == CMD_MODEL_NAME)
 			{
 				value = GET_ARG(1);
 				tracefree(model_cache[index].name);
@@ -4737,43 +4737,43 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				cmd = getModelCommand(modelcmdlist, command);
 			
 			switch(cmd) {
-				case CMD_NAME: 
+				case CMD_MODEL_NAME: 
 					lcmHandleCommandName(&arglist, newchar, cacheindex);
 					break;
-				case CMD_TYPE:
+				case CMD_MODEL_TYPE:
 					lcmHandleCommandType(&arglist, newchar, filename);
 					break;
-				case CMD_SUBTYPE:
+				case CMD_MODEL_SUBTYPE:
 					lcmHandleCommandSubtype(&arglist, newchar, filename);
 					break;
-				case CMD_STATS:
+				case CMD_MODEL_STATS:
 					value = GET_ARG(1);
 					newchar->stats[atoi(value)] = GET_FLOAT_ARG(2);
 					break;
-				case CMD_HEALTH:
+				case CMD_MODEL_HEALTH:
 					value = GET_ARG(1);
 					newchar->health = atoi(value);
 					break;
-				case CMD_SCROLL:
+				case CMD_MODEL_SCROLL:
 					value = GET_ARG(1);
 					newchar->scroll = atof(value);
 					break;
-				case CMD_MP: //Left for backward compatability. See mpset. // mp values to put max mp for player by tails
+				case CMD_MODEL_MP: //Left for backward compatability. See mpset. // mp values to put max mp for player by tails
 					value = GET_ARG(1);
 					newchar->mp = atoi(value);
 					break;
-				case CMD_NOLIFE:	// Feb 25, 2005 - Flag to display enemy life or not
+				case CMD_MODEL_NOLIFE:	// Feb 25, 2005 - Flag to display enemy life or not
 					newchar->nolife = GET_INT_ARG(1);
 					break;
-				case CMD_MAKEINV:	// Mar 12, 2005 - If a value is supplied, corresponds to amount of time the player spawns invincible
+				case CMD_MODEL_MAKEINV:	// Mar 12, 2005 - If a value is supplied, corresponds to amount of time the player spawns invincible
 					newchar->makeinv = GET_INT_ARG(1) * GAME_SPEED;
 					if(GET_INT_ARG(2)) newchar->makeinv = -newchar->makeinv;
 					break;
-				case CMD_RISEINV:
+				case CMD_MODEL_RISEINV:
 					newchar->riseinv = GET_INT_ARG(1) * GAME_SPEED;
 					if(GET_INT_ARG(2)) newchar->riseinv = -newchar->riseinv;
 					break;
-				case CMD_LOAD:
+				case CMD_MODEL_LOAD:
 					value = GET_ARG(1);
 					tempmodel = find_model(value);
 					if(!tempmodel)
@@ -4781,23 +4781,23 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					else
 						update_model_loadflag(tempmodel, GET_INT_ARG(2));
 					break;
-				case CMD_SCORE:
+				case CMD_MODEL_SCORE:
 					newchar->score = GET_INT_ARG(1);
 					newchar->multiple = GET_INT_ARG(2);			// New var multiple for force/scoring
 					break;
-				case CMD_SMARTBOMB:
+				case CMD_MODEL_SMARTBOMB:
 					lcmHandleCommandSmartbomb(&arglist, newchar, filename);
 					break;
-				case CMD_BOUNCE:
+				case CMD_MODEL_BOUNCE:
 					newchar->bounce = GET_INT_ARG(1);
 					break;
-				case CMD_NOQUAKE:  // Mar 12, 2005 - Flag to determine if entity shakes screen
+				case CMD_MODEL_NOQUAKE:  // Mar 12, 2005 - Flag to determine if entity shakes screen
 					newchar->noquake = GET_INT_ARG(1);
 					break;
-				case CMD_BLOCKBACK:	// Flag to determine if attacks can be blocked from behind
+				case CMD_MODEL_BLOCKBACK:	// Flag to determine if attacks can be blocked from behind
 					newchar->blockback = GET_INT_ARG(1);
 					break;
-				case CMD_HITENEMY:	// Flag to determine if an enemy projectile will hit enemies
+				case CMD_MODEL_HITENEMY:	// Flag to determine if an enemy projectile will hit enemies
 					value = GET_ARG(1);
 					if(atoi(value) == 1)
 						newchar->candamage = newchar->hostile = TYPE_PLAYER | TYPE_ENEMY;
@@ -4805,125 +4805,125 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newchar->candamage = newchar->hostile = TYPE_PLAYER;
 					newchar->ground = GET_INT_ARG(2);    // Added to determine if enemies are damaged with mid air projectiles or ground only
 					break;
-				case CMD_HOSTILE:	
+				case CMD_MODEL_HOSTILE:	
 					lcmHandleCommandHostile(&arglist, newchar);
 					break;
-				case CMD_CANDAMAGE:
+				case CMD_MODEL_CANDAMAGE:
 					lcmHandleCommandCandamage(&arglist, newchar);
 					break;
-				case CMD_PROJECTILEHIT:	
+				case CMD_MODEL_PROJECTILEHIT:	
 					lcmHandleCommandProjectilehit(&arglist, newchar);
 					break;
-				case CMD_AIMOVE:	
+				case CMD_MODEL_AIMOVE:	
 					lcmHandleCommandAimove(&arglist, newchar, &aimoveset, filename);
 					break;
-				case CMD_AIATTACK:
+				case CMD_MODEL_AIATTACK:
 					if(newchar->aiattack==-1) newchar->aiattack = 0;
 					//do nothing for now, until ai attack is implemented
 					break;
-				case CMD_SUBJECT_TO_WALL:	
+				case CMD_MODEL_SUBJECT_TO_WALL:	
 					newchar->subject_to_wall = (0!=GET_INT_ARG(1));
 					break;
-				case CMD_SUBJECT_TO_HOLE:
+				case CMD_MODEL_SUBJECT_TO_HOLE:
 					newchar->subject_to_hole = (0!=GET_INT_ARG(1));
 					break;
-				case CMD_SUBJECT_TO_PLATFORM:
+				case CMD_MODEL_SUBJECT_TO_PLATFORM:
 					newchar->subject_to_platform = (0!=GET_INT_ARG(1));
 					break;
-				case CMD_SUBJECT_TO_OBSTACLE:	
+				case CMD_MODEL_SUBJECT_TO_OBSTACLE:	
 					newchar->subject_to_obstacle = (0!=GET_INT_ARG(1));
 					break;
-				case CMD_SUBJECT_TO_GRAVITY:	
+				case CMD_MODEL_SUBJECT_TO_GRAVITY:	
 					newchar->subject_to_gravity = (0!=GET_INT_ARG(1));
 					break;
-				case CMD_SUBJECT_TO_SCREEN:
+				case CMD_MODEL_SUBJECT_TO_SCREEN:
 					newchar->subject_to_screen = (0!=GET_INT_ARG(1));
 					break;
-				case CMD_SUBJECT_TO_MINZ:
+				case CMD_MODEL_SUBJECT_TO_MINZ:
 					newchar->subject_to_minz = (0!=GET_INT_ARG(1));
 					break;
-				case CMD_SUBJECT_TO_MAXZ:	
+				case CMD_MODEL_SUBJECT_TO_MAXZ:	
 					newchar->subject_to_maxz = (0!=GET_INT_ARG(1));
 					break;
-				case CMD_NO_ADJUST_BASE:
+				case CMD_MODEL_NO_ADJUST_BASE:
 					newchar->no_adjust_base = (0!=GET_INT_ARG(1));
 					break;
-				case CMD_INSTANTITEMDEATH:
+				case CMD_MODEL_INSTANTITEMDEATH:
 					newchar->instantitemdeath = GET_INT_ARG(1);
 					break;
-				case CMD_SECRET:
+				case CMD_MODEL_SECRET:
 					newchar->secret = GET_INT_ARG(1);
 					break;
-				case CMD_MODELFLAG: //model copy flag
+				case CMD_MODEL_MODELFLAG: //model copy flag
 					newchar->model_flag = GET_INT_ARG(1);
 					break;
 				// weapons	
-				case CMD_WEAPLOSS:
+				case CMD_MODEL_WEAPLOSS:
 					newchar->weaploss[0] = GET_INT_ARG(1);
 					newchar->weaploss[1] = GET_INT_ARG(2);
 					break;
-				case CMD_WEAPNUM:
+				case CMD_MODEL_WEAPNUM:
 					newchar->weapnum = GET_INT_ARG(1);
 					break;
-				case CMD_PROJECT: // New projectile subtype
+				case CMD_MODEL_PROJECT: // New projectile subtype
 					value = GET_ARG(1);
 					if(stricmp(value, "none")==0) newchar->project = -1;
 					else newchar->project = get_cached_model_index(value);
 					break;
-				case CMD_WEAPONS:	
+				case CMD_MODEL_WEAPONS:	
 					lcmHandleCommandWeapons(&arglist, newchar);
 					break;
-				case CMD_SHOOTNUM: //here weapons things like shoot rest type of weapon ect..by tails
+				case CMD_MODEL_SHOOTNUM: //here weapons things like shoot rest type of weapon ect..by tails
 					newchar->shootnum = GET_INT_ARG(1);
 					break;
-				case CMD_RELOAD:	
+				case CMD_MODEL_RELOAD:	
 					newchar->reload = GET_INT_ARG(1);
 					break;
-				case CMD_TYPESHOT:	
+				case CMD_MODEL_TYPESHOT:	
 					newchar->typeshot = GET_INT_ARG(1);
 					break;
-				case CMD_COUNTER:	
+				case CMD_MODEL_COUNTER:	
 					newchar->counter = GET_INT_ARG(1);
 					break;
-				case CMD_ANIMAL:
+				case CMD_MODEL_ANIMAL:
 					newchar->animal = GET_INT_ARG(1);
 					break;
-				case CMD_RIDER:
+				case CMD_MODEL_RIDER:
 					value = GET_ARG(1);
 					if(stricmp(value, "none")==0) newchar->rider = -1;
 					else newchar->rider = get_cached_model_index(value);
 					break;
-				case CMD_KNIFE: case CMD_FIREB: case CMD_PLAYSHOT: case CMD_PLAYSHOTW:
+				case CMD_MODEL_KNIFE: case CMD_MODEL_FIREB: case CMD_MODEL_PLAYSHOT: case CMD_MODEL_PLAYSHOTW:
 					value = GET_ARG(1);
 					if(stricmp(value, "none")==0) newchar->knife = -1;
 					else  newchar->knife = get_cached_model_index(value);
 					break;
-				case CMD_PLAYSHOTNO:
+				case CMD_MODEL_PLAYSHOTNO:
 					value = GET_ARG(1);
 					if(stricmp(value, "none")==0) newchar->pshotno = -1;
 					else newchar->pshotno = get_cached_model_index(value);
 					break;
-				case CMD_STAR:	
+				case CMD_MODEL_STAR:	
 					value = GET_ARG(1);
 					if(stricmp(value, "none")==0) newchar->star = -1;
 					else newchar->star = get_cached_model_index(value);
 					break;
-				case CMD_BOMB: case CMD_PLAYBOMB:	
+				case CMD_MODEL_BOMB: case CMD_MODEL_PLAYBOMB:	
 					value = GET_ARG(1);
 					if(stricmp(value, "none")==0) newchar->bomb = -1;
 					else newchar->bomb = get_cached_model_index(value);
 					break;
-				case CMD_FLASH:	 // Now all characters can have their own flash - even projectiles (useful for blood)
+				case CMD_MODEL_FLASH:	 // Now all characters can have their own flash - even projectiles (useful for blood)
 					value = GET_ARG(1);
 					if(stricmp(value, "none")==0) newchar->flash = -1;
 					else newchar->flash = get_cached_model_index(value);
 					break;
-				case CMD_BFLASH:	// Flash that is spawned if an attack is blocked
+				case CMD_MODEL_BFLASH:	// Flash that is spawned if an attack is blocked
 					value = GET_ARG(1);
 					if(stricmp(value, "none")==0) newchar->bflash = -1;
 					else newchar->bflash = get_cached_model_index(value);
 					break;
-				case CMD_DUST:	// Spawned when hitting the ground to "kick up dust"
+				case CMD_MODEL_DUST:	// Spawned when hitting the ground to "kick up dust"
 					value = GET_ARG(1);
 					if(stricmp(value, "none")==0) newchar->dust[0] = -1;
 					else newchar->dust[0] = get_cached_model_index(value);
@@ -4934,7 +4934,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(stricmp(value, "none")==0) newchar->dust[2] = -1;
 					else newchar->dust[2] = get_cached_model_index(value);
 					break;
-				case CMD_BRANCH: // for endlevel item's level branch
+				case CMD_MODEL_BRANCH: // for endlevel item's level branch
 					value = GET_ARG(1);
 					if(!newchar->branch)
 					{
@@ -4943,70 +4943,70 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					strncpy(newchar->branch, value, MAX_NAME_LEN);
 					break;
-				case CMD_CANTGRAB: case CMD_NOTGRAB:
+				case CMD_MODEL_CANTGRAB: case CMD_MODEL_NOTGRAB:
 					tempInt = GET_INT_ARG(1);
 					if(tempInt == 2) newchar->grabforce = -999999;
 					else             newchar->antigrab = 1;
 					break;
-				case CMD_ANTIGRAB: // a can grab b: a->antigrab - b->grabforce <=0
+				case CMD_MODEL_ANTIGRAB: // a can grab b: a->antigrab - b->grabforce <=0
 					newchar->antigrab = GET_INT_ARG(1);
 					break;
-				case CMD_GRABFORCE:	
+				case CMD_MODEL_GRABFORCE:	
 					newchar->grabforce = GET_INT_ARG(1);
 					break;
-				case CMD_GRABBACK:	
+				case CMD_MODEL_GRABBACK:	
 					newchar->grabback = GET_INT_ARG(1);
 					break;
-				case CMD_OFFSCREENKILL:	
+				case CMD_MODEL_OFFSCREENKILL:	
 					newchar->offscreenkill = GET_INT_ARG(1);
 					break;
-				case CMD_FALLDIE: case CMD_DEATH:	
+				case CMD_MODEL_FALLDIE: case CMD_MODEL_DEATH:	
 					newchar->falldie = GET_INT_ARG(1);
 					break;
-				case CMD_SPEED:
+				case CMD_MODEL_SPEED:
 					value = GET_ARG(1);
 					newchar->speed = atof(value);
 					newchar->speed /= 10;
 					if(newchar->speed < 0.5) newchar->speed = 0.5;
 					if(newchar->speed > 30) newchar->speed = 30;
 					break;
-				case CMD_SPEEDF:	
+				case CMD_MODEL_SPEEDF:	
 					value = GET_ARG(1);
 					newchar->speed = atof(value);
 					break;
-				case CMD_JUMPSPEED:	
+				case CMD_MODEL_JUMPSPEED:	
 					value = GET_ARG(1);
 					newchar->jumpspeed = atof(value);
 					newchar->jumpspeed /= 10;
 					break;
-				case CMD_JUMPSPEEDF:	
+				case CMD_MODEL_JUMPSPEEDF:	
 					value = GET_ARG(1);
 					newchar->jumpspeed = atof(value);
 					break;
-				case CMD_ANTIGRAVITY:	
+				case CMD_MODEL_ANTIGRAVITY:	
 					value = GET_ARG(1);
 					newchar->antigravity = atof(value);
 					newchar->antigravity /= 100;
 					break;
-				case CMD_STEALTH:	
+				case CMD_MODEL_STEALTH:	
 					newchar->stealth[0] = GET_INT_ARG(1);
 					newchar->stealth[1] = GET_INT_ARG(2);
 					break;
-				case CMD_JUGGLEPOINTS:
+				case CMD_MODEL_JUGGLEPOINTS:
 					value = GET_ARG(1);
 					newchar->jugglepoints[0] = atoi(value);
 					newchar->jugglepoints[1] = atoi(value);
 					break;
-				case CMD_RISEATTACKTYPE:	
+				case CMD_MODEL_RISEATTACKTYPE:	
 					value = GET_ARG(1);
 					newchar->riseattacktype = atoi(value);
 					break;
-				case CMD_GUARDPOINTS:	
+				case CMD_MODEL_GUARDPOINTS:	
 					value = GET_ARG(1);
 					newchar->guardpoints[0] = atoi(value);
 					newchar->guardpoints[1] = atoi(value);
 					break;
-				case CMD_DEFENSE:	
+				case CMD_MODEL_DEFENSE:	
 					#define tempdef(x, y, z, p, k, b, t, r, e) \
 					x(stricmp(value, #y)==0)\
 					{\
@@ -5066,7 +5066,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					#undef tempdef
 					break;
-				case CMD_OFFENSE:	
+				case CMD_MODEL_OFFENSE:	
 					#define tempoff(x, y, z) \
 					x(stricmp(value, #y)==0)\
 					{\
@@ -5107,75 +5107,75 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					#undef tempoff
 					break;
-				case CMD_HEIGHT:	
+				case CMD_MODEL_HEIGHT:	
 					newchar->height = GET_INT_ARG(1);
 					break;
-				case CMD_JUMPHEIGHT:	
+				case CMD_MODEL_JUMPHEIGHT:	
 					newchar->jumpheight = GET_FLOAT_ARG(1);
 					break;
-				case CMD_JUMPMOVE:	
+				case CMD_MODEL_JUMPMOVE:	
 					newchar->jumpmovex = GET_INT_ARG(1);
 					newchar->jumpmovez = GET_INT_ARG(2);
 					break;
-				case CMD_KNOCKDOWNCOUNT:	
+				case CMD_MODEL_KNOCKDOWNCOUNT:	
 					newchar->knockdowncount = GET_FLOAT_ARG(1);
 					break;
-				case CMD_GRABDISTANCE:	
+				case CMD_MODEL_GRABDISTANCE:	
 					newchar->grabdistance = GET_FLOAT_ARG(1);                    // 30-12-2004 and store for character
 					break;
-				case CMD_GRABFINISH:	
+				case CMD_MODEL_GRABFINISH:	
 					newchar->grabfinish = GET_INT_ARG(1);
 					break;
-				case CMD_THROWDAMAGE:
+				case CMD_MODEL_THROWDAMAGE:
 					newchar->throwdamage = GET_INT_ARG(1);
 					break;
-				case CMD_SHADOW:	
+				case CMD_MODEL_SHADOW:	
 					newchar->shadow = GET_INT_ARG(1);
 					break;
-				case CMD_GFXSHADOW:	
+				case CMD_MODEL_GFXSHADOW:	
 					newchar->gfxshadow = GET_INT_ARG(1);
 					break;
-				case CMD_AIRONLY:	// Shadows display in air only?
+				case CMD_MODEL_AIRONLY:	// Shadows display in air only?
 					newchar->aironly = GET_INT_ARG(1);
 					break;
-				case CMD_FMAP:	// Map that corresponds with the remap when a character is frozen
+				case CMD_MODEL_FMAP:	// Map that corresponds with the remap when a character is frozen
 					newchar->fmap = GET_INT_ARG(1);
 					break;
-				case CMD_KOMAP:	// Remap when character is KO'd.
+				case CMD_MODEL_KOMAP:	// Remap when character is KO'd.
 					newchar->komap[0] = GET_INT_ARG(1);  //Remap.
 					newchar->komap[1] = GET_INT_ARG(2);  //Type: 0 start of fall/death, 1 last frame.
 					break;
-				case CMD_HMAP:	// Maps range unavailable to player in select screen.
+				case CMD_MODEL_HMAP:	// Maps range unavailable to player in select screen.
 					newchar->hmap1 = GET_INT_ARG(1); //First unavailable map.
 					newchar->hmap2 = GET_INT_ARG(2); //Last unavailable map.
 					break;
-				case CMD_SETLAYER:	
+				case CMD_MODEL_SETLAYER:	
 					newchar->setlayer = GET_INT_ARG(1);
 					break;
-				case CMD_TOFLIP:	  // Flag to determine if flashes images will be flipped or not
+				case CMD_MODEL_TOFLIP:	  // Flag to determine if flashes images will be flipped or not
 					newchar->toflip = GET_INT_ARG(1);
 					break;
-				case CMD_NODIEBLINK:	
+				case CMD_MODEL_NODIEBLINK:	
 					// Added to determine if dying animation blinks or not
 					newchar->nodieblink = GET_INT_ARG(1);
 					break;
-				case CMD_NOATFLASH:	 // Flag to determine if an opponents attack spawns their flash or not
+				case CMD_MODEL_NOATFLASH:	 // Flag to determine if an opponents attack spawns their flash or not
 					newchar->noatflash = GET_INT_ARG(1);
 					break;
-				case CMD_NOMOVE:
+				case CMD_MODEL_NOMOVE:
 					// If set, will be static (speed must be set to 0 or left blank)
 					newchar->nomove = GET_INT_ARG(1);
 					newchar->noflip = GET_INT_ARG(2);    // If set, static will not flip directions
 					if(newchar->nomove) newchar->nodrop = 1;
 					break;
-				case CMD_NODROP:	
+				case CMD_MODEL_NODROP:	
 					newchar->nodrop = GET_INT_ARG(1);
 					break;
-				case CMD_THOLD:
+				case CMD_MODEL_THOLD:
 					// Threshold for enemies/players block
 					newchar->thold = GET_INT_ARG(1);
 					break;
-				case CMD_RUNNING:	
+				case CMD_MODEL_RUNNING:	
 					// The speed at which the player runs
 					newchar->runspeed = GET_FLOAT_ARG(1);
 					newchar->runspeed /= 10;
@@ -5184,20 +5184,20 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->runupdown = GET_INT_ARG(4);
 					newchar->runhold = GET_INT_ARG(5);
 					break;
-				case CMD_BLOCKODDS:
+				case CMD_MODEL_BLOCKODDS:
 					// Odds that an attack will hit an enemy (1 : blockodds)
 					newchar->blockodds = GET_INT_ARG(1);
 					break;
-				case CMD_HOLDBLOCK:	
+				case CMD_MODEL_HOLDBLOCK:	
 					newchar->holdblock = GET_INT_ARG(1);
 					break;
-				case CMD_BLOCKPAIN:
+				case CMD_MODEL_BLOCKPAIN:
 					newchar->blockpain = GET_INT_ARG(1);
 					break;
-				case CMD_NOPASSIVEBLOCK:
+				case CMD_MODEL_NOPASSIVEBLOCK:
 					newchar->nopassiveblock = GET_INT_ARG(1);
 					break;
-				case CMD_EDELAY:	
+				case CMD_MODEL_EDELAY:	
 					newchar->edelay.mode        = GET_INT_ARG(1);
 					newchar->edelay.factor      = GET_FLOAT_ARG(2);
 					newchar->edelay.cap_min     = GET_INT_ARG(3);
@@ -5205,28 +5205,28 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->edelay.range_min   = GET_INT_ARG(5);
 					newchar->edelay.range_max   = GET_INT_ARG(6);
 					break;
-				case CMD_PAINGRAB:	
+				case CMD_MODEL_PAINGRAB:	
 					newchar->paingrab = GET_INT_ARG(1);
 					break;
-				case CMD_THROW:	
+				case CMD_MODEL_THROW:	
 					newchar->throwdist = GET_FLOAT_ARG(1);
 					newchar->throwheight = GET_FLOAT_ARG(2);
 					break;
-				case CMD_GRABWALK:
+				case CMD_MODEL_GRABWALK:
 					newchar->grabwalkspeed = GET_FLOAT_ARG(1);
 					newchar->grabwalkspeed /= 10;					
 					if(newchar->grabwalkspeed < 0.5) newchar->grabwalkspeed = 0.5;
 					break;
-				case CMD_GRABTURN:	
+				case CMD_MODEL_GRABTURN:	
 					newchar->grabturn = GET_INT_ARG(1);
 					break;
-				case CMD_THROWFRAMEWAIT:
+				case CMD_MODEL_THROWFRAMEWAIT:
 					newchar->throwframewait = GET_INT_ARG(1);
 					break;
-				case CMD_DIESOUND:
+				case CMD_MODEL_DIESOUND:
 					newchar->diesound = sound_load_sample(GET_ARG(1), packfile, 0);
 					break;
-				case CMD_ICON:	
+				case CMD_MODEL_ICON:	
 					value = GET_ARG(1);					
 					if(newchar->icon > -1) shutdown(1, "Error: model '%s' has multiple icons defined", filename);					
 					newchar->icon = loadsprite(value,0,0,pixelformat); //use same palette as the owner
@@ -5234,61 +5234,61 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->icondie = newchar->icon;
 					newchar->iconget = newchar->icon;
 					break;
-				case CMD_ICONPAIN:	
+				case CMD_MODEL_ICONPAIN:	
 					value = GET_ARG(1);
 					newchar->iconpain = loadsprite(value,0,0,pixelformat);
 					break;
-				case CMD_ICONDIE:
+				case CMD_MODEL_ICONDIE:
 					value = GET_ARG(1);
 					newchar->icondie = loadsprite(value,0,0,pixelformat);
 					break;
-				case CMD_ICONGET:
+				case CMD_MODEL_ICONGET:
 					value = GET_ARG(1);
 					newchar->iconget = loadsprite(value,0,0,pixelformat);
 					break;
-				case CMD_ICONW:
+				case CMD_MODEL_ICONW:
 					value = GET_ARG(1);
 					newchar->iconw = loadsprite(value,0,0,pixelformat);
 					break;
-				case CMD_ICONMPHIGH:
+				case CMD_MODEL_ICONMPHIGH:
 					value = GET_ARG(1);
 					newchar->iconmp[0] = loadsprite(value,0,0,pixelformat);
 					break;
-				case CMD_ICONMPHALF:	
+				case CMD_MODEL_ICONMPHALF:	
 					value = GET_ARG(1);
 					newchar->iconmp[1] = loadsprite(value,0,0,pixelformat);
 					break;
-				case CMD_ICONMPLOW:	
+				case CMD_MODEL_ICONMPLOW:	
 					value = GET_ARG(1);
 					newchar->iconmp[2] = loadsprite(value,0,0,pixelformat);
 					break;
-				case CMD_PARROW:
+				case CMD_MODEL_PARROW:
 					// Image that is displayed when player 1 spawns invincible
 					value = GET_ARG(1);
 					newchar->parrow[0][0] = loadsprite(value,0,0,pixelformat);
 					newchar->parrow[0][1] = GET_INT_ARG(2);
 					newchar->parrow[0][2] = GET_INT_ARG(3);
 					break;
-				case CMD_PARROW2:
+				case CMD_MODEL_PARROW2:
 					// Image that is displayed when player 2 spawns invincible
 					value = GET_ARG(1);
 					newchar->parrow[1][0] = loadsprite(value,0,0,pixelformat);
 					newchar->parrow[1][1] = GET_INT_ARG(2);
 					newchar->parrow[1][2] = GET_INT_ARG(3);
 					break;
-				case CMD_PARROW3:
+				case CMD_MODEL_PARROW3:
 					value = GET_ARG(1);
 					newchar->parrow[2][0] = loadsprite(value,0,0,pixelformat);
 					newchar->parrow[2][1] = GET_INT_ARG(2);
 					newchar->parrow[2][2] = GET_INT_ARG(3);
 					break;
-				case CMD_PARROW4:	
+				case CMD_MODEL_PARROW4:	
 					value = GET_ARG(1);
 					newchar->parrow[3][0] = loadsprite(value,0,0,pixelformat);
 					newchar->parrow[3][1] = GET_INT_ARG(2);
 					newchar->parrow[3][2] = GET_INT_ARG(3);
 					break;
-				case CMD_ATCHAIN:
+				case CMD_MODEL_ATCHAIN:
 					newchar->chainlength = 0;
 					for(i = 0; i < MAX_ATCHAIN; i++)
 					{
@@ -5298,27 +5298,27 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						if(newchar->atchain[i]) newchar->chainlength = i+1;
 					}
 					break;
-				case CMD_COMBOSTYLE:
+				case CMD_MODEL_COMBOSTYLE:
 					newchar->combostyle = GET_INT_ARG(1);
 					break;
-				case CMD_CREDIT:
+				case CMD_MODEL_CREDIT:
 					newchar->credit = GET_INT_ARG(1);
 					break;
-				case CMD_NOPAIN:	
+				case CMD_MODEL_NOPAIN:	
 					newchar->nopain = GET_INT_ARG(1);
 					break;
-				case CMD_ESCAPEHITS:	
+				case CMD_MODEL_ESCAPEHITS:	
 					// How many times an enemy can be hit before retaliating
 					newchar->escapehits = GET_INT_ARG(1);
 					break;
-				case CMD_CHARGERATE:	
+				case CMD_MODEL_CHARGERATE:	
 					// How much mp does this character gain while recharging?
 					newchar->chargerate = GET_INT_ARG(1);
 					break;
-				case CMD_MPRATE:	
+				case CMD_MODEL_MPRATE:	
 					newchar->mprate = GET_INT_ARG(1);
 					break;
-				case CMD_MPSET:
+				case CMD_MODEL_MPSET:
 					// Mp bar wax/wane.
 					newchar->mp             = GET_INT_ARG(1); //Max MP.
 					newchar->mpstable       = GET_INT_ARG(2); //MP stable setting.
@@ -5327,48 +5327,48 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->mpdroprate     = GET_INT_ARG(5); //Rate MP value drops over time.
 					newchar->chargerate     = GET_INT_ARG(6); //MP Chargerate.
 					break;
-				case CMD_SLEEPWAIT:
+				case CMD_MODEL_SLEEPWAIT:
 					newchar->sleepwait = GET_INT_ARG(1);
 					break;
-				case CMD_GUARDRATE:
+				case CMD_MODEL_GUARDRATE:
 					newchar->guardrate = GET_INT_ARG(1);
 					break;
-				case CMD_AGGRESSION:
+				case CMD_MODEL_AGGRESSION:
 					newchar->aggression = GET_INT_ARG(1);
 					break;
-				case CMD_RISETIME:	
+				case CMD_MODEL_RISETIME:	
 					newchar->risetime[0] = GET_INT_ARG(1);
 					newchar->risetime[1] = GET_INT_ARG(2);
 					break;
-				case CMD_FACING:	
+				case CMD_MODEL_FACING:	
 					newchar->facing = GET_INT_ARG(1);
 					break;
-				case CMD_TURNDELAY:	
+				case CMD_MODEL_TURNDELAY:	
 					newchar->turndelay = GET_INT_ARG(1);
 					break;
-				case CMD_LIFESPAN:	
+				case CMD_MODEL_LIFESPAN:	
 					newchar->lifespan = GET_FLOAT_ARG(1)*GAME_SPEED;
 					break;
-				case CMD_SUMMONKILL:	
+				case CMD_MODEL_SUMMONKILL:	
 					newchar->summonkill = GET_INT_ARG(1);
 					break;
-				case CMD_LIFEPOSITION:
+				case CMD_MODEL_LIFEPOSITION:
 					if((value=GET_ARG(1))[0]) newchar->hpx = atoi(value);
 					if((value=GET_ARG(2))[0]) newchar->hpy = atoi(value);
 					break;
-				case CMD_LIFEBARSTATUS:
+				case CMD_MODEL_LIFEBARSTATUS:
 					_readbarstatus(buf+pos, &(newchar->hpbarstatus));
 					newchar->hpbarstatus.colourtable = &hpcolourtable;
 					break;
-				case CMD_ICONPOSITION:	
+				case CMD_MODEL_ICONPOSITION:	
 					if((value=GET_ARG(1))[0]) newchar->iconx = atoi(value);
 					if((value=GET_ARG(2))[0]) newchar->icony = atoi(value);
 					break;
-				case CMD_NAMEPOSITION:
+				case CMD_MODEL_NAMEPOSITION:
 					if((value=GET_ARG(1))[0]) newchar->namex = atoi(value);
 					if((value=GET_ARG(2))[0]) newchar->namey = atoi(value);
 					break;
-				case CMD_COM:
+				case CMD_MODEL_COM:
 					{ 
 						// Section for custom freespecials starts here
 						int i;
@@ -5423,7 +5423,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}				
 					// End section for custom freespecials
 					break;
-				case CMD_REMAP:	
+				case CMD_MODEL_REMAP:	
 					{
 						// This command should not be used under 24bit mode, but for old mods, just give it a default palette
 						value = GET_ARG(1);
@@ -5456,7 +5456,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						}
 					}
 					break;
-				case CMD_PALETTE:	
+				case CMD_MODEL_PALETTE:	
 					// main palette for the entity under 24bit mode
 					if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
 					else if(newchar->palette==NULL)
@@ -5467,7 +5467,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							shutdown(1, "Failed to load palette '%s' for '%s'", value, filename);
 					}
 					break;
-				case CMD_ALTERNATEPAL:	
+				case CMD_MODEL_ALTERNATEPAL:	
 					// remap for the entity under 24bit mode, this method can replace remap command
 					if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
 					else if(newchar->maps_loaded<MAX_COLOUR_MAPS) {
@@ -5478,85 +5478,85 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newchar->maps_loaded++;
 					}
 					break;
-				case CMD_GLOBALMAP:
+				case CMD_MODEL_GLOBALMAP:
 					// use global palette under 24bit mode, so some entity/panel/bg can still use palette feature, that saves some memory
 					if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
 					else newchar->globalmap = GET_INT_ARG(1);
 					break;
-				case CMD_ALPHA:
+				case CMD_MODEL_ALPHA:
 					newchar->alpha = GET_INT_ARG(1);
 					break;
-				case CMD_REMOVE:	
+				case CMD_MODEL_REMOVE:	
 					newchar->remove = GET_INT_ARG(1);
 					break;
-				case CMD_SCRIPT:
+				case CMD_MODEL_SCRIPT:
 					//load the update script
 					lcmHandleCommandScripts(&arglist, newchar->update_script, "updateentityscript", filename);
 					break;
-				case CMD_THINKSCRIPT:
+				case CMD_MODEL_THINKSCRIPT:
 					lcmHandleCommandScripts(&arglist, newchar->think_script, "thinkscript", filename);
 					break;
-				case CMD_TAKEDAMAGESCRIPT:
+				case CMD_MODEL_TAKEDAMAGESCRIPT:
 					lcmHandleCommandScripts(&arglist, newchar->takedamage_script, "takedamagescript", filename);
 					break;
-				case CMD_ONFALLSCRIPT:	
+				case CMD_MODEL_ONFALLSCRIPT:	
 					lcmHandleCommandScripts(&arglist, newchar->onfall_script, "onfallscript", filename);
 					break;
-				case CMD_ONPAINSCRIPT:	
+				case CMD_MODEL_ONPAINSCRIPT:	
 					lcmHandleCommandScripts(&arglist, newchar->onpain_script, "onpainscript", filename);
 					break;
-				case CMD_ONBLOCKSSCRIPT:	
+				case CMD_MODEL_ONBLOCKSSCRIPT:	
 					lcmHandleCommandScripts(&arglist, newchar->onblocks_script, "onblocksscript", filename);
 					break;
-				case CMD_ONBLOCKWSCRIPT:	
+				case CMD_MODEL_ONBLOCKWSCRIPT:	
 					lcmHandleCommandScripts(&arglist, newchar->onblockw_script, "onblockwscript", filename);
 					break;
-				case CMD_ONBLOCKOSCRIPT:
+				case CMD_MODEL_ONBLOCKOSCRIPT:
 					lcmHandleCommandScripts(&arglist, newchar->onblocko_script, "onblockoscript", filename);
 					break;
-				case CMD_ONBLOCKZSCRIPT:
+				case CMD_MODEL_ONBLOCKZSCRIPT:
 					lcmHandleCommandScripts(&arglist, newchar->onblockz_script, "onblockzscript", filename);
 					break;
-				case CMD_ONBLOCKASCRIPT:	
+				case CMD_MODEL_ONBLOCKASCRIPT:	
 					lcmHandleCommandScripts(&arglist, newchar->onblocka_script, "onblockascript", filename);
 					break;
-				case CMD_ONMOVEXSCRIPT:	
+				case CMD_MODEL_ONMOVEXSCRIPT:	
 					lcmHandleCommandScripts(&arglist, newchar->onmovex_script, "onmovexscript", filename);
 					break;
-				case CMD_ONMOVEZSCRIPT:
+				case CMD_MODEL_ONMOVEZSCRIPT:
 					lcmHandleCommandScripts(&arglist, newchar->onmovez_script, "onmovezscript", filename);
 					break;
-				case CMD_ONMOVEASCRIPT:	
+				case CMD_MODEL_ONMOVEASCRIPT:	
 					lcmHandleCommandScripts(&arglist, newchar->onmovea_script, "onmoveascript", filename);
 					break;
-				case CMD_ONDEATHSCRIPT:	
+				case CMD_MODEL_ONDEATHSCRIPT:	
 					lcmHandleCommandScripts(&arglist, newchar->ondeath_script, "ondeathscript", filename);
 					break;
-				case CMD_ONKILLSCRIPT:
+				case CMD_MODEL_ONKILLSCRIPT:
 					lcmHandleCommandScripts(&arglist, newchar->onkill_script, "onkillscript", filename);
 					break;
-				case CMD_DIDBLOCKSCRIPT:
+				case CMD_MODEL_DIDBLOCKSCRIPT:
 					lcmHandleCommandScripts(&arglist, newchar->didblock_script, "didblockscript", filename);
 					break;
-				case CMD_ONDOATTACKSCRIPT:	
+				case CMD_MODEL_ONDOATTACKSCRIPT:	
 					lcmHandleCommandScripts(&arglist, newchar->ondoattack_script, "ondoattackscript", filename);
 					break;
-				case CMD_DIDHITSCRIPT:
+				case CMD_MODEL_DIDHITSCRIPT:
 					lcmHandleCommandScripts(&arglist, newchar->didhit_script, "didhitscript", filename);
 					break;
-				case CMD_ONSPAWNSCRIPT:
+				case CMD_MODEL_ONSPAWNSCRIPT:
 					lcmHandleCommandScripts(&arglist, newchar->onspawn_script, "onspawnscript", filename);
 					break;
-				case CMD_ANIMATIONSCRIPT:					
+				case CMD_MODEL_ANIMATIONSCRIPT:					
 					Script_Init(newchar->animation_script, "animationscript", 0);
 					if(!load_script(newchar->animation_script, GET_ARG(1)))
 						shutdown(1, "Unable to load animation script '%s' in file '%s'.\n", GET_ARG(1), filename);
 					//dont compile, until at end of this function
 					break;
-				case CMD_KEYSCRIPT:
+				case CMD_MODEL_KEYSCRIPT:
 					lcmHandleCommandScripts(&arglist, newchar->key_script, "entitykeyscript", filename);
 					break;
-				case CMD_ANIM:	
+				case CMD_MODEL_ANIM:	
 					{
 						value = GET_ARG(1);
 						frameset = 0;
@@ -6234,55 +6234,55 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newchar->animation[ani_id] = newanim;							
 					}
 					break;
-				case CMD_LOOP:
+				case CMD_MODEL_LOOP:
 					if(newanim == NULL) shutdown(1, "Can't set loop: no animation specified!");
 					newanim->loop[0] = GET_INT_ARG(1); //0 = Off, 1 = on.
 					newanim->loop[1] = GET_INT_ARG(2); //Loop to frame.
 					newanim->loop[2] = GET_INT_ARG(3); //Loop end frame.
 					break;
-				case CMD_ANIMHEIGHT:	
+				case CMD_MODEL_ANIMHEIGHT:	
 					newanim->height = GET_INT_ARG(1);
 					break;
-				case CMD_DELAY:	
+				case CMD_MODEL_DELAY:	
 					delay = GET_INT_ARG(1);
 					break;
-				case CMD_OFFSET:
+				case CMD_MODEL_OFFSET:
 					offset[0] = GET_INT_ARG(1);
 					offset[1] = GET_INT_ARG(2);
 					break;
-				case CMD_SHADOWCOORDS:
+				case CMD_MODEL_SHADOWCOORDS:
 					shadow_xz[0] = GET_INT_ARG(1);
 					shadow_xz[1] = GET_INT_ARG(2);
 					shadow_set=1;
 					break;
-				case CMD_ENERGYCOST: case CMD_MPCOST:
+				case CMD_MODEL_ENERGYCOST: case CMD_MODEL_MPCOST:
 					newanim->energycost[0] = GET_INT_ARG(1);
 					newanim->energycost[1] = GET_INT_ARG(2);
 					newanim->energycost[2] = GET_INT_ARG(3);
 					break;
-				case CMD_MPONLY:	
+				case CMD_MODEL_MPONLY:	
 					newanim->energycost[1] = GET_INT_ARG(1);
 					break;
-				case CMD_CHARGETIME:
+				case CMD_MODEL_CHARGETIME:
 					newanim->chargetime = GET_FLOAT_ARG(1);
 					break;
-				case CMD_DIVE:	//dive kicks
+				case CMD_MODEL_DIVE:	//dive kicks
 					newanim->dive[0] = GET_FLOAT_ARG(1);
 					newanim->dive[1] = GET_FLOAT_ARG(2);
 					break;
-				case CMD_DIVE1:
+				case CMD_MODEL_DIVE1:
 					newanim->dive[0] = GET_FLOAT_ARG(1);
 					break;
-				case CMD_DIVE2:	
+				case CMD_MODEL_DIVE2:	
 					newanim->dive[1] = GET_FLOAT_ARG(1);
 					break;
-				case CMD_ATTACKONE:
+				case CMD_MODEL_ATTACKONE:
 					newanim->attackone = GET_INT_ARG(1);
 					break;
-				case CMD_COUNTERATTACK:	
+				case CMD_MODEL_COUNTERATTACK:	
 					attack.counterattack = GET_INT_ARG(1);
 					break;
-				case CMD_THROWFRAME:	case CMD_PSHOTFRAME: case CMD_PSHOTFRAMEW: case CMD_PSHOTFRAMENO:
+				case CMD_MODEL_THROWFRAME:	case CMD_MODEL_PSHOTFRAME: case CMD_MODEL_PSHOTFRAMEW: case CMD_MODEL_PSHOTFRAMENO:
 					newanim->throwframe = GET_INT_ARG(1);
 					newanim->throwa = GET_INT_ARG(2);
 					if(!newanim->throwa) 
@@ -6290,30 +6290,30 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					else if(newanim->throwa == -1)
 						newanim->throwa = 0;
 					break;
-				case CMD_SHOOTFRAME:
+				case CMD_MODEL_SHOOTFRAME:
 					newanim->shootframe = GET_INT_ARG(1);
 					newanim->throwa = GET_INT_ARG(2);
 					if(newanim->throwa == -1) 
 						newanim->throwa = 0;
 					break;
-				case CMD_TOSSFRAME: case CMD_PBOMBFRAME:
+				case CMD_MODEL_TOSSFRAME: case CMD_MODEL_PBOMBFRAME:
 					newanim->tossframe = GET_INT_ARG(1);
 					newanim->throwa = GET_INT_ARG(2);
 					if(newanim->throwa < 0) newanim->throwa = -1;
 					break;					
-				case CMD_CUSTKNIFE: case CMD_CUSTPSHOT: case CMD_CUSTPSHOTW:
+				case CMD_MODEL_CUSTKNIFE: case CMD_MODEL_CUSTPSHOT: case CMD_MODEL_CUSTPSHOTW:
 					newanim->custknife= get_cached_model_index(GET_ARG(1));
 					break;
-				case CMD_CUSTPSHOTNO:
+				case CMD_MODEL_CUSTPSHOTNO:
 					newanim->custpshotno= get_cached_model_index(GET_ARG(1));
 					break;
-				case CMD_CUSTBOMB: case CMD_CUSTPBOMB:
+				case CMD_MODEL_CUSTBOMB: case CMD_MODEL_CUSTPBOMB:
 					newanim->custbomb= get_cached_model_index(GET_ARG(1));
 					break;
-				case CMD_CUSTSTAR:					
+				case CMD_MODEL_CUSTSTAR:					
 					newanim->custstar= get_cached_model_index(GET_ARG(1));
 					break;
-				case CMD_JUMPFRAME:
+				case CMD_MODEL_JUMPFRAME:
 					{
 						newanim->jumpframe = GET_INT_ARG(1);
 						newanim->jumpv = GET_FLOAT_ARG(2);    // Added so movement can be customized for jumpframes
@@ -6357,19 +6357,19 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						
 					}
 					break;
-				case CMD_BOUNCEFACTOR:	
+				case CMD_MODEL_BOUNCEFACTOR:	
 					newanim->bounce = GET_FLOAT_ARG(1);
 					break;
-				case CMD_LANDFRAME:
+				case CMD_MODEL_LANDFRAME:
 					newanim->landframe[0] = GET_INT_ARG(1);
 					value = GET_ARG(2);
 					if(value[0]) newanim->landframe[1] = get_cached_model_index(value);
 					else newanim->landframe[1] = -1;
 					break;
-				case CMD_DROPFRAME:
+				case CMD_MODEL_DROPFRAME:
 					newanim->dropframe = GET_INT_ARG(1);
 					break;
-				case CMD_CANCEL:
+				case CMD_MODEL_CANCEL:
 					{
 						int i;                                                                   // OX. Modified copy/paste of COM settings code
 						int t;
@@ -6427,39 +6427,39 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						if(newchar->specials_loaded > max_freespecials) shutdown(1, "Too many Freespecials and/or Cancels. Please increase Maxfreespecials", value); // OX. This is to catch freespecials that use same animation.
 					}
 					break;
-				case CMD_SOUND:
+				case CMD_MODEL_SOUND:
 					soundtoplay = sound_load_sample(GET_ARG(1), packfile, 0);
 					break;
-				case CMD_HITFX:
+				case CMD_MODEL_HITFX:
 					attack.hitsound = sound_load_sample(GET_ARG(1), packfile, 0);
 					break;
-				case CMD_HITFLASH:
+				case CMD_MODEL_HITFLASH:
 					value = GET_ARG(1);
 					if(stricmp(value, "none")==0) attack.hitflash = -1;
 					else attack.hitflash = get_cached_model_index(value);
 					break;
-				case CMD_BLOCKFLASH:
+				case CMD_MODEL_BLOCKFLASH:
 					value = GET_ARG(1);
 					if(stricmp(value, "none")==0) attack.blockflash = -1;
 					else attack.blockflash = get_cached_model_index(value);
 					break;
-				case CMD_BLOCKFX:
+				case CMD_MODEL_BLOCKFX:
 					attack.blocksound = sound_load_sample(GET_ARG(1), packfile, 0);
 					break;
-				case CMD_FASTATTACK:
+				case CMD_MODEL_FASTATTACK:
 					newanim->fastattack = GET_INT_ARG(1);
 					break;
-				case CMD_BBOX:	
+				case CMD_MODEL_BBOX:	
 					bbox[0] = GET_INT_ARG(1);
 					bbox[1] = GET_INT_ARG(2);
 					bbox[2] = GET_INT_ARG(3);
 					bbox[3] = GET_INT_ARG(4);
 					bbox[4] = GET_INT_ARG(5);
 					break;
-				case CMD_BBOXZ:
+				case CMD_MODEL_BBOXZ:
 					bbox[4] = GET_INT_ARG(1);
 					break;
-				case CMD_PLATFORM:	
+				case CMD_MODEL_PLATFORM:	
 					//for(i=0;(GET_ARG(i+1)[0]; i++);
 					for(i=0;i<arglist.count && arglist.args[i] && arglist.args[i][0];i++);
 					if(i<8)
@@ -6469,7 +6469,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					else for(i=0; i<8; i++) platform[i] = GET_FLOAT_ARG(i+1);
 					break;
-				case CMD_DRAWMETHOD:
+				case CMD_MODEL_DRAWMETHOD:
 					// special effects
 					drawmethod.scalex = GET_INT_ARG(1);
 					drawmethod.scaley = GET_INT_ARG(2);
@@ -6496,14 +6496,14 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					drawmethod.flag = 1;
 					break;
-				case CMD_NODRAWMETHOD:
+				case CMD_MODEL_NODRAWMETHOD:
 					//disable special effects
 					drawmethod.flag = 0;
 					break;
-				case CMD_ATTACK: case CMD_ATTACK1:  case CMD_ATTACK2: case CMD_ATTACK3: 
-				case CMD_ATTACK4: case CMD_ATTACK5: case CMD_ATTACK6: case CMD_ATTACK7: 
-				case CMD_ATTACK8: case CMD_ATTACK9: case CMD_ATTACK10:
-				case CMD_SHOCK: case CMD_BURN: case CMD_STEAL: case CMD_FREEZE: case CMD_ITEMBOX:
+				case CMD_MODEL_ATTACK: case CMD_MODEL_ATTACK1:  case CMD_MODEL_ATTACK2: case CMD_MODEL_ATTACK3: 
+				case CMD_MODEL_ATTACK4: case CMD_MODEL_ATTACK5: case CMD_MODEL_ATTACK6: case CMD_MODEL_ATTACK7: 
+				case CMD_MODEL_ATTACK8: case CMD_MODEL_ATTACK9: case CMD_MODEL_ATTACK10:
+				case CMD_MODEL_SHOCK: case CMD_MODEL_BURN: case CMD_MODEL_STEAL: case CMD_MODEL_FREEZE: case CMD_MODEL_ITEMBOX:
 					abox[0] = GET_INT_ARG(1);
 					abox[1] = GET_INT_ARG(2);
 					abox[2] = GET_INT_ARG(3);
@@ -6553,10 +6553,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						attack.attack_type = tempInt+STA_ATKS-1;
 					}
 					break;
-				case CMD_ATTACKZ: case CMD_HITZ:
+				case CMD_MODEL_ATTACKZ: case CMD_MODEL_HITZ:
 					attack.attack_coords[4] = GET_INT_ARG(1);
 					break;
-				case CMD_BLAST:
+				case CMD_MODEL_BLAST:
 					abox[0] = GET_INT_ARG(1);
 					abox[1] = GET_INT_ARG(2);
 					abox[2] = GET_INT_ARG(3);
@@ -6573,67 +6573,67 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					attack.attack_coords[4] = GET_INT_ARG(9); // depth or z
 					attack.blast = 1;
 					break;
-				case CMD_DROPV:
+				case CMD_MODEL_DROPV:
 					// drop velocity add if the target is knocked down
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->dropv[0] = GET_FLOAT_ARG(1); // height add
 					pattack->dropv[1] = GET_FLOAT_ARG(2); // xdir add
 					pattack->dropv[2] = GET_FLOAT_ARG(3); // zdir add
 					break;
-				case CMD_OTG:	
+				case CMD_MODEL_OTG:	
 					// Over The Ground hit.
 					attack.otg = GET_INT_ARG(1);
 					break;
-				case CMD_JUGGLECOST:	
+				case CMD_MODEL_JUGGLECOST:	
 					// if cost >= opponents jugglepoints , we can juggle
 					attack.jugglecost = GET_INT_ARG(1);
 					break;
-				case CMD_GUARDCOST:
+				case CMD_MODEL_GUARDCOST:
 					// if cost >= opponents guardpoints , opponent will play guardcrush anim
 					attack.guardcost = GET_INT_ARG(1);
 					break;
-				case CMD_STUN:
+				case CMD_MODEL_STUN:
 					//Like Freeze, but no auto remap.
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->freeze = 1;
 					pattack->freezetime = GET_INT_ARG(1) * GAME_SPEED;
 					pattack->attack_drop = 0;
 					break;
-				case CMD_GRABIN:
+				case CMD_MODEL_GRABIN:
 					// fake grab distanse efffect, not link
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->grab =  GET_INT_ARG(1);
 					pattack->grab_distance = GET_FLOAT_ARG(2);
 					break;
-				case CMD_NOREFLECT:
+				case CMD_MODEL_NOREFLECT:
 					// only cost target's hp, don't knock down or cause pain, unless the target is killed
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->no_pain = GET_INT_ARG(1);
 					break;
-				case CMD_FORCEDIRECTION:
+				case CMD_MODEL_FORCEDIRECTION:
 					// the attack direction
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->force_direction = GET_INT_ARG(1);
 					break;
-				case CMD_DAMAGEONLANDING:
+				case CMD_MODEL_DAMAGEONLANDING:
 					// fake throw damage on landing
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->damage_on_landing = GET_INT_ARG(1);
 					pattack->blast = GET_INT_ARG(2);
 					break;
-				case CMD_SEAL:
+				case CMD_MODEL_SEAL:
 					// Disable special moves for specified time.
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->sealtime = GET_INT_ARG(1) * GAME_SPEED;
 					pattack->seal = GET_INT_ARG(2);
 					break;
-				case CMD_STAYDOWN:
+				case CMD_MODEL_STAYDOWN:
 					// Disable special moves for specified time.
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->staydown[0]    = GET_INT_ARG(1); //Risetime modifier.
 					pattack->staydown[1]    = GET_INT_ARG(2); //Riseattack time addition and toggle.
 					break;
-				case CMD_DOT:
+				case CMD_MODEL_DOT:
 					// Cause damage over time effect.
 					attack.dot_index  = GET_INT_ARG(1);  //Index.
 					attack.dot_time   = GET_INT_ARG(2);  //Time to expiration.
@@ -6641,51 +6641,51 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					attack.dot_force  = GET_INT_ARG(4);  //Amount per tick.
 					attack.dot_rate   = GET_INT_ARG(5);  //Tick delay.
 					break;
-				case CMD_FORCEMAP:	
+				case CMD_MODEL_FORCEMAP:	
 					// force color map change for specified time
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->forcemap = GET_INT_ARG(1);
 					pattack->maptime = GET_INT_ARG(2) * GAME_SPEED;
 					break;
-				case CMD_IDLE:
+				case CMD_MODEL_IDLE:
 					idle = GET_INT_ARG(1);
 					break;
-				case CMD_MOVE:
+				case CMD_MODEL_MOVE:
 					move = GET_INT_ARG(1);
 					break;
-				case CMD_MOVEZ:	
+				case CMD_MODEL_MOVEZ:	
 					movez = GET_INT_ARG(1);
 					break;
-				case CMD_MOVEA:
+				case CMD_MODEL_MOVEA:
 					movea = GET_INT_ARG(1);
 					break;
-				case CMD_SETA:
+				case CMD_MODEL_SETA:
 					seta = GET_INT_ARG(1);
 					break;
-				case CMD_FSHADOW:
+				case CMD_MODEL_FSHADOW:
 					frameshadow = GET_INT_ARG(1);
 					break;
-				case CMD_RANGE:
+				case CMD_MODEL_RANGE:
 					if(newanim==NULL) shutdown(1, "Cannot set range: no animation!");
 					newanim->range[0] = GET_INT_ARG(1);
 					newanim->range[1] = GET_INT_ARG(2);
 					break;
-				case CMD_RANGEZ:
+				case CMD_MODEL_RANGEZ:
 					if(newanim==NULL) shutdown(1, "Cannot set rangez: no animation!");
 					newanim->range[2] = GET_INT_ARG(1);
 					newanim->range[3] = GET_INT_ARG(2);
 					break;
-				case CMD_RANGEA:	
+				case CMD_MODEL_RANGEA:	
 					if(newanim==NULL) shutdown(1, "Cannot set rangea: no animation!");
 					newanim->range[4] = GET_INT_ARG(1);
 					newanim->range[5] = GET_INT_ARG(2);
 					break;
-				case CMD_RANGEB:
+				case CMD_MODEL_RANGEB:
 					if(newanim==NULL) shutdown(1, "Cannot set rangeb: no animation!");
 					newanim->range[6] = GET_INT_ARG(1);
 					newanim->range[7] = GET_INT_ARG(2);
 					break;
-				case CMD_FRAME:	
+				case CMD_MODEL_FRAME:	
 					{
 						if(newanim==NULL) shutdown(1, "Cannot add frame: animation not specified!");
 						peek = 0;
@@ -6773,7 +6773,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 								soundtoplay = -1;
 					}
 					break;
-				case CMD_ALPHAMASK:
+				case CMD_MODEL_ALPHAMASK:
 					if(newanim==NULL) shutdown(1, "Cannot add alpha mask: animation not specified!");
 					if(maskindex>=0) shutdown(1, "Cannot add alpha mask: a mask has already been specified for this frame!");
 					value = GET_ARG(1);
@@ -6782,46 +6782,46 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					index = loadsprite(value, offset[0], offset[1],PIXEL_8);//don't use palette for the mask
 					maskindex = index;
 					break;
-				case CMD_FLIPFRAME:
+				case CMD_MODEL_FLIPFRAME:
 					newanim->flipframe = GET_INT_ARG(1);
 					break;
-				case CMD_FOLLOWANIM:	
+				case CMD_MODEL_FOLLOWANIM:	
 					newanim->followanim = GET_INT_ARG(1);
 					if(newanim->followanim > max_follows) newanim->followanim = max_follows;
 					if(newanim->followanim < 0) newanim->followanim = 0;
 					break;
-				case CMD_FOLLOWCOND:
+				case CMD_MODEL_FOLLOWCOND:
 					newanim->followcond = GET_INT_ARG(1);
 					break;
-				case CMD_COUNTERFRAME:
+				case CMD_MODEL_COUNTERFRAME:
 					newanim->counterframe[0]	= GET_INT_ARG(1);
 					newanim->counterframe[1]	= GET_INT_ARG(1);
 					newanim->counterframe[2]	= GET_INT_ARG(2);
 					newanim->counterframe[3]	= GET_INT_ARG(3);
 					break;
-				case CMD_COUNTERRANGE:
+				case CMD_MODEL_COUNTERRANGE:
 					newanim->counterframe[0]	= GET_INT_ARG(1);
 					newanim->counterframe[1]	= GET_INT_ARG(2);
 					newanim->counterframe[2]	= GET_INT_ARG(3);
 					newanim->counterframe[3]	= GET_INT_ARG(4);
 					break;
-				case CMD_WEAPONFRAME:	
+				case CMD_MODEL_WEAPONFRAME:	
 					newanim->weaponframe    = tracemalloc("weaponframe", 2 * sizeof(newanim->weaponframe));
 					memset(newanim->weaponframe, 0, 2 * sizeof(newanim->weaponframe));
 					newanim->weaponframe[0] = GET_INT_ARG(1);
 					newanim->weaponframe[1] = GET_INT_ARG(2);
 					break;
-				case CMD_QUAKEFRAME:
+				case CMD_MODEL_QUAKEFRAME:
 					newanim->quakeframe[0] = GET_INT_ARG(1);
 					newanim->quakeframe[1] = GET_INT_ARG(2);
 					newanim->quakeframe[2] = GET_INT_ARG(3);
 					newanim->quakeframe[3] = 0;
 					break;
-				case CMD_SUBENTITY: case CMD_CUSTENTITY:
+				case CMD_MODEL_SUBENTITY: case CMD_MODEL_CUSTENTITY:
 					value = GET_ARG(1);
 					if(value[0]) newanim->subentity = get_cached_model_index(value);
 					break;
-				case CMD_SPAWNFRAME:
+				case CMD_MODEL_SPAWNFRAME:
 					newanim->spawnframe    = tracemalloc("spawnframe", 5 * sizeof(newanim->spawnframe));
 					memset(newanim->spawnframe, 0, 5 * sizeof(newanim->spawnframe));
 					newanim->spawnframe[0] = GET_FLOAT_ARG(1);
@@ -6830,7 +6830,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->spawnframe[3] = GET_FLOAT_ARG(4);
 					newanim->spawnframe[4] = GET_FLOAT_ARG(5);
 					break;
-				case CMD_SUMMONFRAME:
+				case CMD_MODEL_SUMMONFRAME:
 					newanim->summonframe    = tracemalloc("summonframe", 5 * sizeof(newanim->summonframe));
 					memset(newanim->summonframe, 0, 5 * sizeof(newanim->summonframe));
 					newanim->summonframe[0] = GET_FLOAT_ARG(1);
@@ -6839,10 +6839,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->summonframe[3] = GET_FLOAT_ARG(4);
 					newanim->summonframe[4] = GET_FLOAT_ARG(5);
 					break;
-				case CMD_UNSUMMONFRAME:
+				case CMD_MODEL_UNSUMMONFRAME:
 					newanim->unsummonframe = GET_INT_ARG(1);
 					break;
-				case CMD_AT_SCRIPT:	
+				case CMD_MODEL_AT_SCRIPT:	
 					if(ani_id < 0)  shutdown(1, "command '@script' must follow an animation! file: '%s'", filename);
 					if(!scriptbuf[0]){ // if empty, paste the main function text here
 						strcat(scriptbuf, pre_text);
@@ -6868,7 +6868,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					strcat(scriptbuf, endifid_text); // put back last  chars
 					strcat(scriptbuf, sur_text); // put back last  chars
 					break;
-				case CMD_AT_CMD:
+				case CMD_MODEL_AT_CMD:
 					//translate @cmd into script function call
 					if(ani_id < 0) shutdown(1, "command '@cmd' must follow an animation! file: '%s'", filename);
 					if(!scriptbuf[0]){ // if empty, paste the main function text here
