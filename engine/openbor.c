@@ -3413,46 +3413,46 @@ s_model * find_model(char *name)
 }
 
 // Use by player select menus
-s_model * nextplayermodel(s_model *current){
-    int i;
-    int curindex = -1;
-    int loops;
-    if(current){
-        // Find index of current player model
-        for(i=0; i<models_cached; i++){
-            if(model_cache[i].model == current){
-                curindex = i;
-                break;
-            }
-        }
-    }
-    // Find next player model (first one after current index)
-    for(i=curindex+1, loops=0; loops<models_cached; i++, loops++){
+s_model* nextplayermodel(s_model *current){
+	int i;
+	int curindex = -1;
+	int loops;
+	if(current){
+		// Find index of current player model
+		for(i=0; i<models_cached; i++){
+			if(model_cache[i].model == current){
+				curindex = i;
+				break;
+			}
+		}
+	}
+	// Find next player model (first one after current index)
+	for(i=curindex+1, loops=0; loops<models_cached; i++, loops++){
 		if(i >= models_cached) i = 0;
 		if(model_cache[i].model && model_cache[i].model->type==TYPE_PLAYER &&
 		  (allow_secret_chars || !model_cache[i].model->secret) && model_cache[i].selectable){
 			return model_cache[i].model;
 		}
-    }
-    shutdown(1, "Fatal: can't find any player models!");
-    return NULL;
+	}
+	shutdown(1, "Fatal: can't find any player models!");
+	return NULL;
 }
 
 // Use by player select menus
-s_model * prevplayermodel(s_model *current){
-    int i;
-    int curindex = -1;
-    int loops;
-    if(current){
-        // Find index of current player model
-        for(i=0; i<models_cached; i++){
-            if(model_cache[i].model == current){
-                curindex = i;
-                break;
-            }
-        }
-    }
-    // Find next player model (first one after current index)
+s_model* prevplayermodel(s_model *current){
+	int i;
+	int curindex = -1;
+	int loops;
+	if(current){
+		// Find index of current player model
+		for(i=0; i<models_cached; i++){
+			if(model_cache[i].model == current){
+				curindex = i;
+				break;
+			}
+		}
+	}
+	// Find next player model (first one after current index)
 	for(i=curindex-1, loops=0; loops<models_cached; i--, loops++){
 		if(i < 0) i = models_cached-1;
 		if(model_cache[i].model && model_cache[i].model->type==TYPE_PLAYER &&
@@ -3460,8 +3460,8 @@ s_model * prevplayermodel(s_model *current){
 			return model_cache[i].model;
 		}
 	}
-    shutdown(1, "Fatal: can't find any player models!");
-    return NULL;
+	shutdown(1, "Fatal: can't find any player models!");
+	return NULL;
 }
 
 // Reset All Player Models to on/off for Select Screen.
@@ -3501,7 +3501,7 @@ static void load_playable_list(char* buf)
 
 void alloc_frames(s_anim * anim, int fcount)
 {
-    anim->sprite = tracemalloc("anim->sprite", fcount * sizeof(anim->sprite));
+	anim->sprite = tracemalloc("anim->sprite", fcount * sizeof(anim->sprite));
 	anim->delay = tracemalloc("anim->delay", fcount * sizeof(anim->delay));
 	anim->vulnerable = tracemalloc("anim->vulnerable", fcount * sizeof(anim->vulnerable));
 	memset(anim->sprite, 0, fcount*sizeof(anim->sprite));
@@ -3511,46 +3511,46 @@ void alloc_frames(s_anim * anim, int fcount)
 
 void free_frames(s_anim * anim)
 {
-    int i;
+	int i;
 	if(anim->idle)			{tracefree(anim->idle);			 anim->idle = NULL;}
 	if(anim->seta)          {tracefree(anim->seta);          anim->seta = NULL;}
 	if(anim->move)          {tracefree(anim->move);          anim->move = NULL;}
 	if(anim->movez)         {tracefree(anim->movez);         anim->movez = NULL;}
-    if(anim->movea)         {tracefree(anim->movea);         anim->movea = NULL;}
+	if(anim->movea)         {tracefree(anim->movea);         anim->movea = NULL;}
 	if(anim->delay)         {tracefree(anim->delay);         anim->delay = NULL;}
 	if(anim->sprite)        {tracefree(anim->sprite);        anim->sprite = NULL;}
 	if(anim->platform)      {tracefree(anim->platform);      anim->platform = NULL;}
 	if(anim->vulnerable)    {tracefree(anim->vulnerable);    anim->vulnerable = NULL;}
-    if(anim->bbox_coords)   {tracefree(anim->bbox_coords);   anim->bbox_coords = NULL;}
-    if(anim->shadow)        {tracefree(anim->shadow);        anim->shadow = NULL;}
-    if(anim->shadow_coords) {tracefree(anim->shadow_coords); anim->shadow_coords = NULL;}
+	if(anim->bbox_coords)   {tracefree(anim->bbox_coords);   anim->bbox_coords = NULL;}
+	if(anim->shadow)        {tracefree(anim->shadow);        anim->shadow = NULL;}
+	if(anim->shadow_coords) {tracefree(anim->shadow_coords); anim->shadow_coords = NULL;}
 	if(anim->soundtoplay)   {tracefree(anim->soundtoplay);   anim->soundtoplay = NULL;}
 	if(anim->attacks)
-    {
-        for(i=0; i<anim->numframes; i++)
-        {
-            if(anim->attacks[i])
-            {
-                tracefree(anim->attacks[i]);
-                anim->attacks[i] = NULL;
-            }
-        }
-        tracefree(anim->attacks);
-        anim->attacks = NULL;
-    }
+	{
+		for(i=0; i<anim->numframes; i++)
+		{
+			if(anim->attacks[i])
+			{
+				tracefree(anim->attacks[i]);
+				anim->attacks[i] = NULL;
+			}
+		}
+		tracefree(anim->attacks);
+		anim->attacks = NULL;
+	}
 	if(anim->drawmethods)
-    {
-        for(i=0; i<anim->numframes; i++)
-        {
-            if(anim->drawmethods[i])
-            {
-                tracefree(anim->drawmethods[i]);
-                anim->drawmethods[i] = NULL;
-            }
-        }
-        tracefree(anim->drawmethods);
-        anim->drawmethods = NULL;
-    }
+	{
+		for(i=0; i<anim->numframes; i++)
+		{
+			if(anim->drawmethods[i])
+			{
+				tracefree(anim->drawmethods[i]);
+				anim->drawmethods[i] = NULL;
+			}
+		}
+		tracefree(anim->drawmethods);
+		anim->drawmethods = NULL;
+	}
 }
 
 s_anim_list *anim_list_delete(s_anim_list *list, int index)
@@ -3574,23 +3574,23 @@ void free_anim(s_anim * anim)
 	free_frames(anim);
 	if(anim->weaponframe)
 	{
-        tracefree(anim->weaponframe);
-        anim->weaponframe = NULL;
-    }
+		tracefree(anim->weaponframe);
+		anim->weaponframe = NULL;
+	}
 	if(anim->spawnframe)
 	{
-        tracefree(anim->spawnframe);
-        anim->spawnframe = NULL;
-    }
+		tracefree(anim->spawnframe);
+		anim->spawnframe = NULL;
+	}
 	if(anim->summonframe)
 	{
-        tracefree(anim->summonframe);
-        anim->summonframe = NULL;
-    }
-    if(anim){
-        tracefree(anim);
-        anim = NULL;
-    }
+		tracefree(anim->summonframe);
+		anim->summonframe = NULL;
+	}
+	if(anim){
+		tracefree(anim);
+		anim = NULL;
+	}
 }
 
 s_model_map *model_map_delete(s_model_map *map, size_t size)
@@ -3729,8 +3729,8 @@ s_anim * alloc_anim()
 	s_anim_list *curr = NULL, *head = NULL;
 	curr = tracemalloc("anim_list", sizeof(s_anim_list));
 	curr->anim = tracemalloc("curr->anim", sizeof(s_anim));
-    if(curr == NULL || curr->anim == NULL) return NULL;
-    memset(curr->anim, 0, sizeof(s_anim));
+	if(curr == NULL || curr->anim == NULL) return NULL;
+	memset(curr->anim, 0, sizeof(s_anim));
 	if(anim_list == NULL){
 		anim_list = curr;
 		anim_list->next = NULL;
@@ -3740,8 +3740,8 @@ s_anim * alloc_anim()
 		anim_list = curr;
 		anim_list->next = head;
 	}
-    ++anims_loaded;
-    return anim_list->anim;
+	++anims_loaded;
+	return anim_list->anim;
 }
 
 
@@ -3859,6 +3859,9 @@ int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned 
 	return a->numframes;
 }
 
+
+// ok this func only seems to overwrite the name which was assigned from models.txt with the one
+// in the models own text file.
 void _peek_model_name(int index)
 {
 	size_t size = 0;
@@ -3867,6 +3870,7 @@ void _peek_model_name(int index)
 	char *command, *value;
 	ArgList arglist;
 	char argbuf[MAX_ARG_LEN+1] = "";
+	txtCommands cmd;
 
 	if(buffer_pakfile(model_cache[index].path, &buf, &size)!=1) return;
 
@@ -3874,8 +3878,10 @@ void _peek_model_name(int index)
 	{
 		ParseArgs(&arglist,buf+pos,argbuf);		
 		command = GET_ARG(0);
-		if(command[0]){
-			if(stricmp(command, "name")==0)
+		
+		if(command && command[0]){
+			cmd = getCommand(cmdlist, command);
+			if(cmd == CMD_NAME)
 			{
 				value = GET_ARG(1);
 				tracefree(model_cache[index].name);
@@ -3921,15 +3927,19 @@ void cache_model(char *name, char *path, int flag)
 	printf("Cacheing '%s' from %s\n", name, path);
 	prepare_cache_map(models_cached+1);
 	memset(&model_cache[models_cached], 0, sizeof(s_modelcache));
+	
 	len = strlen(name);
 	model_cache[models_cached].name = tracemalloc("model->name", len + 1);
 	strcpy(model_cache[models_cached].name, name);
 	model_cache[models_cached].name[len] = 0;
+	
 	len = strlen(path);
 	model_cache[models_cached].path = tracemalloc("model->path", len + 1);
 	strcpy(model_cache[models_cached].path, path);
 	model_cache[models_cached].path[len] = 0;
+	
 	model_cache[models_cached].loadflag = flag;
+	
 	_peek_model_name(models_cached);
 	++models_cached;
 }
@@ -7134,7 +7144,7 @@ int load_models()
 	ptrdiff_t pos;
 	char * command;
 	char value1[128];
-	char value2[128];
+
 	char tmpBuff[128] = {""};
 	int maxanim = MAX_ANIS; // temporary counter
 	
@@ -7330,9 +7340,7 @@ int load_models()
 			}
 			else if(stricmp(command, "load")==0){
 				// Add path to cache list
-				strncpy(value1, GET_ARG(1), 127);
-				strncpy(value2, GET_ARG(2), 127);
-				cache_model(value1, value2, 1);
+				cache_model(GET_ARG(1), GET_ARG(2), 1);
 			}
 			else if(stricmp(command, "colourselect")==0){   // 6-2-2005 if string for colourselect found
 				colourselect =  GET_INT_ARG(1);          //  6-2-2005
@@ -7363,9 +7371,7 @@ int load_models()
 			}
 			else if(stricmp(command, "know")==0){
 				// Just add path to cache list
-				strncpy(value1, GET_ARG(1), 127);
-				strncpy(value2, GET_ARG(2), 127);
-				cache_model(value1, value2, 0);
+				cache_model(GET_ARG(1), GET_ARG(2), 0);
 			}
 			else if(stricmp(command, "noaircancel")==0){
 				noaircancel = GET_INT_ARG(1);
