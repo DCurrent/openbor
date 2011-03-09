@@ -46,7 +46,7 @@ size_t load_ticks = 0; // counter while loading. we use it to only update the sc
 
 
 int startup_done = 0; // startup is only called when a game is loaded. so when exitting from the menu we need a way to figure out which resources to free.
-List* cmdlist;
+List* modelcmdlist;
 
 
 //see types.h
@@ -3048,7 +3048,7 @@ void freepanels(){
     panel_height = 0;
 }
 
-s_sprite * loadsprite2(char *filename, int* width, int* height)
+s_sprite* loadsprite2(char *filename, int* width, int* height)
 {
     size_t size;
     s_bitmap *bitmap = NULL;
@@ -3870,7 +3870,7 @@ void _peek_model_name(int index)
 	char *command, *value;
 	ArgList arglist;
 	char argbuf[MAX_ARG_LEN+1] = "";
-	txtCommands cmd;
+	modelCommands cmd;
 
 	if(buffer_pakfile(model_cache[index].path, &buf, &size)!=1) return;
 
@@ -3880,7 +3880,7 @@ void _peek_model_name(int index)
 		command = GET_ARG(0);
 		
 		if(command && command[0]){
-			cmd = getCommand(cmdlist, command);
+			cmd = getModelCommand(modelcmdlist, command);
 			if(cmd == CMD_NAME)
 			{
 				value = GET_ARG(1);
@@ -4683,7 +4683,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	static const char* endcall_text = //end of function call
 		");\n";
 	
-	txtCommands cmd;	
+	modelCommands cmd;	
 		
 	// Model already loaded but we might want to unload after level is completed.
 	if((tempmodel=find_model(name))!=NULL) {
@@ -4732,9 +4732,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 			lc(command, commandlen);
 			
 			if(!command) 
-				cmd = (txtCommands) 0;
+				cmd = (modelCommands) 0;
 			else	
-				cmd = getCommand(cmdlist, command);
+				cmd = getModelCommand(modelcmdlist, command);
 			
 			switch(cmd) {
 				case CMD_NAME: 
@@ -8656,7 +8656,7 @@ void load_level(char *filename){
 			}
 			else if(stricmp(command, "load")==0){
 				#ifdef DEBUG				
-				printf("loadlevel: load %s, %s\n", GET_ARG(1), filename);
+				printf("load_level: load %s, %s\n", GET_ARG(1), filename);
 				#endif
 				tempmodel = find_model(GET_ARG(1));
 				if (!tempmodel)
@@ -9086,7 +9086,7 @@ void load_level(char *filename){
 				// Load model (if not loaded already)
 				cached_model = find_model(GET_ARG(1));
 				#ifdef DEBUG				
-				printf("loadlevel: spawn %s, %s, cached: %p\n", GET_ARG(1), filename, cached_model);
+				printf("load_level: spawn %s, %s, cached: %p\n", GET_ARG(1), filename, cached_model);
 				#endif				
 				if(cached_model) tempmodel = cached_model;
 				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
@@ -22987,7 +22987,7 @@ void openborMain()
 #endif
 
 	printf("OpenBoR %s, Compile Date: " __DATE__ "\n\n", VERSION);
-	cmdlist = createCommandList();
+	modelcmdlist = createModelCommandList();
 
 #if XBOX
 	loadsettings();
@@ -23233,7 +23233,7 @@ void openborMain()
 		update(0,0);
 	}
 
-	freeCommandList(cmdlist); // moved here because list is not initialized if shutdown is initiated from inside the menu
+	freeModelCommandList(modelcmdlist); // moved here because list is not initialized if shutdown is initiated from inside the menu
 	shutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
 }
 

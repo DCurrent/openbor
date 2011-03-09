@@ -1,14 +1,14 @@
 #include "commands.h"
 
-txtCommands getCommand(List* list, char* usercommand) {
+modelCommands getModelCommand(List* list, char* usercommand) {
 	Node* n = List_SearchName(list, (LPCSTR) usercommand);
 	if(n)
-		return (txtCommands) n->value;
+		return (modelCommands) n->value;
 	else
-		return (txtCommands) 0;
+		return (modelCommands) 0;
 }
 
-List* createCommandList(void) {
+List* createModelCommandList(void) {
 	List* result = tracemalloc("command list", sizeof(List));
 	assert(result);
 	List_Init(result);
@@ -290,7 +290,7 @@ List* createCommandList(void) {
 	return result;
 }
 
-void freeCommandList(List* list) {
+void freeModelCommandList(List* list) {
 	List_Clear(list);
 	tracefree(list);
 	list = NULL;

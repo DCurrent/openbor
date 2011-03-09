@@ -12,7 +12,7 @@
 
 #include "List.h"
 
-typedef enum txtCommand {
+typedef enum modelCommand {
 	CMD_NAME=1, 
 	CMD_TYPE, 
 	CMD_SUBTYPE, 
@@ -285,10 +285,10 @@ typedef enum txtCommand {
 	CMD_AT_CMD,
 	CMD_MPCOST,
 
-} txtCommands;
+} modelCommands;
 
-List* createCommandList(void);
-txtCommands getCommand(List* list, char* usercommand);
-void freeCommandList(List* list);
+List* createModelCommandList(void);
+modelCommands getModelCommand(List* list, char* usercommand);
+void freeModelCommandList(List* list);
 
 #endif
