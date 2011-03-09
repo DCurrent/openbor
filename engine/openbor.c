@@ -8856,38 +8856,21 @@ void load_level(char *filename){
 				level->cameraxoffset = GET_INT_ARG(1);
 				level->camerazoffset = GET_INT_ARG(2);
 				break;
-			case CMD_LEVEL_SPAWN1:
-				level->spawn[0][0] = GET_INT_ARG(1);
-				level->spawn[0][1] = GET_INT_ARG(2);
-				level->spawn[0][2] = GET_INT_ARG(3);
+			case CMD_LEVEL_SPAWN1: case CMD_LEVEL_SPAWN2: case CMD_LEVEL_SPAWN3: case CMD_LEVEL_SPAWN4:
+				switch(cmd) {
+					case CMD_LEVEL_SPAWN1: i = 0; break;
+					case CMD_LEVEL_SPAWN2: i = 1; break;
+					case CMD_LEVEL_SPAWN3: i = 2; break;
+					case CMD_LEVEL_SPAWN4: i = 3; break;
+					default:
+						assert(0);
+				}
+				level->spawn[i][0] = GET_INT_ARG(1);
+				level->spawn[i][1] = GET_INT_ARG(2);
+				level->spawn[i][2] = GET_INT_ARG(3);
 
-				if(level->spawn[0][1] > 232 || level->spawn[0][1] < 0) level->spawn[0][1] = 232;
-
-				if(level->spawn[0][2] < 0) level->spawn[0][2] = 300;
-				break;
-			case CMD_LEVEL_SPAWN2:
-				level->spawn[1][0] = GET_INT_ARG(1);
-				level->spawn[1][1] = GET_INT_ARG(2);
-				level->spawn[1][2] = GET_INT_ARG(3);
-
-				if(level->spawn[1][1] > 232 || level->spawn[1][1] < 0) level->spawn[1][1] = 232;
-				if(level->spawn[1][2] < 0) level->spawn[1][2] = 300;
-				break;
-			case CMD_LEVEL_SPAWN3:
-				level->spawn[2][0] = GET_INT_ARG(1);
-				level->spawn[2][1] = GET_INT_ARG(2);
-				level->spawn[2][2] = GET_INT_ARG(3);
-
-				if(level->spawn[2][1] > 232 || level->spawn[2][1] < 0) level->spawn[2][1] = 232;
-				if(level->spawn[2][2] < 0) level->spawn[2][2] = 300;
-				break;
-			case CMD_LEVEL_SPAWN4:	
-				level->spawn[3][0] = GET_INT_ARG(1);
-				level->spawn[3][1] = GET_INT_ARG(2);
-				level->spawn[3][2] = GET_INT_ARG(3);
-
-				if(level->spawn[3][1] > 232 || level->spawn[3][1] < 0) level->spawn[3][1] = 232;
-				if(level->spawn[3][2] < 0) level->spawn[3][2] = 300;
+				if(level->spawn[i][1] > 232 || level->spawn[i][1] < 0) level->spawn[i][1] = 232;
+				if(level->spawn[i][2] < 0) level->spawn[i][2] = 300;
 				break;
 			case CMD_LEVEL_FRONTPANEL:
 				value = GET_ARG(1);
@@ -9163,56 +9146,26 @@ void load_level(char *filename){
 				next.per1 = GET_INT_ARG(2);
 				next.per2 = GET_INT_ARG(3);
 				break;
-			case CMD_LEVEL_ITEM:
+			case CMD_LEVEL_ITEM: case CMD_LEVEL_2PITEM: case CMD_LEVEL_3PITEM: case CMD_LEVEL_4PITEM:
+				switch(cmd) {
+					case CMD_LEVEL_ITEM:   next.itemplayer_count = 0; break;
+					case CMD_LEVEL_2PITEM: next.itemplayer_count = 1; break;
+					case CMD_LEVEL_3PITEM: next.itemplayer_count = 2; break;
+					case CMD_LEVEL_4PITEM: next.itemplayer_count = 3; break;
+					default: assert(0);
+				}
 				// Item to be contained by new entry
 				next.itemplayer_count = 0;
 				// Load model (if not loaded already)
 				cached_model = find_model(GET_ARG(1));
-				if(cached_model) tempmodel = cached_model;
-				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
+				if(cached_model) 
+					tempmodel = cached_model;
+				else 
+					tempmodel = load_cached_model(GET_ARG(1), filename, 0);
 				if(tempmodel)
 				{
 					next.item = tempmodel->name;
 					next.itemindex = get_cached_model_index(next.item);
-				}
-				break;
-			case CMD_LEVEL_2PITEM:
-				// Item only for 2p game
-				next.itemplayer_count = 1;
-				// Load model (if not loaded already)  // 2007-2-12, inserted by UTunnels				
-				cached_model = find_model(GET_ARG(1));
-				if(cached_model) tempmodel = cached_model;
-				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
-				if(tempmodel)
-				{
-					next.item = tempmodel->name;
-					next.itemindex = get_cached_model_index(next.item);
-				}
-				break;
-			case CMD_LEVEL_3PITEM:
-				// Item only for 2p game
-				next.itemplayer_count = 2;
-				// Load model (if not loaded already)  // 2007-2-12, inserted by UTunnels
-				cached_model = find_model(GET_ARG(1));
-						if(cached_model) tempmodel = cached_model;
-						else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
-				if(tempmodel)
-				{
-				next.item = tempmodel->name;
-				next.itemindex = get_cached_model_index(next.item);
-				}
-				break;
-			case CMD_LEVEL_4PITEM:	
-				// Item only for 2p game
-				next.itemplayer_count = 3;
-				// Load model (if not loaded already) // 2007-2-12, inserted by UTunnels
-						cached_model = find_model(GET_ARG(1));
-						if(cached_model) tempmodel = cached_model;
-						else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
-				if(tempmodel)
-				{
-				next.item = tempmodel->name;
-				next.itemindex = get_cached_model_index(next.item);
 				}
 				break;
 			case CMD_LEVEL_ITEMMAP:
