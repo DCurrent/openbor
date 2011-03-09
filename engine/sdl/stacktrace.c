@@ -84,8 +84,12 @@ void handleFatalSignal(int sig_num, siginfo_t * info, void * ucontext)
 
 	uc = (sig_ucontext_t*)ucontext;
 
+#ifndef AMD64
 	// Get the address at the time the signal was raised from the EIP (x86)
 	caller_address = (void*)uc->uc_mcontext.eip;   
+#else
+	caller_address = (void*)uc->uc_mcontext.rip;
+#endif
 
 	printf("Received signal %d (%s), address is %p from %p\n\n", sig_num, 
 		strsignal(sig_num), info->si_addr, (void*)caller_address);
