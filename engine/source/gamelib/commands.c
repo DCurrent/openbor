@@ -366,6 +366,7 @@ List* createLevelCommandList(void) {
 	LIST_ADD(CMD_LEVEL_SHADOWALPHA, "shadowalpha");
 	LIST_ADD(CMD_LEVEL_LIGHT, "light");
 	LIST_ADD(CMD_LEVEL_SCROLLZ, "scrollz");
+	LIST_ADD(CMD_LEVEL_SCROLLX, "scrollx");
 	LIST_ADD(CMD_LEVEL_BLOCKADE, "blockade");
 	LIST_ADD(CMD_LEVEL_SETPALETTE, "setpalette");
 	LIST_ADD(CMD_LEVEL_GROUP, "group");
@@ -397,6 +398,7 @@ List* createLevelCommandList(void) {
 	LIST_ADD(CMD_LEVEL_AGGRESSION, "aggression");
 	LIST_ADD(CMD_LEVEL_CREDIT, "credit");
 	LIST_ADD(CMD_LEVEL_ITEMTRANS, "itemtrans");
+	LIST_ADD(CMD_LEVEL_ITEMALPHA, "itemalpha");
 	LIST_ADD(CMD_LEVEL_COORDS, "coords");
 	LIST_ADD(CMD_LEVEL_SPAWNSCRIPT, "spawnscript");
 	

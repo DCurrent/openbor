@@ -8539,6 +8539,7 @@ void load_level(char *filename){
 	u32 musicOffset = 0;
 	ArgList arglist;
 	char argbuf[MAX_ARG_LEN+1] = "";
+	levelCommands cmd;
 
 	unload_level();
 
@@ -8610,19 +8611,23 @@ void load_level(char *filename){
 	while(pos<size){
 		ParseArgs(&arglist,buf+pos,argbuf);		
 		command = GET_ARG(0);
-		if(command[0]){
-			if(stricmp(command, "loadingbg")==0){
+		if (command && command[0])
+			cmd = getLevelCommand(levelcmdlist, command);
+		else
+			cmd = (levelCommands) 0;
+		switch(cmd) {
+			case CMD_LEVEL_LOADINGBG:
 				load_background(GET_ARG(1), 0);
 				for(i=0; i<6; i++) bgPosi[i] = GET_INT_ARG(i+2);
 				standard_palette(1);
 				lifebar_colors();
 				init_colourtable();
-			}
-			else if(stricmp(command, "musicfade")==0){
+				break;
+			case CMD_LEVEL_MUSICFADE:	
 				memset(&next,0,sizeof(s_spawn_entry));
 				next.musicfade = GET_FLOAT_ARG(1);
-			}
-			else if(stricmp(command, "music")==0){
+				break;
+			case CMD_LEVEL_MUSIC:	
 				value = GET_ARG(1);
 				strncpy(string, value, 128);
 				musicOffset = atol(GET_ARG(2));
@@ -8650,12 +8655,11 @@ void load_level(char *filename){
 					}
 					pos = oldpos;
 				}
-			}
-			else if(stricmp(command, "allowselect")==0)
-			{
+				break;
+			case CMD_LEVEL_ALLOWSELECT:
 				load_playable_list(buf+pos);
-			}
-			else if(stricmp(command, "load")==0){
+				break;
+			case CMD_LEVEL_LOAD:
 				#ifdef DEBUG				
 				printf("load_level: load %s, %s\n", GET_ARG(1), filename);
 				#endif
@@ -8664,8 +8668,8 @@ void load_level(char *filename){
 					load_cached_model(GET_ARG(1), filename, GET_INT_ARG(2));
 				else
 					update_model_loadflag(tempmodel, GET_INT_ARG(2));
-			}
-			else if(stricmp(command, "background")==0){
+				break;
+			case CMD_LEVEL_BACKGROUND:	
 				value = GET_ARG(1);
 				strncpy(bgPath, value, strlen(value)+1);
 				level->bglayers[0].type = bg_screen;
@@ -8695,8 +8699,8 @@ void load_level(char *filename){
 				if((value=GET_ARG(9))[0]==0) level->bglayers[0].zrepeat = 5000;
 
 				if(level->numbglayers==0) level->numbglayers = 1;
-			}
-			else if(stricmp(command, "bglayer") == 0){
+				break;
+			case CMD_LEVEL_BGLAYER:	
 				if(level->numbglayers >= LEVEL_MAX_BGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_BGLAYERS);
 				if(level->numbglayers==0) level->numbglayers = 1; // reserve for background
 
@@ -8727,8 +8731,8 @@ void load_level(char *filename){
 
 				load_bglayer(GET_ARG(1), level->numbglayers);
 				level->numbglayers++;
-			}
-			else if(stricmp(command, "fglayer") == 0){
+				break;
+			case CMD_LEVEL_FGLAYER:	
 				if(level->numfglayers >= LEVEL_MAX_FGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_FGLAYERS);
 
 				level->fglayers[level->numfglayers].z = GET_INT_ARG(2); // z
@@ -8760,14 +8764,14 @@ void load_level(char *filename){
 
 				load_fglayer(GET_ARG(1), level->numfglayers);
 				level->numfglayers++;
-			}
-			else if(stricmp(command, "water")==0){
+				break;
+			case CMD_LEVEL_WATER:	
 				load_texture(GET_ARG(1));
 				i = GET_INT_ARG(2);
 				if(i<1) i = 1;
 				texture_set_wave((float)i);
-			}
-			else if(stricmp(command, "direction")==0){
+				break;
+			case CMD_LEVEL_DIRECTION:	
 				value = GET_ARG(1);
 				if(stricmp(value, "up")==0) level->scrolldir = SCROLL_UP;
 				else if(stricmp(value, "down")==0) level->scrolldir = SCROLL_DOWN;
@@ -8779,75 +8783,80 @@ void load_level(char *filename){
 				else if(stricmp(value, "out")==0) level->scrolldir = SCROLL_OUTWARD;
 				else if(stricmp(value, "inout")==0) level->scrolldir = SCROLL_INOUT;
 				else if(stricmp(value, "outin")==0) level->scrolldir = SCROLL_OUTIN;
-			}
-			else if(stricmp(command, "facing")==0){
+				break;
+			case CMD_LEVEL_FACING:	
 				level->facing = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "rock")==0){
+				break;
+			case CMD_LEVEL_ROCK:	
 				level->rocking = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "bgspeed")==0){
+				break;
+			case CMD_LEVEL_BGSPEED:	
 				level->bgspeed = GET_FLOAT_ARG(1);
 				if(GET_INT_ARG(2))level->bgspeed*=-1;
-			}
-			else if(stricmp(command, "mirror")==0){
+				break;
+			case CMD_LEVEL_MIRROR:	
 				level->mirror = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "bossmusic")==0){
+				break;
+			case CMD_LEVEL_BOSSMUSIC:	
 				strncpy(level->bossmusic, GET_ARG(1), 255);
 				level->bossmusic_offset = atol(GET_ARG(2));
-			}
-			else if(stricmp(command, "nopause")==0){
+				break;
+			case CMD_LEVEL_NOPAUSE:
 				nopause = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "noscreenshot")==0){
+				break;
+			case CMD_LEVEL_NOSCREENSHOT:
 				noscreenshot = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "settime")==0){    // If settime is found, overwrite the default 100 for time limit
+				break;
+			case CMD_LEVEL_SETTIME:
+				// If settime is found, overwrite the default 100 for time limit
 				if(GET_INT_ARG(1) > 100 || GET_INT_ARG(1) < 0) level->settime = 100;
 				else level->settime = GET_INT_ARG(1); // Feb 25, 2005 - Time limit loaded from individual .txt file
-			}
-			else if(stricmp(command, "setweap")==0){    // Specify a weapon for each level
+				break;
+			case CMD_LEVEL_SETWEAP:
+				// Specify a weapon for each level
 				level->setweap = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "notime")==0){    // Flag to if the time should be displayed 1 = no, else yes
+				break;
+			case CMD_LEVEL_NOTIME:
+				// Flag to if the time should be displayed 1 = no, else yes
 				level->notime = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "noreset")==0){    // Flag to if the time should be reset when players respawn 1 = no, else yes
+				break;
+			case CMD_LEVEL_NORESET:	
+				// Flag to if the time should be reset when players respawn 1 = no, else yes
 				level->noreset = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "noslow")==0){    // If set, level will not slow down when bosses are defeated
+				break;
+			case CMD_LEVEL_NOSLOW:
+				// If set, level will not slow down when bosses are defeated
 				level->noslow = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "type")==0){
+				break;
+			case CMD_LEVEL_TYPE:
 				level->type = GET_INT_ARG(1);    // Level type - 1 = bonus, else regular
 
 				if(GET_INT_ARG(2)) level->nospecial = GET_INT_ARG(2);    // Can use specials during bonus levels (default 0 - yes)
 				if(GET_INT_ARG(3)) level->nohurt = GET_INT_ARG(3);    // Can hurt other players during bonus levels (default 0 - yes)
-			}
-			else if(stricmp(command, "nohit")==0){
+				break;
+			case CMD_LEVEL_NOHIT:
 				level->nohit = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "gravity")==0){
+				break;
+			case CMD_LEVEL_GRAVITY:
 				level->gravity = GET_FLOAT_ARG(1);
 				level->gravity /= 100;
-			}
-			else if(stricmp(command, "maxfallspeed")==0){
+				break;
+			case CMD_LEVEL_MAXFALLSPEED:
 				level->maxfallspeed = GET_FLOAT_ARG(1);
 				level->maxfallspeed /= 10;
-			}
-			else if(stricmp(command, "maxtossspeed")==0){
+				break;
+			case CMD_LEVEL_MAXTOSSSPEED:
 				level->maxtossspeed = GET_FLOAT_ARG(1);
 				level->maxtossspeed /= 10;
-			}
-			else if(stricmp(command, "cameratype")==0){
+				break;
+			case CMD_LEVEL_CAMERATYPE:
 				cameratype = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "cameraoffset")==0){
+				break;
+			case CMD_LEVEL_CAMERAOFFSET:
 				level->cameraxoffset = GET_INT_ARG(1);
 				level->camerazoffset = GET_INT_ARG(2);
-			}
-			else if(stricmp(command, "spawn1")==0){
+				break;
+			case CMD_LEVEL_SPAWN1:
 				level->spawn[0][0] = GET_INT_ARG(1);
 				level->spawn[0][1] = GET_INT_ARG(2);
 				level->spawn[0][2] = GET_INT_ARG(3);
@@ -8855,47 +8864,45 @@ void load_level(char *filename){
 				if(level->spawn[0][1] > 232 || level->spawn[0][1] < 0) level->spawn[0][1] = 232;
 
 				if(level->spawn[0][2] < 0) level->spawn[0][2] = 300;
-			}
-			else if(stricmp(command, "spawn2")==0){
+				break;
+			case CMD_LEVEL_SPAWN2:
 				level->spawn[1][0] = GET_INT_ARG(1);
 				level->spawn[1][1] = GET_INT_ARG(2);
 				level->spawn[1][2] = GET_INT_ARG(3);
 
 				if(level->spawn[1][1] > 232 || level->spawn[1][1] < 0) level->spawn[1][1] = 232;
 				if(level->spawn[1][2] < 0) level->spawn[1][2] = 300;
-			}
-			else if(stricmp(command, "spawn3")==0){
+				break;
+			case CMD_LEVEL_SPAWN3:
 				level->spawn[2][0] = GET_INT_ARG(1);
 				level->spawn[2][1] = GET_INT_ARG(2);
 				level->spawn[2][2] = GET_INT_ARG(3);
 
 				if(level->spawn[2][1] > 232 || level->spawn[2][1] < 0) level->spawn[2][1] = 232;
 				if(level->spawn[2][2] < 0) level->spawn[2][2] = 300;
-			}
-			else if(stricmp(command, "spawn4")==0){
+				break;
+			case CMD_LEVEL_SPAWN4:	
 				level->spawn[3][0] = GET_INT_ARG(1);
 				level->spawn[3][1] = GET_INT_ARG(2);
 				level->spawn[3][2] = GET_INT_ARG(3);
 
 				if(level->spawn[3][1] > 232 || level->spawn[3][1] < 0) level->spawn[3][1] = 232;
 				if(level->spawn[3][2] < 0) level->spawn[3][2] = 300;
-			}
-			else if(stricmp(command, "frontpanel")==0){
+				break;
+			case CMD_LEVEL_FRONTPANEL:
 				value = GET_ARG(1);
-
 				if(!loadfrontpanel(value)) shutdown(1, "Unable to load '%s'!", value);
-			}
-			else if(stricmp(command, "panel")==0){
+				break;
+			case CMD_LEVEL_PANEL:
 				if(!loadpanel(GET_ARG(1), GET_ARG(2), GET_ARG(3)))  {
 					printf("loadpanel :%s :%s :%s failed\n", GET_ARG(1), GET_ARG(2), GET_ARG(3));
 					shutdown(1, "Panel load error in '%s'!", filename);
 				}
-
-			}
-			else if(stricmp(command, "stagenumber")==0){
+				break;
+			case CMD_LEVEL_STAGENUMBER:
 				current_stage = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "order")==0){
+				break;
+			case CMD_LEVEL_ORDER:
 				// Append to order
 				if(panels_loaded<1) shutdown(1, "You must load the panels before entering the level layout!");
 
@@ -8914,8 +8921,8 @@ void load_level(char *filename){
 					level->numpanels++;
 					i++;
 				}
-			}
-			else if(stricmp(command, "hole")==0){
+				break;
+			case CMD_LEVEL_HOLE:
 				value = GET_ARG(1);    // ltb    1-18-05  adjustable hole sprites
 
 				if(holesprite < 0)
@@ -8940,145 +8947,135 @@ void load_level(char *filename){
 				if(!level->holes[level->numholes][5]) level->holes[level->numholes][5] = 287;
 				if(!level->holes[level->numholes][6]) level->holes[level->numholes][6] = 45;
 				level->numholes++;
-			}
-				else if(stricmp(command, "wall")==0){
-					if(level->numwalls >= LEVEL_MAX_WALLS) shutdown(1, "Too many walls in level (max %i)!", LEVEL_MAX_WALLS);
-					level->walls[level->numwalls][0] = GET_FLOAT_ARG(1);
-					level->walls[level->numwalls][1] = GET_FLOAT_ARG(2);
-					level->walls[level->numwalls][2] = GET_FLOAT_ARG(3);
-					level->walls[level->numwalls][3] = GET_FLOAT_ARG(4);
-					level->walls[level->numwalls][4] = GET_FLOAT_ARG(5);
-					level->walls[level->numwalls][5] = GET_FLOAT_ARG(6);
-					level->walls[level->numwalls][6] = GET_FLOAT_ARG(7);
-					level->walls[level->numwalls][7] = GET_FLOAT_ARG(8);
-					level->numwalls++;
-				}
-				else if(stricmp(command, "palette")==0){
-					if(level->numpalettes >= LEVEL_MAX_PALETTES) shutdown(1, "Too many palettes in level (max %i)!", LEVEL_MAX_PALETTES);
-					for(i=0; i<MAX_BLENDINGS; i++)
-					usemap[i] = GET_INT_ARG(i+2);
-					if(!load_palette(level->palettes[level->numpalettes], GET_ARG(1)) ||
-					!create_blending_tables(level->palettes[level->numpalettes], level->blendings[level->numpalettes], usemap))
-					{
-						shutdown(1, "Failed to create colour conversion tables for level! (Out of memory?)");
-					}
-					level->numpalettes++;
-				}
-				else if(stricmp(command, "updatescript")==0)
+				break;
+			case CMD_LEVEL_WALL:
+				if(level->numwalls >= LEVEL_MAX_WALLS) shutdown(1, "Too many walls in level (max %i)!", LEVEL_MAX_WALLS);
+				level->walls[level->numwalls][0] = GET_FLOAT_ARG(1);
+				level->walls[level->numwalls][1] = GET_FLOAT_ARG(2);
+				level->walls[level->numwalls][2] = GET_FLOAT_ARG(3);
+				level->walls[level->numwalls][3] = GET_FLOAT_ARG(4);
+				level->walls[level->numwalls][4] = GET_FLOAT_ARG(5);
+				level->walls[level->numwalls][5] = GET_FLOAT_ARG(6);
+				level->walls[level->numwalls][6] = GET_FLOAT_ARG(7);
+				level->walls[level->numwalls][7] = GET_FLOAT_ARG(8);
+				level->numwalls++;
+				break;
+			case CMD_LEVEL_PALETTE:
+				if(level->numpalettes >= LEVEL_MAX_PALETTES) shutdown(1, "Too many palettes in level (max %i)!", LEVEL_MAX_PALETTES);
+				for(i=0; i<MAX_BLENDINGS; i++)
+				usemap[i] = GET_INT_ARG(i+2);
+				if(!load_palette(level->palettes[level->numpalettes], GET_ARG(1)) ||
+				!create_blending_tables(level->palettes[level->numpalettes], level->blendings[level->numpalettes], usemap))
 				{
-					value = GET_ARG(1);
-					if(!Script_IsInitialized(&(level->update_script)))
-						Script_Init(&(level->update_script), "levelupdatescript", 1);
-					else shutdown(1, "Multiple level update script: '%s'!", value);
-					if(load_script(&(level->update_script), value))
-						Script_Compile(&(level->update_script));
-					else shutdown(1, "Failed loading level update script: '%s'!", value);
+					shutdown(1, "Failed to create colour conversion tables for level! (Out of memory?)");
 				}
-				else if(stricmp(command, "updatedscript")==0)
-				{
-					value = GET_ARG(1);
-					if(!Script_IsInitialized(&(level->updated_script)))
-						Script_Init(&(level->updated_script), "levelupdatedscript", 1);
-					else shutdown(1, "Multiple level updated script: '%s'!", value);
-					if(load_script(&(level->updated_script), value))
-						Script_Compile(&(level->updated_script));
-					else shutdown(1, "Failed loading level updated script: '%s'!", value);
-				}
-            else if(stricmp(command, "keyscript")==0)
-            {
-                value = GET_ARG(1);
-                if(!Script_IsInitialized(&(level->key_script)))
-                    Script_Init(&(level->key_script), "levelkeyscript", 1);
-                else shutdown(1, "Multiple level key script: '%s'!", value);
-                if(load_script(&(level->key_script), value))
-                    Script_Compile(&(level->key_script));
-                else shutdown(1, "Failed loading level key script: '%s'!", value);
-            }
-            else if(stricmp(command, "levelscript")==0)
-            {
-                value = GET_ARG(1);
-                if(!Script_IsInitialized(&(level->level_script)))
-                    Script_Init(&(level->level_script), command, 1);
-                else shutdown(1, "Multiple level script: '%s'!", value);
-                if(load_script(&(level->level_script), value))
-                    Script_Compile(&(level->level_script));
-                else shutdown(1, "Failed loading level script: '%s'!", value);
-            }
-            else if(stricmp(command, "endlevelscript")==0)
-            {
-                value = GET_ARG(1);
-                if(!Script_IsInitialized(&(level->endlevel_script)))
-                    Script_Init(&(level->endlevel_script), command, 1);
-                else shutdown(1, "Multiple end-level script: '%s'!", value);
-                if(load_script(&(level->endlevel_script), value))
-                    Script_Compile(&(level->endlevel_script));
-                else shutdown(1, "Failed loading end-level script: '%s'!", value);
-            }
-            else if(stricmp(command, "blocked")==0){
-                level->exit_blocked = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "endhole")==0){
-                level->exit_hole = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "wait")==0){
-                // Clear spawn thing, set wait state instead
-                memset(&next,0,sizeof(s_spawn_entry));
-                next.wait = 1;
-            }
-            else if(stricmp(command, "nojoin")==0){
-                // Clear spawn thing, set nojoin state instead
-                memset(&next,0,sizeof(s_spawn_entry));
-                next.nojoin = 1;
-            }
-            else if(stricmp(command, "canjoin")==0){
-                // Clear spawn thing, set nojoin state instead
-                memset(&next,0,sizeof(s_spawn_entry));
-                next.nojoin = -1;
-            }
-            else if(stricmp(command, "shadowcolor")==0){
-                memset(&next,0,sizeof(s_spawn_entry));
+				level->numpalettes++;
+				break;
+			case CMD_LEVEL_UPDATESCRIPT:
+				value = GET_ARG(1);
+				if(!Script_IsInitialized(&(level->update_script)))
+					Script_Init(&(level->update_script), "levelupdatescript", 1);
+				else shutdown(1, "Multiple level update script: '%s'!", value);
+				if(load_script(&(level->update_script), value))
+					Script_Compile(&(level->update_script));
+				else shutdown(1, "Failed loading level update script: '%s'!", value);
+				break;
+			case CMD_LEVEL_UPDATEDSCRIPT:
+				value = GET_ARG(1);
+				if(!Script_IsInitialized(&(level->updated_script)))
+					Script_Init(&(level->updated_script), "levelupdatedscript", 1);
+				else shutdown(1, "Multiple level updated script: '%s'!", value);
+				if(load_script(&(level->updated_script), value))
+					Script_Compile(&(level->updated_script));
+				else shutdown(1, "Failed loading level updated script: '%s'!", value);
+				break;
+			case CMD_LEVEL_KEYSCRIPT:
+				value = GET_ARG(1);
+				if(!Script_IsInitialized(&(level->key_script)))
+					Script_Init(&(level->key_script), "levelkeyscript", 1);
+				else shutdown(1, "Multiple level key script: '%s'!", value);
+				if(load_script(&(level->key_script), value))
+					Script_Compile(&(level->key_script));
+				else shutdown(1, "Failed loading level key script: '%s'!", value);
+				break;
+			case CMD_LEVEL_LEVELSCRIPT:
+				value = GET_ARG(1);
+				if(!Script_IsInitialized(&(level->level_script)))
+					Script_Init(&(level->level_script), command, 1);
+				else shutdown(1, "Multiple level script: '%s'!", value);
+				if(load_script(&(level->level_script), value))
+					Script_Compile(&(level->level_script));
+				else shutdown(1, "Failed loading level script: '%s'!", value);
+				break;
+			case CMD_LEVEL_ENDLEVELSCRIPT:	
+				value = GET_ARG(1);
+				if(!Script_IsInitialized(&(level->endlevel_script)))
+					Script_Init(&(level->endlevel_script), command, 1);
+				else shutdown(1, "Multiple end-level script: '%s'!", value);
+				if(load_script(&(level->endlevel_script), value))
+					Script_Compile(&(level->endlevel_script));
+				else shutdown(1, "Failed loading end-level script: '%s'!", value);
+				break;
+			case CMD_LEVEL_BLOCKED:
+				level->exit_blocked = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_ENDHOLE:	
+				level->exit_hole = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_WAIT:
+				// Clear spawn thing, set wait state instead
+				memset(&next,0,sizeof(s_spawn_entry));
+				next.wait = 1;
+				break;
+			case CMD_LEVEL_NOJOIN: case CMD_LEVEL_CANJOIN:
+				// Clear spawn thing, set nojoin state instead
+				memset(&next,0,sizeof(s_spawn_entry));
+				next.nojoin = 1;
+				break;
+			case CMD_LEVEL_SHADOWCOLOR:
+				memset(&next,0,sizeof(s_spawn_entry));
 				next.shadowcolor = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "shadowalpha")==0){
-                memset(&next,0,sizeof(s_spawn_entry));
+				break;
+			case CMD_LEVEL_SHADOWALPHA:
+				memset(&next,0,sizeof(s_spawn_entry));
 				next.shadowalpha = GET_INT_ARG(1);
 				if(blendfx_is_set==0 && next.shadowalpha>0) blendfx[next.shadowalpha-1] = 1;
-            }
-            else if(stricmp(command, "light")==0){
-                memset(&next,0,sizeof(s_spawn_entry));
-			    next.light[0] = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_LIGHT:	
+				memset(&next,0,sizeof(s_spawn_entry));
+				next.light[0] = GET_INT_ARG(1);
 				next.light[1] = GET_INT_ARG(2);
 				if(next.light[1] == 0) next.light[1] = 64;
-            }
-            else if(stricmp(command, "scrollz")==0 || stricmp(command, "scrollx")==0){
-                // now z scroll can be limited by this
-                // if the level is vertical, use scrollx, only different in name ..., but makes more sense
-                memset(&next,0,sizeof(s_spawn_entry));
-                next.scrollminz = GET_INT_ARG(1);
-                next.scrollmaxz = GET_INT_ARG(2);
-                if(next.scrollminz <= 0) next.scrollminz = 4;
-                if(next.scrollmaxz <= 0) next.scrollmaxz = 4;
-            }
-            else if(stricmp(command, "blockade")==0){
-                // now x scroll can be limited by this
-                memset(&next,0,sizeof(s_spawn_entry));
-                next.blockade = GET_INT_ARG(1);
-                if(next.blockade==0) next.blockade = -1;
-            }
-            else if(stricmp(command, "setpalette")==0){
-                // change system palette
-                memset(&next,0,sizeof(s_spawn_entry));
-                next.palette = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "group")==0){
-                // Clear spawn thing, set group instead
-                memset(&next,0,sizeof(s_spawn_entry));
-                next.groupmin = GET_INT_ARG(1);
-                next.groupmax = GET_INT_ARG(2);
-                if(next.groupmax < 1) next.groupmax = 1;
-                if(next.groupmin < 1) next.groupmin = 100;
-            }
-			else if(stricmp(command, "spawn")==0){
+				break;
+			case CMD_LEVEL_SCROLLZ: case CMD_LEVEL_SCROLLX:
+				// now z scroll can be limited by this
+				// if the level is vertical, use scrollx, only different in name ..., but makes more sense
+				memset(&next,0,sizeof(s_spawn_entry));
+				next.scrollminz = GET_INT_ARG(1);
+				next.scrollmaxz = GET_INT_ARG(2);
+				if(next.scrollminz <= 0) next.scrollminz = 4;
+				if(next.scrollmaxz <= 0) next.scrollmaxz = 4;
+				break;
+			case CMD_LEVEL_BLOCKADE:	
+				// now x scroll can be limited by this
+				memset(&next,0,sizeof(s_spawn_entry));
+				next.blockade = GET_INT_ARG(1);
+				if(next.blockade==0) next.blockade = -1;
+				break;
+			case CMD_LEVEL_SETPALETTE:	
+				// change system palette
+				memset(&next,0,sizeof(s_spawn_entry));
+				next.palette = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_GROUP:	
+				// Clear spawn thing, set group instead
+				memset(&next,0,sizeof(s_spawn_entry));
+				next.groupmin = GET_INT_ARG(1);
+				next.groupmax = GET_INT_ARG(2);
+				if(next.groupmax < 1) next.groupmax = 1;
+				if(next.groupmin < 1) next.groupmin = 100;
+				break;
+			case CMD_LEVEL_SPAWN:
 				// Back to defaults
 				next.spawnplayer_count = 0;
 				memset(&next,0,sizeof(s_spawn_entry));
@@ -9097,157 +9094,165 @@ void load_level(char *filename){
 					next.index = get_cached_model_index(next.name);
 					crlf = 1;
 				}
-			}
-            else if(stricmp(command, "2pspawn")==0){
-                // Entity only for 2p game
-                next.spawnplayer_count = 1;
-            }
-            else if(stricmp(command, "3pspawn")==0){
-                // Entity only for 3p game
-                next.spawnplayer_count = 2;
-            }
-            else if(stricmp(command, "4pspawn")==0){
-                // Entity only for 4p game
-                next.spawnplayer_count = 3;
-            }
-            else if(stricmp(command, "boss")==0){
-                next.boss = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_2PSPAWN:
+				// Entity only for 2p game
+				next.spawnplayer_count = 1;
+				break;
+			case CMD_LEVEL_3PSPAWN:
+				// Entity only for 3p game
+				next.spawnplayer_count = 2;
+				break;
+			case CMD_LEVEL_4PSPAWN:	
+				// Entity only for 4p game
+				next.spawnplayer_count = 3;
+				break;
+			case CMD_LEVEL_BOSS:	
+				next.boss = GET_INT_ARG(1);
 				level->bosses += next.boss ? 1 : 0;
-            }
-            else if(stricmp(command, "flip")==0){
-                next.flip = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "health")==0){
-                next.health[0] = next.health[1] = next.health[2] = next.health[3] = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "2phealth")==0){    // Health the spawned entity will have if 2 people are playing
-                next.health[1] = next.health[2] = next.health[3] = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "3phealth")==0){    // Health the spawned entity will have if 2 people are playing
-                next.health[2] = next.health[3] = GET_INT_ARG(1);  //4player
-            }
-            else if(stricmp(command, "4phealth")==0){    // Health the spawned entity will have if 2 people are playing
-                next.health[3] = GET_INT_ARG(1);  //4player
-            }
-            else if(stricmp(command, "mp")==0){        // mp values to put max mp for player by tails
-                next.mp = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "score")==0){    // So score can be overriden in the levels .txt file
-                next.score = GET_INT_ARG(1);
-                if(next.score < 0) next.score = 0;    // So negative values cannot be added
-                next.multiple = GET_INT_ARG(2);
-                if(next.multiple < 0) next.multiple = 0;    // So negative values cannot be added
-            }
-            else if(stricmp(command, "nolife")==0){    // Flag to determine if entity life is shown when hit
-                next.nolife = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "alias")==0){
-                // Alias (name displayed) of entry to be spawned
-                strncpy(next.alias, GET_ARG(1), MAX_NAME_LEN);
-            }
-            else if(stricmp(command, "map")==0){
-                // Colourmap for new entry
-                next.colourmap = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "alpha")==0){
-                // Item to be contained by new entry
-                next.alpha = GET_INT_ARG(1);
-                if(blendfx_is_set==0 && next.alpha) blendfx[next.alpha-1] = 1;
-            }
-            else if(stricmp(command, "dying")==0){    // Used to store which remake corresponds with the dying flash
-                next.dying = GET_INT_ARG(1);
-                next.per1 = GET_INT_ARG(2);
-                next.per2 = GET_INT_ARG(3);
-            }
-            else if(stricmp(command, "item")==0){
-                // Item to be contained by new entry
-                next.itemplayer_count = 0;
-                // Load model (if not loaded already)
+				break;
+			case CMD_LEVEL_FLIP:	
+				next.flip = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_HEALTH:
+				next.health[0] = next.health[1] = next.health[2] = next.health[3] = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_2PHEALTH:
+				// Health the spawned entity will have if 2 people are playing
+				next.health[1] = next.health[2] = next.health[3] = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_3PHEALTH:
+				// Health the spawned entity will have if 2 people are playing
+				next.health[2] = next.health[3] = GET_INT_ARG(1);  //4player
+				break;
+			case CMD_LEVEL_4PHEALTH:
+				// Health the spawned entity will have if 2 people are playing
+				next.health[3] = GET_INT_ARG(1);  //4player
+				break;
+			case CMD_LEVEL_MP:
+				// mp values to put max mp for player by tails
+				next.mp = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_SCORE:	
+				// So score can be overriden in the levels .txt file
+				next.score = GET_INT_ARG(1);
+				if(next.score < 0) next.score = 0;    // So negative values cannot be added
+				next.multiple = GET_INT_ARG(2);
+				if(next.multiple < 0) next.multiple = 0;    // So negative values cannot be added
+				break;
+			case CMD_LEVEL_NOLIFE:
+				// Flag to determine if entity life is shown when hit
+				next.nolife = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_ALIAS:	
+				// Alias (name displayed) of entry to be spawned
+				strncpy(next.alias, GET_ARG(1), MAX_NAME_LEN);
+				break;
+			case CMD_LEVEL_MAP:
+				// Colourmap for new entry
+				next.colourmap = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_ALPHA:
+				// Item to be contained by new entry
+				next.alpha = GET_INT_ARG(1);
+				if(blendfx_is_set==0 && next.alpha) blendfx[next.alpha-1] = 1;
+				break;
+			case CMD_LEVEL_DYING:	
+				// Used to store which remake corresponds with the dying flash
+				next.dying = GET_INT_ARG(1);
+				next.per1 = GET_INT_ARG(2);
+				next.per2 = GET_INT_ARG(3);
+				break;
+			case CMD_LEVEL_ITEM:
+				// Item to be contained by new entry
+				next.itemplayer_count = 0;
+				// Load model (if not loaded already)
 				cached_model = find_model(GET_ARG(1));
 				if(cached_model) tempmodel = cached_model;
 				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
-                if(tempmodel)
-                {
-                    next.item = tempmodel->name;
-                    next.itemindex = get_cached_model_index(next.item);
-                }
-            }
-            else if(stricmp(command, "2pitem")==0){
-                // Item only for 2p game
-                next.itemplayer_count = 1;
-                // Load model (if not loaded already)  // 2007-2-12, inserted by UTunnels				
+				if(tempmodel)
+				{
+					next.item = tempmodel->name;
+					next.itemindex = get_cached_model_index(next.item);
+				}
+				break;
+			case CMD_LEVEL_2PITEM:
+				// Item only for 2p game
+				next.itemplayer_count = 1;
+				// Load model (if not loaded already)  // 2007-2-12, inserted by UTunnels				
 				cached_model = find_model(GET_ARG(1));
 				if(cached_model) tempmodel = cached_model;
 				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
-                if(tempmodel)
-                {
-                    next.item = tempmodel->name;
-                    next.itemindex = get_cached_model_index(next.item);
-                }
-            }
-            else if(stricmp(command, "3pitem")==0){
-                // Item only for 2p game
-                next.itemplayer_count = 2;
-                // Load model (if not loaded already)  // 2007-2-12, inserted by UTunnels
-                cached_model = find_model(GET_ARG(1));
-				if(cached_model) tempmodel = cached_model;
-				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
-                if(tempmodel)
-                {
-                    next.item = tempmodel->name;
-                    next.itemindex = get_cached_model_index(next.item);
-                }
-            }
-            else if(stricmp(command, "4pitem")==0){
-                // Item only for 2p game
-                next.itemplayer_count = 3;
-                // Load model (if not loaded already) // 2007-2-12, inserted by UTunnels
+				if(tempmodel)
+				{
+					next.item = tempmodel->name;
+					next.itemindex = get_cached_model_index(next.item);
+				}
+				break;
+			case CMD_LEVEL_3PITEM:
+				// Item only for 2p game
+				next.itemplayer_count = 2;
+				// Load model (if not loaded already)  // 2007-2-12, inserted by UTunnels
+				cached_model = find_model(GET_ARG(1));
+						if(cached_model) tempmodel = cached_model;
+						else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
+				if(tempmodel)
+				{
+				next.item = tempmodel->name;
+				next.itemindex = get_cached_model_index(next.item);
+				}
+				break;
+			case CMD_LEVEL_4PITEM:	
+				// Item only for 2p game
+				next.itemplayer_count = 3;
+				// Load model (if not loaded already) // 2007-2-12, inserted by UTunnels
+						cached_model = find_model(GET_ARG(1));
+						if(cached_model) tempmodel = cached_model;
+						else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
+				if(tempmodel)
+				{
+				next.item = tempmodel->name;
+				next.itemindex = get_cached_model_index(next.item);
+				}
+				break;
+			case CMD_LEVEL_ITEMMAP:
+				next.itemmap = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_ITEMHEALTH:
+				next.itemhealth = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_ITEMALIAS:	
+				strncpy(next.itemalias, GET_ARG(1), MAX_NAME_LEN);
+				break;
+			case CMD_LEVEL_WEAPON:	
+				//spawn with a weapon 2007-2-12 by UTunnels
+				// Load model (if not loaded already)
 				cached_model = find_model(GET_ARG(1));
 				if(cached_model) tempmodel = cached_model;
 				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
-                if(tempmodel)
-                {
-                    next.item = tempmodel->name;
-                    next.itemindex = get_cached_model_index(next.item);
-                }
-            }
-            else if(stricmp(command, "itemmap")==0){
-                next.itemmap = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "itemhealth")==0){
-                next.itemhealth = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "itemalias")==0){
-                strncpy(next.itemalias, GET_ARG(1), MAX_NAME_LEN);
-            }
-            else if(stricmp(command, "weapon")==0){  //spawn with a weapon 2007-2-12 by UTunnels
-                // Load model (if not loaded already)
-				cached_model = find_model(GET_ARG(1));
-				if(cached_model) tempmodel = cached_model;
-				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
-                if(tempmodel)
-                {
-                    next.weapon = tempmodel->name;
-                    next.weaponindex = get_cached_model_index(next.weapon);
-                }
-            }
-            else if(stricmp(command, "aggression")==0){ // Aggression can be set per spawn.
-                next.aggression = next.aggression + GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "credit")==0){
-                next.credit = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "itemtrans")==0 || stricmp(command, "itemalpha")==0){
-                next.itemtrans = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "coords")==0){
-                next.x = GET_FLOAT_ARG(1);
-                next.z = GET_FLOAT_ARG(2);
-                next.a = GET_FLOAT_ARG(3);
-            }
-            else if(stricmp(command, "spawnscript")==0) // spawn entry script
-            {
-                value = GET_ARG(1);
+				if(tempmodel)
+				{
+					next.weapon = tempmodel->name;
+					next.weaponindex = get_cached_model_index(next.weapon);
+				}
+				break;
+			case CMD_LEVEL_AGGRESSION:	
+				// Aggression can be set per spawn.
+				next.aggression = next.aggression + GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_CREDIT:	
+				next.credit = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_ITEMTRANS: case CMD_LEVEL_ITEMALPHA:	
+				next.itemtrans = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_COORDS:	
+				next.x = GET_FLOAT_ARG(1);
+				next.z = GET_FLOAT_ARG(2);
+				next.a = GET_FLOAT_ARG(3);
+				break;
+			case CMD_LEVEL_SPAWNSCRIPT:	
+				value = GET_ARG(1);
 				tempnode = spawn_script_cache_head;
 				if(!next.spawn_script_list_head) next.spawn_script_list_head = NULL;
 				templistnode = next.spawn_script_list_head;
@@ -9295,96 +9300,101 @@ void load_level(char *filename){
 					else shutdown(1, "Multiple spawn entry script: '%s'!", value);
 					if(load_script(templistnode->spawn_script, value))
 					{
-	                    Script_Compile(templistnode->spawn_script);
+						Script_Compile(templistnode->spawn_script);
 						if(tempnode)
 						{
-                            value2 = GET_ARG(1);
-                            len = strlen(value2);
+							value2 = GET_ARG(1);
+							len = strlen(value2);
 							tempnode2 = tracemalloc("spawn_script_node", sizeof(s_spawn_script_cache_node));
 							tempnode2->cached_spawn_script = templistnode->spawn_script;
 							tempnode2->filename = tracemalloc("spawn_script_node_filename", len + 1);
 							strcpy(tempnode2->filename, value2);
-                            tempnode2->filename[len] = 0;
+							tempnode2->filename[len] = 0;
 							tempnode2->next = NULL;
 							tempnode->next = tempnode2;
 						}
 						else
 						{
-                            value2 = GET_ARG(1);
-                            len = strlen(value2);
+							value2 = GET_ARG(1);
+							len = strlen(value2);
 							spawn_script_cache_head = tracemalloc("spawn_script_node", sizeof(s_spawn_script_cache_node));
 							spawn_script_cache_head->cached_spawn_script = templistnode->spawn_script;
 							spawn_script_cache_head->filename = tracemalloc("spawn_script_node_filename", len + 1);
 							spawn_script_cache_head->next = NULL;
 							strcpy(spawn_script_cache_head->filename, value2);
-                            spawn_script_cache_head->filename[len] = 0;
+							spawn_script_cache_head->filename[len] = 0;
 						}
 					}
 					else shutdown(1, "Failed loading spawn entry script: '%s'!", value);
 				}
-			}
-			else if(stricmp(command, "at")==0){
-                // Place entry on queue
-                next.at = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_AT:
+				// Place entry on queue
+				next.at = GET_INT_ARG(1);
 
-                if(level->numspawns >= LEVEL_MAX_SPAWNS) shutdown(1, "Level error: too many entries (max. %i)", LEVEL_MAX_SPAWNS);
-                memcpy(&level->spawnpoints[level->numspawns], &next, sizeof(s_spawn_entry));
-                level->numspawns++;
+				if(level->numspawns >= LEVEL_MAX_SPAWNS) shutdown(1, "Level error: too many entries (max. %i)", LEVEL_MAX_SPAWNS);
+				memcpy(&level->spawnpoints[level->numspawns], &next, sizeof(s_spawn_entry));
+				level->numspawns++;
 
-                // And clear...
-                memset(&next,0,sizeof(s_spawn_entry));
-            }
-            else shutdown(1, "Command '%s' not understood!", command);
-        }
+				// And clear...
+				memset(&next,0,sizeof(s_spawn_entry));
+				break;
+			default:            
+				shutdown(1, "Command '%s' not understood!", command);
+		}
 
 		// Go to next line
-        while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-        while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+		while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
+		while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
 		if(bgPosi[2])
 			update_loading(bgPosi[0]+videomodes.hShift, bgPosi[1]+videomodes.vShift, bgPosi[2], bgPosi[3]+videomodes.hShift, bgPosi[4]+videomodes.vShift, pos, size, bgPosi[5]);
 		else if(loadingbg[1][0])
 			update_loading(loadingbg[1][1]+videomodes.hShift, loadingbg[1][2]+videomodes.vShift, loadingbg[1][3], loadingbg[1][4]+videomodes.hShift, loadingbg[1][5]+videomodes.vShift, pos, size, loadingbg[1][6]);
-    }
-    if(buf != NULL){
-        tracefree(buf);
-        buf = NULL;
-    }
+	}
+	if(buf != NULL){
+		tracefree(buf);
+		buf = NULL;
+	}
 
-    if(level->numpanels < 1) shutdown(1, "Level error: level has no panels");
+	if(level->numpanels < 1) shutdown(1, "Level error: level has no panels");
 
 	if(bgPath[0])
 	{
 		clearscreen(vscreen);
 		spriteq_clear();
 		load_background(bgPath, 1);
-        level->bglayers[0].screen=background;
-        level->bglayers[0].width=background->width;
-        //if(!level->bglayers[0].xoffset && level->bglayers[0].xrepeat<5000)level->bglayers[0].xoffset=-background->width;
-        level->bglayers[0].height=background->height;
+		level->bglayers[0].screen=background;
+		level->bglayers[0].width=background->width;
+		//if(!level->bglayers[0].xoffset && level->bglayers[0].xrepeat<5000)level->bglayers[0].xoffset=-background->width;
+		level->bglayers[0].height=background->height;
 	}
 	else
 	{
-		if(level->numbglayers>1) level->bglayers[0] = level->bglayers[--level->numbglayers];
-        else                     level->numbglayers = 0;
+		if(level->numbglayers>1)
+			level->bglayers[0] = level->bglayers[--level->numbglayers];
+		else
+			level->numbglayers = 0;
 
-        if(background) unload_background();
-    }
+		if(background) unload_background();
+	}
 
-    if(pixelformat==PIXEL_x8)
-    {
-        if(level->numbglayers>0) bgbuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
-    }
-    bgbuffer_updated = 0;
-    if(musicPath[0]) music(musicPath, 1, musicOffset);
+	if(pixelformat==PIXEL_x8)
+	{
+		if(level->numbglayers>0) bgbuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
+	}
+	bgbuffer_updated = 0;
+	if(musicPath[0]) music(musicPath, 1, musicOffset);
 
-    timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
-    level->width = level->numpanels * panel_width;
+	timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
+	level->width = level->numpanels * panel_width;
 
-    if(level->scrolldir&SCROLL_LEFT) advancex = (float)(level->width-videomodes.hRes);
-    else if(level->scrolldir&SCROLL_INWARD) advancey = (float)(panel_height-videomodes.vRes);
+	if(level->scrolldir&SCROLL_LEFT)
+		advancex = (float)(level->width-videomodes.hRes);
+	else if(level->scrolldir&SCROLL_INWARD) 
+		advancey = (float)(panel_height-videomodes.vRes);
 
 	if(crlf) printf("\n");
-    printf("Level Loaded:    '%s'\n", level->name);
+	printf("Level Loaded:    '%s'\n", level->name);
 	totalram = getSystemRam(BYTES); freeram = getFreeRam(BYTES); usedram = getUsedRam(BYTES);
 	printf("Total Ram: %"PRIu64" Bytes\n Free Ram: %"PRIu64" Bytes\n Used Ram: %"PRIu64" Bytes\n\n", totalram, freeram, usedram);
 }
