@@ -9,7 +9,7 @@ modelCommands getModelCommand(List* list, char* usercommand) {
 }
 
 List* createModelCommandList(void) {
-	List* result = tracemalloc("command list", sizeof(List));
+	List* result = tracemalloc("model command list", sizeof(List));
 	assert(result);
 	List_Init(result);
 	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
@@ -291,6 +291,120 @@ List* createModelCommandList(void) {
 }
 
 void freeModelCommandList(List* list) {
+	List_Clear(list);
+	tracefree(list);
+	list = NULL;
+}
+
+
+levelCommands getLevelCommand(List* list, char* usercommand) {
+	Node* n = List_SearchName(list, (LPCSTR) usercommand);
+	if(n)
+		return (levelCommands) n->value;
+	else
+		return (levelCommands) 0;
+}
+
+List* createLevelCommandList(void) {
+	List* result = tracemalloc("level command list", sizeof(List));
+	assert(result);
+	List_Init(result);
+	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
+	
+	LIST_ADD(CMD_LEVEL_LOADINGBG, "loadingbg");
+	LIST_ADD(CMD_LEVEL_MUSICFADE, "musicfade");
+	LIST_ADD(CMD_LEVEL_MUSIC, "music");
+	LIST_ADD(CMD_LEVEL_AT, "at");
+	LIST_ADD(CMD_LEVEL_ALLOWSELECT, "allowselect");
+	LIST_ADD(CMD_LEVEL_LOAD, "load");
+	LIST_ADD(CMD_LEVEL_BACKGROUND, "background");
+	LIST_ADD(CMD_LEVEL_BGLAYER, "bglayer");
+	LIST_ADD(CMD_LEVEL_FGLAYER, "fglayer");
+	LIST_ADD(CMD_LEVEL_WATER, "water");
+	LIST_ADD(CMD_LEVEL_DIRECTION, "direction");
+	LIST_ADD(CMD_LEVEL_FACING, "facing");
+	LIST_ADD(CMD_LEVEL_ROCK, "rock");
+	LIST_ADD(CMD_LEVEL_BGSPEED, "bgspeed");
+	LIST_ADD(CMD_LEVEL_MIRROR, "mirror");
+	LIST_ADD(CMD_LEVEL_BOSSMUSIC, "bossmusic");
+	LIST_ADD(CMD_LEVEL_NOPAUSE, "nopause");
+	LIST_ADD(CMD_LEVEL_NOSCREENSHOT, "noscreenshot");
+	LIST_ADD(CMD_LEVEL_SETTIME, "settime");
+	LIST_ADD(CMD_LEVEL_SETWEAP, "setweap");
+	LIST_ADD(CMD_LEVEL_NOTIME, "notime");
+	LIST_ADD(CMD_LEVEL_NORESET, "noreset");
+	LIST_ADD(CMD_LEVEL_NOSLOW, "noslow");
+	LIST_ADD(CMD_LEVEL_TYPE, "type");
+	LIST_ADD(CMD_LEVEL_NOHIT, "nohit");
+	LIST_ADD(CMD_LEVEL_GRAVITY, "gravity");
+	LIST_ADD(CMD_LEVEL_MAXFALLSPEED, "maxfallspeed");
+	LIST_ADD(CMD_LEVEL_MAXTOSSSPEED, "maxtossspeed");
+	LIST_ADD(CMD_LEVEL_CAMERATYPE, "cameratype");
+	LIST_ADD(CMD_LEVEL_CAMERAOFFSET, "cameraoffset");
+	LIST_ADD(CMD_LEVEL_SPAWN1, "spawn1");
+	LIST_ADD(CMD_LEVEL_SPAWN2, "spawn2");
+	LIST_ADD(CMD_LEVEL_SPAWN3, "spawn3");
+	LIST_ADD(CMD_LEVEL_SPAWN4, "spawn4");
+	LIST_ADD(CMD_LEVEL_FRONTPANEL, "frontpanel");
+	LIST_ADD(CMD_LEVEL_PANEL, "panel");
+	LIST_ADD(CMD_LEVEL_STAGENUMBER, "stagenumber");
+	LIST_ADD(CMD_LEVEL_ORDER, "order");
+	LIST_ADD(CMD_LEVEL_HOLE, "hole");
+	LIST_ADD(CMD_LEVEL_WALL, "wall");
+	LIST_ADD(CMD_LEVEL_PALETTE, "palette");
+	LIST_ADD(CMD_LEVEL_UPDATESCRIPT, "updatescript");
+	LIST_ADD(CMD_LEVEL_UPDATEDSCRIPT, "updatedscript");
+	LIST_ADD(CMD_LEVEL_KEYSCRIPT, "keyscript");
+	LIST_ADD(CMD_LEVEL_LEVELSCRIPT, "levelscript");
+	LIST_ADD(CMD_LEVEL_ENDLEVELSCRIPT, "endlevelscript");
+	LIST_ADD(CMD_LEVEL_BLOCKED, "blocked");
+	LIST_ADD(CMD_LEVEL_ENDHOLE, "endhole");
+	LIST_ADD(CMD_LEVEL_WAIT, "wait");
+	LIST_ADD(CMD_LEVEL_NOJOIN, "nojoin");
+	LIST_ADD(CMD_LEVEL_CANJOIN, "canjoin");
+	LIST_ADD(CMD_LEVEL_SHADOWCOLOR, "shadowcolor");
+	LIST_ADD(CMD_LEVEL_SHADOWALPHA, "shadowalpha");
+	LIST_ADD(CMD_LEVEL_LIGHT, "light");
+	LIST_ADD(CMD_LEVEL_SCROLLZ, "scrollz");
+	LIST_ADD(CMD_LEVEL_BLOCKADE, "blockade");
+	LIST_ADD(CMD_LEVEL_SETPALETTE, "setpalette");
+	LIST_ADD(CMD_LEVEL_GROUP, "group");
+	LIST_ADD(CMD_LEVEL_SPAWN, "spawn");
+	LIST_ADD(CMD_LEVEL_2PSPAWN, "2pspawn");
+	LIST_ADD(CMD_LEVEL_3PSPAWN, "3pspawn");
+	LIST_ADD(CMD_LEVEL_4PSPAWN, "4pspawn");
+	LIST_ADD(CMD_LEVEL_BOSS, "boss");
+	LIST_ADD(CMD_LEVEL_FLIP, "flip");
+	LIST_ADD(CMD_LEVEL_HEALTH, "health");
+	LIST_ADD(CMD_LEVEL_2PHEALTH, "2phealth");
+	LIST_ADD(CMD_LEVEL_3PHEALTH, "3phealth");
+	LIST_ADD(CMD_LEVEL_4PHEALTH, "4phealth");
+	LIST_ADD(CMD_LEVEL_MP, "mp");
+	LIST_ADD(CMD_LEVEL_SCORE, "score");
+	LIST_ADD(CMD_LEVEL_NOLIFE, "nolife");
+	LIST_ADD(CMD_LEVEL_ALIAS, "alias");
+	LIST_ADD(CMD_LEVEL_MAP, "map");
+	LIST_ADD(CMD_LEVEL_ALPHA, "alpha");
+	LIST_ADD(CMD_LEVEL_DYING, "dying");
+	LIST_ADD(CMD_LEVEL_ITEM, "item");
+	LIST_ADD(CMD_LEVEL_2PITEM, "2pitem");
+	LIST_ADD(CMD_LEVEL_3PITEM, "3pitem");
+	LIST_ADD(CMD_LEVEL_4PITEM, "4pitem");
+	LIST_ADD(CMD_LEVEL_ITEMMAP, "itemmap");
+	LIST_ADD(CMD_LEVEL_ITEMHEALTH, "itemhealth");
+	LIST_ADD(CMD_LEVEL_ITEMALIAS, "itemalias");
+	LIST_ADD(CMD_LEVEL_WEAPON, "weapon");
+	LIST_ADD(CMD_LEVEL_AGGRESSION, "aggression");
+	LIST_ADD(CMD_LEVEL_CREDIT, "credit");
+	LIST_ADD(CMD_LEVEL_ITEMTRANS, "itemtrans");
+	LIST_ADD(CMD_LEVEL_COORDS, "coords");
+	LIST_ADD(CMD_LEVEL_SPAWNSCRIPT, "spawnscript");
+	
+	#undef LIST_ADD
+	return result;
+}
+
+void freeLevelCommandList(List* list) {
 	List_Clear(list);
 	tracefree(list);
 	list = NULL;
