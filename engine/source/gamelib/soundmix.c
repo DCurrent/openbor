@@ -317,7 +317,6 @@ int sound_load_sample(char *filename, char *packfilename, int iLog){
 		if(!iLog)
 		{
 			writeToLogFile("\nsound_load_sample: Failed to load: %s\n", filename);
-			assert(0);
 		}
 		return -1;
 	}
