@@ -87,6 +87,7 @@ ifeq ($(findstring 64, $(TARGET_ARCH)), 64)
 BUILD_AMD64     = 1
 ARCHFLAGS       = -m64
 LIBRARIES       = $(SDKPATH)/lib64
+CFLAGS          += -DAMD64 
 else
 ARCHFLAGS       = -m32
 LIBRARIES       = $(SDKPATH)/lib32

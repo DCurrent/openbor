@@ -35,6 +35,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include "utils.h"
 #include "stristr.h"
 #include "adpcm.h"
@@ -43,6 +44,7 @@
 #include "soundmix.h"
 #include "packfile.h"
 #include "tracemalloc.h"
+
 
 #ifdef DC
 #include <ivorbisfile.h>
@@ -306,22 +308,23 @@ int sound_alloc_sample(char *filename, char *packfilename){
 int sound_load_sample(char *filename, char *packfilename, int iLog){
 	int i, len;
 	for(i=0; i<=MAX_SAMPLES; i++){
-        if(i == MAX_SAMPLES) return -1;
-        if(soundcache[i].filename == NULL) break;
-        if(stricmp(filename, soundcache[i].filename)==0) return soundcache[i].index;
-    }
+		if(i == MAX_SAMPLES) return -1;
+		if(soundcache[i].filename == NULL) break;
+		if(stricmp(filename, soundcache[i].filename)==0) return soundcache[i].index;
+	}
 	soundcache[i].index = sound_alloc_sample(filename, packfilename);
-    if(soundcache[i].index == -1){
+	if(soundcache[i].index == -1){
 		if(!iLog)
 		{
-			writeToLogFile("\nFailed to load: %s\n", filename);
+			writeToLogFile("\nsound_load_sample: Failed to load: %s\n", filename);
+			assert(0);
 		}
 		return -1;
 	}
-    len = strlen(filename);
-    soundcache[i].filename = tracemalloc("sound_load_sample", len + 1);
+	len = strlen(filename);
+	soundcache[i].filename = tracemalloc("sound_load_sample", len + 1);
 	strcpy(soundcache[i].filename, filename);
-    soundcache[i].filename[len] = 0;
+	soundcache[i].filename[len] = 0;
 	return soundcache[i].index;
 }
 

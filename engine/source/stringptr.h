@@ -6,9 +6,10 @@
  * Copyright (c) 2004 - 2011 OpenBOR Team
  */
 
-#ifndef STRINGPTR_H
-#define STRINGPTR_H
+#ifndef _STRINGPTR_H_
+#define _STRINGPTR_H_
 
+#include <stdlib.h>
 #include <string.h>
 
 typedef struct {

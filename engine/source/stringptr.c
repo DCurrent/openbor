@@ -7,11 +7,11 @@
  */
 
 #include "stringptr.h"
-#include "tracemalloc.h"
-//#include <assert.h>
+#include <assert.h>
+#include <string.h>
 
 stringptr* new_string(size_t size) {
-	stringptr* result = tracemalloc("new string", sizeof(stringptr) + size + 1);
+	stringptr* result = malloc(sizeof(stringptr) + size + 1);
 	if (result == NULL) return NULL;
 	result->ptr = (char*)result + sizeof(stringptr);
 	result->size = size;
@@ -20,5 +20,5 @@ stringptr* new_string(size_t size) {
 }
 
 void free_string(stringptr* string) {
-	tracefree(string);
+	free(string);
 }
