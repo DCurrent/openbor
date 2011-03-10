@@ -78,7 +78,7 @@
 /* Added at libpng-1.2.19, removed at libpng-1.2.20 because it caused trouble
    Restored at libpng-1.2.21 */
 #if !defined(PNG_NO_WARN_UNINITIALIZED_ROW) && \
-    !defined(PNG_WARN_UNINITIALIZED_ROW)
+	!defined(PNG_WARN_UNINITIALIZED_ROW)
 #  define PNG_WARN_UNINITIALIZED_ROW 1
 #endif
 /* End of material added at libpng-1.2.19/1.2.21 */
@@ -295,7 +295,7 @@
  */
 #ifndef MACOS
 #  if (defined(__MWERKS__) && defined(macintosh)) || defined(applec) || \
-      defined(THINK_C) || defined(__SC__) || defined(TARGET_OS_MAC)
+	  defined(THINK_C) || defined(__SC__) || defined(TARGET_OS_MAC)
 #    define MACOS
 #  endif
 #endif
@@ -320,11 +320,11 @@
 #      undef _BSD_SOURCE
 #    endif
 #    ifdef _SETJMP_H
-     /* If you encounter a compiler error here, see the explanation
-      * near the end of INSTALL.
-      */
-         __pngconf.h__ already includes setjmp.h;
-         __dont__ include it again.;
+	 /* If you encounter a compiler error here, see the explanation
+	  * near the end of INSTALL.
+	  */
+		 __pngconf.h__ already includes setjmp.h;
+		 __dont__ include it again.;
 #    endif
 #  endif /* __linux__ */
 
@@ -367,10 +367,10 @@
 
 #if defined(PNG_FLOATING_POINT_SUPPORTED)
 #  if defined(MACOS)
-     /* We need to check that <math.h> hasn't already been included earlier
-      * as it seems it doesn't agree with <fp.h>, yet we should really use
-      * <fp.h> if possible.
-      */
+	 /* We need to check that <math.h> hasn't already been included earlier
+	  * as it seems it doesn't agree with <fp.h>, yet we should really use
+	  * <fp.h> if possible.
+	  */
 #    if !defined(__MATH_H__) && !defined(__MATH_H) && !defined(__cmath__)
 #      include <fp.h>
 #    endif
@@ -378,9 +378,9 @@
 #    include <math.h>
 #  endif
 #  if defined(_AMIGA) && defined(__SASC) && defined(_M68881)
-     /* Amiga SAS/C: We must include builtin FPU functions when compiling using
-      * MATH=68881
-      */
+	 /* Amiga SAS/C: We must include builtin FPU functions when compiling using
+	  * MATH=68881
+	  */
 #    include <m68881.h>
 #  endif
 #endif
@@ -398,7 +398,7 @@
 
 /* I have no idea why is this necessary... */
 #if defined(_MSC_VER) && (defined(WIN32) || defined(_Windows) || \
-    defined(_WINDOWS) || defined(_WIN32) || defined(__WIN32__))
+	defined(_WINDOWS) || defined(_WIN32) || defined(__WIN32__))
 #  include <malloc.h>
 #endif
 
@@ -532,7 +532,7 @@
 
 /* Ignore attempt to turn off both floating and fixed point support */
 #if !defined(PNG_FLOATING_POINT_SUPPORTED) || \
-    !defined(PNG_NO_FIXED_POINT_SUPPORTED)
+	!defined(PNG_NO_FIXED_POINT_SUPPORTED)
 #  define PNG_FIXED_POINT_SUPPORTED
 #endif
 
@@ -543,7 +543,7 @@
 #if defined(PNG_READ_SUPPORTED)
 
 #if !defined(PNG_READ_TRANSFORMS_NOT_SUPPORTED) && \
-      !defined(PNG_NO_READ_TRANSFORMS)
+	  !defined(PNG_NO_READ_TRANSFORMS)
 #  define PNG_READ_TRANSFORMS_SUPPORTED
 #endif
 
@@ -608,7 +608,7 @@
  !defined(PNG_PROGRESSIVE_READ_SUPPORTED) /* if you don't do progressive   */
 #  define PNG_PROGRESSIVE_READ_SUPPORTED  /* reading.  This is not talking */
 #endif                            /* about interlacing capability!  You'll */
-           /* still have interlacing unless you change the following line: */
+		   /* still have interlacing unless you change the following line: */
 
 #define PNG_READ_INTERLACING_SUPPORTED /* required in PNG-compliant decoders */
 
@@ -631,7 +631,7 @@
 #if defined(PNG_WRITE_SUPPORTED)
 
 # if !defined(PNG_WRITE_TRANSFORMS_NOT_SUPPORTED) && \
-    !defined(PNG_NO_WRITE_TRANSFORMS)
+	!defined(PNG_NO_WRITE_TRANSFORMS)
 #  define PNG_WRITE_TRANSFORMS_SUPPORTED
 #endif
 
@@ -669,15 +669,15 @@
 #endif /* PNG_WRITE_TRANSFORMS_SUPPORTED */
 
 #if !defined(PNG_NO_WRITE_INTERLACING_SUPPORTED) && \
-    !defined(PNG_WRITE_INTERLACING_SUPPORTED)
+	!defined(PNG_WRITE_INTERLACING_SUPPORTED)
 #define PNG_WRITE_INTERLACING_SUPPORTED  /* not required for PNG-compliant
-                                            encoders, but can cause trouble
-                                            if left undefined */
+											encoders, but can cause trouble
+											if left undefined */
 #endif
 
 #if !defined(PNG_NO_WRITE_WEIGHTED_FILTER) && \
-    !defined(PNG_WRITE_WEIGHTED_FILTER) && \
-     defined(PNG_FLOATING_POINT_SUPPORTED)
+	!defined(PNG_WRITE_WEIGHTED_FILTER) && \
+	 defined(PNG_FLOATING_POINT_SUPPORTED)
 #  define PNG_WRITE_WEIGHTED_FILTER_SUPPORTED
 #endif
 
@@ -701,7 +701,7 @@
 #endif /* PNG_1_0_X */
 
 #if defined(PNG_READ_USER_TRANSFORM_SUPPORTED) || \
-    defined(PNG_WRITE_USER_TRANSFORM_SUPPORTED)
+	defined(PNG_WRITE_USER_TRANSFORM_SUPPORTED)
 #  ifndef PNG_NO_USER_TRANSFORM_PTR
 #    define PNG_USER_TRANSFORM_PTR_SUPPORTED
 #  endif
@@ -748,7 +748,7 @@
 #  endif
 
 #  if defined(__GNUC__) && defined(__x86_64__) && (__GNUC__ < 4)
-     /* work around 64-bit gcc compiler bugs in gcc-3.x */
+	 /* work around 64-bit gcc compiler bugs in gcc-3.x */
 #    if !defined(PNG_MMX_CODE_SUPPORTED) && !defined(PNG_NO_MMX_CODE)
 #      define PNG_NO_MMX_CODE
 #    endif
@@ -835,14 +835,14 @@
  */
 
 #if defined(PNG_READ_SUPPORTED) && \
-    !defined(PNG_READ_ANCILLARY_CHUNKS_NOT_SUPPORTED) && \
-    !defined(PNG_NO_READ_ANCILLARY_CHUNKS)
+	!defined(PNG_READ_ANCILLARY_CHUNKS_NOT_SUPPORTED) && \
+	!defined(PNG_NO_READ_ANCILLARY_CHUNKS)
 #  define PNG_READ_ANCILLARY_CHUNKS_SUPPORTED
 #endif
 
 #if defined(PNG_WRITE_SUPPORTED) && \
-    !defined(PNG_WRITE_ANCILLARY_CHUNKS_NOT_SUPPORTED) && \
-    !defined(PNG_NO_WRITE_ANCILLARY_CHUNKS)
+	!defined(PNG_WRITE_ANCILLARY_CHUNKS_NOT_SUPPORTED) && \
+	!defined(PNG_NO_WRITE_ANCILLARY_CHUNKS)
 #  define PNG_WRITE_ANCILLARY_CHUNKS_SUPPORTED
 #endif
 
@@ -935,7 +935,7 @@
 #  endif
 #endif
 #if !defined(PNG_NO_READ_USER_CHUNKS) && \
-     defined(PNG_READ_UNKNOWN_CHUNKS_SUPPORTED)
+	 defined(PNG_READ_UNKNOWN_CHUNKS_SUPPORTED)
 #  define PNG_READ_USER_CHUNKS_SUPPORTED
 #  define PNG_USER_CHUNKS_SUPPORTED
 #  ifdef PNG_NO_READ_UNKNOWN_CHUNKS
@@ -949,7 +949,7 @@
 #  define PNG_READ_OPT_PLTE_SUPPORTED /* only affects support of the */
 #endif                      /* optional PLTE chunk in RGB and RGBA images */
 #if defined(PNG_READ_iTXt_SUPPORTED) || defined(PNG_READ_tEXt_SUPPORTED) || \
-    defined(PNG_READ_zTXt_SUPPORTED)
+	defined(PNG_READ_zTXt_SUPPORTED)
 #  define PNG_READ_TEXT_SUPPORTED
 #  define PNG_TEXT_SUPPORTED
 #endif
@@ -1079,7 +1079,7 @@
 #  endif
 #endif
 #if defined(PNG_WRITE_iTXt_SUPPORTED) || defined(PNG_WRITE_tEXt_SUPPORTED) || \
-    defined(PNG_WRITE_zTXt_SUPPORTED)
+	defined(PNG_WRITE_zTXt_SUPPORTED)
 #  define PNG_WRITE_TEXT_SUPPORTED
 #  ifndef PNG_TEXT_SUPPORTED
 #    define PNG_TEXT_SUPPORTED
@@ -1099,7 +1099,7 @@
 /* need the time information for reading tIME chunks */
 #if defined(PNG_tIME_SUPPORTED)
 #  if !defined(_WIN32_WCE)
-     /* "time.h" functions are not supported on WindowsCE */
+	 /* "time.h" functions are not supported on WindowsCE */
 #    include <time.h>
 #  endif
 #endif
@@ -1155,11 +1155,11 @@ typedef unsigned char png_byte;
 #      endif
 #      define USE_FAR_KEYWORD
 #    endif   /* LDATA != 1 */
-     /* Possibly useful for moving data out of default segment.
-      * Uncomment it if you want. Could also define FARDATA as
-      * const if your compiler supports it. (SJT)
+	 /* Possibly useful for moving data out of default segment.
+	  * Uncomment it if you want. Could also define FARDATA as
+	  * const if your compiler supports it. (SJT)
 #    define FARDATA FAR
-      */
+	  */
 #  endif  /* __WIN32__, __FLAT__, __CYGWIN__ */
 #endif   /* __BORLANDC__ */
 
@@ -1294,7 +1294,7 @@ typedef z_stream FAR *  png_zstreamp;
  */
 #if !defined(PNG_USE_LOCAL_ARRAYS) && !defined(PNG_USE_GLOBAL_ARRAYS)
 #  if defined(PNG_NO_GLOBAL_ARRAYS) || \
-      (defined(__GNUC__) && defined(PNG_DLL)) || defined(_MSC_VER)
+	  (defined(__GNUC__) && defined(PNG_DLL)) || defined(_MSC_VER)
 #    define PNG_USE_LOCAL_ARRAYS
 #  else
 #    define PNG_USE_GLOBAL_ARRAYS
@@ -1326,8 +1326,8 @@ typedef z_stream FAR *  png_zstreamp;
 #endif
 
 #if defined(PNG_DLL) || defined(_DLL) || defined(__DLL__ ) || \
-    (( defined(_Windows) || defined(_WINDOWS) || \
-       defined(WIN32) || defined(_WIN32) || defined(__WIN32__) ))
+	(( defined(_Windows) || defined(_WINDOWS) || \
+	   defined(WIN32) || defined(_WIN32) || defined(__WIN32__) ))
 
 #  ifndef PNGAPI
 #     if defined(__GNUC__) || (defined (_MSC_VER) && (_MSC_VER >= 800))
@@ -1338,7 +1338,7 @@ typedef z_stream FAR *  png_zstreamp;
 #  endif
 
 #  if !defined(PNG_IMPEXP) && (!defined(PNG_DLL) || \
-       0 /* WINCOMPILER_WITH_NO_SUPPORT_FOR_DECLIMPEXP */)
+	   0 /* WINCOMPILER_WITH_NO_SUPPORT_FOR_DECLIMPEXP */)
 #     define PNG_IMPEXP
 #  endif
 
@@ -1347,7 +1347,7 @@ typedef z_stream FAR *  png_zstreamp;
 #     define PNG_EXPORT_TYPE1(type,symbol)  PNG_IMPEXP type PNGAPI symbol
 #     define PNG_EXPORT_TYPE2(type,symbol)  type PNG_IMPEXP PNGAPI symbol
 
-      /* Borland/Microsoft */
+	  /* Borland/Microsoft */
 #     if defined(_MSC_VER) || defined(__BORLANDC__)
 #        if (_MSC_VER >= 800) || (__BORLANDC__ >= 0x500)
 #           define PNG_EXPORT PNG_EXPORT_TYPE1
@@ -1357,9 +1357,9 @@ typedef z_stream FAR *  png_zstreamp;
 #              define PNG_IMPEXP __export
 #           else
 #              define PNG_IMPEXP /*__import */ /* doesn't exist AFAIK in
-                                                 VC++ */
+												 VC++ */
 #           endif                             /* Exists in Borland C++ for
-                                                 C++ classes (== huge) */
+												 C++ classes (== huge) */
 #        endif
 #     endif
 
@@ -1450,15 +1450,15 @@ typedef z_stream FAR *  png_zstreamp;
 #      define png_snprintf6 snprintf
 #    endif
 #  else
-     /* You don't have or don't want to use snprintf().  Caution: Using
-      * sprintf instead of snprintf exposes your application to accidental
-      * or malevolent buffer overflows.  If you don't have snprintf()
-      * as a general rule you should provide one (you can get one from
-      * Portable OpenSSH). */
+	 /* You don't have or don't want to use snprintf().  Caution: Using
+	  * sprintf instead of snprintf exposes your application to accidental
+	  * or malevolent buffer overflows.  If you don't have snprintf()
+	  * as a general rule you should provide one (you can get one from
+	  * Portable OpenSSH). */
 #    define png_snprintf(s1,n,fmt,x1) sprintf(s1,fmt,x1)
 #    define png_snprintf2(s1,n,fmt,x1,x2) sprintf(s1,fmt,x1,x2)
 #    define png_snprintf6(s1,n,fmt,x1,x2,x3,x4,x5,x6) \
-        sprintf(s1,fmt,x1,x2,x3,x4,x5,x6)
+		sprintf(s1,fmt,x1,x2,x3,x4,x5,x6)
 #  endif
 #  define png_strlen  strlen
 #  define png_memcmp  memcmp      /* SJT: added */

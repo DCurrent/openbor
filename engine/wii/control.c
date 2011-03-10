@@ -34,27 +34,27 @@ static long long unsigned time2rumble[MAX_PADS];
 static const char *padnames[PAD_END+1+1] = {
 	"...",
 #define CONTROLNAMES(x) \
-    x" Up",             \
-    x" Right",          \
-    x" Down",           \
-    x" Left",           \
-    x" 1/A",            \
-    x" 2/B",            \
+	x" Up",             \
+	x" Right",          \
+	x" Down",           \
+	x" Left",           \
+	x" 1/A",            \
+	x" 2/B",            \
 	x" A/Y/X",          \
 	x" B/X/Y",          \
 	x" -/Menu",         \
 	x" +/Start",        \
 	x" Home/Z",         \
-    x" R-Trigger",      \
-    x" L-Trigger",      \
+	x" R-Trigger",      \
+	x" L-Trigger",      \
 	x" ZR",             \
-    x" ZL",             \
-    x" Z/L",            \
-    x" C/R",            \
-    x" Substick Up",    \
-    x" Substick Right", \
-    x" Substick Down",  \
-    x" Substick Left",
+	x" ZL",             \
+	x" Z/L",            \
+	x" C/R",            \
+	x" Substick Up",    \
+	x" Substick Right", \
+	x" Substick Down",  \
+	x" Substick Left",
 	CONTROLNAMES("P1")
 	CONTROLNAMES("P2")
 	CONTROLNAMES("P3")
@@ -138,7 +138,7 @@ int control_getjoyenabled()
 
 int keyboard_getlastkey(void)
 {
-    int i, ret=0;
+	int i, ret=0;
 	for(i=0; i<MAX_PADS; i++)
 	{
 		ret |= lastkey[i];
@@ -164,14 +164,14 @@ int control_scankey()
 	static unsigned ready = 0;
 	unsigned i, k=0;
 
-    for(i=0; i<MAX_PADS; i++)
-    {
-        if(lastkey[i])
-        {
-            k = 1 + i*MAX_BUTTONS + flag_to_index(lastkey[i]);
-            break;
-        }
-    }
+	for(i=0; i<MAX_PADS; i++)
+	{
+		if(lastkey[i])
+		{
+			k = 1 + i*MAX_BUTTONS + flag_to_index(lastkey[i]);
+			break;
+		}
+	}
 
 	if(ready && k)
 	{

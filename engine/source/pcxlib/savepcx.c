@@ -77,19 +77,19 @@ int savepcx24(char* filename, s_screen * screen)
 		success = 0;
 		goto END;
 	}
-    if(screen->pixelformat==PIXEL_16)
-    {
-        if((pixelbuf=tracemalloc("savepcx24 3", screen->width*screen->height*4))==NULL)
-        {
-            success = 0;
-            goto END;
-        }
-    }
-    else if(screen->pixelformat!=PIXEL_32)
-    {
-        success = 0;
-        goto END;
-    }
+	if(screen->pixelformat==PIXEL_16)
+	{
+		if((pixelbuf=tracemalloc("savepcx24 3", screen->width*screen->height*4))==NULL)
+		{
+			success = 0;
+			goto END;
+		}
+	}
+	else if(screen->pixelformat!=PIXEL_32)
+	{
+		success = 0;
+		goto END;
+	}
 
 	// Fill the header
 
@@ -122,62 +122,62 @@ int savepcx24(char* filename, s_screen * screen)
 
 	if(pixelbuf)
 	{
-        for(i=screen->height*screen->width-1; i>=0; i--)
-        {
-            c = ((unsigned short*)screen->data)[i];
-            ((unsigned*)pixelbuf)[i] = colour32((c&0x1F)*0xFF/0x1F, ((c>>5)&0x3F)*0xFF/0x3F, ((c>>11)&0x1F)*0xFF/0x1F);
-        }
-    }
+		for(i=screen->height*screen->width-1; i>=0; i--)
+		{
+			c = ((unsigned short*)screen->data)[i];
+			((unsigned*)pixelbuf)[i] = colour32((c&0x1F)*0xFF/0x1F, ((c>>5)&0x3F)*0xFF/0x3F, ((c>>11)&0x1F)*0xFF/0x1F);
+		}
+	}
 
 
 	// Start the coding loop
 
-    x = 0;
+	x = 0;
 	y = 0;
 	srcptr = pixelbuf?pixelbuf:screen->data;
 	while(y < screen->height){
 	    lineptr = srcptr + y*screen->width*4;
 	    // wirte 3 colour planes
-        for(i=0; i<3; i++)
-        {
-    		// To start of RLE buffer
-    		r = 0;
-    		x = 0;
+		for(i=0; i<3; i++)
+		{
+			// To start of RLE buffer
+			r = 0;
+			x = 0;
 #define px ((x<<2)+i)
-    		while(x<screen->width){
-    			if(lineptr[px]>=0xC0 || (x<screen->width-1 && lineptr[px+4]==lineptr[px])){
-    				RLEbuf[r+1] = lineptr[px];
-    				RLEbuf[r] = 0;
-    				while(x<screen->width && lineptr[px]==RLEbuf[r+1] && RLEbuf[r]<63){
-    					++RLEbuf[r];
-    					++x;
-    				}
-    				RLEbuf[r] |= 0xC0;
-    				r+=2;
-    			}
-    			else{
-    				RLEbuf[r] = lineptr[px];
-    				++r;
-    				++x;
-    			}
-    		}
+			while(x<screen->width){
+				if(lineptr[px]>=0xC0 || (x<screen->width-1 && lineptr[px+4]==lineptr[px])){
+					RLEbuf[r+1] = lineptr[px];
+					RLEbuf[r] = 0;
+					while(x<screen->width && lineptr[px]==RLEbuf[r+1] && RLEbuf[r]<63){
+						++RLEbuf[r];
+						++x;
+					}
+					RLEbuf[r] |= 0xC0;
+					r+=2;
+				}
+				else{
+					RLEbuf[r] = lineptr[px];
+					++r;
+					++x;
+				}
+			}
 #undef px
-    		// Reached end of line?
-    		if(x>=screen->width){
-    			// Odd-width byte padding?
-    			if(screen->width&1){
-    				RLEbuf[r] = 0;
-    				++r;
-    			}
-    		}
+			// Reached end of line?
+			if(x>=screen->width){
+				// Odd-width byte padding?
+				if(screen->width&1){
+					RLEbuf[r] = 0;
+					++r;
+				}
+			}
 
-    		// Write RLE code to file
-    		if(write(handle, RLEbuf, r)!=r){
-    			success = 0;
-    			goto END;
-    		}
-        }
-        ++y;
+			// Write RLE code to file
+			if(write(handle, RLEbuf, r)!=r){
+				success = 0;
+				goto END;
+			}
+		}
+		++y;
 	}
 
 
@@ -206,9 +206,9 @@ END:
 	}
 	if(pixelbuf != NULL)
 	{
-        tracefree(pixelbuf);
-        pixelbuf = NULL;
-    }
+		tracefree(pixelbuf);
+		pixelbuf = NULL;
+	}
 
 	return success;
 }
@@ -349,7 +349,7 @@ END:
 
 int savepcx(char *filename, s_screen *screen, unsigned char *pal)
 {
-    if(screen->pixelformat==PIXEL_8) return savepcx8(filename, screen, pal);
-    else                             return savepcx24(filename, screen);
+	if(screen->pixelformat==PIXEL_8) return savepcx8(filename, screen, pal);
+	else                             return savepcx24(filename, screen);
 }
 

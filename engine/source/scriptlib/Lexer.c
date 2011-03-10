@@ -14,10 +14,10 @@
 //Constructor
 void Token_Init(Token* ptoken, MY_TOKEN_TYPE theType, LPCSTR theSource, TEXTPOS theTextPosition, ULONG charOffset)
 {
-    ptoken->theType = theType;
-    ptoken->theTextPosition = theTextPosition;
-    ptoken->charOffset = charOffset;
-    strcpy(ptoken->theSource, theSource );
+	ptoken->theType = theType;
+	ptoken->theTextPosition = theTextPosition;
+	ptoken->charOffset = charOffset;
+	strcpy(ptoken->theSource, theSource );
 }
 
 //Construct from a pp_token
@@ -200,15 +200,15 @@ HRESULT Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 
 void Lexer_Init(Lexer* plexer, pp_context* pcontext, LPCSTR thePath, LPSTR theSource, TEXTPOS theStartingPosition)
 {
-     plexer->thePath = thePath;
-     plexer->ptheSource = theSource;
-     plexer->theTokenPosition = theStartingPosition;
-     pp_parser_init(&plexer->preprocessor, pcontext, thePath, theSource, theStartingPosition);
+	 plexer->thePath = thePath;
+	 plexer->ptheSource = theSource;
+	 plexer->theTokenPosition = theStartingPosition;
+	 pp_parser_init(&plexer->preprocessor, pcontext, thePath, theSource, theStartingPosition);
 }
 
 void Lexer_Clear(Lexer* plexer)
 {
-    memset(plexer, 0, sizeof(Lexer));
+	memset(plexer, 0, sizeof(Lexer));
 }
 
 /******************************************************************************

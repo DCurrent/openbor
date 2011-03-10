@@ -43,19 +43,19 @@ int mmuhack()
 #ifndef WIZ
 	int mmufd;
 	system("/sbin/rmmod mmuhack");
-    system("/sbin/insmod mmuhack.o");
-    mmufd = open("/dev/mmuhack", O_RDWR);
-    if(mmufd < 0) return 0;
-    close(mmufd);
+	system("/sbin/insmod mmuhack.o");
+	mmufd = open("/dev/mmuhack", O_RDWR);
+	if(mmufd < 0) return 0;
+	close(mmufd);
 #endif
-    return 1;
+	return 1;
 }
 
 /* Unload MMU Hack kernel module after closing all memory devices */
 void mmuunhack(void)
 {
 #ifndef WIZ  
-    system("/sbin/rmmod mmuhack");
+	system("/sbin/rmmod mmuhack");
 #endif
 }
 
@@ -79,7 +79,7 @@ ReDo:
 			i += j;
 			goto ReDo; //OMG Goto, kill me.
 		}
-    }
+	}
 
 	TakenSize[i] = BSize;
 	void* mem = ((char*)UpperMem) + i * BLOCKSIZE;
@@ -96,7 +96,7 @@ void UpperFree(void* mem)
 #ifndef WIZ  
 	int i = (((int)mem) - ((int)UpperMem));
 	if(i < 0 || i >= 0x2000000) writeToLogFile("UpperFree of not UpperMalloced mem: %p\n", mem);
-    else
+	else
 	{
 		if(i % BLOCKSIZE) writeToLogFile("delete error: %p\n", mem);
 		TakenSize[i / BLOCKSIZE] = 0;
@@ -144,7 +144,7 @@ int InitMemPool()
 	memset(TakenSize, 0, sizeof(TakenSize));
 
 	SetTaken(0x3000000, 0x80000); // Video decoder (you could overwrite this, but if you
-                                  // don't need the memory then be nice and don't)
+								  // don't need the memory then be nice and don't)
 	SetTaken(0x3101000, 153600);  // Primary frame buffer
 	SetTaken(0x3381000, 153600);  // Secondary frame buffer (if you don't use it, uncomment)
 	SetTaken(0x3600000, 0x8000);  // Sound buffer

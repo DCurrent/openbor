@@ -154,7 +154,7 @@ void filter_dotmatrix(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 ds
 	const u32 nextlineDst = dstPitch / sizeof(u16);
 	const u16 *p = (u16 *)srcPtr;
 	u16 *q = (u16 *)dstPtr;
-    int i, ii, j, jj;
+	int i, ii, j, jj;
 
 	for(j = 0, jj = 0; j < height; ++j, jj += 2)
 	{
@@ -190,13 +190,13 @@ static inline u16 MAKE_RGB565(float r, float g, float b)
 float CUBIC_WEIGHT(float x)
 {
 	// P(x) = { x, x>0 | 0, x<=0 }
-    // P(x + 2) ^ 3 - 4 * P(x + 1) ^ 3 + 6 * P(x) ^ 3 - 4 * P(x - 1) ^ 3
-    double r = 0.;
+	// P(x + 2) ^ 3 - 4 * P(x + 1) ^ 3 + 6 * P(x) ^ 3 - 4 * P(x - 1) ^ 3
+	double r = 0.;
 	if(x + 2 > 0) r +=      pow(x + 2, 3);
-    if(x + 1 > 0) r += -4 * pow(x + 1, 3);
-    if(x     > 0) r +=  6 * pow(x    , 3);
-    if(x - 1 > 0) r += -4 * pow(x - 1, 3);
-    return (float)r / 6;
+	if(x + 1 > 0) r += -4 * pow(x + 1, 3);
+	if(x     > 0) r +=  6 * pow(x    , 3);
+	if(x - 1 > 0) r += -4 * pow(x - 1, 3);
+	return (float)r / 6;
 }
 
 void filter_bicubic(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height)

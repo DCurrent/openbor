@@ -32,5 +32,5 @@ unsigned timer_getinterval(unsigned freq)
 
 unsigned timer_gettick()
 {
-    return SDL_GetTicks();
+	return SDL_GetTicks();
 }

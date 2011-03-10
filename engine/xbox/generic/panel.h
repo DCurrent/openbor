@@ -37,7 +37,7 @@
 class CPanel
 {
 protected:
-    struct VERTEX { D3DXVECTOR4 p; D3DCOLOR col; FLOAT tu, tv; };
+	struct VERTEX { D3DXVECTOR4 p; D3DCOLOR col; FLOAT tu, tv; };
 
 	struct TLVertex
 	{
@@ -50,17 +50,17 @@ protected:
 
 	static const DWORD FVF_VERTEX = D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_TEX1;
 
-    LPDIRECT3DVERTEXBUFFER8 m_pVB;
+	LPDIRECT3DVERTEXBUFFER8 m_pVB;
 	BOOL  m_bManaged;
 
 
 public:
 
-    LPDIRECT3DDEVICE8       m_pd3dDevice;
+	LPDIRECT3DDEVICE8       m_pd3dDevice;
 	unsigned char			*m_pFileBuf ;
 	unsigned int            m_nFileBufSize ;
 	D3DCOLOR m_colDiffuse;
-    LPDIRECT3DTEXTURE8      m_pTexture;
+	LPDIRECT3DTEXTURE8      m_pTexture;
 	FLOAT m_nWidth;
 	FLOAT m_nHeight;
 	D3DXMATRIX matrixProjection;	// Projection matrix (How the scene is rendered to screen)
@@ -69,15 +69,15 @@ public:
 	D3DXMATRIX matrixTemp;			// Temp matrix used to combine matrix operations
 	LPDIRECT3DVERTEXBUFFER8 g_pVBCube;	// Global pointer to Direct3D vertex buffer
 
-    // Constructor/destructor
-    CPanel();
-    ~CPanel();
+	// Constructor/destructor
+	CPanel();
+	~CPanel();
 
-    // Functions to create and destroy the internal objects
+	// Functions to create and destroy the internal objects
 	HRESULT Recreate( LPDIRECT3DDEVICE8 pd3dDevice);
-    HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, LPDIRECT3DTEXTURE8 pd3dTexture, BOOL bManaged=FALSE, FLOAT fSrcWidth = 0.0f, FLOAT fSrcHeight = 0.0f);
+	HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, LPDIRECT3DTEXTURE8 pd3dTexture, BOOL bManaged=FALSE, FLOAT fSrcWidth = 0.0f, FLOAT fSrcHeight = 0.0f);
 	HRESULT CreateMemory( LPDIRECT3DDEVICE8 pd3dDevice, char *filename, float width, float height ) ;
-    HRESULT CreateSized( LPDIRECT3DDEVICE8 pd3dDevice, LPDIRECT3DTEXTURE8 pd3dTexture, FLOAT fX, FLOAT fY, FLOAT fSrcWidth = 0.0f, FLOAT fSrcHeight = 0.0f);
+	HRESULT CreateSized( LPDIRECT3DDEVICE8 pd3dDevice, LPDIRECT3DTEXTURE8 pd3dTexture, FLOAT fX, FLOAT fY, FLOAT fSrcWidth = 0.0f, FLOAT fSrcHeight = 0.0f);
 	// This method's code is covered in a previous tutorial, it basically tells DirectX how
 	// to how the scene is displayed on the 2D screen.
 	void SetProjection( float FOVdegrees, float closeClippingPlane, float farClippingPlane, int scrWidth, int scrHeight);
@@ -112,10 +112,10 @@ public:
 		return m_pTexture;
 	};
 
-    HRESULT Destroy();
+	HRESULT Destroy();
 
-    // Renders the panel
-    HRESULT Render();
+	// Renders the panel
+	HRESULT Render();
 	HRESULT Render(float x, float y, bool bLogical=true);
 	HRESULT Render(float x, float y, float w, float h, float x2, float y2, bool bLogical=true);
 	HRESULT Render(float x, float y, float nw, float nh, bool bLogical=true);

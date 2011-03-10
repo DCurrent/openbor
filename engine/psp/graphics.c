@@ -74,7 +74,7 @@ char* filterName[PSP_DISPLAY_FILTERS] = {"Linear", "Bilinear"};
 DisplayFormat displayFormat[PSP_DISPLAY_FORMATS] = {{"320x240 (4x3)",   80, 16, 320, 240},
 						  						    {"360x270 (4x3)",   60, 01, 360, 270},
 												    {"384x272 (24x17)", 48, 00, 384, 272},
-                                                    {"480x272 (16x9)",  00, 00, 480, 272}};
+													{"480x272 (16x9)",  00, 00, 480, 272}};
 int checkCable(int mode)
 {
 	if(getHardwareModel()==1)
@@ -145,12 +145,12 @@ void setGraphics(int mode, int pixel)
 	else pFlipScreen = flipScreenLCD;
 	switch(pixel)
 	{
-        case PIXEL_32:
+		case PIXEL_32:
 			pBlitScreenToScreen = blitScreenToScreenRaw;
 			PSP_COLOR_FORMAT = GU_PSM_8888;
 			break;
 		case PIXEL_16:
-      		pBlitScreenToScreen = blitScreenToScreenRaw;
+	  		pBlitScreenToScreen = blitScreenToScreenRaw;
 			PSP_COLOR_FORMAT = GU_PSM_5650;
 			break;
 		default:
@@ -227,12 +227,12 @@ void setGraphicsScreen(DisplayFormat display, int pixel, int filter)
 void clearScreen(Color color)
 {
 	if(!initialized) return;
-    guStart();
-    sceGuClearColor(color);
+	guStart();
+	sceGuClearColor(color);
 	sceGuClearDepth(color);
-    sceGuClear(GU_COLOR_BUFFER_BIT|GU_DEPTH_BUFFER_BIT);
-    sceGuFinish();
-    sceGuSync(0, 0);
+	sceGuClear(GU_COLOR_BUFFER_BIT|GU_DEPTH_BUFFER_BIT);
+	sceGuFinish();
+	sceGuSync(0, 0);
 }
 
 void flipScreen()
@@ -291,7 +291,7 @@ void blitAlphaImageToScreen(int sx, int sy, int width, int height, Image* source
 	tVertexTexture texture;
 	setVertexTexture(&texture, width, height, 16, screenWidth+sx, screenHeight+sy, screenLeft+dx, screenTop+dy);
 	drawVertex(texture);
-    sceGuFinish();
+	sceGuFinish();
 	sceGuSync(0, 0);
 }
 
@@ -337,15 +337,15 @@ void blitScreenToScreenPal(int width, int height, s_screen* source)
 void printText(Image* source, int x,int y,int col,int backcol,int fill,char *format, ...)
 {
 	Color data_ptr;
-    Color *data;
+	Color *data;
 	u8  *font;
 	int x1,y1,i;
 	unsigned char ch = 0;
 	char buf[128] = {""};
 	va_list arglist;
-    va_start(arglist, format);
-    vsprintf(buf, format, arglist);
-    va_end(arglist);
+	va_start(arglist, format);
+	vsprintf(buf, format, arglist);
+	va_end(arglist);
 	for(i=0; i<sizeof(buf); i++)
 	{
 		ch = buf[i];

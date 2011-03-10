@@ -18,21 +18,21 @@ static void putsprite_(
   unsigned char *dest, int x, int *linetab, int h, int screenwidth
 ) {
   for(; h > 0; h--, dest += screenwidth) {
-    register int lx = x;
-    unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-    while(lx < screenwidth) {
-      register int count = *data++;
-      if(count == 0xFF) break;
-      lx += count;
-      if(lx >= screenwidth) break;
-      count = *data++;
-      if(!count) continue;
-      if((lx + count) <= 0) { lx += count; data += count; continue; }
-      if(lx < 0) { count += lx; data -= lx; lx = 0; }
-      if((lx + count) > screenwidth) { count = screenwidth - lx; }
-      memcpy(dest+lx, data, count);
-      data+=count;lx+=count;
-    }
+	register int lx = x;
+	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
+	while(lx < screenwidth) {
+	  register int count = *data++;
+	  if(count == 0xFF) break;
+	  lx += count;
+	  if(lx >= screenwidth) break;
+	  count = *data++;
+	  if(!count) continue;
+	  if((lx + count) <= 0) { lx += count; data += count; continue; }
+	  if(lx < 0) { count += lx; data -= lx; lx = 0; }
+	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
+	  memcpy(dest+lx, data, count);
+	  data+=count;lx+=count;
+	}
   }
 }
 
@@ -40,24 +40,24 @@ static void putsprite_flip_(
   unsigned char *dest, int x, int *linetab, int h, int screenwidth
 ) {
   for(; h > 0; h--, dest += screenwidth) {
-    register int lx = x;
-    unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-    while(lx > 0) {
-      register int count = *data++;
-      if(count == 0xFF) break;
-      lx -= count;
-      if(lx <= 0) break;
-      count = *data++;
-      if(!count) continue;
-      if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
-      if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
-      if((lx - count) < 0) { count = lx; }
-      //for(; count > 0; count--) dest[--lx] = *data++;
-      lx--;
-      u8revcpy(dest+lx, data, count);
-      lx-=count-1;
-      data+=count;
-    }
+	register int lx = x;
+	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
+	while(lx > 0) {
+	  register int count = *data++;
+	  if(count == 0xFF) break;
+	  lx -= count;
+	  if(lx <= 0) break;
+	  count = *data++;
+	  if(!count) continue;
+	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
+	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
+	  if((lx - count) < 0) { count = lx; }
+	  //for(; count > 0; count--) dest[--lx] = *data++;
+	  lx--;
+	  u8revcpy(dest+lx, data, count);
+	  lx-=count-1;
+	  data+=count;
+	}
   }
 }
 
@@ -66,23 +66,23 @@ static void putsprite_remap_(
   unsigned char *remap
 ) {
   for(; h > 0; h--, dest += screenwidth) {
-    register int lx = x;
-    unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-    while(lx < screenwidth) {
-      register int count = *data++;
-      if(count == 0xFF) break;
-      lx += count;
-      if(lx >= screenwidth) break;
-      count = *data++;
-      if(!count) continue;
-      if((lx + count) <= 0) { lx += count; data += count; continue; }
-      if(lx < 0) { count += lx; data -= lx; lx = 0; }
-      if((lx + count) > screenwidth) { count = screenwidth - lx; }
-      //for(; count > 0; count--) dest[lx++] = remap[((int)(*data++))&0xFF];
-      u8pcpy(dest+lx, data, remap, count);
-      lx+=count;
-      data+=count;
-    }
+	register int lx = x;
+	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
+	while(lx < screenwidth) {
+	  register int count = *data++;
+	  if(count == 0xFF) break;
+	  lx += count;
+	  if(lx >= screenwidth) break;
+	  count = *data++;
+	  if(!count) continue;
+	  if((lx + count) <= 0) { lx += count; data += count; continue; }
+	  if(lx < 0) { count += lx; data -= lx; lx = 0; }
+	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
+	  //for(; count > 0; count--) dest[lx++] = remap[((int)(*data++))&0xFF];
+	  u8pcpy(dest+lx, data, remap, count);
+	  lx+=count;
+	  data+=count;
+	}
   }
 }
 
@@ -91,24 +91,24 @@ static void putsprite_remap_flip_(
   unsigned char *remap
 ) {
   for(; h > 0; h--, dest += screenwidth) {
-    register int lx = x;
-    unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-    while(lx > 0) {
-      register int count = *data++;
-      if(count == 0xFF) break;
-      lx -= count;
-      if(lx <= 0) break;
-      count = *data++;
-      if(!count) continue;
-      if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
-      if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
-      if((lx - count) < 0) { count = lx; }
-      //for(; count > 0; count--) dest[--lx] = remap[((int)(*data++))&0xFF];
-      lx--;
-      u8revpcpy(dest+lx, data, remap, count);
-      lx-=count-1;
-      data+=count;
-    }
+	register int lx = x;
+	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
+	while(lx > 0) {
+	  register int count = *data++;
+	  if(count == 0xFF) break;
+	  lx -= count;
+	  if(lx <= 0) break;
+	  count = *data++;
+	  if(!count) continue;
+	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
+	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
+	  if((lx - count) < 0) { count = lx; }
+	  //for(; count > 0; count--) dest[--lx] = remap[((int)(*data++))&0xFF];
+	  lx--;
+	  u8revpcpy(dest+lx, data, remap, count);
+	  lx-=count-1;
+	  data+=count;
+	}
   }
 }
 
@@ -118,20 +118,20 @@ static void putsprite_remapblend_(
   unsigned char*remap, unsigned char *blend
 ) {
   for(; h > 0; h--, dest += screenwidth) {
-    register int lx = x;
-    unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-    while(lx < screenwidth) {
-      register int count = *data++;
-      if(count == 0xFF) break;
-      lx += count;
-      if(lx >= screenwidth) break;
-      count = *data++;
-      if(!count) continue;
-      if((lx + count) <= 0) { lx += count; data += count; continue; }
-      if(lx < 0) { count += lx; data -= lx; lx = 0; }
-      if((lx + count) > screenwidth) { count = screenwidth - lx; }
-      for(; count > 0; count--) { dest[lx] = blend[(remap[(((int)(*data++))&0xFF)]<<8)|dest[lx]]; lx++; }
-    }
+	register int lx = x;
+	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
+	while(lx < screenwidth) {
+	  register int count = *data++;
+	  if(count == 0xFF) break;
+	  lx += count;
+	  if(lx >= screenwidth) break;
+	  count = *data++;
+	  if(!count) continue;
+	  if((lx + count) <= 0) { lx += count; data += count; continue; }
+	  if(lx < 0) { count += lx; data -= lx; lx = 0; }
+	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
+	  for(; count > 0; count--) { dest[lx] = blend[(remap[(((int)(*data++))&0xFF)]<<8)|dest[lx]]; lx++; }
+	}
   }
 }
 
@@ -140,20 +140,20 @@ static void putsprite_remapblend_flip_(
   unsigned char* remap, unsigned char *blend
 ) {
   for(; h > 0; h--, dest += screenwidth) {
-    register int lx = x;
-    unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-    while(lx > 0) {
-      register int count = *data++;
-      if(count == 0xFF) break;
-      lx -= count;
-      if(lx <= 0) break;
-      count = *data++;
-      if(!count) continue;
-      if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
-      if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
-      if((lx - count) < 0) { count = lx; }
-      for(; count > 0; count--) { --lx; dest[lx] = blend[(remap[(((int)(*data++))&0xFF)]<<8)|dest[lx]]; }
-    }
+	register int lx = x;
+	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
+	while(lx > 0) {
+	  register int count = *data++;
+	  if(count == 0xFF) break;
+	  lx -= count;
+	  if(lx <= 0) break;
+	  count = *data++;
+	  if(!count) continue;
+	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
+	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
+	  if((lx - count) < 0) { count = lx; }
+	  for(; count > 0; count--) { --lx; dest[lx] = blend[(remap[(((int)(*data++))&0xFF)]<<8)|dest[lx]]; }
+	}
   }
 }
 
@@ -162,20 +162,20 @@ static void putsprite_blend_(
   unsigned char *blend
 ) {
   for(; h > 0; h--, dest += screenwidth) {
-    register int lx = x;
-    unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-    while(lx < screenwidth) {
-      register int count = *data++;
-      if(count == 0xFF) break;
-      lx += count;
-      if(lx >= screenwidth) break;
-      count = *data++;
-      if(!count) continue;
-      if((lx + count) <= 0) { lx += count; data += count; continue; }
-      if(lx < 0) { count += lx; data -= lx; lx = 0; }
-      if((lx + count) > screenwidth) { count = screenwidth - lx; }
-      for(; count > 0; count--) { dest[lx] = blend[((((int)(*data++))&0xFF)<<8)|dest[lx]]; lx++; }
-    }
+	register int lx = x;
+	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
+	while(lx < screenwidth) {
+	  register int count = *data++;
+	  if(count == 0xFF) break;
+	  lx += count;
+	  if(lx >= screenwidth) break;
+	  count = *data++;
+	  if(!count) continue;
+	  if((lx + count) <= 0) { lx += count; data += count; continue; }
+	  if(lx < 0) { count += lx; data -= lx; lx = 0; }
+	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
+	  for(; count > 0; count--) { dest[lx] = blend[((((int)(*data++))&0xFF)<<8)|dest[lx]]; lx++; }
+	}
   }
 }
 
@@ -184,20 +184,20 @@ static void putsprite_blend_flip_(
   unsigned char *blend
 ) {
   for(; h > 0; h--, dest += screenwidth) {
-    register int lx = x;
-    unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-    while(lx > 0) {
-      register int count = *data++;
-      if(count == 0xFF) break;
-      lx -= count;
-      if(lx <= 0) break;
-      count = *data++;
-      if(!count) continue;
-      if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
-      if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
-      if((lx - count) < 0) { count = lx; }
-      for(; count > 0; count--) { --lx; dest[lx] = blend[((((int)(*data++))&0xFF)<<8)|dest[lx]]; }
-    }
+	register int lx = x;
+	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
+	while(lx > 0) {
+	  register int count = *data++;
+	  if(count == 0xFF) break;
+	  lx -= count;
+	  if(lx <= 0) break;
+	  count = *data++;
+	  if(!count) continue;
+	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
+	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
+	  if((lx - count) < 0) { count = lx; }
+	  for(; count > 0; count--) { --lx; dest[lx] = blend[((((int)(*data++))&0xFF)<<8)|dest[lx]]; }
+	}
   }
 }
 
@@ -223,13 +223,13 @@ void putsprite_8(
   // trivial clip all directions
   if(is_flip)
   {
-      if(x-w >= screenwidth) return;
-      if(x <= 0) return;
+	  if(x-w >= screenwidth) return;
+	  if(x <= 0) return;
   }
   else
   {
-      if(x >= screenwidth) return;
-      if((x+w) <= 0) return;
+	  if(x >= screenwidth) return;
+	  if((x+w) <= 0) return;
   }
   if(y >= screenheight) return;
   if((y+h) <= 0) return;
@@ -237,29 +237,29 @@ void putsprite_8(
   linetab = (int*)(sprite->data);
   // clip top
   if(y < 0) {
-    h += y; // subtract from height
-    linetab -= y; // add to linetab
-    y = 0; // add to y
+	h += y; // subtract from height
+	linetab -= y; // add to linetab
+	y = 0; // add to y
   }
   // clip bottom
   if((y+h) > screenheight) {
-    h = screenheight - y;
+	h = screenheight - y;
   }
   // calculate destination pointer
   dest = ((unsigned char*)(screen->data)) + y*screenwidth;
 
   if(blend&&remap){
-    if(is_flip) putsprite_remapblend_flip_(dest, x, linetab, h, screenwidth, remap, blend);
-    else        putsprite_remapblend_     (dest, x  , linetab, h, screenwidth,remap, blend);
+	if(is_flip) putsprite_remapblend_flip_(dest, x, linetab, h, screenwidth, remap, blend);
+	else        putsprite_remapblend_     (dest, x  , linetab, h, screenwidth,remap, blend);
   } else if(blend) {
-    if(is_flip) putsprite_blend_flip_(dest, x, linetab, h, screenwidth, blend);
-    else        putsprite_blend_     (dest, x  , linetab, h, screenwidth, blend);
+	if(is_flip) putsprite_blend_flip_(dest, x, linetab, h, screenwidth, blend);
+	else        putsprite_blend_     (dest, x  , linetab, h, screenwidth, blend);
   } else if(remap) {
-    if(is_flip) putsprite_remap_flip_(dest, x, linetab, h, screenwidth, remap);
-    else        putsprite_remap_     (dest, x  , linetab, h, screenwidth, remap);
+	if(is_flip) putsprite_remap_flip_(dest, x, linetab, h, screenwidth, remap);
+	else        putsprite_remap_     (dest, x  , linetab, h, screenwidth, remap);
   } else {
-    if(is_flip) putsprite_flip_      (dest, x, linetab, h, screenwidth);
-    else        putsprite_           (dest, x  , linetab, h, screenwidth);
+	if(is_flip) putsprite_flip_      (dest, x, linetab, h, screenwidth);
+	else        putsprite_           (dest, x  , linetab, h, screenwidth);
   }
 }
 
@@ -270,19 +270,19 @@ unsigned char fillcolor = 0;
 
 unsigned char remapcolor(unsigned char* table, unsigned char color, unsigned char unused)
 {
-    return table[color];
+	return table[color];
 }
 
 unsigned char blendcolor(unsigned char* table, unsigned char color1, unsigned char color2)
 {
-    if(!table) return color1;
-    return table[color1<<8|color2];
+	if(!table) return color1;
+	return table[color1<<8|color2];
 }
 
 unsigned char blendfillcolor(unsigned char* table, unsigned char unused, unsigned char color)
 {
-    if(!table) return fillcolor;
-    return table[fillcolor<<8|color];
+	if(!table) return fillcolor;
+	return table[fillcolor<<8|color];
 }
 
 //--------------------------------------------------------------------------------------
@@ -292,116 +292,116 @@ static int screenwidth, screenheight;
 // x: centerx on screen cx: centerx of this line
 static void scaleline(int x, int cx, int width, int *linetab, unsigned char *dest_c, unsigned char *lut, transpixelfunc fp,  int scale)
 {
-    unsigned char* data;
-    int dx, i, d;
-    unsigned char * charptr;
-    int scale_d=0, old_scale_d=0, cleft, cwidth;
+	unsigned char* data;
+	int dx, i, d;
+	unsigned char * charptr;
+	int scale_d=0, old_scale_d=0, cleft, cwidth;
 
-    dx = x - ((cx*scale)/256); //draw start x
+	dx = x - ((cx*scale)/256); //draw start x
 
 //    if(dx>=screenwidth || dx+((width*scale)>>8)<0) return; it should be check in the function that called this
 
-    dest_c += dx;
+	dest_c += dx;
 
 	// Get ready to draw a line
 	data = (unsigned char*)linetab + (*linetab);
 
-    for(;;)
-    {
-        cleft = *data++;
-        if(cleft==0xFF) return;// end of line
-        cwidth = *data++;
-        if(!cwidth) continue;
-        //scale_s += cleft<<8;     // src scale, 256
-        charptr = data;
-        data += cwidth; // skip some bytes to next block
-        scale_d += cleft*scale;  // dest scale, scale
-        dx += (cleft*scale)>>8;
-        if(dx>=screenwidth) return; // out of right border? exit
-        d = scale_d - old_scale_d;
-        if(d >= 256) // skip some blank pixels
-        {
-            dest_c += d>>8;
-            old_scale_d = scale_d & 0xFFFFFF00;
-        }
-        while(cwidth--) // draw these pixels
-        {
-            scale_d += scale;
-            d = scale_d - old_scale_d; // count scale added
-            if(d >= 256) // > 1pixel, so draw these
-            {
-                for(i=d>>8; i>0; i--) // draw a pixel
-                {
-                    if(dx>=0) // pass left border?
-                    {
-                        *dest_c = fp?fp(lut, *charptr, *dest_c):*charptr;
-                    }
-                    if(++dx>=screenwidth) return; // out of right border? exit
-                    dest_c++; // position move to right one pixel
-                }
-                old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
-            }
-            charptr++; // src ptr move right one pixel
-        }
-    }
+	for(;;)
+	{
+		cleft = *data++;
+		if(cleft==0xFF) return;// end of line
+		cwidth = *data++;
+		if(!cwidth) continue;
+		//scale_s += cleft<<8;     // src scale, 256
+		charptr = data;
+		data += cwidth; // skip some bytes to next block
+		scale_d += cleft*scale;  // dest scale, scale
+		dx += (cleft*scale)>>8;
+		if(dx>=screenwidth) return; // out of right border? exit
+		d = scale_d - old_scale_d;
+		if(d >= 256) // skip some blank pixels
+		{
+			dest_c += d>>8;
+			old_scale_d = scale_d & 0xFFFFFF00;
+		}
+		while(cwidth--) // draw these pixels
+		{
+			scale_d += scale;
+			d = scale_d - old_scale_d; // count scale added
+			if(d >= 256) // > 1pixel, so draw these
+			{
+				for(i=d>>8; i>0; i--) // draw a pixel
+				{
+					if(dx>=0) // pass left border?
+					{
+						*dest_c = fp?fp(lut, *charptr, *dest_c):*charptr;
+					}
+					if(++dx>=screenwidth) return; // out of right border? exit
+					dest_c++; // position move to right one pixel
+				}
+				old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
+			}
+			charptr++; // src ptr move right one pixel
+		}
+	}
 }
 
 
 // x: centerx on screen cx: centerx of this line, flip version
 static void scaleline_flip(int x, int cx, int width, int *linetab, unsigned char *dest_c, unsigned char *lut, transpixelfunc fp,  int scale)
 {
-    unsigned char* data;
-    int dx, i, d;
-    unsigned char * charptr;
-    int scale_d=0, old_scale_d=0, cleft, cwidth;
+	unsigned char* data;
+	int dx, i, d;
+	unsigned char * charptr;
+	int scale_d=0, old_scale_d=0, cleft, cwidth;
 
-    dx = x + ((cx*scale)/256); //draw start x, flipped, so use + instead of -
+	dx = x + ((cx*scale)/256); //draw start x, flipped, so use + instead of -
 
 //    if(dx>=screenwidth || dx+((width*scale)>>8)<0) return; it should be check in the function that called this
 
-    dest_c += dx;
+	dest_c += dx;
 
 	// Get ready to draw a line
 	data = (unsigned char*)linetab + (*linetab);
 
-    for(;;)
-    {
-        cleft = *data++;
-        if(cleft==0xFF) return;
-        cwidth = *data++;
-        if(!cwidth) continue; // end of line
-        //scale_s += cleft<<8;     // src scale, 256
-        charptr = data;
-        data += cwidth; // skip some bytes to next block
-        scale_d += cleft*scale;  // dest scale, scale
-        dx -= (cleft*scale)>>8;  // move left , because it is flipped
-        if(dx<0) return; // out of left border? exit
-        d = scale_d - old_scale_d;
-        if(d >= 256) // skip some blank pixels
-        {
-            dest_c -= d>>8;
-            old_scale_d = scale_d & 0xFFFFFF00;
-        }
-        while(cwidth--) // draw these pixels
-        {
-            scale_d += scale;
-            d = scale_d - old_scale_d; // count scale added
-            if(d >= 256) // > 1pixel, so draw these
-            {
-                for(i=d>>8; i>0; i--) // draw a pixel
-                {
-                    if(dx<screenwidth) // pass right border?
-                    {
-                        *dest_c = fp?fp(lut, *charptr, *dest_c):*charptr;
-                    }
-                    if(--dx<0) return; // out of left border? exit
-                    dest_c--; // position move to left one pixel
-                }
-                old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
-            }
-            charptr++; // src ptr move right one pixel
-        }
-    }
+	for(;;)
+	{
+		cleft = *data++;
+		if(cleft==0xFF) return;
+		cwidth = *data++;
+		if(!cwidth) continue; // end of line
+		//scale_s += cleft<<8;     // src scale, 256
+		charptr = data;
+		data += cwidth; // skip some bytes to next block
+		scale_d += cleft*scale;  // dest scale, scale
+		dx -= (cleft*scale)>>8;  // move left , because it is flipped
+		if(dx<0) return; // out of left border? exit
+		d = scale_d - old_scale_d;
+		if(d >= 256) // skip some blank pixels
+		{
+			dest_c -= d>>8;
+			old_scale_d = scale_d & 0xFFFFFF00;
+		}
+		while(cwidth--) // draw these pixels
+		{
+			scale_d += scale;
+			d = scale_d - old_scale_d; // count scale added
+			if(d >= 256) // > 1pixel, so draw these
+			{
+				for(i=d>>8; i>0; i--) // draw a pixel
+				{
+					if(dx<screenwidth) // pass right border?
+					{
+						*dest_c = fp?fp(lut, *charptr, *dest_c):*charptr;
+					}
+					if(--dx<0) return; // out of left border? exit
+					dest_c--; // position move to left one pixel
+				}
+				old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
+			}
+			charptr++; // src ptr move right one pixel
+		}
+	}
 
 }
 
@@ -419,84 +419,84 @@ static const double cos_table[] = //360
 // angle: rotate angle, should be a positive value from 0 - 359, check it before use this function
 static void scaleline_rot(int x, int y, int cx, int dy, int width, int *linetab, unsigned char *dest_c, unsigned char *lut, transpixelfunc fp,  int scale, int angle)
 {
-    unsigned char* data;
-    int dx, rx, ry, i, d;
-    unsigned char * charptr, *destptr;
-    int scale_d=0, old_scale_d=0, cleft, cwidth;
-    int j;
+	unsigned char* data;
+	int dx, rx, ry, i, d;
+	unsigned char * charptr, *destptr;
+	int scale_d=0, old_scale_d=0, cleft, cwidth;
+	int j;
 
-    double deltax, deltay;
+	double deltax, deltay;
 
-    dx = x - ((cx*scale)/256); //draw start x
+	dx = x - ((cx*scale)/256); //draw start x
 //    if(dx>=screenwidth || dx+((width*scale)>>8)<0) return; it should be check in the function that called this
 
 	// Get ready to draw a line
 	data = (unsigned char*)linetab + (*linetab);
 
-    for(;;)
-    {
-        cleft = *data++;
-        if(cleft==0xFF) return;// end of line
-        cwidth = *data++;
-        if(!cwidth) continue;
-        //scale_s += cleft<<8;     // src scale, 256
-        charptr = data;
-        data += cwidth; // skip some bytes to next block
-        scale_d += cleft*scale;  // dest scale, scale
-        dx += (cleft*scale)>>8;
-        //if(dx>=screenwidth) return; // out of right border? exit
-        d = scale_d - old_scale_d;
-        if(d >= 256) // skip some blank pixels
-        {
-            old_scale_d = scale_d & 0xFFFFFF00;
-        }
-        while(cwidth--) // draw these pixels
-        {
-            scale_d += scale;
-            d = scale_d - old_scale_d; // count scale added
-            if(d >= 256) // > 1pixel, so draw these
-            {
-                for(i=d>>8; i>0; i--) // draw a pixel
-                {
-                    // rotate,
-                    deltax = dx - x;
-                    deltay = dy - y;
+	for(;;)
+	{
+		cleft = *data++;
+		if(cleft==0xFF) return;// end of line
+		cwidth = *data++;
+		if(!cwidth) continue;
+		//scale_s += cleft<<8;     // src scale, 256
+		charptr = data;
+		data += cwidth; // skip some bytes to next block
+		scale_d += cleft*scale;  // dest scale, scale
+		dx += (cleft*scale)>>8;
+		//if(dx>=screenwidth) return; // out of right border? exit
+		d = scale_d - old_scale_d;
+		if(d >= 256) // skip some blank pixels
+		{
+			old_scale_d = scale_d & 0xFFFFFF00;
+		}
+		while(cwidth--) // draw these pixels
+		{
+			scale_d += scale;
+			d = scale_d - old_scale_d; // count scale added
+			if(d >= 256) // > 1pixel, so draw these
+			{
+				for(i=d>>8; i>0; i--) // draw a pixel
+				{
+					// rotate,
+					deltax = dx - x;
+					deltay = dy - y;
 
-                    if(angle%90)
-                    {
-                        deltay -=0.6;
-                        for(j=0; j<3; j++)
-                        {
-                            deltay += 0.3;
-                            rx = (int)(x + deltax * cos_table[angle] - deltay* sin_table[angle]);
-                            ry = (int)(y + deltay * cos_table[angle] + deltax* sin_table[angle]);
+					if(angle%90)
+					{
+						deltay -=0.6;
+						for(j=0; j<3; j++)
+						{
+							deltay += 0.3;
+							rx = (int)(x + deltax * cos_table[angle] - deltay* sin_table[angle]);
+							ry = (int)(y + deltay * cos_table[angle] + deltax* sin_table[angle]);
 
-                            if(rx >= 0 && rx < screenwidth && ry >=0 && ry < screenheight)
-                            {
-                                destptr = dest_c + (screenwidth * ry + rx);
-                                *destptr = fp?fp(lut, *charptr, *destptr):*charptr;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        rx = (int)(x + deltax * cos_table[angle] - deltay* sin_table[angle]);
-                        ry = (int)(y + deltay * cos_table[angle] + deltax* sin_table[angle]);
+							if(rx >= 0 && rx < screenwidth && ry >=0 && ry < screenheight)
+							{
+								destptr = dest_c + (screenwidth * ry + rx);
+								*destptr = fp?fp(lut, *charptr, *destptr):*charptr;
+							}
+						}
+					}
+					else
+					{
+						rx = (int)(x + deltax * cos_table[angle] - deltay* sin_table[angle]);
+						ry = (int)(y + deltay * cos_table[angle] + deltax* sin_table[angle]);
 
-                        if(rx >= 0 && rx < screenwidth && ry >=0 && ry < screenheight)
-                        {
-                            destptr = dest_c + (screenwidth * ry + rx);
-                            *destptr = fp?fp(lut, *charptr, *destptr):*charptr;
-                        }
-                    }
+						if(rx >= 0 && rx < screenwidth && ry >=0 && ry < screenheight)
+						{
+							destptr = dest_c + (screenwidth * ry + rx);
+							*destptr = fp?fp(lut, *charptr, *destptr):*charptr;
+						}
+					}
 
-                    ++dx;
-                }
-                old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
-            }
-            charptr++; // src ptr move right one pixel
-        }
-    }
+					++dx;
+				}
+				old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
+			}
+			charptr++; // src ptr move right one pixel
+		}
+	}
 }
 
 // flip version of above
@@ -504,84 +504,84 @@ static void scaleline_rot(int x, int y, int cx, int dy, int width, int *linetab,
 // angle: rotate angle, should be a positive value from 0 - 359, check it before use this function
 static void scaleline_rotflip(int x, int y, int cx, int dy, int width, int *linetab, unsigned char *dest_c, unsigned char *lut, transpixelfunc fp,  int scale, int angle)
 {
-    unsigned char* data;
-    int dx, rx, ry, i, d;
-    unsigned char * charptr, *destptr;
-    int scale_d=0, old_scale_d=0, cleft, cwidth;
+	unsigned char* data;
+	int dx, rx, ry, i, d;
+	unsigned char * charptr, *destptr;
+	int scale_d=0, old_scale_d=0, cleft, cwidth;
 
-    int j;
-    double deltax, deltay;
+	int j;
+	double deltax, deltay;
 
-    dx = x + ((cx*scale)/256); //draw start x, flipped, so use + instead of -
+	dx = x + ((cx*scale)/256); //draw start x, flipped, so use + instead of -
 
 //    if(dx>=screenwidth || dx+((width*scale)>>8)<0) return; it should be check in the function that called this
 
 	// Get ready to draw a line
 	data = (unsigned char*)linetab + (*linetab);
 
-    for(;;)
-    {
-        cleft = *data++;
-        if(cleft==0xFF) return;
-        cwidth = *data++;
-        if(!cwidth) continue; // end of line
-        //scale_s += cleft<<8;     // src scale, 256
-        charptr = data;
-        data += cwidth; // skip some bytes to next block
-        scale_d += cleft*scale;  // dest scale, scale
-        dx -= (cleft*scale)>>8;  // move left , because it is flipped
-        //if(dx<0) return; // out of left border? exit
-        d = scale_d - old_scale_d;
-        if(d >= 256) // skip some blank pixels
-        {
-            old_scale_d = scale_d & 0xFFFFFF00;
-        }
-        while(cwidth--) // draw these pixels
-        {
-            scale_d += scale;
-            d = scale_d - old_scale_d; // count scale added
-            if(d >= 256) // > 1pixel, so draw these
-            {
-                for(i=d>>8; i>0; i--) // draw a pixel
-                {
-                    // rotate,
-                    deltax = dx - x;
-                    deltay = dy - y;
+	for(;;)
+	{
+		cleft = *data++;
+		if(cleft==0xFF) return;
+		cwidth = *data++;
+		if(!cwidth) continue; // end of line
+		//scale_s += cleft<<8;     // src scale, 256
+		charptr = data;
+		data += cwidth; // skip some bytes to next block
+		scale_d += cleft*scale;  // dest scale, scale
+		dx -= (cleft*scale)>>8;  // move left , because it is flipped
+		//if(dx<0) return; // out of left border? exit
+		d = scale_d - old_scale_d;
+		if(d >= 256) // skip some blank pixels
+		{
+			old_scale_d = scale_d & 0xFFFFFF00;
+		}
+		while(cwidth--) // draw these pixels
+		{
+			scale_d += scale;
+			d = scale_d - old_scale_d; // count scale added
+			if(d >= 256) // > 1pixel, so draw these
+			{
+				for(i=d>>8; i>0; i--) // draw a pixel
+				{
+					// rotate,
+					deltax = dx - x;
+					deltay = dy - y;
 
-                    if(angle%90)
-                    {
-                        deltay -=0.6;
-                        for(j=0; j<3; j++)
-                        {
-                            deltay += 0.3;
-                            rx = (int)(x + deltax * cos_table[angle] - deltay* sin_table[angle]);
-                            ry = (int)(y + deltay * cos_table[angle] + deltax* sin_table[angle]);
+					if(angle%90)
+					{
+						deltay -=0.6;
+						for(j=0; j<3; j++)
+						{
+							deltay += 0.3;
+							rx = (int)(x + deltax * cos_table[angle] - deltay* sin_table[angle]);
+							ry = (int)(y + deltay * cos_table[angle] + deltax* sin_table[angle]);
 
-                            if(rx >= 0 && rx < screenwidth && ry >=0 && ry < screenheight)
-                            {
-                                destptr = dest_c + (screenwidth * ry + rx);
-                                *destptr = fp?fp(lut, *charptr, *destptr):*charptr;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        rx = (int)(x + deltax * cos_table[angle] - deltay* sin_table[angle]);
-                        ry = (int)(y + deltay * cos_table[angle] + deltax* sin_table[angle]);
+							if(rx >= 0 && rx < screenwidth && ry >=0 && ry < screenheight)
+							{
+								destptr = dest_c + (screenwidth * ry + rx);
+								*destptr = fp?fp(lut, *charptr, *destptr):*charptr;
+							}
+						}
+					}
+					else
+					{
+						rx = (int)(x + deltax * cos_table[angle] - deltay* sin_table[angle]);
+						ry = (int)(y + deltay * cos_table[angle] + deltax* sin_table[angle]);
 
-                        if(rx >= 0 && rx < screenwidth && ry >=0 && ry < screenheight)
-                        {
-                            destptr = dest_c + (screenwidth * ry + rx);
-                            *destptr = fp?fp(lut, *charptr, *destptr):*charptr;
-                        }
-                    }
-                    --dx;
-                }
-                old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
-            }
-            charptr++; // src ptr move right one pixel
-        }
-    }
+						if(rx >= 0 && rx < screenwidth && ry >=0 && ry < screenheight)
+						{
+							destptr = dest_c + (screenwidth * ry + rx);
+							*destptr = fp?fp(lut, *charptr, *destptr):*charptr;
+						}
+					}
+					--dx;
+				}
+				old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
+			}
+			charptr++; // src ptr move right one pixel
+		}
+	}
 
 }
 
@@ -594,215 +594,215 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
 	int scale=0, old_scale=0;
 	int centerx, centery;
 	void (*scalelinefp)(int x, int cx, int width, int *linetab, unsigned char *dest_c, unsigned char *lut, transpixelfunc fp,  int scale);
-    void (*scalelinerotfp)(int x, int y, int cx, int dy, int width, int *linetab, unsigned char *dest_c, unsigned char *lut, transpixelfunc fp,  int scale, int angle);
+	void (*scalelinerotfp)(int x, int y, int cx, int dy, int width, int *linetab, unsigned char *dest_c, unsigned char *lut, transpixelfunc fp,  int scale, int angle);
 
-    if(!drawmethod || drawmethod->flag==0)
-    {
-        putsprite_8(x, y, 0, frame, screen, NULL, NULL);
-        return;
-    }
+	if(!drawmethod || drawmethod->flag==0)
+	{
+		putsprite_8(x, y, 0, frame, screen, NULL, NULL);
+		return;
+	}
 
 	if(!drawmethod->scalex || !drawmethod->scaley) return; // zero size
 
 	// no scale, no shift, no flip, no fill, so use common method
 	if(drawmethod->scalex==256 && drawmethod->scaley==256 && !drawmethod->flipy && !drawmethod->shiftx && drawmethod->fillcolor==TRANSPARENT_IDX && !drawmethod->rotate && !drawmethod->centerx && !drawmethod->centery)
-    {
-        putsprite_8(x, y, drawmethod->flipx, frame, screen, drawmethod->table, drawmethod->alpha>0?blendtables[drawmethod->alpha-1]:NULL);
-        return;
-    }
+	{
+		putsprite_8(x, y, drawmethod->flipx, frame, screen, drawmethod->table, drawmethod->alpha>0?blendtables[drawmethod->alpha-1]:NULL);
+		return;
+	}
 
-    if(drawmethod->centerx) centerx = drawmethod->centerx+frame->centerx;
-    else                    centerx = frame->centerx;
-    if(drawmethod->centery) centery = drawmethod->centery+frame->centery;
-    else                    centery = frame->centery;
+	if(drawmethod->centerx) centerx = drawmethod->centerx+frame->centerx;
+	else                    centerx = frame->centerx;
+	if(drawmethod->centery) centery = drawmethod->centery+frame->centery;
+	else                    centery = frame->centery;
 
 	screenheight = screen->height;
 	screenwidth = screen->width;
 
 	cy = y;
-    height = frame->height;
-    linetab = (int*)(frame->data);
+	height = frame->height;
+	linetab = (int*)(frame->data);
 
-    if(drawmethod->fillcolor) fillcolor = drawmethod->fillcolor&0xFF;
-    else fillcolor = 0;
+	if(drawmethod->fillcolor) fillcolor = drawmethod->fillcolor&0xFF;
+	else fillcolor = 0;
 
-    if(drawmethod->table) drawmethod->fp = remapcolor;
-    else if(drawmethod->alpha>0)
-    {
-        drawmethod->table = blendtables[drawmethod->alpha-1];
-        drawmethod->fp = (fillcolor==TRANSPARENT_IDX?blendcolor:blendfillcolor);
-    }
-    else drawmethod->fp = (fillcolor==TRANSPARENT_IDX?NULL:blendfillcolor);
+	if(drawmethod->table) drawmethod->fp = remapcolor;
+	else if(drawmethod->alpha>0)
+	{
+		drawmethod->table = blendtables[drawmethod->alpha-1];
+		drawmethod->fp = (fillcolor==TRANSPARENT_IDX?blendcolor:blendfillcolor);
+	}
+	else drawmethod->fp = (fillcolor==TRANSPARENT_IDX?NULL:blendfillcolor);
 
 //-----------------------------------------------------------------------------------------------
 // rotate version, quite a large-scale if-else,
 // rotate should be 0 to 359, and it should be checked before this function is called
 // TODO: enable clip
-    if(drawmethod->rotate)
-    {
-        if(drawmethod->flipx)
-        {
-            dx = x + ((centerx*drawmethod->scalex)/256); //draw start x
-            scalelinerotfp = scaleline_rotflip;
-        }
-        else
-        {
-            dx = x - ((centerx*drawmethod->scalex)/256); //draw start x
-            scalelinerotfp = scaleline_rot;
-        }
-        // flip in y direction, from centery
-        if(drawmethod->flipy)
-        {
-            t = centery*drawmethod->scaley;
-            y += t/256; // lowest
-            scale -= t<0?((-t)%256):(t%256);
-            while(height--)
-            {
-                scale += drawmethod->scaley;
-                d = scale - old_scale; // count scale added
-                if(d >= 256) // > 1pixel, so draw these
-                {
-                    for(i=d>>8; i>0; i--) // draw a line
-                    {
-                        scalelinerotfp(x+((drawmethod->shiftx*(cy-y))/256), cy, centerx, y, frame->width, linetab, (unsigned char*)(screen->data), drawmethod->table, drawmethod->fp, drawmethod->scalex, drawmethod->rotate);
-                        --y; // out of lower border? exit
-                    }
-                    old_scale = scale & 0xFFFFFF00; //truncate those less than 256
-                }
-                linetab++; //src line shift
-            }
-        }
-        else // un-flipped version
-        {
-            t = centery*drawmethod->scaley;
-            y -= t/256; // topmost
-            scale -= t<0?((-t)%256):(t%256);
+	if(drawmethod->rotate)
+	{
+		if(drawmethod->flipx)
+		{
+			dx = x + ((centerx*drawmethod->scalex)/256); //draw start x
+			scalelinerotfp = scaleline_rotflip;
+		}
+		else
+		{
+			dx = x - ((centerx*drawmethod->scalex)/256); //draw start x
+			scalelinerotfp = scaleline_rot;
+		}
+		// flip in y direction, from centery
+		if(drawmethod->flipy)
+		{
+			t = centery*drawmethod->scaley;
+			y += t/256; // lowest
+			scale -= t<0?((-t)%256):(t%256);
+			while(height--)
+			{
+				scale += drawmethod->scaley;
+				d = scale - old_scale; // count scale added
+				if(d >= 256) // > 1pixel, so draw these
+				{
+					for(i=d>>8; i>0; i--) // draw a line
+					{
+						scalelinerotfp(x+((drawmethod->shiftx*(cy-y))/256), cy, centerx, y, frame->width, linetab, (unsigned char*)(screen->data), drawmethod->table, drawmethod->fp, drawmethod->scalex, drawmethod->rotate);
+						--y; // out of lower border? exit
+					}
+					old_scale = scale & 0xFFFFFF00; //truncate those less than 256
+				}
+				linetab++; //src line shift
+			}
+		}
+		else // un-flipped version
+		{
+			t = centery*drawmethod->scaley;
+			y -= t/256; // topmost
+			scale -= t<0?((-t)%256):(t%256);
 
-            while(height--)
-            {
-                scale += drawmethod->scaley;
-                d = scale - old_scale; // count scale added
-                if(d >= 256) // > 1pixel, so draw these
-                {
-                    for(i=d>>8; i>0; i--) // draw a line
-                    {
-                        scalelinerotfp(x+((drawmethod->shiftx*(y-cy))/256), cy, centerx, y, frame->width, linetab, (unsigned char*)(screen->data), drawmethod->table, drawmethod->fp, drawmethod->scalex, drawmethod->rotate);
-                        ++y;
-                    }
-                    old_scale = scale & 0xFFFFFF00; //truncate those less than 256
-                }
-                linetab++; //src line shift
-            }
-         }
-    } // end of rotate code
-    else
+			while(height--)
+			{
+				scale += drawmethod->scaley;
+				d = scale - old_scale; // count scale added
+				if(d >= 256) // > 1pixel, so draw these
+				{
+					for(i=d>>8; i>0; i--) // draw a line
+					{
+						scalelinerotfp(x+((drawmethod->shiftx*(y-cy))/256), cy, centerx, y, frame->width, linetab, (unsigned char*)(screen->data), drawmethod->table, drawmethod->fp, drawmethod->scalex, drawmethod->rotate);
+						++y;
+					}
+					old_scale = scale & 0xFFFFFF00; //truncate those less than 256
+				}
+				linetab++; //src line shift
+			}
+		 }
+	} // end of rotate code
+	else
 // non-rotate version
 //----------------------------------------------------------------------------------------------------------
-    {
-        if(drawmethod->flipx)
-        {
-            dx = x + ((centerx*drawmethod->scalex)/256); //draw start x
-            if(dx<0 || dx-((frame->width*drawmethod->scalex)>>8)>=screenwidth) return; // out of left or right border
-            scalelinefp = scaleline_flip;
-        }
-        else
-        {
-            dx = x - ((centerx*drawmethod->scalex)/256); //draw start x
-            if(dx>=screenwidth || dx+((frame->width*drawmethod->scalex)>>8)<0) return; // out of left or right border
-            scalelinefp = scaleline;
-        }
+	{
+		if(drawmethod->flipx)
+		{
+			dx = x + ((centerx*drawmethod->scalex)/256); //draw start x
+			if(dx<0 || dx-((frame->width*drawmethod->scalex)>>8)>=screenwidth) return; // out of left or right border
+			scalelinefp = scaleline_flip;
+		}
+		else
+		{
+			dx = x - ((centerx*drawmethod->scalex)/256); //draw start x
+			if(dx>=screenwidth || dx+((frame->width*drawmethod->scalex)>>8)<0) return; // out of left or right border
+			scalelinefp = scaleline;
+		}
 
-        // flip in y direction, from centery
-        if(drawmethod->flipy)
-        {
-            t = centery*drawmethod->scaley;
-            y += t/256; // lowest
-            if(y<0) return;
-            scale -= t<0?((-t)%256):(t%256);
-            dest_c = (unsigned char*)(screen->data)+y*screenwidth;
-            while(height--)
-            {
-                scale += drawmethod->scaley;
-                d = scale - old_scale; // count scale added
-                if(d >= 256) // > 1pixel, so draw these
-                {
-                    for(i=d>>8; i>0; i--) // draw a line
-                    {
-                        if(y<screenheight) // pass lower border?
-                        {
-                            scalelinefp(x+((drawmethod->shiftx*(cy-y))/256), centerx, frame->width, linetab, dest_c, drawmethod->table, drawmethod->fp, drawmethod->scalex);
-                        }
-                        if(--y<0) return; // out of lower border? exit
-                        dest_c -= screenwidth; // position move down one line
-                    }
-                    old_scale = scale & 0xFFFFFF00; //truncate those less than 256
-                }
-                linetab++; //src line shift
-            }
-        }
-        else // un-flipped version
-        {
-            t = centery*drawmethod->scaley;
-            y -= t/256; // topmost
-            if(y>=screenheight) return;
-            scale -= t<0?((-t)%256):(t%256);
-            dest_c = (unsigned char*)(screen->data)+y*screenwidth;
+		// flip in y direction, from centery
+		if(drawmethod->flipy)
+		{
+			t = centery*drawmethod->scaley;
+			y += t/256; // lowest
+			if(y<0) return;
+			scale -= t<0?((-t)%256):(t%256);
+			dest_c = (unsigned char*)(screen->data)+y*screenwidth;
+			while(height--)
+			{
+				scale += drawmethod->scaley;
+				d = scale - old_scale; // count scale added
+				if(d >= 256) // > 1pixel, so draw these
+				{
+					for(i=d>>8; i>0; i--) // draw a line
+					{
+						if(y<screenheight) // pass lower border?
+						{
+							scalelinefp(x+((drawmethod->shiftx*(cy-y))/256), centerx, frame->width, linetab, dest_c, drawmethod->table, drawmethod->fp, drawmethod->scalex);
+						}
+						if(--y<0) return; // out of lower border? exit
+						dest_c -= screenwidth; // position move down one line
+					}
+					old_scale = scale & 0xFFFFFF00; //truncate those less than 256
+				}
+				linetab++; //src line shift
+			}
+		}
+		else // un-flipped version
+		{
+			t = centery*drawmethod->scaley;
+			y -= t/256; // topmost
+			if(y>=screenheight) return;
+			scale -= t<0?((-t)%256):(t%256);
+			dest_c = (unsigned char*)(screen->data)+y*screenwidth;
 
-            while(height--)
-            {
-                scale += drawmethod->scaley;
-                d = scale - old_scale; // count scale added
-                if(d >= 256) // > 1pixel, so draw these
-                {
-                    for(i=d>>8; i>0; i--) // draw a line
-                    {
-                        if(y>=0) // pass upper border?
-                        {
-                            scalelinefp(x+((drawmethod->shiftx*(y-cy))/256), centerx, frame->width, linetab, dest_c, drawmethod->table, drawmethod->fp, drawmethod->scalex);
-                        }
-                        if(++y>=screenheight) return; // out of lower border? exit
-                        dest_c += screenwidth; // position move down one line
-                    }
-                    old_scale = scale & 0xFFFFFF00; //truncate those less than 256
-                }
-                linetab++; //src line shift
-            }
-         }
-    }// end of non-rotate code
+			while(height--)
+			{
+				scale += drawmethod->scaley;
+				d = scale - old_scale; // count scale added
+				if(d >= 256) // > 1pixel, so draw these
+				{
+					for(i=d>>8; i>0; i--) // draw a line
+					{
+						if(y>=0) // pass upper border?
+						{
+							scalelinefp(x+((drawmethod->shiftx*(y-cy))/256), centerx, frame->width, linetab, dest_c, drawmethod->table, drawmethod->fp, drawmethod->scalex);
+						}
+						if(++y>=screenheight) return; // out of lower border? exit
+						dest_c += screenwidth; // position move down one line
+					}
+					old_scale = scale & 0xFFFFFF00; //truncate those less than 256
+				}
+				linetab++; //src line shift
+			}
+		 }
+	}// end of non-rotate code
 }
 
 void putsprite(int x, int y, s_sprite* sprite, s_screen* screen, s_drawmethod* drawmethod)
 {
-    if(drawmethod==NULL)
-    {
-        goto plainsprite;
-    }
-    switch(screen->pixelformat)
-    {
-    case PIXEL_8:
-        putsprite_ex(x, y, sprite, screen, drawmethod);
-        break;
-    case PIXEL_16:
-        putsprite_ex_x8p16(x, y, sprite, screen, drawmethod);
-        break;
-    case PIXEL_32:
-        putsprite_ex_x8p32(x, y, sprite, screen, drawmethod);
-        break;
-    }
-    return;
+	if(drawmethod==NULL)
+	{
+		goto plainsprite;
+	}
+	switch(screen->pixelformat)
+	{
+	case PIXEL_8:
+		putsprite_ex(x, y, sprite, screen, drawmethod);
+		break;
+	case PIXEL_16:
+		putsprite_ex_x8p16(x, y, sprite, screen, drawmethod);
+		break;
+	case PIXEL_32:
+		putsprite_ex_x8p32(x, y, sprite, screen, drawmethod);
+		break;
+	}
+	return;
 plainsprite:
-    switch(screen->pixelformat)
-    {
-    case PIXEL_8:
-        putsprite_8(x, y, 0, sprite, screen, NULL, NULL);
-        break;
-    case PIXEL_16:
-        putsprite_x8p16(x, y, 0, sprite, screen, (unsigned short*)sprite->palette, NULL);
-        break;
-    case PIXEL_32:
-        putsprite_x8p32(x, y, 0, sprite, screen, (unsigned*)sprite->palette, NULL);
-        break;
-    }
+	switch(screen->pixelformat)
+	{
+	case PIXEL_8:
+		putsprite_8(x, y, 0, sprite, screen, NULL, NULL);
+		break;
+	case PIXEL_16:
+		putsprite_x8p16(x, y, 0, sprite, screen, (unsigned short*)sprite->palette, NULL);
+		break;
+	case PIXEL_32:
+		putsprite_x8p32(x, y, 0, sprite, screen, (unsigned*)sprite->palette, NULL);
+		break;
+	}
 }
 
 
@@ -822,80 +822,80 @@ unsigned encodesprite(
   int pb = PAL_BYTES, extrab;
 
   if(bitmap->width <= 0 || bitmap->height <= 0){
-    // Image is empty (or bad), create an empty sprite
-    if(dest) {
-      //dest->is_flip_of = NULL;
-      dest->centerx = 0;
-      dest->centery = 0;
-      dest->width = 0;
-      dest->height = 0;
-      dest->pixelformat = bitmap->pixelformat;
+	// Image is empty (or bad), create an empty sprite
+	if(dest) {
+	  //dest->is_flip_of = NULL;
+	  dest->centerx = 0;
+	  dest->centery = 0;
+	  dest->width = 0;
+	  dest->height = 0;
+	  dest->pixelformat = bitmap->pixelformat;
 	  dest->mask = NULL;
-      dest->palette = NULL;
-    }
-    return sizeof(s_sprite);
+	  dest->palette = NULL;
+	}
+	return sizeof(s_sprite);
   }
 
   w = bitmap->width;
   h = bitmap->height;
 
   if(dest) {
-    //dest->is_flip_of = NULL;
-    dest->centerx = centerx;
-    dest->centery = centery;
-    dest->width = w;
-    dest->height = h;
-    dest->pixelformat = bitmap->pixelformat;
+	//dest->is_flip_of = NULL;
+	dest->centerx = centerx;
+	dest->centery = centery;
+	dest->width = w;
+	dest->height = h;
+	dest->pixelformat = bitmap->pixelformat;
 	dest->mask = NULL;
   }
   linetab = (int*)(dest->data);
   data = (unsigned char*)(linetab+h);
 
   for(y = 0; y < h; y++, src += w) {
-    if(dest) { linetab[y] = ((size_t)data)-((size_t)(linetab+y)); }
-    x = 0;
-    for(;;) {
-      // search for the first visible pixel
-      x0 = x;
-      for(; (x < w) && ((x-x0)<0xFE); x++) { if(src[x]) break; }
-      // handle EOL
-      if(x >= w) { if(dest) { *data = 0xFF; } data++; break; }
-      // encode clearcount
-      if(dest) { *data = x-x0; } data++;
-      // if we're still not visible, encode a null visible count and continue
-      if(!src[x]) { if(dest) { *data = 0; } data++; continue; }
-      // search for the first invisible pixel
-      x0 = x;
-      for(; (x < w) && ((x-x0)<0xFF); x++) { if(!src[x]) break; }
-      // encode viscount and visible pixels
-      if(dest) {
-        *data++ = x-x0;
-        memcpy(data, src+x0, x-x0);
-        data += x-x0;
-      } else {
-        data += 1+(x-x0);
-      }
-    }
+	if(dest) { linetab[y] = ((size_t)data)-((size_t)(linetab+y)); }
+	x = 0;
+	for(;;) {
+	  // search for the first visible pixel
+	  x0 = x;
+	  for(; (x < w) && ((x-x0)<0xFE); x++) { if(src[x]) break; }
+	  // handle EOL
+	  if(x >= w) { if(dest) { *data = 0xFF; } data++; break; }
+	  // encode clearcount
+	  if(dest) { *data = x-x0; } data++;
+	  // if we're still not visible, encode a null visible count and continue
+	  if(!src[x]) { if(dest) { *data = 0; } data++; continue; }
+	  // search for the first invisible pixel
+	  x0 = x;
+	  for(; (x < w) && ((x-x0)<0xFF); x++) { if(!src[x]) break; }
+	  // encode viscount and visible pixels
+	  if(dest) {
+		*data++ = x-x0;
+		memcpy(data, src+x0, x-x0);
+		data += x-x0;
+	  } else {
+		data += 1+(x-x0);
+	  }
+	}
   }
 
   if(!bitmap->palette) pb = extrab = 0;
   else
   {
-     extrab = ((size_t)data)-((size_t)dest);
-     extrab %=4;
-     extrab = 4 - extrab;
-     extrab %=4;
+	 extrab = ((size_t)data)-((size_t)dest);
+	 extrab %=4;
+	 extrab = 4 - extrab;
+	 extrab %=4;
   }
 
   //point palette to the last byte of the pixel data
   if(dest)
   {
-      if(bitmap->palette) // if the bitmap contains palette, copy it
-      {
-          dest->palette = ((unsigned char*)data) + extrab ;
-          memcpy(dest->palette, bitmap->palette, pb);
-      }
-      else dest->palette = NULL;
+	  if(bitmap->palette) // if the bitmap contains palette, copy it
+	  {
+		  dest->palette = ((unsigned char*)data) + extrab ;
+		  memcpy(dest->palette, bitmap->palette, pb);
+	  }
+	  else dest->palette = NULL;
   }
   return ((size_t)data)-((size_t)dest)+ extrab + pb+ANYNUMBER;
 }

@@ -58,9 +58,9 @@ typedef CONST CHAR *PCSZ;
 // ANSI_STRING
 // Differences from NT: None.
 typedef struct _STRING {
-    USHORT Length;
-    USHORT MaximumLength;
-    PCHAR Buffer;
+	USHORT Length;
+	USHORT MaximumLength;
+	PCHAR Buffer;
 } STRING;
 typedef STRING *PSTRING;
 
@@ -71,33 +71,33 @@ typedef PSTRING PANSI_STRING;
 // IO Status Block type (UNVERIFIED)
 // Differences from NT: None.
 typedef struct _IO_STATUS_BLOCK {
-    union {
-        NTSTATUS Status;
-        PVOID Pointer;
-    };
+	union {
+		NTSTATUS Status;
+		PVOID Pointer;
+	};
 
-    ULONG_PTR Information;
+	ULONG_PTR Information;
 } IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
 
 // APC routine
 typedef
 VOID
 (NTAPI *PIO_APC_ROUTINE) (
-    IN PVOID ApcContext,
-    IN PIO_STATUS_BLOCK IoStatusBlock,
-    IN ULONG Reserved
-    );
+	IN PVOID ApcContext,
+	IN PIO_STATUS_BLOCK IoStatusBlock,
+	IN ULONG Reserved
+	);
 
 
 // Header for dispatcher objects
 // Differences from NT: None.
 typedef struct _DISPATCHER_HEADER {
-    UCHAR Type;
-    UCHAR Absolute;
-    UCHAR Size;
-    UCHAR Inserted;
-    LONG SignalState;
-    LIST_ENTRY WaitListHead;
+	UCHAR Type;
+	UCHAR Absolute;
+	UCHAR Size;
+	UCHAR Inserted;
+	LONG SignalState;
+	LIST_ENTRY WaitListHead;
 } DISPATCHER_HEADER;
 
 
@@ -112,9 +112,9 @@ typedef struct _DISPATCHER_HEADER {
 //     SecurityQualityOfService fields.  Also, ObjectName is ANSI, not
 //     Unicode.
 typedef struct _OBJECT_ATTRIBUTES {
-    HANDLE RootDirectory;
-    PANSI_STRING ObjectName;
-    ULONG Attributes;
+	HANDLE RootDirectory;
+	PANSI_STRING ObjectName;
+	ULONG Attributes;
 } OBJECT_ATTRIBUTES;
 typedef OBJECT_ATTRIBUTES *POBJECT_ATTRIBUTES;
 
@@ -139,10 +139,10 @@ typedef OBJECT_ATTRIBUTES *POBJECT_ATTRIBUTES;
 //     )
 // Differences from NT: SECURITY_DESCRIPTOR support is gone.
 #define InitializeObjectAttributes( p, n, a, r ) { \
-    (p)->RootDirectory = r;                             \
-    (p)->Attributes = a;                                \
-    (p)->ObjectName = n;                                \
-    }
+	(p)->RootDirectory = r;                             \
+	(p)->Attributes = a;                                \
+	(p)->ObjectName = n;                                \
+	}
 
 
 // CreateDisposition values for NtCreateFile()
@@ -211,8 +211,8 @@ typedef struct _FILE_FS_SIZE_INFORMATION {
 
 // Structure of FileFsDeviceInformation
 typedef struct _FILE_FS_DEVICE_INFORMATION {
-    DEVICE_TYPE DeviceType;
-    ULONG Characteristics;
+	DEVICE_TYPE DeviceType;
+	ULONG Characteristics;
 } FILE_FS_DEVICE_INFORMATION, *PFILE_FS_DEVICE_INFORMATION;
 
 // DEVICE_TYPEs (I took a guess as to which the XBOX might have.)
@@ -287,7 +287,7 @@ typedef ULONG PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 
 // The all-important CTL_CODE
 #define CTL_CODE( DeviceType, Function, Method, Access ) (                 \
-    ((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method) \
+	((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method) \
 )
 
 // IDE/SCSI codes
@@ -309,14 +309,14 @@ typedef ULONG PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #define IOCTL_CDROM_AUTHENTICATE_DISK   CTL_CODE(FILE_DEVICE_CD_ROM, 0x0020, METHOD_BUFFERED, FILE_READ_ACCESS)
 
 typedef enum _TRACK_MODE_TYPE {
-    YellowMode2,
-    XAForm2,
-    CDDA
+	YellowMode2,
+	XAForm2,
+	CDDA
 } TRACK_MODE_TYPE, *PTRACK_MODE_TYPE;
 typedef struct __RAW_READ_INFO {
-    LARGE_INTEGER DiskOffset;
-    ULONG SectorCount;
-    TRACK_MODE_TYPE TrackMode;
+	LARGE_INTEGER DiskOffset;
+	ULONG SectorCount;
+	TRACK_MODE_TYPE TrackMode;
 } RAW_READ_INFO, *PRAW_READ_INFO;
 
 typedef struct {
@@ -338,19 +338,19 @@ typedef struct {
 // Structure for IOCTL_SCSI_PASS_THROUGH_DIRECT
 // Differences from NT: None, believe it or not.
 typedef struct _SCSI_PASS_THROUGH_DIRECT {
-    /*000*/ USHORT Length;
-    /*002*/ UCHAR ScsiStatus;
-    /*003*/ UCHAR PathId;
-    /*004*/ UCHAR TargetId;
-    /*005*/ UCHAR Lun;
-    /*006*/ UCHAR CdbLength;
-    /*007*/ UCHAR SenseInfoLength;
-    /*008*/ UCHAR DataIn;
-    /*00C*/ ULONG DataTransferLength;
-    /*010*/ ULONG TimeOutValue;
-    /*014*/ PVOID DataBuffer;
-    /*018*/ ULONG SenseInfoOffset;
-    /*01C*/ UCHAR Cdb[16];
+	/*000*/ USHORT Length;
+	/*002*/ UCHAR ScsiStatus;
+	/*003*/ UCHAR PathId;
+	/*004*/ UCHAR TargetId;
+	/*005*/ UCHAR Lun;
+	/*006*/ UCHAR CdbLength;
+	/*007*/ UCHAR SenseInfoLength;
+	/*008*/ UCHAR DataIn;
+	/*00C*/ ULONG DataTransferLength;
+	/*010*/ ULONG TimeOutValue;
+	/*014*/ PVOID DataBuffer;
+	/*018*/ ULONG SenseInfoOffset;
+	/*01C*/ UCHAR Cdb[16];
 }SCSI_PASS_THROUGH_DIRECT, *PSCSI_PASS_THROUGH_DIRECT;
 
 
@@ -413,26 +413,26 @@ extern POBJECT_TYPE IoDeviceObjectType;
 
 // *_OBJECT and related structures (mostly opaque since I'm lazy)
 typedef struct _DRIVER_OBJECT {
-    CSHORT Type;
-    CSHORT Size;
-    struct _DEVICE_OBJECT *DeviceObject;
+	CSHORT Type;
+	CSHORT Size;
+	struct _DEVICE_OBJECT *DeviceObject;
 	// ...
 } DRIVER_OBJECT;
 typedef DRIVER_OBJECT *PDRIVER_OBJECT;
 
 typedef struct _DEVICE_OBJECT {
-    CSHORT Type;
-    USHORT Size;
-    LONG ReferenceCount;
-    PDRIVER_OBJECT DriverObject;
+	CSHORT Type;
+	USHORT Size;
+	LONG ReferenceCount;
+	PDRIVER_OBJECT DriverObject;
 	// ...
 } DEVICE_OBJECT;
 typedef DEVICE_OBJECT *PDEVICE_OBJECT;
 
 typedef struct _FILE_OBJECT {
-    CSHORT Type;
-    CSHORT Size;
-    PDEVICE_OBJECT DeviceObject;
+	CSHORT Type;
+	CSHORT Size;
+	PDEVICE_OBJECT DeviceObject;
 	// ...
 } FILE_OBJECT;
 typedef FILE_OBJECT *PFILE_OBJECT;
@@ -530,16 +530,16 @@ typedef struct _KDPC {
 
 // Timers
 typedef enum _TIMER_TYPE {
-    NotificationTimer,
-    SynchronizationTimer
-    } TIMER_TYPE;
+	NotificationTimer,
+	SynchronizationTimer
+	} TIMER_TYPE;
 
 typedef struct _KTIMER {
-    DISPATCHER_HEADER Header;
-    ULARGE_INTEGER DueTime;
-    LIST_ENTRY TimerListEntry;
-    struct _KDPC *Dpc;
-    LONG Period;
+	DISPATCHER_HEADER Header;
+	ULARGE_INTEGER DueTime;
+	LIST_ENTRY TimerListEntry;
+	struct _KDPC *Dpc;
+	LONG Period;
 } KTIMER, *PKTIMER;
 
 
@@ -745,16 +745,16 @@ EXPORTNUM(190)
 NTSTATUS
 NTAPI
 NtCreateFile(
-    OUT PHANDLE FileHandle,
-    IN ACCESS_MASK DesiredAccess,
-    IN POBJECT_ATTRIBUTES ObjectAttributes,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PLARGE_INTEGER AllocationSize OPTIONAL,
-    IN ULONG FileAttributes,
-    IN ULONG ShareAccess,
-    IN ULONG CreateDisposition,
-    IN ULONG CreateOptions
-    );
+	OUT PHANDLE FileHandle,
+	IN ACCESS_MASK DesiredAccess,
+	IN POBJECT_ATTRIBUTES ObjectAttributes,
+	OUT PIO_STATUS_BLOCK IoStatusBlock,
+	IN PLARGE_INTEGER AllocationSize OPTIONAL,
+	IN ULONG FileAttributes,
+	IN ULONG ShareAccess,
+	IN ULONG CreateDisposition,
+	IN ULONG CreateOptions
+	);
 
 // NtOpenFile:
 // Opens a file or device object.  Same as calling:
@@ -767,13 +767,13 @@ EXPORTNUM(202)
 NTSTATUS
 NTAPI
 NtOpenFile(
-    OUT PHANDLE FileHandle,
-    IN ACCESS_MASK DesiredAccess,
-    IN POBJECT_ATTRIBUTES ObjectAttributes,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN ULONG ShareAccess,
-    IN ULONG OpenOptions
-    );
+	OUT PHANDLE FileHandle,
+	IN ACCESS_MASK DesiredAccess,
+	IN POBJECT_ATTRIBUTES ObjectAttributes,
+	OUT PIO_STATUS_BLOCK IoStatusBlock,
+	IN ULONG ShareAccess,
+	IN ULONG OpenOptions
+	);
 
 
 // NtOpenSymbolicLinkObject:
@@ -1178,10 +1178,10 @@ EXPORTNUM(246)
 NTSTATUS
 NTAPI
 ObReferenceObjectByHandle(
-    IN HANDLE Handle,
-    IN POBJECT_TYPE ObjectType OPTIONAL,
-    OUT PVOID *Object
-    );
+	IN HANDLE Handle,
+	IN POBJECT_TYPE ObjectType OPTIONAL,
+	OUT PVOID *Object
+	);
 
 // ObfReferenceObject/ObReferenceObject:
 // Increments the object's reference count.
@@ -1193,8 +1193,8 @@ EXPORTNUM(251)
 VOID
 FASTCALL
 ObfReferenceObject(
-    IN PVOID Object
-    );
+	IN PVOID Object
+	);
 
 // ObfDereferenceObject/ObDereferenceObject:
 // Decrements the object's reference count, deleting it if it is now unused.
@@ -1206,8 +1206,8 @@ EXPORTNUM(250)
 VOID
 FASTCALL
 ObfDereferenceObject(
-    IN PVOID Object
-    );
+	IN PVOID Object
+	);
 
 
 // PsTerminateSystemThread:

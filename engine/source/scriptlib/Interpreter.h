@@ -30,8 +30,8 @@ typedef struct Interpreter {
    Instruction** pCurrentCall;
    Instruction** pReturnEntry;
    union { // we have to use the index before solidifying the instruction list
-      Instruction** pMainEntry;
-      int mainEntryIndex;
+	  Instruction** pMainEntry;
+	  int mainEntryIndex;
    };
    int bHasImmediateCode;
 
@@ -42,7 +42,7 @@ typedef struct Interpreter {
 void Interpreter_Init(Interpreter* pinterpreter, LPCSTR name, List* pflist);
 void Interpreter_Clear(Interpreter* pinterpreter);
 HRESULT Interpreter_ParseText(Interpreter* pinterpreter, LPSTR scriptText,
-                           ULONG startingLineNumber, LPCSTR path);
+						   ULONG startingLineNumber, LPCSTR path);
 HRESULT Interpreter_PutValue(Interpreter* pinterpreter, LPCSTR variable, ScriptVariant* pValue, int refFlag );
 HRESULT Interpreter_GetValue(Interpreter* pinterpreter, LPCSTR variable, ScriptVariant* pValue);
 HRESULT Interpreter_GetValueByRef(Interpreter* pinterpreter, LPCSTR variable, ScriptVariant** pValue);

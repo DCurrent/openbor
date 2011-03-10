@@ -25,7 +25,7 @@ void DotMatrix(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch,
 	u32 nextlineDst = dstPitch / sizeof(u16);
 	u16 *p = (u16 *)srcPtr;
 	u16 *q = (u16 *)dstPtr;
-    int i, ii, j, jj;
+	int i, ii, j, jj;
 
 	for(j = 0, jj = 0; j < height; ++j, jj += 2)
 	{

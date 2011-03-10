@@ -38,14 +38,14 @@ static int ctrl_button_thread(SceSize args, void *argp)
 
 void getCtrlData(SceCtrlData *data)
 {
-    memcpy(data, &ctrl_data, sizeof(SceCtrlData));
+	memcpy(data, &ctrl_data, sizeof(SceCtrlData));
 }
 
 int module_start(SceSize args, void *argp)
 {
 	sceCtrlSetSamplingCycle(0);
 	sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
-    memset(&ctrl_data, 0, sizeof(SceCtrlData));
+	memset(&ctrl_data, 0, sizeof(SceCtrlData));
 
 	ctrl_active = 1;
 	ctrl_thread = sceKernelCreateThread("Ctrl Button Thread",

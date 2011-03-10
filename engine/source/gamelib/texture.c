@@ -20,10 +20,10 @@ float _amp = 1.0f;
 
 // Fill the distortion table
 void texture_set_wave(float amp){
-    _amp = amp;
+	_amp = amp;
 	//int i;
 	//for(i=0;i<256;i++) distortion[i] = amp*(sin(i*M_PI/128.0)+1.0)+0.5;
-    // _sinfactor = sin(i*M_PI/128.0)+1.0
+	// _sinfactor = sin(i*M_PI/128.0)+1.0
 }
 
 
@@ -227,7 +227,7 @@ void texture_plane(s_screen *screen, int x, int y, int width, int height, int fi
 	dest = screen->data + ((y*screen->width) + x);
 	sy = 0;
 	for(i=0; i<height; i++)
-    {
+	{
 		sy = i % bitmap->height;
 		src = bitmap->data + (sy * bitmap->width);
 
@@ -246,41 +246,41 @@ extern void texture_planex8p32(s_screen *screen, int x, int y, int width, int he
 
 void apply_texture_wave(s_screen *screen, int x, int y, int width, int height, int offsx, int offsy, s_bitmap *bitmap, int offsd, int step, s_drawmethod* drawmethod)
 {
-    unsigned char* table;
-    if(drawmethod || drawmethod->flag==0) table = NULL;
-    else table = drawmethod->table;
+	unsigned char* table;
+	if(drawmethod || drawmethod->flag==0) table = NULL;
+	else table = drawmethod->table;
 
-    switch(screen->pixelformat)
-    {
-    case PIXEL_8:
-        texture_wave(screen, x, y, width, height, offsx, offsy, bitmap, offsd, step);
-        break;
-    case PIXEL_16:
-        texture_wavex8p16(screen, x, y, width, height, offsx, offsy, bitmap, offsd, step, (unsigned short*)table);
-        break;
-    case PIXEL_32:
-        texture_wavex8p32(screen, x, y, width, height, offsx, offsy, bitmap, offsd, step, (unsigned*)table);
-        break;
-    }
+	switch(screen->pixelformat)
+	{
+	case PIXEL_8:
+		texture_wave(screen, x, y, width, height, offsx, offsy, bitmap, offsd, step);
+		break;
+	case PIXEL_16:
+		texture_wavex8p16(screen, x, y, width, height, offsx, offsy, bitmap, offsd, step, (unsigned short*)table);
+		break;
+	case PIXEL_32:
+		texture_wavex8p32(screen, x, y, width, height, offsx, offsy, bitmap, offsd, step, (unsigned*)table);
+		break;
+	}
 }
 
 void apply_texture_plane(s_screen *screen, int x, int y, int width, int height, int fixp_offs, int factor, s_bitmap *bitmap, s_drawmethod* drawmethod)
 {
-    unsigned char* table;
-    if(drawmethod || drawmethod->flag==0) table = NULL;
-    else table = drawmethod->table;
+	unsigned char* table;
+	if(drawmethod || drawmethod->flag==0) table = NULL;
+	else table = drawmethod->table;
 
-    switch(screen->pixelformat)
-    {
-    case PIXEL_8:
-        texture_plane(screen, x, y, width, height, fixp_offs, factor, bitmap);
-        break;
-    case PIXEL_16:
-        texture_planex8p16(screen, x, y, width, height, fixp_offs, factor, bitmap, (unsigned short*)table);
-        break;
-    case PIXEL_32:
-        texture_planex8p32(screen, x, y, width, height, fixp_offs, factor, bitmap, (unsigned*)table);
-        break;
-    }
+	switch(screen->pixelformat)
+	{
+	case PIXEL_8:
+		texture_plane(screen, x, y, width, height, fixp_offs, factor, bitmap);
+		break;
+	case PIXEL_16:
+		texture_planex8p16(screen, x, y, width, height, fixp_offs, factor, bitmap, (unsigned short*)table);
+		break;
+	case PIXEL_32:
+		texture_planex8p32(screen, x, y, width, height, fixp_offs, factor, bitmap, (unsigned*)table);
+		break;
+	}
 }
 

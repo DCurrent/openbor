@@ -9,17 +9,17 @@
 /*
 	Code to fiddle about with palettes.
 
-    This file features code for:
+	This file features code for:
 	palette search for RGB values
 	creation of lookup tables
 
-    Lookup tables must be formatted so that a single foreground colour
-    can be used to find an array of background colours:
+	Lookup tables must be formatted so that a single foreground colour
+	can be used to find an array of background colours:
 	new = lookup[(fg<<8)+bg]
 	bg_array = lookup + (fg<<8);
 
 
-    Last update: 27-jan-2003
+	Last update: 27-jan-2003
 */
 
 #include "tracemalloc.h"

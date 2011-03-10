@@ -26,9 +26,9 @@ static void png_warning_fn(png_structp png_ptr, png_const_charp warning_msg)
 
 static void png_read_fn(png_structp pngp, png_bytep outp, png_size_t size)
 {
-    char** ptr = (char**)png_get_io_ptr(pngp);
-    memcpy(outp, *ptr, size);
-    *ptr += size;
+	char** ptr = (char**)png_get_io_ptr(pngp);
+	memcpy(outp, *ptr, size);
+	*ptr += size;
 }
 
 s_screen* pngToScreen(const void* data)
@@ -83,34 +83,34 @@ error:
 SDL_Surface* pngToSurface(const void* data)
 {
 	unsigned char *sp;
-    char *dp;
-    int width, height, linew;
-    int h;
-    SDL_Surface* ds = NULL;
-    s_screen* src = pngToScreen(data);
+	char *dp;
+	int width, height, linew;
+	int h;
+	SDL_Surface* ds = NULL;
+	s_screen* src = pngToScreen(data);
 
 	if(src == NULL) return NULL;
 	assert(src->pixelformat == PIXEL_32);
 	
-    width = src->width;
-    height = src->height;
-    h = height;
+	width = src->width;
+	height = src->height;
+	h = height;
 
-    sp = (unsigned char*)src->data;
-    ds = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0xff, 0xff00, 0xff0000, 0);
-    dp = ds->pixels;
+	sp = (unsigned char*)src->data;
+	ds = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0xff, 0xff00, 0xff0000, 0);
+	dp = ds->pixels;
 
-    linew = width*4;
+	linew = width*4;
 
-    do{
-        memcpy(dp, sp, linew);
-        sp += linew;
-        dp += ds->pitch;
-    }while(--h);
-    
-    freescreen(&src);
+	do{
+		memcpy(dp, sp, linew);
+		sp += linew;
+		dp += ds->pitch;
+	}while(--h);
+	
+	freescreen(&src);
 
-    return ds;
+	return ds;
 }
 #endif
 

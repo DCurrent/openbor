@@ -46,7 +46,7 @@ int SB_playstart(int bits, int samplerate)
 
 void SB_playstop()
 {
-    SDL_CloseAudio();
+	SDL_CloseAudio();
 
 }
 

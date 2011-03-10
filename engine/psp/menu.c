@@ -37,11 +37,11 @@ u32 bgmPlay = 0, bgmLoop = 0, bgmCycle = 0, bgmCurrent = 0, bgmStatus = 0;
 fileliststruct *filelist;
 
 typedef struct{
-    stringptr *buf;
-    int *pos;
-    int line;
-    int rows;
-    char ready;
+	stringptr *buf;
+	int *pos;
+	int line;
+	int rows;
+	char ready;
 }s_logfile;
 s_logfile logfile[2];
 
@@ -63,7 +63,7 @@ u32 getInput(int delay, int update)
 	u32 pad = getPad(0);
 	if(pad == lastPad && delay) return 0;
 	if(update) return lastPad = pad;
-    else return pad;
+	else return pad;
 }
 
 void StopBGM()
@@ -155,109 +155,109 @@ void freeAllImages()
 
 void getAllLogs()
 {
-    int i, j, k;
-    for(i=0; i<2; i++)
-    {
-        logfile[i].buf = readFromLogFile(i);
-        if(logfile[i].buf != NULL)
-        {
-            logfile[i].pos = tracemalloc("pos #1", ++logfile[i].rows * sizeof(int));
-            if(logfile[i].pos == NULL) return;
-            memset(logfile[i].pos, 0, logfile[i].rows * sizeof(int));
+	int i, j, k;
+	for(i=0; i<2; i++)
+	{
+		logfile[i].buf = readFromLogFile(i);
+		if(logfile[i].buf != NULL)
+		{
+			logfile[i].pos = tracemalloc("pos #1", ++logfile[i].rows * sizeof(int));
+			if(logfile[i].pos == NULL) return;
+			memset(logfile[i].pos, 0, logfile[i].rows * sizeof(int));
 
-            for(k=0, j=0; j<logfile[i].buf->size; j++)
-            {
-                if(!k)
-                {
-                    logfile[i].pos[logfile[i].rows - 1] = j;
-                    k = 1;
-                }
-                if(logfile[i].buf->ptr[j]=='\n')
-                {
-                    int *_pos = tracemalloc("_pos", ++logfile[i].rows * sizeof(int));
-                    if(_pos == NULL) return;
-                    memcpy(_pos, logfile[i].pos, (logfile[i].rows - 1) * sizeof(int));
-                    _pos[logfile[i].rows - 1] = 0;
-                    tracefree(logfile[i].pos);
-                    logfile[i].pos = NULL;
-                    logfile[i].pos = tracemalloc("pos #2", logfile[i].rows * sizeof(int));
-                    if(logfile[i].pos == NULL) return;
-                    memcpy(logfile[i].pos, _pos, logfile[i].rows * sizeof(int));
-                    tracefree(_pos);
-                    _pos = NULL;
-                    logfile[i].buf->ptr[j] = 0;
-                    k = 0;
-                }
-                if(logfile[i].buf->ptr[j]=='\r') logfile[i].buf->ptr[j] = 0;
-                if(logfile[i].rows>0xFFFFFFFE) break;
-            }
-            logfile[i].ready = 1;
-        }
-    }
+			for(k=0, j=0; j<logfile[i].buf->size; j++)
+			{
+				if(!k)
+				{
+					logfile[i].pos[logfile[i].rows - 1] = j;
+					k = 1;
+				}
+				if(logfile[i].buf->ptr[j]=='\n')
+				{
+					int *_pos = tracemalloc("_pos", ++logfile[i].rows * sizeof(int));
+					if(_pos == NULL) return;
+					memcpy(_pos, logfile[i].pos, (logfile[i].rows - 1) * sizeof(int));
+					_pos[logfile[i].rows - 1] = 0;
+					tracefree(logfile[i].pos);
+					logfile[i].pos = NULL;
+					logfile[i].pos = tracemalloc("pos #2", logfile[i].rows * sizeof(int));
+					if(logfile[i].pos == NULL) return;
+					memcpy(logfile[i].pos, _pos, logfile[i].rows * sizeof(int));
+					tracefree(_pos);
+					_pos = NULL;
+					logfile[i].buf->ptr[j] = 0;
+					k = 0;
+				}
+				if(logfile[i].buf->ptr[j]=='\r') logfile[i].buf->ptr[j] = 0;
+				if(logfile[i].rows>0xFFFFFFFE) break;
+			}
+			logfile[i].ready = 1;
+		}
+	}
 }
 
 void freeAllLogs()
 {
-    int i;
-    for(i=0; i<2; i++)
-    {
-        if(logfile[i].ready)
-        {
-            tracefree(logfile[i].buf);
-            logfile[i].buf = NULL;
-            tracefree(logfile[i].pos);
-            logfile[i].pos = NULL;
-        }
-    }
+	int i;
+	for(i=0; i<2; i++)
+	{
+		if(logfile[i].ready)
+		{
+			tracefree(logfile[i].buf);
+			logfile[i].buf = NULL;
+			tracefree(logfile[i].pos);
+			logfile[i].pos = NULL;
+		}
+	}
 }
 
 void sortList()
 {
-    int i, j;
-    fileliststruct temp;
-    if(dListTotal<2) return;
-    for(j=dListTotal-1; j>0; j--)
-    {
-        for(i=0; i<j; i++)
-        {
-            if(stricmp(filelist[i].filename, filelist[i+1].filename)>0)
-            {
-                temp = filelist[i];
-                filelist[i] = filelist[i+1];
-                filelist[i+1] = temp;
-            }
-        }
-    }
+	int i, j;
+	fileliststruct temp;
+	if(dListTotal<2) return;
+	for(j=dListTotal-1; j>0; j--)
+	{
+		for(i=0; i<j; i++)
+		{
+			if(stricmp(filelist[i].filename, filelist[i+1].filename)>0)
+			{
+				temp = filelist[i];
+				filelist[i] = filelist[i+1];
+				filelist[i+1] = temp;
+			}
+		}
+	}
 }
 
 int findPaks()
 {
-    int i = 0;
-    DIR* dp = NULL;
-    struct dirent* ds;
-    dp = opendir(dListPath);
-    while((ds = readdir(dp)) != NULL)
-    {
-        if(packfile_supported(ds))
-        {
-            fileliststruct *copy = NULL;
-            if(filelist == NULL) filelist = tracemalloc("filelist", sizeof(fileliststruct));
-            else
-            {
-                copy = tracemalloc("filelistcopy", i * sizeof(fileliststruct));
-                memcpy(copy, filelist, i * sizeof(fileliststruct));
-                tracefree(filelist);
-                filelist = tracemalloc("filelist", (i + 1) * sizeof(fileliststruct));
-                memcpy(filelist, copy, i * sizeof(fileliststruct));
-                tracefree(copy); copy = NULL;
-            }
-            memset(&filelist[i], 0, sizeof(fileliststruct));
-            strncpy(filelist[i].filename, ds->d_name, strlen(ds->d_name));
-            i++;
-        }
-    }
-    closedir(dp);
-    return i;
+	int i = 0;
+	DIR* dp = NULL;
+	struct dirent* ds;
+	dp = opendir(dListPath);
+	while((ds = readdir(dp)) != NULL)
+	{
+		if(packfile_supported(ds))
+		{
+			fileliststruct *copy = NULL;
+			if(filelist == NULL) filelist = tracemalloc("filelist", sizeof(fileliststruct));
+			else
+			{
+				copy = tracemalloc("filelistcopy", i * sizeof(fileliststruct));
+				memcpy(copy, filelist, i * sizeof(fileliststruct));
+				tracefree(filelist);
+				filelist = tracemalloc("filelist", (i + 1) * sizeof(fileliststruct));
+				memcpy(filelist, copy, i * sizeof(fileliststruct));
+				tracefree(copy); copy = NULL;
+			}
+			memset(&filelist[i], 0, sizeof(fileliststruct));
+			strncpy(filelist[i].filename, ds->d_name, strlen(ds->d_name));
+			i++;
+		}
+	}
+	closedir(dp);
+	return i;
 }
 
 void drawMenu()
@@ -293,12 +293,12 @@ void drawMenu()
 		}
 	}
 	printText(text, 185,  11, WHITE, 0, 0, "OpenBOR %s", VERSION);
-    printText(text, 20,   11, WHITE, 0, 0, ":");
+	printText(text, 20,   11, WHITE, 0, 0, ":");
 	printText(text, 27,   11, WHITE, 0, 0, "About");
 	printText(text, 453,  11, WHITE, 0, 0, ":");
 	printText(text, 431,  11, WHITE, 0, 0, "Help");
 	printText(text, 28,  251, WHITE, 0, 0, "WiFi Menu");     // Square
-    printText(text, 150, 251, WHITE, 0, 0, "BGM Player");    // Triangle
+	printText(text, 150, 251, WHITE, 0, 0, "BGM Player");    // Triangle
 	printText(text, 268, 251, WHITE, 0, 0, "Image Viewer");  // Circle
 	printText(text, 392, 251, WHITE, 0, 0, "View Logs");     // Cross
 	printText(text, 328, 170, BLACK, 0, 0, "www.LavaLit.com");
@@ -319,16 +319,16 @@ void drawBGMPlayer()
 	char t1[64] = "", t2[25] = "Unknown";
 	char a1[64] = "", a2[25] = "Unknown";
 	int list = 0, colors = 0, shift = 0;
-    Image *pBox = createImage(160, 120);
+	Image *pBox = createImage(160, 120);
 
 	copyImageToImage(0, 0, PSP_LCD_WIDTH, PSP_LCD_HEIGHT, pMenu, 0, 0, text);
-    if(pBox != NULL)
-    {
-        fillImageRect(pBox, LIGHT_GRAY, 0, 0, 160, 120);
-        copyImageToImage(0, 0, 160, 120, pBox, 286, 32, text);
-        freeImage(pBox);
-        pBox = NULL;
-    }
+	if(pBox != NULL)
+	{
+		fillImageRect(pBox, LIGHT_GRAY, 0, 0, 160, 120);
+		copyImageToImage(0, 0, 160, 120, pBox, 286, 32, text);
+		freeImage(pBox);
+		pBox = NULL;
+	}
 	for(list=0; list<dListTotal; list++)
 	{
 		if(list<18)
@@ -373,7 +373,7 @@ void drawBGMPlayer()
 	}
 	if(t1[0]) strncpy(t2, t1, 25);
 	if(a1[0]) strncpy(a2, a1, 25);
-    printText(text, 290, 35 + (11 * 0), DARK_RED, 0, 0, "Game: %s", bgmListing);
+	printText(text, 290, 35 + (11 * 0), DARK_RED, 0, 0, "Game: %s", bgmListing);
 	printText(text, 290, 35 + (11 * 1), bgmPlay ? DARK_GREEN : DARK_BLUE, 0, 0, "Total Tracks: %d", filelist[bgmCurrent].nTracks-1);
 	printText(text, 290, 35 + (11 * 2), bgmPlay ? DARK_GREEN : DARK_BLUE, 0, 0, "Current Track: %d", filelist[bgmCurrent].bgmTrack);
 	printText(text, 290, 35 + (11 * 3), bgmPlay ? DARK_GREEN : DARK_BLUE, 0, 0, "File: %s", filelist[bgmCurrent].bgmFileName[filelist[bgmCurrent].bgmTrack]);
@@ -388,40 +388,40 @@ void drawBGMPlayer()
 void drawLogs()
 {
 	int i=which_logfile, j, k, l;
-    Image *box = createImage(PSP_LCD_WIDTH, 224);
+	Image *box = createImage(PSP_LCD_WIDTH, 224);
 	copyImageToImage(0, 0, PSP_LCD_WIDTH, PSP_LCD_HEIGHT, pMenu, 0, 0, text);
 	drawImageBox(box, DARK_GRAY, BLACK, 2);
 	copyImageToImage(0, 0, box->imageWidth, box->imageHeight, box, 0, 24, text);
 	freeImage(box);
 	box = NULL;
 
-    if(logfile[i].ready)
-    {
-        if(logfile[i].line > logfile[i].rows - (LOG_SCREEN_END - LOG_SCREEN_TOP) - 1) logfile[i].line = logfile[i].rows - (LOG_SCREEN_END - LOG_SCREEN_TOP) - 1;
-        if(logfile[i].line < 0) logfile[i].line = 0;
-        for(l=LOG_SCREEN_TOP, j=logfile[i].line; j<logfile[i].rows-1; j++)
-        {
-            if(l<LOG_SCREEN_END)
-            {
-                char textpad[PSP_LCD_WIDTH] = {""};
-                for(k=0; k<PSP_LCD_WIDTH; k++)
-                {
-                    if(!logfile[i].buf->ptr[logfile[i].pos[j]+k]) break;
-                    textpad[k] = logfile[i].buf->ptr[logfile[i].pos[j]+k];
-                }
-                if(logfile[i].rows>0xFFFF)
-                    printText(text, 5, l*10, WHITE, 0, 0, "0x%08x:  %s", j, textpad);
-                else
-                    printText(text, 5, l*10, WHITE, 0, 0, "0x%04x:  %s", j, textpad);
-                l++;
-            }
-            else break;
-        }
-    }
-    else if(i == SCRIPT_LOG) printText(text, 5, 30, WHITE, 0, 0, "Log NOT Found: ScriptLog.txt");
-    else                     printText(text, 5, 30, WHITE, 0, 0, "Log NOT Found: OpenBorLog.txt");
+	if(logfile[i].ready)
+	{
+		if(logfile[i].line > logfile[i].rows - (LOG_SCREEN_END - LOG_SCREEN_TOP) - 1) logfile[i].line = logfile[i].rows - (LOG_SCREEN_END - LOG_SCREEN_TOP) - 1;
+		if(logfile[i].line < 0) logfile[i].line = 0;
+		for(l=LOG_SCREEN_TOP, j=logfile[i].line; j<logfile[i].rows-1; j++)
+		{
+			if(l<LOG_SCREEN_END)
+			{
+				char textpad[PSP_LCD_WIDTH] = {""};
+				for(k=0; k<PSP_LCD_WIDTH; k++)
+				{
+					if(!logfile[i].buf->ptr[logfile[i].pos[j]+k]) break;
+					textpad[k] = logfile[i].buf->ptr[logfile[i].pos[j]+k];
+				}
+				if(logfile[i].rows>0xFFFF)
+					printText(text, 5, l*10, WHITE, 0, 0, "0x%08x:  %s", j, textpad);
+				else
+					printText(text, 5, l*10, WHITE, 0, 0, "0x%04x:  %s", j, textpad);
+				l++;
+			}
+			else break;
+		}
+	}
+	else if(i == SCRIPT_LOG) printText(text, 5, 30, WHITE, 0, 0, "Log NOT Found: ScriptLog.txt");
+	else                     printText(text, 5, 30, WHITE, 0, 0, "Log NOT Found: OpenBorLog.txt");
 
-    printText(text, 185,  11, WHITE, 0, 0, "OpenBOR %s", VERSION);
+	printText(text, 185,  11, WHITE, 0, 0, "OpenBOR %s", VERSION);
 	printText(text, 20,   11, WHITE, 0, 0, ":");
 	printText(text, 27,   11, WHITE, 0, 0, "Home");
 	printText(text, 453,  11, WHITE, 0, 0, ":");
@@ -528,14 +528,14 @@ int ControlMenu()
 		case PSP_CROSS:
 			// Log Viewer!
 			pControl = ControlLOG;
-            which_logfile = OPENBOR_LOG;
+			which_logfile = OPENBOR_LOG;
 			status = -5;
 			break;
 
 		case PSP_HOME:
 			{
 				drawQuitGameBox();
-                status = ControlBox() ? 2 : -1;
+				status = ControlBox() ? 2 : -1;
 			}
 			break;
 
@@ -659,67 +659,67 @@ int ControlLOG()
 {
 	int status = -5;
 	switch(getInput(1, 1))
-    {
-        case PSP_LEFT_TRIGGER:
-            logfile[which_logfile].line=0;
-            break;
+	{
+		case PSP_LEFT_TRIGGER:
+			logfile[which_logfile].line=0;
+			break;
 
-        case PSP_RIGHT_TRIGGER:
-            logfile[which_logfile].line=logfile[which_logfile].rows;
-            break;
+		case PSP_RIGHT_TRIGGER:
+			logfile[which_logfile].line=logfile[which_logfile].rows;
+			break;
 
-        case PSP_SQUARE:
-            which_logfile = OPENBOR_LOG;
-            break;
+		case PSP_SQUARE:
+			which_logfile = OPENBOR_LOG;
+			break;
 
-        case PSP_TRIANGLE:
-            which_logfile = SCRIPT_LOG;
-            break;
+		case PSP_TRIANGLE:
+			which_logfile = SCRIPT_LOG;
+			break;
 
-        case PSP_CIRCLE:
-            break;
+		case PSP_CIRCLE:
+			break;
 
-        case PSP_CROSS:
-            // Return to Main Menu!
-            pControl = ControlMenu;
-            status = -1;
-            break;
+		case PSP_CROSS:
+			// Return to Main Menu!
+			pControl = ControlMenu;
+			status = -1;
+			break;
 
-        case PSP_HOME:
-            drawQuitGameBox();
-            status = ControlBox() ? 2 : -5;
-            break;
+		case PSP_HOME:
+			drawQuitGameBox();
+			status = ControlBox() ? 2 : -5;
+			break;
 
-        case PSP_SELECT:
-            screenshot(NULL, NULL, 0);
-            break;
+		case PSP_SELECT:
+			screenshot(NULL, NULL, 0);
+			break;
 
-        default:
-            switch(getInput(0, 0))
-            {
-                case PSP_DPAD_UP:
-                    --logfile[which_logfile].line;
-                    break;
+		default:
+			switch(getInput(0, 0))
+			{
+				case PSP_DPAD_UP:
+					--logfile[which_logfile].line;
+					break;
 
-                case PSP_DPAD_DOWN:
-                    ++logfile[which_logfile].line;
-                    break;
+				case PSP_DPAD_DOWN:
+					++logfile[which_logfile].line;
+					break;
 
-                case PSP_DPAD_LEFT:
-                    logfile[which_logfile].line-=LOG_SCREEN_END;
-                    break;
+				case PSP_DPAD_LEFT:
+					logfile[which_logfile].line-=LOG_SCREEN_END;
+					break;
 
-                case PSP_DPAD_RIGHT:
-                    logfile[which_logfile].line+=LOG_SCREEN_END;
-                    break;
+				case PSP_DPAD_RIGHT:
+					logfile[which_logfile].line+=LOG_SCREEN_END;
+					break;
 
-                default:
-                    // No Update Needed!
-                    status = 0;
-                    break;
-            }
-            break;
-    }
+				default:
+					// No Update Needed!
+					status = 0;
+					break;
+			}
+			break;
+	}
 	return status;
 }
 
@@ -756,8 +756,8 @@ void menu(char *path)
 	dListCurrentPosition = 0;
 	if((dListTotal = findPaks())!=1)
 	{
-        sortList();
-        getAllLogs();
+		sortList();
+		getAllLogs();
 		getAllPreviews();
 		packfile_music_read(filelist, dListTotal);
 		sound_init(12);
@@ -813,11 +813,11 @@ void menu(char *path)
 		}
 		sound_exit();
 	}
-    freeAllLogs();
+	freeAllLogs();
 	freeAllImages();
 	tracefree(filelist);
 	if(ctrl == 2) borExit(0);
 	strncpy(packfile, dListPath, 256);
 	strncat(packfile, filelist[dListCurrentPosition+dListScrollPosition].filename,
-            strlen(filelist[dListCurrentPosition+dListScrollPosition].filename)+1);
+			strlen(filelist[dListCurrentPosition+dListScrollPosition].filename)+1);
 }

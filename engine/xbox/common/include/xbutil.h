@@ -40,10 +40,10 @@ void sprintfx( const char *fmt, ... );
 #define SAFE_RELEASE(p)      { if(p) { (p)->Release(); (p)=NULL; } }
 
 #ifdef _DEBUG
-    #define OUTPUT_DEBUG_STRING(s) OutputDebugStringA(s)
-    //#define OUTPUT_DEBUG_STRING(s) writexbox(s)
+	#define OUTPUT_DEBUG_STRING(s) OutputDebugStringA(s)
+	//#define OUTPUT_DEBUG_STRING(s) writexbox(s)
 #else
-    #define OUTPUT_DEBUG_STRING(s) (VOID)(s)
+	#define OUTPUT_DEBUG_STRING(s) (VOID)(s)
 #endif
 
 // For converting a FLOAT to a DWORD (useful for SetRenderState() calls)
@@ -70,9 +70,9 @@ HRESULT XBUtil_FindMediaFile( CHAR* strPath, const CHAR* strFilename );
 //-----------------------------------------------------------------------------
 __forceinline __int64 GetMachineTime()          { __asm rdtsc }
 __forceinline __int64 GetTimeInMicroSeconds()
-                        { return GetMachineTime()*3/2200;}
+						{ return GetMachineTime()*3/2200;}
 __forceinline DOUBLE  GetTimeInSeconds()
-                        { return GetTimeInMicroSeconds() / 1000000.0;}
+						{ return GetTimeInMicroSeconds() / 1000000.0;}
 
 //-----------------------------------------------------------------------------
 // Name: XBUtil_Timer()
@@ -86,8 +86,8 @@ __forceinline DOUBLE  GetTimeInSeconds()
 //          TIMER_GETAPPTIME      - to get the current time
 //-----------------------------------------------------------------------------
 enum TIMER_COMMAND { TIMER_RESET, TIMER_START, TIMER_STOP, 
-                     TIMER_ADVANCE, TIMER_RETRACT, 
-                     TIMER_GETABSOLUTETIME, TIMER_GETAPPTIME };
+					 TIMER_ADVANCE, TIMER_RETRACT, 
+					 TIMER_GETABSOLUTETIME, TIMER_GETAPPTIME };
 FLOAT XBUtil_Timer( TIMER_COMMAND command );
 
 
@@ -99,7 +99,7 @@ FLOAT XBUtil_Timer( TIMER_COMMAND command );
 //       colors. It does not set emissive or specular colors.
 //-----------------------------------------------------------------------------
 VOID XBUtil_InitMaterial( D3DMATERIAL8& mtrl, FLOAT r=0.0f, FLOAT g=0.0f,
-                                              FLOAT b=0.0f, FLOAT a=1.0f );
+											  FLOAT b=0.0f, FLOAT a=1.0f );
 
 
 
@@ -110,7 +110,7 @@ VOID XBUtil_InitMaterial( D3DMATERIAL8& mtrl, FLOAT r=0.0f, FLOAT g=0.0f,
 //       diffuse color is set to white, specular and ambient left as black.
 //-----------------------------------------------------------------------------
 VOID XBUtil_InitLight( D3DLIGHT8& light, D3DLIGHTTYPE ltType,
-                       FLOAT x=0.0f, FLOAT y=0.0f, FLOAT z=0.0f );
+					   FLOAT x=0.0f, FLOAT y=0.0f, FLOAT z=0.0f );
 
 
 
@@ -120,8 +120,8 @@ VOID XBUtil_InitLight( D3DLIGHT8& light, D3DLIGHTTYPE ltType,
 // Desc: Helper function to create a texture.
 //-----------------------------------------------------------------------------
 HRESULT XBUtil_CreateTexture( LPDIRECT3DDEVICE8 pd3dDevice, const CHAR* strTexture,
-                              LPDIRECT3DTEXTURE8* ppTexture,
-                              D3DFORMAT d3dFormat = D3DFMT_UNKNOWN );
+							  LPDIRECT3DTEXTURE8* ppTexture,
+							  D3DFORMAT d3dFormat = D3DFMT_UNKNOWN );
 
 
 
@@ -144,9 +144,9 @@ VOID XBUtil_SwizzleTexture3D( D3DLOCKED_BOX* pLock, const D3DVOLUME_DESC* pDesc 
 // Desc: Creates a file-based vertex shader
 //-----------------------------------------------------------------------------
 HRESULT XBUtil_CreateVertexShader( LPDIRECT3DDEVICE8 pd3dDevice, 
-                                   const CHAR* strFilename, 
-                                   const DWORD* pdwVertexDecl,
-                                   DWORD* pdwVertexShader );
+								   const CHAR* strFilename, 
+								   const DWORD* pdwVertexDecl,
+								   DWORD* pdwVertexShader );
 
 
 
@@ -156,22 +156,22 @@ HRESULT XBUtil_CreateVertexShader( LPDIRECT3DDEVICE8 pd3dDevice,
 // Desc: Creates a file-based pixel shader
 //-----------------------------------------------------------------------------
 HRESULT XBUtil_CreatePixelShader( LPDIRECT3DDEVICE8 pd3dDevice, 
-                                  const CHAR* strFilename, DWORD* pdwPixelShader );
+								  const CHAR* strFilename, DWORD* pdwPixelShader );
 
-                                    
-                                    
-                                    
+									
+									
+									
 //-----------------------------------------------------------------------------
 // Name: XBUtil_VectorToRGBA()
 // Desc: Converts a normal into an RGBA vector.
 //-----------------------------------------------------------------------------
 inline D3DCOLOR XBUtil_VectorToRGBA( const D3DXVECTOR3* v, FLOAT fHeight = 1.0f )
 {
-    D3DCOLOR r = (D3DCOLOR)( ( v->x + 1.0f ) * 127.5f );
-    D3DCOLOR g = (D3DCOLOR)( ( v->y + 1.0f ) * 127.5f );
-    D3DCOLOR b = (D3DCOLOR)( ( v->z + 1.0f ) * 127.5f );
-    D3DCOLOR a = (D3DCOLOR)( 255.0f * fHeight );
-    return( (a<<24L) + (r<<16L) + (g<<8L) + (b<<0L) );
+	D3DCOLOR r = (D3DCOLOR)( ( v->x + 1.0f ) * 127.5f );
+	D3DCOLOR g = (D3DCOLOR)( ( v->y + 1.0f ) * 127.5f );
+	D3DCOLOR b = (D3DCOLOR)( ( v->z + 1.0f ) * 127.5f );
+	D3DCOLOR a = (D3DCOLOR)( 255.0f * fHeight );
+	return( (a<<24L) + (r<<16L) + (g<<8L) + (b<<0L) );
 }
 
 
@@ -191,8 +191,8 @@ D3DXMATRIX XBUtil_GetCubeMapViewMatrix( DWORD dwFace );
 // Desc: Creates a cube map and fills it with normalized RGBA vectors.
 //-----------------------------------------------------------------------------
 HRESULT XBUtil_CreateNormalizationCubeMap( LPDIRECT3DDEVICE8 pd3dDevice, 
-                                           DWORD dwSize, 
-                                           LPDIRECT3DCUBETEXTURE8* ppCubeMap );
+										   DWORD dwSize, 
+										   LPDIRECT3DCUBETEXTURE8* ppCubeMap );
 
 
 
@@ -203,7 +203,7 @@ HRESULT XBUtil_CreateNormalizationCubeMap( LPDIRECT3DDEVICE8 pd3dDevice,
 //       could be a back buffer, texture, or any other 32-bit surface.
 //-----------------------------------------------------------------------------
 HRESULT XBUtil_DumpSurface( LPDIRECT3DSURFACE8 pSurface, const CHAR* strFileName,
-                            BOOL bSurfaceIsTiled = FALSE );
+							BOOL bSurfaceIsTiled = FALSE );
 
 
 
@@ -214,8 +214,8 @@ HRESULT XBUtil_DumpSurface( LPDIRECT3DSURFACE8 pSurface, const CHAR* strFileName
 //       Hermite curve.
 //-----------------------------------------------------------------------------
 D3DXVECTOR3 XBUtil_EvaluateHermite( const D3DXVECTOR3& p0, const D3DXVECTOR3& p1, 
-                                    const D3DXVECTOR3& v0, const D3DXVECTOR3& v1,
-                                    FLOAT u );
+									const D3DXVECTOR3& v0, const D3DXVECTOR3& v1,
+									FLOAT u );
 
 
 
@@ -226,8 +226,8 @@ D3DXVECTOR3 XBUtil_EvaluateHermite( const D3DXVECTOR3& p0, const D3DXVECTOR3& p1
 //       Catmull-Rom curve.
 //-----------------------------------------------------------------------------
 D3DXVECTOR3 XBUtil_EvaluateCatmullRom( const D3DXVECTOR3& p1, const D3DXVECTOR3& p2, 
-                                       const D3DXVECTOR3& p3, const D3DXVECTOR3& p4,
-                                       FLOAT u );
+									   const D3DXVECTOR3& p3, const D3DXVECTOR3& p4,
+									   FLOAT u );
 
 
 
@@ -239,7 +239,7 @@ D3DXVECTOR3 XBUtil_EvaluateCatmullRom( const D3DXVECTOR3& p1, const D3DXVECTOR3&
 //       on the spline, where 0 < t < dwNumSpinePts.
 //-----------------------------------------------------------------------------
 VOID XBUtil_GetSplinePoint( const D3DXVECTOR3* pSpline, DWORD dwNumSpinePts, FLOAT t, 
-                            D3DXVECTOR3* pvPoint, D3DXVECTOR3* pvTangent );
+							D3DXVECTOR3* pvPoint, D3DXVECTOR3* pvTangent );
 
 
 
@@ -249,7 +249,7 @@ VOID XBUtil_GetSplinePoint( const D3DXVECTOR3* pSpline, DWORD dwNumSpinePts, FLO
 // Desc: For debugging purposes, visually renders a spline.
 //-----------------------------------------------------------------------------
 VOID XBUtil_RenderSpline( LPDIRECT3DDEVICE8 pd3dDevice, const D3DXVECTOR3* pSpline, 
-                          DWORD dwNumSplinePts, DWORD dwColor, BOOL bRenderAxes );
+						  DWORD dwNumSplinePts, DWORD dwColor, BOOL bRenderAxes );
 
 
 
@@ -267,7 +267,7 @@ VOID XBUtil_RenderSpline( LPDIRECT3DDEVICE8 pd3dDevice, const D3DXVECTOR3* pSpli
 //          v6-v9 = Vertex texture coords
 //-----------------------------------------------------------------------------
 HRESULT XBUtil_DeclaratorFromFVF( DWORD dwFVF, 
-                                  DWORD Declaration[MAX_FVF_DECL_SIZE] );
+								  DWORD Declaration[MAX_FVF_DECL_SIZE] );
 
 
 

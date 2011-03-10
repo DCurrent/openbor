@@ -18,14 +18,14 @@
 #define		abso(x)		(x<0?-x:x)
 
 #define __putpixel16(p) \
-            if(blendfp )\
-            {\
-                *(p) = blendfp(colour, *(p));\
-            }\
-            else\
-            {\
-                *(p) = colour;\
-            }
+			if(blendfp )\
+			{\
+				*(p) = blendfp(colour, *(p));\
+			}\
+			else\
+			{\
+				*(p) = colour;\
+			}
 
 // same as the one in draw.c, this is 16bit version
 // blendfp is the blending function pointer
@@ -36,8 +36,8 @@ void line16(int sx, int sy, int ex, int ey, unsigned short colour, s_screen *scr
 	int xdir, ydir;
 	int thres;
 	int d;
-    unsigned short* data;
-    unsigned short(*blendfp)(unsigned short,unsigned short);
+	unsigned short* data;
+	unsigned short(*blendfp)(unsigned short,unsigned short);
 
 	// Some off-screen lines may slip through this test!
 	if(sx<0 && ex<0) return;
@@ -105,10 +105,10 @@ void line16(int sx, int sy, int ex, int ey, unsigned short colour, s_screen *scr
 
 	data = (unsigned short*)screen->data;
 
-    blendfp = alpha>0?blendfunctions16[alpha-1]:NULL;
+	blendfp = alpha>0?blendfunctions16[alpha-1]:NULL;
 
 	if(absdiffx > absdiffy)
-    {
+	{
 		// Draw a flat line
 		thres = absdiffx >> 1;
 		xdir = 1;
@@ -116,17 +116,17 @@ void line16(int sx, int sy, int ex, int ey, unsigned short colour, s_screen *scr
 		ydir = screen->width;
 		if(diffy<0) ydir = -ydir;
 		while(sx!=ex)
-        {
-            d = sx+sy;
-            __putpixel16(data+d);
+		{
+			d = sx+sy;
+			__putpixel16(data+d);
 			sx += xdir;
 			if((thres-=absdiffy) <= 0){
 				sy += ydir;
 				thres += absdiffx;
 			}
 		}
-        d = ex+ey;
-        __putpixel16(data+d);
+		d = ex+ey;
+		__putpixel16(data+d);
 		return;
 	}
 
@@ -137,16 +137,16 @@ void line16(int sx, int sy, int ex, int ey, unsigned short colour, s_screen *scr
 	ydir = screen->width;
 	if(diffy<0) ydir = -ydir;
 	while(sy!=ey){
-        d = sx+sy;
-        __putpixel16(data+d);
+		d = sx+sy;
+		__putpixel16(data+d);
 		sy += ydir;
 		if((thres-=absdiffx) <= 0){
 			sx += xdir;
 			thres += absdiffy;
 		}
 	}
-    d = ex+ey;
-    __putpixel16(data+d);
+	d = ex+ey;
+	__putpixel16(data+d);
 }
 
 
@@ -177,7 +177,7 @@ void drawbox16(int x, int y, int width, int height, unsigned short colour, s_scr
 
 	cp = ((unsigned short*)screen->data) + (y*screen->width + x);
 
-    blendfp = alpha>0?blendfunctions16[alpha-1]:NULL;
+	blendfp = alpha>0?blendfunctions16[alpha-1]:NULL;
 
 	while(--height>=0){
 		for(x=0;x<width;x++){
@@ -192,13 +192,13 @@ void drawbox16(int x, int y, int width, int height, unsigned short colour, s_scr
 
 // Putpixel 16bit version
 void putpixel16(unsigned x, unsigned y, unsigned short colour, s_screen *screen, int alpha){
-    int pixind;
-    unsigned short* data ;
-    unsigned short(*blendfp)(unsigned short,unsigned short);
+	int pixind;
+	unsigned short* data ;
+	unsigned short(*blendfp)(unsigned short,unsigned short);
 	if(x>screen->width || y>screen->height) return;
 	pixind = x+y*screen->width;
 	data = (unsigned short*)screen->data + pixind;
-    blendfp = alpha>0?blendfunctions16[alpha-1]:NULL;
+	blendfp = alpha>0?blendfunctions16[alpha-1]:NULL;
 	__putpixel16(data);
 }
 

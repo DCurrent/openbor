@@ -120,12 +120,12 @@ u64 getFreeRam(int byte_size)
 #elif SYMBIAN
 	return GetFreeAmount();
 #else
-    struct mallinfo mi = mallinfo();
+	struct mallinfo mi = mallinfo();
 #ifdef _INCLUDE_MALLOC_H_
 	// Standard ANSI C Implementation
-    return (systemRam - (mi.arena + stackSize))/byte_size;
+	return (systemRam - (mi.arena + stackSize))/byte_size;
 #else
-    return (systemRam - (mi.usmblks + stackSize))/byte_size;
+	return (systemRam - (mi.usmblks + stackSize))/byte_size;
 #endif
 #endif
 }
@@ -203,14 +203,14 @@ u64 getUsedRam(int byte_size)
 	return pmc.WorkingSetSize/byte_size;
 #elif DARWIN
 	struct task_basic_info  info;
-    kern_return_t           rval = 0;
-    mach_port_t             task = mach_task_self();
-    mach_msg_type_number_t  tcnt = TASK_BASIC_INFO_COUNT;
-    task_info_t             tptr = (task_info_t) &info;
-    memset(&info, 0, sizeof(info));
-    rval = task_info(task, TASK_BASIC_INFO, tptr, &tcnt);
-    if (!(rval == KERN_SUCCESS)) return 0;
-    return info.resident_size/byte_size;
+	kern_return_t           rval = 0;
+	mach_port_t             task = mach_task_self();
+	mach_msg_type_number_t  tcnt = TASK_BASIC_INFO_COUNT;
+	task_info_t             tptr = (task_info_t) &info;
+	memset(&info, 0, sizeof(info));
+	rval = task_info(task, TASK_BASIC_INFO, tptr, &tcnt);
+	if (!(rval == KERN_SUCCESS)) return 0;
+	return info.resident_size/byte_size;
 #elif LINUX
 	unsigned long vm = 0;
 	FILE *file = fopen("/proc/self/statm", "r");

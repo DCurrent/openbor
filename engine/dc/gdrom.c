@@ -98,9 +98,9 @@ int gdrom_poll(void) {
   // retry needed
   if(r != 2) {
 //printf("gdrom retry needed(r=%d, lba=%d, size=%d)\n",r,currently_executing_read_lba,currently_executing_read_size);
-    currently_executing_read_retries++;
-    gdrom_queue_current_read();
-    return 1;
+	currently_executing_read_retries++;
+	gdrom_queue_current_read();
+	return 1;
   }
 
   // last read op was a success
@@ -110,17 +110,17 @@ int gdrom_poll(void) {
   s = currently_executing_read_size;
   if(s > MAXREAD) s = MAXREAD;
   memcpy(
-    currently_executing_read_dest,
-    GDROM_READBUFFER_P2,
-    2048*s
+	currently_executing_read_dest,
+	GDROM_READBUFFER_P2,
+	2048*s
   );
   currently_executing_read_lba += s;
   currently_executing_read_size -= s;
   currently_executing_read_dest += 2048*s;
   // done?
   if(currently_executing_read_size <= 0) {
-    currently_executing_read_lba = -1;
-    return 0;
+	currently_executing_read_lba = -1;
+	return 0;
   }
 
   // otherwise queue up the next piece
@@ -158,10 +158,10 @@ static int quickblockread(int lba, int num) {
   param[3] = 0;
   i = bios_gdGdcReqCmd(CMD_PIOREAD, param);
   for(;;) {
-    bios_gdGdcExecServer();
-    param[0] = 0; param[1] = 0; param[2] = 0; param[3] = 0;
-    j = bios_gdGdcGetCmdStat(i, param);
-    if(j != 1) break;
+	bios_gdGdcExecServer();
+	param[0] = 0; param[1] = 0; param[2] = 0; param[3] = 0;
+	j = bios_gdGdcGetCmdStat(i, param);
+	if(j != 1) break;
   }
   return j;
 }
@@ -182,7 +182,7 @@ int gdrom_init(void) {
   // Reactivate GD-ROM drive
   *((volatile int*)0xA05F74E4) = 0x001FFFFF;
   for(i = 0; i<(0x200000/4); i++) {
-    j += ((volatile int*)0xA0000000)[i];
+	j += ((volatile int*)0xA0000000)[i];
   }
 
   // Reset GD system functions
@@ -193,10 +193,10 @@ tryinit:
 
   i = bios_gdGdcReqCmd(CMD_INIT, NULL);
   for(;;) {
-    bios_gdGdcExecServer();
-    param[0] = 0; param[1] = 0; param[2] = 0; param[3] = 0;
-    j = bios_gdGdcGetCmdStat(i, param);
-    if(j != 1) break;
+	bios_gdGdcExecServer();
+	param[0] = 0; param[1] = 0; param[2] = 0; param[3] = 0;
+	j = bios_gdGdcGetCmdStat(i, param);
+	if(j != 1) break;
   }
   if(j != 2) goto tryinit;
 
@@ -212,36 +212,36 @@ tryinit:
   param[1] = (int)(&gdrom_toc); // toc
   i = bios_gdGdcReqCmd(CMD_GETTOC2, param);
   for(;;) {
-    bios_gdGdcExecServer();
-    param[0] = 0; param[1] = 0; param[2] = 0; param[3] = 0;
-    j = bios_gdGdcGetCmdStat(i, param);
-    if(j != 1) break;
+	bios_gdGdcExecServer();
+	param[0] = 0; param[1] = 0; param[2] = 0; param[3] = 0;
+	j = bios_gdGdcGetCmdStat(i, param);
+	if(j != 1) break;
   }
   if(j != 2) goto tryinit;
 
   first = GDROM_TOC_TRACK(gdrom_toc.first);
   last  = GDROM_TOC_TRACK(gdrom_toc.last);
   if(first < 1 || last > 99 || first > last) {
-    // corrupt toc data, maybe
-    goto tryinit;
+	// corrupt toc data, maybe
+	goto tryinit;
   }
   for(track = last; track >= first; track--) {
-    if(GDROM_TOC_CTRL(gdrom_toc.entry[track-1]) & 4) {
-      int lba = GDROM_TOC_LBA(gdrom_toc.entry[track-1]);
-      if(probable_lba < 0) probable_lba = lba;
+	if(GDROM_TOC_CTRL(gdrom_toc.entry[track-1]) & 4) {
+	  int lba = GDROM_TOC_LBA(gdrom_toc.entry[track-1]);
+	  if(probable_lba < 0) probable_lba = lba;
 //      // try to read the boot sector
 //      if(quickblockread(lba, 1) != 2) continue;
 //      // look for "SEGA" in the boot sector
 //      if(memcmp(GDROM_READBUFFER_P2, "SEGA", 4)) continue;
 //      if(probable2_lba < 0) probable2_lba = lba;
-      // try to read the first sector after the boot sector
-      if(quickblockread(lba+16, 1) != 2) continue;
-      // look for "CD001"
-      if(memcmp(GDROM_READBUFFER_P2+1, "CD001", 5)) continue;
-      // success!
-      definite_lba = lba;
-      break;
-    }
+	  // try to read the first sector after the boot sector
+	  if(quickblockread(lba+16, 1) != 2) continue;
+	  // look for "CD001"
+	  if(memcmp(GDROM_READBUFFER_P2+1, "CD001", 5)) continue;
+	  // success!
+	  definite_lba = lba;
+	  break;
+	}
   }
 
   // now return either a definite or a probable lba

@@ -50,11 +50,11 @@ static size_t tracemalloc_total = 0;
 
 static void tracemalloc_dump_collect(ptrdiff_t *p, size_t *len, size_t *nalloc)
 {
-    ptrdiff_t name = p[2];
-    *len = 0;
-    *nalloc = 0;
-    for(; p; p = (ptrdiff_t*)(p[1]))
-    {
+	ptrdiff_t name = p[2];
+	*len = 0;
+	*nalloc = 0;
+	for(; p; p = (ptrdiff_t*)(p[1]))
+	{
 		if(p[2] == name && p[TRACE_SIZE] > 0)
 		{
 			(*len) += p[TRACE_SIZE];

@@ -474,16 +474,16 @@ static void mixaudio(unsigned int todo){
 
 	for(chan=0; chan<max_channels; chan++){
 		if(vchannel[chan].active){
-            unsigned modlen;
+			unsigned modlen;
 			snum = vchannel[chan].samplenum;
-            modlen = sampledata[snum].soundlen;
+			modlen = sampledata[snum].soundlen;
 			fp_len = INT_TO_FIX(sampledata[snum].soundlen);
 			fp_pos = vchannel[chan].fp_samplepos;
 			fp_period = vchannel[chan].fp_period;
 			lvolume = vchannel[chan].volume[0];
 			rvolume = vchannel[chan].volume[1];
-            if(fp_len < 1) fp_len = 1;
-            if(modlen < 1) modlen = 1;
+			if(fp_len < 1) fp_len = 1;
+			if(modlen < 1) modlen = 1;
 			if(sampledata[snum].bits==8){
 				sptr8 = sampledata[snum].sampleptr;
 				for(i=0; i<(int)todo;){
@@ -558,7 +558,7 @@ void update_sample(unsigned char *buf, int size) {
 
 	clearmixbuffer((unsigned int*)mixbuf, todo);
 	mixaudio(todo);
-    samplesplayed += (todo >> 1);
+	samplesplayed += (todo >> 1);
 
 	if (playbits==8) {
 		unsigned char *dst = buf;
@@ -613,8 +613,8 @@ int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvo
 		if(prio_low > priority) return -1;
 	}
 
-    if(lvolume<0) lvolume = 0;
-    if(rvolume<0) rvolume = 0;
+	if(lvolume<0) lvolume = 0;
+	if(rvolume<0) rvolume = 0;
 	if(lvolume>MAXVOLUME) lvolume = MAXVOLUME;
 	if(rvolume>MAXVOLUME) rvolume = MAXVOLUME;
 
@@ -651,8 +651,8 @@ void sound_stopall_sample(){
 
 void sound_volume_sample(int channel, int lvolume, int rvolume){
 	if(channel<0 || channel>=max_channels) return;
-    if(lvolume<0) lvolume = 0;
-    if(rvolume<0) rvolume = 0;
+	if(lvolume<0) lvolume = 0;
+	if(rvolume<0) rvolume = 0;
 	if(lvolume>MAXVOLUME) lvolume = MAXVOLUME;
 	if(rvolume>MAXVOLUME) rvolume = MAXVOLUME;
 	vchannel[channel].volume[0] = lvolume;
@@ -1239,15 +1239,15 @@ int sound_start_playback(int bits, int frequency){
 	playbits = bits;
 	playfrequency = frequency;
 #elif WII
-    // Wii only supports 16 bit 32000/48000
-    bits = 16;
-    frequency = 48000;
+	// Wii only supports 16 bit 32000/48000
+	bits = 16;
+	frequency = 48000;
 	playbits = bits;
 	playfrequency = frequency;
 #else
-    // Most consoles support natively 16/44100
-    bits = 16;
-    frequency = 44100;
+	// Most consoles support natively 16/44100
+	bits = 16;
+	frequency = 44100;
 	playbits = bits;
 	playfrequency = frequency;
 #endif

@@ -27,7 +27,7 @@ int module_start(SceSize args, void *argp)
    if(!curr_handler || !exception_regs) return -1;
 
    if(sceKernelDevkitVersion() < 0x03070110)
-      return sceKernelRegisterDefaultExceptionHandler((void *)_pspDebugExceptionHandler);
+	  return sceKernelRegisterDefaultExceptionHandler((void *)_pspDebugExceptionHandler);
    else
-      return sceKernelRegisterDefaultExceptionHandler371((void *)_pspDebugExceptionHandler);
+	  return sceKernelRegisterDefaultExceptionHandler371((void *)_pspDebugExceptionHandler);
 }

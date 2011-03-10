@@ -60,9 +60,9 @@ void spriteq_add_frame(int x, int y, int z, s_sprite* frame, s_drawmethod* pdraw
 	{
 	    queue[spritequeue_len].drawmethod = *pdrawmethod;
 	    queue[spritequeue_len].drawmethod.flag = 1;
-    }
-    else queue[spritequeue_len].drawmethod.flag = 0;
-    queue[spritequeue_len].params[0] = 0; // determin if the sprite's center should be readjusted;
+	}
+	else queue[spritequeue_len].drawmethod.flag = 0;
+	queue[spritequeue_len].params[0] = 0; // determin if the sprite's center should be readjusted;
 	order[spritequeue_len] = &queue[spritequeue_len];
 	++spritequeue_len;
 }
@@ -81,9 +81,9 @@ void spriteq_add_sprite(int x, int y, int z, int id, s_drawmethod* pdrawmethod, 
 	{
 	    queue[spritequeue_len].drawmethod = *pdrawmethod;
 	    queue[spritequeue_len].drawmethod.flag = 1;
-    }
-    else queue[spritequeue_len].drawmethod.flag = 0;
-    queue[spritequeue_len].params[0] = 1; // determin if the sprite's center should be readjusted;
+	}
+	else queue[spritequeue_len].drawmethod.flag = 0;
+	queue[spritequeue_len].params[0] = 1; // determin if the sprite's center should be readjusted;
 	queue[spritequeue_len].params[1] = sprite_map[id].centerx; // centerx
 	queue[spritequeue_len].params[2] = sprite_map[id].centery; // centery
 	order[spritequeue_len] = &queue[spritequeue_len];
@@ -103,8 +103,8 @@ void spriteq_add_screen(int x, int y, int z, s_screen* ps, s_drawmethod* pdrawme
 	{
 	    queue[spritequeue_len].drawmethod = *pdrawmethod;
 	    queue[spritequeue_len].drawmethod.flag = 1;
-    }
-    else queue[spritequeue_len].drawmethod.flag = 0;
+	}
+	else queue[spritequeue_len].drawmethod.flag = 0;
 	order[spritequeue_len] = &queue[spritequeue_len];
 	++spritequeue_len;
 }
@@ -173,7 +173,7 @@ static void spriteq_sort()
 	end = spritequeue_len - 1;
 
 	while(start < end)
-    {
+	{
 		lidx = end;
 		hidx = start;
 
@@ -184,15 +184,15 @@ static void spriteq_sort()
 
 		// Search for lowest and highest Z coord
 		for(i=start; i<=end; i++)
-        {
+		{
 			if(order[i]->z < lz || (order[i]->z == lz && order[i]->sortid < lsid))
-            {
+			{
 				lidx = i;
 				lz = order[i]->z;
 				lsid = order[i]->sortid;
 			}
 			if(order[i]->z > hz || (order[i]->z == hz && order[i]->sortid > hsid))
-            {
+			{
 				hidx = i;
 				hz = order[i]->z;
 				hsid = order[i]->sortid;
@@ -224,112 +224,112 @@ static void spriteq_sort()
 // newonly is 1 means don't draw locked sprites
 void spriteq_draw(s_screen *screen, int newonly)
 {
-    int i;
+	int i;
 
 	spriteq_sort();
 
 	for(i=0;i<spritequeue_len;i++)
-    {
-        if(newonly && spriteq_locked && order[i]<queue+spriteq_old_len)
-            continue;
+	{
+		if(newonly && spriteq_locked && order[i]<queue+spriteq_old_len)
+			continue;
 
-        switch(order[i]->type)
-        {
-        case SQT_SPRITE: // sprite
+		switch(order[i]->type)
+		{
+		case SQT_SPRITE: // sprite
 
-            if(order[i]->params[0])// determin if the sprite's center should be readjusted;
-            {
-                ((s_sprite*)(order[i]->frame))->centerx = order[i]->params[1];
-                ((s_sprite*)(order[i]->frame))->centery = order[i]->params[2];
-            }
-            putsprite(order[i]->x, order[i]->y, order[i]->frame, screen, &(order[i]->drawmethod));
+			if(order[i]->params[0])// determin if the sprite's center should be readjusted;
+			{
+				((s_sprite*)(order[i]->frame))->centerx = order[i]->params[1];
+				((s_sprite*)(order[i]->frame))->centery = order[i]->params[2];
+			}
+			putsprite(order[i]->x, order[i]->y, order[i]->frame, screen, &(order[i]->drawmethod));
 		    break;
-        case SQT_SCREEN: // draw a screen instead of sprite
-            putscreen(screen, (s_screen*)(order[i]->frame), order[i]->x, order[i]->y, &(order[i]->drawmethod));
+		case SQT_SCREEN: // draw a screen instead of sprite
+			putscreen(screen, (s_screen*)(order[i]->frame), order[i]->x, order[i]->y, &(order[i]->drawmethod));
 		    break;
-        case SQT_DOT:
-            switch(screen->pixelformat)
-            {
-            case PIXEL_8:
-                putpixel(order[i]->x, order[i]->y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-                break;
-            case PIXEL_16:
-                putpixel16(order[i]->x, order[i]->y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-                break;
-            case PIXEL_32:
-                putpixel32(order[i]->x, order[i]->y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-                break;
-            }
-            break;
-        case SQT_LINE:
-            switch(screen->pixelformat)
-            {
-            case PIXEL_8:
-                line(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-                break;
-            case PIXEL_16:
-                line16(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-                break;
-            case PIXEL_32:
-                line32(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-                break;
-            }
-            break;
-        case SQT_BOX:
-            switch(screen->pixelformat)
-            {
-            case PIXEL_8:
-                drawbox(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-                break;
-            case PIXEL_16:
-                drawbox16(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-                break;
-            case PIXEL_32:
-                drawbox32(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-                break;
-            }
-            break;
-        default:
-            continue;
-        }
+		case SQT_DOT:
+			switch(screen->pixelformat)
+			{
+			case PIXEL_8:
+				putpixel(order[i]->x, order[i]->y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				break;
+			case PIXEL_16:
+				putpixel16(order[i]->x, order[i]->y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				break;
+			case PIXEL_32:
+				putpixel32(order[i]->x, order[i]->y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				break;
+			}
+			break;
+		case SQT_LINE:
+			switch(screen->pixelformat)
+			{
+			case PIXEL_8:
+				line(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				break;
+			case PIXEL_16:
+				line16(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				break;
+			case PIXEL_32:
+				line32(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				break;
+			}
+			break;
+		case SQT_BOX:
+			switch(screen->pixelformat)
+			{
+			case PIXEL_8:
+				drawbox(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				break;
+			case PIXEL_16:
+				drawbox16(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				break;
+			case PIXEL_32:
+				drawbox32(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				break;
+			}
+			break;
+		default:
+			continue;
+		}
 	}
 }
 
 // UT: lock the spriteq, don't clearn old sprites
 void spriteq_lock()
 {
-    spriteq_old_len = spritequeue_len;
-    spriteq_locked = 1;
+	spriteq_old_len = spritequeue_len;
+	spriteq_locked = 1;
 }
 
 // don't forget to unlock the queue, or we'll have troubles
 // if the sprite is unloaded for some reason
 void spriteq_unlock()
 {
-    spriteq_locked = 0;
+	spriteq_locked = 0;
 }
 
 int  spriteq_islocked()
 {
-    return (spriteq_locked!=0);
+	return (spriteq_locked!=0);
 }
 
 void spriteq_clear()
 {
-    int i;
-    if(spriteq_locked)
-    {
-        // when locked, always draw previous sprites,
-        // and only clear new sprites
-        spritequeue_len = spriteq_old_len;
-        for(i=0; i<spriteq_old_len; i++)
-            order[i] = queue+i;
-    }
-    else
-    {
+	int i;
+	if(spriteq_locked)
+	{
+		// when locked, always draw previous sprites,
+		// and only clear new sprites
+		spritequeue_len = spriteq_old_len;
+		for(i=0; i<spriteq_old_len; i++)
+			order[i] = queue+i;
+	}
+	else
+	{
 	    spriteq_old_len = spritequeue_len;
 	    spritequeue_len = 0;
-    }
+	}
 }
 
 

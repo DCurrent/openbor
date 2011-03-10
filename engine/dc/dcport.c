@@ -22,35 +22,35 @@ int cd_lba;
 
 unsigned readmsb32(const unsigned char *src)
 {
-    return
-        ((((unsigned)(src[0])) & 0xFF) << 24) |
-        ((((unsigned)(src[1])) & 0xFF) << 16) |
-        ((((unsigned)(src[2])) & 0xFF) <<  8) |
-        ((((unsigned)(src[3])) & 0xFF) <<  0);
+	return
+		((((unsigned)(src[0])) & 0xFF) << 24) |
+		((((unsigned)(src[1])) & 0xFF) << 16) |
+		((((unsigned)(src[2])) & 0xFF) <<  8) |
+		((((unsigned)(src[3])) & 0xFF) <<  0);
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
 void borExit(int reset)
 {
-    tracemalloc_dump();
-    arch_reboot();
+	tracemalloc_dump();
+	arch_reboot();
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
 int main()
 {
-    setSystemRam();
-    getRamStatus(BYTES);
+	setSystemRam();
+	getRamStatus(BYTES);
 	packfile_mode(0);
 	if((cd_lba = gdrom_init()) <= 0)
 	{
 		printf("gdrom_init failed\n");
 		arch_reboot();
 	}
-    openborMain();
-    return 0;
+	openborMain();
+	return 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////

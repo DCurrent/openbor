@@ -71,9 +71,9 @@
 //-----------------------------------------------------------------------------
 struct XBFONTVERTEX 
 { 
-    D3DXVECTOR4 p;
-    DWORD       color;
-    FLOAT       tu, tv; 
+	D3DXVECTOR4 p;
+	DWORD       color;
+	FLOAT       tu, tv; 
 };
 
 #define D3DFVF_XBFONTVERTEX (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_TEX1)
@@ -87,10 +87,10 @@ struct XBFONTVERTEX
 //-----------------------------------------------------------------------------
 struct GLYPH_ATTR
 {
-    FLOAT left, top, right, bottom; // Texture coordinates for the image
-    SHORT wOffset;                  // Pixel offset for glyph start
-    SHORT wWidth;                   // Pixel width of the glyph
-    SHORT wAdvance;                 // Pixels to advance after the glyph
+	FLOAT left, top, right, bottom; // Texture coordinates for the image
+	SHORT wOffset;                  // Pixel offset for glyph start
+	SHORT wWidth;                   // Pixel width of the glyph
+	SHORT wAdvance;                 // Pixels to advance after the glyph
 };
 
 
@@ -105,68 +105,68 @@ struct GLYPH_ATTR
 class CXBFont
 {
 public:
-    // Font and texture dimensions
-    DWORD         m_dwFontHeight;
-    DWORD         m_dwTexWidth;
-    DWORD         m_dwTexHeight;
+	// Font and texture dimensions
+	DWORD         m_dwFontHeight;
+	DWORD         m_dwTexWidth;
+	DWORD         m_dwTexHeight;
 
-    // Unicode ranges
-    WCHAR         m_cLowChar;
-    WCHAR         m_cHighChar;
+	// Unicode ranges
+	WCHAR         m_cLowChar;
+	WCHAR         m_cHighChar;
 
-    // Glyph data for the font
-    DWORD         m_dwNumGlyphs;
-    GLYPH_ATTR*   m_Glyphs;
+	// Glyph data for the font
+	DWORD         m_dwNumGlyphs;
+	GLYPH_ATTR*   m_Glyphs;
 
-    // D3D rendering objects
-    CXBPackedResource       m_xprResource;
-    LPDIRECT3DDEVICE8       m_pd3dDevice;
-    LPDIRECT3DTEXTURE8      m_pTexture;
-    LPDIRECT3DVERTEXBUFFER8 m_pVBs[NUM_FONT_BUFFERS];
-    LPDIRECT3DVERTEXBUFFER8 m_pVB;
-    DWORD                   m_dwCurrentBuffer;
-    XBFONTVERTEX*           m_pVertices;
-    DWORD                   m_dwNumQuads;
-    DWORD                   m_dwNestedBeginCount;
-    BOOL                    m_bTextureFromFile;
+	// D3D rendering objects
+	CXBPackedResource       m_xprResource;
+	LPDIRECT3DDEVICE8       m_pd3dDevice;
+	LPDIRECT3DTEXTURE8      m_pTexture;
+	LPDIRECT3DVERTEXBUFFER8 m_pVBs[NUM_FONT_BUFFERS];
+	LPDIRECT3DVERTEXBUFFER8 m_pVB;
+	DWORD                   m_dwCurrentBuffer;
+	XBFONTVERTEX*           m_pVertices;
+	DWORD                   m_dwNumQuads;
+	DWORD                   m_dwNestedBeginCount;
+	BOOL                    m_bTextureFromFile;
 
-    // Internal call to trigger rendering of the vertex buffer
-    HRESULT Render();
+	// Internal call to trigger rendering of the vertex buffer
+	HRESULT Render();
 
-    // Access functions for debugging purposes
-    LPDIRECT3DTEXTURE8 GetTexture() const    { return m_pTexture; }
-    DWORD              GetFontHeight() const { return m_dwFontHeight; }
+	// Access functions for debugging purposes
+	LPDIRECT3DTEXTURE8 GetTexture() const    { return m_pTexture; }
+	DWORD              GetFontHeight() const { return m_dwFontHeight; }
 
 public:
-    // Constructor/destructor
-    CXBFont();
-    ~CXBFont();
+	// Constructor/destructor
+	CXBFont();
+	~CXBFont();
 
-    // Functions to create and destroy the internal objects
-    HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, 
-                    const CHAR* strFontResourceFileName );
-    HRESULT Destroy();
+	// Functions to create and destroy the internal objects
+	HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, 
+					const CHAR* strFontResourceFileName );
+	HRESULT Destroy();
 
-    // Replaces invalid (outside the valid glyph range) characters in a string
-    VOID    ReplaceInvalidChars( WCHAR* strUpdate, WCHAR cReplacement ) const;
+	// Replaces invalid (outside the valid glyph range) characters in a string
+	VOID    ReplaceInvalidChars( WCHAR* strUpdate, WCHAR cReplacement ) const;
 
-    // Returns the dimensions of a text string
-    HRESULT GetTextExtent( const WCHAR* strText, FLOAT* pWidth, 
-                           FLOAT* pHeight, BOOL bFirstLineOnly=FALSE ) const;
+	// Returns the dimensions of a text string
+	HRESULT GetTextExtent( const WCHAR* strText, FLOAT* pWidth, 
+						   FLOAT* pHeight, BOOL bFirstLineOnly=FALSE ) const;
 
-    // Function to create a texture containing rendered text
-    LPDIRECT3DTEXTURE8 CreateTexture( const WCHAR* strText, 
-                                      D3DCOLOR dwBackgroundColor = 0x00000000,
-                                      D3DCOLOR dwTextColor = 0xffffffff,
-                                      D3DFORMAT d3dFormat = D3DFMT_LIN_A8R8G8B8 );
+	// Function to create a texture containing rendered text
+	LPDIRECT3DTEXTURE8 CreateTexture( const WCHAR* strText, 
+									  D3DCOLOR dwBackgroundColor = 0x00000000,
+									  D3DCOLOR dwTextColor = 0xffffffff,
+									  D3DFORMAT d3dFormat = D3DFMT_LIN_A8R8G8B8 );
 
-    // Public calls to render text. Callers can simply call DrawText(), but for
-    // performance, they should batch multiple calls together, bracketed by 
-    // calls to Begin() and End().
-    HRESULT Begin();
-    HRESULT DrawText( FLOAT sx, FLOAT sy, DWORD dwColor, 
-                      const WCHAR* strText, DWORD dwFlags=0L );
-    HRESULT End();
+	// Public calls to render text. Callers can simply call DrawText(), but for
+	// performance, they should batch multiple calls together, bracketed by 
+	// calls to Begin() and End().
+	HRESULT Begin();
+	HRESULT DrawText( FLOAT sx, FLOAT sy, DWORD dwColor, 
+					  const WCHAR* strText, DWORD dwFlags=0L );
+	HRESULT End();
 };
 
 

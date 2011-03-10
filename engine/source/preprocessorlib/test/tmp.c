@@ -72,13 +72,13 @@ HEALTH hp++
 
 void BLINK(foo, bar, ctx->tokens)
 {// Blink effect script
-    void self = getlocalvar("self"); //Get calling entity.
-    void HEALTH = getentityproperty(self, "health"); \
+	void self = getlocalvar("self"); //Get calling entity.
+	void HEALTH = getentityproperty(self, "health"); \
 
-    if (HEALTH > 0){
+	if (HEALTH > 0){
 		changeentityproperty(self, "colourmap", 1); /* */
 		changeentityproperty(self, "maptime", 20 + openborvariant("elapsed_time"));
-    }
+	}
 }
 
 #define eof This is the end of the file!

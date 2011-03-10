@@ -27,7 +27,7 @@ void line(int sx, int sy, int ex, int ey, int colour, s_screen *screen, int alph
 	int xdir, ydir;
 	int thres;
 	int d;
-    unsigned char *lut;
+	unsigned char *lut;
 
 	// Some off-screen lines may slip through this test!
 	if(sx<0 && ex<0) return;
@@ -93,9 +93,9 @@ void line(int sx, int sy, int ex, int ey, int colour, s_screen *screen, int alph
 	sy *= screen->width;
 	ey *= screen->width;
 
-    lut = alpha>0?blendtables[alpha-1]:NULL;
+	lut = alpha>0?blendtables[alpha-1]:NULL;
 
-    if(lut) lut += (colour<<8);
+	if(lut) lut += (colour<<8);
 
 	if(absdiffx > absdiffy){
 		// Draw a flat line
@@ -105,16 +105,16 @@ void line(int sx, int sy, int ex, int ey, int colour, s_screen *screen, int alph
 		ydir = screen->width;
 		if(diffy<0) ydir = -ydir;
 		while(sx!=ex){
-            d = sx+sy;
-            screen->data[d] = (lut && screen->data[d])?(lut[screen->data[d]]):colour;
+			d = sx+sy;
+			screen->data[d] = (lut && screen->data[d])?(lut[screen->data[d]]):colour;
 			sx += xdir;
 			if((thres-=absdiffy) <= 0){
 				sy += ydir;
 				thres += absdiffx;
 			}
 		}
-        d = ex+ey;
-        screen->data[d] = (lut && screen->data[d])?(lut[screen->data[d]]):colour;
+		d = ex+ey;
+		screen->data[d] = (lut && screen->data[d])?(lut[screen->data[d]]):colour;
 		return;
 	}
 
@@ -125,7 +125,7 @@ void line(int sx, int sy, int ex, int ey, int colour, s_screen *screen, int alph
 	ydir = screen->width;
 	if(diffy<0) ydir = -ydir;
 	while(sy!=ey){
-        d = sx+sy;
+		d = sx+sy;
 		screen->data[d] = (lut && screen->data[d])?(lut[screen->data[d]]):colour;;
 		sy += ydir;
 		if((thres-=absdiffx) <= 0){
@@ -133,7 +133,7 @@ void line(int sx, int sy, int ex, int ey, int colour, s_screen *screen, int alph
 			thres += absdiffy;
 		}
 	}
-    d = ex+ey;
+	d = ex+ey;
 	screen->data[d] = (lut && screen->data[d])?(lut[screen->data[d]]):colour;
 }
 
@@ -179,8 +179,8 @@ void drawbox(int x, int y, int width, int height, int colour, s_screen *screen, 
 
 // Putpixel used by circle function
 void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, int alpha){
-    int pixind;
-    unsigned char *lut;
+	int pixind;
+	unsigned char *lut;
 	if(x>screen->width || y>screen->height) return;
 	pixind = x+y*screen->width;
 	lut = alpha>0?blendtables[alpha-1]:NULL;

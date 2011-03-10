@@ -45,11 +45,11 @@ void MotionBlur(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch
 		u32 nextPixel;
 		u32 currentDelta;
 		u32 nextDelta;
-    
+	
 		finish = (u8 *) bP + ((width+2) << 1);
 		nextPixel = *bP++;
 		nextDelta = *xP++;
-    
+	
 		do 
 		{
 			currentPixel = nextPixel;
@@ -60,7 +60,7 @@ void MotionBlur(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch
 			if(currentPixel != currentDelta) 
 			{
 				u32 colorA, product, colorB;
-        
+		
 				*(xP - 2) = currentPixel;
 
 #ifdef BOR_BIG_ENDIAN
@@ -72,7 +72,7 @@ void MotionBlur(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch
 #endif
 
 				product =   ((((colorA & colorMask) >> 1) + ((colorB & colorMask) >> 1) + (colorA & colorB & lowPixelMask)));
-        
+		
 				*(dP) = product | product << 16;
 				*(nL) = product | product << 16;
 
@@ -84,14 +84,14 @@ void MotionBlur(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch
 				colorB = currentDelta >> 16;
 #endif
 				product = ((((colorA & colorMask) >> 1) + ((colorB & colorMask) >> 1) + (colorA & colorB & lowPixelMask)));
-        
+		
 				*(dP + 1) = product | product << 16;
 				*(nL + 1) = product | product << 16;
 			}
 			else 
 			{
 				u32 colorA, product;
-        
+		
 				*(xP - 2) = currentPixel;
 
 #ifdef BOR_BIG_ENDIAN
@@ -99,9 +99,9 @@ void MotionBlur(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch
 #else
 		        colorA = currentPixel & 0xffff;
 #endif
-        
+		
 				product = colorA;
-        
+		
 				*(dP) = product | product << 16;
 				*(nL) = product | product << 16;
 
@@ -111,16 +111,16 @@ void MotionBlur(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch
 				colorA = currentPixel >> 16;
 #endif
 				product = colorA;
-        
+		
 				*(dP + 1) = product | product << 16;
 				*(nL + 1) = product | product << 16;        
 			}
-      
+	  
 			dP += 2;
 			nL += 2;
 		} 
 		while ((u8 *) bP < finish);
-    
+	
 		deltaPtr += srcPitch;
 		srcPtr += srcPitch;
 		dstPtr += dstPitch << 1;
@@ -147,11 +147,11 @@ void MotionBlur32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPit
 		u32 nextPixel;
 		u32 currentDelta;
 		u32 nextDelta;
-    
+	
 		finish = (u8 *) bP + ((width+1) << 2);
 		nextPixel = *bP++;
 		nextDelta = *xP++;
-    
+	
 		do 
 		{
 			u32 colorA, product, colorB;
@@ -164,9 +164,9 @@ void MotionBlur32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPit
 		    *(xP - 2) = currentPixel;
 			colorA = currentPixel;
 			colorB = currentDelta;
-      
+	  
 			product =   ((((colorA & colorMask) >> 1) + ((colorB & colorMask) >> 1) + (colorA & colorB & lowPixelMask)));
-      
+	  
 			*(dP) = product;
 			*(dP+1) = product;
 			*(nL) = product;
@@ -176,9 +176,9 @@ void MotionBlur32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPit
 
 			colorA = nextPixel;
 			colorB = nextDelta;
-      
+	  
 			product = ((((colorA & colorMask) >> 1) + ((colorB & colorMask) >> 1) + (colorA & colorB & lowPixelMask)));
-      
+	  
 			*(dP + 2) = product;
 			*(dP + 3) = product;
 			*(nL + 2) = product;
@@ -186,12 +186,12 @@ void MotionBlur32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPit
 
 			nextPixel = *bP++;
 			nextDelta = *xP++;
-      
+	  
 			dP += 4;
 			nL += 4;
 		} 
 		while ((u8 *) bP < finish);
-    
+	
 		deltaPtr += srcPitch;
 		srcPtr += srcPitch;
 		dstPtr += dstPitch << 1;

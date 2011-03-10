@@ -13,25 +13,25 @@
 #include "Stack.h"
 typedef struct Parser{
    //Private data members
-    Lexer theLexer;                    //A pointer to this parser's lexer
-    ParserSet theParserSet;            //A pointer to this parsers' parserSet
-    Token theNextToken;                //A pointer to the next token
-    List*  pIList;                      //A pointer to the instruction list
-    LONG LabelCount;                   //A counter to track the number of labels
-    Stack LabelStack;                  //A stack of labels for use in jumps
-    CHAR theRetLabel[MAX_STR_LEN+1];    //A label which holds the target of returns
-    Token theFieldToken;               //A pointer to the field source token
-    int paramCount;
-    char currentPath[256];                 // current path info of the text
-    BOOL errorFound;
+	Lexer theLexer;                    //A pointer to this parser's lexer
+	ParserSet theParserSet;            //A pointer to this parsers' parserSet
+	Token theNextToken;                //A pointer to the next token
+	List*  pIList;                      //A pointer to the instruction list
+	LONG LabelCount;                   //A counter to track the number of labels
+	Stack LabelStack;                  //A stack of labels for use in jumps
+	CHAR theRetLabel[MAX_STR_LEN+1];    //A label which holds the target of returns
+	Token theFieldToken;               //A pointer to the field source token
+	int paramCount;
+	char currentPath[256];                 // current path info of the text
+	BOOL errorFound;
 } Parser;
 
 void Parser_Init(Parser* pparser);
 void Parser_Clear(Parser* pparser);
 void Parser_ParseText(Parser* pparser, pp_context* pcontext, List* pIList, LPSTR scriptText,
-                     ULONG startingLineNumber, LPCSTR path );
+					 ULONG startingLineNumber, LPCSTR path );
 void Parser_ParseExpression(Parser* pparser, List* pIList, LPSTR scriptText,
-                     ULONG startingLineNumber, LPCSTR path );
+					 ULONG startingLineNumber, LPCSTR path );
 void Parser_AddInstructionViaToken(Parser* pparser, OpCode pCode, Token* pToken, Label label );
 void Parser_AddInstructionViaLabel(Parser* pparser, OpCode pCode, Label instrLabel, Label listLabel );
 BOOL Parser_Check(Parser* pparser, MY_TOKEN_TYPE theType );

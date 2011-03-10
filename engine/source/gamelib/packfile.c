@@ -175,16 +175,16 @@ int myfilenamecmp(const char *a, size_t asize, const char *b, size_t bsize)
 // Return a pointer to buffer with filename converted to DOS format.
 static char * slashback(const char *sz)
 {
-    int i=0;
-    static char new[256];
-    while(sz[i] && i<255)
+	int i=0;
+	static char new[256];
+	while(sz[i] && i<255)
 	{
 		new[i] = sz[i];
 		if(new[i]=='/') new[i]='\\';
 		++i;
-    }
-    new[i] = 0;
-    return new;
+	}
+	new[i] = 0;
+	return new;
 }
 
 #ifndef WIN
@@ -192,16 +192,16 @@ static char * slashback(const char *sz)
 // Return a pointer to buffer with filename using forward slash as separator.
 static char * slashfwd(const char *sz)
 {
-    int i=0;
-    static char new[256];
-    while(sz[i] && i<255)
+	int i=0;
+	static char new[256];
+	while(sz[i] && i<255)
 	{
 		new[i] = sz[i];
 		if(new[i]=='\\') new[i]='/';
 		++i;
-    }
-    new[i] = 0;
-    return new;
+	}
+	new[i] = 0;
+	return new;
 }
 #endif
 
@@ -258,15 +258,15 @@ void packfile_mode(int mode)
 		fs_chdir("/cd");
 #endif
 		pOpenPackfile = openPackfile;
-        pReadPackfile = readPackfile;
-        pSeekPackfile = seekPackfile;
-        pClosePackfile = closePackfile;
+		pReadPackfile = readPackfile;
+		pSeekPackfile = seekPackfile;
+		pClosePackfile = closePackfile;
 		return;
 	}
 	pOpenPackfile = openPackfileCached;
-    pReadPackfile = readPackfileCached;
-    pSeekPackfile = seekPackfileCached;
-    pClosePackfile = closePackfileCached;
+	pReadPackfile = readPackfileCached;
+	pSeekPackfile = seekPackfileCached;
+	pClosePackfile = closePackfileCached;
 }
 
 
@@ -444,7 +444,7 @@ int openPackfile(const char *filename, const char *packfilename)
 
 	p = headerstart;
 
-    // Search for filename
+	// Search for filename
 	while(read(handle,&pn,sizeof(pn))>12)
 	{
 		pn.filesize = SwapLSB32(pn.filesize);
@@ -478,8 +478,8 @@ int openPackfile(const char *filename, const char *packfilename)
 
 void update_filecache_vfd(int vfd)
 {
-    if(pak_vfdexists[vfd]) filecache_setvfd(vfd, pak_vfdstart[vfd], (pak_vfdstart[vfd] + pak_vfdpos[vfd]) / CACHEBLOCKSIZE, (pak_vfdreadahead[vfd] + (CACHEBLOCKSIZE-1)) / CACHEBLOCKSIZE);
-    else filecache_setvfd(vfd, -1, -1, 0);
+	if(pak_vfdexists[vfd]) filecache_setvfd(vfd, pak_vfdstart[vfd], (pak_vfdstart[vfd] + pak_vfdpos[vfd]) / CACHEBLOCKSIZE, (pak_vfdreadahead[vfd] + (CACHEBLOCKSIZE-1)) / CACHEBLOCKSIZE);
+	else filecache_setvfd(vfd, -1, -1, 0);
 }
 
 int openreadaheadpackfile(const char *filename, const char *packfilename, int readaheadsize, int prebuffersize)
@@ -500,7 +500,7 @@ int openreadaheadpackfile(const char *filename, const char *packfilename, int re
 		}
 	}
 
-    // find a free vfd
+	// find a free vfd
 	for(vfd = 0; vfd < MAXPACKHANDLES; vfd++) if(!pak_vfdexists[vfd]) break;
 	if(vfd >= MAXPACKHANDLES) return -1;
 
@@ -550,85 +550,85 @@ int readpackfile(int handle, void *buf, int len)
 
 int readPackfile(int handle, void *buf, int len)
 {
-    int realhandle;
-    if(handle<0 || handle>=MAXPACKHANDLES) return -1;
-    if(len<0) return -1;
-    if(len==0) return 0;
-    realhandle = packhandle[handle];
-    if(realhandle == -1) return -1;
-    if(len + packfilepointer[handle] > packfilesize[handle])
+	int realhandle;
+	if(handle<0 || handle>=MAXPACKHANDLES) return -1;
+	if(len<0) return -1;
+	if(len==0) return 0;
+	realhandle = packhandle[handle];
+	if(realhandle == -1) return -1;
+	if(len + packfilepointer[handle] > packfilesize[handle])
 	len = packfilesize[handle] - packfilepointer[handle];
-    if((len = read(realhandle,buf,len))==-1) return -1;
-    packfilepointer[handle] += len;
-    return len;
+	if((len = read(realhandle,buf,len))==-1) return -1;
+	packfilepointer[handle] += len;
+	return len;
 }
 
 int pak_isvalidhandle(int handle)
 {
-    if(handle < 0 || handle >= MAXPACKHANDLES) return 0;
+	if(handle < 0 || handle >= MAXPACKHANDLES) return 0;
 	if(!pak_vfdexists[handle]) return 0;
 	return 1;
 }
 
 static int pak_rawread(int fd, unsigned char *dest, int len, int blocking)
 {
-    int end;
-    int r;
-    int total = 0;
-    int pos = pak_vfdstart[fd] + pak_vfdpos[fd];
+	int end;
+	int r;
+	int total = 0;
+	int pos = pak_vfdstart[fd] + pak_vfdpos[fd];
 
-    if(pos < 0) return 0;
-    if(pos >= paksize) return 0;
-    if((pos + len) > paksize) { len = paksize - pos; }
-    end = pos + len;
+	if(pos < 0) return 0;
+	if(pos >= paksize) return 0;
+	if((pos + len) > paksize) { len = paksize - pos; }
+	end = pos + len;
 
-    update_filecache_vfd(fd);
+	update_filecache_vfd(fd);
 
-    while(pos < end)
-    {
-        int b = pos / CACHEBLOCKSIZE;
-        int startthisblock = pos % CACHEBLOCKSIZE;
-        int sizethisblock = CACHEBLOCKSIZE - startthisblock;
-        if(sizethisblock > (end-pos)) sizethisblock = (end-pos);
-        r = filecache_readpakblock(dest, b, startthisblock, sizethisblock, blocking);
-        if(r >= 0)
-        {
-            total += r;
-            pak_vfdpos[fd] += r;
-            update_filecache_vfd(fd);
-        }
-        if(r < sizethisblock) break;
+	while(pos < end)
+	{
+		int b = pos / CACHEBLOCKSIZE;
+		int startthisblock = pos % CACHEBLOCKSIZE;
+		int sizethisblock = CACHEBLOCKSIZE - startthisblock;
+		if(sizethisblock > (end-pos)) sizethisblock = (end-pos);
+		r = filecache_readpakblock(dest, b, startthisblock, sizethisblock, blocking);
+		if(r >= 0)
+		{
+			total += r;
+			pak_vfdpos[fd] += r;
+			update_filecache_vfd(fd);
+		}
+		if(r < sizethisblock) break;
 
-        dest += sizethisblock;
-        pos += sizethisblock;
-    }
-    return total;
+		dest += sizethisblock;
+		pos += sizethisblock;
+	}
+	return total;
 }
 
 int readpackfileblocking(int fd, void *buf, int len, int blocking)
 {
-    int n;
-    if(!pak_isvalidhandle(fd)) return -1;
-    if(pak_vfdpos[fd] < 0) return 0;
-    if(pak_vfdpos[fd] > pak_vfdsize[fd]) pak_vfdpos[fd] = pak_vfdsize[fd];
-    if((len + pak_vfdpos[fd]) > pak_vfdsize[fd]) { len = pak_vfdsize[fd] - pak_vfdpos[fd]; }
-    if(len < 1) return 0;
-    update_filecache_vfd(fd);
-    n = pak_rawread(fd, buf, len, blocking);
-    if(n < 0) n = 0;
-    if(pak_vfdpos[fd] > pak_vfdsize[fd]) pak_vfdpos[fd] = pak_vfdsize[fd];
-    update_filecache_vfd(fd);
-    return n;
+	int n;
+	if(!pak_isvalidhandle(fd)) return -1;
+	if(pak_vfdpos[fd] < 0) return 0;
+	if(pak_vfdpos[fd] > pak_vfdsize[fd]) pak_vfdpos[fd] = pak_vfdsize[fd];
+	if((len + pak_vfdpos[fd]) > pak_vfdsize[fd]) { len = pak_vfdsize[fd] - pak_vfdpos[fd]; }
+	if(len < 1) return 0;
+	update_filecache_vfd(fd);
+	n = pak_rawread(fd, buf, len, blocking);
+	if(n < 0) n = 0;
+	if(pak_vfdpos[fd] > pak_vfdsize[fd]) pak_vfdpos[fd] = pak_vfdsize[fd];
+	update_filecache_vfd(fd);
+	return n;
 }
 
 int readpackfile_noblock(int handle, void *buf, int len)
 {
-    return readpackfileblocking(handle, buf, len, 0);
+	return readpackfileblocking(handle, buf, len, 0);
 }
 
 int readPackfileCached(int handle, void *buf, int len)
 {
-    return readpackfileblocking(handle, buf, len, 1);
+	return readpackfileblocking(handle, buf, len, 1);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -675,7 +675,7 @@ int closePackfile(int handle)
 
 int closePackfileCached(int handle)
 {
-    if(!pak_isvalidhandle(handle)) return -1;
+	if(!pak_isvalidhandle(handle)) return -1;
 	pak_vfdexists[handle] = 0;
 	update_filecache_vfd(handle);
 	return 0;
@@ -691,14 +691,14 @@ int seekpackfile(int handle, int offset, int whence)
 
 int seekPackfile(int handle, int offset, int whence)
 {
-    int realhandle;
-    int desiredoffs;
+	int realhandle;
+	int desiredoffs;
 
-    if(handle<0 || handle>=MAXPACKHANDLES) return -1;
-    realhandle = packhandle[handle];
-    if(realhandle == -1) return -1;
+	if(handle<0 || handle>=MAXPACKHANDLES) return -1;
+	realhandle = packhandle[handle];
+	if(realhandle == -1) return -1;
 
-    switch(whence)
+	switch(whence)
 	{
 		case SEEK_SET:
 			desiredoffs = offset;
@@ -726,16 +726,16 @@ int seekPackfile(int handle, int offset, int whence)
 
 		default:
 			return -1;
-    }
-    desiredoffs -= packfilepointer[handle];
-    if((lseek(realhandle,desiredoffs,SEEK_CUR))==-1) return -1;
-    packfilepointer[handle] += desiredoffs;
-    return packfilepointer[handle];
+	}
+	desiredoffs -= packfilepointer[handle];
+	if((lseek(realhandle,desiredoffs,SEEK_CUR))==-1) return -1;
+	packfilepointer[handle] += desiredoffs;
+	return packfilepointer[handle];
 }
 
 int seekPackfileCached(int handle, int offset, int whence)
 {
-    if(!pak_isvalidhandle(handle)) return -1;
+	if(!pak_isvalidhandle(handle)) return -1;
 	switch(whence)
 	{
 		case 0: pak_vfdpos[handle]  = offset;                   break; // set
@@ -771,7 +771,7 @@ static int pak_getsectors(void *dest, int lba, int n)
 	flushfd(pakfd);
 #elif DC
 	if((lba+n) > ((paksize+0x7FF)/0x800)) {
-    	n = ((paksize+0x7FF)/0x800)-lba;
+		n = ((paksize+0x7FF)/0x800)-lba;
   	}
 	if(pakfd >= 0) {
 	    lseek(pakfd, lba << 11, SEEK_SET);
@@ -781,11 +781,11 @@ static int pak_getsectors(void *dest, int lba, int n)
 	    while(gdrom_poll());
 	}
 #else
-    int disCcWarns;
-    lseek(pakfd, lba << 11, SEEK_SET);
-    disCcWarns = read(pakfd, dest, n << 11);
+	int disCcWarns;
+	lseek(pakfd, lba << 11, SEEK_SET);
+	disCcWarns = read(pakfd, dest, n << 11);
 #endif
-    return n;
+	return n;
 }
 
 #ifdef DC
@@ -835,19 +835,19 @@ int find_iso_file(const char *filename, int lba, int *bytes)
 	secofs = 4096;
   	while(dirlen > 0) {
   		if(secofs >= 4096 || ((secofs + sector[secofs]) > 4096)) {
-    		memcpy(sector, sector+2048, 2048);
-    	  	gdrom_readsectors(sector+2048, lba, 1); while(gdrom_poll());
-    	  	lba++;
-    	  	secofs -= 2048;
-    	}
-    	if(!sector[secofs]) break;
+			memcpy(sector, sector+2048, 2048);
+		  	gdrom_readsectors(sector+2048, lba, 1); while(gdrom_poll());
+		  	lba++;
+		  	secofs -= 2048;
+		}
+		if(!sector[secofs]) break;
 		if(!fncmp(filename, sector+secofs+33, sector[secofs+32])) {
 			lba = 150 + readmsb32(sector+secofs+6);
-      		if(bytes) *bytes = readmsb32(sector+secofs+14);
-      		return lba;
-    	}
-    	secofs += sector[secofs];
-    	dirlen -= sector[secofs];
+	  		if(bytes) *bytes = readmsb32(sector+secofs+14);
+	  		return lba;
+		}
+		secofs += sector[secofs];
+		dirlen -= sector[secofs];
   	}
   	// didn't find the file
   	return 0;
@@ -873,7 +873,7 @@ void pak_term()
 	pak_headersize  = -1;
 	for(i=0; i<MAXPACKHANDLES; i++)
 	{
-        pak_vfdexists[i]    = -1;
+		pak_vfdexists[i]    = -1;
 		pak_vfdstart[i]     = -1;
 		pak_vfdsize[i]      = -1;
 		pak_vfdpos[i]       = -1;
@@ -1025,7 +1025,7 @@ int pak_init()
 
 int packfileeof(int handle)
 {
-    if(!pak_isvalidhandle(handle)) return -1;
+	if(!pak_isvalidhandle(handle)) return -1;
 	return (pak_vfdpos[handle] >= pak_vfdsize[handle]);
 }
 

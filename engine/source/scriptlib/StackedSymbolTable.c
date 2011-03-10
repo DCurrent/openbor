@@ -30,11 +30,11 @@ void StackedSymbolTable_Init(StackedSymbolTable* sstable, LPCSTR theName )
 
 void StackedSymbolTable_Clear(StackedSymbolTable* sstable)
 {
-    while(!Stack_IsEmpty(&(sstable->SymbolTableStack)))
-    {
-        StackedSymbolTable_PopScope(sstable);
-    }
-    List_Clear(&(sstable->SymbolTableStack));
+	while(!Stack_IsEmpty(&(sstable->SymbolTableStack)))
+	{
+		StackedSymbolTable_PopScope(sstable);
+	}
+	List_Clear(&(sstable->SymbolTableStack));
 }
 
 /******************************************************************************
@@ -73,14 +73,14 @@ SymbolTable* StackedSymbolTable_TopScope(StackedSymbolTable* sstable)
 ******************************************************************************/
 void StackedSymbolTable_PopScope(StackedSymbolTable* sstable)
 {
-    SymbolTable* pSymbolTable = NULL;
-    pSymbolTable = (SymbolTable*)Stack_Top(&(sstable->SymbolTableStack));
-    Stack_Pop(&(sstable->SymbolTableStack));
-    if(pSymbolTable)
-    {
-        SymbolTable_Clear(pSymbolTable);
-        tracefree((void*)pSymbolTable);
-    }
+	SymbolTable* pSymbolTable = NULL;
+	pSymbolTable = (SymbolTable*)Stack_Top(&(sstable->SymbolTableStack));
+	Stack_Pop(&(sstable->SymbolTableStack));
+	if(pSymbolTable)
+	{
+		SymbolTable_Clear(pSymbolTable);
+		tracefree((void*)pSymbolTable);
+	}
 }
 
 /******************************************************************************
@@ -94,16 +94,16 @@ void StackedSymbolTable_PopScope(StackedSymbolTable* sstable)
 *           false otherwise.
 ******************************************************************************/
 BOOL StackedSymbolTable_FindSymbol(StackedSymbolTable* sstable, LPCSTR symbolName,
-                                     Symbol** pp_theSymbol )
+									 Symbol** pp_theSymbol )
 {
    SymbolTable* currentSymbolTable = NULL;
    BOOL bFound = FALSE;
    int i, size;
    FOREACH( sstable->SymbolTableStack,
-      currentSymbolTable = (SymbolTable*)List_Retrieve(&(sstable->SymbolTableStack));
-      bFound = SymbolTable_FindSymbol(currentSymbolTable, symbolName, pp_theSymbol );
+	  currentSymbolTable = (SymbolTable*)List_Retrieve(&(sstable->SymbolTableStack));
+	  bFound = SymbolTable_FindSymbol(currentSymbolTable, symbolName, pp_theSymbol );
 
-      if(bFound) break;
+	  if(bFound) break;
    );
 
    //Restore the stack so push and pop work correctly.
