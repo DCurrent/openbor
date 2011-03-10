@@ -11870,8 +11870,10 @@ void check_lost()
 		((level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN) && (self->z<-osk || self->z>videomodes.vRes + osk))		) )
         || self->a < 2*PIT_DEPTH) //self->z<100000, so weapon item won't be killed
     {
-        if(self->modeldata.type==TYPE_PLAYER) player_die();
-        else kill(self);
+        if(self->modeldata.type==TYPE_PLAYER) 
+		player_die();
+        else 
+		kill(self);
         return;
     }
     // fall in to a pit
