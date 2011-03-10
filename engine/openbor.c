@@ -48,6 +48,7 @@ size_t load_ticks = 0; // counter while loading. we use it to only update the sc
 int startup_done = 0; // startup is only called when a game is loaded. so when exitting from the menu we need a way to figure out which resources to free.
 List* modelcmdlist;
 List* levelcmdlist;
+List* levelordercmdlist;
 
 
 //see types.h
@@ -23014,6 +23015,7 @@ void openborMain()
 	printf("OpenBoR %s, Compile Date: " __DATE__ "\n\n", VERSION);
 	modelcmdlist = createModelCommandList();
 	levelcmdlist = createLevelCommandList();
+	levelordercmdlist = createLevelOrderCommandList();
 
 #if XBOX
 	loadsettings();
@@ -23260,7 +23262,8 @@ void openborMain()
 	}
 
 	freeModelCommandList(modelcmdlist); // moved here because list is not initialized if shutdown is initiated from inside the menu
-	freeLevelCommandList(levelcmdlist); // moved here because list is not initialized if shutdown is initiated from inside the menu
+	freeLevelCommandList(levelcmdlist);
+	freeLevelCommandList(levelordercmdlist);
 	shutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
 }
 
