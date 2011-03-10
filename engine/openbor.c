@@ -2723,7 +2723,9 @@ void lifebar_colors()
 				shadowcolor = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
 			else if(stricmp(command, "shadowalpha")==0) //gfxshadow alpha
 				shadowalpha = GET_INT_ARG(1);
-			else printf("Warning: Unknown command in lifebar.txt: '%s'.\n", command);
+			else 
+				if(command && command[0]) 
+					printf("Warning: Unknown command in lifebar.txt: '%s'.\n", command);
 		}
 
 		// Go to next line
@@ -3354,13 +3356,9 @@ void load_menu_txt()
 				fontmonospace[6] = GET_INT_ARG(7);
 				fontmonospace[7] = GET_INT_ARG(8);
 			}
-			else {
-				if(buf != NULL){
-					tracefree(buf);
-					buf = NULL;
-				}
-				shutdown(1, "Command '%s' not understood in file '%s'!", command, filename);
-			}
+			else 
+				if(command && command[0])
+					printf("Command '%s' not understood in file '%s'!", command, filename);
 		}
 
 		// Go to next line
@@ -6888,7 +6886,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					strcat(scriptbuf, sur_text); // put back last  chars
 					break;
 				default:
-					shutdown(1, "Command '%s' not understood in file '%s'!", command, filename);
+					if(command && command[0]) 
+						printf("Command '%s' not understood in file '%s'!", command, filename);
 			}
 
 		}
@@ -7315,7 +7314,7 @@ int load_models()
 	{
 		ParseArgs(&arglist,buf+pos,argbuf);
 		command = GET_ARG(0);
-		if(command[0]) {
+		if(command && command[0]) {
 			if(stricmp(command, "music")==0){
 				strncpy(value1, GET_ARG(1), 127);
 				music(value1, 1, atol(GET_ARG(2)));
@@ -7390,7 +7389,8 @@ int load_models()
 				stricmp(command, "maxfreespecials")==0 ||
 				stricmp(command, "maxattacks")==0))
 			{
-				shutdown(1, "Command '%s' not understood in file '%s'!", command, filename);
+				if(command && command[0]) 
+					printf("Command '%s' not understood in file '%s'!", command, filename);
 			}
 		}
 
@@ -8149,7 +8149,8 @@ void load_levelorder()
 				scoreformat = GET_INT_ARG(1);
 				break;
 			default:
-				if (command) printf("Command '%s' not understood in level order!", command);
+				if (command && command[0])
+					printf("Command '%s' not understood in level order!", command);
 		}
 
 		// Go to next line
@@ -9174,7 +9175,8 @@ void load_level(char *filename){
 				memset(&next,0,sizeof(s_spawn_entry));
 				break;
 			default:
-				printf("Command '%s' not understood!", command);
+				if(command && command[0])
+					printf("Command '%s' not understood!", command);
 		}
 
 		// Go to next line
@@ -20694,7 +20696,7 @@ int selectplayer(int *players, char* filename)
 		{
 			ParseArgs(&arglist,buf+pos,argbuf);
 			command = GET_ARG(0);
-			if(command[0])
+			if(command && command[0])
 			{
 				if(stricmp(command, "music")==0)
 				{
@@ -20715,7 +20717,9 @@ int selectplayer(int *players, char* filename)
 					else
 						update_model_loadflag(tempmodel, GET_INT_ARG(2));
 				}
-				else shutdown(1, "Command '%s' is not understood in file '%s'", command, filename);
+				else 
+					if(command && command[0])
+						printf("Command '%s' is not understood in file '%s'", command, filename);
 			}
 
 			pos += getNewLineStart(buf + pos);
@@ -21482,8 +21486,11 @@ readfile:
 				else if(value[0]==0) screenformat=PIXEL_32;
 				else shutdown(1, "Screen colour depth can only be either 8bit, 16bit or 32bit.");
 			}
-			else if(stricmp(command, "forcemode")==0) {}
-			else printf("Command '%s' not understood in file '%s'!", command, filename);
+			else 
+				if(stricmp(command, "forcemode")==0) {}
+			else
+				if(command && command[0])
+					printf("Command '%s' not understood in file '%s'!", command, filename);
 		}
 		// Go to next line
 	pos += getNewLineStart(buf + pos);
@@ -21755,13 +21762,10 @@ void keyboard_setup(int player){
 				else if(stricmp(command, "fontmonospace")==0){
 					 // here to keep from crashing
 				}
-				else{
-					if(buf != NULL){
-						tracefree(buf);
-						buf = NULL;
-					}
-					shutdown(1, "Command '%s' not understood in file '%s'!", command, filename);
-				}
+				else
+					if(command && command[0])
+						printf("Command '%s' not understood in file '%s'!", command, filename);
+				
 			}
 			// Go to next line
 			pos += getNewLineStart(buf + pos);
