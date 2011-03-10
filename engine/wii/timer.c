@@ -32,5 +32,5 @@ unsigned timer_getinterval(unsigned freq)
 
 unsigned timer_gettick()
 {
-    return gettime() / TB_TIMER_CLOCK;
+	return gettime() / TB_TIMER_CLOCK;
 }

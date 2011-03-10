@@ -76,19 +76,19 @@ static int screenheight = 16;
 */
 static void ps_bothclip(int x, int y, int width, int height, unsigned long *linetab, unsigned char *dest_c){
 
-    int viscount, viscount_dwords, viscount_bytes;
-    unsigned long pixelblock;
-    unsigned long *data = linetab;
-    int clipcount;
-    unsigned char * charptr;
-    int widthcount;
-    unsigned char *dest_old;
+	int viscount, viscount_dwords, viscount_bytes;
+	unsigned long pixelblock;
+	unsigned long *data = linetab;
+	int clipcount;
+	unsigned char * charptr;
+	int widthcount;
+	unsigned char *dest_old;
 
 
-    // I know the x coord is negative! But this is OK anyway.
-    dest_c += y*screenwidth + x;
+	// I know the x coord is negative! But this is OK anyway.
+	dest_c += y*screenwidth + x;
 
-    do{
+	do{
 	// Get ready to draw a line
 	data = linetab + (*linetab / 4);
 	++linetab;
@@ -222,7 +222,7 @@ static void ps_bothclip(int x, int y, int width, int height, unsigned long *line
 		}
 	    } else
 #endif
-    {
+	{
 		while(viscount_dwords){
 		    *(unsigned long*)dest_c = *data++;
 		    dest_c += 4;
@@ -249,11 +249,11 @@ static void ps_bothclip(int x, int y, int width, int height, unsigned long *line
 	};
 
 
-    bclip_nextline_entry:
+	bclip_nextline_entry:
 
 	dest_c = dest_old + screenwidth;
 
-    }while(--height);
+	}while(--height);
 }
 
 
@@ -271,29 +271,29 @@ static void ps_bothclip(int x, int y, int width, int height, unsigned long *line
 */
 static void ps_rightclip(int x, int y, int width, int height, unsigned long *linetab, unsigned char *dest_c){
 
-    int viscount, viscount_dwords, viscount_bytes;
-    unsigned long pixelblock;
-    unsigned long *data = linetab;
-    int widthcount;
-    unsigned char *dest_old;
+	int viscount, viscount_dwords, viscount_bytes;
+	unsigned long pixelblock;
+	unsigned long *data = linetab;
+	int widthcount;
+	unsigned char *dest_old;
 
 
-    // Still visible?
-    if(x >= screenwidth) return;
+	// Still visible?
+	if(x >= screenwidth) return;
 
 
-    // No need to check left-side clipping, should be done by leftclip code!
+	// No need to check left-side clipping, should be done by leftclip code!
 
 
-    // Get the screen pointer ready...
-    dest_c += y*screenwidth + x;
+	// Get the screen pointer ready...
+	dest_c += y*screenwidth + x;
 
 
-    // Calculate the remaining width.
-    width = screenwidth - x;
+	// Calculate the remaining width.
+	width = screenwidth - x;
 
 
-    do{
+	do{
 	// Get ready to draw a line
 	data = linetab + (*linetab / 4);
 	++linetab;
@@ -337,7 +337,7 @@ static void ps_rightclip(int x, int y, int width, int height, unsigned long *lin
 		}
 	    } else
 #endif
-    {
+	{
 		while(viscount_dwords){
 		    *(unsigned long*)dest_c = *data++;
 		    dest_c += 4;
@@ -365,7 +365,7 @@ static void ps_rightclip(int x, int y, int width, int height, unsigned long *lin
 
 	dest_c = dest_old + screenwidth;
 
-    }while(--height);
+	}while(--height);
 }
 
 
@@ -382,28 +382,28 @@ static void ps_rightclip(int x, int y, int width, int height, unsigned long *lin
 */
 static void ps_leftclip(int x, int y, int width, int height, unsigned long *linetab, unsigned char *dest_c){
 
-    int viscount, viscount_dwords, viscount_bytes;
-    unsigned long pixelblock;
-    unsigned long *data = linetab;
-    int clipcount;
-    unsigned char * charptr;
+	int viscount, viscount_dwords, viscount_bytes;
+	unsigned long pixelblock;
+	unsigned long *data = linetab;
+	int clipcount;
+	unsigned char * charptr;
 
 
-    // Still visible?
-    if(-x >= width) return;
+	// Still visible?
+	if(-x >= width) return;
 
 
-    // Check right clipping
-    if(x+width > screenwidth){
+	// Check right clipping
+	if(x+width > screenwidth){
 	   ps_bothclip(x, y, width, height, data, dest_c);
 	   return;
-    }
+	}
 
 
-    // I know the x coord is negative! But this is OK anyway.
-    dest_c += y*screenwidth + x;
+	// I know the x coord is negative! But this is OK anyway.
+	dest_c += y*screenwidth + x;
 
-    do{
+	do{
 	// Get ready to draw a line
 	data = linetab + (*linetab / 4);
 	++linetab;
@@ -502,7 +502,7 @@ static void ps_leftclip(int x, int y, int width, int height, unsigned long *line
 		}
 	    } else
 #endif
-    	{
+		{
 		while(viscount_dwords){
 		    *(unsigned long*)dest_c = *data++;
 		    dest_c += 4;
@@ -525,11 +525,11 @@ static void ps_leftclip(int x, int y, int width, int height, unsigned long *line
 	    *dest_c++ = pixelblock;
 	};
 
-    lclip_nextline_entry:
+	lclip_nextline_entry:
 
 	dest_c += screenwidth;
 
-    }while(--height);
+	}while(--height);
 }
 
 
@@ -844,18 +844,18 @@ ctn:
 */
 static void ps_remap_bothclip(int x, int y, int width, int height, unsigned long *linetab, unsigned char *dest_c, unsigned char *lut){
 
-    int viscount, viscount_bytes;
-    unsigned long *data = linetab;
-    int clipcount;
-    unsigned char * charptr;
-    int widthcount;
-    unsigned char *dest_old;
+	int viscount, viscount_bytes;
+	unsigned long *data = linetab;
+	int clipcount;
+	unsigned char * charptr;
+	int widthcount;
+	unsigned char *dest_old;
 
 
-    // I know the x coord is negative! But this is OK anyway.
-    dest_c += y*screenwidth + x;
+	// I know the x coord is negative! But this is OK anyway.
+	dest_c += y*screenwidth + x;
 
-    do{
+	do{
 	// Get ready to draw a line
 	data = linetab + (*linetab / 4);
 	++linetab;
@@ -981,11 +981,11 @@ static void ps_remap_bothclip(int x, int y, int width, int height, unsigned long
 	};
 
 
-    bclip_nextline_entry:
+	bclip_nextline_entry:
 
 	dest_c = dest_old + screenwidth;
 
-    }while(--height);
+	}while(--height);
 }
 
 
@@ -998,29 +998,29 @@ static void ps_remap_bothclip(int x, int y, int width, int height, unsigned long
 */
 static void ps_remap_rightclip(int x, int y, int width, int height, unsigned long *linetab, unsigned char *dest_c, unsigned char *lut){
 
-    int viscount, viscount_bytes;
-    unsigned long *data = linetab;
-    int widthcount;
-    unsigned char *dest_old;
-    unsigned char *charptr;
+	int viscount, viscount_bytes;
+	unsigned long *data = linetab;
+	int widthcount;
+	unsigned char *dest_old;
+	unsigned char *charptr;
 
 
-    // Still visible?
-    if(x >= screenwidth) return;
+	// Still visible?
+	if(x >= screenwidth) return;
 
 
-    // No need to check left-side clipping, should be done by leftclip code!
+	// No need to check left-side clipping, should be done by leftclip code!
 
 
-    // Get the screen pointer ready...
-    dest_c += y*screenwidth + x;
+	// Get the screen pointer ready...
+	dest_c += y*screenwidth + x;
 
 
-    // Calculate the remaining width.
-    width = screenwidth - x;
+	// Calculate the remaining width.
+	width = screenwidth - x;
 
 
-    do{
+	do{
 	// Get ready to draw a line
 	data = linetab + (*linetab / 4);
 	++linetab;
@@ -1061,7 +1061,7 @@ static void ps_remap_rightclip(int x, int y, int width, int height, unsigned lon
 
 	dest_c = dest_old + screenwidth;
 
-    }while(--height);
+	}while(--height);
 }
 
 
@@ -1072,27 +1072,27 @@ static void ps_remap_rightclip(int x, int y, int width, int height, unsigned lon
 */
 static void ps_remap_leftclip(int x, int y, int width, int height, unsigned long *linetab, unsigned char *dest_c, unsigned char *lut){
 
-    int viscount, viscount_bytes;
-    unsigned long *data = linetab;
-    int clipcount;
-    unsigned char * charptr;
+	int viscount, viscount_bytes;
+	unsigned long *data = linetab;
+	int clipcount;
+	unsigned char * charptr;
 
 
-    // Still visible?
-    if(-x >= width) return;
+	// Still visible?
+	if(-x >= width) return;
 
 
-    // Check right clipping
-    if(x+width > screenwidth){
+	// Check right clipping
+	if(x+width > screenwidth){
 	ps_remap_bothclip(x, y, width, height, data, dest_c, lut);
 	return;
-    }
+	}
 
 
-    // I know the x coord is negative! But this is OK anyway.
-    dest_c += y*screenwidth + x;
+	// I know the x coord is negative! But this is OK anyway.
+	dest_c += y*screenwidth + x;
 
-    do{
+	do{
 	// Get ready to draw a line
 	data = linetab + (*linetab / 4);
 	++linetab;
@@ -1181,11 +1181,11 @@ static void ps_remap_leftclip(int x, int y, int width, int height, unsigned long
 	    data += (viscount+3)>>2;
 	};
 
-    lclip_nextline_entry:
+	lclip_nextline_entry:
 
 	dest_c += screenwidth;
 
-    }while(--height);
+	}while(--height);
 }
 
 
@@ -1296,18 +1296,18 @@ void putsprite_remap(int x, int y, s_sprite *frame, s_screen *screen, unsigned c
 */
 static void ps_blend_bothclip(int x, int y, int width, int height, unsigned long *linetab, unsigned char *dest_c, unsigned char *lut){
 
-    int viscount, viscount_bytes;
-    unsigned long *data = linetab;
-    int clipcount;
-    unsigned char * charptr;
-    int widthcount;
-    unsigned char *dest_old;
+	int viscount, viscount_bytes;
+	unsigned long *data = linetab;
+	int clipcount;
+	unsigned char * charptr;
+	int widthcount;
+	unsigned char *dest_old;
 
 
-    // I know the x coord is negative! But this is OK anyway.
-    dest_c += y*screenwidth + x;
+	// I know the x coord is negative! But this is OK anyway.
+	dest_c += y*screenwidth + x;
 
-    do{
+	do{
 	// Get ready to draw a line
 	data = linetab + (*linetab / 4);
 	++linetab;
@@ -1433,11 +1433,11 @@ static void ps_blend_bothclip(int x, int y, int width, int height, unsigned long
 	};
 
 
-    bclip_nextline_entry:
+	bclip_nextline_entry:
 
 	dest_c = dest_old + screenwidth;
 
-    }while(--height);
+	}while(--height);
 }
 
 
@@ -1450,29 +1450,29 @@ static void ps_blend_bothclip(int x, int y, int width, int height, unsigned long
 */
 static void ps_blend_rightclip(int x, int y, int width, int height, unsigned long *linetab, unsigned char *dest_c, unsigned char *lut){
 
-    int viscount, viscount_bytes;
-    unsigned long *data = linetab;
-    int widthcount;
-    unsigned char *dest_old;
-    unsigned char *charptr;
+	int viscount, viscount_bytes;
+	unsigned long *data = linetab;
+	int widthcount;
+	unsigned char *dest_old;
+	unsigned char *charptr;
 
 
-    // Still visible?
-    if(x >= screenwidth) return;
+	// Still visible?
+	if(x >= screenwidth) return;
 
 
-    // No need to check left-side clipping, should be done by leftclip code!
+	// No need to check left-side clipping, should be done by leftclip code!
 
 
-    // Get the screen pointer ready...
-    dest_c += y*screenwidth + x;
+	// Get the screen pointer ready...
+	dest_c += y*screenwidth + x;
 
 
-    // Calculate the remaining width.
-    width = screenwidth - x;
+	// Calculate the remaining width.
+	width = screenwidth - x;
 
 
-    do{
+	do{
 	// Get ready to draw a line
 	data = linetab + (*linetab / 4);
 	++linetab;
@@ -1513,7 +1513,7 @@ static void ps_blend_rightclip(int x, int y, int width, int height, unsigned lon
 
 	dest_c = dest_old + screenwidth;
 
-    }while(--height);
+	}while(--height);
 }
 
 
@@ -1524,27 +1524,27 @@ static void ps_blend_rightclip(int x, int y, int width, int height, unsigned lon
 */
 static void ps_blend_leftclip(int x, int y, int width, int height, unsigned long *linetab, unsigned char *dest_c, unsigned char *lut){
 
-    int viscount, viscount_bytes;
-    unsigned long *data = linetab;
-    int clipcount;
-    unsigned char * charptr;
+	int viscount, viscount_bytes;
+	unsigned long *data = linetab;
+	int clipcount;
+	unsigned char * charptr;
 
 
-    // Still visible?
-    if(-x >= width) return;
+	// Still visible?
+	if(-x >= width) return;
 
 
-    // Check right clipping
-    if(x+width > screenwidth){
+	// Check right clipping
+	if(x+width > screenwidth){
 	ps_blend_bothclip(x, y, width, height, data, dest_c, lut);
 	return;
-    }
+	}
 
 
-    // I know the x coord is negative! But this is OK anyway.
-    dest_c += y*screenwidth + x;
+	// I know the x coord is negative! But this is OK anyway.
+	dest_c += y*screenwidth + x;
 
-    do{
+	do{
 	// Get ready to draw a line
 	data = linetab + (*linetab / 4);
 	++linetab;
@@ -1633,11 +1633,11 @@ static void ps_blend_leftclip(int x, int y, int width, int height, unsigned long
 	    data += (viscount+3)>>2;
 	};
 
-    lclip_nextline_entry:
+	lclip_nextline_entry:
 
 	dest_c += screenwidth;
 
-    }while(--height);
+	}while(--height);
 }
 
 
@@ -1740,19 +1740,19 @@ static unsigned char fillcolor=0;
 
 unsigned char remapcolor(unsigned char* table, unsigned char color, unsigned char unused)
 {
-    return table[color];
+	return table[color];
 }
 
 unsigned char blendcolor(unsigned char* table, unsigned char color1, unsigned char color2)
 {
-    if(!table) return color1;
-    return table[color1<<8|color2];
+	if(!table) return color1;
+	return table[color1<<8|color2];
 }
 
 unsigned char blendfillcolor(unsigned char* table, unsigned char unused, unsigned char color)
 {
-    if(!table) return fillcolor;
-    return table[fillcolor<<8|color];
+	if(!table) return fillcolor;
+	return table[fillcolor<<8|color];
 }
 
 
@@ -1761,58 +1761,58 @@ unsigned char blendfillcolor(unsigned char* table, unsigned char unused, unsigne
 // x: centerx on screen cx: centerx of this line
 static void scaleline(int x, int cx, int width, unsigned long *linetab, unsigned char *dest_c, unsigned char *lut, transpixelfunc fp, unsigned int scale)
 {
-    unsigned long *data = linetab;
-    int dx, i, d;
-    unsigned char * charptr;
-    unsigned int scale_d=0, old_scale_d=0, cleft, cwidth;
+	unsigned long *data = linetab;
+	int dx, i, d;
+	unsigned char * charptr;
+	unsigned int scale_d=0, old_scale_d=0, cleft, cwidth;
 
-    dx = x - ((cx*scale)>>8); //draw start x
-    
+	dx = x - ((cx*scale)>>8); //draw start x
+	
 //    if(dx>=screenwidth || dx+((width*scale)>>8)<0) return; it should be check in the function that called this
 
-    dest_c += dx;
+	dest_c += dx;
 
 	// Get ready to draw a line
 	data = linetab + (*linetab / 4);
-    
-    for(;;)
-    {
-        cleft = *data++;
-        cwidth = *data++;
-        if(cwidth<=0) return; // end of line
-        //scale_s += cleft<<8;     // src scale, 256
-        charptr = (unsigned char*)data;
-        data += (cwidth+3)>>2; // skip some bytes to next block
-        scale_d += cleft*scale;  // dest scale, scale
-        dx += cleft;
-        if(dx>=screenwidth) return; // out of right border? exit
-        d = scale_d - old_scale_d;
-        if(d >= 256) // skip some blank pixels
-        {
-            dest_c += d>>8;
-            old_scale_d = (scale_d>>8)<<8;
-        }
-        while(cwidth--) // draw these pixels
-        {
-            scale_d += scale;
-            d = scale_d - old_scale_d; // count scale added
-            if(d >= 256) // > 1pixel, so draw these
-            {
-                for(i=d>>8; i>0; i--) // draw a pixel
-                {
-                    if(dx>=0) // pass left border? 
-                    {
-                        *dest_c = fp(lut, *charptr, *dest_c);
-                    }
-                    if(++dx>=screenwidth) return; // out of right border? exit
-                    dest_c++; // position move to right one pixel
-                }
-                old_scale_d = (scale_d>>8)<<8; //truncate those less than 256
-            }
-            charptr++; // src ptr move right one pixel
-        }
-    }
-     
+	
+	for(;;)
+	{
+		cleft = *data++;
+		cwidth = *data++;
+		if(cwidth<=0) return; // end of line
+		//scale_s += cleft<<8;     // src scale, 256
+		charptr = (unsigned char*)data;
+		data += (cwidth+3)>>2; // skip some bytes to next block
+		scale_d += cleft*scale;  // dest scale, scale
+		dx += cleft;
+		if(dx>=screenwidth) return; // out of right border? exit
+		d = scale_d - old_scale_d;
+		if(d >= 256) // skip some blank pixels
+		{
+			dest_c += d>>8;
+			old_scale_d = (scale_d>>8)<<8;
+		}
+		while(cwidth--) // draw these pixels
+		{
+			scale_d += scale;
+			d = scale_d - old_scale_d; // count scale added
+			if(d >= 256) // > 1pixel, so draw these
+			{
+				for(i=d>>8; i>0; i--) // draw a pixel
+				{
+					if(dx>=0) // pass left border? 
+					{
+						*dest_c = fp(lut, *charptr, *dest_c);
+					}
+					if(++dx>=screenwidth) return; // out of right border? exit
+					dest_c++; // position move to right one pixel
+				}
+				old_scale_d = (scale_d>>8)<<8; //truncate those less than 256
+			}
+			charptr++; // src ptr move right one pixel
+		}
+	}
+	 
 }
 
 
@@ -1826,78 +1826,78 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
 	unsigned char *dest_c;
 	int scale=0, old_scale=0;
 
-    if(!drawmethod)
-    {
-        putsprite(x, y, frame, screen);
-        return;
-    }
-    
+	if(!drawmethod)
+	{
+		putsprite(x, y, frame, screen);
+		return;
+	}
+	
 	if(!drawmethod->scalex || !drawmethod->scaley) return; // zero size
 	
 	screenheight = screen->height;
 	screenwidth = screen->width;
 	
-    dx = x - ((frame->centerx*drawmethod->scalex)>>8); //draw start x
-    
-    if(dx>=screenwidth || dx+((frame->width*drawmethod->scalex)>>8)<0) return; // out of left or right border
+	dx = x - ((frame->centerx*drawmethod->scalex)>>8); //draw start x
+	
+	if(dx>=screenwidth || dx+((frame->width*drawmethod->scalex)>>8)<0) return; // out of left or right border
 	
 	cy = y;
-    height = frame->height;
-    linetab = (unsigned long*)(frame->data);
-    
-    if(drawmethod->fillcolor) fillcolor = drawmethod->fillcolor;
-    
-    // flip in y direction, from centery
-    if(drawmethod->flipy)
-    {
-        y += (frame->centery*drawmethod->scaley)>>8; // lowest
-        dest_c = (unsigned char*)(screen->data)+y*screenwidth;
-        if(y<0) return;
-     
-        while(height--)
-        {
-            scale += drawmethod->scaley;
-            d = scale - old_scale; // count scale added
-            if(d >= 256) // > 1pixel, so draw these
-            {
-                for(i=d>>8; i>0; i--) // draw a line
-                {
-                    if(y<screenheight) // pass lower border? 
-                    {
-                        scaleline(x+((drawmethod->shiftx*(cy-y))/256), frame->centerx, frame->width, linetab, dest_c, drawmethod->table, drawmethod->fp, drawmethod->scalex);
-                    }
-                    if(--y<0) return; // out of lower border? exit
-                    dest_c -= screenwidth; // position move down one line
-                }
-                old_scale = (scale>>8)<<8; //truncate those less than 256
-            }
-            linetab++; //src line shift
-        }
-    }
-    else // un-flipped version
-    {
-        y -= (frame->centery*drawmethod->scaley)>>8; // topmost
-        dest_c = (unsigned char*)(screen->data)+y*screenwidth;
-        if(y>=screenheight) return;
-     
-        while(height--)
-        {
-            scale += drawmethod->scaley;
-            d = scale - old_scale; // count scale added
-            if(d >= 256) // > 1pixel, so draw these
-            {
-                for(i=d>>8; i>0; i--) // draw a line
-                {
-                    if(y>=0) // pass upper border? 
-                    {
-                        scaleline(x+((drawmethod->shiftx*(y-cy))/256), frame->centerx, frame->width, linetab, dest_c, drawmethod->table, drawmethod->fp, drawmethod->scalex);
-                    }
-                    if(++y>=screenheight) return; // out of lower border? exit
-                    dest_c += screenwidth; // position move down one line
-                }
-                old_scale = (scale>>8)<<8; //truncate those less than 256
-            }
-            linetab++; //src line shift
-        }
-     }
+	height = frame->height;
+	linetab = (unsigned long*)(frame->data);
+	
+	if(drawmethod->fillcolor) fillcolor = drawmethod->fillcolor;
+	
+	// flip in y direction, from centery
+	if(drawmethod->flipy)
+	{
+		y += (frame->centery*drawmethod->scaley)>>8; // lowest
+		dest_c = (unsigned char*)(screen->data)+y*screenwidth;
+		if(y<0) return;
+	 
+		while(height--)
+		{
+			scale += drawmethod->scaley;
+			d = scale - old_scale; // count scale added
+			if(d >= 256) // > 1pixel, so draw these
+			{
+				for(i=d>>8; i>0; i--) // draw a line
+				{
+					if(y<screenheight) // pass lower border? 
+					{
+						scaleline(x+((drawmethod->shiftx*(cy-y))/256), frame->centerx, frame->width, linetab, dest_c, drawmethod->table, drawmethod->fp, drawmethod->scalex);
+					}
+					if(--y<0) return; // out of lower border? exit
+					dest_c -= screenwidth; // position move down one line
+				}
+				old_scale = (scale>>8)<<8; //truncate those less than 256
+			}
+			linetab++; //src line shift
+		}
+	}
+	else // un-flipped version
+	{
+		y -= (frame->centery*drawmethod->scaley)>>8; // topmost
+		dest_c = (unsigned char*)(screen->data)+y*screenwidth;
+		if(y>=screenheight) return;
+	 
+		while(height--)
+		{
+			scale += drawmethod->scaley;
+			d = scale - old_scale; // count scale added
+			if(d >= 256) // > 1pixel, so draw these
+			{
+				for(i=d>>8; i>0; i--) // draw a line
+				{
+					if(y>=0) // pass upper border? 
+					{
+						scaleline(x+((drawmethod->shiftx*(y-cy))/256), frame->centerx, frame->width, linetab, dest_c, drawmethod->table, drawmethod->fp, drawmethod->scalex);
+					}
+					if(++y>=screenheight) return; // out of lower border? exit
+					dest_c += screenwidth; // position move down one line
+				}
+				old_scale = (scale>>8)<<8; //truncate those less than 256
+			}
+			linetab++; //src line shift
+		}
+	 }
 }

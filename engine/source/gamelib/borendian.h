@@ -76,19 +76,19 @@ static __inline__ UInt16 Swap16(UInt16 x) {
 #endif
 
 static __inline__ UInt32 Swap32(UInt32 D) {
-    return((D<<24)|((D<<8)&0x00FF0000)|((D>>8)&0x0000FF00)|(D>>24));
+	return((D<<24)|((D<<8)&0x00FF0000)|((D>>8)&0x0000FF00)|(D>>24));
 }
 
 static __inline__ UInt64 Swap64(UInt64 val) {
-    UInt32 hi, lo;
-    /* Separate into high and low 32-bit values and swap them */
-    lo = (UInt32)(val&0xFFFFFFFF);
-    val >>= 32;
-    hi = (UInt32)(val&0xFFFFFFFF);
-    val = Swap32(lo);
-    val <<= 32;
-    val |= Swap32(hi);
-    return(val);
+	UInt32 hi, lo;
+	/* Separate into high and low 32-bit values and swap them */
+	lo = (UInt32)(val&0xFFFFFFFF);
+	val >>= 32;
+	hi = (UInt32)(val&0xFFFFFFFF);
+	val = Swap32(lo);
+	val <<= 32;
+	val |= Swap32(hi);
+	return(val);
 }
 
 /* Byteswap item from the specified endianness to the native endianness */

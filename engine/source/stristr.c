@@ -13,26 +13,26 @@
 char *stristr(const char *String, const char *Pattern)
 {
 	char *pptr, *sptr, *start;
-    unsigned int slen, plen;
-    for(start=(char *)String, pptr=(char *)Pattern, slen=strlen(String), plen=strlen(Pattern); slen>=plen; start++, slen--)
+	unsigned int slen, plen;
+	for(start=(char *)String, pptr=(char *)Pattern, slen=strlen(String), plen=strlen(Pattern); slen>=plen; start++, slen--)
 	{
 		/* find start of pattern in string */
-        while(toupper((int)*start) != toupper((int)*Pattern))
+		while(toupper((int)*start) != toupper((int)*Pattern))
 		{
 			start++;
-            slen--;
-            /* if pattern longer than string */
-            if (slen < plen) return(NULL);
-        }
-        sptr = start;
-        pptr = (char *)Pattern;
-        while(toupper((int)*sptr) == toupper((int)*pptr))
-        {
+			slen--;
+			/* if pattern longer than string */
+			if (slen < plen) return(NULL);
+		}
+		sptr = start;
+		pptr = (char *)Pattern;
+		while(toupper((int)*sptr) == toupper((int)*pptr))
+		{
 			sptr++;
-            pptr++;
+			pptr++;
 			/* if end of pattern then pattern was found */
-            if('\0' == *pptr) return (start);
-        }
+			if('\0' == *pptr) return (start);
+		}
 	}
-    return(NULL);
+	return(NULL);
 }

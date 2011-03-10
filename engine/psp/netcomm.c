@@ -92,8 +92,8 @@ void startServer()
 	server.sin_port        = htons(port);
 
 	/* Bind the socket */
-    server_len = sizeof(server);
-    if(bind(sock, (struct sockaddr *) &server, server_len) < 0) goto Error;
+	server_len = sizeof(server);
+	if(bind(sock, (struct sockaddr *) &server, server_len) < 0) goto Error;
 
 	/* Run until cancelled */
 	while(wifiMode)
@@ -141,7 +141,7 @@ Error:
 int listAccessPoint()
 {
 	int pick_count = 0;
-    int iNetIndex;
+	int iNetIndex;
 
 	// skip the 0th connection
 	for(iNetIndex = 1; iNetIndex < 100; iNetIndex++)
@@ -164,12 +164,12 @@ int listAccessPoint()
 
 	if(pick_count == 0)
 	{
-        writeToLogFile("No connections\n");
-        writeToLogFile("Please try Network Settings\n");
-        sceKernelDelayThread(1000000); // 1sec to read before exit
+		writeToLogFile("No connections\n");
+		writeToLogFile("Please try Network Settings\n");
+		sceKernelDelayThread(1000000); // 1sec to read before exit
 		wifiError = 1;
-        return -1;
-    }
+		return -1;
+	}
 	return 0;
 }
 
@@ -210,9 +210,9 @@ int selectAccessPoint(int selected)
 		sceKernelDelayThread(50*1000);
 	}
 	/* Now obtain IP Address */
-    while(1)
+	while(1)
 	{
-        if(sceNetApctlGetInfo(8, AccessPoints[selected-1].pInfo) == 0)
+		if(sceNetApctlGetInfo(8, AccessPoints[selected-1].pInfo) == 0)
 		{
 			AccessPoints[selected-1].color = DARK_GREEN;
 			addPSP("SamuraiX", "11:11:11:11", "22:22:22:22", AccessPoints[selected-1].pInfo->ip, 5060, "88:88:88:88", "99:99:99:99", AccessPoints[selected-1].pInfo->ip, 5060, 0);

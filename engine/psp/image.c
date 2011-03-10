@@ -336,26 +336,26 @@ void fillImageEllipse(Image* image, Color color, int x0, int y0, int width, int 
 
 void copyImageToImage(int sx, int sy, int width, int height, Image* source, int dx, int dy, Image* destination)
 {
-    Color* destinationData = &destination->data[destination->textureWidth * dy + dx];
-    int destinationSkipX = destination->textureWidth - width;
-    Color* sourceData = &source->data[source->textureWidth * sy + sx];
-    int sourceSkipX = source->textureWidth - width;
-    int x, y;
-    for(y=0; y<height; y++, destinationData+=destinationSkipX, sourceData+=sourceSkipX)
+	Color* destinationData = &destination->data[destination->textureWidth * dy + dx];
+	int destinationSkipX = destination->textureWidth - width;
+	Color* sourceData = &source->data[source->textureWidth * sy + sx];
+	int sourceSkipX = source->textureWidth - width;
+	int x, y;
+	for(y=0; y<height; y++, destinationData+=destinationSkipX, sourceData+=sourceSkipX)
 	{
-        for(x=0; x<width; x++, destinationData++, sourceData++) *destinationData = *sourceData;
-    }
+		for(x=0; x<width; x++, destinationData++, sourceData++) *destinationData = *sourceData;
+	}
 }
 
 void drawImageBox(Image *source, Color background, Color border, int borderwidth)
 {
-    fillImageRect(source, background, 0, 0, source->imageWidth, source->imageHeight);
-    int i, x = source->imageWidth - 1, y = source->imageHeight - 1;
-    for(i=0; i<borderwidth; i++)
-    {
+	fillImageRect(source, background, 0, 0, source->imageWidth, source->imageHeight);
+	int i, x = source->imageWidth - 1, y = source->imageHeight - 1;
+	for(i=0; i<borderwidth; i++)
+	{
 	    drawLineInImage(source, border, i,         i,     x,     i);  // Top
-        drawLineInImage(source, border, i,     y - i,     x, y - i);  // Bottom
-        drawLineInImage(source, border, i,         i,     i,     y);  // Left
-        drawLineInImage(source, border, x - i,     i, x - i, y - i);  // Right
-    }
+		drawLineInImage(source, border, i,     y - i,     x, y - i);  // Bottom
+		drawLineInImage(source, border, i,         i,     i,     y);  // Left
+		drawLineInImage(source, border, x - i,     i, x - i, y - i);  // Right
+	}
 }

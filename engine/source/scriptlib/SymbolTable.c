@@ -12,7 +12,7 @@
 
 
 void Symbol_Init(Symbol* symbol, LPCSTR theName, DWORD flags,
-                 ScriptVariant* pvar, Instruction*  theRef)
+				 ScriptVariant* pvar, Instruction*  theRef)
 {
    memset(symbol, 0, sizeof(Symbol));
    if(theName) strcpy(symbol->name, theName);
@@ -40,12 +40,12 @@ void SymbolTable_Clear(SymbolTable* stable)
    Symbol* psymbol = NULL;
    int i,size;
    FOREACH( stable->SymbolList,
-      psymbol = (Symbol*)List_Retrieve(&(stable->SymbolList));
-      if(psymbol)
-      {
-         ScriptVariant_Clear(&(psymbol->var));
-         tracefree(psymbol);
-      }
+	  psymbol = (Symbol*)List_Retrieve(&(stable->SymbolList));
+	  if(psymbol)
+	  {
+		 ScriptVariant_Clear(&(psymbol->var));
+		 tracefree(psymbol);
+	  }
    );
    List_Clear(&(stable->SymbolList));
 }
@@ -64,11 +64,11 @@ void SymbolTable_Clear(SymbolTable* stable)
 BOOL SymbolTable_FindSymbol(SymbolTable* stable, LPCSTR symbolName, Symbol** pp_theSymbol )
 {
    if (symbolName && List_FindByName(&(stable->SymbolList), symbolName )){
-      *pp_theSymbol = (Symbol*)List_Retrieve(&(stable->SymbolList));
-      return TRUE;
+	  *pp_theSymbol = (Symbol*)List_Retrieve(&(stable->SymbolList));
+	  return TRUE;
    }
    else
-      return FALSE;
+	  return FALSE;
 }
 
 /******************************************************************************

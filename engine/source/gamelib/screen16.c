@@ -56,207 +56,207 @@ void putscreenx8p16_water(s_screen * dest, s_screen * src, int x, int y, int key
 	dp += (y*dw + x);
 
 	u = (watermode==1)?distortion((int)s, amplitude):amplitude;
-    wavelength = 255 / wavelength;
-    s += soy*wavelength;
+	wavelength = 255 / wavelength;
+	s += soy*wavelength;
 
-    if(blendfp)
-    {
-        if(key)
-        {
-    	    // blend
-            do{
-                s = s - (int)s + (int)s % 255;
-                t = (distortion((int)s, amplitude)) - u;
+	if(blendfp)
+	{
+		if(key)
+		{
+		    // blend
+			do{
+				s = s - (int)s + (int)s % 255;
+				t = (distortion((int)s, amplitude)) - u;
 
-                        // Nothing to display
-                if(x + t + sw - 1 < 0 || x + t + 1 > dw){}
+						// Nothing to display
+				if(x + t + sw - 1 < 0 || x + t + 1 > dw){}
 
-                // layer is cropped off at the left
-                else if(x + t < 0)
-                {
-                      i=sw+t+x-1;
-                      do{
-                           if(sp[i-x-t]==0)continue;
-                           dp[i-x] = blendfp(remap[sp[i-x-t]], dp[i-x]);
-                      }while(i--);
-                      //memcpy(dp - x, sp - x - t, slinew + t + x);
-                }
+				// layer is cropped off at the left
+				else if(x + t < 0)
+				{
+					  i=sw+t+x-1;
+					  do{
+						   if(sp[i-x-t]==0)continue;
+						   dp[i-x] = blendfp(remap[sp[i-x-t]], dp[i-x]);
+					  }while(i--);
+					  //memcpy(dp - x, sp - x - t, slinew + t + x);
+				}
 
-                // layer is cropped off at the right
-                else if(x + sw + t > dw)
-                {
-                     i=dw-x-t-1;
-                     do{
-                          if(sp[i]==0)continue;
-                          dp[i+t] = blendfp(remap[sp[i]], dp[i+t]);
-                     }while(i--);
-                     //memcpy(dp + t, sp, dlinew - x - t);
-                }
-
-
-                // formula for all other cases
-                else
-                {
-                     i=sw-1;
-                     do{
-                           if(sp[i]==0)continue;
-                           dp[i+t] = blendfp(remap[sp[i]], dp[i+t]);
-                     }while(i--);
-                     //memcpy(dp + t, sp, sw);
-                }
-
-                s += wavelength;
-                /*i=cw-1;
-                do
-                {
-                   if(!sp[i])continue;
-                   dp[i] = blendfp(remap[sp[i]], dp[i]);
-                }while(i--);*/
-                sp += sw;
-                dp += dw;
-            }while(--ch);
-        }
-        else
-        {
-    	    // blend
-            do{
-                s = s - (int)s + (int)s % 255;
-                t = (distortion((int)s, amplitude)) - u;
-
-                        // Nothing to display
-                if(x + t + sw < 0 || x + t + 1 > dw){}
-
-                // layer is cropped off at the left
-                else if(x + t < 0)
-                {
-                      i=sw+t+x-1;
-                      do{
-                           //if(sp[i-x-t+1]==0)continue;
-                           dp[i-x] = blendfp(remap[sp[i-x-t]], dp[i-x]);
-                      }while(i--);
-                      //memcpy(dp - x, sp - x - t, slinew + t + x);
-                }
-
-                // layer is cropped off at the right
-                else if(x + sw + t > dw)
-                {
-                     i=dw-x-t-1;
-                     do{
-                          //if(sp[i+1]==0)continue;
-                          dp[i+t] = blendfp(remap[sp[i]], dp[i+t]);
-                     }while(i--);
-                     //memcpy(dp + t, sp, dlinew - x - t);
-                }
+				// layer is cropped off at the right
+				else if(x + sw + t > dw)
+				{
+					 i=dw-x-t-1;
+					 do{
+						  if(sp[i]==0)continue;
+						  dp[i+t] = blendfp(remap[sp[i]], dp[i+t]);
+					 }while(i--);
+					 //memcpy(dp + t, sp, dlinew - x - t);
+				}
 
 
-                // formula for all other cases
-                else
-                {
-                     i=sw-1;
-                     do{
-                           //if(sp[i+1]==0)continue;
-                           dp[i+t] = blendfp(remap[sp[i]], dp[i+t]);
-                     }while(i--);
-                     //memcpy(dp + t, sp, sw);
-                }
+				// formula for all other cases
+				else
+				{
+					 i=sw-1;
+					 do{
+						   if(sp[i]==0)continue;
+						   dp[i+t] = blendfp(remap[sp[i]], dp[i+t]);
+					 }while(i--);
+					 //memcpy(dp + t, sp, sw);
+				}
 
-                s += wavelength;
-                /*i=cw-1;
-                do
-                {
-                   dp[i] = blendfp(remap[sp[i]], dp[i]);
-                }while(i--);*/
-                sp += sw;
-                dp += dw;
-            }while(--ch);
-        }
-    }
-    else
-    {
-        if(key)
-        {
-        	// Copy data
-            do{
-                s = s - (int)s + (int)s % 255;
-                t = (distortion((int)s, amplitude)) - u;
+				s += wavelength;
+				/*i=cw-1;
+				do
+				{
+				   if(!sp[i])continue;
+				   dp[i] = blendfp(remap[sp[i]], dp[i]);
+				}while(i--);*/
+				sp += sw;
+				dp += dw;
+			}while(--ch);
+		}
+		else
+		{
+		    // blend
+			do{
+				s = s - (int)s + (int)s % 255;
+				t = (distortion((int)s, amplitude)) - u;
 
-                        // Nothing to display
-                if(x + t + sw - 1 < 0 || x + t + 1 > dw){}
+						// Nothing to display
+				if(x + t + sw < 0 || x + t + 1 > dw){}
 
-                // layer is cropped off at the left
-                else if(x + t < 0)
-                {
-                      i=sw+t+x-1;
-                      do{
-                           if(sp[i-x-t]==0)continue;
-                           dp[i-x] = remap[sp[i-x-t]];
-                      }while(i--);
-                      //memcpy(dp - x, sp - x - t, slinew + t + x);
-                }
+				// layer is cropped off at the left
+				else if(x + t < 0)
+				{
+					  i=sw+t+x-1;
+					  do{
+						   //if(sp[i-x-t+1]==0)continue;
+						   dp[i-x] = blendfp(remap[sp[i-x-t]], dp[i-x]);
+					  }while(i--);
+					  //memcpy(dp - x, sp - x - t, slinew + t + x);
+				}
 
-                // layer is cropped off at the right
-                else if(x + sw + t > dw)
-                {
-                     i=dw-x-t-1;
-                     do{
-                          if(sp[i]==0)continue;
-                          dp[i+t] = remap[sp[i]];
-                     }while(i--);
-                     //memcpy(dp + t, sp, dlinew - x - t);
-                }
+				// layer is cropped off at the right
+				else if(x + sw + t > dw)
+				{
+					 i=dw-x-t-1;
+					 do{
+						  //if(sp[i+1]==0)continue;
+						  dp[i+t] = blendfp(remap[sp[i]], dp[i+t]);
+					 }while(i--);
+					 //memcpy(dp + t, sp, dlinew - x - t);
+				}
 
 
-                // formula for all other cases
-                else
-                {
-                     i=sw-1;
-                     do{
-                           if(sp[i]==0)continue;
-                           dp[i+t] = remap[sp[i]];
-                     }while(i--);
-                     //memcpy(dp + t, sp, sw);
-                }
+				// formula for all other cases
+				else
+				{
+					 i=sw-1;
+					 do{
+						   //if(sp[i+1]==0)continue;
+						   dp[i+t] = blendfp(remap[sp[i]], dp[i+t]);
+					 }while(i--);
+					 //memcpy(dp + t, sp, sw);
+				}
 
-                s += wavelength;
-                /*i=cw-1;
-                do
-                {
-                   if(!sp[i])continue;
-                   dp[i] = remap[sp[i]];
-                }while(i--); */
-                sp += sw;
-                dp += dw;
-            }while(--ch);
-        }
-        else
-        {
-        	// Copy data
-            do{
-                s = s - (int)s + (int)s % 255;
-                t = (distortion((int)s, amplitude)) - u;
+				s += wavelength;
+				/*i=cw-1;
+				do
+				{
+				   dp[i] = blendfp(remap[sp[i]], dp[i]);
+				}while(i--);*/
+				sp += sw;
+				dp += dw;
+			}while(--ch);
+		}
+	}
+	else
+	{
+		if(key)
+		{
+			// Copy data
+			do{
+				s = s - (int)s + (int)s % 255;
+				t = (distortion((int)s, amplitude)) - u;
 
-                // Nothing to display
-                if(x + t + sw < 0 || x + t + 1> dw){}
+						// Nothing to display
+				if(x + t + sw - 1 < 0 || x + t + 1 > dw){}
 
-                // layer is cropped off at the left
-                else if(x + t < 0)
-                     u16pcpy(dp - x, sp - x - t, remap, sw + t + x);
+				// layer is cropped off at the left
+				else if(x + t < 0)
+				{
+					  i=sw+t+x-1;
+					  do{
+						   if(sp[i-x-t]==0)continue;
+						   dp[i-x] = remap[sp[i-x-t]];
+					  }while(i--);
+					  //memcpy(dp - x, sp - x - t, slinew + t + x);
+				}
 
-                // layer is cropped off at the right
-                else if(x + sw + t > dw)
-                     u16pcpy(dp + t, sp, remap, dw - x - t);
+				// layer is cropped off at the right
+				else if(x + sw + t > dw)
+				{
+					 i=dw-x-t-1;
+					 do{
+						  if(sp[i]==0)continue;
+						  dp[i+t] = remap[sp[i]];
+					 }while(i--);
+					 //memcpy(dp + t, sp, dlinew - x - t);
+				}
 
-                // formula for all other cases
-                else
-                     u16pcpy(dp + t, sp, remap, sw);
 
-                s += wavelength;
-                //u16pcpy(dp, sp, remap, cw);
-                sp += sw;
-                dp += dw;
-            }while(--ch);
-        }
-    }
+				// formula for all other cases
+				else
+				{
+					 i=sw-1;
+					 do{
+						   if(sp[i]==0)continue;
+						   dp[i+t] = remap[sp[i]];
+					 }while(i--);
+					 //memcpy(dp + t, sp, sw);
+				}
+
+				s += wavelength;
+				/*i=cw-1;
+				do
+				{
+				   if(!sp[i])continue;
+				   dp[i] = remap[sp[i]];
+				}while(i--); */
+				sp += sw;
+				dp += dw;
+			}while(--ch);
+		}
+		else
+		{
+			// Copy data
+			do{
+				s = s - (int)s + (int)s % 255;
+				t = (distortion((int)s, amplitude)) - u;
+
+				// Nothing to display
+				if(x + t + sw < 0 || x + t + 1> dw){}
+
+				// layer is cropped off at the left
+				else if(x + t < 0)
+					 u16pcpy(dp - x, sp - x - t, remap, sw + t + x);
+
+				// layer is cropped off at the right
+				else if(x + sw + t > dw)
+					 u16pcpy(dp + t, sp, remap, dw - x - t);
+
+				// formula for all other cases
+				else
+					 u16pcpy(dp + t, sp, remap, sw);
+
+				s += wavelength;
+				//u16pcpy(dp, sp, remap, cw);
+				sp += sw;
+				dp += dw;
+			}while(--ch);
+		}
+	}
 }
 
 //with remap, work only under 8bit pixel format
@@ -298,62 +298,62 @@ void putscreenx8p16(s_screen * dest, s_screen * src, int x, int y, int key, unsi
 	sp += (soy*sw + sox);
 	dp += (y*dw + x);
 
-    if(blendfp)
-    {
-        if(key)
-        {
-    	    // blend
-            do{
-                i=cw-1;
-                do
-                {
-                   if(!sp[i])continue;
-                   dp[i] = blendfp(remap[sp[i]], dp[i]);
-                }while(i--);
-                sp += sw;
-                dp += dw;
-            }while(--ch);
-        }
-        else
-        {
-    	    // blend
-            do{
-                i=cw-1;
-                do
-                {
-                   dp[i] = blendfp(remap[sp[i]], dp[i]);
-                }while(i--);
-                sp += sw;
-                dp += dw;
-            }while(--ch);
-        }
-    }
-    else
-    {
-        if(key)
-        {
-        	// Copy data
-            do{
-                i=cw-1;
-                do
-                {
-                   if(!sp[i])continue;
-                   dp[i] = remap[sp[i]];
-                }while(i--);
-                sp += sw;
-                dp += dw;
-            }while(--ch);
-        }
-        else
-        {
-        	// Copy data
-            do{
-                u16pcpy(dp, sp, remap, cw);
-                sp += sw;
-                dp += dw;
-            }while(--ch);
-        }
-    }
+	if(blendfp)
+	{
+		if(key)
+		{
+		    // blend
+			do{
+				i=cw-1;
+				do
+				{
+				   if(!sp[i])continue;
+				   dp[i] = blendfp(remap[sp[i]], dp[i]);
+				}while(i--);
+				sp += sw;
+				dp += dw;
+			}while(--ch);
+		}
+		else
+		{
+		    // blend
+			do{
+				i=cw-1;
+				do
+				{
+				   dp[i] = blendfp(remap[sp[i]], dp[i]);
+				}while(i--);
+				sp += sw;
+				dp += dw;
+			}while(--ch);
+		}
+	}
+	else
+	{
+		if(key)
+		{
+			// Copy data
+			do{
+				i=cw-1;
+				do
+				{
+				   if(!sp[i])continue;
+				   dp[i] = remap[sp[i]];
+				}while(i--);
+				sp += sw;
+				dp += dw;
+			}while(--ch);
+		}
+		else
+		{
+			// Copy data
+			do{
+				u16pcpy(dp, sp, remap, cw);
+				sp += sw;
+				dp += dw;
+			}while(--ch);
+		}
+	}
 }
 
 
@@ -391,62 +391,62 @@ void blendscreen16(s_screen * dest, s_screen * src, int x, int y, int key, u16(*
 	sp += (soy*sw + sox);
 	dp += (y*dw + x);
 
-    if(blendfp)
-    {
-        if(key)
-        {
-        	// Copy data
-        	do{
-                i=cw-1;
-                do
-                {
-                   if(sp[i]==0) continue;
-                   dp[i] = blendfp(sp[i], dp[i]);
-                }while(i--);
-        		sp += sw;
-        		dp += dw;
-        	}while(--ch);
-        }
-        else
-        {
-        	// Copy data
-        	do{
-                i=cw-1;
-                do
-                {
-                   dp[i] = blendfp(sp[i], dp[i]);
-                }while(i--);
-        		sp += sw;
-        		dp += dw;
-        	}while(--ch);
-        }
-    }
-    else
-    {
-        if(key)
-        {
-        	// Copy data
-        	do{
-                i=cw-1;
-                do
-                {
-                   if(sp[i]==0) continue;
-                   dp[i] = sp[i];
-                }while(i--);
-        		sp += sw;
-        		dp += dw;
-        	}while(--ch);
-        }
-        else
-        {
-        	// Copy data
-        	do{
-                memcpy(dp, sp, cw<<1);
-        		sp += sw;
-        		dp += dw;
-        	}while(--ch);
-        }
-    }
+	if(blendfp)
+	{
+		if(key)
+		{
+			// Copy data
+			do{
+				i=cw-1;
+				do
+				{
+				   if(sp[i]==0) continue;
+				   dp[i] = blendfp(sp[i], dp[i]);
+				}while(i--);
+				sp += sw;
+				dp += dw;
+			}while(--ch);
+		}
+		else
+		{
+			// Copy data
+			do{
+				i=cw-1;
+				do
+				{
+				   dp[i] = blendfp(sp[i], dp[i]);
+				}while(i--);
+				sp += sw;
+				dp += dw;
+			}while(--ch);
+		}
+	}
+	else
+	{
+		if(key)
+		{
+			// Copy data
+			do{
+				i=cw-1;
+				do
+				{
+				   if(sp[i]==0) continue;
+				   dp[i] = sp[i];
+				}while(i--);
+				sp += sw;
+				dp += dw;
+			}while(--ch);
+		}
+		else
+		{
+			// Copy data
+			do{
+				memcpy(dp, sp, cw<<1);
+				sp += sw;
+				dp += dw;
+			}while(--ch);
+		}
+	}
 }
 
 // Scale screen

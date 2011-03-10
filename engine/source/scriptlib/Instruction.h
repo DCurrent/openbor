@@ -16,9 +16,9 @@
 typedef LPCSTR Label;
 
 typedef enum OpCode{ CONSTSTR, CONSTDBL, CONSTINT, LOAD, SAVE, INC, DEC, FIELD, CALL, POS, NEG,
-             NOT, MUL, DIV,MOD, ERR, ADD, SUB, JUMP, GE, LE, LT, GT, EQ, NE, OR,
-             AND, NOOP, PUSH, POP, Branch_FALSE, Branch_TRUE, DATA, PARAM,
-             IMMEDIATE, DEFERRED, RET, CHECKARG, CLEAN, JUMPR
+			 NOT, MUL, DIV,MOD, ERR, ADD, SUB, JUMP, GE, LE, LT, GT, EQ, NE, OR,
+			 AND, NOOP, PUSH, POP, Branch_FALSE, Branch_TRUE, DATA, PARAM,
+			 IMMEDIATE, DEFERRED, RET, CHECKARG, CLEAN, JUMPR
 }OpCode;
 
 typedef struct Instruction{
@@ -32,9 +32,9 @@ typedef struct Instruction{
    List* theRefList;
    HRESULT (*functionRef)(ScriptVariant**, ScriptVariant**, int);
    union{
-      int theJumpTargetIndex;
-      struct Instruction** ptheJumpTarget;
-      //struct Instruction* theJumpTarget;
+	  int theJumpTargetIndex;
+	  struct Instruction** ptheJumpTarget;
+	  //struct Instruction* theJumpTarget;
    };
 }Instruction;
 

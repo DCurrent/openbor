@@ -57,11 +57,11 @@ u32 *LUT16to32;
 
 static void hq2x_16_def(u16* dst0, u16* dst1, const u16* src0, const u16* src1, const u16* src2, unsigned count)
 {
-    unsigned i;
+	unsigned i;
 
 	for(i=0;i<count;++i) 
 	{
-        unsigned char mask;
+		unsigned char mask;
 	    u16 c[9];
 
 		c[1] = src0[0];
@@ -94,7 +94,7 @@ static void hq2x_16_def(u16* dst0, u16* dst1, const u16* src0, const u16* src1, 
 			c[8] = c[7];
 		}
 
-        mask = 0;
+		mask = 0;
 
 		if (interp_16_diff(c[0], c[4])) mask |= 1 << 0;
 		if (interp_16_diff(c[1], c[4])) mask |= 1 << 1;
@@ -166,7 +166,7 @@ static void hq2x_16_def(u16* dst0, u16* dst1, const u16* src0, const u16* src1, 
 
 static void hq2x_32_def(u32* dst0, u32* dst1, const u32* src0, const u32* src1, const u32* src2, unsigned count)
 {
-    unsigned i;
+	unsigned i;
 
 	for(i=0;i<count;++i) 
 	{
@@ -282,7 +282,7 @@ static void hq2x_32_def(u32* dst0, u32* dst1, const u32* src0, const u32* src1, 
 
 static void lq2x_16_def(u16* dst0, u16* dst1, const u16* src0, const u16* src1, const u16* src2, unsigned count)
 {
-    unsigned i;
+	unsigned i;
 
 	for(i=0;i<count;++i) 
 	{
@@ -538,7 +538,7 @@ void Hq2x32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, in
 	int count;
 	u32 *dst0 = (u32 *)dstPtr;
 	u32 *dst1 = dst0 + (dstPitch >> 2);
-    u32 *src0 = (u32 *)srcPtr;
+	u32 *src0 = (u32 *)srcPtr;
 	u32 *src1 = src0 + (srcPitch >> 2);
 	u32 *src2 = src1 + (srcPitch >> 2);
 	
@@ -566,7 +566,7 @@ void Lq2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int 
 	int count;
 	u16 *dst0 = (u16 *)dstPtr;
 	u16 *dst1 = dst0 + (dstPitch >> 1);
-    u16 *src0 = (u16 *)srcPtr;
+	u16 *src0 = (u16 *)srcPtr;
 	u16 *src1 = src0 + (srcPitch >> 1);
 	u16 *src2 = src1 + (srcPitch >> 1);
   
@@ -592,7 +592,7 @@ void Lq2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int 
 void Lq2x32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height)
 {
 	int count;
-    u32 *dst0 = (u32 *)dstPtr;
+	u32 *dst0 = (u32 *)dstPtr;
 	u32 *dst1 = dst0 + (dstPitch >> 2);
 	u32 *src0 = (u32 *)srcPtr;
 	u32 *src1 = src0 + (srcPitch >> 2);
@@ -639,9 +639,9 @@ void Init_LUTs(u32 BitFormat)
 
 	
 	// Allocate the YUV/LUT buffers on the fly if needed.
-    if(RGBtoYUV == NULL)
-        RGBtoYUV = (u32 *)tracemalloc("RGBtoYUV", 65536 * sizeof(u32));
-    if(LUT16to32 == NULL)
+	if(RGBtoYUV == NULL)
+		RGBtoYUV = (u32 *)tracemalloc("RGBtoYUV", 65536 * sizeof(u32));
+	if(LUT16to32 == NULL)
 	    LUT16to32 = (u32 *)tracemalloc("LUT16to32", 65536 * sizeof(u32));
 
 	for (color = 0; color < 65536; ++color) 
@@ -662,22 +662,22 @@ void Init_LUTs(u32 BitFormat)
 #ifdef MMX
 void Term_LUTs()
 {
-    if(RGBtoYUV != NULL)
-    {
+	if(RGBtoYUV != NULL)
+	{
 	    tracefree(RGBtoYUV);
 	    RGBtoYUV = NULL;
-    }
-    if(LUT16to32 != NULL)
-    {
+	}
+	if(LUT16to32 != NULL)
+	{
 	    tracefree(LUT16to32);
 	    LUT16to32 = NULL;
-    }
+	}
 }
 #endif
 
 void Init_Hq2x(u32 BitFormat, u32 BitsPerPixel)
 {
-    interp_set(BitsPerPixel);
+	interp_set(BitsPerPixel);
 #ifdef MMX
 	if(GetMMX())
 		Init_LUTs(BitFormat);

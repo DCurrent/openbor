@@ -89,33 +89,33 @@ fail:
 SDL_Surface* xpmToSurface(char *array[])
 {
 	unsigned char *sp;
-    char *dp;
-    int width, height, linew;
-    int h;
-    SDL_Surface* ds = NULL;
-    s_screen* src = xpmToScreen(array);
+	char *dp;
+	int width, height, linew;
+	int h;
+	SDL_Surface* ds = NULL;
+	s_screen* src = xpmToScreen(array);
 
 	if(src == NULL) return NULL;
 	
-    width = src->width;
-    height = src->height;
-    h = height;
+	width = src->width;
+	height = src->height;
+	h = height;
 
-    sp = (unsigned char*)src->data;
-    ds = SDL_AllocSurface(SDL_SWSURFACE, width, height, 32, 0,0,0,0);
-    dp = ds->pixels;
+	sp = (unsigned char*)src->data;
+	ds = SDL_AllocSurface(SDL_SWSURFACE, width, height, 32, 0,0,0,0);
+	dp = ds->pixels;
 
-    linew = width*4;
+	linew = width*4;
 
-    do{
-        memcpy(dp, sp, linew);
-        sp += linew;
-        dp += ds->pitch;
-    }while(--h);
-    
-    freescreen(&src);
+	do{
+		memcpy(dp, sp, linew);
+		sp += linew;
+		dp += ds->pitch;
+	}while(--h);
+	
+	freescreen(&src);
 
-    return ds;
+	return ds;
 }
 #endif
 

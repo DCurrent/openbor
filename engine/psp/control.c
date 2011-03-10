@@ -78,7 +78,7 @@ int control_getjoyenabled()
 
 int keyboard_getlastkey(void)
 {
-    int i, ret=0;
+	int i, ret=0;
 	for(i=0; i<MAX_PADS; i++)
 	{
 		ret |= lastkey[i];
@@ -104,14 +104,14 @@ int control_scankey()
 	static unsigned ready = 0;
 	unsigned i, k=0;
 
-    for(i=0; i<MAX_PADS; i++)
-    {
-        if(lastkey[i])
-        {
-            k = 1 + i*18 + flag_to_index(lastkey[i]);
-            break;
-        }
-    }
+	for(i=0; i<MAX_PADS; i++)
+	{
+		if(lastkey[i])
+		{
+			k = 1 + i*18 + flag_to_index(lastkey[i]);
+			break;
+		}
+	}
 
 	if(ready && k)
 	{
@@ -171,13 +171,13 @@ unsigned long getPad(int port)
 
 	if(port != 0) return lastkey[port] = 0;
 
-    if(control_getjoyenabled())
-    {
-        if(data.Ly >= 0xC0)              btns |= PSP_DPAD_DOWN;
-        if(data.Ly <= 0x30)              btns |= PSP_DPAD_UP;
-        if(data.Lx <= 0x30)              btns |= PSP_DPAD_LEFT;
-        if(data.Lx >= 0xC0)              btns |= PSP_DPAD_RIGHT;
-    }
+	if(control_getjoyenabled())
+	{
+		if(data.Ly >= 0xC0)              btns |= PSP_DPAD_DOWN;
+		if(data.Ly <= 0x30)              btns |= PSP_DPAD_UP;
+		if(data.Lx <= 0x30)              btns |= PSP_DPAD_LEFT;
+		if(data.Lx >= 0xC0)              btns |= PSP_DPAD_RIGHT;
+	}
 
 	if(data.Buttons & PSP_CTRL_SELECT)   btns |= PSP_SELECT;
 	if(data.Buttons & PSP_CTRL_START)    btns |= PSP_START;
@@ -198,7 +198,7 @@ unsigned long getPad(int port)
 	if(data.Buttons & PSP_CTRL_VOLUP)    btns |= PSP_VOLUP;
 	if(data.Buttons & PSP_CTRL_VOLDOWN)  btns |= PSP_VOLDOWN;
 
-    if(btns & PSP_HOME && btns & PSP_START) borExit(-1);
+	if(btns & PSP_HOME && btns & PSP_START) borExit(-1);
 
 	return lastkey[port] = btns;
 }

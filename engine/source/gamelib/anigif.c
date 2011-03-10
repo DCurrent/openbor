@@ -34,7 +34,7 @@
 typedef struct{
 	char		magic[6];
 	unsigned short	screenwidth, screenheight;
-        unsigned char	flags;
+		unsigned char	flags;
 	unsigned char	background;
 	unsigned char	aspect;
 }gifheaderstruct;
@@ -42,7 +42,7 @@ typedef struct{
 
 typedef struct {
 	short	left, top;
-    unsigned short width, height;
+	unsigned short width, height;
 	unsigned char	flags;
 }gifblockstruct;
 
@@ -306,8 +306,8 @@ void anigif_close(){
 
 // Returns true on success
 int anigif_open(char *filename, char *packfilename, unsigned char *pal){
-    unsigned char tpal[1024];
-    int i, j;
+	unsigned char tpal[1024];
+	int i, j;
 	anigif_close();
 
 #if PSP || PS2 || DC
@@ -350,22 +350,22 @@ int anigif_open(char *filename, char *packfilename, unsigned char *pal){
 			*tpal &= 0xFF000000;
 			switch(PAL_BYTES)
 			{
-            case 768:
-                memcpy(pal, tpal, 768);
-                break;
+			case 768:
+				memcpy(pal, tpal, 768);
+				break;
 			case 1024:
-                for(i=0, j=0; i<1024; i+=4, j+=3)
-                {
-                    *(unsigned*)(pal+i) = colour32(tpal[j], tpal[j+1], tpal[j+2]);
-                }
-                break;
-            case 512:
-                for(i=0, j=0; i<512; i+=2, j+=3)
-                {
-                    *(unsigned short*)(pal+i) = colour16(tpal[j], tpal[j+1], tpal[j+2]);
-                }
-                break;
-            }
+				for(i=0, j=0; i<1024; i+=4, j+=3)
+				{
+					*(unsigned*)(pal+i) = colour32(tpal[j], tpal[j+1], tpal[j+2]);
+				}
+				break;
+			case 512:
+				for(i=0, j=0; i<512; i+=2, j+=3)
+				{
+					*(unsigned short*)(pal+i) = colour16(tpal[j], tpal[j+1], tpal[j+2]);
+				}
+				break;
+			}
 		}
 		else seekpackfile(handle, numcolours*3, SEEK_CUR);
 	}
@@ -413,9 +413,9 @@ int anigif_decode(s_screen * screen, int *delay, int x, int y){
 			}
 
 			iblock.left = SwapLSB16(iblock.left);
-            iblock.top = SwapLSB16(iblock.top);
-            iblock.width = SwapLSB16(iblock.width);
-            iblock.height = SwapLSB16(iblock.height);
+			iblock.top = SwapLSB16(iblock.top);
+			iblock.width = SwapLSB16(iblock.width);
+			iblock.height = SwapLSB16(iblock.height);
 			iblock.left += x;
 			iblock.top += y;
 

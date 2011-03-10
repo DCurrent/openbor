@@ -24,9 +24,9 @@ void texture_wavex8p32(s_screen *screen, int x, int y, int width, int height, in
 	int sy;
 	int twidth;
 	int tx;
-    unsigned* thepal = pal32?pal32:(unsigned*)bitmap->palette;
+	unsigned* thepal = pal32?pal32:(unsigned*)bitmap->palette;
 
-    if(thepal==NULL) return;
+	if(thepal==NULL) return;
 	// Check dimensions
 	if(x >= screen->width) return;
 	if(y >= screen->height) return;
@@ -67,10 +67,10 @@ void texture_wavex8p32(s_screen *screen, int x, int y, int width, int height, in
 		twidth = bitmap->width - s;
 		if(twidth > width) twidth = width;
 		while(twidth > 0){
-            // apply texture to 24bit screen
-            dp = dest+tx;
-            sp = src+s;
-            for(i=0; i<twidth; i++) dp[i] = thepal[sp[i]];
+			// apply texture to 24bit screen
+			dp = dest+tx;
+			sp = src+s;
+			for(i=0; i<twidth; i++) dp[i] = thepal[sp[i]];
 			s = 0;
 			tx += twidth;
 			twidth = width - tx;
@@ -100,7 +100,7 @@ static void draw_plane_line(unsigned *destline, unsigned char *srcline, int dest
 			s %= srclen;
 			s_pos = (s_pos & 0xFF) | (s << 8);
 		}
-        destline[i] = table[srcline[s]];
+		destline[i] = table[srcline[s]];
 		s_pos += s_step;
 	}
 }

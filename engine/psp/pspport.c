@@ -42,10 +42,10 @@ void borExit(int reset)
 	{
 		struct SceKernelLoadExecVSHParam param;
 		memset(&param, 0, sizeof(param));
-        param.size = sizeof(param);
-        param.argp = eboot;
-        param.args = strlen(eboot)+1;
-        param.key = "game";
+		param.size = sizeof(param);
+		param.argp = eboot;
+		param.args = strlen(eboot)+1;
+		param.key = "game";
 		loadexec(eboot, &param);
 	}
 	else
@@ -57,10 +57,10 @@ void borExit(int reset)
 
 static const char *codeTxt[32] =
 {
-    "Interrupt", "TLB modification", "TLB load/inst fetch", "TLB store",
-    "Address load/inst fetch", "Address store", "Bus error (instr)",
-    "Bus error (data)", "Syscall", "Breakpoint", "Reserved instruction",
-    "Coprocessor unusable", "Arithmetic overflow", "Unknown 14",
+	"Interrupt", "TLB modification", "TLB load/inst fetch", "TLB store",
+	"Address load/inst fetch", "Address store", "Bus error (instr)",
+	"Bus error (data)", "Syscall", "Breakpoint", "Reserved instruction",
+	"Coprocessor unusable", "Arithmetic overflow", "Unknown 14",
 	"Unknown 15", "Unknown 16", "Unknown 17", "Unknown 18", "Unknown 19",
 	"Unknown 20", "Unknown 21", "Unknown 22", "Unknown 23", "Unknown 24",
 	"Unknown 25", "Unknown 26", "Unknown 27", "Unknown 28", "Unknown 29",
@@ -69,10 +69,10 @@ static const char *codeTxt[32] =
 
 static const unsigned char regName[32][5] =
 {
-    "zr", "at", "v0", "v1", "a0", "a1", "a2", "a3",
-    "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
-    "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
-    "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"
+	"zr", "at", "v0", "v1", "a0", "a1", "a2", "a3",
+	"t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+	"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
+	"t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"
 };
 
 void ExceptionHandler(PspDebugRegBlock * regs)
@@ -82,9 +82,9 @@ void ExceptionHandler(PspDebugRegBlock * regs)
 	extern unsigned long _ftext;
 
 	pspDebugScreenInit();
-    pspDebugScreenSetBackColor(0x00FF0000);
-    pspDebugScreenSetTextColor(0xFFFFFFFF);
-    pspDebugScreenClear();
+	pspDebugScreenSetBackColor(0x00FF0000);
+	pspDebugScreenSetTextColor(0xFFFFFFFF);
+	pspDebugScreenClear();
 
 WRITE_EXCEPTION:
 	if(!loop) pWriteToIO = pspDebugScreenPrintf;
@@ -93,15 +93,15 @@ WRITE_EXCEPTION:
 	pWriteToIO("\n I'm sorry to inform your PSP has crashed. The exception has\n");
 	pWriteToIO(" been logged to a file. Please include OpenBOR.ELF within the\n");
 	pWriteToIO(" Modules directory and the log file generated to www.LavaLit.com\n\n\n\n");
-    pWriteToIO(" Exception Details:\n\n\n");
-    pWriteToIO(" Exception - %s / %s.text + %X\n", codeTxt[(regs->cause >> 2) & 31], module_info.modname, regs->epc-(int)&_ftext);
-    pWriteToIO(" EPC       - %08X\n", (int)regs->epc);
+	pWriteToIO(" Exception Details:\n\n\n");
+	pWriteToIO(" Exception - %s / %s.text + %X\n", codeTxt[(regs->cause >> 2) & 31], module_info.modname, regs->epc-(int)&_ftext);
+	pWriteToIO(" EPC       - %08X\n", (int)regs->epc);
 	pWriteToIO(" REPC      - %08X\n", (int)regs->epc-(int)&_ftext);
-    pWriteToIO(" Cause     - %08X\n", (int)regs->cause);
-    pWriteToIO(" Status    - %08X\n", (int)regs->status);
-    pWriteToIO(" BadVAddr  - %08X\n\n\n", (int)regs->badvaddr);
+	pWriteToIO(" Cause     - %08X\n", (int)regs->cause);
+	pWriteToIO(" Status    - %08X\n", (int)regs->status);
+	pWriteToIO(" BadVAddr  - %08X\n\n\n", (int)regs->badvaddr);
 
-    for(i=0; i<32; i+=4) pWriteToIO(" %s:%08X %s:%08X %s:%08X %s:%08X\n", regName[i], (int)regs->r[i], regName[i+1], (int)regs->r[i+1], regName[i+2], (int)regs->r[i+2], regName[i+3], (int)regs->r[i+3]);
+	for(i=0; i<32; i+=4) pWriteToIO(" %s:%08X %s:%08X %s:%08X %s:%08X\n", regName[i], (int)regs->r[i], regName[i+1], (int)regs->r[i+1], regName[i+2], (int)regs->r[i+2], regName[i+3], (int)regs->r[i+3]);
 
 	loop++;
 	if(loop < 2) goto WRITE_EXCEPTION;
@@ -132,9 +132,9 @@ void initExceptionHandler()
 
    if((modid = sceKernelLoadModule("/Modules/exception.prx", 0, &option)) >= 0)
    {
-      args[0] = (int)ExceptionHandler;
-      args[1] = (int)&exception_regs;
-      sceKernelStartModule(modid, 8, args, &fd, NULL);
+	  args[0] = (int)ExceptionHandler;
+	  args[1] = (int)&exception_regs;
+	  sceKernelStartModule(modid, 8, args, &fd, NULL);
    }
 }
 
@@ -166,10 +166,10 @@ int main(int argc, char *argv[])
 	menu(cwd);
 	openborMain();
 	borExit(0);
-    return 0;
+	return 0;
 
 error_loading_prx_modules:
 	writeToLogFile("PRX Modules failed with %x\n", status);
-    sceKernelDelayThread(5*1000000);
-    return 0;
+	sceKernelDelayThread(5*1000000);
+	return 0;
 }

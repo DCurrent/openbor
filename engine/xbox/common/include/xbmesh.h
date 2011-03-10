@@ -66,13 +66,13 @@
 //-----------------------------------------------------------------------------
 struct XBMESH_SUBSET
 {
-    D3DMATERIAL8       mtrl;            // Material for this subset
-    LPDIRECT3DTEXTURE8 pTexture;        // Texture
-    CHAR               strTexture[64];
-    DWORD              dwVertexStart;   // Range of vertices to render
-    DWORD              dwVertexCount;
-    DWORD              dwIndexStart;    // Range of vertex indices to render
-    DWORD              dwIndexCount;
+	D3DMATERIAL8       mtrl;            // Material for this subset
+	LPDIRECT3DTEXTURE8 pTexture;        // Texture
+	CHAR               strTexture[64];
+	DWORD              dwVertexStart;   // Range of vertices to render
+	DWORD              dwVertexCount;
+	DWORD              dwIndexStart;    // Range of vertex indices to render
+	DWORD              dwIndexCount;
 };
 
 
@@ -84,17 +84,17 @@ struct XBMESH_SUBSET
 //-----------------------------------------------------------------------------
 struct XBMESH_DATA
 {
-    D3DVertexBuffer   m_VB;            // Mesh geometry
-    DWORD             m_dwNumVertices;
-    D3DIndexBuffer    m_IB;
-    DWORD             m_dwNumIndices;
-    
-    DWORD             m_dwFVF;         // Mesh vertex info
-    DWORD             m_dwVertexSize;
-    D3DPRIMITIVETYPE  m_dwPrimType;
+	D3DVertexBuffer   m_VB;            // Mesh geometry
+	DWORD             m_dwNumVertices;
+	D3DIndexBuffer    m_IB;
+	DWORD             m_dwNumIndices;
+	
+	DWORD             m_dwFVF;         // Mesh vertex info
+	DWORD             m_dwVertexSize;
+	D3DPRIMITIVETYPE  m_dwPrimType;
 
-    DWORD             m_dwNumSubsets;  // Subset info for rendering calls
-    XBMESH_SUBSET*    m_pSubsets;
+	DWORD             m_dwNumSubsets;  // Subset info for rendering calls
+	XBMESH_SUBSET*    m_pSubsets;
 };
 
 
@@ -106,14 +106,14 @@ struct XBMESH_DATA
 //-----------------------------------------------------------------------------
 __declspec(align(16)) struct XBMESH_FRAME
 {
-    D3DXMATRIX        m_matTransform; // The transformation matrix for this frame
-    
-    XBMESH_DATA       m_MeshData;     // The mesh data belonging to this frame
+	D3DXMATRIX        m_matTransform; // The transformation matrix for this frame
+	
+	XBMESH_DATA       m_MeshData;     // The mesh data belonging to this frame
 
-    CHAR              m_strName[64];
-    
-    XBMESH_FRAME*     m_pChild;       // Child and sibling ptrs for the hierarchy
-    XBMESH_FRAME*     m_pNext;
+	CHAR              m_strName[64];
+	
+	XBMESH_FRAME*     m_pChild;       // Child and sibling ptrs for the hierarchy
+	XBMESH_FRAME*     m_pNext;
 };
 
 
@@ -126,64 +126,64 @@ __declspec(align(16)) struct XBMESH_FRAME
 //-----------------------------------------------------------------------------
 class CXBMesh
 {
-    // Memory allocated during file loading. Ptrs are retained for cleanup.
-    VOID* m_pAllocatedSysMem;
-    VOID* m_pAllocatedVidMem;
+	// Memory allocated during file loading. Ptrs are retained for cleanup.
+	VOID* m_pAllocatedSysMem;
+	VOID* m_pAllocatedVidMem;
 
 public:
-    // Hierarchy (frames and meshes) of loaded geometry
-    XBMESH_FRAME* m_pMeshFrames;
-    DWORD         m_dwNumFrames;
+	// Hierarchy (frames and meshes) of loaded geometry
+	XBMESH_FRAME* m_pMeshFrames;
+	DWORD         m_dwNumFrames;
 
-    // Internal rendering functions
-    virtual HRESULT RenderFrame( LPDIRECT3DDEVICE8 pd3dDevice, XBMESH_FRAME* pMesh, 
-                                 DWORD dwFlags );
-    virtual HRESULT RenderMesh( LPDIRECT3DDEVICE8 pd3dDevice, XBMESH_DATA* pMesh, 
-                                DWORD dwFlags );
+	// Internal rendering functions
+	virtual HRESULT RenderFrame( LPDIRECT3DDEVICE8 pd3dDevice, XBMESH_FRAME* pMesh, 
+								 DWORD dwFlags );
+	virtual HRESULT RenderMesh( LPDIRECT3DDEVICE8 pd3dDevice, XBMESH_DATA* pMesh, 
+								DWORD dwFlags );
 
-    // Internal functions to find the radius of sphere centered at zero enclosing mesh.
-    float ComputeFrameRadius(XBMESH_FRAME* pFrame, D3DXMATRIX* pParentMat);
-    float ComputeMeshRadius(XBMESH_DATA* pMesh, D3DXMATRIX* pMat);
-    
-    // Internal functions to find the bounding box of the mesh.
-    HRESULT ComputeFrameBoundingBox(XBMESH_FRAME* pFrame, D3DXMATRIX* pParentMat, D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
-    HRESULT ComputeMeshBoundingBox(XBMESH_DATA* pMesh, D3DXMATRIX* pMat, D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
-
-public:
-    // Reference counting
-    DWORD   m_dwRefCount;
-    DWORD   AddRef()  { return ++m_dwRefCount; }
-    DWORD   Release() { if( --m_dwRefCount ) return m_dwRefCount;
-                        delete this; return 0L; }
+	// Internal functions to find the radius of sphere centered at zero enclosing mesh.
+	float ComputeFrameRadius(XBMESH_FRAME* pFrame, D3DXMATRIX* pParentMat);
+	float ComputeMeshRadius(XBMESH_DATA* pMesh, D3DXMATRIX* pMat);
+	
+	// Internal functions to find the bounding box of the mesh.
+	HRESULT ComputeFrameBoundingBox(XBMESH_FRAME* pFrame, D3DXMATRIX* pParentMat, D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
+	HRESULT ComputeMeshBoundingBox(XBMESH_DATA* pMesh, D3DXMATRIX* pMat, D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
 
 public:
-    // Constructor/destructor
-    CXBMesh();
-    virtual ~CXBMesh();
+	// Reference counting
+	DWORD   m_dwRefCount;
+	DWORD   AddRef()  { return ++m_dwRefCount; }
+	DWORD   Release() { if( --m_dwRefCount ) return m_dwRefCount;
+						delete this; return 0L; }
 
-    // Creation function. Call this function to create the hierarchy of frames
-    // and meshes from a geometry file.
-    HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, CHAR* strFilename,
-                    CXBPackedResource* pResource = NULL );
+public:
+	// Constructor/destructor
+	CXBMesh();
+	virtual ~CXBMesh();
 
-    // Access functions
-    XBMESH_FRAME* GetFrame( DWORD i ) { return &m_pMeshFrames[i]; }
-    XBMESH_DATA*  GetMesh( DWORD i )  { return &m_pMeshFrames[i].m_MeshData; }
+	// Creation function. Call this function to create the hierarchy of frames
+	// and meshes from a geometry file.
+	HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, CHAR* strFilename,
+					CXBPackedResource* pResource = NULL );
 
-    // Overridable callback function (called before anything is rendered). 
-    // This is useful for setting vertex shader constants, etc., before
-    // rendering.
-    virtual BOOL RenderCallback( LPDIRECT3DDEVICE8 pd3dDevice, DWORD dwSubset,
-                                 XBMESH_SUBSET* pSubset, DWORD dwFlags ) { return TRUE; }
-    
-    // Render function. Call this function to render the hierarchy of frames
-    // and meshes.
-    HRESULT Render( LPDIRECT3DDEVICE8 pd3dDevice, DWORD dwFlags = 0x00000000 );
+	// Access functions
+	XBMESH_FRAME* GetFrame( DWORD i ) { return &m_pMeshFrames[i]; }
+	XBMESH_DATA*  GetMesh( DWORD i )  { return &m_pMeshFrames[i].m_MeshData; }
 
-    // Function to find the radius of sphere centered at zero enclosing mesh.
-    float ComputeRadius();
-    // find the bounding box of all the subsets
-    HRESULT ComputeBoundingBox(D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
+	// Overridable callback function (called before anything is rendered). 
+	// This is useful for setting vertex shader constants, etc., before
+	// rendering.
+	virtual BOOL RenderCallback( LPDIRECT3DDEVICE8 pd3dDevice, DWORD dwSubset,
+								 XBMESH_SUBSET* pSubset, DWORD dwFlags ) { return TRUE; }
+	
+	// Render function. Call this function to render the hierarchy of frames
+	// and meshes.
+	HRESULT Render( LPDIRECT3DDEVICE8 pd3dDevice, DWORD dwFlags = 0x00000000 );
+
+	// Function to find the radius of sphere centered at zero enclosing mesh.
+	float ComputeRadius();
+	// find the bounding box of all the subsets
+	HRESULT ComputeBoundingBox(D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
 };
 
 

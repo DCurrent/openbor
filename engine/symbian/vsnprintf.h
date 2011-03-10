@@ -210,15 +210,15 @@
 
 #define fast_memcpy(d,s,n) \
 { register size_t nn = (size_t)(n); \
-    if (nn >= breakeven_point) memcpy((d), (s), nn); \
-    else if (nn > 0) { /* proc call overhead is worth only for large strings*/\
+	if (nn >= breakeven_point) memcpy((d), (s), nn); \
+	else if (nn > 0) { /* proc call overhead is worth only for large strings*/\
 	register char *dd; register const char *ss; \
 for (ss=(s), dd=(d); nn>0; nn--) *dd++ = *ss++; } }
 
 #define fast_memset(d,c,n) \
 { register size_t nn = (size_t)(n); \
-    if (nn >= breakeven_point) memset((d), (int)(c), nn); \
-    else if (nn > 0) { /* proc call overhead is worth only for large strings*/\
+	if (nn >= breakeven_point) memset((d), (int)(c), nn); \
+	else if (nn > 0) { /* proc call overhead is worth only for large strings*/\
 	register char *dd; register const int cc=(int)(c); \
 for (dd=(d); nn>0; nn--) *dd++ = cc; } }
 
@@ -563,8 +563,8 @@ int vsnprintf(char *str, size_t str_m, const char *fmt, va_list ap) {
 												  if (n > 0) number_of_zeros_to_pad += n;
 											  }
 											  break;
-      }
-      default: /* unrecognized conversion specifier, keep format string as-is*/
+	  }
+	  default: /* unrecognized conversion specifier, keep format string as-is*/
 		  zero_padding = 0;  /* turn zero padding off for non-numeric convers. */
 		  justify_left = 1; min_field_width = 0;                /* reset flags */
 																/* discard the unrecognized conversion, just keep *
@@ -573,11 +573,11 @@ int vsnprintf(char *str, size_t str_m, const char *fmt, va_list ap) {
 		  if (*p) str_arg_l++;  /* include invalid conversion specifier unchanged
 		  if not at end-of-string */
 		  break;
-      }
-      if (*p) p++;      /* step over the just processed conversion specifier */
+	  }
+	  if (*p) p++;      /* step over the just processed conversion specifier */
 						/* insert padding to the left as requested by min_field_width;
-      this does not include the zero padding in case of numerical conversions*/
-      if (!justify_left) {                /* left padding with blank or zero */
+	  this does not include the zero padding in case of numerical conversions*/
+	  if (!justify_left) {                /* left padding with blank or zero */
 		  int n = min_field_width - (str_arg_l+number_of_zeros_to_pad);
 		  if (n > 0) {
 			  if (str_l < str_m) {
@@ -586,14 +586,14 @@ int vsnprintf(char *str, size_t str_m, const char *fmt, va_list ap) {
 			  }
 			  str_l += n;
 		  }
-      }
+	  }
 	  /* zero padding as requested by the precision or by the minimal field width
 	  * for numeric conversions required? */
-      if (number_of_zeros_to_pad <= 0) {
+	  if (number_of_zeros_to_pad <= 0) {
 	  /* will not copy first part of numeric right now, *
 		  * force it to be copied later in its entirety    */
 		  zero_padding_insertion_ind = 0;
-      } else {
+	  } else {
 		  /* insert first part of numerics (sign or '0x') before zero padding */
 		  int n = zero_padding_insertion_ind;
 		  if (n > 0) {
@@ -612,21 +612,21 @@ int vsnprintf(char *str, size_t str_m, const char *fmt, va_list ap) {
 			  }
 			  str_l += n;
 		  }
-      }
+	  }
 	  /* insert formatted string
 	  * (or as-is conversion specifier for unknown conversions) */
-      { int n = str_arg_l - zero_padding_insertion_ind;
+	  { int n = str_arg_l - zero_padding_insertion_ind;
 	  if (n > 0) {
-          if (str_l < str_m) {
+		  if (str_l < str_m) {
 			  size_t avail = str_m-str_l;
 			  fast_memcpy(str+str_l, str_arg+zero_padding_insertion_ind,
 				  (n>avail?avail:n));
-          }
-          str_l += n;
+		  }
+		  str_l += n;
 	  }
-      }
+	  }
 	  /* insert right padding */
-      if (justify_left) {          /* right blank padding to the field width */
+	  if (justify_left) {          /* right blank padding to the field width */
 		  int n = min_field_width - (str_arg_l+number_of_zeros_to_pad);
 		  if (n > 0) {
 			  if (str_l < str_m) {
@@ -635,8 +635,8 @@ int vsnprintf(char *str, size_t str_m, const char *fmt, va_list ap) {
 			  }
 			  str_l += n;
 		  }
-      }
-    }
+	  }
+	}
   }
   if (str_m > 0) { /* make sure the string is null-terminated
 				   even at the expense of overwriting the last character

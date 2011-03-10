@@ -40,21 +40,21 @@ typedef char CHAR;
 
 //A macro to simplify iterating through all this lists.
 #define FOREACH( x, y ) { \
-      size = List_GetSize(&x); \
-      List_Reset(&x); \
-      for (i = 0; i < size; i++){ \
-         y \
-         List_GotoNext(&x); \
-      } \
+	  size = List_GetSize(&x); \
+	  List_Reset(&x); \
+	  for (i = 0; i < size; i++){ \
+		 y \
+		 List_GotoNext(&x); \
+	  } \
    }
 
 #define PFOREACH( x, y ) {\
    size = List_GetSize(x); \
    List_Reset(x); \
    for (i = 0; i < size; i++){ \
-         y \
-         List_GotoNext(x); \
-      } \
+		 y \
+		 List_GotoNext(x); \
+	  } \
    }
 
 #define NAME(s) ((s==NULL)?NULL:(strcpy((CHAR*)tracemalloc("NAME(s)", strlen(s)+1),s)))

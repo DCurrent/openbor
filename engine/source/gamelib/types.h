@@ -165,22 +165,22 @@ void u32pcpy(unsigned* pdest, const unsigned char* psrc, unsigned* pp, unsigned 
 
 typedef struct
 {
-    unsigned char* table;
-    void* fp;
-    unsigned fillcolor;
-    int flag:1;
-    int alpha:8;
-    int remap:8;
-    int flipx:1;
-    int flipy:1;
-    int transbg:1;
-    int fliprotate:1; // entity only, whether the flip is affected by the entity's facing(not the sprite's flip )
-    int rotate:11; // 360 degrees
-    int scalex;
-    int scaley;
-    int shiftx;
-    int centerx;   // shift centerx
-    int centery;   //shift centery
+	unsigned char* table;
+	void* fp;
+	unsigned fillcolor;
+	int flag:1;
+	int alpha:8;
+	int remap:8;
+	int flipx:1;
+	int flipy:1;
+	int transbg:1;
+	int fliprotate:1; // entity only, whether the flip is affected by the entity's facing(not the sprite's flip )
+	int rotate:11; // 360 degrees
+	int scalex;
+	int scaley;
+	int shiftx;
+	int centerx;   // shift centerx
+	int centery;   //shift centery
 }s_drawmethod;
 
 typedef struct

@@ -300,10 +300,10 @@ void control_setkey(s_playercontrols * pcontrols, unsigned int flag, int key)
 
 int keyboard_getlastkey()
 {
-        int i, ret = lastkey;
-        lastkey = 0;
-        for(i=0; i<JOY_LIST_TOTAL; i++) joysticks[i].Buttons = 0;
-        return ret;
+		int i, ret = lastkey;
+		lastkey = 0;
+		for(i=0; i<JOY_LIST_TOTAL; i++) joysticks[i].Buttons = 0;
+		return ret;
 }
 
 
@@ -317,10 +317,10 @@ int control_scankey()
 	static unsigned ready = 0;
 	unsigned k = 0, j = 0;
 
-    k = keyboard_getlastkey();
-    j = lastjoy;
-    lastjoy = 0;
-    
+	k = keyboard_getlastkey();
+	j = lastjoy;
+	lastjoy = 0;
+	
 #if 0
 		 if(joysticks[0].Data) j = 1 + 0 * JOY_MAX_INPUTS + flag_to_index(joysticks[0].Data);
 	else if(joysticks[1].Data) j = 1 + 1 * JOY_MAX_INPUTS + flag_to_index(joysticks[1].Data);
@@ -349,7 +349,7 @@ char *control_getkeyname(unsigned int keycode)
 			return (char*)joysticks[i].KeyName[keycode - (JOY_LIST_FIRST + (i * JOY_MAX_INPUTS))];
 	}
 	if(keycode > SDLK_FIRST && keycode < SDLK_LAST)
-        return JOY_GetKeyName(keycode);
+		return JOY_GetKeyName(keycode);
 	else
 		return "...";
 }

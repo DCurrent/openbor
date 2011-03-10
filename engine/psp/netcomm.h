@@ -21,7 +21,7 @@ typedef struct
 {
 	int  index;
 	int  color;
-    union SceNetApctlInfo *pInfo;
+	union SceNetApctlInfo *pInfo;
 }
 APS;
 

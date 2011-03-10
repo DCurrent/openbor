@@ -17,17 +17,17 @@
 
 typedef struct
 {
-    ScriptVariant value;
-    char          key[MAX_KEY_LEN];
-    struct Script* owner;
+	ScriptVariant value;
+	char          key[MAX_KEY_LEN];
+	struct Script* owner;
 }s_variantnode;
 
 typedef struct Script
 {
-    Interpreter* pinterpreter;
-    ScriptVariant* vars;
-    int initialized;        //flag
-    int interpreterowner;   //flag
+	Interpreter* pinterpreter;
+	ScriptVariant* vars;
+	int initialized;        //flag
+	int interpreterowner;   //flag
 }Script;
 
 extern s_variantnode** global_var_list;

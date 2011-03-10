@@ -86,10 +86,10 @@ int font_load(int which, char *filename, char *packfile, int monospace){
 			fonts[which].token_width[index] = monospace?tw:(fonts[which].token[index]->width+(tw/10));
 			if(fonts[which].token_width[index] <= 1) fonts[which].token_width[index] = tw/3;
 			if(index>0)
-            {
-                fonts[which].token[index]->palette = fonts[which].token[0]->palette ;
-                fonts[which].token[index]->pixelformat = screen->pixelformat ;
-            }
+			{
+				fonts[which].token[index]->palette = fonts[which].token[0]->palette ;
+				fonts[which].token[index]->pixelformat = screen->pixelformat ;
+			}
 			++index;
 		}
 	}
@@ -108,7 +108,7 @@ static char b[1024];
 
 int font_string_width(int which, char* format, ...)
 {
-    int w=0;
+	int w=0;
 	char * buf = b;
 	va_list arglist;
 
@@ -120,12 +120,12 @@ int font_string_width(int which, char* format, ...)
 	vsprintf(buf, format, arglist);
 	va_end(arglist);
 
-    while(*buf)
-    {
+	while(*buf)
+	{
 	    w += fonts[which].token_width[((int)(*buf)) & 0xFF];
 	    buf++;
-    }
-    return w;
+	}
+	return w;
 }
 
 void font_printf(int x, int y, int which, int layeroffset,char *format, ...){
@@ -164,19 +164,19 @@ void screen_printf(s_screen * screen, int x, int y, int which, char *format, ...
 
 	while(*buf){
 		if(*buf>=32)
-        {
-            switch(screen->pixelformat)
-            {
-            case PIXEL_8:
-                putsprite_8(x, y, 0, fonts[which].token[((int)(*buf)) & 0xFF], screen, NULL, NULL);
-                break;
-            case PIXEL_16:
-                putsprite_x8p16(x, y, 0, fonts[which].token[((int)(*buf)) & 0xFF], screen, NULL, NULL);
-                break;
-            case PIXEL_32:
-                putsprite_x8p32(x, y, 0, fonts[which].token[((int)(*buf)) & 0xFF], screen, NULL, NULL);
-                break;
-            }
+		{
+			switch(screen->pixelformat)
+			{
+			case PIXEL_8:
+				putsprite_8(x, y, 0, fonts[which].token[((int)(*buf)) & 0xFF], screen, NULL, NULL);
+				break;
+			case PIXEL_16:
+				putsprite_x8p16(x, y, 0, fonts[which].token[((int)(*buf)) & 0xFF], screen, NULL, NULL);
+				break;
+			case PIXEL_32:
+				putsprite_x8p32(x, y, 0, fonts[which].token[((int)(*buf)) & 0xFF], screen, NULL, NULL);
+				break;
+			}
 			x += fonts[which].token_width[((int)(*buf)) & 0xFF];
 		}
 		else if(*buf=='\n'){

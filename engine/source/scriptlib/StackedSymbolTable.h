@@ -23,7 +23,7 @@ void StackedSymbolTable_PushScope(StackedSymbolTable* sstable, LPCSTR scopeName 
 SymbolTable* StackedSymbolTable_TopScope(StackedSymbolTable* sstable);
 void StackedSymbolTable_PopScope(StackedSymbolTable* sstable) ;
 BOOL StackedSymbolTable_FindSymbol(StackedSymbolTable* sstable, LPCSTR symbolName,
-                                     Symbol** pp_theSymbol );
+									 Symbol** pp_theSymbol );
 void StackedSymbolTable_AddSymbol(StackedSymbolTable* sstable, Symbol* p_theSymbol ) ;
 #endif
 
