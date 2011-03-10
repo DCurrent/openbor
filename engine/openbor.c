@@ -103,9 +103,7 @@ const s_attack emptyattack = {
 	0,  // dot_time
 	0,  // dot_force
 	0,  // dot_rate
-   {0,
-	0,
-	0}, // dropv
+	{0,	0,	0}, // dropv
 	0,  // otg
 	0,  // jugglecost
 	0,  // Guardcost
@@ -7577,7 +7575,7 @@ static void _readbarstatus(char* buf, s_barstatus* pstatus)
 void load_levelorder()
 {
 	char filename[128] = "";
-	int i;
+	int i,j;
 	char *buf;
 	size_t size;
 	int pos;
@@ -7801,279 +7799,176 @@ void load_levelorder()
 
 				strncpy(branch_name, GET_ARG(1), MAX_NAME_LEN);
 				break;
-			case CMD_LEVELORDER_P1LIFE:
-				if((arg=GET_ARG(1))[0]) plife[0][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) plife[0][1] = atoi(arg);
+			case CMD_LEVELORDER_P1LIFE: case CMD_LEVELORDER_P2LIFE: case CMD_LEVELORDER_P3LIFE: case CMD_LEVELORDER_P4LIFE:
+				switch(cmd) {
+					case CMD_LEVELORDER_P1LIFE: i = 0; break;
+					case CMD_LEVELORDER_P2LIFE: i = 1; break;
+					case CMD_LEVELORDER_P3LIFE: i = 2; plifeUsed[0] = 1; break;
+					case CMD_LEVELORDER_P4LIFE: i = 3; plifeUsed[1] = 1; break;
+					default: assert(0);
+				}
+				if((arg=GET_ARG(1))[0]) plife[i][0] = atoi(arg);
+				if((arg=GET_ARG(2))[0]) plife[i][1] = atoi(arg);
 				break;
-			case CMD_LEVELORDER_P2LIFE:
-				if((arg=GET_ARG(1))[0]) plife[1][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) plife[1][1] = atoi(arg);
+			case CMD_LEVELORDER_P1MP: case CMD_LEVELORDER_P2MP: case CMD_LEVELORDER_P3MP: case CMD_LEVELORDER_P4MP:
+				switch(cmd) {
+					case CMD_LEVELORDER_P1MP: i = 0; break;
+					case CMD_LEVELORDER_P2MP: i = 1; break;
+					case CMD_LEVELORDER_P3MP: i = 2; break;
+					case CMD_LEVELORDER_P4MP: i = 3; break;
+					default: assert(0);
+				}
+				if((arg=GET_ARG(1))[0]) pmp[i][0] = atoi(arg);
+				if((arg=GET_ARG(2))[0]) pmp[i][1] = atoi(arg);
+				pmpUsed[i] = 1;
 				break;
-			case CMD_LEVELORDER_P3LIFE:	
-				if((arg=GET_ARG(1))[0]) plife[2][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) plife[2][1] = atoi(arg);
-				plifeUsed[0] = 1;
-				break;
-			case CMD_LEVELORDER_P4LIFE:
-				if((arg=GET_ARG(1))[0]) plife[3][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) plife[3][1] = atoi(arg);
-				plifeUsed[1] = 1;
-				break;
-			case CMD_LEVELORDER_P1MP:
-				if((arg=GET_ARG(1))[0]) pmp[0][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) pmp[0][1] = atoi(arg);
-				pmpUsed[0] = 1;
-				break;
-			case CMD_LEVELORDER_P2MP:	
-				if((arg=GET_ARG(1))[0]) pmp[1][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) pmp[1][1] = atoi(arg);
-				pmpUsed[1] = 1;
-				break;
-			case CMD_LEVELORDER_P3MP:
-				if((arg=GET_ARG(1))[0]) pmp[2][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) pmp[2][1] = atoi(arg);
-				pmpUsed[2] = 1;
-				break;
-			case CMD_LEVELORDER_P4MP:
-				if((arg=GET_ARG(1))[0]) pmp[3][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) pmp[3][1] = atoi(arg);
-				pmpUsed[3] = 1;
-				break;
-			case CMD_LEVELORDER_P1LIFEX:
+			case CMD_LEVELORDER_P1LIFEX: case CMD_LEVELORDER_P2LIFEX: case CMD_LEVELORDER_P3LIFEX: case CMD_LEVELORDER_P4LIFEX:
+				switch(cmd) {
+					case CMD_LEVELORDER_P1LIFEX: j = 0; break; 
+					case CMD_LEVELORDER_P2LIFEX: j = 1; break;
+					case CMD_LEVELORDER_P3LIFEX: j = 2; break;
+					case CMD_LEVELORDER_P4LIFEX: j = 3; break;
+					default: assert(0);
+				}
 				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) plifeX[0][i] = atoi(arg);
-				plifeXused[0] = 1;
+					if((arg=GET_ARG(i+1))[0]) plifeX[j][i] = atoi(arg);
+				plifeXused[j] = 1;
 				break;
-			case CMD_LEVELORDER_P2LIFEX:
+			case CMD_LEVELORDER_P1LIFEN: case CMD_LEVELORDER_P2LIFEN: case CMD_LEVELORDER_P3LIFEN: case CMD_LEVELORDER_P4LIFEN:
+				switch(cmd) {
+					case CMD_LEVELORDER_P1LIFEN: j = 0; break;
+					case CMD_LEVELORDER_P2LIFEN: j = 1; break;
+					case CMD_LEVELORDER_P3LIFEN: j = 2; break;
+					case CMD_LEVELORDER_P4LIFEN: j = 3; break;
+					default: assert(0);
+				}
 				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) plifeX[1][i] = atoi(arg);
-				plifeXused[1] = 1;
+					if((arg=GET_ARG(i+1))[0]) plifeN[j][i] = atoi(arg);
+				plifeNused[j] = 1;
 				break;
-			case CMD_LEVELORDER_P3LIFEX:	
-				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) plifeX[2][i] = atoi(arg);
-				plifeXused[2] = 1;
+			case CMD_LEVELORDER_E1LIFE: case CMD_LEVELORDER_E2LIFE: case CMD_LEVELORDER_E3LIFE: case CMD_LEVELORDER_E4LIFE:
+				switch(cmd) {
+					case CMD_LEVELORDER_E1LIFE: i = 0; break;
+					case CMD_LEVELORDER_E2LIFE: i = 1; break;
+					case CMD_LEVELORDER_E3LIFE: i = 2; elifeUsed[0] = 1; break;
+					case CMD_LEVELORDER_E4LIFE: i = 3; elifeUsed[1] = 1; break;
+					default: assert(0);
+				}
+				if((arg=GET_ARG(1))[0]) elife[i][0] = atoi(arg);
+				if((arg=GET_ARG(2))[0]) elife[i][1] = atoi(arg);
 				break;
-			case CMD_LEVELORDER_P4LIFEX:
-				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) plifeX[3][i] = atoi(arg);
-				plifeXused[3] = 1;
+			case CMD_LEVELORDER_P1ICON: case CMD_LEVELORDER_P2ICON: case CMD_LEVELORDER_P3ICON: case CMD_LEVELORDER_P4ICON:
+				switch(cmd) {
+					case CMD_LEVELORDER_P1ICON: i = 0; break;
+					case CMD_LEVELORDER_P2ICON: i = 1; break;
+					case CMD_LEVELORDER_P3ICON: i = 2; piconUsed[0] = 1; break;
+					case CMD_LEVELORDER_P4ICON: i = 3; piconUsed[1] = 1; break;
+					default: assert(0);
+				}
+				if((arg=GET_ARG(1))[0]) picon[i][0] = atoi(arg);
+				if((arg=GET_ARG(2))[0]) picon[i][1] = atoi(arg);
 				break;
-			case CMD_LEVELORDER_P1LIFEN:
-				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) plifeN[0][i] = atoi(arg);
-				plifeNused[0] = 1;
+			case CMD_LEVELORDER_P1ICONW: case CMD_LEVELORDER_P2ICONW: case CMD_LEVELORDER_P3ICONW: case CMD_LEVELORDER_P4ICONW:
+				switch(cmd) {
+					case CMD_LEVELORDER_P1ICONW: i = 0; break;
+					case CMD_LEVELORDER_P2ICONW: i = 1; break;
+					case CMD_LEVELORDER_P3ICONW: i = 2; piconwUsed[0] = 1; break;
+					case CMD_LEVELORDER_P4ICONW: i = 3; piconwUsed[1] = 1; break;
+					default: assert(0);
+				}
+				if((arg=GET_ARG(1))[0]) piconw[i][0] = atoi(arg);
+				if((arg=GET_ARG(2))[0]) piconw[i][1] = atoi(arg);
 				break;
-			case CMD_LEVELORDER_P2LIFEN:	
-				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) plifeN[1][i] = atoi(arg);
-				plifeNused[1] = 1;
+			case CMD_LEVELORDER_MP1ICON: case CMD_LEVELORDER_MP2ICON: case CMD_LEVELORDER_MP3ICON: case CMD_LEVELORDER_MP4ICON:
+				switch(cmd) {
+					case CMD_LEVELORDER_MP1ICON: i = 0; break;
+					case CMD_LEVELORDER_MP2ICON: i = 1; break;
+					case CMD_LEVELORDER_MP3ICON: i = 2; break;
+					case CMD_LEVELORDER_MP4ICON: i = 3; break;
+					default: assert(0);
+				}
+				if((arg=GET_ARG(1))[0]) mpicon[i][0] = atoi(arg);
+				if((arg=GET_ARG(2))[0]) mpicon[i][1] = atoi(arg);
 				break;
-			case CMD_LEVELORDER_P3LIFEN:
-				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) plifeN[2][i] = atoi(arg);
-				plifeNused[2] = 1;
-				break;
-			case CMD_LEVELORDER_P4LIFEN:
-				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) plifeN[3][i] = atoi(arg);
-				plifeNused[3] = 1;
-				break;
-			case CMD_LEVELORDER_E1LIFE:
-				if((arg=GET_ARG(1))[0]) elife[0][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) elife[0][1] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_E2LIFE:
-				if((arg=GET_ARG(1))[0]) elife[1][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) elife[1][1] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_E3LIFE:	
-				if((arg=GET_ARG(1))[0]) elife[2][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) elife[2][1] = atoi(arg);
-				elifeUsed[0] = 1;
-				break;
-			case CMD_LEVELORDER_E4LIFE:
-				if((arg=GET_ARG(1))[0]) elife[3][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) elife[3][1] = atoi(arg);
-				elifeUsed[1] = 1;
-				break;
-			case CMD_LEVELORDER_P1ICON:
-				if((arg=GET_ARG(1))[0]) picon[0][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) picon[0][1] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_P2ICON:	
-				if((arg=GET_ARG(1))[0]) picon[1][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) picon[1][1] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_P3ICON:	
-				if((arg=GET_ARG(1))[0]) picon[2][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) picon[2][1] = atoi(arg);
-				piconUsed[0] = 1;
-				break;
-			case CMD_LEVELORDER_P4ICON:	
-				if((arg=GET_ARG(1))[0]) picon[3][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) picon[3][1] = atoi(arg);
-				piconUsed[1] = 1;
-				break;
-			case CMD_LEVELORDER_P1ICONW:
-				if((arg=GET_ARG(1))[0]) piconw[0][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) piconw[0][1] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_P2ICONW:
-				if((arg=GET_ARG(1))[0]) piconw[1][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) piconw[1][1] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_P3ICONW:
-				if((arg=GET_ARG(1))[0]) piconw[2][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) piconw[2][1] = atoi(arg);
-				piconwUsed[0] = 1;
-				break;
-			case CMD_LEVELORDER_P4ICONW:	
-				if((arg=GET_ARG(1))[0]) piconw[3][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) piconw[3][1] = atoi(arg);
-				piconwUsed[1] = 1;
-				break;
-			case CMD_LEVELORDER_MP1ICON:
-				if((arg=GET_ARG(1))[0]) mpicon[0][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) mpicon[0][1] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_MP2ICON:
-				if((arg=GET_ARG(1))[0]) mpicon[1][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) mpicon[1][1] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_MP3ICON:
-				if((arg=GET_ARG(1))[0]) mpicon[2][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) mpicon[2][1] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_MP4ICON:
-				if((arg=GET_ARG(1))[0]) mpicon[3][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) mpicon[3][1] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_P1NAMEJ:	
+			case CMD_LEVELORDER_P1NAMEJ: case CMD_LEVELORDER_P2NAMEJ: case CMD_LEVELORDER_P3NAMEJ: case CMD_LEVELORDER_P4NAMEJ:	
+				switch(cmd) {
+					case CMD_LEVELORDER_P1NAMEJ: j = 0; break;
+					case CMD_LEVELORDER_P2NAMEJ: j = 1; break;
+					case CMD_LEVELORDER_P3NAMEJ: j = 2; break;
+					case CMD_LEVELORDER_P4NAMEJ: j = 3; break;
+					default: assert(0);
+				}
 				for(i=0; i<7; i++)
-					if((arg=GET_ARG(i+1))[0]) pnameJ[0][i] = atoi(arg);
-				pnameJused[0] = 1;
+					if((arg=GET_ARG(i+1))[0]) pnameJ[j][i] = atoi(arg);
+				pnameJused[j] = 1;
 				break;
-			case CMD_LEVELORDER_P2NAMEJ:	
+			case CMD_LEVELORDER_P1SCORE: case CMD_LEVELORDER_P2SCORE: case CMD_LEVELORDER_P3SCORE: case CMD_LEVELORDER_P4SCORE:
+				switch(cmd) {
+					case CMD_LEVELORDER_P1SCORE: j = 0; break;
+					case CMD_LEVELORDER_P2SCORE: j = 1; break;
+					case CMD_LEVELORDER_P3SCORE: j = 2; break;
+					case CMD_LEVELORDER_P4SCORE: j = 3; break;
+					default: assert(0);
+				}
 				for(i=0; i<7; i++)
-					if((arg=GET_ARG(i+1))[0]) pnameJ[1][i] = atoi(arg);
-				pnameJused[1] = 1;
+					if((arg=GET_ARG(i+1))[0]) pscore[j][i] = atoi(arg);
+				pscoreUsed[j] = 1;
 				break;
-			case CMD_LEVELORDER_P3NAMEJ:
-				for(i=0; i<7; i++)
-					if((arg=GET_ARG(i+1))[0]) pnameJ[2][i] = atoi(arg);
-				pnameJused[2] = 1;
-				break;
-			case CMD_LEVELORDER_P4NAMEJ:
-				for(i=0; i<7; i++)
-					if((arg=GET_ARG(i+1))[0]) pnameJ[3][i] = atoi(arg);
-				pnameJused[3] = 1;
-				break;
-			case CMD_LEVELORDER_P1SCORE:
-				for(i=0; i<7; i++)
-					if((arg=GET_ARG(i+1))[0]) pscore[0][i] = atoi(arg);
-				pscoreUsed[0] = 1;
-				break;
-			case CMD_LEVELORDER_P2SCORE:
-				for(i=0; i<7; i++)
-					if((arg=GET_ARG(i+1))[0]) pscore[1][i] = atoi(arg);
-				pscoreUsed[1] = 1;
-				break;
-			case CMD_LEVELORDER_P3SCORE:
-				for(i=0; i<7; i++)
-					if((arg=GET_ARG(i+1))[0]) pscore[2][i] = atoi(arg);
-				pscoreUsed[2] = 1;
-				break;
-			case CMD_LEVELORDER_P4SCORE:
-				for(i=0; i<7; i++)
-					if((arg=GET_ARG(i+1))[0]) pscore[3][i] = atoi(arg);
-				pscoreUsed[3] = 1;
-				break;
-			case CMD_LEVELORDER_P1SHOOT:
+			case CMD_LEVELORDER_P1SHOOT: case CMD_LEVELORDER_P2SHOOT: case CMD_LEVELORDER_P3SHOOT: case CMD_LEVELORDER_P4SHOOT:
+				switch(cmd) {
+					case CMD_LEVELORDER_P1SHOOT: j = 0; break;    
+					case CMD_LEVELORDER_P2SHOOT: j = 1; break;
+					case CMD_LEVELORDER_P3SHOOT: j = 2; break;
+					case CMD_LEVELORDER_P4SHOOT: j = 3; break;
+					default: assert(0);
+				}	
 				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) pshoot[0][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) pshoot[j][i] = atoi(arg);
 				break;
-			case CMD_LEVELORDER_P2SHOOT:
-				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) pshoot[1][i] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_P3SHOOT:
-				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) pshoot[2][i] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_P4SHOOT:	
-				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) pshoot[3][i] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_P1RUSH:
+			case CMD_LEVELORDER_P1RUSH: case CMD_LEVELORDER_P2RUSH: case CMD_LEVELORDER_P3RUSH: case CMD_LEVELORDER_P4RUSH:
+				switch(cmd) {
+					case CMD_LEVELORDER_P1RUSH: j = 0; break;
+					case CMD_LEVELORDER_P2RUSH: j = 1; break;
+					case CMD_LEVELORDER_P3RUSH: j = 2; break;
+					case CMD_LEVELORDER_P4RUSH: j = 3; break;
+					default: assert(0);
+				}
 				for(i=0; i<8; i++)
-					if((arg=GET_ARG(i+1))[0]) prush[0][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) prush[j][i] = atoi(arg);
 				break;
-			case CMD_LEVELORDER_P2RUSH:
-				for(i=0; i<8; i++)
-					if((arg=GET_ARG(i+1))[0]) prush[1][i] = atoi(arg);
+			case CMD_LEVELORDER_E1ICON: case CMD_LEVELORDER_E2ICON: case CMD_LEVELORDER_E3ICON: case CMD_LEVELORDER_E4ICON:
+				switch(cmd) {
+					case CMD_LEVELORDER_E1ICON: i = 0; break;
+					case CMD_LEVELORDER_E2ICON: i = 1; break;
+					case CMD_LEVELORDER_E3ICON: i = 2; eiconUsed[0] = 1; break;
+					case CMD_LEVELORDER_E4ICON: i = 3; eiconUsed[1] = 1; break;
+					default: assert(0);
+				}
+				if((arg=GET_ARG(1))[0]) eicon[i][0] = atoi(arg);
+				if((arg=GET_ARG(2))[0]) eicon[i][1] = atoi(arg);
 				break;
-			case CMD_LEVELORDER_P3RUSH:	
-				for(i=0; i<8; i++)
-					if((arg=GET_ARG(i+1))[0]) prush[2][i] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_P4RUSH:	
-				for(i=0; i<8; i++)
-					if((arg=GET_ARG(i+1))[0]) prush[3][i] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_E1ICON:	
-				if((arg=GET_ARG(1))[0]) eicon[0][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) eicon[0][1] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_E2ICON:
-				if((arg=GET_ARG(1))[0]) eicon[1][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) eicon[1][1] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_E3ICON:	
-				if((arg=GET_ARG(1))[0]) eicon[2][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) eicon[2][1] = atoi(arg);				
-				eiconUsed[0] = 1;
-				break;
-			case CMD_LEVELORDER_E4ICON:				
-				if((arg=GET_ARG(1))[0]) eicon[3][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) eicon[3][1] = atoi(arg);
-				eiconUsed[1] = 1;
-				break;
-			case CMD_LEVELORDER_E1NAME:	
+			case CMD_LEVELORDER_E1NAME: case CMD_LEVELORDER_E2NAME: case CMD_LEVELORDER_E3NAME: case CMD_LEVELORDER_E4NAME:	
+				switch(cmd) {
+					case CMD_LEVELORDER_E1NAME: j = 0; break;
+					case CMD_LEVELORDER_E2NAME: j = 1; break;
+					case CMD_LEVELORDER_E3NAME: j = 2; break;
+					case CMD_LEVELORDER_E4NAME: j = 3; break;
+					default: assert(0);
+				}
 				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) ename[0][i] = atoi(arg);
-				enameused[0] = 1;
+					if((arg=GET_ARG(i+1))[0]) ename[j][i] = atoi(arg);
+				enameused[j] = 1;
 				break;
-			case CMD_LEVELORDER_E2NAME:
-				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) ename[1][i] = atoi(arg);
-				enameused[1] = 1;
-				break;
-			case CMD_LEVELORDER_E3NAME:	
-				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) ename[2][i] = atoi(arg);
-				enameused[2] = 1;
-				break;
-			case CMD_LEVELORDER_E4NAME:
-				for(i=0; i<3; i++)
-					if((arg=GET_ARG(i+1))[0]) ename[3][i] = atoi(arg);
-				enameused[3] = 1;
-				break;
-			case CMD_LEVELORDER_P1SMENU:	
+			case CMD_LEVELORDER_P1SMENU: case CMD_LEVELORDER_P2SMENU: case CMD_LEVELORDER_P3SMENU: case CMD_LEVELORDER_P4SMENU:
+				switch(cmd) {
+					case CMD_LEVELORDER_P1SMENU: j = 0; break;
+					case CMD_LEVELORDER_P2SMENU: j = 1; break;
+					case CMD_LEVELORDER_P3SMENU: j = 2; break;
+					case CMD_LEVELORDER_P4SMENU: j = 3; break;
+					default: assert(0);
+				}
 				for(i=0; i<4; i++)
-					if((arg=GET_ARG(i+1))[0]) psmenu[0][i] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_P2SMENU:	
-				for(i=0; i<4; i++)
-					if((arg=GET_ARG(i+1))[0]) psmenu[1][i] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_P3SMENU:
-				for(i=0; i<4; i++)
-					if((arg=GET_ARG(i+1))[0]) psmenu[2][i] = atoi(arg);
-				break;
-			case CMD_LEVELORDER_P4SMENU:	
-				for(i=0; i<4; i++)
-					if((arg=GET_ARG(i+1))[0]) psmenu[3][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) psmenu[j][i] = atoi(arg);
 				break;
 			case CMD_LEVELORDER_TIMEICON:	
    				strncpy(timeicon_path, GET_ARG(1), 127);
