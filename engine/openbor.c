@@ -10113,382 +10113,399 @@ int alloc_ents()
 // this method initialize an entity's A.I. behaviors
 void ent_default_init(entity* e)
 {
-    int dodrop;
-    int wall;
-    entity *other;
+	int dodrop;
+	int wall;
+	entity *other;
 
 	if(!e) return;
 
-    if((!selectScreen && !time) || e->modeldata.type != TYPE_PLAYER )
-    {
-        if( validanim(e,ANI_SPAWN)) ent_set_anim(e, ANI_SPAWN, 0); // use new playerselect spawn anim
-        //else set_idle(e);
-    }
-    else if(!selectScreen && time && e->modeldata.type == TYPE_PLAYER) // mid-level respawn
-    {
-        if( validanim(e,ANI_RESPAWN)) ent_set_anim(e, ANI_RESPAWN, 0);
-        else if( validanim(e,ANI_SPAWN)) ent_set_anim(e, ANI_SPAWN, 0);
-        //else set_idle(e);
-    }
-    else if(selectScreen && validanim(e,ANI_SELECT)) ent_set_anim(e, ANI_SELECT, 0);
-    //else set_idle(e);
+	if((!selectScreen && !time) || e->modeldata.type != TYPE_PLAYER )
+	{
+		if( validanim(e,ANI_SPAWN)) ent_set_anim(e, ANI_SPAWN, 0); // use new playerselect spawn anim
+		//else set_idle(e);
+	}
+	else if(!selectScreen && time && e->modeldata.type == TYPE_PLAYER) // mid-level respawn
+	{
+		if( validanim(e,ANI_RESPAWN)) ent_set_anim(e, ANI_RESPAWN, 0);
+		else if( validanim(e,ANI_SPAWN)) ent_set_anim(e, ANI_SPAWN, 0);
+		//else set_idle(e);
+	}
+	else if(selectScreen && validanim(e,ANI_SELECT)) ent_set_anim(e, ANI_SELECT, 0);
+	//else set_idle(e);
 
-    if(!level)
-    {
-       if(!e->animation) set_idle(e);
-       return;
-    }
+	if(!level)
+	{
+		if(!e->animation) set_idle(e);
+		return;
+	}
 
-    switch(e->modeldata.type){
-    case TYPE_ENDLEVEL:
-    case TYPE_ITEM:
-        e->nograb = 1;
-        break;
+	switch(e->modeldata.type){
+		case TYPE_ENDLEVEL:
+		case TYPE_ITEM:
+			e->nograb = 1;
+			break;
 
-    case TYPE_PLAYER:
-        //e->direction = (level->scrolldir != SCROLL_LEFT);
-        e->takedamage = player_takedamage;
-        e->think = player_think;
-        e->trymove = player_trymove;
+		case TYPE_PLAYER:
+			//e->direction = (level->scrolldir != SCROLL_LEFT);
+			e->takedamage = player_takedamage;
+			e->think = player_think;
+			e->trymove = player_trymove;
 
-        if(validanim(e,ANI_SPAWN) || validanim(e,ANI_RESPAWN))
-        {
-            e->takeaction = common_spawn;
-        }
-        else if(!e->animation)
-        {
-            if(time && level->spawn[(int)e->playerindex][2] > e->a)
+			if(validanim(e,ANI_SPAWN) || validanim(e,ANI_RESPAWN))
+			{
+				e->takeaction = common_spawn;
+			}
+			else if(!e->animation)
+			{
+				if(time && level->spawn[(int)e->playerindex][2] > e->a)
+				{
+					e->a = (float)level->spawn[(int)e->playerindex][2];
+					if(validanim(e, ANI_JUMP))
+					ent_set_anim(e, ANI_JUMP, 0);
+					e->takeaction = common_drop;
+				}
+			}
+			if(time && e->modeldata.makeinv)
+			{
+						// Spawn invincible code
+				e->invincible = 1;
+				e->blink = (e->modeldata.makeinv > 0);
+				e->invinctime = time + ABS(e->modeldata.makeinv);
+				e->arrowon = 1;    // Display the image above the player
+			}
+			break;
+		case TYPE_NPC: // use NPC(or A.I. player) instread of an enemy subtype or trap subtype, for further A.I. use
+			if(e->modeldata.multiple ==0) e->modeldata.multiple = -1;
 
-            {
-                e->a = (float)level->spawn[(int)e->playerindex][2];
-                if(validanim(e, ANI_JUMP))
-                    ent_set_anim(e, ANI_JUMP, 0);
-                e->takeaction = common_drop;
-            }
-        }
-        if(time && e->modeldata.makeinv)
-        {
-			// Spawn invincible code
-            e->invincible = 1;
-            e->blink = (e->modeldata.makeinv > 0);
-            e->invinctime = time + ABS(e->modeldata.makeinv);
-            e->arrowon = 1;    // Display the image above the player
-        }
+		case TYPE_ENEMY:
+			e->think = common_think;
+			if(e->modeldata.subtype == SUBTYPE_BIKER)
+			{
+				e->nograb = 1;
+				e->attacking = 1;
+				//e->direction = (e->x<0);
+				if(e->modeldata.speed)
+					e->xdir = (e->direction)?(e->modeldata.speed):(-e->modeldata.speed);
+				else 
+					e->xdir = (e->direction)?(1.7 + randf((float)0.6)):(-(1.7 + randf((float)0.6)));
+				e->takedamage = biker_takedamage;
+				break;
+			}
+			// define new subtypes
+			else if(e->modeldata.subtype == SUBTYPE_ARROW)
+			{
+				e->health = 1;
+				if(!e->modeldata.speed && !e->modeldata.nomove)
+					e->modeldata.speed = 2;    // Set default speed to 2 for arrows
+				else if(e->modeldata.nomove)
+					e->modeldata.speed = 0;
+				if(e->ptype)
+					e->base = 0;
+				else 
+					e->base = e->a;
+				e->nograb = 1;
+				e->attacking = 1;
+				e->takedamage = arrow_takedamage;
+				break;
+			}
+			else
+			{
+				e->trymove = common_trymove;
+				// Must just be a regular enemy, set defaults accordingly
+				if(!e->modeldata.speed && !e->modeldata.nomove)
+					e->modeldata.speed = 1;
+				else if(e->modeldata.nomove)
+					e->modeldata.speed = 0;
+				if(e->modeldata.multiple==0)
+					e->modeldata.multiple = 5;
+				e->takedamage = common_takedamage;//enemy_takedamage;
+			}
 
-        break;
+			if(e->modeldata.subtype == SUBTYPE_NOTGRAB) e->nograb = 1;
 
-    case TYPE_NPC: // use NPC(or A.I. player) instread of an enemy subtype or trap subtype, for further A.I. use
-        if(e->modeldata.multiple ==0) e->modeldata.multiple = -1;
+			if(validanim(e,ANI_SPAWN) /*|| validanim(e,ANI_RESPAWN)*/)
+			{
+				e->takeaction = common_spawn;
+			}
+			else
+			{
+				dodrop = (e->modeldata.subtype != SUBTYPE_ARROW && level && (level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN));
 
-    case TYPE_ENEMY:
-        e->think = common_think;
-        if(e->modeldata.subtype == SUBTYPE_BIKER)
-        {
-            e->nograb = 1;
-            e->attacking = 1;
-            //e->direction = (e->x<0);
-            if(e->modeldata.speed) e->xdir = (e->direction)?(e->modeldata.speed):(-e->modeldata.speed);
-            else e->xdir = (e->direction)?(1.7 + randf((float)0.6)):(-(1.7 + randf((float)0.6)));
-            e->takedamage = biker_takedamage;
-            break;
-        }
-        // define new subtypes
-        else if(e->modeldata.subtype == SUBTYPE_ARROW)
-        {
-            e->health = 1;
-            if(!e->modeldata.speed && !e->modeldata.nomove) e->modeldata.speed = 2;    // Set default speed to 2 for arrows
-            else if(e->modeldata.nomove) e->modeldata.speed = 0;
-            if(e->ptype) e->base = 0;
-            else e->base = e->a;
-            e->nograb = 1;
-            e->attacking = 1;
-            e->takedamage = arrow_takedamage;
-            break;
-        }
-        else
-        {
-            e->trymove = common_trymove;
-            // Must just be a regular enemy, set defaults accordingly
-            if(!e->modeldata.speed && !e->modeldata.nomove) e->modeldata.speed = 1;
-            else if(e->modeldata.nomove) e->modeldata.speed = 0;
-            if(e->modeldata.multiple==0) e->modeldata.multiple = 5;
-            e->takedamage = common_takedamage;//enemy_takedamage;
-        }
+				if(dodrop || (e->x > advancex-30 && e->x < advancex + videomodes.hRes+30 && e->a == 0))
+				{
+					e->a += videomodes.vRes + randf(40);
+					e->takeaction = common_drop;//enemy_drop;
+					if(validanim(e, ANI_JUMP)) ent_set_anim(e, ANI_JUMP, 0);
+				}
+			}
+			break;
+		// define trap type
+		case TYPE_TRAP:
+			e->think = trap_think;
+			e->takedamage =  common_takedamage;//enemy_takedamage;
+			break;
+		case TYPE_OBSTACLE:
+			e->nograb = 1;
+			if(e->health<=0) 
+				e->dead = 1; // so it won't get hit
+			e->takedamage = obstacle_takedamage;//obstacle_takedamage;
+			break;
+		case TYPE_STEAMER:
+			e->nograb = 1;
+			e->think = steamer_think;
+			e->base = e->a;
+			break;
+		case TYPE_TEXTBOX:    // New type for displaying text purposes
+			e->nograb = 1;
+			e->think = text_think;
+			break;
+		case TYPE_SHOT:
+			e->health = 1;
+			e->nograb = 1;
+			e->think = common_think;
+			e->takedamage = arrow_takedamage;
+			e->attacking = 1;
+			if(!e->model->speed && !e->modeldata.nomove)
+				e->modeldata.speed = 2;    // Set default speed to 2 for arrows
+			else if(e->modeldata.nomove)
+				e->modeldata.speed = 0;
+			if(e->ptype)
+				e->base = 0;
+			else 
+				e->base = e->a;
+			break;
+		case TYPE_NONE:
+			e->nograb = 1;
+			if(e->modeldata.subject_to_gravity<0) e->modeldata.subject_to_gravity = 1;
+			//e->base=e->a; //complained?
+			if(e->modeldata.no_adjust_base<0) e->modeldata.no_adjust_base= 1;
 
-        if(e->modeldata.subtype == SUBTYPE_NOTGRAB) e->nograb = 1;
+			if(validanim(e,ANI_WALK))
+			{
+				if(e->direction) e->xdir = e->modeldata.speed;
+				else e->xdir = -(e->modeldata.speed);
+				e->think = anything_walk;
 
-        if(validanim(e,ANI_SPAWN) /*|| validanim(e,ANI_RESPAWN)*/)
-        {
-            e->takeaction = common_spawn;
-        }
-        else
-        {
-            dodrop = (e->modeldata.subtype != SUBTYPE_ARROW && level && (level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN));
+				common_walk_anim(e);
+				//ent_set_anim(e, ANI_WALK, 0);
+			}
+			break;
+		case TYPE_PANEL:
+			e->nograb = 1;
+			break;
+	}
+	if(!e->animation){
+		set_idle(e);
+	}
 
-            if(dodrop || (e->x > advancex-30 && e->x < advancex + videomodes.hRes+30 && e->a == 0))
-            {
-                e->a += videomodes.vRes + randf(40);
-                e->takeaction = common_drop;//enemy_drop;
-                if(validanim(e, ANI_JUMP)) ent_set_anim(e, ANI_JUMP, 0);
-            }
-        }
-        break;
-        // define trap type
-    case TYPE_TRAP:
-        e->think = trap_think;
-        e->takedamage =  common_takedamage;//enemy_takedamage;
-        break;
-        //
+	if(e->modeldata.multiple < 0)
+		e->modeldata.multiple = 0;
 
-    case TYPE_OBSTACLE:
-        e->nograb = 1;
-        if(e->health<=0) e->dead = 1; // so it won't get hit
-        e->takedamage = obstacle_takedamage;//obstacle_takedamage;
-        break;
-
-    case TYPE_STEAMER:
-        e->nograb = 1;
-        e->think = steamer_think;
-        e->base = e->a;
-        break;
-
-    case TYPE_TEXTBOX:    // New type for displaying text purposes
-        e->nograb = 1;
-        e->think = text_think;
-        break;
-
-    case TYPE_SHOT:
-        e->health = 1;
-        e->nograb = 1;
-        e->think = common_think;
-        e->takedamage = arrow_takedamage;
-        e->attacking = 1;
-        if(!e->model->speed && !e->modeldata.nomove) e->modeldata.speed = 2;    // Set default speed to 2 for arrows
-        else if(e->modeldata.nomove) e->modeldata.speed = 0;
-        if(e->ptype) e->base = 0;
-		else e->base = e->a;
-        break;
-
-    case TYPE_NONE:
-        e->nograb = 1;
-        if(e->modeldata.subject_to_gravity<0) e->modeldata.subject_to_gravity = 1;
-        //e->base=e->a; //complained?
-        if(e->modeldata.no_adjust_base<0) e->modeldata.no_adjust_base= 1;
-
-        if(validanim(e,ANI_WALK))
-        {
-            if(e->direction) e->xdir = e->modeldata.speed;
-            else e->xdir = -(e->modeldata.speed);
-            e->think = anything_walk;
-
-            common_walk_anim(e);
-            //ent_set_anim(e, ANI_WALK, 0);
-        }
-
-        break;
-    case TYPE_PANEL:
-        e->nograb = 1;
-        break;
-    }
-    if(!e->animation){
-        set_idle(e);
-    }
-
-    if(e->modeldata.multiple < 0) e->modeldata.multiple = 0;
-
-    if(e->modeldata.subject_to_platform>0 && (other=check_platform_below(e->x, e->z, e->a+1)) && other != e)    e->base += other->a + other->animation->platform[other->animpos][7];
-    else if(e->modeldata.subject_to_wall>0 && (wall=checkwall_below(e->x, e->z, 9999999)) >= 0) e->base += level->walls[wall][7];
+	if(e->modeldata.subject_to_platform>0 && (other=check_platform_below(e->x, e->z, e->a+1)) && other != e)
+		e->base += other->a + other->animation->platform[other->animpos][7];
+	else if(e->modeldata.subject_to_wall>0 && (wall=checkwall_below(e->x, e->z, 9999999)) >= 0)
+		e->base += level->walls[wall][7];
 }
 
 void ent_spawn_ent(entity* ent)
 {
-    entity* s_ent = NULL;
-    float* spawnframe = ent->animation->spawnframe;
+	entity* s_ent = NULL;
+	float* spawnframe = ent->animation->spawnframe;
 	// spawn point relative to current entity
-    if(spawnframe[4] == 0)
-        s_ent = spawn(ent->x + ((ent->direction)?spawnframe[1]:-spawnframe[1]),ent->z + spawnframe[2], ent->a + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
-    //relative to screen position
+	if(spawnframe[4] == 0)
+		s_ent = spawn(ent->x + ((ent->direction)?spawnframe[1]:-spawnframe[1]),ent->z + spawnframe[2], ent->a + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
+	//relative to screen position
 	else if(spawnframe[4] == 1)
 	{
-        if(level && !(level->scrolldir&SCROLL_UP) && !(level->scrolldir&SCROLL_DOWN)) s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
-        else s_ent = spawn(advancex+spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
-    }
-    //absolute position in level
+		if(level && !(level->scrolldir&SCROLL_UP) && !(level->scrolldir&SCROLL_DOWN)) 
+			s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+		else 
+			s_ent = spawn(advancex+spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+	}
+	//absolute position in level
 	else s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3]+0.001, 0, NULL, ent->animation->subentity, NULL);
 
-    if(s_ent)
+	if(s_ent)
 	{
-        //ent_default_init(s_ent);
-        if(s_ent->modeldata.type & TYPE_SHOT) s_ent->playerindex = ent->playerindex;
-        if(s_ent->modeldata.subtype == SUBTYPE_ARROW) s_ent->owner = ent;
-        s_ent->parent = ent;  //maybe used by A.I.
-        execute_onspawn_script(s_ent);
-    }
+		//ent_default_init(s_ent);
+		if(s_ent->modeldata.type & TYPE_SHOT) s_ent->playerindex = ent->playerindex;
+		if(s_ent->modeldata.subtype == SUBTYPE_ARROW) s_ent->owner = ent;
+		s_ent->parent = ent;  //maybe used by A.I.
+		execute_onspawn_script(s_ent);
+	}
 }
 
 void ent_summon_ent(entity* ent){
-    entity* s_ent = NULL;
-    float* spawnframe = ent->animation->summonframe;
-    // spawn point relative to current entity
+	entity* s_ent = NULL;
+	float* spawnframe = ent->animation->summonframe;
+	// spawn point relative to current entity
 	if(spawnframe[4] == 0)
-        s_ent = spawn(ent->x + ((ent->direction)?spawnframe[1]:-spawnframe[1]),ent->z + spawnframe[2],  ent->a + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
-    //relative to screen position
+		s_ent = spawn(ent->x + ((ent->direction)?spawnframe[1]:-spawnframe[1]),ent->z + spawnframe[2],  ent->a + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
+	//relative to screen position
 	else if(spawnframe[4] == 1)
 	{
-        if(level && !(level->scrolldir&SCROLL_UP) && !(level->scrolldir&SCROLL_DOWN)) s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
-        else s_ent = spawn(advancex+spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
-    }
-    //absolute position in level
-	else s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+		if(level && !(level->scrolldir&SCROLL_UP) && !(level->scrolldir&SCROLL_DOWN)) 
+			s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+		else 
+			s_ent = spawn(advancex+spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+	}
+	//absolute position in level
+	else 
+		s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 
-    if(s_ent)
+	if(s_ent)
 	{
-        if(!spawnframe[4]) s_ent->direction = ent->direction;
-        //ent_default_init(s_ent);
-        if(s_ent->modeldata.type & TYPE_SHOT) s_ent->playerindex = ent->playerindex;
-        if(s_ent->modeldata.subtype == SUBTYPE_ARROW) s_ent->owner = ent;
+		if(!spawnframe[4]) 
+			s_ent->direction = ent->direction;
+		//ent_default_init(s_ent);
+		if(s_ent->modeldata.type & TYPE_SHOT) 
+			s_ent->playerindex = ent->playerindex;
+		if(s_ent->modeldata.subtype == SUBTYPE_ARROW) 
+			s_ent->owner = ent;
 		//maybe used by A.I.
-        s_ent->parent = ent;
-        ent->subentity = s_ent;
-        execute_onspawn_script(s_ent);
-    }
+		s_ent->parent = ent;
+		ent->subentity = s_ent;
+		execute_onspawn_script(s_ent);
+	}
 }
 
 // move here to prevent some duplicated code in ent_sent_anim and update_ents
 void update_frame(entity* ent, int f)
 {
-    entity* tempself;
+	entity* tempself;
 	entity* dust;
-    s_attack attack;
-    float move, movez, movea;
-    int iDelay, iED_Mode, iED_Capmin, iED_CapMax, iED_RangeMin, iED_RangeMax;
-    float fED_Factor;
-    //important!
-    tempself = self;
-    self = ent;
+	s_attack attack;
+	float move, movez, movea;
+	int iDelay, iED_Mode, iED_Capmin, iED_CapMax, iED_RangeMin, iED_RangeMax;
+	float fED_Factor;
+	//important!
+	tempself = self;
+	self = ent;
 	assert(f < self->animation->numframes);
-    self->animpos = f;
-    //self->currentsprite = self->animation->sprite[f];
+	self->animpos = f;
+	//self->currentsprite = self->animation->sprite[f];
 
-    if(self->animating){
-        iDelay          = self->animation->delay[f];
-        iED_Mode        = self->modeldata.edelay.mode;
-        fED_Factor      = self->modeldata.edelay.factor;
-        iED_Capmin      = self->modeldata.edelay.cap_min;
-        iED_CapMax      = self->modeldata.edelay.cap_max;
-        iED_RangeMin    = self->modeldata.edelay.range_min;
-        iED_RangeMax    = self->modeldata.edelay.range_max;
+	if(self->animating){
+		iDelay          = self->animation->delay[f];
+		iED_Mode        = self->modeldata.edelay.mode;
+		fED_Factor      = self->modeldata.edelay.factor;
+		iED_Capmin      = self->modeldata.edelay.cap_min;
+		iED_CapMax      = self->modeldata.edelay.cap_max;
+		iED_RangeMin    = self->modeldata.edelay.range_min;
+		iED_RangeMax    = self->modeldata.edelay.range_max;
 
-        if (iDelay >= iED_RangeMin && iDelay <= iED_RangeMax) //Regular delay within ignore ranges?
-        {
-            switch(iED_Mode)
-            {
-                case 1:
-                    iDelay = (int)(iDelay * fED_Factor);
-                    break;
-                default:
-                    iDelay += (int)fED_Factor;
-                    break;
-            }
+		if (iDelay >= iED_RangeMin && iDelay <= iED_RangeMax) //Regular delay within ignore ranges?
+		{
+			switch(iED_Mode)
+			{
+				case 1:
+					iDelay = (int)(iDelay * fED_Factor);
+					break;
+				default:
+					iDelay += (int)fED_Factor;
+					break;
+			}
 
-            if (iED_Capmin && iDelay < iED_Capmin){ iDelay = iED_Capmin; }
-            if (iED_CapMax && iDelay > iED_CapMax){ iDelay = iED_CapMax; }
-        }
+			if (iED_Capmin && iDelay < iED_Capmin){ iDelay = iED_Capmin; }
+			if (iED_CapMax && iDelay > iED_CapMax){ iDelay = iED_CapMax; }
+		}
 
-        self->nextanim = time + iDelay;
-        execute_animation_script(self);
-    }
+		self->nextanim = time + iDelay;
+		execute_animation_script(self);
+	}
 
-    if(level && (self->animation->move || self->animation->movez))
-    {
-        move = (float)(self->animation->move?self->animation->move[f]:0);
-        movez = (float)(self->animation->movez?self->animation->movez[f]:0);
-        if(self->direction==0) move = -move;
-        if(movez || move)
-        {
-            if(self->trymove)
-            {
-                self->trymove(move, movez);
-            }
-            else
-            {
-                self->x += move;
-                self->z += movez;
-            }
-        }
-    }
+	if(level && (self->animation->move || self->animation->movez))
+	{
+		move = (float)(self->animation->move?self->animation->move[f]:0);
+		movez = (float)(self->animation->movez?self->animation->movez[f]:0);
+		if(self->direction==0) move = -move;
+		if(movez || move)
+		{
+			if(self->trymove)
+			{
+				self->trymove(move, movez);
+			}
+			else
+			{
+				self->x += move;
+				self->z += movez;
+			}
+		}
+	}
 
-	if(self->animation->seta && self->animation->seta[0] >= 0 && self->base <= 0) ent->base = (float)ent->animation->seta[0];
+	if(self->animation->seta && self->animation->seta[0] >= 0 && self->base <= 0) 
+		ent->base = (float)ent->animation->seta[0];
 	else if(!self->animation->seta || self->animation->seta[0] < 0)
 	{
-	   movea = (float)(self->animation->movea?self->animation->movea[f]:0);
-       self->base += movea;
-       if(movea!=0) self->altbase += movea;
-       else self->altbase = 0;
-    }
+		movea = (float)(self->animation->movea?self->animation->movea[f]:0);
+		self->base += movea;
+		if(movea!=0) self->altbase += movea;
+		else self->altbase = 0;
+	}
 
-    if(self->animation->flipframe == f) self->direction = !self->direction;
+	if(self->animation->flipframe == f) self->direction = !self->direction;
 
-    if(self->animation->weaponframe && self->animation->weaponframe[0] == f)
-    {
+	if(self->animation->weaponframe && self->animation->weaponframe[0] == f)
+	{
 		dropweapon(2);
 		set_weapon(self, self->animation->weaponframe[1], 0);
 		self->idling = 1;
-    }
+	}
 
 	if(self->animation->quakeframe[0]+self->animation->quakeframe[3] == f)
-    {
+	{
 		if(self->animation->quakeframe[3]%2 || self->animation->quakeframe[2] > 0) quake = self->animation->quakeframe[2];
 		else quake = self->animation->quakeframe[2] * -1;
 		if((self->animation->quakeframe[1]-self->animation->quakeframe[3]) > 1) self->animation->quakeframe[3]++;
 		else self->animation->quakeframe[3] = 0;
-    }
+	}
 
-    //spawn / summon /unsummon features
-    if(self->animation->spawnframe && self->animation->spawnframe[0] == f && self->animation->subentity) ent_spawn_ent(self);
+	//spawn / summon /unsummon features
+	if(self->animation->spawnframe && self->animation->spawnframe[0] == f && self->animation->subentity) ent_spawn_ent(self);
 
-    if(self->animation->summonframe && self->animation->summonframe[0] == f && self->animation->subentity)
-    {
+	if(self->animation->summonframe && self->animation->summonframe[0] == f && self->animation->subentity)
+	{
 		//subentity is dead
 		if(!self->subentity || self->subentity->dead) ent_summon_ent(self);
-    }
+	}
 
-    if(self->animation->unsummonframe == f)
-    {
-        if(self->subentity)
-        {
-            self = self->subentity;
-            attack = emptyattack;
-            attack.dropv[0] = (float)3; attack.dropv[1] = (float)1.2; attack.dropv[2] = (float)0;
-            attack.attack_force = self->health;
-            attack.attack_type = max_attack_types;
-            if(self->takedamage) self->takedamage(self, &attack);
-            else kill(self);
-            self = ent; // lol ...
-            self->subentity = NULL;
-        }
-    }
+	if(self->animation->unsummonframe == f)
+	{
+		if(self->subentity)
+		{
+			self = self->subentity;
+			attack = emptyattack;
+			attack.dropv[0] = (float)3; attack.dropv[1] = (float)1.2; attack.dropv[2] = (float)0;
+			attack.attack_force = self->health;
+			attack.attack_type = max_attack_types;
+			if(self->takedamage) self->takedamage(self, &attack);
+			else kill(self);
+			self = ent; // lol ...
+			self->subentity = NULL;
+		}
+	}
 
-    if(self->animation->soundtoplay && self->animation->soundtoplay[f] >= 0) sound_play_sample(self->animation->soundtoplay[f], 0, savedata.effectvol,savedata.effectvol, 100);
+	if(self->animation->soundtoplay && self->animation->soundtoplay[f] >= 0)
+		sound_play_sample(self->animation->soundtoplay[f], 0, savedata.effectvol,savedata.effectvol, 100);
 
-    if(self->animation->jumpframe == f)
-    {
-        // Set custom jumpheight for jumpframes
+	if(self->animation->jumpframe == f)
+	{
+		// Set custom jumpheight for jumpframes
 		/*if(self->animation->jumpv > 0)*/ toss(self, self->animation->jumpv);
-        self->xdir = self->direction?self->animation->jumpx:-self->animation->jumpx;
-        self->zdir = self->animation->jumpz;
+		self->xdir = self->direction?self->animation->jumpx:-self->animation->jumpx;
+		self->zdir = self->animation->jumpz;
 
 		if(self->animation->jumpd>=0)
-        {
-            dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->animation->jumpd, NULL);
-            dust->base = self->a;
-            dust->autokill = 1;
-            execute_onspawn_script(dust);
-        }
-    }
+		{
+			dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->animation->jumpd, NULL);
+			dust->base = self->a;
+			dust->autokill = 1;
+			execute_onspawn_script(dust);
+		}
+	}
 
-    if(self->animation->throwframe == f)
-    {
+	if(self->animation->throwframe == f)
+	{
 		// For backward compatible thing
 		// throw stars in the air, hmm, strange
 		// custstar custknife in animation should be checked first
@@ -10496,55 +10513,65 @@ void update_frame(entity* ent, int f)
 		// well, try knife at last, if still failed, try star, or just let if shutdown?
 #define __trystar star_spawn(self->x + (self->direction ? 56 : -56), self->z, self->a+67, self->direction)
 #define __tryknife knife_spawn(NULL, -1, self->x, self->z, self->a + self->animation->throwa, self->direction, 0, 0)
-		if(self->animation->custknife>=0 || self->animation->custpshotno>=0) __tryknife;
-        else if(self->animation->custstar>=0) __trystar;
-        else if(self->jumping) { if(!__trystar) __tryknife;}
-        else if(!__tryknife) __trystar;
-        self->reactive=1;
-    }
+		if(self->animation->custknife>=0 || self->animation->custpshotno>=0)
+			__tryknife;
+		else if(self->animation->custstar>=0) 
+			__trystar;
+		else if(self->jumping) { 
+			if(!__trystar) 
+				__tryknife;
+		}
+		else if(!__tryknife) 
+			__trystar;
+		self->reactive=1;
+	}
 
 	if(self->animation->shootframe == f)
-    {
-        knife_spawn(NULL, -1, self->x, self->z, self->a, self->direction, 1, 0);
-        self->reactive=1;
-    }
+	{
+		knife_spawn(NULL, -1, self->x, self->z, self->a, self->direction, 1, 0);
+		self->reactive=1;
+	}
 
-    if(self->animation->tossframe == f)
-    {
-        bomb_spawn(NULL, -1, self->x, self->z, self->a + self->animation->throwa, self->direction, 0);
-        self->reactive=1;
-    }
-    //important!
-    self = tempself;
+	if(self->animation->tossframe == f)
+	{
+		bomb_spawn(NULL, -1, self->x, self->z, self->a + self->animation->throwa, self->direction, 0);
+		self->reactive=1;
+	}
+	//important!
+	self = tempself;
 }
 
 
 void ent_set_anim(entity *ent, int aninum, int resetable)
 {
-    s_anim *ani = NULL;
+	s_anim *ani = NULL;
 
-    if(ent==NULL) shutdown(1, "FATAL: tried to set animation with invalid address (no such object)");
-    if(aninum<0 || aninum>=max_animations) shutdown(1, "FATAL: tried to set animation with invalid index (%s, %i)", ent->name, aninum);
+	if(ent==NULL) shutdown(1, "FATAL: tried to set animation with invalid address (no such object)");
+	if(aninum<0 || aninum>=max_animations) shutdown(1, "FATAL: tried to set animation with invalid index (%s, %i)", ent->name, aninum);
 
-    if(!validanim(ent, aninum)) shutdown(1, "FATAL: tried to set animation with invalid address (%s, %i)", ent->name, aninum);
+	if(!validanim(ent, aninum)) shutdown(1, "FATAL: tried to set animation with invalid address (%s, %i)", ent->name, aninum);
 
-    ani = ent->modeldata.animation[aninum];
+	ani = ent->modeldata.animation[aninum];
 
-    if(!resetable && ent->animation == ani) return;
+	if(!resetable && ent->animation == ani) 
+		return;
 
-    if(ani->numframes == 0) return;
+	if(ani->numframes == 0) 
+		return;
 
-    if(aninum!=ANI_SLEEP) ent->sleeptime = time + ent->modeldata.sleepwait;
-    ent->animation = ani;
-    ent->animnum = aninum;    // Stored for nocost usage
+	if(aninum!=ANI_SLEEP) 
+		ent->sleeptime = time + ent->modeldata.sleepwait;
+	ent->animation = ani;
+	ent->animnum = aninum;    // Stored for nocost usage
 	ent->animation->animhits = 0;
 
-    if(!resetable) ent->lastanimpos = -1;
-    ent->animating = 1;
-    ent->lasthit = ent->grabbing;
-    ent->altbase = 0;
+	if(!resetable) 
+		ent->lastanimpos = -1;
+	ent->animating = 1;
+	ent->lasthit = ent->grabbing;
+	ent->altbase = 0;
 
-    update_frame(ent, 0);
+	update_frame(ent, 0);
 }
 
 
@@ -10552,263 +10579,291 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 // 0 = none, 1+ = alternative
 void ent_set_colourmap(entity *ent, unsigned int which)
 {
-    if(which>MAX_COLOUR_MAPS) which = 0;
-    if(which==0) ent->colourmap = NULL;
-    else ent->colourmap = ent->modeldata.colourmap[which-1];
-    ent->map = which;
+	if(which>MAX_COLOUR_MAPS) which = 0;
+	if(which==0) 
+		ent->colourmap = NULL;
+	else 
+		ent->colourmap = ent->modeldata.colourmap[which-1];
+	ent->map = which;
 }
 
 // used by ent_set_model
 void ent_copy_uninit(entity* ent, s_model* oldmodel)
 {
-    if(ent->modeldata.multiple<0)               ent->modeldata.multiple             = oldmodel->multiple;
-    if(ent->modeldata.subject_to_wall<0)        ent->modeldata.subject_to_wall      = oldmodel->subject_to_wall;
-    if(ent->modeldata.subject_to_platform<0)    ent->modeldata.subject_to_platform  = oldmodel->subject_to_platform;
-    if(ent->modeldata.subject_to_obstacle<0)    ent->modeldata.subject_to_obstacle  = oldmodel->subject_to_obstacle;
-    if(ent->modeldata.subject_to_hole<0)        ent->modeldata.subject_to_hole      = oldmodel->subject_to_hole;
-    if(ent->modeldata.subject_to_gravity<0)     ent->modeldata.subject_to_gravity   = oldmodel->subject_to_gravity;
-    if(ent->modeldata.subject_to_screen<0)      ent->modeldata.subject_to_screen    = oldmodel->subject_to_screen;
-    if(ent->modeldata.subject_to_minz<0)        ent->modeldata.subject_to_minz      = oldmodel->subject_to_minz;
-    if(ent->modeldata.subject_to_maxz<0)        ent->modeldata.subject_to_maxz      = oldmodel->subject_to_maxz;
-    if(ent->modeldata.no_adjust_base<0)         ent->modeldata.no_adjust_base       = oldmodel->no_adjust_base;
-    if(ent->modeldata.aimove<0)                 ent->modeldata.aimove               = oldmodel->aimove;
-    if(ent->modeldata.aiattack<0)               ent->modeldata.aiattack             = oldmodel->aiattack;
-    if(ent->modeldata.hostile<0)                ent->modeldata.hostile              = oldmodel->hostile;
-    if(ent->modeldata.candamage<0)              ent->modeldata.candamage            = oldmodel->candamage;
-    if(ent->modeldata.projectilehit<0)          ent->modeldata.projectilehit        = oldmodel->projectilehit;
-    if(!ent->modeldata.health)                  ent->modeldata.health               = oldmodel->health;
-    if(!ent->modeldata.mp)                      ent->modeldata.mp                   = oldmodel->mp;
-    if(ent->modeldata.risetime[0]==-1)          ent->modeldata.risetime[0]          = oldmodel->risetime[0];
+	if(ent->modeldata.multiple<0)               
+		ent->modeldata.multiple             = oldmodel->multiple;
+	if(ent->modeldata.subject_to_wall<0)        
+		ent->modeldata.subject_to_wall      = oldmodel->subject_to_wall;
+	if(ent->modeldata.subject_to_platform<0)    
+		ent->modeldata.subject_to_platform  = oldmodel->subject_to_platform;
+	if(ent->modeldata.subject_to_obstacle<0)    
+		ent->modeldata.subject_to_obstacle  = oldmodel->subject_to_obstacle;
+	if(ent->modeldata.subject_to_hole<0)        
+		ent->modeldata.subject_to_hole      = oldmodel->subject_to_hole;
+	if(ent->modeldata.subject_to_gravity<0)     
+		ent->modeldata.subject_to_gravity   = oldmodel->subject_to_gravity;
+	if(ent->modeldata.subject_to_screen<0)      
+		ent->modeldata.subject_to_screen    = oldmodel->subject_to_screen;
+	if(ent->modeldata.subject_to_minz<0)
+		ent->modeldata.subject_to_minz      = oldmodel->subject_to_minz;
+	if(ent->modeldata.subject_to_maxz<0)        
+		ent->modeldata.subject_to_maxz      = oldmodel->subject_to_maxz;
+	if(ent->modeldata.no_adjust_base<0)         
+		ent->modeldata.no_adjust_base       = oldmodel->no_adjust_base;
+	if(ent->modeldata.aimove<0)                 
+		ent->modeldata.aimove               = oldmodel->aimove;
+	if(ent->modeldata.aiattack<0)               
+		ent->modeldata.aiattack             = oldmodel->aiattack;
+	if(ent->modeldata.hostile<0)                
+		ent->modeldata.hostile              = oldmodel->hostile;
+	if(ent->modeldata.candamage<0)              
+		ent->modeldata.candamage            = oldmodel->candamage;
+	if(ent->modeldata.projectilehit<0)          
+		ent->modeldata.projectilehit        = oldmodel->projectilehit;
+	if(!ent->modeldata.health)                  
+		ent->modeldata.health               = oldmodel->health;
+	if(!ent->modeldata.mp)                      
+		ent->modeldata.mp                   = oldmodel->mp;
+	if(ent->modeldata.risetime[0]==-1)          
+		ent->modeldata.risetime[0]          = oldmodel->risetime[0];
 
-    if(ent->health>ent->modeldata.health) ent->health = ent->modeldata.health;
-    if(ent->mp>ent->modeldata.mp) ent->mp = ent->modeldata.mp;
+	if(ent->health>ent->modeldata.health) 
+		ent->health = ent->modeldata.health;
+	if(ent->mp>ent->modeldata.mp) 
+		ent->mp = ent->modeldata.mp;
 }
 
 
 void ent_set_model(entity * ent, char * modelname)
 {
-    s_model *m = NULL;
-    s_model oldmodel;
-    if(ent==NULL) shutdown(1, "FATAL: tried to change model of invalid object");
-    m = find_model(modelname);
-    if(m==NULL) shutdown(1, "Model not found: '%s'", modelname);
-    oldmodel = ent->modeldata;
-    ent->model = m;
-    ent->modeldata = *m;
-    ent_copy_uninit(ent, &oldmodel);
-    ent_set_colourmap(ent, ent->map);
-    if((!selectScreen && !time) || ent->modeldata.type != TYPE_PLAYER)
+	s_model *m = NULL;
+	s_model oldmodel;
+	if(ent==NULL) shutdown(1, "FATAL: tried to change model of invalid object");
+	m = find_model(modelname);
+	if(m==NULL) shutdown(1, "Model not found: '%s'", modelname);
+	oldmodel = ent->modeldata;
+	ent->model = m;
+	ent->modeldata = *m;
+	ent_copy_uninit(ent, &oldmodel);
+	ent_set_colourmap(ent, ent->map);
+	if((!selectScreen && !time) || ent->modeldata.type != TYPE_PLAYER)
 	{
 		// use new playerselect spawn anim
-        if( validanim(ent,ANI_SPAWN)) ent_set_anim(ent, ANI_SPAWN, 0);
-        else ent_set_anim(ent, ANI_IDLE, 0);
+		if( validanim(ent,ANI_SPAWN)) 
+			ent_set_anim(ent, ANI_SPAWN, 0);
+		else 
+			ent_set_anim(ent, ANI_IDLE, 0);
 	}
-    else if(!selectScreen && time && ent->modeldata.type == TYPE_PLAYER)
+	else if(!selectScreen && time && ent->modeldata.type == TYPE_PLAYER)
 	{
 		// mid-level respawn
-        if( validanim(ent, ANI_RESPAWN)) ent_set_anim(ent, ANI_RESPAWN, 0);
-        else if( validanim(ent, ANI_SPAWN)) ent_set_anim(ent, ANI_SPAWN, 0);
-        else  ent_set_anim(ent, ANI_IDLE, 0);
+		if( validanim(ent, ANI_RESPAWN)) 
+			ent_set_anim(ent, ANI_RESPAWN, 0);
+		else if( validanim(ent, ANI_SPAWN)) 
+			ent_set_anim(ent, ANI_SPAWN, 0);
+		else  
+			ent_set_anim(ent, ANI_IDLE, 0);
 	}
-    else if(selectScreen && validanim(ent, ANI_SELECT)) ent_set_anim(ent, ANI_SELECT, 0);
-    else ent_set_anim(ent, ANI_IDLE, 0);
+	else if(selectScreen && validanim(ent, ANI_SELECT)) 
+		ent_set_anim(ent, ANI_SELECT, 0);
+	else 
+		ent_set_anim(ent, ANI_IDLE, 0);
 }
 
 
 entity * spawn(float x, float z, float a, int direction, char * name, int index, s_model* model)
 {
-    entity *e = NULL;
-    int i, id;
-    float *dfs, *dfsp, *dfsk, *dfsbp, *dfsbt, *dfsbr, *dfsbe, *ofs;
-    ScriptVariant* vars;
-    Script* pas, *pus, *pts, *pks, *pds, *pan, *pfs, *bls, *blw, *blo, *blz, *bla, *mox, *moz, *moa, *pis, *pkl, *phs, *osp, *pbs, *ocs;
+	entity *e = NULL;
+	int i, id;
+	float *dfs, *dfsp, *dfsk, *dfsbp, *dfsbt, *dfsbr, *dfsbe, *ofs;
+	ScriptVariant* vars;
+	Script* pas, *pus, *pts, *pks, *pds, *pan, *pfs, *bls, *blw, *blo, *blz, *bla, *mox, *moz, *moa, *pis, *pkl, *phs, *osp, *pbs, *ocs;
 
-    if(!model)
-    {
-        if(index>=0) 
-		model = model_cache[index].model;
-        else if(name) 
-		model = find_model(name);
-    }
+	if(!model)
+	{
+		if(index>=0) 
+			model = model_cache[index].model;
+		else if(name) 
+			model = find_model(name);
+	}
 
 	// Be a bit more tolerant...
-    if(model==NULL)
-    {
+	if(model==NULL)
+	{
 		if(index>=0)
 			printf("FATAL: attempt to spawn object with invalid model cache id (%d)!\n", index);
 		else if(name)
 			printf("FATAL: attempt to spawn object with invalid model name (%s)!\n", name);
-        return NULL;
-    }
+		return NULL;
+	}
 
-    for(i=0; i<MAX_ENTS; i++)
-    {
-        if(!ent_list[i]->exists)
-        {
-            e = ent_list[i];
-            // save these values, or they will loss when memset called
-            id      = e->sortid;
+	for(i=0; i<MAX_ENTS; i++)
+	{
+		if(!ent_list[i]->exists)
+		{
+			e = ent_list[i];
+			// save these values, or they will loss when memset called
+			id      = e->sortid;
 			dfs     = e->defense_factors;
 			dfsp    = e->defense_pain;
 			dfsk    = e->defense_knockdown;
 			dfsbp   = e->defense_blockpower;
 			dfsbt   = e->defense_blockthreshold;
 			dfsbr   = e->defense_blockratio;
-            dfsbe   = e->defense_blocktype;
+			dfsbe   = e->defense_blocktype;
 			ofs     = e->offense_factors;
 			vars    = e->entvars;
-            memset(dfs,     0, sizeof(float)*max_attack_types);
-            memset(dfsp,    0, sizeof(float)*max_attack_types);
-            memset(dfsk,    0, sizeof(float)*max_attack_types);
-            memset(dfsbp,   0, sizeof(float)*max_attack_types);
-            memset(dfsbt,   0, sizeof(float)*max_attack_types);
-            memset(dfsbr,   0, sizeof(float)*max_attack_types);
-            memset(dfsbe,   0, sizeof(float)*max_attack_types);
-            memset(ofs,     0, sizeof(float)*max_attack_types);
-            // clear up
-            Script_Clear(e->animation_script,   1);
-            Script_Clear(e->update_script,      1);
-            Script_Clear(e->think_script,       1);
-            Script_Clear(e->takedamage_script,  1);
-            Script_Clear(e->onfall_script,      1);
-            Script_Clear(e->onpain_script,      1);
-            Script_Clear(e->onblocks_script,    1);
-            Script_Clear(e->onblockw_script,    1);
-            Script_Clear(e->onblocko_script,    1);
-            Script_Clear(e->onblockz_script,    1);
-            Script_Clear(e->onblocka_script,    1);
-            Script_Clear(e->onmovex_script,     1);
-            Script_Clear(e->onmovez_script,     1);
-            Script_Clear(e->onmovea_script,     1);
-            Script_Clear(e->ondeath_script,     1);
-            Script_Clear(e->onkill_script,      1);
-            Script_Clear(e->didblock_script,    1);
+			memset(dfs,     0, sizeof(float)*max_attack_types);
+			memset(dfsp,    0, sizeof(float)*max_attack_types);
+			memset(dfsk,    0, sizeof(float)*max_attack_types);
+			memset(dfsbp,   0, sizeof(float)*max_attack_types);
+			memset(dfsbt,   0, sizeof(float)*max_attack_types);
+			memset(dfsbr,   0, sizeof(float)*max_attack_types);
+			memset(dfsbe,   0, sizeof(float)*max_attack_types);
+			memset(ofs,     0, sizeof(float)*max_attack_types);
+			// clear up
+			Script_Clear(e->animation_script,   1);
+			Script_Clear(e->update_script,      1);
+			Script_Clear(e->think_script,       1);
+			Script_Clear(e->takedamage_script,  1);
+			Script_Clear(e->onfall_script,      1);
+			Script_Clear(e->onpain_script,      1);
+			Script_Clear(e->onblocks_script,    1);
+			Script_Clear(e->onblockw_script,    1);
+			Script_Clear(e->onblocko_script,    1);
+			Script_Clear(e->onblockz_script,    1);
+			Script_Clear(e->onblocka_script,    1);
+			Script_Clear(e->onmovex_script,     1);
+			Script_Clear(e->onmovez_script,     1);
+			Script_Clear(e->onmovea_script,     1);
+			Script_Clear(e->ondeath_script,     1);
+			Script_Clear(e->onkill_script,      1);
+			Script_Clear(e->didblock_script,    1);
 			Script_Clear(e->ondoattack_script,  1);
-            Script_Clear(e->didhit_script,      1);
-            Script_Clear(e->onspawn_script,     1);
-            Script_Clear(e->key_script,         1);
-            pas = e->animation_script;
-            pus = e->update_script;
+			Script_Clear(e->didhit_script,      1);
+			Script_Clear(e->onspawn_script,     1);
+			Script_Clear(e->key_script,         1);
+			pas = e->animation_script;
+			pus = e->update_script;
 			pts = e->think_script;
-            pds = e->takedamage_script;
-            pfs = e->onfall_script;
-            pan = e->onpain_script;
-            bls = e->onblocks_script;
-            blw = e->onblockw_script;
-            blo = e->onblocko_script;
-            blz = e->onblockz_script;
-            bla = e->onblocka_script;
-            mox = e->onmovex_script;
-            moz = e->onmovez_script;
-            moa = e->onmovea_script;
-            pis = e->ondeath_script;
-            pkl = e->onkill_script;
-            pbs = e->didblock_script;
+			pds = e->takedamage_script;
+			pfs = e->onfall_script;
+			pan = e->onpain_script;
+			bls = e->onblocks_script;
+			blw = e->onblockw_script;
+			blo = e->onblocko_script;
+			blz = e->onblockz_script;
+			bla = e->onblocka_script;
+			mox = e->onmovex_script;
+			moz = e->onmovez_script;
+			moa = e->onmovea_script;
+			pis = e->ondeath_script;
+			pkl = e->onkill_script;
+			pbs = e->didblock_script;
 			ocs = e->ondoattack_script;
-            phs = e->didhit_script;
-            osp = e->onspawn_script;
-            pks = e->key_script;
-            memset(e, 0, sizeof(entity));
+			phs = e->didhit_script;
+			osp = e->onspawn_script;
+			pks = e->key_script;
+			memset(e, 0, sizeof(entity));
 
-            // add to list and count current entities
-            e->exists = 1;
-            ent_count++;
+			// add to list and count current entities
+			e->exists = 1;
+			ent_count++;
 
-            e->modeldata = *model; // copy the entir model data here
-            e->model = model;
-            e->defaultmodel = model;
+			e->modeldata = *model; // copy the entir model data here
+			e->model = model;
+			e->defaultmodel = model;
 
-            e->animation_script     = pas;
-            e->update_script        = pus;
+			e->animation_script     = pas;
+			e->update_script        = pus;
 			e->think_script         = pts;
-            e->takedamage_script    = pds;
-            e->onfall_script        = pfs;
-            e->onpain_script        = pan;
-            e->onblocks_script      = bls;
-            e->onblockw_script      = blw;
-            e->onblocko_script      = blo;
-            e->onblockz_script      = blz;
-            e->onblocka_script      = bla;
-            e->onmovex_script       = mox;
-            e->onmovez_script       = moz;
-            e->onmovea_script       = moa;
-            e->ondeath_script       = pis;
-            e->onkill_script        = pkl;
-            e->didblock_script      = pbs;
+			e->takedamage_script    = pds;
+			e->onfall_script        = pfs;
+			e->onpain_script        = pan;
+			e->onblocks_script      = bls;
+			e->onblockw_script      = blw;
+			e->onblocko_script      = blo;
+			e->onblockz_script      = blz;
+			e->onblocka_script      = bla;
+			e->onmovex_script       = mox;
+			e->onmovez_script       = moz;
+			e->onmovea_script       = moa;
+			e->ondeath_script       = pis;
+			e->onkill_script        = pkl;
+			e->didblock_script      = pbs;
 			e->ondoattack_script    = ocs;
-            e->didhit_script        = phs;
-            e->onspawn_script       = osp;
-            e->key_script           = pks;
-            // copy from model a fresh script
-            Script_Copy(e->animation_script,    model->animation_script,    1);
-            Script_Copy(e->update_script,       model->update_script,       1);
-            Script_Copy(e->think_script,        model->think_script,        1);
-            Script_Copy(e->takedamage_script,   model->takedamage_script,   1);
-            Script_Copy(e->onfall_script,       model->onfall_script,       1);
-            Script_Copy(e->onpain_script,       model->onpain_script,       1);
-            Script_Copy(e->onblocks_script,     model->onblocks_script,     1);
-            Script_Copy(e->onblockw_script,     model->onblockw_script,     1);
-            Script_Copy(e->onblocko_script,     model->onblocko_script,     1);
-            Script_Copy(e->onblockz_script,     model->onblockz_script,     1);
-            Script_Copy(e->onblocka_script,     model->onblocka_script,     1);
-            Script_Copy(e->onmovex_script,      model->onmovex_script,      1);
-            Script_Copy(e->onmovez_script,      model->onmovez_script,      1);
-            Script_Copy(e->onmovea_script,      model->onmovea_script,      1);
-            Script_Copy(e->ondeath_script,      model->ondeath_script,      1);
-            Script_Copy(e->onkill_script,       model->onkill_script,       1);
-            Script_Copy(e->didblock_script,     model->didblock_script,     1);
+			e->didhit_script        = phs;
+			e->onspawn_script       = osp;
+			e->key_script           = pks;
+			// copy from model a fresh script
+			Script_Copy(e->animation_script,    model->animation_script,    1);
+			Script_Copy(e->update_script,       model->update_script,       1);
+			Script_Copy(e->think_script,        model->think_script,        1);
+			Script_Copy(e->takedamage_script,   model->takedamage_script,   1);
+			Script_Copy(e->onfall_script,       model->onfall_script,       1);
+			Script_Copy(e->onpain_script,       model->onpain_script,       1);
+			Script_Copy(e->onblocks_script,     model->onblocks_script,     1);
+			Script_Copy(e->onblockw_script,     model->onblockw_script,     1);
+			Script_Copy(e->onblocko_script,     model->onblocko_script,     1);
+			Script_Copy(e->onblockz_script,     model->onblockz_script,     1);
+			Script_Copy(e->onblocka_script,     model->onblocka_script,     1);
+			Script_Copy(e->onmovex_script,      model->onmovex_script,      1);
+			Script_Copy(e->onmovez_script,      model->onmovez_script,      1);
+			Script_Copy(e->onmovea_script,      model->onmovea_script,      1);
+			Script_Copy(e->ondeath_script,      model->ondeath_script,      1);
+			Script_Copy(e->onkill_script,       model->onkill_script,       1);
+			Script_Copy(e->didblock_script,     model->didblock_script,     1);
 			Script_Copy(e->ondoattack_script,   model->ondoattack_script,   1);
-            Script_Copy(e->didhit_script,       model->didhit_script,       1);
-            Script_Copy(e->onspawn_script,      model->onspawn_script,      1);
-            Script_Copy(e->key_script,          model->key_script,          1);
-            if(ent_count>ent_max) ent_max=ent_count;
-            e->timestamp = time; // log time so update function will ignore it if it is new
+			Script_Copy(e->didhit_script,       model->didhit_script,       1);
+			Script_Copy(e->onspawn_script,      model->onspawn_script,      1);
+			Script_Copy(e->key_script,          model->key_script,          1);
+			if(ent_count>ent_max) ent_max=ent_count;
+			e->timestamp = time; // log time so update function will ignore it if it is new
 
-            e->health = e->modeldata.health;
-            e->mp = e->modeldata.mp;
-            e->knockdowncount = e->modeldata.knockdowncount;
-            e->x = x;
-            e->z = z;
-            e->a = a;
-            e->direction = direction;
-            e->nextthink = time + 1;
-            e->lifespancountdown = model->lifespan; // new life span countdown
-            if((e->modeldata.type & (TYPE_PLAYER|TYPE_SHOT)) && level && (level->nohit || savedata.mode)) e->modeldata.hostile &= ~TYPE_PLAYER;
-            if(e->modeldata.type==TYPE_PLAYER) e->playerindex = currentspawnplayer;
+			e->health = e->modeldata.health;
+			e->mp = e->modeldata.mp;
+			e->knockdowncount = e->modeldata.knockdowncount;
+			e->x = x;
+			e->z = z;
+			e->a = a;
+			e->direction = direction;
+			e->nextthink = time + 1;
+			e->lifespancountdown = model->lifespan; // new life span countdown
+			if((e->modeldata.type & (TYPE_PLAYER|TYPE_SHOT)) && level && (level->nohit || savedata.mode)) e->modeldata.hostile &= ~TYPE_PLAYER;
+			if(e->modeldata.type==TYPE_PLAYER) e->playerindex = currentspawnplayer;
 
-            if(e->modeldata.type == TYPE_TEXTBOX) textbox = e;
+			if(e->modeldata.type == TYPE_TEXTBOX) textbox = e;
 
-            strncpy(e->name, e->modeldata.name, MAX_NAME_LEN);
-            // copy back the value
-            e->sortid = id;
-            e->defense_factors = dfs;
-            e->defense_pain = dfsp;
+			strncpy(e->name, e->modeldata.name, MAX_NAME_LEN);
+			// copy back the value
+			e->sortid = id;
+			e->defense_factors = dfs;
+			e->defense_pain = dfsp;
 			e->defense_knockdown = dfsk;
 			e->defense_blockpower = dfsbp;
 			e->defense_blockthreshold = dfsbt;
 			e->defense_blockratio = dfsbr;
 			e->defense_blocktype = dfsbe;
-            e->offense_factors = ofs;
+			e->offense_factors = ofs;
 			e->entvars = vars;
 
-            ent_default_init(e);
-            return e;
-        }
-    }
-
-    return NULL;
+			ent_default_init(e);
+			return e;
+		}
+	}
+	return NULL;
 }
 
 
 
 // Break the link an entity has with another one
-void ent_unlink(entity *e){
-    if(e->link){
-        e->link->link = NULL;
-        e->link->grabbing = NULL;
-    }
-    e->link = NULL;
-    e->grabbing = NULL;
+void ent_unlink(entity *e) {
+	if(e->link){
+		e->link->link = NULL;
+		e->link->grabbing = NULL;
+	}
+	e->link = NULL;
+	e->grabbing = NULL;
 }
 
 
@@ -10816,216 +10871,233 @@ void ent_unlink(entity *e){
 // Link two entities together
 void ents_link(entity *e1, entity *e2)
 {
-    ent_unlink(e1);
-    ent_unlink(e2);
-    e1->grabbing = e2;    // Added for platform layering
-    e1->link = e2;
-    e2->link = e1;
+	ent_unlink(e1);
+	ent_unlink(e2);
+	e1->grabbing = e2;    // Added for platform layering
+	e1->link = e2;
+	e2->link = e1;
 }
 
 
 
 void kill(entity *victim)
 {
-    int i = 0;
-    s_attack attack;
-    entity* tempent = self;
+	int i = 0;
+	s_attack attack;
+	entity* tempent = self;
 
-    execute_onkill_script(victim);
+	execute_onkill_script(victim);
 
-    if(!victim || !victim->exists) return;
+	if(!victim || !victim->exists) 
+		return;
 
-    if(victim->modeldata.type == TYPE_SHOT && player[(int)victim->playerindex].ent) player[(int)victim->playerindex].ent->cantfire = 0;
+	if(victim->modeldata.type == TYPE_SHOT && player[(int)victim->playerindex].ent) 
+		player[(int)victim->playerindex].ent->cantfire = 0;
 
-    ent_unlink(victim);
-    victim->weapent = NULL;
-    victim->health = 0;
-    victim->exists = 0;
-    ent_count--;
+	ent_unlink(victim);
+	victim->weapent = NULL;
+	victim->health = 0;
+	victim->exists = 0;
+	ent_count--;
 
-    Script_Clear(victim->animation_script,  1);
-    Script_Clear(victim->update_script,     1);
-    Script_Clear(victim->think_script,      1);
-    Script_Clear(victim->takedamage_script, 1);
-    Script_Clear(victim->onfall_script,     1);
-    Script_Clear(victim->onpain_script,     1);
-    Script_Clear(victim->onblocks_script,   1);
-    Script_Clear(victim->onblockw_script,   1);
-    Script_Clear(victim->onblocko_script,   1);
-    Script_Clear(victim->onblockz_script,   1);
-    Script_Clear(victim->onblocka_script,   1);
-    Script_Clear(victim->onmovex_script,    1);
-    Script_Clear(victim->onmovez_script,    1);
-    Script_Clear(victim->onmovea_script,    1);
-    Script_Clear(victim->ondeath_script,    1);
-    Script_Clear(victim->onkill_script,     1);
-    Script_Clear(victim->didblock_script,   1);
+	Script_Clear(victim->animation_script,  1);
+	Script_Clear(victim->update_script,     1);
+	Script_Clear(victim->think_script,      1);
+	Script_Clear(victim->takedamage_script, 1);
+	Script_Clear(victim->onfall_script,     1);
+	Script_Clear(victim->onpain_script,     1);
+	Script_Clear(victim->onblocks_script,   1);
+	Script_Clear(victim->onblockw_script,   1);
+	Script_Clear(victim->onblocko_script,   1);
+	Script_Clear(victim->onblockz_script,   1);
+	Script_Clear(victim->onblocka_script,   1);
+	Script_Clear(victim->onmovex_script,    1);
+	Script_Clear(victim->onmovez_script,    1);
+	Script_Clear(victim->onmovea_script,    1);
+	Script_Clear(victim->ondeath_script,    1);
+	Script_Clear(victim->onkill_script,     1);
+	Script_Clear(victim->didblock_script,   1);
 	Script_Clear(victim->ondoattack_script, 1);
-    Script_Clear(victim->didhit_script,     1);
-    Script_Clear(victim->onspawn_script,    1);
-    Script_Clear(victim->key_script,        1);
+	Script_Clear(victim->didhit_script,     1);
+	Script_Clear(victim->onspawn_script,    1);
+	Script_Clear(victim->key_script,        1);
 
-    if(victim->parent && victim->parent->subentity == victim) victim->parent->subentity = NULL;
-    victim->parent = NULL;
-    if(victim->modeldata.summonkill)
-    {
-        attack = emptyattack;
-        attack.attack_type = max_attack_types;
-        attack.dropv[0] = (float)3; attack.dropv[1] = (float)1.2; attack.dropv[2] = (float)0;
-    }
-    // kill minions
-    if(victim->modeldata.summonkill == 1 && victim->subentity)
-    { // kill only summoned one
-        victim->subentity->parent = NULL;
-        self = victim->subentity;
-        attack.attack_force = self->health;
-        if(self->takedamage && !level_completed) self->takedamage(self, &attack);
-        else kill(self);
-    }
-    victim->subentity = NULL;
+	if(victim->parent && victim->parent->subentity == victim) victim->parent->subentity = NULL;
+	victim->parent = NULL;
+	if(victim->modeldata.summonkill)
+	{
+		attack = emptyattack;
+		attack.attack_type = max_attack_types;
+		attack.dropv[0] = (float)3; attack.dropv[1] = (float)1.2; attack.dropv[2] = (float)0;
+	}
+	// kill minions
+	if(victim->modeldata.summonkill == 1 && victim->subentity)
+	{ 
+		// kill only summoned one
+		victim->subentity->parent = NULL;
+		self = victim->subentity;
+		attack.attack_force = self->health;
+		if(self->takedamage && !level_completed) 
+			self->takedamage(self, &attack);
+		else 
+			kill(self);
+	}
+	victim->subentity = NULL;
 
-    if(victim==player[0].ent) player[0].ent = NULL;
-    else if(victim==player[1].ent) player[1].ent = NULL;
-    else if(victim==player[2].ent) player[2].ent = NULL;
-    else if(victim==player[3].ent) player[3].ent = NULL;
+	if(victim==player[0].ent) player[0].ent = NULL;
+	else if(victim==player[1].ent) player[1].ent = NULL;
+	else if(victim==player[2].ent) player[2].ent = NULL;
+	else if(victim==player[3].ent) player[3].ent = NULL;
 
-    if(victim == smartbomber) smartbomber = NULL;
-    if(victim == textbox)  textbox = NULL;
+	if(victim == smartbomber) smartbomber = NULL;
+	if(victim == textbox)  textbox = NULL;
 
-    for(i=0; i<ent_max; i++)
-    {
-        if(ent_list[i]->exists)
-        {// kill all minions
-            self = ent_list[i];
-            if(self->parent == victim)
-            {
-                self->parent = NULL;
-                if(victim->modeldata.summonkill == 2)
-                {
-                    attack.attack_force = self->health;
-                    if(self->takedamage && !level_completed) self->takedamage(self, &attack);
-                    else kill(self);
-                }
-            }
-            if(self->owner == victim)
-            {
-                self->owner = victim->owner;
-            }
-            if(self->opponent == victim) self->opponent = NULL;
-            if(self->bound == victim) self->bound = NULL;
-            if(self->landed_on_platform == victim) self->landed_on_platform = NULL;
-            if(self->hithead == victim) self->hithead = NULL;
-            if(!textbox && self->modeldata.type == TYPE_TEXTBOX)
-                textbox = self;
-        }
-    }
-    self = tempent;
+	for(i=0; i<ent_max; i++)
+	{
+		if(ent_list[i]->exists)
+		{
+			// kill all minions
+			self = ent_list[i];
+			if(self->parent == victim)
+			{
+				self->parent = NULL;
+				if(victim->modeldata.summonkill == 2)
+				{
+					attack.attack_force = self->health;
+					if(self->takedamage && !level_completed) self->takedamage(self, &attack);
+					else kill(self);
+				}
+			}
+			if(self->owner == victim)
+			{
+				self->owner = victim->owner;
+			}
+			if(self->opponent == victim) self->opponent = NULL;
+			if(self->bound == victim) self->bound = NULL;
+			if(self->landed_on_platform == victim) self->landed_on_platform = NULL;
+			if(self->hithead == victim) self->hithead = NULL;
+			if(!textbox && self->modeldata.type == TYPE_TEXTBOX)
+			textbox = self;
+		}
+	}
+	self = tempent;
 }
 
 
 void kill_all()
 {
-    int i;
-    entity *e = NULL;
-    for(i=0; i<ent_max; i++)
-    {
-        e = ent_list[i];
-
-        if (e && e->exists) execute_onkill_script(e);
-        e->exists = 0; // well, no need to use kill function
-    }
-    textbox = smartbomber = NULL;
-    ent_max = ent_count = 0;
-    time = 0;
+	int i;
+	entity *e = NULL;
+	for(i=0; i<ent_max; i++)
+	{
+		e = ent_list[i];
+		if (e && e->exists) 
+			execute_onkill_script(e);
+		e->exists = 0; // well, no need to use kill function
+	}
+	textbox = smartbomber = NULL;
+	ent_max = ent_count = 0;
+	time = 0;
 }
 
 
 int checkhit(entity *attacker, entity *target, int counter)
 {
-    short *coords1;
-    short *coords2;
-    int x1, x2, y1, y2;
-    float medx, medy;
-    int debug_coords[2][4];
-    int topleast, bottomleast, leftleast, rightleast;
-    float zdist = 0;
+	short *coords1;
+	short *coords2;
+	int x1, x2, y1, y2;
+	float medx, medy;
+	int debug_coords[2][4];
+	int topleast, bottomleast, leftleast, rightleast;
+	float zdist = 0;
 
-    if(attacker == target || !target->animation->bbox_coords ||
-       !attacker->animation->attacks || !target->animation->vulnerable[target->animpos] ||
-       ((attacker->modeldata.type == TYPE_PLAYER && target->modeldata.type == TYPE_PLAYER) && savedata.mode)) return 0;
-
-
-    coords1 = attacker->animation->attacks[attacker->animpos]->attack_coords;
-
-    if(!counter) coords2 = target->animation->bbox_coords[target->animpos];
-	else if((target->animation->attacks && target->animation->attacks[target->animpos]) && target->animation->attacks[target->animpos]->counterattack <= attacker->animation->attacks[attacker->animpos]->counterattack) coords2 = target->animation->attacks[target->animpos]->attack_coords;
-    else return 0;
-
-    if(coords1[4]) zdist += coords1[4];
-    else           zdist += attacker->modeldata.grabdistance/3;
-    if(coords2[4]) zdist += coords2[4];
-
-    if(diff(attacker->z,target->z) > zdist) return 0;
-
-    x1 = (int)(attacker->x);
-    y1 = (int)(attacker->z - attacker->a);
-    x2 = (int)(target->x);
-    y2 = (int)(target->z - target->a);
+	if(attacker == target || !target->animation->bbox_coords ||
+	!attacker->animation->attacks || !target->animation->vulnerable[target->animpos] ||
+	((attacker->modeldata.type == TYPE_PLAYER && target->modeldata.type == TYPE_PLAYER) && savedata.mode)) return 0;
 
 
-    if(attacker->direction==0){
-        debug_coords[0][0] = x1-coords1[2];
-        debug_coords[0][1] = y1+coords1[1];
-        debug_coords[0][2] = x1-coords1[0];
-        debug_coords[0][3] = y1+coords1[3];
-    }
-    else{
-        debug_coords[0][0] = x1+coords1[0];
-        debug_coords[0][1] = y1+coords1[1];
-        debug_coords[0][2] = x1+coords1[2];
-        debug_coords[0][3] = y1+coords1[3];
-    }
-    if(target->direction==0){
-        debug_coords[1][0] = x2-coords2[2];
-        debug_coords[1][1] = y2+coords2[1];
-        debug_coords[1][2] = x2-coords2[0];
-        debug_coords[1][3] = y2+coords2[3];
-    }
-    else{
-        debug_coords[1][0] = x2+coords2[0];
-        debug_coords[1][1] = y2+coords2[1];
-        debug_coords[1][2] = x2+coords2[2];
-        debug_coords[1][3] = y2+coords2[3];
-    }
+	coords1 = attacker->animation->attacks[attacker->animpos]->attack_coords;
 
-    if(debug_coords[0][0] > debug_coords[1][2]) return 0;
-    if(debug_coords[1][0] > debug_coords[0][2]) return 0;
-    if(debug_coords[0][1] > debug_coords[1][3]) return 0;
-    if(debug_coords[1][1] > debug_coords[0][3]) return 0;
+	if(!counter) 
+		coords2 = target->animation->bbox_coords[target->animpos];
+	else if((target->animation->attacks && target->animation->attacks[target->animpos]) && target->animation->attacks[target->animpos]->counterattack <= attacker->animation->attacks[attacker->animpos]->counterattack) 
+		coords2 = target->animation->attacks[target->animpos]->attack_coords;
+	else return 0;
+
+	if(coords1[4]) 
+		zdist += coords1[4];
+	else           
+		zdist += attacker->modeldata.grabdistance/3;
+	if(coords2[4]) 
+		zdist += coords2[4];
+
+	if(diff(attacker->z,target->z) > zdist) 
+		return 0;
+
+	x1 = (int)(attacker->x);
+	y1 = (int)(attacker->z - attacker->a);
+	x2 = (int)(target->x);
+	y2 = (int)(target->z - target->a);
 
 
-    // Find center of attack area
-    leftleast = debug_coords[0][0];
-    if(leftleast < debug_coords[1][0]) leftleast = debug_coords[1][0];
-    topleast = debug_coords[0][1];
-    if(topleast < debug_coords[1][1]) topleast = debug_coords[1][1];
-    rightleast = debug_coords[0][2];
-    if(rightleast > debug_coords[1][2]) rightleast = debug_coords[1][2];
-    bottomleast = debug_coords[0][3];
-    if(bottomleast > debug_coords[1][3]) bottomleast = debug_coords[1][3];
+	if(attacker->direction==0){
+		debug_coords[0][0] = x1-coords1[2];
+		debug_coords[0][1] = y1+coords1[1];
+		debug_coords[0][2] = x1-coords1[0];
+		debug_coords[0][3] = y1+coords1[3];
+	}
+	else{
+		debug_coords[0][0] = x1+coords1[0];
+		debug_coords[0][1] = y1+coords1[1];
+		debug_coords[0][2] = x1+coords1[2];
+		debug_coords[0][3] = y1+coords1[3];
+	}
+	if(target->direction==0){
+		debug_coords[1][0] = x2-coords2[2];
+		debug_coords[1][1] = y2+coords2[1];
+		debug_coords[1][2] = x2-coords2[0];
+		debug_coords[1][3] = y2+coords2[3];
+	} else {
+		debug_coords[1][0] = x2+coords2[0];
+		debug_coords[1][1] = y2+coords2[1];
+		debug_coords[1][2] = x2+coords2[2];
+		debug_coords[1][3] = y2+coords2[3];
+	}
 
-    medx = (float)(leftleast + rightleast) / 2;
-    medy = (float)(topleast + bottomleast) / 2;
+	if(debug_coords[0][0] > debug_coords[1][2]) return 0;
+	if(debug_coords[1][0] > debug_coords[0][2]) return 0;
+	if(debug_coords[0][1] > debug_coords[1][3]) return 0;
+	if(debug_coords[1][1] > debug_coords[0][3]) return 0;
 
-    // Now convert these coords to 3D
-    lasthitx = medx;
 
-    if(attacker->z > target->z) lasthitz = attacker->z + 1;    // Changed so flashes always spawn in front
-    else lasthitz = target->z + 1;
+	// Find center of attack area
+	leftleast = debug_coords[0][0];
+	if(leftleast < debug_coords[1][0]) 
+		leftleast = debug_coords[1][0];
+	topleast = debug_coords[0][1];
+	if(topleast < debug_coords[1][1]) 
+		topleast = debug_coords[1][1];
+	rightleast = debug_coords[0][2];
+	if(rightleast > debug_coords[1][2]) 
+		rightleast = debug_coords[1][2];
+	bottomleast = debug_coords[0][3];
+	if(bottomleast > debug_coords[1][3]) 
+		bottomleast = debug_coords[1][3];
 
-    lasthita = lasthitz - medy;
-    lasthitt = attacker->animation->attacks[attacker->animpos]->attack_type;
-    lasthitc = 1;
+	medx = (float)(leftleast + rightleast) / 2;
+	medy = (float)(topleast + bottomleast) / 2;
+
+	// Now convert these coords to 3D
+	lasthitx = medx;
+
+	if(attacker->z > target->z) 
+		lasthitz = attacker->z + 1;    // Changed so flashes always spawn in front
+	else 
+		lasthitz = target->z + 1;
+
+	lasthita = lasthitz - medy;
+	lasthitt = attacker->animation->attacks[attacker->animpos]->attack_type;
+	lasthitc = 1;
 	return 1;
 }
 
