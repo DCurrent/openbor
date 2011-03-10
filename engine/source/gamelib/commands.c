@@ -1,10 +1,14 @@
 #include "commands.h"
 
+// attention: modifies usercommand to lowercase
 modelCommands getModelCommand(List* list, char* usercommand) {
+	if (!usercommand || !usercommand[0])
+		goto fail;
+	lc(usercommand, strlen(usercommand));
 	Node* n = List_SearchName(list, (LPCSTR) usercommand);
 	if(n)
 		return (modelCommands) n->value;
-	else
+	fail:
 		return (modelCommands) 0;
 }
 
@@ -296,12 +300,16 @@ void freeModelCommandList(List* list) {
 	list = NULL;
 }
 
-
+// attention: modifies usercommand to lowercase
 levelCommands getLevelCommand(List* list, char* usercommand) {
+	if (!usercommand || !usercommand[0])
+		goto fail;
+	lc(usercommand, strlen(usercommand));
+	
 	Node* n = List_SearchName(list, (LPCSTR) usercommand);
 	if(n)
 		return (levelCommands) n->value;
-	else
+	fail:
 		return (levelCommands) 0;
 }
 

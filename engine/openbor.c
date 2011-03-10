@@ -584,12 +584,6 @@ s_drawmethod* getDrawMethod(s_anim* a, ptrdiff_t index) {
 	return a->drawmethods[index];
 }
 
-void lc(char* buf, size_t size) {
-	ptrdiff_t i;
-	for(i=0;i<size;i++) 
-		buf[i] = tolower((int)buf[i]);
-}
-
 // returns: 1 - succeeded 0 - failed
 int buffer_pakfile(char* filename, char** pbuffer, size_t* psize)
 {
@@ -2700,7 +2694,7 @@ void lifebar_colors()
     while(pos<size){
 	    ParseArgs(&arglist,buf+pos,argbuf);
         command = GET_ARG(0);
-        if(command[0])
+        if(command && command[0])
         {
             if(stricmp(command, "blackbox")==0)
                 color_black = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
@@ -2734,8 +2728,7 @@ void lifebar_colors()
         }
 
         // Go to next line
-        while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-        while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+	pos += getNewLineStart(buf + pos);
     }
     if(buf != NULL){
         tracefree(buf);
@@ -3326,60 +3319,59 @@ void load_all_fonts()
 
 void load_menu_txt()
 {
-    char * filename = "data/menu.txt";
-    int pos;
-    char *buf, *command;
-    size_t size;
-    ArgList arglist;
-    char argbuf[MAX_ARG_LEN+1] = "";    
+	char * filename = "data/menu.txt";
+	int pos;
+	char *buf, *command;
+	size_t size;
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN+1] = "";    
 
-    // Read file
-    if(buffer_pakfile(filename, &buf, &size)!=1)
-    {
+	// Read file
+	if(buffer_pakfile(filename, &buf, &size)!=1)
+	{
 		return;
-    }
+	}
 
-    // Now interpret the contents of buf line by line
-    pos = 0;
+	// Now interpret the contents of buf line by line
+	pos = 0;
 	while(pos<size){
 		ParseArgs(&arglist,buf+pos,argbuf);	    
 		command = GET_ARG(0);
-        if(command[0]){
-            if(stricmp(command, "disablekey")==0){
-                // here to keep from crashing
-            }
-            else if(stricmp(command, "renamekey")==0){
-                // here to keep from crashing
-            }
-            else if(stricmp(command, "fontmonospace")==0)
-            {
-                fontmonospace[0] = GET_INT_ARG(1);
-                fontmonospace[1] = GET_INT_ARG(2);
-                fontmonospace[2] = GET_INT_ARG(3);
-                fontmonospace[3] = GET_INT_ARG(4);
-                fontmonospace[4] = GET_INT_ARG(5);
-                fontmonospace[5] = GET_INT_ARG(6);
-                fontmonospace[6] = GET_INT_ARG(7);
-                fontmonospace[7] = GET_INT_ARG(8);
-            }
-            else{
-                if(buf != NULL){
-                    tracefree(buf);
-                    buf = NULL;
-                }
-                shutdown(1, "Command '%s' not understood in file '%s'!", command, filename);
-            }
-        }
+		if(command && command[0]){
+			if(stricmp(command, "disablekey")==0){
+				// here to keep from crashing
+			}
+			else if(stricmp(command, "renamekey")==0){
+				// here to keep from crashing
+			}
+			else if(stricmp(command, "fontmonospace")==0)
+			{
+				fontmonospace[0] = GET_INT_ARG(1);
+				fontmonospace[1] = GET_INT_ARG(2);
+				fontmonospace[2] = GET_INT_ARG(3);
+				fontmonospace[3] = GET_INT_ARG(4);
+				fontmonospace[4] = GET_INT_ARG(5);
+				fontmonospace[5] = GET_INT_ARG(6);
+				fontmonospace[6] = GET_INT_ARG(7);
+				fontmonospace[7] = GET_INT_ARG(8);
+			}
+			else {
+				if(buf != NULL){
+					tracefree(buf);
+					buf = NULL;
+				}
+				shutdown(1, "Command '%s' not understood in file '%s'!", command, filename);
+			}
+		}
 
-        // Go to next line
-        while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-        while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
-    }
+		// Go to next line
+		pos += getNewLineStart(buf + pos);
+	}
 
-    if(buf != NULL){
-        tracefree(buf);
-        buf = NULL;
-    }
+	if(buf != NULL){
+		tracefree(buf);
+		buf = NULL;
+	}
 }
 
 int load_special_sounds()
@@ -3900,8 +3892,7 @@ void _peek_model_name(int index)
 				break;
 			}
 		}
-		while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-		while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+		pos += getNewLineStart(buf + pos);
 	}
 
 	if(buf != NULL)
@@ -4640,7 +4631,6 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	s_attack attack,
 	*pattack = NULL;
-	size_t commandlen = 0;
 
 	s_drawmethod drawmethod;
 
@@ -4730,14 +4720,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		
 		if(ParseArgs(&arglist,buf+pos,argbuf)){
 			command = GET_ARG(0);
-			commandlen = GET_ARG_LEN(0);
-			// lowercase the command so that we can find it using hashes.
-			lc(command, commandlen);
-			
-			if(!command) 
-				cmd = (modelCommands) 0;
-			else	
-				cmd = getModelCommand(modelcmdlist, command);
+			cmd = getModelCommand(modelcmdlist, command);
 			
 			switch(cmd) {
 				case CMD_MODEL_NAME: 
@@ -6911,8 +6894,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 		}
 		// Go to next line
-		while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-		while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+		pos += getNewLineStart(buf + pos);
 	}
     
     
@@ -7097,7 +7079,7 @@ int load_script_setting()
     {
 		ParseArgs(&arglist,buf+pos,argbuf);	    
 		command = GET_ARG(0);
-        if(command[0])
+        if(command && command[0])
         {
             if(stricmp(command, "maxscriptvars")==0) // each script can have a variable list that can be accessed by index
             {
@@ -7125,8 +7107,7 @@ int load_script_setting()
             }
         }
         // Go to next line
-        while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-        while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+	pos += getNewLineStart(buf + pos);
     }
 
     if(buf != NULL)
@@ -7270,8 +7251,7 @@ int load_models()
 			}
 		}
 		// Go to next line
-		while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-		while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+		pos += getNewLineStart(buf + pos);
 	}
 	// calculate max animations
 	max_animations += (max_attack_types - MAX_ATKS) * 6 +// multply by 5, for fall/die/pain/rise/blockpain/riseattack
@@ -7416,8 +7396,7 @@ int load_models()
 		}
 
 		// Go to next line
-		while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-		while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+		pos += getNewLineStart(buf + pos);
 		if(loadingbg[0][0]) update_loading(loadingbg[0][1]+videomodes.hShift, loadingbg[0][2]+videomodes.vShift, loadingbg[0][3], loadingbg[0][4]+videomodes.hShift, loadingbg[0][5]+videomodes.vShift, pos/2, size, loadingbg[0][6]);
 	}
 
@@ -7596,97 +7575,97 @@ static void _readbarstatus(char* buf, s_barstatus* pstatus)
 // Load list of levels
 void load_levelorder()
 {
-    char filename[128] = "";
-    int i;
-    char *buf;
-    size_t size;
-    int pos;
-    int current_set;
-    char * command;
-    char* arg;
+	char filename[128] = "";
+	int i;
+	char *buf;
+	size_t size;
+	int pos;
+	int current_set;
+	char * command;
+	char* arg;
 	char value[128]   = {""};
-    int plifeUsed[2]  = {0,0};
-    int elifeUsed[2]  = {0,0};
-    int piconUsed[2]  = {0,0};
-    int piconwUsed[2] = {0,0};
-    int eiconUsed[4]  = {0,0,0,0};
-    int pmpUsed[4]    = {0,0,0,0};
-    int plifeXused[4] = {0,0,0,0};        // 4-7-2006 New custimizable variable for players 'x'
-    int plifeNused[4] = {0,0,0,0};        // 4-7-2006 New custimizable variable for players 'lives'
-    int enameused[4]  = {0,0,0,0};        // 4-7-2006 New custimizable variable for enemy names
-    int pnameJused[4] = {0,0,0,0};        // 1-8-2006 New custimizable variable for players name Select Hero
-    int pscoreUsed[4] = {0,0,0,0};        // 1-8-2006 New custimizable variable for players name Select Hero
+	int plifeUsed[2]  = {0,0};
+	int elifeUsed[2]  = {0,0};
+	int piconUsed[2]  = {0,0};
+	int piconwUsed[2] = {0,0};
+	int eiconUsed[4]  = {0,0,0,0};
+	int pmpUsed[4]    = {0,0,0,0};
+	int plifeXused[4] = {0,0,0,0};        // 4-7-2006 New custimizable variable for players 'x'
+	int plifeNused[4] = {0,0,0,0};        // 4-7-2006 New custimizable variable for players 'lives'
+	int enameused[4]  = {0,0,0,0};        // 4-7-2006 New custimizable variable for enemy names
+	int pnameJused[4] = {0,0,0,0};        // 1-8-2006 New custimizable variable for players name Select Hero
+	int pscoreUsed[4] = {0,0,0,0};        // 1-8-2006 New custimizable variable for players name Select Hero
 
 	ArgList arglist;
 	char argbuf[MAX_ARG_LEN+1] = "";
 
-    unload_levelorder();
+	unload_levelorder();
 
-    if(custLevels != NULL)
+	if(custLevels != NULL)
 	{
-        strcpy(filename,"data/");
-        strcat(filename,custLevels);
-    }
-    else strcpy(filename,"data/levels.txt");
+		strcpy(filename,"data/");
+		strcat(filename,custLevels);
+	}
+	else strcpy(filename,"data/levels.txt");
 
-    // Read file
+	// Read file
 
-    if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Error loading level list from %s", filename);
+	if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Error loading level list from %s", filename);
 
-    // Now interpret the contents of buf line by line
-    pos = 0;
-    current_set = -1;
+	// Now interpret the contents of buf line by line
+	pos = 0;
+	current_set = -1;
 
-    // Custom lifebar/timebox/icon positioning and size
-    picon[0][0] = piconw[0][0] = picon[2][0] = piconw[2][0] = eicon[0][0] = eicon[2][0] = 2;
-    picon[1][0] = piconw[1][0] = picon[3][0] = piconw[3][0] = eicon[1][0] = eicon[3][0] = 2 + P2_STATS_DIST;
-    picon[0][1] = piconw[0][1] = picon[1][1] = piconw[1][1] = 2;
-    picon[2][1] = piconw[2][1] = picon[3][1] = piconw[3][1] = 202;
-    plife[0][0] = pmp[0][0] = plife[2][0] = pmp[2][0] = elife[0][0] = elife[2][0] = 20;
-    plife[1][0] = pmp[1][0] = plife[3][0] = pmp[3][0] = elife[1][0] = elife[3][0] = 20 + P2_STATS_DIST;
-    plife[0][1] = plife[1][1] = 10;
-    plife[2][1] = plife[3][1] = 210;
-    pmp[0][1] = pmp[1][1] = 18;
-    pmp[2][1] = pmp[3][1] = 218;
+	// Custom lifebar/timebox/icon positioning and size
+	picon[0][0] = piconw[0][0] = picon[2][0] = piconw[2][0] = eicon[0][0] = eicon[2][0] = 2;
+	picon[1][0] = piconw[1][0] = picon[3][0] = piconw[3][0] = eicon[1][0] = eicon[3][0] = 2 + P2_STATS_DIST;
+	picon[0][1] = piconw[0][1] = picon[1][1] = piconw[1][1] = 2;
+	picon[2][1] = piconw[2][1] = picon[3][1] = piconw[3][1] = 202;
+	plife[0][0] = pmp[0][0] = plife[2][0] = pmp[2][0] = elife[0][0] = elife[2][0] = 20;
+	plife[1][0] = pmp[1][0] = plife[3][0] = pmp[3][0] = elife[1][0] = elife[3][0] = 20 + P2_STATS_DIST;
+	plife[0][1] = plife[1][1] = 10;
+	plife[2][1] = plife[3][1] = 210;
+	pmp[0][1] = pmp[1][1] = 18;
+	pmp[2][1] = pmp[3][1] = 218;
 
-    memset(psmenu, 0, sizeof(int)*4*4);
+	memset(psmenu, 0, sizeof(int)*4*4);
 
-    eicon[0][1] = eicon[1][1] = 19;
-    eicon[2][1] = eicon[3][1] = 220;
-    elife[0][1] = elife[1][1] = 27;
-    elife[2][1] = elife[3][1] = 227;
+	eicon[0][1] = eicon[1][1] = 19;
+	eicon[2][1] = eicon[3][1] = 220;
+	elife[0][1] = elife[1][1] = 27;
+	elife[2][1] = elife[3][1] = 227;
 
-    timeloc[0] = 149;
-    timeloc[1] = 4;
-    timeloc[2] = 21;
-    timeloc[3] = 20;
-    timeloc[4] = 0;
+	timeloc[0] = 149;
+	timeloc[1] = 4;
+	timeloc[2] = 21;
+	timeloc[3] = 20;
+	timeloc[4] = 0;
 
-    lbarstatus.sizex  = mpbarstatus.sizex = 100;
-    lbarstatus.sizey  = 5;
-    mpbarstatus.sizey = 3;
-    lbarstatus.noborder = mpbarstatus.noborder = 0;
+	lbarstatus.sizex  = mpbarstatus.sizex = 100;
+	lbarstatus.sizey  = 5;
+	mpbarstatus.sizey = 3;
+	lbarstatus.noborder = mpbarstatus.noborder = 0;
 
-    // Show Complete Default Values
-    scomplete[0] = 75;
-    scomplete[1] = 60;
-    scomplete[2] = 0;
-    scomplete[3] = 0;
-    scomplete[4] = 0;
-    scomplete[5] = 0;
+	// Show Complete Default Values
+	scomplete[0] = 75;
+	scomplete[1] = 60;
+	scomplete[2] = 0;
+	scomplete[3] = 0;
+	scomplete[4] = 0;
+	scomplete[5] = 0;
 
-    // Show Complete Y Values
-    cbonus[0] = lbonus[0] = rbonus[0] = tscore[0] = 10;
-    cbonus[1] = cbonus[3] = cbonus[5] = cbonus[7] = cbonus[9] = 100;
-    lbonus[1] = lbonus[3] = lbonus[5] = lbonus[7] = lbonus[9] = 120;
-    rbonus[1] = rbonus[3] = rbonus[5] = rbonus[7] = rbonus[9] = 140;
-    tscore[1] = tscore[3] = tscore[5] = tscore[7] = tscore[9] = 160;
+	// Show Complete Y Values
+	cbonus[0] = lbonus[0] = rbonus[0] = tscore[0] = 10;
+	cbonus[1] = cbonus[3] = cbonus[5] = cbonus[7] = cbonus[9] = 100;
+	lbonus[1] = lbonus[3] = lbonus[5] = lbonus[7] = lbonus[9] = 120;
+	rbonus[1] = rbonus[3] = rbonus[5] = rbonus[7] = rbonus[9] = 140;
+	tscore[1] = tscore[3] = tscore[5] = tscore[7] = tscore[9] = 160;
 
-    // Show Complete X Values
-    cbonus[2] = lbonus[2] = rbonus[2] = tscore[2] = 100;
-    cbonus[4] = lbonus[4] = rbonus[4] = tscore[4] = 155;
-    cbonus[6] = lbonus[6] = rbonus[6] = tscore[6] = 210;
-    cbonus[8] = lbonus[8] = rbonus[8] = tscore[8] = 265;
+	// Show Complete X Values
+	cbonus[2] = lbonus[2] = rbonus[2] = tscore[2] = 100;
+	cbonus[4] = lbonus[4] = rbonus[4] = tscore[4] = 155;
+	cbonus[6] = lbonus[6] = rbonus[6] = tscore[6] = 210;
+	cbonus[8] = lbonus[8] = rbonus[8] = tscore[8] = 265;
 
 
 	while(pos<size){
@@ -7700,44 +7679,44 @@ void load_levelorder()
 					else blendfx[i] = 0;
 				}
 				blendfx_is_set = 1;
-            }
-            else if(stricmp(command, "set")==0){
-                if(num_difficulties>=MAX_DIFFICULTIES)
-                    shutdown(1, "Too many sets of levels (max %u)!", MAX_DIFFICULTIES);
+			}
+			else if(stricmp(command, "set")==0){
+				if(num_difficulties>=MAX_DIFFICULTIES)
+					shutdown(1, "Too many sets of levels (max %u)!", MAX_DIFFICULTIES);
 
-                ++num_difficulties;
-                ++current_set;
-                strncpy(set_names[current_set], GET_ARG(1), MAX_NAME_LEN);
-                ifcomplete[current_set] = 0;
-                cansave_flag[current_set] = 1; // default to 1, so the level can be saved
-                branch_name[0] = 0;
-            }
-            else if(stricmp(command, "ifcomplete")==0){
-                if(current_set<0)
-                    shutdown(1, "Error in level order: a set must be specified.");
+				++num_difficulties;
+				++current_set;
+				strncpy(set_names[current_set], GET_ARG(1), MAX_NAME_LEN);
+				ifcomplete[current_set] = 0;
+				cansave_flag[current_set] = 1; // default to 1, so the level can be saved
+				branch_name[0] = 0;
+			}
+			else if(stricmp(command, "ifcomplete")==0){
+				if(current_set<0)
+				shutdown(1, "Error in level order: a set must be specified.");
 
-                ifcomplete[current_set] = GET_INT_ARG(1);
-            }
-            else if(stricmp(command, "skipselect")==0){
-                if(current_set<0)
-                    shutdown(1, "Error in level order: a set must be specified.");
+				ifcomplete[current_set] = GET_INT_ARG(1);
+			}
+			else if(stricmp(command, "skipselect")==0){
+				if(current_set<0)
+					shutdown(1, "Error in level order: a set must be specified.");
 
-                if(!skipselect)
-                {
-                    skipselect = tracemalloc("skipselect", sizeof(*skipselect));
-                    memset(skipselect, 0, sizeof(*skipselect));
-                }
+				if(!skipselect)
+				{
+					skipselect = tracemalloc("skipselect", sizeof(*skipselect));
+					memset(skipselect, 0, sizeof(*skipselect));
+				}
 
-                for(i=0; i<4;i++)
-                {
-			if((arg=GET_ARG(i+1))[0])
-                    {
-                        if(!(*skipselect)[current_set][i])
-                            (*skipselect)[current_set][i] = tracemalloc("skipselect#2", MAX_NAME_LEN+1);
-                        strncpy((*skipselect)[current_set][i], arg, MAX_NAME_LEN);
-                    }
-                }
-            }
+				for(i=0; i<4;i++)
+				{
+					if((arg=GET_ARG(i+1))[0])
+					{
+						if(!(*skipselect)[current_set][i])
+							(*skipselect)[current_set][i] = tracemalloc("skipselect#2", MAX_NAME_LEN+1);
+						strncpy((*skipselect)[current_set][i], arg, MAX_NAME_LEN);
+					}
+				}
+			}
             else if(stricmp(command, "file")==0){
                 if(current_set<0)
                     shutdown(1, "Error in level order: a set must be specified.");
@@ -8283,8 +8262,7 @@ void load_levelorder()
         }
 
         // Go to next line
-        while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-        while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+	pos+=getNewLineStart(buf + pos);
     }
     if(buf != NULL){
         tracefree(buf);
@@ -8539,9 +8517,15 @@ void load_level(char *filename){
 	int  bgPosi[6] = {0,0,0,0,0};
 	char musicPath[128] = {""};
 	u32 musicOffset = 0;
+	
 	ArgList arglist;
 	char argbuf[MAX_ARG_LEN+1] = "";
+	
+	ArgList arglist2;
+	char argbuf2[MAX_ARG_LEN+1] = "";
+	
 	levelCommands cmd;
+	levelCommands cmd2;
 
 	unload_level();
 
@@ -8611,13 +8595,9 @@ void load_level(char *filename){
 	// Now interpret the contents of buf line by line
 	pos = 0;
 	while(pos<size){
-		ParseArgs(&arglist,buf+pos,argbuf);		
+		ParseArgs(&arglist,buf+pos,argbuf);
 		command = GET_ARG(0);
-		if (command && command[0]) {
-			lc(command, GET_ARG_LEN(0));
-			cmd = getLevelCommand(levelcmdlist, command);
-		} else
-			cmd = (levelCommands) 0;
+		cmd = getLevelCommand(levelcmdlist, command);
 		switch(cmd) {
 			case CMD_LEVEL_LOADINGBG:
 				load_background(GET_ARG(1), 0);
@@ -8643,10 +8623,16 @@ void load_level(char *filename){
 				{
 					oldpos = pos;
 					// Go to next line
-					while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-					while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
-					if(pos<size && (command = GET_ARG(0)) &&
-					command[0] && stricmp(command, "at")==0)
+					pos += getNewLineStart(buf + pos);
+					#define GET_ARG2(z) arglist2.count > z ? arglist2.args[z] : ""
+					if(pos<size) {
+						ParseArgs(&arglist2,buf+pos,argbuf2);					
+						command = GET_ARG2(0);					
+						cmd2 = getLevelCommand(levelcmdlist, command);
+					} else
+						cmd2 = (levelCommands) 0;
+					
+					if(cmd2 == CMD_LEVEL_AT)
 					{
 						if(next.musicfade == 0) memset(&next,0,sizeof(s_spawn_entry));
 						strncpy(next.music, string, 128);
@@ -8657,6 +8643,7 @@ void load_level(char *filename){
 						strncpy(musicPath, string, 128);
 					}
 					pos = oldpos;
+					#undef GET_ARG2
 				}
 				break;
 			case CMD_LEVEL_ALLOWSELECT:
@@ -9300,8 +9287,7 @@ void load_level(char *filename){
 		}
 
 		// Go to next line
-		while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-		while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+		pos += getNewLineStart(buf + pos);
 		if(bgPosi[2])
 			update_loading(bgPosi[0]+videomodes.hShift, bgPosi[1]+videomodes.vShift, bgPosi[2], bgPosi[3]+videomodes.hShift, bgPosi[4]+videomodes.vShift, pos, size, bgPosi[5]);
 		else if(loadingbg[1][0])
@@ -20451,8 +20437,7 @@ void playscene(char *filename)
             }
         }
         // Go to next non-blank line
-        while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-        while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+	pos += getNewLineStart(buf + pos);
     }
     if(buf != NULL){
         tracefree(buf);
@@ -20841,8 +20826,8 @@ int selectplayer(int *players, char* filename)
 				}
 				else shutdown(1, "Command '%s' is not understood in file '%s'", command, filename);
 			}
-			while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-			while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+			
+			pos += getNewLineStart(buf + pos);
 		}
 		if(buf != NULL)
 		{
@@ -21565,7 +21550,7 @@ readfile:
 		ParseArgs(&arglist,buf+pos,argbuf);
 		command = GET_ARG(0);
 	
-        if(command[0]){
+        if(command && command[0]){
 			if(stricmp(command, "video")==0){
 				videoMode = GET_INT_ARG(1);
 			}
@@ -21610,8 +21595,7 @@ readfile:
 			else printf("Command '%s' not understood in file '%s'!", command, filename);
         }
         // Go to next line
-        while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-        while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+	pos += getNewLineStart(buf + pos);
     }
 
 	if(buf != NULL){
@@ -21889,8 +21873,7 @@ void keyboard_setup(int player){
 				}
 			}
 			// Go to next line
-			while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
-			while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+			pos += getNewLineStart(buf + pos);
 		}
 		if(buf != NULL){
 			tracefree(buf);

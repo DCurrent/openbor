@@ -40,6 +40,9 @@ s_filelist paklist[20];
 int findmods(void);
 #endif
 
+void lc(char* buf, size_t size);
+size_t getNewLineStart(char* buf);
+
 void debug_printf(char *, ...);
 void getPakName(char name[256], int type);
 void screenshot(s_screen *vscreen, unsigned char *pal, int ingame);

@@ -95,6 +95,21 @@
 #define COPY_PAKS_PATH(buf, name) strncpy(buf, "./Paks/", 7); strncat(buf, name, strlen(name));
 #endif
 
+//lowercases a buffer inplace
+void lc(char* buf, size_t size) {
+	ptrdiff_t i;
+	for(i=0;i<size;i++) 
+		buf[i] = tolower((int)buf[i]);
+}
+
+// returns position after next newline in buf
+size_t getNewLineStart(char* buf) {
+	size_t res = 0;
+	while(buf[res] && buf[res]!='\n' && buf[res]!='\r') ++res;
+	while(buf[res] && (buf[res]=='\n' || buf[res]=='\r')) ++res;
+	return res;
+}
+
 FILE* openborLog = NULL;
 FILE* scriptLog = NULL;
 char debug_msg[2048];
