@@ -7599,6 +7599,7 @@ void load_levelorder()
 
 	ArgList arglist;
 	char argbuf[MAX_ARG_LEN+1] = "";
+	levelOrderCommands cmd;
 
 	unload_levelorder();
 
@@ -7672,16 +7673,17 @@ void load_levelorder()
 	while(pos<size){
 		ParseArgs(&arglist,buf+pos,argbuf);
 		command = GET_ARG(0);
-		if(command[0]){
-			if(stricmp(command, "blendfx")==0){
+		cmd = getLevelOrderCommand(levelordercmdlist, command);
+		switch(cmd) {
+			case CMD_LEVELORDER_BLENDFX:
 				for(i=0; i<MAX_BLENDINGS; i++)
 				{
 					if(GET_INT_ARG(i+1)) blendfx[i] = 1;
 					else blendfx[i] = 0;
 				}
 				blendfx_is_set = 1;
-			}
-			else if(stricmp(command, "set")==0){
+				break;
+			case CMD_LEVELORDER_SET:	
 				if(num_difficulties>=MAX_DIFFICULTIES)
 					shutdown(1, "Too many sets of levels (max %u)!", MAX_DIFFICULTIES);
 
@@ -7691,14 +7693,14 @@ void load_levelorder()
 				ifcomplete[current_set] = 0;
 				cansave_flag[current_set] = 1; // default to 1, so the level can be saved
 				branch_name[0] = 0;
-			}
-			else if(stricmp(command, "ifcomplete")==0){
+				break;
+			case CMD_LEVELORDER_IFCOMPLETE:	
 				if(current_set<0)
 				shutdown(1, "Error in level order: a set must be specified.");
 
 				ifcomplete[current_set] = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "skipselect")==0){
+				break;
+			case CMD_LEVELORDER_SKIPSELECT:
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
@@ -7717,29 +7719,29 @@ void load_levelorder()
 						strncpy((*skipselect)[current_set][i], arg, MAX_NAME_LEN);
 					}
 				}
-			}
-			else if(stricmp(command, "file")==0){
+				break;
+			case CMD_LEVELORDER_FILE:	
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				strncpy(value, GET_ARG(1), 127);
 				add_level(value, current_set);
-			}
-			else if(stricmp(command, "scene")==0){
+				break;
+			case CMD_LEVELORDER_SCENE:
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				strncpy(value, GET_ARG(1), 127);
 				add_scene(value, current_set);
-			}
-			else if(stricmp(command, "select")==0){
+				break;
+			case CMD_LEVELORDER_SELECT:
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				strncpy(value, GET_ARG(1), 127);
 				add_select(value, current_set);
-			}
-			else if(stricmp(command, "next")==0){
+				break;
+			case CMD_LEVELORDER_NEXT:
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
@@ -7748,8 +7750,8 @@ void load_levelorder()
 					shutdown(1, "Error in level order (next before file)!");
 
 				levelorder[current_set][num_levels[current_set]-1]->gonext = 1;
-			}
-			else if(stricmp(command, "end")==0){
+				break;
+			case CMD_LEVELORDER_END:
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
@@ -7758,456 +7760,453 @@ void load_levelorder()
 					shutdown(1, "Error in level order (next before file)!");
 
 				levelorder[current_set][num_levels[current_set]-1]->gonext = 2;
-			}
-			// 7-1-2005  credits/lives/singleplayer start here
-			// used to read the new # of lives/credits from the levels.txt
-			else if(stricmp(command, "lives")==0){
+				break;
+			case CMD_LEVELORDER_LIVES:	
+				// 7-1-2005  credits/lives/singleplayer start here
+				// used to read the new # of lives/credits from the levels.txt
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				difflives[current_set] = GET_INT_ARG(1);
-			}
-
-			else if(stricmp(command, "disablehof")==0){
+				break;
+			case CMD_LEVELORDER_DISABLEHOF:
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				noshowhof[current_set] = GET_INT_ARG(1);
-			}
-			// 07-12-31
-			// 0 this set can't be saved
-			// 1 save level only
-			// 2 save player info and level, can't choose player in select menu
-			else if(stricmp(command, "cansave")==0){
+				break;
+			case CMD_LEVELORDER_CANSAVE:	
+				// 07-12-31
+				// 0 this set can't be saved
+				// 1 save level only
+				// 2 save player info and level, can't choose player in select menu
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				cansave_flag[current_set] = GET_INT_ARG(1);
-			}
-			//    2-10-05  adjust the walkable coordinates
-			else if(stricmp(command, "z")==0){
+				break;
+			case CMD_LEVELORDER_Z:
+				//    2-10-05  adjust the walkable coordinates
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				z_coords[0] = GET_INT_ARG(1);
 				z_coords[1] = GET_INT_ARG(2);
 				z_coords[2] = GET_INT_ARG(3);
-			}
-			//    2007-2-22 level branch name
-			else if(stricmp(command, "branch")==0){
+				break;
+			case CMD_LEVELORDER_BRANCH:
+				//    2007-2-22 level branch name
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				strncpy(branch_name, GET_ARG(1), MAX_NAME_LEN);
-			}
-			else if(stricmp(command, "p1life")==0){
+				break;
+			case CMD_LEVELORDER_P1LIFE:
 				if((arg=GET_ARG(1))[0]) plife[0][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) plife[0][1] = atoi(arg);
-			}
-			else if(stricmp(command, "p2life")==0){
+				break;
+			case CMD_LEVELORDER_P2LIFE:
 				if((arg=GET_ARG(1))[0]) plife[1][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) plife[1][1] = atoi(arg);
-			}
-			else if(stricmp(command, "p3life")==0){
+				break;
+			case CMD_LEVELORDER_P3LIFE:	
 				if((arg=GET_ARG(1))[0]) plife[2][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) plife[2][1] = atoi(arg);
 				plifeUsed[0] = 1;
-			}
-			else if(stricmp(command, "p4life")==0){
+				break;
+			case CMD_LEVELORDER_P4LIFE:
 				if((arg=GET_ARG(1))[0]) plife[3][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) plife[3][1] = atoi(arg);
 				plifeUsed[1] = 1;
-			}
-			else if(stricmp(command, "p1mp")==0){
+				break;
+			case CMD_LEVELORDER_P1MP:
 				if((arg=GET_ARG(1))[0]) pmp[0][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) pmp[0][1] = atoi(arg);
 				pmpUsed[0] = 1;
-			}
-			else if(stricmp(command, "p2mp")==0){
+				break;
+			case CMD_LEVELORDER_P2MP:	
 				if((arg=GET_ARG(1))[0]) pmp[1][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) pmp[1][1] = atoi(arg);
 				pmpUsed[1] = 1;
-			}
-			else if(stricmp(command, "p3mp")==0){
+				break;
+			case CMD_LEVELORDER_P3MP:
 				if((arg=GET_ARG(1))[0]) pmp[2][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) pmp[2][1] = atoi(arg);
 				pmpUsed[2] = 1;
-			}
-			else if(stricmp(command, "p4mp")==0){
+				break;
+			case CMD_LEVELORDER_P4MP:
 				if((arg=GET_ARG(1))[0]) pmp[3][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) pmp[3][1] = atoi(arg);
 				pmpUsed[3] = 1;
-			}
-			else if(stricmp(command, "p1lifex")==0){
+				break;
+			case CMD_LEVELORDER_P1LIFEX:
 				for(i=0; i<3; i++)
 					if((arg=GET_ARG(i+1))[0]) plifeX[0][i] = atoi(arg);
 				plifeXused[0] = 1;
-			}
-			else if(stricmp(command, "p2lifex")==0){
+				break;
+			case CMD_LEVELORDER_P2LIFEX:
 				for(i=0; i<3; i++)
-			if((arg=GET_ARG(i+1))[0]) plifeX[1][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) plifeX[1][i] = atoi(arg);
 				plifeXused[1] = 1;
-			}
-			else if(stricmp(command, "p3lifex")==0){
+				break;
+			case CMD_LEVELORDER_P3LIFEX:	
 				for(i=0; i<3; i++)
-			if((arg=GET_ARG(i+1))[0]) plifeX[2][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) plifeX[2][i] = atoi(arg);
 				plifeXused[2] = 1;
-			}
-			else if(stricmp(command, "p4lifex")==0){
+				break;
+			case CMD_LEVELORDER_P4LIFEX:
 				for(i=0; i<3; i++)
-			if((arg=GET_ARG(i+1))[0]) plifeX[3][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) plifeX[3][i] = atoi(arg);
 				plifeXused[3] = 1;
-			}
-			else if(stricmp(command, "p1lifen")==0){
+				break;
+			case CMD_LEVELORDER_P1LIFEN:
 				for(i=0; i<3; i++)
 					if((arg=GET_ARG(i+1))[0]) plifeN[0][i] = atoi(arg);
 				plifeNused[0] = 1;
-			}
-			else if(stricmp(command, "p2lifen")==0){
+				break;
+			case CMD_LEVELORDER_P2LIFEN:	
 				for(i=0; i<3; i++)
-			if((arg=GET_ARG(i+1))[0]) plifeN[1][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) plifeN[1][i] = atoi(arg);
 				plifeNused[1] = 1;
-			}
-			else if(stricmp(command, "p3lifen")==0){
+				break;
+			case CMD_LEVELORDER_P3LIFEN:
 				for(i=0; i<3; i++)
-			if((arg=GET_ARG(i+1))[0]) plifeN[2][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) plifeN[2][i] = atoi(arg);
 				plifeNused[2] = 1;
-			}
-			else if(stricmp(command, "p4lifen")==0){
+				break;
+			case CMD_LEVELORDER_P4LIFEN:
 				for(i=0; i<3; i++)
-			if((arg=GET_ARG(i+1))[0]) plifeN[3][i] = atoi(arg);
+					if((arg=GET_ARG(i+1))[0]) plifeN[3][i] = atoi(arg);
 				plifeNused[3] = 1;
-			}
-			else if(stricmp(command, "e1life")==0){
+				break;
+			case CMD_LEVELORDER_E1LIFE:
 				if((arg=GET_ARG(1))[0]) elife[0][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) elife[0][1] = atoi(arg);
-			}
-			else if(stricmp(command, "e2life")==0){
+				break;
+			case CMD_LEVELORDER_E2LIFE:
 				if((arg=GET_ARG(1))[0]) elife[1][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) elife[1][1] = atoi(arg);
-			}
-			else if(stricmp(command, "e3life")==0){
+				break;
+			case CMD_LEVELORDER_E3LIFE:	
 				if((arg=GET_ARG(1))[0]) elife[2][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) elife[2][1] = atoi(arg);
 				elifeUsed[0] = 1;
-			}
-			else if(stricmp(command, "e4life")==0){
+				break;
+			case CMD_LEVELORDER_E4LIFE:
 				if((arg=GET_ARG(1))[0]) elife[3][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) elife[3][1] = atoi(arg);
 				elifeUsed[1] = 1;
-			}
-			else if(stricmp(command, "p1icon")==0){
+				break;
+			case CMD_LEVELORDER_P1ICON:
 				if((arg=GET_ARG(1))[0]) picon[0][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) picon[0][1] = atoi(arg);
-			}
-			else if(stricmp(command, "p2icon")==0){
+				break;
+			case CMD_LEVELORDER_P2ICON:	
 				if((arg=GET_ARG(1))[0]) picon[1][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) picon[1][1] = atoi(arg);
-			}
-			else if(stricmp(command, "p3icon")==0){
+				break;
+			case CMD_LEVELORDER_P3ICON:	
 				if((arg=GET_ARG(1))[0]) picon[2][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) picon[2][1] = atoi(arg);
 				piconUsed[0] = 1;
-			}
-			else if(stricmp(command, "p4icon")==0){
+				break;
+			case CMD_LEVELORDER_P4ICON:	
 				if((arg=GET_ARG(1))[0]) picon[3][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) picon[3][1] = atoi(arg);
 				piconUsed[1] = 1;
-			}
-			else if(stricmp(command, "p1iconw")==0){
+				break;
+			case CMD_LEVELORDER_P1ICONW:
 				if((arg=GET_ARG(1))[0]) piconw[0][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) piconw[0][1] = atoi(arg);
-			}
-			else if(stricmp(command, "p2iconw")==0){
+				break;
+			case CMD_LEVELORDER_P2ICONW:
 				if((arg=GET_ARG(1))[0]) piconw[1][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) piconw[1][1] = atoi(arg);
-			}
-			else if(stricmp(command, "p3iconw")==0){
+				break;
+			case CMD_LEVELORDER_P3ICONW:
 				if((arg=GET_ARG(1))[0]) piconw[2][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) piconw[2][1] = atoi(arg);
 				piconwUsed[0] = 1;
-			}
-			else if(stricmp(command, "p4iconw")==0){
+				break;
+			case CMD_LEVELORDER_P4ICONW:	
 				if((arg=GET_ARG(1))[0]) piconw[3][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) piconw[3][1] = atoi(arg);
 				piconwUsed[1] = 1;
-			}
-			else if(stricmp(command, "mp1icon")==0){
+				break;
+			case CMD_LEVELORDER_MP1ICON:
 				if((arg=GET_ARG(1))[0]) mpicon[0][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) mpicon[0][1] = atoi(arg);
-			}
-			else if(stricmp(command, "mp2icon")==0){
+				break;
+			case CMD_LEVELORDER_MP2ICON:
 				if((arg=GET_ARG(1))[0]) mpicon[1][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) mpicon[1][1] = atoi(arg);
-			}
-			else if(stricmp(command, "mp3icon")==0){
+				break;
+			case CMD_LEVELORDER_MP3ICON:
 				if((arg=GET_ARG(1))[0]) mpicon[2][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) mpicon[2][1] = atoi(arg);
-			}
-			else if(stricmp(command, "mp4icon")==0){
+				break;
+			case CMD_LEVELORDER_MP4ICON:
 				if((arg=GET_ARG(1))[0]) mpicon[3][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) mpicon[3][1] = atoi(arg);
-			}
-			else if(stricmp(command, "p1namej")==0){
+				break;
+			case CMD_LEVELORDER_P1NAMEJ:	
 				for(i=0; i<7; i++)
 					if((arg=GET_ARG(i+1))[0]) pnameJ[0][i] = atoi(arg);
 				pnameJused[0] = 1;
-			}
-			else if(stricmp(command, "p2namej")==0){
+				break;
+			case CMD_LEVELORDER_P2NAMEJ:	
 				for(i=0; i<7; i++)
 					if((arg=GET_ARG(i+1))[0]) pnameJ[1][i] = atoi(arg);
 				pnameJused[1] = 1;
-			}
-			else if(stricmp(command, "p3namej")==0){
+				break;
+			case CMD_LEVELORDER_P3NAMEJ:
 				for(i=0; i<7; i++)
 					if((arg=GET_ARG(i+1))[0]) pnameJ[2][i] = atoi(arg);
 				pnameJused[2] = 1;
-			}
-			else if(stricmp(command, "p4namej")==0){
+				break;
+			case CMD_LEVELORDER_P4NAMEJ:
 				for(i=0; i<7; i++)
 					if((arg=GET_ARG(i+1))[0]) pnameJ[3][i] = atoi(arg);
 				pnameJused[3] = 1;
-			}
-			else if(stricmp(command, "p1score")==0){
+				break;
+			case CMD_LEVELORDER_P1SCORE:
 				for(i=0; i<7; i++)
 					if((arg=GET_ARG(i+1))[0]) pscore[0][i] = atoi(arg);
 				pscoreUsed[0] = 1;
-			}
-			else if(stricmp(command, "p2score")==0){
+				break;
+			case CMD_LEVELORDER_P2SCORE:
 				for(i=0; i<7; i++)
 					if((arg=GET_ARG(i+1))[0]) pscore[1][i] = atoi(arg);
 				pscoreUsed[1] = 1;
-			}
-			else if(stricmp(command, "p3score")==0){
+				break;
+			case CMD_LEVELORDER_P3SCORE:
 				for(i=0; i<7; i++)
 					if((arg=GET_ARG(i+1))[0]) pscore[2][i] = atoi(arg);
 				pscoreUsed[2] = 1;
-			}
-			else if(stricmp(command, "p4score")==0){
+				break;
+			case CMD_LEVELORDER_P4SCORE:
 				for(i=0; i<7; i++)
 					if((arg=GET_ARG(i+1))[0]) pscore[3][i] = atoi(arg);
 				pscoreUsed[3] = 1;
-			}
-			else if(stricmp(command, "p1shoot")==0){
+				break;
+			case CMD_LEVELORDER_P1SHOOT:
 				for(i=0; i<3; i++)
 					if((arg=GET_ARG(i+1))[0]) pshoot[0][i] = atoi(arg);
-			}
-			else if(stricmp(command, "p2shoot")==0){
+				break;
+			case CMD_LEVELORDER_P2SHOOT:
 				for(i=0; i<3; i++)
 					if((arg=GET_ARG(i+1))[0]) pshoot[1][i] = atoi(arg);
-			}
-			else if(stricmp(command, "p3shoot")==0){
+				break;
+			case CMD_LEVELORDER_P3SHOOT:
 				for(i=0; i<3; i++)
 					if((arg=GET_ARG(i+1))[0]) pshoot[2][i] = atoi(arg);
-			}
-			else if(stricmp(command, "p4shoot")==0){
+				break;
+			case CMD_LEVELORDER_P4SHOOT:	
 				for(i=0; i<3; i++)
 					if((arg=GET_ARG(i+1))[0]) pshoot[3][i] = atoi(arg);
-			}
-			else if(stricmp(command, "p1rush")==0){
+				break;
+			case CMD_LEVELORDER_P1RUSH:
 				for(i=0; i<8; i++)
 					if((arg=GET_ARG(i+1))[0]) prush[0][i] = atoi(arg);
-			}
-			else if(stricmp(command, "p2rush")==0){
+				break;
+			case CMD_LEVELORDER_P2RUSH:
 				for(i=0; i<8; i++)
 					if((arg=GET_ARG(i+1))[0]) prush[1][i] = atoi(arg);
-			}
-			else if(stricmp(command, "p3rush")==0){
+				break;
+			case CMD_LEVELORDER_P3RUSH:	
 				for(i=0; i<8; i++)
 					if((arg=GET_ARG(i+1))[0]) prush[2][i] = atoi(arg);
-			}
-			else if(stricmp(command, "p4rush")==0){
+				break;
+			case CMD_LEVELORDER_P4RUSH:	
 				for(i=0; i<8; i++)
 					if((arg=GET_ARG(i+1))[0]) prush[3][i] = atoi(arg);
-			}
-			else if(stricmp(command, "e1icon")==0){
+				break;
+			case CMD_LEVELORDER_E1ICON:	
 				if((arg=GET_ARG(1))[0]) eicon[0][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) eicon[0][1] = atoi(arg);
-			}
-			else if(stricmp(command, "e2icon")==0){
+				break;
+			case CMD_LEVELORDER_E2ICON:
 				if((arg=GET_ARG(1))[0]) eicon[1][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) eicon[1][1] = atoi(arg);
-			}
-			else if(stricmp(command, "e3icon")==0){
+				break;
+			case CMD_LEVELORDER_E3ICON:	
 				if((arg=GET_ARG(1))[0]) eicon[2][0] = atoi(arg);
-				if((arg=GET_ARG(2))[0]) eicon[2][1] = atoi(arg);
+				if((arg=GET_ARG(2))[0]) eicon[2][1] = atoi(arg);				
 				eiconUsed[0] = 1;
-			}
-			else if(stricmp(command, "e4icon")==0){
+				break;
+			case CMD_LEVELORDER_E4ICON:				
 				if((arg=GET_ARG(1))[0]) eicon[3][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) eicon[3][1] = atoi(arg);
 				eiconUsed[1] = 1;
-			}
-			else if(stricmp(command, "e1name")==0){
+				break;
+			case CMD_LEVELORDER_E1NAME:	
 				for(i=0; i<3; i++)
 					if((arg=GET_ARG(i+1))[0]) ename[0][i] = atoi(arg);
 				enameused[0] = 1;
-			}
-			else if(stricmp(command, "e2name")==0){
+				break;
+			case CMD_LEVELORDER_E2NAME:
 				for(i=0; i<3; i++)
 					if((arg=GET_ARG(i+1))[0]) ename[1][i] = atoi(arg);
 				enameused[1] = 1;
-			}
-			else if(stricmp(command, "e3name")==0){
+				break;
+			case CMD_LEVELORDER_E3NAME:	
 				for(i=0; i<3; i++)
 					if((arg=GET_ARG(i+1))[0]) ename[2][i] = atoi(arg);
 				enameused[2] = 1;
-			}
-			else if(stricmp(command, "e4name")==0){
+				break;
+			case CMD_LEVELORDER_E4NAME:
 				for(i=0; i<3; i++)
 					if((arg=GET_ARG(i+1))[0]) ename[3][i] = atoi(arg);
 				enameused[3] = 1;
-			}
-			else if(stricmp(command, "p1smenu")==0){
+				break;
+			case CMD_LEVELORDER_P1SMENU:	
 				for(i=0; i<4; i++)
 					if((arg=GET_ARG(i+1))[0]) psmenu[0][i] = atoi(arg);
-			}
-			else if(stricmp(command, "p2smenu")==0){
+				break;
+			case CMD_LEVELORDER_P2SMENU:	
 				for(i=0; i<4; i++)
 					if((arg=GET_ARG(i+1))[0]) psmenu[1][i] = atoi(arg);
-			}
-			else if(stricmp(command, "p3smenu")==0){
+				break;
+			case CMD_LEVELORDER_P3SMENU:
 				for(i=0; i<4; i++)
 					if((arg=GET_ARG(i+1))[0]) psmenu[2][i] = atoi(arg);
-			}
-			else if(stricmp(command, "p4smenu")==0){
+				break;
+			case CMD_LEVELORDER_P4SMENU:	
 				for(i=0; i<4; i++)
 					if((arg=GET_ARG(i+1))[0]) psmenu[3][i] = atoi(arg);
-			}
-			else if(stricmp(command, "timeicon")==0){
+				break;
+			case CMD_LEVELORDER_TIMEICON:	
    				strncpy(timeicon_path, GET_ARG(1), 127);
 				timeicon = loadsprite(timeicon_path,0,0,pixelformat);
 				if((arg=GET_ARG(2))[0]) timeicon_offsets[0] = atoi(arg);
 				if((arg=GET_ARG(3))[0]) timeicon_offsets[1] = atoi(arg);
-			}
-			else if(stricmp(command, "bgicon")==0){
+				break;
+			case CMD_LEVELORDER_BGICON:	
 				strncpy(bgicon_path, GET_ARG(1), 127);
 				bgicon = loadsprite(bgicon_path,0,0,pixelformat);
 				if((arg=GET_ARG(2))[0]) bgicon_offsets[0] = atoi(arg);
 				if((arg=GET_ARG(3))[0]) bgicon_offsets[1] = atoi(arg);
 				if((arg=GET_ARG(4))[0]) bgicon_offsets[2] = atoi(arg);
 				else bgicon_offsets[2] = HUD_Z / 2;
-			}
-			else if(stricmp(command, "olicon")==0){
+				break;
+			case CMD_LEVELORDER_OLICON:
 				strncpy(olicon_path, GET_ARG(1), 127);
 				olicon = loadsprite(olicon_path,0,0,pixelformat);
 				if((arg=GET_ARG(2))[0]) olicon_offsets[0] = atoi(arg);
 				if((arg=GET_ARG(3))[0]) olicon_offsets[1] = atoi(arg);
 				if((arg=GET_ARG(4))[0]) olicon_offsets[2] = atoi(arg);
 				else olicon_offsets[2] = HUD_Z * 3;
-			}
-			else if(stricmp(command, "timeloc")==0){
+				break;
+			case CMD_LEVELORDER_TIMELOC:
 				for(i=0; i<6; i++)
 					if((arg=GET_ARG(i+1))[0]) timeloc[i] = atoi(arg);
-			}
-			else if(stricmp(command, "lbarsize")==0){
+				break;
+			case CMD_LEVELORDER_LBARSIZE:
 				_readbarstatus(buf+pos, &lbarstatus);
-			}
-			else if(stricmp(command, "olbarsize")==0){
+				break;
+			case CMD_LEVELORDER_OLBARSIZE:
 				_readbarstatus(buf+pos, &olbarstatus);
-			}
-			else if(stricmp(command, "mpbarsize")==0){
+				break;
+			case CMD_LEVELORDER_MPBARSIZE:
 				_readbarstatus(buf+pos, &mpbarstatus);
-			}
-			else if(stricmp(command, "lbartext")==0){
+				break;
+			case CMD_LEVELORDER_LBARTEXT:
 				for(i=0; i<4; i++)
 					if((arg=GET_ARG(i+1))[0]) lbartext[i] = atoi(arg);
-			}
-			else if(stricmp(command, "mpbartext")==0){
+				break;
+			case CMD_LEVELORDER_MPBARTEXT:
 				for(i=0; i<4; i++)
 					if((arg=GET_ARG(i+1))[0]) mpbartext[i] = atoi(arg);
-			}
-			else if(stricmp(command, "showcomplete")==0){
+				break;
+			case CMD_LEVELORDER_SHOWCOMPLETE:
 				for(i=0; i<6; i++)
 					if((arg=GET_ARG(i+1))[0]) scomplete[i] = atoi(arg);
-			}
-			else if(stricmp(command, "clearbonus")==0){
+				break;
+			case CMD_LEVELORDER_CLEARBONUS:
 				for(i=0; i<10; i++)
 					if((arg=GET_ARG(i+1))[0]) cbonus[i] = atoi(arg);
-			}
-			else if(stricmp(command, "rushbonus")==0){
+				break;
+			case CMD_LEVELORDER_RUSHBONUS:
 				for(i=0; i<10; i++)
 					if((arg=GET_ARG(i+1))[0]) rbonus[i] = atoi(arg);
-			}
-			else if(stricmp(command, "lifebonus")==0){
+				break;
+			case CMD_LEVELORDER_LIFEBONUS:
 				for(i=0; i<10; i++)
 					if((arg=GET_ARG(i+1))[0]) lbonus[i] = atoi(arg);
-			}
-			else if(stricmp(command, "scbonuses")==0){
+				break;
+			case CMD_LEVELORDER_SCBONUSES:
 				for(i=0; i<4; i++)
 					if((arg=GET_ARG(i+1))[0]) scbonuses[i] = atoi(arg);
-			}
-			else if(stricmp(command, "totalscore")==0){
+				break;
+			case CMD_LEVELORDER_TOTALSCORE:
 				for(i=0; i<10; i++)
 					if((arg=GET_ARG(i+1))[0]) tscore[i] = atoi(arg);
-			}
-			else if(stricmp(command, "musicoverlap")==0){
+				break;
+			case CMD_LEVELORDER_MUSICOVERLAP:
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				diffoverlap[current_set] = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "showrushbonus")==0){
+				break;
+			case CMD_LEVELORDER_SHOWRUSHBONUS:
 				showrushbonus = 1;
-			}
-			else if(stricmp(command, "noslowfx")==0){
+				break;
+			case CMD_LEVELORDER_NOSLOWFX:
 				noslowfx = 1;
-			}
-			else if(stricmp(command, "equalairpause")==0){
+				break;
+			case CMD_LEVELORDER_EQUALAIRPAUSE:
 				equalairpause = 1;
-			}
-			else if(stricmp(command, "hiscorebg")==0){
+				break;
+			case CMD_LEVELORDER_HISCOREBG:
 				hiscorebg = 1;
-			}
-			else if(stricmp(command, "completebg")==0){
+				break;
+			case CMD_LEVELORDER_COMPLETEBG:
 				completebg = 1;
-			}
-			else if(stricmp(command, "loadingbg")==0){
+				break;
+			case CMD_LEVELORDER_LOADINGBG:
 				for(i=0; i<7; i++) loadingbg[0][i] = GET_INT_ARG(i+1);
-			}
-			else if(stricmp(command, "loadingbg2")==0){
+				break;
+			case CMD_LEVELORDER_LOADINGBG2:
 				for(i=0; i<7; i++) loadingbg[1][i] = GET_INT_ARG(i+1);
-	        }
-			else if(stricmp(command, "loadingmusic")==0){
+				break;
+			case CMD_LEVELORDER_LOADINGMUSIC:
 				loadingmusic = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "unlockbg")==0){
+				break;
+			case CMD_LEVELORDER_UNLOCKBG:
 				unlockbg = 1;
-			}
-			else if(stricmp(command, "noshare")==0){
+				break;
+			case CMD_LEVELORDER_NOSHARE:
 				noshare = 1;
-			}
-
-			//8-2-2005 custom fade
-			else if(stricmp(command, "custfade")==0){
+				break;
+			case CMD_LEVELORDER_CUSTFADE:
+				//8-2-2005 custom fade
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				custfade[current_set] = GET_INT_ARG(1);
-			}
-			//8-2-2005 custom fade end
-			//continuescore
-			else if(stricmp(command, "continuescore")==0){
+				break;
+			case CMD_LEVELORDER_CONTINUESCORE:
+				//8-2-2005 custom fade end
+				//continuescore
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				continuescore[current_set] = GET_INT_ARG(1);
-			}
-
-			else if(stricmp(command, "credits")==0){
+				break;
+			case CMD_LEVELORDER_CREDITS:
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				diffcreds[current_set] = GET_INT_ARG(1);
-			}
-			//typemp for change for mp restored by time (0) to by enemys (1) or no restore (2) by tails
-			else if(stricmp(command, "typemp")==0){
+				break;
+			case CMD_LEVELORDER_TYPEMP:
+				//typemp for change for mp restored by time (0) to by enemys (1) or no restore (2) by tails
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				typemp[current_set] = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "single")==0){
+				break;
+			case CMD_LEVELORDER_SINGLE:
 				if(current_set<0)
 				{
 					for(i=0; i<MAX_DIFFICULTIES; i++)
@@ -8217,8 +8216,9 @@ void load_levelorder()
 				{
 					maxplayers[current_set] = ctrlmaxplayers[current_set] = 1;
 				}
-			}  // 7-1-2005  credits/lives/singleplayer end here
-			else if(stricmp(command, "maxplayers")==0){
+				break;
+			case CMD_LEVELORDER_MAXPLAYERS:
+				// 7-1-2005  credits/lives/singleplayer end here
 				if(current_set<0)
 				{
 					maxplayers[0] = GET_INT_ARG(1);
@@ -8229,14 +8229,14 @@ void load_levelorder()
 				{
 					maxplayers[current_set] = ctrlmaxplayers[current_set] = GET_INT_ARG(1);
 				}
-			}
-			else if(stricmp(command, "nosame")==0){
+				break;
+			case CMD_LEVELORDER_NOSAME:
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
 				same[current_set] = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "rush")==0){
+				break;
+			case CMD_LEVELORDER_RUSH:
 				rush[0] = GET_INT_ARG(1);
 				rush[1] = GET_INT_ARG(2);
 				strncpy(rush_names[0], GET_ARG(3), MAX_NAME_LEN);
@@ -8245,25 +8245,20 @@ void load_levelorder()
 				strncpy(rush_names[1], GET_ARG(6), MAX_NAME_LEN);
 				rush[4] = GET_INT_ARG(7);
 				rush[5] = GET_INT_ARG(8);
-			}
-			else if(stricmp(command, "maxwallheight")==0){
+				break;
+			case CMD_LEVELORDER_MAXWALLHEIGHT:
 				MAX_WALL_HEIGHT = GET_INT_ARG(1);
 				if(MAX_WALL_HEIGHT < 0) MAX_WALL_HEIGHT = 1000;
-			}
-			else if(stricmp(command, "scoreformat")==0){
+				break;
+			case CMD_LEVELORDER_SCOREFORMAT:
 				scoreformat = GET_INT_ARG(1);
-			}
-			else {
-				if(buf != NULL){
-					tracefree(buf);
-					buf = NULL;
-				}
-				shutdown(1, "Command '%s' not understood in level order!", command);
-			}
+				break;
+			default:
+				if (command) printf("Command '%s' not understood in level order!", command);
 		}
 
 		// Go to next line
-	pos+=getNewLineStart(buf + pos);
+		pos+=getNewLineStart(buf + pos);
 	}
 	if(buf != NULL){
 		tracefree(buf);
