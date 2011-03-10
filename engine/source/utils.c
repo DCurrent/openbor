@@ -177,7 +177,7 @@ int fileExists(char *fnam)
 stringptr* readFromLogFile(int which)
 {
 	long  size;
-    int disCcWarns;
+	int disCcWarns;
 	FILE* handle = NULL;
 	stringptr* buffer = NULL;
 	handle = READ_LOGFILE((which ? OPENBOR_LOG : SCRIPT_LOG));
@@ -236,13 +236,13 @@ void writeToScriptLog(const char *msg)
 }
 
 void debug_printf(char *format, ...){
-    va_list arglist;
+	va_list arglist;
 
-    va_start(arglist, format);
-    vsprintf(debug_msg, format, arglist);
-    va_end(arglist);
+	va_start(arglist, format);
+	vsprintf(debug_msg, format, arglist);
+	va_end(arglist);
 
-    debug_time = 0xFFFFFFFF;
+	debug_time = 0xFFFFFFFF;
 }
 
 void getPakName(char name[256], int type){
@@ -260,14 +260,14 @@ void getPakName(char name[256], int type){
 			strncat(mod,".hi",3);
 			break;
 		case 2:
-            strncat(mod,".scr",4);
-            break;
+			strncat(mod,".scr",4);
+			break;
 		case 3:
-            strncat(mod,".inp",4);
-            break;
+			strncat(mod,".inp",4);
+			break;
 		case 4:
-            strncat(mod,".cfg",4);
-            break;
+			strncat(mod,".cfg",4);
+			break;
 		default:
 			// Loose extension!
 			break;
@@ -298,7 +298,7 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame){
 	char shotname[128] = {""};
 	char modname[128]  = {""};
 
-    getPakName(modname,99);
+	getPakName(modname,99);
 #ifdef PSP
 	if(dirExists("ms0:/PICTURE/", 1) && dirExists("ms0:/PICTURE/Beats Of Rage/", 1)){
 #endif
@@ -355,8 +355,8 @@ int findmods(void)
 
 unsigned readlsb32(const unsigned char *src)
 {
-    return
-        ((((unsigned)(src[0])) & 0xFF) <<  0) |
+	return
+		((((unsigned)(src[0])) & 0xFF) <<  0) |
 		((((unsigned)(src[1])) & 0xFF) <<  8) |
 		((((unsigned)(src[2])) & 0xFF) << 16) |
 		((((unsigned)(src[3])) & 0xFF) << 24);
@@ -365,7 +365,7 @@ unsigned readlsb32(const unsigned char *src)
 // Optimized search in an arranged string table, return the index
 int searchList(const char* list[], const char* value, int length)
 {
-    int i;
+	int i;
 	int a = 0;
 	int b = length / 2;
 	int c = length - 1;
@@ -395,7 +395,7 @@ int searchList(const char* list[], const char* value, int length)
 		// Search Up the List.
 		if(v == list[b+1][0])
 		{
-            for(i=b+1; i<length; i++)
+			for(i=b+1; i<length; i++)
 			{
 				if(stricmp(list[i], value) == 0) return i;
 				if(v != list[i+1][0]) break;
@@ -416,7 +416,7 @@ int searchList(const char* list[], const char* value, int length)
 	{
 		if(v == list[i][0])
 		{
-            if(stricmp(list[i], value) == 0) return i;
+			if(stricmp(list[i], value) == 0) return i;
 			if(v != list[i+1][0]) break;
 		}
 	}
