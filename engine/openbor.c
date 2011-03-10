@@ -584,6 +584,12 @@ s_drawmethod* getDrawMethod(s_anim* a, ptrdiff_t index) {
 	return a->drawmethods[index];
 }
 
+void lc(char* buf, size_t size) {
+	ptrdiff_t i;
+	for(i=0;i<size;i++) 
+		buf[i] = tolower((int)buf[i]);
+}
+
 // returns: 1 - succeeded 0 - failed
 int buffer_pakfile(char* filename, char** pbuffer, size_t* psize)
 {
@@ -4421,13 +4427,6 @@ void lcmHandleCommandScripts(ArgList* arglist, Script* script, char* scriptname,
 		Script_Compile(script);
 	else shutdown(1, "Unable to load %s '%s' in file '%s'.\n", scriptname, GET_ARGP(1), filename);
 }
-
-void lc(char* buf, size_t size) {
-	int i;
-	for(i=0;i<size;i++) 
-		buf[i] = tolower((int)buf[i]);
-}
-
 
 //alloc a new model, and everything thats required,
 //set all values to defaults
@@ -8609,14 +8608,15 @@ void load_level(char *filename){
 
 	reset_playable_list(1);
 
-    // Now interpret the contents of buf line by line
+	// Now interpret the contents of buf line by line
 	pos = 0;
 	while(pos<size){
 		ParseArgs(&arglist,buf+pos,argbuf);		
 		command = GET_ARG(0);
-		if (command && command[0])
+		if (command && command[0]) {
+			lc(command, GET_ARG_LEN(0));
 			cmd = getLevelCommand(levelcmdlist, command);
-		else
+		} else
 			cmd = (levelCommands) 0;
 		switch(cmd) {
 			case CMD_LEVEL_LOADINGBG:
