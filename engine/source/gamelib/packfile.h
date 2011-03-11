@@ -72,6 +72,7 @@ int packfileeof(int fd);
 int packfile_supported(struct dirent* ds);
 void packfile_music_read(struct fileliststruct* filelist, int dListTotal);
 int packfile_music_play(struct fileliststruct* filelist, FILE *bgmFile, int bgmLoop, int curPos, int scrPos);
+void freefilenamecache(void);
 
 #endif
 
