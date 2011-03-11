@@ -506,3 +506,4 @@ levelOrderCommands getLevelOrderCommand(List* list, char* usercommand);
 void freeLevelOrderCommandList(List* list);
 
 #endif
+

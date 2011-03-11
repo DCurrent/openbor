@@ -552,4 +552,5 @@ List* createLevelOrderCommandList(void) {
 
 void freeLevelOrderCommandList(List* list) {
 	freeModelCommandList(list);
-}	
+}
+	
