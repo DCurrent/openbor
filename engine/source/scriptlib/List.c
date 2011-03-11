@@ -281,19 +281,47 @@ void List_Solidify(List* list)
 	chklist((List*)list);
 #endif
 	int i = 0;
+	size_t sldsize = 0;
+	Node* tp;
+	Node* nptr = list->first;
+	
 #ifdef LIST_DEBUG
 	printf("List_Solidify %p\n", list);
 #endif
 	if(list->solidlist) tracefree(list->solidlist);
 	if(!list->size) return;
+	
+	sldsize = sizeof(void*)*(list->size);
+	list->solidlist = (void**)tracemalloc("List_Solidify", sldsize);
+	
 	List_GotoFirst(list);
-	list->solidlist = (void**)tracemalloc("List_Solidify", sizeof(void*)*(list->size));
-	while(list->current) {
-		list->solidlist[i++] = list->current->value;
-		List_Remove(list);
+	for(i=0; i<list->size; i++) {
+		list->solidlist[i] = list->current->value;
+		List_GotoNext(list);
+		//List_Remove(list);		
 	}
+	// it seems List_Remove doesnt behave as expected, that is moving to first and calling remove while current should behave the same as GotoNext
+	// i'll write a unittest for that, in the meantime we use the old method.
+	for(i=0; i<list->size; i++)
+	{	
+		#ifdef USE_STRING_HASHES
+		List_RemoveHash(list, nptr);
+		#endif
+		Node_Clear(nptr);
+		tp = nptr;
+		nptr = nptr->next;
+		tracefree(tp);
+	}
+#ifdef LIST_DEBUG	
+	printf("solidlist of %p:\n", list);
+	debugBuf((unsigned char*) list->solidlist, sldsize, sizeof(void*));
+#endif	
 	list->first = list->current = list->last = NULL;
 	list->index = 0;
+	#ifdef USE_INDEX
+	if(list->indices) 
+		List_FreeIndices(list);
+	#endif	
 }
 
 

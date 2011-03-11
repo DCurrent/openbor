@@ -95,6 +95,19 @@
 #define COPY_PAKS_PATH(buf, name) strncpy(buf, "./Paks/", 7); strncat(buf, name, strlen(name));
 #endif
 
+void debugBuf(unsigned char* buf, size_t size, int columns) {
+	size_t pos = 0;
+	int i;
+	while(pos<size) {
+		for(i=0;i<columns;i++) {
+			if(pos >= size) break;
+			printf("%02x", buf[pos]);
+			pos++;
+		}
+		printf("\n");
+	}
+}
+
 //lowercases a buffer inplace
 void lc(char* buf, size_t size) {
 	ptrdiff_t i;
