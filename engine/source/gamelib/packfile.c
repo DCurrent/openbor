@@ -83,6 +83,8 @@ static int packhandle[MAXPACKHANDLES] = { -1,-1,-1,-1,-1,-1,-1,-1 };
 // Own file pointers and sizes
 static unsigned int packfilepointer[MAXPACKHANDLES];
 static unsigned int packfilesize[MAXPACKHANDLES];
+//char packfile[128] <- defined in sdl/sdlport.c... hmmm
+List* filenamelist = NULL;
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -128,6 +130,7 @@ static ClosePackfile pClosePackfile;
 //
 // Generic but useful functions
 //
+
 char tolowerOneChar(const char* c)
 {
 	static const char diff = 'a' - 'A';
@@ -142,6 +145,15 @@ char tolowerOneChar(const char* c)
 			return *c;
 	}
 	return '\0'; //should never be reached
+}
+
+// file name lowercase in-place.
+void fnlc(char* buf) {
+	char* copy = buf;
+	while(copy && *copy) {
+		*copy = tolowerOneChar(copy);
+		copy++;
+	}	
 }
 
 // we only return 0 on success, and non 0 on failure, to speed it up
@@ -250,6 +262,17 @@ char * casesearch(const char *dir, const char *filepath)
 
 /////////////////////////////////////////////////////////////////////////////
 
+int getFreeHandle(void) {
+	int h;
+	for(h=0; h<MAXPACKHANDLES && packhandle[h]>-1; h++); // Find free handle
+		if(h>=MAXPACKHANDLES) {
+			printf ("no free handles\n"); // since this condition shuts down openbor, we can savely give more info.
+			return -1;			// No free handles
+		}
+		return h;
+}
+
+
 void packfile_mode(int mode)
 {
 	if(!mode)
@@ -307,13 +330,8 @@ int openPackfile(const char *filename, const char *packfilename)
 	char *fspath;
 #endif
 
-	for(h=0; h<MAXPACKHANDLES && packhandle[h]>-1; h++); // Find free handle
-	if(h>=MAXPACKHANDLES) {
-#ifdef VERBOSE
-		printf ("no free handles\n");
-#endif
-		return -1;			// No free handles
-	}
+	h = getFreeHandle();
+	if (h == -1) return -1;
 
 #ifdef WIN
 	// Convert slashes to backslashes
@@ -482,13 +500,44 @@ void update_filecache_vfd(int vfd)
 	else filecache_setvfd(vfd, -1, -1, 0);
 }
 
+void makefilenamecache(void) {
+	ptrdiff_t hpos;
+	char target[256];
+	
+	if(!filenamelist)
+		filenamelist = tracemalloc("filenamelist", sizeof(List));
+	List_Init(filenamelist);
+	
+	// look for filename in the header
+	
+	hpos = 0;
+	for(;;)
+	{
+		if((hpos + 12) >= pak_headersize) 
+			return;
+		strncpy(target, (char*)pak_header + hpos + 12, 256);
+		fnlc(target);
+		List_InsertAfter(filenamelist, (void*) hpos, target);
+		hpos += readlsb32(pak_header + hpos);
+	}
+}
+
+void freefilenamecache(void) {
+	if(filenamelist) {
+		List_Clear(filenamelist);
+		tracefree(filenamelist);
+		filenamelist = NULL;
+	}
+}
+
 int openreadaheadpackfile(const char *filename, const char *packfilename, int readaheadsize, int prebuffersize)
 {
-	int hpos;
+	ptrdiff_t hpos;
 	int vfd;
 	size_t fnl;
 	size_t al;
-	char* target;
+	char target[256];
+	Node* n;
 
 	if(packfilename != packfile) {
 		fnl = strlen(packfile);
@@ -499,30 +548,25 @@ int openreadaheadpackfile(const char *filename, const char *packfilename, int re
 			return -1;
 		}
 	}
-
+	
+	if(!filenamelist)
+		makefilenamecache();
+	
+	strncpy(target, filename, 256);
+	fnlc(target);
+	
+	n = List_SearchName(filenamelist, (LPCSTR) target);
+	if (!n) 
+		return -1;
+	
+	hpos = (ptrdiff_t) n->value;
+	
 	// find a free vfd
 	for(vfd = 0; vfd < MAXPACKHANDLES; vfd++) if(!pak_vfdexists[vfd]) break;
 	if(vfd >= MAXPACKHANDLES) return -1;
 
-	// look for filename in the header
-	fnl = strlen(filename);
-	hpos = 0;
-	for(;;)
-	{
-		if((hpos + 12) >= pak_headersize) return -1;
-		target = (char*)pak_header + hpos + 12;
-		al = strlen(target);
-
-		if(myfilenamecmp(target, al, filename, fnl))
-		{
-			hpos += readlsb32(pak_header + hpos);
-			continue;
-		}
-		// found!
-		pak_vfdstart[vfd] = readlsb32(pak_header + hpos + 4);
-		pak_vfdsize[vfd] = readlsb32(pak_header + hpos + 8);
-		break;
-	}
+	pak_vfdstart[vfd] = readlsb32(pak_header + hpos + 4);
+	pak_vfdsize[vfd] = readlsb32(pak_header + hpos + 8);	
 
 	pak_vfdpos[vfd] = 0;
 	pak_vfdexists[vfd] = 1;

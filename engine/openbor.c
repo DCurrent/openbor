@@ -46,9 +46,9 @@ size_t load_ticks = 0; // counter while loading. we use it to only update the sc
 
 
 int startup_done = 0; // startup is only called when a game is loaded. so when exitting from the menu we need a way to figure out which resources to free.
-List* modelcmdlist;
-List* levelcmdlist;
-List* levelordercmdlist;
+List* modelcmdlist = NULL;
+List* levelcmdlist = NULL;
+List* levelordercmdlist = NULL;
 
 
 //see types.h
@@ -20074,6 +20074,15 @@ void shutdown(int status, char *msg, ...)
 	if(startup_done) pak_term();
 	if(!disablelog) printf("\tDone!\n");
 
+	if(modelcmdlist)
+		freeModelCommandList(modelcmdlist); // moved here because list is not initialized if shutdown is initiated from inside the menu
+	if(levelcmdlist)
+			freeLevelCommandList(levelcmdlist);
+	if(levelordercmdlist)
+			freeLevelCommandList(levelordercmdlist);
+	freefilenamecache();
+	
+	
 	if(!disablelog) printf("\n**************** Done *****************\n\n");
 
 	if(!disablelog) printf("%s", buf);
@@ -23154,10 +23163,6 @@ void openborMain()
 		}
 		update(0,0);
 	}
-
-	freeModelCommandList(modelcmdlist); // moved here because list is not initialized if shutdown is initiated from inside the menu
-	freeLevelCommandList(levelcmdlist);
-	freeLevelCommandList(levelordercmdlist);
 	shutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
 }
 
