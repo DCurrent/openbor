@@ -2723,8 +2723,8 @@ void lifebar_colors()
 				shadowcolor = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
 			else if(stricmp(command, "shadowalpha")==0) //gfxshadow alpha
 				shadowalpha = GET_INT_ARG(1);
-			else 
-				if(command && command[0]) 
+			else
+				if(command && command[0])
 					printf("Warning: Unknown command in lifebar.txt: '%s'.\n", command);
 		}
 
@@ -3356,7 +3356,7 @@ void load_menu_txt()
 				fontmonospace[6] = GET_INT_ARG(7);
 				fontmonospace[7] = GET_INT_ARG(8);
 			}
-			else 
+			else
 				if(command && command[0])
 					printf("Command '%s' not understood in file '%s'!", command, filename);
 		}
@@ -6886,7 +6886,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					strcat(scriptbuf, sur_text); // put back last  chars
 					break;
 				default:
-					if(command && command[0]) 
+					if(command && command[0])
 						printf("Command '%s' not understood in file '%s'!", command, filename);
 			}
 
@@ -7389,7 +7389,7 @@ int load_models()
 				stricmp(command, "maxfreespecials")==0 ||
 				stricmp(command, "maxattacks")==0))
 			{
-				if(command && command[0]) 
+				if(command && command[0])
 					printf("Command '%s' not understood in file '%s'!", command, filename);
 			}
 		}
@@ -7575,7 +7575,7 @@ static void _readbarstatus(char* buf, s_barstatus* pstatus)
 void load_levelorder()
 {
 	char filename[128] = "";
-	int i,j;
+	int i=0,j=0;
 	char *buf;
 	size_t size;
 	int pos;
@@ -7681,7 +7681,7 @@ void load_levelorder()
 				}
 				blendfx_is_set = 1;
 				break;
-			case CMD_LEVELORDER_SET:	
+			case CMD_LEVELORDER_SET:
 				if(num_difficulties>=MAX_DIFFICULTIES)
 					shutdown(1, "Too many sets of levels (max %u)!", MAX_DIFFICULTIES);
 
@@ -7692,7 +7692,7 @@ void load_levelorder()
 				cansave_flag[current_set] = 1; // default to 1, so the level can be saved
 				branch_name[0] = 0;
 				break;
-			case CMD_LEVELORDER_IFCOMPLETE:	
+			case CMD_LEVELORDER_IFCOMPLETE:
 				if(current_set<0)
 				shutdown(1, "Error in level order: a set must be specified.");
 
@@ -7718,7 +7718,7 @@ void load_levelorder()
 					}
 				}
 				break;
-			case CMD_LEVELORDER_FILE:	
+			case CMD_LEVELORDER_FILE:
 				if(current_set<0)
 					shutdown(1, "Error in level order: a set must be specified.");
 
@@ -7759,7 +7759,7 @@ void load_levelorder()
 
 				levelorder[current_set][num_levels[current_set]-1]->gonext = 2;
 				break;
-			case CMD_LEVELORDER_LIVES:	
+			case CMD_LEVELORDER_LIVES:
 				// 7-1-2005  credits/lives/singleplayer start here
 				// used to read the new # of lives/credits from the levels.txt
 				if(current_set<0)
@@ -7773,7 +7773,7 @@ void load_levelorder()
 
 				noshowhof[current_set] = GET_INT_ARG(1);
 				break;
-			case CMD_LEVELORDER_CANSAVE:	
+			case CMD_LEVELORDER_CANSAVE:
 				// 07-12-31
 				// 0 this set can't be saved
 				// 1 save level only
@@ -7824,7 +7824,7 @@ void load_levelorder()
 				break;
 			case CMD_LEVELORDER_P1LIFEX: case CMD_LEVELORDER_P2LIFEX: case CMD_LEVELORDER_P3LIFEX: case CMD_LEVELORDER_P4LIFEX:
 				switch(cmd) {
-					case CMD_LEVELORDER_P1LIFEX: j = 0; break; 
+					case CMD_LEVELORDER_P1LIFEX: j = 0; break;
 					case CMD_LEVELORDER_P2LIFEX: j = 1; break;
 					case CMD_LEVELORDER_P3LIFEX: j = 2; break;
 					case CMD_LEVELORDER_P4LIFEX: j = 3; break;
@@ -7890,7 +7890,7 @@ void load_levelorder()
 				if((arg=GET_ARG(1))[0]) mpicon[i][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) mpicon[i][1] = atoi(arg);
 				break;
-			case CMD_LEVELORDER_P1NAMEJ: case CMD_LEVELORDER_P2NAMEJ: case CMD_LEVELORDER_P3NAMEJ: case CMD_LEVELORDER_P4NAMEJ:	
+			case CMD_LEVELORDER_P1NAMEJ: case CMD_LEVELORDER_P2NAMEJ: case CMD_LEVELORDER_P3NAMEJ: case CMD_LEVELORDER_P4NAMEJ:
 				switch(cmd) {
 					case CMD_LEVELORDER_P1NAMEJ: j = 0; break;
 					case CMD_LEVELORDER_P2NAMEJ: j = 1; break;
@@ -7916,12 +7916,12 @@ void load_levelorder()
 				break;
 			case CMD_LEVELORDER_P1SHOOT: case CMD_LEVELORDER_P2SHOOT: case CMD_LEVELORDER_P3SHOOT: case CMD_LEVELORDER_P4SHOOT:
 				switch(cmd) {
-					case CMD_LEVELORDER_P1SHOOT: j = 0; break;    
+					case CMD_LEVELORDER_P1SHOOT: j = 0; break;
 					case CMD_LEVELORDER_P2SHOOT: j = 1; break;
 					case CMD_LEVELORDER_P3SHOOT: j = 2; break;
 					case CMD_LEVELORDER_P4SHOOT: j = 3; break;
 					default: assert(0);
-				}	
+				}
 				for(i=0; i<3; i++)
 					if((arg=GET_ARG(i+1))[0]) pshoot[j][i] = atoi(arg);
 				break;
@@ -7947,7 +7947,7 @@ void load_levelorder()
 				if((arg=GET_ARG(1))[0]) eicon[i][0] = atoi(arg);
 				if((arg=GET_ARG(2))[0]) eicon[i][1] = atoi(arg);
 				break;
-			case CMD_LEVELORDER_E1NAME: case CMD_LEVELORDER_E2NAME: case CMD_LEVELORDER_E3NAME: case CMD_LEVELORDER_E4NAME:	
+			case CMD_LEVELORDER_E1NAME: case CMD_LEVELORDER_E2NAME: case CMD_LEVELORDER_E3NAME: case CMD_LEVELORDER_E4NAME:
 				switch(cmd) {
 					case CMD_LEVELORDER_E1NAME: j = 0; break;
 					case CMD_LEVELORDER_E2NAME: j = 1; break;
@@ -7970,13 +7970,13 @@ void load_levelorder()
 				for(i=0; i<4; i++)
 					if((arg=GET_ARG(i+1))[0]) psmenu[j][i] = atoi(arg);
 				break;
-			case CMD_LEVELORDER_TIMEICON:	
+			case CMD_LEVELORDER_TIMEICON:
    				strncpy(timeicon_path, GET_ARG(1), 127);
 				timeicon = loadsprite(timeicon_path,0,0,pixelformat);
 				if((arg=GET_ARG(2))[0]) timeicon_offsets[0] = atoi(arg);
 				if((arg=GET_ARG(3))[0]) timeicon_offsets[1] = atoi(arg);
 				break;
-			case CMD_LEVELORDER_BGICON:	
+			case CMD_LEVELORDER_BGICON:
 				strncpy(bgicon_path, GET_ARG(1), 127);
 				bgicon = loadsprite(bgicon_path,0,0,pixelformat);
 				if((arg=GET_ARG(2))[0]) bgicon_offsets[0] = atoi(arg);
@@ -20081,8 +20081,8 @@ void shutdown(int status, char *msg, ...)
 	if(levelordercmdlist)
 			freeLevelCommandList(levelordercmdlist);
 	freefilenamecache();
-	
-	
+
+
 	if(!disablelog) printf("\n**************** Done *****************\n\n");
 
 	if(!disablelog) printf("%s", buf);
@@ -20726,7 +20726,7 @@ int selectplayer(int *players, char* filename)
 					else
 						update_model_loadflag(tempmodel, GET_INT_ARG(2));
 				}
-				else 
+				else
 					if(command && command[0])
 						printf("Command '%s' is not understood in file '%s'", command, filename);
 			}
@@ -21495,7 +21495,7 @@ readfile:
 				else if(value[0]==0) screenformat=PIXEL_32;
 				else shutdown(1, "Screen colour depth can only be either 8bit, 16bit or 32bit.");
 			}
-			else 
+			else
 				if(stricmp(command, "forcemode")==0) {}
 			else
 				if(command && command[0])
@@ -21774,7 +21774,7 @@ void keyboard_setup(int player){
 				else
 					if(command && command[0])
 						printf("Command '%s' not understood in file '%s'!", command, filename);
-				
+
 			}
 			// Go to next line
 			pos += getNewLineStart(buf + pos);
