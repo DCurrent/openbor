@@ -322,7 +322,10 @@ void List_Solidify(List* list)
 	#ifdef USE_INDEX
 	if(list->mindices) 
 		List_FreeIndices(list);
-	#endif	
+	#endif
+	#ifdef USE_STRING_HASHES
+	List_FreeHashes(list);
+	#endif
 }
 
 
