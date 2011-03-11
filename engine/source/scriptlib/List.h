@@ -91,15 +91,16 @@ typedef struct List {
 	void **solidlist;
 	int index;
 	int size;
-#ifdef DEBUG	
-	int initdone;
-#endif
 #ifdef USE_INDEX
-	LIndex** indices;
+	LIndex** mindices;
 #endif
 #ifdef USE_STRING_HASHES
 	Bucket** buckets;
 #endif
+#ifdef DEBUG	
+	int initdone;
+#endif
+
 } List;
 
 Node* List_GetCurrent(List* list);
@@ -116,6 +117,7 @@ void List_Remove(List* list);
 void List_GotoNext(List* list);
 void List_GotoPrevious(List* list);
 void List_GotoLast(List* list);
+void List_GotoFirst(List* list);
 void* List_Retrieve(const List* list);
 void* List_GetFirst(const List* list);
 void* List_GetLast(const List* list);

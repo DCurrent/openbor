@@ -131,31 +131,32 @@ void List_AddIndex(List* list, Node* node, size_t index) {
 	
 	assert(node);	
 	
-	if (!list->indices) list->indices = tracecalloc("create listindex pointer array", sizeof(LIndex*) * 256);
+	if (!list->mindices) 
+		list->mindices = tracecalloc("create listindex pointer array", sizeof(LIndex*) * 256);
 	
 	h = ptrhash(node->value);
-	if (!list->indices[h]) {
-		list->indices[h] = tracecalloc("create listindex item", sizeof(LIndex));
-		list->indices[h]->nodes = tracecalloc("create listindex nodes", sizeof(Node*) * 8);
-		assert(list->indices[h]->nodes != NULL);
-		list->indices[h]->indices = tracecalloc("create listindex indices", sizeof(ptrdiff_t) * 8);
-		assert(list->indices[h]->indices != NULL);		
-		list->indices[h]->size = 8;
+	if (!list->mindices[h]) {
+		list->mindices[h] = tracecalloc("create listindex item", sizeof(LIndex));
+		list->mindices[h]->nodes = tracecalloc("create listindex nodes", sizeof(Node*) * 8);
+		assert(list->mindices[h]->nodes != NULL);
+		list->mindices[h]->indices = tracecalloc("create listindex indices", sizeof(ptrdiff_t) * 8);
+		assert(list->mindices[h]->indices != NULL);		
+		list->mindices[h]->size = 8;
 	}
 	
-	save = list->indices[h]->size;
-	assert(list->indices[h]->used <= save);
-	if (list->indices[h]->used == save) {
-		list->indices[h]->nodes = tracerealloc(list->indices[h]->nodes, sizeof(Node*) * (save * 2));
-		assert(list->indices[h]->nodes != NULL);
-		list->indices[h]->indices = tracerealloc(list->indices[h]->indices, sizeof(ptrdiff_t) * (save * 2));
-		assert(list->indices[h]->indices != NULL);		
-		list->indices[h]->size = save * 2;
+	save = list->mindices[h]->size;
+	assert(list->mindices[h]->used <= save);
+	if (list->mindices[h]->used == save) {
+		list->mindices[h]->nodes = tracerealloc(list->mindices[h]->nodes, sizeof(Node*) * (save * 2));
+		assert(list->mindices[h]->nodes != NULL);
+		list->mindices[h]->indices = tracerealloc(list->mindices[h]->indices, sizeof(ptrdiff_t) * (save * 2));
+		assert(list->mindices[h]->indices != NULL);		
+		list->mindices[h]->size = save * 2;
 	}
 	
-	list->indices[h]->nodes[list->indices[h]->used] = node;
-	list->indices[h]->indices[list->indices[h]->used] = index;
-	list->indices[h]->used++;
+	list->mindices[h]->nodes[list->mindices[h]->used] = node;
+	list->mindices[h]->indices[list->mindices[h]->used] = index;
+	list->mindices[h]->used++;
 }
 
 /* removes the last element from the index list
@@ -169,11 +170,11 @@ void List_RemoveLastIndex(List* list) {
 	assert(list->current);
 	assert(list->current == list->last);
 	h = ptrhash(list->last->value);
-	assert(list->indices[h]);
-	assert(list->indices[h]->used > 0);
-	list->indices[h]->used--; // it would be wrong to do this to a random element, but it's ok for the last one, since it was added as last
-	list->indices[h]->nodes[list->indices[h]->used] = NULL;
-	list->indices[h]->indices[list->indices[h]->used] = 0;
+	assert(list->mindices[h]);
+	assert(list->mindices[h]->used > 0);
+	list->mindices[h]->used--; // it would be wrong to do this to a random element, but it's ok for the last one, since it was added as last
+	list->mindices[h]->nodes[list->mindices[h]->used] = NULL;
+	list->mindices[h]->indices[list->mindices[h]->used] = 0;
 }
 
 /* build indices for entire list
@@ -201,16 +202,16 @@ void List_FreeIndices(List* list) {
 	chklist((List*)list);
 #endif
 	int i;
-	if(!list->indices) return;
+	if(!list->mindices) return;
 	for (i=0;i<256;i++) {
-		if(list->indices[i]) {
-			tracefree(list->indices[i]->indices);
-			tracefree(list->indices[i]->nodes);
-			tracefree(list->indices[i]);
+		if(list->mindices[i]) {
+			tracefree(list->mindices[i]->indices);
+			tracefree(list->mindices[i]->nodes);
+			tracefree(list->mindices[i]);
 		}		
 	}
-	tracefree(list->indices);
-	list->indices = NULL;
+	tracefree(list->mindices);
+	list->mindices = NULL;
 }
 #endif
 
@@ -265,7 +266,7 @@ void List_Init(List* list)
 	list->size = list->index = 0;
 	list->solidlist = NULL;
 #ifdef USE_INDEX
-	list->indices = NULL;	
+	list->mindices = NULL;	
 #endif
 #ifdef USE_STRING_HASHES
 	list->buckets = NULL;
@@ -319,7 +320,7 @@ void List_Solidify(List* list)
 	list->first = list->current = list->last = NULL;
 	list->index = 0;
 	#ifdef USE_INDEX
-	if(list->indices) 
+	if(list->mindices) 
 		List_FreeIndices(list);
 	#endif	
 }
@@ -333,13 +334,13 @@ int List_GetNodeIndex(List* list, Node* node) {
 	Node* n;
 	#ifdef USE_INDEX
 	unsigned char h;	
-	if(list->indices) {
+	if(list->mindices) {
 		h = ptrhash(node->value);
-		assert(list->indices[h]);
-		for(i=0; i<list->indices[h]->used; i++) {
-			//assert(list->indices[h]->nodes[i]); gets overwritten by update with NULL
-			if(list->indices[h]->nodes[i] && list->indices[h]->nodes[i] == node) 
-				return list->indices[h]->indices[i];
+		assert(list->mindices[h]);
+		for(i=0; i<list->mindices[h]->used; i++) {
+			//assert(list->mindices[h]->nodes[i]); gets overwritten by update with NULL
+			if(list->mindices[h]->nodes[i] && list->mindices[h]->nodes[i] == node) 
+				return list->mindices[h]->indices[i];
 		}
 		return -1;
 	} else	
@@ -405,7 +406,7 @@ void List_Copy(List* listdest, const List* listsrc)
 		List_GotoNext(listdest); //setting current to the right value
 		
 	#ifdef USE_INDEX
-	if(listsrc->indices)
+	if(listsrc->mindices)
 		List_CreateIndices(listdest);
 	#endif
 	
@@ -442,7 +443,7 @@ void List_Clear(List* list)
 	}
 
 	#ifdef USE_INDEX
-	if(list->indices)
+	if(list->mindices)
 		List_FreeIndices(list);
 	#endif
 	
@@ -463,7 +464,7 @@ void List_InsertBefore(List* list, void* e, LPCSTR theName)
 	printf("List_InsertBefore %p %s\n", list, theName ? theName : "no-name");
 #endif
 	#ifdef USE_INDEX
-	if (list->indices) 
+	if (list->mindices) 
 		List_FreeIndices(list); // inserting something before something else destroys our indices list.
 	#endif
 	
@@ -506,7 +507,7 @@ void List_InsertAfter(List* list, void* e, LPCSTR theName) {
 #endif
 	#ifdef USE_INDEX
 	int doIndex = 0;
-	if (list->indices) {
+	if (list->mindices) {
 		if(list->current != list->last) 
 			List_FreeIndices(list); // inserting something in the middle of something else destroys our indices list.
 		else
@@ -577,7 +578,7 @@ void List_Remove(List* list)
 	else
 	{
 		#ifdef USE_INDEX
-		if(list->indices) {
+		if(list->mindices) {
 			if (list->current != list->last)
 				List_FreeIndices(list); // removing something before something else destroys our indices list.
 			else
@@ -675,14 +676,14 @@ void List_Update(List* list, void* e)
 	#ifdef USE_INDEX
 	unsigned char h;
 	ptrdiff_t save, i;
-	if(list->indices) {
+	if(list->mindices) {
 		h = ptrhash(list->current->value);
-		assert(list->indices[h]);
-		for(i=0;i<list->indices[h]->used;i++) {
-			if(list->indices[h]->nodes[i] == list->current) {
-				list->indices[h]->nodes[i] = NULL;
-				save = list->indices[h]->indices[i];
-				list->indices[h]->indices[i] = -1;
+		assert(list->mindices[h]);
+		for(i=0;i<list->mindices[h]->used;i++) {
+			if(list->mindices[h]->nodes[i] == list->current) {
+				list->mindices[h]->nodes[i] = NULL;
+				save = list->mindices[h]->indices[i];
+				list->mindices[h]->indices[i] = -1;
 				list->current->value = e;
 				List_AddIndex(list, list->current, save);
 				break;
@@ -704,15 +705,15 @@ Node* List_Contains(List* list, void* e) {
 #ifdef USE_INDEX
 	unsigned char h;
 	ptrdiff_t i;
-	if(list->indices) {
+	if(list->mindices) {
 		h = ptrhash(e);
-		if (!list->indices[h]) 
+		if (!list->mindices[h]) 
 			return NULL;
-		for(i=0; i<list->indices[h]->used; i++) {
+		for(i=0; i<list->mindices[h]->used; i++) {
 			//assert(list->indices[h]->nodes[i]); gets overwritten by update with NULL
-			if(list->indices[h]->nodes[i] && list->indices[h]->nodes[i]->value == e) {
+			if(list->mindices[h]->nodes[i] && list->mindices[h]->nodes[i]->value == e) {
 				//gotcha
-				return list->indices[h]->nodes[i];
+				return list->mindices[h]->nodes[i];
 			}
 		}
 		return NULL;

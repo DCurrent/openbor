@@ -7,8 +7,9 @@
  * set -DDEBUG when compiling List.c
  * to check access on non-initialized lists
  * 
+ gcc -Wall -DDEBUG -DNO_RAM_DEBUGGER -I.. -I../gamelib -I../tracelib -g -O0 List_unittest.c List.c ../tracelib/tracemalloc.c -o list_unittest
+ 
  */
-
 #include "List.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,7 +32,7 @@ void freemem() {
 	}
 }
 
-int eq (char* s1, char* s2) {
+int eq (LPCSTR s1, LPCSTR s2) {
 	return (strcmp(s1, s2) == 0);
 }
 
@@ -206,10 +207,12 @@ int main() {
 	
 	#ifdef USE_INDEX
 	List_CreateIndices(&list);
+	assert(list.mindices);
 	assert(List_GetIndex(&list) == list.size -1);
 	assert(List_GetNodeIndex(&list, list.first) == 0);
 	assert(List_GetNodeIndex(&list, list.last->prev) == list.size -2);
 	assert(List_GetNodeIndex(&list, list.last->prev->prev) == list.size -3);
+	assert(list.mindices[ptrhash((void*)0xDEADBEEF)]);
 	#endif
 	assert(List_Includes(&list, (void*)0xDEADBEEF));
 	
@@ -220,19 +223,25 @@ int main() {
 	assert(list.current == list.last);
 	assert(List_Retrieve(&list) == (void*)0xDEADC0DE);
 	assert(!List_Includes(&list, (void*)0xDEADBEEF));
+	assert(List_Includes(&list, (void*)0xDEADC0DE));
+	#ifdef USE_INDEX
+	assert(list.mindices);
+	assert(list.mindices[ptrhash((void*)0xDEADC0DE)]);
+	#endif
 	List_Remove(&list);
 	assert(!List_Includes(&list, (void*)0xDEADC0DE));
 	#ifdef USE_INDEX
-	assert(list.indices);
+	assert(list.mindices);
 	assert(ptrhash((void*) dummy) != ptrhash((void*)0xDEADC0DE));
 	assert(ptrhash((void*) dummy) != ptrhash((void*)0xDEADBEEF));
-	assert(list.indices[ptrhash((void*)0xDEADC0DE)]);
-	assert(list.indices[ptrhash((void*)0xDEADC0DE)]->nodes[0] == NULL);
-	assert(list.indices[ptrhash((void*)0xDEADC0DE)]->used ==0);
+	// disable temporary
+	assert(list.mindices[ptrhash((void*)0xDEADC0DE)]);
+	assert(list.mindices[ptrhash((void*)0xDEADC0DE)]->nodes[0] == NULL);
+	assert(list.mindices[ptrhash((void*)0xDEADC0DE)]->used ==0);
 	// dead beef was updated, so used must be still 1
-	assert(list.indices[ptrhash((void*)0xDEADBEEF)]);
-	assert(list.indices[ptrhash((void*)0xDEADBEEF)]->nodes[0] == NULL);
-	assert(list.indices[ptrhash((void*)0xDEADBEEF)]->used == 1);	
+	assert(list.mindices[ptrhash((void*)0xDEADBEEF)]);
+	assert(list.mindices[ptrhash((void*)0xDEADBEEF)]->nodes[0] == NULL);
+	assert(list.mindices[ptrhash((void*)0xDEADBEEF)]->used == 1);
 	#endif
 	
 	List_Clear(&list);
@@ -251,6 +260,37 @@ int main() {
 	List_GotoFirst(&list);
 
 	List_Clear(&list);
+	
+	// testing the order of removal is equivalent to gotonext
+	List_Init(&list);
+	List_InsertAfter(&list, (void*) 1, NULL);
+	List_InsertAfter(&list, (void*) 2, NULL);
+	List_InsertAfter(&list, (void*) 3, NULL);
+	List_InsertAfter(&list, (void*) 4, NULL);
+	List_GotoFirst(&list);
+	assert(list.current->value == (void*) 1);
+	List_GotoNext(&list);
+	assert(list.current->value == (void*) 2);
+	List_GotoNext(&list);
+	assert(list.current->value == (void*) 3);
+	List_GotoNext(&list);
+	assert(list.current->value == (void*) 4);
+	assert(list.current == list.last);
+	List_GotoFirst(&list);
+	assert(list.current->value == (void*) 1);
+	List_Remove(&list);
+	assert(list.current->value == (void*) 2);	
+	List_Remove(&list);
+	assert(list.current->value == (void*) 3);
+	List_Remove(&list);
+	assert(list.current->value == (void*) 4);
+	assert(list.current == list.last);
+	List_Remove(&list);
+	assert(list.current == list.last);
+	assert(list.current == list.first);
+	assert(list.current == NULL);
+	
+	
 	freemem();
 	return 0;
 }
