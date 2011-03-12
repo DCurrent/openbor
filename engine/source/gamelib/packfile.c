@@ -71,7 +71,7 @@
 #define CACHEBLOCKS    (8)
 #endif
 
-static int pak_initilized;
+static int pak_initialized;
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -903,7 +903,7 @@ int find_iso_file(const char *filename, int lba, int *bytes)
 void pak_term()
 {
 	int i;
-	if(!pak_initilized) return;
+	if(!pak_initialized) return;
 	if(pak_cdheader != NULL)
 	{
 		tracefree(pak_cdheader);
@@ -923,7 +923,7 @@ void pak_term()
 		pak_vfdpos[i]       = -1;
 		pak_vfdreadahead[i] = -1;
 	}
-	pak_initilized = 0;
+	pak_initialized = 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -934,7 +934,7 @@ int pak_init()
 	unsigned char *sectors;
 	unsigned int magic, version;
 
-	if(pak_initilized)
+	if(pak_initialized)
 	{
 		printf("pak_init already initialized!");
 		return 0;
@@ -942,7 +942,7 @@ int pak_init()
 
 	if(isRawData())
 	{
-		pak_initilized = 1;
+		pak_initialized = 1;
 		return 0;
 	}
 
@@ -1061,7 +1061,7 @@ int pak_init()
 	for(i = 0; i < MAXPACKHANDLES; i++) pak_vfdexists[i] = 0;
 	// finally, initialize the filecache
 	filecache_init(pakfd, (paksize + 0x7FF) / 0x800, CACHEBLOCKSIZE, CACHEBLOCKS, MAXPACKHANDLES);
-	pak_initilized = 1;
+	pak_initialized = 1;
 	return (CACHEBLOCKSIZE * CACHEBLOCKS + 64);
 }
 
