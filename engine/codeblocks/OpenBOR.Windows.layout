@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
-	<File name="..\openbor.c" open="0" top="0" tabpos="0">
-		<Cursor position="885360" topLine="22845" />
+	<File name="..\openbor.c" open="1" top="1" tabpos="0">
+		<Cursor position="157425" topLine="8400" />
 	</File>
 	<File name="..\sdl\menu.c" open="0" top="0" tabpos="0">
 		<Cursor position="18294" topLine="643" />

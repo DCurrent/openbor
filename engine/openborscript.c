@@ -4540,12 +4540,14 @@ enum changeentityproperty_enum {
 	_cep_subject_to_screen,
 	_cep_subject_to_wall,
 	_cep_takeaction,
+	_cep_think,
 	_cep_throwdamage,
 	_cep_throwdist,
 	_cep_throwframewait,
 	_cep_throwheight,
 	_cep_tosstime,
 	_cep_trymove,
+	_cep_type,
 	_cep_velocity,
 	_cep_weapon,
 	_cep_the_end,
@@ -4575,6 +4577,16 @@ enum cep_takeaction_enum {
 	_cep_ta_player_blink,
 	_cep_ta_suicide,
 	_cep_ta_the_end,
+};
+
+enum _cep_think_enum { // 2011_03_03, DC: Think types.
+    _cep_th_common_think,
+    _cep_th_player_think,
+    _cep_th_steam_think,
+    _cep_th_steamer_think,
+    _cep_th_text_think,
+    _cep_th_trap_think,
+    _cep_th_the_end,
 };
 
 enum cep_hostile_candamage_enum {
@@ -4713,12 +4725,14 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"subject_to_screen",
 		"subject_to_wall",
 		"takeaction",
+		"think",
 		"throwdamage",
 		"throwdist",
 		"throwframewait",
 		"throwheight",
 		"tosstime",
 		"trymove",
+		"type",
 		"velocity",
 		"weapon",
 	};
@@ -4746,6 +4760,15 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"npc_warp",
 		"player_blink",
 		"suicide",
+	};
+
+	static const char* proplist_think[] = { // 2011_03_03, DC: Think types.
+		"common_think",
+		"player_think",
+		"steam_think",
+		"steamer_think",
+		"text_think",
+		"trap_think",
 	};
 
 	static const char* proplist_hostile_candamage[] = {
@@ -4792,6 +4815,13 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 			"Action '%s' is not supported by 'takeaction'.\n");
 	}
 
+    // 2011_03_13, DC: Think sets for think.
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_think))
+	{
+		MAPSTRINGS(varlist[2], proplist_think, _cep_th_the_end,
+			"Set '%s' is not supported by 'think'.\n");
+	}
+
 	// entity type(s) for hostile and candamage
 	if((varlist[1]->vt == VT_INTEGER) &&
 		((varlist[1]->lVal == _cep_hostile) || (varlist[1]->lVal == _cep_candamage)))
@@ -4821,6 +4851,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	DOUBLE dbltemp;
 	int propind;
 	int i = 0;
+	static const void* think[] = { // 2011_03_03, DC: Think types.
+		common_think,
+		player_think,
+		steam_think,
+		steamer_think,
+		text_think,
+		trap_think,
+	};
 	static const void* actions[] = { // for takeaction
 		bomb_explode,
 		common_attack_proc,
@@ -4906,6 +4944,41 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		{
 			ent->takeaction = actions[(int)ltemp];
 		}
+
+		break;
+	}
+	case _cep_think:
+	{
+		if(varlist[2]->vt == VT_STR)
+		{ // not a known action; if it were it would been mapped by mapstrings
+			//ent->think = NULL;
+			break;
+		}
+		else if(varlist[2]->vt != VT_INTEGER)
+		{
+			printf("You must give a string value for think type.\n");
+			goto changeentityproperty_error;
+		}
+
+		// otherwise, the parameter is a known action
+		ltemp = varlist[2]->lVal;
+		if((ltemp >= 0) && (ltemp < _cep_th_the_end))
+		{
+			ent->think = think[(int)ltemp];
+		}
+
+		break;
+	}
+	case _cep_type:
+	{
+		if(varlist[2]->vt != VT_INTEGER)
+		{
+			printf("You must provide a type constant for type.\n");
+			goto changeentityproperty_error;
+		}
+
+		ltemp = varlist[2]->lVal;
+        ent->modeldata.type = (int)ltemp;
 
 		break;
 	}
