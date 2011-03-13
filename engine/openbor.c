@@ -17810,7 +17810,7 @@ int common_idle_anim(entity* ent)
 	int i;                                                                              //Loop counter.
 	int iAni;                                                                           //Animation.
 
-	if (ent->model->subtype != SUBTYPE_BIKER) // biker fix by Plombo
+	if (ent->model->subtype != SUBTYPE_BIKER && ent->model->type != TYPE_NONE) // biker fix by Plombo // type none being "idle" prevented contra locked and loaded from working correctly. fixed by anallyst (C) (TM)
 		ent->xdir = ent->zdir = 0;                                                      //Stop movement.
 
 	if(validanim(ent,ANI_FAINT) && ent->health <= ent->modeldata.health / 4)            //ANI_FAINT and health at/below 25%?
