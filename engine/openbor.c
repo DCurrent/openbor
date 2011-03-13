@@ -24,7 +24,7 @@
 #define GET_FLOAT_ARGP(z) getValidFloat(GET_ARGP(z), filename, command)
 
 static const char* E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
-static const int DEFAULT_OFFSCREEN_KILL = 1000;
+static int DEFAULT_OFFSCREEN_KILL = 1000;
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -22905,6 +22905,7 @@ void openborMain(int argc, char** argv)
 	char tmpBuff[128] = {""};
 	int players[MAX_PLAYERS];
 	int i;
+	int argl;
 
 #if XBOX
 	int done = 0;
@@ -22917,11 +22918,19 @@ void openborMain(int argc, char** argv)
 #endif
 
 	printf("OpenBoR %s, Compile Date: " __DATE__ "\n\n", VERSION);
+	
+	if(argc > 1) {
+		argl = strlen(argv[1]);
+		if(argl > 14 && !memcmp(argv[1], "offscreenkill=", 14))
+			DEFAULT_OFFSCREEN_KILL = getValidInt((char*)argv[1] + 14,"","");
+	}
+	
 	modelcmdlist = createModelCommandList();
 	levelcmdlist = createLevelCommandList();
 	levelordercmdlist = createLevelOrderCommandList();
+	
 
-#if XBOX
+#ifdef XBOX
 	loadsettings();
 	paks = findmods();
 	if(paks==1) getBasePath(packfile, paklist[0].filename, 1);
