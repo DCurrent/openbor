@@ -1760,7 +1760,7 @@ void system_options();
 void video_options();
 void options();
 void soundcard_options();
-void openborMain(void);
+void openborMain(int argc, char** argv);
 int getValidInt(char* text, char* file, char* cmd);
 float getValidFloat(char* text, char* file, char* cmd);
 

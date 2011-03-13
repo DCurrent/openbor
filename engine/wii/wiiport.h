@@ -13,7 +13,7 @@
 
 char* getFullPath(char *relPath);
 void borExit(int reset);
-void openborMain(void);
+void openborMain(int argc, char** argv);
 
 extern char packfile[128];
 extern char paksDir[128];

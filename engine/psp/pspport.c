@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 
 	getcwd(cwd, 256);
 	menu(cwd);
-	openborMain();
+	openborMain(argc, argv);
 	borExit(0);
 	return 0;
 

@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
 	dirExists(screenShotsDir, 1);
 
 	Menu();
-	openborMain();
+	openborMain(argc, argv);
 	borExit(0);
 	return 0;
 }

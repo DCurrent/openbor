@@ -39,7 +39,7 @@ void borExit(int reset)
 
 /////////////////////////////////////////////////////////////////////////////
 
-int main()
+int main(int argc, char** argv)
 {
 	setSystemRam();
 	getRamStatus(BYTES);
@@ -49,7 +49,7 @@ int main()
 		printf("gdrom_init failed\n");
 		arch_reboot();
 	}
-	openborMain();
+	openborMain(argc, argv);
 	return 0;
 }
 

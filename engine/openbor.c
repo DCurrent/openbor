@@ -22894,7 +22894,7 @@ void display_logfile()
 // ----------------------------------------------------------------------------
 
 
-void openborMain()
+void openborMain(int argc, char** argv)
 {
 	sprite_map = NULL;
 	int quit = 0;
