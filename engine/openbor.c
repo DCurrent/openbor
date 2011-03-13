@@ -6211,10 +6211,6 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						}
 						else shutdown(1, "Invalid animation name '%s'", value);
 
-						if (newanim->landframe[0] >= newanim->numframes) {
-							newanim->landframe[0] = -1;
-							printf("WARNING: landframe is out of index! (hint: enumeration starts with 0). landframe will be disabled!");
-						}
 						newchar->animation[ani_id] = newanim;
 					}
 					break;
@@ -7034,17 +7030,6 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	}
 
 	printf("Loading '%s' from %s\n", newchar->name, filename);
-
-	// check for sane settings
-	// if landframe is bigger than framecount the game will crash silently only when that animation is played
-	for(i=0; i<max_animations; i++) {
-		if (newchar->animation[i] && newchar->animation[i]->landframe[0] >= newchar->animation[i]->numframes) {
-			newchar->animation[i]->landframe[0] = -1;
-			printf("WARNING: landframe is out of index! (hint: enumeration starts with 0). landframe will be disabled!");
-			//shutdown(1, "invalid landframe index! index numbers start with 0\n");
-		}
-	}
-	// end check sane settings
 
 	return newchar;
 }
@@ -11701,7 +11686,9 @@ void check_gravity()
 						self->xdir = self->zdir = self->tossv= 0;
 				else self->tossv = 0;
 
-				if(self->animation->landframe[0]>=0 && self->animpos < self->animation->landframe[0])
+				if(self->animation->landframe[0]>=0                                 //Has landframe?
+                    && self->animation->landframe[0]<= self->animation->numframes   //Not over animation frame count?
+                    && self->animpos < self->animation->landframe[0])               //Not already past landframe?
 				{
 					update_frame(self, self->animation->landframe[0]);
 					if(self->animation->landframe[1]>=0)
@@ -22918,17 +22905,17 @@ void openborMain(int argc, char** argv)
 #endif
 
 	printf("OpenBoR %s, Compile Date: " __DATE__ "\n\n", VERSION);
-	
+
 	if(argc > 1) {
 		argl = strlen(argv[1]);
 		if(argl > 14 && !memcmp(argv[1], "offscreenkill=", 14))
 			DEFAULT_OFFSCREEN_KILL = getValidInt((char*)argv[1] + 14,"","");
 	}
-	
+
 	modelcmdlist = createModelCommandList();
 	levelcmdlist = createLevelCommandList();
 	levelordercmdlist = createLevelOrderCommandList();
-	
+
 
 #ifdef XBOX
 	loadsettings();
