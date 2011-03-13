@@ -24,6 +24,7 @@
 #define GET_FLOAT_ARGP(z) getValidFloat(GET_ARGP(z), filename, command)
 
 static const char* E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
+static const int DEFAULT_OFFSCREEN_KILL = 1000;
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -9787,7 +9788,7 @@ void drawstatus(){
 void update_loading(int pos_x, int pos_y, int size_x, int text_x, int text_y, int value, int max, int font)
 {
 	sound_update_music();
-	if(load_ticks % 8 == 0) {
+	if(load_ticks % 16 == 0) {
 		// we dont need to update the screen 100.000 times per second
 		font_printf(text_x, text_y, font, 0, "Loading...");
 		loadingbarstatus.sizex = size_x;
@@ -11742,7 +11743,7 @@ void check_gravity()
 void check_lost()
 {
 	s_attack attack;
-	int osk = self->modeldata.offscreenkill?self->modeldata.offscreenkill:1000;
+	int osk = self->modeldata.offscreenkill?self->modeldata.offscreenkill:DEFAULT_OFFSCREEN_KILL;
 
 	if((self->z!=100000 && (advancex - self->x>osk || self->x - advancex - videomodes.hRes>osk ||
 		(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN && (advancey - self->z>osk || self->z - advancey - videomodes.vRes>osk)) ||
