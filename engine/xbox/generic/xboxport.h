@@ -28,7 +28,7 @@ void xbox_set_palette(char *palette);
 void xbox_clear_screen( void );
 void xbox_resize(void);
 void xbox_pause_audio(int state);
-void openborMain(void);
+void openborMain(int argc, char** argv);
 void borExit(int reset);
 
 extern char packfile[128];

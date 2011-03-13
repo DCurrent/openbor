@@ -9,7 +9,7 @@
 #ifndef PSP_H
 #define PSP_H
 
-void openborMain(void);
+void openborMain(int argc, char** argv);
 void borExit(int reset);
 
 extern char packfile[256];

@@ -1187,7 +1187,7 @@ void CXBoxSample::initConsole( UINT32 idx, int isFavorite, int forceConfig )
 
 	xbox_init();
 	packfile_mode(0);
-	openborMain();
+	openborMain(0,NULL);
 }
 
 
