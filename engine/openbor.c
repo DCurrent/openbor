@@ -10243,11 +10243,14 @@ void update_frame(entity* ent, int f)
 	float move, movez, movea;
 	int iDelay, iED_Mode, iED_Capmin, iED_CapMax, iED_RangeMin, iED_RangeMax;
 	float fED_Factor;
+	
+	if(f >= self->animation->numframes) // prevent a crash with invalid frame index.
+		return;
+	
 	//important!
 	tempself = self;
 	self = ent;
-	if(f >= self->animation->numframes) // prevent a crash with invalid frame index.
-		return;
+	
 	self->animpos = f;
 	//self->currentsprite = self->animation->sprite[f];
 
@@ -10403,6 +10406,7 @@ void update_frame(entity* ent, int f)
 		bomb_spawn(NULL, -1, self->x, self->z, self->a + self->animation->throwa, self->direction, 0);
 		self->reactive=1;
 	}
+
 	//important!
 	self = tempself;
 }
