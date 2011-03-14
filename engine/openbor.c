@@ -12463,7 +12463,7 @@ void display_ents()
 	s_drawmethod shadowmethod;
 	int use_mirror = (level && level->mirror);
 
-	for(i=0; i<MAX_ENTS; i++)
+	for(i=0; i<ent_max; i++)
 	{
 		if(ent_list[i] && ent_list[i]->exists)
 		{
