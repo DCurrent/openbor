@@ -10244,7 +10244,7 @@ void update_frame(entity* ent, int f)
 	int iDelay, iED_Mode, iED_Capmin, iED_CapMax, iED_RangeMin, iED_RangeMax;
 	float fED_Factor;
 	
-	if(f >= self->animation->numframes) // prevent a crash with invalid frame index.
+	if(f >= ent->animation->numframes) // prevent a crash with invalid frame index.
 		return;
 	
 	//important!
