@@ -10246,7 +10246,8 @@ void update_frame(entity* ent, int f)
 	//important!
 	tempself = self;
 	self = ent;
-	assert(f < self->animation->numframes);
+	if(f >= self->animation->numframes) // prevent a crash with invalid frame index.
+		return;
 	self->animpos = f;
 	//self->currentsprite = self->animation->sprite[f];
 

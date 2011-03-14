@@ -159,6 +159,7 @@ int video_set_mode(s_videomodes videomodes)
 
 void video_fullscreen_flip()
 {
+	size_t w, h;
 	if(savedata.usegl) { video_gl_fullscreen_flip(); return; }
 	savedata.fullscreen ^= 1;
 	
@@ -175,11 +176,19 @@ void video_fullscreen_flip()
 	}
 	
 	// switch between SDL fullscreen and SDL windowed
-	if(screen) SDL_FreeVideoSurface(screen);
+	if(screen) {
+		w = screen->w;
+		h = screen->h;
+		SDL_FreeVideoSurface(screen);
+	} else {
+		w = 320;
+		h = 240;
+	}
+		
 	if(savedata.screen[videoMode][0])
-		screen = SDL_SetVideoMode(screen->w,screen->h,16,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
+		screen = SDL_SetVideoMode(w,h,16,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
 	else
-		screen = SDL_SetVideoMode(screen->w,screen->h,8*bytes_per_pixel,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
+		screen = SDL_SetVideoMode(w,h,8*bytes_per_pixel,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
 	SDL_ShowCursor(SDL_DISABLE);
 	SDL_SetColors(screen,colors,0,256);
 	if(bscreen) SDL_SetColors(bscreen,colors,0,256);
