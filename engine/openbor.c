@@ -6483,6 +6483,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_ATTACK: case CMD_MODEL_ATTACK1:  case CMD_MODEL_ATTACK2: case CMD_MODEL_ATTACK3:
 				case CMD_MODEL_ATTACK4: case CMD_MODEL_ATTACK5: case CMD_MODEL_ATTACK6: case CMD_MODEL_ATTACK7:
 				case CMD_MODEL_ATTACK8: case CMD_MODEL_ATTACK9: case CMD_MODEL_ATTACK10:
+				case CMD_MODEL_ATTACK11: case CMD_MODEL_ATTACK12: case CMD_MODEL_ATTACK13:
+				case CMD_MODEL_ATTACK14: case CMD_MODEL_ATTACK15: case CMD_MODEL_ATTACK16:
+				case CMD_MODEL_ATTACK17: case CMD_MODEL_ATTACK18: case CMD_MODEL_ATTACK19: case CMD_MODEL_ATTACK20: 
 				case CMD_MODEL_SHOCK: case CMD_MODEL_BURN: case CMD_MODEL_STEAL: case CMD_MODEL_FREEZE: case CMD_MODEL_ITEMBOX:
 					abox[0] = GET_INT_ARG(1);
 					abox[1] = GET_INT_ARG(2);
@@ -6493,44 +6496,66 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					attack.dropv[2] = 0;
 					attack.attack_force = GET_INT_ARG(5);
 
-					if(strcmp(command, "steal")==0) attack.steal = 1;
-
-					if(strcmp(command, "freeze")==0)
-					{
-						attack.freeze = 1;
-						attack.freezetime = GET_INT_ARG(6) * GAME_SPEED;
-						attack.forcemap = -1;
-						attack.attack_drop = 0;
-					}
-					else attack.attack_drop = GET_INT_ARG(6);
+					attack.attack_drop = GET_INT_ARG(6);
 
 					attack.no_block = GET_INT_ARG(7);
 					attack.no_flash = GET_INT_ARG(8);
 					attack.pause_add = GET_INT_ARG(9);
 					attack.attack_coords[4] = GET_INT_ARG(10); // depth or z
-
-					if(strcmp(command, "attack")==0 ||
-						strcmp(command, "attack1")==0)
-						attack.attack_type = ATK_NORMAL;
-					else if(strcmp(command, "attack2")     ==0)    attack.attack_type  = ATK_NORMAL2;
-					else if(strcmp(command, "attack3")     ==0)    attack.attack_type  = ATK_NORMAL3;
-					else if(strcmp(command, "attack4")     ==0)    attack.attack_type  = ATK_NORMAL4;
-					else if(strcmp(command, "attack5")     ==0)    attack.attack_type  = ATK_NORMAL5;
-					else if(strcmp(command, "attack6")     ==0)    attack.attack_type  = ATK_NORMAL6;
-					else if(strcmp(command, "attack7")     ==0)    attack.attack_type  = ATK_NORMAL7;
-					else if(strcmp(command, "attack8")     ==0)    attack.attack_type  = ATK_NORMAL8;
-					else if(strcmp(command, "attack9")     ==0)    attack.attack_type  = ATK_NORMAL9;
-					else if(strcmp(command, "attack10")    ==0)    attack.attack_type  = ATK_NORMAL10;
-					else if(strcmp(command, "shock")       ==0)    attack.attack_type  = ATK_SHOCK;
-					else if(strcmp(command, "burn")        ==0)    attack.attack_type  = ATK_BURN;
-					else if(strcmp(command, "steal")       ==0)    attack.attack_type  = ATK_STEAL;
-					else if(strcmp(command, "freeze")      ==0)    attack.attack_type  = ATK_FREEZE;
-					else if(strcmp(command, "itembox")     ==0)    attack.attack_type  = ATK_ITEM;
-					else if(strnicmp(command, "attack", 6)  ==0)    // new attack types?
-					{
-						tempInt = atoi(command+6);
-						if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-						attack.attack_type = tempInt+STA_ATKS-1;
+					
+					switch(cmd) {
+						case CMD_MODEL_ATTACK: case CMD_MODEL_ATTACK1:
+							attack.attack_type = ATK_NORMAL;
+							break;
+						case CMD_MODEL_ATTACK2:	
+							attack.attack_type  = ATK_NORMAL2;
+							break;
+						case CMD_MODEL_ATTACK3:	
+							attack.attack_type  = ATK_NORMAL3;
+							break;
+						case CMD_MODEL_ATTACK4:	
+							attack.attack_type  = ATK_NORMAL4;
+							break;	
+						case CMD_MODEL_ATTACK5:	
+							attack.attack_type  = ATK_NORMAL5;
+							break;
+						case CMD_MODEL_ATTACK6:	
+							attack.attack_type  = ATK_NORMAL6;
+							break;
+						case CMD_MODEL_ATTACK7:	
+							attack.attack_type  = ATK_NORMAL7;
+							break;
+						case CMD_MODEL_ATTACK8:	
+							attack.attack_type  = ATK_NORMAL8;
+							break;
+						case CMD_MODEL_ATTACK9:	
+							attack.attack_type  = ATK_NORMAL9;
+							break;
+						case CMD_MODEL_SHOCK:	
+							attack.attack_type  = ATK_SHOCK;
+							break;
+						case CMD_MODEL_BURN:	
+							attack.attack_type  = ATK_BURN;
+							break;
+						case CMD_MODEL_STEAL:
+							attack.steal = 1;
+							attack.attack_type  = ATK_STEAL;
+							break;
+						case CMD_MODEL_FREEZE:	
+							attack.attack_type  = ATK_FREEZE;
+							attack.freeze = 1;
+							attack.freezetime = GET_INT_ARG(6) * GAME_SPEED;
+							attack.forcemap = -1;
+							attack.attack_drop = 0;
+							break;
+						case CMD_MODEL_ITEMBOX:	
+							attack.attack_type  = ATK_ITEM;
+							break;
+						default:
+							tempInt = atoi(command+6);
+							if(tempInt<MAX_ATKS-STA_ATKS+1) 
+								tempInt = MAX_ATKS-STA_ATKS+1;
+							attack.attack_type = tempInt+STA_ATKS-1;
 					}
 					break;
 				case CMD_MODEL_ATTACKZ: case CMD_MODEL_HITZ:
