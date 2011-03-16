@@ -654,7 +654,7 @@ endif
 
 
 ifdef BUILD_SDL
-ifdef BUILD_WIZ
+ifeq ($(findstring DGE, $(SDKPATH)), DGE)
 LIBS           += -lSDL -lSDL_gfx -lts
 else
 LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL -lSDL_gfx
