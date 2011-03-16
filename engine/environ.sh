@@ -140,14 +140,14 @@ case $1 in
      export SDKPATH=/usr/local/i386-linux-4.1.1
      export PREFIX=i386-linux-
      export PATH=$LNXDEV:$PATH
-	 export GCC_TARGET=`i386-linux-gcc -dumpmachine`
-   elif [ `gcc -dumpmachine | grep -o $GCC_TARGET` ]; then
+     export GCC_TARGET=`i386-linux-gcc -dumpmachine`
+   elif [ -z "${GCC_TARGET+xxx}" ] || [ `gcc -dumpmachine | grep -o "$GCC_TARGET"` ]; then
      export GCC_TARGET=`gcc -dumpmachine`
      export LNXDEV=`dirname \`which gcc\``
      export PREFIX=
      export SDKPATH=$LNXDEV/..
    elif [ `ls \`echo $PATH | sed 'y/:/ /'\` | grep -o "$GCC_TARGET-gcc" | tail -n 1` ]; then
-     export TARGET_CC_NAME=`ls \`echo $PATH | sed 'y/:/ /'\` | grep -o $GCC_TARGET-gcc | tail -n 1`
+     export TARGET_CC_NAME=`ls \`echo $PATH | sed 'y/:/ /'\` | grep -o "$GCC_TARGET-gcc" | tail -n 1`
      export TARGET_CC=`which $TARGET_CC_NAME`
      export GCC_TARGET=`$TARGET_CC -dumpmachine`
      export LNXDEV=`dirname $TARGET_CC`
