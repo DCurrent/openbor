@@ -37,11 +37,11 @@ function distribute {
   fi
   if ! test -e "releases/GP2X/OpenBOR/OpenBOR.gpe"; then
     echo "GP2X Platform Failed To Build!"
-    # exit 1
+    exit 1
   fi
   if ! test -e "releases/WIZ/OpenBOR/OpenBOR.gpe"; then
     echo "WIZ Platform Failed To Build!"
-    # exit 1
+    exit 1
   fi
   if ! test -e "releases/DC/OpenBOR/1ST_READ.BIN"; then
     echo "Dreamcast Platform Failed To Build!"
@@ -62,7 +62,7 @@ function distribute {
   fi
   if ! test -e "releases/DINGOO/OpenBOR/OpenBOR.dge"; then
     echo "Dingoo Platform Failed To Build!"
-    # exit 1
+    exit 1
   fi
   if test -e "releases/LINUX/OpenBOR/OpenBOR"; then
     . ../tools/borpak/source/build.sh lin
