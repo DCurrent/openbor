@@ -10,6 +10,9 @@
 # Building script for all platforms
 # build.sh by SX (SumolX@gmail.com)
 
+# Used for resetting path prior to each platform.
+export OLD_PATH=$PATH
+
 # Display Version
 function version {
   . ./version.sh
@@ -97,6 +100,7 @@ function distribute {
 
 # PSP Environment && Compile
 function psp {
+  export PATH=$OLD_PATH
   . ./environ.sh 1
   if test $PSPDEV; then
     make clean BUILD_PSP=1
@@ -126,6 +130,7 @@ function psp {
 
 # Gp2x Environment && Compile
 function gp2x {
+  export PATH=$OLD_PATH
   . ./environ.sh 3
   if test $GP2XDEV; then
     make clean BUILD_GP2X=1
@@ -148,33 +153,34 @@ function gp2x {
 
 # Linux Environment && Compile (common to all architectures)
 function linux {
-	export GCC_TARGET=$1
-	export TARGET_ARCH=$2
-	. ./environ.sh 4
-	if test $LNXDEV; then
-		if [[ ! $BUILD_DEBUG ]] ; then
-			make clean BUILD_LINUX=1
-		elif [[ "$TARGET_ARCH" == "amd64" ]] ; then
-			export NO_RAM_DEBUGGER=1
-		fi
-		make BUILD_LINUX=1
-		if test -f "./OpenBOR"; then
-			if test ! -e "./releases/$3"; then
-				mkdir ./releases/$3
-				mkdir ./releases/$3/OpenBOR
-				mkdir ./releases/$3/OpenBOR/Logs
-				mkdir ./releases/$3/OpenBOR/Paks
-				mkdir ./releases/$3/OpenBOR/Saves
-				mkdir ./releases/$3/OpenBOR/ScreenShots
-			fi
-			mv OpenBOR ./releases/$3/OpenBOR
-			echo "moved binary to ./releases/$3/ !"
-		fi
-		if [[ ! $BUILD_DEBUG ]] ; then
-			make clean BUILD_LINUX=1
-		fi
-	fi
-	[ $LNXDEV ]
+  export PATH=$OLD_PATH
+  export GCC_TARGET=$1
+  export TARGET_ARCH=$2
+  . ./environ.sh 4
+  if test $LNXDEV; then
+    if [[ ! $BUILD_DEBUG ]] ; then
+      make clean BUILD_LINUX=1
+    elif [[ "$TARGET_ARCH" == "amd64" ]] ; then
+      export NO_RAM_DEBUGGER=1
+    fi
+    make BUILD_LINUX=1
+    if test -f "./OpenBOR"; then
+      if test ! -e "./releases/$3"; then
+	mkdir ./releases/$3
+	mkdir ./releases/$3/OpenBOR
+	mkdir ./releases/$3/OpenBOR/Logs
+        mkdir ./releases/$3/OpenBOR/Paks
+	mkdir ./releases/$3/OpenBOR/Saves
+	mkdir ./releases/$3/OpenBOR/ScreenShots
+      fi
+      mv OpenBOR ./releases/$3/OpenBOR
+      echo "moved binary to ./releases/$3/ !"
+    fi
+    if [[ ! $BUILD_DEBUG ]] ; then
+      make clean BUILD_LINUX=1
+    fi
+  fi
+  [ $LNXDEV ]
 }
 
 # Compile for Linux under various architectures
@@ -206,6 +212,7 @@ function linux_something {
 
 # Windows Environment && Compile
 function windows {
+  export PATH=$OLD_PATH
   . ./environ.sh 5
   if test $WINDEV; then
     make clean BUILD_WIN=1
@@ -227,6 +234,7 @@ function windows {
 
 # Dreamcast Environment && Compile
 function dreamcast {
+  export PATH=$OLD_PATH
   . ./environ.sh 6
   if test $KOS_BASE; then
     make clean BUILD_DC=1
@@ -244,6 +252,7 @@ function dreamcast {
 
 # Wii Environment && Compile
 function wii {
+  export PATH=$OLD_PATH
   . ./environ.sh 7
   if test $DEVKITPPC; then
     make clean BUILD_WII=1
@@ -267,6 +276,7 @@ function wii {
 
 # Dingoo Environment && Compile
 function dingoo {
+  export PATH=$OLD_PATH
   . ./environ.sh 8
   if test $DINGUX_TOOLCHAIN; then
     make clean BUILD_DINGOO=1
@@ -288,6 +298,7 @@ function dingoo {
 
 # WIZ Environment && Compile
 function wiz {
+  export PATH=$OLD_PATH
   . ./environ.sh 9
   if test $WIZDEV; then
     make clean BUILD_WIZ=1
@@ -317,6 +328,7 @@ function wiz {
 
 # Darwin Environment && Compile
 function darwin {
+  export PATH=$OLD_PATH
   . ./environ.sh 10
   if test $DWNDEV; then
     make clean BUILD_DARWIN=1
