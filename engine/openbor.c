@@ -2202,13 +2202,16 @@ void loadScriptFile(){
 
 // ----------------------- Sound ------------------------------
 
-void music(char *filename, int loop, long offset)
+int music(char *filename, int loop, long offset)
 {
 	char t[64];
 	char a[64];
-	if(!savedata.usemusic) return;
-	if(!sound_open_music(filename, packfile, savedata.musicvol, loop, offset))
+	int res = 1;
+	if(!savedata.usemusic) return 0;
+	if(!sound_open_music(filename, packfile, savedata.musicvol, loop, offset)) {		
 		printf("\nCan't play music file '%s'\n", filename);
+		res = 0;
+	}
 	if(savedata.showtitles && sound_query_music(a,t))
 	{
 		if(a[0] && t[0]) debug_printf("Playing \"%s\" by %s", t, a);
@@ -2216,6 +2219,7 @@ void music(char *filename, int loop, long offset)
 		else if(t[0]) debug_printf("Playing \"%s\" by unknown artist", t);
 		else debug_printf("");
 	}
+	return res;
 }
 
 void check_music(){
@@ -20819,8 +20823,9 @@ int selectplayer(int *players, char* filename)
 				load_background(string, 1);
 			}
 			else load_cached_background("data/bgs/select", 1);
-		}
-		music("data/music/menu", 1, 0);
+		}		
+		if(!music("data/music/menu", 1, 0))
+			music("data/music/remix",1,0);
 		if(!noshare) credits = CONTINUES;
 		for(i=0; i<MAX_PLAYERS; i++)
 		{

@@ -1496,7 +1496,7 @@ void    saveGameFile(void);
 int     loadGameFile(void);
 void    saveHighScoreFile(void);
 void    loadHighScoreFile(void);
-void music(char *filename, int loop, long offset);
+int music(char *filename, int loop, long offset);
 #if DC
 void check_music_opened(void);
 #endif
