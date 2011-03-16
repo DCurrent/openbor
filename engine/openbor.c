@@ -8414,7 +8414,7 @@ void load_level(char *filename){
 	s_spawn_script_cache_node* tempnode;
 	s_spawn_script_cache_node* tempnode2;
 	s_spawn_script_list_node* templistnode;
-	int i, j, crlf = 0;
+	int i = 0, j = 0, crlf = 0;
 	int usemap[MAX_BLENDINGS];
 	char bgPath[128] = {""};
 	int  bgPosi[6] = {0,0,0,0,0};
