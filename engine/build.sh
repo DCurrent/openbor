@@ -126,7 +126,7 @@ function psp {
 
 # Gp2x Environment && Compile
 function gp2x {
-  . ./environ.sh 2
+  . ./environ.sh 3
   if test $GP2XDEV; then
     make clean BUILD_GP2X=1
     make BUILD_GP2X=1
