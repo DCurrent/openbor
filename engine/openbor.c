@@ -13103,27 +13103,46 @@ entity* normal_find_target(int anim)
 	return NULL;
 }
 
+int isItem(entity* e) {
+	return e->modeldata.type & TYPE_ITEM;
+}
+
+int isSubtypeTouch(entity* e) {
+	return e->modeldata.subtype == SUBTYPE_TOUCH;
+}
+
+int isSubtypeWeapon(entity* e) {
+	return e->modeldata.subtype == SUBTYPE_WEAPON;
+}
+
+int isSubtypeProjectile(entity* e) {
+	return e->modeldata.subtype == SUBTYPE_PROJECTILE;
+}
+
+
 //Used by default A.I. pattern
 // A.I. characters try to find a pickable item
 entity * normal_find_item(){
 
 	int i;
 	int index = -1;
+	entity* ce = NULL;
 	//find the 'nearest' one
 	for(i=0; i<ent_max; i++){
-		if( ent_list[i]->exists
-			&& (ent_list[i]->modeldata.type & TYPE_ITEM)
-			&& diff(ent_list[i]->x,self->x)+ diff(ent_list[i]->z,self->z)< 300
-			&& ent_list[i]->animation->vulnerable[ent_list[i]->animpos]
-			&& (validanim(self,ANI_GET) || ent_list[i]->modeldata.subtype == SUBTYPE_TOUCH)
-				&& ((ent_list[i]->modeldata.subtype == SUBTYPE_WEAPON && !self->weapent && self->modeldata.weapon && (*self->modeldata.weapon)[ent_list[i]->modeldata.weapnum-1]>=0)
-				||(ent_list[i]->modeldata.subtype == SUBTYPE_PROJECTILE && !self->weapent)
-				||(ent_list[i]->health && self->health < self->modeldata.health && ent_list[i]->modeldata.subtype != SUBTYPE_PROJECTILE && ent_list[i]->modeldata.subtype != SUBTYPE_WEAPON)
-				)
-				){
-					if(index <0 || diff(ent_list[i]->x, self->x)+diff(ent_list[i]->z, self->z) < diff(ent_list[index]->x, self->x)+diff(ent_list[index]->z, self->z))
-						index = i;
-				}
+		ce = ent_list[i];
+		if( ce->exists && isItem(ce) && 
+		diff(ce->x,self->x) + diff(ce->z,self->z)< 300 &&
+		ce->animation->vulnerable[ce->animpos] &&
+		(validanim(self,ANI_GET) || isSubtypeTouch(ce))	&&
+		(
+			(isSubtypeWeapon(ce) && !self->weapent && self->modeldata.weapon && (*self->modeldata.weapon)[ce->modeldata.weapnum-1]>=0)
+			||(isSubtypeProjectile(ce) && !self->weapent)
+			||(ce->health && (self->health < self->modeldata.health) && ! isSubtypeProjectile(ce) && ! isSubtypeWeapon(ce))
+		)
+		){
+			if(index <0 || diff(ce->x, self->x) + diff(ce->z, self->z) < diff(ent_list[index]->x, self->x) + diff(ent_list[index]->z, self->z))
+				index = i;
+		}
 	}
 	if( index >=0) return ent_list[index];
 	return NULL;
@@ -15291,9 +15310,7 @@ int common_try_wander(entity* target)
 void common_pickupitem(entity* other){
 	int pickup = 0;
 	//weapons
-	if(self->weapent == NULL &&
-		other->modeldata.subtype == SUBTYPE_WEAPON
-		&& validanim(self,ANI_GET))
+	if(self->weapent == NULL && isSubtypeWeapon(other) && validanim(self,ANI_GET))
 	{
 		dropweapon(0);  //don't bother dropping the previous one though, scine it won't pickup another
 		self->weapent = other;
@@ -15311,9 +15328,7 @@ void common_pickupitem(entity* other){
 		pickup = 1;
 	}
 	// projectiles
-	else if(self->weapent == NULL &&
-		other->modeldata.subtype == SUBTYPE_PROJECTILE
-		&& validanim(self,ANI_GET))
+	else if(self->weapent == NULL && isSubtypeProjectile(other) && validanim(self,ANI_GET))
 	{
 		dropweapon(0);
 		self->weapent = other;
@@ -15324,10 +15339,9 @@ void common_pickupitem(entity* other){
 		pickup = 1;
 	}
 	// other items
-	else if(other->modeldata.subtype != SUBTYPE_WEAPON &&
-		other->modeldata.subtype != SUBTYPE_PROJECTILE     )
+	else if(! isSubtypeWeapon(other) && ! isSubtypeProjectile(other))
 	{
-		if(validanim(self,ANI_GET) && other->modeldata.subtype!=SUBTYPE_TOUCH)
+		if(validanim(self,ANI_GET) && isSubtypeTouch(other))
 		{
 			ent_set_anim(self, ANI_GET, 0);
 			set_getting(self);
@@ -17473,15 +17487,14 @@ void player_think()
 			return;
 		}
 
-		if( (other = find_ent_here(self, self->x, self->z, TYPE_ITEM)) &&
-			other->modeldata.subtype != SUBTYPE_TOUCH && !other->blink &&
+		if( (other = find_ent_here(self, self->x, self->z, TYPE_ITEM)) && ! isSubtypeTouch(other) && !other->blink &&
 			diff(self->a - (seta >= 0) * seta , other->a)<0.1  )
 		{
 			if( validanim(self,ANI_GET) && // so we wont get stuck
 				 //dont pickup a weapon that is not in weapon list
-				!((other->modeldata.subtype==SUBTYPE_WEAPON && self->modeldata.weapon && (*self->modeldata.weapon)[other->modeldata.weapnum-1]<0) ||
+				!(( isSubtypeWeapon(other) && self->modeldata.weapon && (*self->modeldata.weapon)[other->modeldata.weapnum-1]<0) ||
 				//if on an real animal, can't pick up weapons
-				(self->modeldata.animal==2 && other->modeldata.subtype == SUBTYPE_WEAPON)))
+				(self->modeldata.animal==2 && isSubtypeWeapon(other))))
 			{
 				didfind_item(other);
 				self->xdir = self->zdir = 0;
@@ -17773,7 +17786,7 @@ void player_think()
 
 	//    ltb 1-18-05  new Item get code to address new subtype
 
-	if((other = find_ent_here(self, self->x, self->z, TYPE_ITEM)) && other->modeldata.subtype == SUBTYPE_TOUCH && !other->blink &&
+	if((other = find_ent_here(self, self->x, self->z, TYPE_ITEM)) && isSubtypeTouch(other) && !other->blink &&
 		diff(self->a - (seta >= 0) * seta , other->a)<0.1 && action)
 	{
 		didfind_item(other);    // Added function to clean code up a bit
