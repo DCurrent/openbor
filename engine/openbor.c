@@ -4440,6 +4440,7 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
 	newchar->index = cacheindex;
 	newchar->isSubclassed = 0;
+	newchar->freetypes = MF_ALL;
 
 	newchar->defense_factors        = (float*)tracecalloc("newchar->defense_factors",           sizeof(float)*(max_attack_types + 1));
 	newchar->defense_pain           = (float*)tracecalloc("newchar->defense_pain",              sizeof(float)*(max_attack_types + 1));
