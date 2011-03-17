@@ -162,7 +162,7 @@ void video_gl_init_textures()
 
 int video_gl_set_mode(s_videomodes videomodes)
 {
-	int maxTextureSize;
+	GLint maxTextureSize;
 	
 	bytesPerPixel = videomodes.pixel;
 	textureWidth = videomodes.hRes;
