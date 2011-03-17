@@ -299,6 +299,7 @@ List* createModelCommandList(void) {
 	LIST_ADD(CMD_MODEL_AT_SCRIPT, "@script");
 	LIST_ADD(CMD_MODEL_AT_CMD, "@cmd");
 	LIST_ADD(CMD_MODEL_MPCOST, "mpcost");
+	LIST_ADD(CMD_MODEL_SUBCLASS, "subclass");
 	
 	#undef LIST_ADD
 	return result;

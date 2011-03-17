@@ -4605,7 +4605,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		maskindex = -1;
 
 	size_t size = 0,
+		line = 0,
 		len = 0;
+		
 	ptrdiff_t pos = 0,
 		index = 0;
 
@@ -4621,6 +4623,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	s_attack attack,
 	*pattack = NULL;
+	char* shutdownmessage = NULL;
 
 	s_drawmethod drawmethod;
 
@@ -4707,12 +4710,21 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	while(pos<size)
 	{
 		//command = GET_ARG(0);
-
+		line++;
 		if(ParseArgs(&arglist,buf+pos,argbuf)){
 			command = GET_ARG(0);
 			cmd = getModelCommand(modelcmdlist, command);
 
 			switch(cmd) {
+				case CMD_MODEL_SUBCLASS: 
+					//inherit everything from an existing, cached model
+					tempmodel = find_model(GET_ARG(1));
+					if (!tempmodel) {
+						shutdownmessage = "tried to subclass a non-existing/not previously loaded model!";
+						goto lCleanup;
+					}
+					*newchar = *tempmodel;
+					break;
 				case CMD_MODEL_NAME:
 					lcmHandleCommandName(&arglist, newchar, cacheindex);
 					break;
@@ -5204,7 +5216,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_ICON:
 					value = GET_ARG(1);
-					if(newchar->icon > -1) shutdown(1, "Error: model '%s' has multiple icons defined", filename);
+					if(newchar->icon > -1) {						
+						shutdownmessage = "model has multiple icons defined";
+						goto lCleanup;
+					}	
 					newchar->icon = loadsprite(value,0,0,pixelformat); //use same palette as the owner
 					newchar->iconpain = newchar->icon;
 					newchar->icondie = newchar->icon;
@@ -5391,11 +5406,17 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 								if(tempInt<1) tempInt = 1;
 								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-2] = animspecials[tempInt-1];
 							}
-							else shutdown(1, "Invalid freespecial command '%s'", value);
+							else {
+								shutdownmessage = "Invalid freespecial command";
+								goto lCleanup;
+							}
 						}
 						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-3]=i-1; // max steps
 						newchar->specials_loaded++;
-						if(newchar->specials_loaded > max_freespecials) shutdown(1, "Too many Freespecials and/or Cancels. Please increase Maxfreespecials", value); // OX. This is to catch freespecials that use same animation.
+						if(newchar->specials_loaded > max_freespecials) {
+							shutdownmessage = "Too many Freespecials and/or Cancels. Please increase Maxfreespecials"; // OX. This is to catch freespecials that use same animation.
+							goto lCleanup;
+						}
 					}
 					// End section for custom freespecials
 					break;
@@ -5413,20 +5434,25 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						mapflag[newchar->maps_loaded-1] = 1;
 						if(!errorVal){
 							switch(errorVal){
-								case 0:
-									shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. Image Used Twice!", value, value2);
+								case 0: // uhm wait, we just tested for !errorVal...
+									shutdownmessage = "Failed to create colourmap. Image Used Twice!";
+									goto lCleanup;
 									break;
 								case -1:
-									shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. MAX_COLOUR_MAPS full!", value, value2);
+									shutdownmessage = "Failed to create colourmap. MAX_COLOUR_MAPS full!";
+									goto lCleanup;
 									break;
 								case -2:
-									shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. Failed to tracemalloc(256)!", value, value2);
+									shutdownmessage = "Failed to create colourmap. Failed to tracemalloc(256)!";
+									goto lCleanup;
 									break;
 								case -3:
-									shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. Failed to create bitmap1", value, value2);
+									shutdownmessage = "Failed to create colourmap. Failed to create bitmap1";
+									goto lCleanup;
 									break;
 								case -4:
-									shutdown(1, "Failed to create colourmap from images\n\t'%s'\nand\n\t'%s'. Failed to create bitmap2", value, value2);
+									shutdownmessage = "Failed to create colourmap. Failed to create bitmap2";
+									goto lCleanup;
 									break;
 							}
 						}
@@ -5439,8 +5465,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					{
 						value = GET_ARG(1);
 						newchar->palette = tracemalloc("newchar->palette", PAL_BYTES);
-						if(loadimagepalette(value, packfile, newchar->palette)==0)
-							shutdown(1, "Failed to load palette '%s' for '%s'", value, filename);
+						if(loadimagepalette(value, packfile, newchar->palette)==0) {
+							shutdownmessage = "Failed to load palette!";
+							goto lCleanup;
+						}	
 					}
 					break;
 				case CMD_MODEL_ALTERNATEPAL:
@@ -5449,8 +5477,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					else if(newchar->maps_loaded<MAX_COLOUR_MAPS) {
 						value = GET_ARG(1);
 						newchar->colourmap[(int)newchar->maps_loaded] = tracemalloc("newchar#alternatepal", PAL_BYTES);
-						if(loadimagepalette(value, packfile, newchar->colourmap[(int)newchar->maps_loaded])==0)
-							shutdown(1, "Failed to load palette '%s' for '%s'", value, filename);
+						if(loadimagepalette(value, packfile, newchar->colourmap[(int)newchar->maps_loaded])==0) {							
+							shutdownmessage = "Failed to load palette!";
+							goto lCleanup;
+						}
 						newchar->maps_loaded++;
 					}
 					break;
@@ -5525,8 +5555,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_ANIMATIONSCRIPT:
 					Script_Init(newchar->animation_script, "animationscript", 0);
-					if(!load_script(newchar->animation_script, GET_ARG(1)))
-						shutdown(1, "Unable to load animation script '%s' in file '%s'.\n", GET_ARG(1), filename);
+					if(!load_script(newchar->animation_script, GET_ARG(1))) {
+						shutdownmessage = "Unable to load animation script!";
+						goto lCleanup;
+					}	
 					//dont compile, until at end of this function
 					break;
 				case CMD_MODEL_KEYSCRIPT:
@@ -5539,16 +5571,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						framecount = 0;
 						// Create new animation
 						newanim = alloc_anim();
-						if(newanim==NULL){
-							if(buf != NULL){
-								tracefree(buf);
-								buf = NULL;
-							}
-							if(scriptbuf){
-								tracefree(scriptbuf);
-								scriptbuf = NULL;
-							}
-							shutdown(1, "Not enough memory for animations!");
+						if(!newanim){							
+							shutdownmessage = "Not enough memory for animations!";
+							goto lCleanup;
 						}
 						newanim->model_index = newchar->index;
 						// Reset vars
@@ -6201,13 +6226,19 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						else if(stricmp(value, "duckattack")==0){
 							ani_id = ANI_DUCKATTACK;
 						}
-						else shutdown(1, "Invalid animation name '%s'", value);
+						else {
+							shutdownmessage = "Invalid animation name!";
+							goto lCleanup;
+						}
 
 						newchar->animation[ani_id] = newanim;
 					}
 					break;
 				case CMD_MODEL_LOOP:
-					if(newanim == NULL) shutdown(1, "Can't set loop: no animation specified!");
+					if(!newanim) {
+						shutdownmessage = "Can't set loop: no animation specified!";
+						goto lCleanup;
+					}	
 					newanim->loop[0] = GET_INT_ARG(1); //0 = Off, 1 = on.
 					newanim->loop[1] = GET_INT_ARG(2); //Loop to frame.
 					newanim->loop[2] = GET_INT_ARG(3); //Loop end frame.
@@ -6392,11 +6423,17 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-9] = ani_id;                    // stores current anim
 								newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-10] = GET_INT_ARG(3);// stores hits
 							}
-							else shutdown(1, "Invalid cancel command '%s'", value); // OX. Changed this line so that errors do not confuse modders.
+							else {
+								shutdownmessage = "Invalid cancel command!";
+								goto lCleanup;
+							}
 						}
 						newchar->special[newchar->specials_loaded][MAX_SPECIAL_INPUTS-6]=i-1; // max steps
 						newchar->specials_loaded++;
-						if(newchar->specials_loaded > max_freespecials) shutdown(1, "Too many Freespecials and/or Cancels. Please increase Maxfreespecials", value); // OX. This is to catch freespecials that use same animation.
+						if(newchar->specials_loaded > max_freespecials) {
+							shutdownmessage = "Too many Freespecials and/or Cancels. Please increase Maxfreespecials";
+							goto lCleanup;
+						}
 					}
 					break;
 				case CMD_MODEL_SOUND:
@@ -6663,28 +6700,43 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					frameshadow = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_RANGE:
-					if(newanim==NULL) shutdown(1, "Cannot set range: no animation!");
+					if(!newanim) {	
+						shutdownmessage = "Cannot set range: no animation!";
+						goto lCleanup;
+					}	
 					newanim->range[0] = GET_INT_ARG(1);
 					newanim->range[1] = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_RANGEZ:
-					if(newanim==NULL) shutdown(1, "Cannot set rangez: no animation!");
+					if(!newanim) {
+						shutdownmessage = "Cannot set rangez: no animation!";
+						goto lCleanup;
+					}	
 					newanim->range[2] = GET_INT_ARG(1);
 					newanim->range[3] = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_RANGEA:
-					if(newanim==NULL) shutdown(1, "Cannot set rangea: no animation!");
+					if(!newanim) {
+						shutdownmessage = "Cannot set rangea: no animation!";
+						goto lCleanup;
+					}
 					newanim->range[4] = GET_INT_ARG(1);
 					newanim->range[5] = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_RANGEB:
-					if(newanim==NULL) shutdown(1, "Cannot set rangeb: no animation!");
+					if(!newanim) {
+						shutdownmessage = "Cannot set rangeb: no animation!";
+						goto lCleanup;
+					}	
 					newanim->range[6] = GET_INT_ARG(1);
 					newanim->range[7] = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_FRAME:
 					{
-						if(newanim==NULL) shutdown(1, "Cannot add frame: animation not specified!");
+						if(!newanim) {
+							shutdownmessage = "Cannot add frame: animation not specified!";
+							goto lCleanup;
+						}	
 						peek = 0;
 						if(frameset && framecount>=0) framecount = -framecount;
 						while(!frameset){
@@ -6705,8 +6757,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							if(newchar->palette==NULL)
 							{
 								newchar->palette = tracemalloc("newchar#frame#palette", PAL_BYTES);
-								if(loadimagepalette(value, packfile, newchar->palette)==0)
-									shutdown(1, "Failed to load palette from '%s' in '%s'.", value, filename);
+								if(loadimagepalette(value, packfile, newchar->palette)==0) {
+									shutdownmessage = "Failed to load palette!";
+									goto lCleanup;
+								}	
 							}
 							if(index>=0)
 							{
@@ -6771,8 +6825,14 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					break;
 				case CMD_MODEL_ALPHAMASK:
-					if(newanim==NULL) shutdown(1, "Cannot add alpha mask: animation not specified!");
-					if(maskindex>=0) shutdown(1, "Cannot add alpha mask: a mask has already been specified for this frame!");
+					if(!newanim){
+						shutdownmessage = "Cannot add alpha mask: animation not specified!";
+						goto lCleanup;
+					}	
+					if(maskindex>=0) {
+						shutdownmessage = "Cannot add alpha mask: a mask has already been specified for this frame!";
+						goto lCleanup;
+					}	
 					value = GET_ARG(1);
 					//printf("frame count: %d\n",framecount);
 					//printf("Load sprite '%s'...\n", value);
@@ -6840,7 +6900,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->unsummonframe = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_AT_SCRIPT:
-					if(ani_id < 0)  shutdown(1, "command '@script' must follow an animation! file: '%s'", filename);
+					if(ani_id < 0)  {
+						shutdownmessage = "command '@script' must follow an animation!";
+						goto lCleanup;
+					}	
 					if(!scriptbuf[0]){ // if empty, paste the main function text here
 						strcat(scriptbuf, pre_text);
 					}
@@ -6867,7 +6930,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_AT_CMD:
 					//translate @cmd into script function call
-					if(ani_id < 0) shutdown(1, "command '@cmd' must follow an animation! file: '%s'", filename);
+					if(ani_id < 0) {
+						shutdownmessage = "command '@cmd' must follow an animation!";
+						goto lCleanup;
+					}	
 					if(!scriptbuf[0]){ // if empty, paste the main function text here
 						strcat(scriptbuf, pre_text);
 					}
@@ -6924,18 +6990,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	}
 	Script_Compile(newchar->animation_script);
 
-	if(buf != NULL){
-		tracefree(buf);
-		buf = NULL;
-	}
-	if(scriptbuf){
-		tracefree(scriptbuf);
-		scriptbuf = NULL;
-	}
-
 	if(!tempInt)// parse script failed
 	{
-		shutdown(1, "Error parsing function main of animation script in file '%s'!", filename);
+		shutdownmessage = "Error parsing function main of animation script in file '%s'!";
+		goto lCleanup;
 	}
 
 	// We need a little more work to initialize the new A.I. types if they are not loaded from file
@@ -7048,7 +7106,22 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	printf("Loading '%s' from %s\n", newchar->name, filename);
 
-	return newchar;
+	lCleanup:
+
+	if(buf != NULL){
+		tracefree(buf);
+		buf = NULL;
+	}
+	if(scriptbuf){
+		tracefree(scriptbuf);
+		scriptbuf = NULL;
+	}
+	
+	if(!shutdownmessage)
+		return newchar;
+	
+	shutdown(1, "Fatal Error in load_cached_model, file: %s, line %d, message: %s\n", filename, line, shutdownmessage);
+	return NULL;
 }
 
 
