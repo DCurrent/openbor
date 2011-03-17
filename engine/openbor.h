@@ -834,7 +834,7 @@ typedef enum  {
 	MF_SMARTBOMB = 32768,
 	MF_SCRIPTS = 65536,
 } ModelFreetype;
-
+#define MF_ALL 0x1FFFF
 
 typedef struct
 {
