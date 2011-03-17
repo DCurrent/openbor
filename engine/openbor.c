@@ -4706,6 +4706,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						goto lCleanup;
 					}
 					*newchar = *tempmodel;
+					copy_all_scripts(tempmodel->scripts, newchar->scripts, 1);
 					break;
 				case CMD_MODEL_NAME:
 					lcmHandleCommandName(&arglist, newchar, cacheindex);
@@ -10755,28 +10756,8 @@ void kill(entity *victim)
 	victim->health = 0;
 	victim->exists = 0;
 	ent_count--;
-
-	Script_Clear(victim->scripts.animation_script,  1);
-	Script_Clear(victim->scripts.update_script,     1);
-	Script_Clear(victim->scripts.think_script,      1);
-	Script_Clear(victim->scripts.takedamage_script, 1);
-	Script_Clear(victim->scripts.onfall_script,     1);
-	Script_Clear(victim->scripts.onpain_script,     1);
-	Script_Clear(victim->scripts.onblocks_script,   1);
-	Script_Clear(victim->scripts.onblockw_script,   1);
-	Script_Clear(victim->scripts.onblocko_script,   1);
-	Script_Clear(victim->scripts.onblockz_script,   1);
-	Script_Clear(victim->scripts.onblocka_script,   1);
-	Script_Clear(victim->scripts.onmovex_script,    1);
-	Script_Clear(victim->scripts.onmovez_script,    1);
-	Script_Clear(victim->scripts.onmovea_script,    1);
-	Script_Clear(victim->scripts.ondeath_script,    1);
-	Script_Clear(victim->scripts.onkill_script,     1);
-	Script_Clear(victim->scripts.didblock_script,   1);
-	Script_Clear(victim->scripts.ondoattack_script, 1);
-	Script_Clear(victim->scripts.didhit_script,     1);
-	Script_Clear(victim->scripts.onspawn_script,    1);
-	Script_Clear(victim->scripts.key_script,        1);
+	
+	clear_all_scripts(&victim->scripts, 1);
 
 	if(victim->parent && victim->parent->subentity == victim) victim->parent->subentity = NULL;
 	victim->parent = NULL;
@@ -12976,28 +12957,8 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 
 
 	ent->modeldata.type = type;
-
-	Script_Copy(ent->scripts.animation_script,  newmodel->scripts.animation_script,     0);
-	Script_Copy(ent->scripts.update_script,     newmodel->scripts.update_script,        0);
-	Script_Copy(ent->scripts.think_script,      newmodel->scripts.think_script,         0);
-	Script_Copy(ent->scripts.didhit_script,     newmodel->scripts.didhit_script,        0);
-	Script_Copy(ent->scripts.onspawn_script,    newmodel->scripts.onspawn_script,       0);
-	Script_Copy(ent->scripts.takedamage_script, newmodel->scripts.takedamage_script,    0);
-	Script_Copy(ent->scripts.onpain_script,     newmodel->scripts.onpain_script,        0);
-	Script_Copy(ent->scripts.onfall_script,     newmodel->scripts.onfall_script,        0);
-	Script_Copy(ent->scripts.onblocks_script,   newmodel->scripts.onblocks_script,      0);
-	Script_Copy(ent->scripts.onblockw_script,   newmodel->scripts.onblockw_script,      0);
-	Script_Copy(ent->scripts.onblocko_script,   newmodel->scripts.onblocko_script,      0);
-	Script_Copy(ent->scripts.onblockz_script,   newmodel->scripts.onblockz_script,      0);
-	Script_Copy(ent->scripts.onblocka_script,   newmodel->scripts.onblocka_script,      0);
-	Script_Copy(ent->scripts.onmovex_script,    newmodel->scripts.onmovex_script,       0);
-	Script_Copy(ent->scripts.onmovez_script,    newmodel->scripts.onmovez_script,       0);
-	Script_Copy(ent->scripts.onmovea_script,    newmodel->scripts.onmovea_script,       0);
-	Script_Copy(ent->scripts.ondeath_script,    newmodel->scripts.ondeath_script,       0);
-	Script_Copy(ent->scripts.onkill_script,     newmodel->scripts.onkill_script,        0);
-	Script_Copy(ent->scripts.didblock_script,   newmodel->scripts.didblock_script,      0);
-	Script_Copy(ent->scripts.ondoattack_script, newmodel->scripts.ondoattack_script,    0);
-	Script_Copy(ent->scripts.key_script,        newmodel->scripts.key_script,           0);
+	
+	copy_all_scripts(&newmodel->scripts, &ent->scripts, 0);
 
 	ent_set_colourmap(ent, ent->map);
 }
