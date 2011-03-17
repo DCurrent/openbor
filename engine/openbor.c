@@ -25,6 +25,7 @@
 
 static const char* E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
 static int DEFAULT_OFFSCREEN_KILL = 1000;
+static int useCustomLoadingBar = 0;
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -4706,7 +4707,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						goto lCleanup;
 					}
 					*newchar = *tempmodel;
-					copy_all_scripts(tempmodel->scripts, newchar->scripts, 1);
+					copy_all_scripts(&tempmodel->scripts, &newchar->scripts, 1);
 					break;
 				case CMD_MODEL_NAME:
 					lcmHandleCommandName(&arglist, newchar, cacheindex);
@@ -9851,19 +9852,25 @@ void update_loading(int pos_x, int pos_y, int size_x, int text_x, int text_y, in
 	int pixelpos = size_x * ((float)value / max);
 	
 	sound_update_music();
-	if(lastpos != pixelpos) {
-		loadingbarstatus.sizex = size_x;
-		bar(pos_x, pos_y, value, max, &loadingbarstatus);
-		if(pixelpos < lastpos)
-		{
-			font_printf(text_x, text_y, font, 0, "Loading...");
-			if(background) putscreen(vscreen, background, 0, 0, NULL);
-			else           clearscreen(vscreen);
+	
+	if(useCustomLoadingBar) {
+	
+		if(lastpos != pixelpos) {
+			loadingbarstatus.sizex = size_x;
+			bar(pos_x, pos_y, value, max, &loadingbarstatus);
+			if(pixelpos < lastpos)
+			{
+				font_printf(text_x, text_y, font, 0, "Loading...");
+				if(background) putscreen(vscreen, background, 0, 0, NULL);
+				else           clearscreen(vscreen);
+			}
+			spriteq_draw(vscreen, 0);
+			video_copy_screen(vscreen);
+			spriteq_clear();
 		}
-		spriteq_draw(vscreen, 0);
-		video_copy_screen(vscreen);
-		spriteq_clear();
+		
 	}
+	
 	if(ticks - lastticks >= 2000)
 		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
 	
