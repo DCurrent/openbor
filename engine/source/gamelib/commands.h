@@ -500,6 +500,7 @@ typedef enum modelCommand {
 	CMD_MODEL_AT_SCRIPT, 
 	CMD_MODEL_AT_CMD,
 	CMD_MODEL_MPCOST,
+	CMD_MODEL_SUBCLASS,
 
 } modelCommands;
 
