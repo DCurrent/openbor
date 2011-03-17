@@ -1123,6 +1123,45 @@ void clear_scripts()
 	Script_Global_Clear();
 }
 
+void alloc_all_scripts(s_scripts* s) {
+	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
+	size_t i;
+	
+	for (i = 0; i < scripts_membercount; i++) {
+		((Script**)s)[i] = alloc_script();
+	}	
+}
+
+void clear_all_scripts(s_scripts* s, int method) {
+	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
+	size_t i;
+	
+	for (i = 0; i < scripts_membercount; i++) {
+		Script_Clear(((Script**)s)[i],   method);
+	}	
+}	
+
+void free_all_scripts(s_scripts* s) {
+	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
+	size_t i;
+	
+	for (i = 0; i < scripts_membercount; i++) {
+		if (((Script**)s)[i]) {
+			tracefree(((Script**)s)[i]);
+			((Script**)s)[i] = NULL;
+		}
+	}	
+}
+
+void copy_all_scripts(s_scripts* src, s_scripts* dest, int method) {
+	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
+	size_t i;
+	
+	for (i = 0; i < scripts_membercount; i++) {	
+			Script_Copy(((Script**)dest)[i], ((Script**)src)[i], method);
+	}
+}
+
 void execute_animation_script(entity* ent)
 {
 	ScriptVariant tempvar;
@@ -3647,48 +3686,10 @@ int free_model(s_model* model, int mapid)
 	if(model->offense_factors)             {tracefree(model->offense_factors);        model->offense_factors        = NULL;}
 	if(model->special)                     {tracefree(model->special);                model->special                = NULL;}
 	if(model->smartbomb)                   {tracefree(model->smartbomb);              model->smartbomb              = NULL;}
-	Script_Clear(model->scripts.animation_script,   2);
-	Script_Clear(model->scripts.update_script,      2);
-	Script_Clear(model->scripts.think_script,       2);
-	Script_Clear(model->scripts.takedamage_script,  2);
-	Script_Clear(model->scripts.onfall_script,      2);
-	Script_Clear(model->scripts.onpain_script,      2);
-	Script_Clear(model->scripts.onblocks_script,    2);
-	Script_Clear(model->scripts.onblockw_script,    2);
-	Script_Clear(model->scripts.onblocko_script,    2);
-	Script_Clear(model->scripts.onblockz_script,    2);
-	Script_Clear(model->scripts.onblocka_script,    2);
-	Script_Clear(model->scripts.onmovex_script,     2);
-	Script_Clear(model->scripts.onmovez_script,     2);
-	Script_Clear(model->scripts.onmovea_script,     2);
-	Script_Clear(model->scripts.ondeath_script,     2);
-	Script_Clear(model->scripts.onkill_script,      2);
-	Script_Clear(model->scripts.didblock_script,    2);
-	Script_Clear(model->scripts.ondoattack_script,  2);
-	Script_Clear(model->scripts.didhit_script,      2);
-	Script_Clear(model->scripts.onspawn_script,     2);
-	Script_Clear(model->scripts.key_script,         2);
-	tracefree(model->scripts.animation_script);
-	tracefree(model->scripts.update_script);
-	tracefree(model->scripts.think_script);
-	tracefree(model->scripts.takedamage_script);
-	tracefree(model->scripts.onfall_script);
-	tracefree(model->scripts.onpain_script);
-	tracefree(model->scripts.onblocks_script);
-	tracefree(model->scripts.onblockw_script);
-	tracefree(model->scripts.onblocko_script);
-	tracefree(model->scripts.onblockz_script);
-	tracefree(model->scripts.onblocka_script);
-	tracefree(model->scripts.onmovex_script);
-	tracefree(model->scripts.onmovez_script);
-	tracefree(model->scripts.onmovea_script);
-	tracefree(model->scripts.ondeath_script);
-	tracefree(model->scripts.onkill_script);
-	tracefree(model->scripts.didblock_script);
-	tracefree(model->scripts.ondoattack_script);
-	tracefree(model->scripts.didhit_script);
-	tracefree(model->scripts.onspawn_script);
-	tracefree(model->scripts.key_script);
+	
+	clear_all_scripts(&model->scripts,2);
+	free_all_scripts(&model->scripts);
+	
 	tracefree(model);
 	model = NULL;
 	if(models_loaded == 0 && model_map != NULL)
@@ -4432,27 +4433,8 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->special                = tracecalloc("newchar->special", sizeof(*newchar->special)*max_freespecials);
 	if(!newchar->special) shutdown(1, (char*)E_OUT_OF_MEMORY);
 
-	newchar->scripts.animation_script   = alloc_script();
-	newchar->scripts.update_script      = alloc_script();
-	newchar->scripts.think_script       = alloc_script();
-	newchar->scripts.didhit_script      = alloc_script();
-	newchar->scripts.onspawn_script     = alloc_script();
-	newchar->scripts.takedamage_script  = alloc_script();
-	newchar->scripts.onfall_script      = alloc_script();
-	newchar->scripts.onpain_script      = alloc_script();
-	newchar->scripts.onblocks_script    = alloc_script();
-	newchar->scripts.onblockw_script    = alloc_script();
-	newchar->scripts.onblocko_script    = alloc_script();
-	newchar->scripts.onblockz_script    = alloc_script();
-	newchar->scripts.onblocka_script    = alloc_script();
-	newchar->scripts.onmovex_script     = alloc_script();
-	newchar->scripts.onmovez_script     = alloc_script();
-	newchar->scripts.onmovea_script     = alloc_script();
-	newchar->scripts.ondeath_script     = alloc_script();
-	newchar->scripts.onkill_script      = alloc_script();
-	newchar->scripts.didblock_script    = alloc_script();
-	newchar->scripts.ondoattack_script  = alloc_script();
-	newchar->scripts.key_script         = alloc_script();
+	alloc_all_scripts(&newchar->scripts);
+	
 	newchar->unload             = unload;
 	newchar->jumpspeed          = -1;
 	newchar->jumpheight         = 4;		        // 28-12-2004   Set default jump height to 4, if not specified
@@ -9936,48 +9918,9 @@ void free_ent(entity* e)
 {
 	int i;
 	if(!e) return;
-	Script_Clear(e->scripts.update_script,      2);
-	Script_Clear(e->scripts.think_script,       2);
-	Script_Clear(e->scripts.takedamage_script,  2);
-	Script_Clear(e->scripts.ondeath_script,     2);
-	Script_Clear(e->scripts.onkill_script,      2);
-	Script_Clear(e->scripts.onfall_script,      2);
-	Script_Clear(e->scripts.onpain_script,      2);
-	Script_Clear(e->scripts.onblocks_script,    2);
-	Script_Clear(e->scripts.onblockw_script,    2);
-	Script_Clear(e->scripts.onblocko_script,    2);
-	Script_Clear(e->scripts.onblockz_script,    2);
-	Script_Clear(e->scripts.onblocka_script,    2);
-	Script_Clear(e->scripts.onmovex_script,     2);
-	Script_Clear(e->scripts.onmovez_script,     2);
-	Script_Clear(e->scripts.onmovea_script,     2);
-	Script_Clear(e->scripts.didblock_script,    2);
-	Script_Clear(e->scripts.ondoattack_script,   2);
-	Script_Clear(e->scripts.didhit_script,      2);
-	Script_Clear(e->scripts.onspawn_script,     2);
-	Script_Clear(e->scripts.animation_script,   2);
-	Script_Clear(e->scripts.key_script,         2);
-	if(e->scripts.update_script){           tracefree(e->scripts.update_script);            e->scripts.update_script            = NULL; }
-	if(e->scripts.think_script){            tracefree(e->scripts.think_script);             e->scripts.think_script             = NULL; }
-	if(e->scripts.takedamage_script){       tracefree(e->scripts.takedamage_script);        e->scripts.takedamage_script        = NULL; }
-	if(e->scripts.onfall_script){           tracefree(e->scripts.onfall_script);            e->scripts.onfall_script            = NULL; }
-	if(e->scripts.onpain_script){           tracefree(e->scripts.onpain_script);            e->scripts.onpain_script            = NULL; }
-	if(e->scripts.onblocks_script){         tracefree(e->scripts.onblocks_script);          e->scripts.onblocks_script          = NULL; }
-	if(e->scripts.onblockw_script){         tracefree(e->scripts.onblockw_script);          e->scripts.onblockw_script          = NULL; }
-	if(e->scripts.onblocko_script){         tracefree(e->scripts.onblocko_script);          e->scripts.onblocko_script          = NULL; }
-	if(e->scripts.onblockz_script){         tracefree(e->scripts.onblockz_script);          e->scripts.onblockz_script          = NULL; }
-	if(e->scripts.onblocka_script){         tracefree(e->scripts.onblocka_script);          e->scripts.onblocka_script          = NULL; }
-	if(e->scripts.onmovex_script){          tracefree(e->scripts.onmovex_script);           e->scripts.onmovex_script           = NULL; }
-	if(e->scripts.onmovez_script){          tracefree(e->scripts.onmovez_script);           e->scripts.onmovez_script           = NULL; }
-	if(e->scripts.onmovea_script){          tracefree(e->scripts.onmovea_script);           e->scripts.onmovea_script           = NULL; }
-	if(e->scripts.ondeath_script){          tracefree(e->scripts.ondeath_script);           e->scripts.ondeath_script           = NULL; }
-	if(e->scripts.onkill_script){           tracefree(e->scripts.onkill_script);            e->scripts.onkill_script            = NULL; }
-	if(e->scripts.didblock_script){         tracefree(e->scripts.didblock_script);          e->scripts.didblock_script          = NULL; }
-	if(e->scripts.ondoattack_script){       tracefree(e->scripts.ondoattack_script);        e->scripts.ondoattack_script        = NULL; }
-	if(e->scripts.didhit_script){           tracefree(e->scripts.didhit_script);            e->scripts.didhit_script            = NULL; }
-	if(e->scripts.onspawn_script){          tracefree(e->scripts.onspawn_script);           e->scripts.onspawn_script           = NULL; }
-	if(e->scripts.animation_script){        tracefree(e->scripts.animation_script);         e->scripts.animation_script         = NULL; }
-	if(e->scripts.key_script){              tracefree(e->scripts.key_script);               e->scripts.key_script               = NULL; }
+	clear_all_scripts(&e->scripts,2);
+	free_all_scripts(&e->scripts);
+	
 	if(e->defense_factors){         tracefree(e->defense_factors);          e->defense_factors          = NULL; }
 	if(e->defense_pain){            tracefree(e->defense_pain);             e->defense_pain             = NULL; }
 	if(e->defense_knockdown){       tracefree(e->defense_knockdown);        e->defense_knockdown        = NULL; }
@@ -10033,27 +9976,7 @@ entity* alloc_ent()
 		// memset should be OK by know, because VT_EMPTY is zero by value, or else we should use ScriptVariant_Init
 		memset(ent->entvars, 0, sizeof(ScriptVariant)*max_entity_vars);
 	}
-	ent->scripts.update_script      = alloc_script();
-	ent->scripts.think_script       = alloc_script();
-	ent->scripts.takedamage_script  = alloc_script();
-	ent->scripts.onfall_script      = alloc_script();
-	ent->scripts.onpain_script      = alloc_script();
-	ent->scripts.onblocks_script    = alloc_script();
-	ent->scripts.onblockw_script    = alloc_script();
-	ent->scripts.onblocko_script    = alloc_script();
-	ent->scripts.onblockz_script    = alloc_script();
-	ent->scripts.onblocka_script    = alloc_script();
-	ent->scripts.onmovex_script     = alloc_script();
-	ent->scripts.onmovez_script     = alloc_script();
-	ent->scripts.onmovea_script     = alloc_script();
-	ent->scripts.ondeath_script     = alloc_script();
-	ent->scripts.onkill_script      = alloc_script();
-	ent->scripts.didblock_script    = alloc_script();
-	ent->scripts.ondoattack_script  = alloc_script();
-	ent->scripts.didhit_script      = alloc_script();
-	ent->scripts.onspawn_script     = alloc_script();
-	ent->scripts.animation_script   = alloc_script();
-	ent->scripts.key_script         = alloc_script();
+	alloc_all_scripts(&ent->scripts);
 	return ent;
 }
 
@@ -10692,27 +10615,8 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			memset(dfsbe,   0, sizeof(float)*max_attack_types);
 			memset(ofs,     0, sizeof(float)*max_attack_types);
 			// clear up
-			Script_Clear(e->scripts.animation_script,   1);
-			Script_Clear(e->scripts.update_script,      1);
-			Script_Clear(e->scripts.think_script,       1);
-			Script_Clear(e->scripts.takedamage_script,  1);
-			Script_Clear(e->scripts.onfall_script,      1);
-			Script_Clear(e->scripts.onpain_script,      1);
-			Script_Clear(e->scripts.onblocks_script,    1);
-			Script_Clear(e->scripts.onblockw_script,    1);
-			Script_Clear(e->scripts.onblocko_script,    1);
-			Script_Clear(e->scripts.onblockz_script,    1);
-			Script_Clear(e->scripts.onblocka_script,    1);
-			Script_Clear(e->scripts.onmovex_script,     1);
-			Script_Clear(e->scripts.onmovez_script,     1);
-			Script_Clear(e->scripts.onmovea_script,     1);
-			Script_Clear(e->scripts.ondeath_script,     1);
-			Script_Clear(e->scripts.onkill_script,      1);
-			Script_Clear(e->scripts.didblock_script,    1);
-			Script_Clear(e->scripts.ondoattack_script,  1);
-			Script_Clear(e->scripts.didhit_script,      1);
-			Script_Clear(e->scripts.onspawn_script,     1);
-			Script_Clear(e->scripts.key_script,         1);
+			clear_all_scripts(&e->scripts, 1);
+			
 			pas = e->scripts.animation_script;
 			pus = e->scripts.update_script;
 			pts = e->scripts.think_script;
@@ -10767,27 +10671,8 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			e->scripts.key_script           = pks;
 			// copy from model a fresh script
 			
-			Script_Copy(e->scripts.animation_script,    model->scripts.animation_script,    1);
-			Script_Copy(e->scripts.update_script,       model->scripts.update_script,       1);
-			Script_Copy(e->scripts.think_script,        model->scripts.think_script,        1);
-			Script_Copy(e->scripts.takedamage_script,   model->scripts.takedamage_script,   1);
-			Script_Copy(e->scripts.onfall_script,       model->scripts.onfall_script,       1);
-			Script_Copy(e->scripts.onpain_script,       model->scripts.onpain_script,       1);
-			Script_Copy(e->scripts.onblocks_script,     model->scripts.onblocks_script,     1);
-			Script_Copy(e->scripts.onblockw_script,     model->scripts.onblockw_script,     1);
-			Script_Copy(e->scripts.onblocko_script,     model->scripts.onblocko_script,     1);
-			Script_Copy(e->scripts.onblockz_script,     model->scripts.onblockz_script,     1);
-			Script_Copy(e->scripts.onblocka_script,     model->scripts.onblocka_script,     1);
-			Script_Copy(e->scripts.onmovex_script,      model->scripts.onmovex_script,      1);
-			Script_Copy(e->scripts.onmovez_script,      model->scripts.onmovez_script,      1);
-			Script_Copy(e->scripts.onmovea_script,      model->scripts.onmovea_script,      1);
-			Script_Copy(e->scripts.ondeath_script,      model->scripts.ondeath_script,      1);
-			Script_Copy(e->scripts.onkill_script,       model->scripts.onkill_script,       1);
-			Script_Copy(e->scripts.didblock_script,     model->scripts.didblock_script,     1);
-			Script_Copy(e->scripts.ondoattack_script,   model->scripts.ondoattack_script,   1);
-			Script_Copy(e->scripts.didhit_script,       model->scripts.didhit_script,       1);
-			Script_Copy(e->scripts.onspawn_script,      model->scripts.onspawn_script,      1);
-			Script_Copy(e->scripts.key_script,          model->scripts.key_script,          1);
+			copy_all_scripts(&model->scripts, &e->scripts, 1);
+			
 			if(ent_count>ent_max) ent_max=ent_count;
 			e->timestamp = time; // log time so update function will ignore it if it is new
 
