@@ -814,6 +814,27 @@ typedef struct {
 	Script*         ondoattack_script;              //execute when attack passes do_attack checks.
 } s_scripts;	
 
+typedef enum  {
+	MF_NONE = 0,
+	MF_ANIMLIST = 1,
+	MF_COLOURMAP = 2,
+	MF_PALETTE = 4,
+	MF_WEAPONS = 8,
+	MF_BRANCH = 16,
+	MF_ANIMATION = 32,
+	MF_DEF_FACTORS = 64,
+	MF_DEF_PAIN = 128,
+	MF_DEF_KNOCKDOWN = 256,
+	MF_DEF_BLOCKPOWER = 512,
+	MF_DEF_BLOCKTRESHOLD = 1024,
+	MF_DEF_BLOCKRATIO = 2048,
+	MF_DEF_BLOCKTYPE = 4096,
+	MF_OFF_FACTORS = 8192,
+	MF_SPECIAL = 16384,
+	MF_SMARTBOMB = 32768,
+	MF_SCRIPTS = 65536,
+} ModelFreetype;
+
 
 typedef struct
 {
@@ -996,8 +1017,9 @@ typedef struct
 	char            subject_to_maxz:8;
 	char            no_adjust_base:8;               // dont change base to 0 automatically
 	char            instantitemdeath:8;             // no delay before item suicides
+	char isSubclassed;
+	ModelFreetype	freetypes;
 	s_scripts	scripts;
-
 }s_model;
 
 typedef struct{
