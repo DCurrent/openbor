@@ -3654,6 +3654,16 @@ void model_map_move(int offset)
 	model_map = model_map_delete(model_map, --models_loaded);
 }
 
+int hasFreetype(s_model* m, ModelFreetype t) {
+	assert(m);
+	return (m->freetypes & t) == t;
+}
+
+void addFreeType(s_model* m, ModelFreetype t) {
+	assert(m);
+	m->freetypes |= t;
+}
+
 // Unload single model from memory
 int free_model(s_model* model, int mapid)
 {
@@ -3663,33 +3673,41 @@ int free_model(s_model* model, int mapid)
 	model_cache[model->index].model = NULL;
 	model_map_move(mapid);
 
-	for(i=0; i<max_animations; i++) anim_list = anim_list_delete(anim_list, model->index);
-	for(i=0; i<MAX_COLOUR_MAPS; i++)
-	{
-		if(model->colourmap[i] != NULL)
-		{
-			tracefree(model->colourmap[i]);
-			model->colourmap[i] = NULL;
-		}
-	}
-
-	if(model->palette)                     {tracefree(model->palette);                model->palette                = NULL;}
-	if(model->weapon && model->ownweapons) {tracefree(model->weapon);                 model->weapon                 = NULL;}
-	if(model->branch)                      {tracefree(model->branch);                 model->branch                 = NULL;}
-	if(model->animation)                   {tracefree(model->animation);              model->animation              = NULL;}
-	if(model->defense_factors)             {tracefree(model->defense_factors);        model->defense_factors        = NULL;}
-	if(model->defense_pain)                {tracefree(model->defense_pain);           model->defense_pain           = NULL;}
-	if(model->defense_knockdown)           {tracefree(model->defense_knockdown);      model->defense_knockdown      = NULL;}
-	if(model->defense_blockpower)          {tracefree(model->defense_blockpower);     model->defense_blockpower     = NULL;}
-	if(model->defense_blockthreshold)      {tracefree(model->defense_blockthreshold); model->defense_blockthreshold = NULL;}
-	if(model->defense_blockratio)          {tracefree(model->defense_blockratio);     model->defense_blockratio     = NULL;}
-	if(model->defense_blocktype)           {tracefree(model->defense_blocktype);      model->defense_blocktype      = NULL;}
-	if(model->offense_factors)             {tracefree(model->offense_factors);        model->offense_factors        = NULL;}
-	if(model->special)                     {tracefree(model->special);                model->special                = NULL;}
-	if(model->smartbomb)                   {tracefree(model->smartbomb);              model->smartbomb              = NULL;}
+	if(hasFreetype(model, MF_ANIMLIST))
+		for(i=0; i<max_animations; i++)
+			anim_list = anim_list_delete(anim_list, model->index);
 	
-	clear_all_scripts(&model->scripts,2);
-	free_all_scripts(&model->scripts);
+	if(hasFreetype(model, MF_COLOURMAP))
+		for(i=0; i<MAX_COLOUR_MAPS; i++)
+		{
+			if(model->colourmap[i] != NULL)
+			{
+				tracefree(model->colourmap[i]);
+				model->colourmap[i] = NULL;
+			}
+		}
+
+	if(hasFreetype(model, MF_PALETTE) && model->palette)                     
+		{tracefree(model->palette);                model->palette                = NULL;}
+	if(hasFreetype(model, MF_WEAPONS) && model->weapon && model->ownweapons)
+		{tracefree(model->weapon);                 model->weapon                 = NULL;}
+	if(hasFreetype(model, MF_BRANCH) && model->branch)                      {tracefree(model->branch);                 model->branch                 = NULL;}
+	if(hasFreetype(model, MF_ANIMATION) && model->animation)                   {tracefree(model->animation);              model->animation              = NULL;}
+	if(hasFreetype(model, MF_DEF_FACTORS) && model->defense_factors)             {tracefree(model->defense_factors);        model->defense_factors        = NULL;}
+	if(hasFreetype(model, MF_DEF_PAIN) && model->defense_pain)                {tracefree(model->defense_pain);           model->defense_pain           = NULL;}
+	if(hasFreetype(model, MF_DEF_KNOCKDOWN) && model->defense_knockdown)           {tracefree(model->defense_knockdown);      model->defense_knockdown      = NULL;}
+	if(hasFreetype(model, MF_DEF_BLOCKPOWER) && model->defense_blockpower)          {tracefree(model->defense_blockpower);     model->defense_blockpower     = NULL;}
+	if(hasFreetype(model, MF_DEF_BLOCKTRESHOLD) && model->defense_blockthreshold)      {tracefree(model->defense_blockthreshold); model->defense_blockthreshold = NULL;}
+	if(hasFreetype(model, MF_DEF_BLOCKRATIO) && model->defense_blockratio)          {tracefree(model->defense_blockratio);     model->defense_blockratio     = NULL;}
+	if(hasFreetype(model, MF_DEF_BLOCKTYPE) && model->defense_blocktype)           {tracefree(model->defense_blocktype);      model->defense_blocktype      = NULL;}
+	if(hasFreetype(model, MF_OFF_FACTORS) && model->offense_factors)             {tracefree(model->offense_factors);        model->offense_factors        = NULL;}
+	if(hasFreetype(model, MF_SPECIAL) && model->special)                     {tracefree(model->special);                model->special                = NULL;}
+	if(hasFreetype(model, MF_SMARTBOMB) && model->smartbomb)                   {tracefree(model->smartbomb);              model->smartbomb              = NULL;}
+	
+	if(hasFreetype(model, MF_SCRIPTS)) {
+		clear_all_scripts(&model->scripts,2);
+		free_all_scripts(&model->scripts);
+	}	
 	
 	tracefree(model);
 	model = NULL;
@@ -4418,9 +4436,10 @@ s_model* init_model(int cacheindex, int unload) {
 	int i;
 
 	s_model* newchar = tracecalloc("newchar", sizeof(s_model));
-	if(!newchar) shutdown(1, (char*)E_OUT_OF_MEMORY);
+	if(!newchar) shutdown(1, (char*)E_OUT_OF_MEMORY);	
 	newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
 	newchar->index = cacheindex;
+	newchar->isSubclassed = 0;
 
 	newchar->defense_factors        = (float*)tracecalloc("newchar->defense_factors",           sizeof(float)*(max_attack_types + 1));
 	newchar->defense_pain           = (float*)tracecalloc("newchar->defense_pain",              sizeof(float)*(max_attack_types + 1));
@@ -4708,6 +4727,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					*newchar = *tempmodel;
 					copy_all_scripts(&tempmodel->scripts, &newchar->scripts, 1);
+					newchar->isSubclassed = 1;
+					newchar->freetypes = MF_NONE;
 					break;
 				case CMD_MODEL_NAME:
 					lcmHandleCommandName(&arglist, newchar, cacheindex);
