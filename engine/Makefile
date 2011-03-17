@@ -107,7 +107,6 @@ ifdef BUILD_DARWIN
 TARGET          = $(VERSION_NAME).elf
 TARGET_FINAL    = $(VERSION_NAME)
 TARGET_PLATFORM = DARWIN
-#TARGET_ARCH     = x86
 BUILD_SDL       = 1
 BUILD_GFX       = 1
 BUILD_LINUX     = 1
@@ -118,17 +117,18 @@ BUILD_LOADGL    = 1
 BUILD_VORBIS    = 1
 BUILDING        = 1
 YASM            = yasm
-CC              = gcc
+CC              = $(PREFIX)gcc
 OBJTYPE         = macho
 INCLUDES        = $(DWNDEV)/include \
                   $(DWNDEV)/include/SDL \
                   $(SDKPATH)/usr/include/malloc
 LIBRARIES       = $(DWNDEV)/lib
-ifeq ($(findstring 86, $(TARGET_ARCH)), 86)
-BUILD_MMX       = 1
-ARCHFLAGS       = -arch i386
-else
+ifeq ($(findstring darwin10, $(PREFIX)), darwin10)
 ARCHFLAGS       = -arch i386 -arch x86_64
+else
+BUILD_MMX       = 1
+TARGET_ARCH     = x86
+ARCHFLAGS       = -arch i386
 endif
 ifeq ($(BUILD_DARWIN), 0)
 BUILD_DEBUG     = 1
@@ -266,7 +266,7 @@ ifdef BUILD_LINUX
 STRIP 	        = $(LNXDEV)/$(PREFIX)strip $(TARGET) -o $(TARGET_FINAL)
 endif
 ifdef BUILD_DARWIN
-STRIP           = strip $(TARGET) -o $(TARGET_FINAL)
+STRIP           = $(PREFIX)strip $(TARGET) -o $(TARGET_FINAL)
 endif
 ifdef BUILD_PANDORA
 STRIP 	        = $(PNDDEV)/bin/arm-none-linux-gnueabi-strip $(TARGET) -o $(TARGET_FINAL)
