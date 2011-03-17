@@ -896,8 +896,8 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 				currentCall = *(pinterpreter->pCurrentCall);
 				if(pInstruction->theVal->lVal != currentCall->theRef->lVal)
 				{
-		            printf("Runtime error: argument count(%d) doesn't match, check your function call.\n", (int)pInstruction->theVal->lVal);
-		            hr = E_FAIL;
+					printf("Runtime error: argument count(%d) doesn't match, check your function call: %s.\n", (int)pInstruction->theVal->lVal, currentCall->Label);
+					hr = E_FAIL;
 				}
 			}
 			break;
