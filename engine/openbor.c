@@ -13119,6 +13119,9 @@ int isSubtypeProjectile(entity* e) {
 	return e->modeldata.subtype == SUBTYPE_PROJECTILE;
 }
 
+int canBeDamaged(entity* who, entity* bywhom) {
+	return (who->modeldata.candamage & bywhom->modeldata.type) == bywhom->modeldata.type;
+}
 
 //Used by default A.I. pattern
 // A.I. characters try to find a pickable item
@@ -13133,7 +13136,7 @@ entity * normal_find_item(){
 		if( ce->exists && isItem(ce) && 
 		diff(ce->x,self->x) + diff(ce->z,self->z)< 300 &&
 		ce->animation->vulnerable[ce->animpos] &&
-		(validanim(self,ANI_GET) || isSubtypeTouch(ce))	&&
+		(validanim(self,ANI_GET) || (isSubtypeTouch(ce) && canBeDamaged(ce, self))) &&
 		(
 			(isSubtypeWeapon(ce) && !self->weapent && self->modeldata.weapon && (*self->modeldata.weapon)[ce->modeldata.weapnum-1]>=0)
 			||(isSubtypeProjectile(ce) && !self->weapent)
@@ -15341,7 +15344,7 @@ void common_pickupitem(entity* other){
 	// other items
 	else if(! isSubtypeWeapon(other) && ! isSubtypeProjectile(other))
 	{
-		if(validanim(self,ANI_GET) && isSubtypeTouch(other))
+		if(validanim(self,ANI_GET) && isSubtypeTouch(other) && canBeDamaged(other, self))
 		{
 			ent_set_anim(self, ANI_GET, 0);
 			set_getting(self);
