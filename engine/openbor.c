@@ -4208,42 +4208,35 @@ void lcmHandleCommandSubtype(ArgList* arglist, s_model* newchar, char* filename)
 
 void lcmHandleCommandSmartbomb(ArgList* arglist, s_model* newchar, char* filename) {
 	//smartbomb now use a normal attack box
-	if(!newchar->smartbomb)
-	{
+	if(!newchar->smartbomb) {
 		newchar->smartbomb = tracemalloc("newchar->smartbomb", sizeof(s_attack));
 		*(newchar->smartbomb) = emptyattack;
-	}
-	else shutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
+	} else shutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
+	
 	newchar->smartbomb->attack_force = atoi(GET_ARGP(1));			// Special force
 	newchar->smartbomb->attack_type = atoi(GET_ARGP(2));			// Special attack type
 	newchar->smartbomb->attack_drop = 1; //by default
 	newchar->smartbomb->dropv[0] = 3;
-	if(newchar->smartbomb->attack_type==ATK_BLAST)
-	{
+	
+	if(newchar->smartbomb->attack_type==ATK_BLAST) {
 		newchar->smartbomb->blast = 1;
 		newchar->smartbomb->dropv[1] = 2.5;
-	}
-	else
-	{
+	} else {
 		newchar->smartbomb->dropv[1] = (float)1.2;
 	}
-	if(newchar->smartbomb->attack_type==ATK_FREEZE)
-	{
+	
+	if(newchar->smartbomb->attack_type==ATK_FREEZE) {
 		newchar->smartbomb->freeze = 1;
 		newchar->smartbomb->forcemap = -1;
 		newchar->smartbomb->attack_drop = 0;
-	}
-	else if(newchar->smartbomb->attack_type==ATK_STEAL)
-	{
+	} else if(newchar->smartbomb->attack_type==ATK_STEAL) {
 		newchar->smartbomb->steal = 1;
 	}
-	if(newchar->type == TYPE_ITEM)
-	{
+	
+	if(newchar->type == TYPE_ITEM) {
 		newchar->dofreeze = 0;								// Items don't animate
 		newchar->smartbomb->freezetime = atoi(GET_ARGP(3)) * GAME_SPEED;
-	}
-	else
-	{
+	} else {
 		newchar->dofreeze = atoi(GET_ARGP(3));		// Are all animations frozen during special
 		newchar->smartbomb->freezetime = atoi(GET_ARGP(4)) * GAME_SPEED;
 	}
@@ -4290,9 +4283,7 @@ void lcmHandleCommandCandamage(ArgList* arglist, s_model* newchar) {
 			newchar->candamage |= TYPE_NPC;
 		} else if(stricmp(value, "ground")==0){ // not really needed, though
 			newchar->ground = 1;
-		} //else {
-			// wont shut down
-			//}
+		}
 		i++;
 		value = GET_ARGP(i);
 	}
@@ -4316,11 +4307,9 @@ void lcmHandleCommandProjectilehit(ArgList* arglist, s_model* newchar) {
 			newchar->projectilehit |= TYPE_SHOT;
 		} else if(stricmp(value, "npc")==0){
 			newchar->projectilehit |= TYPE_NPC;
-		} //else {
-			// wont shut down
-			//}
-			i++;
-			value = GET_ARGP(i);
+		}
+		i++;
+		value = GET_ARGP(i);
 	}
 }
 
