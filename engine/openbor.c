@@ -43,7 +43,6 @@ s_spawn_script_cache_node* spawn_script_cache_head = NULL;
 int sprite_map_max_items = 0;
 int model_map_max_items = 0;
 int cache_map_max_items = 0;
-size_t load_ticks = 0; // counter while loading. we use it to only update the screen every 10th tick
 
 
 int startup_done = 0; // startup is only called when a game is loaded. so when exitting from the menu we need a way to figure out which resources to free.
@@ -9790,20 +9789,30 @@ void drawstatus(){
 
 void update_loading(int pos_x, int pos_y, int size_x, int text_x, int text_y, int value, int max, int font)
 {
+	static int lastpos = 0xFFFFFFF;
+	static unsigned int lastticks = -1;
+	int ticks = timer_gettick();
+	int pixelpos = size_x * ((float)value / max);
+	
 	sound_update_music();
-	if(load_ticks % 16 == 0) {
-		// we dont need to update the screen 100.000 times per second
-		font_printf(text_x, text_y, font, 0, "Loading...");
+	if(lastpos != pixelpos) {
 		loadingbarstatus.sizex = size_x;
 		bar(pos_x, pos_y, value, max, &loadingbarstatus);
-		if(background) putscreen(vscreen, background, 0, 0, NULL);
-		else           clearscreen(vscreen);
+		if(pixelpos < lastpos)
+		{
+			font_printf(text_x, text_y, font, 0, "Loading...");
+			if(background) putscreen(vscreen, background, 0, 0, NULL);
+			else           clearscreen(vscreen);
+		}
 		spriteq_draw(vscreen, 0);
 		video_copy_screen(vscreen);
 		spriteq_clear();
-		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
 	}
-	load_ticks++;
+	if(ticks - lastticks >= 2000)
+		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
+	
+	lastpos = pixelpos;
+	lastticks = ticks;
 }
 
 void addscore(int playerindex, int add){
