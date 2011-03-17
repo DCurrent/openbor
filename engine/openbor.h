@@ -790,6 +790,31 @@ typedef struct
 }s_barstatus;
 
 
+typedef struct {
+	Script*         animation_script;               //system generated script
+	Script*         update_script;                  //execute when update_ents
+	Script*         think_script;                   //execute when entity thinks.
+	Script*         takedamage_script;              //execute when taking damage.
+	Script*         ondeath_script;                 //execute when killed in game.
+	Script*         onkill_script;                  //execute when removed from play.
+	Script*         onpain_script;                  //Execute when put in pain animation.
+	Script*         onfall_script;                  //execute when falling.
+	Script*         onblocks_script;                //execute when blocked by screen.
+	Script*         onblockw_script;                //execute when blocked by wall.
+	Script*         onblocko_script;                //execute when blocked by obstacle.
+	Script*         onblockz_script;                //execute when blocked by Z.
+	Script*         onblocka_script;                //execute when "hit head".
+	Script*         onmovex_script;                 //execute when moving along X axis.
+	Script*         onmovez_script;                 //execute when moving along Z axis.
+	Script*         onmovea_script;                 //execute when moving along A axis.
+	Script*         didhit_script;                  //execute when attack hits another.
+	Script*         onspawn_script;                 //execute when spawned.
+	Script*         key_script;                     //execute when entity's player presses a key
+	Script*         didblock_script;                //execute when blocking attack.
+	Script*         ondoattack_script;              //execute when attack passes do_attack checks.
+} s_scripts;	
+
+
 typedef struct
 {
 	int             index;
@@ -971,28 +996,8 @@ typedef struct
 	char            subject_to_maxz:8;
 	char            no_adjust_base:8;               // dont change base to 0 automatically
 	char            instantitemdeath:8;             // no delay before item suicides
+	s_scripts	scripts;
 
-	Script*         animation_script;               //system generated script
-	Script*         update_script;                  //execute when update_ents
-	Script*         think_script;                   //execute when entity thinks.
-	Script*         takedamage_script;              //execute when taking damage.
-	Script*         ondeath_script;                 //execute when killed in game.
-	Script*         onkill_script;                  //execute when removed from play.
-	Script*         onpain_script;                  //Execute when put in pain animation.
-	Script*         onfall_script;                  //execute when falling.
-	Script*         onblocks_script;                //execute when blocked by screen.
-	Script*         onblockw_script;                //execute when blocked by wall.
-	Script*         onblocko_script;                //execute when blocked by obstacle.
-	Script*         onblockz_script;                //execute when blocked by Z.
-	Script*         onblocka_script;                //execute when "hit head".
-	Script*         onmovex_script;                 //execute when moving along X axis.
-	Script*         onmovez_script;                 //execute when moving along Z axis.
-	Script*         onmovea_script;                 //execute when moving along A axis.
-	Script*         didhit_script;                  //execute when attack hits another.
-	Script*         onspawn_script;                 //execute when spawned.
-	Script*         key_script;                     //execute when entity's player presses a key
-	Script*         didblock_script;                //execute when blocking attack.
-	Script*         ondoattack_script;              //execute when attack passes do_attack checks.
 }s_model;
 
 typedef struct{
@@ -1164,29 +1169,9 @@ typedef struct entity
 
 	//-------------------A.I. movement factors ----------------------------
 	int             sortid;                         // id for sprite queue sort
-	Script          *animation_script;              //system generated script
-	Script          *update_script;                 //execute when update_ents
-	Script          *think_script;                  //execute when thinking.
-	Script          *takedamage_script;             //execute when taking damage
-	Script          *onpain_script;                 //execute when pain animation set.
-	Script          *onfall_script;                 //execute when falling.
-	Script          *onblocks_script;               //execute when blocked by screen.
-	Script          *onblockw_script;               //execute when blocked by wall.
-	Script          *onblocko_script;               //execute when blocked by obstacle.
-	Script          *onblockz_script;               //execute when blocked by Z.
-	Script          *onblocka_script;               //execute when "hit head".
-	Script          *onmovex_script;                //execute when moving along X axis.
-	Script          *onmovez_script;                //execute when moving along Z axis.
-	Script          *onmovea_script;                //execute when moving along A axis.
-	Script          *ondeath_script;                //execute when killed in game.
-	Script          *onkill_script;                 //execute when removed from play.
-	Script          *didhit_script;                 //execute when hitting sth
-	Script          *onspawn_script;                //execute when spawned.
-	Script          *key_script;                    //execute when player hits a key
-	Script          *didblock_script;               //execute when blocking attack.
-	Script          *ondoattack_script;             //execute when do_attack checks pass.
-	ScriptVariant   *entvars;                       // hold temporary variable list
+	ScriptVariant* entvars;
 	s_drawmethod    drawmethod;
+	s_scripts scripts;
 }entity;
 
 
