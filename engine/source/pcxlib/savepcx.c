@@ -24,7 +24,6 @@
 #include "borendian.h"
 #include "types.h"
 #include "packfile.h"
-#include "tracemalloc.h"
 #include <fcntl.h>
 #include <malloc.h>
 #include <string.h>
@@ -69,17 +68,17 @@ int savepcx24(char* filename, s_screen * screen)
 	if(!screen) return 0;
 
 	// Allocate buffers
-	if((RLEbuf=tracemalloc("savepcx24 1",RLE_BUF_SIZE*3))==NULL){
+	if((RLEbuf=malloc(RLE_BUF_SIZE*3))==NULL){
 		success = 0;
 		goto END;
 	}
-	if((head=(pcx_header *)tracemalloc("savepcx24 2",sizeof(pcx_header)))==NULL){
+	if((head=(pcx_header *)malloc(sizeof(pcx_header)))==NULL){
 		success = 0;
 		goto END;
 	}
 	if(screen->pixelformat==PIXEL_16)
 	{
-		if((pixelbuf=tracemalloc("savepcx24 3", screen->width*screen->height*4))==NULL)
+		if((pixelbuf=malloc(screen->width*screen->height*4))==NULL)
 		{
 			success = 0;
 			goto END;
@@ -197,16 +196,16 @@ int savepcx24(char* filename, s_screen * screen)
 END:
 	if(handle != -1) close(handle);
 	if(RLEbuf != NULL){
-		tracefree(RLEbuf);
+		free(RLEbuf);
 		RLEbuf = NULL;
 	}
 	if(head != NULL){
-		tracefree(head);
+		free(head);
 		head = NULL;
 	}
 	if(pixelbuf != NULL)
 	{
-		tracefree(pixelbuf);
+		free(pixelbuf);
 		pixelbuf = NULL;
 	}
 
@@ -229,11 +228,11 @@ int savepcx8(char *filename, s_screen *screen, unsigned char *pal){
 
 
 	// Allocate buffers
-	if((RLEbuf=tracemalloc("savepcx 1",RLE_BUF_SIZE))==NULL){
+	if((RLEbuf=malloc(RLE_BUF_SIZE))==NULL){
 		success = 0;
 		goto END;
 	}
-	if((head=(pcx_header *)tracemalloc("savepcx 2",sizeof(pcx_header)))==NULL){
+	if((head=(pcx_header *)malloc(sizeof(pcx_header)))==NULL){
 		success = 0;
 		goto END;
 	}
@@ -335,11 +334,11 @@ int savepcx8(char *filename, s_screen *screen, unsigned char *pal){
 END:
 	if(handle != -1) close(handle);
 	if(RLEbuf != NULL){
-		tracefree(RLEbuf);
+		free(RLEbuf);
 		RLEbuf = NULL;
 	}
 	if(head != NULL){
-		tracefree(head);
+		free(head);
 		head = NULL;
 	}
 

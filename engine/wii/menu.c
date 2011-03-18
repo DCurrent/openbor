@@ -235,7 +235,7 @@ void getAllLogs()
 		logfile[i].buf = readFromLogFile(i);
 		if(logfile[i].buf != NULL)
 		{
-			logfile[i].pos = tracemalloc("pos #1", ++logfile[i].rows * sizeof(int));
+			logfile[i].pos = malloc(++logfile[i].rows * sizeof(int));
 			if(logfile[i].pos == NULL) return;
 			memset(logfile[i].pos, 0, logfile[i].rows * sizeof(int));
 
@@ -248,16 +248,16 @@ void getAllLogs()
 				}
 				if(logfile[i].buf->ptr[j]=='\n')
 				{
-					int *_pos = tracemalloc("_pos", ++logfile[i].rows * sizeof(int));
+					int *_pos = malloc(++logfile[i].rows * sizeof(int));
 					if(_pos == NULL) return;
 					memcpy(_pos, logfile[i].pos, (logfile[i].rows - 1) * sizeof(int));
 					_pos[logfile[i].rows - 1] = 0;
-					tracefree(logfile[i].pos);
+					free(logfile[i].pos);
 					logfile[i].pos = NULL;
-					logfile[i].pos = tracemalloc("pos #2", logfile[i].rows * sizeof(int));
+					logfile[i].pos = malloc(logfile[i].rows * sizeof(int));
 					if(logfile[i].pos == NULL) return;
 					memcpy(logfile[i].pos, _pos, logfile[i].rows * sizeof(int));
-					tracefree(_pos);
+					free(_pos);
 					_pos = NULL;
 					logfile[i].buf->ptr[j] = 0;
 					k = 0;
@@ -277,9 +277,9 @@ void freeAllLogs()
 	{
 		if(logfile[i].ready)
 		{
-			tracefree(logfile[i].buf);
+			free(logfile[i].buf);
 			logfile[i].buf = NULL;
-			tracefree(logfile[i].pos);
+			free(logfile[i].pos);
 			logfile[i].pos = NULL;
 		}
 	}
@@ -317,15 +317,15 @@ int findPaks(void)
 		if(packfile_supported(ds))
 		{
 			fileliststruct *copy = NULL;
-			if(filelist == NULL) filelist = tracemalloc("filelist", sizeof(fileliststruct));
+			if(filelist == NULL) filelist = malloc(sizeof(fileliststruct));
 			else
 			{
-				copy = tracemalloc("filelistcopy", i * sizeof(fileliststruct));
+				copy = malloc(i * sizeof(fileliststruct));
 				memcpy(copy, filelist, i * sizeof(fileliststruct));
-				tracefree(filelist);
-				filelist = tracemalloc("filelist", (i + 1) * sizeof(fileliststruct));
+				free(filelist);
+				filelist = malloc((i + 1) * sizeof(fileliststruct));
 				memcpy(filelist, copy, i * sizeof(fileliststruct));
-				tracefree(copy); copy = NULL;
+				free(copy); copy = NULL;
 			}
 			memset(&filelist[i], 0, sizeof(fileliststruct));
 			strncpy(filelist[i].filename, ds->d_name, strlen(ds->d_name));
@@ -757,13 +757,13 @@ void Menu()
 		{
 			if (filelist)
 			{
-				tracefree(filelist);
+				free(filelist);
 				filelist = NULL;
 			}
 			borExit(0);
 		}
 	}
 	getBasePath(packfile, filelist[dListCurrentPosition+dListScrollPosition].filename, 1);
-	tracefree(filelist);
+	free(filelist);
 }
 

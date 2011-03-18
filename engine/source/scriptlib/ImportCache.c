@@ -15,7 +15,6 @@
 #include "List.h"
 #include "Interpreter.h"
 #include "packfile.h"
-#include "tracemalloc.h"
 #include "globals.h"
 #include "openborscript.h" // for extern declaration of "theFunctionList"
 
@@ -32,7 +31,7 @@ char* readscript(const char* path)
 	if(handle < 0) goto error;
 	size = seekpackfile(handle, 0, SEEK_END);
 	if(size < 0) goto error;
-	buffer = tracemalloc("readscript", size + 1);
+	buffer = malloc(size + 1);
 	if(buffer == NULL) goto error;
 	
 	if(seekpackfile(handle, 0, SEEK_SET) < 0) goto error;
@@ -43,7 +42,7 @@ char* readscript(const char* path)
 
 error:
 	// FIXME: this error message should include the name of the file that tried to import this file
-	if(buffer) tracefree(buffer);
+	if(buffer) free(buffer);
 	if(handle >= 0) closepackfile(handle);
 	return NULL;
 }
@@ -58,7 +57,7 @@ HRESULT ImportNode_Init(ImportNode* node, const char* path)
 	if(scriptText == NULL) goto error;
 	if(FAILED(Interpreter_ParseText(&node->interpreter, scriptText, 1, path))) goto error;
 	if(FAILED(Interpreter_CompileInstructions(&node->interpreter))) goto error;
-	tracefree(scriptText);
+	free(scriptText);
 	return S_OK;
 
 error:
@@ -94,8 +93,8 @@ ImportNode* ImportCache_Retrieve(const char* path)
 #ifdef VERBOSE
 		printf("Allocating import %s\n", path);
 #endif
-		node = tracemalloc("ImportNode", sizeof(ImportNode));
-		if(FAILED(ImportNode_Init(node, path))) { tracefree(node); return NULL; }
+		node = malloc(sizeof(ImportNode));
+		if(FAILED(ImportNode_Init(node, path))) { free(node); return NULL; }
 		node->numRefs = 0;
 		List_GotoLast(&importCache);
 		List_InsertAfter(&importCache, node, path);
@@ -114,7 +113,7 @@ void ImportCache_Release(ImportNode* node)
 		ImportNode_Clear(node);
 		assert(List_Includes(&importCache, node));
 		List_Remove(&importCache);
-		tracefree(node);
+		free(node);
 	}
 }
 

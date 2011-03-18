@@ -26,13 +26,13 @@ void StrCache_Clear()
 	{
 		for(i=0; i<strcache_size; i++)
 		{
-			tracefree(strcache[i]);
+			free(strcache[i]);
 			strcache[i] = NULL;
 		}
-		tracefree(strcache);
+		free(strcache);
 		strcache = NULL;
 	}
-	if(strcache_index) {tracefree(strcache_index); strcache_index = NULL;}
+	if(strcache_index) {free(strcache_index); strcache_index = NULL;}
 	strcache_size = 0;
 	strcache_top = -1;
 }
@@ -42,13 +42,13 @@ void StrCache_Init()
 {
 	int i;
 	StrCache_Clear(); // just in case
-	strcache = tracemalloc("StrCache_Init", sizeof(CHAR*)*STRCACHE_INC);
+	strcache = malloc(sizeof(CHAR*)*STRCACHE_INC);
 	//if(!strcache) shutdown(1, "out of memory");
-	strcache_index = tracemalloc("StrCache_Init#2", sizeof(int)*STRCACHE_INC);
+	strcache_index = malloc(sizeof(int)*STRCACHE_INC);
 	//if(!strcache_index) shutdown(1, "out of memory");
 	for(i=0; i<STRCACHE_INC; i++)
 	{
-		strcache[i] = tracemalloc("StrCache_Init#3", (MAX_STR_VAR_LEN+1)*sizeof(CHAR));
+		strcache[i] = malloc((MAX_STR_VAR_LEN+1)*sizeof(CHAR));
 		//if(!strcache[i]) shutdown(1, "out of memory");
 		strcache[i][0] = 0;
 		strcache_index[i] = i;
@@ -80,11 +80,11 @@ int StrCache_Pop()
 	}
 	if(strcache_top<0) // realloc
 	{
-		temp = tracemalloc("StrCache_Pop", sizeof(CHAR*)*(strcache_size+STRCACHE_INC));
+		temp = malloc(sizeof(CHAR*)*(strcache_size+STRCACHE_INC));
 		//if(!temp) shutdown(1, "out of memory");
 		for(i=strcache_size; i<strcache_size+STRCACHE_INC; i++)
 		{
-			temp[i] = tracemalloc("StrCache_Pop#2", (MAX_STR_VAR_LEN+1)*sizeof(CHAR));
+			temp[i] = malloc((MAX_STR_VAR_LEN+1)*sizeof(CHAR));
 			//if(!strcache[i]) shutdown(1, "out of memory");
 			temp[i][0] = 0;
 		}
@@ -92,15 +92,15 @@ int StrCache_Pop()
 		{
 			temp[i] = strcache[i];
 		}
-		tracefree(strcache);
+		free(strcache);
 		strcache = temp;
-		tempi = tracemalloc("StrCache_Pop#3", sizeof(int)*(strcache_size+STRCACHE_INC));
+		tempi = malloc(sizeof(int)*(strcache_size+STRCACHE_INC));
 		//if(!tempi) shutdown(1, "out of memory");
 		for(i=0; i<STRCACHE_INC; i++)
 		{
 			tempi[i] = strcache_size+i;
 		}
-		tracefree(strcache_index);
+		free(strcache_index);
 		strcache_index = tempi;
 		strcache_size += STRCACHE_INC;
 		strcache_top += STRCACHE_INC;

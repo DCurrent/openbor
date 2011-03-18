@@ -137,7 +137,7 @@ Image *loadPNGImage(const char* filename)
 		return NULL;
 	}
 
-	line = (u32*)tracemalloc("loadPNGImage()", width * 4);
+	line = (u32*)malloc(width * 4);
 	if(!line)
 	{
 		freeImage(image);
@@ -154,7 +154,7 @@ Image *loadPNGImage(const char* filename)
 			image->data[x + y * image->textureWidth] =  color;
 		}
 	}
-	tracefree(line);
+	free(line);
 	png_read_end(png_ptr, info_ptr);
 	png_destroy_read_struct(&png_ptr, &info_ptr, png_infopp_NULL);
 	fclose(fp);
@@ -195,7 +195,7 @@ void savePNGImage(const char* filename)
 		         8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
 		         PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 	png_write_info(png_ptr, info_ptr);
-	line = (u8*)tracemalloc("saveImage", PSP_LCD_WIDTH * 3);
+	line = (u8*)malloc(PSP_LCD_WIDTH * 3);
 	sceDisplayWaitVblankStart();  // if framebuf was set with PSP_LCD_SETBUF_NEXTFRAME, wait until it is changed
 	sceDisplayGetFrameBuf((void*)&vram32, &bufferwidth, &pixelformat, sync);
 	vram16 = (u16*)vram32;
@@ -238,7 +238,7 @@ void savePNGImage(const char* filename)
 		}
 		png_write_row(png_ptr, line);
 	}
-	tracefree(line);
+	free(line);
 	line = NULL;
 	png_write_end(png_ptr, info_ptr);
 	png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
@@ -252,7 +252,7 @@ void saveImage(const char* filename)
 
 Image* createImage(int width, int height)
 {
-	Image* image = (Image*) tracemalloc("createImage()", sizeof(Image));
+	Image* image = (Image*) malloc(sizeof(Image));
 	if(!image) return NULL;
 	image->imageWidth = width;
 	image->imageHeight = height;
@@ -261,7 +261,7 @@ Image* createImage(int width, int height)
 	image->data = (Color*) memalign(16, image->textureWidth * image->textureHeight * sizeof(Color));
 	if(!image->data)
 	{
-		tracefree(image);
+		free(image);
 		image = NULL;
 		return NULL;
 	}
@@ -273,7 +273,7 @@ void freeImage(Image* image)
 {
 	free(image->data);
 	image->data = NULL;
-	tracefree(image);
+	free(image);
 	image = NULL;
 }
 

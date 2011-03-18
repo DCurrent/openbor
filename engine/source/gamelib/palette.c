@@ -22,8 +22,6 @@
 	Last update: 27-jan-2003
 */
 
-#include "tracemalloc.h"
-
 #include "vga.h"
 #include "palette.h"
 
@@ -129,7 +127,7 @@ unsigned char * palette_table_multiply(unsigned char *pal){
 
 	if(pal==NULL) return NULL;
 
-	lut = (unsigned char*)tracemalloc("palette_table_multiply", 256*256);
+	lut = (unsigned char*)malloc(256*256);
 	if(lut==NULL) return NULL;
 
 	for(fg=0; fg<256; fg++){
@@ -157,7 +155,7 @@ unsigned char * palette_table_screen(unsigned char *pal){
 
 	if(pal==NULL) return NULL;
 
-	lut = (unsigned char*)tracemalloc("palette_table_screen", 256*256);
+	lut = (unsigned char*)malloc(256*256);
 	if(lut==NULL) return NULL;
 
 	for(fg=0; fg<256; fg++){
@@ -185,7 +183,7 @@ unsigned char * palette_table_overlay(unsigned char *pal){
 
 	if(pal==NULL) return NULL;
 
-	lut = (unsigned char*)tracemalloc("palette_table_overlay", 256*256);
+	lut = (unsigned char*)malloc(256*256);
 	if(lut==NULL) return NULL;
 
 	for(fg=0; fg<256; fg++){
@@ -210,7 +208,7 @@ unsigned char * palette_table_hardlight(unsigned char *pal){
 
 	if(pal==NULL) return NULL;
 
-	lut = (unsigned char*)tracemalloc("palette_table_hardlight", 256*256);
+	lut = (unsigned char*)malloc(256*256);
 	if(lut==NULL) return NULL;
 
 	for(fg=0; fg<256; fg++){
@@ -239,7 +237,7 @@ unsigned char * palette_table_dodge(unsigned char *pal){
 
 	if(pal==NULL) return NULL;
 
-	lut = (unsigned char*)tracemalloc("palette_table_dodgs", 256*256);
+	lut = (unsigned char*)malloc(256*256);
 	if(lut==NULL) return NULL;
 
 
@@ -279,7 +277,7 @@ unsigned char * palette_table_half(unsigned char *pal){
 
 	if(pal==NULL) return NULL;
 
-	lut = (unsigned char*)tracemalloc("palette_table_half", 256*256);
+	lut = (unsigned char*)malloc(256*256);
 	if(lut==NULL) return NULL;
 
 	for(fg=0; fg<256; fg++){

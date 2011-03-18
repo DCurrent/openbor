@@ -23,15 +23,14 @@
 
 #ifndef UNIT_TEST
 #include "depends.h"
-#include "tracemalloc.h"
 #else
 #include <stddef.h>
 typedef char* LPCSTR;
 typedef char CHAR;
 #define tracemalloc(a,b) malloc(b)
-#define tracefree(a) free(a)
+#define free(a) free(a)
 #define tracecalloc(a,b) calloc(1,b)
-#define tracerealloc(a,b) realloc(a,b)
+#define realloc(a,b) realloc(a,b)
 #endif
 
 #include <stdlib.h>
@@ -57,7 +56,7 @@ typedef char CHAR;
 	  } \
    }
 
-#define NAME(s) ((s==NULL)?NULL:(strcpy((CHAR*)tracemalloc("NAME(s)", strlen(s)+1),s)))
+#define NAME(s) ((s==NULL)?NULL:(strcpy((CHAR*)malloc(strlen(s)+1),s)))
 
 typedef struct Node{
 	struct Node* prev;          //pointer to previous Node

@@ -18,7 +18,7 @@
 		 If you want to reset a ScriptVariant to empty, you must use ScriptVariant_Clear instead.
 		 ScriptVariant_Init or memset must be called only ONCE, later you should use ScriptVariant_Clear.
 
-		 Besure to call ScriptVariant_Clear if you want to use tracefree to delete those variants.
+		 Besure to call ScriptVariant_Clear if you want to use free to delete those variants.
 
 		 If you want to copy a ScriptVariant from another, use ScriptVariant_Copy instead of assignment,
 		 not because it is faster, but this method is neccessary for string types.
@@ -118,7 +118,7 @@ void Script_Global_Init()
 	{
 		psize = (sizeof(s_variantnode*) * max_global_vars);
 		csize = psize + (sizeof(s_variantnode) * max_global_vars);
-		global_var_list = tracemalloc("Script_Global_Init", csize);
+		global_var_list = malloc(csize);
 		assert(global_var_list != NULL);
 		memset(global_var_list, 0, csize);
 		for (i=0; i < max_global_vars; i++) {
@@ -128,7 +128,7 @@ void Script_Global_Init()
 	/*
 	for(i=0; i<max_global_vars; i++)
 	{
-		global_var_list[i] = tracemalloc("Script_Global_Init#1", sizeof(s_variantnode));
+		global_var_list[i] = malloc(sizeof(s_variantnode));
 		assert(global_var_list[i] != NULL);
 		memset(global_var_list[i], 0, sizeof(s_variantnode));
 	} */
@@ -139,7 +139,7 @@ void Script_Global_Init()
 	if(max_indexed_vars>0)
 	{
 		csize = sizeof(ScriptVariant)*(max_indexed_vars + 1);
-		indexed_var_list = (ScriptVariant*)tracemalloc("Script_Global_Init#2", csize);
+		indexed_var_list = (ScriptVariant*)malloc(csize);
 		assert(indexed_var_list != NULL);
 		memset(indexed_var_list, 0, csize);
 	}
@@ -160,7 +160,7 @@ void Script_Global_Clear()
 	for(i=0, List_Reset(&scriptheap); i<size; List_GotoNext(&scriptheap), i++)
 	{
 		printf("%s\n", List_GetName(&scriptheap));
-		tracefree(List_Retrieve(&scriptheap));
+		free(List_Retrieve(&scriptheap));
 	}
 	List_Clear(&scriptheap);
 	// clear the global list
@@ -170,17 +170,17 @@ void Script_Global_Clear()
 		{
 			if(global_var_list[i] != NULL) {
 				ScriptVariant_Clear(&(global_var_list[i]->value));
-				//tracefree(global_var_list[i]);
+				//free(global_var_list[i]);
 			}
 			//global_var_list[i] = NULL;
 		}
-		tracefree(global_var_list);
+		free(global_var_list);
 		global_var_list = NULL;
 	}
 	if(indexed_var_list)
 	{
 		for(i=0; i<max_indexed_vars; i++) ScriptVariant_Clear(indexed_var_list+i);
-		tracefree(indexed_var_list);
+		free(indexed_var_list);
 	}
 	indexed_var_list = NULL;
 	max_global_var_index = -1;
@@ -302,11 +302,11 @@ int Script_Set_Local_Variant(char* theName, ScriptVariant* var)
 Script* alloc_script()
 {
 	int i;
-	Script* pscript = (Script*)tracemalloc("alloc_script", sizeof(Script));
+	Script* pscript = (Script*)malloc(sizeof(Script));
 	memset(pscript, 0, sizeof(Script));
 	if(max_script_vars>0)
 	{
-		pscript->vars = (ScriptVariant*)tracemalloc("alloc_script#pscript->vars", sizeof(ScriptVariant)*max_script_vars);
+		pscript->vars = (ScriptVariant*)malloc(sizeof(ScriptVariant)*max_script_vars);
 		for(i=0; i<max_script_vars; i++) ScriptVariant_Init(pscript->vars+i);
 	}
 	return pscript;
@@ -320,13 +320,13 @@ void Script_Init(Script* pscript, char* theName, int first)
 		memset(pscript, 0, sizeof(Script));
 		if(max_script_vars>0)
 		{
-			pscript->vars = (ScriptVariant*)tracemalloc("Script_Init#pscript->vars", sizeof(ScriptVariant)*max_script_vars);
+			pscript->vars = (ScriptVariant*)malloc(sizeof(ScriptVariant)*max_script_vars);
 			for(i=0; i<max_script_vars; i++) ScriptVariant_Init(pscript->vars+i);
 		}
 	}
 	if(!theName || !theName[0])  return; // if no name specified, only alloc the variants
 	pcurrentscript = pscript; //used by local script functions
-	pscript->pinterpreter = (Interpreter*)tracemalloc("Script_Init#2", sizeof(Interpreter));
+	pscript->pinterpreter = (Interpreter*)malloc(sizeof(Interpreter));
 	Interpreter_Init(pscript->pinterpreter, theName, &theFunctionList);
 	pscript->interpreterowner = 1; // this is the owner, important
 	pscript->initialized = 1;
@@ -353,7 +353,7 @@ void Script_Clear(Script* pscript, int localclear)
 		{
 			ScriptVariant_Clear(pscript->vars+i);
 		}
-		tracefree(pscript->vars);
+		free(pscript->vars);
 		pscript->vars = NULL;
 	}
 	if(!pscript->initialized) return;
@@ -362,7 +362,7 @@ void Script_Clear(Script* pscript, int localclear)
 	//if it is the owner, free the interpreter
 	if(pscript->pinterpreter && pscript->interpreterowner){
 		Interpreter_Clear(pscript->pinterpreter);
-		tracefree(pscript->pinterpreter);
+		free(pscript->pinterpreter);
 		pscript->pinterpreter = NULL;
 	}
 	if(localclear) Script_Local_Clear();
@@ -608,7 +608,7 @@ void Script_LowerConstants(Script* pscript)
 {
 	Interpreter* pinterpreter = pscript->pinterpreter;
 	Instruction* pInstruction, *pInstruction2;
-	List* newInstructionList = tracemalloc("Script_LowerConstants", sizeof(List));
+	List* newInstructionList = malloc(sizeof(List));
 	int i, j, size;
 
 	List_Init(newInstructionList);
@@ -633,7 +633,7 @@ void Script_LowerConstants(Script* pscript)
 			else
 			{
 				printf("Unused variable\n");
-				tracefree(pInstruction);
+				free(pInstruction);
 			}
 		}
 		else List_InsertAfter(newInstructionList, pInstruction, NULL);
@@ -705,10 +705,10 @@ int Script_DetectUnusedFunctions(Script* pScript)
 				printf("Unused function %s()\n", pInstruction->theToken->theSource);
 				while(instructionList[i]->OpCode != RET) // skip function without adding to new instruction list
 				{
-					tracefree(instructionList[i++]);
+					free(instructionList[i++]);
 					if(i >= size) {List_Clear(&newInstructionList); return 0;} // this shouldn't happen!
 				}
-				tracefree(instructionList[i]); // free the final RET instruction too
+				free(instructionList[i]); // free the final RET instruction too
 			}
 			else List_InsertAfter(&newInstructionList, pInstruction, NULL);
 		}
@@ -716,7 +716,7 @@ int Script_DetectUnusedFunctions(Script* pScript)
 
 		List_InsertAfter(&newInstructionList, pInstruction, NULL);
 
-		//if(pInstruction->theToken) {tracefree(pInstruction->theToken); pInstruction->theToken=NULL;} // TODO: move somewhere else
+		//if(pInstruction->theToken) {free(pInstruction->theToken); pInstruction->theToken=NULL;} // TODO: move somewhere else
 	}
 
 	return Script_ReplaceInstructionList(pInterpreter, &newInstructionList);
@@ -1125,7 +1125,7 @@ HRESULT system_free(ScriptVariant** varlist , ScriptVariant** pretvar, int param
 	if(paramCount<1) return E_FAIL;
 	if(List_Includes(&scriptheap, varlist[0]->ptrVal))
 	{
-		tracefree(List_Retrieve(&scriptheap));
+		free(List_Retrieve(&scriptheap));
 		List_Remove(&scriptheap);
 		return S_OK;
 	}
@@ -6731,7 +6731,7 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 		fseek(handle, 0, SEEK_END);
 		size = ftell(handle);
 		rewind(handle);
-		level->filestreams[level->numfilestreams].buf = (char*)tracemalloc("openfilestream()", sizeof(char)*size);
+		level->filestreams[level->numfilestreams].buf = (char*)malloc(sizeof(char)*size);
 		if(level->filestreams[level->numfilestreams].buf == NULL) return E_FAIL;
 		disCcWarns = fread(level->filestreams[level->numfilestreams].buf, 1, size, handle);
 	}
@@ -6954,7 +6954,7 @@ HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretv
 	if(FAILED(ScriptVariant_IntegerValue(arg, &appendtype)))
 		return S_OK;
 
-	temp = (char*)tracemalloc("filestreamappend()", sizeof(char)*(strlen(level->filestreams[filestreamindex].buf) + strlen(append) + 4));
+	temp = (char*)malloc(sizeof(char)*(strlen(level->filestreams[filestreamindex].buf) + strlen(append) + 4));
 	strcpy(temp, level->filestreams[filestreamindex].buf);
 
 	if(appendtype == 0)
@@ -6970,7 +6970,7 @@ HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretv
 		temp[strlen(level->filestreams[filestreamindex].buf) + strlen(append)] = ' ';
 		temp[strlen(level->filestreams[filestreamindex].buf) + strlen(append) + 1] = '\0';
 	}
-	tracefree(level->filestreams[filestreamindex].buf);
+	free(level->filestreams[filestreamindex].buf);
 	level->filestreams[filestreamindex].buf = temp;
 
 	return S_OK;
@@ -6993,7 +6993,7 @@ HRESULT openbor_createfilestream(ScriptVariant** varlist , ScriptVariant** pretv
 
 	// Initialize the new filestream
 	level->filestreams[level->numfilestreams].pos = 0;
-	level->filestreams[level->numfilestreams].buf = (char*)tracemalloc("createfilestream()", sizeof(char)*128);
+	level->filestreams[level->numfilestreams].buf = (char*)malloc(sizeof(char)*128);
 	level->filestreams[level->numfilestreams].buf[0] = '\0';
 	level->numfilestreams++;
 	return S_OK;
@@ -8704,7 +8704,7 @@ HRESULT openbor_changetextobjproperty(ScriptVariant** varlist , ScriptVariant** 
 		}
 		if(!level->textobjs[ind].text)
 		{
-			level->textobjs[ind].text = (char*)tracemalloc("alloctextobj",MAX_STR_VAR_LEN);
+			level->textobjs[ind].text = (char*)malloc(MAX_STR_VAR_LEN);
 		}
 		strncpy(level->textobjs[ind].text, (char*)StrCache_Get(varlist[2]->strVal), MAX_STR_VAR_LEN);
 		//level->textobjs[ind].text = (char*)StrCache_Get(varlist[2]->strVal);
@@ -8824,7 +8824,7 @@ HRESULT openbor_settextobj(ScriptVariant** varlist , ScriptVariant** pretvar, in
 
 	if(!level->textobjs[ind].text)
 	{
-		level->textobjs[ind].text = (char*)tracemalloc("alloctextobj",MAX_STR_VAR_LEN);
+		level->textobjs[ind].text = (char*)malloc(MAX_STR_VAR_LEN);
 	}
 	strncpy(level->textobjs[ind].text, (char*)StrCache_Get(varlist[5]->strVal), MAX_STR_VAR_LEN);
 	(*pretvar)->lVal = (LONG)1;
@@ -8864,7 +8864,7 @@ HRESULT openbor_cleartextobj(ScriptVariant** varlist , ScriptVariant** pretvar, 
 	level->textobjs[ind].font = 0;
 	level->textobjs[ind].z = 0;
 	if(level->textobjs[ind].text)
-		 tracefree(level->textobjs[ind].text);
+		 free(level->textobjs[ind].text);
 	level->textobjs[ind].text = NULL;
 	return S_OK;
 

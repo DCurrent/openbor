@@ -9,7 +9,6 @@
 #include <png.h>
 #include "types.h"
 #include "screen.h"
-#include "tracemalloc.h"
 #include <assert.h>
 
 #ifdef SDL

@@ -25,13 +25,8 @@ extern int videoMode;
 #endif
 
 #ifndef SKIP_CODE
-#ifdef USE_XPM
-#include "xpm.h"
-#include "../resources/OpenBOR_Icon_32x32.h"
-#else
 #include "pngdec.h"
 #include "../resources/OpenBOR_Icon_32x32_png.h"
-#endif
 #endif
 
 FPSmanager framerate_manager;

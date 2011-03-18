@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "types.h"
-#include "tracemalloc.h"
 #include "screen.h"
 
 extern float _sinfactors[256];
@@ -33,8 +32,8 @@ s_screen * allocscreen(int width, int height, int pixelformat)
 	sprintf(asBuf, "as-id: %d", asCnt++);
 	width &= (0xFFFFFFFF-3);
 	if(pixelformat==PIXEL_x8)
-	   screen = (s_screen*)tracemalloc(asBuf,sizeof(s_screen) + width*height*pixelbytes[(int)pixelformat]+PAL_BYTES+ANYNUMBER);
-	else screen = (s_screen*)tracemalloc(asBuf,sizeof(s_screen) + width*height*pixelbytes[(int)pixelformat] + ANYNUMBER);
+	   screen = (s_screen*)malloc(sizeof(s_screen) + width*height*pixelbytes[(int)pixelformat]+PAL_BYTES+ANYNUMBER);
+	else screen = (s_screen*)malloc(sizeof(s_screen) + width*height*pixelbytes[(int)pixelformat] + ANYNUMBER);
 	if(screen==NULL) return NULL;
 	screen->width = width;
 	screen->height = height;
@@ -46,7 +45,7 @@ s_screen * allocscreen(int width, int height, int pixelformat)
 
 void freescreen(s_screen **screen)
 {
-	if((*screen) != NULL) tracefree((*screen));
+	if((*screen) != NULL) free((*screen));
 	(*screen) = NULL;
 }
 

@@ -9,6 +9,7 @@
 #ifndef SCREEN_H
 #define SCREEN_H
 #include "types.h"
+#include "globals.h"
 s_screen * allocscreen(int width, int height, int pixelformat);
 void freescreen(s_screen **screen);
 void copyscreen(s_screen * dest, s_screen * src);

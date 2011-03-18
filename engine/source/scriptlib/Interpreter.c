@@ -8,7 +8,6 @@
 
 #include "Interpreter.h"
 #include "ImportCache.h"
-#include "tracemalloc.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +43,7 @@ void Interpreter_Clear(Interpreter* pinterpreter)
 		for(i=0;i<size;i++)
 		{
 			Instruction_Clear(pinterpreter->theInstructionList.solidlist[i]);
-			tracefree((void*)pinterpreter->theInstructionList.solidlist[i]);
+			free((void*)pinterpreter->theInstructionList.solidlist[i]);
 			pinterpreter->theInstructionList.solidlist[i] = NULL;
 		}
 	}
@@ -54,14 +53,14 @@ void Interpreter_Clear(Interpreter* pinterpreter)
 			pinterpreter->theInstructionList,
 			pinstruction = (Instruction*)List_Retrieve(&(pinterpreter->theInstructionList));
 			Instruction_Clear(pinstruction);
-			tracefree((void*)pinstruction);
+			free((void*)pinstruction);
 			pinstruction = NULL;
 		);
 	}
 	while(!Stack_IsEmpty(&(pinterpreter->theDataStack))){
 		pvariant = (ScriptVariant*)Stack_Top(&(pinterpreter->theDataStack));
 		ScriptVariant_Clear(pvariant);
-		tracefree((void*)pvariant);
+		free((void*)pvariant);
 		Stack_Pop(&(pinterpreter->theDataStack));
 	}
 	List_Clear(&(pinterpreter->theLabelStack));
@@ -340,7 +339,7 @@ HRESULT Interpreter_EvaluateCall(Interpreter* pinterpreter)
 		Stack_Pop(&(pinterpreter->theDataStack)); \
 		pSVar1 = Stack_Top(&(pinterpreter->theDataStack)); \
 		Stack_Pop(&(pinterpreter->theDataStack)); \
-		pRetVal = (ScriptVariant*)tracemalloc("COMPILEBINARYOP", sizeof(ScriptVariant));\
+		pRetVal = (ScriptVariant*)malloc(sizeof(ScriptVariant));\
 		ScriptVariant_Init(pRetVal);\
 		Stack_Push(&(pinterpreter->theDataStack),(void*)pRetVal); \
 		pInstruction->theVal = pRetVal;\
@@ -476,7 +475,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		case PARAM:
 			Instruction_NewData(pInstruction); //cache the the new variant
 			pToken = pInstruction->theToken;
-			pSymbol = (Symbol*)tracemalloc("Interpreter_CompileInstructions #1", sizeof(Symbol));
+			pSymbol = (Symbol*)malloc(sizeof(Symbol));
 			Symbol_Init(pSymbol, pToken->theSource, 0, NULL, pInstruction);
 			StackedSymbolTable_AddSymbol(&(pinterpreter->theSymbolTable), pSymbol );
 			break;
@@ -508,7 +507,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			pInstruction->theRef = pSVar1;
 			//printf("#%u\n", pInstruction->theRef);
 			// alloc the param ref list;
-			pInstruction->theRefList = (List*)tracemalloc("Interpreter_CompileInstructions #2", sizeof(List));
+			pInstruction->theRefList = (List*)malloc(sizeof(List));
 			List_Init(pInstruction->theRefList);
 			//cache parameter list
 			for(j=0; j<pSVar1->lVal; j++){
@@ -627,10 +626,10 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			List_Reset(&(pinterpreter->theInstructionList));
 			for(i=0; i<size; i++){
 				pInstruction = (Instruction*)List_Retrieve(&(pinterpreter->theInstructionList));
-				if(pInstruction->theVal) tracefree(pInstruction->theVal);
+				if(pInstruction->theVal) free(pInstruction->theVal);
 				if(pInstruction->theRefList){
 					List_Clear(pInstruction->theRefList);
-					tracefree(pInstruction->theRefList);
+					free(pInstruction->theRefList);
 				}
 				pInstruction->theRef = pInstruction->theRef2 = NULL;
 				List_GotoNext(&(pinterpreter->theInstructionList));
@@ -649,8 +648,8 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 	{
 		pInstruction = (Instruction*)List_Retrieve(&(pinterpreter->theInstructionList));
 		// we might not need these 2, free them to cut some memory usage
-		if(pInstruction->theToken) {tracefree(pInstruction->theToken); pInstruction->theToken=NULL;}
-		if(pInstruction->Label) {tracefree(pInstruction->Label); pInstruction->Label=NULL;}
+		if(pInstruction->theToken) {free(pInstruction->theToken); pInstruction->theToken=NULL;}
+		if(pInstruction->Label) {free(pInstruction->Label); pInstruction->Label=NULL;}
 		List_GotoNext(&(pinterpreter->theInstructionList));
 	}
 	
@@ -969,7 +968,7 @@ void Interpreter_OutputPCode(Interpreter* pinterpreter, LPCSTR fileName )
    LPCSTR pStr;
    int i, size;
    //Declare and initialize some string buffers.
-   char* buffer = (char*)tracemalloc("Interpreter_OutputPCode #1", 256);
+   char* buffer = (char*)malloc(256);
 
    //If the fileName is "", then substitute "Main".
    if (!strcmp( fileName, "" ))
@@ -1001,11 +1000,11 @@ void Interpreter_OutputPCode(Interpreter* pinterpreter, LPCSTR fileName )
 
    //Get the pseudo-assembly representation of the CInstruction and concat
    //it onto the output buffer
-   pStr = (char*)tracemalloc("Interpreter_OutputPCode #2", 256);
+   pStr = (char*)malloc(256);
    Instruction_ToString(pInstruction, (char*)pStr);
    strcat( buffer, pStr );
    //donot forget to delete it
-   tracefree((void*)pStr);
+   free((void*)pStr);
 
    strcat( buffer, "\n");
 
@@ -1014,7 +1013,7 @@ void Interpreter_OutputPCode(Interpreter* pinterpreter, LPCSTR fileName )
    );
    //Close the output stream
    fclose(instStream);
-   tracefree(buffer);
+   free(buffer);
 }
 #endif
 
