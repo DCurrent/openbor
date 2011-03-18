@@ -172,12 +172,12 @@ function linux {
     make BUILD_LINUX=1
     if test -f "./OpenBOR"; then
       if test ! -e "./releases/$3"; then
-	mkdir ./releases/$3
-	mkdir ./releases/$3/OpenBOR
-	mkdir ./releases/$3/OpenBOR/Logs
+        mkdir ./releases/$3
+        mkdir ./releases/$3/OpenBOR
+        mkdir ./releases/$3/OpenBOR/Logs
         mkdir ./releases/$3/OpenBOR/Paks
-	mkdir ./releases/$3/OpenBOR/Saves
-	mkdir ./releases/$3/OpenBOR/ScreenShots
+        mkdir ./releases/$3/OpenBOR/Saves
+        mkdir ./releases/$3/OpenBOR/ScreenShots
       fi
       mv OpenBOR ./releases/$3/OpenBOR
       echo "moved binary to ./releases/$3/ !"
