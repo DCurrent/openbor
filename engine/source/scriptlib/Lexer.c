@@ -125,7 +125,7 @@ ptrdiff_t Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 		case PP_TOKEN_STATIC: ptoken->theType = TOKEN_STATIC; break;
 		case PP_TOKEN_AUTO: ptoken->theType = TOKEN_AUTO; break;
 		case PP_TOKEN_REGISTER: ptoken->theType = TOKEN_REGISTER; break;
-		case PP_TOKEN_char: ptoken->theType = TOKEN_char; break;
+		case PP_TOKEN_CHAR: ptoken->theType = TOKEN_CHAR; break;
 		case PP_TOKEN_SHORT: ptoken->theType = TOKEN_SHORT; break;
 		case PP_TOKEN_INT: ptoken->theType = TOKEN_INT; break;
 		case PP_TOKEN_LONG: ptoken->theType = TOKEN_LONG; break;
