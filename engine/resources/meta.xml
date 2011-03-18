@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <app version="1">
 	<name>OpenBOR</name>
-	<version>3.0.3233</version>
-	<release_date>20110318080934</release_date>
+	<version>3.0.3239</version>
+	<release_date>20110318223246</release_date>
 	<coder>Plombo, SX</coder>
 	<short_description>The Ultimate 2D Game Engine</short_description>
 	<long_description>OpenBOR is a highly advanced continuation of Senile Team's semi-2D game engine, Beats Of Rage.  Visit http://www.LavaLit.com for all news, events, and releases of the engine and game modules.

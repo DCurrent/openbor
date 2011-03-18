@@ -789,6 +789,24 @@ typedef struct
    int          (*colourtable)[11]; //0 default backfill 1-10 foreground colours
 }s_barstatus;
 
+typedef struct {
+	char set;  
+	/*set determines how loading screen would be.
+	- -1 = default black screen with loading and status bar.
+	- 0 = no loading screen.
+	- 1 = loading screen background and status bar. */
+	char tf; //determines used font number for "LOADING" text (last element in command, moved here because of alignment)
+	/*
+	- 0 = font.gif
+	- 1 = font2.gif
+	- 2 = font3.gif
+	- 3 = font4.gif */
+	short bx; //determines x and y coordinates of loading bar top left's location respectively
+	short by;
+	short bsize; // length of bar in pixels
+	short tx; //determines x and y coordinates of "LOADING" text location respectively.
+	short ty;
+} s_loadingbar;
 
 typedef struct {
 	Script*         animation_script;               //system generated script
@@ -1558,7 +1576,7 @@ void unload_level();
 void load_level(char *filename);
 void drawlifebar(int x, int y, int h, int maxh);
 void drawmpbar(int x, int y, int m, int maxm);
-void update_loading(int pos_x, int pos_y, int size_x, int text_x, int text_y, int value, int max, int font);
+void update_loading(s_loadingbar* s,  int value, int max);
 void spawnplayer(int);
 void drop_all_enemies();
 void kill_all_enemies();

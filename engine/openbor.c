@@ -345,7 +345,7 @@ int                 noslowfx			= 0;           			// Flag to determine if sound s
 int                 equalairpause 		= 0;         			// If set to 1, there will be no extra pausetime for players who hit multiple enemies in midair
 int                 hiscorebg			= 0;					// If set to 1, will look for a background image to display at the highscore screen
 int                 completebg			= 0;           			// If set to 1, will look for a background image to display at the showcomplete screen
-int                 loadingbg[2][7]		= {{-1,0,0,0,0,0,0},{-1,0,0,0,0,0,0}};  // If set to 1, will look for a background image to display at the loading screen
+s_loadingbar        loadingbg[2] = {{0,0,0,0,0,0,0},{0,0,0,0,0,0,0}};  // If set to 1, will look for a background image to display at the loading screen
 int					loadingmusic        = 0;
 int                 unlockbg            = 0;         			// If set to 1, will look for a different background image after defeating the game
 int                 pause               = 0;
@@ -582,6 +582,17 @@ s_drawmethod* getDrawMethod(s_anim* a, ptrdiff_t index) {
 	assert(index < a->numframes);
 	return a->drawmethods[index];
 }
+
+void fill_s_loadingbar(s_loadingbar* s, char set, short bx, short by, short bsize, short tx, short ty, char tf) {
+	s->set = set;
+	s->tf = tf;
+	s->bx = bx;
+	s->by = by;
+	s->bsize = bsize;
+	s->tx = tx;
+	s->ty = ty;
+}
+
 
 // returns: 1 - succeeded 0 - failed
 int buffer_pakfile(char* filename, char** pbuffer, size_t* psize)
@@ -7225,7 +7236,7 @@ int load_models()
 
 	free_modelcache();
 
-	if(loadingbg[0][0] > 0)
+	if(loadingbg[0].set > 0)
 	{
 		// New alternative background path for PSP
 		if(custBkgrds != NULL)
@@ -7236,12 +7247,12 @@ int load_models()
 		}
 		else load_background("data/bgs/loading", 0);
 	}
-	else if(loadingbg[0][0] < 0)
+	else if(loadingbg[0].set < 0)
 	{
 		clearscreen(vscreen);
 		spriteq_clear();
 	}
-	if(loadingbg[0][0])
+	if(loadingbg[0].set)
 	{
 		standard_palette(1);
 		lifebar_colors();
@@ -7486,7 +7497,8 @@ int load_models()
 
 		// Go to next line
 		pos += getNewLineStart(buf + pos);
-		if(loadingbg[0][0]) update_loading(loadingbg[0][1]+videomodes.hShift, loadingbg[0][2]+videomodes.vShift, loadingbg[0][3], loadingbg[0][4]+videomodes.hShift, loadingbg[0][5]+videomodes.vShift, pos/2, size, loadingbg[0][6]);
+		if(loadingbg[0].set) 
+			update_loading(&loadingbg[0], pos/2, size);
 	}
 
 	if(buf != NULL)
@@ -7500,10 +7512,11 @@ int load_models()
 	for(i=0; i<models_cached; i++)
 	{
 		//printf("Checking '%s' '%s'\n", model_cache[i].name, model_cache[i].path);
-		if(loadingbg[0][0]) update_loading(loadingbg[0][1]+videomodes.hShift, loadingbg[0][2]+videomodes.vShift, loadingbg[0][3], loadingbg[0][4]+videomodes.hShift, loadingbg[0][5]+videomodes.vShift, size/2 + i*size/2/models_cached, size, loadingbg[0][6]);
+		if(loadingbg[0].set) 
+			update_loading(&loadingbg[0], size/2 + i*size/2/models_cached, size);
 		if(model_cache[i].loadflag)
 		{
-		load_cached_model(model_cache[i].name, "models.txt", 0);
+			load_cached_model(model_cache[i].name, "models.txt", 0);
 		}
 	}
 	printf("\nLoading models...............\tDone!\n");
@@ -8149,10 +8162,10 @@ void load_levelorder()
 				completebg = 1;
 				break;
 			case CMD_LEVELORDER_LOADINGBG:
-				for(i=0; i<7; i++) loadingbg[0][i] = GET_INT_ARG(i+1);
+				fill_s_loadingbar(&loadingbg[0], GET_INT_ARG(1), GET_INT_ARG(2),GET_INT_ARG(3),GET_INT_ARG(4),GET_INT_ARG(5),GET_INT_ARG(6),GET_INT_ARG(7));
 				break;
 			case CMD_LEVELORDER_LOADINGBG2:
-				for(i=0; i<7; i++) loadingbg[1][i] = GET_INT_ARG(i+1);
+				fill_s_loadingbar(&loadingbg[1], GET_INT_ARG(1), GET_INT_ARG(2),GET_INT_ARG(3),GET_INT_ARG(4),GET_INT_ARG(5),GET_INT_ARG(6),GET_INT_ARG(7));
 				break;
 			case CMD_LEVELORDER_LOADINGMUSIC:
 				loadingmusic = GET_INT_ARG(1);
@@ -8484,7 +8497,7 @@ void load_level(char *filename){
 	int i = 0, j = 0, crlf = 0;
 	int usemap[MAX_BLENDINGS];
 	char bgPath[128] = {""};
-	int  bgPosi[6] = {0,0,0,0,0};
+	s_loadingbar bgPosi = {0, 0, 0, 0, 0, 0, 0};
 	char musicPath[128] = {""};
 	u32 musicOffset = 0;
 
@@ -8505,7 +8518,7 @@ void load_level(char *filename){
 
 	getRamStatus(BYTES);
 
-	if(loadingbg[1][0] > 0)
+	if(loadingbg[1].set > 0)
 	{
 		if(custBkgrds != NULL)
 		{
@@ -8515,12 +8528,12 @@ void load_level(char *filename){
 		}
 		else load_cached_background("data/bgs/loading2", 0);
 	}
-	else if(loadingbg[1][0] < 0)
+	else if(loadingbg[1].set < 0)
 	{
 		clearscreen(vscreen);
 		spriteq_clear();
 	}
-	if(loadingbg[1][0])
+	if(loadingbg[1].set)
 	{
 	    standard_palette(1);
 	    lifebar_colors();
@@ -8571,7 +8584,7 @@ void load_level(char *filename){
 		switch(cmd) {
 			case CMD_LEVEL_LOADINGBG:
 				load_background(GET_ARG(1), 0);
-				for(i=0; i<6; i++) bgPosi[i] = GET_INT_ARG(i+2);
+				fill_s_loadingbar(&bgPosi, GET_INT_ARG(2), GET_INT_ARG(3), GET_INT_ARG(4), GET_INT_ARG(5), GET_INT_ARG(6), GET_INT_ARG(7), GET_INT_ARG(8));
 				standard_palette(1);
 				lifebar_colors();
 				init_colourtable();
@@ -9259,10 +9272,11 @@ void load_level(char *filename){
 
 		// Go to next line
 		pos += getNewLineStart(buf + pos);
-		if(bgPosi[2])
-			update_loading(bgPosi[0]+videomodes.hShift, bgPosi[1]+videomodes.vShift, bgPosi[2], bgPosi[3]+videomodes.hShift, bgPosi[4]+videomodes.vShift, pos, size, bgPosi[5]);
-		else if(loadingbg[1][0])
-			update_loading(loadingbg[1][1]+videomodes.hShift, loadingbg[1][2]+videomodes.vShift, loadingbg[1][3], loadingbg[1][4]+videomodes.hShift, loadingbg[1][5]+videomodes.vShift, pos, size, loadingbg[1][6]);
+		if(bgPosi.bx)
+			update_loading(&bgPosi, pos, size);
+			//update_loading(bgPosi[0]+videomodes.hShift, bgPosi[1]+videomodes.vShift, bgPosi[2], bgPosi[3]+videomodes.hShift, bgPosi[4]+videomodes.vShift, pos, size, bgPosi[5]);
+		else if(loadingbg[1].set)
+			update_loading(&loadingbg[1], pos, size);
 	}
 	if(buf != NULL){
 		free(buf);
@@ -9862,24 +9876,33 @@ void drawstatus(){
 	}
 }
 
-void update_loading(int pos_x, int pos_y, int size_x, int text_x, int text_y, int value, int max, int font)
-{
+//update_loading(&bgPosi, pos, size);
+			//update_loading(bgPosi[0]+videomodes.hShift, bgPosi[1]+videomodes.vShift, bgPosi[2], bgPosi[3]+videomodes.hShift, bgPosi[4]+videomodes.vShift, pos, size, bgPosi[5]);
+
+//void update_loading(int pos_x, int pos_y, int size_x, int text_x, int text_y, int value, int max, int font)
+void update_loading(s_loadingbar* s,  int value, int max) {
 	static size_t cticks = 0;
+	int pos_x = s->bx + videomodes.hShift;
+	int pos_y = s->by + videomodes.vShift;
+	int size_x = s->bsize;
+	int text_x = s->tx + videomodes.hShift;
+	int text_y = s->ty + videomodes.vShift;
 	
 	sound_update_music();
 	
-	if(cticks  % 16 == 0 && loadingbg[0][0] > 0) {
-		loadingbarstatus.sizex = size_x;
-		bar(pos_x, pos_y, value, max, &loadingbarstatus);
-		font_printf(text_x, text_y, font, 0, "Loading...");
-		if(background) putscreen(vscreen, background, 0, 0, NULL);
-		else           clearscreen(vscreen);
-		spriteq_draw(vscreen, 0);
-		video_copy_screen(vscreen);
-		spriteq_clear();
+	if(cticks  % 16 == 0) {
+		if(s->set) {
+			loadingbarstatus.sizex = size_x;
+			bar(pos_x, pos_y, value, max, &loadingbarstatus);
+			font_printf(text_x, text_y, s->tf, 0, "Loading...");
+			if(background) putscreen(vscreen, background, 0, 0, NULL);
+			else           clearscreen(vscreen);
+			spriteq_draw(vscreen, 0);
+			video_copy_screen(vscreen);
+			spriteq_clear();
+		}
 		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
 	}
-	
 	cticks++;
 }
 
