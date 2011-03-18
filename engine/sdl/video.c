@@ -115,8 +115,7 @@ int video_set_mode(s_videomodes videomodes)
 	screen_dingoo = SDL_SetVideoMode(videomodes.hRes*savedata.screen[videoMode][0],videomodes.vRes*savedata.screen[videoMode][0],16,SDL_SWSURFACE);
 	screen = SDL_AllocSurface(SDL_SWSURFACE,videomodes.hRes*savedata.screen[videoMode][0],videomodes.vRes*savedata.screen[videoMode][0], 16,0,0,0,0);
 #else
-		screen = 
-SDL_SetVideoMode(videomodes.hRes*savedata.screen[videoMode][0],videomodes.vRes*savedata.screen[videoMode][0],16,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
+		screen = SDL_SetVideoMode(videomodes.hRes*savedata.screen[videoMode][0],videomodes.vRes*savedata.screen[videoMode][0],16,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
 #endif
 		SDL_ShowCursor(SDL_DISABLE);
 		bscreen = SDL_AllocSurface(SDL_SWSURFACE, videomodes.hRes, videomodes.vRes, 8*bytes_per_pixel, masks[bytes_per_pixel-1][0], masks[bytes_per_pixel-1][1], masks[bytes_per_pixel-1][2], masks[bytes_per_pixel-1][3]); // 24bit mask
@@ -136,8 +135,7 @@ SDL_SetVideoMode(videomodes.hRes*savedata.screen[videoMode][0],videomodes.vRes*s
 		screen_dingoo = SDL_SetVideoMode(videomodes.hRes,videomodes.vRes,16,SDL_SWSURFACE);
 		screen = SDL_AllocSurface(SDL_SWSURFACE,videomodes.hRes,videomodes.vRes, 8*bytes_per_pixel,0,0,0,0);
 #else
-		screen = 
-SDL_SetVideoMode(videomodes.hRes,videomodes.vRes,8*bytes_per_pixel,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
+		screen = SDL_SetVideoMode(videomodes.hRes,videomodes.vRes,8*bytes_per_pixel,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
 #endif
 		SDL_ShowCursor(SDL_DISABLE);
 	}

@@ -38,7 +38,7 @@ public:
 	CMode();
 	virtual ~CMode();
 
-	ptrdiff_t Create(CXmlDocument* pSkin, XmlNode xnMode);
+	HRESULT Create(CXmlDocument* pSkin, XmlNode xnMode);
 	string	ToString();
 
 	COORDINATE_MAP	m_coordinates;
@@ -49,8 +49,8 @@ public:
 private:
 
 	VOID	AddControl(CXmlDocument* pSkin, XmlNode modeNode);
-	VOID	SetControlPosition(INT iControlId, float x, float y);
-	VOID	SetControlDimensions(INT iControlId, float width, float height);
+	VOID	SetControlPosition(INT iControlId, FLOAT x, FLOAT y);
+	VOID	SetControlDimensions(INT iControlId, FLOAT width, FLOAT height);
 
 private:
 
@@ -67,7 +67,7 @@ public:
 	CSkin();
 	virtual ~CSkin();
 
-	ptrdiff_t Create(char* szXmlFile);
+	HRESULT Create(CHAR* szXmlFile);
 	CMode*  GetMode(INT iWidth, INT iHeight, BOOL bWidescreen);
 	CMode*  GetDefaultMode();
 

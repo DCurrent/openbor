@@ -13,7 +13,7 @@
 #include "List.h"
 #include "ScriptVariant.h"
 
-typedef char* Label;
+typedef LPCSTR Label;
 
 typedef enum OpCode{ CONSTSTR, CONSTDBL, CONSTINT, LOAD, SAVE, INC, DEC, FIELD, CALL, POS, NEG,
 			 NOT, MUL, DIV,MOD, ERR, ADD, SUB, JUMP, GE, LE, LT, GT, EQ, NE, OR,
@@ -24,13 +24,13 @@ typedef enum OpCode{ CONSTSTR, CONSTDBL, CONSTINT, LOAD, SAVE, INC, DEC, FIELD, 
 typedef struct Instruction{
    OpCode OpCode;
    Token* theToken;
-   char* Label;//[MAX_STR_LEN+1];
+   CHAR* Label;//[MAX_STR_LEN+1];
    ScriptVariant* theVal;
    ScriptVariant* theVal2;
    ScriptVariant* theRef;
    ScriptVariant* theRef2;
    List* theRefList;
-   ptrdiff_t (*functionRef)(ScriptVariant**, ScriptVariant**, int);
+   HRESULT (*functionRef)(ScriptVariant**, ScriptVariant**, int);
    union{
 	  int theJumpTargetIndex;
 	  struct Instruction** ptheJumpTarget;
@@ -40,7 +40,7 @@ typedef struct Instruction{
 
 
 void Instruction_InitViaToken(Instruction* pins, OpCode code, Token* pToken );
-void Instruction_InitViaLabel(Instruction* pins, OpCode code, char* label );
+void Instruction_InitViaLabel(Instruction* pins, OpCode code, LPCSTR label );
 void Instruction_Init(Instruction* pins);
 void Instruction_Clear(Instruction* pins);
 
@@ -48,5 +48,5 @@ void Instruction_NewData(Instruction* pins);
 void Instruction_NewData2(Instruction* pins);
 void Instruction_ConvertConstant(Instruction* pins);
 
-void Instruction_ToString(Instruction* pins, char* strRep);
+void Instruction_ToString(Instruction* pins, LPSTR strRep);
 #endif

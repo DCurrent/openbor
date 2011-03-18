@@ -52,15 +52,15 @@ typedef CONST SHORT CSHORT;
 
 
 // String types
-typedef char *PSZ;
-typedef CONST char *PCSZ;
+typedef CHAR *PSZ;
+typedef CONST CHAR *PCSZ;
 
 // ANSI_STRING
 // Differences from NT: None.
 typedef struct _STRING {
 	USHORT Length;
 	USHORT MaximumLength;
-	Pchar Buffer;
+	PCHAR Buffer;
 } STRING;
 typedef STRING *PSTRING;
 
@@ -92,10 +92,10 @@ VOID
 // Header for dispatcher objects
 // Differences from NT: None.
 typedef struct _DISPATCHER_HEADER {
-	Uchar Type;
-	Uchar Absolute;
-	Uchar Size;
-	Uchar Inserted;
+	UCHAR Type;
+	UCHAR Absolute;
+	UCHAR Size;
+	UCHAR Inserted;
 	LONG SignalState;
 	LIST_ENTRY WaitListHead;
 } DISPATCHER_HEADER;
@@ -321,51 +321,51 @@ typedef struct __RAW_READ_INFO {
 
 typedef struct {
   USHORT Length;
-  Uchar  ScsiStatus;
-  Uchar  PathId;
-  Uchar  TargetId;
-  Uchar  Lun;
-  Uchar  CdbLength;
-  Uchar  SenseInfoLength;
-  Uchar  DataIn;
+  UCHAR  ScsiStatus;
+  UCHAR  PathId;
+  UCHAR  TargetId;
+  UCHAR  Lun;
+  UCHAR  CdbLength;
+  UCHAR  SenseInfoLength;
+  UCHAR  DataIn;
   ULONG  DataTransferLength;
   ULONG  TimeOutValue;
   ULONG  DataBufferOffset;
   ULONG  SenseInfoOffset;
-  Uchar  Cdb[16];
+  UCHAR  Cdb[16];
 } SCSI_PASS_THROUGH, *PSCSI_PASS_THROUGH;
 
 // Structure for IOCTL_SCSI_PASS_THROUGH_DIRECT
 // Differences from NT: None, believe it or not.
 typedef struct _SCSI_PASS_THROUGH_DIRECT {
 	/*000*/ USHORT Length;
-	/*002*/ Uchar ScsiStatus;
-	/*003*/ Uchar PathId;
-	/*004*/ Uchar TargetId;
-	/*005*/ Uchar Lun;
-	/*006*/ Uchar CdbLength;
-	/*007*/ Uchar SenseInfoLength;
-	/*008*/ Uchar DataIn;
+	/*002*/ UCHAR ScsiStatus;
+	/*003*/ UCHAR PathId;
+	/*004*/ UCHAR TargetId;
+	/*005*/ UCHAR Lun;
+	/*006*/ UCHAR CdbLength;
+	/*007*/ UCHAR SenseInfoLength;
+	/*008*/ UCHAR DataIn;
 	/*00C*/ ULONG DataTransferLength;
 	/*010*/ ULONG TimeOutValue;
 	/*014*/ PVOID DataBuffer;
 	/*018*/ ULONG SenseInfoOffset;
-	/*01C*/ Uchar Cdb[16];
+	/*01C*/ UCHAR Cdb[16];
 }SCSI_PASS_THROUGH_DIRECT, *PSCSI_PASS_THROUGH_DIRECT;
 
 
 typedef struct {
   SCSI_PASS_THROUGH spt;
   ULONG Filler;
-  Uchar ucSenseBuf[32];
-  Uchar ucDataBuf[512];
+  UCHAR ucSenseBuf[32];
+  UCHAR ucDataBuf[512];
 } SCSI_PASS_THROUGH_WITH_BUFFERS, *PSCSI_PASS_THROUGH_WITH_BUFFERS;
 
 
 typedef struct {
   SCSI_PASS_THROUGH_DIRECT spt;
   ULONG Filler;
-  Uchar ucSenseBuf[64];
+  UCHAR ucSenseBuf[64];
 } SCSI_PASS_THROUGH_DIRECT_WITH_BUFFER, *PSCSI_PASS_THROUGH_DIRECT_WITH_BUFFER;
 
 
@@ -399,7 +399,7 @@ typedef struct _OBJECT_TYPE
 	void *DefaultObjectMaybe;
 
 	// 4 letter tag for this object type
-	char Tag[4];
+	CHAR Tag[4];
 } OBJECT_TYPE;
 typedef OBJECT_TYPE *POBJECT_TYPE;
 
@@ -441,7 +441,7 @@ typedef FILE_OBJECT *PFILE_OBJECT;
 // Thread information structures
 
 // IRQL
-typedef Uchar KIRQL, *PKIRQL;
+typedef UCHAR KIRQL, *PKIRQL;
 #define PASSIVE_LEVEL 0             // Passive release level
 #define LOW_LEVEL 0                 // Lowest interrupt level
 #define APC_LEVEL 1                 // APC interrupt level
@@ -517,8 +517,8 @@ VOID
 // It's not known which of these fields are used on XBOX.
 typedef struct _KDPC {
 	CSHORT Type;
-	Uchar Number;
-	Uchar Importance;
+	UCHAR Number;
+	UCHAR Importance;
 	LIST_ENTRY DpcListEntry;
 	PKDEFERRED_ROUTINE DeferredRoutine;
 	PVOID DeferredContext;
@@ -551,9 +551,9 @@ typedef struct _KTIMER {
 // XBE header information
 typedef struct _XBE_HEADER {
 	// 000 "XBEH"
-	char Magic[4];
+	CHAR Magic[4];
 	// 004 RSA digital signature of the entire header area
-	Uchar HeaderSignature[256];
+	UCHAR HeaderSignature[256];
 	// 104 Base address of XBE image (must be 0x00010000?)
 	PVOID BaseAddress;
 	// 108 Size of all headers combined - other headers must be within this
@@ -624,7 +624,7 @@ typedef struct _XBE_CERTIFICATE {
 	// 008 Title ID
 	ULONG TitleId;
 	// 00C Name of the game (Unicode)
-	Wchar TitleName[40];
+	WCHAR TitleName[40];
 	// 05C Alternate title ID's (0-terminated)
 	ULONG AlternateTitleIds[16];
 	// 09C Allowed media types - 1 bit match between XBE and media = boots
@@ -638,11 +638,11 @@ typedef struct _XBE_CERTIFICATE {
 	// 0AC Version (?)
 	ULONG Version;
 	// 0B0 LAN key for this game
-	Uchar LanKey[16];
+	UCHAR LanKey[16];
 	// 0C0 Signature key for this game
-	Uchar SignatureKey[16];
+	UCHAR SignatureKey[16];
 	// 0D0 Signature keys for the alternate title ID's
-	Uchar AlternateSignatureKeys[16][16];
+	UCHAR AlternateSignatureKeys[16][16];
 	// 1D0
 } XBE_CERTIFICATE, *PXBE_CERTIFICATE;
 

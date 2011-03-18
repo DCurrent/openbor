@@ -10,7 +10,7 @@
 #include <stdio.h>
 
 
-void Symbol_Init(Symbol* symbol, char* theName, DWORD flags,
+void Symbol_Init(Symbol* symbol, LPCSTR theName, DWORD flags,
 				 ScriptVariant* pvar, Instruction*  theRef)
 {
    memset(symbol, 0, sizeof(Symbol));
@@ -25,7 +25,7 @@ void Symbol_Init(Symbol* symbol, char* theName, DWORD flags,
 //------------------------------------------------------------------
 
 
-void SymbolTable_Init(SymbolTable* stable, char* theName )
+void SymbolTable_Init(SymbolTable* stable, LPCSTR theName )
 {
    List_Init(&(stable->SymbolList));
    stable->nextSymbolCount = 0;
@@ -60,7 +60,7 @@ void SymbolTable_Clear(SymbolTable* stable)
 *  Returns: true if the symbol is found.
 *           false otherwise.
 ******************************************************************************/
-BOOL SymbolTable_FindSymbol(SymbolTable* stable, char* symbolName, Symbol** pp_theSymbol )
+BOOL SymbolTable_FindSymbol(SymbolTable* stable, LPCSTR symbolName, Symbol** pp_theSymbol )
 {
    if (symbolName && List_FindByName(&(stable->SymbolList), symbolName )){
 	  *pp_theSymbol = (Symbol*)List_Retrieve(&(stable->SymbolList));

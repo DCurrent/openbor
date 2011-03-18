@@ -419,7 +419,7 @@
 
 #define		MAX_ANIS			161    // max_anis increased for new ANIs
 
-#define     ARG_float            0
+#define     ARG_FLOAT            0
 #define     ARG_STRING           1
 #define     ARG_INT              2
 
@@ -1104,7 +1104,7 @@ typedef struct entity
 	unsigned int 	nextanim;
 	unsigned int 	nextthink;
 	unsigned int 	pain_time;
-	unsigned int    mpchargetime;					// For the charGE animation
+	unsigned int    mpchargetime;					// For the CHARGE animation
 	unsigned int    sleeptime;						// For the SLEEP animation
 	unsigned int 	rushtime;						// rush combo timer
 	unsigned int    knockdowntime;                  // count knock down hit

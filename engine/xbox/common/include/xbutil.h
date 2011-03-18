@@ -46,8 +46,8 @@ void sprintfx( const char *fmt, ... );
 	#define OUTPUT_DEBUG_STRING(s) (VOID)(s)
 #endif
 
-// For converting a float to a DWORD (useful for SetRenderState() calls)
-inline DWORD FtoDW( float f ) { return *((DWORD*)&f); }
+// For converting a FLOAT to a DWORD (useful for SetRenderState() calls)
+inline DWORD FtoDW( FLOAT f ) { return *((DWORD*)&f); }
 
 
 
@@ -57,21 +57,21 @@ inline DWORD FtoDW( float f ) { return *((DWORD*)&f); }
 // Desc: Functions for setting a media path and returning a valid path to a
 //       media file.
 //-----------------------------------------------------------------------------
-VOID    XBUtil_SetMediaPath( const char* strPath );
-ptrdiff_t XBUtil_FindMediaFile( char* strPath, const char* strFilename );
+VOID    XBUtil_SetMediaPath( const CHAR* strPath );
+HRESULT XBUtil_FindMediaFile( CHAR* strPath, const CHAR* strFilename );
 
 
 //-----------------------------------------------------------------------------
 // Name: XBox specifc counters
 // Desc: * The CPU runs at 733MHz, therefore
 //         Time in micro seconds = ticks / 733MHz = ticks * 3/2200
-//       * Using double to maintain percision
+//       * Using DOUBLE to maintain percision
 //       * See "A Note On Timers" whitepaper
 //-----------------------------------------------------------------------------
 __forceinline __int64 GetMachineTime()          { __asm rdtsc }
 __forceinline __int64 GetTimeInMicroSeconds()
 						{ return GetMachineTime()*3/2200;}
-__forceinline double  GetTimeInSeconds()
+__forceinline DOUBLE  GetTimeInSeconds()
 						{ return GetTimeInMicroSeconds() / 1000000.0;}
 
 //-----------------------------------------------------------------------------
@@ -88,7 +88,7 @@ __forceinline double  GetTimeInSeconds()
 enum TIMER_COMMAND { TIMER_RESET, TIMER_START, TIMER_STOP, 
 					 TIMER_ADVANCE, TIMER_RETRACT, 
 					 TIMER_GETABSOLUTETIME, TIMER_GETAPPTIME };
-float XBUtil_Timer( TIMER_COMMAND command );
+FLOAT XBUtil_Timer( TIMER_COMMAND command );
 
 
 
@@ -98,8 +98,8 @@ float XBUtil_Timer( TIMER_COMMAND command );
 // Desc: Initializes a D3DMATERIAL8 structure, setting the diffuse and ambient
 //       colors. It does not set emissive or specular colors.
 //-----------------------------------------------------------------------------
-VOID XBUtil_InitMaterial( D3DMATERIAL8& mtrl, float r=0.0f, float g=0.0f,
-											  float b=0.0f, float a=1.0f );
+VOID XBUtil_InitMaterial( D3DMATERIAL8& mtrl, FLOAT r=0.0f, FLOAT g=0.0f,
+											  FLOAT b=0.0f, FLOAT a=1.0f );
 
 
 
@@ -110,7 +110,7 @@ VOID XBUtil_InitMaterial( D3DMATERIAL8& mtrl, float r=0.0f, float g=0.0f,
 //       diffuse color is set to white, specular and ambient left as black.
 //-----------------------------------------------------------------------------
 VOID XBUtil_InitLight( D3DLIGHT8& light, D3DLIGHTTYPE ltType,
-					   float x=0.0f, float y=0.0f, float z=0.0f );
+					   FLOAT x=0.0f, FLOAT y=0.0f, FLOAT z=0.0f );
 
 
 
@@ -119,7 +119,7 @@ VOID XBUtil_InitLight( D3DLIGHT8& light, D3DLIGHTTYPE ltType,
 // Name: XBUtil_CreateTexture()
 // Desc: Helper function to create a texture.
 //-----------------------------------------------------------------------------
-ptrdiff_t XBUtil_CreateTexture( LPDIRECT3DDEVICE8 pd3dDevice, const char* strTexture,
+HRESULT XBUtil_CreateTexture( LPDIRECT3DDEVICE8 pd3dDevice, const CHAR* strTexture,
 							  LPDIRECT3DTEXTURE8* ppTexture,
 							  D3DFORMAT d3dFormat = D3DFMT_UNKNOWN );
 
@@ -143,8 +143,8 @@ VOID XBUtil_SwizzleTexture3D( D3DLOCKED_BOX* pLock, const D3DVOLUME_DESC* pDesc 
 // Name: XBUtil_CreateVertexShader()
 // Desc: Creates a file-based vertex shader
 //-----------------------------------------------------------------------------
-ptrdiff_t XBUtil_CreateVertexShader( LPDIRECT3DDEVICE8 pd3dDevice, 
-								   const char* strFilename, 
+HRESULT XBUtil_CreateVertexShader( LPDIRECT3DDEVICE8 pd3dDevice, 
+								   const CHAR* strFilename, 
 								   const DWORD* pdwVertexDecl,
 								   DWORD* pdwVertexShader );
 
@@ -155,8 +155,8 @@ ptrdiff_t XBUtil_CreateVertexShader( LPDIRECT3DDEVICE8 pd3dDevice,
 // Name: XBUtil_CreatePixelShader()
 // Desc: Creates a file-based pixel shader
 //-----------------------------------------------------------------------------
-ptrdiff_t XBUtil_CreatePixelShader( LPDIRECT3DDEVICE8 pd3dDevice, 
-								  const char* strFilename, DWORD* pdwPixelShader );
+HRESULT XBUtil_CreatePixelShader( LPDIRECT3DDEVICE8 pd3dDevice, 
+								  const CHAR* strFilename, DWORD* pdwPixelShader );
 
 									
 									
@@ -165,7 +165,7 @@ ptrdiff_t XBUtil_CreatePixelShader( LPDIRECT3DDEVICE8 pd3dDevice,
 // Name: XBUtil_VectorToRGBA()
 // Desc: Converts a normal into an RGBA vector.
 //-----------------------------------------------------------------------------
-inline D3DCOLOR XBUtil_VectorToRGBA( const D3DXVECTOR3* v, float fHeight = 1.0f )
+inline D3DCOLOR XBUtil_VectorToRGBA( const D3DXVECTOR3* v, FLOAT fHeight = 1.0f )
 {
 	D3DCOLOR r = (D3DCOLOR)( ( v->x + 1.0f ) * 127.5f );
 	D3DCOLOR g = (D3DCOLOR)( ( v->y + 1.0f ) * 127.5f );
@@ -190,7 +190,7 @@ D3DXMATRIX XBUtil_GetCubeMapViewMatrix( DWORD dwFace );
 // Name: XBUtil_CreateNormalizationCubeMap()
 // Desc: Creates a cube map and fills it with normalized RGBA vectors.
 //-----------------------------------------------------------------------------
-ptrdiff_t XBUtil_CreateNormalizationCubeMap( LPDIRECT3DDEVICE8 pd3dDevice, 
+HRESULT XBUtil_CreateNormalizationCubeMap( LPDIRECT3DDEVICE8 pd3dDevice, 
 										   DWORD dwSize, 
 										   LPDIRECT3DCUBETEXTURE8* ppCubeMap );
 
@@ -202,7 +202,7 @@ ptrdiff_t XBUtil_CreateNormalizationCubeMap( LPDIRECT3DDEVICE8 pd3dDevice,
 // Desc: Writes the contents of a surface (32-bit only) to a .tga file. This
 //       could be a back buffer, texture, or any other 32-bit surface.
 //-----------------------------------------------------------------------------
-ptrdiff_t XBUtil_DumpSurface( LPDIRECT3DSURFACE8 pSurface, const char* strFileName,
+HRESULT XBUtil_DumpSurface( LPDIRECT3DSURFACE8 pSurface, const CHAR* strFileName,
 							BOOL bSurfaceIsTiled = FALSE );
 
 
@@ -215,7 +215,7 @@ ptrdiff_t XBUtil_DumpSurface( LPDIRECT3DSURFACE8 pSurface, const char* strFileNa
 //-----------------------------------------------------------------------------
 D3DXVECTOR3 XBUtil_EvaluateHermite( const D3DXVECTOR3& p0, const D3DXVECTOR3& p1, 
 									const D3DXVECTOR3& v0, const D3DXVECTOR3& v1,
-									float u );
+									FLOAT u );
 
 
 
@@ -227,7 +227,7 @@ D3DXVECTOR3 XBUtil_EvaluateHermite( const D3DXVECTOR3& p0, const D3DXVECTOR3& p1
 //-----------------------------------------------------------------------------
 D3DXVECTOR3 XBUtil_EvaluateCatmullRom( const D3DXVECTOR3& p1, const D3DXVECTOR3& p2, 
 									   const D3DXVECTOR3& p3, const D3DXVECTOR3& p4,
-									   float u );
+									   FLOAT u );
 
 
 
@@ -238,7 +238,7 @@ D3DXVECTOR3 XBUtil_EvaluateCatmullRom( const D3DXVECTOR3& p1, const D3DXVECTOR3&
 //       points, and the point and tangent returned are located at position t
 //       on the spline, where 0 < t < dwNumSpinePts.
 //-----------------------------------------------------------------------------
-VOID XBUtil_GetSplinePoint( const D3DXVECTOR3* pSpline, DWORD dwNumSpinePts, float t, 
+VOID XBUtil_GetSplinePoint( const D3DXVECTOR3* pSpline, DWORD dwNumSpinePts, FLOAT t, 
 							D3DXVECTOR3* pvPoint, D3DXVECTOR3* pvTangent );
 
 
@@ -266,7 +266,7 @@ VOID XBUtil_RenderSpline( LPDIRECT3DDEVICE8 pd3dDevice, const D3DXVECTOR3* pSpli
 //          v5    = Vertex specular color
 //          v6-v9 = Vertex texture coords
 //-----------------------------------------------------------------------------
-ptrdiff_t XBUtil_DeclaratorFromFVF( DWORD dwFVF, 
+HRESULT XBUtil_DeclaratorFromFVF( DWORD dwFVF, 
 								  DWORD Declaration[MAX_FVF_DECL_SIZE] );
 
 
@@ -274,14 +274,14 @@ ptrdiff_t XBUtil_DeclaratorFromFVF( DWORD dwFVF,
 
 //-----------------------------------------------------------------------------
 // Name: XBUtil_GetWide()
-// Desc: Convert char string to Wchar string. dwMax includes the null byte.
+// Desc: Convert CHAR string to WCHAR string. dwMax includes the null byte.
 //       Never copies more than dwMax-1 characters into strWide.
 //          Ex: GetWide( "abc", strWide, 3 ) gives strWide = "ab"
 //       Typical usage:
-//          Wchar strResult[MAX];
+//          WCHAR strResult[MAX];
 //          XBUtil_GetWide( strThin, strResult, MAX );
 //-----------------------------------------------------------------------------
-VOID XBUtil_GetWide( const char* strThin, Wchar* strWide, DWORD dwMax );
+VOID XBUtil_GetWide( const CHAR* strThin, WCHAR* strWide, DWORD dwMax );
 
 
 #endif // XBUTIL_H
