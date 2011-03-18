@@ -24,7 +24,7 @@
 #define GET_FLOAT_ARGP(z) getValidFloat(GET_ARGP(z), filename, command)
 
 static const char* E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
-static int DEFAULT_OFFSCREEN_KILL = 1000;
+static int DEFAULT_OFFSCREEN_KILL = 3000;
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -603,7 +603,7 @@ int buffer_pakfile(char* filename, char** pbuffer, size_t* psize)
 	*psize = seekpackfile(handle,0,SEEK_END);
 	seekpackfile(handle,0,SEEK_SET);
 
-	*pbuffer = (char*)tracemalloc("buffer_packfile",*psize+1);
+	*pbuffer = (char*)malloc(*psize+1);
 	if(*pbuffer == NULL){
 		*psize = 0;
 		closepackfile(handle);
@@ -612,7 +612,7 @@ int buffer_pakfile(char* filename, char** pbuffer, size_t* psize)
 	}
 	if(readpackfile(handle, *pbuffer, *psize) != *psize){
 		if(*pbuffer != NULL){
-			tracefree(*pbuffer);
+			free(*pbuffer);
 			*pbuffer = NULL;
 			*psize = 0;
 		}
@@ -1025,7 +1025,7 @@ int load_script(Script* script, char* file)
 
 	if(buf != NULL)
 	{
-		tracefree(buf);
+		free(buf);
 		buf = NULL;
 	}
 
@@ -1149,7 +1149,7 @@ void free_all_scripts(s_scripts* s) {
 	
 	for (i = 0; i < scripts_membercount; i++) {
 		if (ps[i]) {
-			tracefree(ps[i]);
+			free(ps[i]);
 			ps[i] = NULL;			
 		}
 	}	
@@ -2463,20 +2463,20 @@ int load_colourmap(s_model * model, char *image1, char *image2)
 	for(k=0; k<MAX_COLOUR_MAPS && model->colourmap[k]; k++);
 	if(k>=MAX_COLOUR_MAPS) return -1;
 
-	if((map = tracemalloc("load_colormap",MAX_PAL_SIZE/4)) == NULL)
+	if((map = malloc(MAX_PAL_SIZE/4)) == NULL)
 	{
 		return -2;
 	}
 	if((bitmap1 = loadbitmap(image1, packfile, PIXEL_8)) == NULL)
 	{
-		tracefree(map);
+		free(map);
 		map = NULL;
 		return -3;
 	}
 	if((bitmap2 = loadbitmap(image2, packfile, PIXEL_8)) == NULL)
 	{
 		freebitmap(bitmap1);
-		tracefree(map);
+		free(map);
 		map = NULL;
 		return -4;
 	}
@@ -2515,7 +2515,7 @@ int convert_map_to_palette(s_model* model, unsigned char mapflag[])
 	for(c=0; c<model->maps_loaded; c++)
 	{
 		if(mapflag[c]==0) continue;
-		if((newmap = tracemalloc("convert_map_to_palette", PAL_BYTES)) == NULL)
+		if((newmap = malloc(PAL_BYTES)) == NULL)
 		{
 			shutdown(1, "Error convert_map_to_palette for model: %s\n", model->name);
 		}
@@ -2530,7 +2530,7 @@ int convert_map_to_palette(s_model* model, unsigned char mapflag[])
 			memcpy(p1, p2, pb);
 		}
 		model->colourmap[c] = newmap;
-		tracefree(oldmap); oldmap = NULL;
+		free(oldmap); oldmap = NULL;
 	}
 	return 1;
 }
@@ -2671,7 +2671,7 @@ void unload_background(){
 	if (background)	clearscreen(background);
 	for(i=0; i<MAX_BLENDINGS; i++)
 	{
-		if(blendings[i]) tracefree(blendings[i]);
+		if(blendings[i]) free(blendings[i]);
 		blendings[i] = NULL;
 	}
 }
@@ -2779,7 +2779,7 @@ void lifebar_colors()
 	pos += getNewLineStart(buf + pos);
 	}
 	if(buf != NULL){
-		tracefree(buf);
+		free(buf);
 		buf = NULL;
 	}
 }
@@ -3074,19 +3074,19 @@ void freepanels(){
 	int i;
 	for(i=0; i<MAX_PANELS; i++){
 		if(panels[i].sprite_normal != NULL){
-			tracefree(panels[i].sprite_normal);
+			free(panels[i].sprite_normal);
 			panels[i].sprite_normal = NULL;
 		}
 		if(panels[i].sprite_neon != NULL){
-			tracefree(panels[i].sprite_neon);
+			free(panels[i].sprite_neon);
 			panels[i].sprite_neon = NULL;
 		}
 		if(panels[i].sprite_screen != NULL){
-			tracefree(panels[i].sprite_screen);
+			free(panels[i].sprite_screen);
 			panels[i].sprite_screen = NULL;
 		}
 		if(frontpanels[i] != NULL){
-			tracefree(frontpanels[i]);
+			free(frontpanels[i]);
 			frontpanels[i] = NULL;
 		}
 	}
@@ -3109,7 +3109,7 @@ s_sprite* loadsprite2(char *filename, int* width, int* height)
 	if(height) *height = bitmap->height;
 	clipbitmap(bitmap, &clipl, &clipr, &clipt, &clipb);
 	size = fakey_encodesprite(bitmap);
-	sprite = (s_sprite*)tracemalloc("loadsprite2",size);
+	sprite = (s_sprite*)malloc(size);
 	if(!sprite){
 		freebitmap(bitmap);
 		return NULL;
@@ -3184,7 +3184,7 @@ int loadfrontpanel(char *filename){
 	clipbitmap(bitmap, &clipl, &clipr, &clipt, &clipb);
 
 	size = fakey_encodesprite(bitmap);
-	frontpanels[frontpanels_loaded] = (s_sprite*)tracemalloc("loadfrontpanel",size);
+	frontpanels[frontpanels_loaded] = (s_sprite*)malloc(size);
 	if(!frontpanels[frontpanels_loaded]){
 		freebitmap(bitmap);
 		return 0;
@@ -3217,18 +3217,18 @@ void freesprites()
 	{
 		if(sprite_list != NULL)
 		{
-			tracefree(sprite_list->sprite);
+			free(sprite_list->sprite);
 			sprite_list->sprite = NULL;
-			tracefree(sprite_list->filename);
+			free(sprite_list->filename);
 			sprite_list->filename = NULL;
 			head = sprite_list->next;
-			tracefree(sprite_list);
+			free(sprite_list);
 			sprite_list = head;
 		}
 	}
 	if(sprite_map != NULL)
 	{
-		tracefree(sprite_map);
+		free(sprite_map);
 		sprite_map = NULL;
 	}
 	sprites_loaded = 0;
@@ -3246,7 +3246,7 @@ void prepare_sprite_map(size_t size)
 			sprite_map_max_items += 256;
 		}
 		while (size + 1 > sprite_map_max_items);
-		sprite_map = tracerealloc(sprite_map, sizeof(s_sprite_map) * sprite_map_max_items);
+		sprite_map = realloc(sprite_map, sizeof(s_sprite_map) * sprite_map_max_items);
 		if(sprite_map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new sprite_map\n");
 	}
 }
@@ -3296,9 +3296,9 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
 
 	len = strlen(filename);
 	size = fakey_encodesprite(bitmap);
-	curr = tracemalloc("sprite_list", sizeof(s_sprite_list));
-	curr->sprite = tracemalloc("loadsprite 1", size);
-	curr->filename = tracemalloc("sm_fn", len + 1);
+	curr = malloc(sizeof(s_sprite_list));
+	curr->sprite = malloc(size);
+	curr->filename = malloc(len + 1);
 	if(curr == NULL || curr->sprite == NULL || curr->filename == NULL){
 		freebitmap(bitmap);
 		shutdown(1, "loadsprite() Out of memory!\n");
@@ -3413,7 +3413,7 @@ void load_menu_txt()
 	}
 
 	if(buf != NULL){
-		tracefree(buf);
+		free(buf);
 		buf = NULL;
 	}
 }
@@ -3544,9 +3544,9 @@ static void load_playable_list(char* buf)
 
 void alloc_frames(s_anim * anim, int fcount)
 {
-	anim->sprite = tracemalloc("anim->sprite", fcount * sizeof(anim->sprite));
-	anim->delay = tracemalloc("anim->delay", fcount * sizeof(anim->delay));
-	anim->vulnerable = tracemalloc("anim->vulnerable", fcount * sizeof(anim->vulnerable));
+	anim->sprite = malloc(fcount * sizeof(anim->sprite));
+	anim->delay = malloc(fcount * sizeof(anim->delay));
+	anim->vulnerable = malloc(fcount * sizeof(anim->vulnerable));
 	memset(anim->sprite, 0, fcount*sizeof(anim->sprite));
 	memset(anim->delay, 0, fcount*sizeof(anim->delay));
 	memset(anim->vulnerable, 0, fcount*sizeof(anim->vulnerable));
@@ -3555,30 +3555,30 @@ void alloc_frames(s_anim * anim, int fcount)
 void free_frames(s_anim * anim)
 {
 	int i;
-	if(anim->idle)			{tracefree(anim->idle);			 anim->idle = NULL;}
-	if(anim->seta)          {tracefree(anim->seta);          anim->seta = NULL;}
-	if(anim->move)          {tracefree(anim->move);          anim->move = NULL;}
-	if(anim->movez)         {tracefree(anim->movez);         anim->movez = NULL;}
-	if(anim->movea)         {tracefree(anim->movea);         anim->movea = NULL;}
-	if(anim->delay)         {tracefree(anim->delay);         anim->delay = NULL;}
-	if(anim->sprite)        {tracefree(anim->sprite);        anim->sprite = NULL;}
-	if(anim->platform)      {tracefree(anim->platform);      anim->platform = NULL;}
-	if(anim->vulnerable)    {tracefree(anim->vulnerable);    anim->vulnerable = NULL;}
-	if(anim->bbox_coords)   {tracefree(anim->bbox_coords);   anim->bbox_coords = NULL;}
-	if(anim->shadow)        {tracefree(anim->shadow);        anim->shadow = NULL;}
-	if(anim->shadow_coords) {tracefree(anim->shadow_coords); anim->shadow_coords = NULL;}
-	if(anim->soundtoplay)   {tracefree(anim->soundtoplay);   anim->soundtoplay = NULL;}
+	if(anim->idle)			{free(anim->idle);			 anim->idle = NULL;}
+	if(anim->seta)          {free(anim->seta);          anim->seta = NULL;}
+	if(anim->move)          {free(anim->move);          anim->move = NULL;}
+	if(anim->movez)         {free(anim->movez);         anim->movez = NULL;}
+	if(anim->movea)         {free(anim->movea);         anim->movea = NULL;}
+	if(anim->delay)         {free(anim->delay);         anim->delay = NULL;}
+	if(anim->sprite)        {free(anim->sprite);        anim->sprite = NULL;}
+	if(anim->platform)      {free(anim->platform);      anim->platform = NULL;}
+	if(anim->vulnerable)    {free(anim->vulnerable);    anim->vulnerable = NULL;}
+	if(anim->bbox_coords)   {free(anim->bbox_coords);   anim->bbox_coords = NULL;}
+	if(anim->shadow)        {free(anim->shadow);        anim->shadow = NULL;}
+	if(anim->shadow_coords) {free(anim->shadow_coords); anim->shadow_coords = NULL;}
+	if(anim->soundtoplay)   {free(anim->soundtoplay);   anim->soundtoplay = NULL;}
 	if(anim->attacks)
 	{
 		for(i=0; i<anim->numframes; i++)
 		{
 			if(anim->attacks[i])
 			{
-				tracefree(anim->attacks[i]);
+				free(anim->attacks[i]);
 				anim->attacks[i] = NULL;
 			}
 		}
-		tracefree(anim->attacks);
+		free(anim->attacks);
 		anim->attacks = NULL;
 	}
 	if(anim->drawmethods)
@@ -3587,11 +3587,11 @@ void free_frames(s_anim * anim)
 		{
 			if(anim->drawmethods[i])
 			{
-				tracefree(anim->drawmethods[i]);
+				free(anim->drawmethods[i]);
 				anim->drawmethods[i] = NULL;
 			}
 		}
-		tracefree(anim->drawmethods);
+		free(anim->drawmethods);
 		anim->drawmethods = NULL;
 	}
 }
@@ -3604,7 +3604,7 @@ s_anim_list *anim_list_delete(s_anim_list *list, int index)
 		s_anim_list *next;
 		next = list->next;
 		free_anim(list->anim);
-		tracefree(list);
+		free(list);
 		return next;
 	}
 	list->next = anim_list_delete(list->next, index);
@@ -3617,21 +3617,21 @@ void free_anim(s_anim * anim)
 	free_frames(anim);
 	if(anim->weaponframe)
 	{
-		tracefree(anim->weaponframe);
+		free(anim->weaponframe);
 		anim->weaponframe = NULL;
 	}
 	if(anim->spawnframe)
 	{
-		tracefree(anim->spawnframe);
+		free(anim->spawnframe);
 		anim->spawnframe = NULL;
 	}
 	if(anim->summonframe)
 	{
-		tracefree(anim->summonframe);
+		free(anim->summonframe);
 		anim->summonframe = NULL;
 	}
 	if(anim){
-		tracefree(anim);
+		free(anim);
 		anim = NULL;
 	}
 }
@@ -3640,10 +3640,10 @@ s_model_map *model_map_delete(s_model_map *map, size_t size)
 {
 	s_model_map *copy;
 	if(map == NULL) return NULL;
-	copy = tracemalloc("copy_model_map", size * sizeof(s_model_map));
+	copy = malloc(size * sizeof(s_model_map));
 	if(copy == NULL) shutdown(1, "Out Of Memory!  Failed to create a copy of model_map\n");
 	memcpy(copy, map, size * sizeof(s_model_map));
-	tracefree(map);
+	free(map);
 	return copy;
 }
 
@@ -3685,38 +3685,38 @@ int free_model(s_model* model, int mapid)
 		{
 			if(model->colourmap[i] != NULL)
 			{
-				tracefree(model->colourmap[i]);
+				free(model->colourmap[i]);
 				model->colourmap[i] = NULL;
 			}
 		}
 
 	if(hasFreetype(model, MF_PALETTE) && model->palette)                     
-		{tracefree(model->palette);                model->palette                = NULL;}
+		{free(model->palette);                model->palette                = NULL;}
 	if(hasFreetype(model, MF_WEAPONS) && model->weapon && model->ownweapons)
-		{tracefree(model->weapon);                 model->weapon                 = NULL;}
-	if(hasFreetype(model, MF_BRANCH) && model->branch)                      {tracefree(model->branch);                 model->branch                 = NULL;}
-	if(hasFreetype(model, MF_ANIMATION) && model->animation)                   {tracefree(model->animation);              model->animation              = NULL;}
-	if(hasFreetype(model, MF_DEF_FACTORS) && model->defense_factors)             {tracefree(model->defense_factors);        model->defense_factors        = NULL;}
-	if(hasFreetype(model, MF_DEF_PAIN) && model->defense_pain)                {tracefree(model->defense_pain);           model->defense_pain           = NULL;}
-	if(hasFreetype(model, MF_DEF_KNOCKDOWN) && model->defense_knockdown)           {tracefree(model->defense_knockdown);      model->defense_knockdown      = NULL;}
-	if(hasFreetype(model, MF_DEF_BLOCKPOWER) && model->defense_blockpower)          {tracefree(model->defense_blockpower);     model->defense_blockpower     = NULL;}
-	if(hasFreetype(model, MF_DEF_BLOCKTRESHOLD) && model->defense_blockthreshold)      {tracefree(model->defense_blockthreshold); model->defense_blockthreshold = NULL;}
-	if(hasFreetype(model, MF_DEF_BLOCKRATIO) && model->defense_blockratio)          {tracefree(model->defense_blockratio);     model->defense_blockratio     = NULL;}
-	if(hasFreetype(model, MF_DEF_BLOCKTYPE) && model->defense_blocktype)           {tracefree(model->defense_blocktype);      model->defense_blocktype      = NULL;}
-	if(hasFreetype(model, MF_OFF_FACTORS) && model->offense_factors)             {tracefree(model->offense_factors);        model->offense_factors        = NULL;}
-	if(hasFreetype(model, MF_SPECIAL) && model->special)                     {tracefree(model->special);                model->special                = NULL;}
-	if(hasFreetype(model, MF_SMARTBOMB) && model->smartbomb)                   {tracefree(model->smartbomb);              model->smartbomb              = NULL;}
+		{free(model->weapon);                 model->weapon                 = NULL;}
+	if(hasFreetype(model, MF_BRANCH) && model->branch)                      {free(model->branch);                 model->branch                 = NULL;}
+	if(hasFreetype(model, MF_ANIMATION) && model->animation)                   {free(model->animation);              model->animation              = NULL;}
+	if(hasFreetype(model, MF_DEF_FACTORS) && model->defense_factors)             {free(model->defense_factors);        model->defense_factors        = NULL;}
+	if(hasFreetype(model, MF_DEF_PAIN) && model->defense_pain)                {free(model->defense_pain);           model->defense_pain           = NULL;}
+	if(hasFreetype(model, MF_DEF_KNOCKDOWN) && model->defense_knockdown)           {free(model->defense_knockdown);      model->defense_knockdown      = NULL;}
+	if(hasFreetype(model, MF_DEF_BLOCKPOWER) && model->defense_blockpower)          {free(model->defense_blockpower);     model->defense_blockpower     = NULL;}
+	if(hasFreetype(model, MF_DEF_BLOCKTRESHOLD) && model->defense_blockthreshold)      {free(model->defense_blockthreshold); model->defense_blockthreshold = NULL;}
+	if(hasFreetype(model, MF_DEF_BLOCKRATIO) && model->defense_blockratio)          {free(model->defense_blockratio);     model->defense_blockratio     = NULL;}
+	if(hasFreetype(model, MF_DEF_BLOCKTYPE) && model->defense_blocktype)           {free(model->defense_blocktype);      model->defense_blocktype      = NULL;}
+	if(hasFreetype(model, MF_OFF_FACTORS) && model->offense_factors)             {free(model->offense_factors);        model->offense_factors        = NULL;}
+	if(hasFreetype(model, MF_SPECIAL) && model->special)                     {free(model->special);                model->special                = NULL;}
+	if(hasFreetype(model, MF_SMARTBOMB) && model->smartbomb)                   {free(model->smartbomb);              model->smartbomb              = NULL;}
 	
 	if(hasFreetype(model, MF_SCRIPTS)) {
 		clear_all_scripts(&model->scripts,2);
 		free_all_scripts(&model->scripts);
 	}	
 	
-	tracefree(model);
+	free(model);
 	model = NULL;
 	if(models_loaded == 0 && model_map != NULL)
 	{
-		tracefree(model_map);
+		free(model_map);
 		model_map = NULL;
 	}
 	//model_map_sort(); WTF ? sorting on free ? that's BS
@@ -3730,28 +3730,28 @@ void free_models()
 	while(free_model(model_map[models_loaded-1].model, models_loaded-1));
 
 	// free animation ids
-	if(animdowns)       {tracefree(animdowns);       animdowns          = NULL;}
-	if(animups)         {tracefree(animups);         animups            = NULL;}
-	if(animbackwalks)   {tracefree(animbackwalks);   animbackwalks      = NULL;}
-	if(animwalks)       {tracefree(animwalks);       animwalks          = NULL;}
-	if(animidles)       {tracefree(animidles);       animidles          = NULL;}
-	if(animspecials)    {tracefree(animspecials);    animspecials       = NULL;}
-	if(animattacks)     {tracefree(animattacks);     animattacks        = NULL;}
-	if(animfollows)     {tracefree(animfollows);     animfollows        = NULL;}
-	if(animpains)       {tracefree(animpains);       animpains          = NULL;}
-	if(animfalls)       {tracefree(animfalls);       animfalls          = NULL;}
-	if(animrises)       {tracefree(animrises);       animrises          = NULL;}
-	if(animriseattacks) {tracefree(animriseattacks); animriseattacks    = NULL;}
-	if(animblkpains)    {tracefree(animblkpains);    animblkpains       = NULL;}
-	if(animdies)        {tracefree(animdies);        animdies           = NULL;}
+	if(animdowns)       {free(animdowns);       animdowns          = NULL;}
+	if(animups)         {free(animups);         animups            = NULL;}
+	if(animbackwalks)   {free(animbackwalks);   animbackwalks      = NULL;}
+	if(animwalks)       {free(animwalks);       animwalks          = NULL;}
+	if(animidles)       {free(animidles);       animidles          = NULL;}
+	if(animspecials)    {free(animspecials);    animspecials       = NULL;}
+	if(animattacks)     {free(animattacks);     animattacks        = NULL;}
+	if(animfollows)     {free(animfollows);     animfollows        = NULL;}
+	if(animpains)       {free(animpains);       animpains          = NULL;}
+	if(animfalls)       {free(animfalls);       animfalls          = NULL;}
+	if(animrises)       {free(animrises);       animrises          = NULL;}
+	if(animriseattacks) {free(animriseattacks); animriseattacks    = NULL;}
+	if(animblkpains)    {free(animblkpains);    animblkpains       = NULL;}
+	if(animdies)        {free(animdies);        animdies           = NULL;}
 }
 
 
 s_anim * alloc_anim()
 {
 	s_anim_list *curr = NULL, *head = NULL;
-	curr = tracemalloc("anim_list", sizeof(s_anim_list));
-	curr->anim = tracemalloc("curr->anim", sizeof(s_anim));
+	curr = malloc(sizeof(s_anim_list));
+	curr->anim = malloc(sizeof(s_anim));
 	if(curr == NULL || curr->anim == NULL) return NULL;
 	memset(curr->anim, 0, sizeof(s_anim));
 	if(anim_list == NULL){
@@ -3786,7 +3786,7 @@ int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned 
 	{
 		if(!a->bbox_coords)
 		{
-			a->bbox_coords = tracemalloc("a->bbox_coords", framecount * sizeof(*a->bbox_coords));
+			a->bbox_coords = malloc(framecount * sizeof(*a->bbox_coords));
 			memset(a->bbox_coords, 0, framecount * sizeof(*a->bbox_coords));
 		}
 		memcpy(a->bbox_coords[currentframe], bbox, sizeof(*a->bbox_coords));
@@ -3797,57 +3797,57 @@ int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned 
 	{
 		if(!a->attacks)
 		{
-			a->attacks = tracemalloc("a->attacks", framecount * sizeof(s_attack*));
+			a->attacks = malloc(framecount * sizeof(s_attack*));
 			memset(a->attacks, 0, framecount * sizeof(s_attack*));
 		}
-		a->attacks[currentframe] = tracemalloc("addframe#attack", sizeof(s_attack));
+		a->attacks[currentframe] = malloc(sizeof(s_attack));
 		memcpy(a->attacks[currentframe], attack, sizeof(s_attack));
 	}
 	if(drawmethod->flag)
 	{
 		if(!a->drawmethods)
 		{
-			a->drawmethods = tracemalloc("a->drawmethods", framecount * sizeof(s_drawmethod*));
+			a->drawmethods = malloc(framecount * sizeof(s_drawmethod*));
 			memset(a->drawmethods, 0, framecount * sizeof(s_drawmethod*));
 		}
-		setDrawMethod(a, currentframe, tracemalloc("addframe#drawmethod", sizeof(s_drawmethod)));
-		//a->drawmethods[currenframe] = tracemalloc("addframe#drawmethod", sizeof(s_drawmethod));
+		setDrawMethod(a, currentframe, malloc(sizeof(s_drawmethod)));
+		//a->drawmethods[currenframe] = malloc(sizeof(s_drawmethod));
 		memcpy(getDrawMethod(a,currentframe), drawmethod, sizeof(s_drawmethod));
 		//memcpy(a->drawmethods[currentframe], drawmethod, sizeof(s_drawmethod));
 	}
 	if(idle && !a->idle)
 	{
-		a->idle = tracemalloc("a->idle", framecount*sizeof(*a->idle));
+		a->idle = malloc(framecount*sizeof(*a->idle));
 		memset(a->idle, 0, framecount*sizeof(*a->idle));
 	}
 	if(a->idle) a->idle[currentframe] = idle;
 	if(move && !a->move)
 	{
-		a->move = tracemalloc("a->move", framecount * sizeof(*a->move));
+		a->move = malloc(framecount * sizeof(*a->move));
 		memset(a->move, 0, framecount * sizeof(*a->move));
 	}
 	if(a->move) a->move[currentframe] = move;
 	if(movez && !a->movez)
 	{
-		a->movez = tracemalloc("a->movez", framecount * sizeof(*a->movez));
+		a->movez = malloc(framecount * sizeof(*a->movez));
 		memset(a->movez, 0, framecount * sizeof(*a->movez));
 	}
 	if(a->movez) a->movez[currentframe] = movez;						           // Move command for the "z" axis
 	if(movea && !a->movea)
 	{
-		a->movea = tracemalloc("a->movea", framecount * sizeof(*a->movea));
+		a->movea = malloc(framecount * sizeof(*a->movea));
 		memset(a->movea, 0, framecount * sizeof(*a->movea));
 	}
 	if(a->movea) a->movea[currentframe] = movea;						           // Move command for moving along the "a" axis
 	if(seta>=0 && !a->seta)
 	{
-		a->seta = tracemalloc("a->seta", framecount * sizeof(*a->seta));
+		a->seta = malloc(framecount * sizeof(*a->seta));
 		memset(a->seta, -1, framecount * sizeof(*a->seta)); //default to -1
 	}
 	if(a->seta) a->seta[currentframe] = seta;						               // Sets the "a" for the character on a frame/frame basis
 	if(frameshadow >= 0 && !a->shadow)
 	{
-		a->shadow = tracemalloc("a->shadow", framecount * sizeof(*a->shadow));
+		a->shadow = malloc(framecount * sizeof(*a->shadow));
 		memset(a->shadow, -1, framecount * sizeof(*a->shadow)); //default to -1
 	}
 	if(a->shadow) a->shadow[currentframe] = frameshadow;                          // shadow index for each frame
@@ -3855,7 +3855,7 @@ int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned 
 	{
 		if(!a->shadow_coords)
 		{
-			a->shadow_coords=tracemalloc("a->shadow_coords", framecount * sizeof(*a->shadow_coords));
+			a->shadow_coords=malloc(framecount * sizeof(*a->shadow_coords));
 			memset(a->shadow_coords, 0, framecount * sizeof(*a->shadow_coords));
 		}
 		memcpy(a->shadow_coords[currentframe], shadow_coords, sizeof(*a->shadow_coords));
@@ -3864,7 +3864,7 @@ int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned 
 	{
 		if(!a->platform)
 		{
-			a->platform = tracemalloc("a->platform", framecount * sizeof(*a->platform));
+			a->platform = malloc(framecount * sizeof(*a->platform));
 			memset(a->platform, 0, framecount * sizeof(*a->platform));
 		}
 		memcpy(a->platform[currentframe], platform, sizeof(*a->platform));// Used so entity can be landed on
@@ -3873,7 +3873,7 @@ int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned 
 	{
 		if(!a->soundtoplay)
 		{
-			a->soundtoplay = tracemalloc("a->soundtoplay", framecount * sizeof(*a->soundtoplay));
+			a->soundtoplay = malloc(framecount * sizeof(*a->soundtoplay));
 			memset(a->soundtoplay, -1, framecount * sizeof(*a->soundtoplay)); // default to -1
 		}
 		a->soundtoplay[currentframe] = soundtoplay;
@@ -3907,10 +3907,10 @@ void _peek_model_name(int index)
 			if(cmd == CMD_MODEL_NAME)
 			{
 				value = GET_ARG(1);
-				tracefree(model_cache[index].name);
+				free(model_cache[index].name);
 				model_cache[index].name = NULL;
 				len = strlen(value);
-				model_cache[index].name = tracemalloc("peek_name", len + 1);
+				model_cache[index].name = malloc(len + 1);
 				strcpy(model_cache[index].name, value);
 				model_cache[index].name[len] = 0;
 				break;
@@ -3921,7 +3921,7 @@ void _peek_model_name(int index)
 
 	if(buf != NULL)
 	{
-		tracefree(buf);
+		free(buf);
 		buf = NULL;
 	}
 }
@@ -3938,7 +3938,7 @@ void prepare_cache_map(size_t size)
 		}
 		while (size + 1 > cache_map_max_items);
 
-		model_cache = tracerealloc(model_cache, sizeof(s_modelcache) * cache_map_max_items);
+		model_cache = realloc(model_cache, sizeof(s_modelcache) * cache_map_max_items);
 		if(model_cache == NULL) shutdown(1, "Out Of Memory!  Failed to create a new cache_map\n");
 	}
 }
@@ -3951,12 +3951,12 @@ void cache_model(char *name, char *path, int flag)
 	memset(&model_cache[models_cached], 0, sizeof(s_modelcache));
 
 	len = strlen(name);
-	model_cache[models_cached].name = tracemalloc("model->name", len + 1);
+	model_cache[models_cached].name = malloc(len + 1);
 	strcpy(model_cache[models_cached].name, name);
 	model_cache[models_cached].name[len] = 0;
 
 	len = strlen(path);
-	model_cache[models_cached].path = tracemalloc("model->path", len + 1);
+	model_cache[models_cached].path = malloc(len + 1);
 	strcpy(model_cache[models_cached].path, path);
 	model_cache[models_cached].path[len] = 0;
 
@@ -3974,12 +3974,12 @@ void free_modelcache()
 		while(models_cached)
 		{
 			--models_cached;
-			tracefree(model_cache[models_cached].name);
+			free(model_cache[models_cached].name);
 			model_cache[models_cached].name = NULL;
-			tracefree(model_cache[models_cached].path);
+			free(model_cache[models_cached].path);
 			model_cache[models_cached].path = NULL;
 		}
-		tracefree(model_cache);
+		free(model_cache);
 		model_cache = NULL;
 	}
 }
@@ -4017,7 +4017,7 @@ void prepare_model_map(size_t size)
 		}
 		while (size + 1 > model_map_max_items);
 
-		model_map = tracerealloc(model_map, sizeof(s_model_map) * model_map_max_items);
+		model_map = realloc(model_map, sizeof(s_model_map) * model_map_max_items);
 		if(model_map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new model_map\n");
 	}
 }
@@ -4231,7 +4231,7 @@ void lcmHandleCommandSubtype(ArgList* arglist, s_model* newchar, char* filename)
 void lcmHandleCommandSmartbomb(ArgList* arglist, s_model* newchar, char* filename) {
 	//smartbomb now use a normal attack box
 	if(!newchar->smartbomb) {
-		newchar->smartbomb = tracemalloc("newchar->smartbomb", sizeof(s_attack));
+		newchar->smartbomb = malloc(sizeof(s_attack));
 		*(newchar->smartbomb) = emptyattack;
 	} else shutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
 	
@@ -4408,7 +4408,7 @@ void lcmHandleCommandWeapons(ArgList* arglist, s_model* newchar) {
 	int last = 0;
 	if(!newchar->weapon)
 	{
-		newchar->weapon = tracemalloc("newchar->weapon", sizeof(*newchar->weapon));
+		newchar->weapon = malloc(sizeof(*newchar->weapon));
 		memset(newchar->weapon, 0xFF, sizeof(*newchar->weapon));
 		newchar->ownweapons = 1;
 	}
@@ -4438,23 +4438,23 @@ s_model* init_model(int cacheindex, int unload) {
 	//to free: newchar, newchar->offense_factors, newchar->special, newchar->animation - OK
 	int i;
 
-	s_model* newchar = tracecalloc("newchar", sizeof(s_model));
+	s_model* newchar = calloc(1, sizeof(s_model));
 	if(!newchar) shutdown(1, (char*)E_OUT_OF_MEMORY);	
 	newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
 	newchar->index = cacheindex;
 	newchar->isSubclassed = 0;
 	newchar->freetypes = MF_ALL;
 
-	newchar->defense_factors        = (float*)tracecalloc("newchar->defense_factors",           sizeof(float)*(max_attack_types + 1));
-	newchar->defense_pain           = (float*)tracecalloc("newchar->defense_pain",              sizeof(float)*(max_attack_types + 1));
-	newchar->defense_knockdown      = (float*)tracecalloc("newchar->defense_knockdown",         sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blockpower     = (float*)tracecalloc("newchar->defense_blockpower",        sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blockthreshold = (float*)tracecalloc("newchar->defense_blockthreshold",    sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blockratio     = (float*)tracecalloc("newchar->defense_blockratio",        sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blocktype      = (float*)tracecalloc("newchar->defense_blocktype",         sizeof(float)*(max_attack_types + 1));
-	newchar->offense_factors        = (float*)tracecalloc("newchar->offense_factors",           sizeof(float)*(max_attack_types + 1));
+	newchar->defense_factors        = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
+	newchar->defense_pain           = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
+	newchar->defense_knockdown      = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blockpower     = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blockthreshold = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blockratio     = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
+	newchar->defense_blocktype      = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
+	newchar->offense_factors        = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
 
-	newchar->special                = tracecalloc("newchar->special", sizeof(*newchar->special)*max_freespecials);
+	newchar->special                = calloc(1, sizeof(*newchar->special)*max_freespecials);
 	if(!newchar->special) shutdown(1, (char*)E_OUT_OF_MEMORY);
 
 	alloc_all_scripts(&newchar->scripts);
@@ -4520,7 +4520,7 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->star                       = -1;
 	newchar->knife                      = -1;
 
-	newchar->animation = (s_anim**)tracecalloc("newchar->animation", sizeof(s_anim*)*max_animations);
+	newchar->animation = (s_anim**)calloc(1, sizeof(s_anim*)*max_animations);
 	if(!newchar->animation) shutdown(1, (char*)E_OUT_OF_MEMORY);
 
 	// default string value, only by reference
@@ -4692,7 +4692,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Unable to open file '%s'\n\n", filename);
 
-	scriptbuf = (char*)tracemalloc("load_cached_model #scriptbuf", size*2+1);
+	scriptbuf = (char*)malloc(size*2+1);
 
 	if(scriptbuf==NULL){
 		shutdown(1, "Unable to create script buffer for file '%s' (%i bytes)", filename, size*2);
@@ -4939,7 +4939,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					value = GET_ARG(1);
 					if(!newchar->branch)
 					{
-						newchar->branch = tracemalloc("newchar->branch", MAX_NAME_LEN+1);
+						newchar->branch = malloc(MAX_NAME_LEN+1);
 						newchar->branch[0] = 0;
 					}
 					strncpy(newchar->branch, value, MAX_NAME_LEN);
@@ -5441,7 +5441,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						errorVal = load_colourmap(newchar, value, value2);
 						if(pixelformat==PIXEL_x8 && newchar->palette==NULL)
 						{
-							newchar->palette = tracemalloc("newchar#remap#palette", PAL_BYTES);
+							newchar->palette = malloc(PAL_BYTES);
 							memcpy(newchar->palette, pal, PAL_BYTES);
 						}
 						mapflag[newchar->maps_loaded-1] = 1;
@@ -5477,7 +5477,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					else if(newchar->palette==NULL)
 					{
 						value = GET_ARG(1);
-						newchar->palette = tracemalloc("newchar->palette", PAL_BYTES);
+						newchar->palette = malloc(PAL_BYTES);
 						if(loadimagepalette(value, packfile, newchar->palette)==0) {
 							shutdownmessage = "Failed to load palette!";
 							goto lCleanup;
@@ -5489,7 +5489,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
 					else if(newchar->maps_loaded<MAX_COLOUR_MAPS) {
 						value = GET_ARG(1);
-						newchar->colourmap[(int)newchar->maps_loaded] = tracemalloc("newchar#alternatepal", PAL_BYTES);
+						newchar->colourmap[(int)newchar->maps_loaded] = malloc(PAL_BYTES);
 						if(loadimagepalette(value, packfile, newchar->colourmap[(int)newchar->maps_loaded])==0) {							
 							shutdownmessage = "Failed to load palette!";
 							goto lCleanup;
@@ -6769,7 +6769,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							// for old mod just give it a default palette
 							if(newchar->palette==NULL)
 							{
-								newchar->palette = tracemalloc("newchar#frame#palette", PAL_BYTES);
+								newchar->palette = malloc(PAL_BYTES);
 								if(loadimagepalette(value, packfile, newchar->palette)==0) {
 									shutdownmessage = "Failed to load palette!";
 									goto lCleanup;
@@ -6876,7 +6876,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->counterframe[3]	= GET_INT_ARG(4);
 					break;
 				case CMD_MODEL_WEAPONFRAME:
-					newanim->weaponframe    = tracemalloc("weaponframe", 2 * sizeof(newanim->weaponframe));
+					newanim->weaponframe    = malloc(2 * sizeof(newanim->weaponframe));
 					memset(newanim->weaponframe, 0, 2 * sizeof(newanim->weaponframe));
 					newanim->weaponframe[0] = GET_INT_ARG(1);
 					newanim->weaponframe[1] = GET_INT_ARG(2);
@@ -6892,7 +6892,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(value[0]) newanim->subentity = get_cached_model_index(value);
 					break;
 				case CMD_MODEL_SPAWNFRAME:
-					newanim->spawnframe    = tracemalloc("spawnframe", 5 * sizeof(newanim->spawnframe));
+					newanim->spawnframe    = malloc(5 * sizeof(newanim->spawnframe));
 					memset(newanim->spawnframe, 0, 5 * sizeof(newanim->spawnframe));
 					newanim->spawnframe[0] = GET_FLOAT_ARG(1);
 					newanim->spawnframe[1] = GET_FLOAT_ARG(2);
@@ -6901,7 +6901,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->spawnframe[4] = GET_FLOAT_ARG(5);
 					break;
 				case CMD_MODEL_SUMMONFRAME:
-					newanim->summonframe    = tracemalloc("summonframe", 5 * sizeof(newanim->summonframe));
+					newanim->summonframe    = malloc(5 * sizeof(newanim->summonframe));
 					memset(newanim->summonframe, 0, 5 * sizeof(newanim->summonframe));
 					newanim->summonframe[0] = GET_FLOAT_ARG(1);
 					newanim->summonframe[1] = GET_FLOAT_ARG(2);
@@ -7123,11 +7123,11 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	lCleanup:
 
 	if(buf != NULL){
-		tracefree(buf);
+		free(buf);
 		buf = NULL;
 	}
 	if(scriptbuf){
-		tracefree(scriptbuf);
+		free(scriptbuf);
 		scriptbuf = NULL;
 	}
 	
@@ -7200,7 +7200,7 @@ int load_script_setting()
 
 	if(buf != NULL)
 	{
-		tracefree(buf);
+		free(buf);
 		buf = NULL;
 	}
 	return 1;
@@ -7261,20 +7261,20 @@ int load_models()
 	max_animations   = MAX_ANIS;
 
 	// free old values
-	if(animspecials){tracefree(animspecials); animspecials = NULL;}
-	if(animattacks){tracefree(animattacks);  animattacks = NULL;}
-	if(animfollows){tracefree(animfollows);  animfollows = NULL;}
-	if(animpains){tracefree(animpains);    animpains = NULL;}
-	if(animfalls){tracefree(animfalls);    animfalls = NULL;}
-	if(animrises){tracefree(animrises);    animrises = NULL;}
-	if(animriseattacks){tracefree(animriseattacks);    animriseattacks = NULL;}
-	if(animblkpains) {tracefree(animblkpains); animblkpains = NULL;}
-	if(animdies){tracefree(animdies);     animdies = NULL;}
-	if(animwalks){tracefree(animwalks);     animwalks = NULL;}
-	if(animbackwalks){tracefree(animbackwalks);     animbackwalks = NULL;}
-	if(animidles){tracefree(animidles);     animidles = NULL;}
-	if(animups){tracefree(animups);     animups = NULL;}
-	if(animdowns){tracefree(animdowns);     animdowns = NULL;}
+	if(animspecials){free(animspecials); animspecials = NULL;}
+	if(animattacks){free(animattacks);  animattacks = NULL;}
+	if(animfollows){free(animfollows);  animfollows = NULL;}
+	if(animpains){free(animpains);    animpains = NULL;}
+	if(animfalls){free(animfalls);    animfalls = NULL;}
+	if(animrises){free(animrises);    animrises = NULL;}
+	if(animriseattacks){free(animriseattacks);    animriseattacks = NULL;}
+	if(animblkpains) {free(animblkpains); animblkpains = NULL;}
+	if(animdies){free(animdies);     animdies = NULL;}
+	if(animwalks){free(animwalks);     animwalks = NULL;}
+	if(animbackwalks){free(animbackwalks);     animbackwalks = NULL;}
+	if(animidles){free(animidles);     animidles = NULL;}
+	if(animups){free(animups);     animups = NULL;}
+	if(animdowns){free(animdowns);     animdowns = NULL;}
 
 	if(custModels != NULL)
 	{
@@ -7353,20 +7353,20 @@ int load_models()
 			(max_backwalks - MAX_BACKWALKS);
 
 	// alloc indexed animation ids
-	animdowns       = (int*)tracemalloc("animdowns",        sizeof(int)*max_downs);
-	animups         = (int*)tracemalloc("animups",          sizeof(int)*max_ups);
-	animbackwalks   = (int*)tracemalloc("animbackwalks",    sizeof(int)*max_backwalks);
-	animwalks       = (int*)tracemalloc("animwalks",        sizeof(int)*max_walks);
-	animidles       = (int*)tracemalloc("animidles",        sizeof(int)*max_idles);
-	animpains       = (int*)tracemalloc("animpains",        sizeof(int)*max_attack_types);
-	animdies        = (int*)tracemalloc("animdies",         sizeof(int)*max_attack_types);
-	animfalls       = (int*)tracemalloc("animfalls",        sizeof(int)*max_attack_types);
-	animrises       = (int*)tracemalloc("animrises",        sizeof(int)*max_attack_types);
-	animriseattacks = (int*)tracemalloc("animriseattacks",  sizeof(int)*max_attack_types);
-	animblkpains    = (int*)tracemalloc("animblkpains",     sizeof(int)*max_attack_types);
-	animattacks     = (int*)tracemalloc("animattacks",      sizeof(int)*max_attacks);
-	animfollows     = (int*)tracemalloc("animfollows",      sizeof(int)*max_follows);
-	animspecials    = (int*)tracemalloc("animspecials",     sizeof(int)*max_freespecials);
+	animdowns       = (int*)malloc(sizeof(int)*max_downs);
+	animups         = (int*)malloc(sizeof(int)*max_ups);
+	animbackwalks   = (int*)malloc(sizeof(int)*max_backwalks);
+	animwalks       = (int*)malloc(sizeof(int)*max_walks);
+	animidles       = (int*)malloc(sizeof(int)*max_idles);
+	animpains       = (int*)malloc(sizeof(int)*max_attack_types);
+	animdies        = (int*)malloc(sizeof(int)*max_attack_types);
+	animfalls       = (int*)malloc(sizeof(int)*max_attack_types);
+	animrises       = (int*)malloc(sizeof(int)*max_attack_types);
+	animriseattacks = (int*)malloc(sizeof(int)*max_attack_types);
+	animblkpains    = (int*)malloc(sizeof(int)*max_attack_types);
+	animattacks     = (int*)malloc(sizeof(int)*max_attacks);
+	animfollows     = (int*)malloc(sizeof(int)*max_follows);
+	animspecials    = (int*)malloc(sizeof(int)*max_freespecials);
 
 	// copy default values and new animation ids
 	memcpy(animdowns, downs, sizeof(int)*MAX_DOWNS);
@@ -7491,7 +7491,7 @@ int load_models()
 
 	if(buf != NULL)
 	{
-		tracefree(buf);
+		free(buf);
 		buf = NULL;
 	}
 
@@ -7518,11 +7518,11 @@ void unload_levelorder(){
 	for(j=0; j<MAX_DIFFICULTIES; j++){
 		for(i=0; i<MAX_LEVELS; i++){
 			if(levelorder[j][i] != NULL){
-				tracefree(levelorder[j][i]->branchname);
+				free(levelorder[j][i]->branchname);
 				levelorder[j][i]->branchname = NULL;
-				tracefree(levelorder[j][i]->filename);
+				free(levelorder[j][i]->filename);
 				levelorder[j][i]->filename = NULL;
-				tracefree(levelorder[j][i]);
+				free(levelorder[j][i]);
 				levelorder[j][i] = NULL;
 			}
 		}
@@ -7539,12 +7539,12 @@ void unload_levelorder(){
 			{
 				if((*skipselect)[i][j])
 				{
-					tracefree((*skipselect)[i][j]);
+					free((*skipselect)[i][j]);
 					(*skipselect)[i][j] = NULL;
 				}
 			}
 		}
-		tracefree(skipselect);
+		free(skipselect);
 		skipselect = NULL;
 	}
 }
@@ -7567,16 +7567,16 @@ void add_level(char *filename, int diff){
 	if(diff > MAX_DIFFICULTIES) return;
 	if(num_levels[diff] >= MAX_LEVELS) shutdown(1, "Too many entries in level order (max. %i)!", MAX_LEVELS);
 
-	levelorder[diff][num_levels[diff]] = tracemalloc("add_level", sizeof(s_level_entry));
+	levelorder[diff][num_levels[diff]] = malloc(sizeof(s_level_entry));
 	memset(levelorder[diff][num_levels[diff]], 0, sizeof(s_level_entry));
 
 	len = strlen(branch_name);
-	levelorder[diff][num_levels[diff]]->branchname = tracemalloc("add_level(bn)", len + 1);
+	levelorder[diff][num_levels[diff]]->branchname = malloc(len + 1);
 	strcpy(levelorder[diff][num_levels[diff]]->branchname, branch_name);
 	levelorder[diff][num_levels[diff]]->branchname[len] = 0;
 
 	len = strlen(filename);
-	levelorder[diff][num_levels[diff]]->filename = tracemalloc("add_level(fn)", len + 1);
+	levelorder[diff][num_levels[diff]]->filename = malloc(len + 1);
 	strcpy(levelorder[diff][num_levels[diff]]->filename, filename);
 	levelorder[diff][num_levels[diff]]->filename[len] = 0;
 
@@ -7594,16 +7594,16 @@ void add_scene(char *filename, int diff){
 	if(diff > MAX_DIFFICULTIES) return;
 	if(num_levels[diff] >= MAX_LEVELS) shutdown(1, "Too many entries in level order (max. %i)!", MAX_LEVELS);
 
-	levelorder[diff][num_levels[diff]] = (s_level_entry*)tracemalloc("add_scene",sizeof(s_level_entry));
+	levelorder[diff][num_levels[diff]] = (s_level_entry*)malloc(sizeof(s_level_entry));
 	memset(levelorder[diff][num_levels[diff]], 0, sizeof(s_level_entry));
 
 	len = strlen(branch_name);
-	levelorder[diff][num_levels[diff]]->branchname = tracemalloc("add_scene(bn)", len + 1);
+	levelorder[diff][num_levels[diff]]->branchname = malloc(len + 1);
 	strcpy(levelorder[diff][num_levels[diff]]->branchname, branch_name);
 	levelorder[diff][num_levels[diff]]->branchname[len] = 0;
 
 	len = strlen(filename);
-	levelorder[diff][num_levels[diff]]->filename = tracemalloc("add_scene(fn)", len + 1);
+	levelorder[diff][num_levels[diff]]->filename = malloc(len + 1);
 	strcpy(levelorder[diff][num_levels[diff]]->filename, filename);
 	levelorder[diff][num_levels[diff]]->filename[len] = 0;
 
@@ -7617,16 +7617,16 @@ void add_select(char *filename, int diff){
 	if(diff > MAX_DIFFICULTIES) return;
 	if(num_levels[diff] >= MAX_LEVELS) shutdown(1, "Too many entries in level order (max. %i)!", MAX_LEVELS);
 
-	levelorder[diff][num_levels[diff]] = (s_level_entry*)tracemalloc("add_select",sizeof(s_level_entry));
+	levelorder[diff][num_levels[diff]] = (s_level_entry*)malloc(sizeof(s_level_entry));
 	memset(levelorder[diff][num_levels[diff]], 0, sizeof(s_level_entry));
 
 	len = strlen(branch_name);
-	levelorder[diff][num_levels[diff]]->branchname = tracemalloc("add_select(bn)", len + 1);
+	levelorder[diff][num_levels[diff]]->branchname = malloc(len + 1);
 	strcpy(levelorder[diff][num_levels[diff]]->branchname, branch_name);
 	levelorder[diff][num_levels[diff]]->branchname[len] = 0;
 
 	len = strlen(filename);
-	levelorder[diff][num_levels[diff]]->filename = tracemalloc("add_select(fn)", len + 1);
+	levelorder[diff][num_levels[diff]]->filename = malloc(len + 1);
 	strcpy(levelorder[diff][num_levels[diff]]->filename, filename);
 	levelorder[diff][num_levels[diff]]->filename[len] = 0;
 
@@ -7794,7 +7794,7 @@ void load_levelorder()
 
 				if(!skipselect)
 				{
-					skipselect = tracemalloc("skipselect", sizeof(*skipselect));
+					skipselect = malloc(sizeof(*skipselect));
 					memset(skipselect, 0, sizeof(*skipselect));
 				}
 
@@ -7803,7 +7803,7 @@ void load_levelorder()
 					if((arg=GET_ARG(i+1))[0])
 					{
 						if(!(*skipselect)[current_set][i])
-							(*skipselect)[current_set][i] = tracemalloc("skipselect#2", MAX_NAME_LEN+1);
+							(*skipselect)[current_set][i] = malloc(MAX_NAME_LEN+1);
 						strncpy((*skipselect)[current_set][i], arg, MAX_NAME_LEN);
 					}
 				}
@@ -8247,7 +8247,7 @@ void load_levelorder()
 		pos+=getNewLineStart(buf + pos);
 	}
 	if(buf != NULL){
-		tracefree(buf);
+		free(buf);
 		buf = NULL;
 	}
 
@@ -8325,7 +8325,7 @@ void free_level(s_level* lv)
 	{
 		for(j=0; j<MAX_BLENDINGS; j++)
 		{
-			if(lv->blendings[i][j]) tracefree(lv->blendings[i][j]);
+			if(lv->blendings[i][j]) free(lv->blendings[i][j]);
 			lv->blendings[i][j] = NULL;
 		}
 	}
@@ -8334,7 +8334,7 @@ void free_level(s_level* lv)
 	{
 		if(lv->bglayers[i].handle)
 		{
-			tracefree(lv->bglayers[i].handle);
+			free(lv->bglayers[i].handle);
 			lv->bglayers[i].handle = NULL;
 		}
 	}
@@ -8343,7 +8343,7 @@ void free_level(s_level* lv)
 	{
 		if(lv->fglayers[i].handle)
 		{
-			tracefree(lv->fglayers[i].handle);
+			free(lv->fglayers[i].handle);
 			lv->fglayers[i].handle = NULL;
 		}
 	}
@@ -8353,7 +8353,7 @@ void free_level(s_level* lv)
 	{
 		if(lv->textobjs[i].text)
 		{
-			tracefree(lv->textobjs[i].text);
+			free(lv->textobjs[i].text);
 			lv->textobjs[i].text = NULL;
 		}
 	}
@@ -8362,7 +8362,7 @@ void free_level(s_level* lv)
 	{
 		if(lv->filestreams[i].buf)
 		{
-			tracefree(lv->filestreams[i].buf);
+			free(lv->filestreams[i].buf);
 			lv->filestreams[i].buf = NULL;
 		}
 	}
@@ -8385,7 +8385,7 @@ void free_level(s_level* lv)
 				templistnode2 = templistnode->next;
 				templistnode->next = NULL;
 				templistnode->spawn_script = NULL;
-				tracefree(templistnode);
+				free(templistnode);
 				templistnode = templistnode2;
 		    }
 		}
@@ -8397,16 +8397,16 @@ void free_level(s_level* lv)
 	{
 		tempnode2 = tempnode->next;
 		Script_Clear(tempnode->cached_spawn_script, 2);
-		tracefree(tempnode->cached_spawn_script);
+		free(tempnode->cached_spawn_script);
 		tempnode->cached_spawn_script = NULL;
-		tracefree(tempnode->filename);
+		free(tempnode->filename);
 		tempnode->filename = NULL;
 		tempnode->next = NULL;
-		tracefree(tempnode);
+		free(tempnode);
 		tempnode = tempnode2;
 	}
 
-	tracefree(lv);
+	free(lv);
 	lv = NULL;
 }
 
@@ -8423,7 +8423,7 @@ void unload_level(){
 		strcpy(name, level->name);
 		printf("Level Unloading: '%s'\n", name);
 		getRamStatus(BYTES);
-		tracefree(level->name);
+		free(level->name);
 		level->name = NULL;
 		free_level(level);
 		level = NULL;
@@ -8529,11 +8529,11 @@ void load_level(char *filename){
 
 	memset(&next, 0, sizeof(s_spawn_entry));
 
-	level = tracemalloc("level",sizeof(s_level));
+	level = malloc(sizeof(s_level));
 	if(level == NULL) shutdown(1, "load_level() #1 FATAL: Out of memory!\n");
 	memset(level, 0, sizeof(s_level));
 	len = strlen(filename);
-	level->name = tracemalloc("level->name", len + 1);
+	level->name = malloc(len + 1);
 	if(level->name == NULL) shutdown(1, "load_level() #1 FATAL: Out of memory!\n");
 	strcpy(level->name, filename);
 	level->name[len] = 0;
@@ -9175,12 +9175,12 @@ void load_level(char *filename){
 					{
 						templistnode = templistnode->next;
 					}
-					templistnode->next = tracemalloc("spawn_script_list_node", sizeof(s_spawn_script_list_node));
+					templistnode->next = malloc(sizeof(s_spawn_script_list_node));
 					templistnode = templistnode->next;
 				}
 				else
 				{
-					next.spawn_script_list_head = tracemalloc("spawn_script_list_node", sizeof(s_spawn_script_list_node));
+					next.spawn_script_list_head = malloc(sizeof(s_spawn_script_list_node));
 					templistnode = next.spawn_script_list_head;
 				}
 				templistnode->spawn_script = NULL;
@@ -9218,9 +9218,9 @@ void load_level(char *filename){
 						{
 							value2 = GET_ARG(1);
 							len = strlen(value2);
-							tempnode2 = tracemalloc("spawn_script_node", sizeof(s_spawn_script_cache_node));
+							tempnode2 = malloc(sizeof(s_spawn_script_cache_node));
 							tempnode2->cached_spawn_script = templistnode->spawn_script;
-							tempnode2->filename = tracemalloc("spawn_script_node_filename", len + 1);
+							tempnode2->filename = malloc(len + 1);
 							strcpy(tempnode2->filename, value2);
 							tempnode2->filename[len] = 0;
 							tempnode2->next = NULL;
@@ -9230,9 +9230,9 @@ void load_level(char *filename){
 						{
 							value2 = GET_ARG(1);
 							len = strlen(value2);
-							spawn_script_cache_head = tracemalloc("spawn_script_node", sizeof(s_spawn_script_cache_node));
+							spawn_script_cache_head = malloc(sizeof(s_spawn_script_cache_node));
 							spawn_script_cache_head->cached_spawn_script = templistnode->spawn_script;
-							spawn_script_cache_head->filename = tracemalloc("spawn_script_node_filename", len + 1);
+							spawn_script_cache_head->filename = malloc(len + 1);
 							spawn_script_cache_head->next = NULL;
 							strcpy(spawn_script_cache_head->filename, value2);
 							spawn_script_cache_head->filename[len] = 0;
@@ -9265,7 +9265,7 @@ void load_level(char *filename){
 			update_loading(loadingbg[1][1]+videomodes.hShift, loadingbg[1][2]+videomodes.vShift, loadingbg[1][3], loadingbg[1][4]+videomodes.hShift, loadingbg[1][5]+videomodes.vShift, pos, size, loadingbg[1][6]);
 	}
 	if(buf != NULL){
-		tracefree(buf);
+		free(buf);
 		buf = NULL;
 	}
 
@@ -9864,42 +9864,23 @@ void drawstatus(){
 
 void update_loading(int pos_x, int pos_y, int size_x, int text_x, int text_y, int value, int max, int font)
 {
-	static int lastpos = 0xFFFFFFF;
-	static unsigned int lastticks = -1;
-	int ticks = timer_gettick();
-	int pixelpos = size_x * ((float)value / max);
+	static size_t cticks = 0;
 	
 	sound_update_music();
 	
-	if(size_x > 0 && pixelpos != lastpos)
-	{
+	if(cticks  % 16 == 0 && loadingbg[0][0] > 0) {
 		loadingbarstatus.sizex = size_x;
 		bar(pos_x, pos_y, value, max, &loadingbarstatus);
-		if(pixelpos < lastpos)
-		{
-			font_printf(text_x, text_y, font, 0, "Loading...");
-			if(background) putscreen(vscreen, background, 0, 0, NULL);
-			else           clearscreen(vscreen);
-		}
-		spriteq_draw(vscreen, 0);
-		video_copy_screen(vscreen);
-		spriteq_clear();
-	}
-	else if(size_x <= 0 && pixelpos < lastpos)
-	{
 		font_printf(text_x, text_y, font, 0, "Loading...");
 		if(background) putscreen(vscreen, background, 0, 0, NULL);
 		else           clearscreen(vscreen);
 		spriteq_draw(vscreen, 0);
 		video_copy_screen(vscreen);
 		spriteq_clear();
+		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
 	}
 	
-	if(ticks - lastticks >= 500)
-		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
-	
-	lastpos = pixelpos;
-	lastticks = ticks;
+	cticks++;
 }
 
 void addscore(int playerindex, int add){
@@ -9953,14 +9934,14 @@ void free_ent(entity* e)
 	clear_all_scripts(&e->scripts,2);
 	free_all_scripts(&e->scripts);
 	
-	if(e->defense_factors){         tracefree(e->defense_factors);          e->defense_factors          = NULL; }
-	if(e->defense_pain){            tracefree(e->defense_pain);             e->defense_pain             = NULL; }
-	if(e->defense_knockdown){       tracefree(e->defense_knockdown);        e->defense_knockdown        = NULL; }
-	if(e->defense_blockpower){      tracefree(e->defense_blockpower);       e->defense_blockpower       = NULL; }
-	if(e->defense_blockthreshold){  tracefree(e->defense_blockthreshold);   e->defense_blockthreshold   = NULL; }
-	if(e->defense_blockratio){      tracefree(e->defense_blockratio);       e->defense_blockratio       = NULL; }
-	if(e->defense_blocktype){       tracefree(e->defense_blocktype);        e->defense_blocktype        = NULL; }
-	if(e->offense_factors){         tracefree(e->offense_factors);          e->offense_factors          = NULL; }
+	if(e->defense_factors){         free(e->defense_factors);          e->defense_factors          = NULL; }
+	if(e->defense_pain){            free(e->defense_pain);             e->defense_pain             = NULL; }
+	if(e->defense_knockdown){       free(e->defense_knockdown);        e->defense_knockdown        = NULL; }
+	if(e->defense_blockpower){      free(e->defense_blockpower);       e->defense_blockpower       = NULL; }
+	if(e->defense_blockthreshold){  free(e->defense_blockthreshold);   e->defense_blockthreshold   = NULL; }
+	if(e->defense_blockratio){      free(e->defense_blockratio);       e->defense_blockratio       = NULL; }
+	if(e->defense_blocktype){       free(e->defense_blocktype);        e->defense_blocktype        = NULL; }
+	if(e->offense_factors){         free(e->offense_factors);          e->offense_factors          = NULL; }
 	if(e->entvars)
 	{
 		// Although free_ent will be only called once when the engine is shutting down,
@@ -9969,9 +9950,9 @@ void free_ent(entity* e)
 		{
 			ScriptVariant_Clear(e->entvars+i);
 		}
-		tracefree(e->entvars); e->entvars = NULL;
+		free(e->entvars); e->entvars = NULL;
 	}
-	tracefree(e);
+	free(e);
 	e = NULL;
 }
 
@@ -9983,28 +9964,28 @@ void free_ents()
 
 entity* alloc_ent()
 {
-	entity* ent = (entity*)tracemalloc("alloc_ent",sizeof(entity));
+	entity* ent = (entity*)malloc(sizeof(entity));
 	if(!ent) return NULL;
 	memset(ent, 0, sizeof(entity));
-	ent->defense_factors        = (float*)tracemalloc("ent->defense_factors",           sizeof(float)*max_attack_types);
+	ent->defense_factors        = (float*)malloc(sizeof(float)*max_attack_types);
 	memset(ent->defense_factors,        0, sizeof(float)*max_attack_types);
-	ent->defense_pain           = (float*)tracemalloc("ent->defense_pain",              sizeof(float)*max_attack_types);
+	ent->defense_pain           = (float*)malloc(sizeof(float)*max_attack_types);
 	memset(ent->defense_pain,           0, sizeof(float)*max_attack_types);
-	ent->defense_knockdown      = (float*)tracemalloc("ent->defense_knockdown",         sizeof(float)*max_attack_types);
+	ent->defense_knockdown      = (float*)malloc(sizeof(float)*max_attack_types);
 	memset(ent->defense_knockdown,      0, sizeof(float)*max_attack_types);
-	ent->defense_blockpower     = (float*)tracemalloc("ent->defense_blockpower",        sizeof(float)*max_attack_types);
+	ent->defense_blockpower     = (float*)malloc(sizeof(float)*max_attack_types);
 	memset(ent->defense_blockpower,     0, sizeof(float)*max_attack_types);
-	ent->defense_blockthreshold = (float*)tracemalloc("ent->defense_blockthreshold",    sizeof(float)*max_attack_types);
+	ent->defense_blockthreshold = (float*)malloc(sizeof(float)*max_attack_types);
 	memset(ent->defense_blockthreshold, 0, sizeof(float)*max_attack_types);
-	ent->defense_blockratio     = (float*)tracemalloc("ent->defense_blockratio",        sizeof(float)*max_attack_types);
+	ent->defense_blockratio     = (float*)malloc(sizeof(float)*max_attack_types);
 	memset(ent->defense_blockratio,     0, sizeof(float)*max_attack_types);
-	ent->defense_blocktype      = (float*)tracemalloc("ent->defense_blocktype",         sizeof(float)*max_attack_types);
+	ent->defense_blocktype      = (float*)malloc(sizeof(float)*max_attack_types);
 	memset(ent->defense_blocktype,      0, sizeof(float)*max_attack_types);
-	ent->offense_factors        = (float*)tracemalloc("ent->offense_factors",           sizeof(float)*max_attack_types);
+	ent->offense_factors        = (float*)malloc(sizeof(float)*max_attack_types);
 	memset(ent->offense_factors,        0, sizeof(float)*max_attack_types);
 	if(max_entity_vars>0)
 	{
-		ent->entvars = (ScriptVariant*)tracemalloc("ent->entvars", sizeof(ScriptVariant)*max_entity_vars);
+		ent->entvars = (ScriptVariant*)malloc(sizeof(ScriptVariant)*max_entity_vars);
 		// memset should be OK by know, because VT_EMPTY is zero by value, or else we should use ScriptVariant_Init
 		memset(ent->entvars, 0, sizeof(ScriptVariant)*max_entity_vars);
 	}
@@ -19405,7 +19386,7 @@ void movie_openfile(int save)
 {
 	char path[256] = {""};
 	char tmpname[256] = {""};
-	moviebuffer = tracemalloc("movie_openfile", sizeof(*moviebuffer)*MOVIEBUF_LEN);
+	moviebuffer = malloc(sizeof(*moviebuffer)*MOVIEBUF_LEN);
 	if(!moviebuffer) return ;
 	memset(moviebuffer, 0, sizeof(*moviebuffer)*MOVIEBUF_LEN);
 	getBasePath(path, "Saves", 0);
@@ -19446,7 +19427,7 @@ void movie_flushbuf()
 void movie_closefile()
 {
 	if(moviefile) fclose(moviefile);
-	if(moviebuffer) tracefree(moviebuffer);
+	if(moviebuffer) free(moviebuffer);
 	moviebuffer = NULL;
 	moviefile = NULL;
 	moviebufptr = 0;
@@ -19636,7 +19617,7 @@ void draw_textobjs()
 			level->textobjs[i].z	= 0;
 			if(level->textobjs[i].text)
 			{
-				tracefree(level->textobjs[i].text);
+				free(level->textobjs[i].text);
 				level->textobjs[i].text = NULL;
 			}
 		}
@@ -20328,7 +20309,7 @@ void playscene(char *filename)
 	pos += getNewLineStart(buf + pos);
 	}
 	if(buf != NULL){
-		tracefree(buf);
+		free(buf);
 		buf = NULL;
 	}
 }
@@ -20721,7 +20702,7 @@ int selectplayer(int *players, char* filename)
 		}
 		if(buf != NULL)
 		{
-			tracefree(buf);
+			free(buf);
 			buf = NULL;
 		}
 		for(i=0; i<maxplayers[current_set]; i++)
@@ -21375,10 +21356,10 @@ void term_videomodes()
 	videomodes.hRes = 0;
 	videomodes.vRes = 0;
 	video_set_mode(videomodes);
-	if(custScenes != NULL) tracefree(custScenes); custScenes = NULL;
-	if(custBkgrds != NULL) tracefree(custBkgrds); custBkgrds = NULL;
-	if(custLevels != NULL) tracefree(custLevels); custLevels = NULL;
-	if(custModels != NULL) tracefree(custModels); custModels = NULL;
+	if(custScenes != NULL) free(custScenes); custScenes = NULL;
+	if(custBkgrds != NULL) free(custBkgrds); custBkgrds = NULL;
+	if(custLevels != NULL) free(custLevels); custLevels = NULL;
+	if(custModels != NULL) free(custModels); custModels = NULL;
 }
 
 // Load Video Mode from file
@@ -21447,25 +21428,25 @@ readfile:
 			}
 			else if(stricmp(command, "scenes")==0){
 				len = strlen(GET_ARG(1));
-				custScenes = tracemalloc("custScenes", len + 1);
+				custScenes = malloc(len + 1);
 				strcpy(custScenes, GET_ARG(1));
 				custScenes[len] = 0;
 			}
 			else if(stricmp(command, "backgrounds")==0){
 				len = strlen(GET_ARG(1));
-				custBkgrds = tracemalloc("custBkgrds", len + 1);
+				custBkgrds = malloc(len + 1);
 				strcpy(custBkgrds, GET_ARG(1));
 				custBkgrds[len] = 0;
 			}
 			else if(stricmp(command, "levels")==0){
 				len = strlen(GET_ARG(1));
-				custLevels = tracemalloc("custLevels", len + 1);
+				custLevels = malloc(len + 1);
 				strcpy(custLevels, GET_ARG(1));
 				custLevels[len] = 0;
 			}
 			else if(stricmp(command, "models")==0){
 				len = strlen(GET_ARG(1));
-				custModels = tracemalloc("custModels", len + 1);
+				custModels = malloc(len + 1);
 				strcpy(custModels, GET_ARG(1));
 				custModels[len] = 0;
 			}
@@ -21493,7 +21474,7 @@ readfile:
 	}
 
 	if(buf != NULL){
-		tracefree(buf);
+		free(buf);
 		buf = NULL;
 	}
 
@@ -21767,7 +21748,7 @@ void keyboard_setup(int player){
 			pos += getNewLineStart(buf + pos);
 		}
 		if(buf != NULL){
-			tracefree(buf);
+			free(buf);
 			buf = NULL;
 		}
 	}

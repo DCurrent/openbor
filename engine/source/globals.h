@@ -21,7 +21,6 @@
 #include <ctype.h>
 
 #include "utils.h"
-#include "tracemalloc.h"
 
 #ifdef PSP
 #include <stdarg.h>

@@ -13,7 +13,7 @@ modelCommands getModelCommand(List* list, char* usercommand) {
 }
 
 List* createModelCommandList(void) {
-	List* result = tracemalloc("model command list", sizeof(List));
+	List* result = malloc(sizeof(List));
 	assert(result);
 	List_Init(result);
 	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
@@ -307,7 +307,7 @@ List* createModelCommandList(void) {
 
 void freeModelCommandList(List* list) {
 	List_Clear(list);
-	tracefree(list);
+	free(list);
 	list = NULL;
 }
 
@@ -325,7 +325,7 @@ levelCommands getLevelCommand(List* list, char* usercommand) {
 }
 
 List* createLevelCommandList(void) {
-	List* result = tracemalloc("level command list", sizeof(List));
+	List* result = malloc(sizeof(List));
 	assert(result);
 	List_Init(result);
 	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
@@ -442,7 +442,7 @@ levelOrderCommands getLevelOrderCommand(List* list, char* usercommand) {
 }
 
 List* createLevelOrderCommandList(void) {
-	List* result = tracemalloc("levelorder command list", sizeof(List));
+	List* result = malloc(sizeof(List));
 	assert(result);
 	List_Init(result);
 	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)

@@ -9,7 +9,6 @@
 #include "utils.h"
 #include "packfile.h"
 #include "filecache.h"
-#include "tracemalloc.h"
 #include "openbor.h"
 
 #ifdef PSP
@@ -463,37 +462,37 @@ void filecache_term()
 	pakblock_run_min          = 1;
 	if(vfd_blocks_available != NULL) 
 	{
-		tracefree(vfd_blocks_available);
+		free(vfd_blocks_available);
 		vfd_blocks_available = NULL;
 	}
 	if(cacheblock_mru != NULL)
 	{
-		tracefree(cacheblock_mru);
+		free(cacheblock_mru);
 		cacheblock_mru = NULL;
 	}	
 	if(vfd_desired_readahead_blocks != NULL) 
 	{
-		tracefree(vfd_desired_readahead_blocks);
+		free(vfd_desired_readahead_blocks);
 		vfd_desired_readahead_blocks = NULL;
 	}
 	if(vfd_startptr_pakblock != NULL)
 	{
-		tracefree(vfd_startptr_pakblock);
+		free(vfd_startptr_pakblock);
 		vfd_startptr_pakblock = NULL;
 	}
 	if(vfd_readptr_pakblock != NULL) 
 	{
-		tracefree(vfd_readptr_pakblock);
+		free(vfd_readptr_pakblock);
 		vfd_readptr_pakblock = NULL;
 	}
 	if(where_is_this_pakblock_cached != NULL) 
 	{
-		tracefree(where_is_this_pakblock_cached);
+		free(where_is_this_pakblock_cached);
 		where_is_this_pakblock_cached = NULL;
 	}
 	if(filecache_pakmap != NULL) 
 	{
-		tracefree(filecache_pakmap);
+		free(filecache_pakmap);
 		filecache_pakmap = NULL;
 	}
 #ifdef PSP
@@ -508,7 +507,7 @@ void filecache_term()
 #else
 	if(filecache_head)
 	{
-		tracefree(filecache_head);
+		free(filecache_head);
 		filecache_head = NULL;
 	}
 #endif
@@ -544,7 +543,7 @@ void filecache_init(int realfd, int pakcdsectors, int blocksize, unsigned char b
 #elif DC
 	filecache_head = (void*)(0xA5500000 - 64);
 #else
-	filecache_head = tracemalloc("filecache_head", filecache_blocksize * filecache_blocks + 64);
+	filecache_head = malloc(filecache_blocksize * filecache_blocks + 64);
 #endif
   
 	filecache = filecache_head;
@@ -555,31 +554,31 @@ void filecache_init(int realfd, int pakcdsectors, int blocksize, unsigned char b
 	filecache += 0x40 - (((size_t)filecache) & 0x3F);
 
 	// pakmap: all values should be -1
-	filecache_pakmap = tracemalloc("filecache_init", sizeof(int) * filecache_blocks);
+	filecache_pakmap = malloc(sizeof(int) * filecache_blocks);
 	for(i = 0; i < filecache_blocks; i++) filecache_pakmap[i] = -1;
 
 	// where_is_this_pakblock_cached: all values should be filecache_blocks
-	where_is_this_pakblock_cached = tracemalloc("filecache_init", total_pakblocks);
+	where_is_this_pakblock_cached = malloc(total_pakblocks);
 	for(i = 0; i < total_pakblocks; i++) where_is_this_pakblock_cached[i] = filecache_blocks;
 
 	// vfd read pointers: init to -1
-	vfd_readptr_pakblock = tracemalloc("filecache_init", sizeof(int) * max_vfds);
+	vfd_readptr_pakblock = malloc(sizeof(int) * max_vfds);
 	for(i = 0; i < max_vfds; i++) vfd_readptr_pakblock[i] = -1;
 
 	// vfd starting pointers: init to -1
-	vfd_startptr_pakblock = tracemalloc("filecache_init", sizeof(int) * max_vfds);
+	vfd_startptr_pakblock = malloc(sizeof(int) * max_vfds);
 	for(i = 0; i < max_vfds; i++) vfd_startptr_pakblock[i] = -1;
 
 	// desired readahead: init to 0
-	vfd_desired_readahead_blocks = tracemalloc("filecache_init", sizeof(int) * max_vfds);
+	vfd_desired_readahead_blocks = malloc(sizeof(int) * max_vfds);
 	for(i = 0; i < max_vfds; i++) vfd_desired_readahead_blocks[i] = -1;
 
 	// cache mru: init to 0
-	cacheblock_mru = tracemalloc("filecache_init", sizeof(unsigned) * filecache_blocks);
+	cacheblock_mru = malloc(sizeof(unsigned) * filecache_blocks);
 	for(i = 0; i < filecache_blocks; i++) cacheblock_mru[i] = 0;
 
 	// blocks available: needs no init
-	vfd_blocks_available = tracemalloc("filecache_init", sizeof(int) * max_vfds);
+	vfd_blocks_available = malloc(sizeof(int) * max_vfds);
 
 	filecache_ready = 1;
 }

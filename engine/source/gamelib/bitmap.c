@@ -12,12 +12,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
+#include "globals.h"
 #include "types.h"
-#include "tracemalloc.h"
-
 
 #define		TRANS_INDEX		0x00
-
 
 s_bitmap * allocbitmap(int width, int height, int format){
 	s_bitmap *b;
@@ -26,9 +24,9 @@ s_bitmap * allocbitmap(int width, int height, int format){
 	psize = width*height*pixelbytes[(int)format];
 	extrab = (4-psize%4)%4;
 	if(format==PIXEL_x8)
-		b = (s_bitmap *)tracemalloc("allocbitmap", sizeof(s_bitmap) + psize + extrab +PAL_BYTES);
+		b = (s_bitmap *)malloc(sizeof(s_bitmap) + psize + extrab +PAL_BYTES);
 	else
-		b = (s_bitmap *)tracemalloc("allocbitmap#2",sizeof(s_bitmap) + psize);
+		b = (s_bitmap *)malloc(sizeof(s_bitmap) + psize);
 	if(b){
 		b->width = width;
 		b->height = height;
@@ -43,7 +41,7 @@ s_bitmap * allocbitmap(int width, int height, int format){
 
 void freebitmap(s_bitmap *bitmap){
 	if(bitmap != NULL){
-		tracefree(bitmap);
+		free(bitmap);
 		bitmap = NULL;
 	}
 }

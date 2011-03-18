@@ -337,9 +337,7 @@ INCS 	       += .                                                               
                   source/ramlib                                                                     \
                   source/randlib                                                                    \
                   source/scriptlib                                                                  \
-                  source/tracelib                                                                   \
                   source/pnglib                                                                     \
-                  source/xpmlib
 
 ifndef BUILD_DC
 INCS 	       += source/pcxlib
@@ -416,9 +414,7 @@ SCRIPT          = source/scriptlib/StackedSymbolTable.o                         
                   source/preprocessorlib/pp_parser.o
 RAM             = source/ramlib/ram.o
 RAND	        = source/randlib/rand32.o
-TRACE           = source/tracelib/tracemalloc.o
 PNG             = source/pnglib/pngdec.o
-XPM             = source/xpmlib/xpm.o
 SOURCE	        = source/stringptr.o                                                                \
 				  source/utils.o                                                                    \
                   source/stristr.o
@@ -518,9 +514,7 @@ OBJS            = $(GAME_CONSOLE)                                               
                   $(SCRIPT)                                                                         \
                   $(RAM)                                                                            \
                   $(RAND)                                                                           \
-                  $(TRACE)                                                                          \
                   $(PNG)                                                                            \
-                  $(XPM)                                                                            \
                   $(MAIN)
 		  
 #----------------------------------------------------------------------------------------------------

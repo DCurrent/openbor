@@ -33,7 +33,6 @@
 #include "stristr.h"
 #include "packfile.h"
 #include "filecache.h"
-#include "tracemalloc.h"
 #include "globals.h"
 #include "openbor.h"
 
@@ -505,7 +504,7 @@ void makefilenamecache(void) {
 	char target[256];
 	
 	if(!filenamelist)
-		filenamelist = tracemalloc("filenamelist", sizeof(List));
+		filenamelist = malloc(sizeof(List));
 	List_Init(filenamelist);
 	
 	// look for filename in the header
@@ -525,7 +524,7 @@ void makefilenamecache(void) {
 void freefilenamecache(void) {
 	if(filenamelist) {
 		List_Clear(filenamelist);
-		tracefree(filenamelist);
+		free(filenamelist);
 		filenamelist = NULL;
 	}
 }
@@ -906,7 +905,7 @@ void pak_term()
 	if(!pak_initialized) return;
 	if(pak_cdheader != NULL)
 	{
-		tracefree(pak_cdheader);
+		free(pak_cdheader);
 		pak_cdheader = NULL;
 	}
 	filecache_term();
@@ -1007,7 +1006,7 @@ int pak_init()
 		return -1;
 	}
 
-	sectors = tracemalloc("pak_init 1",4096);
+	sectors = malloc(4096);
 	if(!sectors) { printf("sector malloc failed\n"); return 0; }
 	{
 		int getptrfrom = paksize - 4;
@@ -1018,7 +1017,7 @@ int pak_init()
 		}
 		pak_headerstart = readlsb32(sectors + (getptrfrom & 0x7FF));
 	}
-	tracefree(sectors);
+	free(sectors);
 	if(pak_headerstart >= paksize || pak_headerstart < 0)
 	{
 		printf("invalid pak header pointer\n");
@@ -1039,7 +1038,7 @@ int pak_init()
 			printf("pak header is too large: %d\n",pak_cdheadersize);
 			return 0;
 		}
-		pak_cdheader = tracemalloc("pak_init 2",pak_cdheadersize);
+		pak_cdheader = malloc(pak_cdheadersize);
 		if(!pak_cdheader) { printf("pak_cdheader malloc failed\n"); return 0; }
 		if(pak_getsectors(pak_cdheader, pak_cdheaderstart >> 11, pak_cdheadersize >> 11) != (pak_cdheadersize >> 11))
 		{

@@ -43,8 +43,6 @@
 #include "sblaster.h"
 #include "soundmix.h"
 #include "packfile.h"
-#include "tracemalloc.h"
-
 
 #ifdef DC
 #include <ivorbisfile.h>
@@ -256,7 +254,7 @@ static int loadwave(char *filename, char *packname, samplestruct *buf, unsigned 
 	}
 
 	if(rifftag.size<maxsize) maxsize = rifftag.size;
-	if((buf->sampleptr = tracemalloc("load_wave",maxsize*mulbytes+8))==NULL){
+	if((buf->sampleptr = malloc(maxsize*mulbytes+8))==NULL){
 		closepackfile(handle);
 		return 0;
 	}
@@ -265,7 +263,7 @@ static int loadwave(char *filename, char *packname, samplestruct *buf, unsigned 
 
 	if(readpackfile(handle, buf->sampleptr, maxsize*mulbytes) != (int)maxsize*mulbytes){
 		if(buf->sampleptr != NULL){
-			tracefree(buf->sampleptr);
+			free(buf->sampleptr);
 			buf->sampleptr = NULL;
 		}
 		closepackfile(handle);
@@ -286,7 +284,7 @@ void sound_free_sample(int which){
 	if(!mixing_inited) return;
 	if(which<0 || which>=MAX_SAMPLES) return;
 	if(sampledata[which].sampleptr != NULL){
-		tracefree(sampledata[which].sampleptr);
+		free(sampledata[which].sampleptr);
 		sampledata[which].sampleptr = NULL;
 		memset(&sampledata[which], 0, sizeof(samplestruct));
 	}
@@ -321,7 +319,7 @@ int sound_load_sample(char *filename, char *packfilename, int iLog){
 		return -1;
 	}
 	len = strlen(filename);
-	soundcache[i].filename = tracemalloc("sound_load_sample", len + 1);
+	soundcache[i].filename = malloc(len + 1);
 	strcpy(soundcache[i].filename, filename);
 	soundcache[i].filename[len] = 0;
 	return soundcache[i].index;
@@ -332,7 +330,7 @@ void sound_unload_sample(int index){
 	if(index<0 || index>=MAX_SAMPLES) return;
 	if(soundcache[index].filename != NULL){
 		soundcache[index].index = -1;
-		tracefree(soundcache[index].filename);
+		free(soundcache[index].filename);
 		soundcache[index].filename = NULL;
 	}
 	sound_free_sample(index);
@@ -713,13 +711,13 @@ void sound_close_adpcm(){
 	adpcm_handle = -1;
 
 	if(adpcm_inbuf != NULL){
-		tracefree(adpcm_inbuf);
+		free(adpcm_inbuf);
 		adpcm_inbuf = NULL;
 	}
 
 	for(i=0; i<MUSIC_NUM_BUFFERS; i++){
 		if(musicchannel.buf[i] != NULL){
-			tracefree(musicchannel.buf[i]);
+			free(musicchannel.buf[i]);
 			musicchannel.buf[i] = NULL;
 		}
 	}
@@ -781,11 +779,11 @@ int sound_open_adpcm(char *filename, char *packname, int volume, int loop, u32 m
 	music_looping = loop;
 	music_atend = 0;
 
-	adpcm_inbuf = tracemalloc("sound_open_music 1",MUSIC_BUF_SIZE / 2);
+	adpcm_inbuf = malloc(MUSIC_BUF_SIZE / 2);
 	if(adpcm_inbuf==NULL) goto error_exit;
 
 	for(i=0; i<MUSIC_NUM_BUFFERS; i++){
-		musicchannel.buf[i] = tracemalloc("sound_open_music 2",MUSIC_BUF_SIZE*sizeof(short));
+		musicchannel.buf[i] = malloc(MUSIC_BUF_SIZE*sizeof(short));
 		if(musicchannel.buf[i]==NULL) goto error_exit;
 		memset(musicchannel.buf[i], 0, MUSIC_BUF_SIZE*sizeof(short));
 	}
@@ -988,7 +986,7 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 #endif		
 		return 0;
 	}
-	oggfile = tracemalloc("sound_open_music 1", sizeof(OggVorbis_File));
+	oggfile = malloc(sizeof(OggVorbis_File));
 	if (ov_open_callbacks(&ogg_handle, oggfile, NULL, 0, ogg_callbacks)!=0) {
 #ifdef VERBOSE
 		printf("ov_open_callbacks failed\n");
@@ -1018,7 +1016,7 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 	music_atend = 0;
 
 	for(i=0; i<MUSIC_NUM_BUFFERS; i++){
-		musicchannel.buf[i] = tracemalloc("sound_open_music 2",MUSIC_BUF_SIZE*sizeof(short));
+		musicchannel.buf[i] = malloc(MUSIC_BUF_SIZE*sizeof(short));
 		if(musicchannel.buf[i]==NULL){
 			sound_close_ogg();
 #ifdef VERBOSE
@@ -1273,7 +1271,7 @@ void sound_exit(){
 	sound_unload_all_samples();
 
 	if(mixbuf != NULL){
-		tracefree(mixbuf);
+		free(mixbuf);
 		mixbuf = NULL;
 	}
 
@@ -1282,7 +1280,7 @@ void sound_exit(){
 #endif
 #ifdef XBOX
 	if(DMAbuf8 != NULL){
-		tracefree(DMAbuf8);
+		free(DMAbuf8);
 		DMAbuf8 = NULL;
 	}
 #endif
@@ -1298,12 +1296,12 @@ int sound_init(int channels){
 	sound_exit();
 
 #ifdef XBOX
-	DMAbuf8 = (char*)tracemalloc("DMAbuf8", SB_BUFFER_SIZE << 1 ) ;
+	DMAbuf8 = (char*)malloc(SB_BUFFER_SIZE << 1 ) ;
 	DMAbuf16 = (void*)DMAbuf8;
 #endif
 
 	// Allocate the maximum amount ever possibly needed for mixing
-	if((mixbuf = tracemalloc("sound_init",MIXBUF_SIZE)) == NULL){
+	if((mixbuf = malloc(MIXBUF_SIZE)) == NULL){
 
 #ifdef PSP
 		SB_exit();

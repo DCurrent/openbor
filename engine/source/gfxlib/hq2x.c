@@ -47,7 +47,6 @@
 #include "gfx.h"
 #include "interp.h"
 #include "gfxtypes.h"
-#include "tracemalloc.h"
 
 #ifdef MMX
 void _Hq2x16MMX(u8*, u8*, u32, u32, u32, u32);
@@ -640,9 +639,9 @@ void Init_LUTs(u32 BitFormat)
 	
 	// Allocate the YUV/LUT buffers on the fly if needed.
 	if(RGBtoYUV == NULL)
-		RGBtoYUV = (u32 *)tracemalloc("RGBtoYUV", 65536 * sizeof(u32));
+		RGBtoYUV = (u32 *)malloc(65536 * sizeof(u32));
 	if(LUT16to32 == NULL)
-	    LUT16to32 = (u32 *)tracemalloc("LUT16to32", 65536 * sizeof(u32));
+	    LUT16to32 = (u32 *)malloc(65536 * sizeof(u32));
 
 	for (color = 0; color < 65536; ++color) 
 	{
@@ -664,12 +663,12 @@ void Term_LUTs()
 {
 	if(RGBtoYUV != NULL)
 	{
-	    tracefree(RGBtoYUV);
+	    free(RGBtoYUV);
 	    RGBtoYUV = NULL;
 	}
 	if(LUT16to32 != NULL)
 	{
-	    tracefree(LUT16to32);
+	    free(LUT16to32);
 	    LUT16to32 = NULL;
 	}
 }

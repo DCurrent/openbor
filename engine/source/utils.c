@@ -200,7 +200,7 @@ stringptr* readFromLogFile(int which)
 	rewind(handle);
 	if (size == 0) goto CLOSE_AND_QUIT;
 	// allocate memory to contain the whole file:
-	//buffer = (char*)tracemalloc("readFromLogFile()", sizeof(char)*(size+1)); // alloc one additional byte for the 
+	//buffer = (char*)malloc(sizeof(char)*(size+1)); // alloc one additional byte for the 
 	buffer = new_string(size);
 	if(buffer == NULL) goto CLOSE_AND_QUIT;
 	disCcWarns = fread(buffer->ptr, 1, size, handle);
@@ -498,7 +498,7 @@ Array_Check_Size( const char* f_caller, char** array, int new_size, int* curr_si
 	{
 		if( *array != NULL )
 		{
-			tracefree(*array);
+			free(*array);
 			*array = NULL;
 		}
 		*curr_size_allocated = 0;
@@ -508,7 +508,7 @@ Array_Check_Size( const char* f_caller, char** array, int new_size, int* curr_si
 	else if( *array == NULL )
 	{
 		*curr_size_allocated = grow_step;
-		*array = tracemalloc(f_caller, *curr_size_allocated );
+		*array = malloc(*curr_size_allocated );
 		if( *array == NULL)
 			shutdown(1, "Out Of Memory!  Failed in %s\n", f_caller);
 		memset( *array, 0, *curr_size_allocated );
@@ -528,7 +528,7 @@ Array_Check_Size( const char* f_caller, char** array, int new_size, int* curr_si
 	*curr_size_allocated = ((int)ceil((float)new_size / (float)grow_step)) * grow_step;
 
 	// Alloc a new array
-	void* copy = tracemalloc(f_caller, *curr_size_allocated );
+	void* copy = malloc(*curr_size_allocated );
 	if(copy == NULL)
 		shutdown(1, "Out Of Memory!  Failed in %s\n", f_caller);
 	
@@ -540,7 +540,7 @@ Array_Check_Size( const char* f_caller, char** array, int new_size, int* curr_si
 		memset( copy + old_size, 0, *curr_size_allocated - old_size );
 	
 	// Free previous array memory
-	tracefree(*array);
+	free(*array);
 
 	// ReAssign the new allocated array
 	*array = copy;

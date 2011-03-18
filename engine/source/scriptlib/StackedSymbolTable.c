@@ -7,7 +7,6 @@
  */
 
 #include "StackedSymbolTable.h"
-#include "tracemalloc.h"
 #include <stdio.h>
 /******************************************************************************
 *  CStackedSymbolTable -- This class handles the scoping issues related to
@@ -47,7 +46,7 @@ void StackedSymbolTable_PushScope(StackedSymbolTable* sstable, LPCSTR scopeName 
 
    SymbolTable* newSymbolTable = NULL;
 
-   newSymbolTable =(SymbolTable*)tracemalloc("StackedSymbolTable_PushScope", sizeof(SymbolTable));
+   newSymbolTable =(SymbolTable*)malloc(sizeof(SymbolTable));
    //We have to have a name for this scope, so if we got NULL, then use ""
    if (scopeName) SymbolTable_Init(newSymbolTable, scopeName);
    else           SymbolTable_Init(newSymbolTable, "");
@@ -79,7 +78,7 @@ void StackedSymbolTable_PopScope(StackedSymbolTable* sstable)
 	if(pSymbolTable)
 	{
 		SymbolTable_Clear(pSymbolTable);
-		tracefree((void*)pSymbolTable);
+		free((void*)pSymbolTable);
 	}
 }
 

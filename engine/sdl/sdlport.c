@@ -34,7 +34,6 @@ char screenShotsDir[128] = {"ScreenShots"};
 
 void borExit(int reset)
 {
-	tracemalloc_dump();
 
 #ifdef GP2X
 	gp2x_end();
