@@ -374,7 +374,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		pLabel = List_GetName(&(pinterpreter->theContext.imports));
 		pImport = ImportCache_Retrieve(pLabel);
 		if(pImport == NULL) return E_FAIL; // ImportCache should print out the error message
-		List_InsertAfter(&(pinterpreter->theImportList), pImport, pLabel);
+		List_InsertAfter(&(pinterpreter->theImportList), pImport, (char*) pLabel);
 		List_GotoNext(&(pinterpreter->theContext.imports));
 	}
 	
@@ -493,7 +493,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			//cache the jump target
 			if(List_FindByName(&(pinterpreter->theInstructionList), pToken->theSource)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
-				List_FindByName(&(pinterpreter->theInstructionList), pLabel); //hop back
+				List_FindByName(&(pinterpreter->theInstructionList), (char*) pLabel); //hop back
 			} else if(List_FindByName( pinterpreter->ptheFunctionList, pToken->theSource)){
 				pInstruction->functionRef = (SCRIPTFUNCTION)List_Retrieve(pinterpreter->ptheFunctionList);
 			}
@@ -529,7 +529,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		case JUMP:
 			pLabel = pInstruction->Label;
 			//cache the jump target
-			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
+			if(List_FindByName(&(pinterpreter->theInstructionList), (char*) pLabel)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
 				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
 			} else hr = E_FAIL;
@@ -543,7 +543,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			pInstruction->theRef = pSVar1;
 			pLabel = pInstruction->Label;
 			//cache the jump target
-			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
+			if(List_FindByName(&(pinterpreter->theInstructionList), (char*) pLabel)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
 				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
 			} else hr = E_FAIL;
@@ -559,7 +559,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			pInstruction->theRef = pSVar1;
 			Stack_Pop(&(pinterpreter->theDataStack));
 			//cache the jump target
-			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
+			if(List_FindByName(&(pinterpreter->theInstructionList), (char*) pLabel)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
 				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
 			} else hr = E_FAIL;
