@@ -1129,27 +1129,29 @@ void alloc_all_scripts(s_scripts* s) {
 	size_t i;
 	
 	for (i = 0; i < scripts_membercount; i++) {
-		((Script**)s)[i] = alloc_script();
+		(((Script**) s)[i]) = alloc_script();
 	}	
 }
 
 void clear_all_scripts(s_scripts* s, int method) {
 	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
 	size_t i;
+	Script** ps = (Script**) s;
 	
 	for (i = 0; i < scripts_membercount; i++) {
-		Script_Clear(((Script**)s)[i],   method);
+		Script_Clear(ps[i],   method);
 	}	
 }	
 
 void free_all_scripts(s_scripts* s) {
 	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
 	size_t i;
+	Script** ps = (Script**) s;
 	
 	for (i = 0; i < scripts_membercount; i++) {
-		if (((Script**)s)[i]) {
-			tracefree(((Script**)s)[i]);
-			((Script**)s)[i] = NULL;
+		if (ps[i]) {
+			tracefree(ps[i]);
+			ps[i] = NULL;			
 		}
 	}	
 }
@@ -1157,9 +1159,11 @@ void free_all_scripts(s_scripts* s) {
 void copy_all_scripts(s_scripts* src, s_scripts* dest, int method) {
 	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
 	size_t i;
+	Script** ps = (Script**) src;
+	Script** pd = (Script**) dest;
 	
 	for (i = 0; i < scripts_membercount; i++) {	
-			Script_Copy(((Script**)dest)[i], ((Script**)src)[i], method);
+			Script_Copy(pd[i], ps[i], method);
 	}
 }
 
@@ -4670,6 +4674,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		");\n";
 
 	modelCommands cmd;
+	s_scripts tempscripts;
+	
 #ifdef DEBUG
 	printf("load_cached_model: %s, unload: %d\n", name, unload);
 #endif
@@ -4726,10 +4732,12 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						shutdownmessage = "tried to subclass a non-existing/not previously loaded model!";
 						goto lCleanup;
 					}
+					tempscripts = newchar->scripts;
 					*newchar = *tempmodel;
+					newchar->scripts = tempscripts;
 					copy_all_scripts(&tempmodel->scripts, &newchar->scripts, 1);
 					newchar->isSubclassed = 1;
-					newchar->freetypes = MF_NONE;
+					newchar->freetypes = MF_SCRIPTS;
 					break;
 				case CMD_MODEL_NAME:
 					lcmHandleCommandName(&arglist, newchar, cacheindex);
@@ -6994,7 +7002,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		writeToScriptLog("\n########################################\n");
 		writeToScriptLog(scriptbuf);
 	}
-	Script_Compile(newchar->scripts.animation_script);
+	if(!newchar->isSubclassed)
+		Script_Compile(newchar->scripts.animation_script);
 
 	if(!tempInt)// parse script failed
 	{
@@ -10785,7 +10794,7 @@ void kill(entity *victim)
 	victim->health = 0;
 	victim->exists = 0;
 	ent_count--;
-	
+
 	clear_all_scripts(&victim->scripts, 1);
 
 	if(victim->parent && victim->parent->subentity == victim) victim->parent->subentity = NULL;
