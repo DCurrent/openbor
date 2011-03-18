@@ -746,7 +746,7 @@ typedef struct png_info_struct
 	* and initialize the appropriate fields below.
 	*/
 
-#if defined(PNG_gAMA_SUPPORTED) && defined(PNG_floatING_POINT_SUPPORTED)
+#if defined(PNG_gAMA_SUPPORTED) && defined(PNG_FLOATING_POINT_SUPPORTED)
    /* The gAMA chunk describes the gamma characteristics of the system
 	* on which the image was created, normally in the range [1.0, 2.5].
 	* Data is valid if (valid & PNG_INFO_gAMA) is non-zero.
@@ -854,7 +854,7 @@ defined(PNG_READ_BACKGROUND_SUPPORTED)
 	* colors in the image as the creator.  Values are in the range
 	* [0.0, 0.8].  Data valid if (valid & PNG_INFO_cHRM) non-zero.
 	*/
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
    float x_white;
    float y_white;
    float x_red;
@@ -922,7 +922,7 @@ defined(PNG_READ_BACKGROUND_SUPPORTED)
 	* here.  Data values are valid if (valid & PNG_INFO_sCAL) is non-zero.
 	*/
    png_byte scal_unit;         /* unit of physical scale */
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
    double scal_pixel_width;    /* width of one pixel */
    double scal_pixel_height;   /* height of one pixel */
 #endif
@@ -1230,7 +1230,7 @@ struct png_struct_def
 
 #if defined(PNG_bKGD_SUPPORTED)
    png_byte background_gamma_type;
-#  ifdef PNG_floatING_POINT_SUPPORTED
+#  ifdef PNG_FLOATING_POINT_SUPPORTED
    float background_gamma;
 #  endif
    png_color_16 background;   /* background color in screen gamma space */
@@ -1247,7 +1247,7 @@ struct png_struct_def
 
 #if defined(PNG_READ_GAMMA_SUPPORTED) || defined(PNG_READ_BACKGROUND_SUPPORTED)
    int gamma_shift;      /* number of "insignificant" bits 16-bit gamma */
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
    float gamma;          /* file gamma value */
    float screen_gamma;   /* screen gamma value (display_exponent) */
 #endif
@@ -1593,7 +1593,7 @@ extern PNG_EXPORT(void,png_set_gray_to_rgb) PNGARG((png_structp png_ptr));
 
 #if defined(PNG_READ_RGB_TO_GRAY_SUPPORTED)
 /* Reduce RGB to grayscale. */
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 extern PNG_EXPORT(void,png_set_rgb_to_gray) PNGARG((png_structp png_ptr,
    int error_action, double red, double green ));
 #endif
@@ -1668,7 +1668,7 @@ extern PNG_EXPORT(void,png_set_invert_mono) PNGARG((png_structp png_ptr));
 
 #if defined(PNG_READ_BACKGROUND_SUPPORTED)
 /* Handle alpha and tRNS by replacing with a background color. */
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 extern PNG_EXPORT(void,png_set_background) PNGARG((png_structp png_ptr,
    png_color_16p background_color, int background_gamma_code,
    int need_expand, double background_gamma));
@@ -1693,7 +1693,7 @@ extern PNG_EXPORT(void,png_set_dither) PNGARG((png_structp png_ptr,
 
 #if defined(PNG_READ_GAMMA_SUPPORTED)
 /* Handle gamma correction. Screen_gamma=(display_exponent) */
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 extern PNG_EXPORT(void,png_set_gamma) PNGARG((png_structp png_ptr,
    double screen_gamma, double default_file_gamma));
 #endif
@@ -1870,7 +1870,7 @@ extern PNG_EXPORT(void,png_set_filter) PNGARG((png_structp png_ptr, int method,
  * the weights and costs are set to 1.0, this degenerates the WEIGHTED method
  * to the UNWEIGHTED method, but with added encoding time/computation.
  */
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 extern PNG_EXPORT(void,png_set_filter_heuristics) PNGARG((png_structp png_ptr,
    int heuristic_method, int num_weights, png_doublep filter_weights,
    png_doublep filter_costs));
@@ -2185,7 +2185,7 @@ extern PNG_EXPORT(png_uint_32, png_get_y_pixels_per_meter) PNGARG((png_structp
 png_ptr, png_infop info_ptr));
 
 /* Returns pixel aspect ratio, computed from pHYs chunk data.  */
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 extern PNG_EXPORT(float, png_get_pixel_aspect_ratio) PNGARG((png_structp
 png_ptr, png_infop info_ptr));
 #endif
@@ -2217,7 +2217,7 @@ extern PNG_EXPORT(void,png_set_bKGD) PNGARG((png_structp png_ptr,
 #endif
 
 #if defined(PNG_cHRM_SUPPORTED)
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 extern PNG_EXPORT(png_uint_32,png_get_cHRM) PNGARG((png_structp png_ptr,
    png_infop info_ptr, double *white_x, double *white_y, double *red_x,
    double *red_y, double *green_x, double *green_y, double *blue_x,
@@ -2233,7 +2233,7 @@ extern PNG_EXPORT(png_uint_32,png_get_cHRM_fixed) PNGARG((png_structp png_ptr,
 #endif
 
 #if defined(PNG_cHRM_SUPPORTED)
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 extern PNG_EXPORT(void,png_set_cHRM) PNGARG((png_structp png_ptr,
    png_infop info_ptr, double white_x, double white_y, double red_x,
    double red_y, double green_x, double green_y, double blue_x, double blue_y));
@@ -2248,7 +2248,7 @@ extern PNG_EXPORT(void,png_set_cHRM_fixed) PNGARG((png_structp png_ptr,
 #endif
 
 #if defined(PNG_gAMA_SUPPORTED)
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 extern PNG_EXPORT(png_uint_32,png_get_gAMA) PNGARG((png_structp png_ptr,
    png_infop info_ptr, double *file_gamma));
 #endif
@@ -2257,7 +2257,7 @@ extern PNG_EXPORT(png_uint_32,png_get_gAMA_fixed) PNGARG((png_structp png_ptr,
 #endif
 
 #if defined(PNG_gAMA_SUPPORTED)
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 extern PNG_EXPORT(void,png_set_gAMA) PNGARG((png_structp png_ptr,
    png_infop info_ptr, double file_gamma));
 #endif
@@ -2416,7 +2416,7 @@ extern PNG_EXPORT(void,png_set_tRNS) PNGARG((png_structp png_ptr,
 #endif
 
 #if defined(PNG_sCAL_SUPPORTED)
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 extern PNG_EXPORT(png_uint_32,png_get_sCAL) PNGARG((png_structp png_ptr,
    png_infop info_ptr, int *unit, double *width, double *height));
 #else
@@ -2428,7 +2428,7 @@ extern PNG_EXPORT(png_uint_32,png_get_sCAL_s) PNGARG((png_structp png_ptr,
 #endif /* PNG_sCAL_SUPPORTED */
 
 #if defined(PNG_sCAL_SUPPORTED)
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 extern PNG_EXPORT(void,png_set_sCAL) PNGARG((png_structp png_ptr,
    png_infop info_ptr, int unit, double width, double height));
 #else
@@ -3059,7 +3059,7 @@ PNG_EXTERN void png_write_IDAT PNGARG((png_structp png_ptr, png_bytep data,
 PNG_EXTERN void png_write_IEND PNGARG((png_structp png_ptr));
 
 #if defined(PNG_WRITE_gAMA_SUPPORTED)
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 PNG_EXTERN void png_write_gAMA PNGARG((png_structp png_ptr, double file_gamma));
 #endif
 #ifdef PNG_FIXED_POINT_SUPPORTED
@@ -3074,7 +3074,7 @@ PNG_EXTERN void png_write_sBIT PNGARG((png_structp png_ptr, png_color_8p sbit,
 #endif
 
 #if defined(PNG_WRITE_cHRM_SUPPORTED)
-#ifdef PNG_floatING_POINT_SUPPORTED
+#ifdef PNG_FLOATING_POINT_SUPPORTED
 PNG_EXTERN void png_write_cHRM PNGARG((png_structp png_ptr,
    double white_x, double white_y,
    double red_x, double red_y, double green_x, double green_y,
@@ -3171,7 +3171,7 @@ PNG_EXTERN void png_write_tIME PNGARG((png_structp png_ptr,
 #endif
 
 #if defined(PNG_WRITE_sCAL_SUPPORTED)
-#if defined(PNG_floatING_POINT_SUPPORTED) && !defined(PNG_NO_STDIO)
+#if defined(PNG_FLOATING_POINT_SUPPORTED) && !defined(PNG_NO_STDIO)
 PNG_EXTERN void png_write_sCAL PNGARG((png_structp png_ptr,
    int unit, double width, double height));
 #else
@@ -3523,7 +3523,7 @@ PNG_EXTERN void png_init_mmx_flags PNGARG((png_structp png_ptr));
 #endif
 #endif
 
-#if defined(PNG_INCH_CONVERSIONS) && defined(PNG_floatING_POINT_SUPPORTED)
+#if defined(PNG_INCH_CONVERSIONS) && defined(PNG_FLOATING_POINT_SUPPORTED)
 PNG_EXTERN png_uint_32 png_get_pixels_per_inch PNGARG((png_structp png_ptr,
 png_infop info_ptr));
 
@@ -3543,7 +3543,7 @@ png_infop info_ptr));
 PNG_EXTERN png_uint_32 png_get_pHYs_dpi PNGARG((png_structp png_ptr,
 png_infop info_ptr, png_uint_32 *res_x, png_uint_32 *res_y, int *unit_type));
 #endif /* PNG_pHYs_SUPPORTED */
-#endif  /* PNG_INCH_CONVERSIONS && PNG_floatING_POINT_SUPPORTED */
+#endif  /* PNG_INCH_CONVERSIONS && PNG_FLOATING_POINT_SUPPORTED */
 
 /* Maintainer: Put new private prototypes here ^ and in libpngpf.3 */
 

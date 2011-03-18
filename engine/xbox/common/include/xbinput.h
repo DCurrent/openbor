@@ -29,10 +29,10 @@ struct XBGAMEPAD : public XINPUT_GAMEPAD
 	//    SHORT   sThumbRY;
 
 	// Thumb stick values converted to range [-1,+1]
-	float      fX1;
-	float      fY1;
-	float      fX2;
-	float      fY2;
+	FLOAT      fX1;
+	FLOAT      fY1;
+	FLOAT      fX2;
+	FLOAT      fY2;
 	
 	// State of buttons tracked since last poll
 	WORD       wLastButtons;
@@ -76,7 +76,7 @@ extern XBGAMEPAD g_Gamepads[4];
 // Name: XBInput_CreateGamepads()
 // Desc: Creates the game pad devices
 //-----------------------------------------------------------------------------
-ptrdiff_t XBInput_CreateGamepads( XBGAMEPAD** ppGamepads = NULL );
+HRESULT XBInput_CreateGamepads( XBGAMEPAD** ppGamepads = NULL );
 
 
 

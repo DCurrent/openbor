@@ -47,7 +47,7 @@ error:
 	return NULL;
 }
 
-ptrdiff_t ImportNode_Init(ImportNode* node, const char* path)
+HRESULT ImportNode_Init(ImportNode* node, const char* path)
 {
 	char* scriptText;
 	node->numRefs = 0;
@@ -55,7 +55,7 @@ ptrdiff_t ImportNode_Init(ImportNode* node, const char* path)
 	Interpreter_Init(&node->interpreter, "#import", &theFunctionList);
 	scriptText = readscript(path);
 	if(scriptText == NULL) goto error;
-	if(FAILED(Interpreter_ParseText(&node->interpreter, scriptText, 1, (char*)path))) goto error;
+	if(FAILED(Interpreter_ParseText(&node->interpreter, scriptText, 1, path))) goto error;
 	if(FAILED(Interpreter_CompileInstructions(&node->interpreter))) goto error;
 	free(scriptText);
 	return S_OK;
@@ -80,7 +80,7 @@ ImportNode* ImportCache_Retrieve(const char* path)
 {
 	ImportNode* node;
 	
-	if(List_FindByName(&importCache, (char*)path)) // already imported by another file
+	if(List_FindByName(&importCache, path)) // already imported by another file
 	{
 #ifdef VERBOSE
 		printf("Reusing import %s\n", path);
@@ -97,7 +97,7 @@ ImportNode* ImportCache_Retrieve(const char* path)
 		if(FAILED(ImportNode_Init(node, path))) { free(node); return NULL; }
 		node->numRefs = 0;
 		List_GotoLast(&importCache);
-		List_InsertAfter(&importCache, node,(char*) path);
+		List_InsertAfter(&importCache, node, path);
 		node->numRefs++;
 	}
 	

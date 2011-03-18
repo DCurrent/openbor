@@ -16,16 +16,22 @@
 #define COMPILED_SCRIPT 1
 #endif
 
+typedef const char* LPCSTR;
+typedef char* LPSTR;
+typedef s32 HRESULT;
 typedef u32 DWORD;
 typedef u32 ULONG;
 typedef s32 LONG;
+typedef char CHAR;
+typedef float FLOAT;
+typedef double DOUBLE;
 
 #ifndef WII
 typedef int BOOL;
 #endif
 
 #ifndef XBOX
-typedef short Wchar;
+typedef short WCHAR;
 #endif
 
 #ifdef VOID
@@ -41,22 +47,22 @@ typedef void VOID;
 #ifdef S_OK
 #undef S_OK
 #endif
-#define S_OK   ((ptrdiff_t)0)
+#define S_OK   ((HRESULT)0)
 
 #ifdef E_FAIL
 #undef E_FAIL
 #endif
-#define E_FAIL ((ptrdiff_t)-1)
+#define E_FAIL ((HRESULT)-1)
 
 #ifdef FAILED
 #undef FAILED
 #endif
-#define FAILED(status) (((ptrdiff_t)(status))<0)
+#define FAILED(status) (((HRESULT)(status))<0)
 
 #ifdef SUCCEEDED
 #undef SUCCEEDED
 #endif
-#define SUCCEEDED(status) (((ptrdiff_t)(status))>=0)
+#define SUCCEEDED(status) (((HRESULT)(status))>=0)
 #endif
 
 #ifndef FALSE

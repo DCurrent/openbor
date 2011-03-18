@@ -25,8 +25,8 @@
 #include "depends.h"
 #else
 #include <stddef.h>
-typedef char* char*;
-typedef char char;
+typedef char* LPCSTR;
+typedef char CHAR;
 #define tracemalloc(a,b) malloc(b)
 #define free(a) free(a)
 #define tracecalloc(a,b) calloc(1,b)
@@ -56,13 +56,13 @@ typedef char char;
 	  } \
    }
 
-#define NAME(s) ((s==NULL)?NULL:(strcpy((char*)malloc(strlen(s)+1),s)))
+#define NAME(s) ((s==NULL)?NULL:(strcpy((CHAR*)malloc(strlen(s)+1),s)))
 
 typedef struct Node{
 	struct Node* prev;          //pointer to previous Node
 	struct Node* next;          //pointer to next Node	
 	void* value;                //data stored in a Node
-	char* name;                //optional name of the Node	
+	LPCSTR name;                //optional name of the Node	
 } Node;
 
 #ifdef USE_INDEX
@@ -110,8 +110,8 @@ void List_Solidify(List* list);
 int List_GetIndex(List* list);
 void List_Copy(List* listdest, const List* listsrc);
 void List_Clear(List* list);
-void List_InsertBefore(List* list, void* e, char* theName);
-void List_InsertAfter(List* list, void* e, char* theName);
+void List_InsertBefore(List* list, void* e, LPCSTR theName);
+void List_InsertAfter(List* list, void* e, LPCSTR theName);
 void List_Remove(List* list);
 void List_GotoNext(List* list);
 void List_GotoPrevious(List* list);
@@ -122,12 +122,12 @@ void* List_GetFirst(const List* list);
 void* List_GetLast(const List* list);
 void List_Update(List* list, void* e);
 int List_Includes(List* list, void* e);
-int List_FindByName(List* list, char* theName );
-char* List_GetName(const List* list);
+int List_FindByName(List* list, LPCSTR theName );
+LPCSTR List_GetName(const List* list);
 void List_Reset(List* list);
 int List_GetSize(const List* list);
 
-Node* List_SearchName(List* list, char* theName );
+Node* List_SearchName(List* list, LPCSTR theName );
 Node* List_Contains(List* list, void* e);
 int List_GetNodeIndex(List* list, Node* node);	
 #ifdef USE_INDEX

@@ -12,7 +12,7 @@
 #include <string.h>
 
 //Constructor
-void Token_Init(Token* ptoken, MY_TOKEN_TYPE theType, char* theSource, TEXTPOS theTextPosition, ULONG charOffset)
+void Token_Init(Token* ptoken, MY_TOKEN_TYPE theType, LPCSTR theSource, TEXTPOS theTextPosition, ULONG charOffset)
 {
 	ptoken->theType = theType;
 	ptoken->theTextPosition = theTextPosition;
@@ -21,7 +21,7 @@ void Token_Init(Token* ptoken, MY_TOKEN_TYPE theType, char* theSource, TEXTPOS t
 }
 
 //Construct from a pp_token
-ptrdiff_t Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
+HRESULT Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 {
 	ptoken->theTextPosition = ppToken->theTextPosition;
 	ptoken->charOffset = ppToken->charOffset;
@@ -45,7 +45,7 @@ ptrdiff_t Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 			break;
 		case PP_TOKEN_HEXCONSTANT: ptoken->theType = TOKEN_HEXCONSTANT; break;
 		case PP_TOKEN_INTCONSTANT: ptoken->theType = TOKEN_INTCONSTANT; break;
-		case PP_TOKEN_floatCONSTANT: ptoken->theType = TOKEN_floatCONSTANT; break;
+		case PP_TOKEN_FLOATCONSTANT: ptoken->theType = TOKEN_FLOATCONSTANT; break;
 		case PP_TOKEN_STRING_LITERAL:
 		{
 			char *src, *dest;
@@ -131,8 +131,8 @@ ptrdiff_t Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 		case PP_TOKEN_LONG: ptoken->theType = TOKEN_LONG; break;
 		case PP_TOKEN_SIGNED: ptoken->theType = TOKEN_SIGNED; break;
 		case PP_TOKEN_UNSIGNED: ptoken->theType = TOKEN_UNSIGNED; break;
-		case PP_TOKEN_float: ptoken->theType = TOKEN_float; break;
-		case PP_TOKEN_double: ptoken->theType = TOKEN_double; break;
+		case PP_TOKEN_FLOAT: ptoken->theType = TOKEN_FLOAT; break;
+		case PP_TOKEN_DOUBLE: ptoken->theType = TOKEN_DOUBLE; break;
 		case PP_TOKEN_CONST: ptoken->theType = TOKEN_CONST; break;
 		case PP_TOKEN_VOLATILE: ptoken->theType = TOKEN_VOLATILE; break;
 		case PP_TOKEN_VOID: ptoken->theType = TOKEN_VOID; break;
@@ -198,7 +198,7 @@ ptrdiff_t Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 	return S_OK;
 }
 
-void Lexer_Init(Lexer* plexer, pp_context* pcontext, char* thePath, char* theSource, TEXTPOS theStartingPosition)
+void Lexer_Init(Lexer* plexer, pp_context* pcontext, LPCSTR thePath, LPSTR theSource, TEXTPOS theStartingPosition)
 {
 	 plexer->thePath = thePath;
 	 plexer->ptheSource = theSource;
@@ -220,7 +220,7 @@ void Lexer_Clear(Lexer* plexer)
 *  Returns: S_OK
 *           E_FAIL
 ******************************************************************************/
-ptrdiff_t Lexer_GetNextToken(Lexer* plexer, Token* theNextToken)
+HRESULT Lexer_GetNextToken(Lexer* plexer, Token* theNextToken)
 {
 	pp_token* ppToken;
 	

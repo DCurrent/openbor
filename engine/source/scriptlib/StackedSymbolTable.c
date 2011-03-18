@@ -17,7 +17,7 @@
 *  Initialize -- This method intializes the stacked symbol table with its name
 *  and creates a new stack for the symbol tables.
 ******************************************************************************/
-void StackedSymbolTable_Init(StackedSymbolTable* sstable, char* theName )
+void StackedSymbolTable_Init(StackedSymbolTable* sstable, LPCSTR theName )
 {
 
    if (theName) strcpy(sstable->name, theName);
@@ -41,7 +41,7 @@ void StackedSymbolTable_Clear(StackedSymbolTable* sstable)
 *  symbol table stack.  The top symbol table on the stack represents the
 *  innermost symbol scope.
 ******************************************************************************/
-void StackedSymbolTable_PushScope(StackedSymbolTable* sstable, char* scopeName )
+void StackedSymbolTable_PushScope(StackedSymbolTable* sstable, LPCSTR scopeName )
 {
 
    SymbolTable* newSymbolTable = NULL;
@@ -85,14 +85,14 @@ void StackedSymbolTable_PopScope(StackedSymbolTable* sstable)
 /******************************************************************************
 *  FindSymbol -- This method searches the symbol table for the symbol
 *  we're looking for.
-*  Parameters: symbolName -- char* which contains the name of the desired
+*  Parameters: symbolName -- LPCSTR which contains the name of the desired
 *                            symbol.
 *              pp_theSymbol -- CSymbol** which receives the address of the
 *                              CSymbol, or NULL if no symbol is found.
 *  Returns: true if the symbol is found.
 *           false otherwise.
 ******************************************************************************/
-BOOL StackedSymbolTable_FindSymbol(StackedSymbolTable* sstable, char* symbolName,
+BOOL StackedSymbolTable_FindSymbol(StackedSymbolTable* sstable, LPCSTR symbolName,
 									 Symbol** pp_theSymbol )
 {
    SymbolTable* currentSymbolTable = NULL;

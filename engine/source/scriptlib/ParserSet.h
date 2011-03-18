@@ -22,5 +22,5 @@ void ParserSet_Buildup(ParserSet* pset);
 void ParserSet_Clear(ParserSet* pset);
 BOOL ParserSet_First(ParserSet* pset, PRODUCTION theProduction, MY_TOKEN_TYPE theToken);
 BOOL ParserSet_Follow(ParserSet* pset, PRODUCTION theProduction, MY_TOKEN_TYPE theToken);
-MY_TOKEN_TYPE LookupValue( char* theToken);
+MY_TOKEN_TYPE LookupValue( CHAR* theToken);
 #endif

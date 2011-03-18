@@ -20,7 +20,7 @@ typedef struct ImportNode {
 	Interpreter interpreter;
 } ImportNode;
 
-ptrdiff_t ImportNode_Init(ImportNode* node, const char* path);
+HRESULT ImportNode_Init(ImportNode* node, const char* path);
 void ImportNode_Clear(ImportNode* node);
 
 void ImportCache_Init();

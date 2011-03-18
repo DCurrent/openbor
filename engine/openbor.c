@@ -735,7 +735,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		break;
 	case _e_lasthita:
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
-		var->dblVal = (double)(lasthita);
+		var->dblVal = (DOUBLE)(lasthita);
 		break;
 	case _e_lasthitc:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -747,21 +747,21 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		break;
 	case _e_lasthitx:
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
-		var->dblVal = (double)(lasthitx);
+		var->dblVal = (DOUBLE)(lasthitx);
 		break;
 	case _e_lasthitz:
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
-		var->dblVal = (double)(lasthitz);
+		var->dblVal = (DOUBLE)(lasthitz);
 		break;
 	case _e_xpos:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
-		var->dblVal = (double)advancex;
+		var->dblVal = (DOUBLE)advancex;
 		break;
 	case _e_ypos:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
-		var->dblVal = (double)advancey;
+		var->dblVal = (DOUBLE)advancey;
 		break;
 	case _e_hResolution:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -916,7 +916,7 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 {
 	//char* tempstr = NULL;
 	LONG ltemp;
-	//double dbltemp;
+	//DOUBLE dbltemp;
 
 	// This enum is replicated in mapstrings_changesystemvariant in
 	// openborscript.c. If you change one, you must change the other as well!!!!
@@ -1335,7 +1335,7 @@ void execute_onblockw_script(entity* ent, int plane, float height)
 		tempvar.lVal = (LONG)plane;
 		Script_Set_Local_Variant("plane",      &tempvar);
 		ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
-		tempvar.dblVal = (double)height;
+		tempvar.dblVal = (DOUBLE)height;
 		Script_Set_Local_Variant("height",      &tempvar);
 		Script_Execute(ent->scripts.onblockw_script);
 
@@ -5315,7 +5315,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					// How many times an enemy can be hit before retaliating
 					newchar->escapehits = GET_INT_ARG(1);
 					break;
-				case CMD_MODEL_charGERATE:
+				case CMD_MODEL_CHARGERATE:
 					// How much mp does this character gain while recharging?
 					newchar->chargerate = GET_INT_ARG(1);
 					break;
@@ -6279,7 +6279,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_MPONLY:
 					newanim->energycost[1] = GET_INT_ARG(1);
 					break;
-				case CMD_MODEL_charGETIME:
+				case CMD_MODEL_CHARGETIME:
 					newanim->chargetime = GET_FLOAT_ARG(1);
 					break;
 				case CMD_MODEL_DIVE:	//dive kicks
