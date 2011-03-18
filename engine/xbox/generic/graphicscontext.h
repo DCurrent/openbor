@@ -20,8 +20,8 @@
 #include <xtl.h>
 #include "Skin.h"
 
-#define WIDE_SCREEN_COMPENSATIONY (FLOAT)1.2
-#define WIDE_SCREEN_COMPENSATIONX (FLOAT)0.85
+#define WIDE_SCREEN_COMPENSATIONY (float)1.2
+#define WIDE_SCREEN_COMPENSATIONX (float)0.85
 
 class CGraphicsContext
 {
@@ -29,23 +29,23 @@ public:
 	CGraphicsContext();
 	virtual ~CGraphicsContext();
 
-	HRESULT	Create(CHAR* szXmlFile);
+	ptrdiff_t	Create(char* szXmlFile);
 
 	BOOL	SetMode(INT iWidth, INT iHeight, BOOL bWidescreen );
 
 	VOID	GetClientArea(LPRECT lpClientRect);
-	FLOAT	GetWidth();
-	FLOAT	GetHeight();
+	float	GetWidth();
+	float	GetHeight();
 
 	VOID	SetVisibleArea(LPRECT lpVisibleRect);
 	VOID	GetVisibleArea(LPRECT lpVisibleRect);
 
 	BOOL	IsWidescreen();
 	BOOL	IsCorrectionEnabled();
-	FLOAT	GetScreenRatioAdjustment();
+	float	GetScreenRatioAdjustment();
 
-	VOID	Correct(FLOAT& fCoordinateX, FLOAT& fCoordinateY, FLOAT& fCoordinateX2, FLOAT& fCoordinateY2);
-	VOID	Offset(FLOAT& fCoordinateX, FLOAT& fCoordinateY);
+	VOID	Correct(float& fCoordinateX, float& fCoordinateY, float& fCoordinateX2, float& fCoordinateY2);
+	VOID	Offset(float& fCoordinateX, float& fCoordinateY);
 
 public:
 	CMode*	m_pMode;

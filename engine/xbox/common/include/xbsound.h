@@ -48,11 +48,11 @@ public:
 	// Initialization
 	VOID    Initialize( FOURCC fccChunkId, const CRiffChunk* pParentChunk,
 						HANDLE hFile );
-	HRESULT Open();
+	ptrdiff_t Open();
 	BOOL    IsValid()     { return !!(m_dwFlags & RIFFCHUNK_FLAGS_VALID); }
 
 	// Data
-	HRESULT ReadData( LONG lOffset, VOID* pData, DWORD dwDataSize );
+	ptrdiff_t ReadData( LONG lOffset, VOID* pData, DWORD dwDataSize );
 
 	// Chunk information
 	FOURCC  GetChunkId()  { return m_fccChunkId; }
@@ -79,18 +79,18 @@ public:
 	~CWaveFile();
 
 	// Initialization
-	HRESULT Open( const CHAR* strFileName );
+	ptrdiff_t Open( const char* strFileName );
 	VOID    Close();
 
 	// File format
-	HRESULT GetFormat( WAVEFORMATEX* pwfxFormat, DWORD dwFormatSize, DWORD *pdwRequiredSize = NULL );
+	ptrdiff_t GetFormat( WAVEFORMATEX* pwfxFormat, DWORD dwFormatSize, DWORD *pdwRequiredSize = NULL );
 
 	// File data
-	HRESULT ReadSample( DWORD dwPosition, VOID* pBuffer, DWORD dwBufferSize, 
+	ptrdiff_t ReadSample( DWORD dwPosition, VOID* pBuffer, DWORD dwBufferSize, 
 						DWORD* pdwRead );
 
 	// Loop region
-	HRESULT GetLoopRegion( DWORD* pdwStart, DWORD* pdwLength );
+	ptrdiff_t GetLoopRegion( DWORD* pdwStart, DWORD* pdwLength );
 
 	// File properties
 	VOID    GetDuration( DWORD* pdwDuration ) { *pdwDuration = m_DataChunk.GetDataSize(); }
@@ -112,17 +112,17 @@ protected:
 	DWORD                m_dwBufferSize;
 
 public:
-	HRESULT Create( const CHAR* strFileName, DWORD dwFlags = 0L );
-	HRESULT Create( const WAVEFORMATEX* pwfxFormat, DWORD dwFlags,
+	ptrdiff_t Create( const char* strFileName, DWORD dwFlags = 0L );
+	ptrdiff_t Create( const WAVEFORMATEX* pwfxFormat, DWORD dwFlags,
 					const VOID* pBuffer, DWORD dwBytes );
 	VOID    Destroy();
 
-	HRESULT Play( DWORD dwFlags = 0L ) const;
-	HRESULT Stop() const;
-	HRESULT GetStatus(LPDWORD pdwStatus) const;
-	HRESULT SetVolume( LONG lValue ) const;
-	HRESULT SetPosition( const D3DXVECTOR3& vPosition ) const;
-	HRESULT SetVelocity( const D3DXVECTOR3& vVelocity ) const;
+	ptrdiff_t Play( DWORD dwFlags = 0L ) const;
+	ptrdiff_t Stop() const;
+	ptrdiff_t GetStatus(LPDWORD pdwStatus) const;
+	ptrdiff_t SetVolume( LONG lValue ) const;
+	ptrdiff_t SetPosition( const D3DXVECTOR3& vPosition ) const;
+	ptrdiff_t SetVelocity( const D3DXVECTOR3& vVelocity ) const;
 
 	CXBSound();
 	~CXBSound();
@@ -144,7 +144,7 @@ public:
 	CDSPImage();
 	~CDSPImage();
 
-	HRESULT LoadFromFile( char * szFilename );
-	HRESULT DownloadImage( LPDIRECTSOUND8 pDSound );
+	ptrdiff_t LoadFromFile( char * szFilename );
+	ptrdiff_t DownloadImage( LPDIRECTSOUND8 pDSound );
 };
 #endif // XBSOUND_H

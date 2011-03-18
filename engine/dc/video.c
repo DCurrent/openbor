@@ -31,7 +31,7 @@ int video_set_mode(s_videomodes videomodes)
 	height = videomodes.vRes;
 	if(videomodes.hRes==480) mode = 1;
 	if(screen) SDL_FreeSurface(screen);
-	screen = SDL_SetVideoMode(mode?640:width,mode?480:height,8*bpp,SDL_HWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN);
+	screen = SDL_SetVideoMode(mode?640:width,mode?480:height,8*bpp,SDL_HWSURFACE|SDL_doubleBUF|SDL_FULLSCREEN);
 	if(screen==NULL) return 0;
 	if(bpp>1)
 	{

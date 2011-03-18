@@ -19,9 +19,9 @@
 #define GET_ARGP(z) arglist->count > z ? arglist->args[z] : ""
 #define GET_ARGP_LEN(z) arglist->count > z ? arglist->arglen[z] : 0
 #define GET_INT_ARG(z) getValidInt(GET_ARG(z), filename, command)
-#define GET_FLOAT_ARG(z) getValidFloat(GET_ARG(z), filename, command)
+#define GET_float_ARG(z) getValidFloat(GET_ARG(z), filename, command)
 #define GET_INT_ARGP(z) getValidInt(GET_ARGP(z), filename, command)
-#define GET_FLOAT_ARGP(z) getValidFloat(GET_ARGP(z), filename, command)
+#define GET_float_ARGP(z) getValidFloat(GET_ARGP(z), filename, command)
 
 static const char* E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
 static int DEFAULT_OFFSCREEN_KILL = 3000;
@@ -735,7 +735,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		break;
 	case _e_lasthita:
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
-		var->dblVal = (DOUBLE)(lasthita);
+		var->dblVal = (double)(lasthita);
 		break;
 	case _e_lasthitc:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -747,21 +747,21 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		break;
 	case _e_lasthitx:
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
-		var->dblVal = (DOUBLE)(lasthitx);
+		var->dblVal = (double)(lasthitx);
 		break;
 	case _e_lasthitz:
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
-		var->dblVal = (DOUBLE)(lasthitz);
+		var->dblVal = (double)(lasthitz);
 		break;
 	case _e_xpos:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
-		var->dblVal = (DOUBLE)advancex;
+		var->dblVal = (double)advancex;
 		break;
 	case _e_ypos:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
-		var->dblVal = (DOUBLE)advancey;
+		var->dblVal = (double)advancey;
 		break;
 	case _e_hResolution:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -916,7 +916,7 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 {
 	//char* tempstr = NULL;
 	LONG ltemp;
-	//DOUBLE dbltemp;
+	//double dbltemp;
 
 	// This enum is replicated in mapstrings_changesystemvariant in
 	// openborscript.c. If you change one, you must change the other as well!!!!
@@ -1335,7 +1335,7 @@ void execute_onblockw_script(entity* ent, int plane, float height)
 		tempvar.lVal = (LONG)plane;
 		Script_Set_Local_Variant("plane",      &tempvar);
 		ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
-		tempvar.dblVal = (DOUBLE)height;
+		tempvar.dblVal = (double)height;
 		Script_Set_Local_Variant("height",      &tempvar);
 		Script_Execute(ent->scripts.onblockw_script);
 
@@ -4749,7 +4749,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_STATS:
 					value = GET_ARG(1);
-					newchar->stats[atoi(value)] = GET_FLOAT_ARG(2);
+					newchar->stats[atoi(value)] = GET_float_ARG(2);
 					break;
 				case CMD_MODEL_HEALTH:
 					value = GET_ARG(1);
@@ -5011,16 +5011,16 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					#define tempdef(x, y, z, p, k, b, t, r, e) \
 					x(stricmp(value, #y)==0)\
 					{\
-					newchar->z[ATK_##y] = GET_FLOAT_ARG(2);\
+					newchar->z[ATK_##y] = GET_float_ARG(2);\
 					/*newchar->z[ATK_##y] /= 100;*/\
-					newchar->p[ATK_##y] = GET_FLOAT_ARG(3);\
-					newchar->k[ATK_##y] = GET_FLOAT_ARG(4);\
+					newchar->p[ATK_##y] = GET_float_ARG(3);\
+					newchar->k[ATK_##y] = GET_float_ARG(4);\
 					/*newchar->k[ATK_##y] /= 100;*/\
-					newchar->b[ATK_##y] = GET_FLOAT_ARG(5);\
-					newchar->t[ATK_##y] = GET_FLOAT_ARG(6);\
-					newchar->r[ATK_##y] = GET_FLOAT_ARG(7);\
+					newchar->b[ATK_##y] = GET_float_ARG(5);\
+					newchar->t[ATK_##y] = GET_float_ARG(6);\
+					newchar->r[ATK_##y] = GET_float_ARG(7);\
 					/*newchar->r[ATK_##y] /= 100;*/\
-					newchar->e[ATK_##y] = GET_FLOAT_ARG(8);\
+					newchar->e[ATK_##y] = GET_float_ARG(8);\
 					}
 					{
 						value = GET_ARG(1);
@@ -5043,25 +5043,25 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						{
 							tempInt = atoi(value+6);
 							if(tempInt<11) tempInt = 11;
-							newchar->defense_factors[tempInt+STA_ATKS-1]        = GET_FLOAT_ARG(2);
-							newchar->defense_pain[tempInt+STA_ATKS-1]           = GET_FLOAT_ARG(3);
-							newchar->defense_knockdown[tempInt+STA_ATKS-1]      = GET_FLOAT_ARG(4);
-							newchar->defense_blockpower[tempInt+STA_ATKS-1]     = GET_FLOAT_ARG(5);
-							newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = GET_FLOAT_ARG(6);
-							newchar->defense_blockratio[tempInt+STA_ATKS-1]     = GET_FLOAT_ARG(7);
-							newchar->defense_blocktype[tempInt+STA_ATKS-1]      = GET_FLOAT_ARG(8);
+							newchar->defense_factors[tempInt+STA_ATKS-1]        = GET_float_ARG(2);
+							newchar->defense_pain[tempInt+STA_ATKS-1]           = GET_float_ARG(3);
+							newchar->defense_knockdown[tempInt+STA_ATKS-1]      = GET_float_ARG(4);
+							newchar->defense_blockpower[tempInt+STA_ATKS-1]     = GET_float_ARG(5);
+							newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = GET_float_ARG(6);
+							newchar->defense_blockratio[tempInt+STA_ATKS-1]     = GET_float_ARG(7);
+							newchar->defense_blocktype[tempInt+STA_ATKS-1]      = GET_float_ARG(8);
 						}
 						else if(stricmp(value, "ALL")==0)
 						{
 							for(i=0;i<max_attack_types;i++)
 							{
-								newchar->defense_factors[i]         = GET_FLOAT_ARG(2);
-								newchar->defense_pain[i]            = GET_FLOAT_ARG(3);
-								newchar->defense_knockdown[i]       = GET_FLOAT_ARG(4);
-								newchar->defense_blockpower[i]      = GET_FLOAT_ARG(5);
-								newchar->defense_blockthreshold[i]  = GET_FLOAT_ARG(6);
-								newchar->defense_blockratio[i]      = GET_FLOAT_ARG(7);
-								newchar->defense_blocktype[i]       = GET_FLOAT_ARG(8);
+								newchar->defense_factors[i]         = GET_float_ARG(2);
+								newchar->defense_pain[i]            = GET_float_ARG(3);
+								newchar->defense_knockdown[i]       = GET_float_ARG(4);
+								newchar->defense_blockpower[i]      = GET_float_ARG(5);
+								newchar->defense_blockthreshold[i]  = GET_float_ARG(6);
+								newchar->defense_blockratio[i]      = GET_float_ARG(7);
+								newchar->defense_blocktype[i]       = GET_float_ARG(8);
 							}
 						}
 					}
@@ -5071,7 +5071,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					#define tempoff(x, y, z) \
 					x(stricmp(value, #y)==0)\
 					{\
-					newchar->z[ATK_##y] = GET_FLOAT_ARG(2);\
+					newchar->z[ATK_##y] = GET_float_ARG(2);\
 					/*newchar->z[ATK_##y] /= 100;*/\
 					}
 					{
@@ -5095,11 +5095,11 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						{
 							tempInt = atoi(value+6);
 							if(tempInt<11) tempInt = 11;
-							newchar->offense_factors[tempInt+STA_ATKS-1] = GET_FLOAT_ARG(2);
+							newchar->offense_factors[tempInt+STA_ATKS-1] = GET_float_ARG(2);
 						}
 						else if(stricmp(value, "ALL")==0)
 						{
-							tempFloat = GET_FLOAT_ARG(2);
+							tempFloat = GET_float_ARG(2);
 							for(i=0;i<max_attack_types;i++)
 							{
 								newchar->offense_factors[i] = tempFloat;
@@ -5112,17 +5112,17 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->height = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_JUMPHEIGHT:
-					newchar->jumpheight = GET_FLOAT_ARG(1);
+					newchar->jumpheight = GET_float_ARG(1);
 					break;
 				case CMD_MODEL_JUMPMOVE:
 					newchar->jumpmovex = GET_INT_ARG(1);
 					newchar->jumpmovez = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_KNOCKDOWNCOUNT:
-					newchar->knockdowncount = GET_FLOAT_ARG(1);
+					newchar->knockdowncount = GET_float_ARG(1);
 					break;
 				case CMD_MODEL_GRABDISTANCE:
-					newchar->grabdistance = GET_FLOAT_ARG(1);                    // 30-12-2004 and store for character
+					newchar->grabdistance = GET_float_ARG(1);                    // 30-12-2004 and store for character
 					break;
 				case CMD_MODEL_GRABFINISH:
 					newchar->grabfinish = GET_INT_ARG(1);
@@ -5178,10 +5178,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_RUNNING:
 					// The speed at which the player runs
-					newchar->runspeed = GET_FLOAT_ARG(1);
+					newchar->runspeed = GET_float_ARG(1);
 					newchar->runspeed /= 10;
-					newchar->runjumpheight = GET_FLOAT_ARG(2);    // The height at which a player jumps when running
-					newchar->runjumpdist = GET_FLOAT_ARG(3);    // The distance a player jumps when running
+					newchar->runjumpheight = GET_float_ARG(2);    // The height at which a player jumps when running
+					newchar->runjumpdist = GET_float_ARG(3);    // The distance a player jumps when running
 					newchar->runupdown = GET_INT_ARG(4);
 					newchar->runhold = GET_INT_ARG(5);
 					break;
@@ -5200,7 +5200,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_EDELAY:
 					newchar->edelay.mode        = GET_INT_ARG(1);
-					newchar->edelay.factor      = GET_FLOAT_ARG(2);
+					newchar->edelay.factor      = GET_float_ARG(2);
 					newchar->edelay.cap_min     = GET_INT_ARG(3);
 					newchar->edelay.cap_max     = GET_INT_ARG(4);
 					newchar->edelay.range_min   = GET_INT_ARG(5);
@@ -5210,11 +5210,11 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->paingrab = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_THROW:
-					newchar->throwdist = GET_FLOAT_ARG(1);
-					newchar->throwheight = GET_FLOAT_ARG(2);
+					newchar->throwdist = GET_float_ARG(1);
+					newchar->throwheight = GET_float_ARG(2);
 					break;
 				case CMD_MODEL_GRABWALK:
-					newchar->grabwalkspeed = GET_FLOAT_ARG(1);
+					newchar->grabwalkspeed = GET_float_ARG(1);
 					newchar->grabwalkspeed /= 10;
 					if(newchar->grabwalkspeed < 0.5) newchar->grabwalkspeed = 0.5;
 					break;
@@ -5315,7 +5315,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					// How many times an enemy can be hit before retaliating
 					newchar->escapehits = GET_INT_ARG(1);
 					break;
-				case CMD_MODEL_CHARGERATE:
+				case CMD_MODEL_charGERATE:
 					// How much mp does this character gain while recharging?
 					newchar->chargerate = GET_INT_ARG(1);
 					break;
@@ -5351,7 +5351,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->turndelay = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_LIFESPAN:
-					newchar->lifespan = GET_FLOAT_ARG(1)*GAME_SPEED;
+					newchar->lifespan = GET_float_ARG(1)*GAME_SPEED;
 					break;
 				case CMD_MODEL_SUMMONKILL:
 					newchar->summonkill = GET_INT_ARG(1);
@@ -5965,7 +5965,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							ani_id = ANI_JUMPCANT;
 						}
 						else if(stricmp(value, "charge")==0){
-							ani_id = ANI_CHARGE;
+							ani_id = ANI_charGE;
 						}
 						else if(stricmp(value, "faint")==0){
 							ani_id = ANI_FAINT;
@@ -6161,7 +6161,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							ani_id = animfollows[tempInt-1];
 						}
 						else if(stricmp(value, "chargeattack")==0){
-							ani_id = ANI_CHARGEATTACK;
+							ani_id = ANI_charGEATTACK;
 						}
 						else if(stricmp(value, "vault")==0){
 							ani_id = ANI_VAULT;
@@ -6279,18 +6279,18 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_MPONLY:
 					newanim->energycost[1] = GET_INT_ARG(1);
 					break;
-				case CMD_MODEL_CHARGETIME:
-					newanim->chargetime = GET_FLOAT_ARG(1);
+				case CMD_MODEL_charGETIME:
+					newanim->chargetime = GET_float_ARG(1);
 					break;
 				case CMD_MODEL_DIVE:	//dive kicks
-					newanim->dive[0] = GET_FLOAT_ARG(1);
-					newanim->dive[1] = GET_FLOAT_ARG(2);
+					newanim->dive[0] = GET_float_ARG(1);
+					newanim->dive[1] = GET_float_ARG(2);
 					break;
 				case CMD_MODEL_DIVE1:
-					newanim->dive[0] = GET_FLOAT_ARG(1);
+					newanim->dive[0] = GET_float_ARG(1);
 					break;
 				case CMD_MODEL_DIVE2:
-					newanim->dive[1] = GET_FLOAT_ARG(1);
+					newanim->dive[1] = GET_float_ARG(1);
 					break;
 				case CMD_MODEL_ATTACKONE:
 					newanim->attackone = GET_INT_ARG(1);
@@ -6332,12 +6332,12 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_JUMPFRAME:
 					{
 						newanim->jumpframe = GET_INT_ARG(1);
-						newanim->jumpv = GET_FLOAT_ARG(2);    // Added so movement can be customized for jumpframes
+						newanim->jumpv = GET_float_ARG(2);    // Added so movement can be customized for jumpframes
 						value = GET_ARG(3);
 						if(value[0])
 						{
-							newanim->jumpx = GET_FLOAT_ARG(3);
-							newanim->jumpz = GET_FLOAT_ARG(4);
+							newanim->jumpx = GET_float_ARG(3);
+							newanim->jumpz = GET_float_ARG(4);
 						}
 						else // k, only for backward compatibility :((((((((((((((((
 						{
@@ -6374,7 +6374,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					break;
 				case CMD_MODEL_BOUNCEFACTOR:
-					newanim->bounce = GET_FLOAT_ARG(1);
+					newanim->bounce = GET_float_ARG(1);
 					break;
 				case CMD_MODEL_LANDFRAME:
 					newanim->landframe[0] = GET_INT_ARG(1);
@@ -6486,10 +6486,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					for(i=0;i<arglist.count && arglist.args[i] && arglist.args[i][0];i++);
 					if(i<8)
 					{
-						for(i=0;i<6; i++) platform[i+2] = GET_FLOAT_ARG(i+1);
+						for(i=0;i<6; i++) platform[i+2] = GET_float_ARG(i+1);
 						platform[0] = 99999;
 					}
-					else for(i=0; i<8; i++) platform[i] = GET_FLOAT_ARG(i+1);
+					else for(i=0; i<8; i++) platform[i] = GET_float_ARG(i+1);
 					break;
 				case CMD_MODEL_DRAWMETHOD:
 					// special effects
@@ -6623,9 +6623,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_DROPV:
 					// drop velocity add if the target is knocked down
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
-					pattack->dropv[0] = GET_FLOAT_ARG(1); // height add
-					pattack->dropv[1] = GET_FLOAT_ARG(2); // xdir add
-					pattack->dropv[2] = GET_FLOAT_ARG(3); // zdir add
+					pattack->dropv[0] = GET_float_ARG(1); // height add
+					pattack->dropv[1] = GET_float_ARG(2); // xdir add
+					pattack->dropv[2] = GET_float_ARG(3); // zdir add
 					break;
 				case CMD_MODEL_OTG:
 					// Over The Ground hit.
@@ -6650,7 +6650,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					// fake grab distanse efffect, not link
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->grab =  GET_INT_ARG(1);
-					pattack->grab_distance = GET_FLOAT_ARG(2);
+					pattack->grab_distance = GET_float_ARG(2);
 					break;
 				case CMD_MODEL_NOREFLECT:
 					// only cost target's hp, don't knock down or cause pain, unless the target is killed
@@ -6894,20 +6894,20 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_SPAWNFRAME:
 					newanim->spawnframe    = malloc(5 * sizeof(newanim->spawnframe));
 					memset(newanim->spawnframe, 0, 5 * sizeof(newanim->spawnframe));
-					newanim->spawnframe[0] = GET_FLOAT_ARG(1);
-					newanim->spawnframe[1] = GET_FLOAT_ARG(2);
-					newanim->spawnframe[2] = GET_FLOAT_ARG(3);
-					newanim->spawnframe[3] = GET_FLOAT_ARG(4);
-					newanim->spawnframe[4] = GET_FLOAT_ARG(5);
+					newanim->spawnframe[0] = GET_float_ARG(1);
+					newanim->spawnframe[1] = GET_float_ARG(2);
+					newanim->spawnframe[2] = GET_float_ARG(3);
+					newanim->spawnframe[3] = GET_float_ARG(4);
+					newanim->spawnframe[4] = GET_float_ARG(5);
 					break;
 				case CMD_MODEL_SUMMONFRAME:
 					newanim->summonframe    = malloc(5 * sizeof(newanim->summonframe));
 					memset(newanim->summonframe, 0, 5 * sizeof(newanim->summonframe));
-					newanim->summonframe[0] = GET_FLOAT_ARG(1);
-					newanim->summonframe[1] = GET_FLOAT_ARG(2);
-					newanim->summonframe[2] = GET_FLOAT_ARG(3);
-					newanim->summonframe[3] = GET_FLOAT_ARG(4);
-					newanim->summonframe[4] = GET_FLOAT_ARG(5);
+					newanim->summonframe[0] = GET_float_ARG(1);
+					newanim->summonframe[1] = GET_float_ARG(2);
+					newanim->summonframe[2] = GET_float_ARG(3);
+					newanim->summonframe[3] = GET_float_ARG(4);
+					newanim->summonframe[4] = GET_float_ARG(5);
 					break;
 				case CMD_MODEL_UNSUMMONFRAME:
 					newanim->unsummonframe = GET_INT_ARG(1);
@@ -8578,7 +8578,7 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_MUSICFADE:
 				memset(&next,0,sizeof(s_spawn_entry));
-				next.musicfade = GET_FLOAT_ARG(1);
+				next.musicfade = GET_float_ARG(1);
 				break;
 			case CMD_LEVEL_MUSIC:
 				value = GET_ARG(1);
@@ -8635,8 +8635,8 @@ void load_level(char *filename){
 				level->bglayers[0].type = bg_screen;
 				level->bglayers[0].bgspeedratio = 1;
 
-				level->bglayers[0].xratio = GET_FLOAT_ARG(2); // x ratio
-				level->bglayers[0].zratio = GET_FLOAT_ARG(3); // z ratio
+				level->bglayers[0].xratio = GET_float_ARG(2); // x ratio
+				level->bglayers[0].zratio = GET_float_ARG(3); // z ratio
 				level->bglayers[0].xoffset = GET_INT_ARG(4); // x start
 				level->bglayers[0].zoffset = GET_INT_ARG(5); // z start
 				level->bglayers[0].xspacing = GET_INT_ARG(6); // x spacing
@@ -8649,7 +8649,7 @@ void load_level(char *filename){
 				level->bglayers[0].watermode = GET_INT_ARG(12); // amplitude
 				level->bglayers[0].amplitude = GET_INT_ARG(13); // amplitude
 				level->bglayers[0].wavelength = GET_INT_ARG(14); // wavelength
-				level->bglayers[0].wavespeed = GET_FLOAT_ARG(15); // waterspeed
+				level->bglayers[0].wavespeed = GET_float_ARG(15); // waterspeed
 				level->bglayers[0].enabled = 1; // enabled
 
 				if((value=GET_ARG(2))[0]==0) level->bglayers[0].xratio = 0.5;
@@ -8664,8 +8664,8 @@ void load_level(char *filename){
 				if(level->numbglayers >= LEVEL_MAX_BGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_BGLAYERS);
 				if(level->numbglayers==0) level->numbglayers = 1; // reserve for background
 
-				level->bglayers[level->numbglayers].xratio = GET_FLOAT_ARG(2); // x ratio
-				level->bglayers[level->numbglayers].zratio = GET_FLOAT_ARG(3); // z ratio
+				level->bglayers[level->numbglayers].xratio = GET_float_ARG(2); // x ratio
+				level->bglayers[level->numbglayers].zratio = GET_float_ARG(3); // z ratio
 				level->bglayers[level->numbglayers].xoffset = GET_INT_ARG(4); // x start
 				level->bglayers[level->numbglayers].zoffset = GET_INT_ARG(5); // z start
 				level->bglayers[level->numbglayers].xspacing = GET_INT_ARG(6); // x spacing
@@ -8677,8 +8677,8 @@ void load_level(char *filename){
 				level->bglayers[level->numbglayers].watermode = GET_INT_ARG(12); // amplitude
 				level->bglayers[level->numbglayers].amplitude = GET_INT_ARG(13); // amplitude
 				level->bglayers[level->numbglayers].wavelength = GET_INT_ARG(14); // wavelength
-				level->bglayers[level->numbglayers].wavespeed = GET_FLOAT_ARG(15); // waterspeed
-				level->bglayers[level->numbglayers].bgspeedratio = GET_FLOAT_ARG(16); // moving
+				level->bglayers[level->numbglayers].wavespeed = GET_float_ARG(15); // waterspeed
+				level->bglayers[level->numbglayers].bgspeedratio = GET_float_ARG(16); // moving
 				level->bglayers[level->numbglayers].enabled = 1; // enabled
 
 				if((value=GET_ARG(2))[0]==0) level->bglayers[level->numbglayers].xratio = 0.5;
@@ -8696,8 +8696,8 @@ void load_level(char *filename){
 				if(level->numfglayers >= LEVEL_MAX_FGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_FGLAYERS);
 
 				level->fglayers[level->numfglayers].z = GET_INT_ARG(2); // z
-				level->fglayers[level->numfglayers].xratio = GET_FLOAT_ARG(3); // x ratio
-				level->fglayers[level->numfglayers].zratio = GET_FLOAT_ARG(4); // z ratio
+				level->fglayers[level->numfglayers].xratio = GET_float_ARG(3); // x ratio
+				level->fglayers[level->numfglayers].zratio = GET_float_ARG(4); // z ratio
 				level->fglayers[level->numfglayers].xoffset = GET_INT_ARG(5); // x start
 				level->fglayers[level->numfglayers].zoffset = GET_INT_ARG(6); // z start
 				level->fglayers[level->numfglayers].xspacing = GET_INT_ARG(7); // x spacing
@@ -8710,8 +8710,8 @@ void load_level(char *filename){
 				level->fglayers[level->numfglayers].watermode = GET_INT_ARG(13); // amplitude
 				level->fglayers[level->numfglayers].amplitude = GET_INT_ARG(14); // amplitude
 				level->fglayers[level->numfglayers].wavelength = GET_INT_ARG(15); // wavelength
-				level->fglayers[level->numfglayers].wavespeed = GET_FLOAT_ARG(16); // waterspeed
-				level->fglayers[level->numfglayers].bgspeedratio = GET_FLOAT_ARG(17); // moving
+				level->fglayers[level->numfglayers].wavespeed = GET_float_ARG(16); // waterspeed
+				level->fglayers[level->numfglayers].bgspeedratio = GET_float_ARG(17); // moving
 				level->fglayers[level->numfglayers].enabled = 1;
 
 				if((value=GET_ARG(2))[0]==0) level->fglayers[level->numfglayers].xratio = 1.5;
@@ -8751,7 +8751,7 @@ void load_level(char *filename){
 				level->rocking = GET_INT_ARG(1);
 				break;
 			case CMD_LEVEL_BGSPEED:
-				level->bgspeed = GET_FLOAT_ARG(1);
+				level->bgspeed = GET_float_ARG(1);
 				if(GET_INT_ARG(2))level->bgspeed*=-1;
 				break;
 			case CMD_LEVEL_MIRROR:
@@ -8798,15 +8798,15 @@ void load_level(char *filename){
 				level->nohit = GET_INT_ARG(1);
 				break;
 			case CMD_LEVEL_GRAVITY:
-				level->gravity = GET_FLOAT_ARG(1);
+				level->gravity = GET_float_ARG(1);
 				level->gravity /= 100;
 				break;
 			case CMD_LEVEL_MAXFALLSPEED:
-				level->maxfallspeed = GET_FLOAT_ARG(1);
+				level->maxfallspeed = GET_float_ARG(1);
 				level->maxfallspeed /= 10;
 				break;
 			case CMD_LEVEL_MAXTOSSSPEED:
-				level->maxtossspeed = GET_FLOAT_ARG(1);
+				level->maxtossspeed = GET_float_ARG(1);
 				level->maxtossspeed /= 10;
 				break;
 			case CMD_LEVEL_CAMERATYPE:
@@ -8875,13 +8875,13 @@ void load_level(char *filename){
 				}
 
 				if(level->numholes >= LEVEL_MAX_HOLES) shutdown(1, "Too many holes in level (max %i)!", LEVEL_MAX_HOLES);
-				level->holes[level->numholes][0] = GET_FLOAT_ARG(1);
-				level->holes[level->numholes][1] = GET_FLOAT_ARG(2);
-				level->holes[level->numholes][2] = GET_FLOAT_ARG(3);
-				level->holes[level->numholes][3] = GET_FLOAT_ARG(4);
-				level->holes[level->numholes][4] = GET_FLOAT_ARG(5);
-				level->holes[level->numholes][5] = GET_FLOAT_ARG(6);
-				level->holes[level->numholes][6] = GET_FLOAT_ARG(7);
+				level->holes[level->numholes][0] = GET_float_ARG(1);
+				level->holes[level->numholes][1] = GET_float_ARG(2);
+				level->holes[level->numholes][2] = GET_float_ARG(3);
+				level->holes[level->numholes][3] = GET_float_ARG(4);
+				level->holes[level->numholes][4] = GET_float_ARG(5);
+				level->holes[level->numholes][5] = GET_float_ARG(6);
+				level->holes[level->numholes][6] = GET_float_ARG(7);
 
 				if(!level->holes[level->numholes][1]) level->holes[level->numholes][1] = 240;
 				if(!level->holes[level->numholes][2]) level->holes[level->numholes][2] = 12;
@@ -8893,14 +8893,14 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_WALL:
 				if(level->numwalls >= LEVEL_MAX_WALLS) shutdown(1, "Too many walls in level (max %i)!", LEVEL_MAX_WALLS);
-				level->walls[level->numwalls][0] = GET_FLOAT_ARG(1);
-				level->walls[level->numwalls][1] = GET_FLOAT_ARG(2);
-				level->walls[level->numwalls][2] = GET_FLOAT_ARG(3);
-				level->walls[level->numwalls][3] = GET_FLOAT_ARG(4);
-				level->walls[level->numwalls][4] = GET_FLOAT_ARG(5);
-				level->walls[level->numwalls][5] = GET_FLOAT_ARG(6);
-				level->walls[level->numwalls][6] = GET_FLOAT_ARG(7);
-				level->walls[level->numwalls][7] = GET_FLOAT_ARG(8);
+				level->walls[level->numwalls][0] = GET_float_ARG(1);
+				level->walls[level->numwalls][1] = GET_float_ARG(2);
+				level->walls[level->numwalls][2] = GET_float_ARG(3);
+				level->walls[level->numwalls][3] = GET_float_ARG(4);
+				level->walls[level->numwalls][4] = GET_float_ARG(5);
+				level->walls[level->numwalls][5] = GET_float_ARG(6);
+				level->walls[level->numwalls][6] = GET_float_ARG(7);
+				level->walls[level->numwalls][7] = GET_float_ARG(8);
 				level->numwalls++;
 				break;
 			case CMD_LEVEL_PALETTE:
@@ -9160,9 +9160,9 @@ void load_level(char *filename){
 				next.itemtrans = GET_INT_ARG(1);
 				break;
 			case CMD_LEVEL_COORDS:
-				next.x = GET_FLOAT_ARG(1);
-				next.z = GET_FLOAT_ARG(2);
-				next.a = GET_FLOAT_ARG(3);
+				next.x = GET_float_ARG(1);
+				next.z = GET_float_ARG(2);
+				next.a = GET_float_ARG(3);
 				break;
 			case CMD_LEVEL_SPAWNSCRIPT:
 				value = GET_ARG(1);
@@ -17300,7 +17300,7 @@ void player_think()
 		}
 	}
 
-	if((player[(int)self->playerindex].playkeys & FLAG_JUMP) &&  validanim(self,ANI_CHARGE))
+	if((player[(int)self->playerindex].playkeys & FLAG_JUMP) &&  validanim(self,ANI_charGE))
 	{
 		if((player[(int)self->playerindex].playkeys & FLAG_SPECIAL) && notinair)
 		{
@@ -17309,7 +17309,7 @@ void player_think()
 			self->xdir = self->zdir = 0;
 			self->stalltime = 0;
 			set_charging(self);
-			ent_set_anim(self, ANI_CHARGE, 0);
+			ent_set_anim(self, ANI_charGE, 0);
 			self->takeaction = common_charge;
 			return;
 		}
@@ -17353,14 +17353,14 @@ void player_think()
 	if((player[(int)self->playerindex].releasekeys & FLAG_ATTACK))
 	{
 		if(self->stalltime  && notinair &&
-	      ((validanim(self,ANI_CHARGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[ANI_CHARGEATTACK]->chargetime) < time) ||
-		   (!validanim(self,ANI_CHARGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength-1]-1]]->chargetime) < time)))
+	      ((validanim(self,ANI_charGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[ANI_charGEATTACK]->chargetime) < time) ||
+		   (!validanim(self,ANI_charGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength-1]-1]]->chargetime) < time)))
 		{
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 
-			if(validanim(self,ANI_CHARGEATTACK)) ent_set_anim(self, ANI_CHARGEATTACK, 0);
+			if(validanim(self,ANI_charGEATTACK)) ent_set_anim(self, ANI_charGEATTACK, 0);
 			else ent_set_anim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength-1]-1], 0);
 
 			if(SAMPLE_PUNCH >= 0) sound_play_sample(SAMPLE_PUNCH, 0, savedata.effectvol,savedata.effectvol, 100);
@@ -23148,6 +23148,6 @@ void openborMain(int argc, char** argv)
 #undef GET_ARGP
 #undef GET_ARGP_LEN
 #undef GET_INT_ARG
-#undef GET_FLOAT_ARG
+#undef GET_float_ARG
 #undef GET_INT_ARGP
-#undef GET_FLOAT_ARGP
+#undef GET_float_ARGP

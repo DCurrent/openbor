@@ -26,14 +26,14 @@ typedef struct ScriptVariant
 	{
 		LONG          lVal;
 		VOID *        ptrVal;
-		DOUBLE        dblVal;
+		double        dblVal;
 		int           strVal;
 	};
 	VARTYPE vt;//variatn type
 }ScriptVariant;
 
 
-extern CHAR** strcache;
+extern char** strcache;
 extern int   strcache_size;
 extern int*  strcache_index;
 
@@ -43,16 +43,16 @@ void StrCache_Clear();
 //void StrCache_Init();
 void StrCache_Collect(int index);
 int StrCache_Pop();
-CHAR* StrCache_Get(int index);
+char* StrCache_Get(int index);
 void ScriptVariant_Clear(ScriptVariant* var);
 
 void ScriptVariant_Init(ScriptVariant* var);
 void ScriptVariant_Copy(ScriptVariant* svar, ScriptVariant* rightChild ); // faster in some situations
 void ScriptVariant_ChangeType(ScriptVariant* var, VARTYPE cvt);
-HRESULT ScriptVariant_IntegerValue(ScriptVariant* var, LONG* pVal);
-HRESULT ScriptVariant_DecimalValue(ScriptVariant* var, DOUBLE* pVal);
+ptrdiff_t ScriptVariant_IntegerValue(ScriptVariant* var, LONG* pVal);
+ptrdiff_t ScriptVariant_DecimalValue(ScriptVariant* var, double* pVal);
 BOOL ScriptVariant_IsTrue(ScriptVariant* svar);
-void ScriptVariant_ToString(ScriptVariant* svar, LPSTR buffer );
+void ScriptVariant_ToString(ScriptVariant* svar, char* buffer );
 
 // light version, for compiled call, faster than above, but not safe in some situations
 // This function are used by compiled scripts

@@ -29,7 +29,7 @@
 //enumerate the possible token types.  Some tokens here, such as LBRACKET, are
 //never used.
 typedef enum PP_TOKEN_TYPE {
-   PP_TOKEN_IDENTIFIER, PP_TOKEN_HEXCONSTANT, PP_TOKEN_INTCONSTANT, PP_TOKEN_FLOATCONSTANT,
+   PP_TOKEN_IDENTIFIER, PP_TOKEN_HEXCONSTANT, PP_TOKEN_INTCONSTANT, PP_TOKEN_floatCONSTANT,
 	  PP_TOKEN_STRING_LITERAL, PP_TOKEN_SIZEOF, PP_TOKEN_PTR_OP, PP_TOKEN_INC_OP,
 	  PP_TOKEN_DEC_OP, PP_TOKEN_LEFT_OP, PP_TOKEN_RIGHT_OP, PP_TOKEN_CONDITIONAL,
 	  PP_TOKEN_LE_OP, PP_TOKEN_GE_OP, PP_TOKEN_EQ_OP, PP_TOKEN_NE_OP, PP_TOKEN_AND_OP,
@@ -37,8 +37,8 @@ typedef enum PP_TOKEN_TYPE {
 	  PP_TOKEN_ADD_ASSIGN, PP_TOKEN_SUB_ASSIGN, PP_TOKEN_LEFT_ASSIGN, PP_TOKEN_RIGHT_ASSIGN,
 	  PP_TOKEN_AND_ASSIGN, PP_TOKEN_XOR_ASSIGN, PP_TOKEN_OR_ASSIGN, PP_TOKEN_TYPE_NAME,
 	  PP_TOKEN_TYPEDEF, PP_TOKEN_EXTERN, PP_TOKEN_STATIC, PP_TOKEN_AUTO, PP_TOKEN_REGISTER,
-	  PP_TOKEN_CHAR, PP_TOKEN_SHORT, PP_TOKEN_INT, PP_TOKEN_LONG, PP_TOKEN_SIGNED,
-	  PP_TOKEN_UNSIGNED, PP_TOKEN_FLOAT, PP_TOKEN_DOUBLE, PP_TOKEN_CONST, PP_TOKEN_VOLATILE,
+	  PP_TOKEN_char, PP_TOKEN_SHORT, PP_TOKEN_INT, PP_TOKEN_LONG, PP_TOKEN_SIGNED,
+	  PP_TOKEN_UNSIGNED, PP_TOKEN_float, PP_TOKEN_double, PP_TOKEN_CONST, PP_TOKEN_VOLATILE,
 	  PP_TOKEN_VOID, PP_TOKEN_STRUCT, PP_TOKEN_UNION, PP_TOKEN_ENUM, PP_TOKEN_ELLIPSIS,
 	  PP_TOKEN_CASE, PP_TOKEN_DEFAULT, PP_TOKEN_IF, PP_TOKEN_ELSE, PP_TOKEN_SWITCH,
 	  PP_TOKEN_WHILE, PP_TOKEN_DO, PP_TOKEN_FOR, PP_TOKEN_GOTO, PP_TOKEN_CONTINUE,
@@ -66,7 +66,7 @@ typedef struct TEXTPOS{
 ******************************************************************************/
 typedef struct pp_token {
    PP_TOKEN_TYPE theType;
-   CHAR theSource[MAX_TOKEN_LENGTH+1];
+   char theSource[MAX_TOKEN_LENGTH+1];
    TEXTPOS theTextPosition;
    ULONG charOffset;
 }pp_token;
@@ -84,27 +84,27 @@ typedef enum COMMENT_TYPE {
 *  parser.
 ******************************************************************************/
 typedef struct pp_lexer {
-	LPCSTR ptheSource;
+	char* ptheSource;
 	TEXTPOS theTextPosition;
 	ULONG offset;
 	ULONG tokOffset;
-	CHAR* pcurChar;
+	char* pcurChar;
 	//Character buffer for the tokens
-	CHAR theTokenSource [MAX_TOKEN_LENGTH];
+	char theTokenSource [MAX_TOKEN_LENGTH];
 	TEXTPOS theTokenPosition;
 } pp_lexer;
 
 
 //Constructor
-void pp_token_Init(pp_token* ptoken, PP_TOKEN_TYPE theType, LPCSTR theSource, TEXTPOS theTextPosition, ULONG charOffset);
-void pp_lexer_Init(pp_lexer* plexer, LPCSTR theSource, TEXTPOS theStartingPosition);
+void pp_token_Init(pp_token* ptoken, PP_TOKEN_TYPE theType, char* theSource, TEXTPOS theTextPosition, ULONG charOffset);
+void pp_lexer_Init(pp_lexer* plexer, char* theSource, TEXTPOS theStartingPosition);
 void pp_lexer_Clear(pp_lexer* plexer);
-HRESULT pp_lexer_GetNextToken(pp_lexer* plexer, pp_token* theNextToken);
-HRESULT pp_lexer_GetTokenIdentifier(pp_lexer* plexer, pp_token* theNextToken);
-HRESULT pp_lexer_GetTokenNumber(pp_lexer* plexer, pp_token* theNextToken);
-HRESULT pp_lexer_GetTokenStringLiteral(pp_lexer* plexer, pp_token* theNextToken);
-HRESULT pp_lexer_GetTokenSymbol(pp_lexer* plexer, pp_token* theNextToken);
-HRESULT pp_lexer_SkipComment(pp_lexer* lexer, COMMENT_TYPE theType);
+ptrdiff_t pp_lexer_GetNextToken(pp_lexer* plexer, pp_token* theNextToken);
+ptrdiff_t pp_lexer_GetTokenIdentifier(pp_lexer* plexer, pp_token* theNextToken);
+ptrdiff_t pp_lexer_GetTokenNumber(pp_lexer* plexer, pp_token* theNextToken);
+ptrdiff_t pp_lexer_GetTokenStringLiteral(pp_lexer* plexer, pp_token* theNextToken);
+ptrdiff_t pp_lexer_GetTokenSymbol(pp_lexer* plexer, pp_token* theNextToken);
+ptrdiff_t pp_lexer_SkipComment(pp_lexer* lexer, COMMENT_TYPE theType);
 
 #endif
 

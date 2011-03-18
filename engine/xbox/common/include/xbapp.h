@@ -58,13 +58,13 @@ protected:
 	LPDIRECT3DSURFACE8    m_pDepthBuffer;      // The depth buffer
 
 	// Variables for timing
-	FLOAT      m_fTime;             // Current absolute time in seconds
-	FLOAT      m_fElapsedTime;      // Elapsed absolute time since last frame
-	FLOAT      m_fAppTime;          // Current app time in seconds
-	FLOAT      m_fElapsedAppTime;   // Elapsed app time since last frame
+	float      m_fTime;             // Current absolute time in seconds
+	float      m_fElapsedTime;      // Elapsed absolute time since last frame
+	float      m_fAppTime;          // Current app time in seconds
+	float      m_fElapsedAppTime;   // Elapsed app time since last frame
 	BOOL       m_bPaused;           // Whether app time is paused by user
-	FLOAT      m_fFPS;              // instantaneous frame rate
-	WCHAR      m_strFrameRate[20];  // Frame rate written to a string
+	float      m_fFPS;              // instantaneous frame rate
+	Wchar      m_strFrameRate[20];  // Frame rate written to a string
 	HANDLE     m_hFrameCounter;     // Handle to frame rate perf counter
 
 	// Members to init the XINPUT devices.
@@ -76,15 +76,15 @@ protected:
 	// Helper functions
 
 	// Overridable functions for the 3D scene created by the app
-	virtual HRESULT Initialize()            { return S_OK; }
-	virtual HRESULT FrameMove()             { return S_OK; }
-	virtual HRESULT Render()                { return S_OK; }
-	virtual HRESULT Cleanup()               { return S_OK; }
-	HRESULT RenderGradientBackground( DWORD dwTopColor, DWORD dwBottomColor );
+	virtual ptrdiff_t Initialize()            { return S_OK; }
+	virtual ptrdiff_t FrameMove()             { return S_OK; }
+	virtual ptrdiff_t Render()                { return S_OK; }
+	virtual ptrdiff_t Cleanup()               { return S_OK; }
+	ptrdiff_t RenderGradientBackground( DWORD dwTopColor, DWORD dwBottomColor );
 
 public:
 	// Functions to create, run, and clean up the application
-	HRESULT Create();
+	ptrdiff_t Create();
 	INT     Run();
 	VOID    Destroy();
 

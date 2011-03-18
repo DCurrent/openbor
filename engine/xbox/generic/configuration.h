@@ -66,7 +66,7 @@ public:
 		RECT rOveride;			// overridden client area
 		RECT rOutput;			// destination area
 
-		FLOAT fRatioCorrection;
+		float fRatioCorrection;
 
 		BOOL bZoom;
 		BOOL bStretch;
@@ -83,8 +83,8 @@ public:
 
 		INT   iDecoderAutoSync;			// a/v sync method
 		BOOL  bDecoderForceFPS;			// turn 'force output fps' on/off
-		FLOAT fDecoderMaxPtsCorrection;	// max pts correction/frame
-		FLOAT fDecoderFps;				// forced output fps
+		float fDecoderMaxPtsCorrection;	// max pts correction/frame
+		float fDecoderFps;				// forced output fps
 		BOOL  bUsePtsFromBps;			// use btp from bps
 		BOOL  bUseFrameDropping;		// use frame dropping is decoder is 2 slow
 		BOOL  bUsePAL60;				// use PAL 60 if needed&available
@@ -101,8 +101,8 @@ public:
 		BOOL  bViewVideosByCover;
 		BOOL  bViewPicturesByList;
 
-		CHAR szMusicExtensions[128];
-		CHAR szVideoExtensions[128];
+		char szMusicExtensions[128];
+		char szVideoExtensions[128];
 
 		DWORD dwLanguage;
 
@@ -125,22 +125,22 @@ public:
 		BOOL bAutoClearPlaylist;
 		BOOL bSoftenDisplay;
 
-		CHAR szSubtitleEncoding[256];
+		char szSubtitleEncoding[256];
 		BOOL bMPlayerSubtitles; // use mplayer rendering for subtitles
 		BOOL bUseTTFUIFont;		// whether use "MEDIA\common-font.ttf" or original TGA bitmap fonts
 		BOOL bShowID3TagInfo;
-		CHAR szDVDSubtitleLanguage[20]; // language to use for DVD subtitles
-		CHAR szDVDAudioLanguage[20];		// language to use for DVD audio streams
+		char szDVDSubtitleLanguage[20]; // language to use for DVD subtitles
+		char szDVDAudioLanguage[20];		// language to use for DVD audio streams
 		INT   iScreenSaver;			// time in secs before screensaver starts (0=disabled)
-		CHAR szSnapStreamServer[20];
-		CHAR szSnapStreamUser[20];
+		char szSnapStreamServer[20];
+		char szSnapStreamUser[20];
 	};
 
 
 	CConfiguration();
 	virtual ~CConfiguration();
 
-	HRESULT Create(char* szXmlFile, CConfiguration::PlayerSettings* pPlayerSettings, BOOL bUseDefault);
+	ptrdiff_t Create(char* szXmlFile, CConfiguration::PlayerSettings* pPlayerSettings, BOOL bUseDefault);
 
 	void GetPictureShares(VECSHARES& shares);
 	void GetMusicShares(VECSHARES& shares);
@@ -149,7 +149,7 @@ public:
 private:
 	VOID	ProcessMediaSettingsNode(XmlNode thisNode);
 	VOID	ProcessMappingNode(XmlNode thisNode);
-	VOID	ConvertFormat(CHAR* szDestinationFormat, CHAR* szSourceFormat);
+	VOID	ConvertFormat(char* szDestinationFormat, char* szSourceFormat);
 	PlayerSettings*	m_pPlayerSettings;
 
 	VOID	ProcessMusicShares(XmlNode thisNode);
@@ -164,6 +164,6 @@ private:
 };
 
 extern CConfiguration::PlayerSettings g_playerSettings;
-extern CHAR g_szTitleIP[32];
+extern char g_szTitleIP[32];
 
 #endif // !defined(AFX_CONFIGURATION_H__05039157_ACED_4430_B306_D88792C7A755__INCLUDED_)

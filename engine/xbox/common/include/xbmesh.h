@@ -68,7 +68,7 @@ struct XBMESH_SUBSET
 {
 	D3DMATERIAL8       mtrl;            // Material for this subset
 	LPDIRECT3DTEXTURE8 pTexture;        // Texture
-	CHAR               strTexture[64];
+	char               strTexture[64];
 	DWORD              dwVertexStart;   // Range of vertices to render
 	DWORD              dwVertexCount;
 	DWORD              dwIndexStart;    // Range of vertex indices to render
@@ -110,7 +110,7 @@ __declspec(align(16)) struct XBMESH_FRAME
 	
 	XBMESH_DATA       m_MeshData;     // The mesh data belonging to this frame
 
-	CHAR              m_strName[64];
+	char              m_strName[64];
 	
 	XBMESH_FRAME*     m_pChild;       // Child and sibling ptrs for the hierarchy
 	XBMESH_FRAME*     m_pNext;
@@ -136,9 +136,9 @@ public:
 	DWORD         m_dwNumFrames;
 
 	// Internal rendering functions
-	virtual HRESULT RenderFrame( LPDIRECT3DDEVICE8 pd3dDevice, XBMESH_FRAME* pMesh, 
+	virtual ptrdiff_t RenderFrame( LPDIRECT3DDEVICE8 pd3dDevice, XBMESH_FRAME* pMesh, 
 								 DWORD dwFlags );
-	virtual HRESULT RenderMesh( LPDIRECT3DDEVICE8 pd3dDevice, XBMESH_DATA* pMesh, 
+	virtual ptrdiff_t RenderMesh( LPDIRECT3DDEVICE8 pd3dDevice, XBMESH_DATA* pMesh, 
 								DWORD dwFlags );
 
 	// Internal functions to find the radius of sphere centered at zero enclosing mesh.
@@ -146,8 +146,8 @@ public:
 	float ComputeMeshRadius(XBMESH_DATA* pMesh, D3DXMATRIX* pMat);
 	
 	// Internal functions to find the bounding box of the mesh.
-	HRESULT ComputeFrameBoundingBox(XBMESH_FRAME* pFrame, D3DXMATRIX* pParentMat, D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
-	HRESULT ComputeMeshBoundingBox(XBMESH_DATA* pMesh, D3DXMATRIX* pMat, D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
+	ptrdiff_t ComputeFrameBoundingBox(XBMESH_FRAME* pFrame, D3DXMATRIX* pParentMat, D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
+	ptrdiff_t ComputeMeshBoundingBox(XBMESH_DATA* pMesh, D3DXMATRIX* pMat, D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
 
 public:
 	// Reference counting
@@ -163,7 +163,7 @@ public:
 
 	// Creation function. Call this function to create the hierarchy of frames
 	// and meshes from a geometry file.
-	HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, CHAR* strFilename,
+	ptrdiff_t Create( LPDIRECT3DDEVICE8 pd3dDevice, char* strFilename,
 					CXBPackedResource* pResource = NULL );
 
 	// Access functions
@@ -178,12 +178,12 @@ public:
 	
 	// Render function. Call this function to render the hierarchy of frames
 	// and meshes.
-	HRESULT Render( LPDIRECT3DDEVICE8 pd3dDevice, DWORD dwFlags = 0x00000000 );
+	ptrdiff_t Render( LPDIRECT3DDEVICE8 pd3dDevice, DWORD dwFlags = 0x00000000 );
 
 	// Function to find the radius of sphere centered at zero enclosing mesh.
 	float ComputeRadius();
 	// find the bounding box of all the subsets
-	HRESULT ComputeBoundingBox(D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
+	ptrdiff_t ComputeBoundingBox(D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
 };
 
 
