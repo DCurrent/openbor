@@ -98,9 +98,6 @@ endif
 ifeq ($(BUILD_LINUX), 0)
 BUILD_DEBUG     = 1
 endif
-ifdef BUILD_DEBUG
-BUILD_BACKTRACE = 1
-endif
 endif
 
 ifdef BUILD_DARWIN
@@ -476,8 +473,7 @@ GAME_CONSOLE   += sdl/joysticks.o                                               
                   sdl/timer.o                                                                       \
                   sdl/sdlport.o                                                                     \
                   sdl/video.o                                                                       \
-                  sdl/menu.o                                                                        \
-                  sdl/stacktrace.o
+                  sdl/menu.o                                                                        
 endif
 
 
@@ -613,11 +609,6 @@ endif
 
 ifdef BUILD_VERBOSE
 CFLAGS         += -DVERBOSE
-endif
-
-
-ifdef BUILD_BACKTRACE
-CFLAGS         += -rdynamic -DCUSTOM_SIGNAL_HANDLER
 endif
 
 
