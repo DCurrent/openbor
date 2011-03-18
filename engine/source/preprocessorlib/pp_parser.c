@@ -636,6 +636,19 @@ HRESULT pp_parser_parse_directive(pp_parser* self)
 				tracefree(List_Retrieve(&self->ctx->macros));
 				List_Remove(&self->ctx->macros);
 			}
+			if(List_FindByName(&self->ctx->func_macros, self->token.theSource))
+			{
+				List* params = List_Retrieve(&self->ctx->func_macros);
+				while(params->size > 0) 
+				{
+					tracefree(List_Retrieve(params));
+					List_Remove(params);
+				}
+				List_Clear(params);
+				tracefree(params);
+				List_Remove(&self->ctx->func_macros);
+			}
+			
 			break;
 		case PP_TOKEN_IF:
 		case PP_TOKEN_IFDEF:
@@ -731,6 +744,28 @@ HRESULT pp_parser_define(pp_parser* self, char* name)
 	List* params = tracemalloc("#define params", sizeof(List));
 	
 	List_Init(params);
+	
+	// emit a warning if the macro is already defined
+	// note: this won't mess with function macro parameters since #define can't be used from inside a macro
+	if(List_FindByName(&self->ctx->macros, name))
+	{
+		pp_warning(self, "'%s' redefined", name);
+		tracefree(List_Retrieve(&self->ctx->macros));
+		List_Remove(&self->ctx->macros);
+	}
+	if(List_FindByName(&self->ctx->func_macros, name))
+	{
+		List* params = List_Retrieve(&self->ctx->func_macros);
+		pp_warning(self, "'%s' redefined", name);
+		while(params->size > 0)
+		{
+			tracefree(List_Retrieve(params));
+			List_Remove(params);
+		}
+		List_Clear(params);
+		tracefree(params);
+		List_Remove(&self->ctx->func_macros);
+	}
 	
 	// do NOT skip whitespace here - the '(' must come immediately after the name!
 	if(FAILED(pp_parser_lex_token(self, false))) goto error;
