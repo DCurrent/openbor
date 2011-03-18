@@ -32,7 +32,7 @@ void freemem() {
 	}
 }
 
-int eq (LPCSTR s1, LPCSTR s2) {
+int eq (char* s1, char* s2) {
 	return (strcmp(s1, s2) == 0);
 }
 

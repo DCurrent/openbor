@@ -80,7 +80,7 @@ ImportNode* ImportCache_Retrieve(const char* path)
 {
 	ImportNode* node;
 	
-	if(List_FindByName(&importCache, path)) // already imported by another file
+	if(List_FindByName(&importCache, (char*) path)) // already imported by another file
 	{
 #ifdef VERBOSE
 		printf("Reusing import %s\n", path);
@@ -97,7 +97,7 @@ ImportNode* ImportCache_Retrieve(const char* path)
 		if(FAILED(ImportNode_Init(node, path))) { free(node); return NULL; }
 		node->numRefs = 0;
 		List_GotoLast(&importCache);
-		List_InsertAfter(&importCache, node, path);
+		List_InsertAfter(&importCache, node, (char*) path);
 		node->numRefs++;
 	}
 	

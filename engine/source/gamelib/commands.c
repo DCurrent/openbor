@@ -5,7 +5,7 @@ modelCommands getModelCommand(List* list, char* usercommand) {
 	if (!usercommand || !usercommand[0])
 		goto fail;
 	lc(usercommand, strlen(usercommand));
-	Node* n = List_SearchName(list, (LPCSTR) usercommand);
+	Node* n = List_SearchName(list, usercommand);
 	if(n)
 		return (modelCommands) n->value;
 	fail:
@@ -317,7 +317,7 @@ levelCommands getLevelCommand(List* list, char* usercommand) {
 		goto fail;
 	lc(usercommand, strlen(usercommand));
 	
-	Node* n = List_SearchName(list, (LPCSTR) usercommand);
+	Node* n = List_SearchName(list, usercommand);
 	if(n)
 		return (levelCommands) n->value;
 	fail:
@@ -434,7 +434,7 @@ levelOrderCommands getLevelOrderCommand(List* list, char* usercommand) {
 	if (!usercommand || !usercommand[0])
 		goto fail;
 	lc(usercommand, strlen(usercommand));
-	Node* n = List_SearchName(list, (LPCSTR) usercommand);
+	Node* n = List_SearchName(list, usercommand);
 	if(n)
 		return (levelOrderCommands) n->value;
 	fail:

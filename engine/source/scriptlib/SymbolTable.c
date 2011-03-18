@@ -62,7 +62,7 @@ void SymbolTable_Clear(SymbolTable* stable)
 ******************************************************************************/
 BOOL SymbolTable_FindSymbol(SymbolTable* stable, LPCSTR symbolName, Symbol** pp_theSymbol )
 {
-   if (symbolName && List_FindByName(&(stable->SymbolList), symbolName )){
+   if (symbolName && List_FindByName(&(stable->SymbolList), (char*) symbolName )){
 	  *pp_theSymbol = (Symbol*)List_Retrieve(&(stable->SymbolList));
 	  return TRUE;
    }

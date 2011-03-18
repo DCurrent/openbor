@@ -142,7 +142,7 @@ void Parser_AddInstructionViaToken(Parser* pparser, OpCode pCode, Token* pToken,
 	Instruction* pInstruction = NULL;
 	pInstruction = (Instruction*)malloc(sizeof(Instruction));
 	Instruction_InitViaToken(pInstruction, pCode, pToken);
-	List_InsertAfter(pparser->pIList, pInstruction, label );
+	List_InsertAfter(pparser->pIList, pInstruction, (char*) label );
 }
 
 /******************************************************************************
@@ -158,7 +158,7 @@ void Parser_AddInstructionViaLabel(Parser* pparser, OpCode pCode, Label instrLab
 	Instruction* pInstruction = NULL;
 	pInstruction = (Instruction*)malloc(sizeof(Instruction));
 	Instruction_InitViaLabel(pInstruction, pCode, instrLabel);
-	List_InsertAfter(pparser->pIList, pInstruction, listLabel );
+	List_InsertAfter(pparser->pIList, pInstruction, (char*) listLabel );
 }
 
 /******************************************************************************
@@ -1211,7 +1211,7 @@ void Parser_Postfix_expr2(Parser* pparser )
 		//a label for it, and add it back to the instruction list.
 		label = Parser_CreateLabel(pparser);
 		pInstruction->OpCode = CALL;
-		List_InsertAfter(pparser->pIList, (void*)pInstruction, label );
+		List_InsertAfter(pparser->pIList, (void*)pInstruction, (char*) label );
 		//dont forget to free the label
 		free((void*)label);
 

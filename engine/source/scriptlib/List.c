@@ -450,7 +450,7 @@ void List_Clear(List* list)
 }
 
 //Insertion functions
-void List_InsertBefore(List* list, void* e, LPCSTR theName)
+void List_InsertBefore(List* list, void* e, char* theName)
 {
 #ifdef DEBUG
 	chklist((List*)list);
@@ -493,7 +493,7 @@ void List_InsertBefore(List* list, void* e, LPCSTR theName)
 	list->size++;
 }
 
-void List_InsertAfter(List* list, void* e, LPCSTR theName) {
+void List_InsertAfter(List* list, void* e, char* theName) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
@@ -740,8 +740,7 @@ int List_Includes(List* list, void* e)
 }
 
 /* returns the first node of which name is equal to theName */
-Node* List_SearchName(List* list, LPCSTR theName )
-{
+Node* List_SearchName(List* list, char* theName) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
@@ -774,7 +773,7 @@ Node* List_SearchName(List* list, LPCSTR theName )
 	
 }
 /* SIDE EFFECTS: sets list->current to the first found node */
-int List_FindByName(List* list, LPCSTR theName) {
+int List_FindByName(List* list, char* theName) {
 	#ifdef DEBUG
 	chklist((List*)list);
 	#endif
@@ -787,7 +786,7 @@ int List_FindByName(List* list, LPCSTR theName) {
 	return 0;
 }
 
-LPCSTR List_GetName(const List* list)
+char* List_GetName(const List* list)
 {
 #ifdef DEBUG
 	chklist((List*)list);
