@@ -5965,7 +5965,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							ani_id = ANI_JUMPCANT;
 						}
 						else if(stricmp(value, "charge")==0){
-							ani_id = ANI_charGE;
+							ani_id = ANI_CHARGE;
 						}
 						else if(stricmp(value, "faint")==0){
 							ani_id = ANI_FAINT;
@@ -6161,7 +6161,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							ani_id = animfollows[tempInt-1];
 						}
 						else if(stricmp(value, "chargeattack")==0){
-							ani_id = ANI_charGEATTACK;
+							ani_id = ANI_CHARGEATTACK;
 						}
 						else if(stricmp(value, "vault")==0){
 							ani_id = ANI_VAULT;
@@ -17300,7 +17300,7 @@ void player_think()
 		}
 	}
 
-	if((player[(int)self->playerindex].playkeys & FLAG_JUMP) &&  validanim(self,ANI_charGE))
+	if((player[(int)self->playerindex].playkeys & FLAG_JUMP) &&  validanim(self,ANI_CHARGE))
 	{
 		if((player[(int)self->playerindex].playkeys & FLAG_SPECIAL) && notinair)
 		{
@@ -17309,7 +17309,7 @@ void player_think()
 			self->xdir = self->zdir = 0;
 			self->stalltime = 0;
 			set_charging(self);
-			ent_set_anim(self, ANI_charGE, 0);
+			ent_set_anim(self, ANI_CHARGE, 0);
 			self->takeaction = common_charge;
 			return;
 		}
@@ -17353,14 +17353,14 @@ void player_think()
 	if((player[(int)self->playerindex].releasekeys & FLAG_ATTACK))
 	{
 		if(self->stalltime  && notinair &&
-	      ((validanim(self,ANI_charGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[ANI_charGEATTACK]->chargetime) < time) ||
-		   (!validanim(self,ANI_charGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength-1]-1]]->chargetime) < time)))
+	      ((validanim(self,ANI_CHARGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[ANI_CHARGEATTACK]->chargetime) < time) ||
+		   (!validanim(self,ANI_CHARGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength-1]-1]]->chargetime) < time)))
 		{
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 
-			if(validanim(self,ANI_charGEATTACK)) ent_set_anim(self, ANI_charGEATTACK, 0);
+			if(validanim(self,ANI_CHARGEATTACK)) ent_set_anim(self, ANI_CHARGEATTACK, 0);
 			else ent_set_anim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength-1]-1], 0);
 
 			if(SAMPLE_PUNCH >= 0) sound_play_sample(SAMPLE_PUNCH, 0, savedata.effectvol,savedata.effectvol, 100);
