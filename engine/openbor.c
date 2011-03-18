@@ -25,7 +25,6 @@
 
 static const char* E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
 static int DEFAULT_OFFSCREEN_KILL = 1000;
-static int useCustomLoadingBar = 0;
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -8305,18 +8304,6 @@ void load_levelorder()
 	if(!enameused[3]){ ename[3][0] = ename[1][0]; ename[3][1] = eicon[3][1]; }
 	for(i=0; i<4; i++) if(ename[i][2] == -1) ename[i][2] = 0;
 
-	for(i=0; i<2; i++)
-	{
-		if(loadingbg[i][0] < 0 && !loadingbg[i][3])
-		{
-			loadingbg[i][1]	= - 1 - videomodes.hShift;
-			loadingbg[i][2]	= videomodes.vRes - 12;
-			loadingbg[i][3]	= videomodes.hRes + 1;
-			loadingbg[i][4]	= videomodes.hRes / 2 - (14 * (int)videomodes.hScale) - videomodes.hShift;
-			loadingbg[i][5]	= videomodes.vRes / 2 - videomodes.vShift;
-		}
-	}
-
 	branch_name[0] = 0; //clear up branch name, so we can use it in game
 
 	for(i=0; i<4; i++) if(pshoot[i][2] == -1) pshoot[i][2] = 2;
@@ -9884,25 +9871,31 @@ void update_loading(int pos_x, int pos_y, int size_x, int text_x, int text_y, in
 	
 	sound_update_music();
 	
-	if(useCustomLoadingBar) {
-	
-		if(lastpos != pixelpos) {
-			loadingbarstatus.sizex = size_x;
-			bar(pos_x, pos_y, value, max, &loadingbarstatus);
-			if(pixelpos < lastpos)
-			{
-				font_printf(text_x, text_y, font, 0, "Loading...");
-				if(background) putscreen(vscreen, background, 0, 0, NULL);
-				else           clearscreen(vscreen);
-			}
-			spriteq_draw(vscreen, 0);
-			video_copy_screen(vscreen);
-			spriteq_clear();
+	if(size_x > 0 && pixelpos != lastpos)
+	{
+		loadingbarstatus.sizex = size_x;
+		bar(pos_x, pos_y, value, max, &loadingbarstatus);
+		if(pixelpos < lastpos)
+		{
+			font_printf(text_x, text_y, font, 0, "Loading...");
+			if(background) putscreen(vscreen, background, 0, 0, NULL);
+			else           clearscreen(vscreen);
 		}
-		
+		spriteq_draw(vscreen, 0);
+		video_copy_screen(vscreen);
+		spriteq_clear();
+	}
+	else if(size_x <= 0 && pixelpos < lastpos)
+	{
+		font_printf(text_x, text_y, font, 0, "Loading...");
+		if(background) putscreen(vscreen, background, 0, 0, NULL);
+		else           clearscreen(vscreen);
+		spriteq_draw(vscreen, 0);
+		video_copy_screen(vscreen);
+		spriteq_clear();
 	}
 	
-	if(ticks - lastticks >= 2000)
+	if(ticks - lastticks >= 500)
 		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
 	
 	lastpos = pixelpos;
@@ -19734,7 +19727,6 @@ void update(int ingame, int usevwait)
 	}
 	else
 	{
-
 		clearscreen(vscreen);
 		if(background) putscreen(vscreen, background, 0, 0, NULL);
 	}
