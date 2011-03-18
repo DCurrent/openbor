@@ -236,34 +236,34 @@ public:
 	CIoSupport(CIoSupport& other);
 	virtual ~CIoSupport();
 
-	HRESULT Mount(const char* szDrive, char* szDevice);
-	HRESULT Unmount(const char* szDrive);
+	ptrdiff_t Mount(const char* szDrive, char* szDevice);
+	ptrdiff_t Unmount(const char* szDrive);
 
-	HRESULT GetDeviceFromSymlink(LPCSTR szDrive, LPSTR szDevice);
-	HRESULT Remount(const char* szDrive, char* szDevice);
-	HRESULT Remap(char* szMapping);
+	ptrdiff_t GetDeviceFromSymlink(char* szDrive, char* szDevice);
+	ptrdiff_t Remount(const char* szDrive, char* szDevice);
+	ptrdiff_t Remap(char* szMapping);
 
 	DWORD	GetTrayState();
-	HRESULT EjectTray();
-	HRESULT CloseTray();
+	ptrdiff_t EjectTray();
+	ptrdiff_t CloseTray();
 
 	string	GetDrive(const string& szPartition);
-	VOID	GetPartition(LPCSTR strFilename, LPSTR strPartition);
-	VOID	RemountDrive(LPCSTR szDrive);
+	VOID	GetPartition(char* strFilename, char* strPartition);
+	VOID	RemountDrive(char* szDrive);
 
 	VOID	UpdateDvdrom();
 
 	HANDLE	OpenCDROM();
 	HANDLE	OpenCDROM2();
-	INT		ReadSector(HANDLE hDevice, DWORD dwSector, LPSTR lpczBuffer);
-	INT     ReadSomeSectors(HANDLE hDevice, DWORD dwSector, LPSTR lpczBuffer, int numsectors);
-	INT 	ReadSectorMode2(HANDLE hDevice, DWORD dwSector, LPSTR lpczBuffer);
-	INT 	ReadSectorCDDA(HANDLE hDevice, DWORD dwSector, LPSTR lpczBuffer);
+	INT		ReadSector(HANDLE hDevice, DWORD dwSector, char* lpczBuffer);
+	INT     ReadSomeSectors(HANDLE hDevice, DWORD dwSector, char* lpczBuffer, int numsectors);
+	INT 	ReadSectorMode2(HANDLE hDevice, DWORD dwSector, char* lpczBuffer);
+	INT 	ReadSectorCDDA(HANDLE hDevice, DWORD dwSector, char* lpczBuffer);
 	VOID	CloseCDROM(HANDLE hDevice);
 	DWORD   GetSCSITOC(LPTOC_SCSI itoc, HANDLE hcdrom);
 	
 	BOOL	IsDebug();
-	HRESULT Shutdown();
+	ptrdiff_t Shutdown();
 
 	DWORD   IOCTLSendASPI32Command(HANDLE hIOCTL, LPSRB pSRB);
 	DWORD   ReadXASector(HANDLE hIOCTL, unsigned int sectornum, unsigned int numsectors, unsigned char *secbuf);

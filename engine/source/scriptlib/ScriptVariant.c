@@ -13,7 +13,7 @@
 
 // use string cache to cut the memory usage down, because not all variants are string, no need to give each of them an array
 #define STRCACHE_INC      64
-CHAR** strcache = NULL;
+char** strcache = NULL;
 int   strcache_size = 0;
 int   strcache_top = -1;
 int*  strcache_index = NULL;
@@ -42,13 +42,13 @@ void StrCache_Init()
 {
 	int i;
 	StrCache_Clear(); // just in case
-	strcache = malloc(sizeof(CHAR*)*STRCACHE_INC);
+	strcache = malloc(sizeof(char*)*STRCACHE_INC);
 	//if(!strcache) shutdown(1, "out of memory");
 	strcache_index = malloc(sizeof(int)*STRCACHE_INC);
 	//if(!strcache_index) shutdown(1, "out of memory");
 	for(i=0; i<STRCACHE_INC; i++)
 	{
-		strcache[i] = malloc((MAX_STR_VAR_LEN+1)*sizeof(CHAR));
+		strcache[i] = malloc((MAX_STR_VAR_LEN+1)*sizeof(char));
 		//if(!strcache[i]) shutdown(1, "out of memory");
 		strcache[i][0] = 0;
 		strcache_index[i] = i;
@@ -71,7 +71,7 @@ void StrCache_Collect(int index)
 
 int StrCache_Pop()
 {
-	CHAR** temp;
+	char** temp;
 	int*   tempi;
 	int i;
 	if(strcache_size==0)
@@ -80,11 +80,11 @@ int StrCache_Pop()
 	}
 	if(strcache_top<0) // realloc
 	{
-		temp = malloc(sizeof(CHAR*)*(strcache_size+STRCACHE_INC));
+		temp = malloc(sizeof(char*)*(strcache_size+STRCACHE_INC));
 		//if(!temp) shutdown(1, "out of memory");
 		for(i=strcache_size; i<strcache_size+STRCACHE_INC; i++)
 		{
-			temp[i] = malloc((MAX_STR_VAR_LEN+1)*sizeof(CHAR));
+			temp[i] = malloc((MAX_STR_VAR_LEN+1)*sizeof(char));
 			//if(!strcache[i]) shutdown(1, "out of memory");
 			temp[i][0] = 0;
 		}
@@ -108,7 +108,7 @@ int StrCache_Pop()
 	return strcache_index[strcache_top--];
 }
 
-CHAR* StrCache_Get(int index)
+char* StrCache_Get(int index)
 {
 	if(index<strcache_size)
 	{
@@ -140,7 +140,7 @@ void ScriptVariant_ChangeType(ScriptVariant* var, VARTYPE cvt)
 		switch(cvt)
 		{
 		case VT_DECIMAL:
-			var->dblVal = (DOUBLE)var->lVal;
+			var->dblVal = (double)var->lVal;
 			break;
 		case VT_STR:
 			var->strVal = StrCache_Pop();
@@ -176,7 +176,7 @@ void ScriptVariant_ChangeType(ScriptVariant* var, VARTYPE cvt)
 
 }
 
-HRESULT ScriptVariant_IntegerValue(ScriptVariant* var, LONG* pVal)
+ptrdiff_t ScriptVariant_IntegerValue(ScriptVariant* var, LONG* pVal)
 {
 	if(var->vt == VT_INTEGER)
 	{
@@ -191,11 +191,11 @@ HRESULT ScriptVariant_IntegerValue(ScriptVariant* var, LONG* pVal)
 	return S_OK;
 }
 
-HRESULT ScriptVariant_DecimalValue(ScriptVariant* var, DOUBLE* pVal)
+ptrdiff_t ScriptVariant_DecimalValue(ScriptVariant* var, double* pVal)
 {
 	if(var->vt == VT_INTEGER)
 	{
-		*pVal = (DOUBLE)var->lVal;
+		*pVal = (double)var->lVal;
 	}
 	else if(var->vt == VT_DECIMAL)
 	{
@@ -224,7 +224,7 @@ BOOL ScriptVariant_IsTrue(ScriptVariant* svar)
 	}
 }
 
-void ScriptVariant_ToString(ScriptVariant* svar, LPSTR buffer )
+void ScriptVariant_ToString(ScriptVariant* svar, char* buffer )
 {
    switch( svar->vt ){
    case VT_EMPTY:
@@ -345,7 +345,7 @@ ScriptVariant* ScriptVariant_And( ScriptVariant* svar, ScriptVariant* rightChild
 
 ScriptVariant* ScriptVariant_Eq( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	DOUBLE dbl1,dbl2;
+	double dbl1,dbl2;
 	static ScriptVariant retvar;
 	retvar.vt = VT_INTEGER;
 
@@ -377,7 +377,7 @@ ScriptVariant* ScriptVariant_Eq( ScriptVariant* svar, ScriptVariant* rightChild 
 
 ScriptVariant* ScriptVariant_Ne( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	DOUBLE dbl1,dbl2;
+	double dbl1,dbl2;
 	static ScriptVariant retvar;
 	retvar.vt = VT_INTEGER;
 
@@ -409,7 +409,7 @@ ScriptVariant* ScriptVariant_Ne( ScriptVariant* svar, ScriptVariant* rightChild 
 
 ScriptVariant* ScriptVariant_Lt( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	DOUBLE dbl1,dbl2;
+	double dbl1,dbl2;
 	static ScriptVariant retvar;
 	retvar.vt = VT_INTEGER;
 
@@ -442,7 +442,7 @@ ScriptVariant* ScriptVariant_Lt( ScriptVariant* svar, ScriptVariant* rightChild 
 
 ScriptVariant* ScriptVariant_Gt( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	DOUBLE dbl1,dbl2;
+	double dbl1,dbl2;
 	static ScriptVariant retvar;
 	retvar.vt = VT_INTEGER;
 
@@ -476,7 +476,7 @@ ScriptVariant* ScriptVariant_Gt( ScriptVariant* svar, ScriptVariant* rightChild 
 
 ScriptVariant* ScriptVariant_Ge( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	DOUBLE dbl1,dbl2;
+	double dbl1,dbl2;
 	static ScriptVariant retvar;
 	retvar.vt = VT_INTEGER;
 
@@ -508,7 +508,7 @@ ScriptVariant* ScriptVariant_Ge( ScriptVariant* svar, ScriptVariant* rightChild 
 
 ScriptVariant* ScriptVariant_Le( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	DOUBLE dbl1,dbl2;
+	double dbl1,dbl2;
 	static ScriptVariant retvar;
 	retvar.vt = VT_INTEGER;
 
@@ -542,8 +542,8 @@ ScriptVariant* ScriptVariant_Add( ScriptVariant* svar, ScriptVariant* rightChild
 {
 	static ScriptVariant retvar;
 	static int flag = 1;
-	DOUBLE dbl1,dbl2;
-	CHAR buf[MAX_STR_VAR_LEN+1];
+	double dbl1,dbl2;
+	char buf[MAX_STR_VAR_LEN+1];
 	if(flag) {ScriptVariant_Init(&retvar);flag = 0;}
 	else     ScriptVariant_Clear(&retvar);
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
@@ -576,7 +576,7 @@ ScriptVariant* ScriptVariant_Add( ScriptVariant* svar, ScriptVariant* rightChild
 ScriptVariant* ScriptVariant_Sub( ScriptVariant* svar, ScriptVariant* rightChild )
 {
 	static ScriptVariant retvar;
-	DOUBLE dbl1,dbl2;
+	double dbl1,dbl2;
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
 	{
@@ -602,7 +602,7 @@ ScriptVariant* ScriptVariant_Sub( ScriptVariant* svar, ScriptVariant* rightChild
 ScriptVariant* ScriptVariant_Mul( ScriptVariant* svar, ScriptVariant* rightChild )
 {
 	static ScriptVariant retvar;
-	DOUBLE dbl1,dbl2;
+	double dbl1,dbl2;
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
 	{
@@ -628,7 +628,7 @@ ScriptVariant* ScriptVariant_Mul( ScriptVariant* svar, ScriptVariant* rightChild
 ScriptVariant* ScriptVariant_Div( ScriptVariant* svar, ScriptVariant* rightChild )
 {
 	static ScriptVariant retvar;
-	DOUBLE dbl1,dbl2;
+	double dbl1,dbl2;
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
 	{

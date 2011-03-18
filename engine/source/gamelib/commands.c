@@ -5,7 +5,7 @@ modelCommands getModelCommand(List* list, char* usercommand) {
 	if (!usercommand || !usercommand[0])
 		goto fail;
 	lc(usercommand, strlen(usercommand));
-	Node* n = List_SearchName(list, (LPCSTR) usercommand);
+	Node* n = List_SearchName(list, (char*) usercommand);
 	if(n)
 		return (modelCommands) n->value;
 	fail:
@@ -143,7 +143,7 @@ List* createModelCommandList(void) {
 	LIST_ADD(CMD_MODEL_CREDIT, "credit");
 	LIST_ADD(CMD_MODEL_NOPAIN, "nopain");
 	LIST_ADD(CMD_MODEL_ESCAPEHITS, "escapehits");
-	LIST_ADD(CMD_MODEL_CHARGERATE, "chargerate");
+	LIST_ADD(CMD_MODEL_charGERATE, "chargerate");
 	LIST_ADD(CMD_MODEL_MPRATE, "mprate");
 	LIST_ADD(CMD_MODEL_MPSET, "mpset");
 	LIST_ADD(CMD_MODEL_SLEEPWAIT, "sleepwait");
@@ -194,7 +194,7 @@ List* createModelCommandList(void) {
 	LIST_ADD(CMD_MODEL_SHADOWCOORDS, "shadowcoords");
 	LIST_ADD(CMD_MODEL_ENERGYCOST, "energycost");
 	LIST_ADD(CMD_MODEL_MPONLY, "mponly");
-	LIST_ADD(CMD_MODEL_CHARGETIME, "chargetime");
+	LIST_ADD(CMD_MODEL_charGETIME, "chargetime");
 	LIST_ADD(CMD_MODEL_DIVE, "dive");
 	LIST_ADD(CMD_MODEL_DIVE1, "dive1");
 	LIST_ADD(CMD_MODEL_DIVE2, "dive2");
@@ -317,7 +317,7 @@ levelCommands getLevelCommand(List* list, char* usercommand) {
 		goto fail;
 	lc(usercommand, strlen(usercommand));
 	
-	Node* n = List_SearchName(list, (LPCSTR) usercommand);
+	Node* n = List_SearchName(list, (char*) usercommand);
 	if(n)
 		return (levelCommands) n->value;
 	fail:
@@ -434,7 +434,7 @@ levelOrderCommands getLevelOrderCommand(List* list, char* usercommand) {
 	if (!usercommand || !usercommand[0])
 		goto fail;
 	lc(usercommand, strlen(usercommand));
-	Node* n = List_SearchName(list, (LPCSTR) usercommand);
+	Node* n = List_SearchName(list, (char*) usercommand);
 	if(n)
 		return (levelOrderCommands) n->value;
 	fail:

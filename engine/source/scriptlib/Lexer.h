@@ -15,7 +15,7 @@
 //enumerate the possible token types.  Some tokens here, such as LBRACKET, are
 //never used.
 typedef enum MY_TOKEN_TYPE {
-   TOKEN_IDENTIFIER, TOKEN_HEXCONSTANT, TOKEN_INTCONSTANT, TOKEN_FLOATCONSTANT,
+   TOKEN_IDENTIFIER, TOKEN_HEXCONSTANT, TOKEN_INTCONSTANT, TOKEN_floatCONSTANT,
 	  TOKEN_STRING_LITERAL, TOKEN_SIZEOF, TOKEN_PTR_OP, TOKEN_INC_OP,
 	  TOKEN_DEC_OP, TOKEN_LEFT_OP, TOKEN_RIGHT_OP, TOKEN_CONDITIONAL,
 	  TOKEN_LE_OP, TOKEN_GE_OP, TOKEN_EQ_OP, TOKEN_NE_OP, TOKEN_AND_OP,
@@ -23,8 +23,8 @@ typedef enum MY_TOKEN_TYPE {
 	  TOKEN_ADD_ASSIGN, TOKEN_SUB_ASSIGN, TOKEN_LEFT_ASSIGN, TOKEN_RIGHT_ASSIGN,
 	  TOKEN_AND_ASSIGN, TOKEN_XOR_ASSIGN, TOKEN_OR_ASSIGN, TOKEN_TYPE_NAME,
 	  TOKEN_TYPEDEF, TOKEN_EXTERN, TOKEN_STATIC, TOKEN_AUTO, TOKEN_REGISTER,
-	  TOKEN_CHAR, TOKEN_SHORT, TOKEN_INT, TOKEN_LONG, TOKEN_SIGNED,
-	  TOKEN_UNSIGNED, TOKEN_FLOAT, TOKEN_DOUBLE, TOKEN_CONST, TOKEN_VOLATILE,
+	  TOKEN_char, TOKEN_SHORT, TOKEN_INT, TOKEN_LONG, TOKEN_SIGNED,
+	  TOKEN_UNSIGNED, TOKEN_float, TOKEN_double, TOKEN_CONST, TOKEN_VOLATILE,
 	  TOKEN_VOID, TOKEN_STRUCT, TOKEN_UNION, TOKEN_ENUM, TOKEN_ELLIPSIS,
 	  TOKEN_CASE, TOKEN_DEFAULT, TOKEN_IF, TOKEN_ELSE, TOKEN_SWITCH,
 	  TOKEN_WHILE, TOKEN_DO, TOKEN_FOR, TOKEN_GOTO, TOKEN_CONTINUE,
@@ -42,7 +42,7 @@ typedef enum MY_TOKEN_TYPE {
 ******************************************************************************/
 typedef struct Token {
    MY_TOKEN_TYPE theType;
-   CHAR theSource[MAX_TOKEN_LENGTH+1];
+   char theSource[MAX_TOKEN_LENGTH+1];
    TEXTPOS theTextPosition;
    ULONG charOffset;
 }Token;
@@ -54,24 +54,24 @@ typedef struct Token {
 *  parser.
 ******************************************************************************/
 typedef struct Lexer {
-	LPCSTR thePath;
-	LPCSTR ptheSource;
+	char* thePath;
+	char* ptheSource;
 	pp_parser preprocessor;
-	CHAR* pcurChar;
+	char* pcurChar;
 	TEXTPOS theTokenPosition;
 } Lexer;
 
 
 //Constructor
-void Token_Init(Token* ptoken, MY_TOKEN_TYPE theType, LPCSTR theSource, TEXTPOS theTextPosition, ULONG charOffset);
-void Lexer_Init(Lexer* plexer, pp_context* pcontext, LPCSTR thePath, LPSTR theSource, TEXTPOS theStartingPosition);
+void Token_Init(Token* ptoken, MY_TOKEN_TYPE theType, char* theSource, TEXTPOS theTextPosition, ULONG charOffset);
+void Lexer_Init(Lexer* plexer, pp_context* pcontext, char* thePath, char* theSource, TEXTPOS theStartingPosition);
 void Lexer_Clear(Lexer* plexer);
-HRESULT Lexer_GetNextToken(Lexer* plexer, Token* theNextToken);
-HRESULT Lexer_GetTokenIdentifier(Lexer* plexer, Token* theNextToken);
-HRESULT Lexer_GetTokenNumber(Lexer* plexer, Token* theNextToken);
-HRESULT Lexer_GetTokenStringLiteral(Lexer* plexer, Token* theNextToken);
-HRESULT Lexer_GetTokenSymbol(Lexer* plexer, Token* theNextToken);
-HRESULT Lexer_SkipComment(Lexer* lexer, COMMENT_TYPE theType);
+ptrdiff_t Lexer_GetNextToken(Lexer* plexer, Token* theNextToken);
+ptrdiff_t Lexer_GetTokenIdentifier(Lexer* plexer, Token* theNextToken);
+ptrdiff_t Lexer_GetTokenNumber(Lexer* plexer, Token* theNextToken);
+ptrdiff_t Lexer_GetTokenStringLiteral(Lexer* plexer, Token* theNextToken);
+ptrdiff_t Lexer_GetTokenSymbol(Lexer* plexer, Token* theNextToken);
+ptrdiff_t Lexer_SkipComment(Lexer* lexer, COMMENT_TYPE theType);
 
 #endif
 

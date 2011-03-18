@@ -73,7 +73,7 @@ struct XBFONTVERTEX
 { 
 	D3DXVECTOR4 p;
 	DWORD       color;
-	FLOAT       tu, tv; 
+	float       tu, tv; 
 };
 
 #define D3DFVF_XBFONTVERTEX (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_TEX1)
@@ -87,7 +87,7 @@ struct XBFONTVERTEX
 //-----------------------------------------------------------------------------
 struct GLYPH_ATTR
 {
-	FLOAT left, top, right, bottom; // Texture coordinates for the image
+	float left, top, right, bottom; // Texture coordinates for the image
 	SHORT wOffset;                  // Pixel offset for glyph start
 	SHORT wWidth;                   // Pixel width of the glyph
 	SHORT wAdvance;                 // Pixels to advance after the glyph
@@ -111,8 +111,8 @@ public:
 	DWORD         m_dwTexHeight;
 
 	// Unicode ranges
-	WCHAR         m_cLowChar;
-	WCHAR         m_cHighChar;
+	Wchar         m_cLowChar;
+	Wchar         m_cHighChar;
 
 	// Glyph data for the font
 	DWORD         m_dwNumGlyphs;
@@ -131,7 +131,7 @@ public:
 	BOOL                    m_bTextureFromFile;
 
 	// Internal call to trigger rendering of the vertex buffer
-	HRESULT Render();
+	ptrdiff_t Render();
 
 	// Access functions for debugging purposes
 	LPDIRECT3DTEXTURE8 GetTexture() const    { return m_pTexture; }
@@ -143,19 +143,19 @@ public:
 	~CXBFont();
 
 	// Functions to create and destroy the internal objects
-	HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, 
-					const CHAR* strFontResourceFileName );
-	HRESULT Destroy();
+	ptrdiff_t Create( LPDIRECT3DDEVICE8 pd3dDevice, 
+					const char* strFontResourceFileName );
+	ptrdiff_t Destroy();
 
 	// Replaces invalid (outside the valid glyph range) characters in a string
-	VOID    ReplaceInvalidChars( WCHAR* strUpdate, WCHAR cReplacement ) const;
+	VOID    ReplaceInvalidChars( Wchar* strUpdate, Wchar cReplacement ) const;
 
 	// Returns the dimensions of a text string
-	HRESULT GetTextExtent( const WCHAR* strText, FLOAT* pWidth, 
-						   FLOAT* pHeight, BOOL bFirstLineOnly=FALSE ) const;
+	ptrdiff_t GetTextExtent( const Wchar* strText, float* pWidth, 
+						   float* pHeight, BOOL bFirstLineOnly=FALSE ) const;
 
 	// Function to create a texture containing rendered text
-	LPDIRECT3DTEXTURE8 CreateTexture( const WCHAR* strText, 
+	LPDIRECT3DTEXTURE8 CreateTexture( const Wchar* strText, 
 									  D3DCOLOR dwBackgroundColor = 0x00000000,
 									  D3DCOLOR dwTextColor = 0xffffffff,
 									  D3DFORMAT d3dFormat = D3DFMT_LIN_A8R8G8B8 );
@@ -163,10 +163,10 @@ public:
 	// Public calls to render text. Callers can simply call DrawText(), but for
 	// performance, they should batch multiple calls together, bracketed by 
 	// calls to Begin() and End().
-	HRESULT Begin();
-	HRESULT DrawText( FLOAT sx, FLOAT sy, DWORD dwColor, 
-					  const WCHAR* strText, DWORD dwFlags=0L );
-	HRESULT End();
+	ptrdiff_t Begin();
+	ptrdiff_t DrawText( float sx, float sy, DWORD dwColor, 
+					  const Wchar* strText, DWORD dwFlags=0L );
+	ptrdiff_t End();
 };
 
 

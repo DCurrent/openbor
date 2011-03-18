@@ -37,13 +37,13 @@
 class CPanel
 {
 protected:
-	struct VERTEX { D3DXVECTOR4 p; D3DCOLOR col; FLOAT tu, tv; };
+	struct VERTEX { D3DXVECTOR4 p; D3DCOLOR col; float tu, tv; };
 
 	struct TLVertex
 	{
-	    FLOAT    x, y, z, rhw;
+	    float    x, y, z, rhw;
 	    D3DCOLOR specular, col;
-	    FLOAT    tu, tv;
+	    float    tu, tv;
 	};
 
 	static const DWORD VertexFVF = (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_SPECULAR | D3DFVF_TEX1 );
@@ -61,8 +61,8 @@ public:
 	unsigned int            m_nFileBufSize ;
 	D3DCOLOR m_colDiffuse;
 	LPDIRECT3DTEXTURE8      m_pTexture;
-	FLOAT m_nWidth;
-	FLOAT m_nHeight;
+	float m_nWidth;
+	float m_nHeight;
 	D3DXMATRIX matrixProjection;	// Projection matrix (How the scene is rendered to screen)
 	D3DXMATRIX matrixView;			// View matrix (Camera's position and rotation)
 	D3DXMATRIX matrixWorld;			// World matrix (Object's position and rotation)
@@ -74,10 +74,10 @@ public:
 	~CPanel();
 
 	// Functions to create and destroy the internal objects
-	HRESULT Recreate( LPDIRECT3DDEVICE8 pd3dDevice);
-	HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, LPDIRECT3DTEXTURE8 pd3dTexture, BOOL bManaged=FALSE, FLOAT fSrcWidth = 0.0f, FLOAT fSrcHeight = 0.0f);
-	HRESULT CreateMemory( LPDIRECT3DDEVICE8 pd3dDevice, char *filename, float width, float height ) ;
-	HRESULT CreateSized( LPDIRECT3DDEVICE8 pd3dDevice, LPDIRECT3DTEXTURE8 pd3dTexture, FLOAT fX, FLOAT fY, FLOAT fSrcWidth = 0.0f, FLOAT fSrcHeight = 0.0f);
+	ptrdiff_t Recreate( LPDIRECT3DDEVICE8 pd3dDevice);
+	ptrdiff_t Create( LPDIRECT3DDEVICE8 pd3dDevice, LPDIRECT3DTEXTURE8 pd3dTexture, BOOL bManaged=FALSE, float fSrcWidth = 0.0f, float fSrcHeight = 0.0f);
+	ptrdiff_t CreateMemory( LPDIRECT3DDEVICE8 pd3dDevice, char *filename, float width, float height ) ;
+	ptrdiff_t CreateSized( LPDIRECT3DDEVICE8 pd3dDevice, LPDIRECT3DTEXTURE8 pd3dTexture, float fX, float fY, float fSrcWidth = 0.0f, float fSrcHeight = 0.0f);
 	// This method's code is covered in a previous tutorial, it basically tells DirectX how
 	// to how the scene is displayed on the 2D screen.
 	void SetProjection( float FOVdegrees, float closeClippingPlane, float farClippingPlane, int scrWidth, int scrHeight);
@@ -112,24 +112,24 @@ public:
 		return m_pTexture;
 	};
 
-	HRESULT Destroy();
+	ptrdiff_t Destroy();
 
 	// Renders the panel
-	HRESULT Render();
-	HRESULT Render(float x, float y, bool bLogical=true);
-	HRESULT Render(float x, float y, float w, float h, float x2, float y2, bool bLogical=true);
-	HRESULT Render(float x, float y, float nw, float nh, bool bLogical=true);
-	HRESULT Render(float x, float y, float w, float h, float x2, float y2, float w2, float h2);
-	HRESULT RenderOnCube(float x, float y, float w, float h, float x2, float y2, float w2, float h2, int face, float rx, float ry, float rz);
-	HRESULT RenderOnCube2(float x, float y, float w, float h, float x2, float y2, float w2, float h2, int face, float rx, float ry, float rz, float scrw, float scrh, int alpha);
+	ptrdiff_t Render();
+	ptrdiff_t Render(float x, float y, bool bLogical=true);
+	ptrdiff_t Render(float x, float y, float w, float h, float x2, float y2, bool bLogical=true);
+	ptrdiff_t Render(float x, float y, float nw, float nh, bool bLogical=true);
+	ptrdiff_t Render(float x, float y, float w, float h, float x2, float y2, float w2, float h2);
+	ptrdiff_t RenderOnCube(float x, float y, float w, float h, float x2, float y2, float w2, float h2, int face, float rx, float ry, float rz);
+	ptrdiff_t RenderOnCube2(float x, float y, float w, float h, float x2, float y2, float w2, float h2, int face, float rx, float ry, float rz, float scrw, float scrh, int alpha);
 	bool InitVertices();
 	bool SetupVertices( float x, float y, float w, float h, float x2, float y2, float w2, float h2, float scrw, float scrh, int alpha);
 
-	HRESULT SetColourDiffuse( D3DCOLOR colour );
-	HRESULT SetAlpha(DWORD dwAlpha);
+	ptrdiff_t SetColourDiffuse( D3DCOLOR colour );
+	ptrdiff_t SetAlpha(DWORD dwAlpha);
 
-	FLOAT GetWidth()	{ return m_nWidth; };
-	FLOAT GetHeight()	{ return m_nHeight; };
+	float GetWidth()	{ return m_nWidth; };
+	float GetHeight()	{ return m_nHeight; };
 };
 
 #endif

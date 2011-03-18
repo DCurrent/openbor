@@ -206,7 +206,7 @@ void pp_message(pp_parser* self, char* messageType, char* message)
  * Writes an error message to the log.
  * @return E_FAIL
  */
-HRESULT pp_error(pp_parser* self, char* format, ...)
+ptrdiff_t pp_error(pp_parser* self, char* format, ...)
 {
 	char buf[1024] = {""};
 	va_list arglist;
@@ -237,7 +237,7 @@ void pp_warning(pp_parser* self, char* format, ...)
  * Gets the next parsable token from the lexer.
  * @param skip_whitespace true to ignore whitespace, false otherwise
  */
-HRESULT pp_parser_lex_token(pp_parser* self, bool skip_whitespace)
+ptrdiff_t pp_parser_lex_token(pp_parser* self, bool skip_whitespace)
 {
 	bool success = true;
 	
@@ -267,7 +267,7 @@ HRESULT pp_parser_lex_token(pp_parser* self, bool skip_whitespace)
  * lexer if necessary.  This is useful for expanding macros.
  * @param skip_whitespace true to ignore whitespace, false otherwise
  */
-HRESULT pp_parser_lex_token_essential(pp_parser* self, bool skip_whitespace)
+ptrdiff_t pp_parser_lex_token_essential(pp_parser* self, bool skip_whitespace)
 {
 	pp_parser* parser = self;
 	
@@ -480,7 +480,7 @@ pp_token* pp_parser_emit_token(pp_parser* self)
 }
 
 // self->token contains the first token of the macro/message if self->overread == true
-HRESULT pp_parser_readline(pp_parser* self, char* buf, int bufsize)
+ptrdiff_t pp_parser_readline(pp_parser* self, char* buf, int bufsize)
 {
 	int total_length = 1;
 	
@@ -514,7 +514,7 @@ HRESULT pp_parser_readline(pp_parser* self, char* buf, int bufsize)
 /**
  * Implements the C "stringify" operator.
  */
-HRESULT pp_parser_stringify(pp_parser* self)
+ptrdiff_t pp_parser_stringify(pp_parser* self)
 {
 	TEXTPOS lexerPosition = {1, 0};
 	char* contents = (char*)List_Retrieve(&self->ctx->macros);
@@ -571,7 +571,7 @@ void pp_parser_concatenate(pp_parser* self, const char* token1, const char* toke
  * Parses a C preprocessor directive.  When this function is called, the token
  * '#' has just been detected by the compiler.
  */
-HRESULT pp_parser_parse_directive(pp_parser* self)
+ptrdiff_t pp_parser_parse_directive(pp_parser* self)
 {
 	if(FAILED(pp_parser_lex_token(self, true))) return E_FAIL;
 	
@@ -683,7 +683,7 @@ HRESULT pp_parser_parse_directive(pp_parser* self)
  * Includes a source file specified with the #include directive.
  * @param filename the path to include
  */
-HRESULT pp_parser_include(pp_parser* self, char* filename)
+ptrdiff_t pp_parser_include(pp_parser* self, char* filename)
 {
 	char* buffer;
 	int length;
@@ -734,7 +734,7 @@ HRESULT pp_parser_include(pp_parser* self, char* filename)
  * The length of the contents is limited to MACRO_CONTENTS_SIZE (512) characters.
  * @param name the macro name
  */
-HRESULT pp_parser_define(pp_parser* self, char* name)
+ptrdiff_t pp_parser_define(pp_parser* self, char* name)
 {
 	char* contents = NULL;
 	bool is_function = false; // true if this is a function-style #define; false otherwise
@@ -831,7 +831,7 @@ error:
  * Handles conditional directives.
  * @param directive the type of conditional directive
  */
-HRESULT pp_parser_conditional(pp_parser* self, PP_TOKEN_TYPE directive)
+ptrdiff_t pp_parser_conditional(pp_parser* self, PP_TOKEN_TYPE directive)
 {
 	switch(directive)
 	{
@@ -902,7 +902,7 @@ void pp_parser_insert_macro(pp_parser* self, char* name)
  * Pre: the macro is defined in func_macros
  * Pre: the last token retrieved was a PP_TOKEN_LPAREN
  */
-HRESULT pp_parser_insert_function_macro(pp_parser* self, char* name)
+ptrdiff_t pp_parser_insert_function_macro(pp_parser* self, char* name)
 {
 	int numParams, paramCount = 0, paramMacros = 0;
 	List* params;

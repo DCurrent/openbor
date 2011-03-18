@@ -21,7 +21,7 @@
 //-----------------------------------------------------------------------------
 class CXBStopWatch
 {
-	FLOAT    m_fTimerPeriod;        // seconds per tick (1/Hz)
+	float    m_fTimerPeriod;        // seconds per tick (1/Hz)
 	LONGLONG m_nStartTick;          // time watch last started/reset
 	LONGLONG m_nPrevElapsedTicks;   // time watch was previously running
 	BOOL     m_bIsRunning;          // TRUE if watch is running
@@ -36,8 +36,8 @@ public:
 	VOID  Reset();
 
 	BOOL  IsRunning() const;
-	FLOAT GetElapsedSeconds() const;
-	FLOAT GetElapsedMilliseconds() const;
+	float GetElapsedSeconds() const;
+	float GetElapsedMilliseconds() const;
 
 private:
 

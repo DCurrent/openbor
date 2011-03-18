@@ -120,9 +120,9 @@
 #  endif
 #endif
 
-#ifndef PNG_NO_FLOATING_POINT_SUPPORTED
-#  ifndef PNG_FLOATING_POINT_SUPPORTED
-#    define PNG_FLOATING_POINT_SUPPORTED
+#ifndef PNG_NO_floatING_POINT_SUPPORTED
+#  ifndef PNG_floatING_POINT_SUPPORTED
+#    define PNG_floatING_POINT_SUPPORTED
 #  endif
 #endif
 
@@ -365,7 +365,7 @@
  * them inside an appropriate ifdef/endif pair for portability.
  */
 
-#if defined(PNG_FLOATING_POINT_SUPPORTED)
+#if defined(PNG_floatING_POINT_SUPPORTED)
 #  if defined(MACOS)
 	 /* We need to check that <math.h> hasn't already been included earlier
 	  * as it seems it doesn't agree with <fp.h>, yet we should really use
@@ -531,7 +531,7 @@
 #endif
 
 /* Ignore attempt to turn off both floating and fixed point support */
-#if !defined(PNG_FLOATING_POINT_SUPPORTED) || \
+#if !defined(PNG_floatING_POINT_SUPPORTED) || \
 	!defined(PNG_NO_FIXED_POINT_SUPPORTED)
 #  define PNG_FIXED_POINT_SUPPORTED
 #endif
@@ -677,7 +677,7 @@
 
 #if !defined(PNG_NO_WRITE_WEIGHTED_FILTER) && \
 	!defined(PNG_WRITE_WEIGHTED_FILTER) && \
-	 defined(PNG_FLOATING_POINT_SUPPORTED)
+	 defined(PNG_floatING_POINT_SUPPORTED)
 #  define PNG_WRITE_WEIGHTED_FILTER_SUPPORTED
 #endif
 
@@ -1211,7 +1211,7 @@ typedef FILE                * png_FILE_p;
 #endif
 #endif
 
-#ifdef PNG_FLOATING_POINT_SUPPORTED
+#ifdef PNG_floatING_POINT_SUPPORTED
 typedef double          FAR * png_doublep;
 #endif
 
@@ -1224,7 +1224,7 @@ typedef png_int_16      FAR * FAR * png_int_16pp;
 typedef PNG_CONST char  FAR * FAR * png_const_charpp;
 typedef char            FAR * FAR * png_charpp;
 typedef png_fixed_point FAR * FAR * png_fixed_point_pp;
-#ifdef PNG_FLOATING_POINT_SUPPORTED
+#ifdef PNG_floatING_POINT_SUPPORTED
 typedef double          FAR * FAR * png_doublepp;
 #endif
 

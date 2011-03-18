@@ -20,14 +20,14 @@ void Instruction_InitViaToken(Instruction* pins, OpCode code, Token* pToken )
 	else       pins->theToken->theType = END_OF_TOKENS;
 }
 
-void Instruction_InitViaLabel(Instruction* pins, OpCode code, LPCSTR label )
+void Instruction_InitViaLabel(Instruction* pins, OpCode code, char* label )
 {
 	memset(pins, 0, sizeof(Instruction));
 	pins->OpCode = code;
 	pins->theToken = malloc(sizeof(Token));
 	memset(pins->theToken, 0, sizeof(Token));
 	pins->theToken->theType = END_OF_TOKENS;
-	pins->Label = malloc(sizeof(CHAR)*(MAX_STR_LEN+1));
+	pins->Label = malloc(sizeof(char)*(MAX_STR_LEN+1));
 	strcpy(pins->Label, label);
 }
 
@@ -109,8 +109,8 @@ void Instruction_ConvertConstant(Instruction* pins)
 		ScriptVariant_Init(pvar);
 		ScriptVariant_ChangeType(pvar, VT_DECIMAL);
 		if (pins->theToken->theType != END_OF_TOKENS)
-			pvar->dblVal = (DOUBLE)atof( pins->theToken->theSource);
-		else pvar->dblVal = (DOUBLE)atof( pins->Label);
+			pvar->dblVal = (double)atof( pins->theToken->theSource);
+		else pvar->dblVal = (double)atof( pins->Label);
 	}
 	else if( pins->OpCode == CONSTINT || pins->OpCode == CHECKARG){
 		pvar = (ScriptVariant*)malloc(sizeof(ScriptVariant));
@@ -138,7 +138,7 @@ void Instruction_ConvertConstant(Instruction* pins)
 }
 
 
-void Instruction_ToString(Instruction* pins, LPSTR strRep)
+void Instruction_ToString(Instruction* pins, char* strRep)
 {
 	strRep[0] = 0;
 

@@ -32,10 +32,10 @@
 
 //MACROS
 /******************************************************************************
-*  CONSUMECHARACTER -- This macro inserts code to remove a character from the
+*  CONSUMEcharACTER -- This macro inserts code to remove a character from the
 *  input stream and add it to the current token buffer.
 ******************************************************************************/
-#define CONSUMECHARACTER \
+#define CONSUMEcharACTER \
    plexer->theTokenSource[strlen(plexer->theTokenSource)] = *(plexer->pcurChar);\
    plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\0';\
    plexer->pcurChar++; \
@@ -51,19 +51,19 @@
    plexer->tokOffset);
 
 /******************************************************************************
-*  SKIPCHARACTER -- Skip a character, not to plexer->theTokenSource in.
+*  SKIPcharACTER -- Skip a character, not to plexer->theTokenSource in.
 *  
 *  Original comment: 跳过一个字符，不加入到plexer->theTokenSource中。
 *  2007-1-22
 ******************************************************************************/
-#define SKIPCHARACTER \
+#define SKIPcharACTER \
    plexer->pcurChar++; \
    plexer->theTextPosition.col++; \
    plexer->offset++;
 
 
 //Constructor
-void pp_token_Init(pp_token* ptoken, PP_TOKEN_TYPE theType, LPCSTR theSource, TEXTPOS theTextPosition, ULONG charOffset)
+void pp_token_Init(pp_token* ptoken, PP_TOKEN_TYPE theType, char* theSource, TEXTPOS theTextPosition, ULONG charOffset)
 {
 	ptoken->theType = theType;
 	ptoken->theTextPosition = theTextPosition;
@@ -72,11 +72,11 @@ void pp_token_Init(pp_token* ptoken, PP_TOKEN_TYPE theType, LPCSTR theSource, TE
 }
 
 
-void pp_lexer_Init(pp_lexer* plexer, LPCSTR theSource, TEXTPOS theStartingPosition)
+void pp_lexer_Init(pp_lexer* plexer, char* theSource, TEXTPOS theStartingPosition)
 {
 	 plexer->ptheSource = theSource;
 	 plexer->theTextPosition = theStartingPosition;
-	 plexer->pcurChar = (CHAR*)plexer->ptheSource;
+	 plexer->pcurChar = (char*)plexer->ptheSource;
 	 plexer->offset = 0;
 	 plexer->tokOffset = 0;
 }
@@ -95,10 +95,10 @@ void pp_lexer_Clear(pp_lexer* plexer)
 *  Returns: S_OK
 *           E_FAIL
 ******************************************************************************/
-HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
+ptrdiff_t pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 {
    for(;;){
-	  memset(plexer->theTokenSource, 0, MAX_TOKEN_LENGTH * sizeof(CHAR));
+	  memset(plexer->theTokenSource, 0, MAX_TOKEN_LENGTH * sizeof(char));
 	  plexer->theTokenPosition = plexer->theTextPosition;
 	  plexer->tokOffset = plexer->offset;
 
@@ -179,7 +179,7 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 	  //space
 	  else if ( !strncmp(plexer->pcurChar, " ", 1)){
 		 //increment the offset counter
-		 CONSUMECHARACTER;
+		 CONSUMEcharACTER;
 		 MAKETOKEN( PP_TOKEN_WHITESPACE );
 		 return S_OK;
 	  }
@@ -212,33 +212,33 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 	  }
 	  //character
 	  else if (!strncmp( plexer->pcurChar, "'", 1)){
-		 CONSUMECHARACTER;
+		 CONSUMEcharACTER;
 		 //escape characters
 		 if (!strncmp( plexer->pcurChar, "\\", 1)){
-			CONSUMECHARACTER;
-			CONSUMECHARACTER;
+			CONSUMEcharACTER;
+			CONSUMEcharACTER;
 		 }
 		 //must not be an empty character
 		 else if(strncmp( plexer->pcurChar, "'", 1))
 		 {
-			CONSUMECHARACTER;
+			CONSUMEcharACTER;
 		 }
 		 else
 		 {
-			CONSUMECHARACTER;
-			CONSUMECHARACTER;
+			CONSUMEcharACTER;
+			CONSUMEcharACTER;
 			MAKETOKEN( PP_TOKEN_ERROR );
 			return S_OK;
 		 }
 		 if (!strncmp( plexer->pcurChar, "'", 1)){
-			CONSUMECHARACTER;
+			CONSUMEcharACTER;
 
 			MAKETOKEN( PP_TOKEN_STRING_LITERAL );
 			return S_OK;
 		 }
 		 else{
-			CONSUMECHARACTER;
-			CONSUMECHARACTER;
+			CONSUMEcharACTER;
+			CONSUMEcharACTER;
 			MAKETOKEN( PP_TOKEN_ERROR );
 			return S_OK;
 		 }
@@ -246,23 +246,23 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 
 	  //Before checking for comments
 	  else if ( !strncmp( plexer->pcurChar, "/", 1)){
-		 CONSUMECHARACTER;
+		 CONSUMEcharACTER;
 		 if ( !strncmp( plexer->pcurChar, "/", 1)){
 			pp_lexer_SkipComment(plexer, COMMENT_SLASH);
-			//CONSUMECHARACTER;
+			//CONSUMEcharACTER;
 			//MAKETOKEN( PP_TOKEN_COMMENT_SLASH );
 			//return S_OK;
 		 }
 		 else if ( !strncmp( plexer->pcurChar, "*", 1)){
 			pp_lexer_SkipComment(plexer, COMMENT_STAR);
-			//CONSUMECHARACTER;
+			//CONSUMEcharACTER;
 			//MAKETOKEN( PP_TOKEN_COMMENT_STAR_BEGIN );
 			//return S_OK;
 		 }
 
 		 //Now complete the symbol scan for regular symbols.
 		 else if ( !strncmp( plexer->pcurChar, "=", 1)){
-			CONSUMECHARACTER;
+			CONSUMEcharACTER;
 			MAKETOKEN( PP_TOKEN_DIV_ASSIGN );
 			return S_OK;
 		 }
@@ -274,15 +274,15 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 	  
 	  //Concatenation operator (inside of #defines)
 	  else if ( !strncmp( plexer->pcurChar, "##", 2)){
-		 CONSUMECHARACTER;
-		 CONSUMECHARACTER;
+		 CONSUMEcharACTER;
+		 CONSUMEcharACTER;
 		 MAKETOKEN( PP_TOKEN_CONCATENATE );
 		 return S_OK;
 	  }
 	  
 	  //Preprocessor directive
 	  else if ( !strncmp( plexer->pcurChar, "#", 1)){
-		 CONSUMECHARACTER;
+		 CONSUMEcharACTER;
 		 MAKETOKEN( PP_TOKEN_DIRECTIVE );
 		 return S_OK;
 	  }
@@ -307,13 +307,13 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 	  //If we get here, we've hit a character we don't recognize
 	  else{
 		 //Consume the character
-		 CONSUMECHARACTER;
+		 CONSUMEcharACTER;
 
 		 /* Create an "error" token, but continue normally since unrecognized 
 		  * characters are none of the preprocessor's business.  Scriptlib can 
 		  * deal with them if necessary. */
 		 MAKETOKEN( PP_TOKEN_ERROR );
-		 //HandleCompileError( *theNextToken, UNRECOGNIZED_CHARACTER );
+		 //HandleCompileError( *theNextToken, UNRECOGNIZED_charACTER );
 		 return S_OK;
 	  }
    }
@@ -327,14 +327,14 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 *  Returns: S_OK
 *           E_FAIL
 ******************************************************************************/
-HRESULT pp_lexer_GetTokenIdentifier(pp_lexer* plexer, pp_token* theNextToken)
+ptrdiff_t pp_lexer_GetTokenIdentifier(pp_lexer* plexer, pp_token* theNextToken)
 {
    int len = 0;
    
    //copy the source that makes up this token
    //an identifier is a string of letters, digits and/or underscores
    do{
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  if(++len > MAX_TOKEN_LENGTH){
 		 printf("Warning: unable to lex token longer than %d characters\n", MAX_TOKEN_LENGTH);
 		 MAKETOKEN( PP_TOKEN_IDENTIFIER );
@@ -353,7 +353,7 @@ HRESULT pp_lexer_GetTokenIdentifier(pp_lexer* plexer, pp_token* theNextToken)
    else if (!strcmp( plexer->theTokenSource, "case")){
 	  MAKETOKEN( PP_TOKEN_CASE );}
    else if (!strcmp( plexer->theTokenSource, "char")){
-	  MAKETOKEN( PP_TOKEN_CHAR );}
+	  MAKETOKEN( PP_TOKEN_char );}
    else if (!strcmp( plexer->theTokenSource, "const")){
 	  MAKETOKEN( PP_TOKEN_CONST );}
    else if (!strcmp( plexer->theTokenSource, "continue")){
@@ -363,7 +363,7 @@ HRESULT pp_lexer_GetTokenIdentifier(pp_lexer* plexer, pp_token* theNextToken)
    else if (!strcmp( plexer->theTokenSource, "do")){
 	  MAKETOKEN( PP_TOKEN_DO );}
    else if (!strcmp( plexer->theTokenSource, "double")){
-	  MAKETOKEN( PP_TOKEN_DOUBLE );}
+	  MAKETOKEN( PP_TOKEN_double );}
    else if (!strcmp( plexer->theTokenSource, "else")){
 	  MAKETOKEN( PP_TOKEN_ELSE );}
    else if (!strcmp( plexer->theTokenSource, "enum")){
@@ -371,7 +371,7 @@ HRESULT pp_lexer_GetTokenIdentifier(pp_lexer* plexer, pp_token* theNextToken)
    else if (!strcmp( plexer->theTokenSource, "extern")){
 	  MAKETOKEN( PP_TOKEN_EXTERN );}
    else if (!strcmp( plexer->theTokenSource, "float")){
-	  MAKETOKEN( PP_TOKEN_FLOAT );}
+	  MAKETOKEN( PP_TOKEN_float );}
    else if (!strcmp( plexer->theTokenSource, "for")){
 	  MAKETOKEN( PP_TOKEN_FOR );}
    else if (!strcmp( plexer->theTokenSource, "goto")){
@@ -446,7 +446,7 @@ HRESULT pp_lexer_GetTokenIdentifier(pp_lexer* plexer, pp_token* theNextToken)
 *  Returns: S_OK
 *           E_FAIL
 ******************************************************************************/
-HRESULT pp_lexer_GetTokenNumber(pp_lexer* plexer, pp_token* theNextToken)
+ptrdiff_t pp_lexer_GetTokenNumber(pp_lexer* plexer, pp_token* theNextToken)
 {
    //copy the source that makes up this token
    //a constant is one of these:
@@ -454,19 +454,19 @@ HRESULT pp_lexer_GetTokenNumber(pp_lexer* plexer, pp_token* theNextToken)
    //0[xX][a-fA-F0-9]+{u|U|l|L}
    //0{D}+{u|U|l|L}
    if (( !strncmp( plexer->pcurChar, "0X", 2)) || ( !strncmp( plexer->pcurChar, "0x", 2))){
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  while ((*plexer->pcurChar >= '0' && *plexer->pcurChar <= '9') ||
 		  (*plexer->pcurChar >= 'a' && *plexer->pcurChar <= 'f') ||
 		  (*plexer->pcurChar >= 'A' && *plexer->pcurChar <= 'F'))
 	  {
-		 CONSUMECHARACTER;
+		 CONSUMEcharACTER;
 	  }
 
 	  if (( !strncmp( plexer->pcurChar, "u", 1)) || ( !strncmp( plexer->pcurChar, "U", 1)) ||
 		 ( !strncmp( plexer->pcurChar, "l", 1)) || ( !strncmp( plexer->pcurChar, "L", 1)))
 	  {
-		 CONSUMECHARACTER;
+		 CONSUMEcharACTER;
 	  }
 
 	  MAKETOKEN( PP_TOKEN_HEXCONSTANT );
@@ -474,40 +474,40 @@ HRESULT pp_lexer_GetTokenNumber(pp_lexer* plexer, pp_token* theNextToken)
    else{
 	  while (*plexer->pcurChar >= '0' && *plexer->pcurChar <= '9')
 	  {
-		 CONSUMECHARACTER;
+		 CONSUMEcharACTER;
 	  }
 
 	  if (( !strncmp( plexer->pcurChar, "E", 1)) || ( !strncmp( plexer->pcurChar, "e", 1)))
 	  {
-		 CONSUMECHARACTER;
+		 CONSUMEcharACTER;
 		 while (*plexer->pcurChar >= '0' && *plexer->pcurChar <= '9')
 		 {
-			CONSUMECHARACTER;
+			CONSUMEcharACTER;
 		 }
 
 		 if (( !strncmp( plexer->pcurChar, "f", 1)) || ( !strncmp( plexer->pcurChar, "F", 1)) ||
 			( !strncmp( plexer->pcurChar, "l", 1)) || ( !strncmp( plexer->pcurChar, "L", 1)))
 		 {
-			CONSUMECHARACTER;
+			CONSUMEcharACTER;
 		 }
 
-		 MAKETOKEN( PP_TOKEN_FLOATCONSTANT );
+		 MAKETOKEN( PP_TOKEN_floatCONSTANT );
 	  }
 	  else if ( !strncmp( plexer->pcurChar, ".", 1))
 	  {
-		 CONSUMECHARACTER;
+		 CONSUMEcharACTER;
 		 while (*plexer->pcurChar >= '0' && *plexer->pcurChar <= '9')
 		 {
-			CONSUMECHARACTER;
+			CONSUMEcharACTER;
 		 }
 
 		 if (( !strncmp( plexer->pcurChar, "E", 1)) || ( !strncmp( plexer->pcurChar, "e", 1)))
 		 {
-			CONSUMECHARACTER;
+			CONSUMEcharACTER;
 
 			while (*plexer->pcurChar >= '0' && *plexer->pcurChar <= '9')
 			{
-			   CONSUMECHARACTER;
+			   CONSUMEcharACTER;
 			}
 
 			if (( !strncmp( plexer->pcurChar, "f", 1)) ||
@@ -515,10 +515,10 @@ HRESULT pp_lexer_GetTokenNumber(pp_lexer* plexer, pp_token* theNextToken)
 			   ( !strncmp( plexer->pcurChar, "l", 1)) ||
 			   ( !strncmp( plexer->pcurChar, "L", 1)))
 			{
-			   CONSUMECHARACTER;
+			   CONSUMEcharACTER;
 			}
 		 }
-		 MAKETOKEN( PP_TOKEN_FLOATCONSTANT );
+		 MAKETOKEN( PP_TOKEN_floatCONSTANT );
 
 	  }
 	  else{
@@ -535,29 +535,29 @@ HRESULT pp_lexer_GetTokenNumber(pp_lexer* plexer, pp_token* theNextToken)
 *  Returns: S_OK
 *           E_FAIL
 ******************************************************************************/
-HRESULT pp_lexer_GetTokenStringLiteral(pp_lexer* plexer, pp_token* theNextToken)
+ptrdiff_t pp_lexer_GetTokenStringLiteral(pp_lexer* plexer, pp_token* theNextToken)
 {
    //copy the source that makes up this token
    //an identifier is a string of letters, digits and/or underscores
    //consume that first quote mark
    int esc = 0;
-   CONSUMECHARACTER;
+   CONSUMEcharACTER;
    while ( strncmp( plexer->pcurChar, "\"", 1))
    {
 	  if(!strncmp( plexer->pcurChar, "\\", 1))
 	  {
 		  esc = 1;
 	  }
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  if(esc)
 	  {
-		CONSUMECHARACTER;
+		CONSUMEcharACTER;
 		esc = 0;
 	  }
    }
 
    //consume that last quote mark
-   CONSUMECHARACTER;
+   CONSUMEcharACTER;
 
    MAKETOKEN( PP_TOKEN_STRING_LITERAL );
    return S_OK;
@@ -569,206 +569,206 @@ HRESULT pp_lexer_GetTokenStringLiteral(pp_lexer* plexer, pp_token* theNextToken)
 *  Returns: S_OK
 *           E_FAIL
 ******************************************************************************/
-HRESULT pp_lexer_GetTokenSymbol(pp_lexer* plexer, pp_token* theNextToken)
+ptrdiff_t pp_lexer_GetTokenSymbol(pp_lexer* plexer, pp_token* theNextToken)
 {
    //">>="
    if ( !strncmp( plexer->pcurChar, ">>=", 3))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_RIGHT_ASSIGN );
    }
 
    //">>"
    else if ( !strncmp( plexer->pcurChar, ">>", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_RIGHT_OP );
    }
 
    //">="
    else if ( !strncmp( plexer->pcurChar, ">=", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_GE_OP );
    }
 
    //">"
    else if ( !strncmp( plexer->pcurChar, ">", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_GT );
    }
 
    //"<<="
    else if ( !strncmp( plexer->pcurChar, "<<=", 3))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_LEFT_ASSIGN );
    }
 
    //"<<"
    else if ( !strncmp( plexer->pcurChar, "<<", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_LEFT_OP );
    }
 
    //"<="
    else if ( !strncmp( plexer->pcurChar, "<=", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_LE_OP );
    }
 
    //"<"
    else if ( !strncmp( plexer->pcurChar, "<", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_LT );
    }
 
    //"++"
    else if ( !strncmp( plexer->pcurChar, "++", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_INC_OP );
    }
 
    //"+="
    else if ( !strncmp( plexer->pcurChar, "+=", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_ADD_ASSIGN );
    }
 
    //"+"
    else if ( !strncmp( plexer->pcurChar, "+", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_ADD );
    }
 
    //"--"
    else if ( !strncmp( plexer->pcurChar, "--", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_DEC_OP );
    }
 
    //"-="
    else if ( !strncmp( plexer->pcurChar, "-=", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_SUB_ASSIGN );
    }
 
    //"-"
    else if ( !strncmp( plexer->pcurChar, "-", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_SUB );
    }
 
    //"*="
    else if ( !strncmp( plexer->pcurChar, "*=", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_MUL_ASSIGN );
    }
 
    //"*"
    else if ( !strncmp( plexer->pcurChar, "*", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_MUL );
    }
 
    //"%="
    else if ( !strncmp( plexer->pcurChar, "%=", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_MOD_ASSIGN );
    }
 
    //"%"
    else if ( !strncmp( plexer->pcurChar, "%", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_MOD );
    }
 
    //"&&"
    else if ( !strncmp( plexer->pcurChar, "&&", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_AND_OP );
    }
 
    //"&="
    else if ( !strncmp( plexer->pcurChar, "&=", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_AND_ASSIGN );
    }
 
    //"&"
    else if ( !strncmp( plexer->pcurChar, "&", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_BITWISE_AND );
    }
 
    //"^="
    else if ( !strncmp( plexer->pcurChar, "^=", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_XOR_ASSIGN );
    }
 
    //"^"
    else if ( !strncmp( plexer->pcurChar, "^", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_XOR );
    }
 
    //"||"
    else if ( !strncmp( plexer->pcurChar, "||", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_OR_OP );
    }
 
    //"|="
    else if ( !strncmp( plexer->pcurChar, "|=", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_OR_ASSIGN );
    }
 
 	//"|"
    else if ( !strncmp( plexer->pcurChar, "|", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_BITWISE_OR );
    }
 
@@ -776,114 +776,114 @@ HRESULT pp_lexer_GetTokenSymbol(pp_lexer* plexer, pp_token* theNextToken)
    else if ( !strncmp( plexer->pcurChar, "==", 2))
 
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_EQ_OP );
    }
 
   //"="
    else if ( !strncmp( plexer->pcurChar, "=", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_ASSIGN );
    }
 
    //"!="
    else if ( !strncmp( plexer->pcurChar, "!=", 2))
    {
-	  CONSUMECHARACTER;
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_NE_OP );
    }
 
    //"!"
    else if ( !strncmp( plexer->pcurChar, "!", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_BOOLEAN_NOT );
    }
 
    //";"
    else if ( !strncmp( plexer->pcurChar, ";", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_SEMICOLON);
    }
 
    //"{"
    else if ( !strncmp( plexer->pcurChar, "{", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_LCURLY);
    }
 
    //"}"
    else if ( !strncmp( plexer->pcurChar, "}", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_RCURLY);
    }
 
    //","
    else if ( !strncmp( plexer->pcurChar, ",", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_COMMA);
    }
 
    //":"
    else if ( !strncmp( plexer->pcurChar, ":", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_COLON);
    }
 
    //"("
    else if ( !strncmp( plexer->pcurChar, "(", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_LPAREN);
    }
 
    //")"
    else if ( !strncmp( plexer->pcurChar, ")", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_RPAREN);
    }
 
    //"["
    else if ( !strncmp( plexer->pcurChar, "[", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_LBRACKET);
    }
 
    //"]"
    else if ( !strncmp( plexer->pcurChar, "]", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_RBRACKET);
    }
 
    //"."
    else if ( !strncmp( plexer->pcurChar, ".", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_FIELD);
    }
 
    //"~"
    else if ( !strncmp( plexer->pcurChar, "~", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_BITWISE_NOT);
    }
 
    //"?"
    else if ( !strncmp( plexer->pcurChar, "?", 1))
    {
-	  CONSUMECHARACTER;
+	  CONSUMEcharACTER;
 	  MAKETOKEN( PP_TOKEN_CONDITIONAL);
    }
 
@@ -896,17 +896,17 @@ HRESULT pp_lexer_GetTokenSymbol(pp_lexer* plexer, pp_token* theNextToken)
 *  Returns: S_OK
 *           E_FAIL
 ******************************************************************************/
-HRESULT pp_lexer_SkipComment(pp_lexer* plexer, COMMENT_TYPE theType)
+ptrdiff_t pp_lexer_SkipComment(pp_lexer* plexer, COMMENT_TYPE theType)
 {
 
    if (theType == COMMENT_SLASH){
 	  do{
-		 SKIPCHARACTER;
+		 SKIPcharACTER;
 		 //keep going if we hit a backslash-escaped line break
 		 if (!strncmp( plexer->pcurChar, "\\\r\n", 3))
 		 {
-			SKIPCHARACTER;
-			SKIPCHARACTER;
+			SKIPcharACTER;
+			SKIPcharACTER;
 			plexer->theTextPosition.col = 0;
 			plexer->theTextPosition.row++;
 			continue;
@@ -915,7 +915,7 @@ HRESULT pp_lexer_SkipComment(pp_lexer* plexer, COMMENT_TYPE theType)
 			 !strncmp( plexer->pcurChar, "\\\r", 2) || 
 			 !strncmp( plexer->pcurChar, "\\\f", 2))
 		 {
-			SKIPCHARACTER;
+			SKIPcharACTER;
 			plexer->theTextPosition.col = 0;
 			plexer->theTextPosition.row++;
 			continue;
@@ -932,17 +932,17 @@ HRESULT pp_lexer_SkipComment(pp_lexer* plexer, COMMENT_TYPE theType)
    }
    else if (theType == COMMENT_STAR){
 	  //consume the '*' that gets this comment started
-	  SKIPCHARACTER;
+	  SKIPcharACTER;
 
 	  //loop through the characters till we hit '*/'
 	  while (strncmp( plexer->pcurChar, "\0", 1)){
 		 if (0==strncmp( plexer->pcurChar, "*/", 2)){
-			SKIPCHARACTER;
-			SKIPCHARACTER;
+			SKIPcharACTER;
+			SKIPcharACTER;
 			break;
 		 }
 		 else if (!strncmp( plexer->pcurChar, "\r\n", 2)){
-			SKIPCHARACTER;
+			SKIPcharACTER;
 			plexer->theTextPosition.col = 0;
 			plexer->theTextPosition.row++;
 		 }
@@ -958,7 +958,7 @@ HRESULT pp_lexer_SkipComment(pp_lexer* plexer, COMMENT_TYPE theType)
 			plexer->theTextPosition.col = 0;
 			plexer->theTextPosition.row++;
 		 }
-		 SKIPCHARACTER;
+		 SKIPcharACTER;
 	  };
    }
 

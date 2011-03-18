@@ -13,7 +13,7 @@
 #include "Instruction.h"
 #include "Parser.h"
 
-typedef HRESULT (*SCRIPTFUNCTION)(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+typedef ptrdiff_t (*SCRIPTFUNCTION)(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 typedef struct Interpreter {
    StackedSymbolTable theSymbolTable;
@@ -39,18 +39,18 @@ typedef struct Interpreter {
    BOOL bMainCompleted;
 }Interpreter;
 
-void Interpreter_Init(Interpreter* pinterpreter, LPCSTR name, List* pflist);
+void Interpreter_Init(Interpreter* pinterpreter, char* name, List* pflist);
 void Interpreter_Clear(Interpreter* pinterpreter);
-HRESULT Interpreter_ParseText(Interpreter* pinterpreter, LPSTR scriptText,
-						   ULONG startingLineNumber, LPCSTR path);
-HRESULT Interpreter_PutValue(Interpreter* pinterpreter, LPCSTR variable, ScriptVariant* pValue, int refFlag );
-HRESULT Interpreter_GetValue(Interpreter* pinterpreter, LPCSTR variable, ScriptVariant* pValue);
-HRESULT Interpreter_GetValueByRef(Interpreter* pinterpreter, LPCSTR variable, ScriptVariant** pValue);
-HRESULT Interpreter_EvaluateImmediate(Interpreter* pinterpreter);
-HRESULT Interpreter_EvaluateCall(Interpreter* pinterpreter);
-HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter);
-HRESULT Interpreter_Call(Interpreter* pinterpreter);
-HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter);
+ptrdiff_t Interpreter_ParseText(Interpreter* pinterpreter, char* scriptText,
+						   ULONG startingLineNumber, char* path);
+ptrdiff_t Interpreter_PutValue(Interpreter* pinterpreter, char* variable, ScriptVariant* pValue, int refFlag );
+ptrdiff_t Interpreter_GetValue(Interpreter* pinterpreter, char* variable, ScriptVariant* pValue);
+ptrdiff_t Interpreter_GetValueByRef(Interpreter* pinterpreter, char* variable, ScriptVariant** pValue);
+ptrdiff_t Interpreter_EvaluateImmediate(Interpreter* pinterpreter);
+ptrdiff_t Interpreter_EvaluateCall(Interpreter* pinterpreter);
+ptrdiff_t Interpreter_CompileInstructions(Interpreter* pinterpreter);
+ptrdiff_t Interpreter_Call(Interpreter* pinterpreter);
+ptrdiff_t Interpreter_EvalInstruction(Interpreter* pinterpreter);
 void Interpreter_Reset(Interpreter* pinterpreter);
 void Interpreter_ClearImports(Interpreter* pinterpreter);
 

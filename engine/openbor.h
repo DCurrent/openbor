@@ -318,7 +318,7 @@
 #define		ANI_FAINT			60  				// Faint animations for players/enemys by tails
 #define		ANI_CANT			61  				// Can't animation for players(animation when mp is less than mpcost) by tails.
 #define		ANI_THROWATTACK		62					// Added for subtype projectile
-#define		ANI_CHARGEATTACK	63                  // Plays when player releases attack1 after holding >= chargetime.
+#define		ANI_charGEATTACK	63                  // Plays when player releases attack1 after holding >= chargetime.
 #define		ANI_VAULT			64  				// Now you can flip over people like in SOR.
 #define		ANI_JUMPCANT		65
 #define		ANI_JUMPSPECIAL		66
@@ -333,7 +333,7 @@
 #define		ANI_DIE2			75
 #define		ANI_DIE3			76
 #define		ANI_DIE4			77
-#define		ANI_CHARGE			78
+#define		ANI_charGE			78
 #define		ANI_BACKWALK		79
 #define		ANI_SLEEP			80
 #define		ANI_FOLLOW1			81
@@ -419,7 +419,7 @@
 
 #define		MAX_ANIS			161    // max_anis increased for new ANIs
 
-#define     ARG_FLOAT            0
+#define     ARG_float            0
 #define     ARG_STRING           1
 #define     ARG_INT              2
 
@@ -1104,7 +1104,7 @@ typedef struct entity
 	unsigned int 	nextanim;
 	unsigned int 	nextthink;
 	unsigned int 	pain_time;
-	unsigned int    mpchargetime;					// For the CHARGE animation
+	unsigned int    mpchargetime;					// For the charGE animation
 	unsigned int    sleeptime;						// For the SLEEP animation
 	unsigned int 	rushtime;						// rush combo timer
 	unsigned int    knockdowntime;                  // count knock down hit

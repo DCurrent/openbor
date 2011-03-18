@@ -19,7 +19,7 @@ typedef struct Parser{
 	List*  pIList;                      //A pointer to the instruction list
 	LONG LabelCount;                   //A counter to track the number of labels
 	Stack LabelStack;                  //A stack of labels for use in jumps
-	CHAR theRetLabel[MAX_STR_LEN+1];    //A label which holds the target of returns
+	char theRetLabel[MAX_STR_LEN+1];    //A label which holds the target of returns
 	Token theFieldToken;               //A pointer to the field source token
 	int paramCount;
 	char currentPath[256];                 // current path info of the text
@@ -28,10 +28,10 @@ typedef struct Parser{
 
 void Parser_Init(Parser* pparser);
 void Parser_Clear(Parser* pparser);
-void Parser_ParseText(Parser* pparser, pp_context* pcontext, List* pIList, LPSTR scriptText,
-					 ULONG startingLineNumber, LPCSTR path );
-void Parser_ParseExpression(Parser* pparser, List* pIList, LPSTR scriptText,
-					 ULONG startingLineNumber, LPCSTR path );
+void Parser_ParseText(Parser* pparser, pp_context* pcontext, List* pIList, char* scriptText,
+					 ULONG startingLineNumber, char* path );
+void Parser_ParseExpression(Parser* pparser, List* pIList, char* scriptText,
+					 ULONG startingLineNumber, char* path );
 void Parser_AddInstructionViaToken(Parser* pparser, OpCode pCode, Token* pToken, Label label );
 void Parser_AddInstructionViaLabel(Parser* pparser, OpCode pCode, Label instrLabel, Label listLabel );
 BOOL Parser_Check(Parser* pparser, MY_TOKEN_TYPE theType );

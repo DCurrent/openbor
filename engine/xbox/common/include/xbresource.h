@@ -30,7 +30,7 @@ DWORD XBResource_SizeOf( LPDIRECT3DRESOURCE8 pResource );
 //-----------------------------------------------------------------------------
 struct XBRESOURCE
 {
-	CHAR* strName;
+	char* strName;
 	DWORD dwOffset;
 };
 
@@ -54,7 +54,7 @@ protected:
 
 public:
 	// Loads the resources out of the specified bundle
-	HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, const CHAR* strFilename, 
+	ptrdiff_t Create( LPDIRECT3DDEVICE8 pd3dDevice, const char* strFilename, 
 					DWORD dwNumResources, XBRESOURCE* pResourceTags = NULL );
 
 	VOID Destroy();
@@ -79,21 +79,21 @@ public:
 	{ return (LPDIRECT3DVERTEXBUFFER8)GetData( dwOffset ); }
 
 	// Functions to retrieve resources by their name
-	VOID* GetData( const CHAR* strName ) const;
+	VOID* GetData( const char* strName ) const;
 
-	LPDIRECT3DRESOURCE8 GetResource( const CHAR* strName ) const
+	LPDIRECT3DRESOURCE8 GetResource( const char* strName ) const
 	{ return (LPDIRECT3DRESOURCE8)GetData( strName ); }
 
-	LPDIRECT3DTEXTURE8 GetTexture( const CHAR* strName ) const
+	LPDIRECT3DTEXTURE8 GetTexture( const char* strName ) const
 	{ return (LPDIRECT3DTEXTURE8)GetResource( strName ); }
 
-	LPDIRECT3DCUBETEXTURE8 GetCubemap( const CHAR* strName ) const
+	LPDIRECT3DCUBETEXTURE8 GetCubemap( const char* strName ) const
 	{ return (LPDIRECT3DCUBETEXTURE8)GetResource( strName ); }
 
-	LPDIRECT3DVOLUMETEXTURE8 GetVolumeTexture( const CHAR* strName ) const
+	LPDIRECT3DVOLUMETEXTURE8 GetVolumeTexture( const char* strName ) const
 	{ return (LPDIRECT3DVOLUMETEXTURE8)GetResource( strName ); }
 
-	LPDIRECT3DVERTEXBUFFER8 GetVertexBuffer( const CHAR* strName ) const
+	LPDIRECT3DVERTEXBUFFER8 GetVertexBuffer( const char* strName ) const
 	{ return (LPDIRECT3DVERTEXBUFFER8)GetResource( strName ); }
 
 	// Constructor/destructor
