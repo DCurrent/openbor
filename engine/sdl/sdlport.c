@@ -11,7 +11,6 @@
 #include "ram.h"
 #include "video.h"
 #include "menu.h"
-#include "stacktrace.h"
 
 #ifdef DARWIN
 #include <CoreFoundation/CoreFoundation.h>
