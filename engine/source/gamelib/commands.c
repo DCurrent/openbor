@@ -1,23 +1,45 @@
 #include "commands.h"
 
+
+void freeCommandList(List* list) {
+	List_Clear(list);
+	free(list);
+}
+
 // attention: modifies usercommand to lowercase
-modelCommands getModelCommand(List* list, char* usercommand) {
+void* getCommandlistCommand(List* list, char* usercommand) {
 	if (!usercommand || !usercommand[0])
 		goto fail;
 	lc(usercommand, strlen(usercommand));
 	Node* n = List_SearchName(list, usercommand);
 	if(n)
-		return (modelCommands) n->value;
+		return n->value;
 	fail:
-		return (modelCommands) 0;
+	return NULL;
 }
 
-List* createModelCommandList(void) {
+modelCommands getModelCommand(List* list, char* usercommand) {
+	return (modelCommands) getCommandlistCommand(list, usercommand);
+}
+
+levelCommands getLevelCommand(List* list, char* usercommand) {
+	return (levelCommands) getCommandlistCommand(list, usercommand);
+}
+
+levelOrderCommands getLevelOrderCommand(List* list, char* usercommand) {
+	return (levelOrderCommands) getCommandlistCommand(list, usercommand);
+}
+
+List* prepareList(void) {
 	List* result = malloc(sizeof(List));
 	assert(result);
 	List_Init(result);
-	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
-	
+	return result;	
+}
+
+List* createModelCommandList(void) {
+	List* result = prepareList();
+	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)	
 	LIST_ADD(CMD_MODEL_NAME, "name");
 	LIST_ADD(CMD_MODEL_TYPE, "type");
 	LIST_ADD(CMD_MODEL_SUBTYPE, "subtype");
@@ -305,28 +327,8 @@ List* createModelCommandList(void) {
 	return result;
 }
 
-void freeCommandList(List* list) {
-	List_Clear(list);
-	free(list);
-}
-
-// attention: modifies usercommand to lowercase
-levelCommands getLevelCommand(List* list, char* usercommand) {
-	if (!usercommand || !usercommand[0])
-		goto fail;
-	lc(usercommand, strlen(usercommand));
-	
-	Node* n = List_SearchName(list, usercommand);
-	if(n)
-		return (levelCommands) n->value;
-	fail:
-		return (levelCommands) 0;
-}
-
 List* createLevelCommandList(void) {
-	List* result = malloc(sizeof(List));
-	assert(result);
-	List_Init(result);
+	List* result = prepareList();
 	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
 	
 	LIST_ADD(CMD_LEVEL_LOADINGBG, "loadingbg");
@@ -424,22 +426,8 @@ List* createLevelCommandList(void) {
 	return result;
 }
 
-// attention: modifies usercommand to lowercase
-levelOrderCommands getLevelOrderCommand(List* list, char* usercommand) {
-	if (!usercommand || !usercommand[0])
-		goto fail;
-	lc(usercommand, strlen(usercommand));
-	Node* n = List_SearchName(list, usercommand);
-	if(n)
-		return (levelOrderCommands) n->value;
-	fail:
-	return (levelOrderCommands) 0;
-}
-
 List* createLevelOrderCommandList(void) {
-	List* result = malloc(sizeof(List));
-	assert(result);
-	List_Init(result);
+	List* result = prepareList();
 	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
 	LIST_ADD(CMD_LEVELORDER_BLENDFX, "blendfx");
 	LIST_ADD(CMD_LEVELORDER_SET, "set");
