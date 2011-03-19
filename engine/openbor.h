@@ -1480,8 +1480,6 @@ typedef struct
 	Script          endlevel_script;
 	s_spawn_script_cache_node* spawn_script_cache_head;
 	int pos;
-	float advancex;
-	float advancey;
 	u32 advancetime;
 	u32 quaketime;
 	int quake;
