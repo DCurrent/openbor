@@ -699,6 +699,7 @@ void Menu()
 	// Set video mode based on aspect ratio
 	if(CONF_GetAspectRatio() == CONF_ASPECT_16_9) isWide = 1;
 	setVideoMode();
+	dListTotal = findPaks();
 
 	dListCurrentPosition = 0;
 	if(dListTotal != 1)
