@@ -519,8 +519,6 @@ OBJS            = $(GAME_CONSOLE)                                               
 
 CFLAGS 	       += $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TARGET_PLATFORM)
 CFLAGS 	       += -g -Wall -Werror -fsigned-char
-#dead code elimination flags, saves 20KB currently
-CFLAGS 	       += -ftree-dce -fdata-sections -ffunction-sections -Wl,--gc-sections
 
 ifndef BUILD_DEBUG
 ifdef BUILD_DC
@@ -529,6 +527,8 @@ else
 CFLAGS 	       += -O2
 endif
 CFLAGS 	       += -fno-ident -freorder-blocks 
+#dead code elimination flags, saves 20KB currently
+CFLAGS 	       += -ftree-dce -fdata-sections -ffunction-sections -Wl,--gc-sections
 ifndef BUILD_AMD64
 CFLAGS         += -fomit-frame-pointer 
 endif
