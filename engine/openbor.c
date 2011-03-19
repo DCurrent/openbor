@@ -9909,10 +9909,10 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 	int text_y = s->ty + videomodes.vShift;
 	unsigned int ticks = timer_gettick();
 	
-	if(ticks - lasttick  > 20)
+	if((ticks - lasttick) % 20 == 0)
 		sound_update_music();
 
-	if(ticks - lasttick  > 250)
+	if((ticks - lasttick) % 250 == 0)
 		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
 	
 	if(ticks - lasttick  > s->refreshMs || value < 0) { //negative value forces a repaint. used when only bg is drawn for the first time
