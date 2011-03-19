@@ -9944,16 +9944,19 @@ void update_loading(s_loadingbar* s, int value, int max)
 		// draw loading bar if it has a non-negative, non-zero size
 		if(size_x > 0)
 		{
-			if (value < 0) value = 0;
 			loadingbarstatus.sizex = size_x;
-			bar(pos_x, pos_y, value, max, &loadingbarstatus);
+			bar(pos_x, pos_y, value<0 ? 0:value, max, &loadingbarstatus);
+		}
+		// only draw the rest of the loading screen once
+		if(value < 0)
+		{
+			if(background) putscreen(vscreen, background, 0, 0, NULL);
+			else           clearscreen(vscreen);
+			font_printf(text_x, text_y, s->tf, 0, "Loading...");
 		}
 		// update screen if loading bar has changed or value is negative
 		if(size_x > 0 || value < 0)
 		{
-			font_printf(text_x, text_y, s->tf, 0, "Loading...");
-			if(background) putscreen(vscreen, background, 0, 0, NULL);
-			else           clearscreen(vscreen);
 			spriteq_draw(vscreen, 0);
 			video_copy_screen(vscreen);
 			spriteq_clear();
