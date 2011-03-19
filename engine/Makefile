@@ -241,7 +241,6 @@ TARGET_MAP      = $(TARGET).map
 TARGET_FINAL    = boot.dol
 TARGET_PLATFORM = WII
 BUILD_TREMOR    = 1
-BUILD_ELM       = 1
 BUILDING        = 1
 INCLUDES        = $(DEVKITPRO)/portlibs/ppc/include \
                   $(DEVKITPRO)/libogc/include
@@ -501,7 +500,7 @@ endif
 MAIN            = openborscript.o					                                                \
                   openbor.o
 
-OBJS            = $(GAME_CONSOLE)                                                                        \
+OBJS            = $(GAME_CONSOLE)                                                                   \
                   $(ADPCM)                                                                          \
                   $(GFX)                                                                            \
                   $(GAME)                                                                           \
