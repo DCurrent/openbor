@@ -62,11 +62,7 @@ void initSDL()
 	atexit(SDL_Quit);
 #ifndef SKIP_CODE
 	SDL_WM_SetCaption("OpenBOR", NULL);
-#ifdef USE_XPM	
-	SDL_WM_SetIcon((SDL_Surface*)xpmToSurface(OpenBOR_Icon_32x32), NULL);
-#else
 	SDL_WM_SetIcon((SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data), NULL);
-#endif
 #endif
 #if WIN || LINUX && !DARWIN && !defined(GLES)
 	if(SDL_GL_LoadLibrary(NULL) < 0)
