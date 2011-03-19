@@ -1424,10 +1424,10 @@ typedef struct
 typedef struct
 {
 	char*           name;
-	int				numspawns;
+	int		numspawns;
 	s_spawn_entry	spawnpoints[LEVEL_MAX_SPAWNS];
-	int				numpanels;
-	int				order[LEVEL_MAX_PANELS];
+	int		numpanels;
+	int		order[LEVEL_MAX_PANELS];
 	s_bglayer       bglayers[LEVEL_MAX_BGLAYERS];
 	s_fglayer       fglayers[LEVEL_MAX_FGLAYERS];
 	s_textobj       textobjs[LEVEL_MAX_TEXTOBJS];
@@ -1435,38 +1435,38 @@ typedef struct
 	int             numfglayers;
 	s_filestream    filestreams[LEVEL_MAX_FILESTREAMS];
 	int             numfilestreams;
-	int				cameraxoffset;
-	int				camerazoffset;
-	int				numholes;
-	int				numwalls;						// Stores number of walls loaded
-	float			holes[LEVEL_MAX_HOLES][7];
+	int		cameraxoffset;
+	int		camerazoffset;
+	int		numholes;
+	int		numwalls;						// Stores number of walls loaded
+	float		holes[LEVEL_MAX_HOLES][7];
 	int             holesfound[LEVEL_MAX_HOLES];
-	float			walls[LEVEL_MAX_WALLS][8];		// Now you can have walls for different walkable areas
+	float		walls[LEVEL_MAX_WALLS][8];		// Now you can have walls for different walkable areas
 	int             wallsfound[LEVEL_MAX_WALLS];
-	int				exit_blocked;
-	int				exit_hole;
-	int				scrolldir;
-	int				width;
-	int				rocking;
-	float			bgspeed;						// Used to make autoscrolling backgrounds
-	int				bgdir;							// Used to set which direction the backgrounds scroll for autoscrolling backgrounds
-	int				mirror;
+	int		exit_blocked;
+	int		exit_hole;
+	int		scrolldir;
+	int		width;
+	int		rocking;
+	float		bgspeed;						// Used to make autoscrolling backgrounds
+	int		bgdir;							// Used to set which direction the backgrounds scroll for autoscrolling backgrounds
+	int		mirror;
 	int             bosses;
-	char			bossmusic[256];
+	char		bossmusic[256];
 	unsigned int 	bossmusic_offset;
 	int             numpalettes;
 	unsigned char   palettes[LEVEL_MAX_PALETTES][1024];//dynamic palettes
 	unsigned char*  blendings[LEVEL_MAX_PALETTES][MAX_BLENDINGS];//blending tables
-	int 			settime;						// Set time limit per level
-	int				notime;							// Used to specify if the time is displayed 1 = no, else yes
-	int				noreset;						// If set, clock will not reset when players spawn/die
-	int 			type;							// Used to specify which level type (1 = bonus, else regular)
-	int				nospecial;						// Used to specify if you can use your special during bonus levels
-	int				nohurt;							// Used to specify if you can hurt the other player during bonus levels
-	int				noslow;							// Flag so the level doesn't slow down after a boss is defeated
-	int				nohit;							// Not able to grab / hit other player on a per level basis
-	int				spawn[MAX_PLAYERS][4];			// Used to determine the spawn position of players
-	int				setweap;						// Levels can now specified which weapon will be used by default
+	int 		settime;						// Set time limit per level
+	int		notime;							// Used to specify if the time is displayed 1 = no, else yes
+	int		noreset;						// If set, clock will not reset when players spawn/die
+	int 		type;							// Used to specify which level type (1 = bonus, else regular)
+	int		nospecial;						// Used to specify if you can use your special during bonus levels
+	int		nohurt;							// Used to specify if you can hurt the other player during bonus levels
+	int		noslow;							// Flag so the level doesn't slow down after a boss is defeated
+	int		nohit;							// Not able to grab / hit other player on a per level basis
+	int		spawn[MAX_PLAYERS][4];			// Used to determine the spawn position of players
+	int		setweap;						// Levels can now specified which weapon will be used by default
 	int             facing;                         // Force the players to face to ... 0 no effects, 1 right, 2 left, 3 affected by level dir
 //--------------------gravity system-------------------------
 	float           maxfallspeed;
@@ -1479,6 +1479,14 @@ typedef struct
 	Script          level_script;
 	Script          endlevel_script;
 	s_spawn_script_cache_node* spawn_script_cache_head;
+	int pos;
+	float advancex;
+	float advancey;
+	u32 advancetime;
+	u32 quaketime;
+	int quake;
+	int waiting;
+	
 }s_level;
 
 

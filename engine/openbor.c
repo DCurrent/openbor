@@ -139,8 +139,7 @@ int                 current_stage = 1;
 float               bgtravelled;
 int                 traveltime;
 int                 texttime;
-float               advancex;
-float               advancey;
+
 float               scrolldx;                       // advancex changed previous loop
 float               scrolldy;                       // advancey .....................
 float               scrollminz;                     // Limit level z-scroll
@@ -310,8 +309,7 @@ char*               (*skipselect)[MAX_DIFFICULTIES][MAX_PLAYERS] = NULL;        
 int                 cansave_flag[MAX_DIFFICULTIES];             // 0, no save, 1 save level position 2 save all: lives/credits/hp/mp/also player
 
 int                 cameratype          = 0;
-u32                 advancetime         = 0;
-u32                 quaketime           = 0;
+
 u32                 go_time             = 0;
 u32                 time                = 0;
 u32                 newtime             = 0;
@@ -329,15 +327,12 @@ int                 credits             = 0;
 int                 gosound             = 0;					// Used to prevent go sound playing too frequently,
 int                 musicoverlap        = 0;
 int                 colorbars           = 0;
-int                 levelpos            = 0;
 int                 current_spawn       = 0;
-int                 level_waiting       = 0;
 int                 level_completed     = 0;
 int                 nojoin              = 0;					// dont allow new hero to join in, use "Please Wait" instead of "Select Hero"
 int                 groupmin            = 0;
 int					groupmax            = 0;
 int                 selectScreen        = 0;					// Flag to determine if at select screen (used for setting animations)
-int                 quake               = 0;
 int                 tospeedup           = 0;          			// If set will speed the level back up after a boss hits the ground
 int                 reached[4]          = {0,0,0,0};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
 int                 noslowfx			= 0;           			// Flag to determine if sound speed when hitting opponent slows or not
@@ -766,12 +761,12 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 	case _e_xpos:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
-		var->dblVal = (DOUBLE)advancex;
+		var->dblVal = (DOUBLE)level->advancex;
 		break;
 	case _e_ypos:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
-		var->dblVal = (DOUBLE)advancey;
+		var->dblVal = (DOUBLE)level->advancey;
 		break;
 	case _e_hResolution:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -959,15 +954,15 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 		break;
 	case _csv_levelpos:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
-			levelpos = (int)ltemp;
+			level->pos = (int)ltemp;
 		break;
 	case _csv_xpos:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
-			advancex = (float)ltemp;
+			level->advancex = (float)ltemp;
 		break;
 	case _csv_ypos:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
-			advancey = (float)ltemp;
+			level->advancey = (float)ltemp;
 		break;
 	case _csv_scrollminz:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
@@ -8432,7 +8427,17 @@ void unload_level(){
 	freepanels();
 	freescreen(&bgbuffer);
 
-	if(level != NULL){
+	if(level){
+		
+		level->pos = 0;
+		level->advancex = 0;
+		level->advancey = 0;
+		level->advancetime = 0;
+		level->quake = 0;
+		level->quaketime = 0;
+		level->waiting = 0;
+
+		
 		strcpy(name, level->name);
 		printf("Level Unloading: '%s'\n", name);
 		getRamStatus(BYTES);
@@ -8451,15 +8456,10 @@ void unload_level(){
 		if(crlf) printf("\n");
 		printf("Level Unloaded:  '%s'\n", name);
 		getRamStatus(BYTES);
+		
+		
 	}
-
-	levelpos = 0;
-	advancex = 0;
-	advancey = 0;
-	advancetime = 0;
-	quake = 0;
-	quaketime = 0;
-	level_waiting = 0;
+	
 	nojoin = 0;
 	current_spawn = 0;
 	groupmin = 100;
@@ -9387,9 +9387,9 @@ void load_level(char *filename){
 	level->width = level->numpanels * panel_width;
 
 	if(level->scrolldir&SCROLL_LEFT)
-		advancex = (float)(level->width-videomodes.hRes);
+		level->advancex = (float)(level->width-videomodes.hRes);
 	else if(level->scrolldir&SCROLL_INWARD)
-		advancey = (float)(panel_height-videomodes.vRes);
+		level->advancey = (float)(panel_height-videomodes.vRes);
 
 	if(crlf) printf("\n");
 	printf("Level Loaded:    '%s'\n", level->name);
@@ -10241,7 +10241,7 @@ void ent_default_init(entity* e)
 			{
 				dodrop = (e->modeldata.subtype != SUBTYPE_ARROW && level && (level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN));
 
-				if(dodrop || (e->x > advancex-30 && e->x < advancex + videomodes.hRes+30 && e->a == 0))
+				if(dodrop || (e->x > level->advancex-30 && e->x < level->advancex + videomodes.hRes+30 && e->a == 0))
 				{
 					e->a += videomodes.vRes + randf(40);
 					e->takeaction = common_drop;//enemy_drop;
@@ -10328,9 +10328,9 @@ void ent_spawn_ent(entity* ent)
 	else if(spawnframe[4] == 1)
 	{
 		if(level && !(level->scrolldir&SCROLL_UP) && !(level->scrolldir&SCROLL_DOWN))
-			s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+			s_ent = spawn(level->advancex+spawnframe[1], level->advancey+spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 		else
-			s_ent = spawn(advancex+spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+			s_ent = spawn(level->advancex+spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 	}
 	//absolute position in level
 	else s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3]+0.001, 0, NULL, ent->animation->subentity, NULL);
@@ -10355,9 +10355,9 @@ void ent_summon_ent(entity* ent){
 	else if(spawnframe[4] == 1)
 	{
 		if(level && !(level->scrolldir&SCROLL_UP) && !(level->scrolldir&SCROLL_DOWN))
-			s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+			s_ent = spawn(level->advancex+spawnframe[1], level->advancey+spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 		else
-			s_ent = spawn(advancex+spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+			s_ent = spawn(level->advancex+spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 	}
 	//absolute position in level
 	else
@@ -10468,8 +10468,10 @@ void update_frame(entity* ent, int f)
 
 	if(self->animation->quakeframe[0]+self->animation->quakeframe[3] == f)
 	{
-		if(self->animation->quakeframe[3]%2 || self->animation->quakeframe[2] > 0) quake = self->animation->quakeframe[2];
-		else quake = self->animation->quakeframe[2] * -1;
+		if(level) {
+			if(self->animation->quakeframe[3]%2 || self->animation->quakeframe[2] > 0) level->quake = self->animation->quakeframe[2];
+			else level->quake = self->animation->quakeframe[2] * -1;
+		}	
 		if((self->animation->quakeframe[1]-self->animation->quakeframe[3]) > 1) self->animation->quakeframe[3]++;
 		else self->animation->quakeframe[3] = 0;
 	}
@@ -11769,7 +11771,7 @@ void check_gravity()
 					self->xdir /= self->animation->bounce;
 					self->zdir /= self->animation->bounce;
 					toss(self, (-self->tossv)/self->animation->bounce);
-					if(!self->modeldata.noquake) quake = 4;    // Don't shake if specified
+					if(!self->modeldata.noquake) level->quake = 4;    // Don't shake if specified
 					if(SAMPLE_FALL >= 0) sound_play_sample(SAMPLE_FALL, 0, savedata.effectvol,savedata.effectvol, 100);
 					if(self->modeldata.type == TYPE_PLAYER) control_rumble(self->playerindex, 100*(int)self->tossv/2);
 					for(i=0; i<MAX_PLAYERS; i++) control_rumble(i, 75*(int)self->tossv/2);
@@ -11825,8 +11827,8 @@ void check_lost()
 	s_attack attack;
 	int osk = self->modeldata.offscreenkill?self->modeldata.offscreenkill:DEFAULT_OFFSCREEN_KILL;
 
-	if((self->z!=100000 && (advancex - self->x>osk || self->x - advancex - videomodes.hRes>osk ||
-		(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN && (advancey - self->z>osk || self->z - advancey - videomodes.vRes>osk)) ||
+	if((self->z!=100000 && (level->advancex - self->x>osk || self->x - level->advancex - videomodes.hRes>osk ||
+		(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN && (level->advancey - self->z>osk || self->z - level->advancey - videomodes.vRes>osk)) ||
 		((level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN) && (self->z<-osk || self->z>videomodes.vRes + osk))		) )
 		|| self->a < 2*PIT_DEPTH) //self->z<100000, so weapon item won't be killed
 	{
@@ -12650,13 +12652,13 @@ void display_ents()
 
 					if(!use_mirror || z > MIRROR_Z) // don't display if behind the mirror
 					{
-						spriteq_add_sprite((int)(e->x - advancex), (int)(e->z-e->a + gfx_y_offset), z, f, drawmethod, e->bound?e->bound->sortid-1:e->sortid);
+						spriteq_add_sprite((int)(e->x - (level?level->advancex:0)), (int)(e->z-e->a + gfx_y_offset), z, f, drawmethod, e->bound?e->bound->sortid-1:e->sortid);
 					}
 
 					can_mirror = (use_mirror && self->z>MIRROR_Z);
 					if(can_mirror)
 					{
-						spriteq_add_sprite((int)(e->x-advancex), (int)((2*MIRROR_Z - e->z)-e->a+gfx_y_offset), 2*PANEL_Z - z , f, drawmethod, MAX_ENTS - (e->bound?e->bound->sortid-1:e->sortid));
+						spriteq_add_sprite((int)(e->x-(level?level->advancex:0)), (int)((2*MIRROR_Z - e->z)-e->a+gfx_y_offset), 2*PANEL_Z - z , f, drawmethod, MAX_ENTS - (e->bound?e->bound->sortid-1:e->sortid));
 					}
 				}//end of if(f<sprites_loaded)
 
@@ -12672,7 +12674,7 @@ void display_ents()
 							alty = (int)e->a;
 							temp1 = -1*e->a*light[0]/256; // xshift
 							temp2 = (float)(-alty*light[1]/256);                   // zshift
-							qx = (int)(e->x - advancex/* + temp1*/);
+							qx = (int)(e->x - level->advancex/* + temp1*/);
 							qy = (int)(e->z + gfx_y_offset/* +  temp2*/);
 						}
 						else
@@ -12680,7 +12682,7 @@ void display_ents()
 							alty = (int)(e->a-level->walls[wall][7]);
 							temp1 = -1*(e->a-level->walls[wall][7])*light[0]/256; // xshift
 							temp2 = (float)(-alty*light[1]/256);                   // zshift
-							qx = (int)(e->x - advancex/* + temp1*/);
+							qx = (int)(e->x - level->advancex/* + temp1*/);
 							qy = (int)(e->z + gfx_y_offset /*+  temp2*/ - level->walls[wall][7]);
 						}
 
@@ -12750,7 +12752,7 @@ void display_ents()
 					{
 						if(other && other != e && e->a >= other->a + other->animation->platform[other->animpos][7])
 						{
-							qx = (int)(e->x - advancex);
+							qx = (int)(e->x - level->advancex);
 							qy = (int)(e->z - other->a - other->animation->platform[other->animpos][7] + gfx_y_offset);
 							sy = (int)((2*MIRROR_Z - e->z) - other->a - other->animation->platform[other->animpos][7] + gfx_y_offset);
 							z = (int)(other->z + 1);
@@ -12758,7 +12760,7 @@ void display_ents()
 						}
 						else if(level && wall >= 0)// && e->a >= level->walls[wall][7])
 						{
-							qx = (int)(e->x - advancex);
+							qx = (int)(e->x - level->advancex);
 							qy = (int)(e->z - level->walls[wall][7] + gfx_y_offset);
 							sy = (int)((2*MIRROR_Z - e->z)  - level->walls[wall][7] + gfx_y_offset);
 							z = SHADOW_Z;
@@ -12766,7 +12768,7 @@ void display_ents()
 						}
 						else
 						{
-							qx = (int)(e->x - advancex);
+							qx = (int)(e->x - level->advancex);
 							qy = (int)(e->z + gfx_y_offset);
 							sy = (int)((2*MIRROR_Z - e->z) + gfx_y_offset);
 							z = SHADOW_Z;
@@ -12791,7 +12793,7 @@ void display_ents()
 			if(e->arrowon)    // Display the players image while invincible to indicate player number
 			{
 				if(e->modeldata.parrow[(int)e->playerindex][0] && e->invincible == 1)
-					spriteq_add_sprite((int)(e->x - advancex + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->z-e->a+gfx_y_offset + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->z, e->modeldata.parrow[(int)e->playerindex][0], NULL, e->sortid*2);
+					spriteq_add_sprite((int)(e->x - level->advancex + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->z-e->a+gfx_y_offset + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->z, e->modeldata.parrow[(int)e->playerindex][0], NULL, e->sortid*2);
 			}
 		}// end of if(ent_list[i]->exists)
 	}// end of for
@@ -13811,12 +13813,12 @@ entity* drop_item(entity* e)
 	{
 		item->x = e->x;
 		item->z = e->z;
-		if(item->x < advancex) item->x = advancex + 10;
-		else if(item->x > advancex + videomodes.hRes) item->x = advancex + videomodes.hRes - 10;
+		if(item->x < level->advancex) item->x = level->advancex + 10;
+		else if(item->x > level->advancex + videomodes.hRes) item->x = level->advancex + videomodes.hRes - 10;
 		if(!(level->scrolldir &(SCROLL_UP|SCROLL_DOWN)))
 		{
-			if(item->z-item->a < advancey) item->z = advancey + 10;
-			else if(item->z-item->a > advancey + videomodes.vRes) item->z = advancey + videomodes.vRes - 10;
+			if(item->z-item->a < level->advancey) item->z = level->advancey + 10;
+			else if(item->z-item->a > level->advancey + videomodes.vRes) item->z = level->advancey + videomodes.vRes - 10;
 		}
 		if(e->boss && item->modeldata.type==TYPE_ENEMY) item->boss = 1;
 	}
@@ -13834,7 +13836,7 @@ entity* drop_driver(entity* e)
 
 	if(e->modeldata.rider>=0) p.index = e->modeldata.rider;
 	else         return NULL; // should not happen, just in case
-	/*p.x = e->x - advancex; p.z = e->z; */p.a = e->a + 10;
+	/*p.x = e->x - level->advancex; p.z = e->z; */p.a = e->a + 10;
 	p.itemindex = e->item;
 	p.weaponindex = -1;
 	strcpy(p.itemalias, e->itemalias);
@@ -14535,8 +14537,8 @@ int adjust_grabposition(entity* ent, entity* other, float dist, int grabin)
 		z1 = z2 = (ent->z + other->z)/2;
 	}
 
-	if(ent->modeldata.subject_to_screen>0 && (x1<advancex || x1>advancex+videomodes.hRes)) return 0;
-	else if(other->modeldata.subject_to_screen>0 && (x2<advancex || x2>advancex+videomodes.hRes)) return 0;
+	if(ent->modeldata.subject_to_screen>0 && (x1<level->advancex || x1>level->advancex+videomodes.hRes)) return 0;
+	else if(other->modeldata.subject_to_screen>0 && (x2<level->advancex || x2>level->advancex+videomodes.hRes)) return 0;
 
 	wall1 = checkwall_below(x1, z1, 9999999);
 	wall2 = checkwall_below(x2, z2, 9999999);
@@ -14605,14 +14607,14 @@ int common_trymove(float xdir, float zdir)
 	// screen checking
 	if(self->modeldata.subject_to_screen>0)
 	{
-		if(x < advancex+10)
+		if(x < level->advancex+10)
 		{
-			xdir = advancex+10 - self->x;
+			xdir = level->advancex+10 - self->x;
 			execute_onblocks_script(self);  //Screen block event.
 		}
-		else if(x > advancex+(videomodes.hRes-10))
+		else if(x > level->advancex+(videomodes.hRes-10))
 		{
-			xdir = advancex+(videomodes.hRes-10) - self->x;
+			xdir = level->advancex+(videomodes.hRes-10) - self->x;
 			execute_onblocks_script(self);  //Screen block event.
 		}
 	}
@@ -15205,15 +15207,15 @@ int common_try_avoid(entity* target)
 
 	maxspeed = self->modeldata.speed;
 
-	if(self->x < advancex - 10) self->xdir = maxspeed;
-	else if(self->x > advancex + videomodes.hRes + 10) self->xdir = -maxspeed;
+	if(self->x < level->advancex - 10) self->xdir = maxspeed;
+	else if(self->x > level->advancex + videomodes.hRes + 10) self->xdir = -maxspeed;
 	else self->xdir = (self->x < target->x)? (-maxspeed):maxspeed;
 
-	if((level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && self->z < advancey - 5) ||
+	if((level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && self->z < level->advancey - 5) ||
 		((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN ) && self->z < -5) ){
 			self->zdir = maxspeed/2;
 		}
-	else if((level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && self->z > advancey + videomodes.vRes + 5)||
+	else if((level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && self->z > level->advancey + videomodes.vRes + 5)||
 		((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN ) && self->z > videomodes.vRes + 5) ){
 			self->zdir = -maxspeed/2;
 		}
@@ -15264,10 +15266,10 @@ int common_try_wandercompletely()
 		} else self->direction = !self->direction;
 	}
 
-	if(self->x < advancex - 10) {
+	if(self->x < level->advancex - 10) {
 		self->xdir = self->modeldata.speed;
 	}
-	else if(self->x > advancex + videomodes.hRes + 10) {
+	else if(self->x > level->advancex + videomodes.hRes + 10) {
 		self->xdir = -self->modeldata.speed;
 	}
 
@@ -15275,11 +15277,11 @@ int common_try_wandercompletely()
 		(self->xdir < 0 && self->direction)) && !self->modeldata.noflip)
 		self->direction = !self->direction;
 
-	if((level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && self->z < advancey - 5) ||
+	if((level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && self->z < level->advancey - 5) ||
 		((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN ) && self->z < -5) ){
 			self->zdir = self->modeldata.speed/2;
 		}
-	else if((level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && self->z > advancey + videomodes.vRes + 5)||
+	else if((level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && self->z > level->advancey + videomodes.vRes + 5)||
 		((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN ) && self->z > videomodes.vRes + 5) ){
 			self->zdir = -self->modeldata.speed/2;
 		}
@@ -15699,7 +15701,7 @@ int wander_move()
 int biker_move()
 {
 
-	if((self->direction)?(self->x > advancex+(videomodes.hRes+200)):(self->x < advancex-200))
+	if((self->direction)?(self->x > level->advancex+(videomodes.hRes+200)):(self->x < level->advancex-200))
 	{
 		self->direction = !self->direction;
 		self->attack_id = 0;
@@ -15724,9 +15726,9 @@ int arrow_move(){
 	/*
 	int osk = self->modeldata.offscreenkill?self->modeldata.offscreenkill:200; //TODO: temporary code here, needs refine
 
-	if( (!self->direction && self->x < advancex - osk) || (self->direction && self->x > advancex + (videomodes.hRes+osk)) ||
+	if( (!self->direction && self->x < level->advancex - osk) || (self->direction && self->x > level->advancex + (videomodes.hRes+osk)) ||
 		(level && level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN &&
-		 (self->z < advancey - 200 || self->z > advancey + (videomodes.vRes+200))) ||
+		 (self->z < level->advancey - 200 || self->z > level->advancey + (videomodes.vRes+200))) ||
 		(level && (level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN) &&
 		 (self->z < -osk || self->z > videomodes.vRes + osk)) )
 	{
@@ -15852,7 +15854,7 @@ int bomb_move()
 int star_move(){
 	int wall;
 
-	if(self->x<advancex-80 || self->x>advancex+(videomodes.hRes+80) || (self->base<=0 && !self->modeldata.falldie)){
+	if(self->x<level->advancex-80 || self->x>level->advancex+(videomodes.hRes+80) || (self->base<=0 && !self->modeldata.falldie)){
 		kill(self);
 		return 0;
 	}
@@ -16198,7 +16200,7 @@ void runanimal()
 	common_walk_anim(self);
 	//ent_set_anim(self, ANI_WALK, 0);
 
-	if(self->x < advancex - 80 || self->x > advancex + (videomodes.hRes+80)){
+	if(self->x < level->advancex - 80 || self->x > level->advancex + (videomodes.hRes+80)){
 		kill(self);
 		return;
 	}
@@ -18277,7 +18279,7 @@ void smart_bomb(entity* e, s_attack* attack)    // New method for smartbombs
 
 void anything_walk()
 {
-	if(self->x < advancex - 80 || self->x > advancex + (videomodes.hRes+80)){
+	if(self->x < level->advancex - 80 || self->x > level->advancex + (videomodes.hRes+80)){
 		kill(self);
 		return;
 	}
@@ -18453,7 +18455,7 @@ void steam_think()
 // for the "trap" type   7-1-2005  trap start
 void trap_think()
 {
-	if(self->x < advancex-80 || self->x > advancex+(videomodes.hRes+80)){
+	if(self->x < level->advancex-80 || self->x > level->advancex+(videomodes.hRes+80)){
 		//        kill(self);   // 6-2-2005 removed temporarily
 		return;
 	}
@@ -18482,7 +18484,7 @@ void steam_spawn(float x, float z, float a){
 
 void steamer_think()
 {
-	if(self->x < advancex-80 || self->x > advancex+(videomodes.hRes+80)){
+	if(self->x < level->advancex-80 || self->x > level->advancex+(videomodes.hRes+80)){
 		kill(self);
 		return;
 	}
@@ -18536,7 +18538,7 @@ void bike_crash(){
 	else self->xdir = -2;
 	self->nextthink = time + THINK_SPEED / 2;
 	for(i=0; i<maxplayers[current_set]; i++) control_rumble(i, 100);
-	//if(self->x < advancex-100 || self->x > advancex+(videomodes.hRes+100)) kill(self);
+	//if(self->x < level->advancex-100 || self->x > level->advancex+(videomodes.hRes+100)) kill(self);
 }
 
 
@@ -18598,7 +18600,7 @@ void obstacle_fall()
 void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
 {
 	//self->x += self->xdir * 4;    // Equivelant of speed 40
-	if(self->x > advancex+(videomodes.hRes + 200) || self->x < advancex-200) kill(self);
+	if(self->x > level->advancex+(videomodes.hRes + 200) || self->x < level->advancex-200) kill(self);
 
 	self->nextthink = time + 2;
 }
@@ -18669,8 +18671,8 @@ entity * smartspawn(s_spawn_entry * props){   // 7-1-2005 Entire section replace
 	}
 
 	if((level->scrolldir&SCROLL_INWARD) || (level->scrolldir&SCROLL_OUTWARD))
-		 e = spawn(props->x, props->z + advancey, props->a, props->flip, props->name, props->index, props->model);
-	else e = spawn(props->x + advancex, props->z, props->a, props->flip, props->name, props->index, props->model);
+		 e = spawn(props->x, props->z + level->advancey, props->a, props->flip, props->name, props->index, props->model);
+	else e = spawn(props->x + level->advancex, props->z, props->a, props->flip, props->name, props->index, props->model);
 
 
 	if(e == NULL) return NULL;
@@ -18778,18 +18780,18 @@ void spawnplayer(int index)
 		if(p.x < 0) p.x += videomodes.hRes;
 		if(PLAYER_MIN_Z==PLAYER_MAX_Z)
 		{
-			wall = checkwall(advancex + p.x, p.z);
+			wall = checkwall(level->advancex + p.x, p.z);
 			if(wall >= 0 && level->walls[wall][7] < MAX_WALL_HEIGHT) break; //found
-			if(checkhole(advancex + p.x, p.z) || (wall>=0 && level->walls[wall][7] >= MAX_WALL_HEIGHT)) find = 0;
+			if(checkhole(level->advancex + p.x, p.z) || (wall>=0 && level->walls[wall][7] >= MAX_WALL_HEIGHT)) find = 0;
 			else break; // found
 		}
 		else for(zc=0;zc < (PLAYER_MAX_Z - PLAYER_MIN_Z) / 3; zc++, p.z += 3){
 			if(p.z > PLAYER_MAX_Z) p.z -= PLAYER_MAX_Z - PLAYER_MIN_Z;
 			if(p.z < PLAYER_MIN_Z) p.z += PLAYER_MAX_Z - PLAYER_MIN_Z;
-			wall = checkwall(advancex + p.x, p.z);
+			wall = checkwall(level->advancex + p.x, p.z);
 			if(wall >= 0 && level->walls[wall][7] < MAX_WALL_HEIGHT) {find = 1; break;}
 			else if(wall >=0 && level->walls[wall][7] >= MAX_WALL_HEIGHT) continue;
-			if(checkhole(advancex + p.x, p.z)) continue;
+			if(checkhole(level->advancex + p.x, p.z)) continue;
 			find = 1;
 			break;
 		}
@@ -18857,15 +18859,15 @@ void time_over()
 void update_scroller(){
 	int to=0, i;
 	int numplay=0; //4player
-	float tx = advancex, ty = advancey;
+	float tx = level->advancex, ty = level->advancey;
 	static int scrolladd = 0;
 
 	scrolldx = scrolldy = 0;
 
-	if(time < advancetime || freezeall) return;    // Added freezeall so backgrounds/scrolling don't update if animations are frozen
+	if(time < level->advancetime || freezeall) return;    // Added freezeall so backgrounds/scrolling don't update if animations are frozen
 
-	//advancetime = time + (GAME_SPEED/100);    // Changed so scrolling speeds up for faster players
-	advancetime = time -
+	//level->advancetime = time + (GAME_SPEED/100);    // Changed so scrolling speeds up for faster players
+	level->advancetime = time -
 		((player[0].ent && (player[0].ent->modeldata.speed >= 12 || player[0].ent->modeldata.runspeed >= 12)) ||
 		 (player[1].ent && (player[1].ent->modeldata.speed >= 12 || player[1].ent->modeldata.runspeed >= 12)) ||
 		 (player[2].ent && (player[2].ent->modeldata.speed >= 12 || player[2].ent->modeldata.runspeed >= 12)) ||
@@ -18883,7 +18885,7 @@ void update_scroller(){
 	else if(count_ents(TYPE_ENEMY) < groupmin){
 		while(count_ents(TYPE_ENEMY) < groupmax &&
 			current_spawn<level->numspawns &&
-			levelpos >= level->spawnpoints[current_spawn].at
+			level->pos >= level->spawnpoints[current_spawn].at
 			){
 				if(level->spawnpoints[current_spawn].musicfade){
 					musicfade[0] = (float)level->spawnpoints[current_spawn].musicfade;
@@ -18895,7 +18897,7 @@ void update_scroller(){
 					musicloop = 1;
 				}
 				if(level->spawnpoints[current_spawn].wait){
-					level_waiting = 1;
+					level->waiting = 1;
 					go_time = 0;
 				}
 				else if(level->spawnpoints[current_spawn].groupmin || level->spawnpoints[current_spawn].groupmax){
@@ -18909,7 +18911,7 @@ void update_scroller(){
 					level->spawnpoints[current_spawn].scrollmaxz){
 						scrollminz = (float)level->spawnpoints[current_spawn].scrollminz;
 						scrollmaxz = (float)level->spawnpoints[current_spawn].scrollmaxz;
-						if(!time) advancey = scrollminz; // reset y if spawn at very beginning
+						if(!time) level->advancey = scrollminz; // reset y if spawn at very beginning
 					}
 				else if(level->spawnpoints[current_spawn].blockade){
 					// assume level spawn entry will not roll back, so just change it to 0 here
@@ -18944,17 +18946,17 @@ void update_scroller(){
 		if(player[i].ent) numplay++;
 	}
 
-	if(level_waiting){
+	if(level->waiting){
 		// Wait for all enemies to be defeated
 		if(!findent(TYPE_ENEMY))
 		{
-			level_waiting = 0;
+			level->waiting = 0;
 			if(level->noreset<=1) timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
 			go_time = time + 3*GAME_SPEED;
 		}
 	}
 	if(numplay == 0) return;
-	if(!level_waiting)
+	if(!level->waiting)
 	{
 		if(level->scrolldir&SCROLL_RIGHT){
 
@@ -18973,24 +18975,24 @@ void update_scroller(){
 
 			if((level->scrolldir&SCROLL_BACK) && to < blockade) to = (int)blockade;
 
-			if(to > advancex){
-				if(to > advancex+1) to = (int)(advancex+1);
-				advancex = (float)to;
+			if(to > level->advancex){
+				if(to > level->advancex+1) to = (int)(level->advancex+1);
+				level->advancex = (float)to;
 			}
 
 			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
 
-				if(to < advancex && to > blockade){
-					if(to < advancex-1) to = (int)(advancex-1);
-					advancex = (float)to;
+				if(to < level->advancex && to > blockade){
+					if(to < level->advancex-1) to = (int)(level->advancex-1);
+					level->advancex = (float)to;
 				}
 			}
 
-			if(advancex > level->width-videomodes.hRes) advancex = (float)level->width-videomodes.hRes;
-			if(advancex < 0) advancex = 0;
+			if(level->advancex > level->width-videomodes.hRes) level->advancex = (float)level->width-videomodes.hRes;
+			if(level->advancex < 0) level->advancex = 0;
 
-			if(level->width - levelpos > videomodes.hRes) levelpos = (int)advancex;
-			else levelpos++;
+			if(level->width - level->pos > videomodes.hRes) level->pos = (int)level->advancex;
+			else level->pos++;
 		}
 		else if(level->scrolldir&SCROLL_LEFT){
 
@@ -19005,23 +19007,23 @@ void update_scroller(){
 			to /= numplay;
 			to -= (videomodes.hRes/2);
 
-			if(to < advancex){
-				if(to < advancex-1) to = (int)(advancex-1);
-				advancex = (float)to;
+			if(to < level->advancex){
+				if(to < level->advancex-1) to = (int)(level->advancex-1);
+				level->advancex = (float)to;
 			}
 			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
 
-				if(to > advancex){
-					if(to > advancex+1) to = (int)(advancex+1);
-					advancex = (float)to;
+				if(to > level->advancex){
+					if(to > level->advancex+1) to = (int)(level->advancex+1);
+					level->advancex = (float)to;
 				}
 			}
-			if(advancex > level->width-videomodes.hRes) advancex = (float)level->width-videomodes.hRes;
-			if((level->scrolldir&SCROLL_BACK) && level->width- videomodes.hRes - advancex < blockade) advancex = level->width- videomodes.hRes - blockade;
-			if(advancex < 0) advancex = 0;
+			if(level->advancex > level->width-videomodes.hRes) level->advancex = (float)level->width-videomodes.hRes;
+			if((level->scrolldir&SCROLL_BACK) && level->width- videomodes.hRes - level->advancex < blockade) level->advancex = level->width- videomodes.hRes - blockade;
+			if(level->advancex < 0) level->advancex = 0;
 
-			if(level->width - levelpos > videomodes.hRes) levelpos = (int)((level->width-videomodes.hRes) - advancex);
-			else levelpos++;
+			if(level->width - level->pos > videomodes.hRes) level->pos = (int)((level->width-videomodes.hRes) - level->advancex);
+			else level->pos++;
 		}
 		else if(level->scrolldir&SCROLL_OUTWARD){ // z scroll only
 
@@ -19036,25 +19038,25 @@ void update_scroller(){
 			to /= numplay;
 			to -= (videomodes.vRes/2);
 
-			if(to > advancey){
-				if(to > advancey+1) to = (int)(advancey+1);
-				advancey = (float)to;
+			if(to > level->advancey){
+				if(to > level->advancey+1) to = (int)(level->advancey+1);
+				level->advancey = (float)to;
 			}
 
 			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
 
-				if(to < advancey){
-					if(to < advancey-1) to = (int)(advancey-1);
-					advancey = (float)to;
+				if(to < level->advancey){
+					if(to < level->advancey-1) to = (int)(level->advancey-1);
+					level->advancey = (float)to;
 				}
 			}
 
-			if(advancey > panel_height-videomodes.vRes) advancey = (float)panel_height-videomodes.vRes;
-			if((level->scrolldir&SCROLL_BACK) && advancey < blockade) advancey = blockade;
-			if(advancey < 4) advancey = 4;
+			if(level->advancey > panel_height-videomodes.vRes) level->advancey = (float)panel_height-videomodes.vRes;
+			if((level->scrolldir&SCROLL_BACK) && level->advancey < blockade) level->advancey = blockade;
+			if(level->advancey < 4) level->advancey = 4;
 
-			if(panel_height - levelpos > videomodes.vRes) levelpos = (int)advancey;
-			else levelpos++;
+			if(panel_height - level->pos > videomodes.vRes) level->pos = (int)level->advancey;
+			else level->pos++;
 		}
 		else if(level->scrolldir&SCROLL_INWARD){
 			for(i=0; i<maxplayers[current_set]; i++)
@@ -19068,40 +19070,40 @@ void update_scroller(){
 			to /= numplay;
 			to -= (videomodes.vRes/2);
 
-			if(to < advancey){
-				if(to < advancey-1) to = (int)advancey-1;
-				advancey = (float)to;
+			if(to < level->advancey){
+				if(to < level->advancey-1) to = (int)level->advancey-1;
+				level->advancey = (float)to;
 			}
 			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
 
-				if(to > advancey){
-					if(to > advancey+1) to = (int)advancey+1;
-					advancey = (float)to;
+				if(to > level->advancey){
+					if(to > level->advancey+1) to = (int)level->advancey+1;
+					level->advancey = (float)to;
 				}
 			}
-			if(advancey > panel_height-videomodes.vRes) advancey = (float)panel_height-videomodes.vRes;
-			if((level->scrolldir&SCROLL_BACK) && panel_height- videomodes.vRes - advancey < blockade) advancey = panel_height- videomodes.vRes - blockade;
-			if(advancey < 4) advancey = 4;
+			if(level->advancey > panel_height-videomodes.vRes) level->advancey = (float)panel_height-videomodes.vRes;
+			if((level->scrolldir&SCROLL_BACK) && panel_height- videomodes.vRes - level->advancey < blockade) level->advancey = panel_height- videomodes.vRes - blockade;
+			if(level->advancey < 4) level->advancey = 4;
 
-			if(panel_height - levelpos > videomodes.vRes) levelpos = (int)((panel_height-videomodes.vRes) - advancey);
-			else levelpos++;
+			if(panel_height - level->pos > videomodes.vRes) level->pos = (int)((panel_height-videomodes.vRes) - level->advancey);
+			else level->pos++;
 		}
 		//up down, elevator stage
 		else if(level->scrolldir&(SCROLL_UP|SCROLL_DOWN))
 		{
-			//advancey += 0.5;
+			//level->advancey += 0.5;
 			if(scrolladd==1)
 			{
 				scrolladd=0;
-				advancey++;
+				level->advancey++;
 			}
 			else
 			{
 				scrolladd++;
 			}
-			levelpos = (int)advancey;
+			level->pos = (int)level->advancey;
 		}
-	}//if(!level_waiting)
+	}//if(!level->waiting)
 
 	// z auto-scroll, 2007 - 2 - 10 by UTunnels
 	if((level->scrolldir&SCROLL_LEFT) || (level->scrolldir&SCROLL_RIGHT)) // added scroll type both; weird things can happen, but only if the modder is lazy in using blockades, lol
@@ -19123,18 +19125,18 @@ void update_scroller(){
 		if(scrollmaxz && to > scrollmaxz) to = (int)scrollmaxz;
 		if(scrollminz && to < scrollminz) to = (int)scrollminz;
 
-		if(to > advancey){
-			if(to > advancey+1) to = (int)advancey+1;
-			advancey = (float)to;
+		if(to > level->advancey){
+			if(to > level->advancey+1) to = (int)level->advancey+1;
+			level->advancey = (float)to;
 		}
 
-		if(to < advancey){
-			if(to < advancey-1) to = (int)advancey-1;
-			advancey = (float)to;
+		if(to < level->advancey){
+			if(to < level->advancey-1) to = (int)level->advancey-1;
+			level->advancey = (float)to;
 		}
 
-		if(advancey > panel_height - 16 -videomodes.vRes) advancey = (float)(panel_height - 16 -videomodes.vRes);
-		if(advancey < 4) advancey = 4;
+		if(level->advancey > panel_height - 16 -videomodes.vRes) level->advancey = (float)(panel_height - 16 -videomodes.vRes);
+		if(level->advancey < 4) level->advancey = 4;
 	}
 	// now x auto scroll
 	else if((level->scrolldir&SCROLL_INWARD) || (level->scrolldir&SCROLL_OUTWARD))
@@ -19154,23 +19156,23 @@ void update_scroller(){
 		if(scrollmaxz && to > scrollmaxz) to = (int)scrollmaxz;
 		if(scrollminz && to < scrollminz) to = (int)scrollminz;
 
-		if(to > advancex){
-			if(to > advancex+1) to = (int)advancex+1;
-			advancex = (float)to;
+		if(to > level->advancex){
+			if(to > level->advancex+1) to = (int)level->advancex+1;
+			level->advancex = (float)to;
 		}
 
-		if(to < advancex){
-			if(to < advancex-1) to = (int)advancex-1;
-			advancex = (float)to;
+		if(to < level->advancex){
+			if(to < level->advancex-1) to = (int)level->advancex-1;
+			level->advancex = (float)to;
 		}
 
-		if(advancex > level->width - videomodes.hRes) advancex = (float)(level->width - videomodes.hRes);
-		if(advancex < 0) advancex = 0;
+		if(level->advancex > level->width - videomodes.hRes) level->advancex = (float)(level->width - videomodes.hRes);
+		if(level->advancex < 0) level->advancex = 0;
 	}
 	//end of z auto-scroll
 	// global value for type_panel
-	scrolldx = advancex - tx;
-	scrolldy = advancey - ty;
+	scrolldx = level->advancex - tx;
+	scrolldy = level->advancey - ty;
 }
 
 
@@ -19200,20 +19202,20 @@ void applybglayers(s_screen* pbgscreen)
 
 		//if(level->bgdir==0) // count from left
 		//{
-			x = (int)(bglayer->xoffset + (advancex)*(bglayer->xratio) - advancex - (int)(bgtravelled * (1-bglayer->xratio) * bglayer->bgspeedratio)%width);
+			x = (int)(bglayer->xoffset + (level->advancex)*(bglayer->xratio) - level->advancex - (int)(bgtravelled * (1-bglayer->xratio) * bglayer->bgspeedratio)%width);
 		//}
 		//else //count from right, complex
 		//{
-		//    x = videomodes.hRes1 - (level->width-videomodes.hRes1-advancex)*(bglayer->xratio) - bglayer->xoffset - width*bglayer->xrepeat + bglayer->xspacing + (int)(bgtravelled * (1-bglayer->xratio) * bglayer->bgspeedratio)%width;
+		//    x = videomodes.hRes1 - (level->width-videomodes.hRes1-level->advancex)*(bglayer->xratio) - bglayer->xoffset - width*bglayer->xrepeat + bglayer->xspacing + (int)(bgtravelled * (1-bglayer->xratio) * bglayer->bgspeedratio)%width;
 		//}
 
 		if(level->scrolldir&SCROLL_UP)
 		{
-			z = (int)(4 + videomodes.vRes + (advancey+4)*bglayer->zratio - bglayer->zoffset - height*bglayer->zrepeat + height + bglayer->zspacing);
+			z = (int)(4 + videomodes.vRes + (level->advancey+4)*bglayer->zratio - bglayer->zoffset - height*bglayer->zrepeat + height + bglayer->zspacing);
 		}
 		else
 		{
-			z = (int)(4 + bglayer->zoffset + (advancey-4)* bglayer->zratio - advancey);
+			z = (int)(4 + bglayer->zoffset + (level->advancey-4)* bglayer->zratio - level->advancey);
 		}
 
 		if(x<0)
@@ -19273,20 +19275,20 @@ void applyfglayers(s_screen* pbgscreen)
 
 		//if(level->bgdir==0) // count from left
 		//{
-			x = (int)(fglayer->xoffset + (advancex)*(fglayer->xratio) - advancex - (int)(bgtravelled * (1-fglayer->xratio) * fglayer->bgspeedratio)%width);
+			x = (int)(fglayer->xoffset + (level->advancex)*(fglayer->xratio) - level->advancex - (int)(bgtravelled * (1-fglayer->xratio) * fglayer->bgspeedratio)%width);
 		//}
 		//else //count from right, complex
 		//{
-		//    x = videomodes.hRes1 - (level->width-videomodes.hRes1-advancex)*(fglayer->xratio) - fglayer->xoffset - width*fglayer->xrepeat + fglayer->xspacing + (int)(bgtravelled * (1-fglayer->xratio) * fglayer->bgspeedratio)%width;
+		//    x = videomodes.hRes1 - (level->width-videomodes.hRes1-level->advancex)*(fglayer->xratio) - fglayer->xoffset - width*fglayer->xrepeat + fglayer->xspacing + (int)(bgtravelled * (1-fglayer->xratio) * fglayer->bgspeedratio)%width;
 		//}
 
 		if(level->scrolldir&SCROLL_UP)
 		{
-			z = (int)(4 + videomodes.vRes + (advancey+4)*fglayer->zratio - fglayer->zoffset - height*fglayer->zrepeat + height + fglayer->zspacing);
+			z = (int)(4 + videomodes.vRes + (level->advancey+4)*fglayer->zratio - fglayer->zoffset - height*fglayer->zrepeat + height + fglayer->zspacing);
 		}
 		else
 		{
-			z = (int)(4 + fglayer->zoffset + (advancey-4)* fglayer->zratio - advancey);
+			z = (int)(4 + fglayer->zoffset + (level->advancey-4)* fglayer->zratio - level->advancey);
 		}
 
 		if(x<0)
@@ -19362,10 +19364,10 @@ void draw_scrolled_bg(){
 	if(bgbuffer)
 	{
 		if(((level->rocking || level->bgspeed>0 || texture)&& !pause) ||
-		   oldadvx!=advancex || oldadvy != advancey || current_palette!=oldpal)
+		   oldadvx!=level->advancex || oldadvy != level->advancey || current_palette!=oldpal)
 			bgbuffer_updated = 0;
-		oldadvx = advancex;
-		oldadvy = advancey;
+		oldadvx = level->advancex;
+		oldadvy = level->advancey;
 		oldpal = current_palette;
 	}
 	else bgbuffer_updated = 0;
@@ -19379,7 +19381,7 @@ void draw_scrolled_bg(){
 
 	// Append bg with texture?
 	if(texture){
-		inta = (int)(advancex/2);
+		inta = (int)(level->advancex/2);
 		if(level->rocking){
 			inta += (time/(GAME_SPEED/30));
 			apply_texture_plane(pbgscreen, 0,background->height, vscreen->width,BGHEIGHT-background->height, inta*256, 10, texture, pscreenmethod);
@@ -19399,16 +19401,16 @@ void draw_scrolled_bg(){
 
 	if(level->rocking){
 		rockpos = (time/(GAME_SPEED/8)) & 31;
-		if(level->rocking == 1)         gfx_y_offset = quake - 4 - rockoffssine[rockpos];
-		else if(level->rocking == 2) gfx_y_offset = quake - 4 - rockoffsshake[rockpos];
-		else if(level->rocking == 3) gfx_y_offset = quake - 4 - rockoffsrumble[rockpos];
+		if(level->rocking == 1)         gfx_y_offset = level->quake - 4 - rockoffssine[rockpos];
+		else if(level->rocking == 2) gfx_y_offset = level->quake - 4 - rockoffsshake[rockpos];
+		else if(level->rocking == 3) gfx_y_offset = level->quake - 4 - rockoffsrumble[rockpos];
 	}
 	else if(time){
-		if(quake >= 0) gfx_y_offset = quake - 4;
-		else           gfx_y_offset = quake + 4;
+		if(level->quake >= 0) gfx_y_offset = level->quake - 4;
+		else           gfx_y_offset = level->quake + 4;
 	}
 
-	if(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN) gfx_y_offset -= (int)(advancey - 4);
+	if(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN) gfx_y_offset -= (int)(level->advancey - 4);
 
 	// Draw 3 layers: screen, normal and neon
 	if(panels_loaded && panel_width){
@@ -19437,7 +19439,7 @@ void draw_scrolled_bg(){
 		}
 
 		if(level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN) inta = 0;
-		else inta = (int)advancex;
+		else inta = (int)level->advancex;
 
 		poop = inta / panel_width;
 		inta %= panel_width;
@@ -19466,14 +19468,14 @@ void draw_scrolled_bg(){
 
 	pscreenmethod->alpha = 0;
 
-	for(i=0; i<level->numholes; i++) spriteq_add_sprite((int)(level->holes[i][0]-advancex),(int)(level->holes[i][1] - level->holes[i][6] + 4 + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
+	for(i=0; i<level->numholes; i++) spriteq_add_sprite((int)(level->holes[i][0]-level->advancex),(int)(level->holes[i][1] - level->holes[i][6] + 4 + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
 
 	if(frontpanels_loaded){
 
 		if(level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN) inta = 0;
 		else{
-			inta = (int)(advancex * 1.4);
-			fix_y = (int)(advancey - 4);
+			inta = (int)(level->advancex * 1.4);
+			fix_y = (int)(level->advancey - 4);
 		}
 		poop = inta / frontpanels[0]->width;
 		inta %= frontpanels[0]->width;
@@ -19484,9 +19486,9 @@ void draw_scrolled_bg(){
 		}
 	}
 
-	if(quake!=0 && time>=quaketime){
-		quake /= 2;
-		quaketime = time + (GAME_SPEED/25);
+	if(level->quake!=0 && time>=level->quaketime){
+		level->quake /= 2;
+		level->quaketime = time + (GAME_SPEED/25);
 	}
 }
 
@@ -19838,7 +19840,7 @@ void update(int ingame, int usevwait)
 	{
 		debug_msg[0] = 0;
 #ifdef DEBUG_MODE
-		if(levelpos) debug_printf("Position: %i, width: %i, spawn: %i, offsets: %i/%i", levelpos, level->width, current_spawn, quake, gfx_y_offset);
+		if(level->pos) debug_printf("Position: %i, width: %i, spawn: %i, offsets: %i/%i", level->pos, level->width, current_spawn, level->quake, gfx_y_offset);
 #endif
 	}
 
