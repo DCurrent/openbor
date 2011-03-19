@@ -340,7 +340,7 @@ int                 noslowfx			= 0;           			// Flag to determine if sound s
 int                 equalairpause 		= 0;         			// If set to 1, there will be no extra pausetime for players who hit multiple enemies in midair
 int                 hiscorebg			= 0;					// If set to 1, will look for a background image to display at the highscore screen
 int                 completebg			= 0;           			// If set to 1, will look for a background image to display at the showcomplete screen
-s_loadingbar        loadingbg[2] = {{-1,0,0,0,0,0,0},{-1,0,0,0,0,0,0}};  // If set to 1, will look for a background image to display at the loading screen
+s_loadingbar        loadingbg[2] = {{0,0,0,0,0,0,0},{0,0,0,0,0,0,0}};  // If set to 1, will look for a background image to display at the loading screen
 int					loadingmusic        = 0;
 int                 unlockbg            = 0;         			// If set to 1, will look for a different background image after defeating the game
 int                 pause               = 0;
@@ -8305,15 +8305,6 @@ void load_levelorder()
 	if(!enameused[2]){ ename[2][0] = ename[0][0]; ename[2][1] = eicon[2][1]; }
 	if(!enameused[3]){ ename[3][0] = ename[1][0]; ename[3][1] = eicon[3][1]; }
 	for(i=0; i<4; i++) if(ename[i][2] == -1) ename[i][2] = 0;
-	
-	for(i=0; i<2; i++)
-	{
-		if(loadingbg[i].set < 0 && !loadingbg[i].bsize)
-		{
-			loadingbg[i].tx = videomodes.hRes / 2 - (14 * (int)videomodes.hScale) - videomodes.hShift;
-			loadingbg[i].ty = videomodes.vRes / 2 - videomodes.vShift;
-		}
-	}
 
 	branch_name[0] = 0; //clear up branch name, so we can use it in game
 
@@ -8577,7 +8568,7 @@ void load_level(char *filename){
 	int i = 0, j = 0, crlf = 0;
 	int usemap[MAX_BLENDINGS];
 	char bgPath[128] = {""};
-	s_loadingbar bgPosi = {-1, 0, 0, 0, 0, 0, 0};
+	s_loadingbar bgPosi = {0, 0, 0, 0, 0, 0, 0};
 	char musicPath[128] = {""};
 	u32 musicOffset = 0;
 
@@ -9921,56 +9912,37 @@ void drawstatus(){
 	}
 }
 
-void update_loading(s_loadingbar* s, int value, int max)
-{
-	static unsigned int lastinput = 0;
-	static int lastpos = 0x7FFFFFFF;
+void update_loading(s_loadingbar* s,  int value, int max) {
+	static unsigned int lasttick = 0;
 	int pos_x = s->bx + videomodes.hShift;
 	int pos_y = s->by + videomodes.vShift;
 	int size_x = s->bsize;
 	int text_x = s->tx + videomodes.hShift;
 	int text_y = s->ty + videomodes.vShift;
 	unsigned int ticks = timer_gettick();
-	int position = size_x * ((float)value / max);
 	
-	// the sound_update_music() function is aware of when the sound buffer does 
-	// and doesn't need updating
-	sound_update_music();
+	if(ticks - lasttick  > 20)
+		sound_update_music();
 	
-	// update screen only if it has actually changed, or if value is negative to
-	// force a screen update
-	if(s->set != 0 && (position != lastpos || value < 0))
-	{
-		// draw loading bar if it has a non-negative, non-zero size
-		if(size_x > 0)
-		{
-			loadingbarstatus.sizex = size_x;
-			bar(pos_x, pos_y, value<0 ? 0:value, max, &loadingbarstatus);
+	if(ticks - lasttick  > 100 || value < 0) { //negative value forces a repaint. used when only bg is drawn for the first time
+		if(s->set) {			
+			if(s->set != 2) {
+				if (value < 0) value = 0;
+				loadingbarstatus.sizex = size_x;
+				bar(pos_x, pos_y, value, max, &loadingbarstatus);
+			}
+			if(s->set != 2 || value < 0) {
+				font_printf(text_x, text_y, s->tf, 0, "Loading...");
+				if(background) putscreen(vscreen, background, 0, 0, NULL);
+				else           clearscreen(vscreen);
+				spriteq_draw(vscreen, 0);
+				video_copy_screen(vscreen);
+				spriteq_clear();
+			}	
 		}
-		// only draw the rest of the loading screen once
-		if(value < 0)
-		{
-			if(background) putscreen(vscreen, background, 0, 0, NULL);
-			else           clearscreen(vscreen);
-			font_printf(text_x, text_y, s->tf, 0, "Loading...");
-		}
-		// update screen if loading bar has changed or value is negative
-		if(size_x > 0 || value < 0)
-		{
-			spriteq_draw(vscreen, 0);
-			video_copy_screen(vscreen);
-			spriteq_clear();
-		}
+		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
 	}
-	
-	// respond to exit and/or fullscreen requests from user/OS every 0.5 seconds
-	if(ticks > lastinput+500)
-	{
-		control_update(playercontrolpointers, 1);
-		lastinput = ticks;
-	}
-	
-	lastpos = position;
+	lasttick = ticks;
 }
 
 void addscore(int playerindex, int add){
@@ -20378,7 +20350,6 @@ void playscene(char *filename)
 
 	// Read file
 	if(buffer_pakfile(filename, &buf, &size)!=1) return;
-
 
 	// Now interpret the contents of buf line by line
 	pos = 0;
