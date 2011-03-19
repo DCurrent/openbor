@@ -12,7 +12,7 @@
 #define VERSION_NAME "OpenBOR"
 #define VERSION_MAJOR "3"
 #define VERSION_MINOR "0"
-#define VERSION_BUILD "3247"
+#define VERSION_BUILD "3259"
 #define VERSION ("v"VERSION_MAJOR"."VERSION_MINOR" Build "VERSION_BUILD)
 
 #endif

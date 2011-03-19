@@ -527,8 +527,6 @@ else
 CFLAGS 	       += -O2
 endif
 CFLAGS 	       += -fno-ident -freorder-blocks 
-#dead code elimination flags, saves 20KB currently
-CFLAGS 	       += -ftree-dce -fdata-sections -ffunction-sections -Wl,--gc-sections
 ifndef BUILD_AMD64
 CFLAGS         += -fomit-frame-pointer 
 endif
