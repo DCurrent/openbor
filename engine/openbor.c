@@ -39,7 +39,6 @@ s_screen*           bgbuffer            = NULL;
 char                bgbuffer_updated    = 0;
 s_bitmap*           texture             = NULL;
 s_videomodes        videomodes;
-s_spawn_script_cache_node* spawn_script_cache_head = NULL;
 int sprite_map_max_items = 0;
 int model_map_max_items = 0;
 int cache_map_max_items = 0;
@@ -7498,8 +7497,7 @@ int load_models()
 
 		// Go to next line
 		pos += getNewLineStart(buf + pos);
-		if(loadingbg[0].set) 
-			update_loading(&loadingbg[0], pos/2, size);
+		update_loading(&loadingbg[0], pos/2, size);
 	}
 
 	if(buf != NULL)
@@ -7510,15 +7508,16 @@ int load_models()
 
 	// Defer load_cached_model, so you can define models after their nested model.
 	printf("\n");
+	pos = (size / 2) / models_cached; // reusing pos variable
 	for(i=0; i<models_cached; i++)
 	{
 		//printf("Checking '%s' '%s'\n", model_cache[i].name, model_cache[i].path);
-		if(loadingbg[0].set) 
-			update_loading(&loadingbg[0], size/2 + i*size/2/models_cached, size);
+		
 		if(model_cache[i].loadflag)
 		{
 			load_cached_model(model_cache[i].name, "models.txt", 0);
 		}
+		update_loading(&loadingbg[0], (size/2) + i*pos, size);
 	}
 	printf("\nLoading models...............\tDone!\n");
 	return 1;
@@ -8405,8 +8404,8 @@ void free_level(s_level* lv)
 		}
 	}
 
-	tempnode = spawn_script_cache_head;
-	spawn_script_cache_head = NULL;
+	tempnode = lv->spawn_script_cache_head;
+	lv->spawn_script_cache_head = NULL;
 	while(tempnode)
 	{
 		tempnode2 = tempnode->next;
@@ -8483,18 +8482,98 @@ void unload_level(){
 	gfx_y_offset = 0;    // Added so select screen graphics display correctly
 }
 
+char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
+	char* result = NULL;
+	char* value;
+	char* value2;
+	size_t len;
+	
+	s_spawn_script_cache_node* tempnode;
+	s_spawn_script_cache_node* tempnode2;
+	s_spawn_script_list_node* templistnode;
+	
+	value = GET_ARGP(1);
+	
+	tempnode = level->spawn_script_cache_head;
+	if(!next->spawn_script_list_head) next->spawn_script_list_head = NULL;
+	templistnode = next->spawn_script_list_head;
+	if(templistnode) {
+		while(templistnode->next)
+		{
+			templistnode = templistnode->next;
+		}
+		templistnode->next = malloc(sizeof(s_spawn_script_list_node));
+		templistnode = templistnode->next;
+	} else	{
+		next->spawn_script_list_head = malloc(sizeof(s_spawn_script_list_node));
+		templistnode = next->spawn_script_list_head;
+	}
+	templistnode->spawn_script = NULL;
+	templistnode->next = NULL;
+	if(tempnode) {
+		while(1) {
+			if(stricmp(value, tempnode->filename)==0) {
+				templistnode->spawn_script = tempnode->cached_spawn_script;
+				break;
+			} else {
+				if(tempnode->next)
+					tempnode = tempnode->next;
+				else
+					break;
+			}
+		}
+	}
+	if(!templistnode->spawn_script) {
+		templistnode->spawn_script = alloc_script();
+		if(!Script_IsInitialized(templistnode->spawn_script))
+			Script_Init(templistnode->spawn_script, GET_ARGP(0), 0);		
+		else {
+			result = "Multiple spawn entry script!";
+			goto lCleanup;
+		}	
+		
+		if(load_script(templistnode->spawn_script, value)) {
+			Script_Compile(templistnode->spawn_script);
+			value2 = GET_ARGP(1); // weird. why is he putting the same value in value2 ?
+			// i guess the author intended to use ARG(2) instead
+			len = strlen(value2);
+			
+			if(tempnode) {
+				tempnode2 = malloc(sizeof(s_spawn_script_cache_node));
+				tempnode2->cached_spawn_script = templistnode->spawn_script;
+				tempnode2->filename = malloc(len + 1);
+				strcpy(tempnode2->filename, value2);
+				tempnode2->filename[len] = 0;
+				tempnode2->next = NULL;
+				tempnode->next = tempnode2;
+			} else {
+				level->spawn_script_cache_head = malloc(sizeof(s_spawn_script_cache_node));
+				level->spawn_script_cache_head->cached_spawn_script = templistnode->spawn_script;
+				level->spawn_script_cache_head->filename = malloc(len + 1);
+				level->spawn_script_cache_head->next = NULL;
+				strcpy(level->spawn_script_cache_head->filename, value2);
+				level->spawn_script_cache_head->filename[len] = 0;
+			}
+		} else {
+			result = "Failed loading spawn entry script!";
+			goto lCleanup;
+		}
+	}
+	lCleanup:
+	return result;
+}
+
+
 void load_level(char *filename){
 	char *buf;
 	size_t size, len;
 	ptrdiff_t pos, oldpos;
 	char *command;
-	char *value, *value2;
+	char *value;
 	char string[128] = {""};
 	s_spawn_entry next;
 	s_model *tempmodel, *cached_model;
-	s_spawn_script_cache_node* tempnode;
-	s_spawn_script_cache_node* tempnode2;
-	s_spawn_script_list_node* templistnode;
+
 	int i = 0, j = 0, crlf = 0;
 	int usemap[MAX_BLENDINGS];
 	char bgPath[128] = {""};
@@ -8510,6 +8589,8 @@ void load_level(char *filename){
 
 	levelCommands cmd;
 	levelCommands cmd2;
+	int line = 0;
+	char* errormessage = NULL;
 
 	unload_level();
 
@@ -8544,16 +8625,24 @@ void load_level(char *filename){
 
 	memset(&next, 0, sizeof(s_spawn_entry));
 
-	level = malloc(sizeof(s_level));
-	if(level == NULL) shutdown(1, "load_level() #1 FATAL: Out of memory!\n");
-	memset(level, 0, sizeof(s_level));
+	level = calloc(1,sizeof(s_level));
+	if(!level) {
+		errormessage = "load_level() #1 FATAL: Out of memory!";
+		goto lCleanup;
+	}
 	len = strlen(filename);
 	level->name = malloc(len + 1);
-	if(level->name == NULL) shutdown(1, "load_level() #1 FATAL: Out of memory!\n");
+	
+	if(!level->name) {
+		errormessage = "load_level() #1 FATAL: Out of memory!";
+		goto lCleanup;
+	}
 	strcpy(level->name, filename);
-	level->name[len] = 0;
 
-	if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Unable to load level file '%s'", filename);
+	if(buffer_pakfile(filename, &buf, &size)!=1) {
+		errormessage = "Unable to load level file!";
+		goto lCleanup;
+	}
 
 	level->settime = 100;    // Feb 25, 2005 - Default time limit set to 100
 	level->nospecial = 0;    // Default set to specials can be used during bonus levels
@@ -8580,6 +8669,7 @@ void load_level(char *filename){
 	// Now interpret the contents of buf line by line
 	pos = 0;
 	while(pos<size){
+		line++;
 		ParseArgs(&arglist,buf+pos,argbuf);
 		command = GET_ARG(0);
 		cmd = getLevelCommand(levelcmdlist, command);
@@ -8600,13 +8690,10 @@ void load_level(char *filename){
 				value = GET_ARG(1);
 				strncpy(string, value, 128);
 				musicOffset = atol(GET_ARG(2));
-				if(loadingmusic)
-				{
+				if(loadingmusic) {
 					music(string, 1, musicOffset);
 					musicPath[0] = 0;
-				}
-				else
-				{
+				} else {
 					oldpos = pos;
 					// Go to next line
 					pos += getNewLineStart(buf + pos);
@@ -8618,14 +8705,11 @@ void load_level(char *filename){
 					} else
 						cmd2 = (levelCommands) 0;
 
-					if(cmd2 == CMD_LEVEL_AT)
-					{
+					if(cmd2 == CMD_LEVEL_AT) {
 						if(next.musicfade == 0) memset(&next,0,sizeof(s_spawn_entry));
 						strncpy(next.music, string, 128);
 						next.musicoffset = musicOffset;
-					}
-					else
-					{
+					} else {
 						strncpy(musicPath, string, 128);
 					}
 					pos = oldpos;
@@ -8677,7 +8761,10 @@ void load_level(char *filename){
 				if(level->numbglayers==0) level->numbglayers = 1;
 				break;
 			case CMD_LEVEL_BGLAYER:
-				if(level->numbglayers >= LEVEL_MAX_BGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_BGLAYERS);
+				if(level->numbglayers >= LEVEL_MAX_BGLAYERS) {
+					errormessage = "Too many bg layers in level (check LEVEL_MAX_BGLAYERS)!";
+					goto lCleanup;
+				}
 				if(level->numbglayers==0) level->numbglayers = 1; // reserve for background
 
 				level->bglayers[level->numbglayers].xratio = GET_FLOAT_ARG(2); // x ratio
@@ -8709,7 +8796,10 @@ void load_level(char *filename){
 				level->numbglayers++;
 				break;
 			case CMD_LEVEL_FGLAYER:
-				if(level->numfglayers >= LEVEL_MAX_FGLAYERS) shutdown(1, "Too many bg layers in level (max %i)!", LEVEL_MAX_FGLAYERS);
+				if(level->numfglayers >= LEVEL_MAX_FGLAYERS) {
+					errormessage = "Too many bg layers in level (check LEVEL_MAX_FGLAYERS)!";
+					goto lCleanup;
+				}
 
 				level->fglayers[level->numfglayers].z = GET_INT_ARG(2); // z
 				level->fglayers[level->numfglayers].xratio = GET_FLOAT_ARG(3); // x ratio
@@ -8855,7 +8945,8 @@ void load_level(char *filename){
 			case CMD_LEVEL_PANEL:
 				if(!loadpanel(GET_ARG(1), GET_ARG(2), GET_ARG(3)))  {
 					printf("loadpanel :%s :%s :%s failed\n", GET_ARG(1), GET_ARG(2), GET_ARG(3));
-					shutdown(1, "Panel load error in '%s'!", filename);
+					errormessage = "Panel load error!";
+					goto lCleanup;
 				}
 				break;
 			case CMD_LEVEL_STAGENUMBER:
@@ -8863,18 +8954,27 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_ORDER:
 				// Append to order
-				if(panels_loaded<1) shutdown(1, "You must load the panels before entering the level layout!");
+				if(panels_loaded<1) {
+					errormessage = "You must load the panels before entering the level layout!";
+					goto lCleanup;
+				}	
 
 				value = GET_ARG(1);
 				i = 0;
 				while(value[i] && level->numpanels < LEVEL_MAX_PANELS){
 					j = value[i];
-
+					// WTF ?
 					if(j>='A' && j<='Z') j-='A';
 					else if(j>='a' && j<='z') j-='a';
-					else shutdown(1, "Illegal character in panel order: '%c' (%02Xh)", j, j);
+					else {
+						errormessage = "Illegal character in panel order!";
+						goto lCleanup;
+					}
 
-					if(j >= panels_loaded) shutdown(1, "Illegal panel index: %i (only %i panels loaded)", j, panels_loaded);
+					if(j >= panels_loaded) {
+						errormessage = "Illegal panel index, index is bigger than number of loaded panels.";
+						goto lCleanup;
+					}
 
 					level->order[level->numpanels] = j;
 					level->numpanels++;
@@ -8884,13 +8984,15 @@ void load_level(char *filename){
 			case CMD_LEVEL_HOLE:
 				value = GET_ARG(1);    // ltb    1-18-05  adjustable hole sprites
 
-				if(holesprite < 0)
-				{
+				if(holesprite < 0) {
 					if(testpackfile(value, packfile) >= 0) holesprite = loadsprite(value,0,0,pixelformat);// ltb 1-18-05  load new hole sprite
 					else holesprite = loadsprite("data/sprites/hole",0,0,pixelformat);    // ltb 1-18-05  no new sprite load the default
 				}
 
-				if(level->numholes >= LEVEL_MAX_HOLES) shutdown(1, "Too many holes in level (max %i)!", LEVEL_MAX_HOLES);
+				if(level->numholes >= LEVEL_MAX_HOLES) {
+					errormessage = "Too many holes in level (check LEVEL_MAX_HOLES)!";
+					goto lCleanup;
+				}
 				level->holes[level->numholes][0] = GET_FLOAT_ARG(1);
 				level->holes[level->numholes][1] = GET_FLOAT_ARG(2);
 				level->holes[level->numholes][2] = GET_FLOAT_ARG(3);
@@ -8908,7 +9010,10 @@ void load_level(char *filename){
 				level->numholes++;
 				break;
 			case CMD_LEVEL_WALL:
-				if(level->numwalls >= LEVEL_MAX_WALLS) shutdown(1, "Too many walls in level (max %i)!", LEVEL_MAX_WALLS);
+				if(level->numwalls >= LEVEL_MAX_WALLS) {
+					errormessage = "Too many walls in level (check LEVEL_MAX_WALLS)!";
+					goto lCleanup;
+				}
 				level->walls[level->numwalls][0] = GET_FLOAT_ARG(1);
 				level->walls[level->numwalls][1] = GET_FLOAT_ARG(2);
 				level->walls[level->numwalls][2] = GET_FLOAT_ARG(3);
@@ -8920,13 +9025,17 @@ void load_level(char *filename){
 				level->numwalls++;
 				break;
 			case CMD_LEVEL_PALETTE:
-				if(level->numpalettes >= LEVEL_MAX_PALETTES) shutdown(1, "Too many palettes in level (max %i)!", LEVEL_MAX_PALETTES);
+				if(level->numpalettes >= LEVEL_MAX_PALETTES) {
+					errormessage = "Too many palettes in level (check LEVEL_MAX_PALETTES)!";
+					goto lCleanup;
+				}
 				for(i=0; i<MAX_BLENDINGS; i++)
 				usemap[i] = GET_INT_ARG(i+2);
 				if(!load_palette(level->palettes[level->numpalettes], GET_ARG(1)) ||
 				!create_blending_tables(level->palettes[level->numpalettes], level->blendings[level->numpalettes], usemap))
 				{
-					shutdown(1, "Failed to create colour conversion tables for level! (Out of memory?)");
+					errormessage = "Failed to create colour conversion tables for level! (Out of memory?)";
+					goto lCleanup;
 				}
 				level->numpalettes++;
 				break;
@@ -8934,46 +9043,76 @@ void load_level(char *filename){
 				value = GET_ARG(1);
 				if(!Script_IsInitialized(&(level->update_script)))
 					Script_Init(&(level->update_script), "levelupdatescript", 1);
-				else shutdown(1, "Multiple level update script: '%s'!", value);
+				else {
+					errormessage = "Multiple level update script!";
+					goto lCleanup;
+				}	
 				if(load_script(&(level->update_script), value))
 					Script_Compile(&(level->update_script));
-				else shutdown(1, "Failed loading level update script: '%s'!", value);
+				else {
+					errormessage = "Failed loading level update script!";
+					goto lCleanup;
+				}	
 				break;
 			case CMD_LEVEL_UPDATEDSCRIPT:
 				value = GET_ARG(1);
 				if(!Script_IsInitialized(&(level->updated_script)))
 					Script_Init(&(level->updated_script), "levelupdatedscript", 1);
-				else shutdown(1, "Multiple level updated script: '%s'!", value);
+				else {
+					errormessage = "Multiple level updated script!";
+					goto lCleanup;
+				}	
 				if(load_script(&(level->updated_script), value))
 					Script_Compile(&(level->updated_script));
-				else shutdown(1, "Failed loading level updated script: '%s'!", value);
+				else {					
+					errormessage = "Failed loading level updated script";
+					goto lCleanup;
+				}	
 				break;
 			case CMD_LEVEL_KEYSCRIPT:
 				value = GET_ARG(1);
 				if(!Script_IsInitialized(&(level->key_script)))
 					Script_Init(&(level->key_script), "levelkeyscript", 1);
-				else shutdown(1, "Multiple level key script: '%s'!", value);
+				else {
+					errormessage = "Multiple level key script!";
+					goto lCleanup;
+				}
 				if(load_script(&(level->key_script), value))
 					Script_Compile(&(level->key_script));
-				else shutdown(1, "Failed loading level key script: '%s'!", value);
+				else {
+					errormessage = "Failed loading level key script!";
+					goto lCleanup;
+				}	
 				break;
 			case CMD_LEVEL_LEVELSCRIPT:
 				value = GET_ARG(1);
 				if(!Script_IsInitialized(&(level->level_script)))
 					Script_Init(&(level->level_script), command, 1);
-				else shutdown(1, "Multiple level script: '%s'!", value);
+				else {
+					errormessage = "Multiple level script!";
+					goto lCleanup;
+				}	
 				if(load_script(&(level->level_script), value))
 					Script_Compile(&(level->level_script));
-				else shutdown(1, "Failed loading level script: '%s'!", value);
+				else {
+					errormessage = "Failed loading level script!";
+					goto lCleanup;
+				}	
 				break;
 			case CMD_LEVEL_ENDLEVELSCRIPT:
 				value = GET_ARG(1);
 				if(!Script_IsInitialized(&(level->endlevel_script)))
 					Script_Init(&(level->endlevel_script), command, 1);
-				else shutdown(1, "Multiple end-level script: '%s'!", value);
+				else {
+					errormessage = "Multiple end-level script!";
+					goto lCleanup;
+				}	
 				if(load_script(&(level->endlevel_script), value))
 					Script_Compile(&(level->endlevel_script));
-				else shutdown(1, "Failed loading end-level script: '%s'!", value);
+				else {
+					errormessage = "Failed loading end-level script!";
+					goto lCleanup;
+				}	
 				break;
 			case CMD_LEVEL_BLOCKED:
 				level->exit_blocked = GET_INT_ARG(1);
@@ -9181,87 +9320,19 @@ void load_level(char *filename){
 				next.a = GET_FLOAT_ARG(3);
 				break;
 			case CMD_LEVEL_SPAWNSCRIPT:
-				value = GET_ARG(1);
-				tempnode = spawn_script_cache_head;
-				if(!next.spawn_script_list_head) next.spawn_script_list_head = NULL;
-				templistnode = next.spawn_script_list_head;
-				if(templistnode)
-				{
-					while(templistnode->next)
-					{
-						templistnode = templistnode->next;
-					}
-					templistnode->next = malloc(sizeof(s_spawn_script_list_node));
-					templistnode = templistnode->next;
-				}
-				else
-				{
-					next.spawn_script_list_head = malloc(sizeof(s_spawn_script_list_node));
-					templistnode = next.spawn_script_list_head;
-				}
-				templistnode->spawn_script = NULL;
-				templistnode->next = NULL;
-				if(tempnode)
-				{
-					while(1)
-					{
-						if(stricmp(value, tempnode->filename)==0)
-						{
-							templistnode->spawn_script = tempnode->cached_spawn_script;
-							break;
-						}
-						else
-						{
-							if(tempnode->next)
-								tempnode = tempnode->next;
-							else
-								break;
-						}
-					}
-				}
-				if(!templistnode->spawn_script)
-				{
-					templistnode->spawn_script = alloc_script();
-					if(!Script_IsInitialized(templistnode->spawn_script))
-					{
-						Script_Init(templistnode->spawn_script, command, 0);
-					}
-					else shutdown(1, "Multiple spawn entry script: '%s'!", value);
-					if(load_script(templistnode->spawn_script, value))
-					{
-						Script_Compile(templistnode->spawn_script);
-						if(tempnode)
-						{
-							value2 = GET_ARG(1);
-							len = strlen(value2);
-							tempnode2 = malloc(sizeof(s_spawn_script_cache_node));
-							tempnode2->cached_spawn_script = templistnode->spawn_script;
-							tempnode2->filename = malloc(len + 1);
-							strcpy(tempnode2->filename, value2);
-							tempnode2->filename[len] = 0;
-							tempnode2->next = NULL;
-							tempnode->next = tempnode2;
-						}
-						else
-						{
-							value2 = GET_ARG(1);
-							len = strlen(value2);
-							spawn_script_cache_head = malloc(sizeof(s_spawn_script_cache_node));
-							spawn_script_cache_head->cached_spawn_script = templistnode->spawn_script;
-							spawn_script_cache_head->filename = malloc(len + 1);
-							spawn_script_cache_head->next = NULL;
-							strcpy(spawn_script_cache_head->filename, value2);
-							spawn_script_cache_head->filename[len] = 0;
-						}
-					}
-					else shutdown(1, "Failed loading spawn entry script: '%s'!", value);
-				}
+				errormessage = llHandleCommandSpawnscript(&arglist, &next);
+				if (errormessage)
+					goto lCleanup;
 				break;
 			case CMD_LEVEL_AT:
 				// Place entry on queue
 				next.at = GET_INT_ARG(1);
 
-				if(level->numspawns >= LEVEL_MAX_SPAWNS) shutdown(1, "Level error: too many entries (max. %i)", LEVEL_MAX_SPAWNS);
+				if(level->numspawns >= LEVEL_MAX_SPAWNS) {
+					errormessage = "too many spawn entries (see LEVEL_MAX_SPAWNS)";
+					goto lCleanup;
+				}
+				
 				memcpy(&level->spawnpoints[level->numspawns], &next, sizeof(s_spawn_entry));
 				level->numspawns++;
 
@@ -9275,18 +9346,18 @@ void load_level(char *filename){
 
 		// Go to next line
 		pos += getNewLineStart(buf + pos);
-		if(bgPosi.bx)
+
+		if(bgPosi.set)
 			update_loading(&bgPosi, pos, size);
 			//update_loading(bgPosi[0]+videomodes.hShift, bgPosi[1]+videomodes.vShift, bgPosi[2], bgPosi[3]+videomodes.hShift, bgPosi[4]+videomodes.vShift, pos, size, bgPosi[5]);
 		else if(loadingbg[1].set)
 			update_loading(&loadingbg[1], pos, size);
 	}
-	if(buf != NULL){
-		free(buf);
-		buf = NULL;
-	}
 
-	if(level->numpanels < 1) shutdown(1, "Level error: level has no panels");
+	if(level->numpanels < 1) {
+		errormessage = "Level error: level has no panels";
+		goto lCleanup;
+	}	
 
 	if(bgPath[0])
 	{
@@ -9327,6 +9398,14 @@ void load_level(char *filename){
 	printf("Level Loaded:    '%s'\n", level->name);
 	totalram = getSystemRam(BYTES); freeram = getFreeRam(BYTES); usedram = getUsedRam(BYTES);
 	printf("Total Ram: %"PRIu64" Bytes\n Free Ram: %"PRIu64" Bytes\n Used Ram: %"PRIu64" Bytes\n\n", totalram, freeram, usedram);
+	
+	lCleanup:
+	
+	if(buf != NULL)
+		free(buf);
+	
+	if(errormessage)
+		shutdown(1, "ERROR: load_level, file %s, line %d, message: %s", filename, line, errormessage);
 }
 
 

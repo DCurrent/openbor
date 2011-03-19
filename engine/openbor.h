@@ -1478,6 +1478,7 @@ typedef struct
 	Script          key_script;
 	Script          level_script;
 	Script          endlevel_script;
+	s_spawn_script_cache_node* spawn_script_cache_head;
 }s_level;
 
 
