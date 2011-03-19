@@ -46,6 +46,7 @@ int cache_map_max_items = 0;
 
 int startup_done = 0; // startup is only called when a game is loaded. so when exitting from the menu we need a way to figure out which resources to free.
 List* modelcmdlist = NULL;
+List* modelstxtcmdlist = NULL;
 List* levelcmdlist = NULL;
 List* levelordercmdlist = NULL;
 
@@ -7220,13 +7221,14 @@ int load_models()
 	size_t size;
 	ptrdiff_t pos;
 	char * command;
-	char value1[128];
+	int line = 0;
 
 	char tmpBuff[128] = {""};
 	int maxanim = MAX_ANIS; // temporary counter
 
 	ArgList arglist;
 	char argbuf[MAX_ARG_LEN+1] = "";
+	modelstxtCommands cmd;
 
 	free_modelcache();
 
@@ -7294,56 +7296,133 @@ int load_models()
 	pos = 0;
 	while(pos<size) // peek global settings
 	{
+		line++;
 		ParseArgs(&arglist,buf+pos,argbuf);
 		command = GET_ARG(0);
-		if(command[0])
-		{
-			if(stricmp(command, "maxidles")==0) // max idle stances
-			{
+		cmd = getModelstxtCommand(modelstxtcmdlist,command);
+		switch(cmd) {
+			case CMD_MODELSTXT_MAXIDLES:
+				// max idle stances
 				max_idles = GET_INT_ARG(1);
 				if(max_idles < MAX_IDLES) max_idles = MAX_IDLES;
-			}
-			if(stricmp(command, "maxwalks")==0) // max walks
-			{
+				break;
+			case CMD_MODELSTXT_MAXWALKS:	
 				max_walks = GET_INT_ARG(1);
 				if(max_walks < MAX_WALKS) max_walks = MAX_WALKS;
-			}
-			if(stricmp(command, "maxbackwalks")==0) // max backward walks
-			{
+				break;
+			case CMD_MODELSTXT_MAXBACKWALKS:
+				// max backward walks
 				max_backwalks = GET_INT_ARG(1);
 				if(max_backwalks < MAX_BACKWALKS) max_backwalks = MAX_BACKWALKS;
-			}
-			if(stricmp(command, "maxups")==0) // max up walks
-			{
+				break;
+			case CMD_MODELSTXT_MAXUPS:
+				// max up walks
 				max_ups = GET_INT_ARG(1);
 				if(max_ups < MAX_UPS) max_ups = MAX_UPS;
-			}
-			if(stricmp(command, "maxdowns")==0) // max down walks
-			{
+				break;
+			case CMD_MODELSTXT_MAXDOWNS:
+				// max down walks
 				max_downs = GET_INT_ARG(1);
 				if(max_downs < MAX_DOWNS) max_downs = MAX_DOWNS;
-			}
-			if(stricmp(command, "maxattacktypes")==0) // max attacktype/pain/fall/die
-			{
+				break;
+			case CMD_MODELSTXT_MAXATTACKTYPES:
+				// max attacktype/pain/fall/die
 				max_attack_types = GET_INT_ARG(1) + STA_ATKS;
 				if(max_attack_types < MAX_ATKS) max_attack_types = MAX_ATKS;
-			}
-			else if(stricmp(command, "maxfollows")==0) // max follow-ups
-			{
+				break;
+			case CMD_MODELSTXT_MAXFOLLOWS:
+				// max follow-ups
 				max_follows = GET_INT_ARG(1);
 				if(max_follows<MAX_FOLLOWS) max_follows = MAX_FOLLOWS;
-			}
-			else if(stricmp(command, "maxfreespecials")==0)// max freespecials
-			{
+				break;
+			case CMD_MODELSTXT_MAXFREESPECIALS:
+				// max freespecials
 				max_freespecials = GET_INT_ARG(1);
 				if(max_freespecials<MAX_SPECIALS) max_freespecials = MAX_SPECIALS;
-			}
-			else if(stricmp(command, "maxattacks")==0) // max attacks
-			{
+				break;
+			case CMD_MODELSTXT_MAXATTACKS:	
 				max_attacks = GET_INT_ARG(1);
 				if(max_attacks<MAX_ATTACKS) max_attacks = MAX_ATTACKS;
-			}
+				break;
+			case CMD_MODELSTXT_MUSIC:
+				music(GET_ARG(1), 1, atol(GET_ARG(2)));
+				break;
+			case CMD_MODELSTXT_LOAD:
+				// Add path to cache list
+				cache_model(GET_ARG(1), GET_ARG(2), 1);
+				break;
+			case CMD_MODELSTXT_COLOURSELECT:
+				// 6-2-2005 if string for colourselect found
+				colourselect =  GET_INT_ARG(1);          //  6-2-2005
+				break;
+			case CMD_MODELSTXT_SPDIRECTION:
+				// Select Player Direction for select player screen
+				spdirection[0] =  GET_INT_ARG(1);
+				spdirection[1] =  GET_INT_ARG(2);
+				spdirection[2] =  GET_INT_ARG(3);
+				spdirection[3] =  GET_INT_ARG(4);
+				break;
+			case CMD_MODELSTXT_AUTOLAND:
+				// New flag to determine if a player auto lands when thrown by another player (2 completely disables the ability to land)				
+				autoland = GET_INT_ARG(1);
+				break;
+			case CMD_MODELSTXT_NOLOST:
+				// this is use for dont lost your weapon if you grab a enemy flag it to 1 to no drop by tails
+				nolost = GET_INT_ARG(1);
+				break;
+			case CMD_MODELSTXT_AJSPECIAL:
+				// Flag to determine if a + j executes special
+				ajspecial = GET_INT_ARG(1);
+				break;
+			case CMD_MODELSTXT_NOCOST:
+				// Nocost set in models.txt
+				nocost = GET_INT_ARG(1);
+				break;
+			case CMD_MODELSTXT_NOCHEATS:
+				//disable cheat option in menu
+				forcecheatsoff =  GET_INT_ARG(1);
+				break;
+			case CMD_MODELSTXT_NODROPEN:
+				nodropen = 1;
+				break;
+			case CMD_MODELSTXT_KNOW:
+				// Just add path to cache list
+				cache_model(GET_ARG(1), GET_ARG(2), 0);
+				break;
+			case CMD_MODELSTXT_NOAIRCANCEL:
+				noaircancel = GET_INT_ARG(1);
+				break;
+			case CMD_MODELSTXT_NOMAXRUSHRESET:
+				nomaxrushreset[4] = GET_INT_ARG(1);
+				break;
+			case CMD_MODELSTXT_MPBLOCK:
+				// Take from MP first?
+				mpblock = GET_INT_ARG(1);
+				break;
+			case CMD_MODELSTXT_BLOCKRATIO:
+				// Nullify or reduce damage?
+				blockratio = GET_INT_ARG(1);
+				break;
+			case CMD_MODELSTXT_NOCHIPDEATH:
+				nochipdeath = GET_INT_ARG(1);
+				break;
+			case CMD_MODELSTXT_LIFESCORE:
+				lifescore =  GET_INT_ARG(1);
+				break;
+			case CMD_MODELSTXT_CREDSCORE:
+				// Number of points needed to earn a 1-up
+				credscore =  GET_INT_ARG(1);
+				break;
+			case CMD_MODELSTXT_VERSUSDAMAGE:
+				// Number of points needed to earn a credit
+				versusdamage =  GET_INT_ARG(1);
+				if(versusdamage == 0 || versusdamage == 1) savedata.mode = versusdamage^1;
+				break;
+			default:
+				printf("command %s not understood in %s, line %d\n", command, filename, line);
 		}
+		
+		update_loading(&loadingbg[0], pos/2, size);
 		// Go to next line
 		pos += getNewLineStart(buf + pos);
 	}
@@ -7404,117 +7483,23 @@ int load_models()
 	memcpy(animdies,     deaths,         sizeof(int)*MAX_ATKS);
 	for(i=MAX_ATKS; i<max_attack_types; i++) animdies[i] = maxanim++;
 
-	// Now interpret the contents of buf line by line
-	pos = 0;
-	while(pos<size)
-	{
-		ParseArgs(&arglist,buf+pos,argbuf);
-		command = GET_ARG(0);
-		if(command && command[0]) {
-			if(stricmp(command, "music")==0){
-				strncpy(value1, GET_ARG(1), 127);
-				music(value1, 1, atol(GET_ARG(2)));
-			}
-			else if(stricmp(command, "load")==0){
-				// Add path to cache list
-				cache_model(GET_ARG(1), GET_ARG(2), 1);
-			}
-			else if(stricmp(command, "colourselect")==0){   // 6-2-2005 if string for colourselect found
-				colourselect =  GET_INT_ARG(1);          //  6-2-2005
-			}
-			else if(stricmp(command, "spdirection")==0){                // Select Player Direction for select player screen
-				spdirection[0] =  GET_INT_ARG(1);
-				spdirection[1] =  GET_INT_ARG(2);
-				spdirection[2] =  GET_INT_ARG(3);
-				spdirection[3] =  GET_INT_ARG(4);
-			}
-			else if(stricmp(command, "autoland")==0){    // New flag to determine if a player auto lands when thrown by another player (2 completely disables the ability to land)
-				autoland = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "nolost")==0){    // this is use for dont lost your weapon if you grab a enemy flag it to 1 to no drop by tails
-				nolost = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "ajspecial")==0){    // Flag to determine if a + j executes special
-				ajspecial = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "nocost")==0){    // Nocost set in models.txt
-				nocost = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "nocheats")==0){ //disable cheat option in menu
-				forcecheatsoff =  GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "nodropen")==0){
-				nodropen = 1;
-			}
-			else if(stricmp(command, "know")==0){
-				// Just add path to cache list
-				cache_model(GET_ARG(1), GET_ARG(2), 0);
-			}
-			else if(stricmp(command, "noaircancel")==0){
-				noaircancel = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "nomaxrushreset")==0){
-				nomaxrushreset[4] = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "mpblock")==0){               // Take from MP first?
-				mpblock = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "blockratio")==0){            // Nullify or reduce damage?
-				blockratio = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "nochipdeath")==0){
-				nochipdeath = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "lifescore")==0){
-				lifescore =  GET_INT_ARG(1);
-			}                    // Number of points needed to earn a 1-up
-			else if(stricmp(command, "credscore")==0){
-				credscore =  GET_INT_ARG(1);
-			}                    // Number of points needed to earn a credit
-			else if(stricmp(command, "versusdamage")==0){
-				versusdamage =  GET_INT_ARG(1);
-				if(versusdamage == 0 || versusdamage == 1) savedata.mode = versusdamage^1;
-			}
-			else if(!(stricmp(command, "maxdowns")==0 ||
-				stricmp(command, "maxups")==0 ||
-				stricmp(command, "maxbackwalks")==0 ||
-				stricmp(command, "maxwalks")==0 ||
-				stricmp(command, "maxidles")==0 ||
-				stricmp(command, "maxattacktypes")==0 ||
-				stricmp(command, "maxfollows")==0 ||
-				stricmp(command, "maxfreespecials")==0 ||
-				stricmp(command, "maxattacks")==0))
-			{
-				if(command && command[0])
-					printf("Command '%s' not understood in file '%s'!", command, filename);
-			}
-		}
-
-		// Go to next line
-		pos += getNewLineStart(buf + pos);
-		update_loading(&loadingbg[0], pos/2, size);
-	}
-
-	if(buf != NULL)
-	{
-		free(buf);
-		buf = NULL;
-	}
-
 	// Defer load_cached_model, so you can define models after their nested model.
 	printf("\n");
 	pos = (size / 2) / models_cached; // reusing pos variable
-	for(i=0; i<models_cached; i++)
-	{
+	for(i=0; i<models_cached; i++) {
 		//printf("Checking '%s' '%s'\n", model_cache[i].name, model_cache[i].path);
 		
 		if(model_cache[i].loadflag)
-		{
 			load_cached_model(model_cache[i].name, "models.txt", 0);
-		}
+		
 		update_loading(&loadingbg[0], (size/2) + i*pos, size);
 	}
 	printf("\nLoading models...............\tDone!\n");
+	
+	
+	if(buf)
+		free(buf);
+	
 	return 1;
 }
 
@@ -9347,7 +9332,7 @@ void load_level(char *filename){
 		if(bgPosi.set)
 			update_loading(&bgPosi, pos, size);
 			//update_loading(bgPosi[0]+videomodes.hShift, bgPosi[1]+videomodes.vShift, bgPosi[2], bgPosi[3]+videomodes.hShift, bgPosi[4]+videomodes.vShift, pos, size, bgPosi[5]);
-		else if(loadingbg[1].set)
+		else 
 			update_loading(&loadingbg[1], pos, size);
 	}
 
@@ -9955,10 +9940,6 @@ void drawstatus(){
 	}
 }
 
-//update_loading(&bgPosi, pos, size);
-			//update_loading(bgPosi[0]+videomodes.hShift, bgPosi[1]+videomodes.vShift, bgPosi[2], bgPosi[3]+videomodes.hShift, bgPosi[4]+videomodes.vShift, pos, size, bgPosi[5]);
-
-//void update_loading(int pos_x, int pos_y, int size_x, int text_x, int text_y, int value, int max, int font)
 void update_loading(s_loadingbar* s,  int value, int max) {
 	static unsigned int lasttick = 0;
 	int pos_x = s->bx + videomodes.hShift;
@@ -20154,6 +20135,8 @@ void shutdown(int status, char *msg, ...)
 
 	if(modelcmdlist)
 		freeCommandList(modelcmdlist); // moved here because list is not initialized if shutdown is initiated from inside the menu
+	if(modelstxtcmdlist)
+		freeCommandList(modelstxtcmdlist);
 	if(levelcmdlist)
 		freeCommandList(levelcmdlist);
 	if(levelordercmdlist)
@@ -23005,6 +22988,7 @@ void openborMain(int argc, char** argv)
 	}
 
 	modelcmdlist = createModelCommandList();
+	modelstxtcmdlist = createModelstxtCommandList();
 	levelcmdlist = createLevelCommandList();
 	levelordercmdlist = createLevelOrderCommandList();
 
