@@ -20065,11 +20065,12 @@ void shutdown(int status, char *msg, ...)
 	if(!disablelog) printf("\tDone!\n");
 
 	if(modelcmdlist)
-		freeModelCommandList(modelcmdlist); // moved here because list is not initialized if shutdown is initiated from inside the menu
+		freeCommandList(modelcmdlist); // moved here because list is not initialized if shutdown is initiated from inside the menu
 	if(levelcmdlist)
-			freeLevelCommandList(levelcmdlist);
+		freeCommandList(levelcmdlist);
 	if(levelordercmdlist)
-			freeLevelCommandList(levelordercmdlist);
+		freeCommandList(levelordercmdlist);
+	
 	freefilenamecache();
 
 

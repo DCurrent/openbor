@@ -305,10 +305,9 @@ List* createModelCommandList(void) {
 	return result;
 }
 
-void freeModelCommandList(List* list) {
+void freeCommandList(List* list) {
 	List_Clear(list);
 	free(list);
-	list = NULL;
 }
 
 // attention: modifies usercommand to lowercase
@@ -423,10 +422,6 @@ List* createLevelCommandList(void) {
 	
 	#undef LIST_ADD
 	return result;
-}
-
-void freeLevelCommandList(List* list) {
-	freeModelCommandList(list);
 }
 
 // attention: modifies usercommand to lowercase
@@ -560,8 +555,3 @@ List* createLevelOrderCommandList(void) {
 	#undef LIST_ADD
 	return result;
 }
-
-void freeLevelOrderCommandList(List* list) {
-	freeModelCommandList(list);
-}
-	

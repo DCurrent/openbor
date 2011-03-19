@@ -7,7 +7,7 @@
  * set -DDEBUG when compiling List.c
  * to check access on non-initialized lists
  * 
- gcc -Wall -DDEBUG -DNO_RAM_DEBUGGER -I.. -I../gamelib -I../tracelib -g -O0 List_unittest.c List.c ../tracelib/tracemalloc.c -o list_unittest
+ gcc -Wall -DDEBUG -DNO_RAM_DEBUGGER -I.. -I../gamelib -g -O0 List_unittest.c List.c -o list_unittest
  
  */
 #include "List.h"

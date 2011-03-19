@@ -504,17 +504,16 @@ typedef enum modelCommand {
 
 } modelCommands;
 
+void freeCommandList(List* list);
+
 List* createModelCommandList(void);
 modelCommands getModelCommand(List* list, char* usercommand);
-void freeModelCommandList(List* list);
 
 List* createLevelCommandList(void);
 levelCommands getLevelCommand(List* list, char* usercommand);
-void freeLevelCommandList(List* list);
 
 List* createLevelOrderCommandList(void);
 levelOrderCommands getLevelOrderCommand(List* list, char* usercommand);
-void freeLevelOrderCommandList(List* list);
 
 #endif
 
