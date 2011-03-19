@@ -8485,7 +8485,6 @@ void unload_level(){
 char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
 	char* result = NULL;
 	char* value;
-	char* value2;
 	size_t len;
 	
 	s_spawn_script_cache_node* tempnode;
@@ -8534,15 +8533,13 @@ char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
 		
 		if(load_script(templistnode->spawn_script, value)) {
 			Script_Compile(templistnode->spawn_script);
-			value2 = GET_ARGP(1); // weird. why is he putting the same value in value2 ?
-			// i guess the author intended to use ARG(2) instead
-			len = strlen(value2);
+			len = strlen(value);
 			
 			if(tempnode) {
 				tempnode2 = malloc(sizeof(s_spawn_script_cache_node));
 				tempnode2->cached_spawn_script = templistnode->spawn_script;
 				tempnode2->filename = malloc(len + 1);
-				strcpy(tempnode2->filename, value2);
+				strcpy(tempnode2->filename, value);
 				tempnode2->filename[len] = 0;
 				tempnode2->next = NULL;
 				tempnode->next = tempnode2;
@@ -8551,7 +8548,7 @@ char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
 				level->spawn_script_cache_head->cached_spawn_script = templistnode->spawn_script;
 				level->spawn_script_cache_head->filename = malloc(len + 1);
 				level->spawn_script_cache_head->next = NULL;
-				strcpy(level->spawn_script_cache_head->filename, value2);
+				strcpy(level->spawn_script_cache_head->filename, value);
 				level->spawn_script_cache_head->filename[len] = 0;
 			}
 		} else {
