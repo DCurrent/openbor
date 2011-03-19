@@ -7238,7 +7238,7 @@ int load_models()
 
 	free_modelcache();
 
-	if(loadingbg[0].set > 0)
+	if(loadingbg[0].set == 1 || loadingbg[0].set == 2)
 	{
 		// New alternative background path for PSP
 		if(custBkgrds != NULL)
@@ -7248,18 +7248,14 @@ int load_models()
 			load_background(tmpBuff, 0);
 		}
 		else load_background("data/bgs/loading", 0);
-	}
-	else if(loadingbg[0].set < 0)
-	{
-		clearscreen(vscreen);
-		spriteq_clear();
-	}
-	if(loadingbg[0].set)
-	{
 		standard_palette(1);
+	}
+	if(loadingbg[0].set % 2)
+	{
 		lifebar_colors();
 		init_colourtable();
 	}
+	
 	update_loading(&loadingbg[0], -1, 1); // initialize the update screen
 
 	// reload default values
@@ -8595,24 +8591,24 @@ void load_level(char *filename){
 
 	getRamStatus(BYTES);
 
-	if(loadingbg[1].set > 0) {
+	if(loadingbg[1].set == 1 || loadingbg[1].set == 2) {
 		if(custBkgrds) {
 			strcpy(string, custBkgrds);
 			strcat(string, "loading2");
 			load_background(string, 0);
 		} else {
 			load_cached_background("data/bgs/loading2", 0);
-		}	
-	} else if(loadingbg[1].set < 0) {
+		}
 		clearscreen(vscreen);
 		spriteq_clear();
+		standard_palette(1);
 	}
 	
-	if(loadingbg[1].set) {
-	    standard_palette(1);
+	if(loadingbg[1].set % 2) {
 	    lifebar_colors();
 	    init_colourtable();
 	}
+	
 	update_loading(&loadingbg[0], -1, 1); // initialize the update screen
 
 	memset(&next, 0, sizeof(s_spawn_entry));
@@ -9928,12 +9924,10 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 	
 	if(ticks - lasttick  > 100 || value < 0) { //negative value forces a repaint. used when only bg is drawn for the first time
 		if(s->set) {			
-			if(s->set != 2) {
+			if(s->set % 2) {
 				if (value < 0) value = 0;
 				loadingbarstatus.sizex = size_x;
 				bar(pos_x, pos_y, value, max, &loadingbarstatus);
-			}
-			if(s->set != 2 || value < 0) {
 				font_printf(text_x, text_y, s->tf, 0, "Loading...");
 				if(background) putscreen(vscreen, background, 0, 0, NULL);
 				else           clearscreen(vscreen);
