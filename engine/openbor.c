@@ -6579,6 +6579,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						case CMD_MODEL_ATTACK9:	
 							attack.attack_type  = ATK_NORMAL9;
 							break;
+						case CMD_MODEL_ATTACK10:
+							attack.attack_type  = ATK_NORMAL10;
+							break;
 						case CMD_MODEL_SHOCK:	
 							attack.attack_type  = ATK_SHOCK;
 							break;
