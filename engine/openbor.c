@@ -580,14 +580,32 @@ s_drawmethod* getDrawMethod(s_anim* a, ptrdiff_t index) {
 	return a->drawmethods[index];
 }
 
-void fill_s_loadingbar(s_loadingbar* s, char set, short bx, short by, short bsize, short tx, short ty, char tf) {
-	s->set = set;
+int isLoadingScreenTypeBg(loadingScreenType what) {
+	return (what & LSTYPE_BACKGROUND) == LSTYPE_BACKGROUND;
+}
+
+int isLoadingScreenTypeBar(loadingScreenType what) {
+	return (what & LSTYPE_BAR) == LSTYPE_BAR;
+}
+
+char* fill_s_loadingbar(s_loadingbar* s, char set, short bx, short by, short bsize, short tx, short ty, char tf, int ms) {
+	switch (set) {
+		case -1: case 0: 
+			s->set = LSTYPE_NONE; break;
+		case 1: s->set = (LSTYPE_BACKGROUND | LSTYPE_BAR); break;
+		case 2: s->set = LSTYPE_BACKGROUND; break;
+		case 3: s->set = LSTYPE_BAR; break;
+		default:
+			return "invalid loadingbg type!";
+	}		
 	s->tf = tf;
 	s->bx = bx;
 	s->by = by;
 	s->bsize = bsize;
 	s->tx = tx;
 	s->ty = ty;
+	s->refreshMs = (ms ? ms : 100);
+	return NULL;
 }
 
 
@@ -7238,8 +7256,7 @@ int load_models()
 
 	free_modelcache();
 
-	if(loadingbg[0].set == 1 || loadingbg[0].set == 2)
-	{
+	if(isLoadingScreenTypeBg(loadingbg[0].set)) {
 		// New alternative background path for PSP
 		if(custBkgrds != NULL)
 		{
@@ -7250,8 +7267,7 @@ int load_models()
 		else load_background("data/bgs/loading", 0);
 		standard_palette(1);
 	}
-	if(loadingbg[0].set % 2)
-	{
+	if(isLoadingScreenTypeBar(loadingbg[0].set)) {
 		lifebar_colors();
 		init_colourtable();
 	}
@@ -7664,6 +7680,8 @@ static void _readbarstatus(char* buf, s_barstatus* pstatus)
 // Load list of levels
 void load_levelorder()
 {
+	static const char* defaulterr = "Error in level order: a set must be specified.";
+#define CHKDEF if(current_set<0) { errormessage = (char*) defaulterr; goto lCleanup; }	
 	char filename[128] = "";
 	int i=0,j=0;
 	char *buf;
@@ -7672,6 +7690,7 @@ void load_levelorder()
 	int current_set;
 	char * command;
 	char* arg;
+	char* errormessage = NULL;
 	char value[128]   = {""};
 	int plifeUsed[2]  = {0,0};
 	int elifeUsed[2]  = {0,0};
@@ -7688,6 +7707,7 @@ void load_levelorder()
 	ArgList arglist;
 	char argbuf[MAX_ARG_LEN+1] = "";
 	levelOrderCommands cmd;
+	int line = 0;
 
 	unload_levelorder();
 
@@ -7704,7 +7724,7 @@ void load_levelorder()
 
 	// Now interpret the contents of buf line by line
 	pos = 0;
-	current_set = -1;
+	current_set = -1;	
 
 	// Custom lifebar/timebox/icon positioning and size
 	picon[0][0] = piconw[0][0] = picon[2][0] = piconw[2][0] = eicon[0][0] = eicon[2][0] = 2;
@@ -7759,6 +7779,7 @@ void load_levelorder()
 
 
 	while(pos<size){
+		line++;
 		ParseArgs(&arglist,buf+pos,argbuf);
 		command = GET_ARG(0);
 		cmd = getLevelOrderCommand(levelordercmdlist, command);
@@ -7772,9 +7793,10 @@ void load_levelorder()
 				blendfx_is_set = 1;
 				break;
 			case CMD_LEVELORDER_SET:
-				if(num_difficulties>=MAX_DIFFICULTIES)
-					shutdown(1, "Too many sets of levels (max %u)!", MAX_DIFFICULTIES);
-
+				if(num_difficulties>=MAX_DIFFICULTIES) {
+					errormessage = "Too many sets of levels (check MAX_DIFFICULTIES)!";
+					goto lCleanup;
+				}
 				++num_difficulties;
 				++current_set;
 				strncpy(set_names[current_set], GET_ARG(1), MAX_NAME_LEN);
@@ -7783,25 +7805,18 @@ void load_levelorder()
 				branch_name[0] = 0;
 				break;
 			case CMD_LEVELORDER_IFCOMPLETE:
-				if(current_set<0)
-				shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				ifcomplete[current_set] = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_SKIPSELECT:
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
-				if(!skipselect)
-				{
+				CHKDEF;
+				if(!skipselect) {
 					skipselect = malloc(sizeof(*skipselect));
 					memset(skipselect, 0, sizeof(*skipselect));
 				}
 
-				for(i=0; i<4;i++)
-				{
-					if((arg=GET_ARG(i+1))[0])
-					{
+				for(i=0; i<4;i++) {
+					if((arg=GET_ARG(i+1))[0]) {
 						if(!(*skipselect)[current_set][i])
 							(*skipselect)[current_set][i] = malloc(MAX_NAME_LEN+1);
 						strncpy((*skipselect)[current_set][i], arg, MAX_NAME_LEN);
@@ -7809,58 +7824,46 @@ void load_levelorder()
 				}
 				break;
 			case CMD_LEVELORDER_FILE:
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				strncpy(value, GET_ARG(1), 127);
 				add_level(value, current_set);
 				break;
 			case CMD_LEVELORDER_SCENE:
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				strncpy(value, GET_ARG(1), 127);
 				add_scene(value, current_set);
 				break;
 			case CMD_LEVELORDER_SELECT:
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				strncpy(value, GET_ARG(1), 127);
 				add_select(value, current_set);
 				break;
 			case CMD_LEVELORDER_NEXT:
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				// Set 'gonext' flag of last loaded level
-				if(num_levels[current_set]<1)
-					shutdown(1, "Error in level order (next before file)!");
-
+				if(num_levels[current_set]<1) {
+					errormessage = "Error in level order (next before file)!";
+					goto lCleanup;
+				}
 				levelorder[current_set][num_levels[current_set]-1]->gonext = 1;
 				break;
 			case CMD_LEVELORDER_END:
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				// Set endgame flag of last loaded level
-				if(num_levels[current_set]<1)
-					shutdown(1, "Error in level order (next before file)!");
-
+				if(num_levels[current_set]<1) {
+					errormessage = "Error in level order (next before file)!";
+					goto lCleanup;
+				}
 				levelorder[current_set][num_levels[current_set]-1]->gonext = 2;
 				break;
 			case CMD_LEVELORDER_LIVES:
 				// 7-1-2005  credits/lives/singleplayer start here
 				// used to read the new # of lives/credits from the levels.txt
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				difflives[current_set] = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_DISABLEHOF:
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				noshowhof[current_set] = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_CANSAVE:
@@ -7868,25 +7871,19 @@ void load_levelorder()
 				// 0 this set can't be saved
 				// 1 save level only
 				// 2 save player info and level, can't choose player in select menu
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				cansave_flag[current_set] = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_Z:
 				//    2-10-05  adjust the walkable coordinates
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				z_coords[0] = GET_INT_ARG(1);
 				z_coords[1] = GET_INT_ARG(2);
 				z_coords[2] = GET_INT_ARG(3);
 				break;
 			case CMD_LEVELORDER_BRANCH:
 				//    2007-2-22 level branch name
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				strncpy(branch_name, GET_ARG(1), MAX_NAME_LEN);
 				break;
 			case CMD_LEVELORDER_P1LIFE: case CMD_LEVELORDER_P2LIFE: case CMD_LEVELORDER_P3LIFE: case CMD_LEVELORDER_P4LIFE:
@@ -8128,9 +8125,7 @@ void load_levelorder()
 					if((arg=GET_ARG(i+1))[0]) tscore[i] = atoi(arg);
 				break;
 			case CMD_LEVELORDER_MUSICOVERLAP:
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				diffoverlap[current_set] = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_SHOWRUSHBONUS:
@@ -8149,10 +8144,12 @@ void load_levelorder()
 				completebg = 1;
 				break;
 			case CMD_LEVELORDER_LOADINGBG:
-				fill_s_loadingbar(&loadingbg[0], GET_INT_ARG(1), GET_INT_ARG(2),GET_INT_ARG(3),GET_INT_ARG(4),GET_INT_ARG(5),GET_INT_ARG(6),GET_INT_ARG(7));				
+				errormessage = fill_s_loadingbar(&loadingbg[0], GET_INT_ARG(1), GET_INT_ARG(2),GET_INT_ARG(3),GET_INT_ARG(4),GET_INT_ARG(5),GET_INT_ARG(6),GET_INT_ARG(7),GET_INT_ARG(8));
+				if(errormessage) goto lCleanup;
 				break;
 			case CMD_LEVELORDER_LOADINGBG2:
-				fill_s_loadingbar(&loadingbg[1], GET_INT_ARG(1), GET_INT_ARG(2),GET_INT_ARG(3),GET_INT_ARG(4),GET_INT_ARG(5),GET_INT_ARG(6),GET_INT_ARG(7));
+				errormessage = fill_s_loadingbar(&loadingbg[1], GET_INT_ARG(1), GET_INT_ARG(2),GET_INT_ARG(3),GET_INT_ARG(4),GET_INT_ARG(5),GET_INT_ARG(6),GET_INT_ARG(7),GET_INT_ARG(8));
+				if(errormessage) goto lCleanup;
 				break;
 			case CMD_LEVELORDER_LOADINGMUSIC:
 				loadingmusic = GET_INT_ARG(1);
@@ -8165,60 +8162,44 @@ void load_levelorder()
 				break;
 			case CMD_LEVELORDER_CUSTFADE:
 				//8-2-2005 custom fade
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				custfade[current_set] = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_CONTINUESCORE:
 				//8-2-2005 custom fade end
 				//continuescore
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				continuescore[current_set] = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_CREDITS:
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				diffcreds[current_set] = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_TYPEMP:
 				//typemp for change for mp restored by time (0) to by enemys (1) or no restore (2) by tails
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				typemp[current_set] = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_SINGLE:
-				if(current_set<0)
-				{
+				if(current_set<0) {
 					for(i=0; i<MAX_DIFFICULTIES; i++)
 						maxplayers[i] = ctrlmaxplayers[i] = 1;
-				}
-				else
-				{
+				} else {
 					maxplayers[current_set] = ctrlmaxplayers[current_set] = 1;
 				}
 				break;
 			case CMD_LEVELORDER_MAXPLAYERS:
 				// 7-1-2005  credits/lives/singleplayer end here
-				if(current_set<0)
-				{
+				if(current_set<0) {
 					maxplayers[0] = GET_INT_ARG(1);
 					for(i=0; i<MAX_DIFFICULTIES; i++)
 						maxplayers[i] = ctrlmaxplayers[i] = maxplayers[0];
-				}
-				else
-				{
+				} else {
 					maxplayers[current_set] = ctrlmaxplayers[current_set] = GET_INT_ARG(1);
 				}
 				break;
 			case CMD_LEVELORDER_NOSAME:
-				if(current_set<0)
-					shutdown(1, "Error in level order: a set must be specified.");
-
+				CHKDEF;
 				same[current_set] = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_RUSH:
@@ -8246,10 +8227,8 @@ void load_levelorder()
 		// Go to next line
 		pos+=getNewLineStart(buf + pos);
 	}
-	if(buf != NULL){
-		free(buf);
-		buf = NULL;
-	}
+	
+#undef CHKDEF	
 
 	// Variables without defaults will be auto populated.
 	if(olbarstatus.sizex==0) {olbarstatus = lbarstatus;}
@@ -8308,7 +8287,17 @@ void load_levelorder()
 
 	for(i=0; i<4; i++) if(pshoot[i][2] == -1) pshoot[i][2] = 2;
 	if(timeloc[5] == -1) timeloc[5] = 3;
-	if(current_set<0) shutdown(1, "No levels were loaded!");
+	
+	if(current_set<0)
+		errormessage = "No levels were loaded!";
+	
+	lCleanup:
+	
+	if(buf)
+		free(buf);
+	
+	if(errormessage)
+		shutdown(1, "load_levelorder ERROR in %s at %d, msg: %s\n", filename, line, errormessage);
 }
 
 
@@ -8591,7 +8580,7 @@ void load_level(char *filename){
 
 	getRamStatus(BYTES);
 
-	if(loadingbg[1].set == 1 || loadingbg[1].set == 2) {
+	if(isLoadingScreenTypeBg(loadingbg[1].set)) {
 		if(custBkgrds) {
 			strcpy(string, custBkgrds);
 			strcat(string, "loading2");
@@ -8604,7 +8593,7 @@ void load_level(char *filename){
 		standard_palette(1);
 	}
 	
-	if(loadingbg[1].set % 2) {
+	if(isLoadingScreenTypeBar(loadingbg[1].set)) {
 	    lifebar_colors();
 	    init_colourtable();
 	}
@@ -8664,7 +8653,8 @@ void load_level(char *filename){
 		switch(cmd) {
 			case CMD_LEVEL_LOADINGBG:
 				load_background(GET_ARG(1), 0);
-				fill_s_loadingbar(&bgPosi, GET_INT_ARG(2), GET_INT_ARG(3), GET_INT_ARG(4), GET_INT_ARG(5), GET_INT_ARG(6), GET_INT_ARG(7), GET_INT_ARG(8));				
+				errormessage = fill_s_loadingbar(&bgPosi, GET_INT_ARG(2), GET_INT_ARG(3), GET_INT_ARG(4), GET_INT_ARG(5), GET_INT_ARG(6), GET_INT_ARG(7), GET_INT_ARG(8), GET_INT_ARG(9));
+				if (errormessage) goto lCleanup;
 				standard_palette(1);
 				lifebar_colors();
 				init_colourtable();
@@ -9299,7 +9289,7 @@ void load_level(char *filename){
 		// Go to next line
 		pos += getNewLineStart(buf + pos);
 
-		if(bgPosi.set)
+		if(isLoadingScreenTypeBar(bgPosi.set) || isLoadingScreenTypeBg(bgPosi.set))
 			update_loading(&bgPosi, pos, size);
 			//update_loading(bgPosi[0]+videomodes.hShift, bgPosi[1]+videomodes.vShift, bgPosi[2], bgPosi[3]+videomodes.hShift, bgPosi[4]+videomodes.vShift, pos, size, bgPosi[5]);
 		else 
@@ -9921,24 +9911,30 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 	
 	if(ticks - lasttick  > 20)
 		sound_update_music();
+
+	if(ticks - lasttick  > 250)
+		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
 	
-	if(ticks - lasttick  > 100 || value < 0) { //negative value forces a repaint. used when only bg is drawn for the first time
-		if(s->set) {			
-			if(s->set % 2) {
-				if (value < 0) value = 0;
+	if(ticks - lasttick  > s->refreshMs || value < 0) { //negative value forces a repaint. used when only bg is drawn for the first time
+		if(s->set) {
+			if (value < 0) value = 0;
+			if(isLoadingScreenTypeBar(s->set)) {				
 				loadingbarstatus.sizex = size_x;
 				bar(pos_x, pos_y, value, max, &loadingbarstatus);
-				font_printf(text_x, text_y, s->tf, 0, "Loading...");
-				if(background) putscreen(vscreen, background, 0, 0, NULL);
-				else           clearscreen(vscreen);
-				spriteq_draw(vscreen, 0);
-				video_copy_screen(vscreen);
-				spriteq_clear();
-			}	
+			}			
+			font_printf(text_x, text_y, s->tf, 0, "Loading...");
+			if(isLoadingScreenTypeBg(s->set)) {				
+				if(background) 
+					putscreen(vscreen, background, 0, 0, NULL);
+				else
+					clearscreen(vscreen);
+			}
+			spriteq_draw(vscreen, 0);
+			video_copy_screen(vscreen);
+			spriteq_clear();	
 		}
-		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
+		lasttick = ticks;
 	}
-	lasttick = ticks;
 }
 
 void addscore(int playerindex, int add){

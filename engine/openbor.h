@@ -759,18 +759,15 @@ struct animlist{
 typedef struct animlist s_anim_list;
 s_anim_list *anim_list;
 
-typedef enum
-{
-	horizontalbar=0,
-	verticalbar=1,
-}barorient;
-
-typedef enum
-{
-   valuebar=0,
-   percentagebar=1,
-}bartype;
-
+typedef enum {
+	horizontalbar = 0,
+	verticalbar = 1,
+} barorient;
+ 
+typedef enum {
+	valuebar = 0,
+	percentagebar = 1,
+} bartype;
 
 typedef struct
 {
@@ -789,14 +786,19 @@ typedef struct
    int          (*colourtable)[11]; //0 default backfill 1-10 foreground colours
 }s_barstatus;
 
+typedef enum {
+	LSTYPE_NONE = 0,
+	LSTYPE_BAR = 1,
+	LSTYPE_BACKGROUND = 2,
+} loadingScreenType;
+
 typedef struct {
-	char set;  
+	loadingScreenType set;  
 	/*set determines how loading screen would be.
 	- 0 = no loading screen.
 	- 1 = background and status bar.
 	- 2 = background only.
-	- 3 = status bar only.
-	
+	- 3 = status bar only.	
 	*/
 	char tf; //determines used font number for "LOADING" text (last element in command, moved here because of alignment)
 	/*
@@ -809,6 +811,7 @@ typedef struct {
 	short bsize; // length of bar in pixels
 	short tx; //determines x and y coordinates of "LOADING" text location respectively.
 	short ty;
+	short refreshMs; // modder defined number of milliseconds in which the screen is updated while loading
 } s_loadingbar;
 
 typedef struct {
