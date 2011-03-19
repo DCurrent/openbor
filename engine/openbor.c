@@ -7232,6 +7232,7 @@ int load_models()
 	ArgList arglist;
 	char argbuf[MAX_ARG_LEN+1] = "";
 	modelstxtCommands cmd;
+	int modelLoadCount = 0;
 
 	free_modelcache();
 
@@ -7352,6 +7353,7 @@ int load_models()
 				break;
 			case CMD_MODELSTXT_LOAD:
 				// Add path to cache list
+				modelLoadCount++;
 				cache_model(GET_ARG(1), GET_ARG(2), 1);
 				break;
 			case CMD_MODELSTXT_COLOURSELECT:
@@ -7425,7 +7427,6 @@ int load_models()
 				printf("command %s not understood in %s, line %d\n", command, filename, line);
 		}
 		
-		update_loading(&loadingbg[0], pos/2, size);
 		// Go to next line
 		pos += getNewLineStart(buf + pos);
 	}
@@ -7488,14 +7489,19 @@ int load_models()
 
 	// Defer load_cached_model, so you can define models after their nested model.
 	printf("\n");
-	pos = (size / 2) / models_cached; // reusing pos variable
+	if (!modelLoadCount)
+		modelLoadCount++; // prevent div by zero
+		
+	pos = size / modelLoadCount; // reusing pos variable
+	
+	modelLoadCount = 0;
 	for(i=0; i<models_cached; i++) {
 		//printf("Checking '%s' '%s'\n", model_cache[i].name, model_cache[i].path);
-		
-		if(model_cache[i].loadflag)
-			load_cached_model(model_cache[i].name, "models.txt", 0);
-		
-		update_loading(&loadingbg[0], (size/2) + i*pos, size);
+		if(model_cache[i].loadflag) {
+			modelLoadCount++;
+			load_cached_model(model_cache[i].name, "models.txt", 0);		
+			update_loading(&loadingbg[0], modelLoadCount * pos, size);
+		}	
 	}
 	printf("\nLoading models...............\tDone!\n");
 	
