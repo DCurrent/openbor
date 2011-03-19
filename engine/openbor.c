@@ -8581,7 +8581,7 @@ void load_level(char *filename){
 	int line = 0;
 	char* errormessage = NULL;
 	char* scriptname = NULL;
-	Script* tempscript;
+	Script* tempscript = NULL;
 
 	unload_level();
 
