@@ -9,7 +9,6 @@
 #include <ogcsys.h>
 #include <stdlib.h>
 #include <string.h>
-#include "tracemalloc.h"
 #include "wiiport.h"
 #include "packfile.h"
 #include "video.h"
@@ -50,7 +49,6 @@ char* getFullPath(char *relPath)
 
 void borExit(int reset)
 {
-	tracemalloc_dump();
 #if 0
 	if(reset == WII_SHUTDOWN)   SYS_ResetSystem(SYS_POWEROFF, 0, 0);
 	else if(reset == WII_RESET) SYS_ResetSystem(SYS_HOTRESET, 0, 0);

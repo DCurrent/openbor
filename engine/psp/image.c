@@ -11,7 +11,6 @@
 #include <png.h>
 #include "image.h"
 #include "graphics.h"
-#include "tracemalloc.h"
 
 static int getNextPower2(int width)
 {

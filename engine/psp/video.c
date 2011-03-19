@@ -15,7 +15,6 @@
 #include "types.h"
 #include "video.h"
 #include "graphics.h"
-#include "tracemalloc.h"
 
 static int screen_w, screen_h;
 int scaleVideo;
