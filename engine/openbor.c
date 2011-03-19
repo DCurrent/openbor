@@ -7258,6 +7258,7 @@ int load_models()
 		lifebar_colors();
 		init_colourtable();
 	}
+	update_loading(&loadingbg[0], -1, 1); // initialize the update screen
 
 	// reload default values
 	max_idles        = MAX_IDLES;
@@ -8162,7 +8163,7 @@ void load_levelorder()
 				completebg = 1;
 				break;
 			case CMD_LEVELORDER_LOADINGBG:
-				fill_s_loadingbar(&loadingbg[0], GET_INT_ARG(1), GET_INT_ARG(2),GET_INT_ARG(3),GET_INT_ARG(4),GET_INT_ARG(5),GET_INT_ARG(6),GET_INT_ARG(7));
+				fill_s_loadingbar(&loadingbg[0], GET_INT_ARG(1), GET_INT_ARG(2),GET_INT_ARG(3),GET_INT_ARG(4),GET_INT_ARG(5),GET_INT_ARG(6),GET_INT_ARG(7));				
 				break;
 			case CMD_LEVELORDER_LOADINGBG2:
 				fill_s_loadingbar(&loadingbg[1], GET_INT_ARG(1), GET_INT_ARG(2),GET_INT_ARG(3),GET_INT_ARG(4),GET_INT_ARG(5),GET_INT_ARG(6),GET_INT_ARG(7));
@@ -8539,6 +8540,7 @@ void load_level(char *filename){
 	    lifebar_colors();
 	    init_colourtable();
 	}
+	update_loading(&loadingbg[0], -1, 1); // initialize the update screen
 
 	memset(&next, 0, sizeof(s_spawn_entry));
 
@@ -8584,10 +8586,11 @@ void load_level(char *filename){
 		switch(cmd) {
 			case CMD_LEVEL_LOADINGBG:
 				load_background(GET_ARG(1), 0);
-				fill_s_loadingbar(&bgPosi, GET_INT_ARG(2), GET_INT_ARG(3), GET_INT_ARG(4), GET_INT_ARG(5), GET_INT_ARG(6), GET_INT_ARG(7), GET_INT_ARG(8));
+				fill_s_loadingbar(&bgPosi, GET_INT_ARG(2), GET_INT_ARG(3), GET_INT_ARG(4), GET_INT_ARG(5), GET_INT_ARG(6), GET_INT_ARG(7), GET_INT_ARG(8));				
 				standard_palette(1);
 				lifebar_colors();
 				init_colourtable();
+				update_loading(&bgPosi, -1, 1); // initialize the update screen
 				break;
 			case CMD_LEVEL_MUSICFADE:
 				memset(&next,0,sizeof(s_spawn_entry));
@@ -9881,29 +9884,36 @@ void drawstatus(){
 
 //void update_loading(int pos_x, int pos_y, int size_x, int text_x, int text_y, int value, int max, int font)
 void update_loading(s_loadingbar* s,  int value, int max) {
-	static size_t cticks = 0;
+	static unsigned int lasttick = 0;
 	int pos_x = s->bx + videomodes.hShift;
 	int pos_y = s->by + videomodes.vShift;
 	int size_x = s->bsize;
 	int text_x = s->tx + videomodes.hShift;
 	int text_y = s->ty + videomodes.vShift;
+	unsigned int ticks = timer_gettick();
 	
-	sound_update_music();
+	if(ticks - lasttick  > 20)
+		sound_update_music();
 	
-	if(cticks  % 16 == 0) {
-		if(s->set) {
-			loadingbarstatus.sizex = size_x;
-			bar(pos_x, pos_y, value, max, &loadingbarstatus);
-			font_printf(text_x, text_y, s->tf, 0, "Loading...");
-			if(background) putscreen(vscreen, background, 0, 0, NULL);
-			else           clearscreen(vscreen);
-			spriteq_draw(vscreen, 0);
-			video_copy_screen(vscreen);
-			spriteq_clear();
+	if(ticks - lasttick  > 100 || value < 0) { //negative value forces a repaint. used when only bg is drawn for the first time
+		if(s->set) {			
+			if(s->set != 2) {
+				if (value < 0) value = 0;
+				loadingbarstatus.sizex = size_x;
+				bar(pos_x, pos_y, value, max, &loadingbarstatus);
+			}
+			if(s->set != 2 || value < 0) {
+				font_printf(text_x, text_y, s->tf, 0, "Loading...");
+				if(background) putscreen(vscreen, background, 0, 0, NULL);
+				else           clearscreen(vscreen);
+				spriteq_draw(vscreen, 0);
+				video_copy_screen(vscreen);
+				spriteq_clear();
+			}	
 		}
 		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
 	}
-	cticks++;
+	lasttick = ticks;
 }
 
 void addscore(int playerindex, int add){
