@@ -792,9 +792,11 @@ typedef struct
 typedef struct {
 	char set;  
 	/*set determines how loading screen would be.
-	- -1 = default black screen with loading, with status bar if bsize != 0
-	- 0 = no loading screen
-	- 1 = loading screen background, with status bar if bsize != 0
+	- -1 = default black screen with loading and status bar.
+	- 0 = no loading screen.
+	- 1 = loading screen background and status bar.
+	- 2 = only backg. image
+	
 	*/
 	char tf; //determines used font number for "LOADING" text (last element in command, moved here because of alignment)
 	/*
