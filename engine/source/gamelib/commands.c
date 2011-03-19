@@ -22,6 +22,10 @@ modelCommands getModelCommand(List* list, char* usercommand) {
 	return (modelCommands) getCommandlistCommand(list, usercommand);
 }
 
+modelstxtCommands getModelstxtCommand(List* list, char* usercommand) {
+	return (modelstxtCommands) getCommandlistCommand(list, usercommand);
+}
+
 levelCommands getLevelCommand(List* list, char* usercommand) {
 	return (levelCommands) getCommandlistCommand(list, usercommand);
 }
@@ -35,6 +39,41 @@ List* prepareList(void) {
 	assert(result);
 	List_Init(result);
 	return result;	
+}
+
+List* createModelstxtCommandList(void) {
+	List* result = prepareList();
+	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
+	LIST_ADD(CMD_MODELSTXT_MAXIDLES, "maxidles");
+	LIST_ADD(CMD_MODELSTXT_MAXWALKS, "maxwalks");
+	LIST_ADD(CMD_MODELSTXT_MAXBACKWALKS, "maxbackwalks");
+	LIST_ADD(CMD_MODELSTXT_MAXUPS, "maxups");
+	LIST_ADD(CMD_MODELSTXT_MAXDOWNS, "maxdowns");
+	LIST_ADD(CMD_MODELSTXT_MAXATTACKTYPES, "maxattacktypes");
+	LIST_ADD(CMD_MODELSTXT_MAXFOLLOWS, "maxfollows");
+	LIST_ADD(CMD_MODELSTXT_MAXFREESPECIALS, "maxfreespecials");
+	LIST_ADD(CMD_MODELSTXT_MAXATTACKS, "maxattacks");
+	LIST_ADD(CMD_MODELSTXT_MUSIC, "music");
+	LIST_ADD(CMD_MODELSTXT_LOAD, "load");
+	LIST_ADD(CMD_MODELSTXT_COLOURSELECT, "colourselect");
+	LIST_ADD(CMD_MODELSTXT_SPDIRECTION, "spdirection");
+	LIST_ADD(CMD_MODELSTXT_AUTOLAND, "autoland");
+	LIST_ADD(CMD_MODELSTXT_NOLOST, "nolost");
+	LIST_ADD(CMD_MODELSTXT_AJSPECIAL, "ajspecial");
+	LIST_ADD(CMD_MODELSTXT_NOCOST, "nocost");
+	LIST_ADD(CMD_MODELSTXT_NOCHEATS, "nocheats");
+	LIST_ADD(CMD_MODELSTXT_NODROPEN, "nodropen");
+	LIST_ADD(CMD_MODELSTXT_KNOW, "know");
+	LIST_ADD(CMD_MODELSTXT_NOAIRCANCEL, "noaircancel");
+	LIST_ADD(CMD_MODELSTXT_NOMAXRUSHRESET, "nomaxrushreset");
+	LIST_ADD(CMD_MODELSTXT_MPBLOCK, "mpblock");
+	LIST_ADD(CMD_MODELSTXT_BLOCKRATIO, "blockratio");
+	LIST_ADD(CMD_MODELSTXT_NOCHIPDEATH, "nochipdeath");
+	LIST_ADD(CMD_MODELSTXT_LIFESCORE, "lifescore");
+	LIST_ADD(CMD_MODELSTXT_CREDSCORE, "credscore");
+	LIST_ADD(CMD_MODELSTXT_VERSUSDAMAGE, "versusdamage");	
+	#undef LIST_ADD
+	return result;
 }
 
 List* createModelCommandList(void) {
