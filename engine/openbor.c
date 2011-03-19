@@ -8573,6 +8573,8 @@ void load_level(char *filename){
 	levelCommands cmd2;
 	int line = 0;
 	char* errormessage = NULL;
+	char* scriptname = NULL;
+	Script* tempscript;
 
 	unload_level();
 
@@ -8582,23 +8584,20 @@ void load_level(char *filename){
 
 	getRamStatus(BYTES);
 
-	if(loadingbg[1].set > 0)
-	{
-		if(custBkgrds != NULL)
-		{
-		strcpy(string, custBkgrds);
-		strcat(string, "loading2");
-		load_background(string, 0);
-		}
-		else load_cached_background("data/bgs/loading2", 0);
-	}
-	else if(loadingbg[1].set < 0)
-	{
+	if(loadingbg[1].set > 0) {
+		if(custBkgrds) {
+			strcpy(string, custBkgrds);
+			strcat(string, "loading2");
+			load_background(string, 0);
+		} else {
+			load_cached_background("data/bgs/loading2", 0);
+		}	
+	} else if(loadingbg[1].set < 0) {
 		clearscreen(vscreen);
 		spriteq_clear();
 	}
-	if(loadingbg[1].set)
-	{
+	
+	if(loadingbg[1].set) {
 	    standard_palette(1);
 	    lifebar_colors();
 	    init_colourtable();
@@ -8857,8 +8856,9 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_SETTIME:
 				// If settime is found, overwrite the default 100 for time limit
-				if(GET_INT_ARG(1) > 100 || GET_INT_ARG(1) < 0) level->settime = 100;
-				else level->settime = GET_INT_ARG(1); // Feb 25, 2005 - Time limit loaded from individual .txt file
+				level->settime = GET_INT_ARG(1);
+				if(level->settime > 100 || level->settime < 0) level->settime = 100;
+				// Feb 25, 2005 - Time limit loaded from individual .txt file
 				break;
 			case CMD_LEVEL_SETWEAP:
 				// Specify a weapon for each level
@@ -8878,9 +8878,8 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_TYPE:
 				level->type = GET_INT_ARG(1);    // Level type - 1 = bonus, else regular
-
-				if(GET_INT_ARG(2)) level->nospecial = GET_INT_ARG(2);    // Can use specials during bonus levels (default 0 - yes)
-				if(GET_INT_ARG(3)) level->nohurt = GET_INT_ARG(3);    // Can hurt other players during bonus levels (default 0 - yes)
+				level->nospecial = GET_INT_ARG(2);    // Can use specials during bonus levels (default 0 - yes)
+				level->nohurt = GET_INT_ARG(3);    // Can hurt other players during bonus levels (default 0 - yes)
 				break;
 			case CMD_LEVEL_NOHIT:
 				level->nohit = GET_INT_ARG(1);
@@ -9021,78 +9020,44 @@ void load_level(char *filename){
 				}
 				level->numpalettes++;
 				break;
-			case CMD_LEVEL_UPDATESCRIPT:
-				value = GET_ARG(1);
-				if(!Script_IsInitialized(&(level->update_script)))
-					Script_Init(&(level->update_script), "levelupdatescript", 1);
-				else {
-					errormessage = "Multiple level update script!";
-					goto lCleanup;
-				}	
-				if(load_script(&(level->update_script), value))
-					Script_Compile(&(level->update_script));
-				else {
-					errormessage = "Failed loading level update script!";
-					goto lCleanup;
-				}	
-				break;
-			case CMD_LEVEL_UPDATEDSCRIPT:
-				value = GET_ARG(1);
-				if(!Script_IsInitialized(&(level->updated_script)))
-					Script_Init(&(level->updated_script), "levelupdatedscript", 1);
-				else {
-					errormessage = "Multiple level updated script!";
-					goto lCleanup;
-				}	
-				if(load_script(&(level->updated_script), value))
-					Script_Compile(&(level->updated_script));
-				else {					
-					errormessage = "Failed loading level updated script";
-					goto lCleanup;
-				}	
-				break;
-			case CMD_LEVEL_KEYSCRIPT:
-				value = GET_ARG(1);
-				if(!Script_IsInitialized(&(level->key_script)))
-					Script_Init(&(level->key_script), "levelkeyscript", 1);
-				else {
-					errormessage = "Multiple level key script!";
-					goto lCleanup;
+			case CMD_LEVEL_UPDATESCRIPT: case CMD_LEVEL_UPDATEDSCRIPT: case CMD_LEVEL_KEYSCRIPT:
+			case CMD_LEVEL_LEVELSCRIPT: case CMD_LEVEL_ENDLEVELSCRIPT:
+				switch(cmd) {
+					case CMD_LEVEL_UPDATESCRIPT:
+						tempscript = &(level->update_script);
+						scriptname = "levelupdatescript";
+						break;
+					case CMD_LEVEL_UPDATEDSCRIPT:
+						tempscript = &(level->updated_script);
+						scriptname = "levelupdatedscript";
+						break;
+					case CMD_LEVEL_KEYSCRIPT:	
+						tempscript = &(level->key_script);
+						scriptname = "levelkeyscript";
+						break;
+					case CMD_LEVEL_LEVELSCRIPT:
+						tempscript = &(level->level_script);
+						scriptname = command;
+						break;
+					case CMD_LEVEL_ENDLEVELSCRIPT:	
+						tempscript = &(level->endlevel_script);
+						scriptname = command;
+						break;
+					default:
+						assert(0);
+					
 				}
-				if(load_script(&(level->key_script), value))
-					Script_Compile(&(level->key_script));
-				else {
-					errormessage = "Failed loading level key script!";
-					goto lCleanup;
-				}	
-				break;
-			case CMD_LEVEL_LEVELSCRIPT:
 				value = GET_ARG(1);
-				if(!Script_IsInitialized(&(level->level_script)))
-					Script_Init(&(level->level_script), command, 1);
+				if(!Script_IsInitialized(tempscript))
+					Script_Init(tempscript, scriptname, 1);
 				else {
 					errormessage = "Multiple level script!";
 					goto lCleanup;
 				}	
-				if(load_script(&(level->level_script), value))
-					Script_Compile(&(level->level_script));
+				if(load_script(tempscript, value))
+					Script_Compile(tempscript);
 				else {
-					errormessage = "Failed loading level script!";
-					goto lCleanup;
-				}	
-				break;
-			case CMD_LEVEL_ENDLEVELSCRIPT:
-				value = GET_ARG(1);
-				if(!Script_IsInitialized(&(level->endlevel_script)))
-					Script_Init(&(level->endlevel_script), command, 1);
-				else {
-					errormessage = "Multiple end-level script!";
-					goto lCleanup;
-				}	
-				if(load_script(&(level->endlevel_script), value))
-					Script_Compile(&(level->endlevel_script));
-				else {
-					errormessage = "Failed loading end-level script!";
+					errormessage = "Failed loading script!";
 					goto lCleanup;
 				}	
 				break;
@@ -9259,8 +9224,7 @@ void load_level(char *filename){
 					tempmodel = cached_model;
 				else
 					tempmodel = load_cached_model(GET_ARG(1), filename, 0);
-				if(tempmodel)
-				{
+				if(tempmodel) {
 					next.item = tempmodel->name;
 					next.itemindex = get_cached_model_index(next.item);
 				}
@@ -9280,8 +9244,7 @@ void load_level(char *filename){
 				cached_model = find_model(GET_ARG(1));
 				if(cached_model) tempmodel = cached_model;
 				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
-				if(tempmodel)
-				{
+				if(tempmodel) {
 					next.weapon = tempmodel->name;
 					next.weaponindex = get_cached_model_index(next.weapon);
 				}
