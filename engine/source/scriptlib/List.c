@@ -663,8 +663,7 @@ void* List_GetLast(const List* list)
 		return NULL;
 }
 
-void List_Update(List* list, void* e)
-{
+void List_Update(List* list, void* e) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
@@ -726,8 +725,7 @@ Node* List_Contains(List* list, void* e) {
 /* SIDE EFFECT: Moves list->current to found entity.
 use List_Contains if you dont like that.
 */
-int List_Includes(List* list, void* e)
-{
+int List_Includes(List* list, void* e) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
@@ -773,12 +771,12 @@ Node* List_SearchName(List* list, char* theName) {
 	
 }
 /* SIDE EFFECTS: sets list->current to the first found node */
-int List_FindByName(List* list, char* theName) {
+int List_FindByName(List* list, char* name) {
 	#ifdef DEBUG
 	chklist((List*)list);
 	#endif
 	
-	Node* n = List_SearchName(list, theName);
+	Node* n = List_SearchName(list, name);
 	if (n)  {
 		list->current = n;
 		return 1;
@@ -786,8 +784,7 @@ int List_FindByName(List* list, char* theName) {
 	return 0;
 }
 
-char* List_GetName(const List* list)
-{
+char* List_GetName(const List* list) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
@@ -797,8 +794,7 @@ char* List_GetName(const List* list)
 		return NULL;
 }
 
-void List_Reset(List* list)
-{
+void List_Reset(List* list) {
 #ifdef DEBUG
 	chklist(list);
 #endif
@@ -808,8 +804,7 @@ void List_Reset(List* list)
 	list->current = list->first;
 }
 
-int List_GetSize(const List* list)
-{
+int List_GetSize(const List* list) {
 #ifdef DEBUG	
 	chklist((List*)list);
 #endif
