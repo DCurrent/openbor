@@ -33,7 +33,6 @@ unsigned readmsb32(const unsigned char *src)
 
 void borExit(int reset)
 {
-	tracemalloc_dump();
 	arch_reboot();
 }
 

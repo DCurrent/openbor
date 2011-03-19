@@ -18,7 +18,6 @@
 #include "openbor.h"
 #include "packfile.h"
 #include "graphics.h"
-#include "tracemalloc.h"
 #include "kernel/kernel.h"
 #include "control/control.h"
 
@@ -50,7 +49,6 @@ void borExit(int reset)
 	}
 	else
 	{
-		tracemalloc_dump();
 		sceKernelExitGame();
 	}
 }
