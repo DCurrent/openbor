@@ -9902,6 +9902,8 @@ void drawstatus(){
 
 void update_loading(s_loadingbar* s,  int value, int max) {
 	static unsigned int lasttick = 0;
+	static unsigned int soundtick = 0;
+	static unsigned int keybtick = 0;
 	int pos_x = s->bx + videomodes.hShift;
 	int pos_y = s->by + videomodes.vShift;
 	int size_x = s->bsize;
@@ -9909,11 +9911,15 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 	int text_y = s->ty + videomodes.vShift;
 	unsigned int ticks = timer_gettick();
 	
-	if((ticks - lasttick) % 20 == 0)
+	if(ticks - soundtick > 20) {
 		sound_update_music();
+		soundtick = ticks;
+	}
 
-	if((ticks - lasttick) % 250 == 0)
+	if(ticks - lasttick > 250) {
 		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
+		keybtick = ticks;
+	}
 	
 	if(ticks - lasttick  > s->refreshMs || value < 0) { //negative value forces a repaint. used when only bg is drawn for the first time
 		if(s->set) {
