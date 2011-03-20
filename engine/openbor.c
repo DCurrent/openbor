@@ -7503,18 +7503,12 @@ int load_models()
 
 	// Defer load_cached_model, so you can define models after their nested model.
 	printf("\n");
-	if (!modelLoadCount)
-		modelLoadCount++; // prevent div by zero
-		
-	pos = size / modelLoadCount; // reusing pos variable
-	
-	modelLoadCount = 0;
-	for(i=0; i<models_cached; i++) {
+
+	for(i=0,pos=0; i<models_cached; i++) {
 		//printf("Checking '%s' '%s'\n", model_cache[i].name, model_cache[i].path);
 		if(model_cache[i].loadflag) {
-			modelLoadCount++;
 			load_cached_model(model_cache[i].name, "models.txt", 0);		
-			update_loading(&loadingbg[0], modelLoadCount * pos, size);
+			update_loading(&loadingbg[0], ++pos, modelLoadCount);
 		}	
 	}
 	printf("\nLoading models...............\tDone!\n");
@@ -9921,7 +9915,7 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 		keybtick = ticks;
 	}
 	
-	if(ticks - lasttick  > s->refreshMs || value < 0) { //negative value forces a repaint. used when only bg is drawn for the first time
+	if(ticks - lasttick > s->refreshMs || value < 0 || value == max) { //negative value forces a repaint. used when only bg is drawn for the first time
 		if(s->set) {
 			if (value < 0) value = 0;
 			if(isLoadingScreenTypeBar(s->set)) {				
