@@ -590,13 +590,13 @@ int isLoadingScreenTypeBar(loadingScreenType what) {
 
 char* fill_s_loadingbar(s_loadingbar* s, char set, short bx, short by, short bsize, short tx, short ty, char tf, int ms) {
 	switch (set) {
-		case -1: case 0: 
-			s->set = LSTYPE_NONE; break;
 		case 1: s->set = (LSTYPE_BACKGROUND | LSTYPE_BAR); break;
 		case 2: s->set = LSTYPE_BACKGROUND; break;
 		case 3: s->set = LSTYPE_BAR; break;
+		case 0: s->set = LSTYPE_NONE; break;
 		default:
-			return "invalid loadingbg type!";
+			s->set = LSTYPE_NONE;
+			printf("invalid loadingbg type %d!\n", set);
 	}		
 	s->tf = tf;
 	s->bx = bx;
