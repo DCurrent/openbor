@@ -544,8 +544,8 @@ void List_InsertAfter(List* list, void* e, char* theName) {
 	list->size++;
 }
 
-void List_Remove(List* list)
-{
+//removes the current node and sets current to next, if applicable
+void List_Remove(List* list) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
@@ -683,11 +683,10 @@ void List_Update(List* list, void* e) {
 				break;
 			}
 		}
-	}
-	#else
+	} else
+	#endif
 	if (list->size != 0)
 		list->current->value = e;
-	#endif
 }
 
 /* returns the node that contains e, or NULL, if not found */
