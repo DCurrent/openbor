@@ -8647,7 +8647,7 @@ void load_level(char *filename){
 		switch(cmd) {
 			case CMD_LEVEL_LOADINGBG:
 				load_background(GET_ARG(1), 0);
-				errormessage = fill_s_loadingbar(&bgPosi, GET_INT_ARG(2), GET_INT_ARG(3), GET_INT_ARG(4), GET_INT_ARG(5), GET_INT_ARG(6), GET_INT_ARG(7), GET_INT_ARG(8), GET_INT_ARG(9));
+				errormessage = fill_s_loadingbar(&bgPosi, 1, GET_INT_ARG(2), GET_INT_ARG(3), GET_INT_ARG(4), GET_INT_ARG(5), GET_INT_ARG(6), GET_INT_ARG(7), GET_INT_ARG(8));
 				if (errormessage) goto lCleanup;
 				standard_palette(1);
 				lifebar_colors();
