@@ -8592,7 +8592,7 @@ void load_level(char *filename){
 	    init_colourtable();
 	}
 	
-	update_loading(&loadingbg[0], -1, 1); // initialize the update screen
+	update_loading(&loadingbg[1], -1, 1); // initialize the update screen
 
 	memset(&next, 0, sizeof(s_spawn_entry));
 
