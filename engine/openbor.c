@@ -9911,11 +9911,11 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 	}
 
 	if(ticks - lasttick > 250) {
-		control_update(playercontrolpointers, 1); // respond to exit and/or fullscreen requests from user/OS
+		control_update(playercontrolpointers, 1); // Respond to exit and/or fullscreen requests from user/OS
 		keybtick = ticks;
 	}
 	
-	if(ticks - lasttick > s->refreshMs || value < 0 || value == max) { //negative value forces a repaint. used when only bg is drawn for the first time
+	if(ticks - lasttick > s->refreshMs || value < 0 || value == max) { // Negative value forces a repaint. used when only bg is drawn for the first time
 		if(s->set) {
 			if (value < 0) value = 0;
 			if(isLoadingScreenTypeBar(s->set)) {				
@@ -9932,6 +9932,13 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 			spriteq_draw(vscreen, 0);
 			video_copy_screen(vscreen);
 			spriteq_clear();	
+		}
+		else if(value < 0) { // Original BOR v1.0029 used this method.  Since loadingbg is optional, we should print this one again.
+			clearscreen(vscreen);
+			spriteq_clear();
+			font_printf(120 + videomodes.hShift, 110 + videomodes.vShift, 0, 0, "Loading...");
+			spriteq_draw(vscreen, 0);
+			video_copy_screen(vscreen);
 		}
 		lasttick = ticks;
 	}
