@@ -10520,7 +10520,7 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 		printf("FATAL: tried to set animation with invalid address (no such object)");
 		return;
 	}
-	
+
 	if(aninum<0 || aninum>=max_animations) {
 		printf("FATAL: tried to set animation with invalid index (%s, %i)", ent->name, aninum);
 		return;
@@ -12999,20 +12999,20 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 			newmodel->runupdown = model->runupdown;
 			newmodel->runhold = model->runhold;
 		}
-		if(newmodel->icon     < 0) newmodel->icon       = model->icon;
-		if(newmodel->iconpain < 0) newmodel->iconpain   = model->iconpain;
-		if(newmodel->iconget  < 0) newmodel->iconget    = model->iconget;
-		if(newmodel->icondie  < 0) newmodel->icondie    = model->icondie;
-		if(newmodel->shadow   < 0) newmodel->shadow     = model->shadow;
-		if(newmodel->knife    < 0) newmodel->knife      = model->knife;
-		if(newmodel->pshotno  < 0) newmodel->pshotno    = model->pshotno;
-		if(newmodel->bomb     < 0) newmodel->bomb       = model->bomb;
-		if(newmodel->star     < 0) newmodel->star       = model->star;
-		if(newmodel->flash    < 0) newmodel->flash      = model->flash;
-		if(newmodel->bflash   < 0) newmodel->bflash     = model->bflash;
-		if(newmodel->dust[0]  < 0) newmodel->dust[0]    = model->dust[0];
-		if(newmodel->dust[1]  < 0) newmodel->dust[1]    = model->dust[1];
-		if(newmodel->diesound < 0) newmodel->diesound   = model->diesound;
+		if(newmodel->icon           <   0)  newmodel->icon          = model->icon;
+		if(newmodel->iconpain       <   0)  newmodel->iconpain      = model->iconpain;
+		if(newmodel->iconget        <   0)  newmodel->iconget       = model->iconget;
+		if(newmodel->icondie        <   0)  newmodel->icondie       = model->icondie;
+		if(newmodel->shadow         <   0)  newmodel->shadow        = model->shadow;
+		if(newmodel->knife          <   0)  newmodel->knife         = model->knife;
+		if(newmodel->pshotno        <   0)  newmodel->pshotno       = model->pshotno;
+		if(newmodel->bomb           <   0)  newmodel->bomb          = model->bomb;
+		if(newmodel->star           <   0)  newmodel->star          = model->star;
+		if(newmodel->flash          <   0)  newmodel->flash         = model->flash;
+		if(newmodel->bflash         <   0)  newmodel->bflash        = model->bflash;
+		if(newmodel->dust[0]        <   0)  newmodel->dust[0]       = model->dust[0];
+		if(newmodel->dust[1]        <   0)  newmodel->dust[1]       = model->dust[1];
+		if(newmodel->diesound       <   0)  newmodel->diesound      = model->diesound;
 
 		for(i=0; i<max_animations; i++)
 		{
@@ -13053,6 +13053,7 @@ void set_weapon(entity* ent, int wpnum, int anim_flag) // anim_flag added for sc
 {
 	if(!ent) return;
 //printf("setweapon: %d \n", wpnum);
+
 	if(ent->modeldata.weapon && wpnum > 0 && wpnum <= MAX_WEAPONS && (*ent->modeldata.weapon)[wpnum-1])
 		set_model_ex(ent, NULL, (*ent->modeldata.weapon)[wpnum-1], NULL, !anim_flag);
 	else set_model_ex(ent, NULL, -1, ent->defaultmodel, 1);
