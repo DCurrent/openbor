@@ -10516,10 +10516,20 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 {
 	s_anim *ani = NULL;
 
-	if(ent==NULL) shutdown(1, "FATAL: tried to set animation with invalid address (no such object)");
-	if(aninum<0 || aninum>=max_animations) shutdown(1, "FATAL: tried to set animation with invalid index (%s, %i)", ent->name, aninum);
+	if(!ent) {
+		printf("FATAL: tried to set animation with invalid address (no such object)");
+		return;
+	}
+	
+	if(aninum<0 || aninum>=max_animations) {
+		printf("FATAL: tried to set animation with invalid index (%s, %i)", ent->name, aninum);
+		return;
+	}
 
-	if(!validanim(ent, aninum)) shutdown(1, "FATAL: tried to set animation with invalid address (%s, %i)", ent->name, aninum);
+	if(!validanim(ent, aninum)) {
+		printf("FATAL: tried to set animation with invalid address (%s, %i)", ent->name, aninum);
+		return;
+	}
 
 	ani = ent->modeldata.animation[aninum];
 
