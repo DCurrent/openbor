@@ -763,7 +763,7 @@ typedef enum {
 	horizontalbar = 0,
 	verticalbar = 1,
 } barorient;
- 
+
 typedef enum {
 	valuebar = 0,
 	percentagebar = 1,
@@ -793,12 +793,12 @@ typedef enum {
 } loadingScreenType;
 
 typedef struct {
-	loadingScreenType set;  
+	loadingScreenType set;
 	/*set determines how loading screen would be.
 	- 0 = no loading screen.
 	- 1 = background and status bar.
 	- 2 = background only.
-	- 3 = status bar only.	
+	- 3 = status bar only.
 	*/
 	char tf; //determines used font number for "LOADING" text (last element in command, moved here because of alignment)
 	/*
@@ -836,7 +836,7 @@ typedef struct {
 	Script*         key_script;                     //execute when entity's player presses a key
 	Script*         didblock_script;                //execute when blocking attack.
 	Script*         ondoattack_script;              //execute when attack passes do_attack checks.
-} s_scripts;	
+} s_scripts;
 
 typedef enum  {
 	MF_NONE = 0,
@@ -1064,7 +1064,7 @@ s_modelcache *model_cache;
 
 typedef struct entity
 {
-	char			exists:8;                       // flag to determine if it is a valid entity
+	char			exists:8;                       // flag to determine if it is a valid entity. 2 = Level spawn.
 	char			reactive:8;						// Used for setting the "a" at which weapons are spawned
 	char			ptype:8;
 	char			playerindex:8;
@@ -1312,6 +1312,7 @@ typedef struct
 	float			a;
 	unsigned char	credit:8;
 	short			aggression:16;				// For enemy A.I.
+	char            exists;                     // //Pass 2 to "exists" modeldata so modder can determine if this is a level spawn.
 	char            *weapon;                    // spawn with a weapon, since it should be in the model list, so the model must be loaded, just reference its name
 	s_model         *weaponmodel;
 	s_spawn_script_list_node*          spawn_script_list_head;
@@ -1409,7 +1410,7 @@ typedef struct
 
 typedef struct
 {
-	char*			text;	
+	char*			text;
 	int				t;		//Time to expire.
 	int				x;
 	int				y;
@@ -1487,7 +1488,7 @@ typedef struct
 	u32 quaketime;
 	int quake;
 	int waiting;
-	
+
 }s_level;
 
 

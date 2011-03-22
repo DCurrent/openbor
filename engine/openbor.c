@@ -597,7 +597,7 @@ char* fill_s_loadingbar(s_loadingbar* s, char set, short bx, short by, short bsi
 		default:
 			s->set = LSTYPE_NONE;
 			printf("invalid loadingbg type %d!\n", set);
-	}		
+	}
 	s->tf = tf;
 	s->bx = bx;
 	s->by = by;
@@ -1152,33 +1152,33 @@ void clear_scripts()
 void alloc_all_scripts(s_scripts* s) {
 	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
 	size_t i;
-	
+
 	for (i = 0; i < scripts_membercount; i++) {
 		(((Script**) s)[i]) = alloc_script();
-	}	
+	}
 }
 
 void clear_all_scripts(s_scripts* s, int method) {
 	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
 	size_t i;
 	Script** ps = (Script**) s;
-	
+
 	for (i = 0; i < scripts_membercount; i++) {
 		Script_Clear(ps[i],   method);
-	}	
-}	
+	}
+}
 
 void free_all_scripts(s_scripts* s) {
 	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
 	size_t i;
 	Script** ps = (Script**) s;
-	
+
 	for (i = 0; i < scripts_membercount; i++) {
 		if (ps[i]) {
 			free(ps[i]);
-			ps[i] = NULL;			
+			ps[i] = NULL;
 		}
-	}	
+	}
 }
 
 void copy_all_scripts(s_scripts* src, s_scripts* dest, int method) {
@@ -1186,8 +1186,8 @@ void copy_all_scripts(s_scripts* src, s_scripts* dest, int method) {
 	size_t i;
 	Script** ps = (Script**) src;
 	Script** pd = (Script**) dest;
-	
-	for (i = 0; i < scripts_membercount; i++) {	
+
+	for (i = 0; i < scripts_membercount; i++) {
 			Script_Copy(pd[i], ps[i], method);
 	}
 }
@@ -2276,7 +2276,7 @@ int music(char *filename, int loop, long offset)
 	char a[64];
 	int res = 1;
 	if(!savedata.usemusic) return 0;
-	if(!sound_open_music(filename, packfile, savedata.musicvol, loop, offset)) {		
+	if(!sound_open_music(filename, packfile, savedata.musicvol, loop, offset)) {
 		printf("\nCan't play music file '%s'\n", filename);
 		res = 0;
 	}
@@ -3705,7 +3705,7 @@ int free_model(s_model* model, int mapid)
 	if(hasFreetype(model, MF_ANIMLIST))
 		for(i=0; i<max_animations; i++)
 			anim_list = anim_list_delete(anim_list, model->index);
-	
+
 	if(hasFreetype(model, MF_COLOURMAP))
 		for(i=0; i<MAX_COLOUR_MAPS; i++)
 		{
@@ -3716,7 +3716,7 @@ int free_model(s_model* model, int mapid)
 			}
 		}
 
-	if(hasFreetype(model, MF_PALETTE) && model->palette)                     
+	if(hasFreetype(model, MF_PALETTE) && model->palette)
 		{free(model->palette);                model->palette                = NULL;}
 	if(hasFreetype(model, MF_WEAPONS) && model->weapon && model->ownweapons)
 		{free(model->weapon);                 model->weapon                 = NULL;}
@@ -3732,12 +3732,12 @@ int free_model(s_model* model, int mapid)
 	if(hasFreetype(model, MF_OFF_FACTORS) && model->offense_factors)             {free(model->offense_factors);        model->offense_factors        = NULL;}
 	if(hasFreetype(model, MF_SPECIAL) && model->special)                     {free(model->special);                model->special                = NULL;}
 	if(hasFreetype(model, MF_SMARTBOMB) && model->smartbomb)                   {free(model->smartbomb);              model->smartbomb              = NULL;}
-	
+
 	if(hasFreetype(model, MF_SCRIPTS)) {
 		clear_all_scripts(&model->scripts,2);
 		free_all_scripts(&model->scripts);
-	}	
-	
+	}
+
 	free(model);
 	model = NULL;
 	if(models_loaded == 0 && model_map != NULL)
@@ -4260,19 +4260,19 @@ void lcmHandleCommandSmartbomb(ArgList* arglist, s_model* newchar, char* filenam
 		newchar->smartbomb = malloc(sizeof(s_attack));
 		*(newchar->smartbomb) = emptyattack;
 	} else shutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
-	
+
 	newchar->smartbomb->attack_force = atoi(GET_ARGP(1));			// Special force
 	newchar->smartbomb->attack_type = atoi(GET_ARGP(2));			// Special attack type
 	newchar->smartbomb->attack_drop = 1; //by default
 	newchar->smartbomb->dropv[0] = 3;
-	
+
 	if(newchar->smartbomb->attack_type==ATK_BLAST) {
 		newchar->smartbomb->blast = 1;
 		newchar->smartbomb->dropv[1] = 2.5;
 	} else {
 		newchar->smartbomb->dropv[1] = (float)1.2;
 	}
-	
+
 	if(newchar->smartbomb->attack_type==ATK_FREEZE) {
 		newchar->smartbomb->freeze = 1;
 		newchar->smartbomb->forcemap = -1;
@@ -4280,7 +4280,7 @@ void lcmHandleCommandSmartbomb(ArgList* arglist, s_model* newchar, char* filenam
 	} else if(newchar->smartbomb->attack_type==ATK_STEAL) {
 		newchar->smartbomb->steal = 1;
 	}
-	
+
 	if(newchar->type == TYPE_ITEM) {
 		newchar->dofreeze = 0;								// Items don't animate
 		newchar->smartbomb->freezetime = atoi(GET_ARGP(3)) * GAME_SPEED;
@@ -4465,7 +4465,7 @@ s_model* init_model(int cacheindex, int unload) {
 	int i;
 
 	s_model* newchar = calloc(1, sizeof(s_model));
-	if(!newchar) shutdown(1, (char*)E_OUT_OF_MEMORY);	
+	if(!newchar) shutdown(1, (char*)E_OUT_OF_MEMORY);
 	newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
 	newchar->index = cacheindex;
 	newchar->isSubclassed = 0;
@@ -4484,7 +4484,7 @@ s_model* init_model(int cacheindex, int unload) {
 	if(!newchar->special) shutdown(1, (char*)E_OUT_OF_MEMORY);
 
 	alloc_all_scripts(&newchar->scripts);
-	
+
 	newchar->unload             = unload;
 	newchar->jumpspeed          = -1;
 	newchar->jumpheight         = 4;		        // 28-12-2004   Set default jump height to 4, if not specified
@@ -4639,7 +4639,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	size_t size = 0,
 		line = 0,
 		len = 0;
-		
+
 	ptrdiff_t pos = 0,
 		index = 0;
 
@@ -4700,7 +4700,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	modelCommands cmd;
 	s_scripts tempscripts;
-	
+
 #ifdef DEBUG
 	printf("load_cached_model: %s, unload: %d\n", name, unload);
 #endif
@@ -4750,7 +4750,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 			cmd = getModelCommand(modelcmdlist, command);
 
 			switch(cmd) {
-				case CMD_MODEL_SUBCLASS: 
+				case CMD_MODEL_SUBCLASS:
 					//inherit everything from an existing, cached model
 					tempmodel = find_model(GET_ARG(1));
 					if (!tempmodel) {
@@ -5255,10 +5255,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_ICON:
 					value = GET_ARG(1);
-					if(newchar->icon > -1) {						
+					if(newchar->icon > -1) {
 						shutdownmessage = "model has multiple icons defined";
 						goto lCleanup;
-					}	
+					}
 					newchar->icon = loadsprite(value,0,0,pixelformat); //use same palette as the owner
 					newchar->iconpain = newchar->icon;
 					newchar->icondie = newchar->icon;
@@ -5507,7 +5507,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						if(loadimagepalette(value, packfile, newchar->palette)==0) {
 							shutdownmessage = "Failed to load palette!";
 							goto lCleanup;
-						}	
+						}
 					}
 					break;
 				case CMD_MODEL_ALTERNATEPAL:
@@ -5516,7 +5516,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					else if(newchar->maps_loaded<MAX_COLOUR_MAPS) {
 						value = GET_ARG(1);
 						newchar->colourmap[(int)newchar->maps_loaded] = malloc(PAL_BYTES);
-						if(loadimagepalette(value, packfile, newchar->colourmap[(int)newchar->maps_loaded])==0) {							
+						if(loadimagepalette(value, packfile, newchar->colourmap[(int)newchar->maps_loaded])==0) {
 							shutdownmessage = "Failed to load palette!";
 							goto lCleanup;
 						}
@@ -5597,7 +5597,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(!load_script(newchar->scripts.animation_script, GET_ARG(1))) {
 						shutdownmessage = "Unable to load animation script!";
 						goto lCleanup;
-					}	
+					}
 					//dont compile, until at end of this function
 					break;
 				case CMD_MODEL_KEYSCRIPT:
@@ -5610,7 +5610,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						framecount = 0;
 						// Create new animation
 						newanim = alloc_anim();
-						if(!newanim){							
+						if(!newanim){
 							shutdownmessage = "Not enough memory for animations!";
 							goto lCleanup;
 						}
@@ -6277,7 +6277,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(!newanim) {
 						shutdownmessage = "Can't set loop: no animation specified!";
 						goto lCleanup;
-					}	
+					}
 					newanim->loop[0] = GET_INT_ARG(1); //0 = Off, 1 = on.
 					newanim->loop[1] = GET_INT_ARG(2); //Loop to frame.
 					newanim->loop[2] = GET_INT_ARG(3); //Loop end frame.
@@ -6553,7 +6553,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_ATTACK8: case CMD_MODEL_ATTACK9: case CMD_MODEL_ATTACK10:
 				case CMD_MODEL_ATTACK11: case CMD_MODEL_ATTACK12: case CMD_MODEL_ATTACK13:
 				case CMD_MODEL_ATTACK14: case CMD_MODEL_ATTACK15: case CMD_MODEL_ATTACK16:
-				case CMD_MODEL_ATTACK17: case CMD_MODEL_ATTACK18: case CMD_MODEL_ATTACK19: case CMD_MODEL_ATTACK20: 
+				case CMD_MODEL_ATTACK17: case CMD_MODEL_ATTACK18: case CMD_MODEL_ATTACK19: case CMD_MODEL_ATTACK20:
 				case CMD_MODEL_SHOCK: case CMD_MODEL_BURN: case CMD_MODEL_STEAL: case CMD_MODEL_FREEZE: case CMD_MODEL_ITEMBOX:
 					abox[0] = GET_INT_ARG(1);
 					abox[1] = GET_INT_ARG(2);
@@ -6570,61 +6570,61 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					attack.no_flash = GET_INT_ARG(8);
 					attack.pause_add = GET_INT_ARG(9);
 					attack.attack_coords[4] = GET_INT_ARG(10); // depth or z
-					
+
 					switch(cmd) {
 						case CMD_MODEL_ATTACK: case CMD_MODEL_ATTACK1:
 							attack.attack_type = ATK_NORMAL;
 							break;
-						case CMD_MODEL_ATTACK2:	
+						case CMD_MODEL_ATTACK2:
 							attack.attack_type  = ATK_NORMAL2;
 							break;
-						case CMD_MODEL_ATTACK3:	
+						case CMD_MODEL_ATTACK3:
 							attack.attack_type  = ATK_NORMAL3;
 							break;
-						case CMD_MODEL_ATTACK4:	
+						case CMD_MODEL_ATTACK4:
 							attack.attack_type  = ATK_NORMAL4;
-							break;	
-						case CMD_MODEL_ATTACK5:	
+							break;
+						case CMD_MODEL_ATTACK5:
 							attack.attack_type  = ATK_NORMAL5;
 							break;
-						case CMD_MODEL_ATTACK6:	
+						case CMD_MODEL_ATTACK6:
 							attack.attack_type  = ATK_NORMAL6;
 							break;
-						case CMD_MODEL_ATTACK7:	
+						case CMD_MODEL_ATTACK7:
 							attack.attack_type  = ATK_NORMAL7;
 							break;
-						case CMD_MODEL_ATTACK8:	
+						case CMD_MODEL_ATTACK8:
 							attack.attack_type  = ATK_NORMAL8;
 							break;
-						case CMD_MODEL_ATTACK9:	
+						case CMD_MODEL_ATTACK9:
 							attack.attack_type  = ATK_NORMAL9;
 							break;
 						case CMD_MODEL_ATTACK10:
 							attack.attack_type  = ATK_NORMAL10;
 							break;
-						case CMD_MODEL_SHOCK:	
+						case CMD_MODEL_SHOCK:
 							attack.attack_type  = ATK_SHOCK;
 							break;
-						case CMD_MODEL_BURN:	
+						case CMD_MODEL_BURN:
 							attack.attack_type  = ATK_BURN;
 							break;
 						case CMD_MODEL_STEAL:
 							attack.steal = 1;
 							attack.attack_type  = ATK_STEAL;
 							break;
-						case CMD_MODEL_FREEZE:	
+						case CMD_MODEL_FREEZE:
 							attack.attack_type  = ATK_FREEZE;
 							attack.freeze = 1;
 							attack.freezetime = GET_INT_ARG(6) * GAME_SPEED;
 							attack.forcemap = -1;
 							attack.attack_drop = 0;
 							break;
-						case CMD_MODEL_ITEMBOX:	
+						case CMD_MODEL_ITEMBOX:
 							attack.attack_type  = ATK_ITEM;
 							break;
 						default:
 							tempInt = atoi(command+6);
-							if(tempInt<MAX_ATKS-STA_ATKS+1) 
+							if(tempInt<MAX_ATKS-STA_ATKS+1)
 								tempInt = MAX_ATKS-STA_ATKS+1;
 							attack.attack_type = tempInt+STA_ATKS-1;
 					}
@@ -6742,10 +6742,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					frameshadow = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_RANGE:
-					if(!newanim) {	
+					if(!newanim) {
 						shutdownmessage = "Cannot set range: no animation!";
 						goto lCleanup;
-					}	
+					}
 					newanim->range[0] = GET_INT_ARG(1);
 					newanim->range[1] = GET_INT_ARG(2);
 					break;
@@ -6753,7 +6753,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(!newanim) {
 						shutdownmessage = "Cannot set rangez: no animation!";
 						goto lCleanup;
-					}	
+					}
 					newanim->range[2] = GET_INT_ARG(1);
 					newanim->range[3] = GET_INT_ARG(2);
 					break;
@@ -6769,7 +6769,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(!newanim) {
 						shutdownmessage = "Cannot set rangeb: no animation!";
 						goto lCleanup;
-					}	
+					}
 					newanim->range[6] = GET_INT_ARG(1);
 					newanim->range[7] = GET_INT_ARG(2);
 					break;
@@ -6778,7 +6778,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						if(!newanim) {
 							shutdownmessage = "Cannot add frame: animation not specified!";
 							goto lCleanup;
-						}	
+						}
 						peek = 0;
 						if(frameset && framecount>=0) framecount = -framecount;
 						while(!frameset){
@@ -6802,7 +6802,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 								if(loadimagepalette(value, packfile, newchar->palette)==0) {
 									shutdownmessage = "Failed to load palette!";
 									goto lCleanup;
-								}	
+								}
 							}
 							if(index>=0)
 							{
@@ -6870,11 +6870,11 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(!newanim){
 						shutdownmessage = "Cannot add alpha mask: animation not specified!";
 						goto lCleanup;
-					}	
+					}
 					if(maskindex>=0) {
 						shutdownmessage = "Cannot add alpha mask: a mask has already been specified for this frame!";
 						goto lCleanup;
-					}	
+					}
 					value = GET_ARG(1);
 					//printf("frame count: %d\n",framecount);
 					//printf("Load sprite '%s'...\n", value);
@@ -6945,7 +6945,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(ani_id < 0)  {
 						shutdownmessage = "command '@script' must follow an animation!";
 						goto lCleanup;
-					}	
+					}
 					if(!scriptbuf[0]){ // if empty, paste the main function text here
 						strcat(scriptbuf, pre_text);
 					}
@@ -6975,7 +6975,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(ani_id < 0) {
 						shutdownmessage = "command '@cmd' must follow an animation!";
 						goto lCleanup;
-					}	
+					}
 					if(!scriptbuf[0]){ // if empty, paste the main function text here
 						strcat(scriptbuf, pre_text);
 					}
@@ -7159,10 +7159,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		free(scriptbuf);
 		scriptbuf = NULL;
 	}
-	
+
 	if(!shutdownmessage)
 		return newchar;
-	
+
 	shutdown(1, "Fatal Error in load_cached_model, file: %s, line %d, message: %s\n", filename, line, shutdownmessage);
 	return NULL;
 }
@@ -7271,7 +7271,7 @@ int load_models()
 		lifebar_colors();
 		init_colourtable();
 	}
-	
+
 	update_loading(&loadingbg[0], -1, 1); // initialize the update screen
 
 	// reload default values
@@ -7324,7 +7324,7 @@ int load_models()
 				max_idles = GET_INT_ARG(1);
 				if(max_idles < MAX_IDLES) max_idles = MAX_IDLES;
 				break;
-			case CMD_MODELSTXT_MAXWALKS:	
+			case CMD_MODELSTXT_MAXWALKS:
 				max_walks = GET_INT_ARG(1);
 				if(max_walks < MAX_WALKS) max_walks = MAX_WALKS;
 				break;
@@ -7358,7 +7358,7 @@ int load_models()
 				max_freespecials = GET_INT_ARG(1);
 				if(max_freespecials<MAX_SPECIALS) max_freespecials = MAX_SPECIALS;
 				break;
-			case CMD_MODELSTXT_MAXATTACKS:	
+			case CMD_MODELSTXT_MAXATTACKS:
 				max_attacks = GET_INT_ARG(1);
 				if(max_attacks<MAX_ATTACKS) max_attacks = MAX_ATTACKS;
 				break;
@@ -7382,7 +7382,7 @@ int load_models()
 				spdirection[3] =  GET_INT_ARG(4);
 				break;
 			case CMD_MODELSTXT_AUTOLAND:
-				// New flag to determine if a player auto lands when thrown by another player (2 completely disables the ability to land)				
+				// New flag to determine if a player auto lands when thrown by another player (2 completely disables the ability to land)
 				autoland = GET_INT_ARG(1);
 				break;
 			case CMD_MODELSTXT_NOLOST:
@@ -7440,7 +7440,7 @@ int load_models()
 			default:
 				printf("command %s not understood in %s, line %d\n", command, filename, line);
 		}
-		
+
 		// Go to next line
 		pos += getNewLineStart(buf + pos);
 	}
@@ -7507,16 +7507,16 @@ int load_models()
 	for(i=0,pos=0; i<models_cached; i++) {
 		//printf("Checking '%s' '%s'\n", model_cache[i].name, model_cache[i].path);
 		if(model_cache[i].loadflag) {
-			load_cached_model(model_cache[i].name, "models.txt", 0);		
+			load_cached_model(model_cache[i].name, "models.txt", 0);
 			update_loading(&loadingbg[0], ++pos, modelLoadCount);
-		}	
+		}
 	}
 	printf("\nLoading models...............\tDone!\n");
-	
-	
+
+
 	if(buf)
 		free(buf);
-	
+
 	return 1;
 }
 
@@ -7675,7 +7675,7 @@ static void _readbarstatus(char* buf, s_barstatus* pstatus)
 void load_levelorder()
 {
 	static const char* defaulterr = "Error in level order: a set must be specified.";
-#define CHKDEF if(current_set<0) { errormessage = (char*) defaulterr; goto lCleanup; }	
+#define CHKDEF if(current_set<0) { errormessage = (char*) defaulterr; goto lCleanup; }
 	char filename[128] = "";
 	int i=0,j=0;
 	char *buf;
@@ -7718,7 +7718,7 @@ void load_levelorder()
 
 	// Now interpret the contents of buf line by line
 	pos = 0;
-	current_set = -1;	
+	current_set = -1;
 
 	// Custom lifebar/timebox/icon positioning and size
 	picon[0][0] = piconw[0][0] = picon[2][0] = piconw[2][0] = eicon[0][0] = eicon[2][0] = 2;
@@ -8221,8 +8221,8 @@ void load_levelorder()
 		// Go to next line
 		pos+=getNewLineStart(buf + pos);
 	}
-	
-#undef CHKDEF	
+
+#undef CHKDEF
 
 	// Variables without defaults will be auto populated.
 	if(olbarstatus.sizex==0) {olbarstatus = lbarstatus;}
@@ -8281,15 +8281,15 @@ void load_levelorder()
 
 	for(i=0; i<4; i++) if(pshoot[i][2] == -1) pshoot[i][2] = 2;
 	if(timeloc[5] == -1) timeloc[5] = 3;
-	
+
 	if(current_set<0)
 		errormessage = "No levels were loaded!";
-	
+
 	lCleanup:
-	
+
 	if(buf)
 		free(buf);
-	
+
 	if(errormessage)
 		shutdown(1, "load_levelorder ERROR in %s at %d, msg: %s\n", filename, line, errormessage);
 }
@@ -8403,14 +8403,14 @@ void unload_level(){
 	freescreen(&bgbuffer);
 
 	if(level){
-		
+
 		level->pos = 0;
 		level->advancetime = 0;
 		level->quake = 0;
 		level->quaketime = 0;
 		level->waiting = 0;
 
-		
+
 		strcpy(name, level->name);
 		printf("Level Unloading: '%s'\n", name);
 		getRamStatus(BYTES);
@@ -8429,10 +8429,10 @@ void unload_level(){
 		if(crlf) printf("\n");
 		printf("Level Unloaded:  '%s'\n", name);
 		getRamStatus(BYTES);
-		
-		
+
+
 	}
-	
+
 	advancex = 0;
 	advancey = 0;
 	nojoin = 0;
@@ -8461,13 +8461,13 @@ char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
 	char* result = NULL;
 	char* value;
 	size_t len;
-	
+
 	s_spawn_script_cache_node* tempnode;
 	s_spawn_script_cache_node* tempnode2;
 	s_spawn_script_list_node* templistnode;
-	
+
 	value = GET_ARGP(1);
-	
+
 	tempnode = level->spawn_script_cache_head;
 	if(!next->spawn_script_list_head) next->spawn_script_list_head = NULL;
 	templistnode = next->spawn_script_list_head;
@@ -8500,16 +8500,16 @@ char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
 	if(!templistnode->spawn_script) {
 		templistnode->spawn_script = alloc_script();
 		if(!Script_IsInitialized(templistnode->spawn_script))
-			Script_Init(templistnode->spawn_script, GET_ARGP(0), 0);		
+			Script_Init(templistnode->spawn_script, GET_ARGP(0), 0);
 		else {
 			result = "Multiple spawn entry script!";
 			goto lCleanup;
-		}	
-		
+		}
+
 		if(load_script(templistnode->spawn_script, value)) {
 			Script_Compile(templistnode->spawn_script);
 			len = strlen(value);
-			
+
 			if(tempnode) {
 				tempnode2 = malloc(sizeof(s_spawn_script_cache_node));
 				tempnode2->cached_spawn_script = templistnode->spawn_script;
@@ -8586,12 +8586,12 @@ void load_level(char *filename){
 		spriteq_clear();
 		standard_palette(1);
 	}
-	
+
 	if(isLoadingScreenTypeBar(loadingbg[1].set)) {
 	    lifebar_colors();
 	    init_colourtable();
 	}
-	
+
 	update_loading(&loadingbg[1], -1, 1); // initialize the update screen
 
 	memset(&next, 0, sizeof(s_spawn_entry));
@@ -8603,7 +8603,7 @@ void load_level(char *filename){
 	}
 	len = strlen(filename);
 	level->name = malloc(len + 1);
-	
+
 	if(!level->name) {
 		errormessage = "load_level() #1 FATAL: Out of memory!";
 		goto lCleanup;
@@ -8929,7 +8929,7 @@ void load_level(char *filename){
 				if(panels_loaded<1) {
 					errormessage = "You must load the panels before entering the level layout!";
 					goto lCleanup;
-				}	
+				}
 
 				value = GET_ARG(1);
 				i = 0;
@@ -9022,7 +9022,7 @@ void load_level(char *filename){
 						tempscript = &(level->updated_script);
 						scriptname = "levelupdatedscript";
 						break;
-					case CMD_LEVEL_KEYSCRIPT:	
+					case CMD_LEVEL_KEYSCRIPT:
 						tempscript = &(level->key_script);
 						scriptname = "levelkeyscript";
 						break;
@@ -9030,13 +9030,13 @@ void load_level(char *filename){
 						tempscript = &(level->level_script);
 						scriptname = command;
 						break;
-					case CMD_LEVEL_ENDLEVELSCRIPT:	
+					case CMD_LEVEL_ENDLEVELSCRIPT:
 						tempscript = &(level->endlevel_script);
 						scriptname = command;
 						break;
 					default:
 						assert(0);
-					
+
 				}
 				value = GET_ARG(1);
 				if(!Script_IsInitialized(tempscript))
@@ -9044,13 +9044,13 @@ void load_level(char *filename){
 				else {
 					errormessage = "Multiple level script!";
 					goto lCleanup;
-				}	
+				}
 				if(load_script(tempscript, value))
 					Script_Compile(tempscript);
 				else {
 					errormessage = "Failed loading script!";
 					goto lCleanup;
-				}	
+				}
 				break;
 			case CMD_LEVEL_BLOCKED:
 				level->exit_blocked = GET_INT_ARG(1);
@@ -9128,6 +9128,7 @@ void load_level(char *filename){
 				{
 					next.name = tempmodel->name;
 					next.index = get_cached_model_index(next.name);
+					next.exists = 2;    //2011_03_21, DC - Pass 2 to exists property to confirm this is a level spawn.
 					crlf = 1;
 				}
 				break;
@@ -9268,7 +9269,7 @@ void load_level(char *filename){
 					errormessage = "too many spawn entries (see LEVEL_MAX_SPAWNS)";
 					goto lCleanup;
 				}
-				
+
 				memcpy(&level->spawnpoints[level->numspawns], &next, sizeof(s_spawn_entry));
 				level->numspawns++;
 
@@ -9286,14 +9287,14 @@ void load_level(char *filename){
 		if(isLoadingScreenTypeBar(bgPosi.set) || isLoadingScreenTypeBg(bgPosi.set))
 			update_loading(&bgPosi, pos, size);
 			//update_loading(bgPosi[0]+videomodes.hShift, bgPosi[1]+videomodes.vShift, bgPosi[2], bgPosi[3]+videomodes.hShift, bgPosi[4]+videomodes.vShift, pos, size, bgPosi[5]);
-		else 
+		else
 			update_loading(&loadingbg[1], pos, size);
 	}
 
 	if(level->numpanels < 1) {
 		errormessage = "Level error: level has no panels";
 		goto lCleanup;
-	}	
+	}
 
 	if(bgPath[0])
 	{
@@ -9334,12 +9335,12 @@ void load_level(char *filename){
 	printf("Level Loaded:    '%s'\n", level->name);
 	totalram = getSystemRam(BYTES); freeram = getFreeRam(BYTES); usedram = getUsedRam(BYTES);
 	printf("Total Ram: %"PRIu64" Bytes\n Free Ram: %"PRIu64" Bytes\n Used Ram: %"PRIu64" Bytes\n\n", totalram, freeram, usedram);
-	
+
 	lCleanup:
-	
+
 	if(buf != NULL)
 		free(buf);
-	
+
 	if(errormessage)
 		shutdown(1, "ERROR: load_level, file %s, line %d, message: %s", filename, line, errormessage);
 }
@@ -9904,7 +9905,7 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 	int text_x = s->tx + videomodes.hShift;
 	int text_y = s->ty + videomodes.vShift;
 	unsigned int ticks = timer_gettick();
-	
+
 	if(ticks - soundtick > 20) {
 		sound_update_music();
 		soundtick = ticks;
@@ -9914,24 +9915,24 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 		control_update(playercontrolpointers, 1); // Respond to exit and/or fullscreen requests from user/OS
 		keybtick = ticks;
 	}
-	
+
 	if(ticks - lasttick > s->refreshMs || value < 0 || value == max) { // Negative value forces a repaint. used when only bg is drawn for the first time
 		if(s->set) {
 			if (value < 0) value = 0;
-			if(isLoadingScreenTypeBar(s->set)) {				
+			if(isLoadingScreenTypeBar(s->set)) {
 				loadingbarstatus.sizex = size_x;
 				bar(pos_x, pos_y, value, max, &loadingbarstatus);
-			}			
+			}
 			font_printf(text_x, text_y, s->tf, 0, "Loading...");
-			if(isLoadingScreenTypeBg(s->set)) {				
-				if(background) 
+			if(isLoadingScreenTypeBg(s->set)) {
+				if(background)
 					putscreen(vscreen, background, 0, 0, NULL);
 				else
 					clearscreen(vscreen);
 			}
 			spriteq_draw(vscreen, 0);
 			video_copy_screen(vscreen);
-			spriteq_clear();	
+			spriteq_clear();
 		}
 		else if(value < 0) { // Original BOR v1.0029 used this method.  Since loadingbg is optional, we should print this one again.
 			clearscreen(vscreen);
@@ -9994,7 +9995,7 @@ void free_ent(entity* e)
 	if(!e) return;
 	clear_all_scripts(&e->scripts,2);
 	free_all_scripts(&e->scripts);
-	
+
 	if(e->defense_factors){         free(e->defense_factors);          e->defense_factors          = NULL; }
 	if(e->defense_pain){            free(e->defense_pain);             e->defense_pain             = NULL; }
 	if(e->defense_knockdown){       free(e->defense_knockdown);        e->defense_knockdown        = NULL; }
@@ -10340,14 +10341,14 @@ void update_frame(entity* ent, int f)
 	float move, movez, movea;
 	int iDelay, iED_Mode, iED_Capmin, iED_CapMax, iED_RangeMin, iED_RangeMax;
 	float fED_Factor;
-	
+
 	if(f >= ent->animation->numframes) // prevent a crash with invalid frame index.
 		return;
-	
+
 	//important!
 	tempself = self;
 	self = ent;
-	
+
 	self->animpos = f;
 	//self->currentsprite = self->animation->sprite[f];
 
@@ -10423,7 +10424,7 @@ void update_frame(entity* ent, int f)
 		if(level) {
 			if(self->animation->quakeframe[3]%2 || self->animation->quakeframe[2] > 0) level->quake = self->animation->quakeframe[2];
 			else level->quake = self->animation->quakeframe[2] * -1;
-		}	
+		}
 		if((self->animation->quakeframe[1]-self->animation->quakeframe[3]) > 1) self->animation->quakeframe[3]++;
 		else self->animation->quakeframe[3] = 0;
 	}
@@ -10692,7 +10693,7 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			memset(ofs,     0, sizeof(float)*max_attack_types);
 			// clear up
 			clear_all_scripts(&e->scripts, 1);
-			
+
 			pas = e->scripts.animation_script;
 			pus = e->scripts.update_script;
 			pts = e->scripts.think_script;
@@ -10746,9 +10747,9 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			e->scripts.onspawn_script       = osp;
 			e->scripts.key_script           = pks;
 			// copy from model a fresh script
-			
+
 			copy_all_scripts(&model->scripts, &e->scripts, 1);
-			
+
 			if(ent_count>ent_max) ent_max=ent_count;
 			e->timestamp = time; // log time so update function will ignore it if it is new
 
@@ -13032,7 +13033,7 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 
 
 	ent->modeldata.type = type;
-	
+
 	copy_all_scripts(&newmodel->scripts, &ent->scripts, 0);
 
 	ent_set_colourmap(ent, ent->map);
@@ -13126,7 +13127,7 @@ entity * normal_find_item(){
 	//find the 'nearest' one
 	for(i=0; i<ent_max; i++){
 		ce = ent_list[i];
-		if( ce->exists && isItem(ce) && 
+		if( ce->exists && isItem(ce) &&
 		diff(ce->x,self->x) + diff(ce->z,self->z)< 300 &&
 		ce->animation->vulnerable[ce->animpos] &&
 		(validanim(self,ANI_GET) || (isSubtypeTouch(ce) && canBeDamaged(ce, self))) &&
@@ -18639,6 +18640,8 @@ entity * smartspawn(s_spawn_entry * props){   // 7-1-2005 Entire section replace
 	if(props->itemhealth) e->itemhealth = props->itemhealth;
 	e->itemplayer_count = props->itemplayer_count;
 
+    if(props->exists) e->exists = 2;    //2011_03_21, DC; Pass 2 to exists property to confirm this is a level spawn.
+
 	if(props->health[playercount-1] != 0){
 		e->health = e->modeldata.health = props->health[playercount-1];
 	}
@@ -20112,7 +20115,7 @@ void shutdown(int status, char *msg, ...)
 		freeCommandList(levelcmdlist);
 	if(levelordercmdlist)
 		freeCommandList(levelordercmdlist);
-	
+
 	freefilenamecache();
 
 
@@ -20834,7 +20837,7 @@ int selectplayer(int *players, char* filename)
 				load_background(string, 1);
 			}
 			else load_cached_background("data/bgs/select", 1);
-		}		
+		}
 		if(!music("data/music/menu", 1, 0))
 			music("data/music/remix",1,0);
 		if(!noshare) credits = CONTINUES;
