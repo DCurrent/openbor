@@ -4516,6 +4516,7 @@ enum changeentityproperty_enum {
 	_cep_parent,
 	_cep_position,
 	_cep_projectile,
+	_cep_projectilehit,
 	_cep_running,
 	_cep_rush_count,
 	_cep_rush_tally,
@@ -4625,7 +4626,7 @@ enum cep_aiflag_enum {
 void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
-	int prop, i;
+	int prop;
 
 	static const char* proplist[] = {
 		"aggression",
@@ -4701,6 +4702,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"parent",
 		"position",
 		"projectile",
+		"projectilehit",
 		"running",
 		"rush_count",
 		"rush_tally",
@@ -4771,15 +4773,6 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"trap_think",
 	};
 
-	static const char* proplist_hostile_candamage[] = {
-		"ground",
-		"type_enemy",
-		"type_npc",
-		"type_obstacle",
-		"type_player",
-		"type_shot",
-	};
-
 	static const char* proplist_aiflag[] = {
 		"animating",
 		"attacking",
@@ -4820,17 +4813,6 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 	{
 		MAPSTRINGS(varlist[2], proplist_think, _cep_th_the_end,
 			"Set '%s' is not supported by 'think'.\n");
-	}
-
-	// entity type(s) for hostile and candamage
-	if((varlist[1]->vt == VT_INTEGER) &&
-		((varlist[1]->lVal == _cep_hostile) || (varlist[1]->lVal == _cep_candamage)))
-	{
-		for(i=2; i<paramCount; i++)
-		{
-			MAPSTRINGS(varlist[i], proplist_hostile_candamage, _cep_hcd_the_end,
-				"Entity type '%s' is not supported by 'hostile' or 'candamage'\n");
-		}
 	}
 
 	// AI flag name for aiflag
@@ -4882,14 +4864,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		npc_warp,
 		player_blink,
 		suicide,
-	};
-	static const int entitytypes[] = {
-		0, // "ground"; not a real entity type
-		TYPE_ENEMY,
-		TYPE_NPC,
-		TYPE_OBSTACLE,
-		TYPE_PLAYER,
-		TYPE_SHOT,
 	};
 
 	if(paramCount < 3)
@@ -4994,11 +4968,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 				if(ltemp==_cep_hcd_ground) // "ground" - not needed?
 					ent->modeldata.ground = 1;
 				else
-					ent->modeldata.candamage |= entitytypes[(int)ltemp];
+					ent->modeldata.candamage |= (int)ltemp;
 			}
 			else
 			{
-				printf("You must give a string for entity type.\n");
+				printf("You must pass one or more integer constants for entity type.\n");
 				goto changeentityproperty_error;
 			}
 		}
@@ -5006,6 +4980,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
 	case _cep_hostile:
 	{
+
 		ent->modeldata.hostile = 0;
 
 		for(i=2; i<paramCount; i++)
@@ -5013,14 +4988,36 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			if(varlist[i]->vt == VT_INTEGER) // known entity type
 			{
 				ltemp = varlist[i]->lVal;
-				ent->modeldata.hostile |= entitytypes[(int)ltemp];
+				ent->modeldata.hostile |= (int)ltemp;
 			}
 			else
 			{
-				printf("You must give a string for entity type.\n");
+				printf("You must pass one or more integer constants for entity type.\n");
 				goto changeentityproperty_error;
 			}
 		}
+
+		break;
+	}
+	case _cep_projectilehit:
+	{
+
+		ent->modeldata.projectilehit = 0;
+
+		for(i=2; i<paramCount; i++)
+		{
+			if(varlist[i]->vt == VT_INTEGER) // known entity type
+			{
+				ltemp = varlist[i]->lVal;
+				ent->modeldata.projectilehit |= (int)ltemp;
+			}
+			else
+			{
+				printf("You must pass one or more integer constants for entity type.\n");
+				goto changeentityproperty_error;
+			}
+		}
+
 		break;
 	}
 	case _cep_model:
