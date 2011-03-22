@@ -4815,6 +4815,20 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 			"Set '%s' is not supported by 'think'.\n");
 	}
 
+<<<<<<< .mine
+	// entity type(s) for hostile, candamage, and projectilehit.
+	if((varlist[1]->vt == VT_INTEGER) &&
+		((varlist[1]->lVal == _cep_hostile) || (varlist[1]->lVal == _cep_candamage) || (varlist[1]->lVal == _cep_projectilehit)))
+	{
+		for(i=2; i<paramCount; i++)
+		{
+			MAPSTRINGS(varlist[i], proplist_hostile_candamage, _cep_hcd_the_end,
+				"Entity type '%s' is not supported by 'hostile', 'candamage', or 'projectilehit'\n");
+		}
+	}
+
+=======
+>>>>>>> .r3283
 	// AI flag name for aiflag
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_aiflag))
 	{
@@ -4999,6 +5013,30 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 		break;
 	}
+<<<<<<< .mine
+	case _cep_projectilehit:
+	{
+		ent->modeldata.projectilehit = 0;
+
+		for(i=2; i<paramCount; i++)
+		{
+			if(varlist[i]->vt == VT_INTEGER) // known entity type
+			{
+				ltemp = varlist[i]->lVal;
+				if(ltemp==_cep_hcd_ground) // "ground" - not needed?
+					ent->modeldata.ground = 1;
+				else
+					ent->modeldata.projectilehit |= entitytypes[(int)ltemp];
+			}
+			else
+			{
+				printf("You must give a string for entity type.\n");
+				goto changeentityproperty_error;
+			}
+		}
+		break;
+	}
+=======
 	case _cep_projectilehit:
 	{
 
@@ -5020,6 +5058,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 		break;
 	}
+>>>>>>> .r3283
 	case _cep_model:
 	{
 		if(varlist[2]->vt != VT_STR)
