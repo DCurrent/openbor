@@ -745,9 +745,6 @@ HRESULT pp_parser_define(pp_parser* self, char* name)
 	// emit a warning if the macro is already defined
 	// note: this won't mess with function macro parameters since #define can't be used from inside a macro
 
-	/*
-	2011_03_21, DC - In OpenBOR script, including the list of #defines is the only way to access them in a user defined function; considering that a "redfine" of the macro is only causing massive log spam.
-
 	if(List_FindByName(&self->ctx->macros, name))
 	{
 		pp_warning(self, "'%s' redefined", name);
@@ -767,7 +764,6 @@ HRESULT pp_parser_define(pp_parser* self, char* name)
 		free(params);
 		List_Remove(&self->ctx->func_macros);
 	}
-	*/
 
 	// do NOT skip whitespace here - the '(' must come immediately after the name!
 	if(FAILED(pp_parser_lex_token(self, false))) goto error;
