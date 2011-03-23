@@ -32,6 +32,7 @@
 #include "soundmix.h"
 #include "globals.h"
 #include "ImportCache.h"
+#include "models.h"
 
 // Define macro for string mapping
 #define MAPSTRINGS(VAR, LIST, MAXINDEX, FAILMSG) \
@@ -5324,7 +5325,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			printf("You must give a string value for entity name.\n");
 			goto changeentityproperty_error;
 		}
-		tempmodel = find_model((char*)StrCache_Get(varlist[2]->strVal));
+		tempmodel = findmodel((char*)StrCache_Get(varlist[2]->strVal));
 		if(!tempmodel)
 		{
 			printf("Use must give an existing model's name for entity's default model name.\n");
@@ -7377,7 +7378,7 @@ HRESULT openbor_setspawnentry(ScriptVariant** varlist, ScriptVariant** pretvar, 
 			printf("You must use a string value for spawn entry's name property: function setspawnentry.\n");
 			goto setspawnentry_error;
 		}
-		spawnentry.model = find_model((char*)StrCache_Get(arg->strVal));
+		spawnentry.model = findmodel((char*)StrCache_Get(arg->strVal));
 		break;
 	case _sse_alias:
 		if(arg->vt != VT_STR) goto setspawnentry_error;
@@ -7385,26 +7386,26 @@ HRESULT openbor_setspawnentry(ScriptVariant** varlist, ScriptVariant** pretvar, 
 		break;
 	case _sse_item:
 		if(arg->vt != VT_STR) goto setspawnentry_error;
-		spawnentry.itemmodel = find_model((char*)StrCache_Get(arg->strVal));
+		spawnentry.itemmodel = findmodel((char*)StrCache_Get(arg->strVal));
 		spawnentry.item = spawnentry.itemmodel->name;
 		spawnentry.itemindex = get_cached_model_index(spawnentry.item);
 		spawnentry.itemplayer_count = 0;
 		break;
 	case _sse_2pitem:
 		if(arg->vt != VT_STR) goto setspawnentry_error;
-		tempmodel = find_model((char*)StrCache_Get(arg->strVal));
+		tempmodel = findmodel((char*)StrCache_Get(arg->strVal));
 		if(!tempmodel) spawnentry.item = NULL;
 		else spawnentry.item = tempmodel->name;
 		spawnentry.itemplayer_count = 1;
 		break;
 	case _sse_3pitem:
 		if(arg->vt != VT_STR) goto setspawnentry_error;
-		spawnentry.itemmodel = find_model((char*)StrCache_Get(arg->strVal));
+		spawnentry.itemmodel = findmodel((char*)StrCache_Get(arg->strVal));
 		spawnentry.itemplayer_count = 2;
 		break;
 	case _sse_4pitem:
 		if(arg->vt != VT_STR) goto setspawnentry_error;
-		spawnentry.itemmodel = find_model((char*)StrCache_Get(arg->strVal));
+		spawnentry.itemmodel = findmodel((char*)StrCache_Get(arg->strVal));
 		spawnentry.itemplayer_count = 3;
 		break;
 	case _sse_health:
@@ -7523,7 +7524,7 @@ HRESULT openbor_setspawnentry(ScriptVariant** varlist, ScriptVariant** pretvar, 
 		break;
 	case _sse_weapon:
 		if(arg->vt != VT_STR) goto setspawnentry_error;
-		spawnentry.weaponmodel = find_model((char*)StrCache_Get(arg->strVal));
+		spawnentry.weaponmodel = findmodel((char*)StrCache_Get(arg->strVal));
 		break;
 	default:
 		//printf("Property name '%s' is not supported by setspawnentry.\n", propname);

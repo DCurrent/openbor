@@ -13,6 +13,7 @@
 
 #include "openbor.h"
 #include "commands.h"
+#include "models.h"
 
 #define GET_ARG(z) arglist.count > z ? arglist.args[z] : ""
 #define GET_ARG_LEN(z) arglist.count > z ? arglist.arglen[z] : 0
@@ -40,7 +41,6 @@ char                bgbuffer_updated    = 0;
 s_bitmap*           texture             = NULL;
 s_videomodes        videomodes;
 int sprite_map_max_items = 0;
-int model_map_max_items = 0;
 int cache_map_max_items = 0;
 
 
@@ -3469,18 +3469,6 @@ int load_special_sounds()
 	return 1;
 }
 
-s_model * find_model(char *name)
-{
-	int result, i;
-	if(models_loaded==0) return NULL;
-	for(i=0;i<models_loaded;i++) {
-		result = stricmp(model_map[i].model->name, name);
-		if(!result)
-			return model_map[i].model;
-	}
-	return NULL;
-}
-
 // Use by player select menus
 s_model* nextplayermodel(s_model *current){
 	int i;
@@ -3560,7 +3548,7 @@ static void load_playable_list(char* buf)
 
 	for(i=1;(value=GET_ARG(i))[0];i++)
 	{
-		playermodels = find_model(value);
+		playermodels = findmodel(value);
 		if(playermodels == NULL) shutdown(1, "Player model '%s' is not loaded.\n", value);
 		index = get_cached_model_index(playermodels->name);
 		if(index == -1) shutdown(1, "Player model '%s' is not cached.\n", value);
@@ -3662,27 +3650,6 @@ void free_anim(s_anim * anim)
 	}
 }
 
-s_model_map *model_map_delete(s_model_map *map, size_t size)
-{
-	s_model_map *copy;
-	if(map == NULL) return NULL;
-	copy = malloc(size * sizeof(s_model_map));
-	if(copy == NULL) shutdown(1, "Out Of Memory!  Failed to create a copy of model_map\n");
-	memcpy(copy, map, size * sizeof(s_model_map));
-	free(map);
-	return copy;
-}
-
-void model_map_move(int offset)
-{
-	s_model_map mid, end;
-	mid = model_map[offset];
-	end = model_map[models_loaded-1];
-	model_map[offset] = end;
-	model_map[models_loaded-1] = mid;
-	model_map = model_map_delete(model_map, --models_loaded);
-}
-
 int hasFreetype(s_model* m, ModelFreetype t) {
 	assert(m);
 	return (m->freetypes & t) == t;
@@ -3694,13 +3661,11 @@ void addFreeType(s_model* m, ModelFreetype t) {
 }
 
 // Unload single model from memory
-int free_model(s_model* model, int mapid)
+int free_model(s_model* model)
 {
 	int i;
-	if(model == NULL) return 0;
-	printf("Unloaded '%s'\n", model->name);
-	model_cache[model->index].model = NULL;
-	model_map_move(mapid);
+	if(!model) return 0;
+	printf("Unload '%s'\n", model->name);
 
 	if(hasFreetype(model, MF_ANIMLIST))
 		for(i=0; i<max_animations; i++)
@@ -3738,22 +3703,18 @@ int free_model(s_model* model, int mapid)
 		free_all_scripts(&model->scripts);
 	}
 
-	free(model);
-	model = NULL;
-	if(models_loaded == 0 && model_map != NULL)
-	{
-		free(model_map);
-		model_map = NULL;
-	}
-	//model_map_sort(); WTF ? sorting on free ? that's BS
-	return models_loaded;
+	deleteModel(model->name);
+
+	return models_loaded--;
 }
 
 // Unload all models and animations memory
 void free_models()
 {
-	if(!model_map) return;
-	while(free_model(model_map[models_loaded-1].model, models_loaded-1));
+	s_model* temp;
+	
+	while((temp = getFirstModel())) 
+		free_model(temp);
 
 	// free animation ids
 	if(animdowns)       {free(animdowns);       animdowns          = NULL;}
@@ -3911,6 +3872,7 @@ int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned 
 
 // ok this func only seems to overwrite the name which was assigned from models.txt with the one
 // in the models own text file.
+// it does so in the cache.
 void _peek_model_name(int index)
 {
 	size_t size = 0;
@@ -4031,29 +3993,12 @@ char *get_cached_model_path(char * name)
 	return NULL;
 }
 
-void prepare_model_map(size_t size)
-{
-	if(model_map == NULL || size + 1 > model_map_max_items )
-	{
-#ifdef VERBOSE
-		printf("%s %p\n", "prepare_model_map was", model_map);
-#endif
-		do {
-			model_map_max_items += 64;
-		}
-		while (size + 1 > model_map_max_items);
-
-		model_map = realloc(model_map, sizeof(s_model_map) * model_map_max_items);
-		if(model_map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new model_map\n");
-	}
-}
-
 static void _readbarstatus(char*, s_barstatus*);
 
 void lcmHandleCommandName(ArgList* arglist, s_model* newchar, int cacheindex) {
 	char* value = GET_ARGP(1);
 	s_model* tempmodel;
-	if((tempmodel=find_model(value)) && tempmodel!=newchar) shutdown(1, "Duplicate model name '%s'", value);
+	if((tempmodel=findmodel(value)) && tempmodel!=newchar) shutdown(1, "Duplicate model name '%s'", value);
 	/*if((tempmodel=find_model(value))) {
 		return tempmodel;
 	}*/
@@ -4706,7 +4651,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 #endif
 
 	// Model already loaded but we might want to unload after level is completed.
-	if((tempmodel=find_model(name))!=NULL) {
+	if((tempmodel=findmodel(name))!=NULL) {
 		update_model_loadflag(tempmodel,unload);
 		return tempmodel;
 	}
@@ -4725,12 +4670,14 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	}
 	scriptbuf[0] = 0;
 
-
+	//_peek_model_name(cacheindex);
 	newchar = init_model(cacheindex, unload);
-	prepare_model_map(models_loaded+1);
+	//newchar->name = name;
+
 	//attention, we increase models_loaded here, this can be dangerous if we access that value later on,
 	//since recursive calls will change it!
-	model_map[models_loaded++].model = newchar;
+	models_loaded++;
+	addModel(newchar);
 
 	attack = emptyattack;      // empty attack
 	drawmethod = plainmethod;  // better than memset it to 0
@@ -4752,7 +4699,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 			switch(cmd) {
 				case CMD_MODEL_SUBCLASS:
 					//inherit everything from an existing, cached model
-					tempmodel = find_model(GET_ARG(1));
+					tempmodel = findmodel(GET_ARG(1));
 					if (!tempmodel) {
 						shutdownmessage = "tried to subclass a non-existing/not previously loaded model!";
 						goto lCleanup;
@@ -4802,7 +4749,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_LOAD:
 					value = GET_ARG(1);
-					tempmodel = find_model(value);
+					tempmodel = findmodel(value);
 					if(!tempmodel)
 						load_cached_model(value, name, GET_INT_ARG(2));
 					else
@@ -8395,8 +8342,7 @@ void free_level(s_level* lv)
 
 
 void unload_level(){
-	int i, crlf = 0;
-	char name[128] = {""};
+	s_model* temp;
 	unload_background();
 	unload_texture();
 	freepanels();
@@ -8410,24 +8356,22 @@ void unload_level(){
 		level->quaketime = 0;
 		level->waiting = 0;
 
-
-		strcpy(name, level->name);
-		printf("Level Unloading: '%s'\n", name);
+		printf("Level Unloading: '%s'\n", level->name);
 		getRamStatus(BYTES);
 		free(level->name);
 		level->name = NULL;
 		free_level(level);
 		level = NULL;
-		for(i=models_loaded; i; i--)
-		{
-			if(model_map[i-1].model->unload)
-			{
-				free_model(model_map[i-1].model, i-1);
-				crlf = 1;
-			}
-		}
-		if(crlf) printf("\n");
-		printf("Level Unloaded:  '%s'\n", name);
+		temp = getFirstModel();
+		do {
+			if(!temp) break;
+			if(temp->unload) {
+				free_model(temp);
+				temp = NULL;
+			} 
+			temp = getNextModel();
+		} while(temp && !isLastModel());
+		printf("Done.\n");
 		getRamStatus(BYTES);
 
 
@@ -8695,7 +8639,7 @@ void load_level(char *filename){
 				#ifdef DEBUG
 				printf("load_level: load %s, %s\n", GET_ARG(1), filename);
 				#endif
-				tempmodel = find_model(GET_ARG(1));
+				tempmodel = findmodel(GET_ARG(1));
 				if (!tempmodel)
 					load_cached_model(GET_ARG(1), filename, GET_INT_ARG(2));
 				else
@@ -9118,7 +9062,7 @@ void load_level(char *filename){
 				next.index = next.itemindex = next.weaponindex = -1;
 				// Name of entry to be spawned
 				// Load model (if not loaded already)
-				cached_model = find_model(GET_ARG(1));
+				cached_model = findmodel(GET_ARG(1));
 				#ifdef DEBUG
 				printf("load_level: spawn %s, %s, cached: %p\n", GET_ARG(1), filename, cached_model);
 				#endif
@@ -9211,7 +9155,7 @@ void load_level(char *filename){
 				// Item to be contained by new entry
 				next.itemplayer_count = 0;
 				// Load model (if not loaded already)
-				cached_model = find_model(GET_ARG(1));
+				cached_model = findmodel(GET_ARG(1));
 				if(cached_model)
 					tempmodel = cached_model;
 				else
@@ -9233,7 +9177,7 @@ void load_level(char *filename){
 			case CMD_LEVEL_WEAPON:
 				//spawn with a weapon 2007-2-12 by UTunnels
 				// Load model (if not loaded already)
-				cached_model = find_model(GET_ARG(1));
+				cached_model = findmodel(GET_ARG(1));
 				if(cached_model) tempmodel = cached_model;
 				else tempmodel = load_cached_model(GET_ARG(1), filename, 0);
 				if(tempmodel) {
@@ -9600,7 +9544,7 @@ void predrawstatus(){
 		}
 		else if(player[i].joining && player[i].name[0])
 		{
-			model = find_model(player[i].name);
+			model = findmodel(player[i].name);
 			font_printf(videomodes.shiftpos[i]+pnameJ[i][0], savedata.windowpos+pnameJ[i][1], pnameJ[i][6], 0, player[i].name);
 			if(nojoin) font_printf(videomodes.shiftpos[i]+pnameJ[i][2], savedata.windowpos+pnameJ[i][3], pnameJ[i][6], 0, "Please Wait");
 			else font_printf(videomodes.shiftpos[i]+pnameJ[i][2], savedata.windowpos+pnameJ[i][3], pnameJ[i][6], 0, "Select Hero");
@@ -9730,7 +9674,7 @@ void predrawstatus(){
 			if(player[i].playkeys & FLAG_START)
 			{
 				player[i].lives = 0;
-				model = (skipselect&&(*skipselect)[current_set][i])?find_model((*skipselect)[current_set][i]):nextplayermodel(NULL);
+				model = (skipselect&&(*skipselect)[current_set][i])?findmodel((*skipselect)[current_set][i]):nextplayermodel(NULL);
 				strncpy(player[i].name, model->name, MAX_NAME_LEN);
 				player[i].colourmap = i;
 				 // Keep looping until a non-hmap is found
@@ -10619,7 +10563,7 @@ void ent_set_model(entity * ent, char * modelname)
 	s_model *m = NULL;
 	s_model oldmodel;
 	if(ent==NULL) shutdown(1, "FATAL: tried to change model of invalid object");
-	m = find_model(modelname);
+	m = findmodel(modelname);
 	if(m==NULL) shutdown(1, "Model not found: '%s'", modelname);
 	oldmodel = ent->modeldata;
 	ent->model = m;
@@ -10664,7 +10608,7 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 		if(index>=0)
 			model = model_cache[index].model;
 		else if(name)
-			model = find_model(name);
+			model = findmodel(name);
 	}
 
 	// Be a bit more tolerant...
@@ -12980,7 +12924,7 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 	if(!newmodel)
 	{
 		if(index>=0) newmodel = model_cache[index].model;
-		else newmodel = find_model(modelname);
+		else newmodel = findmodel(modelname);
 	}
 	if(!newmodel) shutdown(1, "Can't set model for entity '%s', model not found.\n", ent->name);
 	if(newmodel==model) return;
@@ -20126,6 +20070,8 @@ void shutdown(int status, char *msg, ...)
 		freeCommandList(levelcmdlist);
 	if(levelordercmdlist)
 		freeCommandList(levelordercmdlist);
+	
+	freeModelList();
 
 	freefilenamecache();
 
@@ -20460,7 +20406,7 @@ void hallfame(int addtoscore)
 	{
 		for(p = 0; p < maxplayers[current_set]; p++)
 		{
-			model = find_model(player[p].name);
+			model = findmodel(player[p].name);
 			if(player[p].score > savescore.highsc[9])
 			{
 				savescore.highsc[9] = player[p].score;
@@ -20767,7 +20713,7 @@ int selectplayer(int *players, char* filename)
 					load_background(GET_ARG(1), 1);
 				}
 				else if(stricmp(command, "load")==0){
-					tempmodel = find_model(GET_ARG(1));
+					tempmodel = findmodel(GET_ARG(1));
 					if (!tempmodel)
 						load_cached_model(GET_ARG(1), filename, GET_INT_ARG(2));
 					else
@@ -22976,6 +22922,7 @@ void openborMain(int argc, char** argv)
 	modelstxtcmdlist = createModelstxtCommandList();
 	levelcmdlist = createLevelCommandList();
 	levelordercmdlist = createLevelOrderCommandList();
+	createModelList();
 
 
 #ifdef XBOX
