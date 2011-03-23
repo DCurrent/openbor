@@ -39,7 +39,7 @@ s_screen* pngToScreen(const void* data)
 	int bit_depth, color_type, interlace_type, y;
 	u32* line;
 	s_screen* image;
-	
+
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if(png_ptr == NULL) goto error;
 	png_set_error_fn(png_ptr, (png_voidp) NULL, (png_error_ptr) NULL, png_warning_fn);
@@ -71,7 +71,7 @@ s_screen* pngToScreen(const void* data)
 	png_read_end(png_ptr, info_ptr);
 	png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
 	return image;
-	
+
 error2:
 	png_destroy_read_struct(&png_ptr, NULL, NULL);
 error:
@@ -90,7 +90,7 @@ SDL_Surface* pngToSurface(const void* data)
 
 	if(src == NULL) return NULL;
 	assert(src->pixelformat == PIXEL_32);
-	
+
 	width = src->width;
 	height = src->height;
 	h = height;
@@ -106,7 +106,7 @@ SDL_Surface* pngToSurface(const void* data)
 		sp += linew;
 		dp += ds->pitch;
 	}while(--h);
-	
+
 	freescreen(&src);
 
 	return ds;

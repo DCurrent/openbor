@@ -33,7 +33,7 @@ struct XBGAMEPAD : public XINPUT_GAMEPAD
 	FLOAT      fY1;
 	FLOAT      fX2;
 	FLOAT      fY2;
-	
+
 	// State of buttons tracked since last poll
 	WORD       wLastButtons;
 	BOOL       bLastAnalogButtons[8];

@@ -9,28 +9,28 @@ int main(void) {
 	char* b3;
 	size_t null = 0;
 	void* nullptr = &null;
-	
+
 	tlinit();
-	
-	
+
+
 	b1 = MALLOC(512);
 	b2 = MALLOC(1012);
 	FREE(b2);
 	sprintf(b1, "hello world");
 	b3 = MALLOC(strlen(b1));
 	strcpy(b3, b1);
-	
+
 	b2 = REALLOC(b1, 1024);
 	assert(b2 != b1);
 	// should report invalid access
-	FREE(b1);	
+	FREE(b1);
 	assert(strcmp(b3, b2)==0);
 	FREE(b2);
-	
+
 	b2 = CALLOC(1, sizeof(void*));
 	assert(memcmp(b2, nullptr, sizeof(void*))==0);
-	
-	
+
+
 	//should report b2 and b3 leaking
-	return tlstats();	
+	return tlstats();
 }

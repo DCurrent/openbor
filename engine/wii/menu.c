@@ -505,7 +505,7 @@ void initMenu(int type)
 {
 	// Read Logo or Menu from Array.
 	if(type) {
-		
+
 		Source = pngToScreen(isWide ? (void*) openbor_menu_480x272_png.data : (void*) openbor_menu_320x240_png.data);
 
 		// Depending on which mode we are in (WideScreen/FullScreen)

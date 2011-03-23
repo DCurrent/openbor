@@ -13,7 +13,7 @@ Parser* pcurParser = NULL;
 void Parser_Init(Parser* pparser)
 {
 	memset(pparser, 0, sizeof(Parser));
-	Stack_Init(&(pparser->LabelStack));    
+	Stack_Init(&(pparser->LabelStack));
 	ParserSet_Buildup(&(pparser->theParserSet));
 	pparser->LabelCount = 0;
 	pparser->theFieldToken.theType = END_OF_TOKENS;
@@ -1372,7 +1372,7 @@ void Parser_Error(Parser* pparser, PRODUCTION offender )
 	if (offender != error)
 		pp_error(&(pparser->theLexer.preprocessor), "%s '%s' (in production %u)",
 				_production_error_message(pparser, offender), pparser->theNextToken.theSource, offender);
-	
+
 	pparser->errorFound = TRUE;
 
 	//The script is obviously not valid, but it's good to try and find all the

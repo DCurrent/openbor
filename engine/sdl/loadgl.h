@@ -18,7 +18,7 @@
 #ifdef GLES
 #include "SDL_opengles.h"
 #elif WIN
-// SDL_opengl.h in Windows includes <windows.h>, which clashes with several 
+// SDL_opengl.h in Windows includes <windows.h>, which clashes with several
 // definitions in openbor.h :(
 #define APIENTRY __stdcall
 #include <GL/gl.h>
@@ -44,9 +44,9 @@ extern PFNGLUNIFORM1FARBPROC glUniform1fARB;
 extern PFNGLUNIFORM4FARBPROC glUniform4fARB;
 
 #if WIN
-// <GL/gl.h> in Windows only defines prototypes available in OpenGL 1.1, which 
-// is from 1995!  We define the function prototypes here for functions that 
-// became core in later revisions of the OpenGL API.  Currently this only 
+// <GL/gl.h> in Windows only defines prototypes available in OpenGL 1.1, which
+// is from 1995!  We define the function prototypes here for functions that
+// became core in later revisions of the OpenGL API.  Currently this only
 // includes multitexturing, which became core in OpenGL 1.3 (2001).
 void APIENTRY glActiveTexture(GLenum texture);
 void APIENTRY glMultiTexCoord2f(GLenum texture, GLfloat s, GLfloat t);

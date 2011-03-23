@@ -53,9 +53,9 @@
 
 typedef struct Node{
 	struct Node* prev;          //pointer to previous Node
-	struct Node* next;          //pointer to next Node	
+	struct Node* next;          //pointer to next Node
 	void* value;                //data stored in a Node
-	char* name;                //optional name of the Node	
+	char* name;                //optional name of the Node
 } Node;
 
 #ifdef USE_INDEX
@@ -71,7 +71,7 @@ typedef struct LIndex {
 typedef struct Bucket {
 	size_t size;
 	size_t used;
-	Node** nodes;	
+	Node** nodes;
 } Bucket;
 #endif
 
@@ -89,7 +89,7 @@ typedef struct List {
 #ifdef USE_STRING_HASHES
 	Bucket** buckets;
 #endif
-#ifdef DEBUG	
+#ifdef DEBUG
 	int initdone;
 #endif
 
@@ -122,7 +122,7 @@ int List_GetSize(const List* list);
 
 Node* List_SearchName(List* list, char* theName);
 Node* List_Contains(List* list, void* e);
-int List_GetNodeIndex(List* list, Node* node);	
+int List_GetNodeIndex(List* list, Node* node);
 #ifdef USE_INDEX
 void List_AddIndex(List* list, Node* node, size_t index);
 void List_RemoveLastIndex(List* list);

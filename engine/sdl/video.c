@@ -52,7 +52,7 @@ void initSDL()
 #ifdef CUSTOM_SIGNAL_HANDLER
 	init_flags |= SDL_INIT_NOPARACHUTE;
 #endif
-	
+
 	if(SDL_Init(init_flags) < 0)
 	{
 		printf("SDL Failed to Init!!!! (%s)\n", SDL_GetError());
@@ -77,7 +77,7 @@ void initSDL()
 	nativeWidth = video_info->current_w;
 	nativeHeight = video_info->current_h;
 #endif
-	
+
 	SDL_initFramerate(&framerate_manager);
 	SDL_setFramerate(&framerate_manager, 200);
 }
@@ -87,17 +87,17 @@ static unsigned masks[4][4] = {{0,0,0,0},{0x1F,0x07E0,0xF800,0},{0xFF,0xFF00,0xF
 int video_set_mode(s_videomodes videomodes)
 {
 	stored_videomodes = videomodes;
-	
+
 	if(screen) SDL_FreeAndNullVideoSurface(screen);
 	if(bscreen) { SDL_FreeSurface(bscreen); bscreen=NULL; }
 	if(bscreen2) { SDL_FreeSurface(bscreen2); bscreen2=NULL; }
-	
+
 	// try OpenGL initialization first
 	if((savedata.usegl || savedata.fullscreen) && video_gl_set_mode(videomodes)) return 1;
 	else opengl = 0;
-	
+
 	// FIXME: OpenGL surfaces aren't freed when switching from OpenGL to SDL
-	
+
 	bytes_per_pixel = videomodes.pixel;
 	if(videomodes.hRes==0 && videomodes.vRes==0)
 	{
@@ -135,7 +135,7 @@ int video_set_mode(s_videomodes videomodes)
 #endif
 		SDL_ShowCursor(SDL_DISABLE);
 	}
-	
+
 	if(bytes_per_pixel==1)
 	{
 		SDL_SetColors(screen,colors,0,256);
@@ -153,7 +153,7 @@ void video_fullscreen_flip()
 	size_t w, h;
 	if(savedata.usegl) { video_gl_fullscreen_flip(); return; }
 	savedata.fullscreen ^= 1;
-	
+
 	if(savedata.fullscreen)
 	{
 		// OpenGL has better fullscreen than SDL
@@ -165,7 +165,7 @@ void video_fullscreen_flip()
 		if(video_set_mode(stored_videomodes)) return;
 		return;
 	}
-	
+
 	// switch between SDL fullscreen and SDL windowed
 	if(screen) {
 		w = screen->w;
@@ -175,7 +175,7 @@ void video_fullscreen_flip()
 		w = 320;
 		h = 240;
 	}
-		
+
 	if(savedata.screen[videoMode][0])
 		screen = SDL_SetVideoMode(w,h,16,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
 	else
@@ -243,7 +243,7 @@ int video_copy_screen(s_screen* src)
 	int h;
 	SDL_Surface* ds = NULL;
 	SDL_Rect rectdes, rectsrc;
-	
+
 	// use video_gl_copy_screen if in OpenGL mode
 	if(opengl) return video_gl_copy_screen(src);
 
@@ -316,7 +316,7 @@ int video_copy_screen(s_screen* src)
 void video_clearscreen()
 {
 	if(opengl) { video_gl_clearscreen(); return; }
-	
+
 	if(SDL_MUSTLOCK(screen)) SDL_LockSurface(screen);
 	memset(screen->pixels, 0, screen->pitch*screen->h);
 	if(SDL_MUSTLOCK(screen)) SDL_UnlockSurface(screen);

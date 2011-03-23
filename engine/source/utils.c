@@ -111,7 +111,7 @@ void debugBuf(unsigned char* buf, size_t size, int columns) {
 //lowercases a buffer inplace
 void lc(char* buf, size_t size) {
 	ptrdiff_t i;
-	for(i=0;i<size;i++) 
+	for(i=0;i<size;i++)
 		buf[i] = tolower((int)buf[i]);
 }
 
@@ -200,7 +200,7 @@ stringptr* readFromLogFile(int which)
 	rewind(handle);
 	if (size == 0) goto CLOSE_AND_QUIT;
 	// allocate memory to contain the whole file:
-	//buffer = (char*)malloc(sizeof(char)*(size+1)); // alloc one additional byte for the 
+	//buffer = (char*)malloc(sizeof(char)*(size+1)); // alloc one additional byte for the
 	buffer = new_string(size);
 	if(buffer == NULL) goto CLOSE_AND_QUIT;
 	disCcWarns = fread(buffer->ptr, 1, size, handle);
@@ -219,7 +219,7 @@ void writeToLogFile(const char * msg, ...)
 	vfprintf(stdout, msg, arglist);
 	va_end(arglist);
 	fflush(stdout);
-#else	
+#else
 	if(openborLog == NULL)
 	{
 		openborLog = OPEN_LOGFILE(OPENBOR_LOG);
@@ -236,13 +236,13 @@ void writeToScriptLog(const char *msg)
 {
 #ifndef DC
 	int disCcWarns;
-	
+
 	if(scriptLog == NULL)
 	{
 		scriptLog = OPEN_LOGFILE(SCRIPT_LOG);
 		if(scriptLog == NULL) return;
 	}
-	
+
 	disCcWarns = fwrite(msg, 1, strlen(msg), scriptLog);
 	fflush(scriptLog);
 #endif
@@ -452,11 +452,11 @@ char *commaprint(u64 n)
 	static char retbuf[30];
 	char *p = &retbuf[sizeof(retbuf)-1];
 	int i = 0;
-	
-	if(comma == '\0') 
+
+	if(comma == '\0')
 	{
 		struct lconv *lcp = localeconv();
-		if(lcp != NULL) 
+		if(lcp != NULL)
 		{
 			if(lcp->thousands_sep != NULL &&
 			   *lcp->thousands_sep != '\0')
@@ -465,9 +465,9 @@ char *commaprint(u64 n)
 				comma = ',';
 		}
 	}
-	
+
 	*p = '\0';
-	
+
 	do {
 		if(i%3 == 0 && i != 0)
 			*--p = comma;
@@ -503,7 +503,7 @@ Array_Check_Size( const char* f_caller, char** array, int new_size, int* curr_si
 		}
 		*curr_size_allocated = 0;
 	}
-	
+
 	// First allocation
 	else if( *array == NULL )
 	{
@@ -514,16 +514,16 @@ Array_Check_Size( const char* f_caller, char** array, int new_size, int* curr_si
 		memset( *array, 0, *curr_size_allocated );
 		return;
 	}
-	
+
 	// No need to decrease or increase the array
 	else if( new_size > (*curr_size_allocated - grow_step ) && new_size <= *curr_size_allocated )
 		return;
 
 	//-------------------------------------------
 	// Must increase or decrease the array size
-	
+
 	int old_size = *curr_size_allocated;
-	
+
 	// Recompute needed size
 	*curr_size_allocated = ((int)ceil((float)new_size / (float)grow_step)) * grow_step;
 
@@ -531,14 +531,14 @@ Array_Check_Size( const char* f_caller, char** array, int new_size, int* curr_si
 	void* copy = malloc(*curr_size_allocated );
 	if(copy == NULL)
 		shutdown(1, "Out Of Memory!  Failed in %s\n", f_caller);
-	
+
 	// Copy the previous content of the array
 	memcpy(copy, *array, ( (old_size<new_size) ?old_size :new_size) );
 
 	// Init the new allocations
 	if( old_size < *curr_size_allocated )
 		memset( copy + old_size, 0, *curr_size_allocated - old_size );
-	
+
 	// Free previous array memory
 	free(*array);
 

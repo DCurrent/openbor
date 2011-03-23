@@ -16,7 +16,7 @@
 // along with this program; if not, write to the Free Software Foundation,
 // Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
-/* 
+/*
  * Code adapted To OpenBOR by SX
  * simple2x.c - Trying to scale 2x.
  *
@@ -30,20 +30,20 @@
 void Simple2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height)
 {
 	u8 *nextLine, *finish;
-  
+
 	nextLine = dstPtr + dstPitch;
-  
-	do 
+
+	do
 	{
 		u32 *bP = (u32 *) srcPtr;
 		u32 *dP = (u32 *) dstPtr;
 		u32 *nL = (u32 *) nextLine;
 		u32 currentPixel;
-	
+
 		finish = (u8 *) bP + ((width+2) << 1);
 		currentPixel = *bP++;
-	
-		do 
+
+		do
 		{
 #ifdef BOR_BIG_ENDIAN
 			u32 color = currentPixel >> 16;
@@ -61,17 +61,17 @@ void Simple2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, 
 #else
 			color = currentPixel >> 16;
 #endif
-			color = color| (color << 16);      
+			color = color| (color << 16);
 			*(dP + 1) = color;
 			*(nL + 1) = color;
-	  
+
 			currentPixel = *bP++;
-	  
+
 			dP += 2;
 			nL += 2;
 		}
 		while ((u8 *) bP < finish);
-	
+
 		srcPtr += srcPitch;
 		dstPtr += dstPitch << 1;
 		nextLine += dstPitch << 1;
@@ -82,20 +82,20 @@ void Simple2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, 
 void Simple2x32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height)
 {
 	u8 *nextLine, *finish;
-  
+
 	nextLine = dstPtr + dstPitch;
-  
-	do 
+
+	do
 	{
 		u32 *bP = (u32 *) srcPtr;
 	    u32 *dP = (u32 *) dstPtr;
 		u32 *nL = (u32 *) nextLine;
 		u32 currentPixel;
-	
+
 		finish = (u8 *) bP + ((width+1) << 2);
 		currentPixel = *bP++;
-	
-		do 
+
+		do
 		{
 			u32 color = currentPixel;
 
@@ -103,14 +103,14 @@ void Simple2x32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch
 			*(dP+1) = color;
 			*(nL) = color;
 			*(nL + 1) = color;
-	  
+
 			currentPixel = *bP++;
-	      
+
 			dP += 2;
 			nL += 2;
 		}
 		while ((u8 *) bP < finish);
-	
+
 		srcPtr += srcPitch;
 		dstPtr += dstPitch << 1;
 		nextLine += dstPitch << 1;

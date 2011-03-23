@@ -6,7 +6,7 @@
  * (c) Copyright 1996 - 2001 Gary Henderson (gary.henderson@ntlworld.com) and
  *                           Jerremy Koot (jkoot@snes9x.com)
  *
- * Super FX C emulator code 
+ * Super FX C emulator code
  * (c) Copyright 1997 - 1999 Ivar (ivar@snes9x.com) and
  *                           Gary Henderson.
  * Super FX assembler emulator code (c) Copyright 1998 zsKnight and _Demo_.
@@ -97,7 +97,7 @@ GFX.X2 [((((C1) & RGB_REMOVE_LOW_BITS_MASK) + \
 (GFX.X2 [((((C1) & RGB_REMOVE_LOW_BITS_MASK) + \
 	  ((C2) & RGB_REMOVE_LOW_BITS_MASK)) >> 1) + \
 	 ((C1) & (C2) & RGB_LOW_BITS_MASK)] | \
- (((C1) ^ (C2)) & RGB_LOW_BITS_MASK))	   
+ (((C1) ^ (C2)) & RGB_LOW_BITS_MASK))
 #endif
 
 #define COLOR_ADD1_2(C1, C2) \
@@ -120,7 +120,7 @@ GFX.ZERO_OR_X2 [(((C1) | RGB_HI_BITS_MASKx2) - \
 GFX.ZERO [(((C1) | RGB_HI_BITS_MASKx2) - \
 	   ((C2) & RGB_REMOVE_LOW_BITS_MASK)) >> 1]
 
-typedef void (*NormalTileRenderer) (uint32 Tile, uint32 Offset, 
+typedef void (*NormalTileRenderer) (uint32 Tile, uint32 Offset,
 				    uint32 StartLine, uint32 LineCount);
 typedef void (*ClippedTileRenderer) (uint32 Tile, uint32 Offset,
 				     uint32 StartPixel, uint32 Width,
@@ -175,9 +175,9 @@ void Eagle(uint8 *srcPtr, uint32 srcPitch,
 uint16	*asmsai_srcPtr;
 uint16	*asmsai_deltaPtr;
 uint32	asmsai_srcPitch;
-uint32	asmsai_width;    
-uint32	*asmsai_dstOffset;  
-uint32	asmsai_dstPitch;     
+uint32	asmsai_width;
+uint32	*asmsai_dstOffset;
+uint32	asmsai_dstPitch;
 uint8	*asmsai_dstSegment; //FOR ASM OPTI!!!
 
 #endif

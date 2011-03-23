@@ -77,7 +77,7 @@ void wiimote_poweroff(int playernum)
 	hwbutton = WII_SHUTDOWN;
 }
 
-// Resets or powers off the Wii if the corresponding buttons are pressed. 
+// Resets or powers off the Wii if the corresponding buttons are pressed.
 // Resetting returns to the Homebrew Channel.
 void respondToPowerReset()
 {
@@ -116,12 +116,12 @@ void control_init(int joy_enable)
 	hwbutton = 0;
 	PAD_Init();
 	WPAD_Init();
-	
+
 	// set callbacks for power/reset buttons
 	SYS_SetResetCallback(reset);
 	SYS_SetPowerCallback(poweroff);
 	WPAD_SetPowerButtonCallback(wiimote_poweroff);
-	
+
 	initialized = 1;
 }
 
@@ -232,7 +232,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 		pcontrols->newkeyflags = k & (~pcontrols->keyflags);
 		pcontrols->keyflags = k;
 	}
-	
+
 	if (hwbutton) respondToPowerReset();
 }
 

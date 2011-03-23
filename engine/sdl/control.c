@@ -98,7 +98,7 @@ void getPads(Uint8* keystate)
 						if(ev.jhat.value & SDL_HAT_RIGHT && !(x & SDL_HAT_RIGHT))	lastjoy = hatfirst + 1;
 						if(ev.jhat.value & SDL_HAT_DOWN && !(x & SDL_HAT_DOWN))		lastjoy = hatfirst + 2;
 						if(ev.jhat.value & SDL_HAT_LEFT && !(x & SDL_HAT_LEFT))		lastjoy = hatfirst + 3;
-						
+
 						if(lastjoy) fprintf(stderr, "SDL_JOYHATMOTION - Joystick %i Hat %i (Index %i)\n", i, ev.jhat.hat, lastjoy);
 					}
 				}
@@ -120,7 +120,7 @@ void getPads(Uint8* keystate)
 		}
 
 	}
-	
+
 	if((joysticks[0].Type != JOY_TYPE_SONY) && (joysticks[0].Type != JOY_TYPE_GAMEPARK))
 	{
 		// new PC joystick code - forget about SDL joystick events, just do a state check
@@ -129,11 +129,11 @@ void getPads(Uint8* keystate)
 		{
 			// reset state
 			joysticks[i].Axes = joysticks[i].Hats = joysticks[i].Buttons = 0;
-			
+
 			// check buttons
 			for(j=0; j<joysticks[i].NumButtons; j++)
 				joysticks[i].Buttons |= SDL_JoystickGetButton(joystick[i], j) << j;
-			
+
 			// check axes
 			for(j=0; j<joysticks[i].NumAxes; j++)
 			{
@@ -141,11 +141,11 @@ void getPads(Uint8* keystate)
 				if(axis < -7000)  { joysticks[i].Axes |= 1 << (j*2); }
 				if(axis > +7000)  { joysticks[i].Axes |= 2 << (j*2); }
 			}
-			
+
 			// check hats
 			for(j=0; j<joysticks[i].NumHats; j++)
 				joysticks[i].Hats |= SDL_JoystickGetHat(joystick[i], j) << (j*4);
-			
+
 			// combine axis, hat, and button state into a single value
 			joysticks[i].Data = joysticks[i].Buttons;
 			joysticks[i].Data |= joysticks[i].Axes << joysticks[i].NumButtons;
@@ -218,12 +218,12 @@ void joystick_scan(int scan)
 #endif
 		if(scan != 2)
 		{
-			if(numjoy == 1) printf("%s - %d axes, %d buttons, %d hat(s)\n", 
+			if(numjoy == 1) printf("%s - %d axes, %d buttons, %d hat(s)\n",
 									joysticks[i].Name, joysticks[i].NumAxes, joysticks[i].NumButtons, joysticks[i].NumHats);
 			else if(numjoy > 1)
 			{
 				if(i) printf("                                "); // print 32 spaces for alignment
-				printf("%d. %s - %d axes, %d buttons, %d hat(s)\n", i + 1, 
+				printf("%d. %s - %d axes, %d buttons, %d hat(s)\n", i + 1,
 						joysticks[i].Name, joysticks[i].NumAxes, joysticks[i].NumButtons, joysticks[i].NumHats);
 			}
 		}
@@ -320,7 +320,7 @@ int control_scankey()
 	k = keyboard_getlastkey();
 	j = lastjoy;
 	lastjoy = 0;
-	
+
 #if 0
 		 if(joysticks[0].Data) j = 1 + 0 * JOY_MAX_INPUTS + flag_to_index(joysticks[0].Data);
 	else if(joysticks[1].Data) j = 1 + 1 * JOY_MAX_INPUTS + flag_to_index(joysticks[1].Data);

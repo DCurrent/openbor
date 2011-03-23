@@ -6,7 +6,7 @@
  * (c) Copyright 1996 - 2001 Gary Henderson (gary.henderson@ntlworld.com) and
  *                           Jerremy Koot (jkoot@snes9x.com)
  *
- * Super FX C emulator code 
+ * Super FX C emulator code
  * (c) Copyright 1997 - 1999 Ivar (ivar@snes9x.com) and
  *                           Gary Henderson.
  * Super FX assembler emulator code (c) Copyright 1998 zsKnight and _Demo_.
@@ -106,24 +106,24 @@ int Init_2xSaI(uint32 BitFormat)
 
 static _inline int GetResult1(uint32 A, uint32 B, uint32 C, uint32 D, uint32 E)
 {
- int x = 0; 
+ int x = 0;
  int y = 0;
  int r = 0;
  if (A == C) x+=1; else if (B == C) y+=1;
  if (A == D) x+=1; else if (B == D) y+=1;
- if (x <= 1) r+=1; 
+ if (x <= 1) r+=1;
  if (y <= 1) r-=1;
  return r;
 }
 
-static _inline int GetResult2(uint32 A, uint32 B, uint32 C, uint32 D, uint32 E) 
+static _inline int GetResult2(uint32 A, uint32 B, uint32 C, uint32 D, uint32 E)
 {
- int x = 0; 
+ int x = 0;
  int y = 0;
  int r = 0;
  if (A == C) x+=1; else if (B == C) y+=1;
  if (A == D) x+=1; else if (B == D) y+=1;
- if (x <= 1) r-=1; 
+ if (x <= 1) r-=1;
  if (y <= 1) r+=1;
  return r;
 }
@@ -131,12 +131,12 @@ static _inline int GetResult2(uint32 A, uint32 B, uint32 C, uint32 D, uint32 E)
 
 static _inline int GetResult(uint32 A, uint32 B, uint32 C, uint32 D)
 {
- int x = 0; 
+ int x = 0;
  int y = 0;
  int r = 0;
  if (A == C) x+=1; else if (B == C) y+=1;
  if (A == D) x+=1; else if (B == D) y+=1;
- if (x <= 1) r+=1; 
+ if (x <= 1) r+=1;
  if (y <= 1) r-=1;
  return r;
 }
@@ -902,7 +902,7 @@ extern void _2xSaI(uint8 *srcPtr, uint32 srcPitch,
 		for (height; height; height-=1)
 		{
 	   	    uint32 finish;
-	
+
 	        bP = (uint16 *) srcPtr;
 	        dP = (uint32 *) dstPtr;
 			for (finish = width; finish; finish -= 1 )
@@ -1052,7 +1052,7 @@ extern void _2xSaI(uint8 *srcPtr, uint32 srcPitch,
 						}
 						product = colorA | (product << 16);
 						product1 = product1 | (product2 << 16);
-		
+
 			*(dP) = product;
 			*(dP+(dstPitch>>2)) = product1;
 
@@ -1087,7 +1087,7 @@ extern void _2xSaIScanline(uint8 *srcPtr, uint32 srcPitch,
 	    bP = (uint16 *) srcPtr;
 	    xP = (uint16 *) deltaPtr;
 	    dP = (uint32 *) dstPtr;
-		
+
 		_2xSaILineW((uint8 *) bP, (uint8 *) xP, srcPitch, width, (uint8 *)dP, dstPitch);
 
 		if ( height & 0x01 )
@@ -1113,7 +1113,7 @@ extern void _2xSaIScanline(uint8 *srcPtr, uint32 srcPitch,
 		for (height; height; height-=1)
 		{
 	   	    uint32 finish;
-	
+
 	        bP = (uint16 *) srcPtr;
 	        dP = (uint32 *) dstPtr;
 			for (finish = width; finish; finish -= 1 )
@@ -1263,7 +1263,7 @@ extern void _2xSaIScanline(uint8 *srcPtr, uint32 srcPitch,
 						}
 						product = colorA | (product << 16);
 						product1 = product1 | (product2 << 16);
-		
+
 			*(dP) = product;
 			*(dP+(dstPitch>>2)) = product1;
 
@@ -1312,11 +1312,11 @@ extern void Scale2x(uint8 *srcPtr, uint32 srcPitch,
 			colorA = *(bP- Nextline - 1);
 			colorB = *(bP- Nextline);
 			colorC = *(bP- Nextline + 1);
-		   
+
 			colorD = *(bP - 1);
 			colorE = *(bP);
 			colorF = *(bP + 1);
-		  
+
 			colorG = *(bP + Nextline - 1);
 			colorH = *(bP + Nextline);
 			colorI = *(bP + Nextline + 1);
@@ -1336,7 +1336,7 @@ extern void Scale2x(uint8 *srcPtr, uint32 srcPitch,
 				product1b = colorB == colorF && colorC != colorE ? colorF : colorE;
 				product2 = colorD == colorH && colorG != colorE ? colorD : colorE;
 				product2b = colorH == colorF && colorI != colorE ? colorF : colorE;
-				break; 
+				break;
 			case 1 :
 			default :
 				/* version 1 */
@@ -1349,8 +1349,8 @@ extern void Scale2x(uint8 *srcPtr, uint32 srcPitch,
 
 			product1 = product1 | (product1b << 16);
 			product2 = product2 | (product2b << 16);
-					
-	
+
+
 			*(dP) = product1;
 			*(dP+(dstPitch>>2)) = product2;
 
@@ -1448,15 +1448,15 @@ extern void SuperScaleScanline(uint8 *srcPtr, uint32 srcPitch,
 				colorA = *(bP- Nextline - 1);
 				colorB = *(bP- Nextline);
 				colorC = *(bP- Nextline + 1);
-			   
+
 				colorD = *(bP - 1);
 				colorE = *(bP);
 				colorF = *(bP + 1);
-			  
+
 				colorG = *(bP + Nextline - 1);
 				colorH = *(bP + Nextline);
 				colorI = *(bP + Nextline + 1);
-			
+
 				product1  = colorB == colorD && colorB != colorF && colorB != colorH ? colorB : colorE;
 				product1b = colorB != colorD && colorB == colorF && colorB != colorH ? colorB : colorE;
 				product2 = colorH == colorD && colorH != colorF && colorB != colorH ? colorH : colorE;
@@ -1565,15 +1565,15 @@ extern void SuperScale(uint8 *srcPtr, uint32 srcPitch,
 				colorA = *(bP- Nextline - 1);
 				colorB = *(bP- Nextline);
 				colorC = *(bP- Nextline + 1);
-			   
+
 				colorD = *(bP - 1);
 				colorE = *(bP);
 				colorF = *(bP + 1);
-			  
+
 				colorG = *(bP + Nextline - 1);
 				colorH = *(bP + Nextline);
 				colorI = *(bP + Nextline + 1);
-			
+
 				product1  = colorB == colorD && colorB != colorF && colorB != colorH ? colorB : colorE;
 				product1b = colorB != colorD && colorB == colorF && colorB != colorH ? colorB : colorE;
 				product2 = colorH == colorD && colorH != colorF && colorB != colorH ? colorH : colorE;

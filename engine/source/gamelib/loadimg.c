@@ -273,13 +273,13 @@ static int readpng(unsigned char *buf, unsigned char *pal, int maxwidth, int max
 	}
 	if(pal)
 	{
-	
-		if(png_get_PLTE(png_ptr, info_ptr, &png_pal_ptr, &png_pal_num) != PNG_INFO_PLTE || 
+
+		if(png_get_PLTE(png_ptr, info_ptr, &png_pal_ptr, &png_pal_num) != PNG_INFO_PLTE ||
 		   png_pal_ptr == NULL)
 		{
 			return 0;
 		}
-		
+
 		png_pal_ptr[0].red = png_pal_ptr[0].green = png_pal_ptr[0].blue = 0;
 		if(pb==512) // 16bit 565
 		{
@@ -838,25 +838,25 @@ static int readimage(unsigned char *buf, unsigned char *pal, int maxwidth, int m
 			result = readgif(buf, pal, maxwidth, maxheight);
 			#ifdef VERBOSE
 			printf("calling readimage %p %p %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "GIF", result);
-			#endif			
+			#endif
 			break;
 		case OT_PCX:
 			result = readpcx(buf, pal, maxwidth, maxheight);
 			#ifdef VERBOSE
 			printf("calling readimage %p %p %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "PCX", result);
-			#endif			
+			#endif
 			break;
 		case OT_BMP:
 			result = readbmp(buf, pal, maxwidth, maxheight);
 			#ifdef VERBOSE
 			printf("calling readimage %p %p %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "BMP", result);
-			#endif			
+			#endif
 			break;
 		case OT_PNG:
 			result = readpng(buf, pal, maxwidth, maxheight);
 			#ifdef VERBOSE
 			printf("calling readimage %p %p %d %d with format %s, result is %d\n", buf, pal, maxwidth, maxheight, "PNG", result);
-			#endif			
+			#endif
 			break;
 	}
 	if(pal)
@@ -880,7 +880,7 @@ int loadscreen(char *filename, char *packfile, unsigned char *pal, int format, s
 	unsigned char* p;
 #ifdef VERBOSE
 	printf("loadscreen called packfile: %s, filename %s\n", packfile, filename);
-#endif	
+#endif
 	if((*screen)) freescreen(screen);
 	if(!openimage(filename, packfile)) return 0;
 	if(!(*screen) || ((*screen)->width != res[0] && (*screen)->height != res[1] && (*screen)->pixelformat != format)){

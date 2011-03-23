@@ -7,11 +7,11 @@
  */
 
 /**
- * This is derived from Lexer.h in scriptlib, but is modified to be used by the 
- * script preprocessor.  Although the two script lexers share much of their codebase, 
- * there are some significant differences - for example, the preprocessor lexer 
+ * This is derived from Lexer.h in scriptlib, but is modified to be used by the
+ * script preprocessor.  Although the two script lexers share much of their codebase,
+ * there are some significant differences - for example, the preprocessor lexer
  * can detect preprocessor tokens (#include, #define) and doesn't eat whitespace.
- * 
+ *
  * @author Plombo
  * @date 15 October 2010
  */
@@ -47,10 +47,10 @@ typedef enum PP_TOKEN_TYPE {
 	  PP_TOKEN_LBRACKET, PP_TOKEN_RBRACKET, PP_TOKEN_FIELD, PP_TOKEN_BITWISE_AND,
 	  PP_TOKEN_BOOLEAN_NOT, PP_TOKEN_BITWISE_NOT, PP_TOKEN_ADD, PP_TOKEN_SUB, PP_TOKEN_MUL,
 	  PP_TOKEN_DIV, PP_TOKEN_MOD, PP_TOKEN_LT, PP_TOKEN_GT, PP_TOKEN_XOR, PP_TOKEN_BITWISE_OR,
-	  PP_TOKEN_ERROR, PP_TOKEN_COMMENT_SLASH, PP_TOKEN_COMMENT_STAR_BEGIN, 
+	  PP_TOKEN_ERROR, PP_TOKEN_COMMENT_SLASH, PP_TOKEN_COMMENT_STAR_BEGIN,
 	  PP_TOKEN_COMMENT_STAR_END, PP_TOKEN_NEWLINE, PP_TOKEN_WHITESPACE, PP_TOKEN_DIRECTIVE,
-	  PP_TOKEN_CONCATENATE, PP_TOKEN_INCLUDE, PP_TOKEN_DEFINE, PP_TOKEN_UNDEF, PP_TOKEN_PRAGMA, 
-	  PP_TOKEN_ELIF, PP_TOKEN_IFDEF, PP_TOKEN_IFNDEF, PP_TOKEN_ENDIF, PP_TOKEN_IMPORT, 
+	  PP_TOKEN_CONCATENATE, PP_TOKEN_INCLUDE, PP_TOKEN_DEFINE, PP_TOKEN_UNDEF, PP_TOKEN_PRAGMA,
+	  PP_TOKEN_ELIF, PP_TOKEN_IFDEF, PP_TOKEN_IFNDEF, PP_TOKEN_ENDIF, PP_TOKEN_IMPORT,
 	  PP_TOKEN_WARNING, PP_TOKEN_ERROR_TEXT, PP_TOKEN_EOF, PP_EPSILON, PP_END_OF_TOKENS
 }PP_TOKEN_TYPE;
 

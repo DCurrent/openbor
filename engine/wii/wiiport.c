@@ -34,9 +34,9 @@ char logsDir[128];
 char screenShotsDir[128];
 char rootDir[128]; // note: this one ends with a slash
 
-/* 
- * Given a file's path relative to the OpenBOR executable; returns an absolute 
- * path that can be opened with fopen. For example, Logs/OpenBorLog.txt could become 
+/*
+ * Given a file's path relative to the OpenBOR executable; returns an absolute
+ * path that can be opened with fopen. For example, Logs/OpenBorLog.txt could become
  * sd:/apps/OpenBOR/Logs/OpenBorLog.txt or usb:/apps/OpenBOR/Logs/OpenBorLog.txt.
  */
 char* getFullPath(char *relPath)

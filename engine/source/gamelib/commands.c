@@ -38,7 +38,7 @@ List* prepareList(void) {
 	List* result = malloc(sizeof(List));
 	assert(result);
 	List_Init(result);
-	return result;	
+	return result;
 }
 
 List* createModelstxtCommandList(void) {
@@ -71,14 +71,14 @@ List* createModelstxtCommandList(void) {
 	LIST_ADD(CMD_MODELSTXT_NOCHIPDEATH, "nochipdeath");
 	LIST_ADD(CMD_MODELSTXT_LIFESCORE, "lifescore");
 	LIST_ADD(CMD_MODELSTXT_CREDSCORE, "credscore");
-	LIST_ADD(CMD_MODELSTXT_VERSUSDAMAGE, "versusdamage");	
+	LIST_ADD(CMD_MODELSTXT_VERSUSDAMAGE, "versusdamage");
 	#undef LIST_ADD
 	return result;
 }
 
 List* createModelCommandList(void) {
 	List* result = prepareList();
-	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)	
+	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
 	LIST_ADD(CMD_MODEL_NAME, "name");
 	LIST_ADD(CMD_MODEL_TYPE, "type");
 	LIST_ADD(CMD_MODEL_SUBTYPE, "subtype");
@@ -311,7 +311,7 @@ List* createModelCommandList(void) {
 	LIST_ADD(CMD_MODEL_ATTACK17, "attack17");
 	LIST_ADD(CMD_MODEL_ATTACK18, "attack18");
 	LIST_ADD(CMD_MODEL_ATTACK19, "attack19");
-	LIST_ADD(CMD_MODEL_ATTACK20, "attack20");	
+	LIST_ADD(CMD_MODEL_ATTACK20, "attack20");
 	LIST_ADD(CMD_MODEL_SHOCK, "shock");
 	LIST_ADD(CMD_MODEL_BURN, "burn");
 	LIST_ADD(CMD_MODEL_STEAL, "steal");
@@ -361,7 +361,7 @@ List* createModelCommandList(void) {
 	LIST_ADD(CMD_MODEL_AT_CMD, "@cmd");
 	LIST_ADD(CMD_MODEL_MPCOST, "mpcost");
 	LIST_ADD(CMD_MODEL_SUBCLASS, "subclass");
-	
+
 	#undef LIST_ADD
 	return result;
 }
@@ -369,7 +369,7 @@ List* createModelCommandList(void) {
 List* createLevelCommandList(void) {
 	List* result = prepareList();
 	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
-	
+
 	LIST_ADD(CMD_LEVEL_LOADINGBG, "loadingbg");
 	LIST_ADD(CMD_LEVEL_MUSICFADE, "musicfade");
 	LIST_ADD(CMD_LEVEL_MUSIC, "music");
@@ -460,7 +460,7 @@ List* createLevelCommandList(void) {
 	LIST_ADD(CMD_LEVEL_ITEMALPHA, "itemalpha");
 	LIST_ADD(CMD_LEVEL_COORDS, "coords");
 	LIST_ADD(CMD_LEVEL_SPAWNSCRIPT, "spawnscript");
-	
+
 	#undef LIST_ADD
 	return result;
 }
@@ -578,7 +578,7 @@ List* createLevelOrderCommandList(void) {
 	LIST_ADD(CMD_LEVELORDER_RUSH, "rush");
 	LIST_ADD(CMD_LEVELORDER_MAXWALLHEIGHT, "maxwallheight");
 	LIST_ADD(CMD_LEVELORDER_SCOREFORMAT, "scoreformat");
-	
+
 	#undef LIST_ADD
 	return result;
 }

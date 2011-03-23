@@ -116,7 +116,7 @@ u64 getFreeRam(int byte_size)
 	fread(result, sizeof(char), size, file);
 	fclose(file);
 	result[size] = '\0';
-	return (atoi(result)*1024)/byte_size;	
+	return (atoi(result)*1024)/byte_size;
 #elif SYMBIAN
 	return GetFreeAmount();
 #else
@@ -225,7 +225,7 @@ u64 getUsedRam(int byte_size)
 
 void getRamStatus(int byte_size)
 {
-	printf("Total Ram: %"PRIu64" Bytes\n Free Ram: %"PRIu64" Bytes\n Used Ram: %"PRIu64" Bytes\n\n", 
+	printf("Total Ram: %"PRIu64" Bytes\n Free Ram: %"PRIu64" Bytes\n Used Ram: %"PRIu64" Bytes\n\n",
 		   getSystemRam(byte_size),
 		   getFreeRam(byte_size),
 		   getUsedRam(byte_size));

@@ -35,7 +35,7 @@
  * This effect is a rewritten implementation of the hq2x effect made by Maxim Stepin
  */
 
-/* 
+/*
  * Code adapted To OpenBOR by SX
  * hq2x.c - Trying to scale with high/low quality filters.
  *
@@ -58,7 +58,7 @@ static void hq2x_16_def(u16* dst0, u16* dst1, const u16* src0, const u16* src1, 
 {
 	unsigned i;
 
-	for(i=0;i<count;++i) 
+	for(i=0;i<count;++i)
 	{
 		unsigned char mask;
 	    u16 c[9];
@@ -67,26 +67,26 @@ static void hq2x_16_def(u16* dst0, u16* dst1, const u16* src0, const u16* src1, 
 		c[4] = src1[0];
 		c[7] = src2[0];
 
-		if (i>0) 
+		if (i>0)
 		{
 			c[0] = src0[-1];
 			c[3] = src1[-1];
 			c[6] = src2[-1];
 		}
-		else 
+		else
 		{
 			c[0] = c[1];
 			c[3] = c[4];
 			c[6] = c[7];
 		}
 
-		if (i<count-1) 
+		if (i<count-1)
 		{
 			c[2] = src0[1];
 			c[5] = src1[1];
 			c[8] = src2[1];
 		}
-		else 
+		else
 		{
 			c[2] = c[1];
 			c[5] = c[4];
@@ -127,7 +127,7 @@ static void hq2x_16_def(u16* dst0, u16* dst1, const u16* src0, const u16* src1, 
 #define I1411(p0,p1,p2) interp_16_1411(c[p0], c[p1], c[p2])
 #define I151(p0,p1) interp_16_151(c[p0], c[p1])
 
-		switch (mask) 
+		switch (mask)
 		{
 			#include "hq2x.h"
 		}
@@ -167,7 +167,7 @@ static void hq2x_32_def(u32* dst0, u32* dst1, const u32* src0, const u32* src1, 
 {
 	unsigned i;
 
-	for(i=0;i<count;++i) 
+	for(i=0;i<count;++i)
 	{
 		unsigned char mask;
 	    u32 c[9];
@@ -176,26 +176,26 @@ static void hq2x_32_def(u32* dst0, u32* dst1, const u32* src0, const u32* src1, 
 		c[4] = src1[0];
 		c[7] = src2[0];
 
-		if (i>0) 
+		if (i>0)
 		{
 			c[0] = src0[-1];
 			c[3] = src1[-1];
 			c[6] = src2[-1];
 		}
-		else 
+		else
 		{
 			c[0] = c[1];
 			c[3] = c[4];
 			c[6] = c[7];
 		}
 
-		if (i<count-1) 
+		if (i<count-1)
 		{
 			c[2] = src0[1];
 			c[5] = src1[1];
 			c[8] = src2[1];
-		} 
-		else 
+		}
+		else
 		{
 			c[2] = c[1];
 			c[5] = c[4];
@@ -236,7 +236,7 @@ static void hq2x_32_def(u32* dst0, u32* dst1, const u32* src0, const u32* src1, 
 #define I1411(p0,p1,p2) interp_32_1411(c[p0], c[p1], c[p2])
 #define I151(p0,p1) interp_32_151(c[p0], c[p1])
 
-		switch (mask) 
+		switch (mask)
 		{
 			#include "hq2x.h"
 		}
@@ -283,7 +283,7 @@ static void lq2x_16_def(u16* dst0, u16* dst1, const u16* src0, const u16* src1, 
 {
 	unsigned i;
 
-	for(i=0;i<count;++i) 
+	for(i=0;i<count;++i)
 	{
 		unsigned char mask;
 		u16 c[9];
@@ -292,26 +292,26 @@ static void lq2x_16_def(u16* dst0, u16* dst1, const u16* src0, const u16* src1, 
 		c[4] = src1[0];
 		c[7] = src2[0];
 
-		if (i>0) 
+		if (i>0)
 		{
 			c[0] = src0[-1];
 			c[3] = src1[-1];
 			c[6] = src2[-1];
 		}
-		else 
+		else
 		{
 			c[0] = c[1];
 			c[3] = c[4];
 			c[6] = c[7];
 		}
 
-		if (i<count-1) 
+		if (i<count-1)
 		{
 			c[2] = src0[1];
 			c[5] = src1[1];
 			c[8] = src2[1];
-		} 
-		else 
+		}
+		else
 		{
 			c[2] = c[1];
 			c[5] = c[4];
@@ -352,7 +352,7 @@ static void lq2x_16_def(u16* dst0, u16* dst1, const u16* src0, const u16* src1, 
 #define I1411(p0,p1,p2) interp_16_1411(c[p0], c[p1], c[p2])
 #define I151(p0,p1) interp_16_151(c[p0], c[p1])
 
-		switch (mask) 
+		switch (mask)
 		{
 			#include "lq2x.h"
 		}
@@ -392,7 +392,7 @@ static void lq2x_32_def(u32* dst0, u32* dst1, const u32* src0, const u32* src1, 
 {
 	unsigned i;
 
-	for(i=0;i<count;++i) 
+	for(i=0;i<count;++i)
 	{
 	    unsigned char mask;
 		u32 c[9];
@@ -401,7 +401,7 @@ static void lq2x_32_def(u32* dst0, u32* dst1, const u32* src0, const u32* src1, 
 		c[4] = src1[0];
 		c[7] = src2[0];
 
-		if (i>0) 
+		if (i>0)
 		{
 			c[0] = src0[-1];
 			c[3] = src1[-1];
@@ -414,7 +414,7 @@ static void lq2x_32_def(u32* dst0, u32* dst1, const u32* src0, const u32* src1, 
 			c[6] = c[7];
 		}
 
-		if (i<count-1) 
+		if (i<count-1)
 		{
 			c[2] = src0[1];
 			c[5] = src1[1];
@@ -461,7 +461,7 @@ static void lq2x_32_def(u32* dst0, u32* dst1, const u32* src0, const u32* src1, 
 #define I1411(p0,p1,p2) interp_32_1411(c[p0], c[p1], c[p2])
 #define I151(p0,p1) interp_32_151(c[p0], c[p1])
 
-		switch (mask) 
+		switch (mask)
 		{
 			#include "lq2x.h"
 		}
@@ -511,12 +511,12 @@ void Hq2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int 
 		u16 *src0 = (u16 *)srcPtr;
 		u16 *src1 = src0 + (srcPitch >> 1);
 		u16 *src2 = src1 + (srcPitch >> 1);
-  
+
 		hq2x_16_def(dst0, dst1, src0, src0, src1, width);
-  
+
 		count = height;
   		count -= 2;
-		while(count) 
+		while(count)
 		{
 			dst0 += dstPitch;
 			dst1 += dstPitch;
@@ -540,12 +540,12 @@ void Hq2x32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, in
 	u32 *src0 = (u32 *)srcPtr;
 	u32 *src1 = src0 + (srcPitch >> 2);
 	u32 *src2 = src1 + (srcPitch >> 2);
-	
+
 	hq2x_32_def(dst0, dst1, src0, src0, src1, width);
-  
+
 	count = height;
 	count -= 2;
-	while(count) 
+	while(count)
 	{
 		dst0 += dstPitch >> 1;
 		dst1 += dstPitch >> 1;
@@ -568,12 +568,12 @@ void Lq2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int 
 	u16 *src0 = (u16 *)srcPtr;
 	u16 *src1 = src0 + (srcPitch >> 1);
 	u16 *src2 = src1 + (srcPitch >> 1);
-  
+
 	lq2x_16_def(dst0, dst1, src0, src0, src1, width);
-  
+
 	count = height;
 	count -= 2;
-	while(count) 
+	while(count)
 	{
 	    dst0 += dstPitch;
 		dst1 += dstPitch;
@@ -596,12 +596,12 @@ void Lq2x32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, in
 	u32 *src0 = (u32 *)srcPtr;
 	u32 *src1 = src0 + (srcPitch >> 2);
 	u32 *src2 = src1 + (srcPitch >> 2);
-  
+
 	lq2x_32_def(dst0, dst1, src0, src0, src1, width);
-  
+
 	count = height;
 	count -= 2;
-	while(count) 
+	while(count)
 	{
 		dst0 += dstPitch >> 1;
 		dst1 += dstPitch >> 1;
@@ -636,14 +636,14 @@ void Init_LUTs(u32 BitFormat)
 	gMask = ((1 << gBits) - 1) << gShift;
 	bMask = ((1 << bBits) - 1) << bShift;
 
-	
+
 	// Allocate the YUV/LUT buffers on the fly if needed.
 	if(RGBtoYUV == NULL)
 		RGBtoYUV = (u32 *)malloc(65536 * sizeof(u32));
 	if(LUT16to32 == NULL)
 	    LUT16to32 = (u32 *)malloc(65536 * sizeof(u32));
 
-	for (color = 0; color < 65536; ++color) 
+	for (color = 0; color < 65536; ++color)
 	{
 		r = ((color & rMask) >> rShift) << (8 - rBits);
 		g = ((color & gMask) >> gShift) << (8 - gBits);

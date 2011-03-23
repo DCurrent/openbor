@@ -54,14 +54,14 @@ int mmuhack()
 /* Unload MMU Hack kernel module after closing all memory devices */
 void mmuunhack(void)
 {
-#ifndef WIZ  
+#ifndef WIZ
 	system("/sbin/rmmod mmuhack");
 #endif
 }
 
 void * UpperMalloc(int size)
 {
-#ifndef WIZ  
+#ifndef WIZ
 	int i = 0;
 	int j = 1;
 ReDo:
@@ -93,7 +93,7 @@ ReDo:
 //Releases UpperMalloced memory
 void UpperFree(void* mem)
 {
-#ifndef WIZ  
+#ifndef WIZ
 	int i = (((int)mem) - ((int)UpperMem));
 	if(i < 0 || i >= 0x2000000) writeToLogFile("UpperFree of not UpperMalloced mem: %p\n", mem);
 	else
@@ -101,7 +101,7 @@ void UpperFree(void* mem)
 		if(i % BLOCKSIZE) writeToLogFile("delete error: %p\n", mem);
 		TakenSize[i / BLOCKSIZE] = 0;
 	}
-#endif	
+#endif
 }
 
 //Returns the size of a UpperMalloced block.
@@ -117,7 +117,7 @@ int GetUpperSize(void* mem)
 	return TakenSize[i / BLOCKSIZE] * BLOCKSIZE;
 #else
 	return 0;
-#endif	
+#endif
 }
 
 #ifndef WIZ
@@ -159,12 +159,12 @@ void DestroyMemPool()
 	close(Uppermemfd);
 	UpperMem = NULL;
 }
-#endif	
+#endif
 
 void gp2x_end()
 {
 	close(gp2x_mixer);
-#ifndef WIZ	
+#ifndef WIZ
 	close(gp2x_mem);
 	DestroyMemPool();
 	mmuunhack();
@@ -204,7 +204,7 @@ void gp2x_set_clock(int mhz)
 	unsigned scale = 3;
 	unsigned v = mdiv | pdiv | scale;
 	gp2x_memregs[0x0910 >> 1] = v;
-#endif	
+#endif
 }
 
 void gp2x_sound_set_volume(int l, int r)
@@ -217,5 +217,5 @@ void gp2x_video_wait_vsync()
 {
 #ifndef WIZ
 	while (gp2x_memregs[0x1182 >> 1] & (1 << 4));
-#endif	
+#endif
 }

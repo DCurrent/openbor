@@ -67,7 +67,7 @@ public:
 // A bunch of constants used to identify call out positions
 //-----------------------------------------------------------------------------
 enum
-{   
+{
 	XBHELP_LEFTSTICK,
 	XBHELP_LEFTSTICK_LINEEND_1, XBHELP_LEFTSTICK_TEXTPOS_1,
 	XBHELP_LEFTSTICK_LINEEND_2, XBHELP_LEFTSTICK_TEXTPOS_2,

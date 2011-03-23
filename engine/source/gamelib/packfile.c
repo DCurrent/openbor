@@ -152,7 +152,7 @@ void fnlc(char* buf) {
 	while(copy && *copy) {
 		*copy = tolowerOneChar(copy);
 		copy++;
-	}	
+	}
 }
 
 // we only return 0 on success, and non 0 on failure, to speed it up
@@ -502,17 +502,17 @@ void update_filecache_vfd(int vfd)
 void makefilenamecache(void) {
 	ptrdiff_t hpos;
 	char target[256];
-	
+
 	if(!filenamelist)
 		filenamelist = malloc(sizeof(List));
 	List_Init(filenamelist);
-	
+
 	// look for filename in the header
-	
+
 	hpos = 0;
 	for(;;)
 	{
-		if((hpos + 12) >= pak_headersize) 
+		if((hpos + 12) >= pak_headersize)
 			return;
 		strncpy(target, (char*)pak_header + hpos + 12, 256);
 		fnlc(target);
@@ -547,25 +547,25 @@ int openreadaheadpackfile(const char *filename, const char *packfilename, int re
 			return -1;
 		}
 	}
-	
+
 	if(!filenamelist)
 		makefilenamecache();
-	
+
 	strncpy(target, filename, 256);
 	fnlc(target);
-	
+
 	n = List_SearchName(filenamelist, target);
-	if (!n) 
+	if (!n)
 		return -1;
-	
+
 	hpos = (ptrdiff_t) n->value;
-	
+
 	// find a free vfd
 	for(vfd = 0; vfd < MAXPACKHANDLES; vfd++) if(!pak_vfdexists[vfd]) break;
 	if(vfd >= MAXPACKHANDLES) return -1;
 
 	pak_vfdstart[vfd] = readlsb32(pak_header + hpos + 4);
-	pak_vfdsize[vfd] = readlsb32(pak_header + hpos + 8);	
+	pak_vfdsize[vfd] = readlsb32(pak_header + hpos + 8);
 
 	pak_vfdpos[vfd] = 0;
 	pak_vfdexists[vfd] = 1;

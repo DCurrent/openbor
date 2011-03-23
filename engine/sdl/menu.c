@@ -94,7 +94,7 @@ void getAllLogs()
 	{
 		logfile[i].buf = readFromLogFile(i);
 		if(logfile[i].buf != NULL)
-		{            
+		{
 			logfile[i].pos = malloc(++logfile[i].rows * sizeof(int));
 			if(logfile[i].pos == NULL) return;
 			memset(logfile[i].pos, 0, logfile[i].rows * sizeof(int));
@@ -544,7 +544,7 @@ int ControlBGM()
 }
 
 void initMenu(int type)
-{	
+{
 #if WIN || LINUX
 	factor = savedata.screen[videoMode][0] ? savedata.screen[videoMode][0] : 1;
 	isFull = savedata.fullscreen;

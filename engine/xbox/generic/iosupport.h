@@ -36,8 +36,8 @@
 #define TRAY_CLOSED_MEDIA_PRESENT	96
 
 #define DRIVE_OPEN						0 // Open...
-#define DRIVE_NOT_READY					1 // Opening.. Closing... 
-#define DRIVE_READY						2  
+#define DRIVE_NOT_READY					1 // Opening.. Closing...
+#define DRIVE_READY						2
 #define DRIVE_CLOSED_NO_MEDIA			3 // CLOSED...but no media in drive
 #define DRIVE_CLOSED_MEDIA_PRESENT		4 // Will be send once when the drive just have closed
 
@@ -62,13 +62,13 @@
 
 //Important ATA/ATAPI Commands
 //As per ATA Spec
-#define IDE_ATAPI_IDENTIFY				0xA1  
-#define IDE_ATA_IDENTIFY				0xEC  
+#define IDE_ATAPI_IDENTIFY				0xA1
+#define IDE_ATA_IDENTIFY				0xEC
 
 #define	IDE_ATA_SECURITY_SETPASSWORD	0xF1
 #define IDE_ATA_SECURITY_UNLOCK			0xF2
 #define	IDE_ATA_SECURITY_FREEZE			0xF5
-#define	IDE_ATA_SECURITY_DISABLE		0xF6 
+#define	IDE_ATA_SECURITY_DISABLE		0xF6
 
 //Important ATA IDENTIFY Data Structure values
 //As per ATA Spec
@@ -85,7 +85,7 @@
 #define IDE_ERROR_ABORT					0x0004
 
 
-//Our SendATACommand needs this to figure our if we should 
+//Our SendATACommand needs this to figure our if we should
 //read or write data to IDE registers..
 #define	IDE_COMMAND_READ				0x00
 #define	IDE_COMMAND_WRITE				0x01
@@ -107,31 +107,31 @@ struct ATAPI_PACKET
 };
 
 /*
-The host waits until BSY and DRQ are 0 and subsequently initializes the ATAPI task file. 
-Then it writes the ATAPI PACKET opcode (A0h) into the command register. 
+The host waits until BSY and DRQ are 0 and subsequently initializes the ATAPI task file.
+Then it writes the ATAPI PACKET opcode (A0h) into the command register.
 
-  The device sets BSY and prepares to accept the command packet proper. 
-  When it is ready it sets COD and cancels IO. Then it sets DRQ and cancels BSY. 
+  The device sets BSY and prepares to accept the command packet proper.
+  When it is ready it sets COD and cancels IO. Then it sets DRQ and cancels BSY.
 
-  As soon as it sees DRQ, the host writes the 12 command bytes into the data register. 
-  After having received the 12th byte the device cancels DRQ, sets BSY and reads the 
-  features and the byte count from the task file. 
+  As soon as it sees DRQ, the host writes the 12 command bytes into the data register.
+  After having received the 12th byte the device cancels DRQ, sets BSY and reads the
+  features and the byte count from the task file.
 
-  Let us now assume that we are dealing with a command packet which entails a data transfer 
-  to the host. The device executes the command and prepares for the data transfer. 
+  Let us now assume that we are dealing with a command packet which entails a data transfer
+  to the host. The device executes the command and prepares for the data transfer.
 
-  The device loads the byte count register, sets IO and cancels COD, sets DRQ and cancels BSY, 
-  and finally sets INTRO. 
+  The device loads the byte count register, sets IO and cancels COD, sets DRQ and cancels BSY,
+  and finally sets INTRO.
 
-  As soon as the host sees DRQ, it reads the status register. As a reaction, the device 
-  cancels INTRO. The host reads the data register as many times as specified in the byte 
-  count register. When all data are read the device negates DRQ. 
+  As soon as the host sees DRQ, it reads the status register. As a reaction, the device
+  cancels INTRO. The host reads the data register as many times as specified in the byte
+  count register. When all data are read the device negates DRQ.
 
-  The device writes the final status into the status register, sets COD, IO, and DRDY and 
-  cancels BSY and DRQ. Finally it sets INTRQ. 
+  The device writes the final status into the status register, sets COD, IO, and DRDY and
+  cancels BSY and DRQ. Finally it sets INTRQ.
 
-  This is the signal for the host to read the final status and, if necessary, 
-  the error register [3]. 
+  This is the signal for the host to read the final status and, if necessary,
+  the error register [3].
 */
 
 //http://216.239.33.100/search?q=cache:TGJT7HXOmfUJ:www.pjrc.com/tech/mp3/gallery/cs580/ata_atapi.html+%22atapi+packet%22+ata&hl=en&ie=UTF-8
@@ -228,7 +228,7 @@ PACKED TOC_SCSI, *PTOC_SCSI, FAR * LPTOC_SCSI;
 
 #pragma pack()
 
-class CIoSupport  
+class CIoSupport
 {
 public:
 
@@ -261,7 +261,7 @@ public:
 	INT 	ReadSectorCDDA(HANDLE hDevice, DWORD dwSector, LPSTR lpczBuffer);
 	VOID	CloseCDROM(HANDLE hDevice);
 	DWORD   GetSCSITOC(LPTOC_SCSI itoc, HANDLE hcdrom);
-	
+
 	BOOL	IsDebug();
 	HRESULT Shutdown();
 

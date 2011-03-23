@@ -88,7 +88,7 @@ struct XBMESH_DATA
 	DWORD             m_dwNumVertices;
 	D3DIndexBuffer    m_IB;
 	DWORD             m_dwNumIndices;
-	
+
 	DWORD             m_dwFVF;         // Mesh vertex info
 	DWORD             m_dwVertexSize;
 	D3DPRIMITIVETYPE  m_dwPrimType;
@@ -107,11 +107,11 @@ struct XBMESH_DATA
 __declspec(align(16)) struct XBMESH_FRAME
 {
 	D3DXMATRIX        m_matTransform; // The transformation matrix for this frame
-	
+
 	XBMESH_DATA       m_MeshData;     // The mesh data belonging to this frame
 
 	CHAR              m_strName[64];
-	
+
 	XBMESH_FRAME*     m_pChild;       // Child and sibling ptrs for the hierarchy
 	XBMESH_FRAME*     m_pNext;
 };
@@ -136,15 +136,15 @@ public:
 	DWORD         m_dwNumFrames;
 
 	// Internal rendering functions
-	virtual HRESULT RenderFrame( LPDIRECT3DDEVICE8 pd3dDevice, XBMESH_FRAME* pMesh, 
+	virtual HRESULT RenderFrame( LPDIRECT3DDEVICE8 pd3dDevice, XBMESH_FRAME* pMesh,
 								 DWORD dwFlags );
-	virtual HRESULT RenderMesh( LPDIRECT3DDEVICE8 pd3dDevice, XBMESH_DATA* pMesh, 
+	virtual HRESULT RenderMesh( LPDIRECT3DDEVICE8 pd3dDevice, XBMESH_DATA* pMesh,
 								DWORD dwFlags );
 
 	// Internal functions to find the radius of sphere centered at zero enclosing mesh.
 	float ComputeFrameRadius(XBMESH_FRAME* pFrame, D3DXMATRIX* pParentMat);
 	float ComputeMeshRadius(XBMESH_DATA* pMesh, D3DXMATRIX* pMat);
-	
+
 	// Internal functions to find the bounding box of the mesh.
 	HRESULT ComputeFrameBoundingBox(XBMESH_FRAME* pFrame, D3DXMATRIX* pParentMat, D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
 	HRESULT ComputeMeshBoundingBox(XBMESH_DATA* pMesh, D3DXMATRIX* pMat, D3DXVECTOR3 *pvMin, D3DXVECTOR3 *pvMax);
@@ -170,12 +170,12 @@ public:
 	XBMESH_FRAME* GetFrame( DWORD i ) { return &m_pMeshFrames[i]; }
 	XBMESH_DATA*  GetMesh( DWORD i )  { return &m_pMeshFrames[i].m_MeshData; }
 
-	// Overridable callback function (called before anything is rendered). 
+	// Overridable callback function (called before anything is rendered).
 	// This is useful for setting vertex shader constants, etc., before
 	// rendering.
 	virtual BOOL RenderCallback( LPDIRECT3DDEVICE8 pd3dDevice, DWORD dwSubset,
 								 XBMESH_SUBSET* pSubset, DWORD dwFlags ) { return TRUE; }
-	
+
 	// Render function. Call this function to render the hierarchy of frames
 	// and meshes.
 	HRESULT Render( LPDIRECT3DDEVICE8 pd3dDevice, DWORD dwFlags = 0x00000000 );
