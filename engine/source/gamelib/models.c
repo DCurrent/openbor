@@ -71,7 +71,7 @@ s_model* getFirstModel(void) {
 
 s_model* getCurrentModel(void) {
 	assert(modellist);
-	Node* n = List_GetCurrent(modellist);
+	Node* n = List_GetCurrentNode(modellist);
 	if(n)
 		return (s_model*) n->value;
 	else

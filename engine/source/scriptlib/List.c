@@ -242,7 +242,7 @@ int List_GotoFirst(List* list) {
 	return 1;
 }
 
-Node* List_GetCurrent(List* list) {
+Node* List_GetCurrentNode(List* list) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
