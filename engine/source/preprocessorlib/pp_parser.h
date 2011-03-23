@@ -7,10 +7,10 @@
  */
 
 /**
- * This is the parser for the script preprocessor.  Its purpose is to emit the 
- * preprocessed source code for use by scriptlib.  It is not derived from the 
+ * This is the parser for the script preprocessor.  Its purpose is to emit the
+ * preprocessed source code for use by scriptlib.  It is not derived from the
  * parser in scriptlib because it does something entirely different.
- * 
+ *
  * @author Plombo
  * @date 15 October 2010
  */
@@ -25,7 +25,7 @@
 #define MACRO_CONTENTS_SIZE		512
 
 /*
- * The current "state" of a single conditional (#ifdef/#else/#endif) sequence: 
+ * The current "state" of a single conditional (#ifdef/#else/#endif) sequence:
  * true, false, already completed (i.e. not eligible for #elif), or non-existent.
  */
 enum conditional_state {
@@ -36,7 +36,7 @@ enum conditional_state {
 };
 
 /**
- * Stack of conditional directives.  The preprocessor can handle up to 16 nested 
+ * Stack of conditional directives.  The preprocessor can handle up to 16 nested
  * conditionals.  The stack is implemented as a 32-bit integer.
  */
 typedef union {

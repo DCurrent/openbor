@@ -793,7 +793,7 @@ int sound_open_adpcm(char *filename, char *packname, int volume, int loop, u32 m
 
 	return 1;
 	error_exit:
-	sound_close_music();	
+	sound_close_music();
 	closepackfile(adpcm_handle);
 	return 0;
 }
@@ -942,9 +942,9 @@ int closepackfile_callback(void *ptr)
 {
 #ifdef VERBOSE
 	printf ("closepack cb %d\n", *(int*)ptr);
-#endif			
-	
-	return closepackfile(*(int*)ptr); 
+#endif
+
+	return closepackfile(*(int*)ptr);
 }
 int seekpackfile_callback(int *handle, ogg_int64_t offset, int whence)
 { return seekpackfile(*handle, (int)offset, whence); }
@@ -979,11 +979,11 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 	ogg_handle = openpackfile(filename, packname);
 #ifdef VERBOSE
 	printf ("ogg handle %d\n", ogg_handle);
-#endif		
+#endif
 	if(ogg_handle<0) {
 #ifdef VERBOSE
 		printf("couldn't get handle\n");
-#endif		
+#endif
 		return 0;
 	}
 	oggfile = malloc(sizeof(OggVorbis_File));
@@ -1002,7 +1002,7 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 #ifdef VERBOSE
 			printf("NOT can i play it\n");
 #endif
-			
+
 			goto error_exit;
 	}
 
@@ -1021,7 +1021,7 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 			sound_close_ogg();
 #ifdef VERBOSE
 			printf("buf is null\n");
-#endif			
+#endif
 			goto error_exit;
 		}
 		memset(musicchannel.buf[i], 0, MUSIC_BUF_SIZE*sizeof(short));
@@ -1031,11 +1031,11 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 	music_type = 1;
 
 	return 1;
-	
+
 	error_exit:
 	closepackfile(ogg_handle);
 	return 0;
-	
+
 }
 
 void sound_update_ogg(){

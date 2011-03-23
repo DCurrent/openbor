@@ -85,8 +85,8 @@ __forceinline DOUBLE  GetTimeInSeconds()
 //          TIMER_GETABSOLUTETIME - to get the absolute system time
 //          TIMER_GETAPPTIME      - to get the current time
 //-----------------------------------------------------------------------------
-enum TIMER_COMMAND { TIMER_RESET, TIMER_START, TIMER_STOP, 
-					 TIMER_ADVANCE, TIMER_RETRACT, 
+enum TIMER_COMMAND { TIMER_RESET, TIMER_START, TIMER_STOP,
+					 TIMER_ADVANCE, TIMER_RETRACT,
 					 TIMER_GETABSOLUTETIME, TIMER_GETAPPTIME };
 FLOAT XBUtil_Timer( TIMER_COMMAND command );
 
@@ -143,8 +143,8 @@ VOID XBUtil_SwizzleTexture3D( D3DLOCKED_BOX* pLock, const D3DVOLUME_DESC* pDesc 
 // Name: XBUtil_CreateVertexShader()
 // Desc: Creates a file-based vertex shader
 //-----------------------------------------------------------------------------
-HRESULT XBUtil_CreateVertexShader( LPDIRECT3DDEVICE8 pd3dDevice, 
-								   const CHAR* strFilename, 
+HRESULT XBUtil_CreateVertexShader( LPDIRECT3DDEVICE8 pd3dDevice,
+								   const CHAR* strFilename,
 								   const DWORD* pdwVertexDecl,
 								   DWORD* pdwVertexShader );
 
@@ -155,12 +155,12 @@ HRESULT XBUtil_CreateVertexShader( LPDIRECT3DDEVICE8 pd3dDevice,
 // Name: XBUtil_CreatePixelShader()
 // Desc: Creates a file-based pixel shader
 //-----------------------------------------------------------------------------
-HRESULT XBUtil_CreatePixelShader( LPDIRECT3DDEVICE8 pd3dDevice, 
+HRESULT XBUtil_CreatePixelShader( LPDIRECT3DDEVICE8 pd3dDevice,
 								  const CHAR* strFilename, DWORD* pdwPixelShader );
 
-									
-									
-									
+
+
+
 //-----------------------------------------------------------------------------
 // Name: XBUtil_VectorToRGBA()
 // Desc: Converts a normal into an RGBA vector.
@@ -190,8 +190,8 @@ D3DXMATRIX XBUtil_GetCubeMapViewMatrix( DWORD dwFace );
 // Name: XBUtil_CreateNormalizationCubeMap()
 // Desc: Creates a cube map and fills it with normalized RGBA vectors.
 //-----------------------------------------------------------------------------
-HRESULT XBUtil_CreateNormalizationCubeMap( LPDIRECT3DDEVICE8 pd3dDevice, 
-										   DWORD dwSize, 
+HRESULT XBUtil_CreateNormalizationCubeMap( LPDIRECT3DDEVICE8 pd3dDevice,
+										   DWORD dwSize,
 										   LPDIRECT3DCUBETEXTURE8* ppCubeMap );
 
 
@@ -213,7 +213,7 @@ HRESULT XBUtil_DumpSurface( LPDIRECT3DSURFACE8 pSurface, const CHAR* strFileName
 // Desc: Evaluate a cubic parametric equation. Returns the point at u on a
 //       Hermite curve.
 //-----------------------------------------------------------------------------
-D3DXVECTOR3 XBUtil_EvaluateHermite( const D3DXVECTOR3& p0, const D3DXVECTOR3& p1, 
+D3DXVECTOR3 XBUtil_EvaluateHermite( const D3DXVECTOR3& p0, const D3DXVECTOR3& p1,
 									const D3DXVECTOR3& v0, const D3DXVECTOR3& v1,
 									FLOAT u );
 
@@ -225,7 +225,7 @@ D3DXVECTOR3 XBUtil_EvaluateHermite( const D3DXVECTOR3& p0, const D3DXVECTOR3& p1
 // Desc: Evaluate a cubic parametric equation. Returns the point at u on a
 //       Catmull-Rom curve.
 //-----------------------------------------------------------------------------
-D3DXVECTOR3 XBUtil_EvaluateCatmullRom( const D3DXVECTOR3& p1, const D3DXVECTOR3& p2, 
+D3DXVECTOR3 XBUtil_EvaluateCatmullRom( const D3DXVECTOR3& p1, const D3DXVECTOR3& p2,
 									   const D3DXVECTOR3& p3, const D3DXVECTOR3& p4,
 									   FLOAT u );
 
@@ -238,7 +238,7 @@ D3DXVECTOR3 XBUtil_EvaluateCatmullRom( const D3DXVECTOR3& p1, const D3DXVECTOR3&
 //       points, and the point and tangent returned are located at position t
 //       on the spline, where 0 < t < dwNumSpinePts.
 //-----------------------------------------------------------------------------
-VOID XBUtil_GetSplinePoint( const D3DXVECTOR3* pSpline, DWORD dwNumSpinePts, FLOAT t, 
+VOID XBUtil_GetSplinePoint( const D3DXVECTOR3* pSpline, DWORD dwNumSpinePts, FLOAT t,
 							D3DXVECTOR3* pvPoint, D3DXVECTOR3* pvTangent );
 
 
@@ -248,7 +248,7 @@ VOID XBUtil_GetSplinePoint( const D3DXVECTOR3* pSpline, DWORD dwNumSpinePts, FLO
 // Name: XBUtil_RenderSpline()
 // Desc: For debugging purposes, visually renders a spline.
 //-----------------------------------------------------------------------------
-VOID XBUtil_RenderSpline( LPDIRECT3DDEVICE8 pd3dDevice, const D3DXVECTOR3* pSpline, 
+VOID XBUtil_RenderSpline( LPDIRECT3DDEVICE8 pd3dDevice, const D3DXVECTOR3* pSpline,
 						  DWORD dwNumSplinePts, DWORD dwColor, BOOL bRenderAxes );
 
 
@@ -266,7 +266,7 @@ VOID XBUtil_RenderSpline( LPDIRECT3DDEVICE8 pd3dDevice, const D3DXVECTOR3* pSpli
 //          v5    = Vertex specular color
 //          v6-v9 = Vertex texture coords
 //-----------------------------------------------------------------------------
-HRESULT XBUtil_DeclaratorFromFVF( DWORD dwFVF, 
+HRESULT XBUtil_DeclaratorFromFVF( DWORD dwFVF,
 								  DWORD Declaration[MAX_FVF_DECL_SIZE] );
 
 

@@ -91,7 +91,7 @@ public:
 	// The rest of the methods are for the world view matrix.
 	// The world view matrix is used to position, rotate and scale whatever polygons that we
 	// are about to render.
-	
+
 	// One line in this method! Am I lazy or what!
 	void ResetWorld(void);	// Resets the world matrix
 
@@ -108,7 +108,7 @@ public:
 	{
 		if (m_bManaged)
 			m_pTexture->AddRef();
-		
+
 		return m_pTexture;
 	};
 

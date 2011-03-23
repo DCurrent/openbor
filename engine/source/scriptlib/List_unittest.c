@@ -6,9 +6,9 @@
  *
  * set -DDEBUG when compiling List.c
  * to check access on non-initialized lists
- * 
+ *
  gcc -Wall -DDEBUG -DNO_RAM_DEBUGGER -I.. -I../gamelib -g -O0 List_unittest.c List.c -o list_unittest
- 
+
  */
 #include "List.h"
 #include <stdlib.h>
@@ -164,7 +164,7 @@ int main() {
 	assert(list.current = list.first->next);
 
 	List_InsertAfter(&list, (void*) dummy, int2str(++i));
-	
+
 	List_InsertBefore(&list, (void*) dummy, int2str(++i));
 	List_InsertBefore(&list, (void*) dummy, int2str(++i));
 	List_InsertBefore(&list, (void*) dummy, int2str(++i));
@@ -172,39 +172,39 @@ int main() {
 	List_GotoFirst(&list);
 	List_GotoNext(&list);
 	List_GotoPrevious(&list);
-	
+
 	List_GotoLast(&list);
-	
+
 	test = list.last;
 	assert(list.current == list.last);
-	
+
 	List_Remove(&list);
-	assert(list.last != test);	
+	assert(list.last != test);
 	assert(list.current == list.last);
-	
-	List_Remove(&list);	
-	assert(list.current == list.last);
-	
-	List_Remove(&list);	
-	assert(list.current == list.last);
-	
+
 	List_Remove(&list);
-	
+	assert(list.current == list.last);
+
+	List_Remove(&list);
+	assert(list.current == list.last);
+
+	List_Remove(&list);
+
 	assert(list.current == list.last);
 	assert(list.size == i - 6);
-	
+
 	List_GotoPrevious(&list);
 	List_GotoPrevious(&list);
 	List_GotoPrevious(&list);
-	
+
 	assert(List_Retrieve(&list) == (void*)0xDEADBEEF);
 	List_Remove(&list);
 	assert(!List_Includes(&list, (void*)0xDEADBEEF));
 	assert(list.size == i - 7);
-	
+
 	List_GotoLast(&list);
 	List_InsertAfter(&list, (void*) 0xDEADBEEF, int2str(++i));
-	
+
 	#ifdef USE_INDEX
 	List_CreateIndices(&list);
 	assert(list.mindices);
@@ -215,10 +215,10 @@ int main() {
 	assert(list.mindices[ptrhash((void*)0xDEADBEEF)]);
 	#endif
 	assert(List_Includes(&list, (void*)0xDEADBEEF));
-	
-	assert(list.current == list.last);	
+
+	assert(list.current == list.last);
 	assert(List_Retrieve(&list) == (void*)0xDEADBEEF);
-	
+
 	List_Update(&list, (void*)0xDEADC0DE);
 	assert(list.current == list.last);
 	assert(List_Retrieve(&list) == (void*)0xDEADC0DE);
@@ -243,7 +243,7 @@ int main() {
 	assert(list.mindices[ptrhash((void*)0xDEADBEEF)]->nodes[0] == NULL);
 	assert(list.mindices[ptrhash((void*)0xDEADBEEF)]->used == 1);
 	#endif
-	
+
 	List_Clear(&list);
 	assert(list.size == 0);
 	List_Init(&list);
@@ -260,7 +260,7 @@ int main() {
 	List_GotoFirst(&list);
 
 	List_Clear(&list);
-	
+
 	// testing the order of removal is equivalent to gotonext
 	List_Init(&list);
 	List_InsertAfter(&list, (void*) 1, NULL);
@@ -279,7 +279,7 @@ int main() {
 	List_GotoFirst(&list);
 	assert(list.current->value == (void*) 1);
 	List_Remove(&list);
-	assert(list.current->value == (void*) 2);	
+	assert(list.current->value == (void*) 2);
 	List_Remove(&list);
 	assert(list.current->value == (void*) 3);
 	List_Remove(&list);
@@ -289,8 +289,8 @@ int main() {
 	assert(list.current == list.last);
 	assert(list.current == list.first);
 	assert(list.current == NULL);
-	
-	
+
+
 	freemem();
 	return 0;
 }

@@ -688,7 +688,7 @@ void scalescreen(s_screen * dest, s_screen * src)
  */
 void zoomscreen(s_screen* dest, s_screen* src, int centerx, int centery, int scalex, int scaley)
 {
-	s_screen* frame;	
+	s_screen* frame;
 	int screenwidth = src->width;
 	int screenheight = src->height;
 	int width = (screenwidth<<8)/scalex; // width of clipped, unscaled screen
@@ -696,14 +696,14 @@ void zoomscreen(s_screen* dest, s_screen* src, int centerx, int centery, int sca
 	int xmin = (width>>1)-centerx; // x coord before clipping corresponding to x=0 after clipping
 	int ymin = (height>>1)-centery; // y coord before clipping corresponding to y=0 after clipping
 	int pixelformat = dest->pixelformat;
-	
+
 	if(src->pixelformat!=pixelformat) return;
 	if(xmin>=screenwidth || xmin+((width*scalex)>>8)<0) return; // out of left or right border
 	if(ymin>=screenheight) return;
-	
+
 	frame = allocscreen(width, height, pixelformat); // the part of the screen that will be zoomed
 	copyscreen_o(frame, src, xmin, ymin);
-	
+
 	if(pixelbytes[pixelformat]==1)
 	{
 		scalescreen(dest, frame);

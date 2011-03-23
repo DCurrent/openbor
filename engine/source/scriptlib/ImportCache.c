@@ -27,13 +27,13 @@ char* readscript(const char* path)
 	int handle = openpackfile(path, packfile);
 	int size;
 	char* buffer = NULL;
-	
+
 	if(handle < 0) goto error;
 	size = seekpackfile(handle, 0, SEEK_END);
 	if(size < 0) goto error;
 	buffer = malloc(size + 1);
 	if(buffer == NULL) goto error;
-	
+
 	if(seekpackfile(handle, 0, SEEK_SET) < 0) goto error;
 	if(readpackfile(handle, buffer, size) < 0) goto error;
 	closepackfile(handle);
@@ -51,7 +51,7 @@ HRESULT ImportNode_Init(ImportNode* node, const char* path)
 {
 	char* scriptText;
 	node->numRefs = 0;
-	
+
 	Interpreter_Init(&node->interpreter, "#import", &theFunctionList);
 	scriptText = readscript(path);
 	if(scriptText == NULL) goto error;
@@ -79,7 +79,7 @@ void ImportCache_Init()
 ImportNode* ImportCache_Retrieve(const char* path)
 {
 	ImportNode* node;
-	
+
 	if(List_FindByName(&importCache, (char*) path)) // already imported by another file
 	{
 #ifdef VERBOSE
@@ -100,7 +100,7 @@ ImportNode* ImportCache_Retrieve(const char* path)
 		List_InsertAfter(&importCache, node, (char*) path);
 		node->numRefs++;
 	}
-	
+
 	return node;
 }
 
@@ -121,7 +121,7 @@ void ImportCache_Clear()
 {
 	int i, num;
 	ImportNode* node;
-	
+
 	List_Reset(&importCache);
 	while(importCache.size > 0)
 	{

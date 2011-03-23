@@ -1,5 +1,5 @@
 /**
- * This is a silly test script for testing the preprocessor functionality using 
+ * This is a silly test script for testing the preprocessor functionality using
  * pp_test.
  */
 
@@ -26,7 +26,7 @@ notfunc(42)  // correct output: (x)(42)
 PSEUDO1      // correct output: __reverse__
 PSEUDO2(12)  // correct output: [12]
 
-/* make sure function macros started inside of another macro can be completed by 
+/* make sure function macros started inside of another macro can be completed by
  * subsequent text (this is a corner case) */
 #define partial func(17
 partial)     // correct output: [17]

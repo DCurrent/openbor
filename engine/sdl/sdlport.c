@@ -80,14 +80,14 @@ int main(int argc, char *argv[])
 
 	setSystemRam();
 	initSDL();
-	
+
 	packfile_mode(0);
-	
+
 	dirExists(paksDir, 1);
 	dirExists(savesDir, 1);
 	dirExists(logsDir, 1);
 	dirExists(screenShotsDir, 1);
-	
+
 	Menu();
 	openborMain(argc, argv);
 	borExit(0);

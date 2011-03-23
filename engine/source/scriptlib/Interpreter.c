@@ -31,7 +31,7 @@ void Interpreter_Clear(Interpreter* pinterpreter)
 	int i, size;
 	Instruction* pinstruction = NULL;
 	ScriptVariant* pvariant = NULL;
-	
+
 	pp_context_destroy(&(pinterpreter->theContext));
 
 	StackedSymbolTable_Clear(&(pinterpreter->theSymbolTable));
@@ -85,7 +85,7 @@ HRESULT Interpreter_ParseText(Interpreter* pinterpreter, LPSTR scriptText,
 {
 
 	//Parse the script
-	Parser_ParseText(&(pinterpreter->theParser), &(pinterpreter->theContext), 
+	Parser_ParseText(&(pinterpreter->theParser), &(pinterpreter->theContext),
 					&(pinterpreter->theInstructionList), scriptText, startingLineNumber, path );
 
 	if(pinterpreter->theParser.errorFound) return E_FAIL;
@@ -365,7 +365,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 	ScriptVariant* pRetVal = NULL;
 	ImportNode* pImport = NULL;
 	HRESULT hr = S_OK;
-	
+
 	// Import any scripts named in #import directives (parsed by the preprocessor)
 	size = pinterpreter->theContext.imports.size;
 	List_Reset(&(pinterpreter->theContext.imports));
@@ -377,10 +377,10 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		List_InsertAfter(&(pinterpreter->theImportList), pImport, (char*) pLabel);
 		List_GotoNext(&(pinterpreter->theContext.imports));
 	}
-	
+
 	// We are done appending to the script at this point, so free the preprocessor context
 	pp_context_destroy(&(pinterpreter->theContext));
-	
+
 	#ifdef USE_INDEX
 	// it seems the list is used readonly here, so lets create an index for faster lookup
 	List_CreateIndices(&(pinterpreter->theInstructionList));
@@ -640,7 +640,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		}
 		List_GotoNext(&(pinterpreter->theInstructionList));
 	}
-	
+
 	// clear some unused properties
 	List_Reset(&(pinterpreter->theInstructionList));
 	size = List_GetSize(&(pinterpreter->theInstructionList));
@@ -652,19 +652,19 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		if(pInstruction->Label) {free(pInstruction->Label); pInstruction->Label=NULL;}
 		List_GotoNext(&(pinterpreter->theInstructionList));
 	}
-	
+
 	// make a solid list that can be referenced by index
 	List_Solidify(&(pinterpreter->theInstructionList));
 	StackedSymbolTable_Clear(&(pinterpreter->theSymbolTable));
 	List_Clear(&(pinterpreter->theDataStack));
 	List_Clear(&(pinterpreter->theLabelStack));
-	
+
 	// convert mainEntryIndex (int) to pMainEntry (Instruction**)
 	if(pinterpreter->mainEntryIndex >= 0)
 		pinterpreter->pMainEntry = (Instruction**)(&(pinterpreter->theInstructionList.solidlist[pinterpreter->mainEntryIndex]));
 	else
 		pinterpreter->pMainEntry = NULL;
-	
+
 	// convert theJumpTargetIndex (int) to ptheJumpTarget (Instruction**)
 	for(i=0; i<size; i++)
 	{
@@ -1032,7 +1032,7 @@ void Interpreter_Reset(Interpreter* pinterpreter)
 }
 
 /******************************************************************************
-*  ClearImports -- This method frees all of the #import references in the 
+*  ClearImports -- This method frees all of the #import references in the
 *                  interpreter.
 *  Parameters: none
 *  Returns: none

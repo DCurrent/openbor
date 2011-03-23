@@ -26,7 +26,7 @@ HRESULT Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 	ptoken->theTextPosition = ppToken->theTextPosition;
 	ptoken->charOffset = ppToken->charOffset;
 	strncpy(ptoken->theSource, ppToken->theSource, MAX_TOKEN_LENGTH);
-	
+
 	switch (ppToken->theType)
 	{
 		case PP_TOKEN_IDENTIFIER:
@@ -49,12 +49,12 @@ HRESULT Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 		case PP_TOKEN_STRING_LITERAL:
 		{
 			char *src, *dest;
-			
+
 			// handle escape sequences and convert to correct format
 			ptoken->theType = TOKEN_STRING_LITERAL;
 			src = ppToken->theSource + 1; // skip first quote mark
 			dest = ptoken->theSource;
-			
+
 			while (*src && *src != '"')
 			{
 				if (*src == '\\')
@@ -194,7 +194,7 @@ HRESULT Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 			ptoken->theType = TOKEN_ERROR;
 			return E_FAIL;
 	}
-	
+
 	return S_OK;
 }
 
@@ -223,17 +223,17 @@ void Lexer_Clear(Lexer* plexer)
 HRESULT Lexer_GetNextToken(Lexer* plexer, Token* theNextToken)
 {
 	pp_token* ppToken;
-	
+
 	// get the next non-whitespace, non-newline token from the preprocessor
 	do
 	{
 		ppToken = pp_parser_emit_token(&plexer->preprocessor);
 		if (ppToken == NULL) return E_FAIL;
 	} while (ppToken->theType == PP_TOKEN_WHITESPACE || ppToken->theType == PP_TOKEN_NEWLINE);
-	
+
 	plexer->theTokenPosition = plexer->preprocessor.lexer.theTokenPosition;
 	plexer->pcurChar = plexer->preprocessor.lexer.pcurChar;
-	
+
 	return Token_InitFromPreprocessor(theNextToken, ppToken);
 }
 

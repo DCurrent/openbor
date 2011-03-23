@@ -7,26 +7,26 @@ static const char* TL_EOUTOFMEM = "error: out of memory";
 
 void tlerror(char* msg, int line, char* file) {
 	fprintf(stderr, "%s (%s:%d)\n", msg, file, line);
-}	
-	
+}
+
 
 void* tlmalloc(int line, char* file, size_t size) {
 	tlInfo* mem = NULL;
 	if(!size) {
 		fprintf(stderr, "tried to nallocate memory with size 0, called from %s:%d\n", file, line);
 		return NULL;
-	}	
+	}
 	mem = malloc(size + sizeof(tlInfo));
 	if(!mem) {
 		tlerror((char*) TL_EOUTOFMEM, line, file);
 		return NULL;
-	}	
+	}
 	mem->line = line;
 	mem->file = file;
 	mem->size = size;
 	mem->buf = (char*) mem + sizeof(tlInfo);
 	List_GotoLast(&tlList);
-	List_InsertAfter(&tlList, (void*) mem, NULL);	
+	List_InsertAfter(&tlList, (void*) mem, NULL);
 	return (void*) mem->buf;
 }
 
@@ -53,20 +53,20 @@ void* tlrealloc(int line, char* file, void* ptr, size_t size) {
 	}
 	if(old->size >= size) {
 		fprintf(stderr, "tried to realloc with lower size at %p called from %s:%d\n", ptr, file, line);
-		return old->buf;		
+		return old->buf;
 	}
 	mem = realloc(old, size + sizeof(tlInfo));
 	if(!mem) {
 		tlerror((char*) TL_EOUTOFMEM, line, file);
 		List_Remove(&tlList);
-		return NULL;		
+		return NULL;
 	}
 	mem->line = line;
 	mem->file = file;
 	mem->size = size;
 	mem->buf = (char*) mem + sizeof(tlInfo);
 	assert(old != mem);
-	assert(tlList.current->value == (void*)old);	
+	assert(tlList.current->value == (void*)old);
 	List_Update(&tlList, (void*)mem);
 	assert(tlList.current->value == (void*)mem);
 	return (void*) mem->buf;

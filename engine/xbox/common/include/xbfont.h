@@ -69,11 +69,11 @@
 //-----------------------------------------------------------------------------
 // Custom vertex type for rendering text
 //-----------------------------------------------------------------------------
-struct XBFONTVERTEX 
-{ 
+struct XBFONTVERTEX
+{
 	D3DXVECTOR4 p;
 	DWORD       color;
-	FLOAT       tu, tv; 
+	FLOAT       tu, tv;
 };
 
 #define D3DFVF_XBFONTVERTEX (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_TEX1)
@@ -98,7 +98,7 @@ struct GLYPH_ATTR
 
 //-----------------------------------------------------------------------------
 // Name: class CXBFont
-// Desc: Class to implement texture-based font rendering. A .tga image file of 
+// Desc: Class to implement texture-based font rendering. A .tga image file of
 //       the pre-rendered font is used to create the texture. A .abc file
 //       contains information for spacing the font characters (aka glyphs).
 //-----------------------------------------------------------------------------
@@ -143,7 +143,7 @@ public:
 	~CXBFont();
 
 	// Functions to create and destroy the internal objects
-	HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, 
+	HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice,
 					const CHAR* strFontResourceFileName );
 	HRESULT Destroy();
 
@@ -151,20 +151,20 @@ public:
 	VOID    ReplaceInvalidChars( WCHAR* strUpdate, WCHAR cReplacement ) const;
 
 	// Returns the dimensions of a text string
-	HRESULT GetTextExtent( const WCHAR* strText, FLOAT* pWidth, 
+	HRESULT GetTextExtent( const WCHAR* strText, FLOAT* pWidth,
 						   FLOAT* pHeight, BOOL bFirstLineOnly=FALSE ) const;
 
 	// Function to create a texture containing rendered text
-	LPDIRECT3DTEXTURE8 CreateTexture( const WCHAR* strText, 
+	LPDIRECT3DTEXTURE8 CreateTexture( const WCHAR* strText,
 									  D3DCOLOR dwBackgroundColor = 0x00000000,
 									  D3DCOLOR dwTextColor = 0xffffffff,
 									  D3DFORMAT d3dFormat = D3DFMT_LIN_A8R8G8B8 );
 
 	// Public calls to render text. Callers can simply call DrawText(), but for
-	// performance, they should batch multiple calls together, bracketed by 
+	// performance, they should batch multiple calls together, bracketed by
 	// calls to Begin() and End().
 	HRESULT Begin();
-	HRESULT DrawText( FLOAT sx, FLOAT sy, DWORD dwColor, 
+	HRESULT DrawText( FLOAT sx, FLOAT sy, DWORD dwColor,
 					  const WCHAR* strText, DWORD dwFlags=0L );
 	HRESULT End();
 };

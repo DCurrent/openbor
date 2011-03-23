@@ -22,7 +22,7 @@ typedef struct {
 	char* file;
 	size_t size;
 	char* buf;
-} tlInfo;	
+} tlInfo;
 
 void tlinit(void);
 void* tlmalloc(int line, char* file, size_t size);

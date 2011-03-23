@@ -134,7 +134,7 @@ typedef struct{
 	int  ofsx;
 	int	 ofsy;
 	int  centerx;
-	int  centery;	
+	int  centery;
 	s_sprite *sprite;
 }s_sprite_map;
 s_sprite_map *sprite_map;

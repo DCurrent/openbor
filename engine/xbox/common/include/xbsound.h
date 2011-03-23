@@ -73,7 +73,7 @@ class CWaveFile
 	CRiffChunk  m_FormatChunk;      // Format chunk
 	CRiffChunk  m_DataChunk;        // Data chunk
 	CRiffChunk  m_WaveSampleChunk;  // Wave Sample chunk
-	
+
 public:
 	CWaveFile();
 	~CWaveFile();
@@ -86,7 +86,7 @@ public:
 	HRESULT GetFormat( WAVEFORMATEX* pwfxFormat, DWORD dwFormatSize, DWORD *pdwRequiredSize = NULL );
 
 	// File data
-	HRESULT ReadSample( DWORD dwPosition, VOID* pBuffer, DWORD dwBufferSize, 
+	HRESULT ReadSample( DWORD dwPosition, VOID* pBuffer, DWORD dwBufferSize,
 						DWORD* pdwRead );
 
 	// Loop region

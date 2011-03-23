@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // File: XBResource.h
 //
-// Desc: Loads resources from an XPR (Xbox Packed Resource) file.  
+// Desc: Loads resources from an XPR (Xbox Packed Resource) file.
 //
 // Hist: 03.12.01 - New for April XDK release
 //
@@ -40,7 +40,7 @@ struct XBRESOURCE
 
 //-----------------------------------------------------------------------------
 // Name: class CXBPackedResource
-// Desc: 
+// Desc:
 //-----------------------------------------------------------------------------
 class CXBPackedResource
 {
@@ -49,12 +49,12 @@ protected:
 	BYTE*       m_pVidMemData;    // Alloc'ed memory for resource data, etc.
 
 	DWORD       m_dwNumResources; // Number of loaded resources
- 
+
 	XBRESOURCE* m_pResourceTags;  // Tags to associate names with the resources
 
 public:
 	// Loads the resources out of the specified bundle
-	HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, const CHAR* strFilename, 
+	HRESULT Create( LPDIRECT3DDEVICE8 pd3dDevice, const CHAR* strFilename,
 					DWORD dwNumResources, XBRESOURCE* pResourceTags = NULL );
 
 	VOID Destroy();

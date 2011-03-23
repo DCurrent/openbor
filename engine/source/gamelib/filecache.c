@@ -64,11 +64,11 @@ static unsigned *cacheblock_mru;
 static unsigned cacheblock_lastused = 0;
 static unsigned cacheblock_mru_counter = 0;
 
-static void cacheblock_mark_used(unsigned n) 
+static void cacheblock_mark_used(unsigned n)
 {
 	if(n >= filecache_blocks) return;
 	if(n == cacheblock_lastused) return;
-	if(cacheblock_mru_counter == 0xFFFFFFFF) 
+	if(cacheblock_mru_counter == 0xFFFFFFFF)
 	{
 		unsigned i;
 		for(i = 0; i < filecache_blocks; i++) { cacheblock_mru[i] >>= 1; }
@@ -112,16 +112,16 @@ static int filecache_maxcdsectors;
 // find which cacheblock is the least useful
 // this means: least recently used, and is not immune
 //
-int find_least_useful_cacheblock(void) 
+int find_least_useful_cacheblock(void)
 {
 	int i, vfd;
 	int leastcacheblock = -1;
-	for(i = 0; i < filecache_blocks; i++) 
+	for(i = 0; i < filecache_blocks; i++)
 	{
 		int pakblock = filecache_pakmap[i];
 		if(pakblock < 0) return i;
 		// start and read pointers of any open files are both immune
-		for(vfd = 0; vfd < max_vfds; vfd++) 
+		for(vfd = 0; vfd < max_vfds; vfd++)
 		{
 			if(vfd_readptr_pakblock[vfd] < 0) continue;
 			if(vfd_startptr_pakblock[vfd] == pakblock) break;
@@ -144,7 +144,7 @@ int find_least_useful_cacheblock(void)
 // get the number of blocks available for this vfd
 // (short loop)
 //
-static int get_vfd_blocks_available(int vfd) 
+static int get_vfd_blocks_available(int vfd)
 {
 	int i;
 	// can't have more blocks than what exists in the cache
@@ -170,7 +170,7 @@ static int get_vfd_blocks_available(int vfd)
 //   any vfds with desired readahead > 0, and less than that many bytes available
 //   the vfd with the least available blocks is serviced first
 //
-int which_pakblock_to_read(int *suggested_min_run) 
+int which_pakblock_to_read(int *suggested_min_run)
 {
 	int vfd;
 	int least_avail;
@@ -185,15 +185,15 @@ int which_pakblock_to_read(int *suggested_min_run)
 	//   the vfd with the least available blocks is serviced first
 	least_avail = -1;
 	least_percent_available = 100;
-	for(vfd = 0; vfd < max_vfds; vfd++) 
+	for(vfd = 0; vfd < max_vfds; vfd++)
 	{
-		if(vfd_readptr_pakblock[vfd] >= 0 && vfd_desired_readahead_blocks[vfd] > 0) 
+		if(vfd_readptr_pakblock[vfd] >= 0 && vfd_desired_readahead_blocks[vfd] > 0)
 		{
 			percent_available = (100*vfd_blocks_available[vfd])/vfd_desired_readahead_blocks[vfd];
-			if(percent_available < 25 && percent_available < least_percent_available) 
+			if(percent_available < 25 && percent_available < least_percent_available)
 			{
 				pakblock = vfd_readptr_pakblock[vfd] + vfd_blocks_available[vfd];
-				if(pakblock >= 0 && pakblock < total_pakblocks) 
+				if(pakblock >= 0 && pakblock < total_pakblocks)
 				{
 					least_percent_available = percent_available;
 					least_avail = vfd;
@@ -201,7 +201,7 @@ int which_pakblock_to_read(int *suggested_min_run)
 			}
 		}
 	}
-	if(least_avail >= 0) 
+	if(least_avail >= 0)
 	{
 		if(suggested_min_run) *suggested_min_run = vfd_desired_readahead_blocks[vfd] / 4;
 		return vfd_readptr_pakblock[least_avail] + vfd_blocks_available[least_avail];
@@ -218,15 +218,15 @@ int which_pakblock_to_read(int *suggested_min_run)
 	//   the vfd with the least available blocks is serviced first
 	least_avail = -1;
 	least_percent_available = 100;
-	for(vfd = 0; vfd < max_vfds; vfd++) 
+	for(vfd = 0; vfd < max_vfds; vfd++)
 	{
-		if(vfd_readptr_pakblock[vfd] >= 0 && vfd_desired_readahead_blocks[vfd] > 0) 
+		if(vfd_readptr_pakblock[vfd] >= 0 && vfd_desired_readahead_blocks[vfd] > 0)
 		{
 			percent_available = (100*vfd_blocks_available[vfd])/vfd_desired_readahead_blocks[vfd];
-			if(percent_available < least_percent_available) 
+			if(percent_available < least_percent_available)
 			{
 				pakblock = vfd_readptr_pakblock[vfd] + vfd_blocks_available[vfd];
-				if(pakblock >= 0 && pakblock < total_pakblocks) 
+				if(pakblock >= 0 && pakblock < total_pakblocks)
 				{
 					least_percent_available = percent_available;
 					least_avail = vfd;
@@ -234,7 +234,7 @@ int which_pakblock_to_read(int *suggested_min_run)
 			}
 		}
 	}
-	if(least_avail >= 0) 
+	if(least_avail >= 0)
 	{
 		return vfd_readptr_pakblock[least_avail] + vfd_blocks_available[least_avail];
 	}
@@ -254,7 +254,7 @@ static int pakblock_run_ptr = 0;
 static int pakblock_run_len = 0;
 static int pakblock_run_min = 1;
 
-void filecache_process(void) 
+void filecache_process(void)
 {
 	int vfd;
 	int least_useful_cacheblock;
@@ -273,7 +273,7 @@ void filecache_process(void)
 	if(busy) return;
 #elif DC
 	// busy?
-	if(real_pakfd < 0) 
+	if(real_pakfd < 0)
 	{
 		if(gdrom_poll()) return;
 	}
@@ -283,7 +283,7 @@ void filecache_process(void)
 	pakblock_read = last_pakblock_read;
 
 	// if we just updated the cache, reflect the new changes
-	if(cacheblock_read >= 0 && pakblock_read >= 0) 
+	if(cacheblock_read >= 0 && pakblock_read >= 0)
 	{
 		filecache_pakmap[cacheblock_read] = pakblock_read;
 		where_is_this_pakblock_cached[pakblock_read] = cacheblock_read;
@@ -296,7 +296,7 @@ void filecache_process(void)
 	if(request_read_pakblock >= total_pakblocks) request_read_pakblock = 0;
 
 	// if the requested read block is available, signal so
-	if(request_read_pakblock >= 0 && where_is_this_pakblock_cached[request_read_pakblock] < filecache_blocks) 
+	if(request_read_pakblock >= 0 && where_is_this_pakblock_cached[request_read_pakblock] < filecache_blocks)
 	{
 		request_read_pakblock = -1;
 	}
@@ -305,7 +305,7 @@ void filecache_process(void)
 	least_useful_cacheblock = find_least_useful_cacheblock();
 
 	// get how many blocks are available to each vfd
-	for(vfd = 0; vfd < max_vfds; vfd++) 
+	for(vfd = 0; vfd < max_vfds; vfd++)
 	{
 		vfd_blocks_available[vfd] = get_vfd_blocks_available(vfd);
 	}
@@ -314,12 +314,12 @@ void filecache_process(void)
 	// now decide what pakblock to read next
 	//
 	if(pakblock_run_len >= pakblock_run_min) { pakblock_run_len = 0; }
-	if((pakblock_run_len > 0) && ((pakblock_run_ptr+1) < total_pakblocks)) 
+	if((pakblock_run_len > 0) && ((pakblock_run_ptr+1) < total_pakblocks))
 	{
 		pakblock_run_len++;
 		pakblock_read = ++pakblock_run_ptr;
 	}
-	else 
+	else
 	{
 		int mymin = default_minimum_run_bytes / filecache_blocksize;
 		pakblock_run_min = mymin;
@@ -340,18 +340,18 @@ void filecache_process(void)
 
 	// if we're reading a pakblock, read it into the least useful cacheblock
 	// and invalidate that part of the cache
-	if(pakblock_read >= 0) 
+	if(pakblock_read >= 0)
 	{
 		int oldpak;
 		cacheblock_read = least_useful_cacheblock;
 		oldpak = filecache_pakmap[cacheblock_read];
-		if(oldpak >= 0 && oldpak < total_pakblocks) 
+		if(oldpak >= 0 && oldpak < total_pakblocks)
 		{
 			where_is_this_pakblock_cached[oldpak] = filecache_blocks;
 		}
 		filecache_pakmap[cacheblock_read] = -1;
 	}
-	else 
+	else
 	{
 		cacheblock_read = -1;
 	}
@@ -360,10 +360,10 @@ void filecache_process(void)
 	last_cacheblock_read = cacheblock_read;
 
 	// if we wanted to read something, read it
-	if(pakblock_read >= 0 && cacheblock_read >= 0) 
+	if(pakblock_read >= 0 && cacheblock_read >= 0)
 	{
 #ifdef DC
-		if(real_pakfd < 0) 
+		if(real_pakfd < 0)
 		{
 			void *dest = filecache + (cacheblock_read * filecache_blocksize);
 			int lba = (pakblock_read * filecache_blocksize) / 2048;
@@ -372,8 +372,8 @@ void filecache_process(void)
 			if((lba+n) > filecache_maxcdsectors) n = filecache_maxcdsectors - lba;
 			// gdrom reads are non-blocking
 			gdrom_readsectors(dest, (-real_pakfd) + lba, n);
-		} 
-		else 
+		}
+		else
 #endif
 		{
 #ifdef PS2
@@ -403,11 +403,11 @@ int filecache_readpakblock(unsigned char *dest, int pakblock, int startofs, int 
 	if(startofs >= filecache_blocksize) return 0;
 	if((startofs+bytes) > filecache_blocksize) bytes = filecache_blocksize - startofs;
 
-	for(;;) 
+	for(;;)
 	{
 		// see if we can copy from the cache
 		cacheblock = where_is_this_pakblock_cached[pakblock];
-		if(cacheblock < filecache_blocks) 
+		if(cacheblock < filecache_blocks)
 		{
 			cacheblock_mark_used(cacheblock);
 			memcpy(dest, filecache + (cacheblock * filecache_blocksize) + startofs, bytes);
@@ -430,7 +430,7 @@ int filecache_readpakblock(unsigned char *dest, int pakblock, int startofs, int 
 //
 // set up where the vfd pointers are
 //
-void filecache_setvfd(int vfd, int start, int block, int readahead) 
+void filecache_setvfd(int vfd, int start, int block, int readahead)
 {
 	if(vfd < 0 || vfd >= max_vfds) return;
 	vfd_startptr_pakblock[vfd] = start;
@@ -460,7 +460,7 @@ void filecache_term()
 	pakblock_run_ptr          = 0;
 	pakblock_run_len          = 0;
 	pakblock_run_min          = 1;
-	if(vfd_blocks_available != NULL) 
+	if(vfd_blocks_available != NULL)
 	{
 		free(vfd_blocks_available);
 		vfd_blocks_available = NULL;
@@ -469,8 +469,8 @@ void filecache_term()
 	{
 		free(cacheblock_mru);
 		cacheblock_mru = NULL;
-	}	
-	if(vfd_desired_readahead_blocks != NULL) 
+	}
+	if(vfd_desired_readahead_blocks != NULL)
 	{
 		free(vfd_desired_readahead_blocks);
 		vfd_desired_readahead_blocks = NULL;
@@ -480,17 +480,17 @@ void filecache_term()
 		free(vfd_startptr_pakblock);
 		vfd_startptr_pakblock = NULL;
 	}
-	if(vfd_readptr_pakblock != NULL) 
+	if(vfd_readptr_pakblock != NULL)
 	{
 		free(vfd_readptr_pakblock);
 		vfd_readptr_pakblock = NULL;
 	}
-	if(where_is_this_pakblock_cached != NULL) 
+	if(where_is_this_pakblock_cached != NULL)
 	{
 		free(where_is_this_pakblock_cached);
 		where_is_this_pakblock_cached = NULL;
 	}
-	if(filecache_pakmap != NULL) 
+	if(filecache_pakmap != NULL)
 	{
 		free(filecache_pakmap);
 		filecache_pakmap = NULL;
@@ -545,9 +545,9 @@ void filecache_init(int realfd, int pakcdsectors, int blocksize, unsigned char b
 #else
 	filecache_head = malloc(filecache_blocksize * filecache_blocks + 64);
 #endif
-  
+
 	filecache = filecache_head;
-  
+
 	// align the filecache
 	// we can lose this pointer since it'll never be freed anyway and can be reused while running bor
 	// When we exit with sceKernalExitGame All resources are Freed up prior to returning to PSP OS.
@@ -587,10 +587,10 @@ void filecache_init(int realfd, int pakcdsectors, int blocksize, unsigned char b
 //
 // quick and dirty
 //
-void filecache_wait_for_prebuffer(int vfd, int nblocks) 
+void filecache_wait_for_prebuffer(int vfd, int nblocks)
 {
 	if(vfd_readptr_pakblock[vfd] < 0) return;
-	if((vfd_readptr_pakblock[vfd]+nblocks) > total_pakblocks) 
+	if((vfd_readptr_pakblock[vfd]+nblocks) > total_pakblocks)
 	{
 		nblocks = total_pakblocks - vfd_readptr_pakblock[vfd];
 	}

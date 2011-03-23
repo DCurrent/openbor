@@ -8,15 +8,15 @@
 
 /**
  * This is derived from Lexer.c in scriptlib, but is modified to be used by the
- * script preprocessor.  Although the two script lexers share much of their codebase, 
- * there are some significant differences - for example, the preprocessor lexer 
+ * script preprocessor.  Although the two script lexers share much of their codebase,
+ * there are some significant differences - for example, the preprocessor lexer
  * can detect preprocessor tokens (#include, #define) and doesn't eat whitespace.
- * 
+ *
  * View this file as UTF-8 in order to read utunnels' original comments in Chinese,
- * which look like random garbage otherwise.  Above each Chinese comment, though, 
+ * which look like random garbage otherwise.  Above each Chinese comment, though,
  * is a translation into English using Google Translate. The original Lexer.c
  * was encoded with the GB18030 (Simplified Chinese) encoding.
- * 
+ *
  * @author Plombo (original Lexer.c by utunnels)
  * @date 15 October 2010
  */
@@ -52,7 +52,7 @@
 
 /******************************************************************************
 *  SKIPCHARACTER -- Skip a character, not to plexer->theTokenSource in.
-*  
+*
 *  Original comment: 跳过一个字符，不加入到plexer->theTokenSource中。
 *  2007-1-22
 ******************************************************************************/
@@ -121,9 +121,9 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 		 MAKETOKEN( PP_TOKEN_NEWLINE );
 		 return S_OK;
 	  }
-	  
+
 	  //newline (\n), carriage return (\r), or form feed (\f)
-	  else if ( !strncmp( plexer->pcurChar, "\n", 1) || !strncmp( plexer->pcurChar, "\r", 1) || 
+	  else if ( !strncmp( plexer->pcurChar, "\n", 1) || !strncmp( plexer->pcurChar, "\r", 1) ||
 	  			!strncmp( plexer->pcurChar, "\f", 1)){
 		 //interpret as a newline
 		 plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\n';
@@ -135,7 +135,7 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 		 MAKETOKEN( PP_TOKEN_NEWLINE );
 		 return S_OK;
 	  }
-	  
+
 	  //Backslash-escaped Windows line break (\r\n)
 	  else if ( !strncmp( plexer->pcurChar, "\\\r\n", 3)){
 		 //interpret as a newline, but not as a PP_TOKEN_NEWLINE
@@ -148,9 +148,9 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 		 MAKETOKEN( PP_TOKEN_WHITESPACE );
 		 return S_OK;
 	  }
-	  
+
 	  //Backslash-escaped newline (\n), carriage return (\r), or form feed (\f)
-	  else if ( !strncmp( plexer->pcurChar, "\\\n", 2) || !strncmp( plexer->pcurChar, "\\\r", 2) || 
+	  else if ( !strncmp( plexer->pcurChar, "\\\n", 2) || !strncmp( plexer->pcurChar, "\\\r", 2) ||
 	  			!strncmp( plexer->pcurChar, "\\\f", 2)){
 		 //interpret as a newline, but not as a PP_TOKEN_NEWLINE
 		 plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\n';
@@ -183,7 +183,7 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 		 MAKETOKEN( PP_TOKEN_WHITESPACE );
 		 return S_OK;
 	  }
-	  
+
 	  //non-breaking space (A0 in Windows-1252 and ISO-8859-* encodings)
 	  else if ( !strncmp(plexer->pcurChar, "\xa0", 1)){
 		 //increment the offset counter and replace with a normal space
@@ -271,7 +271,7 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 			return S_OK;
 		 }
 	  }
-	  
+
 	  //Concatenation operator (inside of #defines)
 	  else if ( !strncmp( plexer->pcurChar, "##", 2)){
 		 CONSUMECHARACTER;
@@ -279,7 +279,7 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 		 MAKETOKEN( PP_TOKEN_CONCATENATE );
 		 return S_OK;
 	  }
-	  
+
 	  //Preprocessor directive
 	  else if ( !strncmp( plexer->pcurChar, "#", 1)){
 		 CONSUMECHARACTER;
@@ -309,8 +309,8 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 		 //Consume the character
 		 CONSUMECHARACTER;
 
-		 /* Create an "error" token, but continue normally since unrecognized 
-		  * characters are none of the preprocessor's business.  Scriptlib can 
+		 /* Create an "error" token, but continue normally since unrecognized
+		  * characters are none of the preprocessor's business.  Scriptlib can
 		  * deal with them if necessary. */
 		 MAKETOKEN( PP_TOKEN_ERROR );
 		 //HandleCompileError( *theNextToken, UNRECOGNIZED_CHARACTER );
@@ -330,7 +330,7 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 HRESULT pp_lexer_GetTokenIdentifier(pp_lexer* plexer, pp_token* theNextToken)
 {
    int len = 0;
-   
+
    //copy the source that makes up this token
    //an identifier is a string of letters, digits and/or underscores
    do{
@@ -434,7 +434,7 @@ HRESULT pp_lexer_GetTokenIdentifier(pp_lexer* plexer, pp_token* theNextToken)
 	  MAKETOKEN( PP_TOKEN_ERROR_TEXT );} // this is completely different from PP_TOKEN_ERROR!
    else{
 	  MAKETOKEN( PP_TOKEN_IDENTIFIER );}
-   
+
    return S_OK;
 }
 
@@ -911,8 +911,8 @@ HRESULT pp_lexer_SkipComment(pp_lexer* plexer, COMMENT_TYPE theType)
 			plexer->theTextPosition.row++;
 			continue;
 		 }
-		 if (!strncmp( plexer->pcurChar, "\\\n", 2) || 
-			 !strncmp( plexer->pcurChar, "\\\r", 2) || 
+		 if (!strncmp( plexer->pcurChar, "\\\n", 2) ||
+			 !strncmp( plexer->pcurChar, "\\\r", 2) ||
 			 !strncmp( plexer->pcurChar, "\\\f", 2))
 		 {
 			SKIPCHARACTER;
@@ -922,8 +922,8 @@ HRESULT pp_lexer_SkipComment(pp_lexer* plexer, COMMENT_TYPE theType)
 		 }
 		 //break out if we hit a new line
 		 if (!strncmp( plexer->pcurChar, "\r\n", 2) ||
-			 !strncmp( plexer->pcurChar, "\n", 1) || 
-			 !strncmp( plexer->pcurChar, "\r", 1) || 
+			 !strncmp( plexer->pcurChar, "\n", 1) ||
+			 !strncmp( plexer->pcurChar, "\r", 1) ||
 			 !strncmp( plexer->pcurChar, "\f", 1))
 		 {
 			break;

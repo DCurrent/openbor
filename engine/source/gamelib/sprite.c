@@ -628,7 +628,7 @@ void putsprite(int x, int y, s_sprite *frame, s_screen *screen){
 					dest_c += 4;
 					--viscount_dwords;
 				}
-			} else 
+			} else
 #endif
 			{
 				// Move DWORDS
@@ -1767,14 +1767,14 @@ static void scaleline(int x, int cx, int width, unsigned long *linetab, unsigned
 	unsigned int scale_d=0, old_scale_d=0, cleft, cwidth;
 
 	dx = x - ((cx*scale)>>8); //draw start x
-	
+
 //    if(dx>=screenwidth || dx+((width*scale)>>8)<0) return; it should be check in the function that called this
 
 	dest_c += dx;
 
 	// Get ready to draw a line
 	data = linetab + (*linetab / 4);
-	
+
 	for(;;)
 	{
 		cleft = *data++;
@@ -1800,7 +1800,7 @@ static void scaleline(int x, int cx, int width, unsigned long *linetab, unsigned
 			{
 				for(i=d>>8; i>0; i--) // draw a pixel
 				{
-					if(dx>=0) // pass left border? 
+					if(dx>=0) // pass left border?
 					{
 						*dest_c = fp(lut, *charptr, *dest_c);
 					}
@@ -1812,13 +1812,13 @@ static void scaleline(int x, int cx, int width, unsigned long *linetab, unsigned
 			charptr++; // src ptr move right one pixel
 		}
 	}
-	 
+
 }
 
 
 
 
-// scalex scaley flipy ... 
+// scalex scaley flipy ...
 void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod* drawmethod)
 {
 	unsigned long *linetab;
@@ -1831,29 +1831,29 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
 		putsprite(x, y, frame, screen);
 		return;
 	}
-	
+
 	if(!drawmethod->scalex || !drawmethod->scaley) return; // zero size
-	
+
 	screenheight = screen->height;
 	screenwidth = screen->width;
-	
+
 	dx = x - ((frame->centerx*drawmethod->scalex)>>8); //draw start x
-	
+
 	if(dx>=screenwidth || dx+((frame->width*drawmethod->scalex)>>8)<0) return; // out of left or right border
-	
+
 	cy = y;
 	height = frame->height;
 	linetab = (unsigned long*)(frame->data);
-	
+
 	if(drawmethod->fillcolor) fillcolor = drawmethod->fillcolor;
-	
+
 	// flip in y direction, from centery
 	if(drawmethod->flipy)
 	{
 		y += (frame->centery*drawmethod->scaley)>>8; // lowest
 		dest_c = (unsigned char*)(screen->data)+y*screenwidth;
 		if(y<0) return;
-	 
+
 		while(height--)
 		{
 			scale += drawmethod->scaley;
@@ -1862,7 +1862,7 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
 			{
 				for(i=d>>8; i>0; i--) // draw a line
 				{
-					if(y<screenheight) // pass lower border? 
+					if(y<screenheight) // pass lower border?
 					{
 						scaleline(x+((drawmethod->shiftx*(cy-y))/256), frame->centerx, frame->width, linetab, dest_c, drawmethod->table, drawmethod->fp, drawmethod->scalex);
 					}
@@ -1879,7 +1879,7 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
 		y -= (frame->centery*drawmethod->scaley)>>8; // topmost
 		dest_c = (unsigned char*)(screen->data)+y*screenwidth;
 		if(y>=screenheight) return;
-	 
+
 		while(height--)
 		{
 			scale += drawmethod->scaley;
@@ -1888,7 +1888,7 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
 			{
 				for(i=d>>8; i>0; i--) // draw a line
 				{
-					if(y>=0) // pass upper border? 
+					if(y>=0) // pass upper border?
 					{
 						scaleline(x+((drawmethod->shiftx*(y-cy))/256), frame->centerx, frame->width, linetab, dest_c, drawmethod->table, drawmethod->fp, drawmethod->scalex);
 					}

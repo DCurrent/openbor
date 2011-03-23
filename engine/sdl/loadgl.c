@@ -8,9 +8,9 @@
 
 /*
  * Dynamic OpenGL function loader.  Allows the program to run using SDL software
- * blitting when there is no OpenGL implementation available.  This is the case 
+ * blitting when there is no OpenGL implementation available.  This is the case
  * by default in some Linux distributions and on some very old Windows computers.
- * 
+ *
  * Date: August 3, 2010
  * Update, September 17, 2010
  */
@@ -98,23 +98,23 @@ int LoadGLFunctions()
 	LOADFUNC("glViewport", ptr_glViewport);
 	LOADFUNC("glMatrixMode", ptr_glMatrixMode);
 	LOADFUNC("glLoadIdentity", ptr_glLoadIdentity);
-	
+
 	LOADFUNC("glGenTextures", ptr_glGenTextures);
 	LOADFUNC("glDeleteTextures", ptr_glDeleteTextures);
 	LOADFUNC("glBindTexture", ptr_glBindTexture);
 	LOADFUNC("glTexImage2D", ptr_glTexImage2D);
 	LOADFUNC("glTexSubImage2D", ptr_glTexSubImage2D);
-	
+
 	LOADFUNC("glClear", ptr_glClear);
 	LOADFUNC("glClearColor", ptr_glClearColor);
 	LOADFUNC("glColor4f", ptr_glColor4f);
 	LOADFUNC("glBlendFunc", ptr_glBlendFunc);
 	LOADFUNC("glTexEnvi", ptr_glTexEnvi);
 	LOADFUNC("glTexEnvfv", ptr_glTexEnvfv);
-	
+
 	LOADFUNC("glEnable", ptr_glEnable);
 	LOADFUNC("glDisable", ptr_glDisable);
-	
+
 	LOADFUNC("glGetIntegerv", ptr_glGetIntegerv);
 	LOADFUNC("glGetString", ptr_glGetString);
 	LOADFUNC("glGetError", ptr_glGetError);
@@ -135,7 +135,7 @@ int LoadGLFunctions()
 	LOADFUNC("glVertex2i", ptr_glVertex2i);
 	LOADFUNC("glTexCoord2f", ptr_glTexCoord2f);
 #endif
-	
+
 	// load multisampling functions; try the ARB versions if the core versions are not available
 	ptr_glActiveTexture = GetProcAddress("glActiveTexture");
 	if(!ptr_glActiveTexture)
@@ -145,7 +145,7 @@ int LoadGLFunctions()
 	if(!ptr_glMultiTexCoord2f)
 		LOADFUNC("glMultiTexCoord2fARB", ptr_glMultiTexCoord2f);
 #endif
-	
+
 	// load optional GLSL extensions
 	glCreateShaderObjectARB = GetProcAddress("glCreateShaderObjectARB");
 	glShaderSourceARB = GetProcAddress("glShaderSourceARB");
@@ -158,7 +158,7 @@ int LoadGLFunctions()
 	glUniform1iARB = GetProcAddress("glUniform1iARB");
 	glUniform1fARB = GetProcAddress("glUniform1fARB");
 	glUniform4fARB = GetProcAddress("glUniform4fARB");
-	
+
 	return 1;
 }
 

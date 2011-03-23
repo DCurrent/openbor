@@ -285,8 +285,8 @@ void u16pcpy(unsigned short* pdest, const unsigned char* psrc, unsigned short* p
 	// plain testcode to measure if that fugly macro actually is that fast or just slows down compile time, and freezing my texteditor when selecting that line
 	unsigned l;
 	if (len) {
-		l = len;		
-		if(l < 961) 
+		l = len;
+		if(l < 961)
 			do {
 				l--;
 				pdest[l] = pp[psrc[l]];

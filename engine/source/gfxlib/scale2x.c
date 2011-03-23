@@ -32,7 +32,7 @@
  * - derivative works of the program are allowed.
  */
 
-/* 
+/*
  * Code adapted To OpenBOR by SX
  * scale2x.c - Trying to scale 2x.
  *
@@ -47,7 +47,7 @@
 /* Suggested in "Intel Optimization" for Pentium II */
 #define ASM_JUMP_ALIGN ".p2align 4\n"
 
-static void internal_scale2x_16_def(u16 *dst0, u16* dst1, const u16* src0, const u16* src1, const u16* src2, unsigned count) 
+static void internal_scale2x_16_def(u16 *dst0, u16* dst1, const u16* src0, const u16* src1, const u16* src2, unsigned count)
 {
 	/* first pixel */
 	dst0[0] = src1[0];
@@ -68,7 +68,7 @@ static void internal_scale2x_16_def(u16 *dst0, u16* dst1, const u16* src0, const
 
 	/* central pixels */
 	count -= 2;
-	while (count) 
+	while (count)
 	{
 		if (src1[-1] == src0[0] && src2[0] != src0[0] && src1[1] != src0[0])
 			dst0[0] = src0[0];
@@ -109,7 +109,7 @@ static void internal_scale2x_16_def(u16 *dst0, u16* dst1, const u16* src0, const
 	dst1[1] =src1[0];
 }
 
-static void internal_scale2x_32_def(u32* dst0, u32* dst1, const u32* src0, const u32* src1, const u32* src2, unsigned count) 
+static void internal_scale2x_32_def(u32* dst0, u32* dst1, const u32* src0, const u32* src1, const u32* src2, unsigned count)
 {
 	/* first pixel */
 	dst0[0] = src1[0];
@@ -130,7 +130,7 @@ static void internal_scale2x_32_def(u32* dst0, u32* dst1, const u32* src0, const
 
 	/* central pixels */
 	count -= 2;
-	while (count) 
+	while (count)
 	{
 		if (src1[-1] == src0[0] && src2[0] != src0[0] && src1[1] != src0[0])
 			dst0[0] = src0[0];
@@ -172,12 +172,12 @@ static void internal_scale2x_32_def(u32* dst0, u32* dst1, const u32* src0, const
 }
 
 #ifdef MMX
-static void internal_scale2x_16_mmx_single(u16* dst, const u16* src0, const u16* src1, const u16* src2, unsigned count) 
+static void internal_scale2x_16_mmx_single(u16* dst, const u16* src0, const u16* src1, const u16* src2, unsigned count)
 {
 	/* always do the first and last run */
 	count -= 2*4;
 
-#ifdef __GNUC__        
+#ifdef __GNUC__
   __asm__ __volatile__(
 					   /* first run */
 					   /* set the current, current_pre, current_next registers */
@@ -365,7 +365,7 @@ static void internal_scale2x_16_mmx_single(u16* dst, const u16* src0, const u16*
 	mov ecx, src2;
 	mov edx, dst;
 	mov esi, count;
-		  
+
 	/* first run */
 	/* set the current, current_pre, current_next registers */
 	pxor mm0,mm0; /* use a fake black out of screen */
@@ -484,7 +484,7 @@ static void internal_scale2x_16_mmx_single(u16* dst, const u16* src0, const u16*
 	add ebx,8;
 	add ecx,8;
 	add edx,16;
-		  
+
 	dec esi;
 	jnz label0;
   label1:
@@ -551,7 +551,7 @@ static void internal_scale2x_16_mmx_single(u16* dst, const u16* src0, const u16*
 #endif
 }
 
-static void internal_scale2x_32_mmx_single(u32* dst, const u32* src0, const u32* src1, const u32* src2, unsigned count) 
+static void internal_scale2x_32_mmx_single(u32* dst, const u32* src0, const u32* src1, const u32* src2, unsigned count)
 {
 	/* always do the first and last run */
 	count -= 2*2;
@@ -744,7 +744,7 @@ static void internal_scale2x_32_mmx_single(u32* dst, const u32* src0, const u32*
 	mov ecx, src2;
 	mov edx, dst;
 	mov esi, count;
-	
+
 	/* first run */
 	/* set the current, current_pre, current_next registers */
 	pxor mm0,mm0;
@@ -806,7 +806,7 @@ static void internal_scale2x_32_mmx_single(u32* dst, const u32* src0, const u32*
 	shr esi,1;
 	jz label1;
 label0:
-	
+
   /* set the current, current_pre, current_next registers */
 	movq mm0,qword ptr [ebx-8];
 	movq mm7,qword ptr [ebx];
@@ -866,7 +866,7 @@ label0:
 	dec esi;
 	jnz label0;
 label1:
-	
+
 	/* final run */
 	/* set the current, current_pre, current_next registers */
 	movq mm0,qword ptr [ebx-8];
@@ -929,14 +929,14 @@ label1:
 #endif
 }
 
-static void internal_scale2x_16_mmx(u16* dst0, u16* dst1, const u16* src0, const u16* src1, const u16* src2, unsigned count) 
+static void internal_scale2x_16_mmx(u16* dst0, u16* dst1, const u16* src0, const u16* src1, const u16* src2, unsigned count)
 {
 	//assert( count >= 2*4 );
 	internal_scale2x_16_mmx_single(dst0, src0, src1, src2, count);
 	internal_scale2x_16_mmx_single(dst1, src2, src1, src0, count);
 }
 
-static void internal_scale2x_32_mmx(u32* dst0, u32* dst1, const u32* src0, const u32* src1, const u32* src2, unsigned count) 
+static void internal_scale2x_32_mmx(u32* dst0, u32* dst1, const u32* src0, const u32* src1, const u32* src2, unsigned count)
 {
 	 //assert( count >= 2*2 );
 	internal_scale2x_32_mmx_single(dst0, src0, src1, src2, count);
@@ -954,13 +954,13 @@ void AdMame2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, 
 	u16 *src2 = src1 + (srcPitch/2);
 
 #ifdef MMX
-	if(GetMMX()) 
+	if(GetMMX())
 	{
 		internal_scale2x_16_mmx(dst0, dst1, src0, src0, src1, width);
-  
+
 		count = height;
 		count -= 2;
-		while(count) 
+		while(count)
 		{
 			dst0 += dstPitch;
 			dst1 += dstPitch;
@@ -973,15 +973,15 @@ void AdMame2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, 
 		dst0 += dstPitch;
 		dst1 += dstPitch;
 		internal_scale2x_16_mmx(dst0, dst1, src0, src1, src1, width);
-	} 
+	}
 	else
 #endif
 	{
 		internal_scale2x_16_def(dst0, dst1, src0, src0, src1, width);
-  
+
 		count = height;
 	    count -= 2;
-		while(count) 
+		while(count)
 		{
 			dst0 += dstPitch;
 			dst1 += dstPitch;
@@ -1007,13 +1007,13 @@ void AdMame2x32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch
 	u32 *src2 = src1 + (srcPitch/4);
 
 #ifdef MMX
-	if(GetMMX()) 
+	if(GetMMX())
 	{
 		internal_scale2x_32_mmx(dst0, dst1, src0, src0, src1, width);
-  
+
 		count = height;
 		count -= 2;
-		while(count) 
+		while(count)
 		{
 			dst0 += dstPitch/2;
 			dst1 += dstPitch/2;
@@ -1027,14 +1027,14 @@ void AdMame2x32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch
 		dst1 += dstPitch/2;
 		internal_scale2x_32_mmx(dst0, dst1, src0, src1, src1, width);
 	}
-	else 
+	else
 #endif
 	{
 		internal_scale2x_32_def(dst0, dst1, src0, src0, src1, width);
-  
+
 		count = height;
 		count -= 2;
-		while(count) 
+		while(count)
 		{
 			dst0 += dstPitch/2;
 			dst1 += dstPitch/2;
@@ -1047,5 +1047,5 @@ void AdMame2x32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch
 		dst0 += dstPitch/2;
 		dst1 += dstPitch/2;
 		internal_scale2x_32_def(dst0, dst1, src0, src1, src1, width);
-	}	
+	}
 }
