@@ -352,14 +352,16 @@ function darwin {
       cp ./resources/PkgInfo ./releases/DARWIN/OpenBOR.app/Contents
       cp ./resources/Info.plist ./releases/DARWIN/OpenBOR.app/Contents
       cp ./resources/OpenBOR.icns ./releases/DARWIN/OpenBOR.app/Contents/Resources
-      cp ${DWNDEV}/lib/libSDL-1.2.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-      cp ${DWNDEV}/lib/libSDL_gfx.13.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-      cp ${DWNDEV}/lib/libogg.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-      cp ${DWNDEV}/lib/libvorbisfile.3.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-      cp ${DWNDEV}/lib/libvorbis.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-      cp ${DWNDEV}/lib/libpng14.14.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-      cp ${DWNDEV}/lib/libz.1.2.5.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-      ./darwin.sh
+      if [ "${DWNDEV}" != "/opt/mac" ]; then
+        cp ${DWNDEV}/lib/libSDL-1.2.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+        cp ${DWNDEV}/lib/libSDL_gfx.13.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+        cp ${DWNDEV}/lib/libogg.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+        cp ${DWNDEV}/lib/libvorbisfile.3.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+        cp ${DWNDEV}/lib/libvorbis.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+        cp ${DWNDEV}/lib/libpng14.14.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+        cp ${DWNDEV}/lib/libz.1.2.5.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+        ./darwin.sh
+      fi
     fi
     make clean BUILD_DARWIN=1
   fi
