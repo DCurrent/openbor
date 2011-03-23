@@ -395,6 +395,7 @@ GAME	        = source/gamelib/draw.o                                            
                   source/gamelib/texture.o                                                          \
                   source/gamelib/texture16.o                                                        \
                   source/gamelib/commands.o                                                         \
+                  source/gamelib/models.o                                                           \
                   source/gamelib/texture32.o
 SCRIPT          = source/scriptlib/StackedSymbolTable.o                                             \
                   source/scriptlib/ScriptVariant.o                                                  \

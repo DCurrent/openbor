@@ -1046,11 +1046,6 @@ typedef struct
 	s_scripts	scripts;
 }s_model;
 
-typedef struct{
-	s_model *model;
-}s_model_map;
-s_model_map *model_map;
-
 typedef struct
 {
 	char			*name;
