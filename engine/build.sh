@@ -89,11 +89,8 @@ function distribute {
     cp ../scripts/packer ../../../engine/releases/DARWIN/OpenBOR.app/Contents/MacOS/
     cp ../scripts/paxplode ../../../engine/releases/DARWIN/OpenBOR.app/Contents/MacOS/
     cd ../../../engine
-  else
-    if [ `echo $HOST_PLATFORM | grep -o "Darwin"` ]; then
-      echo "Darwin Platform Failed To Build!"
-      exit 1
-    fi
+    echo "Darwin Platform Failed To Build!"
+    exit 1
   fi
   
   echo "All Platforms Created Successfully"
