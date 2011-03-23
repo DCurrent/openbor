@@ -95,7 +95,6 @@ typedef struct List {
 
 } List;
 
-Node* List_GetCurrent(List* list);
 void List_SetCurrent(List* list, Node* current);
 void Node_Clear(Node* node);
 void List_Init(List* list);
@@ -122,6 +121,7 @@ int List_GetSize(const List* list);
 
 Node* List_SearchName(List* list, char* theName);
 Node* List_Contains(List* list, void* e);
+Node* List_GetCurrentNode(List* list);
 int List_GetNodeIndex(List* list, Node* node);
 #ifdef USE_INDEX
 void List_AddIndex(List* list, Node* node, size_t index);
