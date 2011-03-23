@@ -14,6 +14,10 @@ if [ -z "${DWNDEV+xxx}" ]; then
   . environ.sh 10
 fi
 
+if [ "${DWNDEV}" == "/opt/mac" ]; then
+  exit
+fi
+
 ############ Update Library References ############
 
 ${PREFIX}install_name_tool \
