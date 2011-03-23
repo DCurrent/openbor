@@ -39,7 +39,7 @@ void addModel(s_model* model) {
 	assert(modellist);
 	makelowercp(model->name);
 	List_GotoLast(modellist);
-	List_InsertAfter(modellist, (void*) model, convertbuf);	
+	List_InsertAfter(modellist, (void*) model, convertbuf);
 }
 
 void deleteModel(char* modelname) {
@@ -88,6 +88,4 @@ int isLastModel(void) {
 	if (!modellist->current || modellist->current == modellist->last)
 		return 1;
 	return 0;
-}	
-	
-	
+}
