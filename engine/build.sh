@@ -89,6 +89,7 @@ function distribute {
     cp ../scripts/packer ../../../engine/releases/DARWIN/OpenBOR.app/Contents/MacOS/
     cp ../scripts/paxplode ../../../engine/releases/DARWIN/OpenBOR.app/Contents/MacOS/
     cd ../../../engine
+  else  
     echo "Darwin Platform Failed To Build!"
     exit 1
   fi
