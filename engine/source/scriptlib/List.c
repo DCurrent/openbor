@@ -700,7 +700,7 @@ void List_Update(List* list, void* e) {
 }
 
 /* returns the node that contains e, or NULL, if not found */
-Node* List_Contains(List* list, void* e) {
+Node* List_GetNodeByValue(List* list, void* e) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
@@ -738,7 +738,7 @@ int List_Includes(List* list, void* e) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
-	Node* n = List_Contains(list, e);
+	Node* n = List_GetNodeByValue(list, e);
 	if (n) {
 		list->current = n;
 		return 1;

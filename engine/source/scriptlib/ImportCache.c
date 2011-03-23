@@ -130,7 +130,7 @@ void ImportCache_Clear()
 		num = node->numRefs;
 		for(i=0; i<num; i++)
 			ImportCache_Release(node);
-		assert(!List_Contains(&importCache, node));
+		assert(!List_GetNodeByValue(&importCache, node));
 	}
 	List_Clear(&importCache);
 }
