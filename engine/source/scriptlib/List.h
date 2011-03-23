@@ -120,7 +120,7 @@ void List_Reset(List* list);
 int List_GetSize(const List* list);
 
 Node* List_GetNodeByName(List* list, char* Name);
-Node* List_Contains(List* list, void* e);
+Node* List_GetNodeByValue(List* list, void* e);
 Node* List_GetCurrentNode(List* list);
 int List_GetNodeIndex(List* list, Node* node);
 #ifdef USE_INDEX
