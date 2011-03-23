@@ -80,8 +80,9 @@ s_model* getCurrentModel(void) {
 
 s_model* getNextModel(void) {
 	assert(modellist);
-	List_GotoNext(modellist);
-	return getCurrentModel();
+	if (List_GotoNext(modellist))
+		return getCurrentModel();
+	else return NULL;
 }
 
 int isLastModel(void) {

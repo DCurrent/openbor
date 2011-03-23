@@ -8367,10 +8367,10 @@ void unload_level(){
 			if(!temp) break;
 			if(temp->unload) {
 				free_model(temp);
-				temp = NULL;
-			} 
-			temp = getNextModel();
-		} while(temp && !isLastModel());
+				temp = getCurrentModel();				
+			} else
+				temp = getNextModel();
+		} while(temp);
 		printf("Done.\n");
 		getRamStatus(BYTES);
 
