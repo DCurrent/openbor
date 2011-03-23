@@ -215,7 +215,7 @@ void List_FreeIndices(List* list) {
 }
 #endif
 
-void List_GotoLast(List* list)
+int List_GotoLast(List* list)
 {
 #ifdef DEBUG
 	chklist((List*)list);
@@ -223,17 +223,23 @@ void List_GotoLast(List* list)
 #ifdef LIST_DEBUG
 	printf("List_Last %p\n", list);
 #endif
-	list->current = list->last;
+	if(list->size)
+		list->current = list->last;
+	else return 0;
+	return 1;
 }
 
-void List_GotoFirst(List* list) {
+int List_GotoFirst(List* list) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
 #ifdef LIST_DEBUG
 	printf("List_First %p\n", list);
 #endif
-	list->current = list->first;
+	if(list->size)
+		list->current = list->first;
+	else return 0;
+	return 1;
 }
 
 Node* List_GetCurrent(List* list) {
@@ -606,7 +612,7 @@ void List_Remove(List* list) {
 	list->size--;
 }
 
-void List_GotoNext(List* list)
+int List_GotoNext(List* list)
 {
 #ifdef DEBUG
 	chklist((List*)list);
@@ -616,9 +622,11 @@ void List_GotoNext(List* list)
 #endif
 	if (list->current != list->last)
 		list->current = list->current->next;
+	else return 0;
+	return 1;
 }
 
-void List_GotoPrevious(List* list)
+int List_GotoPrevious(List* list)
 {
 #ifdef DEBUG
 	chklist((List*)list);
@@ -628,6 +636,8 @@ void List_GotoPrevious(List* list)
 #endif
 	if (list->current->prev)
 		list->current = list->current->prev;
+	else return 0;
+	return 1;
 }
 
 void* List_Retrieve(const List* list)
