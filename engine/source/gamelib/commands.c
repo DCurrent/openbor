@@ -11,7 +11,7 @@ void* getCommandlistCommand(List* list, char* usercommand) {
 	if (!usercommand || !usercommand[0])
 		goto fail;
 	lc(usercommand, strlen(usercommand));
-	Node* n = List_SearchName(list, usercommand);
+	Node* n = List_GetNodeByName(list, usercommand);
 	if(n)
 		return n->value;
 	fail:

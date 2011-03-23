@@ -554,7 +554,7 @@ int openreadaheadpackfile(const char *filename, const char *packfilename, int re
 	strncpy(target, filename, 256);
 	fnlc(target);
 
-	n = List_SearchName(filenamelist, target);
+	n = List_GetNodeByName(filenamelist, target);
 	if (!n)
 		return -1;
 

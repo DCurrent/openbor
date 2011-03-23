@@ -747,20 +747,21 @@ int List_Includes(List* list, void* e) {
 }
 
 /* returns the first node of which name is equal to theName */
-Node* List_SearchName(List* list, char* theName) {
+Node* List_GetNodeByName(List* list, char* name) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
 	Node *nptr;
-	if (theName == NULL) return NULL;
+	if (!name)
+		return NULL;
 
 #ifdef USE_STRING_HASHES
 	size_t i;
-	unsigned char h = strhash((char*)theName);
+	unsigned char h = strhash(name);
 	if (!list->buckets || !list->buckets[h]) return 0;
 	for(i=0;i<list->buckets[h]->used;i++) {
 		nptr = list->buckets[h]->nodes[i];
-		if(nptr && strcmp(theName, nptr->name)==0) {
+		if(nptr && strcmp(name, nptr->name)==0) {
 			return list->buckets[h]->nodes[i];
 		}
 	}
@@ -770,7 +771,7 @@ Node* List_SearchName(List* list, char* theName) {
 
 	while (nptr){
 		if (nptr->name){
-			if (strcmp( nptr->name, theName ) == 0)
+			if (strcmp( nptr->name, name ) == 0)
 				return nptr;
 		}
 		nptr = nptr->next;
@@ -785,7 +786,7 @@ int List_FindByName(List* list, char* name) {
 	chklist((List*)list);
 	#endif
 
-	Node* n = List_SearchName(list, name);
+	Node* n = List_GetNodeByName(list, name);
 	if (n)  {
 		list->current = n;
 		return 1;

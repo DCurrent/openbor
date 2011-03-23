@@ -119,7 +119,7 @@ char* List_GetName(const List* list);
 void List_Reset(List* list);
 int List_GetSize(const List* list);
 
-Node* List_SearchName(List* list, char* theName);
+Node* List_GetNodeByName(List* list, char* Name);
 Node* List_Contains(List* list, void* e);
 Node* List_GetCurrentNode(List* list);
 int List_GetNodeIndex(List* list, Node* node);
