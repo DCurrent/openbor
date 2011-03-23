@@ -9072,7 +9072,7 @@ void load_level(char *filename){
 				{
 					next.name = tempmodel->name;
 					next.index = get_cached_model_index(next.name);
-					next.exists = 2;    //2011_03_21, DC - Pass 2 to exists property to confirm this is a level spawn.
+					//next.exists = 2;    //2011_03_21, DC - Pass 2 to exists property to confirm this is a level spawn.
 					crlf = 1;
 				}
 				break;
@@ -18595,7 +18595,7 @@ entity * smartspawn(s_spawn_entry * props){   // 7-1-2005 Entire section replace
 	if(props->itemhealth) e->itemhealth = props->itemhealth;
 	e->itemplayer_count = props->itemplayer_count;
 
-    if(props->exists) e->exists = 2;    //2011_03_21, DC; Pass 2 to exists property to confirm this is a level spawn.
+	//if(props->exists) e->exists = 2;    //2011_03_21, DC; Pass 2 to exists property to confirm this is a level spawn.
 
 	if(props->health[playercount-1] != 0){
 		e->health = e->modeldata.health = props->health[playercount-1];
