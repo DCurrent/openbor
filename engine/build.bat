@@ -12,7 +12,7 @@
 @echo off
 set BUILDBATCH=1
 set TOOLS=../tools/bin;../tools/7-Zip;../tools/svn/bin
-set PATH=%TOOLS%;%PATH%
+set PATH=%TOOLS%
 bash.exe build.sh all
 @endlocal
 
