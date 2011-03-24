@@ -571,7 +571,7 @@ int Script_ReplaceInstructionList(Interpreter* pInterpreter, List* newList)
 	Instruction* pInstruction, *pTarget;
 	Instruction** oldList = (Instruction**)pInterpreter->theSolidListOfInstructionList->solidlist;
 	SolidList* nl = SolidListFromList(newList);
-	
+
 	char buf[256];
 
 	for(i=0; i<newSize; i++)
@@ -601,7 +601,7 @@ int Script_ReplaceInstructionList(Interpreter* pInterpreter, List* newList)
 	// replace new list with old list
 	List_Clear(&(pInterpreter->theInstructionList));
 	freeSolidList(pInterpreter->theSolidListOfInstructionList);
-	pInterpreter->theSolidListOfInstructionList = nl;	
+	pInterpreter->theSolidListOfInstructionList = nl;
 
 	return 1;
 }
@@ -2413,7 +2413,6 @@ enum getentityproperty_enum {
 	_gep_path,
 	_gep_playerindex,
 	_gep_projectile,
-
 	_gep_range,
 	_gep_running,
 	_gep_rush_count,
@@ -2423,6 +2422,7 @@ enum getentityproperty_enum {
 	_gep_seal,
 	_gep_sealtime,
 	_gep_setlayer,
+	_gep_spawntype,
 	_gep_speed,
 	_gep_sprite,
 	_gep_stalltime,
@@ -2678,6 +2678,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"seal",
 		"sealtime",
 		"setlayer",
+		"spawntype",
 		"speed",
 		"sprite",
 		"stalltime",
@@ -2931,6 +2932,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)ent->modeldata.animal;
+		break;
+	}
+	case _gep_spawntype:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->spawntype;
 		break;
 	}
 	case _gep_maxhealth:

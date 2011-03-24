@@ -1059,7 +1059,8 @@ s_modelcache *model_cache;
 
 typedef struct entity
 {
-	char			exists:8;                       // flag to determine if it is a valid entity. 2 = Level spawn.
+	char            spawntype:8;                    // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
+	char			exists:8;                       // flag to determine if it is a valid entity.
 	char			reactive:8;						// Used for setting the "a" at which weapons are spawned
 	char			ptype:8;
 	char			playerindex:8;
@@ -1307,7 +1308,7 @@ typedef struct
 	float			a;
 	unsigned char	credit:8;
 	short			aggression:16;				// For enemy A.I.
-	char            exists;                     // //Pass 2 to "exists" modeldata so modder can determine if this is a level spawn.
+	char            spawntype;                  // Pass 1 when a level spawn.
 	char            *weapon;                    // spawn with a weapon, since it should be in the model list, so the model must be loaded, just reference its name
 	s_model         *weaponmodel;
 	s_spawn_script_list_node*          spawn_script_list_head;

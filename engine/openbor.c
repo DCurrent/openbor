@@ -9072,7 +9072,7 @@ void load_level(char *filename){
 				{
 					next.name = tempmodel->name;
 					next.index = get_cached_model_index(next.name);
-					//next.exists = 2;    //2011_03_21, DC - Pass 2 to exists property to confirm this is a level spawn.
+					next.spawntype = 1;     //2011_03_23, DC; Spawntype 1 (level spawn).
 					crlf = 1;
 				}
 				break;
@@ -12920,8 +12920,6 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 	int   i;
 	int   type = ent->modeldata.type;
 
-    //void think = ent->think;
-
 	model = ent->model;
 	if(!newmodel)
 	{
@@ -12987,9 +12985,8 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 		ent_copy_uninit(ent, &oldmodel);
 	}
 
-
 	ent->modeldata.type = type;
-    //ent->think = think;
+
 	copy_all_scripts(&newmodel->scripts, &ent->scripts, 0);
 
 	ent_set_colourmap(ent, ent->map);
@@ -18597,7 +18594,7 @@ entity * smartspawn(s_spawn_entry * props){   // 7-1-2005 Entire section replace
 	if(props->itemhealth) e->itemhealth = props->itemhealth;
 	e->itemplayer_count = props->itemplayer_count;
 
-	//if(props->exists) e->exists = 2;    //2011_03_21, DC; Pass 2 to exists property to confirm this is a level spawn.
+	if(props->spawntype) e->spawntype = props->spawntype;   //2011_03_23, Pass spawntype.
 
 	if(props->health[playercount-1] != 0){
 		e->health = e->modeldata.health = props->health[playercount-1];
