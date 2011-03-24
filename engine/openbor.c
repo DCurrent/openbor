@@ -3712,8 +3712,8 @@ int free_model(s_model* model)
 void free_models()
 {
 	s_model* temp;
-	
-	while((temp = getFirstModel())) 
+
+	while((temp = getFirstModel()))
 		free_model(temp);
 
 	// free animation ids
@@ -8367,7 +8367,7 @@ void unload_level(){
 			if(!temp) break;
 			if(temp->unload) {
 				free_model(temp);
-				temp = getCurrentModel();				
+				temp = getCurrentModel();
 			} else
 				temp = getNextModel();
 		} while(temp);
@@ -12920,6 +12920,8 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 	int   i;
 	int   type = ent->modeldata.type;
 
+    //void think = ent->think;
+
 	model = ent->model;
 	if(!newmodel)
 	{
@@ -12987,7 +12989,7 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 
 
 	ent->modeldata.type = type;
-
+    //ent->think = think;
 	copy_all_scripts(&newmodel->scripts, &ent->scripts, 0);
 
 	ent_set_colourmap(ent, ent->map);
@@ -20070,7 +20072,7 @@ void shutdown(int status, char *msg, ...)
 		freeCommandList(levelcmdlist);
 	if(levelordercmdlist)
 		freeCommandList(levelordercmdlist);
-	
+
 	freeModelList();
 
 	freefilenamecache();

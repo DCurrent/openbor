@@ -34,7 +34,7 @@ void freeSolidList(SolidList* s) {
 		free(s->solidlist);
 	free(s);
 }
-	
+
 /*
 void List_Solidify(List* list)
 {
