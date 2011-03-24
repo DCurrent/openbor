@@ -22915,7 +22915,9 @@ void openborMain(int argc, char** argv)
 		argl = strlen(argv[1]);
 		if(argl > 14 && !memcmp(argv[1], "offscreenkill=", 14))
 			DEFAULT_OFFSCREEN_KILL = getValidInt((char*)argv[1] + 14,"","");
-	}
+		if(argl > 14 && !memcmp(argv[1], "showfilesused=", 14))
+			printFileUsageStatistics = getValidInt((char*)argv[1] + 14,"","");
+	}	
 
 	modelcmdlist = createModelCommandList();
 	modelstxtcmdlist = createModelstxtCommandList();
