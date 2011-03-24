@@ -11,6 +11,7 @@
 #include "depends.h"
 #include "Lexer.h"
 #include "List.h"
+#include "SolidList.h"
 #include "ScriptVariant.h"
 
 typedef LPCSTR Label;
@@ -30,6 +31,7 @@ typedef struct Instruction{
    ScriptVariant* theRef;
    ScriptVariant* theRef2;
    List* theRefList;
+   SolidList* theSolidListOfRefList;
    HRESULT (*functionRef)(ScriptVariant**, ScriptVariant**, int);
    union{
 	  int theJumpTargetIndex;

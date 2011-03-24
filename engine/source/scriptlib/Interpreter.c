@@ -37,14 +37,14 @@ void Interpreter_Clear(Interpreter* pinterpreter)
 	StackedSymbolTable_Clear(&(pinterpreter->theSymbolTable));
 	Parser_Clear(&(pinterpreter->theParser));
 	Interpreter_ClearImports(pinterpreter);
-	if(pinterpreter->theInstructionList.solidlist)
+	if(pinterpreter->theSolidListOfInstructionList)
 	{
-		size = pinterpreter->theInstructionList.size;
+		size = pinterpreter->theSolidListOfInstructionList->size;
 		for(i=0;i<size;i++)
 		{
-			Instruction_Clear(pinterpreter->theInstructionList.solidlist[i]);
-			free((void*)pinterpreter->theInstructionList.solidlist[i]);
-			pinterpreter->theInstructionList.solidlist[i] = NULL;
+			Instruction_Clear(pinterpreter->theSolidListOfInstructionList->solidlist[i]);
+			free((void*)pinterpreter->theSolidListOfInstructionList->solidlist[i]);
+			pinterpreter->theSolidListOfInstructionList->solidlist[i] = NULL;
 		}
 	}
 	else
@@ -66,6 +66,7 @@ void Interpreter_Clear(Interpreter* pinterpreter)
 	List_Clear(&(pinterpreter->theLabelStack));
 	List_Clear(&(pinterpreter->theInstructionList));
 	List_Clear(&(pinterpreter->paramList));
+	freeSolidList(pinterpreter->theSolidListOfInstructionList);
 	memset(pinterpreter, 0, sizeof(Interpreter));
 }
 
@@ -205,7 +206,7 @@ HRESULT Interpreter_Call(Interpreter* pinterpreter)
 	else if( currentCall->functionRef)
 	{
 		pretvar = currentCall->theVal;
-		hr = currentCall->functionRef((ScriptVariant**)currentCall->theRefList->solidlist, &(pretvar), (int)currentCall->theRef->lVal);
+		hr = currentCall->functionRef(currentCall->theSolidListOfRefList?(ScriptVariant**)currentCall->theSolidListOfRefList->solidlist:NULL, &(pretvar), (int)currentCall->theRef->lVal);
 		if(FAILED(hr))
 		{
 			List_Includes(pinterpreter->ptheFunctionList, currentCall->functionRef);
@@ -250,10 +251,10 @@ HRESULT Interpreter_EvaluateImmediate(Interpreter* pinterpreter)
 	{
 		//Run through all the instructions in the list, only executing those wrapped
 		//by IMMEDIATE and DEFERRED.
-		size = pinterpreter->theInstructionList.size;
+		size = pinterpreter->theSolidListOfInstructionList->size;
 		for(index = 0; index<size; index++)
 		{
-			pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[index]);
+			pInstruction = (Instruction*)(pinterpreter->theSolidListOfInstructionList->solidlist[index]);
 			//Check the current mode
 			if (pInstruction->OpCode == IMMEDIATE)
 				bImmediate = TRUE;
@@ -262,7 +263,7 @@ HRESULT Interpreter_EvaluateImmediate(Interpreter* pinterpreter)
 
 			//If the current mode is Immediate, then evaluate the instruction
 			if (bImmediate){
-				pinterpreter->pCurrentInstruction = ((Instruction**)pinterpreter->theInstructionList.solidlist) + index;
+				pinterpreter->pCurrentInstruction = ((Instruction**)pinterpreter->theSolidListOfInstructionList->solidlist) + index;
 				hr = Interpreter_EvalInstruction(pinterpreter);
 			}
 			//If we failed, then we need to break out of this loop
@@ -515,7 +516,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 				Stack_Pop(&(pinterpreter->theDataStack));
 				List_InsertAfter(pInstruction->theRefList, (void*)pSVar2, NULL);
 			}
-			List_Solidify(pInstruction->theRefList);
+			pInstruction->theSolidListOfRefList = SolidListFromList(pInstruction->theRefList);			
 			//cache the return value
 			Instruction_NewData(pInstruction);
 			List_GotoNext(&(pinterpreter->theInstructionList));
@@ -654,23 +655,23 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 	}
 
 	// make a solid list that can be referenced by index
-	List_Solidify(&(pinterpreter->theInstructionList));
+	pinterpreter->theSolidListOfInstructionList = SolidListFromList(&(pinterpreter->theInstructionList));	
 	StackedSymbolTable_Clear(&(pinterpreter->theSymbolTable));
 	List_Clear(&(pinterpreter->theDataStack));
 	List_Clear(&(pinterpreter->theLabelStack));
 
 	// convert mainEntryIndex (int) to pMainEntry (Instruction**)
 	if(pinterpreter->mainEntryIndex >= 0)
-		pinterpreter->pMainEntry = (Instruction**)(&(pinterpreter->theInstructionList.solidlist[pinterpreter->mainEntryIndex]));
+		pinterpreter->pMainEntry = (Instruction**)(&(pinterpreter->theSolidListOfInstructionList->solidlist[pinterpreter->mainEntryIndex]));
 	else
 		pinterpreter->pMainEntry = NULL;
 
 	// convert theJumpTargetIndex (int) to ptheJumpTarget (Instruction**)
 	for(i=0; i<size; i++)
 	{
-		pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[i]);
+		pInstruction = (Instruction*)(pinterpreter->theSolidListOfInstructionList->solidlist[i]);
 		if(pInstruction->theJumpTargetIndex >= 0)
-			pInstruction->ptheJumpTarget = (Instruction**)&(pinterpreter->theInstructionList.solidlist[pInstruction->theJumpTargetIndex]);
+			pInstruction->ptheJumpTarget = (Instruction**)&(pinterpreter->theSolidListOfInstructionList->solidlist[pInstruction->theJumpTargetIndex]);
 		else
 			pInstruction->ptheJumpTarget = NULL;
 	}
@@ -819,7 +820,7 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 			if(pinterpreter->pCurrentCall){
 				//copy value from the cached parameter
 				currentCall = *(pinterpreter->pCurrentCall);
-				ScriptVariant_Copy(pInstruction->theVal, (ScriptVariant*)(currentCall->theRefList->solidlist[currentCall->theRefList->index]));
+				ScriptVariant_Copy(pInstruction->theVal, (ScriptVariant*)(currentCall->theSolidListOfRefList->solidlist[currentCall->theRefList->index]));
 				currentCall->theRefList->index++;
 			}
 			else hr = E_FAIL;
