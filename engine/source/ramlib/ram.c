@@ -165,7 +165,6 @@ void setSystemRam()
 	// 42 MBytes - Memory Map:
 	systemRam = 0x029fffff - 0x0000a2e0;
 	elfOffset = 0x0000a2e0;
-	if (gp2x_init() == 2) systemRam += 32 * 1024 * 1024;
 #elif DINGOO
 	// 32 MBytes - IPU Memory:
 	systemRam = 0x02000000 - 0x002C6000;
