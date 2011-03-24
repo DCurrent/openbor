@@ -80,9 +80,8 @@ typedef struct List {
 	Node *first;
 	Node *current;
 	Node *last;
-	void **solidlist;
-	int index;
-	int size;
+	ptrdiff_t index;
+	size_t size;
 #ifdef USE_INDEX
 	LIndex** mindices;
 #endif
@@ -98,7 +97,6 @@ typedef struct List {
 void List_SetCurrent(List* list, Node* current);
 void Node_Clear(Node* node);
 void List_Init(List* list);
-void List_Solidify(List* list);
 int List_GetIndex(List* list);
 void List_Copy(List* listdest, const List* listsrc);
 void List_Clear(List* list);

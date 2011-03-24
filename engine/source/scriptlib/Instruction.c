@@ -50,6 +50,7 @@ void Instruction_Clear(Instruction* pins)
 	}
 	if(pins->Label) free(pins->Label);
 	if(pins->theToken) free(pins->theToken);
+	if(pins->theSolidListOfRefList) freeSolidList(pins->theSolidListOfRefList);
 	memset(pins, 0, sizeof(Instruction));
 }
 

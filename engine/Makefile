@@ -408,6 +408,7 @@ SCRIPT          = source/scriptlib/StackedSymbolTable.o                         
                   source/scriptlib/Lexer.o                                                          \
                   source/scriptlib/Stack.o                                                          \
                   source/scriptlib/List.o                                                           \
+                  source/scriptlib/SolidList.o                                                      \
                   source/preprocessorlib/pp_lexer.o                                                 \
                   source/preprocessorlib/pp_parser.o
 RAM             = source/ramlib/ram.o

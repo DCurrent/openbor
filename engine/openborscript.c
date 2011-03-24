@@ -527,13 +527,13 @@ int Script_MapStringConstants(Script* pscript)
 	void (*pMapstrings)(ScriptVariant**, int);
 	int i, j, k, size, paramCount;
 
-	size = List_GetSize(&(pinterpreter->theInstructionList));
+	size = pinterpreter->theSolidListOfInstructionList->size;
 	for(i=0; i<size; i++)
 	{
-		pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[i]);
+		pInstruction = (Instruction*)(pinterpreter->theSolidListOfInstructionList->solidlist[i]);
 		if(pInstruction->functionRef)
 		{
-			params = (ScriptVariant**)pInstruction->theRefList->solidlist;
+			params = pInstruction->theSolidListOfRefList? (ScriptVariant**)pInstruction->theSolidListOfRefList->solidlist : NULL;
 			paramCount = (int)pInstruction->theRef->lVal;
 
 			// Get the pointer to the correct mapstrings function, if one exists.
@@ -548,7 +548,7 @@ int Script_MapStringConstants(Script* pscript)
 				{
 					for(k=i; k>0; k--)
 					{
-						pInstruction2 = (Instruction*)(pinterpreter->theInstructionList.solidlist[k]);
+						pInstruction2 = (Instruction*)(pinterpreter->theSolidListOfInstructionList->solidlist[k]);
 						if(pInstruction2->theVal2 == params[j])
 						{
 							ScriptVariant_Copy(pInstruction2->theVal, pInstruction2->theVal2);
@@ -569,19 +569,20 @@ int Script_ReplaceInstructionList(Interpreter* pInterpreter, List* newList)
 {
 	int i, j, newSize = List_GetSize(newList);
 	Instruction* pInstruction, *pTarget;
-	Instruction** oldList = (Instruction**)pInterpreter->theInstructionList.solidlist;
-	List_Solidify(newList);
+	Instruction** oldList = (Instruction**)pInterpreter->theSolidListOfInstructionList->solidlist;
+	SolidList* nl = SolidListFromList(newList);
+	
 	char buf[256];
 
 	for(i=0; i<newSize; i++)
 	{
-		pInstruction = (Instruction*)newList->solidlist[i];
+		pInstruction = (Instruction*)nl->solidlist[i];
 		if(pInstruction->theJumpTargetIndex >= 0)
 		{
 			pTarget = (Instruction*)oldList[pInstruction->theJumpTargetIndex];
 			for(j=0; j<newSize; j++)
 			{
-				if(newList->solidlist[j] == pTarget)
+				if(nl->solidlist[j] == pTarget)
 				{
 					pInstruction->theJumpTargetIndex = j;
 					break;
@@ -599,7 +600,8 @@ int Script_ReplaceInstructionList(Interpreter* pInterpreter, List* newList)
 
 	// replace new list with old list
 	List_Clear(&(pInterpreter->theInstructionList));
-	memcpy(&(pInterpreter->theInstructionList), newList, sizeof(List));
+	freeSolidList(pInterpreter->theSolidListOfInstructionList);
+	pInterpreter->theSolidListOfInstructionList = nl;	
 
 	return 1;
 }
@@ -614,17 +616,16 @@ void Script_LowerConstants(Script* pscript)
 
 	List_Init(newInstructionList);
 
-	size = List_GetSize(&(pinterpreter->theInstructionList));
+	size = pinterpreter->theSolidListOfInstructionList->size;
 
-	for(i=0; i<size; i++)
-	{
-		pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[i]);
+	for(i=0; i<size; i++) {
+		pInstruction = (Instruction*)(pinterpreter->theSolidListOfInstructionList->solidlist[i]);
 		if(pInstruction->OpCode == DATA)
 		{
 			int numRefs = 0;
 			for(j=0; j<size; j++)
 			{
-				pInstruction2 = (Instruction*)(pinterpreter->theInstructionList.solidlist[j]);
+				pInstruction2 = (Instruction*)(pinterpreter->theSolidListOfInstructionList->solidlist[j]);
 				if(pInstruction2->OpCode == LOAD && pInstruction2->theRef == pInstruction->theVal)
 					numRefs++;
 			}
@@ -646,7 +647,7 @@ void Script_LowerConstants(Script* pscript)
 			char buf[1024], buf2[1024], buf3[1024];
 			for(j=0; j<size; j++)
 			{
-				Instruction* tmp = (Instruction*)(pinterpreter->theInstructionList.solidlist[j]);
+				Instruction* tmp = (Instruction*)(pinterpreter->theSolidListOfInstructionList->solidlist[j]);
 				if(tmp->theVal == pInstruction->theRef || tmp->theVal2 == pInstruction->theRef)   pSrc1 = tmp;
 				if(tmp->theVal == pInstruction->theRef2 || tmp->theVal2 == pInstruction->theRef2) pSrc2 = tmp;
 			}
@@ -680,9 +681,10 @@ void Script_LowerConstants(Script* pscript)
 int Script_DetectUnusedFunctions(Script* pScript)
 {
 	Interpreter* pInterpreter = pScript->pinterpreter;
-	Instruction* pInstruction, *pInstruction2, **instructionList = (Instruction**)pInterpreter->theInstructionList.solidlist;
+	Instruction* pInstruction, *pInstruction2, **instructionList = (Instruction**)pInterpreter->theSolidListOfInstructionList->solidlist;
 	List newInstructionList;
 	int i, size = List_GetSize(&(pInterpreter->theInstructionList));
+	int res;
 
 	List_Init(&newInstructionList);
 
@@ -720,7 +722,9 @@ int Script_DetectUnusedFunctions(Script* pScript)
 		//if(pInstruction->theToken) {free(pInstruction->theToken); pInstruction->theToken=NULL;} // TODO: move somewhere else
 	}
 
-	return Script_ReplaceInstructionList(pInterpreter, &newInstructionList);
+	res = Script_ReplaceInstructionList(pInterpreter, &newInstructionList);
+	List_Clear(&newInstructionList);
+	return res;
 }
 
 //should be called only once after parsing text
