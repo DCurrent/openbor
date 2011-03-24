@@ -9855,7 +9855,7 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 		soundtick = ticks;
 	}
 
-	if(ticks - lasttick > 250) {
+	if(ticks - keybtick > 250) {
 		control_update(playercontrolpointers, 1); // Respond to exit and/or fullscreen requests from user/OS
 		keybtick = ticks;
 	}
