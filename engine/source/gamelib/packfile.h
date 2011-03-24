@@ -54,6 +54,8 @@ typedef struct fileliststruct{
 #define PACKVERSION	0x00000000
 #define testpackfile(filename, packfilename) closepackfile(openpackfile(filename, packfilename))
 
+extern int printFileUsageStatistics;
+
 // All of these return -1 on error
 int openpackfile(const char *filename, const char *packfilename);
 int readpackfile(int handle, void *buf, int len);

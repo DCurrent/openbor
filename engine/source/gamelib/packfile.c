@@ -56,6 +56,7 @@
 #define	MAXPACKHANDLES	8
 #define	PACKMAGIC		0x4B434150
 #define	PACKVERSION		0x00000000
+static const size_t USED_FLAG = (((size_t) 1) << ((sizeof(size_t)*8) - 1));
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -71,6 +72,7 @@
 #endif
 
 static int pak_initialized;
+int printFileUsageStatistics = 0;
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -522,7 +524,30 @@ void makefilenamecache(void) {
 }
 
 void freefilenamecache(void) {
+	Node* n;
+	size_t count = 0;
+	size_t total = 0;
 	if(filenamelist) {
+		if(printFileUsageStatistics) {
+			printf("unused files in the pack:\n");
+			List_GotoFirst(filenamelist);
+			n = List_GetCurrentNode(filenamelist);
+			while(n) {
+				if(((size_t) n->value & USED_FLAG) != USED_FLAG) {
+					count++;
+					printf("%s\n",n->name);
+				}	
+				if(List_GotoNext(filenamelist))
+					n = List_GetCurrentNode(filenamelist);
+				else break;
+				total++;
+			}
+			printf("Summary: %d of %d files have been unused\n", (int) count, (int) total);
+			printf("WARNING\n");
+			printf("to be completely sure if a file is unused, you have to play the entire mod\n");
+			printf("in every possible branch, including every possible player, and so forth.\n");
+			printf("so only remove stuff from a foreign mod if you're completely sure that it is unused.\n");
+		}
 		List_Clear(filenamelist);
 		free(filenamelist);
 		filenamelist = NULL;
@@ -531,7 +556,7 @@ void freefilenamecache(void) {
 
 int openreadaheadpackfile(const char *filename, const char *packfilename, int readaheadsize, int prebuffersize)
 {
-	ptrdiff_t hpos;
+	size_t hpos;
 	int vfd;
 	size_t fnl;
 	size_t al;
@@ -558,7 +583,8 @@ int openreadaheadpackfile(const char *filename, const char *packfilename, int re
 	if (!n)
 		return -1;
 
-	hpos = (ptrdiff_t) n->value;
+	hpos = (size_t) n->value & ~USED_FLAG;
+	n->value = (void*) (((size_t) n->value) | USED_FLAG);
 
 	// find a free vfd
 	for(vfd = 0; vfd < MAXPACKHANDLES; vfd++) if(!pak_vfdexists[vfd]) break;
