@@ -1,6 +1,11 @@
 /*
- * tracelib2 by anallyst
- * see LICENSE for details
+ * tracelib2 library.
+ * (C) 2011 anallyst
+ *
+ * license to use and redistribute is granted under the same terms as OpenBOR itself.
+ * as long as anallyst is granted to use and redistribute the OpenBOR source code,
+ * and maintain his own fork.
+ * 
  */
 
 #ifndef _TRACELIB2_H_
