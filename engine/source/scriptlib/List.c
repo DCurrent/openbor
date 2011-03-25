@@ -1,9 +1,16 @@
 /*
- * OpenBOR - http://www.LavaLit.com
- * -----------------------------------------------------------------------
- * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
+ * List library.
+ * 90% (C) 2011 anallyst
+ * 10% (C) unknown author
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * license to use and redistribute is granted under the same terms as OpenBOR itself.
+ * as long as anallyst is granted to use and redistribute the OpenBOR source code,
+ * and maintain his own fork.
+ * 
+ * the whole smart stuff going on here was written by anallyst.
+ * at the time anallyst touched this code, this was a very simple single linked list.
+ * double linked list functionality, index hash and string hash functionality is (C) anallyst.
+ * 
  */
 
 #include "List.h"
