@@ -119,6 +119,7 @@ void tlinit(void) {
 // returns 0 if everything ok, else count of unfreed adresses
 int tlstats(void) {
 	tlInfo* mem;
+	size_t saveTotalFreed = tlTotalFreed;
 	size_t save = List_GetSize(&tlList);
 	printf("tracelib2 (R) simple mem debugging library (C) 2011 by anallyst (TM)\n");
 	printf("====================================================================\n");
@@ -134,7 +135,7 @@ int tlstats(void) {
 	if(save) printf("====================================================================\n");
 	printf("total number of unfreed chunks: %d\n", (int) save);
 	printf("total amount of allocated heap memory: %d\n", (int) tlTotalAlloced);
-	printf("total amount of freed heap memory: %d\n", (int) tlTotalFreed);
+	printf("total amount of freed heap memory: %d\n", (int) saveTotalFreed);
 	printf("peak memory usage: %d\n", (int) tlMaxUsed);
 	return save;
 }
