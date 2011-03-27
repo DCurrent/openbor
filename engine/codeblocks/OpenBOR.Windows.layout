@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
-	<File name="..\openbor.c" open="1" top="0" tabpos="6">
-		<Cursor position="452549" topLine="12994" />
+	<File name="..\openbor.c" open="1" top="1" tabpos="4">
+		<Cursor position="438081" topLine="12952" />
 	</File>
-	<File name="..\openbor.h" open="1" top="0" tabpos="4">
-		<Cursor position="49917" topLine="974" />
+	<File name="..\openbor.h" open="1" top="0" tabpos="2">
+		<Cursor position="58365" topLine="1260" />
 	</File>
-	<File name="..\openborscript.c" open="1" top="1" tabpos="3">
-		<Cursor position="129768" topLine="4814" />
+	<File name="..\openborscript.c" open="1" top="0" tabpos="1">
+		<Cursor position="81512" topLine="2917" />
 	</File>
-	<File name="..\openborscript.h" open="1" top="0" tabpos="5">
+	<File name="..\openborscript.h" open="1" top="0" tabpos="3">
 		<Cursor position="316" topLine="0" />
 	</File>
 	<File name="..\sdl\menu.c" open="0" top="0" tabpos="0">
 		<Cursor position="18294" topLine="643" />
 	</File>
-	<File name="..\source\preprocessorlib\pp_parser.c" open="1" top="0" tabpos="7">
+	<File name="..\source\preprocessorlib\pp_parser.c" open="1" top="0" tabpos="5">
 		<Cursor position="21344" topLine="744" />
 	</File>
 </CodeBlocks_layout_file>
