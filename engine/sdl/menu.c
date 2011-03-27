@@ -29,12 +29,6 @@
 
 extern int videoMode;
 
-#ifdef WIN32
-#define SLEEP(x) Sleep(x*1000)
-#else
-#define SLEEP(x) sleep(x)
-#endif
-
 #define RGB32(B,G,R) ((R) | ((G) << 8) | ((B) << 16))
 #define RGB16(B,G,R) ((B&0xF8)<<8) | ((G&0xFC)<<3) | (R>>3)
 #define RGB(B,G,R)   (bpp==16?RGB16(B,G,R):RGB32(B,G,R))
@@ -818,7 +812,7 @@ void drawLogo()
 	initMenu(0);
 	copyScreens(Source);
 	drawScreens(NULL);
-	SLEEP(3);
+	SDL_Delay(3000);
 	termMenu();
 }
 
