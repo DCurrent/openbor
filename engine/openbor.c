@@ -14831,7 +14831,7 @@ int common_try_jump()
 	int wall, j=0;
 	float rmin, rmax;
 
-	if(validanim(self,ANI_JUMP) || validanim(self,ANI_FORWARDJUMP) || validanim(self, ANI_RUNJUMP))		//Can jump?
+	if(validanim(self,ANI_JUMP)) //Can jump?
 	{
 		//Check to see if there is a wall within jumping distance and within a jumping height
 		xdir = 0; wall = -1;
