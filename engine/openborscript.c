@@ -6761,8 +6761,16 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 #ifndef DC
 		if(!(fileExists(path)))
 		{
-			printf("Openfilestream - file specified does not exist.\n");
-			return E_FAIL;
+		    /*
+		    2011_03_27, DC: Let's be a little more friendly about missing files; this will let a function evaluate if file exists and decide what to do.
+
+			printf("Openfilestream - file specified does not exist.\n"); //Keep this for possible debug mode in the future.
+			*/
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = -1;
+
+			return S_OK;
 		}
 #endif
 		handle = fopen(path, "rb");
