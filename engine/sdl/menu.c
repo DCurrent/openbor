@@ -20,12 +20,20 @@
 #include "stringptr.h"
 
 #include "pngdec.h"
+#include "../resources/OpenBOR_Logo_480x272_Link_png.h"
+#include "../resources/OpenBOR_Logo_320x240_Link_png.h"
 #include "../resources/OpenBOR_Menu_480x272_png.h"
 #include "../resources/OpenBOR_Menu_320x240_png.h"
 
 #include <dirent.h>
 
 extern int videoMode;
+
+#ifdef WIN32
+#define SLEEP(x) Sleep(x*1000)
+#else
+#define SLEEP(x) sleep(x)
+#endif
 
 #define RGB32(B,G,R) ((R) | ((G) << 8) | ((B) << 16))
 #define RGB16(B,G,R) ((B&0xF8)<<8) | ((G&0xFC)<<3) | (R>>3)
@@ -563,7 +571,20 @@ void initMenu(int type)
 #endif
 
 	// Read Logo or Menu from Array.
-	if(type) {
+	if(!type) {
+		Source = pngToSurface(isWide ? (void*) openbor_logo_480x272_link_png.data : (void*) openbor_logo_320x240_link_png.data);
+		
+		// Depending on which mode we are in (WideScreen/FullScreen)
+		// allocate proper size for SDL_Surface to perform final Blitting.
+		Screen = SDL_SetVideoMode(Source->w * factor, Source->h * factor, bpp, flags);
+		
+		// Allocate Scaler with extra space for upscaling.
+		Scaler = SDL_AllocSurface(SDL_SWSURFACE,
+								  factor > 1 ? Screen->w + 4 : Screen->w,
+								  factor > 1 ? Screen->h + 8 : Screen->h,
+								  bpp, 0, 0, 0, 0);
+	}
+	else {
 		Source = pngToSurface(isWide ? (void*) openbor_menu_480x272_png.data : (void*) openbor_menu_320x240_png.data);
 
 		// Depending on which mode we are in (WideScreen/FullScreen)
@@ -791,11 +812,22 @@ void drawLogs()
 	drawMenu();
 }
 
+void drawLogo()
+{
+    if(savedata.logo) return;
+	initMenu(0);
+	copyScreens(Source);
+	drawScreens(NULL);
+	SLEEP(3);
+	termMenu();
+}
+
 void Menu()
 {
 	int done = 0;
 	int ctrl = 0;
 	loadsettings();
+	drawLogo();
 	dListCurrentPosition = 0;
 	if((dListTotal = findPaks()) != 1)
 	{
