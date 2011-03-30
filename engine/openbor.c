@@ -9146,14 +9146,13 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_ITEM: case CMD_LEVEL_2PITEM: case CMD_LEVEL_3PITEM: case CMD_LEVEL_4PITEM:
 				switch(cmd) {
+					// Item to be contained by new entry
 					case CMD_LEVEL_ITEM:   next.itemplayer_count = 0; break;
 					case CMD_LEVEL_2PITEM: next.itemplayer_count = 1; break;
 					case CMD_LEVEL_3PITEM: next.itemplayer_count = 2; break;
 					case CMD_LEVEL_4PITEM: next.itemplayer_count = 3; break;
 					default: assert(0);
 				}
-				// Item to be contained by new entry
-				next.itemplayer_count = 0;
 				// Load model (if not loaded already)
 				cached_model = findmodel(GET_ARG(1));
 				if(cached_model)
