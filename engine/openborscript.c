@@ -2346,6 +2346,7 @@ enum getentityproperty_enum {
 	_gep_bbox,
 	_gep_blink,
 	_gep_blockback,
+	_gep_blockodds,
 	_gep_blockpain,
 	_gep_bounce,
 	_gep_chargerate,
@@ -2362,6 +2363,8 @@ enum getentityproperty_enum {
 	_gep_dropframe,
 	_gep_edelay,
 	_gep_energycost,
+	_gep_escapecount,
+	_gep_escapehits,
 	_gep_exists,
 	_gep_falldie,
 	_gep_flash,
@@ -2369,6 +2372,7 @@ enum getentityproperty_enum {
 	_gep_frozen,
 	_gep_gfxshadow,
 	_gep_grabbing,
+	_gep_grabforce,
 	_gep_guardpoints,
 	_gep_health,
 	_gep_height,
@@ -2418,6 +2422,7 @@ enum getentityproperty_enum {
 	_gep_rush_count,
 	_gep_rush_tally,
 	_gep_rush_time,
+	_gep_score,
 	_gep_scroll,
 	_gep_seal,
 	_gep_sealtime,
@@ -2440,6 +2445,7 @@ enum getentityproperty_enum {
 	_gep_subject_to_screen,
 	_gep_subject_to_wall,
 	_gep_subtype,
+	_gep_thold,
 	_gep_throwdamage,
 	_gep_throwdist,
 	_gep_throwframewait,
@@ -2602,6 +2608,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"bbox",
 		"blink",
 		"blockback",
+		"blockodds",
 		"blockpain",
 		"bounce",
 		"chargerate",
@@ -2618,12 +2625,15 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"dropframe",
 		"edelay",
 		"energycost",
+		"escapecount",
+		"escapehits",
 		"exists",
 		"falldie",
 		"flash",
 		"freezetime",
 		"frozen",
 		"gfxshadow",
+		"grabforce",
 		"grabbing",
 		"guardpoints",
 		"health",
@@ -2674,6 +2684,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"rush_count",
 		"rush_tally",
 		"rush_time",
+		"score",
 		"scroll",
 		"seal",
 		"sealtime",
@@ -2696,6 +2707,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"subject_to_screen",
 		"subject_to_wall",
 		"subtype",
+		"thold",
 		"throwdamage",
 		"throwdist",
 		"throwframewait",
@@ -2928,10 +2940,40 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		strcpy(StrCache_Get((*pretvar)->strVal), ent->model->name);
 		break;
 	}
-	case _gep_animal:
+	case _gep_grabforce:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.animal;
+		(*pretvar)->lVal = (LONG)ent->modeldata.grabforce;
+		break;
+	}
+	case _gep_blockodds:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.blockodds;
+		break;
+	}
+	case _gep_escapecount:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->escapecount;
+		break;
+	}
+	case _gep_escapehits:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.escapehits;
+		break;
+	}
+	case _gep_thold:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.thold;
+		break;
+	}
+	case _gep_score:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.score;
 		break;
 	}
 	case _gep_spawntype:
@@ -4471,6 +4513,7 @@ enum changeentityproperty_enum {
 	_cep_base,
 	_cep_blink,
 	_cep_blockback,
+	_cep_blockodds,
 	_cep_blockpain,
 	_cep_bounce,
 	_cep_candamage,
@@ -4485,6 +4528,8 @@ enum changeentityproperty_enum {
 	_cep_dot,
 	_cep_edelay,
 	_cep_energycost,
+	_cep_escapecount,
+	_cep_escapehits,
 	_cep_falldie,
 	_cep_freezetime,
 	_cep_frozen,
@@ -4533,6 +4578,7 @@ enum changeentityproperty_enum {
 	_cep_rush_count,
 	_cep_rush_tally,
 	_cep_rush_time,
+	_cep_score,
 	_cep_scroll,
 	_cep_seal,
 	_cep_sealtime,
@@ -4554,6 +4600,7 @@ enum changeentityproperty_enum {
 	_cep_subject_to_wall,
 	_cep_takeaction,
 	_cep_think,
+	_cep_thold,
 	_cep_throwdamage,
 	_cep_throwdist,
 	_cep_throwframewait,
@@ -4657,6 +4704,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"base",
 		"blink",
 		"blockback",
+		"blockodds",
 		"blockpain",
 		"bounce",
 		"candamage",
@@ -4671,6 +4719,8 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"dot",
 		"edelay",
 		"energycost",
+		"escapehits",
+		"escapecount",
 		"falldie",
 		"freezetime",
 		"frozen",
@@ -4719,6 +4769,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"rush_count",
 		"rush_tally",
 		"rush_time",
+		"score",
 		"scroll",
 		"seal",
 		"sealtime",
@@ -4740,6 +4791,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"subject_to_wall",
 		"takeaction",
 		"think",
+		"thold",
 		"throwdamage",
 		"throwdist",
 		"throwframewait",
@@ -4940,6 +4992,51 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 	switch(propind)
 	{
+    case _cep_blockodds:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			(*pretvar)->lVal = (LONG)1;
+			ent->modeldata.blockodds = (int)ltemp;
+		}
+		break;
+	}
+	case _cep_escapecount:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			(*pretvar)->lVal = (LONG)1;
+			ent->escapecount = (int)ltemp;
+		}
+		break;
+	}
+	case _cep_escapehits:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			(*pretvar)->lVal = (LONG)1;
+			ent->modeldata.escapehits = (int)ltemp;
+		}
+		break;
+	}
+	case _cep_score:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			(*pretvar)->lVal = (LONG)1;
+			ent->modeldata.score = (int)ltemp;
+		}
+		break;
+	}
+	case _cep_thold:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			(*pretvar)->lVal = (LONG)1;
+			ent->modeldata.thold = (int)ltemp;
+		}
+		break;
+	}
 	case _cep_takeaction:
 	{
 		if(varlist[2]->vt == VT_STR)
