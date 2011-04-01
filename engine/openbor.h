@@ -708,10 +708,18 @@ typedef struct
 
 typedef struct
 {
-    short int       endframe;                       //Frame animation reaches before looping.
+    short int       frameend;                       //Frame animation reaches before looping.
+    short int       framestart;                     //Frame animation loops back to.
     signed char     mode;                           //0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
-    short int       startframe;                     //Frame animation loops back to.
 }s_loop;
+
+typedef struct
+{
+    signed char     cnt;                            //Repetition count.
+    signed char     framestart;                     //Frame to start quake.
+    signed char     repeat;                         //Repetitons.
+    signed char     v;                              //Vertical distance of screen movement (in pixels).
+}s_quakeframe;
 
 typedef struct
 {
@@ -770,7 +778,7 @@ typedef struct
 	short			counterframe[4];				// 0,1; Counter frame, 2 counter cond, 3 counterdam
 	char            cancel:8;                       // Cancel anims with freespecial
 	short*			weaponframe;					// Specify with a frame when to switch to a weapon model
-	short 			quakeframe[4];					// Specify with a frame, repeat, quake (4 is highest)
+	s_quakeframe	quakeframe;					    // Screen shake effect. 2011_04_01, DC; Moved to struct.
 	float*          spawnframe;					    // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
 	float*          summonframe;					// Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
 	short           unsummonframe:16;               // Un-summon the entity
