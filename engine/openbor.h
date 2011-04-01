@@ -735,7 +735,7 @@ typedef struct                                      //2011_04_01, DC: Frame base
     signed char     v;                              //Vertical distance of screen movement (in pixels).
 }s_quakeframe;
 
-typedef struct
+typedef struct                                      //2011_04_01, DC: Distance to target verification for AI running, jumping, following parent, and combo chains for all entity types.
 {
     short int       xmin;                           //Minimum horizontal range.
     short int       xmax;                           //Maximum horizontal range.
