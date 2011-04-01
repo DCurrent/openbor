@@ -5594,7 +5594,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->range[6] = -1000;                          //Base min.
 						newanim->range[7] = 1000;                           //Base max.
 
-						newanim->jumpv = 0;    // Default disabled
+						newanim->jumpframe.v = 0;                           // Default disabled
 						newanim->fastattack = 0;
 						newanim->energycost.mponly = 0;							//MP only.
 						newanim->energycost.disable = 0;							//Disable flag.
@@ -5602,10 +5602,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->shootframe = -1;
 						newanim->throwframe = -1;
 						newanim->tossframe = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
-						newanim->jumpframe = -1;
+						newanim->jumpframe.f = -1;
 						newanim->flipframe = -1;
 						newanim->attackone = -1;
-						newanim->dive[0] = newanim->dive[1] = 0;
+						newanim->dive.x = newanim->dive.v = 0;
 						newanim->followanim = 0;			// Default disabled
 						newanim->followcond = 0;
 						newanim->counterframe[0] = -1;		//Start frame.
@@ -6256,14 +6256,14 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->chargetime = GET_FLOAT_ARG(1);
 					break;
 				case CMD_MODEL_DIVE:	//dive kicks
-					newanim->dive[0] = GET_FLOAT_ARG(1);
-					newanim->dive[1] = GET_FLOAT_ARG(2);
+					newanim->dive.x = GET_FLOAT_ARG(1);
+					newanim->dive.v = GET_FLOAT_ARG(2);
 					break;
 				case CMD_MODEL_DIVE1:
-					newanim->dive[0] = GET_FLOAT_ARG(1);
+					newanim->dive.x = GET_FLOAT_ARG(1);
 					break;
 				case CMD_MODEL_DIVE2:
-					newanim->dive[1] = GET_FLOAT_ARG(1);
+					newanim->dive.v = GET_FLOAT_ARG(1);
 					break;
 				case CMD_MODEL_ATTACKONE:
 					newanim->attackone = GET_INT_ARG(1);
@@ -6304,45 +6304,45 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_JUMPFRAME:
 					{
-						newanim->jumpframe = GET_INT_ARG(1);
-						newanim->jumpv = GET_FLOAT_ARG(2);    // Added so movement can be customized for jumpframes
+						newanim->jumpframe.f    = GET_INT_ARG(1);   //Frame.
+						newanim->jumpframe.v    = GET_FLOAT_ARG(2); //Vertical velocity.
 						value = GET_ARG(3);
 						if(value[0])
 						{
-							newanim->jumpx = GET_FLOAT_ARG(3);
-							newanim->jumpz = GET_FLOAT_ARG(4);
+							newanim->jumpframe.x = GET_FLOAT_ARG(3);
+							newanim->jumpframe.z = GET_FLOAT_ARG(4);
 						}
 						else // k, only for backward compatibility :((((((((((((((((
 						{
-							if(newanim->jumpv <= 0)
+							if(newanim->jumpframe.v <= 0)
 							{
 								if(newchar->type == TYPE_PLAYER)
 								{
-									newanim->jumpv = newchar->jumpheight / 2;
-									newanim->jumpz = 0;
-									newanim->jumpx = 2;
+									newanim->jumpframe.v = newchar->jumpheight / 2;
+									newanim->jumpframe.z = 0;
+									newanim->jumpframe.x = 2;
 								}
 								else
 								{
-									newanim->jumpv = newchar->jumpheight;
-									newanim->jumpz = newanim->jumpx = 0;
+									newanim->jumpframe.v = newchar->jumpheight;
+									newanim->jumpframe.z = newanim->jumpframe.x = 0;
 								}
 							}
 							else
 							{
 								if(newchar->type != TYPE_ENEMY && newchar->type != TYPE_NPC)
-									newanim->jumpz = newanim->jumpx = 0;
+									newanim->jumpframe.z = newanim->jumpframe.x = 0;
 								else
 								{
-									newanim->jumpz = 0;
-									newanim->jumpx = (float)1.3;
+									newanim->jumpframe.z = 0;
+									newanim->jumpframe.x = (float)1.3;
 								}
 							}
 						}
 
 						value = GET_ARG(5);
-						if(value[0]) newanim->jumpd = get_cached_model_index(value);
-						else newanim->jumpd = -1;
+						if(value[0]) newanim->jumpframe.ent = get_cached_model_index(value);
+						else newanim->jumpframe.ent = -1;
 
 					}
 					break;
@@ -10400,16 +10400,16 @@ void update_frame(entity* ent, int f)
 	if(self->animation->soundtoplay && self->animation->soundtoplay[f] >= 0)
 		sound_play_sample(self->animation->soundtoplay[f], 0, savedata.effectvol,savedata.effectvol, 100);
 
-	if(self->animation->jumpframe == f)
+	if(self->animation->jumpframe.f == f)
 	{
 		// Set custom jumpheight for jumpframes
-		/*if(self->animation->jumpv > 0)*/ toss(self, self->animation->jumpv);
-		self->xdir = self->direction?self->animation->jumpx:-self->animation->jumpx;
-		self->zdir = self->animation->jumpz;
+		/*if(self->animation->jumpframe.v > 0)*/ toss(self, self->animation->jumpframe.v);
+		self->xdir = self->direction?self->animation->jumpframe.x:-self->animation->jumpframe.x;
+		self->zdir = self->animation->jumpframe.z;
 
-		if(self->animation->jumpd>=0)
+		if(self->animation->jumpframe.ent>=0)
 		{
-			dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->animation->jumpd, NULL);
+			dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->animation->jumpframe.ent, NULL);
 			dust->base = self->a;
 			dust->autokill = 1;
 			execute_onspawn_script(dust);
@@ -11617,7 +11617,7 @@ void check_gravity()
 
 	if(!is_frozen(self) )// Incase an entity is in the air, don't update animations
 	{
-		if((self->falling || self->tossv || self->a!=self->base) && self->toss_time <= time && !self->animation->dive[0] && !self->animation->dive[1])
+		if((self->falling || self->tossv || self->a!=self->base) && self->toss_time <= time && !self->animation->dive.x && !self->animation->dive.v)
 		{
 			if(self->modeldata.subject_to_platform>0 && self->tossv>0)
 				other = check_platform_above(self->x, self->z, self->a+self->tossv);
@@ -13257,15 +13257,15 @@ void common_jump()
 
 	if(inair(self))
 	{
-		if(self->animation->dive[0] || self->animation->dive[1])
+		if(self->animation->dive.x || self->animation->dive.v)
 		{
 			self->tossv = 0;    // Void tossv so "a" can be adjusted manually
 			self->toss_time = 0;
 
-			if(self->direction) self->xdir = self->animation->dive[0];
-			else self->xdir = -self->animation->dive[0];
+			if(self->direction) self->xdir = self->animation->dive.x;
+			else self->xdir = -self->animation->dive.x;
 
-			self->a -= self->animation->dive[1];
+			self->a -= self->animation->dive.v;
 
 			if(self->a <= self->base) self->a = self->base;    // Don't want to go below ground
 		}
