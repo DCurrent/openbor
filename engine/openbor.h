@@ -686,17 +686,32 @@ typedef struct
 
 typedef struct
 {
+    float           v;                              //Vertical speed.
+    float           x;                              //Horizontal speed.
+}s_dive;
+
+typedef struct
+{
+    short int       cost;                           //Amount of energy cost.
+    signed char     disable;                        //Disable flag. See check_energy function.
+    signed char     mponly;                         //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
+}s_energycost;
+
+typedef struct
+{
+    int				ent;							//Index of entity to spawn on liftoff of jump action.
+    short int		f;                              //Frame to begin jump action.
+	float           v;    		                    //Vertical velocity.
+	float           x;                              //Horizontal velcoty.
+	float           z;                              //Lateral velocity.
+}s_jumpframe;
+
+typedef struct
+{
     short int       endframe;                       //Frame animation reaches before looping.
     signed char     mode;                           //0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
     short int       startframe;                     //Frame animation loops back to.
 }s_loop;
-
-typedef struct
-{
-    short int       cost;                           //0 Amount of energy cost.
-    signed char     mponly;                         //1 MPonly type.
-    signed char     disable;                        //2 Disable flag. See check_energy function.
-}s_energycost;
 
 typedef struct
 {
@@ -717,13 +732,9 @@ typedef struct
 	char			fastattack:8;					// Flag to determine if the opponent uses their pain time
 	s_energycost	energycost;					    // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
 	float           chargetime;                     // charge time for an animation
-	short			jumpframe:16;
-	float           jumpv; // moveflag   		    // So movement forward can be specified for jumpframes
-	float           jumpx;                          // override move forward value
-	float           jumpz;                          // override move z value
-	int				jumpd;							// Index of dust entity to spawn on liftoff of jumpframe.
+	s_jumpframe     jumpframe;                      // Jumpframe action. 2011_04_01, DC: moved to struct.
 	float           bounce;                         // -tossv/bounce = new tossv
-	float			dive[2];						// new dive kick by tails
+	s_dive			dive;						    // dive kick by tails. 2011_04_01, DC: Moved to struct.
 	int*	        soundtoplay;                    // each frame can have a sound
 	int*			sprite;                         // sprite[set][framenumber]
 	short*			delay;
