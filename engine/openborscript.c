@@ -2584,6 +2584,12 @@ enum gep_energycost_enum {
 		_gep_energycost_the_end,
 	};
 
+enum gep_landframe_enum {
+		_gep_landframe_ent,
+		_gep_landframe_frame,
+		_gep_landframe_the_end,
+	};
+
 void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
@@ -2843,6 +2849,11 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"mponly",
 	};
 
+	static const char* proplist_landframe[] = {
+        "ent",
+        "frame",
+	};
+
 	if(paramCount < 2) return;
 
 	// map entity properties
@@ -2908,6 +2919,13 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 	{
 		MAPSTRINGS(varlist[2], proplist_energycost, _gep_energycost_the_end,
 			"Property name '%s' is not a known subproperty of 'energycost'.\n");
+	}
+
+	// map subproperties of Landframe
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_landframe))
+	{
+		MAPSTRINGS(varlist[2], proplist_landframe, _gep_landframe_the_end,
+			"Property name '%s' is not a known subproperty of 'landframe'.\n");
 	}
 }
 
@@ -3430,15 +3448,36 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	}
 	case _gep_landframe:
 	{
-		ltemp = 0;
-		if(paramCount == 3)
+	    if(paramCount<4) break;
+
+		if(varlist[2]->vt != VT_INTEGER
+			|| varlist[3]->vt != VT_INTEGER)
 		{
-			arg = varlist[2];
-			if(FAILED(ScriptVariant_IntegerValue(arg, &ltemp)))
-			ltemp = (LONG)0;
+			printf("\n Error, getentityproperty({ent}, 'landframe', {sub property}, {animation}): {Sub property} or {Animation} parameter is missing or invalid. \n");
+			return E_FAIL;
 		}
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.animation[ltemp]->landframe[0];
+		ltemp	= varlist[2]->lVal;												//Subproperty.
+		i		= varlist[3]->lVal;												//Animation.
+
+		if(!validanim(ent,i))													//Verify animation.
+		{
+			break;
+		}
+
+		switch(ltemp)
+		{
+			case _gep_landframe_ent:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.ent;
+				 break;
+			case _gep_landframe_frame:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.frame;
+				 break;
+			default:
+				ScriptVariant_Clear(*pretvar);
+				return E_FAIL;
+		}
 		break;
 	}
 	case _gep_type:
