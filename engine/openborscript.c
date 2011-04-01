@@ -3922,35 +3922,35 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		{
 			case _gep_range_amax:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range[5];
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.amax;
 				 break;
 			case _gep_range_amin:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range[4];
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.amin;
 				 break;
 			case _gep_range_bmax:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range[7];
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.bmax;
 				 break;
 			case _gep_range_bmin:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range[6];
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.bmin;
 				 break;
 			case _gep_range_xmax:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range[1];
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.xmax;
 				 break;
 			case _gep_range_xmin:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range[0];
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.xmin;
 				 break;
 			case _gep_range_zmax:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range[3];
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.zmax;
 				 break;
 			case _gep_range_zmin:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range[2];
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.zmin;
 				 break;
 			default:
 				ScriptVariant_Clear(*pretvar);

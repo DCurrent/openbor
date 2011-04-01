@@ -516,32 +516,32 @@
 #define check_range(self, target, animnum) \
 		 ( target && \
 		  (self->direction ? \
-		  target->x > self->x+self->modeldata.animation[animnum]->range[0] &&\
-		  target->x < self->x+self->modeldata.animation[animnum]->range[1]\
+		  target->x > self->x+self->modeldata.animation[animnum]->range.xmin &&\
+		  target->x < self->x+self->modeldata.animation[animnum]->range.xmax\
 		:\
-		  target->x < self->x-self->modeldata.animation[animnum]->range[0] &&\
-		  target->x > self->x-self->modeldata.animation[animnum]->range[1])\
-		  && target->z - self->z > self->modeldata.animation[animnum]->range[2] \
-		  && target->z - self->z < self->modeldata.animation[animnum]->range[3] \
-		  && (target->a - self->a) > self->modeldata.animation[animnum]->range[4] \
-		  && (target->a - self->a) < self->modeldata.animation[animnum]->range[5] \
-		  && (target->base - self->base) > self->modeldata.animation[animnum]->range[6] \
-		  && (target->base - self->base) < self->modeldata.animation[animnum]->range[7] \
+		  target->x < self->x-self->modeldata.animation[animnum]->range.xmin &&\
+		  target->x > self->x-self->modeldata.animation[animnum]->range.xmax)\
+		  && target->z - self->z > self->modeldata.animation[animnum]->range.zmin \
+		  && target->z - self->z < self->modeldata.animation[animnum]->range.zmax \
+		  && (target->a - self->a) > self->modeldata.animation[animnum]->range.amin \
+		  && (target->a - self->a) < self->modeldata.animation[animnum]->range.amax \
+		  && (target->base - self->base) > self->modeldata.animation[animnum]->range.bmin \
+		  && (target->base - self->base) < self->modeldata.animation[animnum]->range.bmax \
 		  )\
 
 #define check_range_both(self, target, animnum) \
 		 ( target && \
-		  ((target->x > self->x+self->modeldata.animation[animnum]->range[0] &&\
-			target->x < self->x+self->modeldata.animation[animnum]->range[1])\
+		  ((target->x > self->x+self->modeldata.animation[animnum]->range.xmin &&\
+			target->x < self->x+self->modeldata.animation[animnum]->range.xmax)\
 		||\
-		   (target->x < self->x-self->modeldata.animation[animnum]->range[0] &&\
-			target->x > self->x-self->modeldata.animation[animnum]->range[1]))\
-		  && target->z - self->z > self->modeldata.animation[animnum]->range[2] \
-		  && target->z - self->z < self->modeldata.animation[animnum]->range[3] \
-		  && (target->a - self->a) > self->modeldata.animation[animnum]->range[4] \
-		  && (target->a - self->a) < self->modeldata.animation[animnum]->range[5] \
-		  && (target->base - self->base) > self->modeldata.animation[animnum]->range[6] \
-		  && (target->base - self->base) < self->modeldata.animation[animnum]->range[7] \
+		   (target->x < self->x-self->modeldata.animation[animnum]->range.xmin &&\
+			target->x > self->x-self->modeldata.animation[animnum]->range.xmax))\
+		  && target->z - self->z > self->modeldata.animation[animnum]->range.zmin \
+		  && target->z - self->z < self->modeldata.animation[animnum]->range.zmax \
+		  && (target->a - self->a) > self->modeldata.animation[animnum]->range.amin \
+		  && (target->a - self->a) < self->modeldata.animation[animnum]->range.amax \
+		  && (target->base - self->base) > self->modeldata.animation[animnum]->range.bmin \
+		  && (target->base - self->base) < self->modeldata.animation[animnum]->range.bmax \
 		  )\
 
 
@@ -715,6 +715,18 @@ typedef struct
 
 typedef struct
 {
+    short int       xmin;                           //Minimum horizontal range.
+    short int       xmax;                           //Maximum horizontal range.
+    short int       zmin;                           //Minimum lateral range.
+    short int       zmax;                           //Maximum lateral range.
+    short int       amin;                           //Minimum vertical range.
+    short int       amax;                           //Maximum vertical range.
+    short int       bmin;                           //Minumum base range.
+    short int       bmax;                           //Maximum base rnage.
+}s_range;
+
+typedef struct
+{
 	int             model_index;
 	short			numframes:16;
 	s_loop 		    loop;                           // Animation looping. 2011_03_31, DC: Moved to struct.
@@ -751,7 +763,7 @@ typedef struct
 	char            attackone:8;
 	s_attack**      attacks;
 	float			(*platform)[8];					// Now entities can have others land on them
-	int				range[8];						// Use for attacks; xmin, xmax, zmin, zmax, amin, amax, basemin, basemax
+	s_range			range;						    // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
 	short			flipframe:16;					// Turns entities around on the desired frame
 	short			followanim:16;					// use which FOLLOW anim?
 	char			followcond:8;					// conditions under which to use a followup
