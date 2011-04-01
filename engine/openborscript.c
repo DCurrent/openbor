@@ -2577,6 +2577,13 @@ enum gep_range_enum {
 		_gep_range_the_end,
 	};
 
+enum gep_energycost_enum {
+		_gep_energycost_cost,
+		_gep_energycost_disable,
+		_gep_energycost_mponly,
+		_gep_energycost_the_end,
+	};
+
 void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
@@ -2830,6 +2837,12 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"zmin",
 	};
 
+	static const char* proplist_energycost[] = {
+		"cost",
+		"disable",
+		"mponly",
+	};
+
 	if(paramCount < 2) return;
 
 	// map entity properties
@@ -2889,6 +2902,13 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		MAPSTRINGS(varlist[2], proplist_range, _gep_range_the_end,
 			"Property name '%s' is not a known subproperty of 'range'.\n");
 	}
+
+	// map subproperties of Energycost
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_energycost))
+	{
+		MAPSTRINGS(varlist[2], proplist_energycost, _gep_energycost_the_end,
+			"Property name '%s' is not a known subproperty of 'energycost'.\n");
+	}
 }
 
 //getentityproperty(pentity, propname);
@@ -2934,6 +2954,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 	switch(propind)
 	{
+    case _gep_animal:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.animal;
+		break;
+	}
 	case _gep_model:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
@@ -3353,24 +3379,40 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	}
 	case _gep_energycost:
 	{
-		if(paramCount != 4						//Validate parameter count and types.
-			|| varlist[2]->vt != VT_INTEGER
+		if(paramCount<4) break;
+
+		if(varlist[2]->vt != VT_INTEGER
 			|| varlist[3]->vt != VT_INTEGER)
 		{
-			printf("\n Error, getentityproperty({ent}, 'energycost', {animation}, {argument}): Missing or invalid parameter. \n");
+			printf("\n Error, getentityproperty({ent}, 'energycost', {sub property}, {animation}): {Sub property} or {Animation} parameter is missing or invalid. \n");
 			return E_FAIL;
 		}
+		ltemp	= varlist[2]->lVal;												//Subproperty.
+		i		= varlist[3]->lVal;												//Animation.
 
-		i	= varlist[2]->lVal;					//Animation.
-
-		if(!validanim(ent,i))					//Bad or missing animation = instant crash, let's validate and pass user friendly error.
+		if(!validanim(ent,i))													//Verify animation.
 		{
-			printf("\n Error, getentityproperty({ent}, 'energycost', {animation}, {argument}): {animation} argument invalid. Make sure the animation exists. \n");
-			return E_FAIL;
+			break;
 		}
 
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost[varlist[3]->lVal];
+		switch(ltemp)
+		{
+			case _gep_energycost_cost:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.cost;
+				 break;
+			case _gep_energycost_disable:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.disable;
+				 break;
+			case _gep_energycost_mponly:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.mponly;
+				 break;
+			default:
+				ScriptVariant_Clear(*pretvar);
+				return E_FAIL;
+		}
 		break;
 	}
 	case _gep_dropframe:
@@ -4682,6 +4724,13 @@ enum cep_aiflag_enum {
 	_cep_aiflag_the_end,
 };
 
+enum _cep_energycost_enum {
+    _cep_energycost_cost,
+    _cep_energycost_disable,
+    _cep_energycost_mponly,
+    _cep_energycost_the_end,
+};
+
 void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
@@ -4868,7 +4917,11 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
         "type_shot",
     };
 
-	if(paramCount < 3) return;
+    static const char* proplist_energycost[] = {
+        "cost",
+        "disable",
+        "mponly",
+    };
 
 	// property name
 	MAPSTRINGS(varlist[1], proplist, _cep_the_end,
@@ -4904,6 +4957,13 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 	{
 		MAPSTRINGS(varlist[2], proplist_aiflag, _cep_aiflag_the_end,
 			"Flag '%s' is not supported by 'aiflag'.\n");
+	}
+
+	//2011_03_31, DC: Energycost
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_energycost))
+	{
+		MAPSTRINGS(varlist[2], proplist_energycost, _cep_energycost_the_end,
+			"Flag '%s' is not supported by 'energycost'.\n");
 	}
 }
 
@@ -6281,40 +6341,56 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
 	case _cep_energycost:
 	{
-		if(paramCount != 6)
+		if(paramCount != 5)
 		{
-			printf("\n Error, changeentityproperty({ent}, 'energycost', {animation}, {cost}, {mponly}, {disable}): Invalid or missing parameter. \n");
+			printf("\n Error, changeentityproperty({ent}, 'energycost', {subproperty}, {animation}, {value}): Invalid or missing parameter. \n");
 			goto changeentityproperty_error;
 		}
 
 		(*pretvar)->lVal = (LONG)1;
 
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
 		{
 			i = (int)ltemp;
 		}
 
 		if(!validanim(ent,i))
 		{
-			printf("\n Error, changeentityproperty({ent}, 'energycost', {animation}, {cost}, {mponly}, {disable}): {animation} parameter invalid. Make sure the animation exists. \n");
+			printf("\n Error, changeentityproperty({ent}, 'energycost', {subproperty}, {animation}, {value}): {animation} parameter invalid. Make sure the animation exists. \n");
 			goto changeentityproperty_error;
 		}
 
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+		if(varlist[2]->vt != VT_INTEGER)
 		{
-			ent->modeldata.animation[i]->energycost[0] = (int)ltemp;
+			if(varlist[2]->vt != VT_STR)
+				printf("You must give a string value for energycost flag name.\n");
+			goto changeentityproperty_error;
 		}
 
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
+		switch(varlist[2]->lVal)
 		{
-			ent->modeldata.animation[i]->energycost[1] = (int)ltemp;
-		}
-
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
+		case _cep_energycost_cost:
 		{
-			ent->modeldata.animation[i]->energycost[2] = (int)ltemp;
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
+				ent->modeldata.animation[i]->energycost.cost = (int)ltemp;
+			break;
 		}
-
+		case _cep_energycost_disable:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
+				ent->modeldata.animation[i]->energycost.disable = (int)ltemp;
+			break;
+		}
+		case _cep_energycost_mponly:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
+				ent->modeldata.animation[i]->energycost.mponly = (int)ltemp;
+			break;
+		}
+		default:
+			printf("Unknown Energycost flag.\n");
+			goto changeentityproperty_error;
+		}
 		break;
 	}
 	case _cep_mpset:

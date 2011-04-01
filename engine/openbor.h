@@ -686,9 +686,23 @@ typedef struct
 
 typedef struct
 {
+    short int       endframe;                       //Frame animation reaches before looping.
+    signed char     mode;                           //0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
+    short int       startframe;                     //Frame animation loops back to.
+}s_loop;
+
+typedef struct
+{
+    short int       cost;                           //0 Amount of energy cost.
+    signed char     mponly;                         //1 MPonly type.
+    signed char     disable;                        //2 Disable flag. See check_energy function.
+}s_energycost;
+
+typedef struct
+{
 	int             model_index;
 	short			numframes:16;
-	int 			loop[3];                        // Animation loop (0 = loop on/off, 1 = Loop to frame, 2 = Loop end frame).
+	s_loop 		    loop;                           // Animation looping. 2011_03_31, DC: Moved to struct.
 	short           height:16;                      // entity's height during animation
 	short			tossframe:16;					// Used to determine which frame will toss a bomb/grenade
 	short			shootframe:16;
@@ -701,7 +715,7 @@ typedef struct
 	int             custpshotno;
 	int             subentity;                      // Store the sub-entity's name for further use
 	char			fastattack:8;					// Flag to determine if the opponent uses their pain time
-	short			energycost[3];					// 1-10-05 to adjust the amount of energy used for specials. 05072010: Made array with mponly. 0 = Energycost, 1 = MPonly, 2 = Disable flag (see check_energy function).
+	s_energycost	energycost;					    // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
 	float           chargetime;                     // charge time for an animation
 	short			jumpframe:16;
 	float           jumpv; // moveflag   		    // So movement forward can be specified for jumpframes
