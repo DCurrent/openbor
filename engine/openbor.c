@@ -5585,14 +5585,14 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						frameshadow = -1;
 						soundtoplay = -1;
 
-						if(!newanim->range[0]) newanim->range[0] = -10;
-						newanim->range[1] = (int)newchar->jumpheight*20;    //30-12-2004 default range affected by jump height
-						newanim->range[2] = (int)-newchar->grabdistance/3;  //zmin
-						newanim->range[3] = (int)newchar->grabdistance/3;   //zmax
-						newanim->range[4] = -1000;                          //amin
-						newanim->range[5] = 1000;                           //amax
-						newanim->range[6] = -1000;                          //Base min.
-						newanim->range[7] = 1000;                           //Base max.
+						if(!newanim->range.xmin) newanim->range.xmin = -10;
+						newanim->range.xmax = (int)newchar->jumpheight*20;    //30-12-2004 default range affected by jump height
+						newanim->range.zmin = (int)-newchar->grabdistance/3;  //zmin
+						newanim->range.zmax = (int)newchar->grabdistance/3;   //zmax
+						newanim->range.amin = -1000;                          //amin
+						newanim->range.amax = 1000;                           //amax
+						newanim->range.bmin = -1000;                          //Base min.
+						newanim->range.bmax = 1000;                           //Base max.
 
 						newanim->jumpframe.v = 0;                           // Default disabled
 						newanim->fastattack = 0;
@@ -5661,8 +5661,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						}
 						else if(stricmp(value, "jump")==0){
 							ani_id = ANI_JUMP;
-							newanim->range[0] = 50;    // Used for enemies that jump on walls
-							newanim->range[1] = 60;    // Used for enemies that jump on walls
+							newanim->range.xmin = 50;    // Used for enemies that jump on walls
+							newanim->range.xmax = 60;    // Used for enemies that jump on walls
 						}
 						else if(stricmp(value, "duck")==0){
 							ani_id = ANI_DUCK;
@@ -5928,8 +5928,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						else if(stricmp(value, "upper")==0){
 							ani_id = ANI_UPPER;
 							attack.counterattack = 100; //default to 100
-							newanim->range[0] = -10;
-							newanim->range[1] = 120;
+							newanim->range.xmin = -10;
+							newanim->range.xmax = 120;
 						}
 						else if(stricmp(value, "cant")==0){
 							ani_id = ANI_CANT;
@@ -6001,8 +6001,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							ani_id = ANI_JUMPATTACK;
 							if(newchar->jumpheight==4)
 							{
-								newanim->range[0] = 150;
-								newanim->range[1] = 200;
+								newanim->range.xmin = 150;
+								newanim->range.xmax = 200;
 							}
 						}
 						else if(stricmp(value, "jumpattack2")==0){
@@ -6125,8 +6125,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						}
 						else if(stricmp(value, "block")==0){    // Now enemies can block attacks on occasion
 							ani_id = ANI_BLOCK;
-							newanim->range[0] = 1;
-							newanim->range[1] = 100;
+							newanim->range.xmin = 1;
+							newanim->range.xmax = 100;
 						}
 						else if(strnicmp(value, "follow", 6)==0 && (!value[6] || (value[6]>='1' && value[6]<='9'))){
 							tempInt = atoi(value+6);
@@ -6693,32 +6693,32 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						shutdownmessage = "Cannot set range: no animation!";
 						goto lCleanup;
 					}
-					newanim->range[0] = GET_INT_ARG(1);
-					newanim->range[1] = GET_INT_ARG(2);
+					newanim->range.xmin = GET_INT_ARG(1);
+					newanim->range.xmax = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_RANGEZ:
 					if(!newanim) {
 						shutdownmessage = "Cannot set rangez: no animation!";
 						goto lCleanup;
 					}
-					newanim->range[2] = GET_INT_ARG(1);
-					newanim->range[3] = GET_INT_ARG(2);
+					newanim->range.zmin = GET_INT_ARG(1);
+					newanim->range.zmax = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_RANGEA:
 					if(!newanim) {
 						shutdownmessage = "Cannot set rangea: no animation!";
 						goto lCleanup;
 					}
-					newanim->range[4] = GET_INT_ARG(1);
-					newanim->range[5] = GET_INT_ARG(2);
+					newanim->range.amin = GET_INT_ARG(1);
+					newanim->range.amax = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_RANGEB:
 					if(!newanim) {
 						shutdownmessage = "Cannot set rangeb: no animation!";
 						goto lCleanup;
 					}
-					newanim->range[6] = GET_INT_ARG(1);
-					newanim->range[7] = GET_INT_ARG(2);
+					newanim->range.bmin = GET_INT_ARG(1);
+					newanim->range.bmax = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_FRAME:
 					{
@@ -14834,8 +14834,8 @@ int common_try_jump()
 	{
 		//Check to see if there is a wall within jumping distance and within a jumping height
 		xdir = 0; wall = -1;
-		rmin = (float)self->modeldata.animation[ANI_JUMP]->range[0];
-		rmax = (float)self->modeldata.animation[ANI_JUMP]->range[1];
+		rmin = (float)self->modeldata.animation[ANI_JUMP]->range.xmin;
+		rmax = (float)self->modeldata.animation[ANI_JUMP]->range.xmax;
 		if(self->direction) xdir = self->x + rmin;
 		else xdir = self->x - rmin;
 		//check z jump
@@ -14866,8 +14866,8 @@ int common_try_jump()
 	{
 		//Check for wall in range of RUNJUMP.
 		xdir = 0; wall = -1;
-		rmin = (float)self->modeldata.animation[ANI_RUNJUMP]->range[0];
-		rmax = (float)self->modeldata.animation[ANI_RUNJUMP]->range[1];
+		rmin = (float)self->modeldata.animation[ANI_RUNJUMP]->range.xmin;
+		rmax = (float)self->modeldata.animation[ANI_RUNJUMP]->range.xmax;
 		if(self->direction) xdir = self->x + rmin;
 		else xdir = self->x - rmin;
 		//check z jump
@@ -15058,7 +15058,7 @@ int common_try_follow()
 
 	dx = diff(self->x, target->x);
 	dz = diff(self->z, target->z);
-	distance = (float)((validanim(self,ANI_IDLE))? self->modeldata.animation[ANI_IDLE]->range[0]: 100);
+	distance = (float)((validanim(self,ANI_IDLE))? self->modeldata.animation[ANI_IDLE]->range.xmin: 100);
 
 	if(dz + dx < distance ) return 0;
 
@@ -15854,8 +15854,8 @@ void common_think()
 
 	// too far away , do a warp
 	if(self->modeldata.subtype == SUBTYPE_FOLLOW && self->parent &&
-		(diff(self->z, self->parent->z) > self->modeldata.animation[ANI_IDLE]->range[1] ||
-		diff(self->x, self->parent->x) > self->modeldata.animation[ANI_IDLE]->range[1]) )
+		(diff(self->z, self->parent->z) > self->modeldata.animation[ANI_IDLE]->range.xmax ||
+		diff(self->x, self->parent->x) > self->modeldata.animation[ANI_IDLE]->range.xmax) )
 	{
 		self->takeaction = npc_warp;
 		return;
@@ -18415,8 +18415,8 @@ entity * homing_find_target(int type){
 	int index = -1;
 	//use the walk animation's range
 	if(validanim(self,ANI_WALK)){
-		min = self->modeldata.animation[ANI_WALK]->range[0];
-		max = self->modeldata.animation[ANI_WALK]->range[1];
+		min = self->modeldata.animation[ANI_WALK]->range.xmin;
+		max = self->modeldata.animation[ANI_WALK]->range.xmax;
 	} else {
 		min = 0;
 		max = 999;
