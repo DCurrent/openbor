@@ -10,7 +10,6 @@
 #define AUDIODRV_H
 
 void audio_SetVolume(int channel, int left, int right);
-void audio_SetChannelCallback(int channel, void (*callback)(void*,unsigned));
 int audio_Init(void);
 void audio_Term(void);
 
