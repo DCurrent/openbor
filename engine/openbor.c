@@ -5608,10 +5608,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->dive.x = newanim->dive.v = 0;
 						newanim->followanim = 0;			// Default disabled
 						newanim->followcond = 0;
-						newanim->counterframe[0] = -1;		//Start frame.
-						newanim->counterframe[1] = -1;		//End frame.
-						newanim->counterframe[2] = 0;		//Counter cond.
-						newanim->counterframe[3] = 0;		//Counter damage.
+						newanim->counterrange.framestart = -1;		//Start frame.
+						newanim->counterrange.frameend = -1;		//End frame.
+						newanim->counterrange.condition = 0;		//Counter cond.
+						newanim->counterrange.damaged = 0;		//Counter damage.
 						newanim->unsummonframe = -1;
 						newanim->landframe[0] = -1;
 						newanim->dropframe = -1;
@@ -6840,16 +6840,16 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->followcond = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_COUNTERFRAME:
-					newanim->counterframe[0]	= GET_INT_ARG(1);
-					newanim->counterframe[1]	= GET_INT_ARG(1);
-					newanim->counterframe[2]	= GET_INT_ARG(2);
-					newanim->counterframe[3]	= GET_INT_ARG(3);
+					newanim->counterrange.framestart    = GET_INT_ARG(1);
+					newanim->counterrange.frameend	    = GET_INT_ARG(1);
+					newanim->counterrange.condition	    = GET_INT_ARG(2);
+					newanim->counterrange.damaged	    = GET_INT_ARG(3);
 					break;
 				case CMD_MODEL_COUNTERRANGE:
-					newanim->counterframe[0]	= GET_INT_ARG(1);
-					newanim->counterframe[1]	= GET_INT_ARG(2);
-					newanim->counterframe[2]	= GET_INT_ARG(3);
-					newanim->counterframe[3]	= GET_INT_ARG(4);
+					newanim->counterrange.framestart	= GET_INT_ARG(1);
+					newanim->counterrange.frameend	    = GET_INT_ARG(2);
+					newanim->counterrange.condition	    = GET_INT_ARG(3);
+					newanim->counterrange.damaged	    = GET_INT_ARG(4);
 					break;
 				case CMD_MODEL_WEAPONFRAME:
 					newanim->weaponframe    = malloc(2 * sizeof(newanim->weaponframe));
@@ -11397,17 +11397,17 @@ void do_attack(entity *e)
 						if(flash) execute_onspawn_script(flash);
 					}
 				}
-				else if((self->animpos >= self->animation->counterframe[0] && self->animpos <= self->animation->counterframe[1])  &&	//Within counter range?
+				else if((self->animpos >= self->animation->counterrange.framestart && self->animpos <= self->animation->counterrange.frameend)  &&	//Within counter range?
 					!self->frozen)// &&																								//Not frozen?
-					//(self->animation->counterframe[2] <= 1 && e->modeldata.type & them)) //&&												//Friend/foe?
-					//(self->animation->counterframe[2] <= 3 && !attack->no_block) &&														//Counter attack self couldn't block?
-					//self->animation->counterframe[2] <= 2 ||
-					//self->animation->counterframe[2] <= 2 || !(self->direction == e->direction)) //&&										//Direction check.
-					//(self->animation->counterframe[2] <= 3 || !attack->freeze))															//Freeze attacks?
+					//(self->animation->counterrange.condition <= 1 && e->modeldata.type & them)) //&&												//Friend/foe?
+					//(self->animation->counterrange.condition <= 3 && !attack->no_block) &&														//Counter attack self couldn't block?
+					//self->animation->counterrange.condition <= 2 ||
+					//self->animation->counterrange.condition <= 2 || !(self->direction == e->direction)) //&&										//Direction check.
+					//(self->animation->counterrange.condition <= 3 || !attack->freeze))															//Freeze attacks?
 
-					//&& (!self->animation->counterframe[3] || self->health > force))													// Does damage matter?
+					//&& (!self->animation->counterrange.damaged || self->health > force))													// Does damage matter?
 				{
-					if(self->animation->counterframe[3]) self->health -= force;					// Take damage?
+					if(self->animation->counterrange.damaged) self->health -= force;					// Take damage?
 					current_follow_id = animfollows[self->animation->followanim - 1];
 					if(validanim(self,current_follow_id))
 					{
@@ -11484,7 +11484,7 @@ void do_attack(entity *e)
 				if(didblock && !def)  def = self;
 				//if #055
 				if((e->animation->followanim) &&                                        // follow up?
-					(e->animation->counterframe[0] == -1) &&                                // This isn't suppossed to be a counter, right?
+					(e->animation->counterrange.framestart == -1) &&                                // This isn't suppossed to be a counter, right?
 					((e->animation->followcond < 2) || (self->modeldata.type & them)) &&    // Does type matter?
 					((e->animation->followcond < 3) || ((self->health > 0) &&
 					!didblock)) &&                   // check if health or blocking matters
