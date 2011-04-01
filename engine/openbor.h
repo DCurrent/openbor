@@ -686,6 +686,14 @@ typedef struct
 
 typedef struct
 {
+	short int       frameend;                       //Last frame of counter range.
+	short int       framestart;                     //First frame of counter range.
+	signed char     condition;                      //Counter conditions. 1 = Always. 2 = Hostile attacker. 3 = Hostile attacker from front not using freeze attack.
+	signed char     damaged;                        //Receive damage from attack. 0 = No damage. 1 = Normal damage.
+}s_counterrange;
+
+typedef struct
+{
     float           v;                              //Vertical speed.
     float           x;                              //Horizontal speed.
 }s_dive;
@@ -775,7 +783,7 @@ typedef struct
 	short			flipframe:16;					// Turns entities around on the desired frame
 	short			followanim:16;					// use which FOLLOW anim?
 	char			followcond:8;					// conditions under which to use a followup
-	short			counterframe[4];				// 0,1; Counter frame, 2 counter cond, 3 counterdam
+	s_counterrange	counterrange;				    // Auto counter attack. 2011_04_01, DC: Moved to struct.
 	char            cancel:8;                       // Cancel anims with freespecial
 	short*			weaponframe;					// Specify with a frame when to switch to a weapon model
 	s_quakeframe	quakeframe;					    // Screen shake effect. 2011_04_01, DC; Moved to struct.
