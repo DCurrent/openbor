@@ -684,7 +684,7 @@ typedef struct
 	int             staydown[3];                    // [0] = Add to rise delay. [1] = Add to rise attack delay.
 }s_attack;
 
-typedef struct
+typedef struct                                      //2011_04_01, DC: Counterstrike when taking hit.
 {
 	short int       frameend;                       //Last frame of counter range.
 	short int       framestart;                     //First frame of counter range.
@@ -692,20 +692,20 @@ typedef struct
 	signed char     damaged;                        //Receive damage from attack. 0 = No damage. 1 = Normal damage.
 }s_counterrange;
 
-typedef struct
+typedef struct                                      //2011_04_01, DC: Outdated Dive from jump functionality originally added by tails. Retained for backward compatibility.
 {
     float           v;                              //Vertical speed.
     float           x;                              //Horizontal speed.
 }s_dive;
 
-typedef struct
+typedef struct                                      //2011_04_01, DC: HP and/or MP cost to perform special/freespecials.
 {
     short int       cost;                           //Amount of energy cost.
     signed char     disable;                        //Disable flag. See check_energy function.
     signed char     mponly;                         //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
 }s_energycost;
 
-typedef struct
+typedef struct                                      //2011_04_01, DC: On frame movement (slide, jump, dive, etc.).
 {
     int				ent;							//Index of entity to spawn on liftoff of jump action.
     short int		f;                              //Frame to begin jump action.
@@ -714,20 +714,20 @@ typedef struct
 	float           z;                              //Lateral velocity.
 }s_jumpframe;
 
-typedef struct
+typedef struct                                      //2011_04_01, DC: Behavior when reaching base after jump or fall.
 {
 	short int       frame;                          //Frame to assume on landing.
 	int             ent;                            //Index of entity to spawn on landing.
 }s_landframe;
 
-typedef struct
+typedef struct                                      //2011_04_01, DC: Animation looping.
 {
     short int       frameend;                       //Frame animation reaches before looping.
     short int       framestart;                     //Frame animation loops back to.
     signed char     mode;                           //0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
 }s_loop;
 
-typedef struct
+typedef struct                                      //2011_04_01, DC: Frame based screen shake functionality.
 {
     signed char     cnt;                            //Repetition count.
     short int       framestart;                     //Frame to start quake.
