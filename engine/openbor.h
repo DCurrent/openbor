@@ -716,6 +716,12 @@ typedef struct
 
 typedef struct
 {
+	short int       frame;                          //Frame to assume on landing.
+	int             ent;                            //Index of entity to spawn on landing.
+}s_landframe;
+
+typedef struct
+{
     short int       frameend;                       //Frame animation reaches before looping.
     short int       framestart;                     //Frame animation loops back to.
     signed char     mode;                           //0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
@@ -724,7 +730,7 @@ typedef struct
 typedef struct
 {
     signed char     cnt;                            //Repetition count.
-    signed char     framestart;                     //Frame to start quake.
+    short int       framestart;                     //Frame to start quake.
     signed char     repeat;                         //Repetitons.
     signed char     v;                              //Vertical distance of screen movement (in pixels).
 }s_quakeframe;
@@ -790,7 +796,7 @@ typedef struct
 	float*          spawnframe;					    // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
 	float*          summonframe;					// Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
 	short           unsummonframe:16;               // Un-summon the entity
-	short           landframe[2];                   // 0 frame switch to when land, 1 dust to spawn.
+	s_landframe     landframe;                      // Landing behavior. 2011_04_01, DC: Moved to struct.
 	short           dropframe:16;                   // if tossv < 0, this frame will be set
 	short           animhits:16;                    // Does the attack need to hit before cancel is allowed?
 }s_anim;

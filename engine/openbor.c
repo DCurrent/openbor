@@ -5613,7 +5613,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->counterrange.condition = 0;		//Counter cond.
 						newanim->counterrange.damaged = 0;		//Counter damage.
 						newanim->unsummonframe = -1;
-						newanim->landframe[0] = -1;
+						newanim->landframe.frame = -1;
 						newanim->dropframe = -1;
 						newanim->cancel = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
 						newanim->animhits = 0; //OX counts hits on a per anim basis for cancels.
@@ -6350,10 +6350,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->bounce = GET_FLOAT_ARG(1);
 					break;
 				case CMD_MODEL_LANDFRAME:
-					newanim->landframe[0] = GET_INT_ARG(1);
+					newanim->landframe.frame = GET_INT_ARG(1);
 					value = GET_ARG(2);
-					if(value[0]) newanim->landframe[1] = get_cached_model_index(value);
-					else newanim->landframe[1] = -1;
+					if(value[0]) newanim->landframe.ent = get_cached_model_index(value);
+					else newanim->landframe.ent = -1;
 					break;
 				case CMD_MODEL_DROPFRAME:
 					newanim->dropframe = GET_INT_ARG(1);
@@ -11687,14 +11687,14 @@ void check_gravity()
 						self->xdir = self->zdir = self->tossv= 0;
 				else self->tossv = 0;
 
-				if(self->animation->landframe[0]>=0                                 //Has landframe?
-                    && self->animation->landframe[0]<= self->animation->numframes   //Not over animation frame count?
-                    && self->animpos < self->animation->landframe[0])               //Not already past landframe?
+				if(self->animation->landframe.frame>=0                                 //Has landframe?
+                    && self->animation->landframe.frame<= self->animation->numframes   //Not over animation frame count?
+                    && self->animpos < self->animation->landframe.frame)               //Not already past landframe?
 				{
-					update_frame(self, self->animation->landframe[0]);
-					if(self->animation->landframe[1]>=0)
+					update_frame(self, self->animation->landframe.frame);
+					if(self->animation->landframe.ent>=0)
 					{
-						dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->animation->landframe[1], NULL);
+						dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->animation->landframe.ent, NULL);
 						dust->base = self->a;
 						dust->autokill = 1;
 						execute_onspawn_script(dust);
@@ -13284,7 +13284,7 @@ void common_jump()
 
 		self->zdir = self->xdir = 0;
 
-		if(validanim(self,ANI_JUMPLAND) && self->animation->landframe[0] == -1) // check if jumpland animation exists and not using landframe
+		if(validanim(self,ANI_JUMPLAND) && self->animation->landframe.frame == -1) // check if jumpland animation exists and not using landframe
 		{
 			ent_set_anim(self, ANI_JUMPLAND, 0);
 			if(self->modeldata.dust[1]>=0)
@@ -13298,14 +13298,14 @@ void common_jump()
 		}
 		else
 		{
-			if(self->modeldata.dust[1]>=0 && self->animation->landframe[0] == -1)
+			if(self->modeldata.dust[1]>=0 && self->animation->landframe.frame == -1)
 			{
 				dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[1], NULL);
 				dust->base = self->a;
 				dust->autokill = 1;
 				execute_onspawn_script(dust);
 			}
-			if(self->animation->landframe[0] >= 0 && self->animating) return;
+			if(self->animation->landframe.frame >= 0 && self->animating) return;
 
 			set_idle(self);
 			self->takeaction = NULL; // back to A.I. root
