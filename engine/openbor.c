@@ -5618,7 +5618,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->cancel = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
 						newanim->animhits = 0; //OX counts hits on a per anim basis for cancels.
 						newanim->subentity = newanim->custbomb = newanim->custknife = newanim->custstar = newanim->custpshotno = -1;
-						memset(newanim->quakeframe, 0, sizeof(newanim->quakeframe));
+						newanim->quakeframe.framestart = 0;
 
 						if(strnicmp(value, "idle", 4)==0 &&
 						(!value[4] || (value[4] >= '1' && value[4]<='9'))){
@@ -6226,8 +6226,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						goto lCleanup;
 					}
 					newanim->loop.mode          = GET_INT_ARG(1); //0 = Off, 1 = on.
-					newanim->loop.startframe    = GET_INT_ARG(2); //Loop to frame.
-					newanim->loop.endframe      = GET_INT_ARG(3); //Loop end frame.
+					newanim->loop.framestart    = GET_INT_ARG(2); //Loop to frame.
+					newanim->loop.frameend      = GET_INT_ARG(3); //Loop end frame.
 					break;
 				case CMD_MODEL_ANIMHEIGHT:
 					newanim->height = GET_INT_ARG(1);
@@ -6858,10 +6858,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->weaponframe[1] = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_QUAKEFRAME:
-					newanim->quakeframe[0] = GET_INT_ARG(1);
-					newanim->quakeframe[1] = GET_INT_ARG(2);
-					newanim->quakeframe[2] = GET_INT_ARG(3);
-					newanim->quakeframe[3] = 0;
+					newanim->quakeframe.framestart  = GET_INT_ARG(1);
+					newanim->quakeframe.repeat      = GET_INT_ARG(2);
+					newanim->quakeframe.v           = GET_INT_ARG(3);
+					newanim->quakeframe.cnt         = 0;
 					break;
 				case CMD_MODEL_SUBENTITY: case CMD_MODEL_CUSTENTITY:
 					value = GET_ARG(1);
@@ -10362,14 +10362,14 @@ void update_frame(entity* ent, int f)
 		self->idling = 1;
 	}
 
-	if(self->animation->quakeframe[0]+self->animation->quakeframe[3] == f)
+	if(self->animation->quakeframe.framestart+self->animation->quakeframe.cnt == f)
 	{
 		if(level) {
-			if(self->animation->quakeframe[3]%2 || self->animation->quakeframe[2] > 0) level->quake = self->animation->quakeframe[2];
-			else level->quake = self->animation->quakeframe[2] * -1;
+			if(self->animation->quakeframe.cnt%2 || self->animation->quakeframe.v > 0) level->quake = self->animation->quakeframe.v;
+			else level->quake = self->animation->quakeframe.v * -1;
 		}
-		if((self->animation->quakeframe[1]-self->animation->quakeframe[3]) > 1) self->animation->quakeframe[3]++;
-		else self->animation->quakeframe[3] = 0;
+		if((self->animation->quakeframe.repeat-self->animation->quakeframe.cnt) > 1) self->animation->quakeframe.cnt++;
+		else self->animation->quakeframe.cnt = 0;
 	}
 
 	//spawn / summon /unsummon features
@@ -11951,16 +11951,16 @@ void update_animation()
 		f = self->animpos + self->animating;
 
 		//Specified loop break frame.
-		if(self->animation->loop.mode && self->animation->loop.endframe)
+		if(self->animation->loop.mode && self->animation->loop.frameend)
 		{
-			if (f == self->animation->loop.endframe)
+			if (f == self->animation->loop.frameend)
 			{
 				if(f<0) f = self->animation->numframes-1;
 				else f = 0;
 
-				if (self->animation->loop.startframe)
+				if (self->animation->loop.framestart)
 				{
-					f = self->animation->loop.startframe;
+					f = self->animation->loop.framestart;
 				}
 			}
 			else if((unsigned)f >= (unsigned)self->animation->numframes)
@@ -11991,9 +11991,9 @@ void update_animation()
 			}
 			else
 			{
-				if (self->animation->loop.startframe)
+				if (self->animation->loop.framestart)
 				{
-					f = self->animation->loop.startframe;
+					f = self->animation->loop.framestart;
 				}
 			}
 		}
