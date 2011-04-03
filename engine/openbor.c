@@ -457,7 +457,9 @@ int                 scbonuses[4]        = {10000, 1000, 100, 0};//Stage complete
 int                 showrushbonus       = 0;
 int                 noshare				= 0;					// Used for when you want to keep p1 & p2 credits separate
 int                 nodropen			= 0;					// Drop or not when spawning is now a modder option
+int                 gfx_x_offset		= 0;                    //2011_04_03, DC: Enable X offset adjustment by modders.
 int                 gfx_y_offset		= 0;
+int                 gfx_y_offset_adj    = 0;                    //2011_04_03, DC: Enable Y offset adjustment by modders.
 int                 timeleft			= 0;
 int                 oldtime             = 0;                    // One second back from time left.
 int                 holez				= 0;					// Used for setting spawn points
@@ -671,7 +673,9 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		_e_ent_max,
 		_e_game_paused,
 		_e_game_speed,
+		_e_gfx_x_offset,
 		_e_gfx_y_offset,
+		_e_gfx_y_offset_adj,
 		_e_hResolution,
 		_e_in_level,
 		_e_in_selectscreen,
@@ -750,10 +754,20 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)GAME_SPEED;
 		break;
+    case _e_gfx_x_offset:
+		if(!level) return 0;
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)gfx_x_offset;
+		break;
 	case _e_gfx_y_offset:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)gfx_y_offset;
+		break;
+    case _e_gfx_y_offset_adj:
+		if(!level) return 0;
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)gfx_y_offset_adj;
 		break;
 	case _e_in_selectscreen:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -950,6 +964,9 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 	{
 		_csv_blockade,
 		_csv_elapsed_time,
+		_csv_gfx_x_offset,
+		_csv_gfx_y_offset,
+		_csv_gfx_y_offset_adj,
 		_csv_lasthita,
 		_csv_lasthitc,
 		_csv_lasthitt,
@@ -972,6 +989,18 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 	case _csv_elapsed_time:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			time = (int)ltemp;
+		break;
+    case _csv_gfx_x_offset:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			gfx_x_offset = (int)ltemp;
+		break;
+    case _csv_gfx_y_offset:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			gfx_y_offset = (int)ltemp;
+		break;
+    case _csv_gfx_y_offset_adj:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			gfx_y_offset_adj = (int)ltemp;
 		break;
 	case _csv_levelpos:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
@@ -12558,13 +12587,13 @@ void display_ents()
 
 					if(!use_mirror || z > MIRROR_Z) // don't display if behind the mirror
 					{
-						spriteq_add_sprite((int)(e->x - (level?advancex:0)), (int)(e->z-e->a + gfx_y_offset), z, f, drawmethod, e->bound?e->bound->sortid-1:e->sortid);
+						spriteq_add_sprite((int)(e->x - (level?advancex:0) + gfx_x_offset), (int)(e->z-e->a + gfx_y_offset), z, f, drawmethod, e->bound?e->bound->sortid-1:e->sortid);
 					}
 
 					can_mirror = (use_mirror && self->z>MIRROR_Z);
 					if(can_mirror)
 					{
-						spriteq_add_sprite((int)(e->x-(level?advancex:0)), (int)((2*MIRROR_Z - e->z)-e->a+gfx_y_offset), 2*PANEL_Z - z , f, drawmethod, MAX_ENTS - (e->bound?e->bound->sortid-1:e->sortid));
+						spriteq_add_sprite((int)(e->x-(level?advancex:0) + gfx_x_offset), (int)((2*MIRROR_Z - e->z)-e->a+gfx_y_offset), 2*PANEL_Z - z , f, drawmethod, MAX_ENTS - (e->bound?e->bound->sortid-1:e->sortid));
 					}
 				}//end of if(f<sprites_loaded)
 
@@ -12580,7 +12609,7 @@ void display_ents()
 							alty = (int)e->a;
 							temp1 = -1*e->a*light[0]/256; // xshift
 							temp2 = (float)(-alty*light[1]/256);                   // zshift
-							qx = (int)(e->x - advancex/* + temp1*/);
+							qx = (int)(e->x - advancex + gfx_x_offset/* + temp1*/);
 							qy = (int)(e->z + gfx_y_offset/* +  temp2*/);
 						}
 						else
@@ -12588,7 +12617,7 @@ void display_ents()
 							alty = (int)(e->a-level->walls[wall][7]);
 							temp1 = -1*(e->a-level->walls[wall][7])*light[0]/256; // xshift
 							temp2 = (float)(-alty*light[1]/256);                   // zshift
-							qx = (int)(e->x - advancex/* + temp1*/);
+							qx = (int)(e->x - advancex + gfx_x_offset/* + temp1*/);
 							qy = (int)(e->z + gfx_y_offset /*+  temp2*/ - level->walls[wall][7]);
 						}
 
@@ -12658,7 +12687,7 @@ void display_ents()
 					{
 						if(other && other != e && e->a >= other->a + other->animation->platform[other->animpos][7])
 						{
-							qx = (int)(e->x - advancex);
+							qx = (int)(e->x - advancex + gfx_x_offset);
 							qy = (int)(e->z - other->a - other->animation->platform[other->animpos][7] + gfx_y_offset);
 							sy = (int)((2*MIRROR_Z - e->z) - other->a - other->animation->platform[other->animpos][7] + gfx_y_offset);
 							z = (int)(other->z + 1);
@@ -12666,7 +12695,7 @@ void display_ents()
 						}
 						else if(level && wall >= 0)// && e->a >= level->walls[wall][7])
 						{
-							qx = (int)(e->x - advancex);
+							qx = (int)(e->x - advancex + gfx_x_offset);
 							qy = (int)(e->z - level->walls[wall][7] + gfx_y_offset);
 							sy = (int)((2*MIRROR_Z - e->z)  - level->walls[wall][7] + gfx_y_offset);
 							z = SHADOW_Z;
@@ -12674,7 +12703,7 @@ void display_ents()
 						}
 						else
 						{
-							qx = (int)(e->x - advancex);
+							qx = (int)(e->x - advancex + gfx_x_offset);
 							qy = (int)(e->z + gfx_y_offset);
 							sy = (int)((2*MIRROR_Z - e->z) + gfx_y_offset);
 							z = SHADOW_Z;
@@ -12699,7 +12728,7 @@ void display_ents()
 			if(e->arrowon)    // Display the players image while invincible to indicate player number
 			{
 				if(e->modeldata.parrow[(int)e->playerindex][0] && e->invincible == 1)
-					spriteq_add_sprite((int)(e->x - advancex + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->z-e->a+gfx_y_offset + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->z, e->modeldata.parrow[(int)e->playerindex][0], NULL, e->sortid*2);
+					spriteq_add_sprite((int)(e->x - advancex + gfx_x_offset + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->z-e->a+gfx_y_offset + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->z, e->modeldata.parrow[(int)e->playerindex][0], NULL, e->sortid*2);
 			}
 		}// end of if(ent_list[i]->exists)
 	}// end of for
@@ -19318,6 +19347,8 @@ void draw_scrolled_bg(){
 		else           gfx_y_offset = level->quake + 4;
 	}
 
+	gfx_y_offset += gfx_y_offset_adj;   //2011_04_03, DC: Apply modder adjustment.
+
 	if(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN) gfx_y_offset -= (int)(advancey - 4);
 
 	// Draw 3 layers: screen, normal and neon
@@ -19357,18 +19388,18 @@ void draw_scrolled_bg(){
 			if(panels[index].sprite_normal)
 			{
 				pscreenmethod->alpha = 0;
-				spriteq_add_frame(i,gfx_y_offset, PANEL_Z, panels[index].sprite_normal, pscreenmethod, 0);
+				spriteq_add_frame(i+gfx_x_offset,gfx_y_offset, PANEL_Z, panels[index].sprite_normal, pscreenmethod, 0);
 			}
 			if(panels[index].sprite_neon)
 			{
 				if(pixelformat!=PIXEL_x8 || current_palette<=0)
 					pscreenmethod->table = neontable;
-				spriteq_add_frame(i,gfx_y_offset, NEONPANEL_Z, panels[index].sprite_neon, pscreenmethod, 0);
+				spriteq_add_frame(i+gfx_x_offset,gfx_y_offset, NEONPANEL_Z, panels[index].sprite_neon, pscreenmethod, 0);
 			}
 			if(panels[index].sprite_screen)
 			{
 				pscreenmethod->alpha = BLEND_SCREEN+1;
-				spriteq_add_frame(i,gfx_y_offset, SCREENPANEL_Z, panels[index].sprite_screen, pscreenmethod, 0);
+				spriteq_add_frame(i+gfx_x_offset,gfx_y_offset, SCREENPANEL_Z, panels[index].sprite_screen, pscreenmethod, 0);
 			}
 			poop++;
 		}
@@ -19376,7 +19407,7 @@ void draw_scrolled_bg(){
 
 	pscreenmethod->alpha = 0;
 
-	for(i=0; i<level->numholes; i++) spriteq_add_sprite((int)(level->holes[i][0]-advancex),(int)(level->holes[i][1] - level->holes[i][6] + 4 + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
+	for(i=0; i<level->numholes; i++) spriteq_add_sprite((int)(level->holes[i][0]-advancex+gfx_x_offset),(int)(level->holes[i][1] - level->holes[i][6] + 4 + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
 
 	if(frontpanels_loaded){
 
@@ -19389,7 +19420,7 @@ void draw_scrolled_bg(){
 		inta %= frontpanels[0]->width;
 		for(i=-inta; i<=videomodes.hRes; i+=frontpanels[0]->width){
 			poop %= frontpanels_loaded;
-			spriteq_add_frame(i,gfx_y_offset + fix_y, FRONTPANEL_Z, frontpanels[poop], pscreenmethod, 0);
+			spriteq_add_frame(i+gfx_x_offset,gfx_y_offset + fix_y, FRONTPANEL_Z, frontpanels[poop], pscreenmethod, 0);
 			poop++;
 		}
 	}
