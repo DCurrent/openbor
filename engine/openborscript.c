@@ -2442,7 +2442,6 @@ enum getentityproperty_enum {
 	_gep_stalltime,
 	_gep_stats,
 	_gep_staydown,
-	_gep_staydownatk,
 	_gep_stealth,
 	_gep_subentity,
 	_gep_subject_to_gravity,
@@ -2470,17 +2469,6 @@ enum getentityproperty_enum {
 	_gep_the_end,
 };
 
-enum gep_edelay_enum {
-	_gep_edelay_cap_max,
-	_gep_edelay_cap_min,
-	_gep_edelay_factor,
-	_gep_edelay_mode,
-	_gep_edelay_range_max,
-	_gep_edelay_range_min,
-	_gep_edelay_the_end,
-
-};
-
 enum gep_aiflag_enum {
 	_gep_aiflag_animating,
 	_gep_aiflag_attacking,
@@ -2503,36 +2491,6 @@ enum gep_aiflag_enum {
 	_gep_aiflag_toexplode,
 	_gep_aiflag_turning,
 	_gep_aiflag_the_end,
-};
-
-enum _gep_defense_enum {
-	_gep_defense_blockpower,
-	_gep_defense_blockratio,
-	_gep_defense_blockthreshold,
-	_gep_defense_blocktype,
-	_gep_defense_factor,
-	_gep_defense_knockdown,
-	_gep_defense_pain,
-	_gep_defense_the_end,
-};
-
-enum gep_running_enum {
-	_gep_running_jumpx,
-	_gep_running_jumpy,
-	_gep_running_land,
-	_gep_running_movez,
-	_gep_running_speed,
-	_gep_running_the_end,
-};
-
-enum gep_dot_enum {
-	_gep_dot_force,
-	_gep_dot_mode,
-	_gep_dot_owner,
-	_gep_dot_rate,
-	_gep_dot_time,
-	_gep_dot_type,
-	_gep_dot_the_end,
 };
 
 enum gep_attack_enum {
@@ -2574,30 +2532,97 @@ enum gep_attack_enum {
 	_gep_attack_the_end,
 };
 
-enum gep_range_enum {
-		_gep_range_amax,
-		_gep_range_amin,
-		_gep_range_bmax,
-		_gep_range_bmin,
-		_gep_range_xmax,
-		_gep_range_xmin,
-		_gep_range_zmax,
-		_gep_range_zmin,
-		_gep_range_the_end,
-	};
+enum _gep_defense_enum {
+    _gep_defense_blockpower,
+    _gep_defense_blockratio,
+    _gep_defense_blockthreshold,
+    _gep_defense_blocktype,
+    _gep_defense_factor,
+    _gep_defense_knockdown,
+	_gep_defense_pain,
+	_gep_defense_the_end,
+};
+
+enum gep_dot_enum {
+	_gep_dot_force,
+	_gep_dot_mode,
+	_gep_dot_owner,
+	_gep_dot_rate,
+	_gep_dot_time,
+	_gep_dot_type,
+	_gep_dot_the_end,
+};
+
+enum gep_edelay_enum {
+	_gep_edelay_cap_max,
+	_gep_edelay_cap_min,
+	_gep_edelay_factor,
+	_gep_edelay_mode,
+	_gep_edelay_range_max,
+	_gep_edelay_range_min,
+	_gep_edelay_the_end,
+};
 
 enum gep_energycost_enum {
-		_gep_energycost_cost,
-		_gep_energycost_disable,
-		_gep_energycost_mponly,
-		_gep_energycost_the_end,
-	};
+    _gep_energycost_cost,
+    _gep_energycost_disable,
+    _gep_energycost_mponly,
+    _gep_energycost_the_end,
+};
+
+enum gep_flash_enum {
+    _gep_flash_block,
+    _gep_flash_def,
+    _gep_flash_noattack,
+    _gep_flash_the_end,
+};
+
+enum gep_icon_enum {
+    _gep_icon_def,
+    _gep_icon_die,
+    _gep_icon_get,
+    _gep_icon_mphigh,
+    _gep_icon_mplow,
+    _gep_icon_mpmed,
+    _gep_icon_pain,
+    _gep_icon_weapon,
+    _gep_icon_x,
+    _gep_icon_y,
+    _gep_icon_the_end,
+};
 
 enum gep_landframe_enum {
-		_gep_landframe_ent,
-		_gep_landframe_frame,
-		_gep_landframe_the_end,
-	};
+    _gep_landframe_ent,
+    _gep_landframe_frame,
+    _gep_landframe_the_end,
+};
+
+enum gep_range_enum {
+    _gep_range_amax,
+    _gep_range_amin,
+    _gep_range_bmax,
+    _gep_range_bmin,
+    _gep_range_xmax,
+    _gep_range_xmin,
+    _gep_range_zmax,
+    _gep_range_zmin,
+    _gep_range_the_end,
+};
+
+enum gep_running_enum {
+	_gep_running_jumpx,
+	_gep_running_jumpy,
+	_gep_running_land,
+	_gep_running_movez,
+	_gep_running_speed,
+	_gep_running_the_end,
+};
+
+enum gep_staydown_enum {
+    _gep_staydown_attack,
+    _gep_staydown_time,
+    _gep_staydown_the_end,
+};
 
 void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 {
@@ -2717,7 +2742,6 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"stalltime",
 		"stats",
 		"staydown",
-		"staydownatk",
 		"stealth",
 		"subentity",
 		"subject_to_gravity",
@@ -2744,15 +2768,6 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"zdir",
 	};
 
-	static const char* proplist_edelay[] = {
-		"cap_max",
-		"cap_min",
-		"factor",
-		"mode",
-		"range_max",
-		"range_min",
-	};
-
 	static const char* proplist_aiflag[] = {
 		"animating",
 		"attacking",
@@ -2776,34 +2791,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"turning",
 	};
 
-	static const char* proplist_defense[] = {
-		"blockpower",
-		"blockratio",
-		"blockthreshold",
-		"blocktype",
-		"factor",
-		"knockdown",
-		"pain",
-	};
-
-	static const char* proplist_running[] = {
-		"jumpx",
-		"jumpy",
-		"land",
-		"movez",
-		"speed",
-	};
-
-	static const char* proplist_dot[] = {
-		"force",
-		"mode",
-		"owner",
-		"rate",
-		"time",
-		"type",
-	};
-
-	static const char* proplist_attack[] = {
+    static const char* proplist_attack[] = {
 		"blast",
 		"blockflash",
 		"blocksound",
@@ -2841,6 +2829,64 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"type",
 	};
 
+	static const char* proplist_defense[] = {
+		"blockpower",
+		"blockratio",
+		"blockthreshold",
+		"blocktype",
+		"factor",
+		"knockdown",
+		"pain",
+	};
+
+    static const char* proplist_dot[] = {
+		"force",
+		"mode",
+		"owner",
+		"rate",
+		"time",
+		"type",
+	};
+
+    static const char* proplist_edelay[] = {
+		"cap_max",
+		"cap_min",
+		"factor",
+		"mode",
+		"range_max",
+		"range_min",
+	};
+
+    static const char* proplist_energycost[] = {
+		"cost",
+		"disable",
+		"mponly",
+	};
+
+    static const char* proplist_flash[] = {
+        "block",
+        "default",
+        "noattack",
+    };
+
+    static const char* proplist_icon[] = {
+        "default",
+        "die",
+        "get",
+        "mphigh",
+        "mplow",
+        "mpmed",
+        "pain",
+        "weapon",
+        "x",
+        "y",
+    };
+
+    static const char* proplist_landframe[] = {
+        "ent",
+        "frame",
+	};
+
 	static const char* proplist_range[] = {
 		"amax",
 		"amin",
@@ -2852,16 +2898,18 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"zmin",
 	};
 
-	static const char* proplist_energycost[] = {
-		"cost",
-		"disable",
-		"mponly",
+	static const char* proplist_running[] = {
+		"jumpx",
+		"jumpy",
+		"land",
+		"movez",
+		"speed",
 	};
 
-	static const char* proplist_landframe[] = {
-        "ent",
-        "frame",
-	};
+    static const char* proplist_staydown[] = {
+        "attack",
+        "time",
+    };
 
 	if(paramCount < 2) return;
 
@@ -2871,18 +2919,18 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 
 	if(paramCount < 3) return;
 
-	// map subproperties of edelay property
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_edelay))
-	{
-		MAPSTRINGS(varlist[2], proplist_edelay, _gep_edelay_the_end,
-			"'%s' is not a known subproperty of 'edelay'.\n");
-	}
-
 	// map subproperties of aiflag property
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_aiflag))
 	{
 		MAPSTRINGS(varlist[2], proplist_aiflag, _gep_aiflag_the_end,
 			"'%s' is not a known subproperty of 'aiflag'.\n");
+	}
+
+	// map subproperties of Attack
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_attack))
+	{
+		MAPSTRINGS(varlist[2], proplist_attack, _gep_attack_the_end,
+			"Property name '%s' is not a known subproperty of 'attack'.\n");
 	}
 
 	// map subproperties of defense property
@@ -2895,32 +2943,18 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		}
 	}
 
-	// map subproperties of running
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_running))
-	{
-		MAPSTRINGS(varlist[2], proplist_running, _gep_running_the_end,
-			"Property name '%s' is not a known subproperty of 'running'.\n");
-	}
-
-	// map subproperties of DOT
+    // map subproperties of DOT
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_dot))
 	{
 		MAPSTRINGS(varlist[2], proplist_dot, _gep_dot_the_end,
 			"Property name '%s' is not a known subproperty of 'dot'.\n");
 	}
 
-	// map subproperties of Attack
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_attack))
+    // map subproperties of Edelay property
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_edelay))
 	{
-		MAPSTRINGS(varlist[2], proplist_attack, _gep_attack_the_end,
-			"Property name '%s' is not a known subproperty of 'attack'.\n");
-	}
-
-	// map subproperties of Range
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_range))
-	{
-		MAPSTRINGS(varlist[2], proplist_range, _gep_range_the_end,
-			"Property name '%s' is not a known subproperty of 'range'.\n");
+		MAPSTRINGS(varlist[2], proplist_edelay, _gep_edelay_the_end,
+			"'%s' is not a known subproperty of 'edelay'.\n");
 	}
 
 	// map subproperties of Energycost
@@ -2930,11 +2964,46 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 			"Property name '%s' is not a known subproperty of 'energycost'.\n");
 	}
 
+	// map subproperties of Flash
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_flash))
+	{
+		MAPSTRINGS(varlist[2], proplist_flash, _gep_flash_the_end,
+			"Property name '%s' is not a known subproperty of 'flash'.\n");
+	}
+
+    // map subproperties of Icon
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_icon))
+	{
+		MAPSTRINGS(varlist[2], proplist_icon, _gep_icon_the_end,
+			"Property name '%s' is not a known subproperty of 'icon'.\n");
+	}
+
 	// map subproperties of Landframe
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_landframe))
 	{
 		MAPSTRINGS(varlist[2], proplist_landframe, _gep_landframe_the_end,
 			"Property name '%s' is not a known subproperty of 'landframe'.\n");
+	}
+
+	// map subproperties of Range
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_range))
+	{
+		MAPSTRINGS(varlist[2], proplist_range, _gep_range_the_end,
+			"Property name '%s' is not a known subproperty of 'range'.\n");
+	}
+
+	// map subproperties of Running
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_running))
+	{
+		MAPSTRINGS(varlist[2], proplist_running, _gep_running_the_end,
+			"Property name '%s' is not a known subproperty of 'running'.\n");
+	}
+
+	// map subproperties of Staydown
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_staydown))
+	{
+		MAPSTRINGS(varlist[2], proplist_staydown, _gep_running_the_end,
+			"Property name '%s' is not a known subproperty of 'staydown'.\n");
 	}
 }
 
@@ -2981,548 +3050,22 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 	switch(propind)
 	{
-    case _gep_animal:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.animal;
-		break;
-	}
-	case _gep_model:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strcpy(StrCache_Get((*pretvar)->strVal), ent->model->name);
-		break;
-	}
-	case _gep_grabforce:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.grabforce;
-		break;
-	}
-	case _gep_blockodds:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.blockodds;
-		break;
-	}
-	case _gep_escapecount:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->escapecount;
-		break;
-	}
-	case _gep_escapehits:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.escapehits;
-		break;
-	}
-	case _gep_thold:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.thold;
-		break;
-	}
-	case _gep_score:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.score;
-		break;
-	}
-	case _gep_spawntype:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->spawntype;
-		break;
-	}
-	case _gep_maxhealth:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.health;
-		break;
-	}
-	case _gep_health:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->health;
-		break;
-	}
-	case _gep_animhits:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->animation->animhits;
-		break;
-	}
-	case _gep_nextanim:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->nextanim;
-		break;
-	}
-	case _gep_nextthink:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->nextthink;
-		break;
-	}
-	case _gep_tosstime:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->toss_time;
-		break;
-	}
-	case _gep_mp:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->mp;
-		break;
-	}
-	case _gep_maxmp:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.mp;
-		break;
-	}
-	case _gep_mpstableval:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.mpstableval;
-		break;
-	}
-	case _gep_mpstable:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.mpstable;
-		break;
-	}
-	case _gep_mprate:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.mprate;
-		break;
-	}
-	case _gep_mpdroprate:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.mpdroprate;
-		break;
-	}
-	case _gep_chargerate:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.chargerate;
-		break;
-	}
-	case _gep_guardpoints:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.guardpoints[0];
-		break;
-	}
-	case _gep_maxguardpoints:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.guardpoints[1];
-		break;
-	}
-	case _gep_jugglepoints:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.jugglepoints[0];
-		break;
-	}
-	case _gep_maxjugglepoints:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.jugglepoints[1];
-		break;
-	}
-	case _gep_alpha:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.alpha;
-		break;
-	}
-	case _gep_height:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.height;
-		break;
-	}
-	case _gep_setlayer:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.setlayer;
-		break;
-	}
-	case _gep_speed:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.speed;
-		break;
-	}
-	case _gep_sprite:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_PTR);
-		i = ent->animation->sprite[ent->animpos];
-		spr = sprite_map[i].sprite;
-		spr->centerx = sprite_map[i].centerx;
-		spr->centery = sprite_map[i].centery;
-		(*pretvar)->ptrVal = (VOID*)(spr);
-		break;
-	}
-	case _gep_playerindex:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->playerindex;
-		//printf("%d %s %d\n", ent->sortid, ent->name, ent->playerindex);
-		break;
-	}
-	case _gep_colourmap:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_PTR);
-		(*pretvar)->ptrVal = (VOID*)(ent->colourmap);
-		break;
-	}
-	case _gep_colourtable:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_PTR);
-		(*pretvar)->ptrVal = (VOID*)(ent->modeldata.colourmap[varlist[2]->lVal]);
-		break;
-	}
-	case _gep_map:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)0;
-		for(i=0;i<ent->modeldata.maps_loaded;i++)
-		{
-			if(ent->colourmap == ent->modeldata.colourmap[i])
-			{
-				(*pretvar)->lVal = (LONG)(i+1);
-				break;
-			}
-		}
-		break;
-	}
-	case _gep_mapcount:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)(ent->modeldata.maps_loaded+1);
-		 break;
-	}
-	case _gep_mapdefault:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)(ent->map);
-		 break;
-	}
-	case _gep_hmapl:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.hmap1;
-		 break;
-	}
-	case _gep_hmapu:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.hmap2;
-		 break;
-	}
-	case _gep_icon:
-	{
-		if(paramCount<3) break;
-		arg = varlist[2];
-		if(arg->vt != VT_INTEGER)
-		{
-			printf("Error, getentityproperty({ent}, 'icon', {type}): {type} parameter missing or invalid. \n {type}: \n 0 = Icon \n 1 = Icondie \n 2 = Iconget \n 3 = Iconmphigh \n 4 = Iconmphalf \n 5 = Iconmplow \n 6 = Iconpain \n 7 = Iconw \n 8 = Iconx \n 9 = Icony \n");
-			return E_FAIL;
-		}
-
-		switch(arg->lVal)
-		{
-			default:
-				i = ent->modeldata.icon;
-				break;
-			case 1:
-				i = ent->modeldata.icondie;
-				break;
-			case 2:
-				i = ent->modeldata.iconget;
-				break;
-			case 3:
-				i = ent->modeldata.iconmp[0];
-				break;
-			case 4:
-				i = ent->modeldata.iconmp[1];
-				break;
-			case 5:
-				i = ent->modeldata.iconmp[2];
-				break;
-			case 6:
-				i = ent->modeldata.iconpain;
-				break;
-			case 7:
-				i = ent->modeldata.iconw;
-				break;
-			case 8:
-				i = ent->modeldata.iconx;
-				break;
-			case 9:
-				i = ent->modeldata.icony;
-				break;
-		}
-
-		if (i >= 0)
-		{
-			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			spr = sprite_map[i].sprite;
-			spr->centerx = sprite_map[i].centerx;
-			spr->centery = sprite_map[i].centery;
-			(*pretvar)->ptrVal = (VOID*)(spr);
-		}
-		else
-		{
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = -1;
-		}
-		break;
-	}
-	case _gep_name:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strcpy(StrCache_Get((*pretvar)->strVal), ent->name);
-		break;
-	}
-	case _gep_defaultname:
-	case _gep_defaultmodel:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strcpy(StrCache_Get((*pretvar)->strVal), ent->defaultmodel->name);
-		break;
-	}
-	case _gep_x:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->x;
-		break;
-	}
-	case _gep_z:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->z;
-		break;
-	}
-	case _gep_a:
+    case _gep_a:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 		(*pretvar)->dblVal = (DOUBLE)ent->a;
 		break;
 	}
-	case _gep_xdir:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->xdir;
-		break;
-	}
-	case _gep_zdir:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->zdir;
-		break;
-	}
-	case _gep_tossv:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->tossv;
-		break;
-	}
-	case _gep_base:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->base;
-		break;
-	}
-	case _gep_direction:
+	case _gep_aggression:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->direction;
+		(*pretvar)->lVal = (LONG)ent->modeldata.aggression;
 		break;
 	}
-	case _gep_exists:
+	case _gep_aiattack:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->exists;
-		break;
-	}
-	case _gep_edelay:
-	{
-		arg = varlist[2];
-		if(arg->vt != VT_INTEGER)
-		{
-			if(arg->vt != VT_STR)
-				printf("You must give a string name for edelay property.\n");
-			return E_FAIL;
-		}
-		ltemp = arg->lVal;
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-
-		switch(ltemp)
-		{
-		case _gep_edelay_mode:
-		{
-			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.mode;
-			break;
-		}
-		case _gep_edelay_factor:
-		{
-			(*pretvar)->dblVal = (float)ent->modeldata.edelay.factor;
-			break;
-		}
-		case _gep_edelay_cap_min:
-		{
-			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.cap_min;
-			break;
-		}
-		case _gep_edelay_cap_max:
-		{
-			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.cap_max;
-			break;
-		}
-		case _gep_edelay_range_min:
-		{
-			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.range_min;
-			break;
-		}
-		case _gep_edelay_range_max:
-		{
-			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.range_max;
-			break;
-		}
-		default:
-			ScriptVariant_Clear(*pretvar);
-			return E_FAIL;
-		}
-		break;
-	}
-	case _gep_energycost:
-	{
-		if(paramCount<4) break;
-
-		if(varlist[2]->vt != VT_INTEGER
-			|| varlist[3]->vt != VT_INTEGER)
-		{
-			printf("\n Error, getentityproperty({ent}, 'energycost', {sub property}, {animation}): {Sub property} or {Animation} parameter is missing or invalid. \n");
-			return E_FAIL;
-		}
-		ltemp	= varlist[2]->lVal;												//Subproperty.
-		i		= varlist[3]->lVal;												//Animation.
-
-		if(!validanim(ent,i))													//Verify animation.
-		{
-			break;
-		}
-
-		switch(ltemp)
-		{
-			case _gep_energycost_cost:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.cost;
-				 break;
-			case _gep_energycost_disable:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.disable;
-				 break;
-			case _gep_energycost_mponly:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.mponly;
-				 break;
-			default:
-				ScriptVariant_Clear(*pretvar);
-				return E_FAIL;
-		}
-		break;
-	}
-	case _gep_dropframe:
-	{
-		ltemp = 0;
-		if(paramCount == 3)
-		{
-			arg = varlist[2];
-			if(FAILED(ScriptVariant_IntegerValue(arg, &ltemp)))
-			ltemp = (LONG)0;
-		}
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.animation[ltemp]->dropframe;
-		break;
-	}
-	case _gep_landframe:
-	{
-	    if(paramCount<4) break;
-
-		if(varlist[2]->vt != VT_INTEGER
-			|| varlist[3]->vt != VT_INTEGER)
-		{
-			printf("\n Error, getentityproperty({ent}, 'landframe', {sub property}, {animation}): {Sub property} or {Animation} parameter is missing or invalid. \n");
-			return E_FAIL;
-		}
-		ltemp	= varlist[2]->lVal;												//Subproperty.
-		i		= varlist[3]->lVal;												//Animation.
-
-		if(!validanim(ent,i))													//Verify animation.
-		{
-			break;
-		}
-
-		switch(ltemp)
-		{
-			case _gep_landframe_ent:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.ent;
-				 break;
-			case _gep_landframe_frame:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.frame;
-				 break;
-			default:
-				ScriptVariant_Clear(*pretvar);
-				return E_FAIL;
-		}
-		break;
-	}
-	case _gep_type:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.type;
-		break;
-	}
-	case _gep_subtype:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.subtype;
-		break;
-	}
-	case _gep_throwdamage:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.throwdamage;
-		break;
-	}
-	case _gep_throwdist:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.throwdist;
-		break;
-	}
-	case _gep_throwframewait:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.throwframewait;
-		break;
-	}
-	case _gep_throwheight:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.throwheight;
+		(*pretvar)->lVal = (LONG)ent->modeldata.aiattack;
 		break;
 	}
 	case _gep_aiflag:
@@ -3663,10 +3206,51 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		}
 		break;
 	}
+	case _gep_aimove:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.aimove;
+		break;
+	}
+    case _gep_alpha:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.alpha;
+		break;
+	}
+    case _gep_animal:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.animal;
+		break;
+	}
+	case _gep_animating:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->animating;
+		break;
+	}
 	case _gep_animation:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_PTR);
 		(*pretvar)->ptrVal = (VOID*)ent->animation;
+		break;
+	}
+
+	/*
+	case _gep_animationid: See animnum.
+	*/
+
+	case _gep_animheight:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->animation->height;
+		break;
+	}
+	case _gep_animhits:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->animation->animhits;
 		break;
 	}
 	case _gep_animnum:
@@ -3695,319 +3279,10 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		(*pretvar)->lVal = (LONG)validanim(ent, ltemp);
 		break;
 	}
-	case _gep_animheight:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->animation->height;
-		break;
-	}
-	case _gep_animating:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->animating;
-		break;
-	}
-	case _gep_invincible:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->invincible;
-		break;
-	}
-	case _gep_invinctime:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->invinctime;
-		break;
-	}
-	case _gep_rush_count:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->rush[0];
-		break;
-	}
-	case _gep_rush_tally:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->rush[1];
-		break;
-	}
-	case _gep_rush_time:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->rushtime;
-		break;
-	}
-	case _gep_knockdowncount:
+	case _gep_antigravity:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->knockdowncount;
-		break;
-	}
-	case _gep_komap:
-	{
-		if(paramCount<3) break;
-		arg = varlist[2];
-		if(arg->vt != VT_INTEGER)
-		{
-			printf("You must provide a Komap parameter index: \n 0 = Komap \n 1 = Komap type \n");
-			return E_FAIL;
-		}
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.komap[arg->lVal];
-		break;
-	}
-	case _gep_lifespancountdown:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->lifespancountdown;
-		break;
-	}
-	case _gep_blink:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->blink;
-		break;
-	}
-	case _gep_subject_to_screen:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_screen;
-		break;
-	}
-	case _gep_subject_to_minz:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_minz;
-		break;
-	}
-	case _gep_subject_to_maxz:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_maxz;
-		break;
-	}
-	case _gep_subject_to_wall:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_wall;
-		break;
-	}
-	case _gep_subject_to_hole:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_hole;
-		break;
-	}
-	case _gep_subject_to_gravity:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_gravity;
-		break;
-	}
-	case _gep_subject_to_obstacle:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_obstacle;
-		break;
-	}
-	case _gep_subject_to_platform:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_platform;
-		break;
-	}
-	case _gep_defense:
-	{
-		ltemp = 0;
-		if(paramCount == 3)
-		{
-			arg = varlist[2];
-			if(FAILED(ScriptVariant_IntegerValue(arg, &ltemp)))
-				ltemp = (LONG)0;
-		}
-
-		arg = varlist[3];
-		if(arg->vt != VT_INTEGER)
-		{
-			if(arg->vt != VT_STR)
-				printf("You must give a string name for defense property.\n");
-			return E_FAIL;
-		}
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-
-		switch(arg->lVal)
-		{
-		case _gep_defense_factor:
-		{
-			(*pretvar)->dblVal = (float)ent->modeldata.defense_factors[(int)ltemp];
-			break;
-		}
-		case _gep_defense_blockpower:
-		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_blockpower[(int)ltemp];
-			break;
-		}
-		case _gep_defense_blockratio:
-		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_blockratio[(int)ltemp];
-			break;
-		}
-		case _gep_defense_blockthreshold:
-		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_blockthreshold[(int)ltemp];
-			break;
-		}
-		case _gep_defense_blocktype:
-		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_blocktype[(int)ltemp];
-			break;
-		}
-		case _gep_defense_knockdown:
-		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_knockdown[(int)ltemp];
-			break;
-		}
-		case _gep_defense_pain:
-		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_pain[(int)ltemp];
-			break;
-		}
-		default:
-			return E_FAIL;
-		}
-		break;
-	}
-	case _gep_no_adjust_base:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.no_adjust_base;
-		break;
-	}
-	case _gep_noaicontrol:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->noaicontrol;
-		break;
-	}
-	case _gep_nodieblink:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.nodieblink;
-		break;
-	}
-	case _gep_bounce:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.bounce;
-		break;
-	}
-	case _gep_falldie:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.falldie;
-		break;
-	}
-	case _gep_attackid:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->attack_id;
-		break;
-	}
-	case _gep_hitbyid:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->hit_by_attack_id;
-		break;
-	}
-	case _gep_bbox:
-	{
-		if(paramCount<6) break;
-
-		if(varlist[2]->vt != VT_INTEGER
-			|| varlist[3]->vt != VT_INTEGER
-			|| varlist[4]->vt != VT_INTEGER
-			|| varlist[5]->vt != VT_INTEGER)
-		{
-			printf("\n Error, getentityproperty({ent}, 'bbox', {index}, {animation}, {frame}, {arg}): {index}, {Animation}, {frame}, or {arg} parameter is missing or invalid. \n");
-			return E_FAIL;
-		}
-
-		//varlist[3]->lval;														//bbox index (multiple bbox support).
-		i		= varlist[3]->lVal;												//Animation parameter.
-		tempint	= varlist[4]->lVal;												//Frame parameter.
-
-		if(!ent->modeldata.animation[i]->bbox_coords)
-		{
-			break;
-		}
-
-		coords = ent->modeldata.animation[i]->bbox_coords[tempint];
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)coords[varlist[5]->lVal];
-		break;
-	}
-	case _gep_range:
-	{
-		if(paramCount<4) break;
-
-		if(varlist[2]->vt != VT_INTEGER
-			|| varlist[3]->vt != VT_INTEGER)
-		{
-			printf("\n Error, getentityproperty({ent}, 'range', {sub property}, {animation}): {Sub property} or {Animation} parameter is missing or invalid. \n");
-			return E_FAIL;
-		}
-		ltemp	= varlist[2]->lVal;												//Subproperty.
-		i		= varlist[3]->lVal;												//Animation.
-
-		if(!validanim(ent,i))													//Verify animation.
-		{
-			break;
-		}
-
-		switch(ltemp)
-		{
-			case _gep_range_amax:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.amax;
-				 break;
-			case _gep_range_amin:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.amin;
-				 break;
-			case _gep_range_bmax:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.bmax;
-				 break;
-			case _gep_range_bmin:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.bmin;
-				 break;
-			case _gep_range_xmax:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.xmax;
-				 break;
-			case _gep_range_xmin:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.xmin;
-				 break;
-			case _gep_range_zmax:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.zmax;
-				 break;
-			case _gep_range_zmin:
-				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.zmin;
-				 break;
-			default:
-				ScriptVariant_Clear(*pretvar);
-				return E_FAIL;
-		}
-		break;
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)coords[varlist[4]->lVal];
+		(*pretvar)->dblVal = (DOUBLE)ent->antigravity;
 		break;
 	}
 	case _gep_attack:
@@ -4184,164 +3459,16 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		}
 		break;
 	}
-	case _gep_flash:
-	{
-		arg = varlist[2];
-		if(paramCount<3 || arg->vt != VT_INTEGER)
-		{
-			printf("Error, getentityproperty({ent}, 'flash', {argument}): Missing or invalid parameter. \n {argument}: \n 0 = Flash \n 1 = Noatflash \n 2=bflash \n");
-			return E_FAIL;
-		}
-
-		switch (arg->lVal)
-		{
-			default:
-				i = ent->modeldata.flash;
-				break;
-			case 1:
-				i = ent->modeldata.noatflash;
-				break;
-			case 2:
-				i = ent->modeldata.bflash;
-				break;
-		}
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)i;
-		break;
-	}
-	case _gep_freezetime:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->freezetime;
-		break;
-	}
-	case _gep_frozen:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->frozen;
-		break;
-	}
-	case _gep_nodrop:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.nodrop;
-		break;
-	}
-	case _gep_nograb:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->nograb;
-		break;
-	}
-	case _gep_nopain:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.nopain;
-		break;
-	}
-	case _gep_offense:
-	{
-		ltemp = 0;
-		if(paramCount >= 3)
-		{
-			arg = varlist[2];
-			if(FAILED(ScriptVariant_IntegerValue(arg, &ltemp)))
-				ltemp = (LONG)0;
-		}
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.offense_factors[(int)ltemp];
-		break;
-	}
-	case _gep_antigravity:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->antigravity;
-		break;
-	}
-	case _gep_owner:
-	{
-		if(ent->owner) // always return an empty var if it is NULL
-		{
-			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			(*pretvar)->ptrVal = (VOID*)ent->owner;
-		}
-		break;
-	}
-	case _gep_parent:
-	{
-		if(ent->parent) // always return an empty var if it is NULL
-		{
-			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			(*pretvar)->ptrVal = (VOID*)ent->parent;
-		}
-		break;
-	}
-	case _gep_path:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		tempstr = ent->modeldata.path;
-
-		strcpy(StrCache_Get((*pretvar)->strVal), tempstr);
-		break;
-	}
-	case _gep_subentity:
-	{
-		if(ent->subentity) // always return an empty var if it is NULL
-		{
-			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			(*pretvar)->ptrVal = (VOID*)ent->subentity;
-		}
-		break;
-	}
-	case _gep_opponent:
-	{
-		if(ent->opponent) // always return an empty var if it is NULL
-		{
-			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			(*pretvar)->ptrVal = (VOID*)ent->opponent;
-		}
-		break;
-	}
-	case _gep_grabbing:
-	{
-		if(ent->grabbing) // always return an empty var if it is NULL
-		{
-			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			(*pretvar)->ptrVal = (VOID*)ent->grabbing;
-		}
-		break;
-	}
-	case _gep_link:
-	{
-		if(ent->link) // always return an empty var if it is NULL
-		{
-			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			(*pretvar)->ptrVal = (VOID*)ent->link;
-		}
-		break;
-	}
-	case _gep_aimove:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.aimove;
-		break;
-	}
-	case _gep_aggression:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.aggression;
-		break;
-	}
-	case _gep_aiattack:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.aiattack;
-		break;
-	}
 	case _gep_attacking:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)ent->attacking;
+		break;
+	}
+	case _gep_attackid:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->attack_id;
 		break;
 	}
 	case _gep_autokill:
@@ -4350,10 +3477,86 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		(*pretvar)->lVal = (LONG)ent->autokill;
 		break;
 	}
-	case _gep_scroll:
+	case _gep_base:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.scroll;
+		(*pretvar)->dblVal = (DOUBLE)ent->base;
+		break;
+	}
+	case _gep_bbox:
+	{
+		if(paramCount<6) break;
+
+		if(varlist[2]->vt != VT_INTEGER
+			|| varlist[3]->vt != VT_INTEGER
+			|| varlist[4]->vt != VT_INTEGER
+			|| varlist[5]->vt != VT_INTEGER)
+		{
+			printf("\n Error, getentityproperty({ent}, 'bbox', {index}, {animation}, {frame}, {arg}): {index}, {Animation}, {frame}, or {arg} parameter is missing or invalid. \n");
+			return E_FAIL;
+		}
+
+		//varlist[3]->lval;														//bbox index (multiple bbox support).
+		i		= varlist[3]->lVal;												//Animation parameter.
+		tempint	= varlist[4]->lVal;												//Frame parameter.
+
+		if(!ent->modeldata.animation[i]->bbox_coords)
+		{
+			break;
+		}
+
+		coords = ent->modeldata.animation[i]->bbox_coords[tempint];
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)coords[varlist[5]->lVal];
+		break;
+	}
+	case _gep_blink:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->blink;
+		break;
+	}
+	case _gep_blockback:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->modeldata.blockback = (int)ltemp;
+		break;
+	}
+	case _gep_blockodds:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.blockodds;
+		break;
+	}
+	case _gep_blockpain:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->modeldata.blockpain = (int)ltemp;
+		break;
+	}
+	case _gep_bounce:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.bounce;
+		break;
+	}
+	case _gep_chargerate:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.chargerate;
+		break;
+	}
+	case _gep_colourmap:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_PTR);
+		(*pretvar)->ptrVal = (VOID*)(ent->colourmap);
+		break;
+	}
+	case _gep_colourtable:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_PTR);
+		(*pretvar)->ptrVal = (VOID*)(ent->modeldata.colourmap[varlist[2]->lVal]);
 		break;
 	}
 	case _gep_damage_on_landing:
@@ -4368,137 +3571,84 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		(*pretvar)->lVal = (LONG)ent->dead;
 		break;
 	}
-	case _gep_detect:
+	case _gep_defaultmodel:
+	case _gep_defaultname:
 	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.stealth[1];
+		ScriptVariant_ChangeType(*pretvar, VT_STR);
+		strcpy(StrCache_Get((*pretvar)->strVal), ent->defaultmodel->name);
 		break;
 	}
-	case _gep_stealth:
+	case _gep_defense:
 	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.stealth[0];
-		break;
-	}
-	case _gep_stalltime:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->stalltime;
-		break;
-	}
-	case _gep_stats:
-	{
-		if(paramCount<4) break;
-		arg = varlist[2];
-		arg1 = varlist[3];
-
-		if(arg->vt != VT_INTEGER || arg1->vt != VT_INTEGER)
+		ltemp = 0;
+		if(paramCount == 3)
 		{
-			printf("Incorrect parameters: getentityproperty({ent}, 'stats', {type}, {index}) \n {type}: \n 0 = Model. \n 1 = Entity. \n");
-			return E_FAIL;
+			arg = varlist[2];
+			if(FAILED(ScriptVariant_IntegerValue(arg, &ltemp)))
+				ltemp = (LONG)0;
 		}
 
+		arg = varlist[3];
+		if(arg->vt != VT_INTEGER)
+		{
+			if(arg->vt != VT_STR)
+				printf("You must give a string name for defense property.\n");
+			return E_FAIL;
+		}
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 
 		switch(arg->lVal)
 		{
-			default:
-				if (ent->modeldata.stats[arg1->lVal])
-				{
-					(*pretvar)->dblVal = (DOUBLE)ent->modeldata.stats[arg1->lVal];
-				}
-				break;
-			case 1:
-				if (ent->stats[arg1->lVal])
-				{
-					(*pretvar)->dblVal = (DOUBLE)ent->stats[arg1->lVal];
-				}
-				break;
-		}
-		break;
-	}
-	case _gep_staydown:
-	{
-		if(paramCount <4) break;
-		arg = varlist[3];
-		if(arg->vt != VT_INTEGER)
+		case _gep_defense_factor:
 		{
-			printf("Incorrect parameters: getentityproperty({ent}, 'staydown', {type}) \n {type}: \n 0 = Staydown. \n 1 = Staydownatk. \n");
+			(*pretvar)->dblVal = (float)ent->modeldata.defense_factors[(int)ltemp];
+			break;
+		}
+		case _gep_defense_blockpower:
+		{
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_blockpower[(int)ltemp];
+			break;
+		}
+		case _gep_defense_blockratio:
+		{
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_blockratio[(int)ltemp];
+			break;
+		}
+		case _gep_defense_blockthreshold:
+		{
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_blockthreshold[(int)ltemp];
+			break;
+		}
+		case _gep_defense_blocktype:
+		{
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_blocktype[(int)ltemp];
+			break;
+		}
+		case _gep_defense_knockdown:
+		{
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_knockdown[(int)ltemp];
+			break;
+		}
+		case _gep_defense_pain:
+		{
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_pain[(int)ltemp];
+			break;
+		}
+		default:
 			return E_FAIL;
 		}
-
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->staydown[arg->lVal];
-	}
-	case _gep_gfxshadow:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.gfxshadow;
 		break;
 	}
-
-	case _gep_projectile:
+	case _gep_detect:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->projectile;
+		(*pretvar)->lVal = (LONG)ent->modeldata.stealth.detect;
 		break;
 	}
-	case _gep_running:
-	{
-		if(paramCount<3) break;
-		arg = varlist[2];
-		if(arg->vt != VT_INTEGER)
-		{
-			if(arg->vt != VT_STR)
-				printf("You must give a string name for running property.\n");
-			return E_FAIL;
-		}
-		ltemp = arg->lVal;
-		switch(ltemp)
-		{
-		case _gep_running_speed:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.runspeed;
-			break;
-		}
-		case _gep_running_jumpy:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.runjumpheight;
-			break;
-		}
-		case _gep_running_jumpx:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.runjumpdist;
-			break;
-		}
-		case _gep_running_land:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)ent->modeldata.runhold;
-			break;
-		}
-		case _gep_running_movez:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			 (*pretvar)->lVal = (LONG)ent->modeldata.runupdown;
-			 break;
-		}
-		}
-		break;
-	}
-	case _gep_seal:
+	case _gep_direction:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->seal;
-		break;
-	}
-	case _gep_sealtime:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->sealtime;
+		(*pretvar)->lVal = (LONG)ent->direction;
 		break;
 	}
 	case _gep_dot:
@@ -4557,24 +3707,1009 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		break;
 		}
 	}
-	case _gep_blockback:
+	case _gep_dropframe:
 	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.blockback = (int)ltemp;
+		ltemp = 0;
+		if(paramCount == 3)
+		{
+			arg = varlist[2];
+			if(FAILED(ScriptVariant_IntegerValue(arg, &ltemp)))
+			ltemp = (LONG)0;
+		}
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.animation[ltemp]->dropframe;
 		break;
 	}
-	case _gep_blockpain:
+	case _gep_edelay:
 	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.blockpain = (int)ltemp;
+		arg = varlist[2];
+		if(arg->vt != VT_INTEGER)
+		{
+			if(arg->vt != VT_STR)
+				printf("You must give a string name for edelay property.\n");
+			return E_FAIL;
+		}
+		ltemp = arg->lVal;
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+		switch(ltemp)
+		{
+		case _gep_edelay_mode:
+		{
+			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.mode;
+			break;
+		}
+		case _gep_edelay_factor:
+		{
+			(*pretvar)->dblVal = (float)ent->modeldata.edelay.factor;
+			break;
+		}
+		case _gep_edelay_cap_min:
+		{
+			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.cap_min;
+			break;
+		}
+		case _gep_edelay_cap_max:
+		{
+			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.cap_max;
+			break;
+		}
+		case _gep_edelay_range_min:
+		{
+			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.range_min;
+			break;
+		}
+		case _gep_edelay_range_max:
+		{
+			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.range_max;
+			break;
+		}
+		default:
+			ScriptVariant_Clear(*pretvar);
+			return E_FAIL;
+		}
+		break;
+	}
+	case _gep_energycost:
+	{
+		if(paramCount<4) break;
+
+		if(varlist[2]->vt != VT_INTEGER
+			|| varlist[3]->vt != VT_INTEGER)
+		{
+			printf("\n Error, getentityproperty({ent}, 'energycost', {sub property}, {animation}): {Sub property} or {Animation} parameter is missing or invalid. \n");
+			return E_FAIL;
+		}
+		ltemp	= varlist[2]->lVal;												//Subproperty.
+		i		= varlist[3]->lVal;												//Animation.
+
+		if(!validanim(ent,i))													//Verify animation.
+		{
+			break;
+		}
+
+		switch(ltemp)
+		{
+			case _gep_energycost_cost:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.cost;
+				 break;
+			case _gep_energycost_disable:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.disable;
+				 break;
+			case _gep_energycost_mponly:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.mponly;
+				 break;
+			default:
+				ScriptVariant_Clear(*pretvar);
+				return E_FAIL;
+		}
+		break;
+	}
+	case _gep_escapecount:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->escapecount;
+		break;
+	}
+	case _gep_escapehits:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.escapehits;
+		break;
+	}
+	case _gep_exists:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->exists;
+		break;
+	}
+	case _gep_falldie:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.falldie;
+		break;
+	}
+	case _gep_flash:
+	{
+		arg = varlist[2];
+		if(arg->vt != VT_INTEGER)
+		{
+			if(arg->vt != VT_STR)
+				printf("You must give a string name for flash property.\n");
+			return E_FAIL;
+		}
+		ltemp = arg->lVal;
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+		switch(ltemp)
+		{
+            case _gep_flash_block:
+            {
+                i = ent->modeldata.bflash;
+                break;
+            }
+            case _gep_flash_def:
+            {
+                i = ent->modeldata.flash;
+                break;
+            }
+            case _gep_flash_noattack:
+            {
+                i = ent->modeldata.noatflash;
+                break;
+            }
+            default:
+			{
+                ScriptVariant_Clear(*pretvar);
+                return E_FAIL;
+            }
+		}
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)i;
+		break;
+	}
+	case _gep_freezetime:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->freezetime;
+		break;
+	}
+	case _gep_frozen:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->frozen;
+		break;
+	}
+	case _gep_gfxshadow:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.gfxshadow;
+		break;
+	}
+	case _gep_grabbing:
+	{
+		if(ent->grabbing) // always return an empty var if it is NULL
+		{
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (VOID*)ent->grabbing;
+		}
+		break;
+	}
+	case _gep_grabforce:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.grabforce;
+		break;
+	}
+	case _gep_guardpoints:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.guardpoints.current;
+		break;
+	}
+	case _gep_health:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->health;
+		break;
+	}
+	case _gep_height:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.height;
+		break;
+	}
+	case _gep_hitbyid:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->hit_by_attack_id;
+		break;
+	}
+	case _gep_hmapl:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.hmap1;
+		 break;
+	}
+	case _gep_hmapu:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.hmap2;
+		 break;
+	}
+	case _gep_icon:
+	{
+	    arg = varlist[2];
+		if(arg->vt != VT_INTEGER)
+		{
+			if(arg->vt != VT_STR)
+				printf("You must give a string name for icon property.\n");
+			return E_FAIL;
+		}
+		ltemp = arg->lVal;
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+		switch(ltemp)
+		{
+            case _gep_icon_def:
+            {
+                i = ent->modeldata.icon.def;
+                break;
+            }
+            case _gep_icon_die:
+            {
+                i = ent->modeldata.icon.die;
+                break;
+            }
+            case _gep_icon_get:
+            {
+                i = ent->modeldata.icon.get;
+                break;
+            }
+            case _gep_icon_mphigh:
+            {
+                i = ent->modeldata.icon.mphigh;
+                break;
+            }
+            case _gep_icon_mplow:
+            {
+                i = ent->modeldata.icon.mplow;
+                break;
+            }
+            case _gep_icon_mpmed:
+            {
+                i = ent->modeldata.icon.mpmed;
+                break;
+            }
+            case _gep_icon_pain:
+            {
+                i = ent->modeldata.icon.pain;
+                break;
+            }
+            case _gep_icon_weapon:
+            {
+                i = ent->modeldata.icon.weapon;
+                break;
+            }
+            case _gep_icon_x:
+            {
+                i = ent->modeldata.icon.x;
+                break;
+            }
+            case _gep_icon_y:
+            {
+                i = ent->modeldata.icon.y;
+                break;
+            }
+            default:
+            {
+                ScriptVariant_Clear(*pretvar);
+                return E_FAIL;
+            }
+		}
+
+		if (i >= 0)
+		{
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			spr = sprite_map[i].sprite;
+			spr->centerx = sprite_map[i].centerx;
+			spr->centery = sprite_map[i].centery;
+			(*pretvar)->ptrVal = (VOID*)(spr);
+		}
+		else
+		{
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = -1;
+		}
+		break;
+	}
+	case _gep_invincible:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->invincible;
+		break;
+	}
+	case _gep_invinctime:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->invinctime;
+		break;
+	}
+	case _gep_jugglepoints:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.jugglepoints.current;
+		break;
+	}
+	case _gep_knockdowncount:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->knockdowncount;
+		break;
+	}
+	case _gep_komap:
+	{
+		if(paramCount<3) break;
+		arg = varlist[2];
+		if(arg->vt != VT_INTEGER)
+		{
+			printf("You must provide a Komap parameter index: \n 0 = Komap \n 1 = Komap type \n");
+			return E_FAIL;
+		}
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.komap[arg->lVal];
+		break;
+	}
+	case _gep_landframe:
+	{
+	    if(paramCount<4) break;
+
+		if(varlist[2]->vt != VT_INTEGER
+			|| varlist[3]->vt != VT_INTEGER)
+		{
+			printf("\n Error, getentityproperty({ent}, 'landframe', {sub property}, {animation}): {Sub property} or {Animation} parameter is missing or invalid. \n");
+			return E_FAIL;
+		}
+		ltemp	= varlist[2]->lVal;												//Subproperty.
+		i		= varlist[3]->lVal;												//Animation.
+
+		if(!validanim(ent,i))													//Verify animation.
+		{
+			break;
+		}
+
+		switch(ltemp)
+		{
+			case _gep_landframe_ent:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.ent;
+				 break;
+			case _gep_landframe_frame:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.frame;
+				 break;
+			default:
+				ScriptVariant_Clear(*pretvar);
+				return E_FAIL;
+		}
+		break;
+	}
+	case _gep_lifespancountdown:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->lifespancountdown;
+		break;
+	}
+	case _gep_link:
+	{
+		if(ent->link) // always return an empty var if it is NULL
+		{
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (VOID*)ent->link;
+		}
+		break;
+	}
+	case _gep_map:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)0;
+		for(i=0;i<ent->modeldata.maps_loaded;i++)
+		{
+			if(ent->colourmap == ent->modeldata.colourmap[i])
+			{
+				(*pretvar)->lVal = (LONG)(i+1);
+				break;
+			}
+		}
+		break;
+	}
+	case _gep_mapcount:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)(ent->modeldata.maps_loaded+1);
+		 break;
+	}
+	case _gep_mapdefault:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)(ent->map);
+		 break;
+	}
+	case _gep_maxguardpoints:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.guardpoints.maximum;
+		break;
+	}
+	case _gep_maxhealth:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.health;
+		break;
+	}
+	case _gep_maxjugglepoints:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.jugglepoints.maximum;
+		break;
+	}
+	case _gep_maxmp:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.mp;
+		break;
+	}
+	case _gep_model:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_STR);
+		strcpy(StrCache_Get((*pretvar)->strVal), ent->model->name);
+		break;
+	}
+	case _gep_mp:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->mp;
+		break;
+	}
+	case _gep_mpdroprate:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.mpdroprate;
+		break;
+	}
+	case _gep_mprate:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.mprate;
+		break;
+	}
+	case _gep_mpstable:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.mpstable;
+		break;
+	}
+	case _gep_mpstableval:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.mpstableval;
+		break;
+	}
+	case _gep_name:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_STR);
+		strcpy(StrCache_Get((*pretvar)->strVal), ent->name);
+		break;
+	}
+	case _gep_nextanim:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->nextanim;
+		break;
+	}
+	case _gep_nextthink:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->nextthink;
+		break;
+	}
+	case _gep_no_adjust_base:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.no_adjust_base;
+		break;
+	}
+	case _gep_noaicontrol:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->noaicontrol;
+		break;
+	}
+	case _gep_nodieblink:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.nodieblink;
+		break;
+	}
+	case _gep_nodrop:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.nodrop;
+		break;
+	}
+	case _gep_nograb:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->nograb;
+		break;
+	}
+	case _gep_nopain:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.nopain;
+		break;
+	}
+	case _gep_offense:
+	{
+		ltemp = 0;
+		if(paramCount >= 3)
+		{
+			arg = varlist[2];
+			if(FAILED(ScriptVariant_IntegerValue(arg, &ltemp)))
+				ltemp = (LONG)0;
+		}
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.offense_factors[(int)ltemp];
+		break;
+	}
+	case _gep_opponent:
+	{
+		if(ent->opponent) // always return an empty var if it is NULL
+		{
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (VOID*)ent->opponent;
+		}
+		break;
+	}
+	case _gep_owner:
+	{
+		if(ent->owner) // always return an empty var if it is NULL
+		{
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (VOID*)ent->owner;
+		}
+		break;
+	}
+	case _gep_parent:
+	{
+		if(ent->parent) // always return an empty var if it is NULL
+		{
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (VOID*)ent->parent;
+		}
+		break;
+	}
+	case _gep_path:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_STR);
+		tempstr = ent->modeldata.path;
+
+		strcpy(StrCache_Get((*pretvar)->strVal), tempstr);
+		break;
+	}
+	case _gep_playerindex:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->playerindex;
+		//printf("%d %s %d\n", ent->sortid, ent->name, ent->playerindex);
+		break;
+	}
+    case _gep_projectile:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->projectile;
+		break;
+	}
+	case _gep_range:
+	{
+		if(paramCount<4) break;
+
+		if(varlist[2]->vt != VT_INTEGER
+			|| varlist[3]->vt != VT_INTEGER)
+		{
+			printf("\n Error, getentityproperty({ent}, 'range', {sub property}, {animation}): {Sub property} or {Animation} parameter is missing or invalid. \n");
+			return E_FAIL;
+		}
+		ltemp	= varlist[2]->lVal;												//Subproperty.
+		i		= varlist[3]->lVal;												//Animation.
+
+		if(!validanim(ent,i))													//Verify animation.
+		{
+			break;
+		}
+
+		switch(ltemp)
+		{
+			case _gep_range_amax:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.amax;
+				 break;
+			case _gep_range_amin:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.amin;
+				 break;
+			case _gep_range_bmax:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.bmax;
+				 break;
+			case _gep_range_bmin:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.bmin;
+				 break;
+			case _gep_range_xmax:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.xmax;
+				 break;
+			case _gep_range_xmin:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.xmin;
+				 break;
+			case _gep_range_zmax:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.zmax;
+				 break;
+			case _gep_range_zmin:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.zmin;
+				 break;
+			default:
+				ScriptVariant_Clear(*pretvar);
+				return E_FAIL;
+		}
+		break;
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)coords[varlist[4]->lVal];
+		break;
+	}
+	case _gep_running:
+	{
+		if(paramCount<3) break;
+		arg = varlist[2];
+		if(arg->vt != VT_INTEGER)
+		{
+			if(arg->vt != VT_STR)
+				printf("You must give a string name for running property.\n");
+			return E_FAIL;
+		}
+		ltemp = arg->lVal;
+		switch(ltemp)
+		{
+		case _gep_running_speed:
+		{
+			 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.runspeed;
+			break;
+		}
+		case _gep_running_jumpy:
+		{
+			 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.runjumpheight;
+			break;
+		}
+		case _gep_running_jumpx:
+		{
+			 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.runjumpdist;
+			break;
+		}
+		case _gep_running_land:
+		{
+			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)ent->modeldata.runhold;
+			break;
+		}
+		case _gep_running_movez:
+		{
+			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			 (*pretvar)->lVal = (LONG)ent->modeldata.runupdown;
+			 break;
+		}
+		}
+		break;
+	}
+	case _gep_rush_count:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->rush[0];
+		break;
+	}
+	case _gep_rush_tally:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->rush[1];
+		break;
+	}
+	case _gep_rush_time:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->rushtime;
+		break;
+	}
+	case _gep_score:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.score;
+		break;
+	}
+	case _gep_scroll:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.scroll;
+		break;
+	}
+	case _gep_seal:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->seal;
+		break;
+	}
+	case _gep_sealtime:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->sealtime;
+		break;
+	}
+	case _gep_setlayer:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.setlayer;
+		break;
+	}
+	case _gep_spawntype:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->spawntype;
+		break;
+	}
+	case _gep_speed:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.speed;
+		break;
+	}
+	case _gep_sprite:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_PTR);
+		i = ent->animation->sprite[ent->animpos];
+		spr = sprite_map[i].sprite;
+		spr->centerx = sprite_map[i].centerx;
+		spr->centery = sprite_map[i].centery;
+		(*pretvar)->ptrVal = (VOID*)(spr);
+		break;
+	}
+	case _gep_stalltime:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->stalltime;
+		break;
+	}
+	case _gep_stats:
+	{
+		if(paramCount<4) break;
+		arg = varlist[2];
+		arg1 = varlist[3];
+
+		if(arg->vt != VT_INTEGER || arg1->vt != VT_INTEGER)
+		{
+			printf("Incorrect parameters: getentityproperty({ent}, 'stats', {type}, {index}) \n {type}: \n 0 = Model. \n 1 = Entity. \n");
+			return E_FAIL;
+		}
+
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+
+		switch(arg->lVal)
+		{
+			default:
+				if (ent->modeldata.stats[arg1->lVal])
+				{
+					(*pretvar)->dblVal = (DOUBLE)ent->modeldata.stats[arg1->lVal];
+				}
+				break;
+			case 1:
+				if (ent->stats[arg1->lVal])
+				{
+					(*pretvar)->dblVal = (DOUBLE)ent->stats[arg1->lVal];
+				}
+				break;
+		}
+		break;
+	}
+	case _gep_staydown:
+	{
+		arg = varlist[2];
+		if(arg->vt != VT_INTEGER)
+		{
+			if(arg->vt != VT_STR)
+				printf("You must give a string name for staydown property.\n");
+			return E_FAIL;
+		}
+		ltemp = arg->lVal;
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+		switch(ltemp)
+		{
+            case _gep_staydown_attack:
+            {
+                i = ent->staydown[0];
+                break;
+            }
+            case _gep_staydown_time:
+            {
+                i = ent->staydown[1];
+                break;
+            }
+            default:
+			{
+                ScriptVariant_Clear(*pretvar);
+                return E_FAIL;
+            }
+		}
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)i;
+		break;
+	}
+	case _gep_stealth:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.stealth.hide;
+		break;
+	}
+	case _gep_subentity:
+	{
+		if(ent->subentity) // always return an empty var if it is NULL
+		{
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (VOID*)ent->subentity;
+		}
+		break;
+	}
+	case _gep_subject_to_gravity:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_gravity;
+		break;
+	}
+	case _gep_subject_to_hole:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_hole;
+		break;
+	}
+	case _gep_subject_to_maxz:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_maxz;
+		break;
+	}
+	case _gep_subject_to_minz:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_minz;
+		break;
+	}
+	case _gep_subject_to_obstacle:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_obstacle;
+		break;
+	}
+	case _gep_subject_to_platform:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_platform;
+		break;
+	}
+	case _gep_subject_to_screen:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_screen;
+		break;
+	}
+	case _gep_subject_to_wall:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.subject_to_wall;
+		break;
+	}
+	case _gep_subtype:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.subtype;
+		break;
+	}
+	case _gep_thold:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.thold;
+		break;
+	}
+	case _gep_throwdamage:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.throwdamage;
+		break;
+	}
+	case _gep_throwdist:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.throwdist;
+		break;
+	}
+	case _gep_throwframewait:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.throwframewait;
+		break;
+	}
+	case _gep_throwheight:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.throwheight;
+		break;
+	}
+	case _gep_tosstime:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->toss_time;
+		break;
+	}
+	case _gep_tossv:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->tossv;
+		break;
+	}
+	case _gep_type:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.type;
 		break;
 	}
 	case _gep_weapent:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			 (*pretvar)->ptrVal = (VOID*)ent->weapent;
-			 break;
-		}
+	{
+        ScriptVariant_ChangeType(*pretvar, VT_PTR);
+        (*pretvar)->ptrVal = (VOID*)ent->weapent;
+        break;
+	}
+	case _gep_x:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->x;
+		break;
+	}
+	case _gep_xdir:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->xdir;
+		break;
+	}
+	case _gep_z:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->z;
+		break;
+	}
+	case _gep_zdir:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->zdir;
+		break;
+	}
 	default:
 		//printf("Property name '%s' is not supported by function getentityproperty.\n", propname);
 		*pretvar = NULL;
@@ -5427,7 +5562,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			ent->modeldata.guardpoints[0] = (int)ltemp;
+			ent->modeldata.guardpoints.current = (int)ltemp;
 		}
 		break;
 	}
@@ -5436,7 +5571,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			ent->modeldata.guardpoints[1] = (int)ltemp;
+			ent->modeldata.guardpoints.maximum = (int)ltemp;
 		}
 		break;
 	}
@@ -5445,7 +5580,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			ent->modeldata.jugglepoints[0] = (int)ltemp;
+			ent->modeldata.jugglepoints.current = (int)ltemp;
 		}
 		break;
 	}
@@ -5469,7 +5604,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			ent->modeldata.jugglepoints[1] = (int)ltemp;
+			ent->modeldata.jugglepoints.maximum = (int)ltemp;
 		}
 		break;
 	}
@@ -5988,9 +6123,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _cep_iconposition:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.iconx = (int)ltemp;
+			ent->modeldata.icon.x = (int)ltemp;
 		if(paramCount>3 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-			ent->modeldata.icony = (int)ltemp;
+			ent->modeldata.icon.y = (int)ltemp;
 		break;
 	}
 	case _cep_lifeposition:
@@ -6193,7 +6328,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _cep_detect:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.stealth[1] = (int)ltemp;
+			ent->modeldata.stealth.detect = (int)ltemp;
 		break;
 	}
 	case _cep_stalltime:
@@ -6251,7 +6386,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _cep_stealth:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.stealth[0] = (int)ltemp;
+			ent->modeldata.stealth.hide = (int)ltemp;
 		break;
 	}
 	case _cep_gfxshadow:

@@ -644,7 +644,6 @@ typedef struct
 	char			hscoren[10][MAX_NAME_LEN+1];
 }s_savescore;
 
-
 typedef struct
 {
 	short           attack_force:16;
@@ -745,7 +744,7 @@ typedef struct                                      //2011_04_01, DC: Distance t
     short int       amax;                           //Maximum vertical range.
     short int       bmin;                           //Minumum base range.
     short int       bmax;                           //Maximum base rnage.
-}s_range;
+}s_range;                                           //2011_04_01, DC: Target range verification for various AI and player functions.
 
 typedef struct
 {
@@ -793,8 +792,8 @@ typedef struct
 	char            cancel:8;                       // Cancel anims with freespecial
 	short*			weaponframe;					// Specify with a frame when to switch to a weapon model
 	s_quakeframe	quakeframe;					    // Screen shake effect. 2011_04_01, DC; Moved to struct.
-	float*          spawnframe;					    // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
-	float*          summonframe;					// Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
+    float*          spawnframe;					    // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
+    float*          summonframe;					// Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
 	short           unsummonframe:16;               // Un-summon the entity
 	s_landframe     landframe;                      // Landing behavior. 2011_04_01, DC: Moved to struct.
 	short           dropframe:16;                   // if tossv < 0, this frame will be set
@@ -921,6 +920,48 @@ typedef enum  {
 
 typedef struct
 {
+    short int       current;                        //Current guard points remaining.
+    short int       maximum;                        //Maximum guard points.
+} s_guardpoints;                                    //2011_04_05, DC: Guardpoints feature added by OX.
+
+typedef struct
+{
+    short int		def;                            //Default icon.
+    short int       die;     					    //Health depleted.
+    short int		get;    					    //Retrieving item.
+	short int       mphigh;                         //MP bar icon; at 66% or more (default if other mp icons not used).
+	short int       mplow;                          //MP bar icon; at or between 0% and 32%.
+	short int       mpmed;                          //MP bar icon; at or between 33% and 65%.
+	short int 		pain;   					    //Taking damage.
+	short int       weapon;                         //Weapon model.
+	short int       x;                              //X position.
+	short int       y;                              //Y position.
+} s_icon;                                           //2011_04_05, DC: In game icons added 2005_01_20.
+
+typedef struct
+{
+    short int       current;                        //Current juggle points accumulated.
+    short int       maximum;                        //Maximum juggle points possible.
+} s_jugglepoints;                                   //2011_04_05, DC: Jugglepoints feature added by OX.
+
+typedef struct
+{
+    short int       amax;                           //Maximum vertical range.
+    short int       amin;                           //Minimum vertical range.
+    short int       xmax;                           //Maximum horizontal range.
+    short int       xmin;                           //Minimum horizontal range.
+    short int       zmax;                           //Maximum lateral range.
+    short int       zmin;                           //Minimum lateral range.
+} s_sight;                                          //2011_04_05, DC: Range from self AI can detect other entities.
+
+typedef struct
+{
+    signed char     detect;                         //Invisbility penetration. If self's detect >= target's hide, self can "see" target.
+    signed char     hide;                           //Invisibility to AI.
+} s_stealth;                                        //2011_04_05, DC: Invisibility to AI feature added by DC.
+
+typedef struct
+{
 	int             index;
 	char*           name;
 	char*           path;                           // Path, so scripts can dynamically get files, sprites, sounds, etc.
@@ -948,12 +989,7 @@ typedef struct
 	char			bounce:8;						// Flag to determine if bounce/quake is to be used.
 	short			type:16;
 	char			subtype:8;
-	int				icon;
-	int   			iconpain;   					// 20-1-2005   New icons
-	int				iconget;    					// 20-1-2005   New icons
-	int				icondie;     					// 20-1-2005   New icons
-	int				iconw;							// icon for the weapon like in beat of fighting by tails
-	int				iconmp[3];						// icon for the mpbar 3 levels
+	s_icon          icon;                           //In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct.
 	int				parrow[MAX_PLAYERS][3];			// Image to be displayed when player spawns invincible
 	int				setlayer;						// Used for forcing enities to be displayed behind
 	short			thold:16;						// The entities threshold for block
@@ -1046,20 +1082,20 @@ typedef struct
 	short			risetime[2];					// 0 = Rise delay, 1 = Riseattack delay.
 	short			sleepwait:16;
 	char            riseattacktype:8;
-	int             jugglepoints[2];                // juggle points. [0] = current [1] = max total
-	int             guardpoints[2];                 // guard points. [0] = current [1] = max total
+	s_jugglepoints  jugglepoints;                   // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
+	s_guardpoints   guardpoints;                    // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
 	char            mpswitch:8;                     // switch between reduce or gain mp for mpstabletype 4
 	short           turndelay:16;                   // turn delay
 	float           lifespan;                       // lifespan count down
 	float           knockdowncount;                 // the knock down count for this entity
-	short			stealth[2];						// 0 = Entity's invisibility to AI. 1 = AI ability to see through stealth.
+	s_stealth       stealth;						// Invisibility to AI feature added by DC. 2011_04_05, DC: Moved to struct.
 
 	//---------------new A.I. switches-----------
 	short           hostile:16;                     // specify hostile types
 	short           candamage:16;                   // specify types that can be damaged by this entity
 	short           projectilehit:16;               // specify types that can be hit by this entity if it is thrown
 	unsigned int    aimove:32;                      // move style
-	int				sight[6];						// Sight ranges, xmin, xmax, zmin, zmax, amin, amax
+	s_sight			sight;						    // Sight range. 2011_04_05, DC: Moved to struct.
 	unsigned int    aiattack:32;                    // attack/defend style
 
 	//----------------physical system-------------------
@@ -1069,23 +1105,20 @@ typedef struct
 	char*           branch;                         //level branch name
 	char            model_flag:8;                   //used to judge some copy method when setting new model to an entity
 
-	float*          defense_factors;                //basic defense factors: damage = damage*(1-def)
+	float*          defense_factors;                //basic defense factors: damage = damage*defense
 	float*          defense_pain;                   //Pain factor (like nopain) for defense type.
 	float*          defense_knockdown;              //Knockdowncount (like knockdowncount) for attack type.
 	float*          defense_blockpower;             //If > unblockable, this attack type is blocked.
 	float*          defense_blockthreshold;         //Strongest attack from this attack type that can be blocked.
 	float*          defense_blockratio;             //% of damage still taken from this attack type when blocked.
 	float*          defense_blocktype;             //0 = HP, 1=MP, 2=both taken when this attack type is blocked.
-	float*          offense_factors;                //basic offense factors: damage = damage*(1+def)
-
+	float*          offense_factors;                //basic offense factors: damage = damage*offense
 	s_attack*       smartbomb;
 
 	// e.g., boss
 	s_barstatus     hpbarstatus;
 	short           hpx:16;
 	short           hpy:16;
-	short           iconx:16;
-	short           icony:16;
 	short           namex:16;
 	short           namey:16;
 

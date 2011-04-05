@@ -4466,11 +4466,11 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->runjumpdist        = 1;		        // Default jump distane if a player is running
 	newchar->grabdistance       = 36;		        //  30-12-2004 Default grabdistance is same as originally set
 	newchar->throwdamage        = 21;		        // default throw damage
-	newchar->icon               = -1;
-	newchar->icondie            = -1;
-	newchar->iconpain           = -1;
-	newchar->iconget            = -1;
-	newchar->iconw              = -1;			    // No weapon icon set yet
+	newchar->icon.def               = -1;
+	newchar->icon.die            = -1;
+	newchar->icon.pain           = -1;
+	newchar->icon.get            = -1;
+	newchar->icon.weapon              = -1;			    // No weapon icon set yet
 	newchar->diesound           = -1;
 	newchar->nolife             = 0;			    // default show life = 1 (yes)
 	newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
@@ -4480,8 +4480,9 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->aiattack           = -1;
 	newchar->throwframewait     = -1;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
 	newchar->path               = model_cache[cacheindex].path;         // Record path, so script can get it without looping the whole model collection.
-
-	for(i=0; i<3; i++) newchar->iconmp[i] = -1;    // No magicbar icon set yet
+	newchar->icon.mphigh        = -1;               //No mphigh icon yet.
+    newchar->icon.mplow         = -1;               //No mplow icon yet.
+    newchar->icon.mpmed         = -1;               //No mpmed icon yet.
 
 		// Default Attack1 in chain must be referenced if not used.
 	for(i=0; i<MAX_ATCHAIN; i++) newchar->atchain[i] = 1;
@@ -4492,8 +4493,8 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->chargerate = newchar->guardrate = 2;
 	newchar->risetime[0]                = -1;
 	newchar->sleepwait                  = 1000;
-	newchar->jugglepoints[0] = newchar->jugglepoints[1] = 0;
-	newchar->guardpoints[0] = newchar->guardpoints[1] = 0;
+	newchar->jugglepoints.current = newchar->jugglepoints.maximum = 0;
+	newchar->guardpoints.current = newchar->guardpoints.maximum = 0;
 	newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
 	newchar->weaploss[0]                = -1;
 	newchar->weaploss[1]                = -1;
@@ -4535,11 +4536,13 @@ s_model* init_model(int cacheindex, int unload) {
 		newchar->defense_knockdown[i]   = 1;
 	}
 
-	for(i=0; i<3; i++)
-	{
-		newchar->sight[i*2] = -9999;
-		newchar->sight[i*2+1] = 9999;
-	}
+	//Default sight ranges.
+    newchar->sight.amin = -9999;
+    newchar->sight.amax = 9999;
+    newchar->sight.xmin = -9999;
+    newchar->sight.xmax = 9999;
+    newchar->sight.zmin = -9999;
+    newchar->sight.zmax = 9999;
 
 	newchar->offense_factors[ATK_BLAST]     = 1;
 	newchar->defense_factors[ATK_BLAST]     = 1;
@@ -4992,13 +4995,13 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->antigravity /= 100;
 					break;
 				case CMD_MODEL_STEALTH:
-					newchar->stealth[0] = GET_INT_ARG(1);
-					newchar->stealth[1] = GET_INT_ARG(2);
+					newchar->stealth.hide = GET_INT_ARG(1);
+					newchar->stealth.detect = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_JUGGLEPOINTS:
 					value = GET_ARG(1);
-					newchar->jugglepoints[0] = atoi(value);
-					newchar->jugglepoints[1] = atoi(value);
+					newchar->jugglepoints.current = atoi(value);
+					newchar->jugglepoints.maximum = atoi(value);
 					break;
 				case CMD_MODEL_RISEATTACKTYPE:
 					value = GET_ARG(1);
@@ -5006,8 +5009,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_GUARDPOINTS:
 					value = GET_ARG(1);
-					newchar->guardpoints[0] = atoi(value);
-					newchar->guardpoints[1] = atoi(value);
+					newchar->guardpoints.current = atoi(value);
+					newchar->guardpoints.maximum = atoi(value);
 					break;
 				case CMD_MODEL_DEFENSE:
 					#define tempdef(x, y, z, p, k, b, t, r, e) \
@@ -5231,42 +5234,42 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_ICON:
 					value = GET_ARG(1);
-					if(newchar->icon > -1) {
+					if(newchar->icon.def > -1) {
 						shutdownmessage = "model has multiple icons defined";
 						goto lCleanup;
 					}
-					newchar->icon = loadsprite(value,0,0,pixelformat); //use same palette as the owner
-					newchar->iconpain = newchar->icon;
-					newchar->icondie = newchar->icon;
-					newchar->iconget = newchar->icon;
+					newchar->icon.def = loadsprite(value,0,0,pixelformat); //use same palette as the owner
+					newchar->icon.pain = newchar->icon.def;
+					newchar->icon.die = newchar->icon.def;
+					newchar->icon.get = newchar->icon.def;
 					break;
 				case CMD_MODEL_ICONPAIN:
 					value = GET_ARG(1);
-					newchar->iconpain = loadsprite(value,0,0,pixelformat);
+					newchar->icon.pain = loadsprite(value,0,0,pixelformat);
 					break;
 				case CMD_MODEL_ICONDIE:
 					value = GET_ARG(1);
-					newchar->icondie = loadsprite(value,0,0,pixelformat);
+					newchar->icon.die = loadsprite(value,0,0,pixelformat);
 					break;
 				case CMD_MODEL_ICONGET:
 					value = GET_ARG(1);
-					newchar->iconget = loadsprite(value,0,0,pixelformat);
+					newchar->icon.get = loadsprite(value,0,0,pixelformat);
 					break;
 				case CMD_MODEL_ICONW:
 					value = GET_ARG(1);
-					newchar->iconw = loadsprite(value,0,0,pixelformat);
+					newchar->icon.weapon = loadsprite(value,0,0,pixelformat);
 					break;
 				case CMD_MODEL_ICONMPHIGH:
 					value = GET_ARG(1);
-					newchar->iconmp[0] = loadsprite(value,0,0,pixelformat);
+					newchar->icon.mphigh = loadsprite(value,0,0,pixelformat);
 					break;
 				case CMD_MODEL_ICONMPHALF:
 					value = GET_ARG(1);
-					newchar->iconmp[1] = loadsprite(value,0,0,pixelformat);
+					newchar->icon.mpmed = loadsprite(value,0,0,pixelformat);
 					break;
 				case CMD_MODEL_ICONMPLOW:
 					value = GET_ARG(1);
-					newchar->iconmp[2] = loadsprite(value,0,0,pixelformat);
+					newchar->icon.mplow = loadsprite(value,0,0,pixelformat);
 					break;
 				case CMD_MODEL_PARROW:
 					// Image that is displayed when player 1 spawns invincible
@@ -5367,8 +5370,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->hpbarstatus.colourtable = &hpcolourtable;
 					break;
 				case CMD_MODEL_ICONPOSITION:
-					if((value=GET_ARG(1))[0]) newchar->iconx = atoi(value);
-					if((value=GET_ARG(2))[0]) newchar->icony = atoi(value);
+					if((value=GET_ARG(1))[0]) newchar->icon.x = atoi(value);
+					if((value=GET_ARG(2))[0]) newchar->icon.y = atoi(value);
 					break;
 				case CMD_MODEL_NAMEPOSITION:
 					if((value=GET_ARG(1))[0]) newchar->namex = atoi(value);
@@ -9492,10 +9495,10 @@ void predrawstatus(){
 				font_printf(videomodes.shiftpos[i]+pscore[i][4], savedata.windowpos+pscore[i][5], pscore[i][6], 0, (scoreformat ? "%09lu" : "%lu"), tmp);
 			}
 
-			if(player[i].ent->health <= 0) icon = player[i].ent->modeldata.icondie;
-			else if(player[i].ent->inpain) icon = player[i].ent->modeldata.iconpain;
-			else if(player[i].ent->getting) icon = player[i].ent->modeldata.iconget;
-			else icon = player[i].ent->modeldata.icon;
+			if(player[i].ent->health <= 0) icon = player[i].ent->modeldata.icon.die;
+			else if(player[i].ent->inpain) icon = player[i].ent->modeldata.icon.pain;
+			else if(player[i].ent->getting) icon = player[i].ent->modeldata.icon.get;
+			else icon = player[i].ent->modeldata.icon.def;
 
 			if(icon>=0)
 			{
@@ -9505,10 +9508,10 @@ void predrawstatus(){
 
 			if(player[i].ent->weapent)
 			{
-				if(player[i].ent->weapent->modeldata.iconw >= 0)
+				if(player[i].ent->weapent->modeldata.icon.weapon >= 0)
 				{
 					drawmethod.table = player[i].ent->weapent->colourmap;
-					spriteq_add_sprite(videomodes.shiftpos[i]+piconw[i][0],savedata.windowpos+piconw[i][1],10000, player[i].ent->weapent->modeldata.iconw, &drawmethod, 0);
+					spriteq_add_sprite(videomodes.shiftpos[i]+piconw[i][0],savedata.windowpos+piconw[i][1],10000, player[i].ent->weapent->modeldata.icon.weapon, &drawmethod, 0);
 				}
 
 				if(player[i].ent->weapent->modeldata.typeshot && player[i].ent->weapent->modeldata.shootnum)
@@ -9517,21 +9520,21 @@ void predrawstatus(){
 
 			if(player[i].ent->modeldata.mp)
 			{
-				if(player[i].ent->modeldata.iconmp[0] > 0 && (player[i].ent->oldmp >= (player[i].ent->modeldata.mp * .66))){
+				if(player[i].ent->modeldata.icon.mphigh > 0 && (player[i].ent->oldmp >= (player[i].ent->modeldata.mp * .66))){
 					drawmethod.table = player[i].ent->colourmap;
-					spriteq_add_sprite(videomodes.shiftpos[i]+mpicon[i][0],savedata.windowpos+mpicon[i][1],10000, player[i].ent->modeldata.iconmp[0], &drawmethod, 0);
+					spriteq_add_sprite(videomodes.shiftpos[i]+mpicon[i][0],savedata.windowpos+mpicon[i][1],10000, player[i].ent->modeldata.icon.mphigh, &drawmethod, 0);
 				}
-				else if(player[i].ent->modeldata.iconmp[1] > 0 && (player[i].ent->oldmp >= (player[i].ent->modeldata.mp * .33) && player[i].ent->oldmp < (player[i].ent->modeldata.mp * .66))){
+				else if(player[i].ent->modeldata.icon.mpmed > 0 && (player[i].ent->oldmp >= (player[i].ent->modeldata.mp * .33) && player[i].ent->oldmp < (player[i].ent->modeldata.mp * .66))){
 					drawmethod.table = player[i].ent->colourmap;
-					spriteq_add_sprite(videomodes.shiftpos[i]+mpicon[i][0],savedata.windowpos+mpicon[i][1],10000, player[i].ent->modeldata.iconmp[1], &drawmethod, 0);
+					spriteq_add_sprite(videomodes.shiftpos[i]+mpicon[i][0],savedata.windowpos+mpicon[i][1],10000, player[i].ent->modeldata.icon.mpmed, &drawmethod, 0);
 				}
-				else if(player[i].ent->modeldata.iconmp[2] > 0 && (player[i].ent->oldmp >= 0 && player[i].ent->oldmp < (player[i].ent->modeldata.mp * .33))){
+				else if(player[i].ent->modeldata.icon.mplow > 0 && (player[i].ent->oldmp >= 0 && player[i].ent->oldmp < (player[i].ent->modeldata.mp * .33))){
 					drawmethod.table = player[i].ent->colourmap;
-					spriteq_add_sprite(videomodes.shiftpos[i]+mpicon[i][0],savedata.windowpos+mpicon[i][1],10000, player[i].ent->modeldata.iconmp[2], &drawmethod, 0);
+					spriteq_add_sprite(videomodes.shiftpos[i]+mpicon[i][0],savedata.windowpos+mpicon[i][1],10000, player[i].ent->modeldata.icon.mplow, &drawmethod, 0);
 				}
-				else if(player[i].ent->modeldata.iconmp[0] > 0 && player[i].ent->modeldata.iconmp[1] == -1 && player[i].ent->modeldata.iconmp[2] == -1){
+				else if(player[i].ent->modeldata.icon.mphigh > 0 && player[i].ent->modeldata.icon.mpmed == -1 && player[i].ent->modeldata.icon.mplow == -1){
 					drawmethod.table = player[i].ent->colourmap;
-					spriteq_add_sprite(videomodes.shiftpos[i]+mpicon[i][0],savedata.windowpos+mpicon[i][1],10000, player[i].ent->modeldata.iconmp[0], &drawmethod, 0);
+					spriteq_add_sprite(videomodes.shiftpos[i]+mpicon[i][0],savedata.windowpos+mpicon[i][1],10000, player[i].ent->modeldata.icon.mphigh, &drawmethod, 0);
 				}
 			}
 
@@ -9558,10 +9561,10 @@ void predrawstatus(){
 			if(player[i].ent->opponent && !player[i].ent->opponent->modeldata.nolife)
 			{    // Displays life unless overridden by flag
 				font_printf(videomodes.shiftpos[i]+ename[i][0], savedata.windowpos+ename[i][1], ename[i][2], 0, player[i].ent->opponent->name);
-				if(player[i].ent->opponent->health <= 0) icon = player[i].ent->opponent->modeldata.icondie;
-				else if(player[i].ent->opponent->inpain) icon = player[i].ent->opponent->modeldata.iconpain;
-				else if(player[i].ent->opponent->getting) icon = player[i].ent->opponent->modeldata.iconget;
-				else icon = player[i].ent->opponent->modeldata.icon;
+				if(player[i].ent->opponent->health <= 0) icon = player[i].ent->opponent->modeldata.icon.die;
+				else if(player[i].ent->opponent->inpain) icon = player[i].ent->opponent->modeldata.icon.pain;
+				else if(player[i].ent->opponent->getting) icon = player[i].ent->opponent->modeldata.icon.get;
+				else icon = player[i].ent->opponent->modeldata.icon.def;
 
 				if(icon>=0)
 				{
@@ -9576,7 +9579,7 @@ void predrawstatus(){
 			font_printf(videomodes.shiftpos[i]+pnameJ[i][0], savedata.windowpos+pnameJ[i][1], pnameJ[i][6], 0, player[i].name);
 			if(nojoin) font_printf(videomodes.shiftpos[i]+pnameJ[i][2], savedata.windowpos+pnameJ[i][3], pnameJ[i][6], 0, "Please Wait");
 			else font_printf(videomodes.shiftpos[i]+pnameJ[i][2], savedata.windowpos+pnameJ[i][3], pnameJ[i][6], 0, "Select Hero");
-			icon = model->icon;
+			icon = model->icon.def;
 
 			if(icon>=0 && !player[i].colourmap){
 				spriteq_add_sprite(videomodes.shiftpos[i]+picon[i][0],picon[i][1],10000, icon, NULL, 0);
@@ -9814,18 +9817,18 @@ void drawenemystatus(entity* ent)
 
 	if(ent->modeldata.namex>-1000 && ent->modeldata.namey>-1000) font_printf(ent->modeldata.namex, ent->modeldata.namey, 0, 0, "%s", ent->name);
 
-	if(ent->modeldata.iconx>-1000 &&  ent->modeldata.icony>-1000)
+	if(ent->modeldata.icon.x>-1000 &&  ent->modeldata.icon.y>-1000)
 	{
-		if(ent->health <= 0) icon = ent->modeldata.icondie;
-		else if(ent->inpain) icon = ent->modeldata.iconpain;
-		else if(ent->getting) icon = ent->modeldata.iconget;
-		else icon = ent->modeldata.icon;
+		if(ent->health <= 0) icon = ent->modeldata.icon.die;
+		else if(ent->inpain) icon = ent->modeldata.icon.pain;
+		else if(ent->getting) icon = ent->modeldata.icon.get;
+		else icon = ent->modeldata.icon.def;
 
 		if(icon>=0)
 		{
 			drawmethod = plainmethod;
 			drawmethod.table = ent->colourmap;
-			spriteq_add_sprite(ent->modeldata.iconx, ent->modeldata.icony, HUD_Z, icon, &drawmethod, 0);
+			spriteq_add_sprite(ent->modeldata.icon.x, ent->modeldata.icon.y, HUD_Z, icon, &drawmethod, 0);
 		}
 	}
 
@@ -11308,7 +11311,7 @@ void do_attack(entity *e)
 			ent_list[i]->takedamage &&
 			ent_list[i]->hit_by_attack_id != current_attack_id &&
 			((ent_list[i]->takeaction != common_lie && attack->otg < 2) || (attack->otg >= 1 && ent_list[i]->takeaction == common_lie)) && //over the ground hit
-			((ent_list[i]->falling == 0 && attack->jugglecost >= 0) || (ent_list[i]->falling == 1 && attack->jugglecost <= ent_list[i]->modeldata.jugglepoints[0])) && // juggle system
+			((ent_list[i]->falling == 0 && attack->jugglecost >= 0) || (ent_list[i]->falling == 1 && attack->jugglecost <= ent_list[i]->modeldata.jugglepoints.current)) && // juggle system
 			(checkhit(e, ent_list[i], 0) || // normal check bbox
 			 (attack->counterattack && checkhit(e, ent_list[i], 1)))  )// check counter, e.g. upper
 		{
@@ -11348,12 +11351,12 @@ void do_attack(entity *e)
 				//if #052
 				if(e->toexplode == 1) e->toexplode = 2;    // Used so the bomb type entity explodes when hitting
 
-				if(inair(self)) self->modeldata.jugglepoints[0] = self->modeldata.jugglepoints[0] - attack->jugglecost; //reduce available juggle points.
+				if(inair(self)) self->modeldata.jugglepoints.current = self->modeldata.jugglepoints.current - attack->jugglecost; //reduce available juggle points.
 
 				//if #053
 				if( !self->modeldata.nopassiveblock && // cant block by itself
 					validanim(self,ANI_BLOCK) && // of course, move it here to avoid some useless checking
-					((self->modeldata.guardpoints[1] == 0) || (self->modeldata.guardpoints[1] > 0 && self->modeldata.guardpoints[0] > 0)) &&
+					((self->modeldata.guardpoints.maximum == 0) || (self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current > 0)) &&
 					!(self->link ||
 					inair(self) ||
 					self->frozen ||
@@ -11371,7 +11374,7 @@ void do_attack(entity *e)
 					ent_set_anim(self, ANI_BLOCK, 0);
 					self->takeaction = common_block;
 					execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);
-					if(self->modeldata.guardpoints[1] > 0) self->modeldata.guardpoints[0] = self->modeldata.guardpoints[0] - attack->guardcost;
+					if(self->modeldata.guardpoints.maximum > 0) self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
 					++e->animation->animhits;
 					didblock = 1;    // Used for when playing the block.wav sound
 					// Spawn a flash
@@ -11392,7 +11395,7 @@ void do_attack(entity *e)
 				}
 				else if(self->modeldata.nopassiveblock && // can block by itself
 					self->blocking &&  // of course he must be blocking
-					((self->modeldata.guardpoints[1] == 0) || (self->modeldata.guardpoints[1] > 0 && self->modeldata.guardpoints[0] > 0)) &&
+					((self->modeldata.guardpoints.maximum == 0) || (self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current > 0)) &&
 					!((self->direction == e->direction && self->modeldata.blockback < 1)|| self->frozen) &&    // Can't block if facing the wrong direction (unless blockback flag is enabled) or frozen in the block animation or opponent is a projectile
 					attack->no_block <= self->modeldata.defense_blockpower[(short)attack->attack_type] &&    // Make sure you are actually blocking and that the attack is blockable
 					(!self->modeldata.thold ||
@@ -11403,7 +11406,7 @@ void do_attack(entity *e)
 				{    // Only block if the attack is less than the players threshold
 					//execute the didhit script
 					execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
-					if(self->modeldata.guardpoints[1] > 0) self->modeldata.guardpoints[0] = self->modeldata.guardpoints[0] - attack->guardcost;
+					if(self->modeldata.guardpoints.maximum > 0) self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
 					++e->animation->animhits;
 					didblock = 1;    // Used for when playing the block.wav sound
 
@@ -12162,17 +12165,17 @@ void check_attack()
 void update_health()
 {
 	//12/30/2008: Guardrate by OX. Guardpoints increase over time.
-	if(self->modeldata.guardpoints[1] > 0 && time >= self->guardtime) // If this is > 0 then guardpoints are set..
+	if(self->modeldata.guardpoints.maximum > 0 && time >= self->guardtime) // If this is > 0 then guardpoints are set..
 	{
 		if(self->blocking)
 		{
-			self->modeldata.guardpoints[0] += (self->modeldata.guardrate/2);
-			if(self->modeldata.guardpoints[0] > self->modeldata.guardpoints[1]) self->modeldata.guardpoints[0] = self->modeldata.guardpoints[1];
+			self->modeldata.guardpoints.current += (self->modeldata.guardrate/2);
+			if(self->modeldata.guardpoints.current > self->modeldata.guardpoints.maximum) self->modeldata.guardpoints.current = self->modeldata.guardpoints.maximum;
 		}
 		else
 		{
-			self->modeldata.guardpoints[0] += self->modeldata.guardrate;
-			if(self->modeldata.guardpoints[0] > self->modeldata.guardpoints[1]) self->modeldata.guardpoints[0] = self->modeldata.guardpoints[1];
+			self->modeldata.guardpoints.current += self->modeldata.guardrate;
+			if(self->modeldata.guardpoints.current > self->modeldata.guardpoints.maximum) self->modeldata.guardpoints.current = self->modeldata.guardpoints.maximum;
 		}
 		self->guardtime = time + GAME_SPEED;    //Reset guardtime.
 	}
@@ -12872,7 +12875,7 @@ int set_rise(entity *iRise, int type, int reset)
 	iRise->projectile = 0;
 	iRise->nograb = 0;
 	iRise->xdir = self->zdir = self->tossv = 0;
-	iRise->modeldata.jugglepoints[0] = iRise->modeldata.jugglepoints[1]; //reset jugglepoints
+	iRise->modeldata.jugglepoints.current = iRise->modeldata.jugglepoints.maximum; //reset jugglepoints
 	return 1;
 }
 
@@ -12888,7 +12891,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
 	iRiseattack->nograb = 0;
 	ent_set_anim(iRiseattack, animriseattacks[type], 0);
 	iRiseattack->takeaction = common_attack_proc;
-	iRiseattack->modeldata.jugglepoints[0] = iRiseattack->modeldata.jugglepoints[1]; //reset jugglepoints
+	iRiseattack->modeldata.jugglepoints.current = iRiseattack->modeldata.jugglepoints.maximum; //reset jugglepoints
 	return 1;
 }
 
@@ -12911,7 +12914,7 @@ int set_pain(entity *iPain, int type, int reset)
 	int pain = 0;
 
 	iPain->xdir = iPain->zdir = iPain->tossv = 0; // stop the target
-	if(iPain->modeldata.guardpoints[1] > 0 && iPain->modeldata.guardpoints[0] <= 0) pain = ANI_GUARDBREAK;
+	if(iPain->modeldata.guardpoints.maximum > 0 && iPain->modeldata.guardpoints.current <= 0) pain = ANI_GUARDBREAK;
 	else if(type == -1 || type >= max_attack_types) pain = ANI_GRABBED;
 	else pain = animpains[type];
 	if(validanim(iPain,pain))              ent_set_anim(iPain, pain, reset);
@@ -12931,7 +12934,7 @@ int set_pain(entity *iPain, int type, int reset)
 	iPain->charging = 0;
 	iPain->jumping = 0;
 	iPain->blocking = 0;
-	if(iPain->modeldata.guardpoints[1] > 0 && iPain->modeldata.guardpoints[0] <= 0) iPain->modeldata.guardpoints[0] = iPain->modeldata.guardpoints[1];
+	if(iPain->modeldata.guardpoints.maximum > 0 && iPain->modeldata.guardpoints.current <= 0) iPain->modeldata.guardpoints.current = iPain->modeldata.guardpoints.maximum;
 	if(iPain->frozen) unfrozen(iPain);
 
 	execute_onpain_script(iPain, type, reset);
@@ -12971,10 +12974,10 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 			newmodel->runupdown = model->runupdown;
 			newmodel->runhold = model->runhold;
 		}
-		if(newmodel->icon           <   0)  newmodel->icon          = model->icon;
-		if(newmodel->iconpain       <   0)  newmodel->iconpain      = model->iconpain;
-		if(newmodel->iconget        <   0)  newmodel->iconget       = model->iconget;
-		if(newmodel->icondie        <   0)  newmodel->icondie       = model->icondie;
+		if(newmodel->icon.def           <   0)  newmodel->icon.def          = model->icon.def;
+		if(newmodel->icon.pain       <   0)  newmodel->icon.pain      = model->icon.pain;
+		if(newmodel->icon.get        <   0)  newmodel->icon.get       = model->icon.get;
+		if(newmodel->icon.die        <   0)  newmodel->icon.die       = model->icon.die;
 		if(newmodel->shadow         <   0)  newmodel->shadow        = model->shadow;
 		if(newmodel->knife          <   0)  newmodel->knife         = model->knife;
 		if(newmodel->pshotno        <   0)  newmodel->pshotno       = model->pshotno;
@@ -13066,7 +13069,7 @@ entity* normal_find_target(int anim)
 			&& !ent_list[i]->dead //must be alive
 			&& diff(ent_list[i]->x,self->x)+ diff(ent_list[i]->z,self->z) >= min
 			&& diff(ent_list[i]->x,self->x)+ diff(ent_list[i]->z,self->z) <= max
-			&& ent_list[i]->modeldata.stealth[0] <= self->modeldata.stealth[1] //Stealth factor less then perception factor (allows invisibility).
+			&& ent_list[i]->modeldata.stealth.hide <= self->modeldata.stealth.detect //Stealth factor less then perception factor (allows invisibility).
 			  )
 		{
 			if(index <0 || (index>=0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1)) ||
@@ -13953,7 +13956,7 @@ void checkdamagedrop(s_attack* attack)
 	int attackdrop = attack->attack_drop;
 	float fdefense_knockdown = self->modeldata.defense_knockdown[(short)attack->attack_type];
 	if(self->modeldata.animal) self->drop = 1;
-	if(self->modeldata.guardpoints[1] > 0 && self->modeldata.guardpoints[0] <= 0) attackdrop = 0; //guardbreak does not knock down.
+	if(self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current <= 0) attackdrop = 0; //guardbreak does not knock down.
 	if(self->drop || attack->no_pain) return; // just in case, if we already fall, dont check fall again
 	// reset count if knockdowntime expired.
 	if(self->knockdowntime && self->knockdowntime<time)
@@ -13997,7 +14000,7 @@ void checkdamage(entity* other, s_attack* attack)
 {
 	int force = attack->attack_force;
 	int type = attack->attack_type;
-	if(self->modeldata.guardpoints[1] > 0 && self->modeldata.guardpoints[0] <= 0) force = 0; //guardbreak does not deal damage.
+	if(self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current <= 0) force = 0; //guardbreak does not deal damage.
 	if(!(self->damage_on_landing && self == other) && !other->projectile && type >= 0 && type<max_attack_types)
 	{
 		force = (int)(force * other->modeldata.offense_factors[type]);
@@ -14072,7 +14075,7 @@ int common_takedamage(entity *other, s_attack* attack)
 	// Drop Weapon due to being hit.
 	if(self->modeldata.weaploss[0] <= 0) dropweapon(1);
 	// check effects, e.g., frozen, blast, steal
-	if(!(self->modeldata.guardpoints[1] > 0 && self->modeldata.guardpoints[0] <= 0)) checkdamageeffects(attack);
+	if(!(self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current <= 0)) checkdamageeffects(attack);
 	// check flip direction
 	checkdamageflip(other, attack);
 	// mprate can also control the MP recovered per hit.
