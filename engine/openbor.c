@@ -5145,15 +5145,15 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->aironly = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_FMAP:	// Map that corresponds with the remap when a character is frozen
-					newchar->fmap = GET_INT_ARG(1);
+					newchar->maps.frozen = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_KOMAP:	// Remap when character is KO'd.
-					newchar->komap[0] = GET_INT_ARG(1);  //Remap.
-					newchar->komap[1] = GET_INT_ARG(2);  //Type: 0 start of fall/death, 1 last frame.
+					newchar->maps.ko = GET_INT_ARG(1);  //Remap.
+					newchar->maps.kotype = GET_INT_ARG(2);  //Type: 0 start of fall/death, 1 last frame.
 					break;
 				case CMD_MODEL_HMAP:	// Maps range unavailable to player in select screen.
-					newchar->hmap1 = GET_INT_ARG(1); //First unavailable map.
-					newchar->hmap2 = GET_INT_ARG(2); //Last unavailable map.
+					newchar->maps.hide_start = GET_INT_ARG(1); //First unavailable map.
+					newchar->maps.hide_end = GET_INT_ARG(2); //Last unavailable map.
 					break;
 				case CMD_MODEL_SETLAYER:
 					newchar->setlayer = GET_INT_ARG(1);
@@ -9627,9 +9627,9 @@ void predrawstatus(){
 				strcpy(player[i].name, model->name);
 
 				while(   // Keep looping until a non-hmap is found
-					((model->hmap1) && (model->hmap2) &&
-					player[i].colourmap >= model->hmap1 &&
-					player[i].colourmap <= model->hmap2)
+					((model->maps.hide_start) && (model->maps.hide_end) &&
+					player[i].colourmap >= model->maps.hide_start &&
+					player[i].colourmap <= model->maps.hide_end)
 					)
 					{
 						player[i].colourmap++;
@@ -9645,9 +9645,9 @@ void predrawstatus(){
 				strcpy(player[i].name, model->name);
 
 				while(   // Keep looping until a non-hmap is found
-					((model->hmap1) && (model->hmap2) &&
-					player[i].colourmap >= model->hmap1 &&
-					player[i].colourmap <= model->hmap2)
+					((model->maps.hide_start) && (model->maps.hide_end) &&
+					player[i].colourmap >= model->maps.hide_start &&
+					player[i].colourmap <= model->maps.hide_end)
 					)
 					{
 						player[i].colourmap++;
@@ -9666,12 +9666,12 @@ void predrawstatus(){
 
 					if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
 				}
-				while(    // Keep looping until a non-fmap is found
-					(model->fmap &&
-					player[i].colourmap - 1 == model->fmap - 1) ||
-					((model->hmap1) && (model->hmap2) &&
-					player[i].colourmap - 1 >= model->hmap1 - 1 &&
-					player[i].colourmap - 1 <= model->hmap2 - 1)
+				while(    // Keep looping until a non frozen map is found
+					(model->maps.frozen &&
+					player[i].colourmap - 1 == model->maps.frozen - 1) ||
+					((model->maps.hide_start) && (model->maps.hide_end) &&
+					player[i].colourmap - 1 >= model->maps.hide_start - 1 &&
+					player[i].colourmap - 1 <= model->maps.hide_end - 1)
 					);
 
 					player[i].playkeys = 0;
@@ -9684,12 +9684,12 @@ void predrawstatus(){
 
 					if(player[i].colourmap < 0) player[i].colourmap = model->maps_loaded;
 				}
-				while(    // Keep looping until a non-fmap is found
-					(model->fmap &&
-					player[i].colourmap - 1 == model->fmap - 1) ||
-					((model->hmap1) && (model->hmap2) &&
-					player[i].colourmap - 1 >= model->hmap1 - 1 &&
-					player[i].colourmap - 1 <= model->hmap2 - 1)
+				while(    // Keep looping until a non frozen map is found
+					(model->maps.frozen &&
+					player[i].colourmap - 1 == model->maps.frozen - 1) ||
+					((model->maps.hide_start) && (model->maps.hide_end) &&
+					player[i].colourmap - 1 >= model->maps.hide_start - 1 &&
+					player[i].colourmap - 1 <= model->maps.hide_end - 1)
 					);
 
 					player[i].playkeys = 0;
@@ -9709,7 +9709,7 @@ void predrawstatus(){
 				strncpy(player[i].name, model->name, MAX_NAME_LEN);
 				player[i].colourmap = i;
 				 // Keep looping until a non-hmap is found
-				while(model->hmap1 && model->hmap2 && player[i].colourmap >= model->hmap1 && player[i].colourmap <= model->hmap2)
+				while(model->maps.hide_start && model->maps.hide_end && player[i].colourmap >= model->maps.hide_start && player[i].colourmap <= model->maps.hide_end)
 				{
 					player[i].colourmap++;
 					if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
@@ -13488,18 +13488,18 @@ void common_lie()
 			}
 		}
 
-		if (self->modeldata.komap[0])                                                           //Have a KO map?
+		if (self->modeldata.maps.ko)                                                           //Have a KO map?
 		{
-			if (self->modeldata.komap[1])                                                       //Wait for fall/death animation to finish?
+			if (self->modeldata.maps.kotype)                                                       //Wait for fall/death animation to finish?
 			{
 				if (!self->animating)
 				{
-					self->colourmap = self->modeldata.colourmap[self->modeldata.komap[0]-1];    //If finished animating, apply map.
+					self->colourmap = self->modeldata.colourmap[self->modeldata.maps.ko-1];    //If finished animating, apply map.
 				}
 			}
 			else                                                                                //Don't bother waiting.
 			{
-				self->colourmap = self->modeldata.colourmap[self->modeldata.komap[0]-1];        //Apply map.
+				self->colourmap = self->modeldata.colourmap[self->modeldata.maps.ko-1];        //Apply map.
 			}
 		}
 
@@ -13888,7 +13888,7 @@ void checkdamageeffects(s_attack* attack)
 	{    // New freeze attack - If not frozen, freeze entity unless it's a projectile
 		self->frozen = 1;
 		if(self->freezetime == 0) self->freezetime = time + _freezetime;
-		if(_remap == -1 && self->modeldata.fmap != -1) self->colourmap = self->modeldata.colourmap[self->modeldata.fmap-1];    //12/14/2007 Damon Caskey: If opponents fmap = -1 or only stun, then don't change the color map.
+		if(_remap == -1 && self->modeldata.maps.frozen != -1) self->colourmap = self->modeldata.colourmap[self->modeldata.maps.frozen-1];    //12/14/2007 Damon Caskey: If opponents frozen map = -1 or only stun, then don't change the color map.
 		self->drop = 0;
 	}
 	else if(self->frozen)
@@ -17827,7 +17827,7 @@ int common_idle_anim(entity* ent)
 	int i;                                                                              //Loop counter.
 	int iAni;                                                                           //Animation.
 
-	if (ent->model->subtype != SUBTYPE_BIKER && ent->model->type != TYPE_NONE) // biker fix by Plombo // type none being "idle" prevented contra locked and loaded from working correctly. fixed by anallyst (C) (TM)
+	if (ent->model->subtype != SUBTYPE_BIKER && ent->model->type != TYPE_NONE) // biker fix by Plombo // type none being "idle" prevented contra locked and loaded from working correctly. fixed by anallyst
 		ent->xdir = ent->zdir = 0;                                                      //Stop movement.
 
 	if(validanim(ent,ANI_FAINT) && ent->health <= ent->modeldata.health / 4)            //ANI_FAINT and health at/below 25%?
@@ -20879,9 +20879,9 @@ int selectplayer(int *players, char* filename)
 					// Make player 2 different colour automatically
 					player[i].colourmap = i;
 
-					while((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
-					cmap[i] >= example[i]->modeldata.hmap1 &&
-					cmap[i] <= example[i]->modeldata.hmap2 )
+					while((example[i]->modeldata.maps.hide_start) && (example[i]->modeldata.maps.hide_end) &&
+					cmap[i] >= example[i]->modeldata.maps.hide_start &&
+					cmap[i] <= example[i]->modeldata.maps.hide_end )
 					{
 						cmap[i]++;
 						if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
@@ -20898,9 +20898,9 @@ int selectplayer(int *players, char* filename)
 					ent_set_model(example[i], prevplayermodel(example[i]->model)->name);
 					cmap[i] = i;
 
-					while((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
-					cmap[i] >= example[i]->modeldata.hmap1 &&
-					cmap[i] <= example[i]->modeldata.hmap2 )
+					while((example[i]->modeldata.maps.hide_start) && (example[i]->modeldata.maps.hide_end) &&
+					cmap[i] >= example[i]->modeldata.maps.hide_start &&
+					cmap[i] <= example[i]->modeldata.maps.hide_end )
 					{
 						cmap[i]++;
 						if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
@@ -20915,8 +20915,8 @@ int selectplayer(int *players, char* filename)
 					ent_set_model(example[i], nextplayermodel(example[i]->model)->name);
 					cmap[i] = i;
 
-					while((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
-					cmap[i] >= example[i]->modeldata.hmap1 && cmap[i] <= example[i]->modeldata.hmap2 )
+					while((example[i]->modeldata.maps.hide_start) && (example[i]->modeldata.maps.hide_end) &&
+					cmap[i] >= example[i]->modeldata.maps.hide_start && cmap[i] <= example[i]->modeldata.maps.hide_end )
 					{
 						cmap[i]++;
 						if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
@@ -20934,11 +20934,11 @@ int selectplayer(int *players, char* filename)
 						if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
 					}
 					while(
-					(example[i]->modeldata.fmap &&
-					cmap[i] - 1 == example[i]->modeldata.fmap - 1) ||
-					((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
-					cmap[i] - 1 >= example[i]->modeldata.hmap1 - 1 &&
-					cmap[i] - 1 <= example[i]->modeldata.hmap2 - 1)
+					(example[i]->modeldata.maps.frozen &&
+					cmap[i] - 1 == example[i]->modeldata.maps.frozen - 1) ||
+					((example[i]->modeldata.maps.hide_start) && (example[i]->modeldata.maps.hide_end) &&
+					cmap[i] - 1 >= example[i]->modeldata.maps.hide_start - 1 &&
+					cmap[i] - 1 <= example[i]->modeldata.maps.hide_end - 1)
 					);
 
 					ent_set_colourmap(example[i], cmap[i]);
@@ -20951,11 +20951,11 @@ int selectplayer(int *players, char* filename)
 						if(cmap[i] < 0) cmap[i] = example[i]->modeldata.maps_loaded;
 					}
 					while(
-					(example[i]->modeldata.fmap &&
-					cmap[i] - 1 == example[i]->modeldata.fmap - 1) ||
-					((example[i]->modeldata.hmap1) && (example[i]->modeldata.hmap2) &&
-					cmap[i] - 1 >= example[i]->modeldata.hmap1 - 1 &&
-					cmap[i] - 1 <= example[i]->modeldata.hmap2 - 1)
+					(example[i]->modeldata.maps.frozen &&
+					cmap[i] - 1 == example[i]->modeldata.maps.frozen - 1) ||
+					((example[i]->modeldata.maps.hide_start) && (example[i]->modeldata.maps.hide_end) &&
+					cmap[i] - 1 >= example[i]->modeldata.maps.hide_start - 1 &&
+					cmap[i] - 1 <= example[i]->modeldata.maps.hide_end - 1)
 					);
 
 					ent_set_colourmap(example[i], cmap[i]);
