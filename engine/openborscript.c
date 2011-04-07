@@ -3931,13 +3931,13 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	case _gep_hmapl:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.hmap1;
+		(*pretvar)->lVal = (LONG)ent->modeldata.maps.hide_start;
 		 break;
 	}
 	case _gep_hmapu:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.hmap2;
+		(*pretvar)->lVal = (LONG)ent->modeldata.maps.hide_end;
 		 break;
 	}
 	case _gep_icon:
@@ -4052,16 +4052,10 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	}
 	case _gep_komap:
 	{
-		if(paramCount<3) break;
-		arg = varlist[2];
-		if(arg->vt != VT_INTEGER)
-		{
-			printf("You must provide a Komap parameter index: \n 0 = Komap \n 1 = Komap type \n");
-			return E_FAIL;
-		}
+		if(paramCount<2) break;
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)ent->modeldata.komap[arg->lVal];
+		(*pretvar)->lVal = (LONG)ent->modeldata.maps.ko;
 		break;
 	}
 	case _gep_landframe:
@@ -4838,6 +4832,46 @@ enum changeentityproperty_enum {
 	_cep_the_end,
 };
 
+enum cep_aiflag_enum {
+	_cep_aiflag_animating,
+	_cep_aiflag_attacking,
+	_cep_aiflag_autokill,
+	_cep_aiflag_blink,
+	_cep_aiflag_blocking,
+	_cep_aiflag_charging,
+	_cep_aiflag_dead,
+	_cep_aiflag_drop,
+	_cep_aiflag_falling,
+	_cep_aiflag_frozen,
+	_cep_aiflag_getting,
+	_cep_aiflag_idling,
+	_cep_aiflag_inpain,
+	_cep_aiflag_invincible,
+	_cep_aiflag_jumping,
+	_cep_aiflag_projectile,
+	_cep_aiflag_running,
+	_cep_aiflag_toexplode,
+	_cep_aiflag_turning,
+	_cep_aiflag_the_end,
+};
+
+enum _cep_energycost_enum {
+    _cep_energycost_cost,
+    _cep_energycost_disable,
+    _cep_energycost_mponly,
+    _cep_energycost_the_end,
+};
+
+enum cep_hostile_candamage_enum {
+	_cep_hcd_ground,
+	_cep_hcd_type_enemy,
+	_cep_hcd_type_npc,
+	_cep_hcd_type_obstacle,
+	_cep_hcd_type_player,
+	_cep_hcd_type_shot,
+	_cep_hcd_the_end,
+};
+
 enum cep_takeaction_enum {
 	_cep_ta_bomb_explode,
 	_cep_ta_common_attack_proc,
@@ -4872,46 +4906,6 @@ enum _cep_think_enum { // 2011_03_03, DC: Think types.
     _cep_th_text_think,
     _cep_th_trap_think,
     _cep_th_the_end,
-};
-
-enum cep_hostile_candamage_enum {
-	_cep_hcd_ground,
-	_cep_hcd_type_enemy,
-	_cep_hcd_type_npc,
-	_cep_hcd_type_obstacle,
-	_cep_hcd_type_player,
-	_cep_hcd_type_shot,
-	_cep_hcd_the_end,
-};
-
-enum cep_aiflag_enum {
-	_cep_aiflag_animating,
-	_cep_aiflag_attacking,
-	_cep_aiflag_autokill,
-	_cep_aiflag_blink,
-	_cep_aiflag_blocking,
-	_cep_aiflag_charging,
-	_cep_aiflag_dead,
-	_cep_aiflag_drop,
-	_cep_aiflag_falling,
-	_cep_aiflag_frozen,
-	_cep_aiflag_getting,
-	_cep_aiflag_idling,
-	_cep_aiflag_inpain,
-	_cep_aiflag_invincible,
-	_cep_aiflag_jumping,
-	_cep_aiflag_projectile,
-	_cep_aiflag_running,
-	_cep_aiflag_toexplode,
-	_cep_aiflag_turning,
-	_cep_aiflag_the_end,
-};
-
-enum _cep_energycost_enum {
-    _cep_energycost_cost,
-    _cep_energycost_disable,
-    _cep_energycost_mponly,
-    _cep_energycost_the_end,
 };
 
 void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
@@ -5035,6 +5029,43 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"weapon",
 	};
 
+    static const char* proplist_aiflag[] = {
+		"animating",
+		"attacking",
+		"autokill",
+		"blink",
+		"blocking",
+		"charging",
+		"dead",
+		"drop",
+		"falling",
+		"frozen",
+		"getting",
+		"idling",
+		"inpain",
+		"invincible",
+		"jumping",
+		"projectile",
+		"running",
+		"toexplode",
+		"turning",
+	};
+
+    static const char* proplist_energycost[] = {
+        "cost",
+        "disable",
+        "mponly",
+    };
+
+    static const char* proplist_hostile_candamage[] = {
+        "ground",
+        "type_enemy",
+        "type_npc",
+        "type_obstacle",
+        "type_player",
+        "type_shot",
+    };
+
 	static const char* proplist_takeaction[] = {
 		"bomb_explode",
 		"common_attack_proc",
@@ -5069,46 +5100,34 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"trap_think",
 	};
 
-	static const char* proplist_aiflag[] = {
-		"animating",
-		"attacking",
-		"autokill",
-		"blink",
-		"blocking",
-		"charging",
-		"dead",
-		"drop",
-		"falling",
-		"frozen",
-		"getting",
-		"idling",
-		"inpain",
-		"invincible",
-		"jumping",
-		"projectile",
-		"running",
-		"toexplode",
-		"turning",
-	};
-
-    static const char* proplist_hostile_candamage[] = {
-        "ground",
-        "type_enemy",
-        "type_npc",
-        "type_obstacle",
-        "type_player",
-        "type_shot",
-    };
-
-    static const char* proplist_energycost[] = {
-        "cost",
-        "disable",
-        "mponly",
-    };
-
 	// property name
 	MAPSTRINGS(varlist[1], proplist, _cep_the_end,
 		"Property name '%s' is not supported by function changeentityproperty.\n");
+
+    // AI flag name for aiflag
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_aiflag))
+	{
+		MAPSTRINGS(varlist[2], proplist_aiflag, _cep_aiflag_the_end,
+			"Flag '%s' is not supported by 'aiflag'.\n");
+	}
+
+	//2011_03_31, DC: Energycost
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_energycost))
+	{
+		MAPSTRINGS(varlist[2], proplist_energycost, _cep_energycost_the_end,
+			"Flag '%s' is not supported by 'energycost'.\n");
+	}
+
+    // entity type(s) for hostile, candamage, and projectilehit.
+	if((varlist[1]->vt == VT_INTEGER) &&
+		((varlist[1]->lVal == _cep_hostile) || (varlist[1]->lVal == _cep_candamage) || (varlist[1]->lVal == _cep_projectilehit)))
+	{
+		for(i=2; i<paramCount; i++)
+		{
+			MAPSTRINGS(varlist[i], proplist_hostile_candamage, _cep_hcd_the_end,
+				"Entity type '%s' is not supported by 'hostile', 'candamage', or 'projectilehit'\n");
+		}
+	}
 
 	// action for takeaction
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_takeaction))
@@ -5123,31 +5142,6 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		MAPSTRINGS(varlist[2], proplist_think, _cep_th_the_end,
 			"Set '%s' is not supported by 'think'.\n");
 	}
-
-	// entity type(s) for hostile, candamage, and projectilehit.
-	if((varlist[1]->vt == VT_INTEGER) &&
-		((varlist[1]->lVal == _cep_hostile) || (varlist[1]->lVal == _cep_candamage) || (varlist[1]->lVal == _cep_projectilehit)))
-	{
-		for(i=2; i<paramCount; i++)
-		{
-			MAPSTRINGS(varlist[i], proplist_hostile_candamage, _cep_hcd_the_end,
-				"Entity type '%s' is not supported by 'hostile', 'candamage', or 'projectilehit'\n");
-		}
-	}
-
-	// AI flag name for aiflag
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_aiflag))
-	{
-		MAPSTRINGS(varlist[2], proplist_aiflag, _cep_aiflag_the_end,
-			"Flag '%s' is not supported by 'aiflag'.\n");
-	}
-
-	//2011_03_31, DC: Energycost
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_energycost))
-	{
-		MAPSTRINGS(varlist[2], proplist_energycost, _cep_energycost_the_end,
-			"Flag '%s' is not supported by 'energycost'.\n");
-	}
 }
 
 //changeentityproperty(pentity, propname, value1[ ,value2, value3, ...]);
@@ -5160,14 +5154,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	DOUBLE dbltemp;
 	int propind;
 	int i = 0;
-	static const void* think[] = { // 2011_03_03, DC: Think types.
-		common_think,
-		player_think,
-		steam_think,
-		steamer_think,
-		text_think,
-		trap_think,
-	};
+
 	static const void* actions[] = { // for takeaction
 		bomb_explode,
 		common_attack_proc,
@@ -5200,7 +5187,17 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
         TYPE_OBSTACLE,
         TYPE_PLAYER,
         TYPE_SHOT,
+
     };
+
+	static const void* think[] = { // 2011_03_03, DC: Think types.
+		common_think,
+		player_think,
+		steam_think,
+		steamer_think,
+		text_think,
+		trap_think,
+	};
 
 	if(paramCount < 3)
 	{
@@ -5235,12 +5232,552 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 	switch(propind)
 	{
+    case _cep_aggression:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->modeldata.aggression = (int)ltemp;
+		break;
+	}
+	case _cep_aiattack:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->modeldata.aiattack = (int)ltemp;
+		break;
+	}
+	case _cep_aiflag:
+	{
+		if(varlist[2]->vt != VT_INTEGER)
+		{
+			if(varlist[2]->vt != VT_STR)
+				printf("You must give a string value for AI flag name.\n");
+			goto changeentityproperty_error;
+		}
+		if(paramCount<4) break;
+
+		switch(varlist[2]->lVal)
+		{
+		case _cep_aiflag_dead:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				ent->dead = (int)ltemp;
+			break;
+		}
+		case _cep_aiflag_jumping:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				ent->jumping = (int)ltemp;
+			break;
+		}
+		case _cep_aiflag_idling:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				ent->idling = (int)ltemp;
+			break;
+		}
+		case _cep_aiflag_drop:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				ent->drop = (int)ltemp;
+			break;
+		}
+		case _cep_aiflag_attacking:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				ent->attacking = (int)ltemp;
+			break;
+		}
+		case _cep_aiflag_getting:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				ent->getting = (int)ltemp;
+			break;
+		}
+		case _cep_aiflag_turning:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				 ent->turning = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_charging:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				 ent->charging = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_blocking:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				 ent->blocking = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_falling:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				 ent->falling = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_running:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				  ent->running = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_inpain:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				  ent->inpain = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_projectile:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				  ent->projectile = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_frozen:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				  ent->frozen = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_toexplode:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				  ent->toexplode = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_animating:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				  ent->animating = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_blink:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				  ent->blink = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_invincible:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				  ent->invincible = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_autokill:
+		{
+			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				  ent->autokill = (int)ltemp;
+			 break;
+		}
+		default:
+			printf("Unknown AI flag.\n");
+			goto changeentityproperty_error;
+		}
+		break;
+	}
+	case _cep_aimove:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->modeldata.aimove = (int)ltemp;
+		break;
+	}
+	case _cep_alpha:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			(*pretvar)->lVal = (LONG)1;
+			ent->modeldata.alpha = (int)ltemp;
+		}
+		break;
+	}
+    case _cep_animation:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			(*pretvar)->lVal = (LONG)1;
+		if(paramCount >= 4)
+		{
+			if(FAILED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
+				(*pretvar)->lVal = (LONG)0;
+		}
+		else ltemp2 = (LONG)1;
+		if((*pretvar)->lVal == (LONG)1)
+		{
+			ent_set_anim(ent, (int)ltemp, (int)ltemp2);
+		}
+		break;
+	}
+	case _cep_animhits:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			(*pretvar)->lVal = (LONG)1;
+			ent->animation->animhits = (int)ltemp;
+		}
+		break;
+	}
+	case _cep_animpos:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->animpos = (int)ltemp;
+		break;
+	}
+	case _cep_antigrab:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->model->antigrab = (int)ltemp;
+		break;
+	}
+    case _cep_antigravity:
+	{
+		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+		{
+			(*pretvar)->lVal = (LONG)1;
+			ent->modeldata.antigravity = (float)dbltemp;
+		}
+		break;
+	}
+	case _cep_attacking:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+		   ent->attacking = (int)ltemp;
+		   (*pretvar)->lVal = (LONG)1;
+		}
+		break;
+	}
+	case _cep_attackid:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->attack_id = (int)ltemp;
+		break;
+	}
+    case _cep_autokill:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			ent->autokill = (int)ltemp;
+		   (*pretvar)->lVal = (LONG)1;
+		}
+		break;
+	}
+	case _cep_base:
+	{
+		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+		{
+			ent->base = (float)dbltemp;
+			(*pretvar)->lVal = (LONG)1;
+		}
+		break;
+	}
+	case _cep_blink:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			ent->blink = (int)ltemp;
+			(*pretvar)->lVal = (LONG)1;
+		}
+		break;
+	}
+	case _cep_blockback:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->modeldata.blockback = (int)ltemp;
+		break;
+	}
     case _cep_blockodds:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.blockodds = (int)ltemp;
+		}
+		break;
+	}
+	case _cep_blockpain:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->modeldata.blockpain = (int)ltemp;
+		break;
+	}
+	case _cep_bounce:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->modeldata.bounce = (int)ltemp;
+		break;
+	}
+	case _cep_candamage:
+	{
+		ent->modeldata.candamage = 0;
+
+		for(i=2; i<paramCount; i++)
+		{
+			if(varlist[i]->vt == VT_INTEGER) // known entity type
+			{
+				ltemp = varlist[i]->lVal;
+				if(ltemp==_cep_hcd_ground) // "ground" - not needed?
+					ent->modeldata.ground = 1;
+				else
+					ent->modeldata.candamage |= entitytypes[(int)ltemp];
+			}
+			else
+			{
+				printf("You must pass one or more string constants for entity type.\n");
+				goto changeentityproperty_error;
+			}
+		}
+		break;
+	}
+	case _cep_combostep:
+	{
+		if(paramCount >= 4 &&
+		   SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			(*pretvar)->lVal = (LONG)1;
+		}
+		if((*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
+				ent->combostep[(int)ltemp]=(int)ltemp2;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		break;
+	}
+	case _cep_colourmap:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			(*pretvar)->lVal = (LONG)1;
+			self->colourmap = self->modeldata.colourmap[ltemp-1];
+		}
+		break;
+	}
+	case _cep_damage_on_landing:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->damage_on_landing = (int)ltemp;
+		break;
+	}
+    case _cep_dead:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->dead = (int)ltemp;
+		break;
+	}
+    case _cep_defaultname:
+	{
+		if(varlist[2]->vt != VT_STR)
+		{
+			printf("You must give a string value for entity name.\n");
+			goto changeentityproperty_error;
+		}
+		tempmodel = findmodel((char*)StrCache_Get(varlist[2]->strVal));
+		if(!tempmodel)
+		{
+			printf("Use must give an existing model's name for entity's default model name.\n");
+			goto changeentityproperty_error;
+		}
+		ent->defaultmodel = tempmodel;
+		(*pretvar)->lVal = (LONG)1;
+		break;
+	}
+	case _cep_defense:
+	{
+		if(paramCount >= 4 &&
+		   SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)) &&
+		   ltemp < (LONG)MAX_ATKS && ltemp >= (LONG)0)
+		{
+			(*pretvar)->lVal = (LONG)1;
+		}
+		if((*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+				ent->modeldata.defense_factors[(int)ltemp] = (float)dbltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
+				ent->modeldata.defense_pain[(int)ltemp] = (float)dbltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 6 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
+				ent->modeldata.defense_knockdown[(int)ltemp] = (float)dbltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 7 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
+				ent->modeldata.defense_blockpower[(int)ltemp] = (float)dbltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 8 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp)))
+				ent->modeldata.defense_blockthreshold[(int)ltemp] = (float)dbltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 9 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[8], &dbltemp)))
+				ent->modeldata.defense_blockratio[(int)ltemp] = (float)dbltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 10 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[9], &dbltemp)))
+				ent->modeldata.defense_blocktype[(int)ltemp] = (float)dbltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		break;
+	}
+    case _cep_detect:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->modeldata.stealth.detect = (int)ltemp;
+		break;
+	}
+	case _cep_direction:
+	{
+		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+		{
+			ent->direction = (int)dbltemp;
+			(*pretvar)->lVal = (LONG)1;
+		}
+		break;
+	}
+	case _cep_dot:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			i = (int)ltemp;
+		}
+		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+		{
+			(*pretvar)->lVal = (LONG)1;
+			ent->dot_time[i] = (int)dbltemp;
+		}
+		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
+				ent->dot[i] = (int)dbltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 6 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
+				ent->dot_force[i] = (int)dbltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 7 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
+				ent->dot_rate[i] = (int)dbltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 8 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp)))
+				ent->dot_atk[i] = (int)dbltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 9)
+		{
+			ent->dot_owner[i] = (entity*)varlist[8]->ptrVal;
+		}
+		break;
+	}
+	case _cep_edelay:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		{
+			(*pretvar)->lVal = (LONG)1;
+			ent->modeldata.edelay.mode = (int)ltemp;
+		}
+		if(paramCount >= 3 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
+				ent->modeldata.edelay.factor = (float)dbltemp;
+		}
+		if(paramCount >= 4 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
+				ent->modeldata.edelay.cap_min = (int)ltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
+				ent->modeldata.edelay.cap_max = (int)ltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 6 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
+				ent->modeldata.edelay.range_min = (int)ltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		if(paramCount >= 7 && (*pretvar)->lVal == (LONG)1)
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[7], &ltemp)))
+				ent->modeldata.edelay.range_max = (int)ltemp;
+			else (*pretvar)->lVal = (LONG)0;
+		}
+		break;
+	}
+	case _cep_energycost:
+	{
+		if(paramCount != 5)
+		{
+			printf("\n Error, changeentityproperty({ent}, 'energycost', {subproperty}, {animation}, {value}): Invalid or missing parameter. \n");
+			goto changeentityproperty_error;
+		}
+
+		(*pretvar)->lVal = (LONG)1;
+
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+		{
+			i = (int)ltemp;
+		}
+
+		if(!validanim(ent,i))
+		{
+			printf("\n Error, changeentityproperty({ent}, 'energycost', {subproperty}, {animation}, {value}): {animation} parameter invalid. Make sure the animation exists. \n");
+			goto changeentityproperty_error;
+		}
+
+		if(varlist[2]->vt != VT_INTEGER)
+		{
+			if(varlist[2]->vt != VT_STR)
+				printf("You must give a string value for energycost flag name.\n");
+			goto changeentityproperty_error;
+		}
+
+		switch(varlist[2]->lVal)
+		{
+		case _cep_energycost_cost:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
+				ent->modeldata.animation[i]->energycost.cost = (int)ltemp;
+			break;
+		}
+		case _cep_energycost_disable:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
+				ent->modeldata.animation[i]->energycost.disable = (int)ltemp;
+			break;
+		}
+		case _cep_energycost_mponly:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
+				ent->modeldata.animation[i]->energycost.mponly = (int)ltemp;
+			break;
+		}
+		default:
+			printf("Unknown Energycost flag.\n");
+			goto changeentityproperty_error;
 		}
 		break;
 	}
@@ -5260,6 +5797,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.escapehits = (int)ltemp;
 		}
+		break;
+	}
+    case _cep_falldie:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->modeldata.falldie = (int)ltemp;
 		break;
 	}
 	case _cep_score:
@@ -5335,28 +5878,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		ltemp = varlist[2]->lVal;
         ent->modeldata.type = (int)ltemp;
 
-		break;
-	}
-	case _cep_candamage:
-	{
-		ent->modeldata.candamage = 0;
-
-		for(i=2; i<paramCount; i++)
-		{
-			if(varlist[i]->vt == VT_INTEGER) // known entity type
-			{
-				ltemp = varlist[i]->lVal;
-				if(ltemp==_cep_hcd_ground) // "ground" - not needed?
-					ent->modeldata.ground = 1;
-				else
-					ent->modeldata.candamage |= entitytypes[(int)ltemp];
-			}
-			else
-			{
-				printf("You must pass one or more string constants for entity type.\n");
-				goto changeentityproperty_error;
-			}
-		}
 		break;
 	}
 	case _cep_hostile:
@@ -5539,25 +6060,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		}
 		break;
 	}
-	case _cep_animhits:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			ent->animation->animhits = (int)ltemp;
-		}
-		break;
-	}
-	case _cep_alpha:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			ent->modeldata.alpha = (int)ltemp;
-		}
-		break;
-	}
-	case _cep_guardpoints:
+    case _cep_guardpoints:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
@@ -5589,12 +6092,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			ent->modeldata.komap[0] = (int)ltemp;
+			ent->modeldata.maps.ko = (int)ltemp;
 		}
 		if(paramCount >= 4 && (*pretvar)->lVal == (LONG)1)
 		{
 			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				ent->modeldata.komap[1] = (int)ltemp;
+				ent->modeldata.maps.kotype = (int)ltemp;
 			else (*pretvar)->lVal = (LONG)0;
 		}
 		break;
@@ -5605,15 +6108,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		{
 			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.jugglepoints.maximum = (int)ltemp;
-		}
-		break;
-	}
-	case _cep_antigravity:
-	{
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			ent->modeldata.antigravity = (float)dbltemp;
 		}
 		break;
 	}
@@ -5635,27 +6129,18 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		}
 		break;
 	}
-	case _cep_colourmap:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			self->colourmap = self->modeldata.colourmap[ltemp-1];
-		}
-		break;
-	}
 	case _cep_hmapl:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 			(*pretvar)->lVal = (LONG)1;
-			self->modeldata.hmap1 = ltemp;
+			self->modeldata.maps.hide_start = ltemp;
 		break;
 	}
 	case _cep_hmapu:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 			(*pretvar)->lVal = (LONG)1;
-			self->modeldata.hmap2 = ltemp;
+			self->modeldata.maps.hide_end = ltemp;
 		break;
 	}
 	case _cep_name:
@@ -5666,23 +6151,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			goto changeentityproperty_error;
 		}
 		strcpy(ent->name, (char*)StrCache_Get(varlist[2]->strVal));
-		(*pretvar)->lVal = (LONG)1;
-		break;
-	}
-	case _cep_defaultname:
-	{
-		if(varlist[2]->vt != VT_STR)
-		{
-			printf("You must give a string value for entity name.\n");
-			goto changeentityproperty_error;
-		}
-		tempmodel = findmodel((char*)StrCache_Get(varlist[2]->strVal));
-		if(!tempmodel)
-		{
-			printf("Use must give an existing model's name for entity's default model name.\n");
-			goto changeentityproperty_error;
-		}
-		ent->defaultmodel = tempmodel;
 		(*pretvar)->lVal = (LONG)1;
 		break;
 	}
@@ -5704,24 +6172,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
 				ent->a = (float)dbltemp;
 			else (*pretvar)->lVal = (LONG)0;
-		}
-		break;
-	}
-	case _cep_base:
-	{
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			ent->base = (float)dbltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
-		break;
-	}
-	case _cep_direction:
-	{
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			ent->direction = (int)dbltemp;
-			(*pretvar)->lVal = (LONG)1;
 		}
 		break;
 	}
@@ -5787,58 +6237,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		}
 		break;
 	}
-	case _cep_defense:
-	{
-		if(paramCount >= 4 &&
-		   SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)) &&
-		   ltemp < (LONG)MAX_ATKS && ltemp >= (LONG)0)
-		{
-			(*pretvar)->lVal = (LONG)1;
-		}
-		if((*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-				ent->modeldata.defense_factors[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
-				ent->modeldata.defense_pain[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 6 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
-				ent->modeldata.defense_knockdown[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 7 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
-				ent->modeldata.defense_blockpower[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 8 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp)))
-				ent->modeldata.defense_blockthreshold[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 9 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[8], &dbltemp)))
-				ent->modeldata.defense_blockratio[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 10 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[9], &dbltemp)))
-				ent->modeldata.defense_blocktype[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		break;
-	}
 	case _cep_offense:
 	{
 		if(paramCount >= 4 &&
@@ -5859,12 +6257,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 			ent->model->grabforce = (int)ltemp;
-		break;
-	}
-	case _cep_antigrab:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->model->antigrab = (int)ltemp;
 		break;
 	}
 	case _cep_nodrop:
@@ -5903,12 +6295,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			ent->modeldata.nodieblink = (int)ltemp;
 		break;
 	}
-	case _cep_falldie:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.falldie = (int)ltemp;
-		break;
-	}
 	case _cep_freezetime:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
@@ -5919,166 +6305,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 			ent->frozen = (int)ltemp;
-		break;
-	}
-	case _cep_bounce:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.bounce = (int)ltemp;
-		break;
-	}
-	case _cep_aiflag:
-	{
-		if(varlist[2]->vt != VT_INTEGER)
-		{
-			if(varlist[2]->vt != VT_STR)
-				printf("You must give a string value for AI flag name.\n");
-			goto changeentityproperty_error;
-		}
-		if(paramCount<4) break;
-
-		switch(varlist[2]->lVal)
-		{
-		case _cep_aiflag_dead:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				ent->dead = (int)ltemp;
-			break;
-		}
-		case _cep_aiflag_jumping:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				ent->jumping = (int)ltemp;
-			break;
-		}
-		case _cep_aiflag_idling:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				ent->idling = (int)ltemp;
-			break;
-		}
-		case _cep_aiflag_drop:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				ent->drop = (int)ltemp;
-			break;
-		}
-		case _cep_aiflag_attacking:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				ent->attacking = (int)ltemp;
-			break;
-		}
-		case _cep_aiflag_getting:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				ent->getting = (int)ltemp;
-			break;
-		}
-		case _cep_aiflag_turning:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				 ent->turning = (int)ltemp;
-			 break;
-		}
-		case _cep_aiflag_charging:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				 ent->charging = (int)ltemp;
-			 break;
-		}
-		case _cep_aiflag_blocking:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				 ent->blocking = (int)ltemp;
-			 break;
-		}
-		case _cep_aiflag_falling:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				 ent->falling = (int)ltemp;
-			 break;
-		}
-		case _cep_aiflag_running:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->running = (int)ltemp;
-			 break;
-		}
-		case _cep_aiflag_inpain:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->inpain = (int)ltemp;
-			 break;
-		}
-		case _cep_aiflag_projectile:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->projectile = (int)ltemp;
-			 break;
-		}
-		case _cep_aiflag_frozen:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->frozen = (int)ltemp;
-			 break;
-		}
-		case _cep_aiflag_toexplode:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->toexplode = (int)ltemp;
-			 break;
-		}
-		case _cep_aiflag_animating:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->animating = (int)ltemp;
-			 break;
-		}
-		case _cep_aiflag_blink:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->blink = (int)ltemp;
-			 break;
-		}
-		case _cep_aiflag_invincible:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->invincible = (int)ltemp;
-			 break;
-		}
-		case _cep_aiflag_autokill:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->autokill = (int)ltemp;
-			 break;
-		}
-		default:
-			printf("Unknown AI flag.\n");
-			goto changeentityproperty_error;
-		}
-		break;
-	}
-	case _cep_animation:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			(*pretvar)->lVal = (LONG)1;
-		if(paramCount >= 4)
-		{
-			if(FAILED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
-				(*pretvar)->lVal = (LONG)0;
-		}
-		else ltemp2 = (LONG)1;
-		if((*pretvar)->lVal == (LONG)1)
-		{
-			ent_set_anim(ent, (int)ltemp, (int)ltemp2);
-		}
-		break;
-	}
-	case _cep_animpos:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->animpos = (int)ltemp;
 		break;
 	}
 	case _cep_invincible:
@@ -6148,15 +6374,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
 			ent->lifespancountdown = (float)dbltemp;
-		break;
-	}
-	case _cep_blink:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			ent->blink = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _cep_subject_to_screen:
@@ -6253,48 +6470,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		if(ent->subentity) ent->subentity->parent = ent;
 		break;
 	}
-	case _cep_aimove:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.aimove = (int)ltemp;
-		break;
-	}
-	case _cep_aggression:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.aggression = (int)ltemp;
-		break;
-	}
-	case _cep_aiattack:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.aiattack = (int)ltemp;
-		break;
-	}
-	case _cep_combostep:
-	{
-		if(paramCount >= 4 &&
-		   SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-		}
-		if((*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
-				ent->combostep[(int)ltemp]=(int)ltemp2;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		break;
-	}
-	case _cep_attacking:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-		   ent->attacking = (int)ltemp;
-		   (*pretvar)->lVal = (LONG)1;
-		}
-		break;
-	}
 	case _cep_scroll:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
@@ -6302,33 +6477,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.scroll = (float)dbltemp;
 		}
-		break;
-	}
-	case _cep_autokill:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			ent->autokill = (int)ltemp;
-		   (*pretvar)->lVal = (LONG)1;
-		}
-		break;
-	}
-	case _cep_damage_on_landing:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->damage_on_landing = (int)ltemp;
-		break;
-	}
-	case _cep_dead:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->dead = (int)ltemp;
-		break;
-	}
-	case _cep_detect:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.stealth.detect = (int)ltemp;
 		break;
 	}
 	case _cep_stalltime:
@@ -6356,12 +6504,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 				}
 			}
 		}
-		break;
-	}
-	case _cep_attackid:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->attack_id = (int)ltemp;
 		break;
 	}
 	case _cep_hitbyid:
@@ -6443,139 +6585,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			ent->sealtime = (int)ltemp;
 		break;
 	}
-	case _cep_dot:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			i = (int)ltemp;
-		}
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			ent->dot_time[i] = (int)dbltemp;
-		}
-		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
-				ent->dot[i] = (int)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 6 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
-				ent->dot_force[i] = (int)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 7 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
-				ent->dot_rate[i] = (int)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 8 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp)))
-				ent->dot_atk[i] = (int)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 9)
-		{
-			ent->dot_owner[i] = (entity*)varlist[8]->ptrVal;
-		}
-		break;
-	}
-	case _cep_edelay:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			ent->modeldata.edelay.mode = (int)ltemp;
-		}
-		if(paramCount >= 3 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
-				ent->modeldata.edelay.factor = (float)dbltemp;
-		}
-		if(paramCount >= 4 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
-				ent->modeldata.edelay.cap_min = (int)ltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
-				ent->modeldata.edelay.cap_max = (int)ltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 6 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
-				ent->modeldata.edelay.range_min = (int)ltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 7 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[7], &ltemp)))
-				ent->modeldata.edelay.range_max = (int)ltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		break;
-	}
-	case _cep_energycost:
-	{
-		if(paramCount != 5)
-		{
-			printf("\n Error, changeentityproperty({ent}, 'energycost', {subproperty}, {animation}, {value}): Invalid or missing parameter. \n");
-			goto changeentityproperty_error;
-		}
-
-		(*pretvar)->lVal = (LONG)1;
-
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-		{
-			i = (int)ltemp;
-		}
-
-		if(!validanim(ent,i))
-		{
-			printf("\n Error, changeentityproperty({ent}, 'energycost', {subproperty}, {animation}, {value}): {animation} parameter invalid. Make sure the animation exists. \n");
-			goto changeentityproperty_error;
-		}
-
-		if(varlist[2]->vt != VT_INTEGER)
-		{
-			if(varlist[2]->vt != VT_STR)
-				printf("You must give a string value for energycost flag name.\n");
-			goto changeentityproperty_error;
-		}
-
-		switch(varlist[2]->lVal)
-		{
-		case _cep_energycost_cost:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
-				ent->modeldata.animation[i]->energycost.cost = (int)ltemp;
-			break;
-		}
-		case _cep_energycost_disable:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
-				ent->modeldata.animation[i]->energycost.disable = (int)ltemp;
-			break;
-		}
-		case _cep_energycost_mponly:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
-				ent->modeldata.animation[i]->energycost.mponly = (int)ltemp;
-			break;
-		}
-		default:
-			printf("Unknown Energycost flag.\n");
-			goto changeentityproperty_error;
-		}
-		break;
-	}
 	case _cep_mpset:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
@@ -6608,18 +6617,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp)))
 				ent->modeldata.chargerate = (int)dbltemp;
 		}
-		break;
-	}
-	case _cep_blockback:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.blockback = (int)ltemp;
-		break;
-	}
-	case _cep_blockpain:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->modeldata.blockpain = (int)ltemp;
 		break;
 	}
 	default:

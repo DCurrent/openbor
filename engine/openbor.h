@@ -946,6 +946,15 @@ typedef struct
 
 typedef struct
 {
+    signed char     frozen;                         //Frozen.
+    signed char     hide_end;                       //End range for maps hidden during character selection.
+    signed char     hide_start;                     //Start range for maps hidden during character selection.
+    signed char     ko;                             //Health depleted.
+    signed char     kotype;                         //KO map application. 0 = Immediately. 1 = At last frame of fall/death animation.
+} s_maps;                                           //2011_04_07, DC: Pre defined color map selections and behavior.
+
+typedef struct
+{
     short int       amax;                           //Maximum vertical range.
     short int       amin;                           //Minimum vertical range.
     short int       xmax;                           //Maximum horizontal range.
@@ -993,10 +1002,7 @@ typedef struct
 	int				parrow[MAX_PLAYERS][3];			// Image to be displayed when player spawns invincible
 	int				setlayer;						// Used for forcing enities to be displayed behind
 	short			thold:16;						// The entities threshold for block
-	char			fmap:8;							// Corresponds to which remap to use for when a character is frozen
-	char            komap[2];                       // Remap to use when KO'd
-	char            hmap1:8;                        //Bottom range of remaps unavailable at select screen.
-	char            hmap2:8;                        //Top range of remaps unavailable at select screen.
+	s_maps          maps;                           //2011_04_07, DC: Pre defined color map selections and behavior.
 	char			alpha:8;						// New alpha variable to determine if the entity uses alpha transparency
 	char			toflip:8;						// Flag to determine if flashes flip or not
 	char			shadow:8;

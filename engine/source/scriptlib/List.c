@@ -1,16 +1,12 @@
 /*
  * List library.
- * 90% (C) 2011 anallyst
- * 10% (C) unknown author
+ * 90% 2011 anallyst
+ * 10% unknown author
  *
- * license to use and redistribute is granted under the same terms as OpenBOR itself.
- * as long as anallyst is granted to use and redistribute the OpenBOR source code,
- * and maintain his own fork.
- * 
  * the whole smart stuff going on here was written by anallyst.
  * at the time anallyst touched this code, this was a very simple single linked list.
- * double linked list functionality, index hash and string hash functionality is (C) anallyst.
- * 
+ * double linked list functionality, index hash and string hash functionality by anallyst.
+ *
  */
 
 #include "List.h"
