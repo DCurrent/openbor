@@ -2398,6 +2398,7 @@ enum getentityproperty_enum {
 	_gep_lifespancountdown,
 	_gep_link,
 	_gep_map,
+	_gep_maps,
 	_gep_mapcount,
 	_gep_mapdefault,
 	_gep_maxguardpoints,
@@ -2595,6 +2596,23 @@ enum gep_landframe_enum {
     _gep_landframe_ent,
     _gep_landframe_frame,
     _gep_landframe_the_end,
+};
+
+enum gep_maps_enum {
+    _gep_maps_count,
+    _gep_maps_current,
+    _gep_maps_default,
+    _gep_maps_dying,
+    _gep_maps_dying_critical,
+    _gep_maps_dying_low,
+    _gep_maps_frozen,
+    _gep_maps_hide_end,
+    _gep_maps_hide_start,
+    _gep_maps_ko,
+    _gep_maps_kotype,
+    _gep_maps_table,
+    _gep_maps_time,
+    _gep_maps_the_end,
 };
 
 enum gep_range_enum {
@@ -2887,6 +2905,22 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
         "frame",
 	};
 
+    static const char* proplist_maps[] = {
+        "count",
+        "current",
+        "default",
+        "dying",
+        "dying_critical",
+        "dying_low",
+        "frozen",
+        "hide_end",
+        "hide_start",
+        "ko",
+        "kotype",
+        "table",
+        "time",
+    };
+
 	static const char* proplist_range[] = {
 		"amax",
 		"amin",
@@ -2983,6 +3017,13 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 	{
 		MAPSTRINGS(varlist[2], proplist_landframe, _gep_landframe_the_end,
 			"Property name '%s' is not a known subproperty of 'landframe'.\n");
+	}
+
+	// map subproperties of Maps
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_maps))
+	{
+		MAPSTRINGS(varlist[2], proplist_maps, _gep_maps_the_end,
+			"Property name '%s' is not a known subproperty of 'maps'.\n");
 	}
 
 	// map subproperties of Range
@@ -4126,6 +4167,109 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)(ent->modeldata.maps_loaded+1);
 		 break;
+	}
+	case _gep_maps:
+	{
+	    arg = varlist[2];
+		if(arg->vt != VT_INTEGER)
+		{
+			if(arg->vt != VT_STR)
+				printf("You must give a string name for maps property.\n");
+			return E_FAIL;
+		}
+		ltemp = arg->lVal;
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+		switch(ltemp)
+		{
+		    case _gep_maps_count:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)(ent->modeldata.maps_loaded+1);
+                break;
+            }
+
+            case _gep_maps_current:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)0;
+                for(i=0;i<ent->modeldata.maps_loaded;i++)
+                {
+                    if(ent->colourmap == ent->modeldata.colourmap[i])
+                    {
+                        (*pretvar)->lVal = (LONG)(i+1);
+                        break;
+                    }
+                }
+                break;
+            }
+            case _gep_maps_dying:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)(ent->dying);
+                break;
+            }
+            case _gep_maps_dying_critical:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)(ent->per2);
+                break;
+            }
+            case _gep_maps_dying_low:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)(ent->per1);
+                break;
+            }
+            case _gep_maps_frozen:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)(ent->modeldata.maps.frozen);
+                break;
+            }
+            case _gep_maps_hide_end:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)(ent->modeldata.maps.hide_end);
+                break;
+            }
+            case _gep_maps_hide_start:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)(ent->modeldata.maps.hide_start);
+                break;
+            }
+            case _gep_maps_ko:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)(ent->modeldata.maps.ko);
+                break;
+            }
+            case _gep_maps_kotype:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)(ent->modeldata.maps.kotype);
+                break;
+            }
+            case _gep_maps_table:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID*)(ent->colourmap);
+                break;
+            }
+            case _gep_maps_time:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)(ent->maptime);
+                break;
+            }
+            default:
+            {
+                ScriptVariant_Clear(*pretvar);
+                return E_FAIL;
+            }
+		}
+		break;
 	}
 	case _gep_mapdefault:
 	{
