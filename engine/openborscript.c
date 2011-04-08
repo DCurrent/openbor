@@ -2398,9 +2398,9 @@ enum getentityproperty_enum {
 	_gep_lifespancountdown,
 	_gep_link,
 	_gep_map,
-	_gep_maps,
 	_gep_mapcount,
 	_gep_mapdefault,
+	_gep_maps,
 	_gep_maxguardpoints,
 	_gep_maxhealth,
 	_gep_maxjugglepoints,
@@ -2719,6 +2719,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"map",
 		"mapcount",
 		"mapdefault",
+		"maps",
 		"maxguardpoints",
 		"maxhealth",
 		"maxjugglepoints",
@@ -4193,6 +4194,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		(*pretvar)->lVal = (LONG)(ent->modeldata.maps_loaded+1);
 		 break;
 	}
+	case _gep_mapdefault:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)(ent->map);
+		 break;
+	}
 	case _gep_maps:
 	{
 	    arg = varlist[2];
@@ -4295,12 +4302,6 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
             }
 		}
 		break;
-	}
-	case _gep_mapdefault:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)(ent->map);
-		 break;
 	}
 	case _gep_maxguardpoints:
 	{
@@ -4895,117 +4896,118 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 // ===== changeentityproperty =====
 enum changeentityproperty_enum {
 	_cep_aggression,
-	_cep_aiattack,
-	_cep_aiflag,
-	_cep_aimove,
-	_cep_alpha,
-	_cep_animation,
-	_cep_animhits,
-	_cep_animpos,
-	_cep_antigrab,
-	_cep_antigravity,
-	_cep_attacking,
-	_cep_attackid,
-	_cep_autokill,
-	_cep_base,
-	_cep_blink,
-	_cep_blockback,
-	_cep_blockodds,
-	_cep_blockpain,
-	_cep_bounce,
-	_cep_candamage,
-	_cep_combostep,
-	_cep_colourmap,
-	_cep_damage_on_landing,
-	_cep_dead,
-	_cep_defaultname,
-	_cep_defense,
-	_cep_detect,
-	_cep_direction,
-	_cep_dot,
-	_cep_edelay,
-	_cep_energycost,
-	_cep_escapecount,
-	_cep_escapehits,
-	_cep_falldie,
-	_cep_freezetime,
-	_cep_frozen,
-	_cep_gfxshadow,
-	_cep_grabforce,
-	_cep_guardpoints,
-	_cep_health,
-	_cep_hitbyid,
-	_cep_hmapl,
-	_cep_hmapu,
-	_cep_hostile,
-	_cep_iconposition,
-	_cep_invincible,
-	_cep_invinctime,
-	_cep_jugglepoints,
-	_cep_komap,
-	_cep_lifeposition,
-	_cep_lifespancountdown,
-	_cep_map,
-	_cep_maptime,
-	_cep_maxguardpoints,
-	_cep_maxhealth,
-	_cep_maxjugglepoints,
-	_cep_maxmp,
-	_cep_model,
-	_cep_mp,
-	_cep_mpset,
-	_cep_name,
-	_cep_nameposition,
-	_cep_nextanim,
-	_cep_nextthink,
-	_cep_no_adjust_base,
-	_cep_noaicontrol,
-	_cep_nodieblink,
-	_cep_nodrop,
-	_cep_nograb,
-	_cep_nopain,
-	_cep_offense,
-	_cep_opponent,
-	_cep_owner,
-	_cep_parent,
-	_cep_position,
-	_cep_projectile,
-	_cep_projectilehit,
-	_cep_running,
-	_cep_rush_count,
-	_cep_rush_tally,
-	_cep_rush_time,
-	_cep_score,
-	_cep_scroll,
-	_cep_seal,
-	_cep_sealtime,
-	_cep_setlayer,
-	_cep_speed,
-	_cep_stalltime,
-	_cep_stats,
-	_cep_staydown,
-	_cep_stealth,
-	_cep_subentity,
-	_cep_subject_to_gravity,
-	_cep_subject_to_hole,
-	_cep_subject_to_maxz,
-	_cep_subject_to_minz,
-	_cep_subject_to_obstacle,
-	_cep_subject_to_platform,
-	_cep_subject_to_screen,
-	_cep_subject_to_wall,
-	_cep_takeaction,
-	_cep_think,
-	_cep_thold,
-	_cep_throwdamage,
-	_cep_throwdist,
-	_cep_throwframewait,
-	_cep_throwheight,
-	_cep_tosstime,
-	_cep_trymove,
-	_cep_type,
-	_cep_velocity,
-	_cep_weapon,
+    _cep_aiattack,
+    _cep_aiflag,
+    _cep_aimove,
+    _cep_alpha,
+    _cep_animation,
+    _cep_animhits,
+    _cep_animpos,
+    _cep_antigrab,
+    _cep_antigravity,
+    _cep_attacking,
+    _cep_attackid,
+    _cep_autokill,
+    _cep_base,
+    _cep_blink,
+    _cep_blockback,
+    _cep_blockodds,
+    _cep_blockpain,
+    _cep_bounce,
+    _cep_candamage,
+    _cep_combostep,
+    _cep_colourmap,
+    _cep_damage_on_landing,
+    _cep_dead,
+    _cep_defaultname,
+    _cep_defense,
+    _cep_detect,
+    _cep_direction,
+    _cep_dot,
+    _cep_edelay,
+    _cep_energycost,
+    _cep_escapecount,
+    _cep_escapehits,
+    _cep_falldie,
+    _cep_freezetime,
+    _cep_frozen,
+    _cep_gfxshadow,
+    _cep_grabforce,
+    _cep_guardpoints,
+    _cep_health,
+    _cep_hitbyid,
+    _cep_hmapl,
+    _cep_hmapu,
+    _cep_hostile,
+    _cep_iconposition,
+    _cep_invincible,
+    _cep_invinctime,
+    _cep_jugglepoints,
+    _cep_komap,
+    _cep_lifeposition,
+    _cep_lifespancountdown,
+    _cep_map,
+    _cep_maptime,
+    _cep_maxguardpoints,
+    _cep_maxhealth,
+    _cep_maxjugglepoints,
+    _cep_maxmp,
+    _cep_model,
+    _cep_mp,
+    _cep_mpset,
+    _cep_name,
+    _cep_nameposition,
+    _cep_nextanim,
+    _cep_nextthink,
+    _cep_no_adjust_base,
+    _cep_noaicontrol,
+    _cep_nodieblink,
+    _cep_nodrop,
+    _cep_nograb,
+    _cep_nopain,
+    _cep_offense,
+    _cep_opponent,
+    _cep_owner,
+    _cep_parent,
+    _cep_position,
+    _cep_projectile,
+    _cep_projectilehit,
+    _cep_running,
+    _cep_rush_count,
+    _cep_rush_tally,
+    _cep_rush_time,
+    _cep_score,
+    _cep_scroll,
+    _cep_seal,
+    _cep_sealtime,
+    _cep_setlayer,
+    _cep_speed,
+    _cep_stalltime,
+    _cep_stats,
+    _cep_staydown,
+    _cep_staydownatk,
+    _cep_stealth,
+    _cep_subentity,
+    _cep_subject_to_gravity,
+    _cep_subject_to_hole,
+    _cep_subject_to_maxz,
+    _cep_subject_to_minz,
+    _cep_subject_to_obstacle,
+    _cep_subject_to_platform,
+    _cep_subject_to_screen,
+    _cep_subject_to_wall,
+    _cep_takeaction,
+    _cep_think,
+    _cep_thold,
+    _cep_throwdamage,
+    _cep_throwdist,
+    _cep_throwframewait,
+    _cep_throwheight,
+    _cep_tosstime,
+    _cep_trymove,
+    _cep_type,
+    _cep_velocity,
+    _cep_weapon,
 	_cep_the_end,
 };
 
@@ -5250,6 +5252,12 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
         "type_shot",
     };
 
+    static const char* proplist_staydown[] = { //2011_04_08, DC: Staydown colleciton.
+	    "rise",
+	    "riseattack",
+	    "riseattack_stall",
+	};
+
 	static const char* proplist_takeaction[] = {
 		"bomb_explode",
 		"common_attack_proc",
@@ -5273,12 +5281,6 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"npc_warp",
 		"player_blink",
 		"suicide",
-	};
-
-	static const char* proplist_staydown[] = { //2011_04_08, DC: Staydown colleciton.
-	    "rise",
-	    "riseattack",
-	    "riseattack_stall",
 	};
 
 	static const char* proplist_think[] = { // 2011_03_03, DC: Think types.
@@ -5319,18 +5321,18 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		}
 	}
 
+    // 2011_04_08, DC: Staydown
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_staydown))
+	{
+		MAPSTRINGS(varlist[2], proplist_staydown, _cep_staydown_the_end,
+			"Subproperty '%s' is not supported by 'staydown'.\n");
+	}
+
 	// action for takeaction
 	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_takeaction))
 	{
 		MAPSTRINGS(varlist[2], proplist_takeaction, _cep_ta_the_end,
 			"Action '%s' is not supported by 'takeaction'.\n");
-	}
-
-	// 2011_04_08, DC: Staydown
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_staydown))
-	{
-		MAPSTRINGS(varlist[2], proplist_staydown, _cep_staydown_the_end,
-			"Subproperty '%s' is not supported by 'staydown'.\n");
 	}
 
     // 2011_03_13, DC: Think sets for think.
