@@ -1,7 +1,7 @@
 /*
  * OpenBOR - http://www.LavaLit.com
  * -----------------------------------------------------------------------
- * Licensed under the BSD licence, see LICENSE in OpenBOR root for details.
+ * All rights reserved, see LICENSE in OpenBOR root for details.
  *
  * Copyright (c) 2004 - 2011 OpenBOR Team
  */
@@ -2637,8 +2637,9 @@ enum gep_running_enum {
 };
 
 enum gep_staydown_enum {
-    _gep_staydown_attack,
-    _gep_staydown_time,
+    _gep_staydown_rise,
+    _gep_staydown_riseattack,
+    _gep_staydown_riseattack_stall,
     _gep_staydown_the_end,
 };
 
@@ -2941,8 +2942,9 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 	};
 
     static const char* proplist_staydown[] = {
-        "attack",
-        "time",
+        "rise",
+        "riseattack",
+        "riseattack_stall",
     };
 
 	if(paramCount < 2) return;
@@ -3703,7 +3705,13 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		if(arg->vt != VT_INTEGER)
 		{
 			if(arg->vt != VT_STR)
-				printf("You must give a string name for dot property.\n");
+				printf("You must provide a string name for dot subproperty.\n\
+                        ~'time'\n\
+                        ~'mode'\n\
+                        ~'force'\n\
+                        ~'rate'\n\
+                        ~'type'\n\
+                        ~'owner'\n");
 			return E_FAIL;
 		}
 		switch(arg->lVal)
@@ -3767,7 +3775,13 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		if(arg->vt != VT_INTEGER)
 		{
 			if(arg->vt != VT_STR)
-				printf("You must give a string name for edelay property.\n");
+				printf("You must provide a string name for edelay subproperty.\n\
+                        ~'cap_max'\n\
+                        ~'cap_min'\n\
+                        ~'factor'\n\
+                        ~'mode'\n\
+                        ~'range_max'\n\
+                        ~'range_min'\n");
 			return E_FAIL;
 		}
 		ltemp = arg->lVal;
@@ -3987,7 +4001,18 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		if(arg->vt != VT_INTEGER)
 		{
 			if(arg->vt != VT_STR)
-				printf("You must give a string name for icon property.\n");
+				printf("You must provide a string name for icon subproperty:\n\
+                        getentityproperty({ent}, 'icon', {subproperty});\n\
+                        ~'default'\n\
+                        ~'die'\n\
+                        ~'get'\n\
+                        ~'mphigh'\n\
+                        ~'mplow'\n\
+                        ~'mpmed'\n\
+                        ~'pain'\n\
+                        ~'weapon'\n\
+                        ~'x'\n\
+                        ~'y'\n");
 			return E_FAIL;
 		}
 		ltemp = arg->lVal;
@@ -4673,7 +4698,11 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		if(arg->vt != VT_INTEGER)
 		{
 			if(arg->vt != VT_STR)
-				printf("You must give a string name for staydown property.\n");
+				printf("You must provide a string name for staydown property:\n\
+                        getentityproperty({ent}, 'staydown', {subproperty})\n\
+                        ~'rise'\n\
+                        ~'riseattack'\n\
+                        ~'riseattack_stall' \n");
 			return E_FAIL;
 		}
 		ltemp = arg->lVal;
@@ -4681,14 +4710,19 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp)
 		{
-            case _gep_staydown_attack:
+            case _gep_staydown_rise:
             {
-                i = ent->staydown[0];
+                i = ent->staydown.rise;
                 break;
             }
-            case _gep_staydown_time:
+            case _gep_staydown_riseattack:
             {
-                i = ent->staydown[1];
+                i = ent->staydown.riseattack;
+                break;
+            }
+            case _gep_staydown_riseattack_stall:
+            {
+                i = ent->staydown.riseattack_stall;
                 break;
             }
             default:
@@ -5015,6 +5049,13 @@ enum cep_hostile_candamage_enum {
 	_cep_hcd_the_end,
 };
 
+enum _cep_staydown_enum {
+    _cep_staydown_rise,
+    _cep_staydown_riseattack,
+    _cep_staydown_riseattack_stall,
+    _cep_staydown_the_end,
+};
+
 enum cep_takeaction_enum {
 	_cep_ta_bomb_explode,
 	_cep_ta_common_attack_proc,
@@ -5234,6 +5275,12 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"suicide",
 	};
 
+	static const char* proplist_staydown[] = { //2011_04_08, DC: Staydown colleciton.
+	    "rise",
+	    "riseattack",
+	    "riseattack_stall",
+	};
+
 	static const char* proplist_think[] = { // 2011_03_03, DC: Think types.
 		"common_think",
 		"player_think",
@@ -5277,6 +5324,13 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 	{
 		MAPSTRINGS(varlist[2], proplist_takeaction, _cep_ta_the_end,
 			"Action '%s' is not supported by 'takeaction'.\n");
+	}
+
+	// 2011_04_08, DC: Staydown
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_staydown))
+	{
+		MAPSTRINGS(varlist[2], proplist_staydown, _cep_staydown_the_end,
+			"Subproperty '%s' is not supported by 'staydown'.\n");
 	}
 
     // 2011_03_13, DC: Think sets for think.
@@ -6500,16 +6554,43 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
 	case _cep_staydown:
 	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		if(varlist[2]->vt != VT_INTEGER)
 		{
-			(*pretvar)->lVal = (LONG)1;
-			ent->staydown[0] = (int)ltemp;
+			if(varlist[2]->vt != VT_STR)
+				printf("You must provide a string value for Staydown subproperty:\n\
+                        changeentityproperty({ent}, 'staydown', {subproperty}, {value})\n\
+                        ~'rise'\n\
+                        ~'riseattack'\n\
+                        ~'riseattack_stall'\n");
+			goto changeentityproperty_error;
 		}
-		if(paramCount >= 4 && (*pretvar)->lVal == (LONG)1)
+		if(paramCount<4) break;
+
+		switch(varlist[2]->lVal)
+		{
+		case _cep_staydown_rise:
 		{
 			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				ent->staydown[1] = (int)ltemp;
+				ent->staydown.rise = (int)ltemp;
+			break;
 		}
+		case _cep_staydown_riseattack:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				ent->staydown.riseattack = (int)ltemp;
+			break;
+		}
+		case _cep_staydown_riseattack_stall:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				ent->staydown.riseattack_stall = (int)ltemp;
+			break;
+		}
+		default:
+			printf("Unknown Staydown subproperty.\n");
+			goto changeentityproperty_error;
+		}
+		break;
 	}
     case _cep_stealth:
 	{

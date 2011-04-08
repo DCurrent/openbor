@@ -1,7 +1,7 @@
 /*
  * OpenBOR - http://www.LavaLit.com
  * -----------------------------------------------------------------------
- * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
+ * All rights reserved, see LICENSE in OpenBOR root for details.
  *
  * Copyright (c) 2004 - 2011 OpenBOR Team
  */
@@ -567,11 +567,11 @@ void initMenu(int type)
 	// Read Logo or Menu from Array.
 	if(!type) {
 		Source = pngToSurface(isWide ? (void*) openbor_logo_480x272_link_png.data : (void*) openbor_logo_320x240_link_png.data);
-		
+
 		// Depending on which mode we are in (WideScreen/FullScreen)
 		// allocate proper size for SDL_Surface to perform final Blitting.
 		Screen = SDL_SetVideoMode(Source->w * factor, Source->h * factor, bpp, flags);
-		
+
 		// Allocate Scaler with extra space for upscaling.
 		Scaler = SDL_AllocSurface(SDL_SWSURFACE,
 								  factor > 1 ? Screen->w + 4 : Screen->w,

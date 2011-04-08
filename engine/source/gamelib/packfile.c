@@ -1,7 +1,7 @@
 /*
  * OpenBOR - http://www.LavaLit.com
  * -----------------------------------------------------------------------
- * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
+ * All rights reserved, see LICENSE in OpenBOR root for details.
  *
  * Copyright (c) 2004 - 2011 OpenBOR Team
  */
@@ -536,7 +536,7 @@ void freefilenamecache(void) {
 				if(((size_t) n->value & USED_FLAG) != USED_FLAG) {
 					count++;
 					printf("%s\n",n->name);
-				}	
+				}
 				if(List_GotoNext(filenamelist))
 					n = List_GetCurrentNode(filenamelist);
 				else break;

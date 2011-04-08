@@ -1,7 +1,7 @@
 /*
  * OpenBOR - http://www.LavaLit.com
  * -----------------------------------------------------------------------
- * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
+ * All rights reserved, see LICENSE in OpenBOR root for details.
  *
  * Copyright (c) 2004 - 2011 OpenBOR Team
  */
@@ -12885,7 +12885,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
 	if(iRiseattack->modeldata.riseattacktype == 0 || type < 0 || type >= max_attack_types) type = 0;
 	if(validanim(iRiseattack,animriseattacks[type])) ent_set_anim(iRiseattack, animriseattacks[type], reset);
 	else return 0;
-	self->staydown[2] = 0;			//Reset riseattack delay.
+	self->staydown.riseattack_stall = 0;			//Reset riseattack delay.
 	set_attacking(iRiseattack);
 	iRiseattack->drop = 0;
 	iRiseattack->nograb = 0;
@@ -13429,10 +13429,10 @@ void common_fall()
 
 	// Pause a bit...
 	self->takeaction	= common_lie;
-	self->stalltime		= self->staydown[0] + (time + GAME_SPEED - self->modeldata.risetime[0]);	//Set rise delay.
-	self->staydown[2]	= self->staydown[1] + (time - self->modeldata.risetime[1]);					//Set rise attack delay.
-	self->staydown[0] = 0; //Reset staydown.
-	self->staydown[1] = 0; //Reset staydown atk.
+	self->stalltime		= self->staydown.rise + (time + GAME_SPEED - self->modeldata.risetime[0]);	//Set rise delay.
+	self->staydown.riseattack_stall	= self->staydown.riseattack + (time - self->modeldata.risetime[1]);					//Set rise attack delay.
+	self->staydown.rise = 0; //Reset staydown.
+	self->staydown.riseattack = 0; //Reset staydown atk.
 }
 
 void common_try_riseattack()
@@ -13522,7 +13522,7 @@ void common_lie()
 void common_rise()
 {
 	if(self->animating) return;
-	self->staydown[2] = 0;	//Reset riseattack delay.
+	self->staydown.riseattack_stall = 0;	//Reset riseattack delay.
 	set_idle(self);
 	if(self->modeldata.riseinv)
 	{
@@ -13930,8 +13930,8 @@ void checkdamageeffects(s_attack* attack)
 
 	if(self->drop)
 	{
-		self->staydown[0]	= _staydown0;                                            //Staydown: Add to risetime until next rise.
-		self->staydown[1]   = _staydown1;
+		self->staydown.rise	= _staydown0;                                            //Staydown: Add to risetime until next rise.
+		self->staydown.riseattack   = _staydown1;
 	}
 
 #undef _freeze
@@ -15894,7 +15894,7 @@ void common_think()
 	}
 
 	// rise? try rise attack
-	if(self->drop && self->a==self->base && !self->tossv && validanim(self,ANI_RISEATTACK) && ((rand32()%(self->stalltime-time+1)) < 3) && (self->health >0 && time > self->staydown[2]))
+	if(self->drop && self->a==self->base && !self->tossv && validanim(self,ANI_RISEATTACK) && ((rand32()%(self->stalltime-time+1)) < 3) && (self->health >0 && time > self->staydown.riseattack_stall))
 	{
 		common_try_riseattack();
 		return;
@@ -16985,7 +16985,7 @@ void player_lie_check()
 	if(validanim(self,ANI_RISEATTACK) &&
 	   (player[(int)self->playerindex].playkeys & FLAG_ATTACK) &&
 	   (player[(int)self->playerindex].keys & FLAG_MOVEUP) &&
-	   (self->health > 0 && time > self->staydown[2]))
+	   (self->health > 0 && time > self->staydown.riseattack_stall))
 	{
 		player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
 		if((player[(int)self->playerindex].keys & FLAG_MOVELEFT))
