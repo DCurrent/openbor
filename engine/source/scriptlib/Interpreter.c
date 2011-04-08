@@ -1,7 +1,7 @@
 /*
  * OpenBOR - http://www.LavaLit.com
  * -----------------------------------------------------------------------
- * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
+ * All rights reserved, see LICENSE in OpenBOR root for details.
  *
  * Copyright (c) 2004 - 2011 OpenBOR Team
  */
@@ -516,7 +516,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 				Stack_Pop(&(pinterpreter->theDataStack));
 				List_InsertAfter(pInstruction->theRefList, (void*)pSVar2, NULL);
 			}
-			pInstruction->theSolidListOfRefList = SolidListFromList(pInstruction->theRefList);			
+			pInstruction->theSolidListOfRefList = SolidListFromList(pInstruction->theRefList);
 			//cache the return value
 			Instruction_NewData(pInstruction);
 			List_GotoNext(&(pinterpreter->theInstructionList));
@@ -655,7 +655,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 	}
 
 	// make a solid list that can be referenced by index
-	pinterpreter->theSolidListOfInstructionList = SolidListFromList(&(pinterpreter->theInstructionList));	
+	pinterpreter->theSolidListOfInstructionList = SolidListFromList(&(pinterpreter->theInstructionList));
 	StackedSymbolTable_Clear(&(pinterpreter->theSymbolTable));
 	List_Clear(&(pinterpreter->theDataStack));
 	List_Clear(&(pinterpreter->theLabelStack));

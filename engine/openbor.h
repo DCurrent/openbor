@@ -2,7 +2,7 @@
  * OpenBOR - http://www.LavaLit.com
  * -
  ----------------------------------------------------------------------
- * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
+ * All rights reserved, see LICENSE in OpenBOR root for details.
  *
  * Copyright (c) 2004 - 2011 OpenBOR Team
  */
@@ -1154,6 +1154,12 @@ typedef struct
 }s_modelcache;
 s_modelcache *model_cache;
 
+typedef struct
+{
+    int             rise;                           //Time modifier before rise.
+    int             riseattack;                     //Time modifier before riseattack.
+    int             riseattack_stall;               //Total stalltime before riseattack.
+} s_staydown;                                       //2011_04_08, DC: Delay modifiers before rise or riseattack can take place.
 
 typedef struct entity
 {
@@ -1228,7 +1234,7 @@ typedef struct entity
 	unsigned int    knockdowntime;                  // count knock down hit
 	unsigned int 	invinctime;						// Used to set time for invincibility to expire
 	unsigned int    turntime;
-	unsigned int    staydown[3];                    // [0] = Extra time before next rise. [1] = Extra time before next rise attack. [3] = Stalltime placeholder for riseattack.
+	s_staydown      staydown;                       //Delay modifiers before rise or riseattack can take place. 2011_04_08, DC: moved to struct.
 	// -------------------------end of times ------------------------------
 	char            update_mark:8;
 
