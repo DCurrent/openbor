@@ -2,13 +2,13 @@
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
 	<File name="..\openbor.c" open="1" top="0" tabpos="4">
-		<Cursor position="109478" topLine="3362" />
+		<Cursor position="310325" topLine="9157" />
 	</File>
-	<File name="..\openbor.h" open="1" top="1" tabpos="2">
-		<Cursor position="29938" topLine="684" />
+	<File name="..\openbor.h" open="1" top="0" tabpos="2">
+		<Cursor position="56749" topLine="1156" />
 	</File>
-	<File name="..\openborscript.c" open="1" top="0" tabpos="1">
-		<Cursor position="127042" topLine="4916" />
+	<File name="..\openborscript.c" open="1" top="1" tabpos="1">
+		<Cursor position="80227" topLine="2888" />
 	</File>
 	<File name="..\openborscript.h" open="1" top="0" tabpos="3">
 		<Cursor position="316" topLine="0" />
@@ -18,5 +18,14 @@
 	</File>
 	<File name="..\source\preprocessorlib\pp_parser.c" open="1" top="0" tabpos="5">
 		<Cursor position="21344" topLine="744" />
+	</File>
+	<File name="..\source\scriptlib\List.c" open="1" top="0" tabpos="6">
+		<Cursor position="315" topLine="0" />
+	</File>
+	<File name="..\source\scriptlib\List.h" open="0" top="0" tabpos="0">
+		<Cursor position="315" topLine="0" />
+	</File>
+	<File name="..\source\scriptlib\List_unittest.c" open="0" top="0" tabpos="0">
+		<Cursor position="259" topLine="0" />
 	</File>
 </CodeBlocks_layout_file>
