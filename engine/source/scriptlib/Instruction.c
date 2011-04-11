@@ -50,7 +50,6 @@ void Instruction_Clear(Instruction* pins)
 	}
 	if(pins->Label) free(pins->Label);
 	if(pins->theToken) free(pins->theToken);
-	if(pins->theSolidListOfRefList) freeSolidList(pins->theSolidListOfRefList);
 	memset(pins, 0, sizeof(Instruction));
 }
 
@@ -264,6 +263,8 @@ void Instruction_ToString(Instruction* pins, LPSTR strRep)
 	case JUMPR:
 	   strcpy( strRep, "JUMPR " );
 	   break;
+	case FUNCDECL:
+	   strcpy( strRep, "FUNCDECL " );
 	default:
 	   break;
 	}
