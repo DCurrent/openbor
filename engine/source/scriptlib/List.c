@@ -20,9 +20,9 @@ void chklist(List* list) {
 #endif
 
 #ifdef USE_STRING_HASHES
-unsigned char strhash(char* s) {
+unsigned char strhash(const char* s) {
 	ptrdiff_t tmp = 0;
-	char* p = s;
+	const char* p = s;
 	while(*p) {
 		tmp += *p - 'A';
 		p++;
@@ -459,7 +459,7 @@ void List_Clear(List* list)
 }
 
 //Insertion functions
-void List_InsertBefore(List* list, void* e, char* theName)
+void List_InsertBefore(List* list, void* e, const char* theName)
 {
 #ifdef DEBUG
 	chklist((List*)list);
@@ -502,7 +502,7 @@ void List_InsertBefore(List* list, void* e, char* theName)
 	list->size++;
 }
 
-void List_InsertAfter(List* list, void* e, char* theName) {
+void List_InsertAfter(List* list, void* e, const char* theName) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
@@ -750,7 +750,7 @@ int List_Includes(List* list, void* e) {
 }
 
 /* returns the first node of which name is equal to theName */
-Node* List_GetNodeByName(List* list, char* name) {
+Node* List_GetNodeByName(List* list, const char* name) {
 #ifdef DEBUG
 	chklist((List*)list);
 #endif
@@ -784,7 +784,7 @@ Node* List_GetNodeByName(List* list, char* name) {
 
 }
 /* SIDE EFFECTS: sets list->current to the first found node */
-int List_FindByName(List* list, char* name) {
+int List_FindByName(List* list, const char* name) {
 	#ifdef DEBUG
 	chklist((List*)list);
 	#endif
