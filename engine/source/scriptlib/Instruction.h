@@ -11,7 +11,6 @@
 #include "depends.h"
 #include "Lexer.h"
 #include "List.h"
-#include "SolidList.h"
 #include "ScriptVariant.h"
 
 typedef LPCSTR Label;
@@ -19,11 +18,13 @@ typedef LPCSTR Label;
 typedef enum OpCode{ CONSTSTR, CONSTDBL, CONSTINT, LOAD, SAVE, INC, DEC, FIELD, CALL, POS, NEG,
 			 NOT, MUL, DIV,MOD, ERR, ADD, SUB, JUMP, GE, LE, LT, GT, EQ, NE, OR,
 			 AND, NOOP, PUSH, POP, Branch_FALSE, Branch_TRUE, DATA, PARAM,
-			 IMMEDIATE, DEFERRED, RET, CHECKARG, CLEAN, JUMPR
+			 IMMEDIATE, DEFERRED, RET, CHECKARG, CLEAN, JUMPR, FUNCDECL, OPCODE_END
 }OpCode;
 
 typedef struct Instruction{
-   OpCode OpCode;
+   // put these first two into a bitfield to save memory
+   unsigned OpCode:31;
+   unsigned jumpTargetType:1;
    Token* theToken;
    CHAR* Label;//[MAX_STR_LEN+1];
    ScriptVariant* theVal;
@@ -31,7 +32,6 @@ typedef struct Instruction{
    ScriptVariant* theRef;
    ScriptVariant* theRef2;
    List* theRefList;
-   SolidList* theSolidListOfRefList;
    HRESULT (*functionRef)(ScriptVariant**, ScriptVariant**, int);
    union{
 	  int theJumpTargetIndex;

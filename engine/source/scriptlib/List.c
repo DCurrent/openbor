@@ -273,6 +273,7 @@ void List_Init(List* list)
 #endif
 	list->first = list->current = list->last = NULL;
 	list->size = list->index = 0;
+	list->solidlist = NULL;
 #ifdef USE_INDEX
 	list->mindices = NULL;
 #endif
@@ -283,6 +284,51 @@ void List_Init(List* list)
 	list->initdone = 1;
 #endif
 }
+
+void List_Solidify(List* list)
+{
+#ifdef DEBUG
+	chklist((List*)list);
+#endif
+	int i = 0;
+	size_t sldsize = 0;
+	size_t savesize = 0;
+
+#ifdef LIST_DEBUG
+	printf("List_Solidify %p\n", list);
+#endif
+	if(list->solidlist) free(list->solidlist);
+	if(!list->size) return;
+
+	sldsize = sizeof(void*)*(list->size);
+	list->solidlist = (void**)malloc(sldsize);
+
+	savesize = list->size;
+
+	List_GotoFirst(list);
+	while(list->current) {
+		list->solidlist[i++] = list->current->value;
+		List_Remove(list);
+	}
+
+	list->size = savesize; // the size is accessed by some piece of code after solidify, so restore it.
+
+#ifdef LIST_DEBUG
+	printf("solidlist of %p:\n", list);
+#endif
+	list->first = list->current = list->last = NULL;
+	list->index = 0;
+
+	//this shouldnt be needed when using remove, but it dont hurt either
+	#ifdef USE_INDEX
+	if(list->mindices)
+		List_FreeIndices(list);
+	#endif
+	#ifdef USE_STRING_HASHES
+	List_FreeHashes(list);
+	#endif
+}
+
 
 int List_GetNodeIndex(List* list, Node* node) {
 #ifdef DEBUG
@@ -393,6 +439,11 @@ void List_Clear(List* list)
 		Node_Clear(nptr);
 		free(nptr);
 		nptr = list->current;
+	}
+	if(list->solidlist)
+	{
+		free(list->solidlist);
+		list->solidlist = NULL;
 	}
 
 	#ifdef USE_INDEX

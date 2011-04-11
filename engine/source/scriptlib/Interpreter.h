@@ -12,7 +12,6 @@
 #include "StackedSymbolTable.h"
 #include "Instruction.h"
 #include "Parser.h"
-#include "SolidList.h"
 
 typedef HRESULT (*SCRIPTFUNCTION)(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
@@ -21,7 +20,6 @@ typedef struct Interpreter {
    List* ptheFunctionList;               //external functionlist, to save some memory
    List theImportList;
    List theInstructionList;
-   SolidList* theSolidListOfInstructionList;
    List paramList;
    Stack theDataStack;
    Stack theLabelStack;
