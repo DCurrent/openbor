@@ -142,7 +142,7 @@ void Parser_AddInstructionViaToken(Parser* pparser, OpCode pCode, Token* pToken,
 	Instruction* pInstruction = NULL;
 	pInstruction = (Instruction*)malloc(sizeof(Instruction));
 	Instruction_InitViaToken(pInstruction, pCode, pToken);
-	List_InsertAfter(pparser->pIList, pInstruction, (char*) label );
+	List_InsertAfter(pparser->pIList, pInstruction, label);
 }
 
 /******************************************************************************
@@ -158,7 +158,7 @@ void Parser_AddInstructionViaLabel(Parser* pparser, OpCode pCode, Label instrLab
 	Instruction* pInstruction = NULL;
 	pInstruction = (Instruction*)malloc(sizeof(Instruction));
 	Instruction_InitViaLabel(pInstruction, pCode, instrLabel);
-	List_InsertAfter(pparser->pIList, pInstruction, (char*) listLabel );
+	List_InsertAfter(pparser->pIList, pInstruction, listLabel);
 }
 
 /******************************************************************************
@@ -296,18 +296,18 @@ void Parser_External_decl2(Parser* pparser, BOOL variableonly )
 	}
 	// still comma? there should be another identifier so allocate the variable and go for the next
 	else if ( Parser_Check(pparser, TOKEN_COMMA )){
-	   Parser_Match(pparser);
-	   Parser_AddInstructionViaToken(pparser, DATA, &token, NULL );
-	   Parser_External_decl2(pparser, TRUE);
+		Parser_Match(pparser);
+		Parser_AddInstructionViaToken(pparser, DATA, &token, NULL );
+		Parser_External_decl2(pparser, TRUE);
 	}
 	// not a comma, semicolon, or initializer, so must be a function declaration
 	else if (variableonly==FALSE && ParserSet_First(&(pparser->theParserSet), funcDecl, pparser->theNextToken.theType )){
-	   Parser_AddInstructionViaToken(pparser, NOOP, &token, (Label)token.theSource );
-	   Parser_AddInstructionViaToken(pparser, PUSH, (Token*)NULL, NULL );
-	   Parser_FuncDecl(pparser );
-	   Parser_Comp_stmt_Label(pparser, pparser->theRetLabel );
-	   Parser_AddInstructionViaToken(pparser, POP, (Token*)NULL, NULL );
-	   Parser_AddInstructionViaToken(pparser, RET, (Token*)NULL, NULL );
+		Parser_AddInstructionViaToken(pparser, FUNCDECL, &token, (Label)token.theSource );
+		Parser_AddInstructionViaToken(pparser, PUSH, (Token*)NULL, NULL );
+		Parser_FuncDecl(pparser );
+		Parser_Comp_stmt_Label(pparser, pparser->theRetLabel );
+		Parser_AddInstructionViaToken(pparser, POP, (Token*)NULL, NULL );
+		Parser_AddInstructionViaToken(pparser, RET, (Token*)NULL, NULL );
 	}
 	else Parser_Error(pparser, external_decl );
 }
@@ -637,11 +637,11 @@ void Parser_Comp_stmt2(Parser* pparser )
 
 void Parser_Comp_stmt3(Parser* pparser )
 {
-   if (ParserSet_First(&(pparser->theParserSet), stmt_list, pparser->theNextToken.theType )){
-	  Parser_Stmt_list(pparser );
-   }
-   else if (ParserSet_Follow(&(pparser->theParserSet), comp_stmt3, pparser->theNextToken.theType )){}
-   else Parser_Error(pparser, comp_stmt3 );
+	if (ParserSet_First(&(pparser->theParserSet), stmt_list, pparser->theNextToken.theType )){
+		Parser_Stmt_list(pparser );
+	}
+	else if (ParserSet_Follow(&(pparser->theParserSet), comp_stmt3, pparser->theNextToken.theType )){}
+	else Parser_Error(pparser, comp_stmt3 );
 }
 
 void Parser_Select_stmt(Parser* pparser )
@@ -1211,7 +1211,7 @@ void Parser_Postfix_expr2(Parser* pparser )
 		//a label for it, and add it back to the instruction list.
 		label = Parser_CreateLabel(pparser);
 		pInstruction->OpCode = CALL;
-		List_InsertAfter(pparser->pIList, (void*)pInstruction, (char*) label );
+		List_InsertAfter(pparser->pIList, (void*)pInstruction, label );
 		//dont forget to free the label
 		free((void*)label);
 
@@ -1372,7 +1372,7 @@ void Parser_Error(Parser* pparser, PRODUCTION offender )
 	if (offender != error)
 		pp_error(&(pparser->theLexer.preprocessor), "%s '%s' (in production %u)",
 				_production_error_message(pparser, offender), pparser->theNextToken.theSource, offender);
-
+	
 	pparser->errorFound = TRUE;
 
 	//The script is obviously not valid, but it's good to try and find all the

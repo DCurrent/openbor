@@ -374,7 +374,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		pLabel = List_GetName(&(pinterpreter->theContext.imports));
 		pImport = ImportCache_Retrieve(pLabel);
 		if(pImport == NULL) return E_FAIL; // ImportCache should print out the error message
-		List_InsertAfter(&(pinterpreter->theImportList), pImport, (char*) pLabel);
+		List_InsertAfter(&(pinterpreter->theImportList), pImport, pLabel);
 		List_GotoNext(&(pinterpreter->theContext.imports));
 	}
 
@@ -493,12 +493,13 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			//cache the jump target
 			if(List_FindByName(&(pinterpreter->theInstructionList), pToken->theSource)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
-				List_FindByName(&(pinterpreter->theInstructionList), (char*) pLabel); //hop back
+				List_FindByName(&(pinterpreter->theInstructionList), pLabel); //hop back
 			} else if(List_FindByName( pinterpreter->ptheFunctionList, pToken->theSource)){
 				pInstruction->functionRef = (SCRIPTFUNCTION)List_Retrieve(pinterpreter->ptheFunctionList);
 			}
 			else // can't find the jump target
 			{
+				printf("Script compile error: can't find function '%s'\n", pToken->theSource);
 				hr = E_FAIL;
 			}
 			//cache the paramCount
@@ -529,7 +530,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		case JUMP:
 			pLabel = pInstruction->Label;
 			//cache the jump target
-			if(List_FindByName(&(pinterpreter->theInstructionList), (char*) pLabel)){
+			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
 				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
 			} else hr = E_FAIL;
@@ -543,7 +544,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			pInstruction->theRef = pSVar1;
 			pLabel = pInstruction->Label;
 			//cache the jump target
-			if(List_FindByName(&(pinterpreter->theInstructionList), (char*) pLabel)){
+			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
 				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
 			} else hr = E_FAIL;
@@ -559,7 +560,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			pInstruction->theRef = pSVar1;
 			Stack_Pop(&(pinterpreter->theDataStack));
 			//cache the jump target
-			if(List_FindByName(&(pinterpreter->theInstructionList), (char*) pLabel)){
+			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
 				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
 			} else hr = E_FAIL;
@@ -589,6 +590,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 
 		 //This is a placeholder.  Don't do anything.
 		case NOOP:
+		case FUNCDECL:
 			break;
 
 		 //This instructs the interpreter to push a symbol scope.
@@ -912,6 +914,7 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 
 		 //This is a placeholder.  Don't do anything.
 		case NOOP:
+		case FUNCDECL:
 			break;
 
 		 //This instructs the interpreter to push a symbol scope.
@@ -965,10 +968,10 @@ void Interpreter_OutputPCode(Interpreter* pinterpreter, LPCSTR fileName )
    FILE* instStream = NULL;
    Instruction* pInstruction = NULL;
    LPCSTR pLabel = NULL;
-   LPCSTR pStr;
    int i, size;
    //Declare and initialize some string buffers.
-   char* buffer = (char*)malloc(256);
+   const char buffer[256];
+   const char pStr[256];
 
    //If the fileName is "", then substitute "Main".
    if (!strcmp( fileName, "" ))
@@ -1000,11 +1003,8 @@ void Interpreter_OutputPCode(Interpreter* pinterpreter, LPCSTR fileName )
 
    //Get the pseudo-assembly representation of the CInstruction and concat
    //it onto the output buffer
-   pStr = (char*)malloc(256);
-   Instruction_ToString(pInstruction, (char*)pStr);
+   Instruction_ToString(pInstruction, pStr);
    strcat( buffer, pStr );
-   //donot forget to delete it
-   free((void*)pStr);
 
    strcat( buffer, "\n");
 
@@ -1013,7 +1013,6 @@ void Interpreter_OutputPCode(Interpreter* pinterpreter, LPCSTR fileName )
    );
    //Close the output stream
    fclose(instStream);
-   free(buffer);
 }
 #endif
 
