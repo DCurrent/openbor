@@ -4128,12 +4128,10 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	}
 	case _gep_knockdowncount:
 	{
-	    if(paramCount<3) break;
-
 	    /*
 	    2011_04_14, DC: Backward compatability; default to current if subproperty not provided.
 	    */
-	    if(paramCount<2)
+	    if(paramCount<3)
 	    {
             ltemp = _gep_knockdowncount_current;
 	    }
@@ -4996,6 +4994,7 @@ enum changeentityproperty_enum {
     _cep_invincible,
     _cep_invinctime,
     _cep_jugglepoints,
+    _cep_knockdowncount,
     _cep_komap,
     _cep_lifeposition,
     _cep_lifespancountdown,
@@ -5087,7 +5086,7 @@ enum cep_aiflag_enum {
 	_cep_aiflag_the_end,
 };
 
-enum _cep_energycost_enum {
+enum cep_energycost_enum {
     _cep_energycost_cost,
     _cep_energycost_disable,
     _cep_energycost_mponly,
@@ -5104,7 +5103,13 @@ enum cep_hostile_candamage_enum {
 	_cep_hcd_the_end,
 };
 
-enum _cep_staydown_enum {
+enum cep_knockdowncount_enum {
+    _cep_knockdowncount_current,
+    _cep_knockdowncount_max,
+    _cep_knockdowncount_the_end,
+};
+
+enum cep_staydown_enum {
     _cep_staydown_rise,
     _cep_staydown_riseattack,
     _cep_staydown_riseattack_stall,
@@ -5137,7 +5142,7 @@ enum cep_takeaction_enum {
 	_cep_ta_the_end,
 };
 
-enum _cep_think_enum { // 2011_03_03, DC: Think types.
+enum cep_think_enum { // 2011_03_03, DC: Think types.
     _cep_th_common_think,
     _cep_th_player_think,
     _cep_th_steam_think,
@@ -5201,6 +5206,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"invincible",
 		"invinctime",
 		"jugglepoints",
+		"knockdowncount",
 		"komap",
 		"lifeposition",
 		"lifespancountdown",
@@ -5305,6 +5311,11 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
         "type_shot",
     };
 
+    static const char* proplist_knockdowncount[] = { //2011_04_14, DC: Knockdowncount colleciton.
+	    "current",
+	    "max",
+	};
+
     static const char* proplist_staydown[] = { //2011_04_08, DC: Staydown colleciton.
 	    "rise",
 	    "riseattack",
@@ -5372,6 +5383,13 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 			MAPSTRINGS(varlist[i], proplist_hostile_candamage, _cep_hcd_the_end,
 				"Entity type '%s' is not supported by 'hostile', 'candamage', or 'projectilehit'\n");
 		}
+	}
+
+	// 2011_04_14, DC: Knockdowncount
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_knockdowncount))
+	{
+		MAPSTRINGS(varlist[2], proplist_knockdowncount, _cep_knockdowncount_the_end,
+			"Subproperty '%s' is not supported by 'knockdowncount'.\n");
 	}
 
     // 2011_04_08, DC: Staydown
@@ -6174,6 +6192,42 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		}
 		break;
 	}
+	case _cep_knockdowncount:
+	{
+		if(varlist[2]->vt != VT_INTEGER)
+		{
+			if(varlist[2]->vt != VT_STR)
+				printf("You must provide a string value for Knockdowncount subproperty:\n\
+                        changeentityproperty({ent}, 'knockdowncount', {subproperty}, {value})\n\
+                        ~'current'\n\
+                        ~'max'\n");
+			goto changeentityproperty_error;
+		}
+
+		switch(varlist[2]->lVal)
+		{
+            case _cep_knockdowncount_current:
+            {
+                if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+                {
+                    (*pretvar)->lVal = (LONG)1;
+                    ent->knockdowncount = (float)dbltemp;
+                }
+            }
+            case _cep_knockdowncount_max:
+            {
+                if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+                {
+                    (*pretvar)->lVal = (LONG)1;
+                    ent->modeldata.knockdowncount = (float)dbltemp;
+                }
+            }
+            default:
+                printf("Unknown knockdowncount subproperty.\n");
+                goto changeentityproperty_error;
+		}
+		break;
+	}
     case _cep_komap:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
@@ -6623,27 +6677,27 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 		switch(varlist[2]->lVal)
 		{
-		case _cep_staydown_rise:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				ent->staydown.rise = (int)ltemp;
-			break;
-		}
-		case _cep_staydown_riseattack:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				ent->staydown.riseattack = (int)ltemp;
-			break;
-		}
-		case _cep_staydown_riseattack_stall:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				ent->staydown.riseattack_stall = (int)ltemp;
-			break;
-		}
-		default:
-			printf("Unknown Staydown subproperty.\n");
-			goto changeentityproperty_error;
+            case _cep_staydown_rise:
+            {
+                if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+                    ent->staydown.rise = (int)ltemp;
+                break;
+            }
+            case _cep_staydown_riseattack:
+            {
+                if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+                    ent->staydown.riseattack = (int)ltemp;
+                break;
+            }
+            case _cep_staydown_riseattack_stall:
+            {
+                if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+                    ent->staydown.riseattack_stall = (int)ltemp;
+                break;
+            }
+            default:
+                printf("Unknown Staydown subproperty.\n");
+                goto changeentityproperty_error;
 		}
 		break;
 	}
