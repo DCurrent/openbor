@@ -2589,6 +2589,12 @@ enum gep_icon_enum {
     _gep_icon_the_end,
 };
 
+enum _gep_knockdowncount_enum {
+    _gep_knockdowncount_current,
+    _gep_knockdowncount_max,
+    _gep_knockdowncount_the_end,
+};
+
 enum gep_landframe_enum {
     _gep_landframe_ent,
     _gep_landframe_frame,
@@ -2899,6 +2905,11 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
         "y",
     };
 
+    static const char* proplist_knockdowncount[] = {
+        "current",
+        "max",
+    };
+
     static const char* proplist_landframe[] = {
         "ent",
         "frame",
@@ -3010,6 +3021,13 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 	{
 		MAPSTRINGS(varlist[2], proplist_icon, _gep_icon_the_end,
 			"Property name '%s' is not a known subproperty of 'icon'.\n");
+	}
+
+	// map subproperties of Knockdowncount
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_knockdowncount))
+	{
+		MAPSTRINGS(varlist[2], proplist_knockdowncount, _gep_knockdowncount_the_end,
+			"Property name '%s' is not a known subproperty of 'knockdowncount'.\n");
 	}
 
 	// map subproperties of Landframe
@@ -4110,8 +4128,46 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	}
 	case _gep_knockdowncount:
 	{
+	    if(paramCount<3) break;
+
+	    /*
+	    2011_04_14, DC: Backward compatability; default to current if subproperty not provided.
+	    */
+	    if(paramCount<2)
+	    {
+            ltemp = _gep_knockdowncount_current;
+	    }
+	    else
+	    {
+            arg = varlist[2];
+
+            if(arg->vt != VT_INTEGER)
+            {
+                if(arg->vt != VT_STR)
+                {
+                    printf("You must provide a string name for knockdowncount subproperty:\n\
+                            getentityproperty({ent}, 'knockdowncount', {subproperty})\n\
+                            ~'current'\n\
+                            ~'max'\n");
+                    return E_FAIL;
+                }
+            }
+
+            ltemp = arg->lVal;
+	    }
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->knockdowncount;
+
+		switch(ltemp)
+		{
+			case _gep_knockdowncount_current:
+                (*pretvar)->dblVal = (DOUBLE)ent->knockdowncount;
+			case _gep_knockdowncount_max:
+                (*pretvar)->dblVal = (DOUBLE)ent->modeldata.knockdowncount;
+				 break;
+			default:
+				ScriptVariant_Clear(*pretvar);
+				return E_FAIL;
+		}
 		break;
 	}
 	case _gep_komap:
