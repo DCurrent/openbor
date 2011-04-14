@@ -2592,6 +2592,7 @@ enum gep_icon_enum {
 enum _gep_knockdowncount_enum {
     _gep_knockdowncount_current,
     _gep_knockdowncount_max,
+    _gep_knockdowncount_time,
     _gep_knockdowncount_the_end,
 };
 
@@ -2908,6 +2909,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
     static const char* proplist_knockdowncount[] = {
         "current",
         "max",
+        "time",
     };
 
     static const char* proplist_landframe[] = {
@@ -4146,22 +4148,27 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
                     printf("You must provide a string name for knockdowncount subproperty:\n\
                             getentityproperty({ent}, 'knockdowncount', {subproperty})\n\
                             ~'current'\n\
-                            ~'max'\n");
+                            ~'max'\n\
+                            ~'time'\n");
                     return E_FAIL;
                 }
             }
 
             ltemp = arg->lVal;
 	    }
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 
 		switch(ltemp)
 		{
 			case _gep_knockdowncount_current:
+                ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
                 (*pretvar)->dblVal = (DOUBLE)ent->knockdowncount;
 			case _gep_knockdowncount_max:
+                ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
                 (*pretvar)->dblVal = (DOUBLE)ent->modeldata.knockdowncount;
 				 break;
+            case _gep_knockdowncount_time:
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)ent->knockdowncount;
 			default:
 				ScriptVariant_Clear(*pretvar);
 				return E_FAIL;
@@ -5106,6 +5113,7 @@ enum cep_hostile_candamage_enum {
 enum cep_knockdowncount_enum {
     _cep_knockdowncount_current,
     _cep_knockdowncount_max,
+    _cep_knockdowncount_time,
     _cep_knockdowncount_the_end,
 };
 
@@ -5314,6 +5322,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
     static const char* proplist_knockdowncount[] = { //2011_04_14, DC: Knockdowncount colleciton.
 	    "current",
 	    "max",
+	    "time",
 	};
 
     static const char* proplist_staydown[] = { //2011_04_08, DC: Staydown colleciton.
@@ -6200,7 +6209,8 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 				printf("You must provide a string value for Knockdowncount subproperty:\n\
                         changeentityproperty({ent}, 'knockdowncount', {subproperty}, {value})\n\
                         ~'current'\n\
-                        ~'max'\n");
+                        ~'max'\n\
+                        ~'time'\n");
 			goto changeentityproperty_error;
 		}
 
@@ -6220,6 +6230,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
                 {
                     (*pretvar)->lVal = (LONG)1;
                     ent->modeldata.knockdowncount = (float)dbltemp;
+                }
+            case _cep_knockdowncount_time:
+                if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+                {
+                    (*pretvar)->lVal = (LONG)1;
+                    ent->knockdowntime = (int)ltemp;
                 }
             }
             default:
