@@ -85,9 +85,9 @@ function distribute {
   if test -e "releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR"; then
     cd ../tools/borpak/source/
     . build.sh mac
-    cp borpak ../../../engine/releases/DARWIN/OpenBOR.app/Contents/MacOS/
-    cp ../scripts/packer ../../../engine/releases/DARWIN/OpenBOR.app/Contents/MacOS/
-    cp ../scripts/paxplode ../../../engine/releases/DARWIN/OpenBOR.app/Contents/MacOS/
+    cp borpak ../../../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/
+    cp ../scripts/packer ../../../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/
+    cp ../scripts/paxplode ../../../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/
     cd ../../../engine
   else  
     echo "Darwin Platform Failed To Build!"

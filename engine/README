@@ -45,7 +45,7 @@ the Senile Team website) is available for the following platforms:
 
 Source Code
 ----------------------
-svn checkout https://lavalit.com/svn/openbor/trunk openbor
+svn checkout https://lavalit.com/svn/openbor openbor
 
 You may get a security warning from your Subversion client.  This is because 
 LavaLit signs its own SSL certificate, and it can be safely ignored.  If you get 
@@ -131,6 +131,10 @@ OpenBOR File Layout
 -> OpenBOR/
       |
       -> OpenBOR.exe
+      -> borpak.exe
+      -> packer.bat
+      -> paxplode.bat
+      |
       -> Paks/
       -> ScreenShots/
       -> Logs/
@@ -144,11 +148,40 @@ OpenBOR File Layout
 -> OpenBOR/
       |
       -> OpenBOR
+      -> borpak
+      -> packer
+      -> paxplode
       |
       -> Paks/
       -> ScreenShots/
       -> Logs/
       -> Saves/
+      
+
+***********************************************************************************
+*                                    Mac OS X                                     *
+***********************************************************************************
+
+-> OpenBOR.app/
+      |
+      -> Contents
+           |
+           -> MacOS
+           |   |
+           |   -> OpenBOR
+           |  
+           -> Resources
+           |   |
+           |   -> borpak
+           |   -> packer
+           |   -> paxplode
+           |   |
+           |   -> Paks/
+           |   -> ScreenShots/
+           |   -> Logs/
+           |   -> Saves/
+           |
+           -> Libraries
       
 
 ***********************************************************************************
@@ -162,6 +195,7 @@ OpenBOR File Layout
           -> boot.dol
           -> meta.xml
           -> icon.png
+          |
           -> Paks/
           -> ScreenShots/
           -> Logs/
