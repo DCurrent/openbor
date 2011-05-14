@@ -31,13 +31,13 @@
 #ifdef DOS
 #include <direct.h>
 #include "dosport.h"
-#include "savepcx.h"
+#include "savepng.h"
 #endif
 
 #ifdef SDL
 #include <unistd.h>
 #include "sdlport.h"
-#include "savepcx.h"
+#include "savepng.h"
 #endif
 
 #ifdef DC
@@ -46,7 +46,7 @@
 
 #ifdef XBOX
 #include "xboxport.h"
-#include "savepcx.h"
+#include "savepng.h"
 #endif
 
 #ifdef PSP
@@ -56,7 +56,7 @@
 
 #if WII && !SDL
 #include "wiiport.h"
-#include "savepcx.h"
+#include "savepng.h"
 #endif
 
 #if PSP || GP2X || LINUX || DINGOO || WII || SYMBIAN
@@ -325,9 +325,9 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame){
 #elif WII && SDL
 			sprintf(shotname, "sd:/apps/OpenBOR/ScreenShots/%s - %04u.pcx", modname,shotnum);
 #elif WII
-			sprintf(shotname, "%s/%s - %04u.pcx", screenShotsDir,modname,shotnum);
+			sprintf(shotname, "%s/%s - %04u.png", screenShotsDir,modname,shotnum);
 #else
-			sprintf(shotname, "./ScreenShots/%s - %04u.pcx", modname,shotnum);
+			sprintf(shotname, "./ScreenShots/%s - %04u.png", modname,shotnum);
 #endif
 			++shotnum;
 		}while(fileExists(shotname) && shotnum<100);
@@ -335,7 +335,7 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame){
 #ifdef PSP
 		if(shotnum<10000) saveImage(shotname);
 #else
-		if(shotnum<10000) savepcx(shotname, vscreen, pal);
+		if(shotnum<10000) savepng(shotname, vscreen, pal);
 #endif
 		if(ingame) debug_printf("Saved %s", shotname);
 #ifdef PSP
