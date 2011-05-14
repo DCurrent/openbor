@@ -9,6 +9,8 @@
 #ifndef SAVEPNG_H
 #define SAVEPNG_H
 
+#include "types.h"
+
 void savepng(const char* filename, s_screen* screen, u8* pal);
 
 #endif
