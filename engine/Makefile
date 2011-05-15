@@ -336,11 +336,6 @@ INCS 	       += .                                                               
                   source/scriptlib                                                                  \
                   source/pnglib                                                                     \
 
-ifndef BUILD_DC
-INCS 	       += source/pcxlib
-endif
-
-
 
 ifdef BUILD_GFX
 INCS 	       += source/gfxlib
@@ -418,10 +413,6 @@ SOURCE	        = source/stringptr.o                                             
 				  source/utils.o                                                                    \
                   source/stristr.o
 
-
-ifndef BUILD_DC
-PCX             = source/pcxlib/savepcx.o
-endif
 
 
 ifdef BUILD_PSP
@@ -507,7 +498,6 @@ OBJS            = $(GAME_CONSOLE)                                               
                   $(ADPCM)                                                                          \
                   $(GFX)                                                                            \
                   $(GAME)                                                                           \
-                  $(PCX)                                                                            \
                   $(SOURCE)                                                                         \
                   $(SCRIPT)                                                                         \
                   $(RAM)                                                                            \

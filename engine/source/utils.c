@@ -319,11 +319,11 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame){
 #if PSP
 			sprintf(shotname, "ms0:/PICTURE/Beats Of Rage/%s - ScreenShot - %02u.png", modname,shotnum);
 #elif DOS
-			sprintf(shotname, "./SShots/s%04u.pcx", shotnum);
+			sprintf(shotname, "./SShots/s%04u.png", shotnum);
 #elif XBOX
-			sprintf(shotname, "d:\\ScreenShots\\%s - %04u.pcx", modname,shotnum);
+			sprintf(shotname, "d:\\ScreenShots\\%s - %04u.png", modname,shotnum);
 #elif WII && SDL
-			sprintf(shotname, "sd:/apps/OpenBOR/ScreenShots/%s - %04u.pcx", modname,shotnum);
+			sprintf(shotname, "sd:/apps/OpenBOR/ScreenShots/%s - %04u.png", modname,shotnum);
 #elif WII
 			sprintf(shotname, "%s/%s - %04u.png", screenShotsDir,modname,shotnum);
 #else
