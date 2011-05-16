@@ -2437,6 +2437,7 @@ enum getentityproperty_enum {
 	_gep_spawntype,
 	_gep_speed,
 	_gep_sprite,
+	_gep_spritea,
 	_gep_stalltime,
 	_gep_stats,
 	_gep_staydown,
@@ -2640,6 +2641,16 @@ enum gep_running_enum {
 	_gep_running_the_end,
 };
 
+enum gep_spritea_enum {
+    _gep_spritea_centerx,
+    _gep_spritea_centery,
+    _gep_spritea_file,
+    _gep_spritea_offsetx,
+    _gep_spritea_offsety,
+    _gep_spritea_sprite,
+    _gep_spritea_the_end,
+};
+
 enum gep_staydown_enum {
     _gep_staydown_rise,
     _gep_staydown_riseattack,
@@ -2763,6 +2774,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"spawntype",
 		"speed",
 		"sprite",
+		"spritea",
 		"stalltime",
 		"stats",
 		"staydown",
@@ -2952,6 +2964,15 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"speed",
 	};
 
+    static const char* proplist_spritea[] = {
+        "centerx",
+        "centery",
+        "file",
+        "offsetx",
+        "offsety",
+        "sprite",
+	};
+
     static const char* proplist_staydown[] = {
         "rise",
         "riseattack",
@@ -3058,6 +3079,13 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 	{
 		MAPSTRINGS(varlist[2], proplist_running, _gep_running_the_end,
 			"Property name '%s' is not a known subproperty of 'running'.\n");
+	}
+
+	// map subproperties of Spritea
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _gep_spritea))
+	{
+		MAPSTRINGS(varlist[2], proplist_spritea, _gep_spritea_the_end,
+			"Property name '%s' is not a known subproperty of 'spritea'.\n");
 	}
 
 	// map subproperties of Staydown
@@ -4714,6 +4742,80 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		(*pretvar)->ptrVal = (VOID*)(spr);
 		break;
 	}
+	case _gep_spritea:
+	{
+		/*
+	    2011_04_17, DC: Modder can now specify animation and frame to return sprite from.
+	    To retain backward compatibility, sprite from current animation/frame is returned
+	    when animation and/or frame parameters are not provided.
+	    */
+
+        ltemp   = varlist[2]->lVal;
+        arg     = varlist[3];
+        arg1    = varlist[4];
+
+        /*
+        Request from animation or frame that doesn't exist = shutdown.
+        Let's be more user friendly then that; return empty so modder can evaluate
+        and take action accordingly.*/
+        if(!validanim(ent, arg->lVal) || !(ent->modeldata.animation[arg->lVal]->numframes >= arg1->lVal))
+        {
+            break;
+        }
+
+        i = ent->modeldata.animation[arg->lVal]->sprite[arg1->lVal];
+
+		switch(ltemp)
+		{
+           case _gep_spritea_centerx:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)sprite_map[i].centerx;
+                break;
+            }
+            case _gep_spritea_centery:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)sprite_map[i].centery;
+                break;
+            }
+            case _gep_spritea_file:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_STR);
+                strcpy(StrCache_Get((*pretvar)->strVal), sprite_map[i].filename);
+                break;
+            }
+            case _gep_spritea_offsetx:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)sprite_map[i].ofsx;
+                break;
+            }
+            case _gep_spritea_offsety:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                (*pretvar)->lVal = (LONG)sprite_map[i].ofsy;
+                break;
+            }
+            case _gep_spritea_sprite:
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                spr = sprite_map[i].sprite;
+                spr->centerx = sprite_map[i].centery;
+                spr->centery = sprite_map[i].centery;
+                (*pretvar)->ptrVal = (VOID*)(spr);
+                break;
+            }
+            default:
+			{
+                ScriptVariant_Clear(*pretvar);
+                return E_FAIL;
+            }
+		}
+
+		break;
+
+	}
 	case _gep_stalltime:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -5041,6 +5143,7 @@ enum changeentityproperty_enum {
     _cep_sealtime,
     _cep_setlayer,
     _cep_speed,
+    _cep_spritea,
     _cep_stalltime,
     _cep_stats,
     _cep_staydown,
@@ -5115,6 +5218,16 @@ enum cep_knockdowncount_enum {
     _cep_knockdowncount_max,
     _cep_knockdowncount_time,
     _cep_knockdowncount_the_end,
+};
+
+enum cep_spritea_enum {
+    _cep_spritea_centerx,
+    _cep_spritea_centery,
+    _cep_spritea_file,
+    _cep_spritea_offsetx,
+    _cep_spritea_offsety,
+    _cep_spritea_sprite,
+    _cep_spritea_the_end,
 };
 
 enum cep_staydown_enum {
@@ -5254,6 +5367,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"sealtime",
 		"setlayer",
 		"speed",
+		"spritea",
 		"stalltime",
 		"stats",
 		"staydown",
@@ -5323,6 +5437,15 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 	    "current",
 	    "max",
 	    "time",
+	};
+
+    static const char* proplist_spritea[] = {       //2011_05_15, DC: Sprite array.
+        "centerx",
+        "centery",
+        "file",
+        "offsetx",
+        "offsety",
+        "sprite",
 	};
 
     static const char* proplist_staydown[] = { //2011_04_08, DC: Staydown colleciton.
@@ -5399,6 +5522,13 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 	{
 		MAPSTRINGS(varlist[2], proplist_knockdowncount, _cep_knockdowncount_the_end,
 			"Subproperty '%s' is not supported by 'knockdowncount'.\n");
+	}
+
+	// 2011_05_15, DC: Sprite array
+	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _cep_spritea))
+	{
+		MAPSTRINGS(varlist[2], proplist_spritea, _cep_spritea_the_end,
+			"Property name '%s' is not a known subproperty of 'spritea'.\n");
 	}
 
     // 2011_04_08, DC: Staydown
@@ -6647,6 +6777,94 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		{
 			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.speed = (float)dbltemp;
+		}
+		break;
+	}
+	case _cep_spritea:
+	{
+	    if(varlist[2]->vt != VT_INTEGER)
+		{
+			if(varlist[2]->vt != VT_STR)
+				printf("You must provide a string value for Sprite Array subproperty:\n\
+                        changeentityproperty({ent}, 'spritea', {subproperty}, {animation ID}, {frame}, {value})\n\
+                        ~'centerx'\n\
+                        ~'centery'\n\
+                        ~'file'\n\
+                        ~'offsetx'\n\
+                        ~'sprite'\n");
+			goto changeentityproperty_error;
+		}
+
+        ltemp   = varlist[2]->lVal;
+
+        /*
+        Failsafe checks. Any attempt to access a sprite property on invalid frame would cause instant shutdown.
+        */
+        if(!validanim(ent, varlist[3]->lVal) || !(ent->modeldata.animation[varlist[3]->lVal]->numframes >= varlist[4]->lVal) || paramCount<5)
+        {
+            break;
+        }
+
+        i = ent->modeldata.animation[varlist[3]->lVal]->sprite[varlist[4]->lVal];   //Get sprite index.
+
+		switch(ltemp)
+		{
+            case _cep_spritea_centerx:
+            {
+                if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
+                {
+                    sprite_map[i].centerx = (int)ltemp;
+                    (*pretvar)->lVal = (LONG)1;
+                }
+                break;
+            }
+            case _cep_spritea_centery:
+            {
+                if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
+                {
+                    sprite_map[i].centery = (int)ltemp;
+                    (*pretvar)->lVal = (LONG)1;
+                }
+                break;
+            }
+            case _cep_spritea_file:
+            {
+                if(varlist[5]->vt != VT_STR)
+                {
+                    printf("You must provide a string value for file name.\n");
+                    goto changeentityproperty_error;
+                }
+                strcpy(sprite_map[i].filename, (char*)StrCache_Get(varlist[5]->strVal));
+                (*pretvar)->lVal = (LONG)1;
+                break;
+            }
+            case _cep_spritea_offsetx:
+            {
+                if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
+                {
+                    sprite_map[i].ofsx = (int)ltemp;
+                    (*pretvar)->lVal = (LONG)1;
+                }
+                break;
+            }
+            case _cep_spritea_offsety:
+            {
+                if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+                {
+                    sprite_map[i].ofsy = (int)ltemp;
+                    (*pretvar)->lVal = (LONG)1;
+                }
+                break;
+            }
+            case _cep_spritea_sprite:
+            {
+                sprite_map[i].sprite = (VOID*)varlist[5]->ptrVal;
+                (*pretvar)->lVal = (LONG)1;
+                break;
+            }
+            default:
+                printf("Unknown Sprite Array subproperty.\n");
+                goto changeentityproperty_error;
 		}
 		break;
 	}

@@ -2,13 +2,13 @@
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
 	<File name="..\openbor.c" open="1" top="0" tabpos="4">
-		<Cursor position="310325" topLine="9157" />
+		<Cursor position="351628" topLine="10339" />
 	</File>
 	<File name="..\openbor.h" open="1" top="0" tabpos="2">
-		<Cursor position="56749" topLine="1156" />
+		<Cursor position="35004" topLine="762" />
 	</File>
 	<File name="..\openborscript.c" open="1" top="1" tabpos="1">
-		<Cursor position="80227" topLine="2888" />
+		<Cursor position="98479" topLine="3555" />
 	</File>
 	<File name="..\openborscript.h" open="1" top="0" tabpos="3">
 		<Cursor position="316" topLine="0" />
