@@ -3875,10 +3875,13 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	{
 		if(paramCount<4) break;
 
-		if(varlist[2]->vt != VT_INTEGER
-			|| varlist[3]->vt != VT_INTEGER)
+		if(varlist[2]->vt != VT_INTEGER)
 		{
-			printf("\n Error, getentityproperty({ent}, 'energycost', {sub property}, {animation}): {Sub property} or {Animation} parameter is missing or invalid. \n");
+			if(varlist[2]->vt != VT_STR)
+				printf("You must provide a string name for edelay energycost.\n\
+                        ~'cost'\n\
+                        ~'disable'\n\
+                        ~'mponly'\n");
 			return E_FAIL;
 		}
 		ltemp	= varlist[2]->lVal;												//Subproperty.
