@@ -766,7 +766,11 @@ void drawLogs()
 	    copyScreens(Viewer);
 	    inputrefresh();
 	    sound_update_music();
+#if DINGOO
+	    printText(250, 3, RED, 0, 0, "Quit : Select");
+#else
 	    printText((isWide ? 410 : 250), 3, RED, 0, 0, "Quit : Escape");
+#endif
 		if(bothnewkeys & FLAG_ESC) done = 1;
 
 		if(logfile[i].ready)
