@@ -8601,6 +8601,7 @@ void load_level(char *filename){
 	level->maxfallspeed = -6;
 	level->gravity = (float)-0.1;
 	level->scrolldir = SCROLL_RIGHT;
+	level->scrollspeed = 1;
 	level->cameraxoffset = 0;
 	level->camerazoffset = 0;
 	level->bosses = 0;
@@ -8807,6 +8808,9 @@ void load_level(char *filename){
 			case CMD_LEVEL_BGSPEED:
 				level->bgspeed = GET_FLOAT_ARG(1);
 				if(GET_INT_ARG(2))level->bgspeed*=-1;
+				break;
+			case CMD_LEVEL_SCROLLSPEED:
+				level->scrollspeed = GET_FLOAT_ARG(1);
 				break;
 			case CMD_LEVEL_MIRROR:
 				level->mirror = GET_INT_ARG(1);
@@ -18797,21 +18801,24 @@ void time_over()
 // ----------------------- Update functions ------------------------------
 
 void update_scroller(){
-	int to=0, i;
+	float to=0;
+	int i;
 	int numplay=0; //4player
 	float tx = advancex, ty = advancey;
 	static int scrolladd = 0;
-
 	scrolldx = scrolldy = 0;
 
 	if(time < level->advancetime || freezeall) return;    // Added freezeall so backgrounds/scrolling don't update if animations are frozen
 
+/*
 	//level->advancetime = time + (GAME_SPEED/100);    // Changed so scrolling speeds up for faster players
-	level->advancetime = time -
+	level->advancetime = time  -
 		((player[0].ent && (player[0].ent->modeldata.speed >= 12 || player[0].ent->modeldata.runspeed >= 12)) ||
 		 (player[1].ent && (player[1].ent->modeldata.speed >= 12 || player[1].ent->modeldata.runspeed >= 12)) ||
 		 (player[2].ent && (player[2].ent->modeldata.speed >= 12 || player[2].ent->modeldata.runspeed >= 12)) ||
-		 (player[3].ent && (player[3].ent->modeldata.speed >= 12 || player[3].ent->modeldata.runspeed >= 12)) );    // Changed so if your player is faster the backgrounds scroll faster
+		 (player[3].ent && (player[3].ent->modeldata.speed >= 12 || player[3].ent->modeldata.runspeed >= 12)) );    // Changed so if your player is faster the backgrounds scroll faster*/
+
+	level->advancetime = time;
 
 	if(level_completed) return;
 
@@ -18896,6 +18903,9 @@ void update_scroller(){
 		}
 	}
 	if(numplay == 0) return;
+
+	
+
 	if(!level->waiting)
 	{
 		if(level->scrolldir&SCROLL_RIGHT){
@@ -18913,17 +18923,17 @@ void update_scroller(){
 
 			to += level->cameraxoffset;
 
-			if((level->scrolldir&SCROLL_BACK) && to < blockade) to = (int)blockade;
+			if((level->scrolldir&SCROLL_BACK) && to < blockade) to = blockade;
 
 			if(to > advancex){
-				if(to > advancex+1) to = (int)(advancex+1);
+				if(to > advancex+level->scrollspeed) to = advancex+level->scrollspeed;
 				advancex = (float)to;
 			}
 
 			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
 
 				if(to < advancex && to > blockade){
-					if(to < advancex-1) to = (int)(advancex-1);
+					if(to < advancex-level->scrollspeed) to = advancex-level->scrollspeed;
 					advancex = (float)to;
 				}
 			}
@@ -18931,8 +18941,7 @@ void update_scroller(){
 			if(advancex > level->width-videomodes.hRes) advancex = (float)level->width-videomodes.hRes;
 			if(advancex < 0) advancex = 0;
 
-			if(level->width - level->pos > videomodes.hRes) level->pos = (int)advancex;
-			else level->pos++;
+			level->pos = (int)advancex;
 		}
 		else if(level->scrolldir&SCROLL_LEFT){
 
@@ -18948,13 +18957,13 @@ void update_scroller(){
 			to -= (videomodes.hRes/2);
 
 			if(to < advancex){
-				if(to < advancex-1) to = (int)(advancex-1);
+				if(to < advancex-level->scrollspeed) to = advancex-level->scrollspeed;
 				advancex = (float)to;
 			}
 			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
 
 				if(to > advancex){
-					if(to > advancex+1) to = (int)(advancex+1);
+					if(to > advancex+level->scrollspeed) to = advancex+level->scrollspeed;
 					advancex = (float)to;
 				}
 			}
@@ -18962,8 +18971,7 @@ void update_scroller(){
 			if((level->scrolldir&SCROLL_BACK) && level->width- videomodes.hRes - advancex < blockade) advancex = level->width- videomodes.hRes - blockade;
 			if(advancex < 0) advancex = 0;
 
-			if(level->width - level->pos > videomodes.hRes) level->pos = (int)((level->width-videomodes.hRes) - advancex);
-			else level->pos++;
+			level->pos = (int)((level->width-videomodes.hRes) - advancex);
 		}
 		else if(level->scrolldir&SCROLL_OUTWARD){ // z scroll only
 
@@ -18979,14 +18987,14 @@ void update_scroller(){
 			to -= (videomodes.vRes/2);
 
 			if(to > advancey){
-				if(to > advancey+1) to = (int)(advancey+1);
+				if(to > advancey+level->scrollspeed) to = advancey+level->scrollspeed;
 				advancey = (float)to;
 			}
 
 			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
 
 				if(to < advancey){
-					if(to < advancey-1) to = (int)(advancey-1);
+					if(to < advancey-level->scrollspeed) to = advancey-level->scrollspeed;
 					advancey = (float)to;
 				}
 			}
@@ -18995,8 +19003,7 @@ void update_scroller(){
 			if((level->scrolldir&SCROLL_BACK) && advancey < blockade) advancey = blockade;
 			if(advancey < 4) advancey = 4;
 
-			if(panel_height - level->pos > videomodes.vRes) level->pos = (int)advancey;
-			else level->pos++;
+			level->pos = (int)advancey;
 		}
 		else if(level->scrolldir&SCROLL_INWARD){
 			for(i=0; i<maxplayers[current_set]; i++)
@@ -19011,13 +19018,13 @@ void update_scroller(){
 			to -= (videomodes.vRes/2);
 
 			if(to < advancey){
-				if(to < advancey-1) to = (int)advancey-1;
+				if(to < advancey-level->scrollspeed) to = advancey-level->scrollspeed;
 				advancey = (float)to;
 			}
 			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
 
 				if(to > advancey){
-					if(to > advancey+1) to = (int)advancey+1;
+					if(to > advancey+level->scrollspeed) to = advancey+level->scrollspeed;
 					advancey = (float)to;
 				}
 			}
@@ -19025,8 +19032,7 @@ void update_scroller(){
 			if((level->scrolldir&SCROLL_BACK) && panel_height- videomodes.vRes - advancey < blockade) advancey = panel_height- videomodes.vRes - blockade;
 			if(advancey < 4) advancey = 4;
 
-			if(panel_height - level->pos > videomodes.vRes) level->pos = (int)((panel_height-videomodes.vRes) - advancey);
-			else level->pos++;
+			level->pos = (int)((panel_height-videomodes.vRes) - advancey);
 		}
 		//up down, elevator stage
 		else if(level->scrolldir&(SCROLL_UP|SCROLL_DOWN))
@@ -19062,16 +19068,16 @@ void update_scroller(){
 		to += level->camerazoffset;
 
 		// new scroll limit
-		if(scrollmaxz && to > scrollmaxz) to = (int)scrollmaxz;
-		if(scrollminz && to < scrollminz) to = (int)scrollminz;
+		if(scrollmaxz && to > scrollmaxz) to = scrollmaxz;
+		if(scrollminz && to < scrollminz) to = scrollminz;
 
 		if(to > advancey){
-			if(to > advancey+1) to = (int)advancey+1;
+			if(to > advancey+level->scrollspeed) to = advancey+level->scrollspeed;
 			advancey = (float)to;
 		}
 
 		if(to < advancey){
-			if(to < advancey-1) to = (int)advancey-1;
+			if(to < advancey-level->scrollspeed) to = advancey-level->scrollspeed;
 			advancey = (float)to;
 		}
 
@@ -19093,16 +19099,16 @@ void update_scroller(){
 		to -= (videomodes.hRes/2);
 
 		// new scroll limit
-		if(scrollmaxz && to > scrollmaxz) to = (int)scrollmaxz;
-		if(scrollminz && to < scrollminz) to = (int)scrollminz;
+		if(scrollmaxz && to > scrollmaxz) to = scrollmaxz;
+		if(scrollminz && to < scrollminz) to = scrollminz;
 
 		if(to > advancex){
-			if(to > advancex+1) to = (int)advancex+1;
+			if(to > advancex+level->scrollspeed) to = advancex+level->scrollspeed;
 			advancex = (float)to;
 		}
 
 		if(to < advancex){
-			if(to < advancex-1) to = (int)advancex-1;
+			if(to < advancex-level->scrollspeed) to = advancex-level->scrollspeed;
 			advancex = (float)to;
 		}
 
