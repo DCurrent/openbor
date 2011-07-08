@@ -384,6 +384,7 @@ List* createLevelCommandList(void) {
 	LIST_ADD(CMD_LEVEL_FACING, "facing");
 	LIST_ADD(CMD_LEVEL_ROCK, "rock");
 	LIST_ADD(CMD_LEVEL_BGSPEED, "bgspeed");
+	LIST_ADD(CMD_LEVEL_SCROLLSPEED, "scrollspeed");
 	LIST_ADD(CMD_LEVEL_MIRROR, "mirror");
 	LIST_ADD(CMD_LEVEL_BOSSMUSIC, "bossmusic");
 	LIST_ADD(CMD_LEVEL_NOPAUSE, "nopause");

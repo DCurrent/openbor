@@ -1552,7 +1552,8 @@ typedef struct
 	int		scrolldir;
 	int		width;
 	int		rocking;
-	float		bgspeed;						// Used to make autoscrolling backgrounds
+	float	bgspeed;						// Used to make autoscrolling backgrounds
+	float	scrollspeed;					// UT: restore this command  2011/7/8
 	int		bgdir;							// Used to set which direction the backgrounds scroll for autoscrolling backgrounds
 	int		mirror;
 	int             bosses;
