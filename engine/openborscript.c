@@ -9729,7 +9729,7 @@ changetextobjproperty_error:
 	return E_FAIL;
 }
 
-// changelevelproperty(name, value)
+// settextobj(int index, int x, int y, int font, int z, char text, int time {optional})
 HRESULT openbor_settextobj(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	LONG ind;
@@ -10822,6 +10822,12 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->bgspeed = (float)ltemp;
+		else (*pretvar)->lVal = (LONG)0;
+	}
+	else if(strcmp(propname, "scrollspeed")==0)
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
+			level->scrollspeed = (float)ltemp;
 		else (*pretvar)->lVal = (LONG)0;
 	}
 	else if(strcmp(propname, "cameraxoffset")==0)
