@@ -8144,9 +8144,12 @@ HRESULT openbor_killentity(ScriptVariant** varlist , ScriptVariant** pretvar, in
 //findtarget(entity, int animation);
 HRESULT openbor_findtarget(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
+	int i = 0;
 	entity* ent = NULL;
 	entity* tempself, *target;
 	LONG anim = -1;
+
+    if(paramCount>2) ScriptVariant_IntegerValue(varlist[2], &i);
 
 	if(paramCount < 1)
 	{
@@ -8165,7 +8168,7 @@ HRESULT openbor_findtarget(ScriptVariant** varlist , ScriptVariant** pretvar, in
 	if(paramCount>1 && FAILED(ScriptVariant_IntegerValue(varlist[1], &anim))) return E_FAIL;
 	tempself = self;
 	self = ent;
-	target = normal_find_target((int)anim);
+	target = normal_find_target((int)anim, i);
 	if(!target) ScriptVariant_Clear(*pretvar);
 	else (*pretvar)->ptrVal = (VOID*)target;
 	self = tempself;

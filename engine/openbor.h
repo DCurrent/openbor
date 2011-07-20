@@ -1768,7 +1768,7 @@ int set_pain(entity *iPain, int type, int reset);
 void set_weapon(entity* ent, int wpnum, int anim_flag);
 entity* melee_find_target();
 entity* long_find_target();
-entity* normal_find_target(int anim);
+entity* normal_find_target(int anim, ...);
 entity* normal_find_item();
 int long_attack();
 int melee_attack();

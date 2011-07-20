@@ -13073,12 +13073,19 @@ entity* long_find_target()
 	return NULL;
 }
 
-entity* normal_find_target(int anim)
+entity* normal_find_target(int anim,...)
 {
 	int i , min, max;
 	int index = -1;
 	min = 0;
 	max = 9999;
+
+	int iEXDetect;
+	va_list param1;
+	va_start (param1, anim);
+	iEXDetect = va_arg(param1, int);
+	va_end(param1);
+
 	//find the 'nearest' one
 	for(i=0; i<ent_max; i++)
 	{
@@ -13088,7 +13095,7 @@ entity* normal_find_target(int anim)
 			&& !ent_list[i]->dead //must be alive
 			&& diff(ent_list[i]->x,self->x)+ diff(ent_list[i]->z,self->z) >= min
 			&& diff(ent_list[i]->x,self->x)+ diff(ent_list[i]->z,self->z) <= max
-			&& ent_list[i]->modeldata.stealth.hide <= self->modeldata.stealth.detect //Stealth factor less then perception factor (allows invisibility).
+			&& ent_list[i]->modeldata.stealth.hide <= (self->modeldata.stealth.detect+iEXDetect) //Stealth factor less then perception factor (allows invisibility).
 			  )
 		{
 			if(index <0 || (index>=0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1)) ||
@@ -18919,7 +18926,7 @@ void update_scroller(){
 	}
 	if(numplay == 0) return;
 
-	
+
 
 	if(!level->waiting)
 	{
