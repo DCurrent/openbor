@@ -669,6 +669,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		_e_current_palette,
 		_e_current_set,
 		_e_current_stage,
+		_e_effectvol,
 		_e_elapsed_time,
 		_e_ent_max,
 		_e_game_paused,
@@ -695,6 +696,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		_e_maxscriptvars,
 		_e_models_cached,
 		_e_models_loaded,
+		_e_musicvol,
 		_e_numpalettes,
 		_e_pixelformat,
 		_e_player,
@@ -708,6 +710,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		_e_shadowcolor,
 		_e_slowmotion,
 		_e_slowmotion_duration,
+		_e_soundvol,
 		_e_totalram,
 		_e_freeram,
 		_e_usedram,
@@ -744,6 +747,10 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 	case _e_in_level:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(level == NULL);
+		break;
+	case _e_effectvol:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)savedata.effectvol;
 		break;
 	case _e_elapsed_time:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -869,6 +876,10 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)models_loaded;
 		break;
+	case _e_musicvol:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)savedata.musicvol;
+		break;
 	case _e_numpalettes:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(level->numpalettes);
@@ -925,6 +936,10 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 	case _e_slowmotion_duration:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)slowmotion[1];
+		break;
+	case _e_soundvol:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)savedata.soundvol;
 		break;
 	case _e_game_paused:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
