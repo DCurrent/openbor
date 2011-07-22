@@ -4535,6 +4535,8 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->bomb                       = -1;
 	newchar->star                       = -1;
 	newchar->knife                      = -1;
+    newchar->stealth.hide               = 0;
+    newchar->stealth.detect             = 0;
 
 	newchar->animation = (s_anim**)calloc(1, sizeof(s_anim*)*max_animations);
 	if(!newchar->animation) shutdown(1, (char*)E_OUT_OF_MEMORY);
@@ -13073,18 +13075,25 @@ entity* long_find_target()
 	return NULL;
 }
 
-entity* normal_find_target(int anim,...)
+entity* normal_find_target(int anim, int iDetect)
 {
+
+    /*
+    normal_find_target
+    Author unknown
+    Date unknown
+    ~Damon Caskey, 2011_07_22: Add support for detect adjustment.
+
+    int anim:       Animation find range will be calculated by. Default to current animation if not passed.
+    int iDetect:    Local detection adjustment. Allows lesser or greater penetration of target's stealth for location.
+    */
+
 	int i , min, max;
 	int index = -1;
 	min = 0;
 	max = 9999;
 
-	int iEXDetect;
-	va_list param1;
-	va_start (param1, anim);
-	iEXDetect = va_arg(param1, int);
-	va_end(param1);
+    iDetect += self->modeldata.stealth.detect;
 
 	//find the 'nearest' one
 	for(i=0; i<ent_max; i++)
@@ -13095,7 +13104,7 @@ entity* normal_find_target(int anim,...)
 			&& !ent_list[i]->dead //must be alive
 			&& diff(ent_list[i]->x,self->x)+ diff(ent_list[i]->z,self->z) >= min
 			&& diff(ent_list[i]->x,self->x)+ diff(ent_list[i]->z,self->z) <= max
-			&& ent_list[i]->modeldata.stealth.hide <= (self->modeldata.stealth.detect+iEXDetect) //Stealth factor less then perception factor (allows invisibility).
+			&& (ent_list[i]->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
 			  )
 		{
 			if(index <0 || (index>=0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1)) ||
@@ -13183,8 +13192,8 @@ int perform_atchain()
 	if(validanim(self,animattacks[self->modeldata.atchain[self->combostep[0]-1]-1]) )
 	{
 		if(((self->combostep[0]==1||self->modeldata.combostyle!=1) && self->modeldata.type==TYPE_PLAYER) ||  // player should use attack 1st step without checking range
-		   (self->modeldata.combostyle!=1 && normal_find_target(animattacks[self->modeldata.atchain[0]-1])) || // normal chain just checks the first attack in chain(guess no one like it)
-		   (self->modeldata.combostyle==1 && normal_find_target(animattacks[self->modeldata.atchain[self->combostep[0]-1]-1]))) // combostyle 1 checks all anyway
+		   (self->modeldata.combostyle!=1 && normal_find_target(animattacks[self->modeldata.atchain[0]-1],0)) || // normal chain just checks the first attack in chain(guess no one like it)
+		   (self->modeldata.combostyle==1 && normal_find_target(animattacks[self->modeldata.atchain[self->combostep[0]-1]-1],0))) // combostyle 1 checks all anyway
 		{
 			pickanim = 1;
 		}
@@ -13195,7 +13204,7 @@ int perform_atchain()
 				if(self->modeldata.atchain[self->combostep[0]-1] &&
 				   validanim(self,animattacks[self->modeldata.atchain[self->combostep[0]-1]-1]) &&
 				   (self->combostep[0]==self->modeldata.chainlength ||
-					normal_find_target(animattacks[self->modeldata.atchain[self->combostep[0]-1]-1])))
+					normal_find_target(animattacks[self->modeldata.atchain[self->combostep[0]-1]-1],0)))
 				{
 					pickanim = 1;
 					break;
@@ -13218,7 +13227,7 @@ void normal_prepare()
 {
 	int i, lastpick = -1;
 	int predir = self->direction;
-	entity* target = normal_find_target(-1);
+	entity* target = normal_find_target(-1,0);
 
 	self->xdir = self->zdir = 0; //stop
 
@@ -13246,7 +13255,7 @@ void normal_prepare()
 	// let go the projectile, well
 	if( self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
 		validanim(self,ANI_THROWATTACK) &&
-		(target = normal_find_target(ANI_THROWATTACK)))
+		(target = normal_find_target(ANI_THROWATTACK,0)))
 	{
 		set_attacking(self);
 		ent_set_anim(self, ANI_THROWATTACK, 0);
@@ -13262,7 +13271,7 @@ void normal_prepare()
 			if(validanim(self,animspecials[i]) &&
 			   (check_energy(1, animspecials[i]) ||
 				check_energy(0, animspecials[i])) &&
-			   (target=normal_find_target(animspecials[i])) &&
+			   (target=normal_find_target(animspecials[i],0)) &&
 			   (rand32()%max_freespecials)<3 &&
 			   check_costmove(animspecials[i], 1) )
 			{
@@ -13281,7 +13290,7 @@ void normal_prepare()
 		for(i=0; i<max_attacks; i++)
 		{
 			if( validanim(self,animattacks[i]) &&
-				(target = normal_find_target(animattacks[i])))
+				(target = normal_find_target(animattacks[i],0)))
 			{
 				lastpick = animattacks[i];
 				if((rand32() & 31) > 10) break;
@@ -13466,11 +13475,11 @@ void common_try_riseattack()
 	entity * target;
 	if(!validanim(self,ANI_RISEATTACK)) return;
 
-	target = normal_find_target(ANI_RISEATTACK);
+	target = normal_find_target(ANI_RISEATTACK,0);
 	if(!target)
 	{
 		self->direction = !self->direction;
-		target = normal_find_target(ANI_RISEATTACK);
+		target = normal_find_target(ANI_RISEATTACK,0);
 		self->direction = !self->direction;
 	}
 
@@ -14193,7 +14202,7 @@ int common_try_upper(entity* target)
 	if(!validanim(self,ANI_UPPER)) return 0;
 
 
-	if(!target) target = normal_find_target(ANI_UPPER);
+	if(!target) target = normal_find_target(ANI_UPPER,0);
 
 	// Target jumping? Try uppercut!
 	if(target && target->jumping )
@@ -14213,7 +14222,7 @@ int common_try_runattack(entity* target)
 	if(!self->running || !validanim(self,ANI_RUNATTACK)) return 0;
 
 
-	if(!target) target = normal_find_target(ANI_RUNATTACK);
+	if(!target) target = normal_find_target(ANI_RUNATTACK,0);
 
 	if(target)
 	{
@@ -14233,7 +14242,7 @@ int common_try_block(entity* target)
 	   !validanim(self,ANI_BLOCK))
 	   return 0;
 
-	if(!target) target = normal_find_target(ANI_BLOCK);
+	if(!target) target = normal_find_target(ANI_BLOCK,0);
 
 	// no passive block, so block by himself :)
 	if(target && target->attacking)
@@ -14256,7 +14265,7 @@ int common_try_freespecial(entity* target)
 		if(validanim(self,animspecials[i]) &&
 		   (check_energy(1, animspecials[i]) ||
 			check_energy(0, animspecials[i])) &&
-		   (target || (target=normal_find_target(animspecials[i]))) &&
+		   (target || (target=normal_find_target(animspecials[i],0))) &&
 		   (rand32()%s)<3 &&
 		   check_costmove(animspecials[i], 1)  )
 		{
@@ -14276,7 +14285,7 @@ int common_try_normalattack(entity* target)
 		if(validanim(self,animspecials[i]) &&
 		   (check_energy(1, animspecials[i]) ||
 			check_energy(0, animspecials[i])) &&
-		   (target || (target=normal_find_target(animspecials[i]))) &&
+		   (target || (target=normal_find_target(animspecials[i],0))) &&
 		   (rand32()%max_freespecials)<3)
 		{
 			found = 1;
@@ -14287,7 +14296,7 @@ int common_try_normalattack(entity* target)
 	{
 		if(!validanim(self,animattacks[i])) continue;
 
-		if(target || (target=normal_find_target(animattacks[i])))
+		if(target || (target=normal_find_target(animattacks[i],0)))
 		{
 			found = 1;
 		}
@@ -14295,7 +14304,7 @@ int common_try_normalattack(entity* target)
 
 	if(!found && validanim(self,ANI_THROWATTACK) &&
 		self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
-		(target || (target=normal_find_target( ANI_THROWATTACK))) )
+		(target || (target=normal_find_target(ANI_THROWATTACK,0))) )
 	{
 		found = 1;
 	}
@@ -14328,7 +14337,7 @@ int common_try_jumpattack(entity* target)
 
 		if(rnum==0 &&
 			// do a jumpattack
-			(target || (target = normal_find_target(ANI_JUMPATTACK))) )
+			(target || (target = normal_find_target(ANI_JUMPATTACK,0))) )
 		{
 			ent_set_anim(self, ANI_JUMPATTACK, 0);
 			if(self->direction) self->xdir = (float)1.3;
@@ -14337,7 +14346,7 @@ int common_try_jumpattack(entity* target)
 		}
 		else if(rnum==1 &&
 			// do a jumpattack2
-			(target || (target = normal_find_target(ANI_JUMPATTACK2))) )
+			(target || (target = normal_find_target(ANI_JUMPATTACK2,0))) )
 		{
 			ent_set_anim(self, ANI_JUMPATTACK2, 0);
 			self->xdir = self->zdir = 0;
@@ -14735,7 +14744,7 @@ int common_trymove(float xdir, float zdir)
 // enemies run off after attack
 void common_runoff()
 {
-	entity *target = normal_find_target(-1);
+	entity *target = normal_find_target(-1,0);
 
 	if(target == NULL) return;    // There are no players?
 	if(!self->modeldata.noflip) self->direction = (self->x < target->x);
@@ -14808,7 +14817,7 @@ void common_attack_finish()
 		return;
 	}
 
-	target = normal_find_target(-1);
+	target = normal_find_target(-1,0);
 
 	if(target && !self->modeldata.nomove && diff(self->x, target->x)<80 && (rand32()&3))
 	{
@@ -15388,7 +15397,7 @@ int normal_move()
 
 	predir = self->direction;
 
-	target = normal_find_target(-1); // confirm the target again
+	target = normal_find_target(-1,0); // confirm the target again
 	other = normal_find_item();    // find an item
 	owner = self->parent;
 
@@ -15461,7 +15470,7 @@ int avoid_move()
 	int predir ;
 
 	predir = self->direction;
-	target = normal_find_target(-1); // confirm the target again
+	target = normal_find_target(-1,0); // confirm the target again
 	other = normal_find_item();    // find an item
 	owner = self->parent;
 
@@ -15533,7 +15542,7 @@ int chase_move()
 	int predir ;
 
 	predir = self->direction;
-	target = normal_find_target(-1); // confirm the target again
+	target = normal_find_target(-1,0); // confirm the target again
 	other = normal_find_item();    // find an item
 	owner = self->parent;
 
@@ -17874,7 +17883,7 @@ int common_idle_anim(entity* ent)
 
 			if (validanim(ent, iAni) && iAni != ANI_IDLE)                               //Valid and not ANI_IDLE?
 			{
-				if (normal_find_target(iAni))                                           //Opponent in range of current animation?
+				if (normal_find_target(iAni,0))                                           //Opponent in range of current animation?
 				{
 					ent_set_anim(ent, iAni, 0);                                         //Set animation.
 					return 1;                                                           //Return 1 and exit.
@@ -17911,7 +17920,7 @@ int common_walk_anim(entity* ent)
 
 		if (validanim(ent, iAni) && iAni != ANI_WALK)                               //Valid and not Default animation??
 		{
-			if (normal_find_target(iAni))                                           //Opponent in range of current animation?
+			if (normal_find_target(iAni,0))                                         //Opponent in range of current animation?
 			{
 				ent_set_anim(ent, iAni, 0);                                         //Set animation.
 				return 1;                                                           //Return 1 and exit.
@@ -17947,7 +17956,7 @@ int common_backwalk_anim(entity* ent)
 
 		if (validanim(ent, iAni) && iAni != ANI_BACKWALK)                           //Valid and not Default animation??
 		{
-			if (normal_find_target(iAni))                                           //Opponent in range of current animation?
+			if (normal_find_target(iAni,0))                                         //Opponent in range of current animation?
 			{
 				ent_set_anim(ent, iAni, 0);                                         //Set animation.
 				return 1;                                                           //Return 1 and exit.
@@ -17983,7 +17992,7 @@ int common_up_anim(entity* ent)
 
 		if (validanim(ent, iAni) && iAni != ANI_UP)                           //Valid and not Default animation??
 		{
-			if (normal_find_target(iAni))                                     //Opponent in range of current animation?
+			if (normal_find_target(iAni,0))                                   //Opponent in range of current animation?
 			{
 				ent_set_anim(ent, iAni, 0);                                   //Set animation.
 				return 1;                                                     //Return 1 and exit.
@@ -18019,7 +18028,7 @@ int common_down_anim(entity* ent)
 
 		if (validanim(ent, iAni) && iAni != ANI_DOWN)                         //Valid and not Default animation??
 		{
-			if (normal_find_target(iAni))                                     //Opponent in range of current animation?
+			if (normal_find_target(iAni,0))                                   //Opponent in range of current animation?
 			{
 				ent_set_anim(ent, iAni, 0);                                   //Set animation.
 				return 1;                                                     //Return 1 and exit.
