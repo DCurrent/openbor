@@ -10739,6 +10739,7 @@ HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 		"bgspeed",
 		"cameraxoffset",
 		"camerazoffset",
+		"scrollspeed",
 	};
 
 	typedef enum
@@ -10746,6 +10747,7 @@ HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 		_lp_bgspeed,
 		_lp_cameraxoffset,
 		_lp_camerazoffset,
+		_lp_scrollspeed,
 		_lp_the_end, // lol
 	} prop_enum;
 
@@ -10780,6 +10782,12 @@ HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)level->camerazoffset;
+		break;
+	}
+	case _lp_scrollspeed:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)level->scrollspeed;
 		break;
 	}
 	default:
