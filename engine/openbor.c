@@ -386,6 +386,7 @@ char                musicname[128]      = {""};
 float               musicfade[2]        = {0,0};
 int                 musicloop           = 0;
 u32                 musicoffset         = 0;
+int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a chance
 
 s_barstatus         loadingbarstatus =
 {
@@ -746,7 +747,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		break;
 	case _e_in_level:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
-		var->lVal = (LONG)(level == NULL);
+		var->lVal = (LONG)(level != NULL);
 		break;
 	case _e_effectvol:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -1110,6 +1111,7 @@ void init_scripts()
 	int i;
 	Script_Global_Init();
 	Script_Init(&update_script,     "update",   1);
+	Script_Init(&updated_script,    "updated",  1);
 	Script_Init(&level_script,      "level",    1);
 	Script_Init(&endlevel_script,   "endlevel", 1);
 	Script_Init(&key_script_all,    "keyall",   1);
@@ -7217,6 +7219,10 @@ int load_script_setting()
 			else if(stricmp(command, "keyscriptrate")==0) // Rate that keyscripts fire when holding a key.
 			{
 				keyscriptrate = GET_INT_ARG(1);
+			}
+			else if(stricmp(command, "alwaysupdate")==0) //execute update script whenever update() is called
+			{
+				alwaysupdate = GET_INT_ARG(1);
 			}
 		}
 		// Go to next line
@@ -19694,6 +19700,7 @@ void draw_textobjs()
 {
 	int i;
 	s_textobj* textobj;
+	if(!level) return;
 	for(i = 0;i < LEVEL_MAX_TEXTOBJS;i++)
 	{
 		 textobj = level->textobjs + i;
@@ -19726,7 +19733,7 @@ void update(int ingame, int usevwait)
 
 	if(!pause)
 	{
-		if(ingame == 1) execute_updatescripts();
+		if(ingame == 1 || alwaysupdate) execute_updatescripts();
 		if(ingame == 1 || selectScreen) execute_keyscripts();
 
 		if((level_completed && !level->noslow && !tospeedup) || slowmotion[0])
@@ -19793,14 +19800,21 @@ void update(int ingame, int usevwait)
 		draw_scrolled_bg();
 		predrawstatus();
 		drawstatus();
+	}
+
+	if(ingame == 1 || alwaysupdate)
+	{
 		execute_updatedscripts();
 		draw_textobjs();
 	}
-	else
+
+	
+	if(!ingame)
 	{
 		clearscreen(vscreen);
 		if(background) putscreen(vscreen, background, 0, 0, NULL);
 	}
+
 	if(ingame==1 || selectScreen) display_ents();
 
 	spriteq_draw(vscreen, (ingame==0)); // notice, always draw sprites at the very end of other methods
