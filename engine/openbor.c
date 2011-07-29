@@ -336,6 +336,11 @@ int                 nojoin              = 0;					// dont allow new hero to join 
 int                 groupmin            = 0;
 int					groupmax            = 0;
 int                 selectScreen        = 0;					// Flag to determine if at select screen (used for setting animations)
+int					titleScreen			= 0;
+int					menuScreen			= 0;
+int					hallOfFame			= 0;
+int					gameOver			= 0;
+char*				currentScene		= NULL;
 int                 tospeedup           = 0;          			// If set will speed the level back up after a boss hits the ground
 int                 reached[4]          = {0,0,0,0};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
 int                 noslowfx			= 0;           			// Flag to determine if sound speed when hitting opponent slows or not
@@ -668,6 +673,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		_e_count_players,
 		_e_current_level,
 		_e_current_palette,
+		_e_current_scene,
 		_e_current_set,
 		_e_current_stage,
 		_e_effectvol,
@@ -679,8 +685,12 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		_e_gfx_y_offset,
 		_e_gfx_y_offset_adj,
 		_e_hResolution,
+		_e_in_gameoverscreen,
+		_e_in_halloffamescreen,
 		_e_in_level,
+		_e_in_menuscreen,
 		_e_in_selectscreen,
+		_e_in_titlescreen,
 		_e_lasthita,
 		_e_lasthitc,
 		_e_lasthitt,
@@ -748,6 +758,22 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 	case _e_in_level:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(level != NULL);
+		break;
+	case _e_in_gameoverscreen:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(gameOver);
+		break;
+	case _e_in_menuscreen:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(menuScreen);
+		break;
+	case _e_in_titlescreen:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(titleScreen);
+		break;
+	case _e_in_halloffamescreen:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(hallOfFame);
 		break;
 	case _e_effectvol:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -818,6 +844,10 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 	case _e_vResolution:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)videomodes.vRes;
+		break;
+	case _e_current_scene:
+		ScriptVariant_ChangeType(var, VT_STR);
+		strcpy(StrCache_Get(var->strVal), currentScene);
 		break;
 	case _e_current_set:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -20393,6 +20423,9 @@ void playscene(char *filename)
 	// Read file
 	if(buffer_pakfile(filename, &buf, &size)!=1) return;
 
+	currentScene = filename;
+	titleScreen = menuScreen = 0;
+
 	// Now interpret the contents of buf line by line
 	pos = 0;
 	while(buf[pos]){
@@ -20421,6 +20454,7 @@ void playscene(char *filename)
 		free(buf);
 		buf = NULL;
 	}
+	currentScene = NULL;
 }
 
 
@@ -20438,6 +20472,7 @@ void gameover(){
 	music("data/music/gameover", 0, 0);
 
 	time = 0;
+	gameOver = 1;
 	while(!done)
 	{
 		if(custScenes != NULL)
@@ -20456,6 +20491,7 @@ void gameover(){
 		done |= (bothnewkeys & (FLAG_ESC|FLAG_ANYBUTTON));
 		update(0,0);
 	}
+	gameOver = 0;
 }
 
 
@@ -20472,6 +20508,9 @@ void hallfame(int addtoscore)
 	s_model *model = NULL;
 	int col1 = -8;
 	int col2 = 6;
+
+	titleScreen = menuScreen = 0;
+	hallOfFame = 1;
 
 	if(hiscorebg)
 	{
@@ -20530,6 +20569,7 @@ void hallfame(int addtoscore)
 		done |= (bothnewkeys & (FLAG_START+FLAG_ESC));
 	}
 	unload_background();
+	hallOfFame = 0;
 }
 
 
@@ -20765,6 +20805,7 @@ int selectplayer(int *players, char* filename)
 	char argbuf[MAX_ARG_LEN+1] = "";
 
 	selectScreen = 1;
+	titleScreen = menuScreen = 0;
 	kill_all();
 	reset_playable_list(1);
 
@@ -23229,6 +23270,8 @@ void openborMain(int argc, char** argv)
 		{
 			if(started)
 			{
+				menuScreen  = 1;
+				titleScreen = 0;
 				if(custBkgrds != NULL)
 				{
 					strncpy(tmpBuff,custBkgrds, 128);
@@ -23239,6 +23282,8 @@ void openborMain(int argc, char** argv)
 			}
 			else
 			{
+				menuScreen  = 0;
+				titleScreen = 1;
 				if(custBkgrds != NULL)
 				{
 					strncpy(tmpBuff,custBkgrds, 128);
