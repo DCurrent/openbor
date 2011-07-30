@@ -1253,7 +1253,6 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 		"maxindexedvars",
 		"maxplayers",
 		"maxscriptvars",
-		"menu_screen",
 		"models_cached",
 		"models_loaded",
 		"musicvol",
