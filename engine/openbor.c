@@ -18869,7 +18869,7 @@ void time_over()
 
 void update_scroller(){
 	float to=0;
-	int i;
+	int i, againstend = 0;
 	int numplay=0; //4player
 	float tx = advancex, ty = advancey;
 	static int scrolladd = 0;
@@ -19005,10 +19005,16 @@ void update_scroller(){
 				}
 			}
 
-			if(advancex > level->width-videomodes.hRes) advancex = (float)level->width-videomodes.hRes;
 			if(advancex < 0) advancex = 0;
+			if(advancex > level->width-videomodes.hRes) {
+				advancex = (float)level->width-videomodes.hRes;
+				againstend = 1;
+			}
 
-			level->pos = (int)advancex;
+			if(againstend) level->pos++;
+			else level->pos = (int)advancex;
+
+
 		}
 		else if(level->scrolldir&SCROLL_LEFT){
 
@@ -19024,7 +19030,10 @@ void update_scroller(){
 			to -= (videomodes.hRes/2);
 
 			if(to < advancex){
-				if(to < advancex-level->scrollspeed) to = advancex-level->scrollspeed;
+				if(to < advancex-level->scrollspeed) {
+					to = advancex-level->scrollspeed;
+					againstend = 1;
+				}
 				advancex = (float)to;
 			}
 			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
@@ -19038,7 +19047,8 @@ void update_scroller(){
 			if((level->scrolldir&SCROLL_BACK) && level->width- videomodes.hRes - advancex < blockade) advancex = level->width- videomodes.hRes - blockade;
 			if(advancex < 0) advancex = 0;
 
-			level->pos = (int)((level->width-videomodes.hRes) - advancex);
+			if(againstend) level->pos++;
+			else level->pos = (int)((level->width-videomodes.hRes) - advancex);
 		}
 		else if(level->scrolldir&SCROLL_OUTWARD){ // z scroll only
 
@@ -19066,11 +19076,15 @@ void update_scroller(){
 				}
 			}
 
-			if(advancey > panel_height-videomodes.vRes) advancey = (float)panel_height-videomodes.vRes;
+			if(advancey > panel_height-videomodes.vRes) {
+				advancey = (float)panel_height-videomodes.vRes;
+				againstend = 1;
+			}
 			if((level->scrolldir&SCROLL_BACK) && advancey < blockade) advancey = blockade;
 			if(advancey < 4) advancey = 4;
 
-			level->pos = (int)advancey;
+			if(againstend) level->pos++;
+			else level->pos = (int)advancey;
 		}
 		else if(level->scrolldir&SCROLL_INWARD){
 			for(i=0; i<maxplayers[current_set]; i++)
@@ -19085,7 +19099,10 @@ void update_scroller(){
 			to -= (videomodes.vRes/2);
 
 			if(to < advancey){
-				if(to < advancey-level->scrollspeed) to = advancey-level->scrollspeed;
+				if(to < advancey-level->scrollspeed){
+					to = advancey-level->scrollspeed;
+					againstend = 1;
+				}
 				advancey = (float)to;
 			}
 			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
@@ -19099,7 +19116,8 @@ void update_scroller(){
 			if((level->scrolldir&SCROLL_BACK) && panel_height- videomodes.vRes - advancey < blockade) advancey = panel_height- videomodes.vRes - blockade;
 			if(advancey < 4) advancey = 4;
 
-			level->pos = (int)((panel_height-videomodes.vRes) - advancey);
+			if(againstend) level->pos++;
+			else level->pos = (int)((panel_height-videomodes.vRes) - advancey);
 		}
 		//up down, elevator stage
 		else if(level->scrolldir&(SCROLL_UP|SCROLL_DOWN))
