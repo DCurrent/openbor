@@ -183,6 +183,27 @@ typedef struct
 	int centery;   //shift centery
 }s_drawmethod;
 
+/*
+typedef enum
+{
+	ct_rectangle,
+	ct_mask_screen
+
+}clipping_type;
+
+
+//screen clipping array clipp
+typedef struct 
+{
+	int type;
+	int x;
+	int y;
+	int width;
+	int height;
+	s_screen mask_screen;
+}s_clipping;
+*/
+
 typedef struct
 {
 	short hRes;        // Horizontal Resolution
