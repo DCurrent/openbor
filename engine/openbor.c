@@ -19874,7 +19874,7 @@ void update(int ingame, int usevwait)
 
 	if(ingame==1 || selectScreen) display_ents();
 
-	spriteq_draw(vscreen, (ingame==0)); // notice, always draw sprites at the very end of other methods
+	spriteq_draw(vscreen, 0); // notice, always draw sprites at the very end of other methods
 
 	if(pause!=2 && !noscreenshot && (bothnewkeys&FLAG_SCREENSHOT)) screenshot(vscreen, getpal, 1);
 
@@ -22019,7 +22019,7 @@ void movie_options(){
 		_menutextm((selector==0), 2, 0, "Save Movie");
 		_menutextm((selector==1), 3, 0, "Load Movie");
 		_menutextm((selector==2), 5, 0, "Back");
-		update(0,0);
+		update((level!=NULL),0);
 
 		if(bothnewkeys & FLAG_ESC) quit = 1;
 		if(bothnewkeys & FLAG_MOVEUP){
@@ -22090,7 +22090,7 @@ void input_options(){
 		_menutext((selector==3), -4, 1, "Setup Player 3...");
 		_menutext((selector==4), -4, 2, "Setup Player 4...");
 		_menutextm((selector==5), 7, 0, "Back");
-		update(0,0);
+		update((level!=NULL),0);
 
 		if(bothnewkeys & FLAG_ESC) quit = 1;
 		if(bothnewkeys & FLAG_MOVEUP){
@@ -22159,7 +22159,7 @@ void sound_options(){
 		_menutext((selector==5), col1, 3, "Advanced Options...");
 		_menutextm((selector==6), 7, 0, "Back");
 
-		update(0,0);
+		update((level!=NULL),0);
 
 		if(bothnewkeys & FLAG_ESC) quit = 1;
 		if(bothnewkeys & FLAG_MOVEUP){
@@ -22251,7 +22251,7 @@ void config_settings(){    //  OX. Load from / save to default.cfg. Restore Open
 
 		_menutextm((selector==3), 1, 0, "Back");
 
-		update(0,0);
+		update((level!=NULL),0);
 
 		if(bothnewkeys & FLAG_ESC) quit = 1;
 		if(bothnewkeys & FLAG_MOVEUP){
@@ -22336,7 +22336,7 @@ void cheatoptions(){    //  LTB 1-13-05 took out sameplayer option
 
 		_menutextm((selector==8), 7, 0, "Back");
 
-		update(0,0);
+		update((level!=NULL),0);
 
 		if(bothnewkeys & FLAG_ESC) quit = 1;
 		if(bothnewkeys & FLAG_MOVEUP){
@@ -22482,7 +22482,7 @@ void system_options(){
 
 		_menutextm((selector==ret), 8, 0, "Back");
 
-		update(0,0);
+		update((level!=NULL),0);
 
 		if(bothnewkeys & FLAG_ESC) quit = 1;
 		if(bothnewkeys & FLAG_MOVEUP){
@@ -22670,7 +22670,7 @@ void video_options(){
 		if(selector>10) selector = 0;
 #endif
 
-		update(0,0);
+		update((level!=NULL),0);
 
 		if(bothnewkeys & FLAG_ESC) quit = 1;
 		if(bothnewkeys & FLAG_MOVEUP){
@@ -22712,7 +22712,7 @@ void video_options(){
 #if SDL || PSP || XBOX || WII
 				case 3:
 #if XBOX
-					update(0,0);
+					update((level!=NULL),0);
 					xbox_resize();
 #endif
 
@@ -22859,7 +22859,7 @@ void options(){
 		if(selector<0) selector = 4;
 		if(selector>4) selector = 0;
 
-		update(0,0);
+		update((level!=NULL),0);
 
 		if(bothnewkeys & FLAG_ESC) quit = 1;
 		if(bothnewkeys & FLAG_MOVEUP){
@@ -22921,7 +22921,7 @@ void soundcard_options(){
 		_menutextm((selector==2), 1, 0, "Apply");
 		_menutextm((selector==3), 2, 0, "Discard");
 		_menutextm((selector==4), 7, 0, "Back");
-		update(0,0);
+		update((level!=NULL),0);
 
 		if(bothnewkeys & FLAG_ESC) quit = 1;
 		if(bothnewkeys & FLAG_MOVEUP){
@@ -23025,7 +23025,7 @@ void display_logfile()
 				}
 			}
 			if(bothkeys & FLAG_ESC) done = 1;
-			update(0,0);
+			update((level!=NULL),0);
 		}
 		free_string(logfile);
 		logfile = NULL;
