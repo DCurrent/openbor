@@ -11326,7 +11326,7 @@ void do_attack(entity *e)
 	int didblock            = 0;    // So a different sound effect can be played when an attack is blocked
 	int current_attack_id;
 	int current_follow_id   = 0;
-	int followed = 0;
+#define followed (current_anim!=e->animation)
 	s_anim* current_anim;
 	s_attack* attack = e->animation->attacks[e->animpos];
 	static unsigned int new_attack_id = 1;
@@ -11586,7 +11586,7 @@ void do_attack(entity *e)
 							e->modeldata.animation[current_follow_id]->attackone = e->animation->attackone;
 						ent_set_anim(e, current_follow_id, 1);          // Then go to it!
 					}
-					followed = 1; // quit loop, animation is changed
+					//followed = 1; // quit loop, animation is changed
 				}//end of if #055
 
 				self->hit_by_attack_id = current_attack_id;
@@ -11695,6 +11695,7 @@ void do_attack(entity *e)
 
 		if(e->remove_on_attack) kill(e);
 	}//end of if ###
+#undef followed
 }
 
 
