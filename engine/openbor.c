@@ -19030,6 +19030,8 @@ void update_scroller(){
 			to /= numplay;
 			to -= (videomodes.hRes/2);
 
+			to += level->cameraxoffset;
+
 			if(to < advancex){
 				if(to < advancex-level->scrollspeed) {
 					to = advancex-level->scrollspeed;
@@ -19063,6 +19065,8 @@ void update_scroller(){
 
 			to /= numplay;
 			to -= (videomodes.vRes/2);
+			
+			to += level->cameraxoffset;
 
 			if(to > advancey){
 				if(to > advancey+level->scrollspeed) to = advancey+level->scrollspeed;
@@ -19098,6 +19102,8 @@ void update_scroller(){
 
 			to /= numplay;
 			to -= (videomodes.vRes/2);
+			
+			to += level->camerazoffset;
 
 			if(to < advancey){
 				if(to < advancey-level->scrollspeed){
@@ -19183,6 +19189,8 @@ void update_scroller(){
 
 		to /= numplay;
 		to -= (videomodes.hRes/2);
+
+		to += level->cameraxoffset;
 
 		// new scroll limit
 		if(scrollmaxz && to > scrollmaxz) to = scrollmaxz;
