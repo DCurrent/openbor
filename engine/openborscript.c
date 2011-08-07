@@ -492,6 +492,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_getmodelproperty)) return "getmodelproperty";
 	else if (functionRef==((void*)openbor_changemodelproperty)) return "changemodelproperty";
 	else if (functionRef==((void*)openbor_rgbcolor)) return "rgbcolor";
+	else if (functionRef==((void*)openbor_zoom)) return "zoom";
 	else return "<unknown function>";
 }
 
@@ -980,6 +981,8 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_changemodelproperty, "changemodelproperty");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_rgbcolor, "rgbcolor");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_zoom, "zoom");
 	//printf("Done!\n");
 
 }
@@ -11284,5 +11287,33 @@ HRESULT openbor_playgif(ScriptVariant** varlist , ScriptVariant** pretvar, int p
 playgif_error:
 	printf("Function need a string parameter, other parameters are optional: playgif(path, int x, int y, int noskip)\n");
 	*pretvar = NULL;
+	return E_FAIL;
+}
+
+
+//zoom(int x, int y, int scalex, int scaley, int z)
+HRESULT openbor_zoom(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+
+	extern int zoom_center_x, zoom_center_y, zoom_scale_x, zoom_scale_y, zoom_z;
+
+	*pretvar = NULL;
+	if(paramCount<4) goto zoom_error;
+
+	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &zoom_center_x)))
+		goto zoom_error;
+	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &zoom_center_y)))
+		goto zoom_error;
+	if(FAILED(ScriptVariant_IntegerValue(varlist[2], &zoom_scale_x)))
+		goto zoom_error;
+	if(FAILED(ScriptVariant_IntegerValue(varlist[3], &zoom_scale_y)))
+		goto zoom_error;
+	if(FAILED(ScriptVariant_IntegerValue(varlist[4], &zoom_z)))
+		goto zoom_error;
+	
+	return S_OK;
+
+zoom_error:
+	printf("Function requires 5 int values: zoom(int x, int y, int scalex, int scaley, int z)\n");
 	return E_FAIL;
 }

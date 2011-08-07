@@ -24,7 +24,7 @@ void putscreenx8p16_water(s_screen * dest, s_screen * src, int x, int y, int key
 	int dw = dest->width;
 	int dh = dest->height;
 	int ch = sh;
-	float s = (float)(time % 255);
+	float s = (float)(time % 256);
 	int sox, soy;
 	int t, u;
 
@@ -56,7 +56,7 @@ void putscreenx8p16_water(s_screen * dest, s_screen * src, int x, int y, int key
 	dp += (y*dw + x);
 
 	u = (watermode==1)?distortion((int)s, amplitude):amplitude;
-	wavelength = 255 / wavelength;
+	wavelength = 256 / wavelength;
 	s += soy*wavelength;
 
 	if(blendfp)
@@ -65,7 +65,7 @@ void putscreenx8p16_water(s_screen * dest, s_screen * src, int x, int y, int key
 		{
 		    // blend
 			do{
-				s = s - (int)s + (int)s % 255;
+				s = s - (int)s + (int)s % 256;
 				t = (distortion((int)s, amplitude)) - u;
 
 						// Nothing to display
@@ -120,7 +120,7 @@ void putscreenx8p16_water(s_screen * dest, s_screen * src, int x, int y, int key
 		{
 		    // blend
 			do{
-				s = s - (int)s + (int)s % 255;
+				s = s - (int)s + (int)s % 256;
 				t = (distortion((int)s, amplitude)) - u;
 
 						// Nothing to display
@@ -177,7 +177,7 @@ void putscreenx8p16_water(s_screen * dest, s_screen * src, int x, int y, int key
 		{
 			// Copy data
 			do{
-				s = s - (int)s + (int)s % 255;
+				s = s - (int)s + (int)s % 256;
 				t = (distortion((int)s, amplitude)) - u;
 
 						// Nothing to display
@@ -232,7 +232,7 @@ void putscreenx8p16_water(s_screen * dest, s_screen * src, int x, int y, int key
 		{
 			// Copy data
 			do{
-				s = s - (int)s + (int)s % 255;
+				s = s - (int)s + (int)s % 256;
 				t = (distortion((int)s, amplitude)) - u;
 
 				// Nothing to display
