@@ -222,7 +222,7 @@ static void spriteq_sort()
 }
 
 // newonly is 1 means don't draw locked sprites
-void spriteq_draw(s_screen *screen, int newonly)
+void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz)
 {
 	int i;
 
@@ -230,7 +230,7 @@ void spriteq_draw(s_screen *screen, int newonly)
 
 	for(i=0;i<spritequeue_len;i++)
 	{
-		if(newonly && spriteq_locked && order[i]<queue+spriteq_old_len)
+		if((newonly && spriteq_locked && order[i]<queue+spriteq_old_len) || order[i]->z<minz || order[i]->z>maxz)
 			continue;
 
 		switch(order[i]->type)

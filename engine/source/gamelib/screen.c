@@ -95,7 +95,7 @@ void copyscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplitu
 	int ch = sh;
 	int slinew, dlinew;
 	int sox, soy;
-	float s = (float)(time % 255);
+	float s = (float)(time % 256);
 	int t, u;
 
 
@@ -128,14 +128,14 @@ void copyscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplitu
 	slinew = sw*pixelbytes[(int)pixelformat];
 	dlinew = dw*pixelbytes[(int)pixelformat];
 	u = ((watermode==1)?distortion((int)s, amplitude):amplitude)*pixelbytes[(int)pixelformat];
-	wavelength = 255 / wavelength;
+	wavelength = 256 / wavelength;
 	s += soy*wavelength;
 	x *= pixelbytes[(int)pixelformat];
 
 
 	// Copy data
 	do{
-			s = s - (int)s + (int)s % 255;
+			s = s - (int)s + (int)s % 256;
 			t = (distortion((int)s, amplitude))*pixelbytes[(int)pixelformat] - u;
 
 			// Nothing to display
@@ -218,7 +218,7 @@ void copyscreen_trans_water(s_screen * dest, s_screen * src, int x, int y, int a
 	int ch = sh;
 	//int slinew, dlinew;
 	int sox, soy;
-	float s = (float)(time % 255);
+	float s = (float)(time % 256);
 	int t, u, i;
 
 
@@ -248,13 +248,13 @@ void copyscreen_trans_water(s_screen * dest, s_screen * src, int x, int y, int a
 	dp = dest->data + y*dw+x-1;
 
 	u = (watermode==1)?distortion((int)s, amplitude):amplitude;
-	wavelength = 255 / wavelength;
+	wavelength = 256 / wavelength;
 	s += soy*wavelength;
 
 
 	// Copy data
 	do{
-			s = s - (int)s + (int)s % 255;
+			s = s - (int)s + (int)s % 256;
 			t = (distortion((int)s, amplitude)) - u;
 
 			// Nothing to display
@@ -404,7 +404,7 @@ void blendscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplit
 	int ch = sh;
 	//int slinew, dlinew;
 	int sox, soy;
-	float s = (float)(time % 255);
+	float s = (float)(time % 256);
 	int t, u, i;
 
 
@@ -434,13 +434,13 @@ void blendscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplit
 	dp = dest->data + y*dw+x;
 
 	u = (watermode==1)?distortion((int)s, amplitude):amplitude;
-	wavelength = 255 / wavelength;
+	wavelength = 256 / wavelength;
 	s += soy*wavelength;
 
 
 	// Copy data
 	do{
-			s = s - (int)s + (int)s % 255;
+			s = s - (int)s + (int)s % 256;
 			t = (distortion((int)s, amplitude)) - u;
 
 						// Nothing to display
@@ -716,4 +716,6 @@ void zoomscreen(s_screen* dest, s_screen* src, int centerx, int centery, int sca
 	{
 		scalescreen32(dest, frame);
 	}
+
+	freescreen(&frame);
 }

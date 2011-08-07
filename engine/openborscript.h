@@ -171,6 +171,7 @@ HRESULT openbor_strright(ScriptVariant** varlist , ScriptVariant** pretvar, int 
 HRESULT openbor_getmodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_changemodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_rgbcolor(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_zoom(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount);
 void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount);

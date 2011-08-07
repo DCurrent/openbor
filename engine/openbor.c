@@ -27,6 +27,8 @@
 static const char* E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
 static int DEFAULT_OFFSCREEN_KILL = 3000;
 
+#define MIN_INT (int)0x80000000
+#define MAX_INT	(int)0x7fffffff
 
 /////////////////////////////////////////////////////////////////////////////
 //  Global Variables                                                        //
@@ -37,6 +39,12 @@ s_level*            level               = NULL;
 s_screen*           vscreen             = NULL;
 s_screen*           background          = NULL;
 s_screen*           bgbuffer            = NULL;
+s_screen*			zoombuffer			= NULL;
+int					zoom_center_x		= 0;
+int					zoom_center_y		= 0;
+int					zoom_scale_x		= 0;
+int					zoom_scale_y		= 0;
+int					zoom_z				= MIN_INT;
 char                bgbuffer_updated    = 0;
 s_bitmap*           texture             = NULL;
 s_videomodes        videomodes;
@@ -9962,7 +9970,7 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 				else
 					clearscreen(vscreen);
 			}
-			spriteq_draw(vscreen, 0);
+			spriteq_draw(vscreen, 0, MIN_INT, MAX_INT);
 			video_copy_screen(vscreen);
 			spriteq_clear();
 		}
@@ -9970,7 +9978,7 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 			clearscreen(vscreen);
 			spriteq_clear();
 			font_printf(120 + videomodes.hShift, 110 + videomodes.vShift, 0, 0, "Loading...");
-			spriteq_draw(vscreen, 0);
+			spriteq_draw(vscreen, 0, MIN_INT, MAX_INT);
 			video_copy_screen(vscreen);
 		}
 		lasttick = ticks;
@@ -19874,7 +19882,23 @@ void update(int ingame, int usevwait)
 
 	if(ingame==1 || selectScreen) display_ents();
 
-	spriteq_draw(vscreen, 0); // notice, always draw sprites at the very end of other methods
+	if(zoom_scale_x)
+	{
+		if(!zoombuffer) zoombuffer = allocscreen(vscreen->width, vscreen->height, vscreen->pixelformat);
+
+		spriteq_draw(zoombuffer, 0, MIN_INT, zoom_z);
+		zoomscreen(vscreen, zoombuffer, zoom_center_x, zoom_center_y, zoom_scale_x, zoom_scale_y);
+		spriteq_draw(vscreen, 0, zoom_z + 1, MAX_INT);
+	}
+	else
+	{
+		if(zoombuffer)
+		{
+			freescreen(&zoombuffer);
+			zoombuffer = NULL;
+		}
+		spriteq_draw(vscreen, 0, MIN_INT, MAX_INT); // notice, always draw sprites at the very end of other methods
+	}
 
 	if(pause!=2 && !noscreenshot && (bothnewkeys&FLAG_SCREENSHOT)) screenshot(vscreen, getpal, 1);
 
@@ -19884,7 +19908,7 @@ void update(int ingame, int usevwait)
 	{
 		spriteq_clear();
 		font_printf(0,230, 0, 0, debug_msg);
-		spriteq_draw(vscreen, (ingame==0));
+		spriteq_draw(vscreen, (ingame==0), MIN_INT, MAX_INT);
 	}
 	else
 	{
