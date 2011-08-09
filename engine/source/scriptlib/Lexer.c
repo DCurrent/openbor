@@ -62,28 +62,28 @@ HRESULT Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 					switch (*(++src))
 					{
 						case 's':
-							*dest++ = ' ';
+							*dest++ = ' '; src++;
 							break;
 						case 'r':
-							*dest++ = '\r';
+							*dest++ = '\r'; src++;
 							break;
 						case 'n':
-							*dest++ = '\n';
+							*dest++ = '\n'; src++;
 							break;
 						case 't':
-							*dest++ = '\t';
+							*dest++ = '\t'; src++;
 							break;
 						case '0':
-							*dest++ = '\0';
+							*dest++ = '\0'; src++;
 							break;
 						case '\"':
-							*dest++ = '\"';
+							*dest++ = '\"'; src++;
 							break;
 						case '\'':
-							*dest++ = '\'';
+							*dest++ = '\''; src++;
 							break;
 						case '\\':
-							*dest++ = '\\';
+							*dest++ = '\\'; src++;
 							break;
 						default: // invalid escape sequence
 							// TODO: emit a warning here
