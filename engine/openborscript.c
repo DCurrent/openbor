@@ -2439,6 +2439,7 @@ enum getentityproperty_enum {
 	_gep_offense,
 	_gep_opponent,
 	_gep_owner,
+	_gep_pain_time,
 	_gep_parent,
 	_gep_path,
 	_gep_playerindex,
@@ -2504,6 +2505,7 @@ enum gep_aiflag_enum {
 	_gep_aiflag_inpain,
 	_gep_aiflag_invincible,
 	_gep_aiflag_jumping,
+	_gep_aiflag_pain_time,
 	_gep_aiflag_projectile,
 	_gep_aiflag_running,
 	_gep_aiflag_toexplode,
@@ -2776,6 +2778,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"offense",
 		"opponent",
 		"owner",
+		"pain_time",
 		"parent",
 		"path",
 		"playerindex",
@@ -2840,6 +2843,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"inpain",
 		"invincible",
 		"jumping",
+		"pain_time",
 		"projectile",
 		"running",
 		"toexplode",
@@ -3258,6 +3262,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->inpain;
+			 break;
+		} 
+		case _gep_aiflag_pain_time:
+		{
+			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			 (*pretvar)->lVal = (LONG)ent->pain_time;
 			 break;
 		}
 		case _gep_aiflag_projectile:
@@ -3992,6 +4002,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		}
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)i;
+		break;
+	}
+	case _gep_pain_time:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->pain_time;
 		break;
 	}
 	case _gep_freezetime:
@@ -5151,6 +5167,7 @@ enum changeentityproperty_enum {
     _cep_offense,
     _cep_opponent,
     _cep_owner,
+    _cep_pain_time,
     _cep_parent,
     _cep_position,
     _cep_projectile,
@@ -5375,6 +5392,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"offense",
 		"opponent",
 		"owner",
+		"pain_time",
 		"parent",
 		"position",
 		"projectile",
@@ -6234,6 +6252,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 			ent->modeldata.falldie = (int)ltemp;
+		break;
+	}
+	case _cep_pain_time:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->pain_time = (int)ltemp;
 		break;
 	}
 	case _cep_freezetime:
