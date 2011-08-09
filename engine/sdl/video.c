@@ -93,7 +93,7 @@ int video_set_mode(s_videomodes videomodes)
 	if(bscreen2) { SDL_FreeSurface(bscreen2); bscreen2=NULL; }
 
 	// try OpenGL initialization first
-	if((savedata.usegl || savedata.fullscreen) && video_gl_set_mode(videomodes)) return 1;
+	if((savedata.usegl /*|| savedata.fullscreen*/) && video_gl_set_mode(videomodes)) return 1;
 	else opengl = 0;
 
 	// FIXME: OpenGL surfaces aren't freed when switching from OpenGL to SDL
