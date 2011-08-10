@@ -18914,12 +18914,12 @@ void update_scroller(){
 					musicfade[0] = (float)level->spawnpoints[current_spawn].musicfade;
 					musicfade[1] = (float)savedata.musicvol;
 				}
-				if(level->spawnpoints[current_spawn].music[0]){
+				else if(level->spawnpoints[current_spawn].music[0]){
 					strncpy(musicname, level->spawnpoints[current_spawn].music, 128);
 					musicoffset = level->spawnpoints[current_spawn].musicoffset;
 					musicloop = 1;
 				}
-				if(level->spawnpoints[current_spawn].wait){
+				else if(level->spawnpoints[current_spawn].wait){
 					level->waiting = 1;
 					go_time = 0;
 				}
