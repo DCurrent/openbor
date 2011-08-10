@@ -19885,7 +19885,7 @@ void update(int ingame, int usevwait)
 	if(zoom_scale_x)
 	{
 		if(!zoombuffer) zoombuffer = allocscreen(vscreen->width, vscreen->height, vscreen->pixelformat);
-
+		copyscreen(zoombuffer, vscreen);
 		spriteq_draw(zoombuffer, 0, MIN_INT, zoom_z);
 		zoomscreen(vscreen, zoombuffer, zoom_center_x, zoom_center_y, zoom_scale_x, zoom_scale_y);
 		spriteq_draw(vscreen, 0, zoom_z + 1, MAX_INT);
