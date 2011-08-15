@@ -717,6 +717,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		_e_models_loaded,
 		_e_musicvol,
 		_e_numpalettes,
+		_e_pause,
 		_e_pixelformat,
 		_e_player,
 		_e_player1,
@@ -795,6 +796,10 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)GAME_SPEED;
+		break;
+	case _e_pause:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)pause;
 		break;
     case _e_gfx_x_offset:
 		if(!level) return 0;
@@ -19796,9 +19801,11 @@ void update(int ingame, int usevwait)
 	newtime = 0;
 	inputrefresh();
 
+
+	if ((!pause && ingame == 1) || alwaysupdate) execute_updatescripts();
+
 	if(!pause)
 	{
-		if(ingame == 1 || alwaysupdate) execute_updatescripts();
 		if(ingame == 1 || selectScreen) execute_keyscripts();
 
 		if((level_completed && !level->noslow && !tospeedup) || slowmotion[0])
