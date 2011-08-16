@@ -2506,6 +2506,7 @@ enum gep_aiflag_enum {
 	_gep_aiflag_idling,
 	_gep_aiflag_inpain,
 	_gep_aiflag_invincible,
+	_gep_aiflag_jumpid,
 	_gep_aiflag_jumping,
 	_gep_aiflag_pain_time,
 	_gep_aiflag_projectile,
@@ -2844,6 +2845,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"idling",
 		"inpain",
 		"invincible",
+		"jumpid",
 		"jumping",
 		"pain_time",
 		"projectile",
@@ -3198,6 +3200,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->dead;
+			 break;
+		}
+		case _gep_aiflag_jumpid:
+		{
+			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			 (*pretvar)->lVal = (LONG)ent->jumpid;
 			 break;
 		}
 		case _gep_aiflag_jumping:
@@ -5229,6 +5237,7 @@ enum cep_aiflag_enum {
 	_cep_aiflag_idling,
 	_cep_aiflag_inpain,
 	_cep_aiflag_invincible,
+	_cep_aiflag_jumpid,
 	_cep_aiflag_jumping,
 	_cep_aiflag_projectile,
 	_cep_aiflag_running,
@@ -5453,6 +5462,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"idling",
 		"inpain",
 		"invincible",
+		"jumpid",
 		"jumping",
 		"projectile",
 		"running",
@@ -5711,6 +5721,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		{
 			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
 				ent->dead = (int)ltemp;
+			break;
+		}
+		case _cep_aiflag_jumpid:
+		{
+			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				ent->jumpid = (int)ltemp;
 			break;
 		}
 		case _cep_aiflag_jumping:
