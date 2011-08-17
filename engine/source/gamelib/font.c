@@ -141,6 +141,7 @@ void font_printf(int x, int y, int which, int layeroffset,char *format, ...){
 	while(*buf){
 		spriteq_add_frame(x,y, FONT_LAYER + layeroffset, fonts[which].token[((int)(*buf)) & 0xFF], NULL, 0);
 		x += fonts[which].token_width[((int)(*buf)) & 0xFF];
+		if(*buf=='\n') y += fonts[which].token[0]->height;
 		buf++;
 	}
 }
@@ -179,7 +180,7 @@ void screen_printf(s_screen * screen, int x, int y, int which, char *format, ...
 		}
 		else if(*buf=='\n'){
 			x = ox;
-			y += 10;
+			y += fonts[which].token[0]->height;;
 		}
 		buf++;
 	}
