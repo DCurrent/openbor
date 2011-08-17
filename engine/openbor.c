@@ -3638,7 +3638,7 @@ static void load_playable_list(char* buf)
 	for(i=1;(value=GET_ARG(i))[0];i++)
 	{
 		playermodels = findmodel(value);
-		if(playermodels == NULL) shutdown(1, "Player model '%s' is not loaded.\n", value);
+		//if(playermodels == NULL) shutdown(1, "Player model '%s' is not loaded.\n", value);
 		index = get_cached_model_index(playermodels->name);
 		if(index == -1) shutdown(1, "Player model '%s' is not cached.\n", value);
 		model_cache[index].selectable = 1;
