@@ -10,6 +10,7 @@
 //         This file defines some commmon methods used by the gamelib
 ////////////////////////////////////////////////////////////////////////////
 
+#include "globals.h"
 #include "types.h"
 
 
@@ -28,6 +29,9 @@
 
 void draw_pixel_dummy(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod)  
 {
+	int pb = pixelbytes[(int)dest->pixelformat];
+	unsigned char* pd = ((unsigned char*)(dest->data)) + (dx + dy*dest->width)*pb; 
+	memset(pd, 0, pb);
 }
 
 void draw_pixel_screen(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod)
@@ -291,3 +295,5 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 #undef swapVertices
 ////////////////////////////////////////////////////////////////
 #endif
+
+

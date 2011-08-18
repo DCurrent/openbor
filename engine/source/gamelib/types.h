@@ -183,7 +183,7 @@ typedef struct
 	int centery;   //shift centery
 }s_drawmethod;
 
-typedef enum
+typedef enum 
 {
 	gfx_screen,
 	gfx_bitmap,
@@ -217,7 +217,7 @@ typedef struct
 	union{
 		s_screen * screen;
 		s_sprite * sprite;
-		s_bitmap * biitmap;
+		s_bitmap * bitmap;
 	};
 }gfx_entry;
 
