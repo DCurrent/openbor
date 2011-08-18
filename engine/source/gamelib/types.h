@@ -183,6 +183,13 @@ typedef struct
 	int centery;   //shift centery
 }s_drawmethod;
 
+typedef enum
+{
+	gfx_screen,
+	gfx_bitmap,
+	gfx_sprite
+}gfx_type;
+
 /*
 typedef enum
 {
@@ -203,6 +210,33 @@ typedef struct
 	s_screen mask_screen;
 }s_clipping;
 */
+
+typedef struct 
+{
+	gfx_type type;
+	union{
+		s_screen * screen;
+		s_sprite * sprite;
+		s_bitmap * biitmap;
+	};
+}gfx_entry;
+
+typedef struct 
+{
+	int x; //x
+	int y; //y
+	int tx; //texture coords x
+	int ty; //texture coords y
+}vert2d;
+
+typedef struct 
+{
+	int ulx; //upper left x
+	int uly; //upper left y
+	int lrx; //lower right x
+	int lry; //lower right y
+}rect2d;
+
 
 typedef struct
 {
