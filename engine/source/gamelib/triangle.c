@@ -19,7 +19,33 @@
 #define swapVertices(va, vb) {vsw=va;va=vb;vb=vsw;}
 #define P unsigned char
 
-//typedef unsigned char (*transpixelfunc)(unsigned char* table, unsigned char src, unsigned char dest);
+/**
+
+ draw a pixel from source gfx surface to destination screen
+ complex
+
+*/
+
+void draw_pixel_dummy(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod)  
+{
+}
+
+void draw_pixel_screen(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod)
+{
+
+}
+
+
+void draw_pixel_bitmap(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod)
+{
+
+}
+
+void draw_pixel_sprite(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod)
+{
+
+}
+
 
 void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_drawmethod* drawmethod, int triangleCount)
 {
@@ -42,7 +68,7 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 	float spanTx, spanTy, spanTxStep, spanTyStep; // values of Texturecoords when drawing a span
 	rect2d trect, vrect; //triangle rect
 
-	unsigned short (*drawfp)(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod) = NULL;
+	void (*drawfp)(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod) = draw_pixel_dummy;
 
 	vrect.ulx = vrect.uly = 0;
 	vrect.lrx = dest->width;
