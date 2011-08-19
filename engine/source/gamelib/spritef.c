@@ -268,18 +268,18 @@ void putsprite_8(
 
 unsigned char fillcolor = 0;
 
-unsigned char remapcolor(unsigned char* table, unsigned char color, unsigned char unused)
+static unsigned char remapcolor(unsigned char* table, unsigned char color, unsigned char unused)
 {
 	return table[color];
 }
 
-unsigned char blendcolor(unsigned char* table, unsigned char color1, unsigned char color2)
+static unsigned char blendcolor(unsigned char* table, unsigned char color1, unsigned char color2)
 {
 	if(!table) return color1;
 	return table[color1<<8|color2];
 }
 
-unsigned char blendfillcolor(unsigned char* table, unsigned char unused, unsigned char color)
+static unsigned char blendfillcolor(unsigned char* table, unsigned char unused, unsigned char color)
 {
 	if(!table) return fillcolor;
 	return table[fillcolor<<8|color];

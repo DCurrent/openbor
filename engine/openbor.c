@@ -19800,22 +19800,7 @@ void draw_textobjs()
 
 void update(int ingame, int usevwait)
 {
-/*
-	vert2d verts[6] = {
-		{120, 100, 200, 200},
-		{190, 100, 250, 200},
-		{100, 200, 200, 250},
 
-		{190, 100, 250, 200},
-		{200, 200, 250, 250},
-		{100, 200, 200, 250}
-	};
-
-	gfx_entry gfx ={
-		gfx_screen,
-		{.screen = vscreen}
-	};
-*/
 	newtime = 0;
 	inputrefresh();
 
@@ -19923,8 +19908,6 @@ void update(int ingame, int usevwait)
 		}
 		spriteq_draw(vscreen, 0, MIN_INT, MAX_INT); // notice, always draw sprites at the very end of other methods
 	}
-
-	//draw_triangle_list(verts, vscreen, &gfx, NULL, 2);
 
 	if(pause!=2 && !noscreenshot && (bothnewkeys&FLAG_SCREENSHOT)) screenshot(vscreen, getpal, 1);
 

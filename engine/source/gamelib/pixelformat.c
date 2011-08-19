@@ -47,6 +47,7 @@ unsigned colour32(unsigned char r, unsigned char g, unsigned char b)
 #define _channel(src,dest,alpha) (((src*alpha)+(dest*(255-alpha)))>>8)
 #define _color(r,g,b) (((r)<<16)|((g)<<8)|(b))
 
+
 // common blend function
 unsigned blend_multiply(register unsigned color1, register unsigned color2)
 {
