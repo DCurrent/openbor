@@ -13,6 +13,33 @@
 #include "globals.h"
 #include "types.h"
 
+#ifndef TRANSPARENT_IDX
+#define		TRANSPARENT_IDX		0x00
+#endif
+
+static transpixelfunc pfp;
+static unsigned int fillcolor;
+static blend16fp pfp16;
+static blend32fp pfp32;
+static unsigned char* table;
+
+/*transpixelfunc, 8bit*/
+static unsigned char remapcolor(unsigned char* table, unsigned char color, unsigned char unused)
+{
+	return table[color];
+}
+
+static unsigned char blendcolor(unsigned char* table, unsigned char color1, unsigned char color2)
+{
+	if(!table) return color1;
+	return table[color1<<8|color2];
+}
+
+static unsigned char blendfillcolor(unsigned char* table, unsigned char unused, unsigned char color)
+{
+	if(!table) return fillcolor;
+	return table[fillcolor<<8|color];
+}
 
 #if 1
 //////////////////////////////////////////2d quad test/////////////////////////////////////////////
@@ -27,27 +54,165 @@
 
 */
 
-void draw_pixel_dummy(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod)  
+void draw_pixel_dummy(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)  
 {
 	int pb = pixelbytes[(int)dest->pixelformat];
 	unsigned char* pd = ((unsigned char*)(dest->data)) + (dx + dy*dest->width)*pb; 
 	memset(pd, 0, pb);
 }
 
-void draw_pixel_screen(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod)
+void draw_pixel_screen(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
 {
+	unsigned char *ptrd8, *ptrs8, ps8;
+	unsigned short *ptrd16, *ptrs16, pd16, ps16;
+	unsigned int *ptrd32, *ptrs32, pd32, ps32;
+	switch(dest->pixelformat)
+	{
+		case PIXEL_8:
+			ptrd8 = ((unsigned char*)dest->data) + dx + dy * dest->width;
+			ps8 = *(((unsigned char*)src->screen->data) + sx + sy * src->screen->width);
+			if(!ps8) return;
+			*ptrd8 =pfp?pfp(table, ps8, *ptrd8):ps8;
+			break;
+		case PIXEL_16:
+			ptrd16 = ((unsigned short*)dest->data) + dx + dy * dest->width;
+			pd16 = *ptrd16;
+			if(fillcolor) ps16 = fillcolor;
+			else
+			{
+				switch(src->screen->pixelformat)
+				{
+				case PIXEL_16:
+					ptrs16 = ((unsigned short*)src->screen->data) + sx + sy * src->screen->width;
+					ps16 = *ptrs16;
+					break;
+				case PIXEL_x8:
+					ptrs8 = ((unsigned char*)src->screen->data) + sx + sy * src->screen->width;
+					ps16 = table?((unsigned short*)table)[*ptrs8]:((unsigned short*)src->screen->palette)[*ptrs8];
+					break;
+				default:
+					ps16 = 0;
+					break;
+				}
+			}
+			if(!ps16) return;
+			if(!pfp16) *ptrd16 = ps16;
+			else       *ptrd16 = pfp16(ps16, pd16);
+			break;
+		case PIXEL_32:
+			ptrd32 = ((unsigned int*)dest->data) + dx + dy * dest->width;
+			pd32 = *ptrd32;
+			if(fillcolor) ps32 = fillcolor;
+			else
+			{
+				switch(src->screen->pixelformat)
+				{
+				case PIXEL_32:
+					ptrs32 = ((unsigned int*)src->screen->data) + sx + sy * src->screen->width;
+					ps32 = *ptrs32;
+					break;
+				case PIXEL_x8:
+					ptrs8 = ((unsigned char*)src->screen->data) + sx + sy * src->screen->width;
+					ps32 = table?((unsigned int*)table)[*ptrs8]:((unsigned int*)src->screen->palette)[*ptrs8];
+					break;
+				default:
+					ps32 = 0;
+					break;
+				}
+			}
+			if(!ps32) return;
+			if(!pfp32) *ptrd32 = ps32;
+			else       *ptrd32 = pfp32(ps32, pd32);
+			break;
 
+	}
 }
 
 
-void draw_pixel_bitmap(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod)
+void draw_pixel_bitmap(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
 {
+	//stub
+}
+
+// get a pixel from specific sprite
+// should be fairly slow due to the RLE compression
+unsigned char sprite_get_pixel(s_sprite* sprite, int x, int y){
+	int *linetab;
+	register int lx = 0;
+	unsigned char * data;
+
+	x += sprite->centerx;
+	y += sprite->centery;
+	
+	//should we check? 
+	if(y<0 || y>=sprite->height || x<0 || x>=sprite->width)
+		return 0;
+
+
+	linetab = ((int*)sprite->data) + y;
+
+	data = ((unsigned char*)linetab) + (*linetab);
+
+	while(1) {
+		register int count = *data++;
+		if(count == 0xFF) break;
+		if(lx+count>x) return 0; // transparent pixel
+		lx += count;
+		count = *data++;
+		if(!count) continue;
+		if(lx + count > x)
+		{
+			return data[x-lx]; // not transparent pixel
+		}
+		lx+=count;
+		data+=count;
+	}
+
+	return 0; // should not happen, just in case
 
 }
 
-void draw_pixel_sprite(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod)
+void draw_pixel_sprite(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
 {
+	unsigned char *ptrd8, ps8;
+	unsigned short *ptrd16, pd16, ps16;
+	unsigned int *ptrd32, pd32, ps32;
+	switch(dest->pixelformat)
+	{
+		case PIXEL_8:
+			ptrd8 = ((unsigned char*)dest->data) + dx + dy * dest->width;
+			ps8 = sprite_get_pixel(src->sprite, sx, sy);
+			if(!ps8) return;
+			*ptrd8 =pfp?pfp(table, ps8, *ptrd8):ps8;
+			break;
+		case PIXEL_16:
+			ptrd16 = ((unsigned short*)dest->data) + dx + dy * dest->width;
+			pd16 = *ptrd16;
+			if(fillcolor) ps16 = fillcolor;
+			else
+			{
+				ps8 = sprite_get_pixel(src->sprite, sx, sy);
+				ps16 = table?((unsigned short*)table)[ps8]:((unsigned short*)src->sprite->palette)[ps8];
+			}
+			if(!ps16) return;
+			if(!pfp16) *ptrd16 = ps16;
+			else       *ptrd16 = pfp16(ps16, pd16);
+			break;
+		case PIXEL_32:
+			ptrd32 = ((unsigned int*)dest->data) + dx + dy * dest->width;
+			pd32 = *ptrd32;
+			if(fillcolor) ps32 = fillcolor;
+			else
+			{
+				ps8 = sprite_get_pixel(src->sprite, sx, sy);
+				ps32 = table?((unsigned int*)table)[ps8]:((unsigned int*)src->sprite->palette)[ps8];
+			}
+			if(!ps32) return;
+			if(!pfp32) *ptrd32 = ps32;
+			else       *ptrd32 = pfp32(ps32, pd32);
+			break;
 
+	}
 }
 
 
@@ -72,18 +237,74 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 	float spanTx, spanTy, spanTxStep, spanTyStep; // values of Texturecoords when drawing a span
 	rect2d trect, vrect; //triangle rect
 
-	void (*drawfp)(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy,  s_drawmethod* drawmethod) = draw_pixel_dummy;
+	int spf = 0; //source pixel format
+
+	void (*drawfp)(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy) = draw_pixel_dummy;
+
+	switch(src->type)
+	{
+	case gfx_screen:
+		spf = src->screen->pixelformat;
+		drawfp = draw_pixel_screen;
+		break;
+	case gfx_bitmap:
+		spf = src->bitmap->pixelformat;
+		drawfp = draw_pixel_bitmap;
+		break;
+	case gfx_sprite:
+		spf = src->sprite->pixelformat;
+		drawfp = draw_pixel_sprite;
+		break;
+	default:
+		return;
+	}
+
+	switch(dest->pixelformat)
+	{
+	case PIXEL_8:
+		if(drawmethod->fillcolor) fillcolor = drawmethod->fillcolor&0xFF;
+		else fillcolor = 0;
+
+		table = NULL;
+
+		if(drawmethod->table)
+		{
+			table = drawmethod->table;
+			pfp = remapcolor;
+		}
+		else if(drawmethod->alpha>0)
+		{
+			table = blendtables[drawmethod->alpha-1];
+			pfp = (fillcolor==TRANSPARENT_IDX?blendcolor:blendfillcolor);
+		}
+		else pfp = (fillcolor==TRANSPARENT_IDX?NULL:blendfillcolor);
+		break;
+	case PIXEL_16:
+		fillcolor = drawmethod->fillcolor;
+		if(drawmethod->alpha>0) pfp16 = blendfunctions16[drawmethod->alpha-1];
+		else pfp16 = NULL;
+		table = drawmethod->table;
+		break;
+	case PIXEL_32:
+		fillcolor = drawmethod->fillcolor;
+		if(drawmethod->alpha>0) pfp32 = blendfunctions32[drawmethod->alpha-1];
+		else pfp32 = NULL;
+		table = drawmethod->table;
+		break;
+	default: 
+		return;
+	}
+
 
 	vrect.ulx = vrect.uly = 0;
 	vrect.lrx = dest->width;
 	vrect.lry = dest->height;
-
 	
 	for (i=0; i<triangleCount; ++i)
 	{
-		v1 = &vertices[i*3];
-		v2 = &vertices[i*3+1];
-		v3 = &vertices[i*3+2];
+		v1 = &vertices[i];
+		v2 = &vertices[i+1];
+		v3 = &vertices[i+2];
 
 		// sort for width for inscreen clipping
 
@@ -231,7 +452,7 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 					while (hSpanBegin < hSpanEnd)
 					{
 						//*hSpanBegin = srcp[(int)spanTy * src->width + (int)spanTx];
-						drawfp(dest, src, hSpanBegin, targetY, (int)spanTx, (int)spanTy, drawmethod);
+						drawfp(dest, src, hSpanBegin, targetY, (int)spanTx, (int)spanTy);
 
 						spanTx += spanTxStep;
 						spanTy += spanTyStep;
