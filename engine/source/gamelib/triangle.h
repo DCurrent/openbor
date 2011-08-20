@@ -9,5 +9,5 @@
 #ifndef TRIANGLE_H
 #define TRIANGLE_H
 void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_drawmethod* drawmethod, int triangleCount);
-
+unsigned char sprite_get_pixel(s_sprite* sprite, int x, int y);
 #endif

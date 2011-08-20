@@ -19908,7 +19908,17 @@ void update(int ingame, int usevwait)
 		}
 		spriteq_draw(vscreen, 0, MIN_INT, MAX_INT); // notice, always draw sprites at the very end of other methods
 	}
-
+/*
+	if(gosprite>=0){
+		s_sprite* go = sprite_map[gosprite].sprite;
+		int h, v;
+		for(v=0; v<go->height && v<vscreen->height; v++){
+			for(h=0; h<go->width && h<vscreen->width; h++){
+				((unsigned char*)vscreen->data)[v*vscreen->width+h] = sprite_get_pixel(go, h, v);
+			}
+		}
+	}
+*/
 	if(pause!=2 && !noscreenshot && (bothnewkeys&FLAG_SCREENSHOT)) screenshot(vscreen, getpal, 1);
 
 	// Debug stuff, should not appear on screenshot
