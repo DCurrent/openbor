@@ -100,6 +100,11 @@ static List   scriptheap;
 static s_spawn_entry spawnentry;
 extern s_drawmethod plainmethod;
 static s_drawmethod drawmethod;
+//fake 3d draw
+static gfx_entry	texture;
+#define	vert_buf_size	256
+static  vert2d		verts[vert_buf_size];
+
 
 int max_global_var_index = -1;
 
@@ -493,6 +498,9 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_changemodelproperty)) return "changemodelproperty";
 	else if (functionRef==((void*)openbor_rgbcolor)) return "rgbcolor";
 	else if (functionRef==((void*)openbor_zoom)) return "zoom";
+	else if (functionRef==((void*)openbor_settexture)) return "settexture";
+	else if (functionRef==((void*)openbor_setvertex)) return "setvertex";
+	else if (functionRef==((void*)openbor_trianglelist)) return "trianglelist";
 	else return "<unknown function>";
 }
 
@@ -983,6 +991,12 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_rgbcolor, "rgbcolor");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_zoom, "zoom");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_settexture, "settexture");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_setvertex, "setvertex");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_trianglelist, "trianglelist");
 	//printf("Done!\n");
 
 }
@@ -1723,6 +1737,122 @@ drawsprite_error:
 	return E_FAIL;
 }
 
+//setvertex(index, x, y, tx, ty)
+HRESULT openbor_setvertex(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG value[5], i;
+	*pretvar = NULL;
+
+	if(paramCount<5) goto vertex_error;
+
+	for(i=0; i<5; i++)
+	{
+		if(FAILED(ScriptVariant_IntegerValue(varlist[i], value+i)))
+			goto vertex_error;
+	}
+
+	if(value[0]<0 || value[0]>=vert_buf_size) goto vertex_error2;
+
+	verts[value[0]].x = value[1];
+	verts[value[0]].y = value[2];
+	verts[value[0]].tx = value[3];
+	verts[value[0]].ty = value[4];
+
+	return S_OK;
+
+vertex_error:
+	printf("Function requires 5 integer values: setvertex(index, x, y, tx, ty)\n");
+	return E_FAIL;
+
+vertex_error2:
+	printf("Index out of range in function setvertext: range from 0 to %d, %ld is given.\n", vert_buf_size-1, value[0]);
+	return E_FAIL;
+}
+
+//settexture(handle, type)
+HRESULT openbor_settexture(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG	type;
+	*pretvar = NULL;
+
+	if(paramCount<2) goto texture_error;
+
+	if(varlist[0]->vt!=VT_PTR) goto texture_error;
+
+	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &type)))
+		goto texture_error;
+
+	switch(type){
+	case 0:
+		texture.type = gfx_screen;
+		texture.screen = (s_screen*)varlist[0]->ptrVal;
+		break;
+	case 1:
+		texture.type = gfx_bitmap;
+		texture.bitmap = (s_bitmap*)varlist[0]->ptrVal;
+		break;
+	case 2:	
+		texture.type = gfx_sprite;
+		texture.sprite = (s_sprite*)varlist[0]->ptrVal;
+		break;
+	default:
+		goto texture_error2;
+		break;
+	}
+
+	return S_OK;
+
+texture_error:
+	printf("Function requires a valid texture handle and a integer values: settexture(handle, type)\n");
+	return E_FAIL;
+
+texture_error2:
+	printf("Invalid texture type for function settexture: %ld\n", type);
+	return E_FAIL;
+}
+
+// TODO: add a new entry type to the sprite queue (may not happen since you can always use a buffer screen)
+//trianglelist(screen, start, count);  //screen could be NULL
+HRESULT openbor_trianglelist(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	s_screen* scr = NULL;
+	extern s_screen* vscreen;
+	LONG triangle_start = 0;
+	LONG triangle_count = 2;
+	*pretvar = NULL;
+
+	if(paramCount<3) goto trianglelist_error;
+
+	if(varlist[0]->vt!=VT_PTR && varlist[0]->vt!=VT_EMPTY) goto trianglelist_error;
+	scr = (s_screen*)varlist[0]->ptrVal;
+
+	if(!scr) scr = vscreen;
+
+	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &triangle_start)))
+		goto trianglelist_error;
+
+	if(FAILED(ScriptVariant_IntegerValue(varlist[2], &triangle_count)))
+		goto trianglelist_error;
+
+	if(triangle_count<=0) return S_OK; // though we does nothing
+
+	 //check for overflow
+	if(triangle_start<0) triangle_start = 0;
+	else if(triangle_start>vert_buf_size-3) triangle_start = vert_buf_size-3;
+	//check for overflow
+	if(triangle_count>vert_buf_size-triangle_start-2) triangle_count = vert_buf_size-triangle_start-2;
+
+	//go ahead and draw
+	draw_triangle_list(verts + triangle_start, scr, &texture, &drawmethod, triangle_count);
+
+	return S_OK;
+
+trianglelist_error:
+	printf("Function requires a valid screen handle(can be NULL) and two integer values: trianglelist(screen, start, count)\n");
+	return E_FAIL;
+}
+
+
 //drawdot(x, y, z, color, lut);
 HRESULT openbor_drawdot(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
@@ -1850,6 +1980,7 @@ HRESULT openbor_drawscreen(ScriptVariant** varlist , ScriptVariant** pretvar, in
 		screenmethod.alpha = l;
 		screenmethod.transbg = 1;
 	}
+
 	spriteq_add_screen((int)value[0], (int)value[1], (int)value[2], s, &screenmethod, 0);
 
 	return S_OK;

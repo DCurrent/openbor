@@ -22,6 +22,7 @@ static unsigned int fillcolor;
 static blend16fp pfp16;
 static blend32fp pfp32;
 static unsigned char* table;
+static int transbg;
 
 /*transpixelfunc, 8bit*/
 static unsigned char remapcolor(unsigned char* table, unsigned char color, unsigned char unused)
@@ -44,7 +45,7 @@ static unsigned char blendfillcolor(unsigned char* table, unsigned char unused, 
 #if 1
 //////////////////////////////////////////2d quad test/////////////////////////////////////////////
 
-#define swapVertices(va, vb) {vsw=va;va=vb;vb=vsw;}
+#define _swap(va, vb) {vsw=va;va=vb;vb=vsw;}
 #define P unsigned char
 
 /**
@@ -71,56 +72,51 @@ void draw_pixel_screen(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, i
 		case PIXEL_8:
 			ptrd8 = ((unsigned char*)dest->data) + dx + dy * dest->width;
 			ps8 = *(((unsigned char*)src->screen->data) + sx + sy * src->screen->width);
-			if(!ps8) return;
+			if(transbg && !ps8) return;
+			else if(fillcolor) ps8 = fillcolor;
 			*ptrd8 =pfp?pfp(table, ps8, *ptrd8):ps8;
 			break;
 		case PIXEL_16:
 			ptrd16 = ((unsigned short*)dest->data) + dx + dy * dest->width;
 			pd16 = *ptrd16;
-			if(fillcolor) ps16 = fillcolor;
-			else
+			switch(src->screen->pixelformat)
 			{
-				switch(src->screen->pixelformat)
-				{
-				case PIXEL_16:
-					ptrs16 = ((unsigned short*)src->screen->data) + sx + sy * src->screen->width;
-					ps16 = *ptrs16;
-					break;
-				case PIXEL_x8:
-					ptrs8 = ((unsigned char*)src->screen->data) + sx + sy * src->screen->width;
-					ps16 = table?((unsigned short*)table)[*ptrs8]:((unsigned short*)src->screen->palette)[*ptrs8];
-					break;
-				default:
-					ps16 = 0;
-					break;
-				}
+			case PIXEL_16:
+				ptrs16 = ((unsigned short*)src->screen->data) + sx + sy * src->screen->width;
+				ps16 = *ptrs16;
+				if(transbg && !ps16) return;
+				break;
+			case PIXEL_x8:
+				ptrs8 = ((unsigned char*)src->screen->data) + sx + sy * src->screen->width;
+				if(transbg && !*ptrs8) return;
+				ps16 = table?((unsigned short*)table)[*ptrs8]:((unsigned short*)src->screen->palette)[*ptrs8];
+				break;
+			default:
+				return;
 			}
-			if(!ps16) return;
+			if(fillcolor) ps16 = fillcolor;
 			if(!pfp16) *ptrd16 = ps16;
 			else       *ptrd16 = pfp16(ps16, pd16);
 			break;
 		case PIXEL_32:
 			ptrd32 = ((unsigned int*)dest->data) + dx + dy * dest->width;
 			pd32 = *ptrd32;
-			if(fillcolor) ps32 = fillcolor;
-			else
+			switch(src->screen->pixelformat)
 			{
-				switch(src->screen->pixelformat)
-				{
-				case PIXEL_32:
-					ptrs32 = ((unsigned int*)src->screen->data) + sx + sy * src->screen->width;
-					ps32 = *ptrs32;
-					break;
-				case PIXEL_x8:
-					ptrs8 = ((unsigned char*)src->screen->data) + sx + sy * src->screen->width;
-					ps32 = table?((unsigned int*)table)[*ptrs8]:((unsigned int*)src->screen->palette)[*ptrs8];
-					break;
-				default:
-					ps32 = 0;
-					break;
-				}
+			case PIXEL_32:
+				ptrs32 = ((unsigned int*)src->screen->data) + sx + sy * src->screen->width;
+				ps32 = *ptrs32;
+				if(transbg && !ps32) return;
+				break;
+			case PIXEL_x8:
+				ptrs8 = ((unsigned char*)src->screen->data) + sx + sy * src->screen->width;
+				if(transbg && !*ptrs8) return;
+				ps32 = table?((unsigned int*)table)[*ptrs8]:((unsigned int*)src->screen->palette)[*ptrs8];
+				break;
+			default:
+				return;
 			}
-			if(!ps32) return;
+			if(fillcolor) ps32 = fillcolor;
 			if(!pfp32) *ptrd32 = ps32;
 			else       *ptrd32 = pfp32(ps32, pd32);
 			break;
@@ -141,9 +137,6 @@ unsigned char sprite_get_pixel(s_sprite* sprite, int x, int y){
 	register int lx = 0;
 	unsigned char * data;
 
-	x += sprite->centerx;
-	y += sprite->centery;
-	
 	//should we check? 
 	if(y<0 || y>=sprite->height || x<0 || x>=sprite->width)
 		return 0;
@@ -168,7 +161,7 @@ unsigned char sprite_get_pixel(s_sprite* sprite, int x, int y){
 		data+=count;
 	}
 
-	return 0; // should not happen, just in case
+	return 0;
 
 }
 
@@ -183,35 +176,29 @@ void draw_pixel_sprite(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, i
 			ptrd8 = ((unsigned char*)dest->data) + dx + dy * dest->width;
 			ps8 = sprite_get_pixel(src->sprite, sx, sy);
 			if(!ps8) return;
+			else if(fillcolor) ps8 = fillcolor;
 			*ptrd8 =pfp?pfp(table, ps8, *ptrd8):ps8;
 			break;
 		case PIXEL_16:
 			ptrd16 = ((unsigned short*)dest->data) + dx + dy * dest->width;
 			pd16 = *ptrd16;
+			ps8 = sprite_get_pixel(src->sprite, sx, sy);
+			if(!ps8) return;
 			if(fillcolor) ps16 = fillcolor;
-			else
-			{
-				ps8 = sprite_get_pixel(src->sprite, sx, sy);
-				ps16 = table?((unsigned short*)table)[ps8]:((unsigned short*)src->sprite->palette)[ps8];
-			}
-			if(!ps16) return;
+			else ps16 = table?((unsigned short*)table)[ps8]:((unsigned short*)src->sprite->palette)[ps8];
 			if(!pfp16) *ptrd16 = ps16;
 			else       *ptrd16 = pfp16(ps16, pd16);
 			break;
 		case PIXEL_32:
 			ptrd32 = ((unsigned int*)dest->data) + dx + dy * dest->width;
 			pd32 = *ptrd32;
+			ps8 = sprite_get_pixel(src->sprite, sx, sy);
+			if(!ps8) return;
 			if(fillcolor) ps32 = fillcolor;
-			else
-			{
-				ps8 = sprite_get_pixel(src->sprite, sx, sy);
-				ps32 = table?((unsigned int*)table)[ps8]:((unsigned int*)src->sprite->palette)[ps8];
-			}
-			if(!ps32) return;
+			else ps32 = table?((unsigned int*)table)[ps8]:((unsigned int*)src->sprite->palette)[ps8];
 			if(!pfp32) *ptrd32 = ps32;
 			else       *ptrd32 = pfp32(ps32, pd32);
 			break;
-
 	}
 }
 
@@ -222,7 +209,7 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 
 	int i, triangleHalf;
 	float tmpDiv; // temporary division factor
-	float longest; // saves the longest span
+	float spanLongest; // saves the spanLongest span
 	int height; // saves height of triangle
 	int targetY; // target pointer where to plot pixels
 	int spanEnd; // saves end of spans
@@ -239,8 +226,11 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 
 	int spf = 0; //source pixel format
 
+	unsigned char* shadow_buffer; // temporary fix to remove overlapping, relatively slow
+
 	void (*drawfp)(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy) = draw_pixel_dummy;
 
+	//nasty checkings due to those different pixel formats
 	switch(src->type)
 	{
 	case gfx_screen:
@@ -295,22 +285,33 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 		return;
 	}
 
+	transbg = drawmethod->transbg; // check color key, we'll need this for screen and bitmap
+
 
 	vrect.ulx = vrect.uly = 0;
 	vrect.lrx = dest->width;
 	vrect.lry = dest->height;
-	
+
+	shadow_buffer = malloc(dest->width*dest->height);
+
+	if(!shadow_buffer) return;
+
+	memset(shadow_buffer, 0, dest->width*dest->height);
+/*
+	if(triangleCount==8 && src->type == gfx_sprite){
+		printf("%ld\n", src->sprite);
+	}
+	*/
 	for (i=0; i<triangleCount; ++i)
 	{
 		v1 = &vertices[i];
 		v2 = &vertices[i+1];
 		v3 = &vertices[i+2];
 
-		// sort for width for inscreen clipping
-
-		if (v1->x > v2->x)	swapVertices(v1, v2);
-		if (v1->x > v3->x)	swapVertices(v1, v3);
-		if (v2->x > v3->x)	swapVertices(v2, v3);
+		// sort in order of v1 <= v2 <= v3
+		if (v1->x > v2->x)	_swap(v1, v2);
+		if (v1->x > v3->x)	_swap(v1, v3);
+		if (v2->x > v3->x)	_swap(v2, v3);
 
 		if ((v1->x - v3->x) == 0)
 			continue;
@@ -318,11 +319,10 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 		trect.ulx = v1->x;
 		trect.lrx = v3->x;
 
-		// sort for height for faster drawing.
-
-		if (v1->y > v2->y)	swapVertices(v1, v2);
-		if (v1->y > v3->y)	swapVertices(v1, v3);
-		if (v2->y > v3->y)	swapVertices(v2, v3);
+		// sort in order of v1 <= v2 <= v3
+		if (v1->y > v2->y)	_swap(v1, v2);
+		if (v1->y > v3->y)	_swap(v1, v3);
+		if (v2->y > v3->y)	_swap(v2, v3);
 
 		trect.uly = v1->y;
 		trect.lry = v3->y;
@@ -335,9 +335,7 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 		if (!height)
 			continue;
 
-		// calculate longest span
-
-		longest = (v2->y - v1->y) / (float)height * (v3->x - v1->x) + (v1->x - v2->x);
+		spanLongest = (v2->y - v1->y) / (float)height * (v3->x - v1->x) + (v1->x - v2->x);
 
 		spanEnd = v2->y;
 		span = v1->y;
@@ -349,7 +347,7 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 
 		targetY = span;
 
-		if (longest < 0.0f)
+		if (spanLongest < 0.0f)
 		{
 			tmpDiv = 1.0f / (float)(v2->y - v1->y);
 			rightdeltaxf = (v2->x - v1->x) * tmpDiv;
@@ -375,9 +373,7 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 		}
 
 
-		// do it twice, once for the first half of the triangle,
-		// end then for the second half.
-
+		//draw upper and lower half of the triangle
 		for (triangleHalf=0; triangleHalf<2; ++triangleHalf)
 		{
 			if (spanEnd > vrect.lry)
@@ -387,7 +383,6 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 			// and proceed to the next spans which are really on the screen.
 			if (span < vrect.uly)
 			{
-				// we'll use leftx as temp variable
 				if (spanEnd < vrect.uly)
 				{
 					temp = spanEnd - span;
@@ -410,34 +405,16 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 			}
 
 
-			// the main loop. Go through every span and draw it.
-
+			// draw each line of the part
 			while (span < spanEnd)
 			{
 				leftx = (int)(leftxf);
 				rightx = (int)(rightxf + 0.5f);
 
-				// perform some clipping
-
-				// TODO: clipping is not correct when leftx is clipped.
-
-				if (leftx<vrect.ulx)
-					leftx = vrect.ulx;
-				else
-					if (leftx>vrect.lrx)
-						leftx = vrect.lrx;
-
-				if (rightx<vrect.ulx)
-					rightx = vrect.ulx;
-				else
-					if (rightx>vrect.lrx)
-						rightx = vrect.lrx;
-
-				// draw the span
-
+				// TODO: perform clipping before going for the pixels
 				if (rightx - leftx != 0)
 				{
-					tmpDiv = 1.0f / (rightx - leftx);
+					tmpDiv = 1.0f / (rightxf - leftxf); // important: use float version of the right and left values to avoid sawtooth left edge
 
 					hSpanBegin = leftx;
 					hSpanEnd = rightx;
@@ -447,12 +424,18 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 					spanTxStep = (rightTx - leftTx) * tmpDiv;
 					spanTyStep = (rightTy - leftTy) * tmpDiv;
 
-					//printf("==%f ==%f\n", spanTxStep, spanTyStep);
-
 					while (hSpanBegin < hSpanEnd)
 					{
-						//*hSpanBegin = srcp[(int)spanTy * src->width + (int)spanTx];
-						drawfp(dest, src, hSpanBegin, targetY, (int)spanTx, (int)spanTy);
+						if(hSpanBegin>=vrect.ulx && hSpanBegin<vrect.lrx)
+						{
+							temp = hSpanBegin + targetY*dest->width;
+							//*hSpanBegin = srcp[(int)spanTy * src->width + (int)spanTx];
+							if(!shadow_buffer[temp]) 
+							{
+								drawfp(dest, src, hSpanBegin, targetY, (int)spanTx, (int)spanTy);
+								shadow_buffer[temp] = 1;
+							}
+						}
 
 						spanTx += spanTxStep;
 						spanTy += spanTyStep;
@@ -480,7 +463,7 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 
 			// setup variables for second half of the triangle.
 
-			if (longest < 0.0f)
+			if (spanLongest < 0.0f)
 			{
 				tmpDiv = 1.0f / (v3->y - v2->y);
 
@@ -510,10 +493,10 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 		}
 
 	}
-
+	free(shadow_buffer);
 }
 #undef P
-#undef swapVertices
+#undef _swap
 ////////////////////////////////////////////////////////////////
 #endif
 
