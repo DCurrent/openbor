@@ -19844,7 +19844,7 @@ void update(int ingame, int usevwait)
 					}
 				}
 			}
-			if(ingame || selectScreen) update_ents();
+			if(ingame==1 || selectScreen) update_ents();
 			++time;
 		}
 
@@ -20172,6 +20172,14 @@ void shutdown(int status, char *msg, ...)
 	int i;
 #endif
 
+	static int shuttingdown = 0;
+
+	if(shuttingdown) return;
+
+	shuttingdown = 1;
+
+	//printf("savedata.logo %d\n", savedata.logo);
+
 	va_start(arglist, msg);
 	vsprintf(buf, msg, arglist);
 	va_end(arglist);
@@ -20266,6 +20274,7 @@ void shutdown(int status, char *msg, ...)
 	assert(status == 0); // this way we can haz backtrace.
 	#endif
 
+	shuttingdown = 0;
 	exit(status);
 }
 
