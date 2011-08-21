@@ -59,7 +59,7 @@
 #define		AUDIOCIDE_VERSION	"2.00"
 #define		MIXSHIFT		     3	    // 2 should be OK
 #define		MAXVOLUME		     64	    // 64 for backw. compat.
-#define		MAX_SAMPLES		     512	// Should be well enough
+#define		MAX_SAMPLES		     1024	// Should be well enough
 #define		MAX_CHANNELS	     64	    // Should be well enough
 
 // Hardware settings for SoundBlaster (change only if latency is too big)
