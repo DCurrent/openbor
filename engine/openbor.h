@@ -600,12 +600,12 @@ typedef struct
 	char            logo:8;
 	char            uselog:8;
 	char			debuginfo:8;					// FPS, Memory, etc...
-	char			fullscreen:8;					// Window or Full Screen Mode
+	int				fullscreen:8;					// Window or Full Screen Mode
 	char			stretch:8;						// Stretch (1) or preserve aspect ratio (0) in fullscreen mode
 #if SDL
-	char			usegl:8;						// 1 if OpenGL is preferred over SDL software blitting
+	char			usegl[2];						// 1 if OpenGL is preferred over SDL software blitting
 	float			glscale;						// Scale factor for OpenGL
-	char			glfilter:8;						// Simple or bilinear scaling
+	char			glfilter[2];					// Simple or bilinear scaling
 #endif
 #if PSP
 	char			pspcpuspeed:8;					// PSP CPU Speed

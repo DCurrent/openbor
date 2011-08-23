@@ -2009,9 +2009,11 @@ void clearsettings()
 	savedata.stretch = 0;
 
 #ifdef SDL
-	savedata.usegl = 0;
+	savedata.usegl[0] = 0;
+	savedata.usegl[1] = 1;
 	savedata.glscale = 1.0;
-	savedata.glfilter = 0;
+	savedata.glfilter[0] = 1;
+	savedata.glfilter[1] = 0;
 #endif
 
 	savedata.screen[0][0] = 0; savedata.screen[0][1] = 0;
@@ -22668,7 +22670,7 @@ void video_options(){
 		_menutext((selector==3), col2, 0, "%s", savedata.fullscreen ? "Full" : "Window");
 
 		_menutext((selector==4), col1, 1, "Video Backend:");
-		_menutext((selector==4), col2, 1, savedata.fullscreen ? "Automatic (%s)" : "%s", opengl ? "OpenGL" : "SDL");
+		_menutext((selector==4), col2, 1, "%s", opengl ? "OpenGL" : "SDL");
 
 		if(opengl)
 		{
@@ -22677,8 +22679,7 @@ void video_options(){
 			else _menutext((selector==5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes*savedata.glscale), (int)(videomodes.vRes*savedata.glscale));
 
 			_menutext((selector==6), col1, 3, "Filters:");
-			if(savedata.fullscreen) _menutext((selector==6), col2, 3, "Automatic (Bilinear)");
-			else _menutext((selector==6), col2, 3, "%s", savedata.glscale!=1.0 ? (savedata.glfilter ? "Simple" : "Bilinear") : "Disabled");
+			_menutext((selector==6), col2, 3, "%s", savedata.glscale!=1.0 ? (savedata.glfilter[savedata.fullscreen] ? "Simple" : "Bilinear") : "Disabled");
 		}
 		else
 		{
@@ -22831,8 +22832,7 @@ void video_options(){
 					video_fullscreen_flip();
 					break;
 				case 4:
-					if(savedata.fullscreen) break;
-					savedata.usegl ^= 1;
+					savedata.usegl[savedata.fullscreen] ^= 1;
 					video_set_mode(videomodes);
 					set_color_correction(savedata.gamma, savedata.brightness);
 					break;
@@ -22864,10 +22864,10 @@ void video_options(){
 				case 6:
 					if(opengl)
 					{
-						if(savedata.fullscreen || (savedata.glscale == 1.0)) break;
-						savedata.glfilter += dir;
-						if(savedata.glfilter < 0) savedata.glfilter = 1;
-						if(savedata.glfilter > 1) savedata.glfilter = 0;
+						if(savedata.glscale == 1.0) break;
+						savedata.glfilter[savedata.fullscreen] += dir;
+						if(savedata.glfilter[savedata.fullscreen] < 0) savedata.glfilter[savedata.fullscreen] = 1;
+						if(savedata.glfilter[savedata.fullscreen] > 1) savedata.glfilter[savedata.fullscreen] = 0;
 					}
 					else
 					{
