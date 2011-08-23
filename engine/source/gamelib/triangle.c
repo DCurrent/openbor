@@ -494,6 +494,7 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 
 	}
 	free(shadow_buffer);
+	shadow_buffer = NULL;
 }
 #undef P
 #undef _swap
