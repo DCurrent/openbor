@@ -14757,9 +14757,9 @@ int common_trymove(float xdir, float zdir)
 		other->xdir = other->zdir = 0;
 		if(validanim(self,ANI_GRAB))
 		{
-			other->direction = !self->direction;
 			ent_set_anim(self, ANI_GRAB, 0);
 			set_pain(other, -1, 0); //set grabbed animation
+			other->direction = !self->direction;
 			self->attacking = 0;
 			memset(self->combostep, 0, 5*sizeof(int));
 			other->takeaction = common_grabbed;
