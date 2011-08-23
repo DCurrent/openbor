@@ -265,7 +265,7 @@ error:
 	if(screen) SDL_FreeAndNullVideoSurface(screen);
 	if(bscreen) { SDL_FreeSurface(bscreen); bscreen=NULL; }
 	opengl = 0;
-	savedata.usegl = 0;
+	savedata.usegl[savedata.fullscreen] = 0;
 	return 0;
 }
 
@@ -378,7 +378,7 @@ int video_gl_copy_screen(s_screen* src)
 	yOffset = (viewportHeight - scaledHeight) / 2;
 
 	// set texture scaling type
-	if((savedata.glfilter && !savedata.fullscreen) || (textureWidth == (stretch ? viewportWidth : scaledWidth)))
+	if((savedata.glfilter[savedata.fullscreen]) || (textureWidth == (stretch ? viewportWidth : scaledWidth)))
 	{
 		glTexParameter(textureTarget, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameter(textureTarget, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
