@@ -86,17 +86,19 @@ void clearscreen(s_screen * s)
 // Screen copy function with offset options. Supports clipping.
 void copyscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplitude, float wavelength, int time, int watermode)
 {
-	unsigned char *sp, *dp;
+	unsigned char* sp = (unsigned char*)src->data, *dp =(unsigned char*)dest->data;
 	int pixelformat = src->pixelformat;
+	int sb, db;
 	int sw = src->width;
 	int sh = src->height;
 	int dw = dest->width;
 	int dh = dest->height;
 	int ch = sh;
-	int slinew, dlinew;
 	int sox, soy;
 	float s = (float)(time % 256);
 	int t, u;
+	int sbeginx, sendx, dbeginx, dendx;
+	int bpp = pixelbytes[(int)pixelformat];
 
 
 	if(dest->pixelformat != src->pixelformat) return;
@@ -121,41 +123,46 @@ void copyscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplitu
 	//if(x<0) x = 0;
 	if(y<0) y = 0;
 
-	sp = src->data + soy*sw*pixelbytes[(int)pixelformat];
-	dp = dest->data + (y*dw+x)*pixelbytes[(int)pixelformat];
+	sb = soy*sw;
+	db = y*dw;
 
-	//linew = cw*pixelbytes[(int)pixelformat];
-	slinew = sw*pixelbytes[(int)pixelformat];
-	dlinew = dw*pixelbytes[(int)pixelformat];
-	u = ((watermode==1)?distortion((int)s, amplitude):amplitude)*pixelbytes[(int)pixelformat];
+	u = (watermode==1)?distortion((int)s, amplitude):amplitude;
 	wavelength = 256 / wavelength;
 	s += soy*wavelength;
-	x *= pixelbytes[(int)pixelformat];
-
 
 	// Copy data
 	do{
 			s = s - (int)s + (int)s % 256;
-			t = (distortion((int)s, amplitude))*pixelbytes[(int)pixelformat] - u;
+			t = distortion((int)s, amplitude) - u;
 
-			// Nothing to display
-			if(x + t + slinew < 0 || x + t > dlinew){}
-
-			// layer is cropped off at the left
-			else if(x + t < 0)
-				 memcpy(dp - x, sp - x - t, slinew + t + x);
-
-			// layer is cropped off at the right
-			else if(x + slinew + t > dlinew)
-				 memcpy(dp + t, sp, dlinew - x - t);
-
-			// formula for all other cases
-			else
-				 memcpy(dp + t, sp, slinew);
+			dbeginx = x+t;
+			dendx = x+t+sw;
+			
+			if(dbeginx>=sw || dendx<=0) {dbeginx = dendx = sbeginx = sendx = 0;} //Nothing to draw
+			//clip both
+			else if(dbeginx<0 && dendx>dw){ 
+				sbeginx = -dbeginx; sendx = sbeginx + dw;
+				dbeginx = 0; dendx = dw;
+			}
+			//clip left
+			else if(dbeginx<0) {
+				sbeginx = -dbeginx; sendx = sw;
+				dbeginx = 0;
+			}
+			// clip right
+			else if(dendx>dw) {
+				sbeginx = 0; sendx = dw - dbeginx;	
+				dendx = dw;
+			}
+			// clip none
+			else{
+				sbeginx = 0; sendx = sw;
+			}
+			memcpy(dp + (db + dbeginx)*bpp, sp+ (sb + sbeginx)*bpp, (dendx-dbeginx)*bpp);
 
 			s += wavelength;
-		sp += slinew;
-		dp += dlinew;
+		sb += sw;
+		db += dw;
 	}while(--ch);
 }
 
@@ -209,27 +216,22 @@ void copyscreen_o(s_screen * dest, s_screen * src, int x, int y)
 // Screen copy function with offset options. Supports clipping.
 void copyscreen_trans_water(s_screen * dest, s_screen * src, int x, int y, int amplitude, float wavelength, int time, int watermode)
 {
-	unsigned char *sp, *dp;
-	//int pixelformat = src->pixelformat;
+	unsigned char* sp = (unsigned char*)src->data, *dp =(unsigned char*)dest->data;
+	int sb, db;
 	int sw = src->width;
 	int sh = src->height;
 	int dw = dest->width;
 	int dh = dest->height;
 	int ch = sh;
-	//int slinew, dlinew;
 	int sox, soy;
 	float s = (float)(time % 256);
-	int t, u, i;
-
-
-	if(dest->pixelformat != src->pixelformat) return;
+	int t, u;
+	unsigned char* csp, *cdp;
+	int sbeginx, sendx, dbeginx, dendx;
+	int bytestocopy;
 
 	// Copy anything at all?
 	if(x + amplitude*2 + sw <= 0 || x - amplitude*2  >= dw) return;
-	/*if(x >= dw) return;
-	if(sw+x <= 0) return;
-	if(y >= dh) return;
-	if(sh+y <= 0) return;*/
 
 	sox = 0;
 	soy = 0;
@@ -244,59 +246,52 @@ void copyscreen_trans_water(s_screen * dest, s_screen * src, int x, int y, int a
 	//if(x<0) x = 0;
 	if(y<0) y = 0;
 
-	sp = src->data + soy*sw-1;
-	dp = dest->data + y*dw+x-1;
+	sb = soy*sw;
+	db = y*dw;
 
 	u = (watermode==1)?distortion((int)s, amplitude):amplitude;
 	wavelength = 256 / wavelength;
 	s += soy*wavelength;
 
-
 	// Copy data
 	do{
 			s = s - (int)s + (int)s % 256;
-			t = (distortion((int)s, amplitude)) - u;
+			t = distortion((int)s, amplitude) - u;
 
-			// Nothing to display
-			if(x + t + sw - 1 < 0 || x + t + 1 > dw){}
-
-			// layer is cropped off at the left
-			else if(x + t < 0)
-			{
-				 i=sw+t+x-1;
-				 do{
-					  if(sp[i-x-t+1]==0)continue;
-					  dp[i-x+1] = sp[i-x-t+1];
-				 }while(i--);
-				 //memcpy(dp - x, sp - x - t, slinew + t + x);
+			dbeginx = x+t;
+			dendx = x+t+sw;
+			
+			if(dbeginx>=sw || dendx<=0) {dbeginx = dendx = sbeginx = sendx = 0;} //Nothing to draw
+			//clip both
+			else if(dbeginx<0 && dendx>dw){ 
+				sbeginx = -dbeginx; sendx = sbeginx + dw;
+				dbeginx = 0; dendx = dw;
 			}
-
-			// layer is cropped off at the right
-			else if(x + sw + t > dw)
-			{
-				 i=dw-x-t-1;
-				 do{
-					  if(sp[i+1]==0)continue;
-					  dp[i+t+1] = sp[i+1];
-				 }while(i--);
-				 //memcpy(dp + t, sp, dlinew - x - t);
+			//clip left
+			else if(dbeginx<0) {
+				sbeginx = -dbeginx; sendx = sw;
+				dbeginx = 0;
 			}
+			// clip right
+			else if(dendx>dw) {
+				sbeginx = 0; sendx = dw - dbeginx;	
+				dendx = dw;
+			}
+			// clip none
+			else{
+				sbeginx = 0; sendx = sw;
+			}
+			cdp = dp + db + dbeginx;
+			csp = sp+ sb + sbeginx; 
+			bytestocopy = dendx-dbeginx;
 
-
-			// formula for all other cases
-			else
-			{
-				 i=sw-1;
-				 do{
-					  if(sp[i+1]==0)continue;
-					  dp[i+t+1] = sp[i+1];
-				 }while(i--);
-				 //memcpy(dp + t, sp, sw);
+			for(t=0; t<bytestocopy; t++){
+				if(csp[t]) cdp[t] = csp[t];
 			}
 
 			s += wavelength;
-		sp += sw;
-		dp += dw;
+		sb += sw;
+		db += dw;
 	}while(--ch);
 }
 
@@ -395,27 +390,22 @@ void copyscreen_remap(s_screen * dest, s_screen * src, int x, int y, unsigned ch
 // Screen copy function with offset options. Supports clipping.
 void blendscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplitude, float wavelength, int time, int watermode, unsigned char* lut)
 {
-	unsigned char *sp, *dp;
-	//int pixelformat = src->pixelformat;
+	unsigned char* sp = (unsigned char*)src->data, *dp =(unsigned char*)dest->data;
+	int sb, db;
 	int sw = src->width;
 	int sh = src->height;
 	int dw = dest->width;
 	int dh = dest->height;
 	int ch = sh;
-	//int slinew, dlinew;
 	int sox, soy;
 	float s = (float)(time % 256);
-	int t, u, i;
-
-
-	if(dest->pixelformat != src->pixelformat) return;
+	int t, u;
+	unsigned char* csp, *cdp;
+	int sbeginx, sendx, dbeginx, dendx;
+	int bytestocopy;
 
 	// Copy anything at all?
 	if(x + amplitude*2 + sw <= 0 || x - amplitude*2  >= dw) return;
-	/*if(x >= dw) return;
-	if(sw+x <= 0) return;
-	if(y >= dh) return;
-	if(sh+y <= 0) return;*/
 
 	sox = 0;
 	soy = 0;
@@ -430,59 +420,52 @@ void blendscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplit
 	//if(x<0) x = 0;
 	if(y<0) y = 0;
 
-	sp = src->data + soy*sw;
-	dp = dest->data + y*dw+x;
+	sb = soy*sw;
+	db = y*dw;
 
 	u = (watermode==1)?distortion((int)s, amplitude):amplitude;
 	wavelength = 256 / wavelength;
 	s += soy*wavelength;
 
-
 	// Copy data
 	do{
 			s = s - (int)s + (int)s % 256;
-			t = (distortion((int)s, amplitude)) - u;
+			t = distortion((int)s, amplitude) - u;
 
-						// Nothing to display
-			if(x + t + sw - 1 < 0 || x + t + 1 > dw){}
-
-			// layer is cropped off at the left
-			else if(x + t < 0)
-			{
-				 i=sw+t+x-1;
-				 do{
-					  if(sp[i-x-t]==0)continue;
-					  dp[i-x] = lut[sp[i-x-t]<<8|dp[i-x]];
-				 }while(i--);
-				 //memcpy(dp - x, sp - x - t, slinew + t + x);
+			dbeginx = x+t;
+			dendx = x+t+sw;
+			
+			if(dbeginx>=sw || dendx<=0) {dbeginx = dendx = sbeginx = sendx = 0;} //Nothing to draw
+			//clip both
+			else if(dbeginx<0 && dendx>dw){ 
+				sbeginx = -dbeginx; sendx = sbeginx + dw;
+				dbeginx = 0; dendx = dw;
 			}
-
-			// layer is cropped off at the right
-			else if(x + sw + t > dw)
-			{
-				 i=dw-x-t-1;
-				 do{
-					  if(sp[i]==0)continue;
-					  dp[i+t] = lut[sp[i]<<8|dp[i+t]];
-				 }while(i--);
-				 //memcpy(dp + t, sp, dlinew - x - t);
+			//clip left
+			else if(dbeginx<0) {
+				sbeginx = -dbeginx; sendx = sw;
+				dbeginx = 0;
 			}
+			// clip right
+			else if(dendx>dw) {
+				sbeginx = 0; sendx = dw - dbeginx;	
+				dendx = dw;
+			}
+			// clip none
+			else{
+				sbeginx = 0; sendx = sw;
+			}
+			cdp = dp + db + dbeginx;
+			csp = sp+ sb + sbeginx; 
+			bytestocopy = dendx-dbeginx;
 
-
-			// formula for all other cases
-			else
-			{
-				 i=sw-1;
-				 do{
-					  if(sp[i]==0)continue;
-					  dp[i+t] = lut[sp[i]<<8|dp[i+t]];
-				 }while(i--);
-				 //memcpy(dp + t, sp, sw);
+			for(t=0; t<bytestocopy; t++){
+				if(csp[t]) cdp[t] = lut[csp[t]<<8|cdp[t]];;
 			}
 
 			s += wavelength;
-		sp += sw;
-		dp += dw;
+		sb += sw;
+		db += dw;
 	}while(--ch);
 }
 
