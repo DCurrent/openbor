@@ -16154,7 +16154,11 @@ int check_special()
 	{
 		set_attacking(self);
 		memset(self->combostep, 0, sizeof(int)*5);
-		ent_unlink(self);
+		if(self->link){
+			set_idle(self->link);
+			self->link->takeaction = NULL;
+			ent_unlink(self);
+		}
 
 		if(self->modeldata.smartbomb && !self->modeldata.dofreeze)
 		{
@@ -21256,11 +21260,11 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 					if(stricmp(levelorder[which_set][i]->branchname, branch_name)==0)
 					{
 						current_level = i;
-						branch_name[0] = 0;// clear up so we won't stuck here
 						break;
 					}
 					//if(levelorder[which_set][i]->gonext==1) ++current_stage; OX. Commented this line out. Seems to be cause of inacurate stage # complete message.
 				}
+				branch_name[0] = 0;// clear up so we won't stuck here
 			}
 			PLAYER_MIN_Z = levelorder[which_set][current_level]->z_coords[0];
 			PLAYER_MAX_Z = levelorder[which_set][current_level]->z_coords[1];
@@ -21319,6 +21323,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 		}
 	}
 	// clear global script variant list
+	branch_name[0] = 0;
 	max_global_var_index = -1;
 	for(i=0; i<max_indexed_vars; i++) ScriptVariant_Clear(indexed_var_list+i);
 	sound_close_music();
