@@ -6438,7 +6438,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _cep_grabforce:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->model->grabforce = (int)ltemp;
+			ent->modeldata.grabforce = (int)ltemp;
 		break;
 	}
 	case _cep_guardpoints:

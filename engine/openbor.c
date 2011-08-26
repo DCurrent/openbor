@@ -10658,6 +10658,12 @@ void ent_copy_uninit(entity* ent, s_model* oldmodel)
 		ent->modeldata.mp                   = oldmodel->mp;
 	if(ent->modeldata.risetime[0]==-1)
 		ent->modeldata.risetime[0]          = oldmodel->risetime[0];
+	if(!ent->modeldata.antigrab)
+		ent->modeldata.antigrab             = oldmodel->antigrab;
+	if(!ent->modeldata.grabforce)
+		ent->modeldata.grabforce            = oldmodel->grabforce;
+	if(!ent->modeldata.paingrab)
+		ent->modeldata.paingrab             = oldmodel->paingrab;
 
 	if(ent->health>ent->modeldata.health)
 		ent->health = ent->modeldata.health;
