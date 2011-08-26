@@ -534,6 +534,7 @@ typedef enum {
 	CMD_MODELSTXT_LIFESCORE,
 	CMD_MODELSTXT_CREDSCORE,
 	CMD_MODELSTXT_VERSUSDAMAGE,
+	CMD_MODELSTXT_COMBODELAY,
 } modelstxtCommands;
 
 void freeCommandList(List* list);

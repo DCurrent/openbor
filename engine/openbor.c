@@ -162,6 +162,8 @@ float               lasthita;						//Last hit A location.
 int                 lasthitt;                       //Last hit type.
 int                 lasthitc;                       //Last hit confirm (i.e. if engine hit code will be used).
 
+int					combodelay = GAME_SPEED*2;		// avoid annoying 112112... infinite combo
+
 // used by gfx shadow
 int                 light[2] = {0, 0};
 int                 shadowcolor = 0;
@@ -7409,6 +7411,9 @@ int load_models()
 				max_attacks = GET_INT_ARG(1);
 				if(max_attacks<MAX_ATTACKS) max_attacks = MAX_ATTACKS;
 				break;
+			case CMD_MODELSTXT_COMBODELAY:
+				combodelay = GET_INT_ARG(1);
+				break;
 			case CMD_MODELSTXT_MUSIC:
 				music(GET_ARG(1), 1, atol(GET_ARG(2)));
 				break;
@@ -11552,7 +11557,7 @@ void do_attack(entity *e)
 						else flash = spawn(lasthitx,lasthitz,lasthita, 0, NULL, self->modeldata.flash, NULL);
 						if(flash) execute_onspawn_script(flash);
 					}
-					topowner->combotime = time + (GAME_SPEED/2); // well, add to its owner's combo
+					topowner->combotime = time + combodelay; // well, add to its owner's combo
 
 					if(e->animpos != e->lastanimpos || (inair(e) && !equalairpause))          // if equalairpause is set, inair(e) is nolonger a condition for extra pausetime
 					{    // Adds pause to the current animation

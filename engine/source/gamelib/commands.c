@@ -72,6 +72,7 @@ List* createModelstxtCommandList(void) {
 	LIST_ADD(CMD_MODELSTXT_LIFESCORE, "lifescore");
 	LIST_ADD(CMD_MODELSTXT_CREDSCORE, "credscore");
 	LIST_ADD(CMD_MODELSTXT_VERSUSDAMAGE, "versusdamage");
+	LIST_ADD(CMD_MODELSTXT_COMBODELAY, "combodelay");
 	#undef LIST_ADD
 	return result;
 }
