@@ -162,7 +162,7 @@ float               lasthita;						//Last hit A location.
 int                 lasthitt;                       //Last hit type.
 int                 lasthitc;                       //Last hit confirm (i.e. if engine hit code will be used).
 
-int					combodelay = GAME_SPEED*2;		// avoid annoying 112112... infinite combo
+int					combodelay = GAME_SPEED/2;		// avoid annoying 112112... infinite combo
 
 // used by gfx shadow
 int                 light[2] = {0, 0};
