@@ -560,8 +560,8 @@
 		  (self->modeldata.type == TYPE_PLAYER && other->modeldata.type == TYPE_PLAYER && savedata.mode)))
 
 #define cangrab(self, other) \
-		((other->model->antigrab - self->model->grabforce + \
-		  (other->model->paingrab?(other->model->paingrab-other->inpain):0)<=0) &&\
+		((other->modeldata.antigrab - self->modeldata.grabforce + \
+		  (other->modeldata.paingrab?(other->modeldata.paingrab-other->inpain):0)<=0) &&\
 		 canbegrabbed(self, other) && \
 		 !inair(self) && \
 		 diff(other->a, self->a) <= 0.1)

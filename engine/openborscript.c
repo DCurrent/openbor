@@ -2495,6 +2495,7 @@ enum getentityproperty_enum {
 	_gep_animnum,
 	_gep_animpos,
 	_gep_animvalid,
+	_gep_antigrab,
 	_gep_antigravity,
 	_gep_attack,
 	_gep_attacking,
@@ -2835,6 +2836,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"animnum",
 		"animpos",
 		"animvalid",
+		"antigrab",
 		"antigravity",
 		"attack",
 		"attacking",
@@ -3536,6 +3538,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		}
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)validanim(ent, ltemp);
+		break;
+	}
+	case _gep_antigrab:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.antigrab;
 		break;
 	}
 	case _gep_antigravity:
@@ -6023,7 +6031,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _cep_antigrab:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			ent->model->antigrab = (int)ltemp;
+			ent->modeldata.antigrab = (int)ltemp;
 		break;
 	}
     case _cep_antigravity:
