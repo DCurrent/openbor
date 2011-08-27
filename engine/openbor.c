@@ -22018,7 +22018,7 @@ void keyboard_setup(int player){
 		}
 		_menutextm((selector==12), 7, 0, "OK");
 		_menutextm((selector==13), 8, 0, "Cancel");
-		update(0,0);
+		update((level!=NULL),0);
 
 		if(setting > -1){
 			if(bothnewkeys & FLAG_ESC){
