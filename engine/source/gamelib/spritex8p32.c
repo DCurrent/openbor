@@ -266,11 +266,6 @@ static void scaleline(int x, int cx, int width, int *linetab, unsigned* palette,
         {
                 cleft = *data++;
                 if(cleft==0xFF) return;// end of line
-                cwidth = *data++;
-                if(!cwidth) continue;
-                //scale_s += cleft<<8;     // src scale, 256
-                charptr = data;
-                data += cwidth; // skip some bytes to next block
                 scale_d += cleft*scale;  // dest scale, scale
                 dx += (cleft*scale)>>8;
                 if(dx>=screenwidth) return; // out of right border? exit
@@ -280,6 +275,11 @@ static void scaleline(int x, int cx, int width, int *linetab, unsigned* palette,
                         dest_c += (d>>8);
                         old_scale_d = scale_d & 0xFFFFFF00;
                 }
+                cwidth = *data++;
+                if(!cwidth) continue;
+                //scale_s += cleft<<8;     // src scale, 256
+                charptr = data;
+                data += cwidth; // skip some bytes to next block
                 while(cwidth--) // draw these pixels
                 {
                         scale_d += scale;
@@ -330,12 +330,7 @@ static void scaleline_flip(int x, int cx, int width, int *linetab, unsigned* pal
         for(;;)
         {
                 cleft = *data++;
-                if(cleft==0xFF) return;
-                cwidth = *data++;
-                if(!cwidth) continue; // end of line
-                //scale_s += cleft<<8;     // src scale, 256
-                charptr = data;
-                data += cwidth; // skip some bytes to next block
+                if(cleft==0xFF) return; // end of line
                 scale_d += cleft*scale;  // dest scale, scale
                 dx -= (cleft*scale)>>8;  // move left , because it is flipped
                 if(dx<0) return; // out of left border? exit
@@ -345,6 +340,11 @@ static void scaleline_flip(int x, int cx, int width, int *linetab, unsigned* pal
                         dest_c -= (d>>8);
                         old_scale_d = scale_d & 0xFFFFFF00;
                 }
+                cwidth = *data++;
+                if(!cwidth) continue;
+                //scale_s += cleft<<8;     // src scale, 256
+                charptr = data;
+                data += cwidth; // skip some bytes to next block
                 while(cwidth--) // draw these pixels
                 {
                         scale_d += scale;
@@ -408,11 +408,6 @@ static void scaleline_rot(int x, int y, int cx, int dy, int width, int *linetab,
         {
                 cleft = *data++;
                 if(cleft==0xFF) return;// end of line
-                cwidth = *data++;
-                if(!cwidth) continue;
-                //scale_s += cleft<<8;     // src scale, 256
-                charptr = data;
-                data += cwidth; // skip some bytes to next block
                 scale_d += cleft*scale;  // dest scale, scale
                 dx += (cleft*scale)>>8;
                 //if(dx>=screenwidth) return; // out of right border? exit
@@ -421,6 +416,11 @@ static void scaleline_rot(int x, int y, int cx, int dy, int width, int *linetab,
                 {
                         old_scale_d = scale_d & 0xFFFFFF00;
                 }
+                cwidth = *data++;
+                if(!cwidth) continue;
+                //scale_s += cleft<<8;     // src scale, 256
+                charptr = data;
+                data += cwidth; // skip some bytes to next block
                 while(cwidth--) // draw these pixels
                 {
                         scale_d += scale;
@@ -509,11 +509,6 @@ static void scaleline_rotflip(int x, int y, int cx, int dy, int width, int *line
         {
                 cleft = *data++;
                 if(cleft==0xFF) return;
-                cwidth = *data++;
-                if(!cwidth) continue; // end of line
-                //scale_s += cleft<<8;     // src scale, 256
-                charptr = data;
-                data += cwidth; // skip some bytes to next block
                 scale_d += cleft*scale;  // dest scale, scale
                 dx -= (cleft*scale)>>8;  // move left , because it is flipped
                 //if(dx<0) return; // out of left border? exit
@@ -522,6 +517,11 @@ static void scaleline_rotflip(int x, int y, int cx, int dy, int width, int *line
                 {
                         old_scale_d = scale_d & 0xFFFFFF00;
                 }
+                cwidth = *data++;
+                if(!cwidth) continue; // end of line
+                //scale_s += cleft<<8;     // src scale, 256
+                charptr = data;
+                data += cwidth; // skip some bytes to next block
                 while(cwidth--) // draw these pixels
                 {
                         scale_d += scale;
