@@ -2569,6 +2569,7 @@ enum getentityproperty_enum {
 	_gep_nodieblink,
 	_gep_nodrop,
 	_gep_nograb,
+	_gep_nolife,
 	_gep_nopain,
 	_gep_offense,
 	_gep_opponent,
@@ -2910,6 +2911,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"nodieblink",
 		"nodrop",
 		"nograb",
+		"nolife",
 		"nopain",
 		"offense",
 		"opponent",
@@ -4684,6 +4686,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		(*pretvar)->lVal = (LONG)ent->nograb;
 		break;
 	}
+	case _gep_nolife:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.nolife;
+		break;
+	}
 	case _gep_nopain:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -5312,6 +5320,7 @@ enum changeentityproperty_enum {
     _cep_nodieblink,
     _cep_nodrop,
     _cep_nograb,
+	_cep_nolife,
     _cep_nopain,
     _cep_offense,
     _cep_opponent,
@@ -5538,6 +5547,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"nodieblink",
 		"nodrop",
 		"nograb",
+		"nolife",
 		"nopain",
 		"offense",
 		"opponent",
@@ -6794,6 +6804,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 			ent->nograb = (int)ltemp;
+		break;
+	}
+	case _cep_nolife:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->modeldata.nolife = (int)ltemp;
 		break;
 	}
 	case _cep_nopain:
