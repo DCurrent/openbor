@@ -1051,6 +1051,7 @@ typedef struct
 	short			height:16;						// Used to set height of player in pixels
 	float			speed;
 	float			grabdistance;					// 30-12-2004	grabdistance varirable adder per character
+	char			grabflip;						// Flip target or not, bit0: grabber, bit1: opponent
 	float           jumpspeed;                      // normal jump foward speed, default to max(1, speed)
 	float			jumpheight;						// 28-12-2004	Jump height variable added per character
 	char            jumpmovex:8;                    // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
