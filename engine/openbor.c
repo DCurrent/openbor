@@ -4529,6 +4529,7 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->runjumpheight      = 4;		        // Default jump height if a player is running
 	newchar->runjumpdist        = 1;		        // Default jump distane if a player is running
 	newchar->grabdistance       = 36;		        //  30-12-2004 Default grabdistance is same as originally set
+	newchar->grabflip		    = 3;
 	newchar->throwdamage        = 21;		        // default throw damage
 	newchar->icon.def               = -1;
 	newchar->icon.die            = -1;
@@ -5194,6 +5195,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_GRABDISTANCE:
 					newchar->grabdistance = GET_FLOAT_ARG(1);                    // 30-12-2004 and store for character
+					break;
+				case CMD_MODEL_GRABFLIP:
+					newchar->grabflip = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_GRABFINISH:
 					newchar->grabfinish = GET_INT_ARG(1);
@@ -14756,7 +14760,7 @@ int common_trymove(float xdir, float zdir)
 		cangrab(self, other) &&
 		adjust_grabposition(self, other, self->modeldata.grabdistance, 0))
 	{
-		self->direction = (self->x < other->x);
+		if(self->model->grabflip&1) self->direction = (self->x < other->x);
 
 		set_opponent(other, self);
 		ents_link(self, other);
@@ -14770,7 +14774,7 @@ int common_trymove(float xdir, float zdir)
 		{
 			ent_set_anim(self, ANI_GRAB, 0);
 			set_pain(other, -1, 0); //set grabbed animation
-			other->direction = !self->direction;
+			if(self->model->grabflip&2) other->direction = !self->direction;
 			self->attacking = 0;
 			memset(self->combostep, 0, 5*sizeof(int));
 			other->takeaction = common_grabbed;
@@ -14784,7 +14788,7 @@ int common_trymove(float xdir, float zdir)
 		// otherwise enemy_throw_wait will be used, kbandressen 10/20/06
 		else
 		{
-			other->direction = !self->direction;
+			if(self->model->grabflip&2) other->direction = !self->direction;
 			ent_set_anim(self, ANI_THROW, 0);
 			set_pain(other, -1, 0); // set grabbed animation
 

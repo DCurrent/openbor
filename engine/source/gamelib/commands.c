@@ -161,6 +161,7 @@ List* createModelCommandList(void) {
 	LIST_ADD(CMD_MODEL_JUMPMOVE, "jumpmove");
 	LIST_ADD(CMD_MODEL_KNOCKDOWNCOUNT, "knockdowncount");
 	LIST_ADD(CMD_MODEL_GRABDISTANCE, "grabdistance");
+	LIST_ADD(CMD_MODEL_GRABFLIP, "grabflip");
 	LIST_ADD(CMD_MODEL_GRABFINISH, "grabfinish");
 	LIST_ADD(CMD_MODEL_THROWDAMAGE, "throwdamage");
 	LIST_ADD(CMD_MODEL_SHADOW, "shadow");
