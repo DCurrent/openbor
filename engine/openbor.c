@@ -6314,6 +6314,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						else if(stricmp(value, "duckattack")==0){
 							ani_id = ANI_DUCKATTACK;
 						}
+						else if(stricmp(value, "walkoff")==0){
+							ani_id = ANI_WALKOFF;
+						}
 						else {
 							shutdownmessage = "Invalid animation name!";
 							goto lCleanup;
@@ -11775,6 +11778,13 @@ void check_gravity()
 			}
 			if (self->tossv) execute_onmovea_script(self); //Move A event.
 
+			if(self->idling && validanim(self, ANI_WALKOFF))
+			{
+				self->idling = 0;
+				self->takeaction = common_walkoff;
+				ent_set_anim(self, ANI_WALKOFF, 0);
+			}
+
 			// UTunnels: tossv <= 0 means land, while >0 means still rising, so
 			// you wont be stopped if you are passing the edge of a wall
 			if( (self->a<=self->base || !inair(self)) && self->tossv <= 0)
@@ -13463,6 +13473,14 @@ void common_drop()
 	self->idling = 1;
 	self->takeaction = NULL;
 	if(self->health<=0) kill(self);
+}
+
+//Similar as above, walk off a wall/cliff
+void common_walkoff()
+{
+	if(inair(self) || self->animating) return;
+	set_idle(self);
+	self->takeaction = NULL;
 }
 
 // play turn animation and then flip
