@@ -703,15 +703,19 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
         {
                 if(drawmethod->flipx)
                 {
+					if(!drawmethod->shiftx){
                         dx = x + ((centerx*drawmethod->scalex)/256); //draw start x
                         if(dx<0 || dx-((frame->width*drawmethod->scalex)>>8)>=screenwidth) return; // out of left or right border
-                        scalelinefp = scaleline_flip;
+					}
+                    scalelinefp = scaleline_flip;
                 }
                 else
                 {
+					if(!drawmethod->shiftx){
                         dx = x - ((centerx*drawmethod->scalex)/256); //draw start x
                         if(dx>=screenwidth || dx+((frame->width*drawmethod->scalex)>>8)<0) return; // out of left or right border
-                        scalelinefp = scaleline;
+					}
+                    scalelinefp = scaleline;
                 }
 
                 // flip in y direction, from centery
