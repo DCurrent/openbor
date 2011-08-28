@@ -417,8 +417,9 @@
 #define		ANI_RISEATTACK10	158
 #define		ANI_RISEATTACKB		159
 #define		ANI_RISEATTACKS		160
+#define		ANI_WALKOFF			161
 
-#define		MAX_ANIS			161    // max_anis increased for new ANIs
+#define		MAX_ANIS			162    // max_anis increased for new ANIs
 
 #define     ARG_FLOAT            0
 #define     ARG_STRING           1
@@ -1782,6 +1783,7 @@ void normal_prepare();
 void common_jump();
 void common_spawn(void);
 void common_drop(void);
+void common_walkoff(void);
 void common_jumpattack();
 void common_turn();
 void common_fall();
