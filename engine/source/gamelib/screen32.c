@@ -55,6 +55,8 @@ void putscreenx8p32_water(s_screen * dest, s_screen * src, int x, int y, int key
 	wavelength = 256 / wavelength;
 	s += soy*wavelength;
 
+	if(!remap) remap = (u32*) src->palette;
+
 	// Copy data
 	do{
 			s = s - (int)s + (int)s % 256;
@@ -90,7 +92,7 @@ void putscreenx8p32_water(s_screen * dest, s_screen * src, int x, int y, int key
 			//TODO: optimize this if necessary
 			for(t=0; t<bytestocopy; t++){
 				if(!key || csp[t]){
-					cdp[t] = blendfp?blendfp(remap[sp[t]], dp[t]):remap[sp[t]];
+					cdp[t] = blendfp?blendfp(remap[csp[t]], cdp[t]):remap[csp[t]];
 				}
 			}
 
