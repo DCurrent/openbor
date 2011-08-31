@@ -105,13 +105,11 @@ void copyscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplitu
 
 	// Copy anything at all?
 	if(x + amplitude*2 + sw <= 0 || x - amplitude*2  >= dw) return;
-	/*if(x >= dw) return;
-	if(sw+x <= 0) return;
-	if(y >= dh) return;
-	if(sh+y <= 0) return;*/
+	if(y + sh <=0 || y >= dh) return;
 
 	sox = 0;
 	soy = 0;
+	if(s<0) s+=256;
 
 	// Clip?
 	//if(x<0) {sox = -x; cw += x;}
@@ -132,35 +130,35 @@ void copyscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplitu
 
 	// Copy data
 	do{
-			s = s - (int)s + (int)s % 256;
-			t = distortion((int)s, amplitude) - u;
+		s = s - (int)s + (int)s % 256;
+		t = distortion((int)s, amplitude) - u;
 
-			dbeginx = x+t;
-			dendx = x+t+sw;
-			
-			if(dbeginx>=sw || dendx<=0) {dbeginx = dendx = sbeginx = sendx = 0;} //Nothing to draw
-			//clip both
-			else if(dbeginx<0 && dendx>dw){ 
-				sbeginx = -dbeginx; sendx = sbeginx + dw;
-				dbeginx = 0; dendx = dw;
-			}
-			//clip left
-			else if(dbeginx<0) {
-				sbeginx = -dbeginx; sendx = sw;
-				dbeginx = 0;
-			}
-			// clip right
-			else if(dendx>dw) {
-				sbeginx = 0; sendx = dw - dbeginx;	
-				dendx = dw;
-			}
-			// clip none
-			else{
-				sbeginx = 0; sendx = sw;
-			}
-			memcpy(dp + (db + dbeginx)*bpp, sp+ (sb + sbeginx)*bpp, (dendx-dbeginx)*bpp);
+		dbeginx = x+t;
+		dendx = x+t+sw;
+		
+		if(dbeginx>=dw || dendx<=0) {dbeginx = dendx = sbeginx = sendx = 0;} //Nothing to draw
+		//clip both
+		else if(dbeginx<0 && dendx>dw){ 
+			sbeginx = -dbeginx; sendx = sbeginx + dw;
+			dbeginx = 0; dendx = dw;
+		}
+		//clip left
+		else if(dbeginx<0) {
+			sbeginx = -dbeginx; sendx = sw;
+			dbeginx = 0;
+		}
+		// clip right
+		else if(dendx>dw) {
+			sbeginx = 0; sendx = dw - dbeginx;	
+			dendx = dw;
+		}
+		// clip none
+		else{
+			sbeginx = 0; sendx = sw;
+		}
+		memcpy(dp + (db + dbeginx)*bpp, sp+ (sb + sbeginx)*bpp, (dendx-dbeginx)*bpp);
 
-			s += wavelength;
+		s += wavelength;
 		sb += sw;
 		db += dw;
 	}while(--ch);
@@ -232,9 +230,11 @@ void copyscreen_trans_water(s_screen * dest, s_screen * src, int x, int y, int a
 
 	// Copy anything at all?
 	if(x + amplitude*2 + sw <= 0 || x - amplitude*2  >= dw) return;
+	if(y + sh <=0 || y >= dh) return;
 
 	sox = 0;
 	soy = 0;
+	if(s<0) s+=256;
 
 	// Clip?
 	//if(x<0) {sox = -x; cw += x;}
@@ -255,41 +255,41 @@ void copyscreen_trans_water(s_screen * dest, s_screen * src, int x, int y, int a
 
 	// Copy data
 	do{
-			s = s - (int)s + (int)s % 256;
-			t = distortion((int)s, amplitude) - u;
+		s = s - (int)s + (int)s % 256;
+		t = distortion((int)s, amplitude) - u;
 
-			dbeginx = x+t;
-			dendx = x+t+sw;
-			
-			if(dbeginx>=sw || dendx<=0) {dbeginx = dendx = sbeginx = sendx = 0;} //Nothing to draw
-			//clip both
-			else if(dbeginx<0 && dendx>dw){ 
-				sbeginx = -dbeginx; sendx = sbeginx + dw;
-				dbeginx = 0; dendx = dw;
-			}
-			//clip left
-			else if(dbeginx<0) {
-				sbeginx = -dbeginx; sendx = sw;
-				dbeginx = 0;
-			}
-			// clip right
-			else if(dendx>dw) {
-				sbeginx = 0; sendx = dw - dbeginx;	
-				dendx = dw;
-			}
-			// clip none
-			else{
-				sbeginx = 0; sendx = sw;
-			}
-			cdp = dp + db + dbeginx;
-			csp = sp+ sb + sbeginx; 
-			bytestocopy = dendx-dbeginx;
+		dbeginx = x+t;
+		dendx = x+t+sw;
+		
+		if(dbeginx>=dw || dendx<=0) {dbeginx = dendx = sbeginx = sendx = 0;} //Nothing to draw
+		//clip both
+		else if(dbeginx<0 && dendx>dw){ 
+			sbeginx = -dbeginx; sendx = sbeginx + dw;
+			dbeginx = 0; dendx = dw;
+		}
+		//clip left
+		else if(dbeginx<0) {
+			sbeginx = -dbeginx; sendx = sw;
+			dbeginx = 0;
+		}
+		// clip right
+		else if(dendx>dw) {
+			sbeginx = 0; sendx = dw - dbeginx;	
+			dendx = dw;
+		}
+		// clip none
+		else{
+			sbeginx = 0; sendx = sw;
+		}
+		cdp = dp + db + dbeginx;
+		csp = sp+ sb + sbeginx; 
+		bytestocopy = dendx-dbeginx;
 
-			for(t=0; t<bytestocopy; t++){
-				if(csp[t]) cdp[t] = csp[t];
-			}
+		for(t=0; t<bytestocopy; t++){
+			if(csp[t]) cdp[t] = csp[t];
+		}
 
-			s += wavelength;
+		s += wavelength;
 		sb += sw;
 		db += dw;
 	}while(--ch);
@@ -406,9 +406,11 @@ void blendscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplit
 
 	// Copy anything at all?
 	if(x + amplitude*2 + sw <= 0 || x - amplitude*2  >= dw) return;
+	if(y + sh <=0 || y >= dh) return;
 
 	sox = 0;
 	soy = 0;
+	if(s<0) s+=256;
 
 	// Clip?
 	//if(x<0) {sox = -x; cw += x;}
@@ -429,41 +431,41 @@ void blendscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplit
 
 	// Copy data
 	do{
-			s = s - (int)s + (int)s % 256;
-			t = distortion((int)s, amplitude) - u;
+		s = s - (int)s + (int)s % 256;
+		t = distortion((int)s, amplitude) - u;
 
-			dbeginx = x+t;
-			dendx = x+t+sw;
-			
-			if(dbeginx>=sw || dendx<=0) {dbeginx = dendx = sbeginx = sendx = 0;} //Nothing to draw
-			//clip both
-			else if(dbeginx<0 && dendx>dw){ 
-				sbeginx = -dbeginx; sendx = sbeginx + dw;
-				dbeginx = 0; dendx = dw;
-			}
-			//clip left
-			else if(dbeginx<0) {
-				sbeginx = -dbeginx; sendx = sw;
-				dbeginx = 0;
-			}
-			// clip right
-			else if(dendx>dw) {
-				sbeginx = 0; sendx = dw - dbeginx;	
-				dendx = dw;
-			}
-			// clip none
-			else{
-				sbeginx = 0; sendx = sw;
-			}
-			cdp = dp + db + dbeginx;
-			csp = sp+ sb + sbeginx; 
-			bytestocopy = dendx-dbeginx;
+		dbeginx = x+t;
+		dendx = x+t+sw;
+		
+		if(dbeginx>=dw || dendx<=0) {dbeginx = dendx = sbeginx = sendx = 0;} //Nothing to draw
+		//clip both
+		else if(dbeginx<0 && dendx>dw){ 
+			sbeginx = -dbeginx; sendx = sbeginx + dw;
+			dbeginx = 0; dendx = dw;
+		}
+		//clip left
+		else if(dbeginx<0) {
+			sbeginx = -dbeginx; sendx = sw;
+			dbeginx = 0;
+		}
+		// clip right
+		else if(dendx>dw) {
+			sbeginx = 0; sendx = dw - dbeginx;	
+			dendx = dw;
+		}
+		// clip none
+		else{
+			sbeginx = 0; sendx = sw;
+		}
+		cdp = dp + db + dbeginx;
+		csp = sp+ sb + sbeginx; 
+		bytestocopy = dendx-dbeginx;
 
-			for(t=0; t<bytestocopy; t++){
-				if(csp[t]) cdp[t] = lut[csp[t]<<8|cdp[t]];;
-			}
+		for(t=0; t<bytestocopy; t++){
+			if(csp[t]) cdp[t] = lut[csp[t]<<8|cdp[t]];;
+		}
 
-			s += wavelength;
+		s += wavelength;
 		sb += sw;
 		db += dw;
 	}while(--ch);
