@@ -570,6 +570,7 @@ Script level_script;    //execute when level start
 Script endlevel_script; //execute when level finished
 Script update_script;   //execute when ingame update
 Script updated_script;  //execute when ingame update finished
+Script loading_script;	// in loading screen
 Script key_script_all;  //keyscript for all players
 Script timetick_script; //time tick script.
 
@@ -1161,6 +1162,7 @@ void init_scripts()
 	Script_Init(&endlevel_script,   "endlevel", 1);
 	Script_Init(&key_script_all,    "keyall",   1);
 	Script_Init(&timetick_script,   "timetick", 1);
+	Script_Init(&loading_script,    "loading",  1);
 	for(i=0; i<4; i++) Script_Init(&score_script[i],    "score",    1);
 	for(i=0; i<4; i++) Script_Init(&key_script[i],      "key",      1);
 	for(i=0; i<4; i++) Script_Init(&join_script[i],     "join",     1);
@@ -1182,6 +1184,7 @@ void load_scripts()
 	if(!load_script(&endlevel_script,   "data/scripts/endlevel.c")) Script_Clear(&endlevel_script,      2);
 	if(!load_script(&key_script_all,    "data/scripts/keyall.c"))   Script_Clear(&key_script_all,       2);
 	if(!load_script(&timetick_script,   "data/scripts/timetick.c")) Script_Clear(&timetick_script,      2);
+	if(!load_script(&loading_script,    "data/scripts/loading.c"))  Script_Clear(&loading_script,       2);
 	if(!load_script(&score_script[0],   "data/scripts/score1.c"))   Script_Clear(&score_script[0],      2);
 	if(!load_script(&score_script[1],   "data/scripts/score2.c"))   Script_Clear(&score_script[1],      2);
 	if(!load_script(&score_script[2],   "data/scripts/score3.c"))   Script_Clear(&score_script[2],      2);
@@ -1208,6 +1211,7 @@ void load_scripts()
 	Script_Compile(&endlevel_script);
 	Script_Compile(&key_script_all);
 	Script_Compile(&timetick_script);
+	Script_Compile(&loading_script);
 	for(i=0; i<4; i++) Script_Compile(&score_script[i]);
 	for(i=0; i<4; i++) Script_Compile(&key_script[i]);
 	for(i=0; i<4; i++) Script_Compile(&join_script[i]);
@@ -1942,6 +1946,27 @@ void execute_timetick_script(int time, int gotime)
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant("time",    &tempvar);
 		Script_Set_Local_Variant("gotime",  &tempvar);
+	}
+	pcurrentscript = ptempscript;
+}
+
+void execute_loading_script(int value, int max)
+{
+	ScriptVariant tempvar;
+	Script* ptempscript = pcurrentscript;
+	if(Script_IsInitialized(&loading_script))
+	{
+		ScriptVariant_Init(&tempvar);
+		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+		tempvar.lVal = (LONG)value;
+		Script_Set_Local_Variant("value",    &tempvar);
+		tempvar.lVal = (LONG)max;
+		Script_Set_Local_Variant("max", &tempvar);
+		Script_Execute(&loading_script);
+		//clear to save variant space
+		ScriptVariant_Clear(&tempvar);
+		Script_Set_Local_Variant("value",    &tempvar);
+		Script_Set_Local_Variant("max",  &tempvar);
 	}
 	pcurrentscript = ptempscript;
 }
@@ -6603,10 +6628,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_ATTACK: case CMD_MODEL_ATTACK1:  case CMD_MODEL_ATTACK2: case CMD_MODEL_ATTACK3:
 				case CMD_MODEL_ATTACK4: case CMD_MODEL_ATTACK5: case CMD_MODEL_ATTACK6: case CMD_MODEL_ATTACK7:
 				case CMD_MODEL_ATTACK8: case CMD_MODEL_ATTACK9: case CMD_MODEL_ATTACK10:
-				case CMD_MODEL_ATTACK11: case CMD_MODEL_ATTACK12: case CMD_MODEL_ATTACK13:
-				case CMD_MODEL_ATTACK14: case CMD_MODEL_ATTACK15: case CMD_MODEL_ATTACK16:
-				case CMD_MODEL_ATTACK17: case CMD_MODEL_ATTACK18: case CMD_MODEL_ATTACK19: case CMD_MODEL_ATTACK20:
 				case CMD_MODEL_SHOCK: case CMD_MODEL_BURN: case CMD_MODEL_STEAL: case CMD_MODEL_FREEZE: case CMD_MODEL_ITEMBOX:
+				case CMD_MODEL_ATTACK_ETC:
 					abox[0] = GET_INT_ARG(1);
 					abox[1] = GET_INT_ARG(2);
 					abox[2] = GET_INT_ARG(3);
@@ -9975,7 +9998,10 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 		keybtick = ticks;
 	}
 
+
 	if(ticks - lasttick > s->refreshMs || value < 0 || value == max) { // Negative value forces a repaint. used when only bg is drawn for the first time
+		spriteq_clear();
+		execute_loading_script(value, max);
 		if(s->set) {
 			if (value < 0) value = 0;
 			if(isLoadingScreenTypeBar(s->set)) {
@@ -9995,10 +10021,10 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 		}
 		else if(value < 0) { // Original BOR v1.0029 used this method.  Since loadingbg is optional, we should print this one again.
 			clearscreen(vscreen);
-			spriteq_clear();
 			font_printf(120 + videomodes.hShift, 110 + videomodes.vShift, 0, 0, "Loading...");
 			spriteq_draw(vscreen, 0, MIN_INT, MAX_INT);
 			video_copy_screen(vscreen);
+			spriteq_clear();
 		}
 		lasttick = ticks;
 	}
@@ -11974,6 +12000,10 @@ void check_ai()
 				{
 					self->pathblocked++; // for those who walk against wall or borders
 				}
+				else
+				{
+					self->pathblocked = 0;
+				}
 			}
 			else
 			{
@@ -13224,7 +13254,9 @@ entity * normal_find_item(){
 	//find the 'nearest' one
 	for(i=0; i<ent_max; i++){
 		ce = ent_list[i];
+
 		if( ce->exists && isItem(ce) &&
+		(ce->modeldata.stealth.hide <= self->modeldata.stealth.detect) &&
 		diff(ce->x,self->x) + diff(ce->z,self->z)< 300 &&
 		ce->animation->vulnerable[ce->animpos] &&
 		(validanim(self,ANI_GET) || (isSubtypeTouch(ce) && canBeDamaged(ce, self))) &&
@@ -14689,13 +14721,14 @@ int common_trymove(float xdir, float zdir)
 		self->modeldata.subject_to_hole>0 && !inair(self) &&
 		!(self->modeldata.aimove&AIMOVE2_IGNOREHOLES))
 	{
-		if(xdir && checkhole(x, self->z) && checkwall(x, self->z)<0 && (((other = check_platform(x, self->z)) && self->base < other->a + other->animation->platform[other->animpos][7]) || other == NULL))
-		{
-			xdir = 0;
-		}
+
 		if(zdir && checkhole(self->x, z) && checkwall(self->x, z)<0 && (((other = check_platform(self->x, z)) &&  self->base < other->a + other->animation->platform[other->animpos][7]) || other == NULL))
 		{
 			zdir = 0;
+		}
+		if(xdir && checkhole(x, self->z) && checkwall(x, self->z)<0 && (((other = check_platform(x, self->z)) &&  self->base < other->a + other->animation->platform[other->animpos][7]) || other == NULL))
+		{
+			xdir = 0;
 		}
 	}
 
@@ -14746,6 +14779,7 @@ int common_trymove(float xdir, float zdir)
 
 	// ------------------ wall checking ---------------------
 	if(self->modeldata.subject_to_wall){
+
 		if((wall = checkwall(x, self->z))>=0 && level->walls[wall][7]>self->a)
 		{
 			if(xdir > 0.5){ xdir = 0.5; }
@@ -15113,16 +15147,92 @@ int common_try_pick(entity* other)
 	return 1;
 }
 
+// wall sliding code
+// whichside:
+//      0
+//  1       3
+//      2
+int adjustdirection(float coords[], float offx, float offz, float ox, float oz, float xdir, float zdir, float *cxdir, float *czdir)
+{
+	float x[4], z[4];
+	int whichside, i;
+	float a;
+
+	for(i=0; i<4; i++){
+		x[i] = coords[2+i] + coords[0] + offx;
+	}
+	z[1] = z[3] = coords[1] + offz;
+	z[0] = z[2] = z[1] - coords[6];
+
+	if(oz<=z[0]) whichside = 0;
+	else if(oz>=z[1]) whichside = 2;
+	else if(ox<x[2]) whichside = 1;
+	else whichside = 3;
+
+	if(whichside==0 || whichside==2){
+		*cxdir = xdir;
+		*czdir = 0;
+	}else{
+		if((x[0]==x[1] && whichside==1) || (x[2]==x[3] && whichside==3)) {
+			*cxdir = 0;
+			*czdir = zdir;
+		}else{
+			if(whichside==1)
+				a = (z[1]-z[0])/(x[1]-x[0]);
+			else
+				a = (z[3]-z[2])/(x[3]-x[2]);
+
+			*cxdir = xdir + zdir/a;
+			*czdir = a * xdir + zdir;
+
+			a = (ABS(xdir) + ABS(zdir)) / (ABS(*cxdir) + ABS(*czdir)) ;
+			*cxdir *= a;
+			*czdir *= a;
+		}
+	}
+	//printf("%f, %f, %f, %f, %d\n", xdir, zdir, *cxdir, *czdir, whichside);
+	return whichside;
+}
+
 void checkpathblocked()
 {
+	float x, z, r;
+	int aitype;
 	if(self->stalltime>=time)
 	{
-		if(self->pathblocked>10)
+		aitype = self->modeldata.aimove;
+		if(self->modeldata.subtype==SUBTYPE_CHASE) aitype |= AIMOVE1_CHASE;
+
+		if(self->pathblocked>200 || (self->pathblocked>20 && (aitype & (AIMOVE1_CHASEX|AIMOVE1_CHASEZ|AIMOVE1_CHASE))))
 		{
+			/*
 			self->xdir = self->zdir = 0;
 			set_idle(self);
 			self->pathblocked = 0;
-			self->stalltime = time + GAME_SPEED/4;
+			self->stalltime = time + GAME_SPEED;*/
+
+			x = self->xdir;
+			z = self->zdir;
+			if(x>0) x = self->modeldata.speed;
+			else if(x<0) x = -self->modeldata.speed;
+			if(z>0) z = self->modeldata.speed/2;
+			else if(z<0) z = -self->modeldata.speed/2;
+			r = randf(1);
+			if(r>0.6f){
+				self->zdir = x;
+				self->xdir = -z;
+			} else if(r>0.2f) {
+				self->zdir = -x;
+				self->xdir = z;
+			}else{
+				self->zdir = (1.0f - randf(2))*self->modeldata.speed/2;
+				self->xdir = (1.0f - randf(2))*self->modeldata.speed;
+			}
+			self->running = 0; // TODO: re-adjust walk speed 
+			self->stalltime = time + GAME_SPEED;
+			self->pathblocked = 0;
+			adjust_walk_animation(NULL);
+
 		}
 	}
 }

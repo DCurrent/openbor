@@ -1269,7 +1269,7 @@ typedef struct entity
 	char            toexplode:8;						// Needed to determine if the projectile is a type that will explode (bombs, dynamite, etc)
 	char			animating:8;						// Set by animation code
 	char			arrowon:8;						// Flag to display parrow/parrow2 or not
-	char            pathblocked:8;
+	unsigned char   pathblocked:8;
 
 	//---------------------   end of flags ----------------------------------------------
 	short			animpos:16;
@@ -1315,6 +1315,7 @@ typedef struct entity
 	float*          defense_blocktype;              //0 = HP, 1=MP, 2=both taken when this attack type is blocked.
 	float*          offense_factors;                //offense factors: damage = damage*(1+def)
 	float           antigravity;                    // gravity*(1-antigravity)
+	//float			waypoint[3];					//next waypoint, ignore target in this case
 
 	//-------------------A.I. movement factors ----------------------------
 	int             sortid;                         // id for sprite queue sort
