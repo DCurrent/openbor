@@ -31,7 +31,7 @@ int SB_getpos()
 void SB_playstop()
 {
 	if (!inited) return;
-	audio_Term();
+	audio_Term(1);
 	inited = 0;
 }
 
@@ -44,7 +44,7 @@ void SB_setvolume(char dev, char volume)
 	switch(dev) {
 		case SB_VOICEVOL:
 			/* 0-15 to 0-0x8000 */
-			audio_SetVolume(0,volume<<11,volume<<11);
+			audio_SetVolume(volume<<11, volume<<11);
 			break;
 	}
 }
