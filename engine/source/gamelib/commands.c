@@ -1,4 +1,5 @@
 #include "commands.h"
+#include "openbor.h"
 
 
 void freeCommandList(List* list) {
@@ -78,6 +79,8 @@ List* createModelstxtCommandList(void) {
 }
 
 List* createModelCommandList(void) {
+	int i, amax = 99;
+	char buf[64] ;
 	List* result = prepareList();
 	#define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
 	LIST_ADD(CMD_MODEL_NAME, "name");
@@ -304,16 +307,10 @@ List* createModelCommandList(void) {
 	LIST_ADD(CMD_MODEL_ATTACK8, "attack8");
 	LIST_ADD(CMD_MODEL_ATTACK9, "attack9");
 	LIST_ADD(CMD_MODEL_ATTACK10, "attack10");
-	LIST_ADD(CMD_MODEL_ATTACK11, "attack11");
-	LIST_ADD(CMD_MODEL_ATTACK12, "attack12");
-	LIST_ADD(CMD_MODEL_ATTACK13, "attack13");
-	LIST_ADD(CMD_MODEL_ATTACK14, "attack14");
-	LIST_ADD(CMD_MODEL_ATTACK15, "attack15");
-	LIST_ADD(CMD_MODEL_ATTACK16, "attack16");
-	LIST_ADD(CMD_MODEL_ATTACK17, "attack17");
-	LIST_ADD(CMD_MODEL_ATTACK18, "attack18");
-	LIST_ADD(CMD_MODEL_ATTACK19, "attack19");
-	LIST_ADD(CMD_MODEL_ATTACK20, "attack20");
+	for(i=11; i<=amax; i++){
+		sprintf(buf, "attack%d", i);
+		LIST_ADD(CMD_MODEL_ATTACK_ETC, buf);
+	}
 	LIST_ADD(CMD_MODEL_SHOCK, "shock");
 	LIST_ADD(CMD_MODEL_BURN, "burn");
 	LIST_ADD(CMD_MODEL_STEAL, "steal");
