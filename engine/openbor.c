@@ -19568,6 +19568,15 @@ void draw_scrolled_bg(){
 		if(((level->rocking || level->bgspeed>0 || texture)&& !pause) ||
 		   oldadvx!=advancex || oldadvy != advancey || current_palette!=oldpal)
 			bgbuffer_updated = 0;
+		else {
+			// temporary fix for bglayer water
+			for(i=0; i<level->numbglayers; i++){
+				if(level->bglayers[i].watermode && level->bglayers[i].amplitude){
+					bgbuffer_updated = 0;
+					break;
+				}
+			}
+		}
 		oldadvx = advancex;
 		oldadvy = advancey;
 		oldpal = current_palette;
