@@ -9397,11 +9397,11 @@ void load_level(char *filename){
 
 		if(background) unload_background();
 	}
-
+/*
 	if(pixelformat==PIXEL_x8)
 	{
 		if(level->numbglayers>0) bgbuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
-	}
+	}*/
 	bgbuffer_updated = 0;
 	if(musicPath[0]) music(musicPath, 1, musicOffset);
 
@@ -15553,7 +15553,7 @@ void common_pickupitem(entity* other){
 	// other items
 	else if(! isSubtypeWeapon(other) && ! isSubtypeProjectile(other))
 	{
-		if(validanim(self,ANI_GET) && isSubtypeTouch(other) && canBeDamaged(other, self))
+		if(validanim(self,ANI_GET) && !isSubtypeTouch(other) && canBeDamaged(other, self))
 		{
 			ent_set_anim(self, ANI_GET, 0);
 			set_getting(self);
