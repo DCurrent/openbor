@@ -9,9 +9,9 @@
 #ifndef AUDIODRV_H
 #define AUDIODRV_H
 
-void audio_SetVolume(int channel, int left, int right);
+void audio_SetVolume(int left, int right);
 int audio_Init(void);
-void audio_Term(void);
+void audio_Term(int kill_thread);
 
 #endif
 
