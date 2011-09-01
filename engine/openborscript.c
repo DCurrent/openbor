@@ -4379,6 +4379,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 			case _gep_knockdowncount_current:
                 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
                 (*pretvar)->dblVal = (DOUBLE)ent->knockdowncount;
+				break;
 			case _gep_knockdowncount_max:
                 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
                 (*pretvar)->dblVal = (DOUBLE)ent->modeldata.knockdowncount;
@@ -4386,6 +4387,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
             case _gep_knockdowncount_time:
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)ent->knockdowncount;
+				break;
 			default:
 				ScriptVariant_Clear(*pretvar);
 				return E_FAIL;
@@ -6566,6 +6568,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
                     (*pretvar)->lVal = (LONG)1;
                     ent->knockdowncount = (float)dbltemp;
                 }
+				break;
             }
             case _cep_knockdowncount_max:
             {
@@ -6574,12 +6577,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
                     (*pretvar)->lVal = (LONG)1;
                     ent->modeldata.knockdowncount = (float)dbltemp;
                 }
+				break;
             case _cep_knockdowncount_time:
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
                 {
                     (*pretvar)->lVal = (LONG)1;
                     ent->knockdowntime = (int)ltemp;
                 }
+				break;
             }
             default:
                 printf("Unknown knockdowncount subproperty.\n");
