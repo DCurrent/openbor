@@ -12656,7 +12656,7 @@ void display_ents()
 						else                             z++;
 					}
 
-					if(other && other != e && e->a >= other->a + other->animation->platform[other->animpos][7])
+					if(other && other != e && e->a >= other->a + other->animation->platform[other->animpos][7] && !other->modeldata.setlayer)
 					{
 						if(
 							e->link &&
