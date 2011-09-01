@@ -12754,7 +12754,9 @@ void display_ents()
 						}
 
 						wall2=checkwall_below(e->x + temp1, e->z + temp2, e->a); // check if the shadow drop into a hole or fall on another wall
-						if(!(checkhole(e->x + temp1, e->z + temp2) && wall2<0) )//&& !(wall>=0 && level->walls[wall][7]>e->a))
+
+						//TODO check platforms, don't want to go through the entity list again right now
+						if(!(checkhole(e->x + temp1, e->z + temp2) && wall2<0 && !other) )//&& !(wall>=0 && level->walls[wall][7]>e->a))
 						{
 							if(wall>=0 && wall2 >= 0)
 							{
