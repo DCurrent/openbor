@@ -144,6 +144,7 @@ palette_table_function blending_table_functions[MAX_BLENDINGS] = {palette_table_
 int                 current_set = 0;
 int                 current_level = 0;
 int                 current_stage = 1;
+int					new_game = 0;
 
 float               bgtravelled;
 int                 traveltime;
@@ -15473,6 +15474,7 @@ int common_try_wandercompletely()
 int common_try_wander(entity* target)
 {
 	int walk = 0;
+	float diffx, diffz, returndx, returndz;
 	int rnum = rand32()&7;
 
 	if(target == NULL || self->modeldata.nomove) return 0;
@@ -15480,7 +15482,16 @@ int common_try_wander(entity* target)
 
 	self->xdir = self->zdir = 0;
 
-	if(diff(self->x, target->x)>videomodes.hRes/2)
+	diffx = diff(self->x, target->x);
+	diffz = diff(self->z, target->z);
+	if(self->x<advancex || self->x>advancex+videomodes.hRes) returndx = videomodes.hRes/5;
+	else returndx = videomodes.hRes/2;
+	if(self->z<advancey || self->z>advancey+videomodes.vRes) returndz = videomodes.vRes/5;
+	else returndz = videomodes.vRes/2;
+
+	if(diffx>returndx ||
+		(self->x>target->x&&target->direction==0&&diffz<2*self->modeldata.grabdistance&&(rnum&1)) ||  
+		(self->x<target->x&&target->direction==1&&diffz<2*self->modeldata.grabdistance&&(rnum&1)))
 	{
 		self->xdir = (self->x>target->x)?-self->modeldata.speed:self->modeldata.speed;;
 		walk = 1;
@@ -15495,7 +15506,14 @@ int common_try_wander(entity* target)
 	}
 
 	rnum = rand32()&7;
-	if(rnum < 2){
+	if(diffz>returndz ||
+		(self->x>target->x&&target->direction==0&&diffz>self->modeldata.grabdistance&&(rnum&1)) ||  
+		(self->x<target->x&&target->direction==1&&diffz>self->modeldata.grabdistance&&(rnum&1)))
+	{
+		self->zdir = (self->z>target->z)?-self->modeldata.speed/2:self->modeldata.speed/2;;
+		walk |= 1;
+	}
+	else if(rnum < 2){
 		// Move up
 		self->zdir = -self->modeldata.speed/2;
 		walk |= 1;
@@ -20965,11 +20983,15 @@ int playlevel(char *filename)
 	Script* ptempscript = pcurrentscript;
 
 	kill_all();
-
-	savelevelinfo();
-	saveGameFile();
-	saveHighScoreFile();
-	saveScriptFile();
+	
+	if(!new_game)
+	{
+		savelevelinfo();
+		saveGameFile();
+		saveHighScoreFile();
+		saveScriptFile();
+	}
+	new_game = 0;
 
 	load_level(filename);
 	time = 0;
@@ -21398,6 +21420,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 	else
 	{
 		max_global_var_index = 0;
+		new_game = 1;
 	}
 
 	if((useSavedGame && savelevel[current_set].flag == 2) || selectplayer(players, NULL)) // if save flag is 2 don't select player
