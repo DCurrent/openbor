@@ -1054,6 +1054,7 @@ int pak_init()
 		// let's cache it on CD sector boundaries
 		int pak_cdheaderstart = pak_headerstart & (~0x7FF);
 		int pak_cdheadersize = ((paksize - pak_cdheaderstart) + 0x7FF) & (~0x7FF);
+		#if 0
 		if(pak_cdheadersize > 524288)
 		{
 			// Original value was 262144, which has been doubled.
@@ -1064,6 +1065,7 @@ int pak_init()
 			printf("pak header is too large: %d\n",pak_cdheadersize);
 			return 0;
 		}
+		#endif
 		pak_cdheader = malloc(pak_cdheadersize);
 		if(!pak_cdheader) { printf("pak_cdheader malloc failed\n"); return 0; }
 		if(pak_getsectors(pak_cdheader, pak_cdheaderstart >> 11, pak_cdheadersize >> 11) != (pak_cdheadersize >> 11))
