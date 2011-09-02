@@ -5543,7 +5543,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						if(pixelformat==PIXEL_x8 && newchar->palette==NULL)
 						{
 							newchar->palette = malloc(PAL_BYTES);
-							memcpy(newchar->palette, pal, PAL_BYTES);
+							if(loadimagepalette(value, packfile, newchar->palette)==0) {
+								shutdownmessage = "Failed to load palette!";
+								goto lCleanup;
+							}
 						}
 						mapflag[newchar->maps_loaded-1] = 1;
 						if(!errorVal){
