@@ -2308,52 +2308,113 @@ void loadHighScoreFile(){
 }
 
 
+#ifndef DC
+static void vardump(ScriptVariant *var, char buffer[])
+{
+	char* tmpstr;
+	int l, t, c;
+	buffer[0] = 0;
+	switch(var->vt)
+	{
+
+	case VT_STR:
+		strcpy(buffer, "\"");
+		tmpstr = StrCache_Get(var->strVal);
+		l = strlen(tmpstr);
+		for(c=0; c<l; c++){
+			if(tmpstr[c]=='\n'){
+				strcat(buffer, "\\n");
+			}else if(tmpstr[c]=='\r'){
+				strcat(buffer, "\\r");
+			}else if(tmpstr[c]=='\\'){
+				strcat(buffer, "\\\\");
+			}else{
+				t = strlen(buffer);
+				buffer[t] = tmpstr[c];
+				buffer[t+1] = 0;
+			}					
+		}
+		strcat(buffer, "\"");
+		break;
+	case VT_DECIMAL:
+		sprintf(buffer, "%lf", (double)var->dblVal);
+		break;
+	case VT_INTEGER:
+		sprintf(buffer, "%ld", (long)var->lVal);
+		break;
+	default:
+		strcpy(buffer, "NULL()");
+		break;
+	}
+}
+
+#endif
+
+
 void saveScriptFile()
 {
 #ifndef DC
-	int disCcWarns;
+	#define _writestr(v) fwrite(v, strlen(v), 1, handle);
+	#define _writetmp  _writestr(tmpvalue)
+	#define _writeconst(s) strcpy(tmpvalue,s);_writetmp
 	FILE *handle = NULL;
-	int i, l, c;
+	int i, l;
 	char path[256] = {""};
-	char tmpname[256] = {""};
+	char tmpvalue[256] = {""};
 	//named list
 	//if(max_global_vars<=0) return ;
 	getBasePath(path, "Saves", 0);
-	getPakName(tmpname, 2);//.scr
-	strcat(path, tmpname);
+	getPakName(tmpvalue, 2);//.scr
+	strcat(path, tmpvalue);
 	l = strlen(path); //s00, s01, s02 etc
 	path[l-2] = '0'+(current_set/10);
 	path[l-1] = '0'+(current_set%10);
 	handle = fopen(path, "wb");
 	if(handle == NULL) return;
-	//global variables count
-	for(i=0,c=0; i<=max_global_var_index; i++)
-	{
-		if(!global_var_list[i]->owner) c++;
-	}
-	disCcWarns = fwrite(&c, sizeof(c), 1, handle);
+
+	_writeconst("void main() {\n");
 	for(i=0; i<=max_global_var_index; i++)
 	{
-		if(!global_var_list[i]->owner)
-			disCcWarns = fwrite(global_var_list[i], sizeof(s_variantnode), 1, handle);
+		if(!global_var_list[i]->owner && global_var_list[i]->value.vt!=VT_PTR){
+			_writeconst("\tsetglobalvar(\"")
+			_writestr(global_var_list[i]->key)
+			_writeconst("\",")
+			vardump(&(global_var_list[i]->value), tmpvalue);
+			_writetmp
+			_writeconst(");\n")
+		}
 	}
 	// indexed list
-	if(max_indexed_vars<=0) goto CLOSEF;
-	disCcWarns = fwrite(indexed_var_list+i, sizeof(ScriptVariant), max_indexed_vars, handle);
-	CLOSEF:
+	for(i=0; i<max_indexed_vars; i++) {
+		if(indexed_var_list[i].vt != VT_PTR && indexed_var_list[i].vt!=VT_EMPTY){
+			_writeconst("\tsetindexedvar(")
+			sprintf(tmpvalue, "%d", i);
+			_writetmp
+			strcpy(tmpvalue, ",");
+			_writetmp
+			vardump(indexed_var_list+i, tmpvalue);
+			_writetmp
+			_writeconst(");\n")
+		}
+		
+	}
+	_writeconst("}\n");
+
 	fclose(handle);
+	#undef _writestr
+	#undef _writetmp
+	#undef _writeconst
 #endif
 }
 
 
 void loadScriptFile(){
 #ifndef DC
-	int disCcWarns;
+	Script script;
+	Script* ptempscript = pcurrentscript;
 
-	size_t size;
-	ptrdiff_t l, c;
+	ptrdiff_t l;
 
-	FILE *handle = NULL;
 	char path[256] = {""};
 	char tmpname[256] = {""};
 	//named list
@@ -2364,26 +2425,14 @@ void loadScriptFile(){
 	l = strlen(path); //s00, s01, s02 etc
 	path[l-2] = '0'+(current_set/10);
 	path[l-1] = '0'+(current_set%10);
-	handle = fopen(path, "rb");
-	if(handle == NULL) return;
-	fseek(handle, 0, SEEK_END);
-	size = ftell(handle);
-	fseek(handle, 0, SEEK_SET);
-	if(size<sizeof(c)) {fclose(handle); return;}
-	disCcWarns = fread(&c, sizeof(c), 1, handle);
-	max_global_var_index = c;
-	if(max_global_var_index >= max_global_vars)
-		max_global_var_index = max_global_vars -1;
-	for(size=0;size<=max_global_var_index; size++)
-	{
-		disCcWarns = fread(global_var_list[size], sizeof(s_variantnode), 1, handle);
-	}
-	//indexed list
-	if(max_indexed_vars<=0) {fclose(handle);return; }
-	size -= ftell(handle);
-	if(size> sizeof(ScriptVariant)*max_indexed_vars) size = sizeof(ScriptVariant)*max_indexed_vars;
-	disCcWarns = fread(indexed_var_list, size, 1, handle);
-	fclose(handle);
+
+	Script_Init(&script, "loadScriptFile", 1);
+	if(!load_script(&script, path))   Script_Clear(&script, 2);
+	Script_Compile(&script);
+	if(Script_IsInitialized(&script))
+		Script_Execute(&script);
+	pcurrentscript = ptempscript;
+	Script_Clear(&script, 2);
 #endif
 }
 
