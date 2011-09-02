@@ -21473,7 +21473,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 	}
 	else
 	{
-		max_global_var_index = 0;
+		//max_global_var_index = 0;
 		new_game = 1;
 	}
 
