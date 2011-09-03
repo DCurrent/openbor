@@ -515,6 +515,9 @@
 
 #define is_projectile(e) (e->modeldata.type == TYPE_SHOT || e->model->subtype == SUBTYPE_ARROW || e->owner)
 
+#define screeny ((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN )? 0:advancey )
+#define screenx advancex
+
 #define check_range(self, target, animnum) \
 		 ( target && \
 		  (self->direction ? \

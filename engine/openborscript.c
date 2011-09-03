@@ -11355,7 +11355,7 @@ performattack_error:
 //setidle(entity, int anim, int resetable, int stalladd);
 HRESULT openbor_setidle(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG anim, resetable=0, stalladd;
+	LONG anim=0, resetable=0, stalladd=0;
 	entity* e;
 	extern unsigned int time;
 
@@ -11389,7 +11389,7 @@ HRESULT openbor_setidle(ScriptVariant** varlist , ScriptVariant** pretvar, int p
 	return S_OK;
 
 setidle_error:
-	printf("Function need a valid entity handle, the other 2 integer parameters are optional: setidle(entity, int anim, int resetable, int stalladd)\n");
+	printf("Function need a valid entity handle, the other 3 integer parameters are optional: setidle(entity, int anim, int resetable, int stalladd)\n");
 	return E_FAIL;
 }
 
