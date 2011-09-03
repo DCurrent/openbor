@@ -10736,12 +10736,13 @@ void ent_copy_uninit(entity* ent, s_model* oldmodel)
 		ent->modeldata.mp                   = oldmodel->mp;
 	if(ent->modeldata.risetime[0]==-1)
 		ent->modeldata.risetime[0]          = oldmodel->risetime[0];
+	/*
 	if(!ent->modeldata.antigrab)
 		ent->modeldata.antigrab             = oldmodel->antigrab;
 	if(!ent->modeldata.grabforce)
 		ent->modeldata.grabforce            = oldmodel->grabforce;
 	if(!ent->modeldata.paingrab)
-		ent->modeldata.paingrab             = oldmodel->paingrab;
+		ent->modeldata.paingrab             = oldmodel->paingrab;*/
 
 	if(ent->health>ent->modeldata.health)
 		ent->health = ent->modeldata.health;
@@ -13314,8 +13315,8 @@ entity * normal_find_item(){
 
 		if( ce->exists && isItem(ce) &&
 		(ce->modeldata.stealth.hide <= self->modeldata.stealth.detect) &&
-		diff(ce->x,self->x) + diff(ce->z,self->z)< 300 &&
-		ce->animation->vulnerable[ce->animpos] &&
+		diff(ce->x,self->x) + diff(ce->z,self->z)< videomodes.hRes/2 &&
+		ce->animation->vulnerable[ce->animpos] && !ce->blink &&
 		(validanim(self,ANI_GET) || (isSubtypeTouch(ce) && canBeDamaged(ce, self))) &&
 		(
 			(isSubtypeWeapon(ce) && !self->weapent && self->modeldata.weapon && (*self->modeldata.weapon)[ce->modeldata.weapnum-1]>=0)
@@ -14400,6 +14401,8 @@ int common_try_runattack(entity* target)
 
 	if(target)
 	{
+		if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking)) 
+			return 0;
 		self->zdir = self->xdir = 0;
 		set_attacking(self);
 		ent_set_anim(self, ANI_RUNATTACK, 0);
@@ -14485,6 +14488,9 @@ int common_try_normalattack(entity* target)
 
 	if(found)
 	{
+		if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking)) 
+			return 0;
+
 		self->zdir = self->xdir = 0;
 		set_idle(self);
 		self->idling = 0; // not really idle, in fact it is thinking
@@ -14509,21 +14515,30 @@ int common_try_jumpattack(entity* target)
 		else if(validanim(self,ANI_JUMPATTACK2) && (rand32()&1)) rnum = 1;
 		else rnum = 0;
 
+
 		if(rnum==0 &&
 			// do a jumpattack
 			(target || (target = normal_find_target(ANI_JUMPATTACK,0))) )
 		{
-			ent_set_anim(self, ANI_JUMPATTACK, 0);
-			if(self->direction) self->xdir = (float)1.3;
-			else self->xdir = (float)-1.3;
-			self->zdir = 0;
+			if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
+				rnum = -1;
+			else{
+				ent_set_anim(self, ANI_JUMPATTACK, 0);
+				if(self->direction) self->xdir = (float)1.3;
+				else self->xdir = (float)-1.3;
+				self->zdir = 0;
+			}
 		}
 		else if(rnum==1 &&
 			// do a jumpattack2
 			(target || (target = normal_find_target(ANI_JUMPATTACK2,0))) )
 		{
-			ent_set_anim(self, ANI_JUMPATTACK2, 0);
-			self->xdir = self->zdir = 0;
+			if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
+				rnum = -1;
+			else{
+				ent_set_anim(self, ANI_JUMPATTACK2, 0);
+				self->xdir = self->zdir = 0;
+			}
 		} else {
 			rnum = -1;
 		}
@@ -14922,7 +14937,12 @@ void common_runoff()
 {
 	entity *target = normal_find_target(-1,0);
 
-	if(target == NULL) return;    // There are no players?
+	if(target == NULL) { //sealth checking
+		set_idle(self); 
+		self->zdir = self->xdir = 0;
+		self->takeaction = NULL; // OK, back to A.I. root
+		return;
+	}
 	if(!self->modeldata.noflip) self->direction = (self->x < target->x);
 	if(self->direction) self->xdir = -self->modeldata.speed/2;
 	else self->xdir = self->modeldata.speed/2;
@@ -14983,6 +15003,7 @@ void common_stuck_underneath()
 void common_attack_finish()
 {
 	entity *target;
+	int stall;
 
 	self->xdir = self->zdir = 0;
 
@@ -14993,7 +15014,7 @@ void common_attack_finish()
 		return;
 	}
 
-	target = normal_find_target(-1,0);
+	target = self->opponent;
 
 	if(target && !self->modeldata.nomove && diff(self->x, target->x)<80 && (rand32()&3))
 	{
@@ -15007,8 +15028,13 @@ void common_attack_finish()
 		set_idle(self);
 		self->takeaction = NULL;
 	}
-
-	self->stalltime = time + GAME_SPEED - self->modeldata.aggression;
+	
+	stall = GAME_SPEED - self->modeldata.aggression;
+	if (stall<GAME_SPEED/2)
+	{
+		stall = GAME_SPEED/2;
+	}
+	self->stalltime = time + stall;
 }
 
 
@@ -15286,7 +15312,7 @@ void checkpathblocked()
 				self->xdir = (1.0f - randf(2))*self->modeldata.speed;
 			}
 			self->running = 0; // TODO: re-adjust walk speed 
-			self->stalltime = time + GAME_SPEED;
+			self->stalltime = time + GAME_SPEED/2;
 			self->pathblocked = 0;
 			adjust_walk_animation(NULL);
 
@@ -15327,18 +15353,28 @@ int common_try_chase(entity* target)
 		 {maxspeed = self->modeldata.runspeed;self->running = 1;}
 	else {maxspeed = self->modeldata.speed;self->running = 0;}
 
-	if(!dz && !dx) self->xdir = self->zdir = 0;
-	else if(aitype & AIMOVE1_CHASEX) { // wander in z direction, chase in x direction
+	
+	if(!dz && !dx) {
+		self->xdir = self->zdir = 0;
+	}else if(aitype & AIMOVE1_CHASEX) { // wander in z direction, chase in x direction
 		self->xdir = maxspeed ;
 		if(self->modeldata.runupdown || !self->running)
 		{
-			if(diff(target->z, self->z) > videomodes.vRes/3)
+			if(self->z<advancey-videomodes.vRes/8){
+				self->zdir = self->modeldata.speed/2;
+			}else if (self->z>advancey+videomodes.vRes*9/8){
+				self->zdir = -self->modeldata.speed/2;
+			}else if(dz > videomodes.vRes/3)
 				self->zdir = (target->z>self->z)?self->modeldata.speed/2:-self->modeldata.speed/2;
 			else self->zdir = randf(1) - randf(1);
 		}
 	}
 	else if(aitype & AIMOVE1_CHASEZ){// wander in x direction, chase in z direction
-		if(diff(target->x, self->x) > videomodes.hRes/2.5)
+		if(self->x<advancex-videomodes.hRes/8){
+			self->xdir = self->modeldata.speed;
+		}else if (self->x>advancex+videomodes.hRes*9/8){
+			self->xdir = -self->modeldata.speed;
+		}else if(dx > videomodes.hRes/2.5)
 			self->xdir = (target->x>self->x)?self->modeldata.speed:-self->modeldata.speed;
 		else self->xdir = randf(1) - randf(1);
 		self->zdir = maxspeed / 2;
@@ -15432,16 +15468,14 @@ int common_try_avoid(entity* target)
 
 	maxspeed = self->modeldata.speed;
 
-	if(self->x < advancex - 10) self->xdir = maxspeed;
-	else if(self->x > advancex + videomodes.hRes + 10) self->xdir = -maxspeed;
+	if(self->x < screenx - 10) self->xdir = maxspeed;
+	else if(self->x > screenx + videomodes.hRes + 10) self->xdir = -maxspeed;
 	else self->xdir = (self->x < target->x)? (-maxspeed):maxspeed;
 
-	if((level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && self->z < advancey - 5) ||
-		((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN ) && self->z < -5) ){
+	if(self->z < screeny - 5) {
 			self->zdir = maxspeed/2;
 		}
-	else if((level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && self->z > advancey + videomodes.vRes + 5)||
-		((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN ) && self->z > videomodes.vRes + 5) ){
+	else if(self->z > screeny + videomodes.vRes + 5){
 			self->zdir = -maxspeed/2;
 		}
 	else self->zdir = (self->z < target->z)? (-maxspeed/2):(maxspeed/2);
@@ -15491,10 +15525,10 @@ int common_try_wandercompletely()
 		} else self->direction = !self->direction;
 	}
 
-	if(self->x < advancex - 10) {
+	if(self->x < screenx - 10) {
 		self->xdir = self->modeldata.speed;
 	}
-	else if(self->x > advancex + videomodes.hRes + 10) {
+	else if(self->x > screenx + videomodes.hRes + 10) {
 		self->xdir = -self->modeldata.speed;
 	}
 
@@ -15502,12 +15536,10 @@ int common_try_wandercompletely()
 		(self->xdir < 0 && self->direction)) && !self->modeldata.noflip)
 		self->direction = !self->direction;
 
-	if((level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && self->z < advancey - 5) ||
-		((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN ) && self->z < -5) ){
+	if( self->z < screeny ){
 			self->zdir = self->modeldata.speed/2;
 		}
-	else if((level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && self->z > advancey + videomodes.vRes + 5)||
-		((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN ) && self->z > videomodes.vRes + 5) ){
+	else if(self->z > screeny + videomodes.vRes){
 			self->zdir = -self->modeldata.speed/2;
 		}
 
@@ -15529,42 +15561,71 @@ int common_try_wandercompletely()
 // just wander around, face to the target
 int common_try_wander(entity* target)
 {
-	int walk = 0;
-	float diffx, diffz, returndx, returndz;
-	int rnum = rand32()&7;
+	int walk = 0, behind, grabd, agg;
+	float diffx, diffz, //distance from target
+		returndx, returndz, //how far should keep from target
+		borderdx, borderdz; //how far should keep offscreen
+	int rnum = rand32()&7, rnum2 = rand32()&15, t;
 
-	if(target == NULL || self->modeldata.nomove) return 0;
-	// Decide next direction... randomly.
+	if(!target || self->modeldata.nomove) return 0;
 
 	self->xdir = self->zdir = 0;
 
 	diffx = diff(self->x, target->x);
 	diffz = diff(self->z, target->z);
-	if(self->x<advancex || self->x>advancex+videomodes.hRes) returndx = videomodes.hRes/5;
-	else returndx = videomodes.hRes/2;
-	if(self->z<advancey || self->z>advancey+videomodes.vRes) returndz = videomodes.vRes/5;
-	else returndz = videomodes.vRes/2;
-
-	if(diffx>returndx ||
-		(self->x>target->x&&target->direction==0&&diffz<2*self->modeldata.grabdistance&&(rnum&1)) ||  
-		(self->x<target->x&&target->direction==1&&diffz<2*self->modeldata.grabdistance&&(rnum&1)))
-	{
-		self->xdir = (self->x>target->x)?-self->modeldata.speed:self->modeldata.speed;;
-		walk = 1;
+	behind = ((self->x<target->x)==target->direction);
+	grabd = self->modeldata.grabdistance;
+	//when entity is behind the target, it has a greater chance to go after the target
+	agg = self->modeldata.aggression/50;
+	if(agg>10) agg = 10;
+	if(behind&&diffx<grabd*4&&diffz<grabd){ //right behind, go for it
+		t = 13;
+	}else if(behind){ // only behind, half chance
+		t = 7;
+	}else { // otherwise, 1/3 chance
+		t = 1;
 	}
-	else if(rnum < 3){
+	t += agg;
+	if(rnum2<t){ //chase target
+		returndx = grabd*1.5;
+		returndz = grabd/3;
+	}else{ // only chase when too far away
+		returndx = videomodes.hRes/2;
+		returndz = videomodes.vRes/2;
+	}
+	if(rnum2>7){
+		borderdx = videomodes.hRes/8;
+		borderdz = videomodes.vRes/8;
+	}else{
+		borderdx = borderdz = 0;
+	}
+
+	if(self->x<screenx-borderdx){
 		self->xdir = self->modeldata.speed;
 		walk = 1;
-	}
-	else if(rnum > 4){
+	}else if (self->x>screenx+videomodes.hRes+borderdx){
+		self->xdir = -self->modeldata.speed;
+		walk = 1;
+	}else if(diffx>returndx)
+	{
+		self->xdir = (self->x>target->x)?-self->modeldata.speed:self->modeldata.speed;
+		walk = 1;
+	}else if(rnum < 3){
+		self->xdir = self->modeldata.speed;
+		walk = 1;
+	}else if(rnum > 4){
 		self->xdir = -self->modeldata.speed;
 		walk = 1;
 	}
 
 	rnum = rand32()&7;
-	if(diffz>returndz ||
-		(self->x>target->x&&target->direction==0&&diffz>self->modeldata.grabdistance&&(rnum&1)) ||  
-		(self->x<target->x&&target->direction==1&&diffz>self->modeldata.grabdistance&&(rnum&1)))
+	if(self->z<screeny-borderdz){
+		self->zdir = self->modeldata.speed/2;
+		walk |= 1;
+	}else if (self->z>screeny+videomodes.vRes+borderdz){
+		self->zdir = -self->modeldata.speed/2;
+		walk |= 1;
+	}else if(diffz>returndz)
 	{
 		self->zdir = (self->z>target->z)?-self->modeldata.speed/2:self->modeldata.speed/2;;
 		walk |= 1;
@@ -15662,7 +15723,7 @@ int normal_move()
 	entity* target = NULL;//hostile target
 	entity* owner = NULL;
 	float seta;
-	int predir ;
+	int predir, stall;
 
 	predir = self->direction;
 
@@ -15713,7 +15774,11 @@ int normal_move()
 		}
 		//end of if
 
-		self->stalltime = time + GAME_SPEED - self->modeldata.aggression;
+		stall = GAME_SPEED - self->modeldata.aggression;
+
+		if(stall<GAME_SPEED) stall = GAME_SPEED/2;
+
+		self->stalltime = time + stall;
 	}
 
 	//pick up the item if possible
