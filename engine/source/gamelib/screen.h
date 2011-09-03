@@ -13,16 +13,14 @@
 s_screen * allocscreen(int width, int height, int pixelformat);
 void freescreen(s_screen **screen);
 void copyscreen(s_screen * dest, s_screen * src);
-void copyscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplitude, float wavelength, int time, int watermode);
+void putscreen8_water(s_screen * dest, s_screen * src, int x, int y, int transbg, unsigned char*map, unsigned char* lut, int amplitude, float wavelength, int time, int watermode);
 void copyscreen_o(s_screen * dest, s_screen * src, int x, int y);
 
 void clearscreen(s_screen * s);
 void scalescreen(s_screen * dest, s_screen * src);
 
-void copyscreen_trans_water(s_screen * dest, s_screen * src, int x, int y, int amplitude, float wavelength, int time, int watermode);
 void copyscreen_trans(s_screen * dest, s_screen * src, int x, int y);
 void copyscreen_remap(s_screen * dest, s_screen * src, int x, int y, unsigned char* remap);
-void blendscreen_water(s_screen * dest, s_screen * src, int x, int y, int amplitude, float wavelength, int time, int watermode, unsigned char* lut);
 void blendscreen(s_screen * dest, s_screen * src, int x, int y, unsigned char* lut);
 void putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawmethod);
 void putscreen_water(s_screen* dest, s_screen* src, int x, int y, int amplitude, float wavelength, int time, int watermode, s_drawmethod* drawmethod);

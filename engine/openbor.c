@@ -38,14 +38,12 @@ s_level_entry*      levelorder[MAX_DIFFICULTIES][MAX_LEVELS];
 s_level*            level               = NULL;
 s_screen*           vscreen             = NULL;
 s_screen*           background          = NULL;
-s_screen*           bgbuffer            = NULL;
 s_screen*			zoombuffer			= NULL;
 int					zoom_center_x		= 0;
 int					zoom_center_y		= 0;
 int					zoom_scale_x		= 0;
 int					zoom_scale_y		= 0;
 int					zoom_z				= MIN_INT;
-char                bgbuffer_updated    = 0;
 s_bitmap*           texture             = NULL;
 s_videomodes        videomodes;
 int sprite_map_max_items = 0;
@@ -8534,7 +8532,6 @@ void unload_level(){
 	unload_background();
 	unload_texture();
 	freepanels();
-	freescreen(&bgbuffer);
 
 	if(level){
 
@@ -9450,12 +9447,7 @@ void load_level(char *filename){
 
 		if(background) unload_background();
 	}
-/*
-	if(pixelformat==PIXEL_x8)
-	{
-		if(level->numbglayers>0) bgbuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
-	}*/
-	bgbuffer_updated = 0;
+
 	if(musicPath[0]) music(musicPath, 1, musicOffset);
 
 	timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
@@ -13254,6 +13246,7 @@ entity* normal_find_target(int anim, int iDetect)
 	int index = -1;
 	min = 0;
 	max = 9999;
+	float diffx, diffz, diffd, diffo = 0;
 
     iDetect += self->modeldata.stealth.detect;
 
@@ -13264,15 +13257,24 @@ entity* normal_find_target(int anim, int iDetect)
 			&& (ent_list[i]->modeldata.type & self->modeldata.hostile)
 			&& (anim<0||(anim>=0 && check_range(self, ent_list[i], anim)))
 			&& !ent_list[i]->dead //must be alive
-			&& diff(ent_list[i]->x,self->x)+ diff(ent_list[i]->z,self->z) >= min
-			&& diff(ent_list[i]->x,self->x)+ diff(ent_list[i]->z,self->z) <= max
+			&& (diffd=(diffx=diff(ent_list[i]->x,self->x))+ (diffz=diff(ent_list[i]->z,self->z))) >= min
+			&& diffd <= max
 			&& (ent_list[i]->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
 			  )
 		{
+					
 			if(index <0 || (index>=0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1)) ||
-				( (self->x < ent_list[i]->x) == (self->direction) && // don't turn to the one on the back
-				diff(ent_list[i]->x, self->x)+diff(ent_list[i]->z, self->z) < diff(ent_list[index]->x, self->x)+diff(ent_list[index]->z, self->z)))
+				( 
+					(self->x < ent_list[i]->x) == (self->direction) && // don't turn to the one on the back
+					//ent_list[i]->x >= advancex-10 && ent_list[i]->x<advancex+videomodes.hRes+10 && // don't turn to an offscreen target
+					//ent_list[i]->z >= advancey-10 && ent_list[i]->z<advancey+videomodes.vRes+10 &&
+					diffd < diffo
+				)
+			)
+			{
 				index = i;
+				diffo = diffd;
+			}
 		}
 	}
 	if( index >=0) {return ent_list[index];}
@@ -19523,10 +19525,13 @@ void applybglayers(s_screen* pbgscreen)
 				else if(bglayer->type==bg_sprite)
 					putsprite(l, z, bglayer->sprite, pbgscreen, &screenmethod);
 
+				//printf("#\n");
+
 			}
 		}
 	}
-
+	
+	//printf("**************\n");
 	traveltime = time;
 }
 
@@ -19604,8 +19609,6 @@ void draw_scrolled_bg(){
 	int index = 0;
 	int fix_y = 0;
 	unsigned char neonp[32];//3*8
-	static float oldadvx=0, oldadvy=0;
-	static int   oldpal = 0;
 	static int neon_count = 0;
 	static int rockpos = 0;
 	static int rockoffssine[32] = {
@@ -19635,31 +19638,11 @@ void draw_scrolled_bg(){
 		screenmethod.table = current_palette? level->palettes[current_palette-1]: NULL;
 	}
 
-	if(bgbuffer)
-	{
-		if(((level->rocking || level->bgspeed>0 || texture)&& !pause) ||
-		   oldadvx!=advancex || oldadvy != advancey || current_palette!=oldpal)
-			bgbuffer_updated = 0;
-		else {
-			// temporary fix for bglayer water
-			for(i=0; i<level->numbglayers; i++){
-				if(level->bglayers[i].watermode && level->bglayers[i].amplitude){
-					bgbuffer_updated = 0;
-					break;
-				}
-			}
-		}
-		oldadvx = advancex;
-		oldadvy = advancey;
-		oldpal = current_palette;
-	}
-	else bgbuffer_updated = 0;
-	//font_printf(2, 100, 1, 0, "%d", bgbuffer_updated);
+	pbgscreen = vscreen;
 
-	if(bgbuffer)  pbgscreen = bgbuffer_updated?vscreen:bgbuffer;
-	else          pbgscreen = vscreen;
+	clearscreen(pbgscreen);
 
-	if(!bgbuffer_updated && level->numbglayers>0) applybglayers(pbgscreen);
+	if(level->numbglayers>0) applybglayers(pbgscreen);
 	applyfglayers(pbgscreen);
 
 	// Append bg with texture?
@@ -19674,13 +19657,6 @@ void draw_scrolled_bg(){
 
 	pscreenmethod->alpha = 0;
 	pscreenmethod->transbg = 0;
-
-	if(bgbuffer)
-	{
-		putscreen(vscreen, bgbuffer, 0, 0, NULL);
-	}
-
-	bgbuffer_updated = 1;
 
 	if(level->rocking){
 		rockpos = (time/(GAME_SPEED/8)) & 31;
@@ -21553,8 +21529,8 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 	}
 	// clear global script variant list
 	branch_name[0] = 0;
-	max_global_var_index = -1;
-	for(i=0; i<max_indexed_vars; i++) ScriptVariant_Clear(indexed_var_list+i);
+	//max_global_var_index = -1;
+	//for(i=0; i<max_indexed_vars; i++) ScriptVariant_Clear(indexed_var_list+i);
 	sound_close_music();
 }
 
