@@ -2511,6 +2511,8 @@ float getValidFloat(char* text, char* file, char* cmd)  {
 	static const char* WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a nonnumeric value at %s, where a number is expected!\nerroneus string: %s\n";
 	if(!text || !*text) return 0.0f;
 	if(isNumeric(text)) {
+		if(text[strlen(text)-1]=='%')
+			return atof(text)/100.0f;
 		return atof(text);
 	} else {
 		printf(WARN_NUMBER_EXPECTED, file, cmd, text);
@@ -5156,16 +5158,16 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					#define tempdef(x, y, z, p, k, b, t, r, e) \
 					x(stricmp(value, #y)==0)\
 					{\
-					newchar->z[ATK_##y] = GET_FLOAT_ARG(2);\
+					if(arglist.count>=2) newchar->z[ATK_##y] = GET_FLOAT_ARG(2);\
 					/*newchar->z[ATK_##y] /= 100;*/\
-					newchar->p[ATK_##y] = GET_FLOAT_ARG(3);\
-					newchar->k[ATK_##y] = GET_FLOAT_ARG(4);\
+					if(arglist.count>=3) newchar->p[ATK_##y] = GET_FLOAT_ARG(3);\
+					if(arglist.count>=4) newchar->k[ATK_##y] = GET_FLOAT_ARG(4);\
 					/*newchar->k[ATK_##y] /= 100;*/\
-					newchar->b[ATK_##y] = GET_FLOAT_ARG(5);\
-					newchar->t[ATK_##y] = GET_FLOAT_ARG(6);\
-					newchar->r[ATK_##y] = GET_FLOAT_ARG(7);\
+					if(arglist.count>=5) newchar->b[ATK_##y] = GET_FLOAT_ARG(5);\
+					if(arglist.count>=6) newchar->t[ATK_##y] = GET_FLOAT_ARG(6);\
+					if(arglist.count>=7) newchar->r[ATK_##y] = GET_FLOAT_ARG(7);\
 					/*newchar->r[ATK_##y] /= 100;*/\
-					newchar->e[ATK_##y] = GET_FLOAT_ARG(8);\
+					if(arglist.count>=8) newchar->e[ATK_##y] = GET_FLOAT_ARG(8);\
 					}
 					{
 						value = GET_ARG(1);
@@ -5188,25 +5190,25 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						{
 							tempInt = atoi(value+6);
 							if(tempInt<11) tempInt = 11;
-							newchar->defense_factors[tempInt+STA_ATKS-1]        = GET_FLOAT_ARG(2);
-							newchar->defense_pain[tempInt+STA_ATKS-1]           = GET_FLOAT_ARG(3);
-							newchar->defense_knockdown[tempInt+STA_ATKS-1]      = GET_FLOAT_ARG(4);
-							newchar->defense_blockpower[tempInt+STA_ATKS-1]     = GET_FLOAT_ARG(5);
-							newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = GET_FLOAT_ARG(6);
-							newchar->defense_blockratio[tempInt+STA_ATKS-1]     = GET_FLOAT_ARG(7);
-							newchar->defense_blocktype[tempInt+STA_ATKS-1]      = GET_FLOAT_ARG(8);
+							if(arglist.count>=2) newchar->defense_factors[tempInt+STA_ATKS-1]        = GET_FLOAT_ARG(2);
+							if(arglist.count>=3) newchar->defense_pain[tempInt+STA_ATKS-1]           = GET_FLOAT_ARG(3);
+							if(arglist.count>=4) newchar->defense_knockdown[tempInt+STA_ATKS-1]      = GET_FLOAT_ARG(4);
+							if(arglist.count>=5) newchar->defense_blockpower[tempInt+STA_ATKS-1]     = GET_FLOAT_ARG(5);
+							if(arglist.count>=6) newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = GET_FLOAT_ARG(6);
+							if(arglist.count>=7) newchar->defense_blockratio[tempInt+STA_ATKS-1]     = GET_FLOAT_ARG(7);
+							if(arglist.count>=8) newchar->defense_blocktype[tempInt+STA_ATKS-1]      = GET_FLOAT_ARG(8);
 						}
 						else if(stricmp(value, "ALL")==0)
 						{
 							for(i=0;i<max_attack_types;i++)
 							{
-								newchar->defense_factors[i]         = GET_FLOAT_ARG(2);
-								newchar->defense_pain[i]            = GET_FLOAT_ARG(3);
-								newchar->defense_knockdown[i]       = GET_FLOAT_ARG(4);
-								newchar->defense_blockpower[i]      = GET_FLOAT_ARG(5);
-								newchar->defense_blockthreshold[i]  = GET_FLOAT_ARG(6);
-								newchar->defense_blockratio[i]      = GET_FLOAT_ARG(7);
-								newchar->defense_blocktype[i]       = GET_FLOAT_ARG(8);
+								if(arglist.count>=2) newchar->defense_factors[i]         = GET_FLOAT_ARG(2);
+								if(arglist.count>=3) newchar->defense_pain[i]            = GET_FLOAT_ARG(3);
+								if(arglist.count>=4) newchar->defense_knockdown[i]       = GET_FLOAT_ARG(4);
+								if(arglist.count>=5) newchar->defense_blockpower[i]      = GET_FLOAT_ARG(5);
+								if(arglist.count>=6) newchar->defense_blockthreshold[i]  = GET_FLOAT_ARG(6);
+								if(arglist.count>=7) newchar->defense_blockratio[i]      = GET_FLOAT_ARG(7);
+								if(arglist.count>=8) newchar->defense_blocktype[i]       = GET_FLOAT_ARG(8);
 							}
 						}
 					}
