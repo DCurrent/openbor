@@ -20673,19 +20673,25 @@ static void update_backbuffer(s_screen* backbuffer, s_screen** gifbuffer){
 	unsigned char* pr = (unsigned char*)(gifbuffer[0]->data);
 	unsigned char* pg = (unsigned char*)(gifbuffer[1]->data);
 	unsigned char* pb = (unsigned char*)(gifbuffer[2]->data);
-	unsigned short *ps16;
-	unsigned int *ps32;
+	unsigned short *ps16, *ppr16, *ppg16, *ppb16;
+	unsigned int *ps32, *ppr32, *ppg32, *ppb32;
 	switch(screenformat){
 	case PIXEL_16:
 		ps16 = (unsigned short*)(backbuffer->data);
+		ppr16 = (unsigned short*)(gifbuffer[0]->palette);
+		ppg16 = (unsigned short*)(gifbuffer[1]->palette);
+		ppb16 = (unsigned short*)(gifbuffer[2]->palette);
 		for(i=0; i<l; i++){
-			ps16[i] = (unsigned short)_makecolour(pr[i], pg[i], pb[i]);
+			ps16[i] =  ppr16[pr[i]]|ppg16[pg[i]]|ppb16[pb[i]];
 		}
 		break;
 	case PIXEL_32:
 		ps32 = (unsigned int*)(backbuffer->data);
+		ppr32 = (unsigned int*)(gifbuffer[0]->palette);
+		ppg32 = (unsigned int*)(gifbuffer[1]->palette);
+		ppb32 = (unsigned int*)(gifbuffer[2]->palette);
 		for(i=0; i<l; i++){
-			ps32[i] = (unsigned int)_makecolour(pr[i], pg[i], pb[i]);
+			ps32[i] = ppr32[pr[i]]|ppg32[pg[i]]|ppb32[pb[i]];
 		}
 		break;
 	}
