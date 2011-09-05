@@ -15288,13 +15288,16 @@ void checkpathblocked()
 		aitype = self->modeldata.aimove;
 		if(self->modeldata.subtype==SUBTYPE_CHASE) aitype |= AIMOVE1_CHASE;
 
+		//be moo tolerable to PLAYER_MAX_Z and PLAYER_MIN_Z
+		if((self->modeldata.subject_to_maxz && self->zdir>0 && !self->xdir && self->zdir+self->z>=PLAYER_MAX_Z) || 
+		   (self->modeldata.subject_to_minz && self->zdir<0 && !self->xdir && self->zdir+self->z<=PLAYER_MIN_Z) )
+		{
+			self->zdir = -self->zdir;
+			return;
+		}
+
 		if(self->pathblocked>200 || (self->pathblocked>20 && (aitype & (AIMOVE1_CHASEX|AIMOVE1_CHASEZ|AIMOVE1_CHASE))))
 		{
-			/*
-			self->xdir = self->zdir = 0;
-			set_idle(self);
-			self->pathblocked = 0;
-			self->stalltime = time + GAME_SPEED;*/
 
 			x = self->xdir;
 			z = self->zdir;
@@ -15527,22 +15530,17 @@ int common_try_wandercompletely()
 		} else self->direction = !self->direction;
 	}
 
-	if(self->x < screenx - 10) {
-		self->xdir = self->modeldata.speed;
-	}
-	else if(self->x > screenx + videomodes.hRes + 10) {
-		self->xdir = -self->modeldata.speed;
-	}
+
 
 	if(((self->xdir > 0 && !self->direction) ||
 		(self->xdir < 0 && self->direction)) && !self->modeldata.noflip)
 		self->direction = !self->direction;
 
-	if( self->z < screeny ){
-			self->zdir = self->modeldata.speed/2;
+		if(self->x < screenx - 10) {
+			self->xdir = self->modeldata.speed;
 		}
-	else if(self->z > screeny + videomodes.vRes){
-			self->zdir = -self->modeldata.speed/2;
+		else if(self->x > screenx + videomodes.hRes + 10) {
+			self->xdir = -self->modeldata.speed;
 		}
 
 		if(self->xdir || self->zdir){
@@ -15550,7 +15548,7 @@ int common_try_wandercompletely()
 				(self->xdir < 0 && self->direction))
 				walk = -1;
 			else walk = 1;
-		}
+		}else walk = 0;
 
 		if(walk ){
 			adjust_walk_animation(NULL);
