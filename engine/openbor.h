@@ -1877,6 +1877,7 @@ void draw_scrolled_bg();
 void update(int ingame, int usevwait);
 void fade_out(int type, int speed);
 void apply_controls();
+void plan();
 #ifndef PSP
 void display_credits(void);
 #endif
