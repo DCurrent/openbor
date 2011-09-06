@@ -257,8 +257,6 @@ static void scaleline(int x, int cx, int width, int *linetab, unsigned* palette,
 
 //    if(dx>=screenwidth || dx+((width*scale)>>8)<0) return; it should be check in the function that called this
 
-        dest_c += dx;
-
         // Get ready to draw a line
         data = (unsigned char*)linetab + (*linetab);
 
@@ -267,12 +265,10 @@ static void scaleline(int x, int cx, int width, int *linetab, unsigned* palette,
                 cleft = *data++;
                 if(cleft==0xFF) return;// end of line
                 scale_d += cleft*scale;  // dest scale, scale
-                dx += (cleft*scale)>>8;
-                if(dx>=screenwidth) return; // out of right border? exit
                 d = scale_d - old_scale_d;
                 if(d >= 256) // skip some blank pixels
                 {
-                        dest_c += (d>>8);
+                        dx += (d>>8);if(dx>=screenwidth) return; // out of right border? exit
                         old_scale_d = scale_d & 0xFFFFFF00;
                 }
                 cwidth = *data++;
@@ -292,15 +288,14 @@ static void scaleline(int x, int cx, int width, int *linetab, unsigned* palette,
                                         {
                                                 if(!fp)
                                                 {
-                                                        *dest_c = fillcolor?fillcolor:palette[*charptr];
+                                                        dest_c[dx] = fillcolor?fillcolor:palette[*charptr];
                                                 }
                                                 else
                                                 {
-                                                        *dest_c = fp(fillcolor?fillcolor:palette[*charptr], *dest_c);
+                                                       dest_c[dx] = fp(fillcolor?fillcolor:palette[*charptr], dest_c[dx]);
                                                 }
                                         }
                                         if(++dx>=screenwidth) return; // out of right border? exit
-                                        dest_c++; // position move to right one pixel
                                 }
                                 old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
                         }
@@ -322,8 +317,6 @@ static void scaleline_flip(int x, int cx, int width, int *linetab, unsigned* pal
 
 //    if(dx>=screenwidth || dx+((width*scale)>>8)<0) return; it should be check in the function that called this
 
-        dest_c += dx;
-
         // Get ready to draw a line
         data = (unsigned char*)linetab + (*linetab);
 
@@ -332,12 +325,10 @@ static void scaleline_flip(int x, int cx, int width, int *linetab, unsigned* pal
                 cleft = *data++;
                 if(cleft==0xFF) return; // end of line
                 scale_d += cleft*scale;  // dest scale, scale
-                dx -= (cleft*scale)>>8;  // move left , because it is flipped
-                if(dx<0) return; // out of left border? exit
                 d = scale_d - old_scale_d;
                 if(d >= 256) // skip some blank pixels
                 {
-                        dest_c -= (d>>8);
+                        dx -= (d>>8);if(dx<0) return; // out of left border? exit
                         old_scale_d = scale_d & 0xFFFFFF00;
                 }
                 cwidth = *data++;
@@ -357,15 +348,14 @@ static void scaleline_flip(int x, int cx, int width, int *linetab, unsigned* pal
                                         {
                                                 if(!fp)
                                                 {
-                                                        *dest_c = fillcolor?fillcolor:palette[*charptr];
+                                                        dest_c[dx] = fillcolor?fillcolor:palette[*charptr];
                                                 }
                                                 else
                                                 {
-                                                         *dest_c = fp(fillcolor?fillcolor:palette[*charptr], *dest_c);
+                                                        dest_c[dx] = fp(fillcolor?fillcolor:palette[*charptr], dest_c[dx]);
                                                 }
                                         }
                                         if(--dx<0) return; // out of left border? exit
-                                        dest_c--; // position move to left one pixel
                                 }
                                 old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
                         }

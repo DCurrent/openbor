@@ -303,8 +303,6 @@ static void scaleline(int x, int cx, int width, int *linetab, unsigned char *des
 
 //    if(dx>=screenwidth || dx+((width*scale)>>8)<0) return; it should be check in the function that called this
 
-        dest_c += dx;
-
         // Get ready to draw a line
         data = (unsigned char*)linetab + (*linetab);
 
@@ -313,19 +311,19 @@ static void scaleline(int x, int cx, int width, int *linetab, unsigned char *des
                 cleft = *data++;
                 if(cleft==0xFF) return;// end of line
                 scale_d += cleft*scale;  // dest scale, scale
-                dx += (cleft*scale)>>8;
-                if(dx>=screenwidth) return; // out of right border? exit
                 d = scale_d - old_scale_d;
                 if(d >= 256) // skip some blank pixels
                 {
-                        dest_c += d>>8;
+                        dx += d>>8;
                         old_scale_d = scale_d & 0xFFFFFF00;
                 }
+                if(dx>=screenwidth) return; // out of right border? exit
                 cwidth = *data++;
                 if(!cwidth) continue;
                 //scale_s += cleft<<8;     // src scale, 256
                 charptr = data;
                 data += cwidth; // skip some bytes to next block
+
                 while(cwidth--) // draw these pixels
                 {
                         scale_d += scale;
@@ -336,10 +334,9 @@ static void scaleline(int x, int cx, int width, int *linetab, unsigned char *des
                                 {
                                         if(dx>=0) // pass left border?
                                         {
-                                                *dest_c = fp?fp(lut, *charptr, *dest_c):*charptr;
+                                                dest_c[dx] = fp?fp(lut, *charptr, dest_c[dx]):*charptr;
                                         }
                                         if(++dx>=screenwidth) return; // out of right border? exit
-                                        dest_c++; // position move to right one pixel
                                 }
                                 old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
                         }
@@ -361,8 +358,6 @@ static void scaleline_flip(int x, int cx, int width, int *linetab, unsigned char
 
 //    if(dx>=screenwidth || dx+((width*scale)>>8)<0) return; it should be check in the function that called this
 
-        dest_c += dx;
-
         // Get ready to draw a line
         data = (unsigned char*)linetab + (*linetab);
 
@@ -371,14 +366,13 @@ static void scaleline_flip(int x, int cx, int width, int *linetab, unsigned char
                 cleft = *data++;
                 if(cleft==0xFF) return; // end of line
                 scale_d += cleft*scale;  // dest scale, scale
-                dx -= (cleft*scale)>>8;  // move left , because it is flipped
-                if(dx<0) return; // out of left border? exit
                 d = scale_d - old_scale_d;
                 if(d >= 256) // skip some blank pixels
                 {
-                        dest_c -= d>>8;
+                        dx -= d>>8;
                         old_scale_d = scale_d & 0xFFFFFF00;
                 }
+                if(dx<0) return; // out of left border? exit
                 cwidth = *data++;
                 if(!cwidth) continue;
                 //scale_s += cleft<<8;     // src scale, 256
@@ -394,10 +388,9 @@ static void scaleline_flip(int x, int cx, int width, int *linetab, unsigned char
                                 {
                                         if(dx<screenwidth) // pass right border?
                                         {
-                                                *dest_c = fp?fp(lut, *charptr, *dest_c):*charptr;
+                                                dest_c[dx] = fp?fp(lut, *charptr, dest_c[dx]):*charptr;
                                         }
                                         if(--dx<0) return; // out of left border? exit
-                                        dest_c--; // position move to left one pixel
                                 }
                                 old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
                         }

@@ -382,6 +382,10 @@ int                 mpstrict			= 0;					// If current system will check all anim
 int                 magic_type			= 0;					// use for restore mp by time by tails
 entity*             textbox				= NULL;
 entity*             smartbomber			= NULL;
+entity*				stalker				= NULL;					// an enemy (usually) tries to go behind the player
+entity*				firstplayer			= NULL;
+int					stalking			= 0;
+int					nextplan			= 0;
 int                 plife[4][2]         = {{0,0},{0,0},{0,0},{0,0}};// Used for customizable player lifebar
 int                 plifeX[4][3]        = {{0,0,-1},{0,0,-1},{0,0,-1},{0,0,-1}};// Used for customizable player lifebar 'x'
 int                 plifeN[4][3]        = {{0,0,-1},{0,0,-1},{0,0,-1},{0,0,-1}};// Used for customizable player lifebar number of lives
@@ -2373,7 +2377,10 @@ void saveScriptFile()
 	_writeconst("void main() {\n");
 	for(i=0; i<=max_global_var_index; i++)
 	{
-		if(!global_var_list[i]->owner && global_var_list[i]->value.vt!=VT_PTR){
+		if(!global_var_list[i]->owner && 
+			global_var_list[i]->key[0] &&
+			global_var_list[i]->value.vt!=VT_EMPTY &&
+			global_var_list[i]->value.vt!=VT_PTR){
 			_writeconst("\tsetglobalvar(\"")
 			_writestr(global_var_list[i]->key)
 			_writeconst("\",")
@@ -2388,8 +2395,7 @@ void saveScriptFile()
 			_writeconst("\tsetindexedvar(")
 			sprintf(tmpvalue, "%d", i);
 			_writetmp
-			strcpy(tmpvalue, ",");
-			_writetmp
+			_writeconst(",")
 			vardump(indexed_var_list+i, tmpvalue);
 			_writetmp
 			_writeconst(");\n")
@@ -12649,6 +12655,11 @@ void update_ents()
 		}
 	}//end of for
 	arrange_ents();
+	/*
+	if(time>=nextplan){
+		plan();
+		nextplan = time+GAME_SPEED/2;
+	}*/
 }
 
 
@@ -15077,6 +15088,8 @@ int common_attack()
 {
 	int aiattack ;
 
+	//if(stalker==self) return 0;
+
 	if(self->modeldata.aiattack==-1) return 0;
 
 	aiattack = self->modeldata.aiattack & MASK_AIATTACK1;
@@ -15324,6 +15337,7 @@ void checkpathblocked()
 		}
 	}
 }
+
 
 //may be used many times, so make a function
 // try to move towards the target
@@ -16248,10 +16262,103 @@ int common_move()
 	return 0;
 }
 
+
+void decide_stalker(){
+	entity* ent, *furthest = NULL;
+	int i;
+	int l = 0, r=0;
+	float maxz= 0.0f, z;
+	
+	if(stalker && stalking) return;
+
+	firstplayer = NULL;
+
+	for(i=0; i<4; i++){
+		if(player[i].ent){
+			firstplayer = player[i].ent;
+			break;
+		}
+	}
+
+	if(!firstplayer) return;
+
+	for(i=0; i<ent_max; i++){
+		ent = ent_list[i];
+
+		if(ent->exists && !ent->dead && ent->modeldata.type == TYPE_ENEMY ){
+			if(ent->x>firstplayer->x) r++;
+			else l++;
+
+			if((z=diff(ent->z, firstplayer->z))>=maxz && 
+				(ent->modeldata.aimove==0 || (ent->modeldata.aimove&AIMOVE1_CHASE))){ // 2 mostly used type
+				maxz = z;
+				furthest = ent;
+			}
+		}
+	}
+
+	if((l>1 && !r) || (r>1 && !l)){
+		stalker = furthest;
+		//printf("** stalker decided: %s @ time %d\n", stalker->name, time);
+	}
+}
+
+
+void plan(){
+	decide_stalker();
+}
+
+void checkstalker(){
+	float maxspeed;
+	int running;
+
+	if(self!=stalker) return;
+
+	if(!firstplayer) {
+		stalker = NULL;
+		return;
+	}
+
+	if(stalking){
+		if(self->stalltime<=time){
+			//printf("** stalk time expired: %s @ time %d\n", stalker->name, time);
+			stalker = NULL;
+		}
+		return;
+	}
+
+	running = validanim(self,ANI_RUN);
+
+	maxspeed = running?self->modeldata.runspeed:self->modeldata.speed;
+
+	self->xdir = maxspeed;
+	self->zdir = 0;
+
+	if(self->x>firstplayer->x) self->xdir = -self->xdir;
+
+	self->running = running;
+
+
+	self->stalltime = time + (diff(self->x, firstplayer->x) + 150)/maxspeed*THINK_SPEED;
+
+	adjust_walk_animation(firstplayer);
+
+	stalking = 1;
+	//printf("**start stalking: %s @ time %d till @%d\n", stalker->name, time, self->stalltime);
+}
+
+int checkplanned(){
+	return 0;
+}
+
+
 // A.I root
 void common_think()
 {
+
 	if(self->dead) return;
+
+	//if(checkplanned()) return;
 
 	// too far away , do a warp
 	if(self->modeldata.subtype == SUBTYPE_FOLLOW && self->parent &&
@@ -16323,6 +16430,8 @@ void player_die()
 	int playerindex = self->playerindex;
 	if(!livescheat) --player[playerindex].lives;
 
+	if(firstplayer==self) firstplayer = NULL;
+
 	execute_pdie_script(playerindex);
 
 	if(nomaxrushreset[4] >= 1) nomaxrushreset[playerindex] = player[playerindex].ent->rush[1];
@@ -16330,8 +16439,7 @@ void player_die()
 	player[playerindex].spawnhealth = self->modeldata.health;
 	player[playerindex].spawnmp = self->modeldata.mp;
 
-
-
+	
 	if(self->modeldata.nodieblink != 3) kill(self);
 	else
 	{
@@ -20691,6 +20799,7 @@ static void update_backbuffer(s_screen* backbuffer, s_screen** gifbuffer){
 		for(i=0; i<l; i++){
 			ps32[i] = ppr32[pr[i]]|ppg32[pg[i]]|ppb32[pb[i]];
 		}
+		//printf("32! %u %u %u\n", ppr32, ppg32, ppb32);
 		break;
 	}
 
@@ -21187,6 +21296,9 @@ int playlevel(char *filename)
 
 	load_level(filename);
 	time = 0;
+	nextplan = 0;
+	stalker = NULL;
+	firstplayer = NULL;
 
 	// Fixes the start level executing last button bug
 	for(i=0; i<maxplayers[current_set]; i++)
@@ -21199,6 +21311,7 @@ int playlevel(char *filename)
 			player[i].ent->rush[1] = 0;
 		}
 	}
+
 
 	//execute a script when level started
 	if(Script_IsInitialized(&level_script)) Script_Execute(&level_script);
