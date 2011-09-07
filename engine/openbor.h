@@ -177,6 +177,7 @@
 // A.I move2, affect terrain reflect
 #define     AIMOVE2_NORMAL      0                   // Current default style
 #define     AIMOVE2_IGNOREHOLES 0x00010000          // don't avoid holes
+#define		AIMOVE2_NOTARGETIDLE 0x00020000			// don't move when there's no target
 #define     MASK_AIMOVE2        0xFFFF0000
 
 // A.I. attack1, affect attacking style
