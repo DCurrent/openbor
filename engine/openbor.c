@@ -13657,7 +13657,7 @@ void common_fall()
 	}
 
 	// Drop Weapon due to Enemy Falling.
-	if(self->modeldata.weaploss[0] == 1) dropweapon(1);
+	//if(self->modeldata.weaploss[0] == 1) dropweapon(1);
 
 	if(self->boss && level_completed) tospeedup = 1;
 
@@ -13694,8 +13694,6 @@ void common_lie()
 	// Died?
 	if(self->health <= 0)
 	{
-		// Drop Weapon due to death.
-		if(self->modeldata.weaploss[0] <= 2) dropweapon(1);
 		if(self->modeldata.falldie == 2) set_death(self, self->damagetype, 0);
 		if(!self->modeldata.nodieblink || (self->modeldata.nodieblink == 1 && !self->animating))
 		{    // Now have the option to blink or not
@@ -14350,7 +14348,9 @@ int common_takedamage(entity *other, s_attack* attack)
 	if(self->drop || self->health <= 0)
 	{
 		// Drop Weapon due to death.
-		if(self->modeldata.weaploss[0] <= 2) dropweapon(1);
+		if(self->modeldata.weaploss[0] <= 2 && self->health <= 0) dropweapon(1);
+		else if(self->modeldata.weaploss[0] <= 1) dropweapon(1);
+
 		if(self->health <= 0 && self->modeldata.falldie == 1)
 		{
 			self->xdir = self->zdir = self->tossv = 0;
