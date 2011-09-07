@@ -468,6 +468,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_setfilestreamposition)) return "setfilestreamposition";
 	else if (functionRef==((void*)openbor_filestreamappend)) return "filestreamappend";
 	else if (functionRef==((void*)openbor_createfilestream)) return "createfilestream";
+	else if (functionRef==((void*)openbor_closefilestream)) return "closefilestream";
 	else if (functionRef==((void*)openbor_savefilestream)) return "savefilestream";
 	else if (functionRef==((void*)openbor_getindexedvar)) return "getindexedvar";
 	else if (functionRef==((void*)openbor_setindexedvar)) return "setindexedvar";
@@ -931,6 +932,8 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_filestreamappend, "filestreamappend");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_createfilestream, "createfilestream");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_closefilestream, "closefilestream");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_savefilestream, "savefilestream");
 	List_InsertAfter(&theFunctionList,
@@ -7856,6 +7859,7 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	char* filename = NULL;
 	ScriptVariant* arg = NULL;
 	LONG location = 0;
+	int fsindex;
 
 	int disCcWarns;
 	FILE *handle = NULL;
@@ -7887,8 +7891,13 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 			return S_OK;
 	}
 
-	if(!level->numfilestreams) level->numfilestreams = 0;
-	else if(level->numfilestreams == LEVEL_MAX_FILESTREAMS)
+	for(fsindex=0; fsindex<LEVEL_MAX_FILESTREAMS; fsindex++){
+		if(level->filestreams[fsindex].buf==NULL){
+			break;
+		}
+	}
+
+	if(fsindex == LEVEL_MAX_FILESTREAMS)
 	{
 		printf("Maximum file streams exceeded.\n");
 		*pretvar = NULL;
@@ -7921,11 +7930,11 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 		fseek(handle, 0, SEEK_END);
 		size = ftell(handle);
 		rewind(handle);
-		level->filestreams[level->numfilestreams].buf = (char*)malloc(sizeof(char)*size);
-		if(level->filestreams[level->numfilestreams].buf == NULL) return E_FAIL;
-		disCcWarns = fread(level->filestreams[level->numfilestreams].buf, 1, size, handle);
+		level->filestreams[fsindex].buf = (char*)malloc(sizeof(char)*size);
+		if(level->filestreams[fsindex].buf == NULL) return E_FAIL;
+		disCcWarns = fread(level->filestreams[fsindex].buf, 1, size, handle);
 	}
-	else if(buffer_pakfile(filename, &level->filestreams[level->numfilestreams].buf, &level->filestreams[level->numfilestreams].size)!=1)
+	else if(buffer_pakfile(filename, &level->filestreams[fsindex].buf, &level->filestreams[fsindex].size)!=1)
 	{
 		  printf("Invalid filename used in openfilestream.\n");
 		  *pretvar = NULL;
@@ -7933,10 +7942,9 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	}
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG)level->numfilestreams;
+	(*pretvar)->lVal = (LONG)fsindex;
 
-	level->filestreams[level->numfilestreams].pos = 0;
-	level->numfilestreams++;
+	level->filestreams[fsindex].pos = 0;
 	return S_OK;
 }
 
@@ -8168,10 +8176,16 @@ HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretv
 
 HRESULT openbor_createfilestream(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
+	int fsindex;
 	ScriptVariant_Clear(*pretvar);
 
-	if(!level->numfilestreams) level->numfilestreams = 0;
-	else if(level->numfilestreams == LEVEL_MAX_FILESTREAMS)
+	for(fsindex=0; fsindex<LEVEL_MAX_FILESTREAMS; fsindex++){
+		if(level->filestreams[fsindex].buf==NULL){
+			break;
+		}
+	}
+
+	if(fsindex == LEVEL_MAX_FILESTREAMS)
 	{
 		printf("Maximum file streams exceeded.\n");
 		*pretvar = NULL;
@@ -8179,13 +8193,12 @@ HRESULT openbor_createfilestream(ScriptVariant** varlist , ScriptVariant** pretv
 	}
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG)level->numfilestreams;
+	(*pretvar)->lVal = (LONG)fsindex;
 
 	// Initialize the new filestream
-	level->filestreams[level->numfilestreams].pos = 0;
-	level->filestreams[level->numfilestreams].buf = (char*)malloc(sizeof(char)*128);
-	level->filestreams[level->numfilestreams].buf[0] = '\0';
-	level->numfilestreams++;
+	level->filestreams[fsindex].pos = 0;
+	level->filestreams[fsindex].buf = (char*)malloc(sizeof(char)*128);
+	level->filestreams[fsindex].buf[0] = '\0';
 	return S_OK;
 }
 
@@ -8260,6 +8273,28 @@ HRESULT openbor_savefilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	fwrite("\r\n", 1, 2, handle);
 	fclose(handle);
 
+	return S_OK;
+}
+
+HRESULT openbor_closefilestream(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG filestreamindex;
+	ScriptVariant* arg = NULL;
+
+	*pretvar = NULL;
+
+	if(paramCount < 1)
+		return E_FAIL;
+
+	arg = varlist[0];
+	if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
+		return E_FAIL;
+
+
+	if(level->filestreams[filestreamindex].buf){
+		free(level->filestreams[filestreamindex].buf);
+		level->filestreams[filestreamindex].buf = NULL;
+	}
 	return S_OK;
 }
 
