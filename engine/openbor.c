@@ -15781,7 +15781,7 @@ int normal_move()
 		else if(target){
 			// just wander around
 			common_try_wander(target);
-		} else if(!common_try_follow()){
+		} else if(!common_try_follow() && !common_try_wandercompletely()){
 			// no target or item, just relex and idle
 			self->xdir = self->zdir = 0;
 			set_idle(self);
@@ -15857,7 +15857,7 @@ int avoid_move()
 		else if(other){
 			// try walking to the item
 			common_try_pick(other);
-		} else if(!common_try_follow()){
+		} else if(!common_try_follow() && !common_try_wandercompletely()){
 			// no target or item, just relex and idle
 			self->xdir = self->zdir = 0;
 			set_idle(self);
@@ -15929,7 +15929,7 @@ int chase_move()
 		else if(other){
 			// try walking to the item
 			common_try_pick(other);
-		} else if(!common_try_follow()){
+		} else if(!common_try_follow() && !common_try_wandercompletely()){
 			// no target or item, just relex and idle
 			self->xdir = self->zdir = 0;
 			set_idle(self);
