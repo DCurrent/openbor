@@ -297,7 +297,7 @@ int anigif_open(char *filename, char *packfilename, unsigned char *pal, anigif_i
 				anigif_close(info);
 				return 0;
 			}
-			*tpal &= 0xFF000000;
+			//*tpal &= 0xFF000000;
 			switch(PAL_BYTES)
 			{
 			case 768:
