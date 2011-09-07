@@ -136,6 +136,7 @@ HRESULT openbor_setfilestreamposition(ScriptVariant** varlist , ScriptVariant** 
 
 HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_createfilestream(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_closefilestream(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_savefilestream(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 HRESULT openbor_getindexedvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
