@@ -19644,7 +19644,7 @@ void applybglayers(s_screen* pbgscreen)
 	s_drawmethod screenmethod;
 
 	if(!textbox)
-		 bgtravelled += (((time-traveltime)*level->bgspeed/30*4) + ((level->rocking)?((time-traveltime)/(GAME_SPEED/30)):0)); // no like in real life, maybe
+		 bgtravelled += (((time-traveltime)*level->bgspeed/30*4) + ((level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0)); // no like in real life, maybe
 	else
 		 texttime += time-traveltime;
 
