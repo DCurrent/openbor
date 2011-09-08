@@ -2680,6 +2680,7 @@ enum gep_attack_enum {
 	_gep_attack_maptime,
 	_gep_attack_noblock,
 	_gep_attack_noflash,
+	_gep_attack_nokill,
 	_gep_attack_nopain,
 	_gep_attack_otg,
 	_gep_attack_pause,
@@ -3020,6 +3021,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"maptime",
 		"noblock",
 		"noflash",
+		"nokill",
 		"nopain",
 		"otg",
 		"pause",
@@ -3692,6 +3694,10 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 			case _gep_attack_noflash:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->no_flash;
+				 break;
+			case _gep_attack_nokill:
+				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+				 (*pretvar)->lVal = (LONG)attack->no_kill;
 				 break;
 			case _gep_attack_nopain:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);

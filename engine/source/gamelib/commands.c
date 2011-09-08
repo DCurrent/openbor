@@ -326,6 +326,7 @@ List* createModelCommandList(void) {
 	LIST_ADD(CMD_MODEL_STUN, "stun");
 	LIST_ADD(CMD_MODEL_GRABIN, "grabin");
 	LIST_ADD(CMD_MODEL_NOREFLECT, "noreflect");
+	LIST_ADD(CMD_MODEL_NOKILL, "nokill");
 	LIST_ADD(CMD_MODEL_FORCEDIRECTION, "forcedirection");
 	LIST_ADD(CMD_MODEL_DAMAGEONLANDING, "damageonlanding");
 	LIST_ADD(CMD_MODEL_SEAL, "seal");
