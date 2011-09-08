@@ -480,6 +480,9 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_changelight)) return "changelight";
 	else if (functionRef==((void*)openbor_changeshadowcolor)) return "changeshadowcolor";
 	else if (functionRef==((void*)openbor_bindentity)) return "bindentity";
+	else if (functionRef==((void*)openbor_array)) return "array";
+	else if (functionRef==((void*)openbor_get)) return "get";
+	else if (functionRef==((void*)openbor_set)) return "set";
 	else if (functionRef==((void*)openbor_allocscreen)) return "allocscreen";
 	else if (functionRef==((void*)openbor_clearscreen)) return "clearscreen";
 	else if (functionRef==((void*)openbor_setdrawmethod)) return "setdrawmethod";
@@ -956,6 +959,12 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_changeshadowcolor, "changeshadowcolor");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_bindentity, "bindentity");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_array, "array");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_get, "get");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_set, "set");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_allocscreen, "allocscreen");
 	List_InsertAfter(&theFunctionList,
@@ -11218,6 +11227,90 @@ BIND:
 	adjust_bind(ent);
 
 	return S_OK;
+}
+
+//array(size);
+HRESULT openbor_array(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG size;
+	void* array;
+
+	if(paramCount < 1) goto array_error;
+
+	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &size)))
+		goto array_error;
+
+	if(size<=0) goto array_error;
+
+	ScriptVariant_ChangeType(*pretvar, VT_PTR);
+	array = malloc(sizeof(ScriptVariant)*size);
+	if(array) memset(array, 0, sizeof(ScriptVariant)*size);
+	(*pretvar)->ptrVal = (VOID*)array;
+
+	if((*pretvar)->ptrVal==NULL)
+	{
+		printf("Not enough memory: array(%d)\n", (int)size);
+		(*pretvar) = NULL;
+		return E_FAIL;
+	}
+	List_InsertAfter(&scriptheap, (void*)((*pretvar)->ptrVal), "openbor_array");
+	return S_OK;
+
+array_error:
+	printf("Function requires 1 positive int value: array(int size)\n");
+	(*pretvar) = NULL;
+	return E_FAIL;
+}
+
+//get(array, index);
+HRESULT openbor_get(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG ind;
+
+	if(paramCount < 2 ) goto get_error;
+
+	if(varlist[0]->vt!=VT_PTR)  goto get_error;
+
+	ScriptVariant_Clear(*pretvar);
+
+	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &ind)))
+		goto get_error;
+
+	if(ind<0) goto get_error;
+
+	ScriptVariant_Copy(*pretvar, ((ScriptVariant*)varlist[0]->ptrVal)+ind);
+
+	return S_OK;
+
+get_error:
+	printf("Function requires 1 array handle and 1 int value: get(array, int index)\n");
+	(*pretvar) = NULL;
+	return E_FAIL;
+}
+
+//set(array, index, value);
+HRESULT openbor_set(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG ind;
+	(*pretvar) = NULL;
+
+	if(paramCount < 3 ) goto get_error;
+
+
+	if(varlist[0]->vt!=VT_PTR)  goto get_error;
+
+	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &ind)))
+		goto get_error;
+
+	if(ind<0) goto get_error;
+
+	ScriptVariant_Copy(((ScriptVariant*)varlist[0]->ptrVal)+ind, varlist[2]);
+
+	return S_OK;
+
+get_error:
+	printf("Function requires 1 array handle, 1 int value and 1 value: set(array, int index, value)\n");
+	return E_FAIL;
 }
 
 //allocscreen(int w, int h);

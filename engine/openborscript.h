@@ -152,6 +152,10 @@ HRESULT openbor_changelight(ScriptVariant** varlist , ScriptVariant** pretvar, i
 HRESULT openbor_changeshadowcolor(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_bindentity(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
+HRESULT openbor_array(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_get(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_set(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+
 HRESULT openbor_allocscreen(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_clearscreen(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_setdrawmethod(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
