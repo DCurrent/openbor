@@ -94,6 +94,7 @@ const s_attack emptyattack = {
 	0,
 	0}, // coods
 	0,  // nopain/noreflect
+	0,
 	0,  // noflash
 	0,  // noblock
 	0,  // grab
@@ -6824,6 +6825,11 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					// only cost target's hp, don't knock down or cause pain, unless the target is killed
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->no_pain = GET_INT_ARG(1);
+					break;
+				case CMD_MODEL_NOKILL:
+					// don't kill the target, leave 1 hp
+					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
+					pattack->no_kill = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_FORCEDIRECTION:
 					// the attack direction
@@ -14242,6 +14248,8 @@ void checkdamage(entity* other, s_attack* attack)
 	self->health -= force; //Apply damage.
 
 	if (self->health > self->modeldata.health) self->health = self->modeldata.health; //Cap negative damage to max health.
+
+	if(attack->no_kill && self->health<=0) self->health = 1;
 
 	execute_takedamage_script(self, other, force, attack->attack_drop, type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);                       //Execute the take damage script.
 

@@ -660,6 +660,7 @@ typedef struct
 	char            counterattack:8;
 	short 			attack_coords[5];               // stick on the only one victim
 	char            no_pain:8;
+	char			no_kill:8;						// this attack won't kill target (leave 1 HP)
 	char            no_flash:8;						// Flag to determine if an attack spawns a flash or not
 	char	        no_block:8;						// Flag to determine if an attack is blockable (default 0 - blockable)
 	char            grab:8;
