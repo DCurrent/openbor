@@ -481,6 +481,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_changeshadowcolor)) return "changeshadowcolor";
 	else if (functionRef==((void*)openbor_bindentity)) return "bindentity";
 	else if (functionRef==((void*)openbor_array)) return "array";
+	else if (functionRef==((void*)openbor_size)) return "size";
 	else if (functionRef==((void*)openbor_get)) return "get";
 	else if (functionRef==((void*)openbor_set)) return "set";
 	else if (functionRef==((void*)openbor_allocscreen)) return "allocscreen";
@@ -961,6 +962,8 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_bindentity, "bindentity");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_array, "array");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_size, "size");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_get, "get");
 	List_InsertAfter(&theFunctionList,
@@ -11243,8 +11246,8 @@ HRESULT openbor_array(ScriptVariant** varlist , ScriptVariant** pretvar, int par
 	if(size<=0) goto array_error;
 
 	ScriptVariant_ChangeType(*pretvar, VT_PTR);
-	array = malloc(sizeof(ScriptVariant)*size);
-	if(array) memset(array, 0, sizeof(ScriptVariant)*size);
+	array = malloc(sizeof(ScriptVariant)*(size+1));
+	if(array) memset(array, 0, sizeof(ScriptVariant)*(size+1));
 	(*pretvar)->ptrVal = (VOID*)array;
 
 	if((*pretvar)->ptrVal==NULL)
@@ -11253,6 +11256,10 @@ HRESULT openbor_array(ScriptVariant** varlist , ScriptVariant** pretvar, int par
 		(*pretvar) = NULL;
 		return E_FAIL;
 	}
+
+	ScriptVariant_ChangeType((ScriptVariant*)array, VT_INTEGER);
+	((ScriptVariant*)array)->lVal = (LONG)size;
+
 	List_InsertAfter(&scriptheap, (void*)((*pretvar)->ptrVal), "openbor_array");
 	return S_OK;
 
@@ -11262,23 +11269,39 @@ array_error:
 	return E_FAIL;
 }
 
+
+//size(array)
+HRESULT openbor_size(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	if(paramCount < 1 ) goto size_error;
+	if(varlist[0]->vt!=VT_PTR)  goto size_error;
+
+	ScriptVariant_Copy(*pretvar, ((ScriptVariant*)varlist[0]->ptrVal));
+
+	return S_OK;
+
+size_error:
+	printf("Function requires 1 array handle and 1 int value: get(array, int index)\n");
+	(*pretvar) = NULL;
+	return E_FAIL;
+}
+
 //get(array, index);
 HRESULT openbor_get(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG ind;
+	LONG ind, size;
 
 	if(paramCount < 2 ) goto get_error;
 
 	if(varlist[0]->vt!=VT_PTR)  goto get_error;
 
-	ScriptVariant_Clear(*pretvar);
-
 	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &ind)))
 		goto get_error;
 
-	if(ind<0) goto get_error;
+	ScriptVariant_IntegerValue(((ScriptVariant*)varlist[0]->ptrVal), &size);
+	if(ind<0 || ind>=size) goto get_error2;
 
-	ScriptVariant_Copy(*pretvar, ((ScriptVariant*)varlist[0]->ptrVal)+ind);
+	ScriptVariant_Copy(*pretvar, ((ScriptVariant*)varlist[0]->ptrVal)+ind+1);
 
 	return S_OK;
 
@@ -11286,30 +11309,37 @@ get_error:
 	printf("Function requires 1 array handle and 1 int value: get(array, int index)\n");
 	(*pretvar) = NULL;
 	return E_FAIL;
+get_error2:
+	printf("Array bound out of range: %d, max %d\n", ind, size-1);
+	(*pretvar) = NULL;
+	return E_FAIL;
 }
 
 //set(array, index, value);
 HRESULT openbor_set(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG ind;
+	LONG ind, size;
 	(*pretvar) = NULL;
 
-	if(paramCount < 3 ) goto get_error;
+	if(paramCount < 3 ) goto set_error;
 
-
-	if(varlist[0]->vt!=VT_PTR)  goto get_error;
+	if(varlist[0]->vt!=VT_PTR)  goto set_error;
 
 	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &ind)))
-		goto get_error;
+		goto set_error;
 
-	if(ind<0) goto get_error;
+	ScriptVariant_IntegerValue(((ScriptVariant*)varlist[0]->ptrVal), &size);
+	if(ind<0 || ind>=size) goto set_error2;
 
-	ScriptVariant_Copy(((ScriptVariant*)varlist[0]->ptrVal)+ind, varlist[2]);
+	ScriptVariant_Copy(((ScriptVariant*)varlist[0]->ptrVal)+ind+1, varlist[2]);
 
 	return S_OK;
 
-get_error:
+set_error:
 	printf("Function requires 1 array handle, 1 int value and 1 value: set(array, int index, value)\n");
+	return E_FAIL;
+set_error2:
+	printf("Array bound out of range: %d, max %d\n", ind, size-1);
 	return E_FAIL;
 }
 
