@@ -153,6 +153,7 @@ HRESULT openbor_changeshadowcolor(ScriptVariant** varlist , ScriptVariant** pret
 HRESULT openbor_bindentity(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 HRESULT openbor_array(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_size(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_get(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_set(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
