@@ -479,6 +479,7 @@ int                 scbonuses[4]        = {10000, 1000, 100, 0};//Stage complete
 int                 showrushbonus       = 0;
 int                 noshare				= 0;					// Used for when you want to keep p1 & p2 credits separate
 int                 nodropen			= 0;					// Drop or not when spawning is now a modder option
+int					nodropspawn			= 0;					// don't spawn from the sky if the modder doesn't set it
 int                 gfx_x_offset		= 0;                    //2011_04_03, DC: Enable X offset adjustment by modders.
 int                 gfx_y_offset		= 0;
 int                 gfx_y_offset_adj    = 0;                    //2011_04_03, DC: Enable Y offset adjustment by modders.
@@ -7556,6 +7557,9 @@ int load_models()
 			case CMD_MODELSTXT_NODROPEN:
 				nodropen = 1;
 				break;
+			case CMD_MODELSTXT_NODROPSPAWN:
+				nodropspawn = 1;
+				break;
 			case CMD_MODELSTXT_KNOW:
 				// Just add path to cache list
 				cache_model(GET_ARG(1), GET_ARG(2), 0);
@@ -10349,9 +10353,11 @@ void ent_default_init(entity* e)
 			{
 				dodrop = (e->modeldata.subtype != SUBTYPE_ARROW && level && (level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN));
 
-				if(dodrop || (e->x > advancex-30 && e->x < advancex + videomodes.hRes+30 && e->a == 0))
+				if(!nodropspawn && (dodrop || (e->x > advancex-30 && e->x < advancex + videomodes.hRes+30 && e->a == 0)) )
 				{
 					e->a += videomodes.vRes + randf(40);
+				}
+				if(inair(e)){
 					e->takeaction = common_drop;//enemy_drop;
 					if(validanim(e, ANI_JUMP)) ent_set_anim(e, ANI_JUMP, 0);
 				}

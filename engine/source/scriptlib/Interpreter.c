@@ -389,6 +389,9 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 	if(List_FindByName(&(pinterpreter->theInstructionList), "main"))
 		pinterpreter->mainEntryIndex = List_GetIndex(&(pinterpreter->theInstructionList));
 	else pinterpreter->mainEntryIndex = -1;
+	if(List_FindByName(&(pinterpreter->theInstructionList), "clear"))
+		pinterpreter->clearEntryIndex = List_GetIndex(&(pinterpreter->theInstructionList));
+	else pinterpreter->clearEntryIndex = -1;
 	List_Reset(&(pinterpreter->theInstructionList));
 	size = List_GetSize(&(pinterpreter->theInstructionList));
 	for(i=0; i<size; i++)
@@ -638,6 +641,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			}
 			List_Clear(&(pinterpreter->theInstructionList));
 			pinterpreter->mainEntryIndex = -1;
+			pinterpreter->clearEntryIndex = -1;
 			break;
 		}
 		List_GotoNext(&(pinterpreter->theInstructionList));
@@ -666,6 +670,11 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		pinterpreter->pMainEntry = (Instruction**)(&(pinterpreter->theInstructionList.solidlist[pinterpreter->mainEntryIndex]));
 	else
 		pinterpreter->pMainEntry = NULL;
+
+	if(pinterpreter->clearEntryIndex >= 0)
+		pinterpreter->pClearEntry = (Instruction**)(&(pinterpreter->theInstructionList.solidlist[pinterpreter->clearEntryIndex]));
+	else
+		pinterpreter->pClearEntry = NULL;
 
 	// convert theJumpTargetIndex (int) to ptheJumpTarget (Instruction**)
 	for(i=0; i<size; i++)

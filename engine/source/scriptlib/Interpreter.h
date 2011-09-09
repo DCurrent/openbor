@@ -33,6 +33,10 @@ typedef struct Interpreter {
 	  Instruction** pMainEntry;
 	  int mainEntryIndex;
    };
+   union {
+	  Instruction** pClearEntry;
+	  int clearEntryIndex;
+   };
    int bHasImmediateCode;
 
    BOOL bCallCompleted;
