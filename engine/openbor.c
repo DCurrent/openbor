@@ -11082,8 +11082,10 @@ void kill_all()
 	for(i=0; i<ent_max; i++)
 	{
 		e = ent_list[i];
-		if (e && e->exists)
+		if (e && e->exists){
 			execute_onkill_script(e);
+			clear_all_scripts(&e->scripts, 1);
+		}
 		e->exists = 0; // well, no need to use kill function
 	}
 	textbox = smartbomber = NULL;
