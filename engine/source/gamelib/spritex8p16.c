@@ -281,8 +281,9 @@ static void scaleline(int x, int cx, int width, int *linetab, unsigned short* pa
                         d = scale_d - old_scale_d; // count scale added
                         if(d >= 256) // > 1pixel, so draw these
                         {
-                                for(i=d>>8; i>0; i--) // draw a pixel
+                                for(i=d>>8; i>0; i--, dx++) // draw a pixel
                                 {
+                                        if(dx>=screenwidth) return; // out of right border? exit
                                         if(dx>=0) // pass left border?
                                         {
                                                 if(!fp)
@@ -294,7 +295,6 @@ static void scaleline(int x, int cx, int width, int *linetab, unsigned short* pa
                                                         dest_c[dx] = fp(fillcolor?fillcolor:palette[*charptr], dest_c[dx]);
                                                 }
                                         }
-                                        if(++dx>=screenwidth) return; // out of right border? exit
                                 }
                                 old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
                         }
@@ -341,8 +341,9 @@ static void scaleline_flip(int x, int cx, int width, int *linetab, unsigned shor
                         d = scale_d - old_scale_d; // count scale added
                         if(d >= 256) // > 1pixel, so draw these
                         {
-                                for(i=d>>8; i>0; i--) // draw a pixel
+                                for(i=d>>8; i>0; i--, dx--) // draw a pixel
                                 {
+                                        if(dx<0) return; // out of left border? exit
                                         if(dx<screenwidth) // pass right border?
                                         {
                                                 if(!fp)
@@ -354,7 +355,6 @@ static void scaleline_flip(int x, int cx, int width, int *linetab, unsigned shor
 													dest_c[dx] = fp(fillcolor?fillcolor:palette[*charptr], dest_c[dx]);
                                                 }
                                         }
-                                        if(--dx<0) return; // out of left border? exit
                                 }
                                 old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
                         }
