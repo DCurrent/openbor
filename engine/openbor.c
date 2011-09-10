@@ -9612,18 +9612,21 @@ void pausemenu()
 			}
 			quit = 1;
 			sound_pause_music(0);
+			sound_pause_sample(0);
 			sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 			pauselector = 0;
 		}
 		if(bothnewkeys & FLAG_ESC){
 			quit = 1;
 			sound_pause_music(0);
+			sound_pause_sample(0);
 			sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 			pauselector = 0;
 		}
 		if(bothnewkeys & FLAG_SCREENSHOT){
 			pause = 1;
 			sound_pause_music(1);
+			sound_pause_sample(1);
 			sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 			options();
 		}
@@ -15336,7 +15339,7 @@ void checkpathblocked()
 			return;
 		}
 
-		if(self->pathblocked>200 || (self->pathblocked>20 && (aitype & (AIMOVE1_CHASEX|AIMOVE1_CHASEZ|AIMOVE1_CHASE))))
+		if(self->pathblocked>40 || (self->pathblocked>20 && (aitype & (AIMOVE1_CHASEX|AIMOVE1_CHASEZ|AIMOVE1_CHASE))))
 		{
 
 			x = self->xdir;
@@ -15368,249 +15371,198 @@ void checkpathblocked()
 
 //may be used many times, so make a function
 // try to move towards the target
-int common_try_chase(entity* target)
+int common_try_chase(entity* target, int dox, int doz)
 {
 	// start chasing the target
-	float maxspeed;
 	float dx, dz;
-	int aitype;
-	int rnum;
+	int mx, mz;
+	float mindx, mindz;
+	int grabd, facing;
+
+	self->running = 0;
 
 	if(target == NULL || self->modeldata.nomove) return 0;
 
+	facing = (self->direction?self->x<target->x:self->x>target->x);
+
+	if(!facing) {
+		return 0; // don't chase a target behind me
+	}
+
 	dx = diff(self->x, target->x);
 	dz = diff(self->z, target->z);
+	grabd = self->modeldata.grabdistance;
 
-	aitype = self->modeldata.aimove & rand32();
-	if(!aitype) aitype = self->modeldata.aimove;
-	if(self->modeldata.subtype==SUBTYPE_CHASE) aitype |= AIMOVE1_CHASE;
-
-	if((aitype & AIMOVE1_CHASEX) && dx < 20) aitype -= AIMOVE1_CHASEX;
-	if((aitype & AIMOVE1_CHASEZ) && dz < 10) aitype -= AIMOVE1_CHASEZ;
-	if((aitype & AIMOVE1_CHASE) && dz + dx < 20 ) aitype -= AIMOVE1_CHASE;
-
-	if(!(aitype & (AIMOVE1_CHASEX|AIMOVE1_CHASEZ|AIMOVE1_CHASE))) return 0; // none available, exit
-
-	rnum = rand32();
-	// if target is far away, run instead of walk
-	if( (self->direction?self->x<target->x:self->x>target->x) && (
-		((aitype & AIMOVE1_CHASEX) && (dx > 200 || (rnum&15)<3) && validanim(self,ANI_RUN))||
-		((dx+dz > 200 || (rnum&15)<3) && !(aitype & AIMOVE1_CHASEZ) && dx > 2 * dz && validanim(self,ANI_RUN))) )
-		 {maxspeed = self->modeldata.runspeed;self->running = 1;}
-	else {maxspeed = self->modeldata.speed;self->running = 0;}
-
+	mindx = grabd * 1.5;
+	mindz = grabd / 4;
 	
-	if(!dz && !dx) {
-		self->xdir = self->zdir = 0;
-	}else if(aitype & AIMOVE1_CHASEX) { // wander in z direction, chase in x direction
-		self->xdir = maxspeed ;
-		if(self->modeldata.runupdown || !self->running)
-		{
-			if(self->z<advancey-videomodes.vRes/8){
-				self->zdir = self->modeldata.speed/2;
-			}else if (self->z>advancey+videomodes.vRes*9/8){
-				self->zdir = -self->modeldata.speed/2;
-			}else if(dz > videomodes.vRes/3)
-				self->zdir = (target->z>self->z)?self->modeldata.speed/2:-self->modeldata.speed/2;
-			else self->zdir = randf(1) - randf(1);
-		}
-	}
-	else if(aitype & AIMOVE1_CHASEZ){// wander in x direction, chase in z direction
-		if(self->x<advancex-videomodes.hRes/8){
-			self->xdir = self->modeldata.speed;
-		}else if (self->x>advancex+videomodes.hRes*9/8){
-			self->xdir = -self->modeldata.speed;
-		}else if(dx > videomodes.hRes/2.5)
-			self->xdir = (target->x>self->x)?self->modeldata.speed:-self->modeldata.speed;
-		else self->xdir = randf(1) - randf(1);
-		self->zdir = maxspeed / 2;
-	}
-	else { // chase in x and z direction
-		if(self->modeldata.runupdown || !self->running)
-		{
-			self->xdir = maxspeed * dx / (dx+dz);
-			self->zdir = maxspeed * dz / (dx+dz);
-		}
-		else
-		{
-			self->xdir = maxspeed;
-			self->zdir = 0;
-		}
-	}
-	if(self->x > target->x && !(aitype & AIMOVE1_CHASEZ)) self->xdir = -self->xdir;
-	if(self->z > target->z && !(aitype & AIMOVE1_CHASEX)) self->zdir = -self->zdir;
+	if(dox && dx<mindx) {
+		self->xdir = 0;
+		mx = 0;
+	}else mx = 1;
 
-	adjust_walk_animation(target);
+	if(doz && dz<mindz){
+		self->zdir = 0;
+		mz = 0;
+	}else mz = 1;
+
+	if(!mx && !mz){
+		self->running = 0;
+		return 0;
+	}
+	
+	if(dox){
+		if((dx>150 || dx+dz>200) && validanim(self, ANI_RUN)){
+			self->xdir = self->modeldata.runspeed;
+			self->running = 1;
+		}
+		else self->xdir = self->modeldata.speed;
+		if(target->x<self->x) self->xdir = -self->xdir;
+	}
+
+	if(doz){
+		if(dz>100 && self->modeldata.runupdown && validanim(self, ANI_RUN)){
+			self->zdir = self->modeldata.runspeed/2;
+			self->running = 1;
+		}
+		else self->zdir = self->modeldata.speed/2;
+		if(target->z<self->z) self->zdir = -self->zdir;
+	}
+
 
 	return 1;
 }
 
 //may be used many times, so make a function
 // minion follow his owner
-int common_try_follow()
+int common_try_follow(entity* target, int dox, int doz)
 {
 	// start chasing the target
-	entity* target = NULL;
-	float distance = 0;
-	float maxspeed, dx, dz;
+	float dx, dz, distance;
+	int mx, mz;
+	int facing;
 
-	target = self->parent;
+	//target = self->parent;
 	if(target == NULL || self->modeldata.nomove) return 0;
+	distance = (float)((validanim(self,ANI_IDLE))? self->modeldata.animation[ANI_IDLE]->range.xmin: 100);
+
+	facing = (self->direction?self->x<target->x:self->x>target->x);
 
 	dx = diff(self->x, target->x);
 	dz = diff(self->z, target->z);
-	distance = (float)((validanim(self,ANI_IDLE))? self->modeldata.animation[ANI_IDLE]->range.xmin: 100);
+	
+	if(dox && dx<distance) {
+		self->xdir = 0;
+		mx = 0;
+	}else mx = 1;
 
-	if(dz + dx < distance ) return 0;
+	if(doz && dz<distance/2){
+		self->zdir = 0;
+		mz = 0;
+	}else mz = 1;
 
-	// if target is far away, run instead of walk
-	if(dx+dz > 200 && dx > 2 * dz && validanim(self,ANI_RUN)){maxspeed = self->modeldata.runspeed;self->running = 1;}
-	else {maxspeed = self->modeldata.speed;self->running = 0;}
-
-	if(!dz && !dx) self->xdir = self->zdir = 0;
-	else {
-		if(self->modeldata.runupdown || !self->running)
-		{
-			self->xdir = maxspeed * dx / (dx+dz);
-			self->zdir = maxspeed * dz / (dx+dz);
+	if(!mx && !mz){
+		self->running = 0;
+		return 0;
+	}
+	
+	if(dox){
+		if(dx>200 && validanim(self, ANI_RUN)){
+			self->xdir = self->modeldata.runspeed;
+			self->running = 1;
 		}
-		else
-		{
-			self->xdir = maxspeed;
-			self->zdir = 0;
-		}
+		else self->xdir = self->modeldata.speed;
 	}
 
-	if(self->x > target->x ) self->xdir = -self->xdir;
-	if(self->z > target->z ) self->zdir = -self->zdir;
-
-	adjust_walk_animation(target);
+	if(doz){
+		if(dx>200 && self->modeldata.runupdown && validanim(self, ANI_RUN)){
+			self->zdir = self->modeldata.runspeed/2;
+			self->running = 1;
+		}
+		else self->zdir = self->modeldata.speed/2;
+	}
 
 	return 1;
 }
 
 // try to avoid the target
 // used by 'avoid avoidz avoidx
-int common_try_avoid(entity* target)
+int common_try_avoid(entity* target, int dox, int doz)
 {
-	float maxspeed = 0;
 	float dx, dz;
-
-	int aitype = 0;
+	int mx, mz;
 
 	if(target == NULL || self->modeldata.nomove) return 0;
 
 	dx = diff(self->x, target->x);
 	dz = diff(self->z, target->z);
 
-	aitype = self->modeldata.aimove & rand32();
-	if(!aitype) aitype = self->modeldata.aimove ;
+	if(dox && dx > videomodes.hRes/2) mx = 0;
+	else mx = 1;
 
-	if((aitype & AIMOVE1_AVOIDX) && dx > 100) aitype -= AIMOVE1_AVOIDX;
-	if((aitype & AIMOVE1_AVOIDZ) && dz > 50) aitype -= AIMOVE1_AVOIDZ;
-	if((aitype & AIMOVE1_AVOID) && dz + dx > 150) aitype -= AIMOVE1_AVOID;
+	if(doz && dz > videomodes.vRes/2) mz = 0;
+	else mz = 1;
 
-	if(!(aitype &(AIMOVE1_AVOIDX|AIMOVE1_AVOIDZ|AIMOVE1_AVOIDX))) return 0; // none available, exit
+	//printf("aimove: %d\n", (aitype &(AIMOVE1_AVOIDX|AIMOVE1_AVOIDZ|AIMOVE1_AVOIDX)));
 
-	maxspeed = self->modeldata.speed;
+	if(!mx && !mz) return 0; // none available, exit
 
-	if(self->x < screenx - 10) self->xdir = maxspeed;
-	else if(self->x > screenx + videomodes.hRes + 10) self->xdir = -maxspeed;
-	else self->xdir = (self->x < target->x)? (-maxspeed):maxspeed;
-
-	if(self->z < screeny - 5) {
-			self->zdir = maxspeed/2;
-		}
-	else if(self->z > screeny + videomodes.vRes + 5){
-			self->zdir = -maxspeed/2;
-		}
-	else self->zdir = (self->z < target->z)? (-maxspeed/2):(maxspeed/2);
-
-	adjust_walk_animation(target);
+	if(dox){
+		if(self->x < screenx - 10) self->xdir = self->modeldata.speed;
+		else if(self->x > screenx + videomodes.hRes + 10) self->xdir = -self->modeldata.speed;
+		else self->xdir = (self->x < target->x)? (-self->modeldata.speed):self->modeldata.speed;
+	}
+	
+	if(doz){
+		if(self->z < screeny - 5) self->zdir = self->modeldata.speed/2;
+		else if(self->z > screeny + videomodes.vRes + 5) self->zdir = -self->modeldata.speed/2;
+		else self->zdir = (self->z < target->z)? (-self->modeldata.speed/2):(self->modeldata.speed/2);
+	}
 
 	return 1;
 }
 
 //  wander completely
-int common_try_wandercompletely()
+int common_try_wandercompletely(int dox, int doz)
 {
-	int walk = 0;
-	int rnum = 0;
+	int rnum;
 
-	if(self->modeldata.nomove) return 0;
+	if(dox){
+		rnum = rand32();
+		if((rnum & 15) < 4) self->xdir = -self->modeldata.speed;
+		else if((rnum & 15) > 11) self->xdir = self->modeldata.speed;
+		else self->xdir = 0;
+		if( (self->x<screenx-10 && self->xdir<0) ||
+			(self->x>screenx+videomodes.hRes+10 && self->xdir>0) )
+			self->xdir = -self->xdir;
 
-	walk = 0;
-	rnum = rand32();
-	self->xdir = self->zdir = 0;
-	if((rnum & 15) < 4){
-		// Move up
-		self->zdir = -self->modeldata.speed/2;
 	}
-	else if((rnum & 15) > 11){
-		// Move down
-		self->zdir = self->modeldata.speed/2;
-	}
+	if(doz){
+		rnum = rand32();
+		if((rnum & 15) < 4) self->zdir = -self->modeldata.speed/2;
+		else if((rnum & 15) > 11) self->zdir = self->modeldata.speed/2;
+		else self->zdir = 0;
+		if( (self->z<screeny-10 && self->zdir<0) ||
+			(self->z>screeny+videomodes.vRes+10 && self->zdir>0) )
+			self->zdir = -self->zdir;
 
-	rnum = rand32();
-	if((rnum & 15) < 4 ){
-		// Walk forward
-		if(self->direction==1) self->xdir = self->modeldata.speed;
-		else self->xdir = -self->modeldata.speed;
-	}
-	else if((rnum & 15) > 11 ){
-		if(self->modeldata.noflip){
-			// Walk backward
-			if(self->direction==1) self->xdir = -self->modeldata.speed;
-
-			else self->xdir = self->modeldata.speed;
-		} else if(!validanim(self,ANI_TURN))  {
-			// flip and Walk forward
-			self->direction = !self->direction;
-			if(self->direction==1) self->xdir = self->modeldata.speed;
-			else self->xdir = -self->modeldata.speed;
-		} else self->direction = !self->direction;
 	}
 
+	return 1;
 
-
-	if(((self->xdir > 0 && !self->direction) ||
-		(self->xdir < 0 && self->direction)) && !self->modeldata.noflip)
-		self->direction = !self->direction;
-
-		if(self->x < screenx - 10) {
-			self->xdir = self->modeldata.speed;
-		}
-		else if(self->x > screenx + videomodes.hRes + 10) {
-			self->xdir = -self->modeldata.speed;
-		}
-
-		if(self->xdir || self->zdir){
-			if((self->xdir > 0 && !self->direction) ||
-				(self->xdir < 0 && self->direction))
-				walk = -1;
-			else walk = 1;
-		}else walk = 0;
-
-		if(walk ){
-			adjust_walk_animation(NULL);
-
-			return 1;
-		}
-		return 0;
 }
 
 // just wander around, face to the target
-int common_try_wander(entity* target)
+int common_try_wander(entity* target, int dox, int doz)
 {
 	int walk = 0, behind, grabd, agg;
 	float diffx, diffz, //distance from target
 		returndx, returndz, //how far should keep from target
-		borderdx, borderdz; //how far should keep offscreen
+		borderdx, borderdz, //how far should keep offscreen
+		mindx, mindz;// don't walk into the target
 	int rnum = rand32()&7, rnum2 = rand32()&15, t;
 
 	if(!target || self->modeldata.nomove) return 0;
-
-	self->xdir = self->zdir = 0;
 
 	diffx = diff(self->x, target->x);
 	diffz = diff(self->z, target->z);
@@ -15627,6 +15579,7 @@ int common_try_wander(entity* target)
 		t = 1;
 	}
 	t += agg;
+	if(behind && target->attacking) t+=5;
 	if(rnum2<t){ //chase target
 		returndx = grabd*1.5;
 		returndz = grabd/3;
@@ -15641,57 +15594,67 @@ int common_try_wander(entity* target)
 		borderdx = borderdz = 0;
 	}
 
-	if(self->x<screenx-borderdx){
-		self->xdir = self->modeldata.speed;
-		walk = 1;
-	}else if (self->x>screenx+videomodes.hRes+borderdx){
-		self->xdir = -self->modeldata.speed;
-		walk = 1;
-	}else if(diffx>returndx)
+	mindx = (!behind&&target->attacking)? grabd*3:grabd*1.2;
+	mindz = grabd/4;
+
+	if(dox){
+		if(self->x<screenx-borderdx){
+			self->xdir = self->modeldata.speed;
+			walk = 1;
+		}else if (self->x>screenx+videomodes.hRes+borderdx){
+			self->xdir = -self->modeldata.speed;
+			walk = 1;
+		}else if(diffx>returndx)
+		{
+			if(diffx<mindx/2){
+				self->xdir = (self->x>target->x)?self->modeldata.speed:-self->modeldata.speed;
+				walk = 1;
+			}else if(diffx<mindx){
+				self->xdir = 0;
+			}else{
+				self->xdir = (self->x>target->x)?-self->modeldata.speed:self->modeldata.speed;
+				walk = 1;
+			}
+		}else if(rnum < 3){
+			self->xdir = self->modeldata.speed;
+			walk = 1;
+		}else if(rnum > 4){
+			self->xdir = -self->modeldata.speed;
+			walk = 1;
+		}
+	}
+	
+	if(doz)
 	{
-		self->xdir = (self->x>target->x)?-self->modeldata.speed:self->modeldata.speed;
-		walk = 1;
-	}else if(rnum < 3){
-		self->xdir = self->modeldata.speed;
-		walk = 1;
-	}else if(rnum > 4){
-		self->xdir = -self->modeldata.speed;
-		walk = 1;
+		rnum = rand32()&7;
+		if(self->z<screeny-borderdz){
+			self->zdir = self->modeldata.speed/2;
+			walk |= 1;
+		}else if (self->z>screeny+videomodes.vRes+borderdz){
+			self->zdir = -self->modeldata.speed/2;
+			walk |= 1;
+		}else if(diffz>returndz)
+		{
+			if(diffz<mindz){
+				self->zdir = 0;
+			}else{
+				self->zdir = (self->z>target->z)?-self->modeldata.speed/2:self->modeldata.speed/2;;
+				walk |= 1;
+			}
+		}
+		else if(rnum < 2){
+			// Move up
+			self->zdir = -self->modeldata.speed/2;
+			walk |= 1;
+		}
+		else if(rnum > 5){
+			// Move down
+			self->zdir = self->modeldata.speed/2;
+			walk |= 1;
+		}
 	}
 
-	rnum = rand32()&7;
-	if(self->z<screeny-borderdz){
-		self->zdir = self->modeldata.speed/2;
-		walk |= 1;
-	}else if (self->z>screeny+videomodes.vRes+borderdz){
-		self->zdir = -self->modeldata.speed/2;
-		walk |= 1;
-	}else if(diffz>returndz)
-	{
-		self->zdir = (self->z>target->z)?-self->modeldata.speed/2:self->modeldata.speed/2;;
-		walk |= 1;
-	}
-	else if(rnum < 2){
-		// Move up
-		self->zdir = -self->modeldata.speed/2;
-		walk |= 1;
-	}
-	else if(rnum > 5){
-		// Move down
-		self->zdir = self->modeldata.speed/2;
-		walk |= 1;
-	}
-
-	if(walk ){
-		adjust_walk_animation(target);
-	}
-	else
-	{
-		self->xdir = self->zdir = 0;
-		set_idle(self);
-	}
-
-	return 1;
+	return walk;
 }
 
 //A.I chracter pickup an item
@@ -15754,295 +15717,6 @@ void common_pickupitem(entity* other){
 		other->z = 100000;
 		execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
 	}
-}
-
-//walk/run/pickup/jump etc
-//Used by normal A.I. pattern
-int normal_move()
-{
-	entity* other = NULL; //item
-	entity* target = NULL;//hostile target
-	entity* owner = NULL;
-	float seta;
-	int predir, stall;
-
-	predir = self->direction;
-
-	target = normal_find_target(-1,0); // confirm the target again
-	other = normal_find_item();    // find an item
-	owner = self->parent;
-
-	if(!self->modeldata.noflip && !self->running){
-		if(other)   //try to pick up an item, if possible
-			self->direction = (self->x < other->x);
-		else if(target)
-			self->direction = (self->x < target->x);
-		else if(owner)
-			self->direction = (self->x < owner->x);
-	}
-
-	//turn back if we have a turn animation
-	if(self->direction != predir && validanim(self,ANI_TURN)){
-		self->direction = !self->direction;
-		ent_set_anim(self, ANI_TURN, 0);
-		self->xdir = self->zdir = 0;
-		self->takeaction = common_turn;
-		return 1;
-	}
-
-	if(common_try_jump()) return 1;  //need to jump? so quit
-
-	checkpathblocked();
-
-	// judge next move if stalltime is expired
-	if(self->stalltime < time ){
-		if(other){
-			// try walking to the item
-			common_try_pick(other);
-		}
-		else if(target && (self->modeldata.subtype == SUBTYPE_CHASE ||
-			(self->modeldata.type == TYPE_NPC && self->parent))){
-				// try chase a target
-				common_try_chase(target);
-			}
-		else if(target){
-			// just wander around
-			common_try_wander(target);
-		} else if(!common_try_follow() && (!(self->modeldata.aimove&AIMOVE2_NOTARGETIDLE) && !common_try_wandercompletely())){
-			// no target or item, just relex and idle
-			self->xdir = self->zdir = 0;
-			set_idle(self);
-		}
-		//end of if
-
-		stall = GAME_SPEED - self->modeldata.aggression;
-
-		if(stall<GAME_SPEED) stall = GAME_SPEED/2;
-
-		self->stalltime = time + stall;
-	}
-
-	//pick up the item if possible
-	if( (other && other == find_ent_here(self, self->x, self->z, TYPE_ITEM)) && other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
-	{
-		seta = (float)(self->animation->seta?self->animation->seta[self->animpos]:-1);
-		if(diff(self->a - (seta>= 0) * seta , other->a)<0.1)
-		common_pickupitem(other);
-	}
-
-	return 1;
-}
-
-//walk/run/pickup/jump etc
-//Used by avoid A.I. pattern
-int avoid_move()
-{
-
-	entity* other = NULL; //item
-	entity* target = NULL;//hostile target
-	entity* owner = NULL;
-	float seta;
-	int predir ;
-
-	predir = self->direction;
-	target = normal_find_target(-1,0); // confirm the target again
-	other = normal_find_item();    // find an item
-	owner = self->parent;
-
-	if(!self->modeldata.noflip && !self->running){
-		if(target)
-			self->direction = (self->x < target->x);
-		else if(other)   //try to pick up an item, if possible
-			self->direction = (self->x < other->x);
-		else if(owner)
-			self->direction = (self->x < owner->x);
-	}
-
-	//turn back if we have a turn animation
-	if(self->direction != predir && validanim(self,ANI_TURN)){
-		self->direction = !self->direction;
-		ent_set_anim(self, ANI_TURN, 0);
-		self->xdir = self->zdir = 0;
-		self->takeaction = common_turn;
-		return 1;
-	}
-
-	if(common_try_jump()) return 1;  //need to jump? so quit
-
-	checkpathblocked();
-
-	// judge next move if stalltime is expired
-	if(self->stalltime < time ){
-		if(target != NULL && (other == NULL ||
-			(other && diff(self->x, other->x) + diff(self->z, other->z) >
-			diff(self->x, target->x)+ diff(self->z, target->z)))){
-				// avoid the target
-				if(!common_try_avoid(target))
-					common_try_wander(target);
-
-			}
-		else if(other){
-			// try walking to the item
-			common_try_pick(other);
-		} else if(!common_try_follow() && (!(self->modeldata.aimove&AIMOVE2_NOTARGETIDLE) && !common_try_wandercompletely())){
-			// no target or item, just relex and idle
-			self->xdir = self->zdir = 0;
-			set_idle(self);
-		}
-		//end of if
-
-		self->stalltime = time + GAME_SPEED - self->modeldata.aggression;
-	}
-
-	//pick up the item if possible
-	if( (other && other == find_ent_here(self, self->x, self->z, TYPE_ITEM)) && other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
-	{
-		seta = (float)(self->animation->seta?self->animation->seta[self->animpos]:-1);
-		if(diff(self->a - (seta>= 0) * seta , other->a)<0.1)
-		common_pickupitem(other);
-	}
-
-	return 1;
-}
-
-//walk/run/pickup/jump etc
-//Used by chase A.I. pattern
-int chase_move()
-{
-
-	entity* other = NULL; //item
-	entity* target = NULL;//hostile target
-	entity* owner = NULL;
-	float seta;
-	int predir ;
-
-	predir = self->direction;
-	target = normal_find_target(-1,0); // confirm the target again
-	other = normal_find_item();    // find an item
-	owner = self->parent;
-
-	if(!self->modeldata.noflip && !self->running){
-		if(target)
-			self->direction = (self->x < target->x);
-		else if(other)   //try to pick up an item, if possible
-			self->direction = (self->x < other->x);
-		else if(owner)
-			self->direction = (self->x < owner->x);
-	}
-
-	//turn back if we have a turn animation
-	if(self->direction != predir && validanim(self,ANI_TURN)){
-		self->direction = !self->direction;
-		ent_set_anim(self, ANI_TURN, 0);
-		self->xdir = self->zdir = 0;
-		self->takeaction = common_turn;
-		return 1;
-	}
-
-	if(common_try_jump()) return 1;  //need to jump? so quit
-
-	checkpathblocked();
-
-	// judge next move if stalltime is expired
-	if(self->stalltime < time ){
-		if(target != NULL && (other == NULL ||
-			(other && diff(self->x, other->x) + diff(self->z, other->z) >
-			diff(self->x, target->x)+ diff(self->z, target->z)))){
-				// chase the target
-				if(!common_try_chase(target))
-					common_try_wander(target);
-
-			}
-		else if(other){
-			// try walking to the item
-			common_try_pick(other);
-		} else if(!common_try_follow() && (!(self->modeldata.aimove&AIMOVE2_NOTARGETIDLE) && !common_try_wandercompletely())){
-			// no target or item, just relex and idle
-			self->xdir = self->zdir = 0;
-			set_idle(self);
-		}
-		//end of if
-
-		self->stalltime = time + GAME_SPEED - self->modeldata.aggression;
-	}
-
-
-	//pick up the item if possible
-	if( (other && other == find_ent_here(self, self->x, self->z, TYPE_ITEM)) && other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
-	{
-		seta = (float)(self->animation->seta?self->animation->seta[self->animpos]:-1);
-		if(diff(self->a - (seta>= 0) * seta , other->a)<0.1)
-		common_pickupitem(other);
-	}
-
-	return 1;
-}
-
-//Used by wander A.I. pattern
-// these guys ignore target's position, wandering around
-int wander_move()
-{
-
-	entity* other = NULL; //item
-	//entity* target = NULL;//hostile target
-	float seta;
-	int predir;
-
-	predir = self->direction;
-	//target = normal_find_target(); // confirm the target again
-	other = normal_find_item();    // find an item
-
-	if(!self->modeldata.noflip && other && !self->running){
-		//try to pick up an item, if possible
-		// just ignore target, but will still chase item
-		self->direction = (self->x < other->x);
-	}
-
-	//turn back if we have a turn animation
-	if(self->direction != predir && validanim(self,ANI_TURN)){
-		self->direction = !self->direction;
-		ent_set_anim(self, ANI_TURN, 0);
-		self->xdir = self->zdir = 0;
-		self->takeaction = common_turn;
-		return 1;
-	}
-
-	if(common_try_jump()) return 1;  //need to jump? so quit
-
-	checkpathblocked();
-
-	// judge next move if stalltime is expired
-	if(self->stalltime < time ){
-		if(other){
-			// try walking to the item
-			common_try_pick(other);
-		}
-		// let's wander around
-		else if(!common_try_wandercompletely()){
-			// no target or item, just relex and idle
-			self->xdir = self->zdir = 0;
-			set_idle(self);
-		}
-		//turn back if we have a turn animation
-		if(self->direction != predir && validanim(self,ANI_TURN)){
-			self->direction = !self->direction;
-			ent_set_anim(self, ANI_TURN, 0);
-			self->xdir = self->zdir = 0;
-			self->takeaction = common_turn;
-			return 1;
-		}
-		self->stalltime = time + GAME_SPEED - self->modeldata.aggression;
-	}
-
-	//pick up the item if possible
-	if( (other && other == find_ent_here(self, self->x, self->z, TYPE_ITEM)) && other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
-	{
-		seta = (float)(self->animation->seta?self->animation->seta[self->animpos]:-1);
-		if(diff(self->a - (seta>= 0) * seta , other->a)<0.1)
-		common_pickupitem(other);
-	}
-
-	return 1;
 }
 
 // for old bikers
@@ -16243,29 +15917,21 @@ int common_move()
 {
 	int aimove;
 	int air = inair(self);
+	entity* other = NULL; //item
+	entity* target = NULL;//hostile target
+	entity* owner = NULL;
+	entity* ent;
+	float seta;
+	int predir, stall;
+	int patx[4], pxc, px, patz[4], pzc, pz, fx, fz; //move pattern in z and x
+
 	if(self->modeldata.aimove==-1) return 0; // invalid value
 
 	// get move pattern
-	aimove = self->modeldata.aimove & MASK_AIMOVE1 & rand32();
-	if(!aimove) aimove = self->modeldata.aimove & MASK_AIMOVE1;
+	aimove = self->modeldata.aimove & MASK_AIMOVE1;
+
 //if(stricmp(self->name, "os")==0) printf("%d\n", aimove);
-	if(!aimove)
-	{// normal move style, for common enemy/npc
-		return air?0:normal_move();
-	}
-	else if(aimove&(AIMOVE1_AVOID|AIMOVE1_AVOIDX|AIMOVE1_AVOIDZ))
-	{// try to avoid target
-		return air?0:avoid_move();
-	}
-	else if(aimove&(AIMOVE1_CHASE|AIMOVE1_CHASEX|AIMOVE1_CHASEZ))
-	{// try to chase target
-		return air?0:chase_move();
-	}
-	else if(aimove&AIMOVE1_WANDER)
-	{// ignore target
-		return air?0:wander_move();
-	}
-	else if(aimove&AIMOVE1_BIKER)
+	if(aimove&AIMOVE1_BIKER)
 	{// for biker subtype
 		return biker_move();
 	}
@@ -16284,9 +15950,159 @@ int common_move()
 	else if(aimove&AIMOVE1_NOMOVE)
 	{// no move, just return
 		return 0;
+	}else{
+		// all above are special move patterns, real AI goes here:
+
+		if(air) return 0; // skip if the entity is in air
+
+		predir = self->direction;
+
+		target = normal_find_target(-1,0); // confirm the target again
+		other = normal_find_item();    // find an item
+		owner = self->parent;
+
+		if(!self->xdir) 
+				self->running = 0;
+
+		if(!self->modeldata.noflip && !self->running && aimove!=AIMOVE1_WANDER){
+			if(other)   //try to pick up an item, if possible
+				self->direction = (self->x < other->x);
+			else if(target)
+				self->direction = (self->x < target->x);
+			else if(owner)
+				self->direction = (self->x < owner->x);
+		}else if(aimove==AIMOVE1_WANDER){
+			self->direction = (self->xdir>0);
+		}
+
+		//turn back if we have a turn animation
+		if(self->direction != predir && validanim(self,ANI_TURN)){
+			self->direction = !self->direction;
+			ent_set_anim(self, ANI_TURN, 0);
+			self->xdir = self->zdir = 0;
+			self->takeaction = common_turn;
+			return 1;
+		}
+
+		if(common_try_jump()) return 1;  //need to jump? so quit
+
+		checkpathblocked();
+
+		// judge next move if stalltime is expired
+		if(self->stalltime < time ){
+			if(other){
+				// try walking to the item
+				common_try_pick(other);
+				ent = other;
+			}else if(target && (self->modeldata.subtype == SUBTYPE_CHASE ||
+				(self->modeldata.type == TYPE_NPC && self->parent)))
+					// try chase a target
+					aimove |= AIMOVE1_CHASE;
+
+			if(aimove & AIMOVE1_CHASE) aimove |= AIMOVE1_CHASEX|AIMOVE1_CHASEZ;
+			if(aimove & AIMOVE1_AVOID) aimove |= AIMOVE1_AVOIDX|AIMOVE1_AVOIDZ;
+
+			self->xdir = self->zdir = 0;
+
+			if(!aimove && target){
+				common_try_wander(target, 1, 1);
+				ent = target;
+			} else if (target){
+				ent = target;
+				pxc = pzc = 0;
+				
+				if(aimove&AIMOVE1_WANDER) {
+					patx[pxc] = AIMOVE1_WANDER;
+					pxc++;
+					patz[pzc] = AIMOVE1_WANDER;
+					pzc++;
+				}
+				if(aimove&AIMOVE1_CHASEX) {
+					patx[pxc] = AIMOVE1_CHASEX;
+					pxc++;
+				}
+				if(aimove&AIMOVE1_AVOIDX) {
+					patx[pxc] = AIMOVE1_AVOIDX;
+					pxc++;
+				}
+				if(aimove&AIMOVE1_CHASEZ) {
+					patz[pzc] = AIMOVE1_CHASEZ;
+					pzc++;
+				}
+				if(aimove&AIMOVE1_AVOIDZ) {
+					patz[pzc] = AIMOVE1_AVOIDZ;
+					pzc++;
+				}
+				if(!pxc) {
+					patx[pxc] = AIMOVE1_WANDER;
+					pxc++;
+				}
+				if(!pzc) {
+					patz[pzc] = AIMOVE1_WANDER;
+					pzc++;
+				}
+				px = patx[(rand32()&0xff)%pxc];
+				pz = patz[(rand32()&0xff)%pzc];
+
+				fx = fz = 0;
+			
+				//valid types: avoidx, aviodz, chasex, chasez, wander
+				if(px==AIMOVE1_WANDER){
+					common_try_wandercompletely(1, (pz==AIMOVE1_WANDER));
+					fx = 1;
+					fz = (pz==AIMOVE1_WANDER);
+				}else if(px==AIMOVE1_CHASEX){
+					common_try_chase(target, 1, (pz==AIMOVE1_CHASEZ));
+					fx = 1;
+					fz = (pz==AIMOVE1_CHASEZ);
+				}else if (px==AIMOVE1_AVOIDX){
+					common_try_avoid(target, 1, (pz==AIMOVE1_AVOIDZ));
+					fx = 1;
+					fz = (pz==AIMOVE1_AVOIDZ);
+				}
+				if(!fz){
+					if(pz==AIMOVE1_WANDER)
+						common_try_wandercompletely(0, 1);
+					else if(pz==AIMOVE1_CHASEZ)
+						common_try_chase(target, 0, 1);
+					else if (pz==AIMOVE1_AVOIDZ)
+						common_try_avoid(target, 0, 1);
+				}
+
+			}else if(!common_try_follow(owner, 1, 1) && !(self->modeldata.aimove&AIMOVE2_NOTARGETIDLE) ){
+				common_try_wandercompletely(1, 1);
+				ent = NULL;
+			}else{
+				ent = owner;
+			}
+			//end of if
+			if(!self->xdir && !self->zdir){
+				set_idle(self);
+			}else{
+				if(self->running && !self->modeldata.runupdown) self->zdir = 0;
+				adjust_walk_animation(ent);
+			}
+
+			stall = GAME_SPEED - self->modeldata.aggression;
+
+			if(stall<GAME_SPEED) stall = GAME_SPEED/2;
+
+			self->stalltime = time + stall;
+		}
+
+		//pick up the item if possible
+		if( (other && other == find_ent_here(self, self->x, self->z, TYPE_ITEM)) && other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
+		{
+			seta = (float)(self->animation->seta?self->animation->seta[self->animpos]:-1);
+			if(diff(self->a - (seta>= 0) * seta , other->a)<0.1)
+			common_pickupitem(other);
+		}
+
+		return 1;
+
 	}
 
-	return 0;
+	return 1;
 }
 
 
@@ -20301,8 +20117,9 @@ void update(int ingame, int usevwait)
 		(player[3].ent && (player[3].newkeys & FLAG_START)))
 	)
 	{
-		sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 		sound_pause_music(1);
+		sound_pause_sample(1);
+		sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 		spriteq_lock();
 		pausemenu();
 	}
