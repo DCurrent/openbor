@@ -330,13 +330,13 @@ static void scaleline(int x, int cx, int width, int *linetab, unsigned char *des
                         d = scale_d - old_scale_d; // count scale added
                         if(d >= 256) // > 1pixel, so draw these
                         {
-                                for(i=d>>8; i>0; i--) // draw a pixel
+                                for(i=d>>8; i>0; i--, dx++) // draw a pixel
                                 {
+                                        if(dx>=screenwidth) return; // out of right border? exit
                                         if(dx>=0) // pass left border?
                                         {
                                                 dest_c[dx] = fp?fp(lut, *charptr, dest_c[dx]):*charptr;
                                         }
-                                        if(++dx>=screenwidth) return; // out of right border? exit
                                 }
                                 old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
                         }
@@ -384,13 +384,13 @@ static void scaleline_flip(int x, int cx, int width, int *linetab, unsigned char
                         d = scale_d - old_scale_d; // count scale added
                         if(d >= 256) // > 1pixel, so draw these
                         {
-                                for(i=d>>8; i>0; i--) // draw a pixel
+                                for(i=d>>8; i>0; i--, dx--) // draw a pixel
                                 {
+                                        if(dx<0) return; // out of left border? exit
                                         if(dx<screenwidth) // pass right border?
                                         {
                                                 dest_c[dx] = fp?fp(lut, *charptr, dest_c[dx]):*charptr;
                                         }
-                                        if(--dx<0) return; // out of left border? exit
                                 }
                                 old_scale_d = scale_d & 0xFFFFFF00; //truncate those less than 256
                         }
