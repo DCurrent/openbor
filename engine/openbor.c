@@ -15322,7 +15322,7 @@ int adjustdirection(float coords[], float offx, float offz, float ox, float oz, 
 	return whichside;
 }
 
-void checkpathblocked()
+int checkpathblocked()
 {
 	float x, z, r;
 	int aitype;
@@ -15336,7 +15336,7 @@ void checkpathblocked()
 		   (self->modeldata.subject_to_minz && self->zdir<0 && !self->xdir && self->zdir+self->z<=PLAYER_MIN_Z) )
 		{
 			self->zdir = -self->zdir;
-			return;
+			return 1;
 		}
 
 		if(self->pathblocked>40 || (self->pathblocked>20 && (aitype & (AIMOVE1_CHASEX|AIMOVE1_CHASEZ|AIMOVE1_CHASE))))
@@ -15365,7 +15365,9 @@ void checkpathblocked()
 			adjust_walk_animation(NULL);
 
 		}
+		return 1;
 	}
+	return 0;
 }
 
 
@@ -15491,6 +15493,7 @@ int common_try_avoid(entity* target, int dox, int doz)
 {
 	float dx, dz;
 	int mx, mz;
+	int stalladd = 0;
 
 	if(target == NULL || self->modeldata.nomove) return 0;
 
@@ -15508,16 +15511,26 @@ int common_try_avoid(entity* target, int dox, int doz)
 	if(!mx && !mz) return 0; // none available, exit
 
 	if(dox){
-		if(self->x < screenx - 10) self->xdir = self->modeldata.speed;
-		else if(self->x > screenx + videomodes.hRes + 10) self->xdir = -self->modeldata.speed;
-		else self->xdir = (self->x < target->x)? (-self->modeldata.speed):self->modeldata.speed;
+		if(self->x < screenx - 10) {
+			self->xdir = self->modeldata.speed;
+			stalladd = GAME_SPEED;
+		}else if(self->x > screenx + videomodes.hRes + 10) {
+			self->xdir = -self->modeldata.speed;
+			stalladd = GAME_SPEED;
+		}else self->xdir = (self->x < target->x)? (-self->modeldata.speed):self->modeldata.speed;
 	}
 	
 	if(doz){
-		if(self->z < screeny - 5) self->zdir = self->modeldata.speed/2;
-		else if(self->z > screeny + videomodes.vRes + 5) self->zdir = -self->modeldata.speed/2;
-		else self->zdir = (self->z < target->z)? (-self->modeldata.speed/2):(self->modeldata.speed/2);
+		if(self->z < screeny - 5) {
+			self->zdir = self->modeldata.speed/2;
+			stalladd = GAME_SPEED;
+		}else if(self->z > screeny + videomodes.vRes + 5) {
+			self->zdir = -self->modeldata.speed/2;
+			stalladd = GAME_SPEED;
+		}else self->zdir = (self->z < target->z)? (-self->modeldata.speed/2):(self->modeldata.speed/2);
 	}
+
+	self->stalltime += stalladd;
 
 	return 1;
 }
@@ -15986,7 +15999,7 @@ int common_move()
 
 		if(common_try_jump()) return 1;  //need to jump? so quit
 
-		checkpathblocked();
+		if(checkpathblocked()) return 1;
 
 		// judge next move if stalltime is expired
 		if(self->stalltime < time ){
@@ -16003,6 +16016,8 @@ int common_move()
 			if(aimove & AIMOVE1_AVOID) aimove |= AIMOVE1_AVOIDX|AIMOVE1_AVOIDZ;
 
 			self->xdir = self->zdir = 0;
+
+			self->stalltime = time;
 
 			if(!aimove && target){
 				common_try_wander(target, 1, 1);
@@ -16087,7 +16102,7 @@ int common_move()
 
 			if(stall<GAME_SPEED) stall = GAME_SPEED/2;
 
-			self->stalltime = time + stall;
+			self->stalltime += stall;
 		}
 
 		//pick up the item if possible
