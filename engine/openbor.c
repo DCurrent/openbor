@@ -11929,7 +11929,6 @@ void check_gravity()
                     && self->animation->landframe.frame<= self->animation->numframes   //Not over animation frame count?
                     && self->animpos < self->animation->landframe.frame)               //Not already past landframe?
 				{
-					update_frame(self, self->animation->landframe.frame);
 					if(self->animation->landframe.ent>=0)
 					{
 						dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->animation->landframe.ent, NULL);
@@ -11937,6 +11936,7 @@ void check_gravity()
 						dust->autokill = 1;
 						execute_onspawn_script(dust);
 					}
+					update_frame(self, self->animation->landframe.frame);
 				}
 
 				// takedamage if thrown or basted
@@ -18633,7 +18633,7 @@ entity * bomb_spawn(char *name, int index, float x, float z, float a, int direct
 
 	if(e==NULL) return NULL;
 
-	e->a = a;
+	e->a = a + 0.5;
 
 	if(self->animation->energycost.cost > 0 && nocost) self->cantfire = 1;    // Can't fire if still exists on screen
 
