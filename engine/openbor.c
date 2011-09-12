@@ -15545,6 +15545,7 @@ int common_try_avoid(entity* target, int dox, int doz)
 int common_try_wandercompletely(int dox, int doz)
 {
 	int rnum;
+	int stalladd = 0;
 
 	if(dox){
 		rnum = rand32();
@@ -15552,8 +15553,10 @@ int common_try_wandercompletely(int dox, int doz)
 		else if((rnum & 15) > 11) self->xdir = self->modeldata.speed;
 		else self->xdir = 0;
 		if( (self->x<screenx-10 && self->xdir<0) ||
-			(self->x>screenx+videomodes.hRes+10 && self->xdir>0) )
+			(self->x>screenx+videomodes.hRes+10 && self->xdir>0) ){
 			self->xdir = -self->xdir;
+			stalladd = GAME_SPEED;
+		}
 
 	}
 	if(doz){
@@ -15563,9 +15566,14 @@ int common_try_wandercompletely(int dox, int doz)
 		else self->zdir = 0;
 		if( (self->z<screeny-10 && self->zdir<0) ||
 			(self->z>screeny+videomodes.vRes+10 && self->zdir>0) )
+		{
 			self->zdir = -self->zdir;
+			stalladd = GAME_SPEED;
+		}
 
 	}
+
+	self->stalltime += stalladd;
 
 	return 1;
 
@@ -15575,6 +15583,8 @@ int common_try_wandercompletely(int dox, int doz)
 int common_try_wander(entity* target, int dox, int doz)
 {
 	int walk = 0, behind, grabd, agg;
+	int stalladd = 0;
+
 	float diffx, diffz, //distance from target
 		returndx, returndz, //how far should keep from target
 		borderdx, borderdz, //how far should keep offscreen
@@ -15619,9 +15629,11 @@ int common_try_wander(entity* target, int dox, int doz)
 	if(dox){
 		if(self->x<screenx-borderdx){
 			self->xdir = self->modeldata.speed;
+			stalladd = GAME_SPEED/2;
 			walk = 1;
 		}else if (self->x>screenx+videomodes.hRes+borderdx){
 			self->xdir = -self->modeldata.speed;
+			stalladd = GAME_SPEED/2;
 			walk = 1;
 		}else if(diffx>returndx)
 		{
@@ -15648,9 +15660,11 @@ int common_try_wander(entity* target, int dox, int doz)
 		rnum = rand32()&7;
 		if(self->z<screeny-borderdz){
 			self->zdir = self->modeldata.speed/2;
+			stalladd = GAME_SPEED/2;
 			walk |= 1;
 		}else if (self->z>screeny+videomodes.vRes+borderdz){
 			self->zdir = -self->modeldata.speed/2;
+			stalladd = GAME_SPEED/2;
 			walk |= 1;
 		}else if(diffz>returndz)
 		{
@@ -15672,6 +15686,7 @@ int common_try_wander(entity* target, int dox, int doz)
 			walk |= 1;
 		}
 	}
+	self->stalltime += stalladd;
 
 	return walk;
 }
@@ -19251,6 +19266,8 @@ void update_scroller(){
 	{
 		if(level->scrolldir&SCROLL_RIGHT){
 
+			againstend = (level->width<=videomodes.hRes);
+
 			for(i=0; i<maxplayers[current_set]; i++)
 			{
 				if(player[i].ent)
@@ -19291,6 +19308,8 @@ void update_scroller(){
 
 		}
 		else if(level->scrolldir&SCROLL_LEFT){
+
+			againstend = (level->width<=videomodes.hRes);
 
 			for(i=0; i<maxplayers[current_set]; i++)
 			{
@@ -19358,6 +19377,7 @@ void update_scroller(){
 				advancey = (float)panel_height-videomodes.vRes;
 				againstend = 1;
 			}
+
 			if((level->scrolldir&SCROLL_BACK) && advancey < blockade) advancey = blockade;
 			if(advancey < 4) advancey = 4;
 
