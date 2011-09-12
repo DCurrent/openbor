@@ -16256,7 +16256,7 @@ void common_think()
 	}
 
 	// Escape?
-	if(self->link && !self->grabbing && !self->inpain && self->takeaction!=common_prethrow &&
+	if(self->link && !self->grabbing && !self->inpain && self->takeaction!=common_prethrow && !inair(self) &&
 	   time >= self->stalltime && validanim(self,ANI_SPECIAL))
 	{
 		check_special();
