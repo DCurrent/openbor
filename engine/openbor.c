@@ -4239,6 +4239,10 @@ void lcmHandleCommandType(ArgList* arglist, s_model* newchar, char* filename) {
 	}
 	else if(stricmp(value, "obstacle")==0){
 		newchar->type                   = TYPE_OBSTACLE;
+		if(newchar->aimove==-1) newchar->aimove = 0;
+		newchar->aimove |= AIMOVE1_NOMOVE;
+		if(newchar->aimove==-1) newchar->aiattack = 0;
+		newchar->aimove |= AIATTACK1_NOATTACK;
 		newchar->subject_to_wall        = 1;
 		newchar->subject_to_platform    = 1;
 		newchar->subject_to_hole        = 1;
@@ -9481,6 +9485,8 @@ void load_level(char *filename){
 
 	timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
 	level->width = level->numpanels * panel_width;
+
+	if(level->width<videomodes.hRes) level->width = videomodes.hRes;
 
 	if(level->scrolldir&SCROLL_LEFT)
 		advancex = (float)(level->width-videomodes.hRes);
@@ -16263,7 +16269,7 @@ void common_think()
 
 	// idle, so try to attack or judge next move
 	// dont move if fall into a hole or off a wall
-	if(self->idling /*|| (self->animation->idle && self->animation->idle[self->animpos])*/)
+	if(self->idling)
 	{
 	   if(common_attack()) return;
 	   common_move();
@@ -19509,7 +19515,7 @@ void applybglayers(s_screen* pbgscreen)
 
 		//if(level->bgdir==0) // count from left
 		//{
-			x = (int)(bglayer->xoffset + (advancex)*(bglayer->xratio) - advancex - (int)(bgtravelled * (1-bglayer->xratio) * bglayer->bgspeedratio)%width);
+			x = (int)(bglayer->xoffset + (advancex)*(bglayer->xratio) - advancex - bgtravelled * (1-bglayer->xratio) * bglayer->bgspeedratio);
 		//}
 		//else //count from right, complex
 		//{
@@ -19525,18 +19531,15 @@ void applybglayers(s_screen* pbgscreen)
 			z = (int)(4 + bglayer->zoffset + (advancey-4)* bglayer->zratio - advancey);
 		}
 
-		if(x<0)
-		{
+		if(x<0){
 			i = (-x)/width;
 			x %= width;
-		}
-		else i=0;
-		if(z<0)
-		{
+		}else i = 0;
+
+		if(z<0){
 			j = (-z)/height;
 			z %= height;
-		}
-		else j=0;
+		}else j = 0;
 
 		screenmethod=plainmethod;
 		screenmethod.table = (pixelformat==PIXEL_x8)?(current_palette>0?(level->palettes[current_palette-1]):NULL):NULL;
@@ -19556,7 +19559,7 @@ void applybglayers(s_screen* pbgscreen)
 				else if(bglayer->type==bg_sprite)
 					putsprite(l, z, bglayer->sprite, pbgscreen, &screenmethod);
 
-				//printf("#\n");
+				//printf("# %d %d %d %d %d\n", (int)bglayer->xoffset , (int)bglayer->xrepeat, (int)bglayer->xspacing, l, z);
 
 			}
 		}
