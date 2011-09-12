@@ -2681,6 +2681,7 @@ enum gep_aiflag_enum {
 	_gep_aiflag_running,
 	_gep_aiflag_toexplode,
 	_gep_aiflag_turning,
+	_gep_aiflag_walking,
 	_gep_aiflag_the_end,
 };
 
@@ -3023,6 +3024,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"running",
 		"toexplode",
 		"turning",
+		"walking",
 	};
 
     static const char* proplist_attack[] = {
@@ -3498,6 +3500,11 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->autokill;
+			 break;
+		}
+		case _gep_aiflag_walking:
+		{
+			 ScriptVariant_Clear(*pretvar); // depracated, just don't let it crash
 			 break;
 		}
 		default:
@@ -5434,6 +5441,7 @@ enum cep_aiflag_enum {
 	_cep_aiflag_running,
 	_cep_aiflag_toexplode,
 	_cep_aiflag_turning,
+	_cep_aiflag_walking,
 	_cep_aiflag_the_end,
 };
 
@@ -5660,6 +5668,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"running",
 		"toexplode",
 		"turning",
+		"walking",
 	};
 
     static const char* proplist_energycost[] = {
@@ -6027,6 +6036,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		{
 			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
 				  ent->autokill = (int)ltemp;
+			 break;
+		}
+		case _cep_aiflag_walking:
+		{
+			 // do nothing, deprecated property
 			 break;
 		}
 		default:
