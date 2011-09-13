@@ -10637,9 +10637,11 @@ void update_frame(entity* ent, int f)
 		if(self->animation->jumpframe.ent>=0)
 		{
 			dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->animation->jumpframe.ent, NULL);
-			dust->base = self->a;
-			dust->autokill = 1;
-			execute_onspawn_script(dust);
+			if(dust){
+				dust->base = self->a;
+				dust->autokill = 1;
+				execute_onspawn_script(dust);
+			}
 		}
 	}
 
@@ -11910,9 +11912,11 @@ void check_gravity()
 				if(self->modeldata.dust[0]>=0 && self->tossv < -1 && self->drop)
 				{
 					dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[0], NULL);
-					dust->base = self->a;
-					dust->autokill = 1;
-					execute_onspawn_script(dust);
+					if(dust){
+						dust->base = self->a;
+						dust->autokill = 1;
+						execute_onspawn_script(dust);
+					}
 				}
 				// bounce/quake
 				if(tobounce(self) && self->modeldata.bounce)
@@ -11938,9 +11942,11 @@ void check_gravity()
 					if(self->animation->landframe.ent>=0)
 					{
 						dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->animation->landframe.ent, NULL);
-						dust->base = self->a;
-						dust->autokill = 1;
-						execute_onspawn_script(dust);
+						if(dust){
+							dust->base = self->a;
+							dust->autokill = 1;
+							execute_onspawn_script(dust);
+						}
 					}
 					update_frame(self, self->animation->landframe.frame);
 				}
@@ -13571,9 +13577,11 @@ void common_jump()
 			if(self->modeldata.dust[1]>=0)
 			{
 				dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[1], NULL);
-				dust->base = self->a;
-				dust->autokill = 1;
-				execute_onspawn_script(dust);
+				if(dust){
+					dust->base = self->a;
+					dust->autokill = 1;
+					execute_onspawn_script(dust);
+				}
 			}
 			self->takeaction = common_jumpland;
 		}
@@ -13582,9 +13590,11 @@ void common_jump()
 			if(self->modeldata.dust[1]>=0 && self->animation->landframe.frame == -1)
 			{
 				dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[1], NULL);
-				dust->base = self->a;
-				dust->autokill = 1;
-				execute_onspawn_script(dust);
+				if(dust){
+					dust->base = self->a;
+					dust->autokill = 1;
+					execute_onspawn_script(dust);
+				}
 			}
 			if(self->animation->landframe.frame >= 0 && self->animating) return;
 
@@ -14603,9 +14613,11 @@ int common_try_jumpattack(entity* target)
 			if(self->modeldata.dust[2]>=0)
 			{
 				dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[2], NULL);
-				dust->base = self->a;
-				dust->autokill = 1;
-				execute_onspawn_script(dust);
+				if(dust){
+					dust->base = self->a;
+					dust->autokill = 1;
+					execute_onspawn_script(dust);
+				}
 			}
 
 			return 1;
@@ -16610,9 +16622,11 @@ void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
 	if(self->modeldata.dust[2]>=0)
 	{
 		dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[2], NULL);
-		dust->base = self->a;
-		dust->autokill = 1;
-		execute_onspawn_script(dust);
+		if(dust){
+			dust->base = self->a;
+			dust->autokill = 1;
+			execute_onspawn_script(dust);
+		}
 	}
 
 	set_jumping(self);
@@ -19026,9 +19040,11 @@ entity * smartspawn(s_spawn_entry * props){   // 7-1-2005 Entire section replace
 	if(props->weapon)
 	{
 		wp = spawn(e->x, 100000, 0, 0, props->weapon, props->weaponindex, props->weaponmodel);
-		//ent_default_init(wp);
-		set_weapon(e, wp->modeldata.weapnum, 0);
-		e->weapent = wp;
+		if(wp){
+			//ent_default_init(wp);
+			set_weapon(e, wp->modeldata.weapnum, 0);
+			e->weapent = wp;
+		}
 	}
 
 	//ent_default_init(e);
