@@ -3306,7 +3306,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	ScriptVariant* arg1	= NULL;
 	s_sprite* spr;
 	s_attack* attack;
-	LONG ltemp;
+	LONG ltemp, ltemp2;
 	int i				= 0;
 	int propind ;
 	int tempint			= 0;
@@ -3898,27 +3898,26 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	case _gep_defense:
 	{
 		ltemp = 0;
-		if(paramCount == 3)
+		if(paramCount >= 3)
 		{
-			arg = varlist[2];
-			if(FAILED(ScriptVariant_IntegerValue(arg, &ltemp)))
-				ltemp = (LONG)0;
+			if(FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp))){
+				printf("You must specify an attack type for your defense property.\n");
+				return E_FAIL;
+			}
+			ltemp2 = _gep_defense_factor;
 		}
 
-		arg = varlist[3];
-		if(arg->vt != VT_INTEGER)
-		{
-			if(arg->vt != VT_STR)
-				printf("You must give a string name for defense property.\n");
-			return E_FAIL;
+		if(paramCount >= 4){
+			if(FAILED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
+				return E_FAIL;
 		}
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 
-		switch(arg->lVal)
+		switch(ltemp2)
 		{
 		case _gep_defense_factor:
 		{
-			(*pretvar)->dblVal = (float)ent->modeldata.defense_factors[(int)ltemp];
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_factors[(int)ltemp];
 			break;
 		}
 		case _gep_defense_blockpower:
