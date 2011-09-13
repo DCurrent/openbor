@@ -13732,7 +13732,7 @@ void common_lie()
 		{    // Now have the option to blink or not
 			self->takeaction = (self->modeldata.type == TYPE_PLAYER)?player_blink:suicide;
 			self->blink = 1;
-			self->stalltime = self->nextthink = time + GAME_SPEED * 2;
+			self->stalltime  = time + GAME_SPEED * 2;
 		}
 		else if(self->modeldata.nodieblink == 2  && !self->animating)
 		{
@@ -15886,36 +15886,33 @@ int arrow_move(){
 // for common bomb types
 int bomb_move()
 {
-	/*if(!(self->x > level->width - 30 - (PLAYER_MAX_Z-self->z)))
-	{*/
+	if(inair(self) && self->toexplode == 1) {
 		if(self->direction == 0) self->xdir = -self->modeldata.speed;
 		else if(self->direction == 1) self->xdir = self->modeldata.speed;
-	/*}*/
+		self->nextthink = time + THINK_SPEED / 2;
+	}else if(self->takeaction != bomb_explode){
 
-	self->nextthink = time + THINK_SPEED / 2;
+		self->tossv = 0;    // Stop moving up/down
+		self->modeldata.no_adjust_base = 1;    // Stop moving up/down
+		self->base = self->a;
+		self->xdir = self->zdir = 0;
 
-	if(inair(self) && self->toexplode == 1) return 1;
+		if(self->modeldata.diesound >= 0) sound_play_sample(self->modeldata.diesound, 0, savedata.effectvol,savedata.effectvol, 100);
 
-	self->tossv = 0;    // Stop moving up/down
-	self->modeldata.no_adjust_base = 1;    // Stop moving up/down
-	self->base = self->a;
-	self->xdir = self->zdir = 0;
-
-	if(self->modeldata.diesound >= 0) sound_play_sample(self->modeldata.diesound, 0, savedata.effectvol,savedata.effectvol, 100);
-
-	if(self->toexplode == 2 && validanim(self,ANI_ATTACK2))
-	{
-		ent_set_anim(self, ANI_ATTACK2, 0);    // If bomb never reaces the ground, play this
+		if(self->toexplode == 2 && validanim(self,ANI_ATTACK2))
+		{
+			ent_set_anim(self, ANI_ATTACK2, 0);    // If bomb never reaces the ground, play this
+		}
+		else
+		{
+			if (validanim(self,ANI_ATTACK1)) ent_set_anim(self, ANI_ATTACK1, 0);
+		}
+		// hit something, just make it an explosion animation.
+		self->modeldata.subject_to_wall = 0;
+		self->modeldata.subject_to_platform = 1;
+		self->modeldata.subject_to_hole = 0;
+		self->takeaction = bomb_explode;
 	}
-	else
-	{
-		if (validanim(self,ANI_ATTACK1)) ent_set_anim(self, ANI_ATTACK1, 0);
-	}
-	// hit something, just make it an explosion animation.
-	self->modeldata.subject_to_wall = 0;
-	self->modeldata.subject_to_platform = 1;
-	self->modeldata.subject_to_hole = 0;
-	self->takeaction = bomb_explode;
 	return 1;
 }
 
