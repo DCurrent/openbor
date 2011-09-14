@@ -7901,7 +7901,7 @@ HRESULT openbor_checkplatformbelow(ScriptVariant** varlist , ScriptVariant** pre
 		return S_OK;
 
 	ScriptVariant_ChangeType(*pretvar, VT_PTR);
-	(*pretvar)->ptrVal = (VOID*)check_platform_below((float)x,(float)z,(float)a);
+	(*pretvar)->ptrVal = (VOID*)check_platform_below((float)x,(float)z,(float)a, NULL);
 	return S_OK;
 }
 
