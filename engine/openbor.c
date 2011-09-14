@@ -10434,7 +10434,7 @@ void ent_default_init(entity* e)
 	if(e->modeldata.multiple < 0)
 		e->modeldata.multiple = 0;
 
-	if(e->modeldata.subject_to_platform>0 && (other=check_platform_below(e->x, e->z, e->a+1)) && other != e)
+	if(e->modeldata.subject_to_platform>0 && (other=check_platform_below(e->x, e->z, e->a+1, e)))
 		e->base += other->a + other->animation->platform[other->animpos][7];
 	else if(e->modeldata.subject_to_wall>0 && (wall=checkwall_below(e->x, e->z, 9999999)) >= 0)
 		e->base += level->walls[wall][7];
@@ -11330,10 +11330,11 @@ the bottom of the platform and multiplying the result by the difference of the b
 left point divided by depth of the platform. The same is done for the right side, and checks to see if they are
 within the bottom/top and the left/right area.
 */
-int testplatform(entity* plat, float x, float z)
+int testplatform(entity* plat, float x, float z, entity* exclude)
 {
 	float coef1, coef2;
 	float offz, offx;
+	if(plat==exclude) return 0;
 	if(!plat->animation || !plat->animation->platform || !plat->animation->platform[plat->animpos][7]) return 0;
 	offz = plat->z+plat->animation->platform[plat->animpos][1];
 	offx = plat->x+plat->animation->platform[plat->animpos][0];
@@ -11352,7 +11353,7 @@ int testplatform(entity* plat, float x, float z)
 
 
 //find the first platform between these 2 altitudes
-entity * check_platform_between(float x, float z, float amin, float amax)
+entity * check_platform_between(float x, float z, float amin, float amax, entity* exclude)
 {
 	entity *plat = NULL;
 	int i;
@@ -11361,7 +11362,7 @@ entity * check_platform_between(float x, float z, float amin, float amax)
 
 	for(i=0; i<ent_max; i++)
 	{
-		if(ent_list[i]->exists && testplatform(ent_list[i], x, z) )
+		if(ent_list[i]->exists && testplatform(ent_list[i], x, z, exclude) )
 		{
 			plat = ent_list[i];
 			if(plat->a <= amax && plat->a + plat->animation->platform[plat->animpos][7] > amin)
@@ -11374,7 +11375,7 @@ entity * check_platform_between(float x, float z, float amin, float amax)
 }
 
 //find a lowest platform above this altitude
-entity * check_platform_above(float x, float z, float a)
+entity * check_platform_above(float x, float z, float a, entity* exclude)
 {
 	float mina;
 	entity *plat = NULL;
@@ -11386,7 +11387,7 @@ entity * check_platform_above(float x, float z, float a)
 	ind = -1;
 	for(i=0; i<ent_max; i++)
 	{
-		if(ent_list[i]->exists && testplatform(ent_list[i], x, z) )
+		if(ent_list[i]->exists && testplatform(ent_list[i], x, z, exclude) )
 		{
 			plat = ent_list[i];
 			if(plat->a >= a && plat->a < mina)
@@ -11400,7 +11401,7 @@ entity * check_platform_above(float x, float z, float a)
 }
 
 //find a highest platform below this altitude
-entity * check_platform_below(float x, float z, float a)
+entity * check_platform_below(float x, float z, float a, entity* exclude)
 {
 	float maxa;
 	entity *plat = NULL;
@@ -11412,7 +11413,7 @@ entity * check_platform_below(float x, float z, float a)
 	ind = -1;
 	for(i=0; i<ent_max; i++)
 	{
-		if(ent_list[i]->exists && testplatform(ent_list[i], x, z) )
+		if(ent_list[i]->exists && testplatform(ent_list[i], x, z, exclude) )
 		{
 			plat = ent_list[i];
 			if(plat->a + plat->animation->platform[plat->animpos][7] <= a &&
@@ -11427,14 +11428,14 @@ entity * check_platform_below(float x, float z, float a)
 }
 
 // find the 1st platform entity here
-entity * check_platform(float x, float z)
+entity * check_platform(float x, float z, entity* exclude)
 {
 	int i;
 	if(level==NULL) return NULL;
 
 	for(i=0; i<ent_max; i++)
 	{
-		if(ent_list[i]->exists && testplatform(ent_list[i], x, z))
+		if(ent_list[i]->exists && testplatform(ent_list[i], x, z, exclude))
 		{
 			return ent_list[i];
 		}
@@ -11859,7 +11860,7 @@ void check_gravity()
 		if((self->falling || self->tossv || self->a!=self->base) && self->toss_time <= time && !self->animation->dive.x && !self->animation->dive.v)
 		{
 			if(self->modeldata.subject_to_platform>0 && self->tossv>0)
-				other = check_platform_above(self->x, self->z, self->a+self->tossv);
+				other = check_platform_above(self->x, self->z, self->a+self->tossv, self);
 			else other = NULL;
 
 			if(self->animation->height) heightvar = self->animation->height;
@@ -12043,7 +12044,7 @@ void check_ai()
 	if((plat=self->landed_on_platform) &&
 		(plat->xdir || plat->zdir) &&
 		(plat->nextthink <= time || (plat->update_mark & 2)) &&// plat is updated before self or will be updated this loop
-		testplatform(plat,self->x,self->z) &&
+		testplatform(plat,self->x,self->z, NULL) &&
 		self->a <= plat->a + plat->animation->platform[plat->animpos][7] + 0.5 ) // on the platform?
 	{
 		// passive move with the platform
@@ -12264,11 +12265,11 @@ void update_animation()
 	if(self->modeldata.subject_to_platform>0 /*&& self->projectile==0*/)
 	{
 		other = self->landed_on_platform;
-		if(other && testplatform(other, self->x, self->z) && self->a < other->a + other->animation->platform[other->animpos][7])
+		if(other && testplatform(other, self->x, self->z, NULL) && self->a < other->a + other->animation->platform[other->animpos][7])
 		{
 			self->a = self->base = other->a + other->animation->platform[other->animpos][7]+0.5;
 		}
-		else other = check_platform_below(self->x, self->z, self->a+1);
+		else other = check_platform_below(self->x, self->z, self->a+1, self);
 	}
 	else other = NULL;
 	self->landed_on_platform = other;
@@ -12732,7 +12733,7 @@ void display_ents()
 			{    // If special is being executed, display all entities regardless
 				f = e->animation->sprite[e->animpos];
 
-				other = check_platform(e->x, e->z);
+				other = check_platform(e->x, e->z, e);
 				wall = checkwall(e->x, e->z);
 
 				if(f<sprites_loaded)
@@ -12754,7 +12755,7 @@ void display_ents()
 						else                             z++;
 					}
 
-					if(other && other != e && e->a >= other->a + other->animation->platform[other->animpos][7] && !other->modeldata.setlayer)
+					if(other && e->a >= other->a + other->animation->platform[other->animpos][7] && !other->modeldata.setlayer)
 					{
 						if(
 							e->link &&
@@ -14855,11 +14856,11 @@ int common_trymove(float xdir, float zdir)
 		!(self->modeldata.aimove&AIMOVE2_IGNOREHOLES))
 	{
 
-		if(zdir && checkhole(self->x, z) && checkwall(self->x, z)<0 && (((other = check_platform(self->x, z)) &&  self->base < other->a + other->animation->platform[other->animpos][7]) || other == NULL))
+		if(zdir && checkhole(self->x, z) && checkwall(self->x, z)<0 && (((other = check_platform(self->x, z, self)) &&  self->base < other->a + other->animation->platform[other->animpos][7]) || other == NULL))
 		{
 			zdir = 0;
 		}
-		if(xdir && checkhole(x, self->z) && checkwall(x, self->z)<0 && (((other = check_platform(x, self->z)) &&  self->base < other->a + other->animation->platform[other->animpos][7]) || other == NULL))
+		if(xdir && checkhole(x, self->z) && checkwall(x, self->z)<0 && (((other = check_platform(x, self->z, self)) &&  self->base < other->a + other->animation->platform[other->animpos][7]) || other == NULL))
 		{
 			xdir = 0;
 		}
@@ -14899,7 +14900,7 @@ int common_trymove(float xdir, float zdir)
 	else heightvar = self->modeldata.height;
 
 	// Check for obstacles with platform code and adjust base accordingly
-	if(self->modeldata.subject_to_platform>0 && (other = check_platform_between(x, z, self->a, self->a+heightvar)) )
+	if(self->modeldata.subject_to_platform>0 && (other = check_platform_between(x, z, self->a, self->a+heightvar, self)) )
 	{
 		if(xdir>0 ? other->x>self->x : other->x<self->x) {xdir = 0; }
 		if(zdir>0 ? other->z>self->z : other->z<self->z) {zdir = 0; }
@@ -15051,7 +15052,7 @@ void common_stuck_underneath()
 		self->takeaction = common_attack_proc;
 		return;
 	}
-	if(!check_platform_between(self->x, self->z, self->a, self->a+self->modeldata.height) )
+	if(!check_platform_between(self->x, self->z, self->a, self->a+self->modeldata.height, self) )
 	{
 		set_idle(self);
 		self->takeaction = NULL;
@@ -15182,6 +15183,7 @@ int common_try_jump()
 		}
 		else if(checkhole(self->x + (self->direction?2:-2), zdir) &&
 				checkwall(self->x + (self->direction?2:-2), zdir)<0 &&
+				check_platform (self->x + (self->direction?2:-2), zdir, self)==NULL &&
 				!checkhole(self->x + (self->direction?rmax:-rmax), zdir))
 		{
 			j=1;
@@ -15215,6 +15217,7 @@ int common_try_jump()
 		//Check for pit in range of RUNJUMP.
 		else if(checkhole(self->x + (self->direction?2:-2), zdir) &&
 				checkwall(self->x + (self->direction?2:-2), zdir)<0 &&
+				check_platform (self->x + (self->direction?2:-2), zdir, self)==NULL &&
 				!checkhole(self->x + (self->direction?rmax:-rmax), zdir))
 		{
 			j=2;																				//Set to perform runjump.
@@ -15344,6 +15347,7 @@ int checkpathblocked()
 {
 	float x, z, r;
 	int aitype;
+	if(self->modeldata.nomove) return 0;
 	if(self->stalltime>=time)
 	{
 		aitype = self->modeldata.aimove;
@@ -17583,7 +17587,7 @@ void player_think()
 	}
 
 	// Check if entity is under a platform
-	if(self->modeldata.subject_to_platform>0 && validanim(self,ANI_DUCK) && check_platform_between(self->x/*+self->direction*2-1*/, self->z, self->a, self->a+self->modeldata.height) && (check_platform_between(self->x/*+self->direction*2-1*/, self->z, self->a, self->a+self->animation->height) || !self->animation->height) )
+	if(self->modeldata.subject_to_platform>0 && validanim(self,ANI_DUCK) && check_platform_between(self->x/*+self->direction*2-1*/, self->z, self->a, self->a+self->modeldata.height, self) && (check_platform_between(self->x/*+self->direction*2-1*/, self->z, self->a, self->a+self->animation->height, self) || !self->animation->height) )
 	{
 		ent_set_anim(self, ANI_DUCK, 1);
 		self->takeaction = common_stuck_underneath;
@@ -18414,7 +18418,7 @@ void dropweapon(int flag)
 			self->weapent->x = self->x;
 			self->weapent->a = self->a;
 
-			other = check_platform(self->weapent->x, self->weapent->z);
+			other = check_platform(self->weapent->x, self->weapent->z, self);
 			wall = checkwall(self->weapent->x, self->weapent->z);
 
 			if(other && other != self->weapent)   self->weapent->base += other->a + other->animation->platform[other->animpos][7];
