@@ -15559,6 +15559,8 @@ int common_try_wandercompletely(int dox, int doz)
 	int rnum;
 	int stalladd = 0;
 
+	if(self->modeldata.nomove) return 0;
+
 	if(dox){
 		rnum = rand32();
 		if((rnum & 15) < 4) self->xdir = -self->modeldata.speed;
