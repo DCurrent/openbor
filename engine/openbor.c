@@ -290,8 +290,12 @@ int                 follows[MAX_FOLLOWS] = {
 						ANI_FOLLOW1, ANI_FOLLOW2, ANI_FOLLOW3, ANI_FOLLOW4
 					};
 
+#ifndef DISABLE_MOVIE
+#define DISABLE_MOVIE
+#endif
+
 //movie log stuffs
-#ifndef DC
+#ifndef DISABLE_MOVIE
 #define MOVIEBUF_LEN 2048
 int movielog = 0;
 int movieplay = 0;
@@ -15969,7 +15973,7 @@ int common_move()
 	entity* other = NULL; //item
 	entity* target = NULL;//hostile target
 	entity* owner = NULL;
-	entity* ent;
+	entity* ent = NULL;
 	float seta;
 	int predir, stall;
 	int patx[4], pxc, px, patz[4], pzc, pz, fx, fz; //move pattern in z and x
@@ -16033,6 +16037,14 @@ int common_move()
 			return 1;
 		}
 
+		//pick up the item if possible
+		if( (other && other == find_ent_here(self, self->x, self->z, TYPE_ITEM)) && other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
+		{
+			seta = (float)(self->animation->seta?self->animation->seta[self->animpos]:-1);
+			if(diff(self->a - (seta>= 0) * seta , other->a)<0.1)
+			common_pickupitem(other);
+		}
+
 		if(common_try_jump()) return 1;  //need to jump? so quit
 
 		if(checkpathblocked()) return 1;
@@ -16043,88 +16055,90 @@ int common_move()
 				// try walking to the item
 				common_try_pick(other);
 				ent = other;
-			}else if(target && (self->modeldata.subtype == SUBTYPE_CHASE ||
+			}else{
+				if(target && (self->modeldata.subtype == SUBTYPE_CHASE ||
 				(self->modeldata.type == TYPE_NPC && self->parent)))
 					// try chase a target
 					aimove |= AIMOVE1_CHASE;
 
-			if(aimove & AIMOVE1_CHASE) aimove |= AIMOVE1_CHASEX|AIMOVE1_CHASEZ;
-			if(aimove & AIMOVE1_AVOID) aimove |= AIMOVE1_AVOIDX|AIMOVE1_AVOIDZ;
+				if(aimove & AIMOVE1_CHASE) aimove |= AIMOVE1_CHASEX|AIMOVE1_CHASEZ;
+				if(aimove & AIMOVE1_AVOID) aimove |= AIMOVE1_AVOIDX|AIMOVE1_AVOIDZ;
 
-			self->xdir = self->zdir = 0;
+				if(other!=ent) self->xdir = self->zdir = 0;
 
-			self->stalltime = time;
+				self->stalltime = time;
 
-			if(!aimove && target){
-				common_try_wander(target, 1, 1);
-				ent = target;
-			} else if (target){
-				ent = target;
-				pxc = pzc = 0;
+				if(!aimove && target){
+					common_try_wander(target, 1, 1);
+					ent = target;
+				} else if (target){
+					ent = target;
+					pxc = pzc = 0;
+					
+					if(aimove&AIMOVE1_WANDER) {
+						patx[pxc] = AIMOVE1_WANDER;
+						pxc++;
+						patz[pzc] = AIMOVE1_WANDER;
+						pzc++;
+					}
+					if(aimove&AIMOVE1_CHASEX) {
+						patx[pxc] = AIMOVE1_CHASEX;
+						pxc++;
+					}
+					if(aimove&AIMOVE1_AVOIDX) {
+						patx[pxc] = AIMOVE1_AVOIDX;
+						pxc++;
+					}
+					if(aimove&AIMOVE1_CHASEZ) {
+						patz[pzc] = AIMOVE1_CHASEZ;
+						pzc++;
+					}
+					if(aimove&AIMOVE1_AVOIDZ) {
+						patz[pzc] = AIMOVE1_AVOIDZ;
+						pzc++;
+					}
+					if(!pxc) {
+						patx[pxc] = AIMOVE1_WANDER;
+						pxc++;
+					}
+					if(!pzc) {
+						patz[pzc] = AIMOVE1_WANDER;
+						pzc++;
+					}
+					px = patx[(rand32()&0xff)%pxc];
+					pz = patz[(rand32()&0xff)%pzc];
+
+					fx = fz = 0;
 				
-				if(aimove&AIMOVE1_WANDER) {
-					patx[pxc] = AIMOVE1_WANDER;
-					pxc++;
-					patz[pzc] = AIMOVE1_WANDER;
-					pzc++;
-				}
-				if(aimove&AIMOVE1_CHASEX) {
-					patx[pxc] = AIMOVE1_CHASEX;
-					pxc++;
-				}
-				if(aimove&AIMOVE1_AVOIDX) {
-					patx[pxc] = AIMOVE1_AVOIDX;
-					pxc++;
-				}
-				if(aimove&AIMOVE1_CHASEZ) {
-					patz[pzc] = AIMOVE1_CHASEZ;
-					pzc++;
-				}
-				if(aimove&AIMOVE1_AVOIDZ) {
-					patz[pzc] = AIMOVE1_AVOIDZ;
-					pzc++;
-				}
-				if(!pxc) {
-					patx[pxc] = AIMOVE1_WANDER;
-					pxc++;
-				}
-				if(!pzc) {
-					patz[pzc] = AIMOVE1_WANDER;
-					pzc++;
-				}
-				px = patx[(rand32()&0xff)%pxc];
-				pz = patz[(rand32()&0xff)%pzc];
+					//valid types: avoidx, aviodz, chasex, chasez, wander
+					if(px==AIMOVE1_WANDER){
+						common_try_wandercompletely(1, (pz==AIMOVE1_WANDER));
+						fx = 1;
+						fz = (pz==AIMOVE1_WANDER);
+					}else if(px==AIMOVE1_CHASEX){
+						common_try_chase(target, 1, (pz==AIMOVE1_CHASEZ));
+						fx = 1;
+						fz = (pz==AIMOVE1_CHASEZ);
+					}else if (px==AIMOVE1_AVOIDX){
+						common_try_avoid(target, 1, (pz==AIMOVE1_AVOIDZ));
+						fx = 1;
+						fz = (pz==AIMOVE1_AVOIDZ);
+					}
+					if(!fz){
+						if(pz==AIMOVE1_WANDER)
+							common_try_wandercompletely(0, 1);
+						else if(pz==AIMOVE1_CHASEZ)
+							common_try_chase(target, 0, 1);
+						else if (pz==AIMOVE1_AVOIDZ)
+							common_try_avoid(target, 0, 1);
+					}
 
-				fx = fz = 0;
-			
-				//valid types: avoidx, aviodz, chasex, chasez, wander
-				if(px==AIMOVE1_WANDER){
-					common_try_wandercompletely(1, (pz==AIMOVE1_WANDER));
-					fx = 1;
-					fz = (pz==AIMOVE1_WANDER);
-				}else if(px==AIMOVE1_CHASEX){
-					common_try_chase(target, 1, (pz==AIMOVE1_CHASEZ));
-					fx = 1;
-					fz = (pz==AIMOVE1_CHASEZ);
-				}else if (px==AIMOVE1_AVOIDX){
-					common_try_avoid(target, 1, (pz==AIMOVE1_AVOIDZ));
-					fx = 1;
-					fz = (pz==AIMOVE1_AVOIDZ);
+				}else if(!common_try_follow(owner, 1, 1) && !(self->modeldata.aimove&AIMOVE2_NOTARGETIDLE) ){
+					common_try_wandercompletely(1, 1);
+					ent = NULL;
+				}else{
+					ent = owner;
 				}
-				if(!fz){
-					if(pz==AIMOVE1_WANDER)
-						common_try_wandercompletely(0, 1);
-					else if(pz==AIMOVE1_CHASEZ)
-						common_try_chase(target, 0, 1);
-					else if (pz==AIMOVE1_AVOIDZ)
-						common_try_avoid(target, 0, 1);
-				}
-
-			}else if(!common_try_follow(owner, 1, 1) && !(self->modeldata.aimove&AIMOVE2_NOTARGETIDLE) ){
-				common_try_wandercompletely(1, 1);
-				ent = NULL;
-			}else{
-				ent = owner;
 			}
 			//end of if
 			if(!self->xdir && !self->zdir){
@@ -16139,14 +16153,6 @@ int common_move()
 			if(stall<GAME_SPEED) stall = GAME_SPEED/2;
 
 			self->stalltime += stall;
-		}
-
-		//pick up the item if possible
-		if( (other && other == find_ent_here(self, self->x, self->z, TYPE_ITEM)) && other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
-		{
-			seta = (float)(self->animation->seta?self->animation->seta[self->animpos]:-1);
-			if(diff(self->a - (seta>= 0) * seta , other->a)<0.1)
-			common_pickupitem(other);
 		}
 
 		return 1;
@@ -19860,7 +19866,7 @@ void draw_scrolled_bg(){
 	}
 }
 
-#ifndef DC
+#ifndef DISABLE_MOVIE
 void movie_openfile(int save)
 {
 	char path[256] = {""};
@@ -19969,7 +19975,7 @@ void inputrefresh()
 {
 	int p;
 
-#ifndef DC
+#ifndef DISABLE_MOVIE
 	int moviestop = 0;
 	if(movieplay)
 	{
@@ -20000,7 +20006,7 @@ void inputrefresh()
 		 if(interval > GAME_SPEED) interval = GAME_SPEED/GAME_SPEED;
 		 if(interval > GAME_SPEED/4) interval = GAME_SPEED/4;
 
-#ifndef DC
+#ifndef DISABLE_MOVIE
 	}
 
 	if(movielog && !pause)
@@ -20022,7 +20028,7 @@ void inputrefresh()
 
 		bothkeys |= player[p].keys;
 		bothnewkeys |= player[p].newkeys;
-#ifndef DC
+#ifndef DISABLE_MOVIE
 		if(movielog && (bothnewkeys & FLAG_ESC) && !pause)
 		{
 			movie_flushbuf();
@@ -20164,7 +20170,7 @@ void update(int ingame, int usevwait)
 	}
 
 	if(ingame==1 &&
-#ifndef DC
+#ifndef DISABLE_MOVIE
 		!movieplay &&
 #endif
 		!pause && !nopause &&
@@ -22481,7 +22487,7 @@ void keyboard_setup(int player){
 }
 
 
-#ifndef DC
+#ifndef DISABLE_MOVIE
 void movie_options(){
 	int quit = 0;
 	int selector = 1; // 0
@@ -23697,7 +23703,7 @@ void openborMain(int argc, char** argv)
 		else
 		{
 			_menutextm((selector==0), 2, 0, "Start Game");
-#ifndef DC
+#ifndef DISABLE_MOVIE
 			_menutextm((selector==1), 3, 0, "Movie Mode");
 #else
 			_menutextm((selector==1), 3, 0, "Movie Options(Disabled)");
@@ -23732,7 +23738,7 @@ void openborMain(int argc, char** argv)
 					if(relback) started = 0;
 					break;
 				case 1:
-#ifndef DC
+#ifndef DISABLE_MOVIE
 					movie_options();
 #endif
 					break;
