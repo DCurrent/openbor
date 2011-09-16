@@ -15409,6 +15409,11 @@ int common_try_chase(entity* target, int dox, int doz)
 	int grabd, facing;
 
 	self->running = 0;
+	
+	if(self->xdir>0) self->xdir = self->modeldata.speed;
+	else if(self->xdir<0) self->xdir = -self->modeldata.speed;
+	if(self->zdir>0) self->zdir = self->modeldata.speed/2;
+	else if(self->zdir<0) self->zdir = -self->modeldata.speed/2;
 
 	if(target == NULL || self->modeldata.nomove) return 0;
 
@@ -16036,8 +16041,6 @@ int common_move()
 			self->xdir = self->zdir = 0;
 			self->takeaction = common_turn;
 			return 1;
-		}else if (self->direction != predir) {
-			self->running = 0;
 		}
 
 		//pick up the item if possible
