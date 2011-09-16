@@ -6686,12 +6686,12 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					drawmethod.remap = GET_INT_ARG(7);
 					drawmethod.fillcolor = parsecolor(GET_ARG(8));
 					drawmethod.rotate = GET_INT_ARG(9);
-					drawmethod.fliprotate = GET_INT_ARG(10)%360;
+					drawmethod.fliprotate = GET_INT_ARG(10);
 					if(drawmethod.scalex<0) {drawmethod.scalex = -drawmethod.scalex;drawmethod.flipx = !drawmethod.flipx;}
-					if(drawmethod.scaley<0) {drawmethod.scaley = - drawmethod.scaley;drawmethod.flipy = !drawmethod.flipy;}
+					if(drawmethod.scaley<0) {drawmethod.scaley = -drawmethod.scaley;drawmethod.flipy = !drawmethod.flipy;}
 					if(drawmethod.rotate)
 					{
-						if(drawmethod.rotate<0) drawmethod.rotate += 360;
+						drawmethod.rotate = (drawmethod.rotate%360 + 360)%360;
 					}
 					drawmethod.flag = 1;
 					break;
@@ -12817,7 +12817,8 @@ void display_ents()
 					if(!e->direction)
 					{
 						drawmethod->flipx = !drawmethod->flipx;
-						if(drawmethod->fliprotate && drawmethod->rotate) drawmethod->rotate = 360-drawmethod->rotate;
+						if(drawmethod->fliprotate && drawmethod->rotate)
+							drawmethod->rotate = 360-drawmethod->rotate;
 					}
 
 					if(!use_mirror || z > MIRROR_Z) // don't display if behind the mirror
@@ -16035,6 +16036,8 @@ int common_move()
 			self->xdir = self->zdir = 0;
 			self->takeaction = common_turn;
 			return 1;
+		}else if (self->direction != predir) {
+			self->running = 0;
 		}
 
 		//pick up the item if possible
