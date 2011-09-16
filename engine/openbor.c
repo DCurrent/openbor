@@ -10438,7 +10438,7 @@ void ent_default_init(entity* e)
 	if(e->modeldata.multiple < 0)
 		e->modeldata.multiple = 0;
 
-	if(e->modeldata.subject_to_platform>0 && (other=check_platform_below(e->x, e->z, e->a+1, e)))
+	if(e->modeldata.subject_to_platform>0 && (other=check_platform_below(e->x, e->z, e->a, e)))
 		e->base += other->a + other->animation->platform[other->animpos][7];
 	else if(e->modeldata.subject_to_wall>0 && (wall=checkwall_below(e->x, e->z, 9999999)) >= 0)
 		e->base += level->walls[wall][7];
@@ -11306,7 +11306,7 @@ int checkwall_below(float x, float z, float a)
 	ind = -1;
 	for(i=0; i<level->numwalls; i++)
 	{
-		if(testwall(i, x, z) && level->walls[i][7] < a+0.1 && level->walls[i][7] > maxa)
+		if(testwall(i, x, z) && level->walls[i][7] <= a && level->walls[i][7] > maxa)
 		{
 			maxa = level->walls[i][7];
 			ind = i;
@@ -11413,7 +11413,7 @@ entity * check_platform_below(float x, float z, float a, entity* exclude)
 
 	if(level==NULL) return NULL;
 
-	maxa = 0;
+	maxa = MIN_INT;
 	ind = -1;
 	for(i=0; i<ent_max; i++)
 	{
@@ -11445,6 +11445,37 @@ entity * check_platform(float x, float z, entity* exclude)
 		}
 	}
 	return NULL;
+}
+
+// check base altitude of given position
+float checkbase(entity* ent, float x, float z){
+	float h1, h2, h;
+	entity* plat;
+	int wall;
+	int subwall, subhole, subplat;
+
+	subwall = ent?ent->modeldata.subject_to_wall:1;
+	subhole = ent?ent->modeldata.subject_to_hole:1;
+	subplat = ent?ent->modeldata.subject_to_platform:1;
+
+	plat = subplat?check_platform_below(x, z, ent?ent->a:(float)9999999, ent):NULL;
+	wall = subwall?checkwall_below(x, z, ent?ent->a:(float)9999999):-1;
+
+	if(plat) h1 = plat->a + plat->animation->platform[plat->animpos][7];
+	else h1 = (float)-9999999;
+
+	if(wall>0) h2 = level->walls[wall][7];
+	else h2 = (float)-9999999;
+
+	h = MIN(h1, h2);
+
+	if(h>-1000) return h;
+
+	else if(subhole && checkhole(x, z) )
+		return -1000;
+
+	return 0;
+
 }
 
 // find real opponent
@@ -12049,7 +12080,7 @@ void check_ai()
 		(plat->xdir || plat->zdir) &&
 		(plat->nextthink <= time || (plat->update_mark & 2)) &&// plat is updated before self or will be updated this loop
 		testplatform(plat,self->x,self->z, NULL) &&
-		self->a <= plat->a + plat->animation->platform[plat->animpos][7] + 0.5 ) // on the platform?
+		self->a <= plat->a + plat->animation->platform[plat->animpos][7] ) // on the platform?
 	{
 		// passive move with the platform
 		if(self->trymove )
@@ -12266,14 +12297,14 @@ void update_animation()
 		}
 	}
 
-	if(self->modeldata.subject_to_platform>0 /*&& self->projectile==0*/)
+	if(self->modeldata.subject_to_platform>0)
 	{
 		other = self->landed_on_platform;
-		if(other && testplatform(other, self->x, self->z, NULL) && self->a < other->a + other->animation->platform[other->animpos][7])
+		if(other && testplatform(other, self->x, self->z, NULL) && self->a <= other->a + other->animation->platform[other->animpos][7])
 		{
-			self->a = self->base = other->a + other->animation->platform[other->animpos][7]+0.5;
+			self->a = self->base = other->a + other->animation->platform[other->animpos][7];
 		}
-		else other = check_platform_below(self->x, self->z, self->a+1, self);
+		else other = check_platform_below(self->x, self->z, self->a, self);
 	}
 	else other = NULL;
 	self->landed_on_platform = other;
@@ -12334,7 +12365,7 @@ void update_animation()
 	{
 		// a bit complex, other->nextanim == time means other is behind self and not been updated,
 		// update_mark & 1 means other is updated in this loop and before self
-		if((other->nextanim == time || (other->update_mark & 1)) && self->a <= other->a + other->animation->platform[other->animpos][7]+0.5)
+		if((other->nextanim == time || (other->update_mark & 1)) && self->a <= other->a + other->animation->platform[other->animpos][7])
 		{
 			if(other->update_mark & 1) f = other->animpos;
 			else f = other->animpos + other->animating;
@@ -14750,7 +14781,8 @@ void npc_warp()
 int adjust_grabposition(entity* ent, entity* other, float dist, int grabin)
 {
 	float x1, z1, x2, z2, a, x;
-	int wall1, wall2;
+	float base1, base2;
+
 	a = ent->a;
 	if(grabin==1)
 	{
@@ -14769,16 +14801,10 @@ int adjust_grabposition(entity* ent, entity* other, float dist, int grabin)
 	if(ent->modeldata.subject_to_screen>0 && (x1<advancex || x1>advancex+videomodes.hRes)) return 0;
 	else if(other->modeldata.subject_to_screen>0 && (x2<advancex || x2>advancex+videomodes.hRes)) return 0;
 
-	wall1 = checkwall_below(x1, z1, 9999999);
-	wall2 = checkwall_below(x2, z2, 9999999);
-	if(wall1<0 && wall2>=0) return 0;
-	else if(wall1>=0 && wall2<0) return 0;
-	else if(wall1>=0 && level->walls[wall1][7] >a) return 0;
-	else if(wall2>=0 && level->walls[wall2][7] >a) return 0;
-	else if(wall1>=0 && wall2>=0 && level->walls[wall1][7] != level->walls[wall2][7]) return 0;
+	base1 = checkbase(ent, x1, z1);
+	base2 = checkbase(other, x2, z2);
 
-	if(wall1<0 && checkhole(x1, z1)) return 0;
-	if(wall2<0 && checkhole(x2, z2)) return 0;
+	if(base1!=base2) return 0;
 
 	ent->x = x1; ent->z = z1;
 	other->x = x2; other->z = z2;
@@ -23709,15 +23735,10 @@ void openborMain(int argc, char** argv)
 		else
 		{
 			_menutextm((selector==0), 2, 0, "Start Game");
-#ifndef DISABLE_MOVIE
-			_menutextm((selector==1), 3, 0, "Movie Mode");
-#else
-			_menutextm((selector==1), 3, 0, "Movie Options(Disabled)");
-#endif
-			_menutextm((selector==2), 4, 0, "Options");
-			_menutextm((selector==3), 5, 0, "How To Play");
-			_menutextm((selector==4), 6, 0, "Hall Of Fame");
-			_menutextm((selector==5), 7, 0, "Quit");
+			_menutextm((selector==1), 3, 0, "Options");
+			_menutextm((selector==2), 4, 0, "How To Play");
+			_menutextm((selector==3), 5, 0, "Hall Of Fame");
+			_menutextm((selector==4), 6, 0, "Quit");
 			if(selector<0) selector = 5;
 			if(selector>5) selector = 0;
 
@@ -23744,11 +23765,6 @@ void openborMain(int argc, char** argv)
 					if(relback) started = 0;
 					break;
 				case 1:
-#ifndef DISABLE_MOVIE
-					movie_options();
-#endif
-					break;
-				case 2:
 					if(!cheats) options();
 					else
 					{
@@ -23756,7 +23772,7 @@ void openborMain(int argc, char** argv)
 						else options();
 					}
 					break;
-				case 3:
+				case 2:
 					if(custScenes != NULL)
 					{
 						strncpy(tmpBuff,custScenes, 128);
@@ -23766,7 +23782,7 @@ void openborMain(int argc, char** argv)
 					else playscene("data/scenes/howto.txt");
 					relback = 1;
 					break;
-				case 4:
+				case 3:
 					hallfame(0);
 					relback = 1;
 					break;
