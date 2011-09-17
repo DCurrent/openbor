@@ -19608,15 +19608,17 @@ void applybglayers(s_screen* pbgscreen)
 			z = (int)(4 + bglayer->zoffset + (advancey-4)* bglayer->zratio - advancey);
 		}
 
-		if(x<0){
-			i = (-x)/width;
-			x %= width;
-		}else i = 0;
+		if(x<0) i = (-x)/width;
+		else i = 0;
 
-		if(z<0){
-			j = (-z)/height;
-			z %= height;
-		}else j = 0;
+		x %= width;
+		if(x>0) x -= width;
+
+		if(z<0) j = (-z)/height;
+		else j = 0;
+
+		z %= height;
+		if(z>0) z -= height; // make it loop?
 
 		screenmethod=plainmethod;
 		screenmethod.table = (pixelformat==PIXEL_x8)?(current_palette>0?(level->palettes[current_palette-1]):NULL):NULL;
