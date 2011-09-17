@@ -58,6 +58,7 @@ typedef struct
 	int transparent; // = -1;
 	int bitdepth;
 	int numcolours;
+	int noblackenbg; // don't blacken the first color
 	int lastdelay;
 } anigif_info;
 

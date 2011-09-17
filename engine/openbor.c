@@ -20832,6 +20832,7 @@ int playgif(char *filename, int x, int y, int noskip){
 		if(!anigif_open(filename, packfile, background->palette?background->palette:gifpal, info))
 			goto playgif_error;
 	}else{
+		info->noblackenbg = (info+1)->noblackenbg = (info+2)->noblackenbg = 1;
 		tname[strlen(tname)-5] = 'r';
 		if(!anigif_open(tname, packfile, gifbuffer[0]->palette, info)) goto playgif_error;
 		tname[strlen(tname)-5] = 'g';
@@ -20926,6 +20927,9 @@ int playgif(char *filename, int x, int y, int noskip){
 	return 1;
 
 playgif_error:
+	if(info->handle>=0) anigif_close(info);
+	if((info+1)->handle>=0) anigif_close(info+1);
+	if((info+2)->handle>=0) anigif_close(info+2);
 	if(backbuffer) freescreen(&backbuffer);
 	if(gifbuffer[0]) freescreen(&(gifbuffer[0]));
 	if(gifbuffer[1]) freescreen(&(gifbuffer[1]));
