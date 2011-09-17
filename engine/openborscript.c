@@ -262,19 +262,22 @@ int Script_Set_Global_Variant(char* theName, ScriptVariant* var)
 void Script_Local_Clear()
 {
 	int i;
-	s_variantnode* tempnode;
+	//s_variantnode* tempnode;
 	if(!pcurrentscript) return;
 	for(i=0; i<=max_global_var_index; i++)
 	{
 		if(global_var_list[i]->owner == pcurrentscript)
 		{
+			/*
+			printf("local var %s cleared\n", global_var_list[i]->key);
 			if(i!=max_global_var_index)
 			{
 				tempnode = global_var_list[i];
 				global_var_list[i] = global_var_list[max_global_var_index];
 				global_var_list[max_global_var_index] = tempnode;
 			}
-			max_global_var_index--;
+			max_global_var_index--;*/
+			ScriptVariant_Clear(&global_var_list[i]->value);
 		}
 	}
 	if(pcurrentscript->vars)

@@ -11995,7 +11995,7 @@ void check_gravity()
 					{
 						attack              = emptyattack;
 						attack.attack_force = self->damage_on_landing;
-						attack.attack_type  = ATK_NORMAL;
+						attack.attack_type  = self->damagetype;
 						self->takedamage(self, &attack);
 					}
 					else
