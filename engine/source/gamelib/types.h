@@ -9,6 +9,9 @@
 #ifndef GAMELIB_TYPES_H
 #define GAMELIB_TYPES_H
 
+#ifndef TRANSPARENT_IDX
+#define		TRANSPARENT_IDX		0x00
+#endif
 
 #define	ANYNUMBER		 2
 
