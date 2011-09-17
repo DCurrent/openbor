@@ -254,6 +254,7 @@ void anigif_close(anigif_info* info){
 int anigif_open(char *filename, char *packfilename, unsigned char *pal, anigif_info* info){
 	unsigned char tpal[1024];
 	int i, j;
+	int noblackenbg = info->noblackenbg;
 
 	memset(info, 0, sizeof(anigif_info));
 
@@ -298,6 +299,7 @@ int anigif_open(char *filename, char *packfilename, unsigned char *pal, anigif_i
 				return 0;
 			}
 			//*tpal &= 0xFF000000;
+			if(!noblackenbg) tpal[0] = tpal[1] = tpal[2] = 0; 
 			switch(PAL_BYTES)
 			{
 			case 768:
