@@ -360,7 +360,8 @@ unsigned short blend_hardlight16(unsigned short color1, unsigned short color2)
 
 unsigned char* create_dodge16_tbl(){
 	unsigned i, j;
-	unsigned char* tbl = (unsigned char*)malloc(32*32+64*64), t;
+	unsigned char* tbl = (unsigned char*)malloc(32*32+64*64);
+	unsigned t;
 	for(i=0; i<32; i++)
 		for(j=0; j<32; j++){
 			t = (unsigned char)_dodge16(i,j, 0x20);
