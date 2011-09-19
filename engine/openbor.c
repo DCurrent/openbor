@@ -3223,26 +3223,40 @@ void load_bglayer(char *filename, int index)
 {
 	if(!level) return;
 
-	if ((level->bglayers[index].alpha>0 || level->bglayers[index].transparency) && !level->bglayers[index].watermode)
-	{
-	// assume sprites are faster than screen when transparency or alpha are specified
-		level->bglayers[index].sprite = loadsprite2(filename, &(level->bglayers[index].width),&(level->bglayers[index].height));
-		level->bglayers[index].type = bg_sprite;
-	}
-	else
-	{
-	// use screen for water effect for now, it should be faster than sprite
-	// otherwise, a screen should be fine, especially in 8bit mode, it is super fast,
-	//            or, at least it is not slower than a sprite
-		if(loadscreen(filename, packfile, NULL, pixelformat, &level->bglayers[index].screen))
+	if(filename){
+
+		if ((level->bglayers[index].alpha>0 || level->bglayers[index].transparency) && !level->bglayers[index].watermode)
 		{
-			level->bglayers[index].height = level->bglayers[index].screen->height;
-			level->bglayers[index].width = level->bglayers[index].screen->width;
-			level->bglayers[index].type = bg_screen;
+		// assume sprites are faster than screen when transparency or alpha are specified
+			level->bglayers[index].sprite = loadsprite2(filename, &(level->bglayers[index].width),&(level->bglayers[index].height));
+			level->bglayers[index].type = bg_sprite;
+		}
+		else
+		{
+		// use screen for water effect for now, it should be faster than sprite
+		// otherwise, a screen should be fine, especially in 8bit mode, it is super fast,
+		//            or, at least it is not slower than a sprite
+			if(loadscreen(filename, packfile, NULL, pixelformat, &level->bglayers[index].screen))
+			{
+				level->bglayers[index].height = level->bglayers[index].screen->height;
+				level->bglayers[index].width = level->bglayers[index].screen->width;
+				level->bglayers[index].type = bg_screen;
+			}
 		}
 	}
 
 	if(level->bglayers[index].handle ==NULL) shutdown(1, "Error loading file '%s'", filename);
+	else{
+		if(level->bglayers[index].xrepeat<0) {
+			level->bglayers[index].xoffset = -level->bglayers[index].width*20000;
+			level->bglayers[index].xrepeat = 40000;
+		}
+		if(level->bglayers[index].zrepeat<0) {
+			level->bglayers[index].zoffset = -level->bglayers[index].height*20000;
+			level->bglayers[index].zrepeat = 40000;
+		}
+		//printf("bglayer width=%d height=%d xoffset=%d zoffset=%d xrepeat=%d zrepeat%d\n", level->bglayers[index].width, level->bglayers[index].height, level->bglayers[index].xoffset, level->bglayers[index].zoffset, level->bglayers[index].xrepeat, level->bglayers[index].zrepeat);
+	}
 
 }
 
@@ -3269,6 +3283,15 @@ void load_fglayer(char *filename, int index)
 	}
 
 	if(level->fglayers[index].handle ==NULL) shutdown(1, "Error loading file '%s'", filename);
+
+	if(level->fglayers[index].xrepeat<0) {
+		level->fglayers[index].xoffset = -level->fglayers[index].width*20000;
+		level->fglayers[index].xrepeat = 40000;
+	}
+	if(level->fglayers[index].zrepeat<0) {
+		level->fglayers[index].zoffset = -level->fglayers[index].height*20000;
+		level->fglayers[index].zrepeat = 40000;
+	}
 
 }
 
@@ -8898,8 +8921,8 @@ void load_level(char *filename){
 				if((value=GET_ARG(2))[0]==0) level->bglayers[0].xratio = 0.5;
 				if((value=GET_ARG(3))[0]==0) level->bglayers[0].zratio = 0.5;
 
-				if((value=GET_ARG(8))[0]==0) level->bglayers[0].xrepeat = 5000;
-				if((value=GET_ARG(9))[0]==0) level->bglayers[0].zrepeat = 5000;
+				if((value=GET_ARG(8))[0]==0) level->bglayers[0].xrepeat = -1;
+				if((value=GET_ARG(9))[0]==0) level->bglayers[0].zrepeat = -1;
 
 				if(level->numbglayers==0) level->numbglayers = 1;
 				break;
@@ -8930,8 +8953,8 @@ void load_level(char *filename){
 				if((value=GET_ARG(2))[0]==0) level->bglayers[level->numbglayers].xratio = 0.5;
 				if((value=GET_ARG(3))[0]==0) level->bglayers[level->numbglayers].zratio = 0.5;
 
-				if((value=GET_ARG(8))[0]==0) level->bglayers[level->numbglayers].xrepeat = 5000; // close enough to infinite, lol
-				if((value=GET_ARG(9))[0]==0) level->bglayers[level->numbglayers].zrepeat = 5000;
+				if((value=GET_ARG(8))[0]==0) level->bglayers[level->numbglayers].xrepeat = -1;
+				if((value=GET_ARG(9))[0]==0) level->bglayers[level->numbglayers].zrepeat = -1;
 
 				if(blendfx_is_set==0 && level->bglayers[level->numbglayers].alpha) blendfx[level->bglayers[level->numbglayers].alpha-1] = 1;
 
@@ -8966,8 +8989,8 @@ void load_level(char *filename){
 				if((value=GET_ARG(2))[0]==0) level->fglayers[level->numfglayers].xratio = 1.5;
 				if((value=GET_ARG(3))[0]==0) level->fglayers[level->numfglayers].zratio = 1.5;
 
-				if((value=GET_ARG(8))[0]==0) level->fglayers[level->numfglayers].xrepeat = 5000; // close enough to infinite, lol
-				if((value=GET_ARG(9))[0]==0) level->fglayers[level->numfglayers].zrepeat = 5000;
+				if((value=GET_ARG(8))[0]==0) level->fglayers[level->numfglayers].xrepeat = -1;
+				if((value=GET_ARG(9))[0]==0) level->fglayers[level->numfglayers].zrepeat = -1;
 
 				if(blendfx_is_set==0 && level->fglayers[level->numfglayers].alpha) blendfx[level->fglayers[level->numfglayers].alpha-1] = 1;
 
@@ -9488,6 +9511,8 @@ void load_level(char *filename){
 
 		if(background) unload_background();
 	}
+
+	if(level->numbglayers) load_bglayer(NULL, 0);
 
 	if(pixelformat==PIXEL_x8)
 	{
@@ -19576,14 +19601,16 @@ void applybglayers(s_screen* pbgscreen)
 {
 	int index, x, z, i, j, k, l, timevar;
 	s_bglayer* bglayer;
+	float rocktravel;
 	int width, height;
 	s_drawmethod screenmethod;
 	gfx_entry gfx;
 
-	if(!textbox)
-		 bgtravelled += (((time-traveltime)*level->bgspeed/30*4) + ((level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0)); // no like in real life, maybe
-	else
-		 texttime += time-traveltime;
+	if(!textbox){
+		rocktravel = (level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0; // no like in real life, maybe
+		if(level->bgspeed<0) rocktravel = -rocktravel;
+		bgtravelled += (time-traveltime)*level->bgspeed/30*2 + rocktravel;
+	}else texttime += time-traveltime;
 
 	timevar = time - texttime;
 
@@ -19600,25 +19627,19 @@ void applybglayers(s_screen* pbgscreen)
 		x = (int)(bglayer->xoffset + (advancex)*(bglayer->xratio) - advancex - bgtravelled * (1-bglayer->xratio) * bglayer->bgspeedratio);
 
 		if(level->scrolldir&SCROLL_UP)
-		{
 			z = (int)(4 + videomodes.vRes + (advancey+4)*bglayer->zratio - bglayer->zoffset - height*bglayer->zrepeat + height + bglayer->zspacing);
-		}
 		else
-		{
 			z = (int)(4 + bglayer->zoffset + (advancey-4)* bglayer->zratio - advancey);
-		}
 
-		if(x<0) i = (-x)/width;
-		else i = 0;
+		if(x<0) {
+			i = (-x)/width;
+			x %= width;
+		} else i = 0;
 
-		x %= width;
-		if(x>0) x -= width;
-
-		if(z<0) j = (-z)/height;
-		else j = 0;
-
-		z %= height;
-		if(z>0) z -= height; // make it loop?
+		if(z<0){
+			j = (-z)/height;
+			z %= height;
+		} else j = 0;
 
 		screenmethod=plainmethod;
 		screenmethod.table = (pixelformat==PIXEL_x8)?(current_palette>0?(level->palettes[current_palette-1]):NULL):NULL;
@@ -19658,13 +19679,15 @@ void applyfglayers(s_screen* pbgscreen)
 {
 	int index, x, z, i, j, k, l, timevar;
 	s_fglayer* fglayer;
+	float rocktravel;
 	int width, height;
 	s_drawmethod screenmethod;
 
-	if(!textbox)
-		 bgtravelled += (((time-traveltime)*level->bgspeed/30*4) + ((level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0)); // no like in real life, maybe
-	else
-		 texttime += time-traveltime;
+	if(!textbox){
+		rocktravel = (level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0; // no like in real life, maybe
+		if(level->bgspeed<0) rocktravel = -rocktravel;
+		bgtravelled += (time-traveltime)*level->bgspeed/30*2 + rocktravel;
+	}else texttime += time-traveltime;
 
 	timevar = time - texttime;
 
@@ -19681,25 +19704,19 @@ void applyfglayers(s_screen* pbgscreen)
 		x = (int)(fglayer->xoffset + (advancex)*(fglayer->xratio) - advancex - bgtravelled * (1-fglayer->xratio) * fglayer->bgspeedratio);
 
 		if(level->scrolldir&SCROLL_UP)
-		{
 			z = (int)(4 + videomodes.vRes + (advancey+4)*fglayer->zratio - fglayer->zoffset - height*fglayer->zrepeat + height + fglayer->zspacing);
-		}
 		else
-		{
 			z = (int)(4 + fglayer->zoffset + (advancey-4)* fglayer->zratio - advancey);
-		}
 
-		if(x<0) i = (-x)/width;
-		else i = 0;
+		if(x<0) {
+			i = (-x)/width;
+			x %= width;
+		} else i = 0;
 
-		x %= width;
-		if(x>0) x -= width;
-
-		if(z<0) j = (-z)/height;
-		else j = 0;
-
-		z %= height;
-		if(z>0) z -= height; // make it loop?
+		if(z<0){
+			j = (-z)/height;
+			z %= height;
+		} else j = 0;
 
 		screenmethod=plainmethod;
 		screenmethod.table = (pixelformat==PIXEL_x8)?(current_palette>0?(level->palettes[current_palette-1]):NULL):NULL;
