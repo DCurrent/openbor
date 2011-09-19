@@ -9,6 +9,7 @@
 ///////////////////////////////////////////////////////////////////////////
 //         This file defines some commmon methods used by the gamelib
 ////////////////////////////////////////////////////////////////////////////
+#include <assert.h>
 #include "globals.h"
 #include "types.h"
 
@@ -120,6 +121,9 @@ inline void draw_pixel_screen(s_screen* dest, gfx_entry* src, int dx, int dy, in
 inline void draw_pixel_bitmap(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
 {
 	//stub
+	// should be OK for now since s_screen and s_bitmap are identical to each other
+	assert(sizeof(s_screen)!=sizeof(s_bitmap));
+	draw_pixel_screen(dest, src, dx, dy, sx, sy);
 }
 
 // get a pixel from specific sprite
@@ -318,6 +322,9 @@ void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, 
     cosa = cos_table[(int)angle];
 
 	init_gfx_global_draw_stuff(dest, src, drawmethod);
+
+	centerx += drawmethod->centerx;
+	centery += drawmethod->centery;
 	
 	/////////////////begin clipping////////////////////////////
 	xboundf[0] = drawmethod->flipx? (centerx-trans_sw)*zoomx : -centerx*zoomx;
@@ -397,6 +404,8 @@ void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 	//printf("==%d %d %d %d %d\n", drawmethod->scalex, drawmethod->scaley, drawmethod->flipx, drawmethod->flipy, drawmethod->shiftx);
 
 	init_gfx_global_draw_stuff(dest, src, drawmethod);
+	centerx += drawmethod->centerx;
+	centery += drawmethod->centery;
 
 	w = trans_sw * zoomx;
 	h = trans_sh * zoomy;
@@ -465,3 +474,153 @@ void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 	}
 
 }
+
+extern float _sinfactors[256];
+#define distortion(x, a) ((int)(_sinfactors[x]*a+0.5))
+
+void gfx_draw_water(s_screen *dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod){
+	int sw, sh, dw, dh, ch, sy, t, u, sbeginx, sendx, dbeginx, dendx, bytestocopy, amplitude, time;
+	float s, wavelength;
+
+	init_gfx_global_draw_stuff(dest, src, drawmethod);
+	centerx += drawmethod->centerx;
+	centery += drawmethod->centery;
+
+	sw = trans_sw;
+	sh = trans_sh;
+	dw = trans_dw;
+	dh = trans_dh;
+	ch = sh;
+	x -= centerx;
+	y -= centery;
+
+	amplitude = drawmethod->water.amplitude;
+	time = drawmethod->water.wavetime;
+
+	s = (float)(time % 256);
+
+	// Clip x
+	if(x + amplitude*2 + sw <= 0 || x - amplitude*2  >= dw) return;
+	if(y + sh <=0 || y >= dh) return;
+
+	sy = 0;
+	if(s<0) s+=256;
+
+	// Clip y
+	if(y<0) {sy = -y; ch += y;}
+	if(y+sh > dh) ch -= (y+sh) - dh;
+
+	if(y<0) y = 0;
+
+	u = (drawmethod->water.watermode==1)?distortion((int)s, amplitude):amplitude;
+	wavelength = 256 / drawmethod->water.wavelength;
+	s += sy*wavelength;
+
+	// Copy data
+	do{
+		s = s - (int)s + (int)s % 256;
+		t = distortion((int)s, amplitude) - u;
+
+		dbeginx = x+t;
+		dendx = x+t+sw;
+		
+		if(dbeginx>=dw || dendx<=0) {dbeginx = dendx = sbeginx = sendx = 0;} //Nothing to draw
+		//clip both
+		else if(dbeginx<0 && dendx>dw){ 
+			sbeginx = -dbeginx; sendx = sbeginx + dw;
+			dbeginx = 0; dendx = dw;
+		}
+		//clip left
+		else if(dbeginx<0) {
+			sbeginx = -dbeginx; sendx = sw;
+			dbeginx = 0;
+		}
+		// clip right
+		else if(dendx>dw) {
+			sbeginx = 0; sendx = dw - dbeginx;	
+			dendx = dw;
+		}
+		// clip none
+		else{
+			sbeginx = 0; sendx = sw;
+		}
+		bytestocopy = dendx-dbeginx;
+		
+		//TODO: optimize this if necessary
+		for(t=0; t<bytestocopy; t++, sbeginx++, dbeginx++){
+			draw_pixel_gfx(dest, src, dbeginx, y, sbeginx, sy);
+		}
+
+		s += wavelength;
+		y++;
+		sy++;
+	}while(--ch);
+}
+
+void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod){
+
+	int i, j, dx, dy, sx, sy, factor, width, height;
+	int s_pos, s_step;
+	int center_offset;
+
+	init_gfx_global_draw_stuff(dest, src, drawmethod);
+	centerx += drawmethod->centerx;
+	centery += drawmethod->centery;
+
+	x -= centerx;
+	y -= centery;
+
+	factor = drawmethod->water.wavelength;
+
+	if(factor < 0) return;
+	factor++;
+
+	width = trans_sw;
+	height = trans_sh;
+
+	// Check dimensions
+	if(x >= trans_dw) return;
+	if(y >= trans_dh) return;
+	if(x<0){
+		width += x;
+		x = 0;
+	}
+	if(y<0){
+		height += y;
+		y=0;
+	}
+	if(x+width > trans_dw){
+		width = trans_dw - x;
+	}
+	if(y+height > trans_dh){
+		height = trans_dh - y;
+	}
+	if(width<=0) return;
+	if(height<=0) return;
+
+
+	dy = y;
+	dx = x;
+	sy = 0;
+	for(i=0; i<height; i++, dy++)
+	{
+		sy = i % trans_sh;
+
+		center_offset = width / 2;
+
+		s_pos = drawmethod->water.wavetime * 256 + (256 * trans_sw);
+		s_step = trans_sw * 256 / (trans_sw + trans_sw * i / factor);
+		s_pos -= center_offset * s_step;
+
+		for(j=0; j<width; j++, s_pos += s_step){
+			sx = s_pos >> 8;
+			if(sx > trans_sw){
+				sx %= trans_sw;
+				s_pos = (s_pos & 0xFF) | (sx << 8);
+			}
+			draw_pixel_gfx(dest, src, dx+j, dy, sx, sy);
+		}
+	}
+
+}
+

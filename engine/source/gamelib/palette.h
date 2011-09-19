@@ -22,6 +22,7 @@ void palette_set_corrected(unsigned char *pal, int gr, int gg, int gb, int br, i
 int palette_find(unsigned char *pal, int r, int g, int b);
 
 typedef unsigned char* (*palette_table_function)(unsigned char*);
+typedef unsigned char* (*blend_table_function)(void);
 
 // Create lookup tables
 unsigned char * palette_table_multiply(unsigned char *pal);
@@ -31,7 +32,21 @@ unsigned char * palette_table_half(unsigned char *pal);
 unsigned char * palette_table_overlay(unsigned char *pal);
 unsigned char * palette_table_hardlight(unsigned char *pal);
 
+// these are in pixelformat.c, technologically they are not palette related
+// but move them here since they share similar logic 
+unsigned char * create_multiply32_tbl();
+unsigned char * create_screen32_tbl();
+unsigned char * create_dodge32_tbl();
+unsigned char * create_half32_tbl();
+unsigned char * create_overlay32_tbl();
+unsigned char * create_hardlight32_tbl();
 
+unsigned char * create_multiply16_tbl();
+unsigned char * create_screen16_tbl();
+unsigned char * create_dodge16_tbl();
+unsigned char * create_half16_tbl();
+unsigned char * create_overlay16_tbl();
+unsigned char * create_hardlight16_tbl();
 #endif
 
 

@@ -76,7 +76,8 @@ const s_drawmethod plainmethod = {
 	256,  //scaley
 	0,    //shiftx
 	0,    //centerx  //currently used only by gfxshadow, do not touch it
-	0     //centery
+	0,    //centery
+	{0, 0.0, 0, 0} //water
 };
 
 
@@ -138,9 +139,9 @@ int                 fontmonospace[8] = {0,0,0,0,0,0,0,0};
 // move all blending effects here
 unsigned char*      blendings[MAX_BLENDINGS] = {NULL, NULL, NULL, NULL, NULL, NULL} ;
 // function pointers to create the tables
-palette_table_function blending_table_functions[MAX_BLENDINGS] = {palette_table_screen, palette_table_multiply, palette_table_overlay,
-										 palette_table_hardlight, palette_table_dodge, palette_table_half};
-
+palette_table_function blending_table_functions[MAX_BLENDINGS] = {palette_table_screen, palette_table_multiply, palette_table_overlay,palette_table_hardlight, palette_table_dodge, palette_table_half};
+blend_table_function blending_table_functions16[MAX_BLENDINGS] = {create_screen16_tbl,create_multiply16_tbl,create_overlay16_tbl,create_hardlight16_tbl,create_dodge16_tbl,create_half16_tbl};
+blend_table_function blending_table_functions32[MAX_BLENDINGS] = {create_screen32_tbl,create_multiply32_tbl,create_overlay32_tbl,create_hardlight32_tbl,create_dodge32_tbl,create_half32_tbl};
 
 int                 current_set = 0;
 int                 current_level = 0;
@@ -873,8 +874,10 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		var->lVal = (LONG)videomodes.vRes;
 		break;
 	case _e_current_scene:
-		ScriptVariant_ChangeType(var, VT_STR);
-		strcpy(StrCache_Get(var->strVal), currentScene);
+		if(currentScene){
+			ScriptVariant_ChangeType(var, VT_STR);
+			strcpy(StrCache_Get(var->strVal), currentScene);
+		}else ScriptVariant_Clear(var);
 		break;
 	case _e_current_set:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -2832,6 +2835,21 @@ int create_blending_tables(unsigned char* palette, unsigned char* tables[], int 
 	return 1;
 }
 
+void create_blend_tables_x8(unsigned char* tables[]){
+	int i;
+	for(i=0; i<MAX_BLENDINGS; i++){
+		switch(screenformat){
+		case PIXEL_16:
+			tables[i] = (blending_table_functions16[i])();
+			break;
+		case PIXEL_32:
+			tables[i] = (blending_table_functions32[i])();
+			break;
+		}
+	}
+
+}
+
 
 //change system palette by index
 void change_system_palette(int palindex)
@@ -3205,17 +3223,7 @@ void load_bglayer(char *filename, int index)
 {
 	if(!level) return;
 
-	// use screen for water effect for now, maybe get it to work with sprites at some point
-	if(level->bglayers[index].watermode)
-	{
-		if(loadscreen(filename, packfile, NULL, pixelformat, &level->bglayers[index].screen))
-		{
-			level->bglayers[index].height = level->bglayers[index].screen->height;
-			level->bglayers[index].width = level->bglayers[index].screen->width;
-			level->bglayers[index].type = bg_screen;
-		}
-	}
-	else if(level->bglayers[index].alpha>0 || level->bglayers[index].transparency)
+	if ((level->bglayers[index].alpha>0 || level->bglayers[index].transparency) && !level->bglayers[index].watermode)
 	{
 	// assume sprites are faster than screen when transparency or alpha are specified
 		level->bglayers[index].sprite = loadsprite2(filename, &(level->bglayers[index].width),&(level->bglayers[index].height));
@@ -3223,6 +3231,7 @@ void load_bglayer(char *filename, int index)
 	}
 	else
 	{
+	// use screen for water effect for now, it should be faster than sprite
 	// otherwise, a screen should be fine, especially in 8bit mode, it is super fast,
 	//            or, at least it is not slower than a sprite
 		if(loadscreen(filename, packfile, NULL, pixelformat, &level->bglayers[index].screen))
@@ -3241,7 +3250,7 @@ void load_fglayer(char *filename, int index)
 {
 	if(!level) return;
 
-	if(level->fglayers[index].alpha>0 || level->fglayers[index].transparency)
+	if((level->fglayers[index].alpha>0 || level->fglayers[index].transparency) && !level->fglayers[index].watermode)
 	{
 	// assume sprites are faster than screen when transparency or alpha are specified
 		level->fglayers[index].sprite = loadsprite2(filename, &(level->fglayers[index].width),&(level->fglayers[index].height));
@@ -15036,6 +15045,7 @@ void common_runoff()
 		self->takeaction = NULL; // OK, back to A.I. root
 		return;
 	}
+
 	if(!self->modeldata.noflip) self->direction = (self->x < target->x);
 	if(self->direction) self->xdir = -self->modeldata.speed/2;
 	else self->xdir = self->modeldata.speed/2;
@@ -15389,6 +15399,7 @@ int checkpathblocked()
 		   (self->modeldata.subject_to_minz && self->zdir<0 && !self->xdir && self->zdir+self->z<=PLAYER_MIN_Z) )
 		{
 			self->zdir = -self->zdir;
+			self->pathblocked = 0;
 			return 1;
 		}
 
@@ -15414,8 +15425,8 @@ int checkpathblocked()
 			}
 			self->running = 0; // TODO: re-adjust walk speed 
 			self->stalltime = time + GAME_SPEED/2;
-			self->pathblocked = 0;
 			adjust_walk_animation(NULL);
+			self->pathblocked = 0;
 
 		}
 		return 1;
@@ -15430,9 +15441,9 @@ int common_try_chase(entity* target, int dox, int doz)
 {
 	// start chasing the target
 	float dx, dz;
-	int mx, mz;
 	float mindx, mindz;
 	int grabd, facing;
+	int stalladd = 0;
 
 	self->running = 0;
 	
@@ -15453,23 +15464,8 @@ int common_try_chase(entity* target, int dox, int doz)
 	dz = diff(self->z, target->z);
 	grabd = self->modeldata.grabdistance;
 
-	mindx = grabd * 1.5;
+	mindx = grabd;
 	mindz = grabd / 4;
-	
-	if(dox && dx<mindx) {
-		self->xdir = 0;
-		mx = 0;
-	}else mx = 1;
-
-	if(doz && dz<mindz){
-		self->zdir = 0;
-		mz = 0;
-	}else mz = 1;
-
-	if(!mx && !mz){
-		self->running = 0;
-		return 0;
-	}
 	
 	if(dox){
 		if((dx>150 || dx+dz>200) && validanim(self, ANI_RUN)){
@@ -15478,6 +15474,10 @@ int common_try_chase(entity* target, int dox, int doz)
 		}
 		else self->xdir = self->modeldata.speed;
 		if(target->x<self->x) self->xdir = -self->xdir;
+		if(dx<mindx && dz<mindz) {
+			self->xdir = -self->xdir;
+			stalladd = -GAME_SPEED/3;
+		}
 	}
 
 	if(doz){
@@ -15487,7 +15487,13 @@ int common_try_chase(entity* target, int dox, int doz)
 		}
 		else self->zdir = self->modeldata.speed/2;
 		if(target->z<self->z) self->zdir = -self->zdir;
+		if(dx<mindx && dz<mindz) {
+			self->zdir = -self->zdir/2;
+			stalladd = -GAME_SPEED/3;
+		}
 	}
+
+	self->stalltime += stalladd;
 
 
 	return 1;
@@ -15506,6 +15512,8 @@ int common_try_follow(entity* target, int dox, int doz)
 	if(target == NULL || self->modeldata.nomove) return 0;
 	distance = (float)((validanim(self,ANI_IDLE))? self->modeldata.animation[ANI_IDLE]->range.xmin: 100);
 
+	if(distance<=0) distance = 100.0;
+
 	facing = (self->direction?self->x<target->x:self->x>target->x);
 
 	dx = diff(self->x, target->x);
@@ -15523,24 +15531,27 @@ int common_try_follow(entity* target, int dox, int doz)
 
 	if(!mx && !mz){
 		self->running = 0;
-		return 0;
+		return 1;
 	}
 	
-	if(dox){
-		if(dx>200 && validanim(self, ANI_RUN)){
+	if(dox && mx){
+		if(facing && dx>200 && validanim(self, ANI_RUN)){
 			self->xdir = self->modeldata.runspeed;
 			self->running = 1;
 		}
 		else self->xdir = self->modeldata.speed;
 	}
 
-	if(doz){
-		if(dx>200 && self->modeldata.runupdown && validanim(self, ANI_RUN)){
+	if(doz && mz){
+		if(facing && dx>200 && self->modeldata.runupdown && validanim(self, ANI_RUN)){
 			self->zdir = self->modeldata.runspeed/2;
 			self->running = 1;
 		}
 		else self->zdir = self->modeldata.speed/2;
 	}
+
+	if(self->x>target->x) self->xdir = -self->xdir;
+	if(self->z>target->z) self->zdir = -self->zdir;
 
 	return 1;
 }
@@ -15550,7 +15561,6 @@ int common_try_follow(entity* target, int dox, int doz)
 int common_try_avoid(entity* target, int dox, int doz)
 {
 	float dx, dz;
-	int mx, mz;
 	int stalladd = 0;
 
 	if(target == NULL || self->modeldata.nomove) return 0;
@@ -15558,34 +15568,30 @@ int common_try_avoid(entity* target, int dox, int doz)
 	dx = diff(self->x, target->x);
 	dz = diff(self->z, target->z);
 
-	if(dox && dx > videomodes.hRes/2) mx = 0;
-	else mx = 1;
-
-	if(doz && dz > videomodes.vRes/2) mz = 0;
-	else mz = 1;
-
 	//printf("aimove: %d\n", (aitype &(AIMOVE1_AVOIDX|AIMOVE1_AVOIDZ|AIMOVE1_AVOIDX)));
 
-	if(!mx && !mz) return 0; // none available, exit
-
 	if(dox){
-		if(self->x < screenx - 10) {
+		if(self->x < screenx) {
 			self->xdir = self->modeldata.speed;
 			stalladd = GAME_SPEED;
-		}else if(self->x > screenx + videomodes.hRes + 10) {
+		}else if(self->x > screenx + videomodes.hRes) {
 			self->xdir = -self->modeldata.speed;
 			stalladd = GAME_SPEED;
-		}else self->xdir = (self->x < target->x)? (-self->modeldata.speed):self->modeldata.speed;
+		}else if(dx < videomodes.hRes/2)
+			self->xdir = (self->x < target->x)? (-self->modeldata.speed):self->modeldata.speed;
+		else self->xdir = 0;
 	}
 	
 	if(doz){
-		if(self->z < screeny - 5) {
+		if(self->z < screeny) {
 			self->zdir = self->modeldata.speed/2;
 			stalladd = GAME_SPEED;
-		}else if(self->z > screeny + videomodes.vRes + 5) {
+		}else if(self->z > screeny + videomodes.vRes) {
 			self->zdir = -self->modeldata.speed/2;
 			stalladd = GAME_SPEED;
-		}else self->zdir = (self->z < target->z)? (-self->modeldata.speed/2):(self->modeldata.speed/2);
+		}else if(dz < videomodes.vRes/2)
+			self->zdir = (self->z < target->z)? (-self->modeldata.speed/2):(self->modeldata.speed/2);
+		else self->zdir = 0;
 	}
 
 	self->stalltime += stalladd;
@@ -15633,7 +15639,7 @@ int common_try_wandercompletely(int dox, int doz)
 
 }
 
-// just wander around, face to the target
+// for normal and default ai patttern
 int common_try_wander(entity* target, int dox, int doz)
 {
 	int walk = 0, behind, grabd, agg;
@@ -15689,17 +15695,14 @@ int common_try_wander(entity* target, int dox, int doz)
 			self->xdir = -self->modeldata.speed;
 			stalladd = GAME_SPEED/2;
 			walk = 1;
-		}else if(diffx>returndx)
-		{
-			if(diffx<mindx/2){
-				self->xdir = (self->x>target->x)?self->modeldata.speed:-self->modeldata.speed;
-				walk = 1;
-			}else if(diffx<mindx){
-				self->xdir = 0;
-			}else{
-				self->xdir = (self->x>target->x)?-self->modeldata.speed:self->modeldata.speed;
-				walk = 1;
-			}
+		}else if(diffx<mindx/2){
+			self->xdir = (self->x>target->x)?self->modeldata.speed:-self->modeldata.speed;
+			walk = 1;
+		}else if(diffx<mindx){
+			self->xdir = 0;
+		}else if(diffx>returndx){
+			self->xdir = (self->x>target->x)?-self->modeldata.speed:self->modeldata.speed;
+			walk = 1;
 		}else if(rnum < 3){
 			self->xdir = self->modeldata.speed;
 			walk = 1;
@@ -15720,16 +15723,12 @@ int common_try_wander(entity* target, int dox, int doz)
 			self->zdir = -self->modeldata.speed/2;
 			stalladd = GAME_SPEED/2;
 			walk |= 1;
-		}else if(diffz>returndz)
-		{
-			if(diffz<mindz){
-				self->zdir = 0;
-			}else{
-				self->zdir = (self->z>target->z)?-self->modeldata.speed/2:self->modeldata.speed/2;;
-				walk |= 1;
-			}
-		}
-		else if(rnum < 2){
+		}else if(diffz<mindz){
+			self->zdir = 0;
+		}else if(diffz>returndz){
+			self->zdir = (self->z>target->z)?-self->modeldata.speed/2:self->modeldata.speed/2;;
+			walk |= 1;
+		} else if(rnum < 2){
 			// Move up
 			self->zdir = -self->modeldata.speed/2;
 			walk |= 1;
@@ -15778,9 +15777,9 @@ void common_pickupitem(entity* other){
 		pickup = 1;
 	}
 	// other items
-	else if(! isSubtypeWeapon(other) && ! isSubtypeProjectile(other))
+	else if(! isSubtypeWeapon(other) && ! isSubtypeProjectile(other) )
 	{
-		if(validanim(self,ANI_GET) && !isSubtypeTouch(other) && canBeDamaged(other, self))
+		if(validanim(self,ANI_GET) && !isSubtypeTouch(other))
 		{
 			ent_set_anim(self, ANI_GET, 0);
 			set_getting(self);
@@ -16075,11 +16074,18 @@ int common_move()
 			seta = (float)(self->animation->seta?self->animation->seta[self->animpos]:-1);
 			if(diff(self->a - (seta>= 0) * seta , other->a)<0.1)
 			common_pickupitem(other);
+			return 1;
 		}
 
 		if(common_try_jump()) return 1;  //need to jump? so quit
 
 		if(checkpathblocked()) return 1;
+
+		//bump-into handle
+		if(!other && target && diff(self->x, target->x)<self->modeldata.grabdistance*2 &&
+			diff(self->z, target->z)<self->modeldata.grabdistance){
+			self->stalltime = time-1;
+		}
 
 		// judge next move if stalltime is expired
 		if(self->stalltime < time ){
@@ -19572,6 +19578,7 @@ void applybglayers(s_screen* pbgscreen)
 	s_bglayer* bglayer;
 	int width, height;
 	s_drawmethod screenmethod;
+	gfx_entry gfx;
 
 	if(!textbox)
 		 bgtravelled += (((time-traveltime)*level->bgspeed/30*4) + ((level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0)); // no like in real life, maybe
@@ -19590,14 +19597,7 @@ void applybglayers(s_screen* pbgscreen)
 		width = bglayer->width + bglayer->xspacing;
 		height = bglayer->height + bglayer->zspacing;
 
-		//if(level->bgdir==0) // count from left
-		//{
-			x = (int)(bglayer->xoffset + (advancex)*(bglayer->xratio) - advancex - bgtravelled * (1-bglayer->xratio) * bglayer->bgspeedratio);
-		//}
-		//else //count from right, complex
-		//{
-		//    x = videomodes.hRes1 - (level->width-videomodes.hRes1-advancex)*(bglayer->xratio) - bglayer->xoffset - width*bglayer->xrepeat + bglayer->xspacing + (int)(bgtravelled * (1-bglayer->xratio) * bglayer->bgspeedratio)%width;
-		//}
+		x = (int)(bglayer->xoffset + (advancex)*(bglayer->xratio) - advancex - bgtravelled * (1-bglayer->xratio) * bglayer->bgspeedratio);
 
 		if(level->scrolldir&SCROLL_UP)
 		{
@@ -19624,17 +19624,23 @@ void applybglayers(s_screen* pbgscreen)
 		screenmethod.table = (pixelformat==PIXEL_x8)?(current_palette>0?(level->palettes[current_palette-1]):NULL):NULL;
 		screenmethod.alpha = bglayer->alpha;
 		screenmethod.transbg = bglayer->transparency;
+		screenmethod.water.wavelength = (float)bglayer->wavelength;
+		screenmethod.water.amplitude =  bglayer->amplitude;
+		screenmethod.water.wavetime =  (int)(timevar*bglayer->wavespeed);
+		screenmethod.water.watermode =  bglayer->watermode;
+		if(bglayer->type==bg_screen) {
+			gfx.type = gfx_screen;
+			gfx.screen = bglayer->screen;
+		}else if(bglayer->type==bg_sprite){
+			gfx.type = gfx_screen;
+			gfx.sprite = bglayer->sprite;
+		} else continue;
 		for(; j<bglayer->zrepeat && z<videomodes.vRes; z+=height, j++)
 		{
 			for(k=i, l=x; k<bglayer->xrepeat && l<videomodes.hRes + bglayer->amplitude*2; l+=width, k++)
 			{
 				if(bglayer->type==bg_screen)
-				{
-					if(bglayer->watermode && bglayer->amplitude)
-						 putscreen_water(pbgscreen, bglayer->screen, l, z, bglayer->amplitude, (float)bglayer->wavelength, (int)(timevar*bglayer->wavespeed), bglayer->watermode, &screenmethod);
-					else
-						 putscreen(pbgscreen, bglayer->screen, l, z, &screenmethod);
-				}
+					 putscreen(pbgscreen, bglayer->screen, l, z, &screenmethod);
 				else if(bglayer->type==bg_sprite)
 					putsprite(l, z, bglayer->sprite, pbgscreen, &screenmethod);
 
@@ -19650,10 +19656,17 @@ void applybglayers(s_screen* pbgscreen)
 
 void applyfglayers(s_screen* pbgscreen)
 {
-	int index, x, z, i, j, k, l;
+	int index, x, z, i, j, k, l, timevar;
 	s_fglayer* fglayer;
 	int width, height;
 	s_drawmethod screenmethod;
+
+	if(!textbox)
+		 bgtravelled += (((time-traveltime)*level->bgspeed/30*4) + ((level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0)); // no like in real life, maybe
+	else
+		 texttime += time-traveltime;
+
+	timevar = time - texttime;
 
 	for(index = 0; index < level->numfglayers; index++)
 	{
@@ -19665,14 +19678,7 @@ void applyfglayers(s_screen* pbgscreen)
 		width = fglayer->width + fglayer->xspacing;
 		height = fglayer->height + fglayer->zspacing;
 
-		//if(level->bgdir==0) // count from left
-		//{
-			x = (int)(fglayer->xoffset + (advancex)*(fglayer->xratio) - advancex - (int)(bgtravelled * (1-fglayer->xratio) * fglayer->bgspeedratio)%width);
-		//}
-		//else //count from right, complex
-		//{
-		//    x = videomodes.hRes1 - (level->width-videomodes.hRes1-advancex)*(fglayer->xratio) - fglayer->xoffset - width*fglayer->xrepeat + fglayer->xspacing + (int)(bgtravelled * (1-fglayer->xratio) * fglayer->bgspeedratio)%width;
-		//}
+		x = (int)(fglayer->xoffset + (advancex)*(fglayer->xratio) - advancex - bgtravelled * (1-fglayer->xratio) * fglayer->bgspeedratio);
 
 		if(level->scrolldir&SCROLL_UP)
 		{
@@ -19683,28 +19689,33 @@ void applyfglayers(s_screen* pbgscreen)
 			z = (int)(4 + fglayer->zoffset + (advancey-4)* fglayer->zratio - advancey);
 		}
 
-		if(x<0)
-		{
-			i = (-x)/width;
-			x %= width;
-		}
-		else i=0;
-		if(z<0)
-		{
-			j = (-z)/height;
-			z %= height;
-		}
-		else j=0;
+		if(x<0) i = (-x)/width;
+		else i = 0;
 
+		x %= width;
+		if(x>0) x -= width;
+
+		if(z<0) j = (-z)/height;
+		else j = 0;
+
+		z %= height;
+		if(z>0) z -= height; // make it loop?
 
 		screenmethod=plainmethod;
 		screenmethod.table = (pixelformat==PIXEL_x8)?(current_palette>0?(level->palettes[current_palette-1]):NULL):NULL;
 		screenmethod.alpha = fglayer->alpha;
 		screenmethod.transbg = fglayer->transparency;
+		screenmethod.water.wavelength = (float)fglayer->wavelength;
+		screenmethod.water.amplitude =  fglayer->amplitude;
+		screenmethod.water.wavetime =  (int)(timevar*fglayer->wavespeed);
+		screenmethod.water.watermode =  fglayer->watermode;
 		for(; j<fglayer->zrepeat && z<videomodes.vRes; z+=height, j++)
 		{
 			for(k=i, l=x; k<fglayer->xrepeat && l<videomodes.hRes + fglayer->amplitude*2; l+=width, k++)
 			{
+				if(fglayer->type==fg_screen)
+					 spriteq_add_screen(l, z, FRONTPANEL_Z + fglayer->z, fglayer->screen, &screenmethod, 0);
+				else if(fglayer->type==fg_sprite)
 					spriteq_add_frame(l, z, FRONTPANEL_Z + fglayer->z, fglayer->sprite, &screenmethod, 0);
 
 			}
@@ -20522,9 +20533,7 @@ void shutdown(int status, char *msg, ...)
 {
 	char buf[1024] = "";
 	va_list arglist;
-#if WII
 	int i;
-#endif
 
 	static int shuttingdown = 0;
 
@@ -20570,6 +20579,7 @@ void shutdown(int status, char *msg, ...)
 	if(!disablelog) printf("Release graphics data");
 	if(!disablelog) printf("..");
 	if(startup_done) freescreen(&vscreen); // allocated by init_videomodes
+	if(startup_done && pixelformat==PIXEL_x8) for(i=0; i<MAX_BLENDINGS; i++) free(blendtables[i]);
 	if(!disablelog) printf("..");
 	if(startup_done) freescreen(&background);
 	if(!disablelog) printf("..");
@@ -20740,6 +20750,9 @@ void startup(){
 #endif
 
 	printf("\n\n");
+
+	if(pixelformat==PIXEL_x8)
+		create_blend_tables_x8(blendtables);
 
 	for(i=0; i<MAX_PAL_SIZE/4; i++) neontable[i] = i;
 	if(savedata.logo++ > 10) savedata.logo = 0;

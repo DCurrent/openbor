@@ -144,7 +144,6 @@ s_sprite_map *sprite_map;
 
 void set_blendtables(unsigned char* tables[]); // set global blend tables for 8bit mode
 
-
 typedef unsigned char (*transpixelfunc)(unsigned char* table, unsigned char src, unsigned char dest);
 typedef unsigned short (*blend16fp)(unsigned short, unsigned short);
 typedef unsigned (*blend32fp)(unsigned, unsigned);
@@ -166,6 +165,14 @@ void u16pcpy(unsigned short* pdest, const unsigned char* psrc, unsigned short* p
 void u32revpcpy(unsigned* pdest, const unsigned char* psrc, unsigned* pp, unsigned len);
 void u32pcpy(unsigned* pdest, const unsigned char* psrc, unsigned* pp, unsigned len);
 
+typedef struct{
+	int amplitude;
+	float wavelength;
+	int wavetime;
+	int wavespeed;
+	int watermode;
+}water_transform;
+
 typedef struct
 {
 	unsigned char* table;
@@ -184,6 +191,7 @@ typedef struct
 	int shiftx;
 	int centerx;   // shift centerx
 	int centery;   //shift centery
+	water_transform water;
 }s_drawmethod;
 
 typedef enum 
