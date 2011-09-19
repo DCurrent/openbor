@@ -22,6 +22,7 @@
 #include	"video.h"
 #include	"vga.h"
 #include	"screen.h"
+#include	"transform.h"
 #include	"loadimg.h"
 #include	"bitmap.h"
 #include	"sprite.h"
@@ -1811,6 +1812,7 @@ void common_throw(void);
 void common_throw_wait(void);
 void common_prethrow(void);
 void npc_warp();
+int checkpathblocked();
 int common_trymove(float xdir, float zdir);
 void normal_runoff();
 void common_stuck_underneath();

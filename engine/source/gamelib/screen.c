@@ -14,10 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "types.h"
+#include "transform.h"
 #include "screen.h"
-
-extern float _sinfactors[256];
-#define distortion(x, a) ((int)(_sinfactors[x]*a+0.5))
 
 static char asBuf[13] = "";
 static unsigned short asCnt = 0;
@@ -81,97 +79,6 @@ void clearscreen(s_screen * s)
 {
 	if(s == NULL) return;
 	memset(s->data, 0, s->width*s->height*pixelbytes[(int)s->pixelformat]);
-}
-
-// Screen copy with water effect
-void putscreen8_water(s_screen * dest, s_screen * src, int x, int y, int key, unsigned char* remap, unsigned char* lut, int amplitude, float wavelength, int time, int watermode)
-{
-	unsigned char* sp = (unsigned char*)src->data, *dp =(unsigned char*)dest->data, *cdp, *csp;
-	int sb, db;
-	int sw = src->width;
-	int sh = src->height;
-	int dw = dest->width;
-	int dh = dest->height;
-	int ch = sh;
-	int sox, soy;
-	float s = (float)(time % 256);
-	int t, u, bytestocopy;
-	unsigned char c;
-	int sbeginx, sendx, dbeginx, dendx;
-
-
-	// Copy anything at all?
-	if(x + amplitude*2 + sw <= 0 || x - amplitude*2  >= dw) return;
-	if(y + sh <=0 || y >= dh) return;
-
-	sox = 0;
-	soy = 0;
-	if(s<0) s+=256;
-
-	// Clip?
-	//if(x<0) {sox = -x; cw += x;}
-	if(y<0) {soy = -y; ch += y;}
-
-	//if(x+sw > dw) cw -= (x+sw) - dw;
-	if(y+sh > dh) ch -= (y+sh) - dh;
-
-	//if(x<0) x = 0;
-	if(y<0) y = 0;
-
-	sb = soy*sw;
-	db = y*dw;
-
-	u = (watermode==1)?distortion((int)s, amplitude):amplitude;
-	wavelength = 256 / wavelength;
-	s += soy*wavelength;
-
-	// Copy data
-	do{
-		s = s - (int)s + (int)s % 256;
-		t = distortion((int)s, amplitude) - u;
-
-		dbeginx = x+t;
-		dendx = x+t+sw;
-		
-		if(dbeginx>=dw || dendx<=0) {dbeginx = dendx = sbeginx = sendx = 0;} //Nothing to draw
-		//clip both
-		else if(dbeginx<0 && dendx>dw){ 
-			sbeginx = -dbeginx; sendx = sbeginx + dw;
-			dbeginx = 0; dendx = dw;
-		}
-		//clip left
-		else if(dbeginx<0) {
-			sbeginx = -dbeginx; sendx = sw;
-			dbeginx = 0;
-		}
-		// clip right
-		else if(dendx>dw) {
-			sbeginx = 0; sendx = dw - dbeginx;	
-			dendx = dw;
-		}
-		// clip none
-		else{
-			sbeginx = 0; sendx = sw;
-		}
-		cdp = dp + db + dbeginx;
-		csp = sp+ sb + sbeginx; 
-		bytestocopy = dendx-dbeginx;
-
-		//TODO: optimize this
-		if(key || remap || lut){
-			for(t=0; t<bytestocopy; t++){
-				if(!key || csp[t]){
-					c = remap?remap[csp[t]]:csp[t];
-					cdp[t] = lut?lut[c<<8|cdp[t]]:c;
-				}
-			}
-		}
-		else memcpy(cdp, csp, bytestocopy);
-
-		s += wavelength;
-		sb += sw;
-		db += dw;
-	}while(--ch);
 }
 
 // Screen copy function with offset options. Supports clipping.
@@ -368,14 +275,20 @@ void putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawme
 {
 	unsigned char* table;
 	int alpha, transbg;
+	gfx_entry gfx;
 	if(!drawmethod || drawmethod->flag==0)
 	{
 		table = NULL;
 		alpha = 0;
 		transbg = 0;
-	}
-	else
-	{
+	} else if(drawmethod->water.watermode) {
+		gfx.type = gfx_screen;
+		gfx.screen = src;
+		if(drawmethod->water.watermode==3)
+			gfx_draw_plane(dest, &gfx, x, y, 0, 0, drawmethod);
+		else gfx_draw_water(dest, &gfx, x, y, 0, 0, drawmethod);
+		return ;
+	}else{
 		table = drawmethod->table;
 		alpha = drawmethod->alpha;
 		transbg = drawmethod->transbg;
@@ -419,45 +332,6 @@ void putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawme
 	}
 }
 
-void putscreen_water(s_screen* dest, s_screen* src, int x, int y, int amplitude, float wavelength, int time, int watermode, s_drawmethod* drawmethod)
-{
-	unsigned char* table;
-	int alpha, transbg;
-	if(!drawmethod || drawmethod->flag==0)
-	{
-		table = NULL;
-		alpha = 0;
-		transbg = 0;
-	}
-	else
-	{
-		table = drawmethod->table;
-		alpha = drawmethod->alpha;
-		transbg = drawmethod->transbg;
-	}
-
-	/*if(!table && alpha<=0 && !transbg)
-	{
-		if(dest->pixelformat==src->pixelformat && dest->width==src->width && dest->height==src->height)
-		{
-			copyscreen(dest, src);
-			return;
-		}
-	}*/
-
-	if(dest->pixelformat==PIXEL_8)
-	{
-		putscreen8_water(dest, src, x, y, transbg, table, alpha>0?blendtables[alpha-1]:NULL,amplitude, wavelength, time, watermode);
-	}
-	else if(dest->pixelformat==PIXEL_16)
-	{
-		putscreenx8p16_water(dest, src, x, y, transbg, (unsigned short*)table, alpha>0?blendfunctions16[alpha-1]:NULL, amplitude, wavelength, time, watermode);
-	}
-	else if(dest->pixelformat==PIXEL_32)
-	{
-		putscreenx8p32_water(dest, src, x, y, transbg, (u32*)table, alpha>0?blendfunctions32[alpha-1]:NULL, amplitude, wavelength, time, watermode);
-	}
-}
 
 // Scale screen
 void scalescreen(s_screen * dest, s_screen * src)

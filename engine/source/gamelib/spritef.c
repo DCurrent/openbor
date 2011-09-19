@@ -270,7 +270,6 @@ void putsprite_8(
 // scalex scaley flipy ...
 void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod* drawmethod)
 {
-	int centerx, centery;
 	gfx_entry gfx;
 
 	if(!drawmethod->scalex || !drawmethod->scaley) return; // zero size
@@ -293,18 +292,17 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
 		return;
 	}
 
-	if(drawmethod->centerx) centerx = drawmethod->centerx+frame->centerx;
-	else                    centerx = frame->centerx;
-	if(drawmethod->centery) centery = drawmethod->centery+frame->centery;
-	else                    centery = frame->centery;
-
 	gfx.type = gfx_sprite;
 	gfx.sprite = frame;
 
-	if(drawmethod->rotate){
-		gfx_draw_rotate(screen, &gfx, x, y, centerx, centery, drawmethod);
+	if(drawmethod->water.watermode==3){
+		gfx_draw_plane(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
+	}else if(drawmethod->water.watermode){
+		gfx_draw_water(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
+	}else if(drawmethod->rotate){
+		gfx_draw_rotate(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
 	}else{
-		gfx_draw_scale(screen, &gfx, x, y, centerx, centery, drawmethod);
+		gfx_draw_scale(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
 	}
 }
 
