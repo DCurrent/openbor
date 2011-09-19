@@ -8998,10 +8998,44 @@ void load_level(char *filename){
 				level->numfglayers++;
 				break;
 			case CMD_LEVEL_WATER:
+				
 				load_texture(GET_ARG(1));
 				i = GET_INT_ARG(2);
 				if(i<1) i = 1;
-				texture_set_wave((float)i);
+				texture_set_wave((float)i);/*
+				if(level->numbglayers >= LEVEL_MAX_BGLAYERS) {
+					errormessage = "Too many bg layers in level (check LEVEL_MAX_BGLAYERS)!";
+					goto lCleanup;
+				}
+				if(level->numbglayers==0) level->numbglayers = 1; // reserve for background
+
+				level->bglayers[level->numbglayers].xratio = 0.5; // x ratio
+				level->bglayers[level->numbglayers].zratio = 0.5; // z ratio
+				level->bglayers[level->numbglayers].xoffset = 0; // x start
+				level->bglayers[level->numbglayers].zoffset = 0; // z start
+				level->bglayers[level->numbglayers].xspacing = 0; // x spacing
+				level->bglayers[level->numbglayers].zspacing = 0; // z spacing
+				level->bglayers[level->numbglayers].xrepeat = -1; // x repeat
+				level->bglayers[level->numbglayers].zrepeat = -1; // z repeat
+				level->bglayers[level->numbglayers].transparency = 0; // transparency
+				level->bglayers[level->numbglayers].alpha = 0; // alpha
+				level->bglayers[level->numbglayers].watermode = 1; // amplitude
+				level->bglayers[level->numbglayers].amplitude = GET_INT_ARG(2); // amplitude
+				level->bglayers[level->numbglayers].wavelength = GET_INT_ARG(14); // wavelength
+				level->bglayers[level->numbglayers].wavespeed = GET_FLOAT_ARG(15); // waterspeed
+				level->bglayers[level->numbglayers].bgspeedratio = GET_FLOAT_ARG(16); // moving
+				level->bglayers[level->numbglayers].enabled = 1; // enabled
+
+				if((value=GET_ARG(2))[0]==0) level->bglayers[level->numbglayers].xratio = 0.5;
+				if((value=GET_ARG(3))[0]==0) level->bglayers[level->numbglayers].zratio = 0.5;
+
+				if((value=GET_ARG(8))[0]==0) level->bglayers[level->numbglayers].xrepeat = -1;
+				if((value=GET_ARG(9))[0]==0) level->bglayers[level->numbglayers].zrepeat = -1;
+
+				if(blendfx_is_set==0 && level->bglayers[level->numbglayers].alpha) blendfx[level->bglayers[level->numbglayers].alpha-1] = 1;
+
+				load_bglayer(GET_ARG(1), level->numbglayers);
+				level->numbglayers++;*/
 				break;
 			case CMD_LEVEL_DIRECTION:
 				value = GET_ARG(1);
@@ -19604,7 +19638,6 @@ void applybglayers(s_screen* pbgscreen)
 	float rocktravel;
 	int width, height;
 	s_drawmethod screenmethod;
-	gfx_entry gfx;
 
 	if(!textbox){
 		rocktravel = (level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0; // no like in real life, maybe
@@ -19649,13 +19682,6 @@ void applybglayers(s_screen* pbgscreen)
 		screenmethod.water.amplitude =  bglayer->amplitude;
 		screenmethod.water.wavetime =  (int)(timevar*bglayer->wavespeed);
 		screenmethod.water.watermode =  bglayer->watermode;
-		if(bglayer->type==bg_screen) {
-			gfx.type = gfx_screen;
-			gfx.screen = bglayer->screen;
-		}else if(bglayer->type==bg_sprite){
-			gfx.type = gfx_screen;
-			gfx.sprite = bglayer->sprite;
-		} else continue;
 		for(; j<bglayer->zrepeat && z<videomodes.vRes; z+=height, j++)
 		{
 			for(k=i, l=x; k<bglayer->xrepeat && l<videomodes.hRes + bglayer->amplitude*2; l+=width, k++)
@@ -19665,7 +19691,7 @@ void applybglayers(s_screen* pbgscreen)
 				else if(bglayer->type==bg_sprite)
 					putsprite(l, z, bglayer->sprite, pbgscreen, &screenmethod);
 
-				//printf("# %d %d %d %d %d\n", (int)bglayer->xoffset , (int)bglayer->xrepeat, (int)bglayer->xspacing, l, z);
+				//printf("#%d %d %d %d %d %d\n", level->numbglayers, (int)bglayer->xoffset , (int)bglayer->xrepeat, (int)bglayer->xspacing, l, z);
 
 			}
 		}
