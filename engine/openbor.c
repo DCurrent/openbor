@@ -19609,7 +19609,7 @@ void applybglayers(s_screen* pbgscreen)
 	if(!textbox){
 		rocktravel = (level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0; // no like in real life, maybe
 		if(level->bgspeed<0) rocktravel = -rocktravel;
-		bgtravelled += (time-traveltime)*level->bgspeed/30*2 + rocktravel;
+		bgtravelled += (time-traveltime)*level->bgspeed/30*4 + rocktravel;
 	}else texttime += time-traveltime;
 
 	timevar = time - texttime;
@@ -19679,15 +19679,8 @@ void applyfglayers(s_screen* pbgscreen)
 {
 	int index, x, z, i, j, k, l, timevar;
 	s_fglayer* fglayer;
-	float rocktravel;
 	int width, height;
 	s_drawmethod screenmethod;
-
-	if(!textbox){
-		rocktravel = (level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0; // no like in real life, maybe
-		if(level->bgspeed<0) rocktravel = -rocktravel;
-		bgtravelled += (time-traveltime)*level->bgspeed/30*2 + rocktravel;
-	}else texttime += time-traveltime;
 
 	timevar = time - texttime;
 
