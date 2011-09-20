@@ -37,7 +37,6 @@
 #include	"packfile.h"
 #include	"palette.h"
 #include	"anigif.h"
-#include	"texture.h"
 #include    "openborscript.h"
 #include    "globals.h"
 #include	"triangle.h"
