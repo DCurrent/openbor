@@ -616,7 +616,7 @@ void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 
 		for(j=0; j<width; j++, s_pos += s_step){
 			sx = s_pos >> 8;
-			if(sx > trans_sw){
+			if(sx >= trans_sw){
 				sx %= trans_sw;
 				s_pos = (s_pos & 0xFF) | (sx << 8);
 			}
