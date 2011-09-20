@@ -46,7 +46,6 @@ int					zoom_scale_x		= 0;
 int					zoom_scale_y		= 0;
 int					zoom_z				= MIN_INT;
 char                bgbuffer_updated    = 0;
-s_bitmap*           texture             = NULL;
 s_videomodes        videomodes;
 int sprite_map_max_items = 0;
 int cache_map_max_items = 0;
@@ -3294,21 +3293,6 @@ void load_fglayer(char *filename, int index)
 	}
 
 }
-
-void unload_texture(){
-	if(texture) freebitmap(texture);
-	texture = NULL;
-}
-
-
-
-void load_texture(char *filename){
-	unload_texture();
-	texture = loadbitmap(filename, packfile, pixelformat);
-	if(texture==NULL) shutdown(1, "Error loading file '%s'", filename);
-}
-
-
 
 void freepanels(){
 	int i;
@@ -8593,7 +8577,6 @@ void free_level(s_level* lv)
 void unload_level(){
 	s_model* temp;
 	unload_background();
-	unload_texture();
 	freepanels();
 	freescreen(&bgbuffer);
 
@@ -8998,11 +8981,6 @@ void load_level(char *filename){
 				level->numfglayers++;
 				break;
 			case CMD_LEVEL_WATER:
-				
-				load_texture(GET_ARG(1));
-				i = GET_INT_ARG(2);
-				if(i<1) i = 1;
-				texture_set_wave((float)i);/*
 				if(level->numbglayers >= LEVEL_MAX_BGLAYERS) {
 					errormessage = "Too many bg layers in level (check LEVEL_MAX_BGLAYERS)!";
 					goto lCleanup;
@@ -9012,30 +8990,24 @@ void load_level(char *filename){
 				level->bglayers[level->numbglayers].xratio = 0.5; // x ratio
 				level->bglayers[level->numbglayers].zratio = 0.5; // z ratio
 				level->bglayers[level->numbglayers].xoffset = 0; // x start
-				level->bglayers[level->numbglayers].zoffset = 0; // z start
+				level->bglayers[level->numbglayers].zoffset = 1234567890; // z start
 				level->bglayers[level->numbglayers].xspacing = 0; // x spacing
 				level->bglayers[level->numbglayers].zspacing = 0; // z spacing
 				level->bglayers[level->numbglayers].xrepeat = -1; // x repeat
-				level->bglayers[level->numbglayers].zrepeat = -1; // z repeat
+				level->bglayers[level->numbglayers].zrepeat = 1; // z repeat
 				level->bglayers[level->numbglayers].transparency = 0; // transparency
 				level->bglayers[level->numbglayers].alpha = 0; // alpha
-				level->bglayers[level->numbglayers].watermode = 1; // amplitude
+				level->bglayers[level->numbglayers].watermode = 2; // amplitude
 				level->bglayers[level->numbglayers].amplitude = GET_INT_ARG(2); // amplitude
-				level->bglayers[level->numbglayers].wavelength = GET_INT_ARG(14); // wavelength
-				level->bglayers[level->numbglayers].wavespeed = GET_FLOAT_ARG(15); // waterspeed
-				level->bglayers[level->numbglayers].bgspeedratio = GET_FLOAT_ARG(16); // moving
+				level->bglayers[level->numbglayers].wavelength = 40; // wavelength
+				level->bglayers[level->numbglayers].wavespeed = 1; // waterspeed
+				level->bglayers[level->numbglayers].bgspeedratio = 0; // moving
 				level->bglayers[level->numbglayers].enabled = 1; // enabled
 
-				if((value=GET_ARG(2))[0]==0) level->bglayers[level->numbglayers].xratio = 0.5;
-				if((value=GET_ARG(3))[0]==0) level->bglayers[level->numbglayers].zratio = 0.5;
-
-				if((value=GET_ARG(8))[0]==0) level->bglayers[level->numbglayers].xrepeat = -1;
-				if((value=GET_ARG(9))[0]==0) level->bglayers[level->numbglayers].zrepeat = -1;
-
-				if(blendfx_is_set==0 && level->bglayers[level->numbglayers].alpha) blendfx[level->bglayers[level->numbglayers].alpha-1] = 1;
+				if(level->bglayers[level->numbglayers].amplitude<1) level->bglayers[level->numbglayers].amplitude = 1;
 
 				load_bglayer(GET_ARG(1), level->numbglayers);
-				level->numbglayers++;*/
+				level->numbglayers++;
 				break;
 			case CMD_LEVEL_DIRECTION:
 				value = GET_ARG(1);
@@ -9546,7 +9518,22 @@ void load_level(char *filename){
 		if(background) unload_background();
 	}
 
-	if(level->numbglayers) load_bglayer(NULL, 0);
+	if(level->numbglayers) {
+		load_bglayer(NULL, 0); // initialize background height and width and looping
+		
+		for(i=1; i<level->numbglayers; i++){
+			if(level->bglayers[i].zoffset == 1234567890){ // default water hack
+				level->bglayers[i].zoffset = level->bglayers[0].height;
+				if(level->rocking) {
+					level->bglayers[i].watermode =3;
+					level->bglayers[i].wavelength =10;
+					level->bglayers[i].wavespeed =0;
+					level->bglayers[i].bgspeedratio =2;
+				}
+			}
+		}
+
+	}
 
 	if(pixelformat==PIXEL_x8)
 	{
@@ -19803,13 +19790,13 @@ void draw_scrolled_bg(){
 
 	if(bgbuffer)
 	{
-			if(((level->rocking || level->bgspeed>0 || texture)&& !pause) ||
+			if(((level->rocking || level->bgspeed)&& !pause) ||
 			   oldadvx!=advancex || oldadvy != advancey || current_palette!=oldpal)
 					bgbuffer_updated = 0;
 			else {
 					// temporary fix for bglayer water
 					for(i=0; i<level->numbglayers; i++){
-							if(level->bglayers[i].watermode && level->bglayers[i].amplitude){
+							if(level->bglayers[i].watermode){
 									bgbuffer_updated = 0;
 									break;
 							}
@@ -19831,16 +19818,6 @@ void draw_scrolled_bg(){
 	}
 
 	applyfglayers(pbgscreen);
-
-	// Append bg with texture?
-	if(texture){
-		inta = (int)(advancex/2);
-		if(level->rocking){
-			inta += (time/(GAME_SPEED/30));
-			apply_texture_plane(pbgscreen, 0,background->height, vscreen->width,BGHEIGHT-background->height, inta*256, 10, texture, pscreenmethod);
-		}
-		else apply_texture_wave(pbgscreen, 0,background->height, vscreen->width, BGHEIGHT-background->height, inta,0, texture, time, 5, pscreenmethod);
-	}
 
 	pscreenmethod->alpha = 0;
 	pscreenmethod->transbg = 0;
