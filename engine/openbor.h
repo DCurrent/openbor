@@ -1477,12 +1477,7 @@ typedef struct
 	int            zspacing;
 	int            xrepeat;
 	int            zrepeat;
-	int            transparency;
-	int            alpha;
-	int            watermode;
-	int            amplitude;
-	int            wavelength;
-	float          wavespeed;
+	s_drawmethod   drawmethod;
 	float          bgspeedratio;
 	int            enabled;
 }s_bglayer;
@@ -1506,12 +1501,7 @@ typedef struct
 	int            zspacing;
 	int            xrepeat;
 	int            zrepeat;
-	int            transparency;
-	int            alpha;
-	int            watermode;
-	int            amplitude;
-	int            wavelength;
-	float          wavespeed;
+	s_drawmethod   drawmethod;
 	float          bgspeedratio;
 	int            enabled;
 	int            z;
