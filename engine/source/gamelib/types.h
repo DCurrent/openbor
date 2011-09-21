@@ -166,10 +166,20 @@ void u32revpcpy(unsigned* pdest, const unsigned char* psrc, unsigned* pp, unsign
 void u32pcpy(unsigned* pdest, const unsigned char* psrc, unsigned* pp, unsigned len);
 
 typedef struct{
+	union
+	{
 	int amplitude;
+	float beginsize;
+	};
+	union{
 	float wavelength;
+	float endsize;
+	};
 	int wavetime;
-	int wavespeed;
+	union{
+	float wavespeed;
+	int	perspective;
+	};
 	int watermode;
 }water_transform;
 

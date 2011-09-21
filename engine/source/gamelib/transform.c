@@ -559,9 +559,8 @@ void gfx_draw_water(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 
 void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod){
 
-	int i, j, dx, dy, sx, sy, factor, width, height;
-	int o_s_pos, s_pos, s_step, x_pos;
-	int center_offset;
+	int i, j, dx, dy, sx, sy, width, height;
+	float osxpos, sxpos, sypos, sxstep, systep, xpos, factor, size, cx, beginsize, endsize;
 
 	init_gfx_global_draw_stuff(dest, src, drawmethod);
 	centerx += drawmethod->centerx;
@@ -570,12 +569,12 @@ void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 	x -= centerx;
 	y -= centery;
 
-	x_pos = x;
+	xpos = x;
 
-	factor = drawmethod->water.wavelength;
+	beginsize = drawmethod->water.beginsize;
+	endsize = drawmethod->water.endsize;
 
-	if(factor < 0) return;
-	factor++;
+	if(beginsize<0 || endsize<0) return;
 
 	width = trans_sw;
 	height = trans_sh;
@@ -603,23 +602,37 @@ void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 
 	dy = y;
 	dx = x;
-	sy = 0;
 
-	center_offset = trans_dw / 2 - x;
-	o_s_pos = (drawmethod->water.wavetime - x_pos) * 256 + (256 * trans_sw);
+	cx = trans_dw / 2.0 - x;
 
-	for(i=0; i<height; i++, dy++)
+	osxpos = drawmethod->water.wavetime - xpos + trans_sw;
+
+	factor = (endsize - beginsize) / trans_sh;
+	size = beginsize;
+
+	sypos = 0.0;
+	for(i=0; i<height; i++, dy++, size+=factor, sypos+=systep)
 	{
-		sy = i % trans_sh;
-		s_step = trans_sw * 256 / (trans_sw + trans_sw * i / factor);
-		s_pos = o_s_pos - center_offset * s_step;
+		sy = (int)sypos;
+		sy %= trans_sh;
+		if(sy<0) sy += trans_sh;
+		sxstep = 1 / size;
+		switch(drawmethod->water.perspective){
+		case 1: // tile
+			systep = sxstep;
+			break;
+		case 2: //stretch
+			systep = sxstep*trans_sh/(float)trans_sw;
+			break;
+		default:
+			systep = 1.0;
+		}
+		sxpos = osxpos - cx * sxstep;
 
-		for(j=0; j<width; j++, s_pos += s_step){
-			sx = s_pos >> 8;
-			if(sx >= trans_sw){
-				sx %= trans_sw;
-				s_pos = (s_pos & 0xFF) | (sx << 8);
-			}
+		for(j=0; j<width; j++, sxpos += sxstep){
+			sx = (int)sxpos;
+			sx %= trans_sw;
+			if(sx<0) sx += trans_sw;
 			draw_pixel_gfx(dest, src, dx+j, dy, sx, sy);
 		}
 	}

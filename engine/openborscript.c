@@ -10243,13 +10243,13 @@ HRESULT openbor_getbglayerproperty(ScriptVariant** varlist , ScriptVariant** pre
 	case _gbglp_alpha:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].alpha;
+		(*pretvar)->lVal = (LONG)level->bglayers[ind].drawmethod.alpha;
 		break;
 	}
 	case _gbglp_amplitude:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].amplitude;
+		(*pretvar)->lVal = (LONG)level->bglayers[ind].drawmethod.water.amplitude;
 		break;
 	}
 	case _gbglp_bgspeedratio:
@@ -10267,26 +10267,26 @@ HRESULT openbor_getbglayerproperty(ScriptVariant** varlist , ScriptVariant** pre
 	case _gbglp_transparency:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].transparency;
+		(*pretvar)->lVal = (LONG)level->bglayers[ind].drawmethod.transbg;
 		break;
 	}
 	case _gbglp_watermode:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].watermode;
+		(*pretvar)->lVal = (LONG)level->bglayers[ind].drawmethod.water.watermode;
 		break;
 	}
 
 	case _gbglp_wavelength:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].wavelength;
+		(*pretvar)->lVal = (LONG)level->bglayers[ind].drawmethod.water.wavelength;
 		break;
 	}
 	case _gbglp_wavespeed:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)level->bglayers[ind].wavespeed;
+		(*pretvar)->dblVal = (DOUBLE)level->bglayers[ind].drawmethod.water.wavespeed;
 		break;
 	}
 	case _gbglp_xoffset:
@@ -10442,7 +10442,7 @@ HRESULT openbor_changebglayerproperty(ScriptVariant** varlist , ScriptVariant** 
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].alpha = (int)ltemp;
+			level->bglayers[ind].drawmethod.alpha = (int)ltemp;
 		}
 		break;
 	}
@@ -10451,7 +10451,7 @@ HRESULT openbor_changebglayerproperty(ScriptVariant** varlist , ScriptVariant** 
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].amplitude = (int)ltemp;
+			level->bglayers[ind].drawmethod.water.amplitude = (int)ltemp;
 		}
 		break;
 	}
@@ -10478,7 +10478,7 @@ HRESULT openbor_changebglayerproperty(ScriptVariant** varlist , ScriptVariant** 
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].transparency = (int)ltemp;
+			level->bglayers[ind].drawmethod.transbg = (int)ltemp;
 		}
 		break;
 	}
@@ -10487,7 +10487,7 @@ HRESULT openbor_changebglayerproperty(ScriptVariant** varlist , ScriptVariant** 
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].watermode = (int)ltemp;
+			level->bglayers[ind].drawmethod.water.watermode = (int)ltemp;
 		}
 		break;
 	}
@@ -10497,7 +10497,7 @@ HRESULT openbor_changebglayerproperty(ScriptVariant** varlist , ScriptVariant** 
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].wavelength = (int)ltemp;
+			level->bglayers[ind].drawmethod.water.wavelength = (int)ltemp;
 		}
 		break;
 	}
@@ -10506,7 +10506,7 @@ HRESULT openbor_changebglayerproperty(ScriptVariant** varlist , ScriptVariant** 
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].wavespeed = (float)dbltemp;
+			level->bglayers[ind].drawmethod.water.wavespeed = (float)dbltemp;
 		}
 		break;
 	}
@@ -10683,13 +10683,13 @@ HRESULT openbor_getfglayerproperty(ScriptVariant** varlist , ScriptVariant** pre
 	case _gfglp_alpha:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].alpha;
+		(*pretvar)->lVal = (LONG)level->fglayers[ind].drawmethod.alpha;
 		break;
 	}
 	case _gfglp_amplitude:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].amplitude;
+		(*pretvar)->lVal = (LONG)level->fglayers[ind].drawmethod.water.amplitude;
 		break;
 	}
 	case _gfglp_bgspeedratio:
@@ -10707,26 +10707,26 @@ HRESULT openbor_getfglayerproperty(ScriptVariant** varlist , ScriptVariant** pre
 	case _gfglp_transparency:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].transparency;
+		(*pretvar)->lVal = (LONG)level->fglayers[ind].drawmethod.transbg;
 		break;
 	}
 	case _gfglp_watermode:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].watermode;
+		(*pretvar)->lVal = (LONG)level->fglayers[ind].drawmethod.water.watermode;
 		break;
 	}
 
 	case _gfglp_wavelength:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].wavelength;
+		(*pretvar)->lVal = (LONG)level->fglayers[ind].drawmethod.water.wavelength;
 		break;
 	}
 	case _gfglp_wavespeed:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)level->fglayers[ind].wavespeed;
+		(*pretvar)->dblVal = (DOUBLE)level->fglayers[ind].drawmethod.water.wavespeed;
 		break;
 	}
 	case _gfglp_xoffset:
@@ -10881,7 +10881,7 @@ HRESULT openbor_changefglayerproperty(ScriptVariant** varlist , ScriptVariant** 
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].alpha = (int)ltemp;
+			level->fglayers[ind].drawmethod.alpha = (int)ltemp;
 		}
 		break;
 	}
@@ -10890,7 +10890,7 @@ HRESULT openbor_changefglayerproperty(ScriptVariant** varlist , ScriptVariant** 
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].amplitude = (int)ltemp;
+			level->fglayers[ind].drawmethod.water.amplitude = (int)ltemp;
 		}
 		break;
 	}
@@ -10917,7 +10917,7 @@ HRESULT openbor_changefglayerproperty(ScriptVariant** varlist , ScriptVariant** 
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].transparency = (int)ltemp;
+			level->fglayers[ind].drawmethod.transbg = (int)ltemp;
 		}
 		break;
 	}
@@ -10926,7 +10926,7 @@ HRESULT openbor_changefglayerproperty(ScriptVariant** varlist , ScriptVariant** 
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].watermode = (int)ltemp;
+			level->fglayers[ind].drawmethod.water.watermode = (int)ltemp;
 		}
 		break;
 	}
@@ -10936,7 +10936,7 @@ HRESULT openbor_changefglayerproperty(ScriptVariant** varlist , ScriptVariant** 
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].wavelength = (int)ltemp;
+			level->fglayers[ind].drawmethod.water.wavelength = (int)ltemp;
 		}
 		break;
 	}
@@ -10945,7 +10945,7 @@ HRESULT openbor_changefglayerproperty(ScriptVariant** varlist , ScriptVariant** 
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
 		{
 			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].wavespeed = (float)dbltemp;
+			level->fglayers[ind].drawmethod.water.wavespeed = (float)dbltemp;
 		}
 		break;
 	}
