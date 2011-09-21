@@ -560,7 +560,7 @@ void gfx_draw_water(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod){
 
 	int i, j, dx, dy, sx, sy, factor, width, height;
-	int s_pos, s_step, x_pos;
+	int o_s_pos, s_pos, s_step, x_pos;
 	int center_offset;
 
 	init_gfx_global_draw_stuff(dest, src, drawmethod);
@@ -604,15 +604,15 @@ void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 	dy = y;
 	dx = x;
 	sy = 0;
+
+	center_offset = trans_dw / 2 - x;
+	o_s_pos = (drawmethod->water.wavetime - x_pos) * 256 + (256 * trans_sw);
+
 	for(i=0; i<height; i++, dy++)
 	{
 		sy = i % trans_sh;
-
-		center_offset = trans_dw / 2 - x;
-
-		s_pos = (drawmethod->water.wavetime - x_pos) * 256 + (256 * trans_sw);
 		s_step = trans_sw * 256 / (trans_sw + trans_sw * i / factor);
-		s_pos -= center_offset * s_step;
+		s_pos = o_s_pos - center_offset * s_step;
 
 		for(j=0; j<width; j++, s_pos += s_step){
 			sx = s_pos >> 8;
