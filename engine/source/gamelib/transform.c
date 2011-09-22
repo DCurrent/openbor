@@ -559,7 +559,7 @@ void gfx_draw_water(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 
 void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod){
 
-	int i, j, dx, dy, sx, sy, width, height;
+	int i, j, dx, dy, sx, sy, width, height, copyh;
 	float osxpos, sxpos, sypos, sxstep, systep, xpos, ypos, factor, size, cx, beginsize, endsize;
 
 	init_gfx_global_draw_stuff(dest, src, drawmethod);
@@ -588,9 +588,10 @@ void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 		x = 0;
 	}
 	if(y<0){
+		copyh = -y;
 		height += y;
 		y=0;
-	}
+	}else copyh = 0;
 	if(x+width > trans_dw){
 		width = trans_dw - x;
 	}
@@ -600,6 +601,7 @@ void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 	if(width<=0) return;
 	if(height<=0) return;
 
+	copyh += height;
 
 	dy = ypos;
 	dx = x;
@@ -612,7 +614,7 @@ void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 	size = beginsize;
 
 	sypos = 0.0;
-	for(i=0; i<trans_sh; i++, dy++, size+=factor, sypos+=systep)
+	for(i=0; i<copyh; i++, dy++, size+=factor, sypos+=systep)
 	{
 		sy = (int)sypos;
 		sy %= trans_sh;
