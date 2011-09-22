@@ -6891,7 +6891,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					// force color map change for specified time
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->forcemap = GET_INT_ARG(1);
-					pattack->maptime = GET_INT_ARG(2) * GAME_SPEED;
+					pattack->maptime = GET_FLOAT_ARG(2) * GAME_SPEED;
 					break;
 				case CMD_MODEL_IDLE:
 					idle = GET_INT_ARG(1);
