@@ -9195,6 +9195,7 @@ void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 		ICMPCONST(ANI_SLIDE);
 		ICMPCONST(ANI_RUNSLIDE);
 		ICMPCONST(ANI_DUCKATTACK);
+		ICMPCONST(ANI_WALKOFF);
 	}
 }
 //openborconstant(constname);
