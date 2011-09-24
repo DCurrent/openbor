@@ -19706,7 +19706,7 @@ void applybglayers(s_screen* pbgscreen)
 				else if(bglayer->type==bg_sprite)
 					putsprite(l, z, bglayer->sprite, pbgscreen, &screenmethod);
 
-				//printf("#%d %d %d %d %d %d\n", level->numbglayers, (int)bglayer->xoffset , (int)bglayer->xrepeat, (int)bglayer->xspacing, l, z);
+				//printf("#%d %d %d %d\n", index, l, z, width);
 
 			}
 		}
