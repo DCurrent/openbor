@@ -59,7 +59,6 @@ void spriteq_add_frame(int x, int y, int z, s_sprite* frame, s_drawmethod* pdraw
 	if(pdrawmethod)
 	{
 	    queue[spritequeue_len].drawmethod = *pdrawmethod;
-	    queue[spritequeue_len].drawmethod.flag = 1;
 	}
 	else queue[spritequeue_len].drawmethod.flag = 0;
 	queue[spritequeue_len].params[0] = 0; // determin if the sprite's center should be readjusted;
@@ -80,7 +79,6 @@ void spriteq_add_sprite(int x, int y, int z, int id, s_drawmethod* pdrawmethod, 
 	if(pdrawmethod)
 	{
 	    queue[spritequeue_len].drawmethod = *pdrawmethod;
-	    queue[spritequeue_len].drawmethod.flag = 1;
 	}
 	else queue[spritequeue_len].drawmethod.flag = 0;
 	queue[spritequeue_len].params[0] = 1; // determin if the sprite's center should be readjusted;
@@ -102,7 +100,6 @@ void spriteq_add_screen(int x, int y, int z, s_screen* ps, s_drawmethod* pdrawme
 	if(pdrawmethod)
 	{
 	    queue[spritequeue_len].drawmethod = *pdrawmethod;
-	    queue[spritequeue_len].drawmethod.flag = 1;
 	}
 	else queue[spritequeue_len].drawmethod.flag = 0;
 	order[spritequeue_len] = &queue[spritequeue_len];

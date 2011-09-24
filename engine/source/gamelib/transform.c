@@ -497,7 +497,7 @@ void gfx_draw_water(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 	amplitude = drawmethod->water.amplitude;
 	time = drawmethod->water.wavetime;
 
-	s = (float)(time % 256);
+	s = time % 256;
 
 	// Clip x
 	if(x + amplitude*2 + sw <= 0 || x - amplitude*2  >= dw) return;
