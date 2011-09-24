@@ -17,21 +17,15 @@
 #include "transform.h"
 #include "screen.h"
 
-static char asBuf[13] = "";
-static unsigned short asCnt = 0;
-
 s_screen * allocscreen(int width, int height, int pixelformat)
 {
 	s_screen * screen;
-	if (asCnt == 9)
-	{
-		asCnt = asCnt;
-	}
-	sprintf(asBuf, "as-id: %d", asCnt++);
+	int psize;
 	width &= (0xFFFFFFFF-3);
+	psize = width*height*pixelbytes[pixelformat];
 	if(pixelformat==PIXEL_x8)
-	   screen = (s_screen*)malloc(sizeof(s_screen) + width*height*pixelbytes[(int)pixelformat]+PAL_BYTES+ANYNUMBER);
-	else screen = (s_screen*)malloc(sizeof(s_screen) + width*height*pixelbytes[(int)pixelformat] + ANYNUMBER);
+	   screen = (s_screen*)malloc(sizeof(s_screen) + psize + PAL_BYTES+ANYNUMBER);
+	else screen = (s_screen*)malloc(sizeof(s_screen) + psize + ANYNUMBER);
 	if(screen==NULL) return NULL;
 	screen->width = width;
 	screen->height = height;
