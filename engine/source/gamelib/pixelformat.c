@@ -364,13 +364,13 @@ unsigned char* create_dodge16_tbl(){
 	unsigned t;
 	for(i=0; i<32; i++)
 		for(j=0; j<32; j++){
-			t = (unsigned char)_dodge16(i,j, 0x20);
+			t = _dodge16(i,j, 0x20);
 			if(t>0x1f) t=0x1f;
 			tbl[(i<<5)|j] = t;
 		}
 	for(i=0; i<64; i++)
 		for(j=0; j<64; j++){
-			t = (unsigned char)_dodge16(i,j, 0x40);
+			t = _dodge16(i,j, 0x40);
 			if(t>0x3f) t=0x3f;
 			tbl[((i<<6)|j)+1024] = t;
 		}
