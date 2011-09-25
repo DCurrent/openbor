@@ -15464,6 +15464,37 @@ int adjustdirection(float coords[], float offx, float offz, float ox, float oz, 
 	return whichside;
 }
 
+// x, z - current position
+// tx, tz - target position
+// speed - max speed
+// xdir, zdir - return values
+void adjustspeed(float speed, float x, float z, float tx, float tz, float* xdir, float* zdir){
+	float xd, zd;
+	float dx = diff(tx, x);
+	float dz = diff(tz,z)*2;
+
+	if(dx>dz) {
+		xd = speed;
+		zd = xd/dx*dz;
+	}else if(dz>dx){
+		zd = speed;
+		xd = zd/dz*dx;
+	}else if(dx){
+		xd = zd = speed;
+	}else{
+		xd = zd = 0;
+	}
+
+	if(tx<x) xd = -xd;
+	if(tz<z) zd = -zd;
+
+	zd /= 2;
+
+	*xdir = xd;
+	*zdir = zd;
+
+}
+
 int checkpathblocked()
 {
 	float x, z, r;
