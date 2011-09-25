@@ -79,7 +79,7 @@
 #define		LEVEL_MAX_HOLES		40
 #define		LEVEL_MAX_WALLS		40
 #define     LEVEL_MAX_BGLAYERS  100
-#define     LEVEL_MAX_FGLAYERS  10
+#define     LEVEL_MAX_FGLAYERS  100
 #define     LEVEL_MAX_TEXTOBJS  50
 #define     LEVEL_MAX_FILESTREAMS 50
 #define     LEVEL_MAX_PALETTES  40                  // altered palettes
