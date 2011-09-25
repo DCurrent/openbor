@@ -10825,7 +10825,7 @@ void ent_set_colourmap(entity *ent, unsigned int which)
 {
 	if(which>MAX_COLOUR_MAPS) which = 0;
 	if(which==0)
-		ent->colourmap = NULL;
+		ent->colourmap = ent->modeldata.palette;
 	else
 		ent->colourmap = ent->modeldata.colourmap[which-1];
 	ent->map = which;
@@ -11042,6 +11042,7 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			e->a = a;
 			e->direction = direction;
 			e->nextthink = time + 1;
+			ent_set_colourmap(e, 0);
 			e->lifespancountdown = model->lifespan; // new life span countdown
 			if((e->modeldata.type & (TYPE_PLAYER|TYPE_SHOT)) && level && (level->nohit || savedata.mode)) e->modeldata.hostile &= ~TYPE_PLAYER;
 			if(e->modeldata.type==TYPE_PLAYER) e->playerindex = currentspawnplayer;
