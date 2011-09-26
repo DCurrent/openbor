@@ -12291,22 +12291,6 @@ void update_animation()
 		self->arrowon       = 0;
 	}
 
-	if(self->dying)    // Code for doing dying flash
-	{
-		if((self->health <= self->per1 && self->health > self->per2 && (time %(GAME_SPEED / 10)) < (GAME_SPEED / 40)) ||
-			(self->health <= self->per2))
-		{
-			if(self->colourmap == self->modeldata.colourmap[self->dying - 1] || self->health <= 0 )
-			{
-				ent_set_colourmap(self, self->map);
-			}
-			else
-			{
-				self->colourmap = self->modeldata.colourmap[self->dying - 1];
-			}
-		}
-	}
-
 	if(self->freezetime && time >= self->freezetime)
 	{
 		unfrozen(self);
@@ -12932,6 +12916,17 @@ void display_ents()
 						if(level&&current_palette)
 							drawmethod->table = level->palettes[current_palette-1];
 						else drawmethod->table = pal;
+					}
+					if(e->dying)    // Code for doing dying flash
+					{
+						if((e->health <= e->per1 && e->health > e->per2 && (time %(GAME_SPEED / 5)) < (GAME_SPEED / 10)) ||
+							(e->health <= e->per2 && (time %(GAME_SPEED / 10)) < (GAME_SPEED / 20)))
+						{
+							if(e->health > 0 )
+							{
+								drawmethod->table = e->modeldata.colourmap[e->dying - 1];
+							}
+						}
 					}
 
 					if(!e->direction)
