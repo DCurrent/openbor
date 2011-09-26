@@ -11536,34 +11536,82 @@ entity * check_platform(float x, float z, entity* exclude)
 	return NULL;
 }
 
-// check base altitude of given position
-float checkbase(entity* ent, float x, float z){
-	float h1, h2, h;
-	entity* plat;
-	int wall;
-	int subwall, subhole, subplat;
+// for adjust grab position function, test if an entity can move from a to b
+// TODO: check points between the two pionts, if necessary
+int testmove(entity* ent, float sx, float sz, float x, float z){
+	entity *other = NULL;
+	int wall, heightvar;
+	float xdir, zdir;
 
-	subwall = ent?ent->modeldata.subject_to_wall:1;
-	subhole = ent?ent->modeldata.subject_to_hole:1;
-	subplat = ent?ent->modeldata.subject_to_platform:1;
+	xdir = x - sx;
+	zdir = z - sz;
 
-	plat = subplat?check_platform_below(x, z, ent?ent->a:(float)9999999, ent):NULL;
-	wall = subwall?checkwall_below(x, z, ent?ent->a:(float)9999999):-1;
+	if(!xdir && !zdir) return 1;
 
-	if(plat) h1 = plat->a + plat->animation->platform[plat->animpos][7];
-	else h1 = (float)-9999999;
+	// -----------bounds checking---------------
+	// Subjec to Z and out of bounds? Return to level!
+	if (ent->modeldata.subject_to_minz>0)
+	{
+		if(zdir && z < PLAYER_MIN_Z)
+			return 0;
+	}
 
-	if(wall>=0) h2 = level->walls[wall][7];
-	else h2 = (float)-9999999;
+	if (ent->modeldata.subject_to_maxz>0)
+	{
+		if(zdir && z > PLAYER_MAX_Z)
+			return 0;
+	}
 
-	h = MIN(h1, h2);
+	// End of level is blocked?
+	if(level->exit_blocked)
+	{
+		if(x > level->width-30-(PLAYER_MAX_Z-z)) return 0;
+	}
+	// screen checking
+	if(ent->modeldata.subject_to_screen>0)
+	{
+		if(x < advancex+10) return 0;
+		else if(x > advancex+(videomodes.hRes-10)) return 0;
+	}
+	//-----------end of bounds checking-----------
 
-	if(h>-1000) return h;
+	//-------------hole checking ---------------------
+	if(ent->modeldata.subject_to_hole>0)
+	{
+		if(checkhole(x, z) && checkwall(x, z)<0 && (((other = check_platform(x, z, ent)) &&  ent->base < other->a + other->animation->platform[other->animpos][7]) || other == NULL))
+			return 0;
+	}
+	//-----------end of hole checking---------------
 
-	else if(subhole && checkhole(x, z) )
-		return -1000;
+	//--------------obstacle checking ------------------
+	if(ent->modeldata.subject_to_obstacle>0)
+	{
+		if((other = find_ent_here(ent, x, z, (TYPE_OBSTACLE | TYPE_TRAP))) &&
+		   (!other->animation->platform||!other->animation->platform[other->animpos][7]))
+			return 0;
+	}
+	//-----------end of obstacle checking--------------
 
-	return 0;
+	// ---------------- platform checking----------------
+
+	if(ent->animation->height) heightvar = ent->animation->height;
+	else heightvar = ent->modeldata.height;
+
+	// Check for obstacles with platform code and adjust base accordingly
+	if(ent->modeldata.subject_to_platform>0 && (other = check_platform_between(x, z, ent->a, ent->a+heightvar, ent)) )
+	{
+		return 0;
+	}
+	//-----------end of platform checking------------------
+
+	// ------------------ wall checking ---------------------
+	if(ent->modeldata.subject_to_wall>0 && (wall = checkwall(x, z))>=0 && level->walls[wall][7]>ent->a)
+	{
+		return 0;
+	}
+	//----------------end of wall checking--------------
+
+	return 1;
 
 }
 
@@ -14864,10 +14912,11 @@ void npc_warp()
 
 int adjust_grabposition(entity* ent, entity* other, float dist, int grabin)
 {
-	float x1, z1, x2, z2, a, x;
-	float base1, base2;
+	float x1, z1, x2, z2, x;
 
-	a = ent->a;
+	if(ent->a!=other->a) return 0;
+	if(ent->base!=other->base) return 0;
+
 	if(grabin==1)
 	{
 		x1 = ent->x;
@@ -14882,13 +14931,8 @@ int adjust_grabposition(entity* ent, entity* other, float dist, int grabin)
 		z1 = z2 = (ent->z + other->z)/2;
 	}
 
-	if(ent->modeldata.subject_to_screen>0 && (x1<advancex || x1>advancex+videomodes.hRes)) return 0;
-	else if(other->modeldata.subject_to_screen>0 && (x2<advancex || x2>advancex+videomodes.hRes)) return 0;
-
-	base1 = checkbase(ent, x1, z1);
-	base2 = checkbase(other, x2, z2);
-
-	if(base1!=base2) return 0;
+	if(!testmove(ent, ent->x, ent->z, x1, z1) || !testmove(other, other->x, other->z, x2, z2))
+		return 0;
 
 	ent->x = x1; ent->z = z1;
 	other->x = x2; other->z = z2;
