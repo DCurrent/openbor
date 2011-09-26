@@ -11553,7 +11553,7 @@ float checkbase(entity* ent, float x, float z){
 	if(plat) h1 = plat->a + plat->animation->platform[plat->animpos][7];
 	else h1 = (float)-9999999;
 
-	if(wall>0) h2 = level->walls[wall][7];
+	if(wall>=0) h2 = level->walls[wall][7];
 	else h2 = (float)-9999999;
 
 	h = MIN(h1, h2);
