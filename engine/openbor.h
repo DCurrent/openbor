@@ -1747,7 +1747,7 @@ int checkwalls(float x, float z, float a1, float a2);
 int checkholes(float, float);
 int checkwall_below(float x, float z, float a);
 int checkwall(float x, float z);
-float checkbase(entity*, float, float);
+int testmove(entity*, float, float, float, float);
 entity * check_platform_below(float x, float z, float a, entity* exclude);
 entity * check_platform(float x, float z, entity* exclude);
 void do_attack(entity *e);
