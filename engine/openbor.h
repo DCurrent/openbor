@@ -1401,8 +1401,8 @@ typedef struct
 	char			itemmap:8;
 	char			colourmap:8;
 	char			dying:8;					// Used for the dying flash animation
-	char			per1:8;						// Used to store at what health value the entity begins to flash
-	char			per2:8;					    // Used to store at what health value the entity flashes more rapidly
+	unsigned short	per1:16;						// Used to store at what health value the entity begins to flash
+	unsigned short	per2:16;					    // Used to store at what health value the entity flashes more rapidly
 	char			nolife:8;					// So nolife can be overriden for all characters
 	char            itemplayer_count:8;         // spawn the item according to the amount of players
 	s_model         *itemmodel;
