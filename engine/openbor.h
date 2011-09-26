@@ -1194,7 +1194,7 @@ typedef struct entity
 	short			boss:8;
 	char			dying:8;						// Coresponds with which remap is to be used for the dying flash
 	unsigned short	per1:16;							// Used to store at what health value the entity begins to flash
-	short			per2:16;							// Used to store at what health value the entity flashes more rapidly
+	unsigned short	per2:16;							// Used to store at what health value the entity flashes more rapidly
 	char			direction:8;					// 0=left 1=right
 	char			nograb:8;			            // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
 	char			movestep:8;
