@@ -15712,6 +15712,7 @@ int common_try_avoid(entity* target, int dox, int doz)
 {
 	float dx, dz;
 	int stalladd = 0;
+	float maxdz, mindz, maxdx, mindx;
 
 	if(target == NULL || self->modeldata.nomove) return 0;
 
@@ -15720,6 +15721,23 @@ int common_try_avoid(entity* target, int dox, int doz)
 
 	//printf("aimove: %d\n", (aitype &(AIMOVE1_AVOIDX|AIMOVE1_AVOIDZ|AIMOVE1_AVOIDX)));
 
+	/*if(validanim(self, ANI_BACKWALK)){
+		mindx = self->modeldata.animation[ANI_BACKWALK]->range.xmin;
+		maxdx = self->modeldata.animation[ANI_BACKWALK]->range.xmax;
+		mindz = self->modeldata.animation[ANI_BACKWALK]->range.zmin;
+		maxdz = self->modeldata.animation[ANI_BACKWALK]->range.zmax;
+	}else if(validanim(self, ANI_WALK)){
+		mindx = self->modeldata.animation[ANI_WALK]->range.xmin;
+		maxdx = self->modeldata.animation[ANI_WALK]->range.xmax;
+		mindz = self->modeldata.animation[ANI_WALK]->range.zmin;
+		maxdz = self->modeldata.animation[ANI_WALK]->range.zmax;
+	}else*/{
+		mindx = videomodes.hRes / 3;
+		maxdx = videomodes.hRes / 2;
+		mindz = videomodes.vRes / 3;
+		maxdz = videomodes.vRes / 2;
+	}
+
 	if(dox){
 		if(self->x < screenx) {
 			self->xdir = self->modeldata.speed;
@@ -15727,8 +15745,10 @@ int common_try_avoid(entity* target, int dox, int doz)
 		}else if(self->x > screenx + videomodes.hRes) {
 			self->xdir = -self->modeldata.speed;
 			stalladd = GAME_SPEED;
-		}else if(dx < videomodes.hRes/2)
+		}else if(dx < mindx)
 			self->xdir = (self->x < target->x)? (-self->modeldata.speed):self->modeldata.speed;
+		else if (dx > maxdx)
+			self->xdir = (self->x < target->x)? self->modeldata.speed:(-self->modeldata.speed);
 		else self->xdir = 0;
 	}
 	
@@ -15739,8 +15759,10 @@ int common_try_avoid(entity* target, int dox, int doz)
 		}else if(self->z > screeny + videomodes.vRes) {
 			self->zdir = -self->modeldata.speed/2;
 			stalladd = GAME_SPEED;
-		}else if(dz < videomodes.vRes/2)
+		}else if(dz < mindz)
 			self->zdir = (self->z < target->z)? (-self->modeldata.speed/2):(self->modeldata.speed/2);
+		else if(dz > maxdz)
+			self->zdir = (self->z < target->z)? (self->modeldata.speed/2):(-self->modeldata.speed/2);
 		else self->zdir = 0;
 	}
 
