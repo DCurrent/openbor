@@ -301,9 +301,9 @@ int anigif_open(char *filename, char *packfilename, unsigned char *pal, anigif_i
 	if(info->gif_header.flags&0x80){
 		info->bitdepth = (info->gif_header.flags&7)+1;
 	}else{
-		info->bitdepth = ((info->gif_header.flags>>4)&7)+1;
+		info->bitdepth = 8;
+		info->numcolours = 0;
 	}
-	info->numcolours = (1<<info->bitdepth);
 	info->lastdelay = 1;
 	//printf("numcolours:%d\n", info->numcolours);
 
@@ -352,7 +352,7 @@ int anigif_decode(s_screen * screen, int *delay, int x, int y, unsigned char* pa
 	gifblockstruct iblock;
 	unsigned char tpal[1024];
 	unsigned char c;
-	int i, j;
+	int i, j, numcolours;
 
 
 	if(info->handle<0) return ANIGIF_DECODE_END;
@@ -381,8 +381,9 @@ int anigif_decode(s_screen * screen, int *delay, int x, int y, unsigned char* pa
 
 			if(iblock.flags&0x80){
 				info->local_pal = pal;
+				numcolours = 1<<((iblock.flags&7)+1);
 				if(pal){
-					if(readpackfile(info->handle, tpal, info->numcolours*3) != info->numcolours*3){
+					if(readpackfile(info->handle, tpal, numcolours*3) != numcolours*3){
 						anigif_close(info);
 						return ANIGIF_DECODE_END;
 					}
@@ -408,7 +409,7 @@ int anigif_decode(s_screen * screen, int *delay, int x, int y, unsigned char* pa
 					}
 					//printf("iblock:%d,%d,%d,%d\n",  SwapLSB16(iblock.left), SwapLSB16(iblock.top), SwapLSB16(iblock.width), SwapLSB16(iblock.height));
 				}
-				else seekpackfile(info->handle, info->numcolours*3, SEEK_CUR);
+				else seekpackfile(info->handle, numcolours*3, SEEK_CUR);
 			}
 
 			iblock.left = SwapLSB16(iblock.left);
