@@ -14,10 +14,6 @@
 
 // Animated GIF player.
 
-#define			ANIGIF_DECODE_END		0
-#define			ANIGIF_DECODE_FRAME		1
-#define			ANIGIF_DECODE_RETRY		3
-
 // ============================== This is it! ===============================
 // Should be something like this...
 
@@ -25,6 +21,7 @@
 #define			ANIGIF_DECODE_END		0
 #define			ANIGIF_DECODE_FRAME		1
 #define			ANIGIF_DECODE_RETRY		3
+#define			ANIGIF_DECODE_PAL		4
 
 #define			NO_CODE				-1
 
@@ -33,7 +30,7 @@
 typedef struct{
 	char		magic[6];
 	unsigned short	screenwidth, screenheight;
-		unsigned char	flags;
+	unsigned char	flags;
 	unsigned char	background;
 	unsigned char	aspect;
 }gifheaderstruct;
@@ -60,6 +57,8 @@ typedef struct
 	int numcolours;
 	int noblackenbg; // don't blacken the first color
 	int lastdelay;
+	unsigned char*	global_pal;
+	unsigned char*	local_pal;
 } anigif_info;
 
 
@@ -68,7 +67,7 @@ typedef struct
 int anigif_open(char *filename, char *packfilename, unsigned char *pal, anigif_info* info);
 
 // Returns type of action (frame, retry or end)
-int anigif_decode(s_screen * screen, int *delay, int x, int y, anigif_info* info);
+int anigif_decode(s_screen * screen, int *delay, int x, int y, unsigned char* pal, anigif_info* info);
 
 void anigif_close(anigif_info* info);
 
