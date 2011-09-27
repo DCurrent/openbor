@@ -93,7 +93,7 @@ int readnonzero(int handle){
 
 
 
-static int decodegifblock(anigif_info* info, unsigned char *buf, int width, int height, gifblockstruct *gb){
+static int decodegifblock(anigif_info* info, s_screen* buf, int width, int height, gifblockstruct *gb){
 
 	unsigned char bits;
 	short bits2;
@@ -106,7 +106,7 @@ static int decodegifblock(anigif_info* info, unsigned char *buf, int width, int 
 	short oldcode;
 	short bitsleft;
 	short blocksize;
-	int line = 0;
+	int line = 0, lineb;
 	int byte = gb->left;
 	int pass = 0;
 
@@ -115,7 +115,6 @@ static int decodegifblock(anigif_info* info, unsigned char *buf, int width, int 
 
 	unsigned char *q;
 	unsigned char b[255];
-	unsigned char *linebuffer;
 
 	static unsigned char firstcodestack[4096];
 	static unsigned char lastcodestack[4096];
@@ -134,7 +133,6 @@ static int decodegifblock(anigif_info* info, unsigned char *buf, int width, int 
 	bits = readbyte(info->handle);
 	if(bits<2 || bits>8) return 0;
 
-
 	p = q = b;
 	bitsleft = 8;
 
@@ -143,7 +141,7 @@ static int decodegifblock(anigif_info* info, unsigned char *buf, int width, int 
 	codesize2 = 1 << (codesize = bits + 1);
 	oldcode = oldtoken = NO_CODE;
 
-	linebuffer = buf + (gb->top * width);
+	lineb = gb->top * width;
 
 	// loop until something breaks
 	for(;;){
@@ -209,7 +207,21 @@ static int decodegifblock(anigif_info* info, unsigned char *buf, int width, int 
 
 		oldtoken = thiscode;
 		do{
-			if(byte<width && byte>=0 && gb->top+line>=0 && line<(height - gb->top) && thiscode!=info->transparent) linebuffer[byte] = thiscode;
+			if(byte<width && byte>=0 && gb->top+line>=0 && line<(height - gb->top) && thiscode!=info->transparent)
+			{
+				switch(buf->pixelformat){
+				case PIXEL_8:
+					((unsigned char*)buf->data)[lineb + byte] = thiscode;
+					break;
+				case PIXEL_16:
+					((unsigned short*)buf->data)[lineb + byte] = info->local_pal?((unsigned short*)info->local_pal)[thiscode&0xff]:((unsigned short*)info->global_pal)[thiscode&0xff];
+					break;
+				case PIXEL_32:
+					((unsigned*)buf->data)[lineb + byte] = info->local_pal?((unsigned*)info->local_pal)[thiscode&0xff]:((unsigned*)info->global_pal)[thiscode&0xff];
+					//printf("%08x, %02x, %ld\n", ((unsigned*)buf->data)[lineb + byte], thiscode&0xff, info->handle);
+					break;
+				}
+			}
 			byte++;
 			if(byte >= gb->left + gb->width){
 				byte = gb->left;
@@ -219,7 +231,7 @@ static int decodegifblock(anigif_info* info, unsigned char *buf, int width, int 
 					if(line >= gb->height) line = startable[++pass];
 				}
 				else ++line;
-				linebuffer = buf + (width*(gb->top+line));
+				lineb = width*(gb->top+line);
 			}
 			if (u<=firstcodestack) break;
 			thiscode = *--u;
@@ -260,6 +272,7 @@ int anigif_open(char *filename, char *packfilename, unsigned char *pal, anigif_i
 
 	info->handle = -1;
 	info->transparent = -1;
+	info->noblackenbg = noblackenbg;
 
 #if PSP || PS2 || DC
 	if((info->handle=openreadaheadpackfile(filename,packfilename,1*1024*1024, 131072))==-1) return 0;
@@ -285,13 +298,18 @@ int anigif_open(char *filename, char *packfilename, unsigned char *pal, anigif_i
 	//info->current_res[0] = SwapLSB16(info->gif_header.screenwidth);
 	//info->current_res[1] = SwapLSB16(info->gif_header.screenheight);
 
-	info->bitdepth = (info->gif_header.flags&7)+1;
+	if(info->gif_header.flags&0x80){
+		info->bitdepth = (info->gif_header.flags&7)+1;
+	}else{
+		info->bitdepth = ((info->gif_header.flags>>4)&7)+1;
+	}
 	info->numcolours = (1<<info->bitdepth);
 	info->lastdelay = 1;
-
+	//printf("numcolours:%d\n", info->numcolours);
 
 	// Get global palette, if present and if wanted
 	if(info->gif_header.flags&0x80){
+		info->global_pal = pal;
 		if(pal){
 			if(readpackfile(info->handle, tpal, info->numcolours*3) != info->numcolours*3){
 
@@ -329,10 +347,12 @@ int anigif_open(char *filename, char *packfilename, unsigned char *pal, anigif_i
 
 
 // Returns type of action to take (frame, retry, end)
-int anigif_decode(s_screen * screen, int *delay, int x, int y, anigif_info* info){
+int anigif_decode(s_screen * screen, int *delay, int x, int y, unsigned char* pal, anigif_info* info){
 
 	gifblockstruct iblock;
+	unsigned char tpal[1024];
 	unsigned char c;
+	int i, j;
 
 
 	if(info->handle<0) return ANIGIF_DECODE_END;
@@ -359,9 +379,36 @@ int anigif_decode(s_screen * screen, int *delay, int x, int y, anigif_info* info
 				return ANIGIF_DECODE_END;
 			}
 
-			// We don't do local palettes
 			if(iblock.flags&0x80){
-				seekpackfile(info->handle, info->numcolours*3, SEEK_CUR);
+				info->local_pal = pal;
+				if(pal){
+					if(readpackfile(info->handle, tpal, info->numcolours*3) != info->numcolours*3){
+						anigif_close(info);
+						return ANIGIF_DECODE_END;
+					}
+					if(!info->noblackenbg) tpal[0] = tpal[1] = tpal[2] = 0; 
+					switch(PAL_BYTES)
+					{
+					case 768:
+						memcpy(pal, tpal, 768);
+						break;
+					case 1024:
+						for(i=0, j=0; i<1024; i+=4, j+=3)
+						{
+							*(unsigned*)(pal+i) = colour32(tpal[j], tpal[j+1], tpal[j+2]);
+						}
+						break;
+					case 512:
+						for(i=0, j=0; i<512; i+=2, j+=3)
+						{
+							*(unsigned short*)(pal+i) = colour16(tpal[j], tpal[j+1], tpal[j+2]);
+							//printf("%d*", *(unsigned short*)(pal+i));
+						}
+						break;
+					}
+					//printf("iblock:%d,%d,%d,%d\n",  SwapLSB16(iblock.left), SwapLSB16(iblock.top), SwapLSB16(iblock.width), SwapLSB16(iblock.height));
+				}
+				else seekpackfile(info->handle, info->numcolours*3, SEEK_CUR);
 			}
 
 			iblock.left = SwapLSB16(iblock.left);
@@ -371,7 +418,7 @@ int anigif_decode(s_screen * screen, int *delay, int x, int y, anigif_info* info
 			iblock.left += x;
 			iblock.top += y;
 
-			decodegifblock(info, (unsigned char*)screen->data, screen->width, screen->height, &iblock);
+			decodegifblock(info, screen, screen->width, screen->height, &iblock);
 /*
 			if(!decodegifblock(handle, screen->data, screen->width, screen->height, &iblock)){
 				anigif_close();
@@ -381,7 +428,9 @@ int anigif_decode(s_screen * screen, int *delay, int x, int y, anigif_info* info
 
 			if(delay) *delay = info->lastdelay;
 			// lastdelay = 0;
-			return ANIGIF_DECODE_FRAME;
+			if(iblock.left<0) return ANIGIF_DECODE_RETRY;
+
+			return ANIGIF_DECODE_FRAME|((iblock.flags&0x80)?ANIGIF_DECODE_PAL:0);
 
 		case '!':
 			// Handle GIF extension
