@@ -300,6 +300,7 @@ int anigif_open(char *filename, char *packfilename, unsigned char *pal, anigif_i
 
 	if(info->gif_header.flags&0x80){
 		info->bitdepth = (info->gif_header.flags&7)+1;
+		info->numcolours = 1<<info->bitdepth ;
 	}else{
 		info->bitdepth = 8;
 		info->numcolours = 0;
