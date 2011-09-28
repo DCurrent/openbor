@@ -356,6 +356,7 @@ int					titleScreen			= 0;
 int					menuScreen			= 0;
 int					hallOfFame			= 0;
 int					gameOver			= 0;
+int					showComplete		= 0;
 char*				currentScene		= NULL;
 int                 tospeedup           = 0;          			// If set will speed the level back up after a boss hits the ground
 int                 reached[4]          = {0,0,0,0};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
@@ -712,6 +713,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		_e_in_level,
 		_e_in_menuscreen,
 		_e_in_selectscreen,
+		_e_in_showcomplete,
 		_e_in_titlescreen,
 		_e_lasthita,
 		_e_lasthitc,
@@ -788,7 +790,13 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		break;
 	case _e_in_menuscreen:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
-		var->lVal = (LONG)(menuScreen);
+		if(selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene)
+			var->lVal = (LONG)0;
+		else var->lVal = (LONG)(menuScreen);
+		break;
+	case _e_in_showcomplete:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(showComplete);
 		break;
 	case _e_in_titlescreen:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -21101,7 +21109,6 @@ void playscene(char *filename)
 	if(buffer_pakfile(filename, &buf, &size)!=1) return;
 
 	currentScene = filename;
-	titleScreen = menuScreen = 0;
 
 	// Now interpret the contents of buf line by line
 	pos = 0;
@@ -21186,7 +21193,6 @@ void hallfame(int addtoscore)
 	int col1 = -8;
 	int col2 = 6;
 
-	titleScreen = menuScreen = 0;
 	hallOfFame = 1;
 
 	if(hiscorebg)
@@ -21264,6 +21270,8 @@ void showcomplete(int num)
 	u32 finishtime = 0;
 	int chan = 0;
 	char tmpBuff[128] = {""};
+
+	showComplete = 1;
 
 	if(completebg)
 	{
@@ -21372,6 +21380,8 @@ void showcomplete(int num)
 		}
 	}
 	unload_background();
+
+	showComplete = 0;
 }
 
 void savelevelinfo()
@@ -21490,7 +21500,6 @@ int selectplayer(int *players, char* filename)
 	char argbuf[MAX_ARG_LEN+1] = "";
 
 	selectScreen = 1;
-	titleScreen = menuScreen = 0;
 	kill_all();
 	reset_playable_list(1);
 
@@ -21793,9 +21802,9 @@ int selectplayer(int *players, char* filename)
 	}
 
 	// No longer at the select screen
-	selectScreen = 0;
 	kill_all();
 	sound_close_music();
+	selectScreen = 0;
 
 	return (!escape);
 }
