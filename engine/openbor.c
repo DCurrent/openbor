@@ -790,7 +790,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		break;
 	case _e_in_menuscreen:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
-		if(selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene)
+		if(selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene || level)
 			var->lVal = (LONG)0;
 		else var->lVal = (LONG)(menuScreen);
 		break;
