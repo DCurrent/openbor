@@ -117,10 +117,8 @@ HRESULT openbor_gettextobjproperty(ScriptVariant** varlist , ScriptVariant** pre
 HRESULT openbor_changetextobjproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_settextobj(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_cleartextobj(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_getbglayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_changebglayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_getfglayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_changefglayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_getlayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_changelayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_checkhole(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
@@ -193,9 +191,6 @@ void mapstrings_transconst(ScriptVariant** varlist, int paramCount);
 void mapstrings_playerkeys(ScriptVariant** varlist, int paramCount);
 void mapstrings_gettextobjproperty(ScriptVariant** varlist, int paramCount);
 void mapstrings_changetextobjproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_getbglayerproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_changebglayerproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_getfglayerproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_changefglayerproperty(ScriptVariant** varlist, int paramCount);
+void mapstrings_layerproperty(ScriptVariant** varlist, int paramCount);
 
 #endif

@@ -474,10 +474,8 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_changetextobjproperty)) return "changetextobjproperty";
 	else if (functionRef==((void*)openbor_settextobj)) return "settextobj";
 	else if (functionRef==((void*)openbor_cleartextobj)) return "cleartextobj";
-	else if (functionRef==((void*)openbor_getbglayerproperty)) return "getbglayerproperty";
-	else if (functionRef==((void*)openbor_changebglayerproperty)) return "changebglayerproperty";
-	else if (functionRef==((void*)openbor_getfglayerproperty)) return "getfglayerproperty";
-	else if (functionRef==((void*)openbor_changefglayerproperty)) return "changefglayerproperty";
+	else if (functionRef==((void*)openbor_getlayerproperty)) return "getlayerproperty";
+	else if (functionRef==((void*)openbor_changelayerproperty)) return "changelayerproperty";
 	else if (functionRef==((void*)openbor_getlevelproperty)) return "getlevelproperty";
 	else if (functionRef==((void*)openbor_changelevelproperty)) return "changelevelproperty";
 	else if (functionRef==((void*)openbor_checkhole)) return "checkhole";
@@ -546,10 +544,8 @@ void* Script_GetStringMapFunction(void* functionRef)
 	else if (functionRef==((void*)openbor_playerkeys)) return (void*)mapstrings_playerkeys;
 	else if (functionRef==((void*)openbor_gettextobjproperty)) return (void*)mapstrings_gettextobjproperty;
 	else if (functionRef==((void*)openbor_changetextobjproperty)) return (void*)mapstrings_changetextobjproperty;
-	else if (functionRef==((void*)openbor_getbglayerproperty)) return (void*)mapstrings_getbglayerproperty;
-	else if (functionRef==((void*)openbor_changebglayerproperty)) return (void*)mapstrings_changebglayerproperty;
-	else if (functionRef==((void*)openbor_getfglayerproperty)) return (void*)mapstrings_getfglayerproperty;
-	else if (functionRef==((void*)openbor_changefglayerproperty)) return (void*)mapstrings_changefglayerproperty;
+	else if (functionRef==((void*)openbor_getlayerproperty)) return (void*)mapstrings_layerproperty;
+	else if (functionRef==((void*)openbor_changelayerproperty)) return (void*)mapstrings_layerproperty;
 	else return NULL;
 }
 
@@ -926,13 +922,9 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_cleartextobj, "cleartextobj");
 	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_getbglayerproperty, "getbglayerproperty");
+					  (void*)openbor_getlayerproperty, "getlayerproperty");
 	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_changebglayerproperty, "changebglayerproperty");
-	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_getfglayerproperty, "getfglayerproperty");
-	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_changefglayerproperty, "changefglayerproperty");
+					  (void*)openbor_changelayerproperty, "changelayerproperty");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_getlevelproperty, "getlevelproperty");
 	List_InsertAfter(&theFunctionList,
@@ -10158,30 +10150,45 @@ cleartextobj_error:
 	return E_FAIL;
 }
 
+// ===== get layer type ======
+enum getlt_enum
+{
+	_glt_background,
+	_glt_bglayer,
+	_glt_fglayer,
+	_glt_frontpanel,
+	_glt_generic,
+	_glt_neon,
+	_glt_panel,
+	_glt_screen,
+	_glt_water,
+	_glt_the_end,
+};
+
 
 // ===== getbglayerproperty ======
 enum getbglp_enum
 {
-	_gbglp_alpha,
-	_gbglp_amplitude,
-	_gbglp_bgspeedratio,
-	_gbglp_enabled,
-	_gbglp_transparency,
-	_gbglp_watermode,
-	_gbglp_wavelength,
-	_gbglp_wavespeed,
-	_gbglp_xoffset,
-	_gbglp_xratio,
-	_gbglp_xrepeat,
-	_gbglp_xspacing,
-	_gbglp_zoffset,
-	_gbglp_zratio,
-	_gbglp_zrepeat,
-	_gbglp_zspacing,
-	_gbglp_the_end,
+	_glp_alpha,
+	_glp_amplitude,
+	_glp_bgspeedratio,
+	_glp_enabled,
+	_glp_transparency,
+	_glp_watermode,
+	_glp_wavelength,
+	_glp_wavespeed,
+	_glp_xoffset,
+	_glp_xratio,
+	_glp_xrepeat,
+	_glp_xspacing,
+	_glp_zoffset,
+	_glp_zratio,
+	_glp_zrepeat,
+	_glp_zspacing,
+	_glp_the_end,
 };
 
-void mapstrings_getbglayerproperty(ScriptVariant** varlist, int paramCount)
+void mapstrings_layerproperty(ScriptVariant** varlist, int paramCount)
 {
 	char *propname = NULL;
 	int prop;
@@ -10205,835 +10212,338 @@ void mapstrings_getbglayerproperty(ScriptVariant** varlist, int paramCount)
 		"zspacing",
 	};
 
-	if(paramCount < 2) return;
-	MAPSTRINGS(varlist[1], proplist, _gbglp_the_end,
-		"Property name '%s' is not supported by function getbglayerproperty.\n");
+	static const char* typelist[] = {
+		"background",
+		"bglayer",
+		"fglayer",
+		"frontpanel",
+		"generic",
+		"neon",
+		"panel",
+		"water",
+	};
+
+	if(paramCount < 3) return;
+	MAPSTRINGS(varlist[0], typelist, _glt_the_end,
+		"Type name '%s' is not supported by function getlayerproperty.\n");
+	MAPSTRINGS(varlist[2], proplist, _glp_the_end,
+		"Property name '%s' is not supported by function getlayerproperty.\n");
 }
 
-HRESULT openbor_getbglayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+HRESULT _getlayerproperty(s_layer* layer, int propind, ScriptVariant** pretvar)
 {
-	LONG ind;
-	int propind;
-
-	if(paramCount < 2)
-		goto getbglayerproperty_error;
-
-	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ind)))
-	{
-		printf("Function's 1st argument must be a numeric value: getbglayerproperty(int index, \"property\", value)\n");
-		goto getbglayerproperty_error;
-	}
-
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	mapstrings_getbglayerproperty(varlist, paramCount);
-
-	if(ind<0 || ind >= level->numbglayers)
-	{
-		(*pretvar)->lVal = 0;
-		return S_OK;
-	}
-
-	if(varlist[1]->vt != VT_INTEGER)
-	{
-		printf("Function getbglayerproperty must have a string property name.\n");
-		goto getbglayerproperty_error;
-	}
-
-	propind = varlist[1]->lVal;
 
 	switch(propind)
 	{
-	case _gbglp_alpha:
+	case _glp_alpha:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].drawmethod.alpha;
+		(*pretvar)->lVal = (LONG)layer->drawmethod.alpha;
 		break;
 	}
-	case _gbglp_amplitude:
+	case _glp_amplitude:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].drawmethod.water.amplitude;
+		(*pretvar)->lVal = (LONG)layer->drawmethod.water.amplitude;
 		break;
 	}
-	case _gbglp_bgspeedratio:
+	case _glp_bgspeedratio:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)level->bglayers[ind].bgspeedratio;
+		(*pretvar)->dblVal = (DOUBLE)layer->bgspeedratio;
 		break;
 	}
-	case _gbglp_enabled:
+	case _glp_enabled:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].enabled;
+		(*pretvar)->lVal = (LONG)layer->enabled;
 		break;
 	}
-	case _gbglp_transparency:
+	case _glp_transparency:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].drawmethod.transbg;
+		(*pretvar)->lVal = (LONG)layer->drawmethod.transbg;
 		break;
 	}
-	case _gbglp_watermode:
+	case _glp_watermode:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].drawmethod.water.watermode;
+		(*pretvar)->lVal = (LONG)layer->drawmethod.water.watermode;
 		break;
 	}
 
-	case _gbglp_wavelength:
+	case _glp_wavelength:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].drawmethod.water.wavelength;
+		(*pretvar)->lVal = (LONG)layer->drawmethod.water.wavelength;
 		break;
 	}
-	case _gbglp_wavespeed:
+	case _glp_wavespeed:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)level->bglayers[ind].drawmethod.water.wavespeed;
+		(*pretvar)->dblVal = (DOUBLE)layer->drawmethod.water.wavespeed;
 		break;
 	}
-	case _gbglp_xoffset:
+	case _glp_xoffset:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].xoffset;
+		(*pretvar)->lVal = (LONG)layer->xoffset;
 		break;
 	}
-	case _gbglp_xratio:
+	case _glp_xratio:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)level->bglayers[ind].xratio;
+		(*pretvar)->dblVal = (DOUBLE)layer->xratio;
 		break;
 	}
-	case _gbglp_xrepeat:
+	case _glp_xrepeat:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].xrepeat;
+		(*pretvar)->lVal = (LONG)layer->xrepeat;
 		break;
 	}
-	case _gbglp_xspacing:
+	case _glp_xspacing:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].xspacing;
+		(*pretvar)->lVal = (LONG)layer->xspacing;
 		break;
 	}
-	case _gbglp_zoffset:
+	case _glp_zoffset:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].zoffset;
+		(*pretvar)->lVal = (LONG)layer->zoffset;
 		break;
 	}
-	case _gbglp_zratio:
+	case _glp_zratio:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)level->bglayers[ind].zratio;
+		(*pretvar)->dblVal = (DOUBLE)layer->zratio;
 		break;
 	}
-	case _gbglp_zrepeat:
+	case _glp_zrepeat:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].zrepeat;
+		(*pretvar)->lVal = (LONG)layer->zrepeat;
 		break;
 	}
-	case _gbglp_zspacing:
+	case _glp_zspacing:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->bglayers[ind].zspacing;
+		(*pretvar)->lVal = (LONG)layer->zspacing;
 		break;
 	}
 	default:
-		//printf("Property name '%s' is not supported by function getbglayerproperty.\n", propname);
-		goto getbglayerproperty_error;
+		*pretvar = NULL;
+		return E_FAIL;
+	}
+	return S_OK;
+}
+
+HRESULT _changelayerproperty(s_layer* layer, int propind, ScriptVariant* var)
+{
+	LONG temp;
+	DOUBLE temp2;
+	switch(propind)
+	{
+	case _glp_alpha:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->drawmethod.alpha = temp;
+		break;
+	}
+	case _glp_amplitude:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->drawmethod.water.amplitude = temp;
+		break;
+	}
+	case _glp_bgspeedratio:
+	{
+		if(FAILED(ScriptVariant_DecimalValue(var, &temp2))) return E_FAIL;
+		layer->bgspeedratio = temp2;
+		break;
+	}
+	case _glp_enabled:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->enabled = temp;
+		break;
+	}
+	case _glp_transparency:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->drawmethod.transbg = temp;
+		break;
+	}
+	case _glp_watermode:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->drawmethod.water.watermode = temp;
 		break;
 	}
 
+	case _glp_wavelength:
+	{
+		if(FAILED(ScriptVariant_DecimalValue(var, &temp2))) return E_FAIL;
+		layer->drawmethod.water.wavelength = temp2;
+		break;
+	}
+	case _glp_wavespeed:
+	{
+		if(FAILED(ScriptVariant_DecimalValue(var, &temp2))) return E_FAIL;
+		layer->drawmethod.water.wavespeed = temp2;
+		break;
+	}
+	case _glp_xoffset:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->xoffset = temp;
+		break;
+	}
+	case _glp_xratio:
+	{
+		if(FAILED(ScriptVariant_DecimalValue(var, &temp2))) return E_FAIL;
+		layer->xratio = temp2;
+		break;
+	}
+	case _glp_xrepeat:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->xrepeat = temp;
+		break;
+	}
+	case _glp_xspacing:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->xspacing = temp;
+		break;
+	}
+	case _glp_zoffset:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->zoffset = temp;
+		break;
+	}
+	case _glp_zratio:
+	{
+		if(FAILED(ScriptVariant_DecimalValue(var, &temp2))) return E_FAIL;
+		layer->zratio = temp2;
+		break;
+	}
+	case _glp_zrepeat:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->zrepeat = temp;
+		break;
+	}
+	case _glp_zspacing:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->zspacing = temp;
+		break;
+	}
+	default:
+		return E_FAIL;
+	}
 	return S_OK;
-
-getbglayerproperty_error:
-	*pretvar = NULL;
-	return E_FAIL;
 }
 
-// ===== changebglayerproperty =====
-enum cbglp_enum
-{
-	_cbglp_alpha,
-	_cbglp_amplitude,
-	_cbglp_bgspeedratio,
-	_cbglp_enabled,
-	_cbglp_transparency,
-	_cbglp_watermode,
-	_cbglp_wavelength,
-	_cbglp_wavespeed,
-	_cbglp_xoffset,
-	_cbglp_xratio,
-	_cbglp_xrepeat,
-	_cbglp_xspacing,
-	_cbglp_zoffset,
-	_cbglp_zratio,
-	_cbglp_zrepeat,
-	_cbglp_zspacing,
-	_cbglp_the_end,
-};
-
-void mapstrings_changebglayerproperty(ScriptVariant** varlist, int paramCount)
-{
-	char *propname = NULL;
-	int prop;
-
-	static const char* proplist[] = {
-		"alpha",
-		"amplitude",
-		"bgspeedratio",
-		"enabled",
-		"transparency",
-		"watermode",
-		"wavelength",
-		"wavespeed",
-		"xoffset",
-		"xratio",
-		"xrepeat",
-		"xspacing",
-		"zoffset",
-		"zratio",
-		"zrepeat",
-		"zspacing",
-	};
-
-	if(paramCount < 2) return;
-	MAPSTRINGS(varlist[1], proplist, _cbglp_the_end,
-		"Property name '%s' is not supported by function changebglayerproperty.\n");
+s_layer* _getlayer(int type, int ind){
+	switch(type){
+	case _glt_background:
+		return level->background;
+	case _glt_bglayer:
+		if(ind<0 || ind>=level->numbglayers) return NULL;
+		return level->bglayers[ind];
+	case _glt_fglayer:
+		if(ind<0 || ind>=level->numfglayers) return NULL;
+		return level->fglayers[ind];
+	case _glt_frontpanel:
+		if(ind<0 || ind>=level->numfrontpanels) return NULL;
+		return level->frontpanels[ind];
+	case _glt_generic:
+		if(ind<0 || ind>=level->numgenericlayers) return NULL;
+		return level->genericlayers[ind];
+	case _glt_neon:
+		if(ind<0 || ind>=level->numpanels) return NULL;
+		return level->panels[ind][1];
+	case _glt_panel:
+		if(ind<0 || ind>=level->numpanels) return NULL;
+		return level->panels[ind][0];
+	case _glt_screen:
+		if(ind<0 || ind>=level->numpanels) return NULL;
+		return level->panels[ind][2];
+	case _glt_water:
+		if(ind<0 || ind>=level->numwaters) return NULL;
+		return level->waters[ind];
+	default:
+		return NULL;
+	}
 }
 
-HRESULT openbor_changebglayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+// getlayerproperty(type, index, propertyname);
+HRESULT openbor_getlayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	LONG ind;
-	int propind;
-	LONG ltemp;
-	DOUBLE dbltemp;
+	int propind, type;
+	s_layer* layer = NULL;
 
 	if(paramCount < 3)
-		goto changebglayerproperty_error;
+		goto getlayerproperty_error;
 
+	mapstrings_layerproperty(varlist, paramCount);
 
-	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ind)))
-	{
-		printf("Function's 1st argument must be a numeric value: changebglayerproperty(int index, \"property\", value)\n");
-		goto changebglayerproperty_error;
-	}
+	type = varlist[0]->lVal;
+	propind = varlist[2]->lVal;
 
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	mapstrings_changebglayerproperty(varlist, paramCount);
+	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &ind)))
+		goto getlayerproperty_error;
 
-	if(ind<0 || ind >= level->numbglayers)
-	{
-		(*pretvar)->lVal = 0;
-		return S_OK;
-	}
+	layer = _getlayer(type, (int)ind);
 
-	if(varlist[1]->vt != VT_INTEGER)
-	{
-		printf("Function changebglayerproperty must have a string property name.\n");
-		goto changebglayerproperty_error;
-	}
+	if(layer==NULL) goto getlayerproperty_error;
 
-	propind = varlist[1]->lVal;
-
-	switch(propind)
-	{
-	case _cbglp_alpha:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].drawmethod.alpha = (int)ltemp;
-		}
-		break;
-	}
-	case _cbglp_amplitude:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].drawmethod.water.amplitude = (int)ltemp;
-		}
-		break;
-	}
-	case _cbglp_bgspeedratio:
-	{
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].bgspeedratio = (float)dbltemp;
-		}
-		break;
-	}
-	case _cbglp_enabled:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].enabled = (int)ltemp;
-		}
-		break;
-	}
-	case _cbglp_transparency:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].drawmethod.transbg = (int)ltemp;
-		}
-		break;
-	}
-	case _cbglp_watermode:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].drawmethod.water.watermode = (int)ltemp;
-		}
-		break;
-	}
-
-	case _cbglp_wavelength:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].drawmethod.water.wavelength = (int)ltemp;
-		}
-		break;
-	}
-	case _cbglp_wavespeed:
-	{
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].drawmethod.water.wavespeed = (float)dbltemp;
-		}
-		break;
-	}
-	case _cbglp_xoffset:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].xoffset = (int)ltemp;
-		}
-		break;
-	}
-	case _cbglp_xratio:
-	{
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].xratio = (float)dbltemp;
-		}
-		break;
-	}
-	case _cbglp_xrepeat:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].xrepeat = (int)ltemp;
-		}
-		break;
-	}
-	case _cbglp_xspacing:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].xspacing = (int)ltemp;
-		}
-		break;
-	}
-	case _cbglp_zoffset:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].zoffset = (int)ltemp;
-		}
-		break;
-	}
-	case _cbglp_zratio:
-	{
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].zratio = (float)dbltemp;
-		}
-		break;
-	}
-	case _cbglp_zrepeat:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].zrepeat = (int)ltemp;
-		}
-		break;
-	}
-	case _cbglp_zspacing:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->bglayers[ind].zspacing = (int)ltemp;
-		}
-		break;
-	}
-	default:
-		//printf("Property name '%s' is not supported by function changebglayerproperty.\n", propname);
-		goto changebglayerproperty_error;
-		break;
-	}
+	if(FAILED(_getlayerproperty(layer, propind, pretvar)))
+		goto getlayerproperty_error;
 
 	return S_OK;
 
-changebglayerproperty_error:
+getlayerproperty_error:
 	*pretvar = NULL;
+	printf("Function getlayerproperty must have 3 parameters: layertype, index and propertyname\n");
 	return E_FAIL;
 }
 
-// ===== getfglayerproperty =====
-enum gfglp_enum
-{
-	_gfglp_alpha,
-	_gfglp_amplitude,
-	_gfglp_bgspeedratio,
-	_gfglp_enabled,
-	_gfglp_transparency,
-	_gfglp_watermode,
-	_gfglp_wavelength,
-	_gfglp_wavespeed,
-	_gfglp_xoffset,
-	_gfglp_xratio,
-	_gfglp_xrepeat,
-	_gfglp_xspacing,
-	_gfglp_zoffset,
-	_gfglp_zratio,
-	_gfglp_zrepeat,
-	_gfglp_zspacing,
-	_gfglp_the_end,
-};
-
-void mapstrings_getfglayerproperty(ScriptVariant** varlist, int paramCount)
-{
-	char *propname = NULL;
-	int prop;
-
-	static const char* proplist[] = {
-		"alpha",
-		"amplitude",
-		"bgspeedratio",
-		"enabled",
-		"transparency",
-		"watermode",
-		"wavelength",
-		"wavespeed",
-		"xoffset",
-		"xratio",
-		"xrepeat",
-		"xspacing",
-		"zoffset",
-		"zratio",
-		"zrepeat",
-		"zspacing",
-	};
-
-	if(paramCount < 2) return;
-	MAPSTRINGS(varlist[1], proplist, _gfglp_the_end,
-		"Property name '%s' is not supported by function getfglayerproperty.\n");
-}
-
-HRESULT openbor_getfglayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+// changelayerproperty(type, index, propertyname);
+HRESULT openbor_changelayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	LONG ind;
-	int propind;
+	int propind, type;
+	s_layer* layer = NULL;
+	*pretvar = NULL;
 
-	if(paramCount < 2)
-		goto getfglayerproperty_error;
+	if(paramCount < 4)
+		goto chglayerproperty_error;
 
+	mapstrings_layerproperty(varlist, paramCount);
 
-	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ind)))
-	{
-		printf("Function's 1st argument must be a numeric value: getfglayerproperty(int index, \"property\", value)\n");
-		goto getfglayerproperty_error;
-	}
+	type = varlist[0]->lVal;
+	propind = varlist[2]->lVal;
 
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	mapstrings_getfglayerproperty(varlist, paramCount);
+	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &ind)))
+		goto chglayerproperty_error;
 
-	if(ind<0 || ind >= level->numfglayers)
-	{
-		(*pretvar)->lVal = 0;
-		return S_OK;
-	}
+	layer = _getlayer(type, (int)ind);
 
-	if(varlist[1]->vt != VT_INTEGER)
-	{
-		printf("Function getfglayerproperty must have a string property name.\n");
-		goto getfglayerproperty_error;
-	}
+	if(layer==NULL) goto chglayerproperty_error;
 
-	propind = varlist[1]->lVal;
-
-	switch(propind)
-	{
-	case _gfglp_alpha:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].drawmethod.alpha;
-		break;
-	}
-	case _gfglp_amplitude:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].drawmethod.water.amplitude;
-		break;
-	}
-	case _gfglp_bgspeedratio:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)level->fglayers[ind].bgspeedratio;
-		break;
-	}
-	case _gfglp_enabled:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].enabled;
-		break;
-	}
-	case _gfglp_transparency:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].drawmethod.transbg;
-		break;
-	}
-	case _gfglp_watermode:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].drawmethod.water.watermode;
-		break;
-	}
-
-	case _gfglp_wavelength:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].drawmethod.water.wavelength;
-		break;
-	}
-	case _gfglp_wavespeed:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)level->fglayers[ind].drawmethod.water.wavespeed;
-		break;
-	}
-	case _gfglp_xoffset:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].xoffset;
-		break;
-	}
-	case _gfglp_xratio:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)level->fglayers[ind].xratio;
-		break;
-	}
-	case _gfglp_xrepeat:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].xrepeat;
-		break;
-	}
-	case _gfglp_xspacing:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].xspacing;
-		break;
-	}
-	case _gfglp_zoffset:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].zoffset;
-		break;
-	}
-	case _gfglp_zratio:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)level->fglayers[ind].zratio;
-		break;
-	}
-	case _gfglp_zrepeat:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].zrepeat;
-		break;
-	}
-	case _gfglp_zspacing:
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)level->fglayers[ind].zspacing;
-		break;
-	}
-	default:
-		//printf("Property name '%s' is not supported by function getfglayerproperty.\n", propname);
-		goto getfglayerproperty_error;
-		break;
-	}
+	if(FAILED(_changelayerproperty(layer, propind, varlist[3])))
+		goto chglayerproperty_error;
 
 	return S_OK;
 
-getfglayerproperty_error:
-	*pretvar = NULL;
-	return E_FAIL;
-}
-
-// ===== changefglayerproperty =====
-typedef enum
-{
-	_cfglp_alpha,
-	_cfglp_amplitude,
-	_cfglp_bgspeedratio,
-	_cfglp_enabled,
-	_cfglp_transparency,
-	_cfglp_watermode,
-	_cfglp_wavelength,
-	_cfglp_wavespeed,
-	_cfglp_xoffset,
-	_cfglp_xratio,
-	_cfglp_xrepeat,
-	_cfglp_xspacing,
-	_cfglp_zoffset,
-	_cfglp_zratio,
-	_cfglp_zrepeat,
-	_cfglp_zspacing,
-	_cfglp_the_end,
-} prop_enum;
-
-void mapstrings_changefglayerproperty(ScriptVariant** varlist, int paramCount)
-{
-	char *propname = NULL;
-	int prop;
-
-	static const char* proplist[] = {
-		"alpha",
-		"amplitude",
-		"bgspeedratio",
-		"enabled",
-		"transparency",
-		"watermode",
-		"wavelength",
-		"wavespeed",
-		"xoffset",
-		"xratio",
-		"xrepeat",
-		"xspacing",
-		"zoffset",
-		"zratio",
-		"zrepeat",
-		"zspacing",
-	};
-
-	if(paramCount < 2) return;
-	MAPSTRINGS(varlist[1], proplist, _cfglp_the_end,
-		"Property name '%s' is not supported by function changefglayerproperty.\n");
-}
-
-HRESULT openbor_changefglayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
-{
-	LONG ind;
-	int propind;
-	LONG ltemp;
-	DOUBLE dbltemp;
-
-	if(paramCount < 3)
-		goto changefglayerproperty_error;
-
-	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ind)))
-	{
-		printf("Function's 1st argument must be a numeric value: changefglayerproperty(int index, \"property\", value)\n");
-		goto changefglayerproperty_error;
-	}
-
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	mapstrings_changefglayerproperty(varlist, paramCount);
-
-	if(ind<0 || ind >= level->numfglayers)
-	{
-		(*pretvar)->lVal = 0;
-		return S_OK;
-	}
-
-	if(varlist[1]->vt != VT_INTEGER)
-	{
-		printf("Function changefglayerproperty must have a string property name.\n");
-		goto changefglayerproperty_error;
-	}
-
-	propind = varlist[1]->lVal;
-
-	switch(propind)
-	{
-	case _cfglp_alpha:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].drawmethod.alpha = (int)ltemp;
-		}
-		break;
-	}
-	case _cfglp_amplitude:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].drawmethod.water.amplitude = (int)ltemp;
-		}
-		break;
-	}
-	case _cfglp_bgspeedratio:
-	{
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].bgspeedratio = (float)dbltemp;
-		}
-		break;
-	}
-	case _cfglp_enabled:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].enabled = (int)ltemp;
-		}
-		break;
-	}
-	case _cfglp_transparency:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].drawmethod.transbg = (int)ltemp;
-		}
-		break;
-	}
-	case _cfglp_watermode:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].drawmethod.water.watermode = (int)ltemp;
-		}
-		break;
-	}
-
-	case _cfglp_wavelength:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].drawmethod.water.wavelength = (int)ltemp;
-		}
-		break;
-	}
-	case _cfglp_wavespeed:
-	{
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].drawmethod.water.wavespeed = (float)dbltemp;
-		}
-		break;
-	}
-	case _cfglp_xoffset:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].xoffset = (int)ltemp;
-		}
-		break;
-	}
-	case _cfglp_xratio:
-	{
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].xratio = (float)dbltemp;
-		}
-		break;
-	}
-	case _cfglp_xrepeat:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].xrepeat = (int)ltemp;
-		}
-		break;
-	}
-	case _cfglp_xspacing:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].xspacing = (int)ltemp;
-		}
-		break;
-	}
-	case _cfglp_zoffset:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].zoffset = (int)ltemp;
-		}
-		break;
-	}
-	case _cfglp_zratio:
-	{
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].zratio = (float)dbltemp;
-		}
-		break;
-	}
-	case _cfglp_zrepeat:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].zrepeat = (int)ltemp;
-		}
-		break;
-	}
-	case _cfglp_zspacing:
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->fglayers[ind].zspacing = (int)ltemp;
-		}
-		break;
-	}
-	default:
-		//printf("Property name '%s' is not supported by function changefglayerproperty.\n", propname);
-		goto changefglayerproperty_error;
-		break;
-	}
-
-	return S_OK;
-
-changefglayerproperty_error:
-	*pretvar = NULL;
+chglayerproperty_error:
+	printf("Function changelayerproperty must have 4 parameters: layertype, index, propertyname and value\n");
 	return E_FAIL;
 }
 

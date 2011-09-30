@@ -239,6 +239,7 @@ typedef struct
 		s_screen * screen;
 		s_sprite * sprite;
 		s_bitmap * bitmap;
+		void*      handle;
 	};
 }gfx_entry;
 
