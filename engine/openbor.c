@@ -8745,12 +8745,23 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_BACKGROUND:
 			case CMD_LEVEL_BGLAYER:
+			case CMD_LEVEL_LAYER:
+			case CMD_LEVEL_FGLAYER:
 				if(level->numlayers >= LEVEL_MAX_LAYERS) {
 					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
 					goto lCleanup;
 				}
 
 				bgl = &(level->layers[level->numlayers]);
+
+				if(cmd==CMD_LEVEL_BACKGROUND || cmd==CMD_LEVEL_BGLAYER){
+					i = 0;
+					bgl->z = MIN_INT;
+				}else{
+					i = 1;
+					bgl->z =  GET_FLOAT_ARG(2);
+					if(cmd==CMD_LEVEL_FGLAYER) bgl->z += FRONTPANEL_Z;
+				}
 
 				if(cmd==CMD_LEVEL_BACKGROUND){
 					if(bgPath[0]){
@@ -8766,89 +8777,41 @@ void load_level(char *filename){
 				dm = &(bgl->drawmethod);
 				*dm = plainmethod;
 
-				bgl->z = MIN_INT;
-
-				bgl->xratio = GET_FLOAT_ARG(2); // x ratio
-				bgl->zratio = GET_FLOAT_ARG(3); // z ratio
-				bgl->xoffset = GET_INT_ARG(4); // x start
-				bgl->zoffset = GET_INT_ARG(5); // z start
-				bgl->xspacing = GET_INT_ARG(6); // x spacing
-				bgl->zspacing = GET_INT_ARG(7); // z spacing
-				bgl->xrepeat = GET_INT_ARG(8); // x repeat
-				bgl->zrepeat = GET_INT_ARG(9); // z repeat
-				dm->transbg = GET_INT_ARG(10); // transparency
-				dm->alpha = GET_INT_ARG(11); // alpha
-				dm->water.watermode = GET_INT_ARG(12); // amplitude
+				bgl->xratio = GET_FLOAT_ARG(i+2); // x ratio
+				bgl->zratio = GET_FLOAT_ARG(i+3); // z ratio
+				bgl->xoffset = GET_INT_ARG(i+4); // x start
+				bgl->zoffset = GET_INT_ARG(i+5); // z start
+				bgl->xspacing = GET_INT_ARG(i+6); // x spacing
+				bgl->zspacing = GET_INT_ARG(i+7); // z spacing
+				bgl->xrepeat = GET_INT_ARG(i+8); // x repeat
+				bgl->zrepeat = GET_INT_ARG(i+9); // z repeat
+				dm->transbg = GET_INT_ARG(i+10); // transparency
+				dm->alpha = GET_INT_ARG(i+11); // alpha
+				dm->water.watermode = GET_INT_ARG(i+12); // amplitude
 				if(dm->water.watermode==3){
-					dm->water.beginsize = GET_FLOAT_ARG(13); // beginsize
-					dm->water.endsize = GET_FLOAT_ARG(14); // endsize
-					dm->water.perspective = GET_INT_ARG(15); // amplitude
+					dm->water.beginsize = GET_FLOAT_ARG(i+13); // beginsize
+					dm->water.endsize = GET_FLOAT_ARG(i+14); // endsize
+					dm->water.perspective = GET_INT_ARG(i+15); // amplitude
 				}else{
-					dm->water.amplitude = GET_INT_ARG(13); // amplitude
-					dm->water.wavelength = GET_INT_ARG(14); // wavelength
-					dm->water.wavespeed = GET_FLOAT_ARG(15); // waterspeed
+					dm->water.amplitude = GET_INT_ARG(i+13); // amplitude
+					dm->water.wavelength = GET_FLOAT_ARG(i+14); // wavelength
+					dm->water.wavespeed = GET_FLOAT_ARG(i+15); // waterspeed
 				}
-				bgl->bgspeedratio = GET_FLOAT_ARG(16); // moving
+				bgl->bgspeedratio = GET_FLOAT_ARG(i+16); // moving
+				bgl->quake = GET_INT_ARG(i+17); // quake
+				bgl->neon = GET_INT_ARG(i+18); // neon
 				bgl->enabled = 1; // enabled
 
-				if((GET_ARG(2))[0]==0) bgl->xratio = 0.5;
-				if((GET_ARG(3))[0]==0) bgl->zratio = 0.5;
+				if((GET_ARG(i+2))[0]==0) bgl->xratio = (cmd==CMD_LEVEL_FGLAYER?1.5:0.5);
+				if((GET_ARG(i+3))[0]==0) bgl->zratio = (cmd==CMD_LEVEL_FGLAYER?1.5:0.5);
 
-				if((GET_ARG(8))[0]==0) bgl->xrepeat = -1;
-				if((GET_ARG(9))[0]==0) bgl->zrepeat = -1;
-				if((GET_ARG(16))[0]==0) bgl->bgspeedratio = 1.0;
+				if((GET_ARG(i+8))[0]==0) bgl->xrepeat = -1;
+				if((GET_ARG(i+9))[0]==0) bgl->zrepeat = -1;
+				if((GET_ARG(i+16))[0]==0) bgl->bgspeedratio = 1.0;
 
 				if(blendfx_is_set==0 && dm->alpha) blendfx[dm->alpha-1] = 1;
 
-				if(cmd==CMD_LEVEL_BGLAYER) load_layer(GET_ARG(1), level->numlayers);
-				level->numlayers++;
-				break;
-			case CMD_LEVEL_FGLAYER:
-				if(level->numlayers >= LEVEL_MAX_LAYERS) {
-					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
-					goto lCleanup;
-				}
-
-				bgl = &(level->layers[level->numlayers]);
-				dm = &(bgl->drawmethod);
-				*dm = plainmethod;
-
-				bgl->oldtype = bgt_fglayer;
-				bgl->z =  GET_FLOAT_ARG(2) + FRONTPANEL_Z;
-
-				bgl->xratio = GET_FLOAT_ARG(3); // x ratio
-				bgl->zratio = GET_FLOAT_ARG(4); // z ratio
-				bgl->xoffset = GET_INT_ARG(5); // x start
-				bgl->zoffset = GET_INT_ARG(6); // z start
-				bgl->xspacing = GET_INT_ARG(7); // x spacing
-				bgl->zspacing = GET_INT_ARG(8); // z spacing
-				bgl->xrepeat = GET_INT_ARG(9); // x repeat
-				bgl->zrepeat = GET_INT_ARG(10); // z repeat
-				dm->transbg = GET_INT_ARG(11); // transparency
-				dm->alpha = GET_INT_ARG(12); // alpha
-				dm->water.watermode = GET_INT_ARG(13); // amplitude
-				if(dm->water.watermode==3){
-					dm->water.beginsize = GET_FLOAT_ARG(14); // beginsize
-					dm->water.endsize = GET_FLOAT_ARG(15); // endsize
-					dm->water.perspective = GET_INT_ARG(16); // amplitude
-				}else{
-					dm->water.amplitude = GET_INT_ARG(14); // amplitude
-					dm->water.wavelength = GET_INT_ARG(15); // wavelength
-					dm->water.wavespeed = GET_FLOAT_ARG(16); // waterspeed
-				}
-				bgl->bgspeedratio = GET_FLOAT_ARG(17); // moving
-				bgl->enabled = 1; // enabled
-
-				if((GET_ARG(3))[0]==0) bgl->xratio = 1.5;
-				if((GET_ARG(4))[0]==0) bgl->zratio = 1.5;
-
-				if((GET_ARG(5))[0]==0) bgl->xrepeat = -1;
-				if((GET_ARG(6))[0]==0) bgl->zrepeat = -1;
-				if((GET_ARG(17))[0]==0) bgl->bgspeedratio = 1.0;
-
-				if(blendfx_is_set==0 && dm->alpha) blendfx[dm->alpha-1] = 1;
-
-				load_layer(GET_ARG(1), level->numlayers);
+				if(cmd!=CMD_LEVEL_BACKGROUND) load_layer(GET_ARG(1), level->numlayers);
 				level->numlayers++;
 				break;
 			case CMD_LEVEL_WATER:

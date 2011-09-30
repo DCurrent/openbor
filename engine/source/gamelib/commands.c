@@ -378,6 +378,7 @@ List* createLevelCommandList(void) {
 	LIST_ADD(CMD_LEVEL_ALLOWSELECT, "allowselect");
 	LIST_ADD(CMD_LEVEL_LOAD, "load");
 	LIST_ADD(CMD_LEVEL_BACKGROUND, "background");
+	LIST_ADD(CMD_LEVEL_LAYER, "layer");
 	LIST_ADD(CMD_LEVEL_BGLAYER, "bglayer");
 	LIST_ADD(CMD_LEVEL_FGLAYER, "fglayer");
 	LIST_ADD(CMD_LEVEL_WATER, "water");
