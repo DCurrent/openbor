@@ -490,10 +490,11 @@ endif
 
 
 
-MAIN            = openborscript.o					                                                \
-                  openbor.o
+MAIN            = openbor.o					                                                \
+                  openborscript.o
 
-OBJS            = $(GAME_CONSOLE)                                                                        \
+OBJS            = $(MAIN)                                                                           \
+                  $(GAME_CONSOLE)                                                                   \
                   $(ADPCM)                                                                          \
                   $(GFX)                                                                            \
                   $(GAME)                                                                           \
@@ -501,8 +502,7 @@ OBJS            = $(GAME_CONSOLE)                                               
                   $(SCRIPT)                                                                         \
                   $(RAM)                                                                            \
                   $(RAND)                                                                           \
-                  $(PNG)                                                                            \
-                  $(MAIN)
+                  $(PNG)
 		  
 #----------------------------------------------------------------------------------------------------
 # Compiler Flags

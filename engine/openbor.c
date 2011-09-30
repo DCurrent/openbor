@@ -15,20 +15,20 @@
 #include "commands.h"
 #include "models.h"
 
-#define GET_ARG(z) arglist.count > z ? arglist.args[z] : ""
-#define GET_ARG_LEN(z) arglist.count > z ? arglist.arglen[z] : 0
-#define GET_ARGP(z) arglist->count > z ? arglist->args[z] : ""
-#define GET_ARGP_LEN(z) arglist->count > z ? arglist->arglen[z] : 0
+#define GET_ARG(z) (arglist.count > z ? arglist.args[z] : "")
+#define GET_ARG_LEN(z) (arglist.count > z ? arglist.arglen[z] : 0)
+#define GET_ARGP(z) (arglist->count > z ? arglist->args[z] : "")
+#define GET_ARGP_LEN(z) (arglist->count > z ? arglist->arglen[z] : 0)
 #define GET_INT_ARG(z) getValidInt(GET_ARG(z), filename, command)
 #define GET_FLOAT_ARG(z) getValidFloat(GET_ARG(z), filename, command)
 #define GET_INT_ARGP(z) getValidInt(GET_ARGP(z), filename, command)
 #define GET_FLOAT_ARGP(z) getValidFloat(GET_ARGP(z), filename, command)
 
+#define uninitint 1234567890
+
 static const char* E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
 static int DEFAULT_OFFSCREEN_KILL = 3000;
 
-#define MIN_INT (int)0x80000000
-#define MAX_INT	(int)0x7fffffff
 
 /////////////////////////////////////////////////////////////////////////////
 //  Global Variables                                                        //
@@ -548,13 +548,9 @@ int                 scoreformat			= 0;					// If set fill score values with 6 Ze
 unsigned char       neontable[MAX_PAL_SIZE];
 unsigned int        neon_time			= 0;
 
-s_panel             panels[MAX_PANELS];
-unsigned int        panels_loaded		= 0;
 int                 panel_width			= 0;
 int                 panel_height		= 0;
-
-s_sprite*           frontpanels[MAX_PANELS];
-unsigned int        frontpanels_loaded	= 0;
+int                 frontpanels_loaded	= 0;
 
 unsigned int        sprites_loaded		= 0;
 unsigned int        anims_loaded		= 0;
@@ -3226,107 +3222,47 @@ void cache_all_backgrounds()
 }
 #endif
 
-void load_bglayer(char *filename, int index)
+void load_layer(char *filename, int index)
 {
 	if(!level) return;
 
-	if(filename){
+	if(filename && level->layers[index].gfx.handle ==NULL){
 
-		if ((level->bglayers[index].drawmethod.alpha>0 || level->bglayers[index].drawmethod.transbg) && !level->bglayers[index].drawmethod.water.watermode)
+		if ((level->layers[index].drawmethod.alpha>0 || level->layers[index].drawmethod.transbg) && !level->layers[index].drawmethod.water.watermode)
 		{
 		// assume sprites are faster than screen when transparency or alpha are specified
-			level->bglayers[index].sprite = loadsprite2(filename, &(level->bglayers[index].width),&(level->bglayers[index].height));
-			level->bglayers[index].type = bg_sprite;
+			level->layers[index].gfx.sprite = loadsprite2(filename, &(level->layers[index].width),&(level->layers[index].height));
+			level->layers[index].gfx.type = gfx_sprite;
 		}
 		else
 		{
 		// use screen for water effect for now, it should be faster than sprite
 		// otherwise, a screen should be fine, especially in 8bit mode, it is super fast,
 		//            or, at least it is not slower than a sprite
-			if(loadscreen(filename, packfile, NULL, pixelformat, &level->bglayers[index].screen))
+			if(loadscreen(filename, packfile, NULL, pixelformat, &level->layers[index].gfx.screen))
 			{
-				level->bglayers[index].height = level->bglayers[index].screen->height;
-				level->bglayers[index].width = level->bglayers[index].screen->width;
-				level->bglayers[index].type = bg_screen;
+				level->layers[index].height = level->layers[index].gfx.screen->height;
+				level->layers[index].width = level->layers[index].gfx.screen->width;
+				level->layers[index].gfx.type = gfx_screen;
 			}
 		}
 	}
 
-	if(level->bglayers[index].handle ==NULL) shutdown(1, "Error loading file '%s'", filename);
+	if(filename && level->layers[index].gfx.handle ==NULL) shutdown(1, "Error loading file '%s'", filename);
 	else{
-		if(level->bglayers[index].xrepeat<0) {
-			level->bglayers[index].xoffset = -level->bglayers[index].width*20000;
-			level->bglayers[index].xrepeat = 40000;
+		if(level->layers[index].xrepeat<0) {
+			level->layers[index].xoffset = -level->layers[index].width*20000;
+			level->layers[index].xrepeat = 40000;
 		}
-		if(level->bglayers[index].zrepeat<0) {
-			level->bglayers[index].zoffset = -level->bglayers[index].height*20000;
-			level->bglayers[index].zrepeat = 40000;
+		if(level->layers[index].zrepeat<0) {
+			level->layers[index].zoffset = -level->layers[index].height*20000;
+			level->layers[index].zrepeat = 40000;
 		}
-		//printf("bglayer width=%d height=%d xoffset=%d zoffset=%d xrepeat=%d zrepeat%d\n", level->bglayers[index].width, level->bglayers[index].height, level->bglayers[index].xoffset, level->bglayers[index].zoffset, level->bglayers[index].xrepeat, level->bglayers[index].zrepeat);
+		//printf("bglayer width=%d height=%d xoffset=%d zoffset=%d xrepeat=%d zrepeat%d\n", level->layers[index].width, level->layers[index].height, level->layers[index].xoffset, level->layers[index].zoffset, level->layers[index].xrepeat, level->layers[index].zrepeat);
 	}
 
 }
 
-void load_fglayer(char *filename, int index)
-{
-	if(!level) return;
-
-	if((level->fglayers[index].drawmethod.alpha>0 || level->fglayers[index].drawmethod.transbg) && !level->fglayers[index].drawmethod.water.watermode)
-	{
-	// assume sprites are faster than screen when transparency or alpha are specified
-		level->fglayers[index].sprite = loadsprite2(filename, &(level->fglayers[index].width),&(level->fglayers[index].height));
-		level->fglayers[index].type = fg_sprite;
-	}
-	else
-	{
-	// otherwise, a screen should be fine, especially in 8bit mode, it is super fast,
-	//            or, at least it is not slower than a sprite
-		if(loadscreen(filename, packfile, NULL, pixelformat, &level->fglayers[index].screen))
-		{
-			level->fglayers[index].height = level->fglayers[index].screen->height;
-			level->fglayers[index].width = level->fglayers[index].screen->width;
-			level->fglayers[index].type = fg_screen;
-		}
-	}
-
-	if(level->fglayers[index].handle ==NULL) shutdown(1, "Error loading file '%s'", filename);
-
-	if(level->fglayers[index].xrepeat<0) {
-		level->fglayers[index].xoffset = -level->fglayers[index].width*20000;
-		level->fglayers[index].xrepeat = 40000;
-	}
-	if(level->fglayers[index].zrepeat<0) {
-		level->fglayers[index].zoffset = -level->fglayers[index].height*20000;
-		level->fglayers[index].zrepeat = 40000;
-	}
-
-}
-
-void freepanels(){
-	int i;
-	for(i=0; i<MAX_PANELS; i++){
-		if(panels[i].sprite_normal != NULL){
-			free(panels[i].sprite_normal);
-			panels[i].sprite_normal = NULL;
-		}
-		if(panels[i].sprite_neon != NULL){
-			free(panels[i].sprite_neon);
-			panels[i].sprite_neon = NULL;
-		}
-		if(panels[i].sprite_screen != NULL){
-			free(panels[i].sprite_screen);
-			panels[i].sprite_screen = NULL;
-		}
-		if(frontpanels[i] != NULL){
-			free(frontpanels[i]);
-			frontpanels[i] = NULL;
-		}
-	}
-	panels_loaded = 0;
-	frontpanels_loaded = 0;
-	panel_width = 0;
-	panel_height = 0;
-}
 
 s_sprite* loadsprite2(char *filename, int* width, int* height)
 {
@@ -3352,82 +3288,6 @@ s_sprite* loadsprite2(char *filename, int* width, int* height)
 	return sprite;
 }
 
-
-
-s_sprite * loadpanel2(char *filename){
-	s_sprite *sprite;
-	int w, h;
-
-	if(NULL==(sprite=loadsprite2(filename, &w, &h)))
-		return NULL;
-
-	if(w > panel_width) panel_width = w;
-	if(h > panel_height) panel_height = h;
-
-	return sprite;
-}
-
-
-
-int loadpanel(char *filename_normal, char *filename_neon, char *filename_screen){
-
-	int i = 0;
-
-	if(panels_loaded >= MAX_PANELS) return 0;
-
-	if(stricmp(filename_normal,"none")!=0 && *filename_normal){
-		panels[panels_loaded].sprite_normal = loadpanel2(filename_normal);
-		if(panels[panels_loaded].sprite_normal == NULL) return 0;
-		i++;
-	}
-	if(stricmp(filename_neon,"none")!=0 && *filename_neon){
-		panels[panels_loaded].sprite_neon = loadpanel2(filename_neon);
-		if(panels[panels_loaded].sprite_neon == NULL) return 0;
-		if(panels[panels_loaded].sprite_neon->palette) // under 24bit mode, copy the palette
-			memcpy(neontable, panels[panels_loaded].sprite_neon->palette, PAL_BYTES);
-		i++;
-	}
-	if(stricmp(filename_screen,"none")!=0 && *filename_screen){
-		panels[panels_loaded].sprite_screen = loadpanel2(filename_screen);
-		if(panels[panels_loaded].sprite_screen == NULL) return 0;
-		else if(blendfx_is_set==0) blendfx[BLEND_SCREEN] = 1;
-		i++;
-	}
-	if(i<1) return 0;    // Nothing was loaded!
-
-	++panels_loaded;
-
-	return 1;
-}
-
-
-
-int loadfrontpanel(char *filename){
-
-	size_t size;
-	s_bitmap *bitmap = NULL;
-	int clipl, clipr, clipt, clipb;
-
-
-	if(frontpanels_loaded >= MAX_PANELS) return 0;
-	bitmap = loadbitmap(filename, packfile, pixelformat);
-	if(!bitmap) return 0;
-
-	clipbitmap(bitmap, &clipl, &clipr, &clipt, &clipb);
-
-	size = fakey_encodesprite(bitmap);
-	frontpanels[frontpanels_loaded] = (s_sprite*)malloc(size);
-	if(!frontpanels[frontpanels_loaded]){
-		freebitmap(bitmap);
-		return 0;
-	}
-	encodesprite(-clipl, -clipt, bitmap, frontpanels[frontpanels_loaded]);
-
-	freebitmap(bitmap);
-	++frontpanels_loaded;
-
-	return 1;
-}
 
 // Added to conserve memory
 void resourceCleanUp(){
@@ -8500,25 +8360,15 @@ void free_level(s_level* lv)
 			lv->blendings[i][j] = NULL;
 		}
 	}
-	//offload bglayers
-	for(i=1; i<lv->numbglayers; i++)
+	//offload layers
+	for(i=1; i<lv->numlayers; i++)
 	{
-		if(lv->bglayers[i].handle)
+		if(lv->layers[i].gfx.handle && lv->layers[i].gfx.handle!=background)
 		{
-			free(lv->bglayers[i].handle);
-			lv->bglayers[i].handle = NULL;
+			free(lv->layers[i].gfx.handle);
+			lv->layers[i].gfx.handle = NULL;
 		}
 	}
-		//offload fglayers
-	for(i=0; i<lv->numfglayers; i++)
-	{
-		if(lv->fglayers[i].handle)
-		{
-			free(lv->fglayers[i].handle);
-			lv->fglayers[i].handle = NULL;
-		}
-	}
-
 	//offload textobjs
 	for(i=0; i<LEVEL_MAX_TEXTOBJS; i++)
 	{
@@ -8584,8 +8434,8 @@ void free_level(s_level* lv)
 
 void unload_level(){
 	s_model* temp;
+
 	unload_background();
-	freepanels();
 	freescreen(&bgbuffer);
 
 	if(level){
@@ -8750,6 +8600,10 @@ void load_level(char *filename){
 	char* scriptname = NULL;
 	Script* tempscript = NULL;
 	s_drawmethod* dm;
+	s_layer* bgl;
+	s_layer* panels[LEVEL_MAX_PANELS][3];
+	int order[LEVEL_MAX_PANELS];
+	int panelcount = 0;
 
 	unload_level();
 
@@ -8820,6 +8674,8 @@ void load_level(char *filename){
 	texttime = 0;
 	nopause = 0;
 	noscreenshot = 0;
+	panel_width = panel_height = frontpanels_loaded = 0;
+	memset(order, 0, sizeof(s_layer*)*LEVEL_MAX_PANELS*3);
 
 	reset_playable_list(1);
 
@@ -8888,64 +8744,38 @@ void load_level(char *filename){
 					update_model_loadflag(tempmodel, GET_INT_ARG(2));
 				break;
 			case CMD_LEVEL_BACKGROUND:
-				value = GET_ARG(1);
-				strncpy(bgPath, value, strlen(value)+1);
-
-				dm = &(level->bglayers[0].drawmethod);
-				*dm = plainmethod;
-
-				level->bglayers[0].type = bg_screen;
-				level->bglayers[0].bgspeedratio = 1;
-
-				level->bglayers[0].xratio = GET_FLOAT_ARG(2); // x ratio
-				level->bglayers[0].zratio = GET_FLOAT_ARG(3); // z ratio
-				level->bglayers[0].xoffset = GET_INT_ARG(4); // x start
-				level->bglayers[0].zoffset = GET_INT_ARG(5); // z start
-				level->bglayers[0].xspacing = GET_INT_ARG(6); // x spacing
-				level->bglayers[0].zspacing = GET_INT_ARG(7); // z spacing
-				level->bglayers[0].xrepeat = GET_INT_ARG(8); // x repeat
-				level->bglayers[0].zrepeat = GET_INT_ARG(9); // z repeat
-				// unused
-				dm->transbg = GET_INT_ARG(10); // transparency
-				dm->alpha = GET_INT_ARG(11); // alpha
-				dm->water.watermode = GET_INT_ARG(12); // amplitude
-				if(dm->water.watermode==3){
-					dm->water.beginsize = GET_FLOAT_ARG(13); // beginsize
-					dm->water.endsize = GET_FLOAT_ARG(14); // endsize
-					dm->water.perspective = GET_INT_ARG(15); // waterspeed
-				}else{
-					dm->water.amplitude = GET_INT_ARG(13); // amplitude
-					dm->water.wavelength = GET_INT_ARG(14); // wavelength
-					dm->water.wavespeed = GET_FLOAT_ARG(15); // waterspeed
-				}
-				level->bglayers[0].enabled = 1; // enabled
-
-				if((value=GET_ARG(2))[0]==0) level->bglayers[0].xratio = 0.5;
-				if((value=GET_ARG(3))[0]==0) level->bglayers[0].zratio = 0.5;
-
-				if((value=GET_ARG(8))[0]==0) level->bglayers[0].xrepeat = -1;
-				if((value=GET_ARG(9))[0]==0) level->bglayers[0].zrepeat = -1;
-
-				if(level->numbglayers==0) level->numbglayers = 1;
-				break;
 			case CMD_LEVEL_BGLAYER:
-				if(level->numbglayers >= LEVEL_MAX_BGLAYERS) {
-					errormessage = "Too many bg layers in level (check LEVEL_MAX_BGLAYERS)!";
+				if(level->numlayers >= LEVEL_MAX_LAYERS) {
+					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
 					goto lCleanup;
 				}
-				if(level->numbglayers==0) level->numbglayers = 1; // reserve for background
 
-				dm = &(level->bglayers[level->numbglayers].drawmethod);
+				bgl = &(level->layers[level->numlayers]);
+
+				if(cmd==CMD_LEVEL_BACKGROUND){
+					if(bgPath[0]){
+						errormessage = "Background is already defined!";
+						goto lCleanup;
+					}
+					value = GET_ARG(1);
+					strncpy(bgPath, value, strlen(value)+1);
+					bgl->oldtype = bgt_background;
+					bgl->gfx.type=gfx_screen;
+				}else bgl->oldtype = bgt_bglayer;
+
+				dm = &(bgl->drawmethod);
 				*dm = plainmethod;
 
-				level->bglayers[level->numbglayers].xratio = GET_FLOAT_ARG(2); // x ratio
-				level->bglayers[level->numbglayers].zratio = GET_FLOAT_ARG(3); // z ratio
-				level->bglayers[level->numbglayers].xoffset = GET_INT_ARG(4); // x start
-				level->bglayers[level->numbglayers].zoffset = GET_INT_ARG(5); // z start
-				level->bglayers[level->numbglayers].xspacing = GET_INT_ARG(6); // x spacing
-				level->bglayers[level->numbglayers].zspacing = GET_INT_ARG(7); // z spacing
-				level->bglayers[level->numbglayers].xrepeat = GET_INT_ARG(8); // x repeat
-				level->bglayers[level->numbglayers].zrepeat = GET_INT_ARG(9); // z repeat
+				bgl->z = MIN_INT;
+
+				bgl->xratio = GET_FLOAT_ARG(2); // x ratio
+				bgl->zratio = GET_FLOAT_ARG(3); // z ratio
+				bgl->xoffset = GET_INT_ARG(4); // x start
+				bgl->zoffset = GET_INT_ARG(5); // z start
+				bgl->xspacing = GET_INT_ARG(6); // x spacing
+				bgl->zspacing = GET_INT_ARG(7); // z spacing
+				bgl->xrepeat = GET_INT_ARG(8); // x repeat
+				bgl->zrepeat = GET_INT_ARG(9); // z repeat
 				dm->transbg = GET_INT_ARG(10); // transparency
 				dm->alpha = GET_INT_ARG(11); // alpha
 				dm->water.watermode = GET_INT_ARG(12); // amplitude
@@ -8958,42 +8788,45 @@ void load_level(char *filename){
 					dm->water.wavelength = GET_INT_ARG(14); // wavelength
 					dm->water.wavespeed = GET_FLOAT_ARG(15); // waterspeed
 				}
-				level->bglayers[level->numbglayers].bgspeedratio = GET_FLOAT_ARG(16); // moving
-				level->bglayers[level->numbglayers].enabled = 1; // enabled
+				bgl->bgspeedratio = GET_FLOAT_ARG(16); // moving
+				bgl->enabled = 1; // enabled
 
-				if((value=GET_ARG(2))[0]==0) level->bglayers[level->numbglayers].xratio = 0.5;
-				if((value=GET_ARG(3))[0]==0) level->bglayers[level->numbglayers].zratio = 0.5;
+				if((GET_ARG(2))[0]==0) bgl->xratio = 0.5;
+				if((GET_ARG(3))[0]==0) bgl->zratio = 0.5;
 
-				if((value=GET_ARG(8))[0]==0) level->bglayers[level->numbglayers].xrepeat = -1;
-				if((value=GET_ARG(9))[0]==0) level->bglayers[level->numbglayers].zrepeat = -1;
+				if((GET_ARG(8))[0]==0) bgl->xrepeat = -1;
+				if((GET_ARG(9))[0]==0) bgl->zrepeat = -1;
+				if((GET_ARG(16))[0]==0) bgl->bgspeedratio = 1.0;
 
 				if(blendfx_is_set==0 && dm->alpha) blendfx[dm->alpha-1] = 1;
 
-				load_bglayer(GET_ARG(1), level->numbglayers);
-				level->numbglayers++;
+				if(cmd==CMD_LEVEL_BGLAYER) load_layer(GET_ARG(1), level->numlayers);
+				level->numlayers++;
 				break;
 			case CMD_LEVEL_FGLAYER:
-				if(level->numfglayers >= LEVEL_MAX_FGLAYERS) {
-					errormessage = "Too many bg layers in level (check LEVEL_MAX_FGLAYERS)!";
+				if(level->numlayers >= LEVEL_MAX_LAYERS) {
+					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
 					goto lCleanup;
 				}
 
-				dm = &(level->fglayers[level->numfglayers].drawmethod);
+				bgl = &(level->layers[level->numlayers]);
+				dm = &(bgl->drawmethod);
 				*dm = plainmethod;
 
-				level->fglayers[level->numfglayers].z = GET_INT_ARG(2); // z
-				level->fglayers[level->numfglayers].xratio = GET_FLOAT_ARG(3); // x ratio
-				level->fglayers[level->numfglayers].zratio = GET_FLOAT_ARG(4); // z ratio
-				level->fglayers[level->numfglayers].xoffset = GET_INT_ARG(5); // x start
-				level->fglayers[level->numfglayers].zoffset = GET_INT_ARG(6); // z start
-				level->fglayers[level->numfglayers].xspacing = GET_INT_ARG(7); // x spacing
-				level->fglayers[level->numfglayers].zspacing = GET_INT_ARG(8); // z spacing
-				level->fglayers[level->numfglayers].xrepeat = GET_INT_ARG(9); // x repeat
+				bgl->oldtype = bgt_fglayer;
+				bgl->z =  GET_FLOAT_ARG(2) + FRONTPANEL_Z;
 
-				level->fglayers[level->numfglayers].zrepeat = GET_INT_ARG(10); // z repeat
+				bgl->xratio = GET_FLOAT_ARG(3); // x ratio
+				bgl->zratio = GET_FLOAT_ARG(4); // z ratio
+				bgl->xoffset = GET_INT_ARG(5); // x start
+				bgl->zoffset = GET_INT_ARG(6); // z start
+				bgl->xspacing = GET_INT_ARG(7); // x spacing
+				bgl->zspacing = GET_INT_ARG(8); // z spacing
+				bgl->xrepeat = GET_INT_ARG(9); // x repeat
+				bgl->zrepeat = GET_INT_ARG(10); // z repeat
 				dm->transbg = GET_INT_ARG(11); // transparency
 				dm->alpha = GET_INT_ARG(12); // alpha
-				dm->water.watermode = GET_INT_ARG(13); // watermode
+				dm->water.watermode = GET_INT_ARG(13); // amplitude
 				if(dm->water.watermode==3){
 					dm->water.beginsize = GET_FLOAT_ARG(14); // beginsize
 					dm->water.endsize = GET_FLOAT_ARG(15); // endsize
@@ -9003,50 +8836,55 @@ void load_level(char *filename){
 					dm->water.wavelength = GET_INT_ARG(15); // wavelength
 					dm->water.wavespeed = GET_FLOAT_ARG(16); // waterspeed
 				}
-				level->fglayers[level->numfglayers].bgspeedratio = GET_FLOAT_ARG(17); // moving
-				level->fglayers[level->numfglayers].enabled = 1;
+				bgl->bgspeedratio = GET_FLOAT_ARG(17); // moving
+				bgl->enabled = 1; // enabled
 
-				if((value=GET_ARG(2))[0]==0) level->fglayers[level->numfglayers].xratio = 1.5;
-				if((value=GET_ARG(3))[0]==0) level->fglayers[level->numfglayers].zratio = 1.5;
+				if((GET_ARG(3))[0]==0) bgl->xratio = 1.5;
+				if((GET_ARG(4))[0]==0) bgl->zratio = 1.5;
 
-				if((value=GET_ARG(8))[0]==0) level->fglayers[level->numfglayers].xrepeat = -1;
-				if((value=GET_ARG(9))[0]==0) level->fglayers[level->numfglayers].zrepeat = -1;
+				if((GET_ARG(5))[0]==0) bgl->xrepeat = -1;
+				if((GET_ARG(6))[0]==0) bgl->zrepeat = -1;
+				if((GET_ARG(17))[0]==0) bgl->bgspeedratio = 1.0;
 
 				if(blendfx_is_set==0 && dm->alpha) blendfx[dm->alpha-1] = 1;
 
-				load_fglayer(GET_ARG(1), level->numfglayers);
-				level->numfglayers++;
+				load_layer(GET_ARG(1), level->numlayers);
+				level->numlayers++;
 				break;
 			case CMD_LEVEL_WATER:
-				if(level->numbglayers >= LEVEL_MAX_BGLAYERS) {
-					errormessage = "Too many bg layers in level (check LEVEL_MAX_BGLAYERS)!";
+				if(level->numlayers >= LEVEL_MAX_LAYERS) {
+					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
 					goto lCleanup;
 				}
-				if(level->numbglayers==0) level->numbglayers = 1; // reserve for background
-				dm = &(level->bglayers[level->numbglayers].drawmethod);
+
+				bgl = &(level->layers[level->numlayers]);
+				dm = &(bgl->drawmethod);
 				*dm = plainmethod;
 
-				level->bglayers[level->numbglayers].xratio = 0.5; // x ratio
-				level->bglayers[level->numbglayers].zratio = 0.5; // z ratio
-				level->bglayers[level->numbglayers].xoffset = 0; // x start
-				level->bglayers[level->numbglayers].zoffset = 1234567890; // z start
-				level->bglayers[level->numbglayers].xspacing = 0; // x spacing
-				level->bglayers[level->numbglayers].zspacing = 0; // z spacing
-				level->bglayers[level->numbglayers].xrepeat = -1; // x repeat
-				level->bglayers[level->numbglayers].zrepeat = 1; // z repeat
+				bgl->oldtype = bgt_water;
+				bgl->z = MIN_INT;
+
+				bgl->xratio = 0.5; // x ratio
+				bgl->zratio = 0.5; // z ratio
+				bgl->xoffset = 0; // x start
+				bgl->zoffset = uninitint; // z start
+				bgl->xspacing = 0; // x spacing
+				bgl->zspacing = 0; // z spacing
+				bgl->xrepeat = -1; // x repeat
+				bgl->zrepeat = 1; // z repeat
 				dm->transbg = 0; // transparency
 				dm->alpha = 0; // alpha
 				dm->water.watermode = 2; // amplitude
 				dm->water.amplitude = GET_INT_ARG(2); // amplitude
 				dm->water.wavelength = 40; // wavelength
 				dm->water.wavespeed = 1.0; // waterspeed
-				level->bglayers[level->numbglayers].bgspeedratio = 0; // moving
-				level->bglayers[level->numbglayers].enabled = 1; // enabled
+				bgl->bgspeedratio = 0; // moving
+				bgl->enabled = 1; // enabled
 
 				if(dm->water.amplitude<1)dm->water.amplitude = 1;
 
-				load_bglayer(GET_ARG(1), level->numbglayers);
-				level->numbglayers++;
+				load_layer(GET_ARG(1), level->numlayers);
+				level->numlayers++;
 				break;
 			case CMD_LEVEL_DIRECTION:
 				value = GET_ARG(1);
@@ -9153,26 +8991,87 @@ void load_level(char *filename){
 				if(level->spawn[i][2] < 0) level->spawn[i][2] = 300;
 				break;
 			case CMD_LEVEL_FRONTPANEL:
-				value = GET_ARG(1);
-				if(!loadfrontpanel(value)) shutdown(1, "Unable to load '%s'!", value);
-				break;
 			case CMD_LEVEL_PANEL:
-				if(!loadpanel(GET_ARG(1), GET_ARG(2), GET_ARG(3)))  {
-					printf("loadpanel :%s :%s :%s failed\n", GET_ARG(1), GET_ARG(2), GET_ARG(3));
-					errormessage = "Panel load error!";
+				if(level->numlayers >= LEVEL_MAX_LAYERS) {
+					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
 					goto lCleanup;
 				}
+				if(level->numlayers==0) level->numlayers = 1; // reserve for background
+
+				bgl = &(level->layers[level->numlayers]);
+				dm = &(bgl->drawmethod);
+				*dm = plainmethod;
+
+				bgl->oldtype = (cmd==CMD_LEVEL_FRONTPANEL?bgt_frontpanel:bgt_panel);
+
+				if(bgl->oldtype==bgt_panel) {
+					panelcount++;
+					bgl->order = panelcount;
+					panels[panelcount-1][0] = bgl;
+					bgl->z = PANEL_Z;
+					bgl->xratio = 0; // x ratio
+					bgl->zratio = 0; // z ratio
+					bgl->xrepeat = 1; // x repeat
+				}else {
+					frontpanels_loaded++;
+					bgl->z = FRONTPANEL_Z;
+					bgl->xratio = -0.4; // x ratio
+					bgl->zratio = -0.4; // z ratio
+					bgl->xrepeat = -1; // x repeat
+				}
+
+				bgl->bgspeedratio = 0;
+				bgl->zoffset = 0; //-4;
+				bgl->zrepeat = 1; // z repeat
+				dm->transbg = 1; // transparency
+				bgl->enabled = 1; // enabled
+				bgl->quake = 1; // accept quake and rock
+
+				load_layer(GET_ARG(1), level->numlayers);
+				level->numlayers++;
+
+				if(stricmp(GET_ARG(2), "none")==0 || !GET_ARG(2)[0])
+					break;
+
+				if(level->numlayers >= LEVEL_MAX_LAYERS) {
+					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
+					goto lCleanup;
+				}
+				level->layers[level->numlayers] = *bgl;
+				bgl = &(level->layers[level->numlayers]);
+				panels[panelcount-1][1] = bgl;
+
+				bgl->z = NEONPANEL_Z;
+				bgl->neon = 1;
+				bgl->gfx.handle = NULL;
+				load_layer(GET_ARG(2), level->numlayers);
+				level->numlayers++;
+
+				if(stricmp(GET_ARG(3), "none")==0 || !GET_ARG(3)[0])
+					break;
+
+				if(level->numlayers >= LEVEL_MAX_LAYERS) {
+					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
+					goto lCleanup;
+				}
+				level->layers[level->numlayers] = *bgl;
+				bgl = &(level->layers[level->numlayers]);
+				panels[panelcount-1][2] = bgl;
+				dm = &(bgl->drawmethod);
+
+				bgl->z = SCREENPANEL_Z;
+				bgl->neon = 0;
+				dm->alpha = 1;
+				bgl->gfx.handle = NULL;
+				load_layer(GET_ARG(3), level->numlayers);
+				level->numlayers++;
+				
 				break;
 			case CMD_LEVEL_STAGENUMBER:
 				current_stage = GET_INT_ARG(1);
 				break;
 			case CMD_LEVEL_ORDER:
 				// Append to order
-				if(panels_loaded<1) {
-					errormessage = "You must load the panels before entering the level layout!";
-					goto lCleanup;
-				}
-
 				value = GET_ARG(1);
 				i = 0;
 				while(value[i] && level->numpanels < LEVEL_MAX_PANELS){
@@ -9185,12 +9084,7 @@ void load_level(char *filename){
 						goto lCleanup;
 					}
 
-					if(j >= panels_loaded) {
-						errormessage = "Illegal panel index, index is bigger than number of loaded panels.";
-						goto lCleanup;
-					}
-
-					level->order[level->numpanels] = j;
+					order[level->numpanels] = j;
 					level->numpanels++;
 					i++;
 				}
@@ -9542,34 +9436,83 @@ void load_level(char *filename){
 		clearscreen(vscreen);
 		spriteq_clear();
 		load_background(bgPath, 1);
-		level->bglayers[0].screen=background;
-		level->bglayers[0].width=background->width;
-		//if(!level->bglayers[0].xoffset && level->bglayers[0].xrepeat<5000)level->bglayers[0].xoffset=-background->width;
-		level->bglayers[0].height=background->height;
 	}
-	else
-	{
-		if(level->numbglayers>1)
-			level->bglayers[0] = level->bglayers[--level->numbglayers];
-		else
-			level->numbglayers = 0;
+	else if(background) unload_background();
 
-		if(background) unload_background();
-	}
-
-	if(level->numbglayers) {
-		load_bglayer(NULL, 0); // initialize background height and width and looping
+	if(level->numlayers) {
 		
-		for(i=1; i<level->numbglayers; i++){
-			if(level->bglayers[i].zoffset == 1234567890){ // default water hack
-				level->bglayers[i].zoffset = level->bglayers[0].height;
-				dm = &(level->bglayers[i].drawmethod);
+		for(i=0; i<level->numlayers; i++){
+			bgl = &(level->layers[i]);
+			switch(bgl->oldtype){
+			case bgt_water: // default water hack
+				bgl->zoffset = background?background->height:level->layers[0].height;
+				dm = &(bgl->drawmethod);
 				if(level->rocking) {
 					dm->water.watermode =3;
 					dm->water.beginsize = 1.0;
-					dm->water.endsize = 1 + level->bglayers[0].height/11.0;
+					dm->water.endsize = 1 + bgl->height/11.0;
 					dm->water.perspective = 0;
-					level->bglayers[i].bgspeedratio =2;
+					bgl->bgspeedratio =2;
+				}
+				break;
+			case bgt_panel:
+				panel_width = bgl->width;
+				panel_height = bgl->height;
+				break;
+			case bgt_background:
+				bgl->gfx.screen=background;
+				bgl->width=background->width;
+				bgl->height=background->height;
+				level->background = bgl;
+				break;
+			default:
+				break;
+			}
+			load_layer(NULL, i);
+		}
+
+		level->layersref[level->numlayersref++] = *(level->background);
+
+
+		// non-panel type layers
+		for(i=0; i<level->numlayers; i++){
+			bgl = &(level->layers[i]);
+			if(bgl->oldtype != bgt_panel && bgl->oldtype != bgt_background){
+				level->layersref[level->numlayersref] = *bgl;
+				bgl = &(level->layersref[level->numlayersref]);
+				level->numlayersref++;
+				switch(bgl->oldtype){
+				case bgt_bglayer:
+					level->bglayers[level->numbglayers++] = bgl;
+					break;
+				case bgt_fglayer:
+					level->fglayers[level->numfglayers++] = bgl;
+					break;
+				case bgt_water:
+					level->waters[level->numwaters++] = bgl;
+					break;
+				case bgt_generic:
+					level->genericlayers[level->numgenericlayers++] = bgl;
+					break;
+				case bgt_frontpanel:
+					bgl->xoffset = level->numfrontpanels*bgl->width;
+					bgl->xspacing = (frontpanels_loaded-1)*bgl->width;
+					level->bglayers[level->numfrontpanels++] = bgl;
+				default:
+					break;
+				}
+			}
+		}
+
+		//panels, normal neon screen
+		for(i=0; i<level->numpanels; i++){
+			for(j=0; j<3; j++){
+				if((bgl=panels[order[i]][j])){
+					level->layersref[level->numlayersref] = *bgl;
+					bgl = &(level->layersref[level->numlayersref]);
+					level->numlayersref++;
+					bgl->xoffset = panel_width*i;
+					level->panels[i][j] = bgl;
 				}
 			}
 		}
@@ -9578,7 +9521,7 @@ void load_level(char *filename){
 
 	if(pixelformat==PIXEL_x8)
 	{
-			if(level->numbglayers>0) bgbuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
+		if(level->numlayers>0) bgbuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
 	}
 	bgbuffer_updated = 0;
 	if(musicPath[0]) music(musicPath, 1, musicOffset);
@@ -19751,134 +19694,11 @@ void update_scroller(){
 	scrolldy = advancey - ty;
 }
 
-
-void applybglayers(s_screen* pbgscreen)
-{
-	int index, x, z, i, j, k, l, timevar;
-	s_bglayer* bglayer;
+void draw_scrolled_bg(){
+	int index=0, x, z, i=0, j, k, l, timevar;
+	s_layer* layer;
 	float rocktravel;
 	int width, height;
-	s_drawmethod screenmethod;
-
-	if(!textbox){
-		rocktravel = (level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0; // no like in real life, maybe
-		if(level->bgspeed<0) rocktravel = -rocktravel;
-		bgtravelled += (time-traveltime)*level->bgspeed/30*4 + rocktravel;
-	}else texttime += time-traveltime;
-
-	timevar = time - texttime;
-
-	for(index = 0; index < level->numbglayers; index++)
-	{
-		bglayer = level->bglayers+index;
-
-
-		if(!bglayer->xrepeat || !bglayer->zrepeat || !bglayer->enabled) continue;
-
-		width = bglayer->width + bglayer->xspacing;
-		height = bglayer->height + bglayer->zspacing;
-
-		x = (int)(bglayer->xoffset + (advancex)*(bglayer->xratio) - advancex - bgtravelled * (1-bglayer->xratio) * bglayer->bgspeedratio);
-
-		if(level->scrolldir&SCROLL_UP)
-			z = (int)(4 + videomodes.vRes + (advancey+4)*bglayer->zratio - bglayer->zoffset - height*bglayer->zrepeat + height + bglayer->zspacing);
-		else
-			z = (int)(4 + bglayer->zoffset + (advancey-4)* bglayer->zratio - advancey);
-
-		if(x<0) {
-			i = (-x)/width;
-			x %= width;
-		} else i = 0;
-
-		if(z<0){
-			j = (-z)/height;
-			z %= height;
-		} else j = 0;
-
-		screenmethod=bglayer->drawmethod;
-		screenmethod.table = (pixelformat==PIXEL_x8)?(current_palette>0?(level->palettes[current_palette-1]):NULL):NULL;
-		screenmethod.water.wavetime =  (int)(timevar*screenmethod.water.wavespeed);
-		for(; j<bglayer->zrepeat && z<videomodes.vRes; z+=height, j++)
-		{
-			for(k=i, l=x; k<bglayer->xrepeat && l<videomodes.hRes + (screenmethod.water.watermode==3?0:screenmethod.water.amplitude*2); l+=width, k++)
-			{
-				if(bglayer->type==bg_screen)
-					 putscreen(pbgscreen, bglayer->screen, l, z, &screenmethod);
-				else if(bglayer->type==bg_sprite)
-					putsprite(l, z, bglayer->sprite, pbgscreen, &screenmethod);
-
-				//printf("#%d %d %d %d\n", index, l, z, width);
-
-			}
-		}
-	}
-	
-	//printf("**************\n");
-	traveltime = time;
-}
-
-void applyfglayers(s_screen* pbgscreen)
-{
-	int index, x, z, i, j, k, l, timevar;
-	s_fglayer* fglayer;
-	int width, height;
-	s_drawmethod screenmethod;
-
-	timevar = time - texttime;
-
-	for(index = 0; index < level->numfglayers; index++)
-	{
-		fglayer = level->fglayers+index;
-
-
-		if(!fglayer->xrepeat || !fglayer->zrepeat || !fglayer->enabled) continue;
-
-		width = fglayer->width + fglayer->xspacing;
-		height = fglayer->height + fglayer->zspacing;
-
-		x = (int)(fglayer->xoffset + (advancex)*(fglayer->xratio) - advancex - bgtravelled * (1-fglayer->xratio) * fglayer->bgspeedratio);
-
-		if(level->scrolldir&SCROLL_UP)
-			z = (int)(4 + videomodes.vRes + (advancey+4)*fglayer->zratio - fglayer->zoffset - height*fglayer->zrepeat + height + fglayer->zspacing);
-		else
-			z = (int)(4 + fglayer->zoffset + (advancey-4)* fglayer->zratio - advancey);
-
-		if(x<0) {
-			i = (-x)/width;
-			x %= width;
-		} else i = 0;
-
-		if(z<0){
-			j = (-z)/height;
-			z %= height;
-		} else j = 0;
-
-		screenmethod=fglayer->drawmethod;
-		screenmethod.table = (pixelformat==PIXEL_x8)?(current_palette>0?(level->palettes[current_palette-1]):NULL):NULL;
-		screenmethod.water.wavetime =  (int)(timevar*screenmethod.water.wavespeed);
-		for(; j<fglayer->zrepeat && z<videomodes.vRes; z+=height, j++)
-		{
-			for(k=i, l=x; k<fglayer->xrepeat && l<videomodes.hRes + (screenmethod.water.watermode==3?0:screenmethod.water.amplitude*2); l+=width, k++)
-			{
-				if(fglayer->type==fg_screen)
-					 spriteq_add_screen(l, z, FRONTPANEL_Z + fglayer->z, fglayer->screen, &screenmethod, 0);
-				else if(fglayer->type==fg_sprite)
-					spriteq_add_frame(l, z, FRONTPANEL_Z + fglayer->z, fglayer->sprite, &screenmethod, 0);
-
-			}
-		}
-	}
-}
-
-
-
-
-void draw_scrolled_bg(){
-	int i = 0;
-	int inta ;
-	int poop = 0;
-	int index = 0;
-	int fix_y = 0;
 	unsigned char neonp[32];//3*8
 	static float oldadvx=0, oldadvy=0;
 	static int   oldpal = 0;
@@ -19906,45 +19726,157 @@ void draw_scrolled_bg(){
 	s_drawmethod screenmethod=plainmethod, *pscreenmethod=&screenmethod;
 	int pb = pixelbytes[(int)screenformat];
 
-	if(pixelformat==PIXEL_x8)
-	{
-		screenmethod.table = current_palette? level->palettes[current_palette-1]: NULL;
+	if(level->rocking){
+		rockpos = (time/(GAME_SPEED/8)) & 31;
+		if(level->rocking == 1)         gfx_y_offset = level->quake - rockoffssine[rockpos];
+		else if(level->rocking == 2) gfx_y_offset = level->quake - rockoffsshake[rockpos];
+		else if(level->rocking == 3) gfx_y_offset = level->quake - rockoffsrumble[rockpos];
+	}
+	else if(time){
+		if(level->quake >= 0) gfx_y_offset = level->quake;
+		else           gfx_y_offset = level->quake + 8;
 	}
 
+	if(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN) gfx_y_offset -= advancey;
+	gfx_y_offset += gfx_y_offset_adj;   //2011_04_03, DC: Apply modder adjustment.
+
+	// Draw 3 layers: screen, normal and neon
+	if(time>=neon_time && !freezeall){    // Added freezeall so neon lights don't update if animations are frozen
+		if(pixelformat==PIXEL_8) // under 8bit mode just cycle the palette from 128 to 135
+		{
+			for(i=0; i<8; i++)  neontable[128+i] = 128 + ((i+neon_count) & 7);
+		}
+		else if(pixelformat==PIXEL_x8) // copy palette under 24bit mode
+		{
+			if(pscreenmethod->table)
+			{
+				memcpy(neonp, pscreenmethod->table+128*pb, 8*pb);
+				memcpy(pscreenmethod->table+128*pb, neonp+2*pb, 6*pb);
+				memcpy(pscreenmethod->table+(128+6)*pb, neonp, 2*pb);
+			}
+			else
+			{
+				memcpy(neonp, neontable+128*pb, 8*pb);
+				memcpy(neontable+128*pb, neonp+2*pb, 6*pb);
+				memcpy(neontable+(128+6)*pb, neonp, 2*pb);
+			}
+		}
+		neon_time = time + (GAME_SPEED/3);
+		neon_count += 2;
+	}
+
+	for(i=0; i<level->numholes; i++) spriteq_add_sprite((int)(level->holes[i][0]-advancex+gfx_x_offset),(int)(level->holes[i][1] - level->holes[i][6] + 4 + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
 
 	if(bgbuffer)
 	{
-			if(((level->rocking || level->bgspeed)&& !pause) ||
-			   oldadvx!=advancex || oldadvy != advancey || current_palette!=oldpal)
+		if(((level->rocking || level->bgspeed)&& !pause) ||
+		   oldadvx!=advancex || oldadvy != advancey || current_palette!=oldpal)
+				bgbuffer_updated = 0;
+		else {
+			// temporary fix for bglayer water
+			for(i=0; i<level->numlayersref; i++){
+				layer = &(level->layersref[i]);
+				if(layer->enabled && layer->z==MIN_INT && layer->drawmethod.water.watermode){
 					bgbuffer_updated = 0;
-			else {
-					// temporary fix for bglayer water
-					for(i=0; i<level->numbglayers; i++){
-							if(level->bglayers[i].drawmethod.water.watermode){
-									bgbuffer_updated = 0;
-									break;
-							}
-					}
+					break;
+				}
 			}
-			oldadvx = advancex;
-			oldadvy = advancey;
-			oldpal = current_palette;
+		}
+		oldadvx = advancex;
+		oldadvy = advancey;
+		oldpal = current_palette;
 	}
 	else bgbuffer_updated = 0;
 
 	if(bgbuffer)  pbgscreen = bgbuffer_updated?vscreen:bgbuffer;
 	else          pbgscreen = vscreen;
 
-	if(!bgbuffer_updated && level->numbglayers>0) 
+/*******************/
+
+	//printf("bgbuffer_updated: %d\n", bgbuffer_updated);
+
+	if(!freezeall){
+		rocktravel = (level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0; // no like in real life, maybe
+		if(level->bgspeed<0) rocktravel = -rocktravel;
+		bgtravelled += (time-traveltime)*level->bgspeed/30*4 + rocktravel;
+	}else texttime += time-traveltime;
+
+	timevar = time - texttime;
+
+	if(!bgbuffer_updated) clearscreen(pbgscreen);
+
+	for(index = 0; index < level->numlayersref; index++)
 	{
-		clearscreen(pbgscreen);
-		applybglayers(pbgscreen);
+		layer = level->layersref+index;
+
+		//printf("layer %d, handle:%u, z:%d\n", index, layer->gfx.handle, layer->z);
+
+		if(bgbuffer_updated && layer->z==MIN_INT) continue;
+
+
+		if(!layer->xrepeat || !layer->zrepeat || !layer->enabled) continue;
+
+		width = layer->width + layer->xspacing;
+		height = layer->height + layer->zspacing;
+
+		x = (int)(layer->xoffset + (advancex)*(layer->xratio) - advancex - bgtravelled * (1-layer->xratio) * layer->bgspeedratio);
+
+		if(level->scrolldir&SCROLL_UP)
+			z = (int)(videomodes.vRes + advancey*layer->zratio - layer->zoffset - height*layer->zrepeat + height + layer->zspacing);
+		else
+			z = (int)(layer->zoffset + advancey* layer->zratio - advancey);
+
+		if(layer->quake) {
+			x += gfx_x_offset;
+			z += gfx_y_offset+advancey;
+		}
+
+
+		if(x<0) {
+			i = (-x)/width;
+			x %= width;
+		} else i = 0;
+
+		if(z<0){
+			j = (-z)/height;
+			z %= height;
+		} else j = 0;
+
+		screenmethod=layer->drawmethod;
+		if(layer->neon){
+			if(pixelformat!=PIXEL_x8 || current_palette<=0)
+				screenmethod.table = neontable;
+		}else {
+			screenmethod.table = (pixelformat==PIXEL_x8)?(current_palette>0?(level->palettes[current_palette-1]):NULL):NULL;
+		}
+		screenmethod.water.wavetime =  (int)(timevar*screenmethod.water.wavespeed);
+		for(; j<layer->zrepeat && z<videomodes.vRes; z+=height, j++)
+		{
+			for(k=i, l=x; k<layer->xrepeat && l<videomodes.hRes + (screenmethod.water.watermode==3?0:screenmethod.water.amplitude*2); l+=width, k++)
+			{
+				if(layer->gfx.type==gfx_screen){
+					if(layer->z==MIN_INT)
+						putscreen(pbgscreen, layer->gfx.screen, l, z, &screenmethod);
+					else
+						spriteq_add_screen(l, z, layer->z, layer->gfx.screen, &screenmethod, 0);
+				}
+				else if(layer->gfx.type==gfx_sprite){
+					if(layer->z==MIN_INT)
+						putsprite(l, z, layer->gfx.sprite, pbgscreen, &screenmethod);
+					else
+						spriteq_add_frame(l, z, layer->z, layer->gfx.sprite, &screenmethod, 0);
+				}
+
+				//printf("#%d %d %d %d\n", index, l, z, width);
+
+			}
+		}
 	}
+	
+	//printf("**************\n");
+	traveltime = time;
 
-	applyfglayers(pbgscreen);
-
-	pscreenmethod->alpha = 0;
-	pscreenmethod->transbg = 0;
+/**********************/
 
 	if(bgbuffer)
 	{
@@ -19953,94 +19885,6 @@ void draw_scrolled_bg(){
 
 	bgbuffer_updated = 1;
 
-	if(level->rocking){
-		rockpos = (time/(GAME_SPEED/8)) & 31;
-		if(level->rocking == 1)         gfx_y_offset = level->quake - 4 - rockoffssine[rockpos];
-		else if(level->rocking == 2) gfx_y_offset = level->quake - 4 - rockoffsshake[rockpos];
-		else if(level->rocking == 3) gfx_y_offset = level->quake - 4 - rockoffsrumble[rockpos];
-	}
-	else if(time){
-		if(level->quake >= 0) gfx_y_offset = level->quake - 4;
-		else           gfx_y_offset = level->quake + 4;
-	}
-
-	gfx_y_offset += gfx_y_offset_adj;   //2011_04_03, DC: Apply modder adjustment.
-
-	if(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN) gfx_y_offset -= (int)(advancey - 4);
-
-	// Draw 3 layers: screen, normal and neon
-	if(panels_loaded && panel_width){
-		if(time>=neon_time && !freezeall){    // Added freezeall so neon lights don't update if animations are frozen
-			if(pixelformat==PIXEL_8) // under 8bit mode just cycle the palette from 128 to 135
-			{
-				for(i=0; i<8; i++)  neontable[128+i] = 128 + ((i+neon_count) & 7);
-			}
-			else if(pixelformat==PIXEL_x8) // copy palette under 24bit mode
-			{
-				if(pscreenmethod->table)
-				{
-					memcpy(neonp, pscreenmethod->table+128*pb, 8*pb);
-					memcpy(pscreenmethod->table+128*pb, neonp+2*pb, 6*pb);
-					memcpy(pscreenmethod->table+(128+6)*pb, neonp, 2*pb);
-				}
-				else
-				{
-					memcpy(neonp, neontable+128*pb, 8*pb);
-					memcpy(neontable+128*pb, neonp+2*pb, 6*pb);
-					memcpy(neontable+(128+6)*pb, neonp, 2*pb);
-				}
-			}
-			neon_time = time + (GAME_SPEED/3);
-			neon_count += 2;
-		}
-
-		if(level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN) inta = 0;
-		else inta = (int)advancex;
-
-		poop = inta / panel_width;
-		inta %= panel_width;
-		for(i=-inta; i<=videomodes.hRes && poop>=0 && poop<level->numpanels; i+=panel_width){
-			index = level->order[poop];
-			pscreenmethod->table = (pixelformat==PIXEL_x8 && current_palette)?level->palettes[current_palette-1]:NULL;
-			if(panels[index].sprite_normal)
-			{
-				pscreenmethod->alpha = 0;
-				spriteq_add_frame(i+gfx_x_offset,gfx_y_offset, PANEL_Z, panels[index].sprite_normal, pscreenmethod, 0);
-			}
-			if(panels[index].sprite_neon)
-			{
-				if(pixelformat!=PIXEL_x8 || current_palette<=0)
-					pscreenmethod->table = neontable;
-				spriteq_add_frame(i+gfx_x_offset,gfx_y_offset, NEONPANEL_Z, panels[index].sprite_neon, pscreenmethod, 0);
-			}
-			if(panels[index].sprite_screen)
-			{
-				pscreenmethod->alpha = BLEND_SCREEN+1;
-				spriteq_add_frame(i+gfx_x_offset,gfx_y_offset, SCREENPANEL_Z, panels[index].sprite_screen, pscreenmethod, 0);
-			}
-			poop++;
-		}
-	}
-
-	pscreenmethod->alpha = 0;
-
-	for(i=0; i<level->numholes; i++) spriteq_add_sprite((int)(level->holes[i][0]-advancex+gfx_x_offset),(int)(level->holes[i][1] - level->holes[i][6] + 4 + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
-
-	if(frontpanels_loaded){
-
-		if(level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN) inta = 0;
-		else{
-			inta = (int)(advancex * 1.4);
-			fix_y = (int)(advancey - 4);
-		}
-		poop = inta / frontpanels[0]->width;
-		inta %= frontpanels[0]->width;
-		for(i=-inta; i<=videomodes.hRes; i+=frontpanels[0]->width){
-			poop %= frontpanels_loaded;
-			spriteq_add_frame(i+gfx_x_offset,gfx_y_offset + fix_y, FRONTPANEL_Z, frontpanels[poop], pscreenmethod, 0);
-			poop++;
-		}
-	}
 
 	if(level->quake!=0 && time>=level->quaketime){
 		level->quake /= 2;
@@ -21157,20 +21001,28 @@ void gameover(){
 
 	time = 0;
 	gameOver = 1;
+
+	if(custScenes != NULL)
+	{
+		strcpy(tmpBuff,custScenes);
+		strncat(tmpBuff,"gameover.txt", 12);
+		if(testpackfile(tmpBuff, packfile) >=0) {
+			playscene(tmpBuff);
+			done = 1;
+		}
+	}
+	else
+	{
+		if(testpackfile("data/scenes/gameover.txt", packfile) >=0) {
+			playscene("data/scenes/gameover.txt");
+			done = 1;
+		}
+		
+	}
+
 	while(!done)
 	{
-		if(custScenes != NULL)
-		{
-			strcpy(tmpBuff,custScenes);
-			strncat(tmpBuff,"gameover.txt", 12);
-			if(testpackfile(tmpBuff, packfile) >=0) playscene(tmpBuff);
-			else font_printf(_strmidx(3, "GAME OVER"),110+videomodes.vShift, 3, 0, "GAME OVER");
-		}
-		else
-		{
-		    if(testpackfile("data/scenes/gameover.txt", packfile) >=0) playscene("data/scenes/gameover.txt");
-			else font_printf(_strmidx(3, "GAME OVER"),110+videomodes.vShift, 3, 0, "GAME OVER");
-		}
+		font_printf(_strmidx(3, "GAME OVER"),110+videomodes.vShift, 3, 0, "GAME OVER");
 		done |= (time>GAME_SPEED*8 && !sound_query_music(NULL,NULL));
 		done |= (bothnewkeys & (FLAG_ESC|FLAG_ANYBUTTON));
 		update(0,0);

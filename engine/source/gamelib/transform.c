@@ -392,8 +392,7 @@ void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, 
 // scalex scaley flipy ...
 void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod)
 {
-	double osx, sx, sy, dx, dy, w, h, cx, cy, stepdx, stepdy;
-	int beginy, endy, beginx, endx;
+	double osx, sx, sy, dx, dy, w, h, cx, cy, stepdx, stepdy, beginy, endy, beginx, endx;
 	int i, j;
 	double zoomx = drawmethod->scalex / 256.0;
 	double zoomy = drawmethod->scaley / 256.0;
@@ -428,14 +427,14 @@ void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 		osx = 0.0;
 	}else{
 		stepdx = -1.0/zoomx;
-		osx = trans_sw - 1.0;
+		osx = trans_sw + stepdx;
 	}
 	if(drawmethod->flipy){
 		stepdy = 1.0/zoomy;
 		sy = 0.0;
 	}else{
 		stepdy = -1.0/zoomy;
-		sy = trans_sh - 1.0;
+		sy = trans_sh + stepdy;
 	}
 
 	if(_max(dx+w, dx+w-shiftf*h)<=0) return;
@@ -468,7 +467,10 @@ void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 			sx += stepdx*(dx+w-trans_dw);
 		} else endx = dx+w;
 		for(i=endx-1; i>=beginx; i--, sx+=stepdx){
-			//printf("%d, %d, %d, %d\n", i, j, (int)sx, (int)sy);
+			/*if((int)sy<=-1){
+				printf("%lf %lf %d %d %lf\n", beginy, endy, trans_sw, trans_sh, sy);
+
+			}*/
 			draw_pixel_gfx(dest, src, i, j, (int)sx, (int)sy);
 		}
 	}

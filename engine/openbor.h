@@ -78,8 +78,7 @@
 #define		LEVEL_MAX_PANELS	100
 #define		LEVEL_MAX_HOLES		40
 #define		LEVEL_MAX_WALLS		40
-#define     LEVEL_MAX_BGLAYERS  100
-#define     LEVEL_MAX_FGLAYERS  100
+#define     LEVEL_MAX_LAYERS  100
 #define     LEVEL_MAX_TEXTOBJS  50
 #define     LEVEL_MAX_FILESTREAMS 50
 #define     LEVEL_MAX_PALETTES  40                  // altered palettes
@@ -1351,13 +1350,6 @@ typedef struct
 }s_player;
 
 
-typedef struct
-{
-	s_sprite		*sprite_normal;
-	s_sprite		*sprite_neon;
-	s_sprite		*sprite_screen;
-}s_panel;
-
 typedef struct s_spawn_script_cache_node
 {
 	char		*filename;
@@ -1446,51 +1438,25 @@ typedef struct
 }s_level_entry;
 
 
+//
 typedef enum
 {
-	bg_sprite,
-	bg_screen
-}bglayer_type;
+	bgt_bglayer,
+	bgt_fglayer,
+	bgt_panel,
+	bgt_frontpanel,
+	bgt_water,
+	bgt_background,
+	bgt_generic
+	
+}bgloldtype;
 
-typedef enum
-{
-	fg_sprite,
-	fg_screen
-}fglayer_type;
 
 typedef struct
 {
-	union
-	{
-		s_sprite*  sprite;
-		s_screen*  screen;
-		void*      handle;
-	};
-	bglayer_type   type;
-	int            width;
-	int            height;
-	float          xratio;
-	float          zratio;
-	int            xoffset;
-	int            zoffset;
-	int            xspacing;
-	int            zspacing;
-	int            xrepeat;
-	int            zrepeat;
-	s_drawmethod   drawmethod;
-	float          bgspeedratio;
-	int            enabled;
-}s_bglayer;
-
-typedef struct
-{
-	union
-	{
-		s_sprite*  sprite;
-		s_screen*  screen;
-		void*      handle;
-	};
-	fglayer_type   type;
+	bgloldtype     oldtype;
+	int            order;	//for panel order
+	gfx_entry      gfx;
 	int            width;
 	int            height;
 	float          xratio;
@@ -1505,7 +1471,10 @@ typedef struct
 	float          bgspeedratio;
 	int            enabled;
 	int            z;
-}s_fglayer;
+	int            quake;
+	int            neon;
+}s_layer;
+
 
 typedef struct
 {
@@ -1526,62 +1495,77 @@ typedef struct
 
 typedef struct
 {
-	char*           name;
-	int		numspawns;
-	s_spawn_entry	spawnpoints[LEVEL_MAX_SPAWNS];
-	int		numpanels;
-	int		order[LEVEL_MAX_PANELS];
-	s_bglayer       bglayers[LEVEL_MAX_BGLAYERS];
-	s_fglayer       fglayers[LEVEL_MAX_FGLAYERS];
-	s_textobj       textobjs[LEVEL_MAX_TEXTOBJS];
-	int             numbglayers;
-	int             numfglayers;
-	s_filestream    filestreams[LEVEL_MAX_FILESTREAMS];
-	int             numfilestreams;
-	int		cameraxoffset;
-	int		camerazoffset;
-	int		numholes;
-	int		numwalls;						// Stores number of walls loaded
-	float		holes[LEVEL_MAX_HOLES][7];
-	int             holesfound[LEVEL_MAX_HOLES];
-	float		walls[LEVEL_MAX_WALLS][8];		// Now you can have walls for different walkable areas
-	int             wallsfound[LEVEL_MAX_WALLS];
-	int		exit_blocked;
-	int		exit_hole;
-	int		scrolldir;
-	int		width;
-	int		rocking;
-	float	bgspeed;						// Used to make autoscrolling backgrounds
-	float	scrollspeed;					// UT: restore this command  2011/7/8
-	int		bgdir;							// Used to set which direction the backgrounds scroll for autoscrolling backgrounds
-	int		mirror;
-	int             bosses;
-	char		bossmusic[256];
-	unsigned int 	bossmusic_offset;
-	int             numpalettes;
-	unsigned char   palettes[LEVEL_MAX_PALETTES][1024];//dynamic palettes
-	unsigned char*  blendings[LEVEL_MAX_PALETTES][MAX_BLENDINGS];//blending tables
-	int 		settime;						// Set time limit per level
-	int		notime;							// Used to specify if the time is displayed 1 = no, else yes
-	int		noreset;						// If set, clock will not reset when players spawn/die
-	int 		type;							// Used to specify which level type (1 = bonus, else regular)
-	int		nospecial;						// Used to specify if you can use your special during bonus levels
-	int		nohurt;							// Used to specify if you can hurt the other player during bonus levels
-	int		noslow;							// Flag so the level doesn't slow down after a boss is defeated
-	int		nohit;							// Not able to grab / hit other player on a per level basis
-	int		spawn[MAX_PLAYERS][4];			// Used to determine the spawn position of players
-	int		setweap;						// Levels can now specified which weapon will be used by default
-	int             facing;                         // Force the players to face to ... 0 no effects, 1 right, 2 left, 3 affected by level dir
+	char* name;
+	int numspawns;
+	s_spawn_entry spawnpoints[LEVEL_MAX_SPAWNS];
+	int numlayers;
+	s_layer layers[LEVEL_MAX_LAYERS];
+	int numlayersref;
+	s_layer layersref[LEVEL_MAX_LAYERS];
+	////////////////these below are layer reference
+	////////////////use them to ease layer finding for script users
+	s_layer* background; // the bglayer that contains the default background
+	int numpanels;
+	s_layer* panels[LEVEL_MAX_PANELS][3]; //normal neon screen
+	int numfrontpanels;
+	s_layer* frontpanels[LEVEL_MAX_PANELS];
+	int numbglayers;
+	s_layer* bglayers[LEVEL_MAX_LAYERS];
+	int numfglayers;
+	s_layer* fglayers[LEVEL_MAX_LAYERS];
+	int numgenericlayers;
+	s_layer* genericlayers[LEVEL_MAX_LAYERS];
+	int numwaters; // LOL what
+	s_layer* waters[LEVEL_MAX_LAYERS];
+	////////////////layer reference ends here
+	///////////////////////////////////////////////////////////////
+	s_textobj textobjs[LEVEL_MAX_TEXTOBJS];
+	s_filestream filestreams[LEVEL_MAX_FILESTREAMS];
+	int numfilestreams;
+	int cameraxoffset;
+	int camerazoffset;
+	int numholes;
+	int numwalls;						// Stores number of walls loaded
+	float holes[LEVEL_MAX_HOLES][7];
+	int holesfound[LEVEL_MAX_HOLES];
+	float walls[LEVEL_MAX_WALLS][8];		// Now you can have walls for different walkable areas
+	int wallsfound[LEVEL_MAX_WALLS];
+	int exit_blocked;
+	int exit_hole;
+	int scrolldir;
+	int width;
+	int rocking;
+	float bgspeed;						// Used to make autoscrolling backgrounds
+	float scrollspeed;					// UT: restore this command  2011/7/8
+	int bgdir;							// Used to set which direction the backgrounds scroll for autoscrolling backgrounds
+	int mirror;
+	int bosses;
+	char bossmusic[256];
+	unsigned int bossmusic_offset;
+	int numpalettes;
+	unsigned char palettes[LEVEL_MAX_PALETTES][1024];//dynamic palettes
+	unsigned char* blendings[LEVEL_MAX_PALETTES][MAX_BLENDINGS];//blending tables
+	int settime;						// Set time limit per level
+	int notime;							// Used to specify if the time is displayed 1 = no, else yes
+	int noreset;						// If set, clock will not reset when players spawn/die
+	int type;							// Used to specify which level type (1 = bonus, else regular)
+	int nospecial;						// Used to specify if you can use your special during bonus levels
+	int nohurt;							// Used to specify if you can hurt the other player during bonus levels
+	int noslow;							// Flag so the level doesn't slow down after a boss is defeated
+	int nohit;							// Not able to grab / hit other player on a per level basis
+	int spawn[MAX_PLAYERS][4];			// Used to determine the spawn position of players
+	int setweap;						// Levels can now specified which weapon will be used by default
+	int facing;                         // Force the players to face to ... 0 no effects, 1 right, 2 left, 3 affected by level dir
 //--------------------gravity system-------------------------
-	float           maxfallspeed;
-	float           maxtossspeed;
-	float           gravity;
+	float maxfallspeed;
+	float maxtossspeed;
+	float gravity;
 //---------------------scripts-------------------------------
-	Script          update_script;
-	Script          updated_script;
-	Script          key_script;
-	Script          level_script;
-	Script          endlevel_script;
+	Script update_script;
+	Script updated_script;
+	Script key_script;
+	Script level_script;
+	Script endlevel_script;
 	s_spawn_script_cache_node* spawn_script_cache_head;
 	int pos;
 	u32 advancetime;
