@@ -10173,6 +10173,8 @@ enum getbglp_enum
 	_glp_amplitude,
 	_glp_bgspeedratio,
 	_glp_enabled,
+	_glp_neon,
+	_glp_quake,
 	_glp_transparency,
 	_glp_watermode,
 	_glp_wavelength,
@@ -10181,6 +10183,7 @@ enum getbglp_enum
 	_glp_xratio,
 	_glp_xrepeat,
 	_glp_xspacing,
+	_glp_z,
 	_glp_zoffset,
 	_glp_zratio,
 	_glp_zrepeat,
@@ -10198,6 +10201,8 @@ void mapstrings_layerproperty(ScriptVariant** varlist, int paramCount)
 		"amplitude",
 		"bgspeedratio",
 		"enabled",
+		"neon",
+		"quake",
 		"transparency",
 		"watermode",
 		"wavelength",
@@ -10206,6 +10211,7 @@ void mapstrings_layerproperty(ScriptVariant** varlist, int paramCount)
 		"xratio",
 		"xrepeat",
 		"xspacing",
+		"z",
 		"zoffset",
 		"zratio",
 		"zrepeat",
@@ -10259,6 +10265,18 @@ HRESULT _getlayerproperty(s_layer* layer, int propind, ScriptVariant** pretvar)
 		(*pretvar)->lVal = (LONG)layer->enabled;
 		break;
 	}
+	case _glp_neon:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)layer->neon;
+		break;
+	}
+	case _glp_quake:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)layer->quake;
+		break;
+	}
 	case _glp_transparency:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -10306,6 +10324,12 @@ HRESULT _getlayerproperty(s_layer* layer, int propind, ScriptVariant** pretvar)
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)layer->xspacing;
+		break;
+	}
+	case _glp_z:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)layer->z;
 		break;
 	}
 	case _glp_zoffset:
@@ -10369,6 +10393,18 @@ HRESULT _changelayerproperty(s_layer* layer, int propind, ScriptVariant* var)
 		layer->enabled = temp;
 		break;
 	}
+	case _glp_neon:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->neon = temp;
+		break;
+	}
+	case _glp_quake:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->quake = temp;
+		break;
+	}
 	case _glp_transparency:
 	{
 		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
@@ -10416,6 +10452,12 @@ HRESULT _changelayerproperty(s_layer* layer, int propind, ScriptVariant* var)
 	{
 		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
 		layer->xspacing = temp;
+		break;
+	}
+	case _glp_z:
+	{
+		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
+		layer->z = temp;
 		break;
 	}
 	case _glp_zoffset:
