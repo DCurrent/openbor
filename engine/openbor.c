@@ -8984,7 +8984,7 @@ void load_level(char *filename){
 				}
 
 				bgl->bgspeedratio = 0;
-				bgl->zoffset = 0; //-4;
+				bgl->zoffset = 0;
 				bgl->zrepeat = 1; // z repeat
 				dm->transbg = 1; // transparency
 				bgl->enabled = 1; // enabled
@@ -19528,7 +19528,7 @@ void update_scroller(){
 			}
 
 			if((level->scrolldir&SCROLL_BACK) && advancey < blockade) advancey = blockade;
-			if(advancey < 4) advancey = 4;
+			if(advancey < 0) advancey = 0;
 
 			if(againstend) level->pos++;
 			else level->pos = (int)advancey;
@@ -19563,7 +19563,7 @@ void update_scroller(){
 			}
 			if(advancey > panel_height-videomodes.vRes) advancey = (float)panel_height-videomodes.vRes;
 			if((level->scrolldir&SCROLL_BACK) && panel_height- videomodes.vRes - advancey < blockade) advancey = panel_height- videomodes.vRes - blockade;
-			if(advancey < 4) advancey = 4;
+			if(advancey < 0) advancey = 0;
 
 			if(againstend) level->pos++;
 			else level->pos = (int)((panel_height-videomodes.vRes) - advancey);
@@ -19615,8 +19615,8 @@ void update_scroller(){
 			advancey = (float)to;
 		}
 
-		if(advancey > panel_height - 16 -videomodes.vRes) advancey = (float)(panel_height - 16 -videomodes.vRes);
-		if(advancey < 4) advancey = 4;
+		if(advancey > panel_height - 12 -videomodes.vRes) advancey = (float)(panel_height - 12 -videomodes.vRes);
+		if(advancey < 0) advancey = 0;
 	}
 	// now x auto scroll
 	else if((level->scrolldir&SCROLL_INWARD) || (level->scrolldir&SCROLL_OUTWARD))
@@ -19696,8 +19696,8 @@ void draw_scrolled_bg(){
 		else if(level->rocking == 3) gfx_y_offset = level->quake - rockoffsrumble[rockpos];
 	}
 	else if(time){
-		if(level->quake >= 0) gfx_y_offset = level->quake;
-		else           gfx_y_offset = level->quake + 8;
+		if(level->quake >= 0) gfx_y_offset = level->quake-4;
+		else           gfx_y_offset = level->quake+4;
 	}
 
 	if(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN) gfx_y_offset -= advancey;
