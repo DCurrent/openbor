@@ -19689,20 +19689,6 @@ void draw_scrolled_bg(){
 	s_drawmethod screenmethod=plainmethod, *pscreenmethod=&screenmethod;
 	int pb = pixelbytes[(int)screenformat];
 
-	if(level->rocking){
-		rockpos = (time/(GAME_SPEED/8)) & 31;
-		if(level->rocking == 1)         gfx_y_offset = level->quake - rockoffssine[rockpos];
-		else if(level->rocking == 2) gfx_y_offset = level->quake - rockoffsshake[rockpos];
-		else if(level->rocking == 3) gfx_y_offset = level->quake - rockoffsrumble[rockpos];
-	}
-	else if(time){
-		if(level->quake >= 0) gfx_y_offset = level->quake-4;
-		else           gfx_y_offset = level->quake+4;
-	}
-
-	if(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN) gfx_y_offset -= advancey;
-	gfx_y_offset += gfx_y_offset_adj;   //2011_04_03, DC: Apply modder adjustment.
-
 	// Draw 3 layers: screen, normal and neon
 	if(time>=neon_time && !freezeall){    // Added freezeall so neon lights don't update if animations are frozen
 		if(pixelformat==PIXEL_8) // under 8bit mode just cycle the palette from 128 to 135
@@ -19727,8 +19713,6 @@ void draw_scrolled_bg(){
 		neon_time = time + (GAME_SPEED/3);
 		neon_count += 2;
 	}
-
-	for(i=0; i<level->numholes; i++) spriteq_add_sprite((int)(level->holes[i][0]-advancex+gfx_x_offset),(int)(level->holes[i][1] - level->holes[i][6] + 4 + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
 
 	if(bgbuffer)
 	{
@@ -19756,8 +19740,6 @@ void draw_scrolled_bg(){
 
 /*******************/
 
-	//printf("bgbuffer_updated: %d\n", bgbuffer_updated);
-
 	if(!freezeall){
 		rocktravel = (level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0; // no like in real life, maybe
 		if(level->bgspeed<0) rocktravel = -rocktravel;
@@ -19765,6 +19747,22 @@ void draw_scrolled_bg(){
 	}else texttime += time-traveltime;
 
 	timevar = time - texttime;
+
+	if(level->rocking){
+		rockpos = (timevar/(GAME_SPEED/8)) & 31;
+		if(level->rocking == 1)         gfx_y_offset = level->quake - 4 - rockoffssine[rockpos];
+		else if(level->rocking == 2) gfx_y_offset = level->quake - 4 - rockoffsshake[rockpos];
+		else if(level->rocking == 3) gfx_y_offset = level->quake - 4 - rockoffsrumble[rockpos];
+	}
+	else if(time){
+		if(level->quake >= 0) gfx_y_offset = level->quake-4;
+		else           gfx_y_offset = level->quake+4;
+	}
+
+	if(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN) gfx_y_offset -= advancey;
+	gfx_y_offset += gfx_y_offset_adj;   //2011_04_03, DC: Apply modder adjustment.
+
+	for(i=0; i<level->numholes; i++) spriteq_add_sprite((int)(level->holes[i][0]-advancex+gfx_x_offset),(int)(level->holes[i][1] - level->holes[i][6] + 4 + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
 
 	if(!bgbuffer_updated) clearscreen(pbgscreen);
 
