@@ -19798,6 +19798,11 @@ void draw_scrolled_bg(){
 			x %= width;
 		} else i = 0;
 
+		if(i>0 && screenmethod.water.watermode!=3  && screenmethod.water.amplitude) {
+			i--;
+			x -= width;
+		}
+
 		if(z<0){
 			j = (-z)/height;
 			z %= height;
