@@ -23714,8 +23714,8 @@ void openborMain(int argc, char** argv)
 			_menutextm((selector==2), 4, 0, "How To Play");
 			_menutextm((selector==3), 5, 0, "Hall Of Fame");
 			_menutextm((selector==4), 6, 0, "Quit");
-			if(selector<0) selector = 5;
-			if(selector>5) selector = 0;
+			if(selector<0) selector = 4;
+			if(selector>4) selector = 0;
 
 			if(bothnewkeys) introtime = time + GAME_SPEED * 20;
 
