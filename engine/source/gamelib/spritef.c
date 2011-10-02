@@ -295,9 +295,9 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
 	gfx.type = gfx_sprite;
 	gfx.sprite = frame;
 
-	if(drawmethod->water.watermode==3){
+	if(drawmethod->water.watermode==3 && drawmethod->water.beginsize>0){
 		gfx_draw_plane(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
-	}else if(drawmethod->water.watermode){
+	}else if(drawmethod->water.watermode && drawmethod->water.amplitude){
 		gfx_draw_water(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
 	}else if(drawmethod->rotate){
 		gfx_draw_rotate(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
