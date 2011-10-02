@@ -275,7 +275,7 @@ void putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawme
 		table = NULL;
 		alpha = 0;
 		transbg = 0;
-	} else if(drawmethod->water.watermode) {
+	} else if(drawmethod->water.watermode && drawmethod->water.amplitude) {
 		gfx.type = gfx_screen;
 		gfx.screen = src;
 		if(drawmethod->water.watermode==3)
