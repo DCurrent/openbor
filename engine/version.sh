@@ -164,6 +164,9 @@ svn log --verbose > ./releases/VERSION_INFO.txt
 7za a -t7z -mx9 -r -x!.svn "./releases/OpenBOR $VERSION.7z" ./releases/*
 }
 
+export LC_MESSAGES=en_US
+export LC_TIME=en_US
+
 case $1 in
 1)
     read_version
