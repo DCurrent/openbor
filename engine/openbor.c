@@ -3251,11 +3251,11 @@ void load_layer(char *filename, int index)
 	if(filename && level->layers[index].gfx.handle ==NULL) shutdown(1, "Error loading file '%s'", filename);
 	else{
 		if(level->layers[index].xrepeat<0) {
-			level->layers[index].xoffset = -level->layers[index].width*20000;
+			level->layers[index].xoffset -= level->layers[index].width*20000;
 			level->layers[index].xrepeat = 40000;
 		}
 		if(level->layers[index].zrepeat<0) {
-			level->layers[index].zoffset = -level->layers[index].height*20000;
+			level->layers[index].zoffset -= level->layers[index].height*20000;
 			level->layers[index].zrepeat = 40000;
 		}
 		//printf("bglayer width=%d height=%d xoffset=%d zoffset=%d xrepeat=%d zrepeat%d\n", level->layers[index].width, level->layers[index].height, level->layers[index].xoffset, level->layers[index].zoffset, level->layers[index].xrepeat, level->layers[index].zrepeat);
@@ -19780,7 +19780,9 @@ void draw_scrolled_bg(){
 		width = layer->width + layer->xspacing;
 		height = layer->height + layer->zspacing;
 
-		x = (int)(layer->xoffset + (advancex)*(layer->xratio) - advancex - bgtravelled * (1-layer->xratio) * layer->bgspeedratio);
+		x = (int)(layer->xoffset - (advancex + bgtravelled *layer->bgspeedratio)*(1.0-layer->xratio) );
+
+		//printf("layerxratio %f  %d %f\n ", layer->xratio, x, layer->bgspeedratio);
 
 		if(level->scrolldir&SCROLL_UP)
 			z = (int)(videomodes.vRes + advancey*layer->zratio - layer->zoffset - height*layer->zrepeat + height + layer->zspacing);
