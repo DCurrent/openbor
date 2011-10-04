@@ -20,8 +20,8 @@
 #include "stringptr.h"
 
 #include "pngdec.h"
-#include "../resources/OpenBOR_Logo_480x272_Link_png.h"
-#include "../resources/OpenBOR_Logo_320x240_Link_png.h"
+#include "../resources/OpenBOR_Logo_480x272_png.h"
+#include "../resources/OpenBOR_Logo_320x240_png.h"
 #include "../resources/OpenBOR_Menu_480x272_png.h"
 #include "../resources/OpenBOR_Menu_320x240_png.h"
 
@@ -566,7 +566,7 @@ void initMenu(int type)
 
 	// Read Logo or Menu from Array.
 	if(!type) {
-		Source = pngToSurface(isWide ? (void*) openbor_logo_480x272_link_png.data : (void*) openbor_logo_320x240_link_png.data);
+		Source = pngToSurface(isWide ? (void*) openbor_logo_480x272_png.data : (void*) openbor_logo_320x240_png.data);
 
 		// Depending on which mode we are in (WideScreen/FullScreen)
 		// allocate proper size for SDL_Surface to perform final Blitting.
