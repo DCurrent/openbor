@@ -12,13 +12,11 @@
 
 #include "globals.h"
 #include "types.h"
+#include "transform.h"
 
 #define _swap(va, vb) {vsw=va;va=vb;vb=vsw;}
 #define P unsigned char
 
-
-extern void draw_pixel_gfx(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy);
-extern void init_gfx_global_draw_stuff(s_screen*, gfx_entry*, s_drawmethod*);
 
 void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_drawmethod* drawmethod, int triangleCount)
 {
@@ -180,6 +178,7 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 					spanTxStep = (rightTx - leftTx) * tmpDiv;
 					spanTyStep = (rightTy - leftTy) * tmpDiv;
 
+					dest_seek(hSpanBegin, targetY);
 					while (hSpanBegin < hSpanEnd)
 					{
 						if(hSpanBegin>=vrect.ulx && hSpanBegin<vrect.lrx)
@@ -188,14 +187,16 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 							//*hSpanBegin = srcp[(int)spanTy * src->width + (int)spanTx];
 							if(!shadow_buffer[temp]) 
 							{
-								draw_pixel_gfx(dest, src, hSpanBegin, targetY, (int)spanTx, (int)spanTy);
+								src_seek( (int)spanTx, (int)spanTy);
+								//draw_pixel_gfx(dest, src, hSpanBegin, targetY, (int)spanTx, (int)spanTy);
+								write_pixel();
 								shadow_buffer[temp] = 1;
 							}
 						}
 
 						spanTx += spanTxStep;
 						spanTy += spanTyStep;
-						
+						dest_inc();
 						++hSpanBegin;
 					}
 				}

@@ -22,6 +22,28 @@ static int transbg;
 int trans_sw, trans_sh, trans_dw, trans_dh;
 static void (*drawfp)(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy);
 
+static s_screen* handle_dest;
+
+static int y_dest;
+static int x_dest;
+static int span_dest;
+
+static unsigned char* ptr_dest;
+static unsigned char* cur_dest;
+
+static gfx_entry* handle_src;
+
+static int y_src;
+static int x_src;
+static int span_src;
+
+static unsigned char* ptr_src;
+static unsigned char* cur_src;
+static unsigned char* cur_spr; // for sprite only
+
+static int spf, dpf; //pixelformat
+
+
 /*transpixelfunc, 8bit*/
 static unsigned char remapcolor(unsigned char* table, unsigned char color, unsigned char unused)
 {
@@ -217,21 +239,233 @@ inline void draw_pixel_gfx(s_screen* dest, gfx_entry* src, int dx, int dy, int s
 	}
 }
 
+inline void write_pixel(){
+	unsigned char ps8;
+	unsigned short pd16, ps16;
+	unsigned pd32, ps32;
+	if(!cur_src) return;
+	switch(dpf)
+	{
+		case PIXEL_8:
+			ps8 = *cur_src;
+			if(transbg && !ps8) return;
+			else if(fillcolor) ps8 = fillcolor;
+			*cur_dest =pfp?pfp(table, ps8, *cur_dest):ps8;
+			break;
+		case PIXEL_16:
+			pd16 = *(unsigned short*)cur_dest;
+			switch(spf)
+			{
+			case PIXEL_16:
+				ps16 = *(unsigned short*)cur_src;
+				if(transbg && !ps16) return;
+				break;
+			case PIXEL_x8:
+				if(transbg && !*cur_src) return;
+				ps16 = ((unsigned short*)table)[*cur_src];
+				break;
+			default:
+				return;
+			}
+			if(fillcolor) ps16 = fillcolor;
+			if(!pfp16) *(unsigned short*)cur_dest = ps16;
+			else       *(unsigned short*)cur_dest = pfp16(ps16, pd16);
+			break;
+		case PIXEL_32:
+			pd32 = *(unsigned*)cur_dest;
+			switch(spf)
+			{
+			case PIXEL_32:
+				ps32 = *(unsigned*)cur_src;
+				if(transbg && !ps32) return;
+				break;
+			case PIXEL_x8:
+				if(transbg && !*cur_src) return;
+				ps32 = ((unsigned*)table)[*cur_src];
+				break;
+			default:
+				return;
+			}
+			if(fillcolor) ps32 = fillcolor;
+			if(!pfp32) *(unsigned*)cur_dest = ps32;
+			else       *(unsigned*)cur_dest = pfp32(ps32, pd32);
+			break;
+		default:
+			break;
+	}
+
+}
+
+inline void dest_seek(int x, int y){
+	int offset;
+	x_dest = x; y_dest = y;
+	offset = (y * trans_dw + x)*pixelbytes[dpf];
+	cur_dest = ptr_dest + offset;	
+}
+
+inline void dest_line_inc(){
+	y_dest++;
+	cur_dest += span_dest;
+}
+
+inline void dest_line_dec(){
+	y_dest--;
+	cur_dest -= span_dest;
+}
+
+//should be within a line
+inline void dest_inc(){
+	x_dest++;
+	cur_dest  += pixelbytes[dpf];
+}
+
+//should be within a line
+inline void dest_dec(){
+	x_dest--;
+	cur_dest -= pixelbytes[dpf];
+}
+
+inline  void _sprite_seek(int x, int y){
+	int* linetab;
+	unsigned char* data;
+	register int lx = 0, count;
+
+	linetab = ((int*)ptr_src) + y;
+
+	data = ((unsigned char*)linetab) + (*linetab);
+
+	while(1) {
+		count = *data++;
+		if(count == 0xFF) {
+			cur_src = NULL;
+			goto quit;
+		}
+		if(lx+count>x) { // transparent pixel
+			cur_src = NULL;
+			goto quit;
+		}
+		lx += count;
+		count = *data++;
+		if(!count) continue;
+		if(lx + count > x){
+			cur_src = data + x - lx;
+			goto quit;
+		}
+		lx+=count;
+		data+=count;
+	}
+
+quit:
+	cur_spr = data-1; // current block head
+	return ;
+
+}
+
+inline void src_seek(int x, int y){
+	x_src = x; y_src = y;
+	switch(handle_src->type){
+	case gfx_sprite:
+		_sprite_seek(x,y);
+		break;
+	case gfx_screen:
+	case gfx_bitmap:
+		cur_src = ptr_src + (y * trans_sw + x)*pixelbytes[spf];
+		break;
+	default:
+		break;
+	}
+}
+
+inline void src_line_inc(){
+	y_src++;
+	switch(handle_src->type){
+	case gfx_sprite:
+		_sprite_seek(x_src, y_src);
+		break;
+	case gfx_screen:
+	case gfx_bitmap:
+		cur_src += span_src;
+		break;
+	default:
+		break;
+	}
+}
+
+inline void src_line_dec(){
+	y_src--;
+	switch(handle_src->type){
+	case gfx_sprite:
+		_sprite_seek(x_src, y_src);
+		break;
+	case gfx_screen:
+	case gfx_bitmap:
+		cur_src -= span_src;
+		break;
+	default:
+		break;
+	}
+}
+
+//should be within a line
+inline void src_inc(){
+	//int cnt;
+	x_src++;
+	switch(handle_src->type){
+	case gfx_sprite:
+		//_sprite_seek(x,y);
+		if(cur_src && cur_spr + *cur_spr > cur_src){
+			cur_src++;
+		}else _sprite_seek(x_src, y_src);
+		break;
+	case gfx_screen:
+	case gfx_bitmap:
+		cur_src += pixelbytes[spf];
+		break;
+	default:
+		break;
+	}
+}
+
+//should be within a line
+inline void src_dec(){
+	x_src--;
+	switch(handle_src->type){
+	case gfx_sprite:
+		//_sprite_seek(x,y);
+		if(cur_src && cur_spr + 1 < cur_src){
+			cur_src--;
+		}else _sprite_seek(x_src, y_src);
+		break;
+	case gfx_screen:
+	case gfx_bitmap:
+		cur_src -= pixelbytes[spf];
+		break;
+	default:
+		break;
+	}
+}
 
 void init_gfx_global_draw_stuff(s_screen* dest, gfx_entry* src, s_drawmethod* drawmethod){
 
-	int spf = 0; //source pixel format
+	spf = dpf = 0; //source pixel format
 	drawfp = draw_pixel_dummy;
 	pfp = NULL; fillcolor = 0; pfp16 = NULL;pfp32 = NULL; table = NULL; transbg = 0;
+
+	handle_dest = dest; handle_src = src;
+	cur_dest = ptr_dest = (unsigned char*)dest->data;
+	x_dest = y_dest = x_src = y_src = 0;
 
 	//nasty checkings due to those different pixel formats
 	switch(src->type)
 	{
 	case gfx_screen:
 		//printf("gfx_screen\n");
+		spf = src->screen->pixelformat;
 		drawfp = draw_pixel_screen;
 		trans_sw = src->screen->width;
 		trans_sh = src->screen->height;
+		cur_src = ptr_src = (unsigned char*)src->screen->data;
+		table = drawmethod->table?drawmethod->table:src->screen->palette;
 		break;
 	case gfx_bitmap:
 		//printf("gfx_bitmap\n");
@@ -239,6 +473,8 @@ void init_gfx_global_draw_stuff(s_screen* dest, gfx_entry* src, s_drawmethod* dr
 		drawfp = draw_pixel_bitmap;
 		trans_sw = src->bitmap->width;
 		trans_sh = src->bitmap->height;
+		cur_src = ptr_src = (unsigned char*)src->bitmap->data;
+		table = drawmethod->table?drawmethod->table:src->bitmap->palette;
 		break;
 	case gfx_sprite:
 		//printf("gfx_sprite\n");
@@ -246,6 +482,9 @@ void init_gfx_global_draw_stuff(s_screen* dest, gfx_entry* src, s_drawmethod* dr
 		drawfp = draw_pixel_sprite;
 		trans_sw = src->sprite->width;
 		trans_sh = src->sprite->height;
+		ptr_src = (unsigned char*)src->sprite->data;
+		cur_spr = ptr_src + (*(int*)ptr_src);
+		table = drawmethod->table?drawmethod->table:src->sprite->palette;
 		break;
 	default:
 		//printf("gfx_unknown\n");
@@ -254,6 +493,9 @@ void init_gfx_global_draw_stuff(s_screen* dest, gfx_entry* src, s_drawmethod* dr
 
 	trans_dw = dest->width;
 	trans_dh = dest->height;
+
+	dpf = dest->pixelformat;
+
 	switch(dest->pixelformat)
 	{
 	case PIXEL_8:
@@ -278,19 +520,20 @@ void init_gfx_global_draw_stuff(s_screen* dest, gfx_entry* src, s_drawmethod* dr
 		fillcolor = drawmethod->fillcolor;
 		if(drawmethod->alpha>0) pfp16 = blendfunctions16[drawmethod->alpha-1];
 		else pfp16 = NULL;
-		table = drawmethod->table;
 		break;
 	case PIXEL_32:
 		fillcolor = drawmethod->fillcolor;
 		if(drawmethod->alpha>0) pfp32 = blendfunctions32[drawmethod->alpha-1];
 		else pfp32 = NULL;
-		table = drawmethod->table;
 		break;
 	default: 
 		return;
 	}
 
-	transbg = drawmethod->transbg; // check color key, we'll need this for screen and bitmap
+	span_src = pixelbytes[spf]*trans_sw;
+	span_dest = pixelbytes[dpf]*trans_dw;
+	src_seek(0,0);
+	transbg = (drawmethod->transbg || src->type==gfx_sprite); // check color key, we'll need this for screen and bitmap
 }
 
 
@@ -375,12 +618,17 @@ void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, 
     {
         srcx_f = srcx0_f;
         srcy_f = srcy0_f;
+		dest_seek(xmin, j);
         for (i=xmin;i<xmax;i++)
         {
             srcx=(int)(srcx_f);
             srcy=(int)(srcy_f);
-			if(srcx>=0 && srcx<trans_sw && srcy>=0 && srcy<trans_sh)
-				draw_pixel_gfx(dest, src, i, j, srcx, srcy);
+			if(srcx>=0 && srcx<trans_sw && srcy>=0 && srcy<trans_sh){
+				//draw_pixel_gfx(dest, src, i, j, srcx, srcy);
+				src_seek(srcx, srcy);
+				write_pixel();
+				dest_inc();
+			}
             srcx_f+=ax;
             srcy_f+=ay;
         }
@@ -466,12 +714,12 @@ void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 			endx = trans_dw;
 			sx += stepdx*(dx+w-trans_dw);
 		} else endx = dx+w;
+		dest_seek(endx-1, j);
 		for(i=endx-1; i>=beginx; i--, sx+=stepdx){
-			/*if((int)sy<=-1){
-				printf("%lf %lf %d %d %lf\n", beginy, endy, trans_sw, trans_sh, sy);
-
-			}*/
-			draw_pixel_gfx(dest, src, i, j, (int)sx, (int)sy);
+			//draw_pixel_gfx(dest, src, i, j, (int)sx, (int)sy);
+			src_seek((int)sx, (int)sy);
+			write_pixel();
+			dest_dec();
 		}
 	}
 
@@ -549,8 +797,9 @@ void gfx_draw_water(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 		bytestocopy = dendx-dbeginx;
 		
 		//TODO: optimize this if necessary
-		for(t=0; t<bytestocopy; t++, sbeginx++, dbeginx++){
-			draw_pixel_gfx(dest, src, dbeginx, y, sbeginx, sy);
+		for(t=0, dest_seek(dbeginx, y), src_seek(sbeginx, sy); t<bytestocopy; t++, dest_inc(), src_inc()){
+			//draw_pixel_gfx(dest, src, dbeginx, y, sbeginx, sy);
+			write_pixel();
 		}
 
 		s += wavelength;
@@ -635,12 +884,15 @@ void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 		if(dy<0) continue;
 		sxpos = osxpos - cx * sxstep;
 
-
+		dest_seek(dx, dy);
 		for(j=0; j<width; j++, sxpos += sxstep){
 			sx = (int)sxpos;
 			sx %= trans_sw;
 			if(sx<0) sx += trans_sw;
-			draw_pixel_gfx(dest, src, dx+j, dy, sx, sy);
+			src_seek(sx, sy);
+			//draw_pixel_gfx(dest, src, dx+j, dy, sx, sy);
+			write_pixel();
+			dest_inc();
 		}
 	}
 
