@@ -1578,8 +1578,8 @@ typedef struct
 
 typedef struct ArgList {
 	size_t count;
-	size_t arglen[18];
-	char* args[18];
+	size_t arglen[32];
+	char* args[32];
 } ArgList;
 
 int     buffer_pakfile(char* filename, char** pbuffer, size_t* psize);

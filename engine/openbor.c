@@ -12091,6 +12091,7 @@ void check_lost()
 			attack.dropv[0]     = (float)3; attack.dropv[1] = (float)1.2; attack.dropv[2] = (float)0;
 			attack.attack_force = self->health;
 			attack.attack_type  = max_attack_types;
+			self->health = 0;
 			self->takedamage(self, &attack);
 		}
 		return;
