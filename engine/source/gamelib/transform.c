@@ -241,8 +241,8 @@ inline void draw_pixel_gfx(s_screen* dest, gfx_entry* src, int dx, int dy, int s
 
 inline void write_pixel(){
 	unsigned char ps8;
-	unsigned short pd16, ps16;
-	unsigned pd32, ps32;
+	unsigned short ps16;
+	unsigned ps32;
 	if(!cur_src) return;
 	switch(dpf)
 	{
@@ -253,7 +253,6 @@ inline void write_pixel(){
 			*cur_dest =pfp?pfp(table, ps8, *cur_dest):ps8;
 			break;
 		case PIXEL_16:
-			pd16 = *(unsigned short*)cur_dest;
 			switch(spf)
 			{
 			case PIXEL_16:
@@ -261,18 +260,17 @@ inline void write_pixel(){
 				if(transbg && !ps16) return;
 				break;
 			case PIXEL_x8:
-				if(transbg && !*cur_src) return;
-				ps16 = ((unsigned short*)table)[*cur_src];
+				if(!(ps8=*cur_src) && transbg) return;
+				ps16 = ((unsigned short*)table)[ps8];
 				break;
 			default:
 				return;
 			}
 			if(fillcolor) ps16 = fillcolor;
 			if(!pfp16) *(unsigned short*)cur_dest = ps16;
-			else       *(unsigned short*)cur_dest = pfp16(ps16, pd16);
+			else       *(unsigned short*)cur_dest = pfp16(ps16, *(unsigned short*)cur_dest);
 			break;
 		case PIXEL_32:
-			pd32 = *(unsigned*)cur_dest;
 			switch(spf)
 			{
 			case PIXEL_32:
@@ -280,15 +278,15 @@ inline void write_pixel(){
 				if(transbg && !ps32) return;
 				break;
 			case PIXEL_x8:
-				if(transbg && !*cur_src) return;
-				ps32 = ((unsigned*)table)[*cur_src];
+				if(!(ps8=*cur_src) && transbg) return;
+				ps32 = ((unsigned*)table)[ps8];
 				break;
 			default:
 				return;
 			}
 			if(fillcolor) ps32 = fillcolor;
 			if(!pfp32) *(unsigned*)cur_dest = ps32;
-			else       *(unsigned*)cur_dest = pfp32(ps32, pd32);
+			else       *(unsigned*)cur_dest = pfp32(ps32, *(unsigned*)cur_dest);
 			break;
 		default:
 			break;
@@ -327,7 +325,7 @@ inline void dest_dec(){
 
 inline  void _sprite_seek(int x, int y){
 	int* linetab;
-	unsigned char* data;
+	unsigned char* data = NULL;
 	register int lx = 0, count;
 
 	linetab = ((int*)ptr_src) + y;
