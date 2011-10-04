@@ -39,8 +39,10 @@ void draw_triangle_list(vert2d* vertices, s_screen *dest, gfx_entry *src, s_draw
 	float spanTx, spanTy, spanTxStep, spanTyStep; // values of Texturecoords when drawing a span
 	rect2d trect, vrect; //triangle rect
 	unsigned char* shadow_buffer; // temporary fix to remove overlapping, relatively slow
+	extern int trans_sw;
 
 	init_gfx_global_draw_stuff(dest, src, drawmethod);
+	if(!trans_sw) return;
 
 	vrect.ulx = vrect.uly = 0;
 	vrect.lrx = dest->width;
