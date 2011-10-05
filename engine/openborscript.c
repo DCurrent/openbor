@@ -321,7 +321,7 @@ Script* alloc_script()
 	return pscript;
 }
 
-void Script_Init(Script* pscript, char* theName, int first)
+void Script_Init(Script* pscript, char* theName, char* comment, int first)
 {
 	int i;
 	if(first)
@@ -339,6 +339,10 @@ void Script_Init(Script* pscript, char* theName, int first)
 	Interpreter_Init(pscript->pinterpreter, theName, &theFunctionList);
 	pscript->interpreterowner = 1; // this is the owner, important
 	pscript->initialized = 1;
+	if(comment){
+		pscript->comment = (char*)malloc(sizeof(char)*(strlen(comment)+1));
+		strcpy(pscript->comment, comment);
+	}
 }
 
 //safe copy method
@@ -347,6 +351,7 @@ void Script_Copy(Script* pdest, Script* psrc, int localclear)
 	if(!psrc->initialized) return;
 	if(pdest->initialized) Script_Clear(pdest, localclear);
 	pdest->pinterpreter = psrc->pinterpreter;
+	pdest->comment = psrc->comment;
 	pdest->interpreterowner = 0; // dont own it
 	pdest->initialized = psrc->initialized; //just copy, it should be 1
 }
@@ -369,7 +374,7 @@ void Script_Clear(Script* pscript, int localclear)
 		Script_Set_Local_Variant("localclear", &tempvar);
 		pscript->pinterpreter->pCurrentInstruction = pscript->pinterpreter->pClearEntry;
 		if(FAILED( Interpreter_EvaluateCall(pscript->pinterpreter))){
-			shutdown(1, "Fatal: failed to execute 'clear' in script %s", pscript->pinterpreter->theSymbolTable.name);
+			shutdown(1, "Fatal: failed to execute 'clear' in script %s %s", pscript->pinterpreter->theSymbolTable.name, pscript->comment?pscript->comment:"");
 		}
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant("localclear", &tempvar);
@@ -393,6 +398,8 @@ void Script_Clear(Script* pscript, int localclear)
 		Interpreter_Clear(pscript->pinterpreter);
 		free(pscript->pinterpreter);
 		pscript->pinterpreter = NULL;
+		if(pscript->comment) free(pscript->comment);
+		pscript->comment = NULL;
 	}
 	if(localclear) Script_Local_Clear();
 	pvars = pscript->vars; // in game clear(localclear!=2) just keep this value
@@ -790,7 +797,7 @@ int Script_Execute(Script* pscript)
 	Interpreter_Reset(pscript->pinterpreter);
 	result = (int)SUCCEEDED(Interpreter_EvaluateImmediate(pscript->pinterpreter));
 	pcurrentscript = temp;
-	if(!result) shutdown(1, "There's an exception while executing script '%s'.\n", pscript->pinterpreter->theSymbolTable.name);
+	if(!result) shutdown(1, "There's an exception while executing script '%s' %s", pscript->pinterpreter->theSymbolTable.name, pscript->comment?pscript->comment:"");
 	return result;
 }
 

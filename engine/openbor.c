@@ -1173,18 +1173,18 @@ void init_scripts()
 {
 	int i;
 	Script_Global_Init();
-	Script_Init(&update_script,     "update",   1);
-	Script_Init(&updated_script,    "updated",  1);
-	Script_Init(&level_script,      "level",    1);
-	Script_Init(&endlevel_script,   "endlevel", 1);
-	Script_Init(&key_script_all,    "keyall",   1);
-	Script_Init(&timetick_script,   "timetick", 1);
-	Script_Init(&loading_script,    "loading",  1);
-	for(i=0; i<4; i++) Script_Init(&score_script[i],    "score",    1);
-	for(i=0; i<4; i++) Script_Init(&key_script[i],      "key",      1);
-	for(i=0; i<4; i++) Script_Init(&join_script[i],     "join",     1);
-	for(i=0; i<4; i++) Script_Init(&respawn_script[i],  "respawn",  1);
-	for(i=0; i<4; i++) Script_Init(&pdie_script[i],     "die",      1);
+	Script_Init(&update_script,     "update",  NULL,  1);
+	Script_Init(&updated_script,    "updated",  NULL, 1);
+	Script_Init(&level_script,      "level",    NULL,  1);
+	Script_Init(&endlevel_script,   "endlevel",  NULL, 1);
+	Script_Init(&key_script_all,    "keyall",   NULL,  1);
+	Script_Init(&timetick_script,   "timetick",  NULL, 1);
+	Script_Init(&loading_script,    "loading",   NULL, 1);
+	for(i=0; i<4; i++) Script_Init(&score_script[i],    "score",    NULL,  1);
+	for(i=0; i<4; i++) Script_Init(&key_script[i],      "key",      NULL,  1);
+	for(i=0; i<4; i++) Script_Init(&join_script[i],     "join",      NULL, 1);
+	for(i=0; i<4; i++) Script_Init(&respawn_script[i],  "respawn",   NULL, 1);
+	for(i=0; i<4; i++) Script_Init(&pdie_script[i],     "die",       NULL, 1);
 }
 
 // This method is called once when the engine starts, do not use it multiple times
@@ -2444,7 +2444,7 @@ void loadScriptFile(){
 	path[l-2] = '0'+(current_set/10);
 	path[l-1] = '0'+(current_set%10);
 
-	Script_Init(&script, "loadScriptFile", 1);
+	Script_Init(&script, "loadScriptFile",  NULL, 1);
 	if(!load_script(&script, path))   Script_Clear(&script, 2);
 	Script_Compile(&script);
 	if(Script_IsInitialized(&script))
@@ -4470,7 +4470,7 @@ void lcmHandleCommandWeapons(ArgList* arglist, s_model* newchar) {
 	}
 }
 void lcmHandleCommandScripts(ArgList* arglist, Script* script, char* scriptname, char* filename) {
-	Script_Init(script, scriptname, 0);
+	Script_Init(script, scriptname, filename, 0);
 	if(load_script(script, GET_ARGP(1)))
 		Script_Compile(script);
 	else shutdown(1, "Unable to load %s '%s' in file '%s'.\n", scriptname, GET_ARGP(1), filename);
@@ -5625,7 +5625,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					lcmHandleCommandScripts(&arglist, newchar->scripts.onspawn_script, "onspawnscript", filename);
 					break;
 				case CMD_MODEL_ANIMATIONSCRIPT:
-					Script_Init(newchar->scripts.animation_script, "animationscript", 0);
+					Script_Init(newchar->scripts.animation_script, "animationscript", filename, 0);
 					if(!load_script(newchar->scripts.animation_script, GET_ARG(1))) {
 						shutdownmessage = "Unable to load animation script!";
 						goto lCleanup;
@@ -7060,7 +7060,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	if(scriptbuf[0]) {
 		//printf("\n%s\n", scriptbuf);
 		if(!Script_IsInitialized(newchar->scripts.animation_script))
-			Script_Init(newchar->scripts.animation_script, newchar->name, 0);
+			Script_Init(newchar->scripts.animation_script, newchar->name, filename, 0);
 		tempInt = Script_AppendText(newchar->scripts.animation_script, scriptbuf, filename);
 		//Interpreter_OutputPCode(newchar->scripts.animation_script.pinterpreter, "code");
 		writeToScriptLog("\n####animationscript function main#####\n# ");
@@ -8534,7 +8534,7 @@ char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
 	if(!templistnode->spawn_script) {
 		templistnode->spawn_script = alloc_script();
 		if(!Script_IsInitialized(templistnode->spawn_script))
-			Script_Init(templistnode->spawn_script, GET_ARGP(0), 0);
+			Script_Init(templistnode->spawn_script, GET_ARGP(0), NULL, 0);
 		else {
 			result = "Multiple spawn entry script!";
 			goto lCleanup;
@@ -9140,7 +9140,7 @@ void load_level(char *filename){
 				}
 				value = GET_ARG(1);
 				if(!Script_IsInitialized(tempscript))
-					Script_Init(tempscript, scriptname, 1);
+					Script_Init(tempscript, scriptname, value, 1);
 				else {
 					errormessage = "Multiple level script!";
 					goto lCleanup;
