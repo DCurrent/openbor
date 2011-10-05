@@ -409,6 +409,7 @@ int                 mpcolourtable[11]   = {0,0,0,0,0,0,0,0,0,0,0};
 int                 hpcolourtable[11]   = {0,0,0,0,0,0,0,0,0,0,0};
 int                 ldcolourtable[11]   = {0,0,0,0,0,0,0,0,0,0,0};
 char                musicname[128]      = {""};
+char                currentmusic[128]    = {""};
 float               musicfade[2]        = {0,0};
 int                 musicloop           = 0;
 u32                 musicoffset         = 0;
@@ -2473,6 +2474,7 @@ int music(char *filename, int loop, long offset)
 		else if(t[0]) debug_printf("Playing \"%s\" by unknown artist", t);
 		else debug_printf("");
 	}
+	strncpy(currentmusic, filename, sizeof(currentmusic)-1);
 	return res;
 }
 
@@ -23751,7 +23753,11 @@ void openborMain(int argc, char** argv)
 						else options();
 					}
 					break;
-				case 2:
+				case 2: {
+					int previousLoop = musicloop;
+					char previousMusic[sizeof(currentmusic)];
+					strncpy(previousMusic, currentmusic, sizeof(previousMusic)-1);
+					
 					if(custScenes != NULL)
 					{
 						strncpy(tmpBuff,custScenes, 128);
@@ -23759,8 +23765,11 @@ void openborMain(int argc, char** argv)
 						playscene(tmpBuff);
 					}
 					else playscene("data/scenes/howto.txt");
+					if(stricmp(previousMusic, currentmusic) != 0)
+						music(previousMusic, previousLoop, 0);
 					relback = 1;
 					break;
+				}
 				case 3:
 					hallfame(0);
 					relback = 1;
