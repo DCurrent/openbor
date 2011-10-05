@@ -542,6 +542,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_aicheckbusy)) return "aicheckbusy";
 	else if (functionRef==((void*)openbor_aicheckattack)) return "aicheckattack";
 	else if (functionRef==((void*)openbor_aicheckmove)) return "aicheckmove";
+	else if (functionRef==((void*)openbor_aicheckjump)) return "aicheckjump";
 	else if (functionRef==((void*)openbor_adjustwalkanimation)) return "adjustwalkanimation";
 	else if (functionRef==((void*)openbor_finditem)) return "finditem";
 	else if (functionRef==((void*)openbor_pickup)) return "pickup";
@@ -1062,6 +1063,8 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_aicheckattack, "aicheckattack");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_aicheckmove, "aicheckmove");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_aicheckjump, "aicheckjump");
 
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_adjustwalkanimation, "adjustwalkanimation");
@@ -11381,6 +11384,12 @@ HRESULT openbor_aicheckmove(ScriptVariant** varlist , ScriptVariant** pretvar, i
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 	(*pretvar)->lVal = (LONG) common_move();
+	return S_OK;
+}
+HRESULT openbor_aicheckjump(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG) common_try_jump();
 	return S_OK;
 }
 
