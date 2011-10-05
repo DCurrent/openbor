@@ -1852,6 +1852,12 @@ void update(int ingame, int usevwait);
 void fade_out(int type, int speed);
 void apply_controls();
 void plan();
+int ai_check_warp();
+int ai_check_lie();
+int ai_check_grabbed();
+int ai_check_grab();
+int ai_check_escape();
+int ai_check_busy();
 #ifndef PSP
 void display_credits(void);
 #endif

@@ -12271,6 +12271,8 @@ void update_animation()
 	{
 		self->seal = 0;
 	}
+	// Reset their escapecount if they aren't being spammed anymore.
+	if(self->modeldata.escapehits && !self->inpain) self->escapecount = 0;
 
 	if(self->nextanim == time ||
 		(self->modeldata.type == TYPE_TEXTBOX && self->modeldata.subtype != SUBTYPE_NOSKIP &&
@@ -15515,10 +15517,7 @@ int common_try_chase(entity* target, int dox, int doz)
 
 	self->running = 0;
 	
-	if(self->xdir>0) self->xdir = self->modeldata.speed;
-	else if(self->xdir<0) self->xdir = -self->modeldata.speed;
-	if(self->zdir>0) self->zdir = self->modeldata.speed/2;
-	else if(self->zdir<0) self->zdir = -self->modeldata.speed/2;
+	adjustspeed(self->modeldata.speed, self->x, self->z, self->x + self->xdir, self->z + self->zdir, &self->xdir, &self->zdir);
 
 	if(target == NULL || self->modeldata.nomove) return 0;
 
@@ -15536,7 +15535,7 @@ int common_try_chase(entity* target, int dox, int doz)
 	mindz = grabd / 4;
 	
 	if(dox){
-		if((dx>150 || dx+dz>200) && validanim(self, ANI_RUN)){
+		if(dx>150 && validanim(self, ANI_RUN)){
 			self->xdir = self->modeldata.runspeed;
 			self->running = 1;
 		}
@@ -16380,6 +16379,61 @@ int checkplanned(){
 }
 
 
+int ai_check_warp(){
+	if(self->link) return 0;
+
+	if(self->modeldata.subtype == SUBTYPE_FOLLOW && self->parent &&
+		(diff(self->z, self->parent->z) > self->modeldata.animation[ANI_IDLE]->range.xmax ||
+		diff(self->x, self->parent->x) > self->modeldata.animation[ANI_IDLE]->range.xmax) )
+	{
+		self->takeaction = npc_warp;
+		return 1;
+	}
+	return 0;
+}
+
+int ai_check_lie(){
+	if(self->drop && self->a==self->base && !self->tossv && validanim(self,ANI_RISEATTACK) && ((rand32()%(self->stalltime-time+1)) < 3) && (self->health >0 && time > self->staydown.riseattack_stall))
+	{
+		common_try_riseattack();
+		return 1;
+	}
+	return 0;
+}
+
+int ai_check_grabbed(){
+	if(self->link && !self->grabbing && !self->inpain && self->takeaction!=common_prethrow && !inair(self) &&
+	   time >= self->stalltime && validanim(self,ANI_SPECIAL))
+	{
+		check_special();
+		return 1;
+	}
+	return 0;
+}
+
+int ai_check_grab(){
+	if(self->grabbing && !self->attacking)
+	{
+		common_grab_check();
+		return 1;
+	}
+	return 0;
+}
+int ai_check_escape(){
+	if((self->escapecount > self->modeldata.escapehits) && !inair(self) && validanim(self,ANI_SPECIAL2))
+	{
+		// Counter the player!
+		check_costmove(ANI_SPECIAL2, 0);
+		return 1;
+	}
+	return 0;
+}
+
+int ai_check_busy(){
+	return self->link || !self->idling;
+}
+
+
 // A.I root
 void common_think()
 {
@@ -16389,55 +16443,27 @@ void common_think()
 	//if(checkplanned()) return;
 
 	// too far away , do a warp
-	if(self->modeldata.subtype == SUBTYPE_FOLLOW && self->parent &&
-		(diff(self->z, self->parent->z) > self->modeldata.animation[ANI_IDLE]->range.xmax ||
-		diff(self->x, self->parent->x) > self->modeldata.animation[ANI_IDLE]->range.xmax) )
-	{
-		self->takeaction = npc_warp;
-		return;
-	}
+	if(ai_check_warp()) return;
 
 	// rise? try rise attack
-	if(self->drop && self->a==self->base && !self->tossv && validanim(self,ANI_RISEATTACK) && ((rand32()%(self->stalltime-time+1)) < 3) && (self->health >0 && time > self->staydown.riseattack_stall))
-	{
-		common_try_riseattack();
-		return;
-	}
+	if(ai_check_lie()) return;
 
 	// Escape?
-	if(self->link && !self->grabbing && !self->inpain && self->takeaction!=common_prethrow && !inair(self) &&
-	   time >= self->stalltime && validanim(self,ANI_SPECIAL))
-	{
-		check_special();
-		return;
-	}
+	if(ai_check_grabbed()) return;
 
-	if(self->grabbing && !self->attacking)
-	{
-		common_grab_check();
-		return;
-	}
-
-	// Reset their escapecount if they aren't being spammed anymore.
-	if(self->modeldata.escapehits && !self->inpain) self->escapecount = 0;
+	//grabbing something
+	if(ai_check_grab()) return;
 
 	// Enemies can now escape non-knockdown spammage (What a weird phrase)!
-	if((self->escapecount > self->modeldata.escapehits) && !inair(self) && validanim(self,ANI_SPECIAL2))
-	{
-		// Counter the player!
-		check_costmove(ANI_SPECIAL2, 0);
-		return;
-	}
+	if(ai_check_escape()) return;
 
-	if(self->link) return;
+	// busy right now?
+	if(ai_check_busy()) return;
 
 	// idle, so try to attack or judge next move
 	// dont move if fall into a hole or off a wall
-	if(self->idling)
-	{
-	   if(common_attack()) return;
-	   common_move();
-	}
+   if(common_attack()) return;
+   common_move();
 }
 
 //////////////////////////////////////////////////////////////////////////

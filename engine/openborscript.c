@@ -534,6 +534,14 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_settexture)) return "settexture";
 	else if (functionRef==((void*)openbor_setvertex)) return "setvertex";
 	else if (functionRef==((void*)openbor_trianglelist)) return "trianglelist";
+	else if (functionRef==((void*)openbor_aicheckwarp)) return "aicheckwarp";
+	else if (functionRef==((void*)openbor_aichecklie)) return "aichecklie";
+	else if (functionRef==((void*)openbor_aicheckgrabbed)) return "aicheckgrabbed";
+	else if (functionRef==((void*)openbor_aicheckgrab)) return "aicheckgrab";
+	else if (functionRef==((void*)openbor_aicheckescape)) return "aicheckescape";
+	else if (functionRef==((void*)openbor_aicheckbusy)) return "aicheckbusy";
+	else if (functionRef==((void*)openbor_aicheckattack)) return "aicheckattack";
+	else if (functionRef==((void*)openbor_aicheckmove)) return "aicheckmove";
 	else return "<unknown function>";
 }
 
@@ -1034,6 +1042,24 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_setvertex, "setvertex");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_trianglelist, "trianglelist");
+
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_aicheckwarp, "aicheckwarp");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_aichecklie, "aichecklie");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_aicheckgrabbed, "aicheckgrabbed");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_aicheckgrab, "aicheckgrab");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_aicheckescape, "aicheckescape");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_aicheckbusy, "aicheckbusy");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_aicheckattack, "aicheckattack");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_aicheckmove, "aicheckmove");
+
 	//printf("Done!\n");
 
 }
@@ -11281,3 +11307,55 @@ zoom_error:
 	printf("Function requires 5 int values: zoom(int x, int y, int scalex, int scaley, int z)\n");
 	return E_FAIL;
 }
+
+// basic ai checkings, make it easier for modder to create their own think script
+HRESULT openbor_aicheckwarp(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG) ai_check_warp();
+	return S_OK;
+}
+HRESULT openbor_aichecklie(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG) ai_check_lie();
+	return S_OK;
+}
+HRESULT openbor_aicheckgrabbed(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG) ai_check_grabbed();
+	return S_OK;
+}
+HRESULT openbor_aicheckgrab(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG) ai_check_grab();
+	return S_OK;
+}
+HRESULT openbor_aicheckescape(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG) ai_check_escape();
+	return S_OK;
+}
+HRESULT openbor_aicheckbusy(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG) ai_check_busy();
+	return S_OK;
+}
+HRESULT openbor_aicheckattack(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG) common_attack();
+	return S_OK;
+}
+HRESULT openbor_aicheckmove(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG) common_move();
+	return S_OK;
+}
+
+
