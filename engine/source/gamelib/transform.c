@@ -619,16 +619,12 @@ void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, 
     {
         srcx_f = srcx0_f;
         srcy_f = srcy0_f;
-		dest_seek(xmin, j);
         for (i=xmin;i<xmax;i++)
         {
             srcx=(int)(srcx_f);
             srcy=(int)(srcy_f);
 			if(srcx>=0 && srcx<trans_sw && srcy>=0 && srcy<trans_sh){
-				//draw_pixel_gfx(dest, src, i, j, srcx, srcy);
-				src_seek(srcx, srcy);
-				write_pixel();
-				dest_inc();
+				draw_pixel_gfx(dest, src, i, j, srcx, srcy);
 			}
             srcx_f+=ax;
             srcy_f+=ay;
