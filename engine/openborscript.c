@@ -543,6 +543,8 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_aicheckattack)) return "aicheckattack";
 	else if (functionRef==((void*)openbor_aicheckmove)) return "aicheckmove";
 	else if (functionRef==((void*)openbor_adjustwalkanimation)) return "adjustwalkanimation";
+	else if (functionRef==((void*)openbor_finditem)) return "finditem";
+	else if (functionRef==((void*)openbor_pickup)) return "pickup";
 	else return "<unknown function>";
 }
 
@@ -1063,6 +1065,10 @@ void Script_LoadSystemFunctions()
 
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_adjustwalkanimation, "adjustwalkanimation");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_finditem, "finditem");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_pickup, "pickup");
 
 	//printf("Done!\n");
 
@@ -11404,6 +11410,59 @@ HRESULT openbor_adjustwalkanimation(ScriptVariant** varlist , ScriptVariant** pr
 	return S_OK;
 adjustwalkanimation_error:
 	printf("Function adjustwalkanimation(entity, target), both parameters are optional, but must be valid.");
+	return E_FAIL;
+}
+
+//finditem(entity)
+HRESULT openbor_finditem(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	entity* e, *t, *temp;
+
+	*pretvar = NULL;
+
+	if(paramCount<1) e = self;
+	else if(varlist[0]->vt==VT_PTR) e = (entity*)varlist[0]->ptrVal;
+	else goto finditem_error;
+
+	temp = self;
+
+	self = e;
+	t = normal_find_item();
+	self = temp;
+
+	return S_OK;
+finditem_error:
+	printf("Function finditem(entity), entity is optional, but must be valid.");
+	return E_FAIL;
+}
+
+
+//pickup(entity, item)
+HRESULT openbor_pickup(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	entity* e, *t, *temp;
+
+	*pretvar = NULL;
+
+	if(paramCount<2) goto pickup_error;
+
+	if(varlist[0]->vt==VT_PTR) e = (entity*)varlist[0]->ptrVal;
+	else goto pickup_error;
+
+	if(varlist[1]->vt==VT_PTR) t = (entity*)varlist[0]->ptrVal;
+	else goto pickup_error;
+
+	if(!e || !t) goto pickup_error;
+
+	temp = self;
+
+	self = e;
+	common_pickupitem(t);
+	self = temp;
+
+	return S_OK;
+pickup_error:
+	printf("Function pickup(entity, item), handles must be valid.");
 	return E_FAIL;
 }
 
