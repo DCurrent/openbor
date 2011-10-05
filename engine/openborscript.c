@@ -11397,7 +11397,7 @@ HRESULT openbor_adjustwalkanimation(ScriptVariant** varlist , ScriptVariant** pr
 	else goto adjustwalkanimation_error;
 
 	if(paramCount<2) t = NULL;
-	else if(varlist[1]->vt==VT_PTR) t = (entity*)varlist[0]->ptrVal;
+	else if(varlist[1]->vt==VT_PTR) t = (entity*)varlist[1]->ptrVal;
 	else if(varlist[1]->vt==VT_EMPTY) t = NULL;
 	else goto adjustwalkanimation_error;
 
@@ -11449,7 +11449,7 @@ HRESULT openbor_pickup(ScriptVariant** varlist , ScriptVariant** pretvar, int pa
 	if(varlist[0]->vt==VT_PTR) e = (entity*)varlist[0]->ptrVal;
 	else goto pickup_error;
 
-	if(varlist[1]->vt==VT_PTR) t = (entity*)varlist[0]->ptrVal;
+	if(varlist[1]->vt==VT_PTR) t = (entity*)varlist[1]->ptrVal;
 	else goto pickup_error;
 
 	if(!e || !t) goto pickup_error;
