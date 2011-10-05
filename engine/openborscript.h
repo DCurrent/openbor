@@ -25,6 +25,7 @@ typedef struct
 typedef struct Script
 {
 	Interpreter* pinterpreter;
+	char* comment; // debug purpose
 	ScriptVariant* vars;
 	int initialized;        //flag
 	int interpreterowner;   //flag
@@ -47,7 +48,7 @@ ScriptVariant* Script_Get_Global_Variant(char* theName);
 int Script_Set_Global_Variant(char* theName, ScriptVariant* var);
 ScriptVariant* Script_Get_Local_Variant(char* theName);
 int Script_Set_Local_Variant(char* theName, ScriptVariant* var);
-void Script_Init(Script* pscript, char* theName, int first);
+void Script_Init(Script* pscript, char* theName, char* comment, int first);
 Script* alloc_script();
 void Script_Copy(Script* pdest, Script* psrc, int localclear);
 int Script_IsInitialized(Script* pscript);
