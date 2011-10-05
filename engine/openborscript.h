@@ -190,6 +190,7 @@ HRESULT openbor_aicheckbusy(ScriptVariant** varlist , ScriptVariant** pretvar, i
 HRESULT openbor_aicheckattack(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_aicheckmove(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
+HRESULT openbor_adjustwalkanimation(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount);
 void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount);

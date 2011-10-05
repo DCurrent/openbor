@@ -542,6 +542,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_aicheckbusy)) return "aicheckbusy";
 	else if (functionRef==((void*)openbor_aicheckattack)) return "aicheckattack";
 	else if (functionRef==((void*)openbor_aicheckmove)) return "aicheckmove";
+	else if (functionRef==((void*)openbor_adjustwalkanimation)) return "adjustwalkanimation";
 	else return "<unknown function>";
 }
 
@@ -1059,6 +1060,9 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_aicheckattack, "aicheckattack");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_aicheckmove, "aicheckmove");
+
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_adjustwalkanimation, "adjustwalkanimation");
 
 	//printf("Done!\n");
 
@@ -2572,6 +2576,7 @@ enum getentityproperty_enum {
 	_gep_blockback,
 	_gep_blockodds,
 	_gep_blockpain,
+	_gep_boss,
 	_gep_bounce,
 	_gep_chargerate,
 	_gep_colourmap,
@@ -2916,6 +2921,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"blockback",
 		"blockodds",
 		"blockpain",
+		"boss",
 		"bounce",
 		"chargerate",
 		"colourmap",
@@ -3880,6 +3886,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 			ent->modeldata.blockpain = (int)ltemp;
+		break;
+	}
+	case _gep_boss:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->boss;
 		break;
 	}
 	case _gep_bounce:
@@ -5347,6 +5359,7 @@ enum changeentityproperty_enum {
     _cep_blockback,
     _cep_blockodds,
     _cep_blockpain,
+	_cep_boss,
     _cep_bounce,
     _cep_candamage,
     _cep_combostep,
@@ -5575,6 +5588,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"blockback",
 		"blockodds",
 		"blockpain",
+		"boss",
 		"bounce",
 		"candamage",
 		"combostep",
@@ -6200,6 +6214,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 			ent->modeldata.blockpain = (int)ltemp;
+		break;
+	}
+	case _cep_boss:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->boss = (int)ltemp;
 		break;
 	}
 	case _cep_bounce:
@@ -11358,4 +11378,32 @@ HRESULT openbor_aicheckmove(ScriptVariant** varlist , ScriptVariant** pretvar, i
 	return S_OK;
 }
 
+// complex, so make a function for ai
+// adjustwalkanimation(ent, target);
+HRESULT openbor_adjustwalkanimation(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	entity* e, *t, *temp;
+
+	*pretvar = NULL;
+
+	if(paramCount<1) e = self;
+	else if(varlist[0]->vt==VT_PTR) e = (entity*)varlist[0]->ptrVal;
+	else goto adjustwalkanimation_error;
+
+	if(paramCount<2) t = NULL;
+	else if(varlist[1]->vt==VT_PTR) t = (entity*)varlist[0]->ptrVal;
+	else if(varlist[1]->vt==VT_EMPTY) t = NULL;
+	else goto adjustwalkanimation_error;
+
+	temp = self;
+
+	self = e;
+	adjust_walk_animation(t);
+	self = temp;
+
+	return S_OK;
+adjustwalkanimation_error:
+	printf("Function adjustwalkanimation(entity, target), both parameters are optional, but must be valid.");
+	return E_FAIL;
+}
 
