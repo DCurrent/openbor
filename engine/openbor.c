@@ -16161,9 +16161,10 @@ int common_move()
 		if( (other && other == find_ent_here(self, self->x, self->z, TYPE_ITEM)) && other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
 		{
 			seta = (float)(self->animation->seta?self->animation->seta[self->animpos]:-1);
-			if(diff(self->a - (seta>= 0) * seta , other->a)<0.1)
-			common_pickupitem(other);
-			return 1;
+			if(diff(self->a - (seta>= 0) * seta , other->a)<0.1){
+				common_pickupitem(other);
+				return 1;
+			}
 		}
 
 		if(common_try_jump()) return 1;  //need to jump? so quit
