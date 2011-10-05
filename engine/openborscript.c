@@ -11436,8 +11436,6 @@ HRESULT openbor_finditem(ScriptVariant** varlist , ScriptVariant** pretvar, int 
 
 	entity* e, *t, *temp;
 
-	*pretvar = NULL;
-
 	if(paramCount<1) e = self;
 	else if(varlist[0]->vt==VT_PTR) e = (entity*)varlist[0]->ptrVal;
 	else goto finditem_error;
@@ -11448,8 +11446,13 @@ HRESULT openbor_finditem(ScriptVariant** varlist , ScriptVariant** pretvar, int 
 	t = normal_find_item();
 	self = temp;
 
+	ScriptVariant_ChangeType(*pretvar, VT_PTR);
+	(*pretvar)->ptrVal = (VOID*)t;
+
 	return S_OK;
 finditem_error:
+
+	*pretvar = NULL;
 	printf("Function finditem(entity), entity is optional, but must be valid.");
 	return E_FAIL;
 }

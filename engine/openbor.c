@@ -15497,9 +15497,9 @@ int checkpathblocked()
 			self->stalltime = time + GAME_SPEED/2;
 			adjust_walk_animation(NULL);
 			self->pathblocked = 0;
+			return 1;
 
 		}
-		return 1;
 	}
 	return 0;
 }
