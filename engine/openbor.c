@@ -4825,7 +4825,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(GET_INT_ARG(2)) newchar->makeinv = -newchar->makeinv;
 					break;
 				case CMD_MODEL_RISEINV:
-					newchar->riseinv = GET_INT_ARG(1) * GAME_SPEED;
+					newchar->riseinv = GET_FLOAT_ARG(1) * GAME_SPEED;
 					if(GET_INT_ARG(2)) newchar->riseinv = -newchar->riseinv;
 					break;
 				case CMD_MODEL_LOAD:
@@ -15702,9 +15702,11 @@ int common_try_wandercompletely(int dox, int doz)
 		if((rnum & 15) < 4) self->xdir = -self->modeldata.speed;
 		else if((rnum & 15) > 11) self->xdir = self->modeldata.speed;
 		else self->xdir = 0;
-		if( (self->x<screenx-10 && self->xdir<0) ||
-			(self->x>screenx+videomodes.hRes+10 && self->xdir>0) ){
-			self->xdir = -self->xdir;
+		if( self->x<screenx-10){
+			self->xdir = self->modeldata.speed;
+			stalladd = GAME_SPEED;
+		}else if(self->x>screenx+videomodes.hRes+10){
+			self->xdir = -self->modeldata.speed;
 			stalladd = GAME_SPEED;
 		}
 
@@ -15714,10 +15716,11 @@ int common_try_wandercompletely(int dox, int doz)
 		if((rnum & 15) < 4) self->zdir = -self->modeldata.speed/2;
 		else if((rnum & 15) > 11) self->zdir = self->modeldata.speed/2;
 		else self->zdir = 0;
-		if( (self->z<screeny-10 && self->zdir<0) ||
-			(self->z>screeny+videomodes.vRes+10 && self->zdir>0) )
-		{
-			self->zdir = -self->zdir;
+		if(self->z<screeny-10){
+			self->zdir = self->modeldata.speed/2;
+			stalladd = GAME_SPEED;
+		}else if(self->z>screeny+videomodes.vRes+10){
+			self->zdir = -self->modeldata.speed/2;
 			stalladd = GAME_SPEED;
 		}
 
@@ -16146,7 +16149,7 @@ int common_move()
 			else if(owner)
 				self->direction = (self->x < owner->x);
 		}else if(aimove==AIMOVE1_WANDER){
-			self->direction = (self->xdir>0);
+			if(self->xdir) self->direction = (self->xdir>0);
 		}
 
 		//turn back if we have a turn animation
@@ -16279,7 +16282,7 @@ int common_move()
 
 			stall = GAME_SPEED - self->modeldata.aggression;
 
-			if(stall<GAME_SPEED) stall = GAME_SPEED/2;
+			if(stall<GAME_SPEED/2) stall = GAME_SPEED/2;
 
 			self->stalltime += stall;
 		}
