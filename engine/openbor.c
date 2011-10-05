@@ -8675,7 +8675,8 @@ void load_level(char *filename){
 	nopause = 0;
 	noscreenshot = 0;
 	panel_width = panel_height = frontpanels_loaded = 0;
-	memset(order, 0, sizeof(s_layer*)*LEVEL_MAX_PANELS*3);
+	memset(panels, 0, sizeof(s_layer*)*LEVEL_MAX_PANELS*3);
+	memset(order, 0, sizeof(int)*LEVEL_MAX_PANELS);
 
 	reset_playable_list(1);
 
