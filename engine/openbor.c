@@ -9437,7 +9437,8 @@ void load_level(char *filename){
 			load_layer(NULL, i);
 		}
 
-		level->layersref[level->numlayersref++] = *(level->background);
+		if(level->background)
+			level->layersref[level->numlayersref++] = *(level->background);
 
 
 		// non-panel type layers
