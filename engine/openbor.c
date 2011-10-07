@@ -8811,7 +8811,7 @@ void load_level(char *filename){
 
 				if((GET_ARG(i+8))[0]==0) bgl->xrepeat = -1;
 				if((GET_ARG(i+9))[0]==0) bgl->zrepeat = -1;
-				if((GET_ARG(i+16))[0]==0) bgl->bgspeedratio = 1.0;
+				if(cmd==CMD_LEVEL_BACKGROUND && (GET_ARG(i+16))[0]==0) bgl->bgspeedratio = 1.0;
 
 				if(blendfx_is_set==0 && dm->alpha) blendfx[dm->alpha-1] = 1;
 
@@ -16352,7 +16352,7 @@ int common_move()
 		}
 
 		//target is moving? 
-		if(aimove != AIMOVE1_WANDER && ent && (ent->xdir || ent->zdir) && self->stalltime>time + GAME_SPEED/10){
+		if(!(aimove&AIMOVE1_WANDER) && ent && (ent->xdir || ent->zdir) && self->stalltime>time + GAME_SPEED/10){
 			self->stalltime = time + GAME_SPEED/10;
 		}
 
