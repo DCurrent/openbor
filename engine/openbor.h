@@ -1202,6 +1202,8 @@ typedef struct entity
 	float			a;								// Altitude
 	float			xdir;
 	float			zdir;
+	float           destx;							// temporary values for ai functions
+	float			destz;
 	float			base;							// Default altitude
 	float           altbase;                        // Altitude affected by movea
 	float			tossv;							// Effect of gravity
