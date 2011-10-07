@@ -11457,7 +11457,6 @@ finditem_error:
 	return E_FAIL;
 }
 
-
 //pickup(entity, item)
 HRESULT openbor_pickup(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
 
@@ -11484,6 +11483,36 @@ HRESULT openbor_pickup(ScriptVariant** varlist , ScriptVariant** pretvar, int pa
 	return S_OK;
 pickup_error:
 	printf("Function pickup(entity, item), handles must be valid.");
+	return E_FAIL;
+}
+
+//testmove(entity, x, z)
+HRESULT openbor_testmove(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	entity* e;
+	DOUBLE x, z;
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+	if(paramCount<3) goto testmove_error;
+
+	if(varlist[0]->vt==VT_PTR) e = (entity*)varlist[0]->ptrVal;
+	else goto testmove_error;
+
+	if(FAILED(ScriptVariant_DecimalValue(varlist[1], &x)))
+		goto testmove_error;
+
+	if(FAILED(ScriptVariant_DecimalValue(varlist[2], &z)))
+		goto testmove_error;
+
+	if(!e) goto testmove_error;
+
+	(*pretvar)->lVal = (LONG) testmove(e, e->x, e->z, x, z);
+
+	return S_OK;
+testmove_error:
+	*pretvar = NULL;
+	printf("Function testmove(entity, x, z)");
 	return E_FAIL;
 }
 
