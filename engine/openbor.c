@@ -8776,7 +8776,9 @@ void load_level(char *filename){
 					strncpy(bgPath, value, strlen(value)+1);
 					bgl->oldtype = bgt_background;
 					bgl->gfx.type=gfx_screen;
-				}else bgl->oldtype = bgt_bglayer;
+				}else if(cmd==CMD_LEVEL_BGLAYER) bgl->oldtype = bgt_bglayer;
+				else if(cmd==CMD_LEVEL_FGLAYER) bgl->oldtype = bgt_fglayer;
+				else if(cmd==CMD_LEVEL_LAYER) bgl->oldtype = bgt_generic;
 
 				dm = &(bgl->drawmethod);
 				*dm = plainmethod;

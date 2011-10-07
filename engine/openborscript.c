@@ -10604,20 +10604,28 @@ HRESULT openbor_getlayerproperty(ScriptVariant** varlist , ScriptVariant** pretv
 	propind = varlist[2]->lVal;
 
 	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &ind)))
-		goto getlayerproperty_error;
+		goto getlayerproperty_error2;
 
 	layer = _getlayer(type, (int)ind);
 
-	if(layer==NULL) goto getlayerproperty_error;
+	if(layer==NULL) goto getlayerproperty_error2;
 
 	if(FAILED(_getlayerproperty(layer, propind, pretvar)))
-		goto getlayerproperty_error;
+		goto getlayerproperty_error3;
 
 	return S_OK;
 
 getlayerproperty_error:
 	*pretvar = NULL;
 	printf("Function getlayerproperty must have 3 parameters: layertype, index and propertyname\n");
+	return E_FAIL;
+getlayerproperty_error2:
+	*pretvar = NULL;
+	printf("Layer not found!\n");
+	return E_FAIL;
+getlayerproperty_error3:
+	*pretvar = NULL;
+	printf("Bad property name or value.\n");
 	return E_FAIL;
 }
 
@@ -10638,19 +10646,25 @@ HRESULT openbor_changelayerproperty(ScriptVariant** varlist , ScriptVariant** pr
 	propind = varlist[2]->lVal;
 
 	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &ind)))
-		goto chglayerproperty_error;
+		goto chglayerproperty_error2;
 
 	layer = _getlayer(type, (int)ind);
 
-	if(layer==NULL) goto chglayerproperty_error;
+	if(layer==NULL) goto chglayerproperty_error2;
 
 	if(FAILED(_changelayerproperty(layer, propind, varlist[3])))
-		goto chglayerproperty_error;
+		goto chglayerproperty_error3;
 
 	return S_OK;
 
 chglayerproperty_error:
 	printf("Function changelayerproperty must have 4 parameters: layertype, index, propertyname and value\n");
+	return E_FAIL;
+chglayerproperty_error2:
+	printf("Layer not found!\n");
+	return E_FAIL;
+chglayerproperty_error3:
+	printf("Layer property not understood or bad value.\n");
 	return E_FAIL;
 }
 
