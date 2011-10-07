@@ -15182,7 +15182,7 @@ void common_attack_finish()
 
 	if(target && !self->modeldata.nomove && diff(self->x, target->x)<80 && (rand32()&3))
 	{
-		self->destx = self->x>target->x?(target->x+120):(target->x-120);
+		self->destx = self->x>target->x?MIN(self->x+40, target->x+80):MAX(self->x-40,target->x-80);
 		self->destz = self->z;
 		self->xdir = self->x>target->x?self->modeldata.speed:-self->modeldata.speed;
 		self->zdir = 0;
@@ -15386,10 +15386,16 @@ int common_try_pick(entity* other)
 
 	if(other == NULL || self->modeldata.nomove) return 0;
 
-	if(!dz && !dx) self->xdir = self->zdir = 0;
+	if(!dz && !dx) {
+		self->xdir = self->zdir = 0;
+		self->destz = self->z;
+		self->destx = self->x;
+	}
 	else {
 		self->xdir = maxspeed * dx / (dx+dz);
 		self->zdir = maxspeed * dz / (dx+dz);
+		self->destx = other->x;
+		self->destz = other->z;
 	}
 	if(self->x > other->x) self->xdir = -self->xdir;
 	if(self->z > other->z) self->zdir = -self->zdir;
@@ -15560,6 +15566,7 @@ int common_try_chase(entity* target, int dox, int doz)
 		range = (self->modeldata.animation[randomatk]->range.xmin + self->modeldata.animation[randomatk]->range.xmax)/2;
 		//printf("range picked: ani %d, range %f\n", randomatk, range);
 		if(range<0) range = self->modeldata.grabdistance;
+		else if(range>videomodes.hRes/4) range = videomodes.hRes/4;
 	} else range = self->modeldata.grabdistance;
 
 	if(dox){
