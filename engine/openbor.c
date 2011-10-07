@@ -15671,13 +15671,13 @@ int common_try_avoid(entity* target, int dox, int doz)
 
 	randomatk = pick_random_attack(NULL, 0);
 
-	if((rand32()&15)<10 && randomatk>=0){
-		mindx = self->modeldata.animation[randomatk]->range.xmax-self->modeldata.speed;
-		if(mindx<0) mindx = videomodes.hRes / 3;
-		maxdx = mindx + videomodes.hRes / 6;
-		mindz = self->modeldata.animation[randomatk]->range.zmax-self->modeldata.speed;
-		if(mindz<0) mindz = videomodes.vRes / 3;
-		maxdz = mindz + videomodes.vRes / 6;
+	if((rand32()&15)<8 && randomatk>=0){
+		maxdx = self->modeldata.animation[randomatk]->range.xmax-self->modeldata.speed;
+		if(maxdx<videomodes.hRes/5) maxdx = videomodes.hRes / 5;
+		mindx = maxdx - 10;
+		maxdz = self->modeldata.animation[randomatk]->range.zmax-self->modeldata.speed;
+		if(maxdz<videomodes.vRes/5) maxdz = videomodes.vRes / 5;
+		mindz = maxdz - 10;
 	}else {
 		mindx = videomodes.hRes / 3;
 		maxdx = videomodes.hRes / 2;
