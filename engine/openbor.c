@@ -10713,7 +10713,7 @@ void update_frame(entity* ent, int f)
 void ent_set_anim(entity *ent, int aninum, int resetable)
 {
 	s_anim *ani = NULL;
-	int animpos;
+	int animpos, sync = 0, nextanim = 0;
 
 	if(!ent) {
 		printf("FATAL: tried to set animation with invalid address (no such object)");
@@ -10740,8 +10740,11 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 
 	if(ent->animation && ani->sync>=0 && ent->animation->sync==ani->sync){
 		animpos = ent->animpos;
-		if(animpos>=ent->animation->numframes)
+		if(animpos>=ani->numframes)
 			animpos = 0;
+
+		sync = 1;
+		nextanim = ent->nextanim;
 	}
 	else animpos = 0;
 
@@ -10760,6 +10763,8 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 	ent->altbase = 0;
 
 	update_frame(ent, animpos);
+
+	if(sync) ent->nextanim = nextanim;
 }
 
 
