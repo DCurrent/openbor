@@ -804,6 +804,7 @@ typedef struct
 	s_landframe     landframe;                      // Landing behavior. 2011_04_01, DC: Moved to struct.
 	short           dropframe:16;                   // if tossv < 0, this frame will be set
 	short           animhits:16;                    // Does the attack need to hit before cancel is allowed?
+	short			sync:16;						// sychronize frame to previous animation if they matches
 }s_anim;
 
 typedef struct

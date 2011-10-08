@@ -683,13 +683,15 @@ void Parser_Opt_else(Parser* pparser )
 
 void Parser_Iter_stmt(Parser* pparser )
 {
-	Label endLabel, startLabel;
+	Label endLabel, startLabel, continueLabel;
 	List* pDefInst = NULL;
 	Instruction* pInstruction;
 	int i, size;
    //Create some labels for jump targets
 	endLabel = Parser_CreateLabel(pparser);
-	startLabel = Parser_CreateLabel(pparser);
+	startLabel = Parser_CreateLabel(pparser); 
+	continueLabel = Parser_CreateLabel(pparser);
+
 
 	if (Parser_Check(pparser, TOKEN_WHILE )){
 		Parser_Match(pparser);
@@ -698,10 +700,12 @@ void Parser_Iter_stmt(Parser* pparser )
 		Parser_Match(pparser);
 		Parser_Expr(pparser );
 		Parser_Check(pparser, TOKEN_RPAREN );
-		Parser_AddInstructionViaLabel(pparser, Branch_FALSE, endLabel, NULL );
+		Parser_AddInstructionViaLabel(pparser, Branch_FALSE, startLabel, NULL );
+		Stack_Push(&(pparser->LabelStack), (void*)continueLabel ); //*****
 		Stack_Push(&(pparser->LabelStack), (void*)endLabel ); //*****
 		Parser_Match(pparser);
 		Parser_Stmt(pparser );
+		Stack_Pop(&(pparser->LabelStack)); //*****
 		Stack_Pop(&(pparser->LabelStack)); //*****
 		Parser_AddInstructionViaLabel(pparser, JUMP, startLabel, NULL );
 		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, endLabel );
@@ -709,6 +713,7 @@ void Parser_Iter_stmt(Parser* pparser )
 	else if (Parser_Check(pparser, TOKEN_DO )){
 		Parser_Match(pparser);
 		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, startLabel );
+		Stack_Push(&(pparser->LabelStack), (void*)startLabel ); //*****
 		Stack_Push(&(pparser->LabelStack), (void*)endLabel ); //*****
 		Parser_Stmt(pparser );
 		Parser_Check(pparser, TOKEN_WHILE );
@@ -719,6 +724,7 @@ void Parser_Iter_stmt(Parser* pparser )
 		Parser_Check(pparser, TOKEN_RPAREN );
 		Parser_AddInstructionViaLabel(pparser, Branch_TRUE, startLabel, NULL );
 		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, endLabel );
+		Stack_Pop(&(pparser->LabelStack)); //*****
 		Stack_Pop(&(pparser->LabelStack)); //*****
 		Parser_Match(pparser);
 		Parser_Check(pparser, TOKEN_SEMICOLON );
@@ -734,6 +740,7 @@ void Parser_Iter_stmt(Parser* pparser )
 
 		//Set the flag for the conditional to jump back to.
 		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, startLabel );
+		Stack_Push(&(pparser->LabelStack), (void*)continueLabel); //*****
 		Stack_Push(&(pparser->LabelStack), (void*)endLabel ); //*****
 
 		//Build the conditional statement
@@ -752,7 +759,9 @@ void Parser_Iter_stmt(Parser* pparser )
 		Parser_Check(pparser, TOKEN_RPAREN );
 		Parser_Match(pparser);
 		Parser_Stmt(pparser );
-
+		
+		// for continue statement
+		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, continueLabel );
 		//Add in the deferred instructions, if there were any.
 		if (pDefInst){
 			pInstruction = NULL;
@@ -775,6 +784,7 @@ void Parser_Iter_stmt(Parser* pparser )
 
 		//Add the end label.
 		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, endLabel );
+		Stack_Pop(&(pparser->LabelStack));//**********
 		Stack_Pop(&(pparser->LabelStack));//**********
 	}
 	else Parser_Error(pparser, iter_stmt );
@@ -820,6 +830,7 @@ List* Parser_Defer_expr_stmt(Parser* pparser )
 void Parser_Jump_stmt(Parser* pparser )
 {
 	Label breakTarget;
+	Label tempLabel;
 	if (Parser_Check(pparser, TOKEN_BREAK )){
 		Parser_Match(pparser);
 		Parser_Check(pparser, TOKEN_SEMICOLON );
@@ -827,6 +838,18 @@ void Parser_Jump_stmt(Parser* pparser )
 
 		breakTarget = Stack_Top(&(pparser->LabelStack));
 		Parser_AddInstructionViaLabel(pparser, JUMP, breakTarget, NULL );
+	}
+	else if (Parser_Check(pparser, TOKEN_CONTINUE)){
+		Parser_Match(pparser);
+		Parser_Check(pparser, TOKEN_SEMICOLON );
+		Parser_Match(pparser);
+
+		tempLabel = Stack_Top(&(pparser->LabelStack));
+		Stack_Pop(&(pparser->LabelStack));
+
+		breakTarget = Stack_Top(&(pparser->LabelStack));
+		Parser_AddInstructionViaLabel(pparser, JUMP, breakTarget, NULL );
+		Stack_Push(&(pparser->LabelStack), (void*)tempLabel);
 	}
 	else if (Parser_Check(pparser, TOKEN_RETURN )){
 		Parser_Match(pparser);
