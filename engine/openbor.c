@@ -5707,6 +5707,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->animhits = 0; //OX counts hits on a per anim basis for cancels.
 						newanim->subentity = newanim->custbomb = newanim->custknife = newanim->custstar = newanim->custpshotno = -1;
 						newanim->quakeframe.framestart = 0;
+						newanim->sync = -1;
 
 						if(strnicmp(value, "idle", 4)==0 &&
 						(!value[4] || (value[4] >= '1' && value[4]<='9'))){
@@ -5722,6 +5723,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							tempInt = atoi(value+4);
 							if(tempInt<1) tempInt = 1;
 							ani_id = animwalks[tempInt-1];
+							newanim->sync = ANI_WALK;
 						}
 						else if(stricmp(value, "sleep")==0){
 							ani_id = ANI_SLEEP;
@@ -5734,18 +5736,21 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							tempInt = atoi(value+2);
 							if(tempInt<1) tempInt = 1;
 							ani_id = animups[tempInt-1];
+							newanim->sync = ANI_WALK;
 						}
 						else if(strnicmp(value, "down", 4)==0 &&
 						(!value[4] || (value[4] >= '1' && value[4]<='9'))){
 							tempInt = atoi(value+4);
 							if(tempInt<1) tempInt = 1;
 							ani_id = animdowns[tempInt-1];
+							newanim->sync = ANI_WALK;
 						}
 						else if(strnicmp(value, "backwalk", 8)==0 &&
 						(!value[8] || (value[8] >= '1' && value[8]<='9'))){
 							tempInt = atoi(value+8);
 							if(tempInt<1) tempInt = 1;
 							ani_id = animbackwalks[tempInt-1];
+							newanim->sync = ANI_WALK;
 						}
 						else if(stricmp(value, "jump")==0){
 							ani_id = ANI_JUMP;
@@ -6131,15 +6136,19 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						}
 						else if(stricmp(value, "grabwalk")==0){
 							ani_id = ANI_GRABWALK;
+							newanim->sync = ANI_GRABWALK;
 						}
 						else if(stricmp(value, "grabwalkup")==0){
 							ani_id = ANI_GRABWALKUP;
+							newanim->sync = ANI_GRABWALK;
 						}
 						else if(stricmp(value, "grabwalkdown")==0){
 							ani_id = ANI_GRABWALKDOWN;
+							newanim->sync = ANI_GRABWALK;
 						}
 						else if(stricmp(value, "grabbackwalk")==0){
 							ani_id = ANI_GRABBACKWALK;
+							newanim->sync = ANI_GRABWALK;
 						}
 						else if(stricmp(value, "grabturn")==0){
 							ani_id = ANI_GRABTURN;
@@ -6149,15 +6158,19 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						}
 						else if(stricmp(value, "grabbedwalk")==0){    // New animation for when grabbed and forced to walk
 							ani_id = ANI_GRABBEDWALK;
+							newanim->sync = ANI_GRABBEDWALK;
 						}
 						else if(stricmp(value, "grabbedwalkup")==0){
 							ani_id = ANI_GRABWALKUP;
+							newanim->sync = ANI_GRABBEDWALK;
 						}
 						else if(stricmp(value, "grabbedwalkdown")==0){
 							ani_id = ANI_GRABWALKDOWN;
+							newanim->sync = ANI_GRABBEDWALK;
 						}
 						else if(stricmp(value, "grabbedbackwalk")==0){
 							ani_id = ANI_GRABBEDBACKWALK;
+							newanim->sync = ANI_GRABBEDWALK;
 						}
 						else if(stricmp(value, "grabbedturn")==0){
 							ani_id = ANI_GRABBEDTURN;
@@ -10700,6 +10713,7 @@ void update_frame(entity* ent, int f)
 void ent_set_anim(entity *ent, int aninum, int resetable)
 {
 	s_anim *ani = NULL;
+	int animpos;
 
 	if(!ent) {
 		printf("FATAL: tried to set animation with invalid address (no such object)");
@@ -10724,6 +10738,15 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 	if(ani->numframes == 0)
 		return;
 
+	if(ent->animation && ani->sync>=0 && ent->animation->sync==ani->sync){
+		animpos = ent->animpos;
+		if(animpos>=ent->animation->numframes)
+			animpos = 0;
+	}
+	else animpos = 0;
+
+	
+
 	if(aninum!=ANI_SLEEP)
 		ent->sleeptime = time + ent->modeldata.sleepwait;
 	ent->animation = ani;
@@ -10731,12 +10754,12 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 	ent->animation->animhits = 0;
 
 	if(!resetable)
-		ent->lastanimpos = -1;
+		ent->lastanimpos = animpos-1;
 	ent->animating = 1;
 	ent->lasthit = ent->grabbing;
 	ent->altbase = 0;
 
-	update_frame(ent, 0);
+	update_frame(ent, animpos);
 }
 
 
@@ -13625,11 +13648,8 @@ void normal_prepare()
 	}
 	
 	// if no attack was picked, just choose a random one from the valid list
-	if(found){
-		set_attacking(self);
-		ent_set_anim(self, atkchoices[(rand32()&0xffff)%found], 0);
-		self->takeaction = common_attack_proc;
-		return ;
+	if(special && check_costmove(atkchoices[(rand32()&0xffff)%special], 1)){
+		return;
 	}
 
 	// No attack to perform, return to A.I. root
@@ -14612,6 +14632,7 @@ int pick_random_attack(entity* target, int testonly){
 			(!target || check_range(self, target, animattacks[i])))
 		{
 			if(testonly) return animattacks[i];
+
 			atkchoices[found++] = animattacks[i];
 		}
 	}
@@ -15498,8 +15519,8 @@ int checkpathblocked()
 		if(self->modeldata.subtype==SUBTYPE_CHASE) aitype |= AIMOVE1_CHASE;
 
 		//be moo tolerable to PLAYER_MAX_Z and PLAYER_MIN_Z
-		if((self->modeldata.subject_to_maxz && self->zdir>0 && !self->xdir && self->zdir+self->z>=PLAYER_MAX_Z) || 
-		   (self->modeldata.subject_to_minz && self->zdir<0 && !self->xdir && self->zdir+self->z<=PLAYER_MIN_Z) )
+		if((self->modeldata.subject_to_maxz && self->zdir>0 && !self->xdir && self->zdir+self->z>PLAYER_MAX_Z) || 
+		   (self->modeldata.subject_to_minz && self->zdir<0 && !self->xdir && self->zdir+self->z<PLAYER_MIN_Z) )
 		{
 			self->zdir = -self->zdir;
 			self->pathblocked = 0;
@@ -15558,7 +15579,7 @@ int common_try_chase(entity* target, int dox, int doz)
 
 	self->running = 0;
 	
-	adjustspeed(self->modeldata.speed, self->x, self->z, self->x + self->xdir, self->z + self->zdir, &self->xdir, &self->zdir);
+	//adjustspeed(self->modeldata.speed, self->x, self->z, self->x + self->xdir, self->z + self->zdir, &self->xdir, &self->zdir);
 
 	if(target == NULL || self->modeldata.nomove) return 0;
 
@@ -15775,7 +15796,7 @@ int common_try_wandercompletely(int dox, int doz)
 // for normal and default ai patttern
 int common_try_wander(entity* target, int dox, int doz)
 {
-	int walk = 0, behind, grabd, agg;
+	int walk = 0, behind, grabd, agg, mod;
 
 	float diffx, diffz, //distance from target
 		returndx, returndz, //how far should keep from target
@@ -15801,12 +15822,16 @@ int common_try_wander(entity* target, int dox, int doz)
 	}
 	t += agg;
 	if(behind && target->attacking) t+=5;
+	
+	// could use this to replace the completely wander ai
+	if(dox!=doz) t = 0;
+
 	if(rnum2<t){ //chase target
-		returndx = grabd*1.5;
-		returndz = grabd/3;
+		returndx = videomodes.hRes/4;
+		returndz = videomodes.vRes/6;
 	}else{ // only chase when too far away
 		returndx = videomodes.hRes/2;
-		returndz = videomodes.vRes/4;
+		returndz = videomodes.vRes/3;
 	}
 	if(rnum2>7){
 		borderdx = videomodes.hRes/8;
@@ -15818,9 +15843,11 @@ int common_try_wander(entity* target, int dox, int doz)
 	randomatk = pick_random_attack(NULL, 0);
 
 	if(randomatk>=0){
-		mindx = self->modeldata.animation[randomatk]->range.xmin + (self->modeldata.animation[randomatk]->range.xmin+self->modeldata.animation[randomatk]->range.xmax)/4;
+		mindx = self->modeldata.animation[randomatk]->range.xmax - (self->modeldata.animation[randomatk]->range.xmax-self->modeldata.animation[randomatk]->range.xmin)/4;
 	} else	mindx = (!behind&&target->attacking)? grabd*3:grabd*1.2;
 	mindz = grabd/4;
+
+	mod = (time/GAME_SPEED/5 + self->sortid/100 + self->modeldata.aggression/10) % 4;
 
 	if(dox){
 		if(self->x<screenx-borderdx){
@@ -15831,25 +15858,26 @@ int common_try_wander(entity* target, int dox, int doz)
 			self->xdir = -self->modeldata.speed;
 			self->destx = screenx + videomodes.hRes*11.0/12.0;
 			walk = 1;
-		}else if(diffx<mindx/2){
-			self->xdir = (self->x>target->x)?self->modeldata.speed:-self->modeldata.speed;
-			self->destx = (self->x>target->x)?(target->x+mindx):(target->x-mindx);
-			walk = 1;
-		}else if(diffx<mindx){
-			self->xdir = 0;
-			self->destx = self->x;
 		}else if(diffx>returndx){
 			self->xdir = (self->x>target->x)?-self->modeldata.speed:self->modeldata.speed;
-			self->destx = (self->x>target->x)?(target->x + returndx - 10):(target->x - returndx + 10);
+			self->destx = (self->x>target->x)?(target->x + mindx):(target->x - mindx);
 			walk = 1;
-		}else if(rnum < 3){
-			self->xdir = self->modeldata.speed;
-			self->destx = self->x +  videomodes.hRes/5;
+		}else{
+			switch(mod){
+			case 0:
+			case 2:
+				self->destx = target->x;
+				break;
+			case 1:
+				self->destx = target->x + videomodes.hRes/3;
+				break;
+			case 3:
+				self->destx = target->x - videomodes.hRes/3;
+				break;
+			}
+			self->xdir = self->x>self->destx?-self->modeldata.speed:self->modeldata.speed;
 			walk = 1;
-		}else if(rnum > 4){
-			self->xdir = -self->modeldata.speed;
-			self->destx = self->x -  videomodes.hRes/5;
-			walk = 1;
+			//printf("mod x %d\n", mod);
 		}
 	}
 	
@@ -15864,24 +15892,26 @@ int common_try_wander(entity* target, int dox, int doz)
 			self->zdir = -self->modeldata.speed/2;
 			self->destz = screeny + videomodes.vRes*11.0/12.0;
 			walk |= 1;
-		}else if(diffz<mindz){
-			self->zdir = 0;
-			self->destz = self->z;
 		}else if(diffz>returndz){
 			self->zdir = (self->z>target->z)?-self->modeldata.speed/2:self->modeldata.speed/2;
-			self->destz = (self->z>target->z)?(target->z + returndz - 5):(target->z - returndz + 5);
+			self->destz = (self->z>target->z)?(target->z + mindz):(target->z - mindz);
 			walk |= 1;
-		} else if(rnum < 2){
-			// Move up
-			self->zdir = -self->modeldata.speed/2;
-			self->destz = self->z +  videomodes.vRes/5;
+		} else{
+			switch(mod){
+			case 1:
+			case 3:
+				self->destz = target->z;
+				break;
+			case 2:
+				self->destz = target->z + videomodes.vRes/4;
+				break;
+			case 0:
+				self->destz = target->z - videomodes.vRes/4;
+				break;
+			}
+			self->zdir = self->z>self->destz?-self->modeldata.speed/2:self->modeldata.speed/2;
 			walk |= 1;
-		}
-		else if(rnum > 5){
-			// Move down
-			self->zdir = self->modeldata.speed/2;
-			self->destz = self->z -  videomodes.vRes/5;
-			walk |= 1;
+			//printf("mod z %d\n", mod);
 		}
 	}
 
@@ -16287,9 +16317,12 @@ int common_move()
 				
 					//valid types: avoidx, aviodz, chasex, chasez, wander
 					if(px==AIMOVE1_WANDER){
-						common_try_wandercompletely(1, (pz==AIMOVE1_WANDER));
+						/*if (pz==AIMOVE1_WANDER) {
+							common_try_wandercompletely(1, 1);
+							fz = 1;
+						}*/
 						fx = 1;
-						fz = (pz==AIMOVE1_WANDER);
+						common_try_wander(target, 1, 0);
 					}else if(px==AIMOVE1_CHASEX){
 						common_try_chase(target, 1, (pz==AIMOVE1_CHASEZ));
 						fx = 1;
@@ -16301,7 +16334,7 @@ int common_move()
 					}
 					if(!fz){
 						if(pz==AIMOVE1_WANDER)
-							common_try_wandercompletely(0, 1);
+							common_try_wander(target, 0, 1);
 						else if(pz==AIMOVE1_CHASEZ)
 							common_try_chase(target, 0, 1);
 						else if (pz==AIMOVE1_AVOIDZ)
@@ -16317,7 +16350,6 @@ int common_move()
 			}
 			//end of if
 
-
 		}//if(self->stalltime < time )
 		else
 		{
@@ -16325,16 +16357,27 @@ int common_move()
 			if(!ent) ent = target;
 			if(!ent) ent = owner;
 		}
-		if(self->running && !self->modeldata.runupdown) self->zdir = 0;
-		if(self->xdir && diff(self->x, self->destx)<=ABS(self->xdir)){
-			self->xdir = 0;
-			if(self->stalltime>time) self->stalltime = time + 1;
-		}
-		if(self->zdir && diff(self->z, self->destz)<=ABS(self->zdir)){
-			self->zdir = 0;
-			if(self->stalltime>time) self->stalltime = time + 1;
-		}
 
+		//fix 2d level panic
+		if(self->modeldata.subject_to_minz>0 && self->destz<PLAYER_MIN_Z) self->destz = PLAYER_MIN_Z;
+		if(self->modeldata.subject_to_maxz>0 && self->destz>PLAYER_MAX_Z) self->destz = PLAYER_MAX_Z;
+
+		adjustspeed(self->running?self->modeldata.runspeed:self->modeldata.speed, self->x, self->z, self->destx, self->destz, &self->xdir, &self->zdir);
+
+		if(self->running && !self->modeldata.runupdown) {
+			self->zdir = 0;
+			self->destz = self->z;
+		}
+		if(self->xdir && diff(self->x, self->destx)<=2){
+			self->xdir = 0;
+			self->destx = self->x;
+			//if(self->stalltime>time) self->stalltime = time + 1;
+		}
+		if(self->zdir && diff(self->z, self->destz)<=2){
+			self->zdir = 0;
+			self->destz = self->z;
+			//if(self->stalltime>time) self->stalltime = time + 1;
+		}
 		if(!self->xdir && !self->zdir){
 			set_idle(self);
 			if(self->stalltime<time){
@@ -16346,7 +16389,7 @@ int common_move()
 			adjust_walk_animation(ent);
 
 			if(time>self->stalltime){
-				if(self->xdir) stall = diff(self->destx, self->x)/ABS(self->xdir)*2;
+				if(ABS(self->xdir)>ABS(self->zdir)) stall = diff(self->destx, self->x)/ABS(self->xdir)*2;
 				else if(self->zdir) stall = diff(self->destz, self->z)/ABS(self->zdir)*2;
 				else stall = GAME_SPEED/2;
 				self->stalltime = time + stall;
