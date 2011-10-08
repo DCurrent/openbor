@@ -10477,9 +10477,9 @@ void ent_spawn_ent(entity* ent)
 	else if(spawnframe[4] == 1)
 	{
 		if(level && !(level->scrolldir&SCROLL_UP) && !(level->scrolldir&SCROLL_DOWN))
-			s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+			s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2]+4, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 		else
-			s_ent = spawn(advancex+spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+			s_ent = spawn(advancex+spawnframe[1], spawnframe[2]+4, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 	}
 	//absolute position in level
 	else s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3]+0.001, 0, NULL, ent->animation->subentity, NULL);
@@ -10504,9 +10504,9 @@ void ent_summon_ent(entity* ent){
 	else if(spawnframe[4] == 1)
 	{
 		if(level && !(level->scrolldir&SCROLL_UP) && !(level->scrolldir&SCROLL_DOWN))
-			s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+			s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2]+4, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 		else
-			s_ent = spawn(advancex+spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+			s_ent = spawn(advancex+spawnframe[1], spawnframe[2]+4, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 	}
 	//absolute position in level
 	else
