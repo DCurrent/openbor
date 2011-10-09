@@ -15903,10 +15903,10 @@ int common_try_wander(entity* target, int dox, int doz)
 				self->destz = target->z;
 				break;
 			case 2:
-				self->destz = target->z + videomodes.vRes/4;
+				self->destz = target->z + MIN((PLAYER_MAX_Z-PLAYER_MIN_Z), videomodes.vRes)/4;
 				break;
 			case 0:
-				self->destz = target->z - videomodes.vRes/4;
+				self->destz = target->z - MIN((PLAYER_MAX_Z-PLAYER_MIN_Z), videomodes.vRes)/4;
 				break;
 			}
 			self->zdir = self->z>self->destz?-self->modeldata.speed/2:self->modeldata.speed/2;
