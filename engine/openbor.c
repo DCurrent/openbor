@@ -10713,7 +10713,7 @@ void update_frame(entity* ent, int f)
 void ent_set_anim(entity *ent, int aninum, int resetable)
 {
 	s_anim *ani = NULL;
-	int animpos, sync = 0, nextanim = 0;
+	int animpos;
 
 	if(!ent) {
 		printf("FATAL: tried to set animation with invalid address (no such object)");
@@ -10742,29 +10742,24 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 		animpos = ent->animpos;
 		if(animpos>=ani->numframes)
 			animpos = 0;
+		ent->animnum = aninum;
+		ent->animation = ani;
+		ent->animpos=animpos;
+	}else{
+		if(aninum!=ANI_SLEEP)
+			ent->sleeptime = time + ent->modeldata.sleepwait;
+		ent->animation = ani;
+		ent->animnum = aninum;    // Stored for nocost usage
+		ent->animation->animhits = 0;
 
-		sync = 1;
-		nextanim = ent->nextanim;
+		if(!resetable)
+			ent->lastanimpos = -1;
+		ent->animating = 1;
+		ent->lasthit = ent->grabbing;
+		ent->altbase = 0;
+
+		update_frame(ent, 0);
 	}
-	else animpos = 0;
-
-	
-
-	if(aninum!=ANI_SLEEP)
-		ent->sleeptime = time + ent->modeldata.sleepwait;
-	ent->animation = ani;
-	ent->animnum = aninum;    // Stored for nocost usage
-	ent->animation->animhits = 0;
-
-	if(!resetable)
-		ent->lastanimpos = animpos-1;
-	ent->animating = 1;
-	ent->lasthit = ent->grabbing;
-	ent->altbase = 0;
-
-	update_frame(ent, animpos);
-
-	if(sync) ent->nextanim = nextanim;
 }
 
 
@@ -16319,15 +16314,17 @@ int common_move()
 					pz = patz[(rand32()&0xff)%pzc];
 
 					fx = fz = 0;
+
+					aimove = (self->modeldata.aimove & MASK_AIMOVE1);
 				
 					//valid types: avoidx, aviodz, chasex, chasez, wander
 					if(px==AIMOVE1_WANDER){
-						/*if (pz==AIMOVE1_WANDER) {
+						if (pz==AIMOVE1_WANDER && aimove==AIMOVE1_WANDER) {
 							common_try_wandercompletely(1, 1);
 							fz = 1;
-						}*/
+						}else common_try_wander(target, 1, 0);
 						fx = 1;
-						common_try_wander(target, 1, 0);
+						
 					}else if(px==AIMOVE1_CHASEX){
 						common_try_chase(target, 1, (pz==AIMOVE1_CHASEZ));
 						fx = 1;
@@ -16402,7 +16399,7 @@ int common_move()
 		}
 
 		//target is moving? 
-		if(!(aimove&AIMOVE1_WANDER) && ent && (ent->xdir || ent->zdir) && self->stalltime>time + GAME_SPEED/10){
+		if(aimove!=AIMOVE1_WANDER && ent && (self->xdir || self->zdir) && (ent->xdir || ent->zdir) && self->stalltime>time + GAME_SPEED/10){
 			self->stalltime = time + GAME_SPEED/10;
 		}
 
