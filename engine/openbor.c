@@ -10190,14 +10190,15 @@ void free_ent(entity* e)
 	clear_all_scripts(&e->scripts,2);
 	free_all_scripts(&e->scripts);
 
-	if(e->defense_factors){         free(e->defense_factors);          e->defense_factors          = NULL; }
-	if(e->defense_pain){            free(e->defense_pain);             e->defense_pain             = NULL; }
-	if(e->defense_knockdown){       free(e->defense_knockdown);        e->defense_knockdown        = NULL; }
-	if(e->defense_blockpower){      free(e->defense_blockpower);       e->defense_blockpower       = NULL; }
-	if(e->defense_blockthreshold){  free(e->defense_blockthreshold);   e->defense_blockthreshold   = NULL; }
-	if(e->defense_blockratio){      free(e->defense_blockratio);       e->defense_blockratio       = NULL; }
-	if(e->defense_blocktype){       free(e->defense_blocktype);        e->defense_blocktype        = NULL; }
-	if(e->offense_factors){         free(e->offense_factors);          e->offense_factors          = NULL; }
+	if(e->waypoints) { free(e->waypoints); e->waypoints = NULL;}
+	if(e->defense_factors){ free(e->defense_factors); e->defense_factors = NULL; }
+	if(e->defense_pain){ free(e->defense_pain); e->defense_pain = NULL; }
+	if(e->defense_knockdown){ free(e->defense_knockdown); e->defense_knockdown = NULL; }
+	if(e->defense_blockpower){ free(e->defense_blockpower); e->defense_blockpower = NULL; }
+	if(e->defense_blockthreshold){ free(e->defense_blockthreshold); e->defense_blockthreshold = NULL; }
+	if(e->defense_blockratio){ free(e->defense_blockratio); e->defense_blockratio = NULL; }
+	if(e->defense_blocktype){ free(e->defense_blocktype); e->defense_blocktype = NULL; }
+	if(e->offense_factors){ free(e->offense_factors); e->offense_factors = NULL; }
 	if(e->entvars)
 	{
 		// Although free_ent will be only called once when the engine is shutting down,
@@ -10918,6 +10919,7 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			memset(ofs,     0, sizeof(float)*max_attack_types);
 			// clear up
 			clear_all_scripts(&e->scripts, 1);
+			if(e->waypoints) free(e->waypoints);
 
 			pas = e->scripts.animation_script;
 			pus = e->scripts.update_script;
@@ -15430,6 +15432,84 @@ int common_try_pick(entity* other)
 	return 1;
 }
 
+#define _pfhspan 640
+#define _pfvspan 360
+#define _pfmapsize _pfhspan*_pfvspan
+#define _maxpfnodes 2560
+#define _maxdirs 8
+unsigned char pfmap[_pfhspan][_pfvspan];
+point2d pfnodes[_maxpfnodes];
+
+int pathfind(entity* ent, float destx, float destz, float step) {
+	int n = 0, i, indx=0, indz=0, mi, mix=0, miz=0;
+	float minf, f, x, z, tx, tz, mx=0, mz=0;
+
+	float vx[_maxdirs] = {0.0, step, step, step, 0.0, -step, -step, -step}, vz[_maxdirs] = {-step, -step, 0.0, step, step, step, 0.0, -step};
+
+	if(step<=0.0) return 0;
+
+	memset(pfmap, 0, _pfmapsize);
+
+	x = ent->x; z = ent->z;
+
+	if(destx-x>_pfhspan*step/2 || destx-x<-_pfhspan*step/2)  return -1; //x too far
+	if(destz-z>_pfvspan*step/2 || destz-z<-_pfvspan*step/2)  return -1; //z too far
+
+	while(n<_maxpfnodes){
+
+		for(mi=-1, i=0, minf = 999999.0f; i<_maxdirs; i++) {
+			tx = vx[i] + x; tz = vz[i] + z;
+
+			indx = (tx-ent->x)/step + _pfhspan/2;
+			indz = (tz-ent->z)/step + _pfvspan/2;
+
+			if(indx>=_pfhspan || indx<0) continue; //out of range
+			if(indz>=_pfvspan || indz<0) continue; //out of range
+
+			if(pfmap[indx][indz] ) continue; // already checked
+
+			if(!testmove(ent, x, z, tx, tz)) { // blocked?
+				pfmap[indx][indz] = 1;
+				continue;
+			}
+
+			f = diff(destx, tx) + diff(destz, tz);
+
+			if(f<minf) {
+				minf = f;
+				mi = i;
+				mix = indx; miz = indz;
+				mx = tx; mz = tz;
+			}
+		}
+
+		if(mi == -1) {
+			if(n==0) return n;
+			else {
+				n--;
+				x = pfnodes[n].x;z = pfnodes[n].z;
+				continue;
+			}
+		}
+
+		pfnodes[n].x = mx; pfnodes[n].z = mz;
+		n++;
+		pfmap[mix][miz] = 1;
+
+		x = mx;	z = mz;
+		
+		// close enough?
+		if(diff(x, destx)<=step && diff(z, destz)<=step)
+			return n;
+
+	}
+
+
+	return -2;
+
+}
+
+
 // wall sliding code
 // whichside:
 //      0
@@ -15511,7 +15591,8 @@ void adjustspeed(float speed, float x, float z, float tx, float tz, float* xdir,
 int checkpathblocked()
 {
 	float x, z, r;
-	int aitype;
+	int aitype, wp;
+	entity * target;
 	if(self->modeldata.nomove) return 0;
 	if(self->stalltime>=time)
 	{
@@ -15531,6 +15612,27 @@ int checkpathblocked()
 
 		if(self->pathblocked>40 || (self->pathblocked>20 && (aitype & (AIMOVE1_CHASEX|AIMOVE1_CHASEZ|AIMOVE1_CHASE))))
 		{
+			target = normal_find_target(-1,0);
+
+			if(target){
+				//printf("pathfind: (%f %f)-(%f %f) %d steps\n", self->x, self->z, self->destx, self->destz, pathfind(self, self->destx, self->destz));
+				if((wp=pathfind(self, target->x, target->z, 2.0))>0){
+					//printf("wp %d\n", wp);
+					self->numwaypoints = wp;
+					if(self->waypoints){
+						free(self->waypoints);
+					}
+					self->waypoints = malloc(sizeof(point2d)*wp);
+					for(wp=0; wp<self->numwaypoints; wp++){
+						self->waypoints[self->numwaypoints-wp-1] = pfnodes[wp];
+					}
+					self->destx = self->waypoints[self->numwaypoints-1].x;
+					self->destz = self->waypoints[self->numwaypoints-1].z;
+					self->numwaypoints--;
+					self->pathblocked = 0;
+					return 1;
+				}
+			}
 
 			x = self->xdir;
 			z = self->zdir;
@@ -15937,6 +16039,7 @@ void common_pickupitem(entity* other){
 		set_getting(self);
 		self->takeaction = common_get;
 		self->xdir=self->zdir=0;//stop moving
+		other->nextanim = other->nextthink = time + GAME_SPEED*999999;
 		pickup = 1;
 	}
 	// projectiles
@@ -15948,6 +16051,7 @@ void common_pickupitem(entity* other){
 		set_getting(self);
 		self->takeaction = common_get;
 		self->xdir=self->zdir=0;//stop moving
+		other->nextanim = other->nextthink = time + GAME_SPEED*999999;
 		pickup = 1;
 	}
 	// other items
@@ -16257,7 +16361,7 @@ int common_move()
 		if(checkpathblocked()) return 1;
 
 		// judge next move if stalltime is expired
-		if(self->stalltime < time ){
+		if(self->stalltime < time && !self->waypoints){
 			if(other){
 				// try walking to the item
 				common_try_pick(other);
@@ -16359,10 +16463,16 @@ int common_move()
 			if(!ent) ent = target;
 			if(!ent) ent = owner;
 		}
+		if(self->numwaypoints==0 && self->waypoints){
+			free(self->waypoints);
+			self->waypoints = NULL;
+		}
 
 		//fix 2d level panic
 		if(self->modeldata.subject_to_minz>0 && self->destz<PLAYER_MIN_Z) self->destz = PLAYER_MIN_Z;
 		if(self->modeldata.subject_to_maxz>0 && self->destz>PLAYER_MAX_Z) self->destz = PLAYER_MAX_Z;
+
+		if(self->waypoints) self->running = 0;
 
 		adjustspeed(self->running?self->modeldata.runspeed:self->modeldata.speed, self->x, self->z, self->destx, self->destz, &self->xdir, &self->zdir);
 
@@ -16370,17 +16480,20 @@ int common_move()
 			self->zdir = 0;
 			self->destz = self->z;
 		}
-		if(self->xdir && diff(self->x, self->destx)<=2){
-			self->xdir = 0;
-			self->destx = self->x;
+		if(diff(self->x, self->destx)<=1 && diff(self->z, self->destz)<=1){
+
+			if(self->waypoints && self->numwaypoints){
+				self->destx = self->waypoints[self->numwaypoints-1].x;
+				self->destz = self->waypoints[self->numwaypoints-1].z;
+				self->numwaypoints--;
+			}else {
+				self->zdir = self->xdir = 0;
+				self->destz = self->z;
+				self->destx = self->x;
+			}
 			//if(self->stalltime>time) self->stalltime = time + 1;
 		}
-		if(self->zdir && diff(self->z, self->destz)<=2){
-			self->zdir = 0;
-			self->destz = self->z;
-			//if(self->stalltime>time) self->stalltime = time + 1;
-		}
-		if(!self->xdir && !self->zdir){
+		if(!self->xdir && !self->zdir && !self->waypoints){
 			set_idle(self);
 			if(self->stalltime<time){
 				stall = (GAME_SPEED - self->modeldata.aggression)/2;
@@ -16400,6 +16513,7 @@ int common_move()
 
 		//target is moving? 
 		if(aimove!=AIMOVE1_WANDER && ent && (self->xdir || self->zdir) && (ent->xdir || ent->zdir) && self->stalltime>time + GAME_SPEED/10){
+			self->numwaypoints = 0;
 			self->stalltime = time + GAME_SPEED/10;
 		}
 
@@ -17171,6 +17285,8 @@ void didfind_item(entity *other)
 		other->takeaction = suicide;
 		if(!other->modeldata.instantitemdeath)
 			 other->nextthink = time + GAME_SPEED * 3;
+	} else {
+		other->nextthink = other->nextanim = time + GAME_SPEED*999999;
 	}
 	other->z = 100000;
 }
@@ -18720,8 +18836,8 @@ void dropweapon(int flag)
 					self->weapent->modeldata.type = TYPE_NONE;
 					self->weapent->think = runanimal;
 				}
-				self->weapent->nextthink = time + 1;
-			}
+			} 
+			self->weapent->nextthink = time + 1;
 		}
 		self->weapent = NULL;
 	}
