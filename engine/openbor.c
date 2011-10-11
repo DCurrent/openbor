@@ -15612,25 +15612,27 @@ int checkpathblocked()
 
 		if(self->pathblocked>40 || (self->pathblocked>20 && (aitype & (AIMOVE1_CHASEX|AIMOVE1_CHASEZ|AIMOVE1_CHASE))))
 		{
-			target = normal_find_target(-1,0);
+			if(self->modeldata.pathfindstep>0){
+				target = normal_find_target(-1,0);
 
-			if(target){
-				//printf("pathfind: (%f %f)-(%f %f) %d steps\n", self->x, self->z, self->destx, self->destz, pathfind(self, self->destx, self->destz));
-				if((wp=pathfind(self, target->x, target->z, 2.0))>0){
-					//printf("wp %d\n", wp);
-					self->numwaypoints = wp;
-					if(self->waypoints){
-						free(self->waypoints);
+				if(target){
+					//printf("pathfind: (%f %f)-(%f %f) %d steps\n", self->x, self->z, self->destx, self->destz, pathfind(self, self->destx, self->destz));
+					if((wp=pathfind(self, target->x, target->z, self->modeldata.pathfindstep))>0){
+						//printf("wp %d\n", wp);
+						self->numwaypoints = wp;
+						if(self->waypoints){
+							free(self->waypoints);
+						}
+						self->waypoints = malloc(sizeof(point2d)*wp);
+						for(wp=0; wp<self->numwaypoints; wp++){
+							self->waypoints[self->numwaypoints-wp-1] = pfnodes[wp];
+						}
+						self->destx = self->waypoints[self->numwaypoints-1].x;
+						self->destz = self->waypoints[self->numwaypoints-1].z;
+						self->numwaypoints--;
+						self->pathblocked = 0;
+						return 1;
 					}
-					self->waypoints = malloc(sizeof(point2d)*wp);
-					for(wp=0; wp<self->numwaypoints; wp++){
-						self->waypoints[self->numwaypoints-wp-1] = pfnodes[wp];
-					}
-					self->destx = self->waypoints[self->numwaypoints-1].x;
-					self->destz = self->waypoints[self->numwaypoints-1].z;
-					self->numwaypoints--;
-					self->pathblocked = 0;
-					return 1;
 				}
 			}
 
