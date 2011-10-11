@@ -6827,6 +6827,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->range.bmin = GET_INT_ARG(1);
 					newanim->range.bmax = GET_INT_ARG(2);
 					break;
+				case CMD_MODEL_PATHFINDSTEP:
+					newchar->pathfindstep = GET_FLOAT_ARG(1);
+					break;
 				case CMD_MODEL_FRAME:
 					{
 						if(!newanim) {
