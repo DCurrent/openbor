@@ -547,6 +547,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_adjustwalkanimation)) return "adjustwalkanimation";
 	else if (functionRef==((void*)openbor_finditem)) return "finditem";
 	else if (functionRef==((void*)openbor_pickup)) return "pickup";
+	else if (functionRef==((void*)openbor_waypoints)) return "waypoints";
 	else return "<unknown function>";
 }
 
@@ -1075,6 +1076,8 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_finditem, "finditem");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_pickup, "pickup");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_waypoints, "waypoints");
 
 	//printf("Done!\n");
 
@@ -2659,6 +2662,7 @@ enum getentityproperty_enum {
 	_gep_pain_time,
 	_gep_parent,
 	_gep_path,
+	_gep_pathfindstep,
 	_gep_playerindex,
 	_gep_projectile,
 	_gep_range,
@@ -3004,6 +3008,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"pain_time",
 		"parent",
 		"path",
+		"pathfindstep",
 		"playerindex",
 		"projectile",
 		"range",
@@ -4849,6 +4854,13 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		strcpy(StrCache_Get((*pretvar)->strVal), tempstr);
 		break;
 	}
+	case _gep_pathfindstep:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.pathfindstep;
+		//printf("%d %s %d\n", ent->sortid, ent->name, ent->playerindex);
+		break;
+	}
 	case _gep_playerindex:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -5431,6 +5443,7 @@ enum changeentityproperty_enum {
     _cep_owner,
     _cep_pain_time,
     _cep_parent,
+	_cep_pathfindstep,
     _cep_position,
     _cep_projectile,
     _cep_projectilehit,
@@ -5660,6 +5673,7 @@ void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
 		"owner",
 		"pain_time",
 		"parent",
+		"pathfindstep",
 		"position",
 		"projectile",
 		"projectilehit",
@@ -6968,6 +6982,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _cep_parent:
 	{
 		ent->parent = (entity*)varlist[2]->ptrVal;
+		break;
+	}
+	case _cep_pathfindstep:
+	{
+		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+			ent->modeldata.pathfindstep = (float)dbltemp;
 		break;
 	}
     case _cep_position:
@@ -11210,6 +11230,8 @@ HRESULT openbor_setidle(ScriptVariant** varlist , ScriptVariant** pretvar, int p
 	e->inpain = 0;
 	e->blocking = 0;
 	e->nograb = 0;
+	e->destx = e->x;
+	e->destz = e->z;
 
 	if(paramCount==1) return S_OK;
 
@@ -11497,6 +11519,59 @@ HRESULT openbor_pickup(ScriptVariant** varlist , ScriptVariant** pretvar, int pa
 	return S_OK;
 pickup_error:
 	printf("Function pickup(entity, item), handles must be valid.");
+	return E_FAIL;
+}
+
+//waypoints(ent, x1, z1, x2, z2, x3, z3, ...)
+//zero length list means clear waypoints
+HRESULT openbor_waypoints(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+	int num, i;
+	point2d* wp = NULL;
+	DOUBLE x, z;
+
+	entity* e;
+	*pretvar = NULL;
+
+	if(paramCount<1) goto wp_error;
+
+	if(varlist[0]->vt==VT_PTR) e = (entity*)varlist[0]->ptrVal;
+	else goto wp_error;
+
+	num = (paramCount-1)/2;
+	if(num>0) {
+		//append
+		wp = (point2d*)malloc(sizeof(point2d)*(num+e->numwaypoints));
+
+		for(i=0; i<num ; i++){
+			if(FAILED(ScriptVariant_DecimalValue(varlist[1], &x)))
+				goto wp_error;
+
+			if(FAILED(ScriptVariant_DecimalValue(varlist[2], &z)))
+				goto wp_error;
+
+			wp[num-i-1].x = (float)x;
+			wp[num-i-1].z = (float)z;
+		}
+		if(e->numwaypoints){
+			for(i=0; i<e->numwaypoints; i++){
+				wp[i+num] = e->waypoints[i];
+			}
+		}
+
+		if(e->waypoints) free(e->waypoints);
+		e->waypoints = wp;
+		e->numwaypoints = num;
+	} else {
+		e->numwaypoints = 0;
+		if(e->waypoints) free(e->waypoints);
+		e->waypoints = NULL;
+	}
+	return S_OK;
+
+wp_error:
+	if(wp) free(wp);
+	wp = NULL;
+	printf("Function waypoints requires a valid entity handle and a list of x, z value pairs.");
 	return E_FAIL;
 }
 

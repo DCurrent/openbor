@@ -344,6 +344,7 @@ List* createModelCommandList(void) {
 	LIST_ADD(CMD_MODEL_RANGEZ, "rangez");
 	LIST_ADD(CMD_MODEL_RANGEA, "rangea");
 	LIST_ADD(CMD_MODEL_RANGEB, "rangeb");
+	LIST_ADD(CMD_MODEL_PATHFINDSTEP, "pfstep");
 	LIST_ADD(CMD_MODEL_FRAME, "frame");
 	LIST_ADD(CMD_MODEL_ALPHAMASK, "alphamask");
 	LIST_ADD(CMD_MODEL_FLIPFRAME, "flipframe");
