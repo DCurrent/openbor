@@ -976,6 +976,21 @@ typedef struct
     signed char     hide;                           //Invisibility to AI.
 } s_stealth;                                        //2011_04_05, DC: Invisibility to AI feature added by DC.
 
+
+// WIP
+typedef struct
+{
+	int inputs[MAX_SPECIAL_INPUTS];
+	int cond;
+	int anim;
+	int cancel;
+} s_com;
+
+typedef struct{
+	float x;
+	float z;
+} point2d;
+
 typedef struct
 {
 	int             index;
@@ -1277,6 +1292,8 @@ typedef struct entity
 	char			animating:8;						// Set by animation code
 	char			arrowon:8;						// Flag to display parrow/parrow2 or not
 	unsigned char   pathblocked:8;
+	point2d * waypoints;
+	int numwaypoints;
 
 	//---------------------   end of flags ----------------------------------------------
 	short			animpos:16;
