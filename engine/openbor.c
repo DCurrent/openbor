@@ -15400,8 +15400,9 @@ void adjust_walk_animation(entity* other)
 	else self->animating = 1;
 }
 
-//may be used many times, so make a function
-// try to move towards the item
+
+// ai character try to move towards the item
+// TODO, check path or entity might get stuck under a wall
 int common_try_pick(entity* other)
 {
 	// if there's an item to pick up, move towards it.
@@ -15435,11 +15436,15 @@ int common_try_pick(entity* other)
 #define _pfhspan 640
 #define _pfvspan 360
 #define _pfmapsize _pfhspan*_pfvspan
-#define _maxpfnodes 2560
+#define _maxpfnodes 4096
 #define _maxdirs 8
 unsigned char pfmap[_pfhspan][_pfvspan];
 point2d pfnodes[_maxpfnodes];
 
+// not so completed pathfinding logic based on a*
+// it should be fairly slow due to the complicacy of terrain checking
+// and it doesn't always work since walking from wall to wall
+// requires jump. 
 int pathfind(entity* ent, float destx, float destz, float step) {
 	int n = 0, i, indx=0, indz=0, mi, mix=0, miz=0;
 	float minf, f, x, z, tx, tz, mx=0, mz=0;
@@ -15510,6 +15515,7 @@ int pathfind(entity* ent, float destx, float destz, float step) {
 }
 
 
+// use this after a wall checking meets
 // wall sliding code
 // whichside:
 //      0
@@ -15557,6 +15563,7 @@ int adjustdirection(float coords[], float offx, float offz, float ox, float oz, 
 	return whichside;
 }
 
+// adjust walk speed for entity assuming it walks straight forward
 // x, z - current position
 // tx, tz - target position
 // speed - max speed
@@ -15673,8 +15680,9 @@ int checkpathblocked()
 }
 
 
-//may be used many times, so make a function
-// try to move towards the target
+// this is the most aggressive aimove pattern
+// the entity will try get in and attack at anytime
+// though the range depends on what attack you setup 
 int common_try_chase(entity* target, int dox, int doz)
 {
 	// start chasing the target
@@ -15853,7 +15861,10 @@ int common_try_avoid(entity* target, int dox, int doz)
 	return 1;
 }
 
-//  wander completely
+//  wander completely and ignore the target
+// this ai pattern only works when you use aimove wander,
+// if you mix wander with other patterns like chase or avoid
+// this pattern is not triggered
 int common_try_wandercompletely(int dox, int doz)
 {
 	int rnum;
@@ -15898,6 +15909,9 @@ int common_try_wandercompletely(int dox, int doz)
 }
 
 // for normal and default ai patttern
+// the entity is not actually wandering
+// they just go around the target and get close
+// occasionally to attack
 int common_try_wander(entity* target, int dox, int doz)
 {
 	int walk = 0, behind, grabd, agg, mod;
@@ -16277,6 +16291,7 @@ int star_move(){
 
 
 //dispatch move patterns
+//root function for aimove
 int common_move()
 {
 	int aimove;
@@ -16295,6 +16310,7 @@ int common_move()
 	aimove = self->modeldata.aimove & MASK_AIMOVE1;
 
 //if(stricmp(self->name, "os")==0) printf("%d\n", aimove);
+	// old and outdated patterns, but MUST be kept anyway
 	if(aimove&AIMOVE1_BIKER)
 	{// for biker subtype
 		return biker_move();
@@ -16316,18 +16332,26 @@ int common_move()
 		return 0;
 	}else{
 		// all above are special move patterns, real AI goes here:
+		
+		 // skip if the entity is in air, 
+		 // removing this and entity might be spawned walking in air
+		if(air) return 0;
 
-		if(air) return 0; // skip if the entity is in air
-
+		// store this for turning checking
 		predir = self->direction;
 
+		// find all possible entities for target
+		// bad for optimization, but makes better sense
 		target = normal_find_target(-1,0); // confirm the target again
 		other = normal_find_item();    // find an item
 		owner = self->parent;
 
+		// temporary solution to turn off running if xdir is not set
+		// unless one day vertical running logic is written
 		if(!self->xdir) 
 				self->running = 0;
 
+		// change direction unless the ai pattern ignores target or model has noflip
 		if(!self->modeldata.noflip && !self->running && aimove!=AIMOVE1_WANDER){
 			if(other)   //try to pick up an item, if possible
 				self->direction = (self->x < other->x);
@@ -16340,6 +16364,7 @@ int common_move()
 		}
 
 		//turn back if we have a turn animation
+		// TODO, make a function for ai script
 		if(self->direction != predir && validanim(self,ANI_TURN)){
 			self->direction = !self->direction;
 			ent_set_anim(self, ANI_TURN, 0);
@@ -16360,9 +16385,10 @@ int common_move()
 
 		if(common_try_jump()) return 1;  //need to jump? so quit
 
-		if(checkpathblocked()) return 1;
+		if(checkpathblocked()) return 1; // handle path blocked logic
 
 		// judge next move if stalltime is expired
+		// skip if waypoints presents (passive move)
 		if(self->stalltime < time && !self->waypoints){
 			if(other){
 				// try walking to the item
@@ -16470,18 +16496,24 @@ int common_move()
 			self->waypoints = NULL;
 		}
 
-		//fix 2d level panic
+		//fix 2d level panic, or should this be moved to the very beginning?
 		if(self->modeldata.subject_to_minz>0 && self->destz<PLAYER_MIN_Z) self->destz = PLAYER_MIN_Z;
 		if(self->modeldata.subject_to_maxz>0 && self->destz>PLAYER_MAX_Z) self->destz = PLAYER_MAX_Z;
-
+		
+		// don't run in passive move mode. The path could be complex and running may look bad.
 		if(self->waypoints) self->running = 0;
-
+		
+		// make the entity walks in a straight path instead of flickering here and there
+		// acceleration can be added easily based on this logic, if necessary
 		adjustspeed(self->running?self->modeldata.runspeed:self->modeldata.speed, self->x, self->z, self->destx, self->destz, &self->xdir, &self->zdir);
 
+		// fix running animation, if the model doesn't allow running updown then set zdir to 0
 		if(self->running && !self->modeldata.runupdown) {
 			self->zdir = 0;
 			self->destz = self->z;
 		}
+
+		// check destination point to make a stop or pop a waypoint from the stack
 		if(diff(self->x, self->destx)<=1 && diff(self->z, self->destz)<=1){
 
 			if(self->waypoints && self->numwaypoints){
@@ -16495,6 +16527,8 @@ int common_move()
 			}
 			//if(self->stalltime>time) self->stalltime = time + 1;
 		}
+
+		// stoped so play idle, preventinng funny stepping bug, but may cause flickering
 		if(!self->xdir && !self->zdir && !self->waypoints){
 			set_idle(self);
 			if(self->stalltime<time){
@@ -16503,8 +16537,11 @@ int common_move()
 				self->stalltime = time + stall;
 			}
 		}else{
+			// readjust walk animation
 			adjust_walk_animation(ent);
-
+			// give proper stalltime if destination point is not reached
+			// if the destination point is not reachable, 
+			// it should be already handled in checkpathblocked
 			if(time>self->stalltime){
 				if(ABS(self->xdir)>ABS(self->zdir)) stall = diff(self->destx, self->x)/ABS(self->xdir)*2;
 				else if(self->zdir) stall = diff(self->destz, self->z)/ABS(self->zdir)*2;
@@ -16513,7 +16550,7 @@ int common_move()
 			}
 		}
 
-		//target is moving? 
+		//target is moving?  readjust destination sooner
 		if(aimove!=AIMOVE1_WANDER && !self->waypoints && ent && (self->xdir || self->zdir) && (ent->xdir || ent->zdir) && self->stalltime>time + GAME_SPEED/10){
 			self->stalltime = time + GAME_SPEED/10;
 		}
