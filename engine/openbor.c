@@ -11556,6 +11556,12 @@ int testmove(entity* ent, float sx, float sz, float x, float z){
 	// ------------------ wall checking ---------------------
 	if(ent->modeldata.subject_to_wall>0 && (wall = checkwall(x, z))>=0 && level->walls[wall][7]>ent->a)
 	{
+		if(validanim(ent,ANI_JUMP) && sz<level->walls[wall][1] && sz>level->walls[wall][1]-level->walls[wall][6]) //Can jump?
+		{
+			//rmin = (float)ent->modeldata.animation[ANI_JUMP]->range.xmin;
+			//rmax = (float)ent->modeldata.animation[ANI_JUMP]->range.xmax;
+			if(level->walls[wall][7]<ent->a+ent->modeldata.animation[ANI_JUMP]->range.xmax) return -1;
+		}
 		return 0;
 	}
 	//----------------end of wall checking--------------
@@ -14901,7 +14907,7 @@ int adjust_grabposition(entity* ent, entity* other, float dist, int grabin)
 		z1 = z2 = (ent->z + other->z)/2;
 	}
 
-	if(!testmove(ent, ent->x, ent->z, x1, z1) || !testmove(other, other->x, other->z, x2, z2))
+	if(0>=testmove(ent, ent->x, ent->z, x1, z1) || 0>=testmove(other, other->x, other->z, x2, z2))
 		return 0;
 
 	ent->x = x1; ent->z = z1;
@@ -15449,7 +15455,7 @@ point2d pfnodes[_maxpfnodes];
 // and it doesn't always work since walking from wall to wall
 // requires jump. 
 int pathfind(entity* ent, float destx, float destz, float step) {
-	int n = 0, i, indx=0, indz=0, mi, mix=0, miz=0;
+	int n = 0, i, indx=0, indz=0, mi, mix=0, miz=0, t;
 	float minf, f, x, z, tx, tz, mx=0, mz=0;
 
 	float vx[_maxdirs] = {0.0, step, step, step, 0.0, -step, -step, -step}, vz[_maxdirs] = {-step, -step, 0.0, step, step, step, 0.0, -step};
@@ -15475,13 +15481,15 @@ int pathfind(entity* ent, float destx, float destz, float step) {
 			if(indz>=_pfvspan || indz<0) continue; //out of range
 
 			if(pfmap[indx][indz] ) continue; // already checked
-
-			if(!testmove(ent, x, z, tx, tz)) { // blocked?
+			t = testmove(ent, x, z, tx, tz);
+			if(t<=0) { // blocked?
 				pfmap[indx][indz] = 1;
 				continue;
 			}
 
 			f = diff(destx, tx) + diff(destz, tz);
+
+			//if(t==-1) f*=2.0; // blocked by wall, increase cost 
 
 			if(f<minf) {
 				minf = f;
@@ -16386,7 +16394,10 @@ int common_move()
 			}
 		}
 
-		if(common_try_jump()) return 1;  //need to jump? so quit
+		if(common_try_jump()) {
+			self->numwaypoints = 0;
+			return 1;  //need to jump? so quit
+		}
 
 		if(checkpathblocked()) return 1; // handle path blocked logic
 
@@ -18862,9 +18873,9 @@ void dropweapon(int flag)
 			if(other && other != self->weapent)   self->weapent->base += other->a + other->animation->platform[other->animpos][7];
 			else if(wall >= 0) self->weapent->base += level->walls[wall][7];
 
-			if(validanim(self->weapent,ANI_RESPAWN)) ent_set_anim(self->weapent, ANI_RESPAWN, 0);
-			else if(validanim(self->weapent,ANI_SPAWN)) ent_set_anim(self->weapent, ANI_SPAWN, 0);
-			else ent_set_anim(self->weapent, ANI_IDLE, 0);
+			if(validanim(self->weapent,ANI_RESPAWN)) ent_set_anim(self->weapent, ANI_RESPAWN, 1);
+			else if(validanim(self->weapent,ANI_SPAWN)) ent_set_anim(self->weapent, ANI_SPAWN, 1);
+			else ent_set_anim(self->weapent, ANI_IDLE, 1);
 
 			if(!self->weapent->modeldata.counter)
 			{
