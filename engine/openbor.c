@@ -16512,8 +16512,7 @@ int common_move()
 		}
 
 		//target is moving? 
-		if(aimove!=AIMOVE1_WANDER && ent && (self->xdir || self->zdir) && (ent->xdir || ent->zdir) && self->stalltime>time + GAME_SPEED/10){
-			self->numwaypoints = 0;
+		if(aimove!=AIMOVE1_WANDER && !self->waypoints && ent && (self->xdir || self->zdir) && (ent->xdir || ent->zdir) && self->stalltime>time + GAME_SPEED/10){
 			self->stalltime = time + GAME_SPEED/10;
 		}
 
