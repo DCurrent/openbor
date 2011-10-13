@@ -701,7 +701,7 @@ void Parser_Iter_stmt(Parser* pparser )
 		Parser_Expr(pparser );
 		Parser_Check(pparser, TOKEN_RPAREN );
 		Parser_AddInstructionViaLabel(pparser, Branch_FALSE, startLabel, NULL );
-		Stack_Push(&(pparser->LabelStack), (void*)continueLabel ); //*****
+		Stack_Push(&(pparser->LabelStack), (void*)startLabel ); //*****
 		Stack_Push(&(pparser->LabelStack), (void*)endLabel ); //*****
 		Parser_Match(pparser);
 		Parser_Stmt(pparser );
@@ -790,6 +790,7 @@ void Parser_Iter_stmt(Parser* pparser )
 	else Parser_Error(pparser, iter_stmt );
 	free((void*)startLabel);
 	free((void*)endLabel);
+	free((void*)continueLabel);
 }
 
 void Parser_Opt_expr_stmt(Parser* pparser )
