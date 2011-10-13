@@ -700,7 +700,7 @@ void Parser_Iter_stmt(Parser* pparser )
 		Parser_Match(pparser);
 		Parser_Expr(pparser );
 		Parser_Check(pparser, TOKEN_RPAREN );
-		Parser_AddInstructionViaLabel(pparser, Branch_FALSE, startLabel, NULL );
+		Parser_AddInstructionViaLabel(pparser, Branch_FALSE, endLabel, NULL );
 		Stack_Push(&(pparser->LabelStack), (void*)startLabel ); //*****
 		Stack_Push(&(pparser->LabelStack), (void*)endLabel ); //*****
 		Parser_Match(pparser);
