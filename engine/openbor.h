@@ -438,7 +438,7 @@
 #define     MIN(x, y)            ((x<y)?x:y)
 
 //macros for drawing menu text, fits different font size
-
+#define fmw font_monowidths
 #ifdef _MSC_VER
 #define _strmidx(f,s, ...) ((videomodes.hRes-font_string_width((f), s, __VA_ARGS__))/2)
 #else
@@ -550,7 +550,7 @@
 		  )\
 
 
-#define tobounce(e) (e->animation->bounce && diff(0, e->tossv) > 2 && \
+#define tobounce(e) (e->animation->bounce && diff(0, e->tossv) > 1.5 && \
 					 !((autoland == 1 && e->damage_on_landing == -1) ||e->damage_on_landing == -2))
 
 #define getpal ((current_palette&&level)?(level->palettes[current_palette-1]):pal)
