@@ -168,7 +168,7 @@ int                 lasthitc;                       //Last hit confirm (i.e. if 
 int					combodelay = GAME_SPEED/2;		// avoid annoying 112112... infinite combo
 
 // used by gfx shadow
-int                 light[2] = {0, 0};
+int                 light[2] = {128, 64};
 int                 shadowcolor = 0;
 int                 shadowalpha = BLEND_MULTIPLY+1;
 
@@ -8847,7 +8847,7 @@ void load_level(char *filename){
 				*dm = plainmethod;
 
 				bgl->oldtype = bgt_water;
-				bgl->z = MIN_INT;
+				bgl->z = MIN_INT+1;
 
 				bgl->xratio = 0.5; // x ratio
 				bgl->zratio = 0.5; // z ratio
@@ -9001,7 +9001,7 @@ void load_level(char *filename){
 					frontpanels_loaded++;
 					bgl->z = FRONTPANEL_Z;
 					bgl->xratio = -0.4; // x ratio
-					bgl->zratio = -0.4; // z ratio
+					bgl->zratio = 0; // z ratio
 					bgl->xrepeat = -1; // x repeat
 				}
 
@@ -10873,7 +10873,7 @@ void ent_set_model(entity * ent, char * modelname)
 entity * spawn(float x, float z, float a, int direction, char * name, int index, s_model* model)
 {
 	entity *e = NULL;
-	int i, id;
+	int i, j, id;
 	float *dfs, *dfsp, *dfsk, *dfsbp, *dfsbt, *dfsbr, *dfsbe, *ofs;
 	ScriptVariant* vars;
 	Script* pas, *pus, *pts, *pks, *pds, *pan, *pfs, *bls, *blw, *blo, *blz, *bla, *mox, *moz, *moa, *pis, *pkl, *phs, *osp, *pbs, *ocs;
@@ -10912,6 +10912,8 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			dfsbe   = e->defense_blocktype;
 			ofs     = e->offense_factors;
 			vars    = e->entvars;
+			for(j=0; j<max_entity_vars; j++)
+				ScriptVariant_Clear(&vars[j]);
 			memset(dfs,     0, sizeof(float)*max_attack_types);
 			memset(dfsp,    0, sizeof(float)*max_attack_types);
 			memset(dfsk,    0, sizeof(float)*max_attack_types);
@@ -12828,10 +12830,14 @@ void display_ents()
 	float temp1, temp2;
 	int useshadow = 0;
 	int can_mirror = 0;
+	int shadowz;
 	s_drawmethod* drawmethod = NULL;
 	s_drawmethod commonmethod;
 	s_drawmethod shadowmethod;
 	int use_mirror = (level && level->mirror);
+
+	if(level) shadowz = SHADOW_Z;
+	else shadowz = MIN_INT + 100;
 
 	for(i=0; i<ent_max; i++)
 	{
@@ -13002,7 +13008,7 @@ void display_ents()
 							   qy -= level->walls[wall2][7] - level->walls[wall2][7]*light[1]/256;*/
 							}
 							sy = (2*MIRROR_Z - qy) + 2*gfx_y_offset;
-							z = SHADOW_Z;
+							z = shadowz;
 							sz = PANEL_Z-HUD_Z;
 							if(e->animation->shadow_coords)
 							{
@@ -13057,7 +13063,7 @@ void display_ents()
 							qx = (int)(e->x - advancex + gfx_x_offset);
 							qy = (int)(e->z - level->walls[wall][7] + gfx_y_offset);
 							sy = (int)((2*MIRROR_Z - e->z)  - level->walls[wall][7] + gfx_y_offset);
-							z = SHADOW_Z;
+							z = shadowz;
 							sz = PANEL_Z-HUD_Z;
 						}
 						else
@@ -13065,7 +13071,7 @@ void display_ents()
 							qx = (int)(e->x - advancex + gfx_x_offset);
 							qy = (int)(e->z + gfx_y_offset);
 							sy = (int)((2*MIRROR_Z - e->z) + gfx_y_offset);
-							z = SHADOW_Z;
+							z = shadowz;
 							sz = PANEL_Z-HUD_Z;
 						}
 						if(e->animation->shadow_coords)
@@ -15442,87 +15448,134 @@ int common_try_pick(entity* other)
 	return 1;
 }
 
-#define _pfhspan 640
-#define _pfvspan 360
-#define _pfmapsize _pfhspan*_pfvspan
-#define _maxpfnodes 4096
-#define _maxdirs 8
-unsigned char pfmap[_pfhspan][_pfvspan];
-point2d pfnodes[_maxpfnodes];
+#define astarw 640
+#define astarh 360
+#define starts (astarw*astarh)
 
 // not so completed pathfinding logic based on a*
 // it should be fairly slow due to the complicacy of terrain checking
 // and it doesn't always work since walking from wall to wall
 // requires jump. 
-int pathfind(entity* ent, float destx, float destz, float step) {
-	int n = 0, i, indx=0, indz=0, mi, mix=0, miz=0, t;
-	float minf, f, x, z, tx, tz, mx=0, mz=0;
+int astar(entity* ent, float destx, float destz, float step, point2d** wp){
+	int (*came_from)[astarw][astarh][2] = malloc(sizeof(*came_from));
+	unsigned char (*closed)[astarw][astarh] = malloc(sizeof(*closed));
+	int (*openset)[starts][2] = malloc(sizeof(*openset));
+	float (*gscore)[astarw][astarh] = malloc(sizeof(*gscore));
+	float (*hscore)[astarw][astarh] = malloc(sizeof(*hscore));
+	float (*fscore)[astarw][astarh] = malloc(sizeof(*fscore));
+	int opensize = 0;
+	int result=0, mi=0;
+	float tg, minf;
+	int x, z, i, j, tx, tz, better;
+	static int vx[8] = {0, 1, 1, 1, 0, -1, -1, -1}, vz[8] = {-1, -1, 0, 1, 1, 1, 0, -1};
+	static float score[8] = {1.0, 1.4, 1.0, 1.4, 1.0, 1.4, 1.0, 1.4};
 
-	float vx[_maxdirs] = {0.0, step, step, step, 0.0, -step, -step, -step}, vz[_maxdirs] = {-step, -step, 0.0, step, step, step, 0.0, -step};
+	int sx = astarw/2, sz = astarh/2;
+	int dx = sx + (destx-ent->x)/step, dz = sz + (destz-ent->z)/step;
 
-	if(step<=0.0) return 0;
+	*wp = NULL;
+	if(dx<0 || dx>=astarw || dz<0 || dz>=astarh){
+		goto pfclearup;
+	}
+	memset(closed, 0, sizeof(*closed));
+    (*openset)[opensize][0] = sx;
+	(*openset)[opensize][1] = sz;
+	opensize++;
+    memset(came_from, 0, sizeof(*came_from));
 
-	memset(pfmap, 0, _pfmapsize);
+	(*gscore)[sx][sz] = 0;
+	(*hscore)[sx][sz] = diff(dx, sx) + diff(dz, sz);
+	(*fscore)[sx][sz] = (*gscore)[sx][sz] + (*hscore)[sx][sz];
+	(*came_from)[sx][sz][0] = -1;
 
-	x = ent->x; z = ent->z;
-
-	if(destx-x>_pfhspan*step/2 || destx-x<-_pfhspan*step/2)  return -1; //x too far
-	if(destz-z>_pfvspan*step/2 || destz-z<-_pfvspan*step/2)  return -1; //z too far
-
-	while(n<_maxpfnodes){
-
-		for(mi=-1, i=0, minf = 999999.0f; i<_maxdirs; i++) {
-			tx = vx[i] + x; tz = vz[i] + z;
-
-			indx = (tx-ent->x)/step + _pfhspan/2;
-			indz = (tz-ent->z)/step + _pfvspan/2;
-
-			if(indx>=_pfhspan || indx<0) continue; //out of range
-			if(indz>=_pfvspan || indz<0) continue; //out of range
-
-			if(pfmap[indx][indz] ) continue; // already checked
-			t = testmove(ent, x, z, tx, tz);
-			if(t<=0) { // blocked?
-				pfmap[indx][indz] = 1;
-				continue;
-			}
-
-			f = diff(destx, tx) + diff(destz, tz);
-
-			//if(t==-1) f*=2.0; // blocked by wall, increase cost 
-
-			if(f<minf) {
-				minf = f;
-				mi = i;
-				mix = indx; miz = indz;
-				mx = tx; mz = tz;
+	while(opensize>0){
+		minf = 9999999;
+		for(j=0; j<opensize; j++){
+			x = (*openset)[j][0];
+			z = (*openset)[j][1];
+			if((*fscore)[x][z]<minf){
+				minf = (*fscore)[x][z];
+				mi = j;
 			}
 		}
 
-		if(mi == -1) {
-			if(n==0) return n;
-			else {
-				n--;
-				x = pfnodes[n].x;z = pfnodes[n].z;
-				continue;
-			}
+		x = (*openset)[mi][0];z = (*openset)[mi][1];
+        if(x==dx && z==dz) {
+			 do{
+				tx = (*came_from)[x][z][0];
+				tz = (*came_from)[x][z][1];
+				result++;
+				x = tx; z = tz;
+			 }while(x>=0);
+			 *wp = malloc(sizeof(point2d)*result);
+			 tx = (*came_from)[dx][dz][0];
+			 tz = (*came_from)[dx][dz][1];
+			 j = 0;
+			 while(tx>=0){
+				(*wp)[j].x = (tx-sx)*step + ent->x;
+				(*wp)[j].z = (tz-sz)*step + ent->z;
+				x = (*came_from)[tx][tz][0];
+				z = (*came_from)[tx][tz][1];
+				tx = x; tz = z;
+				j++;
+			 }
+			 goto pfclearup;
 		}
 
-		pfnodes[n].x = mx; pfnodes[n].z = mz;
-		n++;
-		pfmap[mix][miz] = 1;
+		(*openset)[mi][0] = (*openset)[opensize-1][0];
+		(*openset)[mi][1] = (*openset)[opensize-1][1];
+ 
+        opensize--;
+        (*closed)[x][z] = 1;
 
-		x = mx;	z = mz;
-		
-		// close enough?
-		if(diff(x, destx)<=step && diff(z, destz)<=step)
-			return n;
+		for(i=0; i<8; i++){
+			tx = x + vx[i]; tz = z + vz[i];
 
+			if(tx<0 || tx>=astarw || tz<0 || tz>=astarh) continue;
+			if((*closed)[tx][tz]) continue;
+
+			if(!testmove(ent, (x-sx)*step+ent->x, (z-sz)*step+ent->z,  (tx-sx)*step+ent->x, (tz-sz)*step+ent->z)){
+				//(*closed)[tx][tz] = 1; // don't add that to close list just in case the entity can jump 
+				continue;
+			}
+
+            tg = (*gscore)[x][z] + score[i];
+
+			for(j=0; j<opensize; j++){
+				if((*openset)[j][0]==tx && (*openset)[j][1]==tz){
+					break;
+				}
+			}
+ 
+            if(j==opensize){
+				(*openset)[opensize][0] = tx;
+				(*openset)[opensize][1] = tz;
+                opensize++;
+                better = 1;
+            }else if (tg < (*gscore)[tx][tz])
+                better = 1;
+            else
+                better = 0;
+ 
+            if(better){
+                (*came_from)[tx][tz][0] = x;
+				(*came_from)[tx][tz][1] = z;
+                (*gscore)[tx][tz] = tg;
+                (*hscore)[tx][tz] = diff(tx, dx) + diff(tz, dz);
+                (*fscore)[tx][tz] = (*gscore)[tx][tz] + (*hscore)[tx][tz];
+			}
+		}
 	}
 
+pfclearup:
+	if(came_from) free(came_from); came_from = NULL;
+	if(closed) free(closed); closed = NULL;
+	if(openset) free(openset); openset = NULL;
+	if(gscore) free(gscore); gscore = NULL;
+	if(hscore) free(hscore); hscore = NULL;
+	if(fscore) free(fscore); fscore = NULL;
 
-	return -2;
-
+	return result;
 }
 
 
@@ -15609,8 +15662,9 @@ void adjustspeed(float speed, float x, float z, float tx, float tz, float* xdir,
 int checkpathblocked()
 {
 	float x, z, r;
-	int aitype, wp;
+	int aitype, wpc;
 	entity * target;
+	point2d* wp;
 	if(self->modeldata.nomove) return 0;
 	if(self->stalltime>=time)
 	{
@@ -15635,16 +15689,13 @@ int checkpathblocked()
 
 				if(target){
 					//printf("pathfind: (%f %f)-(%f %f) %d steps\n", self->x, self->z, self->destx, self->destz, pathfind(self, self->destx, self->destz));
-					if((wp=pathfind(self, target->x, target->z, self->modeldata.pathfindstep))>0){
+					if((wpc=astar(self, target->x, target->z, self->modeldata.pathfindstep, &wp))>0){
 						//printf("wp %d\n", wp);
-						self->numwaypoints = wp;
+						self->numwaypoints = wpc;
 						if(self->waypoints){
 							free(self->waypoints);
 						}
-						self->waypoints = malloc(sizeof(point2d)*wp);
-						for(wp=0; wp<self->numwaypoints; wp++){
-							self->waypoints[self->numwaypoints-wp-1] = pfnodes[wp];
-						}
+						self->waypoints = wp;
 						self->destx = self->waypoints[self->numwaypoints-1].x;
 						self->destz = self->waypoints[self->numwaypoints-1].z;
 						self->numwaypoints--;
@@ -16305,7 +16356,7 @@ int star_move(){
 //root function for aimove
 int common_move()
 {
-	int aimove;
+	int aimove, makestop = 0;
 	int air = inair(self);
 	entity* other = NULL; //item
 	entity* target = NULL;//hostile target
@@ -16535,6 +16586,7 @@ int common_move()
 				self->destz = self->waypoints[self->numwaypoints-1].z;
 				self->numwaypoints--;
 			}else {
+				if(self->xdir || self->zdir) makestop = 1;
 				self->zdir = self->xdir = 0;
 				self->destz = self->z;
 				self->destx = self->x;
@@ -16545,7 +16597,7 @@ int common_move()
 		// stoped so play idle, preventinng funny stepping bug, but may cause flickering
 		if(!self->xdir && !self->zdir && !self->waypoints){
 			set_idle(self);
-			if(self->stalltime<time){
+			if(makestop){
 				stall = (GAME_SPEED - self->modeldata.aggression)/2;
 				if(stall<GAME_SPEED/5) stall = GAME_SPEED/5;
 				self->stalltime = time + stall;
@@ -16565,8 +16617,11 @@ int common_move()
 		}
 
 		//target is moving?  readjust destination sooner
-		if(aimove!=AIMOVE1_WANDER && !self->waypoints && ent && (self->xdir || self->zdir) && (ent->xdir || ent->zdir) && self->stalltime>time + GAME_SPEED/10){
-			self->stalltime = time + GAME_SPEED/10;
+		if(aimove!=AIMOVE1_WANDER && !self->waypoints && ent && (self->xdir || self->zdir) && (ent->xdir || ent->zdir)){
+			 if(self->running && self->stalltime>time + GAME_SPEED/2)
+				self->stalltime = time + GAME_SPEED/2;
+			 else if(!self->running && self->stalltime>time + GAME_SPEED/5)
+				self->stalltime = time + GAME_SPEED/5;
 		}
 
 		return 1;
@@ -20173,7 +20228,7 @@ void draw_scrolled_bg(){
 	bgbuffer_updated = 1;
 
 
-	if(level->quake!=0 && time>=level->quaketime){
+	if(time>=level->quaketime){
 		level->quake /= 2;
 		level->quaketime = time + (GAME_SPEED/25);
 	}
@@ -20741,6 +20796,11 @@ void display_credits()
 {
 	u32 finishtime = time + 10 * GAME_SPEED;
 	int done = 0;
+	int s = videomodes.vShift/2 + 3;
+	int v = (videomodes.vRes-videomodes.vShift)/23;
+	int h = videomodes.hRes/2;
+	int col1 = h - fmw[0]*16;
+	int col2 = h + fmw[0]*4;
 
 	if(savedata.logo != 1) return;
 	fade_out(0, 0);
@@ -20750,42 +20810,42 @@ void display_credits()
 
 	while(!done)
 	{
-		font_printf(videomodes.hShift + 140, videomodes.vShift + 3,   2, 0, "Credits");
-		font_printf(videomodes.hShift + 125, videomodes.vShift + 25,  1, 0, "Beats Of Rage");
-		font_printf(videomodes.hShift + 133, videomodes.vShift + 35,  0, 0, "Senile Team");
+		font_printf(_strmidx(2, "Credits"), s,   2, 0, "Credits");
+		font_printf(_strmidx(1, "Beats Of Rage"), s+v*2,  1, 0, "Beats Of Rage");
+		font_printf(_strmidx(0, "Senile Team"), s+v*3,  0, 0, "Senile Team");
 
-		font_printf(videomodes.hShift + 138, videomodes.vShift + 55,  1, 0, "OpenBOR");
-		font_printf(videomodes.hShift + 150, videomodes.vShift + 65,  0, 0, "SX");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 75,  0, 0, "CGRemakes");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 75,  0, 0, "Fugue");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 85,  0, 0, "uTunnels");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 85,  0, 0, "Kirby");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 95,  0, 0, "LordBall");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 95,  0, 0, "Tails");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 105, 0, 0, "KBAndressen");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 105, 0, 0, "Damon Caskey");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 115, 0, 0, "Plombo");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 115, 0, 0, "Orochi_X");
+		font_printf(_strmidx(1, "OpenBOR"), s+v*5,  1, 0, "OpenBOR");
+		font_printf(_strmidx(0, "SX"), s+v*6,  0, 0, "SX");
+		font_printf(col1,  s+v*7,  0, 0, "CGRemakes");
+		font_printf(col2, s+v*7,  0, 0, "Fugue");
+		font_printf(col1,  s+v*8,  0, 0, "uTunnels");
+		font_printf(col2, s+v*8,  0, 0, "Kirby");
+		font_printf(col1,  s+v*9,  0, 0, "LordBall");
+		font_printf(col2, s+v*9,  0, 0, "Tails");
+		font_printf(col1,  s+v*10, 0, 0, "KBAndressen");
+		font_printf(col2, s+v*10, 0, 0, "Damon Caskey");
+		font_printf(col1,  s+v*11, 0, 0, "Plombo");
+		font_printf(col2, s+v*11, 0, 0, "Orochi_X");
 
-		font_printf(videomodes.hShift + 138, videomodes.vShift + 125, 1, 0, "Consoles");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 135, 0, 0, "PSP, PS3, Linux, OSX");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 135, 0, 0, "SX");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 145, 0, 0, "Dingoo");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 145, 0, 0, "Shin-NiL");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 155, 0, 0, "Windows");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 155, 0, 0, "SX & Nazo");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 165, 0, 0, "GamePark");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 165, 0, 0, "SX & Lemon");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 175, 0, 0, "DreamCast");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 175, 0, 0, "SX & Neill Corlett");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 185, 0, 0, "MS XBoX");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 185, 0, 0, "SX & XPort");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 195, 0, 0, "Wii");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 195, 0, 0, "SX & Plombo");
+		font_printf(_strmidx(1, "Consoles"), s+v*12,  1, 0, "Consoles");
+		font_printf(col1,  s+v*13, 0, 0, "PSP/PS3/Linux/OSX");
+		font_printf(col2, s+v*13, 0, 0, "SX");
+		font_printf(col1,  s+v*14, 0, 0, "Dingoo");
+		font_printf(col2, s+v*14, 0, 0, "Shin-NiL");
+		font_printf(col1,  s+v*15, 0, 0, "Windows");
+		font_printf(col2, s+v*15, 0, 0, "SX & Nazo");
+		font_printf(col1,  s+v*16, 0, 0, "GamePark");
+		font_printf(col2, s+v*16, 0, 0, "SX & Lemon");
+		font_printf(col1,  s+v*17, 0, 0, "DreamCast");
+		font_printf(col2, s+v*17, 0, 0, "SX & Neill Corlett");
+		font_printf(col1,  s+v*18, 0, 0, "MS XBoX");
+		font_printf(col2, s+v*18, 0, 0, "SX & XPort");
+		font_printf(col1,  s+v*19, 0, 0, "Wii");
+		font_printf(col2, s+v*19, 0, 0, "SX & Plombo");
 
-		font_printf(videomodes.hShift + 133, videomodes.vShift + 215, 1, 0, "Menu Design");
-		font_printf(videomodes.hShift + 70,  videomodes.vShift + 225, 0, 0, "SX");
-		font_printf(videomodes.hShift + 205, videomodes.vShift + 225, 0, 0, "Fightn Words");
+		font_printf(_strmidx(1, "Menu Design"), s+v*21,  1, 0, "Menu Design");
+		font_printf(col1, s+v*22,  0, 0, "SX");
+		font_printf(col2, s+v*22, 0, 0, "Fightn Words");
 
 		update(2,0);
 
@@ -21376,14 +21436,14 @@ void hallfame(int addtoscore)
 
 	while(!done)
 	{
-		y = 60;
+		y = 56;
 		if(!hiscorebg) font_printf(_strmidx(3, "Hall Of Fame"), y-font_heights[3]-10+videomodes.vShift, 3, 0, "Hall Of Fame");
 
 		for(i = 0; i < 10; i++)
 		{
 			font_printf(_colx(topten[i], col1), y+videomodes.vShift, topten[i], 0, "%2i.  %s", i+1, savescore.hscoren[i]);
 			font_printf(_colx(topten[i], col2), y+videomodes.vShift, topten[i], 0, (scoreformat ? "%09lu" : "%u"), savescore.highsc[i]);
-			y += font_heights[topten[i]] + 6;
+			y += (videomodes.vRes-videomodes.vShift-56-32)/10; //font_heights[topten[i]] + 6;
 		}
 
 		update(0,0);
@@ -22087,7 +22147,7 @@ int choose_difficulty()
 	//float slider = 0;
 	int barx, bary, barw, barh;
 
-	barx = videomodes.hRes/5; bary = _liney(0,2)-2; barw = videomodes.hRes*3/5; barh = 5*(font_heights[0]+1)+4;
+	barx = videomodes.hRes/5; bary = _liney(0,0)-2; barw = videomodes.hRes*3/5; barh = 5*(font_heights[0]+1)+4;
 	bothnewkeys = 0;
 
 	if(loadGameFile())
@@ -22100,21 +22160,21 @@ int choose_difficulty()
 	{
 		if(num_difficulties > 1)
 		{
-			_menutextm(2, 0, 0, "Game Mode");
+			_menutextm(2, -2, 0, "Game Mode");
 			for(j=0,i=num_difficulties <= maxdisplay?0:(selector>=maxdisplay?maxdisplay:0); i<num_difficulties; j++,i++)
 			{
 				if(j < maxdisplay)
 				{
-					if(bonus >= ifcomplete[i]) _menutextm((selector==i), 2+j, 0, "%s", set_names[i]);
+					if(bonus >= ifcomplete[i]) _menutextm((selector==i), j, 0, "%s", set_names[i]);
 					else
 					{
-						if(ifcomplete[i]>1) _menutextm((selector==i), 2+j, 0, "%s - Finish Game %i Times To UnLock", set_names[i], ifcomplete[i]);
+						if(ifcomplete[i]>1) _menutextm((selector==i), j, 0, "%s - Finish Game %i Times To UnLock", set_names[i], ifcomplete[i]);
 						else _menutextm((selector==i), 2+j, 0, "%s - Finish Game To UnLock", set_names[i]);
 					}
 				}
 				else break;
 			}
-			_menutextm((selector==i), 8, 0, "Back");
+			_menutextm((selector==i), 6, 0, "Back");
 
 			//draw the scroll bar
 			if(num_difficulties>maxdisplay)
@@ -22187,40 +22247,37 @@ int load_saved_game()
 	{
 		if(saveslot>=MAX_DIFFICULTIES) // not found
 		{
-			_menutextm(2, 0, 0, "Load Game");
-			_menutext(0, col1, 2, "Saved File:");
-			_menutext(0, col2, 2, "Not Found!");
-			_menutextm(1, 4, 0, "Back");
+			_menutextm(2, -4, 0, "Load Game");
+			_menutext(0, col1, -2, "Saved File:");
+			_menutext(0, col2, -2, "Not Found!");
+			_menutextm(1, 6, 0, "Back");
 
 			selector = 2;
 		}
 		else
 		{
-			_menutextm(2, -5, 0, "Load Game");
-			_menutext(0, col1, -3, "Saved File:");
-			if(savedStatus) _menutext(0, col2, -3, "%s", name);
-			else _menutext(0, col2, -3, "Not Found!");
+			_menutextm(2, -4, 0, "Load Game");
+			_menutext(0, col1, -2, "Saved File:");
+			if(savedStatus) _menutext(0, col2, -2, "%s", name);
+			else _menutext(0, col2, -2, "Not Found!");
 
 			if(savedStatus){
-				_menutext((selector==0), col1, -2, "Mode:");
-				_menutext((selector==0), col2, -2, "%s", savelevel[saveslot].dName);
-				_menutext(0, col1, -1, "Stage:");
-				_menutext(0, col2, -1, "%d", savelevel[saveslot].stage);
-				_menutext(0, col1, 0, "Level:");
-				_menutext(0, col2, 0, "%d", savelevel[saveslot].level);
-				_menutext(0, col1, 1, "Credits:");
-				_menutext(0, col2, 1, "%d", savelevel[saveslot].credits);
-				_menutext(0, col1, 2, "Player 1 Lives:");
-				_menutext(0, col2, 2, "%d", savelevel[saveslot].pLives[0]);
-				_menutext(0, col1, 3, "Player 2 Lives:");
-				_menutext(0, col2, 3, "%d", savelevel[saveslot].pLives[1]);
-				_menutext(0, col1, 4, "Player 3 Lives:");
-				_menutext(0, col2, 4, "%d", savelevel[saveslot].pLives[2]);
-				_menutext(0, col1, 5, "Player 4 Lives:");
-				_menutext(0, col2, 5, "%d", savelevel[saveslot].pLives[3]);
-				_menutextm((selector==1), 7, 0, "Start Game");
+				_menutext((selector==0), col1, -1, "Mode:");
+				_menutext((selector==0), col2, -1, "%s", savelevel[saveslot].dName);
+				_menutext(0, col1, 0, "Stage:");
+				_menutext(0, col2, 0, "%d", savelevel[saveslot].stage);
+				_menutext(0, col1, 1, "Level:");
+				_menutext(0, col2, 1, "%d", savelevel[saveslot].level);
+				_menutext(0, col1, 2, "Credits:");
+				_menutext(0, col2, 2, "%d", savelevel[saveslot].credits);
+				_menutext(0, col1, 3, "Player Lives:");
+				_menutext(0, col2, 3, "%d/%d/%d/%d", 
+					savelevel[saveslot].pLives[0], 
+					savelevel[saveslot].pLives[1], savelevel[saveslot].pLives[2],
+					savelevel[saveslot].pLives[3]);
+				_menutextm((selector==1), 5, 0, "Start Game");
 			}
-			_menutextm((selector==2), 8, 0, "Back");
+			_menutextm((selector==2), 6, 0, "Back");
 		}
 		update(0,0);
 
@@ -22282,10 +22339,10 @@ int choose_mode(int *players)
 
 	while(!quit)
 	{
-		_menutextm(2, 0, 0, "Choose Mode");
-		_menutextm((selector==0), 2, 0, "New Game");
-		_menutextm((selector==1), 3, 0, "Load Game");
-		_menutextm((selector==2), 5, 0, "Back");
+		_menutextm(2, 1, 0, "Choose Mode");
+		_menutextm((selector==0), 3, 0, "New Game");
+		_menutextm((selector==1), 4, 0, "Load Game");
+		_menutextm((selector==2), 6, 0, "Back");
 
 		update(0,0);
 
@@ -22750,8 +22807,8 @@ void keyboard_setup(int player){
 					voffset++;
 			  }
 		}
-		_menutextm((selector==12), 7, 0, "OK");
-		_menutextm((selector==13), 8, 0, "Cancel");
+		_menutextm((selector==12), ++voffset, 0, "OK");
+		_menutextm((selector==13), ++voffset, 0, "Cancel");
 		update((level!=NULL),0);
 
 		if(setting > -1){
@@ -22897,7 +22954,7 @@ void input_options(){
 		_menutext((selector==2), -4, 0, "Setup Player 2...");
 		_menutext((selector==3), -4, 1, "Setup Player 3...");
 		_menutext((selector==4), -4, 2, "Setup Player 4...");
-		_menutextm((selector==5), 7, 0, "Back");
+		_menutextm((selector==5), 6, 0, "Back");
 		update((level!=NULL),0);
 
 		if(bothnewkeys & FLAG_ESC) quit = 1;
@@ -22965,7 +23022,7 @@ void sound_options(){
 		_menutext((selector==4), col1, 2, "Show Titles:");
 		_menutext((selector==4), col2, 2, "%s", (savedata.showtitles ? "Yes" : "No"));
 		_menutext((selector==5), col1, 3, "Advanced Options...");
-		_menutextm((selector==6), 7, 0, "Back");
+		_menutextm((selector==6), 6, 0, "Back");
 
 		update((level!=NULL),0);
 
@@ -23048,16 +23105,16 @@ void config_settings(){    //  OX. Load from / save to default.cfg. Restore Open
 	while(!quit){
 		_menutextm(2, -5, 0, "Configuration Settings");
 
-		if(saved == 1) _menutextm((selector==0), -2, 0, "Save Settings To Default.cfg%s", "  Done!");
-		else _menutextm((selector==0), -2, 0, "Save Settings To Default.cfg%s","");
+		if(saved == 1) _menutextm((selector==0), -3, 0, "Save Settings To Default.cfg%s", "  Done!");
+		else _menutextm((selector==0), -3, 0, "Save Settings To Default.cfg%s","");
 
-		if(loaded == 1) _menutextm((selector==1), -1, 0, "Load Settings From Default.cfg%s", "  Done!");
-		else  _menutextm((selector==1), -1, 0, "Load Settings From Default.cfg%s", "");
+		if(loaded == 1) _menutextm((selector==1), -2, 0, "Load Settings From Default.cfg%s", "  Done!");
+		else  _menutextm((selector==1), -2, 0, "Load Settings From Default.cfg%s", "");
 
-		if(restored == 1) _menutextm((selector==2), 0, 0, "Restore OpenBoR Defaults%s", "  Done!");
-		else _menutextm((selector==2), 0, 0, "Restore OpenBoR Defaults%s", "");
+		if(restored == 1) _menutextm((selector==2), -1, 0, "Restore OpenBoR Defaults%s", "  Done!");
+		else _menutextm((selector==2), -1, 0, "Restore OpenBoR Defaults%s", "");
 
-		_menutextm((selector==3), 1, 0, "Back");
+		_menutextm((selector==3), 6, 0, "Back");
 
 		update((level!=NULL),0);
 
@@ -23142,7 +23199,7 @@ void cheatoptions(){    //  LTB 1-13-05 took out sameplayer option
 		if(healthcheat)        _menutext((selector==7), col1, 4, "Infinite Health On"); // Enemies fall down when you respawn
 		else if(!healthcheat)  _menutext((selector==7), col1, 4, "Infinite Health Off");//Enemies don't fall down when you respawn
 
-		_menutextm((selector==8), 7, 0, "Back");
+		_menutextm((selector==8), 6, 0, "Back");
 
 		update((level!=NULL),0);
 
@@ -23234,61 +23291,61 @@ void system_options(){
 	bothnewkeys = 0;
 
 	while(!quit){
-		_menutextm(2, -5, 0, "System Options");
+		_menutextm(2, -6, 0, "System Options");
 
-		_menutext(0, col1, -2, "Total RAM:");
-		_menutext(0, col2, -2, "%s KBytes", commaprint(getSystemRam(KBYTES)));
+		_menutext(0, col1, -4, "Total RAM:");
+		_menutext(0, col2, -4, "%s KBytes", commaprint(getSystemRam(KBYTES)));
 
-		_menutext(0, col1, -1, "Used RAM:");
-		_menutext(0, col2, -1, "%s KBytes", commaprint(getUsedRam(KBYTES)));
+		_menutext(0, col1, -3, "Used RAM:");
+		_menutext(0, col2, -3, "%s KBytes", commaprint(getUsedRam(KBYTES)));
 
-		_menutext((selector==0), col1, 0, "Debug Info:");
-		_menutext((selector==0), col2, 0, (savedata.debuginfo ? "Enabled" : "Disabled"));
+		_menutext((selector==0), col1, -2, "Debug Info:");
+		_menutext((selector==0), col2, -2, (savedata.debuginfo ? "Enabled" : "Disabled"));
 
-		_menutext((selector==1), col1, 1, "File Logging:");
-		_menutext((selector==1), col2, 1, (savedata.uselog ? "Enabled" : "Disabled"));
+		_menutext((selector==1), col1, -1, "File Logging:");
+		_menutext((selector==1), col2, -1, (savedata.uselog ? "Enabled" : "Disabled"));
 
-		_menutext((selector==2), col1, 2, "Players: ");
-		if(!ctrlmaxplayers[current_set]) _menutext((selector==2), col2, 2, "%i", maxplayers[current_set]);
-		else _menutext((selector==2), col2, 2, "%i by Mod", maxplayers[current_set]);
+		_menutext((selector==2), col1, 0, "Players: ");
+		if(!ctrlmaxplayers[current_set]) _menutext((selector==2), col2, 0, "%i", maxplayers[current_set]);
+		else _menutext((selector==2), col2, 0, "%i by Mod", maxplayers[current_set]);
 
-		_menutext((selector==3), col1, 3, "Versus Damage:", 0);
-		if(versusdamage == 0) _menutext((selector==3), col2, 3, "Disabled by Mod");
-		else if(versusdamage == 1) _menutext((selector==3), col2, 3, "Enabled by Mod");
+		_menutext((selector==3), col1, 1, "Versus Damage:", 0);
+		if(versusdamage == 0) _menutext((selector==3), col2, 1, "Disabled by Mod");
+		else if(versusdamage == 1) _menutext((selector==3), col2, 1, "Enabled by Mod");
 		else
 		{
-			if(savedata.mode) _menutext((selector==3), col2, 3, "Disabled");//Mode 1 - Players CAN'T attack each other
-			else _menutext((selector==3), col2, 3, "Enabled");//Mode 2 - Players CAN attack each other
+			if(savedata.mode) _menutext((selector==3), col2, 1, "Disabled");//Mode 1 - Players CAN'T attack each other
+			else _menutext((selector==3), col2, 1, "Enabled");//Mode 2 - Players CAN attack each other
 		}
 
-		_menutext((selector==4), col1, 4, "Cheats:");
-		_menutext((selector==4), col2, 4, forcecheatsoff?"Disabled by Mod":(cheats?"On":"Off"));
+		_menutext((selector==4), col1, 2, "Cheats:");
+		_menutext((selector==4), col2, 2, forcecheatsoff?"Disabled by Mod":(cheats?"On":"Off"));
 
 #ifndef DC
 
-		_menutext((selector==5), col1, 5, "Config Settings");
+		_menutext((selector==5), col1, 3, "Config Settings");
 
 #endif
 
 #if PSP
 		externalPower = scePowerIsPowerOnline();
-		_menutext((selector==6), col1, 6, "CPU Speed:");
-		_menutext((selector==6), col2, 6, "%d MHz", scePowerGetCpuClockFrequency());
+		_menutext((selector==6), col1, 4, "CPU Speed:");
+		_menutext((selector==6), col2, 4, "%d MHz", scePowerGetCpuClockFrequency());
 		if(!externalPower){
 			batteryPercentage = scePowerGetBatteryLifePercent();
 			batteryLifeTime = scePowerGetBatteryLifeTime();
-			_menutext(0, col1, 7, "Battery:");
-			if(batteryPercentage < 0 || batteryLifeTime < 0) _menutext(0, col2, 8, "Calculating...");
-			else _menutext(0, col2, 7, "%d%% - %02d:%02d", batteryPercentage, batteryLifeTime/60,batteryLifeTime-(batteryLifeTime/60*60));
+			_menutext(0, col1, 5, "Battery:");
+			if(batteryPercentage < 0 || batteryLifeTime < 0) _menutext(0, col2, 5, "Calculating...");
+			else _menutext(0, col2, 5, "%d%% - %02d:%02d", batteryPercentage, batteryLifeTime/60,batteryLifeTime-(batteryLifeTime/60*60));
 		}
 		else{
-			_menutext(0, col1, 7, "Charging:");
-			_menutext(0, col2, 7, "%d%% AC Power", scePowerGetBatteryLifePercent());
+			_menutext(0, col1, 5, "Charging:");
+			_menutext(0, col2, 5, "%d%% AC Power", scePowerGetBatteryLifePercent());
 		}
 		ret = 7;
 #endif
 
-		_menutextm((selector==ret), 8, 0, "Back");
+		_menutextm((selector==ret), 6, 0, "Back");
 
 		update((level!=NULL),0);
 
@@ -23395,7 +23452,7 @@ void video_options(){
 		_menutext((selector==2), col2, -1, "%i", savedata.windowpos);
 
 #if DOS || DC || GP2X || DINGOO
-		_menutextm((selector==3), 7, 0, "Back");
+		_menutextm((selector==3), 6, 0, "Back");
 		if(selector<0) selector = 3;
 		if(selector>3) selector = 0;
 #endif
@@ -23405,7 +23462,7 @@ void video_options(){
 		_menutext((selector==3), col2, 0, "Guide R/L Thumbsticks");
 		_menutext((selector==3), col1, 1, "GFX Filters:");
 		_menutext((selector==3), col2, 1, "Press R/L Thumbsticks");
-		_menutextm((selector==4), 7, 0, "Back");
+		_menutextm((selector==4), 6, 0, "Back");
 		if(selector<0) selector = 4;
 		if(selector>4) selector = 0;
 #endif
@@ -23413,7 +23470,7 @@ void video_options(){
 #if WII
 		_menutext((selector==3), col1, 0, "Display Mode:");
 		_menutext((selector==3), col2, 0, savedata.fullscreen ? "Stretch to Screen" : "Preserve Aspect Ratio");
-		_menutextm((selector==4), 7, 0, "Back");
+		_menutextm((selector==4), 6, 0, "Back");
 		if(selector<0) selector = 4;
 		if(selector>4) selector = 0;
 #endif
@@ -23451,7 +23508,7 @@ void video_options(){
 			_menutext((selector==7), col2, 4, "%s", savedata.stretch ? "Stretch to Screen" : "Preserve Aspect Ratio");
 		} else if(selector==7) selector = (bothnewkeys & FLAG_MOVEUP) ? 6 : 8;
 
-		_menutextm((selector==8), 7, 0, "Back");
+		_menutextm((selector==8), 6, 0, "Back");
 		if(selector<0) selector = 8;
 		if(selector>8) selector = 0;
 #endif
@@ -23472,7 +23529,7 @@ void video_options(){
 		_menutext((selector==7), col2+2, 3, "%02d", savedata.overscan[1]);
 		_menutext((selector==8), col2+4, 3, "%02d", savedata.overscan[2]);
 		_menutext((selector==9), col2+6, 3, "%02d", savedata.overscan[3]);
-		_menutextm((selector==10), 7, 0, "Back");
+		_menutextm((selector==10), 6, 0, "Back");
 		if(selector<0) selector = 10;
 		if(selector>10) selector = 0;
 #endif
@@ -23655,12 +23712,12 @@ void options(){
 	bothnewkeys = 0;
 
 	while(!quit){
-		_menutextm(2, 0, 0, "Options");
-		_menutextm((selector==0), 2, 0, "Video Options...");
-		_menutextm((selector==1), 3, 0, "Sound Options...");
-		_menutextm((selector==2), 4, 0, "Control Options...");
-		_menutextm((selector==3), 5, 0, "System Options...");
-		_menutextm((selector==4), 7, 0, "Back");
+		_menutextm(2, -1, 0, "Options");
+		_menutextm((selector==0), 1, 0, "Video Options...");
+		_menutextm((selector==1), 2, 0, "Sound Options...");
+		_menutextm((selector==2), 3, 0, "Control Options...");
+		_menutextm((selector==3), 4, 0, "System Options...");
+		_menutextm((selector==4), 6, 0, "Back");
 
 		if(selector<0) selector = 4;
 		if(selector>4) selector = 0;
