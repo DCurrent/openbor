@@ -10474,6 +10474,7 @@ void ent_spawn_ent(entity* ent)
 {
 	entity* s_ent = NULL;
 	float* spawnframe = ent->animation->spawnframe;
+	float dy = level?4.0:0.0;
 	// spawn point relative to current entity
 	if(spawnframe[4] == 0)
 		s_ent = spawn(ent->x + ((ent->direction)?spawnframe[1]:-spawnframe[1]),ent->z + spawnframe[2], ent->a + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
@@ -10481,9 +10482,9 @@ void ent_spawn_ent(entity* ent)
 	else if(spawnframe[4] == 1)
 	{
 		if(level && !(level->scrolldir&SCROLL_UP) && !(level->scrolldir&SCROLL_DOWN))
-			s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2]+4, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+			s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2]+dy, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 		else
-			s_ent = spawn(advancex+spawnframe[1], spawnframe[2]+4, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+			s_ent = spawn(advancex+spawnframe[1], spawnframe[2]+dy, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 	}
 	//absolute position in level
 	else s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3]+0.001, 0, NULL, ent->animation->subentity, NULL);
@@ -10501,6 +10502,7 @@ void ent_spawn_ent(entity* ent)
 void ent_summon_ent(entity* ent){
 	entity* s_ent = NULL;
 	float* spawnframe = ent->animation->summonframe;
+	float dy = level?4.0:0.0;
 	// spawn point relative to current entity
 	if(spawnframe[4] == 0)
 		s_ent = spawn(ent->x + ((ent->direction)?spawnframe[1]:-spawnframe[1]),ent->z + spawnframe[2],  ent->a + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
@@ -10508,9 +10510,9 @@ void ent_summon_ent(entity* ent){
 	else if(spawnframe[4] == 1)
 	{
 		if(level && !(level->scrolldir&SCROLL_UP) && !(level->scrolldir&SCROLL_DOWN))
-			s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2]+4, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+			s_ent = spawn(advancex+spawnframe[1], advancey+spawnframe[2]+dy, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 		else
-			s_ent = spawn(advancex+spawnframe[1], spawnframe[2]+4, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+			s_ent = spawn(advancex+spawnframe[1], spawnframe[2]+dy, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
 	}
 	//absolute position in level
 	else
