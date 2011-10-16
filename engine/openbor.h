@@ -1055,9 +1055,10 @@ typedef struct
 	int         	diesound;
 	char			weapnum:8;
 	char			secret:8;
-	char			weaploss[2];						// Determines possibility of losing weapon.
+	char			weaploss[2];					// Determines possibility of losing weapon.
 	char            ownweapons:8;                   // is the weapon list own or share with others
-	int             (*weapon)[MAX_WEAPONS];         // weapon model list
+	int             *weapon;						// weapon model list
+	int				numweapons;
 
 	// these are model id of various stuff
 	int             project;
