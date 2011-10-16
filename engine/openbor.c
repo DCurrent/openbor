@@ -4452,24 +4452,28 @@ void lcmHandleCommandAimove(ArgList* arglist, s_model* newchar, int* aimoveset, 
 void lcmHandleCommandWeapons(ArgList* arglist, s_model* newchar) {
 	int weap;
 	char* value;
-	int last = 0;
+	for(weap = 0; ; weap++){
+		value = GET_ARGP(weap+1);
+		if(!value[0]) break;
+	}
+
+	if(!weap) return;
+
+	newchar->numweapons = weap;
+
 	if(!newchar->weapon)
 	{
-		newchar->weapon = malloc(sizeof(*newchar->weapon));
-		memset(newchar->weapon, 0xFF, sizeof(*newchar->weapon));
+		newchar->weapon = malloc(sizeof(*newchar->weapon)*newchar->numweapons);
+		memset(newchar->weapon, 0xFF, sizeof(*newchar->weapon)*newchar->numweapons);
 		newchar->ownweapons = 1;
 	}
-	for(weap = 0; weap<MAX_WEAPONS; weap++){
+	for(weap = 0; weap<newchar->numweapons ; weap++){
 		value = GET_ARGP(weap+1);
-		if(value[0]){
-			if(stricmp(value, "none")!=0){
-				(*newchar->weapon)[weap] = get_cached_model_index(value);
-			} else { // make empty weapon slots  2007-2-16
-				(*newchar->weapon)[weap] = -1;
-			}
-			last = weap;
+		if(stricmp(value, "none")!=0){
+			newchar->weapon[weap] = get_cached_model_index(value);
+		} else { // make empty weapon slots  2007-2-16
+			newchar->weapon[weap] = -1;
 		}
-		else (*newchar->weapon)[weap] = (*newchar->weapon)[last];
 	}
 }
 void lcmHandleCommandScripts(ArgList* arglist, Script* script, char* scriptname, char* filename) {
@@ -13362,7 +13366,10 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 		if(!(newmodel->model_flag & MODEL_NO_WEAPON_COPY))
 		{
 			newmodel->weapnum = model->weapnum;
-			if(!newmodel->weapon) newmodel->weapon = model->weapon;
+			if(!newmodel->weapon) {
+				newmodel->weapon = model->weapon;
+				newmodel->numweapons = model->numweapons;
+			}
 		}
 	}
 
@@ -13392,8 +13399,8 @@ void set_weapon(entity* ent, int wpnum, int anim_flag) // anim_flag added for sc
 	if(!ent) return;
 //printf("setweapon: %d \n", wpnum);
 
-	if(ent->modeldata.weapon && wpnum > 0 && wpnum <= MAX_WEAPONS && (*ent->modeldata.weapon)[wpnum-1])
-		set_model_ex(ent, NULL, (*ent->modeldata.weapon)[wpnum-1], NULL, !anim_flag);
+	if(ent->modeldata.weapon && wpnum > 0 && wpnum <= ent->modeldata.numweapons && ent->modeldata.weapon[wpnum-1])
+		set_model_ex(ent, NULL, ent->modeldata.weapon[wpnum-1], NULL, !anim_flag);
 	else set_model_ex(ent, NULL, -1, ent->defaultmodel, 1);
 
 	if(ent->modeldata.type == TYPE_PLAYER) // save current weapon for player's weaploss 3
@@ -13507,7 +13514,8 @@ entity * normal_find_item(){
 		ce->animation->vulnerable[ce->animpos] && !ce->blink &&
 		(validanim(self,ANI_GET) || (isSubtypeTouch(ce) && canBeDamaged(ce, self))) &&
 		(
-			(isSubtypeWeapon(ce) && !self->weapent && self->modeldata.weapon && (*self->modeldata.weapon)[ce->modeldata.weapnum-1]>=0)
+			(isSubtypeWeapon(ce) && !self->weapent && self->modeldata.weapon && 
+			 self->modeldata.numweapons>=ce->modeldata.weapnum && self->modeldata.weapon[ce->modeldata.weapnum-1]>=0)
 			||(isSubtypeProjectile(ce) && !self->weapent)
 			||(ce->health && (self->health < self->modeldata.health) && ! isSubtypeProjectile(ce) && ! isSubtypeWeapon(ce))
 		)
@@ -18357,7 +18365,7 @@ void player_think()
 		{
 			if( validanim(self,ANI_GET) && // so we wont get stuck
 				 //dont pickup a weapon that is not in weapon list
-				!(( isSubtypeWeapon(other) && self->modeldata.weapon && (*self->modeldata.weapon)[other->modeldata.weapnum-1]<0) ||
+				!(( isSubtypeWeapon(other) && (self->modeldata.numweapons<other->modeldata.weapnum || self->modeldata.weapon[other->modeldata.weapnum-1]<0)) ||
 				//if on an real animal, can't pick up weapons
 				(self->modeldata.animal==2 && isSubtypeWeapon(other))))
 			{
