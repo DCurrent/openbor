@@ -14632,7 +14632,9 @@ int common_try_block(entity* target)
 	   !validanim(self,ANI_BLOCK))
 	   return 0;
 
-	if(!target) target = normal_find_target(ANI_BLOCK,0);
+	target = normal_find_target(ANI_BLOCK,0); // temporary fix, other wise ranges never work
+
+	if(!target) return 0;
 
 	// no passive block, so block by himself :)
 	if(target && target->attacking)
