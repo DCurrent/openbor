@@ -11223,7 +11223,6 @@ int checkhit(entity *attacker, entity *target, int counter)
 	if(debug_coords[0][1] > debug_coords[1][3]) return 0;
 	if(debug_coords[1][1] > debug_coords[0][3]) return 0;
 
-
 	// Find center of attack area
 	leftleast = debug_coords[0][0];
 	if(leftleast < debug_coords[1][0])
@@ -13425,6 +13424,41 @@ entity* long_find_target()
 	return NULL;
 }
 
+entity* block_find_target(int anim, int iDetect){
+	int i , min, max;
+	int index = -1;
+	min = 0;
+	max = 9999;
+	float diffx, diffz, diffd, diffo = 0;
+
+    iDetect += self->modeldata.stealth.detect;
+
+	//find the 'nearest' attacking one
+	for(i=0; i<ent_max; i++)
+	{
+		if( ent_list[i]->exists && ent_list[i] != self //cant target self
+			&& (ent_list[i]->modeldata.candamage & self->modeldata.type)
+			&& (anim<0||(anim>=0 && check_range(self, ent_list[i], anim)))
+			&& !ent_list[i]->dead &&  ent_list[i]->attacking//must be alive
+			&& ent_list[i]->animation->attacks && ent_list[i]->animation->attacks[ent_list[i]->animpos]
+			&& ent_list[i]->animation->attacks[ent_list[i]->animpos]->no_block==0
+			&& (diffd=(diffx=diff(ent_list[i]->x,self->x))+ (diffz=diff(ent_list[i]->z,self->z))) >= min
+			&& diffd <= max
+			&& (ent_list[i]->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
+			  )
+		{
+					
+			if(index <0 || diffd < diffo)
+			{
+				index = i;
+				diffo = diffd;
+			}
+		}
+	}
+	if( index >=0) {return ent_list[index];}
+	return NULL;
+}
+
 entity* normal_find_target(int anim, int iDetect)
 {
 
@@ -14632,9 +14666,7 @@ int common_try_block(entity* target)
 	   !validanim(self,ANI_BLOCK))
 	   return 0;
 
-	target = normal_find_target(ANI_BLOCK,0); // temporary fix, other wise ranges never work
-
-	if(!target) return 0;
+	if(!target) target = block_find_target(ANI_BLOCK,0); // temporary fix, other wise ranges never work
 
 	// no passive block, so block by himself :)
 	if(target && target->attacking)
@@ -16579,6 +16611,8 @@ int common_move()
 		
 		// don't run in passive move mode. The path could be complex and running may look bad.
 		if(self->waypoints) self->running = 0;
+
+		if(self->direction==(self->destx<self->x)) self->running = 0;
 		
 		// make the entity walks in a straight path instead of flickering here and there
 		// acceleration can be added easily based on this logic, if necessary
