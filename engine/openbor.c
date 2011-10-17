@@ -17279,9 +17279,7 @@ void common_dodge()    // New function so players can dodge with up up or down d
 {
 	if(self->animating)    // Continues to move as long as the player is animating
 	{
-		if(self->zdir<0) self->zdir = -self->modeldata.speed * 1.75;
-		else self->zdir = self->modeldata.speed * 1.75;
-		self->xdir = 0;
+		return;
 	}
 	else    // Once done animating, returns to thinking
 	{
@@ -18131,7 +18129,7 @@ void player_think()
 		{    // New dodge move like on SOR3
 			self->combostep[0] = 0;
 			self->idling = 0;
-			self->zdir = (float)-0.1;
+			self->zdir = -self->modeldata.speed * 1.75; self->xdir = 0;// OK you can use jumpframe to modify this anyway
 			ent_set_anim(self, ANI_DODGE, 0);
 			self->takeaction = common_dodge;
 			return;
@@ -18160,7 +18158,7 @@ void player_think()
 		{    // New dodge move like on SOR3
 			self->combostep[0] = 0;
 			self->idling = 0;
-			self->zdir = (float)0.1;          //used for checking
+			self->zdir = self->modeldata.speed * 1.75; self->xdir = 0;
 			ent_set_anim(self, ANI_DODGE, 0);
 			self->takeaction = common_dodge;
 			return;
