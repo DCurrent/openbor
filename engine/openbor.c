@@ -20138,7 +20138,7 @@ void draw_scrolled_bg(){
 		else if(level->rocking == 2) gfx_y_offset = level->quake - 4 - rockoffsshake[rockpos];
 		else if(level->rocking == 3) gfx_y_offset = level->quake - 4 - rockoffsrumble[rockpos];
 	}
-	else if(time){
+	else{
 		if(level->quake >= 0) gfx_y_offset = level->quake-4;
 		else           gfx_y_offset = level->quake+4;
 	}
@@ -22189,7 +22189,7 @@ int choose_difficulty()
 			//draw the scroll bar
 			if(num_difficulties>maxdisplay)
 			{
-				spriteq_add_box(barx,  bary,        barw,     barh,   0, color_black, 0); //outerbox
+				spriteq_add_box(barx,  bary,        barw,     barh,   0, color_black, 1); //outerbox
 				spriteq_add_line(barx, bary,  barx+8, bary, 1, color_white, 0);
 				spriteq_add_line(barx, bary, barx, bary + barh, 1, color_white, 0);
 				spriteq_add_line(barx + 8, bary, barx+8, bary+barh,  1, color_white, 0);
