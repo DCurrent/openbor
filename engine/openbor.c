@@ -13404,8 +13404,8 @@ entity* block_find_target(int anim, int iDetect){
 			&& (ent_list[i]->modeldata.candamage & self->modeldata.type)
 			&& (anim<0||(anim>=0 && check_range(self, ent_list[i], anim)))
 			&& !ent_list[i]->dead &&  ent_list[i]->attacking//must be alive
-			&& ent_list[i]->animation->attacks && ent_list[i]->animation->attacks[ent_list[i]->animpos]
-			&& ent_list[i]->animation->attacks[ent_list[i]->animpos]->no_block==0
+			&& ent_list[i]->animation->attacks && (!ent_list[i]->animation->attacks[ent_list[i]->animpos]
+			|| ent_list[i]->animation->attacks[ent_list[i]->animpos]->no_block==0)
 			&& (diffd=(diffx=diff(ent_list[i]->x,self->x))+ (diffz=diff(ent_list[i]->z,self->z))) >= min
 			&& diffd <= max
 			&& (ent_list[i]->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
