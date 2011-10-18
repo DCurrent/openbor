@@ -1542,7 +1542,6 @@ typedef struct
 	////////////////layer reference ends here
 	///////////////////////////////////////////////////////////////
 	s_textobj textobjs[LEVEL_MAX_TEXTOBJS];
-	s_filestream filestreams[LEVEL_MAX_FILESTREAMS];
 	int numfilestreams;
 	int cameraxoffset;
 	int camerazoffset;
