@@ -69,6 +69,7 @@ extern s_savedata     savedata;
 extern s_savelevel    savelevel[MAX_DIFFICULTIES];
 extern s_savescore    savescore;
 extern s_level        *level;
+extern s_filestream   filestreams[LEVEL_MAX_FILESTREAMS];
 extern entity         *self;
 extern int            *animspecials;
 extern int            *animattacks;
@@ -8026,7 +8027,7 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	}
 
 	for(fsindex=0; fsindex<LEVEL_MAX_FILESTREAMS; fsindex++){
-		if(level->filestreams[fsindex].buf==NULL){
+		if(filestreams[fsindex].buf==NULL){
 			break;
 		}
 	}
@@ -8064,11 +8065,11 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 		fseek(handle, 0, SEEK_END);
 		size = ftell(handle);
 		rewind(handle);
-		level->filestreams[fsindex].buf = (char*)malloc(sizeof(char)*size);
-		if(level->filestreams[fsindex].buf == NULL) return E_FAIL;
-		disCcWarns = fread(level->filestreams[fsindex].buf, 1, size, handle);
+		filestreams[fsindex].buf = (char*)malloc(sizeof(char)*size);
+		if(filestreams[fsindex].buf == NULL) return E_FAIL;
+		disCcWarns = fread(filestreams[fsindex].buf, 1, size, handle);
 	}
-	else if(buffer_pakfile(filename, &level->filestreams[fsindex].buf, &level->filestreams[fsindex].size)!=1)
+	else if(buffer_pakfile(filename, &filestreams[fsindex].buf, &filestreams[fsindex].size)!=1)
 	{
 		  printf("Invalid filename used in openfilestream.\n");
 		  *pretvar = NULL;
@@ -8078,7 +8079,7 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 	(*pretvar)->lVal = (LONG)fsindex;
 
-	level->filestreams[fsindex].pos = 0;
+	filestreams[fsindex].pos = 0;
 	return S_OK;
 }
 
@@ -8105,12 +8106,12 @@ HRESULT openbor_getfilestreamline(ScriptVariant** varlist , ScriptVariant** pret
 	length = 0;
 	strncpy(line, "it's initialized now", MAX_STR_VAR_LEN);
 
-	while(level->filestreams[filestreamindex].buf[level->filestreams[filestreamindex].pos+length] && level->filestreams[filestreamindex].buf[level->filestreams[filestreamindex].pos+length]!='\n' && level->filestreams[filestreamindex].buf[level->filestreams[filestreamindex].pos+length]!='\r') ++length;
+	while(filestreams[filestreamindex].buf[filestreams[filestreamindex].pos+length] && filestreams[filestreamindex].buf[filestreams[filestreamindex].pos+length]!='\n' && filestreams[filestreamindex].buf[filestreams[filestreamindex].pos+length]!='\r') ++length;
 	if(length >= MAX_STR_VAR_LEN)
-		strncpy(StrCache_Get((*pretvar)->strVal), (char*)(level->filestreams[filestreamindex].buf+level->filestreams[filestreamindex].pos), MAX_STR_VAR_LEN);
+		strncpy(StrCache_Get((*pretvar)->strVal), (char*)(filestreams[filestreamindex].buf+filestreams[filestreamindex].pos), MAX_STR_VAR_LEN);
 	else
 	{
-		strncpy(line, (char*)(level->filestreams[filestreamindex].buf+level->filestreams[filestreamindex].pos), length);
+		strncpy(line, (char*)(filestreams[filestreamindex].buf+filestreams[filestreamindex].pos), length);
 		line[length] = '\0';
 		strncpy(StrCache_Get((*pretvar)->strVal), line, MAX_STR_VAR_LEN);
 	}
@@ -8148,17 +8149,17 @@ HRESULT openbor_getfilestreamargument(ScriptVariant** varlist , ScriptVariant** 
 	if(stricmp(argtype, "string")==0)
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strncpy(StrCache_Get((*pretvar)->strVal), (char*)findarg(level->filestreams[filestreamindex].buf+level->filestreams[filestreamindex].pos, argument), MAX_STR_VAR_LEN);
+		strncpy(StrCache_Get((*pretvar)->strVal), (char*)findarg(filestreams[filestreamindex].buf+filestreams[filestreamindex].pos, argument), MAX_STR_VAR_LEN);
 	}
 	else if(stricmp(argtype, "int")==0)
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)atoi(findarg(level->filestreams[filestreamindex].buf+level->filestreams[filestreamindex].pos, argument));
+		(*pretvar)->lVal = (LONG)atoi(findarg(filestreams[filestreamindex].buf+filestreams[filestreamindex].pos, argument));
 	}
 	else if(stricmp(argtype, "float")==0)
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)atof(findarg(level->filestreams[filestreamindex].buf+level->filestreams[filestreamindex].pos, argument));
+		(*pretvar)->dblVal = (DOUBLE)atof(findarg(filestreams[filestreamindex].buf+filestreams[filestreamindex].pos, argument));
 	}
 	else
 	{
@@ -8183,8 +8184,8 @@ HRESULT openbor_filestreamnextline(ScriptVariant** varlist , ScriptVariant** pre
 	arg = varlist[0];
 	if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
 		return S_OK;
-	while(level->filestreams[filestreamindex].buf[level->filestreams[filestreamindex].pos] && level->filestreams[filestreamindex].buf[level->filestreams[filestreamindex].pos]!='\n' && level->filestreams[filestreamindex].buf[level->filestreams[filestreamindex].pos]!='\r') ++level->filestreams[filestreamindex].pos;
-	while(level->filestreams[filestreamindex].buf[level->filestreams[filestreamindex].pos]=='\n' || level->filestreams[filestreamindex].buf[level->filestreams[filestreamindex].pos]=='\r') ++level->filestreams[filestreamindex].pos;
+	while(filestreams[filestreamindex].buf[filestreams[filestreamindex].pos] && filestreams[filestreamindex].buf[filestreams[filestreamindex].pos]!='\n' && filestreams[filestreamindex].buf[filestreams[filestreamindex].pos]!='\r') ++filestreams[filestreamindex].pos;
+	while(filestreams[filestreamindex].buf[filestreams[filestreamindex].pos]=='\n' || filestreams[filestreamindex].buf[filestreams[filestreamindex].pos]=='\r') ++filestreams[filestreamindex].pos;
 
 	return S_OK;
 }
@@ -8205,7 +8206,7 @@ HRESULT openbor_getfilestreamposition(ScriptVariant** varlist , ScriptVariant** 
 		return S_OK;
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG)level->filestreams[filestreamindex].pos;
+	(*pretvar)->lVal = (LONG)filestreams[filestreamindex].pos;
 	return S_OK;
 }
 
@@ -8229,7 +8230,7 @@ HRESULT openbor_setfilestreamposition(ScriptVariant** varlist , ScriptVariant** 
 	if(FAILED(ScriptVariant_IntegerValue(arg, &position)))
 		return S_OK;
 
-	level->filestreams[filestreamindex].pos = position;
+	filestreams[filestreamindex].pos = position;
 	return S_OK;
 }
 
@@ -8286,24 +8287,24 @@ HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretv
 	if(FAILED(ScriptVariant_IntegerValue(arg, &appendtype)))
 		return S_OK;
 
-	temp = (char*)malloc(sizeof(char)*(strlen(level->filestreams[filestreamindex].buf) + strlen(append) + 4));
-	strcpy(temp, level->filestreams[filestreamindex].buf);
+	temp = (char*)malloc(sizeof(char)*(strlen(filestreams[filestreamindex].buf) + strlen(append) + 4));
+	strcpy(temp, filestreams[filestreamindex].buf);
 
 	if(appendtype == 0)
 	{
 		strcat(temp, "\r\n");
 		strcat(temp, append);
-		temp[strlen(level->filestreams[filestreamindex].buf) + strlen(append) + 2] = ' ';
-		temp[strlen(level->filestreams[filestreamindex].buf) + strlen(append) + 3] = '\0';
+		temp[strlen(filestreams[filestreamindex].buf) + strlen(append) + 2] = ' ';
+		temp[strlen(filestreams[filestreamindex].buf) + strlen(append) + 3] = '\0';
 	}
 	else if(appendtype == 1)
 	{
 		strcat(temp, append);
-		temp[strlen(level->filestreams[filestreamindex].buf) + strlen(append)] = ' ';
-		temp[strlen(level->filestreams[filestreamindex].buf) + strlen(append) + 1] = '\0';
+		temp[strlen(filestreams[filestreamindex].buf) + strlen(append)] = ' ';
+		temp[strlen(filestreams[filestreamindex].buf) + strlen(append) + 1] = '\0';
 	}
-	free(level->filestreams[filestreamindex].buf);
-	level->filestreams[filestreamindex].buf = temp;
+	free(filestreams[filestreamindex].buf);
+	filestreams[filestreamindex].buf = temp;
 
 	return S_OK;
 }
@@ -8314,7 +8315,7 @@ HRESULT openbor_createfilestream(ScriptVariant** varlist , ScriptVariant** pretv
 	ScriptVariant_Clear(*pretvar);
 
 	for(fsindex=0; fsindex<LEVEL_MAX_FILESTREAMS; fsindex++){
-		if(level->filestreams[fsindex].buf==NULL){
+		if(filestreams[fsindex].buf==NULL){
 			break;
 		}
 	}
@@ -8330,9 +8331,9 @@ HRESULT openbor_createfilestream(ScriptVariant** varlist , ScriptVariant** pretv
 	(*pretvar)->lVal = (LONG)fsindex;
 
 	// Initialize the new filestream
-	level->filestreams[fsindex].pos = 0;
-	level->filestreams[fsindex].buf = (char*)malloc(sizeof(char)*128);
-	level->filestreams[fsindex].buf[0] = '\0';
+	filestreams[fsindex].pos = 0;
+	filestreams[fsindex].buf = (char*)malloc(sizeof(char)*128);
+	filestreams[fsindex].buf[0] = '\0';
 	return S_OK;
 }
 
@@ -8401,7 +8402,7 @@ HRESULT openbor_savefilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	strcat(path, (char*)StrCache_Get(arg->strVal));
 	handle = fopen(path, "wb");
 	if(handle==NULL) return E_FAIL;
-	disCcWarns = fwrite(level->filestreams[filestreamindex].buf, 1, strlen(level->filestreams[filestreamindex].buf), handle);
+	disCcWarns = fwrite(filestreams[filestreamindex].buf, 1, strlen(filestreams[filestreamindex].buf), handle);
 
 	// add blank line so it can be read successfully
 	fwrite("\r\n", 1, 2, handle);
@@ -8425,9 +8426,9 @@ HRESULT openbor_closefilestream(ScriptVariant** varlist , ScriptVariant** pretva
 		return E_FAIL;
 
 
-	if(level->filestreams[filestreamindex].buf){
-		free(level->filestreams[filestreamindex].buf);
-		level->filestreams[filestreamindex].buf = NULL;
+	if(filestreams[filestreamindex].buf){
+		free(filestreams[filestreamindex].buf);
+		filestreams[filestreamindex].buf = NULL;
 	}
 	return S_OK;
 }

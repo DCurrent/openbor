@@ -36,6 +36,7 @@ static int DEFAULT_OFFSCREEN_KILL = 3000;
 
 s_level_entry*      levelorder[MAX_DIFFICULTIES][MAX_LEVELS];
 s_level*            level               = NULL;
+s_filestream filestreams[LEVEL_MAX_FILESTREAMS];
 s_screen*           vscreen             = NULL;
 s_screen*           background          = NULL;
 s_screen*			zoombuffer			= NULL;
@@ -8368,10 +8369,10 @@ void free_level(s_level* lv)
 
 	for(i=0; i<LEVEL_MAX_FILESTREAMS; i++)
 	{
-		if(lv->filestreams[i].buf)
+		if(filestreams[i].buf)
 		{
-			free(lv->filestreams[i].buf);
-			lv->filestreams[i].buf = NULL;
+			free(filestreams[i].buf);
+			filestreams[i].buf = NULL;
 		}
 	}
 
