@@ -7999,7 +7999,10 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	int disCcWarns;
 	FILE *handle = NULL;
 	char path[128] = {""};
+	char tmpname[128] = {""};
 	long size;
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
 	if(paramCount < 1)
 	{
@@ -8022,8 +8025,10 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	if(paramCount > 1)
 	{
 		arg = varlist[1];
-		if(FAILED(ScriptVariant_IntegerValue(arg, &location)))
-			return S_OK;
+		if(FAILED(ScriptVariant_IntegerValue(arg, &location))){
+			*pretvar = NULL;
+			return E_FAIL;
+		}
 	}
 
 	for(fsindex=0; fsindex<LEVEL_MAX_FILESTREAMS; fsindex++){
@@ -8043,8 +8048,11 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	if(location)
 	{
 		getBasePath(path, "Saves", 0);
+		getPakName(tmpname, -1);
+		strcat(path, tmpname);
 		strcat(path, "/");
 		strcat(path, filename);
+		//printf("open path: %s", path);
 #ifndef DC
 		if(!(fileExists(path)))
 		{
@@ -8053,27 +8061,34 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 
 			printf("Openfilestream - file specified does not exist.\n"); //Keep this for possible debug mode in the future.
 			*/
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = -1;
 
 			return S_OK;
 		}
 #endif
 		handle = fopen(path, "rb");
-		if(handle == NULL) return E_FAIL;
+		if(handle == NULL) {
+            (*pretvar)->lVal = -1;
+			return S_OK;
+		}
+		//printf("\nfile opened\n");
 		fseek(handle, 0, SEEK_END);
 		size = ftell(handle);
+		//printf("\n file size %d fsindex %d\n", size, fsindex);
 		rewind(handle);
-		filestreams[fsindex].buf = (char*)malloc(sizeof(char)*size);
-		if(filestreams[fsindex].buf == NULL) return E_FAIL;
+		filestreams[fsindex].buf = (char*)malloc(sizeof(char)*(size+1));
+		if(filestreams[fsindex].buf == NULL) {
+            (*pretvar)->lVal = -1;
+			return S_OK;
+		}
 		disCcWarns = fread(filestreams[fsindex].buf, 1, size, handle);
+		filestreams[fsindex].buf[size] = 0;
 	}
 	else if(buffer_pakfile(filename, &filestreams[fsindex].buf, &filestreams[fsindex].size)!=1)
 	{
 		  printf("Invalid filename used in openfilestream.\n");
 		  *pretvar = NULL;
-		  return E_FAIL;
+		  return S_OK;
 	}
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -8339,60 +8354,39 @@ HRESULT openbor_createfilestream(ScriptVariant** varlist , ScriptVariant** pretv
 
 HRESULT openbor_savefilestream(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	int i, x, y;
 	LONG filestreamindex;
 	ScriptVariant* arg = NULL;
 	int disCcWarns;
 	FILE *handle = NULL;
 	char path[128] = {""};
 	char tmpname[128] = {""};
-	char mod[256] = {""};
+
+	*pretvar = NULL;
 
 	if(paramCount < 1)
 	{
-		*pretvar = NULL;
 		return E_FAIL;
 	}
 
-	ScriptVariant_Clear(*pretvar);
-
 	arg = varlist[0];
-	if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
-		return S_OK;
+	if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex))){
+		printf("You must give a valid filestrema handle for savefilestream!\n");
+		return E_FAIL;
+	}
 
 	arg = varlist[1];
 	if(arg->vt!=VT_STR)
 	{
 		printf("Filename for savefilestream must be a string.\n");
-		*pretvar = NULL;
 		return E_FAIL;
 	}
 
 	// Get the saves directory
-	getBasePath(path, "Saves/", 0);
-
-	// get the packfile's name by chopping off the rest of the path
-	strncpy(mod,packfile,strlen(packfile)-4);
-	x=0;
-	for(i=0; i<(int)strlen(mod); i++){
-		if((mod[i] == '/') || (mod[i] == '\\')) x = i;
-	}
-	y=0;
-	for(i=0; i<(int)strlen(mod); i++){
-		// For packfiles without '/'
-		if(x == 0){
-			tmpname[y] = mod[i];
-			y++;
-		}
-		// For packfiles with '/'
-		if(x != 0 && i > x){
-			tmpname[y] = mod[i];
-			y++;
-		}
-	}
+	getBasePath(path, "Saves", 0);
+	getPakName(tmpname, -1);
+	strcat(path, tmpname);
 
 	// Make ./Saves/PAKNAME if it doesn't exist
-	strcat(path,tmpname);
 #ifndef DC
 	dirExists(path, 1);
 #endif
@@ -8400,6 +8394,7 @@ HRESULT openbor_savefilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	// Add user's filename to path and write the filestream to it
 	strcat(path, "/");
 	strcat(path, (char*)StrCache_Get(arg->strVal));
+	//printf("save path: %s", path);
 	handle = fopen(path, "wb");
 	if(handle==NULL) return E_FAIL;
 	disCcWarns = fwrite(filestreams[filestreamindex].buf, 1, strlen(filestreams[filestreamindex].buf), handle);
