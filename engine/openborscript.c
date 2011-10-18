@@ -259,14 +259,14 @@ int Script_Set_Global_Variant(char* theName, ScriptVariant* var)
 	return _set_var(theName, var, NULL);
 }
 
-void Script_Local_Clear()
+void Script_Local_Clear(Script* cs)
 {
 	int i;
 	//s_variantnode* tempnode;
-	if(!pcurrentscript) return;
+	if(!cs) return;
 	for(i=0; i<=max_global_var_index; i++)
 	{
-		if(global_var_list[i]->owner == pcurrentscript)
+		if(global_var_list[i]->owner == cs)
 		{
 			/*
 			printf("local var %s cleared\n", global_var_list[i]->key);
@@ -280,21 +280,21 @@ void Script_Local_Clear()
 			ScriptVariant_Clear(&global_var_list[i]->value);
 		}
 	}
-	if(pcurrentscript->vars)
-		for(i=0; i<max_script_vars; i++) ScriptVariant_Clear(pcurrentscript->vars+i);
+	if(cs->vars)
+		for(i=0; i<max_script_vars; i++) ScriptVariant_Clear(cs->vars+i);
 }
 
 
-ScriptVariant* Script_Get_Local_Variant(char* theName)
+ScriptVariant* Script_Get_Local_Variant(Script* cs, char* theName)
 {
 	int i;
 
-	if(!pcurrentscript || !pcurrentscript->initialized ||
+	if(!cs || !cs->initialized ||
 	   !theName || !theName[0]) return NULL;
 
 	for(i=0; i<=max_global_var_index; i++)
 	{
-		if(global_var_list[i]->owner == pcurrentscript &&
+		if(global_var_list[i]->owner == cs &&
 		   strcmp(theName, global_var_list[i]->key)==0)
 			return &(global_var_list[i]->value);
 	}
@@ -302,10 +302,10 @@ ScriptVariant* Script_Get_Local_Variant(char* theName)
 	return NULL;
 }
 
-int Script_Set_Local_Variant(char* theName, ScriptVariant* var)
+int Script_Set_Local_Variant(Script* cs, char* theName, ScriptVariant* var)
 {
-	if(!pcurrentscript) return 0;
-	return _set_var(theName, var, pcurrentscript);
+	if(!cs) return 0;
+	return _set_var(theName, var, cs);
 }
 
 Script* alloc_script()
@@ -334,7 +334,7 @@ void Script_Init(Script* pscript, char* theName, char* comment, int first)
 		}
 	}
 	if(!theName || !theName[0])  return; // if no name specified, only alloc the variants
-	pcurrentscript = pscript; //used by local script functions
+
 	pscript->pinterpreter = (Interpreter*)malloc(sizeof(Interpreter));
 	Interpreter_Init(pscript->pinterpreter, theName, &theFunctionList);
 	pscript->interpreterowner = 1; // this is the owner, important
@@ -371,13 +371,13 @@ void Script_Clear(Script* pscript, int localclear)
 		ScriptVariant_Init(&tempvar);
 		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
 		tempvar.lVal = (LONG)localclear;
-		Script_Set_Local_Variant("localclear", &tempvar);
+		Script_Set_Local_Variant(pscript, "localclear", &tempvar);
 		pscript->pinterpreter->pCurrentInstruction = pscript->pinterpreter->pClearEntry;
 		if(FAILED( Interpreter_EvaluateCall(pscript->pinterpreter))){
 			shutdown(1, "Fatal: failed to execute 'clear' in script %s %s", pscript->pinterpreter->theSymbolTable.name, pscript->comment?pscript->comment:"");
 		}
 		ScriptVariant_Clear(&tempvar);
-		Script_Set_Local_Variant("localclear", &tempvar);
+		Script_Set_Local_Variant(pscript, "localclear", &tempvar);
 		pcurrentscript = temp;
 	}
 
@@ -391,8 +391,7 @@ void Script_Clear(Script* pscript, int localclear)
 		pscript->vars = NULL;
 	}
 	if(!pscript->initialized) return;
-	temp = pcurrentscript;
-	pcurrentscript = pscript; //used by local script functions
+
 	//if it is the owner, free the interpreter
 	if(pscript->pinterpreter && pscript->interpreterowner){
 		Interpreter_Clear(pscript->pinterpreter);
@@ -401,11 +400,10 @@ void Script_Clear(Script* pscript, int localclear)
 		if(pscript->comment) free(pscript->comment);
 		pscript->comment = NULL;
 	}
-	if(localclear) Script_Local_Clear();
+	if(localclear) Script_Local_Clear(pscript);
 	pvars = pscript->vars; // in game clear(localclear!=2) just keep this value
 	memset(pscript, 0, sizeof(Script));
 	pscript->vars = pvars; // copy it back
-	pcurrentscript = temp;
 }
 
 //append part of the script
@@ -414,7 +412,6 @@ int Script_AppendText(Script* pscript, char* text, char* path)
 {
 	int success;
 
-	pcurrentscript = pscript; //used by local script functions
 	//printf(text);
 	Interpreter_Reset(pscript->pinterpreter);
 
@@ -798,7 +795,7 @@ int Script_Compile(Script* pscript)
 
 int Script_IsInitialized(Script* pscript)
 {
-	if(pscript && pscript->initialized) pcurrentscript = pscript; //used by local script functions
+	//if(pscript && pscript->initialized) pcurrentscript = pscript; //used by local script functions
 	return pscript->initialized;
 }
 
@@ -819,9 +816,13 @@ int Script_Execute(Script* pscript)
 //this method is for debug purpose
 int Script_Call(Script* pscript, char* method, ScriptVariant* pretvar)
 {
+	int result;
+	Script* temp = pcurrentscript;
 	pcurrentscript = pscript; //used by local script functions
 	Interpreter_Reset(pscript->pinterpreter);
-	return (int)SUCCEEDED(Interpreter_Call(pscript->pinterpreter, method, pretvar));
+	result = (int)SUCCEEDED(Interpreter_Call(pscript->pinterpreter, method, pretvar));
+	pcurrentscript = temp;
+	return result;
 }
 #endif
 
@@ -1171,7 +1172,7 @@ HRESULT system_getlocalvar(ScriptVariant** varlist , ScriptVariant** pretvar, in
 		*pretvar = NULL;
 		return E_FAIL;
 	}
-	ptmpvar = Script_Get_Local_Variant(StrCache_Get(varlist[0]->strVal));
+	ptmpvar = Script_Get_Local_Variant(pcurrentscript, StrCache_Get(varlist[0]->strVal));
 	if(ptmpvar) ScriptVariant_Copy(*pretvar,  ptmpvar);
 	else        ScriptVariant_ChangeType(*pretvar, VT_EMPTY);
 	return S_OK;
@@ -1191,7 +1192,7 @@ HRESULT system_setlocalvar(ScriptVariant** varlist , ScriptVariant** pretvar, in
 	}
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
-	(*pretvar)->lVal = (LONG)Script_Set_Local_Variant(StrCache_Get(varlist[0]->strVal), varlist[1]);
+	(*pretvar)->lVal = (LONG)Script_Set_Local_Variant(pcurrentscript, StrCache_Get(varlist[0]->strVal), varlist[1]);
 
 	return S_OK;;
 }
@@ -1199,7 +1200,7 @@ HRESULT system_setlocalvar(ScriptVariant** varlist , ScriptVariant** pretvar, in
 HRESULT system_clearlocalvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	*pretvar = NULL;
-	Script_Local_Clear();
+	Script_Local_Clear(pcurrentscript);
 	return S_OK;
 }
 //clearglobalvar();
