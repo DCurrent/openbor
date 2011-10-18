@@ -2102,7 +2102,6 @@ void clearsettings()
 
 void savesettings(){
 #ifndef DC
-	int disCcWarns;
 	FILE *handle = NULL;
 	char path[128] = {""};
 	char tmpname[128] = {""};
@@ -2111,21 +2110,20 @@ void savesettings(){
 	strcat(path, tmpname);
 	handle = fopen(path, "wb");
 	if(handle==NULL) return;
-	disCcWarns = fwrite(&savedata, 1, sizeof(s_savedata), handle);
+    fwrite(&savedata, 1, sizeof(s_savedata), handle);
 	fclose(handle);
 #endif
 }
 
 void saveasdefault(){
 #ifndef DC
-	int disCcWarns;
 	FILE *handle = NULL;
 	char path[128] = {""};
 	getBasePath(path, "Saves", 0);
 	strncat(path, "default.cfg", 128);
 	handle = fopen(path, "wb");
 	if(handle==NULL) return;
-	disCcWarns = fwrite(&savedata, 1, sizeof(s_savedata), handle);
+    fwrite(&savedata, 1, sizeof(s_savedata), handle);
 	fclose(handle);
 #endif
 }
@@ -2133,7 +2131,6 @@ void saveasdefault(){
 
 void loadsettings(){
 #ifndef DC
-	int disCcWarns;
 	FILE *handle = NULL;
 	char path[128] = {""};
 	char tmpname[128] = {""};
@@ -2148,7 +2145,7 @@ void loadsettings(){
 	clearsettings();
 	handle = fopen(path, "rb");
 	if(handle == NULL) return;
-	disCcWarns = fread(&savedata, 1, sizeof(s_savedata), handle);
+    fread(&savedata, 1, sizeof(s_savedata), handle);
 	fclose(handle);
 	if(savedata.compatibleversion != COMPATIBLEVERSION) clearsettings();
 #else
@@ -2158,7 +2155,6 @@ void loadsettings(){
 
 void loadfromdefault(){
 #ifndef DC
-	int disCcWarns;
 	FILE *handle = NULL;
 	char path[128] = {""};
 	getBasePath(path, "Saves", 0);
@@ -2166,7 +2162,7 @@ void loadfromdefault(){
 	clearsettings();
 	handle = fopen(path, "rb");
 	if(handle == NULL) return;
-	disCcWarns = fread(&savedata, 1, sizeof(s_savedata), handle);
+    fread(&savedata, 1, sizeof(s_savedata), handle);
 	fclose(handle);
 	if(savedata.compatibleversion != COMPATIBLEVERSION) clearsettings();
 #else
@@ -2216,7 +2212,6 @@ void clearHighScore(){
 
 void saveGameFile(){
 #ifndef DC
-	int disCcWarns;
 	FILE *handle = NULL;
 	char path[256] = {""};
 	char tmpname[256] = {""};
@@ -2226,7 +2221,7 @@ void saveGameFile(){
 	//if(!savelevel[saveslot].level) return;
 	handle = fopen(path, "wb");
 	if(handle == NULL) return;
-	disCcWarns = fwrite(&savelevel, sizeof(s_savelevel), MAX_DIFFICULTIES, handle);
+    fwrite(&savelevel, sizeof(s_savelevel), MAX_DIFFICULTIES, handle);
 	fclose(handle);
 #endif
 }
@@ -2234,7 +2229,6 @@ void saveGameFile(){
 
 int loadGameFile(){
 #ifndef DC
-	int disCcWarns;
 	FILE *handle = NULL;
 	int i;
 	char path[256] = {""};
@@ -2244,7 +2238,7 @@ int loadGameFile(){
 	strcat(path,tmpname);
 	handle = fopen(path, "rb");
 	if(handle == NULL) return 0;
-	disCcWarns = fread(&savelevel, sizeof(s_savelevel), MAX_DIFFICULTIES, handle);
+    fread(&savelevel, sizeof(s_savelevel), MAX_DIFFICULTIES, handle);
 	fclose(handle);
 	for(i=0; i<MAX_DIFFICULTIES; i++) if(savelevel[i].compatibleversion != CV_SAVED_GAME) clearSavedGame();
 	return 1;
@@ -2257,7 +2251,6 @@ int loadGameFile(){
 
 void saveHighScoreFile(){
 #ifndef DC
-	int disCcWarns;
 	FILE *handle = NULL;
 	char path[256] = {""};
 	char tmpname[256] = {""};
@@ -2266,7 +2259,7 @@ void saveHighScoreFile(){
 	strcat(path, tmpname);
 	handle = fopen(path, "wb");
 	if(handle == NULL) return;
-	disCcWarns = fwrite(&savescore, 1, sizeof(s_savescore), handle);
+    fwrite(&savescore, 1, sizeof(s_savescore), handle);
 	fclose(handle);
 #endif
 }
@@ -2274,7 +2267,6 @@ void saveHighScoreFile(){
 
 void loadHighScoreFile(){
 #ifndef DC
-	int disCcWarns;
 	FILE *handle = NULL;
 	char path[256] = {""};
 	char tmpname[256] = {""};
@@ -2284,7 +2276,7 @@ void loadHighScoreFile(){
 	clearHighScore();
 	handle = fopen(path, "rb");
 	if(handle == NULL) return;
-	disCcWarns = fread(&savescore, 1, sizeof(s_savescore), handle);
+    fread(&savescore, 1, sizeof(s_savescore), handle);
 	fclose(handle);
 	if(savescore.compatibleversion != CV_HIGH_SCORE) clearHighScore();
 #else
@@ -13278,7 +13270,6 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 {
 	s_model* model = NULL;
 	s_model oldmodel;
-	int   animnum, animpos;
 	int   i;
 	int   type = ent->modeldata.type;
 
@@ -13290,9 +13281,6 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 	}
 	if(!newmodel) shutdown(1, "Can't set model for entity '%s', model not found.\n", ent->name);
 	if(newmodel==model) return;
-
-	animnum = ent->animnum;
-	animpos = ent->animpos;
 
 	if(!(newmodel->model_flag & MODEL_NO_COPY))
 	{
@@ -14216,7 +14204,6 @@ entity* drop_driver(entity* e)
 
 void checkdeath()
 {
-	entity* item;
 	if(self->health>0) return;
 	self->dead = 1;
 	//be careful, since the opponent can be other types
@@ -14230,8 +14217,9 @@ void checkdeath()
 	if(self->modeldata.diesound >= 0) sound_play_sample(self->modeldata.diesound, 0, savedata.effectvol,savedata.effectvol, 100);
 
 	// drop item
-	if(self->item && count_ents(TYPE_PLAYER) > self->itemplayer_count){ //4player
-		item = drop_item(self);
+	if(self->item && count_ents(TYPE_PLAYER) > self->itemplayer_count)
+    {
+		drop_item(self);
 	}
 
 	if(self->boss){
@@ -15990,7 +15978,7 @@ int common_try_wander(entity* target, int dox, int doz)
 		returndx, returndz, //how far should keep from target
 		borderdx, borderdz, //how far should keep offscreen
 		mindx, mindz;// don't walk into the target
-	int rnum = rand32()&7, rnum2 = rand32()&15, t, randomatk;
+	int rnum = rand32()&15, t, randomatk;
 
 	if(!target || self->modeldata.nomove) return 0;
 
@@ -16014,14 +16002,14 @@ int common_try_wander(entity* target, int dox, int doz)
 	// could use this to replace the completely wander ai
 	if(dox!=doz) t = 0;
 
-	if(rnum2<t){ //chase target
+	if(rnum<t){ //chase target
 		returndx = videomodes.hRes/4;
 		returndz = videomodes.vRes/6;
 	}else{ // only chase when too far away
 		returndx = videomodes.hRes/2;
 		returndz = videomodes.vRes/3;
 	}
-	if(rnum2>7){
+	if(rnum>7){
 		borderdx = videomodes.hRes/8;
 		borderdz = videomodes.vRes/8;
 	}else{
@@ -16071,7 +16059,6 @@ int common_try_wander(entity* target, int dox, int doz)
 	
 	if(doz)
 	{
-		rnum = rand32()&7;
 		if(self->z<screeny-borderdz){
 			self->zdir = self->modeldata.speed/2;
 			self->destz = screeny + videomodes.vRes/12.0;
@@ -16372,7 +16359,7 @@ int common_move()
 	entity* ent = NULL;
 	float seta;
 	int predir, stall;
-	int patx[4], pxc, px, patz[4], pzc, pz, fx, fz; //move pattern in z and x
+	int patx[4], pxc, px, patz[4], pzc, pz, fz; //move pattern in z and x
 
 	if(self->modeldata.aimove==-1) return 0; // invalid value
 
@@ -16518,7 +16505,7 @@ int common_move()
 					px = patx[(rand32()&0xff)%pxc];
 					pz = patz[(rand32()&0xff)%pzc];
 
-					fx = fz = 0;
+					fz = 0;
 
 					aimove = (self->modeldata.aimove & MASK_AIMOVE1);
 				
@@ -16528,15 +16515,12 @@ int common_move()
 							common_try_wandercompletely(1, 1);
 							fz = 1;
 						}else common_try_wander(target, 1, 0);
-						fx = 1;
 						
 					}else if(px==AIMOVE1_CHASEX){
 						common_try_chase(target, 1, (pz==AIMOVE1_CHASEZ));
-						fx = 1;
 						fz = (pz==AIMOVE1_CHASEZ);
 					}else if (px==AIMOVE1_AVOIDX){
 						common_try_avoid(target, 1, (pz==AIMOVE1_AVOIDZ));
-						fx = 1;
 						fz = (pz==AIMOVE1_AVOIDZ);
 					}
 					if(!fz){
@@ -20278,9 +20262,8 @@ void movie_openfile(int save)
 
 void movie_flushbuf()
 {
-	int disCcWarns;
 	if(!moviefile || !moviebuffer) return;
-	disCcWarns = fwrite(moviebuffer, sizeof(*moviebuffer), MOVIEBUF_LEN, moviefile);
+    fwrite(moviebuffer, sizeof(*moviebuffer), MOVIEBUF_LEN, moviefile);
 	memset(moviebuffer, 0, sizeof(*moviebuffer)*MOVIEBUF_LEN);
 	moviebufptr = 0;
 }
@@ -20299,14 +20282,13 @@ void movie_closefile()
 void movie_update(s_playercontrols ** pctrls)
 {
 	int p;
-	int disCcWarns;
 	if(!moviefile || !moviebuffer) return;
 	if(moviebufptr==MOVIEBUF_LEN)
 	{
 		moviebufptr = 0;
 		if(movieloglen<=movielen)
 		{
-			disCcWarns = fread(moviebuffer, sizeof(*moviebuffer), MOVIEBUF_LEN, moviefile);
+            fread(moviebuffer, sizeof(*moviebuffer), MOVIEBUF_LEN, moviefile);
 			movieloglen += MOVIEBUF_LEN;
 		}
 		else
@@ -20715,14 +20697,7 @@ void fade_out(int type, int speed)
 	int i, j = 0;
 	int b, g = 0;
 	u32 interval = 0;
-	unsigned char* thepal = NULL;
 	int current = speed ? speed : fade;
-
-	if(pixelformat==PIXEL_8)
-	{
-		if(current_palette && level) thepal = level->palettes[current_palette - 1];
-		else thepal = pal;
-	}
 
 	for(i=0, j=0; j<64; )
 	{
@@ -23094,7 +23069,6 @@ void sound_options(){
 void config_settings(){    //  OX. Load from / save to default.cfg. Restore OpenBoR "factory" settings.
 	int quit = 0;
 	int selector = 0;
-	int dir = 0;
 	int saved = 0;
 	int loaded = 0;
 	int restored = 0;
@@ -23133,10 +23107,6 @@ void config_settings(){    //  OX. Load from / save to default.cfg. Restore Open
 		if(selector>3) selector = 0;
 
 		if(bothnewkeys & (FLAG_MOVELEFT|FLAG_MOVERIGHT|FLAG_ANYBUTTON)){
-			dir = 0;
-
-			if(bothnewkeys & FLAG_MOVELEFT) dir = -1;
-			else if(bothnewkeys & FLAG_MOVERIGHT) dir = 1;
 
 			if(SAMPLE_BEEP2 >= 0) sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 
@@ -23276,12 +23246,12 @@ void system_options(){
 
 	int quit = 0;
 	int selector = 0;
-	int dir = 0;
 	int ret = 6;
 	int col1 = -8;
 	int col2 = 5;
 
 #if PSP
+    int dir = 0;
 	int batteryPercentage = 0;
 	int batteryLifeTime = 0;
 	int externalPower = 0;
@@ -23362,9 +23332,13 @@ void system_options(){
 		if(selector > ret) selector = 0;
 
 		if(bothnewkeys & (FLAG_MOVELEFT|FLAG_MOVERIGHT|FLAG_ANYBUTTON)){
+
+#if PSP
 			dir = 0;
 			if(bothnewkeys & FLAG_MOVELEFT) dir = -1;
 			else if(bothnewkeys & FLAG_MOVERIGHT) dir = 1;
+#endif
+            
 			sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 
 			switch(selector){
@@ -23706,7 +23680,6 @@ void video_options(){
 void options(){
 	int quit = 0;
 	int selector = 0;
-	int dir;
 
 	bothnewkeys = 0;
 
@@ -23735,10 +23708,6 @@ void options(){
 			if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
 		}
 		if(bothnewkeys & (FLAG_MOVELEFT|FLAG_MOVERIGHT|FLAG_ANYBUTTON)){
-			dir = 0;
-
-			if(bothnewkeys & FLAG_MOVELEFT) dir = -1;
-			else if(bothnewkeys & FLAG_MOVERIGHT) dir = 1;
 
 			if(SAMPLE_BEEP2 >= 0) sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 
