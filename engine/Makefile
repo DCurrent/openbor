@@ -512,8 +512,10 @@ CFLAGS 	       += $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TAR
 CFLAGS 	       += -g -Wall -Werror -fsigned-char
 
 ifndef BUILD_GP2X
+ifndef BUILD_DARWIN
 ifdef BUILD_LINUX
 CFLAGS         += -Wno-unused-result
+endif
 endif
 endif
 
