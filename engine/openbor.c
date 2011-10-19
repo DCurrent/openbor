@@ -732,6 +732,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		_e_models_loaded,
 		_e_musicvol,
 		_e_numpalettes,
+		_e_pakname,
 		_e_pause,
 		_e_pixelformat,
 		_e_player,
@@ -754,6 +755,8 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		_e_ypos,
 		_e_the_end,
 	};
+
+	char tmpname[256];
 
 	if(!var) return 0;
 
@@ -914,6 +917,11 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 	case _e_branchname:
 		ScriptVariant_ChangeType(var, VT_STR);
 		strcpy(StrCache_Get(var->strVal), branch_name);
+		break;
+	case _e_pakname:
+		ScriptVariant_ChangeType(var, VT_STR);
+		getPakName(tmpname, -1);
+		strcpy(StrCache_Get(var->strVal), tmpname);
 		break;
 	case _e_maxentityvars:
 		ScriptVariant_ChangeType(var, VT_INTEGER);

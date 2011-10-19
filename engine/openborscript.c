@@ -1292,6 +1292,7 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 		_sv_models_loaded,
 		_sv_musicvol,
 		_sv_numpalettes,
+		_sv_pakname,
 		_sv_pause,
 		_sv_pixelformat,
 		_sv_player,
@@ -1361,6 +1362,7 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 		"models_loaded",
 		"musicvol",
 		"numpalettes",
+		"pakname",
 		"pause",
 		"pixelformat",
 		"player",
@@ -7997,8 +7999,8 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	int fsindex;
 
 	FILE *handle = NULL;
-	char path[128] = {""};
-	char tmpname[128] = {""};
+	char path[256] = {""};
+	char tmpname[256] = {""};
 	long size;
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -8353,11 +8355,12 @@ HRESULT openbor_createfilestream(ScriptVariant** varlist , ScriptVariant** pretv
 
 HRESULT openbor_savefilestream(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
+	int i;
 	LONG filestreamindex;
 	ScriptVariant* arg = NULL;
 	FILE *handle = NULL;
-	char path[128] = {""};
-	char tmpname[128] = {""};
+	char path[256] = {""};
+	char tmpname[256] = {""};
 
 	*pretvar = NULL;
 
@@ -8384,14 +8387,23 @@ HRESULT openbor_savefilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	getPakName(tmpname, -1);
 	strcat(path, tmpname);
 
-	// Make ./Saves/PAKNAME if it doesn't exist
-#ifndef DC
-	dirExists(path, 1);
-#endif
-
 	// Add user's filename to path and write the filestream to it
 	strcat(path, "/");
 	strcat(path, (char*)StrCache_Get(arg->strVal));
+
+	for(i=strlen(path)-1; i>=0; i--){
+
+		if(path[i]=='/' || path[i]=='\\'){
+			path[i] = 0;
+			// Make folder if it doesn't exist
+#ifndef DC
+			dirExists(path, 1);
+#endif
+			path[i] = '/';
+			break;
+		}
+	}
+
 	//printf("save path: %s", path);
 	handle = fopen(path, "wb");
 	if(handle==NULL) return E_FAIL;
