@@ -190,7 +190,6 @@ int fileExists(char *fnam)
 stringptr* readFromLogFile(int which)
 {
 	long  size;
-	int disCcWarns;
 	FILE* handle = NULL;
 	stringptr* buffer = NULL;
 	handle = READ_LOGFILE((which ? OPENBOR_LOG : SCRIPT_LOG));
@@ -203,7 +202,7 @@ stringptr* readFromLogFile(int which)
 	//buffer = (char*)malloc(sizeof(char)*(size+1)); // alloc one additional byte for the
 	buffer = new_string(size);
 	if(buffer == NULL) goto CLOSE_AND_QUIT;
-	disCcWarns = fread(buffer->ptr, 1, size, handle);
+	fread(buffer->ptr, 1, size, handle);
 	CLOSE_AND_QUIT:
 	fclose(handle);
 	return buffer;
@@ -235,15 +234,12 @@ void writeToLogFile(const char * msg, ...)
 void writeToScriptLog(const char *msg)
 {
 #ifndef DC
-	int disCcWarns;
-
 	if(scriptLog == NULL)
 	{
 		scriptLog = OPEN_LOGFILE(SCRIPT_LOG);
 		if(scriptLog == NULL) return;
 	}
-
-	disCcWarns = fwrite(msg, 1, strlen(msg), scriptLog);
+	fwrite(msg, 1, strlen(msg), scriptLog);
 	fflush(scriptLog);
 #endif
 }
