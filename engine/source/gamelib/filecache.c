@@ -381,9 +381,8 @@ void filecache_process(void)
 		    busy = 1; while(busy) sceIoctl(real_pakfd, SCE_FS_EXECUTING, &busy);
 		    sceRead(real_pakfd, filecache + (cacheblock_read * filecache_blocksize), filecache_blocksize);
 #else
-			int disCcWarns;
 		    lseek(real_pakfd, pakblock_read * filecache_blocksize, SEEK_SET);
-		    disCcWarns = read(real_pakfd, (char*) filecache + (cacheblock_read * filecache_blocksize), filecache_blocksize);
+		    read(real_pakfd, (char*) filecache + (cacheblock_read * filecache_blocksize), filecache_blocksize);
 #endif
 		}
 	}
