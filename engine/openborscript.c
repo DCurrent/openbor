@@ -7996,7 +7996,6 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	LONG location = 0;
 	int fsindex;
 
-	int disCcWarns;
 	FILE *handle = NULL;
 	char path[128] = {""};
 	char tmpname[128] = {""};
@@ -8081,7 +8080,7 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
             (*pretvar)->lVal = -1;
 			return S_OK;
 		}
-		disCcWarns = fread(filestreams[fsindex].buf, 1, size, handle);
+		fread(filestreams[fsindex].buf, 1, size, handle);
 		filestreams[fsindex].buf[size] = 0;
 	}
 	else if(buffer_pakfile(filename, &filestreams[fsindex].buf, &filestreams[fsindex].size)!=1)
@@ -8356,7 +8355,6 @@ HRESULT openbor_savefilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 {
 	LONG filestreamindex;
 	ScriptVariant* arg = NULL;
-	int disCcWarns;
 	FILE *handle = NULL;
 	char path[128] = {""};
 	char tmpname[128] = {""};
@@ -8397,7 +8395,7 @@ HRESULT openbor_savefilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	//printf("save path: %s", path);
 	handle = fopen(path, "wb");
 	if(handle==NULL) return E_FAIL;
-	disCcWarns = fwrite(filestreams[filestreamindex].buf, 1, strlen(filestreams[filestreamindex].buf), handle);
+	fwrite(filestreams[filestreamindex].buf, 1, strlen(filestreams[filestreamindex].buf), handle);
 
 	// add blank line so it can be read successfully
 	fwrite("\r\n", 1, 2, handle);
