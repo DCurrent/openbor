@@ -2145,7 +2145,7 @@ void loadsettings(){
 	clearsettings();
 	handle = fopen(path, "rb");
 	if(handle == NULL) return;
-    (void) fread(&savedata, 1, sizeof(s_savedata), handle);
+    fread(&savedata, 1, sizeof(s_savedata), handle);
 	fclose(handle);
 	if(savedata.compatibleversion != COMPATIBLEVERSION) clearsettings();
 #else
@@ -2162,7 +2162,7 @@ void loadfromdefault(){
 	clearsettings();
 	handle = fopen(path, "rb");
 	if(handle == NULL) return;
-    (void) fread(&savedata, 1, sizeof(s_savedata), handle);
+    fread(&savedata, 1, sizeof(s_savedata), handle);
 	fclose(handle);
 	if(savedata.compatibleversion != COMPATIBLEVERSION) clearsettings();
 #else
@@ -2238,9 +2238,13 @@ int loadGameFile(){
 	strcat(path,tmpname);
 	handle = fopen(path, "rb");
 	if(handle == NULL) return 0;
-    (void) fread(&savelevel, sizeof(s_savelevel), MAX_DIFFICULTIES, handle);
+    fread(&savelevel, sizeof(s_savelevel), MAX_DIFFICULTIES, handle);
 	fclose(handle);
-	for(i=0; i<MAX_DIFFICULTIES; i++) if(savelevel[i].compatibleversion != CV_SAVED_GAME) clearSavedGame();
+	for(i=0; i<MAX_DIFFICULTIES; i++){
+        if(savelevel[i].compatibleversion != CV_SAVED_GAME){
+            clearSavedGame();
+        }
+    }
 	return 1;
 #else
 	clearSavedGame();
@@ -2276,7 +2280,7 @@ void loadHighScoreFile(){
 	clearHighScore();
 	handle = fopen(path, "rb");
 	if(handle == NULL) return;
-    (void) fread(&savescore, 1, sizeof(s_savescore), handle);
+    fread(&savescore, 1, sizeof(s_savescore), handle);
 	fclose(handle);
 	if(savescore.compatibleversion != CV_HIGH_SCORE) clearHighScore();
 #else
@@ -20288,7 +20292,7 @@ void movie_update(s_playercontrols ** pctrls)
 		moviebufptr = 0;
 		if(movieloglen<=movielen)
 		{
-            (void) fread(moviebuffer, sizeof(*moviebuffer), MOVIEBUF_LEN, moviefile);
+            fread(moviebuffer, sizeof(*moviebuffer), MOVIEBUF_LEN, moviefile);
 			movieloglen += MOVIEBUF_LEN;
 		}
 		else

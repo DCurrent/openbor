@@ -509,7 +509,7 @@ OBJS            = $(MAIN)                                                       
 #----------------------------------------------------------------------------------------------------
 
 CFLAGS 	       += $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TARGET_PLATFORM)
-CFLAGS 	       += -g -Wall -Werror -fsigned-char
+CFLAGS 	       += -g -Wall -Werror -Wno-unused-result -fsigned-char
 
 ifndef BUILD_DEBUG
 ifdef BUILD_DC
