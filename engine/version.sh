@@ -17,7 +17,7 @@ if [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
     echo "-------------------------------------------------------"
     echo "           SVN - Not Found, Installing SVN!"
     echo "-------------------------------------------------------"
-    7za x -y ../tools/svn/svn-win32-1.6.6.7z -o../tools/svn/
+    7za x -y ../tools/svn/svn-win32-1.7.0.7z -o../tools/svn/
     echo
     echo "-------------------------------------------------------"
     echo "           SVN - Installation Has Completed!"
@@ -28,7 +28,7 @@ fi
 
 # Support the Bazaar VCS as an alternative to SVN through the bzr-svn plugin
 function get_revnum {
-  if test -d ".svn"; then
+  if test -d "../.svn"; then
     VERSION_BUILD=`svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
   elif test -d ".bzr"; then
     VERSION_BUILD=`bzr version-info | grep "svn-revno" | sed 's/svn-revno: //g'`
