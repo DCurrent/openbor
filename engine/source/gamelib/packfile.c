@@ -850,9 +850,8 @@ static int pak_getsectors(void *dest, int lba, int n)
 	    while(gdrom_poll());
 	}
 #else
-	int disCcWarns;
 	lseek(pakfd, lba << 11, SEEK_SET);
-	disCcWarns = read(pakfd, dest, n << 11);
+	read(pakfd, dest, n << 11);
 #endif
 	return n;
 }
