@@ -513,6 +513,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_allocscreen)) return "allocscreen";
 	else if (functionRef==((void*)openbor_clearscreen)) return "clearscreen";
 	else if (functionRef==((void*)openbor_setdrawmethod)) return "setdrawmethod";
+	else if (functionRef==((void*)openbor_changedrawmethod)) return "changedrawmethod";
 	else if (functionRef==((void*)openbor_updateframe)) return "updateframe";
 	else if (functionRef==((void*)openbor_performattack)) return "performattack";
 	else if (functionRef==((void*)openbor_setidle)) return "setidle";
@@ -565,6 +566,7 @@ void* Script_GetStringMapFunction(void* functionRef)
 	else if (functionRef==((void*)openbor_changetextobjproperty)) return (void*)mapstrings_changetextobjproperty;
 	else if (functionRef==((void*)openbor_getlayerproperty)) return (void*)mapstrings_layerproperty;
 	else if (functionRef==((void*)openbor_changelayerproperty)) return (void*)mapstrings_layerproperty;
+	else if (functionRef==((void*)openbor_changedrawmethod)) return (void*)mapstrings_drawmethodproperty;
 	else return NULL;
 }
 
@@ -1012,6 +1014,8 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_clearscreen, "clearscreen");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_setdrawmethod, "setdrawmethod");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_changedrawmethod, "changedrawmethod");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_updateframe, "updateframe");
 	List_InsertAfter(&theFunctionList,
@@ -11099,10 +11103,209 @@ clearscreen_error:
 	return E_FAIL;
 }
 
-//setdrawmethod(entity, int flag, int scalex, int scaley, int flipx, int flipy, int shiftx, int alpha, int remap, int fillcolor, int rotate, int fliprotate, int transparencybg, void* colourmap);
+// ===== changedrawmethod ======
+enum drawmethod_enum
+{
+	_dm_alpha,
+	_dm_amplitude,
+	_dm_beginsize,
+	_dm_centerx,
+	_dm_centery,
+	_dm_enabled,
+	_dm_endsize,
+	_dm_fillcolor,
+	_dm_flag,
+	_dm_fliprotate,
+	_dm_flipx,
+	_dm_perspective,
+	_dm_remap,
+	_dm_reset,
+	_dm_rotate,
+	_dm_scalex,
+	_dm_scaley,
+	_dm_shiftx,
+	_dm_table,
+	_dm_transbg,
+	_dm_watermode,
+	_dm_wavelength,
+	_dm_wavespeed,
+	_dm_wavetime,
+	_dm_the_end,
+};
+
+
+void mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount)
+{
+	char *propname = NULL;
+	int prop;
+
+	static const char* proplist[] = {
+		"alpha",
+		"amplitude",
+		"beginsize",
+		"centerx",
+		"centery",
+		"enabled",
+		"endsize",
+		"fillcolor",
+		"flag",
+		"fliprotate",
+		"flipx",
+		"perspective",
+		"remap",
+		"reset",
+		"rotate",
+		"scalex",
+		"scaley",
+		"shiftx",
+		"table",
+		"transbg",
+		"watermode",
+		"wavelength",
+		"wavespeed",
+		"wavetime",
+	};
+
+
+	if(paramCount < 2) return;
+	MAPSTRINGS(varlist[1], proplist, _dm_the_end,
+		"Property name '%s' is not supported by drawmethod.\n");
+}
+
+// changedrawmethod(entity, propertyname, value);
+HRESULT openbor_changedrawmethod(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	entity* e;
+	LONG temp = 0;
+	DOUBLE ftemp = 0;
+	s_drawmethod *pmethod;
+	*pretvar = NULL;
+
+	if(paramCount < 3)
+		goto changedm_error;
+
+	mapstrings_drawmethodproperty(varlist, paramCount);
+
+	if(varlist[0]->vt==VT_EMPTY) e = NULL;
+	else if(varlist[0]->vt==VT_PTR) e = (entity*)varlist[0]->ptrVal;
+	else goto changedm_error;
+
+	if(e) pmethod = &(e->drawmethod);
+	else  pmethod = &(drawmethod);
+
+	switch(varlist[1]->lVal){
+
+	case _dm_alpha:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->alpha = (int)temp;
+	break;
+	case _dm_amplitude:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->water.amplitude = (int)temp;
+	break;
+	case _dm_beginsize:
+		if(FAILED(ScriptVariant_DecimalValue(varlist[2], &ftemp))) return E_FAIL;
+		pmethod->water.beginsize = (float)ftemp;
+	break;
+	case _dm_centerx:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->centerx = (int)temp;
+	break;
+	case _dm_centery:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->centery = (int)temp;
+	break;
+	case _dm_enabled:
+	case _dm_flag:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->flag = (int)temp;
+	break;
+	case _dm_endsize:
+		if(FAILED(ScriptVariant_DecimalValue(varlist[2], &ftemp))) return E_FAIL;
+		pmethod->water.endsize = (float)ftemp;
+	break;
+	case _dm_fillcolor:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->fillcolor = (int)temp;
+	break;
+	case _dm_fliprotate:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->fliprotate = (int)temp;
+	break;
+	case _dm_flipx:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->flipx = (int)temp;
+	break;
+	case _dm_perspective:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->water.perspective = (int)temp;
+	break;
+	case _dm_remap:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->remap = (int)temp;
+	break;
+	case _dm_reset:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		if(temp) *pmethod = plainmethod;
+	break;
+	case _dm_rotate:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->rotate = (int)temp;
+	break;
+	case _dm_scalex:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->scalex = (int)temp;
+	break;
+	case _dm_scaley:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->scaley = (int)temp;
+	break;
+	case _dm_shiftx:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->shiftx = (int)temp;
+	break;
+	case _dm_table:
+		if(varlist[2]->vt != VT_PTR && varlist[2]->vt != VT_EMPTY ) return E_FAIL;
+		pmethod->table = (void*)varlist[2]->ptrVal;
+	break;
+	case _dm_transbg:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->transbg = (int)temp;
+	break;
+	case _dm_watermode:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->water.watermode = (int)temp;
+	break;
+	case _dm_wavelength:
+		if(FAILED(ScriptVariant_DecimalValue(varlist[2], &ftemp))) return E_FAIL;
+		pmethod->water.wavelength = (float)ftemp;
+	break;
+	case _dm_wavespeed:
+		if(FAILED(ScriptVariant_DecimalValue(varlist[2], &ftemp))) return E_FAIL;
+		pmethod->water.wavespeed = (float)ftemp;
+	break;
+	case _dm_wavetime:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->water.wavetime = (int)(temp*pmethod->water.wavespeed);
+	break;;
+	default:
+	break;
+
+	}
+
+	return S_OK;
+
+changedm_error:
+	printf("Function changedrawmethod must have at least 3 parameters: entity, propertyname, value\n");
+	return E_FAIL;
+}
+
+
+//deprecated
+//setdrawmethod(entity, int flag, int scalex, int scaley, int flipx, int flipy, int shiftx, int alpha, int remap, int fillcolor, int rotate, int fliprotate, int transparencybg, void* colourmap, int centerx, int centery);
 HRESULT openbor_setdrawmethod(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG value[12];
+	LONG value[14];
 	entity* e;
 	s_drawmethod *pmethod;
 	int i;
@@ -11117,13 +11320,18 @@ HRESULT openbor_setdrawmethod(ScriptVariant** varlist , ScriptVariant** pretvar,
 	if(e) pmethod = &(e->drawmethod);
 	else  pmethod = &(drawmethod);
 
-	memset(value, 0, sizeof(LONG)*12);
+	memset(value, 0, sizeof(LONG)*14);
 	for(i=1; i<paramCount && i<13; i++)
 	{
 		if(FAILED(ScriptVariant_IntegerValue(varlist[i], value+i-1))) goto setdrawmethod_error;
 	}
 
-	if(paramCount>=15 && varlist[13]->vt!=VT_PTR && varlist[13]->vt!=VT_EMPTY) goto setdrawmethod_error;
+	if(paramCount>=14 && varlist[13]->vt!=VT_PTR && varlist[13]->vt!=VT_EMPTY) goto setdrawmethod_error;
+
+	for(i=14; i<paramCount && i<16; i++)
+	{
+		if(FAILED(ScriptVariant_IntegerValue(varlist[i], value+i-2))) goto setdrawmethod_error;
+	}
 
 	pmethod->flag = (int)value[0];
 	pmethod->scalex = (int)value[1];
@@ -11138,15 +11346,14 @@ HRESULT openbor_setdrawmethod(ScriptVariant** varlist , ScriptVariant** pretvar,
 	pmethod->fliprotate = (int)value[10];
 	pmethod->transbg = (int)value[11];
 	if(paramCount>=14) pmethod->table=(unsigned char*)varlist[13]->ptrVal;
+	pmethod->centerx = (int)value[12];
+	pmethod->centery = (int)value[13];
 
-	if(pmethod->rotate)
-	{
-		if(pmethod->rotate<0) pmethod->rotate += 360;
-	}
+	if(pmethod->rotate<0) pmethod->rotate += 360;
 	return S_OK;
 
 setdrawmethod_error:
-	printf("Function need a valid entity handle and at least 1 interger parameter, all other parameters should be integers: setdrawmethod(entity, int flag, int scalex, int scaley, int flipx, int flipy, int shiftx, int alpha, int remap, int fillcolor, int rotate, int fliprotate, int transparencybg, void* colourmap)\n");
+	printf("Function need a valid entity handle and at least 1 interger parameter, setdrawmethod(entity, int flag, int scalex, int scaley, int flipx, int flipy, int shiftx, int alpha, int remap, int fillcolor, int rotate, int fliprotate, int transparencybg, void* colourmap, centerx, centery)\n");
 	return E_FAIL;
 }
 
