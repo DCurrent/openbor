@@ -39,14 +39,6 @@ s_level*            level               = NULL;
 s_filestream filestreams[LEVEL_MAX_FILESTREAMS];
 s_screen*           vscreen             = NULL;
 s_screen*           background          = NULL;
-s_screen*			zoombuffer			= NULL;
-s_screen*           bgbuffer            = NULL;
-int					zoom_center_x		= 0;
-int					zoom_center_y		= 0;
-int					zoom_scale_x		= 0;
-int					zoom_scale_y		= 0;
-int					zoom_z				= MIN_INT;
-char                bgbuffer_updated    = 0;
 s_videomodes        videomodes;
 int sprite_map_max_items = 0;
 int cache_map_max_items = 0;
@@ -149,9 +141,12 @@ int                 current_level = 0;
 int                 current_stage = 1;
 int					new_game = 0;
 
+int					timevar;
 float               bgtravelled;
 int                 traveltime;
 int                 texttime;
+int					timetoshow;
+int					showgo;
 float               advancex;
 float               advancey;
 
@@ -491,6 +486,15 @@ int					nodropspawn			= 0;					// don't spawn from the sky if the modder doesn't
 int                 gfx_x_offset		= 0;                    //2011_04_03, DC: Enable X offset adjustment by modders.
 int                 gfx_y_offset		= 0;
 int                 gfx_y_offset_adj    = 0;                    //2011_04_03, DC: Enable Y offset adjustment by modders.
+
+// 2011/10/22 UT: temporary solution for custom viewport
+s_screen*			canvas				= NULL;
+int					viewportx			= 0;
+int					viewporty			= 0;
+int					viewportw			= 0;
+int					viewporth			= 0;
+
+
 int                 timeleft			= 0;
 int                 oldtime             = 0;                    // One second back from time left.
 int                 holez				= 0;					// Used for setting spawn points
@@ -688,7 +692,9 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 {
 	enum nameenum
 	{
+		_e_background,
 		_e_branchname,
+		_e_canvas,
 		_e_count_enemies,
 		_e_count_entities,
 		_e_count_npcs,
@@ -751,6 +757,11 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		_e_freeram,
 		_e_usedram,
 		_e_vResolution,
+		_e_viewporth,
+		_e_viewportw,
+		_e_viewportx,
+		_e_viewporty,
+		_e_vscreen,
 		_e_xpos,
 		_e_ypos,
 		_e_the_end,
@@ -1032,6 +1043,34 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		 ScriptVariant_ChangeType(var, VT_INTEGER);
 		 var->lVal = (LONG)getUsedRam(KBYTES);
 		break;
+	case _e_background:
+		ScriptVariant_ChangeType(var, VT_PTR);
+		var->ptrVal = (VOID*)background;
+		break;
+	case _e_canvas:
+		ScriptVariant_ChangeType(var, VT_PTR);
+		var->ptrVal = (VOID*)canvas;
+		break;
+	case _e_vscreen:
+		ScriptVariant_ChangeType(var, VT_PTR);
+		var->ptrVal = (VOID*)vscreen;
+		break;
+	case _e_viewportx:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)viewportx;
+		break;
+	case _e_viewporty:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)viewporty;
+		break;
+	case _e_viewportw:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)viewportw;
+		break;
+	case _e_viewporth:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)viewporth;
+		break;
 	default:
 		// We use indices now, but players/modders don't need to be exposed
 		// to that implementation detail, so we write "name" and not "index".
@@ -1053,6 +1092,7 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 	enum changesystemvariant_enum
 	{
 		_csv_blockade,
+		_csv_canvas,
 		_csv_elapsed_time,
 		_csv_gfx_x_offset,
 		_csv_gfx_y_offset,
@@ -1069,6 +1109,10 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 		_csv_slowmotion_duration,
 		_csv_smartbomber,
 		_csv_textbox,
+		_csv_viewporth,
+		_csv_viewportw,
+		_csv_viewportx,
+		_csv_viewporty,
 		_csv_xpos,
 		_csv_ypos,
 		_csv_the_end,
@@ -1145,10 +1189,29 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 			lasthitt = (int)ltemp;
 		break;
 	case _csv_smartbomber:
-		smartbomber = (entity*)value;
+		smartbomber = (entity*)value->ptrVal;
 		break;
 	case _csv_textbox:
-		textbox = (entity*)value;
+		textbox = (entity*)value->ptrVal;
+		break;
+	case _csv_canvas:
+		canvas = (s_screen*)value->ptrVal;
+		break;
+	case _csv_viewportx:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			viewportx = (int)ltemp;
+		break;
+	case _csv_viewporty:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			viewporty = (int)ltemp;
+		break;
+	case _csv_viewportw:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			viewportw = (int)ltemp;
+		break;
+	case _csv_viewporth:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			viewporth = (int)ltemp;
 		break;
 	default:
 		return 0;
@@ -8428,7 +8491,6 @@ void unload_level(){
 	s_model* temp;
 
 	unload_background();
-	freescreen(&bgbuffer);
 
 	if(level){
 
@@ -9478,11 +9540,6 @@ void load_level(char *filename){
 
 	}
 
-	if(pixelformat==PIXEL_x8)
-	{
-		if(level->numlayers>0) bgbuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
-	}
-	bgbuffer_updated = 0;
 	if(musicPath[0]) music(musicPath, 1, musicOffset);
 
 	timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
@@ -9659,12 +9716,205 @@ unsigned getFPS(void)
 #endif
 }
 
-void predrawstatus(){
+
+
+void updatestatus(){
 
 	int dt;
 	int tperror=0;
-	int icon = 0;
 	int i,x;
+
+	s_model * model = NULL;
+
+	for(i=0; i<maxplayers[current_set]; i++)
+	{
+		if(player[i].ent)
+		{
+			;
+		}
+		else if(player[i].joining && player[i].name[0])
+		{
+			if((player[i].playkeys & FLAG_ANYBUTTON || (skipselect&&(*skipselect)[current_set][i])) && !freezeall && !nojoin)    // Can't join while animations are frozen
+			{
+				// reports error if players try to use the same character and sameplay mode is off
+				if(sameplayer){
+					for(x=0; x<maxplayers[current_set]; x++){
+						if((strncmp(player[i].name,player[x].name,strlen(player[i].name)) == 0) && (i != x)){
+							tperror = i+1;
+							break;
+						}
+					}
+				}
+
+				if (!tperror){    // Fixed so players can be selected if other player is no longer va //4player                        player[i].playkeys = player[i].newkeys = 0;
+					player[i].lives = PLAYER_LIVES;            // to address new lives settings
+					player[i].joining = 0;
+					player[i].hasplayed = 1;
+					player[i].spawnhealth = model->health;
+					player[i].spawnmp = model->mp;
+					spawnplayer(i);
+					execute_join_script(i);
+
+					player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
+
+					if(!nodropen) drop_all_enemies();   //27-12-2004  If drop enemies is on, drop all enemies
+
+					if(!level->noreset) timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
+				}
+
+			}
+			else if(player[i].playkeys & FLAG_MOVELEFT)
+			{
+				player[i].colourmap = i;
+				model = prevplayermodel(model);
+				strcpy(player[i].name, model->name);
+
+				while(   // Keep looping until a non-hmap is found
+					((model->maps.hide_start) && (model->maps.hide_end) &&
+					player[i].colourmap >= model->maps.hide_start &&
+					player[i].colourmap <= model->maps.hide_end)
+					)
+					{
+						player[i].colourmap++;
+						if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
+					}
+
+				player[i].playkeys = 0;
+			}
+			else if(player[i].playkeys & FLAG_MOVERIGHT)
+			{
+				player[i].colourmap = i;
+				model = nextplayermodel(model);
+				strcpy(player[i].name, model->name);
+
+				while(   // Keep looping until a non-hmap is found
+					((model->maps.hide_start) && (model->maps.hide_end) &&
+					player[i].colourmap >= model->maps.hide_start &&
+					player[i].colourmap <= model->maps.hide_end)
+					)
+					{
+						player[i].colourmap++;
+						if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
+					}
+
+				player[i].playkeys = 0;
+
+			}
+			// don't like a characters color try a new one!
+			else if(player[i].playkeys & FLAG_MOVEUP && colourselect)
+			{
+
+				do{
+					player[i].colourmap++;
+
+					if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
+				}
+				while(    // Keep looping until a non frozen map is found
+					(model->maps.frozen &&
+					player[i].colourmap - 1 == model->maps.frozen - 1) ||
+					((model->maps.hide_start) && (model->maps.hide_end) &&
+					player[i].colourmap - 1 >= model->maps.hide_start - 1 &&
+					player[i].colourmap - 1 <= model->maps.hide_end - 1)
+					);
+
+					player[i].playkeys = 0;
+			}
+			else if(player[i].playkeys & FLAG_MOVEDOWN && colourselect)
+			{
+
+				do{
+					player[i].colourmap--;
+
+					if(player[i].colourmap < 0) player[i].colourmap = model->maps_loaded;
+				}
+				while(    // Keep looping until a non frozen map is found
+					(model->maps.frozen &&
+					player[i].colourmap - 1 == model->maps.frozen - 1) ||
+					((model->maps.hide_start) && (model->maps.hide_end) &&
+					player[i].colourmap - 1 >= model->maps.hide_start - 1 &&
+					player[i].colourmap - 1 <= model->maps.hide_end - 1)
+					);
+
+					player[i].playkeys = 0;
+			}
+		}
+		else if(player[i].credits || credits || (!player[i].hasplayed && noshare))
+		{
+			if(player[i].playkeys & FLAG_START)
+			{
+				player[i].lives = 0;
+				model = (skipselect&&(*skipselect)[current_set][i])?findmodel((*skipselect)[current_set][i]):nextplayermodel(NULL);
+				strncpy(player[i].name, model->name, MAX_NAME_LEN);
+				player[i].colourmap = i;
+				 // Keep looping until a non-hmap is found
+				while(model->maps.hide_start && model->maps.hide_end && player[i].colourmap >= model->maps.hide_start && player[i].colourmap <= model->maps.hide_end)
+				{
+					player[i].colourmap++;
+					if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
+				}
+
+				player[i].joining = 1;
+				player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
+
+				if(!level->noreset) timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
+
+				if(!player[i].hasplayed && noshare) player[i].credits = CONTINUES;
+
+				if(!creditscheat)
+				{
+					if(noshare) --player[i].credits;
+					else --credits;
+					if(continuescore[current_set] == 1)player[i].score = 0;
+					if(continuescore[current_set] == 2)player[i].score = player[i].score+1;
+				}
+			}
+		}
+	}// end of for
+
+	dt = timeleft/COUNTER_SPEED;
+	if(dt>=99)
+	{
+		dt      = 99;
+
+		oldtime = 99;
+	}
+	if(dt<=0)
+	{
+		dt      = 0;
+		oldtime = 99;
+	}
+
+	if(dt < oldtime || oldtime == 0)
+	{
+		execute_timetick_script(dt, go_time);
+		oldtime = dt;
+	}
+
+	timetoshow = dt;
+
+	if(dt<99) showtimeover = 0;
+
+	if(go_time>time)
+	{
+		dt = (go_time-time)%GAME_SPEED;
+
+		if(dt < GAME_SPEED/2){
+			showgo = 1;
+			if(gosound == 0 ){
+
+				if(SAMPLE_GO >= 0) sound_play_sample(SAMPLE_GO, 0, savedata.effectvol,savedata.effectvol, 100);// 26-12-2004 Play go sample as arrow flashes
+
+				gosound = 1;                // 26-12-2004 Sets sample as already played - stops sample repeating too much
+			}
+		}else showgo = gosound = 0;    //26-12-2004 Resets go sample after loop so it can be played again next time
+	}else showgo = 0;
+
+}
+
+void predrawstatus(){
+
+	int icon = 0;
+	int i;
 	unsigned long tmp;
 
 	s_model * model = NULL;
@@ -9781,111 +10031,6 @@ void predrawstatus(){
 				drawmethod.table = model->colourmap[player[i].colourmap - 1];
 				spriteq_add_sprite(videomodes.shiftpos[i]+picon[i][0],picon[i][1], 10000, icon, &drawmethod, 0);
 			}
-
-
-			if((player[i].playkeys & FLAG_ANYBUTTON || (skipselect&&(*skipselect)[current_set][i])) && !freezeall && !nojoin)    // Can't join while animations are frozen
-			{
-				// reports error if players try to use the same character and sameplay mode is off
-				if(sameplayer){
-					for(x=0; x<maxplayers[current_set]; x++){
-						if((strncmp(player[i].name,player[x].name,strlen(player[i].name)) == 0) && (i != x)){
-							tperror = i+1;
-							break;
-						}
-					}
-				}
-
-				if (!tperror){    // Fixed so players can be selected if other player is no longer va //4player                        player[i].playkeys = player[i].newkeys = 0;
-					player[i].lives = PLAYER_LIVES;            // to address new lives settings
-					player[i].joining = 0;
-					player[i].hasplayed = 1;
-					player[i].spawnhealth = model->health;
-					player[i].spawnmp = model->mp;
-					spawnplayer(i);
-					execute_join_script(i);
-
-					player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
-
-					if(!nodropen) drop_all_enemies();   //27-12-2004  If drop enemies is on, drop all enemies
-
-					if(!level->noreset) timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
-				}
-
-			}
-			else if(player[i].playkeys & FLAG_MOVELEFT)
-			{
-				player[i].colourmap = i;
-				model = prevplayermodel(model);
-				strcpy(player[i].name, model->name);
-
-				while(   // Keep looping until a non-hmap is found
-					((model->maps.hide_start) && (model->maps.hide_end) &&
-					player[i].colourmap >= model->maps.hide_start &&
-					player[i].colourmap <= model->maps.hide_end)
-					)
-					{
-						player[i].colourmap++;
-						if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
-					}
-
-				player[i].playkeys = 0;
-			}
-			else if(player[i].playkeys & FLAG_MOVERIGHT)
-			{
-				player[i].colourmap = i;
-				model = nextplayermodel(model);
-				strcpy(player[i].name, model->name);
-
-				while(   // Keep looping until a non-hmap is found
-					((model->maps.hide_start) && (model->maps.hide_end) &&
-					player[i].colourmap >= model->maps.hide_start &&
-					player[i].colourmap <= model->maps.hide_end)
-					)
-					{
-						player[i].colourmap++;
-						if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
-					}
-
-				player[i].playkeys = 0;
-
-			}
-			// don't like a characters color try a new one!
-			else if(player[i].playkeys & FLAG_MOVEUP && colourselect)
-			{
-
-				do{
-					player[i].colourmap++;
-
-					if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
-				}
-				while(    // Keep looping until a non frozen map is found
-					(model->maps.frozen &&
-					player[i].colourmap - 1 == model->maps.frozen - 1) ||
-					((model->maps.hide_start) && (model->maps.hide_end) &&
-					player[i].colourmap - 1 >= model->maps.hide_start - 1 &&
-					player[i].colourmap - 1 <= model->maps.hide_end - 1)
-					);
-
-					player[i].playkeys = 0;
-			}
-			else if(player[i].playkeys & FLAG_MOVEDOWN && colourselect)
-			{
-
-				do{
-					player[i].colourmap--;
-
-					if(player[i].colourmap < 0) player[i].colourmap = model->maps_loaded;
-				}
-				while(    // Keep looping until a non frozen map is found
-					(model->maps.frozen &&
-					player[i].colourmap - 1 == model->maps.frozen - 1) ||
-					((model->maps.hide_start) && (model->maps.hide_end) &&
-					player[i].colourmap - 1 >= model->maps.hide_start - 1 &&
-					player[i].colourmap - 1 <= model->maps.hide_end - 1)
-					);
-
-					player[i].playkeys = 0;
-			}
 		}
 		else if(player[i].credits || credits || (!player[i].hasplayed && noshare))
 		{
@@ -9894,34 +10039,6 @@ void predrawstatus(){
 			else if(nojoin) font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, "Please Wait");
 			else font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, "Press Start");
 
-			if(player[i].playkeys & FLAG_START)
-			{
-				player[i].lives = 0;
-				model = (skipselect&&(*skipselect)[current_set][i])?findmodel((*skipselect)[current_set][i]):nextplayermodel(NULL);
-				strncpy(player[i].name, model->name, MAX_NAME_LEN);
-				player[i].colourmap = i;
-				 // Keep looping until a non-hmap is found
-				while(model->maps.hide_start && model->maps.hide_end && player[i].colourmap >= model->maps.hide_start && player[i].colourmap <= model->maps.hide_end)
-				{
-					player[i].colourmap++;
-					if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
-				}
-
-				player[i].joining = 1;
-				player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
-
-				if(!level->noreset) timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
-
-				if(!player[i].hasplayed && noshare) player[i].credits = CONTINUES;
-
-				if(!creditscheat)
-				{
-					if(noshare) --player[i].credits;
-					else --credits;
-					if(continuescore[current_set] == 1)player[i].score = 0;
-					if(continuescore[current_set] == 2)player[i].score = player[i].score+1;
-				}
-			}
 		}
 		else
 		{
@@ -9938,67 +10055,25 @@ void predrawstatus(){
 		font_printf(videomodes.hRes / 2, videomodes.dOffset,    0, 0, "Used Ram: %s KBytes", commaprint(usedram/1000));
 	}
 
-	dt = timeleft/COUNTER_SPEED;
-	if(dt>=99)
-	{
-		dt      = 99;
-
-		oldtime = 99;
-	}
-	if(dt<=0)
-	{
-		dt      = 0;
-		oldtime = 99;
-	}
-
-	if(dt < oldtime || oldtime == 0)
-	{
-		execute_timetick_script(dt, go_time);
-		oldtime = dt;
-	}
-
 	if(timeicon >= 0) spriteq_add_sprite(videomodes.hShift+timeicon_offsets[0], savedata.windowpos+timeicon_offsets[1],10000, timeicon, NULL, 0);
-	if(!level->notime) font_printf(videomodes.hShift+timeloc[0]+2, savedata.windowpos+timeloc[1]+2, timeloc[5], 0, "%02i", dt);
+	if(!level->notime) font_printf(videomodes.hShift+timeloc[0]+2, savedata.windowpos+timeloc[1]+2, timeloc[5], 0, "%02i", timetoshow);
 	if(showtimeover) font_printf(videomodes.hShift+113, videomodes.vShift+savedata.windowpos+110, timeloc[5], 0, "TIME OVER");
 
-	if(dt<99) showtimeover = 0;
+	if(showgo){
+		if(level->scrolldir&SCROLL_LEFT){ //TODO: upward and downward go
 
-	if(go_time>time)
-	{
-		dt = (go_time-time)%GAME_SPEED;
-
-		if(dt < GAME_SPEED/2){
-			if(level->scrolldir&SCROLL_LEFT){ //TODO: upward and downward go
-
-				if(golsprite >= 0) spriteq_add_sprite(40,60+videomodes.vShift,10000, golsprite, NULL, 0); // new sprite for left direction
-				else
-				{
-					drawmethod.table = 0;
-					drawmethod.flipx = 1;
-					spriteq_add_sprite(40,60+videomodes.vShift,10000, gosprite, &drawmethod, 0);
-				}
-
-				if(gosound == 0 ){
-
-					if(SAMPLE_GO >= 0) sound_play_sample(SAMPLE_GO, 0, savedata.effectvol,savedata.effectvol, 100);// 26-12-2004 Play go sample as arrow flashes
-
-					gosound = 1;                // 26-12-2004 Sets sample as already played - stops sample repeating too much
-				}
-			}
-			else if(level->scrolldir&SCROLL_RIGHT){
-				spriteq_add_sprite(videomodes.hRes-40,60+videomodes.vShift,10000, gosprite, NULL, 0);
-
-				if(gosound == 0 ){
-
-					if(SAMPLE_GO >= 0) sound_play_sample(SAMPLE_GO, 0, savedata.effectvol,savedata.effectvol, 100); // 26-12-2004 Play go sample as arrow flashes
-
-					gosound = 1;  // 26-12-2004 Sets sample as already played - stops sample repeating too much
-				}
+			if(golsprite >= 0) spriteq_add_sprite(40,60+videomodes.vShift,10000, golsprite, NULL, 0); // new sprite for left direction
+			else
+			{
+				drawmethod.table = 0;
+				drawmethod.flipx = 1;
+				spriteq_add_sprite(40,60+videomodes.vShift,10000, gosprite, &drawmethod, 0);
 			}
 		}
-		else gosound = 0;    //26-12-2004 Resets go sample after loop so it can be played again next time
+		else if(level->scrolldir&SCROLL_RIGHT){
+			spriteq_add_sprite(videomodes.hRes-40,60+videomodes.vShift,10000, gosprite, NULL, 0);
+		}
 	}
-
 }
 
 // draw boss status on screen
@@ -10100,14 +10175,14 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 				else
 					clearscreen(vscreen);
 			}
-			spriteq_draw(vscreen, 0, MIN_INT, MAX_INT);
+			spriteq_draw(vscreen, 0, MIN_INT, MAX_INT, 0, 0);
 			video_copy_screen(vscreen);
 			spriteq_clear();
 		}
 		else if(value < 0) { // Original BOR v1.0029 used this method.  Since loadingbg is optional, we should print this one again.
 			clearscreen(vscreen);
 			font_printf(120 + videomodes.hShift, 110 + videomodes.vShift, 0, 0, "Loading...");
-			spriteq_draw(vscreen, 0, MIN_INT, MAX_INT);
+			spriteq_draw(vscreen, 0, MIN_INT, MAX_INT, 0, 0);
 			video_copy_screen(vscreen);
 			spriteq_clear();
 		}
@@ -20035,14 +20110,11 @@ void update_scroller(){
 	scrolldy = advancey - ty;
 }
 
-void draw_scrolled_bg(){
-	int index=0, x, z, i=0, j, k, l, timevar;
-	s_layer* layer;
+
+void update_scrolled_bg(){
+	int i=0;
 	float rocktravel;
-	int width, height;
 	unsigned char neonp[32];//3*8
-	static float oldadvx=0, oldadvy=0;
-	static int   oldpal = 0;
 	static int neon_count = 0;
 	static int rockpos = 0;
 	static int rockoffssine[32] = {
@@ -20063,60 +20135,22 @@ void draw_scrolled_bg(){
 			2, 2, 3, 3, 2, 2, 3, 3,
 			2, 2, 3, 3, 2, 3, 2, 3,
 	};   // fast, constant rumbling, like in/on a van or trailer
-	s_screen*  pbgscreen;
-	s_drawmethod screenmethod=plainmethod, *pscreenmethod=&screenmethod;
 	int pb = pixelbytes[(int)screenformat];
 
-	// Draw 3 layers: screen, normal and neon
 	if(time>=neon_time && !freezeall){    // Added freezeall so neon lights don't update if animations are frozen
 		if(pixelformat==PIXEL_8) // under 8bit mode just cycle the palette from 128 to 135
 		{
 			for(i=0; i<8; i++)  neontable[128+i] = 128 + ((i+neon_count) & 7);
 		}
-		else if(pixelformat==PIXEL_x8) // copy palette under 24bit mode
+		else if(pixelformat==PIXEL_x8) // copy palette under 16/32bit mode
 		{
-			if(pscreenmethod->table)
-			{
-				memcpy(neonp, pscreenmethod->table+128*pb, 8*pb);
-				memcpy(pscreenmethod->table+128*pb, neonp+2*pb, 6*pb);
-				memcpy(pscreenmethod->table+(128+6)*pb, neonp, 2*pb);
-			}
-			else
-			{
-				memcpy(neonp, neontable+128*pb, 8*pb);
-				memcpy(neontable+128*pb, neonp+2*pb, 6*pb);
-				memcpy(neontable+(128+6)*pb, neonp, 2*pb);
-			}
+			memcpy(neonp, neontable+128*pb, 8*pb);
+			memcpy(neontable+128*pb, neonp+2*pb, 6*pb);
+			memcpy(neontable+(128+6)*pb, neonp, 2*pb);
 		}
 		neon_time = time + (GAME_SPEED/3);
 		neon_count += 2;
 	}
-
-	if(bgbuffer)
-	{
-		if(((level->rocking || level->bgspeed)&& !pause) ||
-		   oldadvx!=advancex || oldadvy != advancey || current_palette!=oldpal)
-				bgbuffer_updated = 0;
-		else {
-			// temporary fix for bglayer water
-			for(i=0; i<level->numlayersref; i++){
-				layer = &(level->layersref[i]);
-				if(layer->enabled && layer->z==MIN_INT && layer->drawmethod.water.watermode){
-					bgbuffer_updated = 0;
-					break;
-				}
-			}
-		}
-		oldadvx = advancex;
-		oldadvy = advancey;
-		oldpal = current_palette;
-	}
-	else bgbuffer_updated = 0;
-
-	if(bgbuffer)  pbgscreen = bgbuffer_updated?vscreen:bgbuffer;
-	else          pbgscreen = vscreen;
-
-/*******************/
 
 	if(!freezeall){
 		rocktravel = (level->rocking)?((time-traveltime)/((float)GAME_SPEED/30)):0; // no like in real life, maybe
@@ -20140,9 +20174,39 @@ void draw_scrolled_bg(){
 	if(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN) gfx_y_offset -= advancey;
 	gfx_y_offset += gfx_y_offset_adj;   //2011_04_03, DC: Apply modder adjustment.
 
+	traveltime = time;
+
+	if(time>=level->quaketime){
+		level->quake /= 2;
+		level->quaketime = time + (GAME_SPEED/25);
+	}
+}
+
+void draw_scrolled_bg(s_screen* canvas){
+	int index=0, x, z, i=0, j, k, l;
+	s_layer* layer;
+	int width, height;
+
+	int vpx, vpy, vpw, vph;
+
+	if(viewportw>0){
+		vpx = viewportx;
+		vpy = viewporty;
+		vpw = viewportw;
+		vph = viewporth;
+	}else{
+		vpx = vpy = 0;
+		vpw = videomodes.hRes;
+		vph = videomodes.vRes;
+	}
+
+	//if(level) printf("%d %d %d %d\n", vpx, vpy, vpw, vph);
+
+	s_drawmethod screenmethod=plainmethod, *pscreenmethod=&screenmethod;
+
 	for(i=0; i<level->numholes; i++) spriteq_add_sprite((int)(level->holes[i][0]-advancex+gfx_x_offset),(int)(level->holes[i][1] - level->holes[i][6] + 4 + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
 
-	if(!bgbuffer_updated) clearscreen(pbgscreen);
+	clearscreen(canvas);
 
 	for(index = 0; index < level->numlayersref; index++)
 	{
@@ -20150,15 +20214,12 @@ void draw_scrolled_bg(){
 
 		//printf("layer %d, handle:%u, z:%d\n", index, layer->gfx.handle, layer->z);
 
-		if(bgbuffer_updated && layer->z==MIN_INT) continue;
-
-
 		if(!layer->xrepeat || !layer->zrepeat || !layer->enabled) continue;
 
 		width = layer->width + layer->xspacing;
 		height = layer->height + layer->zspacing;
 
-		x = (int)(layer->xoffset - (advancex + bgtravelled *layer->bgspeedratio)*(1.0-layer->xratio) );
+		x = (int)(layer->xoffset - (advancex + bgtravelled *layer->bgspeedratio)*(1.0-layer->xratio) ) ;
 
 		//printf("layerxratio %f  %d %f\n ", layer->xratio, x, layer->bgspeedratio);
 
@@ -20171,6 +20232,8 @@ void draw_scrolled_bg(){
 			x += gfx_x_offset;
 			z += gfx_y_offset+advancey;
 		}
+
+		x -= vpx; z -= vpy;
 
 
 		if(x<0) {
@@ -20196,21 +20259,21 @@ void draw_scrolled_bg(){
 			screenmethod.table = (pixelformat==PIXEL_x8)?(current_palette>0?(level->palettes[current_palette-1]):NULL):NULL;
 		}
 		screenmethod.water.wavetime =  (int)(timevar*screenmethod.water.wavespeed);
-		for(; j<layer->zrepeat && z<videomodes.vRes; z+=height, j++)
+		for(; j<layer->zrepeat && z<vph; z+=height, j++)
 		{
-			for(k=i, l=x; k<layer->xrepeat && l<videomodes.hRes + (screenmethod.water.watermode==3?0:screenmethod.water.amplitude*2); l+=width, k++)
+			for(k=i, l=x; k<layer->xrepeat && l<vpw + (screenmethod.water.watermode==3?0:screenmethod.water.amplitude*2); l+=width, k++)
 			{
 				if(layer->gfx.type==gfx_screen){
 					if(layer->z==MIN_INT)
-						putscreen(pbgscreen, layer->gfx.screen, l, z, &screenmethod);
+						putscreen(canvas, layer->gfx.screen, l, z, &screenmethod);
 					else
-						spriteq_add_screen(l, z, layer->z, layer->gfx.screen, &screenmethod, 0);
+						spriteq_add_screen(l+vpx, z+vpy, layer->z, layer->gfx.screen, &screenmethod, 0);
 				}
 				else if(layer->gfx.type==gfx_sprite){
 					if(layer->z==MIN_INT)
-						putsprite(l, z, layer->gfx.sprite, pbgscreen, &screenmethod);
+						putsprite(l, z, layer->gfx.sprite, canvas, &screenmethod);
 					else
-						spriteq_add_frame(l, z, layer->z, layer->gfx.sprite, &screenmethod, 0);
+						spriteq_add_frame(l+vpx, z+vpy, layer->z, layer->gfx.sprite, &screenmethod, 0);
 				}
 
 				//printf("#%d %d %d %d\n", index, l, z, width);
@@ -20220,22 +20283,8 @@ void draw_scrolled_bg(){
 	}
 	
 	//printf("**************\n");
-	traveltime = time;
-
-/**********************/
-
-	if(bgbuffer)
-	{
-		putscreen(vscreen, bgbuffer, 0, 0, NULL);
-	}
-
-	bgbuffer_updated = 1;
 
 
-	if(time>=level->quaketime){
-		level->quake /= 2;
-		level->quaketime = time + (GAME_SPEED/25);
-	}
 }
 
 #ifndef DISABLE_MOVIE
@@ -20533,6 +20582,31 @@ void update(int ingame, int usevwait)
 
 	}
 
+	/************ gfx queueing ************/
+	if(!canvas) canvas = vscreen;
+
+	if(ingame == 1 && !pause)
+	{
+		update_scrolled_bg();
+		updatestatus();
+
+		draw_scrolled_bg(canvas);
+		predrawstatus();
+		drawstatus();
+		draw_textobjs();
+	}
+	
+	// entity sprites queueing
+	if(!pause && (ingame==1 || selectScreen) )
+		display_ents();
+
+	/************ updated script  ************/
+	if(ingame == 1 || alwaysupdate)
+	{
+		execute_updatedscripts();
+	}
+
+	// 2011/10/22 UT: move pause menu logic here 
 	if(ingame==1 &&
 #ifndef DISABLE_MOVIE
 		!movieplay &&
@@ -20549,23 +20623,12 @@ void update(int ingame, int usevwait)
 		sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 		spriteq_lock();
 		pausemenu();
+		spriteq_clear();
+
+		return;
 	}
 
-
-	// gfx section
-	if(ingame == 1)
-	{
-		draw_scrolled_bg();
-		predrawstatus();
-		drawstatus();
-	}
-
-	if(ingame == 1 || alwaysupdate)
-	{
-		execute_updatedscripts();
-		draw_textobjs();
-	}
-
+	/********** update screen **************/
 	
 	if(!ingame)
 	{
@@ -20573,36 +20636,8 @@ void update(int ingame, int usevwait)
 		if(background) putscreen(vscreen, background, 0, 0, NULL);
 	}
 
-	if(ingame==1 || selectScreen) display_ents();
+	spriteq_draw(vscreen, 0, MIN_INT, MAX_INT, 0, 0); // notice, always draw sprites at the very end of other methods
 
-	if(zoom_scale_x)
-	{
-		if(!zoombuffer) zoombuffer = allocscreen(vscreen->width, vscreen->height, vscreen->pixelformat);
-		copyscreen(zoombuffer, vscreen);
-		spriteq_draw(zoombuffer, 0, MIN_INT, zoom_z);
-		zoomscreen(vscreen, zoombuffer, zoom_center_x, zoom_center_y, zoom_scale_x, zoom_scale_y);
-		spriteq_draw(vscreen, 0, zoom_z + 1, MAX_INT);
-	}
-	else
-	{
-		if(zoombuffer)
-		{
-			freescreen(&zoombuffer);
-			zoombuffer = NULL;
-		}
-		spriteq_draw(vscreen, 0, MIN_INT, MAX_INT); // notice, always draw sprites at the very end of other methods
-	}
-/*
-	if(gosprite>=0){
-		s_sprite* go = sprite_map[gosprite].sprite;
-		int h, v;
-		for(v=0; v<go->height && v<vscreen->height; v++){
-			for(h=0; h<go->width && h<vscreen->width; h++){
-				((unsigned char*)vscreen->data)[v*vscreen->width+h] = sprite_get_pixel(go, h, v);
-			}
-		}
-	}
-*/
 	if(pause!=2 && !noscreenshot && (bothnewkeys&FLAG_SCREENSHOT)) screenshot(vscreen, getpal, 1);
 
 	// Debug stuff, should not appear on screenshot
@@ -20611,7 +20646,7 @@ void update(int ingame, int usevwait)
 	{
 		spriteq_clear();
 		font_printf(0,230, 0, 0, debug_msg);
-		spriteq_draw(vscreen, (ingame==0), MIN_INT, MAX_INT);
+		spriteq_draw(vscreen, (ingame==0), MIN_INT, MAX_INT, 0, 0);
 	}
 	else
 	{
