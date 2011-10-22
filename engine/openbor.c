@@ -9050,8 +9050,8 @@ void load_level(char *filename){
 				load_layer(GET_ARG(1), level->numlayers);
 				level->numlayers++;
 
-				if(stricmp(GET_ARG(2), "none")==0 || !GET_ARG(2)[0])
-					break;
+				if(stricmp(GET_ARG(2), "none")!=0 && GET_ARG(2)[0])
+				{
 
 				if(level->numlayers >= LEVEL_MAX_LAYERS) {
 					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
@@ -9066,9 +9066,10 @@ void load_level(char *filename){
 				bgl->gfx.handle = NULL;
 				load_layer(GET_ARG(2), level->numlayers);
 				level->numlayers++;
+				}
 
-				if(stricmp(GET_ARG(3), "none")==0 || !GET_ARG(3)[0])
-					break;
+				if(stricmp(GET_ARG(3), "none")!=0 && GET_ARG(3)[0])
+				{
 
 				if(level->numlayers >= LEVEL_MAX_LAYERS) {
 					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
@@ -9085,7 +9086,7 @@ void load_level(char *filename){
 				bgl->gfx.handle = NULL;
 				load_layer(GET_ARG(3), level->numlayers);
 				level->numlayers++;
-				
+				}
 				break;
 			case CMD_LEVEL_STAGENUMBER:
 				current_stage = GET_INT_ARG(1);
@@ -9655,6 +9656,13 @@ void pausemenu()
 {
 	int pauselector = 0;
 	int quit = 0;
+	s_screen* pausebuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
+
+	copyscreen(pausebuffer, vscreen);
+	spriteq_draw(pausebuffer, 0, MIN_INT, MAX_INT, 0, 0);
+	spriteq_clear();
+	spriteq_add_screen(0, 0, MIN_INT, pausebuffer, NULL, 0);
+	spriteq_lock();
 
 	pause = 2;
 	bothnewkeys = 0;
@@ -9699,6 +9707,8 @@ void pausemenu()
 	pause = 0;
 	bothnewkeys = 0;
 	spriteq_unlock();
+	spriteq_clear();
+	freescreen(&pausebuffer);
 }
 
 unsigned getFPS(void)
@@ -9747,12 +9757,15 @@ void updatestatus(){
 				}
 
 				if (!tperror){    // Fixed so players can be selected if other player is no longer va //4player                        player[i].playkeys = player[i].newkeys = 0;
+					model = findmodel(player[i].name);
 					player[i].lives = PLAYER_LIVES;            // to address new lives settings
 					player[i].joining = 0;
 					player[i].hasplayed = 1;
 					player[i].spawnhealth = model->health;
 					player[i].spawnmp = model->mp;
+
 					spawnplayer(i);
+
 					execute_join_script(i);
 
 					player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
@@ -9760,6 +9773,7 @@ void updatestatus(){
 					if(!nodropen) drop_all_enemies();   //27-12-2004  If drop enemies is on, drop all enemies
 
 					if(!level->noreset) timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
+
 				}
 
 			}
@@ -9927,7 +9941,7 @@ void predrawstatus(){
 	{
 		if(player[i].ent)
 		{
-		tmp = player[i].score; //work around issue on 64bit where sizeof(long) != sizeof(int)
+			tmp = player[i].score; //work around issue on 64bit where sizeof(long) != sizeof(int)
 			if(!pscore[i][2] && !pscore[i][3] && !pscore[i][4] && !pscore[i][5])
 		    font_printf(videomodes.shiftpos[i]+pscore[i][0], savedata.windowpos+pscore[i][1], pscore[i][6], 0, (scoreformat ? "%s - %09lu" : "%s - %lu"), (char*)(player[i].ent->name), tmp);
 			else
@@ -20597,8 +20611,8 @@ void update(int ingame, int usevwait)
 	}
 	
 	// entity sprites queueing
-	if(!pause && (ingame==1 || selectScreen) )
-		display_ents();
+	if(ingame==1 || selectScreen)
+		if(!pause) display_ents();
 
 	/************ updated script  ************/
 	if(ingame == 1 || alwaysupdate)
@@ -20621,10 +20635,7 @@ void update(int ingame, int usevwait)
 		sound_pause_music(1);
 		sound_pause_sample(1);
 		sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
-		spriteq_lock();
 		pausemenu();
-		spriteq_clear();
-
 		return;
 	}
 
