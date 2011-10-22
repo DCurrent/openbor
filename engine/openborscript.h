@@ -176,7 +176,6 @@ HRESULT openbor_strright(ScriptVariant** varlist , ScriptVariant** pretvar, int 
 HRESULT openbor_getmodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_changemodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_rgbcolor(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_zoom(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_settexture(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_setvertex(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_trianglelist(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
@@ -197,6 +196,9 @@ HRESULT openbor_finditem(ScriptVariant** varlist , ScriptVariant** pretvar, int 
 HRESULT openbor_pickup(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_waypoints(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_changedrawmethod(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+
+HRESULT openbor_drawspriteq(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_clearspriteq(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount);
 void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount);

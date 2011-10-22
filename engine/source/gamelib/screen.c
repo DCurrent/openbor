@@ -282,6 +282,16 @@ void putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawme
 			gfx_draw_plane(dest, &gfx, x, y, 0, 0, drawmethod);
 		else gfx_draw_water(dest, &gfx, x, y, 0, 0, drawmethod);
 		return ;
+	} else if(drawmethod->rotate) {
+		gfx.type = gfx_screen;
+		gfx.screen = src;
+		gfx_draw_rotate(dest, &gfx, x, y, 0, 0, drawmethod);
+		return;
+	} else if(drawmethod->scalex!=256 || drawmethod->scaley!=256 || drawmethod->shiftx){
+		gfx.type = gfx_screen;
+		gfx.screen = src;
+		gfx_draw_scale(dest, &gfx, x, y, 0, 0, drawmethod);
+		return;
 	}else{
 		table = drawmethod->table;
 		alpha = drawmethod->alpha;

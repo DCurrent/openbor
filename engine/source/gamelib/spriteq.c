@@ -219,9 +219,9 @@ static void spriteq_sort()
 }
 
 // newonly is 1 means don't draw locked sprites
-void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz)
+void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz, int dx, int dy)
 {
-	int i;
+	int i, x, y;
 
 	spriteq_sort();
 
@@ -229,6 +229,9 @@ void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz)
 	{
 		if((newonly && spriteq_locked && order[i]<queue+spriteq_old_len) || order[i]->z<minz || order[i]->z>maxz)
 			continue;
+
+		x = order[i]->x + dx;
+		y = order[i]->y + dy;
 
 		switch(order[i]->type)
 		{
@@ -239,22 +242,22 @@ void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz)
 				((s_sprite*)(order[i]->frame))->centerx = order[i]->params[1];
 				((s_sprite*)(order[i]->frame))->centery = order[i]->params[2];
 			}
-			putsprite(order[i]->x, order[i]->y, order[i]->frame, screen, &(order[i]->drawmethod));
+			putsprite(x, y, order[i]->frame, screen, &(order[i]->drawmethod));
 		    break;
 		case SQT_SCREEN: // draw a screen instead of sprite
-			putscreen(screen, (s_screen*)(order[i]->frame), order[i]->x, order[i]->y, &(order[i]->drawmethod));
+			putscreen(screen, (s_screen*)(order[i]->frame), x, y, &(order[i]->drawmethod));
 		    break;
 		case SQT_DOT:
 			switch(screen->pixelformat)
 			{
 			case PIXEL_8:
-				putpixel(order[i]->x, order[i]->y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				putpixel(x, y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
 				break;
 			case PIXEL_16:
-				putpixel16(order[i]->x, order[i]->y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				putpixel16(x, y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
 				break;
 			case PIXEL_32:
-				putpixel32(order[i]->x, order[i]->y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				putpixel32(x, y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
 				break;
 			}
 			break;
@@ -262,13 +265,13 @@ void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz)
 			switch(screen->pixelformat)
 			{
 			case PIXEL_8:
-				line(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				line(x, y, order[i]->params[1]+dx, order[i]->params[2]+dy, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
 				break;
 			case PIXEL_16:
-				line16(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				line16(x, y, order[i]->params[1]+dx, order[i]->params[2]+dy, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
 				break;
 			case PIXEL_32:
-				line32(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				line32(x, y, order[i]->params[1]+dx, order[i]->params[2]+dy, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
 				break;
 			}
 			break;
@@ -276,13 +279,13 @@ void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz)
 			switch(screen->pixelformat)
 			{
 			case PIXEL_8:
-				drawbox(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				drawbox(x, y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
 				break;
 			case PIXEL_16:
-				drawbox16(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				drawbox16(x, y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
 				break;
 			case PIXEL_32:
-				drawbox32(order[i]->x, order[i]->y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
+				drawbox32(x, y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
 				break;
 			}
 			break;

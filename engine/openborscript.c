@@ -529,7 +529,6 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_getmodelproperty)) return "getmodelproperty";
 	else if (functionRef==((void*)openbor_changemodelproperty)) return "changemodelproperty";
 	else if (functionRef==((void*)openbor_rgbcolor)) return "rgbcolor";
-	else if (functionRef==((void*)openbor_zoom)) return "zoom";
 	else if (functionRef==((void*)openbor_settexture)) return "settexture";
 	else if (functionRef==((void*)openbor_setvertex)) return "setvertex";
 	else if (functionRef==((void*)openbor_trianglelist)) return "trianglelist";
@@ -547,6 +546,8 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_finditem)) return "finditem";
 	else if (functionRef==((void*)openbor_pickup)) return "pickup";
 	else if (functionRef==((void*)openbor_waypoints)) return "waypoints";
+	else if (functionRef==((void*)openbor_drawspriteq)) return "drawspriteq";
+	else if (functionRef==((void*)openbor_clearspriteq)) return "clearspriteq";
 	else return "<unknown function>";
 }
 
@@ -1047,8 +1048,6 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_rgbcolor, "rgbcolor");
 	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_zoom, "zoom");
-	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_settexture, "settexture");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_setvertex, "setvertex");
@@ -1084,6 +1083,10 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_pickup, "pickup");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_waypoints, "waypoints");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_drawspriteq, "drawspriteq");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_clearspriteq, "clearspriteq");
 
 	//printf("Done!\n");
 
@@ -1252,7 +1255,9 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 	// change one, you must change the other as well!!!!
 	enum systemvariant_enum
 	{
+		_sv_background,
 		_sv_branchname,
+		_sv_canvas,
 		_sv_count_enemies,
 		_sv_count_entities,
 		_sv_count_npcs,
@@ -1315,6 +1320,11 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 		_sv_freeram,
 		_sv_usedram,
 		_sv_vResolution,
+		_sv_viewporth,
+		_sv_viewportw,
+		_sv_viewportx,
+		_sv_viewporty,
+		_sv_vscreen,
 		_sv_xpos,
 		_sv_ypos,
 		_sv_the_end,
@@ -1322,7 +1332,9 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 
 	// arranged list, for searching
 	static const char* proplist[] = {
+		"background",
 		"branchname",
+		"canvas",
 		"count_enemies",
 		"count_entities",
 		"count_npcs",
@@ -1385,6 +1397,11 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 		"freeram",
 		"usedram",
 		"vResolution",
+		"viewporth",
+		"viewportw",
+		"viewportx",
+		"viewporty",
+		"vscreen",
 		"xpos",
 		"ypos",
 	 };
@@ -1435,6 +1452,7 @@ void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount)
 	enum changesystemvariant_enum
 	{
 		_csv_blockade,
+		_csv_canvas,
 		_csv_elapsed_time,
 		_csv_gfx_x_offset,
 		_csv_gfx_y_offset,
@@ -1451,6 +1469,10 @@ void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount)
 		_csv_slowmotion_duration,
 		_csv_smartbomber,
 		_csv_textbox,
+		_csv_viewporth,
+		_csv_viewportw,
+		_csv_viewportx,
+		_csv_viewporty,
 		_csv_xpos,
 		_csv_ypos,
 		_csv_the_end,
@@ -1459,6 +1481,7 @@ void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount)
 	// arranged list, for searching
 	static const char* proplist[] = {
 		"blockade",
+		"canvas",
 		"elapsed_time",
 		"gfx_x_offset",
 		"gfx_y_offset",
@@ -1475,6 +1498,10 @@ void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount)
 		"slowmotion_duration",
 		"smartbomber",
 		"textbox",
+		"viewporth",
+		"viewportw",
+		"viewportx",
+		"viewporty",
 		"xpos",
 		"ypos",
 	 };
@@ -8959,6 +8986,8 @@ void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 		constname = (char*)StrCache_Get(varlist[0]->strVal);
 
 		ICMPCONST(COMPATIBLEVERSION)
+		ICMPCONST(MIN_INT)
+		ICMPCONST(MAX_INT)
 		ICMPCONST(PIXEL_8)
 		ICMPCONST(PIXEL_x8)
 		ICMPCONST(PIXEL_16)
@@ -11563,33 +11592,6 @@ playgif_error:
 }
 
 
-//zoom(int x, int y, int scalex, int scaley, int z)
-HRESULT openbor_zoom(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
-{
-
-	extern int zoom_center_x, zoom_center_y, zoom_scale_x, zoom_scale_y, zoom_z;
-
-	*pretvar = NULL;
-	if(paramCount<4) goto zoom_error;
-
-	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &zoom_center_x)))
-		goto zoom_error;
-	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &zoom_center_y)))
-		goto zoom_error;
-	if(FAILED(ScriptVariant_IntegerValue(varlist[2], &zoom_scale_x)))
-		goto zoom_error;
-	if(FAILED(ScriptVariant_IntegerValue(varlist[3], &zoom_scale_y)))
-		goto zoom_error;
-	if(FAILED(ScriptVariant_IntegerValue(varlist[4], &zoom_z)))
-		goto zoom_error;
-	
-	return S_OK;
-
-zoom_error:
-	printf("Function requires 5 int values: zoom(int x, int y, int scalex, int scaley, int z)\n");
-	return E_FAIL;
-}
-
 // basic ai checkings, make it easier for modder to create their own think script
 HRESULT openbor_aicheckwarp(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
 
@@ -11817,5 +11819,44 @@ testmove_error:
 	*pretvar = NULL;
 	printf("Function testmove(entity, x, z)");
 	return E_FAIL;
+}
+
+//spriteq_draw(vscreen, 0, MIN_INT, MAX_INT, dx, dy)
+HRESULT openbor_drawspriteq(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	LONG value[5] = {0, MIN_INT, MAX_INT, 0, 0};
+	int i;
+	s_screen* screen;
+	extern s_screen* vscreen;
+
+	*pretvar = NULL;
+
+	if(paramCount<1) goto drawsq_error;
+
+	if(varlist[0]->vt!=VT_PTR && varlist[0]->vt!=VT_EMPTY) goto drawsq_error;
+
+	if(varlist[0]->ptrVal) screen = (s_screen*)varlist[0]->ptrVal;
+	else screen = vscreen;
+
+	for(i=1; i<paramCount && i<=5; i++){
+		if(FAILED(ScriptVariant_IntegerValue(varlist[i], value+i-1)))
+			goto drawsq_error;
+	}
+
+	spriteq_draw(screen, (int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4]);
+
+	return S_OK;
+
+drawsq_error:
+	printf("Function drawspriteq needs a valid screen handle and all other paramaters must be integers.");
+	return E_FAIL;
+
+}
+
+HRESULT openbor_clearspriteq(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+	*pretvar = NULL;
+	spriteq_clear();
+	return S_OK;
+
 }
 
