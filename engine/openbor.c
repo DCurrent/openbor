@@ -3098,6 +3098,7 @@ void load_background(char *filename, int createtables)
 			shutdown(1, "Error loading background (PIXEL_x8) file '%s'", filename);
 		}
 		memcpy(pal, background->palette, PAL_BYTES);
+		memcpy(neontable, pal, PAL_BYTES);
 	}
 	else
 	{
