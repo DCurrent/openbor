@@ -275,7 +275,7 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
 	if(!drawmethod->scalex || !drawmethod->scaley) return; // zero size
 
 	// no scale, no shift, no flip, no fill, so use common method
-	if(drawmethod->scalex==256 && drawmethod->scaley==256 && !drawmethod->flipy && !drawmethod->shiftx && drawmethod->fillcolor==TRANSPARENT_IDX && !drawmethod->rotate && !drawmethod->centerx && !drawmethod->centery)
+	if(!drawmethod->water.watermode && drawmethod->scalex==256 && drawmethod->scaley==256 && !drawmethod->flipy && !drawmethod->shiftx && drawmethod->fillcolor==TRANSPARENT_IDX && !drawmethod->rotate && !drawmethod->centerx && !drawmethod->centery)
 	{
 		switch(screen->pixelformat)
 		{
