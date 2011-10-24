@@ -21466,6 +21466,7 @@ void hallfame(int addtoscore)
 				}
 			}
 		}
+		saveHighScoreFile();
 	}
 
 	time = 0;
@@ -22153,13 +22154,12 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 			{
 				current_level = num_levels[which_set];
 			}
-		}
+		}//while
 
 		if(current_level >= num_levels[which_set])
 		{
 			bonus += savelevel[current_set].times_completed++;
 			saveGameFile();
-			saveHighScoreFile();
 			fade_out(0, 0);
 			hallfame(1);
 		}
