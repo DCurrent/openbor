@@ -201,6 +201,10 @@ typedef struct
 	int shiftx;
 	int centerx;   // shift centerx
 	int centery;   //shift centery
+	int xrepeat;
+	int yrepeat;
+	int xspan;
+	int yspan;
 	water_transform water;
 }s_drawmethod;
 

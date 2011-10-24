@@ -1257,7 +1257,6 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 	{
 		_sv_background,
 		_sv_branchname,
-		_sv_canvas,
 		_sv_count_enemies,
 		_sv_count_entities,
 		_sv_count_npcs,
@@ -1334,7 +1333,6 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 	static const char* proplist[] = {
 		"background",
 		"branchname",
-		"canvas",
 		"count_enemies",
 		"count_entities",
 		"count_npcs",
@@ -1452,7 +1450,6 @@ void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount)
 	enum changesystemvariant_enum
 	{
 		_csv_blockade,
-		_csv_canvas,
 		_csv_elapsed_time,
 		_csv_gfx_x_offset,
 		_csv_gfx_y_offset,
@@ -1481,7 +1478,6 @@ void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount)
 	// arranged list, for searching
 	static const char* proplist[] = {
 		"blockade",
-		"canvas",
 		"elapsed_time",
 		"gfx_x_offset",
 		"gfx_y_offset",
@@ -10442,7 +10438,7 @@ HRESULT _getlayerproperty(s_layer* layer, int propind, ScriptVariant** pretvar)
 	case _glp_xrepeat:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)layer->xrepeat;
+		(*pretvar)->lVal = (LONG)layer->drawmethod.xrepeat;
 		break;
 	}
 	case _glp_xspacing:
@@ -10472,7 +10468,7 @@ HRESULT _getlayerproperty(s_layer* layer, int propind, ScriptVariant** pretvar)
 	case _glp_zrepeat:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)layer->zrepeat;
+		(*pretvar)->lVal = (LONG)layer->drawmethod.yrepeat;
 		break;
 	}
 	case _glp_zspacing:
@@ -10570,7 +10566,7 @@ HRESULT _changelayerproperty(s_layer* layer, int propind, ScriptVariant* var)
 	case _glp_xrepeat:
 	{
 		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
-		layer->xrepeat = temp;
+		layer->drawmethod.xrepeat = temp;
 		break;
 	}
 	case _glp_xspacing:
@@ -10600,7 +10596,7 @@ HRESULT _changelayerproperty(s_layer* layer, int propind, ScriptVariant* var)
 	case _glp_zrepeat:
 	{
 		if(FAILED(ScriptVariant_IntegerValue(var, &temp))) return E_FAIL;
-		layer->zrepeat = temp;
+		layer->drawmethod.yrepeat = temp;
 		break;
 	}
 	case _glp_zspacing:
@@ -11159,6 +11155,10 @@ enum drawmethod_enum
 	_dm_wavelength,
 	_dm_wavespeed,
 	_dm_wavetime,
+	_dm_xrepeat,
+	_dm_xspan,
+	_dm_yrepeat,
+	_dm_yspan,
 	_dm_the_end,
 };
 
@@ -11193,6 +11193,10 @@ void mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount)
 		"wavelength",
 		"wavespeed",
 		"wavetime",
+		"xrepeat",
+		"xspan",
+		"yrepeat",
+		"yspan",
 	};
 
 
@@ -11316,7 +11320,23 @@ HRESULT openbor_changedrawmethod(ScriptVariant** varlist , ScriptVariant** pretv
 	case _dm_wavetime:
 		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
 		pmethod->water.wavetime = (int)(temp*pmethod->water.wavespeed);
-	break;;
+	break;
+	case _dm_xrepeat:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->xrepeat = (int)temp;
+	break;
+	case _dm_yrepeat:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->yrepeat = (int)temp;
+	break;
+	case _dm_xspan:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->xspan = (int)temp;
+	break;
+	case _dm_yspan:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->yspan = (int)temp;
+	break;
 	default:
 	break;
 
