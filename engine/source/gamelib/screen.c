@@ -265,7 +265,7 @@ void blendscreen(s_screen * dest, s_screen * src, int x, int y, unsigned char* l
 }
 
 
-void putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawmethod)
+static void _putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawmethod)
 {
 	unsigned char* table;
 	int alpha, transbg;
@@ -336,6 +336,27 @@ void putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawme
 	}
 }
 
+void putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawmethod)
+{
+	int xrepeat, yrepeat, xspan, yspan, i, j, dx=x,dy=y;
+
+	if(drawmethod && drawmethod->flag){
+		xrepeat = drawmethod->xrepeat;
+		yrepeat = drawmethod->yrepeat;
+		xspan = drawmethod->xspan;
+		yspan = drawmethod->yspan;
+	} else {
+		xrepeat = yrepeat = 1;
+		xspan = yspan = 0;
+	}
+
+	for(j=0; j<yrepeat; j++, dy+=yspan){
+		for(i=0; i<xrepeat; i++, dx+=xspan){
+			_putscreen(dest, src, dx, dy, drawmethod);
+		}
+	}
+
+}
 
 // Scale screen
 void scalescreen(s_screen * dest, s_screen * src)

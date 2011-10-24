@@ -1485,10 +1485,8 @@ typedef struct
 	float          zratio;
 	int            xoffset;
 	int            zoffset;
-	int            xspacing;
-	int            zspacing;
-	int            xrepeat;
-	int            zrepeat;
+	int			   xspacing;
+	int			   zspacing;
 	s_drawmethod   drawmethod;
 	float          bgspeedratio;
 	int            enabled;

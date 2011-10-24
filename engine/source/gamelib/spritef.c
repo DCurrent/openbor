@@ -306,7 +306,7 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
 	}
 }
 
-void putsprite(int x, int y, s_sprite* sprite, s_screen* screen, s_drawmethod* drawmethod)
+static void _putsprite(int x, int y, s_sprite* sprite, s_screen* screen, s_drawmethod* drawmethod)
 {
 	if(!drawmethod || drawmethod->flag==0)
 	{
@@ -328,6 +328,27 @@ plainsprite:
 			putsprite_x8p32(x, y, 0, sprite, screen, (unsigned*)sprite->palette, NULL);
 			break;
 	}
+}
+
+void putsprite(int x, int y, s_sprite* sprite, s_screen* screen, s_drawmethod* drawmethod){
+	int xrepeat, yrepeat, xspan, yspan, i, j, dx=x,dy=y;
+
+	if(drawmethod && drawmethod->flag){
+		xrepeat = drawmethod->xrepeat;
+		yrepeat = drawmethod->yrepeat;
+		xspan = drawmethod->xspan;
+		yspan = drawmethod->yspan;
+	} else {
+		xrepeat = yrepeat = 1;
+		xspan = yspan = 0;
+	}
+
+	for(j=0; j<yrepeat; j++, dy+=yspan){
+		for(i=0; i<xrepeat; i++, dx+=xspan){
+			_putsprite(dx, dy, sprite, screen, drawmethod);
+		}
+	}
+
 }
 
 
