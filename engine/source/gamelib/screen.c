@@ -300,7 +300,7 @@ static void _putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod
 
 	if(!table && alpha<=0 && !transbg)
 	{
-		if(dest->pixelformat==src->pixelformat && dest->width==src->width && dest->height==src->height)
+		if(dest->pixelformat==src->pixelformat && dest->width==src->width && dest->height==src->height && !x && !y)
 		{
 			copyscreen(dest, src);
 			return;
@@ -338,7 +338,7 @@ static void _putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod
 
 void putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawmethod)
 {
-	int xrepeat, yrepeat, xspan, yspan, i, j, dx=x,dy=y;
+	int xrepeat, yrepeat, xspan, yspan, i, j, dx, dy;
 
 	if(drawmethod && drawmethod->flag){
 		xrepeat = drawmethod->xrepeat;
@@ -350,8 +350,8 @@ void putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawme
 		xspan = yspan = 0;
 	}
 
-	for(j=0; j<yrepeat; j++, dy+=yspan){
-		for(i=0; i<xrepeat; i++, dx+=xspan){
+	for(j=0, dy=y; j<yrepeat; j++, dy+=yspan){
+		for(i=0, dx=x; i<xrepeat; i++, dx+=xspan){
 			_putscreen(dest, src, dx, dy, drawmethod);
 		}
 	}

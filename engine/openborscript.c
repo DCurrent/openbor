@@ -99,7 +99,7 @@ Script* pcurrentscript = NULL;//used by local script functions
 List theFunctionList;
 static List   scriptheap;
 static s_spawn_entry spawnentry;
-extern s_drawmethod plainmethod;
+extern const s_drawmethod plainmethod;
 static s_drawmethod drawmethod;
 //fake 3d draw
 static gfx_entry	texture;
@@ -2061,7 +2061,6 @@ HRESULT openbor_drawscreen(ScriptVariant** varlist , ScriptVariant** pretvar, in
 	int i;
 	LONG value[3], l;
 	s_screen* s;
-	extern s_drawmethod plainmethod;
 	s_drawmethod screenmethod;
 	*pretvar = NULL;
 

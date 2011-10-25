@@ -331,7 +331,7 @@ plainsprite:
 }
 
 void putsprite(int x, int y, s_sprite* sprite, s_screen* screen, s_drawmethod* drawmethod){
-	int xrepeat, yrepeat, xspan, yspan, i, j, dx=x,dy=y;
+	int xrepeat, yrepeat, xspan, yspan, i, j, dx,dy;
 
 	if(drawmethod && drawmethod->flag){
 		xrepeat = drawmethod->xrepeat;
@@ -343,8 +343,8 @@ void putsprite(int x, int y, s_sprite* sprite, s_screen* screen, s_drawmethod* d
 		xspan = yspan = 0;
 	}
 
-	for(j=0; j<yrepeat; j++, dy+=yspan){
-		for(i=0; i<xrepeat; i++, dx+=xspan){
+	for(j=0, dy=y; j<yrepeat; j++, dy+=yspan){
+		for(i=0, dx=x; i<xrepeat; i++, dx+=xspan){
 			_putsprite(dx, dy, sprite, screen, drawmethod);
 		}
 	}
