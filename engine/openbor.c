@@ -9739,6 +9739,7 @@ void updatestatus(){
 		}
 		else if(player[i].joining && player[i].name[0])
 		{
+			model = findmodel(player[i].name);
 			if((player[i].playkeys & FLAG_ANYBUTTON || (skipselect&&(*skipselect)[current_set][i])) && !freezeall && !nojoin)    // Can't join while animations are frozen
 			{
 				// reports error if players try to use the same character and sameplay mode is off
@@ -9752,7 +9753,6 @@ void updatestatus(){
 				}
 
 				if (!tperror){    // Fixed so players can be selected if other player is no longer va //4player                        player[i].playkeys = player[i].newkeys = 0;
-					model = findmodel(player[i].name);
 					player[i].lives = PLAYER_LIVES;            // to address new lives settings
 					player[i].joining = 0;
 					player[i].hasplayed = 1;
@@ -11006,6 +11006,8 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			osp = e->scripts.onspawn_script;
 			pks = e->scripts.key_script;
 			memset(e, 0, sizeof(entity));
+			e->drawmethod = plainmethod;
+			e->drawmethod.flag = 0;
 
 			// add to list and count current entities
 			e->exists = 1;
@@ -20192,7 +20194,7 @@ void update_scrolled_bg(){
 }
 
 void draw_scrolled_bg(){
-	int index=0, x, z, i=0, j, k, l, m;
+	int index=0, x, z, i=0, j, l, m;
 	s_layer* layer;
 	int width, height;
 
@@ -20232,14 +20234,11 @@ void draw_scrolled_bg(){
 
 		//printf("layerxratio %f  %d %f\n ", layer->xratio, x, layer->bgspeedratio);
 
-		if(level->scrolldir&SCROLL_UP)
-			z = (int)(videomodes.vRes + advancey*layer->zratio - layer->zoffset - height*screenmethod.yrepeat + height + layer->zspacing);
-		else
-			z = (int)(layer->zoffset + advancey* layer->zratio - advancey);
+		z = layer->zoffset + (level->scrolldir&SCROLL_UP)?-advancey* layer->zratio:advancey* layer->zratio;
 
 		if(layer->quake) {
 			x += gfx_x_offset;
-			z += gfx_y_offset+advancey;
+			z += gfx_y_offset;
 		}
 
 		x -= vpx; z -= vpy;
@@ -20267,14 +20266,8 @@ void draw_scrolled_bg(){
 		}
 		screenmethod.water.wavetime =  (int)(timevar*screenmethod.water.wavespeed);
 		screenmethod.xrepeat = screenmethod.yrepeat = 0;
-		for(m=z; j<layer->drawmethod.yrepeat && m<vph; m+=height, j++, screenmethod.yrepeat++)
-		{
-			for(k=i, l=x; k<layer->drawmethod.xrepeat && l<vpw + (screenmethod.water.watermode==3?0:screenmethod.water.amplitude*2); l+=width, k++, screenmethod.xrepeat++)
-			{
-				//printf("#%d %d %d %d\n", index, l, z, width);
-
-			}
-		}
+		for(m=z; j<layer->drawmethod.yrepeat && m<vph; m+=height, j++, screenmethod.yrepeat++);
+		for(l=x; i<layer->drawmethod.xrepeat && l<vpw + (screenmethod.water.watermode==3?0:screenmethod.water.amplitude*2); l+=width, i++, screenmethod.xrepeat++);
 
 		if(layer->gfx.type==gfx_screen){
 			spriteq_add_screen(x+vpx, z+vpy, layer->z, layer->gfx.screen, &screenmethod, 0);
@@ -20282,9 +20275,9 @@ void draw_scrolled_bg(){
 		else if(layer->gfx.type==gfx_sprite){
 			spriteq_add_frame(x+vpx, z+vpy, layer->z, layer->gfx.sprite, &screenmethod, 0);
 		}
-	}
 	
-	//printf("**************\n");
+		//printf("******%d\t%d\t%d\t%d\t%d*****\n", x+vpx, z+vpy, layer->z, screenmethod.xrepeat, screenmethod.yrepeat);
+	}
 
 
 }
