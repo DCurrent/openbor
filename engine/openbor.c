@@ -3623,7 +3623,7 @@ static void reset_playable_list(char which)
 	int i;
 	for(i=0;i<models_cached;i++)
 	{
-		if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER)
+		if(!which || (model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER))
 		{
 			model_cache[i].selectable = which;
 		}
@@ -8727,7 +8727,7 @@ void load_level(char *filename){
 	memset(panels, 0, sizeof(s_layer*)*LEVEL_MAX_PANELS*3);
 	memset(order, 0, sizeof(int)*LEVEL_MAX_PANELS);
 
-	reset_playable_list(1);
+	//reset_playable_list(1);
 
 	// Now interpret the contents of buf line by line
 	pos = 0;
