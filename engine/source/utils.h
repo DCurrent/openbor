@@ -44,7 +44,7 @@ void lc(char* buf, size_t size);
 size_t getNewLineStart(char* buf);
 void debugBuf(unsigned char* buf, size_t size, int columns);
 void debug_printf(char *, ...);
-void getPakName(char name[256], int type);
+void getPakName(char* name, int type);
 void screenshot(s_screen *vscreen, unsigned char *pal, int ingame);
 void getBasePath(char *newName, char *name, int type);
 unsigned readlsb32(const unsigned char *src);

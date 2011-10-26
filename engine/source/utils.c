@@ -254,7 +254,7 @@ void debug_printf(char *format, ...){
 	debug_time = 0xFFFFFFFF;
 }
 
-void getPakName(char name[256], int type){
+void getPakName(char* name, int type){
 
 	int i,x,y;
 	char mod[256] = {""};
@@ -299,6 +299,7 @@ void getPakName(char name[256], int type){
 			y++;
 		}
 	}
+	name[y] = 0;
 }
 
 void screenshot(s_screen *vscreen, unsigned char *pal, int ingame){
