@@ -9028,7 +9028,7 @@ void load_level(char *filename){
 					frontpanels_loaded++;
 					bgl->z = FRONTPANEL_Z;
 					bgl->xratio = -0.4; // x ratio
-					bgl->zratio = 0; // z ratio
+					bgl->zratio = 1; // z ratio
 					dm->xrepeat = -1; // x repeat
 				}
 
@@ -20236,6 +20236,7 @@ void draw_scrolled_bg(){
 		if(layer->quake) {
 			x += gfx_x_offset;
 			z += gfx_y_offset;
+			//printf("%d y %d %d\n", index, gfx_y_offset, z);
 		}
 
 		x -= vpx; z -= vpy;
