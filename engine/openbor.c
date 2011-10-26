@@ -769,8 +769,6 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		_e_the_end,
 	};
 
-	char tmpname[256];
-
 	if(!var) return 0;
 
 	switch(index)
@@ -933,8 +931,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		break;
 	case _e_pakname:
 		ScriptVariant_ChangeType(var, VT_STR);
-		getPakName(tmpname, -1);
-		strcpy(StrCache_Get(var->strVal), tmpname);
+		getPakName(StrCache_Get(var->strVal), -1);
 		break;
 	case _e_maxentityvars:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -20594,7 +20591,7 @@ void update(int ingame, int usevwait)
 	
 	if(!ingame)
 	{
-		if(background) spriteq_add_screen(0,0,0,background,NULL,0);
+		if(background) spriteq_add_screen(0,0,MIN_INT,background,NULL,0);
 	}
 	
 	// entity sprites queueing

@@ -8037,7 +8037,7 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 		return E_FAIL;
 	}
 
-	ScriptVariant_Clear(*pretvar);
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
 	arg = varlist[0];
 	if(arg->vt!=VT_STR)
@@ -8118,7 +8118,6 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 		return S_OK;
 	}
 
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 	(*pretvar)->lVal = (LONG)fsindex;
 
 	filestreams[fsindex].pos = 0;
