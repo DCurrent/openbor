@@ -9471,6 +9471,9 @@ void load_level(char *filename){
 			case bgt_panel:
 				panel_width = bgl->width;
 				panel_height = bgl->height;
+			case bgt_frontpanel:
+				if(level->scrolldir&(SCROLL_UP|SCROLL_DOWN))
+					bgl->zratio = 1;
 				break;
 			case bgt_background:
 				bgl->gfx.screen=background;
@@ -9512,6 +9515,7 @@ void load_level(char *filename){
 					bgl->xoffset = level->numfrontpanels*bgl->width;
 					bgl->xspacing = (frontpanels_loaded-1)*bgl->width;
 					level->bglayers[level->numfrontpanels++] = bgl;
+					break;
 				default:
 					break;
 				}
