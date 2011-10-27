@@ -8534,7 +8534,7 @@ void unload_level(){
 	cameratype = 0;
 	light[0] = 128;
 	light[1] = 64;
-	gfx_y_offset = 0;    // Added so select screen graphics display correctly
+	//gfx_y_offset = 0;    // Added so select screen graphics display correctly
 }
 
 char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
@@ -12892,6 +12892,8 @@ void display_ents()
 	s_drawmethod shadowmethod;
 	int use_mirror = (level && level->mirror);
 
+	int scrx = screenx - gfx_x_offset, scry = screeny - gfx_y_offset;
+
 	if(level) shadowz = SHADOW_Z;
 	else shadowz = MIN_INT + 100;
 
@@ -13006,13 +13008,13 @@ void display_ents()
 
 					if(!use_mirror || z > MIRROR_Z) // don't display if behind the mirror
 					{
-						spriteq_add_sprite((int)(e->x - (level?advancex:0) + gfx_x_offset), (int)(e->z-e->a + gfx_y_offset), z, f, drawmethod, e->bound?e->bound->sortid-1:e->sortid);
+						spriteq_add_sprite((int)(e->x - scrx), (int)(e->z-e->a - scry), z, f, drawmethod, e->bound?e->bound->sortid-1:e->sortid);
 					}
 
 					can_mirror = (use_mirror && self->z>MIRROR_Z);
 					if(can_mirror)
 					{
-						spriteq_add_sprite((int)(e->x-(level?advancex:0) + gfx_x_offset), (int)((2*MIRROR_Z - e->z)-e->a+gfx_y_offset), 2*PANEL_Z - z , f, drawmethod, MAX_ENTS - (e->bound?e->bound->sortid-1:e->sortid));
+						spriteq_add_sprite((int)(e->x-scrx), (int)((2*MIRROR_Z - e->z)-e->a-scry), 2*PANEL_Z - z , f, drawmethod, MAX_ENTS - (e->bound?e->bound->sortid-1:e->sortid));
 					}
 				}//end of if(f<sprites_loaded)
 
@@ -13028,16 +13030,16 @@ void display_ents()
 							alty = (int)e->a;
 							temp1 = -1*e->a*light[0]/256; // xshift
 							temp2 = (float)(-alty*light[1]/256);                   // zshift
-							qx = (int)(e->x - advancex + gfx_x_offset/* + temp1*/);
-							qy = (int)(e->z + gfx_y_offset/* +  temp2*/);
+							qx = (int)(e->x - scrx/* + temp1*/);
+							qy = (int)(e->z - scry/* +  temp2*/);
 						}
 						else
 						{
 							alty = (int)(e->a-level->walls[wall][7]);
 							temp1 = -1*(e->a-level->walls[wall][7])*light[0]/256; // xshift
 							temp2 = (float)(-alty*light[1]/256);                   // zshift
-							qx = (int)(e->x - advancex + gfx_x_offset/* + temp1*/);
-							qy = (int)(e->z + gfx_y_offset /*+  temp2*/ - level->walls[wall][7]);
+							qx = (int)(e->x - scrx/* + temp1*/);
+							qy = (int)(e->z - scry /*+  temp2*/ - level->walls[wall][7]);
 						}
 
 						wall2=checkwall_below(e->x + temp1, e->z + temp2, e->a); // check if the shadow drop into a hole or fall on another wall
@@ -13063,7 +13065,7 @@ void display_ents()
 							   /*qx -= -1*level->walls[wall2][7]*light[0]/256;
 							   qy -= level->walls[wall2][7] - level->walls[wall2][7]*light[1]/256;*/
 							}
-							sy = (2*MIRROR_Z - qy) + 2*gfx_y_offset;
+							sy = (2*MIRROR_Z - qy) - 2*scry;
 							z = shadowz;
 							sz = PANEL_Z-HUD_Z;
 							if(e->animation->shadow_coords)
@@ -13100,7 +13102,7 @@ void display_ents()
 						}
 					}//end of gfxshadow
 				}
-				else //plan shadow
+				else //plain shadow
 				{
 					useshadow = e->animation->shadow?e->animation->shadow[e->animpos]:e->modeldata.shadow;
 					if(useshadow<0) {useshadow=e->modeldata.shadow;}
@@ -13108,25 +13110,25 @@ void display_ents()
 					{
 						if(other && other != e && e->a >= other->a + other->animation->platform[other->animpos][7])
 						{
-							qx = (int)(e->x - advancex + gfx_x_offset);
-							qy = (int)(e->z - other->a - other->animation->platform[other->animpos][7] + gfx_y_offset);
-							sy = (int)((2*MIRROR_Z - e->z) - other->a - other->animation->platform[other->animpos][7] + gfx_y_offset);
+							qx = (int)(e->x - scrx);
+							qy = (int)(e->z - other->a - other->animation->platform[other->animpos][7] - scry);
+							sy = (int)((2*MIRROR_Z - e->z) - other->a - other->animation->platform[other->animpos][7] - scry);
 							z = (int)(other->z + 1);
 							sz = 2*PANEL_Z - z;
 						}
 						else if(level && wall >= 0)// && e->a >= level->walls[wall][7])
 						{
-							qx = (int)(e->x - advancex + gfx_x_offset);
-							qy = (int)(e->z - level->walls[wall][7] + gfx_y_offset);
-							sy = (int)((2*MIRROR_Z - e->z)  - level->walls[wall][7] + gfx_y_offset);
+							qx = (int)(e->x - scrx);
+							qy = (int)(e->z - level->walls[wall][7] - scry);
+							sy = (int)((2*MIRROR_Z - e->z)  - level->walls[wall][7] - scry);
 							z = shadowz;
 							sz = PANEL_Z-HUD_Z;
 						}
 						else
 						{
-							qx = (int)(e->x - advancex + gfx_x_offset);
-							qy = (int)(e->z + gfx_y_offset);
-							sy = (int)((2*MIRROR_Z - e->z) + gfx_y_offset);
+							qx = (int)(e->x - scrx);
+							qy = (int)(e->z - scry);
+							sy = (int)((2*MIRROR_Z - e->z) - scry);
 							z = shadowz;
 							sz = PANEL_Z-HUD_Z;
 						}
@@ -13149,7 +13151,7 @@ void display_ents()
 			if(e->arrowon)    // Display the players image while invincible to indicate player number
 			{
 				if(e->modeldata.parrow[(int)e->playerindex][0] && e->invincible == 1)
-					spriteq_add_sprite((int)(e->x - advancex + gfx_x_offset + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->z-e->a+gfx_y_offset + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->z, e->modeldata.parrow[(int)e->playerindex][0], NULL, e->sortid*2);
+					spriteq_add_sprite((int)(e->x - scrx + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->z-e->a-scry + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->z, e->modeldata.parrow[(int)e->playerindex][0], NULL, e->sortid*2);
 			}
 		}// end of if(ent_list[i]->exists)
 	}// end of for
@@ -20179,7 +20181,7 @@ void update_scrolled_bg(){
 		else           gfx_y_offset = level->quake+4;
 	}
 
-	if(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN) gfx_y_offset -= advancey;
+	//if(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN) gfx_y_offset -= advancey;
 	gfx_y_offset += gfx_y_offset_adj;   //2011_04_03, DC: Apply modder adjustment.
 
 	traveltime = time;
@@ -20212,7 +20214,7 @@ void draw_scrolled_bg(){
 
 	s_drawmethod screenmethod=plainmethod, *pscreenmethod=&screenmethod;
 
-	for(i=0; i<level->numholes; i++) spriteq_add_sprite((int)(level->holes[i][0]-advancex+gfx_x_offset),(int)(level->holes[i][1] - level->holes[i][6] + 4 + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
+	for(i=0; i<level->numholes; i++) spriteq_add_sprite((int)(level->holes[i][0]-screenx+gfx_x_offset),(int)(level->holes[i][1] - level->holes[i][6] - screeny + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
 
 	for(index = 0; index < level->numlayersref; index++)
 	{
@@ -20230,8 +20232,11 @@ void draw_scrolled_bg(){
 		x = (int)(layer->xoffset - (advancex + bgtravelled *layer->bgspeedratio)*(1.0-layer->xratio) ) ;
 
 		//printf("layerxratio %f  %d %f\n ", layer->xratio, x, layer->bgspeedratio);
-
-		z = layer->zoffset + (level->scrolldir&SCROLL_UP)?-advancey* layer->zratio:advancey* layer->zratio;
+		
+		if((level->scrolldir&SCROLL_UP))
+			z = (int)(layer->zoffset + advancey*(1.0-layer->zratio) ) ;
+		else
+			z = (int)(layer->zoffset - advancey*(1.0-layer->zratio) ) ;
 
 		if(layer->quake) {
 			x += gfx_x_offset;
@@ -20268,10 +20273,10 @@ void draw_scrolled_bg(){
 		for(l=x; i<layer->drawmethod.xrepeat && l<vpw + (screenmethod.water.watermode==3?0:screenmethod.water.amplitude*2); l+=width, i++, screenmethod.xrepeat++);
 
 		if(layer->gfx.type==gfx_screen){
-			spriteq_add_screen(x+vpx, z+vpy, layer->z, layer->gfx.screen, &screenmethod, 0);
+			spriteq_add_screen(x+vpx, z+vpy, layer->z, layer->gfx.screen, &screenmethod, index);
 		}
 		else if(layer->gfx.type==gfx_sprite){
-			spriteq_add_frame(x+vpx, z+vpy, layer->z, layer->gfx.sprite, &screenmethod, 0);
+			spriteq_add_frame(x+vpx, z+vpy, layer->z, layer->gfx.sprite, &screenmethod, index);
 		}
 	
 		//printf("******%d\t%d\t%d\t%d\t%d*****\n", x+vpx, z+vpy, layer->z, screenmethod.xrepeat, screenmethod.yrepeat);
