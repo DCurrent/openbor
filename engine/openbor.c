@@ -12968,28 +12968,31 @@ void display_ents()
 						commonmethod = *drawmethod;
 					drawmethod = &commonmethod;
 
-					if(drawmethod->remap>=1 && drawmethod->remap<=e->modeldata.maps_loaded)
-					{
-						drawmethod->table = e->modeldata.colourmap[drawmethod->remap-1];
-					}
+					if(!drawmethod->table){
 
-					if(e->colourmap)
-					{
-						if(drawmethod->remap<0) drawmethod->table = e->colourmap;
-					}
-					if(e->modeldata.alpha >=1 && e->modeldata.alpha <= MAX_BLENDINGS)
-					{
-						if(drawmethod->alpha<0)
+						if(drawmethod->remap>=1 && drawmethod->remap<=e->modeldata.maps_loaded)
 						{
-							drawmethod->alpha = e->modeldata.alpha;
+							drawmethod->table = e->modeldata.colourmap[drawmethod->remap-1];
 						}
-					}
-					if(!drawmethod->table) drawmethod->table = e->modeldata.palette;
-					if(e->modeldata.globalmap)
-					{
-						if(level&&current_palette)
-							drawmethod->table = level->palettes[current_palette-1];
-						else drawmethod->table = pal;
+
+						if(e->colourmap)
+						{
+							if(drawmethod->remap<0) drawmethod->table = e->colourmap;
+						}
+						if(e->modeldata.alpha >=1 && e->modeldata.alpha <= MAX_BLENDINGS)
+						{
+							if(drawmethod->alpha<0)
+							{
+								drawmethod->alpha = e->modeldata.alpha;
+							}
+						}
+						if(!drawmethod->table) drawmethod->table = e->modeldata.palette;
+						if(e->modeldata.globalmap)
+						{
+							if(level&&current_palette)
+								drawmethod->table = level->palettes[current_palette-1];
+							else drawmethod->table = pal;
+						}
 					}
 					if(e->dying)    // Code for doing dying flash
 					{
