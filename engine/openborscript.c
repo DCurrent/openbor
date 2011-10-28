@@ -548,6 +548,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_waypoints)) return "waypoints";
 	else if (functionRef==((void*)openbor_drawspriteq)) return "drawspriteq";
 	else if (functionRef==((void*)openbor_clearspriteq)) return "clearspriteq";
+	else if (functionRef==((void*)openbor_getpixel)) return "getpixel";
 	else return "<unknown function>";
 }
 
@@ -1087,6 +1088,8 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_drawspriteq, "drawspriteq");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_clearspriteq, "clearspriteq");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_getpixel, "getpixel");
 
 	//printf("Done!\n");
 
@@ -11875,6 +11878,77 @@ HRESULT openbor_clearspriteq(ScriptVariant** varlist , ScriptVariant** pretvar, 
 	*pretvar = NULL;
 	spriteq_clear();
 	return S_OK;
+
+}
+
+//getpixel(screen/sprite, x, y, type)
+// type: 0 =screen, 1=sprite, 2=bitmap(reserved)
+HRESULT openbor_getpixel(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+	LONG value[3] = {0,0,0}, v;
+	int i, x, y;
+	s_screen* screen = NULL;
+	s_sprite* sprite = NULL;
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+	if(paramCount<3) goto gp_error;
+
+	if(varlist[0]->vt!=VT_PTR) goto gp_error;
+
+	for(i=1; i<paramCount && i<=3; i++){
+		if(FAILED(ScriptVariant_IntegerValue(varlist[i], value+i-1)))
+			goto gp_error;
+	}
+
+	for(i=1; i<paramCount && i<=5; i++){
+		if(FAILED(ScriptVariant_IntegerValue(varlist[i], value+i-1)))
+			goto gp_error;
+	}
+
+	x = (int)value[0]; y = (int)value[1];
+
+	switch(value[2]){
+	case 0: 
+		screen = (s_screen*)varlist[0]->ptrVal;
+		if(x<0 || x>=screen->width || y<0 || y>=screen->height)
+			v = 0;
+		else 
+		{
+			switch(screen->pixelformat){
+			case PIXEL_8:
+			case PIXEL_x8:
+				v = (LONG)(((unsigned char*)screen->data)[y*screen->width+x]);
+				break;
+			case PIXEL_16:
+				v = (LONG)(((unsigned short*)screen->data)[y*screen->width+x]);
+				break;
+			case PIXEL_32:
+				v = (LONG)(((unsigned*)screen->data)[y*screen->width+x]);
+				break;
+			default:
+				goto gp_error;
+			}
+		}
+		break;
+	case 1:
+		sprite = (s_sprite*)varlist[0]->ptrVal;
+		if(x<0 || x>=sprite->width || y<0 || y>=sprite->height)
+			v = 0;
+		else 
+			v = (LONG)sprite_get_pixel(sprite,x,y);
+		break;
+	default: goto gp_error;
+	}
+
+	(*pretvar)->lVal = v;
+
+	return S_OK;
+
+gp_error:
+	*pretvar = NULL;
+	printf("Function getpixel(handle, x, y, type) requires a valid handle and at least two integer values.");
+	return E_FAIL;
 
 }
 
