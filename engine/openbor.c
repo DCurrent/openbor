@@ -6830,6 +6830,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					newanim->range.xmin = GET_INT_ARG(1);
 					newanim->range.xmax = GET_INT_ARG(2);
+					if(newanim->range.xmin==newanim->range.xmax)
+						newanim->range.xmin--;
 					break;
 				case CMD_MODEL_RANGEZ:
 					if(!newanim) {
@@ -16159,7 +16161,7 @@ int common_try_wander(entity* target, int dox, int doz)
 
 	if(rnum<t){ //chase target
 		returndx = videomodes.hRes/4;
-		returndz = videomodes.vRes/6;
+		returndz = videomodes.vRes/8;
 	}else{ // only chase when too far away
 		returndx = videomodes.hRes/2;
 		returndz = videomodes.vRes/3;
@@ -16174,7 +16176,7 @@ int common_try_wander(entity* target, int dox, int doz)
 	randomatk = pick_random_attack(NULL, 0);
 
 	if(randomatk>=0){
-		mindx = self->modeldata.animation[randomatk]->range.xmax - (self->modeldata.animation[randomatk]->range.xmax-self->modeldata.animation[randomatk]->range.xmin)/4;
+		mindx = self->modeldata.animation[randomatk]->range.xmax - (self->modeldata.animation[randomatk]->range.xmax-self->modeldata.animation[randomatk]->range.xmin)/4 -1;
 	} else	mindx = (!behind&&target->attacking)? grabd*3:grabd*1.2;
 	mindz = grabd/4;
 
@@ -16732,7 +16734,7 @@ int common_move()
 		}
 
 		// check destination point to make a stop or pop a waypoint from the stack
-		if(diff(self->x, self->destx)<=1 && diff(self->z, self->destz)<=1){
+		if(diff(self->x, self->destx)<1 && diff(self->z, self->destz)<1){
 
 			if(self->waypoints && self->numwaypoints){
 				self->destx = self->waypoints[self->numwaypoints-1].x;
