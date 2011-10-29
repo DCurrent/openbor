@@ -14797,7 +14797,7 @@ int common_try_normalattack(entity* target)
 	target = normal_find_target(-1, 0);
 
 	if(!target) return 0;
-	if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking)) 
+	if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking || target->takeaction==common_rise)) 
 		return 0;
 
 	if(pick_random_attack(target, 1)>=0) {
@@ -16070,6 +16070,57 @@ int common_try_wandercompletely(int dox, int doz)
 
 }
 
+int assume_safe_distance(entity* target, int ani, int* minx, int* maxx, int* minz, int* maxz)
+{
+	int f, set = 0;
+	short tminx, tmaxx, tminz, tmaxz;
+	s_anim* ta;
+	short* coords;
+	if(validanim(target, ani)){
+		ta = target->modeldata.animation[ani];
+		*minx = *minz = 9999;
+		*maxx = *maxz = -9999;
+		if(ta->attacks){
+			for(f=0; f<ta->numframes; f++){
+				if(!ta->attacks[f]) continue;
+				coords = ta->attacks[f]->attack_coords;
+				if(target->direction) {
+					tminx = coords[0];
+					tmaxx = coords[2];
+				}else{
+					tminx = -coords[2];
+					tmaxx = -coords[0];
+				}
+				tminz = -coords[4];
+				tmaxz = coords[4];
+				if(tminx<*minx)
+					*minx = tminx;
+				if(tminz<*minz)
+					*minz = tminz;
+				if(tmaxx>*maxx)
+					*maxx = tmaxx;
+				if(tmaxz>*maxz)
+					*maxz = tmaxz;
+
+				set = 1;
+			}
+
+			if(set && self->animation->bbox_coords && self->animation->bbox_coords[self->animpos]){
+				coords = self->animation->bbox_coords[self->animpos];
+				*minx -= coords[2] - coords[0];
+				*minz -= coords[4];
+				*maxx += coords[2] - coords[0];
+				*maxz += coords[4];
+			}
+
+			return set;
+		}
+	}
+
+	return 0;
+
+}
+
 // for normal and default ai patttern
 // the entity is not actually wandering
 // they just go around the target and get close
@@ -16145,8 +16196,10 @@ int common_try_wander(entity* target, int dox, int doz)
 		}else{
 			switch(mod){
 			case 0:
+				self->destx = target->x + grabd;
+				break;
 			case 2:
-				self->destx = target->x;
+				self->destx = target->x - grabd;
 				break;
 			case 1:
 				self->destx = target->x + videomodes.hRes/3;
@@ -16178,8 +16231,10 @@ int common_try_wander(entity* target, int dox, int doz)
 		} else{
 			switch(mod){
 			case 1:
+				self->destz = target->z + grabd;
+				break;
 			case 3:
-				self->destz = target->z;
+				self->destz = target->z - grabd;
 				break;
 			case 2:
 				self->destz = target->z + MIN((PLAYER_MAX_Z-PLAYER_MIN_Z), videomodes.vRes)/4;
