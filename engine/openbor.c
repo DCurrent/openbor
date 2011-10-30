@@ -12970,6 +12970,14 @@ void display_ents()
 						commonmethod = *drawmethod;
 					drawmethod = &commonmethod;
 
+					if(e->modeldata.alpha >=1 && e->modeldata.alpha <= MAX_BLENDINGS)
+					{
+						if(drawmethod->alpha<0)
+						{
+							drawmethod->alpha = e->modeldata.alpha;
+						}
+					}
+
 					if(!drawmethod->table){
 
 						if(drawmethod->remap>=1 && drawmethod->remap<=e->modeldata.maps_loaded)
@@ -12980,13 +12988,6 @@ void display_ents()
 						if(e->colourmap)
 						{
 							if(drawmethod->remap<0) drawmethod->table = e->colourmap;
-						}
-						if(e->modeldata.alpha >=1 && e->modeldata.alpha <= MAX_BLENDINGS)
-						{
-							if(drawmethod->alpha<0)
-							{
-								drawmethod->alpha = e->modeldata.alpha;
-							}
 						}
 						if(!drawmethod->table) drawmethod->table = e->modeldata.palette;
 						if(e->modeldata.globalmap)
