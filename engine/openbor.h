@@ -464,6 +464,7 @@
 // model flags
 #define     MODEL_NO_COPY         0x00000001   //dont copy anything from original model
 #define     MODEL_NO_WEAPON_COPY  0x00000002   //dont copy weapon list from original model
+#define		MODEL_NO_SCRIPT_COPY  0x00000004   //don't copy scripts
 
 #define lut_mul ((level && current_palette)?(level->blendings[current_palette-1][BLEND_MULTIPLY]):(blendings[BLEND_MULTIPLY]))
 #define lut_screen ((level && current_palette)?(level->blendings[current_palette-1][BLEND_SCREEN]):(blendings[BLEND_SCREEN]))
@@ -1232,35 +1233,35 @@ typedef struct entity
 	unsigned char   combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
 
 	// ---------------------- action times -------------------------------
-	unsigned int	lastmove;
-	unsigned int    lastdir;
-	unsigned int    timestamp;
-	unsigned int	releasetime;
-	unsigned int	toss_time;						// Used by gravity code
-	unsigned int	stalltime;
-	unsigned int	combotime;						// For multiple-hit combo
-	unsigned int	movetime;						// For special move
-	unsigned int	freezetime;						// Used to store at what point the a frozen entity becomes unfrozen
-	unsigned int	maptime;						// used by forcemap
-	unsigned int	sealtime;						// used by seal (stops special moves).
-	unsigned int    dot_time[MAX_DOTS]; 			//Dot time to expire.
+	int	lastmove;
+	int lastdir;
+	int timestamp;
+	int	releasetime;
+	int	toss_time;						// Used by gravity code
+	int	stalltime;
+	int	combotime;						// For multiple-hit combo
+	int	movetime;						// For special move
+	int	freezetime;						// Used to store at what point the a frozen entity becomes unfrozen
+	int	maptime;						// used by forcemap
+	int	sealtime;						// used by seal (stops special moves).
+	int dot_time[MAX_DOTS]; 			//Dot time to expire.
 	int             dot[MAX_DOTS];                  //Dot mode.
 	int             dot_atk[MAX_DOTS];              //Dot attack type.
 	int             dot_force[MAX_DOTS];            //Dot amount.
 	int             dot_rate[MAX_DOTS];             //Dot delay per tick.
 	int	            dot_cnt[MAX_DOTS];              //Dot time of next tick.
 	struct entity   *dot_owner[MAX_DOTS];           //Dot owner.
-	unsigned int 	magictime;
-	unsigned int    guardtime;
-	unsigned int 	nextanim;
-	unsigned int 	nextthink;
-	unsigned int 	pain_time;
-	unsigned int    mpchargetime;					// For the CHARGE animation
-	unsigned int    sleeptime;						// For the SLEEP animation
-	unsigned int 	rushtime;						// rush combo timer
-	unsigned int    knockdowntime;                  // count knock down hit
-	unsigned int 	invinctime;						// Used to set time for invincibility to expire
-	unsigned int    turntime;
+	int 	magictime;
+	int    guardtime;
+	int 	nextanim;
+	int 	nextthink;
+	int 	pain_time;
+	int    mpchargetime;					// For the CHARGE animation
+	int    sleeptime;						// For the SLEEP animation
+	int 	rushtime;						// rush combo timer
+	int    knockdowntime;                  // count knock down hit
+	int 	invinctime;						// Used to set time for invincibility to expire
+	int    turntime;
 	s_staydown      staydown;                       //Delay modifiers before rise or riseattack can take place. 2011_04_08, DC: moved to struct.
 	// -------------------------end of times ------------------------------
 	char            update_mark:8;

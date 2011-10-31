@@ -330,9 +330,9 @@ int                 cansave_flag[MAX_DIFFICULTIES];             // 0, no save, 1
 
 int                 cameratype          = 0;
 
-u32                 go_time             = 0;
-u32                 time                = 0;
-u32                 newtime             = 0;
+int                 go_time             = 0;
+int                 time                = 0;
+int                 newtime             = 0;
 unsigned char       slowmotion[3]       = {0,2,0};              // [0] = enable/disable; [1] = duration; [2] = counter;
 int                 disablelog          = 0;
 int                 currentspawnplayer  = 0;
@@ -13447,7 +13447,11 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 
 	ent->modeldata.type = type;
 
+	if((newmodel->model_flag & MODEL_NO_SCRIPT_COPY))
+		clear_all_scripts(&ent->scripts, 0);
+
 	copy_all_scripts(&newmodel->scripts, &ent->scripts, 0);
+
 
 	ent_set_colourmap(ent, ent->map);
 }
@@ -18119,7 +18123,7 @@ void player_preinput()
 	altdiff = diff(self->a, self->base);
 	notinair = (self->landed_on_platform?altdiff<5:altdiff<2);
 
-	if(self->attacking && self->animation->cancel==3 && notinair)
+	if(self->attacking && self->animation->cancel==3) // && notinair) //UT: Remove this to see if someone complains, since user can use landframe 
 		{
 			if((player[(int)self->playerindex].playkeys & FLAG_ATTACK) && check_combo(FLAG_ATTACK))
 			{
@@ -20884,7 +20888,7 @@ void apply_controls(){
 
 void display_credits()
 {
-	u32 finishtime = time + 10 * GAME_SPEED;
+	int finishtime = time + 10 * GAME_SPEED;
 	int done = 0;
 	int s = videomodes.vShift/2 + 3;
 	int v = (videomodes.vRes-videomodes.vShift)/23;
@@ -21219,10 +21223,10 @@ int playgif(char *filename, int x, int y, int noskip){
 	char tname[256] = {""};
 	int code[3];
 	int delay[3];
-	u32 milliseconds;
-	u32 nextframe[3];
-	u32 lasttime;
-	u32 temptime, tempnewtime; // temporary patch for ingame gif play
+	int milliseconds;
+	int nextframe[3];
+	int lasttime;
+	int temptime, tempnewtime; // temporary patch for ingame gif play
 	int done;
 	int frame = 0;
 	int synctosound = 0;
@@ -21556,8 +21560,8 @@ void showcomplete(int num)
 	u32 clearbonus[4] = { 10000, 10000, 10000, 10000 };
 	u32 lifebonus[4] = { 10000, 10000, 10000, 10000 };
 	u32 rushbonus[4] = { 10000, 10000, 10000, 10000 };
-	u32 nexttime = 0;
-	u32 finishtime = 0;
+	int nexttime = 0;
+	int finishtime = 0;
 	int chan = 0;
 	char tmpBuff[128] = {""};
 
@@ -23988,7 +23992,7 @@ void openborMain(int argc, char** argv)
 	int quit = 0;
 	int relback = 1;
 	int selector = 0;
-	u32 introtime = 0;
+	int introtime = 0;
 	int started = 0;
 	char tmpBuff[128] = {""};
 	int players[MAX_PLAYERS];
@@ -24002,7 +24006,7 @@ void openborMain(int argc, char** argv)
 	int paks = 0;
 	int list = 0;
 	int lOffset=0;
-	u32 menutime = 0;
+	int menutime = 0;
 #endif
 
 	printf("OpenBoR %s, Compile Date: " __DATE__ "\n\n", VERSION);
