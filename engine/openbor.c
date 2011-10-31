@@ -14751,8 +14751,6 @@ int pick_random_attack(entity* target, int testonly){
 		if(validanim(self,animattacks[i]) &&
 			(!target || check_range(self, target, animattacks[i])))
 		{
-			if(testonly) return animattacks[i];
-
 			atkchoices[found++] = animattacks[i];
 		}
 	}
@@ -14763,7 +14761,6 @@ int pick_random_attack(entity* target, int testonly){
 			check_energy(0, animspecials[i])) &&
 		    (!target || check_range(self, target, animspecials[i])))
 		{
-			if(testonly) return animspecials[i];
 			atkchoices[found++] = animspecials[i];
 		}
 	}
@@ -14771,10 +14768,14 @@ int pick_random_attack(entity* target, int testonly){
 		self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
 		(!target || check_range(self, target, ANI_THROWATTACK) ))
 	{
-		if(testonly) return ANI_THROWATTACK;
 		atkchoices[found++] = ANI_THROWATTACK;
 	}
-	if(testonly) return -1;
+
+	if(testonly){
+		if(found) return atkchoices[(rand32()&0xffff)%found];
+		return -1;
+	}
+
 	if( validanim(self,ANI_JUMPATTACK) &&
 		(!target || check_range(self, target, ANI_JUMPATTACK)) )
 	{
@@ -16600,6 +16601,11 @@ int common_move()
 				common_pickupitem(other);
 				return 1;
 			}
+		}
+
+		if(self->modeldata.nomove) {
+			self->idling = 1;
+			return 1;
 		}
 
 		if(common_try_jump()) {
