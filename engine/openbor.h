@@ -526,8 +526,8 @@
 		:\
 		  (int)target->x <= self->x-self->modeldata.animation[animnum]->range.xmin &&\
 		  (int)target->x >= self->x-self->modeldata.animation[animnum]->range.xmax)\
-		  && (int)target->z - self->z >= self->modeldata.animation[animnum]->range.zmin \
-		  && (int)target->z - self->z <= self->modeldata.animation[animnum]->range.zmax \
+		  && (int)(target->z - self->z) >= self->modeldata.animation[animnum]->range.zmin \
+		  && (int)(target->z - self->z) <= self->modeldata.animation[animnum]->range.zmax \
 		  && (int)(target->a - self->a) >= self->modeldata.animation[animnum]->range.amin \
 		  && (int)(target->a - self->a) <= self->modeldata.animation[animnum]->range.amax \
 		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.bmin \
@@ -541,8 +541,8 @@
 		||\
 		   ((int)target->x <= self->x-self->modeldata.animation[animnum]->range.xmin &&\
 			(int)target->x >= self->x-self->modeldata.animation[animnum]->range.xmax))\
-		  && (int)target->z - self->z >= self->modeldata.animation[animnum]->range.zmin \
-		  && (int)target->z - self->z <= self->modeldata.animation[animnum]->range.zmax \
+		  && (int)(target->z - self->z) >= self->modeldata.animation[animnum]->range.zmin \
+		  && (int)(target->z - self->z) <= self->modeldata.animation[animnum]->range.zmax \
 		  && (int)(target->a - self->a) >= self->modeldata.animation[animnum]->range.amin \
 		  && (int)(target->a - self->a) <= self->modeldata.animation[animnum]->range.amax \
 		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.bmin \
