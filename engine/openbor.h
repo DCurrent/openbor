@@ -1233,35 +1233,35 @@ typedef struct entity
 	unsigned char   combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
 
 	// ---------------------- action times -------------------------------
-	unsigned	lastmove;
-	unsigned lastdir;
-	unsigned timestamp;
-	unsigned releasetime;
-	unsigned toss_time;						// Used by gravity code
-	unsigned stalltime;
-	unsigned combotime;						// For multiple-hit combo
-	unsigned movetime;						// For special move
-	unsigned freezetime;						// Used to store at what point the a frozen entity becomes unfrozen
-	unsigned maptime;						// used by forcemap
-	unsigned sealtime;						// used by seal (stops special moves).
-	unsigned dot_time[MAX_DOTS]; 			//Dot time to expire.
+	u32	lastmove;
+	u32 lastdir;
+	u32 timestamp;
+	u32 releasetime;
+	u32 toss_time;						// Used by gravity code
+	u32 stalltime;
+	u32 combotime;						// For multiple-hit combo
+	u32 movetime;						// For special move
+	u32 freezetime;						// Used to store at what point the a frozen entity becomes unfrozen
+	u32 maptime;						// used by forcemap
+	u32 sealtime;						// used by seal (stops special moves).
+	u32 dot_time[MAX_DOTS]; 			//Dot time to expire.
 	int             dot[MAX_DOTS];                  //Dot mode.
 	int             dot_atk[MAX_DOTS];              //Dot attack type.
 	int             dot_force[MAX_DOTS];            //Dot amount.
 	int             dot_rate[MAX_DOTS];             //Dot delay per tick.
 	int	            dot_cnt[MAX_DOTS];              //Dot time of next tick.
 	struct entity   *dot_owner[MAX_DOTS];           //Dot owner.
-	unsigned magictime;
-	unsigned guardtime;
-	unsigned nextanim;
-	unsigned nextthink;
-	unsigned pain_time;
-	unsigned mpchargetime;					// For the CHARGE animation
-	unsigned sleeptime;						// For the SLEEP animation
-	unsigned rushtime;						// rush combo timer
-	unsigned knockdowntime;                  // count knock down hit
-	unsigned invinctime;						// Used to set time for invincibility to expire
-	unsigned turntime;
+	u32 magictime;
+	u32 guardtime;
+	u32 nextanim;
+	u32 nextthink;
+	u32 pain_time;
+	u32 mpchargetime;					// For the CHARGE animation
+	u32 sleeptime;						// For the SLEEP animation
+	u32 rushtime;						// rush combo timer
+	u32 knockdowntime;                  // count knock down hit
+	u32 invinctime;						// Used to set time for invincibility to expire
+	u32 turntime;
 	s_staydown      staydown;                       //Delay modifiers before rise or riseattack can take place. 2011_04_08, DC: moved to struct.
 	// -------------------------end of times ------------------------------
 	char            update_mark:8;
