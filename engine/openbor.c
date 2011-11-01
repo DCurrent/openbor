@@ -10602,8 +10602,9 @@ void update_frame(entity* ent, int f)
 	float move, movez, movea;
 	int iDelay, iED_Mode, iED_Capmin, iED_CapMax, iED_RangeMin, iED_RangeMax;
 	float fED_Factor;
+	s_anim* anim = ent->animation;
 
-	if(f >= ent->animation->numframes) // prevent a crash with invalid frame index.
+	if(f >= anim->numframes) // prevent a crash with invalid frame index.
 		return;
 
 	//important!
@@ -10614,7 +10615,7 @@ void update_frame(entity* ent, int f)
 	//self->currentsprite = self->animation->sprite[f];
 
 	if(self->animating){
-		iDelay          = self->animation->delay[f];
+		iDelay          = anim->delay[f];
 		iED_Mode        = self->modeldata.edelay.mode;
 		fED_Factor      = self->modeldata.edelay.factor;
 		iED_Capmin      = self->modeldata.edelay.cap_min;
@@ -10642,10 +10643,13 @@ void update_frame(entity* ent, int f)
 		execute_animation_script(self);
 	}
 
-	if(level && (self->animation->move || self->animation->movez))
+	//if(ent->animation!=anim || ent->animpos!=f)
+	//	goto uf_interrupted;
+
+	if(level && (anim->move || anim->movez))
 	{
-		move = (float)(self->animation->move?self->animation->move[f]:0);
-		movez = (float)(self->animation->movez?self->animation->movez[f]:0);
+		move = (float)(anim->move?anim->move[f]:0);
+		movez = (float)(anim->movez?anim->movez[f]:0);
 		if(self->direction==0) move = -move;
 		if(movez || move)
 		{
@@ -10661,45 +10665,45 @@ void update_frame(entity* ent, int f)
 		}
 	}
 
-	if(self->animation->seta && self->animation->seta[0] >= 0 && self->base <= 0)
-		ent->base = (float)ent->animation->seta[0];
-	else if(!self->animation->seta || self->animation->seta[0] < 0)
+	if(anim->seta && anim->seta[0] >= 0 && self->base <= 0)
+		ent->base = (float)anim->seta[0];
+	else if(!anim->seta || anim->seta[0] < 0)
 	{
-		movea = (float)(self->animation->movea?self->animation->movea[f]:0);
+		movea = (float)(anim->movea?anim->movea[f]:0);
 		self->base += movea;
 		if(movea!=0) self->altbase += movea;
 		else self->altbase = 0;
 	}
 
-	if(self->animation->flipframe == f) self->direction = !self->direction;
+	if(anim->flipframe == f) self->direction = !self->direction;
 
-	if(self->animation->weaponframe && self->animation->weaponframe[0] == f)
+	if(anim->weaponframe && anim->weaponframe[0] == f)
 	{
 		dropweapon(2);
-		set_weapon(self, self->animation->weaponframe[1], 0);
+		set_weapon(self, anim->weaponframe[1], 0);
 		self->idling = 1;
 	}
 
-	if(self->animation->quakeframe.framestart+self->animation->quakeframe.cnt == f)
+	if(anim->quakeframe.framestart+anim->quakeframe.cnt == f)
 	{
 		if(level) {
-			if(self->animation->quakeframe.cnt%2 || self->animation->quakeframe.v > 0) level->quake = self->animation->quakeframe.v;
-			else level->quake = self->animation->quakeframe.v * -1;
+			if(anim->quakeframe.cnt%2 || anim->quakeframe.v > 0) level->quake = anim->quakeframe.v;
+			else level->quake = anim->quakeframe.v * -1;
 		}
-		if((self->animation->quakeframe.repeat-self->animation->quakeframe.cnt) > 1) self->animation->quakeframe.cnt++;
-		else self->animation->quakeframe.cnt = 0;
+		if((anim->quakeframe.repeat-anim->quakeframe.cnt) > 1) anim->quakeframe.cnt++;
+		else anim->quakeframe.cnt = 0;
 	}
 
 	//spawn / summon /unsummon features
-	if(self->animation->spawnframe && self->animation->spawnframe[0] == f && self->animation->subentity) ent_spawn_ent(self);
+	if(anim->spawnframe && anim->spawnframe[0] == f && anim->subentity) ent_spawn_ent(self);
 
-	if(self->animation->summonframe && self->animation->summonframe[0] == f && self->animation->subentity)
+	if(anim->summonframe && anim->summonframe[0] == f && anim->subentity)
 	{
 		//subentity is dead
 		if(!self->subentity || self->subentity->dead) ent_summon_ent(self);
 	}
 
-	if(self->animation->unsummonframe == f)
+	if(anim->unsummonframe == f)
 	{
 		if(self->subentity)
 		{
@@ -10715,19 +10719,19 @@ void update_frame(entity* ent, int f)
 		}
 	}
 
-	if(self->animation->soundtoplay && self->animation->soundtoplay[f] >= 0)
-		sound_play_sample(self->animation->soundtoplay[f], 0, savedata.effectvol,savedata.effectvol, 100);
+	if(anim->soundtoplay && anim->soundtoplay[f] >= 0)
+		sound_play_sample(anim->soundtoplay[f], 0, savedata.effectvol,savedata.effectvol, 100);
 
-	if(self->animation->jumpframe.f == f)
+	if(anim->jumpframe.f == f)
 	{
 		// Set custom jumpheight for jumpframes
-		/*if(self->animation->jumpframe.v > 0)*/ toss(self, self->animation->jumpframe.v);
-		self->xdir = self->direction?self->animation->jumpframe.x:-self->animation->jumpframe.x;
-		self->zdir = self->animation->jumpframe.z;
+		/*if(self->animation->jumpframe.v > 0)*/ toss(self, anim->jumpframe.v);
+		self->xdir = self->direction?anim->jumpframe.x:-anim->jumpframe.x;
+		self->zdir = anim->jumpframe.z;
 
-		if(self->animation->jumpframe.ent>=0)
+		if(anim->jumpframe.ent>=0)
 		{
-			dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->animation->jumpframe.ent, NULL);
+			dust = spawn(self->x, self->z, self->a, self->direction, NULL, anim->jumpframe.ent, NULL);
 			if(dust){
 				dust->base = self->a;
 				dust->autokill = 1;
@@ -10736,7 +10740,7 @@ void update_frame(entity* ent, int f)
 		}
 	}
 
-	if(self->animation->throwframe == f)
+	if(anim->throwframe == f)
 	{
 		// For backward compatible thing
 		// throw stars in the air, hmm, strange
@@ -10744,10 +10748,10 @@ void update_frame(entity* ent, int f)
 		// then if the entiti is jumping, check star first, if failed, try knife instead
 		// well, try knife at last, if still failed, try star, or just let if shutdown?
 #define __trystar star_spawn(self->x + (self->direction ? 56 : -56), self->z, self->a+67, self->direction)
-#define __tryknife knife_spawn(NULL, -1, self->x, self->z, self->a + self->animation->throwa, self->direction, 0, 0)
-		if(self->animation->custknife>=0 || self->animation->custpshotno>=0)
+#define __tryknife knife_spawn(NULL, -1, self->x, self->z, self->a + anim->throwa, self->direction, 0, 0)
+		if(anim->custknife>=0 || anim->custpshotno>=0)
 			__tryknife;
-		else if(self->animation->custstar>=0)
+		else if(anim->custstar>=0)
 			__trystar;
 		else if(self->jumping) {
 			if(!__trystar)
@@ -10758,15 +10762,15 @@ void update_frame(entity* ent, int f)
 		self->reactive=1;
 	}
 
-	if(self->animation->shootframe == f)
+	if(anim->shootframe == f)
 	{
 		knife_spawn(NULL, -1, self->x, self->z, self->a, self->direction, 1, 0);
 		self->reactive=1;
 	}
 
-	if(self->animation->tossframe == f)
+	if(anim->tossframe == f)
 	{
-		bomb_spawn(NULL, -1, self->x, self->z, self->a + self->animation->throwa, self->direction, 0);
+		bomb_spawn(NULL, -1, self->x, self->z, self->a + anim->throwa, self->direction, 0);
 		self->reactive=1;
 	}
 
