@@ -1373,7 +1373,9 @@ void execute_animation_script(entity* ent)
 {
 	ScriptVariant tempvar;
 	Script* cs = ent->scripts.animation_script;
-	if(Script_IsInitialized(cs))
+	Script* s1 = ent->model->scripts.animation_script;
+	Script* s2 = ent->defaultmodel->scripts.animation_script;
+	if(Script_IsInitialized(s1) || Script_IsInitialized(s2))
 	{
 		ScriptVariant_Init(&tempvar);
 		ScriptVariant_ChangeType(&tempvar, VT_PTR);
@@ -1385,12 +1387,23 @@ void execute_animation_script(entity* ent)
 		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
 		tempvar.lVal = (LONG)ent->animpos;
 		Script_Set_Local_Variant(cs, "frame",   &tempvar);
-		Script_Execute(ent->scripts.animation_script);
+		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+		tempvar.lVal = (LONG)ent->animation;
+		Script_Set_Local_Variant(cs, "animhandle",   &tempvar);
+		if(Script_IsInitialized(s1)){
+			Script_Copy(cs, s1, 0);
+			Script_Execute(cs);
+		}
+		if(ent->model!=ent->defaultmodel && Script_IsInitialized(s2)){
+			Script_Copy(cs, s2, 0);
+			Script_Execute(cs);
+		}
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self",    &tempvar);
 		Script_Set_Local_Variant(cs, "animnum", &tempvar);
 		Script_Set_Local_Variant(cs, "frame",   &tempvar);
+		Script_Set_Local_Variant(cs, "animhandle",   &tempvar);
 	}
 }
 
@@ -1421,7 +1434,7 @@ void execute_takedamage_script(entity* ent, entity* other, int force, int drop, 
 		Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
 		tempvar.lVal = (LONG)pauseadd;
 		Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-		Script_Execute(ent->scripts.takedamage_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self",        &tempvar);
@@ -1450,7 +1463,7 @@ void execute_onpain_script(entity* ent, int iType, int iReset)
 		Script_Set_Local_Variant(cs, "attacktype",   &tempvar);
 		tempvar.lVal = (LONG)iReset;
 		Script_Set_Local_Variant(cs, "reset",       &tempvar);
-		Script_Execute(ent->scripts.onpain_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self",        &tempvar);
@@ -1486,7 +1499,7 @@ void execute_onfall_script(entity* ent, entity* other, int force, int drop, int 
 		Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
 		tempvar.lVal = (LONG)pauseadd;
 		Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-		Script_Execute(ent->scripts.onfall_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self",        &tempvar);
@@ -1511,7 +1524,7 @@ void execute_onblocks_script(entity* ent)
 		ScriptVariant_ChangeType(&tempvar, VT_PTR);
 		tempvar.ptrVal = (VOID*)ent;
 		Script_Set_Local_Variant(cs, "self", &tempvar);
-		Script_Execute(ent->scripts.onblocks_script);
+		Script_Execute(cs);
 
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
@@ -1535,7 +1548,7 @@ void execute_onblockw_script(entity* ent, int plane, float height)
 		ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
 		tempvar.dblVal = (DOUBLE)height;
 		Script_Set_Local_Variant(cs, "height",      &tempvar);
-		Script_Execute(ent->scripts.onblockw_script);
+		Script_Execute(cs);
 
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
@@ -1559,7 +1572,7 @@ void execute_onblocko_script(entity* ent, entity* other)
 		Script_Set_Local_Variant(cs, "self",        &tempvar);
 		tempvar.ptrVal = (VOID*)other;
 		Script_Set_Local_Variant(cs, "obstacle",    &tempvar);
-		Script_Execute(ent->scripts.onblocko_script);
+		Script_Execute(cs);
 
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
@@ -1578,7 +1591,7 @@ void execute_onblockz_script(entity* ent)
 		ScriptVariant_ChangeType(&tempvar, VT_PTR);
 		tempvar.ptrVal = (VOID*)ent;
 		Script_Set_Local_Variant(cs, "self", &tempvar);
-		Script_Execute(ent->scripts.onblockz_script);
+		Script_Execute(cs);
 
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
@@ -1598,7 +1611,7 @@ void execute_onblocka_script(entity* ent, entity* other)
 		Script_Set_Local_Variant(cs, "self",        &tempvar);
 		tempvar.ptrVal = (VOID*)other;
 		Script_Set_Local_Variant(cs, "obstacle",    &tempvar);
-		Script_Execute(ent->scripts.onblocka_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self",        &tempvar);
@@ -1616,7 +1629,7 @@ void execute_onmovex_script(entity* ent)
 		ScriptVariant_ChangeType(&tempvar, VT_PTR);
 		tempvar.ptrVal = (VOID*)ent;
 		Script_Set_Local_Variant(cs, "self", &tempvar);
-		Script_Execute(ent->scripts.onmovex_script);
+		Script_Execute(cs);
 
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
@@ -1634,7 +1647,7 @@ void execute_onmovez_script(entity* ent)
 		ScriptVariant_ChangeType(&tempvar, VT_PTR);
 		tempvar.ptrVal = (VOID*)ent;
 		Script_Set_Local_Variant(cs, "self", &tempvar);
-		Script_Execute(ent->scripts.onmovez_script);
+		Script_Execute(cs);
 
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
@@ -1652,7 +1665,7 @@ void execute_onmovea_script(entity* ent)
 		ScriptVariant_ChangeType(&tempvar, VT_PTR);
 		tempvar.ptrVal = (VOID*)ent;
 		Script_Set_Local_Variant(cs, "self", &tempvar);
-		Script_Execute(ent->scripts.onmovea_script);
+		Script_Execute(cs);
 
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
@@ -1687,7 +1700,7 @@ void execute_ondeath_script(entity* ent, entity* other, int force, int drop, int
 		Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
 		tempvar.lVal = (LONG)pauseadd;
 		Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-		Script_Execute(ent->scripts.ondeath_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self",        &tempvar);
@@ -1712,7 +1725,7 @@ void execute_onkill_script(entity* ent)
 		ScriptVariant_ChangeType(&tempvar, VT_PTR);
 		tempvar.ptrVal = (VOID*)ent;
 		Script_Set_Local_Variant(cs, "self", &tempvar);
-		Script_Execute(ent->scripts.onkill_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self", &tempvar);
@@ -1746,7 +1759,7 @@ void execute_didblock_script(entity* ent, entity* other, int force, int drop, in
 		Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
 		tempvar.lVal = (LONG)pauseadd;
 		Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-		Script_Execute(ent->scripts.didblock_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self",        &tempvar);
@@ -1792,7 +1805,7 @@ void execute_ondoattack_script(entity* ent, entity* other, int force, int drop, 
 		Script_Set_Local_Variant(cs, "which",    &tempvar);
 		tempvar.lVal = (LONG)iAtkID;
 		Script_Set_Local_Variant(cs, "attackid",    &tempvar);
-		Script_Execute(ent->scripts.ondoattack_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self",        &tempvar);
@@ -1819,7 +1832,7 @@ void execute_updateentity_script(entity* ent)
 		ScriptVariant_ChangeType(&tempvar, VT_PTR);
 		tempvar.ptrVal = (VOID*)ent;
 		Script_Set_Local_Variant(cs, "self", &tempvar);
-		Script_Execute(ent->scripts.update_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self", &tempvar);
@@ -1836,7 +1849,7 @@ void execute_think_script(entity* ent)
 		ScriptVariant_ChangeType(&tempvar, VT_PTR);
 		tempvar.ptrVal = (VOID*)ent;
 		Script_Set_Local_Variant(cs, "self", &tempvar);
-		Script_Execute(ent->scripts.think_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self", &tempvar);
@@ -1872,7 +1885,7 @@ void execute_didhit_script(entity* ent, entity* other, int force, int drop, int 
 		Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 		tempvar.lVal = (LONG)blocked;
 		Script_Set_Local_Variant(cs, "blocked",     &tempvar);
-		Script_Execute(ent->scripts.didhit_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self",        &tempvar);
@@ -1898,7 +1911,7 @@ void execute_onspawn_script(entity* ent)
 		ScriptVariant_ChangeType(&tempvar, VT_PTR);
 		tempvar.ptrVal = (VOID*)ent;
 		Script_Set_Local_Variant(cs, "self", &tempvar);
-		Script_Execute(ent->scripts.onspawn_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self", &tempvar);
@@ -1920,7 +1933,7 @@ void execute_entity_key_script(entity* ent)
 		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
 		tempvar.lVal = (LONG)ent->playerindex;
 		Script_Set_Local_Variant(cs, "player",  &tempvar);
-		Script_Execute(ent->scripts.key_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self",    &tempvar);
@@ -1943,7 +1956,7 @@ void execute_spawn_script(s_spawn_entry* p, entity* e)
 			tempvar.ptrVal = (VOID*)e;
 			Script_Set_Local_Variant(cs, "self", &tempvar);
 		}
-		Script_Execute(tempnode->spawn_script);
+		Script_Execute(cs);
 		if(e)
 		{
 			ScriptVariant_Clear(&tempvar);
@@ -1963,7 +1976,7 @@ void execute_level_key_script(int player)
 		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
 		tempvar.lVal = (LONG)player;
 		Script_Set_Local_Variant(cs, "player", &tempvar);
-		Script_Execute(&(level->key_script));
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "player", &tempvar);
@@ -1980,7 +1993,7 @@ void execute_key_script_all(int player)
 		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
 		tempvar.lVal = (LONG)player;
 		Script_Set_Local_Variant(cs, "player", &tempvar);
-		Script_Execute(&key_script_all);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "player", &tempvar);
@@ -1999,7 +2012,7 @@ void execute_timetick_script(int time, int gotime)
 		Script_Set_Local_Variant(cs, "time",    &tempvar);
 		tempvar.lVal = (LONG)gotime;
 		Script_Set_Local_Variant(cs, "gotime", &tempvar);
-		Script_Execute(&timetick_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "time",    &tempvar);
@@ -2019,7 +2032,7 @@ void execute_loading_script(int value, int max)
 		Script_Set_Local_Variant(cs, "value",    &tempvar);
 		tempvar.lVal = (LONG)max;
 		Script_Set_Local_Variant(cs, "max", &tempvar);
-		Script_Execute(&loading_script);
+		Script_Execute(cs);
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "value",    &tempvar);
@@ -4720,14 +4733,14 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		"void main()\n"
 		"{\n"
 		"    int frame = getlocalvar(\"frame\");\n"
-		"    int animnum = getlocalvar(\"animnum\");\n"
+		"    int animhandle = getlocalvar(\"animhandle\");\n"
 		"\n}\n";
 
 	static const char* sur_text = // end of function text
 		"\n}\n";
 
 	static const char* ifid_text = // if expression to check animation id
-		"    if(animnum==%d)\n"
+		"    if(animhandle==%ld)\n"
 		"    {\n"
 		"        return;\n"
 		"    }\n";
@@ -7038,7 +7051,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					scriptbuf[strlen(scriptbuf) - strlen(sur_text)] = 0; // cut last chars
 					if(script_id != ani_id){ // if expression 1
-						sprintf(namebuf, ifid_text, ani_id);
+						sprintf(namebuf, ifid_text, newanim);
 						strcat(scriptbuf, namebuf);
 						script_id = ani_id;
 					}
@@ -7068,7 +7081,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					scriptbuf[strlen(scriptbuf) - strlen(sur_text)] = 0; // cut last chars
 					if(script_id != ani_id){ // if expression 1
-						sprintf(namebuf, ifid_text, ani_id);
+						sprintf(namebuf, ifid_text, newanim);
 						strcat(scriptbuf, namebuf);
 						script_id = ani_id;
 					}
@@ -10643,8 +10656,8 @@ void update_frame(entity* ent, int f)
 		execute_animation_script(self);
 	}
 
-	//if(ent->animation!=anim || ent->animpos!=f)
-	//	goto uf_interrupted;
+	if(ent->animation!=anim || ent->animpos!=f)
+		goto uf_interrupted;
 
 	if(level && (anim->move || anim->movez))
 	{
@@ -10773,6 +10786,8 @@ void update_frame(entity* ent, int f)
 		bomb_spawn(NULL, -1, self->x, self->z, self->a + anim->throwa, self->direction, 0);
 		self->reactive=1;
 	}
+
+uf_interrupted:
 
 	//important!
 	self = tempself;
