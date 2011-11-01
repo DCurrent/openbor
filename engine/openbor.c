@@ -330,9 +330,9 @@ int                 cansave_flag[MAX_DIFFICULTIES];             // 0, no save, 1
 
 int                 cameratype          = 0;
 
-int                 go_time             = 0;
-int                 time                = 0;
-int                 newtime             = 0;
+u32                 go_time             = 0;
+u32                 time                = 0;
+u32                 newtime             = 0;
 unsigned char       slowmotion[3]       = {0,2,0};              // [0] = enable/disable; [1] = duration; [2] = counter;
 int                 disablelog          = 0;
 int                 currentspawnplayer  = 0;
@@ -13947,8 +13947,8 @@ void common_fall()
 
 	// Pause a bit...
 	self->takeaction	= common_lie;
-	self->stalltime		= self->staydown.rise + (time + GAME_SPEED - self->modeldata.risetime[0]);	//Set rise delay.
-	self->staydown.riseattack_stall	= self->staydown.riseattack + (time - self->modeldata.risetime[1]);					//Set rise attack delay.
+	self->stalltime		= time + MAX(0, (int)(self->staydown.rise + GAME_SPEED - self->modeldata.risetime[0]));	//Set rise delay.
+	self->staydown.riseattack_stall	= time + MAX(0, (int)(self->staydown.riseattack - self->modeldata.risetime[1]));					//Set rise attack delay.
 	self->staydown.rise = 0; //Reset staydown.
 	self->staydown.riseattack = 0; //Reset staydown atk.
 }
@@ -14815,7 +14815,7 @@ int common_try_normalattack(entity* target)
 		self->attacking = -1; // pre-attack, for AI-block check
 		self->takeaction = normal_prepare;
 		if(self->combostep[0] && self->combotime>time) self->stalltime = time+1;
-		else self->stalltime = time + (GAME_SPEED/4) + (rand32()%(GAME_SPEED/10) - self->modeldata.aggression);
+		else self->stalltime = time + MAX(0,(int)((GAME_SPEED/4) + (rand32()%(GAME_SPEED/10) - self->modeldata.aggression)));
 		return 1;
 	}
 
@@ -15349,7 +15349,7 @@ void common_attack_finish()
 	{
 		stall = GAME_SPEED/2;
 	}
-	self->stalltime = time + stall;
+	self->stalltime = time + MAX(0,stall);
 }
 
 
@@ -16766,7 +16766,7 @@ int common_move()
 			if(makestop){
 				stall = (GAME_SPEED - self->modeldata.aggression)/2;
 				if(stall<GAME_SPEED/5) stall = GAME_SPEED/5;
-				self->stalltime = time + stall;
+				self->stalltime = time + MAX(0,stall);
 			}
 		}else{
 			// readjust walk animation
@@ -16778,7 +16778,7 @@ int common_move()
 				if(ABS(self->xdir)>ABS(self->zdir)) stall = diff(self->destx, self->x)/ABS(self->xdir)*2;
 				else if(self->zdir) stall = diff(self->destz, self->z)/ABS(self->zdir)*2;
 				else stall = GAME_SPEED/2;
-				self->stalltime = time + stall;
+				self->stalltime = time + MAX(0,stall);
 			}
 		}
 
@@ -20888,7 +20888,7 @@ void apply_controls(){
 
 void display_credits()
 {
-	int finishtime = time + 10 * GAME_SPEED;
+	u32 finishtime = time + 10 * GAME_SPEED;
 	int done = 0;
 	int s = videomodes.vShift/2 + 3;
 	int v = (videomodes.vRes-videomodes.vShift)/23;
@@ -21223,10 +21223,10 @@ int playgif(char *filename, int x, int y, int noskip){
 	char tname[256] = {""};
 	int code[3];
 	int delay[3];
-	int milliseconds;
-	int nextframe[3];
-	int lasttime;
-	int temptime, tempnewtime; // temporary patch for ingame gif play
+	u32 milliseconds;
+	u32 nextframe[3];
+	u32 lasttime;
+	u32 temptime, tempnewtime; // temporary patch for ingame gif play
 	int done;
 	int frame = 0;
 	int synctosound = 0;
@@ -21560,8 +21560,8 @@ void showcomplete(int num)
 	u32 clearbonus[4] = { 10000, 10000, 10000, 10000 };
 	u32 lifebonus[4] = { 10000, 10000, 10000, 10000 };
 	u32 rushbonus[4] = { 10000, 10000, 10000, 10000 };
-	int nexttime = 0;
-	int finishtime = 0;
+	u32 nexttime = 0;
+	u32 finishtime = 0;
 	int chan = 0;
 	char tmpBuff[128] = {""};
 
@@ -23992,7 +23992,7 @@ void openborMain(int argc, char** argv)
 	int quit = 0;
 	int relback = 1;
 	int selector = 0;
-	int introtime = 0;
+	u32 introtime = 0;
 	int started = 0;
 	char tmpBuff[128] = {""};
 	int players[MAX_PLAYERS];
@@ -24006,7 +24006,7 @@ void openborMain(int argc, char** argv)
 	int paks = 0;
 	int list = 0;
 	int lOffset=0;
-	int menutime = 0;
+	u32 menutime = 0;
 #endif
 
 	printf("OpenBoR %s, Compile Date: " __DATE__ "\n\n", VERSION);
