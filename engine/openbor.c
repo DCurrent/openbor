@@ -11261,6 +11261,8 @@ int checkhit(entity *attacker, entity *target, int counter)
 	if(coords2[4])
 		zdist += coords2[4];
 
+	zdist++; // pass >= <= check
+
 	if(diff(attacker->z,target->z) > zdist)
 		return 0;
 
