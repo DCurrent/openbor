@@ -14607,7 +14607,7 @@ int common_takedamage(entity *other, s_attack* attack)
 	if(!checkgrab(other, attack)) return 0; // try to grab but failed, so return 0 means attack missed
 
 	// set pain_time so it wont get hit too often
-	self->pain_time = time + attack->pain_time?(GAME_SPEED / 5):attack->pain_time;
+	self->pain_time = time + attack->pain_time?attack->pain_time:(GAME_SPEED / 5);
 	// set oppoent
 	if(self!=other) set_opponent(self, other);
 	// adjust type
@@ -19623,7 +19623,7 @@ int obstacle_takedamage(entity *other, s_attack* attack)
 		return 0;
 	}
 
-	self->pain_time = time + (GAME_SPEED / 5);
+	self->pain_time = time + attack->pain_time?attack->pain_time:(GAME_SPEED / 5);
 	set_opponent(other, self);
 	if(self->opponent && self->opponent->modeldata.type==TYPE_PLAYER)
 	{
