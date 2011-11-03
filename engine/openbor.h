@@ -687,6 +687,7 @@ typedef struct
 	char            damage_on_landing:8;            // same as throw damage type
 	float           grab_distance;                  // suck target near by
 	short           pause_add:16;					// Flag to determine if an attack adds a pause before updating the animation
+	short			pain_time:16;
 	int             staydown[3];                    // [0] = Add to rise delay. [1] = Add to rise attack delay.
 }s_attack;
 
@@ -769,7 +770,7 @@ typedef struct
 	int             custbomb;                       // Used for new projectile bomb
 	int             custpshotno;
 	int             subentity;                      // Store the sub-entity's name for further use
-	char			fastattack:8;					// Flag to determine if the opponent uses their pain time
+	//char			fastattack:8;					// Flag to determine if the opponent uses their pain time
 	s_energycost	energycost;					    // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
 	float           chargetime;                     // charge time for an animation
 	s_jumpframe     jumpframe;                      // Jumpframe action. 2011_04_01, DC: moved to struct.
