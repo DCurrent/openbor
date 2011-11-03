@@ -16098,7 +16098,7 @@ int common_try_wandercompletely(int dox, int doz)
 	return 1;
 
 }
-
+/*
 int assume_safe_distance(entity* target, int ani, int* minx, int* maxx, int* minz, int* maxz)
 {
 	int f, set = 0;
@@ -16149,7 +16149,7 @@ int assume_safe_distance(entity* target, int ani, int* minx, int* maxx, int* min
 	return 0;
 
 }
-
+*/
 // for normal and default ai patttern
 // the entity is not actually wandering
 // they just go around the target and get close
