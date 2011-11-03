@@ -119,6 +119,8 @@ const s_attack emptyattack = {
 	0,  // damage on landing
 	0,  // grabdist
 	0,  // pause
+	0,  // paintime add
+	{0,0,0}
 };
 
 char                *custScenes = NULL;
@@ -5724,7 +5726,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->range.bmax = 1000;                           //Base max.
 
 						newanim->jumpframe.v = 0;                           // Default disabled
-						newanim->fastattack = 0;
+						//newanim->fastattack = 0;
 						newanim->energycost.mponly = 0;							//MP only.
 						newanim->energycost.disable = 0;							//Disable flag.
 						newanim->chargetime = 2;			// Default for backwards compatibility
@@ -6587,7 +6589,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					attack.blocksound = sound_load_sample(GET_ARG(1), packfile, 0);
 					break;
 				case CMD_MODEL_FASTATTACK:
-					newanim->fastattack = GET_INT_ARG(1);
+					if(GET_INT_ARG(1))
+						attack.pain_time = GAME_SPEED/20;
 					break;
 				case CMD_MODEL_BBOX:
 					bbox[0] = GET_INT_ARG(1);
@@ -11204,6 +11207,7 @@ void kill(entity *victim)
 			if(self->bound == victim) self->bound = NULL;
 			if(self->landed_on_platform == victim) self->landed_on_platform = NULL;
 			if(self->hithead == victim) self->hithead = NULL;
+			if(self->lasthit == victim) self->lasthit = NULL;
 			if(!textbox && self->modeldata.type == TYPE_TEXTBOX)
 			textbox = self;
 		}
@@ -11726,7 +11730,7 @@ void do_attack(entity *e)
 			(ent_list[i]->invincible != 1 || attack->attack_type == ATK_ITEM) && // so invincible people can get items
 			!(current_anim->attackone>0 && e->lasthit && ent_list[i]!=e->lasthit) &&
 			(ent_list[i]->modeldata.type & them) &&
-			(ent_list[i]->pain_time<time || e->animation->fastattack) &&
+			ent_list[i]->pain_time<time && //(ent_list[i]->pain_time<time || current_anim->fastattack) &&
 			ent_list[i]->takedamage &&
 			ent_list[i]->hit_by_attack_id != current_attack_id &&
 			((ent_list[i]->takeaction != common_lie && attack->otg < 2) || (attack->otg >= 1 && ent_list[i]->takeaction == common_lie)) && //over the ground hit
@@ -11794,7 +11798,7 @@ void do_attack(entity *e)
 					self->takeaction = common_block;
 					execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);
 					if(self->modeldata.guardpoints.maximum > 0) self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
-					++e->animation->animhits;
+					++current_anim->animhits;
 					didblock = 1;    // Used for when playing the block.wav sound
 					// Spawn a flash
 					//if #0531
@@ -11826,7 +11830,7 @@ void do_attack(entity *e)
 					//execute the didhit script
 					execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
 					if(self->modeldata.guardpoints.maximum > 0) self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
-					++e->animation->animhits;
+					++current_anim->animhits;
 					didblock = 1;    // Used for when playing the block.wav sound
 
 					if(self->modeldata.blockpain && self->modeldata.blockpain <= force && self->animation == self->modeldata.animation[ANI_BLOCK]) //Blockpain 1 and in block animation?
@@ -14603,7 +14607,7 @@ int common_takedamage(entity *other, s_attack* attack)
 	if(!checkgrab(other, attack)) return 0; // try to grab but failed, so return 0 means attack missed
 
 	// set pain_time so it wont get hit too often
-	self->pain_time = time + (GAME_SPEED / 5);
+	self->pain_time = time + attack->pain_time?(GAME_SPEED / 5):attack->pain_time;
 	// set oppoent
 	if(self!=other) set_opponent(self, other);
 	// adjust type
