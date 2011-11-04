@@ -16211,7 +16211,7 @@ int common_try_wander(entity* target, int dox, int doz)
 	} else	mindx = (!behind&&target->attacking)? grabd*3:grabd*1.2;
 	mindz = grabd/4;
 
-	mod = (time/GAME_SPEED/5 + self->sortid/100 + self->modeldata.aggression/10) % 4;
+	mod = (time/GAME_SPEED/5 + self->sortid/100 + self->health/3 + self->pathblocked + self->modeldata.aggression/10) % 4;
 
 	if(dox){
 		if(self->x<screenx-borderdx){
@@ -16229,10 +16229,10 @@ int common_try_wander(entity* target, int dox, int doz)
 		}else{
 			switch(mod){
 			case 0:
-				self->destx = target->x + grabd;
+				self->destx = target->x + grabd - self->health%10;
 				break;
 			case 2:
-				self->destx = target->x - grabd;
+				self->destx = target->x - grabd + self->health%10;
 				break;
 			case 1:
 				self->destx = target->x + videomodes.hRes/3;
@@ -16551,7 +16551,7 @@ int common_move()
 	entity* ent = NULL;
 	float seta;
 	int predir, stall;
-	int patx[4], pxc, px, patz[4], pzc, pz, fz; //move pattern in z and x
+	int patx[5], pxc, px, patz[5], pzc, pz, fz; //move pattern in z and x
 
 	if(self->modeldata.aimove==-1) return 0; // invalid value
 
@@ -16699,6 +16699,8 @@ int common_move()
 						patz[pzc] = AIMOVE1_WANDER;
 						pzc++;
 					}
+					patz[pzc++] = AIMOVE1_WANDER;
+					patx[pxc++] = AIMOVE1_WANDER;
 					px = patx[(rand32()&0xff)%pxc];
 					pz = patz[(rand32()&0xff)%pzc];
 
