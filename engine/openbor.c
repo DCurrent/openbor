@@ -16229,16 +16229,16 @@ int common_try_wander(entity* target, int dox, int doz)
 		}else{
 			switch(mod){
 			case 0:
-				self->destx = target->x + grabd - self->health%10;
+				self->destx = target->x + grabd;
 				break;
 			case 2:
-				self->destx = target->x - grabd + self->health%10;
+				self->destx = target->x - grabd;
 				break;
 			case 1:
-				self->destx = target->x + videomodes.hRes/3;
+				self->destx = target->x + videomodes.hRes/3 + (self->health/3%20);
 				break;
 			case 3:
-				self->destx = target->x - videomodes.hRes/3;
+				self->destx = target->x - videomodes.hRes/3 - (self->health/3%20);;
 				break;
 			}
 			self->xdir = self->x>self->destx?-self->modeldata.speed:self->modeldata.speed;
@@ -16264,16 +16264,16 @@ int common_try_wander(entity* target, int dox, int doz)
 		} else{
 			switch(mod){
 			case 1:
-				self->destz = target->z + grabd;
+				self->destz = target->z + grabd/2;
 				break;
 			case 3:
-				self->destz = target->z - grabd;
+				self->destz = target->z - grabd/2;
 				break;
 			case 2:
-				self->destz = target->z + MIN((PLAYER_MAX_Z-PLAYER_MIN_Z), videomodes.vRes)/4;
+				self->destz = target->z + MIN((PLAYER_MAX_Z-PLAYER_MIN_Z), videomodes.vRes)/4+(self->health/3%5);
 				break;
 			case 0:
-				self->destz = target->z - MIN((PLAYER_MAX_Z-PLAYER_MIN_Z), videomodes.vRes)/4;
+				self->destz = target->z - MIN((PLAYER_MAX_Z-PLAYER_MIN_Z), videomodes.vRes)/4-(self->health/3%5);
 				break;
 			}
 			self->zdir = self->z>self->destz?-self->modeldata.speed/2:self->modeldata.speed/2;
