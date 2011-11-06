@@ -18087,8 +18087,8 @@ void player_charge_check()
 
 void player_preinput()
 {
-	float altdiff ; // Used to check that
-	int notinair;   // entity is not in the air
+	//float altdiff ; // Used to check that
+	//int notinair;   // entity is not in the air
 
 	if(player[(int)self->playerindex].playkeys & FLAG_MOVEUP)
 	{
@@ -18147,8 +18147,8 @@ void player_preinput()
 
 	// OX Cancel checking.
 
-	altdiff = diff(self->a, self->base);
-	notinair = (self->landed_on_platform?altdiff<5:altdiff<2);
+	//altdiff = diff(self->a, self->base);
+	//notinair = (self->landed_on_platform?altdiff<5:altdiff<2);
 
 	if(self->attacking && self->animation->cancel==3) // && notinair) //UT: Remove this to see if someone complains, since user can use landframe 
 		{
