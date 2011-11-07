@@ -17136,6 +17136,7 @@ int check_energy(int which, int ani)
 
 int check_special()
 {
+	entity* e;
 	if((!level->nospecial || level->nospecial == 3) &&
 	   !self->cantfire &&
 	   (check_energy(0, ANI_SPECIAL) ||
@@ -17144,10 +17145,12 @@ int check_special()
 		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		memset(self->combostep, 0, sizeof(int)*5);
-		if(self->link){
-			self->link->takeaction = NULL;
+		
+		e = self->link;
+		if(e){
+			e->takeaction = NULL;
 			ent_unlink(self);
-			set_idle(self->link);
+			set_idle(e);
 		}
 
 		if(self->modeldata.smartbomb && !self->modeldata.dofreeze)
