@@ -7045,20 +7045,19 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->unsummonframe = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_AT_SCRIPT:
-					if(ani_id < 0)  {
-						shutdownmessage = "command '@script' must follow an animation!";
-						goto lCleanup;
-					}
 					if(!scriptbuf[0]){ // if empty, paste the main function text here
 						strcat(scriptbuf, pre_text);
 					}
 					scriptbuf[strlen(scriptbuf) - strlen(sur_text)] = 0; // cut last chars
-					if(script_id != ani_id){ // if expression 1
-						sprintf(namebuf, ifid_text, newanim);
-						strcat(scriptbuf, namebuf);
-						script_id = ani_id;
+					if(ani_id>=0)
+					{
+						if(script_id != ani_id){ // if expression 1
+							sprintf(namebuf, ifid_text, newanim);
+							strcat(scriptbuf, namebuf);
+							script_id = ani_id;
+						}
+						scriptbuf[strlen(scriptbuf) - strlen(endifid_text)] = 0; // cut last chars
 					}
-					scriptbuf[strlen(scriptbuf) - strlen(endifid_text)] = 0; // cut last chars
 					while(strncmp(buf+pos, "@script", 7)){
 						pos++;
 					}
@@ -7070,7 +7069,11 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						pos++;
 					}
 					pos += 11;
-					strcat(scriptbuf, endifid_text); // put back last  chars
+					
+					if(ani_id>=0)
+					{
+						strcat(scriptbuf, endifid_text); // put back last  chars
+					}
 					strcat(scriptbuf, sur_text); // put back last  chars
 					break;
 				case CMD_MODEL_AT_CMD:
