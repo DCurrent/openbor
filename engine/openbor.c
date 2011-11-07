@@ -10398,10 +10398,10 @@ void ent_default_init(entity* e)
 			{
 				if(time && level->spawn[(int)e->playerindex][2] > e->a)
 				{
+					e->takeaction = common_drop;
 					e->a = (float)level->spawn[(int)e->playerindex][2];
 					if(validanim(e, ANI_JUMP))
 					ent_set_anim(e, ANI_JUMP, 0);
-					e->takeaction = common_drop;
 				}
 			}
 			if(time && e->modeldata.makeinv)
@@ -11795,10 +11795,10 @@ void do_attack(entity *e)
 					(fdefense_blockthreshold > force)))
 				{   //execute the didhit script
 					execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
+					self->takeaction = common_block;
 					set_blocking(self);
 					self->xdir = self->zdir = 0;
 					ent_set_anim(self, ANI_BLOCK, 0);
-					self->takeaction = common_block;
 					execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);
 					if(self->modeldata.guardpoints.maximum > 0) self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
 					++current_anim->animhits;
@@ -13345,15 +13345,15 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
 {
 	if(!validanim(iRiseattack,animriseattacks[type]) && iRiseattack->modeldata.riseattacktype == 1) type = 0;
 	if(iRiseattack->modeldata.riseattacktype == 0 || type < 0 || type >= max_attack_types) type = 0;
-	if(validanim(iRiseattack,animriseattacks[type])) ent_set_anim(iRiseattack, animriseattacks[type], reset);
-	else return 0;
+	if(!validanim(iRiseattack,animriseattacks[type])) return 0;
+
+	iRiseattack->takeaction = common_attack_proc;
 	self->staydown.riseattack_stall = 0;			//Reset riseattack delay.
 	set_attacking(iRiseattack);
 	iRiseattack->drop = 0;
 	iRiseattack->nograb = 0;
-	ent_set_anim(iRiseattack, animriseattacks[type], 0);
-	iRiseattack->takeaction = common_attack_proc;
 	iRiseattack->modeldata.jugglepoints.current = iRiseattack->modeldata.jugglepoints.maximum; //reset jugglepoints
+	ent_set_anim(iRiseattack, animriseattacks[type], 0);
 	return 1;
 }
 
@@ -13364,10 +13364,10 @@ int set_blockpain(entity *iBlkpain, int type, int reset)
 		return 1;
 	}
 	if(type < 0 || type >= max_attack_types || !validanim(iBlkpain,animblkpains[type])) type = 0;
-	if(validanim(iBlkpain,animblkpains[type])) ent_set_anim(iBlkpain, animblkpains[type], reset);
-	else return 0;
+	if(!validanim(iBlkpain,animblkpains[type])) return 0;
 	iBlkpain->takeaction = common_block;
 	set_attacking(iBlkpain);
+	ent_set_anim(iBlkpain, animblkpains[type], reset);
 	return 1;
 }
 
@@ -13707,9 +13707,9 @@ int perform_atchain()
 	else self->combostep[0] = 0;
 	if(pickanim)
 	{
-		ent_set_anim(self, animattacks[self->modeldata.atchain[self->combostep[0]-1]-1], 1);
-		set_attacking(self);
 		self->takeaction = common_attack_proc;
+		set_attacking(self);
+		ent_set_anim(self, animattacks[self->modeldata.atchain[self->combostep[0]-1]-1], 1);
 	}
 	if(!pickanim || self->combostep[0] > self->modeldata.chainlength) self->combostep[0] = 0;
 	return pickanim;
@@ -13737,10 +13737,10 @@ void normal_prepare()
 	if(predir != self->direction && validanim(self,ANI_TURN))
 
 	{
+		self->takeaction = common_turn;
 		self->direction = predir;
 		set_turning(self);
 		ent_set_anim(self, ANI_TURN, 0);
-		self->takeaction = common_turn;
 		return;
 	}
 
@@ -13753,9 +13753,9 @@ void normal_prepare()
 		validanim(self,ANI_THROWATTACK) &&
 		check_range(self, target, ANI_THROWATTACK))
 	{
+		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		ent_set_anim(self, ANI_THROWATTACK, 0);
-		self->takeaction = common_attack_proc;
 		return ;
 	}
 
@@ -13796,9 +13796,9 @@ void normal_prepare()
 			}
 		}
 		if(found>special){
+			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			ent_set_anim(self, atkchoices[special + (rand32()&0xffff)%(found-special)], 0);
-			self->takeaction = common_attack_proc;
 			return ;
 		}
 	}
@@ -13816,8 +13816,8 @@ void normal_prepare()
 void common_jumpland()
 {
 	if(self->animating) return;
-	set_idle(self);
 	self->takeaction = NULL;
+	set_idle(self);
 }
 
 //A.I characters play the jump animation
@@ -13856,6 +13856,7 @@ void common_jump()
 
 		if(validanim(self,ANI_JUMPLAND) && self->animation->landframe.frame == -1) // check if jumpland animation exists and not using landframe
 		{
+			self->takeaction = common_jumpland;
 			ent_set_anim(self, ANI_JUMPLAND, 0);
 			if(self->modeldata.dust[1]>=0)
 			{
@@ -13866,7 +13867,6 @@ void common_jump()
 					execute_onspawn_script(dust);
 				}
 			}
-			self->takeaction = common_jumpland;
 		}
 		else
 		{
@@ -13881,8 +13881,8 @@ void common_jump()
 			}
 			if(self->animation->landframe.frame >= 0 && self->animating) return;
 
-			set_idle(self);
 			self->takeaction = NULL; // back to A.I. root
+			set_idle(self);
 		}
 	}
 }
@@ -13892,8 +13892,8 @@ void common_spawn()
 {
 	self->idling = 0;
 	if(self->animating) return;
-	set_idle(self);
 	self->takeaction = NULL; // come to life
+	set_idle(self);
 }
 
 //A.I. characters drop from the sky
@@ -13909,8 +13909,8 @@ void common_drop()
 void common_walkoff()
 {
 	if(inair(self) || self->animating) return;
-	set_idle(self);
 	self->takeaction = NULL;
+	set_idle(self);
 }
 
 // play turn animation and then flip
@@ -13918,10 +13918,10 @@ void common_turn()
 {
 	if(!self->animating)
 	{
+		self->takeaction = NULL;
 		self->xdir = self->zdir = 0;
 		self->direction = !self->direction;
 		set_idle(self);
-		self->takeaction = NULL;
 	}
 }
 
@@ -13934,14 +13934,14 @@ void doland()
 	self->damage_on_landing = 0;
 	if(validanim(self,ANI_LAND))
 	{
+		self->takeaction = common_land;
 		self->direction = !self->direction;
 		ent_set_anim(self, ANI_LAND, 0);
-		self->takeaction = common_land;
 	}
 	else
 	{
-		set_idle(self);
 		self->takeaction = NULL;
+		set_idle(self);
 	}
 }
 
@@ -14070,15 +14070,15 @@ void common_lie()
 void common_rise()
 {
 	if(self->animating) return;
+	self->takeaction = NULL;
 	self->staydown.riseattack_stall = 0;	//Reset riseattack delay.
-	set_idle(self);
 	if(self->modeldata.riseinv)
 	{
 		self->blink = self->modeldata.riseinv>0;
 		self->invinctime = time + ABS(self->modeldata.riseinv);
 		self->invincible = 1;
 	}
-	self->takeaction = NULL;
+	set_idle(self);
 }
 
 // pain proc
@@ -14095,23 +14095,23 @@ void common_pain()
 	}
 	else if(self->blocking)
 	{
-		ent_set_anim(self, ANI_BLOCK, 1);
 		self->takeaction = common_block;
+		ent_set_anim(self, ANI_BLOCK, 1);
 	}
 	else
 	{
-		set_idle(self);
 		self->takeaction = NULL;
+		set_idle(self);
 	}
 }
 
 void doprethrow()
 {
 	entity * other = self->link;
-	self->xdir = self->zdir = self->tossv = other->xdir = other->zdir = other->tossv = 0;
-	ent_set_anim(self, ANI_THROW, 0);
 	other->takeaction = common_prethrow;
 	self->takeaction = common_throw_wait;
+	self->xdir = self->zdir = self->tossv = other->xdir = other->zdir = other->tossv = 0;
+	ent_set_anim(self, ANI_THROW, 0);
 }
 
 // 1 grabattack 2 grabforward 3 grabup 4 grabdown 5 grabbackward
@@ -14119,6 +14119,8 @@ void doprethrow()
 void dograbattack(int which)
 {
 	entity * other = self->link;
+	self->takeaction = common_grabattack;
+	self->attacking = 1;
 	other->xdir = other->zdir = self->xdir = self->zdir = 0;
 	if(which<5 && which>=0)
 	{
@@ -14127,26 +14129,24 @@ void dograbattack(int which)
 			ent_set_anim(self, grab_attacks[which][0], 0);
 		else
 		{
+			memset(self->combostep, 0, sizeof(int)*5);
 			if(validanim(self,grab_attacks[which][1])) ent_set_anim(self, grab_attacks[which][1], 0);
 			else ent_set_anim(self, ANI_ATTACK3, 0);
-			memset(self->combostep, 0, sizeof(int)*5);
 		}
 	}
 	else
 	{
+		memset(self->combostep, 0, sizeof(int)*5);
 		if(validanim(self,grab_attacks[0][1])) ent_set_anim(self, grab_attacks[0][1], 0);
 		else if(validanim(self,ANI_ATTACK3)) ent_set_anim(self, ANI_ATTACK3, 0);
-		else return ;
-		memset(self->combostep, 0, sizeof(int)*5);
 	}
-	self->attacking = 1;
-	self->takeaction = common_grabattack;
 }
 
 void dovault()
 {
 	int heightvar;
 	entity * other = self->link;
+	self->takeaction = common_vault;
 	self->link->xdir = self->link->zdir = self->xdir = self->zdir = 0;
 
 	self->attacking = 1;
@@ -14157,7 +14157,6 @@ void dovault()
 
 	self->base = other->base + heightvar;
 	ent_set_anim(self, ANI_VAULT, 0);
-	self->takeaction = common_vault;
 }
 
 void common_grab_check()
@@ -14169,9 +14168,9 @@ void common_grab_check()
 
 	if(self->base != other->base)
 	{       // Change this from ->a to ->base
+		self->takeaction = NULL;
 		ent_unlink(self);
 		set_idle(self);
-		self->takeaction = NULL;
 		return;
 	}
 
@@ -14186,9 +14185,9 @@ void common_grab_check()
 		if(rnum < 12)
 		{
 			// Release
+			self->takeaction = NULL;
 			ent_unlink(self);
 			set_idle(self);
-			self->takeaction = NULL;
 			return;
 		}
 		else self->releasetime = time + (GAME_SPEED/2);
@@ -14229,10 +14228,10 @@ void common_grab()
 	// if(self->link) return;
 	if(self->link || (self->modeldata.grabfinish && self->animating && !self->grabwalking)) return;
 
-	memset(self->combostep, 0, sizeof(int)*5);
-	set_idle(self);
 	self->takeaction = NULL;
 	self->attacking = 0;
+	memset(self->combostep, 0, sizeof(int)*5);
+	set_idle(self);
 }
 
 // being grabbed
@@ -14241,9 +14240,9 @@ void common_grabbed()
 	// Just check if we're still grabbed...
 	if(self->link) return;
 
-	set_idle(self);
 	self->stalltime=0;
 	self->takeaction = NULL;
+	set_idle(self);
 }
 
 // picking up something
@@ -14251,9 +14250,9 @@ void common_get()
 {
 	if(self->animating) return;
 
-	set_idle(self);
 	self->getting = 0;
 	self->takeaction = NULL;
+	set_idle(self);
 }
 
 // A.I. characters do the block
@@ -14261,9 +14260,9 @@ void common_block()
 {
 	if(self->animating) return;
 
-	set_idle(self);
 	self->blocking = 0;
 	self->takeaction = NULL;
+	set_idle(self);
 }
 
 
@@ -14271,9 +14270,9 @@ void common_charge()
 {
 	if(self->animating) return;
 
-	set_idle(self);
 	self->charging = 0;
 	self->takeaction = NULL;
+	set_idle(self);
 }
 
 
@@ -14665,6 +14664,7 @@ int common_takedamage(entity *other, s_attack* attack)
 	// New pain, fall, and death animations. Also, the nopain flag.
 	if(self->drop || self->health <= 0)
 	{
+		self->takeaction = common_fall;
 		// Drop Weapon due to death.
 		if(self->modeldata.weaploss[0] <= 2 && self->health <= 0) dropweapon(1);
 		else if(self->modeldata.weaploss[0] <= 1) dropweapon(1);
@@ -14693,22 +14693,21 @@ int common_takedamage(entity *other, s_attack* attack)
 				return 1;
 			}
 		}
-		self->takeaction = common_fall;
 		if(self->modeldata.type == TYPE_PLAYER) control_rumble(self->playerindex, attack->attack_force * 3);
 	}
 	else if(attack->grab && !attack->no_pain)
 	{
-		set_pain(self, self->damagetype, 0);
-		other->stalltime = time + GRAB_STALL;
-		self->releasetime = time + (GAME_SPEED/2);
 		self->takeaction = common_pain;
 		other->takeaction = common_grabattack;
+		other->stalltime = time + GRAB_STALL;
+		self->releasetime = time + (GAME_SPEED/2);
+		set_pain(self, self->damagetype, 0);
 	}
 	// Don't change to pain animation if frozen
 	else if(!self->frozen && !self->modeldata.nopain && !attack->no_pain && !(self->modeldata.defense_pain[(short)attack->attack_type] && attack->attack_force < self->modeldata.defense_pain[(short)attack->attack_type]))
 	{
-		set_pain(self, self->damagetype, 1);
 		self->takeaction = common_pain;
+		set_pain(self, self->damagetype, 1);
 	}
 	return 1;
 }
@@ -14724,11 +14723,11 @@ int common_try_upper(entity* target)
 	// Target jumping? Try uppercut!
 	if(target && target->jumping )
 	{
+		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		self->zdir = self->xdir = 0;
 		// Don't waste any time!
 		ent_set_anim(self, ANI_UPPER, 0);
-		self->takeaction = common_attack_proc;
 		return 1;
 	}
 	return 0;
@@ -14745,10 +14744,10 @@ int common_try_runattack(entity* target)
 	{
 		if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking)) 
 			return 0;
+		self->takeaction = common_attack_proc;
 		self->zdir = self->xdir = 0;
 		set_attacking(self);
 		ent_set_anim(self, ANI_RUNATTACK, 0);
-		self->takeaction = common_attack_proc;
 		return 1;
 	}
 	return 0;
@@ -14766,10 +14765,10 @@ int common_try_block(entity* target)
 	// no passive block, so block by himself :)
 	if(target && target->attacking)
 	{
+		self->takeaction = common_block;
 		set_blocking(self);
 		self->zdir = self->xdir = 0;
 		ent_set_anim(self, ANI_BLOCK, 0);
-		self->takeaction = common_block;
 		return 1;
 	}
 	return 0;
@@ -14841,13 +14840,13 @@ int common_try_normalattack(entity* target)
 		return 0;
 
 	if(pick_random_attack(target, 1)>=0) {
+		self->takeaction = normal_prepare;
 		self->zdir = self->xdir = 0;
+		if(self->combostep[0] && self->combotime>time) self->stalltime = time+1;
+		else self->stalltime = time + MAX(0,(int)((GAME_SPEED/4) + (rand32()%(GAME_SPEED/10) - self->modeldata.aggression)));
 		set_idle(self);
 		self->idling = 0; // not really idle, in fact it is thinking
 		self->attacking = -1; // pre-attack, for AI-block check
-		self->takeaction = normal_prepare;
-		if(self->combostep[0] && self->combotime>time) self->stalltime = time+1;
-		else self->stalltime = time + MAX(0,(int)((GAME_SPEED/4) + (rand32()%(GAME_SPEED/10) - self->modeldata.aggression)));
 		return 1;
 	}
 
@@ -14857,7 +14856,7 @@ int common_try_normalattack(entity* target)
 int common_try_jumpattack(entity* target)
 {
 	entity* dust;
-	int rnum ;
+	int rnum, ani = 0 ;
 
 	if((validanim(self,ANI_JUMPATTACK) || validanim(self,ANI_JUMPATTACK2)))
 	{
@@ -14873,7 +14872,8 @@ int common_try_jumpattack(entity* target)
 			if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
 				rnum = -1;
 			else{
-				ent_set_anim(self, ANI_JUMPATTACK, 0);
+				//ent_set_anim(self, ANI_JUMPATTACK, 0);
+				ani = ANI_JUMPATTACK;
 				if(self->direction) self->xdir = (float)1.3;
 				else self->xdir = (float)-1.3;
 				self->zdir = 0;
@@ -14886,7 +14886,8 @@ int common_try_jumpattack(entity* target)
 			if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
 				rnum = -1;
 			else{
-				ent_set_anim(self, ANI_JUMPATTACK2, 0);
+				//ent_set_anim(self, ANI_JUMPATTACK2, 0);
+				ani = ANI_JUMPATTACK2;
 				self->xdir = self->zdir = 0;
 			}
 		} else {
@@ -14896,10 +14897,10 @@ int common_try_jumpattack(entity* target)
 		if(rnum >= 0)
 		{
 
+			self->takeaction = common_jump;
 			set_attacking(self);
 			self->jumping = 1;
 			toss(self, self->modeldata.jumpheight);
-			self->takeaction = common_jump;
 
 			if(self->modeldata.dust[2]>=0)
 			{
@@ -14910,6 +14911,8 @@ int common_try_jumpattack(entity* target)
 					execute_onspawn_script(dust);
 				}
 			}
+
+			ent_set_anim(self, ani, 0);
 
 			return 1;
 		}
@@ -14944,10 +14947,10 @@ void common_throw()
 {
 	if(self->animating) return; // just play the throw animation
 
-	set_idle(self);
-
 	// we have done the throw, return to A.I. root
 	self->takeaction = NULL;
+
+	set_idle(self);
 }
 
 // toss the grabbed one
@@ -14958,8 +14961,8 @@ void dothrow()
 	other = self->link;
 	if(other == NULL) //change back to idle, or we will get stuck here
 	{
-		set_idle(self);
 		self->takeaction = NULL;// A.I. root again
+		set_idle(self);
 		return;
 	}
 
@@ -14973,12 +14976,12 @@ void dothrow()
 	if(autoland == 1 && validanim(other,ANI_LAND)) other->damage_on_landing = -1;
 	else other->damage_on_landing = self->modeldata.throwdamage;
 
-	set_fall(other, ATK_NORMAL, 0, self, 0, 0, 0, 0, 0, 0);
-	ent_set_anim(self, ANI_THROW, 0);
 	ent_unlink(other);
 
 	other->takeaction = common_fall;
 	self->takeaction = common_throw;
+	set_fall(other, ATK_NORMAL, 0, self, 0, 0, 0, 0, 0, 0);
+	ent_set_anim(self, ANI_THROW, 0);
 }
 
 
@@ -14987,8 +14990,8 @@ void common_throw_wait()
 {
 	if(!self->link)
 	{
-		set_idle(self);
 		self->takeaction = NULL;// A.I. root again
+		set_idle(self);
 		return;
 	}
 
@@ -15007,9 +15010,9 @@ void common_prethrow()
 	// Just check if we're still grabbed...
 	if(self->link) return;
 
-	set_idle(self);
-
 	self->takeaction = NULL;// A.I. root again
+
+	set_idle(self);
 }
 
 // warp to its parent entity, just like skeletons in Diablo 2
@@ -15024,11 +15027,11 @@ void npc_warp()
 	self->tossv = 0;
 
 	if(validanim(self,ANI_RESPAWN)) {
+		self->takeaction = common_spawn;
 		ent_set_anim(self, ANI_RESPAWN, 0);
-		self->takeaction = common_spawn;
 	} else if(validanim(self,ANI_SPAWN)) {
-		ent_set_anim(self, ANI_SPAWN, 0);
 		self->takeaction = common_spawn;
+		ent_set_anim(self, ANI_SPAWN, 0);
 	}
 }
 
@@ -15239,15 +15242,15 @@ int common_trymove(float xdir, float zdir)
 		other->xdir = other->zdir = 0;
 		if(validanim(self,ANI_GRAB))
 		{
-			ent_set_anim(self, ANI_GRAB, 0);
-			set_pain(other, -1, 0); //set grabbed animation
 			if(self->model->grabflip&2) other->direction = !self->direction;
 			self->attacking = 0;
 			memset(self->combostep, 0, 5*sizeof(int));
-			other->takeaction = common_grabbed;
-			self->takeaction = common_grab;
 			other->stalltime = time + GRAB_STALL;
 			self->releasetime = time + (GAME_SPEED/2);
+			other->takeaction = common_grabbed;
+			self->takeaction = common_grab;
+			ent_set_anim(self, ANI_GRAB, 0);
+			set_pain(other, -1, 0); //set grabbed animation
 		}
 		// use original throw code if throwframewait not present, kbandressen 10/20/06
 		else if(self->modeldata.throwframewait == -1)
@@ -15256,11 +15259,11 @@ int common_trymove(float xdir, float zdir)
 		else
 		{
 			if(self->model->grabflip&2) other->direction = !self->direction;
-			ent_set_anim(self, ANI_THROW, 0);
-			set_pain(other, -1, 0); // set grabbed animation
 
 			other->takeaction = common_prethrow;
 			self->takeaction = common_throw_wait;
+			ent_set_anim(self, ANI_THROW, 0);
+			set_pain(other, -1, 0); // set grabbed animation
 		}
 		return 0;
 	}
@@ -15281,9 +15284,9 @@ void common_runoff()
 	entity *target = normal_find_target(-1,0);
 
 	if(target == NULL) { //sealth checking
-		set_idle(self); 
 		self->zdir = self->xdir = 0;
 		self->takeaction = NULL; // OK, back to A.I. root
+		set_idle(self); 
 		return;
 	}
 
@@ -15293,9 +15296,9 @@ void common_runoff()
 
 	self->zdir = 0;
 
-	adjust_walk_animation(target);
-
 	if(time > self->stalltime) self->takeaction = NULL; // OK, back to A.I. root
+
+	adjust_walk_animation(target);
 }
 
 
@@ -15314,30 +15317,30 @@ void common_stuck_underneath()
 	if(player[(int)self->playerindex].keys & FLAG_ATTACK && validanim(self,ANI_DUCKATTACK))
 	{
 		player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
+		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		self->xdir = self->zdir = 0;
 		self->combostep[0] = 0;
 		self->running = 0;
 		ent_set_anim(self, ANI_DUCKATTACK, 0);
-		self->takeaction = common_attack_proc;
 		return;
 	}
 	if((player[(int)self->playerindex].keys & FLAG_MOVEDOWN) && (player[(int)self->playerindex].keys & FLAG_JUMP) && validanim(self,ANI_SLIDE))
 	{
 		player[(int)self->playerindex].playkeys -= FLAG_MOVEDOWN;
 		player[(int)self->playerindex].playkeys -= FLAG_JUMP;
+		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		self->xdir = self->zdir = 0;
 		self->combostep[0] = 0;
 		self->running = 0;
 		ent_set_anim(self, ANI_SLIDE, 0);
-		self->takeaction = common_attack_proc;
 		return;
 	}
 	if(!check_platform_between(self->x, self->z, self->a, self->a+self->modeldata.height, self) )
 	{
-		set_idle(self);
 		self->takeaction = NULL;
+		set_idle(self);
 		return;
 	}
 }
@@ -15353,8 +15356,8 @@ void common_attack_finish()
 
 	if(self->modeldata.type == TYPE_PLAYER)
 	{
-		set_idle(self);
 		self->takeaction = NULL;
+		set_idle(self);
 		return;
 	}
 
@@ -15362,18 +15365,18 @@ void common_attack_finish()
 
 	if(target && !self->modeldata.nomove && diff(self->x, target->x)<80 && (rand32()&3))
 	{
+		self->takeaction = NULL;//common_runoff;
 		self->destx = self->x>target->x?MIN(self->x+40, target->x+80):MAX(self->x-40,target->x-80);
 		self->destz = self->z;
 		self->xdir = self->x>target->x?self->modeldata.speed:-self->modeldata.speed;
 		self->zdir = 0;
 		adjust_walk_animation(target);
 		self->idling = 1;
-		self->takeaction = NULL;//common_runoff;
 	}
 	else
 	{
-		set_idle(self);
 		self->takeaction = NULL;
+		set_idle(self);
 	}
 	
 	stall = GAME_SPEED - self->modeldata.aggression;
@@ -16298,32 +16301,32 @@ void common_pickupitem(entity* other){
 	//weapons
 	if(self->weapent == NULL && isSubtypeWeapon(other) && validanim(self,ANI_GET))
 	{
+		self->takeaction = common_get;
 		dropweapon(0);  //don't bother dropping the previous one though, scine it won't pickup another
 		self->weapent = other;
 		set_weapon(self, other->modeldata.weapnum, 0);
-		ent_set_anim(self, ANI_GET, 0);
+		set_getting(self);
+		self->xdir=self->zdir=0;//stop moving
 		if(self->modeldata.animal)  // UTunnels: well, ride, not get. :)
 		{
 			self->direction = other->direction;
 			self->x = other->x;
 			self->z = other->z;
 		}
-		set_getting(self);
-		self->takeaction = common_get;
-		self->xdir=self->zdir=0;//stop moving
 		other->nextanim = other->nextthink = time + GAME_SPEED*999999;
+		ent_set_anim(self, ANI_GET, 0);
 		pickup = 1;
 	}
 	// projectiles
 	else if(self->weapent == NULL && isSubtypeProjectile(other) && validanim(self,ANI_GET))
 	{
+		self->takeaction = common_get;
 		dropweapon(0);
 		self->weapent = other;
-		ent_set_anim(self, ANI_GET, 0);
 		set_getting(self);
-		self->takeaction = common_get;
 		self->xdir=self->zdir=0;//stop moving
 		other->nextanim = other->nextthink = time + GAME_SPEED*999999;
+		ent_set_anim(self, ANI_GET, 0);
 		pickup = 1;
 	}
 	// other items
@@ -16331,10 +16334,10 @@ void common_pickupitem(entity* other){
 	{
 		if(validanim(self,ANI_GET) && !isSubtypeTouch(other))
 		{
-			ent_set_anim(self, ANI_GET, 0);
-			set_getting(self);
 			self->takeaction = common_get;
+			set_getting(self);
 			self->xdir=self->zdir=0;//stop moving
+			ent_set_anim(self, ANI_GET, 0);
 		}
 		if(other->health){
 			self->health += other->health;
@@ -16451,12 +16454,12 @@ int arrow_move(){
 			// Added so projectiles bounce off blocked exits
 			if(validanim(self,ANI_FALL))
 			{
+				self->takeaction = common_fall;
 				self->attacking = 0;
 				self->health -= 100000;
 				self->projectile = 0;
 				if(self->direction == 0) self->xdir = (float)-1.2;
 				else if(self->direction == 1) self->xdir = (float)1.2;
-				self->takeaction = common_fall;
 				self->damage_on_landing = 0;
 				toss(self, 2.5 + randf(1));
 				self->modeldata.no_adjust_base = 0;
@@ -16483,6 +16486,7 @@ int bomb_move()
 		self->nextthink = time + THINK_SPEED / 2;
 	}else if(self->takeaction != bomb_explode){
 
+		self->takeaction = bomb_explode;
 		self->tossv = 0;    // Stop moving up/down
 		self->modeldata.no_adjust_base = 1;    // Stop moving up/down
 		self->base = self->a;
@@ -16502,7 +16506,6 @@ int bomb_move()
 		self->modeldata.subject_to_wall = 0;
 		self->modeldata.subject_to_platform = 1;
 		self->modeldata.subject_to_hole = 0;
-		self->takeaction = bomb_explode;
 	}
 	return 1;
 }
@@ -16523,11 +16526,11 @@ int star_move(){
 		if((level->exit_blocked && self->x > level->width-30-(PLAYER_MAX_Z-self->z)) ||
 			((wall = checkwall(self->x, self->z)) >= 0 && self->a < level->walls[wall][7]))
 		{
+			self->takeaction = common_fall;
 			self->attacking = 0;
 			self->health -= 100000;
 			self->projectile = 0;
 			self->xdir = (self->direction)?(-1.2):1.2;
-			self->takeaction = common_fall;
 			self->damage_on_landing = 0;
 			toss(self, 2.5 + randf(1));
 			set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0);
@@ -16536,9 +16539,9 @@ int star_move(){
 
 	if(self->landed_on_platform || self->base <= 0)
 	{
+		self->takeaction = common_lie;
 		self->health -= 100000;
 		if(self->modeldata.nodieblink == 2) self->animating = 0;
-		self->takeaction = common_lie;
 	}
 
 	self->nextthink = time + THINK_SPEED / 2;
@@ -16622,10 +16625,10 @@ int common_move()
 		//turn back if we have a turn animation
 		// TODO, make a function for ai script
 		if(self->direction != predir && validanim(self,ANI_TURN)){
-			self->direction = !self->direction;
-			ent_set_anim(self, ANI_TURN, 0);
-			self->xdir = self->zdir = 0;
 			self->takeaction = common_turn;
+			self->direction = !self->direction;
+			self->xdir = self->zdir = 0;
+			ent_set_anim(self, ANI_TURN, 0);
 			return 1;
 		}
 
@@ -17138,12 +17141,13 @@ int check_special()
 	   (check_energy(0, ANI_SPECIAL) ||
 		check_energy(1, ANI_SPECIAL)))
 	{
+		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		memset(self->combostep, 0, sizeof(int)*5);
 		if(self->link){
-			set_idle(self->link);
 			self->link->takeaction = NULL;
 			ent_unlink(self);
+			set_idle(self->link);
 		}
 
 		if(self->modeldata.smartbomb && !self->modeldata.dofreeze)
@@ -17154,7 +17158,6 @@ int check_special()
 		self->running = 0;    // If special is executed while running, ceases to run
 		self->xdir = self->zdir = 0;
 		ent_set_anim(self, ANI_SPECIAL, 0);
-		self->takeaction = common_attack_proc;
 
 		if(self->modeldata.dofreeze) smartbomber = self;    // Freezes the animations of all enemies/players while special is executed
 
@@ -17204,8 +17207,8 @@ void common_land()
 	self->xdir = self->zdir = 0;
 	if(self->animating) return;
 
-	set_idle(self);
 	self->takeaction = NULL;
+	set_idle(self);
 }
 
 
@@ -17247,19 +17250,19 @@ void common_grabattack()
 
 	if(self->link)
 	{
+		self->takeaction = common_grab;
+		self->link->takeaction = common_grabbed;
 		self->attacking = 0;
 		ent_set_anim(self, ANI_GRAB, 0);
 		set_pain(self->link, -1, 0);
 		update_frame(self, self->animation->numframes-1);
 		update_frame(self->link, self->link->animation->numframes-1);
-		self->takeaction = common_grab;
-		self->link->takeaction = common_grabbed;
 	}
 	else
 	{
+		self->takeaction = NULL;
 		memset(self->combostep, 0, sizeof(int)*5);
 		set_idle(self);
-		self->takeaction = NULL;
 	}
 }
 
@@ -17268,12 +17271,14 @@ void common_vault()
 {
 	if(!self->link)
 	{
-		set_idle(self);
 		self->takeaction = NULL;
+		set_idle(self);
 		return;
 	}
 	if(!self->animating)
 	{
+		self->takeaction = common_grab;
+		self->link->takeaction = common_grabbed;
 		self->attacking = 0;
 		self->direction = !self->direction;
 		self->a = self->base = self->link->base;
@@ -17285,8 +17290,6 @@ void common_vault()
 		set_pain(self->link, -1, 0);
 		update_frame(self, self->animation->numframes-1);
 		update_frame(self->link, self->link->animation->numframes-1);
-		self->takeaction = common_grab;
-		self->link->takeaction = common_grabbed;
 		return;
 	}
 }
@@ -17304,11 +17307,11 @@ void tryjump(float jumpv, float jumpx, float jumpz, int jumpid)
 	self->jumpz = jumpz;              self->jumpid = jumpid;
 	if(validanim(self,ANI_JUMPDELAY))
 	{
-		ent_set_anim(self, ANI_JUMPDELAY, 0);
+		self->takeaction = common_prejump;
 		self->xdir = self->zdir = 0;
 
 		self->idling = 0;
-		self->takeaction = common_prejump;
+		ent_set_anim(self, ANI_JUMPDELAY, 0);
 	}
 	else
 	{
@@ -17320,6 +17323,8 @@ void tryjump(float jumpv, float jumpx, float jumpz, int jumpid)
 void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
 {
 	entity* dust;
+
+	self->takeaction = common_jump;
 
 	if(SAMPLE_JUMP >= 0) sound_play_sample(SAMPLE_JUMP, 0, savedata.effectvol,savedata.effectvol, 100);
 
@@ -17335,7 +17340,6 @@ void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
 	}
 
 	set_jumping(self);
-	ent_set_anim(self, jumpid, 0);
 
 	toss(self, jumpv);
 
@@ -17344,8 +17348,7 @@ void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
 	else self->xdir = jumpx;
 
 	self->zdir = jumpz;
-
-	self->takeaction = common_jump;
+	ent_set_anim(self, jumpid, 0);
 }
 
 // make a function so enemies can use
@@ -17355,6 +17358,7 @@ int check_costmove(int s, int fs)
 	   (check_energy(0, s) ||
 		check_energy(1, s))  )
 	{
+		self->takeaction = common_attack_proc;
 		if(!nocost && !healthcheat)
 		{
 			if(check_energy(1, s)) self->mp -= self->modeldata.animation[s]->energycost.cost;
@@ -17368,7 +17372,6 @@ int check_costmove(int s, int fs)
 		ent_unlink(self);
 		self->movestep = 0;
 		ent_set_anim(self, s, 0);
-		self->takeaction = common_attack_proc;
 		return 1;
 	}
 	return 0;
@@ -17471,9 +17474,9 @@ void common_dodge()    // New function so players can dodge with up up or down d
 	}
 	else    // Once done animating, returns to thinking
 	{
+		self->takeaction = NULL;
 		self->xdir = self->zdir = 0;
 		set_idle(self);
-		self->takeaction = NULL;
 	}
 }
 
@@ -17613,9 +17616,9 @@ void player_grab_check()
 
 	if(self->base != other->base)
 	{       // Change this from ->a to ->base
+		self->takeaction = NULL;
 		ent_unlink(self);
 		set_idle(self);
-		self->takeaction = NULL;
 		return;
 	}
 	  // OX cancel checking.
@@ -17624,49 +17627,31 @@ void player_grab_check()
 		if((player[(int)self->playerindex].playkeys & FLAG_ATTACK) && check_combo(FLAG_ATTACK))
 		{
 			player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
-			ent_unlink(self);
-			self->attacking = 1;
-			self->takeaction = common_attack_proc;
 			return;
 		}
 		if((player[(int)self->playerindex].playkeys & FLAG_ATTACK2) && check_combo(FLAG_ATTACK2))
 		{
 			player[(int)self->playerindex].playkeys -= FLAG_ATTACK2;
-			ent_unlink(self);
-			self->attacking = 1;
-			self->takeaction = common_attack_proc;
 			return;
 		}
 		if((player[(int)self->playerindex].playkeys & FLAG_ATTACK3) && check_combo(FLAG_ATTACK3))
 		{
 			player[(int)self->playerindex].playkeys -= FLAG_ATTACK3;
-			ent_unlink(self);
-			self->attacking = 1;
-			self->takeaction = common_attack_proc;
 			return;
 		}
 		if((player[(int)self->playerindex].playkeys & FLAG_ATTACK4) && check_combo(FLAG_ATTACK4))
 		{
 			player[(int)self->playerindex].playkeys -= FLAG_ATTACK4;
-			ent_unlink(self);
-			self->attacking = 1;
-			self->takeaction = common_attack_proc;
 			return;
 		}
 		if((player[(int)self->playerindex].playkeys & FLAG_JUMP) && check_combo(FLAG_JUMP))
 		{
 			player[(int)self->playerindex].playkeys -= FLAG_JUMP;
-			ent_unlink(self);
-			self->attacking = 1;
-			self->takeaction = common_attack_proc;
 			return;
 		}
 		if((player[(int)self->playerindex].playkeys & FLAG_SPECIAL) && check_combo(FLAG_SPECIAL))
 		{
 			player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
-			ent_unlink(self);
-			self->attacking = 1;
-			self->takeaction = common_attack_proc;
 			return;
 		}
 	}
@@ -17695,11 +17680,11 @@ void player_grab_check()
 				self->direction = 1;
 				other->direction = 0;
 			}
+			other->x = self->x + (((self->direction * 2) - 1) * self->modeldata.grabdistance);
 			ent_set_anim(self, ANI_GRAB, 0);
 			set_pain(other, -1, 0);
 			update_frame(self, self->animation->numframes-1);
 			update_frame(other, other->animation->numframes-1);
-			other->x = self->x + (((self->direction * 2) - 1) * self->modeldata.grabdistance);
 		}
 	}
 
@@ -17747,9 +17732,9 @@ void player_grab_check()
 		else if(!validanim(self,ANI_GRABWALK) && time > self->releasetime)
 		{
 			// Release
+			self->takeaction = NULL;
 			ent_unlink(self);
 			set_idle(self);
-			self->takeaction = NULL;
 			return;
 		}
 	}
@@ -18086,9 +18071,9 @@ void player_charge_check()
 	if(!((player[(int)self->playerindex].keys&FLAG_JUMP)&&
 		 (player[(int)self->playerindex].keys&FLAG_SPECIAL)))
 	{
+		self->takeaction = NULL;
 		self->charging = 0;
 		set_idle(self);
-		self->takeaction = NULL;
 	}
 }
 
@@ -18162,43 +18147,31 @@ void player_preinput()
 			if((player[(int)self->playerindex].playkeys & FLAG_ATTACK) && check_combo(FLAG_ATTACK))
 			{
 				player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
-				self->attacking = 1;
-			    self->takeaction = common_attack_proc;
 				return;
 			}
 			if((player[(int)self->playerindex].playkeys & FLAG_JUMP) && check_combo(FLAG_JUMP))
 			{
 				player[(int)self->playerindex].playkeys -= FLAG_JUMP;
-				self->attacking = 1;
-			    self->takeaction = common_attack_proc;
 				return;
 			}
 			if((player[(int)self->playerindex].playkeys & FLAG_SPECIAL) && check_combo(FLAG_SPECIAL))
 			{
 				player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
-				self->attacking = 1;
-			    self->takeaction = common_attack_proc;
 				return;
 			}
 			if((player[(int)self->playerindex].playkeys & FLAG_ATTACK2) && check_combo(FLAG_ATTACK2))
 			{
 				player[(int)self->playerindex].playkeys -= FLAG_ATTACK2;
-				self->attacking = 1;
-			    self->takeaction = common_attack_proc;
 				return;
 			}
 			if((player[(int)self->playerindex].playkeys & FLAG_ATTACK3) && check_combo(FLAG_ATTACK3))
 			{
 				player[(int)self->playerindex].playkeys -= FLAG_ATTACK3;
-				self->attacking = 1;
-			    self->takeaction = common_attack_proc;
 				return;
 			}
 			if((player[(int)self->playerindex].playkeys & FLAG_ATTACK4) && check_combo(FLAG_ATTACK4))
 			{
 				player[(int)self->playerindex].playkeys -= FLAG_ATTACK4;
-				self->attacking = 1;
-			    self->takeaction = common_attack_proc;
 				return;
 			}
 		}
@@ -18291,8 +18264,8 @@ void player_think()
 	// Check if entity is under a platform
 	if(self->modeldata.subject_to_platform>0 && validanim(self,ANI_DUCK) && check_platform_between(self->x/*+self->direction*2-1*/, self->z, self->a, self->a+self->modeldata.height, self) && (check_platform_between(self->x/*+self->direction*2-1*/, self->z, self->a, self->a+self->animation->height, self) || !self->animation->height) )
 	{
-		ent_set_anim(self, ANI_DUCK, 1);
 		self->takeaction = common_stuck_underneath;
+		ent_set_anim(self, ANI_DUCK, 1);
 		return;
 	}
 
@@ -18306,20 +18279,20 @@ void player_think()
 		self->lastdir = 0;
 		if(time < self->movetime && self->lastmove==FLAG_MOVEUP && validanim(self,ANI_ATTACKUP) && notinair)
 		{    // New u u combo attack
+			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->combostep[0] = 0;
 			self->xdir = self->zdir = 0;
 			ent_set_anim(self, ANI_ATTACKUP, 0);
-			self->takeaction = common_attack_proc;
 			return;
 		}
 		else if(time < self->movetime && self->lastmove==FLAG_MOVEUP && validanim(self,ANI_DODGE) && notinair)
 		{    // New dodge move like on SOR3
+			self->takeaction = common_dodge;
 			self->combostep[0] = 0;
 			self->idling = 0;
 			self->zdir = -self->modeldata.speed * 1.75; self->xdir = 0;// OK you can use jumpframe to modify this anyway
 			ent_set_anim(self, ANI_DODGE, 0);
-			self->takeaction = common_dodge;
 			return;
 		}
 		else if(check_combo(FLAG_MOVEUP)) ++self->movestep;    // Check the combo and increase movestep if valid
@@ -18335,20 +18308,20 @@ void player_think()
 		self->lastdir = 0;
 		if(self->lastmove==FLAG_MOVEDOWN && validanim(self,ANI_ATTACKDOWN) && time < self->movetime && notinair)
 		{    // New d d combo attack
+			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			ent_set_anim(self, ANI_ATTACKDOWN, 0);
-			self->takeaction = common_attack_proc;
 			return;
 		}
 		else if(time < self->movetime && self->lastmove == FLAG_MOVEDOWN && validanim(self,ANI_DODGE) && notinair)
 		{    // New dodge move like on SOR3
+			self->takeaction = common_dodge;
 			self->combostep[0] = 0;
 			self->idling = 0;
 			self->zdir = self->modeldata.speed * 1.75; self->xdir = 0;
 			ent_set_anim(self, ANI_DODGE, 0);
-			self->takeaction = common_dodge;
 			return;
 		}
 		else if(check_combo(FLAG_MOVEDOWN))  ++self->movestep;    // Check the combo and increase movestep if valid
@@ -18368,11 +18341,11 @@ void player_think()
 
 		else if(validanim(self,ANI_ATTACKFORWARD) && !self->direction && time < self->movetime && self->lastdir==FLAG_MOVELEFT)
 		{
+			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			ent_set_anim(self, ANI_ATTACKFORWARD, 0);
-			self->takeaction = common_attack_proc;
 			return;
 		}
 		else if(!self->direction && check_combo(FLAG_FORWARD))  ++self->movestep;    // Check direction to distinguish forward/backward movements
@@ -18394,11 +18367,11 @@ void player_think()
 
 		else if(validanim(self,ANI_ATTACKFORWARD) &&self->direction && time < self->movetime &&  self->lastdir==FLAG_MOVERIGHT)
 		{
+			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			ent_set_anim(self, ANI_ATTACKFORWARD, 0);
-			self->takeaction = common_attack_proc;
 			return;
 		}
 		else if(!self->direction && check_combo(FLAG_BACKWARD))  ++self->movestep;    // Check direction to distinguish forward/backward movements
@@ -18417,13 +18390,13 @@ void player_think()
 		if((player[(int)self->playerindex].keys & FLAG_ATTACK) && notinair)
 		{
 			player[(int)self->playerindex].playkeys -= FLAG_JUMP;
+			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			self->movestep = 0;
 			self->stalltime = 0;    // If attack is pressed, holding down attack to execute attack3 is no longer valid
 			ent_set_anim(self, ANI_ATTACKBOTH, 0);
-			self->takeaction = common_attack_proc;
 			return;
 		}
 	}
@@ -18432,13 +18405,13 @@ void player_think()
 	{
 		if((player[(int)self->playerindex].playkeys & FLAG_SPECIAL) && notinair)
 		{
+			self->takeaction = common_charge;
 			self->combostep[0] = 0;
 			self->movestep = 0;
 			self->xdir = self->zdir = 0;
 			self->stalltime = 0;
 			set_charging(self);
 			ent_set_anim(self, ANI_CHARGE, 0);
-			self->takeaction = common_charge;
 			return;
 		}
 	}
@@ -18466,12 +18439,12 @@ void player_think()
 		if(validanim(self,ANI_BLOCK) && !self->modeldata.holdblock && notinair)    // New block code for players
 		{
 			player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
+			self->takeaction = common_block;
 			self->xdir = self->zdir = 0;
 			set_blocking(self);
 			self->combostep[0] = 0;
 			self->movestep = 0;
 			ent_set_anim(self, ANI_BLOCK, 0);
-			self->takeaction = common_block;
 			return;
 		}
 	}
@@ -18484,17 +18457,17 @@ void player_think()
 	      ((validanim(self,ANI_CHARGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[ANI_CHARGEATTACK]->chargetime) < time) ||
 		   (!validanim(self,ANI_CHARGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength-1]-1]]->chargetime) < time)))
 		{
+			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
-			self->combostep[0] = 0;
 
-			if(validanim(self,ANI_CHARGEATTACK)) ent_set_anim(self, ANI_CHARGEATTACK, 0);
-			else ent_set_anim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength-1]-1], 0);
+			self->stalltime = 0;
+			self->combostep[0] = 0;
 
 			if(SAMPLE_PUNCH >= 0) sound_play_sample(SAMPLE_PUNCH, 0, savedata.effectvol,savedata.effectvol, 100);
 
-			self->stalltime = 0;
-			self->takeaction = common_attack_proc;
+			if(validanim(self,ANI_CHARGEATTACK)) ent_set_anim(self, ANI_CHARGEATTACK, 0);
+			else ent_set_anim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength-1]-1], 0);
 			return;
 		}
 		self->stalltime = 0;
@@ -18507,23 +18480,23 @@ void player_think()
 
 		if(player[(int)self->playerindex].keys & FLAG_MOVEDOWN && validanim(self, ANI_DUCKATTACK) && PLAYER_MIN_Z == PLAYER_MAX_Z)
 		{
+			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			ent_set_anim(self, ANI_DUCKATTACK, 0);
-			self->takeaction = common_attack_proc;
 			return;
 		}
 
 		if(self->running && validanim(self,ANI_RUNATTACK))    // New run attack code section
 		{
 			player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
+			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			self->running = 0;
 			ent_set_anim(self, ANI_RUNATTACK, 0);
-			self->takeaction = common_attack_proc;
 			return;
 		}
 
@@ -18537,6 +18510,7 @@ void player_think()
 		if(validanim(self,ANI_ATTACKBACKWARD) && time < self->movetime - (GAME_SPEED/10) &&
 			!self->movestep && self->lastmove == FLAG_BACKWARD)    // New back attacks
 		{
+			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			if(self->direction && (player[(int)self->playerindex].keys & FLAG_MOVERIGHT)) self->direction = 0;    // Since the back part of the combo will flip the player, need to flip them back around
@@ -18544,7 +18518,6 @@ void player_think()
 
 			self->combostep[0] = 0;
 			ent_set_anim(self, ANI_ATTACKBACKWARD, 0);
-			self->takeaction = common_attack_proc;
 			return;
 		}
 
@@ -18560,8 +18533,8 @@ void player_think()
 				didfind_item(other);
 				self->xdir = self->zdir = 0;
 				set_getting(self);
-				ent_set_anim(self, ANI_GET, 0);
 				self->takeaction = common_get;
+				ent_set_anim(self, ANI_GET, 0);
 				execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
 				return;
 			}
@@ -18582,9 +18555,9 @@ void player_think()
 			self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
 			validanim(self,ANI_THROWATTACK)  )
 		{
+			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			ent_set_anim(self, ANI_THROWATTACK, 0);
-			self->takeaction = common_attack_proc;
 		}
 		else if(perform_atchain())
 		{
@@ -18605,12 +18578,12 @@ void player_think()
 			//Slide
 			if((player[(int)self->playerindex].keys & FLAG_MOVEDOWN) && validanim(self,ANI_RUNSLIDE))
 			{
+				self->takeaction = common_attack_proc;
 				set_attacking(self);
 				self->xdir = self->zdir = 0;
 				self->combostep[0] = 0;
 				self->running = 0;
 				ent_set_anim(self, ANI_RUNSLIDE, 0);
-				self->takeaction = common_attack_proc;
 				return;
 			}
 
@@ -18633,12 +18606,12 @@ void player_think()
 				//Slide
 				if((player[(int)self->playerindex].keys & FLAG_MOVEDOWN) && validanim(self,ANI_SLIDE))
 				{
+					self->takeaction = common_attack_proc;
 					set_attacking(self);
 					self->xdir = self->zdir = 0;
 					self->combostep[0] = 0;
 					self->running = 0;
 					ent_set_anim(self, ANI_SLIDE, 0);
-					self->takeaction = common_attack_proc;
 					return;
 				}
 
@@ -18759,18 +18732,18 @@ void player_think()
 				self->turntime = 0;
 				if(validanim(self,ANI_TURN))
 				{
+					self->takeaction = common_turn;
 					set_turning(self);
 					ent_set_anim(self, ANI_TURN, 0);
-					self->takeaction = common_turn;
 					return;
 				}
 				self->direction = 0;
 			}
 			else if(!self->modeldata.turndelay && validanim(self,ANI_TURN))
 			{
+				self->takeaction = common_turn;
 				set_turning(self);
 				ent_set_anim(self, ANI_TURN, 0);
-				self->takeaction = common_turn;
 				return;
 			}
 			else if(!self->turntime) self->direction = 0;
@@ -18804,18 +18777,18 @@ void player_think()
 				self->turntime = 0;
 				if(validanim(self,ANI_TURN))
 				{
+					self->takeaction = common_turn;
 					set_turning(self);
 					ent_set_anim(self, ANI_TURN, 0);
-					self->takeaction = common_turn;
 					return;
 				}
 				self->direction = 1;
 			}
 			else if(!self->modeldata.turndelay && validanim(self,ANI_TURN))
 			{
+				self->takeaction = common_turn;
 				set_turning(self);
 				ent_set_anim(self, ANI_TURN, 0);
-				self->takeaction = common_turn;
 				return;
 			}
 			else if(!self->turntime) self->direction = 1;
@@ -18853,6 +18826,11 @@ void player_think()
 		didfind_item(other);    // Added function to clean code up a bit
 	}
 
+	if(action)
+	{
+		self->takeaction = NULL;
+		self->idling = 1;
+	}
 	switch(action)
 	{
 		case 1:
@@ -18882,14 +18860,8 @@ void player_think()
 			if(self->idling)
 			{
 				common_idle_anim(self);
-				return;
 			}
 			break;
-	}
-	if(action)
-	{
-		self->takeaction = NULL;
-		self->idling = 1;
 	}
 }
 
@@ -19206,10 +19178,10 @@ void drop_all_enemies()
 			ent_list[i]->xdir = (self->direction)?(-1.2):1.2;
 			dropweapon(1);
 			toss(ent_list[i], 2.5 + randf(1));
-			set_fall(ent_list[i], ATK_NORMAL, 1, self, 0, 0, 0, 0, 0, 0);
 			ent_list[i]->knockdowncount = ent_list[i]->modeldata.knockdowncount;
 
 			ent_list[i]->knockdowntime = 0;
+			set_fall(ent_list[i], ATK_NORMAL, 1, self, 0, 0, 0, 0, 0, 0);
 		}
 	}
 	self = weapself;
