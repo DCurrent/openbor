@@ -3864,8 +3864,8 @@ s_anim * alloc_anim()
 
 
 int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned char idle,
-			 short *bbox, s_attack* attack, short move, short movez,
-			 short movea, short seta, float* platform, int frameshadow, short* shadow_coords, int soundtoplay, s_drawmethod* drawmethod)
+			 short *bbox, s_attack* attack, short move, short movez, short movea, 
+			 short seta, float* platform, int frameshadow, short* shadow_coords, int soundtoplay, s_drawmethod* drawmethod)
 {
 	ptrdiff_t currentframe;
 	if(framecount>0) alloc_frames(a, framecount);
@@ -12914,6 +12914,7 @@ void display_ents()
 	entity *e = NULL;
 	entity *other = NULL;
 	int qx, qy, sy,sz, alty;
+	int sortid;
 	float temp1, temp2;
 	int useshadow = 0;
 	int can_mirror = 0;
@@ -12938,6 +12939,7 @@ void display_ents()
 				drawenemystatus(e);
 
 			}
+			sortid = e->sortid;
 			if(freezeall || !(e->blink && (time%(GAME_SPEED/10))<(GAME_SPEED/20)))
 			{    // If special is being executed, display all entities regardless
 				f = e->animation->sprite[e->animpos];
@@ -12953,17 +12955,19 @@ void display_ents()
 
 					z = (int)e->z;    // Set the layer offset
 
-					if(e->grabbing && e->modeldata.grabback)
-						z = (int)e->link->z - 1;    // Grab animation displayed behind
-					else if(!e->modeldata.grabback && e->grabbing)
-						z = (int)e->link->z + 1;
+					if(e->bound) sortid = e->bound->sortid-1;
 
-					if(e->bound && e->bound->grabbing)
+					if(e->grabbing && e->modeldata.grabback)
+						sortid = e->link->sortid - 1;    // Grab animation displayed behind
+					else if(!e->modeldata.grabback && e->grabbing)
+						sortid = e->link->sortid + 1;
+/*
+					if(e->bound && e->bound->grabbing==e)
 					{
 						if(e->bound->modeldata.grabback) z--;
 						else                             z++;
 					}
-
+*/
 					if(other && e->a >= other->a + other->animation->platform[other->animpos][7] && !other->modeldata.setlayer)
 					{
 						if(
@@ -12980,7 +12984,7 @@ void display_ents()
 
 					}
 
-					if(e->owner) z = (int)(e->z/* + e->layer*/ + 1);    // Always in front
+					if(e->owner) sortid = e->owner->sortid+1;    // Always in front
 
 					if(e->modeldata.setlayer) z = HOLE_Z + e->modeldata.setlayer;    // Setlayer takes precedence
 
@@ -13043,13 +13047,13 @@ void display_ents()
 
 					if(!use_mirror || z > MIRROR_Z) // don't display if behind the mirror
 					{
-						spriteq_add_sprite((int)(e->x - scrx), (int)(e->z-e->a - scry), z, f, drawmethod, e->bound?e->bound->sortid-1:e->sortid);
+						spriteq_add_sprite((int)(e->x - scrx), (int)(e->z-e->a - scry), z, f, drawmethod, sortid);
 					}
 
 					can_mirror = (use_mirror && self->z>MIRROR_Z);
 					if(can_mirror)
 					{
-						spriteq_add_sprite((int)(e->x-scrx), (int)((2*MIRROR_Z - e->z)-e->a-scry), 2*PANEL_Z - z , f, drawmethod, MAX_ENTS - (e->bound?e->bound->sortid-1:e->sortid));
+						spriteq_add_sprite((int)(e->x-scrx), (int)((2*MIRROR_Z - e->z)-e->a-scry), 2*PANEL_Z - z , f, drawmethod, MAX_ENTS*100 - sortid);
 					}
 				}//end of if(f<sprites_loaded)
 
@@ -13186,7 +13190,7 @@ void display_ents()
 			if(e->arrowon)    // Display the players image while invincible to indicate player number
 			{
 				if(e->modeldata.parrow[(int)e->playerindex][0] && e->invincible == 1)
-					spriteq_add_sprite((int)(e->x - scrx + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->z-e->a-scry + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->z, e->modeldata.parrow[(int)e->playerindex][0], NULL, e->sortid*2);
+					spriteq_add_sprite((int)(e->x - scrx + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->z-e->a-scry + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->z, e->modeldata.parrow[(int)e->playerindex][0], NULL, sortid*2);
 			}
 		}// end of if(ent_list[i]->exists)
 	}// end of for
