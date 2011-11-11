@@ -8555,7 +8555,7 @@ void unload_level(){
 	cameratype = 0;
 	light[0] = 128;
 	light[1] = 64;
-	//gfx_y_offset = 0;    // Added so select screen graphics display correctly
+	gfx_y_offset = gfx_x_offset = gfx_y_offset_adj = 0;    // Added so select screen graphics display correctly
 }
 
 char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
