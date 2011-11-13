@@ -22143,6 +22143,8 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 				strncpy(player[i].name, savelevel[current_set].pName[i], MAX_NAME_LEN);
 			}
 			credits = savelevel[current_set].credits;
+			reset_playable_list(1); // add this because there's no select screen, temporary solution
+			//TODO: change sav format to support custom allowselect list.
 		}
 	}
 	else
