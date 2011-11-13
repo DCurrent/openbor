@@ -303,7 +303,7 @@ HRESULT Interpreter_EvaluateCall(Interpreter* pinterpreter)
 	HRESULT hr = S_OK;
 	//Evaluate instructions until an error occurs or until the m_bCallCompleted
 	//flag is set to true.
-	while(pinterpreter->bReset && ( SUCCEEDED(hr) ) && ( !pinterpreter->bCallCompleted )){
+	while( ( SUCCEEDED(hr) ) && ( !pinterpreter->bCallCompleted )){//pinterpreter->bReset &&
 		hr = Interpreter_EvalInstruction(pinterpreter);
 	}
 	return hr;
