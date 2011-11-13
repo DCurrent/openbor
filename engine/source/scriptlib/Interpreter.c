@@ -286,6 +286,8 @@ HRESULT Interpreter_EvaluateImmediate(Interpreter* pinterpreter)
 		pinterpreter->bCallCompleted = FALSE;
 	}
 
+	pinterpreter->bReset = FALSE;
+
 	return hr;
 }
 
@@ -301,7 +303,7 @@ HRESULT Interpreter_EvaluateCall(Interpreter* pinterpreter)
 	HRESULT hr = S_OK;
 	//Evaluate instructions until an error occurs or until the m_bCallCompleted
 	//flag is set to true.
-	while(( SUCCEEDED(hr) ) && ( !pinterpreter->bCallCompleted )){
+	while(pinterpreter->bReset && ( SUCCEEDED(hr) ) && ( !pinterpreter->bCallCompleted )){
 		hr = Interpreter_EvalInstruction(pinterpreter);
 	}
 	return hr;
@@ -1037,6 +1039,7 @@ void Interpreter_Reset(Interpreter* pinterpreter)
 	pinterpreter->pCurrentInstruction = NULL;
 	//Reset the main flag
 	pinterpreter->bMainCompleted = FALSE;
+	pinterpreter->bReset = TRUE;
 }
 
 /******************************************************************************

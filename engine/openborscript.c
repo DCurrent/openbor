@@ -373,10 +373,12 @@ void Script_Clear(Script* pscript, int localclear)
 		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
 		tempvar.lVal = (LONG)localclear;
 		Script_Set_Local_Variant(pscript, "localclear", &tempvar);
+		Interpreter_Reset(pscript->pinterpreter);
 		pscript->pinterpreter->pCurrentInstruction = pscript->pinterpreter->pClearEntry;
 		if(FAILED( Interpreter_EvaluateCall(pscript->pinterpreter))){
 			shutdown(1, "Fatal: failed to execute 'clear' in script %s %s", pscript->pinterpreter->theSymbolTable.name, pscript->comment?pscript->comment:"");
 		}
+		pscript->pinterpreter->bReset = FALSE; // not needed, perhaps
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(pscript, "localclear", &tempvar);
 		pcurrentscript = temp;

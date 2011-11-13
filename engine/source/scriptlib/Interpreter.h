@@ -41,6 +41,7 @@ typedef struct Interpreter {
 
    BOOL bCallCompleted;
    BOOL bMainCompleted;
+   BOOL bReset; // 2011/11/13 UT: prevent nested call which is not supported by the script interpreter
 }Interpreter;
 
 void Interpreter_Init(Interpreter* pinterpreter, LPCSTR name, List* pflist);
