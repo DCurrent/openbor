@@ -2736,6 +2736,7 @@ enum getentityproperty_enum {
 	_gep_tosstime,
 	_gep_tossv,
 	_gep_type,
+	_gep_vulnerable,
 	_gep_weapent,
 	_gep_x,
 	_gep_xdir,
@@ -3082,6 +3083,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"tosstime",
 		"tossv",
 		"type",
+		"vulnerable",
 		"weapent",
 		"x",
 		"xdir",
@@ -3888,25 +3890,46 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		(*pretvar)->dblVal = (DOUBLE)ent->base;
 		break;
 	}
+	case _gep_vulnerable:
+	{
+		if(paramCount==2){
+			i		= ent->animnum;
+			tempint	= ent->animpos;
+		}
+		else if(paramCount<4
+			|| varlist[2]->vt != VT_INTEGER
+			|| varlist[3]->vt != VT_INTEGER)
+		{
+			printf("\n Error, getentityproperty({ent}, \"vulnerable\", {animation}, {frame}): parameters missing or invalid. \n");
+			return E_FAIL;
+		}else{
+			i		= varlist[2]->lVal;												//Animation parameter.
+			tempint	= varlist[3]->lVal;												//Frame parameter.
+		}
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->vulnerable[tempint];
+		break;
+	}
 	case _gep_bbox:
 	{
-		if(paramCount<6) break;
-
-		if(varlist[2]->vt != VT_INTEGER
+		if(paramCount<6
+			|| varlist[2]->vt != VT_INTEGER
 			|| varlist[3]->vt != VT_INTEGER
 			|| varlist[4]->vt != VT_INTEGER
 			|| varlist[5]->vt != VT_INTEGER)
 		{
-			printf("\n Error, getentityproperty({ent}, 'bbox', {index}, {animation}, {frame}, {arg}): {index}, {Animation}, {frame}, or {arg} parameter is missing or invalid. \n");
+			printf("\n Error, getentityproperty({ent}, \"bbox\", {index}, {animation}, {frame}, {arg}): parameters  missing or invalid. \n");
 			return E_FAIL;
 		}
 
-		//varlist[3]->lval;														//bbox index (multiple bbox support).
+		//varlist[2]->lval;														//bbox index (multiple bbox support).
 		i		= varlist[3]->lVal;												//Animation parameter.
 		tempint	= varlist[4]->lVal;												//Frame parameter.
 
-		if(!ent->modeldata.animation[i]->bbox_coords)
+		if(!ent->modeldata.animation[i]->vulnerable[tempint])
 		{
+			
+			ScriptVariant_Clear(*pretvar);
 			break;
 		}
 
