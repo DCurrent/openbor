@@ -8570,7 +8570,7 @@ char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
 	value = GET_ARGP(1);
 
 	tempnode = level->spawn_script_cache_head;
-	if(!next->spawn_script_list_head) next->spawn_script_list_head = NULL;
+
 	templistnode = next->spawn_script_list_head;
 	if(templistnode) {
 		while(templistnode->next)
@@ -8600,12 +8600,7 @@ char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
 	}
 	if(!templistnode->spawn_script) {
 		templistnode->spawn_script = alloc_script();
-		if(!Script_IsInitialized(templistnode->spawn_script))
-			Script_Init(templistnode->spawn_script, GET_ARGP(0), NULL, 0);
-		else {
-			result = "Multiple spawn entry script!";
-			goto lCleanup;
-		}
+		Script_Init(templistnode->spawn_script, GET_ARGP(0), NULL, 0);
 
 		if(load_script(templistnode->spawn_script, value)) {
 			Script_Compile(templistnode->spawn_script);
@@ -8629,10 +8624,8 @@ char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
 			}
 		} else {
 			result = "Failed loading spawn entry script!";
-			goto lCleanup;
 		}
 	}
-	lCleanup:
 	return result;
 }
 
