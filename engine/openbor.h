@@ -50,8 +50,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #define		exit				borExit
-//#define		time				borTime
-extern u32 time;
+#define		time				borTime
 #define		kill				borKill
 #define		pause				borPause
 #define		shutdown			borShutdown
