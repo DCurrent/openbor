@@ -8550,6 +8550,7 @@ void unload_level(){
 	pause = 0;
 	endgame = 0;
 	go_time = 0;
+	debug_time = 0;
 	neon_time = 0;
 	time = 0;
 	cameratype = 0;
@@ -20713,12 +20714,10 @@ void update(int ingame, int usevwait)
 	if(pause!=2 && !noscreenshot && (bothnewkeys&FLAG_SCREENSHOT)) screenshot(vscreen, getpal, 1);
 
 	// Debug stuff, should not appear on screenshot
-	if(debug_time==0xFFFFFFFF) debug_time = time + GAME_SPEED * 5;
+	//if(debug_time==0xFFFFFFFF) debug_time = time + GAME_SPEED * 5;
 	if(time<debug_time && debug_msg[0])
 	{
-		spriteq_clear();
-		font_printf(0,230, 0, 0, debug_msg);
-		spriteq_draw(vscreen, (ingame==0), MIN_INT, MAX_INT, 0, 0);
+		screen_printf(vscreen, 0 , 230, 0, debug_msg);
 	}
 	else
 	{

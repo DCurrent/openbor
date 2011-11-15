@@ -126,7 +126,7 @@ size_t getNewLineStart(char* buf) {
 FILE* openborLog = NULL;
 FILE* scriptLog = NULL;
 char debug_msg[2048];
-unsigned long debug_time = 0xFFFFFFFF;
+u32 debug_time = 0;
 
 void getBasePath(char *newName, char *name, int type)
 {
@@ -251,7 +251,7 @@ void debug_printf(char *format, ...){
 	vsprintf(debug_msg, format, arglist);
 	va_end(arglist);
 
-	debug_time = 0xFFFFFFFF;
+	debug_time = time + GAME_SPEED*5;
 }
 
 void getPakName(char* name, int type){
