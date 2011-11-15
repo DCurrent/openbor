@@ -19,7 +19,7 @@
 
 // *** VARIABLE DECLARATIONS ***
 extern char debug_msg[2048];
-extern unsigned long debug_time;
+extern u32 debug_time;
 
 // *** FUNCTIONS DECLARATIONS ***
 void writeToLogFile(const char *, ...);
