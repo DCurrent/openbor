@@ -164,18 +164,7 @@ void screen_printf(s_screen * screen, int x, int y, int which, char *format, ...
 	while(*buf){
 		if(*buf>=32)
 		{
-			switch(screen->pixelformat)
-			{
-			case PIXEL_8:
-				putsprite_8(x, y, 0, fonts[which].token[((int)(*buf)) & 0xFF], screen, NULL, NULL);
-				break;
-			case PIXEL_16:
-				putsprite_x8p16(x, y, 0, fonts[which].token[((int)(*buf)) & 0xFF], screen, NULL, NULL);
-				break;
-			case PIXEL_32:
-				putsprite_x8p32(x, y, 0, fonts[which].token[((int)(*buf)) & 0xFF], screen, NULL, NULL);
-				break;
-			}
+			putsprite(x, y, fonts[which].token[((int)(*buf)) & 0xFF], screen, NULL);
 			x += fonts[which].token_width[((int)(*buf)) & 0xFF];
 		}
 		else if(*buf=='\n'){
