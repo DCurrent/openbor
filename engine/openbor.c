@@ -20714,7 +20714,7 @@ void update(int ingame, int usevwait)
 	if(pause!=2 && !noscreenshot && (bothnewkeys&FLAG_SCREENSHOT)) screenshot(vscreen, getpal, 1);
 
 	// Debug stuff, should not appear on screenshot
-	//if(debug_time==0xFFFFFFFF) debug_time = time + GAME_SPEED * 5;
+	if(debug_time==0xFFFFFFFF) debug_time = time + GAME_SPEED * 5;
 	if(time<debug_time && debug_msg[0])
 	{
 		screen_printf(vscreen, 0 , 230, 0, debug_msg);

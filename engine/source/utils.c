@@ -251,7 +251,7 @@ void debug_printf(char *format, ...){
 	vsprintf(debug_msg, format, arglist);
 	va_end(arglist);
 
-	debug_time = time + GAME_SPEED*5;
+	debug_time = 0xFFFFFFFF;
 }
 
 void getPakName(char* name, int type){
