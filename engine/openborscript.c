@@ -6504,7 +6504,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		}
 		if(paramCount >= 3 && (*pretvar)->lVal == (LONG)1)
 		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
+			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
 				ent->modeldata.edelay.factor = (float)dbltemp;
 		}
 		if(paramCount >= 4 && (*pretvar)->lVal == (LONG)1)
