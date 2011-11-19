@@ -2628,6 +2628,7 @@ enum getentityproperty_enum {
 	_gep_blockpain,
 	_gep_boss,
 	_gep_bounce,
+	_gep_candamage,
 	_gep_chargerate,
 	_gep_colourmap,
 	_gep_colourtable,
@@ -2658,6 +2659,7 @@ enum getentityproperty_enum {
 	_gep_hitbyid,
 	_gep_hmapl,
 	_gep_hmapu,
+	_gep_hostile,
 	_gep_icon,
 	_gep_invincible,
 	_gep_invinctime,
@@ -2700,6 +2702,7 @@ enum getentityproperty_enum {
 	_gep_pathfindstep,
 	_gep_playerindex,
 	_gep_projectile,
+	_gep_projectilehit,
 	_gep_range,
 	_gep_running,
 	_gep_rush_count,
@@ -2975,6 +2978,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"blockpain",
 		"boss",
 		"bounce",
+		"candamage",
 		"chargerate",
 		"colourmap",
 		"colourtable",
@@ -3005,6 +3009,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"hitbyid",
 		"hmapl",
 		"hmapu",
+		"hostile",
 		"icon",
 		"invincible",
 		"invinctime",
@@ -3047,6 +3052,7 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
 		"pathfindstep",
 		"playerindex",
 		"projectile",
+		"projectilehit",
 		"range",
 		"running",
 		"rush_count",
@@ -3973,6 +3979,24 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)ent->modeldata.bounce;
+		break;
+	}
+	case _gep_candamage:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.candamage;
+		break;
+	}
+	case _gep_hostile:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.hostile;
+		 break;
+	}
+    case _gep_projectilehit:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->modeldata.projectilehit;
 		break;
 	}
 	case _gep_chargerate:
@@ -6314,6 +6338,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
 	case _cep_candamage:
 	{
+		if(varlist[2]->vt == VT_INTEGER && paramCount==3 && (varlist[2]->lVal&0x80000000)){ //trick for those who don't use string map
+			ent->modeldata.candamage = varlist[2]->lVal;
+			break;
+		}
+
 		ent->modeldata.candamage = 0;
 
 		for(i=2; i<paramCount; i++)
@@ -6684,8 +6713,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _cep_hostile:
 	{
 
-		ent->modeldata.hostile = 0;
+		if(varlist[2]->vt == VT_INTEGER && paramCount==3 && (varlist[2]->lVal&0x80000000)){ //trick for those who don't use string map
+			ent->modeldata.hostile = varlist[2]->lVal;
+			break;
+		}
 
+		ent->modeldata.hostile = 0;
 		for(i=2; i<paramCount; i++)
 		{
 			if(varlist[i]->vt == VT_INTEGER) // known entity type
@@ -7077,6 +7110,10 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
     case _cep_projectilehit:
 	{
+		if(varlist[2]->vt == VT_INTEGER && paramCount==3 && (varlist[2]->lVal&0x80000000)){ //trick for those who don't use string map
+			ent->modeldata.projectilehit = varlist[2]->lVal;
+			break;
+		}
 
 		ent->modeldata.projectilehit = 0;
 
