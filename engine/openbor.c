@@ -16547,7 +16547,7 @@ int star_move(){
 //root function for aimove
 int common_move()
 {
-	int aimove, makestop = 0;
+	int aimove, makestop = 0, reachx, reachz;
 	int air = inair(self);
 	entity* other = NULL; //item
 	entity* target = NULL;//hostile target
@@ -16674,37 +16674,29 @@ int common_move()
 					pxc = pzc = 0;
 					
 					if(aimove&AIMOVE1_WANDER) {
-						patx[pxc] = AIMOVE1_WANDER;
-						pxc++;
-						patz[pzc] = AIMOVE1_WANDER;
-						pzc++;
+						patx[pxc++] = AIMOVE1_WANDER;
+						patx[pxc++] = AIMOVE1_WANDER;
+						patz[pzc++] = AIMOVE1_WANDER;
+						patz[pzc++] = AIMOVE1_WANDER;
 					}
 					if(aimove&AIMOVE1_CHASEX) {
-						patx[pxc] = AIMOVE1_CHASEX;
-						pxc++;
+						patx[pxc++] = AIMOVE1_CHASEX;
 					}
 					if(aimove&AIMOVE1_AVOIDX) {
-						patx[pxc] = AIMOVE1_AVOIDX;
-						pxc++;
+						patx[pxc++] = AIMOVE1_AVOIDX;
 					}
 					if(aimove&AIMOVE1_CHASEZ) {
-						patz[pzc] = AIMOVE1_CHASEZ;
-						pzc++;
+						patz[pzc++] = AIMOVE1_CHASEZ;
 					}
 					if(aimove&AIMOVE1_AVOIDZ) {
-						patz[pzc] = AIMOVE1_AVOIDZ;
-						pzc++;
+						patz[pzc++] = AIMOVE1_AVOIDZ;
 					}
 					if(!pxc) {
-						patx[pxc] = AIMOVE1_WANDER;
-						pxc++;
+						patx[pxc++] = AIMOVE1_WANDER;
 					}
 					if(!pzc) {
-						patz[pzc] = AIMOVE1_WANDER;
-						pzc++;
+						patz[pzc++] = AIMOVE1_WANDER;
 					}
-					patz[pzc++] = AIMOVE1_WANDER;
-					patx[pxc++] = AIMOVE1_WANDER;
 					px = patx[(rand32()&0xff)%pxc];
 					pz = patz[(rand32()&0xff)%pzc];
 
@@ -16776,21 +16768,23 @@ int common_move()
 		}
 
 		// check destination point to make a stop or pop a waypoint from the stack
-		if(diff(self->x, self->destx)<1 && diff(self->z, self->destz)<1){
+		reachx = (diff(self->x, self->destx)<MAX(1,ABS(self->xdir)));
+		reachz = (diff(self->z, self->destz)<MAX(1,ABS(self->zdir)));
 
+		// check destination point to make a stop or pop a waypoint from the stack
+		if(reachx&&reachz){
 			if(self->waypoints && self->numwaypoints){
 				self->destx = self->waypoints[self->numwaypoints-1].x;
 				self->destz = self->waypoints[self->numwaypoints-1].z;
 				self->numwaypoints--;
-			}else {
-				if(self->xdir || self->zdir) makestop = 1;
-				self->zdir = self->xdir = 0;
-				self->destz = self->z;
-				self->destx = self->x;
-			}
-			//if(self->stalltime>time) self->stalltime = time + 1;
+			}else if(self->xdir || self->zdir) makestop = 1;
 		}
 
+		if(!self->waypoints || !self->numwaypoints){
+			if(reachx) {self->xdir=0; self->destx=self->x;}
+			if(reachz) {self->zdir=0; self->destz=self->z;}
+		}
+		
 		// stoped so play idle, preventinng funny stepping bug, but may cause flickering
 		if(!self->xdir && !self->zdir && !self->waypoints){
 			set_idle(self);
