@@ -14773,14 +14773,15 @@ int common_try_block(entity* target)
 // when testonly is set, the function will not check special attacks (upper, jumpattack)
 // if target is NULL, ranges are not checked
 int pick_random_attack(entity* target, int testonly){
-	int found = 0, i;
+	int found = 0, i, j;
 
 	for(i=0; i<max_attacks; i++) // TODO: recheck range for attacks chains
 	{
 		if(validanim(self,animattacks[i]) &&
 			(!target || check_range(self, target, animattacks[i])))
 		{
-			atkchoices[found++] = animattacks[i];
+			for(j=((5-i)>=0?(5-i):0)*3; j>=0; j--) 
+				atkchoices[found++] = animattacks[i];
 		}
 	}
 	for(i=0; i<max_freespecials; i++)
@@ -14827,11 +14828,31 @@ int pick_random_attack(entity* target, int testonly){
 
 int common_try_normalattack(entity* target)
 {
+	float chance1, chance2;
 	target = normal_find_target(-1, 0);
 
 	if(!target) return 0;
 	if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking || target->takeaction==common_rise)) 
 		return 0;
+
+	// code to lower the chance of attacks, may change while testing old mods
+	if(!self->combostep[0] || self->combotime<=time){ //only check this if the char not having an atchain
+
+		chance1 = (100 + self->modeldata.aggression)/100.0;
+
+		if(chance1<0.5) chance1 = 0.5;
+		else if(chance1>5.0) chance1 = 5.0;
+
+		chance2 =  (videomodes.hRes/2-diff(self->x, self->destx)-diff(self->z, self->destz))/videomodes.hRes*200;
+
+		if(chance2<10) chance2 = 10;
+
+		//printf("%s %d %f %f\n", self->name, self->modeldata.aggression, chance1, chance2);
+
+		if((rand32()&0xfff)>chance1*chance2*10.0) return 0;
+
+	}
+
 
 	if(pick_random_attack(target, 1)>=0) {
 		self->takeaction = normal_prepare;
@@ -14850,7 +14871,20 @@ int common_try_normalattack(entity* target)
 int common_try_jumpattack(entity* target)
 {
 	entity* dust;
-	int rnum, ani = 0 ;
+	int rnum, ani = 0;
+	float chance1, chance2;
+
+	// code to lower the chance of attacks, may change while testing old mods
+	chance1 = (100 + self->modeldata.aggression)/100.0;
+
+	if(chance1<0.5) chance1 = 0.5;
+	else if(chance1>5.0) chance1 = 5.0;
+
+	chance2 = (videomodes.hRes/2-diff(self->x, self->destx)-diff(self->z, self->destz))/videomodes.hRes*200;
+
+	if(chance2<10) chance2 = 10;
+
+	if((rand32()&0xfff)>chance1*chance2*4.0) return 0;
 
 	if((validanim(self,ANI_JUMPATTACK) || validanim(self,ANI_JUMPATTACK2)))
 	{
