@@ -98,7 +98,12 @@ void putscreenx8p16(s_screen * dest, s_screen * src, int x, int y, int key, unsi
 		{
 			// Copy data
 			do{
-				u16pcpy(dp, sp, remap, cw);
+				//u16pcpy(dp, sp, remap, cw);
+				i=cw-1;
+				do
+				{
+				   dp[i] = remap[sp[i]];
+				}while(i--);
 				sp += sw;
 				dp += dw;
 			}while(--ch);

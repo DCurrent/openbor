@@ -328,7 +328,7 @@ int video_gl_copy_screen(s_screen* src)
 	unsigned char *sp;
 	unsigned char *dp;
 	int width, height, linew, slinew;
-	int h;
+	int h, i;
 	float texScale;
 	SDL_Surface* ds = NULL;
 
@@ -352,7 +352,12 @@ int video_gl_copy_screen(s_screen* src)
 		slinew = src->width*bytesPerPixel;
 
 		do{
-			u16pcpy((unsigned short*)dp, sp, glpalette, linew);
+			//u16pcpy((unsigned short*)dp, sp, glpalette, linew);
+			i=linew-1;
+			do
+			{
+			   ((unsigned short*)dp)[i] = glpalette[sp[i]];
+			}while(i--);
 			sp += slinew;
 			dp += ds->pitch;
 		}while(--h);

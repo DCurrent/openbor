@@ -30,10 +30,10 @@ static void putsprite_(
 	  if((lx + count) <= 0) { lx += count; data += count; continue; }
 	  if(lx < 0) { count += lx; data -= lx; lx = 0; }
 	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
-	  //for(; count > 0; count--)  dest[lx++] = palette[*data++];
-	  u16pcpy(dest+lx, data, palette, count);
-	  lx+=count;
-	  data+=count;
+	  for(; count > 0; count--)  dest[lx++] = palette[*data++];
+	  //u16pcpy(dest+lx, data, palette, count);
+	  //lx+=count;
+	  //data+=count;
 	}
   }
 }
@@ -54,11 +54,11 @@ static void putsprite_flip_(
 	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
 	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
 	  if((lx - count) < 0) { count = lx; }
-	  //for(; count > 0; count--) dest[--lx] = palette[*data++];
-	  --lx;
-	  u16revpcpy(dest+lx, data, palette, count);
-	  lx-=count-1;
-	  data+=count;
+	  for(; count > 0; count--) dest[--lx] = palette[*data++];
+	  //--lx;
+	  //u16revpcpy(dest+lx, data, palette, count);
+	  //lx-=count-1;
+	  //data+=count;
 	}
   }
 }

@@ -54,11 +54,11 @@ static void putsprite_flip_(
 	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
 	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
 	  if((lx - count) < 0) { count = lx; }
-	  //for(; count > 0; count--) dest[--lx] = *data++;
-	  lx--;
-	  u8revcpy(dest+lx, data, count);
-	  lx-=count-1;
-	  data+=count;
+	  for(; count > 0; count--) dest[--lx] = *data++;
+	  //lx--;
+	  //u8revcpy(dest+lx, data, count);
+	  //lx-=count-1;
+	  //data+=count;
 	}
   }
 }
@@ -80,10 +80,10 @@ static void putsprite_remap_(
 	  if((lx + count) <= 0) { lx += count; data += count; continue; }
 	  if(lx < 0) { count += lx; data -= lx; lx = 0; }
 	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
-	  //for(; count > 0; count--) dest[lx++] = remap[((int)(*data++))&0xFF];
-	  u8pcpy(dest+lx, data, remap, count);
-	  lx+=count;
-	  data+=count;
+	  for(; count > 0; count--) dest[lx++] = remap[((int)(*data++))&0xFF];
+	  //u8pcpy(dest+lx, data, remap, count);
+	  //lx+=count;
+	  //data+=count;
 	}
   }
 }
@@ -105,11 +105,11 @@ static void putsprite_remap_flip_(
 	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
 	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
 	  if((lx - count) < 0) { count = lx; }
-	  //for(; count > 0; count--) dest[--lx] = remap[((int)(*data++))&0xFF];
-	  lx--;
-	  u8revpcpy(dest+lx, data, remap, count);
-	  lx-=count-1;
-	  data+=count;
+	  for(; count > 0; count--) dest[--lx] = remap[((int)(*data++))&0xFF];
+	  //lx--;
+	  //u8revpcpy(dest+lx, data, remap, count);
+	  //lx-=count-1;
+	  //data+=count;
 	}
   }
 }

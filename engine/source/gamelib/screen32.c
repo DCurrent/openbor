@@ -99,7 +99,12 @@ void putscreenx8p32(s_screen * dest, s_screen * src, int x, int y, int key, u32*
 		{
 			// Copy data
 			do{
-				u32pcpy(dp, sp, remap, cw);
+				//u32pcpy(dp, sp, remap, cw);
+				i=cw-1;
+				do
+				{
+				   dp[i] = remap[sp[i]];
+				}while(i--);
 				sp += sw;
 				dp += dw;
 			}while(--ch);
