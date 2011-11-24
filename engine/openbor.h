@@ -758,6 +758,7 @@ typedef struct                                      //2011_04_01, DC: Distance t
 typedef struct
 {
 	int             model_index;
+	int				index;							//unique id
 	short			numframes:16;
 	s_loop 		    loop;                           // Animation looping. 2011_03_31, DC: Moved to struct.
 	short           height:16;                      // entity's height during animation

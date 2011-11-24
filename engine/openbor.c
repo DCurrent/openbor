@@ -1390,7 +1390,7 @@ void execute_animation_script(entity* ent)
 		tempvar.lVal = (LONG)ent->animpos;
 		Script_Set_Local_Variant(cs, "frame",   &tempvar);
 		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-		tempvar.lVal = (LONG)ent->animation;
+		tempvar.lVal = (LONG)ent->animation->index;
 		Script_Set_Local_Variant(cs, "animhandle",   &tempvar);
 		if(Script_IsInitialized(s1)){
 			Script_Copy(cs, s1, 0);
@@ -3844,11 +3844,13 @@ void free_models()
 
 s_anim * alloc_anim()
 {
+	static int animindex = 0;
 	s_anim_list *curr = NULL, *head = NULL;
 	curr = malloc(sizeof(s_anim_list));
 	curr->anim = malloc(sizeof(s_anim));
 	if(curr == NULL || curr->anim == NULL) return NULL;
 	memset(curr->anim, 0, sizeof(s_anim));
+	curr->anim->index = animindex++;
 	if(anim_list == NULL){
 		anim_list = curr;
 		anim_list->next = NULL;
@@ -7052,7 +7054,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(ani_id>=0)
 					{
 						if(script_id != ani_id){ // if expression 1
-							sprintf(namebuf, ifid_text, newanim);
+							sprintf(namebuf, ifid_text, newanim->index);
 							strcat(scriptbuf, namebuf);
 							script_id = ani_id;
 						}
@@ -7087,7 +7089,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					scriptbuf[strlen(scriptbuf) - strlen(sur_text)] = 0; // cut last chars
 					if(script_id != ani_id){ // if expression 1
-						sprintf(namebuf, ifid_text, newanim);
+						sprintf(namebuf, ifid_text, newanim->index);
 						strcat(scriptbuf, namebuf);
 						script_id = ani_id;
 					}
