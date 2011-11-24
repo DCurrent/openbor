@@ -2693,8 +2693,8 @@ int inair(entity *e)
 float randf(float max){
 	float f;
 	if(max==0) return 0;
-	f = (float)(rand32()%1000);
-	f /= (1000/max);
+	f = (float)(rand32()%10000);
+	f /= (10000/max);
 	return f;
 }
 
@@ -14826,6 +14826,8 @@ int pick_random_attack(entity* target, int testonly){
 	return -1;
 }
 
+static float chancena[11] = {0,0.7498942093324559,0.8177654339579425,0.8602806544914777,0.8917795292374964,0.9170040432046712,0.9381427059852853,0.9563949075714981,0.9724924724660731,0.9869162813660015,1};
+
 int common_try_normalattack(entity* target)
 {
 	float chance1, chance2;
@@ -14838,18 +14840,22 @@ int common_try_normalattack(entity* target)
 	// code to lower the chance of attacks, may change while testing old mods
 	if(!self->combostep[0] || self->combotime<=time){ //only check this if the char not having an atchain
 
-		chance1 = (100 + self->modeldata.aggression)/100.0;
+		chance1 = (150 + self->modeldata.aggression)/100.0;
 
-		if(chance1<0.5) chance1 = 0.5;
-		else if(chance1>5.0) chance1 = 5.0;
+		if(chance1<1) chance1 = 1;
+		else if(chance1>5) chance1 = 5;
 
-		chance2 =  (videomodes.hRes/2-diff(self->x, self->destx)-diff(self->z, self->destz))/videomodes.hRes*200;
+		chance1 = 1 + chance1/10;
 
-		if(chance2<10) chance2 = 10;
+		chance2 = (diff(self->x, self->destx)+diff(self->z, self->destz))/(videomodes.hRes+videomodes.vRes);
+
+		if(chance2>1) chance2 = 1;
+
+		chance2 = chancena[(int)(chance2*10)];
 
 		//printf("%s %d %f %f\n", self->name, self->modeldata.aggression, chance1, chance2);
-
-		if((rand32()&0xfff)>chance1*chance2*10.0) return 0;
+		
+		if(randf(1)<chance2/chance1) return 0;
 
 	}
 
@@ -14875,16 +14881,22 @@ int common_try_jumpattack(entity* target)
 	float chance1, chance2;
 
 	// code to lower the chance of attacks, may change while testing old mods
-	chance1 = (100 + self->modeldata.aggression)/100.0;
+	chance1 = (150 + self->modeldata.aggression)/100.0;
 
-	if(chance1<0.5) chance1 = 0.5;
-	else if(chance1>5.0) chance1 = 5.0;
+	if(chance1<1) chance1 = 1;
+	else if(chance1>5) chance1 = 5;
 
-	chance2 = (videomodes.hRes/2-diff(self->x, self->destx)-diff(self->z, self->destz))/videomodes.hRes*200;
+	chance1 = 1 + chance1/10;
 
-	if(chance2<10) chance2 = 10;
+	chance2 = (diff(self->x, self->destx)+diff(self->z, self->destz))/(videomodes.hRes+videomodes.vRes);
 
-	if((rand32()&0xfff)>chance1*chance2*4.0) return 0;
+	if(chance2>1) chance2 = 1;
+
+	chance2 = chancena[(int)(chance2*10)];
+
+	//printf("%s %d %f %f\n", self->name, self->modeldata.aggression, chance1, chance2);
+	
+	if(randf(1)<chance2/chance1) return 0;
 
 	if((validanim(self,ANI_JUMPATTACK) || validanim(self,ANI_JUMPATTACK2)))
 	{
