@@ -1112,10 +1112,10 @@ typedef struct
 	char			mprate:8;						// For time-based mp recovery.
 	char            mpdroprate:8;                   // Time based MP loss.
 	char            mpstable:8;                     // MP stable type.
-	short           mpstableval:16;                 // MP Stable target.
-	short			aggression:16;					// For enemy A.I.
+	short           mpstableval;                 // MP Stable target.
+	short			aggression;					// For enemy A.I.
 	short			risetime[2];					// 0 = Rise delay, 1 = Riseattack delay.
-	short			sleepwait:16;
+	short			sleepwait;
 	char            riseattacktype:8;
 	s_jugglepoints  jugglepoints;                   // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
 	s_guardpoints   guardpoints;                    // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
@@ -1126,9 +1126,9 @@ typedef struct
 	s_stealth       stealth;						// Invisibility to AI feature added by DC. 2011_04_05, DC: Moved to struct.
 
 	//---------------new A.I. switches-----------
-	short           hostile:16;                     // specify hostile types
-	short           candamage:16;                   // specify types that can be damaged by this entity
-	short           projectilehit:16;               // specify types that can be hit by this entity if it is thrown
+	short           hostile;                     // specify hostile types
+	short           candamage;                   // specify types that can be damaged by this entity
+	short           projectilehit;               // specify types that can be hit by this entity if it is thrown
 	unsigned int    aimove:32;                      // move style
 	s_sight			sight;						    // Sight range. 2011_04_05, DC: Moved to struct.
 	unsigned int    aiattack:32;                    // attack/defend style
@@ -1258,6 +1258,7 @@ typedef struct entity
 	u32 guardtime;
 	u32 nextanim;
 	u32 nextthink;
+	u32 nextattack;
 	u32 pain_time;
 	u32 mpchargetime;					// For the CHARGE animation
 	u32 sleeptime;						// For the SLEEP animation

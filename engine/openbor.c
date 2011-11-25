@@ -11956,6 +11956,10 @@ void do_attack(entity *e)
 
 				self->hit_by_attack_id = current_attack_id;
 				if(self==def) self->blocking = didblock; // yeah, if get hit, stop blocking
+				
+				//2011/11/24 UT: move the pain_time logic here, 
+				// because block needs this as well otherwise blockratio causes instant death
+				self->pain_time = time + (attack->pain_time?attack->pain_time:(GAME_SPEED / 5));
 			}//end of if #05
 			self = temp;
 		}//end of if #0
@@ -14609,7 +14613,8 @@ int common_takedamage(entity *other, s_attack* attack)
 	if(!checkgrab(other, attack)) return 0; // try to grab but failed, so return 0 means attack missed
 
 	// set pain_time so it wont get hit too often
-	self->pain_time = time + (attack->pain_time?attack->pain_time:(GAME_SPEED / 5));
+	// 2011/11/24 UT: move this to do_attack to merge with block code
+	//self->pain_time = time + (attack->pain_time?attack->pain_time:(GAME_SPEED / 5));
 	// set oppoent
 	if(self!=other) set_opponent(self, other);
 	// adjust type
@@ -14828,45 +14833,48 @@ int pick_random_attack(entity* target, int testonly){
 	return -1;
 }
 
-static float chancena[11] = {0,0.7498942093324559,0.8177654339579425,0.8602806544914777,0.8917795292374964,0.9170040432046712,0.9381427059852853,0.9563949075714981,0.9724924724660731,0.9869162813660015,1};
+// code to lower the chance of attacks, may change while testing old mods
+int check_attack_chance(float min, float max){
+	
+	float chance;//, aggfix;
+	chance = (diff(self->x, self->destx)+diff(self->z, self->destz))/(videomodes.hRes+videomodes.vRes)*4;
+
+	if(chance>max) chance = max;
+	else if(chance<min) chance = min;
+
+	//aggfix = (self->modeldata.aggression+100)/100.0;
+	//if(aggfix<0.5) aggfix = 0.5;
+	//else if(aggfix>1.0) aggfix = 1.0;
+
+	//chance = 1.0 - (1.0-chance)*aggfix;
+
+	//printf("%s  %f %d\n", self->name, chance, self->modeldata.aggression);
+
+	return (randf(1)>=chance);
+}
 
 int common_try_normalattack(entity* target)
 {
-	float chance1, chance2;
 	target = normal_find_target(-1, 0);
+
+	if(self->nextattack>time) return 0;
 
 	if(!target) return 0;
 	if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking || target->takeaction==common_rise)) 
 		return 0;
 
-	// code to lower the chance of attacks, may change while testing old mods
-	if(!self->combostep[0] || self->combotime<=time){ //only check this if the char not having an atchain
-
-		chance1 = (150 + self->modeldata.aggression)/100.0;
-
-		if(chance1<1) chance1 = 1;
-		else if(chance1>5) chance1 = 5;
-
-		chance1 = 1 + chance1/10;
-
-		chance2 = (diff(self->x, self->destx)+diff(self->z, self->destz))/(videomodes.hRes+videomodes.vRes);
-
-		if(chance2>1) chance2 = 1;
-
-		chance2 = chancena[(int)(chance2*10)];
-
-		//printf("%s %d %f %f\n", self->name, self->modeldata.aggression, chance1, chance2);
-		
-		if(randf(1)<chance2/chance1) return 0;
-
-	}
-
-
 	if(pick_random_attack(target, 1)>=0) {
+		if(self->combostep[0] && self->combotime>time) self->stalltime = time+1;
+		else 
+		{
+			if(!check_attack_chance(0.4, 0.85)) {
+				self->nextattack = time + GAME_SPEED/2;
+				return 0;
+			} else
+				self->stalltime = time + MAX(GAME_SPEED/4,(int)((GAME_SPEED/4) + (rand32()%(GAME_SPEED/10) - self->modeldata.aggression)));
+		}
 		self->takeaction = normal_prepare;
 		self->zdir = self->xdir = 0;
-		if(self->combostep[0] && self->combotime>time) self->stalltime = time+1;
-		else self->stalltime = time + MAX(0,(int)((GAME_SPEED/4) + (rand32()%(GAME_SPEED/10) - self->modeldata.aggression)));
 		set_idle(self);
 		self->idling = 0; // not really idle, in fact it is thinking
 		self->attacking = -1; // pre-attack, for AI-block check
@@ -14880,33 +14888,15 @@ int common_try_jumpattack(entity* target)
 {
 	entity* dust;
 	int rnum, ani = 0;
-	float chance1, chance2;
 
-	// code to lower the chance of attacks, may change while testing old mods
-	chance1 = (150 + self->modeldata.aggression)/100.0;
-
-	if(chance1<1) chance1 = 1;
-	else if(chance1>5) chance1 = 5;
-
-	chance1 = 1 + chance1/10;
-
-	chance2 = (diff(self->x, self->destx)+diff(self->z, self->destz))/(videomodes.hRes+videomodes.vRes);
-
-	if(chance2>1) chance2 = 1;
-
-	chance2 = chancena[(int)(chance2*10)];
-
-	//printf("%s %d %f %f\n", self->name, self->modeldata.aggression, chance1, chance2);
-	
-	if(randf(1)<chance2/chance1) return 0;
+	if(self->nextattack>time) return 0;
 
 	if((validanim(self,ANI_JUMPATTACK) || validanim(self,ANI_JUMPATTACK2)))
 	{
 		if(!validanim(self,ANI_JUMPATTACK)) rnum = 1;
 		else if(validanim(self,ANI_JUMPATTACK2) && (rand32()&1)) rnum = 1;
 		else rnum = 0;
-
-
+		
 		if(rnum==0 &&
 			// do a jumpattack
 			(target || (target = normal_find_target(ANI_JUMPATTACK,0))) )
@@ -14914,6 +14904,10 @@ int common_try_jumpattack(entity* target)
 			if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
 				rnum = -1;
 			else{
+				if(!check_attack_chance(0.75,0.95)) {
+					self->nextattack = time +  GAME_SPEED/2;
+					return 0;
+				}
 				//ent_set_anim(self, ANI_JUMPATTACK, 0);
 				ani = ANI_JUMPATTACK;
 				if(self->direction) self->xdir = (float)1.3;
@@ -14928,6 +14922,10 @@ int common_try_jumpattack(entity* target)
 			if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
 				rnum = -1;
 			else{
+				if(!check_attack_chance(0.5,0.95)) {
+					self->nextattack = time +  GAME_SPEED/2;
+					return 0;
+				}
 				//ent_set_anim(self, ANI_JUMPATTACK2, 0);
 				ani = ANI_JUMPATTACK2;
 				self->xdir = self->zdir = 0;
@@ -16263,7 +16261,7 @@ int common_try_wander(entity* target, int dox, int doz)
 	} else	mindx = (!behind&&target->attacking)? grabd*3:grabd*1.2;
 	mindz = grabd/4;
 
-	mod = (time/GAME_SPEED/5 + self->sortid/100 + self->health/3 + self->pathblocked + self->modeldata.aggression/10) % 4;
+	mod = ((int)(time/(videomodes.hRes/self->modeldata.speed)) + self->sortid/100 + self->health/3 + self->pathblocked + self->modeldata.aggression/10) % 4;
 
 	if(dox){
 		if(self->x<screenx-borderdx){
@@ -19643,7 +19641,7 @@ int obstacle_takedamage(entity *other, s_attack* attack)
 		return 0;
 	}
 
-	self->pain_time = time + (attack->pain_time?attack->pain_time:(GAME_SPEED / 5));
+	//self->pain_time = time + (attack->pain_time?attack->pain_time:(GAME_SPEED / 5));
 	set_opponent(other, self);
 	if(self->opponent && self->opponent->modeldata.type==TYPE_PLAYER)
 	{
