@@ -14837,10 +14837,15 @@ int pick_random_attack(entity* target, int testonly){
 int check_attack_chance(float min, float max){
 	
 	float chance;//, aggfix;
-	chance = (diff(self->x, self->destx)+diff(self->z, self->destz))/(videomodes.hRes+videomodes.vRes)*4;
 
-	if(chance>max) chance = max;
-	else if(chance<min) chance = min;
+	if(self->x<screenx-10 || self->x>screenx+videomodes.hRes+10){
+		chance = MIN(0.2,min);
+	} else {
+		chance = (diff(self->x, self->destx)+diff(self->z, self->destz))/(videomodes.hRes+videomodes.vRes)*3;
+
+		if(chance>max) chance = max;
+		else if(chance<min) chance = min;
+	}
 
 	//aggfix = (self->modeldata.aggression+100)/100.0;
 	//if(aggfix<0.5) aggfix = 0.5;
@@ -14867,11 +14872,11 @@ int common_try_normalattack(entity* target)
 		if(self->combostep[0] && self->combotime>time) self->stalltime = time+1;
 		else 
 		{
-			if(!check_attack_chance(0.4, 0.85)) {
-				self->nextattack = time + GAME_SPEED/2;
+			if(!check_attack_chance(0.3, 0.85)) {
+				self->nextattack = time + (int)randf(GAME_SPEED*3/4);
 				return 0;
 			} else
-				self->stalltime = time + MAX(GAME_SPEED/4,(int)((GAME_SPEED/4) + (rand32()%(GAME_SPEED/10) - self->modeldata.aggression)));
+				self->stalltime = time + (int)randf((float)MAX(1,GAME_SPEED*3/4 - self->modeldata.aggression));
 		}
 		self->takeaction = normal_prepare;
 		self->zdir = self->xdir = 0;
