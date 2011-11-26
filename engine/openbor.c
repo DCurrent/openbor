@@ -14839,7 +14839,7 @@ int check_attack_chance(float min, float max){
 	float chance;//, aggfix;
 
 	if(self->x<screenx-10 || self->x>screenx+videomodes.hRes+10){
-		chance = MIN(0.2,min);
+		chance = MAX(0.9,max);
 	} else {
 		chance = (diff(self->x, self->destx)+diff(self->z, self->destz))/(videomodes.hRes+videomodes.vRes)*3;
 
