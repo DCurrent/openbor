@@ -6357,7 +6357,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			}
 			else
 			{
-				printf("You must pass one or more string constants for entity type.\n");
+				printf("You must pass one or more string constants for candamage entity type.\n");
 				goto changeentityproperty_error;
 			}
 		}
@@ -6728,7 +6728,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			}
 			else
 			{
-				printf("You must pass one or more string constants for entity type.\n");
+				printf("You must pass one or more string constants for hostile entity type.\n");
 				goto changeentityproperty_error;
 			}
 		}
@@ -7126,7 +7126,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			}
 			else
 			{
-				printf("You must pass one or more string constants for entity type.\n");
+				printf("You must pass one or more string constants for projectilehit entity type.\n");
 				goto changeentityproperty_error;
 			}
 		}
