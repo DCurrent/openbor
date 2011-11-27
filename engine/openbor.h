@@ -141,7 +141,7 @@
 #define		TYPE_ENDLEVEL		256					// New endlevel type that ends the level when touched
 #define     TYPE_NPC            512                 // A character can be an ally or enemy.
 #define     TYPE_PANEL          1024                // Fake panel, scroll with screen using model speed
-#define	    TYPE_RESERVED       0x80000000			// should not use as a type
+#define	    TYPE_RESERVED       0x40000000			// should not use as a type
 
 #define		SUBTYPE_NONE		0
 #define		SUBTYPE_BIKER		1

@@ -6338,7 +6338,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
 	case _cep_candamage:
 	{
-		if(varlist[2]->vt == VT_INTEGER && paramCount==3 && (varlist[2]->lVal&0x80000000)){ //trick for those who don't use string map
+		if(varlist[2]->vt == VT_INTEGER && paramCount==3 && (varlist[2]->lVal&TYPE_RESERVED)){ //trick for those who don't use string map
 			ent->modeldata.candamage = varlist[2]->lVal;
 			break;
 		}
@@ -6713,7 +6713,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _cep_hostile:
 	{
 
-		if(varlist[2]->vt == VT_INTEGER && paramCount==3 && (varlist[2]->lVal&0x80000000)){ //trick for those who don't use string map
+		if(varlist[2]->vt == VT_INTEGER && paramCount==3 && (varlist[2]->lVal&TYPE_RESERVED)){ //trick for those who don't use string map
 			ent->modeldata.hostile = varlist[2]->lVal;
 			break;
 		}
@@ -7110,7 +7110,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
     case _cep_projectilehit:
 	{
-		if(varlist[2]->vt == VT_INTEGER && paramCount==3 && (varlist[2]->lVal&0x80000000)){ //trick for those who don't use string map
+		if(varlist[2]->vt == VT_INTEGER && paramCount==3 && (varlist[2]->lVal&TYPE_RESERVED)){ //trick for those who don't use string map
 			ent->modeldata.projectilehit = varlist[2]->lVal;
 			break;
 		}
