@@ -116,6 +116,10 @@ typedef struct{
 typedef struct spritestruct{
 	int	centerx;
 	int	centery;
+	int offsetx;
+	int offsety;
+	int srcwidth;
+	int srcheight;
 	int	width;
 	int	height;
 	char pixelformat;
@@ -127,18 +131,16 @@ typedef struct spritestruct{
 struct sprite_list{
 	char *filename;
 	s_sprite *sprite;
+	int ref;
 	struct sprite_list *next;
 };
 typedef struct sprite_list s_sprite_list;
 s_sprite_list *sprite_list;
 
 typedef struct{
-	char *filename;
-	int  ofsx;
-	int	 ofsy;
+	s_sprite_list *node;
 	int  centerx;
 	int  centery;
-	s_sprite *sprite;
 }s_sprite_map;
 s_sprite_map *sprite_map;
 
