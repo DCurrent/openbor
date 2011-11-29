@@ -4503,7 +4503,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		if (i >= 0)
 		{
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			spr = sprite_map[i].sprite;
+			spr = sprite_map[i].node->sprite;
 			spr->centerx = sprite_map[i].centerx;
 			spr->centery = sprite_map[i].centery;
 			(*pretvar)->ptrVal = (VOID*)(spr);
@@ -5128,7 +5128,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_PTR);
 		i = ent->animation->sprite[ent->animpos];
-		spr = sprite_map[i].sprite;
+		spr = sprite_map[i].node->sprite;
 		spr->centerx = sprite_map[i].centerx;
 		spr->centery = sprite_map[i].centery;
 		(*pretvar)->ptrVal = (VOID*)(spr);
@@ -5174,9 +5174,10 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
             case _gep_spritea_file:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_STR);
-                strcpy(StrCache_Get((*pretvar)->strVal), sprite_map[i].filename);
+                strcpy(StrCache_Get((*pretvar)->strVal), sprite_map[i].node->filename);
                 break;
             }
+			/*
             case _gep_spritea_offsetx:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -5188,11 +5189,11 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)sprite_map[i].ofsy;
                 break;
-            }
+            }*/
             case _gep_spritea_sprite:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                spr = sprite_map[i].sprite;
+                spr = sprite_map[i].node->sprite;
                 spr->centerx = sprite_map[i].centery;
                 spr->centery = sprite_map[i].centery;
                 (*pretvar)->ptrVal = (VOID*)(spr);
@@ -7289,10 +7290,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
                     printf("You must provide a string value for file name.\n");
                     goto changeentityproperty_error;
                 }
-                strcpy(sprite_map[i].filename, (char*)StrCache_Get(varlist[5]->strVal));
+                strcpy(sprite_map[i].node->filename, (char*)StrCache_Get(varlist[5]->strVal));
                 (*pretvar)->lVal = (LONG)1;
                 break;
             }
+			/*
             case _cep_spritea_offsetx:
             {
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
@@ -7310,10 +7312,10 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
                     (*pretvar)->lVal = (LONG)1;
                 }
                 break;
-            }
+            }*/
             case _cep_spritea_sprite:
             {
-                sprite_map[i].sprite = (VOID*)varlist[5]->ptrVal;
+                sprite_map[i].node->sprite = (VOID*)varlist[5]->ptrVal;
                 (*pretvar)->lVal = (LONG)1;
                 break;
             }

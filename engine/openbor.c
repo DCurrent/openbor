@@ -3325,6 +3325,10 @@ s_sprite* loadsprite2(char *filename, int* width, int* height)
 		return NULL;
 	}
 	encodesprite(-clipl, -clipt, bitmap, sprite);
+	sprite->offsetx = clipl;
+	sprite->offsety = clipt;
+	sprite->srcwidth = bitmap->width;
+	sprite->srcheight = bitmap->height;
 	freebitmap(bitmap);
 
 	return sprite;
@@ -3376,10 +3380,7 @@ void prepare_sprite_map(size_t size)
 #ifdef VERBOSE
 		printf("%s %p\n", "prepare_sprite_map was", sprite_map);
 #endif
-		do {
-			sprite_map_max_items += 256;
-		}
-		while (size + 1 > sprite_map_max_items);
+		sprite_map_max_items = (((size+1)>>8)+1)<<8;
 		sprite_map = realloc(sprite_map, sizeof(s_sprite_map) * sprite_map_max_items);
 		if(sprite_map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new sprite_map\n");
 	}
@@ -3401,21 +3402,16 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
 	s_sprite_list *curr = NULL, *head = NULL;
 
 	for(i=0; i<sprites_loaded; i++) {
-		if(sprite_map != NULL) {
-			if(stricmp(sprite_map[i].filename, filename) == 0) {
-				if(sprite_map[i].ofsx == ofsx && sprite_map[i].ofsy == ofsy) return i;
-				else {
-					bitmap = loadbitmap(filename, packfile, bmpformat);
-					if(bitmap == NULL) shutdown(1, "Unable to load file '%s'\n", filename);
-					clipbitmap(bitmap, &clipl, &clipr, &clipt, &clipb);
+		if(sprite_map && sprite_map[i].node) {
+			if(stricmp(sprite_map[i].node->filename, filename) == 0) {
+				if(sprite_map[i].centerx+sprite_map[i].node->sprite->offsetx == ofsx && 
+					sprite_map[i].centery+sprite_map[i].node->sprite->offsety == ofsy) {
+					return i;
+				} else {
 					prepare_sprite_map(sprites_loaded+1);
-					sprite_map[sprites_loaded].filename = sprite_map[i].filename;
-					sprite_map[sprites_loaded].sprite = sprite_map[i].sprite;
-					sprite_map[sprites_loaded].ofsx = ofsx;
-					sprite_map[sprites_loaded].ofsy = ofsy;
-					sprite_map[sprites_loaded].centerx = ofsx-clipl;
-					sprite_map[sprites_loaded].centery = ofsy-clipt;
-					freebitmap(bitmap);
+					sprite_map[sprites_loaded].node = sprite_map[i].node;
+					sprite_map[sprites_loaded].centerx = ofsx-sprite_map[i].node->sprite->offsetx;
+					sprite_map[sprites_loaded].centery = ofsy-sprite_map[i].node->sprite->offsety;
 					++sprites_loaded;
 					return sprites_loaded-1;
 				}
@@ -3450,12 +3446,13 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
 		sprite_list->next = head;
 	}
 	prepare_sprite_map(sprites_loaded+1);
-	sprite_map[sprites_loaded].filename = sprite_list->filename;
-	sprite_map[sprites_loaded].sprite = sprite_list->sprite;
-	sprite_map[sprites_loaded].ofsx = ofsx;
-	sprite_map[sprites_loaded].ofsy = ofsy;
+	sprite_map[sprites_loaded].node = sprite_list;
 	sprite_map[sprites_loaded].centerx = ofsx-clipl;
 	sprite_map[sprites_loaded].centery = ofsy-clipt;
+	sprite_list->sprite->offsetx = clipl;
+	sprite_list->sprite->offsety = clipt;
+	sprite_list->sprite->srcwidth = bitmap->width;
+	sprite_list->sprite->srcheight = bitmap->height;
 	freebitmap(bitmap);
 	++sprites_loaded;
 	return sprites_loaded-1;
@@ -6911,13 +6908,13 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							}
 							if(index>=0)
 							{
-								sprite_map[index].sprite->palette = newchar->palette;
-								sprite_map[index].sprite->pixelformat = pixelformat;
+								sprite_map[index].node->sprite->palette = newchar->palette;
+								sprite_map[index].node->sprite->pixelformat = pixelformat;
 							}
 						}
 						if((index>=0) && (maskindex>=0))
 						{
-							sprite_map[index].sprite->mask = sprite_map[maskindex].sprite;
+							sprite_map[index].node->sprite->mask = sprite_map[maskindex].node->sprite;
 							maskindex = -1;
 						}
 						// Adjust coords: add offsets and change size to coords
