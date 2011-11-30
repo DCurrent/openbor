@@ -67,8 +67,11 @@ void spriteq_add_frame(int x, int y, int z, s_sprite* frame, s_drawmethod* pdraw
 }
 
 void spriteq_add_sprite(int x, int y, int z, int id, s_drawmethod* pdrawmethod, int sortid){
+	s_sprite* loadsprite2(char *filename, int* width, int* height); 
 	s_sprite *frame = sprite_map[id].node->sprite;
-	if(frame == NULL) return;
+	if(frame == NULL) {
+		sprite_map[id].node->sprite = frame = loadsprite2(sprite_map[id].node->filename, NULL, NULL);
+	}
 	if(spritequeue_len>=MAXQSPRITES) return;
 	queue[spritequeue_len].type = SQT_SPRITE;
 	queue[spritequeue_len].x = x;

@@ -3386,6 +3386,15 @@ void prepare_sprite_map(size_t size)
 	}
 }
 
+void uncachesprite(int index){
+	if(sprite_map && index>=0 && index<sprites_loaded){
+		if(sprite_map[index].node->sprite){
+			free(sprite_map[index].node->sprite);
+			sprite_map[index].node->sprite = NULL;
+		}
+	}
+}
+
 // Returns sprite index.
 // Does not return on error, as it would shut the program down.
 // UT:
@@ -3399,24 +3408,31 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
 	ptrdiff_t i, size, len;
 	s_bitmap *bitmap = NULL;
 	int clipl, clipr, clipt, clipb;
-	s_sprite_list *curr = NULL, *head = NULL;
+	s_sprite_list *curr = NULL, *head = NULL, *toshare = NULL;
 
 	for(i=0; i<sprites_loaded; i++) {
 		if(sprite_map && sprite_map[i].node) {
 			if(stricmp(sprite_map[i].node->filename, filename) == 0) {
+				if(!sprite_map[i].node->sprite){
+					sprite_map[i].node->sprite = loadsprite2(filename, NULL, NULL);
+				}
 				if(sprite_map[i].centerx+sprite_map[i].node->sprite->offsetx == ofsx && 
 					sprite_map[i].centery+sprite_map[i].node->sprite->offsety == ofsy) {
 					return i;
 				} else {
-					prepare_sprite_map(sprites_loaded+1);
-					sprite_map[sprites_loaded].node = sprite_map[i].node;
-					sprite_map[sprites_loaded].centerx = ofsx-sprite_map[i].node->sprite->offsetx;
-					sprite_map[sprites_loaded].centery = ofsy-sprite_map[i].node->sprite->offsety;
-					++sprites_loaded;
-					return sprites_loaded-1;
+					toshare = sprite_map[i].node;
 				}
 			}
 		}
+	}
+
+	if(toshare){
+		prepare_sprite_map(sprites_loaded+1);
+		sprite_map[sprites_loaded].node = toshare;
+		sprite_map[sprites_loaded].centerx = ofsx-toshare->sprite->offsetx;
+		sprite_map[sprites_loaded].centery = ofsy-toshare->sprite->offsety;
+		++sprites_loaded;
+		return sprites_loaded-1;
 	}
 
 	bitmap = loadbitmap(filename, packfile, bmpformat);
@@ -3763,6 +3779,32 @@ int hasFreetype(s_model* m, ModelFreetype t) {
 void addFreeType(s_model* m, ModelFreetype t) {
 	assert(m);
 	m->freetypes |= t;
+}
+
+
+void uncache_model_sprites(s_model* m){
+	int i, f;
+	s_anim* anim;
+	uncachesprite(m->icon.def);
+	uncachesprite(m->icon.die);
+	uncachesprite(m->icon.get);
+	uncachesprite(m->icon.mphigh);
+	uncachesprite(m->icon.mplow);
+	uncachesprite(m->icon.mpmed);
+	uncachesprite(m->icon.pain);
+	uncachesprite(m->icon.weapon);
+	for(i=0; i<MAX_PLAYERS; i++)
+		uncachesprite(m->parrow[i][0]);
+
+	//if(hasFreetype(model, MF_ANIMLIST)){
+	for(i=0; i<max_animations; i++){
+		anim = m->animation[i];
+		if(anim){
+			for(f=0;f<anim->numframes;f++){
+				uncachesprite(anim->sprite[f]);
+			}
+		}
+	}
 }
 
 // Unload single model from memory
@@ -8522,6 +8564,9 @@ void unload_level(){
 		do {
 			if(!temp) break;
 			if(temp->unload) {
+				if(temp->unload==2){
+					uncache_model_sprites(temp);
+				}
 				free_model(temp);
 				temp = getCurrentModel();
 			} else
@@ -9566,7 +9611,8 @@ void load_level(char *filename){
 	if(crlf) printf("\n");
 	printf("Level Loaded:    '%s'\n", level->name);
 	totalram = getSystemRam(BYTES); freeram = getFreeRam(BYTES); usedram = getUsedRam(BYTES);
-	printf("Total Ram: %"PRIu64" Bytes\n Free Ram: %"PRIu64" Bytes\n Used Ram: %"PRIu64" Bytes\n\n", totalram, freeram, usedram);
+	printf("Total Ram: %"PRIu64" Bytes\n Free Ram: %"PRIu64" Bytes\n Used Ram: %"PRIu64" Bytes\n", totalram, freeram, usedram);
+	printf("Total sprites mapped: %d\n\n", sprites_loaded);
 
 	lCleanup:
 
