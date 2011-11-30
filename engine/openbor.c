@@ -3386,11 +3386,14 @@ void prepare_sprite_map(size_t size)
 	}
 }
 
-void uncachesprite(int index){
+void cachesprite(int index, int load){
 	if(sprite_map && index>=0 && index<sprites_loaded){
-		if(sprite_map[index].node->sprite){
+		if(!load && sprite_map[index].node->sprite){
 			free(sprite_map[index].node->sprite);
 			sprite_map[index].node->sprite = NULL;
+			//printf("uncached sprite: %s\n", sprite_map[index].node->filename);
+		}else if(load && !sprite_map[index].node->sprite){
+			sprite_map[index].node->sprite = loadsprite2(sprite_map[index].node->filename, NULL, NULL);
 		}
 	}
 }
@@ -3781,27 +3784,26 @@ void addFreeType(s_model* m, ModelFreetype t) {
 	m->freetypes |= t;
 }
 
-
-void uncache_model_sprites(s_model* m){
+void cache_model_sprites(s_model* m, int ld){
 	int i, f;
 	s_anim* anim;
-	uncachesprite(m->icon.def);
-	uncachesprite(m->icon.die);
-	uncachesprite(m->icon.get);
-	uncachesprite(m->icon.mphigh);
-	uncachesprite(m->icon.mplow);
-	uncachesprite(m->icon.mpmed);
-	uncachesprite(m->icon.pain);
-	uncachesprite(m->icon.weapon);
+	cachesprite(m->icon.def, ld);
+	cachesprite(m->icon.die, ld);
+	cachesprite(m->icon.get, ld);
+	cachesprite(m->icon.mphigh, ld);
+	cachesprite(m->icon.mplow, ld);
+	cachesprite(m->icon.mpmed, ld);
+	cachesprite(m->icon.pain, ld);
+	cachesprite(m->icon.weapon, ld);
 	for(i=0; i<MAX_PLAYERS; i++)
-		uncachesprite(m->parrow[i][0]);
+		cachesprite(m->parrow[i][0], ld);
 
 	//if(hasFreetype(model, MF_ANIMLIST)){
 	for(i=0; i<max_animations; i++){
 		anim = m->animation[i];
 		if(anim){
 			for(f=0;f<anim->numframes;f++){
-				uncachesprite(anim->sprite[f]);
+				cachesprite(anim->sprite[f], ld);
 			}
 		}
 	}
@@ -4819,6 +4821,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	// Model already loaded but we might want to unload after level is completed.
 	if((tempmodel=findmodel(name))!=NULL) {
 		update_model_loadflag(tempmodel,unload);
+		cache_model_sprites(tempmodel, 1);
 		return tempmodel;
 	}
 
@@ -8563,14 +8566,13 @@ void unload_level(){
 		temp = getFirstModel();
 		do {
 			if(!temp) break;
-			if(temp->unload) {
-				if(temp->unload==2){
-					uncache_model_sprites(temp);
-				}
+			if((temp->unload&2)){
+				cache_model_sprites(temp, 0);
+			}
+			if((temp->unload&1)){
 				free_model(temp);
 				temp = getCurrentModel();
-			} else
-				temp = getNextModel();
+			} else temp = getNextModel();
 		} while(temp);
 		printf("Done.\n");
 		getRamStatus(BYTES);
