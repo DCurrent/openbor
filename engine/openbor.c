@@ -3612,6 +3612,7 @@ s_model* nextplayermodel(s_model *current){
 		if(i >= models_cached) i = 0;
 		if(model_cache[i].model && model_cache[i].model->type==TYPE_PLAYER &&
 		  (allow_secret_chars || !model_cache[i].model->secret) && model_cache[i].selectable){
+			printf("next %s\n", model_cache[i].model->name);
 			return model_cache[i].model;
 		}
 	}
@@ -3638,6 +3639,7 @@ s_model* prevplayermodel(s_model *current){
 		if(i < 0) i = models_cached-1;
 		if(model_cache[i].model && model_cache[i].model->type==TYPE_PLAYER &&
 		  (allow_secret_chars || !model_cache[i].model->secret) && model_cache[i].selectable){
+			printf("prev %s\n", model_cache[i].model->name);
 			return model_cache[i].model;
 		}
 	}
@@ -3852,6 +3854,7 @@ int free_model(s_model* model)
 		free_all_scripts(&model->scripts);
 	}
 
+	model_cache[model->index].model = NULL;
 	deleteModel(model->name);
 
 	return models_loaded--;
@@ -21475,7 +21478,7 @@ void playscene(char *filename)
 	int pos;
 	char * command = NULL;
 	char giffile[256];
-	int x=0, y=0, skipone=0, noskip=0;
+	int x=0, y=0, skipone=0, noskip=0, i;
 	int closing = 0;
 
 	ArgList arglist;
@@ -21515,6 +21518,8 @@ void playscene(char *filename)
 		buf = NULL;
 	}
 	currentScene = NULL;
+	for(i=0; i<MAX_PLAYERS; i++)
+		player[i].newkeys = player[i].playkeys = 0;
 }
 
 
@@ -21573,7 +21578,6 @@ void hallfame(int addtoscore)
 	char name[MAX_NAME_LEN+1];
 	int i, p, y;
 	char tmpBuff[128] = {""};
-	s_model *model = NULL;
 	int col1 = -8;
 	int col2 = 6;
 
@@ -21595,11 +21599,10 @@ void hallfame(int addtoscore)
 	{
 		for(p = 0; p < maxplayers[current_set]; p++)
 		{
-			model = findmodel(player[p].name);
 			if(player[p].score > savescore.highsc[9])
 			{
 				savescore.highsc[9] = player[p].score;
-				strcpy(savescore.hscoren[9], model->name);
+				strcpy(savescore.hscoren[9], player[p].name);
 				topten[9] = 1;
 
 				for(i = 8; i >= 0 && player[p].score > savescore.highsc[i]; i--)
@@ -21607,7 +21610,7 @@ void hallfame(int addtoscore)
 					score = savescore.highsc[i];
 					strcpy(name, savescore.hscoren[i]);
 					savescore.highsc[i] = player[p].score;
-					strcpy(savescore.hscoren[i], model->name);
+					strcpy(savescore.hscoren[i], player[p].name);
 					topten[i] = 1;
 					savescore.highsc[i + 1] = score;
 					strcpy(savescore.hscoren[i + 1], name);
