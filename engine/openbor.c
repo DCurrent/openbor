@@ -14566,10 +14566,10 @@ void checkmpadd()
 
 	if(magic_type == 1 )
 	{
-		if(other->modeldata.mprate) other->mp += other->modeldata.mprate;
-		else other->mp++;
+		other->mp += other->modeldata.mprate;
 
 		if(other->mp > other->modeldata.mp) other->mp = other->modeldata.mp;
+		else if(other->mp < 0) other->mp = 0;
 	}
 }
 

@@ -11621,7 +11621,7 @@ HRESULT openbor_loadmodel(ScriptVariant** varlist , ScriptVariant** pretvar, int
 	return S_OK;
 
 loadmodel_error:
-	printf("Function needs a string and boolean parameters: loadmodel(name, unload)\n");
+	printf("Function needs a string and integer parameters: loadmodel(name, unload)\n");
 	ScriptVariant_Clear(*pretvar);
 	*pretvar = NULL;
 	return E_FAIL;
