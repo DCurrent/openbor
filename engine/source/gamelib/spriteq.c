@@ -67,6 +67,7 @@ void spriteq_add_frame(int x, int y, int z, s_sprite* frame, s_drawmethod* pdraw
 }
 
 void spriteq_add_sprite(int x, int y, int z, int id, s_drawmethod* pdrawmethod, int sortid){
+	extern s_sprite_map *sprite_map;
 	s_sprite* loadsprite2(char *filename, int* width, int* height); 
 	s_sprite *frame = sprite_map[id].node->sprite;
 	if(frame == NULL) {

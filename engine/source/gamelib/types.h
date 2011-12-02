@@ -135,14 +135,12 @@ struct sprite_list{
 	struct sprite_list *next;
 };
 typedef struct sprite_list s_sprite_list;
-s_sprite_list *sprite_list;
 
 typedef struct{
 	s_sprite_list *node;
 	int  centerx;
 	int  centery;
 }s_sprite_map;
-s_sprite_map *sprite_map;
 
 void set_blendtables(unsigned char* tables[]); // set global blend tables for 8bit mode
 
