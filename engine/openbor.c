@@ -2629,7 +2629,7 @@ size_t ParseArgs(ArgList* list, char* input, char* output) {
 }
 
 char *findarg(char *command, int which){
-	static const char comment_mark[4] = {"#"};
+	static const char* comment_mark = "#";
 	int d;
 	int argc;
 	int inarg;
@@ -3008,41 +3008,42 @@ void lifebar_colors()
 	pos = 0;
 	colorbars=1;
 	while(pos<size){
-	    ParseArgs(&arglist,buf+pos,argbuf);
-		command = GET_ARG(0);
-		if(command && command[0])
-		{
-			if(stricmp(command, "blackbox")==0)
-				color_black = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-			else if(stricmp(command, "whitebox")==0)
-				color_white = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-			else if(stricmp(command, "color300")==0)
-				color_orange = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-			else if(stricmp(command, "color25")==0)
-				color_red = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-			else if(stricmp(command, "color50")==0)
-				color_yellow = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-			else if(stricmp(command, "color100")==0)
-				color_green = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-			else if(stricmp(command, "color200")==0)
-				color_blue = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-			else if(stricmp(command, "color400")==0)
-				color_pink = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-			else if(stricmp(command, "color500")==0)
-				color_purple = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-			//magic bars color declarations by tails
-			else if(stricmp(command, "colormagic")==0)
-				color_magic = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-			else if(stricmp(command, "colormagic2")==0)
-				color_magic2 = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-			//end of magic bars color declarations by tails
-			else if(stricmp(command, "shadowcolor")==0)
-				shadowcolor = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-			else if(stricmp(command, "shadowalpha")==0) //gfxshadow alpha
-				shadowalpha = GET_INT_ARG(1);
-			else
-				if(command && command[0])
-					printf("Warning: Unknown command in lifebar.txt: '%s'.\n", command);
+	    if(ParseArgs(&arglist,buf+pos,argbuf)){
+			command = GET_ARG(0);
+			if(command && command[0])
+			{
+				if(stricmp(command, "blackbox")==0)
+					color_black = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+				else if(stricmp(command, "whitebox")==0)
+					color_white = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+				else if(stricmp(command, "color300")==0)
+					color_orange = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+				else if(stricmp(command, "color25")==0)
+					color_red = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+				else if(stricmp(command, "color50")==0)
+					color_yellow = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+				else if(stricmp(command, "color100")==0)
+					color_green = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+				else if(stricmp(command, "color200")==0)
+					color_blue = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+				else if(stricmp(command, "color400")==0)
+					color_pink = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+				else if(stricmp(command, "color500")==0)
+					color_purple = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+				//magic bars color declarations by tails
+				else if(stricmp(command, "colormagic")==0)
+					color_magic = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+				else if(stricmp(command, "colormagic2")==0)
+					color_magic2 = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+				//end of magic bars color declarations by tails
+				else if(stricmp(command, "shadowcolor")==0)
+					shadowcolor = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+				else if(stricmp(command, "shadowalpha")==0) //gfxshadow alpha
+					shadowalpha = GET_INT_ARG(1);
+				else
+					if(command && command[0])
+						printf("Warning: Unknown command in lifebar.txt: '%s'.\n", command);
+			}
 		}
 
 		// Go to next line
@@ -3533,29 +3534,30 @@ void load_menu_txt()
 	// Now interpret the contents of buf line by line
 	pos = 0;
 	while(pos<size){
-		ParseArgs(&arglist,buf+pos,argbuf);
-		command = GET_ARG(0);
-		if(command && command[0]){
-			if(stricmp(command, "disablekey")==0){
-				// here to keep from crashing
+		if(ParseArgs(&arglist,buf+pos,argbuf)){
+			command = GET_ARG(0);
+			if(command && command[0]){
+				if(stricmp(command, "disablekey")==0){
+					// here to keep from crashing
+				}
+				else if(stricmp(command, "renamekey")==0){
+					// here to keep from crashing
+				}
+				else if(stricmp(command, "fontmonospace")==0)
+				{
+					fontmonospace[0] = GET_INT_ARG(1);
+					fontmonospace[1] = GET_INT_ARG(2);
+					fontmonospace[2] = GET_INT_ARG(3);
+					fontmonospace[3] = GET_INT_ARG(4);
+					fontmonospace[4] = GET_INT_ARG(5);
+					fontmonospace[5] = GET_INT_ARG(6);
+					fontmonospace[6] = GET_INT_ARG(7);
+					fontmonospace[7] = GET_INT_ARG(8);
+				}
+				else
+					if(command && command[0])
+						printf("Command '%s' not understood in file '%s'!", command, filename);
 			}
-			else if(stricmp(command, "renamekey")==0){
-				// here to keep from crashing
-			}
-			else if(stricmp(command, "fontmonospace")==0)
-			{
-				fontmonospace[0] = GET_INT_ARG(1);
-				fontmonospace[1] = GET_INT_ARG(2);
-				fontmonospace[2] = GET_INT_ARG(3);
-				fontmonospace[3] = GET_INT_ARG(4);
-				fontmonospace[4] = GET_INT_ARG(5);
-				fontmonospace[5] = GET_INT_ARG(6);
-				fontmonospace[6] = GET_INT_ARG(7);
-				fontmonospace[7] = GET_INT_ARG(8);
-			}
-			else
-				if(command && command[0])
-					printf("Command '%s' not understood in file '%s'!", command, filename);
 		}
 
 		// Go to next line
@@ -7347,37 +7349,38 @@ int load_script_setting()
 
 	while(pos<size)
 	{
-		ParseArgs(&arglist,buf+pos,argbuf);
-		command = GET_ARG(0);
-		if(command && command[0])
-		{
-			if(stricmp(command, "maxscriptvars")==0) // each script can have a variable list that can be accessed by index
+		if(ParseArgs(&arglist,buf+pos,argbuf)){
+			command = GET_ARG(0);
+			if(command && command[0])
 			{
-				max_script_vars = GET_INT_ARG(1) ;
-				if(max_script_vars<0) max_script_vars = 0;
-			}
-			else if(stricmp(command, "maxentityvars")==0) // each entity can have a variable list that can be accessed by index
-			{
-				max_entity_vars = GET_INT_ARG(1) ;
-				if(max_entity_vars<0) max_entity_vars = 0;
-			}
-			else if(stricmp(command, "maxindexedvars")==0) // a global variable list that can be accessed by index
-			{
-				max_indexed_vars = GET_INT_ARG(1);
-				if(max_indexed_vars<0) max_indexed_vars = 0;
-			}
-			else if(stricmp(command, "maxglobalvars")==0) // for global_var_list, default to 2048
-			{
-				max_global_vars = GET_INT_ARG(1);
-				if(max_global_vars<0) max_global_vars = 0;
-			}
-			else if(stricmp(command, "keyscriptrate")==0) // Rate that keyscripts fire when holding a key.
-			{
-				keyscriptrate = GET_INT_ARG(1);
-			}
-			else if(stricmp(command, "alwaysupdate")==0) //execute update script whenever update() is called
-			{
-				alwaysupdate = GET_INT_ARG(1);
+				if(stricmp(command, "maxscriptvars")==0) // each script can have a variable list that can be accessed by index
+				{
+					max_script_vars = GET_INT_ARG(1) ;
+					if(max_script_vars<0) max_script_vars = 0;
+				}
+				else if(stricmp(command, "maxentityvars")==0) // each entity can have a variable list that can be accessed by index
+				{
+					max_entity_vars = GET_INT_ARG(1) ;
+					if(max_entity_vars<0) max_entity_vars = 0;
+				}
+				else if(stricmp(command, "maxindexedvars")==0) // a global variable list that can be accessed by index
+				{
+					max_indexed_vars = GET_INT_ARG(1);
+					if(max_indexed_vars<0) max_indexed_vars = 0;
+				}
+				else if(stricmp(command, "maxglobalvars")==0) // for global_var_list, default to 2048
+				{
+					max_global_vars = GET_INT_ARG(1);
+					if(max_global_vars<0) max_global_vars = 0;
+				}
+				else if(stricmp(command, "keyscriptrate")==0) // Rate that keyscripts fire when holding a key.
+				{
+					keyscriptrate = GET_INT_ARG(1);
+				}
+				else if(stricmp(command, "alwaysupdate")==0) //execute update script whenever update() is called
+				{
+					alwaysupdate = GET_INT_ARG(1);
+				}
 			}
 		}
 		// Go to next line
@@ -7472,136 +7475,137 @@ int load_models()
 	while(pos<size) // peek global settings
 	{
 		line++;
-		ParseArgs(&arglist,buf+pos,argbuf);
-		command = GET_ARG(0);
-		cmd = getModelstxtCommand(modelstxtcmdlist,command);
-		switch(cmd) {
-			case CMD_MODELSTXT_MAXIDLES:
-				// max idle stances
-				max_idles = GET_INT_ARG(1);
-				if(max_idles < MAX_IDLES) max_idles = MAX_IDLES;
-				break;
-			case CMD_MODELSTXT_MAXWALKS:
-				max_walks = GET_INT_ARG(1);
-				if(max_walks < MAX_WALKS) max_walks = MAX_WALKS;
-				break;
-			case CMD_MODELSTXT_MAXBACKWALKS:
-				// max backward walks
-				max_backwalks = GET_INT_ARG(1);
-				if(max_backwalks < MAX_BACKWALKS) max_backwalks = MAX_BACKWALKS;
-				break;
-			case CMD_MODELSTXT_MAXUPS:
-				// max up walks
-				max_ups = GET_INT_ARG(1);
-				if(max_ups < MAX_UPS) max_ups = MAX_UPS;
-				break;
-			case CMD_MODELSTXT_MAXDOWNS:
-				// max down walks
-				max_downs = GET_INT_ARG(1);
-				if(max_downs < MAX_DOWNS) max_downs = MAX_DOWNS;
-				break;
-			case CMD_MODELSTXT_MAXATTACKTYPES:
-				// max attacktype/pain/fall/die
-				max_attack_types = GET_INT_ARG(1) + STA_ATKS;
-				if(max_attack_types < MAX_ATKS) max_attack_types = MAX_ATKS;
-				break;
-			case CMD_MODELSTXT_MAXFOLLOWS:
-				// max follow-ups
-				max_follows = GET_INT_ARG(1);
-				if(max_follows<MAX_FOLLOWS) max_follows = MAX_FOLLOWS;
-				break;
-			case CMD_MODELSTXT_MAXFREESPECIALS:
-				// max freespecials
-				max_freespecials = GET_INT_ARG(1);
-				if(max_freespecials<MAX_SPECIALS) max_freespecials = MAX_SPECIALS;
-				break;
-			case CMD_MODELSTXT_MAXATTACKS:
-				max_attacks = GET_INT_ARG(1);
-				if(max_attacks<MAX_ATTACKS) max_attacks = MAX_ATTACKS;
-				break;
-			case CMD_MODELSTXT_COMBODELAY:
-				combodelay = GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_MUSIC:
-				music(GET_ARG(1), 1, atol(GET_ARG(2)));
-				break;
-			case CMD_MODELSTXT_LOAD:
-				// Add path to cache list
-				modelLoadCount++;
-				cache_model(GET_ARG(1), GET_ARG(2), 1);
-				break;
-			case CMD_MODELSTXT_COLOURSELECT:
-				// 6-2-2005 if string for colourselect found
-				colourselect =  GET_INT_ARG(1);          //  6-2-2005
-				break;
-			case CMD_MODELSTXT_SPDIRECTION:
-				// Select Player Direction for select player screen
-				spdirection[0] =  GET_INT_ARG(1);
-				spdirection[1] =  GET_INT_ARG(2);
-				spdirection[2] =  GET_INT_ARG(3);
-				spdirection[3] =  GET_INT_ARG(4);
-				break;
-			case CMD_MODELSTXT_AUTOLAND:
-				// New flag to determine if a player auto lands when thrown by another player (2 completely disables the ability to land)
-				autoland = GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_NOLOST:
-				// this is use for dont lost your weapon if you grab a enemy flag it to 1 to no drop by tails
-				nolost = GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_AJSPECIAL:
-				// Flag to determine if a + j executes special
-				ajspecial = GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_NOCOST:
-				// Nocost set in models.txt
-				nocost = GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_NOCHEATS:
-				//disable cheat option in menu
-				forcecheatsoff =  GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_NODROPEN:
-				nodropen = 1;
-				break;
-			case CMD_MODELSTXT_NODROPSPAWN:
-				nodropspawn = 1;
-				break;
-			case CMD_MODELSTXT_KNOW:
-				// Just add path to cache list
-				cache_model(GET_ARG(1), GET_ARG(2), 0);
-				break;
-			case CMD_MODELSTXT_NOAIRCANCEL:
-				noaircancel = GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_NOMAXRUSHRESET:
-				nomaxrushreset[4] = GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_MPBLOCK:
-				// Take from MP first?
-				mpblock = GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_BLOCKRATIO:
-				// Nullify or reduce damage?
-				blockratio = GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_NOCHIPDEATH:
-				nochipdeath = GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_LIFESCORE:
-				lifescore =  GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_CREDSCORE:
-				// Number of points needed to earn a 1-up
-				credscore =  GET_INT_ARG(1);
-				break;
-			case CMD_MODELSTXT_VERSUSDAMAGE:
-				// Number of points needed to earn a credit
-				versusdamage =  GET_INT_ARG(1);
-				if(versusdamage == 0 || versusdamage == 1) savedata.mode = versusdamage^1;
-				break;
-			default:
-				printf("command %s not understood in %s, line %d\n", command, filename, line);
+		if(ParseArgs(&arglist,buf+pos,argbuf)){
+			command = GET_ARG(0);
+			cmd = getModelCommand(modelstxtcmdlist, command);
+			switch(cmd) {
+				case CMD_MODELSTXT_MAXIDLES:
+					// max idle stances
+					max_idles = GET_INT_ARG(1);
+					if(max_idles < MAX_IDLES) max_idles = MAX_IDLES;
+					break;
+				case CMD_MODELSTXT_MAXWALKS:
+					max_walks = GET_INT_ARG(1);
+					if(max_walks < MAX_WALKS) max_walks = MAX_WALKS;
+					break;
+				case CMD_MODELSTXT_MAXBACKWALKS:
+					// max backward walks
+					max_backwalks = GET_INT_ARG(1);
+					if(max_backwalks < MAX_BACKWALKS) max_backwalks = MAX_BACKWALKS;
+					break;
+				case CMD_MODELSTXT_MAXUPS:
+					// max up walks
+					max_ups = GET_INT_ARG(1);
+					if(max_ups < MAX_UPS) max_ups = MAX_UPS;
+					break;
+				case CMD_MODELSTXT_MAXDOWNS:
+					// max down walks
+					max_downs = GET_INT_ARG(1);
+					if(max_downs < MAX_DOWNS) max_downs = MAX_DOWNS;
+					break;
+				case CMD_MODELSTXT_MAXATTACKTYPES:
+					// max attacktype/pain/fall/die
+					max_attack_types = GET_INT_ARG(1) + STA_ATKS;
+					if(max_attack_types < MAX_ATKS) max_attack_types = MAX_ATKS;
+					break;
+				case CMD_MODELSTXT_MAXFOLLOWS:
+					// max follow-ups
+					max_follows = GET_INT_ARG(1);
+					if(max_follows<MAX_FOLLOWS) max_follows = MAX_FOLLOWS;
+					break;
+				case CMD_MODELSTXT_MAXFREESPECIALS:
+					// max freespecials
+					max_freespecials = GET_INT_ARG(1);
+					if(max_freespecials<MAX_SPECIALS) max_freespecials = MAX_SPECIALS;
+					break;
+				case CMD_MODELSTXT_MAXATTACKS:
+					max_attacks = GET_INT_ARG(1);
+					if(max_attacks<MAX_ATTACKS) max_attacks = MAX_ATTACKS;
+					break;
+				case CMD_MODELSTXT_COMBODELAY:
+					combodelay = GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_MUSIC:
+					music(GET_ARG(1), 1, atol(GET_ARG(2)));
+					break;
+				case CMD_MODELSTXT_LOAD:
+					// Add path to cache list
+					modelLoadCount++;
+					cache_model(GET_ARG(1), GET_ARG(2), 1);
+					break;
+				case CMD_MODELSTXT_COLOURSELECT:
+					// 6-2-2005 if string for colourselect found
+					colourselect =  GET_INT_ARG(1);          //  6-2-2005
+					break;
+				case CMD_MODELSTXT_SPDIRECTION:
+					// Select Player Direction for select player screen
+					spdirection[0] =  GET_INT_ARG(1);
+					spdirection[1] =  GET_INT_ARG(2);
+					spdirection[2] =  GET_INT_ARG(3);
+					spdirection[3] =  GET_INT_ARG(4);
+					break;
+				case CMD_MODELSTXT_AUTOLAND:
+					// New flag to determine if a player auto lands when thrown by another player (2 completely disables the ability to land)
+					autoland = GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_NOLOST:
+					// this is use for dont lost your weapon if you grab a enemy flag it to 1 to no drop by tails
+					nolost = GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_AJSPECIAL:
+					// Flag to determine if a + j executes special
+					ajspecial = GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_NOCOST:
+					// Nocost set in models.txt
+					nocost = GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_NOCHEATS:
+					//disable cheat option in menu
+					forcecheatsoff =  GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_NODROPEN:
+					nodropen = 1;
+					break;
+				case CMD_MODELSTXT_NODROPSPAWN:
+					nodropspawn = 1;
+					break;
+				case CMD_MODELSTXT_KNOW:
+					// Just add path to cache list
+					cache_model(GET_ARG(1), GET_ARG(2), 0);
+					break;
+				case CMD_MODELSTXT_NOAIRCANCEL:
+					noaircancel = GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_NOMAXRUSHRESET:
+					nomaxrushreset[4] = GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_MPBLOCK:
+					// Take from MP first?
+					mpblock = GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_BLOCKRATIO:
+					// Nullify or reduce damage?
+					blockratio = GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_NOCHIPDEATH:
+					nochipdeath = GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_LIFESCORE:
+					lifescore =  GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_CREDSCORE:
+					// Number of points needed to earn a 1-up
+					credscore =  GET_INT_ARG(1);
+					break;
+				case CMD_MODELSTXT_VERSUSDAMAGE:
+					// Number of points needed to earn a credit
+					versusdamage =  GET_INT_ARG(1);
+					if(versusdamage == 0 || versusdamage == 1) savedata.mode = versusdamage^1;
+					break;
+				default:
+					printf("command %s not understood in %s, line %d\n", command, filename, line);
+			}
 		}
 
 		// Go to next line
