@@ -92,6 +92,10 @@ extern int            musicloop;
 extern u32            musicoffset;
 extern int            models_cached;
 
+
+extern s_sprite_list *sprite_list;
+extern s_sprite_map *sprite_map;
+
 extern unsigned char* blendings[MAX_BLENDINGS];
 extern int            current_palette;
 s_variantnode** global_var_list = NULL;
