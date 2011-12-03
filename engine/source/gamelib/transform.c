@@ -239,6 +239,10 @@ inline void draw_pixel_gfx(s_screen* dest, gfx_entry* src, int dx, int dy, int s
 	}
 }
 
+inline void copy_pixel_block(int bytes){
+	memcpy(cur_dest, cur_src, bytes);
+}
+
 inline void write_pixel(){
 	unsigned char ps8;
 	unsigned short ps16;
@@ -728,7 +732,7 @@ float _sinfactors[256] = {1.0f,1.0245412285229123f,1.049067674327418f,1.07356456
 #define distortion(x, a) ((int)(_sinfactors[x]*a+0.5))
 
 void gfx_draw_water(s_screen *dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod){
-	int sw, sh, dw, dh, ch, sy, t, u, sbeginx, sendx, dbeginx, dendx, bytestocopy, amplitude, time;
+	int sw, sh, dw, dh, ch, sy, t, u, sbeginx, sendx, bytestocopy, dbeginx, dendx, amplitude, time;
 	float s, wavelength;
 
 	init_gfx_global_draw_stuff(dest, src, drawmethod);
@@ -795,12 +799,16 @@ void gfx_draw_water(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 		else{
 			sbeginx = 0; sendx = sw;
 		}
-		bytestocopy = dendx-dbeginx;
-		
-		//TODO: optimize this if necessary
-		for(t=0, dest_seek(dbeginx, y), src_seek(sbeginx, sy); t<bytestocopy; t++, dest_inc(), src_inc()){
-			//draw_pixel_gfx(dest, src, dbeginx, y, sbeginx, sy);
-			write_pixel();
+		if(pixelformat==PIXEL_8 && src->type==gfx_screen){
+			dest_seek(dbeginx, y); src_seek(sbeginx, sy);
+			copy_pixel_block(dendx-dbeginx);
+		}else{
+			bytestocopy = dendx-dbeginx;
+			//TODO: optimize this if necessary
+			for(t=0, dest_seek(dbeginx, y), src_seek(sbeginx, sy); t<bytestocopy; t++, dest_inc(), src_inc()){
+				//draw_pixel_gfx(dest, src, dbeginx, y, sbeginx, sy);
+				write_pixel();
+			}
 		}
 
 		s += wavelength;
