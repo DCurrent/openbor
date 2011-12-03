@@ -14916,6 +14916,7 @@ int check_attack_chance(float min, float max){
 
 int common_try_normalattack(entity* target)
 {
+	int ec;
 	target = normal_find_target(-1, 0);
 
 	if(self->nextattack>time) return 0;
@@ -14928,7 +14929,8 @@ int common_try_normalattack(entity* target)
 		if(self->combostep[0] && self->combotime>time) self->stalltime = time+1;
 		else 
 		{
-			if(!check_attack_chance(0.3, 0.85)) {
+			ec = count_ents(self->modeldata.type)-1;
+			if(!check_attack_chance(MIN(ec/10.0, 0.5), MIN(ec/10.0, 0.5)+0.4)) {
 				self->nextattack = time + (int)randf(GAME_SPEED*3/4);
 				return 0;
 			} else
@@ -14965,7 +14967,7 @@ int common_try_jumpattack(entity* target)
 			if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
 				rnum = -1;
 			else{
-				if(!check_attack_chance(0.75,0.95)) {
+				if(!check_attack_chance(0.6,0.95)) {
 					self->nextattack = time +  GAME_SPEED/2;
 					return 0;
 				}
@@ -15325,7 +15327,8 @@ int common_trymove(float xdir, float zdir)
 	//----------------end of wall checking--------------
 
 	//------------------ grab/throw checking------------------
-	if( (validanim(self,ANI_THROW) ||
+	if( (rand()&7)==0 &&
+		(validanim(self,ANI_THROW) ||
 		 validanim(self,ANI_GRAB)) && self->idling &&
 		(other = find_ent_here(self,x, z, self->modeldata.hostile))&&
 		cangrab(self, other) &&
