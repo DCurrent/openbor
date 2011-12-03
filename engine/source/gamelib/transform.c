@@ -799,7 +799,7 @@ void gfx_draw_water(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 		else{
 			sbeginx = 0; sendx = sw;
 		}
-		if(pixelformat==PIXEL_8 && src->type==gfx_screen){
+		if(pixelformat==PIXEL_8 && !transbg && src->type==gfx_screen){
 			dest_seek(dbeginx, y); src_seek(sbeginx, sy);
 			copy_pixel_block(dendx-dbeginx);
 		}else{

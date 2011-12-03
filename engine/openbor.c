@@ -16703,7 +16703,7 @@ int common_move()
 		// find all possible entities for target
 		// bad for optimization, but makes better sense
 		target = normal_find_target(-1,0); // confirm the target again
-		other = normal_find_item();    // find an item
+		other = ((time/GAME_SPEED+self->health/3+self->sortid)%15<10)?normal_find_item():NULL;    // find an item
 		owner = self->parent;
 
 		// temporary solution to turn off running if xdir is not set
@@ -16734,7 +16734,9 @@ int common_move()
 		}
 
 		//pick up the item if possible
-		if( (other && other == find_ent_here(self, self->x, self->z, TYPE_ITEM)) && other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
+		if(other && diff(other->x,self->x)<(self->modeldata.grabdistance*0.83333)
+			&& diff(other->z,self->z)<(self->modeldata.grabdistance/3) && 
+			other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
 		{
 			seta = (float)(self->animation->seta?self->animation->seta[self->animpos]:-1);
 			if(diff(self->a - (seta>= 0) * seta , other->a)<0.1){
