@@ -2529,8 +2529,8 @@ void check_music(){
 	}
 	else if(musicname[0])
 	{
-		sound_volume_music(savedata.musicvol, savedata.musicvol);
 		music(musicname, musicloop, musicoffset);
+		sound_volume_music(savedata.musicvol, savedata.musicvol);
 		musicname[0] = 0;
 	}
 }
