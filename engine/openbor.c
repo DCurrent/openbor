@@ -3618,7 +3618,7 @@ s_model* nextplayermodel(s_model *current){
 		if(i >= models_cached) i = 0;
 		if(model_cache[i].model && model_cache[i].model->type==TYPE_PLAYER &&
 		  (allow_secret_chars || !model_cache[i].model->secret) && model_cache[i].selectable){
-			printf("next %s\n", model_cache[i].model->name);
+			//printf("next %s\n", model_cache[i].model->name);
 			return model_cache[i].model;
 		}
 	}
@@ -3645,7 +3645,7 @@ s_model* prevplayermodel(s_model *current){
 		if(i < 0) i = models_cached-1;
 		if(model_cache[i].model && model_cache[i].model->type==TYPE_PLAYER &&
 		  (allow_secret_chars || !model_cache[i].model->secret) && model_cache[i].selectable){
-			printf("prev %s\n", model_cache[i].model->name);
+			//printf("prev %s\n", model_cache[i].model->name);
 			return model_cache[i].model;
 		}
 	}
