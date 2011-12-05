@@ -383,8 +383,8 @@ GAME	        = source/gamelib/draw.o                                            
                   source/gamelib/filecache.o                                                        \
                   source/gamelib/pixelformat.o                                                      \
                   source/gamelib/soundmix.o                                                         \
-                  source/gamelib/spritef.o                                                          \
                   source/gamelib/spriteq.o                                                          \
+                  source/gamelib/sprite.o                                                          \
                   source/gamelib/spritex8p16.o                                                      \
                   source/gamelib/spritex8p32.o                                                      \
                   source/gamelib/commands.o                                                         \
