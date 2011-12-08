@@ -439,19 +439,18 @@
 #define     MIN(x, y)            ((x<y)?x:y)
 
 //macros for drawing menu text, fits different font size
-#define fmw font_monowidths
 #ifdef _MSC_VER
 #define _strmidx(f,s, ...) ((videomodes.hRes-font_string_width((f), s, __VA_ARGS__))/2)
 #else
 #define _strmidx(f,s, args...) ((videomodes.hRes-font_string_width((f), s, ##args))/2)
 #endif
-#define _colx(f,c) ((int)(videomodes.hRes/2+(c)*(font_monowidths[(f)]+1)))
-#define _liney(f,l) ((int)(videomodes.vRes/2+(l)*(font_heights[(f)]+1)))
+#define _colx(f,c) ((int)(videomodes.hRes/2+(c)*(fontmonowidth((f))+1)))
+#define _liney(f,l) ((int)(videomodes.vRes/2+(l)*(fontheight((f))+1)))
 #ifdef _MSC_VER
-#define _menutextm(f, l, shift, s, ...) font_printf(_strmidx(f,s, __VA_ARGS__)+(int)((shift)*(font_monowidths[(f)]+1)), _liney(f,l), (f), 0, s, __VA_ARGS__)
+#define _menutextm(f, l, shift, s, ...) font_printf(_strmidx(f,s, __VA_ARGS__)+(int)((shift)*(fontmonowidth((f))+1)), _liney(f,l), (f), 0, s, __VA_ARGS__)
 #define _menutext(f, c, l, s, ...) font_printf(_colx(f,c), _liney(f,l), (f), 0, s, __VA_ARGS__)
 #else
-#define _menutextm(f, l, shift, s, args...) font_printf(_strmidx(f,s, ##args)+(int)((shift)*(font_monowidths[(f)]+1)), _liney(f,l), (f), 0, s, ##args)
+#define _menutextm(f, l, shift, s, args...) font_printf(_strmidx(f,s, ##args)+(int)((shift)*(fontmonowidth((f))+1)), _liney(f,l), (f), 0, s, ##args)
 #define _menutext(f, c, l, s, args...) font_printf(_colx(f,c), _liney(f,l), (f), 0, s, ##args)
 #endif
 
