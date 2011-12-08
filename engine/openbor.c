@@ -137,7 +137,8 @@ char                set_names[MAX_DIFFICULTIES][MAX_NAME_LEN+1];
 unsigned char       pal[MAX_PAL_SIZE] = {""};
 int                 blendfx[MAX_BLENDINGS] = {0,1,0,0,0,0};
 char                blendfx_is_set = 0;
-int                 fontmonospace[8] = {0,0,0,0,0,0,0,0};
+int                 fontmonospace[MAX_FONTS] = {0,0,0,0,0,0,0,0};
+int                 fontmbs[MAX_FONTS] = {0,0,0,0,0,0,0,0};
 
 // move all blending effects here
 unsigned char*      blendings[MAX_BLENDINGS] = {NULL, NULL, NULL, NULL, NULL, NULL} ;
@@ -3502,7 +3503,7 @@ void load_special_sprites()
 void unload_all_fonts()
 {
 	int i;
-	for(i=0; i<8; i++)
+	for(i=0; i<MAX_FONTS; i++)
 	{
 		font_unload(i);
 	}
@@ -3510,20 +3511,21 @@ void unload_all_fonts()
 
 void load_all_fonts()
 {
-	if(!font_load(0, "data/sprites/font", packfile, fontmonospace[0])) shutdown(1, "Unable to load font #1!\n");
-	if(!font_load(1, "data/sprites/font2", packfile, fontmonospace[1])) shutdown(1, "Unable to load font #2!\n");
-	if(!font_load(2, "data/sprites/font3", packfile, fontmonospace[2])) shutdown(1, "Unable to load font #3!\n");
-	if(!font_load(3, "data/sprites/font4", packfile, fontmonospace[3])) shutdown(1, "Unable to load font #4!\n");
-	if(testpackfile("data/sprites/font5.gif", packfile) >=0) font_load(4, "data/sprites/font5", packfile, fontmonospace[4]);
-	if(testpackfile("data/sprites/font6.gif", packfile) >=0) font_load(5, "data/sprites/font6", packfile, fontmonospace[5]);
-	if(testpackfile("data/sprites/font7.gif", packfile) >=0) font_load(6, "data/sprites/font7", packfile, fontmonospace[6]);
-	if(testpackfile("data/sprites/font8.gif", packfile) >=0) font_load(7, "data/sprites/font8", packfile, fontmonospace[7]);
+	char path[256];
+	int i;
+
+	for(i=0; i<MAX_FONTS; i++){
+		if(i==0) strcpy(path, "data/sprites/font");
+		else sprintf(path, "%s%d", "data/sprites/font", i+1);
+		if(!font_load(i, path, packfile, fontmonospace[i]|fontmbs[i]))
+			printf("Warning: unable to load font #%d!\n", i+1);
+	}
 }
 
 void load_menu_txt()
 {
 	char * filename = "data/menu.txt";
-	int pos;
+	int pos, i;
 	char *buf, *command;
 	size_t size;
 	ArgList arglist;
@@ -3549,14 +3551,13 @@ void load_menu_txt()
 				}
 				else if(stricmp(command, "fontmonospace")==0)
 				{
-					fontmonospace[0] = GET_INT_ARG(1);
-					fontmonospace[1] = GET_INT_ARG(2);
-					fontmonospace[2] = GET_INT_ARG(3);
-					fontmonospace[3] = GET_INT_ARG(4);
-					fontmonospace[4] = GET_INT_ARG(5);
-					fontmonospace[5] = GET_INT_ARG(6);
-					fontmonospace[6] = GET_INT_ARG(7);
-					fontmonospace[7] = GET_INT_ARG(8);
+					for(i=0; i<MAX_FONTS; i++)
+						fontmonospace[i] = GET_INT_ARG((i+1))?FONT_MONO:0;
+				}
+				else if(stricmp(command, "fontmbs")==0)
+				{
+					for(i=0; i<MAX_FONTS; i++)
+						fontmbs[i] = GET_INT_ARG((i+1))?FONT_MBS:0;
 				}
 				else
 					if(command && command[0])
@@ -21000,8 +21001,8 @@ void display_credits()
 	int s = videomodes.vShift/2 + 3;
 	int v = (videomodes.vRes-videomodes.vShift)/23;
 	int h = videomodes.hRes/2;
-	int col1 = h - fmw[0]*16;
-	int col2 = h + fmw[0]*4;
+	int col1 = h - fontmonowidth(0)*16;
+	int col2 = h + fontmonowidth(0)*4;
 
 	if(savedata.logo != 1) return;
 	fade_out(0, 0);
@@ -21639,7 +21640,7 @@ void hallfame(int addtoscore)
 	while(!done)
 	{
 		y = 56;
-		if(!hiscorebg) font_printf(_strmidx(3, "Hall Of Fame"), y-font_heights[3]-10+videomodes.vShift, 3, 0, "Hall Of Fame");
+		if(!hiscorebg) font_printf(_strmidx(3, "Hall Of Fame"), y-fontheight(3)-10+videomodes.vShift, 3, 0, "Hall Of Fame");
 
 		for(i = 0; i < 10; i++)
 		{
@@ -22347,7 +22348,7 @@ int choose_difficulty()
 	//float slider = 0;
 	int barx, bary, barw, barh;
 
-	barx = videomodes.hRes/5; bary = _liney(0,0)-2; barw = videomodes.hRes*3/5; barh = 5*(font_heights[0]+1)+4;
+	barx = videomodes.hRes/5; bary = _liney(0,0)-2; barw = videomodes.hRes*3/5; barh = 5*(fontheight(0)+1)+4;
 	bothnewkeys = 0;
 
 	if(loadGameFile())
@@ -22979,6 +22980,9 @@ void keyboard_setup(int player){
 						strncpy(buttonnames[11], GET_ARG(2), 16);
 				}
 				else if(stricmp(command, "fontmonospace")==0){
+					 // here to keep from crashing
+				}
+				else if(stricmp(command, "fontmbs")==0){
 					 // here to keep from crashing
 				}
 				else
