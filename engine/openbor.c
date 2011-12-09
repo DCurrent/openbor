@@ -6955,7 +6955,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						//printf("frame count: %d\n",framecount);
 						//printf("Load sprite '%s'...\n", value);
 						index = loadsprite(value, offset[0], offset[1],nopalette?PIXEL_x8:PIXEL_8);//don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
-						if(pixelformat==PIXEL_x8)
+						if(pixelformat==PIXEL_x8 && !nopalette)
 						{
 							// for old mod just give it a default palette
 							if(newchar->palette==NULL)
