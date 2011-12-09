@@ -4757,7 +4757,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		frameshadow = -1,	// -1 will use default shadow for this entity, otherwise will use this value
 		soundtoplay = -1,
 		aimoveset = 0,
-		maskindex = -1;
+		maskindex = -1,
+		nopalette = 0;
 
 	size_t size = 0,
 		line = 0,
@@ -5635,10 +5636,14 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					else if(newchar->palette==NULL)
 					{
 						value = GET_ARG(1);
-						newchar->palette = malloc(PAL_BYTES);
-						if(loadimagepalette(value, packfile, newchar->palette)==0) {
-							shutdownmessage = "Failed to load palette!";
-							goto lCleanup;
+						if(stricmp(value, "none")==0){
+							if(pixelformat==PIXEL_x8) nopalette = 1;
+						}else{
+							newchar->palette = malloc(PAL_BYTES);
+							if(loadimagepalette(value, packfile, newchar->palette)==0) {
+								shutdownmessage = "Failed to load palette!";
+								goto lCleanup;
+							}
 						}
 					}
 					break;
@@ -6949,7 +6954,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						value = GET_ARG(1);
 						//printf("frame count: %d\n",framecount);
 						//printf("Load sprite '%s'...\n", value);
-						index = loadsprite(value, offset[0], offset[1],PIXEL_8);//don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
+						index = loadsprite(value, offset[0], offset[1],nopalette?PIXEL_x8:PIXEL_8);//don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
 						if(pixelformat==PIXEL_x8)
 						{
 							// for old mod just give it a default palette
@@ -6961,7 +6966,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 									goto lCleanup;
 								}
 							}
-							if(index>=0)
+							if(index>=0 && !nopalette)
 							{
 								sprite_map[index].node->sprite->palette = newchar->palette;
 								sprite_map[index].node->sprite->pixelformat = pixelformat;
