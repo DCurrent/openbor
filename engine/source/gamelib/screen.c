@@ -30,6 +30,7 @@ s_screen * allocscreen(int width, int height, int pixelformat)
 	screen->width = width;
 	screen->height = height;
 	screen->pixelformat = pixelformat;
+	screen->magic = screen_magic;
 	if(pixelformat==PIXEL_x8) screen->palette = ((unsigned char*)screen->data)+width*height*pixelbytes[(int)pixelformat];
 	else screen->palette = NULL;
 	return screen;
@@ -276,19 +277,16 @@ static void _putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod
 		alpha = 0;
 		transbg = 0;
 	} else if(drawmethod->water.watermode && drawmethod->water.amplitude) {
-		gfx.type = gfx_screen;
 		gfx.screen = src;
 		if(drawmethod->water.watermode==3)
 			gfx_draw_plane(dest, &gfx, x, y, 0, 0, drawmethod);
 		else gfx_draw_water(dest, &gfx, x, y, 0, 0, drawmethod);
 		return ;
 	} else if(drawmethod->rotate) {
-		gfx.type = gfx_screen;
 		gfx.screen = src;
 		gfx_draw_rotate(dest, &gfx, x, y, 0, 0, drawmethod);
 		return;
 	} else if(drawmethod->scalex!=256 || drawmethod->scaley!=256 || drawmethod->shiftx){
-		gfx.type = gfx_screen;
 		gfx.screen = src;
 		gfx_draw_scale(dest, &gfx, x, y, 0, 0, drawmethod);
 		return;

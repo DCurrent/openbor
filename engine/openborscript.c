@@ -554,7 +554,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_waypoints)) return "waypoints";
 	else if (functionRef==((void*)openbor_drawspriteq)) return "drawspriteq";
 	else if (functionRef==((void*)openbor_clearspriteq)) return "clearspriteq";
-	else if (functionRef==((void*)openbor_getpixel)) return "getpixel";
+	else if (functionRef==((void*)openbor_getgfxproperty)) return "getgfxproperty";
 	else return "<unknown function>";
 }
 
@@ -575,6 +575,7 @@ void* Script_GetStringMapFunction(void* functionRef)
 	else if (functionRef==((void*)openbor_getlayerproperty)) return (void*)mapstrings_layerproperty;
 	else if (functionRef==((void*)openbor_changelayerproperty)) return (void*)mapstrings_layerproperty;
 	else if (functionRef==((void*)openbor_changedrawmethod)) return (void*)mapstrings_drawmethodproperty;
+	else if (functionRef==((void*)openbor_getgfxproperty)) return (void*)mapstrings_gfxproperty;
 	else return NULL;
 }
 
@@ -1095,7 +1096,7 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_clearspriteq, "clearspriteq");
 	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_getpixel, "getpixel");
+					  (void*)openbor_getgfxproperty, "getgfxproperty");
 
 	//printf("Done!\n");
 
@@ -1908,15 +1909,12 @@ HRESULT openbor_settexture(ScriptVariant** varlist , ScriptVariant** pretvar, in
 
 	switch(type){
 	case 0:
-		texture.type = gfx_screen;
 		texture.screen = (s_screen*)varlist[0]->ptrVal;
 		break;
 	case 1:
-		texture.type = gfx_bitmap;
 		texture.bitmap = (s_bitmap*)varlist[0]->ptrVal;
 		break;
 	case 2:	
-		texture.type = gfx_sprite;
 		texture.sprite = (s_sprite*)varlist[0]->ptrVal;
 		break;
 	default:
@@ -11950,74 +11948,235 @@ HRESULT openbor_clearspriteq(ScriptVariant** varlist , ScriptVariant** pretvar, 
 
 }
 
-//getpixel(screen/sprite, x, y, type)
-// type: 0 =screen, 1=sprite, 2=bitmap(reserved)
-HRESULT openbor_getpixel(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+// ===== gfxproperty ======
+enum gfxproperty_enum
+{
+	_gfx_centerx,
+	_gfx_centery,
+	_gfx_height,
+	_gfx_pixel,
+	_gfx_pixelformat,
+	_gfx_srcheight,
+	_gfx_srcwidth,
+	_gfx_width,
+	_gfx_the_end,
+};
 
-	LONG value[3] = {0,0,0}, v;
+void mapstrings_gfxproperty(ScriptVariant** varlist, int paramCount)
+{
+	char *propname = NULL;
+	int prop;
+
+	static const char* proplist[] = {
+		"centerx",
+		"centery",
+		"height",
+		"pixel",
+		"pixelformat",
+		"srcheight",
+		"srcwidth",
+		"width",
+	};
+
+
+	if(paramCount < 2) return;
+	MAPSTRINGS(varlist[1], proplist, _gfx_the_end,
+		"Property name '%s' is not supported by gfxproperty.\n");
+}
+
+
+// getgfxproperty(handle, propertyname, ...);
+HRESULT openbor_getgfxproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	s_screen* screen;
+	s_sprite* sprite;
+	s_bitmap* bitmap;
+	LONG value[2] = {0,0}, v;
+	void* handle;
 	int i, x, y;
-	s_screen* screen = NULL;
-	s_sprite* sprite = NULL;
+
+	if(paramCount < 2)
+		goto ggp_error;
+
+	mapstrings_gfxproperty(varlist, paramCount);
+
+	if(varlist[0]->vt!=VT_PTR) goto ggp_error;
+	
+	handle = varlist[0]->ptrVal;
+
+	if(!handle)  goto ggp_error;
+
+	screen = (s_screen*)handle;
+	sprite = (s_sprite*)handle;
+	bitmap = (s_bitmap*)handle;
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
-	if(paramCount<3) goto gp_error;
 
-	if(varlist[0]->vt!=VT_PTR) goto gp_error;
-
-	for(i=1; i<paramCount && i<=3; i++){
-		if(FAILED(ScriptVariant_IntegerValue(varlist[i], value+i-1)))
-			goto gp_error;
-	}
-
-	for(i=1; i<paramCount && i<=5; i++){
-		if(FAILED(ScriptVariant_IntegerValue(varlist[i], value+i-1)))
-			goto gp_error;
-	}
-
-	x = (int)value[0]; y = (int)value[1];
-
-	switch(value[2]){
-	case 0: 
-		screen = (s_screen*)varlist[0]->ptrVal;
-		if(x<0 || x>=screen->width || y<0 || y>=screen->height)
-			v = 0;
-		else 
-		{
-			switch(screen->pixelformat){
-			case PIXEL_8:
-			case PIXEL_x8:
-				v = (LONG)(((unsigned char*)screen->data)[y*screen->width+x]);
-				break;
-			case PIXEL_16:
-				v = (LONG)(((unsigned short*)screen->data)[y*screen->width+x]);
-				break;
-			case PIXEL_32:
-				v = (LONG)(((unsigned*)screen->data)[y*screen->width+x]);
-				break;
-			default:
-				goto gp_error;
-			}
+	switch(varlist[1]->lVal){
+	case _gfx_width:
+		switch(screen->magic){
+		case screen_magic:
+			(*pretvar)->lVal = screen->width;
+			break;
+		case sprite_magic:
+			(*pretvar)->lVal = sprite->width;
+			break;
+		case bitmap_magic:
+			(*pretvar)->lVal = bitmap->width;
+			break;
+		default:
+			goto ggp_error2;
 		}
-		break;
-	case 1:
-		sprite = (s_sprite*)varlist[0]->ptrVal;
-		if(x<0 || x>=sprite->width || y<0 || y>=sprite->height)
-			v = 0;
-		else 
-			v = (LONG)sprite_get_pixel(sprite,x,y);
-		break;
-	default: goto gp_error;
-	}
+	break;
+	case _gfx_height:
+		switch(screen->magic){
+		case screen_magic:
+			(*pretvar)->lVal = screen->height;
+			break;
+		case sprite_magic:
+			(*pretvar)->lVal = sprite->height;
+			break;
+		case bitmap_magic:
+			(*pretvar)->lVal = bitmap->height;
+			break;
+		default:
+			goto ggp_error2;
+		}
+	break;
+	case _gfx_srcwidth:
+		switch(screen->magic){
+		case screen_magic:
+			(*pretvar)->lVal = screen->width;
+			break;
+		case sprite_magic:
+			(*pretvar)->lVal = sprite->srcwidth;
+			break;
+		case bitmap_magic:
+			(*pretvar)->lVal = bitmap->width;
+			break;
+		default:
+			goto ggp_error2;
+		}
+	break;
+	case _gfx_srcheight:
+		switch(screen->magic){
+		case screen_magic:
+			(*pretvar)->lVal = screen->height;
+			break;
+		case sprite_magic:
+			(*pretvar)->lVal = sprite->srcheight;
+			break;
+		case bitmap_magic:
+			(*pretvar)->lVal = bitmap->height;
+			break;
+		default:
+			goto ggp_error2;
+		}
+	break;
+	case _gfx_centerx:
+		switch(screen->magic){
+		case screen_magic:
+		case bitmap_magic:
+			(*pretvar)->lVal = 0;
+			break;
+		case sprite_magic:
+			(*pretvar)->lVal = sprite->centerx;
+			break;
+		default:
+			goto ggp_error2;
+		}
+	break;
+	case _gfx_centery:
+		switch(screen->magic){
+		case screen_magic:
+		case bitmap_magic:
+			(*pretvar)->lVal = 0;
+			break;
+		case sprite_magic:
+			(*pretvar)->lVal = sprite->centery;
+			break;
+		default:
+			goto ggp_error2;
+		}
+	break;
+	case _gfx_pixelformat:
+		switch(screen->magic){
+		case screen_magic:
+			(*pretvar)->lVal = screen->pixelformat;
+			break;
+		case sprite_magic:
+			(*pretvar)->lVal = sprite->pixelformat;
+			break;
+		case bitmap_magic:
+			(*pretvar)->lVal = bitmap->pixelformat;
+			break;
+		default:
+			goto ggp_error2;
+		}
+	break;
+	case _gfx_pixel:
+		if(paramCount<4) goto ggp_error3;
+		for(i=2; i<4; i++){
+			if(FAILED(ScriptVariant_IntegerValue(varlist[i], value+i-2)))
+				goto ggp_error4;
+		}
+		x = value[0]; y = value[1];
+		switch(screen->magic){
+		case bitmap_magic: //As long as the two structures are identical...
+		case screen_magic: 
+			if(x<0 || x>=screen->width || y<0 || y>=screen->height)
+				v = 0;
+			else 
+			{
+				switch(screen->pixelformat){
+				case PIXEL_8:
+				case PIXEL_x8:
+					v = (LONG)(((unsigned char*)screen->data)[y*screen->width+x]);
+					break;
+				case PIXEL_16:
+					v = (LONG)(((unsigned short*)screen->data)[y*screen->width+x]);
+					break;
+				case PIXEL_32:
+					v = (LONG)(((unsigned*)screen->data)[y*screen->width+x]);
+					break;
+				default:
+					v = 0;
+				}
+			}
+			break;
+		case sprite_magic:
+			if(x<0 || x>=sprite->width || y<0 || y>=sprite->height)
+				v = 0;
+			else 
+				v = (LONG)sprite_get_pixel(sprite,x,y);
+			break;
+		default: goto ggp_error2;
+		}
+		(*pretvar)->lVal = v;
+	break;
+	default:
+	break;
 
-	(*pretvar)->lVal = v;
+	}
 
 	return S_OK;
 
-gp_error:
+ggp_error:
+	printf("Function getgfxproperty must have a valid handle and a property name.\n");
 	*pretvar = NULL;
-	printf("Function getpixel(handle, x, y, type) requires a valid handle and at least two integer values.");
 	return E_FAIL;
-
+ggp_error2:
+	printf("Function getgfxproperty encountered an invalid handle.\n");
+	*pretvar = NULL;
+	return E_FAIL;
+ggp_error3:
+	printf("You need to specify x, y value for getgfxproperty.\n");
+	*pretvar = NULL;
+	return E_FAIL;
+ggp_error4:
+	printf("Invalid x or y value for getgfxproperty.\n");
+	*pretvar = NULL;
+	return E_FAIL;
 }
 

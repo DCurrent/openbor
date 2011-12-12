@@ -86,7 +86,11 @@ typedef unsigned long long u64;
 #endif
 #endif
 
+//scr
+#define screen_magic ((int)0x726373)
+
 typedef struct{
+	int magic;
 	int	width;
 	int	height;
 	char pixelformat;
@@ -104,7 +108,11 @@ typedef struct{
 }s_vram;
 
 
+//bmp
+#define bitmap_magic ((int)0x706d62)
+
 typedef struct{
+	int magic;
 	int	width;
 	int	height;
 	char pixelformat;
@@ -112,8 +120,11 @@ typedef struct{
 	unsigned char data[ANYNUMBER];
 }s_bitmap;
 
+//spr
+#define sprite_magic ((int)0x727073)
 
 typedef struct spritestruct{
+	int magic;
 	int	centerx;
 	int	centery;
 	int offsetx;
@@ -238,7 +249,6 @@ typedef struct
 
 typedef struct 
 {
-	gfx_type type;
 	union{
 		s_screen * screen;
 		s_sprite * sprite;
