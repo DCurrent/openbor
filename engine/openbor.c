@@ -13742,13 +13742,13 @@ int perform_atchain()
 
 	if(validanim(self,animattacks[self->modeldata.atchain[self->combostep[0]-1]-1]) )
 	{
-		if(((self->combostep[0]==1||self->modeldata.combostyle!=1) && self->modeldata.type==TYPE_PLAYER) ||  // player should use attack 1st step without checking range
-		   (self->modeldata.combostyle!=1 && normal_find_target(animattacks[self->modeldata.atchain[0]-1],0)) || // normal chain just checks the first attack in chain(guess no one like it)
-		   (self->modeldata.combostyle==1 && normal_find_target(animattacks[self->modeldata.atchain[self->combostep[0]-1]-1],0))) // combostyle 1 checks all anyway
+		if(((self->combostep[0]==1||!(self->modeldata.combostyle&1)) && self->modeldata.type==TYPE_PLAYER) ||  // player should use attack 1st step without checking range
+		   (!(self->modeldata.combostyle&1) && normal_find_target(animattacks[self->modeldata.atchain[0]-1],0)) || // normal chain just checks the first attack in chain(guess no one like it)
+		   ((self->modeldata.combostyle&1) && normal_find_target(animattacks[self->modeldata.atchain[self->combostep[0]-1]-1],0))) // combostyle 1 checks all anyway
 		{
 			pickanim = 1;
 		}
-		else if(self->modeldata.combostyle==1 && self->combostep[0]!=1) // ranged combo? search for a valid attack
+		else if((self->modeldata.combostyle&1) && self->combostep[0]!=1) // ranged combo? search for a valid attack
 		{
 			while(++self->combostep[0]<=self->modeldata.chainlength)
 			{
@@ -13771,6 +13771,7 @@ int perform_atchain()
 		ent_set_anim(self, animattacks[self->modeldata.atchain[self->combostep[0]-1]-1], 1);
 	}
 	if(!pickanim || self->combostep[0] > self->modeldata.chainlength) self->combostep[0] = 0;
+	if((self->modeldata.combostyle&2)) self->combotime = time + combodelay;
 	return pickanim;
 }
 
