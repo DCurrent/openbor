@@ -3280,7 +3280,6 @@ void load_layer(char *filename, int index)
 		{
 		// assume sprites are faster than screen when transparency or alpha are specified
 			level->layers[index].gfx.sprite = loadsprite2(filename, &(level->layers[index].width),&(level->layers[index].height));
-			level->layers[index].gfx.type = gfx_sprite;
 		}
 		else
 		{
@@ -3291,7 +3290,6 @@ void load_layer(char *filename, int index)
 			{
 				level->layers[index].height = level->layers[index].gfx.screen->height;
 				level->layers[index].width = level->layers[index].gfx.screen->width;
-				level->layers[index].gfx.type = gfx_screen;
 			}
 		}
 	}
@@ -8896,7 +8894,6 @@ void load_level(char *filename){
 					value = GET_ARG(1);
 					strncpy(bgPath, value, strlen(value)+1);
 					bgl->oldtype = bgt_background;
-					bgl->gfx.type=gfx_screen;
 				}else if(cmd==CMD_LEVEL_BGLAYER) bgl->oldtype = bgt_bglayer;
 				else if(cmd==CMD_LEVEL_FGLAYER) bgl->oldtype = bgt_fglayer;
 				else if(cmd==CMD_LEVEL_LAYER) bgl->oldtype = bgt_generic;
@@ -20462,10 +20459,10 @@ void draw_scrolled_bg(){
 		for(m=z; j<layer->drawmethod.yrepeat && m<vph; m+=height, j++, screenmethod.yrepeat++);
 		for(l=x; i<layer->drawmethod.xrepeat && l<vpw + (screenmethod.water.watermode==3?0:screenmethod.water.amplitude*2); l+=width, i++, screenmethod.xrepeat++);
 
-		if(layer->gfx.type==gfx_screen){
+		if(layer->gfx.screen->magic==screen_magic){
 			spriteq_add_screen(x+vpx, z+vpy, layer->z, layer->gfx.screen, &screenmethod, index);
 		}
-		else if(layer->gfx.type==gfx_sprite){
+		else if(layer->gfx.sprite->magic==sprite_magic){
 			spriteq_add_frame(x+vpx, z+vpy, layer->z, layer->gfx.sprite, &screenmethod, index);
 		}
 	

@@ -31,6 +31,7 @@ s_bitmap * allocbitmap(int width, int height, int format){
 		b->width = width;
 		b->height = height;
 		b->pixelformat = format;
+		b->magic = bitmap_magic;
 		if(format==PIXEL_x8)
 			b->palette = ((unsigned char*)b->data) + psize + extrab;
 		else

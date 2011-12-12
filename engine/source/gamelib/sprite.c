@@ -292,7 +292,6 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
 		return;
 	}
 
-	gfx.type = gfx_sprite;
 	gfx.sprite = frame;
 
 	if(drawmethod->water.watermode==3 && drawmethod->water.beginsize>0){
@@ -366,6 +365,8 @@ unsigned encodesprite(
   int *linetab;
   unsigned char *src = bitmap->data;
   int pb = PAL_BYTES, extrab;
+
+  if(dest) dest->magic = sprite_magic;
 
   if(bitmap->width <= 0 || bitmap->height <= 0){
 	// Image is empty (or bad), create an empty sprite

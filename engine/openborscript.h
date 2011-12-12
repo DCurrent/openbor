@@ -199,7 +199,7 @@ HRESULT openbor_changedrawmethod(ScriptVariant** varlist , ScriptVariant** pretv
 
 HRESULT openbor_drawspriteq(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_clearspriteq(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_getpixel(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_getgfxproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount);
 void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount);
@@ -214,4 +214,5 @@ void mapstrings_gettextobjproperty(ScriptVariant** varlist, int paramCount);
 void mapstrings_changetextobjproperty(ScriptVariant** varlist, int paramCount);
 void mapstrings_layerproperty(ScriptVariant** varlist, int paramCount);
 void mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount);
+void mapstrings_gfxproperty(ScriptVariant** varlist, int paramCount);
 #endif
