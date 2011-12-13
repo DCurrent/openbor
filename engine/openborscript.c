@@ -12210,12 +12210,13 @@ HRESULT openbor_allocscript(ScriptVariant** varlist , ScriptVariant** pretvar, i
 	if(ns==NULL) goto as_error;
 
 	if(paramCount>=1 && varlist[0]->vt==VT_STR) name = (char*)StrCache_Get(varlist[0]->strVal);
-	if(paramCount>=2 && varlist[1]->vt==VT_STR) name = (char*)StrCache_Get(varlist[1]->strVal);
+	if(paramCount>=2 && varlist[1]->vt==VT_STR) comment = (char*)StrCache_Get(varlist[1]->strVal);
 
 	Script_Init(ns, name, comment, 1);
 	
 	List_InsertAfter(&scriptheap, (void*)ns, "openbor_allocscript");
 
+	ScriptVariant_ChangeType(*pretvar, VT_PTR);
 	(*pretvar)->ptrVal = (VOID*)ns;
 	return S_OK;
 
