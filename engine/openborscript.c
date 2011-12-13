@@ -160,6 +160,12 @@ void Script_Global_Init()
 	ImportCache_Init();
 }
 
+void _freeheapnode(void* ptr){
+	if(((Script*)ptr)->magic==script_magic) {
+		Script_Clear((Script*)ptr,2);
+	}
+}
+
 //this function should only be called when the engine is shutting down
 void Script_Global_Clear()
 {
@@ -171,7 +177,7 @@ void Script_Global_Clear()
 	for(i=0, List_Reset(&scriptheap); i<size; List_GotoNext(&scriptheap), i++)
 	{
 		printf("%s\n", List_GetName(&scriptheap));
-		free(List_Retrieve(&scriptheap));
+		_freeheapnode(List_Retrieve(&scriptheap));
 	}
 	List_Clear(&scriptheap);
 	// clear the global list
@@ -332,6 +338,7 @@ void Script_Init(Script* pscript, char* theName, char* comment, int first)
 	if(first)
 	{
 		memset(pscript, 0, sizeof(Script));
+		pscript->magic = script_magic;
 		if(max_script_vars>0)
 		{
 			pscript->vars = (ScriptVariant*)malloc(sizeof(ScriptVariant)*max_script_vars);
@@ -555,6 +562,10 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_drawspriteq)) return "drawspriteq";
 	else if (functionRef==((void*)openbor_clearspriteq)) return "clearspriteq";
 	else if (functionRef==((void*)openbor_getgfxproperty)) return "getgfxproperty";
+	else if (functionRef==((void*)openbor_allocscript)) return "allocscript";
+	else if (functionRef==((void*)openbor_loadscript)) return "loadscript";
+	else if (functionRef==((void*)openbor_compilescript)) return "compilescript";
+	else if (functionRef==((void*)openbor_executescript)) return "executescript";
 	else return "<unknown function>";
 }
 
@@ -1097,6 +1108,14 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_clearspriteq, "clearspriteq");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_getgfxproperty, "getgfxproperty");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_allocscript, "allocscript");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_loadscript, "loadscript");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_compilescript, "compilescript");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_executescript, "executescript");
 
 	//printf("Done!\n");
 
@@ -1245,7 +1264,7 @@ HRESULT system_free(ScriptVariant** varlist , ScriptVariant** pretvar, int param
 	if(paramCount<1) return E_FAIL;
 	if(List_Includes(&scriptheap, varlist[0]->ptrVal))
 	{
-		free(List_Retrieve(&scriptheap));
+		_freeheapnode(List_Retrieve(&scriptheap));
 		List_Remove(&scriptheap);
 		return S_OK;
 	}
@@ -12180,3 +12199,91 @@ ggp_error4:
 	return E_FAIL;
 }
 
+//allocscript(name, comment);
+HRESULT openbor_allocscript(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	Script* ns;
+	char* name = NULL, *comment = NULL;
+
+	ns = malloc(sizeof(Script));
+
+	if(ns==NULL) goto as_error;
+
+	if(paramCount>=1 && varlist[0]->vt==VT_STR) name = (char*)StrCache_Get(varlist[0]->strVal);
+	if(paramCount>=2 && varlist[1]->vt==VT_STR) name = (char*)StrCache_Get(varlist[1]->strVal);
+
+	Script_Init(ns, name, comment, 1);
+	
+	List_InsertAfter(&scriptheap, (void*)ns, "openbor_allocscript");
+
+	(*pretvar)->ptrVal = (VOID*)ns;
+	return S_OK;
+
+as_error:
+	printf("Function allocscript failed to alloc enough memory.\n");
+	(*pretvar) = NULL;
+	return E_FAIL;
+}
+
+//loadscript(handle, path);
+HRESULT openbor_loadscript(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	Script* ns = NULL;
+	char* path = NULL;
+	int load_script(Script* script, char* file);
+	
+	(*pretvar) = NULL;
+
+	if(paramCount>=1 && varlist[0]->vt==VT_PTR) ns = (Script*)varlist[0]->ptrVal;
+	if(ns==NULL || ns->magic!=script_magic) goto ls_error;
+	if(paramCount>=2 && varlist[1]->vt==VT_STR) path = (char*)StrCache_Get(varlist[1]->strVal);
+	if(path==NULL) goto ls_error;
+
+	load_script(ns, path);
+	//Script_Init(ns, name, comment, 1);
+	//if(!load_script(ns, path)) goto ls_error2;
+
+	return S_OK;
+
+ls_error:
+	printf("Function loadscript requires a valid script handle and a path.\n");
+	return E_FAIL;
+}
+
+//compilescript(handle);
+HRESULT openbor_compilescript(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	Script* ns = NULL;
+
+	(*pretvar) = NULL;
+
+	if(paramCount>=1 && varlist[0]->vt==VT_PTR) ns = (Script*)varlist[0]->ptrVal;
+	if(ns==NULL || ns->magic!=script_magic) goto cs_error;
+
+	Script_Compile(ns);
+
+	return S_OK;
+
+cs_error:
+	printf("Function compilescript requires a valid script handle.\n");
+	return E_FAIL;
+}
+
+//executescript(handle);
+HRESULT openbor_executescript(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	Script* ns = NULL;
+
+	(*pretvar) = NULL;
+
+	if(paramCount>=1 && varlist[0]->vt==VT_PTR) ns = (Script*)varlist[0]->ptrVal;
+	if(ns==NULL || ns->magic!=script_magic) goto cs_error;
+
+	Script_Execute(ns);
+
+	return S_OK;
+
+cs_error:
+	printf("Function executescript requires a valid script handle.\n");
+	return E_FAIL;
+}

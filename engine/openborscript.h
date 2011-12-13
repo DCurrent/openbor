@@ -22,8 +22,12 @@ typedef struct
 	struct Script* owner;
 }s_variantnode;
 
+//osc
+#define script_magic ((int)0x73636f)
+
 typedef struct Script
 {
+	int magic;
 	Interpreter* pinterpreter;
 	char* comment; // debug purpose
 	ScriptVariant* vars;
@@ -200,6 +204,11 @@ HRESULT openbor_changedrawmethod(ScriptVariant** varlist , ScriptVariant** pretv
 HRESULT openbor_drawspriteq(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_clearspriteq(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_getgfxproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+
+HRESULT openbor_allocscript(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_loadscript(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_compilescript(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_executescript(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount);
 void mapstrings_changesystemvariant(ScriptVariant** varlist, int paramCount);
