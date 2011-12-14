@@ -19761,7 +19761,7 @@ entity * smartspawn(s_spawn_entry * props){   // 7-1-2005 Entire section replace
 	if(props == NULL || level == NULL) return NULL;
 
 	// Now you can make it so enemies/obstacles/etc only spawn if there are 2 players
-	if(props->spawnplayer_count >= (playercount = count_ents(TYPE_PLAYER))){
+	if(props->spawnplayer_count >= (playercount = MAX(1,count_ents(TYPE_PLAYER)))){
 		if(props->boss) --level->bosses;
 		return NULL;
 	}
