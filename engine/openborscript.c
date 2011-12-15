@@ -8594,6 +8594,8 @@ HRESULT openbor_spawn(ScriptVariant** varlist , ScriptVariant** pretvar, int par
 {
 	entity* ent;
 
+	if(spawnentry.boss && level) level->bosses++;
+
 	ent = smartspawn(&spawnentry);
 
 	if(ent)
@@ -11229,14 +11231,20 @@ getentity_error:
 HRESULT openbor_loadmodel(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	LONG unload = 0;
+	s_model* model;
 	if(paramCount<1) goto loadmodel_error;
 	if(varlist[0]->vt!=VT_STR) goto loadmodel_error;
 
 	 ScriptVariant_ChangeType(*pretvar, VT_PTR);
-	 if(paramCount == 2)
+	 if(paramCount >= 2)
 		 if(FAILED(ScriptVariant_IntegerValue(varlist[1], &unload))) goto loadmodel_error;
 
-	(*pretvar)->ptrVal = (VOID*)load_cached_model(StrCache_Get(varlist[0]->strVal), "openbor_loadmodel", (char)unload);
+	model = load_cached_model(StrCache_Get(varlist[0]->strVal), "openbor_loadmodel", (char)unload);
+
+	if(paramCount>=3 && model) model_cache[model->index].selectable = (char)ScriptVariant_IsTrue(varlist[2]);
+
+	(*pretvar)->ptrVal = (VOID*)model;
+
 	//else, it should return an empty value
 	return S_OK;
 
