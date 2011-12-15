@@ -700,379 +700,306 @@ int buffer_pakfile(char* filename, char** pbuffer, size_t* psize)
 // if failed return 0, otherwise return 1
 int getsyspropertybyindex(ScriptVariant* var, int index)
 {
-	enum nameenum
-	{
-		_e_background,
-		_e_branchname,
-		_e_count_enemies,
-		_e_count_entities,
-		_e_count_npcs,
-		_e_count_players,
-		_e_current_level,
-		_e_current_palette,
-		_e_current_scene,
-		_e_current_set,
-		_e_current_stage,
-		_e_effectvol,
-		_e_elapsed_time,
-		_e_ent_max,
-		_e_game_paused,
-		_e_game_speed,
-		_e_gfx_x_offset,
-		_e_gfx_y_offset,
-		_e_gfx_y_offset_adj,
-		_e_hResolution,
-		_e_in_gameoverscreen,
-		_e_in_halloffamescreen,
-		_e_in_level,
-		_e_in_menuscreen,
-		_e_in_selectscreen,
-		_e_in_showcomplete,
-		_e_in_titlescreen,
-		_e_lasthita,
-		_e_lasthitc,
-		_e_lasthitt,
-		_e_lasthitx,
-		_e_lasthitz,
-		_e_levelheight,
-		_e_levelwidth,
-		_e_lightx,
-		_e_lightz,
-		_e_maxentityvars,
-		_e_maxglobalvars,
-		_e_maxindexedvars,
-		_e_maxplayers,
-		_e_maxscriptvars,
-		_e_models_cached,
-		_e_models_loaded,
-		_e_musicvol,
-		_e_numpalettes,
-		_e_pakname,
-		_e_pause,
-		_e_pixelformat,
-		_e_player,
-		_e_player1,
-		_e_player2,
-		_e_player3,
-		_e_player4,
-		_e_player_max_z,
-		_e_player_min_z,
-		_e_shadowalpha,
-		_e_shadowcolor,
-		_e_slowmotion,
-		_e_slowmotion_duration,
-		_e_soundvol,
-		_e_totalram,
-		_e_freeram,
-		_e_usedram,
-		_e_vResolution,
-		_e_viewporth,
-		_e_viewportw,
-		_e_viewportx,
-		_e_viewporty,
-		_e_vscreen,
-		_e_xpos,
-		_e_ypos,
-		_e_the_end,
-	};
-
 	if(!var) return 0;
 
 	switch(index)
 	{
-	case _e_count_enemies:
+	case _sv_count_enemies:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)count_ents(TYPE_ENEMY);
 		break;
-	case _e_count_players:
+	case _sv_count_players:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)count_ents(TYPE_PLAYER);
 		break;
-	case _e_count_npcs:
+	case _sv_count_npcs:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)count_ents(TYPE_NPC);
 		break;
-	case _e_count_entities:
+	case _sv_count_entities:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)ent_count;
 		break;
-	case _e_ent_max:
+	case _sv_ent_max:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)ent_max;
 		break;
-	case _e_in_level:
+	case _sv_in_level:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(level != NULL);
 		break;
-	case _e_in_gameoverscreen:
+	case _sv_in_gameoverscreen:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(gameOver);
 		break;
-	case _e_in_menuscreen:
+	case _sv_in_menuscreen:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		if(selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene || level)
 			var->lVal = (LONG)0;
 		else var->lVal = (LONG)(menuScreen);
 		break;
-	case _e_in_showcomplete:
+	case _sv_in_showcomplete:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(showComplete);
 		break;
-	case _e_in_titlescreen:
+	case _sv_in_titlescreen:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(titleScreen);
 		break;
-	case _e_in_halloffamescreen:
+	case _sv_in_halloffamescreen:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(hallOfFame);
 		break;
-	case _e_effectvol:
+	case _sv_effectvol:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)savedata.effectvol;
 		break;
-	case _e_elapsed_time:
+	case _sv_elapsed_time:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)time;
 		break;
-	case _e_game_speed:
+	case _sv_game_speed:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)GAME_SPEED;
 		break;
-	case _e_pause:
+	case _sv_pause:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)pause;
 		break;
-    case _e_gfx_x_offset:
+    case _sv_gfx_x_offset:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)gfx_x_offset;
 		break;
-	case _e_gfx_y_offset:
+	case _sv_gfx_y_offset:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)gfx_y_offset;
 		break;
-    case _e_gfx_y_offset_adj:
+    case _sv_gfx_y_offset_adj:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)gfx_y_offset_adj;
 		break;
-	case _e_in_selectscreen:
+	case _sv_in_selectscreen:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(selectScreen);
 		break;
-	case _e_lasthita:
+	case _sv_lasthita:
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
 		var->dblVal = (DOUBLE)(lasthita);
 		break;
-	case _e_lasthitc:
+	case _sv_lasthitc:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(lasthitc);
 		break;
-	case _e_lasthitt:
+	case _sv_lasthitt:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(lasthitt);
 		break;
-	case _e_lasthitx:
+	case _sv_lasthitx:
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
 		var->dblVal = (DOUBLE)(lasthitx);
 		break;
-	case _e_lasthitz:
+	case _sv_lasthitz:
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
 		var->dblVal = (DOUBLE)(lasthitz);
 		break;
-	case _e_xpos:
+	case _sv_xpos:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
 		var->dblVal = (DOUBLE)advancex;
 		break;
-	case _e_ypos:
+	case _sv_ypos:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_DECIMAL);
 		var->dblVal = (DOUBLE)advancey;
 		break;
-	case _e_hResolution:
+	case _sv_hResolution:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)videomodes.hRes;
 		break;
-	case _e_vResolution:
+	case _sv_vResolution:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)videomodes.vRes;
 		break;
-	case _e_current_scene:
+	case _sv_current_scene:
 		if(currentScene){
 			ScriptVariant_ChangeType(var, VT_STR);
 			strcpy(StrCache_Get(var->strVal), currentScene);
 		}else ScriptVariant_Clear(var);
 		break;
-	case _e_current_set:
+	case _sv_current_set:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(current_set);
 		break;
-	case _e_current_level:
+	case _sv_current_level:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(current_level);
 		break;
-	case _e_current_palette:
+	case _sv_current_palette:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(current_palette);
 		break;
-	case _e_current_stage:
+	case _sv_current_stage:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(current_stage);
 		break;
-	case _e_levelwidth:
+	case _sv_levelwidth:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(level->width);
 		break;
-	case _e_levelheight:
+	case _sv_levelheight:
 		if(!level) return 0;
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(panel_height);
 		break;
-	case _e_branchname:
+	case _sv_branchname:
 		ScriptVariant_ChangeType(var, VT_STR);
 		strcpy(StrCache_Get(var->strVal), branch_name);
 		break;
-	case _e_pakname:
+	case _sv_pakname:
 		ScriptVariant_ChangeType(var, VT_STR);
 		getPakName(StrCache_Get(var->strVal), -1);
 		break;
-	case _e_maxentityvars:
+	case _sv_maxentityvars:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)max_entity_vars;
 		break;
-	case _e_maxglobalvars:
+	case _sv_maxglobalvars:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)max_global_vars;
 		break;
-	case _e_maxindexedvars:
+	case _sv_maxindexedvars:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)max_indexed_vars;
 		break;
-	case _e_maxplayers:
+	case _sv_maxplayers:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)maxplayers[current_set];
 		break;
-	case _e_maxscriptvars:
+	case _sv_maxscriptvars:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)max_script_vars;
 		break;
-	case _e_models_cached:
+	case _sv_models_cached:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)models_cached;
 		break;
-	case _e_models_loaded:
+	case _sv_models_loaded:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)models_loaded;
 		break;
-	case _e_musicvol:
+	case _sv_musicvol:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)savedata.musicvol;
 		break;
-	case _e_numpalettes:
+	case _sv_numpalettes:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(level->numpalettes);
 		break;
-	case _e_pixelformat:
+	case _sv_pixelformat:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)pixelformat;
 		break;
-	case _e_player:
-	case _e_player1:
+	case _sv_player:
+	case _sv_player1:
 		ScriptVariant_ChangeType(var, VT_PTR);
 		var->ptrVal = (VOID*)player;
 		break;
-	case _e_player2:
+	case _sv_player2:
 		ScriptVariant_ChangeType(var, VT_PTR);
 		var->ptrVal = (VOID*)(player+1);
 		break;
-	case _e_player3:
+	case _sv_player3:
 		ScriptVariant_ChangeType(var, VT_PTR);
 		var->ptrVal = (VOID*)(player+2);
 		break;
-	case _e_player4:
+	case _sv_player4:
 		ScriptVariant_ChangeType(var, VT_PTR);
 		var->ptrVal = (VOID*)(player+3);
 		break;
-	case _e_player_max_z:
+	case _sv_player_max_z:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(PLAYER_MAX_Z);
 		break;
-	case _e_player_min_z:
+	case _sv_player_min_z:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(PLAYER_MIN_Z);
 		break;
-	case _e_lightx:
+	case _sv_lightx:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(light[0]);
 		break;
-	case _e_lightz:
+	case _sv_lightz:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(light[1]);
 		break;
-	case _e_shadowalpha:
+	case _sv_shadowalpha:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)shadowalpha;
 		break;
-	case _e_shadowcolor:
+	case _sv_shadowcolor:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)shadowcolor;
 		break;
-	case _e_slowmotion:
+	case _sv_slowmotion:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)slowmotion[0];
 		break;
-	case _e_slowmotion_duration:
+	case _sv_slowmotion_duration:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)slowmotion[1];
 		break;
-	case _e_soundvol:
+	case _sv_soundvol:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)savedata.soundvol;
 		break;
-	case _e_game_paused:
+	case _sv_game_paused:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)pause;
 		break;
-	case _e_totalram:
+	case _sv_totalram:
 		 ScriptVariant_ChangeType(var, VT_INTEGER);
 		 var->lVal = (LONG)getSystemRam(KBYTES);
 		break;
-	case _e_freeram:
+	case _sv_freeram:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)getFreeRam(KBYTES);
 		break;
-	case _e_usedram:
+	case _sv_usedram:
 		 ScriptVariant_ChangeType(var, VT_INTEGER);
 		 var->lVal = (LONG)getUsedRam(KBYTES);
 		break;
-	case _e_background:
+	case _sv_background:
 		ScriptVariant_ChangeType(var, VT_PTR);
 		var->ptrVal = (VOID*)background;
 		break;
-	case _e_vscreen:
+	case _sv_vscreen:
 		ScriptVariant_ChangeType(var, VT_PTR);
 		var->ptrVal = (VOID*)vscreen;
 		break;
-	case _e_viewportx:
+	case _sv_viewportx:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)viewportx;
 		break;
-	case _e_viewporty:
+	case _sv_viewporty:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)viewporty;
 		break;
-	case _e_viewportw:
+	case _sv_viewportw:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)viewportw;
 		break;
-	case _e_viewporth:
+	case _sv_viewporth:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)viewporth;
 		break;
+	case _sv_waiting:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = level?(LONG)level->waiting:0;
 	default:
 		// We use indices now, but players/modders don't need to be exposed
 		// to that implementation detail, so we write "name" and not "index".
@@ -1089,127 +1016,102 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 	LONG ltemp;
 	//DOUBLE dbltemp;
 
-	// This enum is replicated in mapstrings_changesystemvariant in
-	// openborscript.c. If you change one, you must change the other as well!!!!
-	enum changesystemvariant_enum
-	{
-		_csv_blockade,
-		_csv_elapsed_time,
-		_csv_gfx_x_offset,
-		_csv_gfx_y_offset,
-		_csv_gfx_y_offset_adj,
-		_csv_lasthita,
-		_csv_lasthitc,
-		_csv_lasthitt,
-		_csv_lasthitx,
-		_csv_lasthitz,
-		_csv_levelpos,
-		_csv_scrollmaxz,
-		_csv_scrollminz,
-		_csv_slowmotion,
-		_csv_slowmotion_duration,
-		_csv_smartbomber,
-		_csv_textbox,
-		_csv_viewporth,
-		_csv_viewportw,
-		_csv_viewportx,
-		_csv_viewporty,
-		_csv_xpos,
-		_csv_ypos,
-		_csv_the_end,
-	 };
-
 	switch(index)
 	{
-	case _csv_elapsed_time:
+	case _sv_elapsed_time:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			time = (int)ltemp;
 		break;
-    case _csv_gfx_x_offset:
+    case _sv_gfx_x_offset:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			gfx_x_offset = (int)ltemp;
 		break;
-    case _csv_gfx_y_offset:
+    case _sv_gfx_y_offset:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			gfx_y_offset = (int)ltemp;
 		break;
-    case _csv_gfx_y_offset_adj:
+    case _sv_gfx_y_offset_adj:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			gfx_y_offset_adj = (int)ltemp;
 		break;
-	case _csv_levelpos:
+	case _sv_levelpos:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			level->pos = (int)ltemp;
 		break;
-	case _csv_xpos:
+	case _sv_xpos:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			advancex = (float)ltemp;
 		break;
-	case _csv_ypos:
+	case _sv_ypos:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			advancey = (float)ltemp;
 		break;
-	case _csv_scrollminz:
+	case _sv_scrollminz:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			scrollminz = (float)ltemp;
 		break;
-	case _csv_scrollmaxz:
+	case _sv_scrollmaxz:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			scrollmaxz = (float)ltemp;
 		break;
-	case _csv_blockade:
+	case _sv_blockade:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			blockade = (float)ltemp;
 		break;
-	case _csv_slowmotion:
+	case _sv_slowmotion:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			slowmotion[0] = (unsigned char)ltemp;
 		break;
-	case _csv_slowmotion_duration:
+	case _sv_slowmotion_duration:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			slowmotion[1] = (unsigned char)ltemp;
 		break;
-	case _csv_lasthitx:
+	case _sv_lasthitx:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			lasthitx = (float)ltemp;
 		break;
-	case _csv_lasthita:
+	case _sv_lasthita:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			lasthita = (float)ltemp;
 		break;
-	 case _csv_lasthitc:
+	 case _sv_lasthitc:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			lasthitc = (int)ltemp;
 		break;
-	case _csv_lasthitz:
+	case _sv_lasthitz:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			lasthitz = (float)ltemp;
 		break;
-	case _csv_lasthitt:
+	case _sv_lasthitt:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			lasthitt = (int)ltemp;
 		break;
-	case _csv_smartbomber:
+	case _sv_smartbomber:
 		smartbomber = (entity*)value->ptrVal;
 		break;
-	case _csv_textbox:
+	case _sv_textbox:
 		textbox = (entity*)value->ptrVal;
 		break;
-	case _csv_viewportx:
+	case _sv_viewportx:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			viewportx = (int)ltemp;
 		break;
-	case _csv_viewporty:
+	case _sv_viewporty:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			viewporty = (int)ltemp;
 		break;
-	case _csv_viewportw:
+	case _sv_viewportw:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			viewportw = (int)ltemp;
 		break;
-	case _csv_viewporth:
+	case _sv_viewporth:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			viewporth = (int)ltemp;
+		break;
+	case _sv_waiting:
+		if(!level) break;
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			level->waiting = (int)ltemp;
 		break;
 	default:
 		return 0;
@@ -9798,8 +9700,6 @@ unsigned getFPS(void)
 #endif
 }
 
-
-
 void updatestatus(){
 
 	int dt;
@@ -10135,7 +10035,7 @@ void predrawstatus(){
 	if(savedata.debuginfo)
 	{
 		spriteq_add_box(0, videomodes.dOffset-12, videomodes.hRes, videomodes.dOffset+12, 0x0FFFFFFE, 0, 0);
-		font_printf(2,                   videomodes.dOffset-10, 0, 0, "FPS: %02d", getFPS());
+		font_printf(2,                   videomodes.dOffset-10, 0, 0, "FPS: %03d", getFPS());
 		font_printf(videomodes.hRes / 2, videomodes.dOffset-10, 0, 0, "Free Ram: %s KBytes", commaprint(freeram/1000));
 		font_printf(2,                   videomodes.dOffset,    0, 0, "Total Ram: %s KBytes", commaprint(totalram/1000));
 		font_printf(videomodes.hRes / 2, videomodes.dOffset,    0, 0, "Used Ram: %s KBytes", commaprint(usedram/1000));
@@ -20715,10 +20615,8 @@ void draw_textobjs()
 }
 
 
-
 void update(int ingame, int usevwait)
 {
-
 	newtime = 0;
 	inputrefresh();
 
