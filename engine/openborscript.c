@@ -8647,6 +8647,7 @@ HRESULT openbor_projectile(ScriptVariant** varlist , ScriptVariant** pretvar, in
 
 projectile_error:
 	printf("Function requires 8 values: entity * projectile(char *name, float x, float z, float a, int direction, int type, int ptype, int map)\n");
+	*pretvar = NULL;
 	return E_FAIL;
 }
 
