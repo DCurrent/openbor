@@ -187,7 +187,7 @@ int font_string_width(int which, char* format, ...)
 
 	if(!sets || !format) return 0;
 
-	mbs = (sets[0]&&sets[0]->mbs==0)?0:1;
+	mbs = sets[0]->mbs;
 
 	va_start(arglist, format);
 	vsprintf(buf, format, arglist);
@@ -233,7 +233,7 @@ void font_printf(int x, int y, int which, int layeroffset,char *format, ...){
 
 	if(!sets) return;
 
-	mbs = (sets[0]&&sets[0]->mbs==0)?0:1;
+	mbs = sets[0]->mbs;
 
 	va_start(arglist, format);
 	vsprintf(buf, format, arglist);
@@ -279,7 +279,7 @@ void screen_printf(s_screen * screen, int x, int y, int which, char *format, ...
 
 	if(!sets) return;
 
-	mbs = (sets[0]&&sets[0]->mbs==0)?0:1;
+	mbs = sets[0]->mbs;
 
 	va_start(arglist, format);
 	vsprintf(buf, format, arglist);

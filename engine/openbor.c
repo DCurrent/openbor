@@ -3417,8 +3417,8 @@ void load_all_fonts()
 	for(i=0; i<MAX_FONTS; i++){
 		if(i==0) strcpy(path, "data/sprites/font");
 		else sprintf(path, "%s%d", "data/sprites/font", i+1);
-		if(!font_load(i, path, packfile, fontmonospace[i]|fontmbs[i]))
-			printf("Warning: unable to load font #%d!\n", i+1);
+		if(font_load(i, path, packfile, fontmonospace[i]|fontmbs[i]))
+			printf("%d ", i+1);
 	}
 }
 
@@ -19286,14 +19286,14 @@ entity * knife_spawn(char *name, int index, float x, float z, float a, int direc
 {
 	entity *e = NULL;
 
-	if(self->weapent && self->weapent->modeldata.project>=0) {e = spawn(x, z, a, direction, NULL, self->weapent->modeldata.project, NULL); if(!e) return NULL; e->ptype = 0; e->a = a;}
-	else if(self->animation->custknife>=0)                   {e = spawn(x, z, a, direction, NULL, self->animation->custknife, NULL);       if(!e) return NULL; e->ptype = 0; e->a = a;}
-	else if(self->animation->custpshotno>=0)                 {e = spawn(x, z, 0, direction, NULL, self->animation->custpshotno, NULL);     if(!e) return NULL; e->ptype = 1; e->a = 0;}
-	else if(self->modeldata.knife>=0)                        {e = spawn(x, z, a, direction, NULL, self->modeldata.knife, NULL);            if(!e) return NULL; e->ptype = 0; e->a = a;}
-	else if(self->modeldata.pshotno>=0)                      {e = spawn(x, z, 0, direction, NULL, self->modeldata.pshotno, NULL);          if(!e) return NULL; e->ptype = 1; e->a = 0;}
-	else if(index>=0 ||name)                                 {e = spawn(x, z, a, direction, name, index, NULL);                            if(!e) return NULL; e->ptype = 0; e->a = a;}
-	else if(type)                                            {e = spawn(x, z, a, direction, "Shot", -1, NULL);                             if(!e) return NULL; e->ptype = 0; e->a = a;}
-	else/* if(!type) */                                      {e = spawn(x, z, a, direction, "Knife", -1, NULL);                            if(!e) return NULL; e->ptype = 0; e->a = a;}
+	if(index>=0 ||name) {e = spawn(x, z, a, direction, name, index, NULL);                            if(!e) return NULL; e->ptype = 0; e->a = a;}
+	else if(self->weapent && self->weapent->modeldata.project>=0) {e = spawn(x, z, a, direction, NULL, self->weapent->modeldata.project, NULL); if(!e) return NULL; e->ptype = 0; e->a = a;}
+	else if(self->animation->custknife>=0) {e = spawn(x, z, a, direction, NULL, self->animation->custknife, NULL);       if(!e) return NULL; e->ptype = 0; e->a = a;}
+	else if(self->animation->custpshotno>=0) {e = spawn(x, z, 0, direction, NULL, self->animation->custpshotno, NULL);     if(!e) return NULL; e->ptype = 1; e->a = 0;}
+	else if(self->modeldata.knife>=0) {e = spawn(x, z, a, direction, NULL, self->modeldata.knife, NULL);            if(!e) return NULL; e->ptype = 0; e->a = a;}
+	else if(self->modeldata.pshotno>=0) {e = spawn(x, z, 0, direction, NULL, self->modeldata.pshotno, NULL);          if(!e) return NULL; e->ptype = 1; e->a = 0;}
+	else if(type) {e = spawn(x, z, a, direction, "Shot", -1, NULL);                             if(!e) return NULL; e->ptype = 0; e->a = a;}
+	else {e = spawn(x, z, a, direction, "Knife", -1, NULL);                            if(!e) return NULL; e->ptype = 0; e->a = a;}
 
 	if(e==NULL) return NULL;
 	else if(self->modeldata.type == TYPE_PLAYER) e->modeldata.type = TYPE_SHOT;
@@ -19345,10 +19345,10 @@ entity * bomb_spawn(char *name, int index, float x, float z, float a, int direct
 {
 	entity *e = NULL;
 
-	if(self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && self->weapent->modeldata.project>=0) e = spawn(x, z, a, direction, NULL, self->weapent->modeldata.project, NULL);
+	if(index>=0 ||name) e = spawn(x, z, a, direction, name, index, NULL);
+	else if(self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && self->weapent->modeldata.project>=0) e = spawn(x, z, a, direction, NULL, self->weapent->modeldata.project, NULL);
 	else if(self->animation->custbomb>=0) e = spawn(x, z, a, direction, NULL, self->animation->custbomb, NULL);
 	else if(self->modeldata.bomb>=0) e = spawn(x, z, a, direction, NULL, self->modeldata.bomb, NULL);
-	else e = spawn(x, z, a, direction, name, index, NULL);
 
 	if(e==NULL) return NULL;
 
