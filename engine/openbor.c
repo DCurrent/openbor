@@ -21763,6 +21763,7 @@ int playlevel(char *filename)
 	}
 
 	if(!musicoverlap) sound_close_music();
+	sound_stopall_sample();
 
 	kill_all();
 	unload_level();
