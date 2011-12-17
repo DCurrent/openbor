@@ -84,47 +84,43 @@ const s_drawmethod plainmethod = {
 
 // unknockdown attack
 const s_attack emptyattack = {
-	0,  // force
-   -1,  // sound
-   -1,  // flash
-   -1,  // blockflash
-   -1,  // blocksound
-	0,  // counter
-   {0,
-	0,
-	0,
-	0,
-	0}, // coods
-	0,  // nopain/noreflect
-	0,
-	0,  // noflash
-	0,  // noblock
-	0,  // grab
-	0,  // dir
-	0,  // blast
-	0,  // freeze
-	0,  // steal
-	0,  // map
-	0,  // seal
-	0,  // freezetime
-	0,  // maptime
-	0,  // sealtime
-	0,  // dot
-	0,  // dot index
-	0,  // dot_time
-	0,  // dot_force
-	0,  // dot_rate
-	{0,	0,	0}, // dropv
-	0,  // otg
-	0,  // jugglecost
-	0,  // Guardcost
-	0,  // drop
-	0,  // type
-	0,  // damage on landing
-	0,  // grabdist
-	0,  // pause
-	0,  // paintime add
-	{0,0,0}
+	0, // force
+   {0,0,0,0,0}, // coods
+   {0, 0, 0}, // dropv
+   {0,0,0}, //staydown
+   -1, // sound
+   -1, // flash
+   -1, // blockflash
+   -1, // blocksound
+   0, //no_block
+   0, //counterattack;
+   0, //no_pain
+   0, //no_kill
+   0, //no_flash
+   0, //grab
+   0, //freeze
+   0, //steal
+   0, //blast
+   0, //force_direction
+   0, //forcemap
+   0, //seal
+   0, //freezetime
+   0, //maptime;
+   0, //sealtime;
+   0, //dot
+   0, //dot_index
+   0, //dot_time
+   0, //dot_force
+   0, //dot_rate
+   0, //otg
+   0, //jugglecost
+   0, //guardcost
+   0, //attack_drop
+   0, //attack_type
+   0, //damage_on_landing
+   0, //grab_distance
+   0, //pause_add
+   0 //pain_time
 };
 
 char                *custScenes = NULL;
@@ -6667,7 +6663,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						case CMD_MODEL_FREEZE:
 							attack.attack_type  = ATK_FREEZE;
 							attack.freeze = 1;
-							attack.freezetime = GET_INT_ARG(6) * GAME_SPEED;
+							attack.freezetime = GET_FLOAT_ARG(6) * GAME_SPEED;
 							attack.forcemap = -1;
 							attack.attack_drop = 0;
 							break;
@@ -6724,7 +6720,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					//Like Freeze, but no auto remap.
 					pattack = (!newanim && newchar->smartbomb)?newchar->smartbomb:&attack;
 					pattack->freeze = 1;
-					pattack->freezetime = GET_INT_ARG(1) * GAME_SPEED;
+					pattack->freezetime = GET_FLOAT_ARG(1) * GAME_SPEED;
 					pattack->attack_drop = 0;
 					break;
 				case CMD_MODEL_GRABIN:
@@ -10719,7 +10715,7 @@ void update_frame(entity* ent, int f)
 		// For backward compatible thing
 		// throw stars in the air, hmm, strange
 		// custstar custknife in animation should be checked first
-		// then if the entiti is jumping, check star first, if failed, try knife instead
+		// then if the entity is jumping, check star first, if failed, try knife instead
 		// well, try knife at last, if still failed, try star, or just let if shutdown?
 #define __trystar star_spawn(self->x + (self->direction ? 56 : -56), self->z, self->a+67, self->direction)
 #define __tryknife knife_spawn(NULL, -1, self->x, self->z, self->a + anim->throwa, self->direction, 0, 0)
@@ -11743,7 +11739,7 @@ void do_attack(entity *e)
 					self->frozen ||
 					(self->direction == e->direction && self->modeldata.blockback < 1) ||                       // Can't block an attack that is from behind unless blockback flag is enabled
 					(!self->idling && self->attacking>=0)) &&                                                   // Can't block if busy, attack <0 means the character is preparing to attack, he can block during this time
-					attack->no_block <= self->modeldata.defense_blockpower[(short)attack->attack_type] &&       // If unblockable, will automatically hit
+					attack->no_block <= self->modeldata.defense_blockpower[attack->attack_type] &&       // If unblockable, will automatically hit
 					(rand32()&self->modeldata.blockodds) == 1 &&                                                // Randomly blocks depending on blockodds (1 : blockodds ratio)
 					(!self->modeldata.thold || (self->modeldata.thold > 0 && self->modeldata.thold > force))&&
 					(!fdefense_blockthreshold ||                                                                //Specific attack type threshold.
@@ -16464,7 +16460,7 @@ int arrow_move(){
 			{
 				self->takeaction = common_fall;
 				self->attacking = 0;
-				self->health -= 100000;
+				self->health = 0;
 				self->projectile = 0;
 				if(self->direction == 0) self->xdir = (float)-1.2;
 				else if(self->direction == 1) self->xdir = (float)1.2;
@@ -16476,12 +16472,8 @@ int arrow_move(){
 			}
 		}
 	}
-	if(self->ptype)
-	{
-		self->autokill = 1;
-		self->nextthink = time + 1;
-	}
-	else self->nextthink = time + THINK_SPEED / 2;
+	self->autokill = self->ptype;
+	self->nextthink = time + THINK_SPEED / 2;
 	return 1;
 }
 

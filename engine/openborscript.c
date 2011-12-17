@@ -8608,35 +8608,56 @@ HRESULT openbor_spawn(ScriptVariant** varlist , ScriptVariant** pretvar, int par
 	return S_OK;
 }
 
-//entity * projectile(char *name, float x, float z, float a, int direction, int type, int ptype, int map);
+//entity * projectile([0/1], char *name, float x, float z, float a, int direction, int pytype, int type, int map);
 HRESULT openbor_projectile(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	int i;
-	LONG value[7];
+	DOUBLE temp = 0;
+	LONG ltemp=0;
 	entity* ent;
-	char name[64] = {""};
+	char *name = NULL;
+	float x=0,z=0,a=0;
+	int direction = self->direction;
+	int type = 0;
+	int ptype = 0;
+	int map = 0;
 
-	if(paramCount != 8) goto projectile_error;
-	if(varlist[0]->vt != VT_STR) goto projectile_error;
+	int relative;
 
-	ScriptVariant_Clear(*pretvar);
+	if(paramCount>=1 && varlist[0]->vt==VT_INTEGER && varlist[0]->lVal){
+		relative = 1;
+		paramCount--;
+		varlist++;
+	}else relative = 0;
 
-	strncpy(name, StrCache_Get(varlist[0]->strVal), MAX_STR_VAR_LEN);
+	if(paramCount>=1 && varlist[0]->vt == VT_STR) name = StrCache_Get(varlist[0]->strVal);
 
-	for(i=1; i<=7; i++)
-	{
-		if(FAILED(ScriptVariant_IntegerValue(varlist[i], &value[i-1])))
-		    goto projectile_error;
+	if(paramCount>=2 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[1], &temp))) x = (float)temp;
+	else x = self->x;
+	if(paramCount>=3 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &temp))) z = (float)temp;
+	else z = self->z;
+	if(paramCount>=4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &temp))) a = (float)temp;
+	else a = self->a + self->animation->throwa;
+	if(paramCount>=5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp))) direction = (int)ltemp;
+	else direction = self->direction;
+	if(paramCount>=6 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp))) ptype = (int)ltemp;
+	if(paramCount>=7 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp))) type = (int)ltemp;
+	if(paramCount>=8 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[7], &ltemp))) map = (int)ltemp;
+
+	if(relative) {
+		if(self->direction) x += self->x;
+		else x = self->x-x;
+		z += self->z;
+		a += self->a;
 	}
 
-	switch((int)value[5])
+	switch(type)
 	{
 		default:
 		case 0:
-			ent = knife_spawn(name, -1, (float)value[0], (float)value[1], (float)value[2], (int)value[3], (int)value[4], (int)value[6]);
+			ent = knife_spawn(name, -1, x, z, a, direction, ptype, map);
 			break;
 		case 1:
-			ent = bomb_spawn(name, -1, (float)value[0], (float)value[1], (float)value[2], (int)value[3], (int)value[6]);
+			ent = bomb_spawn(name, -1, x, z, a, direction, map);
 			break;
 	}
 
@@ -8644,11 +8665,6 @@ HRESULT openbor_projectile(ScriptVariant** varlist , ScriptVariant** pretvar, in
 	(*pretvar)->ptrVal = (VOID*) ent;
 
 	return S_OK;
-
-projectile_error:
-	printf("Function requires 8 values: entity * projectile(char *name, float x, float z, float a, int direction, int type, int ptype, int map)\n");
-	*pretvar = NULL;
-	return E_FAIL;
 }
 
 

@@ -652,51 +652,51 @@ typedef struct
 
 typedef struct
 {
-	short           attack_force:16;
-	int          	hitsound;					    // Sound effect to be played when attack hits opponent
-	int             hitflash;                       // Custom flash for each animation, model id
-	int             blockflash;                     // Custom bflash for each animation, model id
-	int             blocksound;                     // Custom sound for when an attack is blocked
-	char            counterattack:8;
-	short 			attack_coords[5];               // stick on the only one victim
-	char            no_pain:8;
-	char			no_kill:8;						// this attack won't kill target (leave 1 HP)
-	char            no_flash:8;						// Flag to determine if an attack spawns a flash or not
-	char	        no_block:8;						// Flag to determine if an attack is blockable (default 0 - blockable)
-	char            grab:8;
-	char            force_direction:8;              // 0 dont care, 1 same direction as attacker, -1 opposite drection as attacker, 2 right, -2 left
-	char            blast:8;
-	char            freeze:8;
-	char            steal:8;
-	char            forcemap:8;
-	char            seal:8;
-	int             freezetime:32;
-	int             maptime:32;
-	int             sealtime:32;
-	int             dot;                            //Dot mode.
-	int             dot_index;                      //Dot index.
-	int             dot_time;                       //Dot time to expire.
-	int             dot_force;                      //Dot amount per tick.
-	int             dot_rate;                       //Dot tick delay.
-	float           dropv[3];                       // fly height/x/z if the target is knoced down
-	char            otg:8;                          // Over The Ground. Gives ground projectiles the ability to hit lying ents.
-	short           jugglecost:16;                  // cost for juggling a falling ent
-	short           guardcost:16;                   // cost for blocking an attack
-	char            attack_drop:8;                  // now be a knock-down factor, how many this attack will knock victim down
-	char            attack_type:8;
-	char            damage_on_landing:8;            // same as throw damage type
-	float           grab_distance;                  // suck target near by
-	short           pause_add:16;					// Flag to determine if an attack adds a pause before updating the animation
-	short			pain_time:16;
-	int             staydown[3];                    // [0] = Add to rise delay. [1] = Add to rise attack delay.
+	int attack_force;
+	short attack_coords[5];
+	int staydown[3];                    // [0] = Add to rise delay. [1] = Add to rise attack delay.
+	float dropv[3];                       // fly height/x/z if the target is knoced down
+	int hitsound;					    // Sound effect to be played when attack hits opponent
+	int hitflash;                       // Custom flash for each animation, model id
+	int blockflash;                     // Custom bflash for each animation, model id
+	int blocksound;                     // Custom sound for when an attack is blocked
+	int no_block;						// If this is greater than defense block power, make the hit
+	int counterattack;
+	int no_pain:8;
+	int no_kill:8;						// this attack won't kill target (leave 1 HP)
+	int no_flash:8;						// Flag to determine if an attack spawns a flash or not
+	int grab:8;
+	int freeze:8;
+	int steal:8;
+	int blast:8;
+	int force_direction:8;              // 0 dont care, 1 same direction as attacker, -1 opposite drection as attacker, 2 right, -2 left
+	int forcemap:8;
+	int seal:8;
+	int freezetime;
+	int maptime;
+	int sealtime;
+	int dot:8;                          //Dot mode.
+	int dot_index:8;                    //Dot index.
+	int dot_time;                       //Dot time to expire.
+	int dot_force;                      //Dot amount per tick.
+	int dot_rate;                       //Dot tick delay.
+	int otg:8;                          // Over The Ground. Gives ground projectiles the ability to hit lying ents.
+	int jugglecost;						// cost for juggling a falling ent
+	int guardcost;						// cost for blocking an attack
+	int attack_drop;					// now be a knock-down factor, how many this attack will knock victim down
+	int attack_type:8;
+	int damage_on_landing;				// same as throw damage type
+	float grab_distance;                // suck target near by
+	int pause_add:16;					// Flag to determine if an attack adds a pause before updating the animation
+	int pain_time:16;					// pain invincible time
 }s_attack;
 
 typedef struct                                      //2011_04_01, DC: Counterstrike when taking hit.
 {
-	short int       frameend;                       //Last frame of counter range.
-	short int       framestart;                     //First frame of counter range.
-	signed char     condition;                      //Counter conditions. 1 = Always. 2 = Hostile attacker. 3 = Hostile attacker from front not using freeze attack.
-	signed char     damaged;                        //Receive damage from attack. 0 = No damage. 1 = Normal damage.
+    int frameend:16;                       //Last frame of counter range.
+    int framestart:16;                     //First frame of counter range.
+	int condition:8;                      //Counter conditions. 1 = Always. 2 = Hostile attacker. 3 = Hostile attacker from front not using freeze attack.
+	int damaged:8;                        //Receive damage from attack. 0 = No damage. 1 = Normal damage.
 }s_counterrange;
 
 typedef struct                                      //2011_04_01, DC: Outdated Dive from jump functionality originally added by tails. Retained for backward compatibility.
@@ -707,9 +707,9 @@ typedef struct                                      //2011_04_01, DC: Outdated D
 
 typedef struct                                      //2011_04_01, DC: HP and/or MP cost to perform special/freespecials.
 {
-    short int       cost;                           //Amount of energy cost.
-    signed char     disable;                        //Disable flag. See check_energy function.
-    signed char     mponly;                         //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
+    int cost:16;                           //Amount of energy cost.
+    int disable:8;                        //Disable flag. See check_energy function.
+    int mponly:8;                         //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
 }s_energycost;
 
 typedef struct                                      //2011_04_01, DC: On frame movement (slide, jump, dive, etc.).
@@ -729,17 +729,17 @@ typedef struct                                      //2011_04_01, DC: Behavior w
 
 typedef struct                                      //2011_04_01, DC: Animation looping.
 {
-    short int       frameend;                       //Frame animation reaches before looping.
-    short int       framestart;                     //Frame animation loops back to.
-    signed char     mode;                           //0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
+    int frameend:16;                       //Frame animation reaches before looping.
+    int framestart:16;                     //Frame animation loops back to.
+    int mode:8;                           //0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
 }s_loop;
 
 typedef struct                                      //2011_04_01, DC: Frame based screen shake functionality.
 {
-    signed char     cnt;                            //Repetition count.
-    short int       framestart;                     //Frame to start quake.
-    signed char     repeat;                         //Repetitons.
-    signed char     v;                              //Vertical distance of screen movement (in pixels).
+    int     cnt:8;                            //Repetition count.
+    int     framestart:16;                     //Frame to start quake.
+    int     repeat:8;                         //Repetitons.
+    int     v:8;                              //Vertical distance of screen movement (in pixels).
 }s_quakeframe;
 
 typedef struct                                      //2011_04_01, DC: Distance to target verification for AI running, jumping, following parent, and combo chains for all entity types.
@@ -756,58 +756,57 @@ typedef struct                                      //2011_04_01, DC: Distance t
 
 typedef struct
 {
-	int             model_index;
-	int				index;							//unique id
-	short			numframes:16;
-	s_loop 		    loop;                           // Animation looping. 2011_03_31, DC: Moved to struct.
-	short           height:16;                      // entity's height during animation
-	short			tossframe:16;					// Used to determine which frame will toss a bomb/grenade
-	short			shootframe:16;
-	short			throwframe:16;
-	short			throwa:16;						//	Used for setting the "a" at which weapons are spawned
+	int model_index;
+	int index; //unique id
+	int numframes:16;
+	s_loop loop; // Animation looping. 2011_03_31, DC: Moved to struct.
+	int height:16; // entity's height during animation
+	int tossframe:16; // Used to determine which frame will toss a bomb/grenade
+	int shootframe:16;
+	int throwframe:16;
+	int throwa:16; //	Used for setting the "a" at which weapons are spawned
 	// various entity model id, knife/star/bomb etc
-	int             custknife;
-	int             custstar;
-	int             custbomb;                       // Used for new projectile bomb
-	int             custpshotno;
-	int             subentity;                      // Store the sub-entity's name for further use
-	//char			fastattack:8;					// Flag to determine if the opponent uses their pain time
-	s_energycost	energycost;					    // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-	float           chargetime;                     // charge time for an animation
-	s_jumpframe     jumpframe;                      // Jumpframe action. 2011_04_01, DC: moved to struct.
-	float           bounce;                         // -tossv/bounce = new tossv
-	s_dive			dive;						    // dive kick by tails. 2011_04_01, DC: Moved to struct.
-	int*	        soundtoplay;                    // each frame can have a sound
-	int*			sprite;                         // sprite[set][framenumber]
-	short*			delay;
-	short*			move;
-	short*			movez;
-	short*			movea;
-	short*			seta;							// Now characters can have a custom "a" value
-	short*			vulnerable;
-	short			(*bbox_coords)[5];
-	int*            shadow;
-	unsigned char*	idle;							// Allow free move
-	short			(*shadow_coords)[2];            // x, z offset of shadow
-	s_drawmethod    **drawmethods;
-	char            attackone:8;
-	s_attack**      attacks;
-	float			(*platform)[8];					// Now entities can have others land on them
-	s_range			range;						    // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-	short			flipframe:16;					// Turns entities around on the desired frame
-	short			followanim:16;					// use which FOLLOW anim?
-	char			followcond:8;					// conditions under which to use a followup
-	s_counterrange	counterrange;				    // Auto counter attack. 2011_04_01, DC: Moved to struct.
-	char            cancel:8;                       // Cancel anims with freespecial
-	short*			weaponframe;					// Specify with a frame when to switch to a weapon model
-	s_quakeframe	quakeframe;					    // Screen shake effect. 2011_04_01, DC; Moved to struct.
-    float*          spawnframe;					    // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
-    float*          summonframe;					// Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-	short           unsummonframe:16;               // Un-summon the entity
-	s_landframe     landframe;                      // Landing behavior. 2011_04_01, DC: Moved to struct.
-	short           dropframe:16;                   // if tossv < 0, this frame will be set
-	short           animhits:16;                    // Does the attack need to hit before cancel is allowed?
-	short			sync:16;						// sychronize frame to previous animation if they matches
+	int custknife;
+	int custstar;
+	int custbomb;
+	int custpshotno;
+	int subentity; // Store the sub-entity's name for further use
+	s_energycost energycost; // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
+	float chargetime; // charge time for an animation
+	s_jumpframe jumpframe; // Jumpframe action. 2011_04_01, DC: moved to struct.
+	float bounce; // -tossv/bounce = new tossv
+	s_dive dive; // dive kick by tails. 2011_04_01, DC: Moved to struct.
+	int* soundtoplay; // each frame can have a sound
+	int* sprite; // sprite[set][framenumber]
+	short* delay;
+	short* move;
+	short* movez;
+	short* movea;
+	short* seta; // Now characters can have a custom "a" value
+	short* vulnerable;
+	short (*bbox_coords)[5];
+	int* shadow;
+	unsigned char* idle; // Allow free move
+	short (*shadow_coords)[2];            // x, z offset of shadow
+	s_drawmethod **drawmethods;
+	s_attack** attacks;
+	float (*platform)[8]; // Now entities can have others land on them
+	s_range range; // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
+	int flipframe:16; // Turns entities around on the desired frame
+	int followanim:16; // use which FOLLOW anim?
+	int followcond:8; // conditions under which to use a followup
+	s_counterrange counterrange; // Auto counter attack. 2011_04_01, DC: Moved to struct.
+	int cancel:8; // Cancel anims with freespecial
+	int attackone:8; // stick on the only one victim
+	short* weaponframe; // Specify with a frame when to switch to a weapon model
+	s_quakeframe quakeframe; // Screen shake effect. 2011_04_01, DC; Moved to struct.
+    float* spawnframe; // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
+    float* summonframe; // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
+	int unsummonframe:16; // Un-summon the entity
+	s_landframe landframe; // Landing behavior. 2011_04_01, DC: Moved to struct.
+	int dropframe:16; // if tossv < 0, this frame will be set
+	int animhits:16; // Does the attack need to hit before cancel is allowed?
+	int sync:16; // sychronize frame to previous animation if they matches
 }s_anim;
 
 typedef struct
