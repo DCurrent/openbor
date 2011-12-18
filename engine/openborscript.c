@@ -8624,7 +8624,7 @@ HRESULT openbor_projectile(ScriptVariant** varlist , ScriptVariant** pretvar, in
 	entity* ent;
 	char *name = NULL;
 	float x=0,z=0,a=0;
-	int direction = self->direction;
+	int direction = 0;
 	int type = 0;
 	int ptype = 0;
 	int map = 0;
@@ -8640,12 +8640,16 @@ HRESULT openbor_projectile(ScriptVariant** varlist , ScriptVariant** pretvar, in
 	if(paramCount>=1 && varlist[0]->vt == VT_STR) name = StrCache_Get(varlist[0]->strVal);
 
 	if(paramCount>=2 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[1], &temp))) x = (float)temp;
+	else if(relative) x = 0;
 	else x = self->x;
 	if(paramCount>=3 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &temp))) z = (float)temp;
+	else if(relative) z = 0;
 	else z = self->z;
 	if(paramCount>=4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &temp))) a = (float)temp;
+	else if(relative) a  = self->animation->throwa;
 	else a = self->a + self->animation->throwa;
 	if(paramCount>=5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp))) direction = (int)ltemp;
+	else if(relative) direction  =1;
 	else direction = self->direction;
 	if(paramCount>=6 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp))) ptype = (int)ltemp;
 	if(paramCount>=7 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp))) type = (int)ltemp;
@@ -8653,7 +8657,10 @@ HRESULT openbor_projectile(ScriptVariant** varlist , ScriptVariant** pretvar, in
 
 	if(relative) {
 		if(self->direction) x += self->x;
-		else x = self->x-x;
+		else {
+			x = self->x-x;
+			direction = !direction;
+		}
 		z += self->z;
 		a += self->a;
 	}
