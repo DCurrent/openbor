@@ -2515,6 +2515,7 @@ _ep_blockodds,
 _ep_blockpain,
 _ep_boss,
 _ep_bounce,
+_ep_bound,
 _ep_candamage,
 _ep_chargerate,
 _ep_colourmap,
@@ -2679,6 +2680,7 @@ static const char* eplist[] = {
 "blockpain",
 "boss",
 "bounce",
+"bound",
 "candamage",
 "chargerate",
 "colourmap",
@@ -3893,6 +3895,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)ent->modeldata.bounce;
+		break;
+	}
+	case _ep_bound:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_PTR);
+		(*pretvar)->ptrVal = (VOID*)ent->bound;
 		break;
 	}
 	case _ep_candamage:
