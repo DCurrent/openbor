@@ -16174,7 +16174,7 @@ int assume_safe_distance(entity* target, int ani, int* minx, int* maxx, int* min
 // occasionally to attack
 int common_try_wander(entity* target, int dox, int doz)
 {
-	int walk = 0, behind, grabd, agg, mod;
+	int walk = 0, behind, grabd, mod;
 
 	float diffx, diffz, //distance from target
 		returndx, returndz, //how far should keep from target
@@ -16189,16 +16189,14 @@ int common_try_wander(entity* target, int dox, int doz)
 	behind = ((self->x<target->x)==target->direction);
 	grabd = self->modeldata.grabdistance;
 	//when entity is behind the target, it has a greater chance to go after the target
-	agg = self->modeldata.aggression/50;
-	if(agg>10) agg = 10;
 	if(behind&&diffx<grabd*4&&diffz<grabd){ //right behind, go for it
 		t = 13;
 	}else if(behind){ // only behind, half chance
 		t = 7;
-	}else { // otherwise, 1/3 chance
-		t = 1;
+	}else { // otherwise, 1/8 chance
+		t = 2;
 	}
-	t += agg;
+
 	if(behind && target->attacking) t+=5;
 	
 	// could use this to replace the completely wander ai
