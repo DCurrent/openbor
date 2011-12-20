@@ -1338,6 +1338,7 @@ static const char* svlist[] = {
 "player_min_z",
 "scrollmaxz",
 "scrollminz",
+"self",
 "shadowalpha",
 "shadowcolor",
 "slowmotion",

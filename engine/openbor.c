@@ -933,6 +933,10 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(light[1]);
 		break;
+	case _sv_self:
+		ScriptVariant_ChangeType(var, VT_PTR);
+		var->ptrVal = (VOID*)self;
+		break;
 	case _sv_shadowalpha:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)shadowalpha;
