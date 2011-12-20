@@ -7288,51 +7288,27 @@ HRESULT openbor_tossentity(ScriptVariant** varlist , ScriptVariant** pretvar, in
 	entity* ent = NULL;
 	DOUBLE height=0, speedx=0, speedz=0;
 
-	if(paramCount < 1)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
+	if(paramCount < 1) goto toss_error;
+
+	ent = (entity*)varlist[0]->ptrVal; //retrieve the entity
+	if(!ent) goto toss_error;
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 	(*pretvar)->lVal = (LONG)1;
 
-	ent = (entity*)varlist[0]->ptrVal; //retrieve the entity
-	if(!ent)
-	{
-		(*pretvar)->lVal = (LONG)0;
+	if(paramCount >= 2) ScriptVariant_DecimalValue(varlist[1], &height); 
+	if(paramCount >= 3) ScriptVariant_DecimalValue(varlist[2], &speedx);
+	if(paramCount >= 4) ScriptVariant_DecimalValue(varlist[3], &speedz);
 
-		return S_OK;
-	}
-
-	if(paramCount >= 2)
-	{
-		if(FAILED(ScriptVariant_DecimalValue(varlist[1], &height)))
-		{
-			(*pretvar)->lVal = (LONG)0;
-			return S_OK;
-		}
-	}
-	if(paramCount >= 3)
-	{
-		if(FAILED(ScriptVariant_DecimalValue(varlist[2], &speedx)))
-		{
-			(*pretvar)->lVal = (LONG)0;
-			return S_OK;
-		}
-	}
-	if(paramCount >= 4)
-	{
-		if(FAILED(ScriptVariant_DecimalValue(varlist[3], &speedz)))
-		{
-			(*pretvar)->lVal = (LONG)0;
-			return S_OK;
-		}
-	}
 	ent->xdir = (float)speedx;
 	ent->zdir = (float)speedz;
 	toss(ent, (float)height);
 	return S_OK;
+
+toss_error:
+	printf("Function tossentity(entity,height, speedx, speedz) requires at least a valid entity handle.\n");
+	*pretvar = NULL;
+	return E_FAIL;
 }
 
 // ===== getplayerproperty =====
@@ -11281,7 +11257,7 @@ HRESULT openbor_loadmodel(ScriptVariant** varlist , ScriptVariant** pretvar, int
 	return S_OK;
 
 loadmodel_error:
-	printf("Function needs a string and integer parameters: loadmodel(name, unload)\n");
+	printf("Function needs a string and integer parameters: loadmodel(name, unload, selectable)\n");
 	ScriptVariant_Clear(*pretvar);
 	*pretvar = NULL;
 	return E_FAIL;
