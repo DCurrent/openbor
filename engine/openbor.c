@@ -18814,8 +18814,7 @@ void player_think()
 
 	//    ltb 1-18-05  new Item get code to address new subtype
 
-	if(other && isSubtypeTouch(other) && !other->blink &&
-		diff(self->a , other->a)<0.1 )
+	if((other = find_ent_here(self, self->x, self->z, TYPE_ITEM)) && isSubtypeTouch(other) && !other->blink && diff(self->a, other->a)<1 )
 	{
 		didfind_item(other);    // Added function to clean code up a bit
 	}
