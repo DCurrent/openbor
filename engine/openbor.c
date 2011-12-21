@@ -11590,7 +11590,7 @@ int testmove(entity* ent, float sx, float sz, float x, float z){
 	//--------------obstacle checking ------------------
 	if(ent->modeldata.subject_to_obstacle>0)
 	{
-		if((other = find_ent_here(ent, x, z, (TYPE_OBSTACLE | TYPE_TRAP))) &&
+		if((other = find_ent_here(ent, x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
 		   (!other->animation->platform||!other->animation->platform[other->animpos][7]))
 			return 0;
 	}
@@ -11852,7 +11852,6 @@ void do_attack(entity *e)
 				}
 				else if(self->takedamage(e, attack))
 				{    // Didn't block so go ahead and take the damage
-					//printf("*%d*", current_attack_id);
 					execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0);
 					++e->animation->animhits;
 
@@ -13209,8 +13208,73 @@ int count_ents(int types)
 	return count;
 }
 
+int isItem(entity* e) {
+	return e->modeldata.type & TYPE_ITEM;
+}
 
-entity * find_ent_here(entity *exclude, float x, float z, int types)
+int isSubtypeTouch(entity* e) {
+	return e->modeldata.subtype == SUBTYPE_TOUCH;
+}
+
+int isSubtypeWeapon(entity* e) {
+	return e->modeldata.subtype == SUBTYPE_WEAPON;
+}
+
+int isSubtypeProjectile(entity* e) {
+	return e->modeldata.subtype == SUBTYPE_PROJECTILE;
+}
+
+int canBeDamaged(entity* who, entity* bywhom) {
+	return (who->modeldata.candamage & bywhom->modeldata.type) == bywhom->modeldata.type;
+}
+
+//check if an item is usable by the entity
+int normal_test_item(entity* ent, entity* item){
+	return (
+		isItem(item) &&
+		(item->modeldata.stealth.hide <= ent->modeldata.stealth.detect) &&
+		diff(item->x,ent->x) + diff(item->z,ent->z)< videomodes.hRes/2 &&
+		item->animation->vulnerable[item->animpos] && !item->blink &&
+		(validanim(ent,ANI_GET) || (isSubtypeTouch(item) && canBeDamaged(item, ent))) &&
+		(
+			(isSubtypeWeapon(item) && !ent->weapent && ent->modeldata.weapon && 
+			 ent->modeldata.numweapons>=item->modeldata.weapnum && ent->modeldata.weapon[item->modeldata.weapnum-1]>=0)
+			||(isSubtypeProjectile(item) && !ent->weapent)
+			||(item->health && (ent->health < ent->modeldata.health) && ! isSubtypeProjectile(item) && ! isSubtypeWeapon(item))
+		)
+	);
+}
+
+int test_item(entity* ent, entity* item){
+	if (!(
+		isItem(item) &&
+		item->animation->vulnerable[item->animpos] && !item->blink &&
+		(validanim(ent,ANI_GET) || (isSubtypeTouch(item) && canBeDamaged(item, ent)))
+	)) return 0;
+	if(isSubtypeProjectile(item) && ent->weapent) return 0;
+	if(isSubtypeWeapon(item) && 
+		(ent->weapent || !ent->modeldata.weapon || 
+		ent->modeldata.numweapons<item->modeldata.weapnum || 
+		ent->modeldata.weapon[item->modeldata.weapnum-1]<0)
+	) return 0;
+	return 1;
+}
+
+int player_test_pickable(entity* ent, entity* item){
+	if(isSubtypeTouch(item)) return 0;
+	if(isSubtypeWeapon(item) && ent->modeldata.animal==2) return 0;
+	if(diff(ent->base , item->a)>0.1) return 0;
+	return test_item(ent, item);
+}
+
+int player_test_touch(entity* ent, entity* item){
+	if(!isSubtypeTouch(item)) return 0;
+	if(isSubtypeWeapon(item) && ent->modeldata.animal==2) return 0;
+	if(diff(ent->base , item->a)>1) return 0;
+	return test_item(ent, item);
+}
+
+entity * find_ent_here(entity *exclude, float x, float z, int types, int (*test)(entity*,entity*))
 {
 	int i;
 	for(i=0; i<MAX_ENTS; i++)
@@ -13220,7 +13284,9 @@ entity * find_ent_here(entity *exclude, float x, float z, int types)
 			&& (ent_list[i]->modeldata.type & types)
 			&& diff(ent_list[i]->x,x)<(self->modeldata.grabdistance*0.83333)
 			&& diff(ent_list[i]->z,z)<(self->modeldata.grabdistance/3)
-			&& ent_list[i]->animation->vulnerable[ent_list[i]->animpos]  )
+			&& ent_list[i]->animation->vulnerable[ent_list[i]->animpos]
+			&& (!test || test(exclude,ent_list[i]))
+		)
 		{
 			return ent_list[i];
 		}
@@ -13575,26 +13641,6 @@ entity* normal_find_target(int anim, int iDetect)
 	return NULL;
 }
 
-int isItem(entity* e) {
-	return e->modeldata.type & TYPE_ITEM;
-}
-
-int isSubtypeTouch(entity* e) {
-	return e->modeldata.subtype == SUBTYPE_TOUCH;
-}
-
-int isSubtypeWeapon(entity* e) {
-	return e->modeldata.subtype == SUBTYPE_WEAPON;
-}
-
-int isSubtypeProjectile(entity* e) {
-	return e->modeldata.subtype == SUBTYPE_PROJECTILE;
-}
-
-int canBeDamaged(entity* who, entity* bywhom) {
-	return (who->modeldata.candamage & bywhom->modeldata.type) == bywhom->modeldata.type;
-}
-
 //Used by default A.I. pattern
 // A.I. characters try to find a pickable item
 entity * normal_find_item(){
@@ -13606,18 +13652,7 @@ entity * normal_find_item(){
 	for(i=0; i<ent_max; i++){
 		ce = ent_list[i];
 
-		if( ce->exists && isItem(ce) &&
-		(ce->modeldata.stealth.hide <= self->modeldata.stealth.detect) &&
-		diff(ce->x,self->x) + diff(ce->z,self->z)< videomodes.hRes/2 &&
-		ce->animation->vulnerable[ce->animpos] && !ce->blink &&
-		(validanim(self,ANI_GET) || (isSubtypeTouch(ce) && canBeDamaged(ce, self))) &&
-		(
-			(isSubtypeWeapon(ce) && !self->weapent && self->modeldata.weapon && 
-			 self->modeldata.numweapons>=ce->modeldata.weapnum && self->modeldata.weapon[ce->modeldata.weapnum-1]>=0)
-			||(isSubtypeProjectile(ce) && !self->weapent)
-			||(ce->health && (self->health < self->modeldata.health) && ! isSubtypeProjectile(ce) && ! isSubtypeWeapon(ce))
-		)
-		){
+		if( ce->exists && normal_test_item(self, ce) ){
 			if(index <0 || diff(ce->x, self->x) + diff(ce->z, self->z) < diff(ent_list[index]->x, self->x) + diff(ent_list[index]->z, self->z))
 				index = i;
 		}
@@ -15162,14 +15197,14 @@ int common_trymove(float xdir, float zdir)
 	//--------------obstacle checking ------------------
 	if(self->modeldata.subject_to_obstacle>0 /*&& !inair(self)*/)
 	{
-		if((other = find_ent_here(self, x, self->z, (TYPE_OBSTACLE | TYPE_TRAP))) &&
+		if((other = find_ent_here(self, x, self->z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
 		   (xdir>0 ? other->x > self->x: other->x < self->x) &&
 		   (!other->animation->platform||!other->animation->platform[other->animpos][7]))
 			{
 				xdir    = 0;
 				execute_onblocko_script(self, other);
 			}
-		if((other = find_ent_here(self, self->x, z, (TYPE_OBSTACLE | TYPE_TRAP))) &&
+		if((other = find_ent_here(self, self->x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
 		   (zdir>0 ? other->z > self->z: other->z < self->z) &&
 		   (!other->animation->platform||!other->animation->platform[other->animpos][7]))
 			{
@@ -15232,7 +15267,7 @@ int common_trymove(float xdir, float zdir)
 	if( (rand()&7)==0 &&
 		(validanim(self,ANI_THROW) ||
 		 validanim(self,ANI_GRAB)) && self->idling &&
-		(other = find_ent_here(self,x, z, self->modeldata.hostile))&&
+		(other = find_ent_here(self,x, z, self->modeldata.hostile, NULL))&&
 		cangrab(self, other) &&
 		adjust_grabposition(self, other, self->modeldata.grabdistance, 0))
 	{
@@ -18187,7 +18222,7 @@ void player_think()
 	if(player[(int)self->playerindex].ent != self || self->dead) return;
 
 	// check endlevel item
-	if((other = find_ent_here(self, self->x, self->z, TYPE_ENDLEVEL)) && diff(self->a, other->a)<=0.1)
+	if((other = find_ent_here(self, self->x, self->z, TYPE_ENDLEVEL, NULL)) && diff(self->a, other->a)<=0.1)
 	{
 		if(!reached[0] && !reached[1] && !reached[2] && !reached[3]) addscore(self->playerindex, other->modeldata.score);
 		reached[(int)self->playerindex] = 1;
@@ -18515,23 +18550,15 @@ void player_think()
 			return;
 		}
 
-		if( (other = find_ent_here(self, self->x, self->z, TYPE_ITEM)) && ! isSubtypeTouch(other) && !other->blink &&
-			diff(self->base , other->a)<0.1  )
+		if( validanim(self,ANI_GET) && (other = find_ent_here(self, self->x, self->z, TYPE_ITEM, player_test_pickable)) )
 		{
-			if( validanim(self,ANI_GET) && // so we wont get stuck
-				 //dont pickup a weapon that is not in weapon list
-				!(( isSubtypeWeapon(other) && (self->modeldata.numweapons<other->modeldata.weapnum || self->modeldata.weapon[other->modeldata.weapnum-1]<0)) ||
-				//if on an real animal, can't pick up weapons
-				(self->modeldata.animal==2 && isSubtypeWeapon(other))))
-			{
-				didfind_item(other);
-				self->xdir = self->zdir = 0;
-				set_getting(self);
-				self->takeaction = common_get;
-				ent_set_anim(self, ANI_GET, 0);
-				execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
-				return;
-			}
+			didfind_item(other);
+			self->xdir = self->zdir = 0;
+			set_getting(self);
+			self->takeaction = common_get;
+			ent_set_anim(self, ANI_GET, 0);
+			execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
+			return;
 		}
 
 		// Use stalltime to charge end-move
@@ -18812,9 +18839,7 @@ void player_think()
 		self->turntime = 0;
 	}
 
-	//    ltb 1-18-05  new Item get code to address new subtype
-
-	if((other = find_ent_here(self, self->x, self->z, TYPE_ITEM)) && isSubtypeTouch(other) && !other->blink && diff(self->a, other->a)<1 )
+	if((other = find_ent_here(self, self->x, self->z, TYPE_ITEM, player_test_touch))  )
 	{
 		didfind_item(other);    // Added function to clean code up a bit
 	}
