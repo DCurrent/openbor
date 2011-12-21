@@ -699,12 +699,6 @@ typedef struct                                      //2011_04_01, DC: Counterstr
 	int damaged:8;                        //Receive damage from attack. 0 = No damage. 1 = Normal damage.
 }s_counterrange;
 
-typedef struct                                      //2011_04_01, DC: Outdated Dive from jump functionality originally added by tails. Retained for backward compatibility.
-{
-    float           v;                              //Vertical speed.
-    float           x;                              //Horizontal speed.
-}s_dive;
-
 typedef struct                                      //2011_04_01, DC: HP and/or MP cost to perform special/freespecials.
 {
     int cost:16;                           //Amount of energy cost.
@@ -775,7 +769,6 @@ typedef struct
 	float chargetime; // charge time for an animation
 	s_jumpframe jumpframe; // Jumpframe action. 2011_04_01, DC: moved to struct.
 	float bounce; // -tossv/bounce = new tossv
-	s_dive dive; // dive kick by tails. 2011_04_01, DC: Moved to struct.
 	int* soundtoplay; // each frame can have a sound
 	int* sprite; // sprite[set][framenumber]
 	short* delay;
@@ -798,6 +791,7 @@ typedef struct
 	s_counterrange counterrange; // Auto counter attack. 2011_04_01, DC: Moved to struct.
 	int cancel:8; // Cancel anims with freespecial
 	int attackone:8; // stick on the only one victim
+	int dive:8; // UT: make dive a similar property as antigravity
 	short* weaponframe; // Specify with a frame when to switch to a weapon model
 	s_quakeframe quakeframe; // Screen shake effect. 2011_04_01, DC; Moved to struct.
     float* spawnframe; // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
