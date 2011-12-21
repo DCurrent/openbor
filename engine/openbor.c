@@ -5695,7 +5695,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->jumpframe.f = -1;
 						newanim->flipframe = -1;
 						newanim->attackone = -1;
-						newanim->dive.x = newanim->dive.v = 0;
+						newanim->dive = 0;
 						newanim->followanim = 0;			// Default disabled
 						newanim->followcond = 0;
 						newanim->counterrange.framestart = -1;		//Start frame.
@@ -6361,16 +6361,6 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_CHARGETIME:
 					newanim->chargetime = GET_FLOAT_ARG(1);
 					break;
-				case CMD_MODEL_DIVE:	//dive kicks
-					newanim->dive.x = GET_FLOAT_ARG(1);
-					newanim->dive.v = GET_FLOAT_ARG(2);
-					break;
-				case CMD_MODEL_DIVE1:
-					newanim->dive.x = GET_FLOAT_ARG(1);
-					break;
-				case CMD_MODEL_DIVE2:
-					newanim->dive.v = GET_FLOAT_ARG(1);
-					break;
 				case CMD_MODEL_ATTACKONE:
 					newanim->attackone = GET_INT_ARG(1);
 					break;
@@ -6407,6 +6397,24 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_CUSTSTAR:
 					newanim->custstar= get_cached_model_index(GET_ARG(1));
+					break;
+
+				// UT: merge dive and jumpframe, because they can't be used at the same time
+				case CMD_MODEL_DIVE:	//dive kicks
+					newanim->dive = 1;
+					newanim->jumpframe.f = 0;
+					newanim->jumpframe.x = GET_FLOAT_ARG(1);
+					newanim->jumpframe.v = -GET_FLOAT_ARG(2);
+					break;
+				case CMD_MODEL_DIVE1:
+					newanim->dive = 1;
+					newanim->jumpframe.f = 0;
+					newanim->jumpframe.x = GET_FLOAT_ARG(1);
+					break;
+				case CMD_MODEL_DIVE2:
+					newanim->dive = 1;
+					newanim->jumpframe.f = 0;
+					newanim->jumpframe.v = -GET_FLOAT_ARG(1);
 					break;
 				case CMD_MODEL_JUMPFRAME:
 					{
@@ -12032,10 +12040,11 @@ void check_gravity()
 	int heightvar;
 	entity* other, *dust;
 	s_attack attack;
+	float gravity;
 
 	if(!is_frozen(self) )// Incase an entity is in the air, don't update animations
 	{
-		if((self->falling || self->tossv || self->a!=self->base) && self->toss_time <= time && !self->animation->dive.x && !self->animation->dive.v)
+		if((self->falling || self->tossv || self->a!=self->base) && self->toss_time <= time)
 		{
 			if(self->modeldata.subject_to_platform>0 && self->tossv>0)
 				other = check_platform_above(self->x, self->z, self->a+self->tossv, self);
@@ -12056,8 +12065,10 @@ void check_gravity()
 			else self->hithead = NULL;
 			// gravity, antigravity factors
 			self->a += self->tossv;
+			if(self->animation->dive) gravity = 0;
+			else gravity = level->gravity * (1.0-self->modeldata.antigravity-self->antigravity);
 			if(self->modeldata.subject_to_gravity>0)
-				self->tossv += level->gravity * (1.0-self->modeldata.antigravity-self->antigravity);
+				self->tossv += gravity;
 
 			if(self->tossv < level->maxfallspeed)
 			{
@@ -12111,7 +12122,7 @@ void check_gravity()
 				}
 				else if((!self->animation->seta || self->animation->seta[self->animpos]<0) &&
 					(!self->animation->movea || self->animation->movea[self->animpos]<=0))
-						self->xdir = self->zdir = self->tossv= 0;
+					self->xdir = self->zdir = self->tossv= 0;
 				else self->tossv = 0;
 
 				if(self->animation->landframe.frame>=0                                 //Has landframe?
@@ -13199,7 +13210,6 @@ int count_ents(int types)
 }
 
 
-
 entity * find_ent_here(entity *exclude, float x, float z, int types)
 {
 	int i;
@@ -13787,18 +13797,6 @@ void common_jump()
 
 	if(inair(self))
 	{
-		if(self->animation->dive.x || self->animation->dive.v)
-		{
-			self->tossv = 0;    // Void tossv so "a" can be adjusted manually
-			self->toss_time = 0;
-
-			if(self->direction) self->xdir = self->animation->dive.x;
-			else self->xdir = -self->animation->dive.x;
-
-			self->a -= self->animation->dive.v;
-
-			if(self->a <= self->base) self->a = self->base;    // Don't want to go below ground
-		}
 		return;
 	}
 
@@ -16561,7 +16559,6 @@ int common_move()
 	entity* target = NULL;//hostile target
 	entity* owner = NULL;
 	entity* ent = NULL;
-	float seta;
 	int predir, stall;
 	int patx[5], pxc, px, patz[5], pzc, pz, fz; //move pattern in z and x
 
@@ -16639,8 +16636,7 @@ int common_move()
 			&& diff(other->z,self->z)<(self->modeldata.grabdistance/3) && 
 			other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
 		{
-			seta = (float)(self->animation->seta?self->animation->seta[self->animpos]:-1);
-			if(diff(self->a - (seta>= 0) * seta , other->a)<0.1){
+			if(diff(self->base, other->a)<0.1){
 				common_pickupitem(other);
 				return 1;
 			}
@@ -18186,15 +18182,12 @@ void player_think()
 	int bkwalk = 0;   //backwalk
 	entity *other = NULL;
 	float altdiff ;
-	float seta ;
 	int notinair;
 
 	if(player[(int)self->playerindex].ent != self || self->dead) return;
 
-	seta = (float)(self->animation->seta?self->animation->seta[self->animpos]:-1);
 	// check endlevel item
-	if((other = find_ent_here(self, self->x, self->z, TYPE_ENDLEVEL)) && self->a -
-		(seta >= 0? seta:0) == other->a)
+	if((other = find_ent_here(self, self->x, self->z, TYPE_ENDLEVEL)) && diff(self->a, other->a)<=0.1)
 	{
 		if(!reached[0] && !reached[1] && !reached[2] && !reached[3]) addscore(self->playerindex, other->modeldata.score);
 		reached[(int)self->playerindex] = 1;
@@ -18523,7 +18516,7 @@ void player_think()
 		}
 
 		if( (other = find_ent_here(self, self->x, self->z, TYPE_ITEM)) && ! isSubtypeTouch(other) && !other->blink &&
-			diff(self->a - (seta >= 0) * seta , other->a)<0.1  )
+			diff(self->base , other->a)<0.1  )
 		{
 			if( validanim(self,ANI_GET) && // so we wont get stuck
 				 //dont pickup a weapon that is not in weapon list
@@ -18821,8 +18814,8 @@ void player_think()
 
 	//    ltb 1-18-05  new Item get code to address new subtype
 
-	if((other = find_ent_here(self, self->x, self->z, TYPE_ITEM)) && isSubtypeTouch(other) && !other->blink &&
-		diff(self->a - (seta >= 0) * seta , other->a)<0.1 && action)
+	if(other && isSubtypeTouch(other) && !other->blink &&
+		diff(self->a , other->a)<0.1 )
 	{
 		didfind_item(other);    // Added function to clean code up a bit
 	}
