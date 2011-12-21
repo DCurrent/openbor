@@ -16230,11 +16230,11 @@ int common_try_wander(entity* target, int dox, int doz)
 	if(dox){
 		if(self->x<screenx-borderdx){
 			self->xdir = self->modeldata.speed;
-			self->destx = screenx + videomodes.hRes/12.0;
+			self->destx = screenx + videomodes.hRes/8.0;
 			walk = 1;
 		}else if (self->x>screenx+videomodes.hRes+borderdx){
 			self->xdir = -self->modeldata.speed;
-			self->destx = screenx + videomodes.hRes*11.0/12.0;
+			self->destx = screenx + videomodes.hRes*7.0/8.0;
 			walk = 1;
 		}else if(diffx>returndx){
 			self->xdir = (self->x>target->x)?-self->modeldata.speed:self->modeldata.speed;
