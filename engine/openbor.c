@@ -17454,16 +17454,15 @@ int check_combo(int m){    // New function to check combos to make sure they are
 		}
 	}// end of for
 
-	if(time > self->movetime) return 0;    // Too much time passed so return 0
+	if(time > self->movetime && self->movestep) return 0;    // Too much time passed so return 0
 
 	if(m == FLAG_FORWARD || m==FLAG_BACKWARD || m==FLAG_MOVEUP || m==FLAG_MOVEDOWN){   // direction keys
 		for(i = 0; i < self->modeldata.specials_loaded; i++)
 		{
-			if( self->modeldata.special[i][MAX_SPECIAL_INPUTS-(3+value)]>self->movestep &&
-				self->modeldata.special[i][(int)self->movestep] == self->lastmove &&
-				self->modeldata.special[i][(int)self->movestep+1] == m )
+			if( self->modeldata.special[i][MAX_SPECIAL_INPUTS-(3+value)]>self->movestep+1 &&
+				( self->movestep==0 || (self->modeldata.special[i][self->movestep-1] == self->lastmove && self->modeldata.special[i][MAX_SPECIAL_INPUTS-(1+value)])) &&
+				self->modeldata.special[i][self->movestep] == m )
 			{
-
 				self->modeldata.special[i][MAX_SPECIAL_INPUTS-(1+value)] = 1;    // Marks all valid directional combos with a 1
 				found = 1;    // There is at least 1 valid combo, so return found
 			}
@@ -17476,7 +17475,7 @@ int check_combo(int m){    // New function to check combos to make sure they are
 	{
 		for(i = 0; i < self->modeldata.specials_loaded; i++)
 		{
-			if(self->modeldata.special[i][MAX_SPECIAL_INPUTS-1] && self->modeldata.special[i][self->movestep+1] == m && value == 0)
+			if(self->modeldata.special[i][MAX_SPECIAL_INPUTS-1] && self->modeldata.special[i][self->movestep] == m && value == 0)
 			{    // Checks only valid directional combos to see if the action button matches
 				if(check_costmove(self->modeldata.special[i][MAX_SPECIAL_INPUTS-2], 1))
 				{
@@ -17485,7 +17484,7 @@ int check_combo(int m){    // New function to check combos to make sure they are
 				}
 				else return 0;    // Found, but cost more health than the player had
 			}
-			else if(self->modeldata.special[i][MAX_SPECIAL_INPUTS-4] && self->modeldata.special[i][self->movestep+1] == m  &&
+			else if(self->modeldata.special[i][MAX_SPECIAL_INPUTS-4] && self->modeldata.special[i][self->movestep] == m  &&
 				self->modeldata.special[i][MAX_SPECIAL_INPUTS-10] <= self->animation->animhits &&
 				self->modeldata.special[i][MAX_SPECIAL_INPUTS-7] <= self->animpos &&
 				self->modeldata.special[i][MAX_SPECIAL_INPUTS-8] >= self->animpos &&
@@ -18455,6 +18454,12 @@ void player_think()
 
 	if(player[(int)self->playerindex].playkeys & FLAG_SPECIAL )    //    The special button can now be used for freespecials
 	{
+		if(check_combo(FLAG_SPECIAL))
+		{
+			player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
+			return;
+		}
+
 		if( validanim(self,ANI_SPECIAL2) && notinair &&
 			(!self->direction ?
 			(player[(int)self->playerindex].keys & FLAG_MOVELEFT) :
@@ -18465,12 +18470,6 @@ void player_think()
 				player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
 				return;
 			}
-		}
-
-		if(check_combo(FLAG_SPECIAL))
-		{
-			player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
-			return;
 		}
 
 		if(validanim(self,ANI_BLOCK) && !self->modeldata.holdblock && notinair)    // New block code for players
