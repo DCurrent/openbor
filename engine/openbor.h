@@ -702,7 +702,7 @@ typedef struct                                      //2011_04_01, DC: Counterstr
 typedef struct                                      //2011_04_01, DC: HP and/or MP cost to perform special/freespecials.
 {
     int cost:16;                           //Amount of energy cost.
-    int disable:8;                        //Disable flag. See check_energy function.
+    int disable:16;                        //Disable flag. See check_energy function.
     int mponly:8;                         //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
 }s_energycost;
 
@@ -1291,10 +1291,9 @@ typedef struct entity
 	int				animating:8;						// Set by animation code
 	int				arrowon:8;						// Flag to display parrow/parrow2 or not
 	unsigned		pathblocked:8;
+
 	point2d * waypoints;
 	int numwaypoints;
-
-	//---------------------   end of flags ----------------------------------------------
 	int			animpos:16;
 	int			lastanimpos:16;					// Used by AI
 	int			animnum:16;                     // animation id

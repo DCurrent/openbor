@@ -1317,6 +1317,8 @@ static const char* svlist[] = {
 "levelwidth",
 "lightx",
 "lightz",
+"maxanimations",
+"maxattacktypes",
 "maxentityvars",
 "maxglobalvars",
 "maxindexedvars",

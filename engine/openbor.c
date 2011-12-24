@@ -1000,6 +1000,14 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 	case _sv_waiting:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = level?(LONG)level->waiting:0;
+	case _sv_maxattacktypes:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)max_attack_types;
+		break;
+	case _sv_maxanimations:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)max_animations;
+		break;
 	default:
 		// We use indices now, but players/modders don't need to be exposed
 		// to that implementation detail, so we write "name" and not "index".
@@ -5687,7 +5695,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->jumpframe.v = 0;                           // Default disabled
 						//newanim->fastattack = 0;
 						newanim->energycost.mponly = 0;							//MP only.
-						newanim->energycost.disable = 0;							//Disable flag.
+						newanim->energycost.disable = -1;							//Disable flag.
 						newanim->chargetime = 2;			// Default for backwards compatibility
 						newanim->shootframe = -1;
 						newanim->throwframe = -1;
@@ -6353,7 +6361,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_ENERGYCOST: case CMD_MODEL_MPCOST:
 					newanim->energycost.cost    = GET_INT_ARG(1);
 					newanim->energycost.mponly  = GET_INT_ARG(2);
-					newanim->energycost.disable = GET_INT_ARG(3);
+					if(arglist.count>=3) newanim->energycost.disable = GET_INT_ARG(3);
 					break;
 				case CMD_MODEL_MPONLY:
 					newanim->energycost.mponly = GET_INT_ARG(1);
