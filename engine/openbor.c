@@ -5695,7 +5695,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->jumpframe.v = 0;                           // Default disabled
 						//newanim->fastattack = 0;
 						newanim->energycost.mponly = 0;							//MP only.
-						newanim->energycost.disable = -1;							//Disable flag.
+						newanim->energycost.disable = 0;							//Disable flag.
 						newanim->chargetime = 2;			// Default for backwards compatibility
 						newanim->shootframe = -1;
 						newanim->throwframe = -1;
@@ -6361,7 +6361,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_ENERGYCOST: case CMD_MODEL_MPCOST:
 					newanim->energycost.cost    = GET_INT_ARG(1);
 					newanim->energycost.mponly  = GET_INT_ARG(2);
-					if(arglist.count>=3) newanim->energycost.disable = GET_INT_ARG(3);
+					newanim->energycost.disable = GET_INT_ARG(3);
 					break;
 				case CMD_MODEL_MPONLY:
 					newanim->energycost.mponly = GET_INT_ARG(1);
