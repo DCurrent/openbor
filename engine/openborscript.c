@@ -4171,7 +4171,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		if(varlist[2]->vt != VT_INTEGER)
 		{
 			if(varlist[2]->vt != VT_STR)
-				printf("You must provide a string name for edelay energycost.\n\
+				printf("You must provide a string name for energycost.\n\
                         ~'cost'\n\
                         ~'disable'\n\
                         ~'mponly'\n");
