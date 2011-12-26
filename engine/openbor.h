@@ -113,8 +113,9 @@
 #define		FLAG_ATTACK3		0x00000800
 #define		FLAG_ATTACK4		0x00001000
 #define		FLAG_ANYBUTTON		(FLAG_START|FLAG_SPECIAL|FLAG_ATTACK|FLAG_ATTACK2|FLAG_ATTACK3|FLAG_ATTACK4|FLAG_JUMP)
-#define		FLAG_FORWARD		0
-#define		FLAG_BACKWARD		1
+#define		FLAG_CONTROLKEYS	(FLAG_SPECIAL|FLAG_ATTACK|FLAG_ATTACK2|FLAG_ATTACK3|FLAG_ATTACK4|FLAG_JUMP|FLAG_MOVEUP|FLAG_MOVEDOWN|FLAG_MOVELEFT|FLAG_MOVERIGHT)
+#define		FLAG_FORWARD		0x40000000
+#define		FLAG_BACKWARD		0x80000000
 
 #define		SDID_MOVEUP			0
 #define		SDID_MOVEDOWN		1
@@ -1829,7 +1830,7 @@ void prethrow(void);
 void player_die();
 int player_trymove(float xdir, float zdir);
 int check_energy(int which, int ani);
-void player_preinput();
+int player_preinput();
 int player_check_special();
 void runanimal(void);
 void player_blink(void);

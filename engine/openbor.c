@@ -12181,8 +12181,8 @@ void check_lost()
 	int osk = self->modeldata.offscreenkill?self->modeldata.offscreenkill:DEFAULT_OFFSCREEN_KILL;
 
 	if((self->z!=100000 && (advancex - self->x>osk || self->x - advancex - videomodes.hRes>osk ||
-		(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN && (advancey - self->z>osk || self->z - advancey - videomodes.vRes>osk)) ||
-		((level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN) && (self->z<-osk || self->z>videomodes.vRes + osk))		) )
+		(level->scrolldir!=SCROLL_UP && level->scrolldir!=SCROLL_DOWN && (advancey - self->z + self->a>osk || self->z - self->a - advancey - videomodes.vRes>osk)) ||
+		((level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN) && (self->z-self->a<-osk || self->z-self->a>videomodes.vRes + osk))		) )
 		|| self->a < 2*PIT_DEPTH) //self->z<100000, so weapon item won't be killed
 	{
 		if(self->modeldata.type==TYPE_PLAYER)
@@ -15353,19 +15353,16 @@ void common_runoff()
 
 void common_stuck_underneath()
 {
-	if(player[(int)self->playerindex].keys & FLAG_MOVELEFT)
+	if(player[self->playerindex].keys & FLAG_MOVELEFT)
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_MOVELEFT;
 		self->direction = 0;
 	}
-	else if(player[(int)self->playerindex].keys & FLAG_MOVERIGHT)
+	else if(player[self->playerindex].keys & FLAG_MOVERIGHT)
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_MOVERIGHT;
 		self->direction = 1;
 	}
-	if(player[(int)self->playerindex].keys & FLAG_ATTACK && validanim(self,ANI_DUCKATTACK))
+	if(player[self->playerindex].keys & FLAG_ATTACK && validanim(self,ANI_DUCKATTACK))
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
 		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		self->xdir = self->zdir = 0;
@@ -15374,10 +15371,8 @@ void common_stuck_underneath()
 		ent_set_anim(self, ANI_DUCKATTACK, 0);
 		return;
 	}
-	if((player[(int)self->playerindex].keys & FLAG_MOVEDOWN) && (player[(int)self->playerindex].keys & FLAG_JUMP) && validanim(self,ANI_SLIDE))
+	if((player[self->playerindex].keys & FLAG_MOVEDOWN) && (player[self->playerindex].keys & FLAG_JUMP) && validanim(self,ANI_SLIDE))
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_MOVEDOWN;
-		player[(int)self->playerindex].playkeys -= FLAG_JUMP;
 		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		self->xdir = self->zdir = 0;
@@ -17160,7 +17155,7 @@ int check_energy(int which, int ani)
 					//if (validanim(self,ani)){
 					//    ent_set_anim(self, ANI_CANT, 0);
 					//    self->takeaction = common_attack_proc;
-					//    player[(int)self->playerindex].playkeys = 0;
+					//    player[self->playerindex].playkeys = 0;
 					//}
 					return 0;
 				}
@@ -17217,24 +17212,21 @@ int check_special()
 // 1-10-05 changed self->health>6 to self->health > self->modeldata.animation[ANI_SPECIAL]->energycost.cost
 int player_check_special()
 {
-	u32 thekey = 0;
-
 	if((!ajspecial || (ajspecial && !validanim(self,ANI_BLOCK))) &&
-		(player[(int)self->playerindex].playkeys & FLAG_SPECIAL))
+		(player[self->playerindex].playkeys & FLAG_SPECIAL))
 	{
-		thekey = FLAG_SPECIAL;
+		;
 	}
-	else if(ajspecial && ((player[(int)self->playerindex].playkeys & FLAG_JUMP) &&
-		(player[(int)self->playerindex].keys & FLAG_ATTACK)))
+	else if(ajspecial && ((player[self->playerindex].playkeys & FLAG_JUMP) &&
+		(player[self->playerindex].keys & FLAG_ATTACK)))
 	{
-		thekey = FLAG_JUMP;
+		;
 	}
 	else return 0;
 
 	if(check_special())
 	{
 		self->stalltime = 0;
-		player[(int)self->playerindex].playkeys -= thekey;
 		return 1;
 	}else{
 		return 0;
@@ -17410,7 +17402,6 @@ int check_costmove(int s, int fs)
 		self->inpain = 0;
 		memset(self->combostep, 0, sizeof(int)*5);
 		ent_unlink(self);
-		self->movestep = 0;
 		ent_set_anim(self, s, 0);
 		return 1;
 	}
@@ -17427,64 +17418,32 @@ int check_combo(int m){    // New function to check combos to make sure they are
 	int found = 0;    // Default not found unless overridden by finding a valid combo
 	int value = self->animation->cancel; // OX. If cancel is enabled , we will be checking MAX_SPECIAL_INPUTS-4, -5, -6 instead.
 
-	// check one-step freespecial
-	for(i = 0; i < self->modeldata.specials_loaded; i++)
-	{
-		if(self->modeldata.special[i][MAX_SPECIAL_INPUTS-3]==1 && self->modeldata.special[i][0]==m && value == 0)
-		{
-			if(check_costmove(self->modeldata.special[i][MAX_SPECIAL_INPUTS-(2+value)], 1))
-			{
-				self->modeldata.valid_special = i;
-				return 1;    // Valid combo found, go ahead and return
-			}
-			else return 0;    // Found, but cost more health than the player had
-		}
-		else if(self->modeldata.special[i][MAX_SPECIAL_INPUTS-6]==1 && self->modeldata.special[i][0]==m &&
-			self->modeldata.special[i][MAX_SPECIAL_INPUTS-10] <= self->animation->animhits &&
-				self->modeldata.special[i][MAX_SPECIAL_INPUTS-7] <= self->animpos &&
-				self->modeldata.special[i][MAX_SPECIAL_INPUTS-8] >= self->animpos &&
-				self->modeldata.special[i][MAX_SPECIAL_INPUTS-9] == self->animnum)
-		{
-			if(check_costmove(self->modeldata.special[i][MAX_SPECIAL_INPUTS-5], 1))
-			{
-				self->modeldata.valid_special = i;
-				return 1;    // Valid combo found, go ahead and return
-			}
-			else return 0;    // Found, but cost more health than the player had
-		}
-	}// end of for
+	//printf("debug %d %d %d %08x\n", time, self->movetime, self->movestep, m);
 
 	if(time > self->movetime && self->movestep) return 0;    // Too much time passed so return 0
 
-	if(m == FLAG_FORWARD || m==FLAG_BACKWARD || m==FLAG_MOVEUP || m==FLAG_MOVEDOWN){   // direction keys
-		for(i = 0; i < self->modeldata.specials_loaded; i++)
-		{
-			if( self->modeldata.special[i][MAX_SPECIAL_INPUTS-(3+value)]>self->movestep+1 &&
-				( self->movestep==0 || (self->modeldata.special[i][self->movestep-1] == self->lastmove && self->modeldata.special[i][MAX_SPECIAL_INPUTS-(1+value)])) &&
-				self->modeldata.special[i][self->movestep] == m )
-			{
-				self->modeldata.special[i][MAX_SPECIAL_INPUTS-(1+value)] = 1;    // Marks all valid directional combos with a 1
-				found = 1;    // There is at least 1 valid combo, so return found
-			}
-			else self->modeldata.special[i][MAX_SPECIAL_INPUTS-(1+value)] = 0;    // Marks all invalid directional combos with a 0
-		}//end of for
-
-		return found;    // Returns 1 if found, otherwise returns 0
-	}
-	else// action buttons
+	for(i = 0; i < self->modeldata.specials_loaded; i++)
 	{
-		for(i = 0; i < self->modeldata.specials_loaded; i++)
+		if( self->modeldata.special[i][MAX_SPECIAL_INPUTS-(3+value)]>=self->movestep+1 &&
+			( self->movestep==0 || ((self->modeldata.special[i][self->movestep-1]&self->lastmove) && self->modeldata.special[i][MAX_SPECIAL_INPUTS-(1+value)])) &&
+			self->modeldata.special[i][self->movestep] == m )
 		{
-			if(self->modeldata.special[i][MAX_SPECIAL_INPUTS-1] && self->modeldata.special[i][self->movestep] == m && value == 0)
+			self->modeldata.special[i][MAX_SPECIAL_INPUTS-(1+value)] = 1;    // Marks all valid directional combos with a 1
+			found++;    // There is at least 1 valid combo, so return found
+
+			if(self->modeldata.special[i][MAX_SPECIAL_INPUTS-(3+value)]>self->movestep+1) continue;
+
+			if(!value && (self->idling || (self->animation->idle && self->animation->idle[self->animpos])))
 			{    // Checks only valid directional combos to see if the action button matches
 				if(check_costmove(self->modeldata.special[i][MAX_SPECIAL_INPUTS-2], 1))
 				{
 					self->modeldata.valid_special = i;    // Says which one is valid and returns that it was found
-					return 1;    // Valid combo found, go ahead and return
+					return 2;    // Valid combo found, go ahead and return
 				}
 				else return 0;    // Found, but cost more health than the player had
 			}
-			else if(self->modeldata.special[i][MAX_SPECIAL_INPUTS-4] && self->modeldata.special[i][self->movestep] == m  &&
+			else if(
+				value>0 && 
 				self->modeldata.special[i][MAX_SPECIAL_INPUTS-10] <= self->animation->animhits &&
 				self->modeldata.special[i][MAX_SPECIAL_INPUTS-7] <= self->animpos &&
 				self->modeldata.special[i][MAX_SPECIAL_INPUTS-8] >= self->animpos &&
@@ -17493,14 +17452,20 @@ int check_combo(int m){    // New function to check combos to make sure they are
 				if(check_costmove(self->modeldata.special[i][MAX_SPECIAL_INPUTS-5], 1))
 				{
 					self->modeldata.valid_special = i;    // Says which one is valid and returns that it was found
-					return 1;    // Valid combo found, go ahead and return
+					return 2;    // Valid combo found, go ahead and return
 				}
 				else return 0;    // Found, but cost more health than the player had
 			}
-		}// end of for
+			else
+			{
+				found--;
+				continue;
+			}
+		}
+		else self->modeldata.special[i][MAX_SPECIAL_INPUTS-(1+value)] = 0;    // Marks all invalid directional combos with a 0
+	}//end of for
 
-		return 0;    // No valid combos found, return 0
-	}
+	return (found!=0);    // Returns 1 if found, otherwise returns 0
 }
 
 
@@ -17615,14 +17580,14 @@ void didfind_item(entity *other)
 	else if(other->modeldata.credit)
 	{
 		if(!noshare) credits++;
-		else player[(int)self->playerindex].credits++;
+		else player[self->playerindex].credits++;
 
 		if(SAMPLE_1UP >= 0) sound_play_sample(SAMPLE_1UP, 0, savedata.effectvol,savedata.effectvol, 100);
 	}
 	else
 	{
 		// Must be a 1up then.
-		player[(int)self->playerindex].lives++;
+		player[self->playerindex].lives++;
 
 		if(SAMPLE_1UP >= 0) sound_play_sample(SAMPLE_1UP, 0, savedata.effectvol,savedata.effectvol, 100);
 	}
@@ -17640,9 +17605,8 @@ void didfind_item(entity *other)
 
 void player_fall_check()
 {
-	if(autoland != 2 && (player[(int)self->playerindex].keys & (FLAG_MOVEUP|FLAG_JUMP)) == (FLAG_MOVEUP|FLAG_JUMP))
+	if(autoland != 2 && (player[self->playerindex].keys & (FLAG_MOVEUP|FLAG_JUMP)) == (FLAG_MOVEUP|FLAG_JUMP))
 	{
-		player[(int)self->playerindex].playkeys ^= (FLAG_MOVEUP|FLAG_JUMP);
 		self->damage_on_landing=-2; // mark it, so we will play land animation when hit the ground
 	}
 }
@@ -17660,41 +17624,6 @@ void player_grab_check()
 		set_idle(self);
 		return;
 	}
-	  // OX cancel checking.
-	if(self->animation->cancel==3)
-	{
-		if((player[(int)self->playerindex].playkeys & FLAG_ATTACK) && check_combo(FLAG_ATTACK))
-		{
-			player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
-			return;
-		}
-		if((player[(int)self->playerindex].playkeys & FLAG_ATTACK2) && check_combo(FLAG_ATTACK2))
-		{
-			player[(int)self->playerindex].playkeys -= FLAG_ATTACK2;
-			return;
-		}
-		if((player[(int)self->playerindex].playkeys & FLAG_ATTACK3) && check_combo(FLAG_ATTACK3))
-		{
-			player[(int)self->playerindex].playkeys -= FLAG_ATTACK3;
-			return;
-		}
-		if((player[(int)self->playerindex].playkeys & FLAG_ATTACK4) && check_combo(FLAG_ATTACK4))
-		{
-			player[(int)self->playerindex].playkeys -= FLAG_ATTACK4;
-			return;
-		}
-		if((player[(int)self->playerindex].playkeys & FLAG_JUMP) && check_combo(FLAG_JUMP))
-		{
-			player[(int)self->playerindex].playkeys -= FLAG_JUMP;
-			return;
-		}
-		if((player[(int)self->playerindex].playkeys & FLAG_SPECIAL) && check_combo(FLAG_SPECIAL))
-		{
-			player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
-			return;
-		}
-	}
-	// End cancel checking
 
 	if(player_check_special()) return;
 
@@ -17730,8 +17659,8 @@ void player_grab_check()
 	self->attacking = 0; //for checking
 	self->grabwalking = 0;
 	if(self->direction ?
-		(player[(int)self->playerindex].keys & FLAG_MOVELEFT) :
-		(player[(int)self->playerindex].keys & FLAG_MOVERIGHT))
+		(player[self->playerindex].keys & FLAG_MOVELEFT) :
+		(player[self->playerindex].keys & FLAG_MOVERIGHT))
 	{
 		// initiating grabturn
 		if(self->modeldata.grabturn)
@@ -17779,12 +17708,11 @@ void player_grab_check()
 	}
 	else self->releasetime = time + (GAME_SPEED/2);
 
-	if((player[(int)self->playerindex].playkeys & FLAG_ATTACK) &&
+	if((player[self->playerindex].playkeys & FLAG_ATTACK) &&
 		(self->direction ?
-		 (player[(int)self->playerindex].keys & FLAG_MOVELEFT) :
-		 (player[(int)self->playerindex].keys & FLAG_MOVERIGHT)))
+		 (player[self->playerindex].keys & FLAG_MOVELEFT) :
+		 (player[self->playerindex].keys & FLAG_MOVERIGHT)))
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
 		if(validanim(self,ANI_GRABBACKWARD))
 			 dograbattack(4);
 		else if(validanim(self,ANI_THROW))
@@ -17798,46 +17726,39 @@ void player_grab_check()
 			 dograbattack(0);
 	}
 	// grab forward
-	else if((player[(int)self->playerindex].playkeys & FLAG_ATTACK) &&
+	else if((player[self->playerindex].playkeys & FLAG_ATTACK) &&
 		validanim(self,ANI_GRABFORWARD) &&
 		(!self->direction ?
-		 (player[(int)self->playerindex].keys & FLAG_MOVELEFT) :
-		 (player[(int)self->playerindex].keys & FLAG_MOVERIGHT)))
+		 (player[self->playerindex].keys & FLAG_MOVELEFT) :
+		 (player[self->playerindex].keys & FLAG_MOVERIGHT)))
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
 		dograbattack(1);
 	}
 	// grab up
-	else if((player[(int)self->playerindex].playkeys & FLAG_ATTACK) &&
-		validanim(self, ANI_GRABUP) && (player[(int)self->playerindex].keys & FLAG_MOVEUP))
+	else if((player[self->playerindex].playkeys & FLAG_ATTACK) &&
+		validanim(self, ANI_GRABUP) && (player[self->playerindex].keys & FLAG_MOVEUP))
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
 		dograbattack(2);
 	}
 	// grab down
-	else if((player[(int)self->playerindex].playkeys & FLAG_ATTACK) &&
-		validanim(self,ANI_GRABDOWN) && (player[(int)self->playerindex].keys & FLAG_MOVEDOWN))
+	else if((player[self->playerindex].playkeys & FLAG_ATTACK) &&
+		validanim(self,ANI_GRABDOWN) && (player[self->playerindex].keys & FLAG_MOVEDOWN))
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
 		dograbattack(3);
 	}
 	// normal grab attack
-	else if((player[(int)self->playerindex].playkeys & FLAG_ATTACK) && validanim(self,ANI_GRABATTACK))
+	else if((player[self->playerindex].playkeys & FLAG_ATTACK) && validanim(self,ANI_GRABATTACK))
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
 		dograbattack(0);
 	}
 	// Vaulting.
-	else if((player[(int)self->playerindex].playkeys & FLAG_JUMP) && validanim(self,ANI_VAULT))
+	else if((player[self->playerindex].playkeys & FLAG_JUMP) && validanim(self,ANI_VAULT))
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_JUMP;
 		dovault();
 	}
 	// grab attack finisher
-	else if(player[(int)self->playerindex].playkeys & (FLAG_JUMP|FLAG_ATTACK))
+	else if(player[self->playerindex].playkeys & (FLAG_JUMP|FLAG_ATTACK))
 	{
-		player[(int)self->playerindex].playkeys -= player[(int)self->playerindex].playkeys&(FLAG_JUMP|FLAG_ATTACK);
-
 		// Perform final blow
 		if(validanim(self,ANI_GRABATTACK2) || validanim(self,ANI_ATTACK3))
 			dograbattack(-1);
@@ -17862,33 +17783,33 @@ void player_grab_check()
 		 // z axis movement
 		if(PLAYER_MIN_Z != PLAYER_MAX_Z)
 		{
-			if(player[(int)self->playerindex].keys & FLAG_MOVEUP)
+			if(player[self->playerindex].keys & FLAG_MOVEUP)
 			{
 				if(self->modeldata.grabwalkspeed) self->zdir = -self->modeldata.grabwalkspeed/2;
 				else self->zdir = -self->modeldata.speed/2;
 			}
-			else if(player[(int)self->playerindex].keys & FLAG_MOVEDOWN)
+			else if(player[self->playerindex].keys & FLAG_MOVEDOWN)
 			{
 				if(self->modeldata.grabwalkspeed) self->zdir = self->modeldata.grabwalkspeed/2;
 				else self->zdir = self->modeldata.speed/2;
 			}
-			else if(!(player[(int)self->playerindex].keys & (FLAG_MOVEUP|FLAG_MOVEDOWN)))
+			else if(!(player[self->playerindex].keys & (FLAG_MOVEUP|FLAG_MOVEDOWN)))
 				self->zdir = 0;
 		}
 
 		// x axis movement
-		if(player[(int)self->playerindex].keys & FLAG_MOVELEFT)
+		if(player[self->playerindex].keys & FLAG_MOVELEFT)
 		{
 			if(self->modeldata.grabwalkspeed) self->xdir = -self->modeldata.grabwalkspeed;
 			else self->xdir = -self->modeldata.speed;
 		}
 
-		else if(player[(int)self->playerindex].keys & FLAG_MOVERIGHT)
+		else if(player[self->playerindex].keys & FLAG_MOVERIGHT)
 		{
 			if(self->modeldata.grabwalkspeed) self->xdir = self->modeldata.grabwalkspeed;
 			else self->xdir = self->modeldata.speed;
 		}
-		else if(!((player[(int)self->playerindex].keys & FLAG_MOVELEFT) || (player[(int)self->playerindex].keys & FLAG_MOVERIGHT)) )
+		else if(!((player[self->playerindex].keys & FLAG_MOVELEFT) || (player[self->playerindex].keys & FLAG_MOVERIGHT)) )
 			self->xdir = 0;
 
 		// setting the animations based on the velocity set above
@@ -17917,7 +17838,6 @@ void player_grab_check()
 		other->zdir = other->xdir = 0;
 		self->grabwalking = 1;
 	}
-		 player_preinput();
 
 	if(self->attacking)  self->releasetime = time + (GAME_SPEED/2); // reset releasetime when do attacks
 }
@@ -17929,7 +17849,7 @@ void player_jump_check()
 	if(!noaircancel || !self->animating || self->animnum == self->jumpid)
 	{
 		//air special, copied and changed from Fugue's code
-		if((!level->nospecial || level->nospecial == 3) && player[(int)self->playerindex].playkeys & FLAG_SPECIAL){
+		if((!level->nospecial || level->nospecial == 3) && player[self->playerindex].playkeys & FLAG_SPECIAL){
 
 			if(validanim(self,ANI_JUMPSPECIAL))
 			{
@@ -17945,14 +17865,12 @@ void player_jump_check()
 				}
 				else if(validanim(self,ANI_JUMPCANT))
 				{
-					player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
 					ent_set_anim(self, ANI_JUMPCANT, 0);
 					self->tossv = 0;
 				}
 
 				if(candospecial)
 				{
-					player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
 					ent_set_anim(self, ANI_JUMPSPECIAL, 0);
 					self->attacking = 1;
 					self->xdir = self->zdir = 0;                         // Kill movement when the special starts
@@ -17962,21 +17880,11 @@ void player_jump_check()
 		}//end of jumpspecial
 
 		//jumpattacks, up down forward normal....we don't check energy cost
-		else if(player[(int)self->playerindex].playkeys & FLAG_ATTACK){
-			player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
+		else if(player[self->playerindex].playkeys & FLAG_ATTACK){
 			self->attacking = 1;
-			//OX cancel checking of attack button for compatibility
-			if(self->animation->cancel==3 && check_combo(FLAG_ATTACK))
-			{
-				//player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
-				self->jumping = 1;
-				self->takeaction = common_jump;
-				return;
-			}
-			// End cancel check.
 
-			else if((player[(int)self->playerindex].keys & FLAG_MOVEDOWN) && validanim(self,ANI_JUMPATTACK2)) ent_set_anim(self, ANI_JUMPATTACK2, 0);
-			else if((player[(int)self->playerindex].keys & FLAG_MOVEUP) && validanim(self,ANI_JUMPATTACK3)) ent_set_anim(self, ANI_JUMPATTACK3, 0);
+			if((player[self->playerindex].keys & FLAG_MOVEDOWN) && validanim(self,ANI_JUMPATTACK2)) ent_set_anim(self, ANI_JUMPATTACK2, 0);
+			else if((player[self->playerindex].keys & FLAG_MOVEUP) && validanim(self,ANI_JUMPATTACK3)) ent_set_anim(self, ANI_JUMPATTACK3, 0);
 			else if(self->running && validanim(self,ANI_RUNJUMPATTACK)) ent_set_anim(self, ANI_RUNJUMPATTACK, 0);    // Added so an extra strong jump attack can be executed
 			else if(self->xdir != 0 && validanim(self,ANI_JUMPFORWARD)) ent_set_anim(self, ANI_JUMPFORWARD, 0);    // If moving and set, do this attack
 			else if(validanim(self,ANI_JUMPATTACK)) ent_set_anim(self, ANI_JUMPATTACK, 0);
@@ -17984,131 +17892,83 @@ void player_jump_check()
 	}
 	if(self->modeldata.jumpmovex&1) //flip?
 	{
-	   if((player[(int)self->playerindex].keys & FLAG_MOVELEFT)) self->direction = 0;
-	   else if((player[(int)self->playerindex].keys & FLAG_MOVERIGHT)) self->direction = 1;
+	   if((player[self->playerindex].keys & FLAG_MOVELEFT)) self->direction = 0;
+	   else if((player[self->playerindex].keys & FLAG_MOVERIGHT)) self->direction = 1;
 	}
 	if(self->modeldata.jumpmovex&2) //move?
 	{
-	   if(((player[(int)self->playerindex].keys & FLAG_MOVELEFT)&&self->xdir>0) ||
-		  ((player[(int)self->playerindex].keys & FLAG_MOVERIGHT)&&self->xdir<0))	self->xdir = -self->xdir;
+	   if(((player[self->playerindex].keys & FLAG_MOVELEFT)&&self->xdir>0) ||
+		  ((player[self->playerindex].keys & FLAG_MOVERIGHT)&&self->xdir<0))	self->xdir = -self->xdir;
 	}
 	if(self->modeldata.jumpmovex&4) //Move x if vertical jump?
 	{
-		if(((player[(int)self->playerindex].keys & FLAG_MOVELEFT)&&self->xdir>0) ||
-		  ((player[(int)self->playerindex].keys & FLAG_MOVERIGHT)&&self->xdir<0))	self->xdir = -self->xdir;
+		if(((player[self->playerindex].keys & FLAG_MOVELEFT)&&self->xdir>0) ||
+		  ((player[self->playerindex].keys & FLAG_MOVERIGHT)&&self->xdir<0))	self->xdir = -self->xdir;
 
-		if((player[(int)self->playerindex].keys & FLAG_MOVELEFT) && (!self->xdir))
+		if((player[self->playerindex].keys & FLAG_MOVELEFT) && (!self->xdir))
 		{
 			self->xdir -= self->modeldata.speed;
 		}
-		else if((player[(int)self->playerindex].keys & FLAG_MOVERIGHT) && (!self->xdir))
+		else if((player[self->playerindex].keys & FLAG_MOVERIGHT) && (!self->xdir))
 		{
 			self->xdir = self->modeldata.speed;
 		}
 	}
 	if(self->modeldata.jumpmovez&2) //z move?
 	{
-	   if(((player[(int)self->playerindex].keys & FLAG_MOVEUP)&&self->zdir>0) ||
-		  ((player[(int)self->playerindex].keys & FLAG_MOVEDOWN)&&self->zdir<0)) self->zdir = -self->zdir;
+	   if(((player[self->playerindex].keys & FLAG_MOVEUP)&&self->zdir>0) ||
+		  ((player[self->playerindex].keys & FLAG_MOVEDOWN)&&self->zdir<0)) self->zdir = -self->zdir;
 	}
 	if(self->modeldata.jumpmovez&4) //Move z if vertical jump?
 	{
-		if((player[(int)self->playerindex].keys & FLAG_MOVELEFT)) self->direction = 0;
-	   else if((player[(int)self->playerindex].keys & FLAG_MOVERIGHT)) self->direction = 1;
+		if((player[self->playerindex].keys & FLAG_MOVELEFT)) self->direction = 0;
+	   else if((player[self->playerindex].keys & FLAG_MOVERIGHT)) self->direction = 1;
 
-		if(((player[(int)self->playerindex].keys & FLAG_MOVEUP)&&self->zdir>0) ||
-		  ((player[(int)self->playerindex].keys & FLAG_MOVEDOWN)&&self->zdir<0)) self->zdir = -self->zdir;
+		if(((player[self->playerindex].keys & FLAG_MOVEUP)&&self->zdir>0) ||
+		  ((player[self->playerindex].keys & FLAG_MOVEDOWN)&&self->zdir<0)) self->zdir = -self->zdir;
 
-		if((player[(int)self->playerindex].keys & FLAG_MOVEUP) && (!self->zdir))
+		if((player[self->playerindex].keys & FLAG_MOVEUP) && (!self->zdir))
 		{
 			self->zdir -= (0.5 * self->modeldata.speed);
 		}
-		else if((player[(int)self->playerindex].keys & FLAG_MOVEDOWN) && (!self->zdir))
+		else if((player[self->playerindex].keys & FLAG_MOVEDOWN) && (!self->zdir))
 		{
 			self->zdir = (0.5 * self->modeldata.speed);
 		}
 	}
 
-	//OX Rest of cancel checking
-
-	if(self->animation->cancel==3)
-		{
-			if((player[(int)self->playerindex].playkeys & FLAG_JUMP) && check_combo(FLAG_JUMP))
-			{
-				player[(int)self->playerindex].playkeys -= FLAG_JUMP;
-				self->jumping = 1;
-				self->takeaction = common_jump;
-				return;
-			}
-			if((player[(int)self->playerindex].playkeys & FLAG_SPECIAL) && check_combo(FLAG_SPECIAL))
-			{
-				player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
-				self->jumping = 1;
-				self->takeaction = common_jump;
-				return;
-			}
-			if((player[(int)self->playerindex].playkeys & FLAG_ATTACK2) && check_combo(FLAG_ATTACK2))
-			{
-				player[(int)self->playerindex].playkeys -= FLAG_ATTACK2;
-				//set_jumping(self);
-				self->jumping = 1;
-				self->takeaction = common_jump;
-				return;
-			}
-			if((player[(int)self->playerindex].playkeys & FLAG_ATTACK3) && check_combo(FLAG_ATTACK3))
-			{
-				player[(int)self->playerindex].playkeys -= FLAG_ATTACK3;
-				self->jumping = 1;
-				self->takeaction = common_jump;
-				return;
-			}
-			if((player[(int)self->playerindex].playkeys & FLAG_ATTACK4) && check_combo(FLAG_ATTACK4))
-			{
-				player[(int)self->playerindex].playkeys -= FLAG_ATTACK4;
-				self->jumping = 1;
-				self->takeaction = common_jump;
-				return;
-			}
-		}
-
-	// End cancel checking.
-
-	player_preinput();
 }
 
 void player_pain_check()
 {
 	if(player_check_special())  self->inpain = 0;
-	player_preinput();
 }
 
 // check riseattack input up+attack
 void player_lie_check()
 {
 	if(validanim(self,ANI_RISEATTACK) &&
-	   (player[(int)self->playerindex].playkeys & FLAG_ATTACK) &&
-	   (player[(int)self->playerindex].keys & FLAG_MOVEUP) &&
+	   (player[self->playerindex].playkeys & FLAG_ATTACK) &&
+	   (player[self->playerindex].keys & FLAG_MOVEUP) &&
 	   (self->health > 0 && time > self->staydown.riseattack_stall))
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
-		if((player[(int)self->playerindex].keys & FLAG_MOVELEFT))
+		if((player[self->playerindex].keys & FLAG_MOVELEFT))
 		{
 			self->direction = 0;
 		}
-		if((player[(int)self->playerindex].keys & FLAG_MOVERIGHT))
+		if((player[self->playerindex].keys & FLAG_MOVERIGHT))
 		{
 			self->direction = 1;
 		}
 		self->stalltime = 0;
 		set_riseattack(self, self->damagetype, 0);
 	}
-	player_preinput();
 }
 
 void player_charge_check()
 {
-	if(!((player[(int)self->playerindex].keys&FLAG_JUMP)&&
-		 (player[(int)self->playerindex].keys&FLAG_SPECIAL)))
+	if(!((player[self->playerindex].keys&FLAG_JUMP)&&
+		 (player[self->playerindex].keys&FLAG_SPECIAL)))
 	{
 		self->takeaction = NULL;
 		self->charging = 0;
@@ -18116,106 +17976,43 @@ void player_charge_check()
 	}
 }
 
-void player_preinput()
+// returns:
+// 0 - no match and no action
+// 1 - match com input,no action
+// 2 - perform freespecial
+int player_preinput()
 {
-	//float altdiff ; // Used to check that
-	//int notinair;   // entity is not in the air
+	int jumping = self->jumping;
+	int i, result = 0, k;
+	int keys[] = {FLAG_SPECIAL,FLAG_ATTACK,FLAG_ATTACK2,FLAG_ATTACK3,FLAG_ATTACK4,FLAG_JUMP,FLAG_MOVEUP,FLAG_MOVEDOWN,FLAG_MOVELEFT,FLAG_MOVERIGHT};
 
-	if(player[(int)self->playerindex].playkeys & FLAG_MOVEUP)
-	{
-		player[(int)self->playerindex].playkeys -= FLAG_MOVEUP;
-		self->lastdir = 0;
-
-		if(check_combo(FLAG_MOVEUP)) ++self->movestep;    // Check the combo and increase movestep if valid
-		else self->movestep = 0;
-
-		self->lastmove = FLAG_MOVEUP;
-		self->movetime = time + (GAME_SPEED/4);
-		return ;
-	}
-	if(player[(int)self->playerindex].playkeys & FLAG_MOVEDOWN)
-	{
-		player[(int)self->playerindex].playkeys -= FLAG_MOVEDOWN;
-		self->lastdir = 0;
-
-		if(check_combo(FLAG_MOVEDOWN)) ++self->movestep;    // Check the combo and increase movestep if valid
-		else self->movestep = 0;
-
-		self->lastmove = FLAG_MOVEDOWN;
-		self->movetime = time + (GAME_SPEED/4);
-		return ;
-	}
-	if((player[(int)self->playerindex].playkeys & FLAG_MOVELEFT))
-	{
-		player[(int)self->playerindex].playkeys -= FLAG_MOVELEFT;
-		self->lastdir = FLAG_MOVELEFT;
-
-		if(!self->direction && check_combo(FLAG_FORWARD))  ++self->movestep;    // Check direction to distinguish forward/backward movements
-		else if(self->direction && check_combo(FLAG_BACKWARD))  ++self->movestep;    // Check direction to distinguish forward/backward movements
-		else self->movestep = 0;
-
-		if(self->direction) self->lastmove = FLAG_BACKWARD;
-		else self->lastmove = FLAG_FORWARD;
-
-		self->movetime = time + (GAME_SPEED/4);
-		return ;
-	}
-	if((player[(int)self->playerindex].playkeys & FLAG_MOVERIGHT))
-	{
-		player[(int)self->playerindex].playkeys -= FLAG_MOVERIGHT;
-		self->lastdir = FLAG_MOVERIGHT;
-
-		if(!self->direction && check_combo(FLAG_BACKWARD))  ++self->movestep;    // Check direction to distinguish forward/backward movements
-		else if(self->direction && check_combo(FLAG_FORWARD))  ++self->movestep;    // Check direction to distinguish forward/backward movements
-		else self->movestep = 0;
-
-		if(!self->direction) self->lastmove = FLAG_BACKWARD;
-		else self->lastmove = FLAG_FORWARD;
-
-		self->movetime = time + (GAME_SPEED/4);
-		return ;
-	}
-
-	// OX Cancel checking.
-
-	//altdiff = diff(self->a, self->base);
-	//notinair = (self->landed_on_platform?altdiff<5:altdiff<2);
-
-	if(self->attacking && self->animation->cancel==3) // && notinair) //UT: Remove this to see if someone complains, since user can use landframe 
+	for(i=0; i<10; i++){
+		if((player[self->playerindex].playkeys & keys[i]))
 		{
-			if((player[(int)self->playerindex].playkeys & FLAG_ATTACK) && check_combo(FLAG_ATTACK))
-			{
-				player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
-				return;
-			}
-			if((player[(int)self->playerindex].playkeys & FLAG_JUMP) && check_combo(FLAG_JUMP))
-			{
-				player[(int)self->playerindex].playkeys -= FLAG_JUMP;
-				return;
-			}
-			if((player[(int)self->playerindex].playkeys & FLAG_SPECIAL) && check_combo(FLAG_SPECIAL))
-			{
-				player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
-				return;
-			}
-			if((player[(int)self->playerindex].playkeys & FLAG_ATTACK2) && check_combo(FLAG_ATTACK2))
-			{
-				player[(int)self->playerindex].playkeys -= FLAG_ATTACK2;
-				return;
-			}
-			if((player[(int)self->playerindex].playkeys & FLAG_ATTACK3) && check_combo(FLAG_ATTACK3))
-			{
-				player[(int)self->playerindex].playkeys -= FLAG_ATTACK3;
-				return;
-			}
-			if((player[(int)self->playerindex].playkeys & FLAG_ATTACK4) && check_combo(FLAG_ATTACK4))
-			{
-				player[(int)self->playerindex].playkeys -= FLAG_ATTACK4;
-				return;
-			}
-		}
+			if(keys[i]==FLAG_MOVELEFT)
+				k=self->direction?FLAG_BACKWARD:FLAG_FORWARD;
+			else if(keys[i]==FLAG_MOVERIGHT)
+				k=self->direction?FLAG_FORWARD:FLAG_BACKWARD;
+			else
+				k = keys[i];
+			
+			result = check_combo(k);
+			if(result==1) ++self->movestep;
+			else self->movestep = 0;
 
-	// End cancel checking.
+			if(result) goto returncheck;
+		}
+	}
+
+	
+returncheck:
+	if(result==2){
+		if(jumping){
+			self->jumping = jumping;
+			self->takeaction = common_jump;
+		}
+	}
+	return result;
  }
 
 void player_think()
@@ -18224,15 +18021,16 @@ void player_think()
 	int bkwalk = 0;   //backwalk
 	entity *other = NULL;
 	float altdiff ;
-	int notinair;
+	int notinair, back = 0;
 
-	if(player[(int)self->playerindex].ent != self || self->dead) return;
+
+	if(player[self->playerindex].ent != self || self->dead) return;
 
 	// check endlevel item
 	if((other = find_ent_here(self, self->x, self->z, TYPE_ENDLEVEL, NULL)) && diff(self->a, other->a)<=0.1)
 	{
 		if(!reached[0] && !reached[1] && !reached[2] && !reached[3]) addscore(self->playerindex, other->modeldata.score);
-		reached[(int)self->playerindex] = 1;
+		reached[self->playerindex] = 1;
 
 		if (!other->modeldata.subtype ||(other->modeldata.subtype == SUBTYPE_BOTH &&
 			(reached[0]+reached[1]+reached[2]+reached[3]) >= (count_ents(TYPE_PLAYER))))
@@ -18244,134 +18042,121 @@ void player_think()
 		}
 	}
 
-	if(time > player[(int)self->playerindex].ent->rushtime)
+	if(time > player[self->playerindex].ent->rushtime)
 	{
-		player[(int)self->playerindex].ent->rush[0] = 0;
-		player[(int)self->playerindex].ent->rushtime = 0;
+		player[self->playerindex].ent->rush[0] = 0;
+		player[self->playerindex].ent->rushtime = 0;
+	}
+
+	if(player_preinput()==2){
+		goto endthinkcheck;
 	}
 
 	if(self->charging)
 	{
 		player_charge_check();
-		return;
+		goto endthinkcheck;
 	}
 
 	if(self->inpain || (self->link && !self->grabbing))
 	{
 		player_pain_check();
-		return;
+		goto endthinkcheck;
 	}
 
 	// falling? check for landing
 	if(self->projectile == 2)
 	{
 		player_fall_check();
-		return;
+		goto endthinkcheck;
 	}
 
 	// grab section, dont move if still animating
 	if(self->grabbing && !self->attacking && self->takeaction!=common_throw_wait)
 	{
 		player_grab_check();
-		return;
+		goto endthinkcheck;
 	}
 
 	// jump section
 	if(self->jumping)
 	{
 		player_jump_check();
-		return;
+		goto endthinkcheck;
 	}
 
 	if(self->drop && self->a==self->base && !self->tossv)
 	{
 		player_lie_check();
-		return;
+		goto endthinkcheck;
 	}
 
 
 	// cant do anything if busy
 	if(!self->idling && !(self->animation->idle && self->animation->idle[self->animpos]))
-	{
-		player_preinput();
-		return;
-	}
+		goto endthinkcheck;
 
 	// Check if entity is under a platform
 	if(self->modeldata.subject_to_platform>0 && validanim(self,ANI_DUCK) && check_platform_between(self->x/*+self->direction*2-1*/, self->z, self->a, self->a+self->modeldata.height, self) && (check_platform_between(self->x/*+self->direction*2-1*/, self->z, self->a, self->a+self->animation->height, self) || !self->animation->height) )
 	{
 		self->takeaction = common_stuck_underneath;
 		ent_set_anim(self, ANI_DUCK, 1);
-		return;
+		goto endthinkcheck;
 	}
 
 	altdiff = diff(self->a, self->base);
 	notinair = (self->landed_on_platform?altdiff<5:altdiff<2);
 
 	// Changed the way combos are checked so combos can be customized
-	if(player[(int)self->playerindex].playkeys & FLAG_MOVEUP)
+	if(player[self->playerindex].playkeys & FLAG_MOVEUP)
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_MOVEUP;
-		self->lastdir = 0;
-		if(time < self->movetime && self->lastmove==FLAG_MOVEUP && validanim(self,ANI_ATTACKUP) && notinair)
+		//printf("debug %08x %d %d %d\n", self->lastmove, self->movetime, time, notinair);
+		if(time < self->movetime && (self->lastmove&FLAG_MOVEUP) && validanim(self,ANI_ATTACKUP) && notinair)
 		{    // New u u combo attack
 			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->combostep[0] = 0;
 			self->xdir = self->zdir = 0;
 			ent_set_anim(self, ANI_ATTACKUP, 0);
-			return;
+			goto endthinkcheck;
 		}
-		else if(time < self->movetime && self->lastmove==FLAG_MOVEUP && validanim(self,ANI_DODGE) && notinair)
+		else if(time < self->movetime && (self->lastmove&FLAG_MOVEUP) && validanim(self,ANI_DODGE) && notinair)
 		{    // New dodge move like on SOR3
 			self->takeaction = common_dodge;
 			self->combostep[0] = 0;
 			self->idling = 0;
 			self->zdir = -self->modeldata.speed * 1.75; self->xdir = 0;// OK you can use jumpframe to modify this anyway
 			ent_set_anim(self, ANI_DODGE, 0);
-			return;
+			goto endthinkcheck;
 		}
-		else if(check_combo(FLAG_MOVEUP)) ++self->movestep;    // Check the combo and increase movestep if valid
-		else self->movestep = 0;
-
-		self->lastmove = FLAG_MOVEUP;
-		self->movetime = time + (GAME_SPEED/4);
 	}
 
-	if(player[(int)self->playerindex].playkeys & FLAG_MOVEDOWN)
+	if(player[self->playerindex].playkeys & FLAG_MOVEDOWN)
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_MOVEDOWN;
-		self->lastdir = 0;
-		if(self->lastmove==FLAG_MOVEDOWN && validanim(self,ANI_ATTACKDOWN) && time < self->movetime && notinair)
+		if((self->lastmove&FLAG_MOVEDOWN) && validanim(self,ANI_ATTACKDOWN) && time < self->movetime && notinair)
 		{    // New d d combo attack
 			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			ent_set_anim(self, ANI_ATTACKDOWN, 0);
-			return;
+			goto endthinkcheck;
 		}
-		else if(time < self->movetime && self->lastmove == FLAG_MOVEDOWN && validanim(self,ANI_DODGE) && notinair)
+		else if(time < self->movetime && (self->lastmove&FLAG_MOVEDOWN) && validanim(self,ANI_DODGE) && notinair)
 		{    // New dodge move like on SOR3
 			self->takeaction = common_dodge;
 			self->combostep[0] = 0;
 			self->idling = 0;
 			self->zdir = self->modeldata.speed * 1.75; self->xdir = 0;
 			ent_set_anim(self, ANI_DODGE, 0);
-			return;
+			goto endthinkcheck;
 		}
-		else if(check_combo(FLAG_MOVEDOWN))  ++self->movestep;    // Check the combo and increase movestep if valid
-		else self->movestep = 0;
-
-		self->lastmove = FLAG_MOVEDOWN;
-		self->movetime = time + (GAME_SPEED/4);
 	}
 
 	// Left/right movement for combos is more complicated because forward/backward is relative to the direction the player is facing
 	// Checks on current direction have to be made before and after executing the combo to make sure they get the right one
-	if((player[(int)self->playerindex].playkeys & FLAG_MOVELEFT))
+	if((player[self->playerindex].playkeys & FLAG_MOVELEFT))
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_MOVELEFT;
 		if(validanim(self,ANI_RUN) && !self->direction && time < self->movetime && self->lastdir==FLAG_MOVELEFT)
 			self->running = 1;    // Player begins to run
 
@@ -18382,22 +18167,12 @@ void player_think()
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			ent_set_anim(self, ANI_ATTACKFORWARD, 0);
-			return;
+			goto endthinkcheck;
 		}
-		else if(!self->direction && check_combo(FLAG_FORWARD))  ++self->movestep;    // Check direction to distinguish forward/backward movements
-		else if(self->direction && check_combo(FLAG_BACKWARD))  ++self->movestep;    // Check direction to distinguish forward/backward movements
-		else self->movestep = 0;
-
-		if(self->direction) self->lastmove = FLAG_BACKWARD;
-		else self->lastmove = FLAG_FORWARD;
-		self->lastdir = FLAG_MOVELEFT;
-
-		self->movetime = time + (GAME_SPEED/4);
 	}
 
-	if((player[(int)self->playerindex].playkeys & FLAG_MOVERIGHT))
+	if((player[self->playerindex].playkeys & FLAG_MOVERIGHT))
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_MOVERIGHT;
 		if(validanim(self,ANI_RUN) && self->direction && time < self->movetime &&  self->lastdir==FLAG_MOVERIGHT)
 			self->running = 1;    // Player begins to run
 
@@ -18408,86 +18183,65 @@ void player_think()
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			ent_set_anim(self, ANI_ATTACKFORWARD, 0);
-			return;
+			goto endthinkcheck;
 		}
-		else if(!self->direction && check_combo(FLAG_BACKWARD))  ++self->movestep;    // Check direction to distinguish forward/backward movements
-		else if(self->direction && check_combo(FLAG_FORWARD))  ++self->movestep;    // Check direction to distinguish forward/backward movements
-		else self->movestep = 0;
-
-		if(!self->direction) self->lastmove = FLAG_BACKWARD;
-		else self->lastmove = FLAG_FORWARD;
-		self->lastdir = FLAG_MOVERIGHT;
-
-		self->movetime = time + (GAME_SPEED/4);
 	}
 
-	if(!ajspecial && (player[(int)self->playerindex].playkeys & FLAG_JUMP) && validanim(self,ANI_ATTACKBOTH))
+	if(!ajspecial && (player[self->playerindex].playkeys & FLAG_JUMP) && validanim(self,ANI_ATTACKBOTH))
 	{
-		if((player[(int)self->playerindex].keys & FLAG_ATTACK) && notinair)
+		if((player[self->playerindex].keys & FLAG_ATTACK) && notinair)
 		{
-			player[(int)self->playerindex].playkeys -= FLAG_JUMP;
 			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
-			self->movestep = 0;
 			self->stalltime = 0;    // If attack is pressed, holding down attack to execute attack3 is no longer valid
 			ent_set_anim(self, ANI_ATTACKBOTH, 0);
-			return;
+			goto endthinkcheck;
 		}
 	}
 
-	if((player[(int)self->playerindex].playkeys & FLAG_JUMP) &&  validanim(self,ANI_CHARGE))
+	if((player[self->playerindex].playkeys & FLAG_JUMP) &&  validanim(self,ANI_CHARGE))
 	{
-		if((player[(int)self->playerindex].playkeys & FLAG_SPECIAL) && notinair)
+		if((player[self->playerindex].playkeys & FLAG_SPECIAL) && notinair)
 		{
 			self->takeaction = common_charge;
 			self->combostep[0] = 0;
-			self->movestep = 0;
 			self->xdir = self->zdir = 0;
 			self->stalltime = 0;
 			set_charging(self);
 			ent_set_anim(self, ANI_CHARGE, 0);
-			return;
+			goto endthinkcheck;
 		}
 	}
 
-	if(player[(int)self->playerindex].playkeys & FLAG_SPECIAL )    //    The special button can now be used for freespecials
+	if(player[self->playerindex].playkeys & FLAG_SPECIAL )    //    The special button can now be used for freespecials
 	{
-		if(check_combo(FLAG_SPECIAL))
-		{
-			player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
-			return;
-		}
-
 		if( validanim(self,ANI_SPECIAL2) && notinair &&
 			(!self->direction ?
-			(player[(int)self->playerindex].keys & FLAG_MOVELEFT) :
-			 (player[(int)self->playerindex].keys & FLAG_MOVERIGHT))  )
+			(player[self->playerindex].keys & FLAG_MOVELEFT) :
+			 (player[self->playerindex].keys & FLAG_MOVERIGHT))  )
 		{
 			if(check_costmove(ANI_SPECIAL2, 0))
 			{
-				player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
-				return;
+				goto endthinkcheck;
 			}
 		}
 
 		if(validanim(self,ANI_BLOCK) && !self->modeldata.holdblock && notinair)    // New block code for players
 		{
-			player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
 			self->takeaction = common_block;
 			self->xdir = self->zdir = 0;
 			set_blocking(self);
 			self->combostep[0] = 0;
-			self->movestep = 0;
 			ent_set_anim(self, ANI_BLOCK, 0);
-			return;
+			goto endthinkcheck;
 		}
 	}
 
-	if(notinair && player_check_special()) return;    // So you don't perform specials falling off the edge
+	if(notinair && player_check_special()) goto endthinkcheck;    // So you don't perform specials falling off the edge
 
-	if((player[(int)self->playerindex].releasekeys & FLAG_ATTACK))
+	if((player[self->playerindex].releasekeys & FLAG_ATTACK))
 	{
 		if(self->stalltime  && notinair &&
 	      ((validanim(self,ANI_CHARGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[ANI_CHARGEATTACK]->chargetime) < time) ||
@@ -18504,57 +18258,48 @@ void player_think()
 
 			if(validanim(self,ANI_CHARGEATTACK)) ent_set_anim(self, ANI_CHARGEATTACK, 0);
 			else ent_set_anim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength-1]-1], 0);
-			return;
+			goto endthinkcheck;
 		}
 		self->stalltime = 0;
 	}
 
-	if((player[(int)self->playerindex].playkeys & FLAG_ATTACK)  && notinair)
+	if((player[self->playerindex].playkeys & FLAG_ATTACK)  && notinair)
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_ATTACK;
 		self->stalltime = 0;    // Disable the attack3 stalltime
 
-		if(player[(int)self->playerindex].keys & FLAG_MOVEDOWN && validanim(self, ANI_DUCKATTACK) && PLAYER_MIN_Z == PLAYER_MAX_Z)
+		if(player[self->playerindex].keys & FLAG_MOVEDOWN && validanim(self, ANI_DUCKATTACK) && PLAYER_MIN_Z == PLAYER_MAX_Z)
 		{
 			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			ent_set_anim(self, ANI_DUCKATTACK, 0);
-			return;
+			goto endthinkcheck;
 		}
 
 		if(self->running && validanim(self,ANI_RUNATTACK))    // New run attack code section
 		{
-			player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
 			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			self->running = 0;
 			ent_set_anim(self, ANI_RUNATTACK, 0);
-			return;
-		}
-
-		// Perform special move, Now checks custom combos
-		if(check_combo(FLAG_ATTACK))
-		{
-			//player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
-			return;
+			goto endthinkcheck;
 		}
 
 		if(validanim(self,ANI_ATTACKBACKWARD) && time < self->movetime - (GAME_SPEED/10) &&
-			!self->movestep && self->lastmove == FLAG_BACKWARD)    // New back attacks
+			!self->movestep && (self->lastmove&FLAG_BACKWARD))    // New back attacks
 		{
 			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
-			if(self->direction && (player[(int)self->playerindex].keys & FLAG_MOVERIGHT)) self->direction = 0;    // Since the back part of the combo will flip the player, need to flip them back around
-			else if(!self->direction && (player[(int)self->playerindex].keys & FLAG_MOVELEFT)) self->direction = 1;    // Since the back part of the combo will flip the player, need to flip them back around
+			if(self->direction && (player[self->playerindex].keys & FLAG_MOVERIGHT)) self->direction = 0;    // Since the back part of the combo will flip the player, need to flip them back around
+			else if(!self->direction && (player[self->playerindex].keys & FLAG_MOVELEFT)) self->direction = 1;    // Since the back part of the combo will flip the player, need to flip them back around
 
 			self->combostep[0] = 0;
 			ent_set_anim(self, ANI_ATTACKBACKWARD, 0);
-			return;
+			goto endthinkcheck;
 		}
 
 		if( validanim(self,ANI_GET) && (other = find_ent_here(self, self->x, self->z, TYPE_ITEM, player_test_pickable)) )
@@ -18565,7 +18310,7 @@ void player_think()
 			self->takeaction = common_get;
 			ent_set_anim(self, ANI_GET, 0);
 			execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
-			return;
+			goto endthinkcheck;
 		}
 
 		// Use stalltime to charge end-move
@@ -18577,7 +18322,7 @@ void player_think()
 			// This is for Mighty
 			self->combostep[0] = 0;
 			tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, 0, ANI_JUMP);
-			return;
+			goto endthinkcheck;
 		}
 		if( self->weapent &&
 			self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
@@ -18592,19 +18337,18 @@ void player_think()
 			if(SAMPLE_PUNCH >= 0 && self->attacking) sound_play_sample(SAMPLE_PUNCH, 0, savedata.effectvol,savedata.effectvol, 100);
 		}
 
-		return;
+		goto endthinkcheck;
 	}
 	// 7-1-2005 spawn projectile end
 
 	// Mighty hass no attack animations, he just jumps.
-	if(player[(int)self->playerindex].playkeys & FLAG_JUMP  && notinair)
+	if(player[self->playerindex].playkeys & FLAG_JUMP  && notinair)
 	{    // Added !inair(self) so players can't jump when falling into holes
-		player[(int)self->playerindex].playkeys -= FLAG_JUMP;
 
 		if(self->running)
 		{
 			//Slide
-			if((player[(int)self->playerindex].keys & FLAG_MOVEDOWN) && validanim(self,ANI_RUNSLIDE))
+			if((player[self->playerindex].keys & FLAG_MOVEDOWN) && validanim(self,ANI_RUNSLIDE))
 			{
 				self->takeaction = common_attack_proc;
 				set_attacking(self);
@@ -18612,7 +18356,7 @@ void player_think()
 				self->combostep[0] = 0;
 				self->running = 0;
 				ent_set_anim(self, ANI_RUNSLIDE, 0);
-				return;
+				goto endthinkcheck;
 			}
 
 			if(validanim(self,ANI_RUNJUMP))
@@ -18624,81 +18368,52 @@ void player_think()
 		}
 		else
 		{
-			if(check_combo(FLAG_JUMP))
-			{    // Jump can now be used with freespecials
-				//player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
-				return;
-			}
-			else
+			//Slide
+			if((player[self->playerindex].keys & FLAG_MOVEDOWN) && validanim(self,ANI_SLIDE))
 			{
-				//Slide
-				if((player[(int)self->playerindex].keys & FLAG_MOVEDOWN) && validanim(self,ANI_SLIDE))
-				{
-					self->takeaction = common_attack_proc;
-					set_attacking(self);
-					self->xdir = self->zdir = 0;
-					self->combostep[0] = 0;
-					self->running = 0;
-					ent_set_anim(self, ANI_SLIDE, 0);
-					return;
-				}
-
-				if(!(player[(int)self->playerindex].keys & (FLAG_MOVELEFT|FLAG_MOVERIGHT)) && validanim(self,ANI_JUMP))
-				{
-					tryjump(self->modeldata.jumpheight, 0, (self->modeldata.jumpmovez)?self->zdir:0, ANI_JUMP);
-					return;
-				}
-				else if((player[(int)self->playerindex].keys & FLAG_MOVELEFT)) self->direction = 0;
-				else if((player[(int)self->playerindex].keys & FLAG_MOVERIGHT)) self->direction = 1;
-
-				if(validanim(self,ANI_FORWARDJUMP))
-					tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez)?self->zdir:0, ANI_FORWARDJUMP);
-				else if(validanim(self,ANI_JUMP)) tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez)?self->zdir:0, ANI_JUMP);
+				self->takeaction = common_attack_proc;
+				set_attacking(self);
+				self->xdir = self->zdir = 0;
+				self->combostep[0] = 0;
+				self->running = 0;
+				ent_set_anim(self, ANI_SLIDE, 0);
+				goto endthinkcheck;
 			}
+
+			if(!(player[self->playerindex].keys & (FLAG_MOVELEFT|FLAG_MOVERIGHT)) && validanim(self,ANI_JUMP))
+			{
+				tryjump(self->modeldata.jumpheight, 0, (self->modeldata.jumpmovez)?self->zdir:0, ANI_JUMP);
+				goto endthinkcheck;
+			}
+			else if((player[self->playerindex].keys & FLAG_MOVELEFT)) self->direction = 0;
+			else if((player[self->playerindex].keys & FLAG_MOVERIGHT)) self->direction = 1;
+
+			if(validanim(self,ANI_FORWARDJUMP))
+				tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez)?self->zdir:0, ANI_FORWARDJUMP);
+			else if(validanim(self,ANI_JUMP)) tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez)?self->zdir:0, ANI_JUMP);
 		}
 		return;
 	}
 
 	if(validanim(self,ANI_BLOCK) && self->modeldata.holdblock &&
-	   player[(int)self->playerindex].keys & FLAG_SPECIAL && notinair)
+	   player[self->playerindex].keys & FLAG_SPECIAL && notinair)
 	{
-		player[(int)self->playerindex].playkeys -= FLAG_SPECIAL;
 		if(!self->blocking )
 		{
 			self->blocking = 1;
 			self->xdir = self->zdir = 0;
 			ent_set_anim(self, ANI_BLOCK, 0);
 		}
-		return;
+		goto endthinkcheck;
 	}
 	else
 	{
 		self->blocking = 0;
 	}
 
-	// check attack2 - attack4 freespecial
-	if(notinair)
-	{
-		if((player[(int)self->playerindex].playkeys & FLAG_ATTACK2) && check_combo(FLAG_ATTACK2))
-		{
-			player[(int)self->playerindex].playkeys -= FLAG_ATTACK2;
-			return;
-		}
-		if((player[(int)self->playerindex].playkeys & FLAG_ATTACK3) && check_combo(FLAG_ATTACK3))
-		{
-			player[(int)self->playerindex].playkeys -= FLAG_ATTACK3;
-			return;
-		}
-		if((player[(int)self->playerindex].playkeys & FLAG_ATTACK4) && check_combo(FLAG_ATTACK4))
-		{
-			player[(int)self->playerindex].playkeys -= FLAG_ATTACK4;
-			return;
-		}
-	}
-
 	if(PLAYER_MIN_Z != PLAYER_MAX_Z)
 	{    // More of a platform feel
-		if(player[(int)self->playerindex].keys & FLAG_MOVEUP)
+		if(player[self->playerindex].keys & FLAG_MOVEUP)
 		{
 			if(!self->modeldata.runupdown ) self->running = 0;    // Quits running if player presses up (or the up animation exists
 
@@ -18718,7 +18433,7 @@ void player_think()
 				self->zdir = -self->modeldata.speed/2;
 			}
 		}
-		else if(player[(int)self->playerindex].keys & FLAG_MOVEDOWN)
+		else if(player[self->playerindex].keys & FLAG_MOVEDOWN)
 		{
 			if(!self->modeldata.runupdown ) self->running = 0;    // Quits running if player presses down (or the down animation exists
 
@@ -18738,20 +18453,21 @@ void player_think()
 				self->zdir = self->modeldata.speed/2;
 			}
 		}
-		else if(!(player[(int)self->playerindex].keys & (FLAG_MOVEUP|FLAG_MOVEDOWN)))
+		else if(!(player[self->playerindex].keys & (FLAG_MOVEUP|FLAG_MOVEDOWN)))
 			self->zdir = 0;
 	}
-	else if(validanim(self,ANI_DUCK) && player[(int)self->playerindex].keys & FLAG_MOVEDOWN  && notinair)
+	else if(validanim(self,ANI_DUCK) && player[self->playerindex].keys & FLAG_MOVEDOWN  && notinair)
 	{
 		ent_set_anim(self, ANI_DUCK, 0);
 		self->xdir = self->zdir = 0;
-		return;
+		goto endthinkcheck;
 	}
 
-	if(player[(int)self->playerindex].keys & FLAG_MOVELEFT)
+	if(player[self->playerindex].keys & FLAG_MOVELEFT)
 	{
 		if(self->direction)
 		{
+			back = 1;
 			self->running = 0;    // Quits running if player changes direction
 			if(self->modeldata.turndelay && !self->turntime)
 				self->turntime = time + self->modeldata.turndelay;
@@ -18763,7 +18479,7 @@ void player_think()
 					self->takeaction = common_turn;
 					set_turning(self);
 					ent_set_anim(self, ANI_TURN, 0);
-					return;
+					goto endthinkcheck;
 				}
 				self->direction = 0;
 			}
@@ -18772,7 +18488,7 @@ void player_think()
 				self->takeaction = common_turn;
 				set_turning(self);
 				ent_set_anim(self, ANI_TURN, 0);
-				return;
+				goto endthinkcheck;
 			}
 			else if(!self->turntime) self->direction = 0;
 		}
@@ -18793,10 +18509,11 @@ void player_think()
 			self->xdir = -self->modeldata.speed;
 		}
 	}
-	else if(player[(int)self->playerindex].keys & FLAG_MOVERIGHT)
+	else if(player[self->playerindex].keys & FLAG_MOVERIGHT)
 	{
 		if(!self->direction)
 		{
+			back = 1;
 			self->running = 0;    // Quits running if player changes direction
 			if(self->modeldata.turndelay && !self->turntime)
 				self->turntime = time + self->modeldata.turndelay;
@@ -18808,7 +18525,7 @@ void player_think()
 					self->takeaction = common_turn;
 					set_turning(self);
 					ent_set_anim(self, ANI_TURN, 0);
-					return;
+					goto endthinkcheck;
 				}
 				self->direction = 1;
 			}
@@ -18817,7 +18534,7 @@ void player_think()
 				self->takeaction = common_turn;
 				set_turning(self);
 				ent_set_anim(self, ANI_TURN, 0);
-				return;
+				goto endthinkcheck;
 			}
 			else if(!self->turntime) self->direction = 1;
 		}
@@ -18838,8 +18555,8 @@ void player_think()
 			self->xdir = self->modeldata.speed;
 		}
 	}
-	else if(!((player[(int)self->playerindex].keys & FLAG_MOVELEFT) ||
-		(player[(int)self->playerindex].keys & FLAG_MOVERIGHT)) )
+	else if(!((player[self->playerindex].keys & FLAG_MOVELEFT) ||
+		(player[self->playerindex].keys & FLAG_MOVERIGHT)) )
 	{
 		self->running = 0;    // Player let go of left/right and so quits running
 		self->xdir = 0;
@@ -18888,6 +18605,18 @@ void player_think()
 			}
 			break;
 	}
+
+	
+endthinkcheck:
+	if((player[self->playerindex].playkeys&FLAG_CONTROLKEYS)){
+		self->movetime = time + (GAME_SPEED/4);
+		self->lastmove = player[self->playerindex].playkeys;
+		if((self->lastdir = player[self->playerindex].playkeys&(FLAG_MOVELEFT|FLAG_MOVERIGHT)))
+			self->lastmove |= back?FLAG_BACKWARD:FLAG_FORWARD;
+
+		player[self->playerindex].playkeys &= ~FLAG_CONTROLKEYS;
+	}
+
 }
 
 int common_idle_anim(entity* ent)
@@ -19147,8 +18876,8 @@ void dropweapon(int flag)
 	{
 		if(self->modeldata.type == TYPE_PLAYER)
 		{
-			if(player[(int)self->playerindex].weapnum)
-				set_weapon(self, player[(int)self->playerindex].weapnum, 0);
+			if(player[self->playerindex].weapnum)
+				set_weapon(self, player[self->playerindex].weapnum, 0);
 			else set_weapon(self, level->setweap, 0);
 		}
 		else set_weapon(self, 0, 0);
