@@ -17418,12 +17418,14 @@ int check_combo(int m){    // New function to check combos to make sure they are
 	int found = 0;    // Default not found unless overridden by finding a valid combo
 	int value = self->animation->cancel; // OX. If cancel is enabled , we will be checking MAX_SPECIAL_INPUTS-4, -5, -6 instead.
 
-	//printf("debug %d %d %d %08x\n", time, self->movetime, self->movestep, m);
 
 	if(time > self->movetime && self->movestep) return 0;    // Too much time passed so return 0
 
+	//printf("debug %d %d %d %08x %d\n", time, self->movetime, self->movestep, m, value);
 	for(i = 0; i < self->modeldata.specials_loaded; i++)
 	{
+		//if(self->movestep==4 && self->modeldata.special[i][MAX_SPECIAL_INPUTS-(3+value)]==5)
+		//	printf("=== %d %d %d %d %d\n", self->modeldata.special[i][MAX_SPECIAL_INPUTS-(3+value)],self->modeldata.special[i][self->movestep-1],self->modeldata.special[i][MAX_SPECIAL_INPUTS-(1+value)],self->modeldata.special[i][self->movestep], self->lastmove);
 		if( self->modeldata.special[i][MAX_SPECIAL_INPUTS-(3+value)]>=self->movestep+1 &&
 			( self->movestep==0 || ((self->modeldata.special[i][self->movestep-1]&self->lastmove) && self->modeldata.special[i][MAX_SPECIAL_INPUTS-(1+value)])) &&
 			self->modeldata.special[i][self->movestep] == m )
@@ -17435,6 +17437,7 @@ int check_combo(int m){    // New function to check combos to make sure they are
 
 			if(!value && (self->idling || (self->animation->idle && self->animation->idle[self->animpos])))
 			{    // Checks only valid directional combos to see if the action button matches
+				//printf("1 !!?? %d\n", i);
 				if(check_costmove(self->modeldata.special[i][MAX_SPECIAL_INPUTS-2], 1))
 				{
 					self->modeldata.valid_special = i;    // Says which one is valid and returns that it was found
@@ -17449,6 +17452,7 @@ int check_combo(int m){    // New function to check combos to make sure they are
 				self->modeldata.special[i][MAX_SPECIAL_INPUTS-8] >= self->animpos &&
 				self->modeldata.special[i][MAX_SPECIAL_INPUTS-9] == self->animnum)
 			{    // Checks only valid directional combos to see if the action button matches
+				//printf("2 !!?? %d\n", i);
 				if(check_costmove(self->modeldata.special[i][MAX_SPECIAL_INPUTS-5], 1))
 				{
 					self->modeldata.valid_special = i;    // Says which one is valid and returns that it was found
@@ -17458,6 +17462,7 @@ int check_combo(int m){    // New function to check combos to make sure they are
 			}
 			else
 			{
+				//printf("3 !!?? %d\n", i);
 				found--;
 				continue;
 			}
@@ -18048,6 +18053,11 @@ void player_think()
 		player[self->playerindex].ent->rushtime = 0;
 	}
 
+	if(self->direction&&(player[self->playerindex].playkeys&FLAG_MOVELEFT))
+		back = 1;
+	else if(!self->direction&&(player[self->playerindex].playkeys&FLAG_MOVERIGHT))
+		back = 1;
+
 	if(player_preinput()==2){
 		goto endthinkcheck;
 	}
@@ -18467,7 +18477,6 @@ void player_think()
 	{
 		if(self->direction)
 		{
-			back = 1;
 			self->running = 0;    // Quits running if player changes direction
 			if(self->modeldata.turndelay && !self->turntime)
 				self->turntime = time + self->modeldata.turndelay;
@@ -18513,7 +18522,6 @@ void player_think()
 	{
 		if(!self->direction)
 		{
-			back = 1;
 			self->running = 0;    // Quits running if player changes direction
 			if(self->modeldata.turndelay && !self->turntime)
 				self->turntime = time + self->modeldata.turndelay;
