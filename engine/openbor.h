@@ -256,8 +256,18 @@
 #define		SCROLL_UPWARD       128
 #define     SCROLL_DOWNWARD     256
 // blah, blah,
-
-
+/*
+#define		COM_ATTACK			-1
+#define		COM_JUMP			-2
+#define		COM_RUN				-3
+#define		COM_ATTACKFORWARD	-4
+#define		COM_DODGEUP			-5
+#define		COM_ATTACKUP		-6
+#define		COM_DODGEDOWN		-7
+#define		COM_ATTACKDOWN		-8
+#define		COM_THROW			-9
+#define		COM_GRABATTACK		-10
+*/
 #define		ANI_IDLE			0
 #define		ANI_WALK			1
 #define		ANI_JUMP			2
@@ -977,10 +987,15 @@ typedef struct
 // WIP
 typedef struct
 {
-	int inputs[MAX_SPECIAL_INPUTS];
-	int cond;
+	int input[MAX_SPECIAL_INPUTS];
+	int	steps;
 	int anim;
-	int cancel;
+	int	cancel;		//should be fine to have 0 if idle is not a valid choice
+	int	startframe;
+	int endframe;
+	int hits;
+	int valid;		// should not be global unless nosame is set, but anyway...
+	//int (*function)(); //reserved
 } s_com;
 
 typedef struct{
@@ -1035,27 +1050,27 @@ typedef struct
 	int            nopassiveblock:8;               // Don't auto block randomly
 	int			blockback:8;					// Able to block attacks from behind
 	int			blockodds:16;					// Odds that an enemy will block an attack (1 : blockodds)
-	s_edelay        edelay;                         // Entity level delay adjustment.
-	float			runspeed;						// The speed the character runs at
-	float			runjumpheight;					// The height the character jumps when running
-	float			runjumpdist;					// The distance the character jumps when running
-	int				noatflash:8;					// Flag to determine if attacking characters attack spawns a flash
-	int				runupdown:8;					// Flag to determine if a player will continue to run while pressing up or down
-	int				runhold:8;						// Flag to determine if a player will continue to run if holding down forward when landing
-	int				remove:8;						// Flag to remove a projectile on contact or not
-	float			throwheight;					// The height at which an opponent can now be adjusted
-	float			throwdist;						// The distance an opponent can now be adjusted
-	int           throwframewait:16;              // The frame victim is thrown during ANIM_THROW, added by kbandressen 10/20/06
-	int 			(*special)[MAX_SPECIAL_INPUTS]; // Stores freespecials
+	s_edelay    edelay;                         // Entity level delay adjustment.
+	float		runspeed;						// The speed the character runs at
+	float		runjumpheight;					// The height the character jumps when running
+	float		runjumpdist;					// The distance the character jumps when running
+	int			noatflash:8;					// Flag to determine if attacking characters attack spawns a flash
+	int			runupdown:8;					// Flag to determine if a player will continue to run while pressing up or down
+	int			runhold:8;						// Flag to determine if a player will continue to run if holding down forward when landing
+	int			remove:8;						// Flag to remove a projectile on contact or not
+	float		throwheight;					// The height at which an opponent can now be adjusted
+	float		throwdist;						// The distance an opponent can now be adjusted
+	int         throwframewait:16;              // The frame victim is thrown during ANIM_THROW, added by kbandressen 10/20/06
+	s_com		*special;						// Stores freespecials
 	int			specials_loaded:16;				// Stores how many specials have been loaded
 	int			valid_special:16;				// Used for setting when a valid special has been found
-	int         	diesound;
+	int         diesound;
 	int			weapnum:8;
 	int			secret:8;
-	char			weaploss[2];					// Determines possibility of losing weapon.
-	int            ownweapons:8;                   // is the weapon list own or share with others
-	int             *weapon;						// weapon model list
-	int				numweapons;
+	char		weaploss[2];					// Determines possibility of losing weapon.
+	int         ownweapons:8;                   // is the weapon list own or share with others
+	int         *weapon;						// weapon model list
+	int			numweapons;
 
 	// these are model id of various stuff
 	int             project;
@@ -1348,7 +1363,6 @@ typedef struct entity
 }entity;
 
 
-
 typedef struct
 {
 	char			name[MAX_NAME_LEN+1];
@@ -1361,6 +1375,8 @@ typedef struct
 	u32				newkeys;
 	u32				playkeys;
 	u32				releasekeys;
+	u32				combokey[MAX_SPECIAL_INPUTS];
+	int				combostep;
 	int			    spawnhealth;
 	int  			spawnmp;
 	char			joining:8;
@@ -1834,7 +1850,7 @@ int player_preinput();
 int player_check_special();
 void runanimal(void);
 void player_blink(void);
-int check_combo(int m);
+int check_combo();
 int check_costmove(int s, int fs);
 void didfind_item(entity *other);
 void player_think(void);
