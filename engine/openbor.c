@@ -15346,6 +15346,12 @@ void common_runoff()
 
 void common_stuck_underneath()
 {
+	if(!check_platform_between(self->x, self->z, self->a, self->a+self->modeldata.height, self) )
+	{
+		self->takeaction = NULL;
+		set_idle(self);
+		return;
+	}
 	if(player[self->playerindex].keys & FLAG_MOVELEFT)
 	{
 		self->direction = 0;
@@ -15354,8 +15360,9 @@ void common_stuck_underneath()
 	{
 		self->direction = 1;
 	}
-	if(player[self->playerindex].keys & FLAG_ATTACK && validanim(self,ANI_DUCKATTACK))
+	if(player[self->playerindex].playkeys & FLAG_ATTACK && validanim(self,ANI_DUCKATTACK))
 	{
+		self->playkeys -= FLAG_ATTACK;
 		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		self->xdir = self->zdir = 0;
@@ -15373,12 +15380,6 @@ void common_stuck_underneath()
 		self->combostep[0] = 0;
 		self->running = 0;
 		ent_set_anim(self, ANI_SLIDE, 0);
-		return;
-	}
-	if(!check_platform_between(self->x, self->z, self->a, self->a+self->modeldata.height, self) )
-	{
-		self->takeaction = NULL;
-		set_idle(self);
 		return;
 	}
 }
@@ -18069,7 +18070,7 @@ void player_think()
 	if(self->modeldata.subject_to_platform>0 && validanim(self,ANI_DUCK) && check_platform_between(self->x/*+self->direction*2-1*/, self->z, self->a, self->a+self->modeldata.height, self) && (check_platform_between(self->x/*+self->direction*2-1*/, self->z, self->a, self->a+self->animation->height, self) || !self->animation->height) )
 	{
 		self->takeaction = common_stuck_underneath;
-		ent_set_anim(self, ANI_DUCK, 1);
+		ent_set_anim(self, ANI_DUCK, 0);
 		goto endthinkcheck;
 	}
 
