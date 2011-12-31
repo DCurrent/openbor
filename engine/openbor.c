@@ -15362,7 +15362,7 @@ void common_stuck_underneath()
 	}
 	if(player[self->playerindex].playkeys & FLAG_ATTACK && validanim(self,ANI_DUCKATTACK))
 	{
-		self->playkeys -= FLAG_ATTACK;
+		player[self->playerindex].playkeys -= FLAG_ATTACK;
 		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		self->xdir = self->zdir = 0;
