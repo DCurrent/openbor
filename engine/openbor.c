@@ -6413,16 +6413,19 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->jumpframe.f = 0;
 					newanim->jumpframe.x = GET_FLOAT_ARG(1);
 					newanim->jumpframe.v = -GET_FLOAT_ARG(2);
+					newanim->jumpframe.ent = -1;
 					break;
 				case CMD_MODEL_DIVE1:
 					newanim->dive = 1;
 					newanim->jumpframe.f = 0;
 					newanim->jumpframe.x = GET_FLOAT_ARG(1);
+					newanim->jumpframe.ent = -1;
 					break;
 				case CMD_MODEL_DIVE2:
 					newanim->dive = 1;
 					newanim->jumpframe.f = 0;
 					newanim->jumpframe.v = -GET_FLOAT_ARG(1);
+					newanim->jumpframe.ent = -1;
 					break;
 				case CMD_MODEL_JUMPFRAME:
 					{
@@ -11893,7 +11896,7 @@ void do_attack(entity *e)
 				// end of if #053
 
 				// if #054
-				if(flash && !attack->no_flash)
+				if(flash)
 				{
 					if(flash->modeldata.toflip) flash->direction = (e->x > self->x);    // Now the flash will flip depending on which side the attacker is on
 
@@ -16422,19 +16425,6 @@ int arrow_move(){
 	float maxspeed;
 	entity* target = NULL;
 
-	/*
-	int osk = self->modeldata.offscreenkill?self->modeldata.offscreenkill:200; //TODO: temporary code here, needs refine
-
-	if( (!self->direction && self->x < advancex - osk) || (self->direction && self->x > advancex + (videomodes.hRes+osk)) ||
-		(level && level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN &&
-		 (self->z < advancey - 200 || self->z > advancey + (videomodes.vRes+200))) ||
-		(level && (level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN) &&
-		 (self->z < -osk || self->z > videomodes.vRes + osk)) )
-	{
-		kill(self);
-		return 0;
-	}*/
-
 	// new subtype chase
 	if(self->modeldata.subtype == SUBTYPE_CHASE)
 	{
@@ -16505,7 +16495,7 @@ int arrow_move(){
 			}
 		}
 	}
-	self->autokill = self->ptype;
+	self->autokill |= self->ptype;
 	self->nextthink = time + THINK_SPEED / 2;
 	return 1;
 }
