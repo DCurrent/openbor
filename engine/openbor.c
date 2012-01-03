@@ -9227,8 +9227,8 @@ void load_level(char *filename){
 				memset(&next,0,sizeof(s_spawn_entry));
 				next.scrollminz = GET_INT_ARG(1);
 				next.scrollmaxz = GET_INT_ARG(2);
-				if(next.scrollminz <= 0) next.scrollminz = 4;
-				if(next.scrollmaxz <= 0) next.scrollmaxz = 4;
+				if(next.scrollminz <= 0) next.scrollminz = 0;
+				if(next.scrollmaxz <= 0) next.scrollmaxz = 0;
 				break;
 			case CMD_LEVEL_BLOCKADE:
 				// now x scroll can be limited by this
@@ -17969,7 +17969,7 @@ void player_think()
 {
 	int action = 0;		// 1=walking, 2=up, 3=down, 4=running
 	int bkwalk = 0;   //backwalk
-	int t;
+	int t, t2;
 	entity *other = NULL;
 	float altdiff ;
 	int notinair;
@@ -18241,16 +18241,20 @@ void player_think()
 			goto endthinkcheck;
 		}
 
-		if(validanim(self,ANI_ATTACKBACKWARD) && (pl->keys&(FLAG_MOVELEFT|FLAG_MOVERIGHT)) && match_combo(ba, pl,2))    // New back attacks
+		if(validanim(self,ANI_ATTACKBACKWARD) && match_combo(ba, pl,2))
 		{
-			self->takeaction = common_attack_proc;
-			set_attacking(self);
-			self->xdir = self->zdir = 0;
-			if(!self->direction&&(pl->keys&FLAG_MOVELEFT)) self->direction = 1;
-			else if(self->direction&&(pl->keys&FLAG_MOVERIGHT)) self->direction = 0;
-			self->combostep[0] = 0;
-			ent_set_anim(self, ANI_ATTACKBACKWARD, 0);
-			goto endthinkcheck;
+			t = (pl->combostep-1+MAX_SPECIAL_INPUTS)%MAX_SPECIAL_INPUTS;
+			t2 = (pl->combostep-2+MAX_SPECIAL_INPUTS)%MAX_SPECIAL_INPUTS;
+			if(pl->inputtime[t]-pl->inputtime[t2]<GAME_SPEED/10){
+				self->takeaction = common_attack_proc;
+				set_attacking(self);
+				self->xdir = self->zdir = 0;
+				if(!self->direction&&(pl->combokey[t2]&FLAG_MOVELEFT)) self->direction = 1;
+				else if(self->direction&&(pl->combokey[t2]&FLAG_MOVERIGHT)) self->direction = 0;
+				self->combostep[0] = 0;
+				ent_set_anim(self, ANI_ATTACKBACKWARD, 0);
+				goto endthinkcheck;
+			}
 		}
 
 		if( validanim(self,ANI_GET) && (other = find_ent_here(self, self->x, self->z, TYPE_ITEM, player_test_pickable)) )
@@ -19499,7 +19503,8 @@ void spawnplayer(int index)
 	if(nomaxrushreset[4] >= 1) player[index].ent->rush[1] = nomaxrushreset[index];
 	else player[index].ent->rush[1] = 0;
 
-	memset(player[index].combokey, 0, sizeof(int)*MAX_SPECIAL_INPUTS);
+	memset(player[index].combokey, 0, sizeof(u32)*MAX_SPECIAL_INPUTS);
+	memset(player[index].inputtime, 0, sizeof(u32)*MAX_SPECIAL_INPUTS);
 	player[index].combostep = 0;
 
 	if(player[index].spawnhealth) player[index].ent->health = player[index].spawnhealth + 5;
@@ -19860,7 +19865,7 @@ void update_scroller(){
 			advancey = (float)to;
 		}
 
-		if(advancey > panel_height - 12 -videomodes.vRes) advancey = (float)(panel_height - 12 -videomodes.vRes);
+		if(advancey > panel_height - (level->rocking?16:12) -videomodes.vRes) advancey = (float)(panel_height - (level->rocking?16:12) -videomodes.vRes);
 		if(advancey < 0) advancey = 0;
 	}
 	// now x auto scroll
@@ -19954,7 +19959,7 @@ void update_scrolled_bg(){
 
 	if(level->rocking){
 		rockpos = (timevar/(GAME_SPEED/8)) & 31;
-		if(level->rocking == 1)         gfx_y_offset = level->quake - 4 - rockoffssine[rockpos];
+		if(level->rocking == 1) gfx_y_offset = level->quake - 4 - rockoffssine[rockpos];
 		else if(level->rocking == 2) gfx_y_offset = level->quake - 4 - rockoffsshake[rockpos];
 		else if(level->rocking == 3) gfx_y_offset = level->quake - 4 - rockoffsrumble[rockpos];
 	}
@@ -20173,6 +20178,7 @@ void movie_save(s_playercontrols ** pctrls)
 void inputrefresh()
 {
 	int p;
+	s_player* pl;
 	u32 k;
 
 #ifndef DISABLE_MOVIE
@@ -20220,27 +20226,31 @@ void inputrefresh()
 
 	for(p=0; p<maxplayers[current_set]; p++)
 	{
-		player[p].releasekeys = (playercontrolpointers[p]->keyflags|player[p].keys) - playercontrolpointers[p]->keyflags;
-		player[p].keys = playercontrolpointers[p]->keyflags;
-		player[p].newkeys = playercontrolpointers[p]->newkeyflags;
-		player[p].playkeys |= player[p].newkeys;
-		player[p].playkeys &= player[p].keys;
+		pl = player + p;
+		pl->releasekeys = (playercontrolpointers[p]->keyflags|pl->keys) - playercontrolpointers[p]->keyflags;
+		pl->keys = playercontrolpointers[p]->keyflags;
+		pl->newkeys = playercontrolpointers[p]->newkeyflags;
+		pl->playkeys |= pl->newkeys;
+		pl->playkeys &= pl->keys;
 		
-		if(player[p].ent && player[p].ent->movetime<time){
-			memset(player[p].combokey, 0, sizeof(int)*MAX_SPECIAL_INPUTS);
-			player[p].combostep = 0;
+		if(pl->ent && pl->ent->movetime<time){
+			memset(pl->combokey, 0, sizeof(u32)*MAX_SPECIAL_INPUTS);
+			memset(pl->inputtime, 0, sizeof(u32)*MAX_SPECIAL_INPUTS);
+			pl->combostep = 0;
 		}
-		if(player[p].newkeys){
-			k = player[p].newkeys;
-			if(player[p].ent) {
-				player[p].ent->movetime = time + GAME_SPEED/4;
+		if(pl->newkeys){
+			k = pl->newkeys;
+			if(pl->ent) {
+				pl->ent->movetime = time + GAME_SPEED/4;
 				if(k&FLAG_MOVELEFT)
-					k |= player[p].ent->direction?FLAG_BACKWARD:FLAG_FORWARD;
+					k |= pl->ent->direction?FLAG_BACKWARD:FLAG_FORWARD;
 				else if(k&FLAG_MOVERIGHT)
-					k |= player[p].ent->direction?FLAG_FORWARD:FLAG_BACKWARD;
+					k |= pl->ent->direction?FLAG_FORWARD:FLAG_BACKWARD;
 			}
-			player[p].combokey[player[p].combostep++] = k;
-			player[p].combostep %= MAX_SPECIAL_INPUTS;
+			pl->inputtime[pl->combostep] = time;
+			pl->combokey[pl->combostep] = k;
+			pl->combostep++;
+			pl->combostep %= MAX_SPECIAL_INPUTS;
 		}
 
 		bothkeys |= player[p].keys;
