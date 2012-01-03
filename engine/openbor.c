@@ -6062,43 +6062,6 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							tempInt = atoi(value+11);
 							if(tempInt<1) tempInt = 1;
 							ani_id = animspecials[tempInt-1];
-							if(tempInt<4) alloc_specials(newchar);
-							switch(tempInt) // old default values
-							{
-								case 1:
-									if(!is_set(newchar, ANI_FREESPECIAL))
-									{
-										newchar->special[newchar->specials_loaded].input[0] = FLAG_FORWARD;
-										newchar->special[newchar->specials_loaded].input[1] = FLAG_FORWARD;
-										newchar->special[newchar->specials_loaded].input[2] = FLAG_ATTACK;
-										newchar->special[newchar->specials_loaded].anim = ANI_FREESPECIAL;
-										newchar->special[newchar->specials_loaded].steps = 3;
-										newchar->specials_loaded++;
-									}
-									break;
-								case 2:
-									if(!is_set(newchar, ANI_FREESPECIAL2))
-									{
-										newchar->special[newchar->specials_loaded].input[0] = FLAG_MOVEDOWN;
-										newchar->special[newchar->specials_loaded].input[1] = FLAG_MOVEDOWN;
-										newchar->special[newchar->specials_loaded].input[2] = FLAG_ATTACK;
-										newchar->special[newchar->specials_loaded].anim = ANI_FREESPECIAL2;
-										newchar->special[newchar->specials_loaded].steps = 3;
-										newchar->specials_loaded++;
-									}
-									break;
-								case 3:
-									if(!is_set(newchar, ANI_FREESPECIAL3))
-									{
-										newchar->special[newchar->specials_loaded].input[0] = FLAG_MOVEUP;
-										newchar->special[newchar->specials_loaded].input[1] = FLAG_MOVEUP;
-										newchar->special[newchar->specials_loaded].input[2] = FLAG_ATTACK;
-										newchar->special[newchar->specials_loaded].anim = ANI_FREESPECIAL3;
-										newchar->special[newchar->specials_loaded].steps = 3;
-										newchar->specials_loaded++;
-									}
-									break;
-							}
 						}
 						else if(stricmp(value, "jumpattack")==0){
 							ani_id = ANI_JUMPATTACK;
@@ -7120,6 +7083,47 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	if(newchar->aiattack==-1) newchar->aiattack = 0;
 	if(newchar->aimove==-1) newchar->aimove = 0;
 	//if(!newchar->offscreenkill) newchar->offscreenkill = 1000;
+
+	//temporary patch for conflicting moves
+	if(newchar->animation[ANI_FREESPECIAL] &&
+		!newchar->animation[ANI_RUN] && 
+		!newchar->animation[ANI_ATTACKFORWARD] &&
+		!is_set(newchar, ANI_FREESPECIAL))
+	{
+		alloc_specials(newchar);
+		newchar->special[newchar->specials_loaded].input[0] = FLAG_FORWARD;
+		newchar->special[newchar->specials_loaded].input[1] = FLAG_FORWARD;
+		newchar->special[newchar->specials_loaded].input[2] = FLAG_ATTACK;
+		newchar->special[newchar->specials_loaded].anim = ANI_FREESPECIAL;
+		newchar->special[newchar->specials_loaded].steps = 3;
+		newchar->specials_loaded++;
+	}
+	if(newchar->animation[ANI_FREESPECIAL2] &&
+		!newchar->animation[ANI_DODGE] && 
+		!newchar->animation[ANI_ATTACKDOWN] &&
+		!is_set(newchar, ANI_FREESPECIAL2))
+	{
+		alloc_specials(newchar);
+		newchar->special[newchar->specials_loaded].input[0] = FLAG_MOVEDOWN;
+		newchar->special[newchar->specials_loaded].input[1] = FLAG_MOVEDOWN;
+		newchar->special[newchar->specials_loaded].input[2] = FLAG_ATTACK;
+		newchar->special[newchar->specials_loaded].anim = ANI_FREESPECIAL2;
+		newchar->special[newchar->specials_loaded].steps = 3;
+		newchar->specials_loaded++;
+	}
+	if(newchar->animation[ANI_FREESPECIAL3] &&
+		!newchar->animation[ANI_DODGE] && 
+		!newchar->animation[ANI_ATTACKUP] &&
+		!is_set(newchar, ANI_FREESPECIAL3))
+	{
+		alloc_specials(newchar);
+		newchar->special[newchar->specials_loaded].input[0] = FLAG_MOVEUP;
+		newchar->special[newchar->specials_loaded].input[1] = FLAG_MOVEUP;
+		newchar->special[newchar->specials_loaded].input[2] = FLAG_ATTACK;
+		newchar->special[newchar->specials_loaded].anim = ANI_FREESPECIAL3;
+		newchar->special[newchar->specials_loaded].steps = 3;
+		newchar->specials_loaded++;
+	}
 
 	if(newchar->risetime[0]==-1)
 	{
