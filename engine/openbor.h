@@ -518,6 +518,8 @@
 						 if(e->freezetime>0 && (textbox || smartbomber))e->freezetime++;\
 						 if(e->mpchargetime>0)e->mpchargetime++;\
 						 if(e->invinctime>0) e->invinctime++;\
+						 if(e->pain_time>0) e->pain_time++;\
+						 if(e->turntime>0) e->turntime++;\
 						 if(e->sealtime>0) e->sealtime++;
 /*                       if(e->dot_time>0) e->dot_time++;\
 						 if(e->dot_cnt>0) e->dot_cnt++;
@@ -1376,6 +1378,7 @@ typedef struct
 	u32				playkeys;
 	u32				releasekeys;
 	u32				combokey[MAX_SPECIAL_INPUTS];
+	u32				inputtime[MAX_SPECIAL_INPUTS];
 	int				combostep;
 	int			    spawnhealth;
 	int  			spawnmp;
