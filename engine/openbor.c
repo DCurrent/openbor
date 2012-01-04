@@ -7085,10 +7085,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	//if(!newchar->offscreenkill) newchar->offscreenkill = 1000;
 
 	//temporary patch for conflicting moves
-	if(newchar->animation[ANI_FREESPECIAL] &&
-		!newchar->animation[ANI_RUN] && 
-		!newchar->animation[ANI_ATTACKFORWARD] &&
-		!is_set(newchar, ANI_FREESPECIAL))
+	if(newchar->animation[ANI_FREESPECIAL] && !is_set(newchar, ANI_FREESPECIAL))
 	{
 		alloc_specials(newchar);
 		newchar->special[newchar->specials_loaded].input[0] = FLAG_FORWARD;
@@ -7098,10 +7095,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		newchar->special[newchar->specials_loaded].steps = 3;
 		newchar->specials_loaded++;
 	}
-	if(newchar->animation[ANI_FREESPECIAL2] &&
-		!newchar->animation[ANI_DODGE] && 
-		!newchar->animation[ANI_ATTACKDOWN] &&
-		!is_set(newchar, ANI_FREESPECIAL2))
+	if(newchar->animation[ANI_FREESPECIAL2] && !is_set(newchar, ANI_FREESPECIAL2))
 	{
 		alloc_specials(newchar);
 		newchar->special[newchar->specials_loaded].input[0] = FLAG_MOVEDOWN;
@@ -7111,10 +7105,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		newchar->special[newchar->specials_loaded].steps = 3;
 		newchar->specials_loaded++;
 	}
-	if(newchar->animation[ANI_FREESPECIAL3] &&
-		!newchar->animation[ANI_DODGE] && 
-		!newchar->animation[ANI_ATTACKUP] &&
-		!is_set(newchar, ANI_FREESPECIAL3))
+	if(newchar->animation[ANI_FREESPECIAL3] && !is_set(newchar, ANI_FREESPECIAL3))
 	{
 		alloc_specials(newchar);
 		newchar->special[newchar->specials_loaded].input[0] = FLAG_MOVEUP;
@@ -18082,6 +18073,7 @@ void player_think()
 			self->combostep[0] = 0;
 			self->xdir = self->zdir = 0;
 			ent_set_anim(self, ANI_ATTACKUP, 0);
+			pl->combostep = (pl->combostep-1+MAX_SPECIAL_INPUTS)%MAX_SPECIAL_INPUTS; // this workaround deals default freespecial2
 			goto endthinkcheck;
 		}
 		else if(t && validanim(self,ANI_DODGE))
@@ -18092,6 +18084,7 @@ void player_think()
 			self->idling = 0;
 			self->zdir = -self->modeldata.speed * 1.75; self->xdir = 0;// OK you can use jumpframe to modify this anyway
 			ent_set_anim(self, ANI_DODGE, 0);
+			pl->combostep = (pl->combostep-1+MAX_SPECIAL_INPUTS)%MAX_SPECIAL_INPUTS;
 			goto endthinkcheck;;
 		}
 	}
@@ -18107,6 +18100,7 @@ void player_think()
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			ent_set_anim(self, ANI_ATTACKDOWN, 0);
+			pl->combostep = (pl->combostep-1+MAX_SPECIAL_INPUTS)%MAX_SPECIAL_INPUTS;
 			goto endthinkcheck;
 		}
 		else if(t && validanim(self,ANI_DODGE))
@@ -18117,6 +18111,7 @@ void player_think()
 			self->idling = 0;
 			self->zdir = self->modeldata.speed * 1.75; self->xdir = 0;
 			ent_set_anim(self, ANI_DODGE, 0);
+			pl->combostep = (pl->combostep-1+MAX_SPECIAL_INPUTS)%MAX_SPECIAL_INPUTS;
 			goto endthinkcheck;
 		}
 	}
@@ -18127,6 +18122,7 @@ void player_think()
 
 		if(t && validanim(self,ANI_RUN)){
 			pl->playkeys &= ~(FLAG_MOVELEFT|FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
+			pl->combostep = (pl->combostep-1+MAX_SPECIAL_INPUTS)%MAX_SPECIAL_INPUTS;
 			self->running = 1;    // Player begins to run
 		}else if(t && validanim(self,ANI_ATTACKFORWARD)){
 			pl->playkeys &= ~(FLAG_MOVELEFT|FLAG_MOVERIGHT);
@@ -18135,6 +18131,7 @@ void player_think()
 			self->xdir = self->zdir = 0;
 			self->combostep[0] = 0;
 			ent_set_anim(self, ANI_ATTACKFORWARD, 0);
+			pl->combostep = (pl->combostep-1+MAX_SPECIAL_INPUTS)%MAX_SPECIAL_INPUTS;
 			goto endthinkcheck;
 		}
 	}
