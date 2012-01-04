@@ -11591,6 +11591,7 @@ enum gfxproperty_enum
 	_gfx_centerx,
 	_gfx_centery,
 	_gfx_height,
+	_gfx_palette,
 	_gfx_pixel,
 	_gfx_pixelformat,
 	_gfx_srcheight,
@@ -11608,6 +11609,7 @@ void mapstrings_gfxproperty(ScriptVariant** varlist, int paramCount)
 		"centerx",
 		"centery",
 		"height",
+		"palette",
 		"pixel",
 		"pixelformat",
 		"srcheight",
@@ -11732,6 +11734,22 @@ HRESULT openbor_getgfxproperty(ScriptVariant** varlist , ScriptVariant** pretvar
 			break;
 		case sprite_magic:
 			(*pretvar)->lVal = sprite->centery;
+			break;
+		default:
+			goto ggp_error2;
+		}
+	break;
+	case _gfx_palette:
+		ScriptVariant_ChangeType(*pretvar, VT_PTR);
+		switch(screen->magic){
+		case screen_magic:
+			(*pretvar)->ptrVal = (VOID*)screen->palette;
+			break;
+		case sprite_magic:
+			(*pretvar)->ptrVal = (VOID*)sprite->palette;
+			break;
+		case bitmap_magic:
+			(*pretvar)->ptrVal = (VOID*)bitmap->palette;
 			break;
 		default:
 			goto ggp_error2;
