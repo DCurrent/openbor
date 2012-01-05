@@ -339,6 +339,7 @@ u32                 newtime             = 0;
 unsigned char       slowmotion[3]       = {0,2,0};              // [0] = enable/disable; [1] = duration; [2] = counter;
 int                 disablelog          = 0;
 int                 currentspawnplayer  = 0;
+int					ent_list_size		= 0;
 int                 PLAYER_MIN_Z        = 160;
 int                 PLAYER_MAX_Z        = 232;
 int                 BGHEIGHT            = 160;
@@ -571,7 +572,7 @@ unsigned int        anims_loaded		= 0;
 unsigned int        models_loaded		= 0;
 unsigned int        models_cached		= 0;
 
-entity*             ent_list[MAX_ENTS];
+entity**            ent_list;
 entity*             self;
 int                 ent_count			= 0;					// log count of entites
 int                 ent_max				= 0;
@@ -10259,7 +10260,11 @@ void free_ent(entity* e)
 void free_ents()
 {
 	int i;
-	for(i=0; i<MAX_ENTS; i++) free_ent(ent_list[i]);
+	if(!ent_list) return;
+	for(i=0; i<ent_list_size; i++) free_ent(ent_list[i]);
+	free(ent_list);
+	ent_list = NULL;
+	ent_list_size = ent_max = ent_count = 0;
 }
 
 entity* alloc_ent()
@@ -10297,18 +10302,29 @@ entity* alloc_ent()
 int alloc_ents()
 {
 	int i;
-	for(i=0; i<MAX_ENTS; i++)
+	
+	ent_list_size += MAX_ENTS;
+
+	if(!ent_list) ent_list = malloc(sizeof(entity*)*ent_list_size);
+	else ent_list = realloc(ent_list, sizeof(entity*)*ent_list_size);
+
+	if(!ent_list) goto alloc_ents_error;
+
+	for(i=ent_list_size-MAX_ENTS; i<ent_list_size; i++)
 	{
 		ent_list[i] = alloc_ent();
 		if(!ent_list[i])
 		{
-			free_ents();
-			return 0;
+			 goto alloc_ents_error;
 		}
 		ent_list[i]->sortid = i*100;
 	}
-	ent_count = ent_max = 0;
+	//ent_count = ent_max = 0;
 	return 1;
+
+alloc_ents_error:
+	free_ents();
+	return 0;
 }
 
 // this method initialize an entity's A.I. behaviors
@@ -10715,7 +10731,7 @@ void update_frame(entity* ent, int f)
 			dust = spawn(self->x, self->z, self->a, self->direction, NULL, anim->jumpframe.ent, NULL);
 			if(dust){
 				dust->base = self->a;
-				dust->autokill = 1;
+				dust->autokill = 2;
 				execute_onspawn_script(dust);
 			}
 		}
@@ -10944,7 +10960,9 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 		return NULL;
 	}
 
-	for(i=0; i<MAX_ENTS; i++)
+	if(ent_count>=ent_list_size && !alloc_ents()) return NULL; //out of memory ? 
+
+	for(i=0; i<ent_list_size; i++)
 	{
 		if(!ent_list[i]->exists)
 		{
@@ -11195,8 +11213,11 @@ void kill_all()
 		e->exists = 0; // well, no need to use kill function
 	}
 	textbox = smartbomber = NULL;
-	ent_max = ent_count = 0;
 	time = 0;
+	if(ent_list_size>MAX_ENTS){ //shrinking...
+		free_ents();
+		alloc_ents(); //this shouldn't return 0, because the list shrinks...
+	}
 }
 
 
@@ -11896,7 +11917,7 @@ void do_attack(entity *e)
 					if(flash->modeldata.toflip) flash->direction = (e->x > self->x);    // Now the flash will flip depending on which side the attacker is on
 
 					flash->base = lasthita;
-					flash->autokill = 1;
+					flash->autokill = 2;
 				}//end of if #054
 
 				// 2007 3 24, hmm, def should be like this
@@ -12102,7 +12123,7 @@ void check_gravity()
 					dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[0], NULL);
 					if(dust){
 						dust->base = self->a;
-						dust->autokill = 1;
+						dust->autokill = 2;
 						execute_onspawn_script(dust);
 					}
 				}
@@ -12132,7 +12153,7 @@ void check_gravity()
 						dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->animation->landframe.ent, NULL);
 						if(dust){
 							dust->base = self->a;
-							dust->autokill = 1;
+							dust->autokill = 2;
 							execute_onspawn_script(dust);
 						}
 					}
@@ -13024,7 +13045,7 @@ void display_ents()
 					can_mirror = (use_mirror && self->z>MIRROR_Z);
 					if(can_mirror)
 					{
-						spriteq_add_sprite((int)(e->x-scrx), (int)((2*MIRROR_Z - e->z)-e->a-scry), 2*PANEL_Z - z , f, drawmethod, MAX_ENTS*100 - sortid);
+						spriteq_add_sprite((int)(e->x-scrx), (int)((2*MIRROR_Z - e->z)-e->a-scry), 2*PANEL_Z - z , f, drawmethod, ent_list_size*100 - sortid);
 					}
 				}//end of if(f<sprites_loaded)
 
@@ -13182,7 +13203,7 @@ void toss(entity *ent, float lift)
 entity * findent(int types)
 {
 	int i;
-	for(i=0; i<MAX_ENTS; i++)
+	for(i=0; i<ent_max; i++)
 	{ // 2007-12-18, remove all nodieblink checking, because dead corpse with nodieblink 3 will be changed to TYPE_NONE
 	  // so if it is "dead" and TYPE_NONE, it must be a corpse
 		if(ent_list[i]->exists && (ent_list[i]->modeldata.type & types) && !(ent_list[i]->dead && ent_list[i]->modeldata.type==TYPE_NONE))
@@ -13199,7 +13220,7 @@ int count_ents(int types)
 {
 	int i;
 	int count = 0;
-	for(i=0; i<MAX_ENTS; i++)
+	for(i=0; i<ent_max; i++)
 	{ // 2007-12-18, remove all nodieblink checking, because dead corpse with nodieblink 3 will be changed to TYPE_NONE
 	  // so if it is "dead" and TYPE_NONE, it must be a corpse
 		count += (ent_list[i]->exists && (ent_list[i]->modeldata.type & types) && !(ent_list[i]->dead && ent_list[i]->modeldata.type==TYPE_NONE));
@@ -13276,7 +13297,7 @@ int player_test_touch(entity* ent, entity* item){
 entity * find_ent_here(entity *exclude, float x, float z, int types, int (*test)(entity*,entity*))
 {
 	int i;
-	for(i=0; i<MAX_ENTS; i++)
+	for(i=0; i<ent_max; i++)
 	{
 		if( ent_list[i]->exists
 			&& ent_list[i] != exclude
@@ -13855,7 +13876,7 @@ void common_jump()
 				dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[1], NULL);
 				if(dust){
 					dust->base = self->a;
-					dust->autokill = 1;
+					dust->autokill = 2;
 					execute_onspawn_script(dust);
 				}
 			}
@@ -13867,7 +13888,7 @@ void common_jump()
 				dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[1], NULL);
 				if(dust){
 					dust->base = self->a;
-					dust->autokill = 1;
+					dust->autokill = 2;
 					execute_onspawn_script(dust);
 				}
 			}
@@ -14946,7 +14967,7 @@ int common_try_jumpattack(entity* target)
 				dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[2], NULL);
 				if(dust){
 					dust->base = self->a;
-					dust->autokill = 1;
+					dust->autokill = 2;
 					execute_onspawn_script(dust);
 				}
 			}
@@ -17363,7 +17384,7 @@ void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
 		dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[2], NULL);
 		if(dust){
 			dust->base = self->a;
-			dust->autokill = 1;
+			dust->autokill = 2;
 			execute_onspawn_script(dust);
 		}
 	}
