@@ -11215,7 +11215,8 @@ setidle_error:
 HRESULT openbor_getentity(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	LONG ind;
-	extern entity* ent_list[MAX_ENTS];
+	extern entity** ent_list;
+	extern int ent_list_size;
 
 	if(paramCount!=1) goto getentity_error;
 
@@ -11223,7 +11224,7 @@ HRESULT openbor_getentity(ScriptVariant** varlist , ScriptVariant** pretvar, int
 
 	ScriptVariant_Clear(*pretvar);
 
-	if((int)ind<MAX_ENTS && (int)ind>=0)
+	if((int)ind<ent_list_size && (int)ind>=0)
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_PTR);
 		(*pretvar)->ptrVal = (VOID*)ent_list[(int)ind];
