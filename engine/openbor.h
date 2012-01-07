@@ -518,7 +518,6 @@
 						 if(e->freezetime>0 && (textbox || smartbomber))e->freezetime++;\
 						 if(e->mpchargetime>0)e->mpchargetime++;\
 						 if(e->invinctime>0) e->invinctime++;\
-						 if(e->pain_time>0) e->pain_time++;\
 						 if(e->turntime>0) e->turntime++;\
 						 if(e->sealtime>0) e->sealtime++;
 /*                       if(e->dot_time>0) e->dot_time++;\
