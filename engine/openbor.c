@@ -11214,6 +11214,7 @@ void kill_all()
 	}
 	textbox = smartbomber = NULL;
 	time = 0;
+	ent_count = ent_max = 0;
 	if(ent_list_size>MAX_ENTS){ //shrinking...
 		free_ents();
 		alloc_ents(); //this shouldn't return 0, because the list shrinks...
