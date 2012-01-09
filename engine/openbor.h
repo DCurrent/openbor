@@ -1064,7 +1064,6 @@ typedef struct
 	int         throwframewait:16;              // The frame victim is thrown during ANIM_THROW, added by kbandressen 10/20/06
 	s_com		*special;						// Stores freespecials
 	int			specials_loaded:16;				// Stores how many specials have been loaded
-	int			valid_special:16;				// Used for setting when a valid special has been found
 	int         diesound;
 	int			weapnum:8;
 	int			secret:8;
