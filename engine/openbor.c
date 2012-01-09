@@ -17942,7 +17942,7 @@ int match_combo(int a[], s_player* p, int l){
 
 
 int check_combo(){
-	int i;
+	int i, maxstep = -1, valid = -1;
 	s_com *com;
 	s_player* p;
 
@@ -17962,11 +17962,19 @@ int check_combo(){
 			(com->cancel||!self->idling||diff(self->a,self->base)>1) )
 			continue;
 
-		if(match_combo(com->input, p, com->steps) && check_costmove(com->anim, 1)){
-			self->modeldata.valid_special = i;
-			return 1;
+		if( com->steps > maxstep && // find the longest possible combo
+			validanim(self,com->anim) &&
+		   (check_energy(1, com->anim) || check_energy(0, com->anim)) &&
+			match_combo(com->input, p, com->steps))
+		{
+			valid = com->anim;
+			maxstep = com->steps;
 		}
 	}//end of for
+
+	if(valid>=0 && check_costmove(valid, 1)){
+		return 1;
+	}
 
 	return 0;
 }
