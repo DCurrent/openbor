@@ -1067,6 +1067,7 @@ typedef struct
 	int         diesound;
 	int			weapnum:8;
 	int			secret:8;
+	int			clearcount:8;
 	char		weaploss[2];					// Determines possibility of losing weapon.
 	int         ownweapons:8;                   // is the weapon list own or share with others
 	int         *weapon;						// weapon model list
