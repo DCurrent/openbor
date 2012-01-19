@@ -3527,7 +3527,8 @@ s_model* nextplayermodel(s_model *current){
 	for(i=curindex+1, loops=0; loops<models_cached; i++, loops++){
 		if(i >= models_cached) i = 0;
 		if(model_cache[i].model && model_cache[i].model->type==TYPE_PLAYER &&
-		  (allow_secret_chars || !model_cache[i].model->secret) && model_cache[i].selectable){
+		  (allow_secret_chars || !model_cache[i].model->secret) &&
+			model_cache[i].model->clearcount<=bonus && model_cache[i].selectable){
 			//printf("next %s\n", model_cache[i].model->name);
 			return model_cache[i].model;
 		}
@@ -3554,7 +3555,8 @@ s_model* prevplayermodel(s_model *current){
 	for(i=curindex-1, loops=0; loops<models_cached; i--, loops++){
 		if(i < 0) i = models_cached-1;
 		if(model_cache[i].model && model_cache[i].model->type==TYPE_PLAYER &&
-		  (allow_secret_chars || !model_cache[i].model->secret) && model_cache[i].selectable){
+		  (allow_secret_chars || !model_cache[i].model->secret) &&
+			model_cache[i].model->clearcount<=bonus && model_cache[i].selectable){
 			//printf("prev %s\n", model_cache[i].model->name);
 			return model_cache[i].model;
 		}
@@ -4922,6 +4924,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_SECRET:
 					newchar->secret = GET_INT_ARG(1);
+					newchar->clearcount = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_MODELFLAG: //model copy flag
 					newchar->model_flag = GET_INT_ARG(1);
