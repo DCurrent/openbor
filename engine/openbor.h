@@ -256,18 +256,8 @@
 #define		SCROLL_UPWARD       128
 #define     SCROLL_DOWNWARD     256
 // blah, blah,
-/*
-#define		COM_ATTACK			-1
-#define		COM_JUMP			-2
-#define		COM_RUN				-3
-#define		COM_ATTACKFORWARD	-4
-#define		COM_DODGEUP			-5
-#define		COM_ATTACKUP		-6
-#define		COM_DODGEDOWN		-7
-#define		COM_ATTACKDOWN		-8
-#define		COM_THROW			-9
-#define		COM_GRABATTACK		-10
-*/
+
+
 #define		ANI_IDLE			0
 #define		ANI_WALK			1
 #define		ANI_JUMP			2
@@ -1475,6 +1465,27 @@ typedef struct
 }s_level_entry;
 
 
+typedef struct 
+{
+	char* name;
+	int maxplayers;
+	int numlevels;
+	s_level_entry *levelorder;
+	int ifcomplete;
+	int noshowhof;
+	int lives;
+	int credits;
+	int custfade;
+	int musicoverlap; //** shouldn't it be level based?
+	int typemp; //** shouldn't it be model based?
+	int continuescore;
+	char* skipselect[MAX_PLAYERS]; //** better if level based
+	int saveflag;
+	int nosame;
+
+}s_set_entry;
+
+
 //
 typedef enum
 {
@@ -1701,8 +1712,6 @@ int is_set(s_model * model, int m);
 int load_script_setting();
 int load_models();
 void unload_levelorder();
-void add_level(char *filename, int diff);
-void add_scene(char *filename, int diff);
 void load_levelorder();
 void unload_level();
 void load_level(char *filename);
@@ -1927,7 +1936,7 @@ int getValidInt(char* text, char* file, char* cmd);
 float getValidFloat(char* text, char* file, char* cmd);
 
 
-s_savelevel savelevel[MAX_DIFFICULTIES];
+s_savelevel* savelevel;
 s_savescore savescore;
 s_savedata savedata;
 

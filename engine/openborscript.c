@@ -66,7 +66,7 @@ extern int			  SAMPLE_BIKE;
 extern int            current_palette;
 extern s_player       player[4];
 extern s_savedata     savedata;
-extern s_savelevel    savelevel[MAX_DIFFICULTIES];
+extern s_savelevel*   savelevel;
 extern s_savescore    savescore;
 extern s_level        *level;
 extern s_filestream   filestreams[LEVEL_MAX_FILESTREAMS];
