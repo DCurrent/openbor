@@ -38,7 +38,9 @@ s_sprite_map *sprite_map;
 //  Global Variables                                                        //
 /////////////////////////////////////////////////////////////////////////////
 
-s_level_entry*      levelorder[MAX_DIFFICULTIES][MAX_LEVELS];
+s_set_entry *levelsets = NULL;
+int        num_difficulties;
+
 s_level*            level               = NULL;
 s_filestream filestreams[LEVEL_MAX_FILESTREAMS];
 s_screen*           vscreen             = NULL;
@@ -129,7 +131,6 @@ char                *custLevels = NULL;
 char                *custModels = NULL;
 char                rush_names[2][MAX_NAME_LEN];
 char                branch_name[MAX_NAME_LEN+1];    // Used for branches
-char                set_names[MAX_DIFFICULTIES][MAX_NAME_LEN+1];
 unsigned char       pal[MAX_PAL_SIZE] = {""};
 int                 blendfx[MAX_BLENDINGS] = {0,1,0,0,0,0};
 char                blendfx_is_set = 0;
@@ -316,11 +317,11 @@ s_screen*           bg_cache[MAX_CACHED_BACKGROUNDS] = {NULL, NULL, NULL, NULL, 
 unsigned char		bg_palette_cache[MAX_CACHED_BACKGROUNDS][MAX_PAL_SIZE];
 #endif
 
+/*
 int                 maxplayers[MAX_DIFFICULTIES] = {2,2,2,2,2,2,2,2,2,2};
 int                 ctrlmaxplayers[MAX_DIFFICULTIES] = {0,0,0,0,0,0,0,0,0,0};
 unsigned int        num_levels[MAX_DIFFICULTIES];
 unsigned int        ifcomplete[MAX_DIFFICULTIES];
-unsigned int        num_difficulties;
 unsigned int        noshowhof[MAX_DIFFICULTIES];
 unsigned int        difflives[MAX_DIFFICULTIES];				// What too easy?  change the # of lives players get
 unsigned int        custfade[MAX_DIFFICULTIES];
@@ -330,7 +331,8 @@ unsigned int        typemp[MAX_DIFFICULTIES];
 unsigned int        continuescore[MAX_DIFFICULTIES];             //what to do with score if continue is used.
 char*               (*skipselect)[MAX_DIFFICULTIES][MAX_PLAYERS] = NULL;              // skips select screen and automatically gives players models specified
 int                 cansave_flag[MAX_DIFFICULTIES];             // 0, no save, 1 save level position 2 save all: lives/credits/hp/mp/also player
-
+int                 same[MAX_DIFFICULTIES];						// ltb 1-13-05   sameplayer
+*/
 int                 cameratype          = 0;
 
 u32                 go_time             = 0;
@@ -535,7 +537,6 @@ int                 pmp[4][2]			= {{0,0},{0,0},{0,0},{0,0}};// Used for customiz
 int                 spdirection[4]		= {1,0,1,0};			// Used for Select Player Direction for select player screen
 int                 bonus				= 0;					// Used for unlocking Bonus difficulties
 int                 versusdamage		= 2;					// Used for setting mode. (ability to hit other players)
-int                 same[MAX_DIFFICULTIES];						// ltb 1-13-05   sameplayer
 int                 z_coords[3]			= {0,0,0};				// Used for setting customizable walkable area
 int                 rush[6]				= {0,2,3,3,3,3};
 int                 color_black			= 0;
@@ -875,7 +876,7 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		break;
 	case _sv_maxplayers:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
-		var->lVal = (LONG)maxplayers[current_set];
+		var->lVal = (LONG)levelsets[current_set].maxplayers;
 		break;
 	case _sv_maxscriptvars:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -2167,12 +2168,7 @@ void loadfromdefault(){
 
 
 void clearSavedGame(){
-	int i;
-
-	for(i=0; i<MAX_DIFFICULTIES; i++){
-		memset(savelevel+i, 0, sizeof(s_savelevel));
-		savelevel[i].compatibleversion = CV_SAVED_GAME;
-	}
+	memset(savelevel, 0, sizeof(s_savelevel)*num_difficulties);
 }
 
 
@@ -2214,7 +2210,7 @@ void saveGameFile(){
 	//if(!savelevel[saveslot].level) return;
 	handle = fopen(path, "wb");
 	if(handle == NULL) return;
-    fwrite(&savelevel, sizeof(s_savelevel), MAX_DIFFICULTIES, handle);
+    fwrite(savelevel, sizeof(s_savelevel), num_difficulties, handle);
 	fclose(handle);
 #endif
 }
@@ -2223,7 +2219,6 @@ void saveGameFile(){
 int loadGameFile(){
 #ifndef DC
 	FILE *handle = NULL;
-	int i;
 	char path[256] = {""};
 	char tmpname[256] = {""};
 	getBasePath(path, "Saves", 0);
@@ -2231,13 +2226,10 @@ int loadGameFile(){
 	strcat(path,tmpname);
 	handle = fopen(path, "rb");
 	if(handle == NULL) return 0;
-    fread(&savelevel, sizeof(s_savelevel), MAX_DIFFICULTIES, handle);
+    if(fread(savelevel, sizeof(s_savelevel), num_difficulties, handle)>=sizeof(s_savelevel) && savelevel[0].compatibleversion!=CV_SAVED_GAME){ //TODO: check file length
+		clearSavedGame();
+	}
 	fclose(handle);
-	for(i=0; i<MAX_DIFFICULTIES; i++){
-        if(savelevel[i].compatibleversion != CV_SAVED_GAME){
-            clearSavedGame();
-        }
-    }
 	return 1;
 #else
 	clearSavedGame();
@@ -7613,45 +7605,42 @@ int load_models()
 
 void unload_levelorder(){
 	int i, j;
-	for(j=0; j<MAX_DIFFICULTIES; j++){
-		for(i=0; i<MAX_LEVELS; i++){
-			if(levelorder[j][i] != NULL){
-				free(levelorder[j][i]->branchname);
-				levelorder[j][i]->branchname = NULL;
-				free(levelorder[j][i]->filename);
-				levelorder[j][i]->filename = NULL;
-				free(levelorder[j][i]);
-				levelorder[j][i] = NULL;
-			}
-		}
-		num_levels[j] = 0;
-		strcpy(set_names[j], "");
-	}
-	num_difficulties = 0;
+	s_level_entry *le;
+	s_set_entry *se;
 
-	if(skipselect)
-	{
-		for(i=0; i<MAX_DIFFICULTIES; i++)
-		{
-			for(j=0; j<MAX_PLAYERS; j++)
-			{
-				if((*skipselect)[i][j])
-				{
-					free((*skipselect)[i][j]);
-					(*skipselect)[i][j] = NULL;
+	if(levelsets){
+		for(i=0; i<num_difficulties; i++){
+			se = levelsets+i;
+			if(se->name){
+				free(se->name);
+			}
+			for(j=0; j<MAX_PLAYERS; j++){
+				if(se->skipselect[j])
+					free(se->skipselect[j]);
+			}
+			if(se->numlevels){
+				for(j=0; j<se->numlevels; j++){
+					le = se->levelorder + j;
+					if(le->branchname) free(le->branchname);
+					if(le->filename) free(le->filename);
 				}
+				free(se->levelorder);
 			}
 		}
-		free(skipselect);
-		skipselect = NULL;
+
+		free(levelsets);
+		levelsets = NULL;
 	}
+	
+	num_difficulties = 0;
 }
 
 
 
 // Add a level to the level order
-void add_level(char *filename, int diff){
-	int len, Zs[3] = {0,0,0};
+s_level_entry* add_level(char *filename, s_set_entry* set){
+	s_level_entry* le = NULL;
+	int Zs[3] = {0,0,0};
 
 	if(z_coords[0] > 0) Zs[0] = z_coords[0];
 	else Zs[0] = PLAYER_MIN_Z;
@@ -7662,74 +7651,46 @@ void add_level(char *filename, int diff){
 	if(z_coords[2] > 0) Zs[2] = z_coords[2];
 	else Zs[2] = PLAYER_MIN_Z;
 
-	if(diff > MAX_DIFFICULTIES) return;
-	if(num_levels[diff] >= MAX_LEVELS) shutdown(1, "Too many entries in level order (max. %i)!", MAX_LEVELS);
-
-	levelorder[diff][num_levels[diff]] = malloc(sizeof(s_level_entry));
-	memset(levelorder[diff][num_levels[diff]], 0, sizeof(s_level_entry));
-
-	len = strlen(branch_name);
-	levelorder[diff][num_levels[diff]]->branchname = malloc(len + 1);
-	strcpy(levelorder[diff][num_levels[diff]]->branchname, branch_name);
-	levelorder[diff][num_levels[diff]]->branchname[len] = 0;
-
-	len = strlen(filename);
-	levelorder[diff][num_levels[diff]]->filename = malloc(len + 1);
-	strcpy(levelorder[diff][num_levels[diff]]->filename, filename);
-	levelorder[diff][num_levels[diff]]->filename[len] = 0;
-
-	levelorder[diff][num_levels[diff]]->z_coords[0] = Zs[0];
-	levelorder[diff][num_levels[diff]]->z_coords[1] = Zs[1];
-	levelorder[diff][num_levels[diff]]->z_coords[2] = Zs[2];
-	num_levels[diff]++;
+	set->levelorder = realloc(set->levelorder, (++set->numlevels)*sizeof(s_level_entry));
+	le = set->levelorder + set->numlevels-1;
+	memset(le, 0, sizeof(s_level_entry));
+	if(branch_name[0])
+		le->branchname = NAME(branch_name);
+	le->filename = NAME(filename);
+	le->z_coords[0] = Zs[0];
+	le->z_coords[1] = Zs[1];
+	le->z_coords[2] = Zs[2];
+	return le;
 }
 
 
 
 // Add a scene to the level order
-void add_scene(char *filename, int diff){
-	int len;
-	if(diff > MAX_DIFFICULTIES) return;
-	if(num_levels[diff] >= MAX_LEVELS) shutdown(1, "Too many entries in level order (max. %i)!", MAX_LEVELS);
+s_level_entry* add_scene(char *filename, s_set_entry* set){
+	s_level_entry* le = NULL;
 
-	levelorder[diff][num_levels[diff]] = (s_level_entry*)malloc(sizeof(s_level_entry));
-	memset(levelorder[diff][num_levels[diff]], 0, sizeof(s_level_entry));
-
-	len = strlen(branch_name);
-	levelorder[diff][num_levels[diff]]->branchname = malloc(len + 1);
-	strcpy(levelorder[diff][num_levels[diff]]->branchname, branch_name);
-	levelorder[diff][num_levels[diff]]->branchname[len] = 0;
-
-	len = strlen(filename);
-	levelorder[diff][num_levels[diff]]->filename = malloc(len + 1);
-	strcpy(levelorder[diff][num_levels[diff]]->filename, filename);
-	levelorder[diff][num_levels[diff]]->filename[len] = 0;
-
-	levelorder[diff][num_levels[diff]]->type = cut_scene;
-	num_levels[diff]++;
+	set->levelorder = realloc(set->levelorder, (++set->numlevels)*sizeof(s_level_entry));
+	le = set->levelorder + set->numlevels-1;
+	memset(le, 0, sizeof(s_level_entry));
+	if(branch_name[0])
+		le->branchname = NAME(branch_name);
+	le->filename = NAME(filename);
+	le->type = cut_scene;
+	return le;
 }
 
 // Add a select screen file to the level order
-void add_select(char *filename, int diff){
-	int len;
-	if(diff > MAX_DIFFICULTIES) return;
-	if(num_levels[diff] >= MAX_LEVELS) shutdown(1, "Too many entries in level order (max. %i)!", MAX_LEVELS);
+s_level_entry* add_select(char *filename, s_set_entry* set){
+	s_level_entry* le = NULL;
 
-	levelorder[diff][num_levels[diff]] = (s_level_entry*)malloc(sizeof(s_level_entry));
-	memset(levelorder[diff][num_levels[diff]], 0, sizeof(s_level_entry));
-
-	len = strlen(branch_name);
-	levelorder[diff][num_levels[diff]]->branchname = malloc(len + 1);
-	strcpy(levelorder[diff][num_levels[diff]]->branchname, branch_name);
-	levelorder[diff][num_levels[diff]]->branchname[len] = 0;
-
-	len = strlen(filename);
-	levelorder[diff][num_levels[diff]]->filename = malloc(len + 1);
-	strcpy(levelorder[diff][num_levels[diff]]->filename, filename);
-	levelorder[diff][num_levels[diff]]->filename[len] = 0;
-
-	levelorder[diff][num_levels[diff]]->type = select_screen;
-	num_levels[diff]++;
+	set->levelorder = realloc(set->levelorder, (++set->numlevels)*sizeof(s_level_entry));
+	le = set->levelorder + set->numlevels-1;
+	memset(le, 0, sizeof(s_level_entry));
+	if(branch_name[0])
+		le->branchname = NAME(branch_name);
+	le->filename = NAME(filename);
+	le->type = select_screen;
+	return le;
 }
 
 static void _readbarstatus(char* buf, s_barstatus* pstatus)
@@ -7759,21 +7720,32 @@ static void _readbarstatus(char* buf, s_barstatus* pstatus)
 	else return;
 }
 
+s_set_entry* add_set(){
+	s_set_entry* set = NULL;
+	++num_difficulties;
+	if(levelsets) levelsets = realloc(levelsets, sizeof(s_set_entry)*num_difficulties);
+	else levelsets = calloc(1, sizeof(s_set_entry));
+	set = levelsets+num_difficulties-1;
+	memset(set, 0, sizeof(s_set_entry));
+	set->maxplayers = 2;
+	return set;
+}
+
 // Load list of levels
 void load_levelorder()
 {
 	static const char* defaulterr = "Error in level order: a set must be specified.";
-#define CHKDEF if(current_set<0) { errormessage = (char*) defaulterr; goto lCleanup; }
+#define CHKDEF if(!set) { errormessage = (char*) defaulterr; goto lCleanup; }
 	char filename[128] = "";
 	int i=0,j=0;
 	char *buf;
 	size_t size;
 	int pos;
-	int current_set;
+	s_set_entry* set = NULL;
+	s_level_entry* le = NULL;
 	char * command;
 	char* arg;
 	char* errormessage = NULL;
-	char value[128]   = {""};
 	int plifeUsed[2]  = {0,0};
 	int elifeUsed[2]  = {0,0};
 	int piconUsed[2]  = {0,0};
@@ -7806,7 +7778,6 @@ void load_levelorder()
 
 	// Now interpret the contents of buf line by line
 	pos = 0;
-	current_set = -1;
 
 	// Custom lifebar/timebox/icon positioning and size
 	picon[0][0] = piconw[0][0] = picon[2][0] = piconw[2][0] = eicon[0][0] = eicon[2][0] = 2;
@@ -7875,78 +7846,56 @@ void load_levelorder()
 				blendfx_is_set = 1;
 				break;
 			case CMD_LEVELORDER_SET:
-				if(num_difficulties>=MAX_DIFFICULTIES) {
-					errormessage = "Too many sets of levels (check MAX_DIFFICULTIES)!";
-					goto lCleanup;
-				}
-				++num_difficulties;
-				++current_set;
-				strncpy(set_names[current_set], GET_ARG(1), MAX_NAME_LEN);
-				ifcomplete[current_set] = 0;
-				cansave_flag[current_set] = 1; // default to 1, so the level can be saved
+				set = add_set();
+				set->name = NAME(GET_ARG(1));
+				set->ifcomplete = 0;
+				set->saveflag  = 1; // default to 1, so the level can be saved
 				branch_name[0] = 0;
+				le = NULL;
 				break;
 			case CMD_LEVELORDER_IFCOMPLETE:
 				CHKDEF;
-				ifcomplete[current_set] = GET_INT_ARG(1);
+				set->ifcomplete = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_SKIPSELECT:
 				CHKDEF;
-				if(!skipselect) {
-					skipselect = malloc(sizeof(*skipselect));
-					memset(skipselect, 0, sizeof(*skipselect));
-				}
-
 				for(i=0; i<4;i++) {
 					if((arg=GET_ARG(i+1))[0]) {
-						if(!(*skipselect)[current_set][i])
-							(*skipselect)[current_set][i] = malloc(MAX_NAME_LEN+1);
-						strncpy((*skipselect)[current_set][i], arg, MAX_NAME_LEN);
+						set->skipselect[i] = NAME(arg);
 					}
 				}
 				break;
 			case CMD_LEVELORDER_FILE:
 				CHKDEF;
-				strncpy(value, GET_ARG(1), 127);
-				add_level(value, current_set);
+				le = add_level(GET_ARG(1), set);
 				break;
 			case CMD_LEVELORDER_SCENE:
 				CHKDEF;
-				strncpy(value, GET_ARG(1), 127);
-				add_scene(value, current_set);
+				le = add_scene(GET_ARG(1), set);
 				break;
 			case CMD_LEVELORDER_SELECT:
 				CHKDEF;
-				strncpy(value, GET_ARG(1), 127);
-				add_select(value, current_set);
+				le = add_select(GET_ARG(1), set);
 				break;
 			case CMD_LEVELORDER_NEXT:
 				CHKDEF;
 				// Set 'gonext' flag of last loaded level
-				if(num_levels[current_set]<1) {
-					errormessage = "Error in level order (next before file)!";
-					goto lCleanup;
-				}
-				levelorder[current_set][num_levels[current_set]-1]->gonext = 1;
+				if(le) le->gonext = 1;
 				break;
 			case CMD_LEVELORDER_END:
 				CHKDEF;
 				// Set endgame flag of last loaded level
-				if(num_levels[current_set]<1) {
-					errormessage = "Error in level order (next before file)!";
-					goto lCleanup;
-				}
-				levelorder[current_set][num_levels[current_set]-1]->gonext = 2;
+				if(le) le->gonext = 2;
 				break;
 			case CMD_LEVELORDER_LIVES:
 				// 7-1-2005  credits/lives/singleplayer start here
 				// used to read the new # of lives/credits from the levels.txt
 				CHKDEF;
-				difflives[current_set] = GET_INT_ARG(1);
+				set->lives = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_DISABLEHOF:
 				CHKDEF;
-				noshowhof[current_set] = GET_INT_ARG(1);
+				set->noshowhof = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_CANSAVE:
 				// 07-12-31
@@ -7954,7 +7903,7 @@ void load_levelorder()
 				// 1 save level only
 				// 2 save player info and level, can't choose player in select menu
 				CHKDEF;
-				cansave_flag[current_set] = GET_INT_ARG(1);
+				set->saveflag = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_Z:
 				//    2-10-05  adjust the walkable coordinates
@@ -8208,7 +8157,7 @@ void load_levelorder()
 				break;
 			case CMD_LEVELORDER_MUSICOVERLAP:
 				CHKDEF;
-				diffoverlap[current_set] = GET_INT_ARG(1);
+				set->musicoverlap = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_SHOWRUSHBONUS:
 				showrushbonus = 1;
@@ -8245,44 +8194,34 @@ void load_levelorder()
 			case CMD_LEVELORDER_CUSTFADE:
 				//8-2-2005 custom fade
 				CHKDEF;
-				custfade[current_set] = GET_INT_ARG(1);
+				set->custfade = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_CONTINUESCORE:
 				//8-2-2005 custom fade end
 				//continuescore
 				CHKDEF;
-				continuescore[current_set] = GET_INT_ARG(1);
+				set->continuescore = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_CREDITS:
 				CHKDEF;
-				diffcreds[current_set] = GET_INT_ARG(1);
+				set->credits = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_TYPEMP:
 				//typemp for change for mp restored by time (0) to by enemys (1) or no restore (2) by tails
 				CHKDEF;
-				typemp[current_set] = GET_INT_ARG(1);
+				set->typemp = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_SINGLE:
-				if(current_set<0) {
-					for(i=0; i<MAX_DIFFICULTIES; i++)
-						maxplayers[i] = ctrlmaxplayers[i] = 1;
-				} else {
-					maxplayers[current_set] = ctrlmaxplayers[current_set] = 1;
-				}
+				if(set) 
+					set->maxplayers = 1;
 				break;
 			case CMD_LEVELORDER_MAXPLAYERS:
-				// 7-1-2005  credits/lives/singleplayer end here
-				if(current_set<0) {
-					maxplayers[0] = GET_INT_ARG(1);
-					for(i=0; i<MAX_DIFFICULTIES; i++)
-						maxplayers[i] = ctrlmaxplayers[i] = maxplayers[0];
-				} else {
-					maxplayers[current_set] = ctrlmaxplayers[current_set] = GET_INT_ARG(1);
-				}
+				if(set) 
+					set->maxplayers = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_NOSAME:
 				CHKDEF;
-				same[current_set] = GET_INT_ARG(1);
+				set->nosame = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_RUSH:
 				rush[0] = GET_INT_ARG(1);
@@ -8370,13 +8309,15 @@ void load_levelorder()
 	for(i=0; i<4; i++) if(pshoot[i][2] == -1) pshoot[i][2] = 2;
 	if(timeloc[5] == -1) timeloc[5] = 3;
 
-	if(current_set<0)
+	if(!set)
 		errormessage = "No levels were loaded!";
 
 	lCleanup:
 
 	if(buf)
 		free(buf);
+
+	if(!savelevel) savelevel = calloc(num_difficulties, sizeof(s_savelevel));
 
 	if(errormessage)
 		shutdown(1, "load_levelorder ERROR in %s at %d, msg: %s\n", filename, line, errormessage);
@@ -9716,10 +9657,10 @@ void updatestatus(){
 	int dt;
 	int tperror=0;
 	int i,x;
-
 	s_model * model = NULL;
+	s_set_entry *set = levelsets + current_set;
 
-	for(i=0; i<maxplayers[current_set]; i++)
+	for(i=0; i<set->maxplayers; i++)
 	{
 		if(player[i].ent)
 		{
@@ -9728,11 +9669,11 @@ void updatestatus(){
 		else if(player[i].joining && player[i].name[0])
 		{
 			model = findmodel(player[i].name);
-			if((player[i].playkeys & FLAG_ANYBUTTON || (skipselect&&(*skipselect)[current_set][i])) && !freezeall && !nojoin)    // Can't join while animations are frozen
+			if((player[i].playkeys & FLAG_ANYBUTTON || set->skipselect[i]) && !freezeall && !nojoin)    // Can't join while animations are frozen
 			{
 				// reports error if players try to use the same character and sameplay mode is off
 				if(sameplayer){
-					for(x=0; x<maxplayers[current_set]; x++){
+					for(x=0; x<set->maxplayers; x++){
 						if((strncmp(player[i].name,player[x].name,strlen(player[i].name)) == 0) && (i != x)){
 							tperror = i+1;
 							break;
@@ -9840,7 +9781,7 @@ void updatestatus(){
 			if(player[i].playkeys & FLAG_START)
 			{
 				player[i].lives = 0;
-				model = (skipselect&&(*skipselect)[current_set][i])?findmodel((*skipselect)[current_set][i]):nextplayermodel(NULL);
+				model = set->skipselect[i]?findmodel(set->skipselect[i]):nextplayermodel(NULL);
 				strncpy(player[i].name, model->name, MAX_NAME_LEN);
 				player[i].colourmap = i;
 				 // Keep looping until a non-hmap is found
@@ -9861,8 +9802,8 @@ void updatestatus(){
 				{
 					if(noshare) --player[i].credits;
 					else --credits;
-					if(continuescore[current_set] == 1)player[i].score = 0;
-					if(continuescore[current_set] == 2)player[i].score = player[i].score+1;
+					if(set->continuescore == 1)player[i].score = 0;
+					if(set->continuescore == 2)player[i].score = player[i].score+1;
 				}
 			}
 		}
@@ -9913,14 +9854,14 @@ void predrawstatus(){
 	int icon = 0;
 	int i;
 	unsigned long tmp;
-
+	s_set_entry* set = levelsets+current_set;
 	s_model * model = NULL;
 	s_drawmethod drawmethod = plainmethod;
 
 	if(bgicon >= 0) spriteq_add_sprite(videomodes.hShift+bgicon_offsets[0],savedata.windowpos+bgicon_offsets[1], bgicon_offsets[2], bgicon, NULL, 0);
 	if(olicon >= 0) spriteq_add_sprite(videomodes.hShift+olicon_offsets[0],savedata.windowpos+olicon_offsets[1], olicon_offsets[2], olicon, NULL, 0);
 
-	for(i=0; i<maxplayers[current_set]; i++)
+	for(i=0; i<set->maxplayers; i++)
 	{
 		if(player[i].ent)
 		{
@@ -19262,7 +19203,7 @@ void bike_crash(){
 	if(self->direction) self->xdir = 2;
 	else self->xdir = -2;
 	self->nextthink = time + THINK_SPEED / 2;
-	for(i=0; i<maxplayers[current_set]; i++) control_rumble(i, 100);
+	for(i=0; i<levelsets[current_set].maxplayers; i++) control_rumble(i, 100);
 	//if(self->x < advancex-100 || self->x > advancex+(videomodes.hRes+100)) kill(self);
 }
 
@@ -19677,7 +19618,7 @@ void update_scroller(){
 			}
 	}
 
-	for(i=0; i<maxplayers[current_set]; i++)
+	for(i=0; i<levelsets[current_set].maxplayers; i++)
 	{
 		if(player[i].ent) numplay++;
 	}
@@ -19701,7 +19642,7 @@ void update_scroller(){
 
 			againstend = (level->width<=videomodes.hRes);
 
-			for(i=0; i<maxplayers[current_set]; i++)
+			for(i=0; i<levelsets[current_set].maxplayers; i++)
 			{
 				if(player[i].ent)
 				{
@@ -19744,7 +19685,7 @@ void update_scroller(){
 
 			againstend = (level->width<=videomodes.hRes);
 
-			for(i=0; i<maxplayers[current_set]; i++)
+			for(i=0; i<levelsets[current_set].maxplayers; i++)
 			{
 				if(player[i].ent)
 				{
@@ -19780,7 +19721,7 @@ void update_scroller(){
 		}
 		else if(level->scrolldir&SCROLL_OUTWARD){ // z scroll only
 
-			for(i=0; i<maxplayers[current_set]; i++)
+			for(i=0; i<levelsets[current_set].maxplayers; i++)
 			{
 				if(player[i].ent)
 				{
@@ -19818,7 +19759,7 @@ void update_scroller(){
 			else level->pos = (int)advancey;
 		}
 		else if(level->scrolldir&SCROLL_INWARD){
-			for(i=0; i<maxplayers[current_set]; i++)
+			for(i=0; i<levelsets[current_set].maxplayers; i++)
 			{
 				if(player[i].ent)
 				{
@@ -19872,7 +19813,7 @@ void update_scroller(){
 	// z auto-scroll, 2007 - 2 - 10 by UTunnels
 	if((level->scrolldir&SCROLL_LEFT) || (level->scrolldir&SCROLL_RIGHT)) // added scroll type both; weird things can happen, but only if the modder is lazy in using blockades, lol
 	{
-		for(i=0, to=0; i<maxplayers[current_set]; i++)
+		for(i=0, to=0; i<levelsets[current_set].maxplayers; i++)
 		{
 			if(player[i].ent)
 			{
@@ -19905,7 +19846,7 @@ void update_scroller(){
 	// now x auto scroll
 	else if((level->scrolldir&SCROLL_INWARD) || (level->scrolldir&SCROLL_OUTWARD))
 	{
-		for(i=0, to=0; i<maxplayers[current_set]; i++)
+		for(i=0, to=0; i<levelsets[current_set].maxplayers; i++)
 		{
 			if(player[i].ent)
 			{
@@ -20241,7 +20182,7 @@ void inputrefresh()
 	else
 	{
 #endif
-		 control_update(playercontrolpointers, maxplayers[current_set]);
+		 control_update(playercontrolpointers, levelsets[current_set].maxplayers);
 		 interval = timer_getinterval(GAME_SPEED); // so interval can be logged into movie
 		 if(interval > GAME_SPEED) interval = GAME_SPEED/GAME_SPEED;
 		 if(interval > GAME_SPEED/4) interval = GAME_SPEED/4;
@@ -20258,7 +20199,7 @@ void inputrefresh()
 	bothkeys = 0;
 	bothnewkeys = 0;
 
-	for(p=0; p<maxplayers[current_set]; p++)
+	for(p=0; p<levelsets[current_set].maxplayers; p++)
 	{
 		pl = player + p;
 		pl->releasekeys = (playercontrolpointers[p]->keyflags|pl->keys) - playercontrolpointers[p]->keyflags;
@@ -20303,7 +20244,7 @@ void inputrefresh()
 void execute_keyscripts()
 {
 	int p;
-	for(p=0; p<maxplayers[current_set]; p++)
+	for(p=0; p<levelsets[current_set].maxplayers; p++)
 	{
 		if(!pause && (level||selectScreen) && (player[p].newkeys || (keyscriptrate && player[p].keys) || player[p].releasekeys)){
 			if(level){
@@ -21268,7 +21209,7 @@ void hallfame(int addtoscore)
 
 	if(addtoscore)
 	{
-		for(p = 0; p < maxplayers[current_set]; p++)
+		for(p = 0; p < levelsets[current_set].maxplayers; p++)
 		{
 			if(player[p].score > savescore.highsc[9])
 			{
@@ -21346,7 +21287,7 @@ void showcomplete(int num)
 
 	music("data/music/complete", 0, 0);
 
-	for(i=0; i<maxplayers[current_set]; i++)
+	for(i=0; i<levelsets[current_set].maxplayers; i++)
 	{
 		if(rush[0] >= 1 && showrushbonus == 1)
 		{
@@ -21371,22 +21312,22 @@ void showcomplete(int num)
 		}
 
 		font_printf(videomodes.hShift+cbonus[0],videomodes.vShift+cbonus[1], 0, 0, "Clear Bonus");
-		for(i=0, j=2, k=3; i < maxplayers[current_set]; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+cbonus[j],videomodes.vShift+cbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), clearbonus[i]);
+		for(i=0, j=2, k=3; i < levelsets[current_set].maxplayers; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+cbonus[j],videomodes.vShift+cbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), clearbonus[i]);
 		font_printf(videomodes.hShift+lbonus[0],videomodes.vShift+lbonus[1], 0, 0, "Life bonus");
-		for(i=0, j=2, k=3; i < maxplayers[current_set]; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+lbonus[j],videomodes.vShift+lbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), lifebonus[i]);
+		for(i=0, j=2, k=3; i < levelsets[current_set].maxplayers; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+lbonus[j],videomodes.vShift+lbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), lifebonus[i]);
 		if(rush[0] >= 1 && showrushbonus == 1)
 		{
 			font_printf(videomodes.hShift+rbonus[0],videomodes.vShift+rbonus[1], 0, 0, "Rush Bonus");
-			for(i=0, j=2, k=3; i < maxplayers[current_set]; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+rbonus[j],videomodes.vShift+rbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), rushbonus[i]);
+			for(i=0, j=2, k=3; i < levelsets[current_set].maxplayers; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+rbonus[j],videomodes.vShift+rbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), rushbonus[i]);
 		}
 		font_printf(videomodes.hShift+tscore[0],videomodes.vShift+tscore[1], 0, 0, "Total Score");
-		for(i=0, j=2, k=3; i < maxplayers[current_set]; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+tscore[j],videomodes.vShift+tscore[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), player[i].score);
+		for(i=0, j=2, k=3; i < levelsets[current_set].maxplayers; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+tscore[j],videomodes.vShift+tscore[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), player[i].score);
 
 		while(time > nexttime)
 		{
 			if(!finishtime)    finishtime = time + 4 * GAME_SPEED;
 
-			for(i=0; i<maxplayers[current_set]; i++)
+			for(i=0; i<levelsets[current_set].maxplayers; i++)
 			{
 				if(player[i].lives > 0)
 				{
@@ -21426,7 +21367,7 @@ void showcomplete(int num)
 	}
 
 	// Add remainder of score, incase player skips counter
-	for(i=0; i<maxplayers[current_set]; i++)
+	for(i=0; i<levelsets[current_set].maxplayers; i++)
 	{
 		if(player[i].lives > 0)
 		{
@@ -21446,24 +21387,27 @@ void showcomplete(int num)
 void savelevelinfo()
 {
 	int i;
-	savelevel[current_set].flag = cansave_flag[current_set];
+	s_set_entry* set = levelsets + current_set;
+	s_savelevel* save = savelevel + current_set;
+
+	save->flag = set->saveflag;
 	// don't check flag here save all info, for simple logic
-	for(i=0; i<maxplayers[current_set]; i++)
+	for(i=0; i<set->maxplayers; i++)
 	{
-		savelevel[current_set].pLives[i] = player[i].lives;
-		savelevel[current_set].pCredits[i] = player[i].credits;
-		savelevel[current_set].pScores[i] = player[i].score;
-		savelevel[current_set].pSpawnhealth[i] = player[i].spawnhealth;
-		savelevel[current_set].pSpawnmp[i] = player[i].spawnmp;
-		savelevel[current_set].pWeapnum[i] = player[i].weapnum;
-		savelevel[current_set].pColourmap[i] = player[i].colourmap;
-		strncpy(savelevel[current_set].pName[i], player[i].name, MAX_NAME_LEN);
+		save->pLives[i] = player[i].lives;
+		save->pCredits[i] = player[i].credits;
+		save->pScores[i] = player[i].score;
+		save->pSpawnhealth[i] = player[i].spawnhealth;
+		save->pSpawnmp[i] = player[i].spawnmp;
+		save->pWeapnum[i] = player[i].weapnum;
+		save->pColourmap[i] = player[i].colourmap;
+		strncpy(save->pName[i], player[i].name, MAX_NAME_LEN);
 	}
-	savelevel[current_set].credits = credits;
-	savelevel[current_set].level = current_level;
-	savelevel[current_set].stage = current_stage;
-	savelevel[current_set].which_set = current_set;
-	strncpy(savelevel[current_set].dName, set_names[current_set], MAX_NAME_LEN);
+	save->credits = credits;
+	save->level = current_level;
+	save->stage = current_stage;
+	save->which_set = current_set;
+	strncpy(save->dName, set->name, MAX_NAME_LEN);
 }
 
 
@@ -21490,7 +21434,7 @@ int playlevel(char *filename)
 	firstplayer = NULL;
 
 	// Fixes the start level executing last button bug
-	for(i=0; i<maxplayers[current_set]; i++)
+	for(i=0; i<levelsets[current_set].maxplayers; i++)
 	{
 		if(player[i].lives > 0)
 		{
@@ -21516,7 +21460,7 @@ int playlevel(char *filename)
 	if(Script_IsInitialized(&(level->endlevel_script))) Script_Execute(&(level->endlevel_script));
 	fade_out(0, 0);
 
-	for(i=0; i<maxplayers[current_set]; i++)
+	for(i=0; i<levelsets[current_set].maxplayers; i++)
 	{
 		if(player[i].ent)
 		{
@@ -21555,6 +21499,7 @@ int selectplayer(int *players, char* filename)
 	ptrdiff_t pos = 0;
 	ArgList arglist;
 	char argbuf[MAX_ARG_LEN+1] = "";
+	s_set_entry* set = levelsets+current_set;
 
 	selectScreen = 1;
 	kill_all();
@@ -21563,7 +21508,8 @@ int selectplayer(int *players, char* filename)
 	if(loadGameFile())
 	{
 		bonus = 0;
-		for(i=0; i<MAX_DIFFICULTIES; i++) if(savelevel[i].times_completed > 0) bonus += savelevel[i].times_completed;
+		if(savelevel)
+		for(i=0; i<num_difficulties; i++) if(savelevel[i].times_completed > 0) bonus += savelevel[i].times_completed;
 	}
 
 	if(filename && filename[0])
@@ -21606,13 +21552,13 @@ int selectplayer(int *players, char* filename)
 			free(buf);
 			buf = NULL;
 		}
-		for(i=0; i<maxplayers[current_set]; i++)
+		for(i=0; i<set->maxplayers; i++)
 		{
 			if(players[i])
 			{
 				if(!psmenu[i][0] && !psmenu[i][1])
 				{
-					if(maxplayers[current_set] > 2) example[i] = spawn((float)((111-(maxplayers[current_set]*14))+((i*(320-(166/maxplayers[current_set]))/maxplayers[current_set])+videomodes.hShift)),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
+					if(set->maxplayers > 2) example[i] = spawn((float)((111-(set->maxplayers*14))+((i*(320-(166/set->maxplayers))/set->maxplayers)+videomodes.hShift)),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
 					else example[i] = spawn((float)(83+(videomodes.hShift/2)+(i*(155+videomodes.hShift))),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
 				}
 				else example[i] = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodel(NULL));
@@ -21621,15 +21567,15 @@ int selectplayer(int *players, char* filename)
 	}
 	else // without select.txt
 	{
-		if(skipselect&&(*skipselect)[current_set][0])
+		if(set->skipselect[0])
 		{
-			for(i=0; i<MAX_PLAYERS; i++)
+			for(i=0; i<set->maxplayers; i++)
 			{
 				memset(&player[i], 0, sizeof(s_player));
 				if(!players[i]) continue;
 
-				if((*skipselect)[current_set][i]) // just in case or it will be an array overflow issue
-				strncpy(player[i].name, (*skipselect)[current_set][i], MAX_NAME_LEN);
+				if(set->skipselect[i]) // just in case or it will be an array overflow issue
+				strncpy(player[i].name, set->skipselect[i], MAX_NAME_LEN);
 				//else continue;
 				if(!noshare) credits = CONTINUES;
 				else
@@ -21685,7 +21631,7 @@ int selectplayer(int *players, char* filename)
 	{
 		players_busy = 0;
 		players_ready = 0;
-		for(i=0; i<maxplayers[current_set]; i++)
+		for(i=0; i<set->maxplayers; i++)
 		{
 			// you can't have that character!
 			if((tperror == i+1) && !ready[i]) font_printf(75+videomodes.hShift,123+videomodes.vShift,0, 0,"Player %d Choose a Different Character!", i+1);
@@ -21709,7 +21655,7 @@ int selectplayer(int *players, char* filename)
 
 					if(!psmenu[i][0] && !psmenu[i][1])
 					{
-						if(maxplayers[current_set] > 2) example[i] = spawn((float)((111-(maxplayers[current_set]*14))+((i*(320-(166/maxplayers[current_set]))/maxplayers[current_set])+videomodes.hShift)),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
+						if(set->maxplayers > 2) example[i] = spawn((float)((111-(set->maxplayers*14))+((i*(320-(166/set->maxplayers))/set->maxplayers)+videomodes.hShift)),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
 						else example[i] = spawn((float)(83+(videomodes.hShift/2)+(i*(155+videomodes.hShift))),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
 					}
 					else example[i] = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodel(NULL));
@@ -21813,7 +21759,7 @@ int selectplayer(int *players, char* filename)
 					// reports error if players try to use the same character and sameplay mode is off
 					if(sameplayer)
 					{
-						for(x=0; x<maxplayers[current_set]; x++)
+						for(x=0; x<set->maxplayers; x++)
 						{
 							if((strncmp(player[i].name,player[x].name,strlen(player[i].name)) == 0) && (i != x))
 							{
@@ -21842,7 +21788,7 @@ int selectplayer(int *players, char* filename)
 			{
 				if(!psmenu[i][2] && !psmenu[i][3])
 				{
-					if(maxplayers[current_set] > 2) font_printf((95-(maxplayers[current_set]*14))+((i*(320-(166/maxplayers[current_set]))/maxplayers[current_set])+videomodes.hShift), 225+videomodes.vShift, 0, 0, "Ready!");
+					if(set->maxplayers > 2) font_printf((95-(set->maxplayers*14))+((i*(320-(166/set->maxplayers))/set->maxplayers)+videomodes.hShift), 225+videomodes.vShift, 0, 0, "Ready!");
 					else font_printf(67+(videomodes.hShift/2)+(i*(155+videomodes.hShift)), 225+videomodes.vShift, 0, 0, "Ready!");
 				}
 				else font_printf(psmenu[i][2], psmenu[i][3], 0, 0, "Ready!");
@@ -21872,41 +21818,44 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 	current_level = 0;
 	current_stage = 1;
 	current_set = which_set;
+	s_set_entry* set = levelsets + current_set;
+	s_savelevel* save = savelevel + current_set;
+	s_level_entry* le;
 
 	if(which_set>=num_difficulties) return;
 	// shutdown(1, "Illegal set chosen: index %i (there are only %i sets)!", which_set, num_difficulties);
 
-	allow_secret_chars = ifcomplete[which_set];
-	PLAYER_LIVES = difflives[which_set];
-	musicoverlap=diffoverlap[which_set];
-	fade=custfade[which_set];
-	CONTINUES = diffcreds[which_set];
-	magic_type = typemp[which_set];
+	allow_secret_chars = set->ifcomplete;
+	PLAYER_LIVES = set->lives;
+	musicoverlap = set->musicoverlap;
+	fade = set->custfade;
+	CONTINUES = set->credits;
+	magic_type = set->typemp;
 	if(PLAYER_LIVES == 0) PLAYER_LIVES = 3;
 	if(CONTINUES == 0) CONTINUES = 5;
 	if(fade == 0) fade = 24;
-	sameplayer = same[which_set];
+	sameplayer = set->nosame;
 
 	memset(player, 0, sizeof(s_player)*4);
 
 	if(useSavedGame)
 	{
 		loadScriptFile();
-		current_level = savelevel[current_set].level;
-		current_stage = savelevel[current_set].stage;
-		if(savelevel[current_set].flag == 2) // don't check 1 or 0 becuase if we use saved game the flag must be >0
+		current_level = save->level;
+		current_stage = save->stage;
+		if(save->flag == 2) // don't check 1 or 0 becuase if we use saved game the flag must be >0
 		{
-			for(i=0; i<maxplayers[current_set]; i++)
+			for(i=0; i<set->maxplayers; i++)
 			{
-				player[i].lives = savelevel[current_set].pLives[i];
-				player[i].score = savelevel[current_set].pScores[i];
-				player[i].colourmap = savelevel[current_set].pColourmap[i];
-				player[i].weapnum = savelevel[current_set].pWeapnum[i];
-				player[i].spawnhealth = savelevel[current_set].pSpawnhealth[i];
-				player[i].spawnmp = savelevel[current_set].pSpawnmp[i];
-				strncpy(player[i].name, savelevel[current_set].pName[i], MAX_NAME_LEN);
+				player[i].lives = save->pLives[i];
+				player[i].score = save->pScores[i];
+				player[i].colourmap = save->pColourmap[i];
+				player[i].weapnum = save->pWeapnum[i];
+				player[i].spawnhealth = save->pSpawnhealth[i];
+				player[i].spawnmp = save->pSpawnmp[i];
+				strncpy(player[i].name, save->pName[i], MAX_NAME_LEN);
 			}
-			credits = savelevel[current_set].credits;
+			credits = save->credits;
 			reset_playable_list(1); // add this because there's no select screen, temporary solution
 			//TODO: change sav format to support custom allowselect list.
 		}
@@ -21917,16 +21866,16 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 		new_game = 1;
 	}
 
-	if((useSavedGame && savelevel[current_set].flag == 2) || selectplayer(players, NULL)) // if save flag is 2 don't select player
+	if((useSavedGame && save->flag == 2) || selectplayer(players, NULL)) // if save flag is 2 don't select player
 	{
-		while(current_level < num_levels[which_set])
+		while(current_level < set->numlevels)
 		{
 			if(branch_name[0])  // branch checking
 			{
 				//current_stage = 1; //jump, jump... perhaps we don't need to reset it, modders should take care of it.
-				for(i=0; i<num_levels[which_set]; i++)
+				for(i=0; i<set->numlevels; i++)
 				{
-					if(stricmp(levelorder[which_set][i]->branchname, branch_name)==0)
+					if(stricmp(set->levelorder[i].branchname, branch_name)==0)
 					{
 						current_level = i;
 						break;
@@ -21935,26 +21884,27 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 				}
 				branch_name[0] = 0;// clear up so we won't stuck here
 			}
-			PLAYER_MIN_Z = levelorder[which_set][current_level]->z_coords[0];
-			PLAYER_MAX_Z = levelorder[which_set][current_level]->z_coords[1];
-			BGHEIGHT = levelorder[which_set][current_level]->z_coords[2];
+			le = set->levelorder+current_level;
+			PLAYER_MIN_Z = le->z_coords[0];
+			PLAYER_MAX_Z = le->z_coords[1];
+			BGHEIGHT = le->z_coords[2];
 
-			if(levelorder[which_set][current_level]->type==cut_scene)
-				playscene(levelorder[which_set][current_level]->filename);
-			else if(levelorder[which_set][current_level]->type==select_screen)
+			if(le->type==cut_scene)
+				playscene(le->filename);
+			else if(le->type==select_screen)
 			{
-				for(i=0; i<MAX_PLAYERS ; i++) players[i] = (player[i].lives>0);
-				if(selectplayer(players, levelorder[which_set][current_level]->filename)==0)
+				for(i=0; i<set->maxplayers ; i++) players[i] = (player[i].lives>0);
+				if(selectplayer(players, le->filename)==0)
 				{
 					break;
 				}
 			}
-			else if(!playlevel(levelorder[which_set][current_level]->filename))
+			else if(!playlevel(le->filename))
 			{
 				if(player[0].lives <= 0 && player[1].lives <= 0 && player[2].lives <= 0 && player[3].lives <= 0){
 					gameover();
-					if(!noshowhof[which_set]) hallfame(1);
-					for(i=0; i<maxplayers[current_set]; i++)
+					if(!set->noshowhof) hallfame(1);
+					for(i=0; i<set->maxplayers; i++)
 					{
 						player[i].hasplayed = 0;
 						player[i].weapnum = 0;
@@ -21962,29 +21912,30 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 				}
 				break;
 			}
-			if(levelorder[which_set][current_level]->gonext==1)
+			if(le->gonext==1)
 			{
 				showcomplete(current_stage);
-				for(i=0; i<maxplayers[current_set]; i++)
+				for(i=0; i<set->maxplayers; i++)
 				{
 					player[i].spawnhealth = 0;
 					player[i].spawnmp = 0;
 				}
 				++current_stage;
-				savelevel[current_set].stage = current_stage;
+				save->stage = current_stage;
 			}
 			current_level++;
-			savelevel[current_set].level = current_level;
+			le = set->levelorder+current_level;
+			save->level = current_level;
 			//2007-2-24, gonext = 2, end game
-			if(levelorder[which_set][current_level-1]->gonext == 2)
+			if((le-1)->gonext == 2)
 			{
-				current_level = num_levels[which_set];
+				current_level = set->numlevels;
 			}
 		}//while
 
-		if(current_level >= num_levels[which_set])
+		if(current_level >= set->numlevels)
 		{
-			bonus += savelevel[current_set].times_completed++;
+			bonus += save->times_completed++;
 			saveGameFile();
 			fade_out(0, 0);
 			hallfame(1);
@@ -22012,7 +21963,7 @@ int choose_difficulty()
 	if(loadGameFile())
 	{
 		bonus = 0;
-		for(i=0; i<MAX_DIFFICULTIES; i++) if(savelevel[i].times_completed > 0) bonus += savelevel[i].times_completed;
+		for(i=0; i<num_difficulties; i++) if(savelevel[i].times_completed > 0) bonus += savelevel[i].times_completed;
 	}
 
 	while(!quit)
@@ -22024,11 +21975,11 @@ int choose_difficulty()
 			{
 				if(j < maxdisplay)
 				{
-					if(bonus >= ifcomplete[i]) _menutextm((selector==i), j, 0, "%s", set_names[i]);
+					if(bonus >= levelsets[i].ifcomplete) _menutextm((selector==i), j, 0, "%s", levelsets[i].name);
 					else
 					{
-						if(ifcomplete[i]>1) _menutextm((selector==i), j, 0, "%s - Finish Game %i Times To UnLock", set_names[i], ifcomplete[i]);
-						else _menutextm((selector==i), 2+j, 0, "%s - Finish Game To UnLock", set_names[i]);
+						if(levelsets[i].ifcomplete>1) _menutextm((selector==i), j, 0, "%s - Finish Game %i Times To UnLock", levelsets[i].name, levelsets[i].ifcomplete);
+						else _menutextm((selector==i), 2+j, 0, "%s - Finish Game To UnLock", levelsets[i].name);
 					}
 				}
 				else break;
@@ -22051,9 +22002,9 @@ int choose_difficulty()
 
 		if(num_difficulties==1){ // OX. Mods with only one set will auto load that difficulty.
 			if(selector==num_difficulties) quit = 1;
-			else if(bonus >= ifcomplete[selector]){
+			else if(bonus >= levelsets[selector].ifcomplete){
 				saveslot = selector;
-				strncpy(savelevel[saveslot].dName, set_names[saveslot], MAX_NAME_LEN+1);
+				strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN+1);
 				return saveslot;
 		}
 		}
@@ -22078,9 +22029,9 @@ int choose_difficulty()
 			if(SAMPLE_BEEP2 >= 0) sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 
 			if(selector==num_difficulties) quit = 1;
-			else if(bonus >= ifcomplete[selector]){
+			else if(bonus >= levelsets[selector].ifcomplete){
 				saveslot = selector;
-				strncpy(savelevel[saveslot].dName, set_names[saveslot], MAX_NAME_LEN+1);
+				strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN+1);
 				return saveslot;
 			}
 		}
@@ -22100,11 +22051,11 @@ int load_saved_game()
 	bothnewkeys = 0;
 
 	if((savedStatus = loadGameFile())) getPakName(name,0);
-	for(saveslot=0; saveslot<MAX_DIFFICULTIES; saveslot++) if(savelevel[saveslot].flag && savelevel[saveslot].level) break;
+	for(saveslot=0; saveslot<num_difficulties; saveslot++) if(savelevel[saveslot].flag && savelevel[saveslot].level) break;
 
 	while(!quit)
 	{
-		if(saveslot>=MAX_DIFFICULTIES) // not found
+		if(saveslot>=num_difficulties) // not found
 		{
 			_menutextm(2, -4, 0, "Load Game");
 			_menutext(0, col1, -2, "Saved File:");
@@ -22144,7 +22095,7 @@ int load_saved_game()
 		if(selector == 0 && (bothnewkeys & FLAG_MOVELEFT)){
 			while(1){
 				--saveslot;
-				if(saveslot<0) saveslot = MAX_DIFFICULTIES - 1;
+				if(saveslot<0) saveslot = num_difficulties - 1;
 				if(savelevel[saveslot].flag && savelevel[saveslot].level) break;
 			}
 			sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
@@ -22152,7 +22103,7 @@ int load_saved_game()
 		if(selector == 0 && (bothnewkeys & FLAG_MOVERIGHT)){
 			while(1){
 				++saveslot;
-				if(saveslot>MAX_DIFFICULTIES - 1) saveslot = 0;
+				if(saveslot>num_difficulties - 1) saveslot = 0;
 				if(savelevel[saveslot].flag && savelevel[saveslot].level) break;
 			}
 			sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
@@ -23163,8 +23114,7 @@ void system_options(){
 		_menutext((selector==1), col2, -1, (savedata.uselog ? "Enabled" : "Disabled"));
 
 		_menutext((selector==2), col1, 0, "Players: ");
-		if(!ctrlmaxplayers[current_set]) _menutext((selector==2), col2, 0, "%i", maxplayers[current_set]);
-		else _menutext((selector==2), col2, 0, "%i by Mod", maxplayers[current_set]);
+		_menutext((selector==2), col2, 0, "%i by Mod", levelsets[current_set].maxplayers);
 
 		_menutext((selector==3), col1, 1, "Versus Damage:", 0);
 		if(versusdamage == 0) _menutext((selector==3), col2, 1, "Disabled by Mod");
@@ -23239,10 +23189,7 @@ void system_options(){
 					break;
 
 				case 2:
-					if(!ctrlmaxplayers[current_set]){
-						if(maxplayers[current_set] == 2) maxplayers[current_set] = 4;
-						else maxplayers[current_set] = 2;
-					}
+					
 					break;
 
 				case 3:
