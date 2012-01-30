@@ -334,6 +334,7 @@ int                 cansave_flag[MAX_DIFFICULTIES];             // 0, no save, 1
 int                 same[MAX_DIFFICULTIES];						// ltb 1-13-05   sameplayer
 */
 int                 cameratype          = 0;
+int					defaultmaxplayers	= 2;
 
 u32                 go_time             = 0;
 u32                 time                = 0;
@@ -7727,7 +7728,7 @@ s_set_entry* add_set(){
 	else levelsets = calloc(1, sizeof(s_set_entry));
 	set = levelsets+num_difficulties-1;
 	memset(set, 0, sizeof(s_set_entry));
-	set->maxplayers = 2;
+	set->maxplayers = defaultmaxplayers;
 	return set;
 }
 
@@ -8214,10 +8215,14 @@ void load_levelorder()
 			case CMD_LEVELORDER_SINGLE:
 				if(set) 
 					set->maxplayers = 1;
+				else
+					defaultmaxplayers = 1;
 				break;
 			case CMD_LEVELORDER_MAXPLAYERS:
 				if(set) 
 					set->maxplayers = GET_INT_ARG(1);
+				else
+					defaultmaxplayers = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_NOSAME:
 				CHKDEF;
