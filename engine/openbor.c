@@ -14231,7 +14231,7 @@ void common_block()
 
 void common_charge()
 {
-	if(self->animating) return;
+	if(player[self->playerindex].keys & FLAG_SPECIAL) return;
 
 	self->charging = 0;
 	self->takeaction = NULL;
@@ -20165,8 +20165,8 @@ void inputrefresh()
 	int moviestop = 0;
 	if(movieplay)
 	{
-		control_update(playercontrolpointers, maxplayers[current_set]);
-		for(p=0; p<maxplayers[current_set]; p++)
+		control_update(playercontrolpointers, MAX_PLAYERS);
+		for(p=0; p<MAX_PLAYERS; p++)
 		{
 			if(playercontrolpointers[p]->newkeyflags & FLAG_ESC)
 			{
@@ -20187,7 +20187,7 @@ void inputrefresh()
 	else
 	{
 #endif
-		 control_update(playercontrolpointers, levelsets[current_set].maxplayers);
+		 control_update(playercontrolpointers, MAX_PLAYERS);
 		 interval = timer_getinterval(GAME_SPEED); // so interval can be logged into movie
 		 if(interval > GAME_SPEED) interval = GAME_SPEED/GAME_SPEED;
 		 if(interval > GAME_SPEED/4) interval = GAME_SPEED/4;
@@ -20204,7 +20204,7 @@ void inputrefresh()
 	bothkeys = 0;
 	bothnewkeys = 0;
 
-	for(p=0; p<levelsets[current_set].maxplayers; p++)
+	for(p=0; p<MAX_PLAYERS; p++)
 	{
 		pl = player + p;
 		pl->releasekeys = (playercontrolpointers[p]->keyflags|pl->keys) - playercontrolpointers[p]->keyflags;
