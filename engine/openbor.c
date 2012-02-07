@@ -14231,7 +14231,7 @@ void common_block()
 
 void common_charge()
 {
-	if(player[self->playerindex].keys & FLAG_SPECIAL) return;
+	if(self->animating) return;
 
 	self->charging = 0;
 	self->takeaction = NULL;
