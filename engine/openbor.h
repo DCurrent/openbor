@@ -1620,11 +1620,12 @@ typedef struct
 
 }s_level;
 
+#define MAX_ARG_COUNT 64
 
 typedef struct ArgList {
 	size_t count;
-	size_t arglen[32];
-	char* args[32];
+	size_t arglen[MAX_ARG_COUNT];
+	char* args[MAX_ARG_COUNT];
 } ArgList;
 
 int     buffer_pakfile(char* filename, char** pbuffer, size_t* psize);
