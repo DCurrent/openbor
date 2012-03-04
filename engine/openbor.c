@@ -21880,7 +21880,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 				//current_stage = 1; //jump, jump... perhaps we don't need to reset it, modders should take care of it.
 				for(i=0; i<set->numlevels; i++)
 				{
-					if(stricmp(set->levelorder[i].branchname, branch_name)==0)
+					if(set->levelorder[i].branchname && stricmp(set->levelorder[i].branchname, branch_name)==0)
 					{
 						current_level = i;
 						break;
