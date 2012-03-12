@@ -1863,7 +1863,7 @@ int player_check_special();
 void runanimal(void);
 void player_blink(void);
 int check_combo();
-int check_costmove(int s, int fs);
+int check_costmove(int s, int fs, int jumphack);
 void didfind_item(entity *other);
 void player_think(void);
 void subtract_shot();
