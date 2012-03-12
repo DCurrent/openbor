@@ -13747,7 +13747,7 @@ void normal_prepare()
 	}
 	if((rand32()&7) < 2)
 	{
-		if(found && check_costmove(atkchoices[(rand32()&0xffff)%found], 1) ){
+		if(found && check_costmove(atkchoices[(rand32()&0xffff)%found], 1, 0) ){
 			return;
 		}
 	}
@@ -13779,7 +13779,7 @@ void normal_prepare()
 	}
 	
 	// if no attack was picked, just choose a random one from the valid list
-	if(special && check_costmove(atkchoices[(rand32()&0xffff)%special], 1)){
+	if(special && check_costmove(atkchoices[(rand32()&0xffff)%special], 1, 0)){
 		return;
 	}
 
@@ -16951,7 +16951,7 @@ int ai_check_escape(){
 	if((self->escapecount > self->modeldata.escapehits) && !inair(self) && validanim(self,ANI_SPECIAL2))
 	{
 		// Counter the player!
-		check_costmove(ANI_SPECIAL2, 0);
+		check_costmove(ANI_SPECIAL2, 0, 0);
 		return 1;
 	}
 	return 0;
@@ -17854,13 +17854,14 @@ void player_charge_check()
 
 
 // make a function so enemies can use
-int check_costmove(int s, int fs)
+// UT: jumphack is a temporary fix for jump cancel
+int check_costmove(int s, int fs, int jumphack)
 {
 	if(((fs == 1 && level->nospecial < 2) || (fs == 0 && level->nospecial == 0) || (fs == 0 && level->nospecial == 3)) &&
 	   (check_energy(0, s) ||
 		check_energy(1, s))  )
 	{
-		self->takeaction = common_attack_proc;
+		if(!jumphack) self->takeaction = common_attack_proc;
 		if(!nocost && !healthcheat)
 		{
 			if(check_energy(1, s)) self->mp -= self->modeldata.animation[s]->energycost.cost;
@@ -17921,7 +17922,7 @@ int check_combo(){
 		}
 	}//end of for
 
-	if(valid>=0 && check_costmove(valid, 1)){
+	if(valid>=0 && check_costmove(valid, 1, self->jumping)){
 		return 1;
 	}
 
@@ -18152,7 +18153,7 @@ void player_think()
 			(pl->keys & FLAG_MOVELEFT) :
 			 (pl->keys & FLAG_MOVERIGHT))  )
 		{
-			if(check_costmove(ANI_SPECIAL2, 0))
+			if(check_costmove(ANI_SPECIAL2, 0, 0))
 			{
 				pl->playkeys -= FLAG_SPECIAL;
 				goto endthinkcheck;
