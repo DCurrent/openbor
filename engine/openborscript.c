@@ -1285,6 +1285,7 @@ static const char* svlist[] = {
 "count_entities",
 "count_npcs",
 "count_players",
+"current_branch",
 "current_level",
 "current_palette",
 "current_scene",
