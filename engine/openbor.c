@@ -859,6 +859,12 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		ScriptVariant_ChangeType(var, VT_STR);
 		strcpy(StrCache_Get(var->strVal), branch_name);
 		break;
+	case _sv_current_branch:
+		ScriptVariant_ChangeType(var, VT_STR);
+		if(levelsets[current_set].levelorder[current_level].branchname)
+			strcpy(StrCache_Get(var->strVal), levelsets[current_set].levelorder[current_level].branchname);
+		else ScriptVariant_Clear(var);
+		break;
 	case _sv_pakname:
 		ScriptVariant_ChangeType(var, VT_STR);
 		getPakName(StrCache_Get(var->strVal), -1);
@@ -9966,12 +9972,9 @@ void predrawstatus(){
 			else font_printf(videomodes.shiftpos[i]+pnameJ[i][2], savedata.windowpos+pnameJ[i][3], pnameJ[i][6], 0, "Select Hero");
 			icon = model->icon.def;
 
-			if(icon>=0 && !player[i].colourmap){
-				spriteq_add_sprite(videomodes.shiftpos[i]+picon[i][0],picon[i][1],10000, icon, NULL, 0);
-			}
-			else if(icon>=0)
+			if(icon>=0)
 			{
-				drawmethod.table = model->colourmap[player[i].colourmap - 1];
+				drawmethod.table = player[i].colourmap?model->colourmap[player[i].colourmap - 1]:model->palette;
 				spriteq_add_sprite(videomodes.shiftpos[i]+picon[i][0],picon[i][1], 10000, icon, &drawmethod, 0);
 			}
 		}
