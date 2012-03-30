@@ -587,6 +587,8 @@ void* Script_GetStringMapFunction(void* functionRef)
 	else if (functionRef==((void*)openbor_changelayerproperty)) return (void*)mapstrings_layerproperty;
 	else if (functionRef==((void*)openbor_changedrawmethod)) return (void*)mapstrings_drawmethodproperty;
 	else if (functionRef==((void*)openbor_getgfxproperty)) return (void*)mapstrings_gfxproperty;
+	else if (functionRef==((void*)openbor_getlevelproperty)) return (void*)mapstrings_levelproperty;
+	else if (functionRef==((void*)openbor_changelevelproperty)) return (void*)mapstrings_levelproperty;
 	else return NULL;
 }
 
@@ -10424,41 +10426,49 @@ chglayerproperty_error3:
 	return E_FAIL;
 }
 
-HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+
+// ===== level properties ======
+enum levelproperty_enum
 {
-	char* propname = NULL;
-	int propind;
+	_lp_bgspeed,
+	_lp_cameraxoffset,
+	_lp_camerazoffset,
+	_lp_gravity,
+	_lp_maxfallspeed,
+	_lp_maxtossspeed,
+	_lp_rocking,
+	_lp_scrollspeed,
+	_lp_the_end,
+};
+
+
+void mapstrings_levelproperty(ScriptVariant** varlist, int paramCount)
+{
+	char *propname = NULL;
+	int prop;
 
 	static const char* proplist[] = {
 		"bgspeed",
 		"cameraxoffset",
 		"camerazoffset",
+		"gravity",
+		"maxfallspeed",
+		"maxtossspeed",
+		"rocking",
 		"scrollspeed",
 	};
 
-	typedef enum
-	{
-		_lp_bgspeed,
-		_lp_cameraxoffset,
-		_lp_camerazoffset,
-		_lp_scrollspeed,
-		_lp_the_end, // lol
-	} prop_enum;
 
+	if(paramCount < 1) return;
+	MAPSTRINGS(varlist[0], proplist, _lp_the_end,
+		"Level property '%s' is not supported.\n");
+}
 
+HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	mapstrings_drawmethodproperty(varlist, paramCount);
 
-	if(varlist[0]->vt != VT_STR)
-	{
-		printf("Function getlevelproperty must have a string property name.\n");
-		goto getlevelproperty_error;
-	}
-
-
-	propname = (char*)StrCache_Get(varlist[0]->strVal);//see what property it is
-
-	propind = searchList(proplist, propname, _lp_the_end);
-
-	switch(propind)
+	switch(varlist[0]->lVal)
 	{
 	case _lp_bgspeed:
 	{
@@ -10478,6 +10488,24 @@ HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 		(*pretvar)->lVal = (LONG)level->camerazoffset;
 		break;
 	}
+	case _lp_gravity:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)level->gravity;
+		break;
+	}
+	case _lp_maxfallspeed:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)level->maxfallspeed;
+		break;
+	}
+	case _lp_maxtossspeed:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)level->maxtossspeed;
+		break;
+	}
 	case _lp_scrollspeed:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
@@ -10485,7 +10513,7 @@ HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 		break;
 	}
 	default:
-		printf("Property name '%s' is not supported by function getlevelproperty.\n", propname);
+		printf("Property is not supported by function getlevelproperty yet.\n");
 		goto getlevelproperty_error;
 		break;
 	}
@@ -10500,8 +10528,8 @@ getlevelproperty_error:
 //changelevelproperty(name, value)
 HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	char* propname = NULL;
 	LONG ltemp;
+	DOUBLE dbltemp;
 	ScriptVariant* arg = NULL;
 
 	if(paramCount < 2)
@@ -10510,48 +10538,57 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 		return E_FAIL;
 	}
 
-	if(varlist[0]->vt != VT_STR)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG)1;
-
-	propname = (char*)StrCache_Get(varlist[0]->strVal);
+	mapstrings_drawmethodproperty(varlist, paramCount);
 
 	arg = varlist[1];
 
-	if(strcmp(propname, "rock")==0)
+	switch(varlist[0]->lVal)
 	{
+	case _lp_rocking:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->rocking = (int)ltemp;
 		else (*pretvar)->lVal = (LONG)0;
-	}
-	else if(strcmp(propname, "bgspeed")==0)
-	{
+		break;
+	case _lp_bgspeed:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->bgspeed = (float)ltemp;
 		else (*pretvar)->lVal = (LONG)0;
-	}
-	else if(strcmp(propname, "scrollspeed")==0)
-	{
+		break;
+	case _lp_scrollspeed:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->scrollspeed = (float)ltemp;
 		else (*pretvar)->lVal = (LONG)0;
-	}
-	else if(strcmp(propname, "cameraxoffset")==0)
-	{
+		break;
+	case _lp_cameraxoffset:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->cameraxoffset = (int)ltemp;
 		else (*pretvar)->lVal = (LONG)0;
-	}
-	else if(strcmp(propname, "camerazoffset")==0)
-	{
+		break;
+	case _lp_camerazoffset:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->camerazoffset = (int)ltemp;
 		else (*pretvar)->lVal = (LONG)0;
+		break;
+	case _lp_gravity:
+		if(SUCCEEDED(ScriptVariant_DecimalValue(arg, &dbltemp)))
+			level->gravity = (float)dbltemp;
+		else (*pretvar)->lVal = (LONG)0;
+		break;
+	case _lp_maxfallspeed:
+		if(SUCCEEDED(ScriptVariant_DecimalValue(arg, &dbltemp)))
+			level->maxfallspeed = (float)dbltemp;
+		else (*pretvar)->lVal = (LONG)0;
+		break;
+	case _lp_maxtossspeed:
+		if(SUCCEEDED(ScriptVariant_DecimalValue(arg, &dbltemp)))
+			level->maxtossspeed = (float)dbltemp;
+		else (*pretvar)->lVal = (LONG)0;
+		break;
+	default:
+		printf("The level property is read-only.\n");
+		*pretvar = NULL;
+		return E_FAIL;
+		break;
 	}
 
 	return S_OK;

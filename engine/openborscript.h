@@ -223,6 +223,7 @@ void mapstrings_changetextobjproperty(ScriptVariant** varlist, int paramCount);
 void mapstrings_layerproperty(ScriptVariant** varlist, int paramCount);
 void mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount);
 void mapstrings_gfxproperty(ScriptVariant** varlist, int paramCount);
+void mapstrings_levelproperty(ScriptVariant** varlist, int paramCount);
 
 
 enum systemvariant_enum
