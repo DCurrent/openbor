@@ -11878,7 +11878,7 @@ void do_attack(entity *e)
 				//if #055
 				if((e->animation->followanim) &&                                        // follow up?
 					(e->animation->counterrange.framestart == -1) &&                                // This isn't suppossed to be a counter, right?
-					((e->animation->followcond < 2) || (self->modeldata.type & them)) &&    // Does type matter?
+					((e->animation->followcond < 2) || (self->modeldata.type & e->modeldata.hostile)) &&    // Does type matter?
 					((e->animation->followcond < 3) || ((self->health > 0) &&
 					!didblock)) &&                   // check if health or blocking matters
 					((e->animation->followcond < 4) || cangrab(e,self))  )// check if nograb matters
