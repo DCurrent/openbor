@@ -4456,6 +4456,36 @@ void lcmHandleCommandAimove(ArgList* arglist, s_model* newchar, int* aimoveset, 
 		else shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
 	}
 }
+void lcmHandleCommandAiattack(ArgList* arglist, s_model* newchar, int* aiattackset, char* filename) {
+	char* value = GET_ARGP(1);
+	if(!*aiattackset)
+	{
+		newchar->aiattack = 0;
+		*aiattackset = 1;
+	}
+
+	//main A.I. move switches
+	if(value && value[0])
+	{
+		if(stricmp(value, "normal")==0){
+			newchar->aiattack |= AIATTACK1_NORMAL;
+		}
+		else if(stricmp(value, "always")==0){
+			newchar->aiattack |= AIATTACK1_ALWAYS;
+		}
+		else if(stricmp(value, "noattack")==0){
+			newchar->aiattack |= AIATTACK1_NOATTACK;
+		}
+		else shutdown(1, "Model '%s' has invalid A.I. attack switch: '%s'", filename, value);
+	}
+	/*
+	value = GET_ARGP(2);
+	//sub A.I. move switches
+	if(value && value[0])
+	{
+
+	}*/
+}
 
 void lcmHandleCommandWeapons(ArgList* arglist, s_model* newchar) {
 	int weap;
@@ -4673,6 +4703,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		frameshadow = -1,	// -1 will use default shadow for this entity, otherwise will use this value
 		soundtoplay = -1,
 		aimoveset = 0,
+		aiattackset = 0,
 		maskindex = -1,
 		nopalette = 0;
 
@@ -4888,8 +4919,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					lcmHandleCommandAimove(&arglist, newchar, &aimoveset, filename);
 					break;
 				case CMD_MODEL_AIATTACK:
-					if(newchar->aiattack==-1) newchar->aiattack = 0;
-					//do nothing for now, until ai attack is implemented
+					lcmHandleCommandAiattack(&arglist, newchar, &aiattackset, filename);
 					break;
 				case CMD_MODEL_SUBJECT_TO_WALL:
 					newchar->subject_to_wall = (0!=GET_INT_ARG(1));
@@ -14803,6 +14833,8 @@ int pick_random_attack(entity* target, int testonly){
 int check_attack_chance(float min, float max){
 	
 	float chance;//, aggfix;
+
+	if(self->modeldata.aiattack&AIATTACK1_ALWAYS) return 1;
 
 	if(self->x<screenx-10 || self->x>screenx+videomodes.hRes+10){
 		chance = MAX(0.9,max);

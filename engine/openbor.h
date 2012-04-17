@@ -183,16 +183,17 @@
 
 // A.I. attack1, affect attacking style
 #define     AIATTACK1_NORMAL      0                   // Current default style
-#define     AIATTACK1_LONG        0x00000001          // Long range first
-#define     AIATTACK1_MELEE       0x00000002          // Melee attack first
+#define     AIATTACK1_LONG        0x00000001          // Long range first, not used
+#define     AIATTACK1_MELEE       0x00000002          // Melee attack first, not used
 #define     AIATTACK1_NOATTACK    0x00000004          // dont attack at all
+#define     AIATTACK1_ALWAYS      0x00000008          // more aggression than default, useful for traps who don't think
 #define     MASK_AIATTACK1        0x0000FFFF
 
 //  A.I. attack2, affect Defending style
 #define     AIATTACK2_NORMAL      0                   // Current default style, don't dodge at all
 #define     AIATTACK2_DODGE       0x00010000          // Use dodge animation to avoid attack
 #define     AIATTACK2_DODGEMOVE   0x00020000          // Try to move in z direction if a jump attack is about to hit him
-													  // and try to step back if a melee attack is about to hit him
+													  // and try to step back if a melee attack is about to hit him*/
 #define     MASK_AIATTACK2        0xFFFF0000
 
 
