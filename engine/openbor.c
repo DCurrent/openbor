@@ -4476,7 +4476,7 @@ void lcmHandleCommandAiattack(ArgList* arglist, s_model* newchar, int* aiattacks
 		else if(stricmp(value, "noattack")==0){
 			newchar->aiattack |= AIATTACK1_NOATTACK;
 		}
-		else shutdown(1, "Model '%s' has invalid A.I. attack switch: '%s'", filename, value);
+		else printf("Model '%s' has invalid A.I. attack switch: '%s'", filename, value);
 	}
 	/*
 	value = GET_ARGP(2);
