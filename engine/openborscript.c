@@ -2527,6 +2527,7 @@ _ep_chargerate,
 _ep_colourmap,
 _ep_colourtable,
 _ep_combostep,
+_ep_combotime,
 _ep_damage_on_landing,
 _ep_dead,
 _ep_defaultmodel,
@@ -2692,6 +2693,7 @@ static const char* eplist[] = {
 "colourmap",
 "colourtable",
 "combostep",
+"combotime",
 "damage_on_landing",
 "dead",
 "defaultmodel",
@@ -3913,6 +3915,24 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)ent->modeldata.candamage;
+		break;
+	}
+	case _ep_combostep:
+	{
+		if(paramCount >= 3){
+			if(FAILED(ScriptVariant_IntegerValue(varlist[3], &ltemp2))){
+				*pretvar = NULL;
+				return E_FAIL;
+			}
+		}else ltemp2=0;
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->combostep[(int)ltemp2];
+		break;
+	}
+	case _ep_combotime:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->combotime;
 		break;
 	}
 	case _ep_hostile:
@@ -6011,6 +6031,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 				ent->combostep[(int)ltemp]=(int)ltemp2;
 			else (*pretvar)->lVal = (LONG)0;
 		}
+		break;
+	}
+	case _ep_combotime:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->combotime = (int)ltemp;
 		break;
 	}
 	case _ep_colourmap:
