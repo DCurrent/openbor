@@ -176,6 +176,7 @@ HRESULT openbor_strinfirst(ScriptVariant** varlist , ScriptVariant** pretvar, in
 HRESULT openbor_strinlast(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_strleft(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_strlength(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_strwidth(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_strright(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_getmodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_changemodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
