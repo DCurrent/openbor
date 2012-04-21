@@ -18449,6 +18449,7 @@ void player_think()
 				{
 					self->takeaction = common_turn;
 					set_turning(self);
+					self->xdir=self->zdir=0;
 					ent_set_anim(self, ANI_TURN, 0);
 					goto endthinkcheck;
 				}
@@ -18458,6 +18459,7 @@ void player_think()
 			{
 				self->takeaction = common_turn;
 				set_turning(self);
+				self->xdir=self->zdir=0;
 				ent_set_anim(self, ANI_TURN, 0);
 				goto endthinkcheck;
 			}
@@ -18494,6 +18496,7 @@ void player_think()
 				{
 					self->takeaction = common_turn;
 					set_turning(self);
+					self->xdir=self->zdir=0;
 					ent_set_anim(self, ANI_TURN, 0);
 					goto endthinkcheck;
 				}
@@ -18503,6 +18506,7 @@ void player_think()
 			{
 				self->takeaction = common_turn;
 				set_turning(self);
+				self->xdir=self->zdir=0;
 				ent_set_anim(self, ANI_TURN, 0);
 				goto endthinkcheck;
 			}
