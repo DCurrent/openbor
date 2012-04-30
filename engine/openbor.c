@@ -10495,6 +10495,7 @@ void ent_default_init(entity* e)
 			e->nograb = 1;
 			break;
 	}
+
 	if(!e->animation){
 		set_idle(e);
 	}
@@ -10619,6 +10620,7 @@ void update_frame(entity* ent, int f)
 		}
 
 		self->nextanim = time + iDelay;
+		self->pausetime = 0;
 		execute_animation_script(self);
 	}
 
@@ -10802,8 +10804,6 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 		ent->animnum = aninum;    // Stored for nocost usage
 		ent->animation->animhits = 0;
 
-		if(!resetable)
-			ent->lastanimpos = -1;
 		ent->animating = 1;
 		ent->lasthit = ent->grabbing;
 		ent->altbase = 0;
@@ -11062,7 +11062,6 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			e->defense_blocktype = dfsbe;
 			e->offense_factors = ofs;
 			e->entvars = vars;
-
 			ent_default_init(e);
 			return e;
 		}
@@ -11873,14 +11872,13 @@ void do_attack(entity *e)
 					}
 					topowner->combotime = time + combodelay; // well, add to its owner's combo
 
-					if(e->animpos != e->lastanimpos || (inair(e) && !equalairpause))          // if equalairpause is set, inair(e) is nolonger a condition for extra pausetime
+					if(e->pausetime<time || (inair(e) && !equalairpause))          // if equalairpause is set, inair(e) is nolonger a condition for extra pausetime
 					{    // Adds pause to the current animation
 						e->toss_time += attack->pause_add;      // So jump height pauses in midair
 						e->nextanim += attack->pause_add;       //Pause animation for a bit
 						e->nextthink += attack->pause_add;      // So anything that auto moves will pause
+						e->pausetime = time + attack->pause_add ; //UT: temporary solution
 					}
-
-					e->lastanimpos = e->animpos;
 
 					self->toss_time += attack->pause_add;       // So jump height pauses in midair
 					self->nextanim += attack->pause_add;        //Pause animation for a bit
@@ -18599,6 +18597,9 @@ int common_idle_anim(entity* ent)
 
 	int i;                                                                              //Loop counter.
 	int iAni;                                                                           //Animation.
+	entity* tempself = self;
+
+	self = ent;
 
 	if (ent->model->subtype != SUBTYPE_BIKER && ent->model->type != TYPE_NONE) // biker fix by Plombo // type none being "idle" prevented contra locked and loaded from working correctly. fixed by anallyst
 		ent->xdir = ent->zdir = 0;                                                      //Stop movement.
@@ -18606,12 +18607,12 @@ int common_idle_anim(entity* ent)
 	if(validanim(ent,ANI_FAINT) && ent->health <= ent->modeldata.health / 4)            //ANI_FAINT and health at/below 25%?
 	{
 		ent_set_anim(ent, ANI_FAINT, 0);                                                //Set ANI_FAINT.
-		return 1;                                                                       //Return 1 and exit.
+		goto found;                                                                      //Return 1 and exit.
 	}
 	else if(validanim(ent,ANI_SLEEP) && (time >= ent->sleeptime) && ent->animating)     //ANI_SLEEP, sleeptime up and currently animating?
 	{
 		ent_set_anim(ent, ANI_SLEEP, 0);                                                //Set sleep anim.
-		return 1;                                                                       //Return 1 and exit.
+		goto found;                                                                     //Return 1 and exit.
 	}
 	else
 	{
@@ -18621,10 +18622,12 @@ int common_idle_anim(entity* ent)
 
 			if (validanim(ent, iAni) && iAni != ANI_IDLE)                               //Valid and not ANI_IDLE?
 			{
+				tempself = self;
+				self = ent;
 				if (normal_find_target(iAni,0))                                           //Opponent in range of current animation?
 				{
 					ent_set_anim(ent, iAni, 0);                                         //Set animation.
-					return 1;                                                           //Return 1 and exit.
+					goto found;                                                          //Return 1 and exit.
 				}
 			}
 		}
@@ -18632,11 +18635,15 @@ int common_idle_anim(entity* ent)
 		if (validanim(ent, ANI_IDLE))
 		{
 			ent_set_anim(ent, ANI_IDLE, 0);                                             //No alternates were set. Set ANI_IDLE.
-			return 1;                                                                   //Return 1 and exit.
+			goto found;                                                                  //Return 1 and exit.
 		}
 	}
 
+	self = tempself;
 	return 0;
+found:
+	self = tempself;
+	return 1;
 }
 
 int common_walk_anim(entity* ent)

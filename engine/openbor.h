@@ -1260,6 +1260,7 @@ typedef struct entity
 	u32 nextthink;
 	u32 nextattack;
 	u32 pain_time;
+	u32 pausetime;						// 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box.
 	u32 mpchargetime;					// For the CHARGE animation
 	u32 sleeptime;						// For the SLEEP animation
 	u32 rushtime;						// rush combo timer
@@ -1303,7 +1304,6 @@ typedef struct entity
 	point2d * waypoints;
 	int numwaypoints;
 	int			animpos:16;
-	int			lastanimpos:16;					// Used by AI
 	int			animnum:16;                     // animation id
 	s_anim			*animation;
 	float           knockdowncount;
