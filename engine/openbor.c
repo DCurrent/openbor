@@ -24,6 +24,8 @@
 #define GET_INT_ARGP(z) getValidInt(GET_ARGP(z), filename, command)
 #define GET_FLOAT_ARGP(z) getValidFloat(GET_ARGP(z), filename, command)
 
+#define GET_FRAME_ARG(z) (stricmp(GET_ARG(z), "this")==0?newanim->numframes:GET_INT_ARG(z))
+
 #define uninitint 1234567890
 
 static const char* E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
@@ -124,6 +126,16 @@ const s_attack emptyattack = {
    0, //pause_add
    0 //pain_time
 };
+
+//default values 
+float default_level_maxtossspeed = 100.0f;
+float default_level_maxfallspeed = -6.0f;
+float default_level_gravity = -0.1f;
+
+float default_model_jumpheight = 4.0f;
+float default_model_jumpspeed = -1;
+float default_model_dropv[3] = {3.0f, 1.2f, 0.0f};
+float default_model_grabdistance = 36.0f;
 
 char                *custScenes = NULL;
 char                *custBkgrds = NULL;
@@ -692,6 +704,22 @@ int buffer_pakfile(char* filename, char** pbuffer, size_t* psize)
 	(*pbuffer)[*psize] = 0;        // Terminate string (important!)
 	closepackfile(handle);
 	return 1;
+}
+
+int buffer_append(char** buffer, const char* str, size_t n, size_t* bufferlen, size_t *len)
+{
+	size_t appendlen = strlen(str);
+	if(appendlen>n) appendlen = n;
+	if(appendlen+*len+1>*bufferlen)
+	{
+		printf("*Debug* reallocating buffer...\n");
+		*buffer = realloc(*buffer, *bufferlen=appendlen+*len+1024);
+		if(*buffer==NULL) shutdown(1, "Unalbe to resize buffer.\n");
+	}
+	strncpy(*buffer+*len, str, appendlen);
+	*len = *len + appendlen;
+	(*buffer)[*len] = 0;
+	return *len;
 }
 
 //this method is used by script engine, we move it here
@@ -4290,13 +4318,13 @@ void lcmHandleCommandSmartbomb(ArgList* arglist, s_model* newchar, char* filenam
 	newchar->smartbomb->attack_force = atoi(GET_ARGP(1));			// Special force
 	newchar->smartbomb->attack_type = atoi(GET_ARGP(2));			// Special attack type
 	newchar->smartbomb->attack_drop = 1; //by default
-	newchar->smartbomb->dropv[0] = 3;
+	newchar->smartbomb->dropv[0] = default_model_dropv[0];
 
 	if(newchar->smartbomb->attack_type==ATK_BLAST) {
 		newchar->smartbomb->blast = 1;
-		newchar->smartbomb->dropv[1] = 2.5;
+		newchar->smartbomb->dropv[1] = default_model_dropv[1]*2.083f;
 	} else {
-		newchar->smartbomb->dropv[1] = (float)1.2;
+		newchar->smartbomb->dropv[1] = default_model_dropv[1];
 	}
 
 	if(newchar->smartbomb->attack_type==ATK_FREEZE) {
@@ -4476,7 +4504,7 @@ void lcmHandleCommandAiattack(ArgList* arglist, s_model* newchar, int* aiattacks
 		else if(stricmp(value, "noattack")==0){
 			newchar->aiattack |= AIATTACK1_NOATTACK;
 		}
-		else printf("Model '%s' has invalid A.I. attack switch: '%s'", filename, value);
+		else printf("Model '%s' has invalid A.I. attack switch: '%s'\n", filename, value);
 	}
 	/*
 	value = GET_ARGP(2);
@@ -4549,22 +4577,22 @@ s_model* init_model(int cacheindex, int unload) {
 	alloc_all_scripts(&newchar->scripts);
 
 	newchar->unload             = unload;
-	newchar->jumpspeed          = -1;
-	newchar->jumpheight         = 4;		        // 28-12-2004   Set default jump height to 4, if not specified
-	newchar->runjumpheight      = 4;		        // Default jump height if a player is running
-	newchar->runjumpdist        = 1;		        // Default jump distane if a player is running
-	newchar->grabdistance       = 36;		        //  30-12-2004 Default grabdistance is same as originally set
+	newchar->jumpspeed          = default_model_jumpspeed;
+	newchar->jumpheight         = default_model_jumpheight; // 28-12-2004   Set default jump height to 4, if not specified
+	newchar->runjumpheight      = default_model_jumpheight; // Default jump height if a player is running
+	newchar->runjumpdist        = 1; // Default jump distane if a player is running
+	newchar->grabdistance       = default_model_grabdistance; //  30-12-2004 Default grabdistance is same as originally set
 	newchar->grabflip		    = 3;
-	newchar->throwdamage        = 21;		        // default throw damage
-	newchar->icon.def               = -1;
-	newchar->icon.die            = -1;
-	newchar->icon.pain           = -1;
-	newchar->icon.get            = -1;
-	newchar->icon.weapon              = -1;			    // No weapon icon set yet
+	newchar->throwdamage        = 21; // default throw damage
+	newchar->icon.def			= -1;
+	newchar->icon.die           = -1;
+	newchar->icon.pain          = -1;
+	newchar->icon.get           = -1;
+	newchar->icon.weapon		= -1;			    // No weapon icon set yet
 	newchar->diesound           = -1;
 	newchar->nolife             = 0;			    // default show life = 1 (yes)
 	newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
-	newchar->throwdist          = 2.5;
+	newchar->throwdist          = default_model_jumpheight*0.625f;
 	newchar->counter            = 3;			    // Default 3 times to drop a weapon / projectile
 	newchar->aimove             = -1;
 	newchar->aiattack           = -1;
@@ -4709,7 +4737,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	size_t size = 0,
 		line = 0,
-		len = 0;
+		len = 0,
+		sbsize=0,
+		scriptlen=0;
 
 	ptrdiff_t pos = 0,
 		index = 0;
@@ -4789,8 +4819,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	filename = model_cache[cacheindex].path;
 
 	if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Unable to open file '%s'\n\n", filename);
-
-	scriptbuf = (char*)malloc(size*2+1);
+	
+	sbsize = size+1;
+	scriptbuf = (char*)malloc(sbsize);
 
 	if(scriptbuf==NULL){
 		shutdown(1, "Unable to create script buffer for file '%s' (%i bytes)", filename, size*2);
@@ -6372,7 +6403,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					attack.counterattack = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_THROWFRAME:	case CMD_MODEL_PSHOTFRAME: case CMD_MODEL_PSHOTFRAMEW: case CMD_MODEL_PSHOTFRAMENO:
-					newanim->throwframe = GET_INT_ARG(1);
+					newanim->throwframe = GET_FRAME_ARG(1);
 					newanim->throwa = GET_INT_ARG(2);
 					if(!newanim->throwa)
 						newanim->throwa = 70;
@@ -6380,13 +6411,13 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->throwa = 0;
 					break;
 				case CMD_MODEL_SHOOTFRAME:
-					newanim->shootframe = GET_INT_ARG(1);
+					newanim->shootframe = GET_FRAME_ARG(1);
 					newanim->throwa = GET_INT_ARG(2);
 					if(newanim->throwa == -1)
 						newanim->throwa = 0;
 					break;
 				case CMD_MODEL_TOSSFRAME: case CMD_MODEL_PBOMBFRAME:
-					newanim->tossframe = GET_INT_ARG(1);
+					newanim->tossframe = GET_FRAME_ARG(1);
 					newanim->throwa = GET_INT_ARG(2);
 					if(newanim->throwa < 0) newanim->throwa = -1;
 					break;
@@ -6425,7 +6456,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_JUMPFRAME:
 					{
-						newanim->jumpframe.f    = GET_INT_ARG(1);   //Frame.
+						newanim->jumpframe.f    = GET_FRAME_ARG(1);   //Frame.
 						newanim->jumpframe.v    = GET_FLOAT_ARG(2); //Vertical velocity.
 						value = GET_ARG(3);
 						if(value[0])
@@ -6471,13 +6502,13 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->bounce = GET_FLOAT_ARG(1);
 					break;
 				case CMD_MODEL_LANDFRAME:
-					newanim->landframe.frame = GET_INT_ARG(1);
+					newanim->landframe.frame = GET_FRAME_ARG(1);
 					value = GET_ARG(2);
 					if(value[0]) newanim->landframe.ent = get_cached_model_index(value);
 					else newanim->landframe.ent = -1;
 					break;
 				case CMD_MODEL_DROPFRAME:
-					newanim->dropframe = GET_INT_ARG(1);
+					newanim->dropframe = GET_FRAME_ARG(1);
 					break;
 				case CMD_MODEL_CANCEL:
 					{
@@ -6619,9 +6650,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					abox[1] = GET_INT_ARG(2);
 					abox[2] = GET_INT_ARG(3);
 					abox[3] = GET_INT_ARG(4);
-					attack.dropv[0] = 3;
-					attack.dropv[1] = (float)1.2;
-					attack.dropv[2] = 0;
+					attack.dropv[0] = default_model_dropv[0];
+					attack.dropv[1] = default_model_dropv[1];
+					attack.dropv[2] = default_model_dropv[2];
 					attack.attack_force = GET_INT_ARG(5);
 
 					attack.attack_drop = GET_INT_ARG(6);
@@ -6697,8 +6728,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					abox[1] = GET_INT_ARG(2);
 					abox[2] = GET_INT_ARG(3);
 					abox[3] = GET_INT_ARG(4);
-					attack.dropv[0] = 3;
-					attack.dropv[1] = 2.5;
+					attack.dropv[0] = default_model_dropv[0];
+					attack.dropv[1] = default_model_dropv[1]*2.083f;
 					attack.dropv[2] = 0;
 					attack.attack_force = GET_INT_ARG(5);
 					attack.no_block = GET_INT_ARG(6);
@@ -6952,7 +6983,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					maskindex = index;
 					break;
 				case CMD_MODEL_FLIPFRAME:
-					newanim->flipframe = GET_INT_ARG(1);
+					newanim->flipframe = GET_FRAME_ARG(1);
 					break;
 				case CMD_MODEL_FOLLOWANIM:
 					newanim->followanim = GET_INT_ARG(1);
@@ -6963,25 +6994,25 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->followcond = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_COUNTERFRAME:
-					newanim->counterrange.framestart    = GET_INT_ARG(1);
-					newanim->counterrange.frameend	    = GET_INT_ARG(1);
+					newanim->counterrange.framestart    = GET_FRAME_ARG(1);
+					newanim->counterrange.frameend	    = newanim->counterrange.framestart;
 					newanim->counterrange.condition	    = GET_INT_ARG(2);
 					newanim->counterrange.damaged	    = GET_INT_ARG(3);
 					break;
 				case CMD_MODEL_COUNTERRANGE:
-					newanim->counterrange.framestart	= GET_INT_ARG(1);
-					newanim->counterrange.frameend	    = GET_INT_ARG(2);
+					newanim->counterrange.framestart	= GET_FRAME_ARG(1);
+					newanim->counterrange.frameend	    = GET_FRAME_ARG(2);
 					newanim->counterrange.condition	    = GET_INT_ARG(3);
 					newanim->counterrange.damaged	    = GET_INT_ARG(4);
 					break;
 				case CMD_MODEL_WEAPONFRAME:
 					newanim->weaponframe    = malloc(2 * sizeof(newanim->weaponframe));
 					memset(newanim->weaponframe, 0, 2 * sizeof(newanim->weaponframe));
-					newanim->weaponframe[0] = GET_INT_ARG(1);
+					newanim->weaponframe[0] = GET_FRAME_ARG(1);
 					newanim->weaponframe[1] = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_QUAKEFRAME:
-					newanim->quakeframe.framestart  = GET_INT_ARG(1);
+					newanim->quakeframe.framestart  = GET_FRAME_ARG(1);
 					newanim->quakeframe.repeat      = GET_INT_ARG(2);
 					newanim->quakeframe.v           = GET_INT_ARG(3);
 					newanim->quakeframe.cnt         = 0;
@@ -6993,7 +7024,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_SPAWNFRAME:
 					newanim->spawnframe    = malloc(5 * sizeof(newanim->spawnframe));
 					memset(newanim->spawnframe, 0, 5 * sizeof(newanim->spawnframe));
-					newanim->spawnframe[0] = GET_FLOAT_ARG(1);
+					newanim->spawnframe[0] = GET_FRAME_ARG(1);
 					newanim->spawnframe[1] = GET_FLOAT_ARG(2);
 					newanim->spawnframe[2] = GET_FLOAT_ARG(3);
 					newanim->spawnframe[3] = GET_FLOAT_ARG(4);
@@ -7002,46 +7033,47 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_SUMMONFRAME:
 					newanim->summonframe    = malloc(5 * sizeof(newanim->summonframe));
 					memset(newanim->summonframe, 0, 5 * sizeof(newanim->summonframe));
-					newanim->summonframe[0] = GET_FLOAT_ARG(1);
+					newanim->summonframe[0] = GET_FRAME_ARG(1);
 					newanim->summonframe[1] = GET_FLOAT_ARG(2);
 					newanim->summonframe[2] = GET_FLOAT_ARG(3);
 					newanim->summonframe[3] = GET_FLOAT_ARG(4);
 					newanim->summonframe[4] = GET_FLOAT_ARG(5);
 					break;
 				case CMD_MODEL_UNSUMMONFRAME:
-					newanim->unsummonframe = GET_INT_ARG(1);
+					newanim->unsummonframe = GET_FRAME_ARG(1);
 					break;
 				case CMD_MODEL_AT_SCRIPT:
 					if(!scriptbuf[0]){ // if empty, paste the main function text here
-						strcat(scriptbuf, pre_text);
+						buffer_append(&scriptbuf, pre_text, 0xffffff, &sbsize, &scriptlen);
 					}
-					scriptbuf[strlen(scriptbuf) - strlen(sur_text)] = 0; // cut last chars
+					scriptbuf[scriptlen - strlen(sur_text)] = 0; // cut last chars
+					scriptlen = strlen(scriptbuf);
 					if(ani_id>=0)
 					{
 						if(script_id != ani_id){ // if expression 1
 							sprintf(namebuf, ifid_text, newanim->index);
-							strcat(scriptbuf, namebuf);
+							buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
 							script_id = ani_id;
 						}
-						scriptbuf[strlen(scriptbuf) - strlen(endifid_text)] = 0; // cut last chars
+						scriptbuf[scriptlen - strlen(endifid_text)] = 0; // cut last chars
+						scriptlen = strlen(scriptbuf);
 					}
 					while(strncmp(buf+pos, "@script", 7)){
 						pos++;
 					}
 					pos += 7;
+					len = 0;
 					while(strncmp(buf+pos, "@end_script", 11)){
-						len = strlen(scriptbuf);
-						scriptbuf[len] = *(buf+pos);
-						scriptbuf[len+1] = 0;
-						pos++;
+						len++; pos++;
 					}
+					buffer_append(&scriptbuf, buf+pos-len, len, &sbsize, &scriptlen);
 					pos += 11;
 					
 					if(ani_id>=0)
 					{
-						strcat(scriptbuf, endifid_text); // put back last  chars
+						buffer_append(&scriptbuf, endifid_text, 0xffffff, &sbsize, &scriptlen);// put back last  chars
 					}
-					strcat(scriptbuf, sur_text); // put back last  chars
+					buffer_append(&scriptbuf, sur_text, 0xffffff, &sbsize, &scriptlen);// put back last  chars
 					break;
 				case CMD_MODEL_AT_CMD:
 					//translate @cmd into script function call
@@ -7050,35 +7082,37 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						goto lCleanup;
 					}
 					if(!scriptbuf[0]){ // if empty, paste the main function text here
-						strcat(scriptbuf, pre_text);
+						buffer_append(&scriptbuf, pre_text, 0xffffff, &sbsize, &scriptlen);
 					}
-					scriptbuf[strlen(scriptbuf) - strlen(sur_text)] = 0; // cut last chars
+					scriptbuf[scriptlen - strlen(sur_text)] = 0; // cut last chars
+					scriptlen = strlen(scriptbuf);
 					if(script_id != ani_id){ // if expression 1
 						sprintf(namebuf, ifid_text, newanim->index);
-						strcat(scriptbuf, namebuf);
+						buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
 						script_id = ani_id;
 					}
 					j = 1;
 					value = GET_ARG(j);
-					scriptbuf[strlen(scriptbuf) - strlen(endifid_text)] = 0; // cut last chars
+					scriptbuf[scriptlen - strlen(endifid_text)] = 0; // cut last chars
+					scriptlen = strlen(scriptbuf);
 					if(value && value[0]){
 						sprintf(namebuf, if_text, curframe);//only execute in current frame
-						strcat(scriptbuf, namebuf);
+						buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
 						sprintf(namebuf, call_text, value);
-						strcat(scriptbuf, namebuf);
+						buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
 						do{ //argument and comma
 							j++;
 							value = GET_ARG(j);
 							if(value && value[0]) {
-								if(j!=2) strcat(scriptbuf, comma_text);
-								strcat(scriptbuf, value);
+								if(j!=2) buffer_append(&scriptbuf, comma_text, 0xffffff, &sbsize, &scriptlen);
+								buffer_append(&scriptbuf, value, 0xffffff, &sbsize, &scriptlen);
 							}
 						}while(value && value[0]);
 					}
-					strcat(scriptbuf, endcall_text);
-					strcat(scriptbuf, endif_text); //end of if
-					strcat(scriptbuf, endifid_text); // put back last  chars
-					strcat(scriptbuf, sur_text); // put back last  chars
+					buffer_append(&scriptbuf, endcall_text, 0xffffff, &sbsize, &scriptlen);
+					buffer_append(&scriptbuf, endif_text, 0xffffff, &sbsize, &scriptlen);//end of if
+					buffer_append(&scriptbuf, endifid_text, 0xffffff, &sbsize, &scriptlen); // put back last  chars
+					buffer_append(&scriptbuf, sur_text, 0xffffff, &sbsize, &scriptlen); // put back last  chars
 					break;
 				default:
 					if(command && command[0])
@@ -7552,6 +7586,20 @@ int load_models()
 					// Number of points needed to earn a credit
 					versusdamage =  GET_INT_ARG(1);
 					if(versusdamage == 0 || versusdamage == 1) savedata.mode = versusdamage^1;
+					break;
+				case CMD_MODELSTXT_DROPV:
+					default_model_dropv[0] =  GET_FLOAT_ARG(1);
+					default_model_dropv[1] =  GET_FLOAT_ARG(2);
+					default_model_dropv[2] =  GET_FLOAT_ARG(3);
+					break;
+				case CMD_MODELSTXT_JUMPSPEED:
+					default_model_jumpspeed =  GET_FLOAT_ARG(1);
+					break;
+				case CMD_MODELSTXT_JUMPHEIGHT:
+					default_model_jumpheight =  GET_FLOAT_ARG(1);
+					break;
+				case CMD_MODELSTXT_GRABDISTANCE:
+					default_model_grabdistance =  GET_FLOAT_ARG(1);
 					break;
 				default:
 					printf("command %s not understood in %s, line %d\n", command, filename, line);
@@ -8281,6 +8329,11 @@ void load_levelorder()
 			case CMD_LEVELORDER_SCOREFORMAT:
 				scoreformat = GET_INT_ARG(1);
 				break;
+			case CMD_LEVELORDER_GRAVITY:
+				default_level_gravity = GET_FLOAT_ARG(1);
+				default_level_maxfallspeed = GET_FLOAT_ARG(2);
+				default_level_maxtossspeed = GET_FLOAT_ARG(3);
+				break;
 			default:
 				if (command && command[0])
 					printf("Command '%s' not understood in level order!", command);
@@ -8677,9 +8730,9 @@ void load_level(char *filename){
 	level->nohit = 0;    // Default able to hit the other player
 	level->spawn[0][2] = level->spawn[1][2] = level->spawn[2][2] = level->spawn[3][2] = 300;    // Set the default spawn a to 300
 	level->setweap = 0;
-	level->maxtossspeed = 100;
-	level->maxfallspeed = -6;
-	level->gravity = (float)-0.1;
+	level->maxtossspeed = default_level_maxtossspeed;
+	level->maxfallspeed = default_level_maxfallspeed;
+	level->gravity = default_level_gravity;
 	level->scrolldir = SCROLL_RIGHT;
 	level->scrollspeed = 1;
 	level->cameraxoffset = 0;
@@ -10690,7 +10743,9 @@ void update_frame(entity* ent, int f)
 		{
 			self = self->subentity;
 			attack = emptyattack;
-			attack.dropv[0] = (float)3; attack.dropv[1] = (float)1.2; attack.dropv[2] = (float)0;
+			attack.dropv[0] = default_model_dropv[0]; 
+			attack.dropv[1] = default_model_dropv[1]; 
+			attack.dropv[2] = default_model_dropv[2];
 			attack.attack_force = self->health;
 			attack.attack_type = max_attack_types;
 			if(self->takedamage) self->takedamage(self, &attack);
@@ -11123,7 +11178,9 @@ void kill(entity *victim)
 	{
 		attack = emptyattack;
 		attack.attack_type = max_attack_types;
-		attack.dropv[0] = (float)3; attack.dropv[1] = (float)1.2; attack.dropv[2] = (float)0;
+		attack.dropv[0] = default_model_dropv[0]; 
+		attack.dropv[1] = default_model_dropv[1]; 
+		attack.dropv[2] = default_model_dropv[2];
 	}
 	// kill minions
 	if(victim->modeldata.summonkill == 1 && victim->subentity)
@@ -12191,7 +12248,9 @@ void check_lost()
 		else
 		{
 			attack              = emptyattack;
-			attack.dropv[0]     = (float)3; attack.dropv[1] = (float)1.2; attack.dropv[2] = (float)0;
+			attack.dropv[0] = default_model_dropv[0];
+			attack.dropv[1] = default_model_dropv[1];
+			attack.dropv[2] = default_model_dropv[2];
 			attack.attack_force = self->health;
 			attack.attack_type  = max_attack_types;
 			self->health = 0;
@@ -12708,9 +12767,9 @@ void common_dot()
 						attack              = emptyattack;                                      //Clear struct.
 						attack.attack_type  = iType;                                            //Set type.
 						attack.attack_force = iForce;                                           //Set force. Use unmodified force here; takedamage applys damage mitigation.
-						attack.dropv[0]     = (float)3;                                         //Apply drop Y.
-						attack.dropv[1]     = (float)1.2;                                       //Apply drop X
-						attack.dropv[2]     = (float)0;                                         //Apply drop Z
+						attack.dropv[0]     = default_model_dropv[0];                           //Apply drop Y.
+						attack.dropv[1]     = default_model_dropv[1];                           //Apply drop X
+						attack.dropv[2]     = default_model_dropv[2];                           //Apply drop Z
 
 						if(self->takedamage)                                                    //Defender uses takedamage()?
 						{
@@ -14835,7 +14894,7 @@ int check_attack_chance(float min, float max){
 	if(self->modeldata.aiattack&AIATTACK1_ALWAYS) return 1;
 
 	if(self->x<screenx-10 || self->x>screenx+videomodes.hRes+10){
-		chance = MAX(0.9,max);
+		chance = MAX(0.75,max);
 	} else {
 		chance = (diff(self->x, self->destx)+diff(self->z, self->destz))/(videomodes.hRes+videomodes.vRes)*3;
 
@@ -18927,7 +18986,9 @@ void kill_all_enemies()
 
 	attack = emptyattack;
 	attack.attack_type = max_attack_types;
-	attack.dropv[0] = (float)3; attack.dropv[1] = (float)1.2; attack.dropv[2] = (float)0;
+	attack.dropv[0] = default_model_dropv[0]; 
+	attack.dropv[1] = default_model_dropv[1];
+	attack.dropv[2] = default_model_dropv[2];
 
 	tmpself = self;
 	for(i=0; i<ent_max; i++)
@@ -19556,7 +19617,9 @@ void time_over()
 
 	attack = emptyattack;
 	attack.attack_type = max_attack_types;
-	attack.dropv[0] = (float)3; attack.dropv[1] = (float)1.2; attack.dropv[2] = (float)0;
+	attack.dropv[0] = default_model_dropv[0]; 
+	attack.dropv[1] = default_model_dropv[1]; 
+	attack.dropv[2] = default_model_dropv[2];
 	if(level->type == 1) level_completed = 1;        //    Feb 25, 2005 - Used for bonus levels so a life isn't taken away if time expires.level->type == 1 means bonus level, else regular
 	else if(!level_completed)
 	{
