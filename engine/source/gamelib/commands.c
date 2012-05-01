@@ -75,6 +75,10 @@ List* createModelstxtCommandList(void) {
 	LIST_ADD(CMD_MODELSTXT_CREDSCORE, "credscore");
 	LIST_ADD(CMD_MODELSTXT_VERSUSDAMAGE, "versusdamage");
 	LIST_ADD(CMD_MODELSTXT_COMBODELAY, "combodelay");
+	LIST_ADD(CMD_MODELSTXT_DROPV, "dropv");
+	LIST_ADD(CMD_MODELSTXT_JUMPSPEED, "jumpspeed");
+	LIST_ADD(CMD_MODELSTXT_JUMPHEIGHT, "jumpheight");
+	LIST_ADD(CMD_MODELSTXT_GRABDISTANCE, "grabdistance");
 	#undef LIST_ADD
 	return result;
 }
@@ -582,6 +586,7 @@ List* createLevelOrderCommandList(void) {
 	LIST_ADD(CMD_LEVELORDER_RUSH, "rush");
 	LIST_ADD(CMD_LEVELORDER_MAXWALLHEIGHT, "maxwallheight");
 	LIST_ADD(CMD_LEVELORDER_SCOREFORMAT, "scoreformat");
+	LIST_ADD(CMD_LEVELORDER_GRAVITY, "gravity");
 
 	#undef LIST_ADD
 	return result;
