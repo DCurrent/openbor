@@ -214,8 +214,7 @@ HRESULT openbor_executescript(ScriptVariant** varlist , ScriptVariant** pretvar,
 void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount);
 void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount);
 void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_getplayerproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_changeplayerproperty(ScriptVariant** varlist, int paramCount);
+void mapstrings_playerproperty(ScriptVariant** varlist, int paramCount);
 void mapstrings_setspawnentry(ScriptVariant** varlist, int paramCount);
 void mapstrings_transconst(ScriptVariant** varlist, int paramCount);
 void mapstrings_playerkeys(ScriptVariant** varlist, int paramCount);

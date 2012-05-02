@@ -577,8 +577,8 @@ void* Script_GetStringMapFunction(void* functionRef)
 	else if (functionRef==((void*)openbor_changesystemvariant)) return (void*)mapstrings_systemvariant;
 	else if (functionRef==((void*)openbor_getentityproperty)) return (void*)mapstrings_getentityproperty;
 	else if (functionRef==((void*)openbor_changeentityproperty)) return (void*)mapstrings_changeentityproperty;
-	else if (functionRef==((void*)openbor_getplayerproperty)) return (void*)mapstrings_getplayerproperty;
-	else if (functionRef==((void*)openbor_changeplayerproperty)) return (void*)mapstrings_changeplayerproperty;
+	else if (functionRef==((void*)openbor_getplayerproperty)) return (void*)mapstrings_playerproperty;
+	else if (functionRef==((void*)openbor_changeplayerproperty)) return (void*)mapstrings_playerproperty;
 	else if (functionRef==((void*)openbor_setspawnentry)) return (void*)mapstrings_setspawnentry;
 	else if (functionRef==((void*)openbor_transconst)) return (void*)mapstrings_transconst;
 	else if (functionRef==((void*)openbor_playerkeys)) return (void*)mapstrings_playerkeys;
@@ -7358,20 +7358,21 @@ toss_error:
 }
 
 // ===== getplayerproperty =====
-enum getplayerproperty_enum {
-	_gpp_credits,
-	_gpp_ent,
-	_gpp_entity,
-	_gpp_keys,
-	_gpp_lives,
-	_gpp_name,
-	_gpp_playkeys,
-	_gpp_score,
-	_gpp_weaponum,
-	_gpp_the_end,
+enum playerproperty_enum {
+	_pp_credits,
+	_pp_ent,
+	_pp_entity,
+	_pp_keys,
+	_pp_lives,
+	_pp_name,
+	_pp_playkeys,
+	_pp_score,
+	_pp_weapon,
+	_pp_weaponum,
+	_pp_the_end,
 };
 
-void mapstrings_getplayerproperty(ScriptVariant** varlist, int paramCount)
+void mapstrings_playerproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
 	int prop;
@@ -7385,14 +7386,15 @@ void mapstrings_getplayerproperty(ScriptVariant** varlist, int paramCount)
 		"name",
 		"playkeys",
 		"score",
-		"weaponum"
+		"weapon",
+		"weaponum",
 	};
 
 	if(paramCount < 2) return;
 
 	// property name
-	MAPSTRINGS(varlist[1], proplist, _gpp_the_end,
-		"Property name '%s' is not supported by function getplayerproperty.\n");
+	MAPSTRINGS(varlist[1], proplist, _pp_the_end,
+		"Player property name '%s' is not supported yet.\n");
 }
 
 //getplayerproperty(index, propname);
@@ -7410,7 +7412,7 @@ HRESULT openbor_getplayerproperty(ScriptVariant** varlist , ScriptVariant** pret
 		return E_FAIL;
 	}
 
-	mapstrings_getplayerproperty(varlist, paramCount);
+	mapstrings_playerproperty(varlist, paramCount);
 	ScriptVariant_Clear(*pretvar);
 
 	arg = varlist[0];
@@ -7418,10 +7420,9 @@ HRESULT openbor_getplayerproperty(ScriptVariant** varlist , ScriptVariant** pret
 	{
 		index = 0;
 	} else index = (int)ltemp;
-	if(!(ent = player[index].ent))  //this player is not selected, so just return
-	{
-		return S_OK; //return S_OK, to tell the engine it is not a FATAL error
-	}
+
+
+	ent = player[index].ent;
 
 	arg = varlist[1];
 	if(arg->vt!=VT_INTEGER)
@@ -7433,54 +7434,56 @@ HRESULT openbor_getplayerproperty(ScriptVariant** varlist , ScriptVariant** pret
 	}
 	prop = arg->lVal;
 
-	//change the model
 	switch(prop)
 	{
-	case _gpp_ent:
-	case _gpp_entity:
+	case _pp_ent:
+	case _pp_entity:
 	{
-		ScriptVariant_ChangeType(*pretvar, VT_PTR);
-		(*pretvar)->ptrVal = (VOID*)ent;
+		if(!ent) ScriptVariant_Clear(*pretvar); // player not spawned
+		else {
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (VOID*)ent;
+		}
 		break;
 	}
-	case _gpp_name:
+	case _pp_name:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
 		strncpy(StrCache_Get((*pretvar)->strVal), (char*)player[index].name, MAX_STR_VAR_LEN);
 		break;
 	}
-	case _gpp_score:
+	case _pp_score:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)player[index].score;
 		break;
 	}
-	case _gpp_lives:
+	case _pp_lives:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)player[index].lives;
 		break;
 	}
-	case _gpp_playkeys:
+	case _pp_playkeys:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)player[index].playkeys;
 		break;
 	}
-	case _gpp_keys:
+	case _pp_keys:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)player[index].keys;
 		break;
 	}
-	case _gpp_credits:
+	case _pp_credits:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		if(noshare) (*pretvar)->lVal = (LONG)player[index].credits;
 		else        (*pretvar)->lVal = credits;
 		break;
 	}
-	case _gpp_weaponum:
+	case _pp_weaponum:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)player[index].weapnum;
@@ -7494,37 +7497,6 @@ HRESULT openbor_getplayerproperty(ScriptVariant** varlist , ScriptVariant** pret
 	return S_OK;
 }
 
-// ===== changeplayerproperty =====
-enum changeplayerproperty_enum {
-	_cpp_credits,
-	_cpp_lives,
-	_cpp_name,
-	_cpp_playkeys,
-	_cpp_score,
-	_cpp_weapon,
-	_cpp_the_end,
-};
-
-void mapstrings_changeplayerproperty(ScriptVariant** varlist, int paramCount)
-{
-	char* propname;
-	int prop;
-
-	static const char* proplist[] = {
-		"credits",
-		"lives",
-		"name",
-		"playkeys",
-		"score",
-		"weapon",
-	};
-
-	if(paramCount < 3) return;
-
-	// property name
-	MAPSTRINGS(varlist[1], proplist, _cpp_the_end,
-		"Property name '%s' is not supported by function changeplayerproperty.\n");
-}
 
 //changeplayerproperty(index, propname, value[, value2, value3,...]);
 HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
@@ -7542,7 +7514,7 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 		return E_FAIL;
 	}
 
-	mapstrings_changeplayerproperty(varlist, paramCount);
+	mapstrings_playerproperty(varlist, paramCount);
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 	(*pretvar)->lVal = (LONG)1;
 	arg = varlist[0];
@@ -7551,10 +7523,7 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 		index = 0;
 	} else index = (int)ltemp;
 
-	if(!(ent = player[index].ent))  //this player is not selected, so just return
-	{
-		return S_OK; //return S_OK, to tell the engine it is not a FATAL error
-	}
+	ent = player[index].ent;
 
 	if(varlist[1]->vt != VT_INTEGER)
 	{
@@ -7569,9 +7538,23 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 	//change the model
 	switch(prop)
 	{
-	case _cpp_weapon:
+	case _pp_ent:
+	case _pp_entity:
 	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp))){
+		if(arg->vt==VT_PTR)
+		{
+			player[index].ent = (entity*)arg->ptrVal;
+			(*pretvar)->lVal = (LONG)1;
+		}
+		else (*pretvar)->lVal = (LONG)0;
+		break;
+	}
+	case _pp_weapon:
+	{
+		if(!ent) {
+			(*pretvar)->lVal = (LONG)0;
+		}
+		else if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp))){
 			if(paramCount > 3)
 			{
 				arg = varlist[3];
@@ -7589,7 +7572,7 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 		else (*pretvar)->lVal = (LONG)0;
 		break;
 	}
-	case _cpp_name:
+	case _pp_name:
 	{
 		if(arg->vt != VT_STR)
 		{
@@ -7601,7 +7584,7 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 		(*pretvar)->lVal = (LONG)1;
 		break;
 	}
-	case _cpp_score:
+	case _pp_score:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
 		{
@@ -7612,21 +7595,21 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 		else (*pretvar)->lVal = (LONG)0;
 		break;
 	}
-	case _cpp_lives:
+	case _pp_lives:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
 			player[index].lives = (int)ltemp;
 		else (*pretvar)->lVal = (LONG)0;
 		break;
 	}
-	case _cpp_playkeys:
+	case _pp_playkeys:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
 			player[index].playkeys = (int)ltemp;
 		else (*pretvar)->lVal = (LONG)0;
 		break;
 	}
-	case _cpp_credits:
+	case _pp_credits:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
 		{
