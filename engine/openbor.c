@@ -14920,6 +14920,8 @@ int pick_random_attack(entity* target, int testonly){
 
 
 // code to lower the chance of attacks, may change while testing old mods
+// min - min attack chance
+// max - max attack chance
 int check_attack_chance(entity* target, float min, float max){
 	
 	float chance, chance1, chance2;//, aggfix;
@@ -14966,7 +14968,7 @@ int common_try_normalattack(entity* target)
 		if(self->combostep[0] && self->combotime>time) self->stalltime = time+1;
 		else 
 		{
-			if(!check_attack_chance(target, min_noatk_chance, max_noatk_chance)) {
+			if(!check_attack_chance(target, 1.0f-min_noatk_chance, 1.0f-min_noatk_chance)) {
 				self->nextattack = time + (int)randf(GAME_SPEED*noatk_duration);
 				return 0;
 			} else
@@ -15002,7 +15004,7 @@ int common_try_jumpattack(entity* target)
 			if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
 				rnum = -1;
 			else{
-				if(!check_attack_chance(target,0.6,0.95)) {
+				if(!check_attack_chance(target,0.05f,0.4f)) {
 					self->nextattack = time +  (int)randf(GAME_SPEED*noatk_duration);
 					return 0;
 				}
@@ -15022,7 +15024,7 @@ int common_try_jumpattack(entity* target)
 			if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
 				rnum = -1;
 			else{
-				if(!check_attack_chance(target,0.5,0.95)) {
+				if(!check_attack_chance(target,0.05f,0.5f)) {
 					self->nextattack = time + (int)randf(GAME_SPEED*noatk_duration);
 					return 0;
 				}
@@ -16340,8 +16342,8 @@ int common_try_wander(entity* target, int dox, int doz)
 		returndx = videomodes.hRes/4;
 		returndz = videomodes.vRes/8;
 	}else{ // only chase when too far away
-		returndx = videomodes.hRes/2;
-		returndz = videomodes.vRes/3;
+		returndx = videomodes.hRes*0.6;
+		returndz = videomodes.vRes*0.4;
 	}
 	if(rnum>7){
 		borderdx = videomodes.hRes/8;
@@ -16381,10 +16383,10 @@ int common_try_wander(entity* target, int dox, int doz)
 				self->destx = target->x - grabd;
 				break;
 			case 1:
-				self->destx = target->x + videomodes.hRes/3 + (self->health/3%20);
+				self->destx = target->x + videomodes.hRes*0.4 + (self->health/3%20);
 				break;
 			case 3:
-				self->destx = target->x - videomodes.hRes/3 - (self->health/3%20);;
+				self->destx = target->x - videomodes.hRes*0.4 - (self->health/3%20);;
 				break;
 			}
 			self->xdir = self->x>self->destx?-self->modeldata.speed:self->modeldata.speed;
@@ -16416,10 +16418,10 @@ int common_try_wander(entity* target, int dox, int doz)
 				self->destz = target->z - grabd/2;
 				break;
 			case 2:
-				self->destz = target->z + MIN((PLAYER_MAX_Z-PLAYER_MIN_Z), videomodes.vRes)/4+(self->health/3%5);
+				self->destz = target->z + MIN((PLAYER_MAX_Z-PLAYER_MIN_Z), videomodes.vRes)*0.25+(self->health/3%5);
 				break;
 			case 0:
-				self->destz = target->z - MIN((PLAYER_MAX_Z-PLAYER_MIN_Z), videomodes.vRes)/4-(self->health/3%5);
+				self->destz = target->z - MIN((PLAYER_MAX_Z-PLAYER_MIN_Z), videomodes.vRes)*0.25-(self->health/3%5);
 				break;
 			}
 			self->zdir = self->z>self->destz?-self->modeldata.speed/2:self->modeldata.speed/2;
