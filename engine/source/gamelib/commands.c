@@ -79,6 +79,13 @@ List* createModelstxtCommandList(void) {
 	LIST_ADD(CMD_MODELSTXT_JUMPSPEED, "jumpspeed");
 	LIST_ADD(CMD_MODELSTXT_JUMPHEIGHT, "jumpheight");
 	LIST_ADD(CMD_MODELSTXT_GRABDISTANCE, "grabdistance");
+	LIST_ADD(CMD_MODELSTXT_DEBUG_MNAF, "move_noatk_factor");
+	LIST_ADD(CMD_MODELSTXT_DEBUG_GNAF, "group_noatk_factor");
+	LIST_ADD(CMD_MODELSTXT_DEBUG_ANAF, "agg_noatk_factor");
+	LIST_ADD(CMD_MODELSTXT_DEBUG_MINNA, "min_noatk_chance");
+	LIST_ADD(CMD_MODELSTXT_DEBUG_MAXNA, "max_noatk_chance");
+	LIST_ADD(CMD_MODELSTXT_DEBUG_OSNAF, "offscreen_noatk_factor");
+	LIST_ADD(CMD_MODELSTXT_DEBUG_NAD, "noatk_duration");
 	#undef LIST_ADD
 	return result;
 }

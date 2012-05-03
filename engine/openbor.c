@@ -137,6 +137,16 @@ float default_model_jumpspeed = -1;
 float default_model_dropv[3] = {3.0f, 1.2f, 0.0f};
 float default_model_grabdistance = 36.0f;
 
+// AI attack debug stuff for development purpose, 
+// Don't open them to modders yet
+float move_noatk_factor=2.5f;
+float group_noatk_factor=0.0f;
+float agg_noatk_factor=0.0f;
+float min_noatk_chance=0.0f;
+float max_noatk_chance=0.4f;
+float offscreen_noatk_factor=0.5f;
+float noatk_duration=0.75f;
+
 char                *custScenes = NULL;
 char                *custBkgrds = NULL;
 char                *custLevels = NULL;
@@ -7601,6 +7611,27 @@ int load_models()
 				case CMD_MODELSTXT_GRABDISTANCE:
 					default_model_grabdistance =  GET_FLOAT_ARG(1);
 					break;
+				case CMD_MODELSTXT_DEBUG_MNAF:
+					move_noatk_factor =  GET_FLOAT_ARG(1);
+					break;
+				case CMD_MODELSTXT_DEBUG_GNAF:
+					group_noatk_factor =  GET_FLOAT_ARG(1);
+					break;
+				case CMD_MODELSTXT_DEBUG_ANAF:
+					agg_noatk_factor =  GET_FLOAT_ARG(1);
+					break;
+				case CMD_MODELSTXT_DEBUG_MINNA:
+					min_noatk_chance =  GET_FLOAT_ARG(1);
+					break;
+				case CMD_MODELSTXT_DEBUG_MAXNA:
+					max_noatk_chance =  GET_FLOAT_ARG(1);
+					break;
+				case CMD_MODELSTXT_DEBUG_OSNAF:
+					offscreen_noatk_factor =  GET_FLOAT_ARG(1);
+					break;
+				case CMD_MODELSTXT_DEBUG_NAD:
+					noatk_duration =  GET_FLOAT_ARG(1);
+					break;
 				default:
 					printf("command %s not understood in %s, line %d\n", command, filename, line);
 			}
@@ -11984,6 +12015,7 @@ void do_attack(entity *e)
 				//2011/11/24 UT: move the pain_time logic here, 
 				// because block needs this as well otherwise blockratio causes instant death
 				self->pain_time = time + (attack->pain_time?attack->pain_time:(GAME_SPEED / 5));
+				self->nextattack = 0; // reset this, make it easier to fight back
 			}//end of if #05
 			self = temp;
 		}//end of if #0
@@ -14886,41 +14918,47 @@ int pick_random_attack(entity* target, int testonly){
 	return -1;
 }
 
+
 // code to lower the chance of attacks, may change while testing old mods
-int check_attack_chance(float min, float max){
+int check_attack_chance(entity* target, float min, float max){
 	
-	float chance;//, aggfix;
+	float chance, chance1, chance2;//, aggfix;
 
 	if(self->modeldata.aiattack&AIATTACK1_ALWAYS) return 1;
 
-	if(self->x<screenx-10 || self->x>screenx+videomodes.hRes+10){
-		chance = MAX(0.75,max);
-	} else {
-		chance = (diff(self->x, self->destx)+diff(self->z, self->destz))/(videomodes.hRes+videomodes.vRes)*3;
+	chance1 = MIN(1.0f,(diff(self->x, self->destx)+diff(self->z, self->destz))/(videomodes.hRes+videomodes.vRes)*move_noatk_factor);
+	chance2 = MIN(1.0f, (count_ents(self->modeldata.type)-1)*group_noatk_factor);
 
-		if(chance>max) chance = max;
-		else if(chance<min) chance = min;
+	chance = (1.0f-chance1)*(1.0f-chance2);
+	
+	if(chance>max) chance = max;
+	else if(chance<min) chance = min;
+
+	if(self->x<screenx-10 || self->x>screenx+videomodes.hRes+10){
+		chance *= (1.0-offscreen_noatk_factor);
 	}
 
-	//aggfix = (self->modeldata.aggression+100)/100.0;
-	//if(aggfix<0.5) aggfix = 0.5;
-	//else if(aggfix>1.0) aggfix = 1.0;
+	return (randf(1)<=chance);
+}
 
-	//chance = 1.0 - (1.0-chance)*aggfix;
-
-	//printf("%s  %f %d\n", self->name, chance, self->modeldata.aggression);
-
-	return (randf(1)>=chance);
+//make a function, mostly for debug purpose
+//give it a chance to reset current noattack timer
+u32 recheck_nextattack(entity* target)
+{
+	if(target->running || target->attacking) self->nextattack=0;
+	return self->nextattack;
 }
 
 int common_try_normalattack(entity* target)
 {
-	int ec;
 	target = normal_find_target(-1, 0);
 
-	if(self->nextattack>time) return 0;
-
 	if(!target) return 0;
+
+	recheck_nextattack(target);
+
+	if(recheck_nextattack(target)>time) return 0;
+
 	if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking || target->takeaction==common_rise)) 
 		return 0;
 
@@ -14928,9 +14966,8 @@ int common_try_normalattack(entity* target)
 		if(self->combostep[0] && self->combotime>time) self->stalltime = time+1;
 		else 
 		{
-			ec = count_ents(self->modeldata.type)-1;
-			if(!check_attack_chance(MIN(ec/10.0, 0.5), MIN(ec/10.0, 0.5)+0.4)) {
-				self->nextattack = time + (int)randf(GAME_SPEED*3/4);
+			if(!check_attack_chance(target, min_noatk_chance, max_noatk_chance)) {
+				self->nextattack = time + (int)randf(GAME_SPEED*noatk_duration);
 				return 0;
 			} else
 				self->stalltime = time + (int)randf((float)MAX(1,GAME_SPEED*3/4 - self->modeldata.aggression));
@@ -14950,9 +14987,6 @@ int common_try_jumpattack(entity* target)
 {
 	entity* dust;
 	int rnum, ani = 0;
-
-	if(self->nextattack>time) return 0;
-
 	if((validanim(self,ANI_JUMPATTACK) || validanim(self,ANI_JUMPATTACK2)))
 	{
 		if(!validanim(self,ANI_JUMPATTACK)) rnum = 1;
@@ -14963,11 +14997,13 @@ int common_try_jumpattack(entity* target)
 			// do a jumpattack
 			(target || (target = normal_find_target(ANI_JUMPATTACK,0))) )
 		{
+			if(recheck_nextattack(target)>time) return 0;
+
 			if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
 				rnum = -1;
 			else{
-				if(!check_attack_chance(0.6,0.95)) {
-					self->nextattack = time +  GAME_SPEED/2;
+				if(!check_attack_chance(target,0.6,0.95)) {
+					self->nextattack = time +  (int)randf(GAME_SPEED*noatk_duration);
 					return 0;
 				}
 				//ent_set_anim(self, ANI_JUMPATTACK, 0);
@@ -14981,11 +15017,13 @@ int common_try_jumpattack(entity* target)
 			// do a jumpattack2
 			(target || (target = normal_find_target(ANI_JUMPATTACK2,0))) )
 		{
+			if(recheck_nextattack(target)>time) return 0;
+
 			if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
 				rnum = -1;
 			else{
-				if(!check_attack_chance(0.5,0.95)) {
-					self->nextattack = time +  GAME_SPEED/2;
+				if(!check_attack_chance(target,0.5,0.95)) {
+					self->nextattack = time + (int)randf(GAME_SPEED*noatk_duration);
 					return 0;
 				}
 				//ent_set_anim(self, ANI_JUMPATTACK2, 0);
