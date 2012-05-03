@@ -7359,6 +7359,7 @@ toss_error:
 
 // ===== getplayerproperty =====
 enum playerproperty_enum {
+	_pp_colourmap,
 	_pp_credits,
 	_pp_ent,
 	_pp_entity,
@@ -7378,6 +7379,7 @@ void mapstrings_playerproperty(ScriptVariant** varlist, int paramCount)
 	int prop;
 
 	static const char* proplist[] = {
+		"colourmap",
 		"credits",
 		"ent",
 		"entity",
@@ -7450,6 +7452,12 @@ HRESULT openbor_getplayerproperty(ScriptVariant** varlist , ScriptVariant** pret
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
 		strncpy(StrCache_Get((*pretvar)->strVal), (char*)player[index].name, MAX_STR_VAR_LEN);
+		break;
+	}
+	case _pp_colourmap:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)player[index].colourmap;
 		break;
 	}
 	case _pp_score:
@@ -7582,6 +7590,13 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 		tempstr = (char*)StrCache_Get(arg->strVal);
 		strcpy(player[index].name, tempstr);
 		(*pretvar)->lVal = (LONG)1;
+		break;
+	}
+	case _pp_colourmap:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
+			player[index].colourmap = (int)ltemp;
+		else (*pretvar)->lVal = (LONG)0;
 		break;
 	}
 	case _pp_score:

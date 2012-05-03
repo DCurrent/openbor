@@ -1120,7 +1120,7 @@ typedef struct
 	s_jugglepoints  jugglepoints;                   // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
 	s_guardpoints   guardpoints;                    // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
 	int            mpswitch:8;                     // switch between reduce or gain mp for mpstabletype 4
-	int           turndelay:16;                   // turn delay
+	int				turndelay:16;                   // turn delay
 	float           lifespan;                       // lifespan count down
 	float           knockdowncount;                 // the knock down count for this entity
 	s_stealth       stealth;						// Invisibility to AI feature added by DC. 2011_04_05, DC: Moved to struct.
