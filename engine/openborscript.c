@@ -2526,6 +2526,8 @@ _ep_antigravity,
 _ep_attack,
 _ep_attackid,
 _ep_attacking,
+_ep_attackthrottle,
+_ep_attackthrottletime,
 _ep_autokill,
 _ep_base,
 _ep_bbox,
@@ -2692,6 +2694,8 @@ static const char* eplist[] = {
 "attack",
 "attackid",
 "attacking",
+"attackthrottle",
+"attackthrottletime",
 "autokill",
 "base",
 "bbox",
@@ -4590,6 +4594,18 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 		(*pretvar)->dblVal = (DOUBLE)ent->lifespancountdown;
+		break;
+	}
+	case _ep_attackthrottle:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.attackthrottle;
+		break;
+	}
+	case _ep_attackthrottletime:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.attackthrottletime;
 		break;
 	}
 	case _ep_link:
@@ -6515,6 +6531,18 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
 			ent->lifespancountdown = (float)dbltemp;
+		break;
+	}
+    case _ep_attackthrottle:
+	{
+		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+			ent->modeldata.attackthrottle = (float)dbltemp;
+		break;
+	}
+    case _ep_attackthrottletime:
+	{
+		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+			ent->modeldata.attackthrottletime = (float)dbltemp;
 		break;
 	}
     case _ep_map:
