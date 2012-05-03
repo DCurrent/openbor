@@ -1123,6 +1123,8 @@ typedef struct
 	int				turndelay:16;                   // turn delay
 	float           lifespan;                       // lifespan count down
 	float           knockdowncount;                 // the knock down count for this entity
+	float			attackthrottle;					// how often the enemy refuse to attack
+	float			attackthrottletime;				// how long does the throttle status last
 	s_stealth       stealth;						// Invisibility to AI feature added by DC. 2011_04_05, DC: Moved to struct.
 
 	//---------------new A.I. switches-----------

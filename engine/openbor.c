@@ -139,11 +139,11 @@ float default_model_grabdistance = 36.0f;
 
 // AI attack debug stuff for development purpose, 
 // Don't open them to modders yet
-float move_noatk_factor=2.5f;
-float group_noatk_factor=0.0f;
+float move_noatk_factor=3.0f;
+float group_noatk_factor=0.01f;
 float agg_noatk_factor=0.0f;
 float min_noatk_chance=0.0f;
-float max_noatk_chance=0.4f;
+float max_noatk_chance=0.6f;
 float offscreen_noatk_factor=0.5f;
 float noatk_duration=0.75f;
 
@@ -4650,6 +4650,8 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->knife                      = -1;
     newchar->stealth.hide               = 0;
     newchar->stealth.detect             = 0;
+	newchar->attackthrottle				= 0.0f;
+	newchar->attackthrottletime			= noatk_duration*GAME_SPEED;
 
 	newchar->animation = (s_anim**)calloc(1, sizeof(s_anim*)*max_animations);
 	if(!newchar->animation) shutdown(1, (char*)E_OUT_OF_MEMORY);
@@ -5483,6 +5485,11 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_AGGRESSION:
 					newchar->aggression = GET_INT_ARG(1);
+					break;
+				case CMD_MODEL_ATTACKTHROTTLE:
+					newchar->attackthrottle = GET_FLOAT_ARG(1);
+					if(arglist.count>=2)
+						newchar->attackthrottletime = GET_FLOAT_ARG(2)*GAME_SPEED;
 					break;
 				case CMD_MODEL_RISETIME:
 					newchar->risetime[0] = GET_INT_ARG(1);
@@ -11317,7 +11324,7 @@ int checkhit(entity *attacker, entity *target, int counter)
 	if(coords1[4])
 		zdist += coords1[4];
 	else
-		zdist += attacker->modeldata.grabdistance/3;
+		zdist += attacker->modeldata.grabdistance/3+1;//temporay fix for integer to float conversion
 	if(coords2[4])
 		zdist += coords2[4];
 
@@ -14936,6 +14943,8 @@ int check_attack_chance(entity* target, float min, float max){
 	if(chance>max) chance = max;
 	else if(chance<min) chance = min;
 
+	chance *= (1.0-self->modeldata.attackthrottle);
+
 	if(self->x<screenx-10 || self->x>screenx+videomodes.hRes+10){
 		chance *= (1.0-offscreen_noatk_factor);
 	}
@@ -14947,7 +14956,10 @@ int check_attack_chance(entity* target, float min, float max){
 //give it a chance to reset current noattack timer
 u32 recheck_nextattack(entity* target)
 {
-	if(target->running || target->attacking) self->nextattack=0;
+	if(target->blocking) self->nextattack = 0;
+	else if(target->attacking && self->nextattack>4) self->nextattack-=4;
+	else if(target->jumping && self->nextattack>16) self->nextattack-=16;
+
 	return self->nextattack;
 }
 
@@ -14969,7 +14981,7 @@ int common_try_normalattack(entity* target)
 		else 
 		{
 			if(!check_attack_chance(target, 1.0f-min_noatk_chance, 1.0f-min_noatk_chance)) {
-				self->nextattack = time + (int)randf(GAME_SPEED*noatk_duration);
+				self->nextattack = time + randf(self->modeldata.attackthrottletime);
 				return 0;
 			} else
 				self->stalltime = time + (int)randf((float)MAX(1,GAME_SPEED*3/4 - self->modeldata.aggression));
@@ -15005,7 +15017,7 @@ int common_try_jumpattack(entity* target)
 				rnum = -1;
 			else{
 				if(!check_attack_chance(target,0.05f,0.4f)) {
-					self->nextattack = time +  (int)randf(GAME_SPEED*noatk_duration);
+					self->nextattack = time + randf(self->modeldata.attackthrottletime);
 					return 0;
 				}
 				//ent_set_anim(self, ANI_JUMPATTACK, 0);
@@ -15025,7 +15037,7 @@ int common_try_jumpattack(entity* target)
 				rnum = -1;
 			else{
 				if(!check_attack_chance(target,0.05f,0.5f)) {
-					self->nextattack = time + (int)randf(GAME_SPEED*noatk_duration);
+					self->nextattack = time + randf(self->modeldata.attackthrottletime);
 					return 0;
 				}
 				//ent_set_anim(self, ANI_JUMPATTACK2, 0);
@@ -15062,6 +15074,20 @@ int common_try_jumpattack(entity* target)
 	return 0;
 }
 
+int common_try_grab(entity* other)
+{
+	int trygrab(entity* t);
+	if( (rand()&7)==0 &&
+		(validanim(self,ANI_THROW) ||
+		 validanim(self,ANI_GRAB)) && self->idling &&
+		(other || (other = find_ent_here(self,self->x, self->z, self->modeldata.hostile, NULL)))&&
+		trygrab(other))
+	{
+		return 1;
+	}
+	return 0;
+}
+
 // Normal attack style
 // Used by root A.I., what to do if a target is found.
 // return 0 if no action is token
@@ -15071,12 +15097,13 @@ int normal_attack()
 	//int rnum;
 
 	//rnum = rand32()&7;
-	if(common_try_upper(NULL) ||
-	   common_try_block(NULL) ||
-	   common_try_runattack(NULL) ||
+	if( common_try_grab(NULL) ||
+		common_try_upper(NULL) ||
+		common_try_block(NULL) ||
+		common_try_runattack(NULL) ||
 	   //(rnum < 2 && common_try_freespecial(NULL)) ||
-	   common_try_normalattack(NULL) ||
-	   common_try_jumpattack(NULL) )
+		common_try_normalattack(NULL) ||
+		common_try_jumpattack(NULL) )
 	{
 		self->running = 0;
 		return 1;
@@ -15183,6 +15210,7 @@ int adjust_grabposition(entity* ent, entity* other, float dist, int grabin)
 
 	if(ent->a!=other->a) return 0;
 	if(ent->base!=other->base) return 0;
+	if(dist<0) return 0; // could be used for dummy attack that only hits ground target
 
 	if(grabin==1)
 	{
@@ -15206,6 +15234,50 @@ int adjust_grabposition(entity* ent, entity* other, float dist, int grabin)
 	//other->a = ent->a;
 	//other->base = ent->base;
 	return 1;
+}
+
+int trygrab(entity* other)
+{
+	if( cangrab(self, other) &&	adjust_grabposition(self, other, self->modeldata.grabdistance, 0))
+	{
+		if(self->model->grabflip&1) self->direction = (self->x < other->x);
+
+		set_opponent(other, self);
+		ents_link(self, other);
+		other->attacking = 0;
+		self->idling = 0;
+		self->running = 0;
+
+		self->xdir = self->zdir =
+		other->xdir = other->zdir = 0;
+		if(validanim(self,ANI_GRAB))
+		{
+			if(self->model->grabflip&2) other->direction = !self->direction;
+			self->attacking = 0;
+			memset(self->combostep, 0, 5*sizeof(int));
+			other->stalltime = time + GRAB_STALL;
+			self->releasetime = time + (GAME_SPEED/2);
+			other->takeaction = common_grabbed;
+			self->takeaction = common_grab;
+			ent_set_anim(self, ANI_GRAB, 0);
+			set_pain(other, -1, 0); //set grabbed animation
+		}
+		// use original throw code if throwframewait not present, kbandressen 10/20/06
+		else if(self->modeldata.throwframewait == -1)
+			dothrow();
+		// otherwise enemy_throw_wait will be used, kbandressen 10/20/06
+		else
+		{
+			if(self->model->grabflip&2) other->direction = !self->direction;
+
+			other->takeaction = common_prethrow;
+			self->takeaction = common_throw_wait;
+			ent_set_anim(self, ANI_THROW, 0);
+			set_pain(other, -1, 0); // set grabbed animation
+		}
+		return 1;
+	}
+	return 0;
 }
 
 
@@ -15366,49 +15438,13 @@ int common_trymove(float xdir, float zdir)
 	//----------------end of wall checking--------------
 
 	//------------------ grab/throw checking------------------
-	if( (rand()&7)==0 &&
+	if(self->modeldata.type==TYPE_PLAYER &&
+		(rand()&7)==0 &&
 		(validanim(self,ANI_THROW) ||
 		 validanim(self,ANI_GRAB)) && self->idling &&
-		(other = find_ent_here(self,x, z, self->modeldata.hostile, NULL))&&
-		cangrab(self, other) &&
-		adjust_grabposition(self, other, self->modeldata.grabdistance, 0))
+		(other = find_ent_here(self, self->x, self->z, self->modeldata.hostile, NULL)))
 	{
-		if(self->model->grabflip&1) self->direction = (self->x < other->x);
-
-		set_opponent(other, self);
-		ents_link(self, other);
-		other->attacking = 0;
-		self->idling = 0;
-		self->running = 0;
-
-		self->xdir = self->zdir =
-		other->xdir = other->zdir = 0;
-		if(validanim(self,ANI_GRAB))
-		{
-			if(self->model->grabflip&2) other->direction = !self->direction;
-			self->attacking = 0;
-			memset(self->combostep, 0, 5*sizeof(int));
-			other->stalltime = time + GRAB_STALL;
-			self->releasetime = time + (GAME_SPEED/2);
-			other->takeaction = common_grabbed;
-			self->takeaction = common_grab;
-			ent_set_anim(self, ANI_GRAB, 0);
-			set_pain(other, -1, 0); //set grabbed animation
-		}
-		// use original throw code if throwframewait not present, kbandressen 10/20/06
-		else if(self->modeldata.throwframewait == -1)
-			dothrow();
-		// otherwise enemy_throw_wait will be used, kbandressen 10/20/06
-		else
-		{
-			if(self->model->grabflip&2) other->direction = !self->direction;
-
-			other->takeaction = common_prethrow;
-			self->takeaction = common_throw_wait;
-			ent_set_anim(self, ANI_THROW, 0);
-			set_pain(other, -1, 0); // set grabbed animation
-		}
-		return 0;
+		if(trygrab(other)) return 0;
 	}
 	// ---------------  end of grab/throw checking ------------------------
 
@@ -15566,6 +15602,8 @@ int common_attack()
 	int aiattack ;
 
 	//if(stalker==self) return 0;
+
+	if(time/THINK_SPEED%4==0) return 0; 
 
 	if(self->modeldata.aiattack==-1) return 0;
 
