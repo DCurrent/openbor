@@ -5750,7 +5750,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						memset(platform, 0, sizeof(platform));
 						shadow_set = 0;
 						attack = emptyattack;
-						attack.hitsound = -1;
+						attack.hitsound = SAMPLE_BEAT;
 						attack.hitflash = -1;
 						attack.blockflash = -1;
 						attack.blocksound = -1;
@@ -6588,7 +6588,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					soundtoplay = sound_load_sample(GET_ARG(1), packfile, 0);
 					break;
 				case CMD_MODEL_HITFX:
-					attack.hitsound = sound_load_sample(GET_ARG(1), packfile, 0);
+					if(stricmp(GET_ARG(1),"none")==0) attack.hitsound=-1;
+					else attack.hitsound = sound_load_sample(GET_ARG(1), packfile, 0);
 					break;
 				case CMD_MODEL_HITFLASH:
 					value = GET_ARG(1);
@@ -12116,12 +12117,10 @@ void do_attack(entity *e)
 			if(noslowfx)
 			{
 				if(attack->hitsound >= 0) sound_play_sample(attack->hitsound, 0, savedata.effectvol,savedata.effectvol, 100);
-				else if(SAMPLE_BEAT >= 0) sound_play_sample(SAMPLE_BEAT, 0, savedata.effectvol,savedata.effectvol, 100);
 			}
 			else
 			{
 				if(attack->hitsound >= 0) sound_play_sample(attack->hitsound, 0, savedata.effectvol,savedata.effectvol, 105 - force);
-				else if(SAMPLE_BEAT >= 0) sound_play_sample(SAMPLE_BEAT, 0, savedata.effectvol,savedata.effectvol, 105 - force);
 			}
 		}
 
