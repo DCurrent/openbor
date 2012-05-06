@@ -21255,6 +21255,7 @@ int playgif(char *filename, int x, int y, int noskip){
 	if(gifbuffer[1]) freescreen(&(gifbuffer[1]));
 	if(gifbuffer[2]) freescreen(&(gifbuffer[2]));
 	background = tempbg;
+	standard_palette(1);
 	if(bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)) return -1;
 	return 1;
 
@@ -21267,6 +21268,7 @@ playgif_error:
 	if(gifbuffer[1]) freescreen(&(gifbuffer[1]));
 	if(gifbuffer[2]) freescreen(&(gifbuffer[2]));
 	background = tempbg;
+	standard_palette(1);
 	return 0;
 }
 
