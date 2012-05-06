@@ -15209,7 +15209,6 @@ int adjust_grabposition(entity* ent, entity* other, float dist, int grabin)
 
 	if(ent->a!=other->a) return 0;
 	if(ent->base!=other->base) return 0;
-	if(dist<0) return 0; // could be used for dummy attack that only hits ground target
 
 	if(grabin==1)
 	{
