@@ -10767,15 +10767,6 @@ void update_frame(entity* ent, int f)
 		else anim->quakeframe.cnt = 0;
 	}
 
-	//spawn / summon /unsummon features
-	if(anim->spawnframe && anim->spawnframe[0] == f && anim->subentity) ent_spawn_ent(self);
-
-	if(anim->summonframe && anim->summonframe[0] == f && anim->subentity)
-	{
-		//subentity is dead
-		if(!self->subentity || self->subentity->dead) ent_summon_ent(self);
-	}
-
 	if(anim->unsummonframe == f)
 	{
 		if(self->subentity)
@@ -10792,6 +10783,15 @@ void update_frame(entity* ent, int f)
 			self = ent; // lol ...
 			self->subentity = NULL;
 		}
+	}
+
+	//spawn / summon /unsummon features
+	if(anim->spawnframe && anim->spawnframe[0] == f && anim->subentity) ent_spawn_ent(self);
+
+	if(anim->summonframe && anim->summonframe[0] == f && anim->subentity)
+	{
+		//subentity is dead
+		if(!self->subentity || self->subentity->dead) ent_summon_ent(self);
 	}
 
 	if(anim->soundtoplay && anim->soundtoplay[f] >= 0)
