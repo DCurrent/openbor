@@ -12136,6 +12136,7 @@ void check_gravity()
 	entity* other, *dust;
 	s_attack attack;
 	float gravity;
+	float fmin,fmax;
 
 	if(!is_frozen(self) )// Incase an entity is in the air, don't update animations
 	{
@@ -12161,17 +12162,20 @@ void check_gravity()
 			// gravity, antigravity factors
 			self->a += self->tossv;
 			if(self->animation->dive) gravity = 0;
-			else gravity = level->gravity * (1.0-self->modeldata.antigravity-self->antigravity);
+			else gravity = (level?level->gravity:default_level_gravity) * (1.0-self->modeldata.antigravity-self->antigravity);
 			if(self->modeldata.subject_to_gravity>0)
 				self->tossv += gravity;
 
-			if(self->tossv < level->maxfallspeed)
+			fmin = (level?level->maxfallspeed:default_level_maxfallspeed);
+			fmax = (level?level->maxtossspeed:default_level_maxtossspeed);
+
+			if(self->tossv < fmin)
 			{
-				self->tossv = level->maxfallspeed;
+				self->tossv = fmin;
 			}
-			else if(self->tossv > level->maxtossspeed)
+			else if(self->tossv > fmax)
 			{
-				self->tossv = level->maxtossspeed;
+				self->tossv = fmax;
 			}
 			if(self->animation->dropframe>=0 && self->tossv<=0 && self->animpos<self->animation->dropframe) // begin dropping
 			{
@@ -12210,7 +12214,7 @@ void check_gravity()
 					self->xdir /= self->animation->bounce;
 					self->zdir /= self->animation->bounce;
 					toss(self, (-self->tossv)/self->animation->bounce);
-					if(!self->modeldata.noquake) level->quake = 4;    // Don't shake if specified
+					if(level && !self->modeldata.noquake) level->quake = 4;    // Don't shake if specified
 					if(SAMPLE_FALL >= 0) sound_play_sample(SAMPLE_FALL, 0, savedata.effectvol,savedata.effectvol, 100);
 					if(self->modeldata.type == TYPE_PLAYER) control_rumble(self->playerindex, 100*(int)self->tossv/2);
 					for(i=0; i<MAX_PLAYERS; i++) control_rumble(i, 75*(int)self->tossv/2);
@@ -18112,6 +18116,7 @@ void player_think()
 {
 	int action = 0;		// 1=walking, 2=up, 3=down, 4=running
 	int bkwalk = 0;   //backwalk
+	int runx,runz,movex,movez;
 	int t, t2;
 	entity *other = NULL;
 	float altdiff ;
@@ -18123,6 +18128,7 @@ void player_think()
 	static int dd[] = {FLAG_MOVEDOWN, FLAG_MOVEDOWN};
 	static int ba[] = {FLAG_BACKWARD, FLAG_ATTACK};
 	
+	int oldrunning = self->running;
 	int pli = self->playerindex;
 	s_player* pl= player+pli;
 
@@ -18213,7 +18219,12 @@ void player_think()
 	if(pl->playkeys & FLAG_MOVEUP)
 	{
 		t = (notinair&&match_combo(uu, pl, 2));
-		if(t && validanim(self,ANI_ATTACKUP))
+		if(t && (self->modeldata.runupdown&2) && validanim(self,ANI_RUN)){
+			pl->playkeys &= ~FLAG_MOVEUP;
+			pl->combostep = (pl->combostep-1+MAX_SPECIAL_INPUTS)%MAX_SPECIAL_INPUTS;
+			self->running = 1;    // Player begins to run
+		}
+		else if(t && validanim(self,ANI_ATTACKUP))
 		{    // New u u combo attack
 			pl->playkeys -= FLAG_MOVEUP;
 			self->takeaction = common_attack_proc;
@@ -18240,7 +18251,12 @@ void player_think()
 	if(pl->playkeys & FLAG_MOVEDOWN)
 	{
 		t = (notinair&&match_combo(dd, pl, 2));
-		if(t && validanim(self,ANI_ATTACKDOWN))
+		if(t && (self->modeldata.runupdown&2) && validanim(self,ANI_RUN)){
+			pl->playkeys &= ~FLAG_MOVEDOWN;
+			pl->combostep = (pl->combostep-1+MAX_SPECIAL_INPUTS)%MAX_SPECIAL_INPUTS;
+			self->running = 1;    // Player begins to run
+		}
+		else if(t && validanim(self,ANI_ATTACKDOWN))
 		{    // New d d combo attack
 			pl->playkeys -= FLAG_MOVEDOWN;
 			self->takeaction = common_attack_proc;
@@ -18516,11 +18532,42 @@ void player_think()
 		self->blocking = 0;
 	}
 
+	//dang long run checking logic
+	if(self->running){
+		runx=runz=movex=movez=0;
+		if(pl->keys & FLAG_MOVEUP) movez--;
+		if(pl->keys & FLAG_MOVEDOWN) movez++;
+		if(pl->keys & FLAG_MOVELEFT) movex--;
+		if(pl->keys & FLAG_MOVERIGHT) movex++;
+		if(oldrunning){
+			if(self->zdir<0) runz--;
+			else if(self->zdir>0) runz++;
+			if(self->xdir<0) runx--;
+			else if(self->xdir>0) runx++;
+		}
+		if(!self->modeldata.runupdown){
+			if(movez || !movex)
+				self->running=0;
+		}else if(self->modeldata.runupdown&4){
+			if(!movex && !movez) self->running=0;
+			else if(movex && !movez && runx==-movex)
+				self->running=0;
+			else if(movez && !movex && runz==-movez)
+				self->running=0;
+			else if(movex && movez && diff(movex,runx)+diff(movez,runz)>2)
+				self->running=0;
+		}else if(self->modeldata.runupdown){
+			if(!movex || movex==-runx)
+				self->running=0;
+		}
+
+	}
+
 	if(PLAYER_MIN_Z != PLAYER_MAX_Z)
 	{    // More of a platform feel
 		if(pl->keys & FLAG_MOVEUP)
 		{
-			if(!self->modeldata.runupdown ) self->running = 0;    // Quits running if player presses up (or the up animation exists
+			//if(!self->modeldata.runupdown ) self->running = 0;    // Quits running if player presses up (or the up animation exists
 
 			if(validanim(self,ANI_UP) && !self->running)
 			{
@@ -18540,7 +18587,7 @@ void player_think()
 		}
 		else if(pl->keys & FLAG_MOVEDOWN)
 		{
-			if(!self->modeldata.runupdown ) self->running = 0;    // Quits running if player presses down (or the down animation exists
+			//if(!self->modeldata.runupdown ) self->running = 0;    // Quits running if player presses down (or the down animation exists
 
 			if(validanim(self,ANI_DOWN) && !self->running )
 			{
@@ -18572,7 +18619,7 @@ void player_think()
 	{
 		if(self->direction)
 		{
-			self->running = 0;    // Quits running if player changes direction
+			//self->running = 0;    // Quits running if player changes direction
 			if(self->modeldata.turndelay && !self->turntime)
 				self->turntime = time + self->modeldata.turndelay;
 			else if(self->turntime && time >= self->turntime)
@@ -18619,7 +18666,7 @@ void player_think()
 	{
 		if(!self->direction)
 		{
-			self->running = 0;    // Quits running if player changes direction
+			//self->running = 0;    // Quits running if player changes direction
 			if(self->modeldata.turndelay && !self->turntime)
 				self->turntime = time + self->modeldata.turndelay;
 			else if(self->turntime && time >= self->turntime)
@@ -18665,7 +18712,7 @@ void player_think()
 	else if(!((pl->keys & FLAG_MOVELEFT) ||
 		(pl->keys & FLAG_MOVERIGHT)) )
 	{
-		self->running = 0;    // Player let go of left/right and so quits running
+		//self->running = 0;    // Player let go of left/right and so quits running
 		self->xdir = 0;
 		self->turntime = 0;
 	}
