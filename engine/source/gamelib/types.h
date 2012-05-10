@@ -94,6 +94,7 @@ typedef struct{
 	int	width;
 	int	height;
 	int pixelformat;
+	int dummy[3]; //temporary debug values
 	unsigned char* palette;
 	unsigned char data[ANYNUMBER];
 }s_screen;

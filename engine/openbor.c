@@ -3779,11 +3779,13 @@ int free_model(s_model* model)
 {
 	int i;
 	if(!model) return 0;
-	printf("Unload '%s'\n", model->name);
+	printf("Unload '%s' ", model->name);
 
 	if(hasFreetype(model, MF_ANIMLIST))
 		for(i=0; i<max_animations; i++)
 			anim_list = anim_list_delete(anim_list, model->index);
+
+	printf(".");
 
 	if(hasFreetype(model, MF_COLOURMAP))
 		for(i=0; i<MAX_COLOUR_MAPS; i++)
@@ -3795,30 +3797,50 @@ int free_model(s_model* model)
 			}
 		}
 
+	printf(".");
+
 	if(hasFreetype(model, MF_PALETTE) && model->palette)
 		{free(model->palette);                model->palette                = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_WEAPONS) && model->weapon && model->ownweapons)
 		{free(model->weapon);                 model->weapon                 = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_BRANCH) && model->branch)                      {free(model->branch);                 model->branch                 = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_ANIMATION) && model->animation)                   {free(model->animation);              model->animation              = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_DEF_FACTORS) && model->defense_factors)             {free(model->defense_factors);        model->defense_factors        = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_DEF_PAIN) && model->defense_pain)                {free(model->defense_pain);           model->defense_pain           = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_DEF_KNOCKDOWN) && model->defense_knockdown)           {free(model->defense_knockdown);      model->defense_knockdown      = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_DEF_BLOCKPOWER) && model->defense_blockpower)          {free(model->defense_blockpower);     model->defense_blockpower     = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_DEF_BLOCKTRESHOLD) && model->defense_blockthreshold)      {free(model->defense_blockthreshold); model->defense_blockthreshold = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_DEF_BLOCKRATIO) && model->defense_blockratio)          {free(model->defense_blockratio);     model->defense_blockratio     = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_DEF_BLOCKTYPE) && model->defense_blocktype)           {free(model->defense_blocktype);      model->defense_blocktype      = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_OFF_FACTORS) && model->offense_factors)             {free(model->offense_factors);        model->offense_factors        = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_SPECIAL) && model->special)                     {free(model->special);                model->special                = NULL;}
+	printf(".");
 	if(hasFreetype(model, MF_SMARTBOMB) && model->smartbomb)                   {free(model->smartbomb);              model->smartbomb              = NULL;}
+	printf(".");
 
 	if(hasFreetype(model, MF_SCRIPTS)) {
 		clear_all_scripts(&model->scripts,2);
 		free_all_scripts(&model->scripts);
 	}
+	printf(".");
 
 	model_cache[model->index].model = NULL;
 	deleteModel(model->name);
+	printf(".");
+
+	printf("done.\n");
 
 	return models_loaded--;
 }
