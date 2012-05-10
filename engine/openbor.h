@@ -1014,32 +1014,32 @@ typedef struct
 	int			reactive:8;						// Used for setting the "a" at which weapons are spawned
 	int			typeshot:8; 					// see if weapon is a gun or knife by tails
 	int			animal:8;  						// see is the weapon is a animal by tails
-	int 			nolife:8;	 					// Feb 25, 2005 - Variable flag to show life 0 = no, else yes
-	int 			makeinv;	 					// Option to spawn player invincible >0 blink <0 noblink
-	int             riseinv;                        // how many seconds will the character become invincible after rise >0 blink, <0 noblink
+	int 		nolife:8;	 					// Feb 25, 2005 - Variable flag to show life 0 = no, else yes
+	int 		makeinv;	 					// Option to spawn player invincible >0 blink <0 noblink
+	int         riseinv;                        // how many seconds will the character become invincible after rise >0 blink, <0 noblink
 	int			dofreeze:8;						// Flag to freeze all enemies/players while special is executed
 	int			noquake:8;						// Flag to make the screen shake when entity lands 1 = no, else yes
 	int			ground:8;						// Flag to determine if enemy projectiles only hit the enemy when hitting the ground
-	int 			multiple;						// So you can control how many points are given for hitting opponents
+	int 		multiple;						// So you can control how many points are given for hitting opponents
 	int			bounce:8;						// Flag to determine if bounce/quake is to be used.
 	int			type:16;
 	int			subtype:8;
-	s_icon          icon;                           //In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct.
-	int				parrow[MAX_PLAYERS][3];			// Image to be displayed when player spawns invincible
-	int				setlayer;						// Used for forcing enities to be displayed behind
+	s_icon      icon;                           //In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct.
+	int			parrow[MAX_PLAYERS][3];			// Image to be displayed when player spawns invincible
+	int			setlayer;						// Used for forcing enities to be displayed behind
 	int			thold:16;						// The entities threshold for block
-	s_maps          maps;                           //2011_04_07, DC: Pre defined color map selections and behavior.
+	s_maps      maps;                           //2011_04_07, DC: Pre defined color map selections and behavior.
 	int			alpha:8;						// New alpha variable to determine if the entity uses alpha transparency
 	int			toflip:8;						// Flag to determine if flashes flip or not
 	int			shadow:8;
-	int            gfxshadow:8;                    // use current frame to create a shadow
+	int         gfxshadow:8;                    // use current frame to create a shadow
 	int			aironly:8;						// Used to determine if shadows will be shown when jumping only
 	int			nomove:8;						// Flag for static enemies
 	int			noflip:8;						// Flag to determine if static enemies flip or stay facing the same direction
 	int			nodrop:8;						// Flag to determine if enemies can be knocked down
 	int			nodieblink:8;					// Flag to determine if blinking while playing die animation
 	int			holdblock:8;					// Continue the block animation as long as the player holds the button down
-	int            nopassiveblock:8;               // Don't auto block randomly
+	int         nopassiveblock:8;               // Don't auto block randomly
 	int			blockback:8;					// Able to block attacks from behind
 	int			blockodds:16;					// Odds that an enemy will block an attack (1 : blockodds)
 	s_edelay    edelay;                         // Entity level delay adjustment.
@@ -1170,6 +1170,7 @@ typedef struct
 	int            subject_to_maxz:8;
 	int            no_adjust_base:8;               // dont change base to 0 automatically
 	int            instantitemdeath:8;             // no delay before item suicides
+	int	hasPlatforms:8;
 	int isSubclassed:8;
 	ModelFreetype	freetypes;
 	s_scripts	scripts;
