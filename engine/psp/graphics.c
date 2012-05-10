@@ -366,7 +366,7 @@ void printText(Image* source, int x,int y,int col,int backcol,int fill,char *for
 				data++;
 				data_ptr = data_ptr >> 1;
 			}
-			data += source->textureWidth-5;;
+			data += source->textureWidth-5;
 		}
 		x+=5;
 	}

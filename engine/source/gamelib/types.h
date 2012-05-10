@@ -93,7 +93,7 @@ typedef struct{
 	int magic;
 	int	width;
 	int	height;
-	char pixelformat;
+	int pixelformat;
 	unsigned char* palette;
 	unsigned char data[ANYNUMBER];
 }s_screen;
@@ -115,7 +115,7 @@ typedef struct{
 	int magic;
 	int	width;
 	int	height;
-	char pixelformat;
+	int pixelformat;
 	unsigned char* palette;
 	unsigned char data[ANYNUMBER];
 }s_bitmap;
@@ -133,7 +133,7 @@ typedef struct spritestruct{
 	int srcheight;
 	int	width;
 	int	height;
-	char pixelformat;
+	int pixelformat;
 	struct spritestruct* mask;
 	unsigned char* palette;
 	int data[ANYNUMBER];

@@ -422,6 +422,8 @@ entity*             textbox				= NULL;
 entity*             smartbomber			= NULL;
 entity*				stalker				= NULL;					// an enemy (usually) tries to go behind the player
 entity*				firstplayer			= NULL;
+int					numPlatforms		= 0;
+int					numObstacles		= 0;
 int					stalking			= 0;
 int					nextplan			= 0;
 int                 plife[4][2]         = {{0,0},{0,0},{0,0},{0,0}};// Used for customizable player lifebar
@@ -6619,6 +6621,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					bbox[4] = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_PLATFORM:
+					newchar->hasPlatforms=1;
 					//for(i=0;(GET_ARG(i+1)[0]; i++);
 					for(i=0;i<arglist.count && arglist.args[i] && arglist.args[i][0];i++);
 					if(i<8)
@@ -8601,6 +8604,8 @@ void unload_level(){
 	debug_time = 0;
 	neon_time = 0;
 	time = 0;
+	numPlatforms = 0;
+	numObstacles = 0;
 	cameratype = 0;
 	light[0] = 128;
 	light[1] = 64;
@@ -8782,6 +8787,8 @@ void load_level(char *filename){
 	traveltime = 0;
 	texttime = 0;
 	nopause = 0;
+	numPlatforms = 0;
+	numObstacles = 0;
 	noscreenshot = 0;
 	panel_width = panel_height = frontpanels_loaded = 0;
 	memset(panels, 0, sizeof(s_layer*)*LEVEL_MAX_PANELS*3);
@@ -10981,6 +10988,7 @@ void ent_set_model(entity * ent, char * modelname)
 	m = findmodel(modelname);
 	if(m==NULL) shutdown(1, "Model not found: '%s'", modelname);
 	oldmodel = ent->modeldata;
+	numPlatforms += (!ent->model->hasPlatforms&&m->hasPlatforms);
 	ent->model = m;
 	ent->modeldata = *m;
 	ent_copy_uninit(ent, &oldmodel);
@@ -11100,6 +11108,8 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			e->modeldata = *model; // copy the entir model data here
 			e->model = model;
 			e->defaultmodel = model;
+			if(e->modeldata.hasPlatforms) numPlatforms++;
+			if(e->modeldata.type&(TYPE_OBSTACLE|TYPE_TRAP)) numObstacles++; // TODO: let's hope there's not script type change involved, otherwise should go count_ents way
 
 			e->scripts.animation_script     = pas;
 			e->scripts.update_script        = pus;
@@ -11208,6 +11218,8 @@ void kill(entity *victim)
 	victim->health = 0;
 	victim->exists = 0;
 	ent_count--;
+	numPlatforms -= victim->modeldata.hasPlatforms;
+	numObstacles -= ((victim->modeldata.type&(TYPE_OBSTACLE|TYPE_TRAP))!=0);
 
 	clear_all_scripts(&victim->scripts, 1);
 
@@ -11553,7 +11565,7 @@ entity * check_platform_between(float x, float z, float amin, float amax, entity
 	entity *plat = NULL;
 	int i;
 
-	if(level==NULL) return NULL;
+	if(level==NULL||numPlatforms<=0) return NULL;
 
 	for(i=0; i<ent_max; i++)
 	{
@@ -11576,7 +11588,7 @@ entity * check_platform_above(float x, float z, float a, entity* exclude)
 	entity *plat = NULL;
 	int i, ind;
 
-	if(level==NULL) return NULL;
+	if(level==NULL||numPlatforms<=0) return NULL;
 
 	mina = 9999999;
 	ind = -1;
@@ -11602,7 +11614,7 @@ entity * check_platform_below(float x, float z, float a, entity* exclude)
 	entity *plat = NULL;
 	int i, ind;
 
-	if(level==NULL) return NULL;
+	if(level==NULL||numPlatforms<=0) return NULL;
 
 	maxa = MIN_INT;
 	ind = -1;
@@ -11626,7 +11638,7 @@ entity * check_platform_below(float x, float z, float a, entity* exclude)
 entity * check_platform(float x, float z, entity* exclude)
 {
 	int i;
-	if(level==NULL) return NULL;
+	if(level==NULL||numPlatforms<=0) return NULL;
 
 	for(i=0; i<ent_max; i++)
 	{
@@ -11686,7 +11698,7 @@ int testmove(entity* ent, float sx, float sz, float x, float z){
 	//-----------end of hole checking---------------
 
 	//--------------obstacle checking ------------------
-	if(ent->modeldata.subject_to_obstacle>0)
+	if(numObstacles>0 && ent->modeldata.subject_to_obstacle>0)
 	{
 		if((other = find_ent_here(ent, x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
 		   (!other->animation->platform||!other->animation->platform[other->animpos][7]))
@@ -13612,6 +13624,7 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 		ent->modeldata = *newmodel;
 		ent->animation = newmodel->animation[ent->animnum];
 		ent_copy_uninit(ent, &oldmodel);
+		numPlatforms += (!model->hasPlatforms&&newmodel->hasPlatforms);
 	}
 
 	ent->modeldata.type = type;
@@ -15371,7 +15384,7 @@ int common_trymove(float xdir, float zdir)
 	//-----------end of hole checking---------------
 
 	//--------------obstacle checking ------------------
-	if(self->modeldata.subject_to_obstacle>0 /*&& !inair(self)*/)
+	if(numObstacles>0 && self->modeldata.subject_to_obstacle>0 /*&& !inair(self)*/)
 	{
 		if((other = find_ent_here(self, x, self->z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
 		   (xdir>0 ? other->x > self->x: other->x < self->x) &&
@@ -19793,7 +19806,7 @@ void update_scroller(){
 	if(current_spawn>=level->numspawns && !findent(TYPE_ENEMY) &&
 	((player[0].ent && !player[0].ent->dead) || (player[1].ent && !player[1].ent->dead) || (player[2].ent && !player[2].ent->dead) || (player[3].ent && !player[3].ent->dead))
 	){
-		if(!findent(TYPE_ENDLEVEL) && ((!findent(TYPE_ITEM) && !findent(TYPE_OBSTACLE) && level->type) || level->type != 1)){    // Feb 25, 2005 - Added so obstacles
+		if(!findent(TYPE_ENDLEVEL) && ((!findent(TYPE_ITEM|TYPE_OBSTACLE) && level->type) || level->type != 1)){    // Feb 25, 2005 - Added so obstacles
 			level_completed = 1;                                                // can be used for bonus levels
 		}
 	}
