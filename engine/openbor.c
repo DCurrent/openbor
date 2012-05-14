@@ -3699,6 +3699,7 @@ void free_frames(s_anim * anim)
 	}
 }
 
+#if 0
 s_anim_list *anim_list_delete(s_anim_list *list, int index)
 {
 	if(list == NULL) return NULL;
@@ -3708,10 +3709,33 @@ s_anim_list *anim_list_delete(s_anim_list *list, int index)
 		next = list->next;
 		free_anim(list->anim);
 		free(list);
+		--anims_loaded;
 		return next;
 	}
 	list->next = anim_list_delete(list->next, index);
 	return list;
+}
+#endif
+
+void anim_list_delete(int index)
+{
+	s_anim_list head;
+	head.next = anim_list;
+	s_anim_list* list = &head;
+	while(list->next)
+	{
+		if(list->next->anim->model_index == index)
+		{
+			s_anim_list *next = list->next->next;
+			free_anim(list->next->anim);
+			if(list->next==anim_list)
+				anim_list = next;
+			free(list->next);
+			--anims_loaded;
+			list->next = next;
+		}
+		list = list->next;
+	}
 }
 
 void free_anim(s_anim * anim)
@@ -3733,10 +3757,7 @@ void free_anim(s_anim * anim)
 		free(anim->summonframe);
 		anim->summonframe = NULL;
 	}
-	if(anim){
-		free(anim);
-		anim = NULL;
-	}
+	free(anim);
 }
 
 int hasFreetype(s_model* m, ModelFreetype t) {
@@ -3782,8 +3803,7 @@ int free_model(s_model* model)
 	printf("Unload '%s' ", model->name);
 
 	if(hasFreetype(model, MF_ANIMLIST))
-		for(i=0; i<max_animations; i++)
-			anim_list = anim_list_delete(anim_list, model->index);
+		anim_list_delete(model->index);
 
 	printf(".");
 
