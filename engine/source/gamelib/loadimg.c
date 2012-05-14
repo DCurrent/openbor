@@ -912,8 +912,8 @@ s_bitmap * loadbitmap(char *filename, char *packfile, int format){
 
 	maxwidth = res[0];
 	maxheight = res[1];
-	if(maxwidth > 4096) maxwidth = 4096;
-	if(maxheight > 4096) maxheight = 4096;
+	//if(maxwidth > 4096) maxwidth = 4096;
+	//if(maxheight > 4096) maxheight = 4096;
 	bitmap = allocbitmap(maxwidth, maxheight, format);
 	if(!bitmap){
 		closeimage();

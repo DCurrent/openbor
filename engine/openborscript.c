@@ -129,9 +129,8 @@ void Script_Global_Init()
 	{
 		psize = (sizeof(s_variantnode*) * max_global_vars);
 		csize = psize + (sizeof(s_variantnode) * max_global_vars);
-		global_var_list = malloc(csize);
+		global_var_list = calloc(1, csize);
 		assert(global_var_list != NULL);
-		memset(global_var_list, 0, csize);
 		for (i=0; i < max_global_vars; i++) {
 			global_var_list[i] = (s_variantnode*) (((char*) global_var_list) + psize + (i * sizeof(s_variantnode)));
 		}
@@ -150,9 +149,8 @@ void Script_Global_Init()
 	if(max_indexed_vars>0)
 	{
 		csize = sizeof(ScriptVariant)*(max_indexed_vars + 1);
-		indexed_var_list = (ScriptVariant*)malloc(csize);
+		indexed_var_list = (ScriptVariant*)calloc(1, csize);
 		assert(indexed_var_list != NULL);
-		memset(indexed_var_list, 0, csize);
 	}
 	List_Init(&theFunctionList);
 	Script_LoadSystemFunctions();
@@ -322,11 +320,11 @@ int Script_Set_Local_Variant(Script* cs, char* theName, ScriptVariant* var)
 Script* alloc_script()
 {
 	int i;
-	Script* pscript = (Script*)malloc(sizeof(Script));
-	memset(pscript, 0, sizeof(Script));
+	Script* pscript = (Script*)calloc(1, sizeof(Script));
+	pscript->magic = script_magic;
 	if(max_script_vars>0)
 	{
-		pscript->vars = (ScriptVariant*)malloc(sizeof(ScriptVariant)*max_script_vars);
+		pscript->vars = (ScriptVariant*)calloc(1, sizeof(ScriptVariant)*max_script_vars);
 		for(i=0; i<max_script_vars; i++) ScriptVariant_Init(pscript->vars+i);
 	}
 	return pscript;
@@ -341,7 +339,7 @@ void Script_Init(Script* pscript, char* theName, char* comment, int first)
 		pscript->magic = script_magic;
 		if(max_script_vars>0)
 		{
-			pscript->vars = (ScriptVariant*)malloc(sizeof(ScriptVariant)*max_script_vars);
+			pscript->vars = (ScriptVariant*)calloc(1, sizeof(ScriptVariant)*max_script_vars);
 			for(i=0; i<max_script_vars; i++) ScriptVariant_Init(pscript->vars+i);
 		}
 	}
