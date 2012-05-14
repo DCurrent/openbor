@@ -3722,7 +3722,7 @@ void anim_list_delete(int index)
 	s_anim_list head;
 	head.next = anim_list;
 	s_anim_list* list = &head;
-	while(list->next)
+	while(list && list->next)
 	{
 		if(list->next->anim->model_index == index)
 		{
@@ -5647,7 +5647,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 									goto lCleanup;
 									break;
 								case -2:
-									shutdownmessage = "Failed to create colourmap. Failed to tracemalloc(256)!";
+									shutdownmessage = "Failed to create colourmap. Failed to allocate memory!";
 									goto lCleanup;
 									break;
 								case -3:
@@ -10308,14 +10308,17 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 }
 
 void addscore(int playerindex, int add){
-	unsigned int s = player[playerindex&3].score;
+	unsigned int s ;
 	unsigned int next1up;
 	ScriptVariant var; // used for execute script
-	Script* cs = score_script + playerindex;
+	Script* cs;
 
 	if(playerindex < 0) return;//dont score if <0, e.g., npc damage enemy, enemy damage enemy
 
 	playerindex &= 3;
+
+	s = player[playerindex].score;
+	cs = score_script + playerindex;
 
 	next1up = ((s/lifescore)+1) * lifescore;
 
@@ -10335,7 +10338,7 @@ void addscore(int playerindex, int add){
 	//execute a script then
 	if(Script_IsInitialized(cs))
 	{
-		ScriptVariant_Clear(&var);
+		ScriptVariant_Init(&var);
 		ScriptVariant_ChangeType(&var, VT_INTEGER);
 		var.lVal = (LONG)add;
 		Script_Set_Local_Variant(cs, "score", &var);
@@ -10911,17 +10914,17 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 	int animpos;
 
 	if(!ent) {
-		printf("FATAL: tried to set animation with invalid address (no such object)");
+		//printf("FATAL: tried to set animation with invalid address (no such object)");
 		return;
 	}
 
 	if(aninum<0 || aninum>=max_animations) {
-		printf("FATAL: tried to set animation with invalid index (%s, %i)", ent->name, aninum);
+		//printf("FATAL: tried to set animation with invalid index (%s, %i)", ent->name, aninum);
 		return;
 	}
 
 	if(!validanim(ent, aninum)) {
-		printf("FATAL: tried to set animation with invalid address (%s, %i)", ent->name, aninum);
+		//printf("FATAL: tried to set animation with invalid address (%s, %i)", ent->name, aninum);
 		return;
 	}
 
@@ -11079,10 +11082,11 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 	// Be a bit more tolerant...
 	if(model==NULL)
 	{
+		/*
 		if(index>=0)
 			printf("FATAL: attempt to spawn object with invalid model cache id (%d)!\n", index);
 		else if(name)
-			printf("FATAL: attempt to spawn object with invalid model name (%s)!\n", name);
+			printf("FATAL: attempt to spawn object with invalid model name (%s)!\n", name);*/
 		return NULL;
 	}
 
@@ -17603,7 +17607,6 @@ void didfind_item(entity *other)
 	else if(other->modeldata.score)
 	{
 		addscore(self->playerindex, other->modeldata.score);
-
 		if(SAMPLE_GET2 >= 0) sound_play_sample(SAMPLE_GET2, 0, savedata.effectvol,savedata.effectvol, 100);
 	}
 	else if(other->health)
