@@ -734,6 +734,45 @@ int buffer_append(char** buffer, const char* str, size_t n, size_t* bufferlen, s
 	return *len;
 }
 
+int handle_txt_include(char* command, ArgList *arglist, char** fn, char* namebuf, char** buf, ptrdiff_t* pos, size_t* len)
+{
+	char* incfile, *filename=*fn, *buf2, *endstr="\r\n@end";
+	size_t size, t;
+	if(stricmp(command, "@include")==0){
+		incfile = GET_ARGP(1);
+		buffer_pakfile(incfile, &buf2, &size) ;
+		if(buf2){
+			*buf = realloc(*buf, *len+size+strlen(incfile)+strlen(filename)+100); //leave enough memory for jump command
+			if(*buf==NULL) {
+				shutdown(1, "Unalbe to resize buffer. (handle_txt_include)\n");
+				free(buf2);
+				return 0;
+			}
+			sprintf((*buf)+*len-1, "%s\r\n@filename %s\r\n", endstr, incfile);
+			strcat((*buf)+*len, buf2);
+			t = strlen(*buf);
+			sprintf((*buf)+t, "\r\n@filename %s\r\n@jump %d\r\n", filename, (int)(*pos));
+			(*buf)[*pos] = '#';
+			*pos = *len + strlen(endstr); //continue from the new file position
+			*len = strlen(*buf);
+			free(buf2);
+			//printf(*buf);
+			return 1;
+		}
+	}else if(stricmp(command, "@jump")==0){
+		*pos = GET_INT_ARGP(1);
+		return 2;
+	}else if(stricmp(command, "@end")==0){
+		*pos = *len;
+		return 3;
+	}else if(stricmp(command, "@filename")==0){
+		strcpy(namebuf, GET_ARGP(1));
+		*fn = namebuf;
+		return 4;
+	}
+	return 0;
+}
+
 //this method is used by script engine, we move it here
 // it will get a system property, put it in the ScriptVariant
 // if failed return 0, otherwise return 1
@@ -4758,7 +4797,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	*value2 = NULL,
 	*value3 = NULL;
 
-	char
+	char fnbuf[256] = {""},
 		namebuf[256] = {""},
 		argbuf[MAX_ARG_LEN+1] = "";
 
@@ -7178,8 +7217,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					buffer_append(&scriptbuf, sur_text, 0xffffff, &sbsize, &scriptlen); // put back last  chars
 					break;
 				default:
-					if(command && command[0])
-						printf("Command '%s' not understood in file '%s'!", command, filename);
+					if(command && command[0]) {
+						if(!handle_txt_include(command, &arglist, &filename, fnbuf, &buf, &pos, &size))
+							printf("Command '%s' not understood in file '%s'!\n", command, filename);
+					}
 			}
 
 		}
