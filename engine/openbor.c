@@ -3772,8 +3772,7 @@ void anim_list_delete(int index)
 			free(list->next);
 			--anims_loaded;
 			list->next = next;
-		}
-		list = list->next;
+		}else list = list->next;
 	}
 }
 
@@ -4797,7 +4796,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	*value2 = NULL,
 	*value3 = NULL;
 
-	char fnbuf[256] = {""},
+	char fnbuf[128] = {""},
 		namebuf[256] = {""},
 		argbuf[MAX_ARG_LEN+1] = "";
 
@@ -8779,7 +8778,7 @@ void load_level(char *filename){
 
 	int i = 0, j = 0, crlf = 0;
 	int usemap[MAX_BLENDINGS];
-	char bgPath[128] = {""};
+	char bgPath[128] = {""}, fnbuf[128];
 	s_loadingbar bgPosi = {0, 0, 0, 0, 0, 0, 0};
 	char musicPath[128] = {""};
 	u32 musicOffset = 0;
@@ -9577,8 +9576,10 @@ void load_level(char *filename){
 				memset(&next,0,sizeof(s_spawn_entry));
 				break;
 			default:
-				if(command && command[0])
-					printf("Command '%s' not understood!", command);
+				if(command && command[0]){
+					if(!handle_txt_include(command, &arglist, &filename, fnbuf, &buf, &pos, &size))
+						printf("Command '%s' not understood in file '%s'!\n", command, filename);
+				}
 		}
 
 		// Go to next line
