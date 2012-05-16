@@ -119,6 +119,9 @@ typedef struct{
 	int	width;
 	int	height;
 	int pixelformat;
+#if PSP
+	int dummy[3]; //temporary debug values
+#endif
 	unsigned char* palette;
 	unsigned char data[ANYNUMBER];
 }s_bitmap;
