@@ -43,6 +43,8 @@ s_sprite_map *sprite_map;
 s_set_entry *levelsets = NULL;
 int        num_difficulties;
 
+int		skiptoset = -1;
+
 s_level*            level               = NULL;
 s_filestream filestreams[LEVEL_MAX_FILESTREAMS];
 s_screen*           vscreen             = NULL;
@@ -50,7 +52,6 @@ s_screen*           background          = NULL;
 s_videomodes        videomodes;
 int sprite_map_max_items = 0;
 int cache_map_max_items = 0;
-
 
 int startup_done = 0; // startup is only called when a game is loaded. so when exitting from the menu we need a way to figure out which resources to free.
 List* modelcmdlist = NULL;
@@ -152,6 +153,7 @@ char                *custBkgrds = NULL;
 char                *custLevels = NULL;
 char                *custModels = NULL;
 char                rush_names[2][MAX_NAME_LEN];
+char				skipselect[MAX_PLAYERS][MAX_NAME_LEN];
 char                branch_name[MAX_NAME_LEN+1];    // Used for branches
 unsigned char       pal[MAX_PAL_SIZE] = {""};
 int                 blendfx[MAX_BLENDINGS] = {0,1,0,0,0,0};
@@ -8068,9 +8070,16 @@ void load_levelorder()
 				break;
 			case CMD_LEVELORDER_SKIPSELECT:
 				CHKDEF;
-				for(i=0; i<4;i++) {
-					if((arg=GET_ARG(i+1))[0]) {
-						set->skipselect[i] = NAME(arg);
+				if(arglist.count==1)
+				{
+					set->noselect = 1;
+				}
+				else
+				{
+					for(i=0; i<4;i++) {
+						if((arg=GET_ARG(i+1))[0]) {
+							set->skipselect[i] = NAME(arg);
+						}
 					}
 				}
 				break;
@@ -8457,6 +8466,9 @@ void load_levelorder()
 				default_level_gravity = GET_FLOAT_ARG(1);
 				default_level_maxfallspeed = GET_FLOAT_ARG(2);
 				default_level_maxtossspeed = GET_FLOAT_ARG(3);
+				break;
+			case CMD_LEVELORDER_SKIPTOSET:
+				skiptoset = GET_INT_ARG(1);
 				break;
 			default:
 				if (command && command[0])
@@ -9893,7 +9905,7 @@ void updatestatus(){
 		else if(player[i].joining && player[i].name[0])
 		{
 			model = findmodel(player[i].name);
-			if((player[i].playkeys & FLAG_ANYBUTTON || set->skipselect[i]) && !freezeall && !nojoin)    // Can't join while animations are frozen
+			if((player[i].playkeys & FLAG_ANYBUTTON || skipselect[i][0]) && !freezeall && !nojoin)    // Can't join while animations are frozen
 			{
 				// reports error if players try to use the same character and sameplay mode is off
 				if(sameplayer){
@@ -10005,7 +10017,7 @@ void updatestatus(){
 			if(player[i].playkeys & FLAG_START)
 			{
 				player[i].lives = 0;
-				model = set->skipselect[i]?findmodel(set->skipselect[i]):nextplayermodel(NULL);
+				model = skipselect[i][0]?findmodel(skipselect[i]):nextplayermodel(NULL);
 				strncpy(player[i].name, model->name, MAX_NAME_LEN);
 				player[i].colourmap = i;
 				 // Keep looping until a non-hmap is found
@@ -19893,7 +19905,7 @@ void update_scroller(){
 	if(current_spawn>=level->numspawns && !findent(TYPE_ENEMY) &&
 	((player[0].ent && !player[0].ent->dead) || (player[1].ent && !player[1].ent->dead) || (player[2].ent && !player[2].ent->dead) || (player[3].ent && !player[3].ent->dead))
 	){
-		if(!findent(TYPE_ENDLEVEL) && ((!findent(TYPE_ITEM|TYPE_OBSTACLE) && level->type) || level->type != 1)){    // Feb 25, 2005 - Added so obstacles
+		if(!findent(TYPE_ENDLEVEL) && ((!findent(TYPE_ITEM|TYPE_OBSTACLE) && level->type==1) || level->type == 0)){    // Feb 25, 2005 - Added so obstacles
 			level_completed = 1;                                                // can be used for bonus levels
 		}
 	}
@@ -20682,7 +20694,7 @@ void update(int ingame, int usevwait)
 				update_scroller();
 				if(!freezeall)
 				{
-					if(level->settime > 0 || (!player[0].ent && !player[1].ent && !player[2].ent && !player[3].ent))
+					if(level->settime > 0 || (level->type!=2 && !player[0].ent && !player[1].ent && !player[2].ent && !player[3].ent))
 					{
 						if(timeleft>0) --timeleft;
 						else if((level->settime > 0 && !player[0].joining && !player[1].joining && !player[2].joining && !player[3].joining) ||
@@ -20708,11 +20720,11 @@ void update(int ingame, int usevwait)
 	if(ingame == 1 && !pause)
 	{
 		update_scrolled_bg();
-		updatestatus();
+		if(level->type!=2) updatestatus();
 
 		draw_scrolled_bg();
-		predrawstatus();
-		drawstatus();
+		if(level->type!=2) predrawstatus();
+		if(level->type!=2) drawstatus();
 		draw_textobjs();
 	}
 	
@@ -21754,7 +21766,7 @@ void savelevelinfo()
 
 int playlevel(char *filename)
 {
-	int i;
+	int i, type;
 
 	kill_all();
 	
@@ -21772,6 +21784,7 @@ int playlevel(char *filename)
 	nextplan = 0;
 	stalker = NULL;
 	firstplayer = NULL;
+	type = level->type;
 
 	// Fixes the start level executing last button bug
 	for(i=0; i<levelsets[current_set].maxplayers; i++)
@@ -21816,7 +21829,7 @@ int playlevel(char *filename)
 	kill_all();
 	unload_level();
 
-	return (player[0].lives > 0 || player[1].lives > 0 || player[2].lives > 0|| player[3].lives > 0); //4player
+	return type==2 || (player[0].lives > 0 || player[1].lives > 0 || player[2].lives > 0|| player[3].lives > 0); //4player
 }
 
 
@@ -21907,15 +21920,14 @@ int selectplayer(int *players, char* filename)
 	}
 	else // without select.txt
 	{
-		if(set->skipselect[0])
+		if(skipselect[0][0] || set->noselect)
 		{
 			for(i=0; i<set->maxplayers; i++)
 			{
 				memset(&player[i], 0, sizeof(s_player));
 				if(!players[i]) continue;
 
-				if(set->skipselect[i]) // just in case or it will be an array overflow issue
-				strncpy(player[i].name, set->skipselect[i], MAX_NAME_LEN);
+				strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
 				//else continue;
 				if(!noshare) credits = CONTINUES;
 				else
@@ -22177,6 +22189,12 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 	sameplayer = set->nosame;
 
 	memset(player, 0, sizeof(s_player)*4);
+
+	for(i=0; i<MAX_PLAYERS; i++)
+	{
+		if(set->skipselect[i]) strcpy(skipselect[i], set->skipselect[i]);
+		else skipselect[i][0] = 0;
+	}
 
 	if(useSavedGame)
 	{
@@ -24053,7 +24071,7 @@ void openborMain(int argc, char** argv)
 	u32 introtime = 0;
 	int started = 0;
 	char tmpBuff[128] = {""};
-	int players[MAX_PLAYERS];
+	int players[MAX_PLAYERS] = {0,0,0,0};
 	int i;
 	int argl;
 
@@ -24173,51 +24191,63 @@ void openborMain(int argc, char** argv)
 	loadsettings();
 	startup();
 
-	// New alternative background path for PSP
-	if(custBkgrds != NULL)
+	if(skiptoset<0)
 	{
-		strcpy(tmpBuff,custBkgrds);
-		strncat(tmpBuff,"logo", 4);
-		load_background(tmpBuff, 0);
-	}
-	else {
-		printf("use cached bg\n");
-		load_cached_background("data/bgs/logo", 0);
-	}
 
-	while(time<GAME_SPEED*6 && !(bothnewkeys&(FLAG_ANYBUTTON|FLAG_ESC))) update(0,0);
+		// New alternative background path for PSP
+		if(custBkgrds != NULL)
+		{
+			strcpy(tmpBuff,custBkgrds);
+			strncat(tmpBuff,"logo", 4);
+			load_background(tmpBuff, 0);
+		}
+		else {
+			printf("use cached bg\n");
+			load_cached_background("data/bgs/logo", 0);
+		}
 
-	music("data/music/remix", 1, 0);
+		while(time<GAME_SPEED*6 && !(bothnewkeys&(FLAG_ANYBUTTON|FLAG_ESC))) update(0,0);
 
-	// New alternative scene path for PSP
-	if(custScenes != NULL)
-	{
-		strncpy(tmpBuff,custScenes, 128);
-		strncat(tmpBuff,"logo.txt", 8);
-		playscene(tmpBuff);
+		music("data/music/remix", 1, 0);
+
+		// New alternative scene path for PSP
+		if(custScenes != NULL)
+		{
+			strncpy(tmpBuff,custScenes, 128);
+			strncat(tmpBuff,"logo.txt", 8);
+			playscene(tmpBuff);
+		}
+		else playscene("data/scenes/logo.txt");
 	}
-	else playscene("data/scenes/logo.txt");
 	clearscreen(background);
 
 	while(!quit)
 	{
-		if(time >= introtime)
+		if(skiptoset<0)
 		{
-			// New alternative scene path for PSP
-			if(custScenes != NULL)
+			if(time >= introtime)
 			{
-				strncpy(tmpBuff,custScenes, 128);
-				strncat(tmpBuff,"intro.txt", 9);
-				playscene(tmpBuff);
+				// New alternative scene path for PSP
+				if(custScenes != NULL)
+				{
+					strncpy(tmpBuff,custScenes, 128);
+					strncat(tmpBuff,"intro.txt", 9);
+					playscene(tmpBuff);
+				}
+				else playscene("data/scenes/intro.txt");
+				update(0,0);
+				introtime = time + GAME_SPEED * 20;
+				relback = 1;
+				started = 0;
 			}
-			else playscene("data/scenes/intro.txt");
-			update(0,0);
-			introtime = time + GAME_SPEED * 20;
-			relback = 1;
-			started = 0;
-		}
 
-		if(bothnewkeys & FLAG_ESC) quit = 1;
+			if(bothnewkeys & FLAG_ESC) quit = 1;
+		}
+		else
+		{
+			started = 1;
+			relback = 0;
+		}
 
 		if(!started)
 		{
@@ -24225,8 +24255,12 @@ void openborMain(int argc, char** argv)
 			if(bothnewkeys&(FLAG_ANYBUTTON))
 			{
 				started = 1;
-				relback = 1;
+				relback = 0;
 			}
+		}
+		else if(skiptoset>=0)
+		{
+			playgame(players, skiptoset, 0);
 		}
 		else
 		{

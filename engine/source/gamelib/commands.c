@@ -595,6 +595,7 @@ List* createLevelOrderCommandList(void) {
 	LIST_ADD(CMD_LEVELORDER_MAXWALLHEIGHT, "maxwallheight");
 	LIST_ADD(CMD_LEVELORDER_SCOREFORMAT, "scoreformat");
 	LIST_ADD(CMD_LEVELORDER_GRAVITY, "gravity");
+	LIST_ADD(CMD_LEVELORDER_SKIPTOSET, "skiptoset");
 
 	#undef LIST_ADD
 	return result;
