@@ -1486,6 +1486,7 @@ typedef struct
 	char* skipselect[MAX_PLAYERS]; //** better if level based
 	int saveflag;
 	int nosame;
+	int	noselect;
 
 }s_set_entry;
 

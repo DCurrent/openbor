@@ -124,6 +124,7 @@ typedef enum levelOrderCommand {
 	CMD_LEVELORDER_MAXWALLHEIGHT,
 	CMD_LEVELORDER_SCOREFORMAT,
 	CMD_LEVELORDER_GRAVITY,
+	CMD_LEVELORDER_SKIPTOSET,
 } levelOrderCommands;
 
 typedef enum levelCommand {
