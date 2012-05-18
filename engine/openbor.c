@@ -24255,7 +24255,7 @@ void openborMain(int argc, char** argv)
 			if(bothnewkeys&(FLAG_ANYBUTTON))
 			{
 				started = 1;
-				relback = 0;
+				relback = 1;
 			}
 		}
 		else if(skiptoset>=0)
