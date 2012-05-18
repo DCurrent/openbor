@@ -56,12 +56,11 @@
 #define		shutdown			borShutdown
 
 #define		DEFAULT_SHUTDOWN_MESSAGE \
-			"OpenBOR %s, Compile Date: " __DATE__ "\n" \
+			"OpenBOR " VERSION ", Compile Date: " __DATE__ "\n" \
 			"Presented by Senile Team.\n" \
 			"This Version is unofficial and based on the Senile source code.\n" \
 			"\n" \
-			"Special thanks to SEGA and SNK.\n\n", \
-			VERSION
+			"Special thanks to SEGA and SNK.\n\n"
 
 #define		COMPATIBLEVERSION	0x00030000
 #define		CV_SAVED_GAME		0x00021276

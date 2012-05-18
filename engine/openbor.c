@@ -155,6 +155,7 @@ char                *custModels = NULL;
 char                rush_names[2][MAX_NAME_LEN];
 char				skipselect[MAX_PLAYERS][MAX_NAME_LEN];
 char                branch_name[MAX_NAME_LEN+1];    // Used for branches
+int					useSave = 0;
 unsigned char       pal[MAX_PAL_SIZE] = {""};
 int                 blendfx[MAX_BLENDINGS] = {0,1,0,0,0,0};
 char                blendfx_is_set = 0;
@@ -761,6 +762,7 @@ int handle_txt_include(char* command, ArgList *arglist, char** fn, char* namebuf
 			//printf(*buf);
 			return 1;
 		}
+		shutdown(1, "Can't find file '%s' to include.\n", incfile);
 	}else if(stricmp(command, "@jump")==0){
 		*pos = GET_INT_ARGP(1);
 		return 2;
@@ -1035,6 +1037,10 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)shadowcolor;
 		break;
+	case _sv_skiptoset:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)skiptoset;
+		break;
 	case _sv_slowmotion:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)slowmotion[0];
@@ -1062,6 +1068,10 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 	case _sv_usedram:
 		 ScriptVariant_ChangeType(var, VT_INTEGER);
 		 var->lVal = (LONG)getUsedRam(KBYTES);
+		break;
+	case _sv_usesave:
+		 ScriptVariant_ChangeType(var, VT_INTEGER);
+		 var->lVal = (LONG)useSave;
 		break;
 	case _sv_background:
 		ScriptVariant_ChangeType(var, VT_PTR);
@@ -1154,7 +1164,19 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 		break;
 	case _sv_blockade:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
-			blockade = (float)ltemp;
+			shadowalpha = (float)ltemp;
+		break;
+	case _sv_shadowcolor:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			shadowcolor = (int)ltemp;
+		break;
+	case _sv_shadowalpha:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			skiptoset = (int)ltemp;
+		break;
+	case _sv_skiptoset:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			skiptoset = (int)ltemp;
 		break;
 	case _sv_slowmotion:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
@@ -1189,6 +1211,10 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 		break;
 	case _sv_textbox:
 		textbox = (entity*)value->ptrVal;
+		break;
+	case _sv_usesave:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			useSave = (int)ltemp;
 		break;
 	case _sv_viewportx:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
@@ -22196,7 +22222,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 		else skipselect[i][0] = 0;
 	}
 
-	if(useSavedGame)
+	if(useSavedGame && save->flag)
 	{
 		loadScriptFile();
 		current_level = save->level;
@@ -22289,6 +22315,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 			{
 				current_level = set->numlevels;
 			}
+			if(useSave) goto endgame; //quick exit without saving, for script load game logic
 		}//while
 
 		if(current_level >= set->numlevels)
@@ -22296,9 +22323,11 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 			bonus += save->times_completed++;
 			saveGameFile();
 			fade_out(0, 0);
-			hallfame(1);
+			if(!set->noshowhof) hallfame(1);
 		}
 	}
+
+endgame:
 	// clear global script variant list
 	branch_name[0] = 0;
 	//max_global_var_index = -1;
@@ -24260,7 +24289,8 @@ void openborMain(int argc, char** argv)
 		}
 		else if(skiptoset>=0)
 		{
-			playgame(players, skiptoset, 0);
+			loadGameFile();
+			playgame(players, skiptoset, useSave);
 		}
 		else
 		{

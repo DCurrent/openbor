@@ -513,6 +513,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_setscriptvar)) return "setscriptvar";
 	else if (functionRef==((void*)openbor_getentityvar)) return "getentityvar";
 	else if (functionRef==((void*)openbor_setentityvar)) return "setentityvar";
+	else if (functionRef==((void*)openbor_shutdown)) return "shutdown";
 	else if (functionRef==((void*)openbor_jumptobranch)) return "jumptobranch";
 	else if (functionRef==((void*)openbor_changelight)) return "changelight";
 	else if (functionRef==((void*)openbor_changeshadowcolor)) return "changeshadowcolor";
@@ -1014,6 +1015,8 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_setentityvar, "setentityvar");
 	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_shutdown, "shutdown");
+	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_jumptobranch, "jumptobranch");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_changelight, "changelight");
@@ -1347,6 +1350,7 @@ static const char* svlist[] = {
 "self",
 "shadowalpha",
 "shadowcolor",
+"skiptoset",
 "slowmotion",
 "slowmotion_duration",
 "smartbomber",
@@ -1354,6 +1358,7 @@ static const char* svlist[] = {
 "textbox",
 "totalram",
 "usedram",
+"usesave",
 "vResolution",
 "viewporth",
 "viewportw",
@@ -10657,6 +10662,25 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 	}
 
 	return S_OK;
+}
+
+
+//shutdown(status, message)
+HRESULT openbor_shutdown(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG ltemp = 0;
+
+	*pretvar = NULL;
+
+	if(paramCount > 0 && FAILED(ScriptVariant_IntegerValue(varlist[0], &ltemp))) goto shutdown_error;
+	if(paramCount > 1 && varlist[1]->vt != VT_STR) goto shutdown_error;
+
+	shutdown((int)ltemp,  paramCount > 1?StrCache_Get(varlist[0]->strVal):(DEFAULT_SHUTDOWN_MESSAGE));
+
+	return S_OK;
+shutdown_error:
+	printf("shutdown(status, message): both parameters are optional but must be valid.\n");
+	return E_FAIL;
 }
 
 //jumptobranch(name, immediate)
