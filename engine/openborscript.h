@@ -149,6 +149,8 @@ HRESULT openbor_setscriptvar(ScriptVariant** varlist , ScriptVariant** pretvar, 
 HRESULT openbor_getentityvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_setentityvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
+HRESULT openbor_shutdown(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+
 HRESULT openbor_jumptobranch(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 HRESULT openbor_changelight(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
@@ -294,6 +296,7 @@ _sv_scrollminz,
 _sv_self,
 _sv_shadowalpha,
 _sv_shadowcolor,
+_sv_skiptoset,
 _sv_slowmotion,
 _sv_slowmotion_duration,
 _sv_smartbomber,
@@ -301,6 +304,7 @@ _sv_soundvol,
 _sv_textbox,
 _sv_totalram,
 _sv_usedram,
+_sv_usesave,
 _sv_vResolution,
 _sv_viewporth,
 _sv_viewportw,

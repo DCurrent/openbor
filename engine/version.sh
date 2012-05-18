@@ -67,7 +67,7 @@ echo "/*
 #define VERSION_MAJOR \"$VERSION_MAJOR\"
 #define VERSION_MINOR \"$VERSION_MINOR\"
 #define VERSION_BUILD \"$VERSION_BUILD\"
-#define VERSION (\"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD)
+#define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD
 
 #endif" >> version.h
 
