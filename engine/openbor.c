@@ -172,7 +172,6 @@ blend_table_function blending_table_functions32[MAX_BLENDINGS] = {create_screen3
 int                 current_set = 0;
 int                 current_level = 0;
 int                 current_stage = 1;
-int					new_game = 0;
 
 int					timevar;
 float               bgtravelled;
@@ -401,6 +400,7 @@ s_loadingbar        loadingbg[2] = {{0,0,0,0,0,0,0},{0,0,0,0,0,0,0}};  // If set
 int					loadingmusic        = 0;
 int                 unlockbg            = 0;         			// If set to 1, will look for a different background image after defeating the game
 int                 pause               = 0;
+int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
 int                 noscreenshot        = 0;                    // OX. If set to 1 , taking screenshots is disabled.
 int                 endgame             = 0;
@@ -984,6 +984,18 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)savedata.musicvol;
 		break;
+	case _sv_nopause:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)nopause;
+		break;
+	case _sv_nosave:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)nosave;
+		break;
+	case _sv_noscreenshot:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)noscreenshot;
+		break;
 	case _sv_numpalettes:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(level->numpalettes);
@@ -1211,6 +1223,18 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 		break;
 	case _sv_textbox:
 		textbox = (entity*)value->ptrVal;
+		break;
+	case _sv_nopause:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			nopause = (int)ltemp;
+		break;
+	case _sv_nosave:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			nosave = (int)ltemp;
+		break;
+	case _sv_noscreenshot:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			noscreenshot = (int)ltemp;
 		break;
 	case _sv_usesave:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
@@ -21796,14 +21820,14 @@ int playlevel(char *filename)
 
 	kill_all();
 	
-	if(!new_game)
+	if(!nosave)
 	{
 		savelevelinfo();
 		saveGameFile();
 		saveHighScoreFile();
 		saveScriptFile();
 	}
-	new_game = 0;
+	nosave = 0;
 
 	load_level(filename);
 	time = 0;
@@ -22247,7 +22271,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 	else
 	{
 		//max_global_var_index = 0;
-		new_game = 1;
+		nosave = 1;
 	}
 
 	if((useSavedGame && save->flag == 2) || selectplayer(players, NULL)) // if save flag is 2 don't select player
