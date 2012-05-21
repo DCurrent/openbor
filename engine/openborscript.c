@@ -1334,6 +1334,7 @@ static const char* svlist[] = {
 "models_cached",
 "models_loaded",
 "musicvol",
+"nofadeout",
 "nopause",
 "nosave",
 "noscreenshot",

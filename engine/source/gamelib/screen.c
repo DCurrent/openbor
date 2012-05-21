@@ -294,6 +294,8 @@ static void _putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod
 		table = drawmethod->table;
 		alpha = drawmethod->alpha;
 		transbg = drawmethod->transbg;
+		x -= drawmethod->centerx;
+		y -= drawmethod->centery;
 	}
 
 	if(!table && alpha<=0 && !transbg)
