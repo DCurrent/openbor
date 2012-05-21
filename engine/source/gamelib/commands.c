@@ -402,6 +402,8 @@ List* createLevelCommandList(void) {
 	LIST_ADD(CMD_LEVEL_SCROLLSPEED, "scrollspeed");
 	LIST_ADD(CMD_LEVEL_MIRROR, "mirror");
 	LIST_ADD(CMD_LEVEL_BOSSMUSIC, "bossmusic");
+	LIST_ADD(CMD_LEVEL_NOFADEOUT, "nofadeout");
+	LIST_ADD(CMD_LEVEL_NOSAVE, "nosave");
 	LIST_ADD(CMD_LEVEL_NOPAUSE, "nopause");
 	LIST_ADD(CMD_LEVEL_NOSCREENSHOT, "noscreenshot");
 	LIST_ADD(CMD_LEVEL_SETTIME, "settime");

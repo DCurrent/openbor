@@ -400,6 +400,7 @@ s_loadingbar        loadingbg[2] = {{0,0,0,0,0,0,0},{0,0,0,0,0,0,0}};  // If set
 int					loadingmusic        = 0;
 int                 unlockbg            = 0;         			// If set to 1, will look for a different background image after defeating the game
 int                 pause               = 0;
+int					nofadeout			= 0;
 int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
 int                 noscreenshot        = 0;                    // OX. If set to 1 , taking screenshots is disabled.
@@ -984,6 +985,10 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)savedata.musicvol;
 		break;
+	case _sv_nofadeout:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)nofadeout;
+		break;
 	case _sv_nopause:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)nopause;
@@ -1223,6 +1228,10 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 		break;
 	case _sv_textbox:
 		textbox = (entity*)value->ptrVal;
+		break;
+	case _sv_nofadeout:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			nofadeout = (int)ltemp;
 		break;
 	case _sv_nopause:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
@@ -8931,6 +8940,7 @@ void load_level(char *filename){
 	traveltime = 0;
 	texttime = 0;
 	nopause = 0;
+	nofadeout = 0;
 	numPlatforms = 0;
 	numObstacles = 0;
 	noscreenshot = 0;
@@ -9143,6 +9153,12 @@ void load_level(char *filename){
 			case CMD_LEVEL_BOSSMUSIC:
 				strncpy(level->bossmusic, GET_ARG(1), 255);
 				level->bossmusic_offset = atol(GET_ARG(2));
+				break;
+			case CMD_LEVEL_NOSAVE:
+				nosave = GET_INT_ARG(1);
+				break;
+			case CMD_LEVEL_NOFADEOUT:
+				nofadeout = GET_INT_ARG(1);
 				break;
 			case CMD_LEVEL_NOPAUSE:
 				nopause = GET_INT_ARG(1);
@@ -21820,16 +21836,18 @@ int playlevel(char *filename)
 
 	kill_all();
 	
+	savelevelinfo(); // just in case we lose them after level is freed
+
+	load_level(filename);
+
 	if(!nosave)
 	{
-		savelevelinfo();
 		saveGameFile();
 		saveHighScoreFile();
 		saveScriptFile();
 	}
 	nosave = 0;
 
-	load_level(filename);
 	time = 0;
 	nextplan = 0;
 	stalker = NULL;
@@ -21861,7 +21879,7 @@ int playlevel(char *filename)
 	//execute a script when level finished
 	if(Script_IsInitialized(&endlevel_script)) Script_Execute(&endlevel_script);
 	if(Script_IsInitialized(&(level->endlevel_script))) Script_Execute(&(level->endlevel_script));
-	fade_out(0, 0);
+	if(!nofadeout) fade_out(0, 0);
 
 	for(i=0; i<levelsets[current_set].maxplayers; i++)
 	{
@@ -22268,11 +22286,8 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 			//TODO: change sav format to support custom allowselect list.
 		}
 	}
-	else
-	{
-		//max_global_var_index = 0;
-		nosave = 1;
-	}
+	
+	nosave = 1;
 
 	if((useSavedGame && save->flag == 2) || selectplayer(players, NULL)) // if save flag is 2 don't select player
 	{
@@ -22346,7 +22361,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 		{
 			bonus += save->times_completed++;
 			saveGameFile();
-			fade_out(0, 0);
+			if(!nofadeout) fade_out(0, 0);
 			if(!set->noshowhof) hallfame(1);
 		}
 	}
