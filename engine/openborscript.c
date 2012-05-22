@@ -162,6 +162,7 @@ void _freeheapnode(void* ptr){
 	if(((Script*)ptr)->magic==script_magic) {
 		Script_Clear((Script*)ptr,2);
 	}
+	free(ptr);
 }
 
 //this function should only be called when the engine is shutting down
