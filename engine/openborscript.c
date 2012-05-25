@@ -533,6 +533,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_getentity)) return "getentity";
 	else if (functionRef==((void*)openbor_loadmodel)) return "loadmodel";
 	else if (functionRef==((void*)openbor_loadsprite)) return "loadsprite";
+	else if (functionRef==((void*)openbor_options)) return "options";
 	else if (functionRef==((void*)openbor_playgif)) return "playgif";
 	else if (functionRef==((void*)openbor_strinfirst)) return "strinfirst";
 	else if (functionRef==((void*)openbor_strinlast)) return "strinlast";
@@ -1053,6 +1054,8 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_loadmodel, "loadmodel");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_loadsprite, "loadsprite");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_options, "options");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_playgif, "playgif");
 	List_InsertAfter(&theFunctionList,
@@ -6339,6 +6342,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			ent->modeldata.falldie = (int)ltemp;
 		break;
 	}
+	case _ep_playerindex:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->playerindex = (int)ltemp;
+		break;
+	}
 	case _ep_pain_time:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
@@ -11421,6 +11430,15 @@ loadsprite_error:
 	ScriptVariant_Clear(*pretvar);
 	*pretvar = NULL;
 	return E_FAIL;
+}
+
+// debug only for now
+HRESULT openbor_options(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	void options();
+	options();
+	*pretvar = NULL;
+	return S_OK;
 }
 
 //playgif(path, int x, int y, int noskip)

@@ -172,6 +172,7 @@ HRESULT openbor_getentity(ScriptVariant** varlist , ScriptVariant** pretvar, int
 
 HRESULT openbor_loadmodel(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_loadsprite(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_options(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_playgif(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 HRESULT openbor_strinfirst(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
