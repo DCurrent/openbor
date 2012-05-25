@@ -1147,6 +1147,18 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			time = (int)ltemp;
 		break;
+	case _sv_current_stage:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			current_stage = (int)ltemp;
+		break;
+	case _sv_current_set:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			current_set = (int)ltemp;
+		break;
+	case _sv_current_level:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			current_level = (int)ltemp;
+		break;
     case _sv_gfx_x_offset:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			gfx_x_offset = (int)ltemp;
