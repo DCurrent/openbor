@@ -9508,12 +9508,10 @@ HRESULT openbor_pausemusic(ScriptVariant** varlist , ScriptVariant** pretvar, in
 HRESULT openbor_playsample(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	int i;
-	LONG value[6];
-
-	if(paramCount != 6) goto playsample_error;
+	LONG value[6] = {-1, 0, savedata.effectvol, savedata.effectvol, 100, 0};
 
 	*pretvar = NULL;
-	for(i=0; i<6; i++)
+	for(i=0; i<6 && i<paramCount; i++)
 	{
 		if(FAILED(ScriptVariant_IntegerValue(varlist[i], value+i)))
 			goto playsample_error;
@@ -10847,7 +10845,7 @@ HRESULT openbor_size(ScriptVariant** varlist , ScriptVariant** pretvar, int para
 	return S_OK;
 
 size_error:
-	printf("Function requires 1 array handle and 1 int value: get(array, int index)\n");
+	printf("Function requires 1 array handle: size(array)\n");
 	(*pretvar) = NULL;
 	return E_FAIL;
 }
