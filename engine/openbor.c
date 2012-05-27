@@ -9731,7 +9731,10 @@ void load_level(char *filename){
 		}
 
 		if(level->background)
-			level->layersref[level->numlayersref++] = *(level->background);
+		{
+			level->layersref[level->numlayersref] = *(level->background);
+			level->background = &(level->layersref[level->numlayersref++]);
+		}
 
 
 		// non-panel type layers
