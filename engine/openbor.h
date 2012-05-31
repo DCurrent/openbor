@@ -1665,10 +1665,12 @@ void    loadsettings(void);
 void    loadfromdefault(void);
 void    clearSavedGame(void);
 void    clearHighScore(void);
-void    saveGameFile(void);
+int    saveGameFile(void);
 int     loadGameFile(void);
-void    saveHighScoreFile(void);
-void    loadHighScoreFile(void);
+int		saveScriptFile(void);
+int		loadScriptFile(void);
+int    saveHighScoreFile(void);
+int    loadHighScoreFile(void);
 int music(char *filename, int loop, long offset);
 #if DC
 void check_music_opened(void);
