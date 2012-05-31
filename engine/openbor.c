@@ -2358,7 +2358,7 @@ void clearHighScore(){
 
 
 
-void saveGameFile(){
+int saveGameFile(){
 #ifndef DC
 	FILE *handle = NULL;
 	char path[256] = {""};
@@ -2368,15 +2368,19 @@ void saveGameFile(){
 	strcat(path, tmpname);
 	//if(!savelevel[saveslot].level) return;
 	handle = fopen(path, "wb");
-	if(handle == NULL) return;
+	if(handle == NULL) return 0;
     fwrite(savelevel, sizeof(s_savelevel), num_difficulties, handle);
 	fclose(handle);
+	return 1;
+#else
+	return 1;
 #endif
 }
 
 
 int loadGameFile(){
 #ifndef DC
+	int result = 1;
 	FILE *handle = NULL;
 	char path[256] = {""};
 	char tmpname[256] = {""};
@@ -2387,9 +2391,10 @@ int loadGameFile(){
 	if(handle == NULL) return 0;
     if(fread(savelevel, sizeof(s_savelevel), num_difficulties, handle)>=sizeof(s_savelevel) && savelevel[0].compatibleversion!=CV_SAVED_GAME){ //TODO: check file length
 		clearSavedGame();
+		result = 0;
 	}
 	fclose(handle);
-	return 1;
+	return result;
 #else
 	clearSavedGame();
 	return 0;
@@ -2397,7 +2402,7 @@ int loadGameFile(){
 }
 
 
-void saveHighScoreFile(){
+int saveHighScoreFile(){
 #ifndef DC
 	FILE *handle = NULL;
 	char path[256] = {""};
@@ -2406,14 +2411,17 @@ void saveHighScoreFile(){
 	getPakName(tmpname, 1);
 	strcat(path, tmpname);
 	handle = fopen(path, "wb");
-	if(handle == NULL) return;
+	if(handle == NULL) return 0;
     fwrite(&savescore, 1, sizeof(s_savescore), handle);
 	fclose(handle);
+	return 1;
+#else
+	return 1;
 #endif
 }
 
 
-void loadHighScoreFile(){
+int loadHighScoreFile(){
 #ifndef DC
 	FILE *handle = NULL;
 	char path[256] = {""};
@@ -2423,12 +2431,17 @@ void loadHighScoreFile(){
 	strcat(path,tmpname);
 	clearHighScore();
 	handle = fopen(path, "rb");
-	if(handle == NULL) return;
+	if(handle == NULL) return 0;
     fread(&savescore, 1, sizeof(s_savescore), handle);
 	fclose(handle);
-	if(savescore.compatibleversion != CV_HIGH_SCORE) clearHighScore();
+	if(savescore.compatibleversion != CV_HIGH_SCORE) {
+		clearHighScore();
+		return 0;
+	}
+	return 1;
 #else
 	clearHighScore();
+	return 0;
 #endif
 }
 
@@ -2476,7 +2489,7 @@ static void vardump(ScriptVariant *var, char buffer[])
 #endif
 
 
-void saveScriptFile()
+int saveScriptFile()
 {
 #ifndef DC
 	#define _writestr(v) fwrite(v, strlen(v), 1, handle);
@@ -2495,7 +2508,7 @@ void saveScriptFile()
 	path[l-2] = '0'+(current_set/10);
 	path[l-1] = '0'+(current_set%10);
 	handle = fopen(path, "wb");
-	if(handle == NULL) return;
+	if(handle == NULL) return 0;
 
 	_writeconst("void main() {\n");
 	for(i=0; i<=max_global_var_index; i++)
@@ -2528,18 +2541,24 @@ void saveScriptFile()
 	_writeconst("}\n");
 
 	fclose(handle);
+	return 1;
 	#undef _writestr
 	#undef _writetmp
 	#undef _writeconst
+#else
+	return 1;
 #endif
 }
 
 
-void loadScriptFile(){
+int loadScriptFile(){
 #ifndef DC
 	Script script;
-
+	int result = 0;
+	char* buf = NULL;
 	ptrdiff_t l;
+	size_t len;
+	FILE *handle = NULL;
 
 	char path[256] = {""};
 	char tmpname[256] = {""};
@@ -2552,12 +2571,30 @@ void loadScriptFile(){
 	path[l-2] = '0'+(current_set/10);
 	path[l-1] = '0'+(current_set%10);
 
+	handle = fopen(path, "rb");
+	if(handle == NULL) return 0;
+
+	fseek(handle, 0, SEEK_END);
+	len = ftell(handle);
+	fseek(handle, 0, SEEK_SET);
+	buf = malloc(len+1);
+
+	if(!buf) return 0;
+
+	fread(buf, 1, len, handle);
+	buf[len-1] = 0;
+
 	Script_Init(&script, "loadScriptFile",  NULL, 1);
-	if(!load_script(&script, path))   Script_Clear(&script, 2);
-	Script_Compile(&script);
-	if(Script_IsInitialized(&script))
-		Script_Execute(&script);
+
+	result = (Script_AppendText(&script, buf, path) &&
+		Script_Compile(&script) && 
+		Script_Execute(&script) );
+	
 	Script_Clear(&script, 2);
+	free(buf);
+	return result;
+#else
+	return 0;
 #endif
 }
 
@@ -22281,7 +22318,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 
 	if(useSavedGame && save->flag)
 	{
-		loadScriptFile();
+		if(!loadScriptFile()) printf("Warning, failed to load script save!\n");
 		current_level = save->level;
 		current_stage = save->stage;
 		if(save->flag == 2) // don't check 1 or 0 becuase if we use saved game the flag must be >0
