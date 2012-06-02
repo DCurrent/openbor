@@ -1125,6 +1125,10 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)max_animations;
 		break;
+	case _sv_ticks:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)timer_gettick();
+		break;
 	default:
 		// We use indices now, but players/modders don't need to be exposed
 		// to that implementation detail, so we write "name" and not "index".

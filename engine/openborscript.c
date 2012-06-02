@@ -1364,6 +1364,7 @@ static const char* svlist[] = {
 "smartbomber",
 "soundvol",
 "textbox",
+"ticks",
 "totalram",
 "usedram",
 "usesave",
