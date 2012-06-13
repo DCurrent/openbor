@@ -909,19 +909,13 @@ typedef enum  {
 	MF_WEAPONS = 8,
 	MF_BRANCH = 16,
 	MF_ANIMATION = 32,
-	MF_DEF_FACTORS = 64,
-	MF_DEF_PAIN = 128,
-	MF_DEF_KNOCKDOWN = 256,
-	MF_DEF_BLOCKPOWER = 512,
-	MF_DEF_BLOCKTRESHOLD = 1024,
-	MF_DEF_BLOCKRATIO = 2048,
-	MF_DEF_BLOCKTYPE = 4096,
-	MF_OFF_FACTORS = 8192,
-	MF_SPECIAL = 16384,
-	MF_SMARTBOMB = 32768,
-	MF_SCRIPTS = 65536,
+	MF_DEFENSE = 64,
+	MF_OFF_FACTORS = 128,
+	MF_SPECIAL = 256,
+	MF_SMARTBOMB = 512,
+	MF_SCRIPTS = 1024,
 } ModelFreetype;
-#define MF_ALL 0x1FFFF
+#define MF_ALL 0x7ff
 
 typedef struct
 {
@@ -993,6 +987,16 @@ typedef struct{
 	float x;
 	float z;
 } point2d;
+
+typedef struct {
+	float          factor;                //basic defense factors: damage = damage*defense
+	float          pain;                   //Pain factor (like nopain) for defense type.
+	float          knockdown;              //Knockdowncount (like knockdowncount) for attack type.
+	float          blockpower;             //If > unblockable, this attack type is blocked.
+	float          blockthreshold;         //Strongest attack from this attack type that can be blocked.
+	float          blockratio;             //% of damage still taken from this attack type when blocked.
+	float          blocktype;             //0 = HP, 1=MP, 2=both taken when this attack type is blocked.
+}s_defense;
 
 typedef struct
 {
@@ -1141,13 +1145,7 @@ typedef struct
 	char*           branch;                         //level branch name
 	char            model_flag:8;                   //used to judge some copy method when setting new model to an entity
 
-	float*          defense_factors;                //basic defense factors: damage = damage*defense
-	float*          defense_pain;                   //Pain factor (like nopain) for defense type.
-	float*          defense_knockdown;              //Knockdowncount (like knockdowncount) for attack type.
-	float*          defense_blockpower;             //If > unblockable, this attack type is blocked.
-	float*          defense_blockthreshold;         //Strongest attack from this attack type that can be blocked.
-	float*          defense_blockratio;             //% of damage still taken from this attack type when blocked.
-	float*          defense_blocktype;             //0 = HP, 1=MP, 2=both taken when this attack type is blocked.
+	s_defense*		defense;						//defense related, make a struct to aid copying
 	float*          offense_factors;                //basic offense factors: damage = damage*offense
 	s_attack*       smartbomb;
 
@@ -1172,7 +1170,7 @@ typedef struct
 	int	hasPlatforms:8;
 	int isSubclassed:8;
 	ModelFreetype	freetypes;
-	s_scripts	scripts;
+	s_scripts*	scripts;
 }s_model;
 
 typedef struct
@@ -1338,22 +1336,15 @@ typedef struct entity
 	float           lifespancountdown;              // life span count down
 
 	//------------- these factors will be added by basic factors of model-------------
-	float*          defense_factors;                //defense factors: damage = damage*(1-def)
-	float*          defense_pain;                   //Pain factor (like nopain) for defense type.
-	float*          defense_knockdown;              //Knockdowncount (like knockdowncount) for attack type.
-	float*          defense_blockpower;             //If > unblockable, this attack type is blocked.
-	float*          defense_blockthreshold;         //Strongest attack from this attack type that can be blocked.
-	float*          defense_blockratio;             //% of damage still taken from this attack type when blocked.
-	float*          defense_blocktype;              //0 = HP, 1=MP, 2=both taken when this attack type is blocked.
+	s_defense*		defense;
 	float*          offense_factors;                //offense factors: damage = damage*(1+def)
 	float           antigravity;                    // gravity*(1-antigravity)
-	//float			waypoint[3];					//next waypoint, ignore target in this case
 
 	//-------------------A.I. movement factors ----------------------------
 	int             sortid;                         // id for sprite queue sort
 	ScriptVariant* entvars;
 	s_drawmethod    drawmethod;
-	s_scripts scripts;
+	s_scripts* scripts;
 }entity;
 
 
@@ -1766,7 +1757,7 @@ void ent_spawn_ent(entity* ent);
 void ent_summon_ent(entity* ent);
 void ent_set_anim(entity *ent, int aninum, int resetable);
 void ent_set_colourmap(entity *ent, unsigned int which);
-void ent_set_model(entity * ent, char * modelname);
+void ent_set_model(entity * ent, char * modelname, int syncAnim);
 entity * spawn(float x, float z, float a, int direction, char * name, int index, s_model* model);
 void ent_unlink(entity *e);
 void ents_link(entity *e1, entity *e2);

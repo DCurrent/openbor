@@ -4036,37 +4036,37 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		{
 		case _gep_defense_factor:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_factors[(int)ltemp];
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].factor;
 			break;
 		}
 		case _gep_defense_blockpower:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_blockpower[(int)ltemp];
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].blockpower;
 			break;
 		}
 		case _gep_defense_blockratio:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_blockratio[(int)ltemp];
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].blockratio;
 			break;
 		}
 		case _gep_defense_blockthreshold:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_blockthreshold[(int)ltemp];
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].blockthreshold;
 			break;
 		}
 		case _gep_defense_blocktype:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_blocktype[(int)ltemp];
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].blocktype;
 			break;
 		}
 		case _gep_defense_knockdown:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_knockdown[(int)ltemp];
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].knockdown;
 			break;
 		}
 		case _gep_defense_pain:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense_pain[(int)ltemp];
+			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].pain;
 			break;
 		}
 		default:
@@ -4888,7 +4888,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 				ltemp = (LONG)0;
 		}
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.offense_factors[(int)ltemp];
+		(*pretvar)->dblVal = (DOUBLE)ent->offense_factors[(int)ltemp];
 		break;
 	}
 	case _ep_opponent:
@@ -5167,19 +5167,6 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
                 strcpy(StrCache_Get((*pretvar)->strVal), sprite_map[i].node->filename);
                 break;
             }
-			/*
-            case _gep_spritea_offsetx:
-            {
-                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-                (*pretvar)->lVal = (LONG)sprite_map[i].ofsx;
-                break;
-            }
-            case _gep_spritea_offsety:
-            {
-                ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-                (*pretvar)->lVal = (LONG)sprite_map[i].ofsy;
-                break;
-            }*/
             case _gep_spritea_sprite:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
@@ -5223,15 +5210,11 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		{
 			default:
 				if (ent->modeldata.stats[arg1->lVal])
-				{
 					(*pretvar)->dblVal = (DOUBLE)ent->modeldata.stats[arg1->lVal];
-				}
 				break;
 			case 1:
 				if (ent->stats[arg1->lVal])
-				{
 					(*pretvar)->dblVal = (DOUBLE)ent->stats[arg1->lVal];
-				}
 				break;
 		}
 		break;
@@ -5709,14 +5692,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		trap_think,
 	};
 
+	*pretvar = NULL;
+
 	if(paramCount < 3)
 	{
 		printf("Function changeentityproperty must have have at least 3 parameters.");
 		goto changeentityproperty_error;
 	}
 
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG)0;
 	mapstrings_changeentityproperty(varlist, paramCount);
 
 	if(varlist[0]->vt != VT_PTR && varlist[0]->vt != VT_EMPTY)
@@ -5727,7 +5710,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	ent = (entity*)varlist[0]->ptrVal; //retrieve the entity
 	if(!ent)
 	{
-		(*pretvar)->lVal = (LONG)0;
 		return S_OK;
 	}
 
@@ -5906,35 +5888,23 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _ep_alpha:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.alpha = (int)ltemp;
-		}
 		break;
 	}
     case _ep_animation:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			(*pretvar)->lVal = (LONG)1;
-		if(paramCount >= 4)
 		{
-			if(FAILED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
-				(*pretvar)->lVal = (LONG)0;
-		}
-		else ltemp2 = (LONG)1;
-		if((*pretvar)->lVal == (LONG)1)
-		{
-			ent_set_anim(ent, (int)ltemp, (int)ltemp2);
+			ltemp2 = (LONG)1;
+			if(paramCount < 4 || SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
+				ent_set_anim(ent, (int)ltemp, (int)ltemp2);
 		}
 		break;
 	}
 	case _ep_animhits:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->animation->animhits = (int)ltemp;
-		}
 		break;
 	}
 	case _ep_animpos:
@@ -5952,19 +5922,13 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_antigravity:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.antigravity = (float)dbltemp;
-		}
 		break;
 	}
 	case _ep_attacking:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 		   ent->attacking = (int)ltemp;
-		   (*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_attackid:
@@ -5976,28 +5940,19 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_autokill:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->autokill = (int)ltemp;
-		   (*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_base:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
 			ent->base = (float)dbltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_blink:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->blink = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_blockback:
@@ -6009,10 +5964,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_blockodds:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.blockodds = (int)ltemp;
-		}
 		break;
 	}
 	case _ep_blockpain:
@@ -6063,16 +6015,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _ep_combostep:
 	{
 		if(paramCount >= 4 &&
-		   SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-		}
-		if((*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
-				ent->combostep[(int)ltemp]=(int)ltemp2;
-			else (*pretvar)->lVal = (LONG)0;
-		}
+		  SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)) &&
+		  SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
+			ent->combostep[(int)ltemp]=(int)ltemp2;
 		break;
 	}
 	case _ep_combotime:
@@ -6084,10 +6029,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _ep_colourmap:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			self->colourmap = self->modeldata.colourmap[ltemp-1];
-		}
 		break;
 	}
 	case _ep_damage_on_landing:
@@ -6116,59 +6058,31 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			goto changeentityproperty_error;
 		}
 		ent->defaultmodel = tempmodel;
-		(*pretvar)->lVal = (LONG)1;
 		break;
 	}
 	case _ep_defense:
 	{
-		if(paramCount >= 4 &&
+		if((ltemp2 = 
+		  (paramCount >= 4 &&
 		   SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)) &&
-		   ltemp < (LONG)MAX_ATKS && ltemp >= (LONG)0)
-		{
-			(*pretvar)->lVal = (LONG)1;
-		}
-		if((*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-				ent->modeldata.defense_factors[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
-				ent->modeldata.defense_pain[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 6 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
-				ent->modeldata.defense_knockdown[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 7 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
-				ent->modeldata.defense_blockpower[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 8 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp)))
-				ent->modeldata.defense_blockthreshold[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 9 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[8], &dbltemp)))
-				ent->modeldata.defense_blockratio[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 10 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[9], &dbltemp)))
-				ent->modeldata.defense_blocktype[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
+		   ltemp < (LONG)MAX_ATKS && ltemp >= (LONG)0 &&
+			SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+		))
+			ent->modeldata.defense[(int)ltemp].factor = (float)dbltemp;
+
+		if(paramCount >= 5 && ltemp2 && (ltemp2 = SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp))))
+			ent->modeldata.defense[(int)ltemp].pain = (float)dbltemp;
+		if(paramCount >= 6 && ltemp2 && (ltemp2 = SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp))))
+			ent->modeldata.defense[(int)ltemp].knockdown = (float)dbltemp;
+		if(paramCount >= 7 && ltemp2 && (ltemp2 = SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp))))
+			ent->modeldata.defense[(int)ltemp].blockpower = (float)dbltemp;
+		if(paramCount >= 8 && ltemp2 && (ltemp2 = SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp))))
+			ent->modeldata.defense[(int)ltemp].blockthreshold = (float)dbltemp;
+		if(paramCount >= 9 && ltemp2 && (ltemp2 = SUCCEEDED(ScriptVariant_DecimalValue(varlist[8], &dbltemp))))
+			ent->modeldata.defense[(int)ltemp].blockratio = (float)dbltemp;
+		if(paramCount >= 10 && ltemp2 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[9], &dbltemp)))
+			ent->modeldata.defense[(int)ltemp].blocktype = (float)dbltemp;
+
 		break;
 	}
     case _ep_detect:
@@ -6180,89 +6094,44 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _ep_direction:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
 			ent->direction = (int)dbltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_dot:
 	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+		if((SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp))))
 		{
 			i = (int)ltemp;
-		}
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			ent->dot_time[i] = (int)dbltemp;
-		}
-		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
+			if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+				ent->dot_time[i] = (int)dbltemp;
+			if(paramCount >= 5 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
 				ent->dot[i] = (int)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 6 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
+			if(paramCount >= 6 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
 				ent->dot_force[i] = (int)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 7 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
+			if(paramCount >= 7 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
 				ent->dot_rate[i] = (int)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 8 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp)))
+			if(paramCount >= 8 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp)))
 				ent->dot_atk[i] = (int)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 9)
-		{
-			ent->dot_owner[i] = (entity*)varlist[8]->ptrVal;
+			if(paramCount >= 9)
+				ent->dot_owner[i] = (entity*)varlist[8]->ptrVal;
 		}
 		break;
 	}
 	case _ep_edelay:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.edelay.mode = (int)ltemp;
-		}
-		if(paramCount >= 3 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-				ent->modeldata.edelay.factor = (float)dbltemp;
-		}
-		if(paramCount >= 4 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
-				ent->modeldata.edelay.cap_min = (int)ltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
-				ent->modeldata.edelay.cap_max = (int)ltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 6 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
-				ent->modeldata.edelay.range_min = (int)ltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 7 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[7], &ltemp)))
-				ent->modeldata.edelay.range_max = (int)ltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
+		if(paramCount >= 3 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+			ent->modeldata.edelay.factor = (float)dbltemp;
+		if(paramCount >= 4 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
+			ent->modeldata.edelay.cap_min = (int)ltemp;
+		if(paramCount >= 5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
+			ent->modeldata.edelay.cap_max = (int)ltemp;
+		if(paramCount >= 6 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
+			ent->modeldata.edelay.range_min = (int)ltemp;
+		if(paramCount >= 7 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[7], &ltemp)))
+			ent->modeldata.edelay.range_max = (int)ltemp;
+
 		break;
 	}
 	case _ep_energycost:
@@ -6273,12 +6142,13 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			goto changeentityproperty_error;
 		}
 
-		(*pretvar)->lVal = (LONG)1;
-
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+		if(FAILED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
 		{
-			i = (int)ltemp;
+			printf("\n Error, changeentityproperty has invalid animation id.\n");
+			goto changeentityproperty_error;
 		}
+
+		i = (int)ltemp;
 
 		if(!validanim(ent,i))
 		{
@@ -6288,8 +6158,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 		if(varlist[2]->vt != VT_INTEGER)
 		{
-			if(varlist[2]->vt != VT_STR)
-				printf("You must give a string value for energycost flag name.\n");
+			printf("You must give a string value for energycost flag name.\n");
 			goto changeentityproperty_error;
 		}
 
@@ -6322,19 +6191,13 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _ep_escapecount:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->escapecount = (int)ltemp;
-		}
 		break;
 	}
 	case _ep_escapehits:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.escapehits = (int)ltemp;
-		}
 		break;
 	}
     case _ep_falldie:
@@ -6382,10 +6245,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _ep_guardpoints:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.guardpoints.current = (int)ltemp;
-		}
 		break;
 	}
     case _ep_health:
@@ -6395,7 +6255,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			ent->health = (int)ltemp;
 			if(ent->health > ent->modeldata.health) ent->health = ent->modeldata.health;
 			else if(ent->health < 0) ent->health = 0;
-			(*pretvar)->lVal = (LONG)1;
 		}
 		break;
 	}
@@ -6408,14 +6267,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_hmapl:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			(*pretvar)->lVal = (LONG)1;
 			self->modeldata.maps.hide_start = ltemp;
 		break;
 	}
 	case _ep_hmapu:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			(*pretvar)->lVal = (LONG)1;
 			self->modeldata.maps.hide_end = ltemp;
 		break;
 	}
@@ -6455,10 +6312,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _ep_invincible:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->invincible = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_invinctime:
@@ -6470,10 +6324,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _ep_jugglepoints:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.jugglepoints.current = (int)ltemp;
-		}
 		break;
 	}
 	case _ep_knockdowncount:
@@ -6494,26 +6345,17 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
             case _cep_knockdowncount_current:
             {
                 if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-                {
-                    (*pretvar)->lVal = (LONG)1;
                     ent->knockdowncount = (float)dbltemp;
-                }
 				break;
             }
             case _cep_knockdowncount_max:
             {
                 if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-                {
-                    (*pretvar)->lVal = (LONG)1;
                     ent->modeldata.knockdowncount = (float)dbltemp;
-                }
 				break;
             case _cep_knockdowncount_time:
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-                {
-                    (*pretvar)->lVal = (LONG)1;
                     ent->knockdowntime = (int)ltemp;
-                }
 				break;
             }
             default:
@@ -6525,16 +6367,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_komap:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.maps.ko = (int)ltemp;
-		}
-		if(paramCount >= 4 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				ent->modeldata.maps.kotype = (int)ltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
+		if(paramCount >= 4 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+			ent->modeldata.maps.kotype = (int)ltemp;
 		break;
 	}
     case _ep_lifeposition:
@@ -6566,35 +6401,25 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_map:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent_set_colourmap(ent, (int)ltemp);
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
     case _ep_maptime:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->maptime = (int)ltemp;
-		}
 		break;
 	}
     case _ep_maxguardpoints:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.guardpoints.maximum = (int)ltemp;
-		}
 		break;
 	}
 	case _ep_maxhealth:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.health = (int)ltemp;
 			if(ent->modeldata.health < 0) ent->modeldata.health = 0; //OK, no need to have ot below 0
 		}
@@ -6603,10 +6428,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _ep_maxjugglepoints:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.jugglepoints.maximum = (int)ltemp;
-		}
 		break;
 	}
     case _ep_maxmp:
@@ -6615,7 +6437,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		{
 			ent->modeldata.mp = (int)ltemp;
 			if(ent->modeldata.mp < 0) ent->modeldata.mp = 0; //OK, no need to have ot below 0
-			(*pretvar)->lVal = (LONG)1;
 		}
 		break;
 	}
@@ -6627,18 +6448,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			goto changeentityproperty_error;
 		}
 		tempstr = (char*)StrCache_Get(varlist[2]->strVal);
-		if(paramCount > 3)
+		if(paramCount > 3 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
 		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				(*pretvar)->lVal = (LONG)1;
+			set_model_ex(ent, tempstr, -1, NULL, (int)ltemp);
+			if(!ent->weapent) ent->weapent = ent;
 		}
-		else
-		{
-			ltemp = (LONG)0;
-			(*pretvar)->lVal = (LONG)1;
-		}
-		if((*pretvar)->lVal == (LONG)1) set_model_ex(ent, tempstr, -1, NULL, (int)ltemp);
-		if(!ent->weapent) ent->weapent = ent;
 		break;
 	}
     case _ep_mp:
@@ -6648,42 +6462,23 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			ent->mp = (int)ltemp;
 			if(ent->mp > ent->modeldata.mp) ent->mp = ent->modeldata.mp;
 			else if(ent->mp < 0) ent->mp = 0;
-			(*pretvar)->lVal = (LONG)1;
 		}
 		break;
 	}
     case _ep_mpset:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.mp = (int)dbltemp;
-		}
-		if(paramCount >= 4 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-				ent->modeldata.mpstable = (int)dbltemp;
-		}
-		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
-				ent->modeldata.mpstableval = (int)dbltemp;
-		}
-		if(paramCount >= 6 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
-				ent->modeldata.mprate = (int)dbltemp;
-		}
-		if(paramCount >= 7 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
-				ent->modeldata.mpdroprate = (int)dbltemp;
-		}
-		if(paramCount >= 8 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp)))
-				ent->modeldata.chargerate = (int)dbltemp;
-		}
+		if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+			ent->modeldata.mpstable = (int)dbltemp;
+		if(paramCount >= 5 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
+			ent->modeldata.mpstableval = (int)dbltemp;
+		if(paramCount >= 6 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
+			ent->modeldata.mprate = (int)dbltemp;
+		if(paramCount >= 7 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
+			ent->modeldata.mpdroprate = (int)dbltemp;
+		if(paramCount >= 8 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp)))
+			ent->modeldata.chargerate = (int)dbltemp;
 		break;
 	}
     case _ep_name:
@@ -6694,7 +6489,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			goto changeentityproperty_error;
 		}
 		strcpy(ent->name, (char*)StrCache_Get(varlist[2]->strVal));
-		(*pretvar)->lVal = (LONG)1;
 		break;
 	}
     case _ep_nameposition:
@@ -6708,19 +6502,13 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_nextanim:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->nextanim = (int)ltemp;
-		}
 		break;
 	}
 	case _ep_nextthink:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->nextthink = (int)ltemp;
-		}
 		break;
 	}
     case _ep_no_adjust_base:
@@ -6769,16 +6557,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	{
 		if(paramCount >= 4 &&
 		   SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)) &&
-		   ltemp < (LONG)MAX_ATKS && ltemp >= (LONG)0)
-		{
-			(*pretvar)->lVal = (LONG)1;
-		}
-		if((*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-				ent->modeldata.offense_factors[(int)ltemp] = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
+		   ltemp < (LONG)MAX_ATKS && ltemp >= (LONG)0 &&
+			SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+				ent->offense_factors[(int)ltemp] = (float)dbltemp;
 		break;
 	}
     case _ep_opponent:
@@ -6805,22 +6586,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_position:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->x = (float)dbltemp;
-		}
-		if(paramCount >= 4 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-				ent->z = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
-				ent->a = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
+		if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+			ent->z = (float)dbltemp;
+		if(paramCount >= 5 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
+			ent->a = (float)dbltemp;
 		break;
 	}
     case _ep_projectile:
@@ -6857,49 +6627,28 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_running:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.runspeed = (float)dbltemp;
-		}
-		if(paramCount >= 4 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-				ent->modeldata.runjumpheight = (float)dbltemp;
-		}
-		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
-				ent->modeldata.runjumpdist = (float)dbltemp;
-		}
-		if(paramCount >= 6 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
-				ent->modeldata.runhold = (int)dbltemp;
-		}
-		if(paramCount >= 7 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
-				ent->modeldata.runupdown = (int)dbltemp;
-		}
+		if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+			ent->modeldata.runjumpheight = (float)dbltemp;
+		if(paramCount >= 5 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
+			ent->modeldata.runjumpdist = (float)dbltemp;
+		if(paramCount >= 6 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
+			ent->modeldata.runhold = (int)dbltemp;
+		if(paramCount >= 7 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
+			ent->modeldata.runupdown = (int)dbltemp;
 
 		break;
 	}
     case _ep_rush_count:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->rush[0] = (int)ltemp;
-		}
 		break;
 	}
 	case _ep_rush_tally:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->rush[1] = (int)ltemp;
-		}
 		break;
 	}
 	case _ep_rush_time:
@@ -6911,19 +6660,13 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _ep_score:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.score = (int)ltemp;
-		}
 		break;
 	}
     case _ep_scroll:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.scroll = (float)dbltemp;
-		}
 		break;
 	}
     case _ep_seal:
@@ -6941,19 +6684,13 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_setlayer:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->modeldata.setlayer = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_speed:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.speed = (float)dbltemp;
-		}
 		break;
 	}
 	case _ep_spritea:
@@ -6988,19 +6725,13 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
             case _cep_spritea_centerx:
             {
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
-                {
-                    sprite_map[i].centerx = (int)ltemp;
-                    (*pretvar)->lVal = (LONG)1;
-                }
+                    sprite_map[i].centerx = (int)ltemp;
                 break;
             }
             case _cep_spritea_centery:
             {
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
-                {
                     sprite_map[i].centery = (int)ltemp;
-                    (*pretvar)->lVal = (LONG)1;
-                }
                 break;
             }
             case _cep_spritea_file:
@@ -7011,7 +6742,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
                     goto changeentityproperty_error;
                 }
                 strcpy(sprite_map[i].node->filename, (char*)StrCache_Get(varlist[5]->strVal));
-                (*pretvar)->lVal = (LONG)1;
                 break;
             }
 			/*
@@ -7035,8 +6765,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
             }*/
             case _cep_spritea_sprite:
             {
-                sprite_map[i].node->sprite = (VOID*)varlist[5]->ptrVal;
-                (*pretvar)->lVal = (LONG)1;
+                sprite_map[i].node->sprite = (VOID*)varlist[5]->ptrVal;
                 break;
             }
             default:
@@ -7128,73 +6857,49 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_subject_to_gravity:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->modeldata.subject_to_gravity = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_subject_to_hole:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->modeldata.subject_to_hole = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_subject_to_maxz:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->modeldata.subject_to_maxz = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_subject_to_minz:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->modeldata.subject_to_minz = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_subject_to_obstacle:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->modeldata.subject_to_obstacle = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_subject_to_platform:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->modeldata.subject_to_platform = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_subject_to_screen:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->modeldata.subject_to_screen = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_subject_to_wall:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->modeldata.subject_to_wall = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_takeaction:
@@ -7244,62 +6949,43 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _ep_thold:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.thold = (int)ltemp;
-		}
 		break;
 	}
     case _ep_throwdamage:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->modeldata.throwdamage = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_throwdist:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.throwdist = (float)dbltemp;
-		}
 		break;
 	}
 	case _ep_throwframewait:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
 			ent->modeldata.throwframewait = (int)ltemp;
-			(*pretvar)->lVal = (LONG)1;
-		}
 		break;
 	}
 	case _ep_throwheight:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->modeldata.throwheight = (float)dbltemp;
-		}
 		break;
 	}
     case _ep_tosstime:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->toss_time = (int)ltemp;
-		}
 		break;
 	}
     case _ep_trymove:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
-			(*pretvar)->lVal = (LONG)1;
 			if(ltemp == 1)
 				 ent->trymove = common_trymove;
 			else if(ltemp == 2)
@@ -7325,40 +7011,20 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_velocity:
 	{
 		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			ent->xdir = (float)dbltemp;
-		}
-		if(paramCount >= 4 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-				ent->zdir = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
-		if(paramCount >= 5 && (*pretvar)->lVal == (LONG)1)
-		{
-			if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
-				ent->tossv = (float)dbltemp;
-			else (*pretvar)->lVal = (LONG)0;
-		}
+		if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+			ent->zdir = (float)dbltemp;
+		if(paramCount >= 5 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
+			ent->tossv = (float)dbltemp;
 		break;
 	}
 	case _ep_weapon:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
-			if(paramCount > 3)
-			{
-				if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
-					(*pretvar)->lVal = (LONG)1;
-			}
-			else
-			{
-				ltemp2 = (LONG)0;
-				(*pretvar)->lVal = (LONG)1;
-			}
-			set_weapon(ent, (int)ltemp, (int)ltemp2);
-			(*pretvar)->lVal = (LONG)1;
+			ltemp2 = (LONG)0;
+			if(paramCount < 4 ||  SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
+				set_weapon(ent, (int)ltemp, (int)ltemp2);
 		}
 		break;
 	}
@@ -7370,7 +7036,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 	return S_OK;
 changeentityproperty_error:
-	*pretvar = NULL;
 	return E_FAIL;
 }
 

@@ -26,7 +26,7 @@
 
 #define GET_FRAME_ARG(z) (stricmp(GET_ARG(z), "this")==0?newanim->numframes:GET_INT_ARG(z))
 
-#define uninitint 1234567890
+#define NaN 0xAAAAAAAA
 
 static const char* E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
 static int DEFAULT_OFFSCREEN_KILL = 3000;
@@ -86,6 +86,16 @@ const s_drawmethod plainmethod = {
 	{{.beginsize=0.0}, {.endsize=0.0}, 0, {.wavespeed=0}, 0} //water
 };
 
+const s_defense default_defense = 
+{
+	1.f,
+	0.f,
+	1.f,
+	0.f,
+	0.f,
+	0.f,
+	0.f
+};
 
 // unknockdown attack
 const s_attack emptyattack = {
@@ -426,8 +436,6 @@ entity*             textbox				= NULL;
 entity*             smartbomber			= NULL;
 entity*				stalker				= NULL;					// an enemy (usually) tries to go behind the player
 entity*				firstplayer			= NULL;
-int					numPlatforms		= 0;
-int					numObstacles		= 0;
 int					stalking			= 0;
 int					nextplan			= 0;
 int                 plife[4][2]         = {{0,0},{0,0},{0,0},{0,0}};// Used for customizable player lifebar
@@ -1408,17 +1416,21 @@ void clear_scripts()
 	Script_Global_Clear();
 }
 
-void alloc_all_scripts(s_scripts* s) {
-	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
+#define scripts_membercount (sizeof(s_scripts) / sizeof(Script*))
+
+void alloc_all_scripts(s_scripts** s) {
 	size_t i;
 
-	for (i = 0; i < scripts_membercount; i++) {
-		(((Script**) s)[i]) = alloc_script();
+	if(!(*s))
+	{
+		*s = (s_scripts*)malloc(sizeof(s_scripts));
+		for (i = 0; i < scripts_membercount; i++) {
+			(((Script**) (*s))[i]) = alloc_script();
+		}
 	}
 }
 
 void clear_all_scripts(s_scripts* s, int method) {
-	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
 	size_t i;
 	Script** ps = (Script**) s;
 
@@ -1427,8 +1439,7 @@ void clear_all_scripts(s_scripts* s, int method) {
 	}
 }
 
-void free_all_scripts(s_scripts* s) {
-	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
+void free_all_scripts(s_scripts** s) {
 	size_t i;
 	Script** ps = (Script**) s;
 
@@ -1438,10 +1449,11 @@ void free_all_scripts(s_scripts* s) {
 			ps[i] = NULL;
 		}
 	}
+	free(*s);
+	*s = NULL;
 }
 
 void copy_all_scripts(s_scripts* src, s_scripts* dest, int method) {
-	static const size_t scripts_membercount = sizeof(s_scripts) / sizeof(Script*);
 	size_t i;
 	Script** ps = (Script**) src;
 	Script** pd = (Script**) dest;
@@ -1454,9 +1466,9 @@ void copy_all_scripts(s_scripts* src, s_scripts* dest, int method) {
 void execute_animation_script(entity* ent)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.animation_script;
-	Script* s1 = ent->model->scripts.animation_script;
-	Script* s2 = ent->defaultmodel->scripts.animation_script;
+	Script* cs = ent->scripts->animation_script;
+	Script* s1 = ent->model->scripts->animation_script;
+	Script* s2 = ent->defaultmodel->scripts->animation_script;
 	if(Script_IsInitialized(s1) || Script_IsInitialized(s2))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1492,7 +1504,7 @@ void execute_animation_script(entity* ent)
 void execute_takedamage_script(entity* ent, entity* other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.takedamage_script;
+	Script* cs = ent->scripts->takedamage_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1534,7 +1546,7 @@ void execute_takedamage_script(entity* ent, entity* other, int force, int drop, 
 void execute_onpain_script(entity* ent, int iType, int iReset)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.onpain_script;
+	Script* cs = ent->scripts->onpain_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1557,7 +1569,7 @@ void execute_onpain_script(entity* ent, int iType, int iReset)
 void execute_onfall_script(entity* ent, entity* other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.onfall_script;
+	Script* cs = ent->scripts->onfall_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1599,7 +1611,7 @@ void execute_onfall_script(entity* ent, entity* other, int force, int drop, int 
 void execute_onblocks_script(entity* ent)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.onblocks_script;
+	Script* cs = ent->scripts->onblocks_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1617,7 +1629,7 @@ void execute_onblocks_script(entity* ent)
 void execute_onblockw_script(entity* ent, int plane, float height)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.onblockw_script;
+	Script* cs = ent->scripts->onblockw_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1645,7 +1657,7 @@ void execute_onblockw_script(entity* ent, int plane, float height)
 void execute_onblocko_script(entity* ent, entity* other)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.onblocko_script;
+	Script* cs = ent->scripts->onblocko_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1666,7 +1678,7 @@ void execute_onblocko_script(entity* ent, entity* other)
 void execute_onblockz_script(entity* ent)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.onblockz_script;
+	Script* cs = ent->scripts->onblockz_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1684,7 +1696,7 @@ void execute_onblockz_script(entity* ent)
 void execute_onblocka_script(entity* ent, entity* other)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.onblocka_script;
+	Script* cs = ent->scripts->onblocka_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1704,7 +1716,7 @@ void execute_onblocka_script(entity* ent, entity* other)
 void execute_onmovex_script(entity* ent)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.onmovex_script;
+	Script* cs = ent->scripts->onmovex_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1722,7 +1734,7 @@ void execute_onmovex_script(entity* ent)
 void execute_onmovez_script(entity* ent)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.onmovez_script;
+	Script* cs = ent->scripts->onmovez_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1740,7 +1752,7 @@ void execute_onmovez_script(entity* ent)
 void execute_onmovea_script(entity* ent)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.onmovea_script;
+	Script* cs = ent->scripts->onmovea_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1758,7 +1770,7 @@ void execute_onmovea_script(entity* ent)
 void execute_ondeath_script(entity* ent, entity* other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.ondeath_script;
+	Script* cs = ent->scripts->ondeath_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1800,7 +1812,7 @@ void execute_ondeath_script(entity* ent, entity* other, int force, int drop, int
 void execute_onkill_script(entity* ent)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.onkill_script;
+	Script* cs = ent->scripts->onkill_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1817,7 +1829,7 @@ void execute_onkill_script(entity* ent)
 void execute_didblock_script(entity* ent, entity* other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.didblock_script;
+	Script* cs = ent->scripts->didblock_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1859,7 +1871,7 @@ void execute_didblock_script(entity* ent, entity* other, int force, int drop, in
 void execute_ondoattack_script(entity* ent, entity* other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int iWhich, int iAtkID)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.ondoattack_script;
+	Script* cs = ent->scripts->ondoattack_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1907,7 +1919,7 @@ void execute_ondoattack_script(entity* ent, entity* other, int force, int drop, 
 void execute_updateentity_script(entity* ent)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.update_script;
+	Script* cs = ent->scripts->update_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1924,7 +1936,7 @@ void execute_updateentity_script(entity* ent)
 void execute_think_script(entity* ent)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.think_script;
+	Script* cs = ent->scripts->think_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1941,7 +1953,7 @@ void execute_think_script(entity* ent)
 void execute_didhit_script(entity* ent, entity* other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.didhit_script;
+	Script* cs = ent->scripts->didhit_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -1986,7 +1998,7 @@ void execute_didhit_script(entity* ent, entity* other, int force, int drop, int 
 void execute_onspawn_script(entity* ent)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts.onspawn_script;
+	Script* cs = ent->scripts->onspawn_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -2005,7 +2017,7 @@ void execute_entity_key_script(entity* ent)
 	ScriptVariant tempvar;
 	Script* cs ;
 	if(!ent) return;
-	cs = ent->scripts.key_script;
+	cs = ent->scripts->key_script;
 	if(Script_IsInitialized(cs))
 	{
 		ScriptVariant_Init(&tempvar);
@@ -2337,27 +2349,12 @@ void clearSavedGame(){
 
 
 void clearHighScore(){
+	int i;
 	savescore.compatibleversion = CV_HIGH_SCORE;
-	savescore.highsc[0] = 0;    // Resets all the highscores to 0
-	savescore.highsc[1] = 0;
-	savescore.highsc[2] = 0;
-	savescore.highsc[3] = 0;
-	savescore.highsc[4] = 0;
-	savescore.highsc[5] = 0;
-	savescore.highsc[6] = 0;
-	savescore.highsc[7] = 0;
-	savescore.highsc[8] = 0;
-	savescore.highsc[9] = 0;
-	strcpy(savescore.hscoren[0], "None");    // Resets all the highscore names to "None"
-	strcpy(savescore.hscoren[1], "None");
-	strcpy(savescore.hscoren[2], "None");
-	strcpy(savescore.hscoren[3], "None");
-	strcpy(savescore.hscoren[4], "None");
-	strcpy(savescore.hscoren[5], "None");
-	strcpy(savescore.hscoren[6], "None");
-	strcpy(savescore.hscoren[7], "None");
-	strcpy(savescore.hscoren[8], "None");
-	strcpy(savescore.hscoren[9], "None");
+	for(i=0; i<10; i++) {
+		savescore.highsc[i] = 0;    // Resets all the highscores to 0
+		strcpy(savescore.hscoren[i], "None");    // Resets all the highscore names to "None"
+	}
 }
 
 
@@ -3972,38 +3969,32 @@ int free_model(s_model* model)
 	printf(".");
 
 	if(hasFreetype(model, MF_PALETTE) && model->palette)
-		{free(model->palette);                model->palette                = NULL;}
+		{free(model->palette); model->palette = NULL;}
 	printf(".");
 	if(hasFreetype(model, MF_WEAPONS) && model->weapon && model->ownweapons)
-		{free(model->weapon);                 model->weapon                 = NULL;}
+		{free(model->weapon); model->weapon = NULL;}
 	printf(".");
-	if(hasFreetype(model, MF_BRANCH) && model->branch)                      {free(model->branch);                 model->branch                 = NULL;}
+	if(hasFreetype(model, MF_BRANCH) && model->branch)
+		{free(model->branch); model->branch = NULL;}
 	printf(".");
-	if(hasFreetype(model, MF_ANIMATION) && model->animation)                   {free(model->animation);              model->animation              = NULL;}
+	if(hasFreetype(model, MF_ANIMATION) && model->animation)
+		{free(model->animation); model->animation = NULL;}
 	printf(".");
-	if(hasFreetype(model, MF_DEF_FACTORS) && model->defense_factors)             {free(model->defense_factors);        model->defense_factors        = NULL;}
+	if(hasFreetype(model, MF_DEFENSE) && model->defense)
+		{free(model->defense); model->defense = NULL;}
 	printf(".");
-	if(hasFreetype(model, MF_DEF_PAIN) && model->defense_pain)                {free(model->defense_pain);           model->defense_pain           = NULL;}
+	if(hasFreetype(model, MF_OFF_FACTORS) && model->offense_factors)
+		{free(model->offense_factors); model->offense_factors = NULL;}
 	printf(".");
-	if(hasFreetype(model, MF_DEF_KNOCKDOWN) && model->defense_knockdown)           {free(model->defense_knockdown);      model->defense_knockdown      = NULL;}
+	if(hasFreetype(model, MF_SPECIAL) && model->special)
+		{free(model->special); model->special = NULL;}
 	printf(".");
-	if(hasFreetype(model, MF_DEF_BLOCKPOWER) && model->defense_blockpower)          {free(model->defense_blockpower);     model->defense_blockpower     = NULL;}
-	printf(".");
-	if(hasFreetype(model, MF_DEF_BLOCKTRESHOLD) && model->defense_blockthreshold)      {free(model->defense_blockthreshold); model->defense_blockthreshold = NULL;}
-	printf(".");
-	if(hasFreetype(model, MF_DEF_BLOCKRATIO) && model->defense_blockratio)          {free(model->defense_blockratio);     model->defense_blockratio     = NULL;}
-	printf(".");
-	if(hasFreetype(model, MF_DEF_BLOCKTYPE) && model->defense_blocktype)           {free(model->defense_blocktype);      model->defense_blocktype      = NULL;}
-	printf(".");
-	if(hasFreetype(model, MF_OFF_FACTORS) && model->offense_factors)             {free(model->offense_factors);        model->offense_factors        = NULL;}
-	printf(".");
-	if(hasFreetype(model, MF_SPECIAL) && model->special)                     {free(model->special);                model->special                = NULL;}
-	printf(".");
-	if(hasFreetype(model, MF_SMARTBOMB) && model->smartbomb)                   {free(model->smartbomb);              model->smartbomb              = NULL;}
+	if(hasFreetype(model, MF_SMARTBOMB) && model->smartbomb)
+		{free(model->smartbomb); model->smartbomb = NULL;}
 	printf(".");
 
 	if(hasFreetype(model, MF_SCRIPTS)) {
-		clear_all_scripts(&model->scripts,2);
+		clear_all_scripts(model->scripts,2);
 		free_all_scripts(&model->scripts);
 	}
 	printf(".");
@@ -4455,8 +4446,9 @@ void lcmHandleCommandSubtype(ArgList* arglist, s_model* newchar, char* filename)
 		newchar->subtype                                        = SUBTYPE_BIKER;
 		if(newchar->aimove==-1) newchar->aimove                 = 0;
 		newchar->aimove |= AIMOVE1_BIKER;
-		for(i=0; i<MAX_ATKS; i++) newchar->defense_factors[i]   = 2;
 		if(!newchar->offscreenkill) newchar->offscreenkill = 300;
+		for(i=0; i<max_attack_types; i++)
+			newchar->defense[i].factor = 2.f;
 		newchar->subject_to_hole                                = 1;
 		newchar->subject_to_gravity                             = 1;
 		newchar->subject_to_wall                                = 0;
@@ -4768,13 +4760,7 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->isSubclassed = 0;
 	newchar->freetypes = MF_ALL;
 
-	newchar->defense_factors        = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
-	newchar->defense_pain           = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
-	newchar->defense_knockdown      = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blockpower     = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blockthreshold = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blockratio     = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
-	newchar->defense_blocktype      = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
+	newchar->defense		        = (s_defense*)calloc(1, sizeof(s_defense)*(max_attack_types + 1));
 	newchar->offense_factors        = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
 
 	newchar->special                = calloc(1, sizeof(s_com)*max_freespecials);
@@ -4860,8 +4846,7 @@ s_model* init_model(int cacheindex, int unload) {
 	for(i=0;i<max_attack_types;i++)
 	{
 		newchar->offense_factors[i]     = 1;
-		newchar->defense_factors[i]     = 1;
-		newchar->defense_knockdown[i]   = 1;
+		newchar->defense[i]				= default_defense;
 	}
 
 	//Default sight ranges.
@@ -4871,22 +4856,6 @@ s_model* init_model(int cacheindex, int unload) {
     newchar->sight.xmax = 9999;
     newchar->sight.zmin = -9999;
     newchar->sight.zmax = 9999;
-
-	newchar->offense_factors[ATK_BLAST]     = 1;
-	newchar->defense_factors[ATK_BLAST]     = 1;
-	newchar->defense_knockdown[ATK_BLAST]   = 1;
-	newchar->offense_factors[ATK_BURN]      = 1;
-	newchar->defense_factors[ATK_BURN]      = 1;
-	newchar->defense_knockdown[ATK_BURN]    = 1;
-	newchar->offense_factors[ATK_FREEZE]    = 1;
-	newchar->defense_factors[ATK_FREEZE]    = 1;
-	newchar->defense_knockdown[ATK_FREEZE]  = 1;
-	newchar->offense_factors[ATK_SHOCK]     = 1;
-	newchar->defense_factors[ATK_SHOCK]     = 1;
-	newchar->defense_knockdown[ATK_SHOCK]   = 1;
-	newchar->offense_factors[ATK_STEAL]     = 1;
-	newchar->defense_factors[ATK_STEAL]     = 1;
-	newchar->defense_knockdown[ATK_STEAL]   = 1;
 
 	return newchar;
 }
@@ -4964,6 +4933,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	s_attack attack,
 	*pattack = NULL;
+	s_defense defense;
 	char* shutdownmessage = NULL;
 
 	s_drawmethod drawmethod;
@@ -5008,7 +4978,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		");\n";
 
 	modelCommands cmd;
-	s_scripts tempscripts;
+	s_scripts* tempscripts;
 
 #ifdef DEBUG
 	printf("load_cached_model: %s, unload: %d\n", name, unload);
@@ -5073,7 +5043,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					tempscripts = newchar->scripts;
 					*newchar = *tempmodel;
 					newchar->scripts = tempscripts;
-					copy_all_scripts(&tempmodel->scripts, &newchar->scripts, 1);
+					copy_all_scripts(tempmodel->scripts, newchar->scripts, 1);
 					newchar->isSubclassed = 1;
 					newchar->freetypes = MF_SCRIPTS;
 					break;
@@ -5347,61 +5317,48 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->guardpoints.maximum = atoi(value);
 					break;
 				case CMD_MODEL_DEFENSE:
-					#define tempdef(x, y, z, p, k, b, t, r, e) \
+					#define tempdef(x, y) \
 					x(stricmp(value, #y)==0)\
 					{\
-					if(arglist.count>=2) newchar->z[ATK_##y] = GET_FLOAT_ARG(2);\
-					/*newchar->z[ATK_##y] /= 100;*/\
-					if(arglist.count>=3) newchar->p[ATK_##y] = GET_FLOAT_ARG(3);\
-					if(arglist.count>=4) newchar->k[ATK_##y] = GET_FLOAT_ARG(4);\
-					/*newchar->k[ATK_##y] /= 100;*/\
-					if(arglist.count>=5) newchar->b[ATK_##y] = GET_FLOAT_ARG(5);\
-					if(arglist.count>=6) newchar->t[ATK_##y] = GET_FLOAT_ARG(6);\
-					if(arglist.count>=7) newchar->r[ATK_##y] = GET_FLOAT_ARG(7);\
-					/*newchar->r[ATK_##y] /= 100;*/\
-					if(arglist.count>=8) newchar->e[ATK_##y] = GET_FLOAT_ARG(8);\
+						newchar->defense[ATK_##y] = defense;\
 					}
 					{
 						value = GET_ARG(1);
-						tempdef(if, NORMAL, defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, NORMAL2,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, NORMAL3,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, NORMAL4,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, NORMAL5,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, NORMAL6,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, NORMAL7,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, NORMAL8,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, NORMAL9,   defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, NORMAL10,  defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, BLAST,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, STEAL,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, BURN,      defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, SHOCK,     defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
-						tempdef(else if, FREEZE,    defense_factors, defense_pain, defense_knockdown, defense_blockpower, defense_blockthreshold, defense_blockratio, defense_blocktype)
+						defense = default_defense;
+						if(newchar->subtype==SUBTYPE_BIKER) defense.factor=2.f;
+
+						if(arglist.count>=2) defense.factor = GET_FLOAT_ARG(2);
+						if(arglist.count>=3) defense.pain = GET_FLOAT_ARG(3);
+						if(arglist.count>=4) defense.knockdown = GET_FLOAT_ARG(4);
+						if(arglist.count>=5) defense.blockpower = GET_FLOAT_ARG(5);
+						if(arglist.count>=6) defense.blockthreshold = GET_FLOAT_ARG(6);
+						if(arglist.count>=7) defense.blockratio = GET_FLOAT_ARG(7);
+						if(arglist.count>=8) defense.blocktype = GET_FLOAT_ARG(8);
+
+						tempdef(if, NORMAL)
+						tempdef(else if, NORMAL2)
+						tempdef(else if, NORMAL3)
+						tempdef(else if, NORMAL4)
+						tempdef(else if, NORMAL5)
+						tempdef(else if, NORMAL6)
+						tempdef(else if, NORMAL7)
+						tempdef(else if, NORMAL8)
+						tempdef(else if, NORMAL9)
+						tempdef(else if, NORMAL10)
+						tempdef(else if, BLAST)
+						tempdef(else if, STEAL)
+						tempdef(else if, BURN)
+						tempdef(else if, SHOCK)
+						tempdef(else if, FREEZE)
 						else if(strnicmp(value, "normal", 6)==0)
 						{
 							tempInt = atoi(value+6);
 							if(tempInt<11) tempInt = 11;
-							if(arglist.count>=2) newchar->defense_factors[tempInt+STA_ATKS-1]        = GET_FLOAT_ARG(2);
-							if(arglist.count>=3) newchar->defense_pain[tempInt+STA_ATKS-1]           = GET_FLOAT_ARG(3);
-							if(arglist.count>=4) newchar->defense_knockdown[tempInt+STA_ATKS-1]      = GET_FLOAT_ARG(4);
-							if(arglist.count>=5) newchar->defense_blockpower[tempInt+STA_ATKS-1]     = GET_FLOAT_ARG(5);
-							if(arglist.count>=6) newchar->defense_blockthreshold[tempInt+STA_ATKS-1] = GET_FLOAT_ARG(6);
-							if(arglist.count>=7) newchar->defense_blockratio[tempInt+STA_ATKS-1]     = GET_FLOAT_ARG(7);
-							if(arglist.count>=8) newchar->defense_blocktype[tempInt+STA_ATKS-1]      = GET_FLOAT_ARG(8);
+							newchar->defense[tempInt+STA_ATKS-1] = defense;
 						}
 						else if(stricmp(value, "ALL")==0)
 						{
-							for(i=0;i<max_attack_types;i++)
-							{
-								if(arglist.count>=2) newchar->defense_factors[i]         = GET_FLOAT_ARG(2);
-								if(arglist.count>=3) newchar->defense_pain[i]            = GET_FLOAT_ARG(3);
-								if(arglist.count>=4) newchar->defense_knockdown[i]       = GET_FLOAT_ARG(4);
-								if(arglist.count>=5) newchar->defense_blockpower[i]      = GET_FLOAT_ARG(5);
-								if(arglist.count>=6) newchar->defense_blockthreshold[i]  = GET_FLOAT_ARG(6);
-								if(arglist.count>=7) newchar->defense_blockratio[i]      = GET_FLOAT_ARG(7);
-								if(arglist.count>=8) newchar->defense_blocktype[i]       = GET_FLOAT_ARG(8);
-							}
+							for(i=0;i<max_attack_types;i++) newchar->defense[i] = defense;
 						}
 					}
 					#undef tempdef
@@ -5857,72 +5814,72 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_SCRIPT:
 					//load the update script
-					lcmHandleCommandScripts(&arglist, newchar->scripts.update_script, "updateentityscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->update_script, "updateentityscript", filename);
 					break;
 				case CMD_MODEL_THINKSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.think_script, "thinkscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->think_script, "thinkscript", filename);
 					break;
 				case CMD_MODEL_TAKEDAMAGESCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.takedamage_script, "takedamagescript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->takedamage_script, "takedamagescript", filename);
 					break;
 				case CMD_MODEL_ONFALLSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.onfall_script, "onfallscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onfall_script, "onfallscript", filename);
 					break;
 				case CMD_MODEL_ONPAINSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.onpain_script, "onpainscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onpain_script, "onpainscript", filename);
 					break;
 				case CMD_MODEL_ONBLOCKSSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.onblocks_script, "onblocksscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onblocks_script, "onblocksscript", filename);
 					break;
 				case CMD_MODEL_ONBLOCKWSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.onblockw_script, "onblockwscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onblockw_script, "onblockwscript", filename);
 					break;
 				case CMD_MODEL_ONBLOCKOSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.onblocko_script, "onblockoscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onblocko_script, "onblockoscript", filename);
 					break;
 				case CMD_MODEL_ONBLOCKZSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.onblockz_script, "onblockzscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onblockz_script, "onblockzscript", filename);
 					break;
 				case CMD_MODEL_ONBLOCKASCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.onblocka_script, "onblockascript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onblocka_script, "onblockascript", filename);
 					break;
 				case CMD_MODEL_ONMOVEXSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.onmovex_script, "onmovexscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onmovex_script, "onmovexscript", filename);
 					break;
 				case CMD_MODEL_ONMOVEZSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.onmovez_script, "onmovezscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onmovez_script, "onmovezscript", filename);
 					break;
 				case CMD_MODEL_ONMOVEASCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.onmovea_script, "onmoveascript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onmovea_script, "onmoveascript", filename);
 					break;
 				case CMD_MODEL_ONDEATHSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.ondeath_script, "ondeathscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->ondeath_script, "ondeathscript", filename);
 					break;
 				case CMD_MODEL_ONKILLSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.onkill_script, "onkillscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onkill_script, "onkillscript", filename);
 					break;
 				case CMD_MODEL_DIDBLOCKSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.didblock_script, "didblockscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->didblock_script, "didblockscript", filename);
 					break;
 				case CMD_MODEL_ONDOATTACKSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.ondoattack_script, "ondoattackscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->ondoattack_script, "ondoattackscript", filename);
 					break;
 				case CMD_MODEL_DIDHITSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.didhit_script, "didhitscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->didhit_script, "didhitscript", filename);
 					break;
 				case CMD_MODEL_ONSPAWNSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.onspawn_script, "onspawnscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onspawn_script, "onspawnscript", filename);
 					break;
 				case CMD_MODEL_ANIMATIONSCRIPT:
-					Script_Init(newchar->scripts.animation_script, "animationscript", filename, 0);
-					if(!load_script(newchar->scripts.animation_script, GET_ARG(1))) {
+					Script_Init(newchar->scripts->animation_script, "animationscript", filename, 0);
+					if(!load_script(newchar->scripts->animation_script, GET_ARG(1))) {
 						shutdownmessage = "Unable to load animation script!";
 						goto lCleanup;
 					}
 					//dont compile, until at end of this function
 					break;
 				case CMD_MODEL_KEYSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts.key_script, "entitykeyscript", filename);
+					lcmHandleCommandScripts(&arglist, newchar->scripts->key_script, "entitykeyscript", filename);
 					break;
 				case CMD_MODEL_ANIM:
 					{
@@ -7345,17 +7302,17 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	tempInt = 1;
 	if(scriptbuf[0]) {
 		//printf("\n%s\n", scriptbuf);
-		if(!Script_IsInitialized(newchar->scripts.animation_script))
-			Script_Init(newchar->scripts.animation_script, newchar->name, filename, 0);
-		tempInt = Script_AppendText(newchar->scripts.animation_script, scriptbuf, filename);
-		//Interpreter_OutputPCode(newchar->scripts.animation_script.pinterpreter, "code");
+		if(!Script_IsInitialized(newchar->scripts->animation_script))
+			Script_Init(newchar->scripts->animation_script, newchar->name, filename, 0);
+		tempInt = Script_AppendText(newchar->scripts->animation_script, scriptbuf, filename);
+		//Interpreter_OutputPCode(newchar->scripts->animation_script.pinterpreter, "code");
 		writeToScriptLog("\n####animationscript function main#####\n# ");
 		writeToScriptLog(filename);
 		writeToScriptLog("\n########################################\n");
 		writeToScriptLog(scriptbuf);
 	}
 	if(!newchar->isSubclassed)
-		Script_Compile(newchar->scripts.animation_script);
+		Script_Compile(newchar->scripts->animation_script);
 
 	if(!tempInt)// parse script failed
 	{
@@ -8810,8 +8767,6 @@ void unload_level(){
 	debug_time = 0;
 	neon_time = 0;
 	time = 0;
-	numPlatforms = 0;
-	numObstacles = 0;
 	cameratype = 0;
 	light[0] = 128;
 	light[1] = 64;
@@ -8994,8 +8949,6 @@ void load_level(char *filename){
 	texttime = 0;
 	nopause = 0;
 	nofadeout = 0;
-	numPlatforms = 0;
-	numObstacles = 0;
 	noscreenshot = 0;
 	panel_width = panel_height = frontpanels_loaded = 0;
 	memset(panels, 0, sizeof(s_layer*)*LEVEL_MAX_PANELS*3);
@@ -9155,7 +9108,7 @@ void load_level(char *filename){
 				bgl->xratio = 0.5; // x ratio
 				bgl->zratio = 0.5; // z ratio
 				bgl->xoffset = 0; // x start
-				bgl->zoffset = uninitint; // z start
+				bgl->zoffset = NaN; // z start
 				bgl->xspacing = 0; // x spacing
 				bgl->zspacing = 0; // z spacing
 				dm->xrepeat = -1; // x repeat
@@ -10533,17 +10486,11 @@ void free_ent(entity* e)
 {
 	int i;
 	if(!e) return;
-	clear_all_scripts(&e->scripts,2);
+	clear_all_scripts(e->scripts,2);
 	free_all_scripts(&e->scripts);
 
 	if(e->waypoints) { free(e->waypoints); e->waypoints = NULL;}
-	if(e->defense_factors){ free(e->defense_factors); e->defense_factors = NULL; }
-	if(e->defense_pain){ free(e->defense_pain); e->defense_pain = NULL; }
-	if(e->defense_knockdown){ free(e->defense_knockdown); e->defense_knockdown = NULL; }
-	if(e->defense_blockpower){ free(e->defense_blockpower); e->defense_blockpower = NULL; }
-	if(e->defense_blockthreshold){ free(e->defense_blockthreshold); e->defense_blockthreshold = NULL; }
-	if(e->defense_blockratio){ free(e->defense_blockratio); e->defense_blockratio = NULL; }
-	if(e->defense_blocktype){ free(e->defense_blocktype); e->defense_blocktype = NULL; }
+	if(e->defense){ free(e->defense); e->defense = NULL; }
 	if(e->offense_factors){ free(e->offense_factors); e->offense_factors = NULL; }
 	if(e->entvars)
 	{
@@ -10574,22 +10521,10 @@ entity* alloc_ent()
 	entity* ent = (entity*)malloc(sizeof(entity));
 	if(!ent) return NULL;
 	memset(ent, 0, sizeof(entity));
-	ent->defense_factors        = (float*)malloc(sizeof(float)*max_attack_types);
-	memset(ent->defense_factors,        0, sizeof(float)*max_attack_types);
-	ent->defense_pain           = (float*)malloc(sizeof(float)*max_attack_types);
-	memset(ent->defense_pain,           0, sizeof(float)*max_attack_types);
-	ent->defense_knockdown      = (float*)malloc(sizeof(float)*max_attack_types);
-	memset(ent->defense_knockdown,      0, sizeof(float)*max_attack_types);
-	ent->defense_blockpower     = (float*)malloc(sizeof(float)*max_attack_types);
-	memset(ent->defense_blockpower,     0, sizeof(float)*max_attack_types);
-	ent->defense_blockthreshold = (float*)malloc(sizeof(float)*max_attack_types);
-	memset(ent->defense_blockthreshold, 0, sizeof(float)*max_attack_types);
-	ent->defense_blockratio     = (float*)malloc(sizeof(float)*max_attack_types);
-	memset(ent->defense_blockratio,     0, sizeof(float)*max_attack_types);
-	ent->defense_blocktype      = (float*)malloc(sizeof(float)*max_attack_types);
-	memset(ent->defense_blocktype,      0, sizeof(float)*max_attack_types);
-	ent->offense_factors        = (float*)malloc(sizeof(float)*max_attack_types);
-	memset(ent->offense_factors,        0, sizeof(float)*max_attack_types);
+	ent->defense = (s_defense*)malloc(sizeof(s_defense)*max_attack_types);
+	memset(ent->defense, 0, sizeof(s_defense)*max_attack_types);
+	ent->offense_factors = (float*)malloc(sizeof(float)*max_attack_types);
+	memset(ent->offense_factors, 0, sizeof(float)*max_attack_types);
 	if(max_entity_vars>0)
 	{
 		ent->entvars = (ScriptVariant*)malloc(sizeof(ScriptVariant)*max_entity_vars);
@@ -11201,7 +11136,8 @@ void ent_copy_uninit(entity* ent, s_model* oldmodel)
 }
 
 
-void ent_set_model(entity * ent, char * modelname)
+//if syncAnim is set, only change animation reference
+void ent_set_model(entity * ent, char * modelname, int syncAnim)
 {
 	s_model *m = NULL;
 	s_model oldmodel;
@@ -11209,33 +11145,42 @@ void ent_set_model(entity * ent, char * modelname)
 	m = findmodel(modelname);
 	if(m==NULL) shutdown(1, "Model not found: '%s'", modelname);
 	oldmodel = ent->modeldata;
-	numPlatforms += (!ent->model->hasPlatforms&&m->hasPlatforms);
 	ent->model = m;
 	ent->modeldata = *m;
 	ent_copy_uninit(ent, &oldmodel);
 	ent_set_colourmap(ent, ent->map);
-	if((!selectScreen && !time) || ent->modeldata.type != TYPE_PLAYER)
+
+	if(syncAnim)
 	{
-		// use new playerselect spawn anim
-		if( validanim(ent,ANI_SPAWN))
-			ent_set_anim(ent, ANI_SPAWN, 0);
-		else
-			ent_set_anim(ent, ANI_IDLE, 0);
+		ent->animation = m->animation[ent->animnum];
 	}
-	else if(!selectScreen && time && ent->modeldata.type == TYPE_PLAYER)
-	{
-		// mid-level respawn
-		if( validanim(ent, ANI_RESPAWN))
-			ent_set_anim(ent, ANI_RESPAWN, 0);
-		else if( validanim(ent, ANI_SPAWN))
-			ent_set_anim(ent, ANI_SPAWN, 0);
-		else
-			ent_set_anim(ent, ANI_IDLE, 0);
-	}
-	else if(selectScreen && validanim(ent, ANI_SELECT))
-		ent_set_anim(ent, ANI_SELECT, 0);
 	else
-		ent_set_anim(ent, ANI_IDLE, 0);
+	{
+		ent->attacking = 0;
+
+		if((!selectScreen && !time) || ent->modeldata.type != TYPE_PLAYER)
+		{
+			// use new playerselect spawn anim
+			if( validanim(ent,ANI_SPAWN))
+				ent_set_anim(ent, ANI_SPAWN, 0);
+			else
+				ent_set_anim(ent, ANI_IDLE, 0);
+		}
+		else if(!selectScreen && time && ent->modeldata.type == TYPE_PLAYER)
+		{
+			// mid-level respawn
+			if( validanim(ent, ANI_RESPAWN))
+				ent_set_anim(ent, ANI_RESPAWN, 0);
+			else if( validanim(ent, ANI_SPAWN))
+				ent_set_anim(ent, ANI_SPAWN, 0);
+			else
+				ent_set_anim(ent, ANI_IDLE, 0);
+		}
+		else if(selectScreen && validanim(ent, ANI_SELECT))
+			ent_set_anim(ent, ANI_SELECT, 0);
+		else
+			ent_set_anim(ent, ANI_IDLE, 0);
+	}
 }
 
 
@@ -11243,9 +11188,10 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 {
 	entity *e = NULL;
 	int i, j, id;
-	float *dfs, *dfsp, *dfsk, *dfsbp, *dfsbt, *dfsbr, *dfsbe, *ofs;
+	s_defense *dfs;
+	float *ofs;
 	ScriptVariant* vars;
-	Script* pas, *pus, *pts, *pks, *pds, *pan, *pfs, *bls, *blw, *blo, *blz, *bla, *mox, *moz, *moa, *pis, *pkl, *phs, *osp, *pbs, *ocs;
+	s_scripts* scripts;
 
 	if(!model)
 	{
@@ -11275,50 +11221,18 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			e = ent_list[i];
 			// save these values, or they will loss when memset called
 			id      = e->sortid;
-			dfs     = e->defense_factors;
-			dfsp    = e->defense_pain;
-			dfsk    = e->defense_knockdown;
-			dfsbp   = e->defense_blockpower;
-			dfsbt   = e->defense_blockthreshold;
-			dfsbr   = e->defense_blockratio;
-			dfsbe   = e->defense_blocktype;
+			dfs     = e->defense;
 			ofs     = e->offense_factors;
 			vars    = e->entvars;
 			for(j=0; j<max_entity_vars; j++)
 				ScriptVariant_Clear(&vars[j]);
-			memset(dfs,     0, sizeof(float)*max_attack_types);
-			memset(dfsp,    0, sizeof(float)*max_attack_types);
-			memset(dfsk,    0, sizeof(float)*max_attack_types);
-			memset(dfsbp,   0, sizeof(float)*max_attack_types);
-			memset(dfsbt,   0, sizeof(float)*max_attack_types);
-			memset(dfsbr,   0, sizeof(float)*max_attack_types);
-			memset(dfsbe,   0, sizeof(float)*max_attack_types);
-			memset(ofs,     0, sizeof(float)*max_attack_types);
+			memcpy(dfs, model->defense, sizeof(s_defense)*max_attack_types);
+			memcpy(ofs, model->offense_factors, sizeof(float)*max_attack_types);
 			// clear up
-			clear_all_scripts(&e->scripts, 1);
+			clear_all_scripts(e->scripts, 1);
 			if(e->waypoints) free(e->waypoints);
 
-			pas = e->scripts.animation_script;
-			pus = e->scripts.update_script;
-			pts = e->scripts.think_script;
-			pds = e->scripts.takedamage_script;
-			pfs = e->scripts.onfall_script;
-			pan = e->scripts.onpain_script;
-			bls = e->scripts.onblocks_script;
-			blw = e->scripts.onblockw_script;
-			blo = e->scripts.onblocko_script;
-			blz = e->scripts.onblockz_script;
-			bla = e->scripts.onblocka_script;
-			mox = e->scripts.onmovex_script;
-			moz = e->scripts.onmovez_script;
-			moa = e->scripts.onmovea_script;
-			pis = e->scripts.ondeath_script;
-			pkl = e->scripts.onkill_script;
-			pbs = e->scripts.didblock_script;
-			ocs = e->scripts.ondoattack_script;
-			phs = e->scripts.didhit_script;
-			osp = e->scripts.onspawn_script;
-			pks = e->scripts.key_script;
+			scripts = e->scripts;
 			memset(e, 0, sizeof(entity));
 			e->drawmethod = plainmethod;
 			e->drawmethod.flag = 0;
@@ -11330,33 +11244,11 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			e->modeldata = *model; // copy the entir model data here
 			e->model = model;
 			e->defaultmodel = model;
-			if(e->modeldata.hasPlatforms) numPlatforms++;
-			if(e->modeldata.type&(TYPE_OBSTACLE|TYPE_TRAP)) numObstacles++; // TODO: let's hope there's not script type change involved, otherwise should go count_ents way
 
-			e->scripts.animation_script     = pas;
-			e->scripts.update_script        = pus;
-			e->scripts.think_script         = pts;
-			e->scripts.takedamage_script    = pds;
-			e->scripts.onfall_script        = pfs;
-			e->scripts.onpain_script        = pan;
-			e->scripts.onblocks_script      = bls;
-			e->scripts.onblockw_script      = blw;
-			e->scripts.onblocko_script      = blo;
-			e->scripts.onblockz_script      = blz;
-			e->scripts.onblocka_script      = bla;
-			e->scripts.onmovex_script       = mox;
-			e->scripts.onmovez_script       = moz;
-			e->scripts.onmovea_script       = moa;
-			e->scripts.ondeath_script       = pis;
-			e->scripts.onkill_script        = pkl;
-			e->scripts.didblock_script      = pbs;
-			e->scripts.ondoattack_script    = ocs;
-			e->scripts.didhit_script        = phs;
-			e->scripts.onspawn_script       = osp;
-			e->scripts.key_script           = pks;
+			e->scripts = scripts;
 			// copy from model a fresh script
 
-			copy_all_scripts(&model->scripts, &e->scripts, 1);
+			copy_all_scripts(model->scripts, e->scripts, 1);
 
 			if(ent_count>ent_max) ent_max=ent_count;
 			e->timestamp = time; // log time so update function will ignore it if it is new
@@ -11379,13 +11271,7 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			strncpy(e->name, e->modeldata.name, MAX_NAME_LEN);
 			// copy back the value
 			e->sortid = id;
-			e->defense_factors = dfs;
-			e->defense_pain = dfsp;
-			e->defense_knockdown = dfsk;
-			e->defense_blockpower = dfsbp;
-			e->defense_blockthreshold = dfsbt;
-			e->defense_blockratio = dfsbr;
-			e->defense_blocktype = dfsbe;
+			e->defense = dfs;
 			e->offense_factors = ofs;
 			e->entvars = vars;
 			ent_default_init(e);
@@ -11440,10 +11326,8 @@ void kill(entity *victim)
 	victim->health = 0;
 	victim->exists = 0;
 	ent_count--;
-	numPlatforms -= victim->modeldata.hasPlatforms;
-	numObstacles -= ((victim->modeldata.type&(TYPE_OBSTACLE|TYPE_TRAP))!=0);
 
-	clear_all_scripts(&victim->scripts, 1);
+	clear_all_scripts(victim->scripts, 1);
 
 	if(victim->parent && victim->parent->subentity == victim) victim->parent->subentity = NULL;
 	victim->parent = NULL;
@@ -11519,7 +11403,7 @@ void kill_all()
 		e = ent_list[i];
 		if (e && e->exists){
 			execute_onkill_script(e);
-			clear_all_scripts(&e->scripts, 1);
+			clear_all_scripts(e->scripts, 1);
 		}
 		e->exists = 0; // well, no need to use kill function
 	}
@@ -11787,7 +11671,7 @@ entity * check_platform_between(float x, float z, float amin, float amax, entity
 	entity *plat = NULL;
 	int i;
 
-	if(level==NULL||numPlatforms<=0) return NULL;
+	if(level==NULL) return NULL;
 
 	for(i=0; i<ent_max; i++)
 	{
@@ -11810,7 +11694,7 @@ entity * check_platform_above(float x, float z, float a, entity* exclude)
 	entity *plat = NULL;
 	int i, ind;
 
-	if(level==NULL||numPlatforms<=0) return NULL;
+	if(level==NULL) return NULL;
 
 	mina = 9999999;
 	ind = -1;
@@ -11836,7 +11720,7 @@ entity * check_platform_below(float x, float z, float a, entity* exclude)
 	entity *plat = NULL;
 	int i, ind;
 
-	if(level==NULL||numPlatforms<=0) return NULL;
+	if(level==NULL) return NULL;
 
 	maxa = MIN_INT;
 	ind = -1;
@@ -11860,7 +11744,7 @@ entity * check_platform_below(float x, float z, float a, entity* exclude)
 entity * check_platform(float x, float z, entity* exclude)
 {
 	int i;
-	if(level==NULL||numPlatforms<=0) return NULL;
+	if(level==NULL) return NULL;
 
 	for(i=0; i<ent_max; i++)
 	{
@@ -11920,7 +11804,7 @@ int testmove(entity* ent, float sx, float sz, float x, float z){
 	//-----------end of hole checking---------------
 
 	//--------------obstacle checking ------------------
-	if(numObstacles>0 && ent->modeldata.subject_to_obstacle>0)
+	if(ent->modeldata.subject_to_obstacle>0)
 	{
 		if((other = find_ent_here(ent, x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
 		   (!other->animation->platform||!other->animation->platform[other->animpos][7]))
@@ -11994,7 +11878,7 @@ void do_attack(entity *e)
 	s_anim* current_anim;
 	s_attack* attack = e->animation->attacks[e->animpos];
 	static unsigned int new_attack_id = 1;
-	int fdefense_blockthreshold = (int)self->modeldata.defense_blockthreshold[(short)attack->attack_type]; //Maximum damage that can be blocked for attack type.
+	int fdefense_blockthreshold = (int)self->defense[(short)attack->attack_type].blockthreshold; //Maximum damage that can be blocked for attack type.
 
 	// Can't get hit after this
 	if(level_completed || !attack) return;
@@ -12063,8 +11947,8 @@ void do_attack(entity *e)
 			if(didhit)
 			{
 				if(attack->attack_type == ATK_ITEM){
-					 didfind_item(e);
 					 execute_didhit_script(e, self, force, attack->attack_drop, self->modeldata.subtype, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
+					 didfind_item(e);
 					 return;
 				}
 				//if #051
@@ -12083,7 +11967,7 @@ void do_attack(entity *e)
 					self->frozen ||
 					(self->direction == e->direction && self->modeldata.blockback < 1) ||                       // Can't block an attack that is from behind unless blockback flag is enabled
 					(!self->idling && self->attacking>=0)) &&                                                   // Can't block if busy, attack <0 means the character is preparing to attack, he can block during this time
-					attack->no_block <= self->modeldata.defense_blockpower[attack->attack_type] &&       // If unblockable, will automatically hit
+					attack->no_block <= self->defense[attack->attack_type].blockpower &&       // If unblockable, will automatically hit
 					(rand32()&self->modeldata.blockodds) == 1 &&                                                // Randomly blocks depending on blockodds (1 : blockodds ratio)
 					(!self->modeldata.thold || (self->modeldata.thold > 0 && self->modeldata.thold > force))&&
 					(!fdefense_blockthreshold ||                                                                //Specific attack type threshold.
@@ -12118,12 +12002,12 @@ void do_attack(entity *e)
 					self->blocking &&  // of course he must be blocking
 					((self->modeldata.guardpoints.maximum == 0) || (self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current > 0)) &&
 					!((self->direction == e->direction && self->modeldata.blockback < 1)|| self->frozen) &&    // Can't block if facing the wrong direction (unless blockback flag is enabled) or frozen in the block animation or opponent is a projectile
-					attack->no_block <= self->modeldata.defense_blockpower[(short)attack->attack_type] &&    // Make sure you are actually blocking and that the attack is blockable
+					attack->no_block <= self->defense[(short)attack->attack_type].blockpower &&    // Make sure you are actually blocking and that the attack is blockable
 					(!self->modeldata.thold ||
 					(self->modeldata.thold > 0 &&
 					self->modeldata.thold > force))&&
-					(!self->modeldata.defense_blockthreshold[(short)attack->attack_type] ||                   //Specific attack type threshold.
-					(self->modeldata.defense_blockthreshold[(short)attack->attack_type] > force)))
+					(!self->defense[(short)attack->attack_type].blockthreshold ||                   //Specific attack type threshold.
+					(self->defense[(short)attack->attack_type].blockthreshold > force)))
 				{    // Only block if the attack is less than the players threshold
 					//execute the didhit script
 					execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
@@ -12290,15 +12174,15 @@ void do_attack(entity *e)
 		//04/27/2008 Damon Caskey: Added checks for defense property specfic blockratio and type. Could probably use some cleaning.
 		if(didblock)
 		{
-			if(blockratio || def->modeldata.defense_blockratio[(short)attack->attack_type]) // Is damage reduced?
+			if(blockratio || def->defense[(short)attack->attack_type].blockratio) // Is damage reduced?
 			{
-				if (def->modeldata.defense_blockratio[(short)attack->attack_type]){                      //Typed blockratio?
-					force = (int)(force * def->modeldata.defense_blockratio[(short)attack->attack_type]);
+				if (def->defense[(short)attack->attack_type].blockratio){                      //Typed blockratio?
+					force = (int)(force * def->defense[(short)attack->attack_type].blockratio);
 				}else{                                                                            //No typed. Use static block ratio.
 					force = force / 4;
 				}
 
-				if(mpblock && !def->modeldata.defense_blocktype[(short)attack->attack_type]){                                                                                 // Drain MP bar first?
+				if(mpblock && !def->defense[(short)attack->attack_type].blocktype){                                                                                 // Drain MP bar first?
 					def->mp -= force;
 					if(def->mp < 0)
 					{
@@ -12306,16 +12190,16 @@ void do_attack(entity *e)
 						def->mp = 0;
 					}
 					else force = 0;                                                               // Damage removed from MP!
-				}else if(def->modeldata.defense_blocktype[(short)attack->attack_type]==1){                //Damage from MP only for this attack type.
+				}else if(def->defense[(short)attack->attack_type].blocktype==1){                //Damage from MP only for this attack type.
 					def->mp -= force;
 					if(def->mp < 0){
 						force = -def->mp;
 						def->mp = 0;
 					}
 					else force = 0;                                                               // Damage removed from MP!
-				}else if(def->modeldata.defense_blocktype[(short)attack->attack_type]==2){              //Damage from both HP and MP at once.
+				}else if(def->defense[(short)attack->attack_type].blocktype==2){              //Damage from both HP and MP at once.
 					def->mp -= force;
-				}else if(def->modeldata.defense_blocktype[(short)attack->attack_type]==-1){             //Health only?
+				}else if(def->defense[(short)attack->attack_type].blocktype==-1){             //Health only?
 					//Do nothing. This is so modders can overidde energycost.mponly 1 with health only.
 				}
 
@@ -13032,8 +12916,8 @@ void common_dot()
 					eOpp        = self->dot_owner[iIndex];                                      //Get dot effect owner.
 					iType       = self->dot_atk[iIndex];                                        //Get attack type.
 					iFForce     = iForce;                                                       //Initialize final force.
-					fOffense    = eOpp->modeldata.offense_factors[iType];                       //Get owner's offense.
-					fDefense    = self->modeldata.defense_factors[iType];                       //Get Self defense.
+					fOffense    = eOpp->offense_factors[iType];                       //Get owner's offense.
+					fDefense    = self->defense[iType].factor;                       //Get Self defense.
 
 					if (fOffense){  iFForce = (int)(iForce  * fOffense);    }                   //Apply offense factors.
 					if (fDefense){  iFForce = (int)(iFForce * fDefense);    }                   //Apply defense factors.
@@ -13779,7 +13663,6 @@ int set_pain(entity *iPain, int type, int reset)
 void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, int anim_flag)
 {
 	s_model* model = NULL;
-	s_model oldmodel;
 	int   i;
 	int   type = ent->modeldata.type;
 
@@ -13834,28 +13717,16 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 		}
 	}
 
-	if(anim_flag)
-	{
-		ent->attacking = 0;
-		ent_set_model(ent, newmodel->name);
-	}
-	else
-	{
-		oldmodel = ent->modeldata;
-		ent->model = newmodel;
-		ent->modeldata = *newmodel;
-		ent->animation = newmodel->animation[ent->animnum];
-		ent_copy_uninit(ent, &oldmodel);
-		numPlatforms += (!model->hasPlatforms&&newmodel->hasPlatforms);
-	}
+	ent_set_model(ent, newmodel->name, anim_flag);
 
 	ent->modeldata.type = type;
 
 	if((newmodel->model_flag & MODEL_NO_SCRIPT_COPY))
-		clear_all_scripts(&ent->scripts, 0);
+		clear_all_scripts(ent->scripts, 0);
 
-	copy_all_scripts(&newmodel->scripts, &ent->scripts, 0);
-
+	copy_all_scripts(newmodel->scripts, ent->scripts, 0);
+	memcpy(ent->defense, ent->modeldata.defense, sizeof(s_defense)*max_attack_types);
+	memcpy(ent->offense_factors, ent->modeldata.offense_factors, sizeof(float)*max_attack_types);
 
 	ent_set_colourmap(ent, ent->map);
 }
@@ -14706,7 +14577,7 @@ void checkdeath()
 
 void checkdamageflip(entity* other, s_attack* attack)
 {
-	if(other == NULL || other==self || (!self->drop && (attack->no_pain || self->modeldata.nopain || (self->modeldata.defense_pain[(short)attack->attack_type] && attack->attack_force < self->modeldata.defense_pain[(short)attack->attack_type])))) return;
+	if(other == NULL || other==self || (!self->drop && (attack->no_pain || self->modeldata.nopain || (self->defense[(short)attack->attack_type].pain && attack->attack_force < self->defense[(short)attack->attack_type].pain)))) return;
 
 	if(!self->frozen && !self->modeldata.noflip)// && !inair(self))
 	{
@@ -14831,7 +14702,7 @@ void checkdamageeffects(s_attack* attack)
 void checkdamagedrop(s_attack* attack)
 {
 	int attackdrop = attack->attack_drop;
-	float fdefense_knockdown = self->modeldata.defense_knockdown[(short)attack->attack_type];
+	float fdefense_knockdown = self->defense[(short)attack->attack_type].knockdown;
 	if(self->modeldata.animal) self->drop = 1;
 	if(self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current <= 0) attackdrop = 0; //guardbreak does not knock down.
 	if(self->drop || attack->no_pain) return; // just in case, if we already fall, dont check fall again
@@ -14880,8 +14751,8 @@ void checkdamage(entity* other, s_attack* attack)
 	if(self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current <= 0) force = 0; //guardbreak does not deal damage.
 	if(!(self->damage_on_landing && self == other) && !other->projectile && type >= 0 && type<max_attack_types)
 	{
-		force = (int)(force * other->modeldata.offense_factors[type]);
-		force = (int)(force * self->modeldata.defense_factors[type]);
+		force = (int)(force * other->offense_factors[type]);
+		force = (int)(force * self->defense[type].factor);
 	}
 
 	self->health -= force; //Apply damage.
@@ -15035,7 +14906,7 @@ int common_takedamage(entity *other, s_attack* attack)
 		set_pain(self, self->damagetype, 0);
 	}
 	// Don't change to pain animation if frozen
-	else if(!self->frozen && !self->modeldata.nopain && !attack->no_pain && !(self->modeldata.defense_pain[(short)attack->attack_type] && attack->attack_force < self->modeldata.defense_pain[(short)attack->attack_type]))
+	else if(!self->frozen && !self->modeldata.nopain && !attack->no_pain && !(self->defense[(short)attack->attack_type].pain && attack->attack_force < self->defense[(short)attack->attack_type].pain))
 	{
 		self->takeaction = common_pain;
 		set_pain(self, self->damagetype, 1);
@@ -15606,7 +15477,7 @@ int common_trymove(float xdir, float zdir)
 	//-----------end of hole checking---------------
 
 	//--------------obstacle checking ------------------
-	if(numObstacles>0 && self->modeldata.subject_to_obstacle>0 /*&& !inair(self)*/)
+	if(self->modeldata.subject_to_obstacle>0 /*&& !inair(self)*/)
 	{
 		if((other = find_ent_here(self, x, self->z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
 		   (xdir>0 ? other->x > self->x: other->x < self->x) &&
@@ -16767,8 +16638,8 @@ void common_pickupitem(entity* other){
 	// hide it
 	if(pickup)
 	{
-		other->z = 100000;
 		execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
+		other->z = 100000;
 	}
 }
 
@@ -16924,7 +16795,7 @@ int star_move(){
 		{
 			self->takeaction = common_fall;
 			self->attacking = 0;
-			self->health -= 100000;
+			self->health = 0;
 			self->projectile = 0;
 			self->xdir = (self->direction)?(-1.2):1.2;
 			self->damage_on_landing = 0;
@@ -16936,7 +16807,7 @@ int star_move(){
 	if(self->landed_on_platform || self->base <= 0)
 	{
 		self->takeaction = common_lie;
-		self->health -= 100000;
+		self->health = 0;
 		if(self->modeldata.nodieblink == 2) self->animating = 0;
 	}
 
@@ -18658,12 +18529,12 @@ void player_think()
 
 		if( validanim(self,ANI_GET) && (other = find_ent_here(self, self->x, self->z, TYPE_ITEM, player_test_pickable)) )
 		{
-			didfind_item(other);
 			self->xdir = self->zdir = 0;
 			set_getting(self);
 			self->takeaction = common_get;
 			ent_set_anim(self, ANI_GET, 0);
 			execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
+			didfind_item(other);
 			goto endthinkcheck;
 		}
 
@@ -22160,7 +22031,7 @@ int selectplayer(int *players, char* filename)
 				else if(player[i].newkeys & FLAG_MOVELEFT && example[i])
 				{
 					if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-					ent_set_model(example[i], prevplayermodel(example[i]->model)->name);
+					ent_set_model(example[i], prevplayermodel(example[i]->model)->name, 0);
 					cmap[i] = i;
 
 					while((example[i]->modeldata.maps.hide_start) && (example[i]->modeldata.maps.hide_end) &&
@@ -22177,7 +22048,7 @@ int selectplayer(int *players, char* filename)
 				else if(player[i].newkeys & FLAG_MOVERIGHT && example[i])
 				{
 					if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-					ent_set_model(example[i], nextplayermodel(example[i]->model)->name);
+					ent_set_model(example[i], nextplayermodel(example[i]->model)->name, 0);
 					cmap[i] = i;
 
 					while((example[i]->modeldata.maps.hide_start) && (example[i]->modeldata.maps.hide_end) &&
