@@ -325,7 +325,7 @@ Script* alloc_script()
 	pscript->magic = script_magic;
 	if(max_script_vars>0)
 	{
-		pscript->vars = (ScriptVariant*)calloc(1, sizeof(ScriptVariant)*max_script_vars);
+		pscript->vars = (ScriptVariant*)calloc(max_script_vars, sizeof(ScriptVariant));
 		for(i=0; i<max_script_vars; i++) ScriptVariant_Init(pscript->vars+i);
 	}
 	return pscript;
@@ -340,7 +340,7 @@ void Script_Init(Script* pscript, char* theName, char* comment, int first)
 		pscript->magic = script_magic;
 		if(max_script_vars>0)
 		{
-			pscript->vars = (ScriptVariant*)calloc(1, sizeof(ScriptVariant)*max_script_vars);
+			pscript->vars = (ScriptVariant*)calloc(max_script_vars, sizeof(ScriptVariant));
 			for(i=0; i<max_script_vars; i++) ScriptVariant_Init(pscript->vars+i);
 		}
 	}

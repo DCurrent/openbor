@@ -1441,7 +1441,7 @@ void clear_all_scripts(s_scripts* s, int method) {
 
 void free_all_scripts(s_scripts** s) {
 	size_t i;
-	Script** ps = (Script**) s;
+	Script** ps = (Script**) (*s);
 
 	for (i = 0; i < scripts_membercount; i++) {
 		if (ps[i]) {
@@ -3790,9 +3790,7 @@ static void load_playable_list(char* buf)
 }
 
 void alloc_specials(s_model* newchar){
-	if(newchar->specials_loaded > max_freespecials) {
-		newchar->special = realloc(newchar->special, sizeof(s_com)*newchar->specials_loaded);
-	}
+	newchar->special = realloc(newchar->special, sizeof(s_com)*(newchar->specials_loaded+1));
 }
 
 void alloc_frames(s_anim * anim, int fcount)
@@ -4760,11 +4758,10 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->isSubclassed = 0;
 	newchar->freetypes = MF_ALL;
 
-	newchar->defense		        = (s_defense*)calloc(1, sizeof(s_defense)*(max_attack_types + 1));
-	newchar->offense_factors        = (float*)calloc(1, sizeof(float)*(max_attack_types + 1));
+	newchar->defense		        = (s_defense*)calloc(max_attack_types + 1, sizeof(s_defense));
+	newchar->offense_factors        = (float*)calloc(max_attack_types + 1, sizeof(float));
 
-	newchar->special                = calloc(1, sizeof(s_com)*max_freespecials);
-	if(!newchar->special) shutdown(1, (char*)E_OUT_OF_MEMORY);
+	newchar->special                = (s_com*)calloc(1, sizeof(s_com));
 
 	alloc_all_scripts(&newchar->scripts);
 
@@ -4835,7 +4832,7 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->attackthrottle				= 0.0f;
 	newchar->attackthrottletime			= noatk_duration*GAME_SPEED;
 
-	newchar->animation = (s_anim**)calloc(1, sizeof(s_anim*)*max_animations);
+	newchar->animation = (s_anim**)calloc(max_animations, sizeof(s_anim*));
 	if(!newchar->animation) shutdown(1, (char*)E_OUT_OF_MEMORY);
 
 	// default string value, only by reference
