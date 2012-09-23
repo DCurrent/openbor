@@ -52,7 +52,7 @@
 #include <vorbis/vorbisfile.h>
 #endif
 
-#if LINUX || GP2X || DINGOO || SYMBIAN
+#if LINUX || GP2X || OPENDINGUX || SYMBIAN
 #define stricmp strcasecmp
 #endif
 

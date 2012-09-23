@@ -34,7 +34,7 @@
 #include "kernel/kernel.h"
 #elif GP2X
 #include "gp2xport.h"
-#elif DINGOO
+#elif OPENDINGUX
 #include <stdlib.h>
 #endif
 
@@ -105,10 +105,10 @@ u64 getFreeRam(int byte_size)
 	struct sysinfo info;
 	sysinfo(&info);
 	return ((u64)info.freeram) * info.mem_unit;
-#elif DINGOO
+#elif OPENDINGUX
 	FILE * file = NULL;
 	const unsigned char size = 5;
-	const unsigned char pos = 43;
+	const unsigned char pos = 47;
 	char result[size + 1];
 	file = fopen("/proc/meminfo","r");
 	if (file == NULL) return 0;
@@ -165,9 +165,10 @@ void setSystemRam()
 	// 42 MBytes - Memory Map:
 	systemRam = 0x029fffff - 0x0000a2e0;
 	elfOffset = 0x0000a2e0;
-#elif DINGOO
+#elif OPENDINGUX
 	// 32 MBytes - IPU Memory:
-	systemRam = 0x02000000 - 0x002C6000;
+	//systemRam = 0x02000000 - 0x002C6000;
+	systemRam = 0x01c8c000;//Opendingux
 	elfOffset = 0x00000000;
 #elif WII
 	// 88 MBytes with 16 Mbytes reserved for ISO System

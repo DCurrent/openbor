@@ -20970,7 +20970,7 @@ void display_credits()
 		font_printf(_strmidx(1, "Consoles"), s+v*12,  1, 0, "Consoles");
 		font_printf(col1,  s+v*13, 0, 0, "PSP/PS3/Linux/OSX");
 		font_printf(col2, s+v*13, 0, 0, "SX");
-		font_printf(col1,  s+v*14, 0, 0, "Dingoo");
+		font_printf(col1,  s+v*14, 0, 0, "OpenDingux");
 		font_printf(col2, s+v*14, 0, 0, "Shin-NiL");
 		font_printf(col1,  s+v*15, 0, 0, "Windows");
 		font_printf(col2, s+v*15, 0, 0, "SX & Nazo");
@@ -22599,8 +22599,8 @@ void init_videomodes(int log)
 #elif GP2X
 	tryfile("data/videogp2x.txt");
 	tryfile("data/video43.txt");
-#elif DINGOO
-	tryfile("data/videodingoo.txt");
+#elif OPENDINGUX
+	tryfile("data/videoopendingux.txt");
 	tryfile("data/video43.txt");
 #elif SYMBIAN
 	tryfile("data/videosymbian.txt");
@@ -22680,7 +22680,7 @@ readfile:
 		buf = NULL;
 	}
 
-#if DINGOO || GP2X
+#if OPENDINGUX || GP2X
 	videoMode = 0;
 #endif
 
@@ -23609,7 +23609,15 @@ void video_options(){
 		_menutext((selector==2), col1, -1, "Window Offset:");
 		_menutext((selector==2), col2, -1, "%i", savedata.windowpos);
 
-#if DOS || DC || GP2X || DINGOO
+#if OPENDINGUX
+		_menutext((selector==3), col1, 0, "Display Mode:");
+		_menutext((selector==3), col2, 0, "%s", savedata.fullscreen ? "Full" : "Window");
+		_menutextm((selector==4), 6, 0, "Back");
+		if(selector<0) selector = 4;
+		if(selector>4) selector = 0;
+#endif
+
+#if DOS || DC || GP2X
 		_menutextm((selector==3), 6, 0, "Back");
 		if(selector<0) selector = 3;
 		if(selector>3) selector = 0;
@@ -23634,7 +23642,7 @@ void video_options(){
 #endif
 
 #if SDL
-#ifndef GP2X
+#if !defined(GP2X) && !defined(OPENDINGUX)
 		_menutext((selector==3), col1, 0, "Display Mode:");
 		_menutext((selector==3), col2, 0, "%s", savedata.fullscreen ? "Full" : "Window");
 
@@ -23733,6 +23741,11 @@ void video_options(){
 					break;
 #if SDL || PSP || XBOX || WII
 				case 3:
+#if OPENDINGUX
+					video_fullscreen_flip();
+					break;
+#endif
+
 #if XBOX
 					update((level!=NULL),0);
 					xbox_resize();
@@ -23797,7 +23810,7 @@ void video_options(){
 
 
 #if SDL
-#ifndef GP2X
+#if !defined(GP2X) && !defined(OPENDINGUX)
 					video_fullscreen_flip();
 					break;
 				case 4:

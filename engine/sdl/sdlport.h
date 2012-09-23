@@ -16,7 +16,7 @@
 #include <string.h>
 #include "globals.h"
 
-#if GP2X || LINUX || DINGOO || SYMBIAN
+#if GP2X || LINUX || OPENDINGUX || SYMBIAN
 #define stricmp  strcasecmp
 #define strnicmp strncasecmp
 #endif

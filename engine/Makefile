@@ -10,7 +10,7 @@
 #
 #               	OpenBOR Makefile for ALL TARGET_PLATFORMs 
 #
-#             PSP, PS3, Wii, Dreamcast, GP2X, WIZ, Pandora, Dingoo, Windows, Darwin & Linux
+#             PSP, PS3, Wii, Dreamcast, GP2X, WIZ, Pandora, OpenDingux, Windows, Darwin & Linux
 #
 #----------------------------------------------------------------------------------------------------
 
@@ -199,22 +199,21 @@ BUILD_DEBUG     = 1
 endif
 endif
 
-ifdef BUILD_DINGOO
+ifdef BUILD_OPENDINGUX
 TARGET 	        = $(VERSION_NAME).elf
 TARGET_FINAL    = $(VERSION_NAME).dge
-TARGET_PLATFORM = DINGOO
+TARGET_PLATFORM = OPENDINGUX
 BUILD_SDL       = 1
 BUILD_GFX       = 1
-BUILD_STATIC    = 1
 BUILD_PTHREAD   = 1
 BUILD_SDL_IO    = 1
 BUILD_TREMOR    = 1
 BUILDING        = 1
-CC              = $(DINGUX_TOOLCHAIN_PREFIX)/bin/mipsel-linux-gcc
-INCLUDES        = $(DINGUX_TOOLCHAIN_PREFIX)/include \
-                  $(DINGUX_TOOLCHAIN_PREFIX)/include/SDL
-LIBRARIES       = $(DINGUX_TOOLCHAIN_PREFIX)/lib
-ifeq ($(BUILD_DINGOO), 0)
+CC              = $(OPENDINGUX_TOOLCHAIN_PREFIX)/bin/mipsel-linux-gcc
+INCLUDES        = $(OPENDINGUX_TOOLCHAIN_PREFIX)/include \
+                  $(OPENDINGUX_TOOLCHAIN_PREFIX)/include/SDL
+LIBRARIES       = $(OPENDINGUX_TOOLCHAIN_PREFIX)/lib
+ifeq ($(BUILD_OPENDINGUX), 0)
 BUILD_DEBUG     = 1
 endif
 endif
@@ -274,8 +273,8 @@ endif
 ifdef BUILD_WIZ
 STRIP 	        = $(WIZDEV)/$(PREFIX)strip$(EXTENSION) $(TARGET) -o $(TARGET_FINAL)
 endif
-ifdef BUILD_DINGOO
-STRIP           = $(DINGUX_TOOLCHAIN_PREFIX)/bin/mipsel-linux-strip $(TARGET) -o $(TARGET_FINAL)
+ifdef BUILD_OPENDINGUX
+STRIP           = $(OPENDINGUX_TOOLCHAIN_PREFIX)/bin/mipsel-linux-strip $(TARGET) -o $(TARGET_FINAL)
 endif
 ifdef BUILD_WII
 STRIP           = elf2dol $< $@
@@ -321,8 +320,8 @@ ifdef BUILD_WIZ
 INCS 	       += sdl/gp2x
 endif
 
-ifdef BUILD_DINGOO
-INCS           += '$(DINGUX_TOOLCHAIN_PREFIX)/bin/libpng-config --prefix'/include/libpng sdl/dingoo
+ifdef BUILD_OPENDINGUX
+INCS           += '$(OPENDINGUX_TOOLCHAIN_PREFIX)/bin/libpng-config --prefix'/include/libpng
 endif
 
 
@@ -570,8 +569,8 @@ CFLAGS 	       += -DGP2X
 endif
 
 
-ifdef BUILD_DINGOO
-CFLAGS 	       += -D_REENTRANT
+ifdef BUILD_OPENDINGUX
+CFLAGS 	       += -D_REENTRANT -DOPENDINGUX -O2 -fomit-frame-pointer -ffunction-sections -ffast-math -fsingle-precision-constant -G0 -mbranch-likely
 endif
 
 
@@ -812,7 +811,7 @@ all:
 	@echo make BUILD_WIZ=1
 	@echo make BUILD_PANDORA=1
 	@echo make BUILD_LINUX=1
-	@echo make BUILD_DINGOO=1
+	@echo make BUILD_OPENDINGUX=1
 	@echo
 	@echo Cleanup Intermediate Files:
 	@echo 

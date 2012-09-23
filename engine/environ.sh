@@ -297,22 +297,22 @@ case $1 in
 
 ############################################################################
 #                                                                          #
-#                          Dingoo Environment                              #
+#                          OpenDingux Environment                          #
 #                                                                          #
 ############################################################################
 8)
-   if test -e "/opt/mipsel-linux-uclibc"; then
-     export DINGUX_TOOLCHAIN=/opt/mipsel-linux-uclibc
-     export DINGUX_TOOLCHAIN_PREFIX=$DINGUX_TOOLCHAIN/usr
-     export PATH=$PATH:$DINGUX_TOOLCHAIN/usr/bin
+   if test -e "/opt/opendingux-toolchain"; then
+     export OPENDINGUX_TOOLCHAIN=/opt/opendingux-toolchain
+     export OPENDINGUX_TOOLCHAIN_PREFIX=$OPENDINGUX_TOOLCHAIN/usr
+     export PATH=$PATH:$OPENDINGUX_TOOLCHAIN/usr/bin
    fi
-   if test $DINGUX_TOOLCHAIN; then
+   if test $OPENDINGUX_TOOLCHAIN; then
      echo "-------------------------------------------------------"
-     echo "        DINGOO SDK ($HOST_PLATFORM) Environment Loaded!"
+     echo "    OPENDINGUX SDK ($HOST_PLATFORM) Environment Loaded!"
      echo "-------------------------------------------------------"
    else
      echo "-------------------------------------------------------"
-     echo "            ERROR - DINGOO Environment Failed"
+     echo "            ERROR - OPENDINGUX Environment Failed"
      echo "                    SDK Installed?"
      echo "-------------------------------------------------------"
    fi
@@ -401,7 +401,7 @@ case $1 in
    echo "   5 = Windows"
    echo "   6 = Dreamcast"
    echo "   7 = Nintendo Wii"
-   echo "   8 = Dingoo-linux"
+   echo "   8 = OpenDingux"
    echo "   9 = Wiz"
    echo "  10 = Darwin"
    echo "-------------------------------------------------------"

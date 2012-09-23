@@ -20,7 +20,7 @@
 
 extern int videoMode;
 
-#if GP2X || DARWIN || DINGOO || WII
+#if GP2X || DARWIN || OPENDINGUX || WII
 #define SKIP_CODE
 #endif
 
@@ -34,9 +34,6 @@ s_videomodes stored_videomodes;
 static SDL_Surface *screen = NULL;
 static SDL_Surface *bscreen = NULL;
 static SDL_Surface *bscreen2 = NULL;
-#ifdef DINGOO
-static SDL_Surface *screen_dingoo = NULL;
-#endif
 static SDL_Color colors[256];
 static int bytes_per_pixel = 1;
 int stretch = 0;
@@ -107,9 +104,8 @@ int video_set_mode(s_videomodes videomodes)
 
 	if(savedata.screen[videoMode][0])
 	{
-#ifdef DINGOO
-	screen_dingoo = SDL_SetVideoMode(videomodes.hRes*savedata.screen[videoMode][0],videomodes.vRes*savedata.screen[videoMode][0],16,SDL_SWSURFACE);
-	screen = SDL_AllocSurface(SDL_SWSURFACE,videomodes.hRes*savedata.screen[videoMode][0],videomodes.vRes*savedata.screen[videoMode][0], 16,0,0,0,0);
+#ifdef OPENDINGUX
+		screen = SDL_SetVideoMode(videomodes.hRes*savedata.screen[videoMode][0],videomodes.vRes*savedata.screen[videoMode][0],16,savedata.fullscreen?(SDL_HWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_HWSURFACE|SDL_DOUBLEBUF));
 #else
 		screen = SDL_SetVideoMode(videomodes.hRes*savedata.screen[videoMode][0],videomodes.vRes*savedata.screen[videoMode][0],16,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
 #endif
@@ -127,9 +123,8 @@ int video_set_mode(s_videomodes videomodes)
 			bscreen = SDL_AllocSurface(SDL_SWSURFACE, videomodes.hRes, videomodes.vRes, 8*bytes_per_pixel, masks[bytes_per_pixel-1][0], masks[bytes_per_pixel-1][1], masks[bytes_per_pixel-1][2], masks[bytes_per_pixel-1][3]); // 24bit mask
 			if(!bscreen) return 0;
 		}
-#ifdef DINGOO
-		screen_dingoo = SDL_SetVideoMode(videomodes.hRes,videomodes.vRes,16,SDL_SWSURFACE);
-		screen = SDL_AllocSurface(SDL_SWSURFACE,videomodes.hRes,videomodes.vRes, 8*bytes_per_pixel,0,0,0,0);
+#ifdef OPENDINGUX
+		screen = SDL_SetVideoMode(videomodes.hRes,videomodes.vRes,8*bytes_per_pixel,savedata.fullscreen?(SDL_HWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_HWSURFACE|SDL_DOUBLEBUF));
 #else
 		screen = SDL_SetVideoMode(videomodes.hRes,videomodes.vRes,8*bytes_per_pixel,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
 #endif
@@ -151,7 +146,9 @@ int video_set_mode(s_videomodes videomodes)
 void video_fullscreen_flip()
 {
 	size_t w, h;
+#ifndef OPENDINGUX
 	if(savedata.usegl) { video_gl_fullscreen_flip(); return; }
+#endif
 	savedata.fullscreen ^= 1;
 
 	if(savedata.fullscreen)
@@ -177,7 +174,11 @@ void video_fullscreen_flip()
 	}
 
 	if(savedata.screen[videoMode][0])
+#ifdef OPENDINGUX
+		screen = SDL_SetVideoMode(w,h,16,savedata.fullscreen?(SDL_HWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
+#else
 		screen = SDL_SetVideoMode(w,h,16,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
+#endif
 	else
 		screen = SDL_SetVideoMode(w,h,8*bytes_per_pixel,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
 	SDL_ShowCursor(SDL_DISABLE);
@@ -299,12 +300,9 @@ int video_copy_screen(s_screen* src)
 			if(SDL_MUSTLOCK(screen)) SDL_UnlockSurface(screen);
 		}
 	}
-#ifdef DINGOO
-	SDL_BlitSurface(screen,NULL,screen_dingoo,NULL);
-	SDL_Flip(screen_dingoo);
-#else
+
 	SDL_Flip(screen);
-#endif
+
 
 #if WIN || LINUX
 	SDL_framerateDelay(&framerate_manager);
