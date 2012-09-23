@@ -558,7 +558,7 @@ void initMenu(int type)
 
 	Init_Gfx(bpp==32 ? 888 : 565, bpp);
 	memset(pDeltaBuffer, 0x00, 1244160);
-#if !defined(DINGOO) && !defined(WIZ)
+#ifndef WIZ
 	flags = isFull?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF);
 #else
 	flags = SDL_SWSURFACE;
@@ -766,7 +766,7 @@ void drawLogs()
 	    copyScreens(Viewer);
 	    inputrefresh();
 	    sound_update_music();
-#if DINGOO
+#if OPENDINGUX
 	    printText(250, 3, RED, 0, 0, "Quit : Select");
 #else
 	    printText((isWide ? 410 : 250), 3, RED, 0, 0, "Quit : Escape");

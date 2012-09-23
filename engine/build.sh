@@ -65,8 +65,8 @@ function distribute {
     echo "Wii Platform Failed To Build!"
     exit 1
   fi
-  if ! test -e "releases/DINGOO/OpenBOR/OpenBOR.dge"; then
-    echo "Dingoo Platform Failed To Build!"
+  if ! test -e "releases/OPENDINGUX/OpenBOR/OpenBOR.dge"; then
+    echo "OpenDingux Platform Failed To Build!"
     exit 1
   fi
   if test -e "releases/LINUX/OpenBOR/OpenBOR"; then
@@ -278,25 +278,25 @@ function wii {
   fi
 }
 
-# Dingoo Environment && Compile
-function dingoo {
+# OpenDingux Environment && Compile
+function opendingux {
   export PATH=$OLD_PATH
   . ./environ.sh 8
-  if test $DINGUX_TOOLCHAIN; then
-    make clean BUILD_DINGOO=1
-    make BUILD_DINGOO=1
+  if test $OPENDINGUX_TOOLCHAIN; then
+    make clean BUILD_OPENDINGUX=1
+    make BUILD_OPENDINGUX=1
     if test -f "OpenBOR.dge"; then
-      if test ! -e "./releases/DINGOO" ; then
-        mkdir ./releases/DINGOO
-        mkdir ./releases/DINGOO/OpenBOR
-        mkdir ./releases/DINGOO/OpenBOR/Logs
-        mkdir ./releases/DINGOO/OpenBOR/Paks
-        mkdir ./releases/DINGOO/OpenBOR/Saves
-        mkdir ./releases/DINGOO/OpenBOR/ScreenShots
+      if test ! -e "./releases/OPENDINGUX" ; then
+        mkdir ./releases/OPENDINGUX
+        mkdir ./releases/OPENDINGUX/OpenBOR
+        mkdir ./releases/OPENDINGUX/OpenBOR/Logs
+        mkdir ./releases/OPENDINGUX/OpenBOR/Paks
+        mkdir ./releases/OPENDINGUX/OpenBOR/Saves
+        mkdir ./releases/OPENDINGUX/OpenBOR/ScreenShots
       fi
-      mv OpenBOR.dge ./releases/DINGOO/OpenBOR/
+      mv OpenBOR.dge ./releases/OPENDINGUX/OpenBOR/
     fi
-    make clean BUILD_DINGOO=1
+    make clean BUILD_OPENDINGUX=1
   fi
 }
 
@@ -378,7 +378,7 @@ function build_all {
     windows
     dreamcast
     wii
-    dingoo
+    opendingux
     wiz
     darwin
   fi
@@ -397,7 +397,7 @@ function print_help {
   echo "    5 = Windows"
   echo "    6 = Dreamcast"
   echo "    7 = Wii"
-  echo "    8 = Dingoo"
+  echo "    8 = OpenDingux"
   echo "    9 = Wiz"
   echo "   10 = Darwin"
   echo "  all = build for all applicable targets"
@@ -449,7 +449,7 @@ case $1 in
 
   8)
     version
-    dingoo
+    opendingux
     ;;
 
   9)
