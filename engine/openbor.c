@@ -3791,6 +3791,7 @@ static void load_playable_list(char* buf)
 
 void alloc_specials(s_model* newchar){
 	newchar->special = realloc(newchar->special, sizeof(s_com)*(newchar->specials_loaded+1));
+	memset(newchar->special+newchar->specials_loaded, 0, sizeof(s_com));
 }
 
 void alloc_frames(s_anim * anim, int fcount)
