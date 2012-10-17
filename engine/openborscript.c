@@ -4036,37 +4036,37 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		{
 		case _gep_defense_factor:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].factor;
+			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].factor;
 			break;
 		}
 		case _gep_defense_blockpower:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].blockpower;
+			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].blockpower;
 			break;
 		}
 		case _gep_defense_blockratio:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].blockratio;
+			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].blockratio;
 			break;
 		}
 		case _gep_defense_blockthreshold:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].blockthreshold;
+			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].blockthreshold;
 			break;
 		}
 		case _gep_defense_blocktype:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].blocktype;
+			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].blocktype;
 			break;
 		}
 		case _gep_defense_knockdown:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].knockdown;
+			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].knockdown;
 			break;
 		}
 		case _gep_defense_pain:
 		{
-			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.defense[(int)ltemp].pain;
+			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].pain;
 			break;
 		}
 		default:
@@ -6068,20 +6068,20 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		   ltemp < (LONG)MAX_ATKS && ltemp >= (LONG)0 &&
 			SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
 		))
-			ent->modeldata.defense[(int)ltemp].factor = (float)dbltemp;
+			ent->defense[(int)ltemp].factor = (float)dbltemp;
 
 		if(paramCount >= 5 && ltemp2 && (ltemp2 = SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp))))
-			ent->modeldata.defense[(int)ltemp].pain = (float)dbltemp;
+			ent->defense[(int)ltemp].pain = (float)dbltemp;
 		if(paramCount >= 6 && ltemp2 && (ltemp2 = SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp))))
-			ent->modeldata.defense[(int)ltemp].knockdown = (float)dbltemp;
+			ent->defense[(int)ltemp].knockdown = (float)dbltemp;
 		if(paramCount >= 7 && ltemp2 && (ltemp2 = SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp))))
-			ent->modeldata.defense[(int)ltemp].blockpower = (float)dbltemp;
+			ent->defense[(int)ltemp].blockpower = (float)dbltemp;
 		if(paramCount >= 8 && ltemp2 && (ltemp2 = SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp))))
-			ent->modeldata.defense[(int)ltemp].blockthreshold = (float)dbltemp;
+			ent->defense[(int)ltemp].blockthreshold = (float)dbltemp;
 		if(paramCount >= 9 && ltemp2 && (ltemp2 = SUCCEEDED(ScriptVariant_DecimalValue(varlist[8], &dbltemp))))
-			ent->modeldata.defense[(int)ltemp].blockratio = (float)dbltemp;
+			ent->defense[(int)ltemp].blockratio = (float)dbltemp;
 		if(paramCount >= 10 && ltemp2 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[9], &dbltemp)))
-			ent->modeldata.defense[(int)ltemp].blocktype = (float)dbltemp;
+			ent->defense[(int)ltemp].blocktype = (float)dbltemp;
 
 		break;
 	}
