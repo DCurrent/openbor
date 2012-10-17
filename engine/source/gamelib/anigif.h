@@ -10,7 +10,7 @@
 #define		ANIGIF_H
 
 
-#pragma pack (1)
+// #pragma pack (1)
 
 // Animated GIF player.
 
@@ -42,12 +42,6 @@ typedef struct {
 	unsigned char	flags;
 }gifblockstruct;
 
-
-#if PSP || PS2 || DC
-#define sizeof_gifheaderstruct 13
-#define sizeof_iblock 9
-#endif
-
 typedef struct 
 {
 	gifheaderstruct gif_header;
@@ -61,6 +55,12 @@ typedef struct
 	unsigned char*	local_pal;
 } anigif_info;
 
+
+//Gif file format should be always the same, so no need to use sizeof
+//#if PSP || PS2 || DC
+#define sizeof_gifheaderstruct 13
+#define sizeof_iblock 9
+//#endif
 
 
 // Returns true on succes
