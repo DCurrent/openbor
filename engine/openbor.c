@@ -21419,6 +21419,7 @@ playgif_error:
 	if(gifbuffer[2]) freescreen(&(gifbuffer[2]));
 	background = tempbg;
 	standard_palette(1);
+	printf("\nWarning, an error occurred while playing animated gif file.\n");
 	return 0;
 }
 

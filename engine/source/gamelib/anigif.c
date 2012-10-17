@@ -274,17 +274,14 @@ int anigif_open(char *filename, char *packfilename, unsigned char *pal, anigif_i
 	info->transparent = -1;
 	info->noblackenbg = noblackenbg;
 
-#if PSP || PS2 || DC
+#if 0 //PSP || PS2 || DC
 	if((info->handle=openreadaheadpackfile(filename,packfilename,1*1024*1024, 131072))==-1) return 0;
 #else
 	if((info->handle=openpackfile(filename,packfilename))==-1) return 0;
 #endif
 
-#if PSP || PS2 || DC
 	if(readpackfile(info->handle,&info->gif_header,sizeof_gifheaderstruct)!=sizeof_gifheaderstruct){
-#else
-	if(readpackfile(info->handle,&info->gif_header,sizeof(gifheaderstruct))!=sizeof(gifheaderstruct)){
-#endif
+
 		anigif_close(info);
 		return 0;
 	}
@@ -371,11 +368,8 @@ int anigif_decode(s_screen * screen, int *delay, int x, int y, unsigned char* pa
 	switch(c){
 		case ',':
 			// An image block
-#if PSP || PS2 || DC
 			if(readpackfile(info->handle, &iblock, sizeof_iblock)!=sizeof_iblock){
-#else
-			if(readpackfile(info->handle, &iblock, sizeof(iblock))!=sizeof(iblock)){
-#endif
+
 				anigif_close(info);
 				return ANIGIF_DECODE_END;
 			}
