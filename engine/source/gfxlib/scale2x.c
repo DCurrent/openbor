@@ -1,1051 +1,301 @@
 /*
- * This file is part of the Advance project.
+ * OpenBOR - http://www.LavaLit.com
+ * -----------------------------------------------------------------------
+ * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (C) 1999-2002 Andrea Mazzoleni
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Copyright (c) 2004 - 2012 OpenBOR Team
  */
 
-/*
- * This file contains a C and MMX implentation of the Scale2x effect.
- *
- * You can found an high level description of the effect at :
- *
- * http://scale2x.sourceforge.net/scale2x.html
- *
- * Alternatively at the previous license terms, you are allowed to use this
- * code in your program with these conditions:
- * - the program is not used in commercial activities.
- * - the whole source code of the program is released with the binary.
- * - derivative works of the program are allowed.
+/**
+ * This is an implementation of the Scale2x algorithm, also known as 
+ * AdvanceMAME2x.  Before October 2012, OpenBOR contained a version of the
+ * Scale2x filter licensed under the GPL.  Both implementations in this version
+ * (C and MMX) were written from scratch by Plombo based on the description of
+ * the algorithm on the Scale2x website at:
+ *     http://scale2x.sourceforge.net/algorithm.html
  */
-
-/*
- * Code adapted To OpenBOR by SX
- * scale2x.c - Trying to scale 2x.
- *
- * Updated: 5/05/08 - SX
- *
- */
-
 
 #include "gfx.h"
-#include "gfxtypes.h"
+#include "types.h"
 
-/* Suggested in "Intel Optimization" for Pentium II */
-#define ASM_JUMP_ALIGN ".p2align 4\n"
-
-static void internal_scale2x_16_def(u16 *dst0, u16* dst1, const u16* src0, const u16* src1, const u16* src2, unsigned count)
+static inline void scale2x_16_pixel_c(void* src0v, void* src1v, void* src2v, void* dst0v, void* dst1v)
 {
-	/* first pixel */
-	dst0[0] = src1[0];
-	dst1[0] = src1[0];
-	if (src1[1] == src0[0] && src2[0] != src0[0])
-		dst0[1] =src0[0];
-	else
-		dst0[1] =src1[0];
-	if (src1[1] == src2[0] && src0[0] != src2[0])
-		dst1[1] =src2[0];
-	else
-		dst1[1] =src1[0];
-	++src0;
-	++src1;
-	++src2;
-	dst0 += 2;
-	dst1 += 2;
-
-	/* central pixels */
-	count -= 2;
-	while (count)
+	u16 *src0 = src0v, *src1 = src1v, *src2 = src2v, *dst0 = dst0v, *dst1 = dst1v;
+	u16 D = *(src0-1), E = *src0, F = *(src0+1), B = *src1, H = *src2;
+	u16 R1, R2, R3, R4;
+	if (B != H && D != F)
 	{
-		if (src1[-1] == src0[0] && src2[0] != src0[0] && src1[1] != src0[0])
-			dst0[0] = src0[0];
-		else
-			dst0[0] = src1[0];
-		if (src1[1] == src0[0] && src2[0] != src0[0] && src1[-1] != src0[0])
-			dst0[1] =src0[0];
-		else
-			dst0[1] =src1[0];
-
-		if (src1[-1] == src2[0] && src0[0] != src2[0] && src1[1] != src2[0])
-			dst1[0] =src2[0];
-		else
-			dst1[0] =src1[0];
-		if (src1[1] == src2[0] && src0[0] != src2[0] && src1[-1] != src2[0])
-			dst1[1] =src2[0];
-		else
-			dst1[1] =src1[0];
-
-		++src0;
-		++src1;
-		++src2;
-		dst0 += 2;
-		dst1 += 2;
-		--count;
+		R1 = D == B ? D : E;
+		R2 = F == B ? F : E;
+		R3 = D == H ? D : E;
+		R4 = F == H ? F : E;
 	}
-
-	/* last pixel */
-	if (src1[-1] == src0[0] && src2[0] != src0[0])
-		dst0[0] =src0[0];
 	else
-		dst0[0] =src1[0];
-	if (src1[-1] == src2[0] && src0[0] != src2[0])
-		dst1[0] =src2[0];
-	else
-		dst1[0] =src1[0];
-	dst0[1] =src1[0];
-	dst1[1] =src1[0];
+		R1 = R2 = R3 = R4 = E;
+	
+	*dst0 = R1;
+	*(dst0+1) = R2;
+	*dst1 = R3;
+	*(dst1+1) = R4;
 }
 
-static void internal_scale2x_32_def(u32* dst0, u32* dst1, const u32* src0, const u32* src1, const u32* src2, unsigned count)
+static inline void scale2x_32_pixel_c(void* src0v, void* src1v, void* src2v, void* dst0v, void* dst1v)
 {
-	/* first pixel */
-	dst0[0] = src1[0];
-	dst1[0] = src1[0];
-	if (src1[1] == src0[0] && src2[0] != src0[0])
-		dst0[1] = src0[0];
-	else
-		dst0[1] = src1[0];
-	if (src1[1] == src2[0] && src0[0] != src2[0])
-		dst1[1] = src2[0];
-	else
-		dst1[1] = src1[0];
-	++src0;
-	++src1;
-	++src2;
-	dst0 += 2;
-	dst1 += 2;
-
-	/* central pixels */
-	count -= 2;
-	while (count)
+	u32 *src0 = src0v, *src1 = src1v, *src2 = src2v, *dst0 = dst0v, *dst1 = dst1v;
+	u32 D = *(src0-1), E = *src0, F = *(src0+1), B = *src1, H = *src2;
+	u32 R1, R2, R3, R4;
+	if (B != H && D != F)
 	{
-		if (src1[-1] == src0[0] && src2[0] != src0[0] && src1[1] != src0[0])
-			dst0[0] = src0[0];
-		else
-			dst0[0] = src1[0];
-		if (src1[1] == src0[0] && src2[0] != src0[0] && src1[-1] != src0[0])
-			dst0[1] = src0[0];
-		else
-			dst0[1] = src1[0];
-
-		if (src1[-1] == src2[0] && src0[0] != src2[0] && src1[1] != src2[0])
-			dst1[0] = src2[0];
-		else
-			dst1[0] = src1[0];
-		if (src1[1] == src2[0] && src0[0] != src2[0] && src1[-1] != src2[0])
-			dst1[1] = src2[0];
-		else
-			dst1[1] = src1[0];
-
-		++src0;
-		++src1;
-		++src2;
-		dst0 += 2;
-		dst1 += 2;
-	    --count;
+		R1 = D == B ? D : E;
+		R2 = F == B ? F : E;
+		R3 = D == H ? D : E;
+		R4 = F == H ? F : E;
 	}
-
-	/* last pixel */
-	if (src1[-1] == src0[0] && src2[0] != src0[0])
-		dst0[0] = src0[0];
 	else
-	    dst0[0] = src1[0];
-	if (src1[-1] == src2[0] && src0[0] != src2[0])
-		dst1[0] = src2[0];
-	else
-	    dst1[0] = src1[0];
-	dst0[1] = src1[0];
-	dst1[1] = src1[0];
+		R1 = R2 = R3 = R4 = E;
+	
+	*dst0 = R1;
+	*(dst0+1) = R2;
+	*dst1 = R3;
+	*(dst1+1) = R4;
 }
 
-#ifdef MMX
-static void internal_scale2x_16_mmx_single(u16* dst, const u16* src0, const u16* src1, const u16* src2, unsigned count)
+#if MMX
+static inline void scale2x_16_pixel_mmx(void* src0, void* src1, void* src2, void* dst0, void* dst1)
 {
-	/* always do the first and last run */
-	count -= 2*4;
+	static const int64_t hextrue = -1ll;
+	__asm__ __volatile__ (
+	"# load pixels surrounding input pixel\n"
+	"movq -2(%%eax),%%mm0                      # mm0 := D\n"
+	"movq 2(%%eax),%%mm1                       # mm1 := F\n"
+	"movq (%%ebx),%%mm2                        # mm2 := B\n"
+	"movq (%%ecx),%%mm3                        # mm3 := H\n"
+	"\n"
+	"# mm4 := ~((B==H)|(D==F))\n"
+	"movq %%mm2,%%mm4\n"
+	"pcmpeqw %%mm3,%%mm4\n"
+	"movq %%mm0,%%mm5\n"
+	"pcmpeqw %%mm1,%%mm5\n"
+	"por %%mm5,%%mm4\n"
+	"movq (%%edi),%%mm7\n"
+	"pxor %%mm7, %%mm4\n"
+	"\n"
+	"# calculate boolean conditions\n"
+	"movq %%mm0,%%mm5\n"
+	"pcmpeqw %%mm2,%%mm5\n"
+	"pand %%mm4,%%mm5                          # mm5 := (D == B) & mm4\n"
+	"movq %%mm1,%%mm6\n"
+	"pcmpeqw %%mm2,%%mm6\n"
+	"pand %%mm4,%%mm6                          # mm6 := (F == B) & mm4\n"
+	"movq %%mm0,%%mm7\n"
+	"pcmpeqw %%mm3,%%mm7\n"
+	"pand %%mm4,%%mm7                          # mm7 := (D == H) & mm4\n"
+	"pcmpeqw %%mm1,%%mm3\n"
+	"pand %%mm4,%%mm3                          # mm3 := (F == H) & mm4\n"
+	"\n"
+	"# fetch input pixel E\n"
+	"movq (%%eax),%%mm2                        # mm2 := E\n"
+	"\n"
+	"# calculate output pixel values\n"
+	"movq %%mm5,%%mm4\n"
+	"pandn %%mm2,%%mm4\n"
+	"pand %%mm0,%%mm5\n"
+	"por %%mm4,%%mm5                           # mm5 := I0\n"
+	"movq %%mm6,%%mm4\n"
+	"pandn %%mm2,%%mm4\n"
+	"pand %%mm1,%%mm6\n"
+	"por %%mm4,%%mm6                           # mm6 = I1\n"
+	"movq %%mm7,%%mm4\n"
+	"pandn %%mm2,%%mm4\n"
+	"pand %%mm0,%%mm7\n"
+	"por %%mm4,%%mm7                           # mm7 = I2\n"
+	"movq %%mm3,%%mm4\n"
+	"pandn %%mm2,%%mm4\n"
+	"pand %%mm1,%%mm3\n"
+	"por %%mm4,%%mm3                           # mm3 = I3\n"
+	"\n"
+	"# write the I0 pixels to memory\n"
+	"movd %%mm5,%%eax\n"
+	"movw %%ax,(%%edx)                         # far left pixel\n"
+	"shrl $16,%%eax\n"
+	"movw %%ax,4(%%edx)                        # middle left pixel\n"
+	"psrlq $32,%%mm5\n"
+	"movd %%mm5,%%eax\n"
+	"movw %%ax,8(%%edx)                        # middle right pixel\n"
+	"shrl $16,%%eax\n"
+	"movw %%ax,12(%%edx)                       # far right pixel\n"
+	"\n"
+	"# write the I1 pixels to memory\n"
+	"movd %%mm6,%%eax\n"
+	"movw %%ax,2(%%edx)                        # far left pixel\n"
+	"shrl $16,%%eax\n"
+	"movw %%ax,6(%%edx)                        # middle left pixel\n"
+	"psrlq $32,%%mm6\n"
+	"movd %%mm6,%%eax\n"
+	"movw %%ax,10(%%edx)                       # middle right pixel\n"
+	"shrl $16,%%eax\n"
+	"movw %%ax,14(%%edx)                       # far right pixel\n"
+	"\n"
+	"# write the I2 pixels to memory\n"
+	"movd %%mm7,%%eax\n"
+	"movw %%ax,(%%esi)                         # far left pixel\n"
+	"shrl $16,%%eax\n"
+	"movw %%ax,4(%%esi)                        # middle left pixel\n"
+	"psrlq $32,%%mm7\n"
+	"movd %%mm7,%%eax\n"
+	"movw %%ax,8(%%esi)                        # middle right pixel\n"
+	"shrl $16,%%eax\n"
+	"movw %%ax,12(%%esi)                       # far right pixel\n"
+	"\n"
+	"# write the I3 pixels to memory\n"
+	"movd %%mm3,%%eax\n"
+	"movw %%ax,2(%%esi)                        # far left pixel\n"
+	"shrl $16,%%eax\n"
+	"movw %%ax,6(%%esi)                        # middle left pixel\n"
+	"psrlq $32,%%mm3\n"
+	"movd %%mm3,%%eax\n"
+	"movw %%ax,10(%%esi)                       # middle right pixel\n"
+	"shrl $16,%%eax\n"
+	"movw %%ax,14(%%esi)                       # far right pixel\n"
+	"emms\n"
 
-#ifdef __GNUC__
-  __asm__ __volatile__(
-					   /* first run */
-					   /* set the current, current_pre, current_next registers */
-					   "pxor %%mm0,%%mm0\n" /* use a fake black out of screen */
-					   "movq 0(%1),%%mm7\n"
-					   "movq 8(%1),%%mm1\n"
-					   "psrlq $48,%%mm0\n"
-					   "psllq $48,%%mm1\n"
-					   "movq %%mm7,%%mm2\n"
-					   "movq %%mm7,%%mm3\n"
-					   "psllq $16,%%mm2\n"
-					   "psrlq $16,%%mm3\n"
-					   "por %%mm2,%%mm0\n"
-					   "por %%mm3,%%mm1\n"
+	: 
+	: "a" (src0), "b" (src1), "c" (src2), "d" (dst0), "S" (dst1), "D" (&hextrue)
+	: "cc"
+	);
+}
 
-					   /* current_upper */
-					   "movq (%0),%%mm6\n"
-
-					   /* compute the upper-left pixel for dst0 on %%mm2 */
-					   /* compute the upper-right pixel for dst0 on %%mm4 */
-					   "movq %%mm0,%%mm2\n"
-					   "movq %%mm1,%%mm4\n"
-					   "movq %%mm0,%%mm3\n"
-					   "movq %%mm1,%%mm5\n"
-					   "pcmpeqw %%mm6,%%mm2\n"
-					   "pcmpeqw %%mm6,%%mm4\n"
-					   "pcmpeqw (%2),%%mm3\n"
-					   "pcmpeqw (%2),%%mm5\n"
-					   "pandn %%mm2,%%mm3\n"
-					   "pandn %%mm4,%%mm5\n"
-					   "movq %%mm0,%%mm2\n"
-					   "movq %%mm1,%%mm4\n"
-					   "pcmpeqw %%mm1,%%mm2\n"
-					   "pcmpeqw %%mm0,%%mm4\n"
-					   "pandn %%mm3,%%mm2\n"
-					   "pandn %%mm5,%%mm4\n"
-					   "movq %%mm2,%%mm3\n"
-					   "movq %%mm4,%%mm5\n"
-					   "pand %%mm6,%%mm2\n"
-					   "pand %%mm6,%%mm4\n"
-					   "pandn %%mm7,%%mm3\n"
-					   "pandn %%mm7,%%mm5\n"
-					   "por %%mm3,%%mm2\n"
-					   "por %%mm5,%%mm4\n"
-
-					   /* set *dst0 */
-					   "movq %%mm2,%%mm3\n"
-					   "punpcklwd %%mm4,%%mm2\n"
-					   "punpckhwd %%mm4,%%mm3\n"
-					   "movq %%mm2,(%3)\n"
-					   "movq %%mm3,8(%3)\n"
-
-					   /* next */
-					   "add $8,%0\n"
-					   "add $8,%1\n"
-					   "add $8,%2\n"
-					   "add $16,%3\n"
-
-					   /* central runs */
-					   "shr $2,%4\n"
-					   "jz 1f\n"
-					   ASM_JUMP_ALIGN
-					   "0:\n"
-
-					   /* set the current, current_pre, current_next registers */
-					   "movq -8(%1),%%mm0\n"
-					   "movq (%1),%%mm7\n"
-					   "movq 8(%1),%%mm1\n"
-					   "psrlq $48,%%mm0\n"
-					   "psllq $48,%%mm1\n"
-					   "movq %%mm7,%%mm2\n"
-					   "movq %%mm7,%%mm3\n"
-					   "psllq $16,%%mm2\n"
-					   "psrlq $16,%%mm3\n"
-					   "por %%mm2,%%mm0\n"
-					   "por %%mm3,%%mm1\n"
-
-					   /* current_upper */
-					   "movq (%0),%%mm6\n"
-
-					   /* compute the upper-left pixel for dst0 on %%mm2 */
-					   /* compute the upper-right pixel for dst0 on %%mm4 */
-					   "movq %%mm0,%%mm2\n"
-					   "movq %%mm1,%%mm4\n"
-					   "movq %%mm0,%%mm3\n"
-					   "movq %%mm1,%%mm5\n"
-					   "pcmpeqw %%mm6,%%mm2\n"
-					   "pcmpeqw %%mm6,%%mm4\n"
-					   "pcmpeqw (%2),%%mm3\n"
-					   "pcmpeqw (%2),%%mm5\n"
-					   "pandn %%mm2,%%mm3\n"
-					   "pandn %%mm4,%%mm5\n"
-					   "movq %%mm0,%%mm2\n"
-					   "movq %%mm1,%%mm4\n"
-					   "pcmpeqw %%mm1,%%mm2\n"
-					   "pcmpeqw %%mm0,%%mm4\n"
-					   "pandn %%mm3,%%mm2\n"
-					   "pandn %%mm5,%%mm4\n"
-					   "movq %%mm2,%%mm3\n"
-					   "movq %%mm4,%%mm5\n"
-					   "pand %%mm6,%%mm2\n"
-					   "pand %%mm6,%%mm4\n"
-					   "pandn %%mm7,%%mm3\n"
-					   "pandn %%mm7,%%mm5\n"
-					   "por %%mm3,%%mm2\n"
-					   "por %%mm5,%%mm4\n"
-
-					   /* set *dst0 */
-					   "movq %%mm2,%%mm3\n"
-					   "punpcklwd %%mm4,%%mm2\n"
-					   "punpckhwd %%mm4,%%mm3\n"
-					   "movq %%mm2,(%3)\n"
-					   "movq %%mm3,8(%3)\n"
-
-					   /* next */
-					   "add $8,%0\n"
-					   "add $8,%1\n"
-					   "add $8,%2\n"
-					   "add $16,%3\n"
-
-					   "decl %4\n"
-					   "jnz 0b\n"
-					   "1:\n"
-
-					   /* final run */
-					   /* set the current, current_pre, current_next registers */
-					   "movq -8(%1),%%mm0\n"
-					   "movq (%1),%%mm7\n"
-					   "pxor %%mm1,%%mm1\n" /* use a fake black out of screen */
-					   "psrlq $48,%%mm0\n"
-					   "psllq $48,%%mm1\n"
-					   "movq %%mm7,%%mm2\n"
-					   "movq %%mm7,%%mm3\n"
-					   "psllq $16,%%mm2\n"
-					   "psrlq $16,%%mm3\n"
-					   "por %%mm2,%%mm0\n"
-					   "por %%mm3,%%mm1\n"
-
-					   /* current_upper */
-					   "movq (%0),%%mm6\n"
-
-					   /* compute the upper-left pixel for dst0 on %%mm2 */
-					   /* compute the upper-right pixel for dst0 on %%mm4 */
-					   "movq %%mm0,%%mm2\n"
-					   "movq %%mm1,%%mm4\n"
-					   "movq %%mm0,%%mm3\n"
-					   "movq %%mm1,%%mm5\n"
-					   "pcmpeqw %%mm6,%%mm2\n"
-					   "pcmpeqw %%mm6,%%mm4\n"
-					   "pcmpeqw (%2),%%mm3\n"
-					   "pcmpeqw (%2),%%mm5\n"
-					   "pandn %%mm2,%%mm3\n"
-					   "pandn %%mm4,%%mm5\n"
-					   "movq %%mm0,%%mm2\n"
-					   "movq %%mm1,%%mm4\n"
-					   "pcmpeqw %%mm1,%%mm2\n"
-					   "pcmpeqw %%mm0,%%mm4\n"
-					   "pandn %%mm3,%%mm2\n"
-					   "pandn %%mm5,%%mm4\n"
-					   "movq %%mm2,%%mm3\n"
-					   "movq %%mm4,%%mm5\n"
-					   "pand %%mm6,%%mm2\n"
-					   "pand %%mm6,%%mm4\n"
-					   "pandn %%mm7,%%mm3\n"
-					   "pandn %%mm7,%%mm5\n"
-					   "por %%mm3,%%mm2\n"
-					   "por %%mm5,%%mm4\n"
-
-					   /* set *dst0 */
-					   "movq %%mm2,%%mm3\n"
-					   "punpcklwd %%mm4,%%mm2\n"
-					   "punpckhwd %%mm4,%%mm3\n"
-					   "movq %%mm2,(%3)\n"
-					   "movq %%mm3,8(%3)\n"
-					   "emms\n"
-
-					   : "+r" (src0), "+r" (src1), "+r" (src2), "+r" (dst), "+r" (count)
-					   :
-					   : "cc"
-					   );
-#else
-  __asm {
-	mov eax, src0;
-	mov ebx, src1;
-	mov ecx, src2;
-	mov edx, dst;
-	mov esi, count;
-
-	/* first run */
-	/* set the current, current_pre, current_next registers */
-	pxor mm0,mm0; /* use a fake black out of screen */
-	movq mm7, qword ptr [ebx];
-	movq mm1, qword ptr [ebx + 8];
-	psrlq mm0, 48;
-	psllq mm1, 48;
-	movq mm2, mm7;
-	movq mm3, mm7;
-	psllq mm2, 16;
-	psrlq mm3, 16;
-	por mm0, mm2;
-	por mm1, mm3;
-
-	/* current_upper */
-	movq mm6, qword ptr [eax];
-
-	/* compute the upper-left pixel for dst0 on %%mm2 */
-	/* compute the upper-right pixel for dst0 on %%mm4 */
-	movq mm2, mm0;
-	movq mm4, mm1;
-	movq mm3, mm0;
-	movq mm5, mm1;
-	pcmpeqw mm2, mm6;
-	pcmpeqw mm4, mm6;
-	pcmpeqw mm3, qword ptr [ecx];
-	pcmpeqw mm5, qword ptr [ecx];
-	pandn mm3,mm2;
-	pandn mm5,mm4;
-	movq mm2,mm0;
-	movq mm4,mm1;
-	pcmpeqw mm2,mm1;
-	pcmpeqw mm4,mm0;
-	pandn mm2,mm3;
-	pandn mm4,mm5;
-	movq mm3,mm2;
-	movq mm5,mm4;
-	pand mm2,mm6;
-	pand mm4,mm6;
-	pandn mm3,mm7;
-	pandn mm5,mm7;
-	por mm2,mm3;
-	por mm4,mm5;
-
-	/* set *dst0 */
-	movq mm3,mm2;
-	punpcklwd mm2,mm4;
-	punpckhwd mm3,mm4;
-	movq qword ptr [edx], mm2;
-	movq qword ptr [edx + 8], mm3;
-
-	/* next */
-	add eax, 8;
-	add ebx, 8;
-	add ecx, 8;
-	add edx, 16;
-
-	/* central runs */
-	shr esi, 2;
-	jz label1;
-	align 4;
-  label0:
-
-	/* set the current, current_pre, current_next registers */
-	movq mm0, qword ptr [ebx-8];
-	movq mm7, qword ptr [ebx];
-	movq mm1, qword ptr [ebx+8];
-	psrlq mm0,48;
-	psllq mm1,48;
-	movq mm2,mm7;
-	movq mm3,mm7;
-	psllq mm2,16;
-	psrlq mm3,16;
-	por mm0,mm2;
-	por mm1,mm3;
-
-	/* current_upper */
-	movq mm6, qword ptr [eax];
-
-	/* compute the upper-left pixel for dst0 on %%mm2 */
-	/* compute the upper-right pixel for dst0 on %%mm4 */
-	movq mm2,mm0;
-	movq mm4,mm1;
-	movq mm3,mm0;
-	movq mm5,mm1;
-	pcmpeqw mm2,mm6;
-	pcmpeqw mm4,mm6;
-	pcmpeqw mm3, qword ptr [ecx];
-	pcmpeqw mm5, qword ptr [ecx];
-	pandn mm3,mm2;
-	pandn mm5,mm4;
-	movq mm2,mm0;
-	movq mm4,mm1;
-	pcmpeqw mm2,mm1;
-	pcmpeqw mm4,mm0;
-	pandn mm2,mm3;
-	pandn mm4,mm5;
-	movq mm3,mm2;
-	movq mm5,mm4;
-	pand mm2,mm6;
-	pand mm4,mm6;
-	pandn mm3,mm7;
-	pandn mm5,mm7;
-	por mm2,mm3;
-	por mm4,mm5;
-
-	/* set *dst0 */
-	movq mm3,mm2;
-	punpcklwd mm2,mm4;
-	punpckhwd mm3,mm4;
-	movq qword ptr [edx], mm2;
-	movq qword ptr [edx+8], mm3;
-
-	/* next */
-	add eax,8;
-	add ebx,8;
-	add ecx,8;
-	add edx,16;
-
-	dec esi;
-	jnz label0;
-  label1:
-
-	/* final run */
-	/* set the current, current_pre, current_next registers */
-	movq mm0, qword ptr [ebx-8];
-	movq mm7, qword ptr [ebx];
-	pxor mm1,mm1; /* use a fake black out of screen */
-	psrlq mm0,48;
-	psllq mm1,48;
-	movq mm2,mm7;
-	movq mm3,mm7;
-	psllq mm2,16;
-	psrlq mm3,16;
-	por mm0,mm2;
-	por mm1,mm3;
-
-	/* current_upper */
-	movq mm6, qword ptr [eax];
-
-	/* compute the upper-left pixel for dst0 on %%mm2 */
-	/* compute the upper-right pixel for dst0 on %%mm4 */
-	movq mm2,mm0;
-	movq mm4,mm1;
-	movq mm3,mm0;
-	movq mm5,mm1;
-	pcmpeqw mm2,mm6;
-	pcmpeqw mm4,mm6;
-	pcmpeqw mm3, qword ptr [ecx];
-	pcmpeqw mm5, qword ptr [ecx];
-	pandn mm3,mm2;
-	pandn mm5,mm4;
-	movq mm2,mm0;
-	movq mm4,mm1;
-	pcmpeqw mm2,mm1;
-	pcmpeqw mm4,mm0;
-	pandn mm2,mm3;
-	pandn mm4,mm5;
-	movq mm3,mm2;
-	movq mm5,mm4;
-	pand mm2,mm6;
-	pand mm4,mm6;
-	pandn mm3,mm7;
-	pandn mm5,mm7;
-	por mm2,mm3;
-	por mm4,mm5;
-
-	/* set *dst0 */
-	movq mm3,mm2;
-	punpcklwd mm2,mm4;
-	punpckhwd mm3,mm4;
-	movq qword ptr [edx], mm2;
-	movq qword ptr [edx+8], mm3;
-
-	mov src0, eax;
-	mov src1, ebx;
-	mov src2, ecx;
-	mov dst, edx;
-	mov count, esi;
-
-	emms;
-  }
+static inline void scale2x_32_pixel_mmx(void* src0, void* src1, void* src2, void* dst0, void* dst1)
+{
+	static const int64_t hextrue = -1ll;
+	__asm__ __volatile__ (
+	"# load pixels surrounding input pixel\n"
+	"movq -4(%%eax),%%mm0                      # mm0 := D\n"
+	"movq 4(%%eax),%%mm1                       # mm1 := F\n"
+	"movq (%%ebx),%%mm2                        # mm2 := B\n"
+	"movq (%%ecx),%%mm3                        # mm3 := H\n"
+	"\n"
+	"# mm4 := ~((B==H)|(D==F))\n"
+	"movq %%mm2,%%mm4\n"
+	"pcmpeqd %%mm3,%%mm4\n"
+	"movq %%mm0,%%mm5\n"
+	"pcmpeqd %%mm1,%%mm5\n"
+	"por %%mm5,%%mm4\n"
+	"movq (%%edi),%%mm7\n"
+	"pxor %%mm7,%%mm4\n"
+	"\n"
+	"# calculate boolean conditions\n"
+	"movq %%mm0,%%mm5\n"
+	"pcmpeqd %%mm2,%%mm5\n"
+	"pand %%mm4,%%mm5                          # mm5 := (D == B) & mm4\n"
+	"movq %%mm1,%%mm6\n"
+	"pcmpeqd %%mm2,%%mm6\n"
+	"pand %%mm4,%%mm6                          # mm6 := (F == B) & mm4\n"
+	"movq %%mm0,%%mm7\n"
+	"pcmpeqd %%mm3,%%mm7\n"
+	"pand %%mm4,%%mm7                          # mm7 := (D == H) & mm4\n"
+	"pcmpeqd %%mm1,%%mm3\n"
+	"pand %%mm4,%%mm3                          # mm3 := (F == H) & mm4\n"
+	"\n"
+	"# fetch input pixel E\n"
+	"movq (%%eax),%%mm2                        # mm2 := E\n"
+	"\n"
+	"# calculate output pixel values\n"
+	"movq %%mm5,%%mm4\n"
+	"pandn %%mm2,%%mm4\n"
+	"pand %%mm0,%%mm5\n"
+	"por %%mm4,%%mm5                           # mm5 := I0\n"
+	"movq %%mm6,%%mm4\n"
+	"pandn %%mm2,%%mm4\n"
+	"pand %%mm1,%%mm6\n"
+	"por %%mm4,%%mm6                           # mm6 = I1\n"
+	"movq %%mm7,%%mm4\n"
+	"pandn %%mm2,%%mm4\n"
+	"pand %%mm0,%%mm7\n"
+	"por %%mm4,%%mm7                           # mm7 = I2\n"
+	"movq %%mm3,%%mm4\n"
+	"pandn %%mm2,%%mm4\n"
+	"pand %%mm1,%%mm3\n"
+	"por %%mm4,%%mm3                           # mm3 = I3\n"
+	"\n"
+	"# write the I0 pixels to memory\n"
+	"movd %%mm5,%%eax\n"
+	"movl %%eax,(%%edx)                        # left pixel\n"
+	"psrlq $32,%%mm5\n"
+	"movd %%mm5,%%eax\n"
+	"movl %%eax,8(%%edx)                       # right pixel\n"
+	"\n"
+	"# write the I1 pixels to memory\n"
+	"movd %%mm6,%%eax\n"
+	"movl %%eax,4(%%edx)                       # left pixel\n"
+	"psrlq $32,%%mm6\n"
+	"movd %%mm6,%%eax\n"
+	"movl %%eax,12(%%edx)                      # right pixel\n"
+	"\n"
+	"# write the I2 pixels to memory\n"
+	"movd %%mm7,%%eax\n"
+	"movl %%eax,(%%esi)                        # left pixel\n"
+	"psrlq $32,%%mm7\n"
+	"movd %%mm7,%%eax\n"
+	"movl %%eax,8(%%esi)                       # right pixel\n"
+	"\n"
+	"# write the I3 pixels to memory\n"
+	"movd %%mm3,%%eax\n"
+	"movl %%eax,4(%%esi)                       # left pixel\n"
+	"psrlq $32,%%mm3\n"
+	"movd %%mm3,%%eax\n"
+	"movl %%eax,12(%%esi)                      # right pixel\n"
+	"\n"
+	"# finished with MMX instructions\n"
+	"emms\n"
+	: 
+	: "a" (src0), "b" (src1), "c" (src2), "d" (dst0), "S" (dst1), "D" (&hextrue)
+	: "cc"
+	);
+}
 #endif
-}
 
-static void internal_scale2x_32_mmx_single(u32* dst, const u32* src0, const u32* src1, const u32* src2, unsigned count)
-{
-	/* always do the first and last run */
-	count -= 2*2;
-
-#ifdef __GNUC__
-  __asm__ __volatile__(
-					   /* first run */
-					   /* set the current, current_pre, current_next registers */
-					   "pxor %%mm0,%%mm0\n" /* use a fake black out of screen */
-					   "movq 0(%1),%%mm7\n"
-					   "movq 8(%1),%%mm1\n"
-					   "psrlq $32,%%mm0\n"
-					   "psllq $32,%%mm1\n"
-					   "movq %%mm7,%%mm2\n"
-					   "movq %%mm7,%%mm3\n"
-					   "psllq $32,%%mm2\n"
-					   "psrlq $32,%%mm3\n"
-					   "por %%mm2,%%mm0\n"
-					   "por %%mm3,%%mm1\n"
-
-					   /* current_upper */
-					   "movq (%0),%%mm6\n"
-
-					   /* compute the upper-left pixel for dst0 on %%mm2 */
-					   /* compute the upper-right pixel for dst0 on %%mm4 */
-					   "movq %%mm0,%%mm2\n"
-					   "movq %%mm1,%%mm4\n"
-					   "movq %%mm0,%%mm3\n"
-					   "movq %%mm1,%%mm5\n"
-					   "pcmpeqd %%mm6,%%mm2\n"
-					   "pcmpeqd %%mm6,%%mm4\n"
-					   "pcmpeqd (%2),%%mm3\n"
-					   "pcmpeqd (%2),%%mm5\n"
-					   "pandn %%mm2,%%mm3\n"
-					   "pandn %%mm4,%%mm5\n"
-					   "movq %%mm0,%%mm2\n"
-					   "movq %%mm1,%%mm4\n"
-					   "pcmpeqd %%mm1,%%mm2\n"
-					   "pcmpeqd %%mm0,%%mm4\n"
-					   "pandn %%mm3,%%mm2\n"
-					   "pandn %%mm5,%%mm4\n"
-					   "movq %%mm2,%%mm3\n"
-					   "movq %%mm4,%%mm5\n"
-					   "pand %%mm6,%%mm2\n"
-					   "pand %%mm6,%%mm4\n"
-					   "pandn %%mm7,%%mm3\n"
-					   "pandn %%mm7,%%mm5\n"
-					   "por %%mm3,%%mm2\n"
-					   "por %%mm5,%%mm4\n"
-
-					   /* set *dst0 */
-					   "movq %%mm2,%%mm3\n"
-					   "punpckldq %%mm4,%%mm2\n"
-					   "punpckhdq %%mm4,%%mm3\n"
-					   "movq %%mm2,(%3)\n"
-					   "movq %%mm3,8(%3)\n"
-
-					   /* next */
-					   "add $8,%0\n"
-					   "add $8,%1\n"
-					   "add $8,%2\n"
-					   "add $16,%3\n"
-
-					   /* central runs */
-					   "shr $1,%4\n"
-					   "jz 1f\n"
-					   ASM_JUMP_ALIGN
-					   "0:\n"
-
-					   /* set the current, current_pre, current_next registers */
-					   "movq -8(%1),%%mm0\n"
-					   "movq (%1),%%mm7\n"
-					   "movq 8(%1),%%mm1\n"
-					   "psrlq $32,%%mm0\n"
-					   "psllq $32,%%mm1\n"
-					   "movq %%mm7,%%mm2\n"
-					   "movq %%mm7,%%mm3\n"
-					   "psllq $32,%%mm2\n"
-					   "psrlq $32,%%mm3\n"
-					   "por %%mm2,%%mm0\n"
-					   "por %%mm3,%%mm1\n"
-
-					   /* current_upper */
-					   "movq (%0),%%mm6\n"
-
-					   /* compute the upper-left pixel for dst0 on %%mm2 */
-					   /* compute the upper-right pixel for dst0 on %%mm4 */
-					   "movq %%mm0,%%mm2\n"
-					   "movq %%mm1,%%mm4\n"
-					   "movq %%mm0,%%mm3\n"
-					   "movq %%mm1,%%mm5\n"
-					   "pcmpeqd %%mm6,%%mm2\n"
-					   "pcmpeqd %%mm6,%%mm4\n"
-					   "pcmpeqd (%2),%%mm3\n"
-					   "pcmpeqd (%2),%%mm5\n"
-					   "pandn %%mm2,%%mm3\n"
-					   "pandn %%mm4,%%mm5\n"
-					   "movq %%mm0,%%mm2\n"
-					   "movq %%mm1,%%mm4\n"
-					   "pcmpeqd %%mm1,%%mm2\n"
-					   "pcmpeqd %%mm0,%%mm4\n"
-					   "pandn %%mm3,%%mm2\n"
-					   "pandn %%mm5,%%mm4\n"
-					   "movq %%mm2,%%mm3\n"
-					   "movq %%mm4,%%mm5\n"
-					   "pand %%mm6,%%mm2\n"
-					   "pand %%mm6,%%mm4\n"
-					   "pandn %%mm7,%%mm3\n"
-					   "pandn %%mm7,%%mm5\n"
-					   "por %%mm3,%%mm2\n"
-					   "por %%mm5,%%mm4\n"
-
-					   /* set *dst0 */
-					   "movq %%mm2,%%mm3\n"
-					   "punpckldq %%mm4,%%mm2\n"
-					   "punpckhdq %%mm4,%%mm3\n"
-					   "movq %%mm2,(%3)\n"
-					   "movq %%mm3,8(%3)\n"
-
-					   /* next */
-					   "add $8,%0\n"
-					   "add $8,%1\n"
-					   "add $8,%2\n"
-					   "add $16,%3\n"
-
-					   "decl %4\n"
-					   "jnz 0b\n"
-					   "1:\n"
-
-					   /* final run */
-					   /* set the current, current_pre, current_next registers */
-					   "movq -8(%1),%%mm0\n"
-					   "movq (%1),%%mm7\n"
-					   "pxor %%mm1,%%mm1\n" /* use a fake black out of screen */
-					   "psrlq $32,%%mm0\n"
-					   "psllq $32,%%mm1\n"
-					   "movq %%mm7,%%mm2\n"
-					   "movq %%mm7,%%mm3\n"
-					   "psllq $32,%%mm2\n"
-					   "psrlq $32,%%mm3\n"
-					   "por %%mm2,%%mm0\n"
-					   "por %%mm3,%%mm1\n"
-
-					   /* current_upper */
-					   "movq (%0),%%mm6\n"
-
-					   /* compute the upper-left pixel for dst0 on %%mm2 */
-					   /* compute the upper-right pixel for dst0 on %%mm4 */
-					   "movq %%mm0,%%mm2\n"
-					   "movq %%mm1,%%mm4\n"
-					   "movq %%mm0,%%mm3\n"
-					   "movq %%mm1,%%mm5\n"
-					   "pcmpeqd %%mm6,%%mm2\n"
-					   "pcmpeqd %%mm6,%%mm4\n"
-					   "pcmpeqd (%2),%%mm3\n"
-					   "pcmpeqd (%2),%%mm5\n"
-					   "pandn %%mm2,%%mm3\n"
-					   "pandn %%mm4,%%mm5\n"
-					   "movq %%mm0,%%mm2\n"
-					   "movq %%mm1,%%mm4\n"
-					   "pcmpeqd %%mm1,%%mm2\n"
-					   "pcmpeqd %%mm0,%%mm4\n"
-					   "pandn %%mm3,%%mm2\n"
-					   "pandn %%mm5,%%mm4\n"
-					   "movq %%mm2,%%mm3\n"
-					   "movq %%mm4,%%mm5\n"
-					   "pand %%mm6,%%mm2\n"
-					   "pand %%mm6,%%mm4\n"
-					   "pandn %%mm7,%%mm3\n"
-					   "pandn %%mm7,%%mm5\n"
-					   "por %%mm3,%%mm2\n"
-					   "por %%mm5,%%mm4\n"
-
-					   /* set *dst0 */
-					   "movq %%mm2,%%mm3\n"
-					   "punpckldq %%mm4,%%mm2\n"
-					   "punpckhdq %%mm4,%%mm3\n"
-					   "movq %%mm2,(%3)\n"
-					   "movq %%mm3,8(%3)\n"
-					   "emms\n"
-
-					   : "+r" (src0), "+r" (src1), "+r" (src2), "+r" (dst), "+r" (count)
-					   :
-					   : "cc"
-					   );
+#if MMX
+#define scale2x_16_pixel scale2x_16_pixel_mmx
+#define scale2x_32_pixel scale2x_32_pixel_mmx
+#define increment16 4
+#define increment32 2
 #else
-  __asm {
-	mov eax, src0;
-	mov ebx, src1;
-	mov ecx, src2;
-	mov edx, dst;
-	mov esi, count;
-
-	/* first run */
-	/* set the current, current_pre, current_next registers */
-	pxor mm0,mm0;
-	movq mm7,qword ptr [ebx];
-	movq mm1,qword ptr [ebx + 8];
-	psrlq mm0,32;
-	psllq mm1,32;
-	movq mm2,mm7;
-	movq mm3,mm7;
-	psllq mm2,32;
-	psrlq mm3,32;
-	por mm0,mm2;
-	por mm1,mm3;
-
-	/* current_upper */
-	movq mm6,qword ptr [eax];
-
-	/* compute the upper-left pixel for dst0 on %%mm2 */
-	/* compute the upper-right pixel for dst0 on %%mm4 */
-	movq mm2,mm0;
-	movq mm4,mm1;
-	movq mm3,mm0;
-	movq mm5,mm1;
-	pcmpeqd mm2,mm6;
-	pcmpeqd mm4,mm6;
-	pcmpeqd mm3,qword ptr [ecx];
-	pcmpeqd mm5,qword ptr [ecx];
-	pandn mm3,mm2;
-	pandn mm5,mm4;
-	movq mm2,mm0;
-	movq mm4,mm1;
-	pcmpeqd mm2,mm1;
-	pcmpeqd mm4,mm0;
-	pandn mm2,mm3;
-	pandn mm4,mm5;
-	movq mm3,mm2;
-	movq mm5,mm4;
-	pand mm2,mm6;
-	pand mm4,mm6;
-	pandn mm3,mm7;
-	pandn mm5,mm7;
-	por mm2,mm3;
-	por mm4,mm5;
-
-	/* set *dst0 */
-	movq mm3,mm2;
-	punpckldq mm2,mm4;
-	punpckhdq mm3,mm4;
-	movq qword ptr [edx],mm2;
-	movq qword ptr [edx+8],mm3;
-
-	/* next */
-	add eax,8;
-	add ebx,8;
-	add ecx,8;
-	add edx,16;
-
-	/* central runs */
-	shr esi,1;
-	jz label1;
-label0:
-
-  /* set the current, current_pre, current_next registers */
-	movq mm0,qword ptr [ebx-8];
-	movq mm7,qword ptr [ebx];
-	movq mm1,qword ptr [ebx+8];
-	psrlq mm0,32;
-	psllq mm1,32;
-	movq mm2,mm7;
-	movq mm3,mm7;
-	psllq mm2,32;
-	psrlq mm3,32;
-	por mm0,mm2;
-	por mm1,mm3;
-
-	/* current_upper */
-	movq mm6,qword ptr[eax];
-
-	/* compute the upper-left pixel for dst0 on %%mm2 */
-	/* compute the upper-right pixel for dst0 on %%mm4 */
-	movq mm2,mm0;
-	movq mm4,mm1;
-	movq mm3,mm0;
-	movq mm5,mm1;
-	pcmpeqd mm2,mm6;
-	pcmpeqd mm4,mm6;
-	pcmpeqd mm3,qword ptr[ecx];
-	pcmpeqd mm5,qword ptr[ecx];
-	pandn mm3,mm2;
-	pandn mm5,mm4;
-	movq mm2,mm0;
-	movq mm4,mm1;
-	pcmpeqd mm2,mm1;
-	pcmpeqd mm4,mm0;
-	pandn mm2,mm3;
-	pandn mm4,mm5;
-	movq mm3,mm2;
-	movq mm5,mm4;
-	pand mm2,mm6;
-	pand mm4,mm6;
-	pandn mm3,mm7;
-	pandn mm5,mm7;
-	por mm2,mm3;
-	por mm4,mm5;
-
-	/* set *dst0 */
-	movq mm3,mm2;
-	punpckldq mm2,mm4;
-	punpckhdq mm3,mm4;
-	movq qword ptr [edx],mm2;
-	movq qword ptr [edx+8],mm3;
-
-	/* next */
-	add eax,8;
-	add ebx,8;
-	add ecx,8;
-	add edx,16;
-
-	dec esi;
-	jnz label0;
-label1:
-
-	/* final run */
-	/* set the current, current_pre, current_next registers */
-	movq mm0,qword ptr [ebx-8];
-	movq mm7,qword ptr [ebx];
-	pxor mm1,mm1;
-	psrlq mm0,32;
-	psllq mm1,32;
-	movq mm2,mm7;
-	movq mm3,mm7;
-	psllq mm2,32;
-	psrlq mm3,32;
-	por mm0,mm2;
-	por mm1,mm3;
-
-	/* current_upper */
-	movq mm6,qword ptr [eax];
-
-	/* compute the upper-left pixel for dst0 on %%mm2 */
-	/* compute the upper-right pixel for dst0 on %%mm4 */
-	movq mm2,mm0;
-	movq mm4,mm1;
-	movq mm3,mm0;
-	movq mm5,mm1;
-	pcmpeqd mm2,mm6;
-	pcmpeqd mm4,mm6;
-	pcmpeqd mm3,qword ptr [ecx];
-	pcmpeqd mm5,qword ptr [ecx];
-	pandn mm3,mm2;
-	pandn mm5,mm4;
-	movq mm2,mm0;
-	movq mm4,mm1;
-	pcmpeqd mm2,mm1;
-	pcmpeqd mm4,mm0;
-	pandn mm2,mm3;
-	pandn mm4,mm5;
-	movq mm3,mm2;
-	movq mm5,mm4;
-	pand mm2,mm6;
-	pand mm4,mm6;
-	pandn mm3,mm7;
-	pandn mm5,mm7;
-	por mm2,mm3;
-	por mm4,mm5;
-
-	/* set *dst0 */
-	movq mm3,mm2;
-	punpckldq mm2,mm4;
-	punpckhdq mm3,mm4;
-	movq qword ptr [edx],mm2;
-	movq qword ptr [edx+8],mm3;
-
-	mov src0, eax;
-	mov src1, ebx;
-	mov src2, ecx;
-	mov dst, edx;
-	mov count, esi;
-
-	emms;
-  }
-#endif
-}
-
-static void internal_scale2x_16_mmx(u16* dst0, u16* dst1, const u16* src0, const u16* src1, const u16* src2, unsigned count)
-{
-	//assert( count >= 2*4 );
-	internal_scale2x_16_mmx_single(dst0, src0, src1, src2, count);
-	internal_scale2x_16_mmx_single(dst1, src2, src1, src0, count);
-}
-
-static void internal_scale2x_32_mmx(u32* dst0, u32* dst1, const u32* src0, const u32* src1, const u32* src2, unsigned count)
-{
-	 //assert( count >= 2*2 );
-	internal_scale2x_32_mmx_single(dst0, src0, src1, src2, count);
-	internal_scale2x_32_mmx_single(dst1, src2, src1, src0, count);
-}
+#define scale2x_16_pixel scale2x_16_pixel_c
+#define scale2x_32_pixel scale2x_32_pixel_c
+#define increment16 1
+#define increment32 1
 #endif
 
 void AdMame2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height)
 {
-	int count;
-	u16 *dst0 = (u16 *)dstPtr;
-	u16 *dst1 = dst0 + (dstPitch/2);
-  	u16 *src0 = (u16 *)srcPtr;
-	u16 *src1 = src0 + (srcPitch/2);
-	u16 *src2 = src1 + (srcPitch/2);
-
-#ifdef MMX
-	if(GetMMX())
+	int x, y;
+	for (y=0; y < height; y++)
 	{
-		internal_scale2x_16_mmx(dst0, dst1, src0, src0, src1, width);
-
-		count = height;
-		count -= 2;
-		while(count)
-		{
-			dst0 += dstPitch;
-			dst1 += dstPitch;
-			internal_scale2x_16_mmx(dst0, dst1, src0, src1, src2, width);
-			src0 = src1;
-			src1 = src2;
-			src2 += srcPitch/2;
-			--count;
-		}
-		dst0 += dstPitch;
-		dst1 += dstPitch;
-		internal_scale2x_16_mmx(dst0, dst1, src0, src1, src1, width);
-	}
-	else
-#endif
-	{
-		internal_scale2x_16_def(dst0, dst1, src0, src0, src1, width);
-
-		count = height;
-	    count -= 2;
-		while(count)
-		{
-			dst0 += dstPitch;
-			dst1 += dstPitch;
-			internal_scale2x_16_def(dst0, dst1, src0, src1, src2, width);
-			src0 = src1;
-			src1 = src2;
-			src2 += srcPitch/2;
-			--count;
-		}
-		dst0 += dstPitch;
-		dst1 += dstPitch;
-		internal_scale2x_16_def(dst0, dst1, src0, src1, src1, width);
+		u8* src0 = srcPtr + srcPitch * y;
+		u8* src1 = y == 0 ? src0 : src0 - srcPitch;
+		u8* src2 = (y == height - 1) ? src0 : src1 + srcPitch;
+		u8* dst0 = dstPtr + dstPitch * y * 2;
+		u8* dst1 = dst0 + dstPitch;
+		
+		for (x=0; x < width; x+=increment16)
+			scale2x_16_pixel(src0+2*x, src1+2*x, src2+2*x, dst0+4*x, dst1+4*x);
 	}
 }
 
 void AdMame2x32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height)
 {
-	int count;
-	u32 *dst0 = (u32 *)dstPtr;
-	u32 *dst1 = dst0 + (dstPitch/4);
-  	u32 *src0 = (u32 *)srcPtr;
-	u32 *src1 = src0 + (srcPitch/4);
-	u32 *src2 = src1 + (srcPitch/4);
-
-#ifdef MMX
-	if(GetMMX())
+	int x, y;
+	for (y=0; y < height; y++)
 	{
-		internal_scale2x_32_mmx(dst0, dst1, src0, src0, src1, width);
-
-		count = height;
-		count -= 2;
-		while(count)
-		{
-			dst0 += dstPitch/2;
-			dst1 += dstPitch/2;
-			internal_scale2x_32_mmx(dst0, dst1, src0, src1, src2, width);
-			src0 = src1;
-			src1 = src2;
-			src2 += srcPitch/4;
-			--count;
-		}
-		dst0 += dstPitch/2;
-		dst1 += dstPitch/2;
-		internal_scale2x_32_mmx(dst0, dst1, src0, src1, src1, width);
-	}
-	else
-#endif
-	{
-		internal_scale2x_32_def(dst0, dst1, src0, src0, src1, width);
-
-		count = height;
-		count -= 2;
-		while(count)
-		{
-			dst0 += dstPitch/2;
-			dst1 += dstPitch/2;
-			internal_scale2x_32_def(dst0, dst1, src0, src1, src2, width);
-			src0 = src1;
-			src1 = src2;
-			src2 += srcPitch/4;
-			--count;
-		}
-		dst0 += dstPitch/2;
-		dst1 += dstPitch/2;
-		internal_scale2x_32_def(dst0, dst1, src0, src1, src1, width);
+		u8* src0 = srcPtr + srcPitch * y;
+		u8* src1 = y == 0 ? src0 : src0 - srcPitch;
+		u8* src2 = (y == height - 1) ? src0 : src1 + srcPitch;
+		u8* dst0 = dstPtr + dstPitch * y * 2;
+		u8* dst1 = dst0 + dstPitch;
+		
+		for (x=0; x < width; x+=increment32)
+			scale2x_32_pixel(src0+4*x, src1+4*x, src2+4*x, dst0+8*x, dst1+8*x);
 	}
 }
+
