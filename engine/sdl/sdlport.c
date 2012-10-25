@@ -47,6 +47,9 @@ void borExit(int reset)
 
 int main(int argc, char *argv[])
 {
+#ifndef SKIP_CODE
+	char pakname[256];
+#endif
 #ifdef CUSTOM_SIGNAL_HANDLER
 	struct sigaction sigact;
 #endif
@@ -89,6 +92,10 @@ int main(int argc, char *argv[])
 	dirExists(screenShotsDir, 1);
 
 	Menu();
+#ifndef SKIP_CODE
+	getPakName(pakname, -1);
+	SDL_WM_SetCaption(pakname, NULL);
+#endif
 	openborMain(argc, argv);
 	borExit(0);
 	return 0;

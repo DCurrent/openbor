@@ -1934,8 +1934,8 @@ int getValidInt(char* text, char* file, char* cmd);
 float getValidFloat(char* text, char* file, char* cmd);
 
 
-s_savelevel* savelevel;
-s_savescore savescore;
-s_savedata savedata;
+extern s_savedata     savedata;
+extern s_savelevel*   savelevel;
+extern s_savescore    savescore;
 
 #endif
