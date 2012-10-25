@@ -35,6 +35,9 @@ static int DEFAULT_OFFSCREEN_KILL = 3000;
 s_sprite_list *sprite_list;
 s_sprite_map *sprite_map;
 
+s_savelevel* savelevel;
+s_savescore savescore;
+s_savedata savedata;
 
 /////////////////////////////////////////////////////////////////////////////
 //  Global Variables                                                        //
@@ -13307,6 +13310,7 @@ void display_ents()
 							shadowmethod = plainmethod;
 							shadowmethod.fillcolor = (shadowcolor>0?shadowcolor:0);
 							shadowmethod.alpha = shadowalpha;
+							shadowmethod.table = drawmethod->table;
 							shadowmethod.scalex = drawmethod->scalex;
 							shadowmethod.flipx = drawmethod->flipx;
 							shadowmethod.scaley = light[1]*drawmethod->scaley/256;
