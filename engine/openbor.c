@@ -19815,7 +19815,7 @@ void spawnplayer(int index)
 	currentspawnplayer = index;
 	player[index].ent = smartspawn(&p);
 
-	if(player[index].ent==NULL) shutdown(1, "Fatal: unable to spawn player from '%s'", &p.name);
+	if(player[index].ent==NULL) shutdown(1, "Fatal: unable to spawn player from '%s'\n", p.name);
 
 	player[index].ent->playerindex = index;
 	if(nomaxrushreset[4] >= 1) player[index].ent->rush[1] = nomaxrushreset[index];
@@ -20779,7 +20779,6 @@ void update(int ingame, int usevwait)
 
 	if(usevwait) vga_vwait();
 	video_copy_screen(vscreen);
-
 	spriteq_clear();
 
 	check_music();
@@ -21423,7 +21422,7 @@ playgif_error:
 	if(gifbuffer[2]) freescreen(&(gifbuffer[2]));
 	background = tempbg;
 	standard_palette(1);
-	printf("\nWarning, an error occurred while playing animated gif file.\n");
+	printf("\nWarning, an error occurred while playing animated gif file '%s'.\n", filename);
 	return 0;
 }
 
@@ -21795,7 +21794,6 @@ int playlevel(char *filename)
 			player[i].ent->rush[1] = 0;
 		}
 	}
-
 
 	//execute a script when level started
 	if(Script_IsInitialized(&level_script)) Script_Execute(&level_script);
