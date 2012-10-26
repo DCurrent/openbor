@@ -18,6 +18,7 @@ static unsigned int fillcolor;
 static blend16fp pfp16;
 static blend32fp pfp32;
 static unsigned char* table;
+static unsigned char* remaptable;
 static int transbg;
 int trans_sw, trans_sh, trans_dw, trans_dh;
 static void (*drawfp)(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy);
@@ -45,21 +46,22 @@ static int spf, dpf; //pixelformat
 
 
 /*transpixelfunc, 8bit*/
-static unsigned char remapcolor(unsigned char* table, unsigned char color, unsigned char unused)
+static unsigned char remapcolor(unsigned char* unusedt, unsigned char color, unsigned char unused)
 {
-	return table[color];
+	return remaptable[color];
 }
 
-static unsigned char blendcolor(unsigned char* table, unsigned char color1, unsigned char color2)
+static unsigned char blendcolor(unsigned char* t, unsigned char color1, unsigned char color2)
 {
-	if(!table) return color1;
-	return table[color1<<8|color2];
+	if(remaptable) color1 = remaptable[color1];
+	if(!t) return color1;
+	return t[color1<<8|color2];
 }
 
-static unsigned char blendfillcolor(unsigned char* table, unsigned char unused, unsigned char color)
+static unsigned char blendfillcolor(unsigned char* t, unsigned char unused, unsigned char color)
 {
-	if(!table) return fillcolor;
-	return table[fillcolor<<8|color];
+	if(!t) return fillcolor;
+	return t[fillcolor<<8|color];
 }
 
 
@@ -505,16 +507,18 @@ void init_gfx_global_draw_stuff(s_screen* dest, gfx_entry* src, s_drawmethod* dr
 		else fillcolor = 0;
 
 		table = NULL;
+		remaptable = NULL;
 
-		if(drawmethod->table && fillcolor==TRANSPARENT_IDX)
-		{
-			table = drawmethod->table;
-			pfp = remapcolor;
-		}
-		else if(drawmethod->alpha>0)
+		if(drawmethod->alpha>0)
 		{
 			table = blendtables[drawmethod->alpha-1];
+			remaptable = drawmethod->table;
 			pfp = (fillcolor==TRANSPARENT_IDX?blendcolor:blendfillcolor);
+		}
+		else if(drawmethod->table)
+		{
+			remaptable = drawmethod->table;
+			pfp = (fillcolor==TRANSPARENT_IDX?remapcolor:blendfillcolor);
 		}
 		else pfp = (fillcolor==TRANSPARENT_IDX?NULL:blendfillcolor);
 		break;
