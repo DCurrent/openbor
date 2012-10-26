@@ -506,7 +506,7 @@ void init_gfx_global_draw_stuff(s_screen* dest, gfx_entry* src, s_drawmethod* dr
 
 		table = NULL;
 
-		if(drawmethod->table)
+		if(drawmethod->table && fillcolor==TRANSPARENT_IDX)
 		{
 			table = drawmethod->table;
 			pfp = remapcolor;
