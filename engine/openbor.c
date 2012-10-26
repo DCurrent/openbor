@@ -3302,6 +3302,7 @@ void load_cached_background(char *filename, int createtables)
 	pal[0] = pal[1] = pal[2] = 0;
 	//palette_set_corrected(pal, savedata.gamma,savedata.gamma,savedata.gamma, savedata.brightness,savedata.brightness,savedata.brightness);
 	change_system_palette(0);
+	printf("use cached bg\n");
 #endif
 }
 
@@ -24211,7 +24212,6 @@ void openborMain(int argc, char** argv)
 			load_background(tmpBuff, 0);
 		}
 		else {
-			printf("use cached bg\n");
 			load_cached_background("data/bgs/logo", 0);
 		}
 
