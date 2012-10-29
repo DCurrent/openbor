@@ -63,12 +63,11 @@ static inline void scale2x_32_pixel_c(void* src0v, void* src1v, void* src2v, voi
 #if MMX
 static inline void scale2x_16_pixel_mmx(void* src0, void* src1, void* src2, void* dst0, void* dst1)
 {
-	static const int64_t hextrue = -1ll;
 	__asm__ __volatile__ (
 	"# load pixels surrounding input pixel\n"
 	"movq -2(%%eax),%%mm0                      # mm0 := D\n"
 	"movq 2(%%eax),%%mm1                       # mm1 := F\n"
-	"movq (%%ebx),%%mm2                        # mm2 := B\n"
+	"movq (%%edi),%%mm2                        # mm2 := B\n"
 	"movq (%%ecx),%%mm3                        # mm3 := H\n"
 	"\n"
 	"# mm4 := ~((B==H)|(D==F))\n"
@@ -77,8 +76,8 @@ static inline void scale2x_16_pixel_mmx(void* src0, void* src1, void* src2, void
 	"movq %%mm0,%%mm5\n"
 	"pcmpeqw %%mm1,%%mm5\n"
 	"por %%mm5,%%mm4\n"
-	"movq (%%edi),%%mm7\n"
-	"pxor %%mm7, %%mm4\n"
+	"pxor %%mm7,%%mm7\n"
+	"pcmpeqw %%mm7,%%mm4\n"
 	"\n"
 	"# calculate boolean conditions\n"
 	"movq %%mm0,%%mm5\n"
@@ -100,21 +99,21 @@ static inline void scale2x_16_pixel_mmx(void* src0, void* src1, void* src2, void
 	"movq %%mm5,%%mm4\n"
 	"pandn %%mm2,%%mm4\n"
 	"pand %%mm0,%%mm5\n"
-	"por %%mm4,%%mm5                           # mm5 := I0\n"
+	"por %%mm4,%%mm5                           # mm5 := R0\n"
 	"movq %%mm6,%%mm4\n"
 	"pandn %%mm2,%%mm4\n"
 	"pand %%mm1,%%mm6\n"
-	"por %%mm4,%%mm6                           # mm6 = I1\n"
+	"por %%mm4,%%mm6                           # mm6 := R1\n"
 	"movq %%mm7,%%mm4\n"
 	"pandn %%mm2,%%mm4\n"
 	"pand %%mm0,%%mm7\n"
-	"por %%mm4,%%mm7                           # mm7 = I2\n"
+	"por %%mm4,%%mm7                           # mm7 := R2\n"
 	"movq %%mm3,%%mm4\n"
 	"pandn %%mm2,%%mm4\n"
 	"pand %%mm1,%%mm3\n"
-	"por %%mm4,%%mm3                           # mm3 = I3\n"
+	"por %%mm4,%%mm3                           # mm3 := R3\n"
 	"\n"
-	"# write the I0 pixels to memory\n"
+	"# write the R0 pixels to memory\n"
 	"movd %%mm5,%%eax\n"
 	"movw %%ax,(%%edx)                         # far left pixel\n"
 	"shrl $16,%%eax\n"
@@ -125,7 +124,7 @@ static inline void scale2x_16_pixel_mmx(void* src0, void* src1, void* src2, void
 	"shrl $16,%%eax\n"
 	"movw %%ax,12(%%edx)                       # far right pixel\n"
 	"\n"
-	"# write the I1 pixels to memory\n"
+	"# write the R1 pixels to memory\n"
 	"movd %%mm6,%%eax\n"
 	"movw %%ax,2(%%edx)                        # far left pixel\n"
 	"shrl $16,%%eax\n"
@@ -136,7 +135,7 @@ static inline void scale2x_16_pixel_mmx(void* src0, void* src1, void* src2, void
 	"shrl $16,%%eax\n"
 	"movw %%ax,14(%%edx)                       # far right pixel\n"
 	"\n"
-	"# write the I2 pixels to memory\n"
+	"# write the R2 pixels to memory\n"
 	"movd %%mm7,%%eax\n"
 	"movw %%ax,(%%esi)                         # far left pixel\n"
 	"shrl $16,%%eax\n"
@@ -147,7 +146,7 @@ static inline void scale2x_16_pixel_mmx(void* src0, void* src1, void* src2, void
 	"shrl $16,%%eax\n"
 	"movw %%ax,12(%%esi)                       # far right pixel\n"
 	"\n"
-	"# write the I3 pixels to memory\n"
+	"# write the R3 pixels to memory\n"
 	"movd %%mm3,%%eax\n"
 	"movw %%ax,2(%%esi)                        # far left pixel\n"
 	"shrl $16,%%eax\n"
@@ -157,22 +156,19 @@ static inline void scale2x_16_pixel_mmx(void* src0, void* src1, void* src2, void
 	"movw %%ax,10(%%esi)                       # middle right pixel\n"
 	"shrl $16,%%eax\n"
 	"movw %%ax,14(%%esi)                       # far right pixel\n"
-	"emms\n"
-
 	: 
-	: "a" (src0), "b" (src1), "c" (src2), "d" (dst0), "S" (dst1), "D" (&hextrue)
+	: "a" (src0), "D" (src1), "c" (src2), "d" (dst0), "S" (dst1)
 	: "cc"
 	);
 }
 
 static inline void scale2x_32_pixel_mmx(void* src0, void* src1, void* src2, void* dst0, void* dst1)
 {
-	static const int64_t hextrue = -1ll;
 	__asm__ __volatile__ (
 	"# load pixels surrounding input pixel\n"
 	"movq -4(%%eax),%%mm0                      # mm0 := D\n"
 	"movq 4(%%eax),%%mm1                       # mm1 := F\n"
-	"movq (%%ebx),%%mm2                        # mm2 := B\n"
+	"movq (%%edi),%%mm2                        # mm2 := B\n"
 	"movq (%%ecx),%%mm3                        # mm3 := H\n"
 	"\n"
 	"# mm4 := ~((B==H)|(D==F))\n"
@@ -181,8 +177,8 @@ static inline void scale2x_32_pixel_mmx(void* src0, void* src1, void* src2, void
 	"movq %%mm0,%%mm5\n"
 	"pcmpeqd %%mm1,%%mm5\n"
 	"por %%mm5,%%mm4\n"
-	"movq (%%edi),%%mm7\n"
-	"pxor %%mm7,%%mm4\n"
+	"pxor %%mm7,%%mm7\n"
+	"pcmpeqd %%mm7,%%mm4\n"
 	"\n"
 	"# calculate boolean conditions\n"
 	"movq %%mm0,%%mm5\n"
@@ -204,52 +200,49 @@ static inline void scale2x_32_pixel_mmx(void* src0, void* src1, void* src2, void
 	"movq %%mm5,%%mm4\n"
 	"pandn %%mm2,%%mm4\n"
 	"pand %%mm0,%%mm5\n"
-	"por %%mm4,%%mm5                           # mm5 := I0\n"
+	"por %%mm4,%%mm5                           # mm5 := R0\n"
 	"movq %%mm6,%%mm4\n"
 	"pandn %%mm2,%%mm4\n"
 	"pand %%mm1,%%mm6\n"
-	"por %%mm4,%%mm6                           # mm6 = I1\n"
+	"por %%mm4,%%mm6                           # mm6 := R1\n"
 	"movq %%mm7,%%mm4\n"
 	"pandn %%mm2,%%mm4\n"
 	"pand %%mm0,%%mm7\n"
-	"por %%mm4,%%mm7                           # mm7 = I2\n"
+	"por %%mm4,%%mm7                           # mm7 := R2\n"
 	"movq %%mm3,%%mm4\n"
 	"pandn %%mm2,%%mm4\n"
 	"pand %%mm1,%%mm3\n"
-	"por %%mm4,%%mm3                           # mm3 = I3\n"
+	"por %%mm4,%%mm3                           # mm3 := R3\n"
 	"\n"
-	"# write the I0 pixels to memory\n"
+	"# write the R0 pixels to memory\n"
 	"movd %%mm5,%%eax\n"
 	"movl %%eax,(%%edx)                        # left pixel\n"
 	"psrlq $32,%%mm5\n"
 	"movd %%mm5,%%eax\n"
 	"movl %%eax,8(%%edx)                       # right pixel\n"
 	"\n"
-	"# write the I1 pixels to memory\n"
+	"# write the R1 pixels to memory\n"
 	"movd %%mm6,%%eax\n"
 	"movl %%eax,4(%%edx)                       # left pixel\n"
 	"psrlq $32,%%mm6\n"
 	"movd %%mm6,%%eax\n"
 	"movl %%eax,12(%%edx)                      # right pixel\n"
 	"\n"
-	"# write the I2 pixels to memory\n"
+	"# write the R2 pixels to memory\n"
 	"movd %%mm7,%%eax\n"
 	"movl %%eax,(%%esi)                        # left pixel\n"
 	"psrlq $32,%%mm7\n"
 	"movd %%mm7,%%eax\n"
 	"movl %%eax,8(%%esi)                       # right pixel\n"
 	"\n"
-	"# write the I3 pixels to memory\n"
+	"# write the R3 pixels to memory\n"
 	"movd %%mm3,%%eax\n"
 	"movl %%eax,4(%%esi)                       # left pixel\n"
 	"psrlq $32,%%mm3\n"
 	"movd %%mm3,%%eax\n"
 	"movl %%eax,12(%%esi)                      # right pixel\n"
-	"\n"
-	"# finished with MMX instructions\n"
-	"emms\n"
 	: 
-	: "a" (src0), "b" (src1), "c" (src2), "d" (dst0), "S" (dst1), "D" (&hextrue)
+	: "a" (src0), "D" (src1), "c" (src2), "d" (dst0), "S" (dst1)
 	: "cc"
 	);
 }
@@ -267,9 +260,11 @@ static inline void scale2x_32_pixel_mmx(void* src0, void* src1, void* src2, void
 #define increment32 1
 #endif
 
+#include <stdio.h>
 void AdMame2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height)
 {
 	int x, y;
+	fprintf(stderr, "src=%08x dst=%08x\n", (u32)srcPtr, (u32)dstPtr);
 	for (y=0; y < height; y++)
 	{
 		u8* src0 = srcPtr + srcPitch * y;
@@ -281,6 +276,11 @@ void AdMame2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, 
 		for (x=0; x < width; x+=increment16)
 			scale2x_16_pixel(src0+2*x, src1+2*x, src2+2*x, dst0+4*x, dst1+4*x);
 	}
+
+#if MMX
+	// done with MMX instructions, so tell the processor to restore floating-point state
+	__asm__ __volatile__ ("emms");
+#endif
 }
 
 void AdMame2x32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height)
@@ -297,5 +297,9 @@ void AdMame2x32(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch
 		for (x=0; x < width; x+=increment32)
 			scale2x_32_pixel(src0+4*x, src1+4*x, src2+4*x, dst0+8*x, dst1+8*x);
 	}
+#if MMX
+	// done with MMX instructions, so tell the processor to restore floating-point state
+	__asm__ __volatile__ ("emms");
+#endif
 }
 
