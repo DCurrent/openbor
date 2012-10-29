@@ -18025,10 +18025,10 @@ void player_jump_check()
 				if(candospecial)
 				{
 					player[self->playerindex].playkeys -= FLAG_SPECIAL;
-					ent_set_anim(self, ANI_JUMPSPECIAL, 0);
 					self->attacking = 1;
 					self->xdir = self->zdir = 0;                         // Kill movement when the special starts
 					self->tossv = 0;
+					ent_set_anim(self, ANI_JUMPSPECIAL, 0);
 				}
 			}
 		}//end of jumpspecial
@@ -22308,7 +22308,7 @@ int choose_difficulty()
 	int quit = 0;
 	int selector = 0;
 	int maxdisplay = 5;
-	int i, j;
+	int i, j, t;
 	//float slider = 0;
 	int barx, bary, barw, barh;
 
@@ -22326,7 +22326,8 @@ int choose_difficulty()
 		if(num_difficulties > 1)
 		{
 			_menutextm(2, -2, 0, "Game Mode");
-			for(j=0,i=num_difficulties <= maxdisplay?0:(selector>=maxdisplay?maxdisplay:0); i<num_difficulties; j++,i++)
+			t = selector/maxdisplay*maxdisplay;
+			for(j=0,i=t; i<maxdisplay+t && i<num_difficulties; j++,i++)
 			{
 				if(j < maxdisplay)
 				{
