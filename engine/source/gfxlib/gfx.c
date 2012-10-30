@@ -81,7 +81,7 @@ GfxBlitterTypes GfxBlitters[BLITTER_MAX * 2] = {
 	Lq2x32,
 	Hq2x32,
 	Scanlines32,
-	ScanlinesTV32,
+	ScanlinesTV,
 	Tv2x,
 	DotMatrix,
 	MotionBlur32,
