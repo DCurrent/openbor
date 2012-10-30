@@ -82,7 +82,6 @@ void getPads(Uint8* keystate)
 					if(ev.jbutton.which == i)
 					{
 						lastjoy = 1 + i * JOY_MAX_INPUTS + ev.jbutton.button;
-						fprintf(stderr, "SDL_JOYBUTTONDOWN - Joystick %i Button %i (Index %i)\n", i, ev.jbutton.button, lastjoy);
 					}
 				}
 				break;
@@ -98,8 +97,7 @@ void getPads(Uint8* keystate)
 						if(ev.jhat.value & SDL_HAT_RIGHT && !(x & SDL_HAT_RIGHT))	lastjoy = hatfirst + 1;
 						if(ev.jhat.value & SDL_HAT_DOWN && !(x & SDL_HAT_DOWN))		lastjoy = hatfirst + 2;
 						if(ev.jhat.value & SDL_HAT_LEFT && !(x & SDL_HAT_LEFT))		lastjoy = hatfirst + 3;
-
-						if(lastjoy) fprintf(stderr, "SDL_JOYHATMOTION - Joystick %i Hat %i (Index %i)\n", i, ev.jhat.hat, lastjoy);
+						//if(lastjoy) fprintf(stderr, "SDL_JOYHATMOTION - Joystick %i Hat %i (Index %i)\n", i, ev.jhat.hat, lastjoy);
 					}
 				}
 				break;
@@ -113,7 +111,7 @@ void getPads(Uint8* keystate)
 						x = (joysticks[i].Axes >> (2*ev.jaxis.axis)) & 3; // previous state of axis
 						if(ev.jaxis.value < -7000 && !(x & JoystickBits[0]))		lastjoy = axisfirst;
 						if(ev.jaxis.value > +7000 && !(x & JoystickBits[1]))		lastjoy = axisfirst + 1;
-						if(lastjoy) fprintf(stderr, "SDL_JOYAXISMOTION - Joystick %i Axis %i = Position %i (Index %i)\n", i, ev.jaxis.axis, ev.jaxis.value, lastjoy);
+						//if(lastjoy) fprintf(stderr, "SDL_JOYAXISMOTION - Joystick %i Axis %i = Position %i (Index %i)\n", i, ev.jaxis.axis, ev.jaxis.value, lastjoy);
 					}
 				}
 				break;
