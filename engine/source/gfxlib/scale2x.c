@@ -156,9 +156,9 @@ static inline void scale2x_16_pixel_mmx(void* src0, void* src1, void* src2, void
 	"movw %%ax,10(%%esi)                       # middle right pixel\n"
 	"shrl $16,%%eax\n"
 	"movw %%ax,14(%%esi)                       # far right pixel\n"
-	: 
+	: "=a" (src0)
 	: "a" (src0), "D" (src1), "c" (src2), "d" (dst0), "S" (dst1)
-	: "cc"
+	: "cc", "memory"
 	);
 }
 
@@ -241,9 +241,9 @@ static inline void scale2x_32_pixel_mmx(void* src0, void* src1, void* src2, void
 	"psrlq $32,%%mm3\n"
 	"movd %%mm3,%%eax\n"
 	"movl %%eax,12(%%esi)                      # right pixel\n"
-	: 
+	: "=a" (src0)
 	: "a" (src0), "D" (src1), "c" (src2), "d" (dst0), "S" (dst1)
-	: "cc"
+	: "cc", "memory"
 	);
 }
 #endif
@@ -260,11 +260,9 @@ static inline void scale2x_32_pixel_mmx(void* src0, void* src1, void* src2, void
 #define increment32 1
 #endif
 
-#include <stdio.h>
 void AdMame2x(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height)
 {
 	int x, y;
-	fprintf(stderr, "src=%08x dst=%08x\n", (u32)srcPtr, (u32)dstPtr);
 	for (y=0; y < height; y++)
 	{
 		u8* src0 = srcPtr + srcPitch * y;
