@@ -23662,7 +23662,7 @@ void video_options(){
 			else _menutext((selector==5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes*savedata.glscale), (int)(videomodes.vRes*savedata.glscale));
 
 			_menutext((selector==6), col1, 3, "Filters:");
-			_menutext((selector==6), col2, 3, "%s", savedata.glscale!=1.0 ? (savedata.glfilter[savedata.fullscreen] ? "Simple" : "Bilinear") : "Disabled");
+			_menutext((selector==6), col2, 3, "%s", (savedata.glscale!=1.0||savedata.fullscreen) ? (savedata.glfilter[savedata.fullscreen] ? "Simple" : "Bilinear") : "Disabled");
 		}
 		else
 		{
@@ -23852,7 +23852,7 @@ void video_options(){
 				case 6:
 					if(opengl)
 					{
-						if(savedata.glscale == 1.0) break;
+						if(!savedata.fullscreen && savedata.glscale == 1.0) break;
 						savedata.glfilter[savedata.fullscreen] += dir;
 						if(savedata.glfilter[savedata.fullscreen] < 0) savedata.glfilter[savedata.fullscreen] = 1;
 						if(savedata.glfilter[savedata.fullscreen] > 1) savedata.glfilter[savedata.fullscreen] = 0;
