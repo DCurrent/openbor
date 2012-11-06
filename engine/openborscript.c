@@ -2586,6 +2586,7 @@ _ep_iconposition,
 _ep_invincible,
 _ep_invinctime,
 _ep_jugglepoints,
+_ep_jumpheight,
 _ep_knockdowncount,
 _ep_komap,
 _ep_landframe,
@@ -2754,6 +2755,7 @@ static const char* eplist[] = {
 "invincible",
 "invinctime",
 "jugglepoints",
+"jumpheight",
 "knockdowncount",
 "komap",
 "landframe",
@@ -4506,6 +4508,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)ent->modeldata.jugglepoints.current;
+		break;
+	}
+	case _ep_jumpheight:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.jumpheight;
 		break;
 	}
 	case _ep_knockdowncount:
@@ -6324,6 +6332,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			ent->modeldata.jugglepoints.current = (int)ltemp;
 		break;
 	}
+	case _ep_jumpheight:
+	{
+		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+			ent->modeldata.jumpheight = (float)dbltemp;
+		break;
+	}
 	case _ep_knockdowncount:
 	{
 		if(varlist[2]->vt != VT_INTEGER)
@@ -6901,8 +6915,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
 	case _ep_takeaction:
 	{
-		if(varlist[2]->vt == VT_STR)
-		{ // not a known action; if it were it would been mapped by mapstrings
+		//if(varlist[2]->vt == VT_STRING)
+		if(varlist[2]->vt == VT_EMPTY)
+		{// UT: changed this to only accept NULL(), otherwise the log file is filled with warnings
 			ent->takeaction = NULL;
 			break;
 		}
@@ -6923,9 +6938,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
 	case _ep_think:
 	{
-		if(varlist[2]->vt == VT_STR)
-		{ // not a known action; if it were it would been mapped by mapstrings
-			//ent->think = NULL;
+		//if(varlist[2]->vt == VT_STRING)
+		if(varlist[2]->vt == VT_EMPTY)
+		{ // UT: changed this to only accept NULL(), otherwise the log file is filled with warnings
 			break;
 		}
 		else if(varlist[2]->vt != VT_INTEGER)
