@@ -58,7 +58,7 @@ void putscreenx8p32(s_screen * dest, s_screen * src, int x, int y, int key, u32*
 				i=cw-1;
 				do
 				{
-				   if(sp[i])continue;
+				   if(!sp[i])continue;
 				   dp[i] = blendfp(remap[sp[i]], dp[i]);
 				}while(i--);
 				sp += sw;

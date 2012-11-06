@@ -1406,6 +1406,7 @@ void clear_scripts()
 	Script_Clear(&endlevel_script,  2);
 	Script_Clear(&key_script_all,   2);
 	Script_Clear(&timetick_script,  2);
+	Script_Clear(&loading_script,   2);
 	for(i=0; i<4; i++)
 		Script_Clear(&score_script[i],      2);
 	for(i=0; i<4; i++)
