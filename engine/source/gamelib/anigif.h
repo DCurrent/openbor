@@ -10,7 +10,7 @@
 #define		ANIGIF_H
 
 
-// #pragma pack (1)
+
 
 // Animated GIF player.
 
@@ -26,7 +26,7 @@
 #define			NO_CODE				-1
 
 
-
+#pragma pack (1)
 typedef struct{
 	char		magic[6];
 	unsigned short	screenwidth, screenheight;
@@ -36,6 +36,7 @@ typedef struct{
 }gifheaderstruct;
 
 
+#pragma pack(4)
 typedef struct {
 	short	left, top;
 	unsigned short width, height;
