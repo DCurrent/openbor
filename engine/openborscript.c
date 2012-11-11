@@ -2632,6 +2632,7 @@ _ep_position,
 _ep_projectile,
 _ep_projectilehit,
 _ep_range,
+_ep_releasetime,
 _ep_running,
 _ep_rush_count,
 _ep_rush_tally,
@@ -2801,6 +2802,7 @@ static const char* eplist[] = {
 "projectile",
 "projectilehit",
 "range",
+"releasetime",
 "running",
 "rush_count",
 "rush_tally",
@@ -5197,6 +5199,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		(*pretvar)->lVal = (LONG)ent->stalltime;
 		break;
 	}
+	case _ep_releasetime:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->releasetime;
+		break;
+	}
 	case _ep_stats:
 	{
 		if(paramCount<4) break;
@@ -6789,6 +6797,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 			ent->stalltime = (int)ltemp;
+		break;
+	}
+    case _ep_releasetime:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->releasetime = (int)ltemp;
 		break;
 	}
 	case _ep_stats:
