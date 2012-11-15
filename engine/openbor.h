@@ -655,7 +655,7 @@ typedef struct
 typedef struct
 {
 	int attack_force;
-	short attack_coords[5];
+	short attack_coords[6];
 	int staydown[3];                    // [0] = Add to rise delay. [1] = Add to rise attack delay.
 	float dropv[3];                       // fly height/x/z if the target is knoced down
 	int hitsound;					    // Sound effect to be played when attack hits opponent
@@ -779,7 +779,7 @@ typedef struct
 	short* movea;
 	short* seta; // Now characters can have a custom "a" value
 	short* vulnerable;
-	short (*bbox_coords)[5];
+	short (*bbox_coords)[6];
 	int* shadow;
 	unsigned char* idle; // Allow free move
 	short (*shadow_coords)[2];            // x, z offset of shadow
