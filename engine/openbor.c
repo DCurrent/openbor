@@ -4924,9 +4924,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	ptrdiff_t pos = 0,
 		index = 0;
 
-	short bbox[5] = { 0,0,0,0,0 },
-		bbox_con[5] = { 0,0,0,0,0 },
-		abox[5] = { 0,0,0,0,0 },
+	short bbox[6] = { 0,0,0,0,0,0 },
+		bbox_con[6] = { 0,0,0,0,0,0 },
+		abox[6] = { 0,0,0,0,0,0 },
 		offset[2] = { 0,0 },
 		shadow_xz[2] = {0,0},
 		shadow_coords[2] = {0,0};
@@ -6770,9 +6770,11 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					bbox[2] = GET_INT_ARG(3);
 					bbox[3] = GET_INT_ARG(4);
 					bbox[4] = GET_INT_ARG(5);
+					bbox[5] = GET_INT_ARG(6);
 					break;
 				case CMD_MODEL_BBOXZ:
 					bbox[4] = GET_INT_ARG(1);
+					bbox[5] = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_PLATFORM:
 					newchar->hasPlatforms=1;
@@ -6897,6 +6899,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_ATTACKZ: case CMD_MODEL_HITZ:
 					attack.attack_coords[4] = GET_INT_ARG(1);
+					attack.attack_coords[5] = GET_INT_ARG(2);
 					break;
 				case CMD_MODEL_BLAST:
 					abox[0] = GET_INT_ARG(1);
@@ -7097,10 +7100,21 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						bbox_con[2] = bbox[2] + bbox_con[0];
 						bbox_con[3] = bbox[3] + bbox_con[1];
 						bbox_con[4] = bbox[4];
+						bbox_con[5] = bbox[5];
+						if(bbox[5]>bbox[4])
+						{
+							bbox[4] -= offset[1];
+							bbox[5] -= offset[1];
+						}
 						attack.attack_coords[0] = abox[0] - offset[0];
 						attack.attack_coords[1] = abox[1] - offset[1];
 						attack.attack_coords[2] = abox[2] + attack.attack_coords[0];
 						attack.attack_coords[3] = abox[3] + attack.attack_coords[1];
+						if(attack.attack_coords[5]>attack.attack_coords[4])
+						{
+							attack.attack_coords[4] -= offset[1];
+							attack.attack_coords[5] -= offset[1];
+						}
 						//attack.attack_coords[4] = abox[4];
 						if(platform[0]==99999) // old style
 						{
@@ -11153,7 +11167,7 @@ void ent_set_model(entity * ent, char * modelname, int syncAnim)
 	ent_copy_uninit(ent, &oldmodel);
 	ent_set_colourmap(ent, ent->map);
 
-	if(syncAnim)
+	if(syncAnim && m->animation[ent->animnum])
 	{
 		ent->animation = m->animation[ent->animnum];
 	}
@@ -11428,13 +11442,13 @@ int checkhit(entity *attacker, entity *target, int counter)
 	float medx, medy;
 	int debug_coords[2][4];
 	int topleast, bottomleast, leftleast, rightleast;
-	float zdist = 0;
+	float zdist = 0, z1, z2;
 
 	if(attacker == target || !target->animation->bbox_coords ||
 	!attacker->animation->attacks || !target->animation->vulnerable[target->animpos] ||
 	((attacker->modeldata.type == TYPE_PLAYER && target->modeldata.type == TYPE_PLAYER) && savedata.mode)) return 0;
 
-
+	z1 = attacker->z; z2 = target->z;
 	coords1 = attacker->animation->attacks[attacker->animpos]->attack_coords;
 
 	if(!counter)
@@ -11443,22 +11457,32 @@ int checkhit(entity *attacker, entity *target, int counter)
 		coords2 = target->animation->attacks[target->animpos]->attack_coords;
 	else return 0;
 
-	if(coords1[4])
+	if(coords1[5] > coords1[4])
+	{
+		z1 += coords1[4] + (coords1[5]-coords1[4])/2;
+		zdist += (coords1[5]-coords1[4])/2;
+	}
+	else if(coords1[4])
 		zdist += coords1[4];
 	else
 		zdist += attacker->modeldata.grabdistance/3+1;//temporay fix for integer to float conversion
-	if(coords2[4])
+	if(coords2[5] > coords2[4])
+	{
+		z2 += coords2[4] + (coords2[5]-coords2[4])/2;
+		zdist += (coords2[5]-coords2[4])/2;
+	}
+	else if(coords2[4])
 		zdist += coords2[4];
 
 	zdist++; // pass >= <= check
 
-	if(diff(attacker->z,target->z) > zdist)
+	if(diff(z1, z2) > zdist)
 		return 0;
 
 	x1 = (int)(attacker->x);
-	y1 = (int)(attacker->z - attacker->a);
+	y1 = (int)(z1 - attacker->a);
 	x2 = (int)(target->x);
-	y2 = (int)(target->z - target->a);
+	y2 = (int)(z2 - target->a);
 
 
 	if(attacker->direction==0){
@@ -11511,9 +11535,9 @@ int checkhit(entity *attacker, entity *target, int counter)
 	lasthitx = medx;
 
 	if(attacker->z > target->z)
-		lasthitz = attacker->z + 1;    // Changed so flashes always spawn in front
+		lasthitz = z1 + 1;    // Changed so flashes always spawn in front
 	else
-		lasthitz = target->z + 1;
+		lasthitz = z2 + 1;
 
 	lasthita = lasthitz - medy;
 	lasthitt = attacker->animation->attacks[attacker->animpos]->attack_type;
