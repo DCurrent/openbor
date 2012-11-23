@@ -1537,6 +1537,7 @@ HRESULT openbor_drawbox(ScriptVariant** varlist , ScriptVariant** pretvar, int p
 	int i;
 	LONG value[6], l;
 	*pretvar = NULL;
+	s_drawmethod dm;
 
 	if(paramCount < 6) goto drawbox_error;
 
@@ -1557,7 +1558,11 @@ HRESULT openbor_drawbox(ScriptVariant** varlist , ScriptVariant** pretvar, int p
 	{
 		l %= MAX_BLENDINGS+1;
 	}
-	spriteq_add_box((int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4], (int)value[5], l);
+	if(drawmethod.flag)
+		dm = drawmethod;
+	else dm = plainmethod;
+	dm.alpha = l;
+	spriteq_add_box((int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4], (int)value[5], &dm);
 
 	return S_OK;
 
@@ -1573,6 +1578,7 @@ HRESULT openbor_drawboxtoscreen(ScriptVariant** varlist , ScriptVariant** pretva
 	s_screen* s;
 	LONG value[5], l;
 	*pretvar = NULL;
+	s_drawmethod dm;
 
 	if(paramCount < 6) goto drawbox_error;
 
@@ -1597,18 +1603,12 @@ HRESULT openbor_drawboxtoscreen(ScriptVariant** varlist , ScriptVariant** pretva
 	{
 		l %= MAX_BLENDINGS+1;
 	}
-	switch(s->pixelformat)
-	{
-	case PIXEL_8:
-		drawbox((int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4], s, l);
-		break;
-	case PIXEL_16:
-		drawbox16((int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4], s, l);
-		break;
-	case PIXEL_32:
-		drawbox32((int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4], s, l);
-		break;
-	}
+	if(drawmethod.flag)
+		dm = drawmethod;
+	else dm = plainmethod;
+	dm.alpha = l;
+	
+	putbox((int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4], s, &dm);
 
 	return S_OK;
 
@@ -1623,6 +1623,7 @@ HRESULT openbor_drawline(ScriptVariant** varlist , ScriptVariant** pretvar, int 
 	int i;
 	LONG value[6], l;
 	*pretvar = NULL;
+	s_drawmethod dm;
 
 	if(paramCount < 6) goto drawline_error;
 
@@ -1643,7 +1644,11 @@ HRESULT openbor_drawline(ScriptVariant** varlist , ScriptVariant** pretvar, int 
 	{
 		l %= MAX_BLENDINGS+1;
 	}
-	spriteq_add_line((int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4], (int)value[5], l);
+	if(drawmethod.flag)
+		dm = drawmethod;
+	else dm = plainmethod;
+	dm.alpha = l;
+	spriteq_add_line((int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4], (int)value[5], &dm);
 
 	return S_OK;
 
@@ -1659,6 +1664,7 @@ HRESULT openbor_drawlinetoscreen(ScriptVariant** varlist , ScriptVariant** pretv
 	LONG value[5], l;
 	s_screen *s;
 	*pretvar = NULL;
+	s_drawmethod dm;
 
 	if(paramCount < 6) goto drawline_error;
 
@@ -1683,18 +1689,11 @@ HRESULT openbor_drawlinetoscreen(ScriptVariant** varlist , ScriptVariant** pretv
 	{
 		l %= MAX_BLENDINGS+1;
 	}
-	switch(s->pixelformat)
-	{
-	case PIXEL_8:
-		line((int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4], s, l);
-		break;
-	case PIXEL_16:
-		line16((int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4], s, l);
-		break;
-	case PIXEL_32:
-		line32((int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4], s, l);
-		break;
-	}
+	if(drawmethod.flag)
+		dm = drawmethod;
+	else dm = plainmethod;
+	dm.alpha = l;
+	putline((int)value[0], (int)value[1], (int)value[2], (int)value[3], (int)value[4], s, &dm);
 
 	return S_OK;
 drawline_error:
@@ -1884,6 +1883,7 @@ HRESULT openbor_drawdot(ScriptVariant** varlist , ScriptVariant** pretvar, int p
 	int i;
 	LONG value[4], l;
 	*pretvar = NULL;
+	s_drawmethod dm;
 
 	if(paramCount < 4) goto drawdot_error;
 
@@ -1904,7 +1904,11 @@ HRESULT openbor_drawdot(ScriptVariant** varlist , ScriptVariant** pretvar, int p
 	{
 		l %= MAX_BLENDINGS+1;
 	}
-	spriteq_add_dot((int)value[0], (int)value[1], (int)value[2], (int)value[3], l);
+	if(drawmethod.flag)
+		dm = drawmethod;
+	else dm = plainmethod;
+	dm.alpha = l;
+	spriteq_add_dot((int)value[0], (int)value[1], (int)value[2], (int)value[3], &dm);
 
 	return S_OK;
 
@@ -1920,6 +1924,7 @@ HRESULT openbor_drawdottoscreen(ScriptVariant** varlist , ScriptVariant** pretva
 	LONG value[3], l;
 	s_screen* s;
 	*pretvar = NULL;
+	s_drawmethod dm;
 
 	if(paramCount < 4) goto drawdot_error;
 
@@ -1944,18 +1949,12 @@ HRESULT openbor_drawdottoscreen(ScriptVariant** varlist , ScriptVariant** pretva
 	{
 		l %= MAX_BLENDINGS+1;
 	}
-	switch(s->pixelformat)
-	{
-	case PIXEL_8:
-		putpixel((int)value[0], (int)value[1], (int)value[2], s, l);
-		break;
-	case PIXEL_16:
-		putpixel16((int)value[0], (int)value[1], (int)value[2], s, l);
-		break;
-	case PIXEL_32:
-		putpixel32((int)value[0], (int)value[1], (int)value[2], s, l);
-		break;
-	}
+	if(drawmethod.flag)
+		dm = drawmethod;
+	else dm = plainmethod;
+	dm.alpha = l;
+	
+	putpixel((int)value[0], (int)value[1], (int)value[2], s, &dm);
 
 	return S_OK;
 
@@ -10666,6 +10665,9 @@ enum drawmethod_enum
 	_dm_beginsize,
 	_dm_centerx,
 	_dm_centery,
+	_dm_channelb,
+	_dm_channelg,
+	_dm_channelr,
 	_dm_enabled,
 	_dm_endsize,
 	_dm_fillcolor,
@@ -10704,6 +10706,9 @@ void mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount)
 		"beginsize",
 		"centerx",
 		"centery",
+		"channelb",
+		"channelg",
+		"channelr",
 		"enabled",
 		"endsize",
 		"fillcolor",
@@ -10777,6 +10782,18 @@ HRESULT openbor_changedrawmethod(ScriptVariant** varlist , ScriptVariant** pretv
 	case _dm_centery:
 		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
 		pmethod->centery = (int)temp;
+	break;
+	case _dm_channelb:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->channelb = (int)temp;
+	break;
+	case _dm_channelg:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->channelg = (int)temp;
+	break;
+	case _dm_channelr:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->channelr = (int)temp;
 	break;
 	case _dm_enabled:
 	case _dm_flag:

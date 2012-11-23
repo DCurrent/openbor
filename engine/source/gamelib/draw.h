@@ -22,23 +22,28 @@ void drawbox(int x, int y, int width, int height, int colour, s_screen *screen, 
 void circle(int x, int y, int radius, int colour, s_screen *screen, int alpha);
 
 // Always handy
-void putpixel(int x, int y, int colour, s_screen *screen, int alpha);
+void _putpixel(int x, int y, int colour, s_screen *screen, int alpha);
 
 
 ///////////////////////////////////////
-///////   16/24/32bit version ...........
+///////   16/32bit version ...........
 ///////////////////////////////////////////
 void line16(int sx, int sy, int ex, int ey, unsigned short colour, s_screen *screen, int alpha);
 void drawbox16(int x, int y, int width, int height, unsigned short colour, s_screen *screen, int alpha);
-void putpixel16(int x, int y, unsigned short colour, s_screen *screen, int alpha);
-
-void line24(int sx, int sy, int ex, int ey, unsigned colour, s_screen *screen, int alpha);
-void drawbox24(int x, int y, int width, int height, unsigned colour, s_screen *screen, int alpha);
-void putpixel24(int x, int y, unsigned colour, s_screen *screen, int alpha);
+void _putpixel16(int x, int y, unsigned short colour, s_screen *screen, int alpha);
 
 void line32(int sx, int sy, int ex, int ey, unsigned colour, s_screen *screen, int alpha);
 void drawbox32(int x, int y, int width, int height, unsigned colour, s_screen *screen, int alpha);
-void putpixel32(int x, int y, unsigned colour, s_screen *screen, int alpha);
+void _putpixel32(int x, int y, unsigned colour, s_screen *screen, int alpha);
+
+
+//======================== root methods ==================================
+
+void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s_drawmethod* drawmethod);
+void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_drawmethod* drawmethod);
+void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod* drawmethod);
+
+
 #endif
 
 

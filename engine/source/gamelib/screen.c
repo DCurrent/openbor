@@ -271,6 +271,7 @@ static void _putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod
 	unsigned char* table;
 	int alpha, transbg;
 	gfx_entry gfx;
+
 	if(!drawmethod || drawmethod->flag==0)
 	{
 		table = NULL;
@@ -298,7 +299,7 @@ static void _putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod
 		y -= drawmethod->centery;
 	}
 
-	if(!table && alpha<=0 && !transbg)
+	if(!table && alpha<=0 && !transbg && !usechannel)
 	{
 		if(dest->pixelformat==src->pixelformat && dest->width==src->width && dest->height==src->height && !x && !y)
 		{
@@ -323,16 +324,16 @@ static void _putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod
 	else if(dest->pixelformat==PIXEL_16)
 	{
 		if(src->pixelformat==PIXEL_x8)
-			putscreenx8p16(dest, src, x, y, transbg, (unsigned short*)table, alpha>0?blendfunctions16[alpha-1]:NULL);
+			putscreenx8p16(dest, src, x, y, transbg, (unsigned short*)table, getblendfunction16(alpha));
 		else if(src->pixelformat==PIXEL_16)
-			blendscreen16(dest, src, x, y, transbg, alpha>0?blendfunctions16[alpha-1]:NULL);
+			blendscreen16(dest, src, x, y, transbg, getblendfunction16(alpha));
 	}
 	else if(dest->pixelformat==PIXEL_32)
 	{
 		if(src->pixelformat==PIXEL_x8)
-			putscreenx8p32(dest, src, x, y, transbg, (unsigned*)table, alpha>0?blendfunctions32[alpha-1]:NULL);
+			putscreenx8p32(dest, src, x, y, transbg, (unsigned*)table, getblendfunction32(alpha));
 		else if(src->pixelformat==PIXEL_32)
-			blendscreen32(dest, src, x, y, transbg, alpha>0?blendfunctions32[alpha-1]:NULL);
+			blendscreen32(dest, src, x, y, transbg, getblendfunction32(alpha));
 	}
 }
 
@@ -345,9 +346,14 @@ void putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawme
 		yrepeat = drawmethod->yrepeat;
 		xspan = drawmethod->xspan;
 		yspan = drawmethod->yspan;
+		channelr = drawmethod->channelr;
+		channelg = drawmethod->channelg;
+		channelb = drawmethod->channelb;
+		usechannel = (channelr<255) || (channelg<255) || (channelb<255);
 	} else {
 		xrepeat = yrepeat = 1;
 		xspan = yspan = 0;
+		usechannel = 0;
 	}
 
 	for(j=0, dy=y; j<yrepeat; j++, dy+=yspan){

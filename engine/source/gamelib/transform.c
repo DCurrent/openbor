@@ -524,13 +524,11 @@ void init_gfx_global_draw_stuff(s_screen* dest, gfx_entry* src, s_drawmethod* dr
 		break;
 	case PIXEL_16:
 		fillcolor = drawmethod->fillcolor;
-		if(drawmethod->alpha>0) pfp16 = blendfunctions16[drawmethod->alpha-1];
-		else pfp16 = NULL;
+		pfp16 = getblendfunction16(drawmethod->alpha);
 		break;
 	case PIXEL_32:
 		fillcolor = drawmethod->fillcolor;
-		if(drawmethod->alpha>0) pfp32 = blendfunctions32[drawmethod->alpha-1];
-		else pfp32 = NULL;
+		pfp32 = getblendfunction32(drawmethod->alpha);
 		break;
 	default: 
 		return;

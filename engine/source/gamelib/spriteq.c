@@ -110,7 +110,7 @@ void spriteq_add_screen(int x, int y, int z, s_screen* ps, s_drawmethod* pdrawme
 	++spritequeue_len;
 }
 
-void spriteq_add_dot(int sx, int sy, int z, int colour, int alpha)
+void spriteq_add_dot(int sx, int sy, int z, int colour, s_drawmethod* pdrawmethod)
 {
 	if(spritequeue_len>=MAXQSPRITES) return;
 	queue[spritequeue_len].type = SQT_DOT;
@@ -120,13 +120,16 @@ void spriteq_add_dot(int sx, int sy, int z, int colour, int alpha)
 	queue[spritequeue_len].sortid = 0;
 	queue[spritequeue_len].params[0] = colour;
 	queue[spritequeue_len].frame = NULL;
-	queue[spritequeue_len].drawmethod.alpha = alpha;
-	queue[spritequeue_len].drawmethod.flag = (alpha>0);
+	if(pdrawmethod)
+	{
+	    queue[spritequeue_len].drawmethod = *pdrawmethod;
+	}
+	else queue[spritequeue_len].drawmethod.flag = 0;
 	order[spritequeue_len] = &queue[spritequeue_len];
 	++spritequeue_len;
 }
 
-void spriteq_add_line(int sx, int sy, int ex, int ey, int z, int colour, int alpha)
+void spriteq_add_line(int sx, int sy, int ex, int ey, int z, int colour, s_drawmethod* pdrawmethod)
 {
 	if(spritequeue_len>=MAXQSPRITES) return;
 	queue[spritequeue_len].type = SQT_LINE;
@@ -138,13 +141,16 @@ void spriteq_add_line(int sx, int sy, int ex, int ey, int z, int colour, int alp
 	queue[spritequeue_len].z = z;
 	queue[spritequeue_len].sortid = 0;
 	queue[spritequeue_len].frame = NULL;
-	queue[spritequeue_len].drawmethod.alpha = alpha;
-	queue[spritequeue_len].drawmethod.flag = (alpha>0);
+	if(pdrawmethod)
+	{
+	    queue[spritequeue_len].drawmethod = *pdrawmethod;
+	}
+	else queue[spritequeue_len].drawmethod.flag = 0;
 	order[spritequeue_len] = &queue[spritequeue_len];
 	++spritequeue_len;
 }
 
-void spriteq_add_box(int x, int y, int width, int height, int z, int colour, int alpha)
+void spriteq_add_box(int x, int y, int width, int height, int z, int colour, s_drawmethod* pdrawmethod)
 {
 	if(spritequeue_len>=MAXQSPRITES) return;
 	queue[spritequeue_len].type = SQT_BOX;
@@ -156,8 +162,11 @@ void spriteq_add_box(int x, int y, int width, int height, int z, int colour, int
 	queue[spritequeue_len].z = z;
 	queue[spritequeue_len].sortid = 0;
 	queue[spritequeue_len].frame = NULL;
-	queue[spritequeue_len].drawmethod.alpha = alpha;
-	queue[spritequeue_len].drawmethod.flag = (alpha>0);
+	if(pdrawmethod)
+	{
+	    queue[spritequeue_len].drawmethod = *pdrawmethod;
+	}
+	else queue[spritequeue_len].drawmethod.flag = 0;
 	order[spritequeue_len] = &queue[spritequeue_len];
 	++spritequeue_len;
 }
@@ -252,46 +261,13 @@ void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz, int dx, int
 			putscreen(screen, (s_screen*)(order[i]->frame), x, y, &(order[i]->drawmethod));
 		    break;
 		case SQT_DOT:
-			switch(screen->pixelformat)
-			{
-			case PIXEL_8:
-				putpixel(x, y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-				break;
-			case PIXEL_16:
-				putpixel16(x, y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-				break;
-			case PIXEL_32:
-				putpixel32(x, y, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-				break;
-			}
+			putpixel(x, y, order[i]->params[0], screen, &(order[i]->drawmethod));
 			break;
 		case SQT_LINE:
-			switch(screen->pixelformat)
-			{
-			case PIXEL_8:
-				line(x, y, order[i]->params[1]+dx, order[i]->params[2]+dy, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-				break;
-			case PIXEL_16:
-				line16(x, y, order[i]->params[1]+dx, order[i]->params[2]+dy, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-				break;
-			case PIXEL_32:
-				line32(x, y, order[i]->params[1]+dx, order[i]->params[2]+dy, order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-				break;
-			}
+			putline(x, y, order[i]->params[1]+dx, order[i]->params[2]+dy, order[i]->params[0], screen, &(order[i]->drawmethod));
 			break;
 		case SQT_BOX:
-			switch(screen->pixelformat)
-			{
-			case PIXEL_8:
-				drawbox(x, y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-				break;
-			case PIXEL_16:
-				drawbox16(x, y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-				break;
-			case PIXEL_32:
-				drawbox32(x, y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, order[i]->drawmethod.flag?order[i]->drawmethod.alpha:0);
-				break;
-			}
+			putbox(x, y, order[i]->params[1], order[i]->params[2], order[i]->params[0], screen, &(order[i]->drawmethod));
 			break;
 		default:
 			continue;

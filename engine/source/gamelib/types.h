@@ -33,8 +33,9 @@
 #define BLEND_HARDLIGHT  3
 #define BLEND_DODGE      4
 #define BLEND_HALF       5
+#define BLEND_RGB        6
 
-#define MAX_BLENDINGS    6
+#define MAX_BLENDINGS    7
 /*
 #define _copy24bitp(pd, ps) (pd)[0] = (ps)[0]; (pd)[1] = (ps)[1]; (pd)[2] = (ps)[2];
 #define _copy24bit(pd, v) (pd)[0] = ((unsigned char*)(&(v)))[0]; (pd)[1] = ((unsigned char*)(&(v)))[1]; (pd)[2] = ((unsigned char*)(&(v)))[2];
@@ -165,13 +166,19 @@ typedef unsigned char (*transpixelfunc)(unsigned char* table, unsigned char src,
 typedef unsigned short (*blend16fp)(unsigned short, unsigned short);
 typedef unsigned (*blend32fp)(unsigned, unsigned);
 
+blend16fp getblendfunction16(int alpha);
+blend32fp getblendfunction32(int alpha);
+
 extern blend16fp blendfunctions16[MAX_BLENDINGS];
 extern blend32fp blendfunctions32[MAX_BLENDINGS];
 extern unsigned char* blendtables[MAX_BLENDINGS];
+extern unsigned channelr,channelg,channelb;
+extern int usechannel;
 
 unsigned short colour16(unsigned char r, unsigned char g, unsigned char b);
 unsigned colour32(unsigned char r, unsigned char g, unsigned char b);
 
+#if 0
 void u8revcpy(unsigned char*pa, const unsigned char*pb, unsigned len);
 void u8revpcpy(unsigned char*pa, const unsigned char*pb, unsigned char*pp, unsigned len);
 void u8pcpy(unsigned char*pa, const unsigned char*pb, unsigned char* pp, unsigned len);
@@ -181,6 +188,7 @@ void u16pcpy(unsigned short* pdest, const unsigned char* psrc, unsigned short* p
 
 void u32revpcpy(unsigned* pdest, const unsigned char* psrc, unsigned* pp, unsigned len);
 void u32pcpy(unsigned* pdest, const unsigned char* psrc, unsigned* pp, unsigned len);
+#endif
 
 typedef struct{
 	union
@@ -222,6 +230,9 @@ typedef struct
 	int yrepeat;
 	int xspan;
 	int yspan;
+	unsigned char channelr;
+	unsigned char channelg;
+	unsigned char channelb;
 	water_transform water;
 }s_drawmethod;
 

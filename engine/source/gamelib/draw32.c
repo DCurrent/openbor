@@ -107,7 +107,7 @@ void line32(int sx, int sy, int ex, int ey, unsigned colour, s_screen *screen, i
 
 	colour &= 0x00FFFFFF;
 
-	blendfp = alpha>0?blendfunctions32[alpha-1]:NULL;
+	blendfp = getblendfunction32(alpha);
 
 	if(absdiffx > absdiffy)
 	{
@@ -180,7 +180,7 @@ void drawbox32(int x, int y, int width, int height, unsigned colour, s_screen *s
 	cp = ((unsigned*)screen->data) + (y*screen->width + x);
 	colour &= 0x00FFFFFF;
 
-	blendfp = alpha>0?blendfunctions32[alpha-1]:NULL;
+	blendfp = getblendfunction32(alpha);
 
 	while(--height>=0){
 		for(x=0;x<width;x++){
@@ -194,7 +194,7 @@ void drawbox32(int x, int y, int width, int height, unsigned colour, s_screen *s
 
 
 // Putpixel 32bit version
-void putpixel32(unsigned x, unsigned y, unsigned colour, s_screen *screen, int alpha){
+void _putpixel32(unsigned x, unsigned y, unsigned colour, s_screen *screen, int alpha){
 	int pixind;
 	unsigned* data ;
 	unsigned(*blendfp)(unsigned,unsigned);
@@ -202,7 +202,7 @@ void putpixel32(unsigned x, unsigned y, unsigned colour, s_screen *screen, int a
 	pixind = x+y*screen->width;
 	data = (unsigned*)screen->data + pixind;
 	colour &= 0x00FFFFFF;
-	blendfp = alpha>0?blendfunctions32[alpha-1]:NULL;
+	blendfp = getblendfunction32(alpha);
 	__putpixel32(data);
 }
 
