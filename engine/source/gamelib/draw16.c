@@ -105,7 +105,7 @@ void line16(int sx, int sy, int ex, int ey, unsigned short colour, s_screen *scr
 
 	data = (unsigned short*)screen->data;
 
-	blendfp = alpha>0?blendfunctions16[alpha-1]:NULL;
+	blendfp = getblendfunction16(alpha);
 
 	if(absdiffx > absdiffy)
 	{
@@ -177,7 +177,7 @@ void drawbox16(int x, int y, int width, int height, unsigned short colour, s_scr
 
 	cp = ((unsigned short*)screen->data) + (y*screen->width + x);
 
-	blendfp = alpha>0?blendfunctions16[alpha-1]:NULL;
+	blendfp = getblendfunction16(alpha);
 
 	while(--height>=0){
 		for(x=0;x<width;x++){
@@ -191,14 +191,14 @@ void drawbox16(int x, int y, int width, int height, unsigned short colour, s_scr
 
 
 // Putpixel 16bit version
-void putpixel16(unsigned x, unsigned y, unsigned short colour, s_screen *screen, int alpha){
+void _putpixel16(unsigned x, unsigned y, unsigned short colour, s_screen *screen, int alpha){
 	int pixind;
 	unsigned short* data ;
 	unsigned short(*blendfp)(unsigned short,unsigned short);
 	if(x>screen->width || y>screen->height) return;
 	pixind = x+y*screen->width;
 	data = (unsigned short*)screen->data + pixind;
-	blendfp = alpha>0?blendfunctions16[alpha-1]:NULL;
+	blendfp = getblendfunction16(alpha);
 	__putpixel16(data);
 }
 

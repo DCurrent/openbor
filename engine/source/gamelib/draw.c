@@ -10,6 +10,7 @@
 // Last update: 24-jun-2002
 
 #include "types.h"
+#include "draw.h"
 
 #ifndef		NULL
 #define		NULL	 ((void*)0)
@@ -178,10 +179,10 @@ void drawbox(int x, int y, int width, int height, int colour, s_screen *screen, 
 
 
 // Putpixel used by circle function
-void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, int alpha){
+void _putpixel(int x, int y, int colour, s_screen *screen, int alpha){
 	int pixind;
 	unsigned char *lut;
-	if(x>screen->width || y>screen->height) return;
+	if((unsigned)x>screen->width || (unsigned)y>screen->height) return;
 	pixind = x+y*screen->width;
 	lut = alpha>0?blendtables[alpha-1]:NULL;
 	if(lut) lut += (colour<<8);
@@ -206,16 +207,16 @@ void circle(int x, int y, int rad, int col, s_screen *screen, int alpha){
 	int d_se = -2 * rad + 5;
 
 	do{
-		putpixel(x+cx, y+cy, col, screen, alpha);
-		if(cx) putpixel(x-cx, y+cy, col, screen, alpha);
-		if(cy) putpixel(x+cx, y-cy, col, screen, alpha);
-		if(cx && cy) putpixel(x-cx, y-cy, col, screen, alpha);
+		_putpixel(x+cx, y+cy, col, screen, alpha);
+		if(cx) _putpixel(x-cx, y+cy, col, screen, alpha);
+		if(cy) _putpixel(x+cx, y-cy, col, screen, alpha);
+		if(cx && cy) _putpixel(x-cx, y-cy, col, screen, alpha);
 
 		if(cx != cy){
-			putpixel(x+cy, y+cx, col, screen, alpha);
-			if(cx) putpixel(x+cy, y-cx, col, screen, alpha);
-			if(cy) putpixel(x-cy, y+cx, col, screen, alpha);
-			if(cx && cy) putpixel(x-cy, y-cx, col, screen, alpha);
+			_putpixel(x+cy, y+cx, col, screen, alpha);
+			if(cx) _putpixel(x+cy, y-cx, col, screen, alpha);
+			if(cy) _putpixel(x-cy, y+cx, col, screen, alpha);
+			if(cx && cy) _putpixel(x-cy, y-cx, col, screen, alpha);
 		}
 
 		if(df<0){
@@ -235,8 +236,75 @@ void circle(int x, int y, int rad, int col, s_screen *screen, int alpha){
 
 
 
+static int draw_init( s_drawmethod* drawmethod)
+{
+	int alpha;
+	if (drawmethod && drawmethod->flag)
+	{
+		alpha = drawmethod->alpha;
+		channelr = drawmethod->channelr;
+		channelg = drawmethod->channelg;
+		channelb = drawmethod->channelb;
+		usechannel = (channelr<255) || (channelg<255) || (channelb<255);
+	}	else {
+		alpha = usechannel = 0;
+	}
+	return alpha;
+}
 
+//======================== root methods ==================================
 
+void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s_drawmethod* drawmethod)
+{
+	int alpha = draw_init(drawmethod);
 
+	switch(screen->pixelformat)
+	{
+	case PIXEL_8:
+		drawbox(x, y, width, height, colour, screen, alpha);
+		break;
+	case PIXEL_16:
+		drawbox16(x, y, width, height, colour, screen, alpha);
+		break;
+	case PIXEL_32:
+		drawbox32(x, y, width, height, colour, screen, alpha);
+		break;
+	}
+}
+
+void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_drawmethod* drawmethod)
+{
+	int alpha = draw_init(drawmethod);
+
+	switch(screen->pixelformat)
+	{
+	case PIXEL_8:
+		line(sx, sy, ex, ey, colour, screen, alpha);
+		break;
+	case PIXEL_16:
+		line16(sx, sy, ex, ey, colour, screen, alpha);
+		break;
+	case PIXEL_32:
+		line32(sx, sy, ex, ey, colour, screen, alpha);
+		break;
+	}
+}
+
+void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod* drawmethod)
+{
+	int alpha = draw_init(drawmethod);
+	switch(screen->pixelformat)
+	{
+	case PIXEL_8:
+		_putpixel(x, y, colour, screen, alpha);
+		break;
+	case PIXEL_16:
+		_putpixel16(x, y, colour, screen, alpha);
+		break;
+	case PIXEL_32:
+		_putpixel32(x, y, colour, screen, alpha);
+		break;
+	}
+}
 
 

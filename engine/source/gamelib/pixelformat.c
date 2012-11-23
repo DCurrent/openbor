@@ -21,6 +21,9 @@ int pixelformat = PIXEL_8;
 int screenformat = PIXEL_8;
 int pixelbytes[(int)5] = {1, 1, 2, 3, 4};
 
+unsigned channelr,channelg,channelb;
+int usechannel;
+
 
 unsigned short colour16(unsigned char r, unsigned char g, unsigned char b)
 {
@@ -41,22 +44,22 @@ unsigned colour32(unsigned char r, unsigned char g, unsigned char b)
 }
 
 
-#define rs ((color1&0xff0000)>>8)
+#define bs ((color1&0xff0000)>>8)
 #define gs (color1&0xFF00)
-#define bs ((color1&0xFF)<<8)
-#define rd (color2>>16)
+#define rs ((color1&0xFF)<<8)
+#define bd (color2>>16)
 #define gd ((color2&0xFF00)>>8)
-#define bd (color2&0xFF)
-#define ri (rs|rd)
-#define gi (gs|gd)
+#define rd (color2&0xFF)
 #define bi (bs|bd)
+#define gi (gs|gd)
+#define ri (rs|rd)
 #define _multiply(c1,c2) (((c1)*(c2))>>8)
 #define _screen(c1,c2) ((((c1)^255)*((c2)^255)/255)^255)
 #define _hardlight(c1,c2) ((c1)<128?_multiply((c1)<<1,(c2)):_screen(((c1)-128)<<1,(c2)))
 #define _overlay(c1,c2) ((c2)<128?_multiply((c2)<<1,(c1)):_screen(((c2)-128)<<1,(c1)))
 #define _dodge(c1,c2) (((c2)<<8)/(256-(c1)))
 #define _channel(src,dest,alpha) (((src*alpha)+(dest*(255-alpha)))>>8)
-#define _color(r,g,b) (((r)<<16)|((g)<<8)|(b))
+#define _color(r,g,b) (((b)<<16)|((g)<<8)|(r))
 
 
 // common blend function
@@ -156,9 +159,9 @@ unsigned blend_overlay32(register unsigned color1, register unsigned color2)
 	if((tbl=blendtables[BLEND_OVERLAY])){
 		return _color(tbl[ri], tbl[gi], tbl[bi]);
 	}
-	r1 = color1>>16, r2 = color2>>16;
+	b1 = color1>>16, b2 = color2>>16;
 	g1 = (color1&0xFF00)>>8, g2 = (color2&0xFF00)>>8;
-	b1 = color1&0xFF, b2 = color2&0xFF;
+	r1 = color1&0xFF, r2 = color2&0xFF;
 	return _color(_overlay(r1,r2),
 				  _overlay(g1,g2),
 				  _overlay(b1,b2));
@@ -181,9 +184,9 @@ unsigned blend_hardlight32(register unsigned color1, register unsigned color2)
 	if((tbl=blendtables[BLEND_HARDLIGHT])){
 		return _color(tbl[ri], tbl[gi], tbl[bi]);
 	}
-	r1 = color1>>16, r2 = color2>>16;
+	b1 = color1>>16, b2 = color2>>16;
 	g1 = (color1&0xFF00)>>8, g2 = (color2&0xFF00)>>8;
-	b1 = color1&0xFF, b2 = color2&0xFF;
+	r1 = color1&0xFF, r2 = color2&0xFF;
 	return _color(_hardlight(r1,r2),
 				  _hardlight(g1,g2),
 				  _hardlight(b1,b2));
@@ -206,9 +209,9 @@ unsigned blend_dodge32(register unsigned color1, register unsigned color2)
 	if((tbl=blendtables[BLEND_DODGE])){
 		return _color(tbl[ri], tbl[gi], tbl[bi]);
 	}
-	r = _dodge(color1>>16,color2>>16);
+	b = _dodge(color1>>16,color2>>16);
 	g = _dodge((color1&0xFF00)>>8,(color2&0xFF00)>>8);
-	b = _dodge(color1&0xFF,color2&0xFF);
+	r = _dodge(color1&0xFF,color2&0xFF);
 	return _color(r>255?255:r, g>255?255:g, b>255?255:b);
 }
 
@@ -233,11 +236,37 @@ unsigned blend_half32(register unsigned color1, register unsigned color2)
 				  ((color1&0xFF) + (color2&0xFF))>>1);
 }
 
+unsigned channel32(register unsigned color1, register unsigned ar, register unsigned ag, register unsigned ab)
+{
+	unsigned b1 = color1>>16,g1 = (color1&0xFF00)>>8,r1 = color1&0xFF;
+	r1 = (r1*ar)>>8;
+	g1 = (g1*ag)>>8;
+	b1 = (b1*ab)>>8;
+	return _color(r1,g1,b1);
+}
+
+unsigned blend_dye32(unsigned color1, unsigned unused)
+{
+	return channel32(color1, channelr, channelg, channelb);
+	//return blend_overlay32(_color(channelr,channelg,channelb), color1);
+}
+
+//copy from below
+unsigned blend_rgb32(register unsigned color1, register unsigned color2)
+{
+	unsigned b1 = color1>>16, r2 = color2>>16;
+	unsigned g1 = (color1&0xFF00)>>8, g2 = (color2&0xFF00)>>8;
+	unsigned r1 = color1&0xFF, b2 = color2&0xFF;
+	return _color(	_channel(r1,r2,channelr),
+					_channel(g1,g2,channelg),
+					_channel(b1,b2,channelb));
+}
+
 unsigned blend_channel32(register unsigned color1, register unsigned color2, register unsigned a)
 {
-	int r1 = color1>>16, r2 = color2>>16;
+	int b1 = color1>>16, b2 = color2>>16;
 	int g1 = (color1&0xFF00)>>8, g2 = (color2&0xFF00)>>8;
-	int b1 = color1&0xFF, b2 = color2&0xFF;
+	int r1 = color1&0xFF, r2 = color2&0xFF;
 	return _color(	_channel(r1,r2,a),
 					_channel(g1,g2,a),
 					_channel(b1,b2,a));
@@ -248,22 +277,22 @@ unsigned blend_channel32(register unsigned color1, register unsigned color2, reg
 // color2 bg colour
 ////////////////////////////////////////////////////////////////////
 
-#define _r1 (color1>>11)
+#define _b1 (color1>>11)
 #define _g1 ((color1&0x7E0)>>5)
-#define _b1 (color1&0x1F)
-#define _r2 (color2>>11)
+#define _r1 (color1&0x1F)
+#define _b2 (color2>>11)
 #define _g2 ((color2&0x7E0)>>5)
-#define _b2 (color2&0x1F)
-#define _ri ((_r1<<5)|_r2)
-#define _gi (((_g1<<6)|_g2)+1024)
+#define _r2 (color2&0x1F)
 #define _bi ((_b1<<5)|_b2)
+#define _gi (((_g1<<6)|_g2)+1024)
+#define _ri ((_r1<<5)|_r2)
 #define _multiply16(c1,c2,m) ((c1)*(c2)/(m))
 #define _screen16(c1,c2,m) ((((c1)^(m))*((c2)^(m))/(m))^(m))
 #define _hardlight16(c1,c2,m,m2) ((c1)<(m)?_multiply16(((c1)<<1),(c2),(m2)):_screen16((((c1)-(m))<<1),(c2),(m2)))
 #define _overlay16(c1,c2,m,m2) ((c2)<(m)?_multiply16(((c2)<<1),(c1),(m2)):_screen16((((c2)-(m))<<1),(c1),(m2)))
 #define _dodge16(c1,c2,m) ((c2)*(m)/((m)-(c1)))
 #define _channel16(src,dest,alpha) (((src*alpha)+(dest*(255-alpha)))>>8)
-#define _color16(r,g,b) ( ((r)<<11)|((g)<<5)|b )
+#define _color16(r,g,b) ( ((b)<<11)|((g)<<5)|(r) )
 
 unsigned char* create_multiply16_tbl(){
 	unsigned i, j;
@@ -414,15 +443,37 @@ unsigned short blend_half16(unsigned short color1, unsigned short color2)
 	return _color16((_r1+_r2)>>1, (_g1+_g2)>>1, (_b1+_b2)>>1);
 }
 
+unsigned short channel16(unsigned short color1, unsigned ar, unsigned ag, unsigned ab )
+{
+	unsigned r1 = (_r1*ar)>>8;
+	unsigned g1 = (_g1*ag)>>8;
+	unsigned b1 = (_b1*ab)>>8;
+	if(r1>0x1F) r1 = 0x1F;
+	if(g1>0x3F) g1 = 0x3F;
+	if(b1>0x1F) b1 = 0x1F;
+	return _color16(r1,g1,b1);
+}
+
+unsigned short blend_dye16(unsigned short color1, unsigned short unused)
+{
+	return channel16(color1, channelr, channelg, channelb);
+}
+
+//copy from below
+unsigned short blend_rgb16(unsigned short color1, unsigned short color2)
+{
+	return _color16(_channel16(_r1,_r2,channelr),_channel16(_g1,_g2,channelg),_channel16(_b1,_b2,channelb));
+}
+
 unsigned short blend_channel16(unsigned short color1, unsigned short color2, register unsigned a)
 {
 	return _color16(_channel16(_r1,_r2,a),_channel16(_g1,_g2,a),_channel16(_b1,_b2,a));
 }
 
-unsigned char* blendtables[MAX_BLENDINGS] = {NULL,NULL,NULL,NULL,NULL,NULL};
-blend16fp blendfunctions16[MAX_BLENDINGS] = {blend_screen16, blend_multiply16, blend_overlay16, blend_hardlight16, blend_dodge16, blend_half16};
-blend32fp blendfunctions[MAX_BLENDINGS] = {blend_screen, blend_multiply, blend_overlay, blend_hardlight, blend_dodge, blend_half};
-blend32fp blendfunctions32[MAX_BLENDINGS] = {blend_screen32, blend_multiply32, blend_overlay32, blend_hardlight32, blend_dodge32, blend_half32};
+unsigned char* blendtables[MAX_BLENDINGS] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+blend16fp blendfunctions16[MAX_BLENDINGS] = {blend_screen16, blend_multiply16, blend_overlay16, blend_hardlight16, blend_dodge16, blend_half16, blend_rgb16};
+blend32fp blendfunctions[MAX_BLENDINGS] = {blend_screen, blend_multiply, blend_overlay, blend_hardlight, blend_dodge, blend_half, blend_half}; //TODO create a dummy for 7th
+blend32fp blendfunctions32[MAX_BLENDINGS] = {blend_screen32, blend_multiply32, blend_overlay32, blend_hardlight32, blend_dodge32, blend_half32, blend_rgb32};
 
 // This method set blending tables for 8bit mode
 // Need a list of blending table handles which
@@ -432,6 +483,17 @@ void set_blendtables(unsigned char* tables[])
 	int i;
 	for(i=0; i<MAX_BLENDINGS; i++)
 		blendtables[i] = tables[i];
+}
+
+//getting too long so make 2 functions
+blend16fp getblendfunction16(int alpha)
+{
+	return alpha>0?blendfunctions16[alpha-1]:(usechannel?blend_dye16:NULL);
+}
+
+blend32fp getblendfunction32(int alpha)
+{
+	return alpha>0?blendfunctions32[alpha-1]:(usechannel?blend_dye32:NULL);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

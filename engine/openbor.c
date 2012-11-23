@@ -86,6 +86,7 @@ const s_drawmethod plainmethod = {
 	1,    //yrepeat
 	0,    //xspan
 	0,    //yspan
+	255,255,255, //rgb channels
 	{{.beginsize=0.0}, {.endsize=0.0}, 0, {.wavespeed=0}, 0} //water
 };
 
@@ -176,11 +177,11 @@ int                 fontmonospace[MAX_FONTS] = {0,0,0,0,0,0,0,0};
 int                 fontmbs[MAX_FONTS] = {0,0,0,0,0,0,0,0};
 
 // move all blending effects here
-unsigned char*      blendings[MAX_BLENDINGS] = {NULL, NULL, NULL, NULL, NULL, NULL} ;
+unsigned char*      blendings[MAX_BLENDINGS] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL} ;
 // function pointers to create the tables
-palette_table_function blending_table_functions[MAX_BLENDINGS] = {palette_table_screen, palette_table_multiply, palette_table_overlay,palette_table_hardlight, palette_table_dodge, palette_table_half};
-blend_table_function blending_table_functions16[MAX_BLENDINGS] = {create_screen16_tbl,create_multiply16_tbl,create_overlay16_tbl,create_hardlight16_tbl,create_dodge16_tbl,create_half16_tbl};
-blend_table_function blending_table_functions32[MAX_BLENDINGS] = {create_screen32_tbl,create_multiply32_tbl,create_overlay32_tbl,create_hardlight32_tbl,create_dodge32_tbl,create_half32_tbl};
+palette_table_function blending_table_functions[MAX_BLENDINGS] = {palette_table_screen, palette_table_multiply, palette_table_overlay,palette_table_hardlight, palette_table_dodge, palette_table_half, palette_table_half};
+blend_table_function blending_table_functions16[MAX_BLENDINGS] = {create_screen16_tbl,create_multiply16_tbl,create_overlay16_tbl,create_hardlight16_tbl,create_dodge16_tbl,create_half16_tbl, NULL};
+blend_table_function blending_table_functions32[MAX_BLENDINGS] = {create_screen32_tbl,create_multiply32_tbl,create_overlay32_tbl,create_hardlight32_tbl,create_dodge32_tbl,create_half32_tbl, NULL};
 
 int                 current_set = 0;
 int                 current_level = 0;
@@ -2993,10 +2994,10 @@ void create_blend_tables_x8(unsigned char* tables[]){
 	for(i=0; i<MAX_BLENDINGS; i++){
 		switch(screenformat){
 		case PIXEL_16:
-			tables[i] = (blending_table_functions16[i])();
+			tables[i] = blending_table_functions16[i]?(blending_table_functions16[i])():NULL;
 			break;
 		case PIXEL_32:
-			tables[i] = (blending_table_functions32[i])();
+			tables[i] = blending_table_functions32[i]?(blending_table_functions32[i])():NULL;
 			break;
 		}
 	}
@@ -6788,29 +6789,96 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					else for(i=0; i<8; i++) platform[i] = GET_FLOAT_ARG(i+1);
 					break;
 				case CMD_MODEL_DRAWMETHOD:
-					// special effects
-					drawmethod.scalex = GET_INT_ARG(1);
-					drawmethod.scaley = GET_INT_ARG(2);
-					drawmethod.flipx = GET_INT_ARG(3);
-					drawmethod.flipy = GET_INT_ARG(4);
-					drawmethod.shiftx = GET_INT_ARG(5);
-					drawmethod.alpha = GET_INT_ARG(6);
+					value = GET_ARG(1);
+					if(isNumeric(value))
+					{
+						// special effects
+						drawmethod.scalex = GET_INT_ARG(1);
+						drawmethod.scaley = GET_INT_ARG(2);
+						drawmethod.flipx = GET_INT_ARG(3);
+						drawmethod.flipy = GET_INT_ARG(4);
+						drawmethod.shiftx = GET_INT_ARG(5);
+						drawmethod.alpha = GET_INT_ARG(6);
+						drawmethod.remap = GET_INT_ARG(7);
+						drawmethod.fillcolor = parsecolor(GET_ARG(8));
+						drawmethod.rotate = GET_INT_ARG(9);
+						drawmethod.fliprotate = GET_INT_ARG(10);
+					}
+					else if (0==stricmp(value, "scale"))
+					{
+						drawmethod.scalex = GET_FLOAT_ARG(2)*256;
+						drawmethod.scaley = arglist.count>3?GET_FLOAT_ARG(3)*256:drawmethod.scalex;
+					}
+					else if (0==stricmp(value, "scalex"))
+					{
+						drawmethod.scalex = GET_FLOAT_ARG(2)*256;
+					}
+					else if (0==stricmp(value, "scaley"))
+					{
+						drawmethod.scaley = GET_FLOAT_ARG(2)*256;
+					}
+					else if (0==stricmp(value, "flipx"))
+					{
+						drawmethod.flipx = GET_INT_ARG(2);
+					}
+					else if (0==stricmp(value, "flipy"))
+					{
+						drawmethod.flipy = GET_INT_ARG(2);
+					}
+					else if (0==stricmp(value, "shiftx"))
+					{
+						drawmethod.shiftx = GET_FLOAT_ARG(2)*256;
+					}
+					else if (0==stricmp(value, "rotate"))
+					{
+						drawmethod.rotate = GET_INT_ARG(2);
+					}
+					else if (0==stricmp(value, "fliprotate"))
+					{
+						drawmethod.fliprotate = GET_INT_ARG(2);
+					}
+					else if (0==stricmp(value, "fillcolor"))
+					{
+						drawmethod.fliprotate = parsecolor(GET_ARG(2));
+					}
+					else if (0==stricmp(value, "remap"))
+					{
+						drawmethod.remap = GET_INT_ARG(2);
+					}
+					else if (0==stricmp(value, "channel"))
+					{
+						drawmethod.channelr = GET_FLOAT_ARG(2)*255;
+						drawmethod.channelg = arglist.count>3?GET_FLOAT_ARG(3)*255:drawmethod.channelr;
+						drawmethod.channelb = arglist.count>4?GET_FLOAT_ARG(4)*255:drawmethod.channelr;
+					}
+					else if (0==stricmp(value, "channelr"))
+					{
+						drawmethod.channelr = GET_FLOAT_ARG(2)*255;
+					}
+					else if (0==stricmp(value, "channelg"))
+					{
+						drawmethod.channelg = GET_FLOAT_ARG(2)*255;
+					}
+					else if (0==stricmp(value, "channelb"))
+					{
+						drawmethod.channelb = GET_FLOAT_ARG(2)*255;
+					}
+					else if (0==stricmp(value, "alpha"))
+					{
+						drawmethod.alpha = GET_INT_ARG(2);
+					}
+					if(drawmethod.scalex<0) {drawmethod.scalex = -drawmethod.scalex;drawmethod.flipx = !drawmethod.flipx;}
+					if(drawmethod.scaley<0) {drawmethod.scaley = -drawmethod.scaley;drawmethod.flipy = !drawmethod.flipy;}
+					if(drawmethod.rotate)
+					{
+						drawmethod.rotate = (drawmethod.rotate%360 + 360)%360;
+					}
 					if(!blendfx_is_set)
 					{
 						if(drawmethod.alpha>0 && drawmethod.alpha<=MAX_BLENDINGS)
 						{
 							blendfx[drawmethod.alpha-1] = 1;
 						}
-					}
-					drawmethod.remap = GET_INT_ARG(7);
-					drawmethod.fillcolor = parsecolor(GET_ARG(8));
-					drawmethod.rotate = GET_INT_ARG(9);
-					drawmethod.fliprotate = GET_INT_ARG(10);
-					if(drawmethod.scalex<0) {drawmethod.scalex = -drawmethod.scalex;drawmethod.flipx = !drawmethod.flipx;}
-					if(drawmethod.scaley<0) {drawmethod.scaley = -drawmethod.scaley;drawmethod.flipy = !drawmethod.flipy;}
-					if(drawmethod.rotate)
-					{
-						drawmethod.rotate = (drawmethod.rotate%360 + 360)%360;
 					}
 					drawmethod.flag = 1;
 					break;
@@ -9832,6 +9900,7 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus* pstatus)
 {
 	int max = 100, len, alphabg=0, bgindex, colourindex;
 	int forex, forey, forew,foreh, bkw, bkh;
+	s_drawmethod dm = plainmethod;
 
 	x += pstatus->offsetx;
 	y += pstatus->offsety;
@@ -9891,17 +9960,18 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus* pstatus)
 
 	if(!pstatus->colourtable) pstatus->colourtable = &hpcolourtable;
 
-	spriteq_add_box(x+1, y+1, bkw, bkh, HUD_Z+1+pstatus->backlayer, (*pstatus->colourtable)[bgindex], alphabg);
-	spriteq_add_box(forex+1, forey+1, forew, foreh, HUD_Z+2+pstatus->barlayer, (*pstatus->colourtable)[colourindex], 0);
+	dm.alpha = alphabg;
+	spriteq_add_box(x+1, y+1, bkw, bkh, HUD_Z+1+pstatus->backlayer, (*pstatus->colourtable)[bgindex], &dm);
+	spriteq_add_box(forex+1, forey+1, forew, foreh, HUD_Z+2+pstatus->barlayer, (*pstatus->colourtable)[colourindex], NULL);
 
 	if(pstatus->noborder==0)
 	{
-		spriteq_add_line(x, y, x+bkw+1, y, HUD_Z+3+pstatus->borderlayer, color_white, 0); //Top border.
-		spriteq_add_line(x, y+bkh+1, x+bkw+1, y+bkh+1, HUD_Z+3+pstatus->borderlayer, color_white, 0); //Bottom border.
-		spriteq_add_line(x, y+1, x, y+bkh, HUD_Z+3+pstatus->borderlayer, color_white, 0); //Left border.
-		spriteq_add_line(x+bkw+1, y+1, x+bkw+1, y+bkh, HUD_Z+3+pstatus->borderlayer, color_white, 0); //Right border.
-		spriteq_add_line(x, y+bkh+2, x+bkw+1, y+bkh+2, HUD_Z+pstatus->borderlayer, color_black, 0); //Bottom shadow.
-		spriteq_add_line(x+bkw+2, y+1, x+bkw+2, y+bkh+2, HUD_Z+pstatus->borderlayer, color_black, 0); //Right shadow.
+		spriteq_add_line(x, y, x+bkw+1, y, HUD_Z+3+pstatus->borderlayer, color_white, NULL); //Top border.
+		spriteq_add_line(x, y+bkh+1, x+bkw+1, y+bkh+1, HUD_Z+3+pstatus->borderlayer, color_white, NULL); //Bottom border.
+		spriteq_add_line(x, y+1, x, y+bkh, HUD_Z+3+pstatus->borderlayer, color_white, NULL); //Left border.
+		spriteq_add_line(x+bkw+1, y+1, x+bkw+1, y+bkh, HUD_Z+3+pstatus->borderlayer, color_white, NULL); //Right border.
+		spriteq_add_line(x, y+bkh+2, x+bkw+1, y+bkh+2, HUD_Z+pstatus->borderlayer, color_black, NULL); //Bottom shadow.
+		spriteq_add_line(x+bkw+2, y+1, x+bkw+2, y+bkh+2, HUD_Z+pstatus->borderlayer, color_black, NULL); //Right shadow.
 	}
 }
 
@@ -10311,7 +10381,7 @@ void predrawstatus(){
 
 	if(savedata.debuginfo)
 	{
-		spriteq_add_box(0, videomodes.dOffset-12, videomodes.hRes, videomodes.dOffset+12, 0x0FFFFFFE, 0, 0);
+		spriteq_add_box(0, videomodes.dOffset-12, videomodes.hRes, videomodes.dOffset+12, 0x0FFFFFFE, 0, NULL);
 		font_printf(2,                   videomodes.dOffset-10, 0, 0, "FPS: %03d", getFPS());
 		font_printf(videomodes.hRes / 2, videomodes.dOffset-10, 0, 0, "Free Ram: %s KBytes", commaprint(freeram/1000));
 		font_printf(2,                   videomodes.dOffset,    0, 0, "Total Ram: %s KBytes", commaprint(totalram/1000));
@@ -10389,14 +10459,14 @@ void drawstatus(){
 	// Time box
 	if(!level->notime && !timeloc[4])    // Only draw if notime is set to 0 or not specified
 	{
-		spriteq_add_line(videomodes.hShift+timeloc[0],                savedata.windowpos+timeloc[1],                videomodes.hShift+timeloc[0]+timeloc[2],     savedata.windowpos+timeloc[1],                HUD_Z, color_black, 0);
-		spriteq_add_line(videomodes.hShift+timeloc[0],                savedata.windowpos+timeloc[1],                videomodes.hShift+timeloc[0],                savedata.windowpos+timeloc[1]+timeloc[3],     HUD_Z,  color_black, 0);
-		spriteq_add_line(videomodes.hShift+timeloc[0]+timeloc[2],     savedata.windowpos+timeloc[1],                videomodes.hShift+timeloc[0]+timeloc[2],     savedata.windowpos+timeloc[1]+timeloc[3],     HUD_Z,  color_black, 0);
-		spriteq_add_line(videomodes.hShift+timeloc[0],                savedata.windowpos+timeloc[1]+timeloc[3],     videomodes.hShift+timeloc[0]+timeloc[2],     savedata.windowpos+timeloc[1]+timeloc[3],     HUD_Z, color_black, 0);
-		spriteq_add_line(videomodes.hShift+timeloc[0] - 1,            savedata.windowpos+timeloc[1] - 1,            videomodes.hShift+timeloc[0]+timeloc[2] - 1, savedata.windowpos+timeloc[1] - 1,            HUD_Z+1,   color_white, 0);
-		spriteq_add_line(videomodes.hShift+timeloc[0] - 1,            savedata.windowpos+timeloc[1] - 1,            videomodes.hShift+timeloc[0] - 1,            savedata.windowpos+timeloc[1]+timeloc[3] - 1, HUD_Z+1,  color_white, 0);
-		spriteq_add_line(videomodes.hShift+timeloc[0]+timeloc[2] - 1, savedata.windowpos+timeloc[1] - 1,            videomodes.hShift+timeloc[0]+timeloc[2] - 1, savedata.windowpos+timeloc[1]+timeloc[3] - 1, HUD_Z+1,  color_white, 0);
-		spriteq_add_line(videomodes.hShift+timeloc[0] - 1,            savedata.windowpos+timeloc[1]+timeloc[3] - 1, videomodes.hShift+timeloc[0]+timeloc[2] - 1, savedata.windowpos+timeloc[1]+timeloc[3] - 1, HUD_Z+1, color_white, 0);
+		spriteq_add_line(videomodes.hShift+timeloc[0],                savedata.windowpos+timeloc[1],                videomodes.hShift+timeloc[0]+timeloc[2],     savedata.windowpos+timeloc[1],                HUD_Z, color_black, NULL);
+		spriteq_add_line(videomodes.hShift+timeloc[0],                savedata.windowpos+timeloc[1],                videomodes.hShift+timeloc[0],                savedata.windowpos+timeloc[1]+timeloc[3],     HUD_Z,  color_black, NULL);
+		spriteq_add_line(videomodes.hShift+timeloc[0]+timeloc[2],     savedata.windowpos+timeloc[1],                videomodes.hShift+timeloc[0]+timeloc[2],     savedata.windowpos+timeloc[1]+timeloc[3],     HUD_Z,  color_black, NULL);
+		spriteq_add_line(videomodes.hShift+timeloc[0],                savedata.windowpos+timeloc[1]+timeloc[3],     videomodes.hShift+timeloc[0]+timeloc[2],     savedata.windowpos+timeloc[1]+timeloc[3],     HUD_Z, color_black, NULL);
+		spriteq_add_line(videomodes.hShift+timeloc[0] - 1,            savedata.windowpos+timeloc[1] - 1,            videomodes.hShift+timeloc[0]+timeloc[2] - 1, savedata.windowpos+timeloc[1] - 1,            HUD_Z+1,   color_white, NULL);
+		spriteq_add_line(videomodes.hShift+timeloc[0] - 1,            savedata.windowpos+timeloc[1] - 1,            videomodes.hShift+timeloc[0] - 1,            savedata.windowpos+timeloc[1]+timeloc[3] - 1, HUD_Z+1,  color_white, NULL);
+		spriteq_add_line(videomodes.hShift+timeloc[0]+timeloc[2] - 1, savedata.windowpos+timeloc[1] - 1,            videomodes.hShift+timeloc[0]+timeloc[2] - 1, savedata.windowpos+timeloc[1]+timeloc[3] - 1, HUD_Z+1,  color_white, NULL);
+		spriteq_add_line(videomodes.hShift+timeloc[0] - 1,            savedata.windowpos+timeloc[1]+timeloc[3] - 1, videomodes.hShift+timeloc[0]+timeloc[2] - 1, savedata.windowpos+timeloc[1]+timeloc[3] - 1, HUD_Z+1, color_white, NULL);
 	}
 }
 
@@ -22336,6 +22406,8 @@ int choose_difficulty()
 	int i, j, t;
 	//float slider = 0;
 	int barx, bary, barw, barh;
+	s_drawmethod drawmethod = plainmethod;
+	drawmethod.alpha = 1;
 
 	barx = videomodes.hRes/5; bary = _liney(0,0)-2; barw = videomodes.hRes*3/5; barh = 5*(fontheight(0)+1)+4;
 	bothnewkeys = 0;
@@ -22370,12 +22442,12 @@ int choose_difficulty()
 			//draw the scroll bar
 			if(num_difficulties>maxdisplay)
 			{
-				spriteq_add_box(barx,  bary,        barw,     barh,   0, color_black, 1); //outerbox
-				spriteq_add_line(barx, bary,  barx+8, bary, 1, color_white, 0);
-				spriteq_add_line(barx, bary, barx, bary + barh, 1, color_white, 0);
-				spriteq_add_line(barx + 8, bary, barx+8, bary+barh,  1, color_white, 0);
-				spriteq_add_line(barx, bary+barh, barx+8, bary+barh,  1, color_white, 0);
-				spriteq_add_box(barx+1,  bary + selector*(barh-3)/num_difficulties, 7,             3,            2, color_white, 0); //slider
+				spriteq_add_box(barx,  bary,        barw,     barh,   0, color_black, &drawmethod); //outerbox
+				spriteq_add_line(barx, bary,  barx+8, bary, 1, color_white, NULL);
+				spriteq_add_line(barx, bary, barx, bary + barh, 1, color_white, NULL);
+				spriteq_add_line(barx + 8, bary, barx+8, bary+barh,  1, color_white, NULL);
+				spriteq_add_line(barx, bary+barh, barx+8, bary+barh,  1, color_white, NULL);
+				spriteq_add_box(barx+1,  bary + selector*(barh-3)/num_difficulties, 7,             3,            2, color_white, NULL); //slider
 			}
 		}
 

@@ -283,10 +283,10 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod*
 			putsprite_8(x, y, drawmethod->flipx, frame, screen, drawmethod->table, drawmethod->alpha>0?blendtables[drawmethod->alpha-1]:NULL);
 			break;
 		case PIXEL_16:
-			putsprite_x8p16(x, y, drawmethod->flipx, frame, screen, (unsigned short*)drawmethod->table, drawmethod->alpha>0?blendfunctions16[drawmethod->alpha-1]:NULL);
+			putsprite_x8p16(x, y, drawmethod->flipx, frame, screen, (unsigned short*)drawmethod->table, getblendfunction16(drawmethod->alpha));
 			break;
 		case PIXEL_32:
-			putsprite_x8p32(x, y, drawmethod->flipx, frame, screen, (unsigned*)drawmethod->table, drawmethod->alpha>0?blendfunctions32[drawmethod->alpha-1]:NULL);
+			putsprite_x8p32(x, y, drawmethod->flipx, frame, screen, (unsigned*)drawmethod->table, getblendfunction32(drawmethod->alpha));
 			break;
 		}
 		return;
@@ -309,7 +309,7 @@ static void _putsprite(int x, int y, s_sprite* sprite, s_screen* screen, s_drawm
 {
 	if(!drawmethod || drawmethod->flag==0)
 	{
-			goto plainsprite;
+		goto plainsprite;
 	}
 	
 	putsprite_ex(x, y, sprite, screen, drawmethod);
@@ -337,9 +337,14 @@ void putsprite(int x, int y, s_sprite* sprite, s_screen* screen, s_drawmethod* d
 		yrepeat = drawmethod->yrepeat;
 		xspan = drawmethod->xspan;
 		yspan = drawmethod->yspan;
+		channelr = drawmethod->channelr;
+		channelg = drawmethod->channelg;
+		channelb = drawmethod->channelb;
+		usechannel = (channelr<255) || (channelg<255) || (channelb<255);
 	} else {
 		xrepeat = yrepeat = 1;
 		xspan = yspan = 0;
+		usechannel = 0;
 	}
 
 	for(j=0, dy=y; j<yrepeat; j++, dy+=yspan){
