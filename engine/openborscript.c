@@ -10209,6 +10209,7 @@ enum levelproperty_enum
 	_lp_gravity,
 	_lp_maxfallspeed,
 	_lp_maxtossspeed,
+	_lp_quake,
 	_lp_rocking,
 	_lp_scrollspeed,
 	_lp_the_end,
@@ -10227,6 +10228,7 @@ void mapstrings_levelproperty(ScriptVariant** varlist, int paramCount)
 		"gravity",
 		"maxfallspeed",
 		"maxtossspeed",
+		"quake",
 		"rocking",
 		"scrollspeed",
 	};
@@ -10277,6 +10279,12 @@ HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 		(*pretvar)->dblVal = (DOUBLE)level->maxtossspeed;
+		break;
+	}
+	case _lp_quake:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)level->quake;
 		break;
 	}
 	case _lp_scrollspeed:
@@ -10355,6 +10363,11 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 	case _lp_maxtossspeed:
 		if(SUCCEEDED(ScriptVariant_DecimalValue(arg, &dbltemp)))
 			level->maxtossspeed = (float)dbltemp;
+		else (*pretvar)->lVal = (LONG)0;
+		break;
+	case _lp_quake:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
+			level->quake = (int)ltemp;
 		else (*pretvar)->lVal = (LONG)0;
 		break;
 	default:
