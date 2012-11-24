@@ -341,19 +341,16 @@ void putscreen(s_screen* dest, s_screen* src, int x, int y, s_drawmethod* drawme
 {
 	int xrepeat, yrepeat, xspan, yspan, i, j, dx, dy;
 
+	drawmethod_global_init(drawmethod);
+
 	if(drawmethod && drawmethod->flag){
 		xrepeat = drawmethod->xrepeat;
 		yrepeat = drawmethod->yrepeat;
 		xspan = drawmethod->xspan;
 		yspan = drawmethod->yspan;
-		channelr = drawmethod->channelr;
-		channelg = drawmethod->channelg;
-		channelb = drawmethod->channelb;
-		usechannel = (channelr<255) || (channelg<255) || (channelb<255);
 	} else {
 		xrepeat = yrepeat = 1;
 		xspan = yspan = 0;
-		usechannel = 0;
 	}
 
 	for(j=0, dy=y; j<yrepeat; j++, dy+=yspan){

@@ -10682,6 +10682,8 @@ enum drawmethod_enum
 	_dm_scaley,
 	_dm_shiftx,
 	_dm_table,
+	_dm_tintcolor,
+	_dm_tintmode,
 	_dm_transbg,
 	_dm_watermode,
 	_dm_wavelength,
@@ -10723,6 +10725,8 @@ void mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount)
 		"scaley",
 		"shiftx",
 		"table",
+		"tintcolor",
+		"tintmode",
 		"transbg",
 		"watermode",
 		"wavelength",
@@ -10847,6 +10851,14 @@ HRESULT openbor_changedrawmethod(ScriptVariant** varlist , ScriptVariant** pretv
 	case _dm_table:
 		if(varlist[2]->vt != VT_PTR && varlist[2]->vt != VT_EMPTY ) return E_FAIL;
 		pmethod->table = (void*)varlist[2]->ptrVal;
+	break;
+	case _dm_tintmode:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->tintmode = (int)temp;
+	break;
+	case _dm_tintcolor:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->tintcolor = (int)temp;
 	break;
 	case _dm_transbg:
 		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
