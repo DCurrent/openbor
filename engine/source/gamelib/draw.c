@@ -238,17 +238,12 @@ void circle(int x, int y, int rad, int col, s_screen *screen, int alpha){
 
 static int draw_init( s_drawmethod* drawmethod)
 {
-	int alpha;
+	int alpha = 0;
+	drawmethod_global_init(drawmethod);
+
 	if (drawmethod && drawmethod->flag)
-	{
 		alpha = drawmethod->alpha;
-		channelr = drawmethod->channelr;
-		channelg = drawmethod->channelg;
-		channelb = drawmethod->channelb;
-		usechannel = (channelr<255) || (channelg<255) || (channelb<255);
-	}	else {
-		alpha = usechannel = 0;
-	}
+
 	return alpha;
 }
 

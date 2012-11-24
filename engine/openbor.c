@@ -87,6 +87,8 @@ const s_drawmethod plainmethod = {
 	0,    //xspan
 	0,    //yspan
 	255,255,255, //rgb channels
+	0, //tintmode?
+	0,
 	{{.beginsize=0.0}, {.endsize=0.0}, 0, {.wavespeed=0}, 0} //water
 };
 
@@ -177,11 +179,11 @@ int                 fontmonospace[MAX_FONTS] = {0,0,0,0,0,0,0,0};
 int                 fontmbs[MAX_FONTS] = {0,0,0,0,0,0,0,0};
 
 // move all blending effects here
-unsigned char*      blendings[MAX_BLENDINGS] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL} ;
+unsigned char*      blendings[MAX_BLENDINGS] = {NULL, NULL, NULL, NULL, NULL, NULL} ;
 // function pointers to create the tables
-palette_table_function blending_table_functions[MAX_BLENDINGS] = {palette_table_screen, palette_table_multiply, palette_table_overlay,palette_table_hardlight, palette_table_dodge, palette_table_half, palette_table_half};
-blend_table_function blending_table_functions16[MAX_BLENDINGS] = {create_screen16_tbl,create_multiply16_tbl,create_overlay16_tbl,create_hardlight16_tbl,create_dodge16_tbl,create_half16_tbl, NULL};
-blend_table_function blending_table_functions32[MAX_BLENDINGS] = {create_screen32_tbl,create_multiply32_tbl,create_overlay32_tbl,create_hardlight32_tbl,create_dodge32_tbl,create_half32_tbl, NULL};
+palette_table_function blending_table_functions[MAX_BLENDINGS] = {palette_table_screen, palette_table_multiply, palette_table_overlay,palette_table_hardlight, palette_table_dodge, palette_table_half};
+blend_table_function blending_table_functions16[MAX_BLENDINGS] = {create_screen16_tbl,create_multiply16_tbl,create_overlay16_tbl,create_hardlight16_tbl,create_dodge16_tbl,create_half16_tbl};
+blend_table_function blending_table_functions32[MAX_BLENDINGS] = {create_screen32_tbl,create_multiply32_tbl,create_overlay32_tbl,create_hardlight32_tbl,create_dodge32_tbl,create_half32_tbl};
 
 int                 current_set = 0;
 int                 current_level = 0;
@@ -6862,6 +6864,14 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					else if (0==stricmp(value, "channelb"))
 					{
 						drawmethod.channelb = GET_FLOAT_ARG(2)*255;
+					}
+					else if (0==stricmp(value, "tintmode"))
+					{
+						drawmethod.tintmode = GET_INT_ARG(2);
+					}
+					else if (0==stricmp(value, "tintcolor"))
+					{
+						drawmethod.tintcolor = parsecolor(GET_ARG(2));
 					}
 					else if (0==stricmp(value, "alpha"))
 					{

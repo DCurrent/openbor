@@ -33,9 +33,8 @@
 #define BLEND_HARDLIGHT  3
 #define BLEND_DODGE      4
 #define BLEND_HALF       5
-#define BLEND_RGB        6
 
-#define MAX_BLENDINGS    7
+#define MAX_BLENDINGS    6
 /*
 #define _copy24bitp(pd, ps) (pd)[0] = (ps)[0]; (pd)[1] = (ps)[1]; (pd)[2] = (ps)[2];
 #define _copy24bit(pd, v) (pd)[0] = ((unsigned char*)(&(v)))[0]; (pd)[1] = ((unsigned char*)(&(v)))[1]; (pd)[2] = ((unsigned char*)(&(v)))[2];
@@ -172,8 +171,10 @@ blend32fp getblendfunction32(int alpha);
 extern blend16fp blendfunctions16[MAX_BLENDINGS];
 extern blend32fp blendfunctions32[MAX_BLENDINGS];
 extern unsigned char* blendtables[MAX_BLENDINGS];
-extern unsigned channelr,channelg,channelb;
+extern unsigned channelr,channelg,channelb,tintmode,tintcolor;
 extern int usechannel;
+extern blend16fp tint16fp1, tint16fp2;
+extern blend32fp tint32fp1, tint32fp2;
 
 unsigned short colour16(unsigned char r, unsigned char g, unsigned char b);
 unsigned colour32(unsigned char r, unsigned char g, unsigned char b);
@@ -233,8 +234,11 @@ typedef struct
 	unsigned char channelr;
 	unsigned char channelg;
 	unsigned char channelb;
+	unsigned char tintmode; //tint the sprite with color 
+	unsigned tintcolor;
 	water_transform water;
 }s_drawmethod;
+void drawmethod_global_init(s_drawmethod* drawmethod);
 
 typedef enum 
 {

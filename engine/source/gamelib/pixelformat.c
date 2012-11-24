@@ -21,8 +21,31 @@ int pixelformat = PIXEL_8;
 int screenformat = PIXEL_8;
 int pixelbytes[(int)5] = {1, 1, 2, 3, 4};
 
-unsigned channelr,channelg,channelb;
+unsigned channelr,channelg,channelb, tintcolor,tintmode;
+blend16fp tint16fp1, tint16fp2;
+blend32fp tint32fp1, tint32fp2;
 int usechannel;
+
+//may be used many time so make a function
+void drawmethod_global_init(s_drawmethod* drawmethod)
+{
+	if(screenformat!=PIXEL_8) 
+	{
+		if(drawmethod && drawmethod->flag)
+		{
+			channelr = drawmethod->channelr;
+			channelg = drawmethod->channelg;
+			channelb = drawmethod->channelb;
+			tintmode = drawmethod->tintmode;
+			tintcolor = drawmethod->tintcolor;
+			usechannel = (channelr<255) || (channelg<255) || (channelb<255);
+		}
+		else
+		{
+			usechannel = tintmode = 0;
+		}
+	}
+}
 
 
 unsigned short colour16(unsigned char r, unsigned char g, unsigned char b)
@@ -236,23 +259,14 @@ unsigned blend_half32(register unsigned color1, register unsigned color2)
 				  ((color1&0xFF) + (color2&0xFF))>>1);
 }
 
-unsigned channel32(register unsigned color1, register unsigned ar, register unsigned ag, register unsigned ab)
+unsigned blend_tint32(unsigned color1, unsigned color2)
 {
-	unsigned b1 = color1>>16,g1 = (color1&0xFF00)>>8,r1 = color1&0xFF;
-	r1 = (r1*ar)>>8;
-	g1 = (g1*ag)>>8;
-	b1 = (b1*ab)>>8;
-	return _color(r1,g1,b1);
-}
-
-unsigned blend_dye32(unsigned color1, unsigned unused)
-{
-	return channel32(color1, channelr, channelg, channelb);
-	//return blend_overlay32(_color(channelr,channelg,channelb), color1);
+	unsigned c = tint32fp1(tintcolor, color1);
+	return tint32fp2?tint32fp2(c, color2):c;
 }
 
 //copy from below
-unsigned blend_rgb32(register unsigned color1, register unsigned color2)
+unsigned blend_rgbchannel32(register unsigned color1, register unsigned color2)
 {
 	unsigned b1 = color1>>16, r2 = color2>>16;
 	unsigned g1 = (color1&0xFF00)>>8, g2 = (color2&0xFF00)>>8;
@@ -443,24 +457,14 @@ unsigned short blend_half16(unsigned short color1, unsigned short color2)
 	return _color16((_r1+_r2)>>1, (_g1+_g2)>>1, (_b1+_b2)>>1);
 }
 
-unsigned short channel16(unsigned short color1, unsigned ar, unsigned ag, unsigned ab )
+unsigned short blend_tint16(unsigned short color1, unsigned short color2)
 {
-	unsigned r1 = (_r1*ar)>>8;
-	unsigned g1 = (_g1*ag)>>8;
-	unsigned b1 = (_b1*ab)>>8;
-	if(r1>0x1F) r1 = 0x1F;
-	if(g1>0x3F) g1 = 0x3F;
-	if(b1>0x1F) b1 = 0x1F;
-	return _color16(r1,g1,b1);
-}
-
-unsigned short blend_dye16(unsigned short color1, unsigned short unused)
-{
-	return channel16(color1, channelr, channelg, channelb);
+	unsigned short c = tint16fp1(tintcolor, color1);
+	return tint16fp2?tint16fp2(c, color2):c;
 }
 
 //copy from below
-unsigned short blend_rgb16(unsigned short color1, unsigned short color2)
+unsigned short blend_rgbchannel16(unsigned short color1, unsigned short color2)
 {
 	return _color16(_channel16(_r1,_r2,channelr),_channel16(_g1,_g2,channelg),_channel16(_b1,_b2,channelb));
 }
@@ -470,10 +474,10 @@ unsigned short blend_channel16(unsigned short color1, unsigned short color2, reg
 	return _color16(_channel16(_r1,_r2,a),_channel16(_g1,_g2,a),_channel16(_b1,_b2,a));
 }
 
-unsigned char* blendtables[MAX_BLENDINGS] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL};
-blend16fp blendfunctions16[MAX_BLENDINGS] = {blend_screen16, blend_multiply16, blend_overlay16, blend_hardlight16, blend_dodge16, blend_half16, blend_rgb16};
-blend32fp blendfunctions[MAX_BLENDINGS] = {blend_screen, blend_multiply, blend_overlay, blend_hardlight, blend_dodge, blend_half, blend_half}; //TODO create a dummy for 7th
-blend32fp blendfunctions32[MAX_BLENDINGS] = {blend_screen32, blend_multiply32, blend_overlay32, blend_hardlight32, blend_dodge32, blend_half32, blend_rgb32};
+unsigned char* blendtables[MAX_BLENDINGS] = {NULL,NULL,NULL,NULL,NULL,NULL};
+blend16fp blendfunctions16[MAX_BLENDINGS] = {blend_screen16, blend_multiply16, blend_overlay16, blend_hardlight16, blend_dodge16, blend_half16};
+blend32fp blendfunctions[MAX_BLENDINGS] = {blend_screen, blend_multiply, blend_overlay, blend_hardlight, blend_dodge, blend_half};
+blend32fp blendfunctions32[MAX_BLENDINGS] = {blend_screen32, blend_multiply32, blend_overlay32, blend_hardlight32, blend_dodge32, blend_half32};
 
 // This method set blending tables for 8bit mode
 // Need a list of blending table handles which
@@ -488,12 +492,38 @@ void set_blendtables(unsigned char* tables[])
 //getting too long so make 2 functions
 blend16fp getblendfunction16(int alpha)
 {
-	return alpha>0?blendfunctions16[alpha-1]:(usechannel?blend_dye16:NULL);
+	blend16fp fp = (alpha>0)?blendfunctions16[alpha-1]:NULL;
+	//tint mode means tint the sprite with color
+	if(tintmode>0)
+	{
+		tint16fp1 = blendfunctions16[tintmode-1];
+		tint16fp2 = fp;
+		fp = blend_tint16;
+	}
+	//trick, alpha 6 and rgb channel are of the same group
+	else if(fp==blend_half16 && usechannel)
+	{
+		fp = blend_rgbchannel16;
+	}
+
+	return fp;
 }
 
 blend32fp getblendfunction32(int alpha)
 {
-	return alpha>0?blendfunctions32[alpha-1]:(usechannel?blend_dye32:NULL);
+	blend32fp fp = (alpha>0)?blendfunctions32[alpha-1]:NULL;
+	if(tintmode>0)
+	{
+		tint32fp1 = blendfunctions32[tintmode-1];
+		tint32fp2 = fp;
+		fp = blend_tint32;
+	}
+	//trick, alpha 6 and rgb channel are of the same group
+	else if(fp==blend_half32 && usechannel)
+	{
+		fp = blend_rgbchannel32;
+	}
+	return fp;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
