@@ -27,11 +27,7 @@ extern void ScanlinesTV32  (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, 
 extern void Simple2x       (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
 extern void Simple2x32     (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
 extern void Bilinear       (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
-extern void BilinearPlus   (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
 extern void Bilinear32     (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
-extern void BilinearPlus32 (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
-extern void MotionBlur     (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
-extern void MotionBlur32   (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
 extern void Tv2x           (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
 extern void DotMatrix      (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
 
@@ -39,7 +35,6 @@ char* GfxBlitterNames[(BLITTER_MAX * 2) + 1] = {
 #define BIT_NAMES(x) \
 	x" Simple 2x",      \
 	x" Bilinear",       \
-	x" Bilinear Plus",  \
 	x" 2xSaI",          \
 	x" Super 2xSaI",    \
 	x" Super Eagle",    \
@@ -49,8 +44,7 @@ char* GfxBlitterNames[(BLITTER_MAX * 2) + 1] = {
 	x" ScanLines",      \
 	x" ScanLines TV",   \
 	x" TV 2x",          \
-	x" Dot Matrix",     \
-	x" Motion Blur",
+	x" Dot Matrix",
 	BIT_NAMES("16-Bit")
 	BIT_NAMES("32-Bit")
 	"Unknown"
@@ -59,7 +53,6 @@ char* GfxBlitterNames[(BLITTER_MAX * 2) + 1] = {
 GfxBlitterTypes GfxBlitters[BLITTER_MAX * 2] = {
 	Simple2x,
 	Bilinear,
-	BilinearPlus,
 	_2xSaI,
 	Super2xSaI,
 	SuperEagle,
@@ -70,10 +63,8 @@ GfxBlitterTypes GfxBlitters[BLITTER_MAX * 2] = {
 	ScanlinesTV,
 	Tv2x,
 	DotMatrix,
-	MotionBlur,
 	Simple2x32,
 	Bilinear32,
-	BilinearPlus32,
 	_2xSaI32,
 	Super2xSaI32,
 	SuperEagle32,
@@ -84,5 +75,4 @@ GfxBlitterTypes GfxBlitters[BLITTER_MAX * 2] = {
 	ScanlinesTV,
 	Tv2x,
 	DotMatrix,
-	MotionBlur32,
 };
