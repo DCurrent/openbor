@@ -16,9 +16,6 @@ extern void __EndMMX ();
 extern void __2xSaILine (u8 *srcPtr, u8 *deltaPtr, u32 srcPitch, u32 width, u8 *dstPtr, u32 dstPitch);
 extern void __2xSaISuperEagleLine (u8 *srcPtr, u8 *deltaPtr, u32 srcPitch, u32 width, u8 *dstPtr, u32 dstPitch);
 extern void __2xSaISuper2xSaILine (u8 *srcPtr, u8 *deltaPtr, u32 srcPitch, u32 width, u8 *dstPtr, u32 dstPitch);
-extern void __BilinearMMX (u16 * A, u16 * B, u16 * C, u16 * D, u16 * dx, u16 * dy, u8 *dP);
-extern void __BilinearMMXGrid0 (u16 * A, u16 * B, u16 * C, u16 * D, u16 * dx, u16 * dy, u8 *dP);
-extern void __BilinearMMXGrid1 (u16 * A, u16 * B, u16 * C, u16 * D, u16 * dx, u16 * dy, u8 *dP);
 #endif
 
 u32 GfxColorMask = 0xF7DEF7DE;
@@ -34,18 +31,29 @@ u32 GfxGreenShift = 6;
 u32 GfxBlueShift = 0;
 u32 qRGB_COLOR_MASK[2] = { 0xF7DEF7DE, 0xF7DEF7DE };
 
-static u8 cpu_mmx = 1;
 extern void Init_Hq2x (u32, u32);
 extern void Term_Hq2x ();
 
-void SetMMX (bool mmx)
-{
-	cpu_mmx = (mmx ? 1 : 0);
-}
-
+/* Queries the CPU using cpuid to determine whether it supports MMX.  Returns 1
+ * if the processor supports MMX, 0 if it doesn't.  Will always return 0 if the
+ * CPU architecture is anything other than x86. */
 bool GetMMX ()
 {
-	return cpu_mmx ? 1 : 0;
+#ifdef MMX
+	int retval;
+	__asm__ (
+	"mov $1, %%eax\n"
+	"cpuid\n"
+	"shr $23, %%edx\n"
+	"and $1, %%edx\n"
+	: "=d"(retval)
+	: // no inputs
+	: "cc", "eax", "ebx", "ecx"
+	);
+	return retval;
+#else
+	return 0;
+#endif
 }
 
 int Init_2xSaI (u32 BitFormat, u32 ColorDepth)
@@ -231,7 +239,7 @@ void Super2xSaI (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitc
 	u32 Nextline = srcPitch >> 1;
 
 #ifdef MMX
-	if (cpu_mmx)
+	if (GetMMX())
 	{
 		for (; height; height--)
 		{
@@ -455,7 +463,7 @@ void SuperEagle (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitc
 	u32 Nextline = srcPitch >> 1;
 
 #ifdef MMX
-	if (cpu_mmx)
+	if (GetMMX())
 	{
 		for (; height; height--)
 		{
@@ -727,7 +735,7 @@ void _2xSaI (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, i
 	u32 Nextline = srcPitch >> 1;
 
 #ifdef MMX
-	if (cpu_mmx)
+	if (GetMMX())
 	{
 		for (; height; height -= 1)
 		{

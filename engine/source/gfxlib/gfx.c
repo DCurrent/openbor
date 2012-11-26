@@ -64,7 +64,7 @@ GfxBlitterTypes GfxBlitters[BLITTER_MAX * 2] = {
 	Tv2x,
 	DotMatrix,
 	Simple2x32,
-	Bilinear32,
+	Bilinear,
 	_2xSaI32,
 	Super2xSaI32,
 	SuperEagle32,
