@@ -354,7 +354,6 @@ GFX 	        = source/gfxlib/2xSaI.o                                            
                   source/gfxlib/dotmatrix.o                                                         \
                   source/gfxlib/gfx.o                                                               \
                   source/gfxlib/hq2x.o                                                              \
-                  source/gfxlib/motionblur.o                                                        \
                   source/gfxlib/scale2x.o                                                           \
                   source/gfxlib/scanline.o                                                          \
                   source/gfxlib/simple2x.o                                                          \
