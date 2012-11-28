@@ -42,13 +42,15 @@ bool GetMMX ()
 #ifdef MMX
 	int retval;
 	__asm__ (
+	"push %%ebx\n"
 	"mov $1, %%eax\n"
 	"cpuid\n"
 	"shr $23, %%edx\n"
 	"and $1, %%edx\n"
+	"pop %%ebx\n"
 	: "=d"(retval)
 	: // no inputs
-	: "cc", "eax", "ebx", "ecx"
+	: "cc", "eax", "ecx"
 	);
 	return retval;
 #else
