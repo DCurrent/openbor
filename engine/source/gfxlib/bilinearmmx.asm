@@ -93,8 +93,3 @@ pop ebp
 emms
 ret
 
-; void __EndMMX()
-FUNCTION __EndMMX
-emms
-ret
-

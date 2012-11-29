@@ -12,7 +12,6 @@
 
 #ifdef MMX
 extern void __Init_2xSaIMMX (u32 BitFormat);
-extern void __EndMMX ();
 extern void __2xSaILine (u8 *srcPtr, u8 *deltaPtr, u32 srcPitch, u32 width, u8 *dstPtr, u32 dstPitch);
 extern void __2xSaISuperEagleLine (u8 *srcPtr, u8 *deltaPtr, u32 srcPitch, u32 width, u8 *dstPtr, u32 dstPitch);
 extern void __2xSaISuper2xSaILine (u8 *srcPtr, u8 *deltaPtr, u32 srcPitch, u32 width, u8 *dstPtr, u32 dstPitch);
@@ -129,7 +128,8 @@ void Term_Gfx ()
 	Term_Hq2x();
 
 #ifdef MMX
-	__EndMMX();
+	// terminate MMX and restore floating point processing
+	__asm__ ("emms");
 #endif
 }
 
