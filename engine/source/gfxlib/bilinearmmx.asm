@@ -10,9 +10,18 @@
 ; November 2012 also had an MMX implementation, but this code was written from
 ; scratch by Plombo and isn't related to the old MMX implementation.
 
+%macro FUNCTION 1
+%ifdef LINUX
+GLOBAL %1
+%1:
+%else
+GLOBAL _%1
+_%1:
+%endif
+%endmacro
+
 ; void _BilinearMMX(u8* srcPtr, u32 srcPitch, u8* dstPtr, u32 dstPitch, int width, int height)
-GLOBAL _BilinearMMX
-_BilinearMMX:
+FUNCTION _BilinearMMX
 push ebp
 mov ebp, esp
 
@@ -85,8 +94,7 @@ emms
 ret
 
 ; void __EndMMX()
-GLOBAL __EndMMX
-__EndMMX:
+FUNCTION __EndMMX
 emms
 ret
 
