@@ -49,7 +49,8 @@ int        num_difficulties;
 int		skiptoset = -1;
 
 s_level*            level               = NULL;
-s_filestream filestreams[LEVEL_MAX_FILESTREAMS];
+s_filestream* filestreams = NULL;
+int numfilestreams = 0;
 s_screen*           vscreen             = NULL;
 s_screen*           background          = NULL;
 s_videomodes        videomodes;
@@ -2826,9 +2827,8 @@ int load_colourmap(s_model * model, char *image1, char *image2)
 	// Can't use same image twice!
 	if(stricmp(image1,image2)==0) return 0;
 
-	// Find an empty slot... ;)
-	for(k=0; k<MAX_COLOUR_MAPS && model->colourmap[k]; k++);
-	if(k>=MAX_COLOUR_MAPS) return -1;
+	__realloc(model->colourmap, model->maps_loaded);
+	k = model->maps_loaded++;
 
 	if((map = malloc(MAX_PAL_SIZE/4)) == NULL)
 	{
@@ -2862,7 +2862,6 @@ int load_colourmap(s_model * model, char *image1, char *image2)
 	freebitmap(bitmap2);
 
 	model->colourmap[k] = map;
-	model->maps_loaded = k + 1;
 	return 1;
 }
 
@@ -3815,7 +3814,7 @@ void alloc_frames(s_anim * anim, int fcount)
 void free_frames(s_anim * anim)
 {
 	int i;
-	if(anim->idle)			{free(anim->idle);			 anim->idle = NULL;}
+	if(anim->idle)			{free(anim->idle);			anim->idle = NULL;}
 	if(anim->seta)          {free(anim->seta);          anim->seta = NULL;}
 	if(anim->move)          {free(anim->move);          anim->move = NULL;}
 	if(anim->movez)         {free(anim->movez);         anim->movez = NULL;}
@@ -3964,7 +3963,8 @@ int free_model(s_model* model)
 	printf(".");
 
 	if(hasFreetype(model, MF_COLOURMAP))
-		for(i=0; i<MAX_COLOUR_MAPS; i++)
+	{
+		for(i=0; i<model->maps_loaded; i++)
 		{
 			if(model->colourmap[i] != NULL)
 			{
@@ -3972,6 +3972,10 @@ int free_model(s_model* model)
 				model->colourmap[i] = NULL;
 			}
 		}
+		if(model->colourmap) free(model->colourmap);
+		model->colourmap = NULL;
+		model->maps_loaded = 0;
+	}
 
 	printf(".");
 
@@ -4944,7 +4948,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	s_drawmethod drawmethod;
 
-	unsigned char mapflag[MAX_COLOUR_MAPS]; // in 24bit mode, we need to know whether a colourmap is a common map or a palette
+	unsigned char* mapflag = NULL; // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
 	static const char* pre_text =  // this is the skeleton of frame function
 		"void main()\n"
@@ -5023,7 +5027,6 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	attack = emptyattack;      // empty attack
 	drawmethod = plainmethod;  // better than memset it to 0
-	memset(mapflag, 0, MAX_COLOUR_MAPS);
 
 
 	//char* test = "load   knife 0";
@@ -5741,6 +5744,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						// This command should not be used under 24bit mode, but for old mods, just give it a default palette
 						value = GET_ARG(1);
 						value2 = GET_ARG(2);
+						__realloc(mapflag, newchar->maps_loaded);
 						errorVal = load_colourmap(newchar, value, value2);
 						if(pixelformat==PIXEL_x8 && newchar->palette==NULL)
 						{
@@ -5757,7 +5761,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 									shutdownmessage = "Failed to create colourmap. Image Used Twice!";
 									goto lCleanup;
 									break;
-								case -1:
+								case -1: //should not happen now
 									shutdownmessage = "Failed to create colourmap. MAX_COLOUR_MAPS full!";
 									goto lCleanup;
 									break;
@@ -5797,10 +5801,12 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_ALTERNATEPAL:
 					// remap for the entity under 24bit mode, this method can replace remap command
 					if(pixelformat!=PIXEL_x8) printf("Warning: command '%s' is not available under 8bit mode\n", command);
-					else if(newchar->maps_loaded<MAX_COLOUR_MAPS) {
+					else {
+						__realloc(mapflag, newchar->maps_loaded);
+						__realloc(newchar->colourmap, newchar->maps_loaded);
 						value = GET_ARG(1);
-						newchar->colourmap[(int)newchar->maps_loaded] = malloc(PAL_BYTES);
-						if(loadimagepalette(value, packfile, newchar->colourmap[(int)newchar->maps_loaded])==0) {
+						newchar->colourmap[newchar->maps_loaded] = malloc(PAL_BYTES);
+						if(loadimagepalette(value, packfile, newchar->colourmap[newchar->maps_loaded])==0) {
 							shutdownmessage = "Failed to load palette!";
 							goto lCleanup;
 						}
@@ -7567,6 +7573,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		free(scriptbuf);
 		scriptbuf = NULL;
 	}
+	if(mapflag){
+		free(mapflag);
+		mapflag = NULL;
+	}
 
 	if(!shutdownmessage)
 		return newchar;
@@ -8727,7 +8737,7 @@ void free_level(s_level* lv)
 	s_spawn_script_cache_node* tempnode2;
 	if(!lv) return;
 	//offload blending tables
-	for(i=0; i<LEVEL_MAX_PALETTES; i++)
+	for(i=0; i<lv->numpalettes; i++)
 	{
 		for(j=0; j<MAX_BLENDINGS; j++)
 		{
@@ -8745,21 +8755,12 @@ void free_level(s_level* lv)
 		}
 	}
 	//offload textobjs
-	for(i=0; i<LEVEL_MAX_TEXTOBJS; i++)
+	for(i=0; i<lv->numtextobjs; i++)
 	{
 		if(lv->textobjs[i].text)
 		{
 			free(lv->textobjs[i].text);
 			lv->textobjs[i].text = NULL;
-		}
-	}
-
-	for(i=0; i<LEVEL_MAX_FILESTREAMS; i++)
-	{
-		if(filestreams[i].buf)
-		{
-			free(filestreams[i].buf);
-			filestreams[i].buf = NULL;
 		}
 	}
 
@@ -8770,7 +8771,7 @@ void free_level(s_level* lv)
 	Script_Clear(&(lv->level_script), 2);
 	Script_Clear(&(lv->endlevel_script), 2);
 
-	for(i=0; i<LEVEL_MAX_SPAWNS; i++)
+	for(i=0; i<lv->numspawns; i++)
 	{
 		if(lv->spawnpoints[i].spawn_script_list_head)
 		{
@@ -8801,6 +8802,22 @@ void free_level(s_level* lv)
 		free(tempnode);
 		tempnode = tempnode2;
 	}
+
+	if(lv->spawnpoints) free(lv->spawnpoints);
+	if(lv->layers) free(lv->layers);
+	if(lv->layersref) free(lv->layersref);
+	if(lv->panels) free(lv->panels);
+	if(lv->frontpanels) free(lv->frontpanels);
+	if(lv->bglayers) free(lv->bglayers);
+	if(lv->fglayers) free(lv->fglayers);
+	if(lv->genericlayers) free(lv->genericlayers);
+	if(lv->waters) free(lv->waters);
+	if(lv->textobjs) free(lv->textobjs);
+	if(lv->holes) free(lv->holes);
+	if(lv->walls) free(lv->walls);
+	if(lv->palettes) free(lv->palettes);
+	if(lv->blendings) free(lv->blendings);
+	if(lv->textobjs) free(lv->textobjs);
 
 	free(lv);
 	lv = NULL;
@@ -8971,8 +8988,8 @@ void load_level(char *filename){
 	Script* tempscript = NULL;
 	s_drawmethod* dm;
 	s_layer* bgl;
-	s_layer* panels[LEVEL_MAX_PANELS][3];
-	int order[LEVEL_MAX_PANELS];
+	int (*panels)[3] = NULL;
+	int *order = NULL;
 	int panelcount = 0;
 
 	unload_level();
@@ -9046,8 +9063,6 @@ void load_level(char *filename){
 	nofadeout = 0;
 	noscreenshot = 0;
 	panel_width = panel_height = frontpanels_loaded = 0;
-	memset(panels, 0, sizeof(s_layer*)*LEVEL_MAX_PANELS*3);
-	memset(order, 0, sizeof(int)*LEVEL_MAX_PANELS);
 
 	//reset_playable_list(1);
 
@@ -9119,11 +9134,7 @@ void load_level(char *filename){
 			case CMD_LEVEL_BGLAYER:
 			case CMD_LEVEL_LAYER:
 			case CMD_LEVEL_FGLAYER:
-				if(level->numlayers >= LEVEL_MAX_LAYERS) {
-					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
-					goto lCleanup;
-				}
-
+				__realloc(level->layers, level->numlayers);
 				bgl = &(level->layers[level->numlayers]);
 
 				if(cmd==CMD_LEVEL_BACKGROUND || cmd==CMD_LEVEL_BGLAYER){
@@ -9188,11 +9199,7 @@ void load_level(char *filename){
 				level->numlayers++;
 				break;
 			case CMD_LEVEL_WATER:
-				if(level->numlayers >= LEVEL_MAX_LAYERS) {
-					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
-					goto lCleanup;
-				}
-
+				__realloc(level->layers, level->numlayers);
 				bgl = &(level->layers[level->numlayers]);
 				dm = &(bgl->drawmethod);
 				*dm = plainmethod;
@@ -9334,12 +9341,12 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_FRONTPANEL:
 			case CMD_LEVEL_PANEL:
-				if(level->numlayers >= LEVEL_MAX_LAYERS) {
-					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
-					goto lCleanup;
+				if(level->numlayers==0) {
+					__realloc(level->layers,level->numlayers);
+					level->numlayers = 1; // reserve for background
 				}
-				if(level->numlayers==0) level->numlayers = 1; // reserve for background
-
+				
+				__realloc(level->layers,level->numlayers);
 				bgl = &(level->layers[level->numlayers]);
 				dm = &(bgl->drawmethod);
 				*dm = plainmethod;
@@ -9347,9 +9354,9 @@ void load_level(char *filename){
 				bgl->oldtype = (cmd==CMD_LEVEL_FRONTPANEL?bgt_frontpanel:bgt_panel);
 
 				if(bgl->oldtype==bgt_panel) {
-					panelcount++;
-					bgl->order = panelcount;
-					panels[panelcount-1][0] = bgl;
+					bgl->order = panelcount+1;
+					__realloc(panels, panelcount);
+					panels[panelcount++][0] = level->numlayers;
 					bgl->z = PANEL_Z;
 					bgl->xratio = 0; // x ratio
 					bgl->zratio = 0; // z ratio
@@ -9374,14 +9381,10 @@ void load_level(char *filename){
 
 				if(stricmp(GET_ARG(2), "none")!=0 && GET_ARG(2)[0])
 				{
-
-				if(level->numlayers >= LEVEL_MAX_LAYERS) {
-					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
-					goto lCleanup;
-				}
-				level->layers[level->numlayers] = *bgl;
+				__realloc(level->layers,level->numlayers);
 				bgl = &(level->layers[level->numlayers]);
-				panels[panelcount-1][1] = bgl;
+				*bgl = *(bgl-1);
+				panels[panelcount-1][1] = level->numlayers;
 
 				bgl->z = NEONPANEL_Z;
 				bgl->neon = 1;
@@ -9392,14 +9395,10 @@ void load_level(char *filename){
 
 				if(stricmp(GET_ARG(3), "none")!=0 && GET_ARG(3)[0])
 				{
-
-				if(level->numlayers >= LEVEL_MAX_LAYERS) {
-					errormessage = "Too many layers in level (check LEVEL_MAX_LAYERS)!";
-					goto lCleanup;
-				}
-				level->layers[level->numlayers] = *bgl;
+				__realloc(level->layers,level->numlayers);
 				bgl = &(level->layers[level->numlayers]);
-				panels[panelcount-1][2] = bgl;
+				*bgl = *(bgl-1);
+				panels[panelcount-1][2] = level->numlayers;
 				dm = &(bgl->drawmethod);
 
 				bgl->z = SCREENPANEL_Z;
@@ -9417,7 +9416,7 @@ void load_level(char *filename){
 				// Append to order
 				value = GET_ARG(1);
 				i = 0;
-				while(value[i] && level->numpanels < LEVEL_MAX_PANELS){
+				while(value[i] ){
 					j = value[i];
 					// WTF ?
 					if(j>='A' && j<='Z') j-='A';
@@ -9426,7 +9425,8 @@ void load_level(char *filename){
 						errormessage = "Illegal character in panel order!";
 						goto lCleanup;
 					}
-
+					__realloc(order, level->numpanels);
+					__realloc(level->panels, level->numpanels);
 					order[level->numpanels] = j;
 					level->numpanels++;
 					i++;
@@ -9440,10 +9440,7 @@ void load_level(char *filename){
 					else holesprite = loadsprite("data/sprites/hole",0,0,pixelformat);    // ltb 1-18-05  no new sprite load the default
 				}
 
-				if(level->numholes >= LEVEL_MAX_HOLES) {
-					errormessage = "Too many holes in level (check LEVEL_MAX_HOLES)!";
-					goto lCleanup;
-				}
+				__realloc(level->holes, level->numholes);
 				level->holes[level->numholes][0] = GET_FLOAT_ARG(1);
 				level->holes[level->numholes][1] = GET_FLOAT_ARG(2);
 				level->holes[level->numholes][2] = GET_FLOAT_ARG(3);
@@ -9461,10 +9458,7 @@ void load_level(char *filename){
 				level->numholes++;
 				break;
 			case CMD_LEVEL_WALL:
-				if(level->numwalls >= LEVEL_MAX_WALLS) {
-					errormessage = "Too many walls in level (check LEVEL_MAX_WALLS)!";
-					goto lCleanup;
-				}
+				__realloc(level->walls, level->numwalls);
 				level->walls[level->numwalls][0] = GET_FLOAT_ARG(1);
 				level->walls[level->numwalls][1] = GET_FLOAT_ARG(2);
 				level->walls[level->numwalls][2] = GET_FLOAT_ARG(3);
@@ -9476,12 +9470,10 @@ void load_level(char *filename){
 				level->numwalls++;
 				break;
 			case CMD_LEVEL_PALETTE:
-				if(level->numpalettes >= LEVEL_MAX_PALETTES) {
-					errormessage = "Too many palettes in level (check LEVEL_MAX_PALETTES)!";
-					goto lCleanup;
-				}
+				__realloc(level->palettes, level->numpalettes);
+				__realloc(level->blendings, level->numpalettes);
 				for(i=0; i<MAX_BLENDINGS; i++)
-				usemap[i] = GET_INT_ARG(i+2);
+					usemap[i] = GET_INT_ARG(i+2);
 				if(!load_palette(level->palettes[level->numpalettes], GET_ARG(1)) ||
 				!create_blending_tables(level->palettes[level->numpalettes], level->blendings[level->numpalettes], usemap))
 				{
@@ -9743,11 +9735,7 @@ void load_level(char *filename){
 				// Place entry on queue
 				next.at = GET_INT_ARG(1);
 
-				if(level->numspawns >= LEVEL_MAX_SPAWNS) {
-					errormessage = "too many spawn entries (see LEVEL_MAX_SPAWNS)";
-					goto lCleanup;
-				}
-
+				__realloc(level->spawnpoints, level->numspawns);
 				memcpy(&level->spawnpoints[level->numspawns], &next, sizeof(s_spawn_entry));
 				level->numspawns++;
 
@@ -9821,8 +9809,9 @@ void load_level(char *filename){
 
 		if(level->background)
 		{
+			__realloc(level->layersref,level->numlayersref);
 			level->layersref[level->numlayersref] = *(level->background);
-			level->background = &(level->layersref[level->numlayersref++]);
+			level->background = (s_layer*)level->numlayersref++;
 		}
 
 
@@ -9830,45 +9819,68 @@ void load_level(char *filename){
 		for(i=0; i<level->numlayers; i++){
 			bgl = &(level->layers[i]);
 			if(bgl->oldtype != bgt_panel && bgl->oldtype != bgt_background){
+				__realloc(level->layersref,level->numlayersref);
 				level->layersref[level->numlayersref] = *bgl;
 				bgl = &(level->layersref[level->numlayersref]);
-				level->numlayersref++;
 				switch(bgl->oldtype){
 				case bgt_bglayer:
-					level->bglayers[level->numbglayers++] = bgl;
+					__realloc(level->bglayers,level->numbglayers);
+					level->bglayers[level->numbglayers++] = (s_layer*)level->numlayersref;
 					break;
 				case bgt_fglayer:
-					level->fglayers[level->numfglayers++] = bgl;
+					__realloc(level->fglayers,level->numfglayers);
+					level->fglayers[level->numfglayers++] = (s_layer*)level->numlayersref;
 					break;
 				case bgt_water:
-					level->waters[level->numwaters++] = bgl;
+					__realloc(level->waters,level->numwaters);
+					level->waters[level->numwaters++] = (s_layer*)level->numlayersref;
 					break;
 				case bgt_generic:
-					level->genericlayers[level->numgenericlayers++] = bgl;
+					__realloc(level->genericlayers,level->numgenericlayers);
+					level->genericlayers[level->numgenericlayers++] = (s_layer*)level->numlayersref;
 					break;
 				case bgt_frontpanel:
 					bgl->xoffset = level->numfrontpanels*bgl->width;
 					bgl->xspacing = (frontpanels_loaded-1)*bgl->width;
-					level->bglayers[level->numfrontpanels++] = bgl;
+					__realloc(level->frontpanels,level->numfrontpanels);
+					level->frontpanels[level->numfrontpanels++] = (s_layer*)level->numlayersref;
 					break;
 				default:
 					break;
 				}
+				level->numlayersref++;
 			}
 		}
 
 		//panels, normal neon screen
 		for(i=0; i<level->numpanels; i++){
 			for(j=0; j<3; j++){
-				if((bgl=panels[order[i]][j])){
-					level->layersref[level->numlayersref] = *bgl;
+				if(panels[order[i]][j]){
+					__realloc(level->layersref,level->numlayersref);
+					level->layersref[level->numlayersref] = level->layers[panels[order[i]][j]];
 					bgl = &(level->layersref[level->numlayersref]);
-					level->numlayersref++;
 					bgl->xoffset = panel_width*i;
-					level->panels[i][j] = bgl;
+					level->panels[i][j] = (s_layer*)level->numlayersref;
+					level->numlayersref++;
 				}
 			}
 		}
+
+		//fix realloc junk pointers
+		bgl = level->layersref;
+		level->background = bgl + (size_t)level->background;
+		for(i=0; i<level->numpanels; i++)
+			for(j=0; j<3; j++) level->panels[i][j] = bgl + (size_t)level->panels[i][j];
+		for(i=0; i<level->numfrontpanels; i++)
+			level->frontpanels[i] = bgl + (size_t)level->frontpanels[i];
+		for(i=0; i<level->numbglayers; i++)
+			level->bglayers[i] = bgl + (size_t)level->bglayers[i];
+		for(i=0; i<level->numfglayers; i++)
+			level->fglayers[i] = bgl + (size_t)level->fglayers[i];
+		for(i=0; i<level->numgenericlayers; i++)
+			level->genericlayers[i] = bgl + (size_t)level->genericlayers[i];
+		for(i=0; i<level->numwaters; i++)
+			level->waters[i] = bgl + (size_t)level->waters[i];
 
 	}
 
@@ -9891,6 +9903,9 @@ void load_level(char *filename){
 	printf("Total sprites mapped: %d\n\n", sprites_loaded);
 
 	lCleanup:
+
+	if (panels) free(panels);
+	if (order) free(order);
 
 	if(buf != NULL)
 		free(buf);
@@ -11171,7 +11186,7 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 // 0 = none, 1+ = alternative
 void ent_set_colourmap(entity *ent, unsigned int which)
 {
-	if(which>MAX_COLOUR_MAPS) which = 0;
+	if(which>ent->modeldata.maps_loaded) which = 0;
 	if(which==0)
 		ent->colourmap = ent->modeldata.palette;
 	else
@@ -11250,6 +11265,7 @@ void ent_set_model(entity * ent, char * modelname, int syncAnim)
 	if(syncAnim && m->animation[ent->animnum])
 	{
 		ent->animation = m->animation[ent->animnum];
+		update_frame(ent, ent->animpos);
 	}
 	else
 	{
@@ -11652,7 +11668,7 @@ int checkholes(float x, float z)
 	int i, c;
 
 	for(i=0, c=0; i<level->numholes; i++)
-		c += (level->holesfound[i] =  testhole(i, x, z));
+		c += testhole(i, x, z);
 
 	return c;
 }
@@ -11705,7 +11721,7 @@ int checkwalls(float x, float z, float a1, float a2)
 	int i, c;
 
 	for(i=0, c=0; i<level->numwalls; i++)
-		c += (level->wallsfound[i] =  (testwall(i, x, z) && level->walls[i][7] >= a1 && level->walls[i][7] <= a2));
+		c += (testwall(i, x, z) && level->walls[i][7] >= a1 && level->walls[i][7] <= a2);
 
 	return c;
 }
@@ -20737,7 +20753,7 @@ void draw_textobjs()
 	int i;
 	s_textobj* textobj;
 	if(!level) return;
-	for(i = 0;i < LEVEL_MAX_TEXTOBJS;i++)
+	for(i = 0;i < level->numtextobjs ;i++)
 	{
 		 textobj = level->textobjs + i;
 
