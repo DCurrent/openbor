@@ -68,21 +68,21 @@
 #define     GAME_SPEED          200
 #define		THINK_SPEED			2
 #define		COUNTER_SPEED		(GAME_SPEED*2)
-#define		MAX_ENTS			150
-#define		MAX_PANELS			52
-#define		MAX_WEAPONS			10
-#define		MAX_COLOUR_MAPS		30
 #define		MAX_NAME_LEN		40
-#define		LEVEL_MAX_SPAWNS	600
-#define		LEVEL_MAX_PANELS	100
-#define		LEVEL_MAX_HOLES		40
-#define		LEVEL_MAX_WALLS		40
-#define     LEVEL_MAX_LAYERS  100
-#define     LEVEL_MAX_TEXTOBJS  50
-#define     LEVEL_MAX_FILESTREAMS 50
-#define     LEVEL_MAX_PALETTES  40                  // altered palettes
-#define		MAX_LEVELS			100
-#define		MAX_DIFFICULTIES	10
+#define		MAX_ENTS			150
+#define		MAX_PANELS			52 //removed
+#define		MAX_WEAPONS			10 //removed
+#define		MAX_COLOUR_MAPS		30 //removed
+#define		LEVEL_MAX_SPAWNS	600 // removed
+#define		LEVEL_MAX_PANELS	100 // removed
+#define		LEVEL_MAX_HOLES		40 // removed
+#define		LEVEL_MAX_WALLS		40 // removed
+#define     LEVEL_MAX_LAYERS  100 // removed
+#define     LEVEL_MAX_TEXTOBJS  50 // removed
+#define     LEVEL_MAX_FILESTREAMS 50 //removed
+#define     LEVEL_MAX_PALETTES  40  // removed                // altered palettes
+#define		MAX_LEVELS			100 //removed
+#define		MAX_DIFFICULTIES	10 //removed
 #define		MAX_SPECIALS		8					// Added for customizable freespecials
 #define     MAX_SPECIAL_INPUTS  27                  // max freespecial input steps, MAX_SPECIAL_INPUTS-1 is reserved, MAX_SPECIAL_INPUTS-2 is animation index, MAX_SPECIAL_INPUTS-3 is reserved. OX -4 , -5 , -6 , -7 , -8 , -9 , -10 also for cancels
 #define		MAX_ATCHAIN			12					// Maximum attack chain length
@@ -454,6 +454,14 @@
 #define _menutextm(f, l, shift, s, args...) font_printf(_strmidx(f,s, ##args)+(int)((shift)*(fontmonowidth((f))+1)), _liney(f,l), (f), 0, s, ##args)
 #define _menutext(f, c, l, s, args...) font_printf(_colx(f,c), _liney(f,l), (f), 0, s, ##args)
 #endif
+
+#define __realloc(p, n) \
+p = realloc((p), sizeof(*(p))*((n)+1));\
+memset((p)+(n), 0, sizeof(*(p)));
+
+#define __reallocto(p, n, s) \
+p = realloc((p), sizeof(*(p))*(s));\
+memset((p)+(n), 0, sizeof(*(p))*((s)-(n)));\
 
 /*
 #define     ICO_NORMAL           0
@@ -1096,7 +1104,7 @@ typedef struct
 	float           grabwalkspeed;
 	int			throwdamage:16;					// 1-14-05  adjust throw damage
 	unsigned char*  palette;                        // original palette for 32/16bit mode
-	unsigned char*	colourmap[MAX_COLOUR_MAPS];
+	unsigned char**	colourmap;
 	int			maps_loaded:8;					// Used for player colourmap selecting
 	int			unload:8; 						// Unload model after level completed?
 	int			falldie:8; 						// Play die animation?
@@ -1538,38 +1546,36 @@ typedef struct
 {
 	char* name;
 	int numspawns;
-	s_spawn_entry spawnpoints[LEVEL_MAX_SPAWNS];
+	s_spawn_entry* spawnpoints;
 	int numlayers;
-	s_layer layers[LEVEL_MAX_LAYERS];
+	s_layer *layers;
 	int numlayersref;
-	s_layer layersref[LEVEL_MAX_LAYERS];
+	s_layer *layersref;
 	////////////////these below are layer reference
 	////////////////use them to ease layer finding for script users
 	s_layer* background; // the bglayer that contains the default background
 	int numpanels;
-	s_layer* panels[LEVEL_MAX_PANELS][3]; //normal neon screen
+	s_layer* (*panels)[3]; //normal neon screen
 	int numfrontpanels;
-	s_layer* frontpanels[LEVEL_MAX_PANELS];
+	s_layer** frontpanels;
 	int numbglayers;
-	s_layer* bglayers[LEVEL_MAX_LAYERS];
+	s_layer** bglayers;
 	int numfglayers;
-	s_layer* fglayers[LEVEL_MAX_LAYERS];
+	s_layer** fglayers;
 	int numgenericlayers;
-	s_layer* genericlayers[LEVEL_MAX_LAYERS];
-	int numwaters; // LOL what
-	s_layer* waters[LEVEL_MAX_LAYERS];
+	s_layer** genericlayers;
+	int numwaters;
+	s_layer** waters;
 	////////////////layer reference ends here
 	///////////////////////////////////////////////////////////////
-	s_textobj textobjs[LEVEL_MAX_TEXTOBJS];
-	int numfilestreams;
+	int numtextobjs;
+	s_textobj* textobjs;
 	int cameraxoffset;
 	int camerazoffset;
 	int numholes;
 	int numwalls;						// Stores number of walls loaded
-	float holes[LEVEL_MAX_HOLES][7];
-	int holesfound[LEVEL_MAX_HOLES];
-	float walls[LEVEL_MAX_WALLS][8];		// Now you can have walls for different walkable areas
-	int wallsfound[LEVEL_MAX_WALLS];
+	float (*holes)[7];
+	float (*walls)[8];		// Now you can have walls for different walkable areas
 	int exit_blocked;
 	int exit_hole;
 	int scrolldir;
@@ -1583,8 +1589,8 @@ typedef struct
 	char bossmusic[256];
 	unsigned int bossmusic_offset;
 	int numpalettes;
-	unsigned char palettes[LEVEL_MAX_PALETTES][1024];//dynamic palettes
-	unsigned char* blendings[LEVEL_MAX_PALETTES][MAX_BLENDINGS];//blending tables
+	unsigned char (*palettes)[1024];//dynamic palettes
+	unsigned char* (*blendings)[MAX_BLENDINGS];//blending tables
 	int settime;						// Set time limit per level
 	int notime;							// Used to specify if the time is displayed 1 = no, else yes
 	int noreset;						// If set, clock will not reset when players spawn/die

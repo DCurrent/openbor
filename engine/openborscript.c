@@ -66,7 +66,8 @@ extern int			  SAMPLE_BIKE;
 extern int            current_palette;
 extern s_player       player[4];
 extern s_level        *level;
-extern s_filestream   filestreams[LEVEL_MAX_FILESTREAMS];
+extern s_filestream*  filestreams;
+extern int			  numfilestreams;
 extern entity         *self;
 extern int            *animspecials;
 extern int            *animattacks;
@@ -198,6 +199,17 @@ void Script_Global_Clear()
 	indexed_var_list = NULL;
 	max_global_var_index = -1;
 	memset(&spawnentry, 0, sizeof(s_spawn_entry));//clear up the spawn entry
+	for(i=0; i<numfilestreams; i++)
+	{
+		if(filestreams[i].buf)
+		{
+			free(filestreams[i].buf);
+			filestreams[i].buf = NULL;
+		}
+	}
+	if(filestreams) free(filestreams);
+	filestreams = NULL;
+	numfilestreams = 0;
 	StrCache_Clear();
 	ImportCache_Clear();
 }
@@ -6041,7 +6053,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _ep_colourmap:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			self->colourmap = self->modeldata.colourmap[ltemp-1];
+		{
+			ent_set_colourmap(self, ltemp);
+		}
 		break;
 	}
 	case _ep_damage_on_landing:
@@ -7509,17 +7523,16 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 		}
 	}
 
-	for(fsindex=0; fsindex<LEVEL_MAX_FILESTREAMS; fsindex++){
+	for(fsindex=0; fsindex<numfilestreams; fsindex++){
 		if(filestreams[fsindex].buf==NULL){
 			break;
 		}
 	}
 
-	if(fsindex == LEVEL_MAX_FILESTREAMS)
+	if(fsindex == numfilestreams)
 	{
-		printf("Maximum file streams exceeded.\n");
-		*pretvar = NULL;
-		return E_FAIL;
+		__realloc(filestreams, numfilestreams); //warning, don't ++ here, its a macro
+		numfilestreams++;
 	}
 
 	// Load file from saves directory if specified
@@ -7806,17 +7819,16 @@ HRESULT openbor_createfilestream(ScriptVariant** varlist , ScriptVariant** pretv
 	int fsindex;
 	ScriptVariant_Clear(*pretvar);
 
-	for(fsindex=0; fsindex<LEVEL_MAX_FILESTREAMS; fsindex++){
+	for(fsindex=0; fsindex<numfilestreams; fsindex++){
 		if(filestreams[fsindex].buf==NULL){
 			break;
 		}
 	}
 
-	if(fsindex == LEVEL_MAX_FILESTREAMS)
+	if(fsindex == numfilestreams)
 	{
-		printf("Maximum file streams exceeded.\n");
-		*pretvar = NULL;
-		return E_FAIL;
+		__realloc(filestreams, numfilestreams); //warning, don't ++ here, its a macro
+		numfilestreams++;
 	}
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -9426,7 +9438,7 @@ HRESULT openbor_gettextobjproperty(ScriptVariant** varlist , ScriptVariant** pre
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 	mapstrings_gettextobjproperty(varlist, paramCount);
 
-	if(ind<0 || ind >= LEVEL_MAX_TEXTOBJS)
+	if(ind<0 || ind >= level->numtextobjs)
 	{
 		(*pretvar)->lVal = 0;
 		return S_OK;
@@ -9542,10 +9554,15 @@ HRESULT openbor_changetextobjproperty(ScriptVariant** varlist , ScriptVariant** 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 	mapstrings_changetextobjproperty(varlist, paramCount);
 
-	if(ind<0 || ind >= LEVEL_MAX_TEXTOBJS)
+	if(ind<0)
 	{
 		(*pretvar)->lVal = 0;
 		return S_OK;
+	}
+	else if (ind >= level->numtextobjs)
+	{
+		__reallocto(level->textobjs, level->numtextobjs, ind+1);
+		level->numtextobjs = ind+1;
 	}
 
 	if(varlist[1]->vt != VT_INTEGER)
@@ -9650,10 +9667,14 @@ HRESULT openbor_settextobj(ScriptVariant** varlist , ScriptVariant** pretvar, in
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
-	if(ind<0 || ind >= LEVEL_MAX_TEXTOBJS)
+	if(ind<0)
 	{
 		(*pretvar)->lVal = 0;
 		return S_OK;
+	}
+	else if(ind>=level->numtextobjs) {
+		__reallocto(level->textobjs, level->numtextobjs, ind+1);
+		level->numtextobjs = ind+1;
 	}
 
 	if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)))
@@ -9725,7 +9746,7 @@ HRESULT openbor_cleartextobj(ScriptVariant** varlist , ScriptVariant** pretvar, 
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
-	if(ind<0 || ind >= LEVEL_MAX_TEXTOBJS)
+	if(ind<0 || ind >= level->numtextobjs)
 	{
 		(*pretvar)->lVal = 0;
 		return S_OK;
@@ -10207,11 +10228,13 @@ enum levelproperty_enum
 	_lp_cameraxoffset,
 	_lp_camerazoffset,
 	_lp_gravity,
+	_lp_hole,
 	_lp_maxfallspeed,
 	_lp_maxtossspeed,
 	_lp_quake,
 	_lp_rocking,
 	_lp_scrollspeed,
+	_lp_wall,
 	_lp_the_end,
 };
 
@@ -10226,11 +10249,13 @@ void mapstrings_levelproperty(ScriptVariant** varlist, int paramCount)
 		"cameraxoffset",
 		"camerazoffset",
 		"gravity",
+		"hole",
 		"maxfallspeed",
 		"maxtossspeed",
 		"quake",
 		"rocking",
 		"scrollspeed",
+		"wall",
 	};
 
 
@@ -10241,6 +10266,7 @@ void mapstrings_levelproperty(ScriptVariant** varlist, int paramCount)
 
 HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
+	LONG ltemp, ltemp2;
 	mapstrings_drawmethodproperty(varlist, paramCount);
 
 	switch(varlist[0]->lVal)
@@ -10293,6 +10319,28 @@ HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 		(*pretvar)->dblVal = (DOUBLE)level->scrollspeed;
 		break;
 	}
+	case _lp_hole:
+	{
+		if(paramCount>2 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp))
+			&& SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))
+			&& ltemp>=0 && ltemp<level->numholes && ltemp2>=0 && ltemp2<7)
+		{
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = level->holes[ltemp][ltemp2];
+		}
+		else goto getlevelproperty_error;
+	}
+	case _lp_wall:
+	{
+		if(paramCount>2 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp))
+			&& SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))
+			&& ltemp>=0 && ltemp<level->numwalls && ltemp2>=0 && ltemp2<8)
+		{
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = level->walls[ltemp][ltemp2];
+		}
+		else goto getlevelproperty_error;
+	}
 	default:
 		printf("Property is not supported by function getlevelproperty yet.\n");
 		goto getlevelproperty_error;
@@ -10309,7 +10357,7 @@ getlevelproperty_error:
 //changelevelproperty(name, value)
 HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG ltemp;
+	LONG ltemp, ltemp2;
 	DOUBLE dbltemp;
 	ScriptVariant* arg = NULL;
 
@@ -10370,6 +10418,36 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 			level->quake = (int)ltemp;
 		else (*pretvar)->lVal = (LONG)0;
 		break;
+	case _lp_hole:
+	{
+		if(paramCount>3 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp))
+			&& SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))
+			&& SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp))
+			&& ltemp>=0 && ltemp2>=0 && ltemp2<7)
+		{
+			if(ltemp>=level->numholes) {
+				__reallocto(level->holes, level->numholes, ltemp+1);
+				level->numholes = ltemp+1;
+			}
+			level->holes[ltemp][ltemp2] = (float)dbltemp;
+		}
+		else (*pretvar)->lVal = (LONG)0;
+	}
+	case _lp_wall:
+	{
+		if(paramCount>2 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp))
+			&& SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))
+			&& SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp))
+			&& ltemp>=0 && ltemp2>=0 && ltemp2<8)
+		{
+			if(ltemp>=level->numwalls) {
+				__reallocto(level->walls, level->numwalls, ltemp+1);
+				level->numwalls = ltemp+1;
+			}
+			level->walls[ltemp][ltemp2] = (float)dbltemp;
+		}
+		else (*pretvar)->lVal = (LONG)0;
+	}
 	default:
 		printf("The level property is read-only.\n");
 		*pretvar = NULL;
