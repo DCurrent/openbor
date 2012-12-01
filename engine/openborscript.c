@@ -10359,6 +10359,7 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 {
 	LONG ltemp, ltemp2;
 	DOUBLE dbltemp;
+	int i;
 	ScriptVariant* arg = NULL;
 
 	if(paramCount < 2)
@@ -10420,33 +10421,69 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 		break;
 	case _lp_hole:
 	{
-		if(paramCount>3 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp))
-			&& SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))
-			&& SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp))
-			&& ltemp>=0 && ltemp2>=0 && ltemp2<7)
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp>=0)
 		{
 			if(ltemp>=level->numholes) {
 				__reallocto(level->holes, level->numholes, ltemp+1);
 				level->numholes = ltemp+1;
 			}
-			level->holes[ltemp][ltemp2] = (float)dbltemp;
+			if (paramCount==4 )
+			{
+				if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))	&& ltemp2>=0 && ltemp2<7
+					&& SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)) )
+					level->holes[ltemp][ltemp2] = (float)dbltemp;
+				else (*pretvar)->lVal = (LONG)0;
+			}
+			else if (paramCount==9)
+			{
+				for (i=0; i<7; i++)
+				{
+					if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp))) {
+						level->holes[ltemp][i] = (float)dbltemp;
+					} else {
+						(*pretvar)->lVal = (LONG)0;
+						break;
+					}
+				}
+			}
+			else (*pretvar)->lVal = (LONG)0;
+			
 		}
 		else (*pretvar)->lVal = (LONG)0;
+		break;
 	}
 	case _lp_wall:
 	{
-		if(paramCount>2 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp))
-			&& SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))
-			&& SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp))
-			&& ltemp>=0 && ltemp2>=0 && ltemp2<8)
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp>=0)
 		{
 			if(ltemp>=level->numwalls) {
 				__reallocto(level->walls, level->numwalls, ltemp+1);
 				level->numwalls = ltemp+1;
 			}
-			level->walls[ltemp][ltemp2] = (float)dbltemp;
+			if (paramCount==4 )
+			{
+				if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))	&& ltemp2>=0 && ltemp2<8
+					&& SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)) )
+					level->walls[ltemp][ltemp2] = (float)dbltemp;
+				else (*pretvar)->lVal = (LONG)0;
+			}
+			else if (paramCount==10)
+			{
+				for (i=0; i<8; i++)
+				{
+					if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp))) {
+						level->walls[ltemp][i] = (float)dbltemp;
+					} else {
+						(*pretvar)->lVal = (LONG)0;
+						break;
+					}
+				}
+			}
+			else (*pretvar)->lVal = (LONG)0;
+			
 		}
 		else (*pretvar)->lVal = (LONG)0;
+		break;
 	}
 	default:
 		printf("The level property is read-only.\n");
