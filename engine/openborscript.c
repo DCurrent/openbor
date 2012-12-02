@@ -4004,7 +4004,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	case _ep_colourtable:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_PTR);
-		(*pretvar)->ptrVal = (VOID*)(ent->modeldata.colourmap[varlist[2]->lVal]);
+		(*pretvar)->ptrVal = (VOID*)model_get_colourmap(&(ent->modeldata), varlist[2]->lVal+1);
 		break;
 	}
 	case _ep_damage_on_landing:

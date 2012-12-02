@@ -10386,7 +10386,7 @@ void predrawstatus(){
 
 			if(icon>=0)
 			{
-				drawmethod.table = player[i].colourmap?model->colourmap[player[i].colourmap - 1]:model->palette;
+				drawmethod.table = model_get_colourmap(model, player[i].colourmap);
 				spriteq_add_sprite(videomodes.shiftpos[i]+picon[i][0],picon[i][1], 10000, icon, &drawmethod, 0);
 			}
 		}
@@ -11181,13 +11181,19 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 	}
 }
 
-
+unsigned char* model_get_colourmap(s_model* model, unsigned which)
+{
+	if(which<=0 || which>model->maps_loaded)
+		return model->palette;
+	else
+		return model->colourmap[which-1];
+}
 
 // 0 = none, 1+ = alternative
 void ent_set_colourmap(entity *ent, unsigned int which)
 {
 	if(which>ent->modeldata.maps_loaded) which = 0;
-	if(which==0)
+	if(which<=0)
 		ent->colourmap = ent->modeldata.palette;
 	else
 		ent->colourmap = ent->modeldata.colourmap[which-1];
@@ -13326,7 +13332,7 @@ void display_ents()
 
 						if(drawmethod->remap>=1 && drawmethod->remap<=e->modeldata.maps_loaded)
 						{
-							drawmethod->table = e->modeldata.colourmap[drawmethod->remap-1];
+							drawmethod->table = model_get_colourmap(&(e->modeldata), drawmethod->remap);
 						}
 
 						if(e->colourmap)
@@ -13348,7 +13354,7 @@ void display_ents()
 						{
 							if(e->health > 0 )
 							{
-								drawmethod->table = e->modeldata.colourmap[e->dying - 1];
+								drawmethod->table = model_get_colourmap(&(e->modeldata), e->dying);
 							}
 						}
 					}
@@ -14361,19 +14367,10 @@ void common_lie()
 			}
 		}
 
-		if (self->modeldata.maps.ko)                                                           //Have a KO map?
+		if (self->modeldata.maps.ko)   //Have a KO map?
 		{
-			if (self->modeldata.maps.kotype)                                                       //Wait for fall/death animation to finish?
-			{
-				if (!self->animating)
-				{
-					self->colourmap = self->modeldata.colourmap[self->modeldata.maps.ko-1];    //If finished animating, apply map.
-				}
-			}
-			else                                                                                //Don't bother waiting.
-			{
-				self->colourmap = self->modeldata.colourmap[self->modeldata.maps.ko-1];        //Apply map.
-			}
+			if (!self->modeldata.maps.kotype || !self->animating)  //Wait for fall/death animation to finish?
+				self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.ko);       //Apply map.
 		}
 
 		return;
@@ -14760,7 +14757,7 @@ void checkdamageeffects(s_attack* attack)
 	{    // New freeze attack - If not frozen, freeze entity unless it's a projectile
 		self->frozen = 1;
 		if(self->freezetime == 0) self->freezetime = time + _freezetime;
-		if(_remap == -1 && self->modeldata.maps.frozen != -1) self->colourmap = self->modeldata.colourmap[self->modeldata.maps.frozen-1];    //12/14/2007 Damon Caskey: If opponents frozen map = -1 or only stun, then don't change the color map.
+		if(_remap == -1 && self->modeldata.maps.frozen != -1) self->colourmap = model_get_colourmap(&(self->modeldata),self->modeldata.maps.frozen);    //12/14/2007 Damon Caskey: If opponents frozen map = -1 or only stun, then don't change the color map.
 		self->drop = 0;
 	}
 	else if(self->frozen)
@@ -14772,7 +14769,7 @@ void checkdamageeffects(s_attack* attack)
 	if(_remap>0 && !_freeze)
 	{
 		self->maptime = time + _maptime;
-		self->colourmap = self->modeldata.colourmap[_remap-1];
+		self->colourmap = model_get_colourmap(&(self->modeldata), _remap);
 	}
 
 	if(_seal)                                                                       //Sealed: Disable special moves.
