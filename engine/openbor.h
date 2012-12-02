@@ -1725,6 +1725,7 @@ void update_loading(s_loadingbar* s,  int value, int max);
 void spawnplayer(int);
 void drop_all_enemies();
 void kill_all_enemies();
+unsigned char* model_get_colourmap(s_model* model, unsigned which);
 void ent_set_colourmap(entity *ent, unsigned int which);
 void predrawstatus();
 void drawstatus();
