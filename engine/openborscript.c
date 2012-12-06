@@ -6054,7 +6054,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 		{
-			ent_set_colourmap(self, ltemp);
+			ent->colourmap = (VOID*)model_get_colourmap(&(ent->modeldata), ltemp);
 		}
 		break;
 	}
@@ -6293,13 +6293,13 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
     case _ep_hmapl:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			self->modeldata.maps.hide_start = ltemp;
+			ent->modeldata.maps.hide_start = ltemp;
 		break;
 	}
 	case _ep_hmapu:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-			self->modeldata.maps.hide_end = ltemp;
+			ent->modeldata.maps.hide_end = ltemp;
 		break;
 	}
     case _ep_hostile:
