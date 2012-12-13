@@ -1,58 +1,12 @@
-Copyright (c) 2004-2011 OpenBOR/Open Beats of Rage
-
+Copyright (c) 2003, Roel van Mastbergen
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without 
-modification, are permitted provided that the following conditions 
-are met:
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-  1. Redistributions of source code and/or binary form must retain
-     the above copyright notice, this list of conditions and the 
-     following disclaimer in the documentation and/or other materials 
-     provided with the distribution.
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 
-  2. Neither the name of OpenBOR and/or Open Beats of Rage nor the 
-     names of its contributors may be used to endorse or promote 
-     products derived from this software without specific prior 
-     written permission from the OpenBOR Team.
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 
-  3. Modifications and/or redistributions to the source code and/or 
-     binary must always include the name of OpenBOR and/or Open Beats 
-     of Rage that may be used to endorse or promote products derived 
-     from this software without specific prior written permission from
-     the OpenBOR Team.
+Neither the name of the Senile Team nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
-  4. Sales of this source code and/or modified versions of this 
-     source code is prohibited without specific prior written permission
-     from the OpenBOR Team.
-
-  5. Sales of this binary and/or modified versions of this binary is 
-     prohibited without specific prior written permission from the 
-     OpenBOR Team.
-
-  
-  6. Contributions to source code and/or binary from non OpenBOR Team 
-     Members are to grant unrestricted usage to OpenBOR/Open Beats of Rage
-     and/or its related software components while keeping ownership to their
-     contribution.
-
-  
-  
-  7. OpenBOR Team Members: 
-
-     sumolx@gmail.com     (SX, SumolX, SamuraiX)
-     dc@caskeys.com       (DC, Damon Caskey)
-     plombex342@gmail.com (Plombo)
-       
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
