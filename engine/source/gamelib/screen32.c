@@ -19,35 +19,38 @@ void putscreenx8p32(s_screen * dest, s_screen * src, int x, int y, int key, u32*
 	int sw = src->width;
 	int sh = src->height;
 	int dw = dest->width;
-	int dh = dest->height;
 	int cw = sw, ch = sh;
 	int sox, soy;
+	int xmin=useclip?clipx1:0,
+		xmax=useclip?clipx2:dest->width,
+		ymin=useclip?clipy1:0,
+		ymax=useclip?clipy2:dest->height;
 
 	// Copy anything at all?
-	if(x >= dw) return;
-	if(sw+x <= 0) return;
-	if(y >= dh) return;
-	if(sh+y <= 0) return;
-
-	if(!remap) remap = (u32*)src->palette;
-
-	if(!remap) return;
+	if(x >= xmax) return;
+	if(sw+x <= xmin) return;
+	if(y >= ymax) return;
+	if(sh+y <= ymin) return;
 
 	sox = 0;
 	soy = 0;
 
 	// Clip?
-	if(x<0) {sox = -x; cw += x;}
-	if(y<0) {soy = -y; ch += y;}
+	if(x<xmin) {sox = xmin-x; cw -= sox;}
+	if(y<ymin) {soy = ymin-y; ch -= soy;}
 
-	if(x+sw > dw) cw -= (x+sw) - dw;
-	if(y+sh > dh) ch -= (y+sh) - dh;
+	if(x+sw > xmax) cw -= (x+sw) - xmax;
+	if(y+sh > ymax) ch -= (y+sh) - ymax;
 
-	if(x<0) x = 0;
-	if(y<0) y = 0;
+	if(x<xmin) x = xmin;
+	if(y<ymin) y = ymin;
 
 	sp += (soy*sw + sox);
 	dp += (y*dw + x);
+
+	if(!remap) remap = (u32*)src->palette;
+
+	if(!remap) return;
 
 	if(blendfp)
 	{
@@ -121,28 +124,31 @@ void blendscreen32(s_screen * dest, s_screen * src, int x, int y, int key, u32(*
 	int sw = src->width;
 	int sh = src->height;
 	int dw = dest->width;
-	int dh = dest->height;
 	int cw = sw, ch = sh;
 	int sox, soy;
+	int xmin=useclip?clipx1:0,
+		xmax=useclip?clipx2:dest->width,
+		ymin=useclip?clipy1:0,
+		ymax=useclip?clipy2:dest->height;
 
 	// Copy anything at all?
-	if(x >= dw) return;
-	if(sw+x <= 0) return;
-	if(y >= dh) return;
-	if(sh+y <= 0) return;
+	if(x >= xmax) return;
+	if(sw+x <= xmin) return;
+	if(y >= ymax) return;
+	if(sh+y <= ymin) return;
 
 	sox = 0;
 	soy = 0;
 
 	// Clip?
-	if(x<0) {sox = -x; cw += x;}
-	if(y<0) {soy = -y; ch += y;}
+	if(x<xmin) {sox = xmin-x; cw -= sox;}
+	if(y<ymin) {soy = ymin-y; ch -= soy;}
 
-	if(x+sw > dw) cw -= (x+sw) - dw;
-	if(y+sh > dh) ch -= (y+sh) - dh;
+	if(x+sw > xmax) cw -= (x+sw) - xmax;
+	if(y+sh > ymax) ch -= (y+sh) - ymax;
 
-	if(x<0) x = 0;
-	if(y<0) y = 0;
+	if(x<xmin) x = xmin;
+	if(y<ymin) y = ymin;
 
 	sp += (soy*sw + sox);
 	dp += (y*dw + x);

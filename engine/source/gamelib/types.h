@@ -173,6 +173,7 @@ extern blend32fp blendfunctions32[MAX_BLENDINGS];
 extern unsigned char* blendtables[MAX_BLENDINGS];
 extern unsigned channelr,channelg,channelb,tintmode,tintcolor;
 extern int usechannel;
+extern int useclip, clipx1, clipx2, clipy1, clipy2;
 extern blend16fp tint16fp1, tint16fp2;
 extern blend32fp tint32fp1, tint32fp2;
 
@@ -236,6 +237,11 @@ typedef struct
 	unsigned char channelb;
 	unsigned char tintmode; //tint the sprite with color 
 	unsigned tintcolor;
+	//unsigned char clipmode; //0 no clip, 1 center clip, 2 screen clip
+	short clipx;
+	short clipy;
+	short clipw;
+	short cliph;
 	water_transform water;
 }s_drawmethod;
 void drawmethod_global_init(s_drawmethod* drawmethod);

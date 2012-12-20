@@ -25,6 +25,8 @@ unsigned channelr,channelg,channelb, tintcolor,tintmode;
 blend16fp tint16fp1, tint16fp2;
 blend32fp tint32fp1, tint32fp2;
 int usechannel;
+int useclip;
+int clipx1,clipy1,clipx2,clipy2;
 
 //may be used many time so make a function
 void drawmethod_global_init(s_drawmethod* drawmethod)
@@ -44,6 +46,14 @@ void drawmethod_global_init(s_drawmethod* drawmethod)
 		{
 			usechannel = tintmode = 0;
 		}
+	}
+
+	if((useclip = drawmethod && drawmethod->flag && drawmethod->clipw>0 && drawmethod->cliph>0))
+	{
+		clipx1 = drawmethod->clipx;
+		clipy1 = drawmethod->clipy;
+		clipx2 = clipx1 + drawmethod->clipw;
+		clipy2 = clipy1 + drawmethod->cliph;
 	}
 }
 
