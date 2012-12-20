@@ -802,7 +802,7 @@ typedef struct
 	int cancel:8; // Cancel anims with freespecial
 	int attackone:8; // stick on the only one victim
 	int dive:8; // UT: make dive a similar property as antigravity
-	short* weaponframe; // Specify with a frame when to switch to a weapon model
+	short *weaponframe; // Specify with a frame when to switch to a weapon model
 	s_quakeframe quakeframe; // Screen shake effect. 2011_04_01, DC; Moved to struct.
     float* spawnframe; // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
     float* summonframe; // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}

@@ -17,21 +17,21 @@
 
 
 static void putsprite_(
-  unsigned char *dest, int x, int *linetab, int h, int screenwidth
+  unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x;
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-	while(lx < screenwidth) {
+	while(lx < xmax) {
 	  register int count = *data++;
 	  if(count == 0xFF) break;
 	  lx += count;
-	  if(lx >= screenwidth) break;
+	  if(lx >= xmax) break;
 	  count = *data++;
 	  if(!count) continue;
-	  if((lx + count) <= 0) { lx += count; data += count; continue; }
-	  if(lx < 0) { count += lx; data -= lx; lx = 0; }
-	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
+	  if((lx + count) <= xmin) { lx += count; data += count; continue; }
+	  if(lx < xmin) { int diff=lx-xmin; count += diff; data -= diff; lx = xmin; }
+	  if((lx + count) > xmax) { count = xmax - lx; }
 	  memcpy(dest+lx, data, count);
 	  data+=count;lx+=count;
 	}
@@ -39,21 +39,21 @@ static void putsprite_(
 }
 
 static void putsprite_flip_(
-  unsigned char *dest, int x, int *linetab, int h, int screenwidth
+  unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x;
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-	while(lx > 0) {
+	while(lx > xmin) {
 	  register int count = *data++;
 	  if(count == 0xFF) break;
 	  lx -= count;
-	  if(lx <= 0) break;
+	  if(lx <= xmin) break;
 	  count = *data++;
 	  if(!count) continue;
-	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
-	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
-	  if((lx - count) < 0) { count = lx; }
+	  if((lx - count) >= xmax) { lx -= count; data += count; continue; }
+	  if(lx > xmax) { int diff = (lx - xmax); count -= diff; data += diff; lx = xmax; }
+	  if((lx - count) < xmin) { count = lx-xmin; }
 	  for(; count > 0; count--) dest[--lx] = *data++;
 	  //lx--;
 	  //u8revcpy(dest+lx, data, count);
@@ -64,22 +64,22 @@ static void putsprite_flip_(
 }
 
 static void putsprite_remap_(
-  unsigned char *dest, int x, int *linetab, int h, int screenwidth,
+  unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth,
   unsigned char *remap
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x;
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-	while(lx < screenwidth) {
+	while(lx < xmax) {
 	  register int count = *data++;
 	  if(count == 0xFF) break;
 	  lx += count;
-	  if(lx >= screenwidth) break;
+	  if(lx >= xmax) break;
 	  count = *data++;
 	  if(!count) continue;
-	  if((lx + count) <= 0) { lx += count; data += count; continue; }
-	  if(lx < 0) { count += lx; data -= lx; lx = 0; }
-	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
+	  if((lx + count) <= xmin) { lx += count; data += count; continue; }
+	  if(lx < xmin) { int diff=lx-xmin; count += diff; data -= diff; lx = xmin; }
+	  if((lx + count) > xmax) { count = xmax - lx; }
 	  for(; count > 0; count--) dest[lx++] = remap[((int)(*data++))&0xFF];
 	  //u8pcpy(dest+lx, data, remap, count);
 	  //lx+=count;
@@ -89,22 +89,22 @@ static void putsprite_remap_(
 }
 
 static void putsprite_remap_flip_(
-  unsigned char *dest, int x, int *linetab, int h, int screenwidth,
+  unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth,
   unsigned char *remap
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x;
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-	while(lx > 0) {
+	while(lx > xmin) {
 	  register int count = *data++;
 	  if(count == 0xFF) break;
 	  lx -= count;
-	  if(lx <= 0) break;
+	  if(lx <= xmin) break;
 	  count = *data++;
 	  if(!count) continue;
-	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
-	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
-	  if((lx - count) < 0) { count = lx; }
+	  if((lx - count) >= xmax) { lx -= count; data += count; continue; }
+	  if(lx > xmax) { int diff = (lx - xmax); count -= diff; data += diff; lx = xmax; }
+	  if((lx - count) < xmin) { count = lx-xmin; }
 	  for(; count > 0; count--) dest[--lx] = remap[((int)(*data++))&0xFF];
 	  //lx--;
 	  //u8revpcpy(dest+lx, data, remap, count);
@@ -116,88 +116,88 @@ static void putsprite_remap_flip_(
 
 //src high dest low
 static void putsprite_remapblend_(
-  unsigned char *dest, int x, int *linetab, int h, int screenwidth,
+  unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth,
   unsigned char*remap, unsigned char *blend
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x;
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-	while(lx < screenwidth) {
+	while(lx < xmax) {
 	  register int count = *data++;
 	  if(count == 0xFF) break;
 	  lx += count;
-	  if(lx >= screenwidth) break;
+	  if(lx >= xmax) break;
 	  count = *data++;
 	  if(!count) continue;
-	  if((lx + count) <= 0) { lx += count; data += count; continue; }
-	  if(lx < 0) { count += lx; data -= lx; lx = 0; }
-	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
+	  if((lx + count) <= xmin) { lx += count; data += count; continue; }
+	  if(lx < xmin) {int diff=lx-xmin; count += diff; data -= diff; lx = xmin; }
+	  if((lx + count) > xmax) { count = xmax - lx; }
 	  for(; count > 0; count--) { dest[lx] = blend[(remap[(((int)(*data++))&0xFF)]<<8)|dest[lx]]; lx++; }
 	}
   }
 }
 
 static void putsprite_remapblend_flip_(
-  unsigned char *dest, int x, int *linetab, int h, int screenwidth,
+  unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth,
   unsigned char* remap, unsigned char *blend
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x;
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-	while(lx > 0) {
+	while(lx > xmin) {
 	  register int count = *data++;
 	  if(count == 0xFF) break;
 	  lx -= count;
-	  if(lx <= 0) break;
+	  if(lx <= xmin) break;
 	  count = *data++;
 	  if(!count) continue;
-	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
-	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
-	  if((lx - count) < 0) { count = lx; }
+	  if((lx - count) >= xmax) { lx -= count; data += count; continue; }
+	  if(lx > xmax) { int diff = (lx - xmax); count -= diff; data += diff; lx = xmax; }
+	  if((lx - count) < xmin) { count = lx-xmin; }
 	  for(; count > 0; count--) { --lx; dest[lx] = blend[(remap[(((int)(*data++))&0xFF)]<<8)|dest[lx]]; }
 	}
   }
 }
 
 static void putsprite_blend_(
-  unsigned char *dest, int x, int *linetab, int h, int screenwidth,
+  unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth,
   unsigned char *blend
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x;
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-	while(lx < screenwidth) {
+	while(lx < xmax) {
 	  register int count = *data++;
 	  if(count == 0xFF) break;
 	  lx += count;
-	  if(lx >= screenwidth) break;
+	  if(lx >= xmax) break;
 	  count = *data++;
 	  if(!count) continue;
-	  if((lx + count) <= 0) { lx += count; data += count; continue; }
-	  if(lx < 0) { count += lx; data -= lx; lx = 0; }
-	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
+	  if((lx + count) <= xmin) { lx += count; data += count; continue; }
+	  if(lx < xmin) {int diff=lx-xmin; count += diff; data -= diff; lx = xmin; }
+	  if((lx + count) > xmax) { count = xmax - lx; }
 	  for(; count > 0; count--) { dest[lx] = blend[((((int)(*data++))&0xFF)<<8)|dest[lx]]; lx++; }
 	}
   }
 }
 
 static void putsprite_blend_flip_(
-  unsigned char *dest, int x, int *linetab, int h, int screenwidth,
+  unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth,
   unsigned char *blend
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x;
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-	while(lx > 0) {
+	while(lx > xmin) {
 	  register int count = *data++;
 	  if(count == 0xFF) break;
 	  lx -= count;
-	  if(lx <= 0) break;
+	  if(lx <= xmin) break;
 	  count = *data++;
 	  if(!count) continue;
-	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
-	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
-	  if((lx - count) < 0) { count = lx; }
+	  if((lx - count) >= xmax) { lx -= count; data += count; continue; }
+	  if(lx > xmax) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
+	  if((lx - count) < xmin) { count = lx-xmin; }
 	  for(; count > 0; count--) { --lx; dest[lx] = blend[((((int)(*data++))&0xFF)<<8)|dest[lx]]; }
 	}
   }
@@ -214,7 +214,10 @@ void putsprite_8(
   unsigned char *dest;
   // Get screen size
   int screenwidth = screen->width;
-  int screenheight = screen->height;
+  int xmin=useclip?clipx1:0,
+	  xmax=useclip?clipx2:screen->width,
+	  ymin=useclip?clipy1:0,
+	  ymax=useclip?clipy2:screen->height;
   // Adjust coords for centering
   if(is_flip) x += sprite->centerx;
   else x -= sprite->centerx;
@@ -225,43 +228,43 @@ void putsprite_8(
   // trivial clip all directions
   if(is_flip)
   {
-	  if(x-w >= screenwidth) return;
-	  if(x <= 0) return;
+	  if(x-w >= xmax) return;
+	  if(x <= xmin) return;
   }
   else
   {
-	  if(x >= screenwidth) return;
-	  if((x+w) <= 0) return;
+	  if(x >= xmax) return;
+	  if((x+w) <= xmin) return;
   }
-  if(y >= screenheight) return;
-  if((y+h) <= 0) return;
+  if(y >= ymax) return;
+  if((y+h) <= ymin) return;
   // Init line table pointer
   linetab = (int*)(sprite->data);
   // clip top
-  if(y < 0) {
-	h += y; // subtract from height
-	linetab -= y; // add to linetab
-	y = 0; // add to y
+  if(y < ymin) {
+	h += y-ymin; // subtract from height
+	linetab -= y-ymin; // add to linetab
+	y = ymin; // add to y
   }
   // clip bottom
-  if((y+h) > screenheight) {
-	h = screenheight - y;
+  if((y+h) > ymax) {
+	h = ymax - y;
   }
   // calculate destination pointer
   dest = ((unsigned char*)(screen->data)) + y*screenwidth;
 
   if(blend&&remap){
-	if(is_flip) putsprite_remapblend_flip_(dest, x, linetab, h, screenwidth, remap, blend);
-	else        putsprite_remapblend_     (dest, x  , linetab, h, screenwidth,remap, blend);
+	if(is_flip) putsprite_remapblend_flip_(dest, x, xmin, xmax, linetab, h, screenwidth, remap, blend);
+	else        putsprite_remapblend_     (dest, x, xmin, xmax  , linetab, h, screenwidth,remap, blend);
   } else if(blend) {
-	if(is_flip) putsprite_blend_flip_(dest, x, linetab, h, screenwidth, blend);
-	else        putsprite_blend_     (dest, x  , linetab, h, screenwidth, blend);
+	if(is_flip) putsprite_blend_flip_(dest, x, xmin, xmax, linetab, h, screenwidth, blend);
+	else        putsprite_blend_     (dest, x, xmin, xmax  , linetab, h, screenwidth, blend);
   } else if(remap) {
-	if(is_flip) putsprite_remap_flip_(dest, x, linetab, h, screenwidth, remap);
-	else        putsprite_remap_     (dest, x  , linetab, h, screenwidth, remap);
+	if(is_flip) putsprite_remap_flip_(dest, x, xmin, xmax, linetab, h, screenwidth, remap);
+	else        putsprite_remap_     (dest, x, xmin, xmax  , linetab, h, screenwidth, remap);
   } else {
-	if(is_flip) putsprite_flip_      (dest, x, linetab, h, screenwidth);
-	else        putsprite_           (dest, x  , linetab, h, screenwidth);
+	if(is_flip) putsprite_flip_      (dest, x, xmin, xmax, linetab, h, screenwidth);
+	else        putsprite_           (dest, x, xmin, xmax  , linetab, h, screenwidth);
   }
 }
 

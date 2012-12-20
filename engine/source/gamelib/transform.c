@@ -44,6 +44,8 @@ static unsigned char* cur_spr; // for sprite only
 
 static int spf, dpf; //pixelformat
 
+static int xmin, xmax, ymin, ymax;
+
 
 /*transpixelfunc, 8bit*/
 static unsigned char remapcolor(unsigned char* unusedt, unsigned char color, unsigned char unused)
@@ -498,6 +500,11 @@ void init_gfx_global_draw_stuff(s_screen* dest, gfx_entry* src, s_drawmethod* dr
 	trans_dw = dest->width;
 	trans_dh = dest->height;
 
+	xmin=useclip?clipx1:0;
+	xmax=useclip?clipx2:dest->width;
+	ymin=useclip?clipy1:0;
+	ymax=useclip?clipy2:dest->height;
+
 	dpf = dest->pixelformat;
 
 	switch(dest->pixelformat)
@@ -562,7 +569,7 @@ void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, 
 {
 	float zoomx, zoomy, rzoomx, rzoomy, sina, cosa, ax, ay, bx, by, rx0, ry0, cx, cy, srcx0_f, srcx_f, srcy0_f, srcy_f, angle;
 	int i, j, srcx, srcy;
-	int xbound[4], ybound[4], xmin, xmax, ymin, ymax;
+	int xbound[4], ybound[4];
 	float xboundf[4], yboundf[4];
 	zoomx = drawmethod->scalex / 256.0;
 	zoomy = drawmethod->scaley / 256.0;
@@ -591,10 +598,10 @@ void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, 
         ybound[i] =  (int)(y + xboundf[i]*sina + yboundf[i]*cosa);
 	}
 
-	xmin = _max(_min(_min(xbound[0],xbound[1]), _min(xbound[2],xbound[3])), 0);
-	xmax = _min(_max(_max(xbound[0],xbound[1]), _max(xbound[2],xbound[3])), trans_dw);
-	ymin = _max(_min(_min(ybound[0],ybound[1]), _min(ybound[2],ybound[3])), 0);
-	ymax = _min(_max(_max(ybound[0],ybound[1]), _max(ybound[2],ybound[3])), trans_dh);
+	xmin = _max(_min(_min(xbound[0],xbound[1]), _min(xbound[2],xbound[3])), xmin);
+	xmax = _min(_max(_max(xbound[0],xbound[1]), _max(xbound[2],xbound[3])), xmax);
+	ymin = _max(_min(_min(ybound[0],ybound[1]), _min(ybound[2],ybound[3])), ymin);
+	ymax = _min(_max(_max(ybound[0],ybound[1]), _max(ybound[2],ybound[3])), ymax);
 	/////////////////end clipping////////////////////////////
 
 	// tricks to keep rotate not affected by flip
@@ -690,34 +697,34 @@ void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 		sy = trans_sh + stepdy;
 	}
 
-	if(_max(dx+w, dx+w-shiftf*h)<=0) return;
-	if(_min(dx, dx-shiftf*h)>=trans_dw) return;
-	if(dy>=trans_dh) return;
-	if(dy+h<=0) return;
+	if(_max(dx+w, dx+w-shiftf*h)<=xmin) return;
+	if(_min(dx, dx-shiftf*h)>=xmax) return;
+	if(dy>=ymax) return;
+	if(dy+h<=ymin) return;
 
-	if(dy+h>trans_dh) {
-		endy = trans_dh;
+	if(dy+h>ymax) {
+		endy = ymax;
 		dx -= shiftf*(dy+h-endy);
 		sy += stepdy*(dy+h-endy);
 	} else endy = dy+h;
 
-	if(dy<0) beginy = 0;
+	if(dy<ymin) beginy = ymin;
 	else beginy = dy;
 
 	//printf("=%d, %d, %lf, %lf, %lf, %lf, %lf, %lf\n ",x, y, w, h, osx, sy, dx, dy);
 	// =64, 144, 44.000000, 36.500000, 43.000000, 0.000000, 38.000000, 143.000000
 
 	for(j=endy-1; j>=beginy; j--, sy+=stepdy, dx -= shiftf){
-		if(dx>=trans_dw) continue;
-		if(dx+w<=0) continue;
+		if(dx>=xmax) continue;
+		if(dx+w<=xmin) continue;
 		sx = osx;
 		beginx = dx;
 		endx = dx+w;
-		if(dx<0) beginx = 0;
+		if(dx<xmin) beginx = xmin;
 		else beginx = dx;
-		if(dx+w>trans_dw) {
-			endx = trans_dw;
-			sx += stepdx*(dx+w-trans_dw);
+		if(dx+w>xmax) {
+			endx = xmax;
+			sx += stepdx*(dx+w-xmax);
 		} else endx = dx+w;
 		dest_seek(endx-1, j);
 		for(i=endx-1; i>=beginx; i--, sx+=stepdx){

@@ -84,31 +84,35 @@ void copyscreen_o(s_screen * dest, s_screen * src, int x, int y)
 	int sw = src->width;
 	int sh = src->height;
 	int dw = dest->width;
-	int dh = dest->height;
 	int cw = sw, ch = sh;
 	int linew, slinew, dlinew;
 	int sox, soy;
 
-	if(dest->pixelformat != src->pixelformat) return;
+	int xmin=useclip?clipx1:0,
+		xmax=useclip?clipx2:dest->width,
+		ymin=useclip?clipy1:0,
+		ymax=useclip?clipy2:dest->height;
 
 	// Copy anything at all?
-	if(x >= dw) return;
-	if(sw+x <= 0) return;
-	if(y >= dh) return;
-	if(sh+y <= 0) return;
+	if(x >= xmax) return;
+	if(sw+x <= xmin) return;
+	if(y >= ymax) return;
+	if(sh+y <= ymin) return;
 
 	sox = 0;
 	soy = 0;
 
 	// Clip?
-	if(x<0) {sox = -x; cw += x;}
-	if(y<0) {soy = -y; ch += y;}
+	if(x<xmin) {sox = xmin-x; cw -= sox;}
+	if(y<ymin) {soy = ymin-y; ch -= soy;}
 
-	if(x+sw > dw) cw -= (x+sw) - dw;
-	if(y+sh > dh) ch -= (y+sh) - dh;
+	if(x+sw > xmax) cw -= (x+sw) - xmax;
+	if(y+sh > ymax) ch -= (y+sh) - ymax;
 
-	if(x<0) x = 0;
-	if(y<0) y = 0;
+	if(x<xmin) x = xmin;
+	if(y<ymin) y = ymin;
+
+	if(dest->pixelformat != src->pixelformat) return;
 
 	sp = src->data + (soy*sw + sox)*pixelbytes[(int)pixelformat];
 	dp = dest->data + (y*dw + x)*pixelbytes[(int)pixelformat];
@@ -130,29 +134,33 @@ void copyscreen_trans(s_screen * dest, s_screen * src, int x, int y)
 	int sw = src->width;
 	int sh = src->height;
 	int dw = dest->width;
-	int dh = dest->height;
 	int cw = sw, ch = sh;
 	int sox, soy;
 	int i;
 
+	int xmin=useclip?clipx1:0,
+		xmax=useclip?clipx2:dest->width,
+		ymin=useclip?clipy1:0,
+		ymax=useclip?clipy2:dest->height;
+
 	// Copy anything at all?
-	if(x >= dw) return;
-	if(sw+x <= 0) return;
-	if(y >= dh) return;
-	if(sh+y <= 0) return;
+	if(x >= xmax) return;
+	if(sw+x <= xmin) return;
+	if(y >= ymax) return;
+	if(sh+y <= ymin) return;
 
 	sox = 0;
 	soy = 0;
 
 	// Clip?
-	if(x<0) {sox = -x; cw += x;}
-	if(y<0) {soy = -y; ch += y;}
+	if(x<xmin) {sox = xmin-x; cw -= sox;}
+	if(y<ymin) {soy = ymin-y; ch -= soy;}
 
-	if(x+sw > dw) cw -= (x+sw) - dw;
-	if(y+sh > dh) ch -= (y+sh) - dh;
+	if(x+sw > xmax) cw -= (x+sw) - xmax;
+	if(y+sh > ymax) ch -= (y+sh) - ymax;
 
-	if(x<0) x = 0;
-	if(y<0) y = 0;
+	if(x<xmin) x = xmin;
+	if(y<ymin) y = ymin;
 
 	sp = src->data + (soy*sw + sox);
 	dp = dest->data + (y*dw + x);
@@ -177,28 +185,32 @@ void copyscreen_remap(s_screen * dest, s_screen * src, int x, int y, unsigned ch
 	int sw = src->width;
 	int sh = src->height;
 	int dw = dest->width;
-	int dh = dest->height;
 	int cw = sw, ch = sh;
 	int sox, soy;
 
+	int xmin=useclip?clipx1:0,
+		xmax=useclip?clipx2:dest->width,
+		ymin=useclip?clipy1:0,
+		ymax=useclip?clipy2:dest->height;
+
 	// Copy anything at all?
-	if(x >= dw) return;
-	if(sw+x <= 0) return;
-	if(y >= dh) return;
-	if(sh+y <= 0) return;
+	if(x >= xmax) return;
+	if(sw+x <= xmin) return;
+	if(y >= ymax) return;
+	if(sh+y <= ymin) return;
 
 	sox = 0;
 	soy = 0;
 
 	// Clip?
-	if(x<0) {sox = -x; cw += x;}
-	if(y<0) {soy = -y; ch += y;}
+	if(x<xmin) {sox = xmin-x; cw -= sox;}
+	if(y<ymin) {soy = ymin-y; ch -= soy;}
 
-	if(x+sw > dw) cw -= (x+sw) - dw;
-	if(y+sh > dh) ch -= (y+sh) - dh;
+	if(x+sw > xmax) cw -= (x+sw) - xmax;
+	if(y+sh > ymax) ch -= (y+sh) - ymax;
 
-	if(x<0) x = 0;
-	if(y<0) y = 0;
+	if(x<xmin) x = xmin;
+	if(y<ymin) y = ymin;
 
 	sp += (soy*sw + sox);
 	dp += (y*dw + x);
@@ -224,29 +236,33 @@ void blendscreen(s_screen * dest, s_screen * src, int x, int y, unsigned char* l
 	int sw = src->width;
 	int sh = src->height;
 	int dw = dest->width;
-	int dh = dest->height;
 	int cw = sw, ch = sh;
 	int sox, soy;
 	unsigned char* d, *s;
 
+	int xmin=useclip?clipx1:0,
+		xmax=useclip?clipx2:dest->width,
+		ymin=useclip?clipy1:0,
+		ymax=useclip?clipy2:dest->height;
+
 	// Copy anything at all?
-	if(x >= dw) return;
-	if(sw+x <= 0) return;
-	if(y >= dh) return;
-	if(sh+y <= 0) return;
+	if(x >= xmax) return;
+	if(sw+x <= xmin) return;
+	if(y >= ymax) return;
+	if(sh+y <= ymin) return;
 
 	sox = 0;
 	soy = 0;
 
 	// Clip?
-	if(x<0) {sox = -x; cw += x;}
-	if(y<0) {soy = -y; ch += y;}
+	if(x<xmin) {sox = xmin-x; cw -= sox;}
+	if(y<ymin) {soy = ymin-y; ch -= soy;}
 
-	if(x+sw > dw) cw -= (x+sw) - dw;
-	if(y+sh > dh) ch -= (y+sh) - dh;
+	if(x+sw > xmax) cw -= (x+sw) - xmax;
+	if(y+sh > ymax) ch -= (y+sh) - ymax;
 
-	if(x<0) x = 0;
-	if(y<0) y = 0;
+	if(x<xmin) x = xmin;
+	if(y<ymin) y = ymin;
 
 	sp += soy*sw + sox;
 	dp += y*dw + x;

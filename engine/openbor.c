@@ -89,7 +89,8 @@ const s_drawmethod plainmethod = {
 	0,    //yspan
 	255,255,255, //rgb channels
 	0, //tintmode?
-	0,
+	0, //tintcolor
+	0,0,0,0, //clip
 	{{.beginsize=0.0}, {.endsize=0.0}, 0, {.wavespeed=0}, 0} //water
 };
 
@@ -6883,6 +6884,13 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					{
 						drawmethod.alpha = GET_INT_ARG(2);
 					}
+					else if (0==stricmp(value, "clip"))
+					{
+						drawmethod.clipx = GET_INT_ARG(2);
+						drawmethod.clipy = GET_INT_ARG(3);
+						drawmethod.clipw = GET_INT_ARG(4);
+						drawmethod.cliph = GET_INT_ARG(5);
+					}
 					if(drawmethod.scalex<0) {drawmethod.scalex = -drawmethod.scalex;drawmethod.flipx = !drawmethod.flipx;}
 					if(drawmethod.scaley<0) {drawmethod.scaley = -drawmethod.scaley;drawmethod.flipy = !drawmethod.flipy;}
 					if(drawmethod.rotate)
@@ -7279,10 +7287,11 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->counterrange.damaged	    = GET_INT_ARG(4);
 					break;
 				case CMD_MODEL_WEAPONFRAME:
-					newanim->weaponframe    = malloc(2 * sizeof(newanim->weaponframe));
-					memset(newanim->weaponframe, 0, 2 * sizeof(newanim->weaponframe));
+					if(!newanim->weaponframe)
+						newanim->weaponframe = malloc(sizeof(*newanim->weaponframe)*3);
 					newanim->weaponframe[0] = GET_FRAME_ARG(1);
 					newanim->weaponframe[1] = GET_INT_ARG(2);
+					newanim->weaponframe[2] = GET_INT_ARG(3);
 					break;
 				case CMD_MODEL_QUAKEFRAME:
 					newanim->quakeframe.framestart  = GET_FRAME_ARG(1);
@@ -11029,7 +11038,7 @@ void update_frame(entity* ent, int f)
 	{
 		dropweapon(2);
 		set_weapon(self, anim->weaponframe[1], 0);
-		self->idling = 1;
+		if(!anim->weaponframe[2]) set_idle(self);
 	}
 
 	if(anim->quakeframe.framestart+anim->quakeframe.cnt == f)
@@ -11271,7 +11280,7 @@ void ent_set_model(entity * ent, char * modelname, int syncAnim)
 	if(syncAnim && m->animation[ent->animnum])
 	{
 		ent->animation = m->animation[ent->animnum];
-		update_frame(ent, ent->animpos);
+		//update_frame(ent, ent->animpos);
 	}
 	else
 	{
@@ -13649,10 +13658,7 @@ int set_idle(entity* ent)
 	//int ani = ANI_IDLE;
 	//if(validanim(ent,ANI_FAINT) && ent->health <= ent->modeldata.health / 4) ani = ANI_FAINT;
 	//if(validanim(ent,ani)) ent_set_anim(ent, ani, 0);
-	if (common_idle_anim(ent))
-	{
-	}
-	else return 0;
+	common_idle_anim(ent);
 	ent->idling = 1;
 	ent->attacking = 0;
 	ent->inpain = 0;

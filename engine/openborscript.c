@@ -10796,6 +10796,11 @@ enum drawmethod_enum
 	_dm_channelb,
 	_dm_channelg,
 	_dm_channelr,
+	_dm_clip,
+	_dm_cliph,
+	_dm_clipw,
+	_dm_clipx,
+	_dm_clipy,
 	_dm_enabled,
 	_dm_endsize,
 	_dm_fillcolor,
@@ -10839,6 +10844,11 @@ void mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount)
 		"channelb",
 		"channelg",
 		"channelr",
+		"clip",
+		"cliph",
+		"clipw",
+		"clipx",
+		"clipy",
 		"enabled",
 		"endsize",
 		"fillcolor",
@@ -10926,6 +10936,33 @@ HRESULT openbor_changedrawmethod(ScriptVariant** varlist , ScriptVariant** pretv
 	case _dm_channelr:
 		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
 		pmethod->channelr = (int)temp;
+	break;
+	case _dm_clip:
+		if(paramCount<6) return E_FAIL;
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->clipx = (int)temp;
+		if(FAILED(ScriptVariant_IntegerValue(varlist[3], &temp))) return E_FAIL;
+		pmethod->clipy = (int)temp;
+		if(FAILED(ScriptVariant_IntegerValue(varlist[4], &temp))) return E_FAIL;
+		pmethod->clipw = (int)temp;
+		if(FAILED(ScriptVariant_IntegerValue(varlist[5], &temp))) return E_FAIL;
+		pmethod->cliph = (int)temp;
+	break;
+	case _dm_clipx:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->clipx = (int)temp;
+	break;
+	case _dm_clipy:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->clipy = (int)temp;
+	break;
+	case _dm_clipw:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->clipw = (int)temp;
+	break;
+	case _dm_cliph:
+		if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp))) return E_FAIL;
+		pmethod->cliph = (int)temp;
 	break;
 	case _dm_enabled:
 	case _dm_flag:

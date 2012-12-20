@@ -15,21 +15,21 @@
 /////////////////////////////////////////////////////////////////////////////
 
 static void putsprite_(
-  unsigned short *dest, int x, int *linetab, unsigned short *palette, int h, int screenwidth
+  unsigned short *dest, int x, int xmin, int xmax, int *linetab, unsigned short *palette, int h, int screenwidth
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x;
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-	while(lx < screenwidth) {
+	while(lx < xmax) {
 	  register int count = *data++;
 	  if(count == 0xFF) break;
 	  lx += count;
-	  if(lx >= screenwidth) break;
+	  if(lx >= xmax) break;
 	  count = *data++;
 	  if(!count) continue;
-	  if((lx + count) <= 0) { lx += count; data += count; continue; }
-	  if(lx < 0) { count += lx; data -= lx; lx = 0; }
-	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
+	  if((lx + count) <= xmin) { lx += count; data += count; continue; }
+	  if(lx < xmin) { int diff=lx-xmin; count += diff; data -= diff; lx = xmin; }
+	  if((lx + count) > xmax) { count = xmax - lx; }
 	  for(; count > 0; count--)  dest[lx++] = palette[*data++];
 	  //u16pcpy(dest+lx, data, palette, count);
 	  //lx+=count;
@@ -39,21 +39,21 @@ static void putsprite_(
 }
 
 static void putsprite_flip_(
-  unsigned short *dest, int x, int *linetab, unsigned short* palette, int h, int screenwidth
+  unsigned short *dest, int x, int xmin, int xmax, int *linetab, unsigned short* palette, int h, int screenwidth
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x;
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-	while(lx > 0) {
+	while(lx > xmin) {
 	  register int count = *data++;
 	  if(count == 0xFF) break;
 	  lx -= count;
-	  if(lx <= 0) break;
+	  if(lx <= xmin) break;
 	  count = *data++;
 	  if(!count) continue;
-	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
-	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
-	  if((lx - count) < 0) { count = lx; }
+	  if((lx - count) >= xmax) { lx -= count; data += count; continue; }
+	  if(lx > xmax) { int diff = (lx - xmax); count -= diff; data += diff; lx = xmax; }
+	  if((lx - count) < xmin) { count = lx-xmin; }
 	  for(; count > 0; count--) dest[--lx] = palette[*data++];
 	  //--lx;
 	  //u16revpcpy(dest+lx, data, palette, count);
@@ -66,22 +66,22 @@ static void putsprite_flip_(
 
 //src high dest low
 static void putsprite_blend_(
-  unsigned short *dest, int x, int *linetab, unsigned short* palette, int h, int screenwidth,
+  unsigned short *dest, int x, int xmin, int xmax, int *linetab, unsigned short* palette, int h, int screenwidth,
   unsigned short (*blendfp)(unsigned short, unsigned short)
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x;
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-	while(lx < screenwidth) {
+	while(lx < xmax) {
 	  register int count = *data++;
 	  if(count == 0xFF) break;
 	  lx += count;
-	  if(lx >= screenwidth) break;
+	  if(lx >= xmax) break;
 	  count = *data++;
 	  if(!count) continue;
-	  if((lx + count) <= 0) { lx += count; data += count; continue; }
-	  if(lx < 0) { count += lx; data -= lx; lx = 0; }
-	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
+	  if((lx + count) <= xmin) { lx += count; data += count; continue; }
+	  if(lx < xmin) { int diff=lx-xmin; count += diff; data -= diff; lx = xmin; }
+	  if((lx + count) > xmax) { count = xmax - lx; }
 	  for(; count > 0; count--, lx++)
 	  {
 		 dest[lx] = blendfp(palette[*data++], dest[lx]);
@@ -91,22 +91,22 @@ static void putsprite_blend_(
 }
 
 static void putsprite_blend_flip_(
-  unsigned short *dest, int x, int *linetab, unsigned short * palette, int h, int screenwidth,
+  unsigned short *dest, int x, int xmin, int xmax, int *linetab, unsigned short * palette, int h, int screenwidth,
   unsigned short (*blendfp)(unsigned short, unsigned short)
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x; // destination x position
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
-	while(lx > 0) {
+	while(lx > xmin) {
 	  register int count = *data++; // clearcount - number of transparent pixels
 	  if(count == 0xFF) break; // end-of-line indicator
 	  lx -= count;
-	  if(lx <= 0) break;
+	  if(lx <= xmin) break;
 	  count = *data++; // viscount - number of visible pixels following
 	  if(!count) continue;
-	  if((lx - count) >= screenwidth) { lx -= count; data += count; continue; }
-	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; lx = screenwidth; }
-	  if((lx - count) < 0) { count = lx; }
+	  if((lx - count) >= xmax) { lx -= count; data += count; continue; }
+	  if(lx > xmax) { int diff = (lx - xmax); count -= diff; data += diff; lx = xmax; }
+	  if((lx - count) < xmin) { count = lx-xmin; }
 	  for(; count > 0; count--)
 	  {   --lx;
 		  dest[lx] = blendfp(palette[*data++], dest[lx]);
@@ -117,23 +117,23 @@ static void putsprite_blend_flip_(
 
 //src high dest low
 static void putsprite_mask_(
-  unsigned short *dest, int x, int *linetab, unsigned short* palette, int h, int screenwidth,
+  unsigned short *dest, int x, int xmin, int xmax, int *linetab, unsigned short* palette, int h, int screenwidth,
   int *masklinetab
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x;
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
 	unsigned char *maskdata = ((unsigned char*)masklinetab) + (*masklinetab); masklinetab++;
-	while(lx < screenwidth) {
+	while(lx < xmax) {
 	  register int count = *data++; maskdata++;
 	  if(count == 0xFF) break;
 	  lx += count;
-	  if(lx >= screenwidth) break;
+	  if(lx >= xmax) break;
 	  count = *data++; maskdata++;
 	  if(!count) continue;
-	  if((lx + count) <= 0) { lx += count; data += count; maskdata += count; continue; }
-	  if(lx < 0) { count += lx; data -= lx; maskdata -= lx; lx = 0; }
-	  if((lx + count) > screenwidth) { count = screenwidth - lx; }
+	  if((lx + count) <= xmin) { lx += count; data += count; maskdata += count; continue; }
+	  if(lx < xmin) { int diff = lx-xmin; count += diff; data -= diff; maskdata -= diff; lx = xmin; }
+	  if((lx + count) > xmax) { count = xmax - lx; }
 	  for(; count > 0; count--, lx++)
 	  {
 		 dest[lx] = blend_channel16(palette[*data++], dest[lx], *maskdata++);
@@ -143,23 +143,23 @@ static void putsprite_mask_(
 }
 
 static void putsprite_mask_flip_(
-  unsigned short *dest, int x, int *linetab, unsigned short * palette, int h, int screenwidth,
+  unsigned short *dest, int x, int xmin, int xmax, int *linetab, unsigned short * palette, int h, int screenwidth,
   int *masklinetab
 ) {
   for(; h > 0; h--, dest += screenwidth) {
 	register int lx = x; // destination x position
 	unsigned char *data = ((unsigned char*)linetab) + (*linetab); linetab++;
 	unsigned char *maskdata = ((unsigned char*)masklinetab) + (*masklinetab); masklinetab++;
-	while(lx > 0) {
+	while(lx > xmin) {
 	  register int count = *data++; maskdata++; // clearcount - number of transparent pixels
 	  if(count == 0xFF) break; // end-of-line indicator
 	  lx -= count;
-	  if(lx <= 0) break;
+	  if(lx <= xmin) break;
 	  count = *data++; maskdata++; // viscount - number of visible pixels following
 	  if(!count) continue;
-	  if((lx - count) >= screenwidth) { lx -= count; data += count; maskdata += count; continue; } // not visible yet; skip this viscount block
-	  if(lx > screenwidth) { int diff = (lx - screenwidth); count -= diff; data += diff; maskdata += diff; lx = screenwidth; }
-	  if((lx - count) < 0) { count = lx; }
+	  if((lx - count) >= xmax) { lx -= count; data += count; maskdata += count; continue; } // not visible yet; skip this viscount block
+	  if(lx > xmax) { int diff = (lx - xmax); count -= diff; data += diff; maskdata += diff; lx = xmax; }
+	  if((lx - count) < xmin) { count = lx-xmin; }
 	  for(; count > 0; count--)
 	  {   --lx;
 		  dest[lx] = blend_channel16(palette[*data++], dest[lx], *maskdata++);
@@ -180,7 +180,10 @@ void putsprite_x8p16(
   unsigned short * m;
   // Get screen size
   int screenwidth = screen->width;
-  int screenheight = screen->height;
+  int xmin=useclip?clipx1:0,
+	  xmax=useclip?clipx2:screen->width,
+	  ymin=useclip?clipy1:0,
+	  ymax=useclip?clipy2:screen->height;
   // Adjust coords for centering
   if(is_flip) x += sprite->centerx;
   else x -= sprite->centerx;
@@ -191,16 +194,16 @@ void putsprite_x8p16(
   // trivial clip all directions
   if(is_flip)
   {
-	  if(x-w >= screenwidth) return;
-	  if(x <= 0) return;
+	  if(x-w >= xmax) return;
+	  if(x <= xmin) return;
   }
   else
   {
-	  if(x >= screenwidth) return;
-	  if((x+w) <= 0) return;
+	  if(x >= xmax) return;
+	  if((x+w) <= xmin) return;
   }
-  if(y >= screenheight) return;
-  if((y+h) <= 0) return;
+  if(y >= ymax) return;
+  if((y+h) <= ymin) return;
   // Init line table pointer
   linetab = (int*)(sprite->data);
   if(sprite->mask) {
@@ -209,28 +212,30 @@ void putsprite_x8p16(
 	//if(h!=sprite->mask->height) { printf("Wrong mask height. %i %i\n", h, sprite->mask->height); return; }
   }
   // clip top
-  if(y < 0) {
-	h += y; // subtract from height
-	linetab -= y; // add to linetab
-	y = 0; // add to y
+  if(y < ymin) {
+	int diff = y-ymin;
+	h += diff; // subtract from height
+	linetab -= diff; // add to linetab
+	masklinetab -= diff;
+	y = ymin; // add to y
   }
   // clip bottom
-  if((y+h) > screenheight) {
-	h = screenheight - y;
+  if((y+h) > ymax) {
+	h = ymax - y;
   }
   // calculate destination pointer
   dest = ((unsigned short*)(screen->data)) + y*screenwidth;
   if(remap) m = remap;
   else      m = (unsigned short*)sprite->palette;
   if(sprite->mask) {
-	if(is_flip) putsprite_mask_flip_ (dest, x, linetab, m, h, screenwidth, masklinetab);
-	else        putsprite_mask_      (dest, x, linetab, m, h, screenwidth, masklinetab);
+	if(is_flip) putsprite_mask_flip_ (dest, x, xmin, xmax, linetab, m, h, screenwidth, masklinetab);
+	else        putsprite_mask_      (dest, x, xmin, xmax, linetab, m, h, screenwidth, masklinetab);
   } else if(blend) {
-	if(is_flip) putsprite_blend_flip_(dest, x, linetab, m , h, screenwidth, blend);
-	else        putsprite_blend_     (dest, x, linetab, m , h, screenwidth, blend);
+	if(is_flip) putsprite_blend_flip_(dest, x, xmin, xmax, linetab, m , h, screenwidth, blend);
+	else        putsprite_blend_     (dest, x, xmin, xmax, linetab, m , h, screenwidth, blend);
   } else {
-	if(is_flip) putsprite_flip_      (dest, x, linetab, m , h, screenwidth);
-	else        putsprite_           (dest, x, linetab, m , h, screenwidth);
+	if(is_flip) putsprite_flip_      (dest, x, xmin, xmax, linetab, m , h, screenwidth);
+	else        putsprite_           (dest, x, xmin, xmax, linetab, m , h, screenwidth);
   }
 }
 
