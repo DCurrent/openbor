@@ -1213,7 +1213,7 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 		break;
 	case _sv_blockade:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
-			shadowalpha = (float)ltemp;
+			blockade = (float)ltemp;
 		break;
 	case _sv_shadowcolor:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
@@ -1221,7 +1221,7 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 		break;
 	case _sv_shadowalpha:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
-			skiptoset = (int)ltemp;
+			shadowalpha = (int)ltemp;
 		break;
 	case _sv_skiptoset:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
