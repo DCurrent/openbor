@@ -215,14 +215,14 @@ typedef struct
 	unsigned char* table;
 	void* fp;
 	unsigned fillcolor;
-	int flag:1;
-	int alpha:8;
-	int remap:8;
-	int flipx:1;
-	int flipy:1;
-	int transbg:1;
-	int fliprotate:1; // entity only, whether the flip is affected by the entity's facing(not the sprite's flip )
-	int rotate:11; // 360 degrees
+	int flag;
+	int alpha;
+	int remap;
+	int flipx;
+	int flipy;
+	int transbg;
+	int fliprotate; // entity only, whether the flip is affected by the entity's facing(not the sprite's flip )
+	int rotate; // 360 degrees
 	int scalex;
 	int scaley;
 	int shiftx;
@@ -232,16 +232,16 @@ typedef struct
 	int yrepeat;
 	int xspan;
 	int yspan;
-	unsigned char channelr;
-	unsigned char channelg;
-	unsigned char channelb;
-	unsigned char tintmode; //tint the sprite with color 
+	unsigned channelr;
+	unsigned channelg;
+	unsigned channelb;
+	unsigned tintmode; //tint the sprite with color 
 	unsigned tintcolor;
 	//unsigned char clipmode; //0 no clip, 1 center clip, 2 screen clip
-	short clipx;
-	short clipy;
-	short clipw;
-	short cliph;
+	int clipx;
+	int clipy;
+	int clipw;
+	int cliph;
 	water_transform water;
 }s_drawmethod;
 void drawmethod_global_init(s_drawmethod* drawmethod);

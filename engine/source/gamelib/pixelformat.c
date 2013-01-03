@@ -17,6 +17,23 @@
 #define NULL (void*)0
 #endif
 
+#pragma pack(1)
+typedef struct 
+{
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+	unsigned char a; //unused
+}RGB32;
+
+typedef struct 
+{
+	unsigned r:5;
+	unsigned g:6;
+	unsigned b:5;
+	unsigned a:16; //unused
+}RGB16;
+
 int pixelformat = PIXEL_8;
 int screenformat = PIXEL_8;
 int pixelbytes[(int)5] = {1, 1, 2, 3, 4};
@@ -76,7 +93,7 @@ unsigned colour32(unsigned char r, unsigned char g, unsigned char b)
 #endif
 }
 
-
+/*
 #define bs ((color1&0xff0000)>>8)
 #define gs (color1&0xFF00)
 #define rs ((color1&0xFF)<<8)
@@ -85,7 +102,16 @@ unsigned colour32(unsigned char r, unsigned char g, unsigned char b)
 #define rd (color2&0xFF)
 #define bi (bs|bd)
 #define gi (gs|gd)
-#define ri (rs|rd)
+#define ri (rs|rd)*/
+#define bs (((RGB32*)&color1)->b)
+#define gs (((RGB32*)&color1)->g)
+#define rs (((RGB32*)&color1)->r)
+#define bd (((RGB32*)&color2)->b)
+#define gd (((RGB32*)&color2)->g)
+#define rd (((RGB32*)&color2)->r)
+#define bi ((bs<<8)|bd)
+#define gi ((gs<<8)|gd)
+#define ri ((rs<<8)|rd)
 #define _multiply(c1,c2) (((c1)*(c2))>>8)
 #define _screen(c1,c2) ((((c1)^255)*((c2)^255)/255)^255)
 #define _hardlight(c1,c2) ((c1)<128?_multiply((c1)<<1,(c2)):_screen(((c1)-128)<<1,(c2)))
@@ -96,33 +122,33 @@ unsigned colour32(unsigned char r, unsigned char g, unsigned char b)
 
 
 // common blend function
-unsigned blend_multiply(register unsigned color1, register unsigned color2)
+unsigned blend_multiply(unsigned color1, unsigned color2)
 {
 	return _multiply(color1,color2);
 }
 
-unsigned blend_screen(register unsigned color1, register unsigned color2)
+unsigned blend_screen(unsigned color1, unsigned color2)
 {
 	return _screen(color1,color2);
 }
 
-unsigned blend_overlay(register unsigned color1, register unsigned color2)
+unsigned blend_overlay(unsigned color1, unsigned color2)
 {
 	return _overlay(color1,color2);
 }
 
-unsigned blend_hardlight(register unsigned color1, register unsigned color2)
+unsigned blend_hardlight(unsigned color1, unsigned color2)
 {
 	return _hardlight(color1,color2);
 }
 
-unsigned blend_dodge(register unsigned color1, register unsigned color2)
+unsigned blend_dodge(unsigned color1, unsigned color2)
 {
 	unsigned c = _dodge(color1,color2);
 	return c>255?255:c;
 }
 
-unsigned blend_half(register unsigned color1, register unsigned color2)
+unsigned blend_half(unsigned color1, unsigned color2)
 {
 	return (color1+color2)>>1;
 }
@@ -143,7 +169,7 @@ unsigned char* create_multiply32_tbl(){
 }
 
 
-unsigned blend_multiply32(register unsigned color1, register unsigned color2)
+unsigned blend_multiply32(unsigned color1, unsigned color2)
 {
 	unsigned char* tbl;
 	if((tbl=blendtables[BLEND_MULTIPLY])){
@@ -164,7 +190,7 @@ unsigned char* create_screen32_tbl(){
 	return tbl;
 }
 
-unsigned blend_screen32(register unsigned color1, register unsigned color2)
+unsigned blend_screen32(unsigned color1, unsigned color2)
 {
 	unsigned char* tbl;
 	if((tbl=blendtables[BLEND_SCREEN])){
@@ -185,7 +211,7 @@ unsigned char* create_overlay32_tbl(){
 	return tbl;
 }
 
-unsigned blend_overlay32(register unsigned color1, register unsigned color2)
+unsigned blend_overlay32(unsigned color1, unsigned color2)
 {
 	int r1, g1, b1, r2, g2, b2;
 	unsigned char* tbl;
@@ -210,7 +236,7 @@ unsigned char* create_hardlight32_tbl(){
 	return tbl;
 }
 
-unsigned blend_hardlight32(register unsigned color1, register unsigned color2)
+unsigned blend_hardlight32(unsigned color1, unsigned color2)
 {
 	int r1, g1, b1, r2, g2, b2;
 	unsigned char* tbl;
@@ -235,7 +261,7 @@ unsigned char* create_dodge32_tbl(){
 	return tbl;
 }
 
-unsigned blend_dodge32(register unsigned color1, register unsigned color2)
+unsigned blend_dodge32(unsigned color1, unsigned color2)
 {
 	unsigned r,g,b;
 	unsigned char* tbl;
@@ -258,7 +284,7 @@ unsigned char* create_half32_tbl(){
 	return tbl;
 }
 
-unsigned blend_half32(register unsigned color1, register unsigned color2)
+unsigned blend_half32(unsigned color1, unsigned color2)
 {
 	unsigned char* tbl;
 	if((tbl=blendtables[BLEND_HALF])){
@@ -276,7 +302,7 @@ unsigned blend_tint32(unsigned color1, unsigned color2)
 }
 
 //copy from below
-unsigned blend_rgbchannel32(register unsigned color1, register unsigned color2)
+unsigned blend_rgbchannel32(unsigned color1, unsigned color2)
 {
 	unsigned b1 = color1>>16, r2 = color2>>16;
 	unsigned g1 = (color1&0xFF00)>>8, g2 = (color2&0xFF00)>>8;
@@ -286,7 +312,7 @@ unsigned blend_rgbchannel32(register unsigned color1, register unsigned color2)
 					_channel(b1,b2,channelb));
 }
 
-unsigned blend_channel32(register unsigned color1, register unsigned color2, register unsigned a)
+unsigned blend_channel32(unsigned color1, unsigned color2, unsigned a)
 {
 	int b1 = color1>>16, b2 = color2>>16;
 	int g1 = (color1&0xFF00)>>8, g2 = (color2&0xFF00)>>8;
@@ -479,12 +505,13 @@ unsigned short blend_rgbchannel16(unsigned short color1, unsigned short color2)
 	return _color16(_channel16(_r1,_r2,channelr),_channel16(_g1,_g2,channelg),_channel16(_b1,_b2,channelb));
 }
 
-unsigned short blend_channel16(unsigned short color1, unsigned short color2, register unsigned a)
+unsigned short blend_channel16(unsigned short color1, unsigned short color2, unsigned a)
 {
 	return _color16(_channel16(_r1,_r2,a),_channel16(_g1,_g2,a),_channel16(_b1,_b2,a));
 }
 
 unsigned char* blendtables[MAX_BLENDINGS] = {NULL,NULL,NULL,NULL,NULL,NULL};
+
 blend16fp blendfunctions16[MAX_BLENDINGS] = {blend_screen16, blend_multiply16, blend_overlay16, blend_hardlight16, blend_dodge16, blend_half16};
 blend32fp blendfunctions[MAX_BLENDINGS] = {blend_screen, blend_multiply, blend_overlay, blend_hardlight, blend_dodge, blend_half};
 blend32fp blendfunctions32[MAX_BLENDINGS] = {blend_screen32, blend_multiply32, blend_overlay32, blend_hardlight32, blend_dodge32, blend_half32};

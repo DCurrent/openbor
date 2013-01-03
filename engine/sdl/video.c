@@ -145,45 +145,9 @@ int video_set_mode(s_videomodes videomodes)
 
 void video_fullscreen_flip()
 {
-	size_t w, h;
-#ifndef OPENDINGUX
-	if(savedata.usegl) { video_gl_fullscreen_flip(); return; }
-#endif
 	savedata.fullscreen ^= 1;
 
-	if(savedata.fullscreen)
-	{
-		// OpenGL has better fullscreen than SDL
-		if(video_set_mode(stored_videomodes)) return;
-	}
-	else if(opengl)
-	{
-		// switch from OpenGL fullscreen to SDL windowed
-		if(video_set_mode(stored_videomodes)) return;
-		return;
-	}
-
-	// switch between SDL fullscreen and SDL windowed
-	if(screen) {
-		w = screen->w;
-		h = screen->h;
-		SDL_FreeVideoSurface(screen);
-	} else {
-		w = 320;
-		h = 240;
-	}
-
-	if(savedata.screen[videoMode][0])
-#ifdef OPENDINGUX
-		screen = SDL_SetVideoMode(w,h,16,savedata.fullscreen?(SDL_HWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
-#else
-		screen = SDL_SetVideoMode(w,h,16,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
-#endif
-	else
-		screen = SDL_SetVideoMode(w,h,8*bytes_per_pixel,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
-	SDL_ShowCursor(SDL_DISABLE);
-	SDL_SetColors(screen,colors,0,256);
-	if(bscreen) SDL_SetColors(bscreen,colors,0,256);
+	video_set_mode(stored_videomodes);
 }
 
 //16bit, scale 2x 4x 8x ...
@@ -286,11 +250,10 @@ int video_copy_screen(s_screen* src)
 	if(bscreen)
 	{
 		if(SDL_MUSTLOCK(bscreen)) SDL_UnlockSurface(bscreen);
-		if(bscreen2) SDL_BlitSurface(bscreen, NULL, bscreen2, &rectsrc);
-		else         SDL_BlitSurface(bscreen, NULL, screen, &rectsrc);
 		if(bscreen2)
 		{
-			if(bscreen2 && SDL_MUSTLOCK(bscreen2)) SDL_LockSurface(bscreen2);
+			SDL_BlitSurface(bscreen, NULL, bscreen2, &rectsrc);
+			if(SDL_MUSTLOCK(bscreen2)) SDL_LockSurface(bscreen2);
 			if(SDL_MUSTLOCK(screen)) SDL_LockSurface(screen);
 
 			if(savedata.screen[videoMode][0]==2) (*GfxBlitters[(int)savedata.screen[videoMode][1]])((u8*)bscreen2->pixels+bscreen2->pitch*4+4, bscreen2->pitch, pDeltaBuffer+bscreen2->pitch, (u8*)screen->pixels, screen->pitch, screen->w>>1, screen->h>>1);
@@ -299,6 +262,8 @@ int video_copy_screen(s_screen* src)
 			if(SDL_MUSTLOCK(bscreen2)) SDL_UnlockSurface(bscreen2);
 			if(SDL_MUSTLOCK(screen)) SDL_UnlockSurface(screen);
 		}
+		else
+			SDL_BlitSurface(bscreen, NULL, screen, &rectsrc);
 	}
 
 	SDL_Flip(screen);

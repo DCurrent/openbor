@@ -20,6 +20,7 @@ static int buffsize = 4096;
 static void callback(void *userdata, Uint8 *stream, int len)
 {
 	update_sample(stream,len);
+	//writeToLogFile("sb callback function is called\n");
 }
 
 static int started;

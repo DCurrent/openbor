@@ -126,6 +126,8 @@ void Script_Global_Init()
 	if(max_global_vars>0)
 	{
 		psize = (sizeof(s_variantnode*) * max_global_vars);
+		//UT: well, padding it just in case
+		if(psize%sizeof(s_variantnode)) psize += sizeof(s_variantnode)-psize%sizeof(s_variantnode);
 		csize = psize + (sizeof(s_variantnode) * max_global_vars);
 		global_var_list = calloc(1, csize);
 		assert(global_var_list != NULL);
@@ -141,13 +143,12 @@ void Script_Global_Init()
 		memset(global_var_list[i], 0, sizeof(s_variantnode));
 	} */
 	max_global_var_index = -1;
-	memset(&spawnentry, 0, sizeof(s_spawn_entry));//clear up the spawn entry
+	memset(&spawnentry, 0, sizeof(spawnentry));//clear up the spawn entry
 	drawmethod = plainmethod;
 
 	if(max_indexed_vars>0)
 	{
-		csize = sizeof(ScriptVariant)*(max_indexed_vars + 1);
-		indexed_var_list = (ScriptVariant*)calloc(1, csize);
+		indexed_var_list = calloc(max_indexed_vars + 1, sizeof(*indexed_var_list));
 		assert(indexed_var_list != NULL);
 	}
 	List_Init(&theFunctionList);
@@ -198,7 +199,7 @@ void Script_Global_Clear()
 	}
 	indexed_var_list = NULL;
 	max_global_var_index = -1;
-	memset(&spawnentry, 0, sizeof(s_spawn_entry));//clear up the spawn entry
+	memset(&spawnentry, 0, sizeof(spawnentry));//clear up the spawn entry
 	for(i=0; i<numfilestreams; i++)
 	{
 		if(filestreams[i].buf)
@@ -330,11 +331,11 @@ int Script_Set_Local_Variant(Script* cs, char* theName, ScriptVariant* var)
 Script* alloc_script()
 {
 	int i;
-	Script* pscript = (Script*)calloc(1, sizeof(Script));
+	Script* pscript = calloc(1, sizeof(*pscript));
 	pscript->magic = script_magic;
 	if(max_script_vars>0)
 	{
-		pscript->vars = (ScriptVariant*)calloc(max_script_vars, sizeof(ScriptVariant));
+		pscript->vars = calloc(max_script_vars, sizeof(*pscript->vars));
 		for(i=0; i<max_script_vars; i++) ScriptVariant_Init(pscript->vars+i);
 	}
 	return pscript;
@@ -345,22 +346,22 @@ void Script_Init(Script* pscript, char* theName, char* comment, int first)
 	int i;
 	if(first)
 	{
-		memset(pscript, 0, sizeof(Script));
+		memset(pscript, 0, sizeof(*pscript));
 		pscript->magic = script_magic;
 		if(max_script_vars>0)
 		{
-			pscript->vars = (ScriptVariant*)calloc(max_script_vars, sizeof(ScriptVariant));
+			pscript->vars = calloc(max_script_vars, sizeof(*pscript->vars));
 			for(i=0; i<max_script_vars; i++) ScriptVariant_Init(pscript->vars+i);
 		}
 	}
 	if(!theName || !theName[0])  return; // if no name specified, only alloc the variants
 
-	pscript->pinterpreter = (Interpreter*)malloc(sizeof(Interpreter));
+	pscript->pinterpreter = malloc(sizeof(*pscript->pinterpreter));
 	Interpreter_Init(pscript->pinterpreter, theName, &theFunctionList);
 	pscript->interpreterowner = 1; // this is the owner, important
 	pscript->initialized = 1;
 	if(comment){
-		pscript->comment = (char*)malloc(sizeof(char)*(strlen(comment)+1));
+		pscript->comment = malloc(sizeof(*pscript->comment)*(strlen(comment)+1));
 		strcpy(pscript->comment, comment);
 	}
 }
@@ -424,7 +425,7 @@ void Script_Clear(Script* pscript, int localclear)
 	}
 	if(localclear) Script_Local_Clear(pscript);
 	pvars = pscript->vars; // in game clear(localclear!=2) just keep this value
-	memset(pscript, 0, sizeof(Script));
+	memset(pscript, 0, sizeof(*pscript));
 	pscript->vars = pvars; // copy it back
 }
 
@@ -687,7 +688,7 @@ int Script_ReplaceInstructionList(Interpreter* pInterpreter, List* newList)
 
 	// replace new list with old list
 	List_Clear(&(pInterpreter->theInstructionList));
-	memcpy(&(pInterpreter->theInstructionList), newList, sizeof(List));
+	memcpy(&(pInterpreter->theInstructionList), newList, sizeof(*newList));
 
 	return 1;
 }
@@ -697,7 +698,7 @@ void Script_LowerConstants(Script* pscript)
 {
 	Interpreter* pinterpreter = pscript->pinterpreter;
 	Instruction* pInstruction, *pInstruction2;
-	List* newInstructionList = malloc(sizeof(List));
+	List* newInstructionList = malloc(sizeof(*newInstructionList));
 	int i, j, size;
 
 	List_Init(newInstructionList);
@@ -3372,7 +3373,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	int i				= 0;
 	int propind ;
 	int tempint			= 0;
-	short *coords;
+	int *coords;
 
 	if(paramCount < 2)  {
 		*pretvar = NULL;
@@ -7567,7 +7568,7 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 		size = ftell(handle);
 		//printf("\n file size %d fsindex %d\n", size, fsindex);
 		rewind(handle);
-		filestreams[fsindex].buf = (char*)malloc(sizeof(char)*(size+1));
+		filestreams[fsindex].buf = malloc(sizeof(*filestreams[fsindex].buf)*(size+1));
 		if(filestreams[fsindex].buf == NULL) {
             (*pretvar)->lVal = -1;
 			return S_OK;
@@ -7792,7 +7793,7 @@ HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretv
 	if(FAILED(ScriptVariant_IntegerValue(arg, &appendtype)))
 		return S_OK;
 
-	temp = (char*)malloc(sizeof(char)*(strlen(filestreams[filestreamindex].buf) + strlen(append) + 4));
+	temp = malloc(sizeof(*temp)*(strlen(filestreams[filestreamindex].buf) + strlen(append) + 4));
 	strcpy(temp, filestreams[filestreamindex].buf);
 
 	if(appendtype == 0)
@@ -7836,7 +7837,7 @@ HRESULT openbor_createfilestream(ScriptVariant** varlist , ScriptVariant** pretv
 
 	// Initialize the new filestream
 	filestreams[fsindex].pos = 0;
-	filestreams[fsindex].buf = (char*)malloc(sizeof(char)*128);
+	filestreams[fsindex].buf = malloc(sizeof(*filestreams[fsindex].buf)*128);
 	filestreams[fsindex].buf[0] = '\0';
 	return S_OK;
 }
@@ -8094,7 +8095,7 @@ checkrange_error:
 HRESULT openbor_clearspawnentry(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	*pretvar = NULL;
-	memset(&spawnentry, 0, sizeof(s_spawn_entry));
+	memset(&spawnentry, 0, sizeof(spawnentry));
 	spawnentry.index = spawnentry.itemindex = spawnentry.weaponindex = -1;
 	return S_OK;
 }
@@ -11093,7 +11094,7 @@ HRESULT openbor_setdrawmethod(ScriptVariant** varlist , ScriptVariant** pretvar,
 	if(e) pmethod = &(e->drawmethod);
 	else  pmethod = &(drawmethod);
 
-	memset(value, 0, sizeof(LONG)*14);
+	memset(value, 0, sizeof(value));
 	for(i=1; i<paramCount && i<13; i++)
 	{
 		if(FAILED(ScriptVariant_IntegerValue(varlist[i], value+i-1))) goto setdrawmethod_error;
@@ -11516,7 +11517,7 @@ HRESULT openbor_waypoints(ScriptVariant** varlist , ScriptVariant** pretvar, int
 	num = (paramCount-1)/2;
 	if(num>0) {
 		//append
-		wp = (point2d*)malloc(sizeof(point2d)*(num+e->numwaypoints));
+		wp = malloc(sizeof(*wp)*(num+e->numwaypoints));
 
 		for(i=0; i<num ; i++){
 			if(FAILED(ScriptVariant_DecimalValue(varlist[1], &x)))

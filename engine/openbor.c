@@ -47,6 +47,9 @@ s_set_entry *levelsets = NULL;
 int        num_difficulties;
 
 int		skiptoset = -1;
+//when there are more entities than this, those with lower priority will be erased
+int spawnoverride = 999999;
+int maxentities = 999999;
 
 s_level*            level               = NULL;
 s_filestream* filestreams = NULL;
@@ -381,7 +384,7 @@ int					defaultmaxplayers	= 2;
 u32                 go_time             = 0;
 u32                 time                = 0;
 u32                 newtime             = 0;
-unsigned char       slowmotion[3]       = {0,2,0};              // [0] = enable/disable; [1] = duration; [2] = counter;
+unsigned            slowmotion[3]       = {0,2,0};              // [0] = enable/disable; [1] = duration; [2] = counter;
 int                 disablelog          = 0;
 int                 currentspawnplayer  = 0;
 int					ent_list_size		= 0;
@@ -517,13 +520,13 @@ s_barstatus         olbarstatus =                               // Used for cust
 };
 int                 timeloc[6]			= {0,0,0,0,0,-1};		// Used for customizable timeclock location/size
 int                 timeicon			= -1;
-short               timeicon_offsets[2] = {0,0};
+int                 timeicon_offsets[2] = {0,0};
 char                timeicon_path[128]  = {""};
 int                 bgicon   			= -1;
-short               bgicon_offsets[3]	= {0,0,0};
+int                 bgicon_offsets[3]	= {0,0,0};
 char                bgicon_path[128]    = {""};
 int                 olicon    			= -1;
-short               olicon_offsets[3]	= {0,0,0};
+int                 olicon_offsets[3]	= {0,0,0};
 char                olicon_path[128]    = {""};
 int                 elife[4][2]         = {{0,0},{0,0},{0,0},{0,0}};// Used for customizable enemy lifebar
 int                 ename[4][3]         = {{0,0,-1},{0,0,-1},{0,0,-1},{0,0,-1}};// Used for customizable enemy name
@@ -675,7 +678,7 @@ int isLoadingScreenTypeBar(loadingScreenType what) {
 	return (what & LSTYPE_BAR) == LSTYPE_BAR;
 }
 
-char* fill_s_loadingbar(s_loadingbar* s, char set, short bx, short by, short bsize, short tx, short ty, char tf, int ms) {
+char* fill_s_loadingbar(s_loadingbar* s, int set, int bx, int by, int bsize, int tx, int ty, int tf, int ms) {
 	switch (set) {
 		case 1: s->set = (LSTYPE_BACKGROUND | LSTYPE_BAR); break;
 		case 2: s->set = LSTYPE_BACKGROUND; break;
@@ -1229,11 +1232,11 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 		break;
 	case _sv_slowmotion:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
-			slowmotion[0] = (unsigned char)ltemp;
+			slowmotion[0] = (unsigned)ltemp;
 		break;
 	case _sv_slowmotion_duration:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
-			slowmotion[1] = (unsigned char)ltemp;
+			slowmotion[1] = (unsigned)ltemp;
 		break;
 	case _sv_lasthitx:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
@@ -2288,7 +2291,7 @@ void savesettings(){
 	strcat(path, tmpname);
 	handle = fopen(path, "wb");
 	if(handle==NULL) return;
-    fwrite(&savedata, 1, sizeof(s_savedata), handle);
+    fwrite(&savedata, 1, sizeof(savedata), handle);
 	fclose(handle);
 #endif
 }
@@ -2301,7 +2304,7 @@ void saveasdefault(){
 	strncat(path, "default.cfg", 128);
 	handle = fopen(path, "wb");
 	if(handle==NULL) return;
-    fwrite(&savedata, 1, sizeof(s_savedata), handle);
+    fwrite(&savedata, 1, sizeof(savedata), handle);
 	fclose(handle);
 #endif
 }
@@ -2323,7 +2326,7 @@ void loadsettings(){
 	clearsettings();
 	handle = fopen(path, "rb");
 	if(handle == NULL) return;
-    fread(&savedata, 1, sizeof(s_savedata), handle);
+    fread(&savedata, 1, sizeof(savedata), handle);
 	fclose(handle);
 	if(savedata.compatibleversion != COMPATIBLEVERSION) clearsettings();
 #else
@@ -2340,7 +2343,7 @@ void loadfromdefault(){
 	clearsettings();
 	handle = fopen(path, "rb");
 	if(handle == NULL) return;
-    fread(&savedata, 1, sizeof(s_savedata), handle);
+    fread(&savedata, 1, sizeof(savedata), handle);
 	fclose(handle);
 	if(savedata.compatibleversion != COMPATIBLEVERSION) clearsettings();
 #else
@@ -2352,7 +2355,7 @@ void loadfromdefault(){
 
 
 void clearSavedGame(){
-	memset(savelevel, 0, sizeof(s_savelevel)*num_difficulties);
+	memset(savelevel, 0, sizeof(*savelevel)*num_difficulties);
 }
 
 
@@ -2379,7 +2382,7 @@ int saveGameFile(){
 	//if(!savelevel[saveslot].level) return;
 	handle = fopen(path, "wb");
 	if(handle == NULL) return 0;
-    fwrite(savelevel, sizeof(s_savelevel), num_difficulties, handle);
+    fwrite(savelevel, sizeof(*savelevel), num_difficulties, handle);
 	fclose(handle);
 	return 1;
 #else
@@ -2399,7 +2402,7 @@ int loadGameFile(){
 	strcat(path,tmpname);
 	handle = fopen(path, "rb");
 	if(handle == NULL) return 0;
-    if(fread(savelevel, sizeof(s_savelevel), num_difficulties, handle)>=sizeof(s_savelevel) && savelevel[0].compatibleversion!=CV_SAVED_GAME){ //TODO: check file length
+    if(fread(savelevel, sizeof(*savelevel), num_difficulties, handle)>=sizeof(*savelevel) && savelevel[0].compatibleversion!=CV_SAVED_GAME){ //TODO: check file length
 		clearSavedGame();
 		result = 0;
 	}
@@ -2422,7 +2425,7 @@ int saveHighScoreFile(){
 	strcat(path, tmpname);
 	handle = fopen(path, "wb");
 	if(handle == NULL) return 0;
-    fwrite(&savescore, 1, sizeof(s_savescore), handle);
+    fwrite(&savescore, 1, sizeof(savescore), handle);
 	fclose(handle);
 	return 1;
 #else
@@ -2442,7 +2445,7 @@ int loadHighScoreFile(){
 	clearHighScore();
 	handle = fopen(path, "rb");
 	if(handle == NULL) return 0;
-    fread(&savescore, 1, sizeof(s_savescore), handle);
+    fread(&savescore, 1, sizeof(savescore), handle);
 	fclose(handle);
 	if(savescore.compatibleversion != CV_HIGH_SCORE) {
 		clearHighScore();
@@ -2872,7 +2875,7 @@ int load_colourmap(s_model * model, char *image1, char *image2)
 // This function should be called when all colourmaps are loaded, e.g.,
 // at the end of load_cached_model
 // map flag is used to determine whether a colourmap is a real colourmap
-int convert_map_to_palette(s_model* model, unsigned char mapflag[])
+int convert_map_to_palette(s_model* model, unsigned mapflag[])
 {
 	int i, c;
 	unsigned char *newmap, *oldmap;
@@ -2978,7 +2981,7 @@ int create_blending_tables(unsigned char* palette, unsigned char* tables[], int 
 	if(pixelformat!=PIXEL_8) return 1;
 	if(!palette || !tables) return 0;
 
-	memset(tables, 0, MAX_BLENDINGS*sizeof(unsigned char*));
+	memset(tables, 0, MAX_BLENDINGS*sizeof(*tables));
 	for(i=0; i<MAX_BLENDINGS; i++)
 	{
 		if(!usemap || usemap[i])
@@ -3036,8 +3039,8 @@ void change_system_palette(int palindex)
 
 // Load colour 0-127 from data/pal.act
 void standard_palette(int immediate){
-	unsigned char* pp[MAX_PAL_SIZE] = {0};
-	if(load_palette((unsigned char*)pp, "data/pal.act"))
+	unsigned char pp[MAX_PAL_SIZE] = {0};
+	if(load_palette(pp, "data/pal.act"))
 	{
 		memcpy(pal, pp, (PAL_BYTES)/2);
 	}
@@ -3195,7 +3198,7 @@ void init_colourtable()
 	hpcolourtable[9]  = color_white;
 	hpcolourtable[10] = color_white;
 
-	memcpy(ldcolourtable, hpcolourtable, 11*sizeof(int));
+	memcpy(ldcolourtable, hpcolourtable, 11*sizeof(*hpcolourtable));
 }
 
 void load_background(char *filename, int createtables)
@@ -3461,7 +3464,7 @@ void resourceCleanUp(){
 
 void freesprites()
 {
-	unsigned short i;
+	unsigned i;
 	s_sprite_list *head;
 	for(i=0; i<=sprites_loaded; i++)
 	{
@@ -3493,7 +3496,7 @@ void prepare_sprite_map(size_t size)
 		printf("%s %p\n", "prepare_sprite_map was", sprite_map);
 #endif
 		sprite_map_max_items = (((size+1)>>8)+1)<<8;
-		sprite_map = realloc(sprite_map, sizeof(s_sprite_map) * sprite_map_max_items);
+		sprite_map = realloc(sprite_map, sizeof(*sprite_map) * sprite_map_max_items);
 		if(sprite_map == NULL) shutdown(1, "Out Of Memory!  Failed to create a new sprite_map\n");
 	}
 }
@@ -3557,7 +3560,7 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
 
 	len = strlen(filename);
 	size = fakey_encodesprite(bitmap);
-	curr = malloc(sizeof(s_sprite_list));
+	curr = malloc(sizeof(*curr));
 	curr->sprite = malloc(size);
 	curr->filename = malloc(len + 1);
 	if(curr == NULL || curr->sprite == NULL || curr->filename == NULL){
@@ -3591,7 +3594,7 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
 
 void load_special_sprites()
 {
-	memset(shadowsprites, -1, sizeof(shadowsprites[0])*6);
+	memset(shadowsprites, -1, sizeof(*shadowsprites)*6);
 	golsprite = gosprite = -1;
 	if(testpackfile("data/sprites/shadow1.gif", packfile) >=0) shadowsprites[0] = loadsprite("data/sprites/shadow1",9,3,pixelformat);
 	if(testpackfile("data/sprites/shadow2.gif", packfile) >=0) shadowsprites[1] = loadsprite("data/sprites/shadow2",14,5,pixelformat);
@@ -3798,18 +3801,18 @@ static void load_playable_list(char* buf)
 }
 
 void alloc_specials(s_model* newchar){
-	newchar->special = realloc(newchar->special, sizeof(s_com)*(newchar->specials_loaded+1));
-	memset(newchar->special+newchar->specials_loaded, 0, sizeof(s_com));
+	newchar->special = realloc(newchar->special, sizeof(*newchar->special)*(newchar->specials_loaded+1));
+	memset(newchar->special+newchar->specials_loaded, 0, sizeof(*newchar->special));
 }
 
 void alloc_frames(s_anim * anim, int fcount)
 {
-	anim->sprite = malloc(fcount * sizeof(anim->sprite));
-	anim->delay = malloc(fcount * sizeof(anim->delay));
-	anim->vulnerable = malloc(fcount * sizeof(anim->vulnerable));
-	memset(anim->sprite, 0, fcount*sizeof(anim->sprite));
-	memset(anim->delay, 0, fcount*sizeof(anim->delay));
-	memset(anim->vulnerable, 0, fcount*sizeof(anim->vulnerable));
+	anim->sprite = malloc(fcount * sizeof(*anim->sprite));
+	anim->delay = malloc(fcount * sizeof(*anim->delay));
+	anim->vulnerable = malloc(fcount * sizeof(*anim->vulnerable));
+	memset(anim->sprite, 0, fcount*sizeof(*anim->sprite));
+	memset(anim->delay, 0, fcount*sizeof(*anim->delay));
+	memset(anim->vulnerable, 0, fcount*sizeof(*anim->vulnerable));
 }
 
 void free_frames(s_anim * anim)
@@ -4050,10 +4053,10 @@ s_anim * alloc_anim()
 {
 	static int animindex = 0;
 	s_anim_list *curr = NULL, *head = NULL;
-	curr = malloc(sizeof(s_anim_list));
-	curr->anim = malloc(sizeof(s_anim));
+	curr = malloc(sizeof(*curr));
+	curr->anim = malloc(sizeof(*curr->anim));
 	if(curr == NULL || curr->anim == NULL) return NULL;
-	memset(curr->anim, 0, sizeof(s_anim));
+	memset(curr->anim, 0, sizeof(*curr->anim));
 	curr->anim->index = animindex++;
 	if(anim_list == NULL){
 		anim_list = curr;
@@ -4069,9 +4072,9 @@ s_anim * alloc_anim()
 }
 
 
-int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned char idle,
-			 short *bbox, s_attack* attack, short move, short movez, short movea, 
-			 short seta, float* platform, int frameshadow, short* shadow_coords, int soundtoplay, s_drawmethod* drawmethod)
+int addframe(s_anim * a, int spriteindex, int framecount, int delay, unsigned idle,
+			 int *bbox, s_attack* attack, int move, int movez, int movea, 
+			 int seta, float* platform, int frameshadow, int* shadow_coords, int soundtoplay, s_drawmethod* drawmethod)
 {
 	ptrdiff_t currentframe;
 	if(framecount>0) alloc_frames(a, framecount);
@@ -4098,22 +4101,22 @@ int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned 
 	{
 		if(!a->attacks)
 		{
-			a->attacks = malloc(framecount * sizeof(s_attack*));
-			memset(a->attacks, 0, framecount * sizeof(s_attack*));
+			a->attacks = malloc(framecount * sizeof(*a->attacks));
+			memset(a->attacks, 0, framecount * sizeof(*a->attacks));
 		}
-		a->attacks[currentframe] = malloc(sizeof(s_attack));
-		memcpy(a->attacks[currentframe], attack, sizeof(s_attack));
+		a->attacks[currentframe] = malloc(sizeof(**a->attacks));
+		memcpy(a->attacks[currentframe], attack, sizeof(**a->attacks));
 	}
 	if(drawmethod->flag)
 	{
 		if(!a->drawmethods)
 		{
-			a->drawmethods = malloc(framecount * sizeof(s_drawmethod*));
-			memset(a->drawmethods, 0, framecount * sizeof(s_drawmethod*));
+			a->drawmethods = malloc(framecount * sizeof(*a->drawmethods));
+			memset(a->drawmethods, 0, framecount * sizeof(*a->drawmethods));
 		}
-		setDrawMethod(a, currentframe, malloc(sizeof(s_drawmethod)));
+		setDrawMethod(a, currentframe, malloc(sizeof(**a->drawmethods)));
 		//a->drawmethods[currenframe] = malloc(sizeof(s_drawmethod));
-		memcpy(getDrawMethod(a,currentframe), drawmethod, sizeof(s_drawmethod));
+		memcpy(getDrawMethod(a,currentframe), drawmethod, sizeof(**a->drawmethods));
 		//memcpy(a->drawmethods[currentframe], drawmethod, sizeof(s_drawmethod));
 	}
 	if(idle && !a->idle)
@@ -4240,7 +4243,7 @@ void prepare_cache_map(size_t size)
 		}
 		while (size + 1 > cache_map_max_items);
 
-		model_cache = realloc(model_cache, sizeof(s_modelcache) * cache_map_max_items);
+		model_cache = realloc(model_cache, sizeof(*model_cache) * cache_map_max_items);
 		if(model_cache == NULL) shutdown(1, "Out Of Memory!  Failed to create a new cache_map\n");
 	}
 }
@@ -4250,7 +4253,7 @@ void cache_model(char *name, char *path, int flag)
 	int len;
 	printf("Cacheing '%s' from %s\n", name, path);
 	prepare_cache_map(models_cached+1);
-	memset(&model_cache[models_cached], 0, sizeof(s_modelcache));
+	memset(&model_cache[models_cached], 0, sizeof(model_cache[models_cached]));
 
 	len = strlen(name);
 	model_cache[models_cached].name = malloc(len + 1);
@@ -4521,7 +4524,7 @@ void lcmHandleCommandSubtype(ArgList* arglist, s_model* newchar, char* filename)
 void lcmHandleCommandSmartbomb(ArgList* arglist, s_model* newchar, char* filename) {
 	//smartbomb now use a normal attack box
 	if(!newchar->smartbomb) {
-		newchar->smartbomb = malloc(sizeof(s_attack));
+		newchar->smartbomb = malloc(sizeof(*newchar->smartbomb));
 		*(newchar->smartbomb) = emptyattack;
 	} else shutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
 
@@ -4765,17 +4768,19 @@ s_model* init_model(int cacheindex, int unload) {
 	//to free: newchar, newchar->offense_factors, newchar->special, newchar->animation - OK
 	int i;
 
-	s_model* newchar = calloc(1, sizeof(s_model));
+	s_model* newchar = calloc(1, sizeof(*newchar));
 	if(!newchar) shutdown(1, (char*)E_OUT_OF_MEMORY);
 	newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
 	newchar->index = cacheindex;
 	newchar->isSubclassed = 0;
 	newchar->freetypes = MF_ALL;
 
-	newchar->defense		        = (s_defense*)calloc(max_attack_types + 1, sizeof(s_defense));
-	newchar->offense_factors        = (float*)calloc(max_attack_types + 1, sizeof(float));
+	newchar->priority = 1;
 
-	newchar->special                = (s_com*)calloc(1, sizeof(s_com));
+	newchar->defense		        = calloc(max_attack_types + 1, sizeof(*newchar->defense));
+	newchar->offense_factors        = calloc(max_attack_types + 1, sizeof(*newchar->offense_factors));
+
+	newchar->special                = calloc(1, sizeof(*newchar->special));
 
 	alloc_all_scripts(&newchar->scripts);
 
@@ -4846,7 +4851,7 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->attackthrottle				= 0.0f;
 	newchar->attackthrottletime			= noatk_duration*GAME_SPEED;
 
-	newchar->animation = (s_anim**)calloc(max_animations, sizeof(s_anim*));
+	newchar->animation = calloc(max_animations, sizeof(*newchar->animation));
 	if(!newchar->animation) shutdown(1, (char*)E_OUT_OF_MEMORY);
 
 	// default string value, only by reference
@@ -4932,7 +4937,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	ptrdiff_t pos = 0,
 		index = 0;
 
-	short bbox[6] = { 0,0,0,0,0,0 },
+	int bbox[6] = { 0,0,0,0,0,0 },
 		bbox_con[6] = { 0,0,0,0,0,0 },
 		abox[6] = { 0,0,0,0,0,0 },
 		offset[2] = { 0,0 },
@@ -4949,7 +4954,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	s_drawmethod drawmethod;
 
-	unsigned char* mapflag = NULL; // in 24bit mode, we need to know whether a colourmap is a common map or a palette
+	unsigned * mapflag = NULL; // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
 	static const char* pre_text =  // this is the skeleton of frame function
 		"void main()\n"
@@ -5073,6 +5078,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_HEALTH:
 					value = GET_ARG(1);
 					newchar->health = atoi(value);
+					break;
+				case CMD_MODEL_PRIORITY:
+					value = GET_ARG(1);
+					newchar->priority = atoi(value);
 					break;
 				case CMD_MODEL_SCROLL:
 					value = GET_ARG(1);
@@ -5747,16 +5756,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						value2 = GET_ARG(2);
 						__realloc(mapflag, newchar->maps_loaded);
 						errorVal = load_colourmap(newchar, value, value2);
-						if(pixelformat==PIXEL_x8 && newchar->palette==NULL)
-						{
-							newchar->palette = malloc(PAL_BYTES);
-							if(loadimagepalette(value, packfile, newchar->palette)==0) {
-								shutdownmessage = "Failed to load palette!";
-								goto lCleanup;
-							}
-						}
-						mapflag[newchar->maps_loaded-1] = 1;
-						if(!errorVal){
+
+						if(0>=errorVal){
 							switch(errorVal){
 								case 0: // uhm wait, we just tested for !errorVal...
 									shutdownmessage = "Failed to create colourmap. Image Used Twice!";
@@ -5771,15 +5772,25 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 									goto lCleanup;
 									break;
 								case -3:
-									shutdownmessage = "Failed to create colourmap. Failed to create bitmap1";
+									shutdownmessage = "Failed to create colourmap. Failed to load file 1";
 									goto lCleanup;
 									break;
 								case -4:
-									shutdownmessage = "Failed to create colourmap. Failed to create bitmap2";
+									shutdownmessage = "Failed to create colourmap. Failed to load file 2";
 									goto lCleanup;
 									break;
 							}
 						}
+
+						if(pixelformat==PIXEL_x8 && newchar->palette==NULL)
+						{
+							newchar->palette = malloc(PAL_BYTES);
+							if(loadimagepalette(value, packfile, newchar->palette)==0) {
+								shutdownmessage = "Failed to load palette!";
+								goto lCleanup;
+							}
+						}
+						mapflag[newchar->maps_loaded-1] = 1;
 					}
 					break;
 				case CMD_MODEL_PALETTE:
@@ -7240,7 +7251,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							shadow_coords[0] = shadow_coords[1] = 0;
 						}
 
-						curframe = addframe(newanim, index, framecount, delay, (unsigned char)idle,
+						curframe = addframe(newanim, index, framecount, delay, idle,
 								bbox_con, &attack, move, movez,
 								movea, seta, platform_con, frameshadow, shadow_coords, soundtoplay, &drawmethod);
 
@@ -7304,8 +7315,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(value[0]) newanim->subentity = get_cached_model_index(value);
 					break;
 				case CMD_MODEL_SPAWNFRAME:
-					newanim->spawnframe    = malloc(5 * sizeof(newanim->spawnframe));
-					memset(newanim->spawnframe, 0, 5 * sizeof(newanim->spawnframe));
+					newanim->spawnframe    = malloc(5 * sizeof(*newanim->spawnframe));
+					memset(newanim->spawnframe, 0, 5 * sizeof(*newanim->spawnframe));
 					newanim->spawnframe[0] = GET_FRAME_ARG(1);
 					newanim->spawnframe[1] = GET_FLOAT_ARG(2);
 					newanim->spawnframe[2] = GET_FLOAT_ARG(3);
@@ -7313,8 +7324,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newanim->spawnframe[4] = GET_FLOAT_ARG(5);
 					break;
 				case CMD_MODEL_SUMMONFRAME:
-					newanim->summonframe    = malloc(5 * sizeof(newanim->summonframe));
-					memset(newanim->summonframe, 0, 5 * sizeof(newanim->summonframe));
+					newanim->summonframe    = malloc(5 * sizeof(*newanim->summonframe));
+					memset(newanim->summonframe, 0, 5 * sizeof(*newanim->summonframe));
 					newanim->summonframe[0] = GET_FRAME_ARG(1);
 					newanim->summonframe[1] = GET_FLOAT_ARG(2);
 					newanim->summonframe[2] = GET_FLOAT_ARG(3);
@@ -7930,49 +7941,49 @@ int load_models()
 			(max_backwalks - MAX_BACKWALKS);
 
 	// alloc indexed animation ids
-	animdowns       = (int*)malloc(sizeof(int)*max_downs);
-	animups         = (int*)malloc(sizeof(int)*max_ups);
-	animbackwalks   = (int*)malloc(sizeof(int)*max_backwalks);
-	animwalks       = (int*)malloc(sizeof(int)*max_walks);
-	animidles       = (int*)malloc(sizeof(int)*max_idles);
-	animpains       = (int*)malloc(sizeof(int)*max_attack_types);
-	animdies        = (int*)malloc(sizeof(int)*max_attack_types);
-	animfalls       = (int*)malloc(sizeof(int)*max_attack_types);
-	animrises       = (int*)malloc(sizeof(int)*max_attack_types);
-	animriseattacks = (int*)malloc(sizeof(int)*max_attack_types);
-	animblkpains    = (int*)malloc(sizeof(int)*max_attack_types);
-	animattacks     = (int*)malloc(sizeof(int)*max_attacks);
-	animfollows     = (int*)malloc(sizeof(int)*max_follows);
-	animspecials    = (int*)malloc(sizeof(int)*max_freespecials);
+	animdowns = malloc(sizeof(*animdowns)*max_downs);
+	animups = malloc(sizeof(*animups)*max_ups);
+	animbackwalks = malloc(sizeof(*animbackwalks)*max_backwalks);
+	animwalks = malloc(sizeof(*animwalks)*max_walks);
+	animidles = malloc(sizeof(*animidles)*max_idles);
+	animpains = malloc(sizeof(*animpains)*max_attack_types);
+	animdies = malloc(sizeof(*animdies)*max_attack_types);
+	animfalls = malloc(sizeof(*animfalls)*max_attack_types);
+	animrises = malloc(sizeof(*animrises)*max_attack_types);
+	animriseattacks = malloc(sizeof(*animriseattacks)*max_attack_types);
+	animblkpains = malloc(sizeof(*animblkpains)*max_attack_types);
+	animattacks = malloc(sizeof(*animattacks)*max_attacks);
+	animfollows = malloc(sizeof(*animfollows)*max_follows);
+	animspecials = malloc(sizeof(*animspecials)*max_freespecials);
 
 	// copy default values and new animation ids
-	memcpy(animdowns, downs, sizeof(int)*MAX_DOWNS);
+	memcpy(animdowns, downs, sizeof(*animdowns)*MAX_DOWNS);
 	for(i=MAX_DOWNS; i<max_downs; i++) animdowns[i] = maxanim++;
-	memcpy(animups, ups, sizeof(int)*MAX_UPS);
+	memcpy(animups, ups, sizeof(*animups)*MAX_UPS);
 	for(i=MAX_UPS; i<max_ups; i++) animups[i] = maxanim++;
-	memcpy(animbackwalks, backwalks, sizeof(int)*MAX_BACKWALKS);
+	memcpy(animbackwalks, backwalks, sizeof(*animbackwalks)*MAX_BACKWALKS);
 	for(i=MAX_BACKWALKS; i<max_backwalks; i++) animbackwalks[i] = maxanim++;
-	memcpy(animwalks, walks, sizeof(int)*MAX_WALKS);
+	memcpy(animwalks, walks, sizeof(*animwalks)*MAX_WALKS);
 	for(i=MAX_WALKS; i<max_walks; i++) animwalks[i] = maxanim++;
-	memcpy(animidles, idles, sizeof(int)*MAX_IDLES);
+	memcpy(animidles, idles, sizeof(*animidles)*MAX_IDLES);
 	for(i=MAX_IDLES; i<max_idles; i++) animidles[i] = maxanim++;
-	memcpy(animspecials, freespecials,   sizeof(int)*MAX_SPECIALS);
+	memcpy(animspecials, freespecials,   sizeof(*animspecials)*MAX_SPECIALS);
 	for(i=MAX_SPECIALS; i<max_freespecials; i++) animspecials[i] = maxanim++;
-	memcpy(animattacks,  normal_attacks, sizeof(int)*MAX_ATTACKS);
+	memcpy(animattacks,  normal_attacks, sizeof(*animattacks)*MAX_ATTACKS);
 	for(i=MAX_ATTACKS; i<max_attacks; i++) animattacks[i] = maxanim++;
-	memcpy(animfollows,  follows,        sizeof(int)*MAX_FOLLOWS);
+	memcpy(animfollows,  follows,        sizeof(*animfollows)*MAX_FOLLOWS);
 	for(i=MAX_FOLLOWS; i<max_follows; i++) animfollows[i] = maxanim++;
-	memcpy(animpains,    pains,          sizeof(int)*MAX_ATKS);
+	memcpy(animpains,    pains,          sizeof(*animpains)*MAX_ATKS);
 	for(i=MAX_ATKS; i<max_attack_types; i++) animpains[i] = maxanim++;
-	memcpy(animfalls,    falls,          sizeof(int)*MAX_ATKS);
+	memcpy(animfalls,    falls,          sizeof(*animfalls)*MAX_ATKS);
 	for(i=MAX_ATKS; i<max_attack_types; i++) animfalls[i] = maxanim++;
-	memcpy(animrises,    rises,          sizeof(int)*MAX_ATKS);
+	memcpy(animrises,    rises,          sizeof(*animrises)*MAX_ATKS);
 	for(i=MAX_ATKS; i<max_attack_types; i++) animrises[i] = maxanim++;
-	memcpy(animriseattacks,    riseattacks,          sizeof(int)*MAX_ATKS);
+	memcpy(animriseattacks,    riseattacks,          sizeof(*animriseattacks)*MAX_ATKS);
 	for(i=MAX_ATKS; i<max_attack_types; i++) animriseattacks[i] = maxanim++;
-	memcpy(animblkpains,    blkpains,    sizeof(int)*MAX_ATKS);
+	memcpy(animblkpains,    blkpains,    sizeof(*animblkpains)*MAX_ATKS);
 	for(i=MAX_ATKS; i<max_attack_types; i++) animblkpains[i] = maxanim++;
-	memcpy(animdies,     deaths,         sizeof(int)*MAX_ATKS);
+	memcpy(animdies,     deaths,         sizeof(*animdies)*MAX_ATKS);
 	for(i=MAX_ATKS; i<max_attack_types; i++) animdies[i] = maxanim++;
 
 	// Defer load_cached_model, so you can define models after their nested model.
@@ -8045,9 +8056,9 @@ s_level_entry* add_level(char *filename, s_set_entry* set){
 	if(z_coords[2] > 0) Zs[2] = z_coords[2];
 	else Zs[2] = PLAYER_MIN_Z;
 
-	set->levelorder = realloc(set->levelorder, (++set->numlevels)*sizeof(s_level_entry));
+	set->levelorder = realloc(set->levelorder, (++set->numlevels)*sizeof(*set->levelorder));
 	le = set->levelorder + set->numlevels-1;
-	memset(le, 0, sizeof(s_level_entry));
+	memset(le, 0, sizeof(*le));
 	if(branch_name[0])
 		le->branchname = NAME(branch_name);
 	le->filename = NAME(filename);
@@ -8063,9 +8074,9 @@ s_level_entry* add_level(char *filename, s_set_entry* set){
 s_level_entry* add_scene(char *filename, s_set_entry* set){
 	s_level_entry* le = NULL;
 
-	set->levelorder = realloc(set->levelorder, (++set->numlevels)*sizeof(s_level_entry));
+	set->levelorder = realloc(set->levelorder, (++set->numlevels)*sizeof(*set->levelorder));
 	le = set->levelorder + set->numlevels-1;
-	memset(le, 0, sizeof(s_level_entry));
+	memset(le, 0, sizeof(*le));
 	if(branch_name[0])
 		le->branchname = NAME(branch_name);
 	le->filename = NAME(filename);
@@ -8077,9 +8088,9 @@ s_level_entry* add_scene(char *filename, s_set_entry* set){
 s_level_entry* add_select(char *filename, s_set_entry* set){
 	s_level_entry* le = NULL;
 
-	set->levelorder = realloc(set->levelorder, (++set->numlevels)*sizeof(s_level_entry));
+	set->levelorder = realloc(set->levelorder, (++set->numlevels)*sizeof(*set->levelorder));
 	le = set->levelorder + set->numlevels-1;
-	memset(le, 0, sizeof(s_level_entry));
+	memset(le, 0, sizeof(*le));
 	if(branch_name[0])
 		le->branchname = NAME(branch_name);
 	le->filename = NAME(filename);
@@ -8117,10 +8128,10 @@ static void _readbarstatus(char* buf, s_barstatus* pstatus)
 s_set_entry* add_set(){
 	s_set_entry* set = NULL;
 	++num_difficulties;
-	if(levelsets) levelsets = realloc(levelsets, sizeof(s_set_entry)*num_difficulties);
-	else levelsets = calloc(1, sizeof(s_set_entry));
+	if(levelsets) levelsets = realloc(levelsets, sizeof(*levelsets)*num_difficulties);
+	else levelsets = calloc(1, sizeof(*levelsets));
 	set = levelsets+num_difficulties-1;
-	memset(set, 0, sizeof(s_set_entry));
+	memset(set, 0, sizeof(*set));
 	set->maxplayers = defaultmaxplayers;
 	return set;
 }
@@ -8185,7 +8196,7 @@ void load_levelorder()
 	pmp[0][1] = pmp[1][1] = 18;
 	pmp[2][1] = pmp[3][1] = 218;
 
-	memset(psmenu, 0, sizeof(int)*4*4);
+	memset(psmenu, 0, sizeof(psmenu));
 
 	eicon[0][1] = eicon[1][1] = 19;
 	eicon[2][1] = eicon[3][1] = 220;
@@ -8653,6 +8664,12 @@ void load_levelorder()
 			case CMD_LEVELORDER_SKIPTOSET:
 				skiptoset = GET_INT_ARG(1);
 				break;
+			case CMD_LEVELORDER_SPAWNOVERRIDE:
+				spawnoverride = GET_INT_ARG(1);
+				break;
+			case CMD_LEVELORDER_MAXENTITIES:
+				maxentities = GET_INT_ARG(1);
+				break;
 			default:
 				if (command && command[0])
 					printf("Command '%s' not understood in level order!", command);
@@ -8730,7 +8747,7 @@ void load_levelorder()
 	if(buf)
 		free(buf);
 
-	if(!savelevel) savelevel = calloc(num_difficulties, sizeof(s_savelevel));
+	if(!savelevel) savelevel = calloc(num_difficulties, sizeof(*savelevel));
 
 	if(errormessage)
 		shutdown(1, "load_levelorder ERROR in %s at %d, msg: %s\n", filename, line, errormessage);
@@ -8913,10 +8930,10 @@ char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
 		{
 			templistnode = templistnode->next;
 		}
-		templistnode->next = malloc(sizeof(s_spawn_script_list_node));
+		templistnode->next = malloc(sizeof(*templistnode->next));
 		templistnode = templistnode->next;
 	} else	{
-		next->spawn_script_list_head = malloc(sizeof(s_spawn_script_list_node));
+		next->spawn_script_list_head = malloc(sizeof(*next->spawn_script_list_head));
 		templistnode = next->spawn_script_list_head;
 	}
 	templistnode->spawn_script = NULL;
@@ -8943,7 +8960,7 @@ char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
 			len = strlen(value);
 
 			if(tempnode) {
-				tempnode2 = malloc(sizeof(s_spawn_script_cache_node));
+				tempnode2 = malloc(sizeof(*tempnode2));
 				tempnode2->cached_spawn_script = templistnode->spawn_script;
 				tempnode2->filename = malloc(len + 1);
 				strcpy(tempnode2->filename, value);
@@ -8951,7 +8968,7 @@ char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
 				tempnode2->next = NULL;
 				tempnode->next = tempnode2;
 			} else {
-				level->spawn_script_cache_head = malloc(sizeof(s_spawn_script_cache_node));
+				level->spawn_script_cache_head = malloc(sizeof(*level->spawn_script_cache_head));
 				level->spawn_script_cache_head->cached_spawn_script = templistnode->spawn_script;
 				level->spawn_script_cache_head->filename = malloc(len + 1);
 				level->spawn_script_cache_head->next = NULL;
@@ -9029,9 +9046,9 @@ void load_level(char *filename){
 
 	update_loading(&loadingbg[1], -1, 1); // initialize the update screen
 
-	memset(&next, 0, sizeof(s_spawn_entry));
+	memset(&next, 0, sizeof(next));
 
-	level = calloc(1,sizeof(s_level));
+	level = calloc(1,sizeof(*level));
 	if(!level) {
 		errormessage = "load_level() #1 FATAL: Out of memory!";
 		goto lCleanup;
@@ -9093,7 +9110,7 @@ void load_level(char *filename){
 				update_loading(&bgPosi, -1, 1); // initialize the update screen
 				break;
 			case CMD_LEVEL_MUSICFADE:
-				memset(&next,0,sizeof(s_spawn_entry));
+				memset(&next,0,sizeof(next));
 				next.musicfade = GET_FLOAT_ARG(1);
 				break;
 			case CMD_LEVEL_MUSIC:
@@ -9116,7 +9133,7 @@ void load_level(char *filename){
 						cmd2 = (levelCommands) 0;
 
 					if(cmd2 == CMD_LEVEL_AT) {
-						if(next.musicfade == 0) memset(&next,0,sizeof(s_spawn_entry));
+						if(next.musicfade == 0) memset(&next,0,sizeof(next));
 						strncpy(next.music, string, 128);
 						next.musicoffset = musicOffset;
 					} else {
@@ -9540,25 +9557,25 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_WAIT:
 				// Clear spawn thing, set wait state instead
-				memset(&next,0,sizeof(s_spawn_entry));
+				memset(&next,0,sizeof(next));
 				next.wait = 1;
 				break;
 			case CMD_LEVEL_NOJOIN: case CMD_LEVEL_CANJOIN:
 				// Clear spawn thing, set nojoin state instead
-				memset(&next,0,sizeof(s_spawn_entry));
+				memset(&next,0,sizeof(next));
 				next.nojoin = 1;
 				break;
 			case CMD_LEVEL_SHADOWCOLOR:
-				memset(&next,0,sizeof(s_spawn_entry));
+				memset(&next,0,sizeof(next));
 				next.shadowcolor = GET_INT_ARG(1);
 				break;
 			case CMD_LEVEL_SHADOWALPHA:
-				memset(&next,0,sizeof(s_spawn_entry));
+				memset(&next,0,sizeof(next));
 				next.shadowalpha = GET_INT_ARG(1);
 				if(blendfx_is_set==0 && next.shadowalpha>0) blendfx[next.shadowalpha-1] = 1;
 				break;
 			case CMD_LEVEL_LIGHT:
-				memset(&next,0,sizeof(s_spawn_entry));
+				memset(&next,0,sizeof(next));
 				next.light[0] = GET_INT_ARG(1);
 				next.light[1] = GET_INT_ARG(2);
 				if(next.light[1] == 0) next.light[1] = 64;
@@ -9566,7 +9583,7 @@ void load_level(char *filename){
 			case CMD_LEVEL_SCROLLZ: case CMD_LEVEL_SCROLLX:
 				// now z scroll can be limited by this
 				// if the level is vertical, use scrollx, only different in name ..., but makes more sense
-				memset(&next,0,sizeof(s_spawn_entry));
+				memset(&next,0,sizeof(next));
 				next.scrollminz = GET_INT_ARG(1);
 				next.scrollmaxz = GET_INT_ARG(2);
 				if(next.scrollminz <= 0) next.scrollminz = 0;
@@ -9574,18 +9591,18 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_BLOCKADE:
 				// now x scroll can be limited by this
-				memset(&next,0,sizeof(s_spawn_entry));
+				memset(&next,0,sizeof(next));
 				next.blockade = GET_INT_ARG(1);
 				if(next.blockade==0) next.blockade = -1;
 				break;
 			case CMD_LEVEL_SETPALETTE:
 				// change system palette
-				memset(&next,0,sizeof(s_spawn_entry));
+				memset(&next,0,sizeof(next));
 				next.palette = GET_INT_ARG(1);
 				break;
 			case CMD_LEVEL_GROUP:
 				// Clear spawn thing, set group instead
-				memset(&next,0,sizeof(s_spawn_entry));
+				memset(&next,0,sizeof(next));
 				next.groupmin = GET_INT_ARG(1);
 				next.groupmax = GET_INT_ARG(2);
 				if(next.groupmax < 1) next.groupmax = 1;
@@ -9594,7 +9611,7 @@ void load_level(char *filename){
 			case CMD_LEVEL_SPAWN:
 				// Back to defaults
 				next.spawnplayer_count = 0;
-				memset(&next,0,sizeof(s_spawn_entry));
+				memset(&next,0,sizeof(next));
 				next.index = next.itemindex = next.weaponindex = -1;
 				// Name of entry to be spawned
 				// Load model (if not loaded already)
@@ -9745,11 +9762,11 @@ void load_level(char *filename){
 				next.at = GET_INT_ARG(1);
 
 				__realloc(level->spawnpoints, level->numspawns);
-				memcpy(&level->spawnpoints[level->numspawns], &next, sizeof(s_spawn_entry));
+				memcpy(&level->spawnpoints[level->numspawns], &next, sizeof(next));
 				level->numspawns++;
 
 				// And clear...
-				memset(&next,0,sizeof(s_spawn_entry));
+				memset(&next,0,sizeof(next));
 				break;
 			default:
 				if(command && command[0]){
@@ -10639,18 +10656,17 @@ void free_ents()
 
 entity* alloc_ent()
 {
-	entity* ent = (entity*)malloc(sizeof(entity));
-	if(!ent) return NULL;
-	memset(ent, 0, sizeof(entity));
-	ent->defense = (s_defense*)malloc(sizeof(s_defense)*max_attack_types);
-	memset(ent->defense, 0, sizeof(s_defense)*max_attack_types);
-	ent->offense_factors = (float*)malloc(sizeof(float)*max_attack_types);
-	memset(ent->offense_factors, 0, sizeof(float)*max_attack_types);
+	entity* ent = malloc(sizeof(*ent));
+	memset(ent, 0, sizeof(*ent));
+	ent->defense = malloc(sizeof(*ent->defense)*max_attack_types);
+	memset(ent->defense, 0, sizeof(*ent->defense)*max_attack_types);
+	ent->offense_factors = malloc(sizeof(*ent->offense_factors)*max_attack_types);
+	memset(ent->offense_factors, 0, sizeof(*ent->offense_factors)*max_attack_types);
 	if(max_entity_vars>0)
 	{
-		ent->entvars = (ScriptVariant*)malloc(sizeof(ScriptVariant)*max_entity_vars);
+		ent->entvars = malloc(sizeof(*ent->entvars)*max_entity_vars);
 		// memset should be OK by know, because VT_EMPTY is zero by value, or else we should use ScriptVariant_Init
-		memset(ent->entvars, 0, sizeof(ScriptVariant)*max_entity_vars);
+		memset(ent->entvars, 0, sizeof(*ent->entvars)*max_entity_vars);
 	}
 	alloc_all_scripts(&ent->scripts);
 	return ent;
@@ -10660,11 +10676,13 @@ entity* alloc_ent()
 int alloc_ents()
 {
 	int i;
+
+	if(ent_list_size>=maxentities) return 0;
 	
 	ent_list_size += MAX_ENTS;
 
-	if(!ent_list) ent_list = malloc(sizeof(entity*)*ent_list_size);
-	else ent_list = realloc(ent_list, sizeof(entity*)*ent_list_size);
+	if(!ent_list) ent_list = malloc(sizeof(*ent_list)*ent_list_size);
+	else ent_list = realloc(ent_list, sizeof(*ent_list)*ent_list_size);
 
 	if(!ent_list) goto alloc_ents_error;
 
@@ -11344,9 +11362,10 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 
 	for(i=0; i<ent_list_size; i++)
 	{
-		if(!ent_list[i]->exists)
+		if(!ent_list[i]->exists || (ent_count>=spawnoverride && ent_list[i]->modeldata.priority<0 && ent_list[i]->modeldata.priority<=model->priority))
 		{
 			e = ent_list[i];
+			if(e->exists) kill(e);
 			// save these values, or they will loss when memset called
 			id      = e->sortid;
 			dfs     = e->defense;
@@ -11354,14 +11373,14 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			vars    = e->entvars;
 			for(j=0; j<max_entity_vars; j++)
 				ScriptVariant_Clear(&vars[j]);
-			memcpy(dfs, model->defense, sizeof(s_defense)*max_attack_types);
-			memcpy(ofs, model->offense_factors, sizeof(float)*max_attack_types);
+			memcpy(dfs, model->defense, sizeof(*dfs)*max_attack_types);
+			memcpy(ofs, model->offense_factors, sizeof(*ofs)*max_attack_types);
 			// clear up
 			clear_all_scripts(e->scripts, 1);
 			if(e->waypoints) free(e->waypoints);
 
 			scripts = e->scripts;
-			memset(e, 0, sizeof(entity));
+			memset(e, 0, sizeof(*e));
 			e->drawmethod = plainmethod;
 			e->drawmethod.flag = 0;
 
@@ -11547,8 +11566,8 @@ void kill_all()
 
 int checkhit(entity *attacker, entity *target, int counter)
 {
-	short *coords1;
-	short *coords2;
+	int *coords1;
+	int *coords2;
 	int x1, x2, y1, y2;
 	float medx, medy;
 	int debug_coords[2][4];
@@ -12016,7 +12035,7 @@ void do_attack(entity *e)
 	s_anim* current_anim;
 	s_attack* attack = e->animation->attacks[e->animpos];
 	static unsigned int new_attack_id = 1;
-	int fdefense_blockthreshold = (int)self->defense[(short)attack->attack_type].blockthreshold; //Maximum damage that can be blocked for attack type.
+	int fdefense_blockthreshold = (int)self->defense[attack->attack_type].blockthreshold; //Maximum damage that can be blocked for attack type.
 
 	// Can't get hit after this
 	if(level_completed || !attack) return;
@@ -12140,12 +12159,12 @@ void do_attack(entity *e)
 					self->blocking &&  // of course he must be blocking
 					((self->modeldata.guardpoints.maximum == 0) || (self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current > 0)) &&
 					!((self->direction == e->direction && self->modeldata.blockback < 1)|| self->frozen) &&    // Can't block if facing the wrong direction (unless blockback flag is enabled) or frozen in the block animation or opponent is a projectile
-					attack->no_block <= self->defense[(short)attack->attack_type].blockpower &&    // Make sure you are actually blocking and that the attack is blockable
+					attack->no_block <= self->defense[attack->attack_type].blockpower &&    // Make sure you are actually blocking and that the attack is blockable
 					(!self->modeldata.thold ||
 					(self->modeldata.thold > 0 &&
 					self->modeldata.thold > force))&&
-					(!self->defense[(short)attack->attack_type].blockthreshold ||                   //Specific attack type threshold.
-					(self->defense[(short)attack->attack_type].blockthreshold > force)))
+					(!self->defense[attack->attack_type].blockthreshold ||                   //Specific attack type threshold.
+					(self->defense[attack->attack_type].blockthreshold > force)))
 				{    // Only block if the attack is less than the players threshold
 					//execute the didhit script
 					execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
@@ -12312,15 +12331,15 @@ void do_attack(entity *e)
 		//04/27/2008 Damon Caskey: Added checks for defense property specfic blockratio and type. Could probably use some cleaning.
 		if(didblock)
 		{
-			if(blockratio || def->defense[(short)attack->attack_type].blockratio) // Is damage reduced?
+			if(blockratio || def->defense[attack->attack_type].blockratio) // Is damage reduced?
 			{
-				if (def->defense[(short)attack->attack_type].blockratio){                      //Typed blockratio?
-					force = (int)(force * def->defense[(short)attack->attack_type].blockratio);
+				if (def->defense[attack->attack_type].blockratio){                      //Typed blockratio?
+					force = (int)(force * def->defense[attack->attack_type].blockratio);
 				}else{                                                                            //No typed. Use static block ratio.
 					force = force / 4;
 				}
 
-				if(mpblock && !def->defense[(short)attack->attack_type].blocktype){                                                                                 // Drain MP bar first?
+				if(mpblock && !def->defense[attack->attack_type].blocktype){                                                                                 // Drain MP bar first?
 					def->mp -= force;
 					if(def->mp < 0)
 					{
@@ -12328,16 +12347,16 @@ void do_attack(entity *e)
 						def->mp = 0;
 					}
 					else force = 0;                                                               // Damage removed from MP!
-				}else if(def->defense[(short)attack->attack_type].blocktype==1){                //Damage from MP only for this attack type.
+				}else if(def->defense[attack->attack_type].blocktype==1){                //Damage from MP only for this attack type.
 					def->mp -= force;
 					if(def->mp < 0){
 						force = -def->mp;
 						def->mp = 0;
 					}
 					else force = 0;                                                               // Damage removed from MP!
-				}else if(def->defense[(short)attack->attack_type].blocktype==2){              //Damage from both HP and MP at once.
+				}else if(def->defense[attack->attack_type].blocktype==2){              //Damage from both HP and MP at once.
 					def->mp -= force;
-				}else if(def->defense[(short)attack->attack_type].blocktype==-1){             //Health only?
+				}else if(def->defense[attack->attack_type].blocktype==-1){             //Health only?
 					//Do nothing. This is so modders can overidde energycost.mponly 1 with health only.
 				}
 
@@ -13861,8 +13880,8 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 		clear_all_scripts(ent->scripts, 0);
 
 	copy_all_scripts(newmodel->scripts, ent->scripts, 0);
-	memcpy(ent->defense, ent->modeldata.defense, sizeof(s_defense)*max_attack_types);
-	memcpy(ent->offense_factors, ent->modeldata.offense_factors, sizeof(float)*max_attack_types);
+	memcpy(ent->defense, ent->modeldata.defense, sizeof(*ent->defense)*max_attack_types);
+	memcpy(ent->offense_factors, ent->modeldata.offense_factors, sizeof(*ent->offense_factors)*max_attack_types);
 
 	ent_set_colourmap(ent, ent->map);
 }
@@ -14457,14 +14476,14 @@ void dograbattack(int which)
 			ent_set_anim(self, grab_attacks[which][0], 0);
 		else
 		{
-			memset(self->combostep, 0, sizeof(int)*5);
+			memset(self->combostep, 0, sizeof(*self->combostep)*5);
 			if(validanim(self,grab_attacks[which][1])) ent_set_anim(self, grab_attacks[which][1], 0);
 			else ent_set_anim(self, ANI_ATTACK3, 0);
 		}
 	}
 	else
 	{
-		memset(self->combostep, 0, sizeof(int)*5);
+		memset(self->combostep, 0, sizeof(*self->combostep)*5);
 		if(validanim(self,grab_attacks[0][1])) ent_set_anim(self, grab_attacks[0][1], 0);
 		else if(validanim(self,ANI_ATTACK3)) ent_set_anim(self, ANI_ATTACK3, 0);
 	}
@@ -14558,7 +14577,7 @@ void common_grab()
 
 	self->takeaction = NULL;
 	self->attacking = 0;
-	memset(self->combostep, 0, sizeof(int)*5);
+	memset(self->combostep, 0, sizeof(*self->combostep)*5);
 	set_idle(self);
 }
 
@@ -14609,7 +14628,7 @@ entity* drop_item(entity* e)
 {
 	s_spawn_entry p;
 	entity* item;
-	memset(&p, 0, sizeof(s_spawn_entry));
+	memset(&p, 0, sizeof(p));
 
 	p.index = e->item;
 	p.itemindex = p.weaponindex = -1;
@@ -14645,7 +14664,7 @@ entity* drop_driver(entity* e)
 	int i;
 	s_spawn_entry p;
 	entity* driver;
-	memset(&p, 0, sizeof(s_spawn_entry));
+	memset(&p, 0, sizeof(p));
 
 	if(e->modeldata.rider>=0) p.index = e->modeldata.rider;
 	else         return NULL; // should not happen, just in case
@@ -14704,7 +14723,7 @@ void checkdeath()
 
 void checkdamageflip(entity* other, s_attack* attack)
 {
-	if(other == NULL || other==self || (!self->drop && (attack->no_pain || self->modeldata.nopain || (self->defense[(short)attack->attack_type].pain && attack->attack_force < self->defense[(short)attack->attack_type].pain)))) return;
+	if(other == NULL || other==self || (!self->drop && (attack->no_pain || self->modeldata.nopain || (self->defense[attack->attack_type].pain && attack->attack_force < self->defense[attack->attack_type].pain)))) return;
 
 	if(!self->frozen && !self->modeldata.noflip)// && !inair(self))
 	{
@@ -14829,7 +14848,7 @@ void checkdamageeffects(s_attack* attack)
 void checkdamagedrop(s_attack* attack)
 {
 	int attackdrop = attack->attack_drop;
-	float fdefense_knockdown = self->defense[(short)attack->attack_type].knockdown;
+	float fdefense_knockdown = self->defense[attack->attack_type].knockdown;
 	if(self->modeldata.animal) self->drop = 1;
 	if(self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current <= 0) attackdrop = 0; //guardbreak does not knock down.
 	if(self->drop || attack->no_pain) return; // just in case, if we already fall, dont check fall again
@@ -15033,7 +15052,7 @@ int common_takedamage(entity *other, s_attack* attack)
 		set_pain(self, self->damagetype, 0);
 	}
 	// Don't change to pain animation if frozen
-	else if(!self->frozen && !self->modeldata.nopain && !attack->no_pain && !(self->defense[(short)attack->attack_type].pain && attack->attack_force < self->defense[(short)attack->attack_type].pain))
+	else if(!self->frozen && !self->modeldata.nopain && !attack->no_pain && !(self->defense[attack->attack_type].pain && attack->attack_force < self->defense[attack->attack_type].pain))
 	{
 		self->takeaction = common_pain;
 		set_pain(self, self->damagetype, 1);
@@ -15489,7 +15508,7 @@ int trygrab(entity* other)
 		{
 			if(self->model->grabflip&2) other->direction = !self->direction;
 			self->attacking = 0;
-			memset(self->combostep, 0, 5*sizeof(int));
+			memset(self->combostep, 0, 5*sizeof(*self->combostep));
 			other->stalltime = time + GRAB_STALL;
 			self->releasetime = time + (GAME_SPEED/2);
 			other->takeaction = common_grabbed;
@@ -15734,7 +15753,7 @@ void common_stuck_underneath()
 	}
 	if(player[self->playerindex].playkeys & FLAG_ATTACK && validanim(self,ANI_DUCKATTACK))
 	{
-		player[self->playerindex].playkeys -= FLAG_ATTACK;
+		player[self->playerindex].playkeys &= ~FLAG_ATTACK;
 		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		self->xdir = self->zdir = 0;
@@ -15745,7 +15764,7 @@ void common_stuck_underneath()
 	}
 	if((player[self->playerindex].keys & FLAG_MOVEDOWN) && (player[self->playerindex].playkeys & FLAG_JUMP) && validanim(self,ANI_SLIDE))
 	{
-		player[self->playerindex].playkeys -= FLAG_JUMP;
+		player[self->playerindex].playkeys &= ~FLAG_JUMP;
 		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		self->xdir = self->zdir = 0;
@@ -16063,7 +16082,7 @@ int astar(entity* ent, float destx, float destz, float step, point2d** wp){
 				result++;
 				x = tx; z = tz;
 			 }while(x>=0);
-			 *wp = malloc(sizeof(point2d)*result);
+			 *wp = malloc(sizeof(*wp)*result);
 			 tx = (*came_from)[dx][dz][0];
 			 tz = (*came_from)[dx][dz][1];
 			 j = 0;
@@ -17532,7 +17551,7 @@ int check_special()
 	{
 		self->takeaction = common_attack_proc;
 		set_attacking(self);
-		memset(self->combostep, 0, sizeof(int)*5);
+		memset(self->combostep, 0, sizeof(*self->combostep)*5);
 		
 		e = self->link;
 		if(e){
@@ -17584,7 +17603,7 @@ int player_check_special()
 	if(check_special())
 	{
 		self->stalltime = 0;
-		player[self->playerindex].playkeys -= thekey;
+		player[self->playerindex].playkeys &= ~thekey;
 		return 1;
 	}else{
 		return 0;
@@ -17651,7 +17670,7 @@ void common_grabattack()
 	else
 	{
 		self->takeaction = NULL;
-		memset(self->combostep, 0, sizeof(int)*5);
+		memset(self->combostep, 0, sizeof(*self->combostep)*5);
 		set_idle(self);
 	}
 }
@@ -18002,33 +18021,33 @@ void player_grab_check()
 		 (player[self->playerindex].keys & FLAG_MOVELEFT) :
 		 (player[self->playerindex].keys & FLAG_MOVERIGHT)))
 	{
-		player[self->playerindex].playkeys -= FLAG_ATTACK;
+		player[self->playerindex].playkeys &= ~FLAG_ATTACK;
 		dograbattack(1);
 	}
 	// grab up
 	else if((player[self->playerindex].playkeys & FLAG_ATTACK) &&
 		validanim(self, ANI_GRABUP) && (player[self->playerindex].keys & FLAG_MOVEUP))
 	{
-		player[self->playerindex].playkeys -= FLAG_ATTACK;
+		player[self->playerindex].playkeys &= ~FLAG_ATTACK;
 		dograbattack(2);
 	}
 	// grab down
 	else if((player[self->playerindex].playkeys & FLAG_ATTACK) &&
 		validanim(self,ANI_GRABDOWN) && (player[self->playerindex].keys & FLAG_MOVEDOWN))
 	{
-		player[self->playerindex].playkeys -= FLAG_ATTACK;
+		player[self->playerindex].playkeys &= ~FLAG_ATTACK;
 		dograbattack(3);
 	}
 	// normal grab attack
 	else if((player[self->playerindex].playkeys & FLAG_ATTACK) && validanim(self,ANI_GRABATTACK))
 	{
-		player[self->playerindex].playkeys -= FLAG_ATTACK;
+		player[self->playerindex].playkeys &= ~FLAG_ATTACK;
 		dograbattack(0);
 	}
 	// Vaulting.
 	else if((player[self->playerindex].playkeys & FLAG_JUMP) && validanim(self,ANI_VAULT))
 	{
-		player[self->playerindex].playkeys -= FLAG_JUMP;
+		player[self->playerindex].playkeys &= ~FLAG_JUMP;
 		dovault();
 	}
 	// grab attack finisher
@@ -18042,7 +18061,7 @@ void player_grab_check()
 		else
 		{
 			self->attacking = 1;
-			memset(self->combostep, 0, sizeof(int)*5);
+			memset(self->combostep, 0, sizeof(*self->combostep)*5);
 			self->takeaction = common_grabattack;
 			tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, 0, ANI_JUMP);
 		}
@@ -18148,7 +18167,7 @@ void player_jump_check()
 
 				if(candospecial)
 				{
-					player[self->playerindex].playkeys -= FLAG_SPECIAL;
+					player[self->playerindex].playkeys &= ~FLAG_SPECIAL;
 					self->attacking = 1;
 					self->xdir = self->zdir = 0;                         // Kill movement when the special starts
 					self->tossv = 0;
@@ -18159,7 +18178,7 @@ void player_jump_check()
 
 		//jumpattacks, up down forward normal....we don't check energy cost
 		else if(player[self->playerindex].playkeys & FLAG_ATTACK){
-			player[self->playerindex].playkeys -= FLAG_ATTACK;
+			player[self->playerindex].playkeys &= ~FLAG_ATTACK;
 			self->attacking = 1;
 
 			if((player[self->playerindex].keys & FLAG_MOVEDOWN) && validanim(self,ANI_JUMPATTACK2)) ent_set_anim(self, ANI_JUMPATTACK2, 0);
@@ -18231,7 +18250,7 @@ void player_lie_check()
 	   (player[self->playerindex].keys & FLAG_MOVEUP) &&
 	   (self->health > 0 && time > self->staydown.riseattack_stall))
 	{
-		player[self->playerindex].playkeys -= FLAG_ATTACK;
+		player[self->playerindex].playkeys &= ~FLAG_ATTACK;
 		if((player[self->playerindex].keys & FLAG_MOVELEFT))
 		{
 			self->direction = 0;
@@ -18275,7 +18294,7 @@ int check_costmove(int s, int fs, int jumphack)
 		self->xdir = self->zdir = 0;
 		set_attacking(self);
 		self->inpain = 0;
-		memset(self->combostep, 0, sizeof(int)*5);
+		memset(self->combostep, 0, sizeof(*self->combostep)*5);
 		ent_unlink(self);
 		ent_set_anim(self, s, 0);
 		return 1;
@@ -18458,7 +18477,7 @@ void player_think()
 		}
 		else if(t && validanim(self,ANI_ATTACKUP))
 		{    // New u u combo attack
-			pl->playkeys -= FLAG_MOVEUP;
+			pl->playkeys &= ~FLAG_MOVEUP;
 			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->combostep[0] = 0;
@@ -18469,7 +18488,7 @@ void player_think()
 		}
 		else if(t && validanim(self,ANI_DODGE))
 		{    // New dodge move like on SOR3
-			pl->playkeys -= FLAG_MOVEUP;
+			pl->playkeys &= ~FLAG_MOVEUP;
 			self->takeaction = common_dodge;
 			self->combostep[0] = 0;
 			self->idling = 0;
@@ -18490,7 +18509,7 @@ void player_think()
 		}
 		else if(t && validanim(self,ANI_ATTACKDOWN))
 		{    // New d d combo attack
-			pl->playkeys -= FLAG_MOVEDOWN;
+			pl->playkeys &= ~FLAG_MOVEDOWN;
 			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
@@ -18501,7 +18520,7 @@ void player_think()
 		}
 		else if(t && validanim(self,ANI_DODGE))
 		{    // New dodge move like on SOR3
-			pl->playkeys -= FLAG_MOVEDOWN;
+			pl->playkeys &= ~FLAG_MOVEDOWN;
 			self->takeaction = common_dodge;
 			self->combostep[0] = 0;
 			self->idling = 0;
@@ -18536,7 +18555,7 @@ void player_think()
 	{
 		if((pl->keys & FLAG_ATTACK) && notinair)
 		{
-			pl->playkeys -= FLAG_JUMP;
+			pl->playkeys &= ~FLAG_JUMP;
 			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			self->xdir = self->zdir = 0;
@@ -18551,7 +18570,7 @@ void player_think()
 	{
 		if((pl->keys & FLAG_SPECIAL) && notinair)
 		{
-			pl->playkeys -= FLAG_JUMP;
+			pl->playkeys &= ~FLAG_JUMP;
 			self->takeaction = common_charge;
 			self->combostep[0] = 0;
 			self->xdir = self->zdir = 0;
@@ -18571,14 +18590,14 @@ void player_think()
 		{
 			if(check_costmove(ANI_SPECIAL2, 0, 0))
 			{
-				pl->playkeys -= FLAG_SPECIAL;
+				pl->playkeys &= ~FLAG_SPECIAL;
 				goto endthinkcheck;
 			}
 		}
 
 		if(validanim(self,ANI_BLOCK) && !self->modeldata.holdblock && notinair)    // New block code for players
 		{
-			pl->playkeys -= FLAG_SPECIAL;
+			pl->playkeys &= ~FLAG_SPECIAL;
 			self->takeaction = common_block;
 			self->xdir = self->zdir = 0;
 			set_blocking(self);
@@ -18614,7 +18633,7 @@ void player_think()
 
 	if((pl->playkeys & FLAG_ATTACK)  && notinair)
 	{
-		pl->playkeys -= FLAG_ATTACK;
+		pl->playkeys &= ~FLAG_ATTACK;
 		self->stalltime = 0;    // Disable the attack3 stalltime
 
 		if(pl->keys & FLAG_MOVEDOWN && validanim(self, ANI_DUCKATTACK) && PLAYER_MIN_Z == PLAYER_MAX_Z)
@@ -18696,7 +18715,7 @@ void player_think()
 	// Mighty hass no attack animations, he just jumps.
 	if(pl->playkeys & FLAG_JUMP  && notinair)
 	{    // Added !inair(self) so players can't jump when falling into holes
-		pl->playkeys -= FLAG_JUMP;
+		pl->playkeys &= ~FLAG_JUMP;
 
 		if(self->running)
 		{
@@ -19285,7 +19304,7 @@ int player_takedamage(entity *other, s_attack* attack)
 	//printf("damaged by: '%s' %d\n", other->name, attack->attack_force);
 	if(healthcheat)
 	{
-		memcpy(&atk, attack, sizeof(s_attack));
+		memcpy(&atk, attack, sizeof(atk));
 		atk.attack_force = 0;
 		return common_takedamage(other, &atk);
 	}
@@ -19888,7 +19907,7 @@ void spawnplayer(int index)
 //    model = find_model(player[index].name);
 //    if(model == NULL) return;
 
-	memset(&p, 0, sizeof(s_spawn_entry));
+	memset(&p, 0, sizeof(p));
 	p.name= player[index].name;
 	p.index = -1;
 	p.itemindex = -1;
@@ -19946,8 +19965,8 @@ void spawnplayer(int index)
 	if(nomaxrushreset[4] >= 1) player[index].ent->rush[1] = nomaxrushreset[index];
 	else player[index].ent->rush[1] = 0;
 
-	memset(player[index].combokey, 0, sizeof(u32)*MAX_SPECIAL_INPUTS);
-	memset(player[index].inputtime, 0, sizeof(u32)*MAX_SPECIAL_INPUTS);
+	memset(player[index].combokey, 0, sizeof(*player[index].combokey)*MAX_SPECIAL_INPUTS);
+	memset(player[index].inputtime, 0, sizeof(*player[index].inputtime)*MAX_SPECIAL_INPUTS);
 	player[index].combostep = 0;
 
 	if(player[index].spawnhealth) player[index].ent->health = player[index].spawnhealth + 5;
@@ -20679,8 +20698,8 @@ void inputrefresh()
 		pl->playkeys &= pl->keys;
 		
 		if(pl->ent && pl->ent->movetime<time){
-			memset(pl->combokey, 0, sizeof(u32)*MAX_SPECIAL_INPUTS);
-			memset(pl->inputtime, 0, sizeof(u32)*MAX_SPECIAL_INPUTS);
+			memset(pl->combokey, 0, sizeof(*pl->combokey)*MAX_SPECIAL_INPUTS);
+			memset(pl->inputtime, 0, sizeof(*pl->inputtime)*MAX_SPECIAL_INPUTS);
 			pl->combostep = 0;
 		}
 		if(pl->newkeys){
@@ -21346,15 +21365,22 @@ void startup(){
 	printf("Done!\n");
 #endif
 
-	printf("\n\n");
-
+	printf("Create blending tables.......\t");
 	if(pixelformat==PIXEL_x8)
 		create_blend_tables_x8(blendtables);
 
 	for(i=0; i<MAX_PAL_SIZE/4; i++) neontable[i] = i;
+	printf("Done!\n");
+
 	if(savedata.logo++ > 10) savedata.logo = 0;
+
+	printf("Save settings so far........\t");
 	savesettings();
+	printf("Done!\n");
+
 	startup_done = 1;
+
+	printf("\n\n");
 
 }
 
@@ -22045,7 +22071,7 @@ int selectplayer(int *players, char* filename)
 		{
 			for(i=0; i<set->maxplayers; i++)
 			{
-				memset(&player[i], 0, sizeof(s_player));
+				memset(&player[i], 0, sizeof(player[i]));
 				if(!players[i]) continue;
 
 				strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
@@ -22094,7 +22120,7 @@ int selectplayer(int *players, char* filename)
 		if(!noshare) credits = CONTINUES;
 		for(i=0; i<MAX_PLAYERS; i++)
 		{
-			memset(&player[i], 0, sizeof(s_player));
+			memset(&player[i], 0, sizeof(player[i]));
 			immediate[i] = players[i];
 		}
 	}
@@ -22309,7 +22335,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 	if(fade == 0) fade = 24;
 	sameplayer = set->nosame;
 
-	memset(player, 0, sizeof(s_player)*4);
+	memset(player, 0, sizeof(*player)*4);
 
 	for(i=0; i<MAX_PLAYERS; i++)
 	{
@@ -22956,7 +22982,7 @@ VIDEOMODES:
 
 	if((vscreen = allocscreen(videomodes.hRes, videomodes.vRes, screenformat)) == NULL) shutdown(1, "Not enough memory!\n");
 	videomodes.pixel = pixelbytes[(int)vscreen->pixelformat];
-	video_set_mode(videomodes);
+	//video_set_mode(videomodes);
 	clearscreen(vscreen);
 
 	if(log) printf("Initialized video.............\t%dx%d (Mode: %d, Depth: %d Bit)\n\n",videomodes.hRes, videomodes.vRes, videoMode, bits);
@@ -23441,6 +23467,7 @@ void config_settings(){    //  OX. Load from / save to default.cfg. Restore Open
 					loadfromdefault();
 					//shutdown(2, "\nSettings Loaded From Default.cfg. Restart Required.\n\n");
 					init_videomodes(0);
+					if(!video_set_mode(videomodes)) shutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
 					SB_setvolume(SB_VOICEVOL, savedata.soundvol);
 					sound_volume_music(savedata.musicvol, savedata.musicvol);
 					loaded = 1;
@@ -23449,6 +23476,7 @@ void config_settings(){    //  OX. Load from / save to default.cfg. Restore Open
 					clearsettings();
 					//shutdown(2, "\nSettings Loaded From Default.cfg. Restart Required.\n\n");
 					init_videomodes(0);
+					if(!video_set_mode(videomodes)) shutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
 					SB_setvolume(SB_VOICEVOL, savedata.soundvol);
 					sound_volume_music(savedata.musicvol, savedata.musicvol);
 					restored = 1;

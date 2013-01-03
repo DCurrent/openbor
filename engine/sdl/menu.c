@@ -173,6 +173,8 @@ int findPaks(void)
 	struct dirent* ds;
 #ifdef WII
 	dp = opendir("sd:/apps/OpenBOR/Paks");
+#elif ANDROID
+	dp = opendir("/mnt/sdcard/OpenBOR/Paks");
 #else
 	dp = opendir("./Paks");
 #endif
@@ -223,13 +225,15 @@ void copyScreens(SDL_Surface *Image)
 void writeToScreen(unsigned char *src, int pitch)
 {
 	int i;
+
 	// pitch = bpp;
 	unsigned char *dst = Screen->pixels;
+	
 	for(i=0; i<Screen->h; i++)
 	{
 		memcpy(dst, src, pitch);
 		src += pitch;
-		dst += pitch;
+		dst += Screen->pitch;
 	}
 }
 
@@ -237,6 +241,8 @@ void drawScreens(SDL_Surface *Image)
 {
 	SDL_Surface *FirstPass = NULL;
 	SDL_Surface *SecondPass = NULL;
+	SDL_Surface *src;
+	SDL_Rect rect;
 
 	if(SDL_MUSTLOCK(Screen)) SDL_LockSurface(Screen);
 	switch(factor)
@@ -245,9 +251,7 @@ void drawScreens(SDL_Surface *Image)
 			FirstPass = SDL_AllocSurface(SDL_SWSURFACE, Screen->w,Screen->h, bpp, 0, 0, 0, 0);
 			(*GfxBlitters[(int)savedata.screen[videoMode][1]])((u8*)Scaler->pixels+Scaler->pitch*4+4, Scaler->pitch, pDeltaBuffer+Scaler->pitch, (u8*)FirstPass->pixels, FirstPass->pitch, FirstPass->w>>1, FirstPass->h>>1);
 			if(Image) SDL_BlitSurface(Image, NULL, FirstPass, &Image->clip_rect);
-			writeToScreen(FirstPass->pixels, FirstPass->pitch);
-			SDL_FreeSurface(FirstPass);
-			FirstPass = NULL;
+			src = FirstPass;
 			break;
 
 		case 4:
@@ -256,19 +260,24 @@ void drawScreens(SDL_Surface *Image)
 			SecondPass = SDL_AllocSurface(SDL_SWSURFACE, FirstPass->w, FirstPass->h, bpp, 0, 0, 0, 0);
 			(*GfxBlitters[(int)savedata.screen[videoMode][1]])((u8*)FirstPass->pixels+FirstPass->pitch, FirstPass->pitch, pDeltaBuffer+FirstPass->pitch, (u8*)SecondPass->pixels, SecondPass->pitch, SecondPass->w>>1, SecondPass->h>>1);
 			if(Image) SDL_BlitSurface(Image, NULL, SecondPass, &Image->clip_rect);
-			writeToScreen(SecondPass->pixels, SecondPass->pitch);
-			SDL_FreeSurface(FirstPass);
-			FirstPass = NULL;
-			SDL_FreeSurface(SecondPass);
-			SecondPass = NULL;
+			src = SecondPass;
 			break;
 
 		default:
 			if(Image) SDL_BlitSurface(Image, NULL, Scaler, &Image->clip_rect);
-			writeToScreen(Scaler->pixels, Scaler->pitch);
+			src = Scaler;
 			break;
 	}
 	if(SDL_MUSTLOCK(Screen)) SDL_UnlockSurface(Screen);
+
+	rect.x = (Screen->w-src->w)/2;
+	rect.y = (Screen->h-src->h)/2;
+	SDL_BlitSurface(src, NULL, Screen, &rect);
+
+	if (FirstPass) SDL_FreeSurface(FirstPass);
+	FirstPass = NULL;
+	if (SecondPass) SDL_FreeSurface(SecondPass);
+	SecondPass = NULL;
 
 	SDL_Flip(Screen);
 }
@@ -299,8 +308,8 @@ void printText(int x, int y, int col, int backcol, int fill, char *format, ...)
 		else ch -= 0x40;
 		font = (u8 *)&hankaku_font10[ch*10];
 		// draw
-		if (bpp == 16) line16 = (u16*)Scaler->pixels + x + y * Scaler->w;
-		else           line32 = (u32*)Scaler->pixels + x + y * Scaler->w;
+		if (bpp == 16) line16 = (u16*)(Scaler->pixels + x*2 + y * Scaler->pitch);
+		else           line32 = (u32*)(Scaler->pixels + x*4 + y * Scaler->pitch);
 
 		for (y1=0; y1<10; y1++)
 		{
@@ -323,8 +332,8 @@ void printText(int x, int y, int col, int backcol, int fill, char *format, ...)
 
 				data = data >> 1;
 			}
-			if (bpp == 16) line16 += Scaler->w-5;
-			else           line32 += Scaler->w-5;
+			if (bpp == 16) line16 += Scaler->pitch/2-5;
+			else           line32 += Scaler->pitch/4-5;
 		}
 		x+=5;
 	}
@@ -547,7 +556,10 @@ int ControlBGM()
 
 void initMenu(int type)
 {
-#if WIN || LINUX
+#if ANDROID
+	isFull = 1;
+	factor = 1;
+#elif (WIN || LINUX) 
 	factor = savedata.screen[videoMode][0] ? savedata.screen[videoMode][0] : 1;
 	isFull = savedata.fullscreen;
 	//isWide = savedata.fullscreen && (((float)nativeWidth / (float)nativeHeight) > 1.54);
@@ -570,7 +582,12 @@ void initMenu(int type)
 
 		// Depending on which mode we are in (WideScreen/FullScreen)
 		// allocate proper size for SDL_Surface to perform final Blitting.
+
+#if ANDROID
+		Screen = SDL_SetVideoMode(0, 0, bpp, flags);
+#else
 		Screen = SDL_SetVideoMode(Source->w * factor, Source->h * factor, bpp, flags);
+#endif
 
 		// Allocate Scaler with extra space for upscaling.
 		Scaler = SDL_AllocSurface(SDL_SWSURFACE,
@@ -583,7 +600,12 @@ void initMenu(int type)
 
 		// Depending on which mode we are in (WideScreen/FullScreen)
 		// allocate proper size for SDL_Surface to perform final Blitting.
+
+#if ANDROID
+		Screen = SDL_SetVideoMode(0, 0, bpp, flags);
+#else
 		Screen = SDL_SetVideoMode(Source->w * factor, Source->h * factor, bpp, flags);
+#endif
 
 		// Allocate Scaler with extra space for upscaling.
 		Scaler = SDL_AllocSurface(SDL_SWSURFACE,
@@ -591,6 +613,7 @@ void initMenu(int type)
 							  factor > 1 ? Screen->h + 8 : Screen->h,
 							  bpp, 0, 0, 0, 0);
 	}
+	//printf("debug: screen->w:%d screen->h:%d     depth:%d\n", Screen->w, Screen->h, Screen->format->BitsPerPixel);
 
 	control_init(2);
 	apply_controls();
