@@ -62,13 +62,13 @@
 			"\n" \
 			"Special thanks to SEGA and SNK.\n\n"
 
-#define		COMPATIBLEVERSION	0x00030000
-#define		CV_SAVED_GAME		0x00021276
-#define		CV_HIGH_SCORE		0x00020048
+#define		COMPATIBLEVERSION	0x00033747
+#define		CV_SAVED_GAME		0x00033747
+#define		CV_HIGH_SCORE		0x00033747
 #define     GAME_SPEED          200
 #define		THINK_SPEED			2
 #define		COUNTER_SPEED		(GAME_SPEED*2)
-#define		MAX_NAME_LEN		40
+#define		MAX_NAME_LEN		47
 #define		MAX_ENTS			150
 #define		MAX_PANELS			52 //removed
 #define		MAX_WEAPONS			10 //removed
@@ -595,37 +595,37 @@ memset((p)+(n), 0, sizeof(*(p))*((s)-(n)));\
 
 typedef struct
 {
-	unsigned int	compatibleversion:32;
-	short       	gamma:16;
-	short       	brightness:16;
-	char			usesound:8;						// Use SB
-	unsigned short	soundrate:16;					// SB freq
-	short       	soundvol:16;					// SB volume
-	char			usemusic:8;						// Play music
-	short       	musicvol:16;					// Music volume
-	short       	effectvol:16;					// Sound fx volume
-	char			soundbits:8;					// SB bits
-	char			usejoy:8;
-	char			mode:8;							// Mode now saves
-	char			windowpos:8;
-	int				keys[MAX_PLAYERS][12];
-	char			showtitles:8;
-	char			videoNTSC:8;
-	char			screen[7][2];					// Screen Filtering/Scaling Effects
-	char            logo:8;
-	char            uselog:8;
-	char			debuginfo:8;					// FPS, Memory, etc...
-	int				fullscreen:8;					// Window or Full Screen Mode
-	char			stretch:8;						// Stretch (1) or preserve aspect ratio (0) in fullscreen mode
+	unsigned compatibleversion;
+	int gamma;
+	int brightness;
+	int usesound; // Use SB
+	unsigned soundrate; // SB freq
+	int soundvol; // SB volume
+	int usemusic; // Play music
+	int musicvol; // Music volume
+	int effectvol; // Sound fx volume
+	int soundbits; // SB bits
+	int usejoy;
+	int mode; // Mode now saves
+	int windowpos;
+	int keys[MAX_PLAYERS][12];
+	int showtitles;
+	int videoNTSC;
+	int screen[7][2]; // Screen Filtering/Scaling Effects
+	int logo;
+	int uselog;
+	int debuginfo; // FPS, Memory, etc...
+	int fullscreen; // Window or Full Screen Mode
+	int stretch; // Stretch (1) or preserve aspect ratio (0) in fullscreen mode
 #if SDL
-	char			usegl[2];						// 1 if OpenGL is preferred over SDL software blitting
-	float			glscale;						// Scale factor for OpenGL
-	char			glfilter[2];					// Simple or bilinear scaling
+	int usegl[2]; // 1 if OpenGL is preferred over SDL software blitting
+	float glscale; // Scale factor for OpenGL
+	int glfilter[2]; // Simple or bilinear scaling
 #endif
 #if PSP
-	char			pspcpuspeed:8;					// PSP CPU Speed
-	char            overscan[4];                    // Control TV Overscan
-	char            usetv:8;						// Initilize TV at bootup
+	int pspcpuspeed; // PSP CPU Speed
+	int overscan[4]; // Control TV Overscan
+	int usetv; // Initilize TV at bootup
 #endif
 
 }s_savedata;
@@ -633,142 +633,142 @@ typedef struct
 
 typedef struct
 {
-	unsigned int	compatibleversion:32;
-	char			dName[MAX_NAME_LEN+1];			// Difficulty Name
-	unsigned short	level:16;						// Level Number
-	unsigned short	stage:16;						// Stage
-	unsigned char	pLives[MAX_PLAYERS];			// Player Lives Left
-	unsigned char	pCredits[MAX_PLAYERS];			// Player Credits Left
-	unsigned int    pScores[MAX_PLAYERS];			// Player Scores
-	unsigned char	credits:8;						// Number Of Credits
-	unsigned short	times_completed:16;
-	unsigned short	which_set:16;
+	unsigned compatibleversion;
+	char dName[MAX_NAME_LEN+1]; // Difficulty Name
+	unsigned level; // Level Number
+	unsigned stage; // Stage
+	unsigned pLives[MAX_PLAYERS]; // Player Lives Left
+	unsigned pCredits[MAX_PLAYERS]; // Player Credits Left
+	unsigned pScores[MAX_PLAYERS]; // Player Scores
+	unsigned credits; // Number Of Credits
+	unsigned times_completed;
+	unsigned which_set;
 	//-------------------new strict save features-----------------------
-	char            flag:8;                                 // 0 useless slot 1 only load level number 2 load player info and level
-	char			pName[MAX_PLAYERS][MAX_NAME_LEN+1];     // player names
-	int             pSpawnhealth[MAX_PLAYERS];              // hit points left
-	int             pSpawnmp[MAX_PLAYERS];                  // magic points left
-	char            pWeapnum[MAX_PLAYERS];                  // weapon
-	char            pColourmap[MAX_PLAYERS];                // colour map
+	int flag; // 0 useless slot 1 only load level number 2 load player info and level
+	char pName[MAX_PLAYERS][MAX_NAME_LEN+1];     // player names
+	int pSpawnhealth[MAX_PLAYERS];              // hit points left
+	int pSpawnmp[MAX_PLAYERS];                  // magic points left
+	int pWeapnum[MAX_PLAYERS];                  // weapon
+	int pColourmap[MAX_PLAYERS];                // colour map
 }s_savelevel;
 
 
 typedef struct
 {
-	unsigned int	compatibleversion:32;
-	unsigned int    highsc[10];
-	char			hscoren[10][MAX_NAME_LEN+1];
+	unsigned compatibleversion;
+	unsigned highsc[10];
+	char hscoren[10][MAX_NAME_LEN+1];
 }s_savescore;
 
 typedef struct
 {
 	int attack_force;
-	short attack_coords[6];
-	int staydown[3];                    // [0] = Add to rise delay. [1] = Add to rise attack delay.
-	float dropv[3];                       // fly height/x/z if the target is knoced down
-	int hitsound;					    // Sound effect to be played when attack hits opponent
-	int hitflash;                       // Custom flash for each animation, model id
-	int blockflash;                     // Custom bflash for each animation, model id
-	int blocksound;                     // Custom sound for when an attack is blocked
-	int no_block;						// If this is greater than defense block power, make the hit
+	int attack_coords[6];
+	int staydown[3]; // [0] = Add to rise delay. [1] = Add to rise attack delay.
+	float dropv[3]; // fly height/x/z if the target is knoced down
+	int hitsound; // Sound effect to be played when attack hits opponent
+	int hitflash; // Custom flash for each animation, model id
+	int blockflash; // Custom bflash for each animation, model id
+	int blocksound; // Custom sound for when an attack is blocked
+	int no_block; // If this is greater than defense block power, make the hit
 	int counterattack;
-	int no_pain:8;
-	int no_kill:8;						// this attack won't kill target (leave 1 HP)
-	int no_flash:8;						// Flag to determine if an attack spawns a flash or not
-	int grab:8;
-	int freeze:8;
-	int steal:8;
-	int blast:8;
-	int force_direction:8;              // 0 dont care, 1 same direction as attacker, -1 opposite drection as attacker, 2 right, -2 left
-	int forcemap:8;
-	int seal:8;
+	int no_pain;
+	int no_kill; // this attack won't kill target (leave 1 HP)
+	int no_flash; // Flag to determine if an attack spawns a flash or not
+	int grab;
+	int freeze;
+	int steal;
+	int blast;
+	int force_direction; // 0 dont care, 1 same direction as attacker, -1 opposite drection as attacker, 2 right, -2 left
+	int forcemap;
+	int seal;
 	int freezetime;
 	int maptime;
 	int sealtime;
-	int dot:8;                          //Dot mode.
-	int dot_index:8;                    //Dot index.
-	int dot_time;                       //Dot time to expire.
-	int dot_force;                      //Dot amount per tick.
-	int dot_rate;                       //Dot tick delay.
-	int otg:8;                          // Over The Ground. Gives ground projectiles the ability to hit lying ents.
-	int jugglecost;						// cost for juggling a falling ent
-	int guardcost;						// cost for blocking an attack
-	int attack_drop;					// now be a knock-down factor, how many this attack will knock victim down
-	int attack_type:8;
-	int damage_on_landing;				// same as throw damage type
-	float grab_distance;                // suck target near by
-	int pause_add:16;					// Flag to determine if an attack adds a pause before updating the animation
-	int pain_time:16;					// pain invincible time
+	int dot; //Dot mode.
+	int dot_index; //Dot index.
+	int dot_time; //Dot time to expire.
+	int dot_force; //Dot amount per tick.
+	int dot_rate; //Dot tick delay.
+	int otg; // Over The Ground. Gives ground projectiles the ability to hit lying ents.
+	int jugglecost; // cost for juggling a falling ent
+	int guardcost; // cost for blocking an attack
+	int attack_drop; // now be a knock-down factor, how many this attack will knock victim down
+	int attack_type;
+	int damage_on_landing; // same as throw damage type
+	float grab_distance; // suck target near by
+	int pause_add; // Flag to determine if an attack adds a pause before updating the animation
+	int pain_time; // pain invincible time
 }s_attack;
 
-typedef struct                                      //2011_04_01, DC: Counterstrike when taking hit.
+typedef struct //2011_04_01, DC: Counterstrike when taking hit.
 {
-    int frameend:16;                       //Last frame of counter range.
-    int framestart:16;                     //First frame of counter range.
-	int condition:8;                      //Counter conditions. 1 = Always. 2 = Hostile attacker. 3 = Hostile attacker from front not using freeze attack.
-	int damaged:8;                        //Receive damage from attack. 0 = No damage. 1 = Normal damage.
+    int frameend; //Last frame of counter range.
+    int framestart; //First frame of counter range.
+	int condition; //Counter conditions. 1 = Always. 2 = Hostile attacker. 3 = Hostile attacker from front not using freeze attack.
+	int damaged; //Receive damage from attack. 0 = No damage. 1 = Normal damage.
 }s_counterrange;
 
-typedef struct                                      //2011_04_01, DC: HP and/or MP cost to perform special/freespecials.
+typedef struct //2011_04_01, DC: HP and/or MP cost to perform special/freespecials.
 {
-    int cost:16;                           //Amount of energy cost.
-    int disable:16;                        //Disable flag. See check_energy function.
-    int mponly:8;                         //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
+    int cost; //Amount of energy cost.
+    int disable; //Disable flag. See check_energy function.
+    int mponly; //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
 }s_energycost;
 
-typedef struct                                      //2011_04_01, DC: On frame movement (slide, jump, dive, etc.).
+typedef struct //2011_04_01, DC: On frame movement (slide, jump, dive, etc.).
 {
-    int				ent;							//Index of entity to spawn on liftoff of jump action.
-    short int		f;                              //Frame to begin jump action.
-	float           v;    		                    //Vertical velocity.
-	float           x;                              //Horizontal velcoty.
-	float           z;                              //Lateral velocity.
+    int ent; //Index of entity to spawn on liftoff of jump action.
+    int f; //Frame to begin jump action.
+	float v; //Vertical velocity.
+	float x; //Horizontal velcoty.
+	float z; //Lateral velocity.
 }s_jumpframe;
 
-typedef struct                                      //2011_04_01, DC: Behavior when reaching base after jump or fall.
+typedef struct //2011_04_01, DC: Behavior when reaching base after jump or fall.
 {
-	short int       frame;                          //Frame to assume on landing.
-	int             ent;                            //Index of entity to spawn on landing.
+	int frame; //Frame to assume on landing.
+	int ent; //Index of entity to spawn on landing.
 }s_landframe;
 
-typedef struct                                      //2011_04_01, DC: Animation looping.
+typedef struct //2011_04_01, DC: Animation looping.
 {
-    int frameend:16;                       //Frame animation reaches before looping.
-    int framestart:16;                     //Frame animation loops back to.
-    int mode:8;                           //0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
+    int frameend; //Frame animation reaches before looping.
+    int framestart; //Frame animation loops back to.
+    int mode; //0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
 }s_loop;
 
-typedef struct                                      //2011_04_01, DC: Frame based screen shake functionality.
+typedef struct //2011_04_01, DC: Frame based screen shake functionality.
 {
-    int     cnt:8;                            //Repetition count.
-    int     framestart:16;                     //Frame to start quake.
-    int     repeat:8;                         //Repetitons.
-    int     v:8;                              //Vertical distance of screen movement (in pixels).
+    int cnt; //Repetition count.
+    int framestart; //Frame to start quake.
+    int repeat; //Repetitons.
+    int v; //Vertical distance of screen movement (in pixels).
 }s_quakeframe;
 
-typedef struct                                      //2011_04_01, DC: Distance to target verification for AI running, jumping, following parent, and combo chains for all entity types.
+typedef struct //2011_04_01, DC: Distance to target verification for AI running, jumping, following parent, and combo chains for all entity types.
 {
-    short int       xmin;                           //Minimum horizontal range.
-    short int       xmax;                           //Maximum horizontal range.
-    short int       zmin;                           //Minimum lateral range.
-    short int       zmax;                           //Maximum lateral range.
-    short int       amin;                           //Minimum vertical range.
-    short int       amax;                           //Maximum vertical range.
-    short int       bmin;                           //Minumum base range.
-    short int       bmax;                           //Maximum base rnage.
-}s_range;                                           //2011_04_01, DC: Target range verification for various AI and player functions.
+    int xmin; //Minimum horizontal range.
+    int xmax; //Maximum horizontal range.
+    int zmin; //Minimum lateral range.
+    int zmax; //Maximum lateral range.
+    int amin; //Minimum vertical range.
+    int amax; //Maximum vertical range.
+    int bmin; //Minumum base range.
+    int bmax; //Maximum base rnage.
+}s_range; //2011_04_01, DC: Target range verification for various AI and player functions.
 
 typedef struct
 {
 	int model_index;
 	int index; //unique id
-	int numframes:16;
+	int numframes;
 	s_loop loop; // Animation looping. 2011_03_31, DC: Moved to struct.
-	int height:16; // entity's height during animation
-	int tossframe:16; // Used to determine which frame will toss a bomb/grenade
-	int shootframe:16;
-	int throwframe:16;
-	int throwa:16; //	Used for setting the "a" at which weapons are spawned
+	int height; // entity's height during animation
+	int tossframe; // Used to determine which frame will toss a bomb/grenade
+	int shootframe;
+	int throwframe;
+	int throwa; //	Used for setting the "a" at which weapons are spawned
 	// various entity model id, knife/star/bomb etc
 	int custknife;
 	int custstar;
@@ -781,46 +781,46 @@ typedef struct
 	float bounce; // -tossv/bounce = new tossv
 	int* soundtoplay; // each frame can have a sound
 	int* sprite; // sprite[set][framenumber]
-	short* delay;
-	short* move;
-	short* movez;
-	short* movea;
-	short* seta; // Now characters can have a custom "a" value
-	short* vulnerable;
-	short (*bbox_coords)[6];
+	int* delay;
+	int* move;
+	int* movez;
+	int* movea;
+	int* seta; // Now characters can have a custom "a" value
+	int* vulnerable;
+	int (*bbox_coords)[6];
 	int* shadow;
-	unsigned char* idle; // Allow free move
-	short (*shadow_coords)[2];            // x, z offset of shadow
+	unsigned * idle; // Allow free move
+	int (*shadow_coords)[2]; // x, z offset of shadow
 	s_drawmethod **drawmethods;
 	s_attack** attacks;
 	float (*platform)[8]; // Now entities can have others land on them
 	s_range range; // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-	int flipframe:16; // Turns entities around on the desired frame
-	int followanim:16; // use which FOLLOW anim?
-	int followcond:8; // conditions under which to use a followup
+	int flipframe; // Turns entities around on the desired frame
+	int followanim; // use which FOLLOW anim?
+	int followcond; // conditions under which to use a followup
 	s_counterrange counterrange; // Auto counter attack. 2011_04_01, DC: Moved to struct.
-	int cancel:8; // Cancel anims with freespecial
-	int attackone:8; // stick on the only one victim
-	int dive:8; // UT: make dive a similar property as antigravity
-	short *weaponframe; // Specify with a frame when to switch to a weapon model
+	int cancel; // Cancel anims with freespecial
+	int attackone; // stick on the only one victim
+	int dive; // UT: make dive a similar property as antigravity
+	int *weaponframe; // Specify with a frame when to switch to a weapon model
 	s_quakeframe quakeframe; // Screen shake effect. 2011_04_01, DC; Moved to struct.
     float* spawnframe; // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
     float* summonframe; // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-	int unsummonframe:16; // Un-summon the entity
+	int unsummonframe; // Un-summon the entity
 	s_landframe landframe; // Landing behavior. 2011_04_01, DC: Moved to struct.
-	int dropframe:16; // if tossv < 0, this frame will be set
-	int animhits:16; // Does the attack need to hit before cancel is allowed?
-	int sync:16; // sychronize frame to previous animation if they matches
+	int dropframe; // if tossv < 0, this frame will be set
+	int animhits; // Does the attack need to hit before cancel is allowed?
+	int sync; // sychronize frame to previous animation if they matches
 }s_anim;
 
 typedef struct
 {
-	int     mode;
-	float   factor;
-	int     cap_min;
-	int     cap_max;
-	int     range_min;
-	int     range_max;
+	int mode;
+	float factor;
+	int cap_min;
+	int cap_max;
+	int range_min;
+	int range_max;
 }s_edelay;
 
 struct animlist{
@@ -842,19 +842,19 @@ typedef enum {
 
 typedef struct
 {
-   short        offsetx:16;
-   short        offsety:16;
-   short        sizex:16;
-   short        sizey:16;
-   bartype      type:8;
-   barorient    orientation:8;
-   char         noborder:8;
-   char         direction:8;  //0) left to right or botom to top 1) reversed
-   int          barlayer:32;
-   int          backlayer:32;
-   int          borderlayer:32;
-   int          shadowlayer:32;
-   int          (*colourtable)[11]; //0 default backfill 1-10 foreground colours
+   int offsetx;
+   int offsety;
+   int sizex;
+   int sizey;
+   bartype type;
+   barorient orientation;
+   int noborder;
+   int direction;  //0) left to right or botom to top 1) reversed
+   int barlayer;
+   int backlayer;
+   int borderlayer;
+   int shadowlayer;
+   int (*colourtable)[11]; //0 default backfill 1-10 foreground colours
 }s_barstatus;
 
 typedef enum {
@@ -871,18 +871,18 @@ typedef struct {
 	- 2 = background only.
 	- 3 = status bar only.
 	*/
-	char tf; //determines used font number for "LOADING" text (last element in command, moved here because of alignment)
+	int tf; //determines used font number for "LOADING" text (last element in command, moved here because of alignment)
 	/*
 	- 0 = font.gif
 	- 1 = font2.gif
 	- 2 = font3.gif
 	- 3 = font4.gif */
-	short bx; //determines x and y coordinates of loading bar top left's location respectively
-	short by;
-	short bsize; // length of bar in pixels
-	short tx; //determines x and y coordinates of "LOADING" text location respectively.
-	short ty;
-	short refreshMs; // modder defined number of milliseconds in which the screen is updated while loading
+	int bx; //determines x and y coordinates of loading bar top left's location respectively
+	int by;
+	int bsize; // length of bar in pixels
+	int tx; //determines x and y coordinates of "LOADING" text location respectively.
+	int ty;
+	int refreshMs; // modder defined number of milliseconds in which the screen is updated while loading
 } s_loadingbar;
 
 typedef struct {
@@ -927,47 +927,47 @@ typedef enum  {
 
 typedef struct
 {
-    short int       current;                        //Current guard points remaining.
-    short int       maximum;                        //Maximum guard points.
-} s_guardpoints;                                    //2011_04_05, DC: Guardpoints feature added by OX.
+    int current; //Current guard points remaining.
+    int maximum; //Maximum guard points.
+} s_guardpoints; //2011_04_05, DC: Guardpoints feature added by OX.
 
 typedef struct
 {
-    short int		def;                            //Default icon.
-    short int       die;     					    //Health depleted.
-    short int		get;    					    //Retrieving item.
-	short int       mphigh;                         //MP bar icon; at 66% or more (default if other mp icons not used).
-	short int       mplow;                          //MP bar icon; at or between 0% and 32%.
-	short int       mpmed;                          //MP bar icon; at or between 33% and 65%.
-	short int 		pain;   					    //Taking damage.
-	short int       weapon;                         //Weapon model.
-	short int       x;                              //X position.
-	short int       y;                              //Y position.
-} s_icon;                                           //2011_04_05, DC: In game icons added 2005_01_20.
+    int def; //Default icon.
+    int die; //Health depleted.
+    int get; //Retrieving item.
+	int mphigh; //MP bar icon; at 66% or more (default if other mp icons not used).
+	int mplow; //MP bar icon; at or between 0% and 32%.
+	int mpmed; //MP bar icon; at or between 33% and 65%.
+	int pain; //Taking damage.
+	int weapon; //Weapon model.
+	int x; //X position.
+	int y; //Y position.
+} s_icon; //2011_04_05, DC: In game icons added 2005_01_20.
 
 typedef struct
 {
-    short int       current;                        //Current juggle points accumulated.
-    short int       maximum;                        //Maximum juggle points possible.
+    int current; //Current juggle points accumulated.
+    int maximum; //Maximum juggle points possible.
 } s_jugglepoints;                                   //2011_04_05, DC: Jugglepoints feature added by OX.
 
 typedef struct
 {
-    signed char     frozen;                         //Frozen.
-    signed char     hide_end;                       //End range for maps hidden during character selection.
-    signed char     hide_start;                     //Start range for maps hidden during character selection.
-    signed char     ko;                             //Health depleted.
-    signed char     kotype;                         //KO map application. 0 = Immediately. 1 = At last frame of fall/death animation.
-} s_maps;                                           //2011_04_07, DC: Pre defined color map selections and behavior.
+    signed frozen; //Frozen.
+    signed hide_end; //End range for maps hidden during character selection.
+    signed hide_start; //Start range for maps hidden during character selection.
+    signed ko; //Health depleted.
+    signed kotype; //KO map application. 0 = Immediately. 1 = At last frame of fall/death animation.
+} s_maps; //2011_04_07, DC: Pre defined color map selections and behavior.
 
 typedef struct
 {
-    short int       amax;                           //Maximum vertical range.
-    short int       amin;                           //Minimum vertical range.
-    short int       xmax;                           //Maximum horizontal range.
-    short int       xmin;                           //Minimum horizontal range.
-    short int       zmax;                           //Maximum lateral range.
-    short int       zmin;                           //Minimum lateral range.
+    int amax; //Maximum vertical range.
+    int amin; //Minimum vertical range.
+    int xmax; //Maximum horizontal range.
+    int xmin; //Minimum horizontal range.
+    int zmax; //Maximum lateral range.
+    int zmin; //Minimum lateral range.
 } s_sight;                                          //2011_04_05, DC: Range from self AI can detect other entities.
 
 typedef struct
@@ -997,455 +997,456 @@ typedef struct{
 } point2d;
 
 typedef struct {
-	float          factor;                //basic defense factors: damage = damage*defense
-	float          pain;                   //Pain factor (like nopain) for defense type.
-	float          knockdown;              //Knockdowncount (like knockdowncount) for attack type.
-	float          blockpower;             //If > unblockable, this attack type is blocked.
-	float          blockthreshold;         //Strongest attack from this attack type that can be blocked.
-	float          blockratio;             //% of damage still taken from this attack type when blocked.
-	float          blocktype;             //0 = HP, 1=MP, 2=both taken when this attack type is blocked.
+	float factor; //basic defense factors: damage = damage*defense
+	float pain; //Pain factor (like nopain) for defense type.
+	float knockdown; //Knockdowncount (like knockdowncount) for attack type.
+	float blockpower; //If > unblockable, this attack type is blocked.
+	float blockthreshold; //Strongest attack from this attack type that can be blocked.
+	float blockratio; //% of damage still taken from this attack type when blocked.
+	float blocktype; //0 = HP, 1=MP, 2=both taken when this attack type is blocked.
 }s_defense;
 
 typedef struct
 {
-	int             index;
-	char*           name;
-	char*           path;                           // Path, so scripts can dynamically get files, sprites, sounds, etc.
-	unsigned	    score;
-	float           stats[20];                      // Parameters that do nothing on their own.
-	int  			health;
-	float           scroll;                         // Autoscroll like panel entity.
-	unsigned        offscreenkill;                  // for biker, arrow, etc
-	//unsigned        offscreenkillz;
-	//unsigned        offscreeenkila;
-	int 			mp;							    // mp's variable for mpbar by tails
-	int			counter:16;						// counter of weapons by tails
-	unsigned 	shootnum:8; 					// counter of shots by tails
-	unsigned 	reload:8; 						// reload max shots by tails
-	int			reactive:8;						// Used for setting the "a" at which weapons are spawned
-	int			typeshot:8; 					// see if weapon is a gun or knife by tails
-	int			animal:8;  						// see is the weapon is a animal by tails
-	int 		nolife:8;	 					// Feb 25, 2005 - Variable flag to show life 0 = no, else yes
-	int 		makeinv;	 					// Option to spawn player invincible >0 blink <0 noblink
-	int         riseinv;                        // how many seconds will the character become invincible after rise >0 blink, <0 noblink
-	int			dofreeze:8;						// Flag to freeze all enemies/players while special is executed
-	int			noquake:8;						// Flag to make the screen shake when entity lands 1 = no, else yes
-	int			ground:8;						// Flag to determine if enemy projectiles only hit the enemy when hitting the ground
-	int 		multiple;						// So you can control how many points are given for hitting opponents
-	int			bounce:8;						// Flag to determine if bounce/quake is to be used.
-	int			type:16;
-	int			subtype:8;
-	s_icon      icon;                           //In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct.
-	int			parrow[MAX_PLAYERS][3];			// Image to be displayed when player spawns invincible
-	int			setlayer;						// Used for forcing enities to be displayed behind
-	int			thold:16;						// The entities threshold for block
-	s_maps      maps;                           //2011_04_07, DC: Pre defined color map selections and behavior.
-	int			alpha:8;						// New alpha variable to determine if the entity uses alpha transparency
-	int			toflip:8;						// Flag to determine if flashes flip or not
-	int			shadow:8;
-	int         gfxshadow:8;                    // use current frame to create a shadow
-	int			aironly:8;						// Used to determine if shadows will be shown when jumping only
-	int			nomove:8;						// Flag for static enemies
-	int			noflip:8;						// Flag to determine if static enemies flip or stay facing the same direction
-	int			nodrop:8;						// Flag to determine if enemies can be knocked down
-	int			nodieblink:8;					// Flag to determine if blinking while playing die animation
-	int			holdblock:8;					// Continue the block animation as long as the player holds the button down
-	int         nopassiveblock:8;               // Don't auto block randomly
-	int			blockback:8;					// Able to block attacks from behind
-	int			blockodds:16;					// Odds that an enemy will block an attack (1 : blockodds)
-	s_edelay    edelay;                         // Entity level delay adjustment.
-	float		runspeed;						// The speed the character runs at
-	float		runjumpheight;					// The height the character jumps when running
-	float		runjumpdist;					// The distance the character jumps when running
-	int			noatflash:8;					// Flag to determine if attacking characters attack spawns a flash
-	int			runupdown:8;					// Flag to determine if a player will continue to run while pressing up or down
-	int			runhold:8;						// Flag to determine if a player will continue to run if holding down forward when landing
-	int			remove:8;						// Flag to remove a projectile on contact or not
-	float		throwheight;					// The height at which an opponent can now be adjusted
-	float		throwdist;						// The distance an opponent can now be adjusted
-	int         throwframewait:16;              // The frame victim is thrown during ANIM_THROW, added by kbandressen 10/20/06
-	s_com		*special;						// Stores freespecials
-	int			specials_loaded:16;				// Stores how many specials have been loaded
-	int         diesound;
-	int			weapnum:8;
-	int			secret:8;
-	int			clearcount:8;
-	char		weaploss[2];					// Determines possibility of losing weapon.
-	int         ownweapons:8;                   // is the weapon list own or share with others
-	int         *weapon;						// weapon model list
-	int			numweapons;
+	int index;
+	char* name;
+	char* path; // Path, so scripts can dynamically get files, sprites, sounds, etc.
+	unsigned score;
+	float stats[20]; // Parameters that do nothing on their own.
+	int health;
+	float scroll; // Autoscroll like panel entity.
+	unsigned offscreenkill;                  // for biker, arrow, etc
+	int	priority;
+	//unsigned offscreenkillz;
+	//unsigned offscreeenkila;
+	int mp; // mp's variable for mpbar by tails
+	int counter; // counter of weapons by tails
+	unsigned shootnum; // counter of shots by tails
+	unsigned reload; // reload max shots by tails
+	int reactive; // Used for setting the "a" at which weapons are spawned
+	int typeshot; // see if weapon is a gun or knife by tails
+	int animal; // see is the weapon is a animal by tails
+	int nolife; // Feb 25, 2005 - Variable flag to show life 0 = no, else yes
+	int makeinv; // Option to spawn player invincible >0 blink <0 noblink
+	int riseinv; // how many seconds will the character become invincible after rise >0 blink, <0 noblink
+	int dofreeze; // Flag to freeze all enemies/players while special is executed
+	int noquake; // Flag to make the screen shake when entity lands 1 = no, else yes
+	int ground; // Flag to determine if enemy projectiles only hit the enemy when hitting the ground
+	int multiple; // So you can control how many points are given for hitting opponents
+	int bounce; // Flag to determine if bounce/quake is to be used.
+	int type;
+	int subtype;
+	s_icon icon; //In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct.
+	int parrow[MAX_PLAYERS][3]; // Image to be displayed when player spawns invincible
+	int setlayer; // Used for forcing enities to be displayed behind
+	int thold; // The entities threshold for block
+	s_maps maps; //2011_04_07, DC: Pre defined color map selections and behavior.
+	int alpha; // New alpha variable to determine if the entity uses alpha transparency
+	int toflip; // Flag to determine if flashes flip or not
+	int shadow;
+	int gfxshadow; // use current frame to create a shadow
+	int aironly; // Used to determine if shadows will be shown when jumping only
+	int nomove; // Flag for static enemies
+	int noflip; // Flag to determine if static enemies flip or stay facing the same direction
+	int nodrop; // Flag to determine if enemies can be knocked down
+	int nodieblink; // Flag to determine if blinking while playing die animation
+	int holdblock; // Continue the block animation as long as the player holds the button down
+	int nopassiveblock; // Don't auto block randomly
+	int blockback; // Able to block attacks from behind
+	int blockodds; // Odds that an enemy will block an attack (1 : blockodds)
+	s_edelay edelay; // Entity level delay adjustment.
+	float runspeed; // The speed the character runs at
+	float runjumpheight; // The height the character jumps when running
+	float runjumpdist; // The distance the character jumps when running
+	int noatflash; // Flag to determine if attacking characters attack spawns a flash
+	int runupdown; // Flag to determine if a player will continue to run while pressing up or down
+	int runhold; // Flag to determine if a player will continue to run if holding down forward when landing
+	int remove; // Flag to remove a projectile on contact or not
+	float throwheight; // The height at which an opponent can now be adjusted
+	float throwdist; // The distance an opponent can now be adjusted
+	int throwframewait; // The frame victim is thrown during ANIM_THROW, added by kbandressen 10/20/06
+	s_com *special; // Stores freespecials
+	int specials_loaded; // Stores how many specials have been loaded
+	int diesound;
+	int weapnum;
+	int secret;
+	int clearcount;
+	int weaploss[2]; // Determines possibility of losing weapon.
+	int ownweapons; // is the weapon list own or share with others
+	int *weapon; // weapon model list
+	int numweapons;
 
 	// these are model id of various stuff
-	int             project;
-	int             rider;   		                // 7-1-2005 now every "biker" can have a new driver!
-	int             knife;   		                // 7-1-2005 now every enemy can have their own "knife" projectile
-	int             pshotno;   		                // 7-1-2005 now every enemy can have their own "knife" projectile
-	int             star;   			            // 7-1-2005 now every enemy can have their own "ninja star" projectiles
-	int             bomb;   			            // New projectile type for exploding bombs/grenades/dynamite
-	int             flash;   			            // Now each entity can have their own flash
-	int             bflash;                         // Flash that plays when an attack is blocked
-	int             dust[3];   			            // Dust spawn (0 = Fall land, 1 = Jumpland, 2 = Jumpstart.)
-	int			height:16;						// Used to set height of player in pixels
-	float			speed;
-	float			grabdistance;					// 30-12-2004	grabdistance varirable adder per character
-	float			pathfindstep;					// UT: how long each step if the entity is trying to find a way
-	int			grabflip:8;						// Flip target or not, bit0: grabber, bit1: opponent
-	float           jumpspeed;                      // normal jump foward speed, default to max(1, speed)
-	float			jumpheight;						// 28-12-2004	Jump height variable added per character
-	int            jumpmovex:8;                    // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
-	int            jumpmovez:8;                    // 2nd byte: 0 default 1 zjump with flip(not implemented yet) 2 z jump move in air, 3 1+2
-	int            grabfinish:8;                   // wait for grab animation to finish before do other actoins
-	int 			antigrab:8;						// anti-grab factor
-	int             grabforce;                      // grab factor, antigrab - grabforce <= 0 means can grab
-	int            facing:8;                       // 0 no effect, 1 alway right, 2 always left, 3, affected by level dir
-	int			grabback:8;						// Flag to determine if entities grab images display behind opponenets
-	int            grabturn:8;
-	int			paingrab:8;						// Can only be grabbed when in pain
-	float           grabwalkspeed;
-	int			throwdamage:16;					// 1-14-05  adjust throw damage
-	unsigned char*  palette;                        // original palette for 32/16bit mode
+	int project;
+	int rider; // 7-1-2005 now every "biker" can have a new driver!
+	int knife; // 7-1-2005 now every enemy can have their own "knife" projectile
+	int pshotno; // 7-1-2005 now every enemy can have their own "knife" projectile
+	int star; // 7-1-2005 now every enemy can have their own "ninja star" projectiles
+	int bomb; // New projectile type for exploding bombs/grenades/dynamite
+	int flash; // Now each entity can have their own flash
+	int bflash; // Flash that plays when an attack is blocked
+	int dust[3]; // Dust spawn (0 = Fall land, 1 = Jumpland, 2 = Jumpstart.)
+	int height; // Used to set height of player in pixels
+	float speed;
+	float grabdistance; // 30-12-2004	grabdistance varirable adder per character
+	float pathfindstep; // UT: how long each step if the entity is trying to find a way
+	int grabflip; // Flip target or not, bit0: grabber, bit1: opponent
+	float jumpspeed; // normal jump foward speed, default to max(1, speed)
+	float jumpheight; // 28-12-2004	Jump height variable added per character
+	int jumpmovex; // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
+	int jumpmovez; // 2nd byte: 0 default 1 zjump with flip(not implemented yet) 2 z jump move in air, 3 1+2
+	int grabfinish; // wait for grab animation to finish before do other actoins
+	int antigrab; // anti-grab factor
+	int grabforce; // grab factor, antigrab - grabforce <= 0 means can grab
+	int facing; // 0 no effect, 1 alway right, 2 always left, 3, affected by level dir
+	int grabback; // Flag to determine if entities grab images display behind opponenets
+	int grabturn;
+	int paingrab; // Can only be grabbed when in pain
+	float grabwalkspeed;
+	int throwdamage; // 1-14-05  adjust throw damage
+	unsigned char*  palette; // original palette for 32/16bit mode
 	unsigned char**	colourmap;
-	int			maps_loaded:8;					// Used for player colourmap selecting
-	int			unload:8; 						// Unload model after level completed?
-	int			falldie:8; 						// Play die animation?
-	int            globalmap:8;                    // use global palette for its colour map in 24bit mode
-	int			nopain:8;
-	int            summonkill:8;                   // kill it's summoned entity when died;  0. dont kill 1. kill summoned only 2. kill all spawned entity
-	int            combostyle:8;
-	int			blockpain:8;
-	char       atchain[MAX_ATCHAIN];
-	int		    chainlength:8;
-	s_anim**        animation;
-	int				credit:8;
-	int				escapehits:8;					// Escape spammers!
-	int				chargerate:8;					// For the charge animation
-	int	            guardrate:8;                    // Rate for guardpoints recover.
-	int				mprate:8;						// For time-based mp recovery.
-	int	            mpdroprate:8;                   // Time based MP loss.
-	int	            mpstable:8;                     // MP stable type.
-	int				mpstableval:16;                 // MP Stable target.
-	int				aggression:16;					// For enemy A.I.
-	short			risetime[2];					// 0 = Rise delay, 1 = Riseattack delay.
-	unsigned		sleepwait:16;
-	int				riseattacktype:8;
-	s_jugglepoints  jugglepoints;                   // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
-	s_guardpoints   guardpoints;                    // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
-	int            mpswitch:8;                     // switch between reduce or gain mp for mpstabletype 4
-	int				turndelay:16;                   // turn delay
-	float           lifespan;                       // lifespan count down
-	float           knockdowncount;                 // the knock down count for this entity
-	float			attackthrottle;					// how often the enemy refuse to attack
-	float			attackthrottletime;				// how long does the throttle status last
-	s_stealth       stealth;						// Invisibility to AI feature added by DC. 2011_04_05, DC: Moved to struct.
+	int maps_loaded; // Used for player colourmap selecting
+	int unload; // Unload model after level completed?
+	int falldie; // Play die animation?
+	int globalmap; // use global palette for its colour map in 24bit mode
+	int nopain;
+	int summonkill; // kill it's summoned entity when died;  0. dont kill 1. kill summoned only 2. kill all spawned entity
+	int combostyle;
+	int blockpain;
+	int atchain[MAX_ATCHAIN];
+	int chainlength;
+	s_anim** animation;
+	int credit;
+	int escapehits; // Escape spammers!
+	int chargerate; // For the charge animation
+	int guardrate; // Rate for guardpoints recover.
+	int mprate; // For time-based mp recovery.
+	int mpdroprate; // Time based MP loss.
+	int mpstable; // MP stable type.
+	int mpstableval; // MP Stable target.
+	int aggression; // For enemy A.I.
+	int risetime[2]; // 0 = Rise delay, 1 = Riseattack delay.
+	unsigned sleepwait;
+	int riseattacktype;
+	s_jugglepoints  jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
+	s_guardpoints   guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
+	int mpswitch; // switch between reduce or gain mp for mpstabletype 4
+	int turndelay; // turn delay
+	float lifespan; // lifespan count down
+	float knockdowncount; // the knock down count for this entity
+	float attackthrottle; // how often the enemy refuse to attack
+	float attackthrottletime; // how long does the throttle status last
+	s_stealth stealth; // Invisibility to AI feature added by DC. 2011_04_05, DC: Moved to struct.
 
 	//---------------new A.I. switches-----------
-	int           hostile:16;                     // specify hostile types
-	int           candamage:16;                   // specify types that can be damaged by this entity
-	int           projectilehit:16;               // specify types that can be hit by this entity if it is thrown
-	unsigned		aimove;                      // move style
-	s_sight			sight;						    // Sight range. 2011_04_05, DC: Moved to struct.
-	unsigned    aiattack;                    // attack/defend style
+	int hostile; // specify hostile types
+	int candamage; // specify types that can be damaged by this entity
+	int projectilehit; // specify types that can be hit by this entity if it is thrown
+	unsigned aimove; // move style
+	s_sight sight; // Sight range. 2011_04_05, DC: Moved to struct.
+	unsigned aiattack; // attack/defend style
 
 	//----------------physical system-------------------
-	float           antigravity;                    //antigravity : gravity * (1- antigravity)
+	float antigravity;                    //antigravity : gravity * (1- antigravity)
 
 	//--------------new property for endlevel item--------
-	char*           branch;                         //level branch name
-	char            model_flag:8;                   //used to judge some copy method when setting new model to an entity
+	char* branch; //level branch name
+	int model_flag; //used to judge some copy method when setting new model to an entity
 
-	s_defense*		defense;						//defense related, make a struct to aid copying
-	float*          offense_factors;                //basic offense factors: damage = damage*offense
-	s_attack*       smartbomb;
+	s_defense* defense; //defense related, make a struct to aid copying
+	float* offense_factors; //basic offense factors: damage = damage*offense
+	s_attack* smartbomb;
 
 	// e.g., boss
-	s_barstatus     hpbarstatus;
-	int           hpx:16;
-	int           hpy:16;
-	int           namex:16;
-	int           namey:16;
+	s_barstatus hpbarstatus;
+	int hpx;
+	int hpy;
+	int namex;
+	int namey;
 
 	// movement flags
-	int            subject_to_wall:8;
-	int            subject_to_platform:8;
-	int            subject_to_obstacle:8;
-	int            subject_to_hole:8;
-	int            subject_to_gravity:8;
-	int            subject_to_screen:8;
-	int            subject_to_minz:8;
-	int            subject_to_maxz:8;
-	int            no_adjust_base:8;               // dont change base to 0 automatically
-	int            instantitemdeath:8;             // no delay before item suicides
-	int	hasPlatforms:8;
-	int isSubclassed:8;
-	ModelFreetype	freetypes;
-	s_scripts*	scripts;
+	int subject_to_wall;
+	int subject_to_platform;
+	int subject_to_obstacle;
+	int subject_to_hole;
+	int subject_to_gravity;
+	int subject_to_screen;
+	int subject_to_minz;
+	int subject_to_maxz;
+	int no_adjust_base; // dont change base to 0 automatically
+	int instantitemdeath; // no delay before item suicides
+	int	hasPlatforms;
+	int isSubclassed;
+	ModelFreetype freetypes;
+	s_scripts* scripts;
 }s_model;
 
 typedef struct
 {
-	char			*name;
-	char			*path;
-	s_model*        model;
-	char            loadflag;
-	char            selectable;
+	char *name;
+	char *path;
+	s_model* model;
+	int loadflag;
+	int selectable;
 }s_modelcache;
 s_modelcache *model_cache;
 
 typedef struct
 {
-    int             rise;                           //Time modifier before rise.
-    int             riseattack;                     //Time modifier before riseattack.
-    int             riseattack_stall;               //Total stalltime before riseattack.
+    int rise; //Time modifier before rise.
+    int riseattack; //Time modifier before riseattack.
+    int riseattack_stall; //Total stalltime before riseattack.
 } s_staydown;                                       //2011_04_08, DC: Delay modifiers before rise or riseattack can take place.
 
 typedef struct entity
 {
-	int				spawntype:8;                    // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
-	int				exists:8;                       // flag to determine if it is a valid entity.
-	int				reactive:8;						// Used for setting the "a" at which weapons are spawned
-	int				ptype:8;
-	int				playerindex:8;
-	float           stats[20];                      // Parameters that do nothing on their own.
-	int             health;                         // current hp
-	int             mp;                             // current mp
-	int  			oldhealth;
-	int  			oldmp;							//mp's variable for mp for players by tails
-	char			name[MAX_NAME_LEN+1];           // this is display name
-	s_model         *defaultmodel;                  // this is the default model
-	s_model 		*model;                         // current model
-	s_model         modeldata;                      // model data copyied here
-	int 			item:16;                        // item model id
-	int				itemmap:8;						// Now items spawned can have their properties changed
-	int				itemtrans:8;                    // alpha effect of item
-	char			itemalias[MAX_NAME_LEN+1];		// Now items spawned can have their properties changed
-	int  			itemhealth;						// Now items spawned can have their properties changed
-	int				itemplayer_count:8;
-	int				boss:8;
-	int				dying:8;						// Coresponds with which remap is to be used for the dying flash
-	unsigned		per1:16;							// Used to store at what health value the entity begins to flash
-	unsigned		per2:16;							// Used to store at what health value the entity flashes more rapidly
-	int				direction:8;					// 0=left 1=right
-	int				nograb:8;			            // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
-	int				movestep:8;
-	float			x;								// X
-	float			z;								// Depth
-	float			a;								// Altitude
-	float			xdir;
-	float			zdir;
-	float           destx;							// temporary values for ai functions
-	float			destz;
-	float			base;							// Default altitude
-	float           altbase;                        // Altitude affected by movea
-	float			tossv;							// Effect of gravity
-	float           jumpz;
-	float           jumpx;
-	float           jumpv;
-	int				jumpid:16;
-	unsigned char   combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
+	int spawntype; // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
+	int exists; // flag to determine if it is a valid entity.
+	int reactive; // Used for setting the "a" at which weapons are spawned
+	int ptype;
+	int playerindex;
+	float stats[20]; // Parameters that do nothing on their own.
+	int health; // current hp
+	int mp; // current mp
+	int oldhealth;
+	int oldmp; //mp's variable for mp for players by tails
+	char name[MAX_NAME_LEN+1]; // this is display name
+	s_model *defaultmodel; // this is the default model
+	s_model *model; // current model
+	s_model modeldata; // model data copyied here
+	int item; // item model id
+	int itemmap; // Now items spawned can have their properties changed
+	int itemtrans; // alpha effect of item
+	char itemalias[MAX_NAME_LEN+1]; // Now items spawned can have their properties changed
+	int itemhealth; // Now items spawned can have their properties changed
+	int itemplayer_count;
+	int boss;
+	int dying; // Coresponds with which remap is to be used for the dying flash
+	unsigned per1; // Used to store at what health value the entity begins to flash
+	unsigned per2; // Used to store at what health value the entity flashes more rapidly
+	int direction; // 0=left 1=right
+	int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
+	int movestep;
+	float x; // X
+	float z; // Depth
+	float a; // Altitude
+	float xdir;
+	float zdir;
+	float destx; // temporary values for ai functions
+	float destz; 
+	float base; // Default altitude
+	float altbase; // Altitude affected by movea
+	float tossv;							// Effect of gravity
+	float jumpz;
+	float jumpx;
+	float jumpv;
+	int jumpid;
+	unsigned combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
 
 	// ---------------------- action times -------------------------------
 	u32	lastmove;
 	u32 lastdir;
 	u32 timestamp;
 	u32 releasetime;
-	u32 toss_time;						// Used by gravity code
+	u32 toss_time; // Used by gravity code
 	u32 stalltime;
-	u32 combotime;						// For multiple-hit combo
-	u32 movetime;						// For special move
-	u32 freezetime;						// Used to store at what point the a frozen entity becomes unfrozen
-	u32 maptime;						// used by forcemap
-	u32 sealtime;						// used by seal (stops special moves).
-	u32 dot_time[MAX_DOTS]; 			//Dot time to expire.
-	int             dot[MAX_DOTS];                  //Dot mode.
-	int             dot_atk[MAX_DOTS];              //Dot attack type.
-	int             dot_force[MAX_DOTS];            //Dot amount.
-	int             dot_rate[MAX_DOTS];             //Dot delay per tick.
-	int	            dot_cnt[MAX_DOTS];              //Dot time of next tick.
-	struct entity   *dot_owner[MAX_DOTS];           //Dot owner.
+	u32 combotime; // For multiple-hit combo
+	u32 movetime; // For special move
+	u32 freezetime; // Used to store at what point the a frozen entity becomes unfrozen
+	u32 maptime; // used by forcemap
+	u32 sealtime; // used by seal (stops special moves).
+	u32 dot_time[MAX_DOTS]; //Dot time to expire.
+	int dot[MAX_DOTS]; //Dot mode.
+	int dot_atk[MAX_DOTS]; //Dot attack type.
+	int dot_force[MAX_DOTS]; //Dot amount.
+	int dot_rate[MAX_DOTS]; //Dot delay per tick.
+	int dot_cnt[MAX_DOTS]; //Dot time of next tick.
+	struct entity *dot_owner[MAX_DOTS]; //Dot owner.
 	u32 magictime;
 	u32 guardtime;
 	u32 nextanim;
 	u32 nextthink;
 	u32 nextattack;
 	u32 pain_time;
-	u32 pausetime;						// 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box.
-	u32 mpchargetime;					// For the CHARGE animation
-	u32 sleeptime;						// For the SLEEP animation
-	u32 rushtime;						// rush combo timer
-	u32 knockdowntime;                  // count knock down hit
-	u32 invinctime;						// Used to set time for invincibility to expire
+	u32 pausetime; // 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box.
+	u32 mpchargetime; // For the CHARGE animation
+	u32 sleeptime; // For the SLEEP animation
+	u32 rushtime; // rush combo timer
+	u32 knockdowntime; // count knock down hit
+	u32 invinctime; // Used to set time for invincibility to expire
 	u32 turntime;
-	s_staydown      staydown;                       //Delay modifiers before rise or riseattack can take place. 2011_04_08, DC: moved to struct.
+	s_staydown staydown; //Delay modifiers before rise or riseattack can take place. 2011_04_08, DC: moved to struct.
 	// -------------------------end of times ------------------------------
-	int				update_mark:8;
+	int update_mark;
 
 	//------------------------- a lot of flags ---------------------------
 
-	int				seal:8;                         //1 = No specials.
-	int             dead:8;
-	int             jumping:8;						// Stuff useful for AI
-	int             idling:8;
-	int             drop:8;
-	int             attacking:8;
-	int             getting:8;
-	int             turning:8;
-	int             charging:8;
-	int             blocking:8;
-	int				falling:8;
-	int             running:8;						// Flag to determine if a player is running
-	int             grabwalking:8;                    // a flag for grabwalk check
-	int             inpain:8;                         // playing pain animation
-	int          	frozen:8;							// Flag to determine if an entity is frozen
-	int				blink:8;
-	int				invincible:8;						// Flag used to determine if player is currently invincible
-	int				autokill:8;						// Kill on end animation
-	int				remove_on_attack:8;
-	int				cantfire:8;						// Flag to determine if another shot can be fired that costs energy
-	int				tocost:8;							// Flag to determine if special costs life if doesn't hit an enemy
-	int				noaicontrol:8;                    // pause A.I. control
-	int				projectile:8;
-	int				toexplode:8;						// Needed to determine if the projectile is a type that will explode (bombs, dynamite, etc)
-	int				animating:8;						// Set by animation code
-	int				arrowon:8;						// Flag to display parrow/parrow2 or not
-	unsigned		pathblocked:8;
+	int seal; //1 = No specials.
+	int dead;
+	int jumping; // Stuff useful for AI
+	int idling;
+	int drop;
+	int attacking;
+	int getting;
+	int turning;
+	int charging;
+	int blocking;
+	int falling;
+	int running; // Flag to determine if a player is running
+	int grabwalking; // a flag for grabwalk check
+	int inpain; // playing pain animation
+	int frozen; // Flag to determine if an entity is frozen
+	int blink;
+	int invincible; // Flag used to determine if player is currently invincible
+	int autokill; // Kill on end animation
+	int remove_on_attack;
+	int cantfire; // Flag to determine if another shot can be fired that costs energy
+	int tocost; // Flag to determine if special costs life if doesn't hit an enemy
+	int noaicontrol; // pause A.I. control
+	int projectile;
+	int toexplode; // Needed to determine if the projectile is a type that will explode (bombs, dynamite, etc)
+	int animating; // Set by animation code
+	int arrowon; // Flag to display parrow/parrow2 or not
+	unsigned pathblocked;
 
 	point2d * waypoints;
 	int numwaypoints;
-	int			animpos:16;
-	int			animnum:16;                     // animation id
-	s_anim			*animation;
-	float           knockdowncount;
-	int			damage_on_landing:8;
-	int            damagetype:8;                   // used for set death animation or pain animation
-	int            map:8;							// Stores the colourmap for restoring purposes
-	void			(*think)();
-	void            (*takeaction)();
-	int             (*takedamage)(struct entity*,s_attack*);
-	int             (*trymove)(float, float);
-	int			attack_id:16;
-	int			hit_by_attack_id:16;
-	unsigned char	*colourmap;
+	int animpos;
+	int animnum; // animation id
+	s_anim *animation;
+	float knockdowncount;
+	int damage_on_landing;
+	int damagetype; // used for set death animation or pain animation
+	int map; // Stores the colourmap for restoring purposes
+	void (*think)();
+	void (*takeaction)();
+	int (*takedamage)(struct entity*,s_attack*);
+	int (*trymove)(float, float);
+	int attack_id;
+	int hit_by_attack_id;
+	unsigned char *colourmap;
 	//struct entity   *thrower;
-	struct entity	*link;							// Used to link 2 entities together.
-	struct entity	*owner;							// Added for "hitenemy" flag so projectile recognizes its owner
-	struct entity	*grabbing;						// Added for "platform level" layering
-	struct entity	*weapent;
-	struct entity   *parent;                        //Its spawner
-	struct entity   *subentity;                     //store the sub entity
-	struct entity   *opponent;
-	struct entity   *lasthit;
-	struct entity   *hithead;                       // when a player jumps and hits head on the bottom of a platform
-	struct entity   *bound;                         // ignore trymove method, follow this entity
-	struct entity   *landed_on_platform;
-	short           bindoffset[4];                  // x, z, a, dir; int is ok
-	int           bindanim:16;                    // keep the bound entities same animation id
-	char			escapecount:8;					// For escapehits
-	unsigned short	rush[2];						// rush combo and max combo
-	float           lifespancountdown;              // life span count down
+	struct entity *link; // Used to link 2 entities together.
+	struct entity *owner; // Added for "hitenemy" flag so projectile recognizes its owner
+	struct entity *grabbing; // Added for "platform level" layering
+	struct entity *weapent;
+	struct entity *parent; //Its spawner
+	struct entity *subentity; //store the sub entity
+	struct entity *opponent;
+	struct entity *lasthit;
+	struct entity *hithead; // when a player jumps and hits head on the bottom of a platform
+	struct entity *bound; // ignore trymove method, follow this entity
+	struct entity *landed_on_platform;
+	int bindoffset[4]; // x, z, a, dir; int is ok
+	int bindanim; // keep the bound entities same animation id
+	int escapecount; // For escapehits
+	unsigned rush[2]; // rush combo and max combo
+	float lifespancountdown; // life span count down
 
 	//------------- these factors will be added by basic factors of model-------------
-	s_defense*		defense;
-	float*          offense_factors;                //offense factors: damage = damage*(1+def)
-	float           antigravity;                    // gravity*(1-antigravity)
+	s_defense* defense;
+	float* offense_factors; //offense factors: damage = damage*(1+def)
+	float antigravity; // gravity*(1-antigravity)
 
 	//-------------------A.I. movement factors ----------------------------
-	int             sortid;                         // id for sprite queue sort
+	int sortid; // id for sprite queue sort
 	ScriptVariant* entvars;
-	s_drawmethod    drawmethod;
+	s_drawmethod drawmethod;
 	s_scripts* scripts;
 }entity;
 
 
 typedef struct
 {
-	char			name[MAX_NAME_LEN+1];
-	char			colourmap:8;
-	unsigned int    score:32;
-	unsigned char	lives:8;
-	unsigned char	credits:8;
-	entity			*ent;
-	u32				keys;
-	u32				newkeys;
-	u32				playkeys;
-	u32				releasekeys;
-	u32				combokey[MAX_SPECIAL_INPUTS];
-	u32				inputtime[MAX_SPECIAL_INPUTS];
-	int				combostep;
-	int			    spawnhealth;
-	int  			spawnmp;
-	char			joining:8;
-	char			hasplayed:8;
-	char			weapnum:8;
+	char name[MAX_NAME_LEN+1];
+	int colourmap;
+	unsigned score;
+	unsigned lives;
+	unsigned credits;
+	entity *ent;
+	u32 keys;
+	u32 newkeys;
+	u32 playkeys;
+	u32 releasekeys;
+	u32 combokey[MAX_SPECIAL_INPUTS];
+	u32 inputtime[MAX_SPECIAL_INPUTS];
+	int combostep;
+	int spawnhealth;
+	int spawnmp;
+	int joining;
+	int hasplayed;
+	int weapnum;
 }s_player;
 
 
 typedef struct s_spawn_script_cache_node
 {
-	char		*filename;
-	Script		*cached_spawn_script;
+	char *filename;
+	Script *cached_spawn_script;
 	struct s_spawn_script_cache_node *next;
 } s_spawn_script_cache_node;
 
 typedef struct s_spawn_script_list_node
 {
-	Script		*spawn_script;
+	Script *spawn_script;
 	struct s_spawn_script_list_node *next;
 } s_spawn_script_list_node;
 
 
 typedef struct
 {
-	short			at:16;
-	char			wait:8;
-	char            nojoin:8;                   // dont allow new hero to join
-	char            spawnplayer_count:8;        // spawn this entity according to the amount of players
-	char            palette:8;                  //change system palette to ...
-	short			groupmin:16;
-	short			groupmax:16;
-	short           scrollminz:16;              // new scroll limit
-	short           scrollmaxz:16;
-	short           blockade:16;                //limit how far you can go back
-	short           light[2];                   // x, z  light direction, for gfx shadow
-	char            shadowcolor:8;              // -1 no shadow
-	int             shadowalpha:8;
-	char			music[128];
-	float           musicfade;
-	u32             musicoffset;
-	char			*name;                      // must be a name in the model list, so just reference
-	int             index;                      // model id
-	int             itemindex;                  // item model id
-	int             weaponindex;                // the spawned entity with an weapon item, this is the id of the item model
-	char			alpha:8;		  		    // Used for alpha effects
-	char			boss:8;
-	char			flip:8;
-	char			itemtrans:8;
-	char			itemmap:8;
-	char			colourmap:8;
-	char			dying:8;					// Used for the dying flash animation
-	unsigned short	per1:16;						// Used to store at what health value the entity begins to flash
-	unsigned short	per2:16;					    // Used to store at what health value the entity flashes more rapidly
-	char			nolife:8;					// So nolife can be overriden for all characters
-	char            itemplayer_count:8;         // spawn the item according to the amount of players
-	s_model         *itemmodel;
-	s_model         *model;
-	char			alias[MAX_NAME_LEN+1];
-	char			*item;                      // must be a name in the model list, so just reference
-	char			itemalias[MAX_NAME_LEN+1];
-	int			    itemhealth;
-	int			    health[MAX_PLAYERS];
-	int			    mp;							// mp's variable for mpbar by tails
-	unsigned int	score:32;					// So score can be overridden for enemies/obstacles
-	int				multiple;				// So score can be overridden for enemies/obstacles
+	int at;
+	int wait;
+	int nojoin; // dont allow new hero to join
+	int spawnplayer_count; // spawn this entity according to the amount of players
+	int palette; //change system palette to ...
+	int groupmin;
+	int groupmax;
+	int scrollminz; // new scroll limit
+	int scrollmaxz;
+	int blockade; //limit how far you can go back
+	int light[2]; // x, z  light direction, for gfx shadow
+	int shadowcolor; // -1 no shadow
+	int shadowalpha;
+	char music[128];
+	float musicfade;
+	u32 musicoffset;
+	char *name; // must be a name in the model list, so just reference
+	int index; // model id
+	int itemindex; // item model id
+	int weaponindex; // the spawned entity with an weapon item, this is the id of the item model
+	int alpha; // Used for alpha effects
+	int boss;
+	int flip;
+	int itemtrans;
+	int itemmap;
+	int colourmap;
+	int dying; // Used for the dying flash animation
+	unsigned per1; // Used to store at what health value the entity begins to flash
+	unsigned per2; // Used to store at what health value the entity flashes more rapidly
+	int nolife; // So nolife can be overriden for all characters
+	int itemplayer_count; // spawn the item according to the amount of players
+	s_model *itemmodel;
+	s_model *model;
+	char alias[MAX_NAME_LEN+1];
+	char *item; // must be a name in the model list, so just reference
+	char itemalias[MAX_NAME_LEN+1];
+	int itemhealth;
+	int health[MAX_PLAYERS];
+	int mp; // mp's variable for mpbar by tails
+	unsigned score; // So score can be overridden for enemies/obstacles
+	int multiple; // So score can be overridden for enemies/obstacles
 	// coords
-	float			x;
-	float			z;
-	float			a;
-	unsigned char	credit:8;
-	short			aggression:16;				// For enemy A.I.
-	char            spawntype;                  // Pass 1 when a level spawn.
-	char            *weapon;                    // spawn with a weapon, since it should be in the model list, so the model must be loaded, just reference its name
-	s_model         *weaponmodel;
-	s_spawn_script_list_node*          spawn_script_list_head;
+	float x;
+	float z;
+	float a;
+	unsigned credit;
+	int aggression; // For enemy A.I.
+	int spawntype; // Pass 1 when a level spawn.
+	char *weapon; // spawn with a weapon, since it should be in the model list, so the model must be loaded, just reference its name
+	s_model *weaponmodel;
+	s_spawn_script_list_node* spawn_script_list_head;
 }s_spawn_entry;
 
 typedef enum
@@ -1457,13 +1458,13 @@ typedef enum
 
 typedef struct
 {
-	char            *branchname;            // Use a name so we can find this level in branches
-	char			*filename;
-	le_type         type;                   // see le_type
-	int				z_coords[3];			// Used for setting custom "z"
-	int				gonext;                 // 0. dont complete this level and display score,
-											// 1. complete level and display score,
-											// 2. complete game, show hall of fame
+	char *branchname; // Use a name so we can find this level in branches
+	char *filename;
+	le_type type; // see le_type
+	int z_coords[3]; // Used for setting custom "z"
+	int gonext; // 0. dont complete this level and display score,
+				// 1. complete level and display score,
+				// 2. complete game, show hall of fame
 }s_level_entry;
 
 
@@ -1505,34 +1506,34 @@ typedef enum
 
 typedef struct
 {
-	bgloldtype     oldtype;
-	int            order;	//for panel order
-	gfx_entry      gfx;
-	int            width;
-	int            height;
-	float          xratio;
-	float          zratio;
-	int            xoffset;
-	int            zoffset;
-	int			   xspacing;
-	int			   zspacing;
-	s_drawmethod   drawmethod;
-	float          bgspeedratio;
-	int            enabled;
-	int            z;
-	int            quake;
-	int            neon;
+	bgloldtype oldtype;
+	int order;	//for panel order
+	gfx_entry gfx;
+	int width;
+	int height;
+	float xratio;
+	float zratio;
+	int xoffset;
+	int zoffset;
+	int xspacing;
+	int zspacing;
+	s_drawmethod drawmethod;
+	float bgspeedratio;
+	int enabled;
+	int z;
+	int quake;
+	int neon;
 }s_layer;
 
 
 typedef struct
 {
-	char*			text;
-	int				t;		//Time to expire.
-	int				x;
-	int				y;
-	int				font;
-	int				z;
+	char* text;
+	int t;		//Time to expire.
+	int x;
+	int y;
+	int font;
+	int z;
 }s_textobj;
 
 typedef struct
@@ -1573,35 +1574,35 @@ typedef struct
 	int cameraxoffset;
 	int camerazoffset;
 	int numholes;
-	int numwalls;						// Stores number of walls loaded
+	int numwalls; // Stores number of walls loaded
 	float (*holes)[7];
-	float (*walls)[8];		// Now you can have walls for different walkable areas
+	float (*walls)[8]; // Now you can have walls for different walkable areas
 	int exit_blocked;
 	int exit_hole;
 	int scrolldir;
 	int width;
 	int rocking;
-	float bgspeed;						// Used to make autoscrolling backgrounds
-	float scrollspeed;					// UT: restore this command  2011/7/8
-	int bgdir;							// Used to set which direction the backgrounds scroll for autoscrolling backgrounds
+	float bgspeed; // Used to make autoscrolling backgrounds
+	float scrollspeed; // UT: restore this command  2011/7/8
+	int bgdir; // Used to set which direction the backgrounds scroll for autoscrolling backgrounds
 	int mirror;
 	int bosses;
 	char bossmusic[256];
-	unsigned int bossmusic_offset;
+	unsigned bossmusic_offset;
 	int numpalettes;
 	unsigned char (*palettes)[1024];//dynamic palettes
 	unsigned char* (*blendings)[MAX_BLENDINGS];//blending tables
-	int settime;						// Set time limit per level
-	int notime;							// Used to specify if the time is displayed 1 = no, else yes
-	int noreset;						// If set, clock will not reset when players spawn/die
-	int type;							// Used to specify which level type (1 = bonus, else regular)
-	int nospecial;						// Used to specify if you can use your special during bonus levels
-	int nohurt;							// Used to specify if you can hurt the other player during bonus levels
-	int noslow;							// Flag so the level doesn't slow down after a boss is defeated
-	int nohit;							// Not able to grab / hit other player on a per level basis
-	int spawn[MAX_PLAYERS][4];			// Used to determine the spawn position of players
-	int setweap;						// Levels can now specified which weapon will be used by default
-	int facing;                         // Force the players to face to ... 0 no effects, 1 right, 2 left, 3 affected by level dir
+	int settime; // Set time limit per level
+	int notime; // Used to specify if the time is displayed 1 = no, else yes
+	int noreset; // If set, clock will not reset when players spawn/die
+	int type; // Used to specify which level type (1 = bonus, else regular)
+	int nospecial; // Used to specify if you can use your special during bonus levels
+	int nohurt; // Used to specify if you can hurt the other player during bonus levels
+	int noslow; // Flag so the level doesn't slow down after a boss is defeated
+	int nohit; // Not able to grab / hit other player on a per level basis
+	int spawn[MAX_PLAYERS][4]; // Used to determine the spawn position of players
+	int setweap; // Levels can now specified which weapon will be used by default
+	int facing; // Force the players to face to ... 0 no effects, 1 right, 2 left, 3 affected by level dir
 //--------------------gravity system-------------------------
 	float maxfallspeed;
 	float maxtossspeed;
@@ -1702,10 +1703,10 @@ s_model * prevplayermodel(s_model *current);
 void free_anim(s_anim * anim);
 void free_models();
 s_anim * alloc_anim();
-int addframe(s_anim * a, int spriteindex, int framecount, short delay, unsigned char idle,
-			 short *bbox, s_attack* attack, short move, short movez,
-			 short movea, short seta, float* platform, int frameshadow,
-			 short* shadow_coords, int soundtoplay, s_drawmethod* drawmethod);
+int addframe(s_anim * a, int spriteindex, int framecount, int delay, unsigned idle,
+			 int *bbox, s_attack* attack, int move, int movez,
+			 int movea, int seta, float* platform, int frameshadow,
+			 int* shadow_coords, int soundtoplay, s_drawmethod* drawmethod);
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char * name);
 void free_modelcache();

@@ -72,8 +72,8 @@ typedef void VOID;
 #define TRUE 1
 #endif
 
-#define MAX_STR_LEN    128
-#define MAX_STR_VAR_LEN    64
+#define MAX_STR_LEN    127
+#define MAX_STR_VAR_LEN    63
 
 #pragma pack (4)
 

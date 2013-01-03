@@ -99,6 +99,7 @@ List* createModelCommandList(void) {
 	LIST_ADD(CMD_MODEL_TYPE, "type");
 	LIST_ADD(CMD_MODEL_SUBTYPE, "subtype");
 	LIST_ADD(CMD_MODEL_STATS, "stats");
+	LIST_ADD(CMD_MODEL_PRIORITY, "priority");
 	LIST_ADD(CMD_MODEL_HEALTH, "health");
 	LIST_ADD(CMD_MODEL_SCROLL, "scroll");
 	LIST_ADD(CMD_MODEL_MP, "mp");
@@ -598,6 +599,8 @@ List* createLevelOrderCommandList(void) {
 	LIST_ADD(CMD_LEVELORDER_SCOREFORMAT, "scoreformat");
 	LIST_ADD(CMD_LEVELORDER_GRAVITY, "gravity");
 	LIST_ADD(CMD_LEVELORDER_SKIPTOSET, "skiptoset");
+	LIST_ADD(CMD_LEVELORDER_SPAWNOVERRIDE, "spawnoverride");
+	LIST_ADD(CMD_LEVELORDER_MAXENTITIES, "maxentities");
 
 	#undef LIST_ADD
 	return result;
