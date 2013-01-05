@@ -28,10 +28,13 @@
 #include <dirent.h>
 
 extern int videoMode;
+extern s_videomodes videomodes;
+extern s_screen* vscreen;
+s_screen* bgscreen;
 
-#define RGB32(B,G,R) ((R) | ((G) << 8) | ((B) << 16))
-#define RGB16(B,G,R) ((B&0xF8)<<8) | ((G&0xFC)<<3) | (R>>3)
-#define RGB(B,G,R)   (bpp==16?RGB16(B,G,R):RGB32(B,G,R))
+#define RGB32(R,G,B) ((R) | ((G) << 8) | ((B) << 16))
+#define RGB16(R,G,B) ((B&0xF8)<<8) | ((G&0xFC)<<3) | (R>>3)
+#define RGB(R,G,B)   (bpp==16?RGB16(R,G,B):RGB32(R,G,B))
 
 #define BLACK		RGB(  0,   0,   0)
 #define WHITE		RGB(255, 255, 255)
@@ -50,12 +53,7 @@ extern int videoMode;
 #define LOG_SCREEN_TOP 2
 #define LOG_SCREEN_END (isWide ? 26 : 23)
 
-SDL_Surface *Source = NULL;
-SDL_Surface *Scaler = NULL;
-SDL_Surface *Screen = NULL;
-int bpp = 16;
-int factor = 1;
-int isFull = 0;
+int bpp = 32;
 int isWide = 0;
 int flags;
 int dListTotal;
@@ -66,6 +64,7 @@ FILE *bgmFile = NULL;
 unsigned int bgmPlay = 0, bgmLoop = 0, bgmCycle = 0, bgmCurrent = 0, bgmStatus = 0;
 extern u32 bothkeys, bothnewkeys;
 fileliststruct *filelist;
+extern const s_drawmethod plainmethod;
 
 typedef struct{
 	stringptr *buf;
@@ -205,81 +204,10 @@ int findPaks(void)
 	return i;
 }
 
-void copyScreens(SDL_Surface *Image)
+void drawScreens(s_screen *Image)
 {
-	// Copy Logo or Menu from Source to Scaler to give us a background
-	// prior to printing to this SDL_Surface.
-	if(factor > 1)
-	{
-		// Center Text Surface within Scaler Image prior to final Blitting.
-		Scaler->clip_rect.x = 1;
-		Scaler->clip_rect.y = factor == 2 ? 4 : 5;
-		Scaler->clip_rect.w = Image->w;
-		Scaler->clip_rect.h = Image->h;
-		SDL_BlitSurface(Image, NULL, Scaler, &Scaler->clip_rect);
-	}
-	else
-		SDL_BlitSurface(Image, NULL, Scaler, &Scaler->clip_rect);
-}
-
-void writeToScreen(unsigned char *src, int pitch)
-{
-	int i;
-
-	// pitch = bpp;
-	unsigned char *dst = Screen->pixels;
-	
-	for(i=0; i<Screen->h; i++)
-	{
-		memcpy(dst, src, pitch);
-		src += pitch;
-		dst += Screen->pitch;
-	}
-}
-
-void drawScreens(SDL_Surface *Image)
-{
-	SDL_Surface *FirstPass = NULL;
-	SDL_Surface *SecondPass = NULL;
-	SDL_Surface *src;
-	SDL_Rect rect;
-
-	if(SDL_MUSTLOCK(Screen)) SDL_LockSurface(Screen);
-	switch(factor)
-	{
-		case 2:
-			FirstPass = SDL_AllocSurface(SDL_SWSURFACE, Screen->w,Screen->h, bpp, 0, 0, 0, 0);
-			(*GfxBlitters[(int)savedata.screen[videoMode][1]])((u8*)Scaler->pixels+Scaler->pitch*4+4, Scaler->pitch, pDeltaBuffer+Scaler->pitch, (u8*)FirstPass->pixels, FirstPass->pitch, FirstPass->w>>1, FirstPass->h>>1);
-			if(Image) SDL_BlitSurface(Image, NULL, FirstPass, &Image->clip_rect);
-			src = FirstPass;
-			break;
-
-		case 4:
-			FirstPass = SDL_AllocSurface(SDL_SWSURFACE, Screen->w, Screen->h, bpp, 0, 0, 0, 0);
-			(*GfxBlitters[(int)savedata.screen[videoMode][1]])((u8*)Scaler->pixels+Scaler->pitch*4+4, Scaler->pitch, pDeltaBuffer+Scaler->pitch, (u8*)FirstPass->pixels, FirstPass->pitch, FirstPass->w>>1, FirstPass->h>>1);
-			SecondPass = SDL_AllocSurface(SDL_SWSURFACE, FirstPass->w, FirstPass->h, bpp, 0, 0, 0, 0);
-			(*GfxBlitters[(int)savedata.screen[videoMode][1]])((u8*)FirstPass->pixels+FirstPass->pitch, FirstPass->pitch, pDeltaBuffer+FirstPass->pitch, (u8*)SecondPass->pixels, SecondPass->pitch, SecondPass->w>>1, SecondPass->h>>1);
-			if(Image) SDL_BlitSurface(Image, NULL, SecondPass, &Image->clip_rect);
-			src = SecondPass;
-			break;
-
-		default:
-			if(Image) SDL_BlitSurface(Image, NULL, Scaler, &Image->clip_rect);
-			src = Scaler;
-			break;
-	}
-	if(SDL_MUSTLOCK(Screen)) SDL_UnlockSurface(Screen);
-
-	rect.x = (Screen->w-src->w)/2;
-	rect.y = (Screen->h-src->h)/2;
-	SDL_BlitSurface(src, NULL, Screen, &rect);
-
-	if (FirstPass) SDL_FreeSurface(FirstPass);
-	FirstPass = NULL;
-	if (SecondPass) SDL_FreeSurface(SecondPass);
-	SecondPass = NULL;
-
-	SDL_Flip(Screen);
+	putscreen(vscreen, Image, 0, 0, NULL);
+	video_copy_screen(vscreen);
 }
 
 void printText(int x, int y, int col, int backcol, int fill, char *format, ...)
@@ -291,12 +219,11 @@ void printText(int x, int y, int col, int backcol, int fill, char *format, ...)
 	u8 *font;
 	u8 ch = 0;
 	char buf[128] = {""};
+	int pitch = vscreen->width*bpp/8;
 	va_list arglist;
 		va_start(arglist, format);
 		vsprintf(buf, format, arglist);
 		va_end(arglist);
-
-	if(factor > 1){ y += 5; }
 
 	for(i=0; i<sizeof(buf); i++)
 	{
@@ -308,8 +235,8 @@ void printText(int x, int y, int col, int backcol, int fill, char *format, ...)
 		else ch -= 0x40;
 		font = (u8 *)&hankaku_font10[ch*10];
 		// draw
-		if (bpp == 16) line16 = (u16*)(Scaler->pixels + x*2 + y * Scaler->pitch);
-		else           line32 = (u32*)(Scaler->pixels + x*4 + y * Scaler->pitch);
+		if (bpp == 16) line16 = (u16*)(vscreen->data + x*2 + y * pitch);
+		else           line32 = (u32*)(vscreen->data + x*4 + y * pitch);
 
 		for (y1=0; y1<10; y1++)
 		{
@@ -332,64 +259,28 @@ void printText(int x, int y, int col, int backcol, int fill, char *format, ...)
 
 				data = data >> 1;
 			}
-			if (bpp == 16) line16 += Scaler->pitch/2-5;
-			else           line32 += Scaler->pitch/4-5;
+			if (bpp == 16) line16 += pitch/2-5;
+			else           line32 += pitch/4-5;
 		}
 		x+=5;
 	}
 }
 
-SDL_Surface *getPreview(char *filename)
+s_screen *getPreview(char *filename)
 {
-	int i;
-	int width = factor == 4 ? 640 : (factor == 2 ? 320 : 160);
-	int height = factor == 4 ? 480 : (factor == 2 ? 240 : 120);
-	unsigned char *sp;
-	unsigned char *dp;
-	unsigned char *tempPal;
-	unsigned char realPal[1024];
-	SDL_Color newPal[256];
-	SDL_Surface *image = NULL;
 	s_screen *title = NULL;
 	s_screen *scale = NULL;
-
 	// Grab current path and filename
 	getBasePath(packfile, filename, 1);
-
 	// Create & Load & Scale Image
-	if(!loadscreen("data/bgs/title", packfile, realPal, PIXEL_8, &title)) return NULL;
-	if((scale = allocscreen(width, height, title->pixelformat)) == NULL) return NULL;
-	if((image = SDL_AllocSurface(SDL_SWSURFACE, width, height, 8, 0, 0, 0, 0)) == NULL) return NULL;
-
+	if(!loadscreen("data/bgs/title", packfile, NULL, PIXEL_x8, &title)) return NULL;
+	scale = allocscreen(160, 120, PIXEL_x8);
 	scalescreen(scale, title);
-
-	sp = (unsigned char*)scale->data;
-	dp = (unsigned char*)image->pixels;
-
-	do{
-		memcpy(dp, sp, width);
-		sp += scale->width;
-		dp += image->pitch;
-	}while(--height);
-
-	tempPal = realPal;
-	for(i=0;i<256;i++)
-	{
-		newPal[i].r=tempPal[0];
-		newPal[i].g=tempPal[1];
-		newPal[i].b=tempPal[2];
-		tempPal+=3;
-	}
-	SDL_SetColors(image, newPal, 0, 256);
-
-	// Free Images and Terminate FileCaching
-	freescreen(&title);
-	freescreen(&scale);
-
+	memcpy(scale->palette, title->palette, PAL_BYTES);
 	// ScreenShots within Menu will be saved as "Menu"
 	strncpy(packfile,"Menu.xxx",128);
-
-	return image;
+	freescreen(&title);
+	return scale;
 }
 
 void StopBGM()
@@ -556,64 +447,23 @@ int ControlBGM()
 
 void initMenu(int type)
 {
-#if ANDROID
-	isFull = 1;
-	factor = 1;
-#elif (WIN || LINUX) 
-	factor = savedata.screen[videoMode][0] ? savedata.screen[videoMode][0] : 1;
-	isFull = savedata.fullscreen;
-	//isWide = savedata.fullscreen && (((float)nativeWidth / (float)nativeHeight) > 1.54);
-#ifndef DARWIN
-	bpp = 32;
-#endif
-#endif
+	screenformat = bpp==32?PIXEL_32:PIXEL_16;
+	pixelformat = PIXEL_x8;
+	
+	video_stretch(savedata.stretch);
+	videoMode = isWide ? 1 : 0;
+	videomodes.hRes = isWide ? 480 :320;
+	videomodes.vRes = isWide ? 272 :240;
+	videomodes.pixel = pixelbytes[PIXEL_32];
+	vscreen = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
 
-	Init_Gfx(bpp==32 ? 888 : 565, bpp);
-	memset(pDeltaBuffer, 0x00, 1244160);
-#ifndef WIZ
-	flags = isFull?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF);
-#else
-	flags = SDL_SWSURFACE;
-#endif
+	video_set_mode(videomodes);
 
 	// Read Logo or Menu from Array.
-	if(!type) {
-		Source = pngToSurface(isWide ? (void*) openbor_logo_480x272_png.data : (void*) openbor_logo_320x240_png.data);
-
-		// Depending on which mode we are in (WideScreen/FullScreen)
-		// allocate proper size for SDL_Surface to perform final Blitting.
-
-#if ANDROID
-		Screen = SDL_SetVideoMode(0, 0, bpp, flags);
-#else
-		Screen = SDL_SetVideoMode(Source->w * factor, Source->h * factor, bpp, flags);
-#endif
-
-		// Allocate Scaler with extra space for upscaling.
-		Scaler = SDL_AllocSurface(SDL_SWSURFACE,
-								  factor > 1 ? Screen->w + 4 : Screen->w,
-								  factor > 1 ? Screen->h + 8 : Screen->h,
-								  bpp, 0, 0, 0, 0);
-	}
-	else {
-		Source = pngToSurface(isWide ? (void*) openbor_menu_480x272_png.data : (void*) openbor_menu_320x240_png.data);
-
-		// Depending on which mode we are in (WideScreen/FullScreen)
-		// allocate proper size for SDL_Surface to perform final Blitting.
-
-#if ANDROID
-		Screen = SDL_SetVideoMode(0, 0, bpp, flags);
-#else
-		Screen = SDL_SetVideoMode(Source->w * factor, Source->h * factor, bpp, flags);
-#endif
-
-		// Allocate Scaler with extra space for upscaling.
-		Scaler = SDL_AllocSurface(SDL_SWSURFACE,
-		                      factor > 1 ? Screen->w + 4 : Screen->w,
-							  factor > 1 ? Screen->h + 8 : Screen->h,
-							  bpp, 0, 0, 0, 0);
-	}
-	//printf("debug: screen->w:%d screen->h:%d     depth:%d\n", Screen->w, Screen->h, Screen->format->BitsPerPixel);
+	if(!type) 
+		bgscreen = pngToScreen(isWide ? (void*) openbor_logo_480x272_png.data : (void*) openbor_logo_320x240_png.data);
+	else
+		bgscreen = pngToScreen(isWide ? (void*) openbor_menu_480x272_png.data : (void*) openbor_menu_320x240_png.data);
 
 	control_init(2);
 	apply_controls();
@@ -623,28 +473,23 @@ void initMenu(int type)
 
 void termMenu()
 {
-	SDL_FreeSurface(Source);
-	Source = NULL;
-	SDL_FreeSurface(Scaler);
-	Scaler = NULL;
-#ifndef SDL13
-	SDL_FreeSurface(Screen);
-	Screen = NULL;
-#endif
+	videomodes.hRes = videomodes.vRes = 0;
+	video_set_mode(videomodes);
+	if(bgscreen) freescreen(&bgscreen);
+	if(vscreen) freescreen(&vscreen);
 	sound_exit();
 	control_exit();
-	Term_Gfx();
 }
 
 void drawMenu()
 {
-	SDL_Surface *Image = NULL;
 	char listing[45] = {""};
 	int list = 0;
 	int shift = 0;
 	int colors = 0;
+	s_screen* Image = NULL;
 
-	copyScreens(Source);
+	putscreen(vscreen,bgscreen,0,0,NULL);
 	if(dListTotal < 1) printText((isWide ? 30 : 8), (isWide ? 33 : 24), RED, 0, 0, "No Mods In Paks Folder!");
 	for(list=0; list<dListTotal; list++)
 	{
@@ -666,13 +511,7 @@ void drawMenu()
 #else
 				Image = getPreview(filelist[list+dListScrollPosition].filename);
 #endif
-				if(Image)
-				{
-					Image->clip_rect.x = factor * (isWide ? 286 : 155);
-					Image->clip_rect.y = factor * (isWide ? (factor == 4 ? (Sint16)32.5 : 32) : (factor == 4 ? (Sint16)21.5 : 21));
-				}
-				else
-					printText((isWide ? 288 : 157), (isWide ? 141 : 130), RED, 0, 0, "No Preview Available!");
+					
 			}
 			printText((isWide ? 30 : 7) + shift, (isWide ? 33 : 22)+(11*list) , colors, 0, 0, "%s", listing);
 		}
@@ -691,37 +530,27 @@ void drawMenu()
 	printText((isWide ? 324 : 192),(isWide ? 191 : 176), DARK_RED, 0, 0, "SecurePAK Edition");
 #endif
 
-	drawScreens(Image);
 	if(Image)
 	{
-		SDL_FreeSurface(Image);
-		Image = NULL;
+		putscreen(vscreen, Image, isWide ? 286 : 155, isWide ? 32:21, NULL);
+		freescreen(&Image);
 	}
+	else
+		printText((isWide ? 288 : 157), (isWide ? 141 : 130), RED, 0, 0, "No Preview Available!");
+
+	video_copy_screen(vscreen);
 }
 
 void drawBGMPlayer()
 {
-	SDL_Surface *Image = NULL;
-	SDL_Rect rect;
 	char listing[45] = {""}, bgmListing[25] = {""};
 	char t1[64] = "", t2[25] = "Unknown";
 	char a1[64] = "", a2[25] = "Unknown";
 	int list = 0, colors = 0, shift = 0;
 
 	// Allocate Preview Box for Music Text Info.
-	Image = SDL_AllocSurface(SDL_SWSURFACE, Source->w, Source->h, bpp, 0, 0, 0, 0);
-	if (Image != NULL)
-	{
-		SDL_BlitSurface(Source, NULL, Image, NULL);
-		rect.x = (isWide ? 286 : 155);
-		rect.y = (isWide ? (factor == 4 ? (Sint16)32.5 : 32) : (factor == 4 ? (Sint16)21.5 : 21));
-		rect.w = 160;
-		rect.h = 120;
-		SDL_FillRect(Image, &rect, LIGHT_GRAY);
-		copyScreens(Image);
-		SDL_FreeSurface(Image);
-		Image = NULL;
-	}
+	putscreen(vscreen,bgscreen,0,0,NULL);
+	putbox((isWide ? 286 : 155),(isWide ? 32 : 21),160,120,LIGHT_GRAY,vscreen,NULL);
 
 	for(list=0; list<dListTotal; list++)
 	{
@@ -772,21 +601,17 @@ void drawBGMPlayer()
 	printText((isWide ? 288 : 157),(isWide ? 35 : 23) + (11 * 4), bgmPlay ? DARK_GREEN : DARK_BLUE, 0, 0, "Track: %s", t2);
 	printText((isWide ? 288 : 157),(isWide ? 35 : 23) + (11 * 5), bgmPlay ? DARK_GREEN : DARK_BLUE, 0, 0, "Artist: %s", a2);
 
-	drawScreens(NULL);
+	video_copy_screen(vscreen);
 }
 
 void drawLogs()
 {
 	int i=which_logfile, j, k, l, done=0;
-	SDL_Surface *Viewer = NULL;
-
-	bothkeys = bothnewkeys = 0;
-	Viewer = SDL_AllocSurface(SDL_SWSURFACE, Source->w, Source->h, bpp, 0, 0, 0, 0);
 	bothkeys = bothnewkeys = 0;
 
 	while(!done)
 	{
-	    copyScreens(Viewer);
+		putscreen(vscreen,bgscreen,0,0,NULL);
 	    inputrefresh();
 	    sound_update_music();
 #if OPENDINGUX
@@ -826,10 +651,8 @@ void drawLogs()
 		else if(i == SCRIPT_LOG) printText(5, 3, RED, 0, 0, "Log NOT Found: ScriptLog.txt");
 		else                     printText(5, 3, RED, 0, 0, "Log NOT Found: OpenBorLog.txt");
 
-	    drawScreens(NULL);
+	    video_copy_screen(vscreen);
 	}
-	SDL_FreeSurface(Viewer);
-	Viewer = NULL;
 	drawMenu();
 }
 
@@ -837,8 +660,7 @@ void drawLogo()
 {
     if(savedata.logo) return;
 	initMenu(0);
-	copyScreens(Source);
-	drawScreens(NULL);
+	video_copy_screen(bgscreen);
 	SDL_Delay(3000);
 	termMenu();
 }

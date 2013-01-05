@@ -8843,7 +8843,6 @@ void free_level(s_level* lv)
 	if(lv->walls) free(lv->walls);
 	if(lv->palettes) free(lv->palettes);
 	if(lv->blendings) free(lv->blendings);
-	if(lv->textobjs) free(lv->textobjs);
 
 	free(lv);
 	lv = NULL;
