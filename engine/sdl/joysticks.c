@@ -9,6 +9,8 @@
 #include "SDL.h"
 #include "joysticks.h"
 
+s_joysticks joysticks[JOY_LIST_TOTAL];
+
 const char *JoystickKeyName[JOY_NAME_SIZE] = {
 	"...",
 #define JOYSTICK_NAMES(x) \

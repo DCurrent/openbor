@@ -237,8 +237,11 @@ void control_exit()
 {
 	int i;
 	usejoy = 0;
-	for(i=0; i<numjoy; i++) SDL_JoystickClose(joystick[i]);
-	memset(joysticks, 0, sizeof(s_joysticks) * JOY_LIST_TOTAL);
+	for(i=0; i<numjoy; i++) {
+		if(joystick[i]) SDL_JoystickClose(joystick[i]);
+	}
+	memset(joystick, 0, sizeof(joystick));
+	memset(joysticks, 0, sizeof(joysticks));
 }
 
 
