@@ -50,7 +50,7 @@ typedef struct{
 	unsigned Buttons;
 	unsigned Data;
 }s_joysticks;
-s_joysticks joysticks[JOY_LIST_TOTAL];
+extern s_joysticks joysticks[JOY_LIST_TOTAL];
 
 
 extern const char *JoystickKeyName[JOY_NAME_SIZE];
