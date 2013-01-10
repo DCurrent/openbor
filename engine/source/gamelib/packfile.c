@@ -1146,8 +1146,8 @@ void packfile_music_read(fileliststruct *filelist, int dListTotal)
 			if(fseek(fd, off, SEEK_SET) < 0) goto closepak;
 			while((len = fread(&pn, 1, sizeof(pn), fd)) > 12) {
 				p = strrchr(pn.namebuf, '.');
-				if((p && !stricmp(p, ".bor")) || (stristr(pn.namebuf, "music"))) {
-					if(!stristr(pn.namebuf, ".bor")) goto nextpak;
+				if((p && (!stricmp(p, ".bor") || !stricmp(p, ".ogg"))) || (stristr(pn.namebuf, "music"))) {
+					if(!stristr(pn.namebuf, ".bor") && !stristr(pn.namebuf, ".ogg")) goto nextpak;
 					if(filelist[i].nTracks < 256)
 					{
 						packfile_get_titlename(pn.namebuf, filelist[i].bgmFileName[filelist[i].nTracks]);

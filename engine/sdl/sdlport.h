@@ -21,6 +21,10 @@
 #define strnicmp strncasecmp
 #endif
 
+#if GP2X || DARWIN || OPENDINGUX || WII || ANDROID
+#define SKIP_CODE
+#endif
+
 #if SDL_VERSION_ATLEAST(1,3,0)
 #define SDL13
 #endif
@@ -31,6 +35,10 @@
 #else
 #define SDL_FreeVideoSurface(X) SDL_FreeSurface(X)
 #define SDL_FreeAndNullVideoSurface(X) { SDL_FreeSurface(X); X=NULL; }
+#endif
+
+#ifdef ANDROID
+#define MAXTOUCHB 12
 #endif
 
 //#define MEMTEST 1

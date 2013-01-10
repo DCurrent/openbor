@@ -5,6 +5,11 @@
  *
  * Copyright (c) 2004 - 2011 OpenBOR Team
  */
+#if ANDROID
+
+#include "android/jni/video.c"
+
+#else
 
 #include <SDL_framerate.h>
 #include <math.h>
@@ -29,7 +34,10 @@ extern int videoMode;
 #include "../resources/OpenBOR_Icon_32x32_png.h"
 #endif
 
+#define VIDEO_USE_OPENGL (savedata.usegl[savedata.fullscreen])
+
 FPSmanager framerate_manager;
+
 s_videomodes stored_videomodes;
 static SDL_Surface *screen = NULL;
 static SDL_Surface *bscreen = NULL;
@@ -40,6 +48,11 @@ int stretch = 0;
 int opengl = 0; // OpenGL backend currently in use?
 int nativeWidth, nativeHeight; // monitor resolution used in fullscreen mode
 u8 pDeltaBuffer[480 * 2592];
+
+SDL_Surface* getSDLScreen()
+{
+	return screen;
+}
 
 void initSDL()
 {
@@ -73,6 +86,7 @@ void initSDL()
 #ifndef GP2X
 	nativeWidth = video_info->current_w;
 	nativeHeight = video_info->current_h;
+	printf("debug:nativeWidth, nativeHeight, bpp  %d, %d, %d\n", nativeWidth, nativeHeight, video_info->vfmt->BitsPerPixel);
 #endif
 
 	SDL_initFramerate(&framerate_manager);
@@ -90,7 +104,7 @@ int video_set_mode(s_videomodes videomodes)
 	if(bscreen2) { SDL_FreeSurface(bscreen2); bscreen2=NULL; }
 
 	// try OpenGL initialization first
-	if((savedata.usegl[savedata.fullscreen]) && video_gl_set_mode(videomodes)) return 1;
+	if(VIDEO_USE_OPENGL && video_gl_set_mode(videomodes)) return 1;
 	else opengl = 0;
 
 	// FIXME: OpenGL surfaces aren't freed when switching from OpenGL to SDL
@@ -139,6 +153,7 @@ int video_set_mode(s_videomodes videomodes)
 
 	if(screen==NULL) return 0;
 
+	//printf("debug: screen->w:%d screen->h:%d   fullscreen:%d   depth:%d\n", screen->w, screen->h, savedata.fullscreen, screen->format->BitsPerPixel);
 	video_clearscreen();
 	return 1;
 }
@@ -249,8 +264,9 @@ int video_copy_screen(s_screen* src)
 
 	if(bscreen)
 	{
+		//printf(" bscreen ");
 		if(SDL_MUSTLOCK(bscreen)) SDL_UnlockSurface(bscreen);
-		if(bscreen2)
+		if(bscreen2) 
 		{
 			SDL_BlitSurface(bscreen, NULL, bscreen2, &rectsrc);
 			if(SDL_MUSTLOCK(bscreen2)) SDL_LockSurface(bscreen2);
@@ -263,11 +279,14 @@ int video_copy_screen(s_screen* src)
 			if(SDL_MUSTLOCK(screen)) SDL_UnlockSurface(screen);
 		}
 		else
-			SDL_BlitSurface(bscreen, NULL, screen, &rectsrc);
+		{
+			rectdes.x=(screen->w-bscreen->w)/2;
+			rectdes.y=(screen->h-bscreen->h)/2;
+			SDL_BlitSurface(bscreen, NULL, screen, &rectdes);
+		}
 	}
 
 	SDL_Flip(screen);
-
 
 #if WIN || LINUX
 	SDL_framerateDelay(&framerate_manager);
@@ -337,3 +356,4 @@ void vga_set_color_correction(int gm, int br)
 	if(opengl) video_gl_set_color_correction(gm, br);
 }
 
+#endif

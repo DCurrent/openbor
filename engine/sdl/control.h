@@ -10,7 +10,11 @@
 #define	CONTROL_H
 
 // Generic control stuff (keyboard+joystick).
+#ifdef ANDROID
+#include <SDL_Keycode.h>
+#else
 #include <SDL_keysym.h>
+#endif
 #include "joysticks.h"
 
 #ifdef OPENDINGUX
@@ -42,6 +46,21 @@
 	#define CONTROL_DEFAULT1_START		(JOY_LIST_FIRST + 11)
 	#define CONTROL_DEFAULT1_SCREENSHOT (JOY_LIST_FIRST + 12)
 #else
+#ifdef SDL13
+	#define	CONTROL_ESC                 SDL_SCANCODE_ESCAPE
+	#define	CONTROL_DEFAULT1_START		SDL_SCANCODE_RETURN
+	#define	CONTROL_DEFAULT1_UP         SDL_SCANCODE_UP
+	#define	CONTROL_DEFAULT1_DOWN		SDL_SCANCODE_DOWN
+	#define	CONTROL_DEFAULT1_LEFT		SDL_SCANCODE_LEFT
+	#define	CONTROL_DEFAULT1_RIGHT		SDL_SCANCODE_RIGHT
+	#define	CONTROL_DEFAULT1_FIRE1		SDL_SCANCODE_A
+	#define	CONTROL_DEFAULT1_FIRE2		SDL_SCANCODE_S
+	#define	CONTROL_DEFAULT1_FIRE3		SDL_SCANCODE_Z
+	#define	CONTROL_DEFAULT1_FIRE4		SDL_SCANCODE_X
+	#define	CONTROL_DEFAULT1_FIRE5		SDL_SCANCODE_D
+	#define	CONTROL_DEFAULT1_FIRE6		SDL_SCANCODE_F
+	#define	CONTROL_DEFAULT1_SCREENSHOT	SDL_SCANCODE_F12
+#else
 	#define	CONTROL_ESC                 SDLK_ESCAPE
 	#define	CONTROL_DEFAULT1_START		SDLK_RETURN
 	#define	CONTROL_DEFAULT1_UP         SDLK_UP
@@ -55,6 +74,7 @@
 	#define	CONTROL_DEFAULT1_FIRE5		SDLK_d
 	#define	CONTROL_DEFAULT1_FIRE6		SDLK_f
 	#define	CONTROL_DEFAULT1_SCREENSHOT	SDLK_F12
+#endif
 #endif
 
 #define	CONTROL_DEFAULT2_UP			((JOY_LIST_FIRST + 1) + JOY_MAX_INPUTS)
@@ -98,6 +118,13 @@
 
 #define JOYBUTTON(index, btn) (1 + i * JOY_MAX_INPUTS + btn)
 #define JOYAXIS(index, axis, dir) (JOYBUTTON(index, joysticks[index].NumButtons) + 2 * axis + dir)
+
+#ifdef ANDROID
+#define SDLK_FIRST 0
+#define SDLK_LAST  SDL_NUM_SCANCODES
+#define SDL_GetKeyState SDL_GetKeyboardState
+#define SDL_JoystickName SDL_JoystickNameForIndex
+#endif
 
 
 typedef struct{

@@ -15,6 +15,8 @@
  * Update, September 17, 2010
  */
 
+#ifdef OPENGL
+
 #include "loadgl.h"
 
 #ifndef APIENTRY
@@ -336,3 +338,4 @@ void APIENTRY glMultiTexCoord2f(GLenum texture, GLfloat s, GLfloat t)
 #endif
 #endif
 
+#endif

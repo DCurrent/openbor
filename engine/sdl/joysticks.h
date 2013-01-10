@@ -17,7 +17,7 @@
 #define JOY_AXIS_X         0
 #define JOY_AXIS_Y         1
 #define JOY_MAX_INPUTS     32
-#define	JOY_LIST_FIRST     500
+#define	JOY_LIST_FIRST     600
 #define JOY_LIST_TOTAL     4
 #define	JOY_LIST_LAST      JOY_LIST_FIRST + JOY_MAX_INPUTS * JOY_LIST_TOTAL
 #define JOY_NAME_SIZE      1 + 1 + JOY_MAX_INPUTS * JOY_LIST_TOTAL
