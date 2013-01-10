@@ -26,10 +26,17 @@
 #endif
 
 char packfile[128] = {"bor.pak"};
+#if ANDROID
+char paksDir[128] = {"/mnt/sdcard/OpenBOR/Paks"};
+char savesDir[128] = {"/mnt/sdcard/OpenBOR/Saves"};
+char logsDir[128] = {"/mnt/sdcard/OpenBOR/Logs"};
+char screenShotsDir[128] = {"/mnt/sdcard/OpenBOR/ScreenShots"};
+#else
 char paksDir[128] = {"Paks"};
 char savesDir[128] = {"Saves"};
 char logsDir[128] = {"Logs"};
 char screenShotsDir[128] = {"ScreenShots"};
+#endif
 
 void borExit(int reset)
 {

@@ -408,6 +408,15 @@ int                 selectScreen        = 0;					// Flag to determine if at sele
 int					titleScreen			= 0;
 int					menuScreen			= 0;
 int					hallOfFame			= 0;
+int					optionsMenu			= 0;
+int					newgameMenu			= 0;
+int					loadgameMenu		= 0;
+int					controloptionsMenu	= 0;
+int					videooptionsMenu	= 0;
+int					soundoptionsMenu	= 0;
+int					systemoptionsMenu	= 0;
+int					cheatoptionsMenu	= 0;
+int					startgameMenu		= 0;
 int					gameOver			= 0;
 int					showComplete		= 0;
 char*				currentScene		= NULL;
@@ -839,6 +848,42 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		if(selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene || level)
 			var->lVal = (LONG)0;
 		else var->lVal = (LONG)(menuScreen);
+		break;
+	case _sv_in_options:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(optionsMenu);
+		break;
+	case _sv_in_system_options:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(systemoptionsMenu);
+		break;
+	case _sv_in_cheat_options:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(cheatoptionsMenu);
+		break;
+	case _sv_in_control_options:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(controloptionsMenu);
+		break;
+	case _sv_in_sound_options:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(soundoptionsMenu);
+		break;
+	case _sv_in_video_options:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(videooptionsMenu);
+		break;
+	case _sv_in_start_game:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(startgameMenu);
+		break;
+	case _sv_in_new_game:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(newgameMenu);
+		break;
+	case _sv_in_load_game:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(loadgameMenu);
 		break;
 	case _sv_in_showcomplete:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -8762,6 +8807,7 @@ void free_level(s_level* lv)
 	s_spawn_script_cache_node* tempnode;
 	s_spawn_script_cache_node* tempnode2;
 	if(!lv) return;
+
 	//offload blending tables
 	for(i=0; i<lv->numpalettes; i++)
 	{
@@ -8771,6 +8817,7 @@ void free_level(s_level* lv)
 			lv->blendings[i][j] = NULL;
 		}
 	}
+
 	//offload layers
 	for(i=1; i<lv->numlayers; i++)
 	{
@@ -8780,6 +8827,7 @@ void free_level(s_level* lv)
 			lv->layers[i].gfx.handle = NULL;
 		}
 	}
+
 	//offload textobjs
 	for(i=0; i<lv->numtextobjs; i++)
 	{
@@ -10966,6 +11014,37 @@ void ent_summon_ent(entity* ent){
 	}
 }
 
+int calculate_edelay(entity* ent, int f)
+{
+	int iDelay, iED_Mode, iED_Capmin, iED_CapMax, iED_RangeMin, iED_RangeMax;
+	float fED_Factor;
+	s_anim* anim = ent->animation;
+	iDelay          = anim->delay[f];
+	iED_Mode        = ent->modeldata.edelay.mode;
+	fED_Factor      = ent->modeldata.edelay.factor;
+	iED_Capmin      = ent->modeldata.edelay.cap_min;
+	iED_CapMax      = ent->modeldata.edelay.cap_max;
+	iED_RangeMin    = ent->modeldata.edelay.range_min;
+	iED_RangeMax    = ent->modeldata.edelay.range_max;
+
+	if (iDelay >= iED_RangeMin && iDelay <= iED_RangeMax) //Regular delay within ignore ranges?
+	{
+		switch(iED_Mode)
+		{
+			case 1:
+				iDelay = (int)(iDelay * fED_Factor);
+				break;
+			default:
+				iDelay += (int)fED_Factor;
+				break;
+		}
+
+		if (iED_Capmin && iDelay < iED_Capmin){ iDelay = iED_Capmin; }
+		if (iED_CapMax && iDelay > iED_CapMax){ iDelay = iED_CapMax; }
+	}
+	return iDelay;
+}
+
 // move here to prevent some duplicated code in ent_sent_anim and update_ents
 void update_frame(entity* ent, int f)
 {
@@ -10973,8 +11052,6 @@ void update_frame(entity* ent, int f)
 	entity* dust;
 	s_attack attack;
 	float move, movez, movea;
-	int iDelay, iED_Mode, iED_Capmin, iED_CapMax, iED_RangeMin, iED_RangeMax;
-	float fED_Factor;
 	s_anim* anim = ent->animation;
 
 	if(f >= anim->numframes) // prevent a crash with invalid frame index.
@@ -10988,31 +11065,7 @@ void update_frame(entity* ent, int f)
 	//self->currentsprite = self->animation->sprite[f];
 
 	if(self->animating){
-		iDelay          = anim->delay[f];
-		iED_Mode        = self->modeldata.edelay.mode;
-		fED_Factor      = self->modeldata.edelay.factor;
-		iED_Capmin      = self->modeldata.edelay.cap_min;
-		iED_CapMax      = self->modeldata.edelay.cap_max;
-		iED_RangeMin    = self->modeldata.edelay.range_min;
-		iED_RangeMax    = self->modeldata.edelay.range_max;
-
-		if (iDelay >= iED_RangeMin && iDelay <= iED_RangeMax) //Regular delay within ignore ranges?
-		{
-			switch(iED_Mode)
-			{
-				case 1:
-					iDelay = (int)(iDelay * fED_Factor);
-					break;
-				default:
-					iDelay += (int)fED_Factor;
-					break;
-			}
-
-			if (iED_Capmin && iDelay < iED_Capmin){ iDelay = iED_Capmin; }
-			if (iED_CapMax && iDelay > iED_CapMax){ iDelay = iED_CapMax; }
-		}
-
-		self->nextanim = time + iDelay;
+		self->nextanim = time + calculate_edelay(self, f);
 		self->pausetime = 0;
 		execute_animation_script(self);
 	}
@@ -11297,6 +11350,9 @@ void ent_set_model(entity * ent, char * modelname, int syncAnim)
 	if(syncAnim && m->animation[ent->animnum])
 	{
 		ent->animation = m->animation[ent->animnum];
+		if(ent->animpos>=ent->animation->numframes)
+			ent->animpos=ent->animation->numframes-1;
+		ent->nextanim = time + calculate_edelay(ent, ent->animpos);
 		//update_frame(ent, ent->animpos);
 	}
 	else
@@ -20942,6 +20998,13 @@ int set_color_correction(int gm, int br)
 #if WII
 	vga_set_color_correction(gm, br);
 	return 1;
+#elif ANDROID
+	if(screenformat == PIXEL_8)
+	{
+		palette_set_corrected(pal, savedata.gamma,savedata.gamma,savedata.gamma, savedata.brightness,savedata.brightness,savedata.brightness);
+		return 1;
+	}
+	else return 0;
 #elif SDL
 	if(opengl)
 	{
@@ -22464,6 +22527,7 @@ int choose_difficulty()
 	drawmethod.alpha = 1;
 
 	barx = videomodes.hRes/5; bary = _liney(0,0)-2; barw = videomodes.hRes*3/5; barh = 5*(fontheight(0)+1)+4;
+	newgameMenu = 1;
 	bothnewkeys = 0;
 
 	if(loadGameFile())
@@ -22512,6 +22576,7 @@ int choose_difficulty()
 			else if(bonus >= levelsets[selector].ifcomplete){
 				saveslot = selector;
 				strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN+1);
+				newgameMenu = 0;
 				return saveslot;
 		}
 		}
@@ -22539,11 +22604,13 @@ int choose_difficulty()
 			else if(bonus >= levelsets[selector].ifcomplete){
 				saveslot = selector;
 				strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN+1);
+				newgameMenu = 0;
 				return saveslot;
 			}
 		}
 	}
 	bothnewkeys = 0;
+	newgameMenu = 0;
 	return -1;
 }
 
@@ -22555,6 +22622,7 @@ int load_saved_game()
 	char name[256] = {""};
 	int col1 = -8, col2=6;
 
+	loadgameMenu = 1;
 	bothnewkeys = 0;
 
 	if((savedStatus = loadGameFile())) getPakName(name,0);
@@ -22642,6 +22710,7 @@ int load_saved_game()
 		}
 	}
 	bothnewkeys = 0;
+	loadgameMenu = 0;
 	return -1;
 }
 
@@ -22652,6 +22721,7 @@ int choose_mode(int *players)
 	int selector = 0;
 	int status = 0;
 
+	startgameMenu = 1;
 	bothnewkeys = 0;
 
 	while(!quit)
@@ -22707,6 +22777,7 @@ int choose_mode(int *players)
 		}
 	}
 	bothnewkeys = 0;
+	startgameMenu = 0;
 	return relback;
 }
 
@@ -23249,6 +23320,7 @@ void input_options(){
 	int quit = 0;
 	int selector = 1; // 0
 
+	controloptionsMenu = 1;
 	bothnewkeys = 0;
 
 	while(!quit){
@@ -23315,6 +23387,7 @@ void input_options(){
 	}
 	savesettings();
 	bothnewkeys = 0;
+	controloptionsMenu = 0;
 }
 
 
@@ -23327,6 +23400,7 @@ void sound_options(){
 	int col1 = -8;
 	int col2 = 6;
 
+	soundoptionsMenu = 1;
 	bothnewkeys = 0;
 
 	while(!quit){
@@ -23487,6 +23561,7 @@ void config_settings(){    //  OX. Load from / save to default.cfg. Restore Open
 	}
 	savesettings();
 	bothnewkeys = 0;
+	soundoptionsMenu = 0;
 }
 
 
@@ -23497,6 +23572,7 @@ void cheatoptions(){    //  LTB 1-13-05 took out sameplayer option
 	int col1 = -8;
 	int col2 = 6;
 
+	cheatoptionsMenu = 1;
 	bothnewkeys = 0;
 
 	while(!quit){
@@ -23587,6 +23663,7 @@ void cheatoptions(){    //  LTB 1-13-05 took out sameplayer option
 	}
 	savesettings();
 	bothnewkeys = 0;
+	cheatoptionsMenu = 0;
 }
 
 
@@ -23604,6 +23681,8 @@ void system_options(){
 	int batteryLifeTime = 0;
 	int externalPower = 0;
 #endif
+
+	systemoptionsMenu = 1;
 
 	bothnewkeys = 0;
 
@@ -23748,6 +23827,7 @@ void system_options(){
 	}
 	savesettings();
 	bothnewkeys = 0;
+	systemoptionsMenu = 0;
 }
 
 
@@ -23756,7 +23836,8 @@ void video_options(){
 	int selector = 0;
 	int dir;
 	int col1 = -8, col2 = 6;
-
+	
+	videooptionsMenu = 1;
 	bothnewkeys = 0;
 
 	while(!quit){
@@ -23811,8 +23892,13 @@ void video_options(){
 		if(opengl)
 		{
 			_menutext((selector==5), col1, 2, "Screen:");
+#ifndef ANDROID
 			if(savedata.fullscreen) _menutext((selector==5), col2, 2, "Automatic");
 			else _menutext((selector==5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes*savedata.glscale), (int)(videomodes.vRes*savedata.glscale));
+#else
+			if(savedata.glscale==0) _menutext((selector==5), col2, 2, "Automatic");
+			else _menutext((selector==5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes*savedata.glscale), (int)(videomodes.vRes*savedata.glscale));
+#endif
 
 			_menutext((selector==6), col1, 3, "Filters:");
 			_menutext((selector==6), col2, 3, "%s", (savedata.glscale!=1.0||savedata.fullscreen) ? (savedata.glfilter[savedata.fullscreen] ? "Simple" : "Bilinear") : "Disabled");
@@ -23980,11 +24066,17 @@ void video_options(){
 				case 5:
 					if(opengl)
 					{
+#ifndef ANDROID
 						if(savedata.fullscreen) break;
 						savedata.glscale += dir * 0.25;
 						if(savedata.glscale < 0.25) savedata.glscale = 0.25;
 						if(savedata.glscale > 4.00) savedata.glscale = 4.00;
 						video_set_mode(videomodes);
+#else
+						savedata.glscale += dir * 0.25;
+						if(savedata.glscale < 0.0) savedata.glscale = 0.0;
+						if(savedata.glscale > 4.00) savedata.glscale = 4.00;
+#endif
 					}
 					else
 					{
@@ -24005,10 +24097,13 @@ void video_options(){
 				case 6:
 					if(opengl)
 					{
+#ifndef ANDROID
 						if(!savedata.fullscreen && savedata.glscale == 1.0) break;
+#endif
 						savedata.glfilter[savedata.fullscreen] += dir;
 						if(savedata.glfilter[savedata.fullscreen] < 0) savedata.glfilter[savedata.fullscreen] = 1;
 						if(savedata.glfilter[savedata.fullscreen] > 1) savedata.glfilter[savedata.fullscreen] = 0;
+						video_set_mode(videomodes);
 					}
 					else
 					{
@@ -24031,6 +24126,7 @@ void video_options(){
 	}
 	savesettings();
 	bothnewkeys = 0;
+	videooptionsMenu = 0;
 }
 
 
@@ -24038,6 +24134,7 @@ void options(){
 	int quit = 0;
 	int selector = 0;
 
+	optionsMenu = 1;
 	bothnewkeys = 0;
 
 	while(!quit){
@@ -24089,6 +24186,7 @@ void options(){
 	savesettings();
 	if(pause==1) pause=2;
 	bothnewkeys = 0;
+	optionsMenu = 0;
 }
 
 void soundcard_options(){

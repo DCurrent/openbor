@@ -22,6 +22,8 @@ static int numjoy;						// Number of Joy(s) found
 static int lastkey;						// Last keyboard key Pressed
 static int lastjoy;                     // Last joystick button/axis/hat input
 
+int sdl_game_started  = 0;
+
 /*
 Here is where we aquiring all joystick events
 and map them to BOR's layout.  Currently support
@@ -36,6 +38,16 @@ void getPads(Uint8* keystate)
 		switch(ev.type)
 		{
 			case SDL_KEYDOWN:
+#ifdef ANDROID
+				lastkey = ev.key.keysym.scancode;
+				if((keystate[SDL_SCANCODE_LALT] || keystate[SDL_SCANCODE_RALT]) && (lastkey == SDL_SCANCODE_RETURN))
+				{
+					video_fullscreen_flip();
+					keystate[SDL_SCANCODE_RETURN] = 0;
+				}
+				if(lastkey != SDL_SCANCODE_F10) break;
+				break;
+#else
 				lastkey = ev.key.keysym.sym;
 				//if (lastkey==SDLK_F11) video_fullscreen_flip();
 				if((keystate[SDLK_LALT] || keystate[SDLK_RALT]) && (lastkey == SDLK_RETURN))
@@ -44,7 +56,34 @@ void getPads(Uint8* keystate)
 					keystate[SDLK_RETURN] = 0;
 				}
 				if(lastkey != SDLK_F10) break;
-
+#endif
+#if 0
+			// sdl 1.3 pause hack
+			// we don't need it in sdl 2.0 in theory
+			case SDL_WINDOWEVENT:
+				if(ev.window.event==SDL_WINDOWEVENT_MINIMIZED)
+				{
+					SDL_PauseAudio(1);
+					while(true)
+					{
+						if(SDL_PollEvent(&ev))
+						{
+							if(ev.type==SDL_WINDOWEVENT && ev.window.event==SDL_WINDOWEVENT_RESTORED)
+							{
+								SDL_PauseAudio(0);
+								extern s_videomodes videomodes;
+								video_set_mode(videomodes);
+								//extern SDL_Surface* getSDLScreen();
+								//SDL_Surface* s = getSDLScreen();
+								//printf("screen %d %d   %d %d\n", s->w, s->h, videomodes.hRes, videomodes.vRes);
+								break;
+							}
+						}
+						SDL_Delay(1);
+					}
+				}
+				break;
+#endif
 			case SDL_QUIT:
 				shutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
 				break;
@@ -179,6 +218,10 @@ void joystick_scan(int scan)
 		printf("No Joystick(s) Found!\n");
 		return;
 	}
+	else
+	{
+		printf("\n%d joystick(s) found!\n", numjoy);
+	}
 	for(i=0, k=0; i<numjoy; i++, k+=JOY_MAX_INPUTS)
 	{
 		joystick[i] = SDL_JoystickOpen(i);
@@ -237,7 +280,7 @@ void control_exit()
 {
 	int i;
 	usejoy = 0;
-	for(i=0; i<numjoy; i++) {
+	for(i=0; i<numjoy; i++){
 		if(joystick[i]) SDL_JoystickClose(joystick[i]);
 	}
 	memset(joystick, 0, sizeof(joystick));
@@ -298,6 +341,115 @@ void control_setkey(s_playercontrols * pcontrols, unsigned int flag, int key)
 	pcontrols->keyflags = pcontrols->newkeyflags = 0;
 }
 
+#if ANDROID
+extern float bx[MAXTOUCHB];
+extern float by[MAXTOUCHB];
+extern float br[MAXTOUCHB];
+extern unsigned touchstates[MAXTOUCHB];
+int hide_t = 2000;
+void control_update_android_touch(float* px, float* py, int* pid, int maxp)
+{
+	Uint8* keystate = SDL_GetKeyState(NULL);
+	int i, j;
+	float tx, ty, tr;
+	float r[MAXTOUCHB];
+	float dirx, diry, circlea, circleb, tan;
+	memset(touchstates, 0, sizeof(touchstates));
+	for(j=0; j<MAXTOUCHB; j++)
+	{
+		r[j] = br[j]*br[j]*(1.5*1.5);
+	}
+	dirx = (bx[1]+bx[3])/2.0;
+	diry = (by[0]+by[2])/2.0;
+	circlea = bx[1]-dirx-br[0];
+	circleb = bx[1]-dirx+br[0]*1.5;
+	circlea *= circlea;
+	circleb *= circleb;
+	#define tana 0.577350f
+	#define tanb 1.732051f
+	for (i=0; i<maxp; i++)
+	{
+		if(pid[i]<0) continue;
+		tx = px[i]-dirx;
+		ty = py[i]-diry;
+		tr = tx*tx + ty*ty;
+		if(tr>circlea && tr<=circleb)
+		{
+			if(tx<0)
+			{
+				tan = ty/tx;
+				if(tan>=-tana && tan<=tana)
+					touchstates[3] = 1;
+				else if(tan<-tanb)
+					touchstates[2] = 1;
+				else if(tan>tanb)
+					touchstates[0] = 1;
+				else if(ty<0)
+					touchstates[0] = touchstates[3] = 1;
+				else
+					touchstates[3] = touchstates[2] = 1;
+			}
+			else if(tx>0)
+			{
+				tan = ty/tx;
+				if(tan>=-tana && tan<=tana)
+					touchstates[1] = 1;
+				else if(tan<-tanb)
+					touchstates[0] = 1;
+				else if(tan>tanb)
+					touchstates[2] = 1;
+				else if(ty<0)
+					touchstates[0] = touchstates[1] = 1;
+				else
+					touchstates[1] = touchstates[2] = 1;
+			}
+			else
+			{
+				if(ty>0) touchstates[2] = 1;
+				else touchstates[0] = 1;
+			}
+		}
+		for(j=4; j<MAXTOUCHB; j++)
+		{
+			tx = px[i]-bx[j];
+			ty = py[i]-by[j];
+			tr = tx*tx + ty*ty;
+			if(tr<=r[j]) touchstates[j] = 1;
+		}
+	}
+	hide_t = timer_gettick() + 5000;
+#if 0
+	keystate[CONTROL_DEFAULT1_UP] = touchstates[0];
+	keystate[CONTROL_DEFAULT1_RIGHT] = touchstates[1];
+	keystate[CONTROL_DEFAULT1_DOWN] = touchstates[2];
+	keystate[CONTROL_DEFAULT1_LEFT] = touchstates[3];
+	keystate[CONTROL_DEFAULT1_FIRE6] = touchstates[4];
+	keystate[CONTROL_DEFAULT1_FIRE2] = touchstates[5];
+	keystate[CONTROL_DEFAULT1_FIRE5] = touchstates[6];
+	keystate[CONTROL_DEFAULT1_FIRE1] = touchstates[7];
+	keystate[CONTROL_DEFAULT1_START] = touchstates[8];
+	keystate[CONTROL_ESC] = touchstates[9];
+	keystate[CONTROL_DEFAULT1_FIRE3] = touchstates[10];
+	keystate[CONTROL_DEFAULT1_FIRE4] = touchstates[11];
+#else
+	extern s_savedata savedata;
+	#define pc(x) savedata.keys[0][x]
+	keystate[pc(SDID_MOVEUP)] = touchstates[0];
+	keystate[pc(SDID_MOVERIGHT)] = touchstates[1];
+	keystate[pc(SDID_MOVEDOWN)] = touchstates[2];
+	keystate[pc(SDID_MOVELEFT)] = touchstates[3];
+	keystate[pc(SDID_SPECIAL)] = touchstates[4];
+	keystate[pc(SDID_ATTACK2)] = touchstates[5];
+	keystate[pc(SDID_JUMP)] = touchstates[6];
+	keystate[pc(SDID_ATTACK)] = touchstates[7];
+	keystate[pc(SDID_START)] = touchstates[8];
+	keystate[CONTROL_ESC] = touchstates[9];
+	keystate[pc(SDID_ATTACK3)] = touchstates[10];
+	keystate[pc(SDID_ATTACK4)] = touchstates[11];
+	#undef pc
+#endif
+}
+#endif
 
 int keyboard_getlastkey()
 {

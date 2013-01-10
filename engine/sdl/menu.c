@@ -5,8 +5,6 @@
  *
  * Copyright (c) 2004 - 2011 OpenBOR Team
  */
-
-
 #include <unistd.h>
 #include "SDL.h"
 #include "sdlport.h"
@@ -30,6 +28,8 @@
 extern int videoMode;
 extern s_videomodes videomodes;
 extern s_screen* vscreen;
+extern int nativeHeight;
+extern int nativeWidth;
 s_screen* bgscreen;
 
 #define RGB32(R,G,B) ((R) | ((G) << 8) | ((B) << 16))
@@ -55,6 +55,7 @@ s_screen* bgscreen;
 
 int bpp = 32;
 int isWide = 0;
+int isFull = 0;
 int flags;
 int dListTotal;
 int dListCurrentPosition;
@@ -447,9 +448,19 @@ int ControlBGM()
 
 void initMenu(int type)
 {
+
+#ifdef ANDROID
+	isWide = (float)nativeHeight/(float)nativeWidth < 3.0f/4.0f;
+	isFull = 1;
+	bpp = 32;
+	savedata.glscale = 0.0f;
+	screenformat = PIXEL_32;
+#endif
+
 	screenformat = bpp==32?PIXEL_32:PIXEL_16;
 	pixelformat = PIXEL_x8;
 	
+	savedata.fullscreen = isFull;
 	video_stretch(savedata.stretch);
 	videoMode = isWide ? 1 : 0;
 	videomodes.hRes = isWide ? 480 :320;

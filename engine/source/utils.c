@@ -86,6 +86,13 @@
 #define READ_LOGFILE(type)   type ? fopen("sd:/apps/OpenBOR/Logs/OpenBorLog.txt", "rt") : fopen("sd:/apps/OpenBOR/Logs/ScriptLog.txt", "rt")
 #define COPY_ROOT_PATH(buf, name) strncpy(buf, "sd:/apps/OpenBOR/", 17); strncat(buf, name, strlen(name)); strncat(buf, "/", 1);
 #define COPY_PAKS_PATH(buf, name) strncpy(buf, "sd:/apps/OpenBOR/Paks/", 22); strncat(buf, name, strlen(name));
+#elif ANDROID
+#define CHECK_LOGFILE(type)  type ? fileExists("/mnt/sdcard/OpenBOR/Logs/OpenBorLog.txt") : fileExists("/mnt/sdcard/OpenBOR/Logs/ScriptLog.txt")
+#define OPEN_LOGFILE(type)   type ? fopen("/mnt/sdcard/OpenBOR/Logs/OpenBorLog.txt", "wt") : fopen("/mnt/sdcard/OpenBOR/Logs/ScriptLog.txt", "wt")
+#define APPEND_LOGFILE(type) type ? fopen("/mnt/sdcard/OpenBOR/Logs/OpenBorLog.txt", "at") : fopen("/mnt/sdcard/OpenBOR/Logs/ScriptLog.txt", "at")
+#define READ_LOGFILE(type)   type ? fopen("/mnt/sdcard/OpenBOR/Logs/OpenBorLog.txt", "rt") : fopen("/mnt/sdcard/OpenBOR/Logs/ScriptLog.txt", "rt")
+#define COPY_ROOT_PATH(buf, name) strncpy(buf, "/mnt/sdcard/OpenBOR/", 20); strncat(buf, name, strlen(name)); strncat(buf, "/", 1);
+#define COPY_PAKS_PATH(buf, name) strncpy(buf, "/mnt/sdcard/OpenBOR/Paks/", 25); strncat(buf, name, strlen(name));
 #else
 #define CHECK_LOGFILE(type)  type ? fileExists("./Logs/OpenBorLog.txt") : fileExists("./Logs/ScriptLog.txt")
 #define OPEN_LOGFILE(type)   type ? fopen("./Logs/OpenBorLog.txt", "wt") : fopen("./Logs/ScriptLog.txt", "wt")
@@ -321,8 +328,8 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame){
 			sprintf(shotname, "d:\\ScreenShots\\%s - %04u.png", modname,shotnum);
 #elif WII && SDL
 			sprintf(shotname, "sd:/apps/OpenBOR/ScreenShots/%s - %04u.png", modname,shotnum);
-#elif WII
-			sprintf(shotname, "%s/%s - %04u.png", screenShotsDir,modname,shotnum);
+#elif SDL
+			sprintf(shotname, "%s/%s - %04u.png", screenShotsDir, modname, shotnum);
 #else
 			sprintf(shotname, "./ScreenShots/%s - %04u.png", modname,shotnum);
 #endif
@@ -452,6 +459,7 @@ char *commaprint(u64 n)
 
 	if(comma == '\0')
 	{
+#ifndef ANDROID
 		struct lconv *lcp = localeconv();
 		if(lcp != NULL)
 		{
@@ -461,6 +469,7 @@ char *commaprint(u64 n)
 			else
 				comma = ',';
 		}
+#endif
 	}
 
 	*p = '\0';

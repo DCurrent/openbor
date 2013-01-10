@@ -96,7 +96,7 @@ SDL_Surface* pngToSurface(const void* data)
 	h = height;
 
 	sp = (unsigned char*)src->data;
-	ds = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0xff, 0xff00, 0xff0000, 0);
+	ds = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0xff, 0xff00, 0xff0000, 0xff000000);
 	dp = ds->pixels;
 
 	linew = width*4;

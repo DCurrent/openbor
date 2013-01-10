@@ -16,6 +16,8 @@
  * all 4 sides.
  */
 
+ #ifdef OPENGL
+
 #include <SDL.h>
 #include <SDL_framerate.h>
 #include <math.h>
@@ -549,4 +551,4 @@ void video_gl_set_color_correction(int gamma, int brightness)
 	//fprintf(stderr, "set brightness=%d and gamma=%d in %d texenv stages\n", brightness, gamma, numTexEnvStages + 1);
 }
 
-
+#endif

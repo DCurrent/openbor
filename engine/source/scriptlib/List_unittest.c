@@ -10,6 +10,8 @@
  gcc -Wall -DDEBUG -DNO_RAM_DEBUGGER -I.. -I../gamelib -g -O0 List_unittest.c List.c -o list_unittest
 
  */
+#ifdef LIST_UNITTEST
+
 #include "List.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -294,3 +296,5 @@ int main() {
 	freemem();
 	return 0;
 }
+
+#endif
