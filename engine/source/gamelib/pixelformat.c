@@ -20,18 +20,28 @@
 #pragma pack(1)
 typedef struct 
 {
+	union{
+	struct{
 	unsigned char r;
 	unsigned char g;
 	unsigned char b;
 	unsigned char a; //unused
+	} C;
+	unsigned c;
+	};
 }RGB32;
 
 typedef struct 
 {
+	union{
+	struct{
 	unsigned r:5;
 	unsigned g:6;
 	unsigned b:5;
 	unsigned a:16; //unused
+	} C;
+	unsigned c;
+	};
 }RGB16;
 
 int pixelformat = PIXEL_8;
@@ -103,12 +113,12 @@ unsigned colour32(unsigned char r, unsigned char g, unsigned char b)
 #define bi (bs|bd)
 #define gi (gs|gd)
 #define ri (rs|rd)*/
-#define bs (((RGB32*)&color1)->b)
-#define gs (((RGB32*)&color1)->g)
-#define rs (((RGB32*)&color1)->r)
-#define bd (((RGB32*)&color2)->b)
-#define gd (((RGB32*)&color2)->g)
-#define rd (((RGB32*)&color2)->r)
+#define bs (((RGB32*)&color1)->C.b)
+#define gs (((RGB32*)&color1)->C.g)
+#define rs (((RGB32*)&color1)->C.r)
+#define bd (((RGB32*)&color2)->C.b)
+#define gd (((RGB32*)&color2)->C.g)
+#define rd (((RGB32*)&color2)->C.r)
 #define bi ((bs<<8)|bd)
 #define gi ((gs<<8)|gd)
 #define ri ((rs<<8)|rd)
@@ -257,7 +267,6 @@ unsigned char* create_dodge32_tbl(){
 	for(i=0; i<256; i++)
 		for(j=0; j<256; j++)
 			tbl[(i<<8)|j] = (unsigned char)blend_dodge(i,j);
-
 	return tbl;
 }
 

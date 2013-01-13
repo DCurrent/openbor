@@ -173,10 +173,8 @@ int findPaks(void)
 	struct dirent* ds;
 #ifdef WII
 	dp = opendir("sd:/apps/OpenBOR/Paks");
-#elif ANDROID
-	dp = opendir("/mnt/sdcard/OpenBOR/Paks");
 #else
-	dp = opendir("./Paks");
+	dp = opendir(paksDir);
 #endif
 	if(dp != NULL)
    	{
