@@ -92,7 +92,9 @@ int main(int argc, char *argv[])
 	initSDL();
 
 	packfile_mode(0);
-
+#ifdef ANDROID
+	dirExists("/mnt/sdcard/OpenBOR/", 1);
+#endif
 	dirExists(paksDir, 1);
 	dirExists(savesDir, 1);
 	dirExists(logsDir, 1);
