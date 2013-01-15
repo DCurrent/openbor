@@ -1053,6 +1053,10 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)nofadeout;
 		break;
+	case _sv_nojoin:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)nojoin;
+		break;
 	case _sv_nopause:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)nopause;
@@ -1312,6 +1316,10 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 	case _sv_nofadeout:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			nofadeout = (int)ltemp;
+		break;
+	case _sv_nojoin:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			nojoin = (int)ltemp;
 		break;
 	case _sv_nopause:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
@@ -9607,10 +9615,14 @@ void load_level(char *filename){
 				memset(&next,0,sizeof(next));
 				next.wait = 1;
 				break;
-			case CMD_LEVEL_NOJOIN: case CMD_LEVEL_CANJOIN:
+			case CMD_LEVEL_NOJOIN:
 				// Clear spawn thing, set nojoin state instead
 				memset(&next,0,sizeof(next));
 				next.nojoin = 1;
+				break;
+			case CMD_LEVEL_CANJOIN:
+				memset(&next,0,sizeof(next));
+				next.nojoin = -1;
 				break;
 			case CMD_LEVEL_SHADOWCOLOR:
 				memset(&next,0,sizeof(next));
