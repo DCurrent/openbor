@@ -366,6 +366,34 @@ void Script_Init(Script* pscript, char* theName, char* comment, int first)
 	}
 }
 
+static void execute_init_method(Script* pdest, int iscopy, int localclear)
+{
+	Script* temp;
+	ScriptVariant tempvar;
+	//Execute init method
+	if(pdest->initialized && pdest->pinterpreter->pInitEntry){
+		temp = pcurrentscript;
+		pcurrentscript = pdest;
+
+		ScriptVariant_Init(&tempvar);
+		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+		tempvar.lVal = (LONG)iscopy;
+		Script_Set_Local_Variant(pdest, "iscopy", &tempvar);
+		tempvar.lVal = (LONG)localclear;
+		Script_Set_Local_Variant(pdest, "localclear", &tempvar);
+		Interpreter_Reset(pdest->pinterpreter);
+		pdest->pinterpreter->pCurrentInstruction = pdest->pinterpreter->pInitEntry;
+		if(FAILED( Interpreter_EvaluateCall(pdest->pinterpreter))){
+			shutdown(1, "Fatal: failed to execute 'init' in script %s %s", pdest->pinterpreter->theSymbolTable.name, pdest->comment?pdest->comment:"");
+		}
+		pdest->pinterpreter->bReset = FALSE; // not needed, perhaps
+		ScriptVariant_Clear(&tempvar);
+		Script_Set_Local_Variant(pdest, "iscopy", &tempvar);
+		Script_Set_Local_Variant(pdest, "localclear", &tempvar);
+		pcurrentscript = temp;
+	}
+}
+
 //safe copy method
 void Script_Copy(Script* pdest, Script* psrc, int localclear)
 {
@@ -375,6 +403,7 @@ void Script_Copy(Script* pdest, Script* psrc, int localclear)
 	pdest->comment = psrc->comment;
 	pdest->interpreterowner = 0; // dont own it
 	pdest->initialized = psrc->initialized; //just copy, it should be 1
+	execute_init_method(pdest, 1, localclear);
 }
 
 void Script_Clear(Script* pscript, int localclear)
@@ -826,7 +855,7 @@ int Script_Compile(Script* pscript)
 	//result = Script_DetectUnusedFunctions(pscript);
 	//if(!result) {Script_Clear(pscript, 1);shutdown(1, "Script optimization failed!\n");}
 	//Script_LowerConstants(pscript);
-
+	execute_init_method(pscript, 0, 1);
 	return result;
 }
 
