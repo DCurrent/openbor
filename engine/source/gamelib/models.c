@@ -12,7 +12,7 @@
 #include "List.h"
 #include "utils.h"
 
-static List* modellist;
+static List* modellist = NULL;
 static char convertbuf[1024];
 
 void makelowercp(char* name) {
@@ -29,6 +29,7 @@ void createModelList(void) {
 }
 
 void freeModelList(void) {
+	if(!modellist) return;
 	List_Clear(modellist);
 	free(modellist);
 	modellist = NULL;
