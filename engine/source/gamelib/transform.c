@@ -648,7 +648,8 @@ void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, 
     }
 }
 
-//dont ask
+// don't ask; go to Wikipedia if you have no fear:
+// http://en.wikipedia.org/wiki/Fast_inverse_square_root
 static float invsqrt(float x)
 {
 	float xhalf = 0.5f*x;
