@@ -346,7 +346,7 @@ extern float bx[MAXTOUCHB];
 extern float by[MAXTOUCHB];
 extern float br[MAXTOUCHB];
 extern unsigned touchstates[MAXTOUCHB];
-int hide_t = 2000;
+int hide_t = 5000;
 void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 {
 	Uint8* keystate = SDL_GetKeyState(NULL);
@@ -359,10 +359,10 @@ void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 	{
 		r[j] = br[j]*br[j]*(1.5*1.5);
 	}
-	dirx = (bx[1]+bx[3])/2.0;
-	diry = (by[0]+by[2])/2.0;
-	circlea = bx[1]-dirx-br[0];
-	circleb = bx[1]-dirx+br[0]*1.5;
+	dirx = (bx[SDID_MOVERIGHT]+bx[SDID_MOVELEFT])/2.0;
+	diry = (by[SDID_MOVEUP]+by[SDID_MOVEDOWN])/2.0;
+	circlea = bx[SDID_MOVERIGHT]-dirx-br[SDID_MOVEUP];
+	circleb = bx[SDID_MOVERIGHT]-dirx+br[SDID_MOVEUP]*1.5;
 	circlea *= circlea;
 	circleb *= circleb;
 	#define tana 0.577350f
@@ -379,38 +379,41 @@ void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 			{
 				tan = ty/tx;
 				if(tan>=-tana && tan<=tana)
-					touchstates[3] = 1;
+					touchstates[SDID_MOVELEFT] = 1;
 				else if(tan<-tanb)
-					touchstates[2] = 1;
+					touchstates[SDID_MOVEDOWN] = 1;
 				else if(tan>tanb)
-					touchstates[0] = 1;
+					touchstates[SDID_MOVEUP] = 1;
 				else if(ty<0)
-					touchstates[0] = touchstates[3] = 1;
+					touchstates[SDID_MOVEUP] = touchstates[SDID_MOVELEFT] = 1;
 				else
-					touchstates[3] = touchstates[2] = 1;
+					touchstates[SDID_MOVELEFT] = touchstates[SDID_MOVEDOWN] = 1;
 			}
 			else if(tx>0)
 			{
 				tan = ty/tx;
 				if(tan>=-tana && tan<=tana)
-					touchstates[1] = 1;
+					touchstates[SDID_MOVERIGHT] = 1;
 				else if(tan<-tanb)
-					touchstates[0] = 1;
+					touchstates[SDID_MOVEUP] = 1;
 				else if(tan>tanb)
-					touchstates[2] = 1;
+					touchstates[SDID_MOVEDOWN] = 1;
 				else if(ty<0)
-					touchstates[0] = touchstates[1] = 1;
+					touchstates[SDID_MOVEUP] = touchstates[SDID_MOVERIGHT] = 1;
 				else
-					touchstates[1] = touchstates[2] = 1;
+					touchstates[SDID_MOVERIGHT] = touchstates[SDID_MOVEDOWN] = 1;
 			}
 			else
 			{
-				if(ty>0) touchstates[2] = 1;
-				else touchstates[0] = 1;
+				if(ty>0) touchstates[SDID_MOVEDOWN] = 1;
+				else touchstates[SDID_MOVEUP] = 1;
 			}
 		}
-		for(j=4; j<MAXTOUCHB; j++)
+		for(j=0; j<MAXTOUCHB; j++)
 		{
+			if(j==SDID_MOVERIGHT || j==SDID_MOVEUP ||
+				j==SDID_MOVELEFT || j==SDID_MOVEDOWN)
+				continue;
 			tx = px[i]-bx[j];
 			ty = py[i]-by[j];
 			tr = tx*tx + ty*ty;
@@ -418,36 +421,22 @@ void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 		}
 	}
 	hide_t = timer_gettick() + 5000;
-#if 0
-	keystate[CONTROL_DEFAULT1_UP] = touchstates[0];
-	keystate[CONTROL_DEFAULT1_RIGHT] = touchstates[1];
-	keystate[CONTROL_DEFAULT1_DOWN] = touchstates[2];
-	keystate[CONTROL_DEFAULT1_LEFT] = touchstates[3];
-	keystate[CONTROL_DEFAULT1_FIRE6] = touchstates[4];
-	keystate[CONTROL_DEFAULT1_FIRE2] = touchstates[5];
-	keystate[CONTROL_DEFAULT1_FIRE5] = touchstates[6];
-	keystate[CONTROL_DEFAULT1_FIRE1] = touchstates[7];
-	keystate[CONTROL_DEFAULT1_START] = touchstates[8];
-	keystate[CONTROL_ESC] = touchstates[9];
-	keystate[CONTROL_DEFAULT1_FIRE3] = touchstates[10];
-	keystate[CONTROL_DEFAULT1_FIRE4] = touchstates[11];
-#else
 	extern s_savedata savedata;
 	#define pc(x) savedata.keys[0][x]
-	keystate[pc(SDID_MOVEUP)] = touchstates[0];
-	keystate[pc(SDID_MOVERIGHT)] = touchstates[1];
-	keystate[pc(SDID_MOVEDOWN)] = touchstates[2];
-	keystate[pc(SDID_MOVELEFT)] = touchstates[3];
-	keystate[pc(SDID_SPECIAL)] = touchstates[4];
-	keystate[pc(SDID_ATTACK2)] = touchstates[5];
-	keystate[pc(SDID_JUMP)] = touchstates[6];
-	keystate[pc(SDID_ATTACK)] = touchstates[7];
-	keystate[pc(SDID_START)] = touchstates[8];
-	keystate[CONTROL_ESC] = touchstates[9];
-	keystate[pc(SDID_ATTACK3)] = touchstates[10];
-	keystate[pc(SDID_ATTACK4)] = touchstates[11];
+	keystate[pc(SDID_MOVEUP)] = touchstates[SDID_MOVEUP];
+	keystate[pc(SDID_MOVERIGHT)] = touchstates[SDID_MOVERIGHT];
+	keystate[pc(SDID_MOVEDOWN)] = touchstates[SDID_MOVEDOWN];
+	keystate[pc(SDID_MOVELEFT)] = touchstates[SDID_MOVELEFT];
+	keystate[pc(SDID_SPECIAL)] = touchstates[SDID_SPECIAL];
+	keystate[pc(SDID_ATTACK2)] = touchstates[SDID_ATTACK2];
+	keystate[pc(SDID_JUMP)] = touchstates[SDID_JUMP];
+	keystate[pc(SDID_ATTACK)] = touchstates[SDID_ATTACK];
+	keystate[pc(SDID_START)] = touchstates[SDID_START];
+	keystate[CONTROL_ESC] = touchstates[SDID_ESC];
+	keystate[pc(SDID_ATTACK3)] = touchstates[SDID_ATTACK3];
+	keystate[pc(SDID_ATTACK4)] = touchstates[SDID_ATTACK4];
+	keystate[pc(SDID_SCREENSHOT)] = touchstates[SDID_SCREENSHOT];
 	#undef pc
-#endif
 }
 #endif
 

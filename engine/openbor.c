@@ -3705,13 +3705,7 @@ void load_menu_txt()
 		if(ParseArgs(&arglist,buf+pos,argbuf)){
 			command = GET_ARG(0);
 			if(command && command[0]){
-				if(stricmp(command, "disablekey")==0){
-					// here to keep from crashing
-				}
-				else if(stricmp(command, "renamekey")==0){
-					// here to keep from crashing
-				}
-				else if(stricmp(command, "fontmonospace")==0)
+				if(stricmp(command, "fontmonospace")==0)
 				{
 					for(i=0; i<MAX_FONTS; i++)
 						fontmonospace[i] = GET_INT_ARG((i+1))?FONT_MONO:0;
@@ -3721,9 +3715,6 @@ void load_menu_txt()
 					for(i=0; i<MAX_FONTS; i++)
 						fontmbs[i] = GET_INT_ARG((i+1))?FONT_MBS:0;
 				}
-				else
-					if(command && command[0])
-						printf("Command '%s' not understood in file '%s'!", command, filename);
 			}
 		}
 
@@ -23101,18 +23092,18 @@ void keyboard_setup(int player){
 
 	printf("Loading control settings.......\t");
 
-	strncpy(buttonnames[0], "Move Up", 16);
-	strncpy(buttonnames[1], "Move Down", 16);
-	strncpy(buttonnames[2], "Move Left", 16);
-	strncpy(buttonnames[3], "Move Right", 16);
-	strncpy(buttonnames[4], "Attack 1", 16);
-	strncpy(buttonnames[5], "Attack 2", 16);
-	strncpy(buttonnames[6], "Attack 3", 16);
-	strncpy(buttonnames[7], "Attack 4", 16);
-	strncpy(buttonnames[8], "Jump", 16);
-	strncpy(buttonnames[9], "Special", 16);
-	strncpy(buttonnames[10], "Start", 16);
-	strncpy(buttonnames[11], "Screenshot", 16);
+	strncpy(buttonnames[SDID_MOVEUP], "Move Up", 16);
+	strncpy(buttonnames[SDID_MOVEDOWN], "Move Down", 16);
+	strncpy(buttonnames[SDID_MOVELEFT], "Move Left", 16);
+	strncpy(buttonnames[SDID_MOVERIGHT], "Move Right", 16);
+	strncpy(buttonnames[SDID_ATTACK], "Attack 1", 16);
+	strncpy(buttonnames[SDID_ATTACK2], "Attack 2", 16);
+	strncpy(buttonnames[SDID_ATTACK3], "Attack 3", 16);
+	strncpy(buttonnames[SDID_ATTACK4], "Attack 4", 16);
+	strncpy(buttonnames[SDID_JUMP], "Jump", 16);
+	strncpy(buttonnames[SDID_SPECIAL], "Special", 16);
+	strncpy(buttonnames[SDID_START], "Start", 16);
+	strncpy(buttonnames[SDID_SCREENSHOT], "Screenshot", 16);
 
 	savesettings();
 	bothnewkeys = 0;
@@ -23128,65 +23119,56 @@ void keyboard_setup(int player){
 				if(stricmp(command, "disablekey")==0){
 
 					if(stricmp(GET_ARG(1), "moveup")==0)
-						disabledkey[0] = 1;
+						disabledkey[SDID_MOVEUP] = 1;
 					else if(stricmp(GET_ARG(1), "movedown")==0)
-						disabledkey[1] = 1;
+						disabledkey[SDID_MOVEDOWN] = 1;
 					else if(stricmp(GET_ARG(1), "moveleft")==0)
-						disabledkey[2] = 1;
+						disabledkey[SDID_MOVELEFT] = 1;
 					else if(stricmp(GET_ARG(1), "moveright")==0)
-						disabledkey[3] = 1;
+						disabledkey[SDID_MOVERIGHT] = 1;
 					else if(stricmp(GET_ARG(1), "attack")==0)
-						disabledkey[4] = 1;
+						disabledkey[SDID_ATTACK] = 1;
 					else if(stricmp(GET_ARG(1), "attack2") == 0)
-						disabledkey[5] = 1;
+						disabledkey[SDID_ATTACK2] = 1;
 					else if(stricmp(GET_ARG(1), "attack3") == 0)
-						disabledkey[6] = 1;
+						disabledkey[SDID_ATTACK3] = 1;
 					else if(stricmp(GET_ARG(1), "attack4") == 0)
-						disabledkey[7] = 1;
+						disabledkey[SDID_ATTACK4] = 1;
 					else if(stricmp(GET_ARG(1), "jump") == 0)
-						disabledkey[8] = 1;
+						disabledkey[SDID_JUMP] = 1;
 					else if(stricmp(GET_ARG(1), "special") == 0)
-						disabledkey[9] = 1;
+						disabledkey[SDID_SPECIAL] = 1;
 					else if(stricmp(GET_ARG(1), "start") == 0)
-						disabledkey[10] = 1;
+						disabledkey[SDID_START] = 1;
 					else if(stricmp(GET_ARG(1), "screenshot") == 0)
-						disabledkey[11] = 1;
+						disabledkey[SDID_SCREENSHOT] = 1;
 				}
 				else if(stricmp(command, "renamekey")==0){
 					if(stricmp(GET_ARG(1), "moveup") == 0)
-						strncpy(buttonnames[0], GET_ARG(2), 16);
+						strncpy(buttonnames[SDID_MOVEUP], GET_ARG(2), 16);
 					else if(stricmp(GET_ARG(1), "movedown") == 0)
-						strncpy(buttonnames[1], GET_ARG(2), 16);
+						strncpy(buttonnames[SDID_MOVEDOWN], GET_ARG(2), 16);
 					else if(stricmp(GET_ARG(1), "moveleft") == 0)
-						strncpy(buttonnames[2], GET_ARG(2), 16);
+						strncpy(buttonnames[SDID_MOVELEFT], GET_ARG(2), 16);
 					else if(stricmp(GET_ARG(1), "moveright") == 0)
-						strncpy(buttonnames[3], GET_ARG(2), 16);
+						strncpy(buttonnames[SDID_MOVERIGHT], GET_ARG(2), 16);
 					else if(stricmp(GET_ARG(1), "attack") == 0)
-						strncpy(buttonnames[4], GET_ARG(2), 16);
+						strncpy(buttonnames[SDID_ATTACK], GET_ARG(2), 16);
 					else if(stricmp(GET_ARG(1), "attack2") == 0)
-						strncpy(buttonnames[5], GET_ARG(2), 16);
+						strncpy(buttonnames[SDID_ATTACK2], GET_ARG(2), 16);
 					else if(stricmp(GET_ARG(1), "attack3") == 0)
-						strncpy(buttonnames[6], GET_ARG(2), 16);
+						strncpy(buttonnames[SDID_ATTACK3], GET_ARG(2), 16);
 					else if(stricmp(GET_ARG(1), "attack4") == 0)
-						strncpy(buttonnames[7], GET_ARG(2), 16);
+						strncpy(buttonnames[SDID_ATTACK4], GET_ARG(2), 16);
 					else if(stricmp(GET_ARG(1), "jump") == 0)
-						strncpy(buttonnames[8], GET_ARG(2), 16);
+						strncpy(buttonnames[SDID_JUMP], GET_ARG(2), 16);
 					else if(stricmp(GET_ARG(1), "special") == 0)
-						strncpy(buttonnames[9], GET_ARG(2), 16);
+						strncpy(buttonnames[SDID_SPECIAL], GET_ARG(2), 16);
 					else if(stricmp(GET_ARG(1), "start") == 0)
-						strncpy(buttonnames[10], GET_ARG(2), 16);
+						strncpy(buttonnames[SDID_START], GET_ARG(2), 16);
 					else if(stricmp(GET_ARG(1), "screenshot") == 0)
-						strncpy(buttonnames[11], GET_ARG(2), 16);
+						strncpy(buttonnames[SDID_SCREENSHOT], GET_ARG(2), 16);
 				}
-				else if(stricmp(command, "fontmonospace")==0){
-					 // here to keep from crashing
-				}
-				else if(stricmp(command, "fontmbs")==0){
-					 // here to keep from crashing
-				}
-				else
-					if(command && command[0])
-						printf("Command '%s' not understood in file '%s'!", command, filename);
 
 			}
 			// Go to next line

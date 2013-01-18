@@ -38,7 +38,8 @@
 #endif
 
 #ifdef ANDROID
-#define MAXTOUCHB 12
+#define MAXTOUCHB 13
+#define SDID_ESC (MAXTOUCHB-1)
 #endif
 
 //#define MEMTEST 1
