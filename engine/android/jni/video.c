@@ -98,9 +98,10 @@ unsigned touchstates[MAXTOUCHB];
 #define _RE(x,y) {144*(x),144*(y),96,96} 
 
 SDL_Rect btnsrc[MAXTOUCHB] = {
-_RE(0,2),_RE(1,2),_RE(2,2),_RE(3,2), //dpad
-_RE(4,0),_RE(1,0),_RE(1,1),_RE(0,0), //special a2 jump a1
-_RE(2,1),_RE(3,1),_RE(2,0),_RE(3,0), //start esc a3 a4
+[SDID_MOVEUP]=_RE(0,2),[SDID_MOVERIGHT]=_RE(1,2),[SDID_MOVEDOWN]=_RE(2,2),[SDID_MOVELEFT]=_RE(3,2), //dpad
+[SDID_SPECIAL]=_RE(4,0),[SDID_ATTACK2]=_RE(1,0),[SDID_JUMP]=_RE(1,1),[SDID_ATTACK]=_RE(0,0), //special a2 jump a1
+[SDID_START]=_RE(2,1),[SDID_ESC]=_RE(3,1),[SDID_ATTACK3]=_RE(2,0),[SDID_ATTACK4]=_RE(3,0), //start esc a3 a4
+[SDID_SCREENSHOT]=_RE(4,1)
 };
 SDL_Rect btndes[MAXTOUCHB];
 
@@ -114,45 +115,50 @@ static void setup_touch()
 	float cx1=(ra+rb+rb/5.0f)*hh, cy1=h-cx1;
 	float cx2=w-cx1, cy2=cy1;
 	//dpad
-	bx[0] = cx1;
-	by[0] = cy1-ra*hh;
-	br[0] = rb*hh;
-	bx[1] = bx[0]+ra*hh;
-	by[1] = cy1;
-	br[1] = br[0];
-	bx[2] = bx[0];
-	by[2] = cy1+ra*hh;
-	br[2] = br[0];
-	bx[3] = bx[0]-ra*hh;
-	by[3] = cy1;
-	br[3] = br[0];
+	bx[SDID_MOVEUP] = cx1;
+	by[SDID_MOVEUP] = cy1-ra*hh;
+	br[SDID_MOVEUP] = rb*hh;
+	bx[SDID_MOVERIGHT] = bx[SDID_MOVEUP]+ra*hh;
+	by[SDID_MOVERIGHT] = cy1;
+	br[SDID_MOVERIGHT] = br[SDID_MOVEUP];
+	bx[SDID_MOVEDOWN] = bx[SDID_MOVEUP];
+	by[SDID_MOVEDOWN] = cy1+ra*hh;
+	br[SDID_MOVEDOWN] = br[SDID_MOVEUP];
+	bx[SDID_MOVELEFT] = bx[SDID_MOVEUP]-ra*hh;
+	by[SDID_MOVELEFT] = cy1;
+	br[SDID_MOVELEFT] = br[SDID_MOVEUP];
 	//special a2 jump a1
-	bx[4] = w-bx[0];
-	by[4] = cy2-ra*hh;
-	br[4] = rb*hh;
-	bx[5] = bx[4]+ra*hh;
-	by[5] = cy2;
-	br[5] = br[0];
-	bx[6] = bx[4];
-	by[6] = cy2+ra*hh;
-	br[6] = br[0];
-	bx[7] = bx[4]-ra*hh;
-	by[7] = cy2;
-	br[7] = br[0];
+	bx[SDID_SPECIAL] = w-bx[SDID_MOVEUP];
+	by[SDID_SPECIAL] = cy2-ra*hh;
+	br[SDID_SPECIAL] = rb*hh;
+	bx[SDID_ATTACK2] = bx[SDID_SPECIAL]+ra*hh;
+	by[SDID_ATTACK2] = cy2;
+	br[SDID_ATTACK2] = br[SDID_MOVEUP];
+	bx[SDID_JUMP] = bx[SDID_SPECIAL];
+	by[SDID_JUMP] = cy2+ra*hh;
+	br[SDID_JUMP] = br[SDID_MOVEUP];
+	bx[SDID_ATTACK] = bx[SDID_SPECIAL]-ra*hh;
+	by[SDID_ATTACK] = cy2;
+	br[SDID_ATTACK] = br[SDID_MOVEUP];
 	//start, esc
-	bx[8] = bx[2];
-	by[8] = h-by[2];
-	br[8] = br[2];
-	bx[9] = bx[6];
-	by[9] = h-by[6];
-	br[9] = br[6];
+	bx[SDID_START] = bx[SDID_MOVEDOWN];
+	by[SDID_START] = h-by[SDID_MOVEDOWN];
+	br[SDID_START] = br[SDID_MOVEDOWN];
+	bx[SDID_ESC] = bx[SDID_JUMP];
+	by[SDID_ESC] = h-by[SDID_JUMP];
+	br[SDID_ESC] = br[SDID_JUMP];
 	//a3 a4
-	bx[10] = w/2.0f-ra*hh;
-	by[10] = by[2];
-	br[10] = br[2];
-	bx[11] = w/2.0f+ra*hh;
-	by[11] = by[6];
-	br[11] = br[6];
+	bx[SDID_ATTACK3] = w/2.0f-ra*hh;
+	by[SDID_ATTACK3] = by[SDID_MOVEDOWN];
+	br[SDID_ATTACK3] = br[SDID_MOVEDOWN];
+	bx[SDID_ATTACK4] = w/2.0f+ra*hh;
+	by[SDID_ATTACK4] = by[SDID_JUMP];
+	br[SDID_ATTACK4] = br[SDID_JUMP];
+	//screenshot
+	bx[SDID_SCREENSHOT] = w/2.0f;
+	by[SDID_SCREENSHOT] = h/2.0f;
+	br[SDID_SCREENSHOT] = br[SDID_MOVEDOWN];
+
 	for(i=0; i<MAXTOUCHB; i++)
 	{
 		btndes[i].x = bx[i]-br[i];
@@ -338,7 +344,7 @@ int video_copy_screen(s_screen* src)
 	for(i=0, h=0; i<MAXTOUCHB; i++)
 	{
 		h += touchstates[i];
-		if(!hide_touch){
+		if(!hide_touch && (i!=SDID_SCREENSHOT || touchstates[i])){
 			SDL_SetTextureAlphaMod(buttons, touchstates[i]?128:64);
 			SDL_RenderCopy(renderer, buttons, &btnsrc[i], &btndes[i]);
 		}
