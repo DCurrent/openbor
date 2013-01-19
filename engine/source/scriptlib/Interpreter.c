@@ -391,10 +391,10 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 	if(List_FindByName(&(pinterpreter->theInstructionList), "main"))
 		pinterpreter->mainEntryIndex = List_GetIndex(&(pinterpreter->theInstructionList));
 	else pinterpreter->mainEntryIndex = -1;
-	if(List_FindByName(&(pinterpreter->theInstructionList), "clear"))
+	if(List_FindByName(&(pinterpreter->theInstructionList), "ondestroy"))
 		pinterpreter->clearEntryIndex = List_GetIndex(&(pinterpreter->theInstructionList));
 	else pinterpreter->clearEntryIndex = -1;
-	if(List_FindByName(&(pinterpreter->theInstructionList), "init"))
+	if(List_FindByName(&(pinterpreter->theInstructionList), "oncreate"))
 		pinterpreter->initEntryIndex = List_GetIndex(&(pinterpreter->theInstructionList));
 	else pinterpreter->initEntryIndex = -1;
 	List_Reset(&(pinterpreter->theInstructionList));
