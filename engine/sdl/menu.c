@@ -298,6 +298,9 @@ void PlayBGM()
 	bgmPlay = packfile_music_play(filelist, bgmFile, bgmLoop, dListCurrentPosition, dListScrollPosition);
 }
 
+#ifdef ANDROID
+int use32bithack = 0;
+#endif
 int ControlMenu()
 {
 	int status = -1;
@@ -333,6 +336,9 @@ int ControlMenu()
 			break;
 
 		case FLAG_START:
+#ifdef ANDROID
+			use32bithack = PIXEL_32;
+#endif
 		case FLAG_ATTACK:
 			// Start Engine!
 			status = 1;
@@ -671,6 +677,14 @@ void drawLogo()
 	initMenu(0);
 	video_copy_screen(bgscreen);
 	SDL_Delay(3000);
+#ifdef ANDROID
+	bothkeys = 0;
+	inputrefresh();
+	if(bothkeys&FLAG_START)
+	{
+		use32bithack=PIXEL_32;
+	}
+#endif
 	termMenu();
 }
 
