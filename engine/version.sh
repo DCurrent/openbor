@@ -28,7 +28,7 @@ fi
 
 # Support the Bazaar VCS as an alternative to SVN through the bzr-svn plugin
 function get_revnum {
-  if test -d "../.svn"; then
+  if test -d "../.svn" || test -d "./.svn"; then
     VERSION_BUILD=`svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
   elif test -d ".bzr"; then
     VERSION_BUILD=`bzr version-info | grep "svn-revno" | sed 's/svn-revno: //g'`
