@@ -342,6 +342,10 @@ void control_setkey(s_playercontrols * pcontrols, unsigned int flag, int key)
 }
 
 #if ANDROID
+/*
+Android touch logic, the rest of the code is in android/jni/video.c,
+maybe they'll be merged someday.
+*/
 extern float bx[MAXTOUCHB];
 extern float by[MAXTOUCHB];
 extern float br[MAXTOUCHB];
@@ -373,6 +377,7 @@ void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 		tx = px[i]-dirx;
 		ty = py[i]-diry;
 		tr = tx*tx + ty*ty;
+		//direction button logic is different, check a ring instead of individual buttons
 		if(tr>circlea && tr<=circleb)
 		{
 			if(tx<0)
@@ -409,6 +414,7 @@ void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 				else touchstates[SDID_MOVEUP] = 1;
 			}
 		}
+		//rest buttons
 		for(j=0; j<MAXTOUCHB; j++)
 		{
 			if(j==SDID_MOVERIGHT || j==SDID_MOVEUP ||
@@ -421,6 +427,7 @@ void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 		}
 	}
 	hide_t = timer_gettick() + 5000;
+	//map to current user settings
 	extern s_savedata savedata;
 	#define pc(x) savedata.keys[0][x]
 	keystate[pc(SDID_MOVEUP)] = touchstates[SDID_MOVEUP];

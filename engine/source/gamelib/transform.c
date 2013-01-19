@@ -10,7 +10,6 @@
 //         This file defines some commmon methods used by the gamelib
 ////////////////////////////////////////////////////////////////////////////
 #include <assert.h>
-#include <math.h>
 #include "globals.h"
 #include "types.h"
 
