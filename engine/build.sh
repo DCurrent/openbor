@@ -96,7 +96,11 @@ function distribute {
   
   echo "All Platforms Created Successfully"
   if ! test "$BUILDBATCH"; then
-    svn log --verbose > ./releases/VERSION_INFO.txt
+    TRIMMED_URL=`svn info | grep "URL:" | sed s/URL:\ svn\+ssh//g`
+    if test -n $TRIMMED_URL;  then
+      TRIMMED_URL="svn"$TRIMMED_URL
+    fi
+    svn log $TRIMMED_URL --verbose > ./releases/VERSION_INFO.txt
     7za a -t7z -mx9 -r -x!.svn "./releases/OpenBOR $VERSION.7z" ./releases/*
   fi
   echo
