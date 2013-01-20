@@ -22560,7 +22560,7 @@ int choose_difficulty()
 		if(num_difficulties > 1)
 		{
 			_menutextm(2, -2, 0, "Game Mode");
-			t = selector/maxdisplay*maxdisplay;
+			t = (selector-(selector==num_difficulties))/maxdisplay*maxdisplay;
 			for(j=0,i=t; i<maxdisplay+t && i<num_difficulties; j++,i++)
 			{
 				if(j < maxdisplay)
@@ -22569,7 +22569,7 @@ int choose_difficulty()
 					else
 					{
 						if(levelsets[i].ifcomplete>1) _menutextm((selector==i), j, 0, "%s - Finish Game %i Times To UnLock", levelsets[i].name, levelsets[i].ifcomplete);
-						else _menutextm((selector==i), 2+j, 0, "%s - Finish Game To UnLock", levelsets[i].name);
+						else _menutextm((selector==i), j, 0, "%s - Finish Game To UnLock", levelsets[i].name);
 					}
 				}
 				else break;
