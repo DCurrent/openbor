@@ -160,12 +160,12 @@ static void setup_touch()
 	by[SDID_ATTACK] = cy2;
 	br[SDID_ATTACK] = br[SDID_MOVEUP];
 	//start, esc
-	bx[SDID_START] = bx[SDID_MOVEDOWN];
+	bx[SDID_START] = bx[SDID_MOVELEFT];
 	by[SDID_START] = h-by[SDID_MOVEDOWN];
-	br[SDID_START] = br[SDID_MOVEDOWN];
-	bx[SDID_ESC] = bx[SDID_JUMP];
+	br[SDID_START] = br[SDID_MOVELEFT];
+	bx[SDID_ESC] = bx[SDID_ATTACK2];
 	by[SDID_ESC] = h-by[SDID_JUMP];
-	br[SDID_ESC] = br[SDID_JUMP];
+	br[SDID_ESC] = br[SDID_ATTACK2];
 	//a3 a4
 	bx[SDID_ATTACK3] = w/2.0f-ra*hh;
 	by[SDID_ATTACK3] = by[SDID_MOVEDOWN];
@@ -334,6 +334,9 @@ int video_copy_screen(s_screen* src)
 		rectdes.h = textureHeight*savedata.glscale;
 		rectdes.x = (viewportWidth-rectdes.w)/2;
 		rectdes.y = (viewportHeight-rectdes.h)/2;
+		if(rectdes.h<viewportHeight-4) {
+			rectdes.y = 2;
+		}
 	}
 	else if((float)viewportWidth/(float)viewportHeight>(float)textureWidth/(float)textureHeight)
 	{

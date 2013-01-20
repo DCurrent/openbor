@@ -6881,6 +6881,22 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					{
 						drawmethod.scaley = GET_FLOAT_ARG(2)*256;
 					}
+					else if (0==stricmp(value, "xrepeat"))
+					{
+						drawmethod.xrepeat = GET_INT_ARG(2);
+					}
+					else if (0==stricmp(value, "yrepeat"))
+					{
+						drawmethod.yrepeat = GET_INT_ARG(2);
+					}
+					else if (0==stricmp(value, "xspan"))
+					{
+						drawmethod.xspan = GET_INT_ARG(2);
+					}
+					else if (0==stricmp(value, "yspan"))
+					{
+						drawmethod.yspan = GET_INT_ARG(2);
+					}
 					else if (0==stricmp(value, "flipx"))
 					{
 						drawmethod.flipx = GET_INT_ARG(2);
