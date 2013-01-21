@@ -42,11 +42,6 @@
 // b<0 ? ((v*(255+b))/255) : (b+((v*(255-b))/255))
 
 
-#define		gammacorrect(v,g)	(g<=0?((v*(65025+((255-v)*g)))/65025):(255-(((255-v)*(65025+(v*-g)))/65025)))
-#define		brightnesscorrect(v,b)	(b<0?((v*(255+b))/255):(b+((v*(255-b))/255)))
-#define		gbcorrect(vx,gx,bx)	(gammacorrect(brightnesscorrect(vx,bx),gx))
-
-
 // Set gamma/brightness corrected palette.
 // Valid values range between -255 and 255, where 0 is normal.
 void palette_set_corrected(unsigned char *pal, int gr, int gg, int gb, int br, int bg, int bb){
