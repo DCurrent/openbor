@@ -21101,7 +21101,7 @@ void fade_out(int type, int speed)
 				g = 256 - ((savedata.gamma+256) * (64-j) / 64);
 				vga_vwait();
 				if(!set_color_correction(g, b))
-					_fade_screen(vscreen, g,savedata.gamma,savedata.gamma, b,b,b);
+					_fade_screen(vscreen, g,g,g, b,b,b);
 			}
 			j++;
 			if(!type || type == 1)
