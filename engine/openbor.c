@@ -21046,50 +21046,17 @@ int set_color_correction(int gm, int br)
 #endif
 }
 
-// copied from palette.c, seems it works well
-static void _fade_screen(s_screen* screen, int gr, int gg, int gb, int br, int bg, int bb)
-{
-	int i, len = screen->width*screen->height;
-	int pb = pixelbytes[(int)screenformat];
-	unsigned c, r, g, b;
-
-
-	if(gr<-255) gr = -255;
-	else if(gr>255) gr = 255;
-	if(gg<-255) gg = -255;
-	else if(gg>255) gg = 255;
-	if(gb<-255) gb = -255;
-	else if(gb>255) gb = 255;
-
-	if(br<-255) br = -255;
-	else if(br>255) br = 255;
-	if(bg<-255) bg = -255;
-	else if(bg>255) bg = 255;
-	if(bb<-255) bb = -255;
-	else if(bb>255) bb = 255;
-
-	if(pb==2) for(i=0; i<len; i++)
-	{
-		c = ((unsigned short*)screen->data)[i];
-		b = (c>>11)*0xFF/0x1F;
-		g = ((c&0x7E0)>>5)*0xFF/0x3F;
-		r = (c&0x1F)*0xFF/0x1F;
-		((unsigned short*)screen->data)[i] = colour16(gbcorrect(r, gr, br), gbcorrect(g, gg, bg), gbcorrect(b, gb, bb));
-	}
-	else for(i=0; i<len; i++){
-		screen->data[i*pb] =   gbcorrect(screen->data[i*pb],   gr, br);
-		screen->data[i*pb+1] = gbcorrect(screen->data[i*pb+1], gg, bg);
-		screen->data[i*pb+2] = gbcorrect(screen->data[i*pb+2], gb, bb);
-	}
-}
-
 // Simple palette fade / vscreen fade
 void fade_out(int type, int speed)
 {
 	int i, j = 0;
 	int b, g = 0;
+	int delta = 0;
 	u32 interval = 0;
 	int current = speed ? speed : fade;
+	s_screen* fbuffer = NULL;
+	s_drawmethod dm = plainmethod;
+	dm.alpha = 6;
 
 	for(i=0, j=0; j<64; )
 	{
@@ -21100,8 +21067,16 @@ void fade_out(int type, int speed)
 				b = ((savedata.brightness+256) * (64-j) / 64) - 256;
 				g = 256 - ((savedata.gamma+256) * (64-j) / 64);
 				vga_vwait();
-				if(!set_color_correction(g, b))
-					_fade_screen(vscreen, g,g,g, b,b,b);
+				if(!set_color_correction(g, b)) {
+					if(!fbuffer) {
+						fbuffer = allocscreen(vscreen->width, vscreen->height, vscreen->pixelformat);
+						copyscreen(fbuffer, vscreen);
+					}
+					delta += 256/64;
+					dm.channelr = dm.channelg = dm.channelb = 256-delta;
+					clearscreen(vscreen);
+					putscreen(vscreen,fbuffer,0,0,&dm);
+				}
 			}
 			j++;
 			if(!type || type == 1)
@@ -21133,6 +21108,8 @@ void fade_out(int type, int speed)
 		//the black screen, so we return to normal palette
 		set_color_correction(savedata.gamma, savedata.brightness);
 	}
+
+	if(fbuffer) freescreen(&fbuffer);
 }
 
 
