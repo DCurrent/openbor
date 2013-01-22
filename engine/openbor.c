@@ -5599,6 +5599,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->icon.pain = newchar->icon.def;
 					newchar->icon.die = newchar->icon.def;
 					newchar->icon.get = newchar->icon.def;
+					newchar->icon.usemap = GET_INT_ARG(2); //be more friendly to some old mods which don't care about icon remap
 					break;
 				case CMD_MODEL_ICONPAIN:
 					value = GET_ARG(1);
@@ -10397,7 +10398,7 @@ void predrawstatus(){
 
 			if(icon>=0)
 			{
-				drawmethod.table = player[i].ent->colourmap;
+				drawmethod.table = player[i].ent->modeldata.icon.usemap?player[i].ent->colourmap:NULL;
 				spriteq_add_sprite(videomodes.shiftpos[i]+picon[i][0],savedata.windowpos+picon[i][1],10000, icon, &drawmethod, 0);
 			}
 
@@ -10405,7 +10406,7 @@ void predrawstatus(){
 			{
 				if(player[i].ent->weapent->modeldata.icon.weapon >= 0)
 				{
-					drawmethod.table = player[i].ent->weapent->colourmap;
+					drawmethod.table = player[i].ent->weapent->modeldata.icon.usemap?player[i].ent->weapent->colourmap:NULL;
 					spriteq_add_sprite(videomodes.shiftpos[i]+piconw[i][0],savedata.windowpos+piconw[i][1],10000, player[i].ent->weapent->modeldata.icon.weapon, &drawmethod, 0);
 				}
 
@@ -10415,20 +10416,17 @@ void predrawstatus(){
 
 			if(player[i].ent->modeldata.mp)
 			{
+				drawmethod.table = player[i].ent->modeldata.icon.usemap?player[i].ent->colourmap:NULL;
 				if(player[i].ent->modeldata.icon.mphigh > 0 && (player[i].ent->oldmp >= (player[i].ent->modeldata.mp * .66))){
-					drawmethod.table = player[i].ent->colourmap;
 					spriteq_add_sprite(videomodes.shiftpos[i]+mpicon[i][0],savedata.windowpos+mpicon[i][1],10000, player[i].ent->modeldata.icon.mphigh, &drawmethod, 0);
 				}
 				else if(player[i].ent->modeldata.icon.mpmed > 0 && (player[i].ent->oldmp >= (player[i].ent->modeldata.mp * .33) && player[i].ent->oldmp < (player[i].ent->modeldata.mp * .66))){
-					drawmethod.table = player[i].ent->colourmap;
 					spriteq_add_sprite(videomodes.shiftpos[i]+mpicon[i][0],savedata.windowpos+mpicon[i][1],10000, player[i].ent->modeldata.icon.mpmed, &drawmethod, 0);
 				}
 				else if(player[i].ent->modeldata.icon.mplow > 0 && (player[i].ent->oldmp >= 0 && player[i].ent->oldmp < (player[i].ent->modeldata.mp * .33))){
-					drawmethod.table = player[i].ent->colourmap;
 					spriteq_add_sprite(videomodes.shiftpos[i]+mpicon[i][0],savedata.windowpos+mpicon[i][1],10000, player[i].ent->modeldata.icon.mplow, &drawmethod, 0);
 				}
 				else if(player[i].ent->modeldata.icon.mphigh > 0 && player[i].ent->modeldata.icon.mpmed == -1 && player[i].ent->modeldata.icon.mplow == -1){
-					drawmethod.table = player[i].ent->colourmap;
 					spriteq_add_sprite(videomodes.shiftpos[i]+mpicon[i][0],savedata.windowpos+mpicon[i][1],10000, player[i].ent->modeldata.icon.mphigh, &drawmethod, 0);
 				}
 			}
@@ -10463,7 +10461,7 @@ void predrawstatus(){
 
 				if(icon>=0)
 				{
-					drawmethod.table = player[i].ent->opponent->colourmap;
+					drawmethod.table = player[i].ent->opponent->modeldata.icon.usemap?player[i].ent->opponent->colourmap:NULL;
 					spriteq_add_sprite(videomodes.shiftpos[i]+eicon[i][0],savedata.windowpos+eicon[i][1],10000, icon, &drawmethod, 0);    // Feb 26, 2005 - Changed to opponent->map so icons don't pallete swap with die animation
 				}
 			}
@@ -10478,7 +10476,7 @@ void predrawstatus(){
 
 			if(icon>=0)
 			{
-				drawmethod.table = model_get_colourmap(model, player[i].colourmap);
+				drawmethod.table = model->icon.usemap?model_get_colourmap(model, player[i].colourmap):NULL;
 				spriteq_add_sprite(videomodes.shiftpos[i]+picon[i][0],picon[i][1], 10000, icon, &drawmethod, 0);
 			}
 		}
