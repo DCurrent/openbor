@@ -941,6 +941,7 @@ typedef struct
 	int mpmed; //MP bar icon; at or between 33% and 65%.
 	int pain; //Taking damage.
 	int weapon; //Weapon model.
+	int usemap; 
 	int x; //X position.
 	int y; //Y position.
 } s_icon; //2011_04_05, DC: In game icons added 2005_01_20.
