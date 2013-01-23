@@ -128,6 +128,7 @@
 #define		SDID_SPECIAL		9
 #define		SDID_START			10
 #define		SDID_SCREENSHOT		11
+#define		SDID_ESC			12
 
 #define		TYPE_NONE			0
 #define		TYPE_PLAYER			1
@@ -1631,6 +1632,18 @@ typedef struct ArgList {
 	char* args[MAX_ARG_COUNT];
 } ArgList;
 
+
+#define GET_ARG(z) (arglist.count > z ? arglist.args[z] : "")
+#define GET_ARG_LEN(z) (arglist.count > z ? arglist.arglen[z] : 0)
+#define GET_ARGP(z) (arglist->count > z ? arglist->args[z] : "")
+#define GET_ARGP_LEN(z) (arglist->count > z ? arglist->arglen[z] : 0)
+#define GET_INT_ARG(z) getValidInt(GET_ARG(z), filename, command)
+#define GET_FLOAT_ARG(z) getValidFloat(GET_ARG(z), filename, command)
+#define GET_INT_ARGP(z) getValidInt(GET_ARGP(z), filename, command)
+#define GET_FLOAT_ARGP(z) getValidFloat(GET_ARGP(z), filename, command)
+
+#define GET_FRAME_ARG(z) (stricmp(GET_ARG(z), "this")==0?newanim->numframes:GET_INT_ARG(z))
+
 int     buffer_pakfile(char* filename, char** pbuffer, size_t* psize);
 int     getsyspropertybyindex(ScriptVariant* var, int index);
 int     changesyspropertybyindex(int index, ScriptVariant* value);
@@ -1670,6 +1683,7 @@ int		saveScriptFile(void);
 int		loadScriptFile(void);
 int    saveHighScoreFile(void);
 int    loadHighScoreFile(void);
+int translate_SDID(char* value);
 int music(char *filename, int loop, long offset);
 #if DC
 void check_music_opened(void);

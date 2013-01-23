@@ -15,17 +15,6 @@
 #include "commands.h"
 #include "models.h"
 
-#define GET_ARG(z) (arglist.count > z ? arglist.args[z] : "")
-#define GET_ARG_LEN(z) (arglist.count > z ? arglist.arglen[z] : 0)
-#define GET_ARGP(z) (arglist->count > z ? arglist->args[z] : "")
-#define GET_ARGP_LEN(z) (arglist->count > z ? arglist->arglen[z] : 0)
-#define GET_INT_ARG(z) getValidInt(GET_ARG(z), filename, command)
-#define GET_FLOAT_ARG(z) getValidFloat(GET_ARG(z), filename, command)
-#define GET_INT_ARGP(z) getValidInt(GET_ARGP(z), filename, command)
-#define GET_FLOAT_ARGP(z) getValidFloat(GET_ARGP(z), filename, command)
-
-#define GET_FRAME_ARG(z) (stricmp(GET_ARG(z), "this")==0?newanim->numframes:GET_INT_ARG(z))
-
 #define NaN 0xAAAAAAAA
 
 static const char* E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
@@ -708,12 +697,58 @@ char* fill_s_loadingbar(s_loadingbar* s, int set, int bx, int by, int bsize, int
 }
 
 
+static int buffer_file(char* filename, char** pbuffer, size_t* psize)
+{
+	FILE* handle;
+	*psize = 0;
+	*pbuffer = NULL;
+	// Read file
+#ifdef VERBOSE
+	printf("file requested: %s.\n", filename);
+#endif
+
+	if(!(handle=fopen(filename,"rb")) ) {
+#ifdef VERBOSE
+		printf("couldnt get handle!\n");
+#endif
+		return 0;
+	}
+	fseek(handle, 0, SEEK_END);
+	*psize = ftell(handle);
+	fseek(handle,0,SEEK_SET);
+
+	*pbuffer = (char*)malloc(*psize+1);
+	if(*pbuffer == NULL){
+		*psize = 0;
+		fclose(handle);
+		shutdown(1, "Can't create buffer for file '%s'", filename);
+		return 0;
+	}
+	if(fread(*pbuffer, 1, *psize, handle) != *psize){
+		if(*pbuffer != NULL){
+			free(*pbuffer);
+			*pbuffer = NULL;
+			*psize = 0;
+		}
+		fclose(handle);
+		shutdown(1, "Can't read from file '%s'", filename);
+		return 0;
+	}
+	(*pbuffer)[*psize] = 0;        // Terminate string (important!)
+	fclose(handle);
+	return 1;
+}
+
+
 // returns: 1 - succeeded 0 - failed
 int buffer_pakfile(char* filename, char** pbuffer, size_t* psize)
 {
 	int handle;
 	*psize = 0;
 	*pbuffer = NULL;
+
+	if(buffer_file(filename, pbuffer, psize)==1) return 1;
+
 	// Read file
 #ifdef VERBOSE
 	printf("pakfile requested: %s.\n", filename); //ASDF
@@ -3682,6 +3717,38 @@ void load_all_fonts()
 		if(font_load(i, path, packfile, fontmonospace[i]|fontmbs[i]))
 			printf("%d ", i+1);
 	}
+}
+
+int translate_SDID(char* value)
+{
+	if(stricmp(value, "moveup")==0)
+		return SDID_MOVEUP;
+	else if(stricmp(value, "movedown")==0)
+		return SDID_MOVEDOWN;
+	else if(stricmp(value, "moveleft")==0)
+		return SDID_MOVELEFT;
+	else if(stricmp(value, "moveright")==0)
+		return SDID_MOVERIGHT;
+	else if(stricmp(value, "attack")==0)
+		return SDID_ATTACK;
+	else if(stricmp(value, "attack2") == 0)
+		return SDID_ATTACK2;
+	else if(stricmp(value, "attack3") == 0)
+		return SDID_ATTACK3;
+	else if(stricmp(value, "attack4") == 0)
+		return SDID_ATTACK4;
+	else if(stricmp(value, "jump") == 0)
+		return SDID_JUMP;
+	else if(stricmp(value, "special") == 0)
+		return SDID_SPECIAL;
+	else if(stricmp(value, "start") == 0)
+		return SDID_START;
+	else if(stricmp(value, "screenshot") == 0)
+		return SDID_SCREENSHOT;
+	else if(stricmp(value, "esc") == 0)
+		return SDID_ESC;
+
+	return -1;
 }
 
 void load_menu_txt()
@@ -21058,7 +21125,7 @@ void fade_out(int type, int speed)
 
 	for(i=0, j=0; j<64; )
 	{
-		while(j<=i)
+		while(j<=i && j<64)
 		{
 			if(!type || type == 1)
 			{
@@ -21070,8 +21137,8 @@ void fade_out(int type, int speed)
 						fbuffer = allocscreen(vscreen->width, vscreen->height, vscreen->pixelformat);
 						copyscreen(fbuffer, vscreen);
 					}
-					delta += 256/64;
-					dm.channelr = dm.channelg = dm.channelb = 256-delta;
+					//255 + alpha 6 is actually half blend, so use 254 instead
+					dm.channelr = dm.channelg = dm.channelb = 254 * (64-j) / 64;
 					clearscreen(vscreen);
 					putscreen(vscreen,fbuffer,0,0,&dm);
 				}
@@ -23074,11 +23141,11 @@ void safe_set(int *arr, int index, int newkey, int oldkey){
 
 
 void keyboard_setup(int player){
-	int quit = 0,
+	int quit = 0, sdid,
 		selector = 0,
 		setting = -1,
 		i, k, ok = 0,
-		disabledkey[12] = {0,0,0,0,0,0,0,0,0,0,0,0},
+		disabledkey[13] = {0,0,0,0,0,0,0,0,0,0,0,0,0},
 		col1 =-8, col2 = 6;
 	ptrdiff_t pos, voffset;
 	size_t size;
@@ -23114,57 +23181,13 @@ void keyboard_setup(int player){
 			command = GET_ARG(0);
 			if(command[0]){
 				if(stricmp(command, "disablekey")==0){
-
-					if(stricmp(GET_ARG(1), "moveup")==0)
-						disabledkey[SDID_MOVEUP] = 1;
-					else if(stricmp(GET_ARG(1), "movedown")==0)
-						disabledkey[SDID_MOVEDOWN] = 1;
-					else if(stricmp(GET_ARG(1), "moveleft")==0)
-						disabledkey[SDID_MOVELEFT] = 1;
-					else if(stricmp(GET_ARG(1), "moveright")==0)
-						disabledkey[SDID_MOVERIGHT] = 1;
-					else if(stricmp(GET_ARG(1), "attack")==0)
-						disabledkey[SDID_ATTACK] = 1;
-					else if(stricmp(GET_ARG(1), "attack2") == 0)
-						disabledkey[SDID_ATTACK2] = 1;
-					else if(stricmp(GET_ARG(1), "attack3") == 0)
-						disabledkey[SDID_ATTACK3] = 1;
-					else if(stricmp(GET_ARG(1), "attack4") == 0)
-						disabledkey[SDID_ATTACK4] = 1;
-					else if(stricmp(GET_ARG(1), "jump") == 0)
-						disabledkey[SDID_JUMP] = 1;
-					else if(stricmp(GET_ARG(1), "special") == 0)
-						disabledkey[SDID_SPECIAL] = 1;
-					else if(stricmp(GET_ARG(1), "start") == 0)
-						disabledkey[SDID_START] = 1;
-					else if(stricmp(GET_ARG(1), "screenshot") == 0)
-						disabledkey[SDID_SCREENSHOT] = 1;
+					sdid = translate_SDID(GET_ARG(1));
+					if(sdid>=0) disabledkey[sdid] = 1;
 				}
 				else if(stricmp(command, "renamekey")==0){
-					if(stricmp(GET_ARG(1), "moveup") == 0)
-						strncpy(buttonnames[SDID_MOVEUP], GET_ARG(2), 16);
-					else if(stricmp(GET_ARG(1), "movedown") == 0)
-						strncpy(buttonnames[SDID_MOVEDOWN], GET_ARG(2), 16);
-					else if(stricmp(GET_ARG(1), "moveleft") == 0)
-						strncpy(buttonnames[SDID_MOVELEFT], GET_ARG(2), 16);
-					else if(stricmp(GET_ARG(1), "moveright") == 0)
-						strncpy(buttonnames[SDID_MOVERIGHT], GET_ARG(2), 16);
-					else if(stricmp(GET_ARG(1), "attack") == 0)
-						strncpy(buttonnames[SDID_ATTACK], GET_ARG(2), 16);
-					else if(stricmp(GET_ARG(1), "attack2") == 0)
-						strncpy(buttonnames[SDID_ATTACK2], GET_ARG(2), 16);
-					else if(stricmp(GET_ARG(1), "attack3") == 0)
-						strncpy(buttonnames[SDID_ATTACK3], GET_ARG(2), 16);
-					else if(stricmp(GET_ARG(1), "attack4") == 0)
-						strncpy(buttonnames[SDID_ATTACK4], GET_ARG(2), 16);
-					else if(stricmp(GET_ARG(1), "jump") == 0)
-						strncpy(buttonnames[SDID_JUMP], GET_ARG(2), 16);
-					else if(stricmp(GET_ARG(1), "special") == 0)
-						strncpy(buttonnames[SDID_SPECIAL], GET_ARG(2), 16);
-					else if(stricmp(GET_ARG(1), "start") == 0)
-						strncpy(buttonnames[SDID_START], GET_ARG(2), 16);
-					else if(stricmp(GET_ARG(1), "screenshot") == 0)
-						strncpy(buttonnames[SDID_SCREENSHOT], GET_ARG(2), 16);
+					sdid = translate_SDID(GET_ARG(1));
+					if(sdid>=0)
+						strncpy(buttonnames[sdid], GET_ARG(2), 16);
 				}
 
 			}

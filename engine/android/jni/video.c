@@ -124,9 +124,8 @@ center of the screen.
  directions    a3   a4       a1       a2
                                 jump
 */
-static void setup_touch()
+static void setup_touch_default()
 {
-	int i;
 	float w = nativeWidth;
 	float h = nativeHeight;
 	float hh = w*480/800;
@@ -177,6 +176,94 @@ static void setup_touch()
 	bx[SDID_SCREENSHOT] = w/2.0f;
 	by[SDID_SCREENSHOT] = h/2.0f;
 	br[SDID_SCREENSHOT] = br[SDID_MOVEDOWN];
+}
+
+static int setup_touch_txt()
+{
+	int pos, i, sdid, t;
+	static char filename[256];
+	static char pakname[256];
+	char *buf, *command, *value;
+	size_t size;
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN+1] = "";
+	float w = nativeWidth;
+	float h = nativeHeight;
+	float hh = w*480/800;
+	SDL_Surface* ts;
+	char* pngb;
+	size_t pngs;
+
+	getPakName(pakname, -1);
+	sprintf(filename, "/mnt/sdcard/OpenBOR/Saves/%s", pakname);
+	dirExists(filename, 1);
+	sprintf(filename, "/mnt/sdcard/OpenBOR/Saves/%s/touch.txt", pakname);
+	// Read file
+	if( buffer_pakfile(filename, &buf, &size)!=1 &&
+		buffer_pakfile("data/touch.txt", &buf, &size)!=1 &&
+		buffer_pakfile("/mnt/sdcard/OpenBOR/Saves/touch.txt", &buf, &size)!=1)
+	{
+		return 0;
+	}
+
+	// Now interpret the contents of buf line by line
+	pos = 0;
+	while(pos<size){
+		if(ParseArgs(&arglist,buf+pos,argbuf)){
+			command = GET_ARG(0);
+			if(command && command[0]){
+				if(stricmp(command, "button")==0)
+				{
+					sdid = translate_SDID(GET_ARG(1));
+					if(sdid>=0)
+					{
+						bx[sdid] = GET_FLOAT_ARG(2)*hh;
+						by[sdid] = GET_FLOAT_ARG(3)*hh;
+						br[sdid] = GET_FLOAT_ARG(4)*hh;
+						t = GET_INT_ARG(5);
+						/*
+						corners:
+						0     1
+
+						3     2
+						*/
+						if(t==1 || t==2) bx[sdid] = w - bx[sdid];
+						if(t==2 || t==3) by[sdid] = h - by[sdid];
+					}
+				}
+				else if(stricmp(command, "texture")==0)
+				{
+					if(buffer_pakfile(GET_ARG(1), &pngb, &pngs))
+					{
+						ts = pngToSurface(pngb);
+						if(!ts || !(buttons = SDL_CreateTextureFromSurface(renderer, ts)))
+						{
+							printf("error: %s\n", SDL_GetError());
+						}
+						if(ts) SDL_FreeSurface(ts); 
+						if(pngb) free(pngb);
+					}
+				}
+			}
+		}
+
+		// Go to next line
+		pos += getNewLineStart(buf + pos);
+	}
+
+	if(buf != NULL){
+		free(buf);
+		buf = NULL;
+	}
+
+	return 1;
+}
+
+static void setup_touch()
+{
+	int i;
+	setup_touch_default();
+	setup_touch_txt();
 
 	for(i=0; i<MAXTOUCHB; i++)
 	{
@@ -251,20 +338,24 @@ int video_set_mode(s_videomodes videomodes)
 		return 0;
 	}
 
-	bscreen = pngToSurface(buttonpng);
-	if(!bscreen || !(buttons = SDL_CreateTextureFromSurface(renderer, bscreen)))
+	setup_touch();
+
+	if(!buttons)
 	{
-		printf("error: %s\n", SDL_GetError());
-		return 0;
+		bscreen = pngToSurface(buttonpng);
+		if(!bscreen || !(buttons = SDL_CreateTextureFromSurface(renderer, bscreen)))
+		{
+			printf("error: %s\n", SDL_GetError());
+			return 0;
+		}
+		SDL_FreeSurface(bscreen); bscreen = NULL;
 	}
-	SDL_FreeSurface(bscreen); bscreen = NULL;
 
 	//create a buffer for 8bit mode, masks don't really matter but anyway set them 
 	if(bytes_per_pixel==1) bscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, textureWidth, textureHeight, textureDepths[b], masks[b][0], masks[b][1], masks[b][2], masks[b][3]);
 
 	video_clearscreen();
 
-	setup_touch();
 	return 1;
 }
 
@@ -281,8 +372,8 @@ int video_copy_screen(s_screen* src)
 	unsigned char *dp;
 	SDL_Rect rectdes, rectsrc;
 	rectsrc.x=rectsrc.y=0;
-	rectsrc.w=textureWidth;
-	rectsrc.h=textureHeight;
+	rectsrc.w=textureWidth-1;
+	rectsrc.h=textureHeight-1;
 	int hide_touch;
 	extern int hide_t;
 
@@ -382,7 +473,7 @@ void video_clearscreen()
 {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
-	SDL_RenderPresent(renderer);
+	//SDL_RenderPresent(renderer);
 }
 
 void video_stretch(int enable)
