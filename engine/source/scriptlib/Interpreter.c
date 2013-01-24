@@ -36,7 +36,6 @@ void Interpreter_Clear(Interpreter* pinterpreter)
 
 	StackedSymbolTable_Clear(&(pinterpreter->theSymbolTable));
 	Parser_Clear(&(pinterpreter->theParser));
-	Interpreter_ClearImports(pinterpreter);
 	if(pinterpreter->theInstructionList.solidlist)
 	{
 		size = pinterpreter->theInstructionList.size;
@@ -374,7 +373,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 	for(i=0; i<size; i++)
 	{
 		pLabel = List_GetName(&(pinterpreter->theContext.imports));
-		pImport = ImportCache_Retrieve(pLabel);
+		pImport = ImportCache_ImportFile(pLabel);
 		if(pImport == NULL) return E_FAIL; // ImportCache should print out the error message
 		List_InsertAfter(&(pinterpreter->theImportList), pImport, pLabel);
 		List_GotoNext(&(pinterpreter->theContext.imports));
@@ -502,6 +501,9 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			if(List_FindByName(&(pinterpreter->theInstructionList), pToken->theSource)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
 				List_FindByName(&(pinterpreter->theInstructionList), pLabel); //hop back
+			} else if(ImportList_GetFunctionPointer(&(pinterpreter->theImportList), pToken->theSource)){
+				pInstruction->ptheJumpTarget = ImportList_GetFunctionPointer(&(pinterpreter->theImportList), pToken->theSource);
+				assert(pInstruction->ptheJumpTarget >= (Instruction**)size); // should be true in any sane environments
 			} else if(List_FindByName( pinterpreter->ptheFunctionList, pToken->theSource)){
 				pInstruction->functionRef = (SCRIPTFUNCTION)List_Retrieve(pinterpreter->ptheFunctionList);
 			}
@@ -691,9 +693,9 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 	for(i=0; i<size; i++)
 	{
 		pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[i]);
-		if(pInstruction->theJumpTargetIndex >= 0)
+		if(pInstruction->theJumpTargetIndex >= 0 && pInstruction->theJumpTargetIndex < size)
 			pInstruction->ptheJumpTarget = (Instruction**)&(pinterpreter->theInstructionList.solidlist[pInstruction->theJumpTargetIndex]);
-		else
+		else if(pInstruction->theJumpTargetIndex == -1)
 			pInstruction->ptheJumpTarget = NULL;
 	}
 
@@ -1049,25 +1051,5 @@ void Interpreter_Reset(Interpreter* pinterpreter)
 	//Reset the main flag
 	pinterpreter->bMainCompleted = FALSE;
 	pinterpreter->bReset = TRUE;
-}
-
-/******************************************************************************
-*  ClearImports -- This method frees all of the #import references in the
-*                  interpreter.
-*  Parameters: none
-*  Returns: none
-******************************************************************************/
-void Interpreter_ClearImports(Interpreter* pinterpreter)
-{
-	List_Reset(&(pinterpreter->theImportList));
-	while(pinterpreter->theImportList.size)
-	{
-#ifdef VERBOSE
-		printf("Releasing import: %s\n", List_GetName(&(pinterpreter->theImportList)));
-#endif
-		ImportCache_Release(List_Retrieve(&(pinterpreter->theImportList)));
-		List_Remove(&(pinterpreter->theImportList));
-	}
-	List_Clear(&(pinterpreter->theImportList));
 }
 

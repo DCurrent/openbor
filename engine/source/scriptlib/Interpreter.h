@@ -61,7 +61,6 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter);
 HRESULT Interpreter_Call(Interpreter* pinterpreter);
 HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter);
 void Interpreter_Reset(Interpreter* pinterpreter);
-void Interpreter_ClearImports(Interpreter* pinterpreter);
 
 
 #endif
