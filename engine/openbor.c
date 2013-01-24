@@ -21116,7 +21116,6 @@ void fade_out(int type, int speed)
 {
 	int i, j = 0;
 	int b, g = 0;
-	int delta = 0;
 	u32 interval = 0;
 	int current = speed ? speed : fade;
 	s_screen* fbuffer = NULL;
