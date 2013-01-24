@@ -3,30 +3,19 @@
  * -----------------------------------------------------------------------
  * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
-
-// Author: Plombo
-// Start date: Feb 27 2011
 
 #ifndef IMPORTCACHE_H
 #define IMPORTCACHE_H
 
-#include "depends.h"
-#include "Interpreter.h"
-
-typedef struct ImportNode {
-	int numRefs;
-	Interpreter interpreter;
-} ImportNode;
-
-HRESULT ImportNode_Init(ImportNode* node, const char* path);
-void ImportNode_Clear(ImportNode* node);
+struct ImportNode;
+typedef struct ImportNode ImportNode;
 
 void ImportCache_Init();
-ImportNode* ImportCache_Retrieve(const char* path);
-void ImportCache_Release(ImportNode* node);
+ImportNode* ImportCache_ImportFile(const char* path);
 void ImportCache_Clear();
+Instruction** ImportList_GetFunctionPointer(List* list, const char* name);
 
 #endif
 

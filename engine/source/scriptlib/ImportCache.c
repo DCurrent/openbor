@@ -3,25 +3,38 @@
  * -----------------------------------------------------------------------
  * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
-// Author: Plombo
-// Start date: Feb 27 2011
+/* Author: Plombo
+ * Originally started on February 27, 2011; put on hiatus a few weeks later.
+ * Restarted January 24, 2013, when all of this file except the readscript()
+ * function was rewritten, and #import is fully functional now.
+ */
 
 #include <stdio.h>
-#include "depends.h"
-#include "ImportCache.h"
-#include "List.h"
+#include "openborscript.h"
 #include "Interpreter.h"
+#include "List.h"
+#include "Instruction.h"
 #include "packfile.h"
-#include "globals.h"
-#include "openborscript.h" // for extern declaration of "theFunctionList"
+#include "ImportCache.h"
 
-// global list of loaded importable scripts
-List importCache;
+//#define IC_DEBUG 1
 
-// returns buffer on success, NULL on failure
+struct ImportNode {
+	Interpreter interpreter;
+	List functions; // values are Instruction**; names are function names
+};
+
+List imports; // values are ImportNode*; names are lowercased, forward-slashed paths
+
+/**
+ * Reads a script file into an allocated buffer.  Be sure to call free() on the
+ * returned buffer when you are done with it!
+ * 
+ * Returns the buffer on success, NULL on failure.
+ */
 char* readscript(const char* path)
 {
 	int handle = openpackfile(path, packfile);
@@ -41,97 +54,179 @@ char* readscript(const char* path)
 	return buffer;
 
 error:
-	// FIXME: this error message should include the name of the file that tried to import this file
+	// ideally, this error message would include the name of the file that tried to import this file
+	printf("Script error: unable to open file '%s' for importing\n", path);
 	if(buffer) free(buffer);
 	if(handle >= 0) closepackfile(handle);
 	return NULL;
 }
 
-HRESULT ImportNode_Init(ImportNode* node, const char* path)
+/**
+ * Loads and compiles a script file and indexes its functions so that they can
+ * be imported.
+ */
+HRESULT ImportNode_Init(ImportNode* self, const char* path)
 {
 	char* scriptText;
-	node->numRefs = 0;
+	int i, size;
+	List* list; // more readable than "&self->interpreter.theInstructionList"
 
-	Interpreter_Init(&node->interpreter, "#import", &theFunctionList);
+	List_Init(&self->functions);
+	Interpreter_Init(&self->interpreter, path, &theFunctionList);
 	scriptText = readscript(path);
 	if(scriptText == NULL) goto error;
-	if(FAILED(Interpreter_ParseText(&node->interpreter, scriptText, 1, path))) goto error;
-	if(FAILED(Interpreter_CompileInstructions(&node->interpreter))) goto error;
+	if(FAILED(Interpreter_ParseText(&self->interpreter, scriptText, 1, path))) goto error;
 	free(scriptText);
+	scriptText = NULL;
+
+	// get indices of the function declarations in the instruction list
+	list = &self->interpreter.theInstructionList;
+	size = List_GetSize(list);
+	List_Reset(list);
+	for(i=0; i<size; i++)
+	{
+		Instruction* inst = (Instruction*)List_Retrieve(list);
+		if(inst->OpCode == FUNCDECL)
+		{
+#ifdef IC_DEBUG
+			fprintf(stderr, "ImportNode_Init: %s: %s@%i\n", path, List_GetName(list), i);
+#endif
+			List_InsertAfter(&self->functions, (void*)i, List_GetName(list));
+		}
+		List_GotoNext(list);
+	}
+
+	// finish compiling and convert indices to pointers to the function entry points
+	if(FAILED(Interpreter_CompileInstructions(&self->interpreter))) goto error;
+	assert(list->solidlist != NULL);
+	List_Reset(&self->functions);
+	size = List_GetSize(&self->functions);
+	for(i=0; i<size; i++)
+	{
+		int index = (int)List_Retrieve(&self->functions);
+		List_Update(&self->functions, &(list->solidlist[index]));
+		assert(((Instruction*)(list->solidlist[index]))->OpCode == FUNCDECL);
+		List_GotoNext(&self->functions);
+	}
+
 	return S_OK;
 
 error:
-	printf("Script error: unable to import script file '%s'\n");
+	if(scriptText) free(scriptText);
+	Interpreter_Clear(&self->interpreter);
+	List_Clear(&self->functions);
 	return E_FAIL;
 }
 
-void ImportNode_Clear(ImportNode* node)
+/**
+ * Returns a pointer to the function entry point if this script has a function
+ * with the specified name; returns NULL otherwise.
+ */
+Instruction** ImportNode_GetFunctionPointer(ImportNode* self, const char* name)
 {
-	Interpreter_Clear(&node->interpreter);
+	if(List_FindByName(&self->functions, name))
+		return (Instruction**)List_Retrieve(&self->functions);
+	else
+		return NULL;
 }
 
+void ImportNode_Clear(ImportNode* self)
+{
+	Interpreter_Clear(&self->interpreter);
+	List_Clear(&self->functions);
+}
+
+/**
+ * From a list of ImportNodes, finds and returns a pointer to the function with
+ * the specified name in the list. Script files at the *end* of the import list
+ * have priority, so if the modder imports two script files with the same
+ * function name, the function used will be from the file imported last.
+ */
+Instruction** ImportList_GetFunctionPointer(List* list, const char* name)
+{
+	int i;
+	List_GotoLast(list);
+	for(i=List_GetSize(list); i>0; i--)
+	{
+		ImportNode* node = List_Retrieve(list);
+		Instruction** inst = ImportNode_GetFunctionPointer(node, name);
+		if(inst != NULL)
+		{
+#ifdef IC_DEBUG
+			fprintf(stderr, "importing '%s' from '%s'\n", name, List_GetName(list));
+#endif
+			return inst;
+		}
+		List_GotoPrevious(list);
+	}
+	return NULL;
+}
+
+/**
+ * Initializes the import cache.
+ */
 void ImportCache_Init()
 {
-	List_Init(&importCache);
+	List_Init(&imports);
 }
 
-// returns pointer to node on success, NULL on failure
-ImportNode* ImportCache_Retrieve(const char* path)
+/**
+ * Returns a pointer to the ImportNode for the specified file.
+ *
+ * If the file has already been imported, this function returns the pointer to
+ * the existing node.  If it hasn't, it imports it and then returns the pointer.
+ *
+ * Returns NULL if the file hasn't already been imported and an error occurs
+ * when compiling it.
+ */
+ImportNode* ImportCache_ImportFile(const char* path)
 {
+	int i;
+	char path2[256];
 	ImportNode* node;
-
-	if(List_FindByName(&importCache, (char*) path)) // already imported by another file
+	
+	// first convert the path to standard form, lowercase with forward slashes
+	assert(strlen(path) <= 255);
+	for(i=strlen(path); i>=0; i--)
 	{
-#ifdef VERBOSE
-		printf("Reusing import %s\n", path);
-#endif
-		node = List_Retrieve(&importCache);
-		node->numRefs++;
+		if(path[i] == '\\')
+			path2[i] = '/';
+		else if(path[i] >= 'A' && path[i] <= 'Z')
+			path2[i] = path[i] + ('a'-'A');
+		else
+			path2[i] = path[i];
 	}
-	else // file is being imported for the first time
-	{
-#ifdef VERBOSE
-		printf("Allocating import %s\n", path);
+#ifdef IC_DEBUG
+	fprintf(stderr, "ImportCache_ImportFile: '%s' -> '%s'\n", path, path2);
 #endif
-		node = malloc(sizeof(ImportNode));
-		if(FAILED(ImportNode_Init(node, path))) { free(node); return NULL; }
-		node->numRefs = 0;
-		List_GotoLast(&importCache);
-		List_InsertAfter(&importCache, node, (char*) path);
-		node->numRefs++;
-	}
 
+	// find and return node if this file has already been imported
+	if(List_FindByName(&imports, path2))
+		return (ImportNode*)List_Retrieve(&imports);
+
+	// otherwise, create a new node for this file, add it to the cache, and return it
+	node = malloc(sizeof(ImportNode));
+	if(FAILED(ImportNode_Init(node, path2))) { free(node); return NULL; }
+	List_GotoLast(&imports);
+	List_InsertAfter(&imports, node, path2);
 	return node;
 }
 
-// releases a reference to an ImportNode; must be called for ImportNode to be freed properly!
-void ImportCache_Release(ImportNode* node)
-{
-	node->numRefs--;
-	if(node->numRefs <= 0)
-	{
-		ImportNode_Clear(node);
-		assert(List_Includes(&importCache, node));
-		List_Remove(&importCache);
-		free(node);
-	}
-}
-
+/**
+ * Frees all of the imported scripts. Called when shutting down the script
+ * engine.
+ */
 void ImportCache_Clear()
 {
-	int i, num;
-	ImportNode* node;
-
-	List_Reset(&importCache);
-	while(importCache.size > 0)
+	List_Reset(&imports);
+	while(List_GetSize(&imports))
 	{
-		node = List_Retrieve(&importCache);
-		printf("Warning: imported script '%s' not freed (%d unreleased references)\n", List_GetName(&importCache), node->numRefs);
-		num = node->numRefs;
-		for(i=0; i<num; i++)
-			ImportCache_Release(node);
-		assert(!List_GetNodeByValue(&importCache, node));
+		ImportNode* node = (ImportNode*)List_Retrieve(&imports);
+		ImportNode_Clear(node);
+		free(node);
+		List_Remove(&imports);
 	}
-	List_Clear(&importCache);
+	List_Clear(&imports);
 }
+
 
