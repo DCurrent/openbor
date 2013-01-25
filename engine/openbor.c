@@ -24270,70 +24270,6 @@ void soundcard_options(){
 	bothnewkeys = 0;
 }
 
-#ifdef XBOX
-void display_logfile()
-{
-	int i, j, k;
-	stringptr *logfile = NULL;
-	char textpad[128] = {""};
-	int currentline = 0;
-	int filesize = 0;
-	int done = 0;
-
-	logfile = readFromLogFile(OPENBOR_LOG);
-	if(logfile != NULL)
-	{
-		unload_background();
-		load_background("menu/logview", 0);
-		while(!done)
-		{
-			font_printf(5,3, 1, 0, "Log Viewer");
-			font_printf(259,3, 1, 0, "Quit : Escape");
-			filesize = logfile->size;
-			if(bothkeys & FLAG_MOVEUP)
-			{
-				currentline -= 5;
-				if(currentline < 0) currentline = 0;
-			}
-			if(bothkeys & FLAG_MOVEDOWN)
-			{
-				currentline += 5;
-				if(currentline > filesize) currentline = filesize;
-			}
-			k = 0;
-			j = 2;
-			for(i=currentline; i<filesize; i++)
-			{
-				if(logfile->ptr[i] >= 0x20 && logfile->ptr[i] <= 0x7e)
-				{
-					textpad[k] = logfile->ptr[i];
-					k++;
-				}
-				else if(logfile->ptr[i] == 0x09)
-				{
-					textpad[k+0] = ' '; textpad[k+1] = ' ';
-					textpad[k+2] = ' '; textpad[k+3] = ' ';
-					k+=4;
-				}
-				else
-				{
-					font_printf(5, j*10, 0, 0, "%s", textpad);
-					j++;
-					k=0;
-					strncpy(textpad, "", 128);
-				}
-			}
-			if(bothkeys & FLAG_ESC) done = 1;
-			update((level!=NULL),0);
-		}
-		free_string(logfile);
-		logfile = NULL;
-		unload_background();
-		load_background("menu/logo", 0);
-	}
-}
-#endif
-
 // ----------------------------------------------------------------------------
 
 
@@ -24350,16 +24286,6 @@ void openborMain(int argc, char** argv)
 	int i;
 	int argl;
 
-#if XBOX
-	int done = 0;
-	char pakname[128] = {""};
-	char listing[32] = {""};
-	int paks = 0;
-	int list = 0;
-	int lOffset=0;
-	u32 menutime = 0;
-#endif
-
 	printf("OpenBoR %s, Compile Date: " __DATE__ "\n\n", VERSION);
 
 	if(argc > 1) {
@@ -24375,91 +24301,6 @@ void openborMain(int argc, char** argv)
 	levelcmdlist = createLevelCommandList();
 	levelordercmdlist = createLevelOrderCommandList();
 	createModelList();
-
-
-#ifdef XBOX
-	loadsettings();
-	paks = findmods();
-	if(paks==1) getBasePath(packfile, paklist[0].filename, 1);
-	else
-	{
-		strcpy(packfile, "d:\\Paks\\menu.pak");
-		guistartup();
-		load_background("menu/logo", 0);
-		while(!done)
-		{
-			if(paks < 1) font_printf(10,24, 1, 0, "No Mods In Paks Folder!");
-			if(bothnewkeys & FLAG_ESC)
-			{
-				disablelog = 1;
-				shutdown(1, "");
-			}
-
-			for(list=0; list<paks; list++)
-			{
-				strncpy(pakname, paklist[list+lOffset].filename,128-strlen(paklist[list+lOffset].filename));
-				if(list<18)
-				{
-					strncpy(listing, "", 32);
-					strncpy(listing, pakname, 31);
-					font_printf(10,24+(11*list), selector==list, 0, "%s", listing);
-				}
-			}
-			if(bothkeys & FLAG_MOVEUP && time >= menutime)
-			{
-				--selector;
-
-				menutime = time + GAME_SPEED/8;
-			}
-			if(bothkeys & FLAG_MOVEDOWN && time >= menutime)
-			{
-				++selector;
-				menutime = time + GAME_SPEED/8;
-			}
-#ifndef DC
-			if(bothkeys & FLAG_SPECIAL) display_logfile();
-#endif
-			if(selector>paks-1) selector=paks-1;
-			if(selector>17)
-			{
-				if((selector+lOffset)<paks) lOffset++;
-				selector=17;
-			}
-			if(selector<0)
-			{
-				selector=0;
-				if(lOffset>0) lOffset--;
-			}
-			if((bothnewkeys&(FLAG_START)) && paks > 1)
-			{
-				strncpy(pakname, paklist[selector+lOffset].filename,128-strlen(paklist[selector+lOffset].filename));
-				getBasePath(packfile, pakname, 1);
-				done = 1;
-			}
-
-			font_printf(5,3, 2, 0, "OpenBoR %s", VERSION);
-			font_printf(265,3, 2, 0, __DATE__);
-			font_printf(197,155, 2, 0, "www.LavaLit.com");
-			font_printf(190,165, 2, 0, "www.SenileTeam.com");
-			font_printf(5,229, 2, 0, "Start : Load");
-			font_printf(259,229, 2, 0, "Quit : Escape");
-
-			if(done) font_printf(215,175, 2, 0, "Loading...");
-			update(0,0);
-		}
-
-		if(paks != 1)
-		{
-			// unload whats been allocated.
-			selector = 0;
-			unload_background();
-			freescreen(vscreen);
-			unload_all_fonts();
-			borTimerExit();
-			control_exit();
-		}
-	}
-#endif
 
 	// Load necessary components.
 	printf("Game Selected: %s\n\n", packfile);
