@@ -37,6 +37,8 @@ function get_revnum {
       BRANCH=`bzr version-info | grep "branch-nick:" | sed 's/branch-nick: //g'`
       VERSION_BUILD=$REVNO-bzr-$BRANCH
     fi
+  elif git svn info >/dev/null 2>&1; then
+    VERSION_BUILD=`git svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
   fi
 }
 
@@ -168,9 +170,9 @@ svn log  $TRIMMED_URL --verbose > ./releases/VERSION_INFO.txt
 7za a -t7z -mx9 -r -x!.svn "./releases/OpenBOR $VERSION.7z" ./releases/*
 }
 
-export LC_MESSAGES=en_US
-export LC_TIME=en_US
-export LC_ALL=en_Us
+export LC_MESSAGES=en_US.UTF-8
+export LC_TIME=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
 
 case $1 in
 1)
