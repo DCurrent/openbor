@@ -372,8 +372,8 @@ int video_copy_screen(s_screen* src)
 	unsigned char *dp;
 	SDL_Rect rectdes, rectsrc;
 	rectsrc.x=rectsrc.y=0;
-	rectsrc.w=textureWidth-1;
-	rectsrc.h=textureHeight-1;
+	rectsrc.w=textureWidth;
+	rectsrc.h=textureHeight;
 	int hide_touch;
 	extern int hide_t;
 
