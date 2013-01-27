@@ -196,7 +196,9 @@ float               scrolldx;                       // advancex changed previous
 float               scrolldy;                       // advancey .....................
 float               scrollminz;                     // Limit level z-scroll
 float               scrollmaxz;
-float               blockade;                       // Limit x scroll back
+float               blockade;                    // Limit x scroll back
+float				scrollminx;
+float				scrollmaxx;
 float               lasthitx;						//Last hit X location.
 float               lasthitz;						//Last hit Z location.
 float               lasthita;						//Last hit A location.
@@ -1217,6 +1219,26 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)viewporth;
 		break;
+	case _sv_scrollminx:
+		ScriptVariant_ChangeType(var, VT_DECIMAL);
+		var->dblVal = (DOUBLE)scrollminx;
+		break;
+	case _sv_scrollmaxx:
+		ScriptVariant_ChangeType(var, VT_DECIMAL);
+		var->dblVal = (DOUBLE)scrollmaxx;
+		break;
+	case _sv_scrollminz:
+		ScriptVariant_ChangeType(var, VT_DECIMAL);
+		var->dblVal = (DOUBLE)scrollminz;
+		break;
+	case _sv_scrollmaxz:
+		ScriptVariant_ChangeType(var, VT_DECIMAL);
+		var->dblVal = (DOUBLE)scrollmaxz;
+		break;
+	case _sv_blockade:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)blockade;
+		break;
 	case _sv_waiting:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = level?(LONG)level->waiting:0;
@@ -1297,6 +1319,14 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 	case _sv_scrollmaxz:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			scrollmaxz = (float)ltemp;
+		break;
+	case _sv_scrollminx:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			scrollminx = (float)ltemp;
+		break;
+	case _sv_scrollmaxx:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+			scrollmaxx = (float)ltemp;
 		break;
 	case _sv_blockade:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
@@ -9024,6 +9054,8 @@ void unload_level(){
 	groupmax = 100;
 	scrollminz = 0;
 	scrollmaxz = 0;
+	scrollminx = 0;
+	scrollmaxx = 0;
 	blockade = 0;
 	level_completed = 0;
 	tospeedup = 0;    // Reset so it sets to normal speed for the next level
@@ -9714,14 +9746,18 @@ void load_level(char *filename){
 				next.light[1] = GET_INT_ARG(2);
 				if(next.light[1] == 0) next.light[1] = 64;
 				break;
-			case CMD_LEVEL_SCROLLZ: case CMD_LEVEL_SCROLLX:
-				// now z scroll can be limited by this
-				// if the level is vertical, use scrollx, only different in name ..., but makes more sense
+			case CMD_LEVEL_SCROLLZ:
 				memset(&next,0,sizeof(next));
 				next.scrollminz = GET_INT_ARG(1);
 				next.scrollmaxz = GET_INT_ARG(2);
-				if(next.scrollminz <= 0) next.scrollminz = 0;
-				if(next.scrollmaxz <= 0) next.scrollmaxz = 0;
+				next.scrollminz |= 0x80000000;
+				break;
+			case CMD_LEVEL_SCROLLX:
+				//shall we keep blockade?
+				memset(&next,0,sizeof(next));
+				next.scrollminx = GET_INT_ARG(1);
+				next.scrollmaxx = GET_INT_ARG(2);
+				next.scrollminx |= 0x80000000;
 				break;
 			case CMD_LEVEL_BLOCKADE:
 				// now x scroll can be limited by this
@@ -10050,6 +10086,9 @@ void load_level(char *filename){
 	level->width = level->numpanels * panel_width;
 
 	if(level->width<videomodes.hRes) level->width = videomodes.hRes;
+
+	scrollmaxx = level->width-videomodes.hRes;
+	scrollmaxz = panel_height;
 
 	if(level->scrolldir&SCROLL_LEFT)
 		advancex = (float)(level->width-videomodes.hRes);
@@ -20212,11 +20251,14 @@ void update_scroller(){
 				else if(level->spawnpoints[current_spawn].nojoin!=0){
 					nojoin = (level->spawnpoints[current_spawn].nojoin==1);
 				}
-				else if(level->spawnpoints[current_spawn].scrollminz ||
-					level->spawnpoints[current_spawn].scrollmaxz){
-						scrollminz = (float)level->spawnpoints[current_spawn].scrollminz;
+				else if(level->spawnpoints[current_spawn].scrollminz&0x80000000){
+						scrollminz = (float)(level->spawnpoints[current_spawn].scrollminz&0x7fffffff);
 						scrollmaxz = (float)level->spawnpoints[current_spawn].scrollmaxz;
 						if(!time) advancey = scrollminz; // reset y if spawn at very beginning
+					}
+				else if(level->spawnpoints[current_spawn].scrollminx&0x80000000){
+						scrollminx = (float)(level->spawnpoints[current_spawn].scrollminx&0x7fffffff);
+						scrollmaxx = (float)level->spawnpoints[current_spawn].scrollmaxx;
 					}
 				else if(level->spawnpoints[current_spawn].blockade){
 					// assume level spawn entry will not roll back, so just change it to 0 here
@@ -20283,6 +20325,9 @@ void update_scroller(){
 
 			to += level->cameraxoffset;
 
+			if(to<scrollminx) to = scrollminx;
+			else if(to>scrollmaxx) to = scrollmaxx;
+
 			if((level->scrolldir&SCROLL_BACK) && to < blockade) to = blockade;
 
 			if(to > advancex){
@@ -20299,7 +20344,7 @@ void update_scroller(){
 			}
 
 			if(advancex < 0) advancex = 0;
-			if(advancex > level->width-videomodes.hRes) {
+			if(advancex >= level->width-videomodes.hRes) {
 				advancex = (float)level->width-videomodes.hRes;
 				againstend = 1;
 			}
@@ -20326,11 +20371,11 @@ void update_scroller(){
 
 			to += level->cameraxoffset;
 
+			if(to<scrollminx) to = scrollminx;
+			else if(to>scrollmaxx) to = scrollmaxx;
+
 			if(to < advancex){
-				if(to < advancex-level->scrollspeed) {
-					to = advancex-level->scrollspeed;
-					againstend = 1;
-				}
+				if(to < advancex-level->scrollspeed) to = advancex-level->scrollspeed;
 				advancex = (float)to;
 			}
 			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
@@ -20342,7 +20387,10 @@ void update_scroller(){
 			}
 			if(advancex > level->width-videomodes.hRes) advancex = (float)level->width-videomodes.hRes;
 			if((level->scrolldir&SCROLL_BACK) && level->width- videomodes.hRes - advancex < blockade) advancex = level->width- videomodes.hRes - blockade;
-			if(advancex < 0) advancex = 0;
+			if(advancex <= 0) {
+				advancex = 0;
+				againstend = 1;
+			}
 
 			if(againstend) level->pos++;
 			else level->pos = (int)((level->width-videomodes.hRes) - advancex);
@@ -20361,6 +20409,9 @@ void update_scroller(){
 			to -= (videomodes.vRes/2);
 			
 			to += level->cameraxoffset;
+
+			if(to<scrollminz) to = scrollminz;
+			else if(to>scrollmaxz) to = scrollmaxz;
 
 			if(to > advancey){
 				if(to > advancey+level->scrollspeed) to = advancey+level->scrollspeed;
@@ -20400,11 +20451,11 @@ void update_scroller(){
 			
 			to += level->camerazoffset;
 
+			if(to<scrollminz) to = scrollminz;
+			else if(to>scrollmaxz) to = scrollmaxz;
+
 			if(to < advancey){
-				if(to < advancey-level->scrollspeed){
-					to = advancey-level->scrollspeed;
-					againstend = 1;
-				}
+				if(to < advancey-level->scrollspeed) to = advancey-level->scrollspeed;
 				advancey = (float)to;
 			}
 			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
@@ -20416,7 +20467,10 @@ void update_scroller(){
 			}
 			if(advancey > panel_height-videomodes.vRes) advancey = (float)panel_height-videomodes.vRes;
 			if((level->scrolldir&SCROLL_BACK) && panel_height- videomodes.vRes - advancey < blockade) advancey = panel_height- videomodes.vRes - blockade;
-			if(advancey < 0) advancey = 0;
+			if(advancey <= 0) {
+				advancey = 0;
+				againstend = 1;
+			}
 
 			if(againstend) level->pos++;
 			else level->pos = (int)((panel_height-videomodes.vRes) - advancey);
@@ -20455,8 +20509,8 @@ void update_scroller(){
 		to += level->camerazoffset;
 
 		// new scroll limit
-		if(scrollmaxz && to > scrollmaxz) to = scrollmaxz;
-		if(scrollminz && to < scrollminz) to = scrollminz;
+		if(to > scrollmaxz) to = scrollmaxz;
+		if(to < scrollminz) to = scrollminz;
 
 		if(to > advancey){
 			if(to > advancey+level->scrollspeed) to = advancey+level->scrollspeed;
@@ -20488,8 +20542,8 @@ void update_scroller(){
 		to += level->cameraxoffset;
 
 		// new scroll limit
-		if(scrollmaxz && to > scrollmaxz) to = scrollmaxz;
-		if(scrollminz && to < scrollminz) to = scrollminz;
+		if(to > scrollmaxx) to = scrollmaxx;
+		if(to < scrollminx) to = scrollminx;
 
 		if(to > advancex){
 			if(to > advancex+level->scrollspeed) to = advancex+level->scrollspeed;
