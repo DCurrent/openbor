@@ -353,22 +353,6 @@ s_screen*           bg_cache[MAX_CACHED_BACKGROUNDS] = {NULL, NULL, NULL, NULL, 
 unsigned char		bg_palette_cache[MAX_CACHED_BACKGROUNDS][MAX_PAL_SIZE];
 #endif
 
-/*
-int                 maxplayers[MAX_DIFFICULTIES] = {2,2,2,2,2,2,2,2,2,2};
-int                 ctrlmaxplayers[MAX_DIFFICULTIES] = {0,0,0,0,0,0,0,0,0,0};
-unsigned int        num_levels[MAX_DIFFICULTIES];
-unsigned int        ifcomplete[MAX_DIFFICULTIES];
-unsigned int        noshowhof[MAX_DIFFICULTIES];
-unsigned int        difflives[MAX_DIFFICULTIES];				// What too easy?  change the # of lives players get
-unsigned int        custfade[MAX_DIFFICULTIES];
-unsigned int        diffcreds[MAX_DIFFICULTIES];				// What still to easy - lets see how they do without continues!
-unsigned int        diffoverlap[MAX_DIFFICULTIES];				// Music overlap
-unsigned int        typemp[MAX_DIFFICULTIES];
-unsigned int        continuescore[MAX_DIFFICULTIES];             //what to do with score if continue is used.
-char*               (*skipselect)[MAX_DIFFICULTIES][MAX_PLAYERS] = NULL;              // skips select screen and automatically gives players models specified
-int                 cansave_flag[MAX_DIFFICULTIES];             // 0, no save, 1 save level position 2 save all: lives/credits/hp/mp/also player
-int                 same[MAX_DIFFICULTIES];						// ltb 1-13-05   sameplayer
-*/
 int                 cameratype          = 0;
 int					defaultmaxplayers	= 2;
 
@@ -5038,7 +5022,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	char fnbuf[128] = {""},
 		namebuf[256] = {""},
-		argbuf[MAX_ARG_LEN+1] = "";
+		argbuf[MAX_ARG_LEN+1] = {""};
 
 	ArgList arglist;
 
@@ -20374,6 +20358,8 @@ void update_scroller(){
 			if(to<scrollminx) to = scrollminx;
 			else if(to>scrollmaxx) to = scrollmaxx;
 
+			if((level->scrolldir&SCROLL_BACK) && level->width- videomodes.hRes - to < blockade) to = level->width- videomodes.hRes - blockade;
+
 			if(to < advancex){
 				if(to < advancex-level->scrollspeed) to = advancex-level->scrollspeed;
 				advancex = (float)to;
@@ -20386,7 +20372,6 @@ void update_scroller(){
 				}
 			}
 			if(advancex > level->width-videomodes.hRes) advancex = (float)level->width-videomodes.hRes;
-			if((level->scrolldir&SCROLL_BACK) && level->width- videomodes.hRes - advancex < blockade) advancex = level->width- videomodes.hRes - blockade;
 			if(advancex <= 0) {
 				advancex = 0;
 				againstend = 1;
@@ -20413,6 +20398,8 @@ void update_scroller(){
 			if(to<scrollminz) to = scrollminz;
 			else if(to>scrollmaxz) to = scrollmaxz;
 
+			if((level->scrolldir&SCROLL_BACK) && to < blockade) to = blockade;
+
 			if(to > advancey){
 				if(to > advancey+level->scrollspeed) to = advancey+level->scrollspeed;
 				advancey = (float)to;
@@ -20430,8 +20417,6 @@ void update_scroller(){
 				advancey = (float)panel_height-videomodes.vRes;
 				againstend = 1;
 			}
-
-			if((level->scrolldir&SCROLL_BACK) && advancey < blockade) advancey = blockade;
 			if(advancey < 0) advancey = 0;
 
 			if(againstend) level->pos++;
@@ -20453,6 +20438,8 @@ void update_scroller(){
 
 			if(to<scrollminz) to = scrollminz;
 			else if(to>scrollmaxz) to = scrollmaxz;
+			
+			if((level->scrolldir&SCROLL_BACK) && panel_height- videomodes.vRes - to < blockade) to = panel_height- videomodes.vRes - blockade;
 
 			if(to < advancey){
 				if(to < advancey-level->scrollspeed) to = advancey-level->scrollspeed;
@@ -20466,7 +20453,6 @@ void update_scroller(){
 				}
 			}
 			if(advancey > panel_height-videomodes.vRes) advancey = (float)panel_height-videomodes.vRes;
-			if((level->scrolldir&SCROLL_BACK) && panel_height- videomodes.vRes - advancey < blockade) advancey = panel_height- videomodes.vRes - blockade;
 			if(advancey <= 0) {
 				advancey = 0;
 				againstend = 1;
@@ -20492,7 +20478,7 @@ void update_scroller(){
 		}
 	}//if(!level->waiting)
 
-	// z auto-scroll, 2007 - 2 - 10 by UTunnels
+	// z auto-scroll
 	if((level->scrolldir&SCROLL_LEFT) || (level->scrolldir&SCROLL_RIGHT)) // added scroll type both; weird things can happen, but only if the modder is lazy in using blockades, lol
 	{
 		for(i=0, to=0; i<levelsets[current_set].maxplayers; i++)
@@ -22915,7 +22901,7 @@ void init_videomodes(int log)
 	size_t size;
 	char *buf = NULL;
 	char *command = NULL;
-	char *value = NULL;
+	char *value = NULL, *value2;
 	ArgList arglist;
 	char argbuf[MAX_ARG_LEN+1] = "";
 
@@ -22968,7 +22954,14 @@ readfile:
 
 		if(command && command[0]){
 			if(stricmp(command, "video")==0){
-				videoMode = GET_INT_ARG(1);
+				value = GET_ARG(1);
+				if((value2=strchr(value, 'x')))
+				{
+					videomodes.hRes = atoi(value);
+					videomodes.vRes = atoi(value2+1);
+					videoMode = 255;
+				}
+				else videoMode = GET_INT_ARG(1);
 			}
 			else if(stricmp(command, "scenes")==0){
 				len = strlen(GET_ARG(1));
@@ -23154,6 +23147,9 @@ VIDEOMODES:
 			BGHEIGHT           = 362;
 			break;
 
+		case 255:
+			printf("\nUsing debug video mode: %d x %d\n", videomodes.hRes, videomodes.vRes);
+			break;
 		default:
 			shutdown(1, "Invalid video mode: %d in 'data/video.txt', supported modes:\n"
 				        "0 - 320x240\n"
