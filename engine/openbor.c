@@ -23148,6 +23148,7 @@ VIDEOMODES:
 			break;
 
 		case 255:
+			videomodes.dOffset = videomodes.vRes*0.9625;
 			printf("\nUsing debug video mode: %d x %d\n", videomodes.hRes, videomodes.vRes);
 			break;
 		default:
