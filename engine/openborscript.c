@@ -6667,6 +6667,24 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			ent->a = (float)dbltemp;
 		break;
 	}
+    case _ep_x:
+	{
+		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+			ent->x = (float)dbltemp;
+		break;
+	}
+    case _ep_z:
+	{
+		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+			ent->z = (float)dbltemp;
+		break;
+	}
+    case _ep_a:
+	{
+		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+			ent->a = (float)dbltemp;
+		break;
+	}
     case _ep_projectile:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))

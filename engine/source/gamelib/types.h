@@ -237,7 +237,7 @@ typedef struct
 	unsigned channelb;
 	unsigned tintmode; //tint the sprite with color 
 	unsigned tintcolor;
-	//unsigned char clipmode; //0 no clip, 1 center clip, 2 screen clip
+	//unsigned clipmode; //0 sprite clip, 1 center,  2 screen clip
 	int clipx;
 	int clipy;
 	int clipw;
