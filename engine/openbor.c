@@ -5886,37 +5886,35 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						if(0>=errorVal){
 							switch(errorVal){
 								case 0: // uhm wait, we just tested for !errorVal...
-									shutdownmessage = "Failed to create colourmap. Image Used Twice!";
-									goto lCleanup;
+									value2 = "Failed to create colourmap. Image Used Twice!";
 									break;
 								case -1: //should not happen now
-									shutdownmessage = "Failed to create colourmap. MAX_COLOUR_MAPS full!";
-									goto lCleanup;
+									value2 = "Failed to create colourmap. MAX_COLOUR_MAPS full!";
 									break;
 								case -2:
-									shutdownmessage = "Failed to create colourmap. Failed to allocate memory!";
-									goto lCleanup;
+									value2 = "Failed to create colourmap. Failed to allocate memory!";
 									break;
 								case -3:
-									shutdownmessage = "Failed to create colourmap. Failed to load file 1";
-									goto lCleanup;
+									value2 = "Failed to create colourmap. Failed to load file 1";
 									break;
 								case -4:
-									shutdownmessage = "Failed to create colourmap. Failed to load file 2";
-									goto lCleanup;
+									value2 = "Failed to create colourmap. Failed to load file 2";
 									break;
 							}
+							printf("Warning: %s\n", value2);
 						}
-
-						if(pixelformat==PIXEL_x8 && newchar->palette==NULL)
+						else
 						{
-							newchar->palette = malloc(PAL_BYTES);
-							if(loadimagepalette(value, packfile, newchar->palette)==0) {
-								shutdownmessage = "Failed to load palette!";
-								goto lCleanup;
+							if(pixelformat==PIXEL_x8 && newchar->palette==NULL)
+							{
+								newchar->palette = malloc(PAL_BYTES);
+								if(loadimagepalette(value, packfile, newchar->palette)==0) {
+									shutdownmessage = "Failed to load palette!";
+									goto lCleanup;
+								}
 							}
+							mapflag[newchar->maps_loaded-1] = 1;
 						}
-						mapflag[newchar->maps_loaded-1] = 1;
 					}
 					break;
 				case CMD_MODEL_PALETTE:
@@ -10869,6 +10867,7 @@ void ent_default_init(entity* e)
 	if((!selectScreen && !time) || e->modeldata.type != TYPE_PLAYER )
 	{
 		if( validanim(e,ANI_SPAWN)) ent_set_anim(e, ANI_SPAWN, 0); // use new playerselect spawn anim
+		else if( validanim(e,ANI_RESPAWN)) ent_set_anim(e, ANI_RESPAWN, 0);
 		//else set_idle(e);
 	}
 	else if(!selectScreen && time && e->modeldata.type == TYPE_PLAYER) // mid-level respawn
@@ -10970,7 +10969,7 @@ void ent_default_init(entity* e)
 
 			if(e->modeldata.subtype == SUBTYPE_NOTGRAB) e->nograb = 1;
 
-			if(validanim(e,ANI_SPAWN) /*|| validanim(e,ANI_RESPAWN)*/)
+			if(validanim(e,ANI_SPAWN) || validanim(e,ANI_RESPAWN))
 			{
 				e->takeaction = common_spawn;
 			}
