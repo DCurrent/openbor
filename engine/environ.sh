@@ -376,7 +376,11 @@ case $1 in
      export PATH=$PATH:$DWNDEV/bin
    elif test -e "/opt/local/bin"; then
      export DWNDEV=/opt/local
-     export SDKPATH=/Developer/SDKs/MacOSX10.6.sdk
+     if test -e "/Applications/Xcode.app/Contents/Developer"; then
+       export SDKPATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk
+     else
+       export SDKPATH=/Developer/SDKs/MacOSX10.6.sdk
+     fi
      export PATH=$PATH:DWNDEV/bin
    fi
    if test $DWNDEV; then
