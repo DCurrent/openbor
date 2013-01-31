@@ -12,6 +12,7 @@
 #include <assert.h>
 #include "globals.h"
 #include "types.h"
+#include "transform.h"
 
 static transpixelfunc pfp;
 static unsigned int fillcolor;
@@ -74,14 +75,14 @@ static unsigned char blendfillcolor(unsigned char* t, unsigned char unused, unsi
 
 */
 
-inline void draw_pixel_dummy(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)  
+void draw_pixel_dummy(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
 {
 	int pb = pixelbytes[(int)dest->pixelformat];
 	unsigned char* pd = ((unsigned char*)(dest->data)) + (dx + dy*dest->width)*pb; 
 	memset(pd, 0, pb);
 }
 
-inline void draw_pixel_screen(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
+void draw_pixel_screen(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
 {
 	unsigned char *ptrd8, *ptrs8, ps8;
 	unsigned short *ptrd16, *ptrs16, pd16, ps16;
@@ -144,7 +145,7 @@ inline void draw_pixel_screen(s_screen* dest, gfx_entry* src, int dx, int dy, in
 }
 
 
-inline void draw_pixel_bitmap(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
+void draw_pixel_bitmap(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
 {
 	//stub
 	// should be OK for now since s_screen and s_bitmap are identical to each other
@@ -154,7 +155,7 @@ inline void draw_pixel_bitmap(s_screen* dest, gfx_entry* src, int dx, int dy, in
 
 // get a pixel from specific sprite
 // should be fairly slow due to the RLE compression
-inline char sprite_get_pixel(s_sprite* sprite, int x, int y){
+char sprite_get_pixel(s_sprite* sprite, int x, int y){
 	int *linetab;
 	register int lx = 0, count;
 	unsigned char * data;
@@ -187,7 +188,7 @@ inline char sprite_get_pixel(s_sprite* sprite, int x, int y){
 
 }
 
-inline void draw_pixel_sprite(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
+void draw_pixel_sprite(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
 {
 	unsigned char *ptrd8, ps8;
 	unsigned short *ptrd16, pd16, ps16;
@@ -225,7 +226,7 @@ inline void draw_pixel_sprite(s_screen* dest, gfx_entry* src, int dx, int dy, in
 
 }
 
-inline void draw_pixel_gfx(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy){
+void draw_pixel_gfx(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy){
 	//drawfp(dest, src, dx, dy, sx, sy);
 	switch(src->screen->magic){
 	case sprite_magic:
@@ -243,11 +244,11 @@ inline void draw_pixel_gfx(s_screen* dest, gfx_entry* src, int dx, int dy, int s
 	}
 }
 
-inline void copy_pixel_block(int bytes){
+void copy_pixel_block(int bytes){
 	memcpy(cur_dest, cur_src, bytes);
 }
 
-inline void write_pixel(){
+void write_pixel(){
 	unsigned char ps8;
 	unsigned short ps16;
 	unsigned ps32;
@@ -302,34 +303,34 @@ inline void write_pixel(){
 
 }
 
-inline void dest_seek(int x, int y){
+void dest_seek(int x, int y){
 	//x_dest = x; y_dest = y;
 	cur_dest = ptr_dest + (y * trans_dw + x)*pixelbytes[dpf];	
 }
 
-inline void dest_line_inc(){
+void dest_line_inc(){
 	//y_dest++;
 	cur_dest += span_dest;
 }
 
-inline void dest_line_dec(){
+void dest_line_dec(){
 	//y_dest--;
 	cur_dest -= span_dest;
 }
 
 //should be within a line
-inline void dest_inc(){
+void dest_inc(){
 	//x_dest++;
 	cur_dest  += pixelbytes[dpf];
 }
 
 //should be within a line
-inline void dest_dec(){
+void dest_dec(){
 	//x_dest--;
 	cur_dest -= pixelbytes[dpf];
 }
 
-inline  void _sprite_seek(int x, int y){
+void _sprite_seek(int x, int y){
 	int* linetab;
 	unsigned char* data = NULL;
 	register int lx = 0, count;
@@ -365,7 +366,7 @@ quit:
 
 }
 
-inline void src_seek(int x, int y){
+void src_seek(int x, int y){
 	switch(handle_src->screen->magic){
 	case sprite_magic:
 		x_src = x; y_src = y;
@@ -380,7 +381,7 @@ inline void src_seek(int x, int y){
 	}
 }
 
-inline void src_line_inc(){
+void src_line_inc(){
 	switch(handle_src->screen->magic){
 	case sprite_magic:
 		y_src++;
@@ -395,7 +396,7 @@ inline void src_line_inc(){
 	}
 }
 
-inline void src_line_dec(){
+void src_line_dec(){
 	switch(handle_src->screen->magic){
 	case sprite_magic:
 		y_src--;
@@ -411,7 +412,7 @@ inline void src_line_dec(){
 }
 
 //should be within a line
-inline void src_inc(){
+void src_inc(){
 	//int cnt;
 	x_src++;
 	switch(handle_src->screen->magic){
@@ -431,7 +432,7 @@ inline void src_inc(){
 }
 
 //should be within a line
-inline void src_dec(){
+void src_dec(){
 	x_src--;
 	switch(handle_src->screen->magic){
 	case sprite_magic:
