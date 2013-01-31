@@ -9822,9 +9822,9 @@ void load_level(char *filename){
 			case CMD_LEVEL_SCORE:
 				// So score can be overriden in the levels .txt file
 				next.score = GET_INT_ARG(1);
-				if(next.score < 0) next.score = 0;    // So negative values cannot be added
+				if(next.score == -1) next.score = 0;    // So negative values cannot be added
 				next.multiple = GET_INT_ARG(2);
-				if(next.multiple < 0) next.multiple = 0;    // So negative values cannot be added
+				if(next.multiple == -1) next.multiple = 0;    // So negative values cannot be added
 				break;
 			case CMD_LEVEL_NOLIFE:
 				// Flag to determine if entity life is shown when hit
@@ -11408,9 +11408,9 @@ void ent_copy_uninit(entity* ent, s_model* oldmodel)
 		ent->modeldata.subject_to_maxz      = oldmodel->subject_to_maxz;
 	if(ent->modeldata.no_adjust_base<0)
 		ent->modeldata.no_adjust_base       = oldmodel->no_adjust_base;
-	if(ent->modeldata.aimove<0)
+	if(ent->modeldata.aimove==-1)
 		ent->modeldata.aimove               = oldmodel->aimove;
-	if(ent->modeldata.aiattack<0)
+	if(ent->modeldata.aiattack==-1)
 		ent->modeldata.aiattack             = oldmodel->aiattack;
 	if(ent->modeldata.hostile<0)
 		ent->modeldata.hostile              = oldmodel->hostile;
