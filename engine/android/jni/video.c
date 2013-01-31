@@ -91,6 +91,12 @@ void initSDL()
 static int textureDepths[4] = {32,16,24,32};
 static unsigned masks[4][4] = {{0xFF,0xFF00,0xFF0000,0},{0x1F,0x07E0,0xF800,0},{0xFF,0xFF00,0xFF0000,0},{0xFF,0xFF00,0xFF0000,0}};
 
+#define DOCKLEFT 8
+#define DOCKRIGHT 2
+#define DOCKTOP 1
+#define DOCKBOTTOM 4
+static int screendocking = DOCKTOP; //0 center if possible, 1 top 2 right 4 bottom 8 left
+
 float bx[MAXTOUCHB];
 float by[MAXTOUCHB];
 float br[MAXTOUCHB];
@@ -176,6 +182,9 @@ static void setup_touch_default()
 	bx[SDID_SCREENSHOT] = w/2.0f;
 	by[SDID_SCREENSHOT] = h/2.0f;
 	br[SDID_SCREENSHOT] = br[SDID_MOVEDOWN];
+
+
+	screendocking = DOCKTOP;
 }
 
 static int setup_touch_txt()
@@ -242,6 +251,24 @@ static int setup_touch_txt()
 						}
 						if(ts) SDL_FreeSurface(ts); 
 						if(pngb) free(pngb);
+					}
+				}
+				else if(stricmp(command, "screendocking")==0) // change screen position to avoid buttons
+				{
+					screendocking = 0;
+					for(i=1; ;)
+					{
+						value = GET_ARG(i);
+						if(!value || !value[0]) break;
+						if(stricmp(value, "left")==0)
+							screendocking |= DOCKLEFT;
+						else if(stricmp(value, "right")==0)
+							screendocking |= DOCKRIGHT;
+						else if(stricmp(value, "top")==0)
+							screendocking |= DOCKTOP;
+						else if(stricmp(value, "bottom")==0)
+							screendocking |= DOCKBOTTOM;
+						else screendocking = GET_INT_ARG(i);
 					}
 				}
 			}
@@ -425,8 +452,17 @@ int video_copy_screen(s_screen* src)
 		rectdes.h = textureHeight*savedata.glscale;
 		rectdes.x = (viewportWidth-rectdes.w)/2;
 		rectdes.y = (viewportHeight-rectdes.h)/2;
-		if(rectdes.h<viewportHeight-4) {
-			rectdes.y = 2;
+		if(rectdes.h<viewportHeight-2) {
+			if(screendocking&DOCKTOP)
+				rectdes.y = 1;
+			else if(screendocking&DOCKBOTTOM)
+				rectdes.y = viewportHeight-1-rectdes.h;
+		}
+		if(rectdes.w<viewportWidth-2) {
+			if(screendocking&DOCKLEFT)
+				rectdes.x = 1;
+			else if(screendocking&DOCKRIGHT)
+				rectdes.x = viewportWidth-1-rectdes.w;
 		}
 	}
 	else if((float)viewportWidth/(float)viewportHeight>(float)textureWidth/(float)textureHeight)
