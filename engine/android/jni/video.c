@@ -256,7 +256,7 @@ static int setup_touch_txt()
 				else if(stricmp(command, "screendocking")==0) // change screen position to avoid buttons
 				{
 					screendocking = 0;
-					for(i=1; ;)
+					for(i=1; ;i++)
 					{
 						value = GET_ARG(i);
 						if(!value || !value[0]) break;
