@@ -19,65 +19,38 @@ if [ "${DWNDEV}" == "/opt/mac" ]; then
 fi
 
 ############ Update Library References ############
+IFS='
+'
 
-${PREFIX}install_name_tool \
--change ${DWNDEV}/lib/libSDL-1.2.0.dylib \
-@executable_path/../Libraries/libSDL-1.2.0.dylib \
-releases/DARWIN/OpenBOR.app/Contents/Libraries/libSDL_gfx.13.dylib
+# Order and pairing is critical!!!
+lib_ref_patch=(`find ${DWNDEV}/lib -name "libSDL-*.dylib"`)
+lib_ref_patch+=(`find ${DWNDEV}/lib -name "libSDL_gfx.*.dylib"`)
+lib_ref_patch+=(`find ${DWNDEV}/lib -name "libogg.*.dylib"`)
+lib_ref_patch+=(`find ${DWNDEV}/lib -name "libvorbisfile.*.dylib"`)
+lib_ref_patch+=(`find ${DWNDEV}/lib -name "libogg.*.dylib"`)
+lib_ref_patch+=(`find ${DWNDEV}/lib -name "libvorbis.*.dylib"`)
+lib_ref_patch+=(`find ${DWNDEV}/lib -name "libvorbis.*.dylib"`)
+lib_ref_patch+=(`find ${DWNDEV}/lib -name "libvorbisfile.*.dylib"`)
+lib_ref_patch+=(`find ${DWNDEV}/lib -name "libz.[0-9].dylib"`)
+lib_ref_patch+=(`find ${DWNDEV}/lib -name "libpng[0-9][0-9].dylib"`)
 
-${PREFIX}install_name_tool \
--change ${DWNDEV}/lib/libvorbis.0.dylib \
-@executable_path/../Libraries/libvorbis.0.dylib \
-releases/DARWIN/OpenBOR.app/Contents/Libraries/libvorbisfile.3.dylib
+for ((i = 0; i < ${#lib_ref_patch[*]}; i = $i + 2)); do
 
-${PREFIX}install_name_tool \
--change ${DWNDEV}/lib/libogg.0.dylib \
-@executable_path/../Libraries/libogg.0.dylib \
-releases/DARWIN/OpenBOR.app/Contents/Libraries/libvorbisfile.3.dylib
+  ${PREFIX}install_name_tool \
+  -change ${lib_ref_patch[i]} \
+  @executable_path/../Libraries/$(basename ${lib_ref_patch[i]}) \
+  releases/DARWIN/OpenBOR.app/Contents/Libraries/$(basename ${lib_ref_patch[i+1]})
 
-${PREFIX}install_name_tool \
--change ${DWNDEV}/lib/libogg.0.dylib \
-@executable_path/../Libraries/libogg.0.dylib \
-releases/DARWIN/OpenBOR.app/Contents/Libraries/libvorbis.0.dylib
-
-${PREFIX}install_name_tool \
--change ${DWNDEV}/lib/libz.1.dylib \
-@executable_path/../Libraries/libz.1.2.5.dylib \
-releases/DARWIN/OpenBOR.app/Contents/Libraries/libpng14.14.dylib
+done
 
 ######### Update Executable Library Paths ##########
 
-${PREFIX}install_name_tool \
--change ${DWNDEV}/lib/libSDL-1.2.0.dylib \
-@executable_path/../Libraries/libSDL-1.2.0.dylib \
-releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR
+for ((i = 0; i < ${#lib_ref_patch[*]}; i = $i + 1)); do
 
-${PREFIX}install_name_tool \
--change ${DWNDEV}/lib/libSDL_gfx.13.dylib \
-@executable_path/../Libraries/libSDL_gfx.13.dylib \
-releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR
+  ${PREFIX}install_name_tool \
+  -change ${lib_ref_patch[i]} \
+  @executable_path/../Libraries/$(basename ${lib_ref_patch[i]}) \
+  releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR
 
-${PREFIX}install_name_tool \
--change ${DWNDEV}/lib/libvorbisfile.3.dylib \
-@executable_path/../Libraries/libvorbisfile.3.dylib \
-releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR
+done
 
-${PREFIX}install_name_tool \
--change ${DWNDEV}/lib/libvorbis.0.dylib \
-@executable_path/../Libraries/libvorbis.0.dylib \
-releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR
-
-${PREFIX}install_name_tool \
--change ${DWNDEV}/lib/libogg.0.dylib \
-@executable_path/../Libraries/libogg.0.dylib \
-releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR
-
-${PREFIX}install_name_tool \
--change ${DWNDEV}/lib/libpng14.14.dylib \
-@executable_path/../Libraries/libpng14.14.dylib \
-releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR
-
-${PREFIX}install_name_tool \
--change ${DWNDEV}/lib/libz.1.dylib \
-@executable_path/../Libraries/libz.1.2.5.dylib \
-releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR

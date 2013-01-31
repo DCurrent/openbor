@@ -355,13 +355,18 @@ function darwin {
       cp ./resources/Info.plist ./releases/DARWIN/OpenBOR.app/Contents
       cp ./resources/OpenBOR.icns ./releases/DARWIN/OpenBOR.app/Contents/Resources
       if [ "${DWNDEV}" != "/opt/mac" ]; then
-        cp ${DWNDEV}/lib/libSDL-1.2.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-        cp ${DWNDEV}/lib/libSDL_gfx.13.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-        cp ${DWNDEV}/lib/libogg.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-        cp ${DWNDEV}/lib/libvorbisfile.3.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-        cp ${DWNDEV}/lib/libvorbis.0.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-        cp ${DWNDEV}/lib/libpng14.14.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-        cp ${DWNDEV}/lib/libz.1.2.5.dylib ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+        lib_copy=(`find ${DWNDEV}/lib -name "libSDL-*.dylib"`)
+        lib_copy+=(`find ${DWNDEV}/lib -name "libSDL_gfx.*.dylib"`)
+        lib_copy+=(`find ${DWNDEV}/lib -name "libogg.*.dylib"`)
+        lib_copy+=(`find ${DWNDEV}/lib -name "libvorbisfile.*.dylib"`)
+        lib_copy+=(`find ${DWNDEV}/lib -name "libvorbis.*.dylib"`)
+        lib_copy+=(`find ${DWNDEV}/lib -name "libz.[0-9].dylib"`)
+        lib_copy+=(`find ${DWNDEV}/lib -name "libpng[0-9][0-9].dylib"`)
+
+        for ((i = 0; i < ${#lib_copy[*]}; i = $i + 1)); do
+          cp ${lib_copy[i]} ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+        done
+
         ./darwin.sh
       fi
     fi
