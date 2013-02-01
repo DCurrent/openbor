@@ -355,18 +355,6 @@ function darwin {
       cp ./resources/Info.plist ./releases/DARWIN/OpenBOR.app/Contents
       cp ./resources/OpenBOR.icns ./releases/DARWIN/OpenBOR.app/Contents/Resources
       if [ "${DWNDEV}" != "/opt/mac" ]; then
-        lib_copy=(`find ${DWNDEV}/lib -name "libSDL-*.dylib"`)
-        lib_copy+=(`find ${DWNDEV}/lib -name "libSDL_gfx.*.dylib"`)
-        lib_copy+=(`find ${DWNDEV}/lib -name "libogg.*.dylib"`)
-        lib_copy+=(`find ${DWNDEV}/lib -name "libvorbisfile.*.dylib"`)
-        lib_copy+=(`find ${DWNDEV}/lib -name "libvorbis.*.dylib"`)
-        lib_copy+=(`find ${DWNDEV}/lib -name "libz.[0-9].dylib"`)
-        lib_copy+=(`find ${DWNDEV}/lib -name "libpng[0-9][0-9].dylib"`)
-
-        for ((i = 0; i < ${#lib_copy[*]}; i = $i + 1)); do
-          cp ${lib_copy[i]} ./releases/DARWIN/OpenBOR.app/Contents/Libraries
-        done
-
         ./darwin.sh
       fi
     fi
