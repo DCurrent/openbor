@@ -193,7 +193,6 @@ static int loadwave(char *filename, char *packname, samplestruct *buf, unsigned 
 	int handle;
 	int mulbytes;
 
-
 	if(buf==NULL) return 0;
 
 	if((handle=openpackfile(filename, packname))==-1) return 0;
@@ -255,14 +254,14 @@ static int loadwave(char *filename, char *packname, samplestruct *buf, unsigned 
 	}
 
 	if(rifftag.size<maxsize) maxsize = rifftag.size;
-	if((buf->sampleptr = malloc(maxsize*mulbytes+8))==NULL){
+	if((buf->sampleptr = malloc(maxsize+8))==NULL){
 		closepackfile(handle);
 		return 0;
 	}
-	if(fmt.samplebits==8) memset(buf->sampleptr, 0x80, maxsize*mulbytes+8);
-	else memset(buf->sampleptr, 0, maxsize*mulbytes+8);
+	if(fmt.samplebits==8) memset(buf->sampleptr, 0x80, maxsize+8);
+	else memset(buf->sampleptr, 0x80, maxsize+8);
 
-	if(readpackfile(handle, buf->sampleptr, maxsize*mulbytes) != (int)maxsize*mulbytes){
+	if( readpackfile(handle, buf->sampleptr, maxsize) != (int)maxsize){
 		if(buf->sampleptr != NULL){
 			free(buf->sampleptr);
 			buf->sampleptr = NULL;
@@ -273,7 +272,7 @@ static int loadwave(char *filename, char *packname, samplestruct *buf, unsigned 
 
 	closepackfile(handle);
 
-	buf->soundlen = maxsize;
+	buf->soundlen = maxsize/mulbytes;
 	buf->bits = fmt.samplebits;
 	buf->frequency = fmt.samplerate;
 	buf->channels = fmt.channels;

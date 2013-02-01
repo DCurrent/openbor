@@ -10,6 +10,7 @@
 # Environments for Specific HOST_PLATFORMs
 # environ.sh by SX (SumolX@gmail.com)
 
+export BUILDBATCH=1
 export HOST_PLATFORM=$(uname -s)
 export MACHINENAME=$(uname -m)
 export TOOLS=../tools/bin:../tools/7-Zip:../tools/svn/bin
@@ -43,7 +44,7 @@ case $1 in
    elif test -e "/usr/local/pspdev"; then
      export PSPDEV=/usr/local/pspdev
      export PATH=$PATH:$PSPDEV/bin
-   elif [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
+   elif [ `echo $HOST_PLATFORM | grep -E "windows|CYGWIN"` ]; then
      if [ ! -d "../tools/psp-sdk/bin" ]; then
        echo "-------------------------------------------------------"
        echo "        PSP SDK - Not Found, Installing SDK!"
@@ -101,7 +102,7 @@ case $1 in
      export GP2XDEV=/opt/open2x/gcc-4.1.1-glibc-2.3.6/arm-open2x-linux/bin
      export SDKPATH=/opt/open2x/gcc-4.1.1-glibc-2.3.6/arm-open2x-linux
      export PATH=$PATH:$GP2XDEV
-   elif [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
+   elif [ `echo $HOST_PLATFORM | grep -E "windows|CYGWIN"` ]; then
      if [ ! -d "../tools/gp2x-sdk/bin" ]; then
        echo "-------------------------------------------------------"
        echo "         GP2X SDK - Not Found, Installing SDK!"
@@ -187,7 +188,7 @@ case $1 in
      export SDKPATH=/usr/local/i386-mingw32-4.3.0
      export PREFIX=i386-mingw32-
      export PATH=$WINDEV:$PATH
-   elif [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
+   elif [ `echo $HOST_PLATFORM | grep -E "windows|CYGWIN"` ]; then
      if [ ! -d "../tools/win-sdk/bin" ]; then
        echo "-------------------------------------------------------"
        echo "      Windows SDK - Not Found, Installing SDK!"
@@ -226,7 +227,7 @@ case $1 in
      . /usr/local/dcdev/kos/environ.sh
    elif test -e "/opt/dcdev/kos"; then
      . /opt/dcdev/kos/environ.sh
-   elif [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
+   elif [ `echo $HOST_PLATFORM | grep -E "windows|CYGWIN"` ]; then
      if [ ! -d "../tools/dc-sdk/kos" ]; then
         echo "-------------------------------------------------------"
         echo "     Dreamcast SDK - Not Found, Installing SDK!"
@@ -267,7 +268,7 @@ case $1 in
      export DEVKITPRO=c:/devkitpro
      export DEVKITPPC=$DEVKITPRO/devkitPPC
      export PATH=$PATH:$DEVKITPPC/bin
-   elif [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
+   elif [ `echo $HOST_PLATFORM | grep -E "windows|CYGWIN"` ]; then
      if [ ! -d "../tools/devkitpro/devkitPPC" ]; then
         echo "-------------------------------------------------------"
         echo "         WII SDK - Not Found, Installing SDK!"
@@ -329,7 +330,7 @@ case $1 in
      export SDKPATH=/opt/openwiz/toolchain/arm-openwiz-linux-gnu
      export PREFIX=arm-openwiz-linux-gnu-
      export PATH=$PATH:$WIZDEV
-   elif [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
+   elif [ `echo $HOST_PLATFORM | grep -E "windows|CYGWIN"` ]; then
      if [ ! -d "../tools/wiz-sdk/tools" ]; then
        echo "-------------------------------------------------------"
        echo "         WIZ SDK - Not Found, Installing SDK!"
