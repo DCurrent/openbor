@@ -2126,6 +2126,26 @@ void execute_onspawn_script(entity* ent)
 	}
 }
 
+void execute_onmodelcopy_script(entity* ent, entity* old)
+{
+	ScriptVariant tempvar;
+	Script* cs = ent->scripts->onmodelcopy_script;
+	if(Script_IsInitialized(cs))
+	{
+		ScriptVariant_Init(&tempvar);
+		ScriptVariant_ChangeType(&tempvar, VT_PTR);
+		tempvar.ptrVal = (VOID*)ent;
+		Script_Set_Local_Variant(cs, "self", &tempvar);
+		tempvar.ptrVal = (VOID*)old;
+		Script_Set_Local_Variant(cs, "old", &tempvar);
+		Script_Execute(cs);
+		//clear to save variant space
+		ScriptVariant_Clear(&tempvar);
+		Script_Set_Local_Variant(cs, "self", &tempvar);
+		Script_Set_Local_Variant(cs, "old", &tempvar);
+	}
+}
+
 void execute_entity_key_script(entity* ent)
 {
 	ScriptVariant tempvar;
@@ -6017,6 +6037,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_ONSPAWNSCRIPT:
 					lcmHandleCommandScripts(&arglist, newchar->scripts->onspawn_script, "onspawnscript", filename);
+					break;
+				case CMD_MODEL_ONMODELCOPYSCRIPT:
+					lcmHandleCommandScripts(&arglist, newchar->scripts->onmodelcopy_script, "onmodelcopyscript", filename);
 					break;
 				case CMD_MODEL_ANIMATIONSCRIPT:
 					Script_Init(newchar->scripts->animation_script, "animationscript", filename, 0);
@@ -13979,10 +14002,15 @@ int set_pain(entity *iPain, int type, int reset)
 void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, int anim_flag)
 {
 	s_model* model = NULL;
+	entity tempe;
+	s_defense *dfs = NULL;
+	float *ofs = NULL;
 	int   i;
 	int   type = ent->modeldata.type;
 
 	model = ent->model;
+	tempe.exists = 0;
+
 	if(!newmodel)
 	{
 		if(index>=0) newmodel = model_cache[index].model;
@@ -14033,6 +14061,20 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 		}
 	}
 
+	//Make a shallow copy of old entity values, not safe but easy.
+	//Also copy offense and defense because they are more likely be used by weapons,
+	//other references are left alone for now 
+	if(Script_IsInitialized(newmodel->scripts->onmodelcopy_script))
+	{
+		tempe = *ent;
+		dfs = malloc(sizeof(*dfs)*max_attack_types);
+		ofs = malloc(sizeof(*ofs)*max_attack_types);
+		memcpy(dfs, ent->defense, sizeof(*dfs)*max_attack_types);
+		memcpy(ofs, ent->offense_factors, sizeof(*ofs)*max_attack_types);
+		tempe.defense = dfs;
+		tempe.offense_factors = ofs;
+	}
+
 	ent_set_model(ent, newmodel->name, anim_flag);
 
 	ent->modeldata.type = type;
@@ -14045,6 +14087,11 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 	memcpy(ent->offense_factors, ent->modeldata.offense_factors, sizeof(*ent->offense_factors)*max_attack_types);
 
 	ent_set_colourmap(ent, ent->map);
+	if(Script_IsInitialized(ent->scripts->onmodelcopy_script))
+	{
+		execute_onmodelcopy_script(ent, &tempe);
+		if(ofs) free(ofs); if(dfs) free(dfs);
+	}
 }
 
 void set_weapon(entity* ent, int wpnum, int anim_flag) // anim_flag added for scripted midair weapon changing
@@ -14052,15 +14099,15 @@ void set_weapon(entity* ent, int wpnum, int anim_flag) // anim_flag added for sc
 	if(!ent) return;
 //printf("setweapon: %d \n", wpnum);
 
-	if(ent->modeldata.weapon && wpnum > 0 && wpnum <= ent->modeldata.numweapons && ent->modeldata.weapon[wpnum-1])
-		set_model_ex(ent, NULL, ent->modeldata.weapon[wpnum-1], NULL, !anim_flag);
-	else set_model_ex(ent, NULL, -1, ent->defaultmodel, 1);
-
 	if(ent->modeldata.type == TYPE_PLAYER) // save current weapon for player's weaploss 3
 	{
 		if(ent->modeldata.weaploss[0] >= 3) player[(int)ent->playerindex].weapnum = wpnum;
 		else player[(int)ent->playerindex].weapnum = level->setweap;
 	}
+
+	if(ent->modeldata.weapon && wpnum > 0 && wpnum <= ent->modeldata.numweapons && ent->modeldata.weapon[wpnum-1])
+		set_model_ex(ent, NULL, ent->modeldata.weapon[wpnum-1], NULL, !anim_flag);
+	else set_model_ex(ent, NULL, -1, ent->defaultmodel, 1);
 }
 
 //////////////////////////////////////////////////////////////////////////
