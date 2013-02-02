@@ -263,6 +263,7 @@ List* createModelCommandList(void) {
 	LIST_ADD(CMD_MODEL_ONDOATTACKSCRIPT, "ondoattackscript");
 	LIST_ADD(CMD_MODEL_DIDHITSCRIPT, "didhitscript");
 	LIST_ADD(CMD_MODEL_ONSPAWNSCRIPT, "onspawnscript");
+	LIST_ADD(CMD_MODEL_ONMODELCOPYSCRIPT, "onmodelcopyscript");
 	LIST_ADD(CMD_MODEL_ANIMATIONSCRIPT, "animationscript");
 	LIST_ADD(CMD_MODEL_KEYSCRIPT, "keyscript");
 	LIST_ADD(CMD_MODEL_ANIM, "anim");
