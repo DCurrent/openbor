@@ -24,6 +24,11 @@ static int lastjoy;                     // Last joystick button/axis/hat input
 
 int sdl_game_started  = 0;
 
+#if SDL_VERSION_ATLEAST(1, 3, 0)
+#define SDLK_FIRST SDL_SCANCODE_UNKNOWN
+#define SDLK_LAST SDL_NUM_SCANCODES
+#endif
+
 /*
 Here is where we aquiring all joystick events
 and map them to BOR's layout.  Currently support
@@ -49,13 +54,21 @@ void getPads(Uint8* keystate)
 				break;
 #else
 				lastkey = ev.key.keysym.sym;
-				//if (lastkey==SDLK_F11) video_fullscreen_flip();
+#if SDL_VERSION_ATLEAST(1, 3, 0)
+				if((keystate[SDL_SCANCODE_LALT] || keystate[SDL_SCANCODE_RALT]) && (lastkey == SDL_SCANCODE_RETURN))
+				{
+					video_fullscreen_flip();
+					keystate[SDL_SCANCODE_RETURN] = 0;
+				}
+				if(lastkey != SDL_SCANCODE_F10) break;
+#else
 				if((keystate[SDLK_LALT] || keystate[SDLK_RALT]) && (lastkey == SDLK_RETURN))
 				{
 					video_fullscreen_flip();
 					keystate[SDLK_RETURN] = 0;
 				}
 				if(lastkey != SDLK_F10) break;
+#endif
 #endif
 #if 0
 			// sdl 1.3 pause hack
@@ -228,7 +241,13 @@ void joystick_scan(int scan)
 		joysticks[i].NumHats = SDL_JoystickNumHats(joystick[i]);
 		joysticks[i].NumAxes = SDL_JoystickNumAxes(joystick[i]);
 		joysticks[i].NumButtons = SDL_JoystickNumButtons(joystick[i]);
+
+#if SDL_VERSION_ATLEAST(1, 3, 0)
+        joysticks[i].Name = SDL_JoystickName(joystick[i]);
+#else
 		joysticks[i].Name = SDL_JoystickName(i);
+#endif
+        
 #if PSP
 		joysticks[i].Type = JOY_TYPE_SONY;
 		for(j=0; j<JOY_MAX_INPUTS+1; j++)
@@ -513,7 +532,11 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 	s_playercontrols * pcontrols;
 	Uint8* keystate;
 
+#if SDL_VERSION_ATLEAST(1, 3, 0)
+    keystate = SDL_GetKeyboardState(NULL);
+#else
 	keystate = SDL_GetKeyState(NULL);
+#endif
 
 	getPads(keystate);
 	for(player=0; player<numplayers; player++){
