@@ -14034,18 +14034,30 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
 	return 1;
 }
 
+#define painflags(iPain) \
+	iPain->idling = 0;\
+	iPain->falling = 0;\
+	iPain->projectile = 0;\
+	iPain->drop = 0;\
+	iPain->attacking = 0;\
+	iPain->getting = 0;\
+	iPain->charging = 0;\
+	iPain->jumping = 0;\
+	iPain->blocking = 0;\
+	iPain->inpain = 1;\
+	if(iPain->frozen) unfrozen(iPain);
+
 int set_blockpain(entity *iBlkpain, int type, int reset)
 {
-	if(!validanim(iBlkpain,ANI_BLOCKPAIN)){
+	if(type < 0 || type >= max_attack_types || !validanim(iBlkpain,animblkpains[type])) type = 0;
+	if(validanim(iBlkpain,animblkpains[type])) 
+	{
 		iBlkpain->takeaction = common_pain;
+		painflags(iBlkpain);
+		ent_set_anim(iBlkpain, animblkpains[type], reset);
 		return 1;
 	}
-	if(type < 0 || type >= max_attack_types || !validanim(iBlkpain,animblkpains[type])) type = 0;
-	if(!validanim(iBlkpain,animblkpains[type])) return 0;
-	iBlkpain->takeaction = common_block;
-	set_attacking(iBlkpain);
-	ent_set_anim(iBlkpain, animblkpains[type], reset);
-	return 1;
+	return 0;
 }
 
 int set_pain(entity *iPain, int type, int reset)
@@ -14053,7 +14065,10 @@ int set_pain(entity *iPain, int type, int reset)
 	int pain = 0;
 
 	iPain->xdir = iPain->zdir = iPain->tossv = 0; // stop the target
-	if(iPain->modeldata.guardpoints.maximum > 0 && iPain->modeldata.guardpoints.current <= 0) pain = ANI_GUARDBREAK;
+	if(iPain->modeldata.guardpoints.maximum > 0 && iPain->modeldata.guardpoints.current <= 0){
+		pain = ANI_GUARDBREAK;
+		iPain->modeldata.guardpoints.current = iPain->modeldata.guardpoints.maximum; 
+	}
 	else if(type == -1 || type >= max_attack_types) pain = ANI_GRABBED;
 	else pain = animpains[type];
 	if(validanim(iPain,pain))              ent_set_anim(iPain, pain, reset);
@@ -14061,20 +14076,9 @@ int set_pain(entity *iPain, int type, int reset)
 	else if(validanim(iPain,ANI_IDLE))     ent_set_anim(iPain, ANI_IDLE, reset);
 	else return 0;
 
-	if(pain == ANI_GRABBED) iPain->inpain = 0;
-	else iPain->inpain = 1;
+	painflags(iPain);
 
-	iPain->idling = 0;
-	iPain->falling = 0;
-	iPain->projectile = 0;
-	iPain->drop = 0;
-	iPain->attacking = 0;
-	iPain->getting = 0;
-	iPain->charging = 0;
-	iPain->jumping = 0;
-	iPain->blocking = 0;
-	if(iPain->modeldata.guardpoints.maximum > 0 && iPain->modeldata.guardpoints.current <= 0) iPain->modeldata.guardpoints.current = iPain->modeldata.guardpoints.maximum;
-	if(iPain->frozen) unfrozen(iPain);
+	if(pain == ANI_GRABBED) iPain->inpain = 0;
 
 	execute_onpain_script(iPain, type, reset);
 	return 1;
@@ -14896,11 +14900,17 @@ void common_get()
 // A.I. characters do the block
 void common_block()
 {
-	if(self->animating) return;
+	int hb1 = self->modeldata.holdblock && self->modeldata.type==TYPE_PLAYER;
+	int hb2 = ((player+self->playerindex)->keys&FLAG_SPECIAL) ;
 
-	self->blocking = 0;
-	self->takeaction = NULL;
-	set_idle(self);
+	if(
+		(hb1 && !hb2) ||
+		(!self->animating && (!hb1 || !hb2)) 
+	   ){
+		self->blocking = 0;
+		self->takeaction = NULL;
+		set_idle(self);
+	}
 }
 
 
@@ -18886,7 +18896,7 @@ void player_think()
 			}
 		}
 
-		if(validanim(self,ANI_BLOCK) && !self->modeldata.holdblock && notinair)    // New block code for players
+		if(validanim(self,ANI_BLOCK) && notinair)    // New block code for players
 		{
 			pl->playkeys &= ~FLAG_SPECIAL;
 			self->takeaction = common_block;
@@ -19056,22 +19066,6 @@ void player_think()
 			else if(validanim(self,ANI_JUMP)) tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez)?self->zdir:0, ANI_JUMP);
 		}
 		return;
-	}
-
-	if(validanim(self,ANI_BLOCK) && self->modeldata.holdblock &&
-	   pl->keys & FLAG_SPECIAL && notinair)
-	{
-		if(!self->blocking )
-		{
-			self->blocking = 1;
-			self->xdir = self->zdir = 0;
-			ent_set_anim(self, ANI_BLOCK, 0);
-		}
-		goto endthinkcheck;
-	}
-	else
-	{
-		self->blocking = 0;
 	}
 
 	//dang long run checking logic

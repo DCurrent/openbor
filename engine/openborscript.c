@@ -7328,6 +7328,13 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 		else goto cpperror; 
 		break;
 	}
+	case _pp_keys:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
+			player[index].keys = (int)ltemp;
+		else goto cpperror; 
+		break;
+	}
 	case _pp_credits:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
