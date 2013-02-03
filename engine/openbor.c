@@ -10878,6 +10878,89 @@ alloc_ents_error:
 	return 0;
 }
 
+
+//UT: merged DC's common walk/idle functions 
+static int common_anim_series(entity* ent, int arraya[], int maxa, int forcemode, int defaulta)
+{
+	int i, b, e;                                                                    //Loop counter.
+	int iAni;                                                                       //Animation.
+
+	b=forcemode?forcemode-1:0;
+	e=forcemode?forcemode:maxa;
+	
+	for (i=b; i<e; i++)															//Loop through all relevant animations.
+	{
+		iAni = arraya[i];															//Get current animation.
+
+		if (validanim(ent, iAni) && iAni != defaulta)                               //Valid and not Default animation??
+		{
+			if (normal_find_target(iAni,0))                                         //Opponent in range of current animation?
+			{
+				ent_set_anim(ent, iAni, 0);                                         //Set animation.
+				return 1;                                                           //Return 1 and exit.
+			}
+		}
+	}
+
+	if (validanim(ent, defaulta))
+	{
+		ent_set_anim(ent, defaulta, 0);                                             //No alternates were set. Set default..
+		return 1;                                                                   //Return 1 and exit.
+	}
+
+	return 0;
+}
+
+int common_idle_anim(entity* ent)
+{
+	/*
+	common_idle_anim
+	Damon Vaughn Caskey
+	11012009
+	Determine and set appropriate idle animation based on condition and range.
+	Returns 1 if any animation is set.
+	*/
+	entity* tempself = self;
+
+	self = ent;
+
+	if (ent->model->subtype != SUBTYPE_BIKER && ent->model->type != TYPE_NONE) // biker fix by Plombo // type none being "idle" prevented contra locked and loaded from working correctly. fixed by anallyst
+		ent->xdir = ent->zdir = 0;                                                      //Stop movement.
+
+	if(validanim(ent,ANI_FAINT) && ent->health <= ent->modeldata.health / 4)            //ANI_FAINT and health at/below 25%?
+	{
+		ent_set_anim(ent, ANI_FAINT, 0);                                                //Set ANI_FAINT.
+		goto found;                                                                      //Return 1 and exit.
+	}
+	else if(validanim(ent,ANI_SLEEP) && (time >= ent->sleeptime) && ent->animating)     //ANI_SLEEP, sleeptime up and currently animating?
+	{
+		ent_set_anim(ent, ANI_SLEEP, 0);                                                //Set sleep anim.
+		goto found;                                                                     //Return 1 and exit.
+	}
+	else if(common_anim_series(ent, animidles, max_idles, ent->idlemode, ANI_IDLE))
+		goto found;
+
+	self = tempself;
+	return 0;
+found:
+	self = tempself;
+	return 1;
+}
+
+
+#define common_walk_anim(ent) \
+	common_anim_series(ent, animwalks, max_walks, ent->walkmode, ANI_WALK)
+
+#define common_backwalk_anim(ent) \
+	common_anim_series(ent, animbackwalks, max_backwalks, ent->walkmode, ANI_BACKWALK)
+
+#define common_up_anim(ent) \
+	common_anim_series(ent, animups, max_ups, ent->walkmode, ANI_UP)
+
+#define common_down_anim(ent) \
+	common_anim_series(ent, animdowns, max_downs, ent->walkmode, ANI_DOWN)
+
+
 // this method initialize an entity's A.I. behaviors
 void ent_default_init(entity* e)
 {
@@ -19224,211 +19307,6 @@ endthinkcheck:
 	//insert check here
 	return;
 
-}
-
-int common_idle_anim(entity* ent)
-{
-	/*
-	common_idle_anim
-	Damon Vaughn Caskey
-	11012009
-	Determine and set appropriate idle animation based on condition and range.
-	Returns 1 if any animation is set.
-	*/
-
-	int i;                                                                              //Loop counter.
-	int iAni;                                                                           //Animation.
-	entity* tempself = self;
-
-	self = ent;
-
-	if (ent->model->subtype != SUBTYPE_BIKER && ent->model->type != TYPE_NONE) // biker fix by Plombo // type none being "idle" prevented contra locked and loaded from working correctly. fixed by anallyst
-		ent->xdir = ent->zdir = 0;                                                      //Stop movement.
-
-	if(validanim(ent,ANI_FAINT) && ent->health <= ent->modeldata.health / 4)            //ANI_FAINT and health at/below 25%?
-	{
-		ent_set_anim(ent, ANI_FAINT, 0);                                                //Set ANI_FAINT.
-		goto found;                                                                      //Return 1 and exit.
-	}
-	else if(validanim(ent,ANI_SLEEP) && (time >= ent->sleeptime) && ent->animating)     //ANI_SLEEP, sleeptime up and currently animating?
-	{
-		ent_set_anim(ent, ANI_SLEEP, 0);                                                //Set sleep anim.
-		goto found;                                                                     //Return 1 and exit.
-	}
-	else
-	{
-		for (i=0; i<max_idles; i++)                                                     //Loop through all idle animations.
-		{
-			iAni = animidles[i];                                                        //Get current animation.
-
-			if (validanim(ent, iAni) && iAni != ANI_IDLE)                               //Valid and not ANI_IDLE?
-			{
-				tempself = self;
-				self = ent;
-				if (normal_find_target(iAni,0))                                           //Opponent in range of current animation?
-				{
-					ent_set_anim(ent, iAni, 0);                                         //Set animation.
-					goto found;                                                          //Return 1 and exit.
-				}
-			}
-		}
-
-		if (validanim(ent, ANI_IDLE))
-		{
-			ent_set_anim(ent, ANI_IDLE, 0);                                             //No alternates were set. Set ANI_IDLE.
-			goto found;                                                                  //Return 1 and exit.
-		}
-	}
-
-	self = tempself;
-	return 0;
-found:
-	self = tempself;
-	return 1;
-}
-
-int common_walk_anim(entity* ent)
-{
-	/*
-	common_walk_anim
-	Damon Vaughn Caskey
-	11032009
-	Determine and set appropriate walk animation based on condition and range.
-	Returns 1 if any animation is set.
-	*/
-
-	int i;                                                                          //Loop counter.
-	int iAni;                                                                       //Animation.
-
-	for (i=0; i<max_walks; i++)                                                     //Loop through all relevant animations.
-	{
-		iAni = animwalks[i];                                                        //Get current animation.
-
-		if (validanim(ent, iAni) && iAni != ANI_WALK)                               //Valid and not Default animation??
-		{
-			if (normal_find_target(iAni,0))                                         //Opponent in range of current animation?
-			{
-				ent_set_anim(ent, iAni, 0);                                         //Set animation.
-				return 1;                                                           //Return 1 and exit.
-			}
-		}
-	}
-
-	if (validanim(ent, ANI_WALK))
-	{
-		ent_set_anim(ent, ANI_WALK, 0);                                             //No alternates were set. Set default..
-		return 1;                                                                   //Return 1 and exit.
-	}
-
-	return 0;
-}
-
-int common_backwalk_anim(entity* ent)
-{
-	/*
-	common_backwalk_anim
-	Damon Vaughn Caskey
-	11032009
-	Determine and set appropriate backwalk animation based on condition and range.
-	Returns 1 if any animation is set.
-	*/
-
-	int i;                                                                          //Loop counter.
-	int iAni;                                                                       //Animation.
-
-	for (i=0; i<max_backwalks; i++)                                                 //Loop through all relevant animations.
-	{
-		iAni = animbackwalks[i];                                                    //Get current animation.
-
-		if (validanim(ent, iAni) && iAni != ANI_BACKWALK)                           //Valid and not Default animation??
-		{
-			if (normal_find_target(iAni,0))                                         //Opponent in range of current animation?
-			{
-				ent_set_anim(ent, iAni, 0);                                         //Set animation.
-				return 1;                                                           //Return 1 and exit.
-			}
-		}
-	}
-
-	if (validanim(ent, ANI_BACKWALK))
-	{
-		ent_set_anim(ent, ANI_BACKWALK, 0);                                         //No alternates were set. Set default..
-		return 1;                                                                   //Return 1 and exit.
-	}
-
-	return 0;
-}
-
-int common_up_anim(entity* ent)
-{
-	/*
-	common_up_anim
-	Damon Vaughn Caskey
-	11032009
-	Determine and set appropriate up animation based on condition and range.
-	Returns 1 if any animation is set.
-	*/
-
-	int i;                                                                    //Loop counter.
-	int iAni;                                                                 //Animation.
-
-	for (i=0; i<max_ups; i++)                                                 //Loop through all relevant animations.
-	{
-		iAni = animups[i];                                                    //Get current animation.
-
-		if (validanim(ent, iAni) && iAni != ANI_UP)                           //Valid and not Default animation??
-		{
-			if (normal_find_target(iAni,0))                                   //Opponent in range of current animation?
-			{
-				ent_set_anim(ent, iAni, 0);                                   //Set animation.
-				return 1;                                                     //Return 1 and exit.
-			}
-		}
-	}
-
-	if (validanim(ent, ANI_UP))
-	{
-		ent_set_anim(ent, ANI_UP, 0);                                         //No alternates were set. Set default..
-		return 1;                                                             //Return 1 and exit.
-	}
-
-	return 0;
-}
-
-int common_down_anim(entity* ent)
-{
-	/*
-	common_up_anim
-	Damon Vaughn Caskey
-	11032009
-	Determine and set appropriate up animation based on condition and range.
-	Returns 1 if any animation is set.
-	*/
-
-	int i;                                                                    //Loop counter.
-	int iAni;                                                                 //Animation.
-
-	for (i=0; i<max_downs; i++)                                               //Loop through all relevant animations.
-	{
-		iAni = animdowns[i];                                                  //Get current animation.
-
-		if (validanim(ent, iAni) && iAni != ANI_DOWN)                         //Valid and not Default animation??
-		{
-			if (normal_find_target(iAni,0))                                   //Opponent in range of current animation?
-			{
-				ent_set_anim(ent, iAni, 0);                                   //Set animation.
-				return 1;                                                     //Return 1 and exit.
-			}
-		}
-	}
-
-	if (validanim(ent, ANI_DOWN))
-	{
-		ent_set_anim(ent, ANI_DOWN, 0);                                       //No alternates were set. Set default..
-		return 1;                                                             //Return 1 and exit.
-	}
-
-	return 0;
 }
 
 //ammo count goes down

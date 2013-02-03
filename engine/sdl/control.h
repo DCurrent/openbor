@@ -119,11 +119,11 @@
 #define JOYBUTTON(index, btn) (1 + i * JOY_MAX_INPUTS + btn)
 #define JOYAXIS(index, axis, dir) (JOYBUTTON(index, joysticks[index].NumButtons) + 2 * axis + dir)
 
-#ifdef ANDROID
-#define SDLK_FIRST 0
+#ifdef SDL13
+#define SDLK_FIRST SDL_SCANCODE_UNKNOWN
 #define SDLK_LAST  SDL_NUM_SCANCODES
 #define SDL_GetKeyState SDL_GetKeyboardState
-#define SDL_JoystickName SDL_JoystickNameForIndex
+#define SDL_JoystickName(x) SDL_JoystickName(joystick[x])
 #endif
 
 

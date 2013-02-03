@@ -2915,20 +2915,20 @@ enum aiflag_enum {
 	_ep_aiflag_dead,
 	_ep_aiflag_drop,
 	_ep_aiflag_falling,
-	_ep_aiflag_freezetime,
 	_ep_aiflag_frozen,
 	_ep_aiflag_getting,
+	_ep_aiflag_idlemode,
 	_ep_aiflag_idling,
 	_ep_aiflag_inpain,
 	_ep_aiflag_invincible,
 	_ep_aiflag_jumpid,
 	_ep_aiflag_jumping,
-	_ep_aiflag_pain_time,
 	_ep_aiflag_projectile,
 	_ep_aiflag_running,
 	_ep_aiflag_toexplode,
 	_ep_aiflag_turning,
 	_ep_aiflag_walking,
+	_ep_aiflag_walkmode,
 	_ep_aiflag_the_end,
 };
 
@@ -2943,20 +2943,20 @@ static const char* eplist_aiflag[] = {
 	"dead",
 	"drop",
 	"falling",
-	"freezetime",
 	"frozen",
 	"getting",
+	"idlemode",
 	"idling",
 	"inpain",
 	"invincible",
 	"jumpid",
 	"jumping",
-	"pain_time",
 	"projectile",
 	"running",
 	"toexplode",
 	"turning",
 	"walking",
+	"walkmode",
 };
 
 enum gep_attack_enum {
@@ -3472,145 +3472,78 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 			return E_FAIL;
 		}
 		ltemp = arg->lVal;
+		
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		switch(ltemp)
 		{
 		case _ep_aiflag_dead:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->dead;
 			 break;
-		}
 		case _ep_aiflag_jumpid:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->jumpid;
 			 break;
-		}
 		case _ep_aiflag_jumping:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->jumping;
 			 break;
-		}
 		case _ep_aiflag_idling:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->idling;
 			 break;
-		}
 		case _ep_aiflag_drop:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->drop;
 			 break;
-		}
 		case _ep_aiflag_attacking:
-		{
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)ent->attacking;
 			break;
-		}
 		case _ep_aiflag_getting:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->getting;
 			 break;
-		}
 		case _ep_aiflag_turning:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->turning;
 			 break;
-		}
 		case _ep_aiflag_charging:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->charging;
 			 break;
-		}
 		case _ep_aiflag_blocking:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->blocking;
 			 break;
-		}
 		case _ep_aiflag_falling:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->falling;
 			 break;
-		}
 		case _ep_aiflag_running:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->running;
 			 break;
-		}
 		case _ep_aiflag_inpain:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->inpain;
 			 break;
-		} 
-		case _ep_aiflag_pain_time:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			 (*pretvar)->lVal = (LONG)ent->pain_time;
-			 break;
-		}
 		case _ep_aiflag_projectile:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->projectile;
 			 break;
-		}
 		case _ep_aiflag_frozen:
-		{
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)ent->frozen;
 			break;
-		}
-		case _ep_aiflag_freezetime:
-		{
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)ent->freezetime;
-			break;
-		}
 		case _ep_aiflag_toexplode:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->toexplode;
 			 break;
-		}
 		case _ep_aiflag_animating:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->animating;
 			 break;
-		}
 		case _ep_aiflag_blink:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->blink;
 			 break;
-		}
 		case _ep_aiflag_invincible:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->invincible;
 			 break;
-		}
 		case _ep_aiflag_autokill:
-		{
-			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->autokill;
 			 break;
-		}
-		case _ep_aiflag_walking:
-		{
-			 ScriptVariant_Clear(*pretvar); // depracated, just don't let it crash
+		case _ep_aiflag_idlemode:
+			 (*pretvar)->lVal = (LONG)ent->idlemode;
 			 break;
-		}
+		case _ep_aiflag_walkmode:
+			 (*pretvar)->lVal = (LONG)ent->walkmode;
+			 break;
+		case _ep_aiflag_walking:
+			break;
 		default:
 			ScriptVariant_Clear(*pretvar);
 			return E_FAIL;
@@ -5812,136 +5745,82 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		}
 		if(paramCount<4) break;
 
-		switch(varlist[2]->lVal)
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
 		{
-		case _ep_aiflag_dead:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+			switch(varlist[2]->lVal)
+			{
+			case _ep_aiflag_dead:
 				ent->dead = (int)ltemp;
-			break;
-		}
-		case _ep_aiflag_jumpid:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				break;
+			case _ep_aiflag_jumpid:
 				ent->jumpid = (int)ltemp;
-			break;
-		}
-		case _ep_aiflag_jumping:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				break;
+			case _ep_aiflag_jumping:
 				ent->jumping = (int)ltemp;
-			break;
-		}
-		case _ep_aiflag_idling:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				break;
+			case _ep_aiflag_idling:
 				ent->idling = (int)ltemp;
-			break;
-		}
-		case _ep_aiflag_drop:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				break;
+			case _ep_aiflag_drop:
 				ent->drop = (int)ltemp;
-			break;
-		}
-		case _ep_aiflag_attacking:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				break;
+			case _ep_aiflag_attacking:
 				ent->attacking = (int)ltemp;
-			break;
-		}
-		case _ep_aiflag_getting:
-		{
-			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				break;
+			case _ep_aiflag_getting:
 				ent->getting = (int)ltemp;
-			break;
-		}
-		case _ep_aiflag_turning:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				break;
+			case _ep_aiflag_turning:
 				 ent->turning = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_charging:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				 break;
+			case _ep_aiflag_charging:
 				 ent->charging = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_blocking:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				 break;
+			case _ep_aiflag_blocking:
 				 ent->blocking = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_falling:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
+				 break;
+			case _ep_aiflag_falling:
 				 ent->falling = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_running:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->running = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_inpain:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->inpain = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_projectile:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->projectile = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_frozen:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->frozen = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_toexplode:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->toexplode = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_animating:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->animating = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_blink:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->blink = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_invincible:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->invincible = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_autokill:
-		{
-			 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-				  ent->autokill = (int)ltemp;
-			 break;
-		}
-		case _ep_aiflag_walking:
-		{
-			 // do nothing, deprecated property
-			 break;
-		}
-		default:
-			printf("Unknown AI flag.\n");
-			goto changeentityproperty_error;
+				 break;
+			case _ep_aiflag_running:
+				 ent->running = (int)ltemp;
+				 break;
+			case _ep_aiflag_inpain:
+				 ent->inpain = (int)ltemp;
+				 break;
+			case _ep_aiflag_projectile:
+				 ent->projectile = (int)ltemp;
+				 break;
+			case _ep_aiflag_frozen:
+				 ent->frozen = (int)ltemp;
+				 break;
+			case _ep_aiflag_toexplode:
+				 ent->toexplode = (int)ltemp;
+				 break;
+			case _ep_aiflag_animating:
+				 ent->animating = (int)ltemp;
+				 break;
+			case _ep_aiflag_blink:
+				 ent->blink = (int)ltemp;
+				 break;
+			case _ep_aiflag_invincible:
+				 ent->invincible = (int)ltemp;
+				 break;
+			case _ep_aiflag_autokill:
+				 ent->autokill = (int)ltemp;
+				 break;
+			case _ep_aiflag_idlemode:
+				 ent->idlemode = (int)ltemp;
+				 break;
+			case _ep_aiflag_walkmode:
+				 ent->walkmode = (int)ltemp;
+				 break;
+			case _ep_aiflag_walking:
+				break;
+			default:
+				printf("Unknown AI flag.\n");
+				goto changeentityproperty_error;
+			}
 		}
 		break;
 	}
@@ -7178,6 +7057,8 @@ enum playerproperty_enum {
 	_pp_name,
 	_pp_playkeys,
 	_pp_score,
+	_pp_spawnhealth,
+	_pp_spawnmp,
 	_pp_weapon,
 	_pp_weaponum,
 	_pp_the_end,
@@ -7198,6 +7079,8 @@ void mapstrings_playerproperty(ScriptVariant** varlist, int paramCount)
 		"name",
 		"playkeys",
 		"score",
+		"spawnhealth",
+		"spawnmp",
 		"weapon",
 		"weaponum",
 	};
@@ -7276,6 +7159,18 @@ HRESULT openbor_getplayerproperty(ScriptVariant** varlist , ScriptVariant** pret
 		(*pretvar)->lVal = (LONG)player[index].score;
 		break;
 	}
+	case _pp_spawnhealth:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)player[index].spawnhealth;
+		break;
+	}
+	case _pp_spawnmp:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)player[index].spawnmp;
+		break;
+	}
 	case _pp_lives:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -7326,16 +7221,16 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 	char* tempstr = NULL;
 	ScriptVariant* arg = NULL;
 
+	*pretvar = NULL;
 	if(paramCount < 3)
 	{
-		*pretvar = NULL;
+		printf("Function changeplayerproperty must have at least 3 arguments.\n");
 		return E_FAIL;
 	}
 
 	mapstrings_playerproperty(varlist, paramCount);
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG)1;
 	arg = varlist[0];
+
 	if(FAILED(ScriptVariant_IntegerValue(arg, &ltemp)))
 	{
 		index = 0;
@@ -7360,53 +7255,38 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _pp_entity:
 	{
 		if(arg->vt==VT_PTR)
-		{
 			player[index].ent = (entity*)arg->ptrVal;
-			(*pretvar)->lVal = (LONG)1;
-		}
-		else (*pretvar)->lVal = (LONG)0;
+		else goto cpperror;
 		break;
 	}
 	case _pp_weapon:
 	{
-		if(!ent) {
-			(*pretvar)->lVal = (LONG)0;
-		}
-		else if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp))){
-			if(paramCount > 3)
-			{
-				arg = varlist[3];
-				if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp2)))
-					(*pretvar)->lVal = (LONG)1;
+		if(ent){
+			if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp))){
+				if(paramCount > 3)
+				{
+					if(FAILED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
+						goto cpperror;
+				}
+				else ltemp2 = (LONG)0;
+				set_weapon(player[index].ent, (int)ltemp, (int)ltemp2);
 			}
-			else
-			{
-				ltemp2 = (LONG)0;
-				(*pretvar)->lVal = (LONG)1;
-			}
-			set_weapon(player[index].ent, (int)ltemp, (int)ltemp2);
-			(*pretvar)->lVal = (LONG)1;
+			else goto cpperror;
 		}
-		else (*pretvar)->lVal = (LONG)0;
 		break;
 	}
 	case _pp_name:
 	{
-		if(arg->vt != VT_STR)
-		{
-			//printf();
-			return E_FAIL;
-		}
+		if(arg->vt != VT_STR) goto cpperror;
 		tempstr = (char*)StrCache_Get(arg->strVal);
 		strcpy(player[index].name, tempstr);
-		(*pretvar)->lVal = (LONG)1;
 		break;
 	}
 	case _pp_colourmap:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
 			player[index].colourmap = (int)ltemp;
-		else (*pretvar)->lVal = (LONG)0;
+		else goto cpperror;
 		break;
 	}
 	case _pp_score:
@@ -7417,21 +7297,35 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 			else if(ltemp > 999999999) ltemp = 999999999;
 			player[index].score = (unsigned int)ltemp;
 		}
-		else (*pretvar)->lVal = (LONG)0;
+		else goto cpperror;
+		break;
+	}
+	case _pp_spawnhealth:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
+			player[index].spawnhealth = (int)ltemp;
+		else goto cpperror;
+		break;
+	}
+	case _pp_spawnmp:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
+			player[index].spawnmp = (int)ltemp;
+		else goto cpperror;
 		break;
 	}
 	case _pp_lives:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
 			player[index].lives = (int)ltemp;
-		else (*pretvar)->lVal = (LONG)0;
+		else goto cpperror;
 		break;
 	}
 	case _pp_playkeys:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
 			player[index].playkeys = (int)ltemp;
-		else (*pretvar)->lVal = (LONG)0;
+		else goto cpperror; 
 		break;
 	}
 	case _pp_credits:
@@ -7441,15 +7335,18 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 		   	if(noshare) player[index].credits = (int)ltemp;
 			else        credits = (int)ltemp;
 		}
-		else (*pretvar)->lVal = (LONG)0;
+		else goto cpperror;
 		break;
 	}
-	//this property is not known, so return 0
-	//default:
-	//    (*pretvar)->lVal = (LONG)0;
+	default:
+		printf("Invalid property name for function changeplayerproperty.\n");
+		return E_FAIL;
 	}
 
 	return S_OK;
+cpperror:
+	printf("Function changeplayerproperty receives an invalid value.\n");
+	return E_FAIL;
 }
 
 //checkhole(x,z), return 1 if there's hole here
