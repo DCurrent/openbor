@@ -133,26 +133,25 @@ All Rights Reserved</string>
       <key>CFBundleTypeExtensions</key>
       <array>
         <string>pak</string>
-	<string>PAK</string>
+        <string>spk</string>
       </array>
       <key>CFBundleTypeIconFile</key>
       <string>OpenBOR.icns</string>
       <key>CFBundleTypeName</key>
       <string>PAK File</string>
       <key>CFBundleTypeOSTypes</key>
-      <string>pak</string>
+        <array>
+          <string>pak</string>
+          <string>spk</string>
+        </array>
       <key>CFBundleTypeRole</key>
       <string>Viewer</string>
     </dict>
     <dict>
-      <key>CFBundleTypeExtensions</key>
-      <string>spk</string>
       <key>CFBundleTypeIconFile</key>
       <string>OpenBOR.icns</string>
       <key>CFBundleTypeName</key>
       <string>SPK File</string>
-      <key>CFBundleTypeOSTypes</key>
-      <string>spk</string>
       <key>CFBundleTypeRole</key>
       <string>Viewer</string>
     </dict>
