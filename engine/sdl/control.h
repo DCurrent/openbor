@@ -10,7 +10,7 @@
 #define	CONTROL_H
 
 // Generic control stuff (keyboard+joystick).
-#ifdef ANDROID
+#if ANDROID || DARWIN
 #include <SDL_Keycode.h>
 #else
 #include <SDL_keysym.h>

@@ -378,7 +378,7 @@ char* JOY_GetKeyName(int keycode)
 {
 #ifdef OPENDINGUX
 	return OPENDINGUX_GetKeyName(keycode);
-#elif ANDROID
+#elif ANDROID || DARWIN
 	return (char*)SDL_GetScancodeName(keycode);
 #else
 	return (char*)SDL_GetKeyName(keycode);
