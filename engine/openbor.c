@@ -14052,8 +14052,9 @@ int set_blockpain(entity *iBlkpain, int type, int reset)
 	if(type < 0 || type >= max_attack_types || !validanim(iBlkpain,animblkpains[type])) type = 0;
 	if(validanim(iBlkpain,animblkpains[type])) 
 	{
-		iBlkpain->takeaction = common_pain;
-		painflags(iBlkpain);
+		iBlkpain->takeaction = common_block;
+		set_blocking(self);
+		iBlkpain->inpain = 1;
 		ent_set_anim(iBlkpain, animblkpains[type], reset);
 		return 1;
 	}
@@ -14900,7 +14901,7 @@ void common_get()
 // A.I. characters do the block
 void common_block()
 {
-	int hb1 = self->modeldata.holdblock && self->modeldata.type==TYPE_PLAYER;
+	int hb1 = self->modeldata.holdblock && self->modeldata.type==TYPE_PLAYER && !self->inpain; //inpain = blockpain
 	int hb2 = ((player+self->playerindex)->keys&FLAG_SPECIAL) ;
 
 	if(
