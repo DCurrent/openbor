@@ -599,13 +599,77 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         {
             return false;
         }
+        
+        //remap keys, for sdl doesn't support them
+        switch(keyCode)
+        {
+            case KeyEvent.KEYCODE_BUTTON_1://	Key code constant: Generic Game Pad Button #1.
+                keyCode=KeyEvent.KEYCODE_1; break;                
+            case KeyEvent.KEYCODE_BUTTON_10: //key code constant: Generic Game Pad Button #10.
+                keyCode=KeyEvent.KEYCODE_2; break;
+            case KeyEvent.KEYCODE_BUTTON_11: //key code constant: Generic Game Pad Button #11.
+                keyCode=KeyEvent.KEYCODE_3; break;
+            case KeyEvent.KEYCODE_BUTTON_12: //key code constant: Generic Game Pad Button #12.
+                keyCode=KeyEvent.KEYCODE_4; break;
+            case KeyEvent.KEYCODE_BUTTON_13: //key code constant: Generic Game Pad Button #13.
+                keyCode=KeyEvent.KEYCODE_5; break;
+            case KeyEvent.KEYCODE_BUTTON_14: //key code constant: Generic Game Pad Button #14.
+                keyCode=KeyEvent.KEYCODE_6; break;
+            case KeyEvent.KEYCODE_BUTTON_15: //key code constant: Generic Game Pad Button #15.
+                keyCode=KeyEvent.KEYCODE_7; break;
+            case KeyEvent.KEYCODE_BUTTON_16: //key code constant: Generic Game Pad Button #16.
+                keyCode=KeyEvent.KEYCODE_8; break;
+            case KeyEvent.KEYCODE_BUTTON_2: //key code constant: Generic Game Pad Button #2.
+                keyCode=KeyEvent.KEYCODE_9; break;
+            case KeyEvent.KEYCODE_BUTTON_3: //key code constant: Generic Game Pad Button #3.
+                keyCode=KeyEvent.KEYCODE_0; break;
+            case KeyEvent.KEYCODE_BUTTON_4: //key code constant: Generic Game Pad Button #4.
+                keyCode=KeyEvent.KEYCODE_A; break;
+            case KeyEvent.KEYCODE_BUTTON_5: //key code constant: Generic Game Pad Button #5.
+                keyCode=KeyEvent.KEYCODE_B; break;
+            case KeyEvent.KEYCODE_BUTTON_6: //key code constant: Generic Game Pad Button #6.
+                keyCode=KeyEvent.KEYCODE_C; break;
+            case KeyEvent.KEYCODE_BUTTON_7: //key code constant: Generic Game Pad Button #7.
+                keyCode=KeyEvent.KEYCODE_D; break;
+            case KeyEvent.KEYCODE_BUTTON_8: //key code constant: Generic Game Pad Button #8.
+                keyCode=KeyEvent.KEYCODE_E; break;
+            case KeyEvent.KEYCODE_BUTTON_9: //key code constant: Generic Game Pad Button #9.
+                keyCode=KeyEvent.KEYCODE_F; break;
+            case KeyEvent.KEYCODE_BUTTON_A: //key code constant: A Button key.
+                keyCode=KeyEvent.KEYCODE_G; break;
+            case KeyEvent.KEYCODE_BUTTON_B: //key code constant: B Button key.
+                keyCode=KeyEvent.KEYCODE_H; break;
+            case KeyEvent.KEYCODE_BUTTON_C: //key code constant: C Button key.
+                keyCode=KeyEvent.KEYCODE_I; break;
+            case KeyEvent.KEYCODE_BUTTON_L1: //key code constant: L1 Button key.
+                keyCode=KeyEvent.KEYCODE_J; break;
+            case KeyEvent.KEYCODE_BUTTON_L2: //key code constant: L2 Button key.
+                keyCode=KeyEvent.KEYCODE_K; break;
+            case KeyEvent.KEYCODE_BUTTON_MODE: //key code constant: Mode Button key.
+                keyCode=KeyEvent.KEYCODE_L; break;
+            case KeyEvent.KEYCODE_BUTTON_R1: //key code constant: R1 Button key.
+                keyCode=KeyEvent.KEYCODE_M; break;
+            case KeyEvent.KEYCODE_BUTTON_R2: //key code constant: R2 Button key.
+                keyCode=KeyEvent.KEYCODE_N; break;
+            case KeyEvent.KEYCODE_BUTTON_SELECT: //key code constant: Select Button key.
+                keyCode=KeyEvent.KEYCODE_O; break;
+            case KeyEvent.KEYCODE_BUTTON_START: //key code constant: Start Button key.
+                keyCode=KeyEvent.KEYCODE_P; break;
+            case KeyEvent.KEYCODE_BUTTON_THUMBL: //key code constant: Left Thumb Button key.
+                keyCode=KeyEvent.KEYCODE_Q; break;
+            case KeyEvent.KEYCODE_BUTTON_THUMBR: //key code constant: Right Thumb Button key.
+                keyCode=KeyEvent.KEYCODE_R; break;
+            case KeyEvent.KEYCODE_BUTTON_X: //key code constant: X Button key.
+                keyCode=KeyEvent.KEYCODE_S; break;
+            case KeyEvent.KEYCODE_BUTTON_Y: //key code constant: Y Button key.
+                keyCode=KeyEvent.KEYCODE_T; break;
+            case KeyEvent.KEYCODE_BUTTON_Z: //key code constant: Z Button key.
+                keyCode=KeyEvent.KEYCODE_U; break;
+        }
 
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             //Log.v("SDL", "key down: " + keyCode);
-            if(keyCode==KeyEvent.KEYCODE_BACK)
-                SDLActivity.nativeQuit();
-            else
-                SDLActivity.onNativeKeyDown(keyCode);
+            SDLActivity.onNativeKeyDown(keyCode);
             return true;
         }
         else if (event.getAction() == KeyEvent.ACTION_UP) {

@@ -1352,7 +1352,9 @@ typedef struct entity
 	float* offense_factors; //offense factors: damage = damage*(1+def)
 	float antigravity; // gravity*(1-antigravity)
 
-	//-------------------A.I. movement factors ----------------------------
+	int idlemode;
+	int walkmode;
+
 	int sortid; // id for sprite queue sort
 	ScriptVariant* entvars;
 	s_drawmethod drawmethod;
@@ -1867,10 +1869,6 @@ int common_try_avoid(entity* target, int dox, int doz);
 int common_try_wandercompletely(int dox, int doz);
 int common_try_wander(entity* target, int dox, int doz);
 void common_pickupitem(entity* other);
-int common_walk_anim(entity* ent);
-int common_idle_anim(entity* ent);
-int common_up_anim(entity* ent);
-int common_down_anim(entity* ent);
 int common_backwalk_anim(entity* ent);
 int bomb_move(void);
 int arrow_move(void);
