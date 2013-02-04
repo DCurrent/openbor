@@ -14901,7 +14901,8 @@ void common_get()
 // A.I. characters do the block
 void common_block()
 {
-	int hb1 = self->modeldata.holdblock && self->modeldata.type==TYPE_PLAYER && !self->inpain; //inpain = blockpain
+	int hb1 = self->modeldata.holdblock && self->modeldata.type==TYPE_PLAYER &&
+		(!self->inpain || (self->modeldata.holdblock&2)); //inpain = blockpain
 	int hb2 = ((player+self->playerindex)->keys&FLAG_SPECIAL) ;
 
 	if(
@@ -16954,6 +16955,11 @@ int common_try_wander(entity* target, int dox, int doz)
 	mindz = grabd/4;
 
 	mod = ((int)(time/(videomodes.hRes/self->modeldata.speed)) + self->sortid/100 + self->health/3 + self->pathblocked + self->modeldata.aggression/10) % 4;
+	if(mod<0) mod = -mod;
+	if ((self->sortid/100)%2)
+	{
+		mod = 3-mod;
+	}
 
 	if(dox){
 		if(self->x<screenx-borderdx){
