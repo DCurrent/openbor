@@ -9529,7 +9529,7 @@ void load_level(char *filename){
 				level->spawn[i][1] = GET_INT_ARG(2);
 				level->spawn[i][2] = GET_INT_ARG(3);
 
-				if(level->spawn[i][1] > 232 || level->spawn[i][1] < 0) level->spawn[i][1] = 232;
+				//if(level->spawn[i][1] > 232 || level->spawn[i][1] < 0) level->spawn[i][1] = 232;
 				if(level->spawn[i][2] < 0) level->spawn[i][2] = 300;
 				break;
 			case CMD_LEVEL_FRONTPANEL:
