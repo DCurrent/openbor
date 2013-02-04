@@ -3,7 +3,8 @@
  * pp_test.
  */
 
-#include "../../../testing/data.MYMOD/scripts/blinkd.c"
+//#include "../../../testing/data.MYMOD/scripts/blinkd.c"
+//#include <stdio.h>
 #import "data/scripts/somefile.c"
 
 // this is a comment and it is \
@@ -53,6 +54,51 @@ stringify("identifier" + num + 3)
 
 // make sure null directives are "supported" (i.e. ignored)
 #
+
+// test #if directives
+#if 1
+if directives work
+#endif
+#if 0
+if/else fails
+#else
+if/else works
+#endif
+#if 0
+if/elif/else fails (1)
+#elif 1
+if/elif/else works
+#else
+if/elif/else fails (2)
+#endif
+#define testfunc(x) x
+#if testfunc (20)
+function macros in if directives work
+#endif
+
+// test "defined" in #if directives
+#if defined(stringify)
+stringify is defined
+#endif
+#if defined partial
+_partial is defined
+#endif
+#if !defined notfunc
+notfunc is undefined
+#endif
+
+// test __FILE__ and __LINE__ built-in macros
+This line is __FILE__:__LINE__
+#define linenum __LINE__
+#if linenum != __LINE__
+#error __LINE__ is not working properly
+#else
+"__LINE__" inside of macros works properly
+#endif
+#undef linenum
+
+// test __DATE__ and __TIME__
+The date is __DATE__ and the time is __TIME__
 
 // make sure "unexpected newline" errors are readable
 //#include

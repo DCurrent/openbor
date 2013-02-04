@@ -401,7 +401,8 @@ SCRIPT          = source/scriptlib/StackedSymbolTable.o                         
                   source/scriptlib/Stack.o                                                          \
                   source/scriptlib/List.o                                                           \
                   source/preprocessorlib/pp_lexer.o                                                 \
-                  source/preprocessorlib/pp_parser.o
+                  source/preprocessorlib/pp_parser.o                                                \
+                  source/preprocessorlib/pp_expr.o
 RAM             = source/ramlib/ram.o
 RAND	        = source/randlib/rand32.o
 PNG             = source/pnglib/pngdec.o                                                            \
