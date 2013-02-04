@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
 /**
@@ -40,10 +40,10 @@ enum conditional_state {
  * conditionals.  The stack is implemented as a 32-bit integer.
  */
 typedef union {
-	int all;
+	u64 all;
 	struct {
-		unsigned top:2;
-		unsigned others:30;
+		u64 top:2;
+		u64 others:62;
 	};
 } conditional_stack;
 
@@ -60,7 +60,8 @@ typedef enum {
 	PP_INCLUDE,
 	PP_NORMAL_MACRO,
 	PP_FUNCTION_MACRO,
-	PP_CONCATENATE
+	PP_CONCATENATE,
+	PP_CONDITIONAL
 } pp_parser_type;
 
 typedef struct pp_parser {
@@ -70,6 +71,7 @@ typedef struct pp_parser {
 	const char* filename;
 	char* sourceCode;
 	int numParams;                     // parameter macros defined for a function macro parser
+	char* macroName;
 	bool freeFilename;
 	bool freeSourceCode;
 	pp_token token;
@@ -88,6 +90,7 @@ pp_parser* pp_parser_alloc(pp_parser* parent, const char* filename, char* source
 pp_parser* pp_parser_alloc_macro(pp_parser* parent, char* macroContents, int numParams, pp_parser_type type);
 
 pp_token* pp_parser_emit_token(pp_parser* self);
+HRESULT pp_parser_lex_token(pp_parser* self, bool skip_whitespace);
 HRESULT pp_parser_readline(pp_parser* self, char* buf, int bufsize);
 HRESULT pp_parser_stringify(pp_parser* self);
 void pp_parser_concatenate(pp_parser* self, const char* token1, const char* token2);
@@ -95,9 +98,12 @@ HRESULT pp_parser_parse_directive(pp_parser* self);
 HRESULT pp_parser_include(pp_parser* self, char* filename);
 HRESULT pp_parser_define(pp_parser* self, char* name);
 HRESULT pp_parser_conditional(pp_parser* self, PP_TOKEN_TYPE directive);
-bool pp_parser_eval_conditional(pp_parser* self, PP_TOKEN_TYPE directive);
+HRESULT pp_parser_eval_conditional(pp_parser* self, PP_TOKEN_TYPE directive, int* result);
 void pp_parser_insert_macro(pp_parser* self, char* name);
 HRESULT pp_parser_insert_function_macro(pp_parser* self, char* name);
+bool pp_is_builtin_macro(const char* name);
+void pp_parser_insert_builtin_macro(pp_parser* self, const char* name);
+bool pp_parser_is_defined(pp_parser* self, const char* name);
 
 HRESULT pp_error(pp_parser* self, char* format, ...);
 void pp_warning(pp_parser* self, char* format, ...);

@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
 /**
@@ -18,10 +18,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <time.h>
 #include <malloc.h>
 #include <errno.h>
 #include "List.h"
 #include "pp_parser.h"
+#include "pp_expr.h"
 #include "borendian.h"
 
 #if PP_TEST // using pp_test.c to test the preprocessor functionality; OpenBOR functionality is not available
@@ -33,11 +35,13 @@
 #define closepackfile(hnd)			fclose((FILE*)hnd)
 #define printf(msg, args...)		fprintf(stderr, msg, ##args)
 #define shutdown(ret, msg, args...) { fprintf(stderr, msg, ##args); exit(ret); }
-#else // otherwise, we can use OpenBOR functionality like tracemalloc and writeToLogFile
+extern char* get_full_path(char* filename);
+#else // otherwise, we can use OpenBOR functionality like writeToLogFile
 #include "openbor.h"
 #include "globals.h"
 #include "packfile.h"
 #define tellpackfile(hnd)			seekpackfile(hnd, 0, SEEK_CUR)
+#undef time
 #endif
 
 /**
@@ -46,6 +50,10 @@
  */
 void pp_context_init(pp_context* self)
 {
+	char buf[64];
+	time_t currentTime = time(NULL);
+	char* datetime = ctime(&currentTime);
+	
 	// initialize the macro lists
 	List_Init(&self->macros);
 	List_Init(&self->func_macros);
@@ -54,8 +62,26 @@ void pp_context_init(pp_context* self)
 	List_Init(&self->imports);
 
 	// initialize the conditional stack
-	self->conditionals.all = 0;
+	self->conditionals.all = 0ll;
 	self->num_conditionals = 0;
+	
+	// initialize the builtin macros other than __FILE__ and __LINE__
+	strcpy(buf, "\"");
+	strncat(buf, datetime+4, 7);
+	strncat(buf, datetime+20, 4);
+	strcat(buf, "\"");
+	List_InsertAfter(&self->macros, strdup(buf), "__DATE__");
+
+	strcpy(buf, "\"");
+	strncat(buf, datetime+11, 8);
+	strcat(buf, "\"");
+	List_InsertAfter(&self->macros, strdup(buf), "__TIME__");
+
+#if PP_TEST
+	List_InsertAfter(&self->macros, strdup("1"), "__STDC__");
+	List_InsertAfter(&self->macros, strdup("1"), "__STDC_HOSTED__");
+	List_InsertAfter(&self->macros, strdup("199901L"), "__STDC_VERSION__");
+#endif
 }
 
 /**
@@ -118,6 +144,7 @@ void pp_parser_init(pp_parser* self, pp_context* ctx, const char* filename, char
 	self->parent = NULL;
 	self->child = NULL;
 	self->numParams = 0;
+	self->macroName = NULL;
 	self->newline = true;
 	self->overread = false;
 }
@@ -144,7 +171,7 @@ pp_parser* pp_parser_alloc(pp_parser* parent, const char* filename, char* source
 /**
  * Allocates a subparser to expand a macro.  This is a convenience constructor.
  * @param self the object
- * @param parent the parent parser of
+ * @param parent the parent parser
  * @param numParams number of macros to free from the start of the macro list
  *        when freeing this parser (0 for non-function macros)
  * @return the newly allocated parser
@@ -263,6 +290,32 @@ HRESULT pp_parser_lex_token(pp_parser* self, bool skip_whitespace)
 }
 
 /**
+ * Returns the type of the next non-whitespace token in the lexer's stream
+ * without permanently changing the state of the parser or its lexer, or -1 if
+ * there is a lexical error.
+ */
+int pp_parser_peek_token(pp_parser* self)
+{
+	pp_lexer lexer;
+	pp_token token;
+
+	memcpy(&lexer, &self->lexer, sizeof(pp_lexer));
+
+	while(1)
+	{
+		if(FAILED(pp_lexer_GetNextToken(&self->lexer, &token))) 
+		{
+			memcpy(&self->lexer, &lexer, sizeof(pp_lexer));
+			return -1;
+		}
+		if(token.theType != PP_TOKEN_WHITESPACE) break;
+	}
+
+	memcpy(&self->lexer, &lexer, sizeof(pp_lexer));
+	return token.theType;
+}
+
+/**
  * Gets the next parsable token from the lexer, using a token from a parent
  * lexer if necessary.  This is useful for expanding macros.
  * @param skip_whitespace true to ignore whitespace, false otherwise
@@ -299,7 +352,7 @@ pp_token* pp_parser_emit_token(pp_parser* self)
 {
 	bool emitme = false;
 	bool success = true;
-	pp_token token2, token3;
+	pp_token token2;
 	pp_token* child_token;
 	int i;
 	char* param1, *param2;
@@ -317,7 +370,6 @@ pp_token* pp_parser_emit_token(pp_parser* self)
 				List_Reset(&self->ctx->macros);
 				for(i=0; i<self->child->numParams; i++)
 				{
-					// the string is allocated by strdup(), so use free() instead of free()
 					free(List_Retrieve(&self->ctx->macros));
 					List_Remove(&self->ctx->macros);
 				}
@@ -325,6 +377,7 @@ pp_token* pp_parser_emit_token(pp_parser* self)
 				// free the source code and filename if necessary
 				if(self->child->freeFilename) free((void*)self->child->filename);
 				if(self->child->freeSourceCode) free(self->child->sourceCode);
+				if(self->child->macroName) free(self->child->macroName);
 
 				free(self->child);
 				self->child = NULL;
@@ -345,14 +398,15 @@ pp_token* pp_parser_emit_token(pp_parser* self)
 			if(FAILED(pp_parser_lex_token(self, false))) break;
 
 		if(self->token.theType == PP_TOKEN_DIRECTIVE ||
-		   !(self->ctx->conditionals.top == cs_false || self->ctx->conditionals.top == cs_done))
+		   self->ctx->conditionals.all == (self->ctx->conditionals.all & 0x5555555555555555ll))
 		{
 			// handle token concatenation
 			if(self->type == PP_FUNCTION_MACRO || self->type == PP_NORMAL_MACRO)
 			{
-				bool whitespace = false;
+				int numParams;
+				pp_parser* p;
 
-				memcpy(&token2, &self->token, sizeof(pp_token));
+				/*memcpy(&token2, &self->token, sizeof(pp_token));
 				success = SUCCEEDED(pp_parser_lex_token(self, false));
 				while(success && self->token.theType == PP_TOKEN_WHITESPACE)
 				{
@@ -360,12 +414,15 @@ pp_token* pp_parser_emit_token(pp_parser* self)
 					memcpy(&token3, &self->token, sizeof(pp_token));
 					success = SUCCEEDED(pp_parser_lex_token(self, false));
 				}
-				if(!success) break;
+				if(!success) break;*/
 
-				if(self->token.theType == PP_TOKEN_CONCATENATE)
+				if(pp_parser_peek_token(self) == PP_TOKEN_CONCATENATE)
 				{
-					memcpy(&token3, &self->token, sizeof(pp_token));
-					success = SUCCEEDED(pp_parser_lex_token(self, true));
+					memcpy(&token2, &self->token, sizeof(pp_token));
+					success = SUCCEEDED(pp_parser_lex_token(self, true)); // lex '##'
+					assert(self->token.theType == PP_TOKEN_CONCATENATE);
+					if(!success) break;
+					success = SUCCEEDED(pp_parser_lex_token(self, true)); // lex second token
 					if(!success) break;
 
 					if(self->token.theType == PP_TOKEN_EOF)
@@ -374,40 +431,44 @@ pp_token* pp_parser_emit_token(pp_parser* self)
 						return NULL;
 					}
 
-					if(List_FindByName(&self->ctx->macros, token2.theSource) &&
-						(List_GetIndex(&self->ctx->macros) < self->numParams))
+					param1 = token2.theSource;
+					numParams = self->numParams;
+					p = self;
+					while(1)
 					{
-						param1 = (char*)List_Retrieve(&self->ctx->macros);
+						if(List_FindByName(&self->ctx->macros, param1) &&
+					      List_GetIndex(&self->ctx->macros) < numParams)
+							param1 = (char*)List_Retrieve(&self->ctx->macros);
+						else if(List_FindByName(&self->ctx->func_macros, p->macroName) &&
+								List_FindByName(List_Retrieve(&self->ctx->func_macros), param1))
+							;
+						else break;
+						if(p->parent->type == PP_FUNCTION_MACRO) {
+							p = p->parent;
+							numParams += p->numParams;
+						}
 					}
-					else
-						param1 = token2.theSource;
 
-					if(List_FindByName(&self->ctx->macros, self->token.theSource) &&
-						(List_GetIndex(&self->ctx->macros) < self->numParams))
+					param2 = self->token.theSource;
+					numParams = self->numParams;
+					p = self;
+					while(1)
 					{
-						param2 = (char*)List_Retrieve(&self->ctx->macros);
+						if(List_FindByName(&self->ctx->macros, param2) &&
+					      List_GetIndex(&self->ctx->macros) < numParams)
+							param2 = (char*)List_Retrieve(&self->ctx->macros);
+						else if(List_FindByName(&self->ctx->func_macros, p->macroName) &&
+								List_FindByName(List_Retrieve(&self->ctx->func_macros), param2))
+							;
+						else break;
+						if(p->parent->type == PP_FUNCTION_MACRO) {
+							p = p->parent;
+							numParams += p->numParams;
+						}
 					}
-					else
-						param2 = self->token.theSource;
-
 					pp_parser_concatenate(self, param1, param2);
 					emitme = false;
 					continue;
-				}
-				else // oops, the next token is not a ##
-				{
-					if(whitespace && token2.theType != PP_TOKEN_DIRECTIVE)
-					{
-						// this is a silly and convoluted way to do this, but it works...
-						pp_parser_concatenate(self, token2.theSource, token3.theSource);
-						self->overread = true;
-						continue;
-					}
-					else
-					{
-						memcpy(&self->token, &token2, sizeof(pp_token));
-						self->overread = true;
-					}
 				}
 			}
 
@@ -440,7 +501,8 @@ pp_token* pp_parser_emit_token(pp_parser* self)
 					emitme = true;
 					break;
 				case PP_TOKEN_NEWLINE:
-					emitme = true;
+					if(!self->newline)
+						emitme = true;
 					self->newline = true;
 					break;
 				case PP_TOKEN_WHITESPACE:
@@ -449,25 +511,21 @@ pp_token* pp_parser_emit_token(pp_parser* self)
 					break;
 				case PP_TOKEN_IDENTIFIER:
 					memcpy(&token2, &self->token, sizeof(pp_token));
-					success = SUCCEEDED(pp_parser_lex_token(self, false));
-					if(!success) break;
 
-					if(self->token.theType == PP_TOKEN_LPAREN && List_FindByName(&self->ctx->func_macros, token2.theSource))
+					if(!strcmp(self->token.theSource, "__FILE__") || !strcmp(self->token.theSource, "__LINE__"))
+						pp_parser_insert_builtin_macro(self, token2.theSource);
+					else if(pp_parser_peek_token(self) == PP_TOKEN_LPAREN &&
+					        List_FindByName(&self->ctx->func_macros, token2.theSource))
 					{
+						success = SUCCEEDED(pp_parser_lex_token(self, true));
+						assert(self->token.theType == PP_TOKEN_LPAREN);
+						if(!success) break;
 						if(FAILED(pp_parser_insert_function_macro(self, token2.theSource))) return NULL;
-						self->overread = false;
 					}
 					else if(List_FindByName(&self->ctx->macros, token2.theSource))
-					{
 						pp_parser_insert_macro(self, token2.theSource);
-						self->overread = true;
-					}
 					else
-					{
-						memcpy(&self->token, &token2, sizeof(pp_token));
 						emitme = true;
-						self->overread = true;
-					}
 					break;
 				default: // now includes EOF
 					emitme = true;
@@ -485,6 +543,7 @@ HRESULT pp_parser_readline(pp_parser* self, char* buf, int bufsize)
 	int total_length = 1;
 
 	if(FAILED(pp_parser_lex_token(self, true))) return E_FAIL;
+	buf[0] = '\0';
 
 	while(1)
 	{
@@ -554,6 +613,7 @@ HRESULT pp_parser_stringify(pp_parser* self)
 
 /**
  * Concatenates two tokens together, implementing the "##" operator.
+ * TODO: concatenation still needs work
  * @param token1 the contents of the first token
  * @param token2 the contents of the second token
  */
@@ -576,9 +636,12 @@ HRESULT pp_parser_parse_directive(pp_parser* self)
 	if(FAILED(pp_parser_lex_token(self, true))) return E_FAIL;
 
 	// most directives shouldn't be parsed if we're in the middle of a conditional false
-	if(self->ctx->conditionals.top == cs_false || self->ctx->conditionals.top == cs_done)
+	if(self->ctx->conditionals.all > (self->ctx->conditionals.all & 0x5555555555555555ll))
 	{
-		if(self->token.theType != PP_TOKEN_ELIF &&
+		if(self->token.theType != PP_TOKEN_IFDEF &&
+		   self->token.theType != PP_TOKEN_IFNDEF &&
+		   self->token.theType != PP_TOKEN_IF &&
+		   self->token.theType != PP_TOKEN_ELIF &&
 		   self->token.theType != PP_TOKEN_ELSE &&
 		   self->token.theType != PP_TOKEN_ENDIF)
 		{
@@ -591,17 +654,30 @@ HRESULT pp_parser_parse_directive(pp_parser* self)
 		case PP_TOKEN_INCLUDE:
 		case PP_TOKEN_IMPORT:
 		{
-			char* filename;
+			char filename[128] = {""};
 			int type = self->token.theType;
 
 			if(FAILED(pp_parser_lex_token(self, true))) return E_FAIL;
 
-			if(self->token.theType != PP_TOKEN_STRING_LITERAL)
-				return pp_error(self, "#include not followed by a path string");
-
-			filename = self->token.theSource + 1; // trim first " mark
-			filename[strlen(filename)-1] = '\0'; // trim last " mark
-
+#if PP_TEST
+			if(self->token.theType == PP_TOKEN_LT)
+			{
+				char* end;
+				if(FAILED(pp_parser_readline(self, filename, sizeof(filename))))
+					return pp_error(self, "unable to read rest of line?");
+				end = strrchr(filename, '>');
+				if(end == NULL)
+					return pp_error(self, "invalid #include syntax");
+				*end = '\0';
+			}
+			else
+#endif
+			if(self->token.theType == PP_TOKEN_STRING_LITERAL)
+			{
+				strcpy(filename, self->token.theSource + 1); // trim first " mark
+				filename[strlen(filename)-1] = '\0'; // trim last " mark
+			}
+			else return pp_error(self, "#include not followed by a path string");
 
 			if(type == PP_TOKEN_INCLUDE)
 				return pp_parser_include(self, filename);
@@ -628,6 +704,8 @@ HRESULT pp_parser_parse_directive(pp_parser* self)
 		}
 		case PP_TOKEN_UNDEF:
 			if(FAILED(pp_parser_lex_token(self, true))) return E_FAIL;
+			if(pp_is_builtin_macro(self->token.theSource))
+				return pp_error(self, "'%s' is a builtin macro and cannot be undefined", self->token.theSource);
 			if(List_FindByName(&self->ctx->macros, self->token.theSource))
 			{
 				free(List_Retrieve(&self->ctx->macros));
@@ -691,9 +769,13 @@ HRESULT pp_parser_include(pp_parser* self, char* filename)
 	int handle;
 	pp_parser* includeParser;
 
+#if PP_TEST
+	filename = get_full_path(filename);
+#endif
+
 	// Open the file
 	handle = openpackfile(filename, packfile);
-#ifdef PP_TEST
+#if PP_TEST
 	if(!handle)
 #else
 	if(handle < 0)
@@ -742,26 +824,37 @@ HRESULT pp_parser_define(pp_parser* self, char* name)
 
 	List_Init(params);
 
+	// emit an error if the macro is already defined
+	if(!strcmp(name, "defined"))
+	{
+		pp_error(self, "'defined' can't be defined as a macro");
+		goto error;
+	}
+	if(pp_is_builtin_macro(name))
+	{
+		pp_error(self, "'%s' is a builtin macro and cannot be redefined", name);
+		goto error;
+	}
+
 	// emit a warning if the macro is already defined
 	// note: this won't mess with function macro parameters since #define can't be used from inside a macro
-
 	if(List_FindByName(&self->ctx->macros, name))
 	{
-		pp_warning(self, "'%s' redefined", name);
+		pp_warning(self, "'%s' redefined (previously \"%s\")", name, List_Retrieve(&self->ctx->macros));
 		free(List_Retrieve(&self->ctx->macros));
 		List_Remove(&self->ctx->macros);
 	}
 	if(List_FindByName(&self->ctx->func_macros, name))
 	{
-		List* params = List_Retrieve(&self->ctx->func_macros);
-		pp_warning(self, "'%s' redefined", name);
-		while(params->size > 0)
+		List* params2 = List_Retrieve(&self->ctx->func_macros);
+		pp_warning(self, "'%s' redefined (previously \"%s\")", name, List_Retrieve(&self->ctx->func_macros));
+		while(params2->size > 0)
 		{
-			free(List_Retrieve(params));
-			List_Remove(params);
+			free(List_Retrieve(params2));
+			List_Remove(params2);
 		}
-		List_Clear(params);
-		free(params);
+		List_Clear(params2);
+		free(params2);
 		List_Remove(&self->ctx->func_macros);
 	}
 
@@ -786,6 +879,7 @@ HRESULT pp_parser_define(pp_parser* self, char* name)
 				case PP_TOKEN_ELIF:
 				case PP_TOKEN_ENDIF:
 				case PP_TOKEN_PRAGMA:
+				case PP_TOKEN_DEFINED:
 				case PP_TOKEN_WARNING:
 				case PP_TOKEN_ERROR_TEXT:
 					List_InsertAfter(params, NULL, self->token.theSource);
@@ -834,25 +928,34 @@ error:
  */
 HRESULT pp_parser_conditional(pp_parser* self, PP_TOKEN_TYPE directive)
 {
+	int result;
 	switch(directive)
 	{
 		case PP_TOKEN_IF:
-			return pp_error(self, "#if directive not supported");
 		case PP_TOKEN_IFDEF:
 		case PP_TOKEN_IFNDEF:
-			if(self->ctx->num_conditionals++ > 16) return pp_error(self, "too many levels of nested conditional directives");
+			if(self->ctx->num_conditionals++ > 32) return pp_error(self, "too many levels of nested conditional directives");
 			self->ctx->conditionals.all <<= 2; // push a new conditional state onto the stack
-			self->ctx->conditionals.top = pp_parser_eval_conditional(self, directive) ? cs_true : cs_false;
+			if(self->ctx->conditionals.others > (self->ctx->conditionals.others & 0x5555555555555555ll))
+			{
+				self->ctx->conditionals.top = cs_false;
+				break;
+			}
+			if(FAILED(pp_parser_eval_conditional(self, directive, &result))) return E_FAIL;
+			self->ctx->conditionals.top = result ? cs_true : cs_false;
 			break;
 		case PP_TOKEN_ELIF:
-			return pp_error(self, "#elif directive not supported");
-#if 0
+			if(self->ctx->conditionals.top == cs_none) return pp_error(self, "stray #elif");
 			if(self->ctx->conditionals.top == cs_done || self->ctx->conditionals.top == cs_true)
 				self->ctx->conditionals.top = cs_done;
-			else
-				self->ctx->conditionals.top = pp_parser_eval_conditional(self, directive) ? cs_true : cs_false;
+			else if(self->ctx->conditionals.others == (self->ctx->conditionals.others & 0x5555555555555555ll))
+			{
+				// unconditionally enable parsing long enough to parse the condition
+				self->ctx->conditionals.top = cs_true;
+				if(FAILED(pp_parser_eval_conditional(self, directive, &result))) return E_FAIL;
+				self->ctx->conditionals.top = result ? cs_true : cs_false;
+			}
 			break;
-#endif
 		case PP_TOKEN_ELSE:
 			if(self->ctx->conditionals.top == cs_none) return pp_error(self, "stray #else");
 			self->ctx->conditionals.top = (self->ctx->conditionals.top == cs_false) ? cs_true : cs_done;
@@ -868,21 +971,37 @@ HRESULT pp_parser_conditional(pp_parser* self, PP_TOKEN_TYPE directive)
 	return S_OK;
 }
 
-bool pp_parser_eval_conditional(pp_parser* self, PP_TOKEN_TYPE directive)
+HRESULT pp_parser_eval_conditional(pp_parser* self, PP_TOKEN_TYPE directive, int* result)
 {
-	// all directives have whitespace between the directive and the contents
-	if(FAILED(pp_parser_lex_token(self, true))) return false; // we can deal with lexer errors later!
-
 	switch(directive)
 	{
 		case PP_TOKEN_IFDEF:
-			return List_FindByName(&self->ctx->macros, self->token.theSource);
 		case PP_TOKEN_IFNDEF:
-			return !List_FindByName(&self->ctx->macros, self->token.theSource);
+			if(FAILED(pp_parser_lex_token(self, true))) return E_FAIL;
+			*result = List_FindByName(&self->ctx->macros, self->token.theSource);
+			if(directive == PP_TOKEN_IFNDEF) *result = !(*result);
+			break;
+		case PP_TOKEN_IF:
+		case PP_TOKEN_ELIF:
+		{
+			pp_parser* subparser;
+			char buf[1024];
+			
+			if(FAILED(pp_parser_readline(self, buf, sizeof(buf)))) return E_FAIL;
+			subparser = pp_parser_alloc(self, self->filename, buf, PP_CONDITIONAL);
+			//subparser->parent = NULL;
+			subparser->lexer.theTextPosition.row = self->lexer.theTextPosition.row;
+			
+			*result = pp_expr_eval_expression(subparser);
+			free(subparser);
+			self->child = NULL;
+			if(*result < 0) return E_FAIL;
+			break;
+		}
 		default:
 			pp_warning(self, "unknown conditional directive (this is a bug; please report it)");
-			return false;
 	}
+	return S_OK;
 }
 
 /**
@@ -905,7 +1024,7 @@ void pp_parser_insert_macro(pp_parser* self, char* name)
  */
 HRESULT pp_parser_insert_function_macro(pp_parser* self, char* name)
 {
-	int numParams, paramCount = 0, paramMacros = 0;
+	int numParams, paramCount = 0, paramMacros = 0, parenLevel = 0, type;
 	List* params;
 	char paramBuffer[1024] = "", *tail;
 
@@ -921,17 +1040,29 @@ HRESULT pp_parser_insert_function_macro(pp_parser* self, char* name)
 	do
 	{
 		if(FAILED(pp_parser_lex_token_essential(self, false))) return E_FAIL;
+		type = self->token.theType;
+		bool write = false;
 
-		switch(self->token.theType)
+		switch(type)
 		{
 			case PP_TOKEN_NEWLINE:
 				if(paramBuffer[0] != '\0')
 					return pp_error(self, "unexpected newline in parameter list for function '%s'", name);
 			case PP_TOKEN_EOF:
 				return pp_error(self, "unexpected end of file in parameter list for function '%s'", name);
+			case PP_TOKEN_LPAREN:
+				parenLevel++;
+				write = true;
+				break;
 			case PP_TOKEN_RPAREN:
+				parenLevel--;
+				// fallthrough
 			case PP_TOKEN_COMMA:
-				if(!paramCount) break;
+				if(type == PP_TOKEN_RPAREN || parenLevel > 0)
+				{
+					write = true;
+					if(parenLevel >= 0) break;
+				}
 
 				// remove trailing whitespace
 				tail = strchr(paramBuffer, '\0');
@@ -942,6 +1073,7 @@ HRESULT pp_parser_insert_function_macro(pp_parser* self, char* name)
 					else break;
 				}
 
+				paramCount++;
 				if(paramCount > numParams)
 					return pp_error(self, "too many parameters to function '%s'", name);
 
@@ -957,25 +1089,89 @@ HRESULT pp_parser_insert_function_macro(pp_parser* self, char* name)
 				paramBuffer[0] = '\0';
 				break;
 			case PP_TOKEN_WHITESPACE:
-				if(paramBuffer[0] == '\0') break;
+				if(paramBuffer[0] != '\0')
+				{
+					write = true;
+					break;
+				}
 			default:
-				if(paramBuffer[0] == '\0')
-					paramCount++;
-
-				if((strlen(paramBuffer) + strlen(self->token.theSource) + 1) > sizeof(paramBuffer))
-					return pp_error(self, "parameter %d of function '%s' exceeds max length of %d characters", name, sizeof(paramBuffer)-1);
-
-				strcat(paramBuffer, self->token.theSource);
+				write = true;
 		}
-	} while(self->token.theType != PP_TOKEN_RPAREN);
+		if(write)
+		{
+			if((strlen(paramBuffer) + strlen(self->token.theSource) + 1) > sizeof(paramBuffer))
+				return pp_error(self, "parameter %d of function '%s' exceeds max length of %d characters",
+								name, sizeof(paramBuffer)-1);
+
+			strcat(paramBuffer, self->token.theSource);
+		}
+	} while(parenLevel >= 0 || type != PP_TOKEN_RPAREN);
 
 	if(paramCount < numParams)
-		return pp_error(self, "not enough parameters to function '%s'", name);
+		return pp_error(self, "not enough parameters to function '%s' (%i given, %i expected)",
+						name, paramCount, numParams);
 
 	// do the actual parsing
 	List_GotoLast(params);
 	pp_parser_alloc_macro(self, List_Retrieve(params), paramMacros, PP_FUNCTION_MACRO);
+	self->child->macroName = strdup(name);
 
 	return S_OK;
+}
+
+/**
+ * Returns true if the given name is the name of one of the built-in C99 macros.
+ */
+bool pp_is_builtin_macro(const char* name)
+{
+	if(!strcmp(name, "__FILE__") || !strcmp(name, "__LINE__") ||
+	   !strcmp(name, "__DATE__") || !strcmp(name, "__TIME__"))
+		return true;
+#if PP_TEST
+	else if(!strcmp(name, "__STDC__") || !strcmp(name, "__STDC_HOSTED__") ||
+	        !strcmp(name, "__STDC_VERSION__"))
+		return true;
+#endif
+	else return false;
+}
+
+/**
+ * Expands a __FILE__ or __LINE__ macro.  __FILE__ and __LINE__ are the two C99
+ * builtin macros whose value does not stay constant throughout preprocessing.
+ * (ISO/IEC 9899:1999 section 6.10.8, Predefined macros)
+ */
+void pp_parser_insert_builtin_macro(pp_parser* self, const char* name)
+{
+	char value[256];
+	if(!strcmp(name, "__FILE__"))
+	{
+		value[0] = '"';
+		strncpy(value+1, self->filename, 253);
+		strcat(value, "\"");
+	}
+	else if(!strcmp(name, "__LINE__"))
+	{
+		pp_parser* fileroot = self;
+		while(fileroot->type != PP_ROOT && fileroot->type != PP_INCLUDE)
+			fileroot = fileroot->parent;
+		sprintf(value, "%i", fileroot->token.theTextPosition.row);
+	}
+	else assert(!"name parameter not __FILE__ or __LINE__");
+
+	pp_parser_alloc_macro(self, value, 0, PP_NORMAL_MACRO);
+}
+
+/**
+ * Returns true if the given name is the name of a currently defined macro,
+ * false otherwise.
+ */
+bool pp_parser_is_defined(pp_parser* self, const char* name)
+{
+	if(List_FindByName(&self->ctx->macros, name) ||
+	   List_FindByName(&self->ctx->func_macros, name) ||
+	   pp_is_builtin_macro(name))
+		return true;
+
+	return false;
 }
 
