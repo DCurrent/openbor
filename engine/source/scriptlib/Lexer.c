@@ -39,6 +39,7 @@ HRESULT Token_InitFromPreprocessor(Token* ptoken, pp_token* ppToken)
 		case PP_TOKEN_IFDEF:
 		case PP_TOKEN_IFNDEF:
 		case PP_TOKEN_ENDIF:
+		case PP_TOKEN_DEFINED:
 		case PP_TOKEN_WARNING:
 		case PP_TOKEN_ERROR_TEXT:
 			ptoken->theType = TOKEN_IDENTIFIER;
