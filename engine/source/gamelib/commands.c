@@ -390,6 +390,7 @@ List* createLevelCommandList(void) {
 	LIST_ADD(CMD_LEVEL_MUSICFADE, "musicfade");
 	LIST_ADD(CMD_LEVEL_MUSIC, "music");
 	LIST_ADD(CMD_LEVEL_AT, "at");
+	LIST_ADD(CMD_LEVEL_AT_SCRIPT, "@script");
 	LIST_ADD(CMD_LEVEL_ALLOWSELECT, "allowselect");
 	LIST_ADD(CMD_LEVEL_LOAD, "load");
 	LIST_ADD(CMD_LEVEL_BACKGROUND, "background");

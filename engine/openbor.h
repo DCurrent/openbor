@@ -1384,21 +1384,6 @@ typedef struct
 	int weapnum;
 }s_player;
 
-
-typedef struct s_spawn_script_cache_node
-{
-	char *filename;
-	Script *cached_spawn_script;
-	struct s_spawn_script_cache_node *next;
-} s_spawn_script_cache_node;
-
-typedef struct s_spawn_script_list_node
-{
-	Script *spawn_script;
-	struct s_spawn_script_list_node *next;
-} s_spawn_script_list_node;
-
-
 typedef struct
 {
 	int at;
@@ -1453,7 +1438,7 @@ typedef struct
 	int spawntype; // Pass 1 when a level spawn.
 	char *weapon; // spawn with a weapon, since it should be in the model list, so the model must be loaded, just reference its name
 	s_model *weaponmodel;
-	s_spawn_script_list_node* spawn_script_list_head;
+	Script spawnscript;
 }s_spawn_entry;
 
 typedef enum
@@ -1620,7 +1605,6 @@ typedef struct
 	Script key_script;
 	Script level_script;
 	Script endlevel_script;
-	s_spawn_script_cache_node* spawn_script_cache_head;
 	int pos;
 	u32 advancetime;
 	u32 quaketime;
