@@ -7219,6 +7219,7 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 	entity* ent = NULL;
 	int prop = -1;
 	char* tempstr = NULL;
+	static char buffer[64];
 	ScriptVariant* arg = NULL;
 
 	*pretvar = NULL;
@@ -7352,7 +7353,8 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 
 	return S_OK;
 cpperror:
-	printf("Function changeplayerproperty receives an invalid value.\n");
+	ScriptVariant_ToString(arg, buffer);
+	printf("Function changeplayerproperty receives an invalid value: %s.\n", buffer);
 	return E_FAIL;
 }
 

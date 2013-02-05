@@ -2171,12 +2171,11 @@ void execute_entity_key_script(entity* ent)
 
 void execute_spawn_script(s_spawn_entry* p, entity* e)
 {
-	s_spawn_script_list_node* tempnode = p->spawn_script_list_head;
 	ScriptVariant tempvar;
 	Script* cs;
-	while(tempnode)
+	cs = &p->spawnscript;
+	if(Script_IsInitialized(cs))
 	{
-		cs = tempnode->spawn_script;
 		if(e)
 		{
 			ScriptVariant_Init(&tempvar);
@@ -2190,7 +2189,6 @@ void execute_spawn_script(s_spawn_entry* p, entity* e)
 			ScriptVariant_Clear(&tempvar);
 			Script_Set_Local_Variant(cs, "self", &tempvar);
 		}
-		tempnode = tempnode->next;
 	}
 }
 
@@ -8920,10 +8918,7 @@ void load_levelorder()
 void free_level(s_level* lv)
 {
 	int i, j;
-	s_spawn_script_list_node* templistnode;
-	s_spawn_script_list_node* templistnode2;
-	s_spawn_script_cache_node* tempnode;
-	s_spawn_script_cache_node* tempnode2;
+
 	if(!lv) return;
 
 	//offload blending tables
@@ -8964,36 +8959,7 @@ void free_level(s_level* lv)
 	Script_Clear(&(lv->endlevel_script), 2);
 
 	for(i=0; i<lv->numspawns; i++)
-	{
-		if(lv->spawnpoints[i].spawn_script_list_head)
-		{
-			templistnode = lv->spawnpoints[i].spawn_script_list_head;
-			lv->spawnpoints[i].spawn_script_list_head = NULL;
-			while(templistnode)
-			{
-				templistnode2 = templistnode->next;
-				templistnode->next = NULL;
-				templistnode->spawn_script = NULL;
-				free(templistnode);
-				templistnode = templistnode2;
-		    }
-		}
-	}
-
-	tempnode = lv->spawn_script_cache_head;
-	lv->spawn_script_cache_head = NULL;
-	while(tempnode)
-	{
-		tempnode2 = tempnode->next;
-		Script_Clear(tempnode->cached_spawn_script, 2);
-		free(tempnode->cached_spawn_script);
-		tempnode->cached_spawn_script = NULL;
-		free(tempnode->filename);
-		tempnode->filename = NULL;
-		tempnode->next = NULL;
-		free(tempnode);
-		tempnode = tempnode2;
-	}
+		Script_Clear(&(lv->spawnpoints[i].spawnscript), 2);
 
 	if(lv->spawnpoints) free(lv->spawnpoints);
 	if(lv->layers) free(lv->layers);
@@ -9078,84 +9044,13 @@ void unload_level(){
 	gfx_y_offset = gfx_x_offset = gfx_y_offset_adj = 0;    // Added so select screen graphics display correctly
 }
 
-char* llHandleCommandSpawnscript(ArgList* arglist, s_spawn_entry* next) {
-	char* result = NULL;
-	char* value;
-	size_t len;
-
-	s_spawn_script_cache_node* tempnode;
-	s_spawn_script_cache_node* tempnode2;
-	s_spawn_script_list_node* templistnode;
-
-	value = GET_ARGP(1);
-
-	tempnode = level->spawn_script_cache_head;
-
-	templistnode = next->spawn_script_list_head;
-	if(templistnode) {
-		while(templistnode->next)
-		{
-			templistnode = templistnode->next;
-		}
-		templistnode->next = malloc(sizeof(*templistnode->next));
-		templistnode = templistnode->next;
-	} else	{
-		next->spawn_script_list_head = malloc(sizeof(*next->spawn_script_list_head));
-		templistnode = next->spawn_script_list_head;
-	}
-	templistnode->spawn_script = NULL;
-	templistnode->next = NULL;
-	if(tempnode) {
-		while(1) {
-			if(stricmp(value, tempnode->filename)==0) {
-				templistnode->spawn_script = tempnode->cached_spawn_script;
-				break;
-			} else {
-				if(tempnode->next)
-					tempnode = tempnode->next;
-				else
-					break;
-			}
-		}
-	}
-	if(!templistnode->spawn_script) {
-		templistnode->spawn_script = alloc_script();
-		Script_Init(templistnode->spawn_script, GET_ARGP(0), NULL, 0);
-
-		if(load_script(templistnode->spawn_script, value)) {
-			Script_Compile(templistnode->spawn_script);
-			len = strlen(value);
-
-			if(tempnode) {
-				tempnode2 = malloc(sizeof(*tempnode2));
-				tempnode2->cached_spawn_script = templistnode->spawn_script;
-				tempnode2->filename = malloc(len + 1);
-				strcpy(tempnode2->filename, value);
-				tempnode2->filename[len] = 0;
-				tempnode2->next = NULL;
-				tempnode->next = tempnode2;
-			} else {
-				level->spawn_script_cache_head = malloc(sizeof(*level->spawn_script_cache_head));
-				level->spawn_script_cache_head->cached_spawn_script = templistnode->spawn_script;
-				level->spawn_script_cache_head->filename = malloc(len + 1);
-				level->spawn_script_cache_head->next = NULL;
-				strcpy(level->spawn_script_cache_head->filename, value);
-				level->spawn_script_cache_head->filename[len] = 0;
-			}
-		} else {
-			result = "Failed loading spawn entry script!";
-		}
-	}
-	return result;
-}
-
-
 void load_level(char *filename){
 	char *buf;
-	size_t size, len;
+	size_t size, len, sblen;
 	ptrdiff_t pos, oldpos;
 	char *command;
 	char *value;
+	char *scriptbuf = NULL;
 	char string[128] = {""};
 	s_spawn_entry next;
 	s_model *tempmodel, *cached_model;
@@ -9928,13 +9823,40 @@ void load_level(char *filename){
 				next.a = GET_FLOAT_ARG(3);
 				break;
 			case CMD_LEVEL_SPAWNSCRIPT:
-				errormessage = llHandleCommandSpawnscript(&arglist, &next);
-				if (errormessage)
+				if(!Script_IsInitialized(&next.spawnscript))
+					Script_Init(&next.spawnscript, "Level spawn entry script", GET_ARG(1), 0);
+				if(!load_script(&next.spawnscript, GET_ARG(1))) {
+					errormessage = "Unable to load level spawn entry script from file.\n";
 					goto lCleanup;
+				}
+				break;
+			case CMD_LEVEL_AT_SCRIPT:
+				if(!Script_IsInitialized(&next.spawnscript))
+					Script_Init(&next.spawnscript, "Level spawn entry script", filename, 0);
+				while(strncmp(buf+pos, "@script", 7)){
+					pos++;
+				}
+				pos += 7;
+				sblen = 0;
+				while(strncmp(buf+pos, "@end_script", 11)){
+					sblen++; pos++;
+				}
+				scriptbuf = malloc(sblen+1);
+				strncpy(scriptbuf, buf+pos-sblen, sblen);
+				scriptbuf[sblen] = 0;
+				if(!Script_AppendText(&next.spawnscript, scriptbuf, filename)){
+					errormessage = "Unable to parse level spawn entry script.\n";
+					goto lCleanup;
+				}
+				free(scriptbuf); scriptbuf = NULL;
+				pos += 11;
 				break;
 			case CMD_LEVEL_AT:
 				// Place entry on queue
 				next.at = GET_INT_ARG(1);
+
+				if(Script_IsInitialized(&next.spawnscript))
+					Script_Compile(&next.spawnscript);
 
 				__realloc(level->spawnpoints, level->numspawns);
 				memcpy(&level->spawnpoints[level->numspawns], &next, sizeof(next));
@@ -10111,8 +10033,8 @@ void load_level(char *filename){
 	if (panels) free(panels);
 	if (order) free(order);
 
-	if(buf != NULL)
-		free(buf);
+	if(buf) free(buf);
+	if(scriptbuf) free(scriptbuf);
 
 	if(errormessage)
 		shutdown(1, "ERROR: load_level, file %s, line %d, message: %s", filename, line, errormessage);
