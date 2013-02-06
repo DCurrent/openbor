@@ -852,6 +852,7 @@ int Script_Compile(Script* pscript)
 	result = Script_MapStringConstants(pscript);
 	if(!result) {Script_Clear(pscript, 1);shutdown(1, "Can't compile script!\n");}
 
+	pscript->pinterpreter->bReset = FALSE;
 	//result = Script_DetectUnusedFunctions(pscript);
 	//if(!result) {Script_Clear(pscript, 1);shutdown(1, "Script optimization failed!\n");}
 	//Script_LowerConstants(pscript);
@@ -868,10 +869,10 @@ int Script_IsInitialized(Script* pscript)
 //execute the script
 int Script_Execute(Script* pscript)
 {
-	int result=S_OK;
+	int result;
 	Script* temp = pcurrentscript;
 	pcurrentscript = pscript; //used by local script functions
-	if(no_nested_script && pscript->pinterpreter->bReset) result = S_OK;
+	if(no_nested_script && pscript->pinterpreter->bReset) result=1;
 	else
 	{
 		Interpreter_Reset(pscript->pinterpreter);
