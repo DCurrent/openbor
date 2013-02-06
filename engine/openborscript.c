@@ -871,9 +871,12 @@ int Script_Execute(Script* pscript)
 	int result=S_OK;
 	Script* temp = pcurrentscript;
 	pcurrentscript = pscript; //used by local script functions
-	if(no_nested_script && pscript->pinterpreter->bReset) return S_OK;
-	Interpreter_Reset(pscript->pinterpreter);
-	result = (int)SUCCEEDED(Interpreter_EvaluateImmediate(pscript->pinterpreter));
+	if(no_nested_script && pscript->pinterpreter->bReset) result = S_OK;
+	else
+	{
+		Interpreter_Reset(pscript->pinterpreter);
+		result = (int)SUCCEEDED(Interpreter_EvaluateImmediate(pscript->pinterpreter));
+	}
 	pcurrentscript = temp;
 	if(!result) shutdown(1, "There's an exception while executing script '%s' %s", pscript->pinterpreter->theSymbolTable.name, pscript->comment?pscript->comment:"");
 	return result;
