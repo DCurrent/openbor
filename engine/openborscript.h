@@ -42,6 +42,7 @@ extern int            max_indexed_vars;
 extern int            max_entity_vars;
 extern int            max_script_vars;
 extern int            max_global_vars;
+extern int no_nested_script;
 extern int max_global_var_index ;
 extern int global_var_count;
 

@@ -116,7 +116,7 @@ int            max_global_vars = MAX_GLOBAL_VAR;
 int            max_indexed_vars = 0;
 int            max_entity_vars = 0;
 int            max_script_vars = 0;
-
+int			   no_nested_script = 0;
 
 //this function should be called before all script methods, for once
 void Script_Global_Init()
@@ -871,6 +871,7 @@ int Script_Execute(Script* pscript)
 	int result=S_OK;
 	Script* temp = pcurrentscript;
 	pcurrentscript = pscript; //used by local script functions
+	if(no_nested_script && pscript->pinterpreter->bReset) return S_OK;
 	Interpreter_Reset(pscript->pinterpreter);
 	result = (int)SUCCEEDED(Interpreter_EvaluateImmediate(pscript->pinterpreter));
 	pcurrentscript = temp;

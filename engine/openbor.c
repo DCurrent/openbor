@@ -7825,6 +7825,10 @@ int load_script_setting()
 				{
 					alwaysupdate = GET_INT_ARG(1);
 				}
+				else if(stricmp(command, "nonestedscript")==0) // don't call a script if it is being executed
+				{
+					no_nested_script = GET_INT_ARG(1);
+				}
 			}
 		}
 		// Go to next line
