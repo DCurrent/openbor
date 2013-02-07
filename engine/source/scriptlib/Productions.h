@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
 #ifndef PRODUCTION_H
@@ -32,6 +32,8 @@ typedef enum PRODUCTION {
    comp_stmt3,
    select_stmt,
    opt_else,
+   switch_body,
+   case_label,
    iter_stmt,
    opt_expr_stmt,
    defer_expr_stmt,

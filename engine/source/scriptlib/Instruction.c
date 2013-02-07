@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
 #include "Instruction.h"
@@ -200,6 +200,9 @@ void Instruction_ToString(Instruction* pins, LPSTR strRep)
 	case JUMP:
 	   strcpy( strRep, "JUMP " );
 	   break;
+	case PJUMP:
+	   strcpy( strRep, "PJUMP " );
+	   break;
 	case GE:
 	   strcpy( strRep, "GE " );
 	   break;
@@ -239,6 +242,9 @@ void Instruction_ToString(Instruction* pins, LPSTR strRep)
 	case Branch_TRUE:
 	   strcpy( strRep, "Branch_TRUE " );
 	   break;
+	case Branch_EQUAL:
+	   strcpy( strRep, "Branch_EQUAL " );
+	   break;
 	case DATA:
 	   strcpy( strRep, "DATA " );
 	   break;
@@ -265,7 +271,9 @@ void Instruction_ToString(Instruction* pins, LPSTR strRep)
 	   break;
 	case FUNCDECL:
 	   strcpy( strRep, "FUNCDECL " );
+	   break;
 	default:
+	   strcpy( strRep, "[unknown] " );
 	   break;
 	}
 

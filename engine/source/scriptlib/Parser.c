@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
 #include "Parser.h"
@@ -245,7 +245,7 @@ void Parser_External_decl2(Parser* pparser, BOOL variableonly )
 	//ignore the type of this declaration
 	if(!Parser_Check(pparser, TOKEN_IDENTIFIER ))
 	{
-		printf("Identifier expected '%s'.\n", token.theSource);
+		printf("Identifier expected before '%s'.\n", token.theSource);
 		Parser_Error(pparser, external_decl );
 	}
 	Parser_Match(pparser);
@@ -269,7 +269,7 @@ void Parser_External_decl2(Parser* pparser, BOOL variableonly )
 			//Switch back to deferred mode
 			Parser_AddInstructionViaToken(pparser, DEFERRED, (Token*)NULL, NULL );
 		}
-		//there's a comman instead of semicolon, so there should be another identifier
+		//there's a comma instead of semicolon, so there should be another identifier
 		else if(Parser_Check(pparser, TOKEN_COMMA ))
 		{
 			Parser_Match(pparser);
@@ -284,7 +284,7 @@ void Parser_External_decl2(Parser* pparser, BOOL variableonly )
 			Parser_Error(pparser, external_decl );
 		}
 	}
-	// semmicolon, end expression.
+	// semicolon, end expression.
 	else if ( Parser_Check(pparser, TOKEN_SEMICOLON )){
 	   Parser_Match(pparser);
 	   //switch to immediate mode and allocate a variable.
@@ -366,7 +366,7 @@ void Parser_Decl2(Parser* pparser )
 	Token token = pparser->theNextToken;
 	if(Parser_Check(pparser, TOKEN_IDENTIFIER )==FALSE)
 	{
-		printf("Identifier expected '%s'.\n", token.theSource);
+		printf("Identifier expected before '%s'.\n", token.theSource);
 		Parser_Error(pparser, decl );
 	}
 	Parser_Match(pparser);
@@ -646,7 +646,7 @@ void Parser_Comp_stmt3(Parser* pparser )
 
 void Parser_Select_stmt(Parser* pparser )
 {
-	Label falseLabel, endLabel;
+	Label falseLabel, endLabel, defaultLabel;
 
 	if (Parser_Check(pparser, TOKEN_IF )){
 		//Create some labels for jump targets
@@ -668,6 +668,77 @@ void Parser_Select_stmt(Parser* pparser )
 		free((void*)falseLabel);
 		free((void*)endLabel);
 	}
+	else if (Parser_Check(pparser, TOKEN_SWITCH )) {
+		List* pMainList, bodyInsts, cases;
+		int size, i; //for FOREACH
+
+		Parser_Match(pparser );
+		Parser_Check(pparser, TOKEN_LPAREN );
+		Parser_Match(pparser );
+		Parser_Expr(pparser );
+		Parser_Check(pparser, TOKEN_RPAREN );
+		Parser_Match(pparser );
+		Parser_Check(pparser, TOKEN_LCURLY );
+		Parser_Match(pparser );
+
+		endLabel = Parser_CreateLabel(pparser );
+		Stack_Push(&(pparser->LabelStack), (void*)NULL );
+		Stack_Push(&(pparser->LabelStack), (void*)endLabel );
+		defaultLabel = endLabel;
+
+		//The jump instructions need to be right after the expression is evaluated,
+		//but we don't know the jump targets until after parsing the switch body. So
+		//we use a temporary instruction list when parsing the switch body.
+		pMainList = pparser->pIList;
+		List_Init(&bodyInsts);
+		pparser->pIList = &bodyInsts;
+
+		//Parse body of switch, and consume the closing brace
+		List_Init(&cases);
+		Parser_Switch_body(pparser, &cases );
+		Parser_Check(pparser, TOKEN_RCURLY );
+		Parser_Match(pparser );
+
+		//Restore the main instruction list
+		pparser->pIList = pMainList;
+
+		//Add a conditional branch for each case label in the switch body
+		FOREACH(cases,
+			char* pValue = List_Retrieve(&cases);
+			if(pValue){
+				Parser_AddInstructionViaLabel(pparser, CONSTINT, pValue, NULL );
+				Parser_AddInstructionViaLabel(pparser, Branch_EQUAL, List_GetName(&cases), NULL );
+				free(pValue);
+			}
+			else{
+				if(defaultLabel != endLabel){
+					printf("Multiple default labels in one switch.");
+					Parser_Error(pparser, select_stmt );
+				}
+				defaultLabel = List_GetName(&cases);
+			}
+		);
+
+		//Add a jump to the "default" label if there is one, or to the end of
+		//the switch statement if there isn't.  We use PJUMP to pop the value
+		//of the switch expression from the stack before jumping.
+		Parser_AddInstructionViaLabel(pparser, PJUMP, defaultLabel, NULL );
+		List_Clear(&cases);
+
+		//Now add the instructions from the switch body.
+		Parser_AddInstructionViaToken(pparser, PUSH, (Token*)NULL, NULL );
+		FOREACH(bodyInsts,
+			void* pInstruction = List_Retrieve(&bodyInsts);
+			List_InsertAfter(pparser->pIList, pInstruction, List_GetName(&bodyInsts));
+		);
+		List_Clear(&bodyInsts);
+
+		//End the switch body's scope and add the end label.
+		Parser_AddInstructionViaToken(pparser, POP, (Token*)NULL, endLabel );
+		Stack_Pop(&(pparser->LabelStack));
+		Stack_Pop(&(pparser->LabelStack));
+		free((void*)endLabel);
+	}
 	else Parser_Error(pparser, select_stmt );
 }
 
@@ -679,6 +750,58 @@ void Parser_Opt_else(Parser* pparser )
 	}
 	else if (ParserSet_Follow(&(pparser->theParserSet), opt_else, pparser->theNextToken.theType )){}
 	else Parser_Error(pparser, opt_else );
+}
+
+void Parser_Switch_body(Parser* pparser, List* pCases )
+{
+	//Using a loop here instead of recursion goes against the idea of a
+	//recursive descent parser, but it keeps us from having 200 stack frames.
+	while(1)
+	{
+		if (ParserSet_First(&(pparser->theParserSet), case_label, pparser->theNextToken.theType )){
+			Parser_Case_label(pparser, pCases );
+		}
+		else if (ParserSet_First(&(pparser->theParserSet), stmt, pparser->theNextToken.theType )){
+			Parser_Stmt(pparser );
+			Parser_Stmt_list2(pparser );
+		}
+		else if (ParserSet_First(&(pparser->theParserSet), decl, pparser->theNextToken.theType )){
+			Parser_Decl(pparser );
+			Parser_Decl_list2(pparser );
+		}
+		else if (ParserSet_Follow(&(pparser->theParserSet), switch_body, pparser->theNextToken.theType ))
+			break;
+		else {
+			Parser_Error(pparser, switch_body );
+			break;
+		}
+	}
+}
+
+void Parser_Case_label(Parser* pparser, List* pCases )
+{
+	Label label;
+	if (Parser_Check(pparser, TOKEN_CASE )){
+		label = Parser_CreateLabel(pparser );
+		Parser_Match(pparser);
+		Parser_Check(pparser, TOKEN_INTCONSTANT );
+		List_InsertAfter(pCases, strdup(pparser->theNextToken.theSource), label);
+		Parser_Match(pparser);
+		Parser_Check(pparser, TOKEN_COLON );
+		Parser_Match(pparser);
+		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, label );
+		free((void*)label);
+	}
+	else if (Parser_Check(pparser, TOKEN_DEFAULT )){
+		label = Parser_CreateLabel(pparser );
+		Parser_Match(pparser);
+		Parser_Check(pparser, TOKEN_COLON );
+		Parser_Match(pparser);
+		List_InsertAfter(pCases, NULL, label);
+		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, label );
+		free((void*)label);
+	}
+	else Parser_Error(pparser, case_label );
 }
 
 void Parser_Iter_stmt(Parser* pparser )
@@ -830,8 +953,7 @@ List* Parser_Defer_expr_stmt(Parser* pparser )
 
 void Parser_Jump_stmt(Parser* pparser )
 {
-	Label breakTarget;
-	Label tempLabel;
+	Label breakTarget = NULL;
 	if (Parser_Check(pparser, TOKEN_BREAK )){
 		Parser_Match(pparser);
 		Parser_Check(pparser, TOKEN_SEMICOLON );
@@ -845,12 +967,20 @@ void Parser_Jump_stmt(Parser* pparser )
 		Parser_Check(pparser, TOKEN_SEMICOLON );
 		Parser_Match(pparser);
 
-		tempLabel = Stack_Top(&(pparser->LabelStack));
-		Stack_Pop(&(pparser->LabelStack));
-
-		breakTarget = Stack_Top(&(pparser->LabelStack));
+		//Violate the rules of a stack (treat it as a list) so we can ignore switches
+		while(1){
+			List_GotoNext(&(pparser->LabelStack));
+			breakTarget = List_Retrieve(&(pparser->LabelStack));
+			List_GotoNext(&(pparser->LabelStack));
+			if(breakTarget) break;
+			if(List_GetIndex(&(pparser->LabelStack)) == List_GetSize(&(pparser->LabelStack))-1){
+				Parser_Error(pparser, jump_stmt );
+				break;
+			}
+		}
 		Parser_AddInstructionViaLabel(pparser, JUMP, breakTarget, NULL );
-		Stack_Push(&(pparser->LabelStack), (void*)tempLabel);
+		//Restore the list to its original state as a stack
+		List_Reset(&(pparser->LabelStack));
 	}
 	else if (Parser_Check(pparser, TOKEN_RETURN )){
 		Parser_Match(pparser);
@@ -1389,13 +1519,13 @@ const char*  _production_error_message(Parser* pparser, PRODUCTION offender)
 }
 
 
-void Parser_Error(Parser* pparser, PRODUCTION offender )
+void Parser_Error2(Parser* pparser, PRODUCTION offender, const char* offenderStr )
 {
 	//Report the offending token to the error handler, along with the production
 	//it offended in.
 	if (offender != error)
-		pp_error(&(pparser->theLexer.preprocessor), "%s '%s' (in production %u)",
-				_production_error_message(pparser, offender), pparser->theNextToken.theSource, offender);
+		pp_error(&(pparser->theLexer.preprocessor), "%s '%s' (in production '%s')",
+				_production_error_message(pparser, offender), pparser->theNextToken.theSource, offenderStr);
 	
 	pparser->errorFound = TRUE;
 
@@ -1405,6 +1535,6 @@ void Parser_Error(Parser* pparser, PRODUCTION offender )
 	do
 	{
 		while (!SUCCEEDED(Lexer_GetNextToken(&(pparser->theLexer), &(pparser->theNextToken))));
-		if (pparser->theNextToken.theType != TOKEN_EOF) break;
+		if (pparser->theNextToken.theType == TOKEN_EOF) break;
 	} while (!ParserSet_Follow(&(pparser->theParserSet), offender, pparser->theNextToken.theType));
 }

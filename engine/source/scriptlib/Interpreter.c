@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
 #include "Interpreter.h"
@@ -546,6 +546,17 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			} else hr = E_FAIL;
 			break;
 
+		 //Pop an entry from the data stack and jump to the specified label
+		case PJUMP:
+			Stack_Pop(&(pinterpreter->theDataStack));
+			pLabel = pInstruction->Label;
+			//cache the jump target
+			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
+				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
+				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
+			} else hr = E_FAIL;
+			break;
+
 		 //Jump to the end of function, infact it is return
 		case JUMPR:
 			pSVar1 = (ScriptVariant*)Stack_Top(&(pinterpreter->theDataStack));
@@ -554,6 +565,21 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			pInstruction->theRef = pSVar1;
 			pLabel = pInstruction->Label;
 			//cache the jump target
+			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
+				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
+				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
+			} else hr = E_FAIL;
+			break;
+
+		 //Jump if the top two ScriptVariants are equal, but only pop the topmost one
+		case Branch_EQUAL:
+			pLabel = pInstruction->Label;
+			if (pinterpreter->theDataStack.size >= 2){
+				pInstruction->theRef2 = Stack_Top(&(pinterpreter->theDataStack));
+				Stack_Pop(&(pinterpreter->theDataStack));
+				pInstruction->theRef = Stack_Top(&(pinterpreter->theDataStack));
+				//note that we do *not* pop the second value from the stack
+			} else hr = E_FAIL;
 			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
 				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
@@ -871,9 +897,20 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 
 		 //Jump to the specified label
 		case JUMP:
+		case PJUMP:
 			if(pInstruction->ptheJumpTarget==NULL)
 				hr = E_FAIL;
 			else pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
+			break;
+
+		 //Jump if the top two ScriptVariants are equal
+		case Branch_EQUAL:
+			if(ScriptVariant_IsTrue(ScriptVariant_Eq(pInstruction->theRef, pInstruction->theRef2)))
+			{
+				if(pInstruction->ptheJumpTarget==NULL)
+					hr = E_FAIL;
+				else pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
+			}
 			break;
 
 		 //Jump if the top ScriptVariant resolves to false
