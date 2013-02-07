@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
 #ifndef PARSER_H
@@ -61,6 +61,8 @@ void Parser_Comp_stmt2(Parser* pparser );
 void Parser_Comp_stmt3(Parser* pparser );
 void Parser_Select_stmt(Parser* pparser );
 void Parser_Opt_else(Parser* pparser );
+void Parser_Switch_body(Parser* pparser, List* pCases );
+void Parser_Case_label(Parser* pparser, List* pCases );
 void Parser_Iter_stmt(Parser* pparser );
 void Parser_Opt_expr_stmt(Parser* pparser );
 List* Parser_Defer_expr_stmt(Parser* pparser );
@@ -94,6 +96,7 @@ void Parser_Arg_expr_list(Parser* pparser );
 void Parser_Arg_expr_list2(Parser* pparser, int argCount, int range);
 void Parser_Primary_expr(Parser* pparser );
 void Parser_Constant(Parser* pparser );
-void Parser_Error(Parser* pparser, PRODUCTION offender );
+#define Parser_Error(pa, pr) Parser_Error2(pa, pr, #pr)
+void Parser_Error2(Parser* pparser, PRODUCTION offender, const char* offenderStr );
 
 #endif

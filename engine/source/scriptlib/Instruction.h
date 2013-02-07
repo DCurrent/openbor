@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
 #ifndef INSTRUCTION_H
@@ -16,9 +16,9 @@
 typedef LPCSTR Label;
 
 typedef enum OpCode{ CONSTSTR, CONSTDBL, CONSTINT, LOAD, SAVE, INC, DEC, FIELD, CALL, POS, NEG,
-			 NOT, MUL, DIV,MOD, ERR, ADD, SUB, JUMP, GE, LE, LT, GT, EQ, NE, OR,
-			 AND, NOOP, PUSH, POP, Branch_FALSE, Branch_TRUE, DATA, PARAM,
-			 IMMEDIATE, DEFERRED, RET, CHECKARG, CLEAN, JUMPR, FUNCDECL, OPCODE_END
+             NOT, MUL, DIV,MOD, ERR, ADD, SUB, JUMP, PJUMP, GE, LE, LT, GT, EQ, NE, OR,
+             AND, NOOP, PUSH, POP, Branch_FALSE, Branch_TRUE, Branch_EQUAL, DATA, PARAM,
+             IMMEDIATE, DEFERRED, RET, CHECKARG, CLEAN, JUMPR, FUNCDECL, OPCODE_END
 }OpCode;
 
 typedef struct Instruction{
