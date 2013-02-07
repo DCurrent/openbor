@@ -3,7 +3,6 @@
 
 #include <stdbool.h>
 #include "pp_parser.h"
-#undef printf
 
 typedef struct {
 	pp_token theToken;
