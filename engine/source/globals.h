@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
 /////////////////////////////////////////////////////////////////////////////
@@ -58,6 +58,10 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #define printf writeToLogFile
+
+#undef assert
+#define assert(x)    exitIfFalse((x)?1:0, #x, __func__, __FILE__, __LINE__)
+#define sysassert(x) abortIfFalse((x)?1:0, #x, __func__, __FILE__, __LINE__)
 
 /////////////////////////////////////////////////////////////////////////////
 

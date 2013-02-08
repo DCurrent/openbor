@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
 #ifndef UTILS_H
@@ -44,6 +44,8 @@ void lc(char* buf, size_t size);
 size_t getNewLineStart(char* buf);
 void debugBuf(unsigned char* buf, size_t size, int columns);
 void debug_printf(char *, ...);
+void exitIfFalse(int value, const char* assertion, const char* func, const char* file, int line);
+void abortIfFalse(int value, const char* assertion, const char* func, const char* file, int line);
 void getPakName(char* name, int type);
 void screenshot(s_screen *vscreen, unsigned char *pal, int ingame);
 void getBasePath(char *newName, char *name, int type);
