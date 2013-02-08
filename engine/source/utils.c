@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
 #include <fcntl.h>
@@ -259,6 +259,31 @@ void debug_printf(char *format, ...){
 	va_end(arglist);
 
 	debug_time = 0xFFFFFFFF;
+}
+
+// replacement for assert that writes the error to the log file
+void exitIfFalse(int value, const char* assertion, const char* func, const char* file, int line)
+{
+	if(!value)
+	{
+		writeToLogFile("\n\n********** An Error Occurred **********"
+						 "\n*            Shutting Down            *\n\n");
+		writeToLogFile("Assertion `%s' failed in function '%s' at %s:%i.\n", assertion, func, file, line);
+		writeToLogFile("This is an OpenBOR bug.  Please report this at www.chronocrash.com.\n\n");
+		exit(1);
+	}
+}
+
+// gives the same behavior as the assert macro defined by C, which we can't use directly since
+// we redefine the assert macro to exitIfFalse 
+void abortIfFalse(int value, const char* assertion, const char* func, const char* file, int line)
+{
+	if(!value)
+	{
+		fprintf(stderr, "%s:%i: %s: Assertion `%s' failed.\n", file, line, func, assertion);
+		fflush(stderr);
+		abort();
+	}
 }
 
 void getPakName(char* name, int type){

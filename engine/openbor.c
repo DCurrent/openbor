@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
 /////////////////////////////////////////////////////////////////////////////
@@ -21264,7 +21264,7 @@ void shutdown(int status, char *msg, ...)
 
 	if(!disablelog) printf("%s", buf);
 	#ifdef DEBUG
-	assert(status == 0); // this way we can haz backtrace.
+	sysassert(status == 0); // this way we can get a backtrace.
 	#endif
 
 	shuttingdown = 0;
