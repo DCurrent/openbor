@@ -704,11 +704,12 @@ void Parser_Select_stmt(Parser* pparser )
 
 		//Add a conditional branch for each case label in the switch body
 		FOREACH(cases,
-			char* pValue = List_Retrieve(&cases);
-			if(pValue){
-				Parser_AddInstructionViaLabel(pparser, CONSTINT, pValue, NULL );
+			Token* pToken = List_Retrieve(&cases);
+			if(pToken){
+				int opcode = pToken->theType == TOKEN_STRING_LITERAL ? CONSTSTR : CONSTINT;
+				Parser_AddInstructionViaToken(pparser, opcode, pToken, NULL );
 				Parser_AddInstructionViaLabel(pparser, Branch_EQUAL, List_GetName(&cases), NULL );
-				free(pValue);
+				free(pToken);
 			}
 			else{
 				if(defaultLabel != endLabel){
@@ -781,11 +782,16 @@ void Parser_Switch_body(Parser* pparser, List* pCases )
 void Parser_Case_label(Parser* pparser, List* pCases )
 {
 	Label label;
+	Token* token;
 	if (Parser_Check(pparser, TOKEN_CASE )){
 		label = Parser_CreateLabel(pparser );
 		Parser_Match(pparser);
-		Parser_Check(pparser, TOKEN_INTCONSTANT );
-		List_InsertAfter(pCases, strdup(pparser->theNextToken.theSource), label);
+		if(!Parser_Check(pparser, TOKEN_INTCONSTANT ) &&
+		   !Parser_Check(pparser, TOKEN_STRING_LITERAL ))
+			Parser_Error(pparser, case_label );
+		token = malloc(sizeof(Token));
+		memcpy(token, &pparser->theNextToken, sizeof(Token));
+		List_InsertAfter(pCases, token, label);
 		Parser_Match(pparser);
 		Parser_Check(pparser, TOKEN_COLON );
 		Parser_Match(pparser);
@@ -1503,6 +1509,8 @@ const char*  _production_error_message(Parser* pparser, PRODUCTION offender)
 		return "Invalid constant format";
 	case start:
 		return "Invalid start of declaration";
+	case case_label:
+		return "Case label must be an integer or string constant";
 	case postfix_expr2:
 		return "Invalid function call or expression";
 	case funcDecl1:
