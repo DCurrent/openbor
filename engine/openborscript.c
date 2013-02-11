@@ -231,14 +231,39 @@ ScriptVariant* Script_Get_Global_Variant(char* theName)
 	return NULL;
 }
 
+void _gc_var(){
+	int i, j;
+	s_variantnode* tempnode;
+	for(i=0; i<=max_global_var_index; i++)
+	{
+		if(!global_var_list[i]->key[0] || global_var_list[i]->value.vt==VT_EMPTY)
+		{
+			for(j=i+1; j<=max_global_var_index; j++) 
+			{
+				if(global_var_list[j]->key[0] && global_var_list[j]->value.vt!=VT_EMPTY)
+				{
+					tempnode = global_var_list[j];
+					global_var_list[j] =  global_var_list[i];
+					global_var_list[i] = tempnode;
+					break;
+				}
+			}
+			if(j==max_global_var_index+1) {
+				max_global_var_index = i-1;
+				break;
+			}
+		}
+	}
+}
+
 // local function
 int _set_var(char* theName, ScriptVariant* var, Script* owner)
 {
-	int i;
+	int i, emp;
 	s_variantnode* tempnode;
 	if(!theName || !theName[0]) return 0;
 	// search the name
-	for(i=0; i<=max_global_var_index; i++)
+	for(i=0, emp=0; i<=max_global_var_index; i++)
 	{
 		if(global_var_list[i]->owner == owner &&
 		   !strcmp(theName, global_var_list[i]->key))
@@ -261,8 +286,9 @@ int _set_var(char* theName, ScriptVariant* var, Script* owner)
 	}
 	if(var->vt == VT_EMPTY) return 1;
 	// all slots are taken
-	if(max_global_var_index >= max_global_vars-1)
+	if(max_global_var_index >= max_global_vars-1) {
 		return 0;
+	}
 	// so out of bounds, find another slot
 	else
 	{
@@ -270,6 +296,7 @@ int _set_var(char* theName, ScriptVariant* var, Script* owner)
 		ScriptVariant_Copy(&(global_var_list[max_global_var_index]->value), var);
 		global_var_list[max_global_var_index]->owner = owner;
 		strcpy(global_var_list[max_global_var_index]->key, theName);
+		if(max_global_var_index >= max_global_vars-1) _gc_var();
 		return 1;
 	}
 }// end of _set_var
@@ -297,7 +324,7 @@ void Script_Local_Clear(Script* cs)
 				global_var_list[max_global_var_index] = tempnode;
 			}
 			max_global_var_index--;*/
-			ScriptVariant_Clear(&global_var_list[i]->value);
+			ScriptVariant_Clear(&(global_var_list[i]->value));
 		}
 	}
 	if(cs->vars)
