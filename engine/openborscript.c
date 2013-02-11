@@ -236,7 +236,7 @@ int _set_var(char* theName, ScriptVariant* var, Script* owner)
 {
 	int i;
 	s_variantnode* tempnode;
-	if(!theName[0] || !theName || (owner && !owner->initialized)) return 0;
+	if(!theName || !theName[0]) return 0;
 	// search the name
 	for(i=0; i<=max_global_var_index; i++)
 	{
