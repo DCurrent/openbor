@@ -328,6 +328,38 @@ int Script_Set_Local_Variant(Script* cs, char* theName, ScriptVariant* var)
 	return _set_var(theName, var, cs);
 }
 
+int Script_Save_Local_Variant(Script* cs, char* namelist[])
+{
+	static int handle = 1;
+	char* name;
+	ScriptVariant* var;
+	int i;
+	for(i=0;;i++)
+	{
+		name = namelist[i];
+		if(!name[0]) break;
+		var = Script_Get_Local_Variant(cs, name);
+		if(var) {
+			_set_var(name, var, (Script*)handle);
+		}
+	}
+	handle += 2; //odd value is safer
+	return handle-2;
+}
+
+void Script_Load_Local_Variant(Script* cs, int handle)
+{
+	int i;
+	for(i=0; i<=max_global_var_index; i++)
+	{
+		if(global_var_list[i]->owner == (Script*)handle &&
+			global_var_list[i]->key[0]) {
+			_set_var(global_var_list[i]->key, &(global_var_list[i]->value), cs);
+			global_var_list[i]->key[0] = 0;
+		}
+	}
+}
+
 Script* alloc_script()
 {
 	int i;
@@ -869,14 +901,19 @@ int Script_IsInitialized(Script* pscript)
 //execute the script
 int Script_Execute(Script* pscript)
 {
-	int result;
+	int result, nested;
 	Script* temp = pcurrentscript;
+	Interpreter tinter, *pinter;
 	pcurrentscript = pscript; //used by local script functions
-	if(no_nested_script && pscript->pinterpreter->bReset) result=1;
+	nested = pscript->pinterpreter->bReset;
+	if(no_nested_script && nested) result=1;
 	else
 	{
-		Interpreter_Reset(pscript->pinterpreter);
-		result = (int)SUCCEEDED(Interpreter_EvaluateImmediate(pscript->pinterpreter));
+		pinter = pscript->pinterpreter;
+		if(nested) tinter = *pinter;
+		Interpreter_Reset(pinter);
+		result = (int)SUCCEEDED(Interpreter_EvaluateImmediate(pinter));
+		if(nested) *pinter = tinter;
 	}
 	pcurrentscript = temp;
 	if(!result) shutdown(1, "There's an exception while executing script '%s' %s", pscript->pinterpreter->theSymbolTable.name, pscript->comment?pscript->comment:"");

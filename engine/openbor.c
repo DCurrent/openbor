@@ -1580,11 +1580,15 @@ void copy_all_scripts(s_scripts* src, s_scripts* dest, int method) {
 void execute_animation_script(entity* ent)
 {
 	ScriptVariant tempvar;
+	char* namelist[] = {"self", "animnum", "frame", "animhandle", ""};
+	int handle = 0;
 	Script* cs = ent->scripts->animation_script;
 	Script* s1 = ent->model->scripts->animation_script;
 	Script* s2 = ent->defaultmodel->scripts->animation_script;
 	if(Script_IsInitialized(s1) || Script_IsInitialized(s2))
 	{
+		if(cs->pinterpreter->bReset)
+			handle = Script_Save_Local_Variant(cs, namelist);
 		ScriptVariant_Init(&tempvar);
 		ScriptVariant_ChangeType(&tempvar, VT_PTR);
 		tempvar.ptrVal = (VOID*)ent;
@@ -1606,12 +1610,16 @@ void execute_animation_script(entity* ent)
 			Script_Copy(cs, s2, 0);
 			Script_Execute(cs);
 		}
+		if(Script_IsInitialized(s1)){
+			Script_Copy(cs, s1, 0);
+		}
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
 		Script_Set_Local_Variant(cs, "self",    &tempvar);
 		Script_Set_Local_Variant(cs, "animnum", &tempvar);
 		Script_Set_Local_Variant(cs, "frame",   &tempvar);
-		Script_Set_Local_Variant(cs, "animhandle",   &tempvar);
+		Script_Set_Local_Variant(cs, "animhandle", &tempvar);
+		if(handle) Script_Load_Local_Variant(cs, handle);
 	}
 }
 
@@ -5048,6 +5056,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	int ani_id = -1,
 		script_id = -1,
+		frm_id = -1,
 		i = 0,
 		j = 0,
 		tempInt = 0,
@@ -7416,8 +7425,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 								bbox_con, &attack, move, movez,
 								movea, seta, platform_con, frameshadow, shadow_coords, soundtoplay, &drawmethod);
 
-								memset(bbox_con, 0, sizeof(bbox_con));
-								soundtoplay = -1;
+						memset(bbox_con, 0, sizeof(bbox_con));
+						soundtoplay = -1;
+						frm_id = -1;
 					}
 					break;
 				case CMD_MODEL_ALPHAMASK:
@@ -7550,8 +7560,17 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					scriptbuf[scriptlen - strlen(endifid_text)] = 0; // cut last chars
 					scriptlen = strlen(scriptbuf);
 					if(value && value[0]){
-						sprintf(namebuf, if_text, curframe);//only execute in current frame
-						buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
+						if(frm_id != curframe)
+						{
+							sprintf(namebuf, if_text, curframe);//only execute in current frame
+							buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
+							frm_id = curframe;
+						}
+						else
+						{
+							scriptbuf[scriptlen - strlen(endif_text)] = 0; // cut last chars
+							scriptlen = strlen(scriptbuf);
+						}
 						sprintf(namebuf, call_text, value);
 						buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
 						do{ //argument and comma
@@ -11667,6 +11686,7 @@ void kill(entity *victim)
 	victim->exists = 0;
 	ent_count--;
 
+	//UT: caution, script function killentity calls this
 	clear_all_scripts(victim->scripts, 1);
 
 	if(victim->parent && victim->parent->subentity == victim) victim->parent->subentity = NULL;

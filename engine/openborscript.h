@@ -61,6 +61,8 @@ void Script_Clear(Script* pscript, int localclear);
 int Script_AppendText(Script* pscript, char* text, char* path);
 int Script_Compile(Script* pscript);
 int Script_Execute(Script* pscript);
+int Script_Save_Local_Variant(Script* cs, char* namelist[]);
+void Script_Load_Local_Variant(Script* cs, int handle);
 
 void Script_LoadSystemFunctions();
 
