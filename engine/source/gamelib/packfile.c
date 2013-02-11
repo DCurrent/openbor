@@ -236,7 +236,7 @@ char * casesearch(const char *dir, const char *filepath)
 	rest_of_path = strchr(filepath, '/');
 	if (rest_of_path != NULL) // directory
 	{
-		assert(rest_of_path-filepath > 0);
+		if(rest_of_path-filepath <= 0) return NULL;
 		strncat(filename, filepath, rest_of_path-filepath);
 		rest_of_path++;
 	} else strcpy(filename, filepath); // file
