@@ -259,11 +259,11 @@ void _gc_var(){
 // local function
 int _set_var(char* theName, ScriptVariant* var, Script* owner)
 {
-	int i, emp;
+	int i;
 	s_variantnode* tempnode;
 	if(!theName || !theName[0]) return 0;
 	// search the name
-	for(i=0, emp=0; i<=max_global_var_index; i++)
+	for(i=0; i<=max_global_var_index; i++)
 	{
 		if(global_var_list[i]->owner == owner &&
 		   !strcmp(theName, global_var_list[i]->key))
