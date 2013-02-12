@@ -44,6 +44,8 @@ typedef enum PRODUCTION {
    assignment_expr,
    assignment_expr2,
    const_expr,
+   cond_expr,
+   cond_expr2,
    log_or_expr,
    log_or_expr2,
    log_and_expr,

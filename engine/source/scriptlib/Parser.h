@@ -73,6 +73,8 @@ OpCode Parser_Assignment_op(Parser* pparser );
 void Parser_Assignment_expr(Parser* pparser );
 void Parser_Assignment_expr2(Parser* pparser );
 void Parser_Const_expr(Parser* pparser);
+void Parser_Cond_expr(Parser* pparser );
+void Parser_Cond_expr2(Parser* pparser );
 void Parser_Log_or_expr(Parser* pparser );
 void Parser_Log_or_expr2(Parser* pparser );
 void Parser_Log_and_expr(Parser* pparser );

@@ -1053,8 +1053,8 @@ OpCode Parser_Assignment_op(Parser* pparser )
 
 void Parser_Assignment_expr(Parser* pparser )
 {
-	if (ParserSet_First(&(pparser->theParserSet), log_or_expr, pparser->theNextToken.theType )){//= /= += Operator, or a comma and the like (the reputation of a variable)
-		Parser_Log_or_expr(pparser );
+	if (ParserSet_First(&(pparser->theParserSet), cond_expr, pparser->theNextToken.theType )){//= /= += Operator, or a comma and the like (the reputation of a variable)
+		Parser_Cond_expr(pparser );
 		Parser_Assignment_expr2(pparser );
 	}
 	else Parser_Error(pparser, assignment_expr );
@@ -1071,7 +1071,7 @@ void Parser_Assignment_expr2(Parser* pparser )
 		pparser->theFieldToken.theType = END_OF_TOKENS;
 
 		code = Parser_Assignment_op(pparser );
-		Parser_Log_or_expr(pparser );
+		Parser_Cond_expr(pparser );
 		Parser_AddInstructionViaToken(pparser, code, (Token*)NULL, NULL );
 
 		if (token.theType != END_OF_TOKENS){
@@ -1091,10 +1091,53 @@ void Parser_Assignment_expr2(Parser* pparser )
 
 void Parser_Const_expr(Parser* pparser)
 {
-	if (ParserSet_First(&(pparser->theParserSet), log_or_expr, pparser->theNextToken.theType )){
-		Parser_Log_or_expr(pparser );
+	if (ParserSet_First(&(pparser->theParserSet), cond_expr, pparser->theNextToken.theType )){
+		Parser_Cond_expr(pparser );
 	}
 	else Parser_Error(pparser, const_expr );
+}
+
+void Parser_Cond_expr(Parser* pparser )
+{
+	if (ParserSet_First(&(pparser->theParserSet), log_or_expr, pparser->theNextToken.theType )){
+		Parser_Log_or_expr(pparser );
+		Parser_Cond_expr2(pparser );
+	}
+	else Parser_Error(pparser, cond_expr );
+}
+
+void Parser_Cond_expr2(Parser* pparser )
+{
+	Label falseLabel, endLabel, varName;
+	Token var;
+	TEXTPOS pos = {0,0};
+	if (Parser_Check(pparser, TOKEN_CONDITIONAL )){
+		falseLabel = Parser_CreateLabel(pparser);
+		endLabel = Parser_CreateLabel(pparser);
+		varName = Parser_CreateLabel(pparser);
+		Token_Init(&var, TOKEN_IDENTIFIER, varName, pos, 0);
+		Parser_AddInstructionViaToken(pparser, DATA, &var, NULL );
+		
+		Parser_Match(pparser);
+		Parser_AddInstructionViaLabel(pparser, Branch_FALSE, falseLabel, NULL );
+		Parser_Expr(pparser );
+		Parser_AddInstructionViaToken(pparser, SAVE, &var, NULL );
+		Parser_AddInstructionViaLabel(pparser, JUMP, endLabel, NULL );
+		if (Parser_Check(pparser, TOKEN_COLON )){
+			Parser_Match(pparser);
+			Parser_AddInstructionViaToken(pparser, NOOP, NULL, falseLabel );
+			Parser_Cond_expr(pparser );
+			Parser_AddInstructionViaToken(pparser, SAVE, &var, NULL );
+			Parser_AddInstructionViaToken(pparser, NOOP, NULL, endLabel );
+			Parser_AddInstructionViaToken(pparser, LOAD, &var, NULL );
+		}
+		else Parser_Error(pparser, cond_expr2 );
+		free((void*)falseLabel);
+		free((void*)endLabel);
+		free((void*)varName);
+	}
+	else if (ParserSet_Follow(&(pparser->theParserSet), cond_expr2, pparser->theNextToken.theType )){}
+	else Parser_Error(pparser, cond_expr2 );
 }
 
 void Parser_Log_or_expr(Parser* pparser )
