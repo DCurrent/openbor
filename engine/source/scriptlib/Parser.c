@@ -1071,8 +1071,9 @@ void Parser_Assignment_expr2(Parser* pparser )
 		pparser->theFieldToken.theType = END_OF_TOKENS;
 
 		code = Parser_Assignment_op(pparser );
+		if (code == NOOP) List_Remove(pparser->pIList);
 		Parser_Cond_expr(pparser );
-		Parser_AddInstructionViaToken(pparser, code, (Token*)NULL, NULL );
+		if (code != NOOP) Parser_AddInstructionViaToken(pparser, code, (Token*)NULL, NULL );
 
 		if (token.theType != END_OF_TOKENS){
 			Parser_AddInstructionViaToken(pparser, LOAD, &token, NULL );
@@ -1080,6 +1081,7 @@ void Parser_Assignment_expr2(Parser* pparser )
 		}
 
 		Parser_AddInstructionViaToken(pparser, SAVE, pInstruction->theToken, NULL );
+		Parser_AddInstructionViaToken(pparser, LOAD, pInstruction->theToken, NULL );
 		Parser_Assignment_expr2(pparser );
 	}
 	else if (ParserSet_Follow(&(pparser->theParserSet), assignment_expr2, pparser->theNextToken.theType ))
