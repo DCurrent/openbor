@@ -9656,7 +9656,7 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_SHADOWCOLOR:
 				memset(&next,0,sizeof(next));
-				next.shadowcolor = GET_INT_ARG(1);
+				next.shadowcolor = parsecolor(GET_ARG(1));
 				break;
 			case CMD_LEVEL_SHADOWALPHA:
 				memset(&next,0,sizeof(next));
@@ -10869,6 +10869,8 @@ int common_idle_anim(entity* ent)
 
 	self = ent;
 
+	if(self->idling) self->idling |= 2;
+
 	if (ent->model->subtype != SUBTYPE_BIKER && ent->model->type != TYPE_NONE) // biker fix by Plombo // type none being "idle" prevented contra locked and loaded from working correctly. fixed by anallyst
 		ent->xdir = ent->zdir = 0;                                                      //Stop movement.
 
@@ -11403,8 +11405,6 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 		ent->animation = ani;
 		ent->animpos=animpos;
 	}else{
-		if(aninum!=ANI_SLEEP)
-			ent->sleeptime = time + ent->modeldata.sleepwait;
 		ent->animation = ani;
 		ent->animnum = aninum;    // Stored for nocost usage
 		ent->animation->animhits = 0;
@@ -12938,6 +12938,9 @@ void update_animation()
 		}
 	}
 
+	if(self->animnum!=ANI_SLEEP && self->idling&2)
+		self->sleeptime = time + self->modeldata.sleepwait;
+
 	if(self->invincible && time >= self->invinctime)    // Invincible time has run out, turn off
 	{
 		self->invincible    = 0;
@@ -13890,12 +13893,12 @@ int set_idle(entity* ent)
 	//int ani = ANI_IDLE;
 	//if(validanim(ent,ANI_FAINT) && ent->health <= ent->modeldata.health / 4) ani = ANI_FAINT;
 	//if(validanim(ent,ani)) ent_set_anim(ent, ani, 0);
-	common_idle_anim(ent);
 	ent->idling = 1;
 	ent->attacking = 0;
 	ent->inpain = 0;
 	ent->jumping = 0;
 	ent->blocking = 0;
+	common_idle_anim(ent);
 	return 1;
 }
 
