@@ -10269,6 +10269,7 @@ enum levelproperty_enum
 	_lp_quake,
 	_lp_rocking,
 	_lp_scrollspeed,
+	_lp_type,
 	_lp_wall,
 	_lp_the_end,
 };
@@ -10290,6 +10291,7 @@ void mapstrings_levelproperty(ScriptVariant** varlist, int paramCount)
 		"quake",
 		"rocking",
 		"scrollspeed",
+		"type",
 		"wall",
 	};
 
@@ -10302,7 +10304,7 @@ void mapstrings_levelproperty(ScriptVariant** varlist, int paramCount)
 HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	LONG ltemp, ltemp2;
-	mapstrings_drawmethodproperty(varlist, paramCount);
+	mapstrings_levelproperty(varlist, paramCount);
 
 	switch(varlist[0]->lVal)
 	{
@@ -10354,6 +10356,12 @@ HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 		(*pretvar)->dblVal = (DOUBLE)level->scrollspeed;
 		break;
 	}
+	case _lp_type:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)level->type;
+		break;
+	}
 	case _lp_hole:
 	{
 		if(paramCount>2 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp))
@@ -10377,7 +10385,7 @@ HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 		else goto getlevelproperty_error;
 	}
 	default:
-		printf("Property is not supported by function getlevelproperty yet.\n");
+		printf("Property is not supported by function getlevelproperty yet. %d\n", varlist[0]->lVal);
 		goto getlevelproperty_error;
 		break;
 	}
@@ -10394,12 +10402,15 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 {
 	LONG ltemp, ltemp2;
 	DOUBLE dbltemp;
+	static char buf[64];
 	int i;
 	ScriptVariant* arg = NULL;
 
+	*pretvar = NULL;
+
 	if(paramCount < 2)
 	{
-		*pretvar = NULL;
+		printf("Function changelevelproperty(prop, value) need at least 2 parameters.\n");
 		return E_FAIL;
 	}
 
@@ -10412,47 +10423,52 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 	case _lp_rocking:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->rocking = (int)ltemp;
-		else (*pretvar)->lVal = (LONG)0;
+		else goto clperror;
 		break;
 	case _lp_bgspeed:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->bgspeed = (float)ltemp;
-		else (*pretvar)->lVal = (LONG)0;
+		else goto clperror;
 		break;
 	case _lp_scrollspeed:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->scrollspeed = (float)ltemp;
-		else (*pretvar)->lVal = (LONG)0;
+		else goto clperror;
+		break;
+	case _lp_type:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
+			level->type = (int)ltemp;
+		else goto clperror;
 		break;
 	case _lp_cameraxoffset:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->cameraxoffset = (int)ltemp;
-		else (*pretvar)->lVal = (LONG)0;
+		else goto clperror;
 		break;
 	case _lp_camerazoffset:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->camerazoffset = (int)ltemp;
-		else (*pretvar)->lVal = (LONG)0;
+		else goto clperror;
 		break;
 	case _lp_gravity:
 		if(SUCCEEDED(ScriptVariant_DecimalValue(arg, &dbltemp)))
 			level->gravity = (float)dbltemp;
-		else (*pretvar)->lVal = (LONG)0;
+		else goto clperror;
 		break;
 	case _lp_maxfallspeed:
 		if(SUCCEEDED(ScriptVariant_DecimalValue(arg, &dbltemp)))
 			level->maxfallspeed = (float)dbltemp;
-		else (*pretvar)->lVal = (LONG)0;
+		else goto clperror;
 		break;
 	case _lp_maxtossspeed:
 		if(SUCCEEDED(ScriptVariant_DecimalValue(arg, &dbltemp)))
 			level->maxtossspeed = (float)dbltemp;
-		else (*pretvar)->lVal = (LONG)0;
+		else goto clperror;
 		break;
 	case _lp_quake:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->quake = (int)ltemp;
-		else (*pretvar)->lVal = (LONG)0;
+		else goto clperror;
 		break;
 	case _lp_hole:
 	{
@@ -10467,24 +10483,19 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 				if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))	&& ltemp2>=0 && ltemp2<7
 					&& SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)) )
 					level->holes[ltemp][ltemp2] = (float)dbltemp;
-				else (*pretvar)->lVal = (LONG)0;
+				else goto clperror;
 			}
 			else if (paramCount==9)
 			{
 				for (i=0; i<7; i++)
 				{
-					if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp))) {
+					if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp))) 
 						level->holes[ltemp][i] = (float)dbltemp;
-					} else {
-						(*pretvar)->lVal = (LONG)0;
-						break;
-					}
+					else goto clperror;
 				}
-			}
-			else (*pretvar)->lVal = (LONG)0;
+			} else goto clperror;
 			
-		}
-		else (*pretvar)->lVal = (LONG)0;
+		} else goto clperror;
 		break;
 	}
 	case _lp_wall:
@@ -10500,34 +10511,38 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 				if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))	&& ltemp2>=0 && ltemp2<8
 					&& SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)) )
 					level->walls[ltemp][ltemp2] = (float)dbltemp;
-				else (*pretvar)->lVal = (LONG)0;
+				else goto clperror;
 			}
 			else if (paramCount==10)
 			{
 				for (i=0; i<8; i++)
 				{
-					if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp))) {
+					if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp))) 
 						level->walls[ltemp][i] = (float)dbltemp;
-					} else {
-						(*pretvar)->lVal = (LONG)0;
-						break;
-					}
+					else goto clperror;
 				}
-			}
-			else (*pretvar)->lVal = (LONG)0;
+			}else goto clperror;
 			
 		}
-		else (*pretvar)->lVal = (LONG)0;
+		else goto clperror;
 		break;
 	}
 	default:
-		printf("The level property is read-only.\n");
-		*pretvar = NULL;
+		printf("Invalid or read-only level property.\n");
 		return E_FAIL;
 		break;
 	}
 
 	return S_OK;
+clperror:
+	printf("Function changelevelproperty(prop, value) received invalid value(s). \n");
+	printf("Dumping values: ");
+	for(i=1; i<paramCount; i++) {
+		ScriptVariant_ToString(varlist[i], buf);
+		printf("%s, ", buf);
+	}
+	printf("\n");
+	return E_FAIL;
 }
 
 
