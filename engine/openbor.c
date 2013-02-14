@@ -2521,7 +2521,7 @@ int saveGameFile(){
 
 int loadGameFile(){
 #ifndef DC
-	int result = 1;
+	int result = 1, i;
 	FILE *handle = NULL;
 	char path[256] = {""};
 	char tmpname[256] = {""};
@@ -2533,6 +2533,9 @@ int loadGameFile(){
     if(fread(savelevel, sizeof(*savelevel), num_difficulties, handle)>=sizeof(*savelevel) && savelevel[0].compatibleversion!=CV_SAVED_GAME){ //TODO: check file length
 		clearSavedGame();
 		result = 0;
+	} else {
+		bonus = 0;
+		for(i=0; i<num_difficulties; i++) if(savelevel[i].times_completed > 0) bonus += savelevel[i].times_completed;
 	}
 	fclose(handle);
 	return result;
@@ -17716,7 +17719,9 @@ void player_die()
 		if(!player[0].ent && !player[1].ent && !player[2].ent && !player[3].ent)
 		{
 			timeleft = 10 * COUNTER_SPEED;
-			if((!noshare && credits < 1) || (noshare && player[0].credits < 1 && player[1].credits < 1 && player[2].credits <1 && player[3].credits <1)) timeleft = COUNTER_SPEED/2;
+			if(!player[0].joining && !player[1].joining && !player[0].joining && !player[0].joining &&
+			   ((!noshare && credits < 1) || (noshare && player[0].credits < 1 && player[1].credits < 1 && player[2].credits <1 && player[3].credits <1)) )
+				timeleft = COUNTER_SPEED/2;
 		}
 		if(self->modeldata.weaploss[0]<=3) player[playerindex].weapnum = level->setweap;
 		if(nomaxrushreset[4] != 2) nomaxrushreset[playerindex] = 0;
@@ -22041,12 +22046,7 @@ int selectplayer(int *players, char* filename)
 	kill_all();
 	reset_playable_list(1);
 
-	if(loadGameFile())
-	{
-		bonus = 0;
-		if(savelevel)
-		for(i=0; i<num_difficulties; i++) if(savelevel[i].times_completed > 0) bonus += savelevel[i].times_completed;
-	}
+	loadGameFile();
 
 	if(filename && filename[0])
 	{
@@ -22504,11 +22504,7 @@ int choose_difficulty()
 	newgameMenu = 1;
 	bothnewkeys = 0;
 
-	if(loadGameFile())
-	{
-		bonus = 0;
-		for(i=0; i<num_difficulties; i++) if(savelevel[i].times_completed > 0) bonus += savelevel[i].times_completed;
-	}
+	loadGameFile();
 
 	while(!quit)
 	{
