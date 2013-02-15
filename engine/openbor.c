@@ -5136,7 +5136,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		"        {\n";
 
 	static const char* endif_text = // end of if
-		"\n"
+		"            return;\n"
 		"        }\n" ;
 
 	static const char* comma_text = // arguments separator

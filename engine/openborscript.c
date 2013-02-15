@@ -681,8 +681,8 @@ void* Script_GetStringMapFunction(void* functionRef)
 	else if (functionRef==((void*)openbor_setspawnentry)) return (void*)mapstrings_setspawnentry;
 	else if (functionRef==((void*)openbor_transconst)) return (void*)mapstrings_transconst;
 	else if (functionRef==((void*)openbor_playerkeys)) return (void*)mapstrings_playerkeys;
-	else if (functionRef==((void*)openbor_gettextobjproperty)) return (void*)mapstrings_gettextobjproperty;
-	else if (functionRef==((void*)openbor_changetextobjproperty)) return (void*)mapstrings_changetextobjproperty;
+	else if (functionRef==((void*)openbor_gettextobjproperty)) return (void*)mapstrings_textobjproperty;
+	else if (functionRef==((void*)openbor_changetextobjproperty)) return (void*)mapstrings_textobjproperty;
 	else if (functionRef==((void*)openbor_getlayerproperty)) return (void*)mapstrings_layerproperty;
 	else if (functionRef==((void*)openbor_changelayerproperty)) return (void*)mapstrings_layerproperty;
 	else if (functionRef==((void*)openbor_changedrawmethod)) return (void*)mapstrings_drawmethodproperty;
@@ -7129,7 +7129,7 @@ enum playerproperty_enum {
 	_pp_spawnhealth,
 	_pp_spawnmp,
 	_pp_weapon,
-	_pp_weaponum,
+	_pp_weapnum,
 	_pp_the_end,
 };
 
@@ -7151,7 +7151,7 @@ void mapstrings_playerproperty(ScriptVariant** varlist, int paramCount)
 		"spawnhealth",
 		"spawnmp",
 		"weapon",
-		"weaponum",
+		"weapnum",
 	};
 
 	if(paramCount < 2) return;
@@ -7265,7 +7265,7 @@ HRESULT openbor_getplayerproperty(ScriptVariant** varlist , ScriptVariant** pret
 		else        (*pretvar)->lVal = credits;
 		break;
 	}
-	case _pp_weaponum:
+	case _pp_weapnum:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)player[index].weapnum;
@@ -7343,6 +7343,13 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 			}
 			else goto cpperror;
 		}
+		break;
+	}
+	case _pp_weapnum:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
+			player[index].weapnum = (int)ltemp;
+		else goto cpperror;
 		break;
 	}
 	case _pp_name:
@@ -9426,16 +9433,16 @@ changeshadowcolor_error:
 // ===== gettextobjproperty(name, value) =====
 enum gtop_enum
 {
-	_gtop_font,
-	_gtop_text,
-	_gtop_time,
-	_gtop_x,
-	_gtop_y,
-	_gtop_z,
-	_gtop_the_end,
+	_top_font,
+	_top_text,
+	_top_time,
+	_top_x,
+	_top_y,
+	_top_z,
+	_top_the_end,
 };
 
-void mapstrings_gettextobjproperty(ScriptVariant** varlist, int paramCount)
+void mapstrings_textobjproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname = NULL;
 	int prop;
@@ -9451,8 +9458,8 @@ void mapstrings_gettextobjproperty(ScriptVariant** varlist, int paramCount)
 
 	if(paramCount < 2) return;
 
-	MAPSTRINGS(varlist[1], proplist, _gtop_the_end,
-		"Property name '%s' is not supported by function gettextobjproperty.\n");
+	MAPSTRINGS(varlist[1], proplist, _top_the_end,
+		"'%s' is not a valid textobj property.\n");
 }
 
 HRESULT openbor_gettextobjproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
@@ -9471,7 +9478,7 @@ HRESULT openbor_gettextobjproperty(ScriptVariant** varlist , ScriptVariant** pre
 	}
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	mapstrings_gettextobjproperty(varlist, paramCount);
+	mapstrings_textobjproperty(varlist, paramCount);
 
 	if(ind<0 || ind >= level->numtextobjs)
 	{
@@ -9490,37 +9497,37 @@ HRESULT openbor_gettextobjproperty(ScriptVariant** varlist , ScriptVariant** pre
 
 	switch(propind)
 	{
-	case _gtop_font:
+	case _top_font:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)level->textobjs[ind].font;
 		break;
 	}
-	case _gtop_text:
+	case _top_text:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strcpy(StrCache_Get((*pretvar)->strVal), level->textobjs[ind].text);
+		strncpy(StrCache_Get((*pretvar)->strVal), level->textobjs[ind].text, MAX_STR_VAR_LEN);
 		break;
 	}
-	case _gtop_time:
+	case _top_time:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)level->textobjs[ind].t;
 		break;
 	}
-	case _gtop_x:
+	case _top_x:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)level->textobjs[ind].x;
 		break;
 	}
-	case _gtop_y:
+	case _top_y:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)level->textobjs[ind].y;
 		break;
 	}
-	case _gtop_z:
+	case _top_z:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)level->textobjs[ind].z;
@@ -9539,60 +9546,33 @@ gettextobjproperty_error:
 	return E_FAIL;
 }
 
-// ===== changetextobjproperty(name, value) =====
-enum ctop_enum
-{
-	_ctop_font,
-	_ctop_text,
-	_ctop_time,
-	_ctop_x,
-	_ctop_y,
-	_ctop_z,
-	_ctop_the_end,
-};
-
-void mapstrings_changetextobjproperty(ScriptVariant** varlist, int paramCount)
-{
-	char* propname = NULL;
-	int prop;
-
-	static const char* proplist[] = {
-		"font",
-		"text",
-		"time",
-		"x",
-		"y",
-		"z",
-	};
-
-	if(paramCount < 2) return;
-	MAPSTRINGS(varlist[1], proplist, _ctop_the_end,
-		"Property name '%s' is not supported by function changetextobjproperty.\n");
-}
-
 HRESULT openbor_changetextobjproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	LONG ind;
 	int propind;
+	static char buf[MAX_STR_VAR_LEN];
 	LONG ltemp;
+	const char* ctotext = "changetextobjproperty(int index, \"property\", value)";
 
-	if(paramCount < 3)
-		goto changetextobjproperty_error;
+	*pretvar = NULL;
 
+	if(paramCount < 3) {
+		printf("Function needs at last 3 parameters: %s\n", ctotext);
+		return E_FAIL;
+	}
 
 	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ind)))
 	{
-		printf("Function's 1st argument must be a numeric value: changetextobjproperty(int index, \"property\", value)\n");
-		goto changetextobjproperty_error;
+		printf("Function's 1st argument must be a numeric value: %s\n", ctotext);
+		return E_FAIL;
 	}
 
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	mapstrings_changetextobjproperty(varlist, paramCount);
+	mapstrings_textobjproperty(varlist, paramCount);
 
 	if(ind<0)
 	{
-		(*pretvar)->lVal = 0;
-		return S_OK;
+		printf("Invalid textobj index, must be >= 0\n");
+		return E_FAIL;
 	}
 	else if (ind >= level->numtextobjs)
 	{
@@ -9602,86 +9582,67 @@ HRESULT openbor_changetextobjproperty(ScriptVariant** varlist , ScriptVariant** 
 
 	if(varlist[1]->vt != VT_INTEGER)
 	{
-		if(varlist[1]->vt != VT_STR)
-			printf("Function changetextobjproperty must have a string property name.\n");
-		goto changetextobjproperty_error;
+		printf("Invalid property type for changetextobjproperty.\n");
+		return E_FAIL;
 	}
 
 	propind = varlist[1]->lVal;
 
 	switch(propind)
 	{
-	case _ctop_font:
+	case _top_font:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			level->textobjs[ind].font = (int)ltemp;
-		}
+		else goto changetextobjproperty_error;
 		break;
 	}
-	case _ctop_text:
+	case _top_text:
 	{
-		if(varlist[2]->vt != VT_STR)
-		{
-			printf("You must give a string value for textobj text.\n");
-			goto changetextobjproperty_error;
-		}
-		if(!level->textobjs[ind].text)
-		{
-			level->textobjs[ind].text = (char*)malloc(MAX_STR_VAR_LEN);
-		}
-		strncpy(level->textobjs[ind].text, (char*)StrCache_Get(varlist[2]->strVal), MAX_STR_VAR_LEN);
-		//level->textobjs[ind].text = (char*)StrCache_Get(varlist[2]->strVal);
-		(*pretvar)->lVal = (LONG)1;
+		ScriptVariant_ToString(varlist[2], buf);
+		level->textobjs[ind].text = malloc(MAX_STR_VAR_LEN);
+		strncpy(level->textobjs[ind].text, buf, MAX_STR_VAR_LEN);
 		break;
 	}
-	case _ctop_time:
+	case _top_time:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			level->textobjs[ind].t = (int)ltemp;
-		}
+		else goto changetextobjproperty_error;
 		break;
 	}
-	case _ctop_x:
+	case _top_x:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			level->textobjs[ind].x = (int)ltemp;
-		}
+		else goto changetextobjproperty_error;
 		break;
 	}
-	case _ctop_y:
+	case _top_y:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			level->textobjs[ind].y = (int)ltemp;
-		}
+		else goto changetextobjproperty_error;
 		break;
 	}
-	case _ctop_z:
+	case _top_z:
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
 			level->textobjs[ind].z = (int)ltemp;
-		}
+		else goto changetextobjproperty_error;
 		break;
 	}
 	default:
 		//printf("Property name '%s' is not supported by function changetextobjproperty.\n", propname);
-		goto changetextobjproperty_error;
+		return E_FAIL;
 		break;
 	}
 
 	return S_OK;
 
 changetextobjproperty_error:
-	*pretvar = NULL;
+	ScriptVariant_ToString(varlist[2], buf);
+	printf("Invalid textobj value: %s\n", buf);
 	return E_FAIL;
 }
 
@@ -9689,101 +9650,79 @@ changetextobjproperty_error:
 HRESULT openbor_settextobj(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	LONG ind;
-	LONG ltemp;
+	LONG X,Y,Z,F,T;
+	static char buf[MAX_STR_VAR_LEN];
+	const char* stotext = "settextobj(int index, int x, int y, int font, int z, char text, int time {optional})";
+
+	*pretvar = NULL;
+
 
 	if(paramCount < 6)
-		goto settextobj_error;
+	{
+		printf("Function needs at least 6 parameters: %s\n", stotext);
+		return E_FAIL;
+	}
 
 	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ind)))
 	{
-		printf("Function's 1st argument must be a numeric value: settextobj(int index, int x, int y, int font, int z, char text, int time {optional})\n");
-		goto settextobj_error;
+		printf("Function's 1st argument must be a numeric value: %s\n", stotext);
+		return E_FAIL;
 	}
-
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
 	if(ind<0)
 	{
-		(*pretvar)->lVal = 0;
-		return S_OK;
+		printf("Invalid textobj index, must be >= 0\n");
+		return E_FAIL;
 	}
 	else if(ind>=level->numtextobjs) {
 		__reallocto(level->textobjs, level->numtextobjs, ind+1);
 		level->numtextobjs = ind+1;
 	}
 
-	if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)))
-	{
-		(*pretvar)->lVal = (LONG)1;
-		level->textobjs[ind].x = (int)ltemp;
-	}
+	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &X))) goto settextobj_error;
+	if(FAILED(ScriptVariant_IntegerValue(varlist[2], &Y))) goto settextobj_error;
+	if(FAILED(ScriptVariant_IntegerValue(varlist[3], &F))) goto settextobj_error;
+	if(FAILED(ScriptVariant_IntegerValue(varlist[4], &Z))) goto settextobj_error;
+	ScriptVariant_ToString(varlist[5], buf);
+	if(paramCount >= 7 && FAILED(ScriptVariant_IntegerValue(varlist[6], &T))) goto settextobj_error;
 
-	if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-	{
-		(*pretvar)->lVal = (LONG)1;
-		level->textobjs[ind].y = (int)ltemp;
-	}
-
-	if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-	{
-		(*pretvar)->lVal = (LONG)1;
-		level->textobjs[ind].font = (int)ltemp;
-	}
-
-	if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
-	{
-		(*pretvar)->lVal = (LONG)1;
-		level->textobjs[ind].z = (int)ltemp;
-	}
-
-	if(varlist[5]->vt != VT_STR)
-	{
-		printf("You must give a string value for textobj text.\n");
-		goto settextobj_error;
-	}
-
-	if(paramCount >= 7)
-	{
-		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
-		{
-			(*pretvar)->lVal = (LONG)1;
-			level->textobjs[ind].t = (int)ltemp;
-		}
-	}
+	level->textobjs[ind].t = (int)T;
+	level->textobjs[ind].x = (int)X;
+	level->textobjs[ind].y= (int)Y;
+	level->textobjs[ind].z = (int)Z;
+	level->textobjs[ind].font = (int)F;
 
 	if(!level->textobjs[ind].text)
-	{
 		level->textobjs[ind].text = (char*)malloc(MAX_STR_VAR_LEN);
-	}
-	strncpy(level->textobjs[ind].text, (char*)StrCache_Get(varlist[5]->strVal), MAX_STR_VAR_LEN);
-	(*pretvar)->lVal = (LONG)1;
+	strncpy(level->textobjs[ind].text, buf, MAX_STR_VAR_LEN);
 
 	return S_OK;
 
 settextobj_error:
-	*pretvar = NULL;
+	printf("Invalid value(s) for settextobj: %s\n", stotext);
 	return E_FAIL;
 }
 
 HRESULT openbor_cleartextobj(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	LONG ind;
+	const char* cltotext = "cleartextobj(int index)";
 
-	if(paramCount < 1)
-		goto cleartextobj_error;
+	*pretvar = NULL;
 
+	if(paramCount < 1) {
+		printf("Function needs at least 1 parameter: %s\n", cltotext);
+		return E_FAIL;
+	}
 
 	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ind)))
 	{
-		printf("Function's 1st argument must be a numeric value: cleartextobj(int index)\n");
-		goto cleartextobj_error;
+		printf("Function's 1st argument must be a numeric value: %s\n", cltotext);
+		return E_FAIL;
 	}
-
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
 	if(ind<0 || ind >= level->numtextobjs)
 	{
-		(*pretvar)->lVal = 0;
 		return S_OK;
 	}
 
@@ -9796,10 +9735,6 @@ HRESULT openbor_cleartextobj(ScriptVariant** varlist , ScriptVariant** pretvar, 
 		 free(level->textobjs[ind].text);
 	level->textobjs[ind].text = NULL;
 	return S_OK;
-
-cleartextobj_error:
-	*pretvar = NULL;
-	return E_FAIL;
 }
 
 // ===== get layer type ======
@@ -10414,7 +10349,7 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 		return E_FAIL;
 	}
 
-	mapstrings_drawmethodproperty(varlist, paramCount);
+	mapstrings_levelproperty(varlist, paramCount);
 
 	arg = varlist[1];
 
