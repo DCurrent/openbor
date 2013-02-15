@@ -2682,6 +2682,20 @@ int saveScriptFile()
 		}
 		
 	}
+	//allow select
+	for(i=0; i<models_cached; i++){
+		if(model_cache[i].selectable) {
+			_writeconst("\tchangemodelproperty(\"")
+			_writestr(model_cache[i].name)
+			_writeconst("\",4,1);\n")
+		}
+		if(model_cache[i].model) {
+			_writeconst("\tloadmodel(\"")
+			_writestr(model_cache[i].name)
+			sprintf(tmpvalue, "\",%d,%d);\n", model_cache[i].model->unload, model_cache[i].selectable);
+			_writetmp
+		}
+	}
 	_writeconst("}\n");
 
 	fclose(handle);
@@ -22397,7 +22411,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 				strncpy(player[i].name, save->pName[i], MAX_NAME_LEN);
 			}
 			credits = save->credits;
-			reset_playable_list(1); // add this because there's no select screen, temporary solution
+			//reset_playable_list(1); // add this because there's no select screen, temporary solution
 			//TODO: change sav format to support custom allowselect list.
 		}
 	}

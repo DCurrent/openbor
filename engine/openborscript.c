@@ -2512,12 +2512,14 @@ HRESULT openbor_getmodelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 		return E_FAIL;
 	}
 
-	if(varlist[0]->vt!=VT_INTEGER || varlist[1]->vt!=VT_INTEGER)
+	if((varlist[0]->vt!=VT_INTEGER && varlist[0]->vt!=VT_STR) || varlist[1]->vt!=VT_INTEGER)
 	{
 		printf("\n Error, getmodelproperty({model}, {property}): Invalid or missing parameter. Getmodelproperty must be passed valid {model} and {property} indexes.\n");
 	}
 
-	iArg = varlist[0]->lVal;
+	iArg = varlist[0]->vt==VT_INTEGER?varlist[0]->lVal:get_cached_model_index(StrCache_Get(varlist[0]->strVal));
+
+	if(iArg<0 || iArg>=models_cached) return E_FAIL;
 
 	switch (varlist[1]->lVal)
 	{
@@ -2566,12 +2568,14 @@ HRESULT openbor_changemodelproperty(ScriptVariant** varlist , ScriptVariant** pr
 		return E_FAIL;
 	}
 
-	if(varlist[0]->vt!=VT_INTEGER || varlist[1]->vt!=VT_INTEGER)
+	if((varlist[0]->vt!=VT_INTEGER && varlist[0]->vt!=VT_STR) || varlist[1]->vt!=VT_INTEGER)
 	{
 		printf("\n Error, changemodelproperty({model}, {property}, {value}): Invalid or missing parameter. Changemodelproperty must be passed valid {model}, {property} and {value}.\n");
 	}
 
-	iArg = varlist[0]->lVal;
+	iArg = varlist[0]->vt==VT_INTEGER?varlist[0]->lVal:get_cached_model_index(StrCache_Get(varlist[0]->strVal));
+
+	if(iArg<0 || iArg>=models_cached) return E_FAIL;
 
 	switch (varlist[1]->lVal)
 	{
