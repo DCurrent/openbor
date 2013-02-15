@@ -35,6 +35,8 @@ s_savedata savedata;
 s_set_entry *levelsets = NULL;
 int        num_difficulties;
 
+int no_cmd_compatible = 0;
+
 int		skiptoset = -1;
 //when there are more entities than this, those with lower priority will be erased
 int spawnoverride = 999999;
@@ -5149,8 +5151,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 		"        if(frame==%d)\n"
 		"        {\n";
 
+	static const char* endif_return_text =  //return to reduce unecessary checks
+		"            return;\n";
+
 	static const char* endif_text = // end of if
-		"            return;\n"
 		"        }\n" ;
 
 	static const char* comma_text = // arguments separator
@@ -7577,15 +7581,43 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					scriptbuf[scriptlen - strlen(endifid_text)] = 0; // cut last chars
 					scriptlen = strlen(scriptbuf);
 					if(value && value[0]){
-						if(frm_id != curframe)
+						/*
+						 //no_cmd_compatible will try to optimize if(frame==n)
+						 //which means merging extra if statements within the same frame
+						 //some old mod will have problem if this is enabled, however.
+						 //
+						 //     @cmd f
+						 //     @cmd f
+						 //     frame
+						 //
+						 //   When no_cmd_compatible is 1
+						 //
+						 //   if(frame==n) {
+						 //       f();
+						 //       f();
+						 //       return;
+						 //    }
+						 //
+						 //    When no_cmd_compatible is 0
+						 //
+						 //   if(frame==n) {
+						 //       f();
+						 //    }
+						 //   if(frame==n) {
+						 //       f();
+						 //    }
+						 */
+						if(!no_cmd_compatible || frm_id != curframe)
 						{
 							sprintf(namebuf, if_text, curframe);//only execute in current frame
 							buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
 							frm_id = curframe;
 						}
-						else
+						else //no_cmd_compatible==1
 						{
 							scriptbuf[scriptlen - strlen(endif_text)] = 0; // cut last chars
+							scriptlen = strlen(scriptbuf);
+							scriptbuf[scriptlen - strlen(endif_return_text)] = 0; // cut last chars
 							scriptlen = strlen(scriptbuf);
 						}
 						sprintf(namebuf, call_text, value);
@@ -7600,6 +7632,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						}while(value && value[0]);
 					}
 					buffer_append(&scriptbuf, endcall_text, 0xffffff, &sbsize, &scriptlen);
+					if(no_cmd_compatible) buffer_append(&scriptbuf, endif_return_text, 0xffffff, &sbsize, &scriptlen);//return
 					buffer_append(&scriptbuf, endif_text, 0xffffff, &sbsize, &scriptlen);//end of if
 					buffer_append(&scriptbuf, endifid_text, 0xffffff, &sbsize, &scriptlen); // put back last  chars
 					buffer_append(&scriptbuf, sur_text, 0xffffff, &sbsize, &scriptlen); // put back last  chars
@@ -7864,6 +7897,10 @@ int load_script_setting()
 				else if(stricmp(command, "nonestedscript")==0) // don't call a script if it is being executed
 				{
 					no_nested_script = GET_INT_ARG(1);
+				}
+				else if(stricmp(command, "nocmdcompatible")==0) // don't call a script if it is being executed
+				{
+					no_cmd_compatible = GET_INT_ARG(1);
 				}
 			}
 		}
