@@ -94,7 +94,7 @@
 #define		MAX_ATTACKS			4					// Total number of attacks players have
 #define     MAX_FOLLOWS         4					// For followup animations
 #define     MAX_PLAYERS         4
-#define		MAX_ARG_LEN			512
+#define		MAX_ARG_LEN			511
 #define		MAX_PAL_SIZE		1024
 #define		MAX_CACHED_BACKGROUNDS 9
 
