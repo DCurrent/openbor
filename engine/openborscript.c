@@ -692,16 +692,38 @@ void* Script_GetStringMapFunction(void* functionRef)
 	else return NULL;
 }
 
+#if 0
+const ScriptVariant* Script_Find_Constant(Script* pscript, const ScriptVariant* value) {
+	int i, size;
+	Interpreter* pinterpreter = pscript->pinterpreter;
+	Instruction *pInstruction;
+
+	size = List_GetSize(&(pinterpreter->theInstructionList));
+	for(i=0; i<size; i++)
+	{
+		pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[i]);
+		if(pInstruction->theVal2 == value)
+			return pInstruction->theVal;
+	}
+	return NULL;
+}
+#endif
+
 /* Replace string constants with enum constants at compile time to speed up
    script execution. */
 int Script_MapStringConstants(Script* pscript)
 {
 	Interpreter* pinterpreter = pscript->pinterpreter;
-	Instruction* pInstruction, *pInstruction2;
+	Instruction* pInstruction;
 	ScriptVariant** params;
 	//ScriptVariant* var;
 	void (*pMapstrings)(ScriptVariant**, int);
-	int i, j, k, size, paramCount;
+	int i, size, paramCount;
+#if 1
+	static char buf[128];
+	int j,k;
+	Instruction *pInstruction2;
+#endif
 
 	size = List_GetSize(&(pinterpreter->theInstructionList));
 	for(i=0; i<size; i++)
@@ -718,10 +740,11 @@ int Script_MapStringConstants(Script* pscript)
 			{
 				// Call the mapstrings function.
 				pMapstrings(params, paramCount);
-
+#if 1
 				// Find the instruction containing each constant and update its value.
 				for(j=0; j<paramCount; j++)
 				{
+					ScriptVariant_ToString(params[j], buf);
 					for(k=i; k>0; k--)
 					{
 						pInstruction2 = (Instruction*)(pinterpreter->theInstructionList.solidlist[k]);
@@ -733,6 +756,7 @@ int Script_MapStringConstants(Script* pscript)
 					}
 					if(k<0) return 0;
 				}
+#endif
 			}
 		}
 	}
@@ -8498,23 +8522,47 @@ HRESULT openbor_projectile(ScriptVariant** varlist , ScriptVariant** pretvar, in
 
 
 // ===== openborconstant =====
-#define ICMPCONST(x) \
+#define IICMPCONST(x) \
 if(stricmp(#x, constname)==0) {\
-	ScriptVariant_ChangeType(varlist[0], VT_INTEGER);\
-	varlist[0]->lVal = (LONG)x;\
-	return;\
+	v.lVal = (LONG)x;\
+} 
+
+
+#define ICMPCONST(x) \
+else if(stricmp(#x, constname)==0) {\
+	v.lVal = (LONG)x;\
+} 
+
+#define CHKCONSTN(x) (strnicmp(constname, #x, sizeof(#x)-1)==0 && constname[sizeof(#x)-1] >= '1' && constname[sizeof(#x)-1]<='9')
+
+#define ICMPSCONSTA(x, y) \
+else if(CHKCONSTN(x)) \
+{ \
+	v.lVal = (LONG)(y[atoi(constname+(sizeof(#x)-1))-1]);\
 }
+
+#define ICMPSCONSTB(x, y) \
+else if(CHKCONSTN(x)) \
+{ \
+	v.lVal = (LONG)(y[atoi(constname+(sizeof(#x)-1))+STA_ATKS-1]);\
+}
+
+
 void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 {
 	char* constname = NULL;
+	int found = TRUE;
+	ScriptVariant v;
 
 	if(paramCount < 1) return;
 
 	if(varlist[0]->vt == VT_STR)
 	{
+		ScriptVariant_Init(&v);
+		ScriptVariant_ChangeType(&v, VT_INTEGER);
 		constname = (char*)StrCache_Get(varlist[0]->strVal);
 
-		ICMPCONST(COMPATIBLEVERSION)
+		IICMPCONST(COMPATIBLEVERSION)
 		ICMPCONST(MIN_INT)
 		ICMPCONST(MAX_INT)
 		ICMPCONST(PIXEL_8)
@@ -8667,10 +8715,6 @@ void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 		ICMPCONST(ANI_PAIN)
 		ICMPCONST(ANI_FALL)
 		ICMPCONST(ANI_RISE)
-		//ICMPCONST(ANI_ATTACK1)// move these below because we have some dynamic animation ids
-		//ICMPCONST(ANI_ATTACK2)
-		//ICMPCONST(ANI_ATTACK3)
-		//ICMPCONST(ANI_ATTACK4)
 		ICMPCONST(ANI_UPPER)
 		ICMPCONST(ANI_BLOCK)
 		ICMPCONST(ANI_JUMPATTACK)
@@ -8681,18 +8725,14 @@ void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 		ICMPCONST(ANI_GRABATTACK2)
 		ICMPCONST(ANI_THROW)
 		ICMPCONST(ANI_SPECIAL)
-		//ICMPCONST(ANI_FREESPECIAL)// move these below because we have some dynamic animation ids
 		ICMPCONST(ANI_SPAWN)
 		ICMPCONST(ANI_DIE)
 		ICMPCONST(ANI_PICK)
-		//ICMPCONST(ANI_FREESPECIAL2)
 		ICMPCONST(ANI_JUMPATTACK3)
-		//ICMPCONST(ANI_FREESPECIAL3)
 		ICMPCONST(ANI_UP)
 		ICMPCONST(ANI_DOWN)
 		ICMPCONST(ANI_SHOCK)
 		ICMPCONST(ANI_BURN)
-
 		ICMPCONST(ANI_SHOCKPAIN)
 		ICMPCONST(ANI_BURNPAIN)
 		ICMPCONST(ANI_GRABBED)
@@ -8704,11 +8744,6 @@ void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 		ICMPCONST(ANI_ATTACKDOWN)
 		ICMPCONST(ANI_ATTACKFORWARD)
 		ICMPCONST(ANI_ATTACKBACKWARD)
-		//ICMPCONST(ANI_FREESPECIAL4)
-		//ICMPCONST(ANI_FREESPECIAL5)
-		//ICMPCONST(ANI_FREESPECIAL6)
-		//ICMPCONST(ANI_FREESPECIAL7)
-		//ICMPCONST(ANI_FREESPECIAL8)
 		ICMPCONST(ANI_RISEATTACK)
 		ICMPCONST(ANI_DODGE)
 		ICMPCONST(ANI_ATTACKBOTH)
@@ -8742,10 +8777,6 @@ void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 		ICMPCONST(ANI_CHARGE)
 		ICMPCONST(ANI_BACKWALK)
 		ICMPCONST(ANI_SLEEP)
-		//ICMPCONST(ANI_FOLLOW1) // move these below because we have some dynamic animation ids
-		//ICMPCONST(ANI_FOLLOW2)
-		//ICMPCONST(ANI_FOLLOW3)
-		//ICMPCONST(ANI_FOLLOW4)
 		ICMPCONST(ANI_PAIN5)
 		ICMPCONST(ANI_PAIN6)
 		ICMPCONST(ANI_PAIN7)
@@ -8783,7 +8814,6 @@ void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 		ICMPCONST(ANI_GRABBEDTURN)
 		ICMPCONST(ANI_GRABBACKWALK)
 		ICMPCONST(ANI_GRABBEDBACKWALK)
-
 		ICMPCONST(ANI_SLIDE)
 		ICMPCONST(ANI_RUNSLIDE)
 		ICMPCONST(ANI_BLOCKPAIN)
@@ -8793,179 +8823,106 @@ void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 		ICMPCONST(PLAYER_MAX_Z)
 		ICMPCONST(BGHEIGHT)
 		ICMPCONST(MAX_WALL_HEIGHT)
-		ICMPCONST(SAMPLE_GO);
-		ICMPCONST(SAMPLE_BEAT);
-		ICMPCONST(SAMPLE_BLOCK);
-		ICMPCONST(SAMPLE_INDIRECT);
-		ICMPCONST(SAMPLE_GET);
-		ICMPCONST(SAMPLE_GET2);
-		ICMPCONST(SAMPLE_FALL);
-		ICMPCONST(SAMPLE_JUMP);
-		ICMPCONST(SAMPLE_PUNCH);
-		ICMPCONST(SAMPLE_1UP);
-		ICMPCONST(SAMPLE_TIMEOVER);
-		ICMPCONST(SAMPLE_BEEP);
-		ICMPCONST(SAMPLE_BEEP2);
-		ICMPCONST(SAMPLE_BIKE);
-		ICMPCONST(ANI_RISE2);
-		ICMPCONST(ANI_RISE3);
-		ICMPCONST(ANI_RISE4);
-		ICMPCONST(ANI_RISE5);
-		ICMPCONST(ANI_RISE6);
-		ICMPCONST(ANI_RISE7);
-		ICMPCONST(ANI_RISE8);
-		ICMPCONST(ANI_RISE9);
-		ICMPCONST(ANI_RISE10);
-		ICMPCONST(ANI_RISEB);
-		ICMPCONST(ANI_RISES);
-		ICMPCONST(ANI_BLOCKPAIN2);
-		ICMPCONST(ANI_BLOCKPAIN3);
-		ICMPCONST(ANI_BLOCKPAIN4);
-		ICMPCONST(ANI_BLOCKPAIN5);
-		ICMPCONST(ANI_BLOCKPAIN6);
-		ICMPCONST(ANI_BLOCKPAIN7);
-		ICMPCONST(ANI_BLOCKPAIN8);
-		ICMPCONST(ANI_BLOCKPAIN9);
-		ICMPCONST(ANI_BLOCKPAIN10);
-		ICMPCONST(ANI_BLOCKPAINB);
-		ICMPCONST(ANI_BLOCKPAINS);
-		ICMPCONST(ANI_CHIPDEATH);
-		ICMPCONST(ANI_GUARDBREAK);
-		ICMPCONST(ANI_RISEATTACK2);
-		ICMPCONST(ANI_RISEATTACK3);
-		ICMPCONST(ANI_RISEATTACK4);
-		ICMPCONST(ANI_RISEATTACK5);
-		ICMPCONST(ANI_RISEATTACK6);
-		ICMPCONST(ANI_RISEATTACK7);
-		ICMPCONST(ANI_RISEATTACK8);
-		ICMPCONST(ANI_RISEATTACK9);
-		ICMPCONST(ANI_RISEATTACK10);
-		ICMPCONST(ANI_RISEATTACKB);
-		ICMPCONST(ANI_RISEATTACKS);
-		ICMPCONST(ANI_SLIDE);
-		ICMPCONST(ANI_RUNSLIDE);
-		ICMPCONST(ANI_DUCKATTACK);
-		ICMPCONST(ANI_WALKOFF);
+		ICMPCONST(SAMPLE_GO)
+		ICMPCONST(SAMPLE_BEAT)
+		ICMPCONST(SAMPLE_BLOCK)
+		ICMPCONST(SAMPLE_INDIRECT)
+		ICMPCONST(SAMPLE_GET)
+		ICMPCONST(SAMPLE_GET2)
+		ICMPCONST(SAMPLE_FALL)
+		ICMPCONST(SAMPLE_JUMP)
+		ICMPCONST(SAMPLE_PUNCH)
+		ICMPCONST(SAMPLE_1UP)
+		ICMPCONST(SAMPLE_TIMEOVER)
+		ICMPCONST(SAMPLE_BEEP)
+		ICMPCONST(SAMPLE_BEEP2)
+		ICMPCONST(SAMPLE_BIKE)
+		ICMPCONST(ANI_RISE2)
+		ICMPCONST(ANI_RISE3)
+		ICMPCONST(ANI_RISE4)
+		ICMPCONST(ANI_RISE5)
+		ICMPCONST(ANI_RISE6)
+		ICMPCONST(ANI_RISE7)
+		ICMPCONST(ANI_RISE8)
+		ICMPCONST(ANI_RISE9)
+		ICMPCONST(ANI_RISE10)
+		ICMPCONST(ANI_RISEB)
+		ICMPCONST(ANI_RISES)
+		ICMPCONST(ANI_BLOCKPAIN2)
+		ICMPCONST(ANI_BLOCKPAIN3)
+		ICMPCONST(ANI_BLOCKPAIN4)
+		ICMPCONST(ANI_BLOCKPAIN5)
+		ICMPCONST(ANI_BLOCKPAIN6)
+		ICMPCONST(ANI_BLOCKPAIN7)
+		ICMPCONST(ANI_BLOCKPAIN8)
+		ICMPCONST(ANI_BLOCKPAIN9)
+		ICMPCONST(ANI_BLOCKPAIN10)
+		ICMPCONST(ANI_BLOCKPAINB)
+		ICMPCONST(ANI_BLOCKPAINS)
+		ICMPCONST(ANI_CHIPDEATH)
+		ICMPCONST(ANI_GUARDBREAK)
+		ICMPCONST(ANI_RISEATTACK2)
+		ICMPCONST(ANI_RISEATTACK3)
+		ICMPCONST(ANI_RISEATTACK4)
+		ICMPCONST(ANI_RISEATTACK5)
+		ICMPCONST(ANI_RISEATTACK6)
+		ICMPCONST(ANI_RISEATTACK7)
+		ICMPCONST(ANI_RISEATTACK8)
+		ICMPCONST(ANI_RISEATTACK9)
+		ICMPCONST(ANI_RISEATTACK10)
+		ICMPCONST(ANI_RISEATTACKB)
+		ICMPCONST(ANI_RISEATTACKS)
+		ICMPCONST(ANI_SLIDE)
+		ICMPCONST(ANI_RUNSLIDE)
+		ICMPCONST(ANI_DUCKATTACK)
+		ICMPCONST(ANI_WALKOFF)
+		ICMPCONST(ANI_FREESPECIAL)
+
+		// for the extra animation ids
+		ICMPSCONSTA(ANI_DOWN, animdowns)
+		ICMPSCONSTA(ANI_UP, animups)
+		ICMPSCONSTA(ANI_BACKWALK, animbackwalks)
+		ICMPSCONSTA(ANI_WALK, animwalks)
+		ICMPSCONSTA(ANI_IDLE, animidles)
+		ICMPSCONSTB(ANI_FALL, animfalls)
+		ICMPSCONSTB(ANI_RISE, animrises)
+		ICMPSCONSTB(ANI_RISEATTACK, animriseattacks)
+		ICMPSCONSTB(ANI_PAIN, animpains)
+		ICMPSCONSTB(ANI_DIE, animdies)
+		ICMPSCONSTA(ANI_ATTACK, animattacks)
+		ICMPSCONSTA(ANI_FOLLOW, animfollows)
+		ICMPSCONSTA(ANI_FREESPECIAL, animspecials)
+		else found = FALSE;
+
+		if(found) {
+			ScriptVariant_Copy(varlist[0], &v);
+		}
+		ScriptVariant_Clear(&v);
 	}
 }
 //openborconstant(constname);
 //translate a constant by string, used to retrieve a constant or macro of openbor
 HRESULT openbor_transconst(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	char* constname = NULL;
-	int temp;
+	static char buf[128];
+	if(paramCount < 1) goto transconst_error;
 
-	if(paramCount < 1)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
+	//if(varlist[0]->vt == VT_INTEGER) printf("debug: mapstring for openborconstant works!\n");
 
 	mapstrings_transconst(varlist, paramCount);
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
 	if(varlist[0]->vt == VT_INTEGER) // return value already determined by mapstrings
 	{
-		(*pretvar)->lVal = varlist[0]->lVal;
+		ScriptVariant_Copy((*pretvar), varlist[0]);
 		return S_OK;
-	}
-	else if(varlist[0]->vt != VT_STR)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
+	} else {
+		ScriptVariant_ToString(varlist[0], buf);
+		printf("Can't translate constant %s\n", buf);
 	}
 
-	// if we get to this point, it's a dynamic animation id
-	constname = StrCache_Get(varlist[0]->strVal);
-
-	// for the extra animation ids
-	// for the extra animation ids
-	if(strnicmp(constname, "ANI_DOWN", 8)==0 && constname[8] >= '1') // new down walk?
-	{
-		temp = atoi(constname+8);
-		(*pretvar)->lVal = (LONG)(animdowns[temp-1]);
-		return S_OK;
-	}
-	if(strnicmp(constname, "ANI_UP", 8)==0 && constname[8] >= '1') // new up walk?
-	{
-		temp = atoi(constname+8);
-		(*pretvar)->lVal = (LONG)(animups[temp-1]);
-		return S_OK;
-	}
-	if(strnicmp(constname, "ANI_BACKWALK", 8)==0 && constname[8] >= '1') // new backwalk?
-	{
-		temp = atoi(constname+8);
-		(*pretvar)->lVal = (LONG)(animbackwalks[temp-1]);
-		return S_OK;
-	}
-	if(strnicmp(constname, "ANI_WALK", 8)==0 && constname[8] >= '1') // new Walk?
-	{
-		temp = atoi(constname+8);
-		(*pretvar)->lVal = (LONG)(animwalks[temp-1]);
-		return S_OK;
-	}
-	if(strnicmp(constname, "ANI_IDLE", 8)==0 && constname[8] >= '1') // new idle?
-	{
-		temp = atoi(constname+8);
-		(*pretvar)->lVal = (LONG)(animidles[temp-1]);
-		return S_OK;
-	}
-	if(strnicmp(constname, "ANI_FALL", 8)==0 && constname[8] >= '1' && constname[8]<='9') // new fall?
-	{
-		temp = atoi(constname+8); // so must be greater than 10
-		if(temp<MAX_ATKS-STA_ATKS+1) temp = MAX_ATKS-STA_ATKS+1; // just in case
-		(*pretvar)->lVal = (LONG)(animfalls[temp+STA_ATKS-1]);
-		return S_OK;
-	}
-	if(strnicmp(constname, "ANI_RISE", 8)==0 && constname[8] >= '1' && constname[8]<='9') // new fall?
-	{
-		temp = atoi(constname+8);
-		if(temp<MAX_ATKS-STA_ATKS+1) temp = MAX_ATKS-STA_ATKS+1; // just in case
-		(*pretvar)->lVal = (LONG)(animrises[temp+STA_ATKS-1]);
-		return S_OK;
-	}
-	if(strnicmp(constname, "ANI_RISEATTACK", 14)==0 && constname[14] >= '1' && constname[14]<='9') // new fall?
-	{
-		temp = atoi(constname+14);
-		if(temp<MAX_ATKS-STA_ATKS+1) temp = MAX_ATKS-STA_ATKS+1; // just in case
-		(*pretvar)->lVal = (LONG)(animriseattacks[temp+STA_ATKS-1]);
-		return S_OK;
-	}
-	if(strnicmp(constname, "ANI_PAIN", 8)==0 && constname[8] >= '1' && constname[8]<='9') // new fall?
-	{
-		temp = atoi(constname+8); // so must be greater than 10
-		if(temp<MAX_ATKS-STA_ATKS+1) temp = MAX_ATKS-STA_ATKS+1; // just in case
-		(*pretvar)->lVal = (LONG)(animpains[temp+STA_ATKS-1]);
-		return S_OK;
-	}
-	if(strnicmp(constname, "ANI_DIE", 7)==0 && constname[7] >= '1' && constname[7]<='9') // new fall?
-	{
-		temp = atoi(constname+7); // so must be greater than 10
-		if(temp<MAX_ATKS-STA_ATKS+1) temp = MAX_ATKS-STA_ATKS+1; // just in case
-		(*pretvar)->lVal = (LONG)(animdies[temp+STA_ATKS-1]);
-		return S_OK;
-	}
-	if(strnicmp(constname, "ANI_ATTACK", 10)==0 && constname[10] >= '1' && constname[10]<='9')
-	{
-		temp = atoi(constname+10);
-		(*pretvar)->lVal = (LONG)(animattacks[temp-1]);
-		return S_OK;
-	}
-	if(strnicmp(constname, "ANI_FOLLOW", 10)==0 && constname[10] >= '1' && constname[10]<='9')
-	{
-		temp = atoi(constname+10);
-		(*pretvar)->lVal = (LONG)(animfollows[temp-1]);
-		return S_OK;
-	}
-	if(strnicmp(constname, "ANI_FREESPECIAL", 15)==0 && (!constname[15] ||(constname[15] >= '1' && constname[15]<='9')))
-	{
-		temp = atoi(constname+15);
-		if(temp<1) temp = 1;
-		(*pretvar)->lVal = (LONG)(animspecials[temp-1]);
-		return S_OK;
-	}
-	ScriptVariant_Clear(*pretvar);
-	return S_OK;
+transconst_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 
 //int rgbcolor(int r, int g, int b);
