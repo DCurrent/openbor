@@ -10933,7 +10933,7 @@ int common_idle_anim(entity* ent)
 		ent_set_anim(ent, ANI_FAINT, 0);                                                //Set ANI_FAINT.
 		goto found;                                                                      //Return 1 and exit.
 	}
-	else if(validanim(ent,ANI_SLEEP) && (time >= ent->sleeptime) && ent->animating)     //ANI_SLEEP, sleeptime up and currently animating?
+	else if(validanim(ent,ANI_SLEEP) && time >= ent->sleeptime)     //ANI_SLEEP, sleeptime up
 	{
 		ent_set_anim(ent, ANI_SLEEP, 0);                                                //Set sleep anim.
 		goto found;                                                                     //Return 1 and exit.
@@ -12992,7 +12992,7 @@ void update_animation()
 		}
 	}
 
-	if(self->animnum!=ANI_SLEEP && self->idling&2)
+	if(!(self->idling&2) || (self->animnum==ANI_SLEEP&&!self->animating))
 		self->sleeptime = time + self->modeldata.sleepwait;
 
 	if(self->invincible && time >= self->invinctime)    // Invincible time has run out, turn off
