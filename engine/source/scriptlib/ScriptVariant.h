@@ -56,31 +56,31 @@ void ScriptVariant_ToString(ScriptVariant* svar, LPSTR buffer );
 
 // light version, for compiled call, faster than above, but not safe in some situations
 // This function are used by compiled scripts
-ScriptVariant* ScriptVariant_Assign(ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_MulAssign(ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_DivAssign(ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_AddAssign(ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_SubAssign(ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_ModAssign(ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Or( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_And( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Eq( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Ne( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Lt( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Gt( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Ge( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Le( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Add( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Sub( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Mul( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Div( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Mod( ScriptVariant* svar, ScriptVariant* rightChild );
-ScriptVariant* ScriptVariant_Inc_Op(ScriptVariant* svar );
-ScriptVariant* ScriptVariant_Inc_Op2(ScriptVariant* svar );
-ScriptVariant* ScriptVariant_Dec_Op(ScriptVariant* svar );
-ScriptVariant* ScriptVariant_Dec_Op2(ScriptVariant* svar );
-ScriptVariant* ScriptVariant_Pos( ScriptVariant* svar);
-ScriptVariant* ScriptVariant_Neg( ScriptVariant* svar);
-ScriptVariant* ScriptVariant_Boolean_Not(ScriptVariant* svar );
+inline ScriptVariant* ScriptVariant_Assign(ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_MulAssign(ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_DivAssign(ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_AddAssign(ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_SubAssign(ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_ModAssign(ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Or( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_And( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Eq( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Ne( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Lt( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Gt( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Ge( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Le( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Add( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Sub( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Mul( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Div( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Mod( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Inc_Op(ScriptVariant* svar );
+inline ScriptVariant* ScriptVariant_Inc_Op2(ScriptVariant* svar );
+inline ScriptVariant* ScriptVariant_Dec_Op(ScriptVariant* svar );
+inline ScriptVariant* ScriptVariant_Dec_Op2(ScriptVariant* svar );
+inline ScriptVariant* ScriptVariant_Pos( ScriptVariant* svar);
+inline ScriptVariant* ScriptVariant_Neg( ScriptVariant* svar);
+inline ScriptVariant* ScriptVariant_Boolean_Not(ScriptVariant* svar );
 
 #endif

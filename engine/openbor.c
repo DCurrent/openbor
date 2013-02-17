@@ -7916,9 +7916,7 @@ int load_script_setting()
 	return 1;
 }
 
-// Load / cache all models
-int load_models()
-{
+void load_model_constants() {
 	char filename[128] = "data/models.txt";
 	int i;
 	char *buf;
@@ -7926,34 +7924,10 @@ int load_models()
 	ptrdiff_t pos;
 	char * command;
 	int line = 0;
-
-	char tmpBuff[128] = {""};
 	int maxanim = MAX_ANIS; // temporary counter
-
 	ArgList arglist;
 	char argbuf[MAX_ARG_LEN+1] = "";
 	modelstxtCommands cmd;
-	int modelLoadCount = 0;
-
-	free_modelcache();
-
-	if(isLoadingScreenTypeBg(loadingbg[0].set)) {
-		// New alternative background path for PSP
-		if(custBkgrds != NULL)
-		{
-			strcpy(tmpBuff,custBkgrds);
-			strncat(tmpBuff,"loading", 7);
-			load_background(tmpBuff, 0);
-		}
-		else load_background("data/bgs/loading", 0);
-		standard_palette(1);
-	}
-	if(isLoadingScreenTypeBar(loadingbg[0].set)) {
-		lifebar_colors();
-		init_colourtable();
-	}
-
-	update_loading(&loadingbg[0], -1, 1); // initialize the update screen
 
 	// reload default values
 	max_idles        = MAX_IDLES;
@@ -7982,12 +7956,6 @@ int load_models()
 	if(animidles){free(animidles);     animidles = NULL;}
 	if(animups){free(animups);     animups = NULL;}
 	if(animdowns){free(animdowns);     animdowns = NULL;}
-
-	if(custModels != NULL)
-	{
-		strcpy(filename, "data/");
-		strcat(filename, custModels);
-	}
 
 	// Read file
 	if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Error loading model list from %s", filename);
@@ -8043,6 +8011,131 @@ int load_models()
 					max_attacks = GET_INT_ARG(1);
 					if(max_attacks<MAX_ATTACKS) max_attacks = MAX_ATTACKS;
 					break;
+				default:
+					if(cmd>=CMD_MODELSTXT_THE_END) printf("command %s not understood in %s, line %d\n", command, filename, line);
+					break;
+			}
+		}
+
+		// Go to next line
+		pos += getNewLineStart(buf + pos);
+	}
+
+	// calculate max animations
+	max_animations += (max_attack_types - MAX_ATKS) * 6 +// multply by 5, for fall/die/pain/rise/blockpain/riseattack
+			(max_follows - MAX_FOLLOWS) +
+			(max_freespecials - MAX_SPECIALS) +
+			(max_attacks - MAX_ATTACKS) +
+			(max_idles - MAX_IDLES)+
+			(max_walks - MAX_WALKS)+
+			(max_ups - MAX_UPS)+
+			(max_downs - MAX_DOWNS)+
+			(max_backwalks - MAX_BACKWALKS);
+
+	// alloc indexed animation ids
+	animdowns = malloc(sizeof(*animdowns)*max_downs);
+	animups = malloc(sizeof(*animups)*max_ups);
+	animbackwalks = malloc(sizeof(*animbackwalks)*max_backwalks);
+	animwalks = malloc(sizeof(*animwalks)*max_walks);
+	animidles = malloc(sizeof(*animidles)*max_idles);
+	animpains = malloc(sizeof(*animpains)*max_attack_types);
+	animdies = malloc(sizeof(*animdies)*max_attack_types);
+	animfalls = malloc(sizeof(*animfalls)*max_attack_types);
+	animrises = malloc(sizeof(*animrises)*max_attack_types);
+	animriseattacks = malloc(sizeof(*animriseattacks)*max_attack_types);
+	animblkpains = malloc(sizeof(*animblkpains)*max_attack_types);
+	animattacks = malloc(sizeof(*animattacks)*max_attacks);
+	animfollows = malloc(sizeof(*animfollows)*max_follows);
+	animspecials = malloc(sizeof(*animspecials)*max_freespecials);
+
+	// copy default values and new animation ids
+	memcpy(animdowns, downs, sizeof(*animdowns)*MAX_DOWNS);
+	for(i=MAX_DOWNS; i<max_downs; i++) animdowns[i] = maxanim++;
+	memcpy(animups, ups, sizeof(*animups)*MAX_UPS);
+	for(i=MAX_UPS; i<max_ups; i++) animups[i] = maxanim++;
+	memcpy(animbackwalks, backwalks, sizeof(*animbackwalks)*MAX_BACKWALKS);
+	for(i=MAX_BACKWALKS; i<max_backwalks; i++) animbackwalks[i] = maxanim++;
+	memcpy(animwalks, walks, sizeof(*animwalks)*MAX_WALKS);
+	for(i=MAX_WALKS; i<max_walks; i++) animwalks[i] = maxanim++;
+	memcpy(animidles, idles, sizeof(*animidles)*MAX_IDLES);
+	for(i=MAX_IDLES; i<max_idles; i++) animidles[i] = maxanim++;
+	memcpy(animspecials, freespecials,   sizeof(*animspecials)*MAX_SPECIALS);
+	for(i=MAX_SPECIALS; i<max_freespecials; i++) animspecials[i] = maxanim++;
+	memcpy(animattacks,  normal_attacks, sizeof(*animattacks)*MAX_ATTACKS);
+	for(i=MAX_ATTACKS; i<max_attacks; i++) animattacks[i] = maxanim++;
+	memcpy(animfollows,  follows,        sizeof(*animfollows)*MAX_FOLLOWS);
+	for(i=MAX_FOLLOWS; i<max_follows; i++) animfollows[i] = maxanim++;
+	memcpy(animpains,    pains,          sizeof(*animpains)*MAX_ATKS);
+	for(i=MAX_ATKS; i<max_attack_types; i++) animpains[i] = maxanim++;
+	memcpy(animfalls,    falls,          sizeof(*animfalls)*MAX_ATKS);
+	for(i=MAX_ATKS; i<max_attack_types; i++) animfalls[i] = maxanim++;
+	memcpy(animrises,    rises,          sizeof(*animrises)*MAX_ATKS);
+	for(i=MAX_ATKS; i<max_attack_types; i++) animrises[i] = maxanim++;
+	memcpy(animriseattacks,    riseattacks,          sizeof(*animriseattacks)*MAX_ATKS);
+	for(i=MAX_ATKS; i<max_attack_types; i++) animriseattacks[i] = maxanim++;
+	memcpy(animblkpains,    blkpains,    sizeof(*animblkpains)*MAX_ATKS);
+	for(i=MAX_ATKS; i<max_attack_types; i++) animblkpains[i] = maxanim++;
+	memcpy(animdies,     deaths,         sizeof(*animdies)*MAX_ATKS);
+	for(i=MAX_ATKS; i<max_attack_types; i++) animdies[i] = maxanim++;
+
+	if(buf) free(buf);
+}
+
+// Load / cache all models
+int load_models()
+{
+	char filename[128] = "data/models.txt";
+	int i;
+	char *buf;
+	size_t size;
+	ptrdiff_t pos;
+	char * command;
+	int line = 0;
+
+	char tmpBuff[128] = {""};
+
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN+1] = "";
+	modelstxtCommands cmd;
+	int modelLoadCount = 0;
+
+	free_modelcache();
+
+	if(isLoadingScreenTypeBg(loadingbg[0].set)) {
+		// New alternative background path for PSP
+		if(custBkgrds != NULL)
+		{
+			strcpy(tmpBuff,custBkgrds);
+			strncat(tmpBuff,"loading", 7);
+			load_background(tmpBuff, 0);
+		}
+		else load_background("data/bgs/loading", 0);
+		standard_palette(1);
+	}
+	if(isLoadingScreenTypeBar(loadingbg[0].set)) {
+		lifebar_colors();
+		init_colourtable();
+	}
+
+	update_loading(&loadingbg[0], -1, 1); // initialize the update screen
+
+	if(custModels != NULL)
+	{
+		strcpy(filename, "data/");
+		strcat(filename, custModels);
+	}
+
+	// Read file
+	if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Error loading model list from %s", filename);
+
+	pos = 0;
+	while(pos<size) // peek global settings
+	{
+		line++;
+		if(ParseArgs(&arglist,buf+pos,argbuf)){
+			command = GET_ARG(0);
+			cmd = getModelCommand(modelstxtcmdlist, command);
+			switch(cmd) {
 				case CMD_MODELSTXT_COMBODELAY:
 					combodelay = GET_INT_ARG(1);
 					break;
@@ -8160,69 +8253,14 @@ int load_models()
 					noatk_duration =  GET_FLOAT_ARG(1);
 					break;
 				default:
-					printf("command %s not understood in %s, line %d\n", command, filename, line);
+					if(cmd>=CMD_MODELSTXT_THE_END) printf("command %s not understood in %s, line %d\n", command, filename, line);
+					break;
 			}
 		}
 
 		// Go to next line
 		pos += getNewLineStart(buf + pos);
 	}
-	// calculate max animations
-	max_animations += (max_attack_types - MAX_ATKS) * 6 +// multply by 5, for fall/die/pain/rise/blockpain/riseattack
-			(max_follows - MAX_FOLLOWS) +
-			(max_freespecials - MAX_SPECIALS) +
-			(max_attacks - MAX_ATTACKS) +
-			(max_idles - MAX_IDLES)+
-			(max_walks - MAX_WALKS)+
-			(max_ups - MAX_UPS)+
-			(max_downs - MAX_DOWNS)+
-			(max_backwalks - MAX_BACKWALKS);
-
-	// alloc indexed animation ids
-	animdowns = malloc(sizeof(*animdowns)*max_downs);
-	animups = malloc(sizeof(*animups)*max_ups);
-	animbackwalks = malloc(sizeof(*animbackwalks)*max_backwalks);
-	animwalks = malloc(sizeof(*animwalks)*max_walks);
-	animidles = malloc(sizeof(*animidles)*max_idles);
-	animpains = malloc(sizeof(*animpains)*max_attack_types);
-	animdies = malloc(sizeof(*animdies)*max_attack_types);
-	animfalls = malloc(sizeof(*animfalls)*max_attack_types);
-	animrises = malloc(sizeof(*animrises)*max_attack_types);
-	animriseattacks = malloc(sizeof(*animriseattacks)*max_attack_types);
-	animblkpains = malloc(sizeof(*animblkpains)*max_attack_types);
-	animattacks = malloc(sizeof(*animattacks)*max_attacks);
-	animfollows = malloc(sizeof(*animfollows)*max_follows);
-	animspecials = malloc(sizeof(*animspecials)*max_freespecials);
-
-	// copy default values and new animation ids
-	memcpy(animdowns, downs, sizeof(*animdowns)*MAX_DOWNS);
-	for(i=MAX_DOWNS; i<max_downs; i++) animdowns[i] = maxanim++;
-	memcpy(animups, ups, sizeof(*animups)*MAX_UPS);
-	for(i=MAX_UPS; i<max_ups; i++) animups[i] = maxanim++;
-	memcpy(animbackwalks, backwalks, sizeof(*animbackwalks)*MAX_BACKWALKS);
-	for(i=MAX_BACKWALKS; i<max_backwalks; i++) animbackwalks[i] = maxanim++;
-	memcpy(animwalks, walks, sizeof(*animwalks)*MAX_WALKS);
-	for(i=MAX_WALKS; i<max_walks; i++) animwalks[i] = maxanim++;
-	memcpy(animidles, idles, sizeof(*animidles)*MAX_IDLES);
-	for(i=MAX_IDLES; i<max_idles; i++) animidles[i] = maxanim++;
-	memcpy(animspecials, freespecials,   sizeof(*animspecials)*MAX_SPECIALS);
-	for(i=MAX_SPECIALS; i<max_freespecials; i++) animspecials[i] = maxanim++;
-	memcpy(animattacks,  normal_attacks, sizeof(*animattacks)*MAX_ATTACKS);
-	for(i=MAX_ATTACKS; i<max_attacks; i++) animattacks[i] = maxanim++;
-	memcpy(animfollows,  follows,        sizeof(*animfollows)*MAX_FOLLOWS);
-	for(i=MAX_FOLLOWS; i<max_follows; i++) animfollows[i] = maxanim++;
-	memcpy(animpains,    pains,          sizeof(*animpains)*MAX_ATKS);
-	for(i=MAX_ATKS; i<max_attack_types; i++) animpains[i] = maxanim++;
-	memcpy(animfalls,    falls,          sizeof(*animfalls)*MAX_ATKS);
-	for(i=MAX_ATKS; i<max_attack_types; i++) animfalls[i] = maxanim++;
-	memcpy(animrises,    rises,          sizeof(*animrises)*MAX_ATKS);
-	for(i=MAX_ATKS; i<max_attack_types; i++) animrises[i] = maxanim++;
-	memcpy(animriseattacks,    riseattacks,          sizeof(*animriseattacks)*MAX_ATKS);
-	for(i=MAX_ATKS; i<max_attack_types; i++) animriseattacks[i] = maxanim++;
-	memcpy(animblkpains,    blkpains,    sizeof(*animblkpains)*MAX_ATKS);
-	for(i=MAX_ATKS; i<max_attack_types; i++) animblkpains[i] = maxanim++;
-	memcpy(animdies,     deaths,         sizeof(*animdies)*MAX_ATKS);
-	for(i=MAX_ATKS; i<max_attack_types; i++) animdies[i] = maxanim++;
 
 	// Defer load_cached_model, so you can define models after their nested model.
 	printf("\n");
@@ -21429,6 +21467,10 @@ void startup(){
 
 	printf("Loading level order..........\t");
 	load_levelorder();
+	printf("Done!\n");
+
+	printf("Loading model constants......\t");
+	load_model_constants();
 	printf("Done!\n");
 
 	printf("Loading script settings......\t");

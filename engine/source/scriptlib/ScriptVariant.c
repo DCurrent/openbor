@@ -328,8 +328,7 @@ ScriptVariant* ScriptVariant_ModAssign(ScriptVariant* svar, ScriptVariant* right
 
 ScriptVariant* ScriptVariant_Or( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	static ScriptVariant retvar;
-	retvar.vt = VT_INTEGER;
+	static ScriptVariant retvar = {{.lVal=0},VT_INTEGER};
 	retvar.lVal = (ScriptVariant_IsTrue(svar) || ScriptVariant_IsTrue(rightChild));
 	return &retvar;
 }
@@ -337,8 +336,7 @@ ScriptVariant* ScriptVariant_Or( ScriptVariant* svar, ScriptVariant* rightChild 
 
 ScriptVariant* ScriptVariant_And( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	static ScriptVariant retvar;
-	retvar.vt = VT_INTEGER;
+	static ScriptVariant retvar = {{.lVal=0},VT_INTEGER};
 	retvar.lVal = (ScriptVariant_IsTrue(svar) && ScriptVariant_IsTrue(rightChild));
 	return &retvar;
 }
@@ -346,8 +344,7 @@ ScriptVariant* ScriptVariant_And( ScriptVariant* svar, ScriptVariant* rightChild
 ScriptVariant* ScriptVariant_Eq( ScriptVariant* svar, ScriptVariant* rightChild )
 {
 	DOUBLE dbl1,dbl2;
-	static ScriptVariant retvar;
-	retvar.vt = VT_INTEGER;
+	static ScriptVariant retvar = {{.lVal=0},VT_INTEGER};
 
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
@@ -378,8 +375,7 @@ ScriptVariant* ScriptVariant_Eq( ScriptVariant* svar, ScriptVariant* rightChild 
 ScriptVariant* ScriptVariant_Ne( ScriptVariant* svar, ScriptVariant* rightChild )
 {
 	DOUBLE dbl1,dbl2;
-	static ScriptVariant retvar;
-	retvar.vt = VT_INTEGER;
+	static ScriptVariant retvar = {{.lVal=0},VT_INTEGER};
 
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
@@ -410,8 +406,7 @@ ScriptVariant* ScriptVariant_Ne( ScriptVariant* svar, ScriptVariant* rightChild 
 ScriptVariant* ScriptVariant_Lt( ScriptVariant* svar, ScriptVariant* rightChild )
 {
 	DOUBLE dbl1,dbl2;
-	static ScriptVariant retvar;
-	retvar.vt = VT_INTEGER;
+	static ScriptVariant retvar = {{.lVal=0},VT_INTEGER};
 
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
@@ -443,8 +438,7 @@ ScriptVariant* ScriptVariant_Lt( ScriptVariant* svar, ScriptVariant* rightChild 
 ScriptVariant* ScriptVariant_Gt( ScriptVariant* svar, ScriptVariant* rightChild )
 {
 	DOUBLE dbl1,dbl2;
-	static ScriptVariant retvar;
-	retvar.vt = VT_INTEGER;
+	static ScriptVariant retvar = {{.lVal=0},VT_INTEGER};
 
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
@@ -468,7 +462,6 @@ ScriptVariant* ScriptVariant_Gt( ScriptVariant* svar, ScriptVariant* rightChild 
 		retvar.lVal = (memcmp(svar, rightChild, sizeof(ScriptVariant))>0);
 	}
 
-
 	return &retvar;
 }
 
@@ -477,8 +470,7 @@ ScriptVariant* ScriptVariant_Gt( ScriptVariant* svar, ScriptVariant* rightChild 
 ScriptVariant* ScriptVariant_Ge( ScriptVariant* svar, ScriptVariant* rightChild )
 {
 	DOUBLE dbl1,dbl2;
-	static ScriptVariant retvar;
-	retvar.vt = VT_INTEGER;
+	static ScriptVariant retvar = {{.lVal=0}, VT_INTEGER};
 
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
@@ -509,8 +501,7 @@ ScriptVariant* ScriptVariant_Ge( ScriptVariant* svar, ScriptVariant* rightChild 
 ScriptVariant* ScriptVariant_Le( ScriptVariant* svar, ScriptVariant* rightChild )
 {
 	DOUBLE dbl1,dbl2;
-	static ScriptVariant retvar;
-	retvar.vt = VT_INTEGER;
+	static ScriptVariant retvar = {{.lVal=0},VT_INTEGER};
 
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
@@ -540,12 +531,9 @@ ScriptVariant* ScriptVariant_Le( ScriptVariant* svar, ScriptVariant* rightChild 
 
 ScriptVariant* ScriptVariant_Add( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	static ScriptVariant retvar;
-	static int flag = 1;
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
 	DOUBLE dbl1,dbl2;
 	CHAR buf[MAX_STR_VAR_LEN+1];
-	if(flag) {ScriptVariant_Init(&retvar);flag = 0;}
-	else     ScriptVariant_Clear(&retvar);
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
 	{
@@ -568,6 +556,7 @@ ScriptVariant* ScriptVariant_Add( ScriptVariant* svar, ScriptVariant* rightChild
 		ScriptVariant_ToString(rightChild, buf);
 		strcat(StrCache_Get(retvar.strVal), buf);
 	}
+	else ScriptVariant_Clear(&retvar);
 
 	return &retvar;
 }
@@ -575,7 +564,7 @@ ScriptVariant* ScriptVariant_Add( ScriptVariant* svar, ScriptVariant* rightChild
 
 ScriptVariant* ScriptVariant_Sub( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	static ScriptVariant retvar;
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
 	DOUBLE dbl1,dbl2;
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
@@ -591,17 +580,15 @@ ScriptVariant* ScriptVariant_Sub( ScriptVariant* svar, ScriptVariant* rightChild
 			retvar.lVal = (LONG)(dbl1-dbl2);
 		}
 	}
-	else
-	{
-		ScriptVariant_Init(&retvar);
-	}
+	else ScriptVariant_Clear(&retvar);
+
 	return &retvar;
 }
 
 
 ScriptVariant* ScriptVariant_Mul( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	static ScriptVariant retvar;
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
 	DOUBLE dbl1,dbl2;
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
@@ -617,17 +604,15 @@ ScriptVariant* ScriptVariant_Mul( ScriptVariant* svar, ScriptVariant* rightChild
 			retvar.lVal = (LONG)(dbl1*dbl2);
 		}
 	}
-	else
-	{
-		ScriptVariant_Init(&retvar);
-	}
+	else ScriptVariant_Clear(&retvar);
+
 	return &retvar;
 }
 
 
 ScriptVariant* ScriptVariant_Div( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	static ScriptVariant retvar;
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
 	DOUBLE dbl1,dbl2;
 	if(ScriptVariant_DecimalValue(svar, &dbl1)==S_OK &&
 	   ScriptVariant_DecimalValue(rightChild, &dbl2)==S_OK)
@@ -647,17 +632,15 @@ ScriptVariant* ScriptVariant_Div( ScriptVariant* svar, ScriptVariant* rightChild
 			retvar.lVal = (LONG)(dbl1/dbl2);
 		}
 	}
-	else
-	{
-		ScriptVariant_Init(&retvar);
-	}
+	else ScriptVariant_Clear(&retvar);
+
 	return &retvar;
 }
 
 
 ScriptVariant* ScriptVariant_Mod( ScriptVariant* svar, ScriptVariant* rightChild )
 {
-	static ScriptVariant retvar;
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
 	LONG l1, l2;
 	if(ScriptVariant_IntegerValue(svar, &l1)==S_OK &&
 	   ScriptVariant_IntegerValue(rightChild, &l2)==S_OK)
@@ -665,10 +648,8 @@ ScriptVariant* ScriptVariant_Mod( ScriptVariant* svar, ScriptVariant* rightChild
 		retvar.vt=VT_INTEGER;
 		retvar.lVal = l1 % l2;
 	}
-	else
-	{
-		ScriptVariant_Init(&retvar);
-	}
+	else ScriptVariant_Clear(&retvar);
+
 	return &retvar;
 }
 
@@ -677,8 +658,12 @@ ScriptVariant* ScriptVariant_Mod( ScriptVariant* svar, ScriptVariant* rightChild
 
 ScriptVariant* ScriptVariant_Inc_Op(ScriptVariant* svar )
 {
-   if(svar->vt == VT_DECIMAL) ++(svar->dblVal);
-   else if(svar->vt == VT_INTEGER) ++(svar->lVal);
+	switch(svar->vt)
+	{
+	case VT_DECIMAL:++(svar->dblVal);break;
+	case VT_INTEGER:++(svar->lVal);break;
+	default:break;
+	}
 
    //Send back this ScriptVariant
    return svar;
@@ -688,22 +673,29 @@ ScriptVariant* ScriptVariant_Inc_Op(ScriptVariant* svar )
 
 ScriptVariant* ScriptVariant_Inc_Op2(ScriptVariant* svar )
 {
-   static ScriptVariant retvar;
-   memcpy(&retvar, svar, sizeof(ScriptVariant));
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
+	ScriptVariant_Copy(&retvar, svar);
 
-   if(svar->vt == VT_DECIMAL)      svar->dblVal++;
-   else if(svar->vt == VT_INTEGER) svar->lVal++;
-   else ScriptVariant_Init(&retvar);
+	switch(svar->vt)
+	{
+	case VT_DECIMAL:svar->dblVal++;break;
+	case VT_INTEGER:svar->lVal++;break;
+	default:ScriptVariant_Clear(&retvar);break;
+	}
 
-   return &retvar;
+	return &retvar;
 }
 
 //--i
 
 ScriptVariant* ScriptVariant_Dec_Op(ScriptVariant* svar )
 {
-   if(svar->vt == VT_DECIMAL) --(svar->dblVal);
-   else if(svar->vt == VT_INTEGER) --(svar->lVal);
+	switch(svar->vt)
+	{
+	case VT_DECIMAL:--(svar->dblVal);break;
+	case VT_INTEGER:--(svar->lVal);break;
+	default:break;
+	}
 
    //Send back this ScriptVariant
    return svar;
@@ -713,14 +705,17 @@ ScriptVariant* ScriptVariant_Dec_Op(ScriptVariant* svar )
 
 ScriptVariant* ScriptVariant_Dec_Op2(ScriptVariant* svar )
 {
-   static ScriptVariant retvar;
-   memcpy(&retvar, svar, sizeof(ScriptVariant));
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
+	ScriptVariant_Copy(&retvar, svar);
 
-   if(svar->vt == VT_DECIMAL)      svar->dblVal--;
-   else if(svar->vt == VT_INTEGER) svar->lVal--;
-   else ScriptVariant_Init(&retvar);
+	switch(svar->vt)
+	{
+	case VT_DECIMAL:svar->dblVal--;break;
+	case VT_INTEGER:svar->lVal--;break;
+	default:ScriptVariant_Clear(&retvar);break;
+	}
 
-   return &retvar;
+	return &retvar;
 }
 
 //+i
@@ -728,42 +723,38 @@ ScriptVariant* ScriptVariant_Dec_Op2(ScriptVariant* svar )
 
 ScriptVariant* ScriptVariant_Pos( ScriptVariant* svar)
 {
-   static ScriptVariant retvar;
-   memcpy(&retvar, svar, sizeof(ScriptVariant));
-
-   if(svar->vt == VT_DECIMAL)      retvar.dblVal = +(svar->dblVal);
-   else if(svar->vt == VT_INTEGER) retvar.lVal = +(svar->lVal);
-   else ScriptVariant_Init(&retvar);
-
-   ScriptVariant_Copy(svar, &retvar);
-   return &retvar;
+	/*
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
+	switch(svar->vt) 
+	{
+	case VT_DECIMAL:retvar.vt=VT_DECIMAL;retvar.dblVal = +(svar->dblVal);
+	case VT_INTEGER:retvar.vt=VT_INTEGER;retvar.lVal = +(svar->lVal);
+	default:break;
+	}
+   ScriptVariant_Copy(svar, &retvar);*/
+	return svar;
 }
 
 //-i
 
 ScriptVariant* ScriptVariant_Neg( ScriptVariant* svar)
 {
-   static ScriptVariant retvar;
-   memcpy(&retvar, svar, sizeof(ScriptVariant));
-
-   if(svar->vt == VT_DECIMAL)      retvar.dblVal = -(svar->dblVal);
-   else if(svar->vt == VT_INTEGER) retvar.lVal = -(svar->lVal);
-   else ScriptVariant_Init(&retvar);
-
-   ScriptVariant_Copy(svar, &retvar);
-   return &retvar;
+	switch(svar->vt) 
+	{
+	case VT_DECIMAL:svar->dblVal = -(svar->dblVal);
+	case VT_INTEGER:svar->lVal = -(svar->lVal);
+	default:break;
+	}
+	return svar;
 }
 
 
 ScriptVariant* ScriptVariant_Boolean_Not(ScriptVariant* svar )
 {
-   static ScriptVariant retvar;
-   retvar.vt = VT_INTEGER;
-
+   static ScriptVariant retvar = {{.lVal=0}, VT_INTEGER};
    retvar.lVal = !ScriptVariant_IsTrue(svar);
-
    ScriptVariant_Copy(svar, &retvar);
-   return &retvar;
+   return svar;
 }
 
 

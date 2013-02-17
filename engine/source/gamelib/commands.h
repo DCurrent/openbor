@@ -552,6 +552,7 @@ typedef enum {
 	CMD_MODELSTXT_DEBUG_MAXNA,
 	CMD_MODELSTXT_DEBUG_OSNAF,
 	CMD_MODELSTXT_DEBUG_NAD,
+	CMD_MODELSTXT_THE_END,
 } modelstxtCommands;
 
 void freeCommandList(List* list);
