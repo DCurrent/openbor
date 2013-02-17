@@ -656,7 +656,7 @@ ScriptVariant* ScriptVariant_Mod( ScriptVariant* svar, ScriptVariant* rightChild
 //Unary Operations
 //++i
 
-ScriptVariant* ScriptVariant_Inc_Op(ScriptVariant* svar )
+void ScriptVariant_Inc_Op(ScriptVariant* svar )
 {
 	switch(svar->vt)
 	{
@@ -666,7 +666,7 @@ ScriptVariant* ScriptVariant_Inc_Op(ScriptVariant* svar )
 	}
 
    //Send back this ScriptVariant
-   return svar;
+   //return svar;
 }
 
 // i++
@@ -688,7 +688,7 @@ ScriptVariant* ScriptVariant_Inc_Op2(ScriptVariant* svar )
 
 //--i
 
-ScriptVariant* ScriptVariant_Dec_Op(ScriptVariant* svar )
+void ScriptVariant_Dec_Op(ScriptVariant* svar )
 {
 	switch(svar->vt)
 	{
@@ -698,7 +698,7 @@ ScriptVariant* ScriptVariant_Dec_Op(ScriptVariant* svar )
 	}
 
    //Send back this ScriptVariant
-   return svar;
+   //return svar;
 }
 
 // i--
@@ -720,8 +720,7 @@ ScriptVariant* ScriptVariant_Dec_Op2(ScriptVariant* svar )
 
 //+i
 
-
-ScriptVariant* ScriptVariant_Pos( ScriptVariant* svar)
+void ScriptVariant_Pos( ScriptVariant* svar)
 {
 	/*
 	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
@@ -731,13 +730,13 @@ ScriptVariant* ScriptVariant_Pos( ScriptVariant* svar)
 	case VT_INTEGER:retvar.vt=VT_INTEGER;retvar.lVal = +(svar->lVal);
 	default:break;
 	}
-   ScriptVariant_Copy(svar, &retvar);*/
-	return svar;
+   ScriptVariant_Copy(svar, &retvar);
+	return svar;*/
 }
 
 //-i
 
-ScriptVariant* ScriptVariant_Neg( ScriptVariant* svar)
+void ScriptVariant_Neg( ScriptVariant* svar)
 {
 	switch(svar->vt) 
 	{
@@ -745,16 +744,21 @@ ScriptVariant* ScriptVariant_Neg( ScriptVariant* svar)
 	case VT_INTEGER:svar->lVal = -(svar->lVal);
 	default:break;
 	}
-	return svar;
+	//return svar;
 }
 
 
-ScriptVariant* ScriptVariant_Boolean_Not(ScriptVariant* svar )
+void ScriptVariant_Boolean_Not(ScriptVariant* svar )
 {
+	/*
    static ScriptVariant retvar = {{.lVal=0}, VT_INTEGER};
    retvar.lVal = !ScriptVariant_IsTrue(svar);
    ScriptVariant_Copy(svar, &retvar);
-   return svar;
+   return svar;*/
+   BOOL b = !ScriptVariant_IsTrue(svar);
+   ScriptVariant_ChangeType(svar, VT_INTEGER);
+   svar->lVal = b;
+
 }
 
 

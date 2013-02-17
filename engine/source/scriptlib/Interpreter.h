@@ -59,7 +59,7 @@ HRESULT Interpreter_EvaluateImmediate(Interpreter* pinterpreter);
 HRESULT Interpreter_EvaluateCall(Interpreter* pinterpreter);
 HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter);
 HRESULT Interpreter_Call(Interpreter* pinterpreter);
-HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter);
+inline HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter);
 void Interpreter_Reset(Interpreter* pinterpreter);
 
 

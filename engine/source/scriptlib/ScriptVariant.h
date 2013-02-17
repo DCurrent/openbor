@@ -38,21 +38,21 @@ extern int   strcache_size;
 extern int*  strcache_index;
 
 //clear the string cache
-void StrCache_Clear();
+inline void StrCache_Clear();
 // int the string cache
 //void StrCache_Init();
-void StrCache_Collect(int index);
-int StrCache_Pop();
-CHAR* StrCache_Get(int index);
-void ScriptVariant_Clear(ScriptVariant* var);
+inline void StrCache_Collect(int index);
+inline int StrCache_Pop();
+inline CHAR* StrCache_Get(int index);
+inline void ScriptVariant_Clear(ScriptVariant* var);
 
-void ScriptVariant_Init(ScriptVariant* var);
-void ScriptVariant_Copy(ScriptVariant* svar, ScriptVariant* rightChild ); // faster in some situations
-void ScriptVariant_ChangeType(ScriptVariant* var, VARTYPE cvt);
-HRESULT ScriptVariant_IntegerValue(ScriptVariant* var, LONG* pVal);
-HRESULT ScriptVariant_DecimalValue(ScriptVariant* var, DOUBLE* pVal);
-BOOL ScriptVariant_IsTrue(ScriptVariant* svar);
-void ScriptVariant_ToString(ScriptVariant* svar, LPSTR buffer );
+inline void ScriptVariant_Init(ScriptVariant* var);
+inline void ScriptVariant_Copy(ScriptVariant* svar, ScriptVariant* rightChild ); // faster in some situations
+inline void ScriptVariant_ChangeType(ScriptVariant* var, VARTYPE cvt);
+inline HRESULT ScriptVariant_IntegerValue(ScriptVariant* var, LONG* pVal);
+inline HRESULT ScriptVariant_DecimalValue(ScriptVariant* var, DOUBLE* pVal);
+inline BOOL ScriptVariant_IsTrue(ScriptVariant* svar);
+inline void ScriptVariant_ToString(ScriptVariant* svar, LPSTR buffer );
 
 // light version, for compiled call, faster than above, but not safe in some situations
 // This function are used by compiled scripts
@@ -75,12 +75,12 @@ inline ScriptVariant* ScriptVariant_Sub( ScriptVariant* svar, ScriptVariant* rig
 inline ScriptVariant* ScriptVariant_Mul( ScriptVariant* svar, ScriptVariant* rightChild );
 inline ScriptVariant* ScriptVariant_Div( ScriptVariant* svar, ScriptVariant* rightChild );
 inline ScriptVariant* ScriptVariant_Mod( ScriptVariant* svar, ScriptVariant* rightChild );
-inline ScriptVariant* ScriptVariant_Inc_Op(ScriptVariant* svar );
+inline void ScriptVariant_Inc_Op(ScriptVariant* svar );
 inline ScriptVariant* ScriptVariant_Inc_Op2(ScriptVariant* svar );
-inline ScriptVariant* ScriptVariant_Dec_Op(ScriptVariant* svar );
+inline void ScriptVariant_Dec_Op(ScriptVariant* svar );
 inline ScriptVariant* ScriptVariant_Dec_Op2(ScriptVariant* svar );
-inline ScriptVariant* ScriptVariant_Pos( ScriptVariant* svar);
-inline ScriptVariant* ScriptVariant_Neg( ScriptVariant* svar);
-inline ScriptVariant* ScriptVariant_Boolean_Not(ScriptVariant* svar );
+inline void ScriptVariant_Pos( ScriptVariant* svar);
+inline void ScriptVariant_Neg( ScriptVariant* svar);
+inline void ScriptVariant_Boolean_Not(ScriptVariant* svar );
 
 #endif
