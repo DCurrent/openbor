@@ -34,6 +34,7 @@
 #include "ImportCache.h"
 #include "models.h"
 
+
 // Define macro for string mapping
 #define MAPSTRINGS(VAR, LIST, MAXINDEX, FAILMSG) \
 if(VAR->vt == VT_STR) { \
@@ -674,8 +675,8 @@ void* Script_GetStringMapFunction(void* functionRef)
 {
 	if (functionRef==((void*)openbor_systemvariant)) return (void*)mapstrings_systemvariant;
 	else if (functionRef==((void*)openbor_changesystemvariant)) return (void*)mapstrings_systemvariant;
-	else if (functionRef==((void*)openbor_getentityproperty)) return (void*)mapstrings_getentityproperty;
-	else if (functionRef==((void*)openbor_changeentityproperty)) return (void*)mapstrings_changeentityproperty;
+	else if (functionRef==((void*)openbor_getentityproperty)) return (void*)mapstrings_entityproperty;
+	else if (functionRef==((void*)openbor_changeentityproperty)) return (void*)mapstrings_entityproperty;
 	else if (functionRef==((void*)openbor_getplayerproperty)) return (void*)mapstrings_playerproperty;
 	else if (functionRef==((void*)openbor_changeplayerproperty)) return (void*)mapstrings_playerproperty;
 	else if (functionRef==((void*)openbor_setspawnentry)) return (void*)mapstrings_setspawnentry;
@@ -716,11 +717,11 @@ int Script_MapStringConstants(Script* pscript)
 	Interpreter* pinterpreter = pscript->pinterpreter;
 	Instruction* pInstruction;
 	ScriptVariant** params;
+	int flags[32];
 	//ScriptVariant* var;
 	void (*pMapstrings)(ScriptVariant**, int);
 	int i, size, paramCount;
 #if 1
-	static char buf[128];
 	int j,k;
 	Instruction *pInstruction2;
 #endif
@@ -733,19 +734,21 @@ int Script_MapStringConstants(Script* pscript)
 		{
 			params = (ScriptVariant**)pInstruction->theRefList->solidlist;
 			paramCount = (int)pInstruction->theRef->lVal;
-
+			assert(paramCount<=32);
 			// Get the pointer to the correct mapstrings function, if one exists.
 			pMapstrings = Script_GetStringMapFunction(pInstruction->functionRef);
 			if(pMapstrings)
 			{
+				for(j=0; j<paramCount; j++) flags[j] = params[j]->vt;
 				// Call the mapstrings function.
 				pMapstrings(params, paramCount);
 #if 1
 				// Find the instruction containing each constant and update its value.
 				for(j=0; j<paramCount; j++)
 				{
-					ScriptVariant_ToString(params[j], buf);
-					for(k=i; k>0; k--)
+					//only find those that were changed
+					if(flags[j]==params[j]->vt) continue;
+					for(k=i; k>=0; k--)
 					{
 						pInstruction2 = (Instruction*)(pinterpreter->theInstructionList.solidlist[k]);
 						if(pInstruction2->theVal2 == params[j])
@@ -3057,176 +3060,222 @@ static const char* eplist_aiflag[] = {
 };
 
 enum gep_attack_enum {
-	_gep_attack_blast,
-	_gep_attack_blockflash,
-	_gep_attack_blocksound,
-	_gep_attack_coords,
-	_gep_attack_counterattack,
-	_gep_attack_direction,
-	_gep_attack_dol,
-	_gep_attack_dot,
-	_gep_attack_dotforce,
-	_gep_attack_dotindex,
-	_gep_attack_dotrate,
-	_gep_attack_dottime,
-	_gep_attack_drop,
-	_gep_attack_dropv,
-	_gep_attack_force,
-	_gep_attack_forcemap,
-	_gep_attack_freeze,
-	_gep_attack_freezetime,
-	_gep_attack_grab,
-	_gep_attack_grabdistance,
-	_gep_attack_guardcost,
-	_gep_attack_hitflash,
-	_gep_attack_hitsound,
-	_gep_attack_jugglecost,
-	_gep_attack_maptime,
-	_gep_attack_noblock,
-	_gep_attack_noflash,
-	_gep_attack_nokill,
-	_gep_attack_nopain,
-	_gep_attack_otg,
-	_gep_attack_pause,
-	_gep_attack_seal,
-	_gep_attack_sealtime,
-	_gep_attack_staydown,
-	_gep_attack_steal,
-	_gep_attack_type,
-	_gep_attack_the_end,
+	_ep_attack_blast,
+	_ep_attack_blockflash,
+	_ep_attack_blocksound,
+	_ep_attack_coords,
+	_ep_attack_counterattack,
+	_ep_attack_direction,
+	_ep_attack_dol,
+	_ep_attack_dot,
+	_ep_attack_dotforce,
+	_ep_attack_dotindex,
+	_ep_attack_dotrate,
+	_ep_attack_dottime,
+	_ep_attack_drop,
+	_ep_attack_dropv,
+	_ep_attack_force,
+	_ep_attack_forcemap,
+	_ep_attack_freeze,
+	_ep_attack_freezetime,
+	_ep_attack_grab,
+	_ep_attack_grabdistance,
+	_ep_attack_guardcost,
+	_ep_attack_hitflash,
+	_ep_attack_hitsound,
+	_ep_attack_jugglecost,
+	_ep_attack_maptime,
+	_ep_attack_noblock,
+	_ep_attack_noflash,
+	_ep_attack_nokill,
+	_ep_attack_nopain,
+	_ep_attack_otg,
+	_ep_attack_pause,
+	_ep_attack_seal,
+	_ep_attack_sealtime,
+	_ep_attack_staydown,
+	_ep_attack_steal,
+	_ep_attack_type,
+	_ep_attack_the_end,
 };
 
-enum _gep_defense_enum {
-    _gep_defense_blockpower,
-    _gep_defense_blockratio,
-    _gep_defense_blockthreshold,
-    _gep_defense_blocktype,
-    _gep_defense_factor,
-    _gep_defense_knockdown,
-	_gep_defense_pain,
-	_gep_defense_the_end,
+enum _ep_defense_enum {
+    _ep_defense_blockpower,
+    _ep_defense_blockratio,
+    _ep_defense_blockthreshold,
+    _ep_defense_blocktype,
+    _ep_defense_factor,
+    _ep_defense_knockdown,
+	_ep_defense_pain,
+	_ep_defense_the_end,
 };
 
 enum gep_dot_enum {
-	_gep_dot_force,
-	_gep_dot_mode,
-	_gep_dot_owner,
-	_gep_dot_rate,
-	_gep_dot_time,
-	_gep_dot_type,
-	_gep_dot_the_end,
+	_ep_dot_force,
+	_ep_dot_mode,
+	_ep_dot_owner,
+	_ep_dot_rate,
+	_ep_dot_time,
+	_ep_dot_type,
+	_ep_dot_the_end,
 };
 
 enum gep_edelay_enum {
-	_gep_edelay_cap_max,
-	_gep_edelay_cap_min,
-	_gep_edelay_factor,
-	_gep_edelay_mode,
-	_gep_edelay_range_max,
-	_gep_edelay_range_min,
-	_gep_edelay_the_end,
+	_ep_edelay_cap_max,
+	_ep_edelay_cap_min,
+	_ep_edelay_factor,
+	_ep_edelay_mode,
+	_ep_edelay_range_max,
+	_ep_edelay_range_min,
+	_ep_edelay_the_end,
 };
 
 enum gep_energycost_enum {
-    _gep_energycost_cost,
-    _gep_energycost_disable,
-    _gep_energycost_mponly,
-    _gep_energycost_the_end,
+    _ep_energycost_cost,
+    _ep_energycost_disable,
+    _ep_energycost_mponly,
+    _ep_energycost_the_end,
 };
 
 enum gep_flash_enum {
-    _gep_flash_block,
-    _gep_flash_def,
-    _gep_flash_noattack,
-    _gep_flash_the_end,
+    _ep_flash_block,
+    _ep_flash_def,
+    _ep_flash_noattack,
+    _ep_flash_the_end,
 };
 
 enum gep_icon_enum {
-    _gep_icon_def,
-    _gep_icon_die,
-    _gep_icon_get,
-    _gep_icon_mphigh,
-    _gep_icon_mplow,
-    _gep_icon_mpmed,
-    _gep_icon_pain,
-    _gep_icon_weapon,
-    _gep_icon_x,
-    _gep_icon_y,
-    _gep_icon_the_end,
+    _ep_icon_def,
+    _ep_icon_die,
+    _ep_icon_get,
+    _ep_icon_mphigh,
+    _ep_icon_mplow,
+    _ep_icon_mpmed,
+    _ep_icon_pain,
+    _ep_icon_weapon,
+    _ep_icon_x,
+    _ep_icon_y,
+    _ep_icon_the_end,
 };
 
-enum _gep_knockdowncount_enum {
-    _gep_knockdowncount_current,
-    _gep_knockdowncount_max,
-    _gep_knockdowncount_time,
-    _gep_knockdowncount_the_end,
+enum _ep_knockdowncount_enum {
+    _ep_knockdowncount_current,
+    _ep_knockdowncount_max,
+    _ep_knockdowncount_time,
+    _ep_knockdowncount_the_end,
 };
 
 enum gep_landframe_enum {
-    _gep_landframe_ent,
-    _gep_landframe_frame,
-    _gep_landframe_the_end,
+    _ep_landframe_ent,
+    _ep_landframe_frame,
+    _ep_landframe_the_end,
 };
 
 enum gep_maps_enum {
-    _gep_maps_count,
-    _gep_maps_current,
-    _gep_maps_default,
-    _gep_maps_dying,
-    _gep_maps_dying_critical,
-    _gep_maps_dying_low,
-    _gep_maps_frozen,
-    _gep_maps_hide_end,
-    _gep_maps_hide_start,
-    _gep_maps_ko,
-    _gep_maps_kotype,
-    _gep_maps_table,
-    _gep_maps_time,
-    _gep_maps_the_end,
+    _ep_maps_count,
+    _ep_maps_current,
+    _ep_maps_default,
+    _ep_maps_dying,
+    _ep_maps_dying_critical,
+    _ep_maps_dying_low,
+    _ep_maps_frozen,
+    _ep_maps_hide_end,
+    _ep_maps_hide_start,
+    _ep_maps_ko,
+    _ep_maps_kotype,
+    _ep_maps_table,
+    _ep_maps_time,
+    _ep_maps_the_end,
 };
 
 enum gep_range_enum {
-    _gep_range_amax,
-    _gep_range_amin,
-    _gep_range_bmax,
-    _gep_range_bmin,
-    _gep_range_xmax,
-    _gep_range_xmin,
-    _gep_range_zmax,
-    _gep_range_zmin,
-    _gep_range_the_end,
+    _ep_range_amax,
+    _ep_range_amin,
+    _ep_range_bmax,
+    _ep_range_bmin,
+    _ep_range_xmax,
+    _ep_range_xmin,
+    _ep_range_zmax,
+    _ep_range_zmin,
+    _ep_range_the_end,
 };
 
 enum gep_running_enum {
-	_gep_running_jumpx,
-	_gep_running_jumpy,
-	_gep_running_land,
-	_gep_running_movez,
-	_gep_running_speed,
-	_gep_running_the_end,
+	_ep_running_jumpx,
+	_ep_running_jumpy,
+	_ep_running_land,
+	_ep_running_movez,
+	_ep_running_speed,
+	_ep_running_the_end,
 };
 
 enum gep_spritea_enum {
-    _gep_spritea_centerx,
-    _gep_spritea_centery,
-    _gep_spritea_file,
-    _gep_spritea_offsetx,
-    _gep_spritea_offsety,
-    _gep_spritea_sprite,
-    _gep_spritea_the_end,
+    _ep_spritea_centerx,
+    _ep_spritea_centery,
+    _ep_spritea_file,
+    _ep_spritea_offsetx,
+    _ep_spritea_offsety,
+    _ep_spritea_sprite,
+    _ep_spritea_the_end,
 };
 
 enum gep_staydown_enum {
-    _gep_staydown_rise,
-    _gep_staydown_riseattack,
-    _gep_staydown_riseattack_stall,
-    _gep_staydown_the_end,
+    _ep_staydown_rise,
+    _ep_staydown_riseattack,
+    _ep_staydown_riseattack_stall,
+    _ep_staydown_the_end,
 };
 
-void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
+enum cep_hostile_candamage_enum {
+	_ep_hcd_ground,
+	_ep_hcd_type_enemy,
+	_ep_hcd_type_npc,
+	_ep_hcd_type_obstacle,
+	_ep_hcd_type_player,
+	_ep_hcd_type_shot,
+	_ep_hcd_the_end,
+};
+
+enum cep_takeaction_enum {
+	_ep_ta_bomb_explode,
+	_ep_ta_common_attack_proc,
+	_ep_ta_common_block,
+	_ep_ta_common_drop,
+	_ep_ta_common_fall,
+	_ep_ta_common_get,
+	_ep_ta_common_grab,
+	_ep_ta_common_grabattack,
+	_ep_ta_common_grabbed,
+	_ep_ta_common_jump,
+	_ep_ta_common_land,
+	_ep_ta_common_lie,
+	_ep_ta_common_pain,
+	_ep_ta_common_prejump,
+	_ep_ta_common_rise,
+	_ep_ta_common_spawn,
+	_ep_ta_common_turn,
+	_ep_ta_common_vault,
+	_ep_ta_normal_prepare,
+	_ep_ta_npc_warp,
+	_ep_ta_player_blink,
+	_ep_ta_suicide,
+	_ep_ta_the_end,
+};
+
+enum cep_think_enum { // 2011_03_03, DC: Think types.
+    _ep_th_common_think,
+    _ep_th_player_think,
+    _ep_th_steam_think,
+    _ep_th_steamer_think,
+    _ep_th_text_think,
+    _ep_th_trap_think,
+    _ep_th_the_end,
+};
+
+void mapstrings_entityproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
-	int prop;
+	int prop, i;
 
     static const char* proplist_attack[] = {
 		"blast",
@@ -3381,120 +3430,193 @@ void mapstrings_getentityproperty(ScriptVariant** varlist, int paramCount)
         "riseattack_stall",
     };
 
+    static const char* proplist_hostile_candamage[] = {
+        "ground",
+        "type_enemy",
+        "type_npc",
+        "type_obstacle",
+        "type_player",
+        "type_shot",
+    };
+
+	static const char* proplist_takeaction[] = {
+		"bomb_explode",
+		"common_attack_proc",
+		"common_block",
+		"common_drop",
+		"common_fall",
+		"common_get",
+		"common_grab",
+		"common_grabattack",
+		"common_grabbed",
+		"common_jump",
+		"common_land",
+		"common_lie",
+		"common_pain",
+		"common_prejump",
+		"common_rise",
+		"common_spawn",
+		"common_turn",
+		"common_vault",
+		"normal_prepare",
+		"npc_warp",
+		"player_blink",
+		"suicide",
+	};
+
+	static const char* proplist_think[] = { // 2011_03_03, DC: Think types.
+		"common_think",
+		"player_think",
+		"steam_think",
+		"steamer_think",
+		"text_think",
+		"trap_think",
+	};
+
 	if(paramCount < 2) return;
 
 	// map entity properties
 	MAPSTRINGS(varlist[1], eplist, _ep_the_end,
 		"Property name '%s' is not supported by function getentityproperty.\n");
 
-	if(paramCount < 3) return;
+	if(paramCount < 3 || varlist[1]->vt != VT_INTEGER) return;
 
+	switch (varlist[1]->lVal)
+	{
 	// map subproperties of aiflag property
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_aiflag))
+	case _ep_aiflag:
 	{
 		MAPSTRINGS(varlist[2], eplist_aiflag, _ep_aiflag_the_end,
 			"'%s' is not a known subproperty of 'aiflag'.\n");
+		break;
 	}
-
 	// map subproperties of Attack
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_attack))
+	case _ep_attack:
 	{
-		MAPSTRINGS(varlist[2], proplist_attack, _gep_attack_the_end,
+		MAPSTRINGS(varlist[2], proplist_attack, _ep_attack_the_end,
 			"Property name '%s' is not a known subproperty of 'attack'.\n");
+		break;
 	}
-
 	// map subproperties of defense property
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_defense))
+	case _ep_defense:
 	{
 		if(paramCount >= 4)
 		{
-			MAPSTRINGS(varlist[3], proplist_defense, _gep_defense_the_end,
+			MAPSTRINGS(varlist[3], proplist_defense, _ep_defense_the_end,
 				"'%s' is not a known subproperty of 'defense'.\n");
 		}
+		break;
 	}
-
     // map subproperties of DOT
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_dot))
+	case _ep_dot:
 	{
-		MAPSTRINGS(varlist[2], proplist_dot, _gep_dot_the_end,
+		MAPSTRINGS(varlist[2], proplist_dot, _ep_dot_the_end,
 			"Property name '%s' is not a known subproperty of 'dot'.\n");
+		break;
 	}
-
     // map subproperties of Edelay property
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_edelay))
+	case _ep_edelay:
 	{
-		MAPSTRINGS(varlist[2], proplist_edelay, _gep_edelay_the_end,
+		MAPSTRINGS(varlist[2], proplist_edelay, _ep_edelay_the_end,
 			"'%s' is not a known subproperty of 'edelay'.\n");
+		break;
 	}
-
 	// map subproperties of Energycost
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_energycost))
+	case _ep_energycost:
 	{
-		MAPSTRINGS(varlist[2], proplist_energycost, _gep_energycost_the_end,
+		MAPSTRINGS(varlist[2], proplist_energycost, _ep_energycost_the_end,
 			"Property name '%s' is not a known subproperty of 'energycost'.\n");
+		break;
 	}
-
 	// map subproperties of Flash
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_flash))
+	case _ep_flash:
 	{
-		MAPSTRINGS(varlist[2], proplist_flash, _gep_flash_the_end,
+		MAPSTRINGS(varlist[2], proplist_flash, _ep_flash_the_end,
 			"Property name '%s' is not a known subproperty of 'flash'.\n");
+		break;
 	}
-
     // map subproperties of Icon
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_icon))
+	case _ep_icon:
 	{
-		MAPSTRINGS(varlist[2], proplist_icon, _gep_icon_the_end,
+		MAPSTRINGS(varlist[2], proplist_icon, _ep_icon_the_end,
 			"Property name '%s' is not a known subproperty of 'icon'.\n");
-	}
-
+		break;
+	}
 	// map subproperties of Knockdowncount
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_knockdowncount))
+	case _ep_knockdowncount:
 	{
-		MAPSTRINGS(varlist[2], proplist_knockdowncount, _gep_knockdowncount_the_end,
+		MAPSTRINGS(varlist[2], proplist_knockdowncount, _ep_knockdowncount_the_end,
 			"Property name '%s' is not a known subproperty of 'knockdowncount'.\n");
+		break;
 	}
-
 	// map subproperties of Landframe
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_landframe))
+	case _ep_landframe:
 	{
-		MAPSTRINGS(varlist[2], proplist_landframe, _gep_landframe_the_end,
+		MAPSTRINGS(varlist[2], proplist_landframe, _ep_landframe_the_end,
 			"Property name '%s' is not a known subproperty of 'landframe'.\n");
+		break;
 	}
-
 	// map subproperties of Maps
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_maps))
+	case  _ep_maps:
 	{
-		MAPSTRINGS(varlist[2], proplist_maps, _gep_maps_the_end,
+		MAPSTRINGS(varlist[2], proplist_maps, _ep_maps_the_end,
 			"Property name '%s' is not a known subproperty of 'maps'.\n");
+		break;
 	}
-
 	// map subproperties of Range
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_range))
+	case _ep_range:
 	{
-		MAPSTRINGS(varlist[2], proplist_range, _gep_range_the_end,
+		MAPSTRINGS(varlist[2], proplist_range, _ep_range_the_end,
 			"Property name '%s' is not a known subproperty of 'range'.\n");
+		break;
 	}
-
 	// map subproperties of Running
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_running))
+	case _ep_running:
 	{
-		MAPSTRINGS(varlist[2], proplist_running, _gep_running_the_end,
+		MAPSTRINGS(varlist[2], proplist_running, _ep_running_the_end,
 			"Property name '%s' is not a known subproperty of 'running'.\n");
-	}
-
+		break;
+	}
 	// map subproperties of Spritea
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_spritea))
+	case _ep_spritea:
 	{
-		MAPSTRINGS(varlist[2], proplist_spritea, _gep_spritea_the_end,
+		MAPSTRINGS(varlist[2], proplist_spritea, _ep_spritea_the_end,
 			"Property name '%s' is not a known subproperty of 'spritea'.\n");
+		break;
 	}
-
 	// map subproperties of Staydown
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_staydown))
+	case _ep_staydown:
 	{
-		MAPSTRINGS(varlist[2], proplist_staydown, _gep_running_the_end,
+		MAPSTRINGS(varlist[2], proplist_staydown, _ep_running_the_end,
 			"Property name '%s' is not a known subproperty of 'staydown'.\n");
+		break;
+	}
+	//hostile, candamage, projectilehit
+	case _ep_hostile:
+	case _ep_candamage:
+	case _ep_projectilehit:
+	{
+		for(i=2; i<paramCount; i++)
+		{
+			MAPSTRINGS(varlist[i], proplist_hostile_candamage, _ep_hcd_the_end,
+				"Entity type is not supported by 'hostile', 'candamage', or 'projectilehit'\n");
+		}
+		break;
+	}
+	// action for takeaction
+	case _ep_takeaction:
+	{
+		MAPSTRINGS(varlist[2], proplist_takeaction, _ep_ta_the_end,
+			"Action is not supported by 'takeaction'.\n");
+		break;
+	}
+    // 2011_03_13, DC: Think sets for think.
+	case _ep_think:
+	{
+		MAPSTRINGS(varlist[2], proplist_think, _ep_th_the_end,
+			"Value is not supported by 'think'.\n");
+		break;
+	}
 	}
 }
 
@@ -3519,7 +3641,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	}
 
 	ScriptVariant_Clear(*pretvar);
-	mapstrings_getentityproperty(varlist, paramCount);
+	mapstrings_entityproperty(varlist, paramCount);
 
 	arg = varlist[0];
 	if(arg->vt != VT_PTR && arg->vt != VT_EMPTY)
@@ -3679,7 +3801,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	}
 
 	/*
-	case _gep_animationid: See animnum.
+	case _ep_animationid: See animnum.
 	*/
 
 	case _ep_animheight:
@@ -3764,143 +3886,143 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp)
 		{
-			case _gep_attack_blockflash:
+			case _ep_attack_blockflash:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->blockflash;
 				 break;
-			case _gep_attack_blocksound:
+			case _ep_attack_blocksound:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->blocksound;
 				 break;
-			case _gep_attack_coords:
+			case _ep_attack_coords:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->attack_coords[varlist[6]->lVal];
 				 break;
-			case _gep_attack_counterattack:
+			case _ep_attack_counterattack:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->counterattack;
 				 break;
-			case _gep_attack_direction:
+			case _ep_attack_direction:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->force_direction;
 				 break;
-			case _gep_attack_dol:
+			case _ep_attack_dol:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->damage_on_landing;
 				 break;
-			case _gep_attack_dot:
+			case _ep_attack_dot:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->dot;
 				 break;
-			case _gep_attack_dotforce:
+			case _ep_attack_dotforce:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->dot_force;
 				 break;
-			case _gep_attack_dotindex:
+			case _ep_attack_dotindex:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->dot_index;
 				 break;
-			case _gep_attack_dotrate:
+			case _ep_attack_dotrate:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->dot_rate;
 				 break;
-			case _gep_attack_dottime:
+			case _ep_attack_dottime:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->dot_time;
 				 break;
-			case _gep_attack_drop:
+			case _ep_attack_drop:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->attack_drop;
 				 break;
-			case _gep_attack_dropv:
+			case _ep_attack_dropv:
 				 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 				 (*pretvar)->dblVal = (DOUBLE)attack->dropv[varlist[6]->lVal];
 				 break;
-			case _gep_attack_force:
+			case _ep_attack_force:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->attack_force;
 				 break;
-			case _gep_attack_forcemap:
+			case _ep_attack_forcemap:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->forcemap;
 				 break;
-			case _gep_attack_freeze:
+			case _ep_attack_freeze:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->freeze;
 				 break;
-			case _gep_attack_freezetime:
+			case _ep_attack_freezetime:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->freezetime;
 				 break;
-			case _gep_attack_grab:
+			case _ep_attack_grab:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->grab;
 				 break;
-			case _gep_attack_grabdistance:
+			case _ep_attack_grabdistance:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->grab_distance;
 				 break;
-			case _gep_attack_guardcost:
+			case _ep_attack_guardcost:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->guardcost;
 				 break;
-			case _gep_attack_hitflash:
+			case _ep_attack_hitflash:
 				ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				(*pretvar)->lVal = (LONG)attack->hitflash;
 				break;
-			case _gep_attack_hitsound:
+			case _ep_attack_hitsound:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->hitsound;
 				 break;
-			case _gep_attack_jugglecost:
+			case _ep_attack_jugglecost:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->jugglecost;
 				 break;
-			case _gep_attack_maptime:
+			case _ep_attack_maptime:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->maptime;
 				 break;
-			case _gep_attack_noblock:
+			case _ep_attack_noblock:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->no_block;
 				 break;
-			case _gep_attack_noflash:
+			case _ep_attack_noflash:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->no_flash;
 				 break;
-			case _gep_attack_nokill:
+			case _ep_attack_nokill:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->no_kill;
 				 break;
-			case _gep_attack_nopain:
+			case _ep_attack_nopain:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->no_pain;
 				 break;
-			case _gep_attack_otg:
+			case _ep_attack_otg:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->otg;
 				 break;
-			case _gep_attack_pause:
+			case _ep_attack_pause:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->pause_add;
 				 break;
-			case _gep_attack_seal:
+			case _ep_attack_seal:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->seal;
 				 break;
-			case _gep_attack_sealtime:
+			case _ep_attack_sealtime:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->sealtime;
 				 break;
-			case _gep_attack_staydown:
+			case _ep_attack_staydown:
 				 ScriptVariant_ChangeType(*pretvar, VT_PTR);
 				 (*pretvar)->ptrVal = (VOID*)attack->staydown;
 				 break;
-			case _gep_attack_steal:
+			case _ep_attack_steal:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->steal;
 				 break;
-			case _gep_attack_type:
+			case _ep_attack_type:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)attack->attack_type;
 				 break;
@@ -4107,7 +4229,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 				printf("You must specify an attack type for your defense property.\n");
 				return E_FAIL;
 			}
-			ltemp2 = _gep_defense_factor;
+			ltemp2 = _ep_defense_factor;
 		}
 
 		if(paramCount >= 4){
@@ -4118,37 +4240,37 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp2)
 		{
-		case _gep_defense_factor:
+		case _ep_defense_factor:
 		{
 			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].factor;
 			break;
 		}
-		case _gep_defense_blockpower:
+		case _ep_defense_blockpower:
 		{
 			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].blockpower;
 			break;
 		}
-		case _gep_defense_blockratio:
+		case _ep_defense_blockratio:
 		{
 			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].blockratio;
 			break;
 		}
-		case _gep_defense_blockthreshold:
+		case _ep_defense_blockthreshold:
 		{
 			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].blockthreshold;
 			break;
 		}
-		case _gep_defense_blocktype:
+		case _ep_defense_blocktype:
 		{
 			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].blocktype;
 			break;
 		}
-		case _gep_defense_knockdown:
+		case _ep_defense_knockdown:
 		{
 			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].knockdown;
 			break;
 		}
-		case _gep_defense_pain:
+		case _ep_defense_pain:
 		{
 			(*pretvar)->dblVal = (DOUBLE)ent->defense[(int)ltemp].pain;
 			break;
@@ -4192,38 +4314,38 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		}
 		switch(arg->lVal)
 		{
-		case _gep_dot_time:
+		case _ep_dot_time:
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->dot_time[i];
 			 break;
 		}
-		case _gep_dot_mode:
+		case _ep_dot_mode:
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->dot[i];
 			 break;
 		}
-		case _gep_dot_force:
+		case _ep_dot_force:
 
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->dot_force[i];
 			 break;
 		}
-		case _gep_dot_rate:
+		case _ep_dot_rate:
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->dot_rate[i];
 			 break;
 		}
-		case _gep_dot_type:
+		case _ep_dot_type:
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->dot_atk[i];
 			 break;
 		}
-		case _gep_dot_owner:
+		case _ep_dot_owner:
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_PTR);
 			 (*pretvar)->ptrVal = (VOID*)ent->dot_owner[i];
@@ -4265,32 +4387,32 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp)
 		{
-		case _gep_edelay_mode:
+		case _ep_edelay_mode:
 		{
 			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.mode;
 			break;
 		}
-		case _gep_edelay_factor:
+		case _ep_edelay_factor:
 		{
 			(*pretvar)->dblVal = (float)ent->modeldata.edelay.factor;
 			break;
 		}
-		case _gep_edelay_cap_min:
+		case _ep_edelay_cap_min:
 		{
 			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.cap_min;
 			break;
 		}
-		case _gep_edelay_cap_max:
+		case _ep_edelay_cap_max:
 		{
 			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.cap_max;
 			break;
 		}
-		case _gep_edelay_range_min:
+		case _ep_edelay_range_min:
 		{
 			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.range_min;
 			break;
 		}
-		case _gep_edelay_range_max:
+		case _ep_edelay_range_max:
 		{
 			(*pretvar)->lVal = (LONG)ent->modeldata.edelay.range_max;
 			break;
@@ -4324,15 +4446,15 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp)
 		{
-			case _gep_energycost_cost:
+			case _ep_energycost_cost:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.cost;
 				 break;
-			case _gep_energycost_disable:
+			case _ep_energycost_disable:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.disable;
 				 break;
-			case _gep_energycost_mponly:
+			case _ep_energycost_mponly:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.mponly;
 				 break;
@@ -4380,17 +4502,17 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp)
 		{
-            case _gep_flash_block:
+            case _ep_flash_block:
             {
                 i = ent->modeldata.bflash;
                 break;
             }
-            case _gep_flash_def:
+            case _ep_flash_def:
             {
                 i = ent->modeldata.flash;
                 break;
             }
-            case _gep_flash_noattack:
+            case _ep_flash_noattack:
             {
                 i = ent->modeldata.noatflash;
                 break;
@@ -4505,52 +4627,52 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp)
 		{
-            case _gep_icon_def:
+            case _ep_icon_def:
             {
                 i = ent->modeldata.icon.def;
                 break;
             }
-            case _gep_icon_die:
+            case _ep_icon_die:
             {
                 i = ent->modeldata.icon.die;
                 break;
             }
-            case _gep_icon_get:
+            case _ep_icon_get:
             {
                 i = ent->modeldata.icon.get;
                 break;
             }
-            case _gep_icon_mphigh:
+            case _ep_icon_mphigh:
             {
                 i = ent->modeldata.icon.mphigh;
                 break;
             }
-            case _gep_icon_mplow:
+            case _ep_icon_mplow:
             {
                 i = ent->modeldata.icon.mplow;
                 break;
             }
-            case _gep_icon_mpmed:
+            case _ep_icon_mpmed:
             {
                 i = ent->modeldata.icon.mpmed;
                 break;
             }
-            case _gep_icon_pain:
+            case _ep_icon_pain:
             {
                 i = ent->modeldata.icon.pain;
                 break;
             }
-            case _gep_icon_weapon:
+            case _ep_icon_weapon:
             {
                 i = ent->modeldata.icon.weapon;
                 break;
             }
-            case _gep_icon_x:
+            case _ep_icon_x:
             {
                 i = ent->modeldata.icon.x;
                 break;
             }
-            case _gep_icon_y:
+            case _ep_icon_y:
             {
                 i = ent->modeldata.icon.y;
                 break;
@@ -4608,7 +4730,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	    */
 	    if(paramCount<3)
 	    {
-            ltemp = _gep_knockdowncount_current;
+            ltemp = _ep_knockdowncount_current;
 	    }
 	    else
 	    {
@@ -4632,15 +4754,15 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp)
 		{
-			case _gep_knockdowncount_current:
+			case _ep_knockdowncount_current:
                 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
                 (*pretvar)->dblVal = (DOUBLE)ent->knockdowncount;
 				break;
-			case _gep_knockdowncount_max:
+			case _ep_knockdowncount_max:
                 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
                 (*pretvar)->dblVal = (DOUBLE)ent->modeldata.knockdowncount;
 				 break;
-            case _gep_knockdowncount_time:
+            case _ep_knockdowncount_time:
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)ent->knockdowncount;
 				break;
@@ -4678,11 +4800,11 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp)
 		{
-			case _gep_landframe_ent:
+			case _ep_landframe_ent:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.ent;
 				 break;
-			case _gep_landframe_frame:
+			case _ep_landframe_frame:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.frame;
 				 break;
@@ -4759,14 +4881,14 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp)
 		{
-		    case _gep_maps_count:
+		    case _ep_maps_count:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)(ent->modeldata.maps_loaded+1);
                 break;
             }
 
-            case _gep_maps_current:
+            case _ep_maps_current:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)0;
@@ -4780,61 +4902,61 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
                 }
                 break;
             }
-            case _gep_maps_dying:
+            case _ep_maps_dying:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)(ent->dying);
                 break;
             }
-            case _gep_maps_dying_critical:
+            case _ep_maps_dying_critical:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)(ent->per2);
                 break;
             }
-            case _gep_maps_dying_low:
+            case _ep_maps_dying_low:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)(ent->per1);
                 break;
             }
-            case _gep_maps_frozen:
+            case _ep_maps_frozen:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)(ent->modeldata.maps.frozen);
                 break;
             }
-            case _gep_maps_hide_end:
+            case _ep_maps_hide_end:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)(ent->modeldata.maps.hide_end);
                 break;
             }
-            case _gep_maps_hide_start:
+            case _ep_maps_hide_start:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)(ent->modeldata.maps.hide_start);
                 break;
             }
-            case _gep_maps_ko:
+            case _ep_maps_ko:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)(ent->modeldata.maps.ko);
                 break;
             }
-            case _gep_maps_kotype:
+            case _ep_maps_kotype:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)(ent->modeldata.maps.kotype);
                 break;
             }
-            case _gep_maps_table:
+            case _ep_maps_table:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
                 (*pretvar)->ptrVal = (VOID*)(ent->colourmap);
                 break;
             }
-            case _gep_maps_time:
+            case _ep_maps_time:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)(ent->maptime);
@@ -5056,35 +5178,35 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp)
 		{
-			case _gep_range_amax:
+			case _ep_range_amax:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.amax;
 				 break;
-			case _gep_range_amin:
+			case _ep_range_amin:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.amin;
 				 break;
-			case _gep_range_bmax:
+			case _ep_range_bmax:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.bmax;
 				 break;
-			case _gep_range_bmin:
+			case _ep_range_bmin:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.bmin;
 				 break;
-			case _gep_range_xmax:
+			case _ep_range_xmax:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.xmax;
 				 break;
-			case _gep_range_xmin:
+			case _ep_range_xmin:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.xmin;
 				 break;
-			case _gep_range_zmax:
+			case _ep_range_zmax:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.zmax;
 				 break;
-			case _gep_range_zmin:
+			case _ep_range_zmin:
 				 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 				 (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.zmin;
 				 break;
@@ -5111,31 +5233,31 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		ltemp = arg->lVal;
 		switch(ltemp)
 		{
-		case _gep_running_speed:
+		case _ep_running_speed:
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.runspeed;
 			break;
 		}
-		case _gep_running_jumpy:
+		case _ep_running_jumpy:
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.runjumpheight;
 			break;
 		}
-		case _gep_running_jumpx:
+		case _ep_running_jumpx:
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 			(*pretvar)->dblVal = (DOUBLE)ent->modeldata.runjumpdist;
 			break;
 		}
-		case _gep_running_land:
+		case _ep_running_land:
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)ent->modeldata.runhold;
 			break;
 		}
-		case _gep_running_movez:
+		case _ep_running_movez:
 		{
 			 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			 (*pretvar)->lVal = (LONG)ent->modeldata.runupdown;
@@ -5239,25 +5361,25 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp)
 		{
-           case _gep_spritea_centerx:
+           case _ep_spritea_centerx:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)sprite_map[i].centerx;
                 break;
             }
-            case _gep_spritea_centery:
+            case _ep_spritea_centery:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
                 (*pretvar)->lVal = (LONG)sprite_map[i].centery;
                 break;
             }
-            case _gep_spritea_file:
+            case _ep_spritea_file:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_STR);
                 strcpy(StrCache_Get((*pretvar)->strVal), sprite_map[i].node->filename);
                 break;
             }
-            case _gep_spritea_sprite:
+            case _ep_spritea_sprite:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
                 spr = sprite_map[i].node->sprite;
@@ -5333,17 +5455,17 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 
 		switch(ltemp)
 		{
-            case _gep_staydown_rise:
+            case _ep_staydown_rise:
             {
                 i = ent->staydown.rise;
                 break;
             }
-            case _gep_staydown_riseattack:
+            case _ep_staydown_riseattack:
             {
                 i = ent->staydown.riseattack;
                 break;
             }
-            case _gep_staydown_riseattack_stall:
+            case _ep_staydown_riseattack_stall:
             {
                 i = ent->staydown.riseattack_stall;
                 break;
@@ -5516,223 +5638,6 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 }
 
 
-enum cep_energycost_enum {
-    _cep_energycost_cost,
-    _cep_energycost_disable,
-    _cep_energycost_mponly,
-    _cep_energycost_the_end,
-};
-
-enum cep_hostile_candamage_enum {
-	_cep_hcd_ground,
-	_cep_hcd_type_enemy,
-	_cep_hcd_type_npc,
-	_cep_hcd_type_obstacle,
-	_cep_hcd_type_player,
-	_cep_hcd_type_shot,
-	_cep_hcd_the_end,
-};
-
-enum cep_knockdowncount_enum {
-    _cep_knockdowncount_current,
-    _cep_knockdowncount_max,
-    _cep_knockdowncount_time,
-    _cep_knockdowncount_the_end,
-};
-
-enum cep_spritea_enum {
-    _cep_spritea_centerx,
-    _cep_spritea_centery,
-    _cep_spritea_file,
-    _cep_spritea_offsetx,
-    _cep_spritea_offsety,
-    _cep_spritea_sprite,
-    _cep_spritea_the_end,
-};
-
-enum cep_staydown_enum {
-    _cep_staydown_rise,
-    _cep_staydown_riseattack,
-    _cep_staydown_riseattack_stall,
-    _cep_staydown_the_end,
-};
-
-enum cep_takeaction_enum {
-	_cep_ta_bomb_explode,
-	_cep_ta_common_attack_proc,
-	_cep_ta_common_block,
-	_cep_ta_common_drop,
-	_cep_ta_common_fall,
-	_cep_ta_common_get,
-	_cep_ta_common_grab,
-	_cep_ta_common_grabattack,
-	_cep_ta_common_grabbed,
-	_cep_ta_common_jump,
-	_cep_ta_common_land,
-	_cep_ta_common_lie,
-	_cep_ta_common_pain,
-	_cep_ta_common_prejump,
-	_cep_ta_common_rise,
-	_cep_ta_common_spawn,
-	_cep_ta_common_turn,
-	_cep_ta_common_vault,
-	_cep_ta_normal_prepare,
-	_cep_ta_npc_warp,
-	_cep_ta_player_blink,
-	_cep_ta_suicide,
-	_cep_ta_the_end,
-};
-
-enum cep_think_enum { // 2011_03_03, DC: Think types.
-    _cep_th_common_think,
-    _cep_th_player_think,
-    _cep_th_steam_think,
-    _cep_th_steamer_think,
-    _cep_th_text_think,
-    _cep_th_trap_think,
-    _cep_th_the_end,
-};
-
-void mapstrings_changeentityproperty(ScriptVariant** varlist, int paramCount)
-{
-	char* propname;
-	int prop, i;
-
-    static const char* proplist_energycost[] = {
-        "cost",
-        "disable",
-        "mponly",
-    };
-
-    static const char* proplist_hostile_candamage[] = {
-        "ground",
-        "type_enemy",
-        "type_npc",
-        "type_obstacle",
-        "type_player",
-        "type_shot",
-    };
-
-    static const char* proplist_knockdowncount[] = { //2011_04_14, DC: Knockdowncount colleciton.
-	    "current",
-	    "max",
-	    "time",
-	};
-
-    static const char* proplist_spritea[] = {       //2011_05_15, DC: Sprite array.
-        "centerx",
-        "centery",
-        "file",
-        "offsetx",
-        "offsety",
-        "sprite",
-	};
-
-    static const char* proplist_staydown[] = { //2011_04_08, DC: Staydown colleciton.
-	    "rise",
-	    "riseattack",
-	    "riseattack_stall",
-	};
-
-	static const char* proplist_takeaction[] = {
-		"bomb_explode",
-		"common_attack_proc",
-		"common_block",
-		"common_drop",
-		"common_fall",
-		"common_get",
-		"common_grab",
-		"common_grabattack",
-		"common_grabbed",
-		"common_jump",
-		"common_land",
-		"common_lie",
-		"common_pain",
-		"common_prejump",
-		"common_rise",
-		"common_spawn",
-		"common_turn",
-		"common_vault",
-		"normal_prepare",
-		"npc_warp",
-		"player_blink",
-		"suicide",
-	};
-
-	static const char* proplist_think[] = { // 2011_03_03, DC: Think types.
-		"common_think",
-		"player_think",
-		"steam_think",
-		"steamer_think",
-		"text_think",
-		"trap_think",
-	};
-
-	// property name
-	MAPSTRINGS(varlist[1], eplist, _ep_the_end,
-		"Property name '%s' is not supported by function changeentityproperty.\n");
-
-    // AI flag name for aiflag
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_aiflag))
-	{
-		MAPSTRINGS(varlist[2], eplist_aiflag, _ep_aiflag_the_end,
-			"Flag '%s' is not supported by 'aiflag'.\n");
-	}
-
-	//2011_03_31, DC: Energycost
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_energycost))
-	{
-		MAPSTRINGS(varlist[2], proplist_energycost, _cep_energycost_the_end,
-			"Flag '%s' is not supported by 'energycost'.\n");
-	}
-
-    // entity type(s) for hostile, candamage, and projectilehit.
-	if((varlist[1]->vt == VT_INTEGER) &&
-		((varlist[1]->lVal == _ep_hostile) || (varlist[1]->lVal == _ep_candamage) || (varlist[1]->lVal == _ep_projectilehit)))
-	{
-		for(i=2; i<paramCount; i++)
-		{
-			MAPSTRINGS(varlist[i], proplist_hostile_candamage, _cep_hcd_the_end,
-				"Entity type '%s' is not supported by 'hostile', 'candamage', or 'projectilehit'\n");
-		}
-	}
-
-	// 2011_04_14, DC: Knockdowncount
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_knockdowncount))
-	{
-		MAPSTRINGS(varlist[2], proplist_knockdowncount, _cep_knockdowncount_the_end,
-			"Subproperty '%s' is not supported by 'knockdowncount'.\n");
-	}
-
-	// 2011_05_15, DC: Sprite array
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_spritea))
-	{
-		MAPSTRINGS(varlist[2], proplist_spritea, _cep_spritea_the_end,
-			"Property name '%s' is not a known subproperty of 'spritea'.\n");
-	}
-
-    // 2011_04_08, DC: Staydown
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_staydown))
-	{
-		MAPSTRINGS(varlist[2], proplist_staydown, _cep_staydown_the_end,
-			"Subproperty '%s' is not supported by 'staydown'.\n");
-	}
-
-	// action for takeaction
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_takeaction))
-	{
-		MAPSTRINGS(varlist[2], proplist_takeaction, _cep_ta_the_end,
-			"Action '%s' is not supported by 'takeaction'.\n");
-	}
-
-    // 2011_03_13, DC: Think sets for think.
-	if((varlist[1]->vt == VT_INTEGER) && (varlist[1]->lVal == _ep_think))
-	{
-		MAPSTRINGS(varlist[2], proplist_think, _cep_th_the_end,
-			"Set '%s' is not supported by 'think'.\n");
-	}
-}
-
 //changeentityproperty(pentity, propname, value1[ ,value2, value3, ...]);
 HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
@@ -5796,7 +5701,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 		goto changeentityproperty_error;
 	}
 
-	mapstrings_changeentityproperty(varlist, paramCount);
+	mapstrings_entityproperty(varlist, paramCount);
 
 	if(varlist[0]->vt != VT_PTR && varlist[0]->vt != VT_EMPTY)
 	{
@@ -6041,7 +5946,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			if(varlist[i]->vt == VT_INTEGER) // known entity type
 			{
 				ltemp = varlist[i]->lVal;
-				if(ltemp==_cep_hcd_ground) // "ground" - not needed?
+				if(ltemp==_ep_hcd_ground) // "ground" - not needed?
 					ent->modeldata.ground = 1;
 				else
 					ent->modeldata.candamage |= entitytypes[(int)ltemp];
@@ -6208,19 +6113,19 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 		switch(varlist[2]->lVal)
 		{
-		case _cep_energycost_cost:
+		case _ep_energycost_cost:
 		{
 			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
 				ent->modeldata.animation[i]->energycost.cost = (int)ltemp;
 			break;
 		}
-		case _cep_energycost_disable:
+		case _ep_energycost_disable:
 		{
 			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
 				ent->modeldata.animation[i]->energycost.disable = (int)ltemp;
 			break;
 		}
-		case _cep_energycost_mponly:
+		case _ep_energycost_mponly:
 		{
 			if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
 				ent->modeldata.animation[i]->energycost.mponly = (int)ltemp;
@@ -6392,18 +6297,18 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 		switch(varlist[2]->lVal)
 		{
-            case _cep_knockdowncount_current:
+            case _ep_knockdowncount_current:
             {
                 if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
                     ent->knockdowncount = (float)dbltemp;
 				break;
             }
-            case _cep_knockdowncount_max:
+            case _ep_knockdowncount_max:
             {
                 if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
                     ent->modeldata.knockdowncount = (float)dbltemp;
 				break;
-            case _cep_knockdowncount_time:
+            case _ep_knockdowncount_time:
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
                     ent->knockdowntime = (int)ltemp;
 				break;
@@ -6790,19 +6695,19 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 		switch(ltemp)
 		{
-            case _cep_spritea_centerx:
+            case _ep_spritea_centerx:
             {
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
                     sprite_map[i].centerx = (int)ltemp;
                 break;
             }
-            case _cep_spritea_centery:
+            case _ep_spritea_centery:
             {
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
                     sprite_map[i].centery = (int)ltemp;
                 break;
             }
-            case _cep_spritea_file:
+            case _ep_spritea_file:
             {
                 if(varlist[5]->vt != VT_STR)
                 {
@@ -6813,7 +6718,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
                 break;
             }
 			/*
-            case _cep_spritea_offsetx:
+            case _ep_spritea_offsetx:
             {
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
                 {
@@ -6822,7 +6727,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
                 }
                 break;
             }
-            case _cep_spritea_offsety:
+            case _ep_spritea_offsety:
             {
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
                 {
@@ -6831,7 +6736,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
                 }
                 break;
             }*/
-            case _cep_spritea_sprite:
+            case _ep_spritea_sprite:
             {
                 sprite_map[i].node->sprite = (VOID*)varlist[5]->ptrVal;
                 break;
@@ -6891,19 +6796,19 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 		switch(varlist[2]->lVal)
 		{
-            case _cep_staydown_rise:
+            case _ep_staydown_rise:
             {
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
                     ent->staydown.rise = (int)ltemp;
                 break;
             }
-            case _cep_staydown_riseattack:
+            case _ep_staydown_riseattack:
             {
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
                     ent->staydown.riseattack = (int)ltemp;
                 break;
             }
-            case _cep_staydown_riseattack_stall:
+            case _ep_staydown_riseattack_stall:
             {
                 if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
                     ent->staydown.riseattack_stall = (int)ltemp;
@@ -6992,7 +6897,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 		// otherwise, the parameter is a known action
 		ltemp = varlist[2]->lVal;
-		if((ltemp >= 0) && (ltemp < _cep_ta_the_end))
+		if((ltemp >= 0) && (ltemp < _ep_ta_the_end))
 		{
 			ent->takeaction = actions[(int)ltemp];
 		}
@@ -7014,7 +6919,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 
 		// otherwise, the parameter is a known action
 		ltemp = varlist[2]->lVal;
-		if((ltemp >= 0) && (ltemp < _cep_th_the_end))
+		if((ltemp >= 0) && (ltemp < _ep_th_the_end))
 		{
 			ent->think = think[(int)ltemp];
 		}
