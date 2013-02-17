@@ -237,8 +237,12 @@
 #define		ATK_NORMAL9			13
 #define		ATK_NORMAL10		14
 #define		ATK_ITEM		    15
+#define     ATK_LAND            16
+#define     ATK_PIT             17
+#define     ATK_LIFESPAN        18
+#define     ATK_TIMEOVER        19
 
-#define     MAX_ATKS            16                // default max attack types
+#define     MAX_ATKS            20                // default max attack types
 #define     STA_ATKS            6                 // default special attack types: blast burn shock freeze steal
 #define     MAX_DOTS            10                // Max active dot effects.
 
@@ -943,7 +947,7 @@ typedef struct
 	int mpmed; //MP bar icon; at or between 33% and 65%.
 	int pain; //Taking damage.
 	int weapon; //Weapon model.
-	int usemap; 
+	int usemap;
 	int x; //X position.
 	int y; //Y position.
 } s_icon; //2011_04_05, DC: In game icons added 2005_01_20.
@@ -1237,7 +1241,7 @@ typedef struct entity
 	float xdir;
 	float zdir;
 	float destx; // temporary values for ai functions
-	float destz; 
+	float destz;
 	float base; // Default altitude
 	float altbase; // Altitude affected by movea
 	float tossv;							// Effect of gravity
@@ -1460,7 +1464,7 @@ typedef struct
 }s_level_entry;
 
 
-typedef struct 
+typedef struct
 {
 	char* name;
 	int maxplayers;
@@ -1492,7 +1496,7 @@ typedef enum
 	bgt_water,
 	bgt_background,
 	bgt_generic
-	
+
 }bgloldtype;
 
 
