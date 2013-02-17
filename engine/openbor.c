@@ -88,7 +88,7 @@ const s_drawmethod plainmethod = {
 	{{.beginsize=0.0}, {.endsize=0.0}, 0, {.wavespeed=0}, 0} //water
 };
 
-const s_defense default_defense = 
+const s_defense default_defense =
 {
 	1.f,
 	0.f,
@@ -140,7 +140,7 @@ const s_attack emptyattack = {
    0 //pain_time
 };
 
-//default values 
+//default values
 float default_level_maxtossspeed = 100.0f;
 float default_level_maxfallspeed = -6.0f;
 float default_level_gravity = -0.1f;
@@ -150,7 +150,7 @@ float default_model_jumpspeed = -1;
 float default_model_dropv[3] = {3.0f, 1.2f, 0.0f};
 float default_model_grabdistance = 36.0f;
 
-// AI attack debug stuff for development purpose, 
+// AI attack debug stuff for development purpose,
 // Don't open them to modders yet
 float move_noatk_factor=3.0f;
 float group_noatk_factor=0.01f;
@@ -2616,7 +2616,7 @@ static void vardump(ScriptVariant *var, char buffer[])
 				t = strlen(buffer);
 				buffer[t] = tmpstr[c];
 				buffer[t+1] = 0;
-			}					
+			}
 		}
 		strcat(buffer, "\"");
 		break;
@@ -2659,7 +2659,7 @@ int saveScriptFile()
 	_writeconst("void main() {\n");
 	for(i=0; i<=max_global_var_index; i++)
 	{
-		if(!global_var_list[i]->owner && 
+		if(!global_var_list[i]->owner &&
 			global_var_list[i]->key[0] &&
 			global_var_list[i]->value.vt!=VT_EMPTY &&
 			global_var_list[i]->value.vt!=VT_PTR){
@@ -2682,7 +2682,7 @@ int saveScriptFile()
 			_writetmp
 			_writeconst(");\n")
 		}
-		
+
 	}
 	//allow select
 	for(i=0; i<models_cached; i++){
@@ -2747,9 +2747,9 @@ int loadScriptFile(){
 	Script_Init(&script, "loadScriptFile",  NULL, 1);
 
 	result = (Script_AppendText(&script, buf, path) &&
-		Script_Compile(&script) && 
+		Script_Compile(&script) &&
 		Script_Execute(&script) );
-	
+
 	Script_Clear(&script, 2);
 	free(buf);
 	return result;
@@ -3681,7 +3681,7 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
 				if(!sprite_map[i].node->sprite){
 					sprite_map[i].node->sprite = loadsprite2(filename, NULL, NULL);
 				}
-				if(sprite_map[i].centerx+sprite_map[i].node->sprite->offsetx == ofsx && 
+				if(sprite_map[i].centerx+sprite_map[i].node->sprite->offsetx == ofsx &&
 					sprite_map[i].centery+sprite_map[i].node->sprite->offsety == ofsy) {
 					return i;
 				} else {
@@ -4243,7 +4243,7 @@ s_anim * alloc_anim()
 
 
 int addframe(s_anim * a, int spriteindex, int framecount, int delay, unsigned idle,
-			 int *bbox, s_attack* attack, int move, int movez, int movea, 
+			 int *bbox, s_attack* attack, int move, int movez, int movea,
 			 int seta, float* platform, int frameshadow, int* shadow_coords, int soundtoplay, s_drawmethod* drawmethod)
 {
 	ptrdiff_t currentframe;
@@ -5186,7 +5186,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	filename = model_cache[cacheindex].path;
 
 	if(buffer_pakfile(filename, &buf, &size)!=1) shutdown(1, "Unable to open file '%s'\n\n", filename);
-	
+
 	sbsize = size+1;
 	scriptbuf = (char*)malloc(sbsize);
 
@@ -5550,7 +5550,16 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						}
 						else if(stricmp(value, "ALL")==0)
 						{
-							for(i=0;i<max_attack_types;i++) newchar->defense[i] = defense;
+							for(i=0;i<max_attack_types;i++)
+                            {
+                                /*
+                                Skip the pit, lifespan, and time over attack types as these are for engine use. Nothing stops an author from defining defense settings for them individually.
+                                */
+                                if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN)
+                                {
+                                    newchar->defense[i] = defense;
+                                }
+                            }
 						}
 					}
 					#undef tempdef
@@ -7553,7 +7562,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					buffer_append(&scriptbuf, buf+pos-len, len, &sbsize, &scriptlen);
 					pos += 11;
-					
+
 					if(ani_id>=0)
 					{
 						buffer_append(&scriptbuf, endifid_text, 0xffffff, &sbsize, &scriptlen);// put back last  chars
@@ -8312,7 +8321,7 @@ void unload_levelorder(){
 		free(levelsets);
 		levelsets = NULL;
 	}
-	
+
 	num_difficulties = 0;
 }
 
@@ -8900,13 +8909,13 @@ void load_levelorder()
 				set->typemp = GET_INT_ARG(1);
 				break;
 			case CMD_LEVELORDER_SINGLE:
-				if(set) 
+				if(set)
 					set->maxplayers = 1;
 				else
 					defaultmaxplayers = 1;
 				break;
 			case CMD_LEVELORDER_MAXPLAYERS:
-				if(set) 
+				if(set)
 					set->maxplayers = GET_INT_ARG(1);
 				else
 					defaultmaxplayers = GET_INT_ARG(1);
@@ -9548,7 +9557,7 @@ void load_level(char *filename){
 					__realloc(level->layers,level->numlayers);
 					level->numlayers = 1; // reserve for background
 				}
-				
+
 				__realloc(level->layers,level->numlayers);
 				bgl = &(level->layers[level->numlayers]);
 				dm = &(bgl->drawmethod);
@@ -10011,7 +10020,7 @@ void load_level(char *filename){
 	else if(background) unload_background();
 
 	if(level->numlayers) {
-		
+
 		for(i=0; i<level->numlayers; i++){
 			bgl = &(level->layers[i]);
 			switch(bgl->oldtype){
@@ -10890,7 +10899,7 @@ int alloc_ents()
 	int i;
 
 	if(ent_list_size>=maxentities) return 0;
-	
+
 	ent_list_size += MAX_ENTS;
 
 	if(!ent_list) ent_list = malloc(sizeof(*ent_list)*ent_list_size);
@@ -10916,7 +10925,7 @@ alloc_ents_error:
 }
 
 
-//UT: merged DC's common walk/idle functions 
+//UT: merged DC's common walk/idle functions
 static int common_anim_series(entity* ent, int arraya[], int maxa, int forcemode, int defaulta)
 {
 	int i, b, e;                                                                    //Loop counter.
@@ -10924,7 +10933,7 @@ static int common_anim_series(entity* ent, int arraya[], int maxa, int forcemode
 
 	b=forcemode?forcemode-1:0;
 	e=forcemode?forcemode:maxa;
-	
+
 	for (i=b; i<e; i++)															//Loop through all relevant animations.
 	{
 		iAni = arraya[i];															//Get current animation.
@@ -11378,8 +11387,8 @@ void update_frame(entity* ent, int f)
 		{
 			self = self->subentity;
 			attack = emptyattack;
-			attack.dropv[0] = default_model_dropv[0]; 
-			attack.dropv[1] = default_model_dropv[1]; 
+			attack.dropv[0] = default_model_dropv[0];
+			attack.dropv[1] = default_model_dropv[1];
 			attack.dropv[2] = default_model_dropv[2];
 			attack.attack_force = self->health;
 			attack.attack_type = max_attack_types;
@@ -11662,7 +11671,7 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 		return NULL;
 	}
 
-	if(ent_count>=ent_list_size && !alloc_ents()) return NULL; //out of memory ? 
+	if(ent_count>=ent_list_size && !alloc_ents()) return NULL; //out of memory ?
 
 	for(i=0; i<ent_list_size; i++)
 	{
@@ -11787,8 +11796,8 @@ void kill(entity *victim)
 	{
 		attack = emptyattack;
 		attack.attack_type = max_attack_types;
-		attack.dropv[0] = default_model_dropv[0]; 
-		attack.dropv[1] = default_model_dropv[1]; 
+		attack.dropv[0] = default_model_dropv[0];
+		attack.dropv[1] = default_model_dropv[1];
 		attack.dropv[2] = default_model_dropv[2];
 	}
 	// kill minions
@@ -12599,8 +12608,8 @@ void do_attack(entity *e)
 
 				self->hit_by_attack_id = current_attack_id;
 				if(self==def) self->blocking = didblock; // yeah, if get hit, stop blocking
-				
-				//2011/11/24 UT: move the pain_time logic here, 
+
+				//2011/11/24 UT: move the pain_time logic here,
 				// because block needs this as well otherwise blockratio causes instant death
 				self->pain_time = time + (attack->pain_time?attack->pain_time:(GAME_SPEED / 5));
 				self->nextattack = 0; // reset this, make it easier to fight back
@@ -12828,12 +12837,13 @@ void check_gravity()
 					{
 						attack              = emptyattack;
 						attack.attack_force = self->damage_on_landing;
-						attack.attack_type  = self->damagetype;
+						attack.attack_type  = ATK_LAND;
 						self->takedamage(self, &attack);
 					}
 					else
 					{
-						self->health -= self->damage_on_landing;
+
+						self->health -= (self->damage_on_landing * self->defense[ATK_LAND].factor);
 						if(self->health <=0 ) kill(self);
 						self->damage_on_landing = 0;
 					}
@@ -12863,23 +12873,39 @@ void check_lost()
 		kill(self);
 		return;
 	}
-	// fall in to a pit
-	if(self->a < PIT_DEPTH || self->lifespancountdown<0)
+
+	// fall into a pit
+	if(self->a < PIT_DEPTH)
 	{
 		if(!self->takedamage) kill(self);
 		else
 		{
-			attack              = emptyattack;
+			attack          = emptyattack;
 			attack.dropv[0] = default_model_dropv[0];
 			attack.dropv[1] = default_model_dropv[1];
 			attack.dropv[2] = default_model_dropv[2];
 			attack.attack_force = self->health;
-			attack.attack_type  = max_attack_types;
-			self->health = 0;
+			attack.attack_type  = ATK_PIT;
 			self->takedamage(self, &attack);
 		}
 		return;
-	}//else
+	}
+	else if(self->lifespancountdown<0)  //Lifespan expired.
+	{
+        if(!self->takedamage) kill(self);
+		else
+		{
+			attack          = emptyattack;
+			attack.dropv[0] = default_model_dropv[0];
+			attack.dropv[1] = default_model_dropv[1];
+			attack.dropv[2] = default_model_dropv[2];
+			attack.attack_force = self->health;
+			attack.attack_type  = ATK_LIFESPAN;
+			self->takedamage(self, &attack);
+		}
+		return;
+    }//else
+
 	// Doom count down
 	if(!is_frozen(self) && self->lifespancountdown != (float)0xFFFFFFFF) self->lifespancountdown--;
 }
@@ -13923,7 +13949,7 @@ int normal_test_item(entity* ent, entity* item){
 		item->animation->vulnerable[item->animpos] && !item->blink &&
 		(validanim(ent,ANI_GET) || (isSubtypeTouch(item) && canBeDamaged(item, ent))) &&
 		(
-			(isSubtypeWeapon(item) && !ent->weapent && ent->modeldata.weapon && 
+			(isSubtypeWeapon(item) && !ent->weapent && ent->modeldata.weapon &&
 			 ent->modeldata.numweapons>=item->modeldata.weapnum && ent->modeldata.weapon[item->modeldata.weapnum-1]>=0)
 			||(isSubtypeProjectile(item) && !ent->weapent)
 			||(item->health && (ent->health < ent->modeldata.health) && ! isSubtypeProjectile(item) && ! isSubtypeWeapon(item))
@@ -13938,9 +13964,9 @@ int test_item(entity* ent, entity* item){
 		(validanim(ent,ANI_GET) || (isSubtypeTouch(item) && canBeDamaged(item, ent)))
 	)) return 0;
 	if(isSubtypeProjectile(item) && ent->weapent) return 0;
-	if(isSubtypeWeapon(item) && 
-		(ent->weapent || !ent->modeldata.weapon || 
-		ent->modeldata.numweapons<item->modeldata.weapnum || 
+	if(isSubtypeWeapon(item) &&
+		(ent->weapent || !ent->modeldata.weapon ||
+		ent->modeldata.numweapons<item->modeldata.weapnum ||
 		ent->modeldata.weapon[item->modeldata.weapnum-1]<0)
 	) return 0;
 	return 1;
@@ -14091,7 +14117,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
 int set_blockpain(entity *iBlkpain, int type, int reset)
 {
 	if(type < 0 || type >= max_attack_types || !validanim(iBlkpain,animblkpains[type])) type = 0;
-	if(validanim(iBlkpain,animblkpains[type])) 
+	if(validanim(iBlkpain,animblkpains[type]))
 	{
 		iBlkpain->takeaction = common_block;
 		set_blocking(self);
@@ -14109,7 +14135,7 @@ int set_pain(entity *iPain, int type, int reset)
 	iPain->xdir = iPain->zdir = iPain->tossv = 0; // stop the target
 	if(iPain->modeldata.guardpoints.maximum > 0 && iPain->modeldata.guardpoints.current <= 0){
 		pain = ANI_GUARDBREAK;
-		iPain->modeldata.guardpoints.current = iPain->modeldata.guardpoints.maximum; 
+		iPain->modeldata.guardpoints.current = iPain->modeldata.guardpoints.maximum;
 	}
 	else if(type == -1 || type >= max_attack_types) pain = ANI_GRABBED;
 	else pain = animpains[type];
@@ -14192,7 +14218,7 @@ void set_model_ex(entity* ent, char* modelname, int index, s_model* newmodel, in
 
 	//Make a shallow copy of old entity values, not safe but easy.
 	//Also copy offense and defense because they are more likely be used by weapons,
-	//other references are left alone for now 
+	//other references are left alone for now
 	if(Script_IsInitialized(newmodel->scripts->onmodelcopy_script))
 	{
 		tempe = *ent;
@@ -14277,7 +14303,7 @@ entity* block_find_target(int anim, int iDetect){
 			&& (ent_list[i]->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
 			  )
 		{
-					
+
 			if(index <0 || diffd < diffo)
 			{
 				index = i;
@@ -14322,9 +14348,9 @@ entity* normal_find_target(int anim, int iDetect)
 			&& (ent_list[i]->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
 			  )
 		{
-					
+
 			if(index <0 || (index>=0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1)) ||
-				( 
+				(
 					(self->x < ent_list[i]->x) == (self->direction) && // don't turn to the one on the back
 					//ent_list[i]->x >= advancex-10 && ent_list[i]->x<advancex+videomodes.hRes+10 && // don't turn to an offscreen target
 					//ent_list[i]->z >= advancey-10 && ent_list[i]->z<advancey+videomodes.vRes+10 &&
@@ -14507,7 +14533,7 @@ void normal_prepare()
 			return ;
 		}
 	}
-	
+
 	// if no attack was picked, just choose a random one from the valid list
 	if(special && check_costmove(atkchoices[(rand32()&0xffff)%special], 1, 0)){
 		return;
@@ -14948,7 +14974,7 @@ void common_block()
 
 	if(
 		(hb1 && !hb2) ||
-		(!self->animating && (!hb1 || !hb2)) 
+		(!self->animating && (!hb1 || !hb2))
 	   ){
 		self->blocking = 0;
 		self->takeaction = NULL;
@@ -15434,7 +15460,7 @@ int common_try_runattack(entity* target)
 
 	if(target)
 	{
-		if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking)) 
+		if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
 			return 0;
 		self->takeaction = common_attack_proc;
 		self->zdir = self->xdir = 0;
@@ -15478,7 +15504,7 @@ int pick_random_attack(entity* target, int testonly){
 		if(validanim(self,animattacks[i]) &&
 			(!target || check_range(self, target, animattacks[i])))
 		{
-			for(j=((5-i)>=0?(5-i):0)*3; j>=0; j--) 
+			for(j=((5-i)>=0?(5-i):0)*3; j>=0; j--)
 				atkchoices[found++] = animattacks[i];
 		}
 	}
@@ -15529,7 +15555,7 @@ int pick_random_attack(entity* target, int testonly){
 // min - min attack chance
 // max - max attack chance
 int check_attack_chance(entity* target, float min, float max){
-	
+
 	float chance, chance1, chance2;//, aggfix;
 
 	if(self->modeldata.aiattack&AIATTACK1_ALWAYS) return 1;
@@ -15538,7 +15564,7 @@ int check_attack_chance(entity* target, float min, float max){
 	chance2 = MIN(1.0f, (count_ents(self->modeldata.type)-1)*group_noatk_factor);
 
 	chance = (1.0f-chance1)*(1.0f-chance2);
-	
+
 	if(chance>max) chance = max;
 	else if(chance<min) chance = min;
 
@@ -15572,12 +15598,12 @@ int common_try_normalattack(entity* target)
 
 	if(recheck_nextattack(target)>time) return 0;
 
-	if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking || target->takeaction==common_rise)) 
+	if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking || target->takeaction==common_rise))
 		return 0;
 
 	if(pick_random_attack(target, 1)>=0) {
 		if(self->combostep[0] && self->combotime>time) self->stalltime = time+1;
-		else 
+		else
 		{
 			if(!check_attack_chance(target, 1.0f-min_noatk_chance, 1.0f-min_noatk_chance)) {
 				self->nextattack = time + randf(self->modeldata.attackthrottletime);
@@ -15605,7 +15631,7 @@ int common_try_jumpattack(entity* target)
 		if(!validanim(self,ANI_JUMPATTACK)) rnum = 1;
 		else if(validanim(self,ANI_JUMPATTACK2) && (rand32()&1)) rnum = 1;
 		else rnum = 0;
-		
+
 		if(rnum==0 &&
 			// do a jumpattack
 			(target || (target = normal_find_target(ANI_JUMPATTACK,0))) )
@@ -16063,7 +16089,7 @@ void common_runoff()
 	if(target == NULL) { //sealth checking
 		self->zdir = self->xdir = 0;
 		self->takeaction = NULL; // OK, back to A.I. root
-		set_idle(self); 
+		set_idle(self);
 		return;
 	}
 
@@ -16152,7 +16178,7 @@ void common_attack_finish()
 		self->takeaction = NULL;
 		set_idle(self);
 	}
-	
+
 	stall = GAME_SPEED - self->modeldata.aggression;
 	if (stall<GAME_SPEED/2)
 	{
@@ -16201,7 +16227,7 @@ int common_attack()
 
 	//if(stalker==self) return 0;
 
-	if(time/THINK_SPEED%4==0) return 0; 
+	if(time/THINK_SPEED%4==0) return 0;
 
 	if(self->modeldata.aiattack==-1) return 0;
 
@@ -16374,7 +16400,7 @@ int common_try_pick(entity* other)
 // not so completed pathfinding logic based on a*
 // it should be fairly slow due to the complicacy of terrain checking
 // and it doesn't always work since walking from wall to wall
-// requires jump. 
+// requires jump.
 int astar(entity* ent, float destx, float destz, float step, point2d** wp){
 	int (*came_from)[astarw][astarh][2] = malloc(sizeof(*came_from));
 	unsigned char (*closed)[astarw][astarh] = malloc(sizeof(*closed));
@@ -16443,7 +16469,7 @@ int astar(entity* ent, float destx, float destz, float step, point2d** wp){
 
 		(*openset)[mi][0] = (*openset)[opensize-1][0];
 		(*openset)[mi][1] = (*openset)[opensize-1][1];
- 
+
         opensize--;
         (*closed)[x][z] = 1;
 
@@ -16454,7 +16480,7 @@ int astar(entity* ent, float destx, float destz, float step, point2d** wp){
 			if((*closed)[tx][tz]) continue;
 
 			if(!testmove(ent, (x-sx)*step+ent->x, (z-sz)*step+ent->z,  (tx-sx)*step+ent->x, (tz-sz)*step+ent->z)){
-				//(*closed)[tx][tz] = 1; // don't add that to close list just in case the entity can jump 
+				//(*closed)[tx][tz] = 1; // don't add that to close list just in case the entity can jump
 				continue;
 			}
 
@@ -16465,7 +16491,7 @@ int astar(entity* ent, float destx, float destz, float step, point2d** wp){
 					break;
 				}
 			}
- 
+
             if(j==opensize){
 				(*openset)[opensize][0] = tx;
 				(*openset)[opensize][1] = tz;
@@ -16475,7 +16501,7 @@ int astar(entity* ent, float destx, float destz, float step, point2d** wp){
                 better = 1;
             else
                 better = 0;
- 
+
             if(better){
                 (*came_from)[tx][tz][0] = x;
 				(*came_from)[tx][tz][1] = z;
@@ -16591,7 +16617,7 @@ int checkpathblocked()
 		if(self->modeldata.subtype==SUBTYPE_CHASE) aitype |= AIMOVE1_CHASE;
 
 		//be moo tolerable to PLAYER_MAX_Z and PLAYER_MIN_Z
-		if((self->modeldata.subject_to_maxz && self->zdir>0 && !self->xdir && self->zdir+self->z>PLAYER_MAX_Z) || 
+		if((self->modeldata.subject_to_maxz && self->zdir>0 && !self->xdir && self->zdir+self->z>PLAYER_MAX_Z) ||
 		   (self->modeldata.subject_to_minz && self->zdir<0 && !self->xdir && self->zdir+self->z<PLAYER_MIN_Z) )
 		{
 			self->zdir = -self->zdir;
@@ -16641,7 +16667,7 @@ int checkpathblocked()
 				self->zdir = (1.0f - randf(2))*self->modeldata.speed/2;
 				self->xdir = (1.0f - randf(2))*self->modeldata.speed;
 			}
-			self->running = 0; // TODO: re-adjust walk speed 
+			self->running = 0; // TODO: re-adjust walk speed
 			self->stalltime = time + GAME_SPEED/2;
 			adjust_walk_animation(NULL);
 			self->pathblocked = 0;
@@ -16663,7 +16689,7 @@ int checkpathblocked()
 
 // this is the most aggressive aimove pattern
 // the entity will try get in and attack at anytime
-// though the range depends on what attack you setup 
+// though the range depends on what attack you setup
 int common_try_chase(entity* target, int dox, int doz)
 {
 	// start chasing the target
@@ -16671,7 +16697,7 @@ int common_try_chase(entity* target, int dox, int doz)
 	int randomatk;
 
 	self->running = 0;
-	
+
 	//adjustspeed(self->modeldata.speed, self->x, self->z, self->x + self->xdir, self->z + self->zdir, &self->xdir, &self->zdir);
 
 	if(target == NULL || self->modeldata.nomove) return 0;
@@ -16732,7 +16758,7 @@ int common_try_follow(entity* target, int dox, int doz)
 
 	dx = diff(self->x, target->x);
 	dz = diff(self->z, target->z);
-	
+
 	if(dox && dx<distance) {
 		self->xdir = 0;
 		mx = 0;
@@ -16819,7 +16845,7 @@ int common_try_avoid(entity* target, int dox, int doz)
 			self->destx = self->x;
 		}
 	}
-	
+
 	if(doz){
 		if(self->z < screeny) {
 			self->zdir = self->modeldata.speed/2;
@@ -16970,7 +16996,7 @@ int common_try_wander(entity* target, int dox, int doz)
 	}
 
 	if(behind && target->attacking) t+=5;
-	
+
 	// could use this to replace the completely wander ai
 	if(dox!=doz) t = 0;
 
@@ -17035,7 +17061,7 @@ int common_try_wander(entity* target, int dox, int doz)
 			//printf("mod x %d\n", mod);
 		}
 	}
-	
+
 	if(doz)
 	{
 		if(self->z<screeny-borderdz){
@@ -17352,8 +17378,8 @@ int common_move()
 		return 0;
 	}else{
 		// all above are special move patterns, real AI goes here:
-		
-		 // skip if the entity is in air, 
+
+		 // skip if the entity is in air,
 		 // removing this and entity might be spawned walking in air
 		if(air) return 0;
 
@@ -17368,7 +17394,7 @@ int common_move()
 
 		// temporary solution to turn off running if xdir is not set
 		// unless one day vertical running logic is written
-		if(!self->xdir) 
+		if(!self->xdir)
 				self->running = 0;
 
 		// change direction unless the ai pattern ignores target or model has noflip
@@ -17395,7 +17421,7 @@ int common_move()
 
 		//pick up the item if possible
 		if(other && diff(other->x,self->x)<(self->modeldata.grabdistance*0.83333)
-			&& diff(other->z,self->z)<(self->modeldata.grabdistance/3) && 
+			&& diff(other->z,self->z)<(self->modeldata.grabdistance/3) &&
 			other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
 		{
 			if(diff(self->base, other->a)<0.1){
@@ -17440,7 +17466,7 @@ int common_move()
 				} else if (target){
 					ent = target;
 					pxc = pzc = 0;
-					
+
 					if(aimove&AIMOVE1_WANDER) {
 						patx[pxc++] = AIMOVE1_WANDER;
 						patx[pxc++] = AIMOVE1_WANDER;
@@ -17471,14 +17497,14 @@ int common_move()
 					fz = 0;
 
 					aimove = (self->modeldata.aimove & MASK_AIMOVE1);
-				
+
 					//valid types: avoidx, aviodz, chasex, chasez, wander
 					if(px==AIMOVE1_WANDER){
 						if (pz==AIMOVE1_WANDER && aimove==AIMOVE1_WANDER) {
 							common_try_wandercompletely(1, 1);
 							fz = 1;
 						}else common_try_wander(target, 1, 0);
-						
+
 					}else if(px==AIMOVE1_CHASEX){
 						common_try_chase(target, 1, (pz==AIMOVE1_CHASEZ));
 						fz = (pz==AIMOVE1_CHASEZ);
@@ -17519,12 +17545,12 @@ int common_move()
 		//fix 2d level panic, or should this be moved to the very beginning?
 		if(self->modeldata.subject_to_minz>0 && self->destz<PLAYER_MIN_Z) self->destz = PLAYER_MIN_Z;
 		if(self->modeldata.subject_to_maxz>0 && self->destz>PLAYER_MAX_Z) self->destz = PLAYER_MAX_Z;
-		
+
 		// don't run in passive move mode. The path could be complex and running may look bad.
 		if(self->waypoints) self->running = 0;
 
 		if(self->direction==(self->destx<self->x)) self->running = 0;
-		
+
 		// make the entity walks in a straight path instead of flickering here and there
 		// acceleration can be added easily based on this logic, if necessary
 		adjustspeed(self->running?self->modeldata.runspeed:self->modeldata.speed, self->x, self->z, self->destx, self->destz, &self->xdir, &self->zdir);
@@ -17552,7 +17578,7 @@ int common_move()
 			if(reachx) {self->xdir=0; self->destx=self->x;}
 			if(reachz) {self->zdir=0; self->destz=self->z;}
 		}
-		
+
 		// stoped so play idle, preventinng funny stepping bug, but may cause flickering
 		if(!self->xdir && !self->zdir && !self->waypoints){
 			set_idle(self);
@@ -17565,7 +17591,7 @@ int common_move()
 			// readjust walk animation
 			adjust_walk_animation(ent);
 			// give proper stalltime if destination point is not reached
-			// if the destination point is not reachable, 
+			// if the destination point is not reachable,
 			// it should be already handled in checkpathblocked
 			if(time>self->stalltime){
 				if(ABS(self->xdir)>ABS(self->zdir)) stall = diff(self->destx, self->x)/ABS(self->xdir)*2;
@@ -17596,7 +17622,7 @@ void decide_stalker(){
 	int i;
 	int l = 0, r=0;
 	float maxz= 0.0f, z;
-	
+
 	if(stalker && stalking) return;
 
 	firstplayer = NULL;
@@ -17617,7 +17643,7 @@ void decide_stalker(){
 			if(ent->x>firstplayer->x) r++;
 			else l++;
 
-			if((z=diff(ent->z, firstplayer->z))>=maxz && 
+			if((z=diff(ent->z, firstplayer->z))>=maxz &&
 				(ent->modeldata.aimove==0 || (ent->modeldata.aimove&AIMOVE1_CHASE))){ // 2 mostly used type
 				maxz = z;
 				furthest = ent;
@@ -17794,7 +17820,7 @@ void player_die()
 	player[playerindex].spawnhealth = self->modeldata.health;
 	player[playerindex].spawnmp = self->modeldata.mp;
 
-	
+
 	if(self->modeldata.nodieblink != 3) kill(self);
 	else
 	{
@@ -17903,7 +17929,7 @@ int check_special()
 		self->takeaction = common_attack_proc;
 		set_attacking(self);
 		memset(self->combostep, 0, sizeof(*self->combostep)*5);
-		
+
 		e = self->link;
 		if(e){
 			e->takeaction = NULL;
@@ -18680,9 +18706,9 @@ int check_combo(){
 			(self->animnum!=com->cancel||
 			com->startframe>self->animpos||
 			com->endframe<self->animpos||
-			self->animation->animhits<com->hits)) 
+			self->animation->animhits<com->hits))
 			continue;
-		else if(!self->animation->cancel && 
+		else if(!self->animation->cancel &&
 			(com->cancel||!self->idling||diff(self->a,self->base)>1) )
 			continue;
 
@@ -18729,7 +18755,7 @@ void player_think()
 	static int uu[] = {FLAG_MOVEUP, FLAG_MOVEUP};
 	static int dd[] = {FLAG_MOVEDOWN, FLAG_MOVEDOWN};
 	static int ba[] = {FLAG_BACKWARD, FLAG_ATTACK};
-	
+
 	int oldrunning = self->running;
 	int pli = self->playerindex;
 	s_player* pl= player+pli;
@@ -19346,7 +19372,7 @@ void player_think()
 			break;
 	}
 
-	
+
 endthinkcheck:
 	//insert check here
 	return;
@@ -19405,7 +19431,7 @@ void dropweapon(int flag)
 					self->weapent->modeldata.type = TYPE_NONE;
 					self->weapent->think = runanimal;
 				}
-			} 
+			}
 			self->weapent->nextthink = time + 1;
 		}
 		self->weapent = NULL;
@@ -19490,7 +19516,7 @@ void kill_all_enemies()
 
 	attack = emptyattack;
 	attack.attack_type = max_attack_types;
-	attack.dropv[0] = default_model_dropv[0]; 
+	attack.dropv[0] = default_model_dropv[0];
 	attack.dropv[1] = default_model_dropv[1];
 	attack.dropv[2] = default_model_dropv[2];
 
@@ -20120,9 +20146,9 @@ void time_over()
 	s_attack attack;
 
 	attack = emptyattack;
-	attack.attack_type = max_attack_types;
-	attack.dropv[0] = default_model_dropv[0]; 
-	attack.dropv[1] = default_model_dropv[1]; 
+	attack.attack_type = ATK_TIMEOVER;
+	attack.dropv[0] = default_model_dropv[0];
+	attack.dropv[1] = default_model_dropv[1];
 	attack.dropv[2] = default_model_dropv[2];
 	if(level->type == 1) level_completed = 1;        //    Feb 25, 2005 - Used for bonus levels so a life isn't taken away if time expires.level->type == 1 means bonus level, else regular
 	else if(!level_completed)
@@ -20360,7 +20386,7 @@ void update_scroller(){
 
 			to /= numplay;
 			to -= (videomodes.vRes/2);
-			
+
 			to += level->cameraxoffset;
 
 			if(to<scrollminz) to = scrollminz;
@@ -20401,12 +20427,12 @@ void update_scroller(){
 
 			to /= numplay;
 			to -= (videomodes.vRes/2);
-			
+
 			to += level->camerazoffset;
 
 			if(to<scrollminz) to = scrollminz;
 			else if(to>scrollmaxz) to = scrollmaxz;
-			
+
 			if((level->scrolldir&SCROLL_BACK) && panel_height- videomodes.vRes - to < blockade) to = panel_height- videomodes.vRes - blockade;
 
 			if(to < advancey){
@@ -20630,7 +20656,7 @@ void draw_scrolled_bg(){
 		x = (int)(layer->xoffset - (advancex + bgtravelled *layer->bgspeedratio)*(1.0-layer->xratio) ) ;
 
 		//printf("layerxratio %f  %d %f\n ", layer->xratio, x, layer->bgspeedratio);
-		
+
 		if((level->scrolldir&SCROLL_UP))
 			z = (int)(layer->zoffset + advancey*(1.0-layer->zratio) ) ;
 		else
@@ -20676,7 +20702,7 @@ void draw_scrolled_bg(){
 		else if(layer->gfx.sprite->magic==sprite_magic){
 			spriteq_add_frame(x+vpx, z+vpy, layer->z, layer->gfx.sprite, &screenmethod, index);
 		}
-	
+
 		//printf("******%d\t%d\t%d\t%d\t%d*****\n", x+vpx, z+vpy, layer->z, screenmethod.xrepeat, screenmethod.yrepeat);
 	}
 
@@ -20843,7 +20869,7 @@ void inputrefresh()
 		pl->newkeys = playercontrolpointers[p]->newkeyflags;
 		pl->playkeys |= pl->newkeys;
 		pl->playkeys &= pl->keys;
-		
+
 		if(pl->ent && pl->ent->movetime<time){
 			memset(pl->combokey, 0, sizeof(*pl->combokey)*MAX_SPECIAL_INPUTS);
 			memset(pl->inputtime, 0, sizeof(*pl->inputtime)*MAX_SPECIAL_INPUTS);
@@ -21013,12 +21039,12 @@ void update(int ingame, int usevwait)
 		if(level->type!=2) drawstatus();
 		draw_textobjs();
 	}
-	
+
 	if(!ingame)
 	{
 		if(background) spriteq_add_screen(0,0,MIN_INT,background,NULL,0);
 	}
-	
+
 	// entity sprites queueing
 	if(ingame==1 || selectScreen)
 		if(!pause) display_ents();
@@ -21029,7 +21055,7 @@ void update(int ingame, int usevwait)
 		execute_updatedscripts();
 	}
 
-	// 2011/10/22 UT: move pause menu logic here 
+	// 2011/10/22 UT: move pause menu logic here
 	if(ingame==1 &&
 #ifndef DISABLE_MOVIE
 		!movieplay &&
@@ -21573,7 +21599,7 @@ int playgif(char *filename, int x, int y, int noskip){
 	if(stricmp(tname + strlen(tname)-4, ".gif")==0) tname[strlen(tname)-4] = 0;
 
 	strcat(tname, "_.gif");
-	
+
 	if(isRGB){
 		tname[strlen(tname)-5] = 'r';
 		if(testpackfile(tname, packfile)<0) isRGB = 0;
@@ -21583,7 +21609,7 @@ int playgif(char *filename, int x, int y, int noskip){
 		if(testpackfile(tname, packfile)<0) isRGB = 0;
 	}
 
-	
+
 
 	background = gifbuffer[0] = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
 	clearscreen(background);
@@ -21655,7 +21681,7 @@ int playgif(char *filename, int x, int y, int noskip){
 			}
 			if(backbuffer) update_backbuffer(backbuffer, gifbuffer);
 		}
-		
+
 		if(backbuffer){
 			spriteq_add_screen(0,0,0,backbuffer,NULL,0);
 		}
@@ -21798,7 +21824,7 @@ void gameover(){
 			playscene("data/scenes/gameover.txt");
 			done = 1;
 		}
-		
+
 	}
 
 	while(!done)
@@ -22049,7 +22075,7 @@ int playlevel(char *filename)
 	int i, type;
 
 	kill_all();
-	
+
 	savelevelinfo(); // just in case we lose them after level is freed
 
 	load_level(filename);
@@ -22494,7 +22520,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 			//TODO: change sav format to support custom allowselect list.
 		}
 	}
-	
+
 	nosave = 1;
 
 	if((useSavedGame && save->flag == 2) || selectplayer(players, NULL)) // if save flag is 2 don't select player
@@ -22719,8 +22745,8 @@ int load_saved_game()
 				_menutext(0, col1, 2, "Credits:");
 				_menutext(0, col2, 2, "%d", savelevel[saveslot].credits);
 				_menutext(0, col1, 3, "Player Lives:");
-				_menutext(0, col2, 3, "%d/%d/%d/%d", 
-					savelevel[saveslot].pLives[0], 
+				_menutext(0, col2, 3, "%d/%d/%d/%d",
+					savelevel[saveslot].pLives[0],
 					savelevel[saveslot].pLives[1], savelevel[saveslot].pLives[2],
 					savelevel[saveslot].pLives[3]);
 				_menutextm((selector==1), 5, 0, "Start Game");
@@ -23791,7 +23817,7 @@ void system_options(){
 			if(bothnewkeys & FLAG_MOVELEFT) dir = -1;
 			else if(bothnewkeys & FLAG_MOVERIGHT) dir = 1;
 #endif
-            
+
 			sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 
 			switch(selector){
@@ -23804,7 +23830,7 @@ void system_options(){
 					break;
 
 				case 2:
-					
+
 					break;
 
 				case 3:
@@ -23863,7 +23889,7 @@ void video_options(){
 	int selector = 0;
 	int dir;
 	int col1 = -8, col2 = 6;
-	
+
 	videooptionsMenu = 1;
 	bothnewkeys = 0;
 
@@ -24436,7 +24462,7 @@ void openborMain(int argc, char** argv)
 					int previousLoop = musicloop;
 					char previousMusic[sizeof(currentmusic)];
 					strncpy(previousMusic, currentmusic, sizeof(previousMusic)-1);
-					
+
 					if(custScenes != NULL)
 					{
 						strncpy(tmpBuff,custScenes, 128);
