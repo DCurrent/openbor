@@ -529,6 +529,38 @@ ScriptVariant* ScriptVariant_Le( ScriptVariant* svar, ScriptVariant* rightChild 
 }
 
 
+ScriptVariant* ScriptVariant_Shl( ScriptVariant* svar, ScriptVariant* rightChild )
+{
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
+	LONG l1, l2;
+	if(ScriptVariant_IntegerValue(svar, &l1)==S_OK &&
+	   ScriptVariant_IntegerValue(rightChild, &l2)==S_OK)
+	{
+		retvar.vt=VT_INTEGER;
+		retvar.lVal = ((ULONG)l1) << ((ULONG)l2);
+	}
+	else ScriptVariant_Clear(&retvar);
+
+	return &retvar;
+}
+
+
+ScriptVariant* ScriptVariant_Shr( ScriptVariant* svar, ScriptVariant* rightChild )
+{
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
+	LONG l1, l2;
+	if(ScriptVariant_IntegerValue(svar, &l1)==S_OK &&
+	   ScriptVariant_IntegerValue(rightChild, &l2)==S_OK)
+	{
+		retvar.vt=VT_INTEGER;
+		retvar.lVal = ((ULONG)l1) >> ((ULONG)l2);
+	}
+	else ScriptVariant_Clear(&retvar);
+
+	return &retvar;
+}
+
+
 ScriptVariant* ScriptVariant_Add( ScriptVariant* svar, ScriptVariant* rightChild )
 {
 	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};

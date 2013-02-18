@@ -72,6 +72,8 @@ inline ScriptVariant* ScriptVariant_Ge( ScriptVariant* svar, ScriptVariant* righ
 inline ScriptVariant* ScriptVariant_Le( ScriptVariant* svar, ScriptVariant* rightChild );
 inline ScriptVariant* ScriptVariant_Add( ScriptVariant* svar, ScriptVariant* rightChild );
 inline ScriptVariant* ScriptVariant_Sub( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Shl( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Shr( ScriptVariant* svar, ScriptVariant* rightChild );
 inline ScriptVariant* ScriptVariant_Mul( ScriptVariant* svar, ScriptVariant* rightChild );
 inline ScriptVariant* ScriptVariant_Div( ScriptVariant* svar, ScriptVariant* rightChild );
 inline ScriptVariant* ScriptVariant_Mod( ScriptVariant* svar, ScriptVariant* rightChild );

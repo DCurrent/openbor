@@ -456,6 +456,10 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		case ADD:
 		 //Use the BINARYOP macro to do a subtract
 		case SUB:
+		 //Use the BINARYOP macro to do an left shift
+		case SHL:
+		 //Use the BINARYOP macro to do a right shift
+		case SHR:
 		 //Use the BINARYOP macro to do a greater than- equal
 		case GE:
 		 //Use the BINARYOP macro to do a less than- equal
@@ -845,6 +849,16 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 			BINARYOP(ScriptVariant_Sub);
 			break;
 
+		 //Use the BINARYOP macro to do a left shift
+		case SHL:
+			BINARYOP(ScriptVariant_Shl);
+			break;
+
+		 //Use the BINARYOP macro to do a right shift
+		case SHR:
+			BINARYOP(ScriptVariant_Shr);
+			break;
+
 		 //Use the BINARYOP macro to do a greater than- equal
 		case GE:
 			BINARYOP(ScriptVariant_Ge);
@@ -1070,7 +1084,7 @@ void Interpreter_OutputPCode(Interpreter* pinterpreter, LPCSTR fileName )
    strcat( buffer, "\n");
 
    //Write the output buffer to the output stream
-   fprintf(instStream, buffer);
+   fprintf(instStream, "%s", buffer);
    );
    //Close the output stream
    fclose(instStream);

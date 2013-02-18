@@ -1253,8 +1253,8 @@ OpCode Parser_Rel_op(Parser* pparser )
 
 void Parser_Rel_expr(Parser* pparser )
 {
-	if (ParserSet_First(&(pparser->theParserSet), add_expr, pparser->theNextToken.theType )){
-		Parser_Add_expr(pparser );
+	if (ParserSet_First(&(pparser->theParserSet), shift_expr, pparser->theNextToken.theType )){
+		Parser_Shift_expr(pparser );
 		Parser_Rel_expr2(pparser );
 	}
 	else Parser_Error(pparser, rel_expr );
@@ -1265,12 +1265,49 @@ void Parser_Rel_expr2(Parser* pparser )
 	OpCode code;
 	if (ParserSet_First(&(pparser->theParserSet), rel_op, pparser->theNextToken.theType )){
 		code = Parser_Rel_op(pparser );
-		Parser_Add_expr(pparser );
+		Parser_Shift_expr(pparser );
 		Parser_AddInstructionViaToken(pparser, code, (Token*)NULL, NULL );
 		Parser_Rel_expr2(pparser );
 	}
 	else if (ParserSet_Follow(&(pparser->theParserSet), rel_expr2, pparser->theNextToken.theType )){}
 	else Parser_Error(pparser, rel_expr2 );
+}
+
+OpCode Parser_Shift_op(Parser* pparser )
+{
+	if (Parser_Check(pparser, TOKEN_LEFT_OP )){
+		Parser_Match(pparser);
+		return SHL;
+	}
+	else if (Parser_Check(pparser, TOKEN_RIGHT_OP )){
+		Parser_Match(pparser);
+		return SHR;
+	}
+	else Parser_Error(pparser, shift_op );
+
+	return ERR;
+}
+
+void Parser_Shift_expr(Parser* pparser )
+{
+	if (ParserSet_First(&(pparser->theParserSet), add_expr, pparser->theNextToken.theType )){
+		Parser_Add_expr(pparser );
+		Parser_Shift_expr2(pparser );
+	}
+	else Parser_Error(pparser, shift_expr );
+}
+
+void Parser_Shift_expr2(Parser* pparser )
+{
+	OpCode code;
+	if (ParserSet_First(&(pparser->theParserSet), shift_op, pparser->theNextToken.theType )){
+		code = Parser_Shift_op(pparser );
+		Parser_Add_expr(pparser );
+		Parser_AddInstructionViaToken(pparser, code, (Token*)NULL, NULL );
+		Parser_Shift_expr2(pparser );
+	}
+	else if (ParserSet_Follow(&(pparser->theParserSet), shift_expr2, pparser->theNextToken.theType )){}
+	else Parser_Error(pparser, shift_expr2 );
 }
 
 OpCode Parser_Add_op(Parser* pparser )
