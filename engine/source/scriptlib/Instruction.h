@@ -13,7 +13,7 @@
 #include "List.h"
 #include "ScriptVariant.h"
 
-typedef LPCSTR Label;
+typedef LPSTR Label;
 
 typedef enum OpCode{ CONSTSTR, CONSTDBL, CONSTINT, LOAD, SAVE, INC, DEC, FIELD, CALL, POS, NEG,
              NOT, MUL, DIV,MOD, ERR, ADD, SUB, JUMP, PJUMP, GE, LE, LT, GT, EQ, NE, OR,
@@ -22,9 +22,9 @@ typedef enum OpCode{ CONSTSTR, CONSTDBL, CONSTINT, LOAD, SAVE, INC, DEC, FIELD, 
 }OpCode;
 
 typedef struct Instruction{
-   // put these first two into a bitfield to save memory
-   unsigned OpCode:31;
-   unsigned jumpTargetType:1;
+   unsigned OpCode;
+   unsigned jumpTargetType;
+   unsigned step;
    Token* theToken;
    CHAR* Label;//[MAX_STR_LEN+1];
    ScriptVariant* theVal;

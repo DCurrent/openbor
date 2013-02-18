@@ -103,25 +103,43 @@ void Instruction_NewData2(Instruction* pins)
 void Instruction_ConvertConstant(Instruction* pins)
 {
 	ScriptVariant *pvar;
+	CHAR* sc;
 	if(pins->theVal) return; //already have the constant as a variant
 	if( pins->OpCode == CONSTDBL){
 		pvar = (ScriptVariant*)malloc(sizeof(ScriptVariant));
 		ScriptVariant_Init(pvar);
 		ScriptVariant_ChangeType(pvar, VT_DECIMAL);
-		if (pins->theToken->theType != END_OF_TOKENS)
-			pvar->dblVal = (DOUBLE)atof( pins->theToken->theSource);
-		else pvar->dblVal = (DOUBLE)atof( pins->Label);
+		//Note: There shouldn't be any double constants added via a label,
+		//      unless you added something I don't know...
+		sc = pins->theToken->theSource;
+		if(sc[0]=='!' || sc[0]=='-') sc++;
+		pvar->dblVal = (DOUBLE)atof(sc);
+		if(pins->theToken->theSource[0]=='!')
+			pvar->dblVal = (DOUBLE)(!pvar->dblVal);
+		else if(pins->theToken->theSource[0]=='-')
+			pvar->dblVal = -pvar->dblVal;
+
 	}
 	else if( pins->OpCode == CONSTINT || pins->OpCode == CHECKARG){
 		pvar = (ScriptVariant*)malloc(sizeof(ScriptVariant));
 		ScriptVariant_Init(pvar);
 		ScriptVariant_ChangeType(pvar, VT_INTEGER);
+		sc = pins->theToken->theSource;
 		if (pins->theToken->theType != END_OF_TOKENS){
+			sc = pins->theToken->theSource;
+			if(sc[0]=='!' || sc[0]=='-') sc++;
 			if(pins->theToken->theType == TOKEN_HEXCONSTANT)
-				pvar->lVal = (LONG)htoi( pins->theToken->theSource);
-			else pvar->lVal = (LONG)atoi( pins->theToken->theSource);
+				pvar->lVal = (LONG)htoi(sc);
+			else pvar->lVal = (LONG)atoi(sc);
+			if(pins->theToken->theSource[0]=='!')
+				pvar->lVal = (LONG)(!pvar->dblVal);
+			else if(pins->theToken->theSource[0]=='-')
+				pvar->lVal = -pvar->lVal;
 		}
 		else{
+			// Argument count is the only integer constant added via a label
+			// check hex number just in case, though it is not possible 
+			// unless you add it manually...
 			if(pins->Label[1] == 'x' || pins->Label[1] == 'X')
 				pvar->lVal = (LONG)htoi( pins->Label);
 			else pvar->lVal = (LONG)atoi( pins->Label);
@@ -280,7 +298,10 @@ void Instruction_ToString(Instruction* pins, LPSTR strRep)
    //If the label isn't NULL, then copy that into the buffer as well
 	if (pins->Label && pins->Label[0])
 	   strcat( strRep, pins->Label);
-	if (pins->theToken && pins->theToken->theType != END_OF_TOKENS)
+	if (pins->theToken && pins->theToken->theType != END_OF_TOKENS) {
+		if(pins->OpCode==CONSTSTR) strcat( strRep, "\"");
 	   strcat( strRep, pins->theToken->theSource );
+		if(pins->OpCode==CONSTSTR) strcat( strRep, "\"");
+	}
 
 }
