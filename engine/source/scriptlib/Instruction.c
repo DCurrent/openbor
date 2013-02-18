@@ -215,6 +215,12 @@ void Instruction_ToString(Instruction* pins, LPSTR strRep)
 	case SUB:
 	   strcpy( strRep, "SUB " );
 	   break;
+	case SHL:
+	   strcpy( strRep, "SHL " );
+	   break;
+	case SHR:
+	   strcpy( strRep, "SHR " );
+	   break;
 	case JUMP:
 	   strcpy( strRep, "JUMP " );
 	   break;
