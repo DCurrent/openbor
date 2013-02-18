@@ -717,12 +717,13 @@ int Script_MapStringConstants(Script* pscript)
 	Interpreter* pinterpreter = pscript->pinterpreter;
 	Instruction* pInstruction;
 	ScriptVariant** params;
-	int flags[32];
 	//ScriptVariant* var;
 	void (*pMapstrings)(ScriptVariant**, int);
 	int i, size, paramCount;
-#if 1
+#define CONVCONST 0
+#if CONVCONST
 	int j,k;
+	int flags[32];
 	Instruction *pInstruction2;
 #endif
 
@@ -739,10 +740,12 @@ int Script_MapStringConstants(Script* pscript)
 			pMapstrings = Script_GetStringMapFunction(pInstruction->functionRef);
 			if(pMapstrings)
 			{
+#if CONVCONST
 				for(j=0; j<paramCount; j++) flags[j] = params[j]->vt;
+#endif
 				// Call the mapstrings function.
 				pMapstrings(params, paramCount);
-#if 1
+#if CONVCONST
 				// Find the instruction containing each constant and update its value.
 				for(j=0; j<paramCount; j++)
 				{
@@ -8438,8 +8441,6 @@ else if(stricmp(#x, constname)==0) {\
 	v.lVal = (LONG)x;\
 } 
 
-#define CHKCONSTN(x) (strnicmp(constname, #x, sizeof(#x)-1)==0 && constname[sizeof(#x)-1] >= '1' && constname[sizeof(#x)-1]<='9')
-
 #define ICMPSCONSTA(x, y) \
 else if(strnicmp(constname, #x, sizeof(#x)-1)==0 && constname[sizeof(#x)-1] >= '1' && constname[sizeof(#x)-1]<='9') \
 { \
@@ -8600,6 +8601,10 @@ void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 		ICMPCONST(ATK_NORMAL9)
 		ICMPCONST(ATK_NORMAL10)
 		ICMPCONST(ATK_ITEM)
+		ICMPCONST(ATK_LAND)
+		ICMPCONST(ATK_PIT)
+		ICMPCONST(ATK_LIFESPAN)
+		ICMPCONST(ATK_TIMEOVER)
 		ICMPCONST(SCROLL_RIGHT)
 		ICMPCONST(SCROLL_DOWN)
 		ICMPCONST(SCROLL_LEFT)

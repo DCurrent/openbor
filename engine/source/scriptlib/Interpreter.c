@@ -356,7 +356,7 @@ HRESULT Interpreter_EvaluateCall(Interpreter* pinterpreter)
 
 HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 {
-	int i, j, size;
+	int i, j, t, size;
 	Instruction* pInstruction = NULL;
 	Token* pToken ;
 	Symbol* pSymbol = NULL;
@@ -495,11 +495,11 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			pLabel = List_GetName(&(pinterpreter->theInstructionList));
 			pToken = pInstruction->theToken;
 
-			pInstruction->theJumpTargetIndex = -1;
 			pInstruction->functionRef = NULL;
 			//cache the jump target
 			if(List_FindByName(&(pinterpreter->theInstructionList), pToken->theSource)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
+				pInstruction->jumpTargetType = 1;
 				List_FindByName(&(pinterpreter->theInstructionList), pLabel); //hop back
 			} else if(ImportList_GetFunctionPointer(&(pinterpreter->theImportList), pToken->theSource)){
 				pInstruction->ptheJumpTarget = ImportList_GetFunctionPointer(&(pinterpreter->theImportList), pToken->theSource);
@@ -542,6 +542,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			//cache the jump target
 			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
+				pInstruction->jumpTargetType = 1;
 				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
 			} else hr = E_FAIL;
 			break;
@@ -553,6 +554,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			//cache the jump target
 			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
+				pInstruction->jumpTargetType = 1;
 				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
 			} else hr = E_FAIL;
 			break;
@@ -567,6 +569,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			//cache the jump target
 			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
+				pInstruction->jumpTargetType = 1;
 				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
 			} else hr = E_FAIL;
 			break;
@@ -582,6 +585,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			} else hr = E_FAIL;
 			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
+				pInstruction->jumpTargetType = 1;
 				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
 			} else hr = E_FAIL;
 			break;
@@ -598,6 +602,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			//cache the jump target
 			if(List_FindByName(&(pinterpreter->theInstructionList), pLabel)){
 				pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
+				pInstruction->jumpTargetType = 1;
 				List_Includes(&(pinterpreter->theInstructionList), pInstruction); // hop back
 			} else hr = E_FAIL;
 			break;
@@ -719,10 +724,34 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 	for(i=0; i<size; i++)
 	{
 		pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[i]);
-		if(pInstruction->theJumpTargetIndex >= 0 && pInstruction->theJumpTargetIndex < size)
+		pInstruction->step = 1;
+		if(i<size-1 && !pInstruction->jumpTargetType && !pInstruction->theJumpTargetIndex) {
+			for(j=i; j<size-1; j++) {
+				switch(((Instruction*)(pinterpreter->theInstructionList.solidlist[j+1]))->OpCode){
+				case DATA:case CLEAN:case NOOP:case FUNCDECL:case PUSH:case POP:case CONSTINT:case CONSTDBL:case CONSTSTR:
+					pInstruction->step++;
+					break;
+				default:
+					j=size;
+					break;
+				}
+			}
+		}
+		if(pInstruction->jumpTargetType && pInstruction->theJumpTargetIndex >= 0 && pInstruction->theJumpTargetIndex < size) {
+			t = pInstruction->theJumpTargetIndex;
 			pInstruction->ptheJumpTarget = (Instruction**)&(pinterpreter->theInstructionList.solidlist[pInstruction->theJumpTargetIndex]);
-		else if(pInstruction->theJumpTargetIndex == -1)
-			pInstruction->ptheJumpTarget = NULL;
+			//jump targets are always placeholders, so skip those opcode that does nothing
+			for(j=t; j<size-1; j++) {
+				switch(pInstruction->ptheJumpTarget[1]->OpCode) {
+				case DATA:case CLEAN:case NOOP:case FUNCDECL:case PUSH:case POP:case CONSTINT:case CONSTDBL:case CONSTSTR:
+					pInstruction->ptheJumpTarget++;
+					break;
+				default:
+					j=size;
+					break;
+				}
+			}
+		}
 	}
 
 	return hr;
@@ -738,14 +767,12 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 {
 	HRESULT hr = S_OK;
-	Instruction* pInstruction = NULL;
+	//Retrieve the current instruction from the list
+	Instruction* pInstruction;
 	Instruction* currentCall;
 	Instruction* returnEntry;
 
-	//Retrieve the current instruction from the list
-	pInstruction = *((Instruction**)pinterpreter->pCurrentInstruction);
-
-	if (pInstruction){
+	if((pInstruction=*((Instruction**)pinterpreter->pCurrentInstruction))){
 
 		//The OpCode will tell us what operation to perform.
 		switch( pInstruction->OpCode ){
@@ -755,7 +782,7 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 		case CONSTDBL:
 			//Push a constant integer
 		case CONSTINT:
-			ScriptVariant_Copy(pInstruction->theVal2, pInstruction->theVal);
+			//ScriptVariant_Copy(pInstruction->theVal2, pInstruction->theVal);
 			break;
 
 		   //Load a value into the data stack
@@ -866,16 +893,11 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 		 //Create a new CSymbol from a value on the stack and add it to the
 		 //symbol table.
 		case PARAM:
-			if(pinterpreter->pCurrentCall){
-				//copy value from the cached parameter
-				currentCall = *(pinterpreter->pCurrentCall);
-				ScriptVariant_Copy(pInstruction->theVal, (ScriptVariant*)(currentCall->theRefList->solidlist[currentCall->theRefList->index]));
-				currentCall->theRefList->index++;
-			}
-			else hr = E_FAIL;
-			//else
-			//HandleRuntimeError( pInstruction, STACK_FAILURE, this );
-
+			//copy value from the cached parameter
+			//assert(pinterpreter->pCurrentCall);
+			currentCall = *(pinterpreter->pCurrentCall);
+			ScriptVariant_Copy(pInstruction->theVal, (ScriptVariant*)(currentCall->theRefList->solidlist[currentCall->theRefList->index]));
+			currentCall->theRefList->index++;
 			break;
 
 		 //Call the specified method, and pass in a ScriptVariant* to receive the
@@ -890,47 +912,31 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 	   // return
 	   case JUMPR:
 			pinterpreter->pReturnEntry = pinterpreter->pCurrentInstruction;
-			if(pInstruction->ptheJumpTarget==NULL)
-				hr = E_FAIL;
-			else pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
+			pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
 			break;
 
 		 //Jump to the specified label
 		case JUMP:
 		case PJUMP:
-			if(pInstruction->ptheJumpTarget==NULL)
-				hr = E_FAIL;
-			else pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
+			pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
 			break;
 
 		 //Jump if the top two ScriptVariants are equal
 		case Branch_EQUAL:
-			if(ScriptVariant_IsTrue(ScriptVariant_Eq(pInstruction->theRef, pInstruction->theRef2)))
-			{
-				if(pInstruction->ptheJumpTarget==NULL)
-					hr = E_FAIL;
-				else pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
-			}
+			if(ScriptVariant_Eq(pInstruction->theRef, pInstruction->theRef2)->lVal)
+				pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
 			break;
 
 		 //Jump if the top ScriptVariant resolves to false
 		case Branch_FALSE:
 			if(!ScriptVariant_IsTrue(pInstruction->theRef))
-			{
-				if(pInstruction->ptheJumpTarget==NULL)
-					hr = E_FAIL;
-				else pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
-			}
+				pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
 			break;
 
 		 //Jump if the top ScriptVariant resolves to true
 		case Branch_TRUE:
 			if(ScriptVariant_IsTrue(pInstruction->theRef))
-			{
-				if(pInstruction->ptheJumpTarget==NULL)
-					hr = E_FAIL;
-				else pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
-			}
+				pinterpreter->pCurrentInstruction = pInstruction->ptheJumpTarget;
 			break;
 
 		 //Set the m_bCallCompleted flag to true so we know to stop evalutating
@@ -992,25 +998,21 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 
 		 //If we hit the default, then we got an unrecognized instruction
 		default:
+			printf("\nUn-handled OpCode: %d\n", pInstruction->OpCode);
 			hr = E_FAIL;
 
 			//Report an error
 			//HandleRuntimeError( pInstruction, INVALID_INSTRUCTION, this );
 			break;
 		}
-		if(hr==E_FAIL)
-		{
-			printf("\nOpCode: %d\n", pInstruction->OpCode);
-		}
-	  //Increment the instruction list
-		pinterpreter->pCurrentInstruction++;
+	    //Increment the instruction list
+		pinterpreter->pCurrentInstruction+=pInstruction->step;
 	}
 
 	//return the result of this token evaluation
 	return hr;
 }
 
-#ifndef COMPILED_SCRIPT
 /******************************************************************************
 *  OutputPCode -- This method creates a new text file called <fileName>.txt
 *                 that contains a pseudo-assembly representation of the PCode
@@ -1029,8 +1031,8 @@ void Interpreter_OutputPCode(Interpreter* pinterpreter, LPCSTR fileName )
    LPCSTR pLabel = NULL;
    int i, size;
    //Declare and initialize some string buffers.
-   const char buffer[256];
-   const char pStr[256];
+   static char buffer[256];
+   static char pStr[256];
 
    //If the fileName is "", then substitute "Main".
    if (!strcmp( fileName, "" ))
@@ -1073,7 +1075,6 @@ void Interpreter_OutputPCode(Interpreter* pinterpreter, LPCSTR fileName )
    //Close the output stream
    fclose(instStream);
 }
-#endif
 
 /******************************************************************************
 *  Reset -- This method resets the interpreter.

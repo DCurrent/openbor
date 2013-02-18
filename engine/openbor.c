@@ -273,42 +273,48 @@ int                 falls[MAX_ATKS] = {
 						ANI_FALL,  ANI_FALL2, ANI_FALL3, ANI_FALL4,
 						ANI_FALL,  ANI_BURN,  ANI_FALL,  ANI_SHOCK,
 						ANI_FALL,  ANI_FALL5, ANI_FALL6, ANI_FALL7,
-						ANI_FALL8, ANI_FALL9, ANI_FALL10
+						ANI_FALL8, ANI_FALL9, ANI_FALL10, ANI_FALL,
+						ANI_FALL, ANI_FALL, ANI_FALL, ANI_FALL,
 					};
 
 int                 rises[MAX_ATKS] = {
 						ANI_RISE,  ANI_RISE2, ANI_RISE3, ANI_RISE4,
 						ANI_RISE,  ANI_RISEB,  ANI_RISE,  ANI_RISES,
 						ANI_RISE,  ANI_RISE5, ANI_RISE6, ANI_RISE7,
-						ANI_RISE8, ANI_RISE9, ANI_RISE10
+						ANI_RISE8, ANI_RISE9, ANI_RISE10, ANI_RISE,
+						ANI_RISE, ANI_RISE, ANI_RISE, ANI_RISE,
 					};
 
 int                 riseattacks[MAX_ATKS] = {
 						ANI_RISEATTACK,  ANI_RISEATTACK2, ANI_RISEATTACK3, ANI_RISEATTACK4,
 						ANI_RISEATTACK,  ANI_RISEATTACKB,  ANI_RISEATTACK,  ANI_RISEATTACKS,
 						ANI_RISEATTACK,  ANI_RISEATTACK5, ANI_RISEATTACK6, ANI_RISEATTACK7,
-						ANI_RISEATTACK8, ANI_RISEATTACK9, ANI_RISEATTACK10
+						ANI_RISEATTACK8, ANI_RISEATTACK9, ANI_RISEATTACK10, ANI_RISEATTACK,
+						ANI_RISEATTACK, ANI_RISEATTACK, ANI_RISEATTACK, ANI_RISEATTACK,
 					};
 
 int                 pains[MAX_ATKS] = {
 						ANI_PAIN,  ANI_PAIN2,    ANI_PAIN3, ANI_PAIN4,
 						ANI_PAIN,  ANI_BURNPAIN, ANI_PAIN,  ANI_SHOCKPAIN,
 						ANI_PAIN,  ANI_PAIN5,    ANI_PAIN6, ANI_PAIN7,
-						ANI_PAIN8, ANI_PAIN9,    ANI_PAIN10
+						ANI_PAIN8, ANI_PAIN9,    ANI_PAIN10, ANI_PAIN,
+						ANI_PAIN, ANI_PAIN, ANI_PAIN, ANI_PAIN,
 					};
 
 int                 deaths[MAX_ATKS] = {
 						ANI_DIE,   ANI_DIE2,     ANI_DIE3,  ANI_DIE4,
 						ANI_DIE,   ANI_BURNDIE,  ANI_DIE,   ANI_SHOCKDIE,
 						ANI_DIE,   ANI_DIE5,     ANI_DIE6,  ANI_DIE7,
-						ANI_DIE8,  ANI_DIE9,     ANI_DIE10
+						ANI_DIE8,  ANI_DIE9,     ANI_DIE10, ANI_DIE,
+						ANI_DIE, ANI_DIE, ANI_DIE, ANI_DIE,
 					};
 
 int                 blkpains[MAX_ATKS] = {
 						ANI_BLOCKPAIN,  ANI_BLOCKPAIN2,    ANI_BLOCKPAIN3, ANI_BLOCKPAIN4,
 						ANI_BLOCKPAIN,  ANI_BLOCKPAINB, ANI_BLOCKPAIN,  ANI_BLOCKPAINS,
 						ANI_BLOCKPAIN,  ANI_BLOCKPAIN5,    ANI_BLOCKPAIN6, ANI_BLOCKPAIN7,
-						ANI_BLOCKPAIN8, ANI_BLOCKPAIN9,    ANI_BLOCKPAIN10
+						ANI_BLOCKPAIN8, ANI_BLOCKPAIN9,    ANI_BLOCKPAIN10, ANI_BLOCKPAIN,
+						ANI_BLOCKPAIN, ANI_BLOCKPAIN, ANI_BLOCKPAIN, ANI_BLOCKPAIN,
 					};
 
 int                 normal_attacks[MAX_ATTACKS] = {
@@ -1467,6 +1473,7 @@ void load_scripts()
 	//and will never have another chance to be loaded, so just clear the variable list in it
 	if(!load_script(&update_script,     "data/scripts/update.c"))   Script_Clear(&update_script,        2);
 	if(!load_script(&updated_script,    "data/scripts/updated.c"))  Script_Clear(&updated_script,       2);
+	else Interpreter_OutputPCode(updated_script.pinterpreter, "updated.c.txt");
 	if(!load_script(&level_script,      "data/scripts/level.c"))    Script_Clear(&level_script,         2);
 	if(!load_script(&endlevel_script,   "data/scripts/endlevel.c")) Script_Clear(&endlevel_script,      2);
 	if(!load_script(&key_script_all,    "data/scripts/keyall.c"))   Script_Clear(&key_script_all,       2);
@@ -2893,7 +2900,7 @@ size_t ParseArgs(ArgList* list, char* input, char* output) {
 }
 
 char *findarg(char *command, int which){
-	static const char* comment_mark = "#";
+	static const char comment_mark[] = {"#"};
 	int d;
 	int argc;
 	int inarg;
@@ -2916,7 +2923,7 @@ char *findarg(char *command, int which){
 			if(argc == which) return arg + argstart;
 		}
 		else if(command[d]==0 || command[d]=='\n' || command[d]=='\r' ||
-			strncmp(command+d, comment_mark, strlen(comment_mark))==0){
+			strcmp(command+d, comment_mark)==0){
 				// End of line
 				arg[d] = 0;
 				if(argc == which) return arg + argstart;
@@ -5127,44 +5134,44 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 
 	unsigned * mapflag = NULL; // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
-	static const char* pre_text =  // this is the skeleton of frame function
+	static const char pre_text[] =  {// this is the skeleton of frame function
 		"void main()\n"
 		"{\n"
 		"    int frame = getlocalvar(\"frame\");\n"
 		"    int animhandle = getlocalvar(\"animhandle\");\n"
-		"\n}\n";
+		"\n}\n"};
 
-	static const char* sur_text = // end of function text
-		"\n}\n";
+	static const char sur_text[] = {// end of function text
+		"\n}\n"};
 
-	static const char* ifid_text = // if expression to check animation id
-		"    if(animhandle==%ld)\n"
+	static const char ifid_text[] = {// if expression to check animation id
+		"    if(animhandle==%d)\n"
 		"    {\n"
 		"        return;\n"
-		"    }\n";
+		"    }\n"};
 
-	static const char* endifid_text = // end of if
+	static const char endifid_text[] = {// end of if
 		"        return;\n"
-		"    }\n";
+		"    }\n"};
 
-	static const char* if_text = // this is the if expression of frame function
+	static const char if_text[] = {// this is the if expression of frame function
 		"        if(frame==%d)\n"
-		"        {\n";
+		"        {\n"};
 
-	static const char* endif_return_text =  //return to reduce unecessary checks
-		"            return;\n";
+	static const char endif_return_text[] =  {//return to reduce unecessary checks
+		"            return;\n"};
 
-	static const char* endif_text = // end of if
-		"        }\n" ;
+	static const char endif_text[] = {// end of if
+		"        }\n"} ;
 
-	static const char* comma_text = // arguments separator
-		", ";
+	static const char comma_text[] = {// arguments separator
+		", "};
 
-	static const char* call_text = //begin of function call
-		"            %s(";
+	static const char call_text[] = {//begin of function call
+		"            %s("};
 
-	static const char* endcall_text = //end of function call
-		");\n";
+	static const char endcall_text[] = {//end of function call
+		");\n"};
 
 	modelCommands cmd;
 	s_scripts* tempscripts;
@@ -5528,6 +5535,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						if(arglist.count>=8) defense.blocktype = GET_FLOAT_ARG(8);
 
 						tempdef(if, NORMAL)
+						tempdef(else if, NORMAL1)
 						tempdef(else if, NORMAL2)
 						tempdef(else if, NORMAL3)
 						tempdef(else if, NORMAL4)
@@ -5542,23 +5550,25 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						tempdef(else if, BURN)
 						tempdef(else if, SHOCK)
 						tempdef(else if, FREEZE)
-						else if(strnicmp(value, "normal", 6)==0)
+						tempdef(else if, ITEM)
+						tempdef(else if, LAND)
+						tempdef(else if, PIT)
+						tempdef(else if, LIFESPAN)
+						tempdef(else if, TIMEOVER)
+						else if(starts_with(value, "normal"))
 						{
-							tempInt = atoi(value+6);
-							if(tempInt<11) tempInt = 11;
+							get_tail_number(tempInt, value, "normal");
 							newchar->defense[tempInt+STA_ATKS-1] = defense;
 						}
 						else if(stricmp(value, "ALL")==0)
 						{
 							for(i=0;i<max_attack_types;i++)
-                            {
+							{
                                 /*
                                 Skip the pit, lifespan, and time over attack types as these are for engine use. Nothing stops an author from defining defense settings for them individually.
                                 */
                                 if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN)
-                                {
                                     newchar->defense[i] = defense;
-                                }
                             }
 						}
 					}
@@ -5574,6 +5584,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					{
 						value = GET_ARG(1);
 						tempoff(if,         NORMAL,     offense_factors)
+						tempoff(else if,    NORMAL1,    offense_factors)
 						tempoff(else if,    NORMAL2,    offense_factors)
 						tempoff(else if,    NORMAL3,    offense_factors)
 						tempoff(else if,    NORMAL4,    offense_factors)
@@ -5588,10 +5599,14 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						tempoff(else if,    BURN,       offense_factors)
 						tempoff(else if,    SHOCK,      offense_factors)
 						tempoff(else if,    FREEZE,     offense_factors)
-						else if(strnicmp(value, "normal", 6)==0)
+						tempoff(else if,    ITEM,		offense_factors)
+						tempoff(else if,    LAND,		offense_factors)
+						tempoff(else if,    PIT,		offense_factors)
+						tempoff(else if,    LIFESPAN,   offense_factors)
+						tempoff(else if,    TIMEOVER,   offense_factors)
+						else if(starts_with(value, "normal"))
 						{
-							tempInt = atoi(value+6);
-							if(tempInt<11) tempInt = 11;
+							get_tail_number(tempInt, value, "normal");
 							newchar->offense_factors[tempInt+STA_ATKS-1] = GET_FLOAT_ARG(2);
 						}
 						else if(stricmp(value, "ALL")==0)
@@ -5599,7 +5614,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							tempFloat = GET_FLOAT_ARG(2);
 							for(i=0;i<max_attack_types;i++)
 							{
-								newchar->offense_factors[i] = tempFloat;
+								//offense hardly need those, just in case
+                                if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN)
+									newchar->offense_factors[i] = tempFloat;
 							}
 						}
 					}
@@ -5917,7 +5934,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							else if(stricmp(value, "s")==0 || stricmp(value, "k")==0){
 								newchar->special[newchar->specials_loaded].input[i] = FLAG_SPECIAL;
 							}
-							else if(strnicmp(value, "freespecial", 11)==0 && (!value[11] || (value[11] >= '1' && value[11] <= '9'))){
+							else if(starts_with_num(value, "freespecial")){
 								tempInt = atoi(value+11);
 								if(tempInt<1) tempInt = 1;
 								newchar->special[newchar->specials_loaded].anim = animspecials[tempInt-1];
@@ -6160,19 +6177,15 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->quakeframe.framestart = 0;
 						newanim->sync = -1;
 
-						if(strnicmp(value, "idle", 4)==0 &&
-						(!value[4] || (value[4] >= '1' && value[4]<='9'))){
-								tempInt = atoi(value+4);
-								if(tempInt<1) tempInt = 1;
-								ani_id = animidles[tempInt-1];
+						if(starts_with_num(value, "idle")){
+							get_tail_number(tempInt, value, "idle");
+							ani_id = animidles[tempInt-1];
 						}
 						else if(stricmp(value, "waiting")==0){
 								ani_id = ANI_SELECT;
 						}
-						else if(strnicmp(value, "walk", 4)==0 &&
-						(!value[4] || (value[4] >= '1' && value[4]<='9'))){
-							tempInt = atoi(value+4);
-							if(tempInt<1) tempInt = 1;
+						else if(starts_with_num(value, "walk")){
+							get_tail_number(tempInt, value, "walk");
 							ani_id = animwalks[tempInt-1];
 							newanim->sync = ANI_WALK;
 						}
@@ -6182,24 +6195,18 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						else if(stricmp(value, "run")==0){
 							ani_id = ANI_RUN;
 						}
-						else if(strnicmp(value, "up", 2)==0 &&
-						(!value[2] || (value[2] >= '1' && value[2]<='9'))){
-							tempInt = atoi(value+2);
-							if(tempInt<1) tempInt = 1;
+						else if(starts_with_num(value, "up")){
+							get_tail_number(tempInt, value, "up");
 							ani_id = animups[tempInt-1];
 							newanim->sync = ANI_WALK;
 						}
-						else if(strnicmp(value, "down", 4)==0 &&
-						(!value[4] || (value[4] >= '1' && value[4]<='9'))){
-							tempInt = atoi(value+4);
-							if(tempInt<1) tempInt = 1;
+						else if(starts_with_num(value, "down")){
+							get_tail_number(tempInt, value, "down");
 							ani_id = animdowns[tempInt-1];
 							newanim->sync = ANI_WALK;
 						}
-						else if(strnicmp(value, "backwalk", 8)==0 &&
-						(!value[8] || (value[8] >= '1' && value[8]<='9'))){
-							tempInt = atoi(value+8);
-							if(tempInt<1) tempInt = 1;
+						else if(starts_with_num(value, "backwalk")){
+							get_tail_number(tempInt, value, "backwalk");
 							ani_id = animbackwalks[tempInt-1];
 							newanim->sync = ANI_WALK;
 						}
@@ -6214,11 +6221,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						else if(stricmp(value, "land")==0){
 							ani_id = ANI_LAND;
 						}
-						else if(stricmp(value, "pain")==0){
-							ani_id = ANI_PAIN;
-						}
-						else if(strnicmp(value, "pain", 4)==0 && value[4]>='1' && value[4]<='9'){
-							tempInt = atoi(value+4);
+						else if(starts_with_num(value, "pain")){
+							get_tail_number(tempInt, value, "pain");
 							if(tempInt==1){
 								ani_id = ANI_PAIN;
 							}
@@ -6260,12 +6264,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						else if(stricmp(value, "bpain")==0){    // If burn attacks don't knock opponent down, play this
 							ani_id = ANI_BURNPAIN;
 						}
-						else if(stricmp(value, "fall")==0){
-							ani_id = ANI_FALL;   // If no new animation, load fall animation into both "respawn" & "fall"
-							newanim->bounce = 4;
-						}
-						else if(strnicmp(value, "fall", 4)==0 && value[4]>='1' && value[4]<='9'){
-							tempInt = atoi(value+4);
+						else if(starts_with_num(value, "fall")){
+							get_tail_number(tempInt, value, "fall");
 							if(tempInt==1){
 								ani_id = ANI_FALL;
 							}
@@ -6310,11 +6310,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							ani_id = ANI_BURN;
 							newanim->bounce = 4;
 						}
-						else if(stricmp(value, "death")==0){      //  If new animation is present, overwrite new_anim with it.
-							ani_id = ANI_DIE;
-						}
-						else if(strnicmp(value, "death", 5)==0 && value[5]>='1' && value[5]<='9'){
-							tempInt = atoi(value+5);
+						else if(starts_with_num(value, "death")){
+							get_tail_number(tempInt, value, "death");
 							if(tempInt==1){
 								ani_id = ANI_DIE;
 							}
@@ -6370,11 +6367,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						else if(stricmp(value, "rises")==0){
 							ani_id = ANI_RISES;
 						}
-						else if(stricmp(value, "rise")==0){
-							ani_id = ANI_RISE;   // If no new animation, load fall animation into both "respawn" & "fall"
-						}
-						else if(strnicmp(value, "rise", 4)==0 && value[4]>='1' && value[4]<='9'){
-							tempInt = atoi(value+4);
+						else if(starts_with_num(value, "rise")){
+							get_tail_number(tempInt, value, "rise");
 							if(tempInt==1){
 								ani_id = ANI_RISE;
 							}
@@ -6416,11 +6410,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						else if(stricmp(value, "riseattacks")==0){
 							ani_id = ANI_RISEATTACKS;
 						}
-						else if(stricmp(value, "riseattack")==0){
-							ani_id = ANI_RISEATTACK;   // If no new animation, load fall animation into both "respawn" & "fall"
-						}
-						else if(strnicmp(value, "riseattack", 10)==0 && value[10]>='1' && value[10]<='9'){
-							tempInt = atoi(value+10);
+						else if(starts_with_num(value, "riseattack")){
+							get_tail_number(tempInt, value, "riseattack");
 							if(tempInt==1){
 								ani_id = ANI_RISEATTACK;
 							}
@@ -6459,11 +6450,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						else if(stricmp(value, "select")==0){
 							ani_id = ANI_PICK;
 						}
-						else if(strnicmp(value, "attack", 6)==0 &&
-							(!value[6] || (value[6] >= '1' && value[6]<='9')))
-						{
-							tempInt = atoi(value+6);
-							if(tempInt<1) tempInt = 1;
+						else if(starts_with_num(value, "attack")){
+							get_tail_number(tempInt, value, "attack");
 							ani_id = animattacks[tempInt-1];
 						}
 						else if(stricmp(value, "throwattack")==0){
@@ -6500,9 +6488,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						else if(stricmp(value, "special3")==0 || stricmp(value, "jumpspecial")==0){
 							ani_id = ANI_JUMPSPECIAL;
 						}
-						else if(strnicmp(value, "freespecial", 11)==0 && (!value[11] || (value[11] >= '1' && value[11] <= '9'))){
-							tempInt = atoi(value+11);
-							if(tempInt<1) tempInt = 1;
+						else if(starts_with_num(value, "freespecial")){
+							get_tail_number(tempInt, value, "freespecial");
 							ani_id = animspecials[tempInt-1];
 						}
 						else if(stricmp(value, "jumpattack")==0){
@@ -6644,9 +6631,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							newanim->range.xmin = 1;
 							newanim->range.xmax = 100;
 						}
-						else if(strnicmp(value, "follow", 6)==0 && (!value[6] || (value[6]>='1' && value[6]<='9'))){
-							tempInt = atoi(value+6);
-							if(tempInt<1) tempInt = 1;
+						else if(starts_with_num(value, "follow")){
+							get_tail_number(tempInt, value, "follow");
 							ani_id = animfollows[tempInt-1];
 						}
 						else if(stricmp(value, "chargeattack")==0){
@@ -6685,11 +6671,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						else if(stricmp(value, "blockpains")==0){
 							ani_id = ANI_BLOCKPAINS;
 						}
-						else if(stricmp(value, "blockpain")==0){
-							ani_id = ANI_BLOCKPAIN;   // If no new animation, load fall animation into both "respawn" & "fall"
-						}
-						else if(strnicmp(value, "blockpain", 9)==0 && value[9]>='1' && value[9]<='9'){
-							tempInt = atoi(value+9);
+						else if(starts_with_num(value, "blockpain")){
+							get_tail_number(tempInt, value, "blockpain");
 							if(tempInt==1){
 								ani_id = ANI_BLOCKPAIN;
 							}
@@ -6927,9 +6910,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							else if(stricmp(value, "s")==0 || stricmp(value, "k")==0){
 								newchar->special[newchar->specials_loaded].input[i] = FLAG_SPECIAL;
 							}
-							else if(strnicmp(value, "freespecial", 11)==0 && (!value[11] || (value[11] >= '1' && value[11] <= '9'))){
-								tempInt = atoi(value+11);
-								if(tempInt<1) tempInt = 1;
+							else if(starts_with_num(value, "freespecial")){
+								get_tail_number(tempInt, value, "freespecial");
 								newchar->special[newchar->specials_loaded].anim = animspecials[tempInt-1];
 								newchar->special[newchar->specials_loaded].startframe = GET_INT_ARG(1); // stores start frame
 								newchar->special[newchar->specials_loaded].endframe = GET_INT_ARG(2); // stores end frame
@@ -7540,7 +7522,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(!scriptbuf[0]){ // if empty, paste the main function text here
 						buffer_append(&scriptbuf, pre_text, 0xffffff, &sbsize, &scriptlen);
 					}
-					scriptbuf[scriptlen - strlen(sur_text)] = 0; // cut last chars
+					scriptbuf[scriptlen - strclen(sur_text)] = 0; // cut last chars
 					scriptlen = strlen(scriptbuf);
 					if(ani_id>=0)
 					{
@@ -7549,19 +7531,19 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
 							script_id = ani_id;
 						}
-						scriptbuf[scriptlen - strlen(endifid_text)] = 0; // cut last chars
+						scriptbuf[scriptlen - strclen(endifid_text)] = 0; // cut last chars
 						scriptlen = strlen(scriptbuf);
 					}
-					while(strncmp(buf+pos, "@script", 7)){
+					while(!starts_with(buf+pos, "@script")){
 						pos++;
 					}
-					pos += 7;
+					pos += strclen("@script");
 					len = 0;
-					while(strncmp(buf+pos, "@end_script", 11)){
+					while(!starts_with(buf+pos, "@end_script")){
 						len++; pos++;
 					}
 					buffer_append(&scriptbuf, buf+pos-len, len, &sbsize, &scriptlen);
-					pos += 11;
+					pos += strclen("@end_script");
 
 					if(ani_id>=0)
 					{
@@ -7578,7 +7560,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					if(!scriptbuf[0]){ // if empty, paste the main function text here
 						buffer_append(&scriptbuf, pre_text, 0xffffff, &sbsize, &scriptlen);
 					}
-					scriptbuf[scriptlen - strlen(sur_text)] = 0; // cut last chars
+					scriptbuf[scriptlen - strclen(sur_text)] = 0; // cut last chars
 					scriptlen = strlen(scriptbuf);
 					if(script_id != ani_id){ // if expression 1
 						sprintf(namebuf, ifid_text, newanim->index);
@@ -7587,7 +7569,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					j = 1;
 					value = GET_ARG(j);
-					scriptbuf[scriptlen - strlen(endifid_text)] = 0; // cut last chars
+					scriptbuf[scriptlen - strclen(endifid_text)] = 0; // cut last chars
 					scriptlen = strlen(scriptbuf);
 					if(value && value[0]){
 						/*
@@ -7624,9 +7606,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						}
 						else //no_cmd_compatible==1
 						{
-							scriptbuf[scriptlen - strlen(endif_text)] = 0; // cut last chars
+							scriptbuf[scriptlen - strclen(endif_text)] = 0; // cut last chars
 							scriptlen = strlen(scriptbuf);
-							scriptbuf[scriptlen - strlen(endif_return_text)] = 0; // cut last chars
+							scriptbuf[scriptlen - strclen(endif_return_text)] = 0; // cut last chars
 							scriptlen = strlen(scriptbuf);
 						}
 						sprintf(namebuf, call_text, value);
@@ -9364,7 +9346,7 @@ void load_level(char *filename){
 						goto lCleanup;
 					}
 					value = GET_ARG(1);
-					strncpy(bgPath, value, strlen(value)+1);
+					strcpy(bgPath, value);
 					bgl->oldtype = bgt_background;
 				}else if(cmd==CMD_LEVEL_BGLAYER) bgl->oldtype = bgt_bglayer;
 				else if(cmd==CMD_LEVEL_FGLAYER) bgl->oldtype = bgt_fglayer;
@@ -10347,7 +10329,7 @@ void updatestatus(){
 				// reports error if players try to use the same character and sameplay mode is off
 				if(sameplayer){
 					for(x=0; x<set->maxplayers; x++){
-						if((strncmp(player[i].name,player[x].name,strlen(player[i].name)) == 0) && (i != x)){
+						if(stricmp(player[i].name,player[x].name) == 0 && i != x){
 							tperror = i+1;
 							break;
 						}
@@ -15265,7 +15247,7 @@ void checkdamage(entity* other, s_attack* attack)
 	int force = attack->attack_force;
 	int type = attack->attack_type;
 	if(self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current <= 0) force = 0; //guardbreak does not deal damage.
-	if(!(self->damage_on_landing && self == other) && !other->projectile && type >= 0 && type<max_attack_types)
+	if(type >= 0 && type<max_attack_types)
 	{
 		force = (int)(force * other->offense_factors[type]);
 		force = (int)(force * self->defense[type].factor);
@@ -22415,7 +22397,7 @@ int selectplayer(int *players, char* filename)
 					{
 						for(x=0; x<set->maxplayers; x++)
 						{
-							if((strncmp(player[i].name,player[x].name,strlen(player[i].name)) == 0) && (i != x))
+							if(stricmp(player[i].name,player[x].name) == 0 && i != x)
 							{
 								tperror = i+1;
 								break;

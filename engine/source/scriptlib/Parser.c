@@ -27,7 +27,7 @@ void Parser_Clear(Parser* pparser){
 	while(!Stack_IsEmpty(&(pparser->LabelStack)))
 	{
 		label = (Label)Stack_Top(&(pparser->LabelStack));
-		free((void*)label);
+		free(label);
 		Stack_Pop(&(pparser->LabelStack));
 	}
 	List_Clear(&(pparser->LabelStack));
@@ -125,7 +125,7 @@ void Parser_ParseExpression(Parser* pparser, List* pIList, LPSTR scriptText,
    Parser_Expr(pparser);
 
    //release text buffer
-   free((void*)expressionText);
+   free(expressionText);
 }
 
 /******************************************************************************
@@ -197,12 +197,12 @@ Label Parser_CreateLabel( Parser* pparser )
 	//most, so allocate that plus two extra for the "" and the null
 	//terminator
 	Label theLabel = (CHAR*)malloc(12);
-	memset((void*)theLabel, 0, 12);
+	memset(theLabel, 0, 12);
 
 	//Increment the label count.
 	pparser->LabelCount++;
 
-	sprintf((CHAR*)theLabel, "L%d", pparser->LabelCount);
+	sprintf(theLabel, "L%d", pparser->LabelCount);
 
 	return theLabel;
 }
@@ -492,7 +492,7 @@ void Parser_Param_list2(Parser* pparser )
 		 pinstruction = (Instruction*)malloc(sizeof(Instruction));
 		 Instruction_InitViaLabel(pinstruction, CHECKARG, buf);
 
-		 List_InsertBefore(pparser->pIList, (void*)pinstruction, NULL );
+		 List_InsertBefore(pparser->pIList, pinstruction, NULL );
 
 		 //Walk back down the InstructionList to reset the insertion point
 		 for (i = 0; i < pparser->paramCount; i++ )
@@ -580,9 +580,15 @@ void Parser_Stmt( Parser* pparser)
 
 void Parser_Expr_stmt(Parser* pparser )
 {
+	Instruction* pInstruction;
 	if (ParserSet_First(&(pparser->theParserSet), expr, pparser->theNextToken.theType )){
 		Parser_Expr(pparser );
-		Parser_AddInstructionViaToken(pparser, CLEAN, (Token*)NULL, NULL );
+		if((pInstruction=(Instruction*)List_Retrieve(pparser->pIList))->OpCode==LOAD) {
+			Instruction_Clear(pInstruction);
+			free(pInstruction);
+			List_Remove(pparser->pIList);
+		}
+		else Parser_AddInstructionViaToken(pparser, CLEAN, (Token*)NULL, NULL );
 		Parser_Check(pparser, TOKEN_SEMICOLON );
 		Parser_Match(pparser);
 	}
@@ -600,7 +606,7 @@ void Parser_Comp_stmt_Label(Parser* pparser, Label theLabel )
 	   Parser_Comp_stmt2(pparser );
 	   Parser_Comp_stmt3(pparser );
 	   Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, label );
-	   free((void*)label);//dont forget to free the label
+	   free(label);//dont forget to free the label
 	   Parser_AddInstructionViaToken(pparser, POP, (Token*)NULL, NULL );
 	   Parser_Check(pparser, TOKEN_RCURLY );
 	   Parser_Match(pparser);
@@ -618,7 +624,7 @@ void Parser_Comp_stmt(Parser* pparser )
 		Parser_Comp_stmt2(pparser );
 		Parser_Comp_stmt3(pparser );
 		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, jumpLabel );
-		free((void*)jumpLabel);
+		free(jumpLabel);
 		Parser_AddInstructionViaToken(pparser, POP, (Token*)NULL, NULL );
 		Parser_Check(pparser, TOKEN_RCURLY );
 		Parser_Match(pparser);
@@ -665,8 +671,8 @@ void Parser_Select_stmt(Parser* pparser )
 		Parser_Opt_else(pparser );
 		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, endLabel );
 		//dont forget to free the labels
-		free((void*)falseLabel);
-		free((void*)endLabel);
+		free(falseLabel);
+		free(endLabel);
 	}
 	else if (Parser_Check(pparser, TOKEN_SWITCH )) {
 		List* pMainList, bodyInsts, cases;
@@ -682,8 +688,8 @@ void Parser_Select_stmt(Parser* pparser )
 		Parser_Match(pparser );
 
 		endLabel = Parser_CreateLabel(pparser );
-		Stack_Push(&(pparser->LabelStack), (void*)NULL );
-		Stack_Push(&(pparser->LabelStack), (void*)endLabel );
+		Stack_Push(&(pparser->LabelStack), NULL );
+		Stack_Push(&(pparser->LabelStack), endLabel );
 		defaultLabel = endLabel;
 
 		//The jump instructions need to be right after the expression is evaluated,
@@ -738,7 +744,7 @@ void Parser_Select_stmt(Parser* pparser )
 		Parser_AddInstructionViaToken(pparser, POP, (Token*)NULL, endLabel );
 		Stack_Pop(&(pparser->LabelStack));
 		Stack_Pop(&(pparser->LabelStack));
-		free((void*)endLabel);
+		free(endLabel);
 	}
 	else Parser_Error(pparser, select_stmt );
 }
@@ -796,7 +802,7 @@ void Parser_Case_label(Parser* pparser, List* pCases )
 		Parser_Check(pparser, TOKEN_COLON );
 		Parser_Match(pparser);
 		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, label );
-		free((void*)label);
+		free(label);
 	}
 	else if (Parser_Check(pparser, TOKEN_DEFAULT )){
 		label = Parser_CreateLabel(pparser );
@@ -805,7 +811,7 @@ void Parser_Case_label(Parser* pparser, List* pCases )
 		Parser_Match(pparser);
 		List_InsertAfter(pCases, NULL, label);
 		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, label );
-		free((void*)label);
+		free(label);
 	}
 	else Parser_Error(pparser, case_label );
 }
@@ -830,8 +836,8 @@ void Parser_Iter_stmt(Parser* pparser )
 		Parser_Expr(pparser );
 		Parser_Check(pparser, TOKEN_RPAREN );
 		Parser_AddInstructionViaLabel(pparser, Branch_FALSE, endLabel, NULL );
-		Stack_Push(&(pparser->LabelStack), (void*)startLabel ); //*****
-		Stack_Push(&(pparser->LabelStack), (void*)endLabel ); //*****
+		Stack_Push(&(pparser->LabelStack), startLabel ); //*****
+		Stack_Push(&(pparser->LabelStack), endLabel ); //*****
 		Parser_Match(pparser);
 		Parser_Stmt(pparser );
 		Stack_Pop(&(pparser->LabelStack)); //*****
@@ -842,8 +848,8 @@ void Parser_Iter_stmt(Parser* pparser )
 	else if (Parser_Check(pparser, TOKEN_DO )){
 		Parser_Match(pparser);
 		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, startLabel );
-		Stack_Push(&(pparser->LabelStack), (void*)startLabel ); //*****
-		Stack_Push(&(pparser->LabelStack), (void*)endLabel ); //*****
+		Stack_Push(&(pparser->LabelStack), startLabel ); //*****
+		Stack_Push(&(pparser->LabelStack), endLabel ); //*****
 		Parser_Stmt(pparser );
 		Parser_Check(pparser, TOKEN_WHILE );
 		Parser_Match(pparser);
@@ -869,8 +875,8 @@ void Parser_Iter_stmt(Parser* pparser )
 
 		//Set the flag for the conditional to jump back to.
 		Parser_AddInstructionViaToken(pparser, NOOP, (Token*)NULL, startLabel );
-		Stack_Push(&(pparser->LabelStack), (void*)continueLabel); //*****
-		Stack_Push(&(pparser->LabelStack), (void*)endLabel ); //*****
+		Stack_Push(&(pparser->LabelStack), continueLabel); //*****
+		Stack_Push(&(pparser->LabelStack), endLabel ); //*****
 
 		//Build the conditional statement
 		if (ParserSet_First(&(pparser->theParserSet), expr, pparser->theNextToken.theType )){
@@ -901,11 +907,11 @@ void Parser_Iter_stmt(Parser* pparser )
 			//We have to assume here that the expression didn't need labels.
 			AddInstruction( pInstruction->m_OpCode, pInstruction->m_pToken, NULL );
 		  */
-				List_InsertAfter(pparser->pIList, (void*)pInstruction, NULL);
+				List_InsertAfter(pparser->pIList, pInstruction, NULL);
 			);
 
 			List_Clear(pDefInst);
-			free((void*)pDefInst);
+			free(pDefInst);
 		}
 
 		//Add the jump statement
@@ -917,9 +923,9 @@ void Parser_Iter_stmt(Parser* pparser )
 		Stack_Pop(&(pparser->LabelStack));//**********
 	}
 	else Parser_Error(pparser, iter_stmt );
-	free((void*)startLabel);
-	free((void*)endLabel);
-	free((void*)continueLabel);
+	free(startLabel);
+	free(endLabel);
+	free(continueLabel);
 }
 
 void Parser_Opt_expr_stmt(Parser* pparser )
@@ -1082,6 +1088,7 @@ void Parser_Assignment_expr2(Parser* pparser )
 
 		Parser_AddInstructionViaToken(pparser, SAVE, pInstruction->theToken, NULL );
 		Parser_AddInstructionViaToken(pparser, LOAD, pInstruction->theToken, NULL );
+		if (code == NOOP) {Instruction_Clear(pInstruction); free(pInstruction);}
 		Parser_Assignment_expr2(pparser );
 	}
 	else if (ParserSet_Follow(&(pparser->theParserSet), assignment_expr2, pparser->theNextToken.theType ))
@@ -1134,9 +1141,9 @@ void Parser_Cond_expr2(Parser* pparser )
 			Parser_AddInstructionViaToken(pparser, LOAD, &var, NULL );
 		}
 		else Parser_Error(pparser, cond_expr2 );
-		free((void*)falseLabel);
-		free((void*)endLabel);
-		free((void*)varName);
+		free(falseLabel);
+		free(endLabel);
+		free(varName);
 	}
 	else if (ParserSet_Follow(&(pparser->theParserSet), cond_expr2, pparser->theNextToken.theType )){}
 	else Parser_Error(pparser, cond_expr2 );
@@ -1349,7 +1356,9 @@ void Parser_Mult_expr2(Parser* pparser )
 
 void Parser_Unary_expr(Parser* pparser )
 {
+	static CHAR buf[MAX_TOKEN_LENGTH+1];
 	Instruction* pInstruction = NULL;
+
 	if (ParserSet_First(&(pparser->theParserSet), postfix_expr, pparser->theNextToken.theType )){
 		Parser_Postfix_expr(pparser );
 	}
@@ -1376,12 +1385,31 @@ void Parser_Unary_expr(Parser* pparser )
 	else if (Parser_Check(pparser, TOKEN_SUB )){
 		Parser_Match(pparser);
 		Parser_Unary_expr(pparser );
-		Parser_AddInstructionViaToken(pparser, NEG, (Token*)NULL, NULL );
+		pInstruction = (Instruction*)List_Retrieve(pparser->pIList);
+		if(pInstruction->OpCode==CONSTINT || 
+			pInstruction->OpCode==CONSTDBL )
+		{
+			//convert to negative constant
+			sprintf(buf, "-%s", pInstruction->theToken->theSource);
+			strcpy(pInstruction->theToken->theSource, buf);
+		}else if(pInstruction->OpCode==CONSTSTR) {
+			//string constant should not be valid , drop it anyway
+			Parser_Error(pparser, unary_expr );
+		}
+		else Parser_AddInstructionViaToken(pparser, NEG, (Token*)NULL, NULL );
 	}
 	else if (Parser_Check(pparser, TOKEN_BOOLEAN_NOT )){
 		Parser_Match(pparser);
 		Parser_Unary_expr(pparser );
-		Parser_AddInstructionViaToken(pparser, NOT, (Token*)NULL, NULL );
+		pInstruction = (Instruction*)List_Retrieve(pparser->pIList);
+		if(pInstruction->OpCode==CONSTINT || 
+			pInstruction->OpCode==CONSTDBL ||
+			pInstruction->OpCode==CONSTSTR)
+		{
+			//convert to negative constant
+			sprintf(buf, "!%s", pInstruction->theToken->theSource);
+			strcpy(pInstruction->theToken->theSource, buf);
+		}else Parser_AddInstructionViaToken(pparser, NOT, (Token*)NULL, NULL );
 	}
 	else Parser_Error(pparser, unary_expr );
 }
@@ -1416,9 +1444,9 @@ void Parser_Postfix_expr2(Parser* pparser )
 		//a label for it, and add it back to the instruction list.
 		label = Parser_CreateLabel(pparser);
 		pInstruction->OpCode = CALL;
-		List_InsertAfter(pparser->pIList, (void*)pInstruction, label );
+		List_InsertAfter(pparser->pIList, pInstruction, label );
 		//dont forget to free the label
-		free((void*)label);
+		free(label);
 
 		Parser_Postfix_expr2(pparser );
 	}

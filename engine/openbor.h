@@ -222,6 +222,7 @@
 
 
 #define		ATK_NORMAL			0
+#define		ATK_NORMAL1			ATK_NORMAL			// making naming rules easier
 #define		ATK_NORMAL2			1
 #define		ATK_NORMAL3			2
 #define		ATK_NORMAL4			3
@@ -243,7 +244,7 @@
 #define     ATK_TIMEOVER        19
 
 #define     MAX_ATKS            20                // default max attack types
-#define     STA_ATKS            6                 // default special attack types: blast burn shock freeze steal
+#define     STA_ATKS            (MAX_ATKS-10)     // default special attack types than normal#
 #define     MAX_DOTS            10                // Max active dot effects.
 
 #define		SCROLL_RIGHT		2
@@ -467,6 +468,14 @@ memset((p)+(n), 0, sizeof(*(p)));
 #define __reallocto(p, n, s) \
 p = realloc((p), sizeof(*(p))*(s));\
 memset((p)+(n), 0, sizeof(*(p))*((s)-(n)));\
+
+//string starts with constant, for animation# series
+#define strclen(s) (sizeof(s)-1)
+#define starts_with(a, b) (strnicmp(a, b, strclen(b))==0)
+#define starts_with_num(a, b) (starts_with(a, b) && (!a[strclen(b)] || (a[strclen(b)] >= '1' && a[strclen(b)] <= '9')))
+#define get_tail_number(n, a, b) \
+n = atoi(a+strclen(b)); \
+if(n<1) n = 1; 
 
 /*
 #define     ICO_NORMAL           0
