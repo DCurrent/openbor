@@ -1473,7 +1473,6 @@ void load_scripts()
 	//and will never have another chance to be loaded, so just clear the variable list in it
 	if(!load_script(&update_script,     "data/scripts/update.c"))   Script_Clear(&update_script,        2);
 	if(!load_script(&updated_script,    "data/scripts/updated.c"))  Script_Clear(&updated_script,       2);
-	else Interpreter_OutputPCode(updated_script.pinterpreter, "updated.c.txt");
 	if(!load_script(&level_script,      "data/scripts/level.c"))    Script_Clear(&level_script,         2);
 	if(!load_script(&endlevel_script,   "data/scripts/endlevel.c")) Script_Clear(&endlevel_script,      2);
 	if(!load_script(&key_script_all,    "data/scripts/keyall.c"))   Script_Clear(&key_script_all,       2);
