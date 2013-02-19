@@ -71,6 +71,7 @@ int Script_Call(Script* pscript, char* method, ScriptVariant* pretvar);
 #endif
 
 HRESULT system_isempty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT system_exit(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT system_NULL(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT system_rand(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT system_maxglobalvarindex(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
