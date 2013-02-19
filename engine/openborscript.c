@@ -536,6 +536,7 @@ int Script_AppendText(Script* pscript, char* text, char* path)
 const char* Script_GetFunctionName(void* functionRef)
 {
 	if (functionRef==((void*)system_isempty)) return "isempty";
+	else if (functionRef==((void*)system_exit)) return "exit";
 	else if (functionRef==((void*)system_NULL)) return "NULL";
 	else if (functionRef==((void*)system_rand)) return "rand";
 	else if (functionRef==((void*)system_maxglobalvarindex)) return "maxglobalvarindex";
@@ -1001,6 +1002,8 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
 					  (void*)system_isempty, "isempty");
 	List_InsertAfter(&theFunctionList,
+					  (void*)system_exit, "exit");
+	List_InsertAfter(&theFunctionList,
 					  (void*)system_NULL, "NULL");
 	List_InsertAfter(&theFunctionList,
 					  (void*)system_rand, "rand");
@@ -1288,6 +1291,11 @@ HRESULT system_NULL(ScriptVariant** varlist , ScriptVariant** pretvar, int param
 {
 	ScriptVariant_Clear(*pretvar);
 
+	return S_OK;
+}
+HRESULT system_exit(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount) {
+	*pretvar = NULL;
+	pcurrentscript->pinterpreter->bReset = FALSE; 
 	return S_OK;
 }
 HRESULT system_rand(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)

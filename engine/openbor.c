@@ -14953,7 +14953,10 @@ void common_block()
 		(!self->inpain || (self->modeldata.holdblock&2)); //inpain = blockpain
 	int hb2 = ((player+self->playerindex)->keys&FLAG_SPECIAL) ;
 
-	if(
+	if(self->inpain && (self->modeldata.holdblock&2) && !self->animating && validanim(self,ANI_BLOCK)){
+		self->inpain = 0;
+		ent_set_anim(self, ANI_BLOCK, 0);
+	}else if(
 		(hb1 && !hb2) ||
 		(!self->animating && (!hb1 || !hb2))
 	   ){

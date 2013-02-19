@@ -191,8 +191,8 @@ HRESULT Interpreter_Call(Interpreter* pinterpreter)
 	ScriptVariant *pretvar;
 
 	if(pCurrentCall==NULL){
-		pinterpreter->bCallCompleted = FALSE;
-		return E_FAIL;
+		hr=E_FAIL;
+		goto endcall;
 	}
 	pinterpreter->pCurrentCall = pCurrentCall;
 	currentCall = *((Instruction**)(pinterpreter->pCurrentInstruction));
@@ -213,8 +213,8 @@ HRESULT Interpreter_Call(Interpreter* pinterpreter)
 	}
 	else
 	{
-		pinterpreter->bCallCompleted = FALSE;
-		return E_FAIL;
+		hr=E_FAIL;
+		goto endcall;
 	}
 	//jump back
 	if (SUCCEEDED(hr)){
@@ -222,8 +222,10 @@ HRESULT Interpreter_Call(Interpreter* pinterpreter)
 	}
 	pinterpreter->pCurrentCall = temp;
 
+
+endcall:
 	//Reset the m_bCallCompleted flag back to false
-	pinterpreter->bCallCompleted = FALSE;
+	pinterpreter->bCallCompleted = !pinterpreter->bReset;
 
 	return hr;
 }
@@ -920,7 +922,7 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 			pInstruction->theRefList->index = 0;
 			hr = Interpreter_Call(pinterpreter);
 			//Reset the m_bCallCompleted flag back to false
-			pinterpreter->bCallCompleted = FALSE;
+			//pinterpreter->bCallCompleted = FALSE;
 			break;
 
 	   // return
