@@ -2697,12 +2697,13 @@ int saveScriptFile()
 			_writestr(model_cache[i].name)
 			_writeconst("\",4,1);\n")
 		}
+		/*
 		if(model_cache[i].model) {
 			_writeconst("\tloadmodel(\"")
 			_writestr(model_cache[i].name)
 			sprintf(tmpvalue, "\",%d,%d);\n", model_cache[i].model->unload, model_cache[i].selectable);
 			_writetmp
-		}
+		}*/
 	}
 	_writeconst("}\n");
 
