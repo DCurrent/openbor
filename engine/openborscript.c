@@ -960,6 +960,7 @@ int Script_IsInitialized(Script* pscript)
 int Script_Execute(Script* pscript)
 {
 	int result, nested;
+	extern int no_cmd_compatible;
 	Script* temp = pcurrentscript;
 	Interpreter tinter, *pinter;
 	pcurrentscript = pscript; //used by local script functions
@@ -968,10 +969,11 @@ int Script_Execute(Script* pscript)
 	else
 	{
 		pinter = pscript->pinterpreter;
-		if(nested) tinter = *pinter;
+		if(nested && no_cmd_compatible) tinter = *pinter;
 		Interpreter_Reset(pinter);
 		result = (int)SUCCEEDED(Interpreter_EvaluateImmediate(pinter));
-		if(nested) *pinter = tinter;
+		if(nested && no_cmd_compatible) *pinter = tinter;
+		else if(nested) pinter->bReset = FALSE;
 	}
 	pcurrentscript = temp;
 	if(!result) shutdown(1, "There's an exception while executing script '%s' %s", pscript->pinterpreter->theSymbolTable.name, pscript->comment?pscript->comment:"");
