@@ -20165,6 +20165,7 @@ void update_scroller(){
 	int i, againstend = 0;
 	int numplay=0; //4player
 	float tx = advancex, ty = advancey;
+	float rm=-9999, lm=999999, bm=-9999, tm=999999; //player boundary box
 	static int scrolladd = 0;
 	scrolldx = scrolldy = 0;
 
@@ -20253,7 +20254,13 @@ void update_scroller(){
 
 	for(i=0; i<levelsets[current_set].maxplayers; i++)
 	{
-		if(player[i].ent) numplay++;
+		if(player[i].ent) {
+			if(player[i].ent->x>rm) rm = player[i].ent->x;
+			if(player[i].ent->x<lm) lm = player[i].ent->x;
+			if(player[i].ent->z>bm) bm = player[i].ent->z;
+			if(player[i].ent->z<tm) tm = player[i].ent->z;
+			numplay++;
+		}
 	}
 
 	if(level->waiting){
@@ -20274,19 +20281,9 @@ void update_scroller(){
 		if(level->scrolldir&SCROLL_RIGHT){
 
 			againstend = (level->width<=videomodes.hRes);
-
-			for(i=0; i<levelsets[current_set].maxplayers; i++)
-			{
-				if(player[i].ent)
-				{
-					to += (int)player[i].ent->x;
-				}
-			}
-
-			to /= numplay;
-			to -= (videomodes.hRes/2);
-
-			to += level->cameraxoffset;
+			
+			if(rm-lm>videomodes.hRes) to = advancex;
+			else to = (lm+rm)/2-videomodes.hRes/2+level->cameraxoffset;
 
 			if(to<scrollminx) to = scrollminx;
 			else if(to>scrollmaxx) to = scrollmaxx;
@@ -20321,18 +20318,8 @@ void update_scroller(){
 
 			againstend = (level->width<=videomodes.hRes);
 
-			for(i=0; i<levelsets[current_set].maxplayers; i++)
-			{
-				if(player[i].ent)
-				{
-					to += (int)player[i].ent->x;
-				}
-			}
-
-			to /= numplay;
-			to -= (videomodes.hRes/2);
-
-			to += level->cameraxoffset;
+			if(rm-lm>videomodes.hRes) to = advancex;
+			else to = (lm+rm)/2-videomodes.hRes/2+level->cameraxoffset;
 
 			if(to<scrollminx) to = scrollminx;
 			else if(to>scrollmaxx) to = scrollmaxx;
@@ -20361,18 +20348,8 @@ void update_scroller(){
 		}
 		else if(level->scrolldir&SCROLL_OUTWARD){ // z scroll only
 
-			for(i=0; i<levelsets[current_set].maxplayers; i++)
-			{
-				if(player[i].ent)
-				{
-					to += (int)player[i].ent->z;
-				}
-			}
-
-			to /= numplay;
-			to -= (videomodes.vRes/2);
-
-			to += level->cameraxoffset;
+			if(bm-tm>videomodes.vRes) to = advancey;
+			else to = (bm+tm)/2-videomodes.vRes/2+level->camerazoffset;
 
 			if(to<scrollminz) to = scrollminz;
 			else if(to>scrollmaxz) to = scrollmaxz;
@@ -20402,18 +20379,8 @@ void update_scroller(){
 			else level->pos = (int)advancey;
 		}
 		else if(level->scrolldir&SCROLL_INWARD){
-			for(i=0; i<levelsets[current_set].maxplayers; i++)
-			{
-				if(player[i].ent)
-				{
-					to += (int)player[i].ent->z;
-				}
-			}
-
-			to /= numplay;
-			to -= (videomodes.vRes/2);
-
-			to += level->camerazoffset;
+			if(bm-tm>videomodes.vRes) to = advancey;
+			else to = (bm+tm)/2-videomodes.vRes/2+level->camerazoffset;
 
 			if(to<scrollminz) to = scrollminz;
 			else if(to>scrollmaxz) to = scrollmaxz;
@@ -20460,18 +20427,18 @@ void update_scroller(){
 	// z auto-scroll
 	if((level->scrolldir&SCROLL_LEFT) || (level->scrolldir&SCROLL_RIGHT)) // added scroll type both; weird things can happen, but only if the modder is lazy in using blockades, lol
 	{
-		for(i=0, to=0; i<levelsets[current_set].maxplayers; i++)
-		{
-			if(player[i].ent)
+
+		if(cameratype==1) {
+			for(i=0; i<levelsets[current_set].maxplayers; i++)
 			{
-				to += (int)(player[i].ent->z - (cameratype==1?player[i].ent->a:0));
+				if(player[i].ent) {
+					if(player[i].ent->z-player[i].ent->a>bm) bm = player[i].ent->z-player[i].ent->a;
+					if(player[i].ent->z-player[i].ent->a<tm) tm = player[i].ent->z-player[i].ent->a;
+				}
 			}
 		}
-
-		to /= numplay;
-		to -= (videomodes.vRes/2);
-
-		to += level->camerazoffset;
+		if(bm-tm>videomodes.vRes) to = advancey;
+		else to = (bm+tm)/2-videomodes.vRes/2+level->camerazoffset;
 
 		// new scroll limit
 		if(to > scrollmaxz) to = scrollmaxz;
@@ -20493,18 +20460,8 @@ void update_scroller(){
 	// now x auto scroll
 	else if((level->scrolldir&SCROLL_INWARD) || (level->scrolldir&SCROLL_OUTWARD))
 	{
-		for(i=0, to=0; i<levelsets[current_set].maxplayers; i++)
-		{
-			if(player[i].ent)
-			{
-				to += (int)player[i].ent->x;
-			}
-		}
-
-		to /= numplay;
-		to -= (videomodes.hRes/2);
-
-		to += level->cameraxoffset;
+		if(rm-lm>videomodes.hRes) to = advancex;
+		else to = (lm+rm)/2-videomodes.hRes/2+level->cameraxoffset;
 
 		// new scroll limit
 		if(to > scrollmaxx) to = scrollmaxx;
