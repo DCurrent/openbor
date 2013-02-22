@@ -112,6 +112,8 @@ HRESULT openbor_fademusic(ScriptVariant** varlist , ScriptVariant** pretvar, int
 HRESULT openbor_setmusicvolume(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_setmusictempo(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_pausemusic(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_querychannel(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_stopchannel(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_playsample(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_loadsample(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_unloadsample(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
@@ -308,6 +310,7 @@ _sv_player3,
 _sv_player4,
 _sv_player_max_z,
 _sv_player_min_z,
+_sv_sample_play_id,
 _sv_scrollmaxx,
 _sv_scrollmaxz,
 _sv_scrollminx,
