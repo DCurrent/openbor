@@ -478,6 +478,12 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		case OR:
 		 //Use the BINARYOP macro to do a logical AND
 		case AND:
+		 //Use the BINARYOP macro to do a bitwise OR
+		case BIT_OR:
+		 //Use the BINARYOP macro to do a bitwise XOR
+		case XOR:
+		 //Use the BINARYOP macro to do a bitwise AND
+		case BIT_AND:
 		   COMPILEBINARYOP;
 		   break;
 
@@ -899,6 +905,21 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 		 //Use the BINARYOP macro to do a logical AND
 		case AND:
 		   BINARYOP(ScriptVariant_And);
+		   break;
+
+		 //Use the BINARYOP macro to do a bitwise OR
+		case BIT_OR:
+			BINARYOP(ScriptVariant_Bit_Or);
+			break;
+
+		 //Use the BINARYOP macro to do a bitwise XOR
+		case XOR:
+			BINARYOP(ScriptVariant_Xor);
+			break;
+
+		 //Use the BINARYOP macro to do a bitwise AND
+		case BIT_AND:
+		   BINARYOP(ScriptVariant_Bit_And);
 		   break;
 
 		 //Create a new CSymbol and add it to the symbol table

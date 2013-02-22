@@ -341,6 +341,51 @@ ScriptVariant* ScriptVariant_And( ScriptVariant* svar, ScriptVariant* rightChild
 	return &retvar;
 }
 
+ScriptVariant* ScriptVariant_Bit_Or( ScriptVariant* svar, ScriptVariant* rightChild )
+{
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
+	LONG l1, l2;
+	if(ScriptVariant_IntegerValue(svar, &l1)==S_OK &&
+	   ScriptVariant_IntegerValue(rightChild, &l2)==S_OK)
+	{
+		retvar.vt=VT_INTEGER;
+		retvar.lVal = l1 | l2;
+	}
+	else ScriptVariant_Clear(&retvar);
+
+	return &retvar;
+}
+
+ScriptVariant* ScriptVariant_Xor( ScriptVariant* svar, ScriptVariant* rightChild )
+{
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
+	LONG l1, l2;
+	if(ScriptVariant_IntegerValue(svar, &l1)==S_OK &&
+	   ScriptVariant_IntegerValue(rightChild, &l2)==S_OK)
+	{
+		retvar.vt=VT_INTEGER;
+		retvar.lVal = l1 ^ l2;
+	}
+	else ScriptVariant_Clear(&retvar);
+
+	return &retvar;
+}
+
+ScriptVariant* ScriptVariant_Bit_And( ScriptVariant* svar, ScriptVariant* rightChild )
+{
+	static ScriptVariant retvar = {{.ptrVal=NULL}, VT_EMPTY};
+	LONG l1, l2;
+	if(ScriptVariant_IntegerValue(svar, &l1)==S_OK &&
+	   ScriptVariant_IntegerValue(rightChild, &l2)==S_OK)
+	{
+		retvar.vt=VT_INTEGER;
+		retvar.lVal = l1 & l2;
+	}
+	else ScriptVariant_Clear(&retvar);
+
+	return &retvar;
+}
+
 ScriptVariant* ScriptVariant_Eq( ScriptVariant* svar, ScriptVariant* rightChild )
 {
 	DOUBLE dbl1,dbl2;

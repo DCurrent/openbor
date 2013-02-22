@@ -64,6 +64,9 @@ inline ScriptVariant* ScriptVariant_SubAssign(ScriptVariant* svar, ScriptVariant
 inline ScriptVariant* ScriptVariant_ModAssign(ScriptVariant* svar, ScriptVariant* rightChild );
 inline ScriptVariant* ScriptVariant_Or( ScriptVariant* svar, ScriptVariant* rightChild );
 inline ScriptVariant* ScriptVariant_And( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Bit_Or( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Xor( ScriptVariant* svar, ScriptVariant* rightChild );
+inline ScriptVariant* ScriptVariant_Bit_And( ScriptVariant* svar, ScriptVariant* rightChild );
 inline ScriptVariant* ScriptVariant_Eq( ScriptVariant* svar, ScriptVariant* rightChild );
 inline ScriptVariant* ScriptVariant_Ne( ScriptVariant* svar, ScriptVariant* rightChild );
 inline ScriptVariant* ScriptVariant_Lt( ScriptVariant* svar, ScriptVariant* rightChild );
