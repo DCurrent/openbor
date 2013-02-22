@@ -1172,8 +1172,8 @@ void Parser_Log_or_expr2(Parser* pparser )
 
 void Parser_Log_and_expr(Parser* pparser )
 {
-	if (ParserSet_First(&(pparser->theParserSet), equal_expr, pparser->theNextToken.theType )){
-		Parser_Equal_expr(pparser );
+	if (ParserSet_First(&(pparser->theParserSet), bit_or_expr, pparser->theNextToken.theType )){
+		Parser_Bit_or_expr(pparser );
 		Parser_Log_and_expr2(pparser );
 	}
 	else Parser_Error(pparser, log_and_expr );
@@ -1183,12 +1183,75 @@ void Parser_Log_and_expr2(Parser* pparser )
 {
 	if (Parser_Check(pparser, TOKEN_AND_OP )){
 		Parser_Match(pparser);
-		Parser_Equal_expr(pparser );
+		Parser_Bit_or_expr(pparser );
 		Parser_AddInstructionViaToken(pparser, AND, (Token*)NULL, NULL );
 		Parser_Log_and_expr2( pparser);
 	}
 	else if (ParserSet_Follow(&(pparser->theParserSet), log_and_expr2, pparser->theNextToken.theType )){}
 	else Parser_Error(pparser, log_and_expr2 );
+}
+
+void Parser_Bit_or_expr(Parser* pparser )
+{
+	if (ParserSet_First(&(pparser->theParserSet), xor_expr, pparser->theNextToken.theType )){
+		Parser_Xor_expr(pparser );
+		Parser_Bit_or_expr2(pparser );
+	}
+	else Parser_Error(pparser, bit_or_expr );
+}
+
+void Parser_Bit_or_expr2(Parser* pparser )
+{
+	if (Parser_Check(pparser, TOKEN_BITWISE_OR )){
+		Parser_Match(pparser);
+		Parser_Xor_expr(pparser );
+		Parser_AddInstructionViaToken(pparser, BIT_OR, (Token*)NULL, NULL );
+		Parser_Bit_or_expr2( pparser);
+	}
+	else if (ParserSet_Follow(&(pparser->theParserSet), bit_or_expr2, pparser->theNextToken.theType )){}
+	else Parser_Error(pparser, bit_or_expr2 );
+}
+
+void Parser_Xor_expr(Parser* pparser )
+{
+	if (ParserSet_First(&(pparser->theParserSet), bit_and_expr, pparser->theNextToken.theType )){
+		Parser_Bit_and_expr(pparser );
+		Parser_Xor_expr2(pparser );
+	}
+	else Parser_Error(pparser, xor_expr );
+}
+
+void Parser_Xor_expr2(Parser* pparser )
+{
+	if (Parser_Check(pparser, TOKEN_XOR )){
+		Parser_Match(pparser);
+		Parser_Bit_and_expr(pparser );
+		Parser_AddInstructionViaToken(pparser, XOR, (Token*)NULL, NULL );
+		Parser_Xor_expr2( pparser);
+	}
+	else if (ParserSet_Follow(&(pparser->theParserSet), xor_expr2, pparser->theNextToken.theType )){}
+	else Parser_Error(pparser, xor_expr2 );
+}
+
+void Parser_Bit_and_expr(Parser* pparser )
+{
+	if (ParserSet_First(&(pparser->theParserSet), equal_expr, pparser->theNextToken.theType )){
+		Parser_Equal_expr(pparser );
+		Parser_Bit_and_expr2(pparser );
+	}
+	else Parser_Error(pparser, bit_and_expr );
+}
+
+void Parser_Bit_and_expr2(Parser* pparser )
+{
+	if (Parser_Check(pparser, TOKEN_BITWISE_AND )){
+		Parser_Match(pparser);
+		Parser_Equal_expr(pparser );
+		Parser_AddInstructionViaToken(pparser, BIT_AND, (Token*)NULL, NULL );
+		Parser_Bit_and_expr2( pparser);
+	}
+	else if (ParserSet_Follow(&(pparser->theParserSet), bit_and_expr2, pparser->theNextToken.theType )){}
+	else Parser_Error(pparser, bit_and_expr2 );
 }
 
 OpCode Parser_Eq_op(Parser* pparser )

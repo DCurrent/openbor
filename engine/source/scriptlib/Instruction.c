@@ -251,6 +251,15 @@ void Instruction_ToString(Instruction* pins, LPSTR strRep)
 	case AND:
 	   strcpy( strRep, "AND " );
 	   break;
+	case BIT_OR:
+	   strcpy( strRep, "BIT_OR " );
+	   break;
+	case XOR:
+	   strcpy( strRep, "XOR " );
+	   break;
+	case BIT_AND:
+	   strcpy( strRep, "BIT_AND " );
+	   break;
 	case NOOP:
 	   strcpy( strRep, "NOOP " );
 	   break;
