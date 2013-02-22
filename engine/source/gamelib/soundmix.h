@@ -23,12 +23,15 @@ int sound_start_playback(int bits, int frequency);
 void sound_exit();
 int sound_init(int channels);
 
+extern int sample_play_id;
 
 // Returns interval in milliseconds
 u32 sound_getinterval();
 int sound_load_sample(char *filename, char *packfilename, int iLog);
+int sound_reload_sample(int index);
 void sound_unload_sample(int index);
 void sound_unload_all_samples();
+int sound_query_channel(int playid);
 int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed);
 int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed);
 void sound_stop_sample(int channel);

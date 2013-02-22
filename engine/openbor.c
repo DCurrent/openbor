@@ -785,7 +785,7 @@ int buffer_append(char** buffer, const char* str, size_t n, size_t* bufferlen, s
 	if(appendlen>n) appendlen = n;
 	if(appendlen+*len+1>*bufferlen)
 	{
-		printf("*Debug* reallocating buffer...\n");
+		//printf("*Debug* reallocating buffer...\n");
 		*buffer = realloc(*buffer, *bufferlen=appendlen+*len+1024);
 		if(*buffer==NULL) shutdown(1, "Unalbe to resize buffer.\n");
 	}
@@ -926,6 +926,9 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)(hallOfFame);
 		break;
+	case _sv_sample_play_id:
+		ScriptVariant_ChangeType(var, VT_INTEGER);
+		var->lVal = (LONG)(sample_play_id);
 	case _sv_effectvol:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)savedata.effectvol;
@@ -3655,6 +3658,12 @@ void prepare_sprite_map(size_t size)
 	}
 }
 
+void cachesound(int index, int load) {
+	if(index<0) return;
+	if(load) sound_reload_sample(index);
+	else sound_unload_sample(index);
+}
+
 void cachesprite(int index, int load){
 	if(sprite_map && index>=0 && index<sprites_loaded){
 		if(!load && sprite_map[index].node->sprite){
@@ -4117,6 +4126,7 @@ void cache_model_sprites(s_model* m, int ld){
 	cachesprite(m->icon.mpmed, ld);
 	cachesprite(m->icon.pain, ld);
 	cachesprite(m->icon.weapon, ld);
+	cachesound(m->diesound, ld);
 	for(i=0; i<MAX_PLAYERS; i++)
 		cachesprite(m->parrow[i][0], ld);
 
@@ -4126,6 +4136,11 @@ void cache_model_sprites(s_model* m, int ld){
 		if(anim){
 			for(f=0;f<anim->numframes;f++){
 				cachesprite(anim->sprite[f], ld);
+				cachesound(anim->soundtoplay[f], ld);
+				if(anim->attacks&& anim->attacks[f]){
+					cachesound(anim->attacks[f]->hitsound, ld);
+					cachesound(anim->attacks[f]->blocksound, ld);
+				}
 			}
 		}
 	}
@@ -5742,7 +5757,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->throwframewait = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_DIESOUND:
-					newchar->diesound = sound_load_sample(GET_ARG(1), packfile, 0);
+					newchar->diesound = sound_load_sample(GET_ARG(1), packfile, 1);
 					break;
 				case CMD_MODEL_ICON:
 					value = GET_ARG(1);
@@ -6928,11 +6943,11 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					}
 					break;
 				case CMD_MODEL_SOUND:
-					soundtoplay = sound_load_sample(GET_ARG(1), packfile, 0);
+					soundtoplay = sound_load_sample(GET_ARG(1), packfile, 1);
 					break;
 				case CMD_MODEL_HITFX:
 					if(stricmp(GET_ARG(1),"none")==0) attack.hitsound=-1;
-					else attack.hitsound = sound_load_sample(GET_ARG(1), packfile, 0);
+					else attack.hitsound = sound_load_sample(GET_ARG(1), packfile, 1);
 					break;
 				case CMD_MODEL_HITFLASH:
 					value = GET_ARG(1);
@@ -6945,7 +6960,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					else attack.blockflash = get_cached_model_index(value);
 					break;
 				case CMD_MODEL_BLOCKFX:
-					attack.blocksound = sound_load_sample(GET_ARG(1), packfile, 0);
+					attack.blocksound = sound_load_sample(GET_ARG(1), packfile, 1);
 					break;
 				case CMD_MODEL_FASTATTACK:
 					if(GET_INT_ARG(1))
@@ -21550,8 +21565,6 @@ int playgif(char *filename, int x, int y, int noskip){
 		tname[strlen(tname)-5] = 'b';
 		if(testpackfile(tname, packfile)<0) isRGB = 0;
 	}
-
-
 
 	background = gifbuffer[0] = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
 	clearscreen(background);

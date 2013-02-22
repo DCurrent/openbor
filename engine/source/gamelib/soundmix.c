@@ -35,15 +35,10 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
-#include "utils.h"
-#include "stristr.h"
-#include "adpcm.h"
-#include "borendian.h"
-#include "sblaster.h"
-#include "soundmix.h"
-#include "packfile.h"
-
+/*
+Caution: move vorbis headers here otherwise the structs will
+ get poisoned by #pragma in other header files, i.e. list.h
+*/
 #ifdef DC
 #include <ivorbisfile.h>
 #elif TREMOR
@@ -51,6 +46,10 @@
 #else
 #include <vorbis/vorbisfile.h>
 #endif
+#include "openbor.h"
+#include "adpcm.h"
+#include "borendian.h"
+
 
 #if LINUX || GP2X || OPENDINGUX || SYMBIAN
 #define stricmp strcasecmp
@@ -59,7 +58,7 @@
 #define		AUDIOCIDE_VERSION	"2.00"
 #define		MIXSHIFT		     3	    // 2 should be OK
 #define		MAXVOLUME		     64	    // 64 for backw. compat.
-#define		MAX_SAMPLES		     1024	// Should be well enough
+//#define		MAX_SAMPLES		     1024	// Should be well enough
 #define		MAX_CHANNELS	     64	    // Should be well enough
 
 // Hardware settings for SoundBlaster (change only if latency is too big)
@@ -89,16 +88,11 @@
 #endif
 
 typedef struct{
-	int           index;
-	char		  *filename;
-}s_soundcache;
-s_soundcache soundcache[MAX_SAMPLES];
-
-typedef struct{
 	int            active;		 // 1 = play, 2 = loop
 	int				paused;
 	int            samplenum;	 // Index of sound playing
 	unsigned int   priority;	 // Used for SFX
+	int				playid;
 	int            volume[2];	 // Stereo :)
 	int            channels;
 	unsigned int   fp_samplepos; // Position (fixed-point)
@@ -114,6 +108,12 @@ typedef struct{
 }samplestruct;
 
 typedef struct{
+	samplestruct  sample;
+	int index;
+	char *filename;
+}s_soundcache;
+
+typedef struct{
 	int            active;
 	int            paused;
 	short *		   buf[MUSIC_NUM_BUFFERS];
@@ -125,9 +125,13 @@ typedef struct{
 	int            channels;
 }musicchannelstruct;
 
+
+static List samplelist;
+static s_soundcache *soundcache = NULL;
+static int sound_cached = 0;
+int sample_play_id = 0;
 static channelstruct vchannel[MAX_CHANNELS];
 static musicchannelstruct musicchannel;
-static samplestruct sampledata[MAX_SAMPLES];
 static s32 *mixbuf = NULL;
 static int playbits;
 static int playfrequency;
@@ -280,67 +284,75 @@ static int loadwave(char *filename, char *packname, samplestruct *buf, unsigned 
 	return maxsize;
 }
 
-void sound_free_sample(int which){
-	if(!mixing_inited) return;
-	if(which<0 || which>=MAX_SAMPLES) return;
-	if(sampledata[which].sampleptr != NULL){
-		free(sampledata[which].sampleptr);
-		sampledata[which].sampleptr = NULL;
-		memset(&sampledata[which], 0, sizeof(samplestruct));
+int sound_reload_sample(int index) {
+	if(!mixing_inited) return 0;
+	if(index<0 || index>=sound_cached) return 0;
+	if(!soundcache[index].sample.sampleptr) {
+		//printf("packfile: '%s'\n", packfile);
+		return loadwave(soundcache[index].filename, packfile, &(soundcache[index].sample), MAX_SOUND_LEN);
 	}
+	else return 1;
 }
 
-// Returns index of sample, or -1 if not loaded
-int sound_alloc_sample(char *filename, char *packfilename){
-	int i;
-	if(!mixing_inited) return -1;
-	// Search for available slot to store sample data
-	for(i=0; i<MAX_SAMPLES; i++) if(sampledata[i].sampleptr==NULL) break;
-	if(i>=MAX_SAMPLES) return -1;
-	memset(&sampledata[i], 0, sizeof(samplestruct));
-	if(!loadwave(filename, packfilename, &sampledata[i], MAX_SOUND_LEN)) return -1;
-	return i;
-}
 
 // Load a sound or return index
 int sound_load_sample(char *filename, char *packfilename, int iLog){
-	int i, len;
-	for(i=0; i<=MAX_SAMPLES; i++){
-		if(i == MAX_SAMPLES) return -1;
-		if(soundcache[i].filename == NULL) break;
-		if(stricmp(filename, soundcache[i].filename)==0) return soundcache[i].index;
-	}
-	soundcache[i].index = sound_alloc_sample(filename, packfilename);
-	if(soundcache[i].index == -1){
-		if(!iLog)
-		{
-			writeToLogFile("\nsound_load_sample: Failed to load: %s\n", filename);
+	s_soundcache* cache;
+	samplestruct sample;
+	static char convcache[256];
+	if(!mixing_inited) return -1;
+	/////////////////////////////
+	strcpy(convcache, filename);
+	lc(convcache, strlen(convcache));
+	if(List_FindByName(&samplelist, convcache)) {
+		cache=&soundcache[(int)List_Retrieve(&samplelist)];
+		if(!cache->sample.sampleptr) {
+			if(!sound_reload_sample(cache->index) && iLog)
+				printf("sound_load_sample can't restore sampleptr from file '%s'!\n", filename);
 		}
+		return cache->index;
+	}
+
+	memset(&sample,0,sizeof(sample));
+	if(!loadwave(filename,packfilename, &sample, MAX_SOUND_LEN)) {
+		if(iLog) printf("sound_load_sample can't load sample from file '%s'!\n", filename);
 		return -1;
 	}
-	len = strlen(filename);
-	soundcache[i].filename = malloc(len + 1);
-	strcpy(soundcache[i].filename, filename);
-	soundcache[i].filename[len] = 0;
-	return soundcache[i].index;
+
+	__realloc(soundcache, sound_cached);
+	soundcache[sound_cached].sample = sample;
+
+	List_GotoLast(&samplelist);
+	List_InsertAfter(&samplelist, (void*)sound_cached, convcache);
+	soundcache[sound_cached].index=sound_cached;
+	soundcache[sound_cached].filename=List_GetName(&samplelist);
+
+	sound_cached++;
+	return sound_cached-1;
+
 }
 
 // Changed to conserve memory: added this function
 void sound_unload_sample(int index){
-	if(index<0 || index>=MAX_SAMPLES) return;
-	if(soundcache[index].filename != NULL){
-		soundcache[index].index = -1;
-		free(soundcache[index].filename);
-		soundcache[index].filename = NULL;
+	if(!mixing_inited) return;
+	if(index<0 || index>=sound_cached) return;
+	if(soundcache[index].sample.sampleptr != NULL){
+		free(soundcache[index].sample.sampleptr);
+		soundcache[index].sample.sampleptr = NULL;
+		memset(&soundcache[index].sample, 0, sizeof(samplestruct));
 	}
-	sound_free_sample(index);
 }
 
 void sound_unload_all_samples(){
 	int i;
-	for(i=0;i<MAX_SAMPLES;i++){
+	if(!soundcache) return;
+	for(i=0;i<sound_cached;i++){
 		sound_unload_sample(i);
 	}
+	List_Clear(&samplelist);
+	free(soundcache);
+	soundcache = NULL;
+	sound_cached = 0;
 }
 
 #ifndef DC
@@ -474,16 +486,20 @@ static void mixaudio(unsigned int todo){
 		if(vchannel[chan].active && !vchannel[chan].paused){
 			unsigned modlen;
 			snum = vchannel[chan].samplenum;
-			modlen = sampledata[snum].soundlen;
-			fp_len = INT_TO_FIX(sampledata[snum].soundlen);
+			if(!soundcache[snum].sample.sampleptr) {
+				vchannel[chan].active = 0;
+				continue;
+			}
+			modlen = soundcache[snum].sample.soundlen;
+			fp_len = INT_TO_FIX(soundcache[snum].sample.soundlen);
 			fp_pos = vchannel[chan].fp_samplepos;
 			fp_period = vchannel[chan].fp_period;
 			lvolume = vchannel[chan].volume[0];
 			rvolume = vchannel[chan].volume[1];
 			if(fp_len < 1) fp_len = 1;
 			if(modlen < 1) modlen = 1;
-			if(sampledata[snum].bits==8){
-				sptr8 = sampledata[snum].sampleptr;
+			if(soundcache[snum].sample.bits==8){
+				sptr8 = soundcache[snum].sample.sampleptr;
 				for(i=0; i<(int)todo;){
 					lmusic = rmusic = sptr8[FIX_TO_INT(fp_pos)];
 					mixbuf[i++] += ((lmusic<<8) * lvolume / MAXVOLUME) - 0x8000;
@@ -502,8 +518,8 @@ static void mixaudio(unsigned int todo){
 					}
 				}
 			}
-			else if(sampledata[snum].bits==16){
-				sptr16 = sampledata[snum].sampleptr;
+			else if(soundcache[snum].sample.bits==16){
+				sptr16 = soundcache[snum].sample.sampleptr;
 				for(i=0; i<(int)todo;){
 					lmusic = rmusic = sptr16[FIX_TO_INT(fp_pos)];
 					mixbuf[i++] += (lmusic * lvolume / MAXVOLUME);
@@ -589,10 +605,11 @@ int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvo
 	unsigned int prio_low;
 	int channel;
 
-	if(speed<1) speed = 100;
 	if(!mixing_inited) return -1;
-	if(samplenum<0 || samplenum>=MAX_SAMPLES) return -1;
-	if(!sampledata[samplenum].sampleptr) return -1;
+	if(samplenum<0 || samplenum>=sound_cached) return -1;
+	if(speed<1) speed = 100;
+	if(!soundcache[samplenum].sample.sampleptr && 
+	   !sound_reload_sample(samplenum)) return -1;
 
 	// Try to find unused SFX channel
 	channel = -1;
@@ -618,14 +635,15 @@ int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvo
 
 	vchannel[channel].samplenum = samplenum;
 	// Prevent samples from being played at EXACT same point
-	vchannel[channel].fp_samplepos = INT_TO_FIX((channel*4)%sampledata[samplenum].soundlen);
-	vchannel[channel].fp_period = (INT_TO_FIX(1) * speed / 100) * sampledata[samplenum].frequency / playfrequency;
+	vchannel[channel].fp_samplepos = INT_TO_FIX((channel*4)%soundcache[samplenum].sample.soundlen);
+	vchannel[channel].fp_period = (INT_TO_FIX(1) * speed / 100) * soundcache[samplenum].sample.frequency / playfrequency;
 	vchannel[channel].volume[0] = lvolume;
 	vchannel[channel].volume[1] = rvolume;
 	vchannel[channel].priority = priority;
-	vchannel[channel].channels = sampledata[samplenum].channels;
+	vchannel[channel].channels = soundcache[samplenum].sample.channels;
 	vchannel[channel].active = CHANNEL_PLAYING;
 	vchannel[channel].paused = 0;
+	vchannel[channel].playid = ++sample_play_id;
 
 	return channel;
 }
@@ -634,6 +652,17 @@ int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvo
 	int ch = sound_play_sample(samplenum, priority, lvolume, rvolume, speed);
 	if(ch>=0) vchannel[ch].active = CHANNEL_LOOPING;
 	return ch;
+}
+
+int sound_query_channel(int playid)
+{
+	int i;
+	for(i=0; i<max_channels; i++){
+		if(vchannel[i].playid==playid && vchannel[i].active){
+			return i;
+		}
+	}
+	return -1;
 }
 
 void sound_stop_sample(int channel){
@@ -1001,7 +1030,6 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 #endif
 		goto error_exit;
 	}
-
 	// Can I play it?
 	stream_info = ov_info(oggfile, -1);
 	if((stream_info->channels!=1 && stream_info->channels!=2) ||
@@ -1038,6 +1066,9 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
 	loop_offset = music_offset;
 	music_type = 1;
 
+#ifdef VERBOSE
+	printf("ogg is opened\n");
+#endif
 	return 1;
 
 	error_exit:
@@ -1299,6 +1330,7 @@ void sound_exit(){
 // Find and initialize SoundBlaster, allocate memory, initialize tables...
 int sound_init(int channels){
 	int i;
+
 	if(channels < 2) channels = 2;
 	if(channels > MAX_CHANNELS) channels = MAX_CHANNELS;
 	sound_exit();
@@ -1322,9 +1354,9 @@ int sound_init(int channels){
 		memset(&vchannel[i], 0, sizeof(channelstruct));
 	}
 
-	for(i=0; i<MAX_SAMPLES; i++) sampledata[i].sampleptr = NULL;
 	mixing_active = 0;
 	mixing_inited = 1;
+	List_Init(&samplelist);
 
 	return 1;
 }

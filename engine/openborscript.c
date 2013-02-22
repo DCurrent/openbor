@@ -577,6 +577,8 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_setmusicvolume)) return "setmusicvolume";
 	else if (functionRef==((void*)openbor_setmusictempo)) return "setmusictempo";
 	else if (functionRef==((void*)openbor_pausemusic)) return "pausemusic";
+	else if (functionRef==((void*)openbor_querychannel)) return "querychannel";
+	else if (functionRef==((void*)openbor_stopchannel)) return "stopchannel";
 	else if (functionRef==((void*)openbor_playsample)) return "playsample";
 	else if (functionRef==((void*)openbor_loadsample)) return "loadsample";
 	else if (functionRef==((void*)openbor_unloadsample)) return "unloadsample";
@@ -1086,6 +1088,10 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_pausemusic, "pausemusic");
 	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_querychannel, "querychannel");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_stopchannel, "stopchannel");
+	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_playsample, "playsample");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_loadsample, "loadsample");
@@ -1511,6 +1517,7 @@ static const char* svlist[] = {
 "player4",
 "player_max_z",
 "player_min_z",
+"sample_play_id",
 "scrollmaxx",
 "scrollmaxz",
 "scrollminx",
@@ -9130,29 +9137,51 @@ HRESULT openbor_pausemusic(ScriptVariant** varlist , ScriptVariant** pretvar, in
 	return S_OK;
 }
 
+HRESULT openbor_querychannel(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG ltemp;
+	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
+		goto query_error;
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = sound_query_channel((int)ltemp);
+
+query_error:
+	*pretvar = NULL;
+	return E_FAIL;
+}
+
+
+HRESULT openbor_stopchannel(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG ltemp;
+	*pretvar = NULL;
+	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
+		goto sc_error;
+	sound_stop_sample((int)ltemp);
+
+sc_error:
+	return E_FAIL;
+}
+
 //playsample(id, priority, lvolume, rvolume, speed, loop)
 HRESULT openbor_playsample(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	int i;
+	int i, result;
 	LONG value[6] = {-1, 0, savedata.effectvol, savedata.effectvol, 100, 0};
 
-	*pretvar = NULL;
 	for(i=0; i<6 && i<paramCount; i++)
 	{
 		if(FAILED(ScriptVariant_IntegerValue(varlist[i], value+i)))
 			goto playsample_error;
 	}
-	if((int)value[0] < 0)
-	{
-		printf("Invalid Id for playsample(id=%d, priority=%d, lvolume=%d, rvolume=%d, speed=%d, loop=%d)\n", (int)value[0], (unsigned int)value[1], (int)value[2], (int)value[3], (unsigned int)value[4], (int)value[5]);
-		return E_FAIL;
-	}
-	if((int)value[5]) sound_loop_sample((int)value[0], (unsigned int)value[1], (int)value[2], (int)value[3], (unsigned int)value[4]);
-	else sound_play_sample((int)value[0], (unsigned int)value[1], (int)value[2], (int)value[3], (unsigned int)value[4]);
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	if((int)value[5]) result = sound_loop_sample((int)value[0], (unsigned int)value[1], (int)value[2], (int)value[3], (unsigned int)value[4]);
+	else result = sound_play_sample((int)value[0], (unsigned int)value[1], (int)value[2], (int)value[3], (unsigned int)value[4]);
+	(*pretvar)->lVal = (LONG)result;
 	return S_OK;
 
 playsample_error:
-
+	*pretvar = NULL;
 	printf("Function requires 6 integer values: playsample(int id, unsigned int priority, int lvolume, int rvolume, unsigned int speed, int loop)\n");
 	return E_FAIL;
 }
