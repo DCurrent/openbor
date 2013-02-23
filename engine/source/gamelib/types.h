@@ -244,6 +244,7 @@ typedef struct
 	int cliph;
 	water_transform water;
 }s_drawmethod;
+extern const s_drawmethod plainmethod;
 void drawmethod_global_init(s_drawmethod* drawmethod);
 
 typedef enum 

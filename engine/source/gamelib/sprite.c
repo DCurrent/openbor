@@ -214,10 +214,10 @@ void putsprite_8(
   unsigned char *dest;
   // Get screen size
   int screenwidth = screen->width;
-  int xmin=useclip?clipx1:0,
-	  xmax=useclip?clipx2:screen->width,
-	  ymin=useclip?clipy1:0,
-	  ymax=useclip?clipy2:screen->height;
+  int xmin=useclip?MAX(clipx1,0):0,
+	  xmax=useclip?MIN(clipx2,screen->width):screen->width,
+	  ymin=useclip?MAX(clipy1,0):0,
+	  ymax=useclip?MIN(clipy2,screen->height):screen->height;
   // Adjust coords for centering
   if(is_flip) x += sprite->centerx;
   else x -= sprite->centerx;
