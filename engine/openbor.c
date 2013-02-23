@@ -4504,6 +4504,559 @@ char *get_cached_model_path(char * name)
 
 static void _readbarstatus(char*, s_barstatus*);
 
+//move here to ease animation name to id logic
+static int translate_ani_id(const char* value, s_model* newchar, s_anim* newanim, s_attack* attack)
+{
+	int ani_id = -1, tempInt;
+	//those are dummy values to simplify code
+	static s_model mdl;
+	static s_anim ani;
+	static s_attack atk;
+	if(!newchar) newchar = &mdl;
+	if(!newanim) newanim = &ani;
+	if(!attack) attack = &atk;
+
+	if(starts_with_num(value, "idle")){
+		get_tail_number(tempInt, value, "idle");
+		ani_id = animidles[tempInt-1];
+	}
+	else if(stricmp(value, "waiting")==0){
+		ani_id = ANI_SELECT;
+	}
+	else if(starts_with_num(value, "walk")){
+		get_tail_number(tempInt, value, "walk");
+		ani_id = animwalks[tempInt-1];
+		newanim->sync = ANI_WALK;
+
+	}
+	else if(stricmp(value, "sleep")==0){
+		ani_id = ANI_SLEEP;
+	}
+	else if(stricmp(value, "run")==0){
+		ani_id = ANI_RUN;
+	}
+	else if(starts_with_num(value, "up")){
+		get_tail_number(tempInt, value, "up");
+		ani_id = animups[tempInt-1];
+		newanim->sync = ANI_WALK;
+	}
+	else if(starts_with_num(value, "down")){
+		get_tail_number(tempInt, value, "down");
+		ani_id = animdowns[tempInt-1];
+		newanim->sync = ANI_WALK;
+	}
+	else if(starts_with_num(value, "backwalk")){
+		get_tail_number(tempInt, value, "backwalk");
+		ani_id = animbackwalks[tempInt-1];
+		newanim->sync = ANI_WALK;
+	}
+	else if(stricmp(value, "jump")==0){
+		ani_id = ANI_JUMP;
+		newanim->range.xmin = 50;    // Used for enemies that jump on walls
+		newanim->range.xmax = 60;    // Used for enemies that jump on walls
+	}
+	else if(stricmp(value, "duck")==0){
+		ani_id = ANI_DUCK;
+	}
+	else if(stricmp(value, "land")==0){
+		ani_id = ANI_LAND;
+	}
+	else if(starts_with_num(value, "pain")){
+		get_tail_number(tempInt, value, "pain");
+		if(tempInt==1){
+			ani_id = ANI_PAIN;
+		}
+		else if(tempInt==2){
+			ani_id = ANI_PAIN2;
+		}
+		else if(tempInt==3){
+			ani_id = ANI_PAIN3;
+		}
+		else if(tempInt==4){
+			ani_id = ANI_PAIN4;
+		}
+		else if(tempInt==5){
+			ani_id = ANI_PAIN5;
+		}
+		else if(tempInt==6){
+			ani_id = ANI_PAIN6;
+		}
+		else if(tempInt==7){
+			ani_id = ANI_PAIN7;
+		}
+		else if(tempInt==8){
+			ani_id = ANI_PAIN8;
+		}
+		else if(tempInt==9){
+			ani_id = ANI_PAIN9;
+		}
+		else if(tempInt==10){
+			ani_id = ANI_PAIN10;
+		}
+		else{
+			if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+			ani_id = animpains[tempInt+STA_ATKS-1];
+		}
+	}
+	else if(stricmp(value, "spain")==0){    // If shock attacks don't knock opponent down, play this
+		ani_id = ANI_SHOCKPAIN;
+	}
+	else if(stricmp(value, "bpain")==0){    // If burn attacks don't knock opponent down, play this
+		ani_id = ANI_BURNPAIN;
+	}
+	else if(starts_with_num(value, "fall")){
+		get_tail_number(tempInt, value, "fall");
+		if(tempInt==1){
+			ani_id = ANI_FALL;
+		}
+		else if(tempInt==2){
+			ani_id = ANI_FALL2;
+		}
+		else if(tempInt==3){
+			ani_id = ANI_FALL3;
+		}
+		else if(tempInt==4){
+			ani_id = ANI_FALL4;
+		}
+		else if(tempInt==5){
+			ani_id = ANI_FALL5;
+		}
+		else if(tempInt==6){
+			ani_id = ANI_FALL6;
+		}
+		else if(tempInt==7){
+			ani_id = ANI_FALL7;
+		}
+		else if(tempInt==8){
+			ani_id = ANI_FALL8;
+		}
+		else if(tempInt==9){
+			ani_id = ANI_FALL9;
+		}
+		else if(tempInt==10){
+			ani_id = ANI_FALL10;
+		}
+		else{
+			if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+			ani_id = animfalls[tempInt+STA_ATKS-1];
+		}
+		newanim->bounce = 4;
+	}
+	else if(stricmp(value, "shock")==0){    // If shock attacks do knock opponent down, play this
+		ani_id = ANI_SHOCK;
+		newanim->bounce = 4;
+	}
+	else if(stricmp(value, "burn")==0){    // If burn attacks do knock opponent down, play this
+		ani_id = ANI_BURN;
+		newanim->bounce = 4;
+	}
+	else if(starts_with_num(value, "death")){
+		get_tail_number(tempInt, value, "death");
+		if(tempInt==1){
+			ani_id = ANI_DIE;
+		}
+		else if(tempInt==2){
+			ani_id = ANI_DIE2;
+		}
+		else if(tempInt==3){
+			ani_id = ANI_DIE3;
+		}
+		else if(tempInt==4){
+			ani_id = ANI_DIE4;
+		}
+		else if(tempInt==5){
+			ani_id = ANI_DIE5;
+		}
+		else if(tempInt==6){
+			ani_id = ANI_DIE6;
+		}
+		else if(tempInt==7){
+			ani_id = ANI_DIE7;
+		}
+		else if(tempInt==8){
+			ani_id = ANI_DIE8;
+		}
+		else if(tempInt==9){
+			ani_id = ANI_DIE9;
+		}
+		else if(tempInt==10){
+			ani_id = ANI_DIE10;
+		}
+		else{
+			if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+			ani_id = animdies[tempInt+STA_ATKS-1];
+		}
+	}
+	else if(stricmp(value, "sdie")==0){
+		ani_id = ANI_SHOCKDIE;
+	}
+	else if(stricmp(value, "bdie")==0){
+		ani_id = ANI_BURNDIE;
+	}
+	else if(stricmp(value, "chipdeath")==0){
+		ani_id = ANI_CHIPDEATH;
+	}
+	else if(stricmp(value, "guardbreak")==0){
+		ani_id = ANI_GUARDBREAK;
+	}
+	else if(stricmp(value, "riseb")==0){
+		ani_id = ANI_RISEB;
+	}
+	else if(stricmp(value, "rises")==0){
+		ani_id = ANI_RISES;
+	}
+	else if(starts_with_num(value, "rise")){
+		get_tail_number(tempInt, value, "rise");
+		if(tempInt==1){
+			ani_id = ANI_RISE;
+		}
+		else if(tempInt==2){
+			ani_id = ANI_RISE2;
+		}
+		else if(tempInt==3){
+			ani_id = ANI_RISE3;
+		}
+		else if(tempInt==4){
+			ani_id = ANI_RISE4;
+		}
+		else if(tempInt==5){
+			ani_id = ANI_RISE5;
+		}
+		else if(tempInt==6){
+			ani_id = ANI_RISE6;
+		}
+		else if(tempInt==7){
+			ani_id = ANI_RISE7;
+		}
+		else if(tempInt==8){
+			ani_id = ANI_RISE8;
+		}
+		else if(tempInt==9){
+			ani_id = ANI_RISE9;
+		}
+		else if(tempInt==10){
+			ani_id = ANI_RISE10;
+		}
+		else{
+			if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+			ani_id = animrises[tempInt+STA_ATKS-1];
+		}
+	}
+	else if(stricmp(value, "riseattackb")==0){
+		ani_id = ANI_RISEATTACKB;
+	}
+	else if(stricmp(value, "riseattacks")==0){
+		ani_id = ANI_RISEATTACKS;
+	}
+	else if(starts_with_num(value, "riseattack")){
+		get_tail_number(tempInt, value, "riseattack");
+		if(tempInt==1){
+			ani_id = ANI_RISEATTACK;
+		}
+		else if(tempInt==2){
+			ani_id = ANI_RISEATTACK2;
+		}
+		else if(tempInt==3){
+			ani_id = ANI_RISEATTACK3;
+		}
+		else if(tempInt==4){
+			ani_id = ANI_RISEATTACK4;
+		}
+		else if(tempInt==6){
+			ani_id = ANI_RISEATTACK5;
+		}
+		else if(tempInt==6){
+			ani_id = ANI_RISEATTACK6;
+		}
+		else if(tempInt==7){
+			ani_id = ANI_RISEATTACK7;
+		}
+		else if(tempInt==8){
+			ani_id = ANI_RISEATTACK8;
+		}
+		else if(tempInt==9){
+			ani_id = ANI_RISEATTACK9;
+		}
+		else if(tempInt==10){
+			ani_id = ANI_RISEATTACK10;
+		}
+		else{
+			if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+			ani_id = animriseattacks[tempInt+STA_ATKS-1];
+		}
+	}
+	else if(stricmp(value, "select")==0){
+		ani_id = ANI_PICK;
+	}
+	else if(starts_with_num(value, "attack")){
+		get_tail_number(tempInt, value, "attack");
+		ani_id = animattacks[tempInt-1];
+	}
+	else if(stricmp(value, "throwattack")==0){
+		ani_id = ANI_THROWATTACK;
+	}
+	else if(stricmp(value, "upper")==0){
+		ani_id = ANI_UPPER;
+		attack->counterattack = 100; //default to 100
+		newanim->range.xmin = -10;
+		newanim->range.xmax = 120;
+	}
+	else if(stricmp(value, "cant")==0){
+		ani_id = ANI_CANT;
+	}
+	else if(stricmp(value, "jumpcant")==0){
+		ani_id = ANI_JUMPCANT;
+	}
+	else if(stricmp(value, "charge")==0){
+		ani_id = ANI_CHARGE;
+	}
+	else if(stricmp(value, "faint")==0){
+		ani_id = ANI_FAINT;
+	}
+	else if(stricmp(value, "dodge")==0){
+		ani_id = ANI_DODGE;
+	}
+	else if(stricmp(value, "special")==0 || stricmp(value, "special1")==0){
+		ani_id = ANI_SPECIAL;
+		newanim->energycost.cost = 6;
+	}
+	else if(stricmp(value, "special2")==0){
+		ani_id = ANI_SPECIAL2;
+	}
+	else if(stricmp(value, "special3")==0 || stricmp(value, "jumpspecial")==0){
+		ani_id = ANI_JUMPSPECIAL;
+	}
+	else if(starts_with_num(value, "freespecial")){
+		get_tail_number(tempInt, value, "freespecial");
+		ani_id = animspecials[tempInt-1];
+	}
+	else if(stricmp(value, "jumpattack")==0){
+		ani_id = ANI_JUMPATTACK;
+		if(newchar->jumpheight==4)
+		{
+			newanim->range.xmin = 150;
+			newanim->range.xmax = 200;
+		}
+	}
+	else if(stricmp(value, "jumpattack2")==0){
+		ani_id = ANI_JUMPATTACK2;
+	}
+	else if(stricmp(value, "jumpattack3")==0){
+		ani_id = ANI_JUMPATTACK3;
+	}
+	else if(stricmp(value, "jumpforward")==0){
+		ani_id = ANI_JUMPFORWARD;
+	}
+	else if(stricmp(value, "runjumpattack")==0){
+		ani_id = ANI_RUNJUMPATTACK;
+	}
+	else if(stricmp(value, "runattack")==0){
+		ani_id = ANI_RUNATTACK;    // New attack for when a player is running
+	}
+	else if(stricmp(value, "attackup")==0){
+		ani_id = ANI_ATTACKUP;    // New attack for when a player presses u u
+	}
+	else if(stricmp(value, "attackdown")==0){
+		ani_id = ANI_ATTACKDOWN;    // New attack for when a player presses d d
+	}
+	else if(stricmp(value, "attackforward")==0){
+		ani_id = ANI_ATTACKFORWARD;    // New attack for when a player presses f f
+	}
+	else if(stricmp(value, "attackbackward")==0){
+		ani_id = ANI_ATTACKBACKWARD;    // New attack for when a player presses b a
+	}
+	else if(stricmp(value, "attackboth")==0){    // Attack that is executed by holding down j and pressing a
+		ani_id = ANI_ATTACKBOTH;
+	}
+	else if(stricmp(value, "get")==0){
+		ani_id = ANI_GET;
+	}
+	else if(stricmp(value, "grab")==0){
+		ani_id = ANI_GRAB;
+	}
+	else if(stricmp(value, "grabwalk")==0){
+		ani_id = ANI_GRABWALK;
+		newanim->sync = ANI_GRABWALK;
+	}
+	else if(stricmp(value, "grabwalkup")==0){
+		ani_id = ANI_GRABWALKUP;
+		newanim->sync = ANI_GRABWALK;
+	}
+	else if(stricmp(value, "grabwalkdown")==0){
+		ani_id = ANI_GRABWALKDOWN;
+		newanim->sync = ANI_GRABWALK;
+	}
+	else if(stricmp(value, "grabbackwalk")==0){
+		ani_id = ANI_GRABBACKWALK;
+		newanim->sync = ANI_GRABWALK;
+	}
+	else if(stricmp(value, "grabturn")==0){
+		ani_id = ANI_GRABTURN;
+	}
+	else if(stricmp(value, "grabbed")==0){    // New grabbed animation for when grabbed
+		ani_id = ANI_GRABBED;
+	}
+	else if(stricmp(value, "grabbedwalk")==0){    // New animation for when grabbed and forced to walk
+		ani_id = ANI_GRABBEDWALK;
+		newanim->sync = ANI_GRABBEDWALK;
+	}
+	else if(stricmp(value, "grabbedwalkup")==0){
+		ani_id = ANI_GRABWALKUP;
+		newanim->sync = ANI_GRABBEDWALK;
+	}
+	else if(stricmp(value, "grabbedwalkdown")==0){
+		ani_id = ANI_GRABWALKDOWN;
+		newanim->sync = ANI_GRABBEDWALK;
+	}
+	else if(stricmp(value, "grabbedbackwalk")==0){
+		ani_id = ANI_GRABBEDBACKWALK;
+		newanim->sync = ANI_GRABBEDWALK;
+	}
+	else if(stricmp(value, "grabbedturn")==0){
+		ani_id = ANI_GRABBEDTURN;
+	}
+	else if(stricmp(value, "grabattack")==0){
+		ani_id = ANI_GRABATTACK;
+		newanim->attackone = 1; // default to 1, attack one one opponent
+	}
+	else if(stricmp(value, "grabattack2")==0){
+		ani_id = ANI_GRABATTACK2;
+		newanim->attackone = 1;
+	}
+	else if(stricmp(value, "grabforward")==0){    // New grab attack for when pressing forward attack
+		ani_id = ANI_GRABFORWARD;
+		newanim->attackone = 1;
+	}
+	else if(stricmp(value, "grabforward2")==0){    // New grab attack for when pressing forward attack
+		ani_id = ANI_GRABFORWARD2;
+		newanim->attackone = 1;
+	}
+	else if(stricmp(value, "grabbackward")==0){    // New grab attack for when pressing backward attack
+		ani_id = ANI_GRABBACKWARD;
+		newanim->attackone = 1;
+	}
+	else if(stricmp(value, "grabbackward2")==0){    // New grab attack for when pressing backward attack
+		ani_id = ANI_GRABBACKWARD2;
+		newanim->attackone = 1;
+	}
+	else if(stricmp(value, "grabup")==0){    // New grab attack for when pressing up attack
+		ani_id = ANI_GRABUP;
+		newanim->attackone = 1;
+	}
+	else if(stricmp(value, "grabup2")==0){    // New grab attack for when pressing up attack
+		ani_id = ANI_GRABUP2;
+		newanim->attackone = 1;
+	}
+	else if(stricmp(value, "grabdown")==0){    // New grab attack for when pressing down attack
+		ani_id = ANI_GRABDOWN;
+		newanim->attackone = 1;
+	}
+	else if(stricmp(value, "grabdown2")==0){    // New grab attack for when pressing down attack
+		ani_id = ANI_GRABDOWN2;
+		newanim->attackone = 1;
+	}
+	else if(stricmp(value, "spawn")==0){      //  spawn/respawn works separately now
+		ani_id = ANI_SPAWN;
+	}
+	else if(stricmp(value, "respawn")==0){      //  spawn/respawn works separately now
+		ani_id = ANI_RESPAWN;
+	}
+	else if(stricmp(value, "throw")==0){
+		ani_id = ANI_THROW;
+	}
+	else if(stricmp(value, "block")==0){    // Now enemies can block attacks on occasion
+		ani_id = ANI_BLOCK;
+		newanim->range.xmin = 1;
+		newanim->range.xmax = 100;
+	}
+	else if(starts_with_num(value, "follow")){
+		get_tail_number(tempInt, value, "follow");
+		ani_id = animfollows[tempInt-1];
+	}
+	else if(stricmp(value, "chargeattack")==0){
+		ani_id = ANI_CHARGEATTACK;
+	}
+	else if(stricmp(value, "vault")==0){
+		ani_id = ANI_VAULT;
+	}
+	else if(stricmp(value, "turn")==0){
+		ani_id = ANI_TURN;
+	}
+	else if(stricmp(value, "forwardjump")==0){
+		ani_id = ANI_FORWARDJUMP;
+	}
+	else if(stricmp(value, "runjump")==0){
+		ani_id = ANI_RUNJUMP;
+	}
+	else if(stricmp(value, "jumpland")==0){
+		ani_id = ANI_JUMPLAND;
+	}
+	else if(stricmp(value, "jumpdelay")==0){
+		ani_id = ANI_JUMPDELAY;
+	}
+	else if(stricmp(value, "hitwall")==0){
+		ani_id = ANI_HITWALL;
+	}
+	else if(stricmp(value, "slide")==0){
+		ani_id = ANI_SLIDE;
+	}
+	else if(stricmp(value, "runslide")==0){
+		ani_id = ANI_RUNSLIDE;
+	}
+	else if(stricmp(value, "blockpainb")==0){
+		ani_id = ANI_BLOCKPAINB;
+	}
+	else if(stricmp(value, "blockpains")==0){
+		ani_id = ANI_BLOCKPAINS;
+	}
+	else if(starts_with_num(value, "blockpain")){
+		get_tail_number(tempInt, value, "blockpain");
+		if(tempInt==1){
+			ani_id = ANI_BLOCKPAIN;
+		}
+		else if(tempInt==2){
+			ani_id = ANI_BLOCKPAIN2;
+		}
+		else if(tempInt==3){
+			ani_id = ANI_BLOCKPAIN3;
+		}
+		else if(tempInt==4){
+			ani_id = ANI_BLOCKPAIN4;
+		}
+		else if(tempInt==5){
+			ani_id = ANI_BLOCKPAIN5;
+		}
+		else if(tempInt==6){
+			ani_id = ANI_BLOCKPAIN6;
+		}
+		else if(tempInt==7){
+			ani_id = ANI_BLOCKPAIN7;
+		}
+		else if(tempInt==8){
+			ani_id = ANI_BLOCKPAIN8;
+		}
+		else if(tempInt==9){
+			ani_id = ANI_BLOCKPAIN9;
+		}
+		else if(tempInt==10){
+			ani_id = ANI_BLOCKPAIN10;
+		}
+		else{
+			if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
+			ani_id = animblkpains[tempInt+STA_ATKS-1];
+		}
+	}
+	else if(stricmp(value, "duckattack")==0){
+		ani_id = ANI_DUCKATTACK;
+	}
+	else if(stricmp(value, "walkoff")==0){
+		ani_id = ANI_WALKOFF;
+	}
+	
+	return ani_id;
+
+}
+
 void lcmHandleCommandName(ArgList* arglist, s_model* newchar, int cacheindex) {
 	char* value = GET_ARGP(1);
 	s_model* tempmodel;
@@ -6192,544 +6745,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						newanim->quakeframe.framestart = 0;
 						newanim->sync = -1;
 
-						if(starts_with_num(value, "idle")){
-							get_tail_number(tempInt, value, "idle");
-							ani_id = animidles[tempInt-1];
-						}
-						else if(stricmp(value, "waiting")==0){
-								ani_id = ANI_SELECT;
-						}
-						else if(starts_with_num(value, "walk")){
-							get_tail_number(tempInt, value, "walk");
-							ani_id = animwalks[tempInt-1];
-							newanim->sync = ANI_WALK;
-						}
-						else if(stricmp(value, "sleep")==0){
-							ani_id = ANI_SLEEP;
-						}
-						else if(stricmp(value, "run")==0){
-							ani_id = ANI_RUN;
-						}
-						else if(starts_with_num(value, "up")){
-							get_tail_number(tempInt, value, "up");
-							ani_id = animups[tempInt-1];
-							newanim->sync = ANI_WALK;
-						}
-						else if(starts_with_num(value, "down")){
-							get_tail_number(tempInt, value, "down");
-							ani_id = animdowns[tempInt-1];
-							newanim->sync = ANI_WALK;
-						}
-						else if(starts_with_num(value, "backwalk")){
-							get_tail_number(tempInt, value, "backwalk");
-							ani_id = animbackwalks[tempInt-1];
-							newanim->sync = ANI_WALK;
-						}
-						else if(stricmp(value, "jump")==0){
-							ani_id = ANI_JUMP;
-							newanim->range.xmin = 50;    // Used for enemies that jump on walls
-							newanim->range.xmax = 60;    // Used for enemies that jump on walls
-						}
-						else if(stricmp(value, "duck")==0){
-							ani_id = ANI_DUCK;
-						}
-						else if(stricmp(value, "land")==0){
-							ani_id = ANI_LAND;
-						}
-						else if(starts_with_num(value, "pain")){
-							get_tail_number(tempInt, value, "pain");
-							if(tempInt==1){
-								ani_id = ANI_PAIN;
-							}
-							else if(tempInt==2){
-								ani_id = ANI_PAIN2;
-							}
-							else if(tempInt==3){
-								ani_id = ANI_PAIN3;
-							}
-							else if(tempInt==4){
-								ani_id = ANI_PAIN4;
-							}
-							else if(tempInt==5){
-								ani_id = ANI_PAIN5;
-							}
-							else if(tempInt==6){
-								ani_id = ANI_PAIN6;
-							}
-							else if(tempInt==7){
-								ani_id = ANI_PAIN7;
-							}
-							else if(tempInt==8){
-								ani_id = ANI_PAIN8;
-							}
-							else if(tempInt==9){
-								ani_id = ANI_PAIN9;
-							}
-							else if(tempInt==10){
-								ani_id = ANI_PAIN10;
-							}
-							else{
-								if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-								ani_id = animpains[tempInt+STA_ATKS-1];
-							}
-						}
-						else if(stricmp(value, "spain")==0){    // If shock attacks don't knock opponent down, play this
-							ani_id = ANI_SHOCKPAIN;
-						}
-						else if(stricmp(value, "bpain")==0){    // If burn attacks don't knock opponent down, play this
-							ani_id = ANI_BURNPAIN;
-						}
-						else if(starts_with_num(value, "fall")){
-							get_tail_number(tempInt, value, "fall");
-							if(tempInt==1){
-								ani_id = ANI_FALL;
-							}
-							else if(tempInt==2){
-								ani_id = ANI_FALL2;
-							}
-							else if(tempInt==3){
-								ani_id = ANI_FALL3;
-							}
-							else if(tempInt==4){
-								ani_id = ANI_FALL4;
-							}
-							else if(tempInt==5){
-								ani_id = ANI_FALL5;
-							}
-							else if(tempInt==6){
-								ani_id = ANI_FALL6;
-							}
-							else if(tempInt==7){
-								ani_id = ANI_FALL7;
-							}
-							else if(tempInt==8){
-								ani_id = ANI_FALL8;
-							}
-							else if(tempInt==9){
-								ani_id = ANI_FALL9;
-							}
-							else if(tempInt==10){
-								ani_id = ANI_FALL10;
-							}
-							else{
-								if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-								ani_id = animfalls[tempInt+STA_ATKS-1];
-							}
-							newanim->bounce = 4;
-						}
-						else if(stricmp(value, "shock")==0){    // If shock attacks do knock opponent down, play this
-							ani_id = ANI_SHOCK;
-							newanim->bounce = 4;
-						}
-						else if(stricmp(value, "burn")==0){    // If burn attacks do knock opponent down, play this
-							ani_id = ANI_BURN;
-							newanim->bounce = 4;
-						}
-						else if(starts_with_num(value, "death")){
-							get_tail_number(tempInt, value, "death");
-							if(tempInt==1){
-								ani_id = ANI_DIE;
-							}
-							else if(tempInt==2){
-								ani_id = ANI_DIE2;
-							}
-							else if(tempInt==3){
-								ani_id = ANI_DIE3;
-							}
-							else if(tempInt==4){
-								ani_id = ANI_DIE4;
-							}
-							else if(tempInt==5){
-								ani_id = ANI_DIE5;
-							}
-							else if(tempInt==6){
-								ani_id = ANI_DIE6;
-							}
-							else if(tempInt==7){
-								ani_id = ANI_DIE7;
-							}
-							else if(tempInt==8){
-								ani_id = ANI_DIE8;
-							}
-							else if(tempInt==9){
-								ani_id = ANI_DIE9;
-							}
-							else if(tempInt==10){
-								ani_id = ANI_DIE10;
-							}
-							else{
-								if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-								ani_id = animdies[tempInt+STA_ATKS-1];
-							}
-						}
-						else if(stricmp(value, "sdie")==0){
-							ani_id = ANI_SHOCKDIE;
-						}
-						else if(stricmp(value, "bdie")==0){
-							ani_id = ANI_BURNDIE;
-						}
-						else if(stricmp(value, "chipdeath")==0){
-							ani_id = ANI_CHIPDEATH;
-						}
-						else if(stricmp(value, "guardbreak")==0){
-							ani_id = ANI_GUARDBREAK;
-						}
-						else if(stricmp(value, "riseb")==0){
-							ani_id = ANI_RISEB;
-						}
-
-
-						else if(stricmp(value, "rises")==0){
-							ani_id = ANI_RISES;
-						}
-						else if(starts_with_num(value, "rise")){
-							get_tail_number(tempInt, value, "rise");
-							if(tempInt==1){
-								ani_id = ANI_RISE;
-							}
-							else if(tempInt==2){
-								ani_id = ANI_RISE2;
-							}
-							else if(tempInt==3){
-								ani_id = ANI_RISE3;
-							}
-							else if(tempInt==4){
-								ani_id = ANI_RISE4;
-							}
-							else if(tempInt==5){
-								ani_id = ANI_RISE5;
-							}
-							else if(tempInt==6){
-								ani_id = ANI_RISE6;
-							}
-							else if(tempInt==7){
-								ani_id = ANI_RISE7;
-							}
-							else if(tempInt==8){
-								ani_id = ANI_RISE8;
-							}
-							else if(tempInt==9){
-								ani_id = ANI_RISE9;
-							}
-							else if(tempInt==10){
-								ani_id = ANI_RISE10;
-							}
-							else{
-								if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-								ani_id = animrises[tempInt+STA_ATKS-1];
-							}
-						}
-						else if(stricmp(value, "riseattackb")==0){
-							ani_id = ANI_RISEATTACKB;
-						}
-						else if(stricmp(value, "riseattacks")==0){
-							ani_id = ANI_RISEATTACKS;
-						}
-						else if(starts_with_num(value, "riseattack")){
-							get_tail_number(tempInt, value, "riseattack");
-							if(tempInt==1){
-								ani_id = ANI_RISEATTACK;
-							}
-							else if(tempInt==2){
-								ani_id = ANI_RISEATTACK2;
-							}
-							else if(tempInt==3){
-								ani_id = ANI_RISEATTACK3;
-							}
-							else if(tempInt==4){
-								ani_id = ANI_RISEATTACK4;
-							}
-							else if(tempInt==6){
-								ani_id = ANI_RISEATTACK5;
-							}
-							else if(tempInt==6){
-								ani_id = ANI_RISEATTACK6;
-							}
-							else if(tempInt==7){
-								ani_id = ANI_RISEATTACK7;
-							}
-							else if(tempInt==8){
-								ani_id = ANI_RISEATTACK8;
-							}
-							else if(tempInt==9){
-								ani_id = ANI_RISEATTACK9;
-							}
-							else if(tempInt==10){
-								ani_id = ANI_RISEATTACK10;
-							}
-							else{
-								if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-								ani_id = animriseattacks[tempInt+STA_ATKS-1];
-							}
-						}
-						else if(stricmp(value, "select")==0){
-							ani_id = ANI_PICK;
-						}
-						else if(starts_with_num(value, "attack")){
-							get_tail_number(tempInt, value, "attack");
-							ani_id = animattacks[tempInt-1];
-						}
-						else if(stricmp(value, "throwattack")==0){
-							ani_id = ANI_THROWATTACK;
-						}
-						else if(stricmp(value, "upper")==0){
-							ani_id = ANI_UPPER;
-							attack.counterattack = 100; //default to 100
-							newanim->range.xmin = -10;
-							newanim->range.xmax = 120;
-						}
-						else if(stricmp(value, "cant")==0){
-							ani_id = ANI_CANT;
-						}
-						else if(stricmp(value, "jumpcant")==0){
-							ani_id = ANI_JUMPCANT;
-						}
-						else if(stricmp(value, "charge")==0){
-							ani_id = ANI_CHARGE;
-						}
-						else if(stricmp(value, "faint")==0){
-							ani_id = ANI_FAINT;
-						}
-						else if(stricmp(value, "dodge")==0){
-							ani_id = ANI_DODGE;
-						}
-						else if(stricmp(value, "special")==0 || stricmp(value, "special1")==0){
-							ani_id = ANI_SPECIAL;
-							newanim->energycost.cost = 6;
-						}
-						else if(stricmp(value, "special2")==0){
-							ani_id = ANI_SPECIAL2;
-						}
-						else if(stricmp(value, "special3")==0 || stricmp(value, "jumpspecial")==0){
-							ani_id = ANI_JUMPSPECIAL;
-						}
-						else if(starts_with_num(value, "freespecial")){
-							get_tail_number(tempInt, value, "freespecial");
-							ani_id = animspecials[tempInt-1];
-						}
-						else if(stricmp(value, "jumpattack")==0){
-							ani_id = ANI_JUMPATTACK;
-							if(newchar->jumpheight==4)
-							{
-								newanim->range.xmin = 150;
-								newanim->range.xmax = 200;
-							}
-						}
-						else if(stricmp(value, "jumpattack2")==0){
-							ani_id = ANI_JUMPATTACK2;
-						}
-						else if(stricmp(value, "jumpattack3")==0){
-							ani_id = ANI_JUMPATTACK3;
-						}
-						else if(stricmp(value, "jumpforward")==0){
-							ani_id = ANI_JUMPFORWARD;
-						}
-						else if(stricmp(value, "runjumpattack")==0){
-							ani_id = ANI_RUNJUMPATTACK;
-						}
-						else if(stricmp(value, "runattack")==0){
-							ani_id = ANI_RUNATTACK;    // New attack for when a player is running
-						}
-						else if(stricmp(value, "attackup")==0){
-							ani_id = ANI_ATTACKUP;    // New attack for when a player presses u u
-						}
-						else if(stricmp(value, "attackdown")==0){
-							ani_id = ANI_ATTACKDOWN;    // New attack for when a player presses d d
-						}
-						else if(stricmp(value, "attackforward")==0){
-							ani_id = ANI_ATTACKFORWARD;    // New attack for when a player presses f f
-						}
-						else if(stricmp(value, "attackbackward")==0){
-							ani_id = ANI_ATTACKBACKWARD;    // New attack for when a player presses b a
-						}
-						else if(stricmp(value, "attackboth")==0){    // Attack that is executed by holding down j and pressing a
-							ani_id = ANI_ATTACKBOTH;
-						}
-						else if(stricmp(value, "get")==0){
-							ani_id = ANI_GET;
-						}
-						else if(stricmp(value, "grab")==0){
-							ani_id = ANI_GRAB;
-						}
-						else if(stricmp(value, "grabwalk")==0){
-							ani_id = ANI_GRABWALK;
-							newanim->sync = ANI_GRABWALK;
-						}
-						else if(stricmp(value, "grabwalkup")==0){
-							ani_id = ANI_GRABWALKUP;
-							newanim->sync = ANI_GRABWALK;
-						}
-						else if(stricmp(value, "grabwalkdown")==0){
-							ani_id = ANI_GRABWALKDOWN;
-							newanim->sync = ANI_GRABWALK;
-						}
-						else if(stricmp(value, "grabbackwalk")==0){
-							ani_id = ANI_GRABBACKWALK;
-							newanim->sync = ANI_GRABWALK;
-						}
-						else if(stricmp(value, "grabturn")==0){
-							ani_id = ANI_GRABTURN;
-						}
-						else if(stricmp(value, "grabbed")==0){    // New grabbed animation for when grabbed
-							ani_id = ANI_GRABBED;
-						}
-						else if(stricmp(value, "grabbedwalk")==0){    // New animation for when grabbed and forced to walk
-							ani_id = ANI_GRABBEDWALK;
-							newanim->sync = ANI_GRABBEDWALK;
-						}
-						else if(stricmp(value, "grabbedwalkup")==0){
-							ani_id = ANI_GRABWALKUP;
-							newanim->sync = ANI_GRABBEDWALK;
-						}
-						else if(stricmp(value, "grabbedwalkdown")==0){
-							ani_id = ANI_GRABWALKDOWN;
-							newanim->sync = ANI_GRABBEDWALK;
-						}
-						else if(stricmp(value, "grabbedbackwalk")==0){
-							ani_id = ANI_GRABBEDBACKWALK;
-							newanim->sync = ANI_GRABBEDWALK;
-						}
-						else if(stricmp(value, "grabbedturn")==0){
-							ani_id = ANI_GRABBEDTURN;
-						}
-						else if(stricmp(value, "grabattack")==0){
-							ani_id = ANI_GRABATTACK;
-							newanim->attackone = 1; // default to 1, attack one one opponent
-						}
-						else if(stricmp(value, "grabattack2")==0){
-							ani_id = ANI_GRABATTACK2;
-							newanim->attackone = 1;
-						}
-						else if(stricmp(value, "grabforward")==0){    // New grab attack for when pressing forward attack
-							ani_id = ANI_GRABFORWARD;
-							newanim->attackone = 1;
-						}
-						else if(stricmp(value, "grabforward2")==0){    // New grab attack for when pressing forward attack
-							ani_id = ANI_GRABFORWARD2;
-							newanim->attackone = 1;
-						}
-						else if(stricmp(value, "grabbackward")==0){    // New grab attack for when pressing backward attack
-							ani_id = ANI_GRABBACKWARD;
-							newanim->attackone = 1;
-						}
-						else if(stricmp(value, "grabbackward2")==0){    // New grab attack for when pressing backward attack
-							ani_id = ANI_GRABBACKWARD2;
-							newanim->attackone = 1;
-						}
-						else if(stricmp(value, "grabup")==0){    // New grab attack for when pressing up attack
-							ani_id = ANI_GRABUP;
-							newanim->attackone = 1;
-						}
-						else if(stricmp(value, "grabup2")==0){    // New grab attack for when pressing up attack
-							ani_id = ANI_GRABUP2;
-							newanim->attackone = 1;
-						}
-						else if(stricmp(value, "grabdown")==0){    // New grab attack for when pressing down attack
-							ani_id = ANI_GRABDOWN;
-							newanim->attackone = 1;
-						}
-						else if(stricmp(value, "grabdown2")==0){    // New grab attack for when pressing down attack
-							ani_id = ANI_GRABDOWN2;
-							newanim->attackone = 1;
-						}
-						else if(stricmp(value, "spawn")==0){      //  spawn/respawn works separately now
-							ani_id = ANI_SPAWN;
-						}
-						else if(stricmp(value, "respawn")==0){      //  spawn/respawn works separately now
-							ani_id = ANI_RESPAWN;
-						}
-						else if(stricmp(value, "throw")==0){
-							ani_id = ANI_THROW;
-						}
-						else if(stricmp(value, "block")==0){    // Now enemies can block attacks on occasion
-							ani_id = ANI_BLOCK;
-							newanim->range.xmin = 1;
-							newanim->range.xmax = 100;
-						}
-						else if(starts_with_num(value, "follow")){
-							get_tail_number(tempInt, value, "follow");
-							ani_id = animfollows[tempInt-1];
-						}
-						else if(stricmp(value, "chargeattack")==0){
-							ani_id = ANI_CHARGEATTACK;
-						}
-						else if(stricmp(value, "vault")==0){
-							ani_id = ANI_VAULT;
-						}
-						else if(stricmp(value, "turn")==0){
-							ani_id = ANI_TURN;
-						}
-						else if(stricmp(value, "forwardjump")==0){
-							ani_id = ANI_FORWARDJUMP;
-						}
-						else if(stricmp(value, "runjump")==0){
-							ani_id = ANI_RUNJUMP;
-						}
-						else if(stricmp(value, "jumpland")==0){
-							ani_id = ANI_JUMPLAND;
-						}
-						else if(stricmp(value, "jumpdelay")==0){
-							ani_id = ANI_JUMPDELAY;
-						}
-						else if(stricmp(value, "hitwall")==0){
-							ani_id = ANI_HITWALL;
-						}
-						else if(stricmp(value, "slide")==0){
-							ani_id = ANI_SLIDE;
-						}
-						else if(stricmp(value, "runslide")==0){
-							ani_id = ANI_RUNSLIDE;
-						}
-						else if(stricmp(value, "blockpainb")==0){
-							ani_id = ANI_BLOCKPAINB;
-						}
-						else if(stricmp(value, "blockpains")==0){
-							ani_id = ANI_BLOCKPAINS;
-						}
-						else if(starts_with_num(value, "blockpain")){
-							get_tail_number(tempInt, value, "blockpain");
-							if(tempInt==1){
-								ani_id = ANI_BLOCKPAIN;
-							}
-							else if(tempInt==2){
-								ani_id = ANI_BLOCKPAIN2;
-							}
-							else if(tempInt==3){
-								ani_id = ANI_BLOCKPAIN3;
-							}
-							else if(tempInt==4){
-								ani_id = ANI_BLOCKPAIN4;
-							}
-							else if(tempInt==5){
-								ani_id = ANI_BLOCKPAIN5;
-							}
-							else if(tempInt==6){
-								ani_id = ANI_BLOCKPAIN6;
-							}
-							else if(tempInt==7){
-								ani_id = ANI_BLOCKPAIN7;
-							}
-							else if(tempInt==8){
-								ani_id = ANI_BLOCKPAIN8;
-							}
-							else if(tempInt==9){
-								ani_id = ANI_BLOCKPAIN9;
-							}
-							else if(tempInt==10){
-								ani_id = ANI_BLOCKPAIN10;
-							}
-							else{
-								if(tempInt<MAX_ATKS-STA_ATKS+1) tempInt = MAX_ATKS-STA_ATKS+1;
-								ani_id = animblkpains[tempInt+STA_ATKS-1];
-							}
-						}
-						else if(stricmp(value, "duckattack")==0){
-							ani_id = ANI_DUCKATTACK;
-						}
-						else if(stricmp(value, "walkoff")==0){
-							ani_id = ANI_WALKOFF;
-						}
-						else {
+						if((ani_id=translate_ani_id(value, newchar, newanim, &attack))<0){
 							shutdownmessage = "Invalid animation name!";
 							goto lCleanup;
 						}
@@ -6748,6 +6764,10 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_ANIMHEIGHT:
 					newanim->height = GET_INT_ARG(1);
+					break;
+				case CMD_MODEL_SYNC:
+					//if you want to remove default sync setting for idle or walk, use none
+					newanim->sync = translate_ani_id(GET_ARG(1),NULL,NULL,NULL);
 					break;
 				case CMD_MODEL_DELAY:
 					delay = GET_INT_ARG(1);
