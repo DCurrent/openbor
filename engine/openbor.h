@@ -442,11 +442,6 @@
 #define     SUBJECT_TO_MINZ      32
 #define     SUBJECT_TO_MAXZ      48
 
-#ifndef MAX
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#endif
-
 //macros for drawing menu text, fits different font size
 #ifdef _MSC_VER
 #define _strmidx(f,s, ...) ((videomodes.hRes-font_string_width((f), s, __VA_ARGS__))/2)

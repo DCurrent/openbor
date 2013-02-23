@@ -102,7 +102,6 @@ Script* pcurrentscript = NULL;//used by local script functions
 List theFunctionList;
 static List   scriptheap;
 static s_spawn_entry spawnentry;
-extern const s_drawmethod plainmethod;
 static s_drawmethod drawmethod;
 //fake 3d draw
 static gfx_entry	texture;

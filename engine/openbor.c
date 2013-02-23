@@ -4136,7 +4136,7 @@ void cache_model_sprites(s_model* m, int ld){
 		if(anim){
 			for(f=0;f<anim->numframes;f++){
 				cachesprite(anim->sprite[f], ld);
-				cachesound(anim->soundtoplay[f], ld);
+				if(anim->soundtoplay) cachesound(anim->soundtoplay[f], ld);
 				if(anim->attacks&& anim->attacks[f]){
 					cachesound(anim->attacks[f]->hitsound, ld);
 					cachesound(anim->attacks[f]->blocksound, ld);
@@ -5698,7 +5698,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 	s_defense defense;
 	char* shutdownmessage = NULL;
 
-	s_drawmethod drawmethod;
+	s_drawmethod drawmethod, dm;
 
 	unsigned * mapflag = NULL; // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
@@ -7467,10 +7467,18 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						{
 							shadow_coords[0] = shadow_coords[1] = 0;
 						}
+						
+						if(drawmethod.flag) {
+							dm = drawmethod;
+							if(dm.clipw) {
+								dm.clipx -= offset[0];
+								dm.clipy -= offset[1];
+							}
+						} else dm.flag = 0;
 
 						curframe = addframe(newanim, index, framecount, delay, idle,
 								bbox_con, &attack, move, movez,
-								movea, seta, platform_con, frameshadow, shadow_coords, soundtoplay, &drawmethod);
+								movea, seta, platform_con, frameshadow, shadow_coords, soundtoplay, &dm);
 
 						memset(bbox_con, 0, sizeof(bbox_con));
 						soundtoplay = -1;
@@ -13698,7 +13706,7 @@ void display_ents()
 					else
 						commonmethod = *drawmethod;
 					drawmethod = &commonmethod;
-
+					
 					if(e->modeldata.alpha >=1 && e->modeldata.alpha <= MAX_BLENDINGS)
 					{
 						if(drawmethod->alpha<0)
@@ -13747,6 +13755,12 @@ void display_ents()
 
 					if(!use_mirror || z > MIRROR_Z) // don't display if behind the mirror
 					{
+						//just a simple check, doesn't work with mirror nor gfxshadow
+						if(drawmethod->clipw)
+						{
+							drawmethod->clipx += (int)(e->x - scrx);
+							drawmethod->clipy += (int)(e->z-e->a - scry);
+						}
 						spriteq_add_sprite((int)(e->x - scrx), (int)(e->z-e->a - scry), z, f, drawmethod, sortid);
 					}
 
