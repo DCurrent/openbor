@@ -267,6 +267,7 @@ List* createModelCommandList(void) {
 	LIST_ADD(CMD_MODEL_ANIMATIONSCRIPT, "animationscript");
 	LIST_ADD(CMD_MODEL_KEYSCRIPT, "keyscript");
 	LIST_ADD(CMD_MODEL_ANIM, "anim");
+	LIST_ADD(CMD_MODEL_SYNC, "sync");
 	LIST_ADD(CMD_MODEL_LOOP, "loop");
 	LIST_ADD(CMD_MODEL_ANIMHEIGHT, "animheight");
 	LIST_ADD(CMD_MODEL_DELAY, "delay");
