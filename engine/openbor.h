@@ -442,8 +442,10 @@
 #define     SUBJECT_TO_MINZ      32
 #define     SUBJECT_TO_MAXZ      48
 
-#define     MAX(x, y)            ((x>y)?x:y)
-#define     MIN(x, y)            ((x<y)?x:y)
+#ifndef MAX
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
 
 //macros for drawing menu text, fits different font size
 #ifdef _MSC_VER
