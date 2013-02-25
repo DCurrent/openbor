@@ -10,7 +10,13 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include "openbor.h"
+#include "types.h"
+#include "screen.h"
+#include "loadimg.h"
+#include "bitmap.h"
+#include "sprite.h"
+#include "spriteq.h"
+#include "font.h"
 
 
 s_font** fonts[MAX_FONTS];
@@ -18,8 +24,11 @@ s_font** fonts[MAX_FONTS];
 static char b[1024];
 
 void _font_unload(s_font* font){
-	free(font->token);
-	font->token = NULL;
+	int i;
+	for(i=0; i<256; i++){
+		if(font->token[i] != NULL) free(font->token[i]);
+		font->token[i] = NULL;
+	}
 	free(font);
 }
 
@@ -63,26 +72,31 @@ int _font_load(s_font* font, char *filename, char *packfile){
 	font->height = th = screen->height/16;
 	if(!(bitmap = allocbitmap(tw,th,pixelformat))) goto err;
 
+	if(bitmap->palette && screen->palette)
+		memcpy(bitmap->palette, screen->palette, PAL_BYTES);
+
 	// grab tokens
 	for(y=0; y<16; y++){
 		for(x=0; x<16; x++){
 			getbitmap(x*tw, y*th, tw,th, bitmap, screen);
 			clipbitmap(bitmap, &cx, NULL, &cy, NULL);
-			font->token_width[index] = font->mono?tw:(bitmap->width+(tw/10));
+			if(index>0)  bitmap->palette=NULL;
+			size = fakey_encodesprite(bitmap);
+			font->token[index] = (s_sprite*)malloc(size);
+			if(!font->token[index]){
+				goto err;
+			}
+			encodesprite(-cx,-cy, bitmap, font->token[index]);
+			font->token_width[index] = font->mono?tw:(font->token[index]->width+(tw/10));
 			if(font->token_width[index] <= 1) font->token_width[index] = tw/3;
+			if(index>0)
+			{
+				font->token[index]->palette = font->token[0]->palette ;
+				font->token[index]->pixelformat = screen->pixelformat ;
+			}
 			++index;
 		}
 	}
-
-	freebitmap(bitmap);
-	if(!(bitmap = allocbitmap(screen->width,screen->height,pixelformat))) goto err;
-	getbitmap(0, 0, screen->width,screen->height, bitmap, screen);
-	clipbitmap(bitmap, &cx, NULL, &cy, NULL);
-	if(bitmap->palette && screen->palette)
-		memcpy(bitmap->palette, screen->palette, PAL_BYTES);
-	size = fakey_encodesprite(bitmap);
-	if(!(font->token=malloc(size))) goto err;
-	encodesprite(-cx, -cy, bitmap, font->token);
 
 	rval = 1;
 
@@ -210,9 +224,8 @@ void font_printf(int x, int y, int which, int layeroffset,char *format, ...){
 	char * buf = b, c;
 	va_list arglist;
 	int ox = x;
-	s_drawmethod dm = plainmethod;
 	s_font** sets, *font;
-	int mbs, index, w, lf, id;
+	int mbs, index, w, lf;
 
 	which %= MAX_FONTS;
 
@@ -242,16 +255,8 @@ void font_printf(int x, int y, int which, int layeroffset,char *format, ...){
 				x = ox;
 				y += font->height;
 			} else {
-				id = ((int)(*buf)) & 0xFF;
-				w = font->token_width[id];
-				dm.centerx = (id&0xf)*font->width;
-				dm.centery = (id>>4)*font->height;
-				dm.clipx = x;
-				dm.clipy = y;
-				dm.clipw = font->width;
-				dm.cliph = font->height;
-				//printf("%d %d %d %d %d %d \n", dm.centerx, dm.centery, dm.clipx, dm.clipy, dm.clipw, dm.cliph);
-				spriteq_add_frame(x,y, FONT_LAYER + layeroffset, font->token, &dm, 0);
+				w = font->token_width[((int)(*buf)) & 0xFF];
+				spriteq_add_frame(x,y, FONT_LAYER + layeroffset, font->token[((int)(*buf)) & 0xFF], NULL, 0);
 				x += w;
 			}
 		}
@@ -265,9 +270,8 @@ void screen_printf(s_screen * screen, int x, int y, int which, char *format, ...
 	char * buf = b, c;
 	va_list arglist;
 	int ox = x;
-	s_drawmethod dm = plainmethod;
 	s_font** sets, *font;
-	int mbs, index, w, lf, id;
+	int mbs, index, w, lf;
 
 	which %= MAX_FONTS;
 
@@ -297,15 +301,8 @@ void screen_printf(s_screen * screen, int x, int y, int which, char *format, ...
 				x = ox;
 				y += font->height;
 			} else {
-				id = ((int)(*buf)) & 0xFF;
-				w = font->token_width[id];
-				dm.centerx = (id&0xf)*font->width;
-				dm.centery = (id>>4)*font->height;
-				dm.clipx = x;
-				dm.clipy = y;
-				dm.clipw = font->width;
-				dm.cliph = font->height;
-				putsprite(x, y, font->token, screen, &dm);
+				w = font->token_width[((int)(*buf)) & 0xFF];
+				putsprite(x, y, font->token[((int)(*buf)) & 0xFF], screen, NULL);
 				x += w;
 			}
 		}

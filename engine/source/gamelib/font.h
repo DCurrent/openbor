@@ -18,7 +18,7 @@
 
 
 typedef struct{
-	s_sprite *	token;
+	s_sprite *	token[256];
 	int		token_width[256];
 	int		width;
 	int		height;
