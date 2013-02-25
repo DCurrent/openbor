@@ -120,6 +120,8 @@ HRESULT openbor_unloadsample(ScriptVariant** varlist , ScriptVariant** pretvar, 
 HRESULT openbor_fadeout(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_playerkeys(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_changepalette(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+
+HRESULT openbor_changeattackproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_damageentity(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_killentity(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_findtarget(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
@@ -231,7 +233,7 @@ void mapstrings_layerproperty(ScriptVariant** varlist, int paramCount);
 void mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount);
 void mapstrings_gfxproperty(ScriptVariant** varlist, int paramCount);
 void mapstrings_levelproperty(ScriptVariant** varlist, int paramCount);
-
+void mapstrings_attackproperty(ScriptVariant** varlist, int paramCount);
 
 enum systemvariant_enum
 {
