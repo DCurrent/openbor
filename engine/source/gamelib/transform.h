@@ -24,5 +24,6 @@ inline void dest_line_dec();
 inline void dest_inc();
 inline void dest_dec();
 inline void write_pixel();
+char sprite_get_pixel(s_sprite* sprite, int x, int y);
 inline void init_gfx_global_draw_stuff(s_screen*, gfx_entry*, s_drawmethod*);
 #endif

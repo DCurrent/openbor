@@ -3895,6 +3895,32 @@ int load_special_sounds()
 	return 1;
 }
 
+static int nextcolourmap(s_model* model, int c){
+	do{
+		c++;
+		if(c > model->maps_loaded) c = 1;
+	}
+	while(    // Keep looping until a non frozen map is found
+		(model->maps.frozen>0 && c == model->maps.frozen) ||
+		( c >= model->maps.hide_start && c <= model->maps.hide_end)
+		);
+	
+	return c;
+}
+
+static int prevcolourmap(s_model* model, int c){
+	do{
+		c--;
+		if(c < 1) c = model->maps_loaded;
+	}
+	while(    // Keep looping until a non frozen map is found
+		(model->maps.frozen>0 && c == model->maps.frozen) ||
+		( c >= model->maps.hide_start && c <= model->maps.hide_end)
+		);
+	
+	return c;
+}
+
 // Use by player select menus
 s_model* nextplayermodel(s_model *current){
 	int i;
@@ -3923,6 +3949,21 @@ s_model* nextplayermodel(s_model *current){
 	return NULL;
 }
 
+s_model* nextplayermodeln(s_model *current, int p)
+{
+	int i; 
+	s_set_entry* set = levelsets + current_set;
+	s_model* model = nextplayermodel(current);
+	if(set->nosame) {
+		for(i=0; model && i<set->maxplayers; i++) {
+			if(i!=p && stricmp(model->name, player[i].name)==0) {
+				model = nextplayermodel(model);
+			}
+		}
+	}
+	return model;
+}
+
 // Use by player select menus
 s_model* prevplayermodel(s_model *current){
 	int i;
@@ -3949,6 +3990,21 @@ s_model* prevplayermodel(s_model *current){
 	}
 	shutdown(1, "Fatal: can't find any player models!");
 	return NULL;
+}
+
+s_model* prevplayermodeln(s_model *current, int p)
+{
+	int i;
+	s_set_entry* set = levelsets + current_set;
+	s_model* model = prevplayermodel(current);
+	if(set->nosame) {
+		for(i=0; model && i<set->maxplayers; i++) {
+			if(i!=p && stricmp(model->name, player[i].name)==0) {
+				model = prevplayermodel(model);
+			}
+		}
+	}
+	return model;
 }
 
 // Reset All Player Models to on/off for Select Screen.
@@ -10353,8 +10409,7 @@ unsigned getFPS(void)
 void updatestatus(){
 
 	int dt;
-	int tperror=0;
-	int i,x;
+	int i;
 	s_model * model = NULL;
 	s_set_entry *set = levelsets + current_set;
 
@@ -10369,109 +10424,48 @@ void updatestatus(){
 			model = findmodel(player[i].name);
 			if((player[i].playkeys & FLAG_ANYBUTTON || skipselect[i][0]) && !freezeall && !nojoin)    // Can't join while animations are frozen
 			{
-				// reports error if players try to use the same character and sameplay mode is off
-				if(sameplayer){
-					for(x=0; x<set->maxplayers; x++){
-						if(stricmp(player[i].name,player[x].name) == 0 && i != x){
-							tperror = i+1;
-							break;
-						}
-					}
-				}
+				player[i].lives = PLAYER_LIVES;            // to address new lives settings
+				player[i].joining = 0;
+				player[i].hasplayed = 1;
+				player[i].spawnhealth = model->health;
+				player[i].spawnmp = model->mp;
 
-				if (!tperror){    // Fixed so players can be selected if other player is no longer va //4player                        player[i].playkeys = player[i].newkeys = 0;
-					player[i].lives = PLAYER_LIVES;            // to address new lives settings
-					player[i].joining = 0;
-					player[i].hasplayed = 1;
-					player[i].spawnhealth = model->health;
-					player[i].spawnmp = model->mp;
+				spawnplayer(i);
 
-					spawnplayer(i);
+				execute_join_script(i);
 
-					execute_join_script(i);
+				player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
 
-					player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
+				if(!nodropen) drop_all_enemies();   //27-12-2004  If drop enemies is on, drop all enemies
 
-					if(!nodropen) drop_all_enemies();   //27-12-2004  If drop enemies is on, drop all enemies
-
-					if(!level->noreset) timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
-
-				}
+				if(!level->noreset) timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
 
 			}
 			else if(player[i].playkeys & FLAG_MOVELEFT)
 			{
-				player[i].colourmap = i;
-				model = prevplayermodel(model);
+				player[i].colourmap = nextcolourmap(model, i-1);
+				model = prevplayermodeln(model, i);
 				strcpy(player[i].name, model->name);
-
-				while(   // Keep looping until a non-hmap is found
-					((model->maps.hide_start) && (model->maps.hide_end) &&
-					player[i].colourmap >= model->maps.hide_start &&
-					player[i].colourmap <= model->maps.hide_end)
-					)
-					{
-						player[i].colourmap++;
-						if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
-					}
-
 				player[i].playkeys = 0;
 			}
 			else if(player[i].playkeys & FLAG_MOVERIGHT)
 			{
-				player[i].colourmap = i;
-				model = nextplayermodel(model);
+				player[i].colourmap = nextcolourmap(model, i-1);;
+				model = nextplayermodeln(model, i);
 				strcpy(player[i].name, model->name);
-
-				while(   // Keep looping until a non-hmap is found
-					((model->maps.hide_start) && (model->maps.hide_end) &&
-					player[i].colourmap >= model->maps.hide_start &&
-					player[i].colourmap <= model->maps.hide_end)
-					)
-					{
-						player[i].colourmap++;
-						if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
-					}
-
 				player[i].playkeys = 0;
 
 			}
 			// don't like a characters color try a new one!
 			else if(player[i].playkeys & FLAG_MOVEUP && colourselect)
 			{
-
-				do{
-					player[i].colourmap++;
-
-					if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
-				}
-				while(    // Keep looping until a non frozen map is found
-					(model->maps.frozen &&
-					player[i].colourmap - 1 == model->maps.frozen - 1) ||
-					((model->maps.hide_start) && (model->maps.hide_end) &&
-					player[i].colourmap - 1 >= model->maps.hide_start - 1 &&
-					player[i].colourmap - 1 <= model->maps.hide_end - 1)
-					);
-
-					player[i].playkeys = 0;
+				player[i].colourmap=nextcolourmap(model, player[i].colourmap);
+				player[i].playkeys = 0;
 			}
 			else if(player[i].playkeys & FLAG_MOVEDOWN && colourselect)
 			{
-
-				do{
-					player[i].colourmap--;
-
-					if(player[i].colourmap < 0) player[i].colourmap = model->maps_loaded;
-				}
-				while(    // Keep looping until a non frozen map is found
-					(model->maps.frozen &&
-					player[i].colourmap - 1 == model->maps.frozen - 1) ||
-					((model->maps.hide_start) && (model->maps.hide_end) &&
-					player[i].colourmap - 1 >= model->maps.hide_start - 1 &&
-					player[i].colourmap - 1 <= model->maps.hide_end - 1)
-					);
-
-					player[i].playkeys = 0;
+				player[i].colourmap=prevcolourmap(model, player[i].colourmap);
+				player[i].playkeys = 0;
 			}
 		}
 		else if(player[i].credits || credits || (!player[i].hasplayed && noshare))
@@ -10479,16 +10473,9 @@ void updatestatus(){
 			if(player[i].playkeys & FLAG_START)
 			{
 				player[i].lives = 0;
-				model = skipselect[i][0]?findmodel(skipselect[i]):nextplayermodel(NULL);
+				model = skipselect[i][0]?findmodel(skipselect[i]):nextplayermodeln(NULL, i);
 				strncpy(player[i].name, model->name, MAX_NAME_LEN);
-				player[i].colourmap = i;
-				 // Keep looping until a non-hmap is found
-				while(model->maps.hide_start && model->maps.hide_end && player[i].colourmap >= model->maps.hide_start && player[i].colourmap <= model->maps.hide_end)
-				{
-					player[i].colourmap++;
-					if(player[i].colourmap > model->maps_loaded) player[i].colourmap = 0;
-				}
-
+				player[i].colourmap = nextcolourmap(model, i-1);
 				player[i].joining = 1;
 				player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
 
@@ -22090,6 +22077,7 @@ int playlevel(char *filename)
 		{
 			player[i].newkeys = player[i].playkeys = 0;
 			player[i].weapnum = level->setweap;
+			player[i].joining = 0;
 			spawnplayer(i);
 			player[i].ent->rush[1] = 0;
 		}
@@ -22129,12 +22117,25 @@ int playlevel(char *filename)
 }
 
 
+static entity* spawnexample(int i)
+{
+	entity* example;
+	s_set_entry* set = levelsets+current_set;
+	if(!psmenu[i][0] && !psmenu[i][1])
+	{
+		if(set->maxplayers > 2) example = spawn((float)((111-(set->maxplayers*14))+((i*(320-(166/set->maxplayers))/set->maxplayers)+videomodes.hShift)),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodeln(NULL, i));
+		else example = spawn((float)(83+(videomodes.hShift/2)+(i*(155+videomodes.hShift))),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodeln(NULL, i));
+	}
+	else example = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodeln(NULL, i));
+	strcpy(player[i].name, example->model->name);
+	return example;
+}
+
 int selectplayer(int *players, char* filename)
 {
 	s_model* tempmodel;
 	entity *example[4] = {NULL,NULL,NULL,NULL};
-	int i,x;
-	int cmap[MAX_PLAYERS] = {0,1,2,3};
+	int i;
 	int tperror = 0;
 	int exit = 0;
 	int ready[MAX_PLAYERS] = {0,0,0,0};
@@ -22198,14 +22199,9 @@ int selectplayer(int *players, char* filename)
 		}
 		for(i=0; i<set->maxplayers; i++)
 		{
-			if(players[i])
-			{
-				if(!psmenu[i][0] && !psmenu[i][1])
-				{
-					if(set->maxplayers > 2) example[i] = spawn((float)((111-(set->maxplayers*14))+((i*(320-(166/set->maxplayers))/set->maxplayers)+videomodes.hShift)),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
-					else example[i] = spawn((float)(83+(videomodes.hShift/2)+(i*(155+videomodes.hShift))),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
-				}
-				else example[i] = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodel(NULL));
+			if(players[i]) {
+				example[i] = spawnexample(i);
+				player[i].colourmap = nextcolourmap(example[i]->model, i-1);
 			}
 		}
 	}
@@ -22276,8 +22272,6 @@ int selectplayer(int *players, char* filename)
 		players_ready = 0;
 		for(i=0; i<set->maxplayers; i++)
 		{
-			// you can't have that character!
-			if((tperror == i+1) && !ready[i]) font_printf(75+videomodes.hShift,123+videomodes.vShift,0, 0,"Player %d Choose a Different Character!", i+1);
 			if(!ready[i])
 			{
 				if(player[i].lives <= 0 && (noshare || credits>0) && ((player[i].newkeys & FLAG_ANYBUTTON) || immediate[i]))
@@ -22295,135 +22289,58 @@ int selectplayer(int *players, char* filename)
 					}
 
 					player[i].lives = PLAYER_LIVES;
-
-					if(!psmenu[i][0] && !psmenu[i][1])
-					{
-						if(set->maxplayers > 2) example[i] = spawn((float)((111-(set->maxplayers*14))+((i*(320-(166/set->maxplayers))/set->maxplayers)+videomodes.hShift)),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
-						else example[i] = spawn((float)(83+(videomodes.hShift/2)+(i*(155+videomodes.hShift))),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodel(NULL));
-					}
-					else example[i] = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodel(NULL));
-
-					if(example[i]==NULL) shutdown(1, "Failed to create player selection object!");
-
-					// Select Player Direction for select player screen
-					// example[i]->direction = spdirection[i]; // moved to spawn method
+					example[i] = spawnexample(i);
 
 					// Make player 2 different colour automatically
-					player[i].colourmap = i;
-
-					while((example[i]->modeldata.maps.hide_start) && (example[i]->modeldata.maps.hide_end) &&
-					cmap[i] >= example[i]->modeldata.maps.hide_start &&
-					cmap[i] <= example[i]->modeldata.maps.hide_end )
-					{
-						cmap[i]++;
-						if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
-					}
+					player[i].colourmap = nextcolourmap(example[i]->model, i-1);
 
 					player[i].playkeys = 0;
-					ent_set_colourmap(example[i], cmap[i]);
+					ent_set_colourmap(example[i], player[i].colourmap);
 
 					if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
 				}
 				else if(player[i].newkeys & FLAG_MOVELEFT && example[i])
 				{
 					if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-					ent_set_model(example[i], prevplayermodel(example[i]->model)->name, 0);
-					cmap[i] = i;
-
-					while((example[i]->modeldata.maps.hide_start) && (example[i]->modeldata.maps.hide_end) &&
-					cmap[i] >= example[i]->modeldata.maps.hide_start &&
-					cmap[i] <= example[i]->modeldata.maps.hide_end )
-					{
-						cmap[i]++;
-						if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
-					}
-
-					ent_set_colourmap(example[i], cmap[i]);
+					ent_set_model(example[i], prevplayermodeln(example[i]->model, i)->name, 0);
+					strcpy(player[i].name, example[i]->model->name);
+					player[i].colourmap = nextcolourmap(example[i]->model, i-1);
+					ent_set_colourmap(example[i], player[i].colourmap);
 					tperror = 0;
 				}
 				else if(player[i].newkeys & FLAG_MOVERIGHT && example[i])
 				{
 					if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-					ent_set_model(example[i], nextplayermodel(example[i]->model)->name, 0);
-					cmap[i] = i;
-
-					while((example[i]->modeldata.maps.hide_start) && (example[i]->modeldata.maps.hide_end) &&
-					cmap[i] >= example[i]->modeldata.maps.hide_start && cmap[i] <= example[i]->modeldata.maps.hide_end )
-					{
-						cmap[i]++;
-						if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
-					}
-
-					ent_set_colourmap(example[i], cmap[i]);
+					ent_set_model(example[i], nextplayermodeln(example[i]->model, i)->name, 0);
+					strcpy(player[i].name, example[i]->model->name);
+					player[i].colourmap = nextcolourmap(example[i]->model, i-1);
+					ent_set_colourmap(example[i], player[i].colourmap);
 					tperror = 0;
 				}
 				// oooh pretty colors! - selectable color scheme for player characters
 				else if(player[i].newkeys & FLAG_MOVEUP && colourselect && example[i])
 				{
-					do
-					{
-						cmap[i]++;
-						if(cmap[i] > example[i]->modeldata.maps_loaded) cmap[i] = 0;
-					}
-					while(
-					(example[i]->modeldata.maps.frozen &&
-					cmap[i] - 1 == example[i]->modeldata.maps.frozen - 1) ||
-					((example[i]->modeldata.maps.hide_start) && (example[i]->modeldata.maps.hide_end) &&
-					cmap[i] - 1 >= example[i]->modeldata.maps.hide_start - 1 &&
-					cmap[i] - 1 <= example[i]->modeldata.maps.hide_end - 1)
-					);
-
-					ent_set_colourmap(example[i], cmap[i]);
+					player[i].colourmap = nextcolourmap(example[i]->model, player[i].colourmap);
+					ent_set_colourmap(example[i], player[i].colourmap);
 				}
 				else if(player[i].newkeys & FLAG_MOVEDOWN && colourselect && example[i])
 				{
-					do
-					{
-						cmap[i]--;
-						if(cmap[i] < 0) cmap[i] = example[i]->modeldata.maps_loaded;
-					}
-					while(
-					(example[i]->modeldata.maps.frozen &&
-					cmap[i] - 1 == example[i]->modeldata.maps.frozen - 1) ||
-					((example[i]->modeldata.maps.hide_start) && (example[i]->modeldata.maps.hide_end) &&
-					cmap[i] - 1 >= example[i]->modeldata.maps.hide_start - 1 &&
-					cmap[i] - 1 <= example[i]->modeldata.maps.hide_end - 1)
-					);
-
-					ent_set_colourmap(example[i], cmap[i]);
+					player[i].colourmap = prevcolourmap(example[i]->model, player[i].colourmap);
+					ent_set_colourmap(example[i], player[i].colourmap);
 				}
 				else if((player[i].newkeys & FLAG_ANYBUTTON) && example[i])
 				{
-
 					if(SAMPLE_BEEP2 >= 0) sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
-					strcpy(player[i].name, example[i]->modeldata.name);
-					player[i].colourmap = cmap[i];
 
-					// reports error if players try to use the same character and sameplay mode is off
-					if(sameplayer)
+					time=0;
+					// yay you picked me!
+					if(validanim(example[i],ANI_PICK)) ent_set_anim(example[i], ANI_PICK, 0);
+					while(!ready[i] && example[i] != NULL)
 					{
-						for(x=0; x<set->maxplayers; x++)
-						{
-							if(stricmp(player[i].name,player[x].name) == 0 && i != x)
-							{
-								tperror = i+1;
-								break;
-							}
-						}
-					}
-
-					if(!tperror)
-					{
-						time=0;
-						// yay you picked me!
-						if(validanim(example[i],ANI_PICK)) ent_set_anim(example[i], ANI_PICK, 0);
-						while(!ready[i] && example[i] != NULL)
-						{
-							update(0,0);
-							if((!validanim(example[i],ANI_PICK) || example[i]->modeldata.animation[ANI_PICK]->loop.mode) && time>GAME_SPEED*2) ready[i] = 1;
-							else if(!example[i]->animating) ready[i] = 1;
-							if(ready[i]) time=0;
-						}
+						update(0,0);
+						if((!validanim(example[i],ANI_PICK) || example[i]->modeldata.animation[ANI_PICK]->loop.mode) && time>GAME_SPEED*2) ready[i] = 1;
+						else if(!example[i]->animating) ready[i] = 1;
+						if(ready[i]) time=0;
 					}
 				}
 			}

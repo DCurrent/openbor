@@ -39,7 +39,6 @@
 #include	"anigif.h"
 #include    "openborscript.h"
 #include    "globals.h"
-#include	"triangle.h"
 #include    "ram.h"
 #include    "version.h"
 
