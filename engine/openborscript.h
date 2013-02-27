@@ -192,9 +192,6 @@ HRESULT openbor_strright(ScriptVariant** varlist , ScriptVariant** pretvar, int 
 HRESULT openbor_getmodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_changemodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_rgbcolor(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_settexture(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_setvertex(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_trianglelist(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 HRESULT openbor_aicheckwarp(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_aichecklie(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);

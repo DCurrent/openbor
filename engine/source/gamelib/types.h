@@ -254,26 +254,6 @@ typedef enum
 	gfx_sprite
 }gfx_type;
 
-/*
-typedef enum
-{
-	ct_rectangle,
-	ct_mask_screen
-
-}clipping_type;
-
-
-//screen clipping array clipp
-typedef struct 
-{
-	int type;
-	int x;
-	int y;
-	int width;
-	int height;
-	s_screen mask_screen;
-}s_clipping;
-*/
 
 typedef struct 
 {
@@ -284,22 +264,6 @@ typedef struct
 		void*      handle;
 	};
 }gfx_entry;
-
-typedef struct 
-{
-	int x; //x
-	int y; //y
-	int tx; //texture coords x
-	int ty; //texture coords y
-}vert2d;
-
-typedef struct 
-{
-	int ulx; //upper left x
-	int uly; //upper left y
-	int lrx; //lower right x
-	int lry; //lower right y
-}rect2d;
 
 
 typedef struct
