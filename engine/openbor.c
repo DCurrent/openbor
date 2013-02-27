@@ -20465,6 +20465,7 @@ void update_scroller(){
 	{
 
 		if(cameratype==1) {
+			bm=-9999; tm=999999; //recalculate
 			for(i=0; i<levelsets[current_set].maxplayers; i++)
 			{
 				if(player[i].ent) {
