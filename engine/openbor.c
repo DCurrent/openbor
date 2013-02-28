@@ -3898,11 +3898,11 @@ int load_special_sounds()
 static int nextcolourmap(s_model* model, int c){
 	do{
 		c++;
-		if(c > model->maps_loaded) c = 1;
+		if(c > model->maps_loaded) c = 0;
 	}
 	while(    // Keep looping until a non frozen map is found
 		(model->maps.frozen>0 && c == model->maps.frozen) ||
-		( c >= model->maps.hide_start && c <= model->maps.hide_end)
+		(model->maps.hide_start>0 && c >= model->maps.hide_start && c <= model->maps.hide_end)
 		);
 	
 	return c;
@@ -3911,11 +3911,11 @@ static int nextcolourmap(s_model* model, int c){
 static int prevcolourmap(s_model* model, int c){
 	do{
 		c--;
-		if(c < 1) c = model->maps_loaded;
+		if(c < 0) c = model->maps_loaded;
 	}
 	while(    // Keep looping until a non frozen map is found
 		(model->maps.frozen>0 && c == model->maps.frozen) ||
-		( c >= model->maps.hide_start && c <= model->maps.hide_end)
+		(model->maps.hide_start>0 && c >= model->maps.hide_start && c <= model->maps.hide_end)
 		);
 	
 	return c;
@@ -22202,6 +22202,7 @@ int selectplayer(int *players, char* filename)
 			if(players[i]) {
 				example[i] = spawnexample(i);
 				player[i].colourmap = nextcolourmap(example[i]->model, i-1);
+				ent_set_colourmap(example[i], player[i].colourmap);
 			}
 		}
 	}
