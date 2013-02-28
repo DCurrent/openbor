@@ -8601,7 +8601,6 @@ void load_levelorder()
 	cbonus[6] = lbonus[6] = rbonus[6] = tscore[6] = 210;
 	cbonus[8] = lbonus[8] = rbonus[8] = tscore[8] = 265;
 
-
 	while(pos<size){
 		line++;
 		ParseArgs(&arglist,buf+pos,argbuf);
@@ -9107,6 +9106,19 @@ void load_levelorder()
 
 	if(!set)
 		errormessage = "No levels were loaded!";
+
+	//assume old mods have same maxplayers for all sets
+	else if(!psmenu[0][0] && !psmenu[0][1])
+	{
+		for(i=0; i<set->maxplayers; i++) {
+			psmenu[i][0]=(set->maxplayers > 2)?((111-(set->maxplayers*14))+((i*(320-(166/set->maxplayers))/set->maxplayers)+videomodes.hShift)):
+												(83+(videomodes.hShift/2)+(i*(155+videomodes.hShift)));
+			psmenu[i][1]=230+videomodes.vShift;
+			psmenu[i][2]=(set->maxplayers > 2)?((95-(set->maxplayers*14))+((i*(320-(166/set->maxplayers))/set->maxplayers)+videomodes.hShift)):
+												(67+(videomodes.hShift/2)+(i*(155+videomodes.hShift)));
+			psmenu[i][3]=225+videomodes.vShift;
+		}
+	}
 
 	lCleanup:
 
@@ -10441,30 +10453,17 @@ void updatestatus(){
 				if(!level->noreset) timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
 
 			}
-			else if(player[i].playkeys & FLAG_MOVELEFT)
+			else if(player[i].playkeys & (FLAG_MOVELEFT|FLAG_MOVERIGHT))
 			{
 				player[i].colourmap = nextcolourmap(model, i-1);
-				model = prevplayermodeln(model, i);
+				model = ((player[i].playkeys&FLAG_MOVELEFT)?prevplayermodeln:nextplayermodeln)(model, i);
 				strcpy(player[i].name, model->name);
 				player[i].playkeys = 0;
-			}
-			else if(player[i].playkeys & FLAG_MOVERIGHT)
-			{
-				player[i].colourmap = nextcolourmap(model, i-1);;
-				model = nextplayermodeln(model, i);
-				strcpy(player[i].name, model->name);
-				player[i].playkeys = 0;
-
 			}
 			// don't like a characters color try a new one!
-			else if(player[i].playkeys & FLAG_MOVEUP && colourselect)
+			else if(player[i].playkeys & (FLAG_MOVEUP|FLAG_MOVEDOWN) && colourselect)
 			{
-				player[i].colourmap=nextcolourmap(model, player[i].colourmap);
-				player[i].playkeys = 0;
-			}
-			else if(player[i].playkeys & FLAG_MOVEDOWN && colourselect)
-			{
-				player[i].colourmap=prevcolourmap(model, player[i].colourmap);
+				player[i].colourmap=((player[i].playkeys&FLAG_MOVEUP)?nextcolourmap:prevcolourmap)(model, player[i].colourmap);
 				player[i].playkeys = 0;
 			}
 		}
@@ -22121,14 +22120,10 @@ int playlevel(char *filename)
 static entity* spawnexample(int i)
 {
 	entity* example;
-	s_set_entry* set = levelsets+current_set;
-	if(!psmenu[i][0] && !psmenu[i][1])
-	{
-		if(set->maxplayers > 2) example = spawn((float)((111-(set->maxplayers*14))+((i*(320-(166/set->maxplayers))/set->maxplayers)+videomodes.hShift)),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodeln(NULL, i));
-		else example = spawn((float)(83+(videomodes.hShift/2)+(i*(155+videomodes.hShift))),(float)(230+videomodes.vShift),0 ,spdirection[i] , NULL, -1, nextplayermodeln(NULL, i));
-	}
-	else example = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodeln(NULL, i));
+	example = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodeln(NULL, i));
 	strcpy(player[i].name, example->model->name);
+	player[i].colourmap = nextcolourmap(example->model, i-1);
+	ent_set_colourmap(example, player[i].colourmap);
 	return example;
 }
 
@@ -22201,8 +22196,6 @@ int selectplayer(int *players, char* filename)
 		{
 			if(players[i]) {
 				example[i] = spawnexample(i);
-				player[i].colourmap = nextcolourmap(example[i]->model, i-1);
-				ent_set_colourmap(example[i], player[i].colourmap);
 			}
 		}
 	}
@@ -22291,70 +22284,45 @@ int selectplayer(int *players, char* filename)
 
 					player[i].lives = PLAYER_LIVES;
 					example[i] = spawnexample(i);
-
-					// Make player 2 different colour automatically
-					player[i].colourmap = nextcolourmap(example[i]->model, i-1);
-
 					player[i].playkeys = 0;
-					ent_set_colourmap(example[i], player[i].colourmap);
 
 					if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
 				}
-				else if(player[i].newkeys & FLAG_MOVELEFT && example[i])
+				else if(player[i].newkeys & (FLAG_MOVELEFT|FLAG_MOVERIGHT) && example[i])
 				{
 					if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-					ent_set_model(example[i], prevplayermodeln(example[i]->model, i)->name, 0);
-					strcpy(player[i].name, example[i]->model->name);
-					player[i].colourmap = nextcolourmap(example[i]->model, i-1);
-					ent_set_colourmap(example[i], player[i].colourmap);
-				}
-				else if(player[i].newkeys & FLAG_MOVERIGHT && example[i])
-				{
-					if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-					ent_set_model(example[i], nextplayermodeln(example[i]->model, i)->name, 0);
+					ent_set_model(example[i],((player[i].newkeys&FLAG_MOVELEFT)?prevplayermodeln:nextplayermodeln)(example[i]->model, i)->name, 0);
 					strcpy(player[i].name, example[i]->model->name);
 					player[i].colourmap = nextcolourmap(example[i]->model, i-1);
 					ent_set_colourmap(example[i], player[i].colourmap);
 				}
 				// oooh pretty colors! - selectable color scheme for player characters
-				else if(player[i].newkeys & FLAG_MOVEUP && colourselect && example[i])
+				else if(player[i].newkeys & (FLAG_MOVEUP|FLAG_MOVEDOWN) && colourselect && example[i])
 				{
-					player[i].colourmap = nextcolourmap(example[i]->model, player[i].colourmap);
-					ent_set_colourmap(example[i], player[i].colourmap);
-				}
-				else if(player[i].newkeys & FLAG_MOVEDOWN && colourselect && example[i])
-				{
-					player[i].colourmap = prevcolourmap(example[i]->model, player[i].colourmap);
+					player[i].colourmap = ((player[i].newkeys&FLAG_MOVEUP)?nextcolourmap:prevcolourmap)(example[i]->model, player[i].colourmap);
 					ent_set_colourmap(example[i], player[i].colourmap);
 				}
 				else if((player[i].newkeys & FLAG_ANYBUTTON) && example[i])
 				{
 					if(SAMPLE_BEEP2 >= 0) sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
-
-					time=0;
 					// yay you picked me!
 					if(validanim(example[i],ANI_PICK)) ent_set_anim(example[i], ANI_PICK, 0);
-					while(!ready[i] && example[i] != NULL)
-					{
-						update(0,0);
-						if((!validanim(example[i],ANI_PICK) || example[i]->modeldata.animation[ANI_PICK]->loop.mode) && time>GAME_SPEED*2) ready[i] = 1;
-						else if(!example[i]->animating) ready[i] = 1;
-						if(ready[i]) time=0;
-					}
+					example[i]->stalltime = time+GAME_SPEED*2;
+					ready[i] = 1;
 				}
 			}
-			else
+			else if(ready[i]==1)
 			{
-				if(!psmenu[i][2] && !psmenu[i][3])
-				{
-					if(set->maxplayers > 2) font_printf((95-(set->maxplayers*14))+((i*(320-(166/set->maxplayers))/set->maxplayers)+videomodes.hShift), 225+videomodes.vShift, 0, 0, "Ready!");
-					else font_printf(67+(videomodes.hShift/2)+(i*(155+videomodes.hShift)), 225+videomodes.vShift, 0, 0, "Ready!");
-				}
-				else font_printf(psmenu[i][2], psmenu[i][3], 0, 0, "Ready!");
+				if(((!validanim(example[i],ANI_PICK) || example[i]->modeldata.animation[ANI_PICK]->loop.mode) && time>example[i]->stalltime) || !example[i]->animating)
+					ready[i] = 2;
+			}
+			else if(ready[i]==2)
+			{
+				font_printf(psmenu[i][2], psmenu[i][3], 0, 0, "Ready!");
 			}
 
 			if(example[i] != NULL) players_busy++;
-			if(ready[i]) players_ready++;
+			if(ready[i]==2) players_ready++;
 		}
 
 		if(players_busy && players_busy==players_ready && time>GAME_SPEED) exit = 1;
