@@ -22137,7 +22137,6 @@ int selectplayer(int *players, char* filename)
 	s_model* tempmodel;
 	entity *example[4] = {NULL,NULL,NULL,NULL};
 	int i;
-	int tperror = 0;
 	int exit = 0;
 	int ready[MAX_PLAYERS] = {0,0,0,0};
 	int escape = 0;
@@ -22307,7 +22306,6 @@ int selectplayer(int *players, char* filename)
 					strcpy(player[i].name, example[i]->model->name);
 					player[i].colourmap = nextcolourmap(example[i]->model, i-1);
 					ent_set_colourmap(example[i], player[i].colourmap);
-					tperror = 0;
 				}
 				else if(player[i].newkeys & FLAG_MOVERIGHT && example[i])
 				{
@@ -22316,7 +22314,6 @@ int selectplayer(int *players, char* filename)
 					strcpy(player[i].name, example[i]->model->name);
 					player[i].colourmap = nextcolourmap(example[i]->model, i-1);
 					ent_set_colourmap(example[i], player[i].colourmap);
-					tperror = 0;
 				}
 				// oooh pretty colors! - selectable color scheme for player characters
 				else if(player[i].newkeys & FLAG_MOVEUP && colourselect && example[i])
