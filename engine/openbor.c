@@ -20327,15 +20327,11 @@ void update_scroller(){
 
 			if(to > advancex){
 				if(to > advancex+level->scrollspeed) to = advancex+level->scrollspeed;
-				advancex = (float)to;
+				advancex = to;
 			}
-
-			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
-
-				if(to < advancex && to > blockade){
-					if(to < advancex-level->scrollspeed) to = advancex-level->scrollspeed;
-					advancex = (float)to;
-				}
+			else if((level->scrolldir&SCROLL_BACK) && to < advancex){
+				if(to < advancex-level->scrollspeed) to = advancex-level->scrollspeed;
+				advancex = to;
 			}
 
 			if(advancex < 0) advancex = 0;
@@ -20363,15 +20359,13 @@ void update_scroller(){
 
 			if(to < advancex){
 				if(to < advancex-level->scrollspeed) to = advancex-level->scrollspeed;
-				advancex = (float)to;
+				advancex = to;
 			}
-			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
+			else if((level->scrolldir&SCROLL_BACK) && to > advancex){
+				if(to > advancex+level->scrollspeed) to = advancex+level->scrollspeed;
+				advancex = to;
+			}
 
-				if(to > advancex){
-					if(to > advancex+level->scrollspeed) to = advancex+level->scrollspeed;
-					advancex = (float)to;
-				}
-			}
 			if(advancex > level->width-videomodes.hRes) advancex = (float)level->width-videomodes.hRes;
 			if(advancex <= 0) {
 				advancex = 0;
@@ -20393,15 +20387,11 @@ void update_scroller(){
 
 			if(to > advancey){
 				if(to > advancey+level->scrollspeed) to = advancey+level->scrollspeed;
-				advancey = (float)to;
+				advancey = to;
 			}
-
-			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
-
-				if(to < advancey){
-					if(to < advancey-level->scrollspeed) to = advancey-level->scrollspeed;
-					advancey = (float)to;
-				}
+			else if((level->scrolldir&SCROLL_BACK) && to < advancey){
+				if(to < advancey-level->scrollspeed) to = advancey-level->scrollspeed;
+				advancey = to;
 			}
 
 			if(advancey > panel_height-videomodes.vRes) {
@@ -20424,15 +20414,13 @@ void update_scroller(){
 
 			if(to < advancey){
 				if(to < advancey-level->scrollspeed) to = advancey-level->scrollspeed;
-				advancey = (float)to;
+				advancey = to;
 			}
-			if(level->scrolldir&SCROLL_BACK){    // Can't go back to the beginning
+			else if((level->scrolldir&SCROLL_BACK) && to > advancey){
+				if(to > advancey+level->scrollspeed) to = advancey+level->scrollspeed;
+				advancey = to;
+			}
 
-				if(to > advancey){
-					if(to > advancey+level->scrollspeed) to = advancey+level->scrollspeed;
-					advancey = (float)to;
-				}
-			}
 			if(advancey > panel_height-videomodes.vRes) advancey = (float)panel_height-videomodes.vRes;
 			if(advancey <= 0) {
 				advancey = 0;
@@ -20478,15 +20466,11 @@ void update_scroller(){
 
 		// new scroll limit
 		if(to > scrollmaxz) to = scrollmaxz;
-		if(to < scrollminz) to = scrollminz;
+		else if(to < scrollminz) to = scrollminz;
 
-		if(to > advancey){
+		if(to != advancey){
 			if(to > advancey+level->scrollspeed) to = advancey+level->scrollspeed;
-			advancey = (float)to;
-		}
-
-		if(to < advancey){
-			if(to < advancey-level->scrollspeed) to = advancey-level->scrollspeed;
+			else if(to < advancey-level->scrollspeed) to = advancey-level->scrollspeed;
 			advancey = (float)to;
 		}
 
@@ -20501,15 +20485,11 @@ void update_scroller(){
 
 		// new scroll limit
 		if(to > scrollmaxx) to = scrollmaxx;
-		if(to < scrollminx) to = scrollminx;
+		else if(to < scrollminx) to = scrollminx;
 
-		if(to > advancex){
+		if(to != advancex){
 			if(to > advancex+level->scrollspeed) to = advancex+level->scrollspeed;
-			advancex = (float)to;
-		}
-
-		if(to < advancex){
-			if(to < advancex-level->scrollspeed) to = advancex-level->scrollspeed;
+			else if(to < advancex-level->scrollspeed) to = advancex-level->scrollspeed;
 			advancex = (float)to;
 		}
 
