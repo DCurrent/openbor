@@ -22135,6 +22135,7 @@ int selectplayer(int *players, char* filename)
 	int exit = 0;
 	int ready[MAX_PLAYERS] = {0,0,0,0};
 	int escape = 0;
+	unsigned exitdelay = 0;
 	int players_busy = 0;
 	int players_ready = 0;
 	int immediate[MAX_PLAYERS]= {0,0,0,0};
@@ -22313,8 +22314,10 @@ int selectplayer(int *players, char* filename)
 			}
 			else if(ready[i]==1)
 			{
-				if(((!validanim(example[i],ANI_PICK) || example[i]->modeldata.animation[ANI_PICK]->loop.mode) && time>example[i]->stalltime) || !example[i]->animating)
+				if(((!validanim(example[i],ANI_PICK) || example[i]->modeldata.animation[ANI_PICK]->loop.mode) && time>example[i]->stalltime) || !example[i]->animating) {
 					ready[i] = 2;
+					exitdelay = time + GAME_SPEED;
+				}
 			}
 			else if(ready[i]==2)
 			{
@@ -22325,7 +22328,7 @@ int selectplayer(int *players, char* filename)
 			if(ready[i]==2) players_ready++;
 		}
 
-		if(players_busy && players_busy==players_ready && time>GAME_SPEED) exit = 1;
+		if(players_busy && players_busy==players_ready && exitdelay && time>exitdelay) exit = 1;
 		update(0,0);
 
 		if(bothnewkeys & FLAG_ESC) escape = 1;
