@@ -8508,6 +8508,11 @@ else if(strnicmp(constname, #x, sizeof(#x)-1)==0 && constname[sizeof(#x)-1] >= '
 	v.lVal = (LONG)(y[atoi(constname+(sizeof(#x)-1))+STA_ATKS-1]);\
 }
 
+#define ICMPSCONSTC(x) \
+else if(strnicmp(constname, #x, sizeof(#x)-1)==0 && constname[sizeof(#x)-1] >= '1' && constname[sizeof(#x)-1]<='9') \
+{ \
+	v.lVal = (LONG)(atoi(constname+(sizeof(#x)-1))+STA_ATKS-1);\
+}
 
 void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 {
@@ -8844,6 +8849,7 @@ void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 		ICMPCONST(ANI_FREESPECIAL)
 
 		// for the extra animation ids
+		ICMPSCONSTC(ATK_NORMAL)
 		ICMPSCONSTA(ANI_DOWN, animdowns)
 		ICMPSCONSTA(ANI_UP, animups)
 		ICMPSCONSTA(ANI_BACKWALK, animbackwalks)
