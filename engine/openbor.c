@@ -13426,8 +13426,8 @@ void common_dot()
 					eOpp        = self->dot_owner[iIndex];                                      //Get dot effect owner.
 					iType       = self->dot_atk[iIndex];                                        //Get attack type.
 					iFForce     = iForce;                                                       //Initialize final force.
-					fOffense    = eOpp->offense_factors[iType];                       //Get owner's offense.
-					fDefense    = self->defense[iType].factor;                       //Get Self defense.
+					fOffense    = eOpp->offense_factors[iType];									//Get owner's offense.
+					fDefense    = self->defense[iType].factor;									//Get Self defense.
 
 					if (fOffense){  iFForce = (int)(iForce  * fOffense);    }                   //Apply offense factors.
 					if (fDefense){  iFForce = (int)(iFForce * fDefense);    }                   //Apply defense factors.
@@ -15203,7 +15203,7 @@ void checkdamageeffects(s_attack* attack)
 
 	if(_dot)                                                                        //dot: Damage over time effect.
 	{
-		self->dot_owner[_dot_index] = self->opponent;                               //dot owner.
+		self->dot_owner[_dot_index] = opp?opp:self;			                        //dot owner.
 		self->dot[_dot_index]       = _dot;                                         //Mode: 1. HP (non lethal), 2. MP, 3. HP (non lethal) & MP, 4. HP, 5. HP & MP.
 		self->dot_time[_dot_index]  = time + (_dot_time * GAME_SPEED / 100);        //Gametime dot will expire.
 		self->dot_force[_dot_index] = _dot_force;                                   //How much to dot each tick.
@@ -19912,7 +19912,7 @@ int biker_takedamage(entity *other, s_attack* attack)
 		self = driver;
 		self->drop = 1;
 		self->direction = tempself->direction;
-		if(self->takedamage) self->takedamage(self, attack);
+		if(self->takedamage) self->takedamage(other, attack);
 		else self->health -= attack->attack_force;
 		self = tempself;
 
