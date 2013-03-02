@@ -26,7 +26,11 @@ static char b[1024];
 void _font_unload(s_font* font){
 	int i;
 	for(i=0; i<256; i++){
-		if(font->token[i] != NULL) free(font->token[i]);
+		if(font->token[i] != NULL)
+		{
+			if(font->token[i]->mask != NULL) free(font->token[i]->mask);
+			free(font->token[i]);
+		}
 		font->token[i] = NULL;
 	}
 	free(font);
@@ -54,8 +58,6 @@ void font_unload(int which){
 	free(sets);
 	fonts[which] = NULL;
 }
-
-
 
 int _font_load(s_font* font, char *filename, char *packfile){
 	int x, y;
@@ -107,6 +109,58 @@ err:
 	return rval;
 }
 
+int _font_loadmask(s_font* font, char* filename, char *packfile){
+	int x, y;
+	int index = 0;
+	int size;
+	int cx = 0, cy = 0;
+	s_bitmap *bitmap = NULL;
+	s_screen *screen = NULL;
+	int rval = 0;
+	int tw, th;
+	int cw;
+
+	if(!loadscreen(filename, packfile, NULL, pixelformat, &screen)) goto err;
+	tw = screen->width/16;
+	th = screen->height/16;
+	if(tw != font->width || th != font->height) goto err;
+	if(!(bitmap = allocbitmap(tw,th,pixelformat))) goto err;
+
+	if(bitmap->palette && screen->palette)
+		memcpy(bitmap->palette, screen->palette, PAL_BYTES);
+
+	// grab tokens
+	for(y=0; y<16; y++){
+		for(x=0; x<16; x++){
+			getbitmap(x*tw, y*th, tw,th, bitmap, screen);
+			clipbitmap(bitmap, &cx, NULL, &cy, NULL);
+			if(index>0)  bitmap->palette=NULL;
+			size = fakey_encodesprite(bitmap);
+			if(!font->token[index]) goto err;
+			if(font->token[index]->mask) goto err;
+			font->token[index]->mask = (s_sprite*)malloc(size);
+			if(!font->token[index]->mask) goto err;
+			encodesprite(-cx,-cy, bitmap, font->token[index]->mask);
+			cw = font->mono?tw:(font->token[index]->mask->width+(tw/10));
+			if(cw <= 1) cw = tw/3;
+			if(cw != font->token_width[index]) goto err;
+			if(index>0)
+			{
+				//font->token[index]->mask->palette = font->token[0]->mask->palette ;
+				font->token[index]->mask->pixelformat = screen->pixelformat ;
+			}
+			++index;
+		}
+	}
+
+	rval = 1;
+
+err:
+	freebitmap(bitmap);
+	freescreen(&screen);
+
+	return rval;
+}
 
 int font_load(int which, char *filename, char *packfile, int flags){
 	s_font** sets, *font;
@@ -143,6 +197,34 @@ int font_load(int which, char *filename, char *packfile, int flags){
 	if(sets[0]==NULL){
 		font_unload(which);
 		return 0;
+	}
+
+	return 1;
+
+}
+
+// loads an alpha mask for an already-loaded font
+int font_loadmask(int which, char *filename, char *packfile, int flags){
+	s_font** sets, *font;
+	int i, max;
+
+	which %= MAX_FONTS;
+	sets = fonts[which];
+	if(!sets) return 0;
+	max = (flags&FONT_MBS)?256:1;
+
+	for(i=0; i<max; i++){
+		if(i==1) i=128;
+		font = sets[i];
+		if(!font) return 0;
+		if(font->mbs){
+			sprintf(b, "%s/%02x", filename, i);
+		}else 
+			strcpy(b, filename);
+		
+		if(!_font_loadmask(font, b, packfile)){
+			return 0;
+		}
 	}
 
 	return 1;

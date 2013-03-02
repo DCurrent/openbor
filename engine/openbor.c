@@ -3790,7 +3790,15 @@ void load_all_fonts()
 		if(i==0) strcpy(path, "data/sprites/font");
 		else sprintf(path, "%s%d", "data/sprites/font", i+1);
 		if(font_load(i, path, packfile, fontmonospace[i]|fontmbs[i]))
-			printf("%d ", i+1);
+		{
+			// Plombo 3/1/2013: allow fonts to have alpha masks
+			if(i==0) strcpy(path, "data/sprites/fontmask");
+			else sprintf(path, "%s%d", "data/sprites/fontmask", i+1);
+			if(font_loadmask(i, path, packfile, fontmonospace[i]|fontmbs[i]))
+				printf("%d(m) ", i+1);
+			else
+				printf("%d ", i+1);
+		}
 	}
 }
 
