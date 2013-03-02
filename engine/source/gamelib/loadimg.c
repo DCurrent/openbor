@@ -273,8 +273,16 @@ static int readpng(unsigned char *buf, unsigned char *pal, int maxwidth, int max
 	}
 	if(pal)
 	{
-
-		if(png_get_PLTE(png_ptr, info_ptr, &png_pal_ptr, &png_pal_num) != PNG_INFO_PLTE ||
+		if(png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_GRAY)
+		{
+			// set palette for grayscale images
+			for(i=0; i<256; i++)
+			{
+				pal[i*3] = pal[i*3+1] = pal[i*3+2] = i;
+			}
+			return 1;
+		}
+		else if(png_get_PLTE(png_ptr, info_ptr, &png_pal_ptr, &png_pal_num) != PNG_INFO_PLTE ||
 		   png_pal_ptr == NULL)
 		{
 			return 0;
