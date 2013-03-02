@@ -9604,7 +9604,7 @@ changetextobjproperty_error:
 HRESULT openbor_settextobj(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	LONG ind;
-	LONG X,Y,Z,F,T;
+	LONG X,Y,Z,F,T=0;
 	static char buf[MAX_STR_VAR_LEN];
 	const char* stotext = "settextobj(int index, int x, int y, int font, int z, char text, int time {optional})";
 
