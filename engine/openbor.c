@@ -14432,8 +14432,7 @@ int perform_atchain()
 
 	if(self->modeldata.atchain[self->combostep[0]-1]==0) // 0 means the chain ends
 	{
-		self->combostep[0] = 0;
-		return 0;
+		self->combostep[0] = 1;
 	}
 
 	if(validanim(self,animattacks[self->modeldata.atchain[self->combostep[0]-1]-1]) )
