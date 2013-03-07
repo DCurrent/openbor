@@ -7165,7 +7165,7 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 	case _pp_ent:
 	case _pp_entity:
 	{
-		if(arg->vt==VT_PTR)
+		if(arg->vt==VT_PTR || arg->vt==VT_EMPTY)
 			player[index].ent = (entity*)arg->ptrVal;
 		else goto cpperror;
 		break;
