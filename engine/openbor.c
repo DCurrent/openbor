@@ -11636,7 +11636,7 @@ void ent_set_model(entity * ent, char * modelname, int syncAnim)
 	{
 		ent->attacking = 0;
 
-		if((!selectScreen && !time) || ent->modeldata.type != TYPE_PLAYER)
+		if((!selectScreen && !time) || !(ent->modeldata.type&TYPE_PLAYER))
 		{
 			// use new playerselect spawn anim
 			if( validanim(ent,ANI_SPAWN))
@@ -11644,7 +11644,7 @@ void ent_set_model(entity * ent, char * modelname, int syncAnim)
 			else
 				ent_set_anim(ent, ANI_IDLE, 0);
 		}
-		else if(!selectScreen && time && ent->modeldata.type == TYPE_PLAYER)
+		else if(!selectScreen && time && (ent->modeldata.type&TYPE_PLAYER))
 		{
 			// mid-level respawn
 			if( validanim(ent, ANI_RESPAWN))
@@ -11742,10 +11742,13 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			e->nextthink = time + 1;
 			ent_set_colourmap(e, 0);
 			e->lifespancountdown = model->lifespan; // new life span countdown
-			if((e->modeldata.type & (TYPE_PLAYER|TYPE_SHOT)) && level && (level->nohit || savedata.mode)) e->modeldata.hostile &= ~TYPE_PLAYER;
-			if(e->modeldata.type==TYPE_PLAYER) e->playerindex = currentspawnplayer;
+			if((e->modeldata.type & (TYPE_PLAYER|TYPE_SHOT)) && ((level && level->nohit) || savedata.mode)) {
+				e->modeldata.hostile &= ~TYPE_PLAYER;
+				e->modeldata.candamage &= ~TYPE_PLAYER;
+			}
+			if(e->modeldata.type&TYPE_PLAYER) e->playerindex = currentspawnplayer;
 
-			if(e->modeldata.type == TYPE_TEXTBOX) textbox = e;
+			if(e->modeldata.type&TYPE_TEXTBOX) textbox = e;
 
 			strncpy(e->name, e->modeldata.name, MAX_NAME_LEN);
 			// copy back the value
@@ -11797,7 +11800,7 @@ void kill(entity *victim)
 	if(!victim || !victim->exists)
 		return;
 
-	if(victim->modeldata.type == TYPE_SHOT && player[(int)victim->playerindex].ent)
+	if((victim->modeldata.type&TYPE_SHOT) && player[(int)victim->playerindex].ent)
 		player[(int)victim->playerindex].ent->cantfire = 0;
 
 	ent_unlink(victim);
@@ -11866,7 +11869,7 @@ void kill(entity *victim)
 			if(self->landed_on_platform == victim) self->landed_on_platform = NULL;
 			if(self->hithead == victim) self->hithead = NULL;
 			if(self->lasthit == victim) self->lasthit = NULL;
-			if(!textbox && self->modeldata.type == TYPE_TEXTBOX)
+			if(!textbox && (self->modeldata.type&TYPE_TEXTBOX))
 			textbox = self;
 		}
 	}
@@ -11908,8 +11911,7 @@ int checkhit(entity *attacker, entity *target, int counter)
 	float zdist = 0, z1, z2;
 
 	if(attacker == target || !target->animation->bbox_coords ||
-	!attacker->animation->attacks || !target->animation->vulnerable[target->animpos] ||
-	((attacker->modeldata.type == TYPE_PLAYER && target->modeldata.type == TYPE_PLAYER) && savedata.mode)) return 0;
+	!attacker->animation->attacks || !target->animation->vulnerable[target->animpos] ) return 0;
 
 	z1 = attacker->z; z2 = target->z;
 	coords1 = attacker->animation->attacks[attacker->animpos]->attack_coords;
@@ -12824,7 +12826,7 @@ void check_gravity()
 					toss(self, (-self->tossv)/self->animation->bounce);
 					if(level && !self->modeldata.noquake) level->quake = 4;    // Don't shake if specified
 					if(SAMPLE_FALL >= 0) sound_play_sample(SAMPLE_FALL, 0, savedata.effectvol,savedata.effectvol, 100);
-					if(self->modeldata.type == TYPE_PLAYER) control_rumble(self->playerindex, 100*(int)self->tossv/2);
+					if(self->modeldata.type&TYPE_PLAYER) control_rumble(self->playerindex, 100*(int)self->tossv/2);
 					for(i=0; i<MAX_PLAYERS; i++) control_rumble(i, 75*(int)self->tossv/2);
 				}
 				else if((!self->animation->seta || self->animation->seta[self->animpos]<0) &&
@@ -12886,10 +12888,10 @@ void check_lost()
 		((level->scrolldir==SCROLL_UP || level->scrolldir==SCROLL_DOWN) && (self->z-self->a<-osk || self->z-self->a>videomodes.vRes + osk))		) )
 		|| self->a < 2*PIT_DEPTH) //self->z<100000, so weapon item won't be killed
 	{
-		if(self->modeldata.type==TYPE_PLAYER)
-		player_die();
+		if(self->modeldata.type&TYPE_PLAYER)
+			player_die();
 		else
-		kill(self);
+			kill(self);
 		return;
 	}
 
@@ -13041,7 +13043,7 @@ void update_animation()
 		else if(self->modeldata.facing == 2 || level->facing == 2) self->direction = 0;
 		else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_RIGHT)) self->direction = 1;
 		else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_LEFT)) self->direction = 0;
-		if(self->modeldata.type == TYPE_PANEL)
+		if(self->modeldata.type&TYPE_PANEL)
 		{
 			self->x += scrolldx * ((float)(self->modeldata.speed));
 			if(level->scrolldir==SCROLL_UP)
@@ -13104,7 +13106,7 @@ void update_animation()
 	if(self->modeldata.escapehits && !self->inpain) self->escapecount = 0;
 
 	if(self->nextanim == time ||
-		(self->modeldata.type == TYPE_TEXTBOX && self->modeldata.subtype != SUBTYPE_NOSKIP &&
+		((self->modeldata.type&TYPE_TEXTBOX) && self->modeldata.subtype != SUBTYPE_NOSKIP &&
 		 (bothnewkeys&(FLAG_JUMP|FLAG_ATTACK|FLAG_ATTACK2|FLAG_ATTACK3|FLAG_ATTACK4|FLAG_SPECIAL))))// Textbox will autoupdate if a valid player presses an action button
 	{    // Now you can display text and cycle through with any jump/attack/special unless SUBTYPE_NOSKIP
 
@@ -13940,7 +13942,7 @@ int count_ents(int types)
 	for(i=0; i<ent_max; i++)
 	{ // 2007-12-18, remove all nodieblink checking, because dead corpse with nodieblink 3 will be changed to TYPE_NONE
 	  // so if it is "dead" and TYPE_NONE, it must be a corpse
-		count += (ent_list[i]->exists && (ent_list[i]->modeldata.type & types) && !(ent_list[i]->dead && ent_list[i]->modeldata.type==TYPE_NONE));
+		count += (ent_list[i]->exists && (ent_list[i]->modeldata.type & types) );
 	}
 	return count;
 }
@@ -14279,7 +14281,7 @@ void set_weapon(entity* ent, int wpnum, int anim_flag) // anim_flag added for sc
 	if(!ent) return;
 //printf("setweapon: %d \n", wpnum);
 
-	if(ent->modeldata.type == TYPE_PLAYER) // save current weapon for player's weaploss 3
+	if(ent->modeldata.type & TYPE_PLAYER) // save current weapon for player's weaploss 3
 	{
 		if(ent->modeldata.weaploss[0] >= 3) player[(int)ent->playerindex].weapnum = wpnum;
 		else player[(int)ent->playerindex].weapnum = level->setweap;
@@ -14437,7 +14439,7 @@ int perform_atchain()
 
 	if(validanim(self,animattacks[self->modeldata.atchain[self->combostep[0]-1]-1]) )
 	{
-		if(((self->combostep[0]==1||!(self->modeldata.combostyle&1)) && self->modeldata.type==TYPE_PLAYER) ||  // player should use attack 1st step without checking range
+		if(((self->combostep[0]==1||!(self->modeldata.combostyle&1)) && (self->modeldata.type&TYPE_PLAYER)) ||  // player should use attack 1st step without checking range
 		   (!(self->modeldata.combostyle&1) && normal_find_target(animattacks[self->modeldata.atchain[0]-1],0)) || // normal chain just checks the first attack in chain(guess no one like it)
 		   ((self->modeldata.combostyle&1) && normal_find_target(animattacks[self->modeldata.atchain[self->combostep[0]-1]-1],0))) // combostyle 1 checks all anyway
 		{
@@ -14756,18 +14758,18 @@ void common_lie()
 		if(self->modeldata.falldie == 2) set_death(self, self->damagetype, 0);
 		if(!self->modeldata.nodieblink || (self->modeldata.nodieblink == 1 && !self->animating))
 		{    // Now have the option to blink or not
-			self->takeaction = (self->modeldata.type == TYPE_PLAYER)?player_blink:suicide;
+			self->takeaction = (self->modeldata.type&TYPE_PLAYER)?player_blink:suicide;
 			self->blink = 1;
 			self->stalltime  = time + GAME_SPEED * 2;
 		}
 		else if(self->modeldata.nodieblink == 2  && !self->animating)
 		{
-			self->takeaction = (self->modeldata.type == TYPE_PLAYER)?player_die:suicide;
+			self->takeaction = (self->modeldata.type&TYPE_PLAYER)?player_die:suicide;
 
 		}
 		else if(self->modeldata.nodieblink == 3  && !self->animating)
 		{
-			if(self->modeldata.type == TYPE_PLAYER)
+			if(self->modeldata.type&TYPE_PLAYER)
 			{
 				self->takeaction = player_die;
 
@@ -14992,7 +14994,7 @@ void common_get()
 // A.I. characters do the block
 void common_block()
 {
-	int hb1 = self->modeldata.holdblock && self->modeldata.type==TYPE_PLAYER &&
+	int hb1 = self->modeldata.holdblock && (self->modeldata.type&TYPE_PLAYER) &&
 		(!self->inpain || (self->modeldata.holdblock&2)); //inpain = blockpain
 	int hb2 = ((player+self->playerindex)->keys&FLAG_SPECIAL) ;
 
@@ -15049,7 +15051,7 @@ entity* drop_item(entity* e)
 			if(item->z-item->a < advancey) item->z = advancey + 10;
 			else if(item->z-item->a > advancey + videomodes.vRes) item->z = advancey + videomodes.vRes - 10;
 		}
-		if(e->boss && item->modeldata.type==TYPE_ENEMY) item->boss = 1;
+		if(e->boss && (item->modeldata.type&TYPE_ENEMY)) item->boss = 1;
 	}
 	return item;
 }
@@ -15093,7 +15095,7 @@ void checkdeath()
 	if(self->health>0) return;
 	self->dead = 1;
 	//be careful, since the opponent can be other types
-	if(self->opponent && self->opponent->modeldata.type == TYPE_PLAYER)
+	if(self->opponent && (self->opponent->modeldata.type&TYPE_PLAYER))
 	{
 		addscore(self->opponent->playerindex, self->modeldata.score);    // Add score to the player
 	}
@@ -15111,7 +15113,7 @@ void checkdeath()
 	if(self->boss){
 		self->boss = 0;
 		--level->bosses;
-		if(!level->bosses && self->modeldata.type == TYPE_ENEMY){
+		if(!level->bosses && (self->modeldata.type&TYPE_ENEMY)){
 			kill_all_enemies();
 			level_completed = 1;
 		}
@@ -15276,7 +15278,7 @@ void checkhitscore(entity* other, s_attack* attack)
 {
 	entity* opp = self->opponent;
 	if(!opp) return;
-	if(opp && opp!=self && opp->modeldata.type == TYPE_PLAYER)
+	if(opp && opp!=self && (opp->modeldata.type&TYPE_PLAYER))
 	{    // Added obstacle so explosions can hurt enemies
 		addscore(opp->playerindex, attack->attack_force*self->modeldata.multiple);    // New multiple variable
 		control_rumble(opp->playerindex, attack->attack_force*2);
@@ -15381,10 +15383,10 @@ int common_takedamage(entity *other, s_attack* attack)
 	// is it dead now?
 	checkdeath();
 
-	if(self->modeldata.type == TYPE_PLAYER) control_rumble(self->playerindex, attack->attack_force * 3);
+	if(self->modeldata.type&TYPE_PLAYER) control_rumble(self->playerindex, attack->attack_force * 3);
 	if(self->a<=PIT_DEPTH && self->dead)
 	{
-		if(self->modeldata.type == TYPE_PLAYER) player_die();
+		if(self->modeldata.type&TYPE_PLAYER) player_die();
 		else kill(self);
 		return 1;
 	}
@@ -15433,12 +15435,12 @@ int common_takedamage(entity *other, s_attack* attack)
 			//set_fall(entity *iFall, int type, int reset, entity* other, int force, int drop)
 			if(!set_fall(self, self->damagetype, 1, other, attack->attack_force, attack->attack_drop, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add))
 			{
-				if(self->modeldata.type == TYPE_PLAYER) player_die();
+				if(self->modeldata.type&TYPE_PLAYER) player_die();
 				else kill(self);
 				return 1;
 			}
 		}
-		if(self->modeldata.type == TYPE_PLAYER) control_rumble(self->playerindex, attack->attack_force * 3);
+		if(self->modeldata.type&TYPE_PLAYER) control_rumble(self->playerindex, attack->attack_force * 3);
 	}
 	else if(attack->grab && !attack->no_pain)
 	{
@@ -15999,7 +16001,7 @@ int common_trymove(float xdir, float zdir)
 
 	//-------------hole checking ---------------------
 	// Don't walk into a hole or walk off platforms into holes
-	if( self->modeldata.type!=TYPE_PLAYER && self->idling &&
+	if( !(self->modeldata.type&TYPE_PLAYER) && self->idling &&
 		(!self->animation->seta||self->animation->seta[self->animpos]<0) &&
 		self->modeldata.subject_to_hole>0 && !inair(self) &&
 		!(self->modeldata.aimove&AIMOVE2_IGNOREHOLES))
@@ -16089,7 +16091,7 @@ int common_trymove(float xdir, float zdir)
 	//----------------end of wall checking--------------
 
 	//------------------ grab/throw checking------------------
-	if(self->modeldata.type==TYPE_PLAYER &&
+	if((self->modeldata.type&TYPE_PLAYER) &&
 		(rand()&7)==0 &&
 		(validanim(self,ANI_THROW) ||
 		 validanim(self,ANI_GRAB)) && self->idling &&
@@ -16181,7 +16183,7 @@ void common_attack_finish()
 
 	self->xdir = self->zdir = 0;
 
-	if(self->modeldata.type == TYPE_PLAYER)
+	if(self->modeldata.type&TYPE_PLAYER)
 	{
 		self->takeaction = NULL;
 		set_idle(self);
@@ -17478,7 +17480,7 @@ int common_move()
 				ent = other;
 			}else{
 				if(target && (self->modeldata.subtype == SUBTYPE_CHASE ||
-				(self->modeldata.type == TYPE_NPC && self->parent)))
+				((self->modeldata.type&TYPE_NPC) && self->parent)))
 					// try chase a target
 					aimove |= AIMOVE1_CHASE;
 
@@ -17666,7 +17668,7 @@ void decide_stalker(){
 	for(i=0; i<ent_max; i++){
 		ent = ent_list[i];
 
-		if(ent->exists && !ent->dead && ent->modeldata.type == TYPE_ENEMY ){
+		if(ent->exists && !ent->dead && (ent->modeldata.type&TYPE_ENEMY)){
 			if(ent->x>firstplayer->x) r++;
 			else l++;
 
@@ -17908,9 +17910,9 @@ int check_energy(int which, int ani)
 		enemies, or npcs. */
 		if(!(iCost[2]==iType													//Disabled by type?
 			|| (iCost[2]==-1)													//Disabled for all?
-			|| (iCost[2]==-2 && (iType == TYPE_ENEMY || iType == TYPE_NPC))		//Disabled for all AI?
-			|| (iCost[2]==-3 && (iType == TYPE_PLAYER || iType == TYPE_NPC))	//Disabled for players & NPCs?
-			|| (iCost[2]==-4 && (iType == TYPE_PLAYER || iType == TYPE_ENEMY))))//Disabled for all AI?
+			|| (iCost[2]==-2 && (iType&(TYPE_ENEMY|TYPE_NPC)))		//Disabled for all AI?
+			|| (iCost[2]==-3 && (iType&(TYPE_PLAYER|TYPE_NPC)))	//Disabled for players & NPCs?
+			|| (iCost[2]==-4 && (iType&(TYPE_PLAYER|TYPE_ENEMY)))))//Disabled for all AI?
 		{
 			iCost[0] = self->modeldata.animation[ani]->energycost.cost;			//Get energy cost amount
 			iCost[1] = self->modeldata.animation[ani]->energycost.mponly;		//Get energy cost type.
@@ -19465,7 +19467,7 @@ void dropweapon(int flag)
 	}
 	if(flag < 2)
 	{
-		if(self->modeldata.type == TYPE_PLAYER)
+		if(self->modeldata.type&TYPE_PLAYER)
 		{
 			if(player[self->playerindex].weapnum)
 				set_weapon(self, player[self->playerindex].weapnum, 0);
@@ -19507,7 +19509,7 @@ void drop_all_enemies()
 	{
 		if(ent_list[i]->exists &&
 			ent_list[i]->health>0 &&
-			ent_list[i]->modeldata.type==TYPE_ENEMY &&
+			(ent_list[i]->modeldata.type&TYPE_ENEMY) &&
 			!ent_list[i]->owner &&    // Don't want to knock down a projectile
 			!ent_list[i]->frozen &&    // Don't want to unfreeze a frozen enemy
 			!ent_list[i]->modeldata.nomove &&
@@ -19552,7 +19554,7 @@ void kill_all_enemies()
 	{
 		if(  ent_list[i]->exists
 			&& ent_list[i]->health>0
-			&& ent_list[i]->modeldata.type==TYPE_ENEMY
+			&& (ent_list[i]->modeldata.type&TYPE_ENEMY)
 			&& ent_list[i]->takedamage)
 		{
 			self = ent_list[i];
@@ -19572,7 +19574,7 @@ void smart_bomb(entity* e, s_attack* attack)    // New method for smartbombs
 	entity * tmpself = NULL;
 
 	hostile = e->modeldata.hostile;
-	if(e->modeldata.type == TYPE_PLAYER)
+	if(e->modeldata.type&TYPE_PLAYER)
 		hostile &= ~(TYPE_PLAYER);
 
 	tmpself = self;
@@ -19636,7 +19638,7 @@ entity * knife_spawn(char *name, int index, float x, float z, float a, int direc
 	else {e = spawn(x, z, a, direction, "Knife", -1, NULL);                            if(!e) return NULL; e->ptype = 0; e->a = a;}
 
 	if(e==NULL) return NULL;
-	else if(self->modeldata.type == TYPE_PLAYER) e->modeldata.type = TYPE_SHOT;
+	else if(self->modeldata.type&TYPE_PLAYER) e->modeldata.type = TYPE_SHOT;
 	else e->modeldata.type = self->modeldata.type;
 
 	if(self->animation->energycost.cost > 0 && nocost) self->cantfire = 1;    // Can't fire if still exists on screen
@@ -19953,7 +19955,7 @@ int obstacle_takedamage(entity *other, s_attack* attack)
 
 	//self->pain_time = time + (attack->pain_time?attack->pain_time:(GAME_SPEED / 5));
 	set_opponent(other, self);
-	if(self->opponent && self->opponent->modeldata.type==TYPE_PLAYER)
+	if(self->opponent && (self->opponent->modeldata.type&TYPE_PLAYER))
 	{
 		control_rumble(self->opponent->playerindex, 75);
 	}
