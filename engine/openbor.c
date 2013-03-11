@@ -11517,7 +11517,7 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 	if(ani->numframes == 0)
 		return;
 
-	if(ent->animation && ani->sync>=0 && ent->animation->sync==ani->sync){
+	if(ent->animation && ((resetable&2) || (ani->sync>=0 && ent->animation->sync==ani->sync))){
 		animpos = ent->animpos;
 		if(animpos>=ani->numframes)
 			animpos = 0;
