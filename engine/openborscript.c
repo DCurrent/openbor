@@ -2693,6 +2693,7 @@ _ep_scroll,
 _ep_seal,
 _ep_sealtime,
 _ep_setlayer,
+_ep_sortid,
 _ep_spawntype,
 _ep_speed,
 _ep_sprite,
@@ -2863,6 +2864,7 @@ static const char* eplist[] = {
 "seal",
 "sealtime",
 "setlayer",
+"sortid",
 "spawntype",
 "speed",
 "sprite",
@@ -5220,6 +5222,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		(*pretvar)->lVal = (LONG)ent->modeldata.setlayer;
 		break;
 	}
+	case _ep_sortid:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->sortid;
+		break;
+	}
 	case _ep_spawntype:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -6566,6 +6574,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 			ent->modeldata.setlayer = (int)ltemp;
+		break;
+	}
+    case _ep_sortid:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->sortid = (int)ltemp;
 		break;
 	}
 	case _ep_speed:
