@@ -793,44 +793,42 @@ static int open_type = 0;
 
 static int openimage(char *filename, char *packfile){
 	char fnam[128];
+	int len = strlen(filename);
+	char* ext = filename+len-4;
 	open_type = 0;
 
-	if(openpng(filename, packfile)){
+	if(0==stricmp(ext, ".png") && openpng(filename, packfile)){
 		open_type = OT_PNG;
 		return 1;
+	}else if(0==stricmp(ext, ".gif") && opengif(filename, packfile)){
+		open_type = OT_GIF;
+		return 1;
+	}else if(0==stricmp(ext, ".pcx") && openpcx(filename, packfile)){
+		open_type = OT_PCX;
+		return 1;
+	}else if(0==stricmp(ext, ".bmp") && openbmp(filename, packfile)){
+		open_type = OT_BMP;
+		return 1;
 	}
+
 	sprintf(fnam, "%s.png", filename);
 	if(openpng(fnam, packfile)){
 		open_type = OT_PNG;
 		return 1;
 	}
 
-	if(strlen(filename)>=128-4) return 0;
-
-	if(opengif(filename, packfile)){
-		open_type = OT_GIF;
-		return 1;
-	}
 	sprintf(fnam, "%s.gif", filename);
 	if(opengif(fnam, packfile)){
 		open_type = OT_GIF;
 		return 1;
 	}
 
-	if(openpcx(filename, packfile)){
-		open_type = OT_PCX;
-		return 1;
-	}
 	sprintf(fnam, "%s.pcx", filename);
 	if(openpcx(fnam, packfile)){
 		open_type = OT_PCX;
 		return 1;
 	}
 
-	if(openbmp(filename, packfile)){
-		open_type = OT_BMP;
-		return 1;
-	}
 	sprintf(fnam, "%s.bmp", filename);
 	if(openbmp(fnam, packfile)){
 		open_type = OT_BMP;
