@@ -313,9 +313,9 @@ unsigned blend_tint32(unsigned color1, unsigned color2)
 //copy from below
 unsigned blend_rgbchannel32(unsigned color1, unsigned color2)
 {
-	unsigned b1 = color1>>16, r2 = color2>>16;
+	unsigned b1 = color1>>16, b2 = color2>>16;
 	unsigned g1 = (color1&0xFF00)>>8, g2 = (color2&0xFF00)>>8;
-	unsigned r1 = color1&0xFF, b2 = color2&0xFF;
+	unsigned r1 = color1&0xFF, r2 = color2&0xFF;
 	return _color(	_channel(r1,r2,channelr),
 					_channel(g1,g2,channelg),
 					_channel(b1,b2,channelb));
