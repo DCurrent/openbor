@@ -6,6 +6,7 @@
  * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
+#include "openborscript.h"
 #include "Interpreter.h"
 #include "ImportCache.h"
 #include <string.h>
@@ -541,6 +542,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			List_Solidify(pInstruction->theRefList);
 			//cache the return value
 			Instruction_NewData(pInstruction);
+			if(!Script_MapStringConstants(pInstruction)) hr = E_FAIL;
 			List_GotoNext(&(pinterpreter->theInstructionList));
 			if(((Instruction*)List_Retrieve(&(pinterpreter->theInstructionList)))->OpCode != CLEAN){
 				Stack_Push(&(pinterpreter->theDataStack), pInstruction->theVal);
