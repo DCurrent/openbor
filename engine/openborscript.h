@@ -36,12 +36,12 @@ typedef struct Script
 }Script;
 
 extern s_variantnode** global_var_list;
-extern List           theFunctionList;
+extern List theFunctionList;
 extern ScriptVariant* indexed_var_list;
-extern int            max_indexed_vars;
-extern int            max_entity_vars;
-extern int            max_script_vars;
-extern int            max_global_vars;
+extern int max_indexed_vars;
+extern int max_entity_vars;
+extern int max_script_vars;
+extern int max_global_vars;
 extern int no_nested_script;
 extern int max_global_var_index ;
 extern int global_var_count;
@@ -65,6 +65,7 @@ int Script_Save_Local_Variant(Script* cs, char* namelist[]);
 void Script_Load_Local_Variant(Script* cs, int handle);
 
 void Script_LoadSystemFunctions();
+int Script_MapStringConstants(Instruction* pInstruction);
 
 #ifndef COMPILED_SCRIPT
 int Script_Call(Script* pscript, char* method, ScriptVariant* pretvar);
@@ -219,18 +220,18 @@ HRESULT openbor_loadscript(ScriptVariant** varlist , ScriptVariant** pretvar, in
 HRESULT openbor_compilescript(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_executescript(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
-void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount);
-void mapstrings_entityproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_playerproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_setspawnentry(ScriptVariant** varlist, int paramCount);
-void mapstrings_transconst(ScriptVariant** varlist, int paramCount);
-void mapstrings_playerkeys(ScriptVariant** varlist, int paramCount);
-void mapstrings_textobjproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_layerproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_gfxproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_levelproperty(ScriptVariant** varlist, int paramCount);
-void mapstrings_attackproperty(ScriptVariant** varlist, int paramCount);
+int mapstrings_systemvariant(ScriptVariant** varlist, int paramCount);
+int mapstrings_entityproperty(ScriptVariant** varlist, int paramCount);
+int mapstrings_playerproperty(ScriptVariant** varlist, int paramCount);
+int mapstrings_setspawnentry(ScriptVariant** varlist, int paramCount);
+int mapstrings_transconst(ScriptVariant** varlist, int paramCount);
+int mapstrings_playerkeys(ScriptVariant** varlist, int paramCount);
+int mapstrings_textobjproperty(ScriptVariant** varlist, int paramCount);
+int mapstrings_layerproperty(ScriptVariant** varlist, int paramCount);
+int mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount);
+int mapstrings_gfxproperty(ScriptVariant** varlist, int paramCount);
+int mapstrings_levelproperty(ScriptVariant** varlist, int paramCount);
+int mapstrings_attackproperty(ScriptVariant** varlist, int paramCount);
 
 enum systemvariant_enum
 {

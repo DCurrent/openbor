@@ -34,16 +34,18 @@
 #include "ImportCache.h"
 #include "models.h"
 
+#define _is_not_a_known_subproperty_of_  "'%s' is not a known subproperty of '%s'.\n"
+#define _is_not_supported_by_ "'%s' is not supported by 'takeaction'.\n"
 
 // Define macro for string mapping
-#define MAPSTRINGS(VAR, LIST, MAXINDEX, FAILMSG) \
+#define MAPSTRINGS(VAR, LIST, MAXINDEX, FAILMSG, args...) \
 if(VAR->vt == VT_STR) { \
 	propname = (char*)StrCache_Get(VAR->strVal); \
 	prop = searchList(LIST, propname, MAXINDEX); \
 	if(prop >= 0) { \
 		ScriptVariant_ChangeType(VAR, VT_INTEGER); \
 		VAR->lVal = prop; \
-	} else { printf(FAILMSG, propname); } \
+	} else { printf(FAILMSG, propname, ##args); return 0;} \
 }
 
 extern int			  PLAYER_MIN_Z;
@@ -710,58 +712,23 @@ const ScriptVariant* Script_Find_Constant(Script* pscript, const ScriptVariant* 
 
 /* Replace string constants with enum constants at compile time to speed up
    script execution. */
-int Script_MapStringConstants(Script* pscript)
+int Script_MapStringConstants(Instruction* pInstruction)
 {
-	Interpreter* pinterpreter = pscript->pinterpreter;
-	Instruction* pInstruction;
 	ScriptVariant** params;
-	//ScriptVariant* var;
-	void (*pMapstrings)(ScriptVariant**, int);
-	int i, size, paramCount;
-#define CONVCONST 0
-#if CONVCONST
-	int j,k;
-	int flags[32];
-	Instruction *pInstruction2;
-#endif
+	int paramCount;
+	int (*pMapstrings)(ScriptVariant**, int);
 
-	size = List_GetSize(&(pinterpreter->theInstructionList));
-	for(i=0; i<size; i++)
+	if(pInstruction->functionRef)
 	{
-		pInstruction = (Instruction*)(pinterpreter->theInstructionList.solidlist[i]);
-		if(pInstruction->functionRef)
+		params = (ScriptVariant**)pInstruction->theRefList->solidlist;
+		paramCount = (int)pInstruction->theRef->lVal;
+		assert(paramCount<=32);
+		// Get the pointer to the correct mapstrings function, if one exists.
+		pMapstrings = Script_GetStringMapFunction(pInstruction->functionRef);
+		if(pMapstrings)
 		{
-			params = (ScriptVariant**)pInstruction->theRefList->solidlist;
-			paramCount = (int)pInstruction->theRef->lVal;
-			assert(paramCount<=32);
-			// Get the pointer to the correct mapstrings function, if one exists.
-			pMapstrings = Script_GetStringMapFunction(pInstruction->functionRef);
-			if(pMapstrings)
-			{
-#if CONVCONST
-				for(j=0; j<paramCount; j++) flags[j] = params[j]->vt;
-#endif
-				// Call the mapstrings function.
-				pMapstrings(params, paramCount);
-#if CONVCONST
-				// Find the instruction containing each constant and update its value.
-				for(j=0; j<paramCount; j++)
-				{
-					//only find those that were changed
-					if(flags[j]==params[j]->vt) continue;
-					for(k=i; k>=0; k--)
-					{
-						pInstruction2 = (Instruction*)(pinterpreter->theInstructionList.solidlist[k]);
-						if(pInstruction2->theVal2 == params[j])
-						{
-							ScriptVariant_Copy(pInstruction2->theVal, pInstruction2->theVal2);
-							break;
-						}
-					}
-					if(k<0) return 0;
-				}
-#endif
-			}
+			// Call the mapstrings function.
+			if(!pMapstrings(params, paramCount)) return 0;
 		}
 	}
 
@@ -935,9 +902,8 @@ int Script_Compile(Script* pscript)
 	if(!pscript || !pscript->pinterpreter) return 1;
 	//Interpreter_OutputPCode(pscript->pinterpreter, "code");
 	result = SUCCEEDED(Interpreter_CompileInstructions(pscript->pinterpreter));
-	if(!result) {Script_Clear(pscript, 1);shutdown(1, "Can't compile script!\n");}
-	result = Script_MapStringConstants(pscript);
-	if(!result) {Script_Clear(pscript, 1);shutdown(1, "Can't compile script!\n");}
+	if(!result) 
+		shutdown(1, "Can't compile script '%s' %s\n", pscript->pinterpreter->theSymbolTable.name, pscript->comment?pscript->comment:"");
 
 	pscript->pinterpreter->bReset = FALSE;
 	//result = Script_DetectUnusedFunctions(pscript);
@@ -1539,7 +1505,7 @@ static const char* svlist[] = {
 
 
 // ===== openborvariant =====
-void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
+int mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
 	int prop;
@@ -1547,6 +1513,8 @@ void mapstrings_systemvariant(ScriptVariant** varlist, int paramCount)
 
 	MAPSTRINGS(varlist[0], svlist, _sv_the_end,
 		"openborvariant: System variable name not found: '%s'\n");
+
+	return 1;
 }
 
 //sample function, used for getting a system variant
@@ -3213,10 +3181,11 @@ enum cep_think_enum { // 2011_03_03, DC: Think types.
     _ep_th_the_end,
 };
 
-void mapstrings_entityproperty(ScriptVariant** varlist, int paramCount)
+int mapstrings_entityproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
-	int prop, i;
+	const char *eps;
+	int prop, i, ep;
 
 	static const char* proplist_defense[] = {
 		"blockpower",
@@ -3375,28 +3344,31 @@ void mapstrings_entityproperty(ScriptVariant** varlist, int paramCount)
 		"trap_think",
 	};
 
-	if(paramCount < 2) return;
+	if(paramCount < 2) return 1;
 
 	// map entity properties
 	MAPSTRINGS(varlist[1], eplist, _ep_the_end,
 		"Property name '%s' is not supported by function getentityproperty.\n");
 
-	if(paramCount < 3 || varlist[1]->vt != VT_INTEGER) return;
+	if(paramCount < 3 || varlist[1]->vt != VT_INTEGER) return 1;
 
-	switch (varlist[1]->lVal)
+	ep = varlist[1]->lVal;
+	eps = (ep<_ep_the_end&&ep>=0)?eplist[ep]:"";
+
+	switch (ep)
 	{
 	// map subproperties of aiflag property
 	case _ep_aiflag:
 	{
 		MAPSTRINGS(varlist[2], eplist_aiflag, _ep_aiflag_the_end,
-			"'%s' is not a known subproperty of 'aiflag'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
 	// map subproperties of Attack
 	case _ep_attack:
 	{
 		MAPSTRINGS(varlist[2], eplist_attack, _ep_attack_the_end,
-			"Property name '%s' is not a known subproperty of 'attack'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
 	// map subproperties of defense property
@@ -3405,7 +3377,7 @@ void mapstrings_entityproperty(ScriptVariant** varlist, int paramCount)
 		if(paramCount >= 4)
 		{
 			MAPSTRINGS(varlist[3], proplist_defense, _ep_defense_the_end,
-				"'%s' is not a known subproperty of 'defense'.\n");
+				_is_not_a_known_subproperty_of_, eps);
 		}
 		break;
 	}
@@ -3413,84 +3385,84 @@ void mapstrings_entityproperty(ScriptVariant** varlist, int paramCount)
 	case _ep_dot:
 	{
 		MAPSTRINGS(varlist[2], proplist_dot, _ep_dot_the_end,
-			"Property name '%s' is not a known subproperty of 'dot'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
     // map subproperties of Edelay property
 	case _ep_edelay:
 	{
 		MAPSTRINGS(varlist[2], proplist_edelay, _ep_edelay_the_end,
-			"'%s' is not a known subproperty of 'edelay'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
 	// map subproperties of Energycost
 	case _ep_energycost:
 	{
 		MAPSTRINGS(varlist[2], proplist_energycost, _ep_energycost_the_end,
-			"Property name '%s' is not a known subproperty of 'energycost'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
 	// map subproperties of Flash
 	case _ep_flash:
 	{
 		MAPSTRINGS(varlist[2], proplist_flash, _ep_flash_the_end,
-			"Property name '%s' is not a known subproperty of 'flash'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
     // map subproperties of Icon
 	case _ep_icon:
 	{
 		MAPSTRINGS(varlist[2], proplist_icon, _ep_icon_the_end,
-			"Property name '%s' is not a known subproperty of 'icon'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
 	// map subproperties of Knockdowncount
 	case _ep_knockdowncount:
 	{
 		MAPSTRINGS(varlist[2], proplist_knockdowncount, _ep_knockdowncount_the_end,
-			"Property name '%s' is not a known subproperty of 'knockdowncount'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
 	// map subproperties of Landframe
 	case _ep_landframe:
 	{
 		MAPSTRINGS(varlist[2], proplist_landframe, _ep_landframe_the_end,
-			"Property name '%s' is not a known subproperty of 'landframe'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
 	// map subproperties of Maps
 	case  _ep_maps:
 	{
 		MAPSTRINGS(varlist[2], proplist_maps, _ep_maps_the_end,
-			"Property name '%s' is not a known subproperty of 'maps'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
 	// map subproperties of Range
 	case _ep_range:
 	{
 		MAPSTRINGS(varlist[2], proplist_range, _ep_range_the_end,
-			"Property name '%s' is not a known subproperty of 'range'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
 	// map subproperties of Running
 	case _ep_running:
 	{
 		MAPSTRINGS(varlist[2], proplist_running, _ep_running_the_end,
-			"Property name '%s' is not a known subproperty of 'running'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
 	// map subproperties of Spritea
 	case _ep_spritea:
 	{
 		MAPSTRINGS(varlist[2], proplist_spritea, _ep_spritea_the_end,
-			"Property name '%s' is not a known subproperty of 'spritea'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
 	// map subproperties of Staydown
 	case _ep_staydown:
 	{
 		MAPSTRINGS(varlist[2], proplist_staydown, _ep_running_the_end,
-			"Property name '%s' is not a known subproperty of 'staydown'.\n");
+			_is_not_a_known_subproperty_of_, eps);
 		break;
 	}
 	//hostile, candamage, projectilehit
@@ -3501,7 +3473,7 @@ void mapstrings_entityproperty(ScriptVariant** varlist, int paramCount)
 		for(i=2; i<paramCount; i++)
 		{
 			MAPSTRINGS(varlist[i], proplist_hostile_candamage, _ep_hcd_the_end,
-				"Entity type is not supported by 'hostile', 'candamage', or 'projectilehit'\n");
+				_is_not_supported_by_, eps);
 		}
 		break;
 	}
@@ -3509,17 +3481,19 @@ void mapstrings_entityproperty(ScriptVariant** varlist, int paramCount)
 	case _ep_takeaction:
 	{
 		MAPSTRINGS(varlist[2], proplist_takeaction, _ep_ta_the_end,
-			"Action is not supported by 'takeaction'.\n");
+			_is_not_supported_by_, eps);
 		break;
 	}
     // 2011_03_13, DC: Think sets for think.
 	case _ep_think:
 	{
 		MAPSTRINGS(varlist[2], proplist_think, _ep_th_the_end,
-			"Value is not supported by 'think'.\n");
+			_is_not_supported_by_, eps);
 		break;
 	}
 	}
+
+	return 1;
 }
 
 //getentityproperty(pentity, propname);
@@ -6988,7 +6962,7 @@ enum playerproperty_enum {
 	_pp_the_end,
 };
 
-void mapstrings_playerproperty(ScriptVariant** varlist, int paramCount)
+int mapstrings_playerproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
 	int prop;
@@ -7009,11 +6983,13 @@ void mapstrings_playerproperty(ScriptVariant** varlist, int paramCount)
 		"weapnum",
 	};
 
-	if(paramCount < 2) return;
+	if(paramCount < 2) return 1;
 
 	// property name
 	MAPSTRINGS(varlist[1], proplist, _pp_the_end,
 		"Player property name '%s' is not supported yet.\n");
+
+	return 1;
 }
 
 //getplayerproperty(index, propname);
@@ -7823,13 +7799,15 @@ HRESULT openbor_closefilestream(ScriptVariant** varlist , ScriptVariant** pretva
 	return S_OK;
 }
 
-void mapstrings_attackproperty(ScriptVariant** varlist, int paramCount)
+int mapstrings_attackproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
 	int prop;
-	if(paramCount<2) return;
+	if(paramCount<2) return 1;
 	MAPSTRINGS(varlist[0], eplist_attack, _ep_attack_the_end,
 		"'%s' is not a valid attack property.\n");
+
+	return 1;
 }
 
 //changeattackproperty(propname, value1[, value2, value3, ...]);
@@ -8177,7 +8155,7 @@ enum setspawnentry_enum
 	_sse_the_end,
 };
 
-void mapstrings_setspawnentry(ScriptVariant** varlist, int paramCount)
+int mapstrings_setspawnentry(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
 	int prop;
@@ -8212,6 +8190,8 @@ void mapstrings_setspawnentry(ScriptVariant** varlist, int paramCount)
 
 	MAPSTRINGS(varlist[0], proplist, _sse_the_end,
 		"Property name '%s' is not supported by setspawnentry.\n");
+
+	return 1;
 }
 
 //setspawnentry(propname, value1[, value2, value3, ...]);
@@ -8528,13 +8508,13 @@ else if(strnicmp(constname, #x, sizeof(#x)-1)==0 && constname[sizeof(#x)-1] >= '
 	v.lVal = (LONG)(atoi(constname+(sizeof(#x)-1))+STA_ATKS-1);\
 }
 
-void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
+int mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 {
 	char* constname = NULL;
 	int found = TRUE;
 	ScriptVariant v;
 
-	if(paramCount < 1) return;
+	if(paramCount < 1) return 1;
 
 	if(varlist[0]->vt == VT_STR)
 	{
@@ -8882,9 +8862,15 @@ void mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 
 		if(found) {
 			ScriptVariant_Copy(varlist[0], &v);
+		}else {
+			ScriptVariant_Clear(&v);
+			printf("Can't find openbor constant '%s' \n", constname);
 		}
-		ScriptVariant_Clear(&v);
+
+		return found;
 	}
+
+	return 1;
 }
 //openborconstant(constname);
 //translate a constant by string, used to retrieve a constant or macro of openbor
@@ -8901,12 +8887,11 @@ HRESULT openbor_transconst(ScriptVariant** varlist , ScriptVariant** pretvar, in
 	{
 		ScriptVariant_Copy((*pretvar), varlist[0]);
 		return S_OK;
-	} else {
-		ScriptVariant_ToString(varlist[0], buf);
-		printf("Can't translate constant %s\n", buf);
 	}
 
 transconst_error:
+	ScriptVariant_ToString(varlist[0], buf);
+	printf("Can't translate constant %s\n", buf);
 	*pretvar = NULL;
 	return E_FAIL;
 }
@@ -8950,7 +8935,7 @@ enum playerkeys_enum
 	_pk_the_end,
 };
 
-void mapstrings_playerkeys(ScriptVariant** varlist, int paramCount)
+int mapstrings_playerkeys(ScriptVariant** varlist, int paramCount)
 {
 	char* propname = NULL;
 	int i, prop;
@@ -8978,6 +8963,8 @@ void mapstrings_playerkeys(ScriptVariant** varlist, int paramCount)
 		MAPSTRINGS(varlist[i], proplist, _pk_the_end,
 			"Button name '%s' is not supported by playerkeys.");
 	}
+
+	return 1;
 }
 
 //playerkeys(playerindex, newkey?, key1, key2, ...);
@@ -9411,7 +9398,7 @@ enum gtop_enum
 	_top_the_end,
 };
 
-void mapstrings_textobjproperty(ScriptVariant** varlist, int paramCount)
+int mapstrings_textobjproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname = NULL;
 	int prop;
@@ -9425,10 +9412,12 @@ void mapstrings_textobjproperty(ScriptVariant** varlist, int paramCount)
 		"z",
 	};
 
-	if(paramCount < 2) return;
+	if(paramCount < 2) return 1;
 
 	MAPSTRINGS(varlist[1], proplist, _top_the_end,
 		"'%s' is not a valid textobj property.\n");
+
+	return 1;
 }
 
 HRESULT openbor_gettextobjproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
@@ -9747,7 +9736,7 @@ enum getbglp_enum
 	_glp_the_end,
 };
 
-void mapstrings_layerproperty(ScriptVariant** varlist, int paramCount)
+int mapstrings_layerproperty(ScriptVariant** varlist, int paramCount)
 {
 	char *propname = NULL;
 	int prop;
@@ -9785,11 +9774,13 @@ void mapstrings_layerproperty(ScriptVariant** varlist, int paramCount)
 		"water",
 	};
 
-	if(paramCount < 3) return;
+	if(paramCount < 3) return 1;
 	MAPSTRINGS(varlist[0], typelist, _glt_the_end,
 		"Type name '%s' is not supported by function getlayerproperty.\n");
 	MAPSTRINGS(varlist[2], proplist, _glp_the_end,
 		"Property name '%s' is not supported by function getlayerproperty.\n");
+
+	return 1;
 }
 
 HRESULT _getlayerproperty(s_layer* layer, int propind, ScriptVariant** pretvar)
@@ -10179,7 +10170,7 @@ enum levelproperty_enum
 };
 
 
-void mapstrings_levelproperty(ScriptVariant** varlist, int paramCount)
+int mapstrings_levelproperty(ScriptVariant** varlist, int paramCount)
 {
 	char *propname = NULL;
 	int prop;
@@ -10200,9 +10191,11 @@ void mapstrings_levelproperty(ScriptVariant** varlist, int paramCount)
 	};
 
 
-	if(paramCount < 1) return;
+	if(paramCount < 1) return 1;
 	MAPSTRINGS(varlist[0], proplist, _lp_the_end,
 		"Level property '%s' is not supported.\n");
+
+	return 1;
 }
 
 HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
@@ -10784,7 +10777,7 @@ enum drawmethod_enum
 };
 
 
-void mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount)
+int mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount)
 {
 	char *propname = NULL;
 	int prop;
@@ -10831,9 +10824,11 @@ void mapstrings_drawmethodproperty(ScriptVariant** varlist, int paramCount)
 	};
 
 
-	if(paramCount < 2) return;
+	if(paramCount < 2) return 1;
 	MAPSTRINGS(varlist[1], proplist, _dm_the_end,
 		"Property name '%s' is not supported by drawmethod.\n");
+
+	return 1;
 }
 
 // changedrawmethod(entity, propertyname, value);
@@ -11589,7 +11584,7 @@ enum gfxproperty_enum
 	_gfx_the_end,
 };
 
-void mapstrings_gfxproperty(ScriptVariant** varlist, int paramCount)
+int mapstrings_gfxproperty(ScriptVariant** varlist, int paramCount)
 {
 	char *propname = NULL;
 	int prop;
@@ -11607,9 +11602,11 @@ void mapstrings_gfxproperty(ScriptVariant** varlist, int paramCount)
 	};
 
 
-	if(paramCount < 2) return;
+	if(paramCount < 2) return 1;
 	MAPSTRINGS(varlist[1], proplist, _gfx_the_end,
 		"Property name '%s' is not supported by gfxproperty.\n");
+
+	return 1;
 }
 
 
