@@ -12,11 +12,6 @@
  * there are some significant differences - for example, the preprocessor lexer
  * can detect preprocessor tokens (#include, #define) and doesn't eat whitespace.
  *
- * View this file as UTF-8 in order to read utunnels' original comments in Chinese,
- * which look like random garbage otherwise.  Above each Chinese comment, though,
- * is a translation into English using Google Translate. The original Lexer.c
- * was encoded with the GB18030 (Simplified Chinese) encoding.
- *
  * @author Plombo (original Lexer.c by utunnels)
  * @date 15 October 2010
  */
@@ -51,10 +46,7 @@
    plexer->tokOffset);
 
 /******************************************************************************
-*  SKIPCHARACTER -- Skip a character, not to plexer->theTokenSource in.
-*
-*  Original comment: 跳过一个字符，不加入到plexer->theTokenSource中。
-*  2007-1-22
+*  SKIPCHARACTER -- Skip a char without adding it in plexer->theTokenSource
 ******************************************************************************/
 #define SKIPCHARACTER \
    plexer->pcurChar++; \
