@@ -21366,7 +21366,7 @@ void shutdown(int status, char *msg, ...)
 		freeCommandList(levelordercmdlist);
 
 	freeModelList();
-
+	if(savelevel) free(savelevel);
 	freefilenamecache();
 
 
