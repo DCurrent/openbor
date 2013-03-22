@@ -5907,7 +5907,7 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->nolife = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_MAKEINV:	// Mar 12, 2005 - If a value is supplied, corresponds to amount of time the player spawns invincible
-					newchar->makeinv = GET_INT_ARG(1) * GAME_SPEED;
+					newchar->makeinv = GET_FLOAT_ARG(1) * GAME_SPEED;
 					if(GET_INT_ARG(2)) newchar->makeinv = -newchar->makeinv;
 					break;
 				case CMD_MODEL_RISEINV:
@@ -10034,7 +10034,7 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_AGGRESSION:
 				// Aggression can be set per spawn.
-				next.aggression = next.aggression + GET_INT_ARG(1);
+				next.aggression = GET_INT_ARG(1);
 				break;
 			case CMD_LEVEL_CREDIT:
 				next.credit = GET_INT_ARG(1);
