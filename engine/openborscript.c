@@ -35,7 +35,7 @@
 #include "models.h"
 
 #define _is_not_a_known_subproperty_of_  "'%s' is not a known subproperty of '%s'.\n"
-#define _is_not_supported_by_ "'%s' is not supported by 'takeaction'.\n"
+#define _is_not_supported_by_ "'%s' is not supported by '%s'.\n"
 
 // Define macro for string mapping
 #define MAPSTRINGS(VAR, LIST, MAXINDEX, FAILMSG, args...) \
