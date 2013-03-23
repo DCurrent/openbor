@@ -10154,6 +10154,7 @@ chglayerproperty_error3:
 // ===== level properties ======
 enum levelproperty_enum
 {
+	_lp_basemap,
 	_lp_bgspeed,
 	_lp_cameraxoffset,
 	_lp_camerazoffset,
@@ -10169,6 +10170,16 @@ enum levelproperty_enum
 	_lp_the_end,
 };
 
+	
+enum basemap_enum
+{
+	_lp_bm_map,
+	_lp_bm_x,
+	_lp_bm_xsize,
+	_lp_bm_z,
+	_lp_bm_zsize,
+	_lp_bm_the_end,
+};
 
 int mapstrings_levelproperty(ScriptVariant** varlist, int paramCount)
 {
@@ -10176,6 +10187,7 @@ int mapstrings_levelproperty(ScriptVariant** varlist, int paramCount)
 	int prop;
 
 	static const char* proplist[] = {
+		"basemap",
 		"bgspeed",
 		"cameraxoffset",
 		"camerazoffset",
@@ -10190,10 +10202,24 @@ int mapstrings_levelproperty(ScriptVariant** varlist, int paramCount)
 		"wall",
 	};
 
+	static const char* basemaplist[] = {
+		"map",
+		"x",
+		"xsize",
+		"z",
+		"zsize",
+	};
+
 
 	if(paramCount < 1) return 1;
 	MAPSTRINGS(varlist[0], proplist, _lp_the_end,
 		"Level property '%s' is not supported.\n");
+
+	if(paramCount>=3 && varlist[0]->vt==VT_INTEGER && varlist[0]->lVal==_lp_basemap)
+	{
+		MAPSTRINGS(varlist[2], basemaplist, _lp_bm_the_end,
+			_is_not_supported_by_, "basemap");
+	}
 
 	return 1;
 }
@@ -10297,7 +10323,7 @@ getlevelproperty_error:
 //changelevelproperty(name, value)
 HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG ltemp, ltemp2;
+	LONG ltemp, ltemp2, ltemp3;
 	DOUBLE dbltemp;
 	static char buf[64];
 	int i;
@@ -10366,6 +10392,57 @@ HRESULT openbor_changelevelproperty(ScriptVariant** varlist , ScriptVariant** pr
 		if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
 			level->quake = (int)ltemp;
 		else goto clperror;
+		break;
+	case _lp_basemap:
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp>=0)
+		{
+			if(ltemp>=level->numbasemaps) {
+				__reallocto(level->basemaps, level->numbasemaps, ltemp+1);
+				level->numbasemaps = ltemp+1;
+			}
+			if(paramCount>=4)
+			{
+				switch(varlist[2]->lVal)
+				{
+				case _lp_bm_x:
+					if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) )
+					{
+						level->basemaps[ltemp].x = ltemp2;
+					}else goto clperror;
+					break;
+				case _lp_bm_xsize:
+					if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) )
+					{
+						level->basemaps[ltemp].xsize = ltemp2;
+					}else goto clperror;
+					break;
+				case _lp_bm_z:
+					if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) )
+					{
+						level->basemaps[ltemp].z = ltemp2;
+					}else goto clperror;
+					break;
+				case _lp_bm_zsize:
+					if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) )
+					{
+						level->basemaps[ltemp].zsize = ltemp2;
+					}else goto clperror;
+					break;
+				case _lp_bm_map:
+					if(paramCount>=6 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) &&
+					SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp3)) &&
+					SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)) &&
+					ltemp2>=0 && ltemp2<level->basemaps[ltemp].xsize && ltemp3>=0 && ltemp3<level->basemaps[ltemp].zsize
+					)
+					{
+						if(!level->basemaps[ltemp].map) level->basemaps[ltemp].map = calloc(1, sizeof(*(level->basemaps[ltemp].map))*level->basemaps[ltemp].xsize*level->basemaps[ltemp].zsize);
+						level->basemaps[ltemp].map[ltemp2+ltemp3*level->basemaps[ltemp].xsize] = (float)dbltemp;
+					}else goto clperror;
+					break;
+				default: goto clperror;
+				}
+			}else goto clperror;
+		} else goto clperror;
 		break;
 	case _lp_hole:
 	{
