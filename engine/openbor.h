@@ -1545,6 +1545,15 @@ typedef struct
 	size_t size;
 }s_filestream;
 
+typedef struct 
+{
+	int x;
+	int z;
+	int xsize;
+	int zsize;
+	float* map;
+}s_basemap;
+
 typedef struct
 {
 	char* name;
@@ -1576,9 +1585,11 @@ typedef struct
 	int cameraxoffset;
 	int camerazoffset;
 	int numholes;
-	int numwalls; // Stores number of walls loaded
+	int numwalls;
+	int numbasemaps;
 	float (*holes)[7];
 	float (*walls)[8]; // Now you can have walls for different walkable areas
+	s_basemap* basemaps;
 	int exit_blocked;
 	int exit_hole;
 	int scrolldir;

@@ -9176,6 +9176,15 @@ void free_level(s_level* lv)
 		}
 	}
 
+	//offload basemaps
+	for(i=0; i<lv->numbasemaps; i++)
+	{
+		if(lv->basemaps[i].map)
+		{
+			free(lv->basemaps[i].map);
+		}
+	}
+
 	//offload scripts
 	Script_Clear(&(lv->update_script), 2);
 	Script_Clear(&(lv->updated_script), 2);
@@ -9198,6 +9207,7 @@ void free_level(s_level* lv)
 	if(lv->textobjs) free(lv->textobjs);
 	if(lv->holes) free(lv->holes);
 	if(lv->walls) free(lv->walls);
+	if(lv->basemaps) free(lv->basemaps); 
 	if(lv->palettes) free(lv->palettes);
 	if(lv->blendings) free(lv->blendings);
 
@@ -13030,11 +13040,26 @@ void check_ai()
 	}
 }
 
+static float check_basemap(int x, int z)
+{
+	float maxbase = 0, base;
+	int i;
+	for(i=0; i<level->numbasemaps; i++)
+	{
+		if(x>=level->basemaps[i].x && x<level->basemaps[i].x+level->basemaps[i].xsize &&
+			z>=level->basemaps[i].z && z<level->basemaps[i].z+level->basemaps[i].zsize)
+		{
+			base = level->basemaps[i].map[x-level->basemaps[i].x + level->basemaps[i].xsize*(z-level->basemaps[i].z)];
+			if(base>maxbase) maxbase = base;
+		}
+	}
+	return maxbase;
+}
 
 void update_animation()
 {
 	int f, wall, hole;
-	float move, movez, seta;
+	float move, movez, seta, maxbase;
 	entity *other = NULL;
 
 	if(level)
@@ -13230,6 +13255,9 @@ void update_animation()
 				self->base = 0;
 			}
 		}
+
+		maxbase = check_basemap(self->x, self->z);
+		if(maxbase>self->base) self->base = maxbase;
 	}
 
 	// Code for when entities move (useful for moving platforms, etc)
