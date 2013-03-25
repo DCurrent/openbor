@@ -339,21 +339,7 @@ int                 follows[MAX_FOLLOWS] = {
 						ANI_FOLLOW1, ANI_FOLLOW2, ANI_FOLLOW3, ANI_FOLLOW4
 					};
 
-#ifndef DISABLE_MOVIE
-#define DISABLE_MOVIE
-#endif
 
-//movie log stuffs
-#ifndef DISABLE_MOVIE
-#define MOVIEBUF_LEN 2048
-int movielog = 0;
-int movieplay = 0;
-int moviebufptr = 0;
-int movielen = 0;
-int movieloglen = 0;
-FILE* moviefile = NULL;
-u32 (*moviebuffer)[5][2] = NULL; //keyflags, newkeyflags;
-#endif
 
 // background cache to speed up in-game menus
 #if WII
@@ -20704,108 +20690,13 @@ void draw_scrolled_bg(){
 
 }
 
-#ifndef DISABLE_MOVIE
-void movie_openfile(int save)
+u32 getinterval()
 {
-	char path[256] = {""};
-	char tmpname[256] = {""};
-	moviebuffer = malloc(sizeof(*moviebuffer)*MOVIEBUF_LEN);
-	if(!moviebuffer) return ;
-	memset(moviebuffer, 0, sizeof(*moviebuffer)*MOVIEBUF_LEN);
-	getBasePath(path, "Saves", 0);
-	getPakName(tmpname, 3);
-	strcat(path, tmpname);
-	if(save) moviefile = fopen(path, "wb");
-	else moviefile = fopen(path, "rb");
-	if(moviefile == NULL) return;
-	if(save)
-	{
-		movielog = 1;
-		movieplay = 0;
-		movieloglen = 0;
-		moviebufptr = 0;
-	}
-	else
-	{
-		fseek(moviefile, 0, SEEK_END);
-		movielen = ftell(moviefile);
-		movielen /= sizeof(*moviebuffer);
-		fseek(moviefile, 0, SEEK_SET);
-		movielog = 0;
-		movieplay = 1;
-		movieloglen = 0;
-		moviebufptr = MOVIEBUF_LEN;
-	}
+	interval = timer_getinterval(GAME_SPEED); // so interval can be logged into movie
+	if(interval > GAME_SPEED) interval = 1;
+	if(interval > GAME_SPEED/4) interval = GAME_SPEED/4;
+	return interval;
 }
-
-void movie_flushbuf()
-{
-	if(!moviefile || !moviebuffer) return;
-    fwrite(moviebuffer, sizeof(*moviebuffer), MOVIEBUF_LEN, moviefile);
-	memset(moviebuffer, 0, sizeof(*moviebuffer)*MOVIEBUF_LEN);
-	moviebufptr = 0;
-}
-
-void movie_closefile()
-{
-	if(moviefile) fclose(moviefile);
-	if(moviebuffer) free(moviebuffer);
-	moviebuffer = NULL;
-	moviefile = NULL;
-	moviebufptr = 0;
-	movielog = 0;
-	movieplay = 0;
-}
-
-void movie_update(s_playercontrols ** pctrls)
-{
-	int p;
-	if(!moviefile || !moviebuffer) return;
-	if(moviebufptr==MOVIEBUF_LEN)
-	{
-		moviebufptr = 0;
-		if(movieloglen<=movielen)
-		{
-            fread(moviebuffer, sizeof(*moviebuffer), MOVIEBUF_LEN, moviefile);
-			movieloglen += MOVIEBUF_LEN;
-		}
-		else
-		{
-			movie_closefile();
-			return;
-		}
-	}
-	for(p=0; p<4; p++)
-	{
-		playercontrolpointers[p]->keyflags = moviebuffer[moviebufptr][p][0];
-		playercontrolpointers[p]->newkeyflags = moviebuffer[moviebufptr][p][1];
-	}
-	seed = moviebuffer[moviebufptr][4][0];
-	interval = moviebuffer[moviebufptr][4][1];
-	moviebufptr++;
-}
-
-void movie_save(s_playercontrols ** pctrls)
-{
-	int p;
-	if(!moviefile || !moviebuffer) return;
-	if(moviebufptr==MOVIEBUF_LEN)
-	{
-		movie_flushbuf();
-		movieloglen += MOVIEBUF_LEN;
-	}
-	for(p=0; p<4; p++)
-	{
-		moviebuffer[moviebufptr][p][0] = playercontrolpointers[p]->keyflags;
-		moviebuffer[moviebufptr][p][1] = playercontrolpointers[p]->newkeyflags;
-	}
-	moviebuffer[moviebufptr][4][0] = seed;
-	moviebuffer[moviebufptr][4][1] = interval;
-	moviebufptr++;
-}
-
-#endif
-
 
 void inputrefresh()
 {
@@ -20813,46 +20704,8 @@ void inputrefresh()
 	s_player* pl;
 	u32 k;
 
-#ifndef DISABLE_MOVIE
-	int moviestop = 0;
-	if(movieplay)
-	{
-		control_update(playercontrolpointers, MAX_PLAYERS);
-		for(p=0; p<MAX_PLAYERS; p++)
-		{
-			if(playercontrolpointers[p]->newkeyflags & FLAG_ESC)
-			{
-				moviestop = 1;
-				break;
-			}
-		}
-		if(!moviestop)
-		{
-			movie_update(playercontrolpointers);
-			font_printf(2, 2, 1, 0, "Playing movie, frames: %d/%d", movieloglen + moviebufptr-MOVIEBUF_LEN, movielen);
-		}
-		else
-		{
-			movie_closefile();
-		}
-	}
-	else
-	{
-#endif
-		 control_update(playercontrolpointers, MAX_PLAYERS);
-		 interval = timer_getinterval(GAME_SPEED); // so interval can be logged into movie
-		 if(interval > GAME_SPEED) interval = GAME_SPEED/GAME_SPEED;
-		 if(interval > GAME_SPEED/4) interval = GAME_SPEED/4;
+	control_update(playercontrolpointers, MAX_PLAYERS);
 
-#ifndef DISABLE_MOVIE
-	}
-
-	if(movielog && !pause)
-	{
-		movie_save(playercontrolpointers);
-		font_printf(2, 2, 1, 0, "Recording movie, frames: %d", movieloglen + moviebufptr);
-	}
-#endif
 	bothkeys = 0;
 	bothnewkeys = 0;
 
@@ -20887,13 +20740,7 @@ void inputrefresh()
 
 		bothkeys |= player[p].keys;
 		bothnewkeys |= player[p].newkeys;
-#ifndef DISABLE_MOVIE
-		if(movielog && (bothnewkeys & FLAG_ESC) && !pause)
-		{
-			movie_flushbuf();
-			movie_closefile();
-		}
-#endif
+
 	}
 
 }
@@ -20971,11 +20818,16 @@ void draw_textobjs()
 
 void update(int ingame, int usevwait)
 {
-	newtime = 0;
+	if(!getinterval())
+	{
+		goto update_done;
+	}
+
 	inputrefresh();
 
 	if ((!pause && ingame == 1) || alwaysupdate) execute_updatescripts();
 
+	newtime = 0;
 	if(!pause)
 	{
 		if(ingame == 1 || selectScreen) execute_keyscripts();
@@ -21013,6 +20865,8 @@ void update(int ingame, int usevwait)
 						}
 					}
 				}
+				update_scrolled_bg();
+				if(level->type!=2) updatestatus();
 			}
 			if(ingame==1 || selectScreen) update_ents();
 			++time;
@@ -21026,9 +20880,6 @@ void update(int ingame, int usevwait)
 
 	if(ingame == 1 && !pause)
 	{
-		update_scrolled_bg();
-		if(level->type!=2) updatestatus();
-
 		draw_scrolled_bg();
 		if(level->type!=2) predrawstatus();
 		if(level->type!=2) drawstatus();
@@ -21051,11 +20902,7 @@ void update(int ingame, int usevwait)
 	}
 
 	// 2011/10/22 UT: move pause menu logic here
-	if(ingame==1 &&
-#ifndef DISABLE_MOVIE
-		!movieplay &&
-#endif
-		!pause && !nopause &&
+	if(ingame==1 && !pause && !nopause &&
 	   ((player[0].ent && (player[0].newkeys & FLAG_START)) ||
 		(player[1].ent && (player[1].newkeys & FLAG_START)) ||
 		(player[2].ent && (player[2].newkeys & FLAG_START)) ||
@@ -21088,6 +20935,8 @@ void update(int ingame, int usevwait)
 		if(level->pos) debug_printf("Position: %i, width: %i, spawn: %i, offsets: %i/%i", level->pos, level->width, current_spawn, level->quake, gfx_y_offset);
 #endif
 	}
+
+update_done:
 
 	if(usevwait) vga_vwait();
 	video_copy_screen(vscreen);
@@ -23207,60 +23056,6 @@ void keyboard_setup(int player){
 	bothnewkeys = 0;
 	printf("Done!\n");
 }
-
-
-#ifndef DISABLE_MOVIE
-void movie_options(){
-	int quit = 0;
-	int selector = 1; // 0
-
-	bothnewkeys = 0;
-
-	while(!quit){
-		_menutextm(2, 1, 0, "Movie Mode");
-		_menutextm((selector==0), 2, 0, "Save Movie");
-		_menutextm((selector==1), 3, 0, "Load Movie");
-		_menutextm((selector==2), 5, 0, "Back");
-		update((level!=NULL),0);
-
-		if(bothnewkeys & FLAG_ESC) quit = 1;
-		if(bothnewkeys & FLAG_MOVEUP){
-			--selector;
-			if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-		}
-		if(bothnewkeys & FLAG_MOVEDOWN){
-			++selector;
-			if(SAMPLE_BEEP >= 0) sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
-		}
-		if(selector<0) selector = 2;
-		if(selector>2) selector = 0;
-		if(bothnewkeys & FLAG_ANYBUTTON){
-
-			if(SAMPLE_BEEP2 >= 0) sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
-
-			switch(selector){
-				case 0:
-					movie_closefile(); //close first
-					movie_openfile(1); // save movie
-					quit = 1;
-					break;
-				case 1:
-					selector = 0;
-					movie_closefile(); //close first
-					movie_openfile(0); // play movie
-					quit = 1;
-					break;
-				default:
-					quit = (bothnewkeys & FLAG_ANYBUTTON);
-			}
-		}
-	}
-	savesettings();
-	bothnewkeys = 0;
-}
-#endif
-
-
 
 void input_options(){
 	int quit = 0;
