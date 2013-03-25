@@ -13030,6 +13030,7 @@ static float check_basemap(int x, int z)
 {
 	float maxbase = 0, base;
 	int i;
+	if(!level) return 0;
 	for(i=0; i<level->numbasemaps; i++)
 	{
 		if(x>=level->basemaps[i].x && x<level->basemaps[i].x+level->basemaps[i].xsize &&
@@ -20818,11 +20819,7 @@ void draw_textobjs()
 
 void update(int ingame, int usevwait)
 {
-	if(!getinterval())
-	{
-		goto update_done;
-	}
-
+	getinterval();
 	inputrefresh();
 
 	if ((!pause && ingame == 1) || alwaysupdate) execute_updatescripts();
@@ -20935,8 +20932,6 @@ void update(int ingame, int usevwait)
 		if(level->pos) debug_printf("Position: %i, width: %i, spawn: %i, offsets: %i/%i", level->pos, level->width, current_spawn, level->quake, gfx_y_offset);
 #endif
 	}
-
-update_done:
 
 	if(usevwait) vga_vwait();
 	video_copy_screen(vscreen);
