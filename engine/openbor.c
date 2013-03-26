@@ -21440,6 +21440,7 @@ int playgif(char* filename, int x, int y, int noskip) {
 
 playgif_end:
 	anigif_close(info);
+	free(info);
 	time = temptime;
 	newtime = tempnewtime;
 	background = tempbg;
