@@ -54,6 +54,10 @@ int searchList(const char* list[], const char* value, int length);
 char *commaprint(u64 n);
 
 void Array_Check_Size( const char* f_caller, char** array, int new_size, int* curr_size_allocated, int grow_step );
+//math
+float invsqrt(float x);
+extern float sin_table[];
+extern float cos_table[];
 
 #endif
 
