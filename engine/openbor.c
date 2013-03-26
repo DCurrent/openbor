@@ -21384,197 +21384,71 @@ void startup(){
 }
 
 
-static void update_backbuffer(s_screen* backbuffer, s_screen** gifbuffer){
-	int i, l = backbuffer->width*backbuffer->height;
-	unsigned short *ps16, *ppr16, *ppg16, *ppb16;
-	unsigned int *ps32, *ppr32, *ppg32, *ppb32;
-	switch(screenformat){
-	case PIXEL_16:
-		ps16 = (unsigned short*)(backbuffer->data);
-		ppr16 = (unsigned short*)(gifbuffer[0]->data);
-		ppg16 = (unsigned short*)(gifbuffer[1]->data);
-		ppb16 = (unsigned short*)(gifbuffer[2]->data);
-		for(i=0; i<l; i++){
-			ps16[i] =  ppr16[i]|ppg16[i]|ppb16[i];
-		}
-		break;
-	case PIXEL_32:
-		ps32 = (unsigned int*)(backbuffer->data);
-		ppr32 = (unsigned int*)(gifbuffer[0]->data);
-		ppg32 = (unsigned int*)(gifbuffer[1]->data);
-		ppb32 = (unsigned int*)(gifbuffer[2]->data);
-		for(i=0; i<l; i++){
-			ps32[i] = ppr32[i]|ppg32[i]|ppb32[i];
-			//printf(" %u %u %u\n", ppr32[i], ppg32[i], ppb32[i]);
-		}
-		break;
-	}
-
-}
-
-
-
 
 // ----------------------------------------------------------------------------
 
+
 // Returns 0 on error, -1 on escape
-int playgif(char *filename, int x, int y, int noskip){
-	unsigned char gifpal[3][1024] ;
-	char tname[256] = {""};
-	int code[3];
-	int delay[3];
-	u32 milliseconds;
-	u32 nextframe[3];
+int playgif(char* filename, int x, int y, int noskip) {
+	anigif_info* info = calloc(1, sizeof(*info));
+	s_screen* backbuffer = NULL;
+	s_screen* tempbg = background;
+	int result = 1;
+	u32 synctosound;
 	u32 lasttime;
+	u32 milliseconds;
 	u32 temptime, tempnewtime; // temporary patch for ingame gif play
-	int done;
-	int frame = 0;
-	int synctosound = 0;
-	s_screen* backbuffer = NULL, *gifbuffer[3] = {NULL, NULL, NULL}, *tempbg = background;
-	static anigif_info info[3];
-	int isRGB = (pixelformat==PIXEL_x8);
 
-	strcpy(tname, filename);
-	if(stricmp(tname + strlen(tname)-4, ".gif")==0) tname[strlen(tname)-4] = 0;
-
-	strcat(tname, "_.gif");
-
-	if(isRGB){
-		tname[strlen(tname)-5] = 'r';
-		if(testpackfile(tname, packfile)<0) isRGB = 0;
-		tname[strlen(tname)-5] = 'g';
-		if(testpackfile(tname, packfile)<0) isRGB = 0;
-		tname[strlen(tname)-5] = 'b';
-		if(testpackfile(tname, packfile)<0) isRGB = 0;
-	}
-
-	background = gifbuffer[0] = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
-	clearscreen(background);
-	info->noblackenbg = (info+1)->noblackenbg = (info+2)->noblackenbg = isRGB;
-
-	if(isRGB) {
-		backbuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
-		gifbuffer[1] = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
-		clearscreen(gifbuffer[1]);
-		gifbuffer[2] = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
-		clearscreen(gifbuffer[2]);
-		background = NULL;
-	}
-	standard_palette(1);
-
-	if(!isRGB){
-		if(!anigif_open(filename, packfile, gifpal[0], info))
-			goto playgif_error;
-	}else{
-		tname[strlen(tname)-5] = 'r';
-		if(!anigif_open(tname, packfile, gifpal[0], info)) goto playgif_error;
-		tname[strlen(tname)-5] = 'g';
-		if(!anigif_open(tname, packfile, gifpal[1], info+1)) goto playgif_error;
-		tname[strlen(tname)-5] = 'b';
-		if(!anigif_open(tname, packfile, gifpal[2], info+2)) goto playgif_error;
-	}
-
+	synctosound = (sound_getinterval() != 0xFFFFFFFF);
 	temptime = time;
 	tempnewtime = newtime;
 	time = 0;
-	lasttime = 0;
 	milliseconds = 0;
-	nextframe[0] = nextframe[1] = nextframe[2] = 0;
-	delay[0] = delay[1] = delay[2] = 100;
-	code[0] = code[1] = code[2] = ANIGIF_DECODE_RETRY;
-	done = 0;
-	synctosound = (sound_getinterval() != 0xFFFFFFFF);
+	lasttime = 0;
+	background = NULL;
 
-	while(!done){
-		//printf("gif\n");
-		if(milliseconds >= nextframe[0]){
-			if(code[0] != ANIGIF_DECODE_END){
-				while((code[0] = anigif_decode(gifbuffer[0], delay, x, y, gifpal[0], info)) == ANIGIF_DECODE_RETRY);
-				// if(code == ANIGIF_DECODE_FRAME){
-				// Set time for next frame
-				nextframe[0] += delay[0] * 10;
-			// }
-			}
-			else done |= 1;
-		}
-		if(code[0] == ANIGIF_DECODE_END) break;
+	if(!(result=anigif_open(filename, packfile, info))) {
+		goto playgif_end;
+	}
 
-		if(isRGB){
-			//g
-			if(milliseconds >= nextframe[1]){
-				if(code[1] != ANIGIF_DECODE_END){
-					while((code[1] = anigif_decode(gifbuffer[1], delay+1, x, y, gifpal[1], info+1)) == ANIGIF_DECODE_RETRY);
-					nextframe[1] += delay[1] * 10;
-				}
-				else done |= 1;
-			}
-			//b
-			if(milliseconds >= nextframe[2]){
-				if(code[2] != ANIGIF_DECODE_END){
-					while((code[2] = anigif_decode(gifbuffer[2], delay+2, x, y, gifpal[2], info+2)) == ANIGIF_DECODE_RETRY);
-					nextframe[2] += delay[2] * 10;
-				}
-				else done |= 1;
-			}
-			if(backbuffer) update_backbuffer(backbuffer, gifbuffer);
-		}
-
-		if(backbuffer){
-			spriteq_add_screen(0,0,0,backbuffer,NULL,0);
-		}
-
-		if(frame==0){
+	while(!info->done)
+	{
+		if(milliseconds >= info->info[0].nextframe)
+			anigif_decode_frame(info);
+		backbuffer = anigif_getbuffer(info);
+		spriteq_add_screen(x,y,0,backbuffer,NULL,0);
+		if(info->frame==0){
 			vga_vwait();
-			if(background)
-				palette_set_corrected(gifpal[0], savedata.gamma,savedata.gamma,savedata.gamma, savedata.brightness,savedata.brightness,savedata.brightness);
+			if(screenformat==PIXEL_8)
+				palette_set_corrected(backbuffer->palette, savedata.gamma,savedata.gamma,savedata.gamma, savedata.brightness,savedata.brightness,savedata.brightness);
 			update(0,0);
 		}
 		else update(0,1);
 
-		++frame;
-
-		if(synctosound){
+		if(synctosound)
 			milliseconds += sound_getinterval();
-			if(milliseconds==0xFFFFFFFF) synctosound = 0;
-		}
-		if(!synctosound) milliseconds += (time-lasttime) * 1000 / GAME_SPEED;
+		else milliseconds += (time-lasttime) * 1000 / GAME_SPEED;
+
 		lasttime = time;
 
-		if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON))) done = 1;
-	}
-	anigif_close(info);
-	if(isRGB){
-		anigif_close(info+1);
-		anigif_close(info+2);
+		if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON))) {
+			result = -1;
+			break;
+		}
 	}
 
+
+playgif_end:
+	anigif_close(info);
 	time = temptime;
 	newtime = tempnewtime;
-
-	if(backbuffer) freescreen(&backbuffer);
-	if(gifbuffer[0]) freescreen(&(gifbuffer[0]));
-	if(gifbuffer[1]) freescreen(&(gifbuffer[1]));
-	if(gifbuffer[2]) freescreen(&(gifbuffer[2]));
 	background = tempbg;
 	standard_palette(1);
-	if(bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)) return -1;
-	return 1;
 
-playgif_error:
-	if(info->handle>=0) anigif_close(info);
-	if((info+1)->handle>=0) anigif_close(info+1);
-	if((info+2)->handle>=0) anigif_close(info+2);
-	if(backbuffer) freescreen(&backbuffer);
-	if(gifbuffer[0]) freescreen(&(gifbuffer[0]));
-	if(gifbuffer[1]) freescreen(&(gifbuffer[1]));
-	if(gifbuffer[2]) freescreen(&(gifbuffer[2]));
-	background = tempbg;
-	standard_palette(1);
-	printf("\nWarning, an error occurred while playing animated gif file '%s'.\n", filename);
-	return 0;
+	if(0==result) printf("\nWarning, an error occurred while playing animated gif file '%s'.\n", filename);
+	return result;
+
 }
-
-
 
 
 

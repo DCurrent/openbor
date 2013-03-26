@@ -45,15 +45,24 @@ typedef struct {
 
 typedef struct 
 {
-	gifheaderstruct gif_header;
-	int handle; // = -1;
-	int transparent; // = -1;
-	int bitdepth;
-	int numcolours;
-	int noblackenbg; // don't blacken the first color
-	int lastdelay;
-	unsigned char*	global_pal;
-	unsigned char*	local_pal;
+	struct 
+	{
+		gifheaderstruct gif_header;
+		int handle; // = -1;
+		int transparent; // = -1;
+		int bitdepth;
+		int numcolours;
+		int lastdelay;
+		int code;
+		u32 nextframe;
+		unsigned char*	global_pal;
+		unsigned char*	local_pal;
+	} info[3];
+	int isRGB;
+	int frame;
+	int done;
+	s_screen* backbuffer;
+	s_screen* gifbuffer[3];
 } anigif_info;
 
 
@@ -65,11 +74,12 @@ typedef struct
 
 
 // Returns true on succes
-int anigif_open(char *filename, char *packfilename, unsigned char *pal, anigif_info* info);
+int anigif_open(char *filename, char *packfilename, anigif_info* info);
 
-// Returns type of action (frame, retry or end)
-int anigif_decode(s_screen * screen, int *delay, int x, int y, unsigned char* pal, anigif_info* info);
+// Decode next frame
+int anigif_decode_frame(anigif_info* info);
 
+s_screen* anigif_getbuffer(anigif_info* info);
 void anigif_close(anigif_info* info);
 
 #endif
