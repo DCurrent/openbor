@@ -546,6 +546,9 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)system_clearindexedvar)) return "clearindexedvar";
 	else if (functionRef==((void*)system_clearlocalvar)) return "clearlocalvar";
 	else if (functionRef==((void*)system_free)) return "free";
+	else if (functionRef==((void*)math_sin)) return "sin";
+	else if (functionRef==((void*)math_cos)) return "cos";
+	else if (functionRef==((void*)math_sqrt)) return "sqrt";
 	else if (functionRef==((void*)openbor_systemvariant)) return "openborvariant";
 	else if (functionRef==((void*)openbor_changesystemvariant)) return "changeopenborvariant";
 	else if (functionRef==((void*)openbor_drawstring)) return "drawstring";
@@ -991,6 +994,12 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
 					  (void*)system_free, "free");
 	List_InsertAfter(&theFunctionList,
+					  (void*)math_sin, "sin");
+	List_InsertAfter(&theFunctionList,
+					  (void*)math_cos, "cos");
+	List_InsertAfter(&theFunctionList,
+					  (void*)math_sqrt, "sqrt");
+	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_systemvariant, "openborvariant");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_changesystemvariant, "changeopenborvariant");
@@ -1389,6 +1398,48 @@ HRESULT system_free(ScriptVariant** varlist , ScriptVariant** pretvar, int param
 		List_Remove(&scriptheap);
 		return S_OK;
 	}
+	return E_FAIL;
+}
+
+HRESULT math_sin(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG ltemp;
+	if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = sin_table[(ltemp%360+360)%360];
+		return S_OK;
+	}
+	*pretvar = NULL;
+	return E_FAIL;
+}
+
+HRESULT math_cos(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG ltemp;
+	if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = cos_table[(ltemp%360+360)%360];
+		return S_OK;
+	}
+	*pretvar = NULL;
+	return E_FAIL;
+}
+
+HRESULT math_sqrt(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	DOUBLE dbltemp;
+	float inv;
+	if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[0], &dbltemp)))
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		inv = invsqrt((float)dbltemp);
+		assert(inv!=0.0f);
+		(*pretvar)->dblVal = (DOUBLE)1.0/inv;
+		return S_OK;
+	}
+	*pretvar = NULL;
 	return E_FAIL;
 }
 //////////////////////////////////////////////////////////
