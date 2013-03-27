@@ -11458,7 +11458,7 @@ HRESULT openbor_getanigifinfo(ScriptVariant** varlist , ScriptVariant** pretvar,
 	info = (anigif_info*) varlist[0]->ptrVal;
 
 	if(varlist[1]->vt!=VT_STR) goto getanigifinfo_error;
-	name = StrCache_Get(varlist[0]->strVal);
+	name = StrCache_Get(varlist[1]->strVal);
 	if(0==stricmp(name, "buffer"))
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_PTR);
