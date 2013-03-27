@@ -734,7 +734,7 @@ void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 }
 #endif
 
-#if 1
+#if 0
 // scalex scaley flipy ...
 void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod)
 {
@@ -818,6 +818,99 @@ void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 		for(i=endx-1; i>=beginx; i--, sx+=stepdx){
 			//draw_pixel_gfx(dest, src, i, j, (int)sx, (int)sy);
 			src_seek((int)sx, (int)sy);
+			write_pixel();
+			dest_dec();
+		}
+	}
+
+}
+#endif
+
+#if 1
+//same as above, fix point version
+// scalex scaley flipy ...
+void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod)
+{
+	int osx, sx, sy, dx, dy, w, h, cx, cy, stepdx, stepdy, beginy, endy, beginx, endx;
+	int i, j;
+	int zoomx = drawmethod->scalex;
+	int zoomy = drawmethod->scaley;
+	int shiftf = drawmethod->shiftx;
+	
+	init_gfx_global_draw_stuff(dest, src, drawmethod);
+	if(!trans_sw) return;
+
+	centerx += drawmethod->centerx;
+	centery += drawmethod->centery;
+
+	xmin <<= 8; xmax <<= 8; ymin <<= 8; ymax <<= 8;
+	x <<= 8; y<<= 8;
+
+	w = trans_sw * zoomx;
+	h = trans_sh * zoomy;
+	cx = centerx * zoomx;
+	cy = centery * zoomy;
+	
+	if(drawmethod->flipx) dx = cx - w + x;
+	else dx = x - cx;
+
+	if(drawmethod->flipy){
+		dy = cy - h + y; 
+		shiftf = - shiftf;
+	}
+	else dy = y - cy; 
+
+	dx += ((dy + h - y) * shiftf)>>8;
+
+	if(drawmethod->flipx) {
+		stepdx = 65536/zoomx;
+		osx = 0;
+	}else{
+		stepdx = -65536/zoomx;
+		osx = (trans_sw<<8) + stepdx;
+	}
+	if(drawmethod->flipy){
+		stepdy = 65536/zoomy;
+		sy = 0;
+	}else{
+		stepdy = -65536/zoomy;
+		sy = (trans_sh<<8) + stepdy;
+	}
+
+	if(MAX(dx+w, dx+w-(shiftf*h>>8))<=xmin) return;
+	if(MIN(dx, dx-(shiftf*h>>8))>=xmax) return;
+	if(dy>=ymax) return;
+	if(dy+h<=ymin) return;
+
+	if(dy+h>ymax) {
+		endy = ymax;
+		dx -= shiftf*(dy+h-endy)>>8;
+		sy += stepdy*(dy+h-endy)>>8;
+	} else endy = dy+h;
+
+	if(dy<ymin) beginy = ymin;
+	else beginy = dy;
+
+	//printf("=%d, %d, %lf, %lf, %lf, %lf, %lf, %lf\n ",x, y, w, h, osx, sy, dx, dy);
+	// =64, 144, 44.000000, 36.500000, 43.000000, 0.000000, 38.000000, 143.000000
+
+	for(j=endy-256; j>=beginy; j-=256, sy+=stepdy, dx -= shiftf){
+		if(dx>=xmax) continue;
+		if(dx+w<=xmin) continue;
+		sx = osx;
+		beginx = dx;
+		endx = dx+w;
+		if(dx<xmin) beginx = xmin;
+		else beginx = dx;
+		if(dx+w>xmax) {
+			endx = xmax;
+			sx += stepdx*(dx+w-xmax)>>8;
+		} else endx = dx+w;
+		dest_seek((endx>>8)-1, j>>8);
+		for(i=endx-256; i>=beginx; i-=256, sx+=stepdx){
+			//draw_pixel_gfx(dest, src, i, j, (int)sx, (int)sy);
+			//if(sy<0) printf("trans_sh %d sy %d stepdy %d\n", trans_sh, sy, stepdy);
+			src_seek(sx>>8, sy>>8);
 			write_pixel();
 			dest_dec();
 		}

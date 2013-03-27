@@ -21110,6 +21110,9 @@ void display_credits()
 
 	if(savedata.logo != 1) return;
 	fade_out(0, 0);
+
+	kill_all();
+	unload_level();
 	unload_background();
 
 	bothnewkeys = 0;
