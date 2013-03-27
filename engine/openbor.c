@@ -10955,7 +10955,7 @@ static int common_anim_series(entity* ent, int arraya[], int maxa, int forcemode
 
 		if (validanim(ent, iAni) && iAni != defaulta)                               //Valid and not Default animation??
 		{
-			if (normal_find_target(iAni,0))                                         //Opponent in range of current animation?
+			if (forcemode || normal_find_target(iAni,0))                            //Opponent in range of current animation?
 			{
 				ent_set_anim(ent, iAni, 0);                                         //Set animation.
 				return 1;                                                           //Return 1 and exit.
