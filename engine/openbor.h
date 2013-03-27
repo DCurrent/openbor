@@ -919,6 +919,7 @@ typedef struct {
 	Script*         didblock_script;                //execute when blocking attack.
 	Script*         ondoattack_script;              //execute when attack passes do_attack checks.
 	Script*			onmodelcopy_script;				//execute when set_model_ex is done
+	Script*			ondraw_script;					//when update_ents is called
 } s_scripts;
 
 typedef enum  {

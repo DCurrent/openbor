@@ -2151,6 +2151,23 @@ void execute_onmodelcopy_script(entity* ent, entity* old)
 	}
 }
 
+void execute_ondraw_script(entity* ent)
+{
+	ScriptVariant tempvar;
+	Script* cs = ent->scripts->ondraw_script;
+	if(Script_IsInitialized(cs))
+	{
+		ScriptVariant_Init(&tempvar);
+		ScriptVariant_ChangeType(&tempvar, VT_PTR);
+		tempvar.ptrVal = (VOID*)ent;
+		Script_Set_Local_Variant(cs, "self", &tempvar);
+		Script_Execute(cs);
+		//clear to save variant space
+		ScriptVariant_Clear(&tempvar);
+		Script_Set_Local_Variant(cs, "self", &tempvar);
+	}
+}
+
 void execute_entity_key_script(entity* ent)
 {
 	ScriptVariant tempvar;
@@ -6713,6 +6730,9 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 				case CMD_MODEL_ONMODELCOPYSCRIPT:
 					lcmHandleCommandScripts(&arglist, newchar->scripts->onmodelcopy_script, "onmodelcopyscript", filename);
 					break;
+				case CMD_MODEL_ONDRAWSCRIPT:
+					lcmHandleCommandScripts(&arglist, newchar->scripts->ondraw_script, "ondrawscript", filename);
+					break;
 				case CMD_MODEL_ANIMATIONSCRIPT:
 					Script_Init(newchar->scripts->animation_script, "animationscript", filename, 0);
 					if(!load_script(newchar->scripts->animation_script, GET_ARG(1))) {
@@ -10845,7 +10865,7 @@ void addscore(int playerindex, int add){
 		ScriptVariant_ChangeType(&var, VT_INTEGER);
 		var.lVal = (LONG)add;
 		Script_Set_Local_Variant(cs, "score", &var);
-		Script_Execute(score_script+playerindex);
+		Script_Execute(cs);
 		ScriptVariant_Clear(&var);
 		Script_Set_Local_Variant(cs, "score", &var);
 	}
@@ -13653,6 +13673,9 @@ void display_ents()
 		if(ent_list[i] && ent_list[i]->exists)
 		{
 			e = ent_list[i];
+			execute_ondraw_script(e);
+			//if(!e->exists) continue; // just in case kill is called in the script
+
 			if(e->modeldata.hpbarstatus.sizex)
 			{
 				drawenemystatus(e);
