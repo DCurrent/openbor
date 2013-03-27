@@ -43,8 +43,10 @@ typedef struct {
 	unsigned char	flags;
 }gifblockstruct;
 
+#define anigif_magic 0x464947
 typedef struct 
 {
+	int magic;
 	struct 
 	{
 		gifheaderstruct gif_header;
