@@ -186,6 +186,10 @@ HRESULT openbor_loadmodel(ScriptVariant** varlist , ScriptVariant** pretvar, int
 HRESULT openbor_loadsprite(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_options(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_playgif(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_openanigif(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_decodeanigif(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_getanigifinfo(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+
 
 HRESULT openbor_strinfirst(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_strinlast(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
@@ -196,17 +200,6 @@ HRESULT openbor_strright(ScriptVariant** varlist , ScriptVariant** pretvar, int 
 HRESULT openbor_getmodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_changemodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_rgbcolor(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-
-HRESULT openbor_aicheckwarp(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_aichecklie(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_aicheckgrabbed(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_aicheckgrab(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_aicheckescape(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_aicheckbusy(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_aicheckattack(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_aicheckmove(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_aicheckjump(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_aicheckpathblocked(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 HRESULT openbor_adjustwalkanimation(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_finditem(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);

@@ -159,6 +159,8 @@ void Script_Global_Init()
 void _freeheapnode(void* ptr){
 	if(((Script*)ptr)->magic==script_magic) {
 		Script_Clear((Script*)ptr,2);
+	} else if(((anigif_info*)ptr)->magic==anigif_magic) {
+		anigif_close((anigif_info*)ptr);
 	}
 	free(ptr);
 }
@@ -639,6 +641,9 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_loadsprite)) return "loadsprite";
 	else if (functionRef==((void*)openbor_options)) return "options";
 	else if (functionRef==((void*)openbor_playgif)) return "playgif";
+	else if (functionRef==((void*)openbor_openanigif)) return "openanigif";
+	else if (functionRef==((void*)openbor_decodeanigif)) return "decodeanigif";
+	else if (functionRef==((void*)openbor_getanigifinfo)) return "getanigifinfo";
 	else if (functionRef==((void*)openbor_strinfirst)) return "strinfirst";
 	else if (functionRef==((void*)openbor_strinlast)) return "strinlast";
 	else if (functionRef==((void*)openbor_strleft)) return "strleft";
@@ -648,16 +653,6 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_getmodelproperty)) return "getmodelproperty";
 	else if (functionRef==((void*)openbor_changemodelproperty)) return "changemodelproperty";
 	else if (functionRef==((void*)openbor_rgbcolor)) return "rgbcolor";
-	else if (functionRef==((void*)openbor_aicheckwarp)) return "aicheckwarp";
-	else if (functionRef==((void*)openbor_aichecklie)) return "aichecklie";
-	else if (functionRef==((void*)openbor_aicheckgrabbed)) return "aicheckgrabbed";
-	else if (functionRef==((void*)openbor_aicheckgrab)) return "aicheckgrab";
-	else if (functionRef==((void*)openbor_aicheckescape)) return "aicheckescape";
-	else if (functionRef==((void*)openbor_aicheckbusy)) return "aicheckbusy";
-	else if (functionRef==((void*)openbor_aicheckattack)) return "aicheckattack";
-	else if (functionRef==((void*)openbor_aicheckmove)) return "aicheckmove";
-	else if (functionRef==((void*)openbor_aicheckjump)) return "aicheckjump";
-	else if (functionRef==((void*)openbor_aicheckpathblocked)) return "aicheckpathblocked";
 	else if (functionRef==((void*)openbor_adjustwalkanimation)) return "adjustwalkanimation";
 	else if (functionRef==((void*)openbor_finditem)) return "finditem";
 	else if (functionRef==((void*)openbor_pickup)) return "pickup";
@@ -1180,6 +1175,12 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_playgif, "playgif");
 	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_openanigif, "openanigif");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_decodeanigif, "decodeanigif");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_getanigifinfo, "getanigifinfo");
+	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_strinfirst, "strinfirst");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_strinlast, "strinlast");
@@ -1197,27 +1198,6 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_changemodelproperty, "changemodelproperty");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_rgbcolor, "rgbcolor");
-
-	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_aicheckwarp, "aicheckwarp");
-	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_aichecklie, "aichecklie");
-	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_aicheckgrabbed, "aicheckgrabbed");
-	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_aicheckgrab, "aicheckgrab");
-	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_aicheckescape, "aicheckescape");
-	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_aicheckbusy, "aicheckbusy");
-	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_aicheckattack, "aicheckattack");
-	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_aicheckmove, "aicheckmove");
-	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_aicheckjump, "aicheckjump");
-	List_InsertAfter(&theFunctionList,
-					  (void*)openbor_aicheckpathblocked, "aicheckpathblocked");
 
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_adjustwalkanimation, "adjustwalkanimation");
@@ -11393,7 +11373,7 @@ loadsprite_error:
 	return E_FAIL;
 }
 
-// debug only for now
+// Call options menu, blocked
 HRESULT openbor_options(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	void options();
@@ -11428,67 +11408,104 @@ playgif_error:
 	return E_FAIL;
 }
 
+//open and return a handle
+//TODO: error messages
+HRESULT openbor_openanigif(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	anigif_info* info = NULL;
+	
+	if(varlist[0]->vt!=VT_STR) goto openanigif_error;
 
-// basic ai checkings, make it easier for modder to create their own think script
-HRESULT openbor_aicheckwarp(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+	info = calloc(1, sizeof(*info));
+	if(anigif_open(StrCache_Get(varlist[0]->strVal), packfile, info)) {
+		info->magic = anigif_magic;
+		List_InsertAfter(&scriptheap, (void*)info, "openbor_openanigif");
+		ScriptVariant_ChangeType(*pretvar, VT_PTR);
+		(*pretvar)->ptrVal = (VOID*)info;
+		return S_OK;
+	}
 
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG) ai_check_warp();
-	return S_OK;
+openanigif_error:
+	if(info) free(info);
+	*pretvar = NULL;
+	return E_FAIL;
 }
-HRESULT openbor_aichecklie(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+
+//decode a frame if any 
+HRESULT openbor_decodeanigif(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	anigif_info* info = NULL;
+	
+	if(varlist[0]->vt!=VT_PTR || !varlist[0]->ptrVal) goto decodeanigif_error;
+	info = (anigif_info*) varlist[0]->ptrVal;
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG) ai_check_lie();
+	(*pretvar)->lVal=(LONG)anigif_decode_frame(info);
 	return S_OK;
+
+decodeanigif_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
-HRESULT openbor_aicheckgrabbed(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
 
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG) ai_check_grabbed();
-	return S_OK;
-}
-HRESULT openbor_aicheckgrab(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+//TODO mapstrings
+HRESULT openbor_getanigifinfo(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	anigif_info* info = NULL;
+	char* name;
+	
+	if(varlist[0]->vt!=VT_PTR || !varlist[0]->ptrVal) goto getanigifinfo_error;
+	info = (anigif_info*) varlist[0]->ptrVal;
 
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG) ai_check_grab();
-	return S_OK;
-}
-HRESULT openbor_aicheckescape(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
+	if(varlist[1]->vt!=VT_STR) goto getanigifinfo_error;
+	name = StrCache_Get(varlist[0]->strVal);
+	if(0==stricmp(name, "buffer"))
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_PTR);
+		(*pretvar)->ptrVal = (VOID*)anigif_getbuffer(info);
+	}
+	else if(0==stricmp(name, "done"))
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal=(LONG)info->done;
+	}
+	else if(0==stricmp(name, "frame"))
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal=(LONG)info->frame;
+	}
+	else if(0==stricmp(name, "isRGB"))
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal=(LONG)info->isRGB;
+	}
+	else if(0==stricmp(name, "width"))
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal=(LONG)(info->gifbuffer[0]?info->gifbuffer[0]->width:0);
+	}
+	else if(0==stricmp(name, "height"))
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal=(LONG)(info->gifbuffer[0]?info->gifbuffer[0]->height:0);
+	}
+	else if(0==stricmp(name, "nextframe"))
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal=(LONG)info->info[0].nextframe;
+	}
+	else if(0==stricmp(name, "lastdelay"))
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal=(LONG)info->info[0].lastdelay;
+	}
+	else goto getanigifinfo_error;
 
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG) ai_check_escape();
 	return S_OK;
-}
-HRESULT openbor_aicheckbusy(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
 
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG) ai_check_busy();
-	return S_OK;
-}
-HRESULT openbor_aicheckattack(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
-
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG) common_attack();
-	return S_OK;
-}
-HRESULT openbor_aicheckmove(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
-
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG) common_move();
-	return S_OK;
-}
-HRESULT openbor_aicheckjump(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
-
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG) common_try_jump();
-	return S_OK;
-}
-HRESULT openbor_aicheckpathblocked(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount){
-
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG) checkpathblocked();
-	return S_OK;
+getanigifinfo_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 
 // complex, so make a function for ai
