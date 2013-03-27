@@ -600,6 +600,8 @@ unsigned int        models_loaded		= 0;
 unsigned int        models_cached		= 0;
 
 entity**            ent_list;
+entity**            ent_stack; //temporary list, reference only
+int					ent_stack_size = 0;
 entity*             self;
 int                 ent_count			= 0;					// log count of entites
 int                 ent_max				= 0;
@@ -10906,8 +10908,9 @@ void free_ents()
 	if(!ent_list) return;
 	for(i=0; i<ent_list_size; i++) free_ent(ent_list[i]);
 	free(ent_list);
-	ent_list = NULL;
-	ent_list_size = ent_max = ent_count = 0;
+	free(ent_stack);
+	ent_list = ent_stack = NULL;
+	ent_list_size = ent_max = ent_count = ent_stack_size = 0;
 }
 
 entity* alloc_ent()
@@ -10937,26 +10940,17 @@ int alloc_ents()
 
 	ent_list_size += MAX_ENTS;
 
-	if(!ent_list) ent_list = malloc(sizeof(*ent_list)*ent_list_size);
-	else ent_list = realloc(ent_list, sizeof(*ent_list)*ent_list_size);
-
-	if(!ent_list) goto alloc_ents_error;
+	ent_list = realloc(ent_list, sizeof(*ent_list)*ent_list_size);
+	ent_stack = realloc(ent_stack, sizeof(*ent_list)*ent_list_size);
 
 	for(i=ent_list_size-MAX_ENTS; i<ent_list_size; i++)
 	{
 		ent_list[i] = alloc_ent();
-		if(!ent_list[i])
-		{
-			 goto alloc_ents_error;
-		}
 		ent_list[i]->sortid = i*100;
+		ent_stack[i] = NULL;
 	}
 	//ent_count = ent_max = 0;
 	return 1;
-
-alloc_ents_error:
-	free_ents();
-	return 0;
 }
 
 
@@ -11908,7 +11902,7 @@ void kill_all()
 	}
 	textbox = smartbomber = NULL;
 	time = 0;
-	ent_count = ent_max = 0;
+	ent_count = ent_max = ent_stack_size = 0;
 	if(ent_list_size>MAX_ENTS){ //shrinking...
 		free_ents();
 		alloc_ents(); //this shouldn't return 0, because the list shrinks...
@@ -13673,7 +13667,9 @@ void display_ents()
 		if(ent_list[i] && ent_list[i]->exists)
 		{
 			e = ent_list[i];
-			execute_ondraw_script(e);
+
+			if(Script_IsInitialized(e->scripts->ondraw_script))
+				ent_stack[ent_stack_size++] = e;
 			//if(!e->exists) continue; // just in case kill is called in the script
 
 			if(e->modeldata.hpbarstatus.sizex)
@@ -13943,6 +13939,13 @@ void display_ents()
 			}
 		}// end of if(ent_list[i]->exists)
 	}// end of for
+
+	//defer ondraw script so it can manage spriteq better
+	for(i=0; i<ent_stack_size; i++)
+	{
+		execute_ondraw_script(ent_stack[i]);
+	}
+	ent_stack_size = 0;
 }
 
 
