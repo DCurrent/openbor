@@ -13256,9 +13256,13 @@ void update_animation()
 				self->base = 0;
 			}
 		}
-
-		maxbase = check_basemap(self->x, self->z);
-		if(maxbase>self->base) self->base = maxbase;
+		
+		//hole overrides ground
+		if(self->base != -1000)
+		{
+			maxbase = check_basemap(self->x, self->z);
+			if(maxbase>self->base) self->base = maxbase;
+		}
 	}
 
 	// Code for when entities move (useful for moving platforms, etc)
