@@ -13042,7 +13042,7 @@ void check_ai()
 
 static float check_basemap(int x, int z)
 {
-	float maxbase = 0, base;
+	float maxbase = 0, base=-1000;
 	int i;
 	if(!level) return 0;
 	for(i=0; i<level->numbasemaps; i++)
@@ -13054,12 +13054,12 @@ static float check_basemap(int x, int z)
 			if(base>maxbase) maxbase = base;
 		}
 	}
-	return maxbase;
+	return base==-1000?base:maxbase;
 }
 
 void update_animation()
 {
-	int f, wall, hole;
+	int f, wall, hole = -1;
 	float move, movez, seta, maxbase;
 	entity *other = NULL;
 
@@ -13218,7 +13218,9 @@ void update_animation()
 			wall = checkwall_below(self->x, self->z, self->a);
 		else wall = -1;
 
-		if(self->modeldata.subject_to_hole>0)
+		maxbase = check_basemap(self->x, self->z);
+
+		if(maxbase==-1000 && self->modeldata.subject_to_hole>0)
 		{
 			hole = (wall<0&&!other)?checkhole(self->x, self->z):0;
 
@@ -13256,13 +13258,8 @@ void update_animation()
 				self->base = 0;
 			}
 		}
-		
-		//hole overrides ground
-		if(self->base != -1000)
-		{
-			maxbase = check_basemap(self->x, self->z);
-			if(maxbase>self->base) self->base = maxbase;
-		}
+
+		if(self->base!=-1000 && maxbase>self->base) self->base = maxbase;
 	}
 
 	// Code for when entities move (useful for moving platforms, etc)
