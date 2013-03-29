@@ -5569,11 +5569,46 @@ void lcmHandleCommandWeapons(ArgList* arglist, s_model* newchar) {
 		}
 	}
 }
-void lcmHandleCommandScripts(ArgList* arglist, Script* script, char* scriptname, char* filename) {
+
+//fetch string between next @script and @end_script
+//return end position of @end_script, count from current position
+static size_t fetchInlineScript(char* buf, char** scriptbuf, size_t* ppos, size_t* plen)
+{
+	size_t pos = *ppos;
+	size_t len;
+	while(!starts_with(buf+pos, "@script")){
+		pos++;
+	}
+	pos += strclen("@script");
+	len = 0;
+	while(!starts_with(buf+pos, "@end_script")){
+		len++; pos++;
+	}
+	*scriptbuf = malloc(sizeof(**scriptbuf)*len+1);
+	strncpy(*scriptbuf, buf+pos-len, len);
+	(*scriptbuf)[len] = 0;
+	pos += strclen("@end_script");
+
+	*ppos = pos; *plen = len;
+	return pos;
+}
+
+size_t lcmHandleCommandScripts(ArgList* arglist, char* buf, Script* script, char* scriptname, char* filename, int compile) {
+	size_t pos = 0, len=0;
+	int result = 0;
+	char* scriptbuf = NULL;
 	Script_Init(script, scriptname, filename, 0);
-	if(load_script(script, GET_ARGP(1)))
-		Script_Compile(script);
+	if(stricmp(GET_ARGP(1), "@script")==0) {
+		fetchInlineScript(buf, &scriptbuf, &pos, &len);
+		if(scriptbuf) {
+			result=Script_AppendText(script, scriptbuf, filename);
+			free(scriptbuf);
+		}
+	}
+	else result = load_script(script, GET_ARGP(1));
+	if(result) {if(compile) Script_Compile(script);}
 	else shutdown(1, "Unable to load %s '%s' in file '%s'.\n", scriptname, GET_ARGP(1), filename);
+	return pos;
 }
 
 //alloc a new model, and everything thats required,
@@ -6673,78 +6708,74 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_SCRIPT:
 					//load the update script
-					lcmHandleCommandScripts(&arglist, newchar->scripts->update_script, "updateentityscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->update_script, "updateentityscript", filename, 1);
 					break;
 				case CMD_MODEL_THINKSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->think_script, "thinkscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->think_script, "thinkscript", filename, 1);
 					break;
 				case CMD_MODEL_TAKEDAMAGESCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->takedamage_script, "takedamagescript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->takedamage_script, "takedamagescript", filename, 1);
 					break;
 				case CMD_MODEL_ONFALLSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onfall_script, "onfallscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onfall_script, "onfallscript", filename, 1);
 					break;
 				case CMD_MODEL_ONPAINSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onpain_script, "onpainscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onpain_script, "onpainscript", filename, 1);
 					break;
 				case CMD_MODEL_ONBLOCKSSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onblocks_script, "onblocksscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblocks_script, "onblocksscript", filename, 1);
 					break;
 				case CMD_MODEL_ONBLOCKWSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onblockw_script, "onblockwscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblockw_script, "onblockwscript", filename, 1);
 					break;
 				case CMD_MODEL_ONBLOCKOSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onblocko_script, "onblockoscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblocko_script, "onblockoscript", filename, 1);
 					break;
 				case CMD_MODEL_ONBLOCKZSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onblockz_script, "onblockzscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblockz_script, "onblockzscript", filename, 1);
 					break;
 				case CMD_MODEL_ONBLOCKASCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onblocka_script, "onblockascript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblocka_script, "onblockascript", filename, 1);
 					break;
 				case CMD_MODEL_ONMOVEXSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onmovex_script, "onmovexscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onmovex_script, "onmovexscript", filename, 1);
 					break;
 				case CMD_MODEL_ONMOVEZSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onmovez_script, "onmovezscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onmovez_script, "onmovezscript", filename, 1);
 					break;
 				case CMD_MODEL_ONMOVEASCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onmovea_script, "onmoveascript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onmovea_script, "onmoveascript", filename, 1);
 					break;
 				case CMD_MODEL_ONDEATHSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->ondeath_script, "ondeathscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->ondeath_script, "ondeathscript", filename, 1);
 					break;
 				case CMD_MODEL_ONKILLSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onkill_script, "onkillscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onkill_script, "onkillscript", filename, 1);
 					break;
 				case CMD_MODEL_DIDBLOCKSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->didblock_script, "didblockscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->didblock_script, "didblockscript", filename, 1);
 					break;
 				case CMD_MODEL_ONDOATTACKSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->ondoattack_script, "ondoattackscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->ondoattack_script, "ondoattackscript", filename, 1);
 					break;
 				case CMD_MODEL_DIDHITSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->didhit_script, "didhitscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->didhit_script, "didhitscript", filename, 1);
 					break;
 				case CMD_MODEL_ONSPAWNSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onspawn_script, "onspawnscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onspawn_script, "onspawnscript", filename, 1);
 					break;
 				case CMD_MODEL_ONMODELCOPYSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->onmodelcopy_script, "onmodelcopyscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onmodelcopy_script, "onmodelcopyscript", filename, 1);
 					break;
 				case CMD_MODEL_ONDRAWSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->ondraw_script, "ondrawscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->ondraw_script, "ondrawscript", filename, 1);
 					break;
 				case CMD_MODEL_ANIMATIONSCRIPT:
-					Script_Init(newchar->scripts->animation_script, "animationscript", filename, 0);
-					if(!load_script(newchar->scripts->animation_script, GET_ARG(1))) {
-						shutdownmessage = "Unable to load animation script!";
-						goto lCleanup;
-					}
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->animation_script, "animationscript", filename, 0);
 					//dont compile, until at end of this function
 					break;
 				case CMD_MODEL_KEYSCRIPT:
-					lcmHandleCommandScripts(&arglist, newchar->scripts->key_script, "entitykeyscript", filename);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->key_script, "entitykeyscript", filename, 1);
 					break;
 				case CMD_MODEL_ANIM:
 					{
@@ -7463,28 +7494,31 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 						value = GET_ARG(1);
 						//printf("frame count: %d\n",framecount);
 						//printf("Load sprite '%s'...\n", value);
-						index = loadsprite(value, offset[0], offset[1],nopalette?PIXEL_x8:PIXEL_8);//don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
-						if(pixelformat==PIXEL_x8 && !nopalette)
+						index = stricmp(value, "none")==0?-1:loadsprite(value, offset[0], offset[1],nopalette?PIXEL_x8:PIXEL_8);//don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
+						if(index>=0)
 						{
-							// for old mod just give it a default palette
-							if(newchar->palette==NULL)
+							if(pixelformat==PIXEL_x8 && !nopalette)
 							{
-								newchar->palette = malloc(PAL_BYTES);
-								if(loadimagepalette(value, packfile, newchar->palette)==0) {
-									shutdownmessage = "Failed to load palette!";
-									goto lCleanup;
+								// for old mod just give it a default palette
+								if(newchar->palette==NULL)
+								{
+									newchar->palette = malloc(PAL_BYTES);
+									if(loadimagepalette(value, packfile, newchar->palette)==0) {
+										shutdownmessage = "Failed to load palette!";
+										goto lCleanup;
+									}
+								}
+								if(!nopalette)
+								{
+									sprite_map[index].node->sprite->palette = newchar->palette;
+									sprite_map[index].node->sprite->pixelformat = pixelformat;
 								}
 							}
-							if(index>=0 && !nopalette)
+							if(maskindex>=0)
 							{
-								sprite_map[index].node->sprite->palette = newchar->palette;
-								sprite_map[index].node->sprite->pixelformat = pixelformat;
+								sprite_map[index].node->sprite->mask = sprite_map[maskindex].node->sprite;
+								maskindex = -1;
 							}
-						}
-						if((index>=0) && (maskindex>=0))
-						{
-							sprite_map[index].node->sprite->mask = sprite_map[maskindex].node->sprite;
-							maskindex = -1;
 						}
 						// Adjust coords: add offsets and change size to coords
 						bbox_con[0] = bbox[0] - offset[0];
@@ -9830,29 +9864,18 @@ void load_level(char *filename){
 						break;
 					case CMD_LEVEL_LEVELSCRIPT:
 						tempscript = &(level->level_script);
-						scriptname = command;
+						scriptname = "levelscript";
 						break;
 					case CMD_LEVEL_ENDLEVELSCRIPT:
 						tempscript = &(level->endlevel_script);
-						scriptname = command;
+						scriptname = "endlevelscript";
 						break;
 					default:
 						assert(0);
 
 				}
-				value = GET_ARG(1);
-				if(!Script_IsInitialized(tempscript))
-					Script_Init(tempscript, scriptname, value, 1);
-				else {
-					errormessage = "Multiple level script!";
-					goto lCleanup;
-				}
-				if(load_script(tempscript, value))
-					Script_Compile(tempscript);
-				else {
-					errormessage = "Failed loading script!";
-					goto lCleanup;
-				}
+				// this function is for model script, but it is OK for now
+				pos += lcmHandleCommandScripts(&arglist, buf+pos, tempscript, scriptname, filename, 1);
 				break;
 			case CMD_LEVEL_BLOCKED:
 				level->exit_blocked = GET_INT_ARG(1);
@@ -10066,27 +10089,12 @@ void load_level(char *filename){
 				next.a = GET_FLOAT_ARG(3);
 				break;
 			case CMD_LEVEL_SPAWNSCRIPT:
-				if(!Script_IsInitialized(&next.spawnscript))
-					Script_Init(&next.spawnscript, "Level spawn entry script", GET_ARG(1), 0);
-				if(!load_script(&next.spawnscript, GET_ARG(1))) {
-					errormessage = "Unable to load level spawn entry script from file.\n";
-					goto lCleanup;
-				}
+				pos += lcmHandleCommandScripts(&arglist, buf+pos, &next.spawnscript, "Level spawn entry script", filename, 0);
 				break;
 			case CMD_LEVEL_AT_SCRIPT:
 				if(!Script_IsInitialized(&next.spawnscript))
 					Script_Init(&next.spawnscript, "Level spawn entry script", filename, 0);
-				while(strncmp(buf+pos, "@script", 7)){
-					pos++;
-				}
-				pos += 7;
-				sblen = 0;
-				while(strncmp(buf+pos, "@end_script", 11)){
-					sblen++; pos++;
-				}
-				scriptbuf = malloc(sblen+1);
-				strncpy(scriptbuf, buf+pos-sblen, sblen);
-				scriptbuf[sblen] = 0;
+				fetchInlineScript(buf, &scriptbuf, &pos, &sblen);
 				if(!Script_AppendText(&next.spawnscript, scriptbuf, filename)){
 					errormessage = "Unable to parse level spawn entry script.\n";
 					goto lCleanup;
