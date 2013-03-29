@@ -5572,9 +5572,9 @@ void lcmHandleCommandWeapons(ArgList* arglist, s_model* newchar) {
 
 //fetch string between next @script and @end_script
 //return end position of @end_script, count from current position
-static size_t fetchInlineScript(char* buf, char** scriptbuf, size_t* ppos, size_t* plen)
+static size_t fetchInlineScript(char* buf, char** scriptbuf, ptrdiff_t* ppos, size_t* plen)
 {
-	size_t pos = *ppos;
+	ptrdiff_t pos = *ppos;
 	size_t len;
 	while(!starts_with(buf+pos, "@script")){
 		pos++;
@@ -5594,7 +5594,8 @@ static size_t fetchInlineScript(char* buf, char** scriptbuf, size_t* ppos, size_
 }
 
 size_t lcmHandleCommandScripts(ArgList* arglist, char* buf, Script* script, char* scriptname, char* filename, int compile) {
-	size_t pos = 0, len=0;
+	ptrdiff_t pos = 0;
+	size_t len=0;
 	int result = 0;
 	char* scriptbuf = NULL;
 	Script_Init(script, scriptname, filename, 0);
