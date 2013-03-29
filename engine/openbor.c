@@ -1579,14 +1579,17 @@ void copy_all_scripts(s_scripts* src, s_scripts* dest, int method) {
 void execute_animation_script(entity* ent)
 {
 	ScriptVariant tempvar;
+	int is1=0, is2=0;
 	char* namelist[] = {"self", "animnum", "frame", "animhandle", ""};
 	int handle = 0;
 	Script* cs = ent->scripts->animation_script;
 	Script* s1 = ent->model->scripts->animation_script;
 	Script* s2 = ent->defaultmodel->scripts->animation_script;
-	if(Script_IsInitialized(s1) || Script_IsInitialized(s2))
+	is1 = Script_IsInitialized(s1);
+	is2 = Script_IsInitialized(s2);
+	if(is1 || is2)
 	{
-		if(cs->pinterpreter->bReset)
+		if(cs->pinterpreter && cs->pinterpreter->bReset)
 			handle = Script_Save_Local_Variant(cs, namelist);
 		ScriptVariant_Init(&tempvar);
 		ScriptVariant_ChangeType(&tempvar, VT_PTR);
@@ -1601,16 +1604,13 @@ void execute_animation_script(entity* ent)
 		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
 		tempvar.lVal = (LONG)ent->animation->index;
 		Script_Set_Local_Variant(cs, "animhandle",   &tempvar);
-		if(Script_IsInitialized(s1)){
+		if(is1){
 			Script_Copy(cs, s1, 0);
 			Script_Execute(cs);
 		}
-		if(ent->model!=ent->defaultmodel && Script_IsInitialized(s2)){
+		if(ent->model!=ent->defaultmodel && is2){
 			Script_Copy(cs, s2, 0);
 			Script_Execute(cs);
-		}
-		if(Script_IsInitialized(s1)){
-			Script_Copy(cs, s1, 0);
 		}
 		//clear to save variant space
 		ScriptVariant_Clear(&tempvar);
