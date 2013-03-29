@@ -11438,9 +11438,9 @@ void update_frame(entity* ent, int f)
 	}
 
 	//spawn / summon /unsummon features
-	if(anim->spawnframe && anim->spawnframe[0] == f && anim->subentity) ent_spawn_ent(self);
+	if(anim->spawnframe && anim->spawnframe[0] == f && anim->subentity>=0) ent_spawn_ent(self);
 
-	if(anim->summonframe && anim->summonframe[0] == f && anim->subentity)
+	if(anim->summonframe && anim->summonframe[0] == f && anim->subentity>=0)
 	{
 		//subentity is dead
 		if(!self->subentity || self->subentity->dead) ent_summon_ent(self);
