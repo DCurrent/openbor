@@ -10408,7 +10408,7 @@ void pausemenu()
 		if(bothnewkeys & FLAG_START){
 			if(pauselector){
 				player[0].lives = player[1].lives = player[2].lives = player[3].lives = 0; //4player
-				endgame = 1;
+				endgame = 2;
 			}
 			quit = 1;
 			sound_pause_music(0);
@@ -21888,7 +21888,7 @@ int playlevel(char *filename)
 	kill_all();
 	unload_level();
 
-	return type==2 || (player[0].lives > 0 || player[1].lives > 0 || player[2].lives > 0|| player[3].lives > 0); //4player
+	return (type==2&&endgame!=2) || (player[0].lives > 0 || player[1].lives > 0 || player[2].lives > 0|| player[3].lives > 0); //4player
 }
 
 
