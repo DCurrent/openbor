@@ -550,6 +550,7 @@ void init_gfx_global_draw_stuff(s_screen* dest, gfx_entry* src, s_drawmethod* dr
 	src_seek(0,0);
 }
 
+#if 0
 void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod)
 {
 	float zoomx, zoomy, rzoomx, rzoomy, sina, cosa, ax, ay, bx, by, rx0, ry0, cx, cy, srcx0_f, srcx_f, srcy0_f, srcy_f, angle;
@@ -629,6 +630,99 @@ void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, 
         }
         srcx0_f+=bx;
         srcy0_f+=by;
+    }
+}
+#endif
+
+//fix point version 
+void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod)
+{
+	float zoomx, zoomy, rzoomx, rzoomy, sina, cosa, ax, ay, bx, by, rx0, ry0, cx, cy, srcx0_f, srcy0_f, angle;
+	int i, j, srcx, srcy;
+	int srcx_16, srcy_16, srcx0_16, srcy0_16, ax_16, ay_16, bx_16, by_16;
+	int xbound[4], ybound[4];
+	float xboundf[4], yboundf[4];
+	zoomx = drawmethod->scalex / 256.0;
+	zoomy = drawmethod->scaley / 256.0;
+	angle = drawmethod->rotate;
+    sina = sin_table[(int)angle];
+    cosa = cos_table[(int)angle];
+
+	init_gfx_global_draw_stuff(dest, src, drawmethod);
+	if(!trans_sw) return;
+
+	centerx += drawmethod->centerx;
+	centery += drawmethod->centery;
+	
+	/////////////////begin clipping////////////////////////////
+	xboundf[0] = drawmethod->flipx? (centerx-trans_sw)*zoomx : -centerx*zoomx;
+	yboundf[0] = drawmethod->flipy? (centery-trans_sh)*zoomy : -centery*zoomy;
+	xboundf[1] = xboundf[0] + trans_sw*zoomx;
+	yboundf[1] = yboundf[0];
+	xboundf[2] = xboundf[0];
+	yboundf[2] = yboundf[0] + trans_sh*zoomy;
+	xboundf[3] = xboundf[1];
+	yboundf[3] = yboundf[2];
+
+	for(i=0; i<4; i++){
+		xbound[i] =  (int)(x + xboundf[i]*cosa - yboundf[i]*sina);
+        ybound[i] =  (int)(y + xboundf[i]*sina + yboundf[i]*cosa);
+	}
+
+	xmin = MAX(MIN(MIN(xbound[0],xbound[1]), MIN(xbound[2],xbound[3])), xmin);
+	xmax = MIN(MAX(MAX(xbound[0],xbound[1]), MAX(xbound[2],xbound[3])), xmax);
+	ymin = MAX(MIN(MIN(ybound[0],ybound[1]), MIN(ybound[2],ybound[3])), ymin);
+	ymax = MIN(MAX(MAX(ybound[0],ybound[1]), MAX(ybound[2],ybound[3])), ymax);
+	/////////////////end clipping////////////////////////////
+
+	// tricks to keep rotate not affected by flip
+	if(drawmethod->flipx) {zoomx = -zoomx;}
+	else  {angle = -angle;}
+	if(drawmethod->flipy) {	zoomy = -zoomy; angle = -angle;}
+
+	angle = (((int)angle)%360+360)%360;
+	//if(!zoomx || !zoomy) return; //should be checked already
+    rzoomx = 1.0 / zoomx;
+    rzoomy = 1.0 / zoomy;
+    sina = sin_table[(int)angle];
+    cosa = cos_table[(int)angle];
+    ax = rzoomx*cosa; 
+    ay = rzoomx*sina; 
+    bx = -rzoomy*sina; 
+    by = rzoomy*cosa; 
+    rx0 = centerx;
+    ry0 = centery;
+	x -= rx0;
+	y -= ry0;
+    cx = -(rx0+x)*rzoomx*cosa+(ry0+y)*rzoomy*sina+rx0;
+    cy = -(rx0+x)*rzoomx*sina-(ry0+y)*rzoomy*cosa+ry0; 
+	srcx0_f= cx+ymin*bx+xmin*ax;
+    srcy0_f= cy+ymin*by+xmin*ay;
+	
+
+	srcx0_16 = srcx0_f*65536;
+	srcy0_16 = srcy0_f*65536;
+	ax_16 = ax*65536;
+	ay_16 = ay*65536;
+	bx_16 = bx*65536;
+	by_16 = by*65536;
+
+    for (j=ymin; j<ymax; j++)
+    {
+        srcx_16 = srcx0_16;
+        srcy_16= srcy0_16;
+        for (i=xmin;i<xmax;i++)
+        {
+            srcx=srcx_16>>16;
+            srcy=srcy_16>>16;
+			if(srcx>=0 && srcx<trans_sw && srcy>=0 && srcy<trans_sh){
+				draw_pixel_gfx(dest, src, i, j, srcx, srcy);
+			}
+            srcx_16+=ax_16;
+            srcy_16+=ay_16;
+        }
+        srcx0_16+=bx_16;
+        srcy0_16+=by_16;
     }
 }
 
