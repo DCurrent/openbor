@@ -13,6 +13,11 @@ inline void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int cen
 inline void gfx_draw_water(s_screen *dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod);
 inline void gfx_draw_plane(s_screen *dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod);
 //inline void draw_pixel_gfx(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy);
+inline void draw_pixel_screen(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy);
+inline void draw_pixel_bitmap(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy);
+inline void draw_pixel_sprite(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy);
+inline void draw_pixel_gfx(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy);
+inline void copy_pixel_block(int bytes);
 inline void src_seek(int x, int y);
 inline void dest_seek(int x, int y);
 inline void src_line_inc();
@@ -24,6 +29,6 @@ inline void dest_line_dec();
 inline void dest_inc();
 inline void dest_dec();
 inline void write_pixel();
-char sprite_get_pixel(s_sprite* sprite, int x, int y);
+inline char sprite_get_pixel(s_sprite* sprite, int x, int y);
 inline void init_gfx_global_draw_stuff(s_screen*, gfx_entry*, s_drawmethod*);
 #endif
