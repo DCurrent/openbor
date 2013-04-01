@@ -2346,10 +2346,15 @@ void clearsettings()
 	savedata.fullscreen = 0;
 	savedata.stretch = 0;
 
+
 #ifdef SDL
 	savedata.usegl[0] = 0;
 	savedata.usegl[1] = 1;
+#ifdef ANDROID
+	savedata.glscale = 0.0;
+#else
 	savedata.glscale = 1.0;
+#endif
 	savedata.glfilter[0] = 1;
 	savedata.glfilter[1] = 0;
 #endif
