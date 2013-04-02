@@ -10387,6 +10387,9 @@ void pausemenu()
 {
 	int pauselector = 0;
 	int quit = 0;
+	int controlp = 0, i;
+	int newkeys;
+	s_set_entry *set = levelsets + current_set;
 	s_screen* pausebuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
 
 	copyscreen(pausebuffer, vscreen);
@@ -10394,6 +10397,15 @@ void pausemenu()
 	spriteq_clear();
 	spriteq_add_screen(0, 0, MIN_INT, pausebuffer, NULL, 0);
 	spriteq_lock();
+
+	for(i=0; i<set->maxplayers; i++)
+	{
+		if(player[i].ent && (player[i].newkeys & FLAG_START))
+		{
+			controlp = i;
+			break;
+		}
+	}
 
 	pause = 2;
 	bothnewkeys = 0;
@@ -10405,11 +10417,13 @@ void pausemenu()
 
 		update(1,0);
 
-		if(bothnewkeys & (FLAG_MOVEUP|FLAG_MOVEDOWN)){
+		newkeys = player[controlp].newkeys;
+
+		if(newkeys & (FLAG_MOVEUP|FLAG_MOVEDOWN)){
 			pauselector ^= 1;
 			sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
 		}
-		if(bothnewkeys & FLAG_START){
+		if(newkeys & FLAG_START){
 			if(pauselector){
 				player[0].lives = player[1].lives = player[2].lives = player[3].lives = 0; //4player
 				endgame = 2;
@@ -10420,14 +10434,14 @@ void pausemenu()
 			sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 			pauselector = 0;
 		}
-		if(bothnewkeys & FLAG_ESC){
+		if(newkeys & FLAG_ESC){
 			quit = 1;
 			sound_pause_music(0);
 			sound_pause_sample(0);
 			sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 			pauselector = 0;
 		}
-		if(bothnewkeys & FLAG_SCREENSHOT){
+		if(newkeys & FLAG_SCREENSHOT){
 			pause = 1;
 			sound_pause_music(1);
 			sound_pause_sample(1);
