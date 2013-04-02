@@ -10106,7 +10106,6 @@ void load_level(char *filename){
 					goto lCleanup;
 				}
 				free(scriptbuf); scriptbuf = NULL;
-				pos += 11;
 				break;
 			case CMD_LEVEL_AT:
 				// Place entry on queue
