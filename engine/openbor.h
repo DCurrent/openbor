@@ -1020,6 +1020,10 @@ typedef struct {
 	float blocktype; //0 = HP, 1=MP, 2=both taken when this attack type is blocked.
 }s_defense;
 
+//UT: new bit flags for noquake property
+#define NO_QUAKE 1  //do not make screen quake
+#define NO_QUAKEN 2  //do not quake with screen
+
 typedef struct
 {
 	int index;
