@@ -5979,7 +5979,8 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					newchar->bounce = GET_INT_ARG(1);
 					break;
 				case CMD_MODEL_NOQUAKE:  // Mar 12, 2005 - Flag to determine if entity shakes screen
-					newchar->noquake = GET_INT_ARG(1);
+					newchar->noquake |= GET_INT_ARG(1)?NO_QUAKE:0;
+					newchar->noquake |= GET_INT_ARG(2)?NO_QUAKEN:0;
 					break;
 				case CMD_MODEL_BLOCKBACK:	// Flag to determine if attacks can be blocked from behind
 					newchar->blockback = GET_INT_ARG(1);
@@ -12861,7 +12862,7 @@ void check_gravity()
 					self->xdir /= self->animation->bounce;
 					self->zdir /= self->animation->bounce;
 					toss(self, (-self->tossv)/self->animation->bounce);
-					if(level && !self->modeldata.noquake) level->quake = 4;    // Don't shake if specified
+					if(level && !(self->modeldata.noquake&NO_QUAKE)) level->quake = 4;    // Don't shake if specified
 					if(SAMPLE_FALL >= 0) sound_play_sample(SAMPLE_FALL, 0, savedata.effectvol,savedata.effectvol, 100);
 					if(self->modeldata.type&TYPE_PLAYER) control_rumble(self->playerindex, 100*(int)self->tossv/2);
 					for(i=0; i<MAX_PLAYERS; i++) control_rumble(i, 75*(int)self->tossv/2);
@@ -13685,7 +13686,7 @@ void display_ents()
 	s_drawmethod shadowmethod;
 	int use_mirror = (level && level->mirror);
 
-	int scrx = screenx - gfx_x_offset, scry = screeny - gfx_y_offset;
+	int o_scrx = screenx, o_scry = screeny, scrx, scry;
 
 	if(level) shadowz = SHADOW_Z;
 	else shadowz = MIN_INT + 100;
@@ -13706,10 +13707,12 @@ void display_ents()
 
 			}
 			sortid = e->sortid;
+			scrx = o_scrx - ((e->modeldata.noquake&NO_QUAKEN)?0:gfx_x_offset);
+			scry = o_scry - ((e->modeldata.noquake&NO_QUAKEN)?0:gfx_y_offset);
 			if(freezeall || !(e->blink && (time%(GAME_SPEED/10))<(GAME_SPEED/20)))
 			{    // If special is being executed, display all entities regardless
 				f = e->animation->sprite[e->animpos];
-
+				
 				other = check_platform(e->x, e->z, e);
 				wall = checkwall(e->x, e->z);
 
