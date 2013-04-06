@@ -13088,7 +13088,7 @@ static float check_basemap(int x, int z)
 void update_animation()
 {
 	int f, wall, hole = -1;
-	float move, movez, seta, maxbase;
+	float move, movez, seta, maxbase, scrollv=0;
 	entity *other = NULL;
 
 	if(level)
@@ -13097,37 +13097,14 @@ void update_animation()
 		else if(self->modeldata.facing == 2 || level->facing == 2) self->direction = 0;
 		else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_RIGHT)) self->direction = 1;
 		else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_LEFT)) self->direction = 0;
-		if(self->modeldata.type&TYPE_PANEL)
+		if(self->modeldata.type&TYPE_PANEL) scrollv+=self->modeldata.speed;
+		if(self->modeldata.scroll) scrollv+=self->modeldata.scroll;
+		if(scrollv)
 		{
-			self->x += scrolldx * ((float)(self->modeldata.speed));
-			if(level->scrolldir==SCROLL_UP)
-			{
-				self->a += scrolldy * ((float)(self->modeldata.speed));
-			}
-			else if(level->scrolldir==SCROLL_DOWN)
-			{
-				self->a -= scrolldy * ((float)(self->modeldata.speed));
-			}
-			else
-			{
-				self->a -= scrolldy * ((float)(self->modeldata.speed));
-			}
-		}
-		if(self->modeldata.scroll)
-		{
-			self->x += scrolldx * ((float)(self->modeldata.scroll));
-			if(level->scrolldir==SCROLL_UP)
-			{
-				self->a += scrolldy * ((float)(self->modeldata.scroll));
-			}
-			else if(level->scrolldir==SCROLL_DOWN)
-			{
-				self->a -= scrolldy * ((float)(self->modeldata.scroll));
-			}
-			else
-			{
-				self->a -= scrolldy * ((float)(self->modeldata.scroll));
-			}
+			self->x += scrolldx * scrollv;
+			if(level->scrolldir==SCROLL_UP) scrollv = -scrollv;
+			self->a -= scrolldy * scrollv;
+			self->base = self->a; // temporary fix otherwise it won't go underground
 		}
 	}
 
