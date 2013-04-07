@@ -1149,7 +1149,7 @@ void sound_update_ogg(){
 						return;
 					}
 					// Seek to beginning of data
-					if(ov_pcm_seek(oggfile, loop_offset*2) != 0){
+					if(ov_pcm_seek(oggfile, loop_offset) != 0){
 						sound_close_music();
 						return;
 					}
