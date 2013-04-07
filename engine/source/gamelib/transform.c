@@ -41,9 +41,13 @@ static int span_src;
 
 static unsigned char* ptr_src;
 static unsigned char* cur_src;
+static unsigned char dummyptrs[8] = {0,0,0,0,0,0,0,0};
+//static unsigned char dummyptrd[8] = {0,0,0,0,0,0,0,0};
 static unsigned char* cur_spr; // for sprite only
 
-static int spf, dpf; //pixelformat
+static int spf, dpf, dpb, spb; //pixelformat
+
+static int wpcond;
 
 static int xmin, xmax, ymin, ymax;
 
@@ -77,9 +81,8 @@ static unsigned char blendfillcolor(unsigned char* t, unsigned char unused, unsi
 
 void draw_pixel_dummy(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
 {
-	int pb = pixelbytes[(int)dest->pixelformat];
-	unsigned char* pd = ((unsigned char*)(dest->data)) + (dx + dy*dest->width)*pb; 
-	memset(pd, 0, pb);
+	unsigned char* pd = ((unsigned char*)(dest->data)) + (dx + dy*dest->width)*dpb; 
+	memset(pd, 0, dpb);
 }
 
 void draw_pixel_screen(s_screen* dest, gfx_entry* src, int dx, int dy, int sx, int sy)
@@ -248,11 +251,66 @@ void copy_pixel_block(int bytes){
 	memcpy(cur_dest, cur_src, bytes);
 }
 
-void write_pixel(){
+#if 1
+#include "writepixel.h"
+
+__attribute__((always_inline)) void write_pixel() {
+	switch(wpcond)
+	{
+	wp_8_8_0_0_0() 
+	wp_8_8_0_0_1() 
+	wp_8_8_0_1_0() 
+	wp_8_8_0_1_1() 
+	wp_8_8_1_0_0() 
+	wp_8_8_1_0_1() 
+	wp_8_8_1_1_0() 
+	wp_8_8_1_1_1() 
+
+	wp_16_x8_0_0_0() 
+	wp_16_x8_0_0_1() 
+	wp_16_x8_0_1_0() 
+	wp_16_x8_0_1_1() 
+	wp_16_x8_1_0_0() 
+	wp_16_x8_1_0_1() 
+	wp_16_x8_1_1_0() 
+	wp_16_x8_1_1_1() 
+
+	wp_16_16_0_0_0() 
+	wp_16_16_0_0_1() 
+	wp_16_16_0_1_0() 
+	wp_16_16_0_1_1() 
+	wp_16_16_1_0_0() 
+	wp_16_16_1_0_1() 
+	wp_16_16_1_1_0() 
+	wp_16_16_1_1_1() 
+
+	wp_32_x8_0_1_1() 
+	wp_32_x8_0_0_0() 
+	wp_32_x8_0_0_1() 
+	wp_32_x8_0_1_0() 
+	wp_32_x8_1_0_0() 
+	wp_32_x8_1_0_1() 
+	wp_32_x8_1_1_0() 
+	wp_32_x8_1_1_1() 
+
+	wp_32_32_0_0_0() 
+	wp_32_32_0_0_1() 
+	wp_32_32_0_1_0() 
+	wp_32_32_0_1_1() 
+	wp_32_32_1_0_0() 
+	wp_32_32_1_0_1() 
+	wp_32_32_1_1_0() 
+	wp_32_32_1_1_1()
+	}
+
+}
+#endif
+
+#if 0
+__attribute__((always_inline)) void write_pixel(){
 	unsigned char ps8;
 	unsigned short ps16;
 	unsigned ps32;
-	if(!cur_src) return;
 	switch(dpf)
 	{
 		case PIXEL_8:
@@ -302,10 +360,11 @@ void write_pixel(){
 	}
 
 }
+#endif
 
 void dest_seek(int x, int y){
 	//x_dest = x; y_dest = y;
-	cur_dest = ptr_dest + (y * trans_dw + x)*pixelbytes[dpf];	
+	cur_dest = ptr_dest + (y * trans_dw + x)*dpb;	
 }
 
 void dest_line_inc(){
@@ -321,13 +380,13 @@ void dest_line_dec(){
 //should be within a line
 void dest_inc(){
 	//x_dest++;
-	cur_dest  += pixelbytes[dpf];
+	cur_dest  += dpb;
 }
 
 //should be within a line
 void dest_dec(){
 	//x_dest--;
-	cur_dest -= pixelbytes[dpf];
+	cur_dest -= dpb;
 }
 
 void _sprite_seek(int x, int y){
@@ -342,11 +401,11 @@ void _sprite_seek(int x, int y){
 	while(1) {
 		count = *data++;
 		if(count == 0xFF) {
-			cur_src = NULL;
+			cur_src = dummyptrs;
 			goto quit;
 		}
 		if(lx+count>x) { // transparent pixel
-			cur_src = NULL;
+			cur_src = dummyptrs;
 			goto quit;
 		}
 		lx += count;
@@ -366,7 +425,7 @@ quit:
 
 }
 
-void src_seek(int x, int y){
+__attribute__((always_inline)) void src_seek(int x, int y){
 	switch(handle_src->screen->magic){
 	case sprite_magic:
 		x_src = x; y_src = y;
@@ -374,7 +433,7 @@ void src_seek(int x, int y){
 		break;
 	case screen_magic:
 	case bitmap_magic:
-		cur_src = ptr_src + (y * trans_sw + x)*pixelbytes[spf];
+		cur_src = ptr_src + (y * trans_sw + x)*spb;
 		break;
 	default:
 		break;
@@ -418,13 +477,13 @@ void src_inc(){
 	switch(handle_src->screen->magic){
 	case sprite_magic:
 		//_sprite_seek(x,y);
-		if(cur_src && cur_spr + *cur_spr > cur_src){
+		if(cur_src!=dummyptrs && cur_spr + *cur_spr > cur_src){
 			cur_src++;
 		}else _sprite_seek(x_src, y_src);
 		break;
 	case screen_magic:
 	case bitmap_magic:
-		cur_src += pixelbytes[spf];
+		cur_src += spb;
 		break;
 	default:
 		break;
@@ -437,17 +496,43 @@ void src_dec(){
 	switch(handle_src->screen->magic){
 	case sprite_magic:
 		//_sprite_seek(x,y);
-		if(cur_src && cur_spr + 1 < cur_src){
+		if(cur_src!=dummyptrs && cur_spr + 1 < cur_src){
 			cur_src--;
 		}else _sprite_seek(x_src, y_src);
 		break;
 	case screen_magic:
 	case bitmap_magic:
-		cur_src -= pixelbytes[spf];
+		cur_src -= spb;
 		break;
 	default:
 		break;
 	}
+}
+
+void calc_wp_cond() {
+	static int wp_cond[5][2][2][2] = {
+		{{{0,1},{2,3}},{{4,5},{6,7}}},
+		{{{8,9},{10,11}},{{12,13},{14,15}}},
+		{{{16,17},{18,19}},{{20,21},{22,23}}},
+		{{{24,25},{26,27}},{{28,29},{30,31}}},
+		{{{32,33},{24,35}},{{36,37},{38,39}}},
+	};
+	int c1;
+	void* p;
+	if(dpf==PIXEL_16) {
+		c1 = spf==PIXEL_x8?1:2;
+		p = pfp16;
+	}
+	else if(dpf==PIXEL_32){
+		c1 = spf==PIXEL_x8?3:4;
+		p = pfp32;
+	}
+	else {
+		c1 = 0;
+		p = pfp;
+	}
+
+	wpcond = wp_cond[c1][transbg!=0][fillcolor!=0][p!=NULL];
 }
 
 void init_gfx_global_draw_stuff(s_screen* dest, gfx_entry* src, s_drawmethod* drawmethod){
@@ -541,10 +626,13 @@ void init_gfx_global_draw_stuff(s_screen* dest, gfx_entry* src, s_drawmethod* dr
 	default: 
 		return;
 	}
+	dpb = pixelbytes[dpf];
+	spb = pixelbytes[spf];
 
-	span_src = pixelbytes[spf]*trans_sw;
-	span_dest = pixelbytes[dpf]*trans_dw;
+	span_src = spb*trans_sw;
+	span_dest = dpb*trans_dw;
 	transbg = (drawmethod->transbg || src->screen->magic==sprite_magic); // check color key, we'll need this for screen and bitmap
+	calc_wp_cond();
 
 	if(!trans_sw) return;
 	src_seek(0,0);
@@ -638,7 +726,7 @@ void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, 
 void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, int centery, s_drawmethod* drawmethod)
 {
 	float zoomx, zoomy, rzoomx, rzoomy, sina, cosa, ax, ay, bx, by, rx0, ry0, cx, cy, srcx0_f, srcy0_f, angle;
-	int i, j, srcx, srcy;
+	unsigned i, j, srcx, srcy;
 	int srcx_16, srcy_16, srcx0_16, srcy0_16, ax_16, ay_16, bx_16, by_16;
 	int xbound[4], ybound[4];
 	float xboundf[4], yboundf[4];
@@ -670,9 +758,13 @@ void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, 
 	}
 
 	xmin = MAX(MIN(MIN(xbound[0],xbound[1]), MIN(xbound[2],xbound[3])), xmin);
+	xmin = MIN(trans_dw, xmin);
 	xmax = MIN(MAX(MAX(xbound[0],xbound[1]), MAX(xbound[2],xbound[3])), xmax);
+	xmax = MAX(0, xmax);
 	ymin = MAX(MIN(MIN(ybound[0],ybound[1]), MIN(ybound[2],ybound[3])), ymin);
+	ymin = MIN(trans_dh, ymin);
 	ymax = MIN(MAX(MAX(ybound[0],ybound[1]), MAX(ybound[2],ybound[3])), ymax);
+	ymax = MAX(0, ymax);
 	/////////////////end clipping////////////////////////////
 
 	// tricks to keep rotate not affected by flip
@@ -707,23 +799,33 @@ void gfx_draw_rotate(s_screen* dest, gfx_entry* src, int x, int y, int centerx, 
 	bx_16 = bx*65536;
 	by_16 = by*65536;
 
-    for (j=ymin; j<ymax; j++)
-    {
-        srcx_16 = srcx0_16;
-        srcy_16= srcy0_16;
-        for (i=xmin;i<xmax;i++)
-        {
-            srcx=srcx_16>>16;
-            srcy=srcy_16>>16;
-			if(srcx>=0 && srcx<trans_sw && srcy>=0 && srcy<trans_sh){
-				draw_pixel_gfx(dest, src, i, j, srcx, srcy);
-			}
-            srcx_16+=ax_16;
-            srcy_16+=ay_16;
-        }
-        srcx0_16+=bx_16;
-        srcy0_16+=by_16;
+	#define for1 \
+    for (j=ymin; j<ymax; j++)\
+    {\
+        srcx_16 = srcx0_16;\
+        srcy_16= srcy0_16;\
+		dest_seek(xmin,j);\
+        for (i=xmin;i<xmax;i++)\
+        {\
+            srcx=srcx_16>>16;\
+            srcy=srcy_16>>16;\
+			if(srcx<trans_sw && srcy<trans_sh){\
+				src_seek(srcx, srcy);\
+				
+	#define for2 \
+			}\
+			dest_inc();\
+            srcx_16+=ax_16;\
+            srcy_16+=ay_16;\
+        }\
+        srcx0_16+=bx_16;\
+        srcy0_16+=by_16;\
     }
+
+	writepixelswitch(for1,for2)
+
+	#undef for1
+	#undef for2
 }
 
 void gfx_quad(s_screen *dest, gfx_entry* src, 
@@ -988,28 +1090,32 @@ void gfx_draw_scale(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 	//printf("=%d, %d, %lf, %lf, %lf, %lf, %lf, %lf\n ",x, y, w, h, osx, sy, dx, dy);
 	// =64, 144, 44.000000, 36.500000, 43.000000, 0.000000, 38.000000, 143.000000
 
-	for(j=endy-256; j>=beginy; j-=256, sy+=stepdy, dx -= shiftf){
-		if(dx>=xmax) continue;
-		if(dx+w<=xmin) continue;
-		sx = osx;
-		beginx = dx;
-		endx = dx+w;
-		if(dx<xmin) beginx = xmin;
-		else beginx = dx;
-		if(dx+w>xmax) {
-			endx = xmax;
-			sx += stepdx*(dx+w-xmax)>>8;
-		} else endx = dx+w;
-		dest_seek((endx>>8)-1, j>>8);
-		for(i=endx-256; i>=beginx; i-=256, sx+=stepdx){
-			//draw_pixel_gfx(dest, src, i, j, (int)sx, (int)sy);
-			//if(sy<0) printf("trans_sh %d sy %d stepdy %d\n", trans_sh, sy, stepdy);
-			src_seek(sx>>8, sy>>8);
-			write_pixel();
-			dest_dec();
-		}
+#define for1() \
+	for(j=endy-256; j>=beginy; j-=256, sy+=stepdy, dx -= shiftf){\
+		if(dx>=xmax) continue;\
+		if(dx+w<=xmin) continue;\
+		sx = osx;\
+		beginx = dx;\
+		endx = dx+w;\
+		if(dx<xmin) beginx = xmin;\
+		else beginx = dx;\
+		if(dx+w>xmax) {\
+			endx = xmax;\
+			sx += stepdx*(dx+w-xmax)>>8;\
+		} else endx = dx+w;\
+		dest_seek((endx>>8)-1, j>>8);\
+		for(i=endx-256; i>=beginx; i-=256, sx+=stepdx){\
+			src_seek(sx>>8, sy>>8); \
+
+#define for2() \
+			dest_dec();\
+		}\
 	}
 
+	writepixelswitch(for1(),for2())
+
+#undef for1
+#undef for2
 }
 #endif
 
