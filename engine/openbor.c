@@ -5210,6 +5210,7 @@ void lcmHandleCommandType(ArgList* arglist, s_model* newchar, char* filename) {
 		newchar->no_adjust_base         = 0;
 	}
 	else if(stricmp(value, "steamer")==0){
+		newchar->offscreenkill = 80;
 		newchar->type = TYPE_STEAMER;
 	}
 	// my new types   7-1-2005
@@ -5598,12 +5599,12 @@ static size_t fetchInlineScript(char* buf, char** scriptbuf, ptrdiff_t* ppos, si
 	return pos;
 }
 
-size_t lcmHandleCommandScripts(ArgList* arglist, char* buf, Script* script, char* scriptname, char* filename, int compile) {
+size_t lcmHandleCommandScripts(ArgList* arglist, char* buf, Script* script, char* scriptname, char* filename, int compile, int first) {
 	ptrdiff_t pos = 0;
 	size_t len=0;
 	int result = 0;
 	char* scriptbuf = NULL;
-	Script_Init(script, scriptname, filename, 0);
+	Script_Init(script, scriptname, filename, first);
 	if(stricmp(GET_ARGP(1), "@script")==0) {
 		fetchInlineScript(buf, &scriptbuf, &pos, &len);
 		if(scriptbuf) {
@@ -6715,74 +6716,74 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 					break;
 				case CMD_MODEL_SCRIPT:
 					//load the update script
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->update_script, "updateentityscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->update_script, "updateentityscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_THINKSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->think_script, "thinkscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->think_script, "thinkscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_TAKEDAMAGESCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->takedamage_script, "takedamagescript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->takedamage_script, "takedamagescript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONFALLSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onfall_script, "onfallscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onfall_script, "onfallscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONPAINSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onpain_script, "onpainscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onpain_script, "onpainscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONBLOCKSSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblocks_script, "onblocksscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblocks_script, "onblocksscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONBLOCKWSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblockw_script, "onblockwscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblockw_script, "onblockwscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONBLOCKOSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblocko_script, "onblockoscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblocko_script, "onblockoscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONBLOCKZSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblockz_script, "onblockzscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblockz_script, "onblockzscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONBLOCKASCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblocka_script, "onblockascript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onblocka_script, "onblockascript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONMOVEXSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onmovex_script, "onmovexscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onmovex_script, "onmovexscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONMOVEZSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onmovez_script, "onmovezscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onmovez_script, "onmovezscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONMOVEASCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onmovea_script, "onmoveascript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onmovea_script, "onmoveascript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONDEATHSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->ondeath_script, "ondeathscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->ondeath_script, "ondeathscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONKILLSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onkill_script, "onkillscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onkill_script, "onkillscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_DIDBLOCKSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->didblock_script, "didblockscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->didblock_script, "didblockscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONDOATTACKSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->ondoattack_script, "ondoattackscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->ondoattack_script, "ondoattackscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_DIDHITSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->didhit_script, "didhitscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->didhit_script, "didhitscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONSPAWNSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onspawn_script, "onspawnscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onspawn_script, "onspawnscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONMODELCOPYSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onmodelcopy_script, "onmodelcopyscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->onmodelcopy_script, "onmodelcopyscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ONDRAWSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->ondraw_script, "ondrawscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->ondraw_script, "ondrawscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ANIMATIONSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->animation_script, "animationscript", filename, 0);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->animation_script, "animationscript", filename, 0, 0);
 					//dont compile, until at end of this function
 					break;
 				case CMD_MODEL_KEYSCRIPT:
-					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->key_script, "entitykeyscript", filename, 1);
+					pos += lcmHandleCommandScripts(&arglist, buf+pos, newchar->scripts->key_script, "entitykeyscript", filename, 1, 0);
 					break;
 				case CMD_MODEL_ANIM:
 					{
@@ -9882,7 +9883,7 @@ void load_level(char *filename){
 
 				}
 				// this function is for model script, but it is OK for now
-				pos += lcmHandleCommandScripts(&arglist, buf+pos, tempscript, scriptname, filename, 1);
+				pos += lcmHandleCommandScripts(&arglist, buf+pos, tempscript, scriptname, filename, 1, 1);
 				break;
 			case CMD_LEVEL_BLOCKED:
 				level->exit_blocked = GET_INT_ARG(1);
@@ -10096,7 +10097,7 @@ void load_level(char *filename){
 				next.a = GET_FLOAT_ARG(3);
 				break;
 			case CMD_LEVEL_SPAWNSCRIPT:
-				pos += lcmHandleCommandScripts(&arglist, buf+pos, &next.spawnscript, "Level spawn entry script", filename, 0);
+				pos += lcmHandleCommandScripts(&arglist, buf+pos, &next.spawnscript, "Level spawn entry script", filename, 0, 1);
 				break;
 			case CMD_LEVEL_AT_SCRIPT:
 				if(!Script_IsInitialized(&next.spawnscript))
@@ -11395,18 +11396,8 @@ void update_frame(entity* ent, int f)
 		move = (float)(anim->move?anim->move[f]:0);
 		movez = (float)(anim->movez?anim->movez[f]:0);
 		if(self->direction==0) move = -move;
-		if(movez || move)
-		{
-			if(self->trymove)
-			{
-				self->trymove(move, movez);
-			}
-			else
-			{
-				self->x += move;
-				self->z += movez;
-			}
-		}
+		self->movex += move;
+		self->movez += movez;
 	}
 
 	if(anim->seta && anim->seta[0] >= 0 && self->base <= 0)
@@ -12619,12 +12610,14 @@ void do_attack(entity *e)
 					if(e->pausetime<time || (inair(e) && !equalairpause))          // if equalairpause is set, inair(e) is nolonger a condition for extra pausetime
 					{    // Adds pause to the current animation
 						e->toss_time += attack->pause_add;      // So jump height pauses in midair
+						e->nextmove += attack->pause_add;      // xdir, zdir
 						e->nextanim += attack->pause_add;       //Pause animation for a bit
 						e->nextthink += attack->pause_add;      // So anything that auto moves will pause
 						e->pausetime = time + attack->pause_add ; //UT: temporary solution
 					}
 
 					self->toss_time += attack->pause_add;       // So jump height pauses in midair
+					self->nextmove += attack->pause_add;      // xdir, zdir
 					self->nextanim += attack->pause_add;        //Pause animation for a bit
 					self->nextthink += attack->pause_add;       // So anything that auto moves will pause
 
@@ -12808,11 +12801,11 @@ void check_gravity()
 			}
 			else self->hithead = NULL;
 			// gravity, antigravity factors
-			self->a += self->tossv;
+			self->a += self->tossv*100.0/GAME_SPEED;
 			if(self->animation->dive) gravity = 0;
 			else gravity = (level?level->gravity:default_level_gravity) * (1.0-self->modeldata.antigravity-self->antigravity);
 			if(self->modeldata.subject_to_gravity>0)
-				self->tossv += gravity;
+				self->tossv += gravity*100.0/GAME_SPEED;
 
 			fmin = (level?level->maxfallspeed:default_level_maxfallspeed);
 			fmax = (level?level->maxtossspeed:default_level_maxtossspeed);
@@ -12910,7 +12903,7 @@ void check_gravity()
 				// in case landing, set hithead to NULL
 				self->hithead = NULL;
 			}// end of if - land checking
-			self->toss_time = time + (GAME_SPEED/100);
+			self->toss_time = time + 1;
 		}// end of if  - in-air checking
 
 	}//end of if
@@ -12995,31 +12988,6 @@ void check_link_move(float xdir, float zdir)
 
 void check_ai()
 {
-	entity* plat;
-	// check moving platform
-	if((plat=self->landed_on_platform) &&
-		(plat->xdir || plat->zdir) &&
-		(plat->nextthink <= time || (plat->update_mark & 2)) &&// plat is updated before self or will be updated this loop
-		testplatform(plat,self->x,self->z, NULL) &&
-		self->a <= plat->a + plat->animation->platform[plat->animpos][7] ) // on the platform?
-	{
-		// passive move with the platform
-		if(self->trymove )
-		{
-			// grab walk check
-			if(self->grabbing && self->grabwalking && self->grabbing->trymove)
-			{
-				check_link_move(plat->xdir, plat->zdir);
-			}
-			else self->trymove(plat->xdir, plat->zdir);
-		}
-		else
-		{
-			self->x += plat->xdir;
-			self->z += plat->zdir;
-		}
-	}
-
 	if(self->nextthink <= time && !endgame)
 	{
 		self->update_mark |= 2; //mark it
@@ -13037,31 +13005,6 @@ void check_ai()
 		// Execute think script
 		execute_think_script(self);
 
-		// A.I. move
-		if (self->xdir || self->zdir)
-		{
-			if(self->trymove)
-			{
-				// grab walk check
-				if(self->grabbing && self->grabwalking && self->grabbing->trymove)
-				{
-					check_link_move(self->xdir, self->zdir);
-				}
-				else if(self->trymove(self->xdir, self->zdir)!=1 && self->idling)
-				{
-					self->pathblocked++; // for those who walk against wall or borders
-				}
-				else
-				{
-					self->pathblocked = 0;
-				}
-			}
-			else
-			{
-				self->x += self->xdir;
-				self->z += self->zdir;
-			}
-		}
 		// Used so all entities can have a spawn animation, and then just changes to the idle animation when done
 		// move here to so players wont get stuck
 		if((self->animation == self->modeldata.animation[ANI_SPAWN] || self->animation == self->modeldata.animation[ANI_RESPAWN]) && !self->animating /*&& (!inair(self)||!self->modeldata.subject_to_gravity)*/) set_idle(self);
@@ -13088,7 +13031,7 @@ static float check_basemap(int x, int z)
 void update_animation()
 {
 	int f, wall, hole = -1;
-	float move, movez, seta, maxbase, scrollv=0;
+	float seta, maxbase, scrollv=0;
 	entity *other = NULL;
 
 	if(level)
@@ -13265,39 +13208,6 @@ void update_animation()
 		}
 
 		if(self->base!=-1000 && maxbase>self->base) self->base = maxbase;
-	}
-
-	// Code for when entities move (useful for moving platforms, etc)
-	if(other && other != self )
-	{
-		// a bit complex, other->nextanim == time means other is behind self and not been updated,
-		// update_mark & 1 means other is updated in this loop and before self
-		if((other->nextanim == time || (other->update_mark & 1)) && self->a <= other->a + other->animation->platform[other->animpos][7])
-		{
-			if(other->update_mark & 1) f = other->animpos;
-			else f = other->animpos + other->animating;
-			if(f >= other->animation->numframes)
-			{
-				if(f<0) f = other->animation->numframes-1;
-				else f = 0;
-			}
-			//printf("%d %d %d\n", other->nextanim, time, other->update_mark);
-			move = (float)(other->animation->move?other->animation->move[f]:0);
-			movez = (float)(other->animation->movez?other->animation->movez[f]:0);
-			if(other->direction==0) move = -move;
-			if(move||movez)
-			{
-				if(self->trymove)
-				{
-					self->trymove(move, movez);
-				}
-				else
-				{
-					self->z += movez;
-					self->x += move;
-				}
-			}
-		}
 	}
 }
 
@@ -13566,6 +13476,61 @@ void adjust_bind(entity* e)
 	}
 }
 
+static void _domove(entity* e)
+{
+	float x,z;
+	entity* tempself = self;
+	self = e;
+
+	if(!is_frozen(self) && self->nextmove<=time)
+	{
+		x = self->x;
+		z = self->z;
+		if(self->trymove)
+		{
+			if(self->grabbing) check_link_move(self->movex, self->movez);
+			else if(!self->link) self->trymove(self->movex, self->movez);
+		}
+		else 
+		{
+			self->x += self->movex;
+			self->z += self->movez;
+		}
+		self->movex = x-self->x;
+		self->movez = z-self->z;
+		self->nextmove = time+1;
+	} else {
+		self->movex = self->movez = 0;
+	}
+	self->update_mark |= 4;
+	self = tempself;
+}
+
+void ent_post_update(entity* e)
+{
+	entity* plat;
+	e->update_mark &= 0xFFFFFFFC;
+	self = e;
+
+	if(!(self->update_mark&4))
+	{
+		// check moving platform
+		if((plat=self->landed_on_platform) &&
+			(plat->movez || plat->movex) &&
+			testplatform(plat,self->x,self->z, NULL) &&
+			self->a <= plat->a + plat->animation->platform[plat->animpos][7] ) // on the platform?
+		{
+			if(!(plat->update_mark&4)) _domove(plat);
+			self->movex += plat->movex;
+			self->movez += plat->movez;
+		}
+		_domove(self);
+	}
+
+	if(self->bound)
+		adjust_bind(self);
+}
+
 // arrenge the list reduce its length
 void arrange_ents()
 {
@@ -13576,11 +13541,8 @@ void arrange_ents()
 	{
 		for(i=0; i<ent_max; i++)
 		{
-			ent_list[i]->update_mark = 0;
-			if(ent_list[i]->exists && ent_list[i]->bound)
-			{
-				adjust_bind(ent_list[i]);
-			}
+			if(ent_list[i]->exists)
+				ent_post_update(ent_list[i]);
 		}
 	}
 	else
@@ -13596,11 +13558,8 @@ void arrange_ents()
 				ent_list[ind] = temp;
 				ind++;
 			}
-			ent_list[i]->update_mark = 0;
-			if(ent_list[i]->exists && ent_list[i]->bound)
-			{
-				adjust_bind(ent_list[i]);
-			}
+			if(ent_list[i]->exists)
+				ent_post_update(ent_list[i]);
 		}
 		ent_max = ent_count;
 	}
@@ -13623,6 +13582,8 @@ void update_ents()
 			if(is_frozen(self)){expand_time(self);}
 			else
 			{
+				
+				self->movex = self->movez = 0;
 				execute_updateentity_script(self);// execute a script
 				if(!self->exists) continue;
 				check_ai();// check ai
@@ -13634,6 +13595,8 @@ void update_ents()
 				check_attack();// Collission detection
 				if(!self->exists) continue;
 				update_health();// Update displayed health
+				self->movex += self->xdir*100.0/GAME_SPEED;
+				self->movez += self->zdir*100.0/GAME_SPEED;
 			}
 		}
 	}//end of for
@@ -17256,7 +17219,6 @@ int biker_move()
 		else self->xdir = (self->direction)?((float)1.7 + randf((float)0.6)):(-((float)1.7 + randf((float)0.6)));
 	}
 
-	self->nextthink = time + THINK_SPEED / 2;
 	return 1;
 }
 
@@ -17328,10 +17290,10 @@ int arrow_move(){
 				self->attacking = 0;
 				self->health = 0;
 				self->projectile = 0;
-				if(self->direction == 0) self->xdir = (float)-1.2;
-				else if(self->direction == 1) self->xdir = (float)1.2;
+				if(self->direction == 0) self->xdir = (float)-2.4;
+				else if(self->direction == 1) self->xdir = (float)2.4;
 				self->damage_on_landing = 0;
-				toss(self, 2.5 + randf(1));
+				toss(self, 5 + randf(2));
 				self->modeldata.no_adjust_base = 0;
 				self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_gravity = 1;
 				set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0);
@@ -17339,7 +17301,6 @@ int arrow_move(){
 		}
 	}
 	self->autokill |= self->ptype;
-	self->nextthink = time + THINK_SPEED / 2;
 	return 1;
 }
 
@@ -17349,7 +17310,6 @@ int bomb_move()
 	if(inair(self) && self->toexplode == 1) {
 		if(self->direction == 0) self->xdir = -self->modeldata.speed;
 		else if(self->direction == 1) self->xdir = self->modeldata.speed;
-		self->nextthink = time + THINK_SPEED / 2;
 	}else if(self->takeaction != bomb_explode){
 
 		self->takeaction = bomb_explode;
@@ -17396,9 +17356,9 @@ int star_move(){
 			self->attacking = 0;
 			self->health = 0;
 			self->projectile = 0;
-			self->xdir = (self->direction)?(-1.2):1.2;
+			self->xdir = (self->direction)?(-2.2):2.4;
 			self->damage_on_landing = 0;
-			toss(self, 2.5 + randf(1));
+			toss(self, 5 + randf(2));
 			set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0);
 		}
 	}
@@ -17410,7 +17370,6 @@ int star_move(){
 		if(self->modeldata.nodieblink == 2) self->animating = 0;
 	}
 
-	self->nextthink = time + THINK_SPEED / 2;
 	return 1;
 }
 
@@ -19709,6 +19668,7 @@ entity * knife_spawn(char *name, int index, float x, float z, float a, int direc
 	e->modeldata.aiattack = AIATTACK1_NOATTACK;
 	e->remove_on_attack = e->modeldata.remove;
 	e->autokill = e->modeldata.nomove;
+	e->modeldata.speed *= 2;
 
 	ent_set_colourmap(e, map);
 
@@ -19766,6 +19726,7 @@ entity * bomb_spawn(char *name, int index, float x, float z, float a, int direct
 	e->takedamage = common_takedamage;
 	e->remove_on_attack = 0;
 	e->autokill = e->modeldata.nomove;
+	e->modeldata.speed *= 2;
 
 
 	// Ok, some old mods use type none, will have troubles.
@@ -19801,7 +19762,7 @@ int star_spawn(float x, float z, float a, int direction){ // added entity to kno
 		e->owner = self;    // Added so enemy projectiles don't hit the owner
 		e->attacking = 1;
 		e->nograb = 1;    // Prevents trying to grab a projectile
-		e->xdir = fd/2 * (float)i;
+		e->xdir = fd * (float)i;
 		e->think = common_think;
 		e->nextthink = time+1;
 		e->trymove = NULL;
@@ -19842,13 +19803,7 @@ void steam_think()
 // for the "trap" type   7-1-2005  trap start
 void trap_think()
 {
-	if(self->x < advancex-80 || self->x > advancex+(videomodes.hRes+80)){
-		//        kill(self);   // 6-2-2005 removed temporarily
-		return;
-	}
-
 	self->attacking = 1;
-	self->nextthink = time + 1;
 }
 //    7-1-2005  trap end
 
@@ -19871,11 +19826,6 @@ void steam_spawn(float x, float z, float a){
 
 void steamer_think()
 {
-	if(self->x < advancex-80 || self->x > advancex+(videomodes.hRes+80)){
-		kill(self);
-		return;
-	}
-
 	steam_spawn(self->x, self->z, self->a);
 	self->nextthink = time + (GAME_SPEED/10) + (rand32()&31);
 }
@@ -19921,9 +19871,8 @@ entity * homing_find_target(int type){
 
 void bike_crash(){
 	int i;
-	if(self->direction) self->xdir = 2;
-	else self->xdir = -2;
-	self->nextthink = time + THINK_SPEED / 2;
+	if(self->direction) self->xdir = 4;
+	else self->xdir = -4;
 	for(i=0; i<levelsets[current_set].maxplayers; i++) control_rumble(i, 100);
 	//if(self->x < advancex-100 || self->x > advancex+(videomodes.hRes+100)) kill(self);
 }
@@ -19953,7 +19902,6 @@ int biker_takedamage(entity *other, s_attack* attack)
 	self->attacking = 1;
 	if(!self->modeldata.offscreenkill) self->modeldata.offscreenkill = 100;
 	self->think = bike_crash;
-	self->nextthink = time + THINK_SPEED;
 	// well, this is the real entity, the driver who take the damage
 	if((driver = drop_driver(self)))
 	{

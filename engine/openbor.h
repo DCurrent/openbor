@@ -1253,6 +1253,8 @@ typedef struct entity
 	float zdir;
 	float destx; // temporary values for ai functions
 	float destz;
+	float movex;
+	float movez;
 	float base; // Default altitude
 	float altbase; // Altitude affected by movea
 	float tossv;							// Effect of gravity
@@ -1268,6 +1270,7 @@ typedef struct entity
 	u32 timestamp;
 	u32 releasetime;
 	u32 toss_time; // Used by gravity code
+	u32 nextmove;
 	u32 stalltime;
 	u32 combotime; // For multiple-hit combo
 	u32 movetime; // For special move
