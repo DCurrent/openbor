@@ -8873,6 +8873,7 @@ int mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 		ICMPCONST(ANI_DUCKATTACK)
 		ICMPCONST(ANI_WALKOFF)
 		ICMPCONST(ANI_FREESPECIAL)
+		ICMPCONST(ANI_ATTACK)
 
 		// for the extra animation ids
 		ICMPSCONSTC(ATK_NORMAL)
