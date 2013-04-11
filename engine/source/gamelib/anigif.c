@@ -375,6 +375,7 @@ int anigif_open(char *filename, char *packfilename, anigif_info* info){
 		info->gifbuffer[i] = allocscreen(info->info[0].gif_header.screenwidth, info->info[0].gif_header.screenheight, screenformat);
 		clearscreen(info->gifbuffer[i]);
 	}
+	info->frame = -1;
 	return 1;
 }
 
@@ -427,6 +428,10 @@ int anigif_decode(anigif_info* info, int n){
 					}
 					break;
 				}
+			} else if (info->info[n].local_pal)
+			{
+				free(info->info[n].local_pal);
+					info->info[n].local_pal = NULL;
 			}
 
 			iblock.left = SwapLSB16(iblock.left);
@@ -456,7 +461,7 @@ int anigif_decode(anigif_info* info, int n){
 	}
 
 decode_end:
-	anigif_close(info);
+	//anigif_close(info);
 	return ANIGIF_DECODE_END;
 }
 
@@ -520,7 +525,9 @@ int anigif_decode_frame(anigif_info* info)
 
 s_screen* anigif_getbuffer(anigif_info* info)
 {
-	return info->isRGB?info->backbuffer:info->gifbuffer[0];
+	s_screen* buffer = info->isRGB?info->backbuffer:info->gifbuffer[0];
+	buffer->palette = info->isRGB?NULL:(info->info[0].local_pal?info->info[0].local_pal:info->info[0].global_pal);
+	return buffer;
 }
 
 

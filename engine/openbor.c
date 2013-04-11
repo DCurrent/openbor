@@ -13482,26 +13482,24 @@ static void _domove(entity* e)
 	entity* tempself = self;
 	self = e;
 
-	if(!is_frozen(self) && self->nextmove<=time)
+	x = self->x;
+	z = self->z;
+	if(self->trymove)
 	{
-		x = self->x;
-		z = self->z;
-		if(self->trymove)
-		{
-			if(self->grabbing && self->grabwalking) check_link_move(self->movex, self->movez);
-			else if(!self->link || self->grabbing) self->trymove(self->movex, self->movez);
-		}
-		else 
-		{
-			self->x += self->movex;
-			self->z += self->movez;
-		}
-		self->movex = self->x-x;
-		self->movez = self->z-z;
-		self->nextmove = time+1;
-	} else {
-		self->movex = self->movez = 0;
+		// only do linked move while grabwalking for now, 
+		// otherwise some grab moves that use move/movez command may act strangely
+		if(self->grabbing && self->grabwalking) check_link_move(self->movex, self->movez);
+		else if(!self->link || self->grabbing) self->trymove(self->movex, self->movez);
 	}
+	else 
+	{
+		self->x += self->movex;
+		self->z += self->movez;
+	}
+	self->movex = self->x-x;
+	self->movez = self->z-z;
+	self->nextmove = time+1;
+
 	self->update_mark |= 4;
 	self = tempself;
 }
@@ -13512,14 +13510,16 @@ void ent_post_update(entity* e)
 	e->update_mark &= 0xFFFFFFFC;
 	self = e;
 
-	if(!(self->update_mark&4))
+	if(!(self->update_mark&4) && !is_frozen(self) && self->nextmove<=time)
 	{
 		// check moving platform
 		if((plat=self->landed_on_platform) &&
+			!is_frozen(plat) &&  plat->nextmove<=time &&
 			(plat->movez || plat->movex) &&
 			testplatform(plat,self->x,self->z, NULL) &&
 			self->a <= plat->a + plat->animation->platform[plat->animpos][7] ) // on the platform?
 		{
+			//update platform first to get actual movex and movez
 			if(!(plat->update_mark&4)) _domove(plat);
 			if(plat->movex || plat->movez)
 			{
