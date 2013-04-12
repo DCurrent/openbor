@@ -10101,7 +10101,7 @@ void load_level(char *filename){
 				break;
 			case CMD_LEVEL_AT_SCRIPT:
 				if(!Script_IsInitialized(&next.spawnscript))
-					Script_Init(&next.spawnscript, "Level spawn entry script", filename, 0);
+					Script_Init(&next.spawnscript, "Level spawn entry script", filename, 1);
 				fetchInlineScript(buf, &scriptbuf, &pos, &sblen);
 				if(!Script_AppendText(&next.spawnscript, scriptbuf, filename)){
 					errormessage = "Unable to parse level spawn entry script.\n";
