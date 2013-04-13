@@ -1041,10 +1041,6 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)max_entity_vars;
 		break;
-	case _sv_maxglobalvars:
-		ScriptVariant_ChangeType(var, VT_INTEGER);
-		var->lVal = (LONG)max_global_vars;
-		break;
 	case _sv_maxindexedvars:
 		ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = (LONG)max_indexed_vars;
@@ -2661,11 +2657,10 @@ int saveScriptFile()
 	#define _writetmp  _writestr(tmpvalue)
 	#define _writeconst(s) strcpy(tmpvalue,s);_writetmp
 	FILE *handle = NULL;
-	int i, l;
+	int i, l, size;
+	ScriptVariant* var;
 	char path[256] = {""};
 	char tmpvalue[256] = {""};
-	//named list
-	//if(max_global_vars<=0) return ;
 	getBasePath(path, "Saves", 0);
 	getPakName(tmpvalue, 2);//.scr
 	strcat(path, tmpvalue);
@@ -2676,32 +2671,30 @@ int saveScriptFile()
 	if(handle == NULL) return 0;
 
 	_writeconst("void main() {\n");
-	for(i=0; i<=max_global_var_index; i++)
+	size = List_GetSize(global_var_list.list);
+	for(i=0, List_Reset(global_var_list.list); i<size; List_GotoNext(global_var_list.list), i++)
 	{
-		if(!global_var_list[i]->owner &&
-			global_var_list[i]->key[0] &&
-			global_var_list[i]->value.vt!=VT_EMPTY &&
-			global_var_list[i]->value.vt!=VT_PTR){
+		var = (ScriptVariant*)List_Retrieve(global_var_list.list);
+		if( var->vt!=VT_EMPTY && var->vt!=VT_PTR){
 			_writeconst("\tsetglobalvar(\"")
-			_writestr(global_var_list[i]->key)
+			_writestr(List_GetName(global_var_list.list))
 			_writeconst("\",")
-			vardump(&(global_var_list[i]->value), tmpvalue);
+			vardump(var, tmpvalue);
 			_writetmp
 			_writeconst(");\n")
 		}
 	}
 	// indexed list
-	for(i=0; i<max_indexed_vars; i++) {
-		if(indexed_var_list[i].vt != VT_PTR && indexed_var_list[i].vt!=VT_EMPTY){
-			_writeconst("\tsetindexedvar(")
-			sprintf(tmpvalue, "%d", i);
+	for(i=1; i<=global_var_list.vars->lVal; i++) {
+		if(global_var_list.vars[i].vt != VT_PTR && global_var_list.vars[i].vt!=VT_EMPTY){
+			_writeconst("\tsetglobalvar(")
+			sprintf(tmpvalue, "%d", i-1);
 			_writetmp
 			_writeconst(",")
-			vardump(indexed_var_list+i, tmpvalue);
+			vardump(global_var_list.vars+i, tmpvalue);
 			_writetmp
 			_writeconst(");\n")
 		}
-
 	}
 	//allow select
 	for(i=0; i<models_cached; i++){
@@ -2742,8 +2735,6 @@ int loadScriptFile(){
 
 	char path[256] = {""};
 	char tmpname[256] = {""};
-	//named list
-	//if(max_global_vars<=0) return ;
 	getBasePath(path, "Saves", 0);
 	getPakName(tmpname, 2);//.scr
 	strcat(path,tmpname);
@@ -8029,11 +8020,6 @@ int load_script_setting()
 					max_indexed_vars = GET_INT_ARG(1);
 					if(max_indexed_vars<0) max_indexed_vars = 0;
 				}
-				else if(stricmp(command, "maxglobalvars")==0) // for global_var_list, default to 2048
-				{
-					max_global_vars = GET_INT_ARG(1);
-					if(max_global_vars<0) max_global_vars = 0;
-				}
 				else if(stricmp(command, "keyscriptrate")==0) // Rate that keyscripts fire when holding a key.
 				{
 					keyscriptrate = GET_INT_ARG(1);
@@ -10909,7 +10895,6 @@ void addscore(int playerindex, int add){
 
 void free_ent(entity* e)
 {
-	int i;
 	if(!e) return;
 	clear_all_scripts(e->scripts,2);
 	free_all_scripts(&e->scripts);
@@ -10917,15 +10902,13 @@ void free_ent(entity* e)
 	if(e->waypoints) { free(e->waypoints); e->waypoints = NULL;}
 	if(e->defense){ free(e->defense); e->defense = NULL; }
 	if(e->offense_factors){ free(e->offense_factors); e->offense_factors = NULL; }
-	if(e->entvars)
+	if(e->varlist)
 	{
 		// Although free_ent will be only called once when the engine is shutting down,
 		// just clear those in case we forget something
-		for(i=0; i<max_entity_vars; i++)
-		{
-			ScriptVariant_Clear(e->entvars+i);
-		}
-		free(e->entvars); e->entvars = NULL;
+		Varlist_Clear(e->varlist);
+		free(e->varlist);
+		e->varlist = NULL;
 	}
 	free(e);
 	e = NULL;
@@ -10950,12 +10933,9 @@ entity* alloc_ent()
 	memset(ent->defense, 0, sizeof(*ent->defense)*max_attack_types);
 	ent->offense_factors = malloc(sizeof(*ent->offense_factors)*max_attack_types);
 	memset(ent->offense_factors, 0, sizeof(*ent->offense_factors)*max_attack_types);
-	if(max_entity_vars>0)
-	{
-		ent->entvars = malloc(sizeof(*ent->entvars)*max_entity_vars);
-		// memset should be OK by know, because VT_EMPTY is zero by value, or else we should use ScriptVariant_Init
-		memset(ent->entvars, 0, sizeof(*ent->entvars)*max_entity_vars);
-	}
+	ent->varlist = calloc(1, sizeof(*ent->varlist));
+	// memset should be OK by know, because VT_EMPTY is zero by value, or else we should use ScriptVariant_Init
+	Varlist_Init(ent->varlist, max_entity_vars);
 	alloc_all_scripts(&ent->scripts);
 	return ent;
 }
@@ -11698,10 +11678,10 @@ void ent_set_model(entity * ent, char * modelname, int syncAnim)
 entity * spawn(float x, float z, float a, int direction, char * name, int index, s_model* model)
 {
 	entity *e = NULL;
-	int i, j, id;
+	int i, id;
 	s_defense *dfs;
 	float *ofs;
-	ScriptVariant* vars;
+	Varlist* vars;
 	s_scripts* scripts;
 
 	if(!model)
@@ -11735,9 +11715,8 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			id      = e->sortid;
 			dfs     = e->defense;
 			ofs     = e->offense_factors;
-			vars    = e->entvars;
-			for(j=0; j<max_entity_vars; j++)
-				ScriptVariant_Clear(&vars[j]);
+			vars    = e->varlist;
+			Varlist_Cleanup(vars);
 			memcpy(dfs, model->defense, sizeof(*dfs)*max_attack_types);
 			memcpy(ofs, model->offense_factors, sizeof(*ofs)*max_attack_types);
 			// clear up
@@ -11790,7 +11769,7 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			e->sortid = id;
 			e->defense = dfs;
 			e->offense_factors = ofs;
-			e->entvars = vars;
+			e->varlist = vars;
 			ent_default_init(e);
 			return e;
 		}
@@ -22217,8 +22196,6 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 endgame:
 	// clear global script variant list
 	branch_name[0] = 0;
-	//max_global_var_index = -1;
-	//for(i=0; i<max_indexed_vars; i++) ScriptVariant_Clear(indexed_var_list+i);
 	sound_close_music();
 }
 

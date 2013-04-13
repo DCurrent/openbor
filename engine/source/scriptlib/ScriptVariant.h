@@ -32,11 +32,6 @@ typedef struct ScriptVariant
 	VARTYPE vt;//variatn type
 }ScriptVariant;
 
-
-extern CHAR** strcache;
-extern int   strcache_size;
-extern int*  strcache_index;
-
 //clear the string cache
 inline void StrCache_Clear();
 // int the string cache
@@ -44,6 +39,8 @@ inline void StrCache_Clear();
 inline void StrCache_Collect(int index);
 inline int StrCache_Pop();
 inline CHAR* StrCache_Get(int index);
+void StrCache_Copy(int index, CHAR* str);
+void StrCache_NCopy(int index, CHAR* str, int n);
 inline void ScriptVariant_Clear(ScriptVariant* var);
 
 inline void ScriptVariant_Init(ScriptVariant* var);

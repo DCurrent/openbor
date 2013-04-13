@@ -15,27 +15,28 @@
 #define MAX_GLOBAL_VAR 2048
 #define MAX_KEY_LEN    24
 
-typedef struct
-{
-	ScriptVariant value;
-	char          key[MAX_KEY_LEN];
-	struct Script* owner;
-}s_variantnode;
-
 //osc
 #define script_magic ((int)0x73636f)
+
+//This structure holds a named variable list (list)
+// and an indexed list (vars).
+typedef struct 
+{
+	List* list;
+	ScriptVariant* vars;
+} Varlist;
 
 typedef struct Script
 {
 	int magic;
 	Interpreter* pinterpreter;
 	char* comment; // debug purpose
-	ScriptVariant* vars;
+	Varlist* varlist;
 	int initialized;        //flag
 	int interpreterowner;   //flag
 }Script;
 
-extern s_variantnode** global_var_list;
+extern Varlist global_var_list;
 extern List theFunctionList;
 extern ScriptVariant* indexed_var_list;
 extern int max_indexed_vars;
@@ -43,16 +44,16 @@ extern int max_entity_vars;
 extern int max_script_vars;
 extern int max_global_vars;
 extern int no_nested_script;
-extern int max_global_var_index ;
 extern int global_var_count;
 
 //these functions can be used by openbor.c
+void Varlist_Init(Varlist* varlist, int size);
+void Varlist_Clear(Varlist* varlist);
+void Varlist_Cleanup(Varlist* varlist);
+int Varlist_SetByName(Varlist* varlist, char* theName, ScriptVariant* var);
+#define Script_Set_Local_Variant(s, k, v) Varlist_SetByName((s)->varlist, (k), (v))
 void Script_Global_Init();
 void Script_Global_Clear();
-ScriptVariant* Script_Get_Global_Variant(char* theName);
-int Script_Set_Global_Variant(char* theName, ScriptVariant* var);
-ScriptVariant* Script_Get_Local_Variant(Script* cs, char* theName);
-int Script_Set_Local_Variant(Script* cs, char* theName, ScriptVariant* var);
 void Script_Init(Script* pscript, char* theName, char* comment, int first);
 Script* alloc_script();
 void Script_Copy(Script* pdest, Script* psrc, int localclear);
@@ -75,7 +76,6 @@ HRESULT system_isempty(ScriptVariant** varlist , ScriptVariant** pretvar, int pa
 HRESULT system_exit(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT system_NULL(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT system_rand(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
-HRESULT system_maxglobalvarindex(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT system_getglobalvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT system_setglobalvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT system_getlocalvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);

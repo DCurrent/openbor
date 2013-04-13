@@ -459,14 +459,6 @@
 #define _menutext(f, c, l, s, args...) font_printf(_colx(f,c), _liney(f,l), (f), 0, s, ##args)
 #endif
 
-#define __realloc(p, n) \
-p = realloc((p), sizeof(*(p))*((n)+1));\
-memset((p)+(n), 0, sizeof(*(p)));
-
-#define __reallocto(p, n, s) \
-p = realloc((p), sizeof(*(p))*(s));\
-memset((p)+(n), 0, sizeof(*(p))*((s)-(n)));\
-
 //string starts with constant, for animation# series
 #define strclen(s) (sizeof(s)-1)
 #define starts_with(a, b) (strnicmp(a, b, strclen(b))==0)
@@ -1376,7 +1368,7 @@ typedef struct entity
 	int walkmode;
 
 	int sortid; // id for sprite queue sort
-	ScriptVariant* entvars;
+	Varlist* varlist;
 	s_drawmethod drawmethod;
 	s_scripts* scripts;
 }entity;
