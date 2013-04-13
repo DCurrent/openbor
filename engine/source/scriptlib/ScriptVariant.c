@@ -11,9 +11,16 @@
 #include <string.h>
 #include <stdlib.h>
 
+typedef struct 
+{
+	int len;
+	int ref;
+	CHAR* str;
+}Varstr;
+
 // use string cache to cut the memory usage down, because not all variants are string, no need to give each of them an array
 #define STRCACHE_INC      64
-CHAR** strcache = NULL;
+Varstr* strcache = NULL;
 int   strcache_size = 0;
 int   strcache_top = -1;
 int*  strcache_index = NULL;
@@ -26,8 +33,9 @@ void StrCache_Clear()
 	{
 		for(i=0; i<strcache_size; i++)
 		{
-			free(strcache[i]);
-			strcache[i] = NULL;
+			if(strcache[i].str) 
+				free(strcache[i].str);
+			strcache[i].str = NULL;
 		}
 		free(strcache);
 		strcache = NULL;
@@ -42,37 +50,41 @@ void StrCache_Init()
 {
 	int i;
 	StrCache_Clear(); // just in case
-	strcache = malloc(sizeof(CHAR*)*STRCACHE_INC);
-	//if(!strcache) shutdown(1, "out of memory");
-	strcache_index = malloc(sizeof(int)*STRCACHE_INC);
-	//if(!strcache_index) shutdown(1, "out of memory");
-	for(i=0; i<STRCACHE_INC; i++)
-	{
-		strcache[i] = malloc((MAX_STR_VAR_LEN+1)*sizeof(CHAR));
-		//if(!strcache[i]) shutdown(1, "out of memory");
-		strcache[i][0] = 0;
+	strcache = calloc(STRCACHE_INC, sizeof(*strcache));
+	strcache_index = malloc(sizeof(*strcache_index)*STRCACHE_INC);
+	for(i=0; i<STRCACHE_INC; i++) {
+		strcache[i].str = malloc(sizeof(CHAR)*(MAX_STR_VAR_LEN+1));
+		strcache[i].str[0] = 0;
 		strcache_index[i] = i;
 	}
 	strcache_size = STRCACHE_INC;
 	strcache_top = strcache_size-1;
 }
 
+void StrCache_Resize(int index, int size)
+{
+	//assert(index<strcache_size);
+	//assert(size>0);
+	strcache[index].str = realloc(strcache[index].str, size+1);
+	strcache[index].str[size] = 0;
+	strcache[index].len = size;
+}
+
 void StrCache_Collect(int index)
 {
-	if(strcache_size)
+	strcache[index].ref--;
+	//assert(strcache[index].ref>=0);
+	if(!strcache[index].ref)
 	{
-		strcache_top++;
-		if(strcache_top<strcache_size)
-		{
-			strcache_index[strcache_top] = index;
-		}
+		//if(strcache[index].len > MAX_STR_VAR_LEN)
+		//	StrCache_Resize(index, MAX_STR_VAR_LEN);
+		//assert(strcache_top+1<strcache_size);
+		strcache_index[++strcache_top] = index;
 	}
 }
 
 int StrCache_Pop()
 {
-	CHAR** temp;
-	int*   tempi;
 	int i;
 	if(strcache_size==0)
 	{
@@ -80,41 +92,62 @@ int StrCache_Pop()
 	}
 	if(strcache_top<0) // realloc
 	{
-		temp = malloc(sizeof(CHAR*)*(strcache_size+STRCACHE_INC));
-		//if(!temp) shutdown(1, "out of memory");
-		for(i=strcache_size; i<strcache_size+STRCACHE_INC; i++)
-		{
-			temp[i] = malloc((MAX_STR_VAR_LEN+1)*sizeof(CHAR));
-			//if(!strcache[i]) shutdown(1, "out of memory");
-			temp[i][0] = 0;
+		__reallocto(strcache, strcache_size, strcache_size+STRCACHE_INC);
+		__reallocto(strcache_index, strcache_size, strcache_size+STRCACHE_INC);
+		for(i=0; i<STRCACHE_INC; i++) {
+			strcache_index[i] = strcache_size+i;
+			strcache[i+strcache_size].str = malloc(sizeof(CHAR)*(MAX_STR_VAR_LEN+1));
+			strcache[i+strcache_size].str[0] = 0;
+			strcache[i+strcache_size].len = MAX_STR_VAR_LEN;
 		}
-		for(i=0; i<strcache_size; i++)
-		{
-			temp[i] = strcache[i];
-		}
-		free(strcache);
-		strcache = temp;
-		tempi = malloc(sizeof(int)*(strcache_size+STRCACHE_INC));
-		//if(!tempi) shutdown(1, "out of memory");
-		for(i=0; i<STRCACHE_INC; i++)
-		{
-			tempi[i] = strcache_size+i;
-		}
-		free(strcache_index);
-		strcache_index = tempi;
+
 		strcache_size += STRCACHE_INC;
 		strcache_top += STRCACHE_INC;
 	}
-	return strcache_index[strcache_top--];
+	i = strcache_index[strcache_top--];
+	strcache[i].ref = 1;
+	return i;
+}
+
+void StrCache_Copy(int index, CHAR* str)
+{
+	//assert(index<strcache_size);
+	//assert(size>0);
+	int len = strlen(str);
+	if(strcache[index].len<len)
+	{
+		StrCache_Resize(index, len);
+	}
+	strcpy(strcache[index].str, str);
+}
+
+void StrCache_NCopy(int index, CHAR* str, int n)
+{
+	//assert(index<strcache_size);
+	//assert(size>0);
+	if(strcache[index].len<n)
+	{
+		StrCache_Resize(index, n);
+	}
+	strncpy(strcache[index].str, str, n);
+	strcache[index].str[n] = 0;
 }
 
 CHAR* StrCache_Get(int index)
 {
-	if(index<strcache_size)
-	{
-		return strcache[index];
-	}
-	return NULL;
+	//assert(index<strcache_size);
+	return strcache[index].str;
+}
+
+int StrCache_Len(int index)
+{
+	//assert(index<strcache_size);
+	return strcache[index].len;
+}
+
+void StrCache_Grab(int index)
+{
+	++strcache[index].ref;
 }
 
 
@@ -252,7 +285,7 @@ void ScriptVariant_ToString(ScriptVariant* svar, LPSTR buffer )
 void ScriptVariant_Copy(ScriptVariant* svar, ScriptVariant* rightChild )
 {
    // collect the str cache index
-   if(svar->vt==VT_STR && rightChild->vt!=VT_STR)
+   if(svar->vt==VT_STR)
    {
 	   StrCache_Collect(svar->strVal);
    }
@@ -268,10 +301,8 @@ void ScriptVariant_Copy(ScriptVariant* svar, ScriptVariant* rightChild )
 	   svar->ptrVal = rightChild->ptrVal;
 	   break;
    case VT_STR:
-	   // if it is not string, give it a string cache index
-	   if(svar->vt!=VT_STR) svar->strVal = StrCache_Pop();
-	   StrCache_Get(rightChild->strVal)[MAX_STR_VAR_LEN] = 0;
-	   strcpy(StrCache_Get(svar->strVal), StrCache_Get(rightChild->strVal));
+	   svar->strVal = rightChild->strVal;
+		StrCache_Grab(svar->strVal);
 	   break;
    default:
 	  //should not happen unless the variant is not intialized correctly
@@ -628,7 +659,6 @@ ScriptVariant* ScriptVariant_Add( ScriptVariant* svar, ScriptVariant* rightChild
 	else if(svar->vt == VT_STR || rightChild->vt == VT_STR)
 	{
 		ScriptVariant_ChangeType(&retvar, VT_STR);
-		StrCache_Get(retvar.strVal)[0] = 0;
 		ScriptVariant_ToString(svar, StrCache_Get(retvar.strVal));
 		ScriptVariant_ToString(rightChild, buf);
 		strcat(StrCache_Get(retvar.strVal), buf);

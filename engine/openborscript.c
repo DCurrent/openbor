@@ -100,7 +100,7 @@ extern s_sprite_map *sprite_map;
 extern unsigned char* blendings[MAX_BLENDINGS];
 extern int            current_palette;
 extern s_attack emptyattack;
-s_variantnode** global_var_list = NULL;
+Varlist global_var_list;
 Script* pcurrentscript = NULL;//used by local script functions
 List theFunctionList;
 static List   scriptheap;
@@ -108,48 +108,104 @@ static s_spawn_entry spawnentry;
 static s_drawmethod drawmethod;
 static s_attack attack ;
 
-int max_global_var_index = -1;
-
-ScriptVariant* indexed_var_list = NULL;
-int            max_global_vars = MAX_GLOBAL_VAR;
 int            max_indexed_vars = 0;
 int            max_entity_vars = 0;
 int            max_script_vars = 0;
 int			   no_nested_script = 0;
 
+static void clear_named_var_list(List* list, int level)
+{
+	ScriptVariant* var;
+	int i, size;
+	size = List_GetSize(list);
+	for(i=0, List_Reset(list); i<size; i++)
+	{
+		var = (ScriptVariant*)List_Retrieve(list);
+		ScriptVariant_Clear(var);
+		free(var);
+		List_Remove(list);
+	}
+	if(level) List_Clear(list);
+}
+
+void Varlist_Init(Varlist* varlist, int size) {
+	int i;
+	varlist->list = calloc(1, sizeof(*varlist->list));
+	List_Init(varlist->list);
+	varlist->vars = calloc(size+1, sizeof(*varlist->vars));
+	for(i=0; i<=size; i++) {
+		ScriptVariant_Init(varlist->vars+i);
+		ScriptVariant_ChangeType(varlist->vars, VT_INTEGER);
+		varlist->vars->lVal = (LONG)size;
+	}
+}
+
+void Varlist_Clear(Varlist* varlist) {
+	int i;
+	clear_named_var_list(varlist->list, 1);
+	free(varlist->list);
+	varlist->list = NULL;
+	// the first one must be an integer variable, so it's safe to leave it alone
+	for(i=1; i<=varlist->vars->lVal; i++) ScriptVariant_Clear(varlist->vars+i);
+	free(varlist->vars);
+	varlist->vars = NULL;
+}
+
+void Varlist_Cleanup(Varlist* varlist) {
+	int i;
+	clear_named_var_list(varlist->list, 0);
+	for(i=1; i<=varlist->vars->lVal; i++) ScriptVariant_Clear(varlist->vars+i);
+}
+
+ScriptVariant* Varlist_GetByName(Varlist* varlist, char* theName)
+{
+	if(!theName || !theName[0]) return NULL;
+
+	if(List_FindByName(varlist->list, theName))
+		return (ScriptVariant*)List_Retrieve(varlist->list);
+
+	return NULL;
+}
+
+int Varlist_SetByName(Varlist* varlist, char* theName, ScriptVariant* var)
+{
+	ScriptVariant* v;
+	if(!theName || !theName[0]) return 0;
+	if(List_FindByName(varlist->list, theName)) {
+		ScriptVariant_Copy((ScriptVariant*)List_Retrieve(varlist->list), var);
+	} else {
+		v = calloc(1, sizeof(*v));
+		ScriptVariant_Copy(v, var);
+		List_InsertAfter(varlist->list, v, theName);
+	}
+	return 1;
+}
+
+ScriptVariant* Varlist_GetByIndex(Varlist* varlist, int index)
+{
+	if(index<0 || index>=varlist->vars->lVal) return NULL;
+	return varlist->vars+index+1;
+}
+
+int Varlist_SetByIndex(Varlist* varlist, int index, ScriptVariant* var)
+{
+	if(index<0) return 0;
+	else if(index>=varlist->vars->lVal) {
+		__reallocto(varlist->vars, varlist->vars->lVal+1, index+2);
+		varlist->vars->lVal = index+1;
+	}
+	ScriptVariant_Copy(varlist->vars+index+1, var);
+	return 1;
+}
+
 //this function should be called before all script methods, for once
 void Script_Global_Init()
 {
-	ptrdiff_t i;
-	size_t csize, psize;
-	if(max_global_vars>0)
-	{
-		psize = (sizeof(s_variantnode*) * max_global_vars);
-		//UT: well, padding it just in case
-		if(psize%sizeof(s_variantnode)) psize += sizeof(s_variantnode)-psize%sizeof(s_variantnode);
-		csize = psize + (sizeof(s_variantnode) * max_global_vars);
-		global_var_list = calloc(1, csize);
-		assert(global_var_list != NULL);
-		for (i=0; i < max_global_vars; i++) {
-			global_var_list[i] = (s_variantnode*) (((char*) global_var_list) + psize + (i * sizeof(s_variantnode)));
-		}
-	}
-	/*
-	for(i=0; i<max_global_vars; i++)
-	{
-		global_var_list[i] = malloc(sizeof(s_variantnode));
-		assert(global_var_list[i] != NULL);
-		memset(global_var_list[i], 0, sizeof(s_variantnode));
-	} */
-	max_global_var_index = -1;
 	memset(&spawnentry, 0, sizeof(spawnentry));//clear up the spawn entry
 	drawmethod = plainmethod;
 
-	if(max_indexed_vars>0)
-	{
-		indexed_var_list = calloc(max_indexed_vars + 1, sizeof(*indexed_var_list));
-		assert(indexed_var_list != NULL);
-	}
+	Varlist_Init(&global_var_list, max_indexed_vars);
+
 	List_Init(&theFunctionList);
 	Script_LoadSystemFunctions();
 	List_Init(&scriptheap);
@@ -180,26 +236,8 @@ void Script_Global_Clear()
 	}
 	List_Clear(&scriptheap);
 	// clear the global list
-	if(global_var_list)
-	{
-		for(i=0; i<max_global_vars; i++)
-		{
-			if(global_var_list[i] != NULL) {
-				ScriptVariant_Clear(&(global_var_list[i]->value));
-				//free(global_var_list[i]);
-			}
-			//global_var_list[i] = NULL;
-		}
-		free(global_var_list);
-		global_var_list = NULL;
-	}
-	if(indexed_var_list)
-	{
-		for(i=0; i<max_indexed_vars; i++) ScriptVariant_Clear(indexed_var_list+i);
-		free(indexed_var_list);
-	}
-	indexed_var_list = NULL;
-	max_global_var_index = -1;
+	Varlist_Clear(&global_var_list);
+
 	memset(&spawnentry, 0, sizeof(spawnentry));//clear up the spawn entry
 	for(i=0; i<numfilestreams; i++)
 	{
@@ -216,203 +254,33 @@ void Script_Global_Clear()
 	ImportCache_Clear();
 }
 
-
-ScriptVariant* Script_Get_Global_Variant(char* theName)
-{
-	int i;
-
-	if(!theName || !theName[0]) return NULL;
-
-	for(i=0; i<=max_global_var_index; i++){
-		if(!global_var_list[i]->owner &&
-		   strcmp(theName, global_var_list[i]->key)==0)
-			return &(global_var_list[i]->value);
-	}
-
-	return NULL;
-}
-
-void _gc_var(){
-	int i, j;
-	s_variantnode* tempnode;
-	for(i=0; i<=max_global_var_index; i++)
-	{
-		if(!global_var_list[i]->key[0] || global_var_list[i]->value.vt==VT_EMPTY)
-		{
-			for(j=i+1; j<=max_global_var_index; j++) 
-			{
-				if(global_var_list[j]->key[0] && global_var_list[j]->value.vt!=VT_EMPTY)
-				{
-					tempnode = global_var_list[j];
-					global_var_list[j] =  global_var_list[i];
-					global_var_list[i] = tempnode;
-					break;
-				}
-			}
-			if(j==max_global_var_index+1) {
-				max_global_var_index = i-1;
-				break;
-			}
-		}
-	}
-}
-
-// local function
-int _set_var(char* theName, ScriptVariant* var, Script* owner)
-{
-	int i;
-	s_variantnode* tempnode;
-	if(!theName || !theName[0]) return 0;
-	// search the name
-	for(i=0; i<=max_global_var_index; i++)
-	{
-		if(global_var_list[i]->owner == owner &&
-		   !strcmp(theName, global_var_list[i]->key))
-		{
-			if(var->vt != VT_EMPTY)
-				ScriptVariant_Copy(&(global_var_list[i]->value), var);
-			else // set to null, so remove this value
-			{
-				/// re-adjust bounds, swap with last node
-				if(i!=max_global_var_index)
-				{
-					tempnode = global_var_list[i];
-					global_var_list[i] = global_var_list[max_global_var_index];
-					global_var_list[max_global_var_index] = tempnode;
-				}
-				max_global_var_index--;
-			}
-			return 1;
-		}
-	}
-	if(var->vt == VT_EMPTY) return 1;
-	// all slots are taken
-	if(max_global_var_index >= max_global_vars-1) {
-		return 0;
-	}
-	// so out of bounds, find another slot
-	else
-	{
-		++max_global_var_index;
-		ScriptVariant_Copy(&(global_var_list[max_global_var_index]->value), var);
-		global_var_list[max_global_var_index]->owner = owner;
-		strcpy(global_var_list[max_global_var_index]->key, theName);
-		if(max_global_var_index >= max_global_vars-1) _gc_var();
-		return 1;
-	}
-}// end of _set_var
-
-int Script_Set_Global_Variant(char* theName, ScriptVariant* var)
-{
-	return _set_var(theName, var, NULL);
-}
-
-void Script_Local_Clear(Script* cs)
-{
-	int i;
-	//s_variantnode* tempnode;
-	if(!cs) return;
-	for(i=0; i<=max_global_var_index; i++)
-	{
-		if(global_var_list[i]->owner == cs)
-		{
-			/*
-			printf("local var %s cleared\n", global_var_list[i]->key);
-			if(i!=max_global_var_index)
-			{
-				tempnode = global_var_list[i];
-				global_var_list[i] = global_var_list[max_global_var_index];
-				global_var_list[max_global_var_index] = tempnode;
-			}
-			max_global_var_index--;*/
-			ScriptVariant_Clear(&(global_var_list[i]->value));
-		}
-	}
-	if(cs->vars)
-		for(i=0; i<max_script_vars; i++) ScriptVariant_Clear(cs->vars+i);
-}
-
-
-ScriptVariant* Script_Get_Local_Variant(Script* cs, char* theName)
-{
-	int i;
-
-	if(!cs || !cs->initialized ||
-	   !theName || !theName[0]) return NULL;
-
-	for(i=0; i<=max_global_var_index; i++)
-	{
-		if(global_var_list[i]->owner == cs &&
-		   strcmp(theName, global_var_list[i]->key)==0)
-			return &(global_var_list[i]->value);
-	}
-
-	return NULL;
-}
-
-int Script_Set_Local_Variant(Script* cs, char* theName, ScriptVariant* var)
-{
-	if(!cs) return 0;
-	return _set_var(theName, var, cs);
-}
-
 int Script_Save_Local_Variant(Script* cs, char* namelist[])
 {
-	static int handle = 1;
-	char* name;
-	ScriptVariant* var;
-	int i;
-	for(i=0;;i++)
-	{
-		name = namelist[i];
-		if(!name[0]) break;
-		var = Script_Get_Local_Variant(cs, name);
-		if(var) {
-			_set_var(name, var, (Script*)handle);
-		}
-	}
-	handle += 2; //odd value is safer
-	return handle-2;
+	return 0;
 }
 
 void Script_Load_Local_Variant(Script* cs, int handle)
 {
-	int i;
-	for(i=0; i<=max_global_var_index; i++)
-	{
-		if(global_var_list[i]->owner == (Script*)handle &&
-			global_var_list[i]->key[0]) {
-			_set_var(global_var_list[i]->key, &(global_var_list[i]->value), cs);
-			global_var_list[i]->key[0] = 0;
-		}
-	}
+	
 }
 
 Script* alloc_script()
 {
-	int i;
 	Script* pscript = calloc(1, sizeof(*pscript));
 	pscript->magic = script_magic;
-	if(max_script_vars>0)
-	{
-		pscript->vars = calloc(max_script_vars, sizeof(*pscript->vars));
-		for(i=0; i<max_script_vars; i++) ScriptVariant_Init(pscript->vars+i);
-	}
+	pscript->varlist = calloc(1, sizeof(*pscript->varlist));
+	Varlist_Init(pscript->varlist, max_script_vars);
 	return pscript;
 }
 
 void Script_Init(Script* pscript, char* theName, char* comment, int first)
 {
-	int i;
 	if(first)
 	{
 		memset(pscript, 0, sizeof(*pscript));
 		pscript->magic = script_magic;
-		if(max_script_vars>0)
-		{
-			pscript->vars = calloc(max_script_vars, sizeof(*pscript->vars));
-			for(i=0; i<max_script_vars; i++) ScriptVariant_Init(pscript->vars+i);
-		}
+		pscript->varlist = calloc(1, sizeof(*pscript->varlist));
+		Varlist_Init(pscript->varlist, max_script_vars);
 	}
 	if(!theName || !theName[0])  return; // if no name specified, only alloc the variants
 
@@ -469,8 +337,7 @@ void Script_Copy(Script* pdest, Script* psrc, int localclear)
 void Script_Clear(Script* pscript, int localclear)
 {
 	Script* temp;
-	int i;
-	ScriptVariant* pvars;
+	Varlist* pvars;
 
 	ScriptVariant tempvar;
 	//Execute clear method
@@ -493,14 +360,13 @@ void Script_Clear(Script* pscript, int localclear)
 		pcurrentscript = temp;
 	}
 
-	if(localclear==2 && pscript->vars)
-	{
-		for(i=0; i<max_script_vars; i++)
+	if(localclear && pscript->varlist) {
+		if(localclear==2)
 		{
-			ScriptVariant_Clear(pscript->vars+i);
-		}
-		free(pscript->vars);
-		pscript->vars = NULL;
+			Varlist_Clear(pscript->varlist);
+			free(pscript->varlist);
+			pscript->varlist = NULL;
+		}else Varlist_Cleanup(pscript->varlist);
 	}
 	if(!pscript->initialized) return;
 
@@ -512,10 +378,9 @@ void Script_Clear(Script* pscript, int localclear)
 		if(pscript->comment) free(pscript->comment);
 		pscript->comment = NULL;
 	}
-	if(localclear) Script_Local_Clear(pscript);
-	pvars = pscript->vars; // in game clear(localclear!=2) just keep this value
+	pvars = pscript->varlist; // in game clear(localclear!=2) just keep this value
 	memset(pscript, 0, sizeof(*pscript));
-	pscript->vars = pvars; // copy it back
+	pscript->varlist = pvars; // copy it back
 }
 
 //append part of the script
@@ -539,13 +404,11 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)system_exit)) return "exit";
 	else if (functionRef==((void*)system_NULL)) return "NULL";
 	else if (functionRef==((void*)system_rand)) return "rand";
-	else if (functionRef==((void*)system_maxglobalvarindex)) return "maxglobalvarindex";
 	else if (functionRef==((void*)system_getglobalvar)) return "getglobalvar";
 	else if (functionRef==((void*)system_setglobalvar)) return "setglobalvar";
 	else if (functionRef==((void*)system_getlocalvar)) return "getlocalvar";
 	else if (functionRef==((void*)system_setlocalvar)) return "setlocalvar";
 	else if (functionRef==((void*)system_clearglobalvar)) return "clearglobalvar";
-	else if (functionRef==((void*)system_clearindexedvar)) return "clearindexedvar";
 	else if (functionRef==((void*)system_clearlocalvar)) return "clearlocalvar";
 	else if (functionRef==((void*)system_free)) return "free";
 	else if (functionRef==((void*)math_sin)) return "sin";
@@ -971,8 +834,6 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
 					  (void*)system_rand, "rand");
 	List_InsertAfter(&theFunctionList,
-					  (void*)system_maxglobalvarindex, "maxglobalvarindex");
-	List_InsertAfter(&theFunctionList,
 					  (void*)system_getglobalvar, "getglobalvar");
 	List_InsertAfter(&theFunctionList,
 					  (void*)system_setglobalvar, "setglobalvar");
@@ -982,8 +843,6 @@ void Script_LoadSystemFunctions()
 					  (void*)system_setlocalvar, "setlocalvar");
 	List_InsertAfter(&theFunctionList,
 					  (void*)system_clearglobalvar, "clearglobalvar");
-	List_InsertAfter(&theFunctionList,
-					  (void*)system_clearindexedvar, "clearindexedvar");
 	List_InsertAfter(&theFunctionList,
 					  (void*)system_clearlocalvar, "clearlocalvar");
 	List_InsertAfter(&theFunctionList,
@@ -1261,109 +1120,97 @@ HRESULT system_rand(ScriptVariant** varlist , ScriptVariant** pretvar, int param
 //getglobalvar(varname);
 HRESULT system_getglobalvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	ScriptVariant * ptmpvar;
-	if(paramCount != 1)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-	if(varlist[0]->vt != VT_STR)
-	{
-		printf("Function getglobalvar must have a string parameter.\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-	ptmpvar = Script_Get_Global_Variant(StrCache_Get(varlist[0]->strVal));
-	if(ptmpvar) ScriptVariant_Copy(*pretvar, ptmpvar);
-	else ScriptVariant_ChangeType(*pretvar, VT_EMPTY);
+	LONG ltemp;
+	ScriptVariant *ptmpvar;
+
+	if(paramCount != 1)  goto ggv_error;
+
+	if(varlist[0]->vt==VT_STR)
+		ptmpvar = Varlist_GetByName(&global_var_list, StrCache_Get(varlist[0]->strVal));
+	else if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
+		ptmpvar = Varlist_GetByIndex(&global_var_list, (int)ltemp);
+	else goto ggv_error;
+
+	if(ptmpvar) ScriptVariant_Copy(*pretvar,  ptmpvar);
+	else        ScriptVariant_Clear(*pretvar);
 	return S_OK;
-}
-//maxglobalvarindex();
-HRESULT system_maxglobalvarindex(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
-{
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = (LONG)max_global_var_index;
-	return S_OK;
+
+ggv_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 //setglobalvar(varname, value);
 HRESULT system_setglobalvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	if(paramCount != 2) {
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-	if(varlist[0]->vt != VT_STR)
-	{
-		printf("Function setglobalvar's first parameter must be a string value.\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
+	LONG ltemp;
+	if(paramCount < 2)  goto sgv_error;
+
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
-	(*pretvar)->lVal = (LONG)Script_Set_Global_Variant(StrCache_Get(varlist[0]->strVal), (varlist[1]));
+	if(varlist[0]->vt==VT_STR)
+		(*pretvar)->lVal = (LONG)Varlist_SetByName(&global_var_list, StrCache_Get(varlist[0]->strVal), varlist[1]);
+	else if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
+		(*pretvar)->lVal = (LONG)Varlist_SetByIndex(&global_var_list, (int)ltemp, varlist[1]);
+	else goto sgv_error;
 
 	return S_OK;
+sgv_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 //getlocalvar(varname);
 HRESULT system_getlocalvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
+	LONG ltemp;
 	ScriptVariant *ptmpvar;
 
-	if(paramCount != 1) {
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-	if(varlist[0]->vt != VT_STR)
-	{
-		printf("Function getlocalvar must have a string parameter.\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-	ptmpvar = Script_Get_Local_Variant(pcurrentscript, StrCache_Get(varlist[0]->strVal));
+	if(paramCount != 1)  goto glv_error;
+
+	if(varlist[0]->vt==VT_STR)
+		ptmpvar = Varlist_GetByName(pcurrentscript->varlist, StrCache_Get(varlist[0]->strVal));
+	else if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
+		ptmpvar = Varlist_GetByIndex(pcurrentscript->varlist, (int)ltemp);
+	else goto glv_error;
+
 	if(ptmpvar) ScriptVariant_Copy(*pretvar,  ptmpvar);
-	else        ScriptVariant_ChangeType(*pretvar, VT_EMPTY);
+	else        ScriptVariant_Clear(*pretvar);
 	return S_OK;
+
+glv_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 //setlocalvar(varname, value);
 HRESULT system_setlocalvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	if(paramCount < 2) {
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-	if(varlist[0]->vt != VT_STR)
-	{
-		printf("Function setlocalvar's first parameter must be a string value.\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
+	LONG ltemp;
+	if(paramCount < 2)  goto slv_error;
+
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
-	(*pretvar)->lVal = (LONG)Script_Set_Local_Variant(pcurrentscript, StrCache_Get(varlist[0]->strVal), varlist[1]);
+	if(varlist[0]->vt==VT_STR)
+		(*pretvar)->lVal = (LONG)Varlist_SetByName(pcurrentscript->varlist, StrCache_Get(varlist[0]->strVal), varlist[1]);
+	else if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
+		(*pretvar)->lVal = (LONG)Varlist_SetByIndex(pcurrentscript->varlist, (int)ltemp, varlist[1]);
+	else goto slv_error;
 
-	return S_OK;;
+	return S_OK;
+slv_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 //clearlocalvar();
 HRESULT system_clearlocalvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	*pretvar = NULL;
-	Script_Local_Clear(pcurrentscript);
+	Varlist_Cleanup(pcurrentscript->varlist);
 	return S_OK;
 }
 //clearglobalvar();
 HRESULT system_clearglobalvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	*pretvar = NULL;
-	max_global_var_index = -1;
-	return S_OK;
-}
-
-//clearindexedvar();
-HRESULT system_clearindexedvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
-{
-	int i;
-	*pretvar = NULL;
-	for(i=0; i<max_indexed_vars; i++) ScriptVariant_Clear(indexed_var_list+i);
+	Varlist_Cleanup(&global_var_list);
 	return S_OK;
 }
 
@@ -2063,204 +1910,77 @@ drawscreen_error:
 //getindexedvar(int index);
 HRESULT openbor_getindexedvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG ind;
-
-	if(paramCount < 1 || max_indexed_vars<=0)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	ScriptVariant_Clear(*pretvar);
-
-	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ind)))
-	{
-		printf("Function requires 1 numberic value: getindexedvar(int index)\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	if(ind<0 || ind>=max_indexed_vars) return S_OK;
-
-	ScriptVariant_Copy(*pretvar, indexed_var_list+ind);
-
-	return S_OK;
+	return system_getglobalvar(varlist, pretvar, paramCount);
 }
 
 //setindexedvar(int index, var);
 HRESULT openbor_setindexedvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG ind;
-
-	if(paramCount < 2 || max_indexed_vars<=0)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ind)))
-	{
-		printf("Function's 1st argument must be a numberic value: setindexedvar(int index, var)\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-
-	if(ind<0 || ind>=max_indexed_vars)
-	{
-		(*pretvar)->lVal = 0;
-		return S_OK;
-	}
-
-	ScriptVariant_Copy(indexed_var_list+ind, varlist[1]);
-	(*pretvar)->lVal = 1;
-
-	return S_OK;
+	return system_setglobalvar(varlist, pretvar, paramCount);
 }
 
 //getscriptvar(int index);
 HRESULT openbor_getscriptvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG ind;
-
-	if(paramCount < 1 || max_script_vars<=0 || !pcurrentscript || !pcurrentscript->vars)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ind)))
-	{
-		printf("Function requires 1 numberic value: getscriptvar(int index)\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	ScriptVariant_Clear(*pretvar);
-
-	if(ind<0 || ind>=max_script_vars) return S_OK;
-
-	ScriptVariant_Copy(*pretvar, pcurrentscript->vars+ind);
-
-	return S_OK;
+	return system_getlocalvar(varlist, pretvar, paramCount);
 }
 
 //setscriptvar(int index, var);
 HRESULT openbor_setscriptvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG ind;
-
-	if(paramCount < 2 || max_script_vars<=0 || !pcurrentscript || !pcurrentscript->vars)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ind)))
-	{
-		printf("Function's 1st argument must be a numberic value: setscriptvar(int index, var)\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-
-	if(ind<0 || ind>=max_script_vars)
-	{
-		(*pretvar)->lVal = 0;
-		return S_OK;
-	}
-
-	ScriptVariant_Copy(pcurrentscript->vars+ind, varlist[1]);
-	(*pretvar)->lVal = 1;
-
-	return S_OK;
+	return system_setlocalvar(varlist, pretvar, paramCount);
 }
 
 //getentityvar(entity, int index);
 HRESULT openbor_getentityvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	ScriptVariant* arg = NULL;
-	LONG ind;
+	LONG ltemp;
+	ScriptVariant *ptmpvar;
 	entity* ent;
 
-	if(paramCount < 2 || max_entity_vars<=0 )
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
+	if(paramCount<2 || varlist[0]->vt!=VT_PTR || !varlist[0]->ptrVal)
+		goto gev_error;
 
+	ent = (entity*)varlist[0]->ptrVal;
 
-	arg = varlist[0];
+	if(varlist[1]->vt==VT_STR)
+		ptmpvar = Varlist_GetByName(ent->varlist, StrCache_Get(varlist[1]->strVal));
+	else if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)))
+		ptmpvar = Varlist_GetByIndex(ent->varlist, (int)ltemp);
+	else goto gev_error;
 
-	ScriptVariant_Clear(*pretvar);
-	if(arg->vt == VT_EMPTY) ent= NULL;
-	else if(arg->vt == VT_PTR) ent = (entity*)arg->ptrVal;
-	else
-	{
-		printf("Function's 1st argument must be a valid entity handle value or empty value: getentityvar(entity, int index)\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-	if(!ent || !ent->entvars) return S_OK;
-
-	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &ind)))
-	{
-		printf("Function's 2nd argument must be a numberic value: getentityvar(entity, int index)\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	if(ind<0 || ind>=max_entity_vars) return S_OK;
-
-	ScriptVariant_Copy(*pretvar, ent->entvars+ind);
-
+	if(ptmpvar) ScriptVariant_Copy(*pretvar,  ptmpvar);
+	else        ScriptVariant_Clear(*pretvar);
 	return S_OK;
+
+gev_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 
 //setentityvar(int index, var);
 HRESULT openbor_setentityvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	ScriptVariant* arg = NULL;
-	LONG ind;
+	LONG ltemp;
 	entity* ent;
 
-	if(paramCount < 3 || max_entity_vars<=0)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
+	if(paramCount < 3 || varlist[0]->vt!=VT_PTR || !varlist[0]->ptrVal)
+		goto sev_error;
 
-	arg = varlist[0];
+	ent=(entity*)varlist[0]->ptrVal;
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-	(*pretvar)->lVal = 0;
 
-	if(arg->vt == VT_EMPTY) ent = NULL;
-	else if(arg->vt == VT_PTR)
-		ent = (entity*)arg->ptrVal;
-	else
-	{
-		printf("Function's 1st argument must be a valid entity handle value or empty value: setentityvar(entity, int index, var)\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-	if(!ent || !ent->entvars) return S_OK;
-
-	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &ind)))
-	{
-		printf("Function's 2nd argument must be a numberic value: setentityvar(entity, int index, var)\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	if(ind<0 || ind>=max_entity_vars) return S_OK;
-
-	ScriptVariant_Copy(ent->entvars+ind, varlist[2]);
-	(*pretvar)->lVal = 1;
+	if(varlist[1]->vt==VT_STR)
+		(*pretvar)->lVal = (LONG)Varlist_SetByName(ent->varlist, StrCache_Get(varlist[1]->strVal), varlist[2]);
+	else if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)))
+		(*pretvar)->lVal = (LONG)Varlist_SetByIndex(ent->varlist, (int)ltemp, varlist[2]);
+	else goto sev_error;
 
 	return S_OK;
+sev_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 
 //strinfirst(char string, char search_string);
@@ -2268,17 +1988,12 @@ HRESULT openbor_strinfirst(ScriptVariant** varlist , ScriptVariant** pretvar, in
 {
 	char* tempstr = NULL;
 
-	if(paramCount < 2)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	ScriptVariant_Clear(*pretvar);
+	if(paramCount < 2) goto sif_error;
 
 	if(varlist[0]->vt!=VT_STR || varlist[1]->vt!=VT_STR)
 	{
 		printf("\n Error, strinfirst({string}, {search string}): Strinfirst must be passed valid {string} and {search string}. \n");
+		goto sif_error;
 	}
 
 	tempstr = strstr((char*)StrCache_Get(varlist[0]->strVal), (char*)StrCache_Get(varlist[1]->strVal));
@@ -2286,7 +2001,7 @@ HRESULT openbor_strinfirst(ScriptVariant** varlist , ScriptVariant** pretvar, in
 	if (tempstr != NULL)
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strcpy(StrCache_Get((*pretvar)->strVal), tempstr);
+		StrCache_Copy((*pretvar)->strVal, tempstr);
 	}
 	else
 	{
@@ -2294,6 +2009,10 @@ HRESULT openbor_strinfirst(ScriptVariant** varlist , ScriptVariant** pretvar, in
 		(*pretvar)->lVal = -1;
 	}
 	return S_OK;
+
+sif_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 
 //strinlast(char string, char search_string);
@@ -2301,17 +2020,12 @@ HRESULT openbor_strinlast(ScriptVariant** varlist , ScriptVariant** pretvar, int
 {
 	char* tempstr = NULL;
 
-	if(paramCount < 2)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	ScriptVariant_Clear(*pretvar);
+	if(paramCount < 2) goto sil_error;
 
 	if(varlist[0]->vt!=VT_STR || varlist[1]->vt!=VT_STR)
 	{
 		printf("\n Error, strinlast({string}, {search string}): Strinlast must be passed valid {string} and {search string}. \n");
+		goto sil_error;
 	}
 
 	tempstr = strrchr((char*)StrCache_Get(varlist[0]->strVal), varlist[1]->strVal);
@@ -2319,7 +2033,7 @@ HRESULT openbor_strinlast(ScriptVariant** varlist , ScriptVariant** pretvar, int
 	if (tempstr != NULL)
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strcpy(StrCache_Get((*pretvar)->strVal), tempstr);
+		StrCache_Copy((*pretvar)->strVal, tempstr);
 	}
 	else
 	{
@@ -2327,38 +2041,28 @@ HRESULT openbor_strinlast(ScriptVariant** varlist , ScriptVariant** pretvar, int
 		(*pretvar)->lVal = -1;
 	}
 	return S_OK;
+sil_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 
 //strleft(char string, int i);
 HRESULT openbor_strleft(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	char tempstr[66] = {0};
+	if(paramCount < 2) goto sl_error;
 
-	if(paramCount < 2)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
 	if(varlist[0]->vt!=VT_STR || varlist[1]->vt!=VT_INTEGER)
 	{
 		printf("\n Error, strleft({string}, {characters}): Invalid or missing parameter. Strleft must be passed valid {string} and number of {characters}.\n");
+		goto sl_error;
 	}
-
-	strncpy(tempstr, (char*)StrCache_Get(varlist[0]->strVal), varlist[1]->lVal);
-	ScriptVariant_Clear(*pretvar);
-
-	if (tempstr != NULL)
-	{
-		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strcpy(StrCache_Get((*pretvar)->strVal),tempstr);
-	}
-	else
-	{
-		 ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = -1;
-	}
+	ScriptVariant_ChangeType(*pretvar, VT_STR);
+	StrCache_NCopy((*pretvar)->strVal, (char*)StrCache_Get(varlist[0]->strVal), varlist[1]->lVal);
 
 	return S_OK;
+sl_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 
 //strlength(char string);
@@ -2398,24 +2102,20 @@ HRESULT openbor_strright(ScriptVariant** varlist , ScriptVariant** pretvar, int 
 {
 	char* tempstr = NULL;
 
-	if(paramCount < 2)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
+	if(paramCount < 2) goto sr_error;
 
 	if(varlist[0]->vt!=VT_STR || varlist[1]->vt!=VT_INTEGER)
 	{
 		printf("\n Error, strright({string}, {characters}): Invalid or missing parameter. Strright must be passed valid {string} and number of {characters}.\n");
+		goto sr_error;
 	}
 
-	ScriptVariant_Clear(*pretvar);
 	tempstr = (char*)StrCache_Get(varlist[0]->strVal);
 
-	if (tempstr != NULL || strlen(tempstr)>0)
+	if (tempstr && tempstr[0])
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strcpy(StrCache_Get((*pretvar)->strVal), &tempstr[varlist[1]->lVal]);
+		StrCache_Copy((*pretvar)->strVal, &tempstr[varlist[1]->lVal]);
 	}
 	else
 	{
@@ -2424,6 +2124,9 @@ HRESULT openbor_strright(ScriptVariant** varlist , ScriptVariant** pretvar, int 
 	}
 
 	return S_OK;
+sr_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 
 HRESULT openbor_getmodelproperty(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
@@ -2461,13 +2164,13 @@ HRESULT openbor_getmodelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 		case 2:
 		{
 			ScriptVariant_ChangeType(*pretvar, VT_STR);
-			strcpy(StrCache_Get((*pretvar)->strVal), model_cache[iArg].name);
+			StrCache_Copy((*pretvar)->strVal, model_cache[iArg].name);
 			break;
 		}
 		case 3:
 		{
 			ScriptVariant_ChangeType(*pretvar, VT_STR);
-			strcpy(StrCache_Get((*pretvar)->strVal), model_cache[iArg].path);
+			StrCache_Copy((*pretvar)->strVal, model_cache[iArg].path);
 			break;
 		}
 		case 4:                                                    //Loaded?
@@ -4126,7 +3829,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	case _ep_defaultname:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strcpy(StrCache_Get((*pretvar)->strVal), ent->defaultmodel->name);
+		StrCache_Copy((*pretvar)->strVal, ent->defaultmodel->name);
 		break;
 	}
 	case _ep_defense:
@@ -4909,7 +4612,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	case _ep_model:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strcpy(StrCache_Get((*pretvar)->strVal), ent->model->name);
+		StrCache_Copy((*pretvar)->strVal, ent->model->name);
 		break;
 	}
 	case _ep_mp:
@@ -4945,7 +4648,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	case _ep_name:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strcpy(StrCache_Get((*pretvar)->strVal), ent->name);
+		StrCache_Copy((*pretvar)->strVal, ent->name);
 		break;
 	}
 	case _ep_nextanim:
@@ -5047,7 +4750,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
 		tempstr = ent->modeldata.path;
 
-		strcpy(StrCache_Get((*pretvar)->strVal), tempstr);
+		StrCache_Copy((*pretvar)->strVal, tempstr);
 		break;
 	}
 	case _ep_pathfindstep:
@@ -5295,7 +4998,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
             case _ep_spritea_file:
             {
                 ScriptVariant_ChangeType(*pretvar, VT_STR);
-                strcpy(StrCache_Get((*pretvar)->strVal), sprite_map[i].node->filename);
+                StrCache_Copy((*pretvar)->strVal, sprite_map[i].node->filename);
                 break;
             }
             case _ep_spritea_sprite:
@@ -7075,7 +6778,7 @@ HRESULT openbor_getplayerproperty(ScriptVariant** varlist , ScriptVariant** pret
 	case _pp_name:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strncpy(StrCache_Get((*pretvar)->strVal), (char*)player[index].name, MAX_STR_VAR_LEN);
+		StrCache_Copy((*pretvar)->strVal, (char*)player[index].name);
 		break;
 	}
 	case _pp_colourmap:
@@ -7478,6 +7181,7 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 		}
 		fread(filestreams[fsindex].buf, 1, size, handle);
 		filestreams[fsindex].buf[size] = 0;
+		filestreams[fsindex].size = size;
 	}
 	else if(buffer_pakfile(filename, &filestreams[fsindex].buf, &filestreams[fsindex].size)!=1)
 	{
@@ -7494,8 +7198,8 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 
 HRESULT openbor_getfilestreamline(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	char line[MAX_STR_VAR_LEN];
 	int length;
+	char* buf;
 	ScriptVariant* arg = NULL;
 	LONG filestreamindex;
 
@@ -7509,21 +7213,14 @@ HRESULT openbor_getfilestreamline(ScriptVariant** varlist , ScriptVariant** pret
 	if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
 		return S_OK;
 
-	ScriptVariant_Clear(*pretvar);
 	ScriptVariant_ChangeType(*pretvar, VT_STR);
 
 	length = 0;
-	strncpy(line, "it's initialized now", MAX_STR_VAR_LEN);
+	buf = filestreams[filestreamindex].buf+filestreams[filestreamindex].pos;
+	while(buf[length] && buf[length]!='\n' && buf[length]!='\r') ++length;
 
-	while(filestreams[filestreamindex].buf[filestreams[filestreamindex].pos+length] && filestreams[filestreamindex].buf[filestreams[filestreamindex].pos+length]!='\n' && filestreams[filestreamindex].buf[filestreams[filestreamindex].pos+length]!='\r') ++length;
-	if(length >= MAX_STR_VAR_LEN)
-		strncpy(StrCache_Get((*pretvar)->strVal), (char*)(filestreams[filestreamindex].buf+filestreams[filestreamindex].pos), MAX_STR_VAR_LEN);
-	else
-	{
-		strncpy(line, (char*)(filestreams[filestreamindex].buf+filestreams[filestreamindex].pos), length);
-		line[length] = '\0';
-		strncpy(StrCache_Get((*pretvar)->strVal), line, MAX_STR_VAR_LEN);
-	}
+	StrCache_NCopy((*pretvar)->strVal, buf, length);
+
 	return S_OK;
 }
 
@@ -7558,7 +7255,7 @@ HRESULT openbor_getfilestreamargument(ScriptVariant** varlist , ScriptVariant** 
 	if(stricmp(argtype, "string")==0)
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strncpy(StrCache_Get((*pretvar)->strVal), (char*)findarg(filestreams[filestreamindex].buf+filestreams[filestreamindex].pos, argument), MAX_STR_VAR_LEN);
+		StrCache_Copy((*pretvar)->strVal, (char*)findarg(filestreams[filestreamindex].buf+filestreams[filestreamindex].pos, argument));
 	}
 	else if(stricmp(argtype, "int")==0)
 	{
@@ -7582,6 +7279,8 @@ HRESULT openbor_getfilestreamargument(ScriptVariant** varlist , ScriptVariant** 
 HRESULT openbor_filestreamnextline(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	ScriptVariant* arg = NULL;
+	char* buf;
+	size_t pos;
 	LONG filestreamindex;
 
 	if(paramCount < 1)
@@ -7593,8 +7292,11 @@ HRESULT openbor_filestreamnextline(ScriptVariant** varlist , ScriptVariant** pre
 	arg = varlist[0];
 	if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
 		return S_OK;
-	while(filestreams[filestreamindex].buf[filestreams[filestreamindex].pos] && filestreams[filestreamindex].buf[filestreams[filestreamindex].pos]!='\n' && filestreams[filestreamindex].buf[filestreams[filestreamindex].pos]!='\r') ++filestreams[filestreamindex].pos;
-	while(filestreams[filestreamindex].buf[filestreams[filestreamindex].pos]=='\n' || filestreams[filestreamindex].buf[filestreams[filestreamindex].pos]=='\r') ++filestreams[filestreamindex].pos;
+	pos = filestreams[filestreamindex].pos;
+	buf = filestreams[filestreamindex].buf;
+	while(buf[pos] && buf[pos]!='\n' && buf[pos]!='\r') ++pos;
+	while(buf[pos]=='\n' || buf[pos]=='\r') ++pos;
+	filestreams[filestreamindex].pos = pos;
 
 	return S_OK;
 }
@@ -7648,11 +7350,9 @@ HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretv
 	LONG filestreamindex;
 	ScriptVariant* arg = NULL;
 	LONG appendtype;
-	LONG ltemp;
-	DOUBLE dbltemp;
+	size_t len1, len2;
 	char* temp;
-	char append[MAX_STR_VAR_LEN];
-
+	static char append[2048];
 
 	if(paramCount < 3)
 	{
@@ -7666,54 +7366,32 @@ HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretv
 	if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
 		return S_OK;
 
-	arg = varlist[1];
-	if(arg->vt==VT_STR)
-	{
-		strcpy(append, StrCache_Get(arg->strVal));
-	}
-	else if(arg->vt==VT_INTEGER)
-	{
-		if(FAILED(ScriptVariant_IntegerValue(arg, &ltemp)))
-			return S_OK;
-		sprintf(append, "%d", (int)ltemp);
-	}
-	else if(arg->vt==VT_DECIMAL)
-	{
-		if(FAILED(ScriptVariant_DecimalValue(arg, &dbltemp)))
-			return S_OK;
-		sprintf(append, "%f", dbltemp);
-	}
-	else
-	{
-		printf("Filename for filestreamappend must be a string.\n");
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-
-
 	arg = varlist[2];
 	if(FAILED(ScriptVariant_IntegerValue(arg, &appendtype)))
 		return S_OK;
 
-	temp = malloc(sizeof(*temp)*(strlen(filestreams[filestreamindex].buf) + strlen(append) + 4));
-	strcpy(temp, filestreams[filestreamindex].buf);
+	arg = varlist[1];
+	ScriptVariant_ToString(arg, append);
+
+	len1 = strlen(append);
+	len2 = filestreams[filestreamindex].size;
+
+	append[len1] = ' ';
+	append[++len1] = '\0';
+
+	filestreams[filestreamindex].buf = realloc(filestreams[filestreamindex].buf, sizeof(*temp)*(len1+len2+4));
 
 	if(appendtype == 0)
 	{
-		strcat(temp, "\r\n");
-		strcat(temp, append);
-		temp[strlen(filestreams[filestreamindex].buf) + strlen(append) + 2] = ' ';
-		temp[strlen(filestreams[filestreamindex].buf) + strlen(append) + 3] = '\0';
+		strcpy(filestreams[filestreamindex].buf+len2, "\r\n");
+		len2 += 2;
+		strcpy(filestreams[filestreamindex].buf+len2, append);
 	}
 	else if(appendtype == 1)
 	{
-		strcat(temp, append);
-		temp[strlen(filestreams[filestreamindex].buf) + strlen(append)] = ' ';
-		temp[strlen(filestreams[filestreamindex].buf) + strlen(append) + 1] = '\0';
+		strcpy(filestreams[filestreamindex].buf+len2, append);
 	}
-	free(filestreams[filestreamindex].buf);
-	filestreams[filestreamindex].buf = temp;
+	filestreams[filestreamindex].size = len1+len2;
 
 	return S_OK;
 }
@@ -7740,6 +7418,7 @@ HRESULT openbor_createfilestream(ScriptVariant** varlist , ScriptVariant** pretv
 
 	// Initialize the new filestream
 	filestreams[fsindex].pos = 0;
+	filestreams[fsindex].size = 0;
 	filestreams[fsindex].buf = malloc(sizeof(*filestreams[fsindex].buf)*128);
 	filestreams[fsindex].buf[0] = '\0';
 	return S_OK;
@@ -9496,7 +9175,7 @@ HRESULT openbor_gettextobjproperty(ScriptVariant** varlist , ScriptVariant** pre
 	case _top_text:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_STR);
-		strncpy(StrCache_Get((*pretvar)->strVal), level->textobjs[ind].text, MAX_STR_VAR_LEN);
+		StrCache_Copy((*pretvar)->strVal, level->textobjs[ind].text);
 		break;
 	}
 	case _top_time:

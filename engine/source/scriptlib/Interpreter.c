@@ -205,6 +205,7 @@ HRESULT Interpreter_Call(Interpreter* pinterpreter)
 	else if( currentCall->functionRef)
 	{
 		pretvar = currentCall->theVal;
+		ScriptVariant_Clear(pretvar);
 		hr = currentCall->functionRef((ScriptVariant**)currentCall->theRefList->solidlist, &(pretvar), (int)currentCall->theRef->lVal);
 		if(FAILED(hr))
 		{

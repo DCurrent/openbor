@@ -75,4 +75,12 @@ extern int int_assert[sizeof(int)==4?1:-1];
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+#define __realloc(p, n) \
+p = realloc((p), sizeof(*(p))*((n)+1));\
+memset((p)+(n), 0, sizeof(*(p)));
+
+#define __reallocto(p, n, s) \
+p = realloc((p), sizeof(*(p))*(s));\
+memset((p)+(n), 0, sizeof(*(p))*((s)-(n)));
+
 #endif
