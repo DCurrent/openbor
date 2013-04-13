@@ -255,53 +255,7 @@ void copy_pixel_block(int bytes){
 #include "writepixel.h"
 
 __attribute__((always_inline)) void write_pixel() {
-	switch(wpcond)
-	{
-	wp_8_8_0_0_0() 
-	wp_8_8_0_0_1() 
-	wp_8_8_0_1_0() 
-	wp_8_8_0_1_1() 
-	wp_8_8_1_0_0() 
-	wp_8_8_1_0_1() 
-	wp_8_8_1_1_0() 
-	wp_8_8_1_1_1() 
-
-	wp_16_x8_0_0_0() 
-	wp_16_x8_0_0_1() 
-	wp_16_x8_0_1_0() 
-	wp_16_x8_0_1_1() 
-	wp_16_x8_1_0_0() 
-	wp_16_x8_1_0_1() 
-	wp_16_x8_1_1_0() 
-	wp_16_x8_1_1_1() 
-
-	wp_16_16_0_0_0() 
-	wp_16_16_0_0_1() 
-	wp_16_16_0_1_0() 
-	wp_16_16_0_1_1() 
-	wp_16_16_1_0_0() 
-	wp_16_16_1_0_1() 
-	wp_16_16_1_1_0() 
-	wp_16_16_1_1_1() 
-
-	wp_32_x8_0_1_1() 
-	wp_32_x8_0_0_0() 
-	wp_32_x8_0_0_1() 
-	wp_32_x8_0_1_0() 
-	wp_32_x8_1_0_0() 
-	wp_32_x8_1_0_1() 
-	wp_32_x8_1_1_0() 
-	wp_32_x8_1_1_1() 
-
-	wp_32_32_0_0_0() 
-	wp_32_32_0_0_1() 
-	wp_32_32_0_1_0() 
-	wp_32_32_0_1_1() 
-	wp_32_32_1_0_0() 
-	wp_32_32_1_0_1() 
-	wp_32_32_1_1_0() 
-	wp_32_32_1_1_1()
-	}
+	writepixelswitch(;,;)
 
 }
 #endif
@@ -1161,6 +1115,8 @@ void gfx_draw_water(s_screen *dest, gfx_entry* src, int x, int y, int centerx, i
 	u = (drawmethod->water.watermode==1)?distortion((int)s, amplitude):amplitude;
 	wavelength = 256 / drawmethod->water.wavelength;
 	s += sy*wavelength;
+
+	printf("drawing water ... \n");
 
 	// Copy data
 	do{

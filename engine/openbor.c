@@ -9544,7 +9544,7 @@ void load_level(char *filename){
 				dm->yrepeat = GET_INT_ARG(i+9); // z repeat
 				dm->transbg = GET_INT_ARG(i+10); // transparency
 				dm->alpha = GET_INT_ARG(i+11); // alpha
-				dm->water.watermode = GET_INT_ARG(i+12); // amplitude
+				dm->water.watermode = GET_INT_ARG(i+12); // water
 				if(dm->water.watermode==3){
 					dm->water.beginsize = GET_FLOAT_ARG(i+13); // beginsize
 					dm->water.endsize = GET_FLOAT_ARG(i+14); // endsize
