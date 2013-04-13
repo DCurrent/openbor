@@ -11164,6 +11164,7 @@ void ent_default_init(entity* e)
 				e->nograb = 1;
 				e->attacking = 1;
 				e->takedamage = arrow_takedamage;
+				e->speedmul = 2;
 				break;
 			}
 			else
@@ -11203,6 +11204,7 @@ void ent_default_init(entity* e)
 		case TYPE_TRAP:
 			e->think = trap_think;
 			e->takedamage =  common_takedamage;//enemy_takedamage;
+			e->speedmul = 2;
 			break;
 		case TYPE_OBSTACLE:
 			e->nograb = 1;
@@ -11233,6 +11235,7 @@ void ent_default_init(entity* e)
 				e->base = 0;
 			else
 				e->base = e->a;
+			e->speedmul = 2;
 			break;
 		case TYPE_NONE:
 			e->nograb = 1;
@@ -11248,7 +11251,8 @@ void ent_default_init(entity* e)
 
 				common_walk_anim(e);
 				//ent_set_anim(e, ANI_WALK, 0);
-			}
+			} else 
+				e->speedmul = 2;
 			break;
 		case TYPE_PANEL:
 			e->nograb = 1;
