@@ -11769,6 +11769,8 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			e->a = a;
 			e->direction = direction;
 			e->nextthink = time + 1;
+			e->nextmove = time + 1;
+			e->speedmul = 1;
 			ent_set_colourmap(e, 0);
 			e->lifespancountdown = model->lifespan; // new life span countdown
 			if((e->modeldata.type & (TYPE_PLAYER|TYPE_SHOT)) && ((level && level->nohit) || savedata.mode)) {
@@ -13606,8 +13608,8 @@ void update_ents()
 				check_attack();// Collission detection
 				if(!self->exists) continue;
 				update_health();// Update displayed health
-				self->movex += self->xdir*100.0/GAME_SPEED;
-				self->movez += self->zdir*100.0/GAME_SPEED;
+				self->movex += self->xdir*self->speedmul*(100.0/GAME_SPEED);
+				self->movez += self->zdir*self->speedmul*(100.0/GAME_SPEED);
 			}
 		}
 	}//end of for
@@ -17301,10 +17303,10 @@ int arrow_move(){
 				self->attacking = 0;
 				self->health = 0;
 				self->projectile = 0;
-				if(self->direction == 0) self->xdir = (float)-2.4;
-				else if(self->direction == 1) self->xdir = (float)2.4;
+				if(self->direction == 0) self->xdir = (float)-1.2;
+				else if(self->direction == 1) self->xdir = (float)1.2;
 				self->damage_on_landing = 0;
-				toss(self, 5 + randf(2));
+				toss(self, 2.5 + randf(1));
 				self->modeldata.no_adjust_base = 0;
 				self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_gravity = 1;
 				set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0);
@@ -17367,9 +17369,9 @@ int star_move(){
 			self->attacking = 0;
 			self->health = 0;
 			self->projectile = 0;
-			self->xdir = (self->direction)?(-2.2):2.4;
+			self->xdir = (self->direction)?(-1.2):1.2;
 			self->damage_on_landing = 0;
-			toss(self, 5 + randf(2));
+			toss(self, 2.5 + randf(1));
 			set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0);
 		}
 	}
@@ -19679,7 +19681,7 @@ entity * knife_spawn(char *name, int index, float x, float z, float a, int direc
 	e->modeldata.aiattack = AIATTACK1_NOATTACK;
 	e->remove_on_attack = e->modeldata.remove;
 	e->autokill = e->modeldata.nomove;
-	e->modeldata.speed *= 2;
+	e->speedmul = 2;
 
 	ent_set_colourmap(e, map);
 
@@ -19737,7 +19739,7 @@ entity * bomb_spawn(char *name, int index, float x, float z, float a, int direct
 	e->takedamage = common_takedamage;
 	e->remove_on_attack = 0;
 	e->autokill = e->modeldata.nomove;
-	e->modeldata.speed *= 2;
+	e->speedmul = 2;
 
 
 	// Ok, some old mods use type none, will have troubles.
@@ -19773,7 +19775,7 @@ int star_spawn(float x, float z, float a, int direction){ // added entity to kno
 		e->owner = self;    // Added so enemy projectiles don't hit the owner
 		e->attacking = 1;
 		e->nograb = 1;    // Prevents trying to grab a projectile
-		e->xdir = fd * (float)i;
+		e->xdir = fd * (float)i/2;
 		e->think = common_think;
 		e->nextthink = time+1;
 		e->trymove = NULL;
@@ -19783,6 +19785,7 @@ int star_spawn(float x, float z, float a, int direction){ // added entity to kno
 		e->remove_on_attack = e->modeldata.remove;
 		e->base = a;
 		e->a = a;
+		e->speedmul = 2;
 		//e->direction = direction;
 
 		if(e->modeldata.hostile <0) e->modeldata.hostile = self->modeldata.hostile;
@@ -19882,8 +19885,9 @@ entity * homing_find_target(int type){
 
 void bike_crash(){
 	int i;
-	if(self->direction) self->xdir = 4;
-	else self->xdir = -4;
+	if(self->direction) self->xdir = 2;
+	else self->xdir = -2;
+	self->speedmul = 2;
 	for(i=0; i<levelsets[current_set].maxplayers; i++) control_rumble(i, 100);
 	//if(self->x < advancex-100 || self->x > advancex+(videomodes.hRes+100)) kill(self);
 }
@@ -19947,8 +19951,6 @@ void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
 {
 	//self->x += self->xdir * 4;    // Equivelant of speed 40
 	if(self->x > advancex+(videomodes.hRes + 200) || self->x < advancex-200) kill(self);
-
-	self->nextthink = time + 2;
 }
 
 
