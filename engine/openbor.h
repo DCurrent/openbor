@@ -1256,6 +1256,7 @@ typedef struct entity
 	float destz;
 	float movex;
 	float movez;
+	float speedmul; 
 	float base; // Default altitude
 	float altbase; // Altitude affected by movea
 	float tossv;							// Effect of gravity
