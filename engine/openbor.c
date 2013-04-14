@@ -11127,6 +11127,7 @@ void ent_default_init(entity* e)
 				else
 					e->xdir = (e->direction)?(1.7 + randf((float)0.6)):(-(1.7 + randf((float)0.6)));
 				e->takedamage = biker_takedamage;
+				e->speedmul = 2;
 				break;
 			}
 			// define new subtypes
@@ -19869,7 +19870,6 @@ void bike_crash(){
 	int i;
 	if(self->direction) self->xdir = 2;
 	else self->xdir = -2;
-	self->speedmul = 2;
 	for(i=0; i<levelsets[current_set].maxplayers; i++) control_rumble(i, 100);
 	//if(self->x < advancex-100 || self->x > advancex+(videomodes.hRes+100)) kill(self);
 }
