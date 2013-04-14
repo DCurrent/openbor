@@ -130,6 +130,7 @@ static void clear_named_var_list(List* list, int level)
 
 void Varlist_Init(Varlist* varlist, int size) {
 	int i;
+	varlist->magic = varlist_magic;
 	varlist->list = calloc(1, sizeof(*varlist->list));
 	List_Init(varlist->list);
 	varlist->vars = calloc(size+1, sizeof(*varlist->vars));
@@ -149,6 +150,7 @@ void Varlist_Clear(Varlist* varlist) {
 	for(i=1; i<=varlist->vars->lVal; i++) ScriptVariant_Clear(varlist->vars+i);
 	free(varlist->vars);
 	varlist->vars = NULL;
+	varlist->magic = 0;
 }
 
 void Varlist_Cleanup(Varlist* varlist) {
@@ -217,6 +219,8 @@ void _freeheapnode(void* ptr){
 		Script_Clear((Script*)ptr,2);
 	} else if(((anigif_info*)ptr)->magic==anigif_magic) {
 		anigif_close((anigif_info*)ptr);
+	} else if(((Varlist*)ptr)->magic==varlist_magic) {
+		Varlist_Clear((Varlist*)ptr);
 	}
 	free(ptr);
 }
@@ -250,8 +254,8 @@ void Script_Global_Clear()
 	if(filestreams) free(filestreams);
 	filestreams = NULL;
 	numfilestreams = 0;
-	StrCache_Clear();
 	ImportCache_Clear();
+	StrCache_Clear();
 }
 
 int Script_Save_Local_Variant(Script* cs, char* namelist[])
@@ -10354,50 +10358,41 @@ BIND:
 HRESULT openbor_array(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	LONG size;
-	void* array;
+	Varlist* array;
 
-	if(paramCount < 1) goto array_error;
-
-	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &size)))
+	if(paramCount<1 || FAILED(ScriptVariant_IntegerValue(varlist[0], &size)) || size<0) {
+		printf("Function requires 1 positive int value: array(int size)\n");
 		goto array_error;
-
-	if(size<=0) goto array_error;
+	}
 
 	ScriptVariant_ChangeType(*pretvar, VT_PTR);
-	array = malloc(sizeof(ScriptVariant)*(size+1));
-	if(array) memset(array, 0, sizeof(ScriptVariant)*(size+1));
+	array = malloc(sizeof(*array));
 	(*pretvar)->ptrVal = (VOID*)array;
 
 	if((*pretvar)->ptrVal==NULL)
 	{
 		printf("Not enough memory: array(%d)\n", (int)size);
-		(*pretvar) = NULL;
-		return E_FAIL;
+		goto array_error;
 	}
 
-	ScriptVariant_ChangeType((ScriptVariant*)array, VT_INTEGER);
-	((ScriptVariant*)array)->lVal = (LONG)size;
+	Varlist_Init(array, size);
 
-	List_InsertAfter(&scriptheap, (void*)((*pretvar)->ptrVal), "openbor_array");
+	List_InsertAfter(&scriptheap, (void*)(array), "openbor_array");
 	return S_OK;
 
 array_error:
-	printf("Function requires 1 positive int value: array(int size)\n");
 	(*pretvar) = NULL;
 	return E_FAIL;
 }
 
-
 //size(array)
 HRESULT openbor_size(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	if(paramCount < 1 ) goto size_error;
-	if(varlist[0]->vt!=VT_PTR)  goto size_error;
-
-	ScriptVariant_Copy(*pretvar, ((ScriptVariant*)varlist[0]->ptrVal));
+	Varlist* array;
+	if(paramCount<1 || varlist[0]->vt!=VT_PTR || !(array=(Varlist*)varlist[0]->ptrVal) || array->magic!=varlist_magic)  goto size_error;
+	ScriptVariant_Copy(*pretvar, array->vars);
 
 	return S_OK;
-
 size_error:
 	printf("Function requires 1 array handle: size(array)\n");
 	(*pretvar) = NULL;
@@ -10407,28 +10402,24 @@ size_error:
 //get(array, index);
 HRESULT openbor_get(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG ind, size;
+	ScriptVariant* ptmpvar;
+	Varlist* array;
+	LONG ltemp;
 
-	if(paramCount < 2 ) goto get_error;
+	if(paramCount<2 || varlist[0]->vt!=VT_PTR || !(array=(Varlist*)varlist[0]->ptrVal) || array->magic!=varlist_magic)  goto get_error;
 
-	if(varlist[0]->vt!=VT_PTR)  goto get_error;
+	if(varlist[1]->vt==VT_STR)
+		ptmpvar = Varlist_GetByName(array, StrCache_Get(varlist[1]->strVal));
+	else if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)))
+		ptmpvar = Varlist_GetByIndex(array, (int)ltemp);
+	else goto get_error;
 
-	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &ind)))
-		goto get_error;
-
-	ScriptVariant_IntegerValue(((ScriptVariant*)varlist[0]->ptrVal), &size);
-	if(ind<0 || ind>=size) goto get_error2;
-
-	ScriptVariant_Copy(*pretvar, ((ScriptVariant*)varlist[0]->ptrVal)+ind+1);
-
+	if(ptmpvar) ScriptVariant_Copy(*pretvar,  ptmpvar);
+	else        ScriptVariant_Clear(*pretvar);
 	return S_OK;
 
 get_error:
 	printf("Function requires 1 array handle and 1 int value: get(array, int index)\n");
-	(*pretvar) = NULL;
-	return E_FAIL;
-get_error2:
-	printf("Array bound out of range: %d, max %d\n", ind, size-1);
 	(*pretvar) = NULL;
 	return E_FAIL;
 }
@@ -10436,28 +10427,22 @@ get_error2:
 //set(array, index, value);
 HRESULT openbor_set(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG ind, size;
-	(*pretvar) = NULL;
+	Varlist* array;
+	LONG ltemp;
 
-	if(paramCount < 3 ) goto set_error;
+	*pretvar = NULL;
+	if(paramCount<3 || varlist[0]->vt!=VT_PTR || !(array=(Varlist*)varlist[0]->ptrVal) || array->magic!=varlist_magic)  goto set_error;
 
-	if(varlist[0]->vt!=VT_PTR)  goto set_error;
-
-	if(FAILED(ScriptVariant_IntegerValue(varlist[1], &ind)))
-		goto set_error;
-
-	ScriptVariant_IntegerValue(((ScriptVariant*)varlist[0]->ptrVal), &size);
-	if(ind<0 || ind>=size) goto set_error2;
-
-	ScriptVariant_Copy(((ScriptVariant*)varlist[0]->ptrVal)+ind+1, varlist[2]);
+	if(varlist[1]->vt==VT_STR)
+		Varlist_SetByName(array, StrCache_Get(varlist[1]->strVal), varlist[2]);
+	else if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)))
+		Varlist_SetByIndex(array, (int)ltemp, varlist[2]);
+	else goto set_error;
 
 	return S_OK;
 
 set_error:
 	printf("Function requires 1 array handle, 1 int value and 1 value: set(array, int index, value)\n");
-	return E_FAIL;
-set_error2:
-	printf("Array bound out of range: %d, max %d\n", ind, size-1);
 	return E_FAIL;
 }
 
