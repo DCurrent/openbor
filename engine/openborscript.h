@@ -17,11 +17,14 @@
 
 //osc
 #define script_magic ((int)0x73636f)
+//vlst
+#define varlist_magic ((int)0x74736c76)
 
 //This structure holds a named variable list (list)
 // and an indexed list (vars).
 typedef struct 
 {
+	int magic;
 	List* list;
 	ScriptVariant* vars;
 } Varlist;
