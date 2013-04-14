@@ -101,8 +101,14 @@ int StrCache_Pop()
 			strcache[i+strcache_size].len = MAX_STR_VAR_LEN;
 		}
 
+		//printf("debug: dumping string cache....\n");
+		//for(i=0; i<strcache_size; i++)
+		//	printf("\t\"%s\"  %d\n", strcache[i].str, strcache[i].ref);
+
 		strcache_size += STRCACHE_INC;
 		strcache_top += STRCACHE_INC;
+
+		//printf("debug: string cache resized to %d \n", strcache_size);
 	}
 	i = strcache_index[strcache_top--];
 	strcache[i].ref = 1;
@@ -166,47 +172,41 @@ void ScriptVariant_Init(ScriptVariant* var)
 
 void ScriptVariant_ChangeType(ScriptVariant* var, VARTYPE cvt)
 {
-	if(var->vt == cvt) return;
-/*
-	if(var->vt == VT_INTEGER)
+	// Always collect make it safer for string copy
+	// since now reference has been added. 
+	// String variables should never be changed
+	// unless the engine is creating a new one
+	if(var->vt == VT_STR)
 	{
-		switch(cvt)
-		{
-		case VT_DECIMAL:
-			var->dblVal = (DOUBLE)var->lVal;
-			break;
-		case VT_STR:
-			var->strVal = StrCache_Pop();
-			sprintf(StrCache_Get(var->strVal), "%ld", var->lVal);
-			break;
-		}
+		StrCache_Collect(var->strVal);
 	}
-	else if(var->vt == VT_DECIMAL)
-	{
-		switch(cvt)
-		{
-		case VT_INTEGER:
-			var->dblVal = (LONG)var->lVal;
-			break;
-		case VT_STR:
-			var->strVal = StrCache_Pop();
-			sprintf(StrCache_Get(var->strVal), "%lf", var->dblVal);
-			break;
-		}
-	}
-	else */if(var->vt == VT_STR)
-	{
-		if(cvt != VT_STR)
-		{
-			StrCache_Collect(var->strVal);
-		}
-	}
-	else if(cvt == VT_STR)
+	if(cvt == VT_STR)
 	{
 	   var->strVal = StrCache_Pop();
 	}
 	var->vt = cvt;
 
+}
+
+// find an existing constant before copy 
+void ScriptVariant_ParseStringConstant(ScriptVariant* var, CHAR* str)
+{
+	//assert(index<strcache_size);
+	//assert(size>0);
+	int i;
+	
+	for(i=0; i<strcache_size; i++) {
+		if(strcache[i].ref && strcmp(str, strcache[i].str)==0)
+		{
+			var->strVal = i;
+			strcache[i].ref++;
+			var->vt = VT_STR;
+			break;
+		}
+	}
+	
+	ScriptVariant_ChangeType(var, VT_STR);
+	StrCache_Copy(var->strVal,str);
 }
 
 HRESULT ScriptVariant_IntegerValue(ScriptVariant* var, LONG* pVal)

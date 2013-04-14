@@ -98,7 +98,6 @@ void Instruction_NewData2(Instruction* pins)
 	 ScriptVariant_Init( pins->theVal2);
 }
 
-
 //'compile' constant to improve speed
 void Instruction_ConvertConstant(Instruction* pins)
 {
@@ -148,8 +147,7 @@ void Instruction_ConvertConstant(Instruction* pins)
 	else if(pins->OpCode == CONSTSTR){
 		pvar = (ScriptVariant*)malloc(sizeof(ScriptVariant));
 		ScriptVariant_Init(pvar);
-		ScriptVariant_ChangeType(pvar, VT_STR);
-		strcpy(StrCache_Get(pvar->strVal), pins->theToken->theSource);
+		ScriptVariant_ParseStringConstant(pvar, pins->theToken->theSource);
 	}
 	else return;
 	pins->theVal = pvar;
