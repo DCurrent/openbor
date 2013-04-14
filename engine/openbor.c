@@ -17340,7 +17340,7 @@ int star_move(){
 		return 0;
 	}
 
-	self->base -= 2;
+	self->base -= 4;
 	self->a = self->base;
 
 	if(validanim(self,ANI_FALL))    // Added so projectiles bounce off blocked exits
@@ -19766,8 +19766,7 @@ int star_spawn(float x, float z, float a, int direction){ // added entity to kno
 		e->modeldata.aimove = AIMOVE1_STAR;
 		e->modeldata.aiattack = AIATTACK1_NOATTACK;
 		e->remove_on_attack = e->modeldata.remove;
-		e->base = a;
-		e->a = a;
+		e->a = e->base = a;
 		e->speedmul = 2;
 		//e->direction = direction;
 
