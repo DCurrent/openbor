@@ -11757,7 +11757,7 @@ entity * spawn(float x, float z, float a, int direction, char * name, int index,
 			e->speedmul = 1;
 			ent_set_colourmap(e, 0);
 			e->lifespancountdown = model->lifespan; // new life span countdown
-			if((e->modeldata.type & (TYPE_PLAYER|TYPE_SHOT)) && ((level && level->nohit) || savedata.mode)) {
+			if((e->modeldata.type &TYPE_PLAYER) && ((level && level->nohit) || savedata.mode)) {
 				e->modeldata.hostile &= ~TYPE_PLAYER;
 				e->modeldata.candamage &= ~TYPE_PLAYER;
 			}
@@ -11815,8 +11815,8 @@ void kill(entity *victim)
 	if(!victim || !victim->exists)
 		return;
 
-	if((victim->modeldata.type&TYPE_SHOT) && player[(int)victim->playerindex].ent)
-		player[(int)victim->playerindex].ent->cantfire = 0;
+	if((victim->modeldata.type&TYPE_SHOT) && victim->owner && (victim->owner->modeldata.type&TYPE_PLAYER))
+		victim->owner->cantfire = 0;
 
 	ent_unlink(victim);
 	victim->weapent = NULL;
@@ -19683,6 +19683,10 @@ entity * knife_spawn(char *name, int index, float x, float z, float a, int direc
 
 	if(e->modeldata.hostile < 0)   e->modeldata.hostile = self->modeldata.hostile;
 	if(e->modeldata.candamage < 0) e->modeldata.candamage = self->modeldata.candamage;
+	if((self->modeldata.type & TYPE_PLAYER) && ((level && level->nohit) || savedata.mode)) {
+		e->modeldata.hostile &= ~TYPE_PLAYER;
+		e->modeldata.candamage &= ~TYPE_PLAYER;
+	}
 
 	e->modeldata.subject_to_wall = e->modeldata.subject_to_platform = e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
 	e->modeldata.no_adjust_base  = 1;
