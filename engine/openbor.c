@@ -13470,23 +13470,26 @@ static void _domove(entity* e)
 
 	x = self->x;
 	z = self->z;
-	if(self->trymove)
-	{
-		// only do linked move while grabwalking for now, 
-		// otherwise some grab moves that use move/movez command may act strangely
-		if(self->grabbing && self->grabwalking) check_link_move(self->movex, self->movez);
-		else if(!self->link || self->grabbing) {
-			if(1!=self->trymove(self->movex, self->movez) && self->idling) {
-				self->pathblocked+=time%2;
-			} else {
-				self->pathblocked = 0;
+	if(self->movex || self->movez) {
+		if(self->trymove)
+		{
+			// only do linked move while grabwalking for now, 
+			// otherwise some grab moves that use move/movez command may act strangely
+			if(self->grabbing && self->grabwalking) check_link_move(self->movex, self->movez);
+			else// if(!self->link || self->grabbing)
+			{
+				if(1!=self->trymove(self->movex, self->movez) && self->idling) {
+					self->pathblocked+=time%2;
+				} else {
+					self->pathblocked = 0;
+				}
 			}
 		}
-	}
-	else 
-	{
-		self->x += self->movex;
-		self->z += self->movez;
+		else 
+		{
+			self->x += self->movex;
+			self->z += self->movez;
+		}
 	}
 	self->movex = self->x-x;
 	self->movez = self->z-z;
@@ -13566,6 +13569,8 @@ void arrange_ents()
 		}
 		ent_max = ent_count;
 	}
+	for(i=0; i<ent_max; i++)
+		ent_list[i]->movex = ent_list[i]->movez = 0;
 }
 
 // Update all entities that wish to think or animate in this cycle.
@@ -13585,8 +13590,6 @@ void update_ents()
 			if(is_frozen(self)){expand_time(self);}
 			else
 			{
-				
-				self->movex = self->movez = 0;
 				execute_updateentity_script(self);// execute a script
 				if(!self->exists) continue;
 				check_ai();// check ai
