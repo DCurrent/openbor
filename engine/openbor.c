@@ -13475,7 +13475,13 @@ static void _domove(entity* e)
 		// only do linked move while grabwalking for now, 
 		// otherwise some grab moves that use move/movez command may act strangely
 		if(self->grabbing && self->grabwalking) check_link_move(self->movex, self->movez);
-		else if(!self->link || self->grabbing) self->trymove(self->movex, self->movez);
+		else if(!self->link || self->grabbing) {
+			if(1!=self->trymove(self->movex, self->movez) && self->idling) {
+				self->pathblocked+=time%2;
+			} else {
+				self->pathblocked = 0;
+			}
+		}
 	}
 	else 
 	{
