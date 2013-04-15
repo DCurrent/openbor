@@ -190,6 +190,8 @@ HRESULT Interpreter_Call(Interpreter* pinterpreter)
 	Instruction** pCurrentCall = (Instruction**)(pinterpreter->pCurrentInstruction);
 	Instruction* currentCall;
 	ScriptVariant *pretvar;
+	static char buf[256];
+	int i;
 
 	if(pCurrentCall==NULL){
 		hr=E_FAIL;
@@ -211,6 +213,17 @@ HRESULT Interpreter_Call(Interpreter* pinterpreter)
 		{
 			List_Includes(pinterpreter->ptheFunctionList, currentCall->functionRef);
 			printf("Script function '%s' returned an exception, check the manual for details.\n", List_GetName(pinterpreter->ptheFunctionList));
+			if(currentCall->theRef->lVal) {
+				printf(" parameters: ");
+				for(i=0; i<(int)currentCall->theRef->lVal; i++) {
+					ScriptVariant_ToString(((ScriptVariant**)currentCall->theRefList->solidlist)[i], buf);
+					if(((ScriptVariant**)currentCall->theRefList->solidlist)[i]->vt==VT_STR)
+						printf("\"%s\", ", buf);
+					else printf("%s, ", buf);
+				}
+				printf(" \n ");
+			}
+
 		}
 	}
 	else
