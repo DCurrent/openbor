@@ -12810,7 +12810,7 @@ void check_gravity()
 			}
 			if (self->tossv) execute_onmovea_script(self); //Move A event.
 
-			if(self->idling && validanim(self, ANI_WALKOFF))
+			if(self->idling && validanim(self, ANI_WALKOFF) && diff(self->a, self->base)>2)
 			{
 				self->idling = 0;
 				self->takeaction = common_walkoff;
