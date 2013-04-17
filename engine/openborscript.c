@@ -2923,7 +2923,7 @@ int mapstrings_entityproperty(ScriptVariant** varlist, int paramCount)
 {
 	char* propname;
 	const char *eps;
-	int prop, i, ep;
+	int prop, i, ep, t;
 
 	static const char* proplist_defense[] = {
 		"blockpower",
@@ -3210,8 +3210,12 @@ int mapstrings_entityproperty(ScriptVariant** varlist, int paramCount)
 	{
 		for(i=2; i<paramCount; i++)
 		{
+			t = varlist[i]->vt;
 			MAPSTRINGS(varlist[i], proplist_hostile_candamage, _ep_hcd_the_end,
 				_is_not_supported_by_, eps);
+
+			if(varlist[i]->vt==VT_INTEGER && t==VT_STR)
+				varlist[i]->lVal |= 0x80000000; //flag it
 		}
 		break;
 	}
@@ -5562,11 +5566,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
 	case _ep_candamage:
 	{
-		if(varlist[2]->vt == VT_INTEGER && paramCount==3 && (varlist[2]->lVal&TYPE_RESERVED)){ //trick for those who don't use string map
-			ent->modeldata.candamage = varlist[2]->lVal;
-			break;
-		}
-
 		ent->modeldata.candamage = 0;
 
 		for(i=2; i<paramCount; i++)
@@ -5574,10 +5573,10 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			if(varlist[i]->vt == VT_INTEGER) // known entity type
 			{
 				ltemp = varlist[i]->lVal;
-				if(ltemp==_ep_hcd_ground) // "ground" - not needed?
+				if(ltemp==(_ep_hcd_ground|0x80000000)) // "ground" - not needed?
 					ent->modeldata.ground = 1;
-				else
-					ent->modeldata.candamage |= entitytypes[(int)ltemp];
+				else if(ltemp&0x80000000) ent->modeldata.candamage |= entitytypes[ltemp&0x7fffffff];
+				else ent->modeldata.candamage |= ltemp;
 			}
 			else
 			{
@@ -5855,19 +5854,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
     case _ep_hostile:
 	{
-
-		if(varlist[2]->vt == VT_INTEGER && paramCount==3 && (varlist[2]->lVal&TYPE_RESERVED)){ //trick for those who don't use string map
-			ent->modeldata.hostile = varlist[2]->lVal;
-			break;
-		}
-
 		ent->modeldata.hostile = 0;
 		for(i=2; i<paramCount; i++)
 		{
 			if(varlist[i]->vt == VT_INTEGER) // known entity type
 			{
 				ltemp = varlist[i]->lVal;
-				ent->modeldata.hostile |= entitytypes[(int)ltemp];
+				if(ltemp&0x80000000) ent->modeldata.hostile |= entitytypes[ltemp&0x7fffffff];
+				else ent->modeldata.hostile |= ltemp;
 			}
 			else
 			{
@@ -6202,11 +6196,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
     case _ep_projectilehit:
 	{
-		if(varlist[2]->vt == VT_INTEGER && paramCount==3 && (varlist[2]->lVal&TYPE_RESERVED)){ //trick for those who don't use string map
-			ent->modeldata.projectilehit = varlist[2]->lVal;
-			break;
-		}
-
 		ent->modeldata.projectilehit = 0;
 
 		for(i=2; i<paramCount; i++)
@@ -6214,7 +6203,8 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 			if(varlist[i]->vt == VT_INTEGER) // known entity type
 			{
 				ltemp = varlist[i]->lVal;
-				ent->modeldata.projectilehit |= entitytypes[(int)ltemp];
+				if(ltemp&0x80000000) ent->modeldata.projectilehit |= entitytypes[ltemp&0x7fffffff];
+				else ent->modeldata.projectilehit |= ltemp;
 			}
 			else
 			{
