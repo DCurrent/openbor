@@ -12678,7 +12678,7 @@ void do_attack(entity *e)
 		}
 		// New blocking checks
 		//04/27/2008 Damon Caskey: Added checks for defense property specfic blockratio and type. Could probably use some cleaning.
-		if(didblock)
+		if(didblock && !level->nohurt)
 		{
 			if(blockratio || def->defense[attack->attack_type].blockratio) // Is damage reduced?
 			{
@@ -19486,15 +19486,12 @@ void dropweapon(int flag)
 
 int player_takedamage(entity *other, s_attack* attack)
 {
-	s_attack atk;
+	s_attack atk = *attack;
 	//printf("damaged by: '%s' %d\n", other->name, attack->attack_force);
-	if(healthcheat)
-	{
-		memcpy(&atk, attack, sizeof(atk));
+	if(healthcheat || (level->nohurt && (other->modeldata.type&TYPE_ENEMY)))
 		atk.attack_force = 0;
-		return common_takedamage(other, &atk);
-	}
-	return common_takedamage(other, attack);
+
+	return common_takedamage(other, &atk);
 }
 
 
