@@ -9315,6 +9315,32 @@ void unload_level(){
 	gfx_y_offset = gfx_x_offset = gfx_y_offset_adj = 0;    // Added so select screen graphics display correctly
 }
 
+
+static void addhole(float x, float z, float x1, float x2, float x3, float x4, float depth) {
+	__realloc(level->holes, level->numholes);
+	level->holes[level->numholes][0] = x;
+	level->holes[level->numholes][1] = z;
+	level->holes[level->numholes][2] = x1;
+	level->holes[level->numholes][3] = x2;
+	level->holes[level->numholes][4] = x3;
+	level->holes[level->numholes][5] = x4;
+	level->holes[level->numholes][6] = depth;
+	level->numholes++;
+}
+
+static void addwall(float x, float z, float x1, float x2, float x3, float x4, float depth, float alt) {
+	__realloc(level->walls, level->numwalls);
+	level->walls[level->numwalls][0] = x;
+	level->walls[level->numwalls][1] = z;
+	level->walls[level->numwalls][2] = x1;
+	level->walls[level->numwalls][3] = x2;
+	level->walls[level->numwalls][4] = x3;
+	level->walls[level->numwalls][5] = x4;
+	level->walls[level->numwalls][6] = depth;
+	level->walls[level->numwalls][7] = alt;
+	level->numwalls++;
+}
+
 void load_level(char *filename){
 	char *buf;
 	size_t size, len, sblen;
@@ -9350,6 +9376,7 @@ void load_level(char *filename){
 	int (*panels)[3] = NULL;
 	int *order = NULL;
 	int panelcount = 0;
+	int exit_blocked=0, exit_hole=0;
 
 	unload_level();
 
@@ -9799,34 +9826,10 @@ void load_level(char *filename){
 					else holesprite = loadsprite("data/sprites/hole",0,0,pixelformat);    // ltb 1-18-05  no new sprite load the default
 				}
 
-				__realloc(level->holes, level->numholes);
-				level->holes[level->numholes][0] = GET_FLOAT_ARG(1);
-				level->holes[level->numholes][1] = GET_FLOAT_ARG(2);
-				level->holes[level->numholes][2] = GET_FLOAT_ARG(3);
-				level->holes[level->numholes][3] = GET_FLOAT_ARG(4);
-				level->holes[level->numholes][4] = GET_FLOAT_ARG(5);
-				level->holes[level->numholes][5] = GET_FLOAT_ARG(6);
-				level->holes[level->numholes][6] = GET_FLOAT_ARG(7);
-
-				if(!level->holes[level->numholes][1]) level->holes[level->numholes][1] = 240;
-				if(!level->holes[level->numholes][2]) level->holes[level->numholes][2] = 12;
-				if(!level->holes[level->numholes][3]) level->holes[level->numholes][3] = 1;
-				if(!level->holes[level->numholes][4]) level->holes[level->numholes][4] = 200;
-				if(!level->holes[level->numholes][5]) level->holes[level->numholes][5] = 287;
-				if(!level->holes[level->numholes][6]) level->holes[level->numholes][6] = 45;
-				level->numholes++;
+				addhole(GET_FLOAT_ARG(1),GET_FLOAT_ARG(2),GET_FLOAT_ARG(3),GET_FLOAT_ARG(4),GET_FLOAT_ARG(5),GET_FLOAT_ARG(6),GET_FLOAT_ARG(7));
 				break;
 			case CMD_LEVEL_WALL:
-				__realloc(level->walls, level->numwalls);
-				level->walls[level->numwalls][0] = GET_FLOAT_ARG(1);
-				level->walls[level->numwalls][1] = GET_FLOAT_ARG(2);
-				level->walls[level->numwalls][2] = GET_FLOAT_ARG(3);
-				level->walls[level->numwalls][3] = GET_FLOAT_ARG(4);
-				level->walls[level->numwalls][4] = GET_FLOAT_ARG(5);
-				level->walls[level->numwalls][5] = GET_FLOAT_ARG(6);
-				level->walls[level->numwalls][6] = GET_FLOAT_ARG(7);
-				level->walls[level->numwalls][7] = GET_FLOAT_ARG(8);
-				level->numwalls++;
+				addwall(GET_FLOAT_ARG(1),GET_FLOAT_ARG(2),GET_FLOAT_ARG(3),GET_FLOAT_ARG(4),GET_FLOAT_ARG(5),GET_FLOAT_ARG(6),GET_FLOAT_ARG(7),GET_FLOAT_ARG(8));
 				break;
 			case CMD_LEVEL_PALETTE:
 				__realloc(level->palettes, level->numpalettes);
@@ -9872,10 +9875,10 @@ void load_level(char *filename){
 				pos += lcmHandleCommandScripts(&arglist, buf+pos, tempscript, scriptname, filename, 1, 1);
 				break;
 			case CMD_LEVEL_BLOCKED:
-				level->exit_blocked = GET_INT_ARG(1);
+				exit_blocked = GET_INT_ARG(1);
 				break;
 			case CMD_LEVEL_ENDHOLE:
-				level->exit_hole = GET_INT_ARG(1);
+				exit_hole = GET_INT_ARG(1);
 				break;
 			case CMD_LEVEL_WAIT:
 				// Clear spawn thing, set wait state instead
@@ -10265,6 +10268,9 @@ void load_level(char *filename){
 		advancex = (float)(level->width-videomodes.hRes);
 	else if(level->scrolldir&SCROLL_INWARD)
 		advancey = (float)(panel_height-videomodes.vRes);
+
+	if(exit_blocked) addwall(level->width-30, PLAYER_MAX_Z, -panel_height, 0, 1000,1000, panel_height,MAX_WALL_HEIGHT+1);
+	if(exit_hole) addhole(level->width, PLAYER_MAX_Z, -panel_height, 0, 1000,1000, panel_height);
 
 	if(crlf) printf("\n");
 	printf("Level Loaded:    '%s'\n", level->name);
@@ -12064,10 +12070,6 @@ int checkhole(float x, float z)
 
 	if(level==NULL) return 0;
 
-	if(level->exit_hole){
-		if(x > level->width-(PLAYER_MAX_Z-z)) return 2;
-	}
-
 	for(i=0; i<level->numholes; i++)
 	{
 		if(testhole(i, x, z))
@@ -12289,11 +12291,6 @@ int testmove(entity* ent, float sx, float sz, float x, float z){
 			return 0;
 	}
 
-	// End of level is blocked?
-	if(level->exit_blocked)
-	{
-		if(x > level->width-30-(PLAYER_MAX_Z-z)) return 0;
-	}
 	// screen checking
 	if(ent->modeldata.subject_to_screen>0)
 	{
@@ -15989,14 +15986,6 @@ int common_trymove(float xdir, float zdir)
 		}
 	}
 
-	// End of level is blocked?
-	if(level->exit_blocked)
-	{
-		if(x > level->width-30-(PLAYER_MAX_Z-z))
-		{
-			xdir = level->width-30-(PLAYER_MAX_Z-z) - self->x;
-		}
-	}
 	// screen checking
 	if(self->modeldata.subject_to_screen>0)
 	{
@@ -17286,8 +17275,7 @@ int arrow_move(){
 
 	if(level)
 	{
-		if((level->exit_blocked && self->x > level->width-30-(PLAYER_MAX_Z-self->z)) ||
-			(self->modeldata.subject_to_wall && (wall = checkwall(self->x, self->z)) >= 0 && self->a < level->walls[wall][7]))
+		if(self->modeldata.subject_to_wall && (wall = checkwall(self->x, self->z)) >= 0 && self->a < level->walls[wall][7])
 		{
 			// Added so projectiles bounce off blocked exits
 			if(validanim(self,ANI_FALL))
@@ -17355,8 +17343,7 @@ int star_move(){
 
 	if(validanim(self,ANI_FALL))    // Added so projectiles bounce off blocked exits
 	{
-		if((level->exit_blocked && self->x > level->width-30-(PLAYER_MAX_Z-self->z)) ||
-			((wall = checkwall(self->x, self->z)) >= 0 && self->a < level->walls[wall][7]))
+		if((wall = checkwall(self->x, self->z)) >= 0 && self->a < level->walls[wall][7])
 		{
 			self->takeaction = common_fall;
 			self->attacking = 0;

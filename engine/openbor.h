@@ -1592,8 +1592,6 @@ typedef struct
 	float (*holes)[7];
 	float (*walls)[8]; // Now you can have walls for different walkable areas
 	s_basemap* basemaps;
-	int exit_blocked;
-	int exit_hole;
 	int scrolldir;
 	int width;
 	int rocking;
