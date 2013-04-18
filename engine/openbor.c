@@ -21977,7 +21977,7 @@ int selectplayer(int *players, char* filename)
 		}
 	}
 
-
+	time = 0;
 	while(!(exit || escape))
 	{
 		players_busy = 0;
