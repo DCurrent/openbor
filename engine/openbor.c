@@ -16143,7 +16143,8 @@ void common_runoff()
 
 void common_stuck_underneath()
 {
-	if(!check_platform_between(self->x, self->z, self->a, self->a+self->modeldata.height, self) )
+	float heightvar=self->animation->height?self->animation->height:self->modeldata.height;
+	if(!check_platform_between(self->x, self->z, self->a, self->a+heightvar, self) )
 	{
 		self->takeaction = NULL;
 		set_idle(self);
@@ -18777,7 +18778,7 @@ void player_think()
 	int runx,runz,movex,movez;
 	int t, t2;
 	entity *other = NULL;
-	float altdiff ;
+	float altdiff , heightvar;
 	int notinair;
 
 	static int ll[] = {FLAG_MOVELEFT, FLAG_MOVELEFT};
@@ -18863,9 +18864,12 @@ void player_think()
 	if(!self->idling && !(self->animation->idle && self->animation->idle[self->animpos]))
 		goto endthinkcheck;
 
+
 	// Check if entity is under a platform
-	if(self->modeldata.subject_to_platform>0 && validanim(self,ANI_DUCK) && check_platform_between(self->x/*+self->direction*2-1*/, self->z, self->a, self->a+self->modeldata.height, self) && (check_platform_between(self->x/*+self->direction*2-1*/, self->z, self->a, self->a+self->animation->height, self) || !self->animation->height) )
+	if(self->modeldata.subject_to_platform>0 && (heightvar=self->animation->height?self->animation->height:self->modeldata.height) && 
+		validanim(self,ANI_DUCK) && check_platform_between(self->x, self->z, self->a, self->a+heightvar, self))
 	{
+		self->idling = 0;
 		self->takeaction = common_stuck_underneath;
 		ent_set_anim(self, ANI_DUCK, 0);
 		goto endthinkcheck;
