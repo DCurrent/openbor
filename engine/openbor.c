@@ -19736,7 +19736,6 @@ entity * bomb_spawn(char *name, int index, float x, float z, float a, int direct
 	return e;
 }
 
-
 // Spawn 3 stars
 int star_spawn(float x, float z, float a, int direction){ // added entity to know which star to load
 	entity *e = NULL;

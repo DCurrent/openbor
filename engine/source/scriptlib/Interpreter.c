@@ -756,7 +756,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		if(i<size-1 && !pInstruction->jumpTargetType && !pInstruction->theJumpTargetIndex) {
 			for(j=i; j<size-1; j++) {
 				switch(((Instruction*)(pinterpreter->theInstructionList.solidlist[j+1]))->OpCode){
-				case DATA:case CLEAN:case NOOP:case FUNCDECL:case PUSH:case POP:case CONSTINT:case CONSTDBL:case CONSTSTR:
+				case DATA:case CLEAN:case NOOP:case FUNCDECL:case PUSH:case POP:case CONSTINT:case CONSTDBL:case CONSTSTR:case CHECKARG:
 					pInstruction->step++;
 					break;
 				default:
@@ -771,7 +771,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 			//jump targets are always placeholders, so skip those opcode that does nothing
 			for(j=t; j<size-1; j++) {
 				switch(pInstruction->ptheJumpTarget[1]->OpCode) {
-				case DATA:case CLEAN:case NOOP:case FUNCDECL:case PUSH:case POP:case CONSTINT:case CONSTDBL:case CONSTSTR:
+				case DATA:case CLEAN:case NOOP:case FUNCDECL:case PUSH:case POP:case CONSTINT:case CONSTDBL:case CONSTSTR:case CHECKARG:
 					pInstruction->ptheJumpTarget++;
 					break;
 				default:
@@ -949,7 +949,9 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 			//copy value from the cached parameter
 			//assert(pinterpreter->pCurrentCall);
 			currentCall = *(pinterpreter->pCurrentCall);
-			ScriptVariant_Copy(pInstruction->theVal, (ScriptVariant*)(currentCall->theRefList->solidlist[currentCall->theRefList->index]));
+			if(List_GetSize(currentCall->theRefList)<=currentCall->theRefList->index)
+				ScriptVariant_Clear(pInstruction->theVal);
+			else ScriptVariant_Copy(pInstruction->theVal, (ScriptVariant*)(currentCall->theRefList->solidlist[currentCall->theRefList->index]));
 			currentCall->theRefList->index++;
 			break;
 
@@ -1010,6 +1012,7 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 		 //Make sure the argument count on the top of the stack matches the
 		 //number of arguments we have
 		case CHECKARG:
+			/*
 			if(pinterpreter->pCurrentCall)
 			{
 				currentCall = *(pinterpreter->pCurrentCall);
@@ -1018,7 +1021,7 @@ HRESULT Interpreter_EvalInstruction(Interpreter* pinterpreter)
 					printf("Runtime error: argument count(%d) doesn't match, check your function call: %s.\n", (int)pInstruction->theVal->lVal, currentCall->Label);
 					hr = E_FAIL;
 				}
-			}
+			}*/
 			break;
 
 		 //This instructs the interpreter to clean one value off the stack.
