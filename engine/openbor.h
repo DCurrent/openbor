@@ -1144,7 +1144,7 @@ typedef struct
 	s_guardpoints   guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
 	int mpswitch; // switch between reduce or gain mp for mpstabletype 4
 	int turndelay; // turn delay
-	float lifespan; // lifespan count down
+	int lifespan; // lifespan count down
 	float knockdowncount; // the knock down count for this entity
 	float attackthrottle; // how often the enemy refuse to attack
 	float attackthrottletime; // how long does the throttle status last
@@ -1357,7 +1357,7 @@ typedef struct entity
 	int bindanim; // keep the bound entities same animation id
 	int escapecount; // For escapehits
 	unsigned rush[2]; // rush combo and max combo
-	float lifespancountdown; // life span count down
+	int lifespancountdown; // life span count down
 
 	//------------- these factors will be added by basic factors of model-------------
 	s_defense* defense;

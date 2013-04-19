@@ -5671,7 +5671,7 @@ s_model* init_model(int cacheindex, int unload) {
 	newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
 	newchar->weaploss[0]                = -1;
 	newchar->weaploss[1]                = -1;
-	newchar->lifespan                   = (float)0xFFFFFFFF;
+	newchar->lifespan                   = 0x7fffffff;
 	newchar->summonkill                 = 1;
 	newchar->candamage                  = -1;
 	newchar->hostile                    = -1;
@@ -12942,7 +12942,7 @@ void check_lost()
     }//else
 
 	// Doom count down
-	if(!is_frozen(self) && self->lifespancountdown != (float)0xFFFFFFFF) self->lifespancountdown--;
+	if(!is_frozen(self) && self->lifespancountdown!=0x7fffffff) self->lifespancountdown--;
 }
 
 // grab walk check
