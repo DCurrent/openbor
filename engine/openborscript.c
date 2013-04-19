@@ -4439,8 +4439,8 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	}
 	case _ep_lifespancountdown:
 	{
-		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->lifespancountdown;
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->lifespancountdown;
 		break;
 	}
 	case _ep_attackthrottle:
@@ -5959,8 +5959,8 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	}
     case _ep_lifespancountdown:
 	{
-		if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-			ent->lifespancountdown = (float)dbltemp;
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->lifespancountdown = (int)ltemp;
 		break;
 	}
     case _ep_attackthrottle:
