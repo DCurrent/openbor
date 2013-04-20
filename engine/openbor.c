@@ -5300,15 +5300,15 @@ void lcmHandleCommandSubtype(ArgList* arglist, s_model* newchar, char* filename)
 		newchar->subject_to_platform    = 0;
 		newchar->no_adjust_base         = 1;
 	}
-	else if(stricmp(value, "notgrab")==0){  // 7-1-2005 notgrab type
-		newchar->subtype = SUBTYPE_NOTGRAB;   // 7-1-2005 notgrab type
+	else if(stricmp(value, "notgrab")==0){
+		newchar->subtype = SUBTYPE_NOTGRAB;
 	}
 	//    ltb 1-18-05  Item Subtype
-	else if(stricmp(value, "touch")==0){  // 7-1-2005 notgrab type
-		newchar->subtype = SUBTYPE_TOUCH;   // 7-1-2005 notgrab type
+	else if(stricmp(value, "touch")==0){
+		newchar->subtype = SUBTYPE_TOUCH;
 	}
-	else if(stricmp(value, "weapon")==0){  // 7-1-2005 notgrab type
-		newchar->subtype = SUBTYPE_WEAPON;   // 7-1-2005 notgrab type
+	else if(stricmp(value, "weapon")==0){
+		newchar->subtype = SUBTYPE_WEAPON;
 	}
 	else if(stricmp(value, "noskip")==0){    // Text animation cannot be skipped if subtype noskip
 		newchar->subtype = SUBTYPE_NOSKIP;
@@ -19365,6 +19365,7 @@ void player_think()
 
 	if((other = find_ent_here(self, self->x, self->z, TYPE_ITEM, player_test_touch))  )
 	{
+		execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
 		didfind_item(other);    // Added function to clean code up a bit
 	}
 
