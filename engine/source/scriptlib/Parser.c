@@ -70,6 +70,10 @@ void Parser_ParseText(Parser* pparser, pp_context* pcontext, List* pIList, LPSTR
    //Make sure we're pointing at the end of that list
    List_GotoLast(pparser->pIList);
 
+   if(!pparser->isImport && testpackfile("data/scripts/openbor.h", packfile)>=0) {
+		pp_parser_include(&pparser->theLexer.preprocessor, "data/scripts/openbor.h");
+   }
+
    //Parse the script text until you reach the end of the file, or until
    //an error occurs.
    while( pparser->theNextToken.theType != TOKEN_EOF ){
