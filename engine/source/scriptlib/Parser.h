@@ -8,6 +8,7 @@
 
 #ifndef PARSER_H
 #define PARSER_H
+#include "depends.h"
 #include "ParserSet.h"
 #include "Instruction.h"
 #include "Stack.h"
@@ -24,6 +25,7 @@ typedef struct Parser{
 	int paramCount;
 	char currentPath[256];                 // current path info of the text
 	BOOL errorFound;
+	BOOL isImport;
 } Parser;
 
 void Parser_Init(Parser* pparser);
