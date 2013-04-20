@@ -9255,6 +9255,7 @@ void free_level(s_level* lv)
 void unload_level(){
 	s_model* temp;
 
+	kill_all();
 	unload_background();
 
 	if(level){
@@ -21066,9 +21067,7 @@ void display_credits()
 	if(savedata.logo != 1) return;
 	fade_out(0, 0);
 
-	kill_all();
 	unload_level();
-	unload_background();
 
 	bothnewkeys = 0;
 
@@ -21827,7 +21826,6 @@ int playlevel(char *filename)
 	if(!musicoverlap) sound_close_music();
 	sound_stopall_sample();
 
-	kill_all();
 	unload_level();
 
 	return (type==2&&endgame!=2) || (player[0].lives > 0 || player[1].lives > 0 || player[2].lives > 0|| player[3].lives > 0); //4player
