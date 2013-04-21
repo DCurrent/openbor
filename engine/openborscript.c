@@ -496,6 +496,10 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_size)) return "size";
 	else if (functionRef==((void*)openbor_get)) return "get";
 	else if (functionRef==((void*)openbor_set)) return "set";
+	else if (functionRef==((void*)openbor_reset)) return "reset";
+	else if (functionRef==((void*)openbor_next)) return "next";
+	else if (functionRef==((void*)openbor_key)) return "key";
+	else if (functionRef==((void*)openbor_value)) return "value";
 	else if (functionRef==((void*)openbor_allocscreen)) return "allocscreen";
 	else if (functionRef==((void*)openbor_clearscreen)) return "clearscreen";
 	else if (functionRef==((void*)openbor_setdrawmethod)) return "setdrawmethod";
@@ -1013,6 +1017,14 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_get, "get");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_set, "set");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_reset, "reset");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_next, "next");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_key, "key");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_value, "value");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_allocscreen, "allocscreen");
 	List_InsertAfter(&theFunctionList,
@@ -10384,7 +10396,7 @@ HRESULT openbor_size(ScriptVariant** varlist , ScriptVariant** pretvar, int para
 
 	return S_OK;
 size_error:
-	printf("Function requires 1 array handle: size(array)\n");
+	printf("Function requires 1 array handle: %s(array)\n", "size");
 	(*pretvar) = NULL;
 	return E_FAIL;
 }
@@ -10433,6 +10445,77 @@ HRESULT openbor_set(ScriptVariant** varlist , ScriptVariant** pretvar, int param
 
 set_error:
 	printf("Function requires 1 array handle, 1 int value and 1 value: set(array, int index, value)\n");
+	return E_FAIL;
+}
+
+//reset(array)
+HRESULT openbor_reset(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	Varlist* array;
+	if(paramCount<1 || varlist[0]->vt!=VT_PTR || !(array=(Varlist*)varlist[0]->ptrVal) || array->magic!=varlist_magic)  goto reset_error;
+	List_Reset(array->list);
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG)(array->list->current!=NULL);
+
+	return S_OK;
+reset_error:
+	printf("Function requires 1 array handle: %s(array)\n", "reset");
+	(*pretvar) = NULL;
+	return E_FAIL;
+}
+
+//next(array)
+HRESULT openbor_next(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	Varlist* array;
+	if(paramCount<1 || varlist[0]->vt!=VT_PTR || !(array=(Varlist*)varlist[0]->ptrVal) || array->magic!=varlist_magic)  goto next_error;
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG)(List_GotoNext(array->list));
+
+	return S_OK;
+next_error:
+	printf("Function requires 1 array handle: %s(array)\n", "next");
+	(*pretvar) = NULL;
+	return E_FAIL;
+}
+
+//key(array)
+HRESULT openbor_key(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	char* name;
+	Varlist* array;
+	if(paramCount<1 || varlist[0]->vt!=VT_PTR || !(array=(Varlist*)varlist[0]->ptrVal) || array->magic!=varlist_magic)  goto key_error;
+
+	name = List_GetName(array->list);
+	if(name) {
+		ScriptVariant_ChangeType(*pretvar, VT_STR);
+		StrCache_Copy((*pretvar)->strVal, name);
+	}else ScriptVariant_Clear(*pretvar);
+
+	return S_OK;
+key_error:
+	printf("Function requires 1 array handle: %s(array)\n", "key");
+	(*pretvar) = NULL;
+	return E_FAIL;
+}
+
+//value(array)
+HRESULT openbor_value(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	ScriptVariant* var;
+	Varlist* array;
+	if(paramCount<1 || varlist[0]->vt!=VT_PTR || !(array=(Varlist*)varlist[0]->ptrVal) || array->magic!=varlist_magic)  goto value_error;
+
+	var = List_Retrieve(array->list);
+	if(var) ScriptVariant_Copy(*pretvar, var);
+	else ScriptVariant_Clear(*pretvar);
+
+	return S_OK;
+value_error:
+	printf("Function requires 1 array handle: %s(array)\n", "value");
+	(*pretvar) = NULL;
 	return E_FAIL;
 }
 
