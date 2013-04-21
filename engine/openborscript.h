@@ -176,6 +176,10 @@ HRESULT openbor_array(ScriptVariant** varlist , ScriptVariant** pretvar, int par
 HRESULT openbor_size(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_get(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_set(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_reset(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_next(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_key(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_value(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
 HRESULT openbor_allocscreen(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_clearscreen(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
