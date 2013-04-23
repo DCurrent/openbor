@@ -415,6 +415,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)system_clearglobalvar)) return "clearglobalvar";
 	else if (functionRef==((void*)system_clearlocalvar)) return "clearlocalvar";
 	else if (functionRef==((void*)system_free)) return "free";
+	else if (functionRef==((void*)system_typeof)) return "typeof";
 	else if (functionRef==((void*)math_sin)) return "sin";
 	else if (functionRef==((void*)math_cos)) return "cos";
 	else if (functionRef==((void*)math_sqrt)) return "sqrt";
@@ -856,6 +857,8 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
 					  (void*)system_free, "free");
 	List_InsertAfter(&theFunctionList,
+					  (void*)system_typeof, "typeof");
+	List_InsertAfter(&theFunctionList,
 					  (void*)math_sin, "sin");
 	List_InsertAfter(&theFunctionList,
 					  (void*)math_cos, "cos");
@@ -1242,6 +1245,18 @@ HRESULT system_free(ScriptVariant** varlist , ScriptVariant** pretvar, int param
 		return S_OK;
 	}
 	return E_FAIL;
+}
+
+//typeof(v);
+HRESULT system_typeof(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	if(paramCount<1) {
+		*pretvar = NULL;
+		return E_FAIL;
+	}
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG)varlist[0]->vt;
+	return S_OK;
 }
 
 HRESULT math_sin(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
@@ -7355,26 +7370,23 @@ HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretv
 {
 	LONG filestreamindex;
 	ScriptVariant* arg = NULL;
-	LONG appendtype;
+	LONG appendtype = -1;
 	size_t len1, len2;
 	char* temp;
 	static char append[2048];
 
-	if(paramCount < 3)
-	{
-		*pretvar = NULL;
-		return E_FAIL;
-	}
-
-	ScriptVariant_Clear(*pretvar);
+	*pretvar = NULL;
+	if(paramCount < 2) goto append_error;
 
 	arg = varlist[0];
 	if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
-		return S_OK;
+		goto append_error;
 
-	arg = varlist[2];
-	if(FAILED(ScriptVariant_IntegerValue(arg, &appendtype)))
-		return S_OK;
+	if(paramCount>=3) {
+		arg = varlist[2];
+		if(FAILED(ScriptVariant_IntegerValue(arg, &appendtype)))
+			goto append_error;
+	}
 
 	arg = varlist[1];
 	ScriptVariant_ToString(arg, append);
@@ -7382,24 +7394,33 @@ HRESULT openbor_filestreamappend(ScriptVariant** varlist , ScriptVariant** pretv
 	len1 = strlen(append);
 	len2 = filestreams[filestreamindex].size;
 
-	append[len1] = ' ';
-	append[++len1] = '\0';
-
 	filestreams[filestreamindex].buf = realloc(filestreams[filestreamindex].buf, sizeof(*temp)*(len1+len2+4));
 
 	if(appendtype == 0)
 	{
+		append[len1] = ' ';
+		append[++len1] = '\0';
 		strcpy(filestreams[filestreamindex].buf+len2, "\r\n");
 		len2 += 2;
 		strcpy(filestreams[filestreamindex].buf+len2, append);
 	}
 	else if(appendtype == 1)
 	{
+		append[len1] = ' ';
+		append[++len1] = '\0';
+		strcpy(filestreams[filestreamindex].buf+len2, append);
+	}
+	else
+	{
 		strcpy(filestreams[filestreamindex].buf+len2, append);
 	}
 	filestreams[filestreamindex].size = len1+len2;
 
 	return S_OK;
+
+append_error:
+	return E_FAIL;
+
 }
 
 HRESULT openbor_createfilestream(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
@@ -8239,6 +8260,11 @@ int mapstrings_transconst(ScriptVariant** varlist, int paramCount)
 		constname = (char*)StrCache_Get(varlist[0]->strVal);
 
 		IICMPCONST(COMPATIBLEVERSION)
+		ICMPCONST(VT_EMPTY)
+		ICMPCONST(VT_STR)
+		ICMPCONST(VT_INTEGER)
+		ICMPCONST(VT_DECIMAL)
+		ICMPCONST(VT_PTR)
 		ICMPCONST(MIN_INT)
 		ICMPCONST(MAX_INT)
 		ICMPCONST(PIXEL_8)
