@@ -87,6 +87,7 @@ HRESULT system_clearlocalvar(ScriptVariant** varlist , ScriptVariant** pretvar, 
 HRESULT system_clearglobalvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT system_clearindexedvar(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT system_free(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT system_typeof(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT math_sin(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT math_cos(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT math_sqrt(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
