@@ -13130,9 +13130,12 @@ void update_animation()
 	if(self->modeldata.subject_to_platform>0)
 	{
 		other = self->landed_on_platform;
-		if(other && testplatform(other, self->x, self->z, NULL) && self->a <= other->a + other->animation->platform[other->animpos][7])
+		// +2, temporary solution for falling platform
+		// TODO, move this to gravity code and complete the logic
+		if(other && testplatform(other, self->x, self->z, NULL) && self->a <= other->a + other->animation->platform[other->animpos][7] + 2)
 		{
-			self->a = self->base = other->a + other->animation->platform[other->animpos][7];
+			if(self->tossv<=0 || self->a <= other->a + other->animation->platform[other->animpos][7])
+				self->a = self->base = other->a + other->animation->platform[other->animpos][7];
 		}
 		else other = check_platform_below(self->x, self->z, self->a, self);
 	}
@@ -13468,7 +13471,7 @@ static void _domove(entity* e)
 
 	x = self->x;
 	z = self->z;
-	if(self->movex || self->movez) {
+	if(self->nextmove<=time && (self->movex || self->movez) ){
 		if(self->trymove)
 		{
 			// only do linked move while grabwalking for now, 
@@ -13503,12 +13506,11 @@ void ent_post_update(entity* e)
 	e->update_mark &= 0xFFFFFFFC;
 	self = e;
 
-	if(!(self->update_mark&4) && !is_frozen(self) && self->nextmove<=time)
+	if(!(self->update_mark&4) && !is_frozen(self) )
 	{
 		// check moving platform
 		if((plat=self->landed_on_platform) &&
-			!is_frozen(plat) &&  plat->nextmove<=time &&
-			(plat->movez || plat->movex) &&
+			!is_frozen(plat) &&  
 			testplatform(plat,self->x,self->z, NULL) &&
 			self->a <= plat->a + plat->animation->platform[plat->animpos][7] ) // on the platform?
 		{
