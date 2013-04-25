@@ -12250,6 +12250,59 @@ entity * check_platform_below(float x, float z, float a, entity* exclude)
 	return (ind>=0)?ent_list[ind]:NULL;
 }
 
+entity* check_platform_above_entity(entity* e)
+{
+	float mina, heightvar;
+	entity *plat = NULL;
+	int i, ind;
+
+	if(level==NULL) return NULL;
+	if(e->animation->height) heightvar = e->animation->height;
+	else heightvar = e->modeldata.height;
+
+	mina = 9999999;
+	ind = -1;
+	for(i=0; i<ent_max; i++)
+	{
+		if(ent_list[i]->exists && testplatform(ent_list[i], e->x, e->z, e) )
+		{
+			plat = ent_list[i];
+			if(plat->a + plat->animation->platform[plat->animpos][7] > e->a+heightvar && plat->a < mina)
+			{
+				mina = plat->a;
+				ind = i;
+			}
+		}
+	}
+	return (ind>=0)?ent_list[ind]:NULL;
+}
+
+entity* check_platform_below_entity(entity* e)
+{
+	float maxa, a;
+	entity *plat = NULL;
+	int i, ind;
+
+	if(level==NULL) return NULL;
+
+	maxa = MIN_INT;
+	ind = -1;
+	for(i=0; i<ent_max; i++)
+	{
+		if(ent_list[i]->exists && testplatform(ent_list[i], e->x, e->z, e) )
+		{
+			plat = ent_list[i];
+			a = plat->a + plat->animation->platform[plat->animpos][7];
+			if(a < e->a+4 && plat->a<e->a  && a > maxa)
+			{
+				maxa = a;
+				ind = i;
+			}
+		}
+	}
+	return (ind>=0)?ent_list[ind]:NULL;
+}
+
 // find the 1st platform entity here
 entity * check_platform(float x, float z, entity* exclude)
 {
@@ -12755,24 +12808,31 @@ void do_attack(entity *e)
 }
 
 
-void check_gravity()
+void check_gravity(entity* e)
 {
 	int heightvar;
-	entity* other, *dust;
+	entity* other, *dust, *tempself, *plat=NULL;
 	s_attack attack;
 	float gravity;
 	float fmin,fmax;
 
+	if(e->update_mark&8) return;
+
+	tempself = self;
+	self = e;
+
+	adjust_base(self, &plat);
+
 	if(!is_frozen(self) )// Incase an entity is in the air, don't update animations
 	{
-		if((self->falling || self->tossv || self->a!=self->base) && self->toss_time <= time)
+		if((self->tossv || self->a!=self->base) && self->toss_time <= time)
 		{
-			if(self->modeldata.subject_to_platform>0 && self->tossv>0)
-				other = check_platform_above(self->x, self->z, self->a+self->tossv, self);
-			else other = NULL;
-
 			if(self->animation->height) heightvar = self->animation->height;
 			else heightvar = self->modeldata.height;
+
+			if(heightvar && self->modeldata.subject_to_platform>0 && self->tossv>0)
+				other = check_platform_above_entity(self);
+			else other = NULL;
 
 			if( other && other->a<=self->a+heightvar)
 			{
@@ -12849,6 +12909,9 @@ void check_gravity()
 					self->xdir = self->zdir = self->tossv= 0;
 				else self->tossv = 0;
 
+				if(plat && !self->landed_on_platform && self->a<=plat->a + plat->animation->platform[plat->animpos][7])
+					self->landed_on_platform = plat;
+
 				if(self->animation->landframe.frame>=0                                 //Has landframe?
                     && self->animation->landframe.frame<= self->animation->numframes   //Not over animation frame count?
                     && self->animpos < self->animation->landframe.frame)               //Not already past landframe?
@@ -12887,10 +12950,14 @@ void check_gravity()
 				// in case landing, set hithead to NULL
 				self->hithead = NULL;
 			}// end of if - land checking
-			self->toss_time = time + 1;
 		}// end of if  - in-air checking
+		if(self->toss_time <= time) self->toss_time = time + 1;
 
 	}//end of if
+
+	self->update_mark |= 8;
+
+	self = tempself;
 }
 
 void check_lost()
@@ -13012,11 +13079,104 @@ static float check_basemap(int x, int z)
 	return base==-1000?base:maxbase;
 }
 
+void adjust_base(entity* e, entity** pla) {
+	int wall, hole = -1;
+	float seta, maxbase;
+	entity *other = NULL, *plat, *tempself;
+
+	tempself = self;
+	self = e;
+
+	if(self->tossv>0) self->landed_on_platform = NULL; 
+
+	if(self->modeldata.subject_to_platform>0) {
+		other = check_platform_below_entity(self);
+	}
+	else other = NULL;
+
+	if(other && !(other->update_mark&8)) {
+		check_gravity(other);
+	}
+
+	//no longer underneath?
+	if(self->landed_on_platform && !testplatform(self->landed_on_platform, self->x, self->z, NULL))
+		self->landed_on_platform = NULL;
+
+	if(other && !self->landed_on_platform && self->a<=other->a + other->animation->platform[other->animpos][7])
+		self->landed_on_platform = other;
+
+	if( (plat=self->landed_on_platform) ) {
+		if(!(plat->update_mark&8)) {
+			check_gravity(plat);
+		}
+		self->a = self->base = plat->a + plat->animation->platform[plat->animpos][7];
+	}
+
+	*pla = other;
+
+	// adjust base
+	if(self->modeldata.no_adjust_base<=0)
+	{
+		seta = (float)((self->animation->seta)?(self->animation->seta[self->animpos]):(-1));
+
+		// Checks to see if entity is over a wall and or obstacle, and adjusts the base accordingly
+		//wall = checkwall_below(self->x, self->z);
+		//find a wall below us
+		if(self->modeldata.subject_to_wall>0)
+			wall = checkwall_below(self->x, self->z, self->a);
+		else wall = -1;
+
+		maxbase = check_basemap(self->x, self->z);
+
+		if(maxbase==-1000 && self->modeldata.subject_to_hole>0)
+		{
+			hole = (wall<0&&!other)?checkhole(self->x, self->z):0;
+
+			if(seta<0 && hole)
+			{
+				self->base=-1000;
+				ent_unlink(self);
+			}
+			else if(!hole && self->base == -1000)
+			{
+				 if(self->a>=0) self->base = 0;
+				 else
+				 {
+					 self->xdir = self->zdir = 0; // hit the hole border
+				 }
+			}
+		}
+
+		if(self->base != -1000 || wall>=0)
+		{
+			if(other != NULL && other != self )
+			{
+				self->base = (seta + self->altbase >=0 ) * (seta+self->altbase) + (other->a + other->animation->platform[other->animpos][7]);
+			}
+			else if(wall >= 0)
+			{
+				//self->modeldata.subject_to_wall &&//we move this up to avoid some checking time
+				self->base = (seta + self->altbase >=0 ) * (seta+self->altbase) + (self->a >= level->walls[wall][7]) * level->walls[wall][7];
+			}
+			else if(seta >= 0) self->base = (seta + self->altbase >=0 ) * (seta+self->altbase);
+			else if(self->animation != self->modeldata.animation[ANI_VAULT] && (!self->animation->movea || self->animation->movea[self->animpos] == 0))
+			{
+				// Don't want to adjust the base if vaulting
+				// No obstacle/wall or seta, so just set to 0
+				self->base = 0;
+			}
+		}
+
+		if(self->base!=-1000 && maxbase>self->base) self->base = maxbase;
+	}
+
+	self = tempself;
+}
+
 void update_animation()
 {
-	int f, wall, hole = -1;
-	float seta, maxbase, scrollv=0;
-	entity *other = NULL;
+	int f;
+	float scrollv=0;
 
 	if(level)
 	{
@@ -13127,75 +13287,6 @@ void update_animation()
 		}
 	}
 
-	if(self->modeldata.subject_to_platform>0)
-	{
-		other = self->landed_on_platform;
-		// +2, temporary solution for falling platform
-		// TODO, move this to gravity code and complete the logic
-		if(other && testplatform(other, self->x, self->z, NULL) && self->a <= other->a + other->animation->platform[other->animpos][7] + 2)
-		{
-			if(self->tossv<=0 || self->a <= other->a + other->animation->platform[other->animpos][7])
-				self->a = self->base = other->a + other->animation->platform[other->animpos][7];
-		}
-		else other = check_platform_below(self->x, self->z, self->a, self);
-	}
-	else other = NULL;
-	self->landed_on_platform = other;
-	// adjust base
-	if(self->modeldata.no_adjust_base<=0)
-	{
-		seta = (float)((self->animation->seta)?(self->animation->seta[self->animpos]):(-1));
-
-		// Checks to see if entity is over a wall and or obstacle, and adjusts the base accordingly
-		//wall = checkwall_below(self->x, self->z);
-		//find a wall below us
-		if(self->modeldata.subject_to_wall>0)
-			wall = checkwall_below(self->x, self->z, self->a);
-		else wall = -1;
-
-		maxbase = check_basemap(self->x, self->z);
-
-		if(maxbase==-1000 && self->modeldata.subject_to_hole>0)
-		{
-			hole = (wall<0&&!other)?checkhole(self->x, self->z):0;
-
-			if(seta<0 && hole)
-			{
-				self->base=-1000;
-				ent_unlink(self);
-			}
-			else if(!hole && self->base == -1000)
-			{
-				 if(self->a>=0) self->base = 0;
-				 else
-				 {
-					 self->xdir = self->zdir = 0; // hit the hole border
-				 }
-			}
-		}
-
-		if(self->base != -1000 || wall>=0)
-		{
-			if(other != NULL && other != self )
-			{
-				self->base = (seta + self->altbase >=0 ) * (seta+self->altbase) + (other->a + other->animation->platform[other->animpos][7]);
-			}
-			else if(wall >= 0)
-			{
-				//self->modeldata.subject_to_wall &&//we move this up to avoid some checking time
-				self->base = (seta + self->altbase >=0 ) * (seta+self->altbase) + (self->a >= level->walls[wall][7]) * level->walls[wall][7];
-			}
-			else if(seta >= 0) self->base = (seta + self->altbase >=0 ) * (seta+self->altbase);
-			else if(self->animation != self->modeldata.animation[ANI_VAULT] && (!self->animation->movea || self->animation->movea[self->animpos] == 0))
-			{
-				// Don't want to adjust the base if vaulting
-				// No obstacle/wall or seta, so just set to 0
-				self->base = 0;
-			}
-		}
-
-		if(self->base!=-1000 && maxbase>self->base) self->base = maxbase;
-	}
 }
 
 void check_attack()
@@ -13463,78 +13554,74 @@ void adjust_bind(entity* e)
 	}
 }
 
-static void _domove(entity* e)
-{
+
+void check_move(entity* e) {
 	float x,z;
-	entity* tempself = self;
+	entity* plat, *tempself;
+	if((e->update_mark&4)) return;
+	tempself = self;
 	self = e;
 
 	x = self->x;
 	z = self->z;
-	if(self->nextmove<=time && (self->movex || self->movez) ){
-		if(self->trymove)
+	// check moving platform
+	if((plat=self->landed_on_platform) ) // on the platform?
+	{
+		//update platform first to get actual movex and movez
+		if(!(plat->update_mark&4)) check_move(plat);
+		if(plat->movex || plat->movez)
 		{
-			// only do linked move while grabwalking for now, 
-			// otherwise some grab moves that use move/movez command may act strangely
-			if(self->grabbing && self->grabwalking) check_link_move(self->movex, self->movez);
-			else// if(!self->link || self->grabbing)
+			if(self->trymove)
 			{
-				if(1!=self->trymove(self->movex, self->movez) && self->idling) {
-					self->pathblocked+=time%2;
-				} else {
-					self->pathblocked = 0;
-				}
+				if(self->grabbing) check_link_move(plat->movex, plat->movez);
+				else if(!self->link) self->trymove(plat->movex, plat->movez);
+			}
+			else 
+			{
+				self->x += plat->movex;
+				self->z += plat->movez;
 			}
 		}
-		else 
-		{
-			self->x += self->movex;
-			self->z += self->movez;
+	}
+	if(!is_frozen(self) )
+	{
+		if(self->nextmove<=time && (self->movex || self->movez) ){
+			if(self->trymove)
+			{
+				// only do linked move while grabwalking for now, 
+				// otherwise some grab moves that use move/movez command may act strangely
+				if(self->grabbing && self->grabwalking) check_link_move(self->movex, self->movez);
+				else// if(!self->link || self->grabbing)
+				{
+					if(1!=self->trymove(self->movex, self->movez) && self->idling) {
+						self->pathblocked+=time%2;
+					} else {
+						self->pathblocked = 0;
+					}
+				}
+			}
+			else 
+			{
+				self->x += self->movex;
+				self->z += self->movez;
+			}
 		}
+		if(self->nextmove<=time) self->nextmove = time+1;
+
 	}
 	self->movex = self->x-x;
 	self->movez = self->z-z;
-	self->nextmove = time+1;
-
 	self->update_mark |= 4;
 	self = tempself;
 }
 
 void ent_post_update(entity* e)
 {
-	entity* plat;
-	e->update_mark &= 0xFFFFFFFC;
-	self = e;
+	check_gravity(e);// check gravity
+	check_move(e);
 
-	if(!(self->update_mark&4) && !is_frozen(self) )
-	{
-		// check moving platform
-		if((plat=self->landed_on_platform) &&
-			!is_frozen(plat) &&  
-			testplatform(plat,self->x,self->z, NULL) &&
-			self->a <= plat->a + plat->animation->platform[plat->animpos][7] ) // on the platform?
-		{
-			//update platform first to get actual movex and movez
-			if(!(plat->update_mark&4)) _domove(plat);
-			if(plat->movex || plat->movez)
-			{
-				if(self->trymove)
-				{
-					if(self->grabbing) check_link_move(plat->movex, plat->movez);
-					else if(!self->link) self->trymove(plat->movex, plat->movez);
-				}
-				else 
-				{
-					self->x += plat->movex;
-					self->z += plat->movez;
-				}
-			}
-		}
-		_domove(self);
-	}
-
-	if(self->bound)
-		adjust_bind(self);
+	if(e->bound)
+		adjust_bind(e);
 }
 
 // arrenge the list reduce its length
@@ -13593,8 +13680,6 @@ void update_ents()
 				execute_updateentity_script(self);// execute a script
 				if(!self->exists) continue;
 				check_ai();// check ai
-				if(!self->exists) continue;
-				check_gravity();// check gravity
 				if(!self->exists) continue;
 				update_animation(); // if not frozen, update animation
 				if(!self->exists) continue;
@@ -14602,6 +14687,7 @@ void common_jump()
 
 	if(inair(self))
 	{
+		//printf("%f %f %f %d\n", self->base, self->a, self->tossv, self->landed_on_platform);
 		return;
 	}
 

@@ -1809,6 +1809,8 @@ int testmove(entity*, float, float, float, float);
 entity * check_platform_below(float x, float z, float a, entity* exclude);
 entity * check_platform(float x, float z, entity* exclude);
 void do_attack(entity *e);
+void adjust_base(entity* e, entity** pla);
+void check_gravity(entity* e);
 void update_ents();
 entity * find_ent_here(entity *exclude, float x, float z, int types, int (*test)(entity*,entity*));
 void display_ents();
