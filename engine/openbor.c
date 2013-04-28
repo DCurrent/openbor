@@ -7561,7 +7561,6 @@ s_model* load_cached_model(char * name, char * owner, char unload)
 							platform_con[5] = platform[5];
 							platform_con[6] = platform[6];
 						}
-						platform_con[6] = platform[6];
 						platform_con[7] = platform[7];
 						if(shadow_set)
 						{
@@ -11054,6 +11053,19 @@ found:
 	common_anim_series(ent, animdowns, max_downs, ent->walkmode, ANI_DOWN)
 
 
+// This function find nearst x escape point from the given position
+// It assumes the point is already inside the wall
+static float find_nearest_wall_x(int wall, float x, float z) {
+	float x1, x2;
+
+	x1 = level->walls[wall][0] + level->walls[wall][3] + (level->walls[wall][1] - z) * ((level->walls[wall][2] - level->walls[wall][3]) / level->walls[wall][6]);
+	x2 = level->walls[wall][0] + level->walls[wall][5] + (level->walls[wall][1] - z) * ((level->walls[wall][4] - level->walls[wall][5]) / level->walls[wall][6]);
+
+	if(diff(x1,x)>diff(x2,x))
+		return x2;
+	else return x1;
+}
+
 // this method initialize an entity's A.I. behaviors
 void ent_default_init(entity* e)
 {
@@ -11255,9 +11267,12 @@ void ent_default_init(entity* e)
 		e->modeldata.multiple = 0;
 
 	if(e->modeldata.subject_to_platform>0 && (other=check_platform_below(e->x, e->z, e->a, e)))
-		e->base += other->a + other->animation->platform[other->animpos][7];
-	else if(e->modeldata.subject_to_wall>0 && (wall=checkwall_below(e->x, e->z, 9999999)) >= 0)
-		e->base += level->walls[wall][7];
+		e->base = other->a + other->animation->platform[other->animpos][7];
+	else if(e->modeldata.subject_to_wall>0 && (wall=checkwall_below(e->x, e->z, 9999999)) >= 0) {
+		if(level->walls[wall][7]>MAX_WALL_HEIGHT)
+			e->x = find_nearest_wall_x(wall, e->x, e->z);
+		else e->base = level->walls[wall][7];
+	}
 }
 
 void ent_spawn_ent(entity* ent)
@@ -13123,7 +13138,7 @@ void adjust_base(entity* e, entity** pla) {
 		//wall = checkwall_below(self->x, self->z);
 		//find a wall below us
 		if(self->modeldata.subject_to_wall>0)
-			wall = checkwall_below(self->x, self->z, self->a);
+			wall = checkwall_below(self->x, self->z, 9999999);
 		else wall = -1;
 
 		maxbase = check_basemap(self->x, self->z);
@@ -13156,7 +13171,7 @@ void adjust_base(entity* e, entity** pla) {
 			else if(wall >= 0)
 			{
 				//self->modeldata.subject_to_wall &&//we move this up to avoid some checking time
-				self->base = (seta + self->altbase >=0 ) * (seta+self->altbase) + (self->a >= level->walls[wall][7]) * level->walls[wall][7];
+				self->base = (seta + self->altbase >=0 ) * (seta+self->altbase) + level->walls[wall][7];
 			}
 			else if(seta >= 0) self->base = (seta + self->altbase >=0 ) * (seta+self->altbase);
 			else if(self->animation != self->modeldata.animation[ANI_VAULT] && (!self->animation->movea || self->animation->movea[self->animpos] == 0))
@@ -16040,7 +16055,7 @@ int trygrab(entity* other)
 
 int common_trymove(float xdir, float zdir)
 {
-	entity *other = NULL;
+	entity *other = NULL, *te = NULL;
 	int wall, heightvar;
 	float x, z, oxdir, ozdir;
 
@@ -16059,7 +16074,7 @@ int common_trymove(float xdir, float zdir)
 	// Subjec to Z and out of bounds? Return to level!
 	if (self->modeldata.subject_to_minz>0)
 	{
-		if(zdir && z < PLAYER_MIN_Z)
+		if(z < PLAYER_MIN_Z)
 		{
 			zdir = PLAYER_MIN_Z - self->z;
 			execute_onblockz_script(self);
@@ -16068,7 +16083,7 @@ int common_trymove(float xdir, float zdir)
 
 	if (self->modeldata.subject_to_maxz>0)
 	{
-		if(zdir && z > PLAYER_MAX_Z)
+		if(z > PLAYER_MAX_Z)
 		{
 			zdir = PLAYER_MAX_Z - self->z;
 			execute_onblockz_script(self);
@@ -16120,11 +16135,13 @@ int common_trymove(float xdir, float zdir)
 	//--------------obstacle checking ------------------
 	if(self->modeldata.subject_to_obstacle>0 /*&& !inair(self)*/)
 	{
+		//TODO, check once instead of twice
 		if((other = find_ent_here(self, x, self->z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
 		   (xdir>0 ? other->x > self->x: other->x < self->x) &&
 		   (!other->animation->platform||!other->animation->platform[other->animpos][7]))
 			{
 				xdir    = 0;
+				te = other;
 				execute_onblocko_script(self, other);
 			}
 		if((other = find_ent_here(self, self->x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
@@ -16132,7 +16149,8 @@ int common_trymove(float xdir, float zdir)
 		   (!other->animation->platform||!other->animation->platform[other->animpos][7]))
 			{
 				zdir    = 0;
-				execute_onblocko_script(self, other);
+				if(te!=other) //just in case they are the same obstacle
+					execute_onblocko_script(self, other);
 			}
 	}
 
@@ -16149,8 +16167,11 @@ int common_trymove(float xdir, float zdir)
 	// Check for obstacles with platform code and adjust base accordingly
 	if(self->modeldata.subject_to_platform>0 && (other = check_platform_between(x, z, self->a, self->a+heightvar, self)) )
 	{
-		if(xdir>0 ? other->x>self->x : other->x<self->x) {xdir = 0; }
-		if(zdir>0 ? other->z>self->z : other->z<self->z) {zdir = 0; }
+		//if(xdir>0 ? other->x>self->x : other->x<self->x) {xdir = 0; }
+		//if(zdir>0 ? other->z>self->z : other->z<self->z) {zdir = 0; }
+		//temporary fix for thin platforms (i.e, offset is not between left and right side)
+		// TODO: find the collision position, merge with wall code
+		xdir = zdir = 0;
 	}
 
 	if(!xdir && !zdir) return 0;
@@ -20198,6 +20219,8 @@ void spawnplayer(int index)
 	}
 	else if(PLAYER_MAX_Z - PLAYER_MIN_Z > 5) p.z = (float)(PLAYER_MIN_Z + 5);
 	else p.z = (float)PLAYER_MIN_Z;
+	if(p.z<PLAYER_MIN_Z) p.z = PLAYER_MIN_Z;
+	else if(p.z>PLAYER_MAX_Z) p.z = PLAYER_MAX_Z;
 	//////////////////checking holes/ walls///////////////////////////////////
 	for(xc = 0; xc < videomodes.hRes / 4; xc++){
 		if(p.x > videomodes.hRes) p.x -= videomodes.hRes;
