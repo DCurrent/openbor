@@ -22449,9 +22449,8 @@ int load_saved_game()
 					savelevel[saveslot].pLives[0],
 					savelevel[saveslot].pLives[1], savelevel[saveslot].pLives[2],
 					savelevel[saveslot].pLives[3]);
-				_menutextm((selector==1), 5, 0, "Start Game");
 			}
-			_menutextm((selector==2), 6, 0, "Back");
+			_menutextm((selector==1), 6, 0, "Back");
 		}
 		update(0,0);
 
@@ -22481,18 +22480,18 @@ int load_saved_game()
 			sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol,savedata.effectvol, 100);
 		}
 		if(savedStatus){
-			if(selector<0) selector = 2;
-			if(selector>2) selector = 0;
+			if(selector<0) selector = 1;
+			if(selector>1) selector = 0;
 		}
-		else selector = 2;
+		else selector = 1;
 
-		if(selector > 0 && (bothnewkeys & FLAG_ANYBUTTON)){
+		if((bothnewkeys & FLAG_ANYBUTTON)){
 			sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol,savedata.effectvol, 100);
 			switch(selector){
-				case 1:
+				case 0:
 					return saveslot;
 					break;
-				case 2:
+				case 1:
 					quit = 1;
 					break;
 			}
