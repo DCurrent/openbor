@@ -2396,6 +2396,7 @@ _ep_mpstableval,
 _ep_name,
 _ep_nameposition,
 _ep_nextanim,
+_ep_nextmove,
 _ep_nextthink,
 _ep_no_adjust_base,
 _ep_noaicontrol,
@@ -2567,6 +2568,7 @@ static const char* eplist[] = {
 "name",
 "nameposition",
 "nextanim",
+"nextmove",
 "nextthink",
 "no_adjust_base",
 "noaicontrol",
@@ -4692,6 +4694,12 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 		(*pretvar)->lVal = (LONG)ent->nextanim;
 		break;
 	}
+	case _ep_nextmove:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)ent->nextmove;
+		break;
+	}
 	case _ep_nextthink:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -6107,6 +6115,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant** varlist , ScriptVariant** p
 	{
 		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
 			ent->nextanim = (int)ltemp;
+		break;
+	}
+    case _ep_nextmove:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+			ent->nextmove = (int)ltemp;
 		break;
 	}
 	case _ep_nextthink:
