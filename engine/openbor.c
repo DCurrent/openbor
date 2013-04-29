@@ -12840,7 +12840,7 @@ void check_gravity(entity* e)
 
 	if(!is_frozen(self) )// Incase an entity is in the air, don't update animations
 	{
-		if((self->tossv || self->a!=self->base) && self->toss_time <= time)
+		if((self->falling || self->tossv || self->a!=self->base) && self->toss_time <= time)
 		{
 			if(self->animation->height) heightvar = self->animation->height;
 			else heightvar = self->modeldata.height;
