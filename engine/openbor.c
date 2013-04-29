@@ -21948,7 +21948,7 @@ static entity* spawnexample(int i)
 	entity* example;
 	example = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodeln(NULL, i));
 	strcpy(player[i].name, example->model->name);
-	player[i].colourmap = nextcolourmap(example->model, i-1);
+	player[i].colourmap = colourselect?nextcolourmap(example->model, i-1):0;
 	ent_set_colourmap(example, player[i].colourmap);
 	return example;
 }
