@@ -540,6 +540,7 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_compilescript)) return "compilescript";
 	else if (functionRef==((void*)openbor_executescript)) return "executescript";
 	else if (functionRef==((void*)openbor_loadgamefile)) return "loadgamefile";
+	else if (functionRef==((void*)openbor_playgame)) return "playgame";
 	else if (functionRef==((void*)openbor_getsaveinfo)) return "getsaveinfo";
 	else return "<unknown function>";
 }
@@ -1106,6 +1107,8 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_executescript, "executescript");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_loadgamefile, "loadgamefile");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_playgame, "playgame");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_getsaveinfo, "getsaveinfo");
 
@@ -11842,21 +11845,34 @@ cs_error:
 
 
 //loadgamefile() //only reload saved level file from saves
-//loadgamefile(set) //load game from this save slot 
 HRESULT openbor_loadgamefile(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
-	LONG ltemp;
+	loadGameFile();
 	*pretvar = NULL;
-	if(paramCount>=1) {
-		if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ltemp)) )
-			return E_FAIL;
-		else {
-			useSave = 1;
-			useSet = ltemp;
-			endgame = 1;
-		}
-	} else loadGameFile();
 	return S_OK;
+}
+
+//playgame(set, usesave?)
+HRESULT openbor_playgame(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG lset=0, lsave=-1;
+	*pretvar = NULL;
+
+	if(paramCount>=1 && FAILED(ScriptVariant_IntegerValue(varlist[0], &lset)) )
+		goto pg_error;
+	if(paramCount>=2 && FAILED(ScriptVariant_IntegerValue(varlist[1], &lsave)) )
+		goto pg_error;
+
+	
+	useSave = lsave;
+	useSet = lset;
+	endgame = 1;
+
+	return S_OK;
+
+pg_error:
+	*pretvar = NULL;
+	return E_FAIL;
 }
 
 //getsaveinfo(set, prop);

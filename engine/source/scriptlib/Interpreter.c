@@ -418,6 +418,10 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 	for(i=0; i<size; i++)
 	{
 		pInstruction = (Instruction*)List_Retrieve(&(pinterpreter->theInstructionList));
+		
+		//char pStr[256];
+		//Instruction_ToString(pInstruction, pStr);
+		//printf("%s\n", pStr);
 		//The OpCode will tell us what operation to perform.
 		switch( pInstruction->OpCode ){
 			//Push a constant string
@@ -713,7 +717,6 @@ HRESULT Interpreter_CompileInstructions(Interpreter* pinterpreter)
 		}
 		List_GotoNext(&(pinterpreter->theInstructionList));
 	}
-
 	// clear some unused properties
 	List_Reset(&(pinterpreter->theInstructionList));
 	size = List_GetSize(&(pinterpreter->theInstructionList));
