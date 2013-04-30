@@ -10261,7 +10261,7 @@ void load_level(char *filename){
 		advancex = (float)(level->width-videomodes.hRes);
 	else if(level->scrolldir&SCROLL_INWARD)
 		advancey = (float)(panel_height-videomodes.vRes);
-
+	
 	if(exit_blocked) addwall(level->width-30, PLAYER_MAX_Z, -panel_height, 0, 1000,1000, panel_height,MAX_WALL_HEIGHT+1);
 	if(exit_hole) addhole(level->width, PLAYER_MAX_Z, -panel_height, 0, 1000,1000, panel_height);
 
@@ -21964,7 +21964,7 @@ int selectplayer(int *players, char* filename)
 	selectScreen = 1;
 	kill_all();
 	reset_playable_list(1);
-
+	memset(player, 0, sizeof(*player)*4);
 	loadGameFile();
 
 	if(filename && filename[0])
@@ -22020,7 +22020,6 @@ int selectplayer(int *players, char* filename)
 		{
 			for(i=0; i<set->maxplayers; i++)
 			{
-				memset(&player[i], 0, sizeof(player[i]));
 				if(!players[i]) continue;
 
 				strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
@@ -22182,7 +22181,6 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 	if(fade == 0) fade = 24;
 	sameplayer = set->nosame;
 
-	memset(player, 0, sizeof(*player)*4);
 
 	for(i=0; i<MAX_PLAYERS; i++)
 	{
@@ -22190,8 +22188,9 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 		else skipselect[i][0] = 0;
 	}
 
-	if(useSavedGame && save->flag)
+	if(useSavedGame==1 && save->flag)
 	{
+		memset(player, 0, sizeof(*player)*4);
 		if(!loadScriptFile()) printf("Warning, failed to load script save!\n");
 		current_level = save->level;
 		current_stage = save->stage;
@@ -22215,7 +22214,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 
 	nosave = 1;
 
-	if((useSavedGame && save->flag == 2) || selectplayer(players, NULL)) // if save flag is 2 don't select player
+	if((useSavedGame==1 && save->flag == 2) || useSavedGame==2 || selectplayer(players, NULL)) // if save flag is 2 don't select player
 	{
 		while(current_level < set->numlevels)
 		{

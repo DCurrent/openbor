@@ -55,6 +55,7 @@ void StrCache_Init()
 	for(i=0; i<STRCACHE_INC; i++) {
 		strcache[i].str = malloc(sizeof(CHAR)*(MAX_STR_VAR_LEN+1));
 		strcache[i].str[0] = 0;
+		strcache[i].len = MAX_STR_VAR_LEN;
 		strcache_index[i] = i;
 	}
 	strcache_size = STRCACHE_INC;
@@ -194,7 +195,6 @@ void ScriptVariant_ParseStringConstant(ScriptVariant* var, CHAR* str)
 	//assert(index<strcache_size);
 	//assert(size>0);
 	int i;
-	
 	for(i=0; i<strcache_size; i++) {
 		if(strcache[i].ref && strcmp(str, strcache[i].str)==0)
 		{
