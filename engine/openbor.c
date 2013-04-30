@@ -10502,7 +10502,7 @@ void updatestatus(){
 			}
 			else if(player[i].playkeys & (FLAG_MOVELEFT|FLAG_MOVERIGHT))
 			{
-				player[i].colourmap = nextcolourmap(model, i-1);
+				player[i].colourmap = colourselect?nextcolourmap(model, i-1):0;
 				model = ((player[i].playkeys&FLAG_MOVELEFT)?prevplayermodeln:nextplayermodeln)(model, i);
 				strcpy(player[i].name, model->name);
 				player[i].playkeys = 0;
