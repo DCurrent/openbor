@@ -92,6 +92,9 @@ extern float          musicfade[2];
 extern int            musicloop;
 extern u32            musicoffset;
 extern int            models_cached;
+extern int endgame;
+extern int useSave;
+extern int useSet;
 
 
 extern s_sprite_list *sprite_list;
@@ -536,6 +539,8 @@ const char* Script_GetFunctionName(void* functionRef)
 	else if (functionRef==((void*)openbor_loadscript)) return "loadscript";
 	else if (functionRef==((void*)openbor_compilescript)) return "compilescript";
 	else if (functionRef==((void*)openbor_executescript)) return "executescript";
+	else if (functionRef==((void*)openbor_loadgamefile)) return "loadgamefile";
+	else if (functionRef==((void*)openbor_getsaveinfo)) return "getsaveinfo";
 	else return "<unknown function>";
 }
 
@@ -1099,6 +1104,10 @@ void Script_LoadSystemFunctions()
 					  (void*)openbor_compilescript, "compilescript");
 	List_InsertAfter(&theFunctionList,
 					  (void*)openbor_executescript, "executescript");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_loadgamefile, "loadgamefile");
+	List_InsertAfter(&theFunctionList,
+					  (void*)openbor_getsaveinfo, "getsaveinfo");
 
 	//printf("Done!\n");
 
@@ -1400,7 +1409,6 @@ static const char* svlist[] = {
 "ticks",
 "totalram",
 "usedram",
-"usesave",
 "vResolution",
 "viewporth",
 "viewportw",
@@ -10300,8 +10308,6 @@ HRESULT openbor_jumptobranch(ScriptVariant** varlist , ScriptVariant** pretvar, 
 {
 	LONG ltemp;
 	extern char branch_name[MAX_NAME_LEN+1];
-	extern int  endgame;
-
 	*pretvar = NULL;
 	if(paramCount < 1) goto jumptobranch_error;
 	if(varlist[0]->vt != VT_STR) goto jumptobranch_error;
@@ -11831,5 +11837,96 @@ HRESULT openbor_executescript(ScriptVariant** varlist , ScriptVariant** pretvar,
 
 cs_error:
 	printf("Function executescript requires a valid script handle.\n");
+	return E_FAIL;
+}
+
+
+//loadgamefile() //only reload saved level file from saves
+//loadgamefile(set) //load game from this save slot 
+HRESULT openbor_loadgamefile(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG ltemp;
+	*pretvar = NULL;
+	if(paramCount>=1) {
+		if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ltemp)) )
+			return E_FAIL;
+		else {
+			useSave = 1;
+			useSet = ltemp;
+			endgame = 1;
+		}
+	} else loadGameFile();
+	return S_OK;
+}
+
+//getsaveinfo(set, prop);
+HRESULT openbor_getsaveinfo(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
+{
+	LONG ltemp;
+	s_savelevel* slot;
+	char* prop;
+	if(paramCount<2) goto gsi_error;
+
+	if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ltemp)) || varlist[1]->vt!=VT_STR)
+		goto gsi_error;
+
+	if(!savelevel) {
+		ScriptVariant_Clear(*pretvar);
+		return S_OK;
+	}
+
+	slot = savelevel+ltemp;
+	prop = (char*)StrCache_Get(varlist[1]->strVal);
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	if(0==stricmp(prop, "flag")) 
+		(*pretvar)->lVal = (LONG)slot->flag;
+	else if(0==stricmp(prop, "level")) 
+		(*pretvar)->lVal = (LONG)slot->level;
+	else if(0==stricmp(prop, "stage")) 
+		(*pretvar)->lVal = (LONG)slot->stage;
+	else if(0==stricmp(prop, "times_completed")) 
+		(*pretvar)->lVal = (LONG)slot->times_completed;
+	else if(0==stricmp(prop, "score")) 
+	{
+		if(paramCount<3 || FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp)) ) goto gsi_error;
+		(*pretvar)->lVal = (LONG)slot->pScores[ltemp];
+	}
+	else if(0==stricmp(prop, "lives")) 
+	{
+		if(paramCount<3 || FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp)) ) goto gsi_error;
+		(*pretvar)->lVal = (LONG)slot->pLives[ltemp];
+	}
+	else if(0==stricmp(prop, "credits")) 
+	{
+		if(paramCount<3 || FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp)) ) goto gsi_error;
+		(*pretvar)->lVal = (LONG)(noshare?slot->credits:slot->pCredits[ltemp]);
+	}
+	else if(0==stricmp(prop, "name")) 
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_STR);
+		StrCache_Copy((*pretvar)->strVal, slot->dName);
+	}
+	else if(0==stricmp(prop, "playername")) 
+	{
+		if(paramCount<3 || FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp)) ) goto gsi_error;
+		ScriptVariant_ChangeType(*pretvar, VT_STR);
+		StrCache_Copy((*pretvar)->strVal, slot->pName[ltemp]);
+	}
+	else if(0==stricmp(prop, "health")) 
+	{
+		if(paramCount<3 || FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp)) ) goto gsi_error;
+		(*pretvar)->lVal = (LONG)slot->pSpawnhealth[ltemp];
+	}
+	else if(0==stricmp(prop, "mp")) 
+	{
+		if(paramCount<3 || FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp)) ) goto gsi_error;
+		(*pretvar)->lVal = (LONG)slot->pSpawnmp[ltemp];
+	}
+	else goto gsi_error;
+	return S_OK;
+
+gsi_error:
+	*pretvar = NULL;
 	return E_FAIL;
 }

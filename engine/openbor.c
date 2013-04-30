@@ -168,6 +168,7 @@ char                rush_names[2][MAX_NAME_LEN];
 char				skipselect[MAX_PLAYERS][MAX_NAME_LEN];
 char                branch_name[MAX_NAME_LEN+1];    // Used for branches
 int					useSave = 0;
+int					useSet = -1;
 unsigned char       pal[MAX_PAL_SIZE] = {""};
 int                 blendfx[MAX_BLENDINGS] = {0,1,0,0,0,0};
 char                blendfx_is_set = 0;
@@ -1170,10 +1171,6 @@ int getsyspropertybyindex(ScriptVariant* var, int index)
 		 ScriptVariant_ChangeType(var, VT_INTEGER);
 		 var->lVal = (LONG)getUsedRam(KBYTES);
 		break;
-	case _sv_usesave:
-		 ScriptVariant_ChangeType(var, VT_INTEGER);
-		 var->lVal = (LONG)useSave;
-		break;
 	case _sv_background:
 		ScriptVariant_ChangeType(var, VT_PTR);
 		var->ptrVal = (VOID*)background;
@@ -1376,10 +1373,6 @@ int changesyspropertybyindex(int index, ScriptVariant* value)
 	case _sv_noscreenshot:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
 			noscreenshot = (int)ltemp;
-		break;
-	case _sv_usesave:
-		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
-			useSave = (int)ltemp;
 		break;
 	case _sv_viewportx:
 		if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
@@ -22173,6 +22166,8 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 	s_savelevel* save = savelevel + current_set;
 	s_level_entry* le;
 
+	useSave = 0; useSet = -1;
+
 	if(which_set>=num_difficulties) return;
 	// shutdown(1, "Illegal set chosen: index %i (there are only %i sets)!", which_set, num_difficulties);
 
@@ -24056,7 +24051,7 @@ void openborMain(int argc, char** argv)
 		else if(skiptoset>=0)
 		{
 			loadGameFile();
-			playgame(players, skiptoset, useSave);
+			playgame(players, useSet>=0?useSet:skiptoset, useSave);
 		}
 		else
 		{
