@@ -15291,14 +15291,14 @@ void checkdamageeffects(s_attack* attack)
 		if(opp->health > opp->modeldata.health)
 			opp->health = opp->modeldata.health;
 	}
-	if(_freeze && !self->frozen)
-	{    // New freeze attack - If not frozen, freeze entity unless it's a projectile
-		self->frozen = _freeze;
+	if(_freeze && !self->frozen)// && !self->owner && !self->modeldata.nomove)
+	{    // New freeze attack - If not frozen, freeze entity 
+		self->frozen = 1;
 		if(self->freezetime == 0) self->freezetime = time + _freezetime;
 		if(_remap == -1 && self->modeldata.maps.frozen != -1) self->colourmap = model_get_colourmap(&(self->modeldata),self->modeldata.maps.frozen);    //12/14/2007 Damon Caskey: If opponents frozen map = -1 or only stun, then don't change the color map.
 		self->drop = 0;
 	}
-	else if(self->frozen && !(self->frozen&2))
+	else if(self->frozen)
 	{
 		unfrozen(self);
 		self->drop = 1;
