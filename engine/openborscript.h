@@ -224,6 +224,9 @@ HRESULT openbor_loadscript(ScriptVariant** varlist , ScriptVariant** pretvar, in
 HRESULT openbor_compilescript(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_executescript(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
 
+HRESULT openbor_loadgamefile(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_getsaveinfo(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount);
+
 int mapstrings_systemvariant(ScriptVariant** varlist, int paramCount);
 int mapstrings_entityproperty(ScriptVariant** varlist, int paramCount);
 int mapstrings_playerproperty(ScriptVariant** varlist, int paramCount);
@@ -331,7 +334,6 @@ _sv_textbox,
 _sv_ticks,
 _sv_totalram,
 _sv_usedram,
-_sv_usesave,
 _sv_vResolution,
 _sv_viewporth,
 _sv_viewportw,
