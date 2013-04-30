@@ -12436,7 +12436,7 @@ void set_opponent(entity* ent, entity* other)
 void do_attack(entity *e)
 {
 	int them;
-	int i;
+	int i, t;
 	int force;
 	entity *temp            = NULL;
 	entity *flash           = NULL;    // Used so new flashes can be used
@@ -12805,16 +12805,11 @@ void do_attack(entity *e)
 			else if(SAMPLE_BLOCK >= 0) sound_play_sample(SAMPLE_BLOCK, 0, savedata.effectvol,savedata.effectvol, 100);    // Default block sound effect
 		}
 		else if(e->projectile > 0 && SAMPLE_INDIRECT >= 0) sound_play_sample(SAMPLE_INDIRECT, 0, savedata.effectvol,savedata.effectvol, 100);
-		else
+		else if(attack->hitsound >= 0)
 		{
-			if(noslowfx)
-			{
-				if(attack->hitsound >= 0) sound_play_sample(attack->hitsound, 0, savedata.effectvol,savedata.effectvol, 100);
-			}
-			else
-			{
-				if(attack->hitsound >= 0) sound_play_sample(attack->hitsound, 0, savedata.effectvol,savedata.effectvol, 105 - force);
-			}
+			t = 100-(noslowfx?0:(force-5));
+			if(t>100) t = 100; else if(t<60) t = 60; 
+			sound_play_sample(attack->hitsound, 0, savedata.effectvol,savedata.effectvol, t);
 		}
 
 		if(e->remove_on_attack) kill(e);
