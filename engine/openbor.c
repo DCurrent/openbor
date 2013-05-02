@@ -13791,7 +13791,8 @@ void display_ents()
 
 					if(e->modeldata.setlayer) z = HOLE_Z + e->modeldata.setlayer;    // Setlayer takes precedence
 
-					if(checkhole(e->x, e->z)==2) z = PANEL_Z-1;        // place behind panels
+					//UT: commented this out, it seems to be some legacy code, ==2 doesn't make sense anymore
+					//if(checkhole(e->x, e->z)==2) z = PANEL_Z-1;        // place behind panels 
 
 					drawmethod = e->animation->drawmethods?getDrawMethod(e->animation, e->animpos):NULL;
 		    //drawmethod = e->animation->drawmethods?e->animation->drawmethods[e->animpos]:NULL;
