@@ -91,7 +91,8 @@ typedef struct pp_lexer {
 	ULONG tokOffset;
 	CHAR* pcurChar;
 	//Character buffer for the tokens
-	CHAR theTokenSource [MAX_TOKEN_LENGTH];
+	CHAR theTokenSource [MAX_TOKEN_LENGTH+1];
+	ULONG theTokenLen;
 	TEXTPOS theTokenPosition;
 } pp_lexer;
 

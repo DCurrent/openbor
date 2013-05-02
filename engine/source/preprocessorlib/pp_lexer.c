@@ -31,8 +31,8 @@
 *  input stream and add it to the current token buffer.
 ******************************************************************************/
 #define CONSUMECHARACTER \
-   plexer->theTokenSource[strlen(plexer->theTokenSource)] = *(plexer->pcurChar);\
-   plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\0';\
+   plexer->theTokenSource[plexer->theTokenLen++] = *(plexer->pcurChar);\
+   plexer->theTokenSource[plexer->theTokenLen] = '\0';\
    plexer->pcurChar++; \
    plexer->theTextPosition.col++; \
    plexer->offset++;
@@ -90,7 +90,7 @@ void pp_lexer_Clear(pp_lexer* plexer)
 HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 {
    for(;;){
-	  memset(plexer->theTokenSource, 0, MAX_TOKEN_LENGTH * sizeof(CHAR));
+	  plexer->theTokenSource[0] = plexer->theTokenLen = 0;
 	  plexer->theTokenPosition = plexer->theTextPosition;
 	  plexer->tokOffset = plexer->offset;
 
@@ -104,8 +104,8 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 	  //Windows line break (\r\n)
 	  else if ( !strncmp( plexer->pcurChar, "\r\n", 2)){
 		 //interpret as a newline
-		 plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\n';
-		 plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\0';
+		 plexer->theTokenSource[plexer->theTokenLen++] = '\n';
+		 plexer->theTokenSource[plexer->theTokenLen] = '\0';
 		 plexer->theTextPosition.col = 0;
 		 plexer->theTextPosition.row++;
 		 plexer->pcurChar += 2;
@@ -118,8 +118,8 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 	  else if ( !strncmp( plexer->pcurChar, "\n", 1) || !strncmp( plexer->pcurChar, "\r", 1) ||
 	  			!strncmp( plexer->pcurChar, "\f", 1)){
 		 //interpret as a newline
-		 plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\n';
-		 plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\0';
+		 plexer->theTokenSource[plexer->theTokenLen++] = '\n';
+		 plexer->theTokenSource[plexer->theTokenLen] = '\0';
 		 plexer->theTextPosition.col = 0;
 		 plexer->theTextPosition.row++;
 		 plexer->pcurChar++;
@@ -131,8 +131,8 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 	  //Backslash-escaped Windows line break (\r\n)
 	  else if ( !strncmp( plexer->pcurChar, "\\\r\n", 3)){
 		 //interpret as a newline, but not as a PP_TOKEN_NEWLINE
-		 plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\n';
-		 plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\0';
+		 plexer->theTokenSource[plexer->theTokenLen++] = '\n';
+		 plexer->theTokenSource[plexer->theTokenLen] = '\0';
 		 plexer->theTextPosition.col = 0;
 		 plexer->theTextPosition.row++;
 		 plexer->pcurChar += 3;
@@ -145,8 +145,8 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 	  else if ( !strncmp( plexer->pcurChar, "\\\n", 2) || !strncmp( plexer->pcurChar, "\\\r", 2) ||
 	  			!strncmp( plexer->pcurChar, "\\\f", 2)){
 		 //interpret as a newline, but not as a PP_TOKEN_NEWLINE
-		 plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\n';
-		 plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\0';
+		 plexer->theTokenSource[plexer->theTokenLen++] = '\n';
+		 plexer->theTokenSource[plexer->theTokenLen] = '\0';
 		 plexer->theTextPosition.col = 0;
 		 plexer->theTextPosition.row++;
 		 plexer->pcurChar += 2;
@@ -161,6 +161,7 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 		 int numSpaces = TABSIZE - (plexer->theTextPosition.col % TABSIZE);
 		 strcpy(plexer->theTokenSource, "    ");
 		 plexer->theTokenSource[numSpaces] = '\0';
+		 plexer->theTokenLen = numSpaces;
 		 plexer->theTextPosition.col += numSpaces;
 		 plexer->pcurChar++;
 		 plexer->offset++;
@@ -179,8 +180,8 @@ HRESULT pp_lexer_GetNextToken (pp_lexer* plexer, pp_token* theNextToken)
 	  //non-breaking space (A0 in Windows-1252 and ISO-8859-* encodings)
 	  else if ( !strncmp(plexer->pcurChar, "\xa0", 1)){
 		 //increment the offset counter and replace with a normal space
-		 plexer->theTokenSource[strlen(plexer->theTokenSource)] = ' ';
-		 plexer->theTokenSource[strlen(plexer->theTokenSource)] = '\0';
+		 plexer->theTokenSource[plexer->theTokenLen++] = ' ';
+		 plexer->theTokenSource[plexer->theTokenLen] = '\0';
 		 plexer->pcurChar++;
 		 plexer->offset++;
 		 plexer->theTextPosition.col++;
