@@ -6730,6 +6730,7 @@ enum playerproperty_enum {
 	_pp_credits,
 	_pp_ent,
 	_pp_entity,
+	_pp_hasplayed,
 	_pp_keys,
 	_pp_lives,
 	_pp_name,
@@ -6752,6 +6753,7 @@ int mapstrings_playerproperty(ScriptVariant** varlist, int paramCount)
 		"credits",
 		"ent",
 		"entity",
+		"hasplayed",
 		"keys",
 		"lives",
 		"name",
@@ -6837,6 +6839,12 @@ HRESULT openbor_getplayerproperty(ScriptVariant** varlist , ScriptVariant** pret
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)player[index].score;
+		break;
+	}
+	case _pp_hasplayed:
+	{
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)player[index].hasplayed;
 		break;
 	}
 	case _pp_spawnhealth:
@@ -6985,6 +6993,13 @@ HRESULT openbor_changeplayerproperty(ScriptVariant** varlist , ScriptVariant** p
 			else if(ltemp > 999999999) ltemp = 999999999;
 			player[index].score = (unsigned int)ltemp;
 		}
+		else goto cpperror;
+		break;
+	}
+	case _pp_hasplayed:
+	{
+		if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
+			player[index].hasplayed = (int)ltemp;
 		else goto cpperror;
 		break;
 	}
