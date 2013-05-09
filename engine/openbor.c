@@ -9038,7 +9038,8 @@ void load_levelorder()
 				break;
 			case CMD_LEVELORDER_NOSAME:
 				CHKDEF;
-				set->nosame = GET_INT_ARG(1);
+				set->nosame |= GET_INT_ARG(1)!=0;
+				set->nosame |= GET_INT_ARG(2)!=0?2:0;
 				break;
 			case CMD_LEVELORDER_RUSH:
 				rush[0] = GET_INT_ARG(1);
@@ -10495,7 +10496,7 @@ void updatestatus(){
 			}
 			else if(player[i].playkeys & (FLAG_MOVELEFT|FLAG_MOVERIGHT))
 			{
-				player[i].colourmap = colourselect?nextcolourmap(model, i-1):0;
+				player[i].colourmap = (colourselect&&(set->nosame&2))?nextcolourmap(model, i-1):0;
 				model = ((player[i].playkeys&FLAG_MOVELEFT)?prevplayermodeln:nextplayermodeln)(model, i);
 				strcpy(player[i].name, model->name);
 				player[i].playkeys = 0;
@@ -21894,6 +21895,7 @@ int playlevel(char *filename)
 			player[i].newkeys = player[i].playkeys = 0;
 			player[i].weapnum = level->setweap;
 			player[i].joining = 0;
+			player[i].hasplayed = 1;
 			spawnplayer(i);
 			player[i].ent->rush[1] = 0;
 		}
@@ -21935,9 +21937,10 @@ int playlevel(char *filename)
 static entity* spawnexample(int i)
 {
 	entity* example;
+	s_set_entry* set = levelsets + current_set;
 	example = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodeln(NULL, i));
 	strcpy(player[i].name, example->model->name);
-	player[i].colourmap = colourselect?nextcolourmap(example->model, i-1):0;
+	player[i].colourmap = (colourselect&&(set->nosame&2))?nextcolourmap(example->model, i-1):0;
 	ent_set_colourmap(example, player[i].colourmap);
 	return example;
 }
