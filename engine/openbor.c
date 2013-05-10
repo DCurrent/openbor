@@ -10515,7 +10515,7 @@ void updatestatus(){
 				player[i].lives = 0;
 				model = skipselect[i][0]?findmodel(skipselect[i]):nextplayermodeln(NULL, i);
 				strncpy(player[i].name, model->name, MAX_NAME_LEN);
-				player[i].colourmap = nextcolourmap(model, i-1);
+				player[i].colourmap = (colourselect&&(set->nosame&2))?nextcolourmap(model, i-1):0;
 				player[i].joining = 1;
 				player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
 
