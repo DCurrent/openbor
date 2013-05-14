@@ -16496,8 +16496,31 @@ int common_try_jump()
 	return 0;
 }
 
+//test if direction is available for anim_up
+static int testup(float xd, float zd) {
+	float f;
+	if(zd<0) {
+		if(!xd) return 1;
+		f = zd/xd;
+		return (f>0.5 || f<-0.5);
+	}
+	return 0;
+}
+
+//test if direction is available for anim_down
+static int testdown(float xd, float zd) {
+	float f;
+	if(zd>0) {
+		if(!xd) return 1;
+		f = zd/xd;
+		return (f>0.5 || f<-0.5);
+	}
+	return 0;
+}
+
 void adjust_walk_animation(entity* other)
 {
+	int dir = 0;
 	if(self->running)
 	{
 		ent_set_anim(self, ANI_RUN, 0);
@@ -16505,15 +16528,21 @@ void adjust_walk_animation(entity* other)
 	}
 
 	//reset the walk animation
-	if( ((!other && self->zdir<0)||(other && self->z>other->z)) && validanim(self,ANI_UP))
+	if(validanim(self,ANI_UP) && ((!other && testup(self->xdir, self->zdir))||(other && testup(other->x-self->x,other->z-self->z)))) {
 		common_up_anim(self); //ent_set_anim(self, ANI_UP, 0);
-	else if(((!other && self->zdir>0)||(other && other->z > self->z)) && validanim(self,ANI_DOWN))
+		dir = 2;
+	}else if(validanim(self,ANI_DOWN) && ((!other && testdown(self->xdir, self->zdir))||(other && testdown(other->x-self->x,other->z-self->z)))) {
 		common_down_anim(self); //ent_set_anim(self, ANI_DOWN, 0);
-	else if((self->direction ? self->xdir<0 : self->xdir>0) && validanim(self,ANI_BACKWALK))
+		dir = 3;
+	} else if((self->direction ? self->xdir<0 : self->xdir>0) && validanim(self,ANI_BACKWALK))
 		common_backwalk_anim(self); //ent_set_anim(self, ANI_BACKWALK, 0);
-	else common_walk_anim(self); //ent_set_anim(self, ANI_WALK, 0);
+	else {
+		common_walk_anim(self); //ent_set_anim(self, ANI_WALK, 0);
+		dir = 1;
+	}
 
-	if((self->direction ? self->xdir<0 : self->xdir>0) && self->animnum!=ANI_BACKWALK)
+	if(((self->direction ? self->xdir<0 : self->xdir>0) && dir==1) ||
+		(dir==2 && self->zdir>0) || (dir==3 && self->zdir<0) )
 		self->animating = -1;
 	else self->animating = 1;
 }
