@@ -12330,6 +12330,9 @@ entity * check_platform(float x, float z, entity* exclude)
 
 // for adjust grab position function, test if an entity can move from a to b
 // TODO: check points between the two pionts, if necessary
+// special return values:
+// -1: ent can jump over walls, for jump check
+// -2: for hole ai reaction check
 int testmove(entity* ent, float sx, float sz, float x, float z){
 	entity *other = NULL;
 	int wall, heightvar;
@@ -12365,8 +12368,8 @@ int testmove(entity* ent, float sx, float sz, float x, float z){
 	//-------------hole checking ---------------------
 	if(ent->modeldata.subject_to_hole>0)
 	{
-		if(checkhole(x, z) && checkwall(x, z)<0 && (((other = check_platform(x, z, ent)) &&  ent->base < other->a + other->animation->platform[other->animpos][7]) || other == NULL))
-			return 0;
+		if(checkhole(x, z) && checkwall(x, z)<0 && !check_platform_below(x, z, ent->a, ent))
+			return -2;
 	}
 	//-----------end of hole checking---------------
 
@@ -16046,10 +16049,24 @@ int trygrab(entity* other)
 int common_trymove(float xdir, float zdir)
 {
 	entity *other = NULL, *te = NULL;
-	int wall, heightvar;
+	int wall, heightvar, t;
 	float x, z, oxdir, ozdir;
 
 	if(!xdir && !zdir) return 0;
+
+	// UT: move player grab logic here to bypass some extra checks
+	// it used to be at the very end of this function
+	//------------------ grab/throw checking------------------
+	if((self->modeldata.type&TYPE_PLAYER) &&
+		(rand()&7)==0 &&
+		(validanim(self,ANI_THROW) ||
+		 validanim(self,ANI_GRAB)) && self->idling &&
+		(other = find_ent_here(self, self->x, self->z, self->modeldata.hostile, NULL)))
+	{
+		if(trygrab(other)) return 0;
+	}
+	// ---------------  end of grab/throw checking ------------------------
+
 
 	oxdir = xdir; ozdir = zdir;
 	/*
@@ -16108,11 +16125,11 @@ int common_trymove(float xdir, float zdir)
 		!(self->modeldata.aimove&AIMOVE2_IGNOREHOLES))
 	{
 
-		if(zdir && checkhole(self->x, z) && checkwall(self->x, z)<0 && (((other = check_platform(self->x, z, self)) &&  self->base < other->a + other->animation->platform[other->animpos][7]) || other == NULL))
+		if(zdir && checkhole(self->x, z) && checkwall(self->x, z)<0 && !check_platform_below(self->x, z, self->a, self))
 		{
 			zdir = 0;
 		}
-		if(xdir && checkhole(x, self->z) && checkwall(x, self->z)<0 && (((other = check_platform(x, self->z, self)) &&  self->base < other->a + other->animation->platform[other->animpos][7]) || other == NULL))
+		if(xdir && checkhole(x, self->z) && checkwall(x, self->z)<0 && !check_platform_below(x, self->z, self->a, self))
 		{
 			xdir = 0;
 		}
@@ -16129,23 +16146,23 @@ int common_trymove(float xdir, float zdir)
 		if((other = find_ent_here(self, x, self->z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
 		   (xdir>0 ? other->x > self->x: other->x < self->x) &&
 		   (!other->animation->platform||!other->animation->platform[other->animpos][7]))
-			{
-				xdir    = 0;
-				te = other;
-				execute_onblocko_script(self, other);
-			}
+		{
+			xdir    = 0;
+			te = other;
+			execute_onblocko_script(self, other);
+		}
 		if((other = find_ent_here(self, self->x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
 		   (zdir>0 ? other->z > self->z: other->z < self->z) &&
 		   (!other->animation->platform||!other->animation->platform[other->animpos][7]))
-			{
-				zdir    = 0;
-				if(te!=other) //just in case they are the same obstacle
-					execute_onblocko_script(self, other);
-			}
+		{
+			zdir    = 0;
+			if(te!=other) //just in case they are the same obstacle
+				execute_onblocko_script(self, other);
+		}
 	}
 
 	if(!xdir && !zdir) return 0;
-	x = self->x + xdir*2;  z = self->z + zdir*2;
+	x = self->x + xdir;  z = self->z + zdir;
 
 	//-----------end of obstacle checking--------------
 
@@ -16155,13 +16172,16 @@ int common_trymove(float xdir, float zdir)
 	else heightvar = self->modeldata.height;
 
 	// Check for obstacles with platform code and adjust base accordingly
-	if(self->modeldata.subject_to_platform>0 && (other = check_platform_between(x, z, self->a, self->a+heightvar, self)) )
+	if(self->modeldata.subject_to_platform>0 )
 	{
 		//if(xdir>0 ? other->x>self->x : other->x<self->x) {xdir = 0; }
 		//if(zdir>0 ? other->z>self->z : other->z<self->z) {zdir = 0; }
 		//temporary fix for thin platforms (i.e, offset is not between left and right side)
 		// TODO: find the collision position, merge with wall code
-		xdir = zdir = 0;
+		if(xdir && (other = check_platform_between(x, self->z, self->a, self->a+heightvar, self))  )
+			xdir = 0;
+		if(zdir && (other = check_platform_between(self->x, z, self->a, self->a+heightvar, self))  )
+			zdir = 0;
 	}
 
 	if(!xdir && !zdir) return 0;
@@ -16172,23 +16192,15 @@ int common_trymove(float xdir, float zdir)
 	// ------------------ wall checking ---------------------
 	if(self->modeldata.subject_to_wall){
 
-		if((wall = checkwall(x, self->z))>=0 && level->walls[wall][7]>self->a)
+		if(xdir && (wall = checkwall(x, self->z))>=0 && level->walls[wall][7]>self->a)
 		{
-			if(xdir > 0.5){ xdir = 0.5; }
-			else if(xdir < -0.5){ xdir = -0.5; }
-			if((wall = checkwall(self->x + xdir, self->z))>=0 && level->walls[wall][7]>self->a){
-				xdir = 0;
-				execute_onblockw_script(self,1,(double)level->walls[wall][7]);
-			}
+			xdir = 0;
+			execute_onblockw_script(self,1,(double)level->walls[wall][7]);
 		}
-		if((wall = checkwall(self->x, z))>=0 && level->walls[wall][7]>self->a)
+		if(zdir && (wall = checkwall(self->x, z))>=0 && level->walls[wall][7]>self->a)
 		{
-			if(zdir > 0.5){ zdir = 0.5; }
-			else if(zdir < -0.5){ zdir = -0.5; }
-			if((wall = checkwall(self->x, self->z + zdir))>=0 && level->walls[wall][7]>self->a){
-				zdir = 0;
-				execute_onblockw_script(self,2,(double)level->walls[wall][7]);
-			}
+			zdir = 0;
+			execute_onblockw_script(self,2,(double)level->walls[wall][7]);
 		}
 	}
 
@@ -16197,16 +16209,25 @@ int common_trymove(float xdir, float zdir)
 	x = self->x + xdir;  z = self->z + zdir;
 	//----------------end of wall checking--------------
 
-	//------------------ grab/throw checking------------------
-	if((self->modeldata.type&TYPE_PLAYER) &&
-		(rand()&7)==0 &&
-		(validanim(self,ANI_THROW) ||
-		 validanim(self,ANI_GRAB)) && self->idling &&
-		(other = find_ent_here(self, self->x, self->z, self->modeldata.hostile, NULL)))
-	{
-		if(trygrab(other)) return 0;
+	/*
+	// Final check to ensure we don't move into other obstacles.
+	// The old logic allows xdir if zdir is block and vice versa,
+	// but has a risk that the new destination is actually blocked
+	// because of multiple obstacle types.
+	//
+	// block  old
+	//    |  /
+	//    | /
+	//    |/__ new
+	*/
+	if(xdir!=oxdir || zdir!=ozdir) {
+		//xdir = zdir = 0;
+		// TODO: should we add some checks in testmove to execute those onblockwhatever scripts?
+		t = testmove(self, self->x, self->z, x, z);
+		// extra hole check, only avoid hole while idling
+		if(t<=0 && (t!=-2 || self->idling))
+			return 0;
 	}
-	// ---------------  end of grab/throw checking ------------------------
 
 	// do move and return
 	self->x += xdir;
