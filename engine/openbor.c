@@ -42,6 +42,9 @@ int		skiptoset = -1;
 int spawnoverride = 999999;
 int maxentities = 999999;
 
+int	global_model = -1;
+#define global_model_scripts ((global_model>=0 && model_cache[global_model].model)?model_cache[global_model].model->scripts:NULL)
+
 s_level*            level               = NULL;
 s_filestream* filestreams = NULL;
 int numfilestreams = 0;
@@ -2060,66 +2063,78 @@ void execute_think_script(entity* ent)
 	}
 }
 
-void execute_didhit_script(entity* ent, entity* other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked)
+static void _execute_didhit_script(Script* cs, entity* ent, entity* other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked)
 {
 	ScriptVariant tempvar;
-	Script* cs = ent->scripts->didhit_script;
-	if(Script_IsInitialized(cs))
-	{
-		ScriptVariant_Init(&tempvar);
-		ScriptVariant_ChangeType(&tempvar, VT_PTR);
-		tempvar.ptrVal = (VOID*)ent;
-		Script_Set_Local_Variant(cs, "self",        &tempvar);
-		tempvar.ptrVal = (VOID*)other;
-		Script_Set_Local_Variant(cs, "damagetaker", &tempvar);
-		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-		tempvar.lVal = (LONG)force;
-		Script_Set_Local_Variant(cs, "damage",      &tempvar);
-		tempvar.lVal = (LONG)drop;
-		Script_Set_Local_Variant(cs, "drop",        &tempvar);
-		tempvar.lVal = (LONG)type;
-		Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
-		tempvar.lVal = (LONG)noblock;
-		Script_Set_Local_Variant(cs, "noblock",     &tempvar);
-		tempvar.lVal = (LONG)guardcost;
-		Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
-		tempvar.lVal = (LONG)jugglecost;
-		Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
-		tempvar.lVal = (LONG)pauseadd;
-		Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-		tempvar.lVal = (LONG)blocked;
-		Script_Set_Local_Variant(cs, "blocked",     &tempvar);
-		Script_Execute(cs);
-		//clear to save variant space
-		ScriptVariant_Clear(&tempvar);
-		Script_Set_Local_Variant(cs, "self",        &tempvar);
-		Script_Set_Local_Variant(cs, "damagetaker", &tempvar);
-		Script_Set_Local_Variant(cs, "damage",      &tempvar);
-		Script_Set_Local_Variant(cs, "drop",        &tempvar);
-		Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
-		Script_Set_Local_Variant(cs, "noblock",     &tempvar);
-		Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
-		Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
-		Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-		Script_Set_Local_Variant(cs, "blocked",     &tempvar);
-	}
+	ScriptVariant_Init(&tempvar);
+	ScriptVariant_ChangeType(&tempvar, VT_PTR);
+	tempvar.ptrVal = (VOID*)ent;
+	Script_Set_Local_Variant(cs, "self",        &tempvar);
+	tempvar.ptrVal = (VOID*)other;
+	Script_Set_Local_Variant(cs, "damagetaker", &tempvar);
+	ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+	tempvar.lVal = (LONG)force;
+	Script_Set_Local_Variant(cs, "damage",      &tempvar);
+	tempvar.lVal = (LONG)drop;
+	Script_Set_Local_Variant(cs, "drop",        &tempvar);
+	tempvar.lVal = (LONG)type;
+	Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
+	tempvar.lVal = (LONG)noblock;
+	Script_Set_Local_Variant(cs, "noblock",     &tempvar);
+	tempvar.lVal = (LONG)guardcost;
+	Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
+	tempvar.lVal = (LONG)jugglecost;
+	Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
+	tempvar.lVal = (LONG)pauseadd;
+	Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
+	tempvar.lVal = (LONG)blocked;
+	Script_Set_Local_Variant(cs, "blocked",     &tempvar);
+	Script_Execute(cs);
+	//clear to save variant space
+	ScriptVariant_Clear(&tempvar);
+	Script_Set_Local_Variant(cs, "self",        &tempvar);
+	Script_Set_Local_Variant(cs, "damagetaker", &tempvar);
+	Script_Set_Local_Variant(cs, "damage",      &tempvar);
+	Script_Set_Local_Variant(cs, "drop",        &tempvar);
+	Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
+	Script_Set_Local_Variant(cs, "noblock",     &tempvar);
+	Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
+	Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
+	Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
+	Script_Set_Local_Variant(cs, "blocked",     &tempvar);
+}
+
+void execute_didhit_script(entity* ent, entity* other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked)
+{
+	Script* cs;
+	s_scripts* gs = global_model_scripts;
+	if(gs && (cs=gs->didhit_script) && Script_IsInitialized(cs))
+		_execute_didhit_script(cs, ent, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, blocked);
+	if(Script_IsInitialized(cs=ent->scripts->didhit_script))
+		_execute_didhit_script(cs, ent, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, blocked);
+}
+
+static void _execute_onspawn_script(Script* cs, entity* ent)
+{
+	ScriptVariant tempvar;
+	ScriptVariant_Init(&tempvar);
+	ScriptVariant_ChangeType(&tempvar, VT_PTR);
+	tempvar.ptrVal = (VOID*)ent;
+	Script_Set_Local_Variant(cs, "self", &tempvar);
+	Script_Execute(cs);
+	//clear to save variant space
+	ScriptVariant_Clear(&tempvar);
+	Script_Set_Local_Variant(cs, "self", &tempvar);
 }
 
 void execute_onspawn_script(entity* ent)
 {
-	ScriptVariant tempvar;
-	Script* cs = ent->scripts->onspawn_script;
-	if(Script_IsInitialized(cs))
-	{
-		ScriptVariant_Init(&tempvar);
-		ScriptVariant_ChangeType(&tempvar, VT_PTR);
-		tempvar.ptrVal = (VOID*)ent;
-		Script_Set_Local_Variant(cs, "self", &tempvar);
-		Script_Execute(cs);
-		//clear to save variant space
-		ScriptVariant_Clear(&tempvar);
-		Script_Set_Local_Variant(cs, "self", &tempvar);
-	}
+	Script* cs;
+	s_scripts* gs = global_model_scripts;
+	if(gs && (cs=gs->onspawn_script) && Script_IsInitialized(cs))
+		_execute_onspawn_script(cs, ent);
+	if(Script_IsInitialized(cs=ent->scripts->onspawn_script))
+		_execute_onspawn_script(cs, ent);
 }
 
 void execute_onmodelcopy_script(entity* ent, entity* old)
@@ -5363,10 +5378,10 @@ void lcmHandleCommandSmartbomb(ArgList* arglist, s_model* newchar, char* filenam
 
 void lcmHandleCommandHostile(ArgList* arglist, s_model* newchar) {
 	int i = 1;
-	char* value = GET_ARGP(i);
+	char* value;
 	newchar->hostile = 0;
 
-	while(value && value[0])
+	while((value=GET_ARGP(i++)) && value[0])
 	{
 		if(stricmp(value, "enemy")==0){
 			newchar->hostile |= TYPE_ENEMY;
@@ -5378,17 +5393,17 @@ void lcmHandleCommandHostile(ArgList* arglist, s_model* newchar) {
 			newchar->hostile |= TYPE_SHOT;
 		} else if(stricmp(value, "npc")==0){
 			newchar->hostile |= TYPE_NPC;
+		} else {
+			newchar->hostile |= atoi(value); //debug raw integer value
 		}
-		i++;
-		value = GET_ARGP(i);
 	}
 }
 void lcmHandleCommandCandamage(ArgList* arglist, s_model* newchar) {
 	int i = 1;
-	char* value = GET_ARGP(i);
+	char* value;
 	newchar->candamage = 0;
 
-	while(value && value[0])
+	while((value=GET_ARGP(i++)) && value[0])
 	{
 		if(stricmp(value, "enemy")==0){
 			newchar->candamage |= TYPE_ENEMY;
@@ -5402,19 +5417,18 @@ void lcmHandleCommandCandamage(ArgList* arglist, s_model* newchar) {
 			newchar->candamage |= TYPE_NPC;
 		} else if(stricmp(value, "ground")==0){ // not really needed, though
 			newchar->ground = 1;
+		} else {
+			newchar->candamage |= atoi(value); //debug raw integer value
 		}
-		i++;
-		value = GET_ARGP(i);
 	}
 }
 
 void lcmHandleCommandProjectilehit(ArgList* arglist, s_model* newchar) {
 	int i = 1;
-	char* value = GET_ARGP(i);
-
+	char* value;
 	newchar->projectilehit = 0;
 
-	while(value && value[0])
+	while((value=GET_ARGP(i++)) && value[0])
 	{
 		if(stricmp(value, "enemy")==0){
 			newchar->projectilehit |= TYPE_ENEMY;
@@ -5426,9 +5440,9 @@ void lcmHandleCommandProjectilehit(ArgList* arglist, s_model* newchar) {
 			newchar->projectilehit |= TYPE_SHOT;
 		} else if(stricmp(value, "npc")==0){
 			newchar->projectilehit |= TYPE_NPC;
+		} else {
+			newchar->projectilehit |= atoi(value); //debug raw integer value
 		}
-		i++;
-		value = GET_ARGP(i);
 	}
 }
 
@@ -8393,6 +8407,8 @@ int load_models()
 
 	for(i=0,pos=0; i<models_cached; i++) {
 		//printf("Checking '%s' '%s'\n", model_cache[i].name, model_cache[i].path);
+		if(stricmp(model_cache[i].name, "global_model")==0)
+			global_model = i;
 		if(model_cache[i].loadflag) {
 			load_cached_model(model_cache[i].name, "models.txt", 0);
 			update_loading(&loadingbg[0], ++pos, modelLoadCount);
