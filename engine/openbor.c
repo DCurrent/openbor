@@ -16236,14 +16236,12 @@ int common_trymove(float xdir, float zdir)
 	//    | /
 	//    |/__ new
 	*/
-	if(xdir!=oxdir || zdir!=ozdir) {
-		//xdir = zdir = 0;
-		// TODO: should we add some checks in testmove to execute those onblockwhatever scripts?
-		t = testmove(self, self->x, self->z, x, z);
-		// extra hole check, only avoid hole while idling
-		if(t<=0 && (t!=-2 || self->idling))
-			return 0;
-	}
+	//xdir = zdir = 0;
+	// TODO: should we add some checks in testmove to execute those onblockwhatever scripts?
+	t = testmove(self, self->x, self->z, x, z);
+	// extra hole check, only avoid hole while idling
+	if(t<=0 && (t!=-2 || self->idling))
+		return 0;
 
 	// do move and return
 	self->x += xdir;
