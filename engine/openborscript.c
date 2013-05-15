@@ -10078,6 +10078,7 @@ HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 			(*pretvar)->dblVal = level->holes[ltemp][ltemp2];
 		}
 		else goto getlevelproperty_error;
+		break;
 	}
 	case _lp_wall:
 	{
@@ -10089,6 +10090,7 @@ HRESULT openbor_getlevelproperty(ScriptVariant** varlist , ScriptVariant** pretv
 			(*pretvar)->dblVal = level->walls[ltemp][ltemp2];
 		}
 		else goto getlevelproperty_error;
+		break;
 	}
 	default:
 		printf("Property is not supported by function getlevelproperty yet. %d\n", varlist[0]->lVal);
