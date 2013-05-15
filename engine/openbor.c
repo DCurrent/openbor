@@ -5377,11 +5377,11 @@ void lcmHandleCommandSmartbomb(ArgList* arglist, s_model* newchar, char* filenam
 }
 
 void lcmHandleCommandHostile(ArgList* arglist, s_model* newchar) {
-	int i = 1;
+	int i;
 	char* value;
 	newchar->hostile = 0;
 
-	while((value=GET_ARGP(i++)) && value[0])
+	for(i=1;(value=GET_ARGP(i)) && value[0];i++)
 	{
 		if(stricmp(value, "enemy")==0){
 			newchar->hostile |= TYPE_ENEMY;
@@ -5399,11 +5399,11 @@ void lcmHandleCommandHostile(ArgList* arglist, s_model* newchar) {
 	}
 }
 void lcmHandleCommandCandamage(ArgList* arglist, s_model* newchar) {
-	int i = 1;
+	int i;
 	char* value;
 	newchar->candamage = 0;
 
-	while((value=GET_ARGP(i++)) && value[0])
+	for(i=1;(value=GET_ARGP(i)) && value[0];i++)
 	{
 		if(stricmp(value, "enemy")==0){
 			newchar->candamage |= TYPE_ENEMY;
@@ -5424,11 +5424,11 @@ void lcmHandleCommandCandamage(ArgList* arglist, s_model* newchar) {
 }
 
 void lcmHandleCommandProjectilehit(ArgList* arglist, s_model* newchar) {
-	int i = 1;
+	int i;
 	char* value;
 	newchar->projectilehit = 0;
 
-	while((value=GET_ARGP(i++)) && value[0])
+	for(i=1;(value=GET_ARGP(i)) && value[0];i++)
 	{
 		if(stricmp(value, "enemy")==0){
 			newchar->projectilehit |= TYPE_ENEMY;
