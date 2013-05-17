@@ -22077,9 +22077,7 @@ int selectplayer(int *players, char* filename)
 		}
 		for(i=0; i<set->maxplayers; i++)
 		{
-			if(players[i]) {
-				example[i] = spawnexample(i);
-			}
+			immediate[i] = players[i];
 		}
 	}
 	else // without select.txt
@@ -22136,7 +22134,6 @@ int selectplayer(int *players, char* filename)
 		if(!noshare) credits = CONTINUES;
 		for(i=0; i<MAX_PLAYERS; i++)
 		{
-			memset(&player[i], 0, sizeof(player[i]));
 			immediate[i] = players[i];
 		}
 	}
@@ -22152,6 +22149,7 @@ int selectplayer(int *players, char* filename)
 			{
 				if(player[i].lives <= 0 && (noshare || credits>0) && ((player[i].newkeys & FLAG_ANYBUTTON) || immediate[i]))
 				{
+					//printf("%d %d %d\n", i, player[i].lives, immediate[i]);
 					if(noshare)
 					{
 						player[i].credits = CONTINUES;

@@ -14,7 +14,6 @@
 #include "wiiport.h"
 #include "video.h"
 #include "control.h"
-#include "soundmix.h"
 #include "packfile.h"
 #include "hankaku.h"
 #include "stristr.h"
@@ -23,11 +22,8 @@
 #include "../resources/OpenBOR_Menu_480x272_png.h"
 #include "../resources/OpenBOR_Menu_320x240_png.h"
 
-#undef MIN
-#undef MAX
 #include "openbor.h"
-#undef time
-#include <time.h>
+
 
 extern int videoMode;
 
