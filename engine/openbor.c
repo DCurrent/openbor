@@ -16065,7 +16065,7 @@ int trygrab(entity* other)
 int common_trymove(float xdir, float zdir)
 {
 	entity *other = NULL, *te = NULL;
-	int wall, heightvar, t;
+	int wall, heightvar, t, needcheckhole=0;
 	float x, z, oxdir, ozdir;
 
 	if(!xdir && !zdir) return 0;
@@ -16141,6 +16141,7 @@ int common_trymove(float xdir, float zdir)
 		!(self->modeldata.aimove&AIMOVE2_IGNOREHOLES))
 	{
 
+		needcheckhole = 1;
 		if(zdir && checkhole(self->x, z) && checkwall(self->x, z)<0 && !check_platform_below(self->x, z, self->a, self))
 		{
 			zdir = 0;
@@ -16240,7 +16241,7 @@ int common_trymove(float xdir, float zdir)
 	// TODO: should we add some checks in testmove to execute those onblockwhatever scripts?
 	t = testmove(self, self->x, self->z, x, z);
 	// extra hole check, only avoid hole while idling
-	if(t<=0 && (t!=-2 || self->idling))
+	if(t<=0 && (t!=-2 || needcheckhole))
 		return 0;
 
 	// do move and return

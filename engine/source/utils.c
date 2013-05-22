@@ -234,7 +234,13 @@ void writeToLogFile(const char * msg, ...)
 	va_start(arglist, msg);
 	vfprintf(openborLog, msg, arglist);
 	va_end(arglist);
+#if WII
 	fflush(openborLog);
+	fclose(openborLog);
+	openborLog=APPEND_LOGFILE(OPENBOR_LOG);
+#else
+	fflush(openborLog);
+#endif
 #endif
 }
 
