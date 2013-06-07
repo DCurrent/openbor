@@ -12411,7 +12411,7 @@ int testmove(entity* ent, float sx, float sz, float x, float z){
 	//-----------end of platform checking------------------
 
 	// ------------------ wall checking ---------------------
-	if(ent->modeldata.subject_to_wall>0 && (wall = checkwall(x, z))>=0 && level->walls[wall][7]>ent->a)
+	if(ent->modeldata.subject_to_wall>0 && (wall = checkwall_below(x, z, 999999))>=0 && level->walls[wall][7]>ent->a)
 	{
 		if(validanim(ent,ANI_JUMP) && sz<level->walls[wall][1] && sz>level->walls[wall][1]-level->walls[wall][6]) //Can jump?
 		{
@@ -16209,12 +16209,12 @@ int common_trymove(float xdir, float zdir)
 	// ------------------ wall checking ---------------------
 	if(self->modeldata.subject_to_wall){
 
-		if(xdir && (wall = checkwall(x, self->z))>=0 && level->walls[wall][7]>self->a)
+		if(xdir && (wall = checkwall_below(x, self->z, 999999))>=0 && level->walls[wall][7]>self->a)
 		{
 			xdir = 0;
 			execute_onblockw_script(self,1,(double)level->walls[wall][7]);
 		}
-		if(zdir && (wall = checkwall(self->x, z))>=0 && level->walls[wall][7]>self->a)
+		if(zdir && (wall = checkwall_below(self->x, z, 999999))>=0 && level->walls[wall][7]>self->a)
 		{
 			zdir = 0;
 			execute_onblockw_script(self,2,(double)level->walls[wall][7]);
