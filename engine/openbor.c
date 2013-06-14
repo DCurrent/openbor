@@ -22018,10 +22018,10 @@ int selectplayer(int *players, char* filename)
 	int exit = 0;
 	int ready[MAX_PLAYERS] = {0,0,0,0};
 	int escape = 0;
+	int defaultselect = 0;
 	unsigned exitdelay = 0;
 	int players_busy = 0;
 	int players_ready = 0;
-	int immediate[MAX_PLAYERS]= {0,0,0,0};
 	char string[128] = {""};
 	char* buf, *command;
 	size_t size = 0;
@@ -22035,6 +22035,9 @@ int selectplayer(int *players, char* filename)
 	reset_playable_list(1);
 	memset(player, 0, sizeof(*player)*4);
 	loadGameFile();
+
+	for(i=0; i<set->maxplayers; i++)
+		player[i].hasplayed = players[i];
 
 	if(filename && filename[0])
 	{
@@ -22076,38 +22079,10 @@ int selectplayer(int *players, char* filename)
 			free(buf);
 			buf = NULL;
 		}
-		for(i=0; i<set->maxplayers; i++)
-		{
-			immediate[i] = players[i];
-		}
 	}
 	else // without select.txt
 	{
-		if(skipselect[0][0] || set->noselect)
-		{
-			for(i=0; i<set->maxplayers; i++)
-			{
-				if(!players[i]) continue;
-
-				strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
-				//else continue;
-				if(!noshare) credits = CONTINUES;
-				else
-				{
-					player[i].credits = CONTINUES;
-					player[i].hasplayed = 1;
-				}
-				if(!creditscheat)
-				{
-					if(noshare) --player[i].credits;
-					else --credits;
-				}
-				player[i].lives = PLAYER_LIVES;
-			}
-			selectScreen = 0;
-			return 1;
-		}
-
+		defaultselect = 1;
 		if(unlockbg && bonus)
 		{
 			// New alternative background path for PSP
@@ -22133,9 +22108,46 @@ int selectplayer(int *players, char* filename)
 		if(!music("data/music/menu", 1, 0))
 			music("data/music/remix",1,0);
 		if(!noshare) credits = CONTINUES;
-		for(i=0; i<MAX_PLAYERS; i++)
+		else for(i=0; i<set->maxplayers; i++)
 		{
-			immediate[i] = players[i];
+			if(players[i]) player[i].credits = CONTINUES;
+		}
+	}
+
+	if(defaultselect && (skipselect[0][0] || set->noselect))
+	{
+		for(i=0; i<set->maxplayers; i++)
+		{
+			if(!players[i]) continue;
+			strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
+			if(!creditscheat)
+			{
+				if(noshare) --player[i].credits;
+				else --credits;
+			}
+			player[i].lives = PLAYER_LIVES;
+		}
+		selectScreen = 0;
+		return 1;
+	}
+
+	for(i=0; i<set->maxplayers; i++)
+	{
+		if(players[i]) {
+			example[i] = spawnexample(i);
+			player[i].playkeys = 0;
+			if(defaultselect) {
+				player[i].lives = PLAYER_LIVES;
+				if(!creditscheat)
+				{
+					if(noshare) --player[i].credits;
+					else --credits;
+				}
+			} else {
+				player[i].lives = savelevel[current_set].pLives[i];
+				player[i].credits = savelevel[current_set].pCredits[i];
+				player[i].score = savelevel[current_set].pScores[i];
+			}
 		}
 	}
 
@@ -22148,14 +22160,11 @@ int selectplayer(int *players, char* filename)
 		{
 			if(!ready[i])
 			{
-				if(player[i].lives <= 0 && (noshare || credits>0) && ((player[i].newkeys & FLAG_ANYBUTTON) || immediate[i]))
+				if(!player[i].hasplayed && (noshare || credits>0) && (player[i].newkeys & FLAG_ANYBUTTON))
 				{
+					players[i] = player[i].hasplayed = 1;
 					//printf("%d %d %d\n", i, player[i].lives, immediate[i]);
-					if(noshare)
-					{
-						player[i].credits = CONTINUES;
-						player[i].hasplayed = 1;
-					}
+					if(noshare) player[i].credits = CONTINUES;
 
 					if(!creditscheat)
 					{
