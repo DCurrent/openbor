@@ -22030,6 +22030,8 @@ int selectplayer(int *players, char* filename)
 	char argbuf[MAX_ARG_LEN+1] = "";
 	s_set_entry* set = levelsets+current_set;
 
+    savelevelinfo();
+
 	selectScreen = 1;
 	kill_all();
 	reset_playable_list(1);
