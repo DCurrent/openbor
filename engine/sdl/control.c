@@ -24,6 +24,16 @@ static int lastjoy;                     // Last joystick button/axis/hat input
 
 int sdl_game_started  = 0;
 
+#ifdef ANDROID
+extern int nativeWidth;
+extern int nativeHeight;
+#define MAX_POINTERS 30
+static float px[MAX_POINTERS];
+static float py[MAX_POINTERS];
+static int pid[MAX_POINTERS];
+void control_update_android_touch(float* px, float* py, int* pid, int maxp);
+#endif
+
 /*
 Here is where we aquiring all joystick events
 and map them to BOR's layout.  Currently support
@@ -54,6 +64,50 @@ void getPads(Uint8* keystate)
 					keystate[SDLK_RETURN] = 0;
 				}
 				if(lastkey != SDLK_F10) break;
+#endif
+#ifdef ANDROID
+			case SDL_FINGERDOWN:
+			{
+				for(i=0; i<MAX_POINTERS; i++)
+				{
+					if(pid[i]<0)
+					{
+						pid[i] = (int)ev.tfinger.fingerId;
+						px[i] = ev.tfinger.x*nativeWidth;
+						py[i] = ev.tfinger.y*nativeHeight;
+						break;
+					}
+				}
+				control_update_android_touch(px, py, pid, MAX_POINTERS);
+			}
+				break;
+			case SDL_FINGERUP:
+			{
+				for(i=0; i<MAX_POINTERS; i++)
+				{
+					if(pid[i]==(int)ev.tfinger.fingerId)
+					{
+						pid[i] = -1;
+						break;
+					}
+				}
+				control_update_android_touch(px, py, pid, MAX_POINTERS);
+			}
+				break;
+			case SDL_FINGERMOTION:
+			{
+				for(i=0; i<MAX_POINTERS; i++)
+				{
+					if(pid[i]==(int)ev.tfinger.fingerId)
+					{
+						px[i] = ev.tfinger.x*nativeWidth;
+						py[i] = ev.tfinger.y*nativeHeight;
+						break;
+					}
+				}
+				control_update_android_touch(px, py, pid, MAX_POINTERS);
+			}
+				break;
 #endif
 #if 0
 			// sdl 1.3 pause hack
@@ -187,6 +241,7 @@ void getPads(Uint8* keystate)
 			joysticks[i].Data |= joysticks[i].Hats << (joysticks[i].NumButtons + 2*joysticks[i].NumAxes);
 		}
 	}
+
 }
 
 
@@ -310,6 +365,8 @@ void control_init(int joy_enable)
 		}
 	}
 	joystick_scan(usejoy);
+	for(i=0; i<MAX_POINTERS; i++)
+		pid[i] = -1;
 }
 
 
@@ -353,7 +410,7 @@ extern unsigned touchstates[MAXTOUCHB];
 int hide_t = 5000;
 void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 {
-	Uint8* keystate = SDL_GetKeyState(NULL);
+	Uint8* keystate = (Uint8*)SDL_GetKeyState(NULL);
 	int i, j;
 	float tx, ty, tr;
 	float r[MAXTOUCHB];
@@ -511,9 +568,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 	int player;
 	int t;
 	s_playercontrols * pcontrols;
-	Uint8* keystate;
-
-	keystate = SDL_GetKeyState(NULL);
+	Uint8* keystate =  (Uint8*)SDL_GetKeyState(NULL);
 
 	getPads(keystate);
 	for(player=0; player<numplayers; player++){

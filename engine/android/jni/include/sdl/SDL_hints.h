@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2012 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2013 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -21,7 +21,7 @@
 
 /**
  *  \file SDL_hints.h
- *  
+ *
  *  Official documentation for SDL configuration variables
  *
  *  This file contains functions to set and get configuration hints,
@@ -44,13 +44,11 @@
 #include "begin_code.h"
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
-/* *INDENT-OFF* */
 extern "C" {
-/* *INDENT-ON* */
 #endif
 
 /**
- *  \brief  A variable controlling how 3D acceleration is used to accelerate the SDL 1.2 screen surface. 
+ *  \brief  A variable controlling how 3D acceleration is used to accelerate the SDL 1.2 screen surface.
  *
  *  SDL can try to accelerate the SDL 1.2 screen surface by using streaming
  *  textures with a 3D rendering engine.  This variable controls whether and
@@ -164,6 +162,13 @@ extern "C" {
 #define SDL_HINT_GRAB_KEYBOARD              "SDL_GRAB_KEYBOARD"
 
 /**
+ *  \brief Minimize your SDL_Window if it loses key focus when in Fullscreen mode. Defaults to true.
+ *
+ */
+#define SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS   "SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS"
+
+
+/**
  *  \brief  A variable controlling whether the idle timer is disabled on iOS.
  *
  *  When an iOS app does not receive touches for some time, the screen is
@@ -176,7 +181,7 @@ extern "C" {
  *    "1"       - Disable idle timer
  */
 #define SDL_HINT_IDLE_TIMER_DISABLED "SDL_IOS_IDLE_TIMER_DISABLED"
-	
+
 /**
  *  \brief  A variable controlling which orientations are allowed on iOS.
  *
@@ -190,11 +195,50 @@ extern "C" {
 
 
 /**
+ *  \brief  A variable that lets you disable the detection and use of Xinput gamepad devices
+ *
+ *  The variable can be set to the following values:
+ *    "0"       - Disable XInput timer (only uses direct input)
+ *    "1"       - Enable XInput timer (the default)
+ */
+#define SDL_HINT_XINPUT_ENABLED "SDL_XINPUT_ENABLED"
+
+
+/**
  *  \brief  A variable that lets you manually hint extra gamecontroller db entries
  *
- *  The variable expected newline delimited rows of gamecontroller config data, see SDL_gamecontroller.h
+ *  The variable should be newline delimited rows of gamecontroller config data, see SDL_gamecontroller.h
+ *
+ *  This hint must be set before calling SDL_Init(SDL_INIT_GAMECONTROLLER)
+ *  You can update mappings after the system is initialized with SDL_GameControllerMappingForGUID() and SDL_GameControllerAddMapping()
  */
 #define SDL_HINT_GAMECONTROLLERCONFIG "SDL_GAMECONTROLLERCONFIG"
+
+
+/**
+ *  \brief  A variable that lets you enable joystick (and gamecontroller) events even when your app is in the background.
+ *
+ * The default value is "0".
+ *
+ *  The variable can be set to the following values:
+ *    "0"       - Disable joystick & gamecontroller input events when the
+ *                application is in the background.
+ *    "1"       - Enable joystick & gamecontroller input events when the
+ *                application is in the backgroumd.
+ */
+#define SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS "SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"
+
+
+/**
+ *  \brief If set to 0 then never set the top most bit on a SDL Window, even if the video mode expects it.
+ *      This is a debugging aid for developers and not expected to be used by end users. The default is "1"
+ *
+ *  This variable can be set to the following values:
+ *    "0"       - don't allow topmost
+ *    "1"       - allow topmost
+ */
+#define SDL_HINT_ALLOW_TOPMOST "SDL_ALLOW_TOPMOST"
+
 
 
 /**
@@ -214,7 +258,7 @@ typedef enum
  *  The priority controls the behavior when setting a hint that already
  *  has a value.  Hints will replace existing hints of their priority and
  *  lower.  Environment variables are considered to have override priority.
- * 
+ *
  *  \return SDL_TRUE if the hint was set, SDL_FALSE otherwise
  */
 extern DECLSPEC SDL_bool SDLCALL SDL_SetHintWithPriority(const char *name,
@@ -223,7 +267,7 @@ extern DECLSPEC SDL_bool SDLCALL SDL_SetHintWithPriority(const char *name,
 
 /**
  *  \brief Set a hint with normal priority
- * 
+ *
  *  \return SDL_TRUE if the hint was set, SDL_FALSE otherwise
  */
 extern DECLSPEC SDL_bool SDLCALL SDL_SetHint(const char *name,
@@ -232,7 +276,7 @@ extern DECLSPEC SDL_bool SDLCALL SDL_SetHint(const char *name,
 
 /**
  *  \brief Get a hint
- *  
+ *
  *  \return The string value of a hint variable.
  */
 extern DECLSPEC const char * SDLCALL SDL_GetHint(const char *name);
@@ -247,9 +291,7 @@ extern DECLSPEC void SDLCALL SDL_ClearHints(void);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
-/* *INDENT-OFF* */
 }
-/* *INDENT-ON* */
 #endif
 #include "close_code.h"
 

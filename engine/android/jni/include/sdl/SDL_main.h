@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2012 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2013 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -26,7 +26,7 @@
 
 /**
  *  \file SDL_main.h
- *  
+ *
  *  Redefine main() on some platforms so that it is called by SDL.
  */
 
@@ -37,7 +37,7 @@
 #endif
 
 #ifdef __cplusplus
-#define C_LINKAGE	"C"
+#define C_LINKAGE   "C"
 #else
 #define C_LINKAGE
 #endif /* __cplusplus */
@@ -58,7 +58,7 @@
  */
 
 #ifdef SDL_MAIN_NEEDED
-#define main	SDL_main
+#define main    SDL_main
 #endif
 
 /**
@@ -69,10 +69,17 @@ extern C_LINKAGE int SDL_main(int argc, char *argv[]);
 
 #include "begin_code.h"
 #ifdef __cplusplus
-/* *INDENT-OFF* */
 extern "C" {
-/* *INDENT-ON* */
 #endif
+
+/*
+ *  This is called by the real SDL main function to let the rest of the
+ *  library know that initialization was done properly.
+ *
+ *  Calling this yourself without knowing what you're doing can cause
+ *  crashes and hard to diagnose problems with your application.
+ */
+extern DECLSPEC void SDL_SetMainReady(void);
 
 #ifdef __WIN32__
 
@@ -87,9 +94,7 @@ extern DECLSPEC void SDLCALL SDL_UnregisterApp(void);
 
 
 #ifdef __cplusplus
-/* *INDENT-OFF* */
 }
-/* *INDENT-ON* */
 #endif
 #include "close_code.h"
 
