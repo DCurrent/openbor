@@ -20,13 +20,13 @@
 */
 
 /**
- *  \file SDL_error.h
+ *  \file SDL_bits.h
  *
- *  Simple error message routines for SDL.
+ *  Functions for fiddling with bits and bitmasks.
  */
 
-#ifndef _SDL_error_h
-#define _SDL_error_h
+#ifndef _SDL_bits_h
+#define _SDL_bits_h
 
 #include "SDL_stdinc.h"
 
@@ -36,34 +36,48 @@
 extern "C" {
 #endif
 
-/* Public functions */
-/* SDL_SetError() unconditionally returns -1. */
-extern DECLSPEC int SDLCALL SDL_SetError(const char *fmt, ...);
-extern DECLSPEC const char *SDLCALL SDL_GetError(void);
-extern DECLSPEC void SDLCALL SDL_ClearError(void);
+/**
+ *  \file SDL_bits.h
+ */
 
 /**
- *  \name Internal error functions
+ *  Get the index of the most significant bit. Result is undefined when called
+ *  with 0. This operation can also be stated as "count leading zeroes" and
+ *  "log base 2".
  *
- *  \internal
- *  Private error reporting function - used internally.
+ *  \return Index of the most significant bit.
  */
-/*@{*/
-#define SDL_OutOfMemory()   SDL_Error(SDL_ENOMEM)
-#define SDL_Unsupported()   SDL_Error(SDL_UNSUPPORTED)
-#define SDL_InvalidParamError(param)    SDL_SetError("Parameter '%s' is invalid", (param))
-typedef enum
+SDL_FORCE_INLINE Sint8
+SDL_MostSignificantBitIndex32(Uint32 x)
 {
-    SDL_ENOMEM,
-    SDL_EFREAD,
-    SDL_EFWRITE,
-    SDL_EFSEEK,
-    SDL_UNSUPPORTED,
-    SDL_LASTERROR
-} SDL_errorcode;
-/* SDL_Error() unconditionally returns -1. */
-extern DECLSPEC int SDLCALL SDL_Error(SDL_errorcode code);
-/*@}*//*Internal error functions*/
+#if defined(__GNUC__) && __GNUC__ >= 4
+    /* Count Leading Zeroes builtin in GCC.
+     * http://gcc.gnu.org/onlinedocs/gcc-4.3.4/gcc/Other-Builtins.html
+     */
+    return 31 - __builtin_clz(x);
+#else
+    /* Based off of Bit Twiddling Hacks by Sean Eron Anderson
+     * <seander@cs.stanford.edu>, released in the public domain.
+     * http://graphics.stanford.edu/~seander/bithacks.html#IntegerLog
+     */
+    const Uint32 b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};
+    const Uint8  S[] = {1, 2, 4, 8, 16};
+
+    Uint8 msbIndex = 0;
+    int i;
+
+    for (i = 4; i >= 0; i--)
+    {
+        if (x & b[i])
+        {
+            x >>= S[i];
+            msbIndex |= S[i];
+        }
+    }
+
+    return msbIndex;
+#endif
+}
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
@@ -71,6 +85,6 @@ extern DECLSPEC int SDLCALL SDL_Error(SDL_errorcode code);
 #endif
 #include "close_code.h"
 
-#endif /* _SDL_error_h */
+#endif /* _SDL_bits_h */
 
 /* vi: set ts=4 sw=4 expandtab: */

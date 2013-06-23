@@ -15,42 +15,55 @@
 LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
-
-LOCAL_MODULE    := sdl2
-LOCAL_SRC_FILES := lib/libsdl2.so
-
+LOCAL_MODULE    := SDL2
+ifeq ($(TARGET_ARCH_ABI),armeabi) 
+LOCAL_SRC_FILES := lib/armeabi/libSDL2.so
+endif
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a) 
+LOCAL_SRC_FILES := lib/armeabi-v7a/libSDL2.so
+endif
 include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
-
-LOCAL_MODULE    := zlib
-LOCAL_SRC_FILES := lib/libzlib.a
-
+LOCAL_MODULE    := z
+ifeq ($(TARGET_ARCH_ABI),armeabi) 
+LOCAL_SRC_FILES := lib/armeabi/libz.a
+endif
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a) 
+LOCAL_SRC_FILES := lib/armeabi-v7a/libz.a
+endif
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
-
 LOCAL_MODULE    := png
-LOCAL_SRC_FILES := lib/libpng.a
-
-LOCAL_STATIC_LIBRARIES := zlib
-
+ifeq ($(TARGET_ARCH_ABI),armeabi) 
+LOCAL_SRC_FILES := lib/armeabi/libpng.a
+endif
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a) 
+LOCAL_SRC_FILES := lib/armeabi-v7a/libpng.a
+endif
+LOCAL_STATIC_LIBRARIES := z
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
-
 LOCAL_MODULE    := ogg
-LOCAL_SRC_FILES := lib/libogg.a
-
+ifeq ($(TARGET_ARCH_ABI),armeabi) 
+LOCAL_SRC_FILES := lib/armeabi/libogg.a
+endif
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a) 
+LOCAL_SRC_FILES := lib/armeabi-v7a/libogg.a
+endif
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
-
 LOCAL_MODULE    := vorbis
-LOCAL_SRC_FILES := lib/libvorbis.a
-
+ifeq ($(TARGET_ARCH_ABI),armeabi) 
+LOCAL_SRC_FILES := lib/armeabi/libvorbis.a
+endif
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a) 
+LOCAL_SRC_FILES := lib/armeabi-v7a/libvorbis.a
+endif
 LOCAL_STATIC_LIBRARIES := ogg
-
 include $(PREBUILT_STATIC_LIBRARY)
 
 #openbor
@@ -98,9 +111,10 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/../../source/scriptlib/*.c)) \
 	SDL_android_main.cpp
 
-LOCAL_LDLIBS    := -L../lib  -lGLESv1_CM #-llog -L../lib -lGLESv1_CM
 
-LOCAL_STATIC_LIBRARIES := libpng libvorbis libsdl2
+LOCAL_LDLIBS    := -lGLESv1_CM
+
+LOCAL_STATIC_LIBRARIES := png vorbis SDL2
 
 include $(BUILD_SHARED_LIBRARY)
 
