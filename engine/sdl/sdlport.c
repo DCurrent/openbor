@@ -100,6 +100,15 @@ int main(int argc, char *argv[])
 	dirExists(logsDir, 1);
 	dirExists(screenShotsDir, 1);
 
+#ifdef ANDROID
+    if(dirExists("/mnt/usbdrive/OpenBOR/Paks", 0))
+        strcpy(paksDir, "/mnt/usbdrive/OpenBOR/Paks");
+    else if(dirExists("/usbdrive/OpenBOR/Paks", 0))
+        strcpy(paksDir, "/usbdrive/OpenBOR/Paks");
+    else if(dirExists("/mnt/extsdcard/OpenBOR/Paks", 0))
+        strcpy(paksDir, "/mnt/extsdcard/OpenBOR/Paks");
+#endif
+
 	Menu();
 #ifndef SKIP_CODE
 	getPakName(pakname, -1);

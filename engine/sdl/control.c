@@ -365,8 +365,10 @@ void control_init(int joy_enable)
 		}
 	}
 	joystick_scan(usejoy);
+#ifdef ANDROID
 	for(i=0; i<MAX_POINTERS; i++)
 		pid[i] = -1;
+#endif
 }
 
 
