@@ -6,7 +6,7 @@
  * Copyright (c) 2004 - 2011 OpenBOR Team
  */
 
-#include "SDL.h"
+#include "sdlport.h"
 #include "joysticks.h"
 
 s_joysticks joysticks[JOY_LIST_TOTAL];
@@ -378,7 +378,7 @@ char* JOY_GetKeyName(int keycode)
 {
 #ifdef OPENDINGUX
 	return OPENDINGUX_GetKeyName(keycode);
-#elif ANDROID || DARWIN
+#elif ANDROID || DARWIN || SDL2
 	return (char*)SDL_GetScancodeName(keycode);
 #else
 	return (char*)SDL_GetKeyName(keycode);
