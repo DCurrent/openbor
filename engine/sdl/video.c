@@ -11,7 +11,14 @@
 
 #else
 
-#include <SDL_framerate.h>
+#include "sdlport.h"
+
+#ifdef SDL2
+#include "SDL2_framerate.h"
+#else
+#include "SDL_framerate.h"
+#endif
+
 #include <math.h>
 #include "types.h"
 #include "video.h"
@@ -36,6 +43,11 @@ extern int videoMode;
 
 #define VIDEO_USE_OPENGL (savedata.usegl[savedata.fullscreen])
 
+#ifdef SDL2
+SDL_Window *window = NULL;
+SDL_Palette *screenPalette = NULL;
+#endif
+
 FPSmanager framerate_manager;
 
 s_videomodes stored_videomodes;
@@ -54,6 +66,36 @@ SDL_Surface* getSDLScreen()
 	return screen;
 }
 
+#ifdef SDL2
+void initSDL()
+{
+	SDL_DisplayMode video_info;
+	int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK;
+	
+	if(SDL_Init(init_flags) < 0)
+	{
+		printf("SDL Failed to Init!!!! (%s)\n", SDL_GetError());
+		borExit(0);
+	}
+	SDL_ShowCursor(SDL_DISABLE);
+	atexit(SDL_Quit);
+	
+	// TODO OpenGL
+#if 0 // WIN || LINUX && !DARWIN && !defined(GLES)
+	if(SDL_GL_LoadLibrary(NULL) < 0)
+	{
+		printf("Warning: couldn't load OpenGL library (%s)\n", SDL_GetError());
+	}
+#endif
+
+	screenPalette = SDL_AllocPalette(256);
+
+	SDL_GetDesktopDisplayMode(0, &video_info);
+	nativeWidth = video_info.w;
+	nativeHeight = video_info.h;
+	printf("debug:nativeWidth, nativeHeight, bpp, Hz  %d, %d, %d, %d\n", nativeWidth, nativeHeight, SDL_BITSPERPIXEL(video_info.format), video_info.refresh_rate);
+}
+#else // SDL 1.2
 void initSDL()
 {
 	const SDL_VideoInfo* video_info;
@@ -92,14 +134,67 @@ void initSDL()
 	SDL_initFramerate(&framerate_manager);
 	SDL_setFramerate(&framerate_manager, 200);
 }
+#endif
+
+void video_set_window_title(const char* title)
+{
+#if SDL2
+	if(window) SDL_SetWindowTitle(window, title);
+#else
+	SDL_WM_SetCaption(title, NULL);
+#endif
+}
 
 static unsigned masks[4][4] = {{0,0,0,0},{0x1F,0x07E0,0xF800,0},{0xFF,0xFF00,0xFF0000,0},{0xFF,0xFF00,0xFF0000,0}};
+
+// Function to set the video mode on any SDL version (1.2 or 2.0)
+SDL_Surface* SetVideoMode(int w, int h, int bpp, bool gl)
+{
+#if SDL2
+	int x = SDL_WINDOWPOS_UNDEFINED;
+	int y = SDL_WINDOWPOS_UNDEFINED;
+	int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS;
+	static bool last_gl = false;
+	if(gl) flags |= SDL_WINDOW_OPENGL;
+	if(savedata.fullscreen) flags |= SDL_WINDOW_FULLSCREEN;
+	
+	if(window && gl != last_gl)
+	{
+		SDL_GetWindowPosition(window, &x, &y);
+		SDL_DestroyWindow(window);
+		window = NULL;
+	}
+	last_gl = gl;
+	
+	if(window)
+	{
+		SDL_SetWindowFullscreen(window, 0);
+		SDL_SetWindowSize(window, w, h);
+		SDL_SetWindowFullscreen(window, savedata.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	}
+	else
+	{
+		window = SDL_CreateWindow("OpenBOR", x, y, w, h, flags); // FIXME: use previous window title
+		if(!window) return NULL;
+		SDL_Surface* icon = (SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data);
+		SDL_SetWindowIcon(window, icon);
+		SDL_FreeSurface(icon);
+	}
+	
+	if(gl) return NULL;
+	else return SDL_CreateRGBSurface(0, w, h, bpp, masks[bpp/8-1][2], masks[bpp/8-1][1], masks[bpp/8-1][0], masks[bpp/8-1][3]);
+#elif defined(OPENDINGUX)
+	return SDL_SetVideoMode(w, h, bpp, savedata.fullscreen?(SDL_HWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_HWSURFACE|SDL_DOUBLEBUF));
+#else
+	return SDL_SetVideoMode(w, h, bpp, savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
+#endif
+}
 
 int video_set_mode(s_videomodes videomodes)
 {
 	stored_videomodes = videomodes;
 
-	if(screen) SDL_FreeAndNullVideoSurface(screen);
+	if(screen) { SDL_FreeSurface(screen); screen=NULL; }
 	if(bscreen) { SDL_FreeSurface(bscreen); bscreen=NULL; }
 	if(bscreen2) { SDL_FreeSurface(bscreen2); bscreen2=NULL; }
 
@@ -118,14 +213,10 @@ int video_set_mode(s_videomodes videomodes)
 
 	if(savedata.screen[videoMode][0])
 	{
-#ifdef OPENDINGUX
-		screen = SDL_SetVideoMode(videomodes.hRes*savedata.screen[videoMode][0],videomodes.vRes*savedata.screen[videoMode][0],16,savedata.fullscreen?(SDL_HWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_HWSURFACE|SDL_DOUBLEBUF));
-#else
-		screen = SDL_SetVideoMode(videomodes.hRes*savedata.screen[videoMode][0],videomodes.vRes*savedata.screen[videoMode][0],16,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
-#endif
+		screen = SetVideoMode(videomodes.hRes*savedata.screen[videoMode][0], videomodes.vRes*savedata.screen[videoMode][0], 16, false);
 		SDL_ShowCursor(SDL_DISABLE);
-		bscreen = SDL_AllocSurface(SDL_SWSURFACE, videomodes.hRes, videomodes.vRes, 8*bytes_per_pixel, masks[bytes_per_pixel-1][0], masks[bytes_per_pixel-1][1], masks[bytes_per_pixel-1][2], masks[bytes_per_pixel-1][3]); // 24bit mask
-		bscreen2 = SDL_AllocSurface(SDL_SWSURFACE, videomodes.hRes+4, videomodes.vRes+8, 16, masks[1][2], masks[1][1], masks[1][0], masks[1][3]);
+		bscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, videomodes.hRes, videomodes.vRes, 8*bytes_per_pixel, masks[bytes_per_pixel-1][0], masks[bytes_per_pixel-1][1], masks[bytes_per_pixel-1][2], masks[bytes_per_pixel-1][3]); // 24bit mask
+		bscreen2 = SDL_CreateRGBSurface(SDL_SWSURFACE, videomodes.hRes+4, videomodes.vRes+8, 16, masks[1][2], masks[1][1], masks[1][0], masks[1][3]);
 		Init_Gfx(565, 16);
 		memset(pDeltaBuffer, 0x00, 1244160);
 		if(bscreen==NULL || bscreen2==NULL) return 0;
@@ -134,21 +225,23 @@ int video_set_mode(s_videomodes videomodes)
 	{
 		if(bytes_per_pixel>1)
 		{
-			bscreen = SDL_AllocSurface(SDL_SWSURFACE, videomodes.hRes, videomodes.vRes, 8*bytes_per_pixel, masks[bytes_per_pixel-1][0], masks[bytes_per_pixel-1][1], masks[bytes_per_pixel-1][2], masks[bytes_per_pixel-1][3]); // 24bit mask
+			bscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, videomodes.hRes, videomodes.vRes, 8*bytes_per_pixel, masks[bytes_per_pixel-1][0], masks[bytes_per_pixel-1][1], masks[bytes_per_pixel-1][2], masks[bytes_per_pixel-1][3]); // 24bit mask
 			if(!bscreen) return 0;
 		}
-#ifdef OPENDINGUX
-		screen = SDL_SetVideoMode(videomodes.hRes,videomodes.vRes,8*bytes_per_pixel,savedata.fullscreen?(SDL_HWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_HWSURFACE|SDL_DOUBLEBUF));
-#else
-		screen = SDL_SetVideoMode(videomodes.hRes,videomodes.vRes,8*bytes_per_pixel,savedata.fullscreen?(SDL_SWSURFACE|SDL_DOUBLEBUF|SDL_FULLSCREEN):(SDL_SWSURFACE|SDL_DOUBLEBUF));
-#endif
+		screen = SetVideoMode(videomodes.hRes, videomodes.vRes, 8*bytes_per_pixel, false);
 		SDL_ShowCursor(SDL_DISABLE);
 	}
 
 	if(bytes_per_pixel==1)
 	{
+#ifdef SDL2
+		SDL_SetSurfacePalette(screen, screenPalette);
+		if(bscreen) SDL_SetSurfacePalette(bscreen, screenPalette);
+		SDL_SetPaletteColors(screenPalette, colors, 0, 256);
+#else
 		SDL_SetColors(screen,colors,0,256);
 		if(bscreen) SDL_SetColors(bscreen,colors,0,256);
+#endif
 	}
 
 	if(screen==NULL) return 0;
@@ -286,7 +379,12 @@ int video_copy_screen(s_screen* src)
 		}
 	}
 
+#if SDL2
+	SDL_BlitSurface(screen, NULL, SDL_GetWindowSurface(window), NULL);
+	SDL_UpdateWindowSurface(window);
+#else
 	SDL_Flip(screen);
+#endif
 
 #if WIN || LINUX
 	SDL_framerateDelay(&framerate_manager);
@@ -345,8 +443,12 @@ void vga_setpalette(unsigned char* palette)
 	}
 	if(!opengl)
 	{
+#if SDL2
+		SDL_SetPaletteColors(screenPalette, colors, 0, 256);
+#else
 		SDL_SetColors(screen,colors,0,256);
 		if(bscreen) SDL_SetColors(bscreen,colors,0,256);
+#endif
 	}
 }
 

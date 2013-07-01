@@ -48,7 +48,7 @@ void getPads(Uint8* keystate)
 		switch(ev.type)
 		{
 			case SDL_KEYDOWN:
-#ifdef SDL13
+#ifdef SDL2
 				lastkey = ev.key.keysym.scancode;
 				if((keystate[SDL_SCANCODE_LALT] || keystate[SDL_SCANCODE_RALT]) && (lastkey == SDL_SCANCODE_RETURN))
 				{

@@ -10,8 +10,8 @@
 #define	CONTROL_H
 
 // Generic control stuff (keyboard+joystick).
-#if ANDROID || DARWIN
-#include <SDL_Keycode.h>
+#if ANDROID || DARWIN || SDL2
+#include "SDL_keycode.h"
 #else
 #include <SDL_keysym.h>
 #endif
@@ -46,7 +46,7 @@
 	#define CONTROL_DEFAULT1_START		(JOY_LIST_FIRST + 11)
 	#define CONTROL_DEFAULT1_SCREENSHOT (JOY_LIST_FIRST + 12)
 #else
-#ifdef SDL13
+#ifdef SDL2
 	#define	CONTROL_ESC                 SDL_SCANCODE_ESCAPE
 	#define	CONTROL_DEFAULT1_START		SDL_SCANCODE_RETURN
 	#define	CONTROL_DEFAULT1_UP         SDL_SCANCODE_UP
@@ -119,7 +119,7 @@
 #define JOYBUTTON(index, btn) (1 + i * JOY_MAX_INPUTS + btn)
 #define JOYAXIS(index, axis, dir) (JOYBUTTON(index, joysticks[index].NumButtons) + 2 * axis + dir)
 
-#ifdef SDL13
+#ifdef SDL2
 #define SDLK_FIRST SDL_SCANCODE_UNKNOWN
 #define SDLK_LAST  SDL_NUM_SCANCODES
 #define SDL_GetKeyState SDL_GetKeyboardState

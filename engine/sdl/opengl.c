@@ -16,10 +16,9 @@
  * all 4 sides.
  */
 
- #ifdef OPENGL
+#ifdef OPENGL
 
-#include <SDL.h>
-#include <SDL_framerate.h>
+#include "SDL.h"
 #include <math.h>
 #include "openbor.h"
 #include "opengl.h"
@@ -27,10 +26,21 @@
 #include "sdlport.h"
 #include "loadgl.h"
 
+#ifdef SDL2
+#include "SDL2_framerate.h"
+#else
+#include "SDL_framerate.h"
+#endif
+
 #define nextpowerof2(x) pow(2,ceil(log(x)/log(2)))
 #define abs(x)			((x<0)?-(x):(x))
 
-static SDL_Surface* screen = NULL;
+#if SDL2
+static SDL_GLContext context = NULL;
+#else
+static SDL_Surface* context = NULL;
+#endif
+
 static SDL_Surface* bscreen = NULL; // FIXME: unnecessary SDL dependency; this should be an s_screen
 
 static int textureDepths[4] = {16,16,24,32};
@@ -63,6 +73,9 @@ extern s_videomodes stored_videomodes;
 extern FPSmanager framerate_manager;
 extern int stretch;
 extern int nativeWidth, nativeHeight;
+#if SDL2
+extern SDL_Window* window;
+#endif
 
 // Macros for compatibility between OpenGL ES and normal OpenGL
 #ifdef GLES
@@ -74,6 +87,13 @@ extern int nativeWidth, nativeHeight;
 #define glTexParameter glTexParameteri
 #define BOR_UNSIGNED_SHORT_5_6_5 GL_UNSIGNED_SHORT_5_6_5_REV
 #define BOR_CLAMP GL_CLAMP
+#endif
+
+// SDL 1.2 and SDL 2.0 use different calls for SwapBuffers
+#if SDL2
+#define SwapBuffers() SDL_GL_SwapWindow(window)
+#else
+#define SwapBuffers() SDL_GL_SwapBuffers()
 #endif
 
 // calculates scale factors and offsets based on viewport and texture sizes
@@ -144,7 +164,7 @@ void video_gl_init_textures()
 #endif
 
 	// allocate a surface to initialize the texture with
-	bscreen = SDL_AllocSurface(SDL_SWSURFACE, allocTextureWidth, allocTextureHeight, textureDepths[bytesPerPixel-1], 0,0,0,0);
+	bscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, allocTextureWidth, allocTextureHeight, textureDepths[bytesPerPixel-1], 0,0,0,0);
 
 	// create texture object
 	glDeleteTextures(1, &gltexture);
@@ -159,7 +179,7 @@ void video_gl_init_textures()
 	SDL_FreeSurface(bscreen);
 	bscreen = NULL;
 
-	if(bytesPerPixel == 1) bscreen = SDL_AllocSurface(SDL_SWSURFACE, textureWidth, textureHeight, 16, 0,0,0,0);
+	if(bytesPerPixel == 1) bscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, textureWidth, textureHeight, 16, 0,0,0,0);
 }
 
 int video_gl_set_mode(s_videomodes videomodes)
@@ -185,7 +205,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 	}
 
 	// try to disable vertical retrace syncing (VSync)
-#ifdef SDL13
+#ifdef SDL2
 	if(SDL_GL_SetSwapInterval(0) < 0)
 #else
 	if(SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 0) != 0)
@@ -193,24 +213,46 @@ int video_gl_set_mode(s_videomodes videomodes)
 	{
 		printf("Warning: can't disable vertical retrace sync (%s)\n", SDL_GetError());
 	}
+	
+#if SDL2 && defined(GLES)
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_EGL, 1);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#elif SDL2
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_EGL, 0);
+#endif
 
 	// free existing surfaces
-	// if(screen) SDL_FreeAndNullVideoSurface(screen);
 	if(bscreen) { SDL_FreeSurface(bscreen); bscreen=NULL; }
 
 	// create main video surface and initialize OpenGL context
-	screen = SDL_SetVideoMode(viewportWidth, viewportHeight, 0, savedata.fullscreen ? (SDL_OPENGL|SDL_FULLSCREEN) : SDL_OPENGL);
+#if SDL2
+	SetVideoMode(viewportWidth, viewportHeight, 0, true);
+	if(!window)
+	{
+		printf("Failed to create OpenGL-compatible window (%s)...", SDL_GetError());
+		goto error;
+	}
+	context = SDL_GL_CreateContext(window);
+#else
+	context = SDL_SetVideoMode(viewportWidth, viewportHeight, 0, savedata.fullscreen ? (SDL_OPENGL|SDL_FULLSCREEN) : SDL_OPENGL);
+#endif
 
 	// make sure the surface was created successfully
-	if(!screen)
+	if(!context)
 	{
 		printf("OpenGL initialization failed (%s)...", SDL_GetError());
 		goto error;
 	}
 
 	// update viewport size based on actual dimensions
-	viewportWidth = screen->w;
-	viewportHeight = screen->h;
+#if SDL2
+	SDL_GL_MakeCurrent(window, context);
+	SDL_GetWindowSize(window, &viewportWidth, &viewportHeight);
+#else
+	viewportWidth = context->w;
+	viewportHeight = context->h;
+#endif
 
 #ifdef LOADGL
 	// load OpenGL functions dynamically in Linux/Windows/OSX
@@ -264,7 +306,6 @@ int video_gl_set_mode(s_videomodes videomodes)
 	return 1;
 error:
 	printf("falling back on SDL video backend\n");
-	if(screen) SDL_FreeAndNullVideoSurface(screen);
 	if(bscreen) { SDL_FreeSurface(bscreen); bscreen=NULL; }
 	opengl = 0;
 	savedata.usegl[savedata.fullscreen] = 0;
@@ -275,9 +316,9 @@ void video_gl_clearscreen()
 {
 	// clear both buffers in a double-buffered setup
 	glClear(GL_COLOR_BUFFER_BIT);
-	SDL_GL_SwapBuffers();
+	SwapBuffers();
 	glClear(GL_COLOR_BUFFER_BIT);
-	SDL_GL_SwapBuffers();
+	SwapBuffers();
 }
 
 void video_gl_fullscreen_flip()
@@ -366,6 +407,8 @@ int video_gl_copy_screen(s_screen* src)
 
 		if(SDL_MUSTLOCK(bscreen)) SDL_UnlockSurface(bscreen);
 	}
+	
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	// update texture contents with new surface contents
 	glActiveTexture(GL_TEXTURE0);
@@ -403,9 +446,9 @@ int video_gl_copy_screen(s_screen* src)
 		video_gl_draw_quad(xOffset, yOffset, scaledWidth, scaledHeight);
 
 	// blit the image to the screen
-	SDL_GL_SwapBuffers();
+	SwapBuffers();
 
-#if WIN || LINUX
+#if !SDL2 && (WIN || LINUX)
 	// limit framerate to 200 fps
 	SDL_framerateDelay(&framerate_manager);
 #endif
@@ -427,6 +470,11 @@ void video_gl_setpalette(unsigned char* pal)
 void video_gl_set_color_correction(int gamma, int brightness)
 {
 	int numTexEnvStages = 0;
+
+#ifdef GLES
+	// FIXME: color correction is broken with OpenGL ES
+	return;
+#endif
 
 	if(gamma < -256) gamma = -256;
 	if(gamma > 256) gamma = 256;
@@ -452,7 +500,7 @@ void video_gl_set_color_correction(int gamma, int brightness)
 			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
 			glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_TEXTURE);
 			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_PRIMARY_COLOR_ARB);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_PRIMARY_COLOR);
 			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
 
 			// second stage: (1.0-c)*(1.0-prev) = (1.0-c)*(1.0-(c*g))
@@ -487,7 +535,7 @@ void video_gl_set_color_correction(int gamma, int brightness)
 			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
 			glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_TEXTURE);
 			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_ONE_MINUS_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_PRIMARY_COLOR_ARB);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_PRIMARY_COLOR);
 			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
 
 			// second stage: c*(1.0-prev) = c*(1.0-((1.0-c)*g))

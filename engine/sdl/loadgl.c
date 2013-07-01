@@ -66,6 +66,7 @@ void (APIENTRY *ptr_glDisableClientState)(GLenum cap);
 void (APIENTRY *ptr_glTexCoordPointer)(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr);
 void (APIENTRY *ptr_glVertexPointer)(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr);
 void (APIENTRY *ptr_glDrawArrays)(GLenum mode, GLint first, GLsizei count);
+void (APIENTRY *ptr_glDrawElements)(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices);
 #else
 void (APIENTRY *ptr_glOrtho)(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val);
 void (APIENTRY *ptr_glTexParameteri)(GLenum target, GLenum pname, GLint param);
@@ -79,6 +80,7 @@ void (APIENTRY *ptr_glTexCoord2f)(GLfloat s, GLfloat t);
 void (APIENTRY *ptr_glActiveTexture)(GLenum texture);
 void (APIENTRY *ptr_glMultiTexCoord2f)(GLenum texture, GLfloat s, GLfloat t);
 
+#ifndef GLES
 PFNGLCREATESHADEROBJECTARBPROC glCreateShaderObjectARB;
 PFNGLSHADERSOURCEARBPROC glShaderSourceARB;
 PFNGLCOMPILESHADERARBPROC glCompileShaderARB;
@@ -90,6 +92,7 @@ PFNGLGETUNIFORMLOCATIONARBPROC glGetUniformLocationARB;
 PFNGLUNIFORM1IARBPROC glUniform1iARB;
 PFNGLUNIFORM1FARBPROC glUniform1fARB;
 PFNGLUNIFORM4FARBPROC glUniform4fARB;
+#endif
 
 #define LOADFUNC(X,Y) Y = GetProcAddress(X); if(!Y) { printf("Failed to load OpenGL function " X "..."); return 0; }
 #define LOADFUNC2(X) X = GetProcAddress(#X); if(!X) { printf("Failed to load OpenGL function " #X "..."); return 0; }
@@ -129,6 +132,7 @@ int LoadGLFunctions()
 	LOADFUNC("glTexCoordPointer", ptr_glTexCoordPointer);
 	LOADFUNC("glVertexPointer", ptr_glVertexPointer);
 	LOADFUNC("glDrawArrays", ptr_glDrawArrays);
+	LOADFUNC("glDrawElements", ptr_glDrawElements);
 #else
 	LOADFUNC("glOrtho", ptr_glOrtho);
 	LOADFUNC("glTexParameteri", ptr_glTexParameteri);
@@ -146,7 +150,6 @@ int LoadGLFunctions()
 	ptr_glMultiTexCoord2f = GetProcAddress("glMultiTexCoord2f");
 	if(!ptr_glMultiTexCoord2f)
 		LOADFUNC("glMultiTexCoord2fARB", ptr_glMultiTexCoord2f);
-#endif
 
 	// load optional GLSL extensions
 	glCreateShaderObjectARB = GetProcAddress("glCreateShaderObjectARB");
@@ -160,6 +163,7 @@ int LoadGLFunctions()
 	glUniform1iARB = GetProcAddress("glUniform1iARB");
 	glUniform1fARB = GetProcAddress("glUniform1fARB");
 	glUniform4fARB = GetProcAddress("glUniform4fARB");
+#endif
 
 	return 1;
 }
@@ -299,6 +303,11 @@ void APIENTRY glVertexPointer(GLint size, GLenum type, GLsizei stride, const GLv
 void APIENTRY glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
 	ptr_glDrawArrays(mode, first, count);
+}
+
+void APIENTRY glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices)
+{
+	ptr_glDrawElements(mode, count, type, indices);
 }
 #else
 void APIENTRY glOrtho(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val)

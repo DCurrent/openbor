@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 	Menu();
 #ifndef SKIP_CODE
 	getPakName(pakname, -1);
-	SDL_WM_SetCaption(pakname, NULL);
+	video_set_window_title(pakname);
 #endif
 	openborMain(argc, argv);
 	borExit(0);

@@ -21,20 +21,12 @@
 #define strnicmp strncasecmp
 #endif
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+#define SDL2 1
+#endif
+
 #if GP2X || DARWIN || OPENDINGUX || WII || ANDROID
 #define SKIP_CODE
-#endif
-
-#if SDL_VERSION_ATLEAST(1,3,0)
-#define SDL13
-#endif
-
-#ifdef SDL13
-#define SDL_FreeVideoSurface(X)
-#define SDL_FreeAndNullVideoSurface(X)
-#else
-#define SDL_FreeVideoSurface(X) SDL_FreeSurface(X)
-#define SDL_FreeAndNullVideoSurface(X) { SDL_FreeSurface(X); X=NULL; }
 #endif
 
 #ifdef ANDROID
