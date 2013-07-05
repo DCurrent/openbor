@@ -206,7 +206,7 @@ int font_load(int which, char *filename, char *packfile, int flags){
 // loads an alpha mask for an already-loaded font
 int font_loadmask(int which, char *filename, char *packfile, int flags){
 	s_font** sets, *font;
-	int i, max;
+	int i, max, ret=0;
 
 	which %= MAX_FONTS;
 	sets = fonts[which];
@@ -216,18 +216,18 @@ int font_loadmask(int which, char *filename, char *packfile, int flags){
 	for(i=0; i<max; i++){
 		if(i==1) i=128;
 		font = sets[i];
-		if(!font) return 0;
+		if(!font) continue;
 		if(font->mbs){
 			sprintf(b, "%s/%02x", filename, i);
 		}else 
 			strcpy(b, filename);
 		
 		if(!_font_loadmask(font, b, packfile)){
-			return 0;
-		}
+			;//return 0;
+		} else ret = 1;
 	}
 
-	return 1;
+	return ret;
 
 }
 
