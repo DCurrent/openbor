@@ -526,7 +526,7 @@ int anigif_decode_frame(anigif_info* info)
 s_screen* anigif_getbuffer(anigif_info* info)
 {
 	s_screen* buffer = info->isRGB?info->backbuffer:info->gifbuffer[0];
-	buffer->palette = info->isRGB?NULL:(info->info[0].local_pal?info->info[0].local_pal:info->info[0].global_pal);
+    if(buffer) buffer->palette = info->isRGB?NULL:(info->info[0].local_pal?info->info[0].local_pal:info->info[0].global_pal);
 	return buffer;
 }
 
