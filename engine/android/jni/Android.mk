@@ -109,7 +109,8 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/../../source/ramlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../source/randlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../source/scriptlib/*.c)) \
-	SDL_android_main.cpp
+	SDL_android_main.cpp \
+	jniutils.cpp
 
 
 LOCAL_LDLIBS    := -lGLESv1_CM

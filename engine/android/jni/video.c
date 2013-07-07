@@ -82,7 +82,7 @@ void initSDL()
 
 	savedata.fullscreen = 1;
 
-	printf("debug:nativeWidth, nativeHeight, fps  %d, %d, %d\n", nativeWidth, nativeHeight, mode.refresh_rate);
+	//printf("debug:nativeWidth, nativeHeight, fps  %d, %d, %d\n", nativeWidth, nativeHeight, mode.refresh_rate);
 
 
 }

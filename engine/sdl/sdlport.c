@@ -27,16 +27,13 @@
 
 char packfile[128] = {"bor.pak"};
 #if ANDROID
-char paksDir[128] = {"/mnt/sdcard/OpenBOR/Paks"};
-char savesDir[128] = {"/mnt/sdcard/OpenBOR/Saves"};
-char logsDir[128] = {"/mnt/sdcard/OpenBOR/Logs"};
-char screenShotsDir[128] = {"/mnt/sdcard/OpenBOR/ScreenShots"};
-#else
+#include <unistd.h>
+char rootDir[128] = {"/mnt/sdcard/OpenBOR"};
+#endif
 char paksDir[128] = {"Paks"};
 char savesDir[128] = {"Saves"};
 char logsDir[128] = {"Logs"};
 char screenShotsDir[128] = {"ScreenShots"};
-#endif
 
 void borExit(int reset)
 {
@@ -93,7 +90,8 @@ int main(int argc, char *argv[])
 
 	packfile_mode(0);
 #ifdef ANDROID
-	dirExists("/mnt/sdcard/OpenBOR/", 1);
+	dirExists(rootDir, 1);
+    chdir(rootDir);
 #endif
 	dirExists(paksDir, 1);
 	dirExists(savesDir, 1);

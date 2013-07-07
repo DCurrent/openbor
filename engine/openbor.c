@@ -22754,12 +22754,6 @@ readfile:
 				else if(stricmp(value, "32bit")==0) { screenformat=PIXEL_32; bits=32; }
 				else if(value[0]==0) screenformat=PIXEL_32;
 				else shutdown(1, "Screen colour depth can only be either 8bit, 16bit or 32bit.");
-
-#ifdef ANDROID
-				extern int use32bithack;
-				if(use32bithack && screenformat!=PIXEL_8)
-					screenformat = use32bithack;
-#endif
 			}
 			else
 				if(stricmp(command, "forcemode")==0) {}
@@ -22774,7 +22768,7 @@ readfile:
 	if(buf != NULL){
 		free(buf);
 		buf = NULL;
-	}
+	} 
 
 #if OPENDINGUX || GP2X
 	videoMode = 0;
