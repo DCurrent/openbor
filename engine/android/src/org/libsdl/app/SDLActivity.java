@@ -13,12 +13,15 @@ import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.AbsoluteLayout;
+import android.widget.*;
 import android.os.*;
 import android.util.Log;
 import android.graphics.*;
 import android.media.*;
 import android.hardware.*;
+import android.content.res.*;
+import java.io.*;
+import java.util.*;
 
 
 /**
@@ -76,6 +79,48 @@ public class SDLActivity extends Activity {
         mLayout.addView(mSurface);
 
         setContentView(mLayout);
+        CopyPak("BOR");
+    }
+
+    public static native void setRootDir(String dir);
+    private void CopyPak(String pakName) 
+    {
+        try
+        {
+            Context ctx = getContext();
+            String fileRoot = Environment.getExternalStorageDirectory().getAbsolutePath() + "/" + ctx.getApplicationInfo().loadLabel(ctx.getPackageManager());//"/Android/data/org.openbor.engine/files";
+            setRootDir(fileRoot);
+
+            File pakFile = new File(fileRoot + "/Paks/" + pakName + ".pak");
+
+            if(!pakFile.exists())
+            {
+                File pakDir = new File(fileRoot + "/Paks/");
+                pakDir.mkdirs();
+                AssetManager am = ctx.getAssets();
+                OutputStream os = null;
+                byte []b = new byte[1024*1024];
+                int i, r;
+                String []Files = am.list("");
+                Arrays.sort(Files);
+                for(i=1;;i++)
+                {
+                    String fn = String.format(pakName+".pak."+"%03d", i);
+                    if(Arrays.binarySearch(Files, fn) < 0)
+                        break;
+                    InputStream is = am.open(fn);
+                    if(null==os) 
+                        os = new FileOutputStream(pakFile);
+                    while((r = is.read(b)) != -1)
+                        os.write(b, 0, r);
+                    is.close();
+                }
+                if(os!=null) os.close();
+            }
+        }
+        catch (IOException ex)
+        {
+        }
     }
 
     // Events
