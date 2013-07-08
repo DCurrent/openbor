@@ -10416,9 +10416,9 @@ void pausemenu()
 	bothnewkeys = 0;
 	while(!quit)
 	{
-		_menutextm(3, -2, 0, "Pause");
-		_menutextm((pauselector==0), -1, 0, "Continue");
-		_menutextm((pauselector==1), 0, 0, "End Game");
+		_menutextm(3, -2, 0, Tr("Pause"));
+		_menutextm((pauselector==0), -1, 0, Tr("Continue"));
+		_menutextm((pauselector==1), 0, 0, Tr("End Game"));
 
 		update(1,0);
 
@@ -10696,8 +10696,8 @@ void predrawstatus(){
 		{
 			model = findmodel(player[i].name);
 			font_printf(videomodes.shiftpos[i]+pnameJ[i][0], savedata.windowpos+pnameJ[i][1], pnameJ[i][6], 0, player[i].name);
-			if(nojoin) font_printf(videomodes.shiftpos[i]+pnameJ[i][2], savedata.windowpos+pnameJ[i][3], pnameJ[i][6], 0, "Please Wait");
-			else font_printf(videomodes.shiftpos[i]+pnameJ[i][2], savedata.windowpos+pnameJ[i][3], pnameJ[i][6], 0, "Select Hero");
+			if(nojoin) font_printf(videomodes.shiftpos[i]+pnameJ[i][2], savedata.windowpos+pnameJ[i][3], pnameJ[i][6], 0, Tr("Please Wait"));
+			else font_printf(videomodes.shiftpos[i]+pnameJ[i][2], savedata.windowpos+pnameJ[i][3], pnameJ[i][6], 0, Tr("Select Hero"));
 			icon = model->icon.def;
 
 			if(icon>=0)
@@ -10710,28 +10710,28 @@ void predrawstatus(){
 		{
 			if(player[i].credits && (time/(GAME_SPEED*2)) & 1) font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, "Credit %i", player[i].credits);
 			else if(credits && (time/(GAME_SPEED*2)) & 1) font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, "Credit %i", credits);
-			else if(nojoin) font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, "Please Wait");
-			else font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, "Press Start");
+			else if(nojoin) font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, Tr("Please Wait"));
+			else font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, Tr("Press Start"));
 
 		}
 		else
 		{
-			font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, "GAME OVER");
+			font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, Tr("GAME OVER"));
 		}
 	}// end of for
 
 	if(savedata.debuginfo)
 	{
 		spriteq_add_box(0, videomodes.dOffset-12, videomodes.hRes, videomodes.dOffset+12, 0x0FFFFFFE, 0, NULL);
-		font_printf(2,                   videomodes.dOffset-10, 0, 0, "FPS: %03d", getFPS());
-		font_printf(videomodes.hRes / 2, videomodes.dOffset-10, 0, 0, "Free Ram: %s KBytes", commaprint(freeram/1000));
-		font_printf(2,                   videomodes.dOffset,    0, 0, "Total Ram: %s KBytes", commaprint(totalram/1000));
-		font_printf(videomodes.hRes / 2, videomodes.dOffset,    0, 0, "Used Ram: %s KBytes", commaprint(usedram/1000));
+		font_printf(2,                   videomodes.dOffset-10, 0, 0, Tr("FPS: %03d"), getFPS());
+		font_printf(videomodes.hRes / 2, videomodes.dOffset-10, 0, 0, Tr("Free Ram: %s KBytes"), commaprint(freeram/1000));
+		font_printf(2,                   videomodes.dOffset,    0, 0, Tr("Total Ram: %s KBytes"), commaprint(totalram/1000));
+		font_printf(videomodes.hRes / 2, videomodes.dOffset,    0, 0, Tr("Used Ram: %s KBytes"), commaprint(usedram/1000));
 	}
 
 	if(timeicon >= 0) spriteq_add_sprite(videomodes.hShift+timeicon_offsets[0], savedata.windowpos+timeicon_offsets[1],10000, timeicon, NULL, 0);
 	if(!level->notime) font_printf(videomodes.hShift+timeloc[0]+2, savedata.windowpos+timeloc[1]+2, timeloc[5], 0, "%02i", timetoshow);
-	if(showtimeover) font_printf(videomodes.hShift+113, videomodes.vShift+savedata.windowpos+110, timeloc[5], 0, "TIME OVER");
+	if(showtimeover) font_printf(videomodes.hShift+113, videomodes.vShift+savedata.windowpos+110, timeloc[5], 0, Tr("TIME OVER"));
 
 	if(showgo){
 		if(level->scrolldir&SCROLL_LEFT){ //TODO: upward and downward go
@@ -10842,7 +10842,7 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 				loadingbarstatus.sizex = size_x;
 				bar(pos_x, pos_y, value, max, &loadingbarstatus);
 			}
-			font_printf(text_x, text_y, s->tf, 0, "Loading...");
+			font_printf(text_x, text_y, s->tf, 0, Tr("Loading..."));
 			if(isLoadingScreenTypeBg(s->set)) {
 				if(background)
 					putscreen(vscreen, background, 0, 0, NULL);
@@ -10855,7 +10855,7 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 		}
 		else if(value < 0) { // Original BOR v1.0029 used this method.  Since loadingbg is optional, we should print this one again.
 			clearscreen(vscreen);
-			font_printf(120 + videomodes.hShift, 110 + videomodes.vShift, 0, 0, "Loading...");
+			font_printf(120 + videomodes.hShift, 110 + videomodes.vShift, 0, 0, Tr("Loading..."));
 			spriteq_draw(vscreen, 0, MIN_INT, MAX_INT, 0, 0);
 			video_copy_screen(vscreen);
 			spriteq_clear();
@@ -21688,7 +21688,7 @@ void gameover(){
 
 	while(!done)
 	{
-		font_printf(_strmidx(3, "GAME OVER"),110+videomodes.vShift, 3, 0, "GAME OVER");
+		font_printf(_strmidx(3, Tr("GAME OVER")),110+videomodes.vShift, 3, 0, Tr("GAME OVER"));
 		done |= (time>GAME_SPEED*8 && !sound_query_music(NULL,NULL));
 		done |= (bothnewkeys & (FLAG_ESC|FLAG_ANYBUTTON));
 		update(0,0);
@@ -21755,7 +21755,7 @@ void hallfame(int addtoscore)
 	while(!done)
 	{
 		y = 56;
-		if(!hiscorebg) font_printf(_strmidx(3, "Hall Of Fame"), y-fontheight(3)-10+videomodes.vShift, 3, 0, "Hall Of Fame");
+		if(!hiscorebg) font_printf(_strmidx(3, Tr("Hall Of Fame")), y-fontheight(3)-10+videomodes.vShift, 3, 0, Tr("Hall Of Fame"));
 
 		for(i = 0; i < 10; i++)
 		{
@@ -21820,24 +21820,24 @@ void showcomplete(int num)
 	time = 0;
 	while(!done)
 	{
-		if(!scomplete[5]) font_printf(videomodes.hShift+scomplete[0],videomodes.vShift+scomplete[1], 3, 0, "Stage %i Complete!", num);
+		if(!scomplete[5]) font_printf(videomodes.hShift+scomplete[0],videomodes.vShift+scomplete[1], 3, 0, Tr("Stage %i Complete!"), num);
 		else
 		{
-			font_printf(videomodes.hShift+scomplete[0],videomodes.vShift+scomplete[1], 3, 0, "Stage");
+			font_printf(videomodes.hShift+scomplete[0],videomodes.vShift+scomplete[1], 3, 0, Tr("Stage"));
 			font_printf(videomodes.hShift+scomplete[2],videomodes.vShift+scomplete[3], 3, 0, "%i",num);
-			font_printf(videomodes.hShift+scomplete[4],videomodes.vShift+scomplete[5], 3, 0, "Complete");
+			font_printf(videomodes.hShift+scomplete[4],videomodes.vShift+scomplete[5], 3, 0, Tr("Complete"));
 		}
 
-		font_printf(videomodes.hShift+cbonus[0],videomodes.vShift+cbonus[1], 0, 0, "Clear Bonus");
+		font_printf(videomodes.hShift+cbonus[0],videomodes.vShift+cbonus[1], 0, 0, Tr("Clear Bonus"));
 		for(i=0, j=2, k=3; i < levelsets[current_set].maxplayers; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+cbonus[j],videomodes.vShift+cbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), clearbonus[i]);
-		font_printf(videomodes.hShift+lbonus[0],videomodes.vShift+lbonus[1], 0, 0, "Life bonus");
+		font_printf(videomodes.hShift+lbonus[0],videomodes.vShift+lbonus[1], 0, 0, Tr("Life bonus"));
 		for(i=0, j=2, k=3; i < levelsets[current_set].maxplayers; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+lbonus[j],videomodes.vShift+lbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), lifebonus[i]);
 		if(rush[0] >= 1 && showrushbonus == 1)
 		{
-			font_printf(videomodes.hShift+rbonus[0],videomodes.vShift+rbonus[1], 0, 0, "Rush Bonus");
+			font_printf(videomodes.hShift+rbonus[0],videomodes.vShift+rbonus[1], 0, 0, Tr("Rush Bonus"));
 			for(i=0, j=2, k=3; i < levelsets[current_set].maxplayers; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+rbonus[j],videomodes.vShift+rbonus[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), rushbonus[i]);
 		}
-		font_printf(videomodes.hShift+tscore[0],videomodes.vShift+tscore[1], 0, 0, "Total Score");
+		font_printf(videomodes.hShift+tscore[0],videomodes.vShift+tscore[1], 0, 0, Tr("Total Score"));
 		for(i=0, j=2, k=3; i < levelsets[current_set].maxplayers; i++, j=j+2, k=k+2) if(player[i].lives > 0) font_printf(videomodes.hShift+tscore[j],videomodes.vShift+tscore[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), player[i].score);
 
 		while(time > nexttime)
@@ -22213,7 +22213,7 @@ int selectplayer(int *players, char* filename)
 			}
 			else if(ready[i]==2)
 			{
-				font_printf(psmenu[i][2], psmenu[i][3], 0, 0, "Ready!");
+				font_printf(psmenu[i][2], psmenu[i][3], 0, 0, Tr("Ready!"));
 			}
 
 			if(example[i] != NULL) players_busy++;
@@ -22397,7 +22397,7 @@ int choose_difficulty()
 	{
 		if(num_difficulties > 1)
 		{
-			_menutextm(2, -2, 0, "Game Mode");
+			_menutextm(2, -2, 0, Tr("Game Mode"));
 			t = (selector-(selector==num_difficulties))/maxdisplay*maxdisplay;
 			for(j=0,i=t; i<maxdisplay+t && i<num_difficulties; j++,i++)
 			{
@@ -22406,13 +22406,13 @@ int choose_difficulty()
 					if(bonus >= levelsets[i].ifcomplete) _menutextm((selector==i), j, 0, "%s", levelsets[i].name);
 					else
 					{
-						if(levelsets[i].ifcomplete>1) _menutextm((selector==i), j, 0, "%s - Finish Game %i Times To UnLock", levelsets[i].name, levelsets[i].ifcomplete);
-						else _menutextm((selector==i), j, 0, "%s - Finish Game To UnLock", levelsets[i].name);
+						if(levelsets[i].ifcomplete>1) _menutextm((selector==i), j, 0, Tr("%s - Finish Game %i Times To UnLock"), levelsets[i].name, levelsets[i].ifcomplete);
+						else _menutextm((selector==i), j, 0, Tr("%s - Finish Game To UnLock"), levelsets[i].name);
 					}
 				}
 				else break;
 			}
-			_menutextm((selector==i), 6, 0, "Back");
+			_menutextm((selector==i), 6, 0, Tr("Back"));
 
 			//draw the scroll bar
 			if(num_difficulties>maxdisplay)
@@ -22489,36 +22489,36 @@ int load_saved_game()
 	{
 		if(saveslot>=num_difficulties) // not found
 		{
-			_menutextm(2, -4, 0, "Load Game");
-			_menutext(0, col1, -2, "Saved File:");
-			_menutext(0, col2, -2, "Not Found!");
-			_menutextm(1, 6, 0, "Back");
+			_menutextm(2, -4, 0, Tr("Load Game"));
+			_menutext(0, col1, -2, Tr("Saved File:"));
+			_menutext(0, col2, -2, Tr("Not Found!"));
+			_menutextm(1, 6, 0, Tr("Back"));
 
 			selector = 2;
 		}
 		else
 		{
-			_menutextm(2, -4, 0, "Load Game");
-			_menutext(0, col1, -2, "Saved File:");
+			_menutextm(2, -4, 0, Tr("Load Game"));
+			_menutext(0, col1, -2, Tr("Saved File:"));
 			if(savedStatus) _menutext(0, col2, -2, "%s", name);
-			else _menutext(0, col2, -2, "Not Found!");
+			else _menutext(0, col2, -2, Tr("Not Found!"));
 
 			if(savedStatus){
-				_menutext((selector==0), col1, -1, "Mode:");
+				_menutext((selector==0), col1, -1, Tr("Mode:"));
 				_menutext((selector==0), col2, -1, "%s", savelevel[saveslot].dName);
-				_menutext(0, col1, 0, "Stage:");
+				_menutext(0, col1, 0, Tr("Stage:"));
 				_menutext(0, col2, 0, "%d", savelevel[saveslot].stage);
-				_menutext(0, col1, 1, "Level:");
+				_menutext(0, col1, 1, Tr("Level:"));
 				_menutext(0, col2, 1, "%d", savelevel[saveslot].level);
-				_menutext(0, col1, 2, "Credits:");
+				_menutext(0, col1, 2, Tr("Credits:"));
 				_menutext(0, col2, 2, "%d", savelevel[saveslot].credits);
-				_menutext(0, col1, 3, "Player Lives:");
+				_menutext(0, col1, 3, Tr("Player Lives:"));
 				_menutext(0, col2, 3, "%d/%d/%d/%d",
 					savelevel[saveslot].pLives[0],
 					savelevel[saveslot].pLives[1], savelevel[saveslot].pLives[2],
 					savelevel[saveslot].pLives[3]);
 			}
-			_menutextm((selector==1), 6, 0, "Back");
+			_menutextm((selector==1), 6, 0, Tr("Back"));
 		}
 		update(0,0);
 
@@ -22582,10 +22582,10 @@ int choose_mode(int *players)
 
 	while(!quit)
 	{
-		_menutextm(2, 1, 0, "Choose Mode");
-		_menutextm((selector==0), 3, 0, "New Game");
-		_menutextm((selector==1), 4, 0, "Load Game");
-		_menutextm((selector==2), 6, 0, "Back");
+		_menutextm(2, 1, 0, Tr("Choose Mode"));
+		_menutextm((selector==0), 3, 0, Tr("New Game"));
+		_menutextm((selector==1), 4, 0, Tr("Load Game"));
+		_menutextm((selector==2), 6, 0, Tr("Back"));
 
 		update(0,0);
 
@@ -23004,7 +23004,7 @@ void keyboard_setup(int player){
 
 	while(!quit){
 		voffset = -6;
-		_menutextm(2, -8, 0, "Player %i", player+1);
+		_menutextm(2, -8, 0, Tr("Player %i"), player+1);
 		for(i = 0; i < 12; i++){
 			  if(!disabledkey[i]){
 					_menutext((selector==i), col1, voffset, "%s", buttonnames[i]);
@@ -23012,8 +23012,8 @@ void keyboard_setup(int player){
 					voffset++;
 			  }
 		}
-		_menutextm((selector==12), ++voffset, 0, "OK");
-		_menutextm((selector==13), ++voffset, 0, "Cancel");
+		_menutextm((selector==12), ++voffset, 0, Tr("OK"));
+		_menutextm((selector==13), ++voffset, 0, Tr("Cancel"));
 		update((level!=NULL),0);
 
 		if(setting > -1){
@@ -23084,29 +23084,29 @@ void input_options(){
 	bothnewkeys = 0;
 
 	while(!quit){
-		_menutextm(2, -5, 0, "Control Options");
+		_menutextm(2, -5, 0, Tr("Control Options"));
 
 #if PSP
-		if(savedata.usejoy) _menutext((selector==0), -4, -2, "Analog Pad Enabled");
-		else _menutext((selector==0), -4, -2, "Analog Pad Disabled");
+		if(savedata.usejoy) _menutext((selector==0), -4, -2, Tr("Analog Pad Enabled"));
+		else _menutext((selector==0), -4, -2, Tr("Analog Pad Disabled"));
 #elif WII
-		if(savedata.usejoy) _menutext((selector==0), -4, -2, "Nunchuk Analog Enabled");
-		else _menutext((selector==0), -4, -2, "Nunchuk Analog Disabled");
+		if(savedata.usejoy) _menutext((selector==0), -4, -2, Tr("Nunchuk Analog Enabled"));
+		else _menutext((selector==0), -4, -2, Tr("Nunchuk Analog Disabled"));
 #else
 		if(savedata.usejoy){
-			_menutext((selector==0),  -4, -2, "GamePads Enabled");
+			_menutext((selector==0),  -4, -2, Tr("GamePads Enabled"));
 			if(!control_getjoyenabled()){
-				_menutext((selector==0), 7, -2, " - Device Not Ready");
+				_menutext((selector==0), 7, -2, Tr(" - Device Not Ready"));
 			}
 		}
-		else _menutext((selector==0),  -4, -2, "GamePads Disabled");
+		else _menutext((selector==0),  -4, -2, Tr("GamePads Disabled"));
 #endif
 
-		_menutext((selector==1), -4, -1, "Setup Player 1...");
-		_menutext((selector==2), -4, 0, "Setup Player 2...");
-		_menutext((selector==3), -4, 1, "Setup Player 3...");
-		_menutext((selector==4), -4, 2, "Setup Player 4...");
-		_menutextm((selector==5), 6, 0, "Back");
+		_menutext((selector==1), -4, -1, Tr("Setup Player 1..."));
+		_menutext((selector==2), -4, 0, Tr("Setup Player 2..."));
+		_menutext((selector==3), -4, 1, Tr("Setup Player 3..."));
+		_menutext((selector==4), -4, 2, Tr("Setup Player 4..."));
+		_menutextm((selector==5), 6, 0, Tr("Back"));
 		update((level!=NULL),0);
 
 		if(bothnewkeys & FLAG_ESC) quit = 1;
@@ -23164,19 +23164,19 @@ void sound_options(){
 	bothnewkeys = 0;
 
 	while(!quit){
-		_menutextm(2, -5, 0, "Sound Options");
-		_menutext((selector==0), col1, -2, "Sound Volume:");
+		_menutextm(2, -5, 0, Tr("Sound Options"));
+		_menutext((selector==0), col1, -2, Tr("Sound Volume:"));
 		_menutext((selector==0), col2, -2, "%i", savedata.soundvol);
-		_menutext((selector==1), col1, -1, "SFX Volume:");
+		_menutext((selector==1), col1, -1, Tr("SFX Volume:"));
 		_menutext((selector==1), col2, -1, "%i", savedata.effectvol);
-		_menutext((selector==2), col1, 0, "Music Volume:");
+		_menutext((selector==2), col1, 0, Tr("Music Volume:"));
 		_menutext((selector==2), col2, 0, "%i", savedata.musicvol);
-		_menutext((selector==3), col1, 1, "BGM:");
-		_menutext((selector==3), col2, 1, (savedata.usemusic ? "Enabled" : "Disabled"));
-		_menutext((selector==4), col1, 2, "Show Titles:");
-		_menutext((selector==4), col2, 2, (savedata.showtitles ? "Yes" : "No"));
-		_menutext((selector==5), col1, 3, "Advanced Options...");
-		_menutextm((selector==6), 6, 0, "Back");
+		_menutext((selector==3), col1, 1, Tr("BGM:"));
+		_menutext((selector==3), col2, 1, (savedata.usemusic ? Tr("Enabled") : Tr("Disabled")));
+		_menutext((selector==4), col1, 2, Tr("Show Titles:"));
+		_menutext((selector==4), col2, 2, (savedata.showtitles ? Tr("Yes") : Tr("No")));
+		_menutext((selector==5), col1, 3, Tr("Advanced Options..."));
+		_menutextm((selector==6), 6, 0, Tr("Back"));
 
 		update((level!=NULL),0);
 
@@ -23256,18 +23256,18 @@ void config_settings(){    //  OX. Load from / save to default.cfg. Restore Open
 	bothnewkeys = 0;
 
 	while(!quit){
-		_menutextm(2, -5, 0, "Configuration Settings");
+		_menutextm(2, -5, 0, Tr("Configuration Settings"));
 
-		if(saved == 1) _menutextm((selector==0), -3, 0, "Save Settings To Default.cfg%s", "  Done!");
-		else _menutextm((selector==0), -3, 0, "Save Settings To Default.cfg%s","");
+		if(saved == 1) _menutextm((selector==0), -3, 0, Tr("Save Settings To Default.cfg%s"), Tr("  Done!"));
+		else _menutextm((selector==0), -3, 0, Tr("Save Settings To Default.cfg%s"),"");
 
-		if(loaded == 1) _menutextm((selector==1), -2, 0, "Load Settings From Default.cfg%s", "  Done!");
-		else  _menutextm((selector==1), -2, 0, "Load Settings From Default.cfg%s", "");
+		if(loaded == 1) _menutextm((selector==1), -2, 0, Tr("Load Settings From Default.cfg%s"), Tr("  Done!"));
+		else  _menutextm((selector==1), -2, 0, Tr("Load Settings From Default.cfg%s"), "");
 
-		if(restored == 1) _menutextm((selector==2), -1, 0, "Restore OpenBoR Defaults%s", "  Done!");
-		else _menutextm((selector==2), -1, 0, "Restore OpenBoR Defaults%s", "");
+		if(restored == 1) _menutextm((selector==2), -1, 0, Tr("Restore OpenBoR Defaults%s"), Tr("  Done!"));
+		else _menutextm((selector==2), -1, 0, Tr("Restore OpenBoR Defaults%s"), "");
 
-		_menutextm((selector==3), 6, 0, "Back");
+		_menutextm((selector==3), 6, 0, Tr("Back"));
 
 		update((level!=NULL),0);
 
@@ -23336,23 +23336,23 @@ void cheatoptions(){    //  LTB 1-13-05 took out sameplayer option
 	bothnewkeys = 0;
 
 	while(!quit){
-		_menutextm(2, -5, 0, "Cheat Options");
-		_menutext((selector==0), col1, -3, "Brightness:");
+		_menutextm(2, -5, 0, Tr("Cheat Options"));
+		_menutext((selector==0), col1, -3, Tr("Brightness:"));
 		_menutext((selector==0), col2, -3, "%i", savedata.brightness);
-		_menutext((selector==1), col1, -2, "Gamma:");
+		_menutext((selector==1), col1, -2, Tr("Gamma:"));
 		_menutext((selector==1), col2, -2, "%i", savedata.gamma);
-		_menutext((selector==2), col1, -1, "Control Options...");
-		_menutext((selector==3), col1, 0, "Sound Options...");
-		_menutext((selector==4), col1, 1, "System Options...");
+		_menutext((selector==2), col1, -1, Tr("Control Options..."));
+		_menutext((selector==3), col1, 0, Tr("Sound Options..."));
+		_menutext((selector==4), col1, 1, Tr("System Options..."));
 
-		if(livescheat)         _menutext((selector==5), col1, 2, "Infinite Lives On");
-		else if(!livescheat)   _menutext((selector==5), col1, 2, "Infinite Lives Off");
-		if(creditscheat)       _menutext((selector==6), col1, 3, "Infinite Credits On"); // Enemies fall down when you respawn
-		else if(!creditscheat) _menutext((selector==6), col1, 3, "Infinite Credits Off");//Enemies don't fall down when you respawn
-		if(healthcheat)        _menutext((selector==7), col1, 4, "Infinite Health On"); // Enemies fall down when you respawn
-		else if(!healthcheat)  _menutext((selector==7), col1, 4, "Infinite Health Off");//Enemies don't fall down when you respawn
+		if(livescheat)         _menutext((selector==5), col1, 2, Tr("Infinite Lives On"));
+		else if(!livescheat)   _menutext((selector==5), col1, 2, Tr("Infinite Lives Off"));
+		if(creditscheat)       _menutext((selector==6), col1, 3, Tr("Infinite Credits On")); // Enemies fall down when you respawn
+		else if(!creditscheat) _menutext((selector==6), col1, 3, Tr("Infinite Credits Off"));//Enemies don't fall down when you respawn
+		if(healthcheat)        _menutext((selector==7), col1, 4, Tr("Infinite Health On")); // Enemies fall down when you respawn
+		else if(!healthcheat)  _menutext((selector==7), col1, 4, Tr("Infinite Health Off"));//Enemies don't fall down when you respawn
 
-		_menutextm((selector==8), 6, 0, "Back");
+		_menutextm((selector==8), 6, 0, Tr("Back"));
 
 		update((level!=NULL),0);
 
@@ -23447,60 +23447,60 @@ void system_options(){
 	bothnewkeys = 0;
 
 	while(!quit){
-		_menutextm(2, -6, 0, "System Options");
+		_menutextm(2, -6, 0, Tr("System Options"));
 
-		_menutext(0, col1, -4, "Total RAM:");
-		_menutext(0, col2, -4, "%s KBytes", commaprint(getSystemRam(KBYTES)));
+		_menutext(0, col1, -4, Tr("Total RAM:"));
+		_menutext(0, col2, -4, Tr("%s KBytes"), commaprint(getSystemRam(KBYTES)));
 
-		_menutext(0, col1, -3, "Used RAM:");
-		_menutext(0, col2, -3, "%s KBytes", commaprint(getUsedRam(KBYTES)));
+		_menutext(0, col1, -3, Tr("Used RAM:"));
+		_menutext(0, col2, -3, Tr("%s KBytes"), commaprint(getUsedRam(KBYTES)));
 
-		_menutext((selector==0), col1, -2, "Debug Info:");
-		_menutext((selector==0), col2, -2, (savedata.debuginfo ? "Enabled" : "Disabled"));
+		_menutext((selector==0), col1, -2, Tr("Debug Info:"));
+		_menutext((selector==0), col2, -2, (savedata.debuginfo ? Tr("Enabled") : Tr("Disabled")));
 
-		_menutext((selector==1), col1, -1, "File Logging:");
-		_menutext((selector==1), col2, -1, (savedata.uselog ? "Enabled" : "Disabled"));
+		_menutext((selector==1), col1, -1, Tr("File Logging:"));
+		_menutext((selector==1), col2, -1, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
 
-		_menutext((selector==2), col1, 0, "Players:");
-		_menutext((selector==2), col2, 0, "%i by Mod", levelsets[current_set].maxplayers);
+		_menutext((selector==2), col1, 0, Tr("Players:"));
+		_menutext((selector==2), col2, 0, Tr("%i by Mod"), levelsets[current_set].maxplayers);
 
-		_menutext((selector==3), col1, 1, "Versus Damage:", 0);
-		if(versusdamage == 0) _menutext((selector==3), col2, 1, "Disabled by Mod");
-		else if(versusdamage == 1) _menutext((selector==3), col2, 1, "Enabled by Mod");
+		_menutext((selector==3), col1, 1, Tr("Versus Damage:"), 0);
+		if(versusdamage == 0) _menutext((selector==3), col2, 1, Tr("Disabled by Mod"));
+		else if(versusdamage == 1) _menutext((selector==3), col2, 1, Tr("Enabled by Mod"));
 		else
 		{
-			if(savedata.mode) _menutext((selector==3), col2, 1, "Disabled");//Mode 1 - Players CAN'T attack each other
-			else _menutext((selector==3), col2, 1, "Enabled");//Mode 2 - Players CAN attack each other
+			if(savedata.mode) _menutext((selector==3), col2, 1, Tr("Disabled"));//Mode 1 - Players CAN'T attack each other
+			else _menutext((selector==3), col2, 1, Tr("Enabled"));//Mode 2 - Players CAN attack each other
 		}
 
-		_menutext((selector==4), col1, 2, "Cheats:");
-		_menutext((selector==4), col2, 2, forcecheatsoff?"Disabled by Mod":(cheats?"On":"Off"));
+		_menutext((selector==4), col1, 2, Tr("Cheats:"));
+		_menutext((selector==4), col2, 2, forcecheatsoff?Tr("Disabled by Mod"):(cheats?Tr("On"):Tr("Off")));
 
 #ifndef DC
 
-		_menutext((selector==5), col1, 3, "Config Settings");
+		_menutext((selector==5), col1, 3, Tr("Config Settings"));
 
 #endif
 
 #if PSP
 		externalPower = scePowerIsPowerOnline();
-		_menutext((selector==6), col1, 4, "CPU Speed:");
+		_menutext((selector==6), col1, 4, Tr("CPU Speed:"));
 		_menutext((selector==6), col2, 4, "%d MHz", scePowerGetCpuClockFrequency());
 		if(!externalPower){
 			batteryPercentage = scePowerGetBatteryLifePercent();
 			batteryLifeTime = scePowerGetBatteryLifeTime();
-			_menutext(0, col1, 5, "Battery:");
-			if(batteryPercentage < 0 || batteryLifeTime < 0) _menutext(0, col2, 5, "Calculating...");
+			_menutext(0, col1, 5, Tr("Battery:"));
+			if(batteryPercentage < 0 || batteryLifeTime < 0) _menutext(0, col2, 5, Tr("Calculating..."));
 			else _menutext(0, col2, 5, "%d%% - %02d:%02d", batteryPercentage, batteryLifeTime/60,batteryLifeTime-(batteryLifeTime/60*60));
 		}
 		else{
-			_menutext(0, col1, 5, "Charging:");
-			_menutext(0, col2, 5, "%d%% AC Power", scePowerGetBatteryLifePercent());
+			_menutext(0, col1, 5, Tr("Charging:"));
+			_menutext(0, col2, 5, Tr("%d%% AC Power"), scePowerGetBatteryLifePercent());
 		}
 		ret = 7;
 #endif
 
-		_menutextm((selector==ret), 6, 0, "Back");
+		_menutextm((selector==ret), 6, 0, Tr("Back"));
 
 		update((level!=NULL),0);
 
@@ -23601,98 +23601,98 @@ void video_options(){
 	bothnewkeys = 0;
 
 	while(!quit){
-		_menutextm(2, -5, 0, "Video Options");
-		_menutext((selector==0), col1, -3, "Brightness:");
+		_menutextm(2, -5, 0, Tr("Video Options"));
+		_menutext((selector==0), col1, -3, Tr("Brightness:"));
 		_menutext((selector==0), col2, -3, "%i", savedata.brightness);
-		_menutext((selector==1), col1, -2, "Gamma:");
+		_menutext((selector==1), col1, -2, Tr("Gamma:"));
 		_menutext((selector==1), col2, -2, "%i", savedata.gamma);
-		_menutext((selector==2), col1, -1, "Window Offset:");
+		_menutext((selector==2), col1, -1, Tr("Window Offset:"));
 		_menutext((selector==2), col2, -1, "%i", savedata.windowpos);
 
 #if OPENDINGUX
-		_menutext((selector==3), col1, 0, "Display Mode:");
-		_menutext((selector==3), col2, 0, savedata.fullscreen ? "Full" : "Window");
-		_menutextm((selector==4), 6, 0, "Back");
+		_menutext((selector==3), col1, 0, Tr("Display Mode:"));
+		_menutext((selector==3), col2, 0, savedata.fullscreen ? Tr("Full") : Tr("Window"));
+		_menutextm((selector==4), 6, 0, Tr("Back"));
 		if(selector<0) selector = 4;
 		if(selector>4) selector = 0;
 #endif
 
 #if DOS || DC || GP2X
-		_menutextm((selector==3), 6, 0, "Back");
+		_menutextm((selector==3), 6, 0, Tr("Back"));
 		if(selector<0) selector = 3;
 		if(selector>3) selector = 0;
 #endif
 
 #if XBOX
-		_menutext((selector==3), col1, 0, "Screen Size:");
-		_menutext((selector==3), col2, 0, "Guide R/L Thumbsticks");
-		_menutext((selector==3), col1, 1, "GFX Filters:");
-		_menutext((selector==3), col2, 1, "Press R/L Thumbsticks");
-		_menutextm((selector==4), 6, 0, "Back");
+		_menutext((selector==3), col1, 0, Tr("Screen Size:"));
+		_menutext((selector==3), col2, 0, Tr("Guide R/L Thumbsticks"));
+		_menutext((selector==3), col1, 1, Tr("GFX Filters:"));
+		_menutext((selector==3), col2, 1, Tr("Press R/L Thumbsticks"));
+		_menutextm((selector==4), 6, 0, Tr("Back"));
 		if(selector<0) selector = 4;
 		if(selector>4) selector = 0;
 #endif
 
 #if WII
-		_menutext((selector==3), col1, 0, "Display Mode:");
-		_menutext((selector==3), col2, 0, (savedata.fullscreen ? "Stretch to Screen" : "Preserve Aspect Ratio"));
-		_menutextm((selector==4), 6, 0, "Back");
+		_menutext((selector==3), col1, 0, Tr("Display Mode:"));
+		_menutext((selector==3), col2, 0, (savedata.fullscreen ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
+		_menutextm((selector==4), 6, 0, Tr("Back"));
 		if(selector<0) selector = 4;
 		if(selector>4) selector = 0;
 #endif
 
 #if SDL
 #if !defined(GP2X) && !defined(OPENDINGUX)
-		_menutext((selector==3), col1, 0, "Display Mode:");
-		_menutext((selector==3), col2, 0, savedata.fullscreen ? "Full" : "Window");
+		_menutext((selector==3), col1, 0, Tr("Display Mode:"));
+		_menutext((selector==3), col2, 0, savedata.fullscreen ? Tr("Full") : Tr("Window"));
 
-		_menutext((selector==4), col1, 1, "Video Backend:");
-		_menutext((selector==4), col2, 1, (opengl ? "OpenGL" : "SDL"));
+		_menutext((selector==4), col1, 1, Tr("Video Backend:"));
+		_menutext((selector==4), col2, 1, (opengl ? Tr("OpenGL") : Tr("SDL")));
 
 		if(opengl)
 		{
-			_menutext((selector==5), col1, 2, "Screen:");
+			_menutext((selector==5), col1, 2, Tr("Screen:"));
 #ifndef ANDROID
-			if(savedata.fullscreen) _menutext((selector==5), col2, 2, "Automatic");
+			if(savedata.fullscreen) _menutext((selector==5), col2, 2, Tr("Automatic"));
 			else _menutext((selector==5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes*savedata.glscale), (int)(videomodes.vRes*savedata.glscale));
 #else
 			if(savedata.glscale==0) _menutext((selector==5), col2, 2, "Automatic");
 			else _menutext((selector==5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes*savedata.glscale), (int)(videomodes.vRes*savedata.glscale));
 #endif
 
-			_menutext((selector==6), col1, 3, "Filters:");
-			_menutext((selector==6), col2, 3, ((savedata.glscale!=1.0||savedata.fullscreen) ? (savedata.glfilter[savedata.fullscreen] ? "Simple" : "Bilinear") : "Disabled"));
+			_menutext((selector==6), col1, 3, Tr("Filters:"));
+			_menutext((selector==6), col2, 3, ((savedata.glscale!=1.0||savedata.fullscreen) ? (savedata.glfilter[savedata.fullscreen] ? Tr("Simple") : Tr("Bilinear")) : Tr("Disabled")));
 		}
 		else
 		{
-			_menutext((selector==5), col1, 2, "Screen:");
+			_menutext((selector==5), col1, 2, Tr("Screen:"));
 			if(savedata.screen[videoMode][0]) _menutext((selector==3), col2, 2, "%ix - %ix%i", savedata.screen[videoMode][0], videomodes.hRes*savedata.screen[videoMode][0], videomodes.vRes*savedata.screen[videoMode][0]);
-			else _menutext((selector==5), col2, 2, "Disabled");
+			else _menutext((selector==5), col2, 2, Tr("Disabled"));
 
-			_menutext((selector==6), col1, 3, "Filters:");
-			_menutext((selector==6), col2, 3, (savedata.screen[videoMode][0]==2 ? GfxBlitterNames[(int)savedata.screen[videoMode][1]] : "Disabled"));
+			_menutext((selector==6), col1, 3, Tr("Filters:"));
+			_menutext((selector==6), col2, 3, (savedata.screen[videoMode][0]==2 ? Tr(GfxBlitterNames[(int)savedata.screen[videoMode][1]]) : Tr("Disabled")));
 		}
 
 		if(savedata.fullscreen)
 		{
-			_menutext((selector==7), col1, 4, "Fullscreen Type:");
-			_menutext((selector==7), col2, 4, (savedata.stretch ? "Stretch to Screen" : "Preserve Aspect Ratio"));
+			_menutext((selector==7), col1, 4, Tr("Fullscreen Type:"));
+			_menutext((selector==7), col2, 4, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
 		} else if(selector==7) selector = (bothnewkeys & FLAG_MOVEUP) ? 6 : 8;
 
-		_menutextm((selector==8), 6, 0, "Back");
+		_menutextm((selector==8), 6, 0, Tr("Back"));
 		if(selector<0) selector = 8;
 		if(selector>8) selector = 0;
 #endif
 #endif
 
 #if PSP
-		_menutext((selector==3), col1, 0, "Screen:");
+		_menutext((selector==3), col1, 0, Tr("Screen:"));
 		_menutext((selector==3), col2, 0, displayFormat[(int)videomodes.mode].name);
-		_menutext((selector==4), col1, 1, "Filters:");
+		_menutext((selector==4), col1, 1, Tr("Filters:"));
 		_menutext((selector==4), col2, 1, filterName[(int)videomodes.filter]);
-		_menutext((selector==5), col1, 2, "Display:");
+		_menutext((selector==5), col1, 2, Tr("Display:"));
 		_menutext((selector==5), col2, 2, displayName[displayMode]);
-		_menutext((selector>=6 && selector<=9), col1, 3, "Overscan:");
+		_menutext((selector>=6 && selector<=9), col1, 3, Tr("Overscan:"));
 		_menutext((selector>=6 && selector<=9), col2+1.5, 3, ".");
 		_menutext((selector>=6 && selector<=9), col2+3.5, 3, ".");
 		_menutext((selector>=6 && selector<=9), col2+5.5, 3, ".");
@@ -23700,7 +23700,7 @@ void video_options(){
 		_menutext((selector==7), col2+2, 3, "%02d", savedata.overscan[1]);
 		_menutext((selector==8), col2+4, 3, "%02d", savedata.overscan[2]);
 		_menutext((selector==9), col2+6, 3, "%02d", savedata.overscan[3]);
-		_menutextm((selector==10), 6, 0, "Back");
+		_menutextm((selector==10), 6, 0, Tr("Back"));
 		if(selector<0) selector = 10;
 		if(selector>10) selector = 0;
 #endif
@@ -23898,12 +23898,12 @@ void options(){
 	bothnewkeys = 0;
 
 	while(!quit){
-		_menutextm(2, -1, 0, "Options");
-		_menutextm((selector==0), 1, 0, "Video Options...");
-		_menutextm((selector==1), 2, 0, "Sound Options...");
-		_menutextm((selector==2), 3, 0, "Control Options...");
-		_menutextm((selector==3), 4, 0, "System Options...");
-		_menutextm((selector==4), 6, 0, "Back");
+		_menutextm(2, -1, 0, Tr("Options"));
+		_menutextm((selector==0), 1, 0, Tr("Video Options..."));
+		_menutextm((selector==1), 2, 0, Tr("Sound Options..."));
+		_menutextm((selector==2), 3, 0, Tr("Control Options..."));
+		_menutextm((selector==3), 4, 0, Tr("System Options..."));
+		_menutextm((selector==4), 6, 0, Tr("Back"));
 
 		if(selector<0) selector = 4;
 		if(selector>4) selector = 0;
@@ -23959,14 +23959,14 @@ void soundcard_options(){
 	bothnewkeys = 0;
 
 	while(!quit){
-		_menutextm(2, -5, 0, "Advanced Sound Options");
-		_menutext((selector==0), col1, -2, "Frequency:");
+		_menutextm(2, -5, 0, Tr("Advanced Sound Options"));
+		_menutext((selector==0), col1, -2, Tr("Frequency:"));
 		_menutext((selector==0), col2, -2, "%i", savedata.soundrate);
-		_menutext((selector==1), col1, -1, "Bits:");
+		_menutext((selector==1), col1, -1, Tr("Bits:"));
 		_menutext((selector==1), col2, -1, "%i", savedata.soundbits);
-		_menutextm((selector==2), 1, 0, "Apply");
-		_menutextm((selector==3), 2, 0, "Discard");
-		_menutextm((selector==4), 7, 0, "Back");
+		_menutextm((selector==2), 1, 0, Tr("Apply"));
+		_menutextm((selector==3), 2, 0, Tr("Discard"));
+		_menutextm((selector==4), 7, 0, Tr("Back"));
 		update((level!=NULL),0);
 
 		if(bothnewkeys & FLAG_ESC) quit = 1;
@@ -24115,7 +24115,7 @@ void openborMain(int argc, char** argv)
 
 		if(!started)
 		{
-			if((time%GAME_SPEED) < (GAME_SPEED/2)) _menutextm(0, 0, 0, "PRESS START");
+			if((time%GAME_SPEED) < (GAME_SPEED/2)) _menutextm(0, 0, 0, Tr("PRESS START"));
 			if(bothnewkeys&(FLAG_ANYBUTTON))
 			{
 				started = 1;
@@ -24129,11 +24129,11 @@ void openborMain(int argc, char** argv)
 		}
 		else
 		{
-			_menutextm((selector==0), 2, 0, "Start Game");
-			_menutextm((selector==1), 3, 0, "Options");
-			_menutextm((selector==2), 4, 0, "How To Play");
-			_menutextm((selector==3), 5, 0, "Hall Of Fame");
-			_menutextm((selector==4), 6, 0, "Quit");
+			_menutextm((selector==0), 2, 0, Tr("Start Game"));
+			_menutextm((selector==1), 3, 0, Tr("Options"));
+			_menutextm((selector==2), 4, 0, Tr("How To Play"));
+			_menutextm((selector==3), 5, 0, Tr("Hall Of Fame"));
+			_menutextm((selector==4), 6, 0, Tr("Quit"));
 			if(selector<0) selector = 4;
 			if(selector>4) selector = 0;
 
