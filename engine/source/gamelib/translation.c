@@ -153,10 +153,18 @@ void ob_addtrans(char* id, char* str)
 
 char* ob_gettrans(char* id)
 {
-	if(transList && List_FindByName(transList, id))
-		return (char*)List_Retrieve(transList);
+    static char* lastid = NULL;
+    static char* laststr = NULL;
 
-    return id;
+    if(lastid==id) return laststr; //deal with some menu text macros
+
+    lastid = id;
+
+	if(transList && List_FindByName(transList, id))
+		return (laststr=(char*)List_Retrieve(transList));
+
+
+    return (laststr=id);
 }
 
 
