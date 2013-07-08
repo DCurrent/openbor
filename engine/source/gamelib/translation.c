@@ -147,6 +147,7 @@ void ob_termtrans()
 void ob_addtrans(char* id, char* str)
 {
     if(!id || !str) return ;
+    if(!str[0]) return; //skip empty translation
 	List_GotoLast(transList);
 	List_InsertAfter(transList, (void*)NAME(str), id);
 }

@@ -20,6 +20,7 @@ function version {
   cp README ./releases/README.txt
   cp LICENSE ./releases/LICENSE.txt
   cp COMPILING ./releases/COMPILING.txt
+  cp translation.txt ./releases/translation.txt
 }
 
 # CleanUp Releases
