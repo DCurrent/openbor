@@ -17,6 +17,7 @@
 #include "sprite.h"
 #include "spriteq.h"
 #include "font.h"
+#include "translation.h"
 
 
 s_font** fonts[MAX_FONTS];
@@ -271,6 +272,8 @@ int font_string_width(int which, char* format, ...)
 
 	mbs = sets[0]->mbs;
 
+    format = ob_gettrans(format);
+
 	va_start(arglist, format);
 	vsprintf(buf, format, arglist);
 	va_end(arglist);
@@ -317,6 +320,8 @@ void font_printf(int x, int y, int which, int layeroffset,char *format, ...){
 
 	mbs = sets[0]->mbs;
 
+    format = ob_gettrans(format);
+
 	va_start(arglist, format);
 	vsprintf(buf, format, arglist);
 	va_end(arglist);
@@ -362,6 +367,8 @@ void screen_printf(s_screen * screen, int x, int y, int which, char *format, ...
 	if(!sets) return;
 
 	mbs = sets[0]->mbs;
+    
+    format = ob_gettrans(format);
 
 	va_start(arglist, format);
 	vsprintf(buf, format, arglist);
