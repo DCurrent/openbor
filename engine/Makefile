@@ -370,6 +370,7 @@ GAME	        = source/gamelib/draw.o                                            
                   source/gamelib/draw16.o                                                           \
                   source/gamelib/draw32.o                                                           \
                   source/gamelib/font.o                                                             \
+                  source/gamelib/translation.o                                                             \
                   source/gamelib/anigif.o                                                           \
                   source/gamelib/bitmap.o 	                                                        \
                   source/gamelib/screen.o                                                           \

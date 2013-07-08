@@ -14,6 +14,7 @@
 #include "openbor.h"
 #include "commands.h"
 #include "models.h"
+#include "translation.h"
 
 #define NaN 0xAAAAAAAA
 
@@ -21386,7 +21387,7 @@ void shutdown(int status, char *msg, ...)
 	freeModelList();
 	if(savelevel) free(savelevel);
 	freefilenamecache();
-
+    ob_termtrans();
 
 	if(!disablelog) printf("\n**************** Done *****************\n\n");
 
@@ -24042,6 +24043,8 @@ void openborMain(int argc, char** argv)
 			printFileUsageStatistics = getValidInt((char*)argv[1] + 14,"","");
 	}
 
+
+    ob_inittrans();
 	modelcmdlist = createModelCommandList();
 	modelstxtcmdlist = createModelstxtCommandList();
 	levelcmdlist = createLevelCommandList();
