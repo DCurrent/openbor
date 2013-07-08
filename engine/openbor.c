@@ -23172,9 +23172,9 @@ void sound_options(){
 		_menutext((selector==2), col1, 0, "Music Volume:");
 		_menutext((selector==2), col2, 0, "%i", savedata.musicvol);
 		_menutext((selector==3), col1, 1, "BGM:");
-		_menutext((selector==3), col2, 1, "%s", (savedata.usemusic ? "Enabled" : "Disabled"));
+		_menutext((selector==3), col2, 1, (savedata.usemusic ? "Enabled" : "Disabled"));
 		_menutext((selector==4), col1, 2, "Show Titles:");
-		_menutext((selector==4), col2, 2, "%s", (savedata.showtitles ? "Yes" : "No"));
+		_menutext((selector==4), col2, 2, (savedata.showtitles ? "Yes" : "No"));
 		_menutext((selector==5), col1, 3, "Advanced Options...");
 		_menutextm((selector==6), 6, 0, "Back");
 
@@ -23611,7 +23611,7 @@ void video_options(){
 
 #if OPENDINGUX
 		_menutext((selector==3), col1, 0, "Display Mode:");
-		_menutext((selector==3), col2, 0, "%s", savedata.fullscreen ? "Full" : "Window");
+		_menutext((selector==3), col2, 0, savedata.fullscreen ? "Full" : "Window");
 		_menutextm((selector==4), 6, 0, "Back");
 		if(selector<0) selector = 4;
 		if(selector>4) selector = 0;
@@ -23635,7 +23635,7 @@ void video_options(){
 
 #if WII
 		_menutext((selector==3), col1, 0, "Display Mode:");
-		_menutext((selector==3), col2, 0, savedata.fullscreen ? "Stretch to Screen" : "Preserve Aspect Ratio");
+		_menutext((selector==3), col2, 0, (savedata.fullscreen ? "Stretch to Screen" : "Preserve Aspect Ratio"));
 		_menutextm((selector==4), 6, 0, "Back");
 		if(selector<0) selector = 4;
 		if(selector>4) selector = 0;
@@ -23644,10 +23644,10 @@ void video_options(){
 #if SDL
 #if !defined(GP2X) && !defined(OPENDINGUX)
 		_menutext((selector==3), col1, 0, "Display Mode:");
-		_menutext((selector==3), col2, 0, "%s", savedata.fullscreen ? "Full" : "Window");
+		_menutext((selector==3), col2, 0, savedata.fullscreen ? "Full" : "Window");
 
 		_menutext((selector==4), col1, 1, "Video Backend:");
-		_menutext((selector==4), col2, 1, "%s", opengl ? "OpenGL" : "SDL");
+		_menutext((selector==4), col2, 1, (opengl ? "OpenGL" : "SDL"));
 
 		if(opengl)
 		{
@@ -23661,7 +23661,7 @@ void video_options(){
 #endif
 
 			_menutext((selector==6), col1, 3, "Filters:");
-			_menutext((selector==6), col2, 3, "%s", (savedata.glscale!=1.0||savedata.fullscreen) ? (savedata.glfilter[savedata.fullscreen] ? "Simple" : "Bilinear") : "Disabled");
+			_menutext((selector==6), col2, 3, ((savedata.glscale!=1.0||savedata.fullscreen) ? (savedata.glfilter[savedata.fullscreen] ? "Simple" : "Bilinear") : "Disabled"));
 		}
 		else
 		{
@@ -23670,13 +23670,13 @@ void video_options(){
 			else _menutext((selector==5), col2, 2, "Disabled");
 
 			_menutext((selector==6), col1, 3, "Filters:");
-			_menutext((selector==6), col2, 3, "%s", savedata.screen[videoMode][0]==2 ? GfxBlitterNames[(int)savedata.screen[videoMode][1]] : "Disabled");
+			_menutext((selector==6), col2, 3, (savedata.screen[videoMode][0]==2 ? GfxBlitterNames[(int)savedata.screen[videoMode][1]] : "Disabled"));
 		}
 
 		if(savedata.fullscreen)
 		{
 			_menutext((selector==7), col1, 4, "Fullscreen Type:");
-			_menutext((selector==7), col2, 4, "%s", savedata.stretch ? "Stretch to Screen" : "Preserve Aspect Ratio");
+			_menutext((selector==7), col2, 4, (savedata.stretch ? "Stretch to Screen" : "Preserve Aspect Ratio"));
 		} else if(selector==7) selector = (bothnewkeys & FLAG_MOVEUP) ? 6 : 8;
 
 		_menutextm((selector==8), 6, 0, "Back");
@@ -23687,11 +23687,11 @@ void video_options(){
 
 #if PSP
 		_menutext((selector==3), col1, 0, "Screen:");
-		_menutext((selector==3), col2, 0, "%s", displayFormat[(int)videomodes.mode].name);
+		_menutext((selector==3), col2, 0, displayFormat[(int)videomodes.mode].name);
 		_menutext((selector==4), col1, 1, "Filters:");
-		_menutext((selector==4), col2, 1, "%s", filterName[(int)videomodes.filter]);
+		_menutext((selector==4), col2, 1, filterName[(int)videomodes.filter]);
 		_menutext((selector==5), col1, 2, "Display:");
-		_menutext((selector==5), col2, 2, "%s", displayName[displayMode]);
+		_menutext((selector==5), col2, 2, displayName[displayMode]);
 		_menutext((selector>=6 && selector<=9), col1, 3, "Overscan:");
 		_menutext((selector>=6 && selector<=9), col2+1.5, 3, ".");
 		_menutext((selector>=6 && selector<=9), col2+3.5, 3, ".");
