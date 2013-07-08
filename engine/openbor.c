@@ -23461,7 +23461,7 @@ void system_options(){
 		_menutext((selector==1), col1, -1, "File Logging:");
 		_menutext((selector==1), col2, -1, (savedata.uselog ? "Enabled" : "Disabled"));
 
-		_menutext((selector==2), col1, 0, "Players: ");
+		_menutext((selector==2), col1, 0, "Players:");
 		_menutext((selector==2), col2, 0, "%i by Mod", levelsets[current_set].maxplayers);
 
 		_menutext((selector==3), col1, 1, "Versus Damage:", 0);
