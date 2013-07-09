@@ -22037,7 +22037,8 @@ int selectplayer(int *players, char* filename)
 	kill_all();
 	reset_playable_list(1);
 	memset(player, 0, sizeof(*player)*4);
-	loadGameFile();
+
+	//loadGameFile();
 
 	for(i=0; i<set->maxplayers; i++)
 		player[i].hasplayed = players[i];
