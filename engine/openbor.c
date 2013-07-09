@@ -10708,8 +10708,8 @@ void predrawstatus(){
 		}
 		else if(player[i].credits || credits || (!player[i].hasplayed && noshare))
 		{
-			if(player[i].credits && (time/(GAME_SPEED*2)) & 1) font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, "Credit %i", player[i].credits);
-			else if(credits && (time/(GAME_SPEED*2)) & 1) font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, "Credit %i", credits);
+			if(player[i].credits && (time/(GAME_SPEED*2)) & 1) font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, Tr("Credit %i"), player[i].credits);
+			else if(credits && (time/(GAME_SPEED*2)) & 1) font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, Tr("Credit %i"), credits);
 			else if(nojoin) font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, Tr("Please Wait"));
 			else font_printf(videomodes.shiftpos[i]+pnameJ[i][4], savedata.windowpos+pnameJ[i][5], pnameJ[i][6], 0, Tr("Press Start"));
 
