@@ -21445,6 +21445,7 @@ void startup(){
 	}
 #endif
 
+    ob_inittrans();
 	loadHighScoreFile();
 	clearSavedGame();
 
@@ -24045,7 +24046,6 @@ void openborMain(int argc, char** argv)
 	}
 
 
-    ob_inittrans();
 	modelcmdlist = createModelCommandList();
 	modelstxtcmdlist = createModelstxtCommandList();
 	levelcmdlist = createLevelCommandList();
