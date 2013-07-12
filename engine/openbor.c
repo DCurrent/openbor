@@ -13116,7 +13116,7 @@ void adjust_base(entity* e, entity** pla) {
 	if(self->modeldata.subject_to_platform>0) {
 		other = check_platform_below_entity(self);
 	}
-	else other = NULL;
+	else other = self->landed_on_platform = NULL;
 
 	if(other && !(other->update_mark&8)) {
 		check_gravity(other);
