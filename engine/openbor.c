@@ -10821,7 +10821,9 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 	int text_x = s->tx + videomodes.hShift;
 	int text_y = s->ty + videomodes.vShift;
 	unsigned int ticks = timer_gettick();
-
+#ifdef PSP
+    ticks /= 1000; //temp solution
+#endif
 	if(ticks - soundtick > 20) {
 		sound_update_music();
 		soundtick = ticks;
