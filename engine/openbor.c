@@ -14558,6 +14558,9 @@ int melee_attack()
 int perform_atchain()
 {
 	int pickanim = 0;
+    
+    if(self->modeldata.chainlength<=0) return 0;
+
 	if(self->combotime > time)
 		self->combostep[0]++;
 	else self->combostep[0] = 1;
@@ -19192,7 +19195,7 @@ void player_think()
 	{
 		if(self->stalltime  && notinair &&
 	      ((validanim(self,ANI_CHARGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[ANI_CHARGEATTACK]->chargetime) < time) ||
-		   (!validanim(self,ANI_CHARGEATTACK) && self->stalltime+(GAME_SPEED*self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength-1]-1]]->chargetime) < time)))
+		   (!validanim(self,ANI_CHARGEATTACK) && self->modeldata.chainlength>0 && self->stalltime+(GAME_SPEED*self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength-1]-1]]->chargetime) < time)))
 		{
 			self->takeaction = common_attack_proc;
 			set_attacking(self);
@@ -19267,13 +19270,6 @@ void player_think()
 		self->stalltime = time;
 		self->xdir = self->zdir = 0;
 
-		if(!validanim(self,ANI_ATTACK1) && validanim(self,ANI_JUMP))
-		{
-			// This is for Mighty
-			self->combostep[0] = 0;
-			tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, 0, ANI_JUMP);
-			goto endthinkcheck;
-		}
 		if( self->weapent &&
 			self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
 			validanim(self,ANI_THROWATTACK)  )
@@ -19281,17 +19277,17 @@ void player_think()
 			self->takeaction = common_attack_proc;
 			set_attacking(self);
 			ent_set_anim(self, ANI_THROWATTACK, 0);
+		    goto endthinkcheck;
 		}
 		else if(perform_atchain())
 		{
 			if(SAMPLE_PUNCH >= 0 && self->attacking) sound_play_sample(SAMPLE_PUNCH, 0, savedata.effectvol,savedata.effectvol, 100);
+		    goto endthinkcheck;
 		}
 
-		goto endthinkcheck;
 	}
 	// 7-1-2005 spawn projectile end
 
-	// Mighty hass no attack animations, he just jumps.
 	if(pl->playkeys & FLAG_JUMP  && notinair)
 	{    // Added !inair(self) so players can't jump when falling into holes
 		pl->playkeys &= ~FLAG_JUMP;
