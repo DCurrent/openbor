@@ -135,6 +135,7 @@ void ob_inittrans()
 void ob_termtrans()
 {
     int i, size;
+    if(NULL==transList) return;
     PFOREACH(
         transList,
         free(List_Retrieve(transList));
