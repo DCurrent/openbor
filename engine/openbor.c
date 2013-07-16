@@ -21561,7 +21561,7 @@ int playgif(char* filename, int x, int y, int noskip) {
 	{
 		if(milliseconds >= info->info[0].nextframe)
 			anigif_decode_frame(info);
-		backbuffer = anigif_getbuffer(info);
+		if(!(backbuffer = anigif_getbuffer(info))) break;
 		spriteq_add_screen(x,y,0,backbuffer,NULL,0);
 		if(info->frame==0){
 			vga_vwait();
