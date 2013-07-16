@@ -36,7 +36,7 @@ typedef struct{
 }gifheaderstruct;
 
 
-#pragma pack(4)
+#pragma pack(1)
 typedef struct {
 	short	left, top;
 	unsigned short width, height;
@@ -44,6 +44,8 @@ typedef struct {
 }gifblockstruct;
 
 #define anigif_magic 0x464947
+
+#pragma pack(4)
 typedef struct 
 {
 	int magic;
