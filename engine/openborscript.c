@@ -224,7 +224,10 @@ void _freeheapnode(void* ptr){
 		anigif_close((anigif_info*)ptr);
 	} else if(((Varlist*)ptr)->magic==varlist_magic) {
 		Varlist_Clear((Varlist*)ptr);
-	}
+	}else if(((s_sprite*)ptr)->magic==sprite_magic) {
+        if(((s_sprite*)ptr)->mask)
+            free(((s_sprite*)ptr)->mask);
+    }
 	free(ptr);
 }
 
@@ -11154,18 +11157,22 @@ loadmodel_error:
 }
 
 // load a sprite which doesn't belong to the sprite_cache
-// loadsprite(path)
+// loadsprite(path, maskpath)
 HRESULT openbor_loadsprite(ScriptVariant** varlist , ScriptVariant** pretvar, int paramCount)
 {
 	extern s_sprite * loadsprite2(char *filename, int* width, int* height);
-	if(paramCount!=1) goto loadsprite_error;
+    s_sprite * spr, *mask;
+	if(paramCount<1) goto loadsprite_error;
 
 	if(varlist[0]->vt!=VT_STR) goto loadsprite_error;
 
 	ScriptVariant_ChangeType(*pretvar, VT_PTR);
-	if(((*pretvar)->ptrVal = (VOID*)loadsprite2(StrCache_Get(varlist[0]->strVal), NULL, NULL)))
+	if((spr=loadsprite2(StrCache_Get(varlist[0]->strVal), NULL, NULL)))
 	{
-		List_InsertAfter(&scriptheap, (void*)((*pretvar)->ptrVal), "openbor_loadsprite");
+        (*pretvar)->ptrVal = (VOID*)spr;
+        if(paramCount>1 && (mask=loadsprite2(StrCache_Get(varlist[1]->strVal), NULL, NULL)))
+            spr->mask = mask;
+		List_InsertAfter(&scriptheap, (void*)spr, "openbor_loadsprite");
 	}
 	//else, it should return an empty value
 	return S_OK;
