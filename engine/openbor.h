@@ -514,6 +514,7 @@ if(n<1) n = 1;
 						 if(e->releasetime>0)e->releasetime++;\
 						 if(e->nextanim>0)e->nextanim++;\
 						 if(e->nextthink>0)e->nextthink++;\
+						 if(e->nextmove>0)e->nextmove++;\
 						 if(e->magictime>0)e->magictime++;\
 						 if(e->guardtime>0)e->guardtime++;\
 						 if(e->toss_time>0)e->toss_time++;\
