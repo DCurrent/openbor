@@ -3512,7 +3512,7 @@ HRESULT openbor_getentityproperty(ScriptVariant** varlist , ScriptVariant** pret
 	case _ep_antigravity:
 	{
 		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-		(*pretvar)->dblVal = (DOUBLE)ent->antigravity;
+		(*pretvar)->dblVal = (DOUBLE)ent->modeldata.antigravity;
 		break;
 	}
 	case _ep_attack:

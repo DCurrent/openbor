@@ -12873,7 +12873,7 @@ void check_gravity(entity* e)
 			// gravity, antigravity factors
 			self->a += self->tossv*100.0/GAME_SPEED;
 			if(self->animation->dive) gravity = 0;
-			else gravity = (level?level->gravity:default_level_gravity) * (1.0-self->modeldata.antigravity-self->antigravity);
+			else gravity = (level?level->gravity:default_level_gravity) * (1.0-self->modeldata.antigravity);
 			if(self->modeldata.subject_to_gravity>0)
 				self->tossv += gravity*100.0/GAME_SPEED;
 
