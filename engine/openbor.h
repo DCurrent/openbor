@@ -1360,10 +1360,9 @@ typedef struct entity
 	unsigned rush[2]; // rush combo and max combo
 	int lifespancountdown; // life span count down
 
-	//------------- these factors will be added by basic factors of model-------------
+	//------------- copy them from model to avoid global effect -------------
 	s_defense* defense;
-	float* offense_factors; //offense factors: damage = damage*(1+def)
-	float antigravity; // gravity*(1-antigravity)
+	float* offense_factors;
 
 	int idlemode;
 	int walkmode;
