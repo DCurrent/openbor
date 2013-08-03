@@ -13,9 +13,9 @@ struct ImportNode;
 typedef struct ImportNode ImportNode;
 
 void ImportCache_Init();
-ImportNode* ImportCache_ImportFile(const char* path);
+ImportNode *ImportCache_ImportFile(const char *path);
 void ImportCache_Clear();
-Instruction** ImportList_GetFunctionPointer(List* list, const char* name);
+Instruction **ImportList_GetFunctionPointer(List *list, const char *name);
 
 #endif
 

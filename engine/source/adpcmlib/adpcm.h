@@ -15,7 +15,7 @@ void adpcm_loop_reset(int channel, short valprev, char index);
 
 void adpcm_reset();
 
-int adpcm_encode(short * indata, unsigned char * outdata, int len, int channels);
-int adpcm_decode(unsigned char * indata, short * outdata, int len, int channels);
+int adpcm_encode(short *indata, unsigned char *outdata, int len, int channels);
+int adpcm_decode(unsigned char *indata, short *outdata, int len, int channels);
 
 #endif

@@ -12,11 +12,11 @@
 
 typedef List Stack;
 
-void Stack_Init(Stack* stack);
-void Stack_Push( Stack* stack, void* e);
-void Stack_Pop(Stack* stack );
-void* Stack_Top(const Stack* stack);
-int Stack_IsEmpty(const Stack* stack);
+void Stack_Init(Stack *stack);
+void Stack_Push( Stack *stack, void *e);
+void Stack_Pop(Stack *stack );
+void *Stack_Top(const Stack *stack);
+int Stack_IsEmpty(const Stack *stack);
 
 #endif
 

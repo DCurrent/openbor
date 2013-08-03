@@ -9,11 +9,11 @@
 #ifndef PNGDEC_H
 #define PNGDEC_H
 
-s_screen* pngToScreen(const void* data);
+s_screen *pngToScreen(const void *data);
 
 #ifdef SDL
 #include "SDL.h"
-SDL_Surface* pngToSurface(const void* data);
+SDL_Surface *pngToSurface(const void *data);
 #endif
 
 #endif

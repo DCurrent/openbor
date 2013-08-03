@@ -12,8 +12,8 @@
 // Blah.
 
 int loadscreen(char *filename, char *packfile, unsigned char *pal, int format, s_screen **screen);
-s_bitmap * loadbitmap(char *filename, char *packfile, int format);
-int loadimagepalette(char *filename, char *packfile, unsigned char* pal);
+s_bitmap *loadbitmap(char *filename, char *packfile, int format);
+int loadimagepalette(char *filename, char *packfile, unsigned char *pal);
 #endif
 
 

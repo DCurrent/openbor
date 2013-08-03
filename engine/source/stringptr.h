@@ -12,12 +12,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct {
-	char *ptr;
-	size_t size;
+typedef struct
+{
+    char *ptr;
+    size_t size;
 } stringptr;
 
-stringptr* new_string(size_t size);
-void free_string(stringptr* string);
+stringptr *new_string(size_t size);
+void free_string(stringptr *string);
 
 #endif

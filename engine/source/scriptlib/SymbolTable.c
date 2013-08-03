@@ -10,43 +10,58 @@
 #include <stdio.h>
 
 
-void Symbol_Init(Symbol* symbol, LPCSTR theName, DWORD flags,
-				 ScriptVariant* pvar, Instruction*  theRef)
+void Symbol_Init(Symbol *symbol, LPCSTR theName, DWORD flags,
+                 ScriptVariant *pvar, Instruction  *theRef)
 {
-   memset(symbol, 0, sizeof(Symbol));
-   if(theName) strcpy(symbol->name, theName);
-   else symbol->name[0] = 0;
-   symbol->dwFlags = flags;
-   ScriptVariant_Init(&(symbol->var));
-   if(pvar) ScriptVariant_Copy(&(symbol->var), pvar);
-   symbol->theRef = theRef;
+    memset(symbol, 0, sizeof(Symbol));
+    if(theName)
+    {
+        strcpy(symbol->name, theName);
+    }
+    else
+    {
+        symbol->name[0] = 0;
+    }
+    symbol->dwFlags = flags;
+    ScriptVariant_Init(&(symbol->var));
+    if(pvar)
+    {
+        ScriptVariant_Copy(&(symbol->var), pvar);
+    }
+    symbol->theRef = theRef;
 }
 
 //------------------------------------------------------------------
 
 
-void SymbolTable_Init(SymbolTable* stable, LPCSTR theName )
+void SymbolTable_Init(SymbolTable *stable, LPCSTR theName )
 {
-   List_Init(&(stable->SymbolList));
-   stable->nextSymbolCount = 0;
-   if(theName) strcpy(stable->name, theName);
-   else stable->name[0] = 0;
+    List_Init(&(stable->SymbolList));
+    stable->nextSymbolCount = 0;
+    if(theName)
+    {
+        strcpy(stable->name, theName);
+    }
+    else
+    {
+        stable->name[0] = 0;
+    }
 }
 
 
-void SymbolTable_Clear(SymbolTable* stable)
+void SymbolTable_Clear(SymbolTable *stable)
 {
-   Symbol* psymbol = NULL;
-   int i,size;
-   FOREACH( stable->SymbolList,
-	  psymbol = (Symbol*)List_Retrieve(&(stable->SymbolList));
-	  if(psymbol)
-	  {
-		 ScriptVariant_Clear(&(psymbol->var));
-		 free(psymbol);
-	  }
-   );
-   List_Clear(&(stable->SymbolList));
+    Symbol *psymbol = NULL;
+    int i, size;
+    FOREACH( stable->SymbolList,
+             psymbol = (Symbol *)List_Retrieve(&(stable->SymbolList));
+             if(psymbol)
+{
+    ScriptVariant_Clear(&(psymbol->var));
+        free(psymbol);
+    }
+           );
+    List_Clear(&(stable->SymbolList));
 }
 
 
@@ -60,14 +75,17 @@ void SymbolTable_Clear(SymbolTable* stable)
 *  Returns: true if the symbol is found.
 *           false otherwise.
 ******************************************************************************/
-BOOL SymbolTable_FindSymbol(SymbolTable* stable, LPCSTR symbolName, Symbol** pp_theSymbol )
+BOOL SymbolTable_FindSymbol(SymbolTable *stable, LPCSTR symbolName, Symbol **pp_theSymbol )
 {
-   if (symbolName && List_FindByName(&(stable->SymbolList), (char*) symbolName )){
-	  *pp_theSymbol = (Symbol*)List_Retrieve(&(stable->SymbolList));
-	  return TRUE;
-   }
-   else
-	  return FALSE;
+    if (symbolName && List_FindByName(&(stable->SymbolList), (char *) symbolName ))
+    {
+        *pp_theSymbol = (Symbol *)List_Retrieve(&(stable->SymbolList));
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
 }
 
 /******************************************************************************
@@ -76,8 +94,8 @@ BOOL SymbolTable_FindSymbol(SymbolTable* stable, LPCSTR symbolName, Symbol** pp_
 *                             table.
 *  Returns:
 ******************************************************************************/
-void SymbolTable_AddSymbol(SymbolTable* stable, Symbol* p_theSymbol )
+void SymbolTable_AddSymbol(SymbolTable *stable, Symbol *p_theSymbol )
 {
-   List_InsertAfter( &(stable->SymbolList), (void*)p_theSymbol, p_theSymbol->name);
+    List_InsertAfter( &(stable->SymbolList), (void *)p_theSymbol, p_theSymbol->name);
 }
 

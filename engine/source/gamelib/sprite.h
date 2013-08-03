@@ -17,12 +17,12 @@ unsigned fakey_encodesprite(s_bitmap *bitmap);
 unsigned encodesprite(int offsx, int offsy, s_bitmap *bitmap, s_sprite *dest);
 
 // common sprite draw function, dispatch all formats
-void putsprite(int x, int y, s_sprite* frame, s_screen* screen, s_drawmethod* drawmethod);
+void putsprite(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod *drawmethod);
 
 // Normal putsprite
-void putsprite_8(int x, int y, int is_flip, s_sprite *frame, s_screen *screen, unsigned char* remap, unsigned char* blend);
+void putsprite_8(int x, int y, int is_flip, s_sprite *frame, s_screen *screen, unsigned char *remap, unsigned char *blend);
 //with speical effects
-void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod* drawmethod);
+void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod *drawmethod);
 /*
 // 8bit pixel transpixel functions
 unsigned char remapcolor(unsigned char* table, unsigned char color, unsigned char unused);
@@ -33,19 +33,19 @@ unsigned char blendfillcolor(unsigned char* table, unsigned char unused, unsigne
 //              16/24/32bit palette version
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Normal putsprite
-void putsprite_x8p16(int x, int y, int is_flip, s_sprite *frame, s_screen *screen, unsigned short* remap, unsigned short(*fp)(unsigned short, unsigned short));
+void putsprite_x8p16(int x, int y, int is_flip, s_sprite *frame, s_screen *screen, unsigned short *remap, unsigned short(*fp)(unsigned short, unsigned short));
 //with speical effects
-void putsprite_ex_x8p16(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod* drawmethod);
+void putsprite_ex_x8p16(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod *drawmethod);
 
 // Normal putsprite
-void putsprite_x8p24(int x, int y, int is_flip, s_sprite *frame, s_screen *screen, unsigned char* remap, unsigned(*fp)(unsigned, unsigned));
+void putsprite_x8p24(int x, int y, int is_flip, s_sprite *frame, s_screen *screen, unsigned char *remap, unsigned(*fp)(unsigned, unsigned));
 //with speical effects
-void putsprite_ex_x8p24(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod* drawmethod);
+void putsprite_ex_x8p24(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod *drawmethod);
 
 // Normal putsprite
-void putsprite_x8p32(int x, int y, int is_flip, s_sprite *frame, s_screen *screen, unsigned* remap, unsigned(*fp)(unsigned, unsigned));
+void putsprite_x8p32(int x, int y, int is_flip, s_sprite *frame, s_screen *screen, unsigned *remap, unsigned(*fp)(unsigned, unsigned));
 //with speical effects
-void putsprite_ex_x8p32(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod* drawmethod);
+void putsprite_ex_x8p32(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod *drawmethod);
 
 /*
 unsigned blend_multiply(unsigned color1, unsigned color2);

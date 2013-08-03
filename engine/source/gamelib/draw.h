@@ -39,9 +39,9 @@ void _putpixel32(int x, int y, unsigned colour, s_screen *screen, int alpha);
 
 //======================== root methods ==================================
 
-void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s_drawmethod* drawmethod);
-void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_drawmethod* drawmethod);
-void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod* drawmethod);
+void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s_drawmethod *drawmethod);
+void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_drawmethod *drawmethod);
+void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod *drawmethod);
 
 
 #endif

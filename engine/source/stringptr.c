@@ -10,15 +10,20 @@
 #include <assert.h>
 #include <string.h>
 
-stringptr* new_string(size_t size) {
-	stringptr* result = malloc(sizeof(stringptr) + size + 1);
-	if (result == NULL) return NULL;
-	result->ptr = (char*)result + sizeof(stringptr);
-	result->size = size;
-	*((char*) (result->ptr + size)) = '\0';
-	return result;
+stringptr *new_string(size_t size)
+{
+    stringptr *result = malloc(sizeof(stringptr) + size + 1);
+    if (result == NULL)
+    {
+        return NULL;
+    }
+    result->ptr = (char *)result + sizeof(stringptr);
+    result->size = size;
+    *((char *) (result->ptr + size)) = '\0';
+    return result;
 }
 
-void free_string(stringptr* string) {
-	free(string);
+void free_string(stringptr *string)
+{
+    free(string);
 }

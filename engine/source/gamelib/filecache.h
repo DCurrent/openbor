@@ -15,11 +15,11 @@
 // gdrom routines to read a pak file starting at that (positive) lba
 //
 void filecache_init(
-  int realfd,
-  int pakcdsectors,
-  int blocksize,
-  unsigned char blocks,
-  int vfds
+    int realfd,
+    int pakcdsectors,
+    int blocksize,
+    unsigned char blocks,
+    int vfds
 );
 
 //
@@ -32,11 +32,11 @@ void filecache_term(void);
 // returns the number of bytes read or 0 on error
 //
 int filecache_readpakblock(
-  unsigned char *dest,
-  int pakblock,
-  int startofs,
-  int bytes,
-  int blocking
+    unsigned char *dest,
+    int pakblock,
+    int startofs,
+    int bytes,
+    int blocking
 );
 
 //
