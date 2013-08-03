@@ -60,45 +60,44 @@ stringify("identifier" + num + 3)
 if directives work
 #endif
 #if 0
-if/else fails
-#else
-if/else works
+if / else fails
+#else if / else works
 #endif
 #if 0
-if/elif/else fails (1)
+        if / elif / else fails (1)
 #elif 1
-if/elif/else works
-#else
-if/elif/else fails (2)
+        if / elif / else works
+#else if / elif / else fails (2)
 #endif
 #define testfunc(x) x
 #if testfunc (20)
-function macros in if directives work
+                function macros in if directives work
 #endif
 
 // test "defined" in #if directives
 #if defined(stringify)
-stringify is defined
+                    stringify is defined
 #endif
 #if defined partial
-_partial is defined
+                    _partial is defined
 #endif
 #if !defined notfunc
-notfunc is undefined
+                    notfunc is undefined
 #endif
 
 // test __FILE__ and __LINE__ built-in macros
-This line is __FILE__:__LINE__
+This line is __FILE__:
+                    __LINE__
 #define linenum __LINE__
 #if linenum != __LINE__
 #error __LINE__ is not working properly
 #else
-"__LINE__" inside of macros works properly
+                    "__LINE__" inside of macros works properly
 #endif
 #undef linenum
 
 // test __DATE__ and __TIME__
-The date is __DATE__ and the time is __TIME__
+                    The date is __DATE__ and the time is __TIME__
 
 // make sure "unexpected newline" errors are readable
 //#include
@@ -116,15 +115,18 @@ HEALTH hp++
 #warning REVERSE is not defined
 #endif
 
-void BLINK(foo, bar, ctx->tokens)
-{// Blink effect script
-	void self = getlocalvar("self"); //Get calling entity.
-	void HEALTH = getentityproperty(self, "health"); \
+                    void BLINK(foo, bar, ctx->tokens)
+                {
+                    // Blink effect script
+                    void self = getlocalvar("self"); //Get calling entity.
+                        void HEALTH = getentityproperty(self, "health");
+                        \
 
-	if (HEALTH > 0){
-		changeentityproperty(self, "colourmap", 1); /* */
-		changeentityproperty(self, "maptime", 20 + openborvariant("elapsed_time"));
-	}
-}
+                        if (HEALTH > 0)
+                        {
+                            changeentityproperty(self, "colourmap", 1); /* */
+                            changeentityproperty(self, "maptime", 20 + openborvariant("elapsed_time"));
+                        }
+                    }
 
 #define eof This is the end of the file!

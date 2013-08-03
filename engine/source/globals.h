@@ -67,7 +67,7 @@
 
 /////////////////////////////////////////////////////////////////////////////
 
-extern int int_assert[sizeof(int)==4?1:-1];
+extern int int_assert[sizeof(int) == 4 ? 1 : -1];
 
 #define MIN_INT (int)0x80000000
 #define MAX_INT	(int)0x7fffffff

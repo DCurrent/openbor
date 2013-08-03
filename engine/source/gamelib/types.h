@@ -89,79 +89,85 @@ typedef unsigned long long u64;
 //scr
 #define screen_magic ((int)0x726373)
 
-typedef struct{
-	int magic;
-	int	width;
-	int	height;
-	int pixelformat;
+typedef struct
+{
+    int magic;
+    int	width;
+    int	height;
+    int pixelformat;
 #if PSP
-	int dummy[3]; //temporary debug values
+    int dummy[3]; //temporary debug values
 #endif
-	unsigned char* palette;
-	unsigned char data[ANYNUMBER];
-}s_screen;
+    unsigned char *palette;
+    unsigned char data[ANYNUMBER];
+} s_screen;
 
 
-typedef struct{
-	int	width;
-	int	height;
-	int	planar;
-	int	banked;		// Still unused
-	unsigned char *	data;
-}s_vram;
+typedef struct
+{
+    int	width;
+    int	height;
+    int	planar;
+    int	banked;		// Still unused
+    unsigned char 	*data;
+} s_vram;
 
 
 //bmp
 #define bitmap_magic ((int)0x706d62)
 
-typedef struct{
-	int magic;
-	int	width;
-	int	height;
-	int pixelformat;
+typedef struct
+{
+    int magic;
+    int	width;
+    int	height;
+    int pixelformat;
 #if PSP
-	int dummy[3]; //temporary debug values
+    int dummy[3]; //temporary debug values
 #endif
-	unsigned char* palette;
-	unsigned char data[ANYNUMBER];
-}s_bitmap;
+    unsigned char *palette;
+    unsigned char data[ANYNUMBER];
+} s_bitmap;
 
 //spr
 #define sprite_magic ((int)0x727073)
 
-typedef struct spritestruct{
-	int magic;
-	int	centerx;
-	int	centery;
-	int offsetx;
-	int offsety;
-	int srcwidth;
-	int srcheight;
-	int	width;
-	int	height;
-	int pixelformat;
-	struct spritestruct* mask;
-	unsigned char* palette;
-	int data[ANYNUMBER];
-}s_sprite;
+typedef struct spritestruct
+{
+    int magic;
+    int	centerx;
+    int	centery;
+    int offsetx;
+    int offsety;
+    int srcwidth;
+    int srcheight;
+    int	width;
+    int	height;
+    int pixelformat;
+    struct spritestruct *mask;
+    unsigned char *palette;
+    int data[ANYNUMBER];
+} s_sprite;
 
-struct sprite_list{
-	char *filename;
-	s_sprite *sprite;
-	int ref;
-	struct sprite_list *next;
+struct sprite_list
+{
+    char *filename;
+    s_sprite *sprite;
+    int ref;
+    struct sprite_list *next;
 };
 typedef struct sprite_list s_sprite_list;
 
-typedef struct{
-	s_sprite_list *node;
-	int  centerx;
-	int  centery;
-}s_sprite_map;
+typedef struct
+{
+    s_sprite_list *node;
+    int  centerx;
+    int  centery;
+} s_sprite_map;
 
-void set_blendtables(unsigned char* tables[]); // set global blend tables for 8bit mode
+void set_blendtables(unsigned char *tables[]); // set global blend tables for 8bit mode
 
-typedef unsigned char (*transpixelfunc)(unsigned char* table, unsigned char src, unsigned char dest);
+typedef unsigned char (*transpixelfunc)(unsigned char *table, unsigned char src, unsigned char dest);
 typedef unsigned short (*blend16fp)(unsigned short, unsigned short);
 typedef unsigned (*blend32fp)(unsigned, unsigned);
 
@@ -170,8 +176,8 @@ blend32fp getblendfunction32(int alpha);
 
 extern blend16fp blendfunctions16[MAX_BLENDINGS];
 extern blend32fp blendfunctions32[MAX_BLENDINGS];
-extern unsigned char* blendtables[MAX_BLENDINGS];
-extern unsigned channelr,channelg,channelb,tintmode,tintcolor;
+extern unsigned char *blendtables[MAX_BLENDINGS];
+extern unsigned channelr, channelg, channelb, tintmode, tintcolor;
 extern int usechannel;
 extern int useclip, clipx1, clipx2, clipy1, clipy2;
 extern blend16fp tint16fp1, tint16fp2;
@@ -181,106 +187,110 @@ unsigned short colour16(unsigned char r, unsigned char g, unsigned char b);
 unsigned colour32(unsigned char r, unsigned char g, unsigned char b);
 
 #if 0
-void u8revcpy(unsigned char*pa, const unsigned char*pb, unsigned len);
-void u8revpcpy(unsigned char*pa, const unsigned char*pb, unsigned char*pp, unsigned len);
-void u8pcpy(unsigned char*pa, const unsigned char*pb, unsigned char* pp, unsigned len);
+void u8revcpy(unsigned char *pa, const unsigned char *pb, unsigned len);
+void u8revpcpy(unsigned char *pa, const unsigned char *pb, unsigned char *pp, unsigned len);
+void u8pcpy(unsigned char *pa, const unsigned char *pb, unsigned char *pp, unsigned len);
 
-void u16revpcpy(unsigned short* pdest, const unsigned char* psrc, unsigned short* pp, unsigned len);
-void u16pcpy(unsigned short* pdest, const unsigned char* psrc, unsigned short* pp, unsigned len);
+void u16revpcpy(unsigned short *pdest, const unsigned char *psrc, unsigned short *pp, unsigned len);
+void u16pcpy(unsigned short *pdest, const unsigned char *psrc, unsigned short *pp, unsigned len);
 
-void u32revpcpy(unsigned* pdest, const unsigned char* psrc, unsigned* pp, unsigned len);
-void u32pcpy(unsigned* pdest, const unsigned char* psrc, unsigned* pp, unsigned len);
+void u32revpcpy(unsigned *pdest, const unsigned char *psrc, unsigned *pp, unsigned len);
+void u32pcpy(unsigned *pdest, const unsigned char *psrc, unsigned *pp, unsigned len);
 #endif
 
-typedef struct{
-	union
-	{
-	int amplitude;
-	float beginsize;
-	};
-	union{
-	float wavelength;
-	float endsize;
-	};
-	int wavetime;
-	union{
-	float wavespeed;
-	int	perspective;
-	};
-	int watermode;
-}water_transform;
+typedef struct
+{
+    union
+    {
+        int amplitude;
+        float beginsize;
+    };
+    union
+    {
+        float wavelength;
+        float endsize;
+    };
+    int wavetime;
+    union
+    {
+        float wavespeed;
+        int	perspective;
+    };
+    int watermode;
+} water_transform;
 
 typedef struct
 {
-	unsigned char* table;
-	void* fp;
-	unsigned fillcolor;
-	int flag;
-	int alpha;
-	int remap;
-	int flipx;
-	int flipy;
-	int transbg;
-	int fliprotate; // entity only, whether the flip is affected by the entity's facing(not the sprite's flip )
-	int rotate; // 360 degrees
-	int scalex;
-	int scaley;
-	int shiftx;
-	int centerx;   // shift centerx
-	int centery;   //shift centery
-	int xrepeat;
-	int yrepeat;
-	int xspan;
-	int yspan;
-	unsigned channelr;
-	unsigned channelg;
-	unsigned channelb;
-	unsigned tintmode; //tint the sprite with color 
-	unsigned tintcolor;
-	//unsigned clipmode; //0 sprite clip, 1 center,  2 screen clip
-	int clipx;
-	int clipy;
-	int clipw;
-	int cliph;
-	water_transform water;
-}s_drawmethod;
+    unsigned char *table;
+    void *fp;
+    unsigned fillcolor;
+    int flag;
+    int alpha;
+    int remap;
+    int flipx;
+    int flipy;
+    int transbg;
+    int fliprotate; // entity only, whether the flip is affected by the entity's facing(not the sprite's flip )
+    int rotate; // 360 degrees
+    int scalex;
+    int scaley;
+    int shiftx;
+    int centerx;   // shift centerx
+    int centery;   //shift centery
+    int xrepeat;
+    int yrepeat;
+    int xspan;
+    int yspan;
+    unsigned channelr;
+    unsigned channelg;
+    unsigned channelb;
+    unsigned tintmode; //tint the sprite with color
+    unsigned tintcolor;
+    //unsigned clipmode; //0 sprite clip, 1 center,  2 screen clip
+    int clipx;
+    int clipy;
+    int clipw;
+    int cliph;
+    water_transform water;
+} s_drawmethod;
 extern const s_drawmethod plainmethod;
-void drawmethod_global_init(s_drawmethod* drawmethod);
+void drawmethod_global_init(s_drawmethod *drawmethod);
 
-typedef enum 
+typedef enum
 {
-	gfx_screen,
-	gfx_bitmap,
-	gfx_sprite
-}gfx_type;
-
-
-typedef struct 
-{
-	union{
-		s_screen * screen;
-		s_sprite * sprite;
-		s_bitmap * bitmap;
-		void*      handle;
-	};
-}gfx_entry;
+    gfx_screen,
+    gfx_bitmap,
+    gfx_sprite
+} gfx_type;
 
 
 typedef struct
 {
-	short hRes;        // Horizontal Resolution
-	short vRes;		 // Vertical Resolution
-	short hShift;	     // Offset for X-Axis Text
-	short vShift;	     // Offset for Y-Axis Text
-	short dOffset;	 // Offset for Debug Text
-	short shiftpos[4];
-	char filter;
-	char mode;
-	char pixel;
-	float hScale;    // Multiplier for X-Axis
-	float vScale;    // Multiplier for Y-Axis
+    union
+    {
+        s_screen *screen;
+        s_sprite *sprite;
+        s_bitmap *bitmap;
+        void      *handle;
+    };
+} gfx_entry;
 
-}s_videomodes;
+
+typedef struct
+{
+    short hRes;        // Horizontal Resolution
+    short vRes;		 // Vertical Resolution
+    short hShift;	     // Offset for X-Axis Text
+    short vShift;	     // Offset for Y-Axis Text
+    short dOffset;	 // Offset for Debug Text
+    short shiftpos[4];
+    char filter;
+    char mode;
+    char pixel;
+    float hScale;    // Multiplier for X-Axis
+    float vScale;    // Multiplier for Y-Axis
+
+} s_videomodes;
 
 #if SYMBIAN
 #pragma pack(0)

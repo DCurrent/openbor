@@ -11,7 +11,7 @@
 
 #include "types.h"
 
-void savepng(const char* filename, s_screen* screen, u8* pal);
+void savepng(const char *filename, s_screen *screen, u8 *pal);
 
 #endif
 

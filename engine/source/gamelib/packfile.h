@@ -30,25 +30,27 @@
 //
 // Structure used for handling packfiles
 //
-typedef struct pnamestruct{
-	unsigned int pns_len;	    // Length of the struct in bytes
-	unsigned int filestart;	    // Start position of referenced file
-	unsigned int filesize;	    // Size of referenced file
-	char		 namebuf[80];	// Buffer to hold the file's name
-}pnamestruct;
+typedef struct pnamestruct
+{
+    unsigned int pns_len;	    // Length of the struct in bytes
+    unsigned int filestart;	    // Start position of referenced file
+    unsigned int filesize;	    // Size of referenced file
+    char		 namebuf[80];	// Buffer to hold the file's name
+} pnamestruct;
 
-typedef struct fileliststruct{
-	char filename[128];
-	int nTracks;
-	char bgmFileName[80][256];
-	int bgmTrack;
-	unsigned int bgmTracks[256];
+typedef struct fileliststruct
+{
+    char filename[128];
+    int nTracks;
+    char bgmFileName[80][256];
+    int bgmTrack;
+    unsigned int bgmTracks[256];
 #ifdef SDL
-	SDL_Surface *preview;
+    SDL_Surface *preview;
 #elif PSP
-	Image *preview;
+    Image *preview;
 #endif
-}fileliststruct;
+} fileliststruct;
 
 #define	NUMPACKHANDLES	8
 #define PACKVERSION	0x00000000
@@ -71,9 +73,9 @@ int paklseek(int fd, int n, int whence);
 int openreadaheadpackfile(const char *filename, const char *packfilename, int readaheadsize, int prebuffersize);
 int readpackfile_noblock(int fd, void *buf, int len);
 int packfileeof(int fd);
-int packfile_supported(struct dirent* ds);
-void packfile_music_read(struct fileliststruct* filelist, int dListTotal);
-int packfile_music_play(struct fileliststruct* filelist, FILE *bgmFile, int bgmLoop, int curPos, int scrPos);
+int packfile_supported(struct dirent *ds);
+void packfile_music_read(struct fileliststruct *filelist, int dListTotal);
+int packfile_music_play(struct fileliststruct *filelist, FILE *bgmFile, int bgmLoop, int curPos, int scrPos);
 void freefilenamecache(void);
 
 #endif

@@ -1,9 +1,9 @@
 #ifndef TRANSLATION_H
 #define TRANSLATION_H
-char* ob_gettrans(char* id);
+char *ob_gettrans(char *id);
 void ob_inittrans();
 void ob_termtrans();
-void ob_addtrans(char* id, char* str);
+void ob_addtrans(char *id, char *str);
 #define Tr(x) ob_gettrans(x)
 #endif
 

@@ -52,6 +52,6 @@ void sound_music_tempo(int music_tempo);
 int sound_query_music(char *artist, char *title);
 void sound_pause_music(int toggle);
 
-void update_sample(unsigned char *buf,int size);
+void update_sample(unsigned char *buf, int size);
 
 #endif

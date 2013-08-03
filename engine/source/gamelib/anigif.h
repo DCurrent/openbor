@@ -27,46 +27,48 @@
 
 
 #pragma pack (1)
-typedef struct{
-	char		magic[6];
-	unsigned short	screenwidth, screenheight;
-	unsigned char	flags;
-	unsigned char	background;
-	unsigned char	aspect;
-}gifheaderstruct;
+typedef struct
+{
+    char		magic[6];
+    unsigned short	screenwidth, screenheight;
+    unsigned char	flags;
+    unsigned char	background;
+    unsigned char	aspect;
+} gifheaderstruct;
 
 
 #pragma pack(1)
-typedef struct {
-	short	left, top;
-	unsigned short width, height;
-	unsigned char	flags;
-}gifblockstruct;
+typedef struct
+{
+    short	left, top;
+    unsigned short width, height;
+    unsigned char	flags;
+} gifblockstruct;
 
 #define anigif_magic 0x464947
 
 #pragma pack(4)
-typedef struct 
+typedef struct
 {
-	int magic;
-	struct 
-	{
-		gifheaderstruct gif_header;
-		int handle; // = -1;
-		int transparent; // = -1;
-		int bitdepth;
-		int numcolours;
-		int lastdelay;
-		int code;
-		u32 nextframe;
-		unsigned char*	global_pal;
-		unsigned char*	local_pal;
-	} info[3];
-	int isRGB;
-	int frame;
-	int done;
-	s_screen* backbuffer;
-	s_screen* gifbuffer[3];
+    int magic;
+    struct
+    {
+        gifheaderstruct gif_header;
+        int handle; // = -1;
+        int transparent; // = -1;
+        int bitdepth;
+        int numcolours;
+        int lastdelay;
+        int code;
+        u32 nextframe;
+        unsigned char	*global_pal;
+        unsigned char	*local_pal;
+    } info[3];
+    int isRGB;
+    int frame;
+    int done;
+    s_screen *backbuffer;
+    s_screen *gifbuffer[3];
 } anigif_info;
 
 
@@ -78,12 +80,12 @@ typedef struct
 
 
 // Returns true on succes
-int anigif_open(char *filename, char *packfilename, anigif_info* info);
+int anigif_open(char *filename, char *packfilename, anigif_info *info);
 
 // Decode next frame
-int anigif_decode_frame(anigif_info* info);
+int anigif_decode_frame(anigif_info *info);
 
-s_screen* anigif_getbuffer(anigif_info* info);
-void anigif_close(anigif_info* info);
+s_screen *anigif_getbuffer(anigif_info *info);
+void anigif_close(anigif_info *info);
 
 #endif

@@ -27,7 +27,7 @@
 
 typedef void (*GfxBlitterTypes)(u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
 extern GfxBlitterTypes GfxBlitters[BLITTER_MAX * 2];
-extern char* GfxBlitterNames[(BLITTER_MAX * 2) + 1];
+extern char *GfxBlitterNames[(BLITTER_MAX * 2) + 1];
 
 extern bool GetMMX   ();
 extern int  Init_Gfx (u32 BitFormat, u32 ColorDepth);

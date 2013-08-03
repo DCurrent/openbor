@@ -17,23 +17,29 @@
 *  Initialize -- This method intializes the stacked symbol table with its name
 *  and creates a new stack for the symbol tables.
 ******************************************************************************/
-void StackedSymbolTable_Init(StackedSymbolTable* sstable, LPCSTR theName )
+void StackedSymbolTable_Init(StackedSymbolTable *sstable, LPCSTR theName )
 {
 
-   if (theName) strcpy(sstable->name, theName);
-   else         sstable->name[0] = 0;
+    if (theName)
+    {
+        strcpy(sstable->name, theName);
+    }
+    else
+    {
+        sstable->name[0] = 0;
+    }
 
-   List_Init(&(sstable->SymbolTableStack));
-   StackedSymbolTable_PushScope(sstable, "Global" );
+    List_Init(&(sstable->SymbolTableStack));
+    StackedSymbolTable_PushScope(sstable, "Global" );
 }
 
-void StackedSymbolTable_Clear(StackedSymbolTable* sstable)
+void StackedSymbolTable_Clear(StackedSymbolTable *sstable)
 {
-	while(!Stack_IsEmpty(&(sstable->SymbolTableStack)))
-	{
-		StackedSymbolTable_PopScope(sstable);
-	}
-	List_Clear(&(sstable->SymbolTableStack));
+    while(!Stack_IsEmpty(&(sstable->SymbolTableStack)))
+    {
+        StackedSymbolTable_PopScope(sstable);
+    }
+    List_Clear(&(sstable->SymbolTableStack));
 }
 
 /******************************************************************************
@@ -41,18 +47,24 @@ void StackedSymbolTable_Clear(StackedSymbolTable* sstable)
 *  symbol table stack.  The top symbol table on the stack represents the
 *  innermost symbol scope.
 ******************************************************************************/
-void StackedSymbolTable_PushScope(StackedSymbolTable* sstable, LPCSTR scopeName )
+void StackedSymbolTable_PushScope(StackedSymbolTable *sstable, LPCSTR scopeName )
 {
 
-   SymbolTable* newSymbolTable = NULL;
+    SymbolTable *newSymbolTable = NULL;
 
-   newSymbolTable =(SymbolTable*)malloc(sizeof(SymbolTable));
-   //We have to have a name for this scope, so if we got NULL, then use ""
-   if (scopeName) SymbolTable_Init(newSymbolTable, scopeName);
-   else           SymbolTable_Init(newSymbolTable, "");
+    newSymbolTable = (SymbolTable *)malloc(sizeof(SymbolTable));
+    //We have to have a name for this scope, so if we got NULL, then use ""
+    if (scopeName)
+    {
+        SymbolTable_Init(newSymbolTable, scopeName);
+    }
+    else
+    {
+        SymbolTable_Init(newSymbolTable, "");
+    }
 
-   //Add the new symboltable to the stack
-   Stack_Push(&(sstable->SymbolTableStack), (void*)newSymbolTable );
+    //Add the new symboltable to the stack
+    Stack_Push(&(sstable->SymbolTableStack), (void *)newSymbolTable );
 }
 
 
@@ -60,9 +72,9 @@ void StackedSymbolTable_PushScope(StackedSymbolTable* sstable, LPCSTR scopeName 
 *  TopScope -- This method retrieves the topmost symbol table from the symbol
 *  table stack, and passes it back to the caller without removing it.
 ******************************************************************************/
-SymbolTable* StackedSymbolTable_TopScope(StackedSymbolTable* sstable)
+SymbolTable *StackedSymbolTable_TopScope(StackedSymbolTable *sstable)
 {
-   return (SymbolTable*)Stack_Top(&(sstable->SymbolTableStack));
+    return (SymbolTable *)Stack_Top(&(sstable->SymbolTableStack));
 }
 
 /******************************************************************************
@@ -70,16 +82,16 @@ SymbolTable* StackedSymbolTable_TopScope(StackedSymbolTable* sstable)
 *  destroying it in the process.  Any symbols in this table have gone out of
 *  scope and should not be found in a symbol search.
 ******************************************************************************/
-void StackedSymbolTable_PopScope(StackedSymbolTable* sstable)
+void StackedSymbolTable_PopScope(StackedSymbolTable *sstable)
 {
-	SymbolTable* pSymbolTable = NULL;
-	pSymbolTable = (SymbolTable*)Stack_Top(&(sstable->SymbolTableStack));
-	Stack_Pop(&(sstable->SymbolTableStack));
-	if(pSymbolTable)
-	{
-		SymbolTable_Clear(pSymbolTable);
-		free((void*)pSymbolTable);
-	}
+    SymbolTable *pSymbolTable = NULL;
+    pSymbolTable = (SymbolTable *)Stack_Top(&(sstable->SymbolTableStack));
+    Stack_Pop(&(sstable->SymbolTableStack));
+    if(pSymbolTable)
+    {
+        SymbolTable_Clear(pSymbolTable);
+        free((void *)pSymbolTable);
+    }
 }
 
 /******************************************************************************
@@ -92,22 +104,22 @@ void StackedSymbolTable_PopScope(StackedSymbolTable* sstable)
 *  Returns: true if the symbol is found.
 *           false otherwise.
 ******************************************************************************/
-BOOL StackedSymbolTable_FindSymbol(StackedSymbolTable* sstable, LPCSTR symbolName,
-									 Symbol** pp_theSymbol )
+BOOL StackedSymbolTable_FindSymbol(StackedSymbolTable *sstable, LPCSTR symbolName,
+                                   Symbol **pp_theSymbol )
 {
-   SymbolTable* currentSymbolTable = NULL;
-   BOOL bFound = FALSE;
-   int i, size;
-   FOREACH( sstable->SymbolTableStack,
-	  currentSymbolTable = (SymbolTable*)List_Retrieve(&(sstable->SymbolTableStack));
-	  bFound = SymbolTable_FindSymbol(currentSymbolTable, symbolName, pp_theSymbol );
+    SymbolTable *currentSymbolTable = NULL;
+    BOOL bFound = FALSE;
+    int i, size;
+    FOREACH( sstable->SymbolTableStack,
+             currentSymbolTable = (SymbolTable *)List_Retrieve(&(sstable->SymbolTableStack));
+             bFound = SymbolTable_FindSymbol(currentSymbolTable, symbolName, pp_theSymbol );
 
-	  if(bFound) break;
-   );
+             if(bFound) break;
+           );
 
-   //Restore the stack so push and pop work correctly.
-   List_Reset(&(sstable->SymbolTableStack));
-   return bFound;
+    //Restore the stack so push and pop work correctly.
+    List_Reset(&(sstable->SymbolTableStack));
+    return bFound;
 }
 
 /******************************************************************************
@@ -117,9 +129,9 @@ BOOL StackedSymbolTable_FindSymbol(StackedSymbolTable* sstable, LPCSTR symbolNam
 *                             table.
 *  Returns:
 ******************************************************************************/
-void StackedSymbolTable_AddSymbol(StackedSymbolTable* sstable, Symbol* p_theSymbol )
+void StackedSymbolTable_AddSymbol(StackedSymbolTable *sstable, Symbol *p_theSymbol )
 {
-   SymbolTable* topSymbolTable = NULL;
-   topSymbolTable = (SymbolTable*)Stack_Top(&(sstable->SymbolTableStack));
-   SymbolTable_AddSymbol(topSymbolTable, p_theSymbol );
+    SymbolTable *topSymbolTable = NULL;
+    topSymbolTable = (SymbolTable *)Stack_Top(&(sstable->SymbolTableStack));
+    SymbolTable_AddSymbol(topSymbolTable, p_theSymbol );
 }

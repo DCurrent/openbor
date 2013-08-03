@@ -16,8 +16,8 @@
 #define COMPILED_SCRIPT 1
 #endif
 
-typedef const char* LPCSTR;
-typedef char* LPSTR;
+typedef const char *LPCSTR;
+typedef char *LPSTR;
 typedef s32 HRESULT;
 typedef u32 DWORD;
 typedef u32 ULONG;

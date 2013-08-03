@@ -11,9 +11,9 @@
 
 #include "gfxtypes.h"
 
-extern void filter_tv2x      (u8*, u32, u8*, u8*, u32, int, int);
-extern void filter_normal2x  (u8*, u32, u8*, u8*, u32, int, int);
-extern void filter_dotmatrix (u8*, u32, u8*, u8*, u32, int, int);
-extern void filter_bicubic   (u8*, u32, u8*, u8*, u32, int, int);
+extern void filter_tv2x      (u8 *, u32, u8 *, u8 *, u32, int, int);
+extern void filter_normal2x  (u8 *, u32, u8 *, u8 *, u32, int, int);
+extern void filter_dotmatrix (u8 *, u32, u8 *, u8 *, u32, int, int);
+extern void filter_bicubic   (u8 *, u32, u8 *, u8 *, u32, int, int);
 
 #endif

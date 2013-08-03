@@ -31,7 +31,8 @@ extern void Bilinear32     (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, 
 extern void Tv2x           (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
 extern void DotMatrix      (u8 *srcPtr, u32 srcPitch, u8 *deltaPtr, u8 *dstPtr, u32 dstPitch, int width, int height);
 
-char* GfxBlitterNames[(BLITTER_MAX * 2) + 1] = {
+char *GfxBlitterNames[(BLITTER_MAX * 2) + 1] =
+{
 #define BIT_NAMES(x) \
 	x" Simple 2x",      \
 	x" Bilinear",       \
@@ -45,34 +46,35 @@ char* GfxBlitterNames[(BLITTER_MAX * 2) + 1] = {
 	x" ScanLines TV",   \
 	x" TV 2x",          \
 	x" Dot Matrix",
-	BIT_NAMES("16-Bit")
-	BIT_NAMES("32-Bit")
-	"Unknown"
+    BIT_NAMES("16-Bit")
+    BIT_NAMES("32-Bit")
+    "Unknown"
 };
 
-GfxBlitterTypes GfxBlitters[BLITTER_MAX * 2] = {
-	Simple2x,
-	Bilinear,
-	_2xSaI,
-	Super2xSaI,
-	SuperEagle,
-	AdMame2x,
-	Lq2x,
-	Hq2x,
-	Scanlines,
-	ScanlinesTV,
-	Tv2x,
-	DotMatrix,
-	Simple2x32,
-	Bilinear,
-	_2xSaI32,
-	Super2xSaI32,
-	SuperEagle32,
-	AdMame2x32,
-	Lq2x32,
-	Hq2x32,
-	Scanlines32,
-	ScanlinesTV,
-	Tv2x,
-	DotMatrix,
+GfxBlitterTypes GfxBlitters[BLITTER_MAX * 2] =
+{
+    Simple2x,
+    Bilinear,
+    _2xSaI,
+    Super2xSaI,
+    SuperEagle,
+    AdMame2x,
+    Lq2x,
+    Hq2x,
+    Scanlines,
+    ScanlinesTV,
+    Tv2x,
+    DotMatrix,
+    Simple2x32,
+    Bilinear,
+    _2xSaI32,
+    Super2xSaI32,
+    SuperEagle32,
+    AdMame2x32,
+    Lq2x32,
+    Hq2x32,
+    Scanlines32,
+    ScanlinesTV,
+    Tv2x,
+    DotMatrix,
 };
