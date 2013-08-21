@@ -25,8 +25,8 @@ static u8 sb_which = 0;
 static void SB_init()
 {
 	if(sb_inited) return;
-	memset(sb_buffers[0], 0, SB_SAMPLE_SIZE*8);
-	memset(sb_buffers[1], 0, SB_SAMPLE_SIZE*8);
+	memset(sb_buffers[0], 0, SB_SAMPLE_SIZE*32);
+	memset(sb_buffers[1], 0, SB_SAMPLE_SIZE*32);
 	AUDIO_Init(0);
 	AUDIO_SetDSPSampleRate(AI_SAMPLERATE_48KHZ);
 	sb_inited = 1;
@@ -37,9 +37,9 @@ static void *SB_Thread (void *arg)
 	while (1)
 	{
 		if(sb_stop) break;
-		sb_which ^= 1;
-		memset(sb_buffers[sb_which], 0, SB_SAMPLE_SIZE*8);
-		update_sample((u8 *)sb_buffers[sb_which], SB_SAMPLE_SIZE*4);
+		memset(sb_buffers[sb_which], 0, SB_SAMPLE_SIZE*32);
+		update_sample((u8 *)sb_buffers[sb_which], SB_SAMPLE_SIZE*32);
+		DCFlushRange(sb_buffers[sb_which], SB_SAMPLE_SIZE*32);
 		LWP_ThreadSleep(sb_queue);
 	}
 	return NULL;
@@ -47,8 +47,8 @@ static void *SB_Thread (void *arg)
 
 static void SB_Callback()
 {
-	DCFlushRange(sb_buffers[sb_which], SB_SAMPLE_SIZE*8);
-	AUDIO_InitDMA((u32)sb_buffers[sb_which], SB_SAMPLE_SIZE*4);
+	sb_which ^= 1;
+	AUDIO_InitDMA((u32)sb_buffers[sb_which], SB_SAMPLE_SIZE*32);
 	LWP_ThreadSignal(sb_queue);
 }
 
@@ -71,6 +71,7 @@ void SB_playstop()
 
 void SB_exit()
 {
+	SB_playstop();
 	AUDIO_StopDMA();
 	AUDIO_RegisterDMACallback(0);
 	LWP_ThreadSignal(sb_queue);
