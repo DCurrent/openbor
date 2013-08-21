@@ -1229,11 +1229,13 @@ int pak_init()
         return 0;
     }
 
+#ifndef WII
     if(isRawData())
     {
         pak_initialized = 1;
         return 0;
     }
+#endif
 
     pOpenPackfile = openPackfileCached;
     pReadPackfile = readPackfileCached;
