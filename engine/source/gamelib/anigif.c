@@ -342,6 +342,9 @@ static int test_anigif_open(anigif_info *info, char *tname, char *packfilename, 
         return 0;
     }
 
+    info->info[n].gif_header.screenwidth = SwapLSB16(info->info[n].gif_header.screenwidth);
+    info->info[n].gif_header.screenheight = SwapLSB16(info->info[n].gif_header.screenheight);
+
     if(info->info[n].gif_header.flags & 0x80)
     {
         info->info[n].bitdepth = (info->info[n].gif_header.flags & 7) + 1;
