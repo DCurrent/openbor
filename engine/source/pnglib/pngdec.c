@@ -78,7 +78,11 @@ s_screen *pngToScreen(const void *data)
     {
         png_set_tRNS_to_alpha(png_ptr);
     }
+#if WII
+    png_set_filler(png_ptr, 0xff, PNG_FILLER_BEFORE);
+#else
     png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
+#endif
 
     image = allocscreen(width, height, PIXEL_32);
     if(image == NULL)
