@@ -19,6 +19,8 @@
 #include "stristr.h"
 
 #include "pngdec.h"
+#include "../resources/OpenBOR_Logo_480x272_png.h"
+#include "../resources/OpenBOR_Logo_320x240_png.h"
 #include "../resources/OpenBOR_Menu_480x272_png.h"
 #include "../resources/OpenBOR_Menu_320x240_png.h"
 
@@ -500,17 +502,15 @@ int ControlMenu()
 void initMenu(int type)
 {
 	// Read Logo or Menu from Array.
-	if(type) {
+	if(!type) Source = pngToScreen(isWide ? (void*) openbor_logo_480x272_png.data : (void*) openbor_logo_320x240_png.data);
+	else Source = pngToScreen(isWide ? (void*) openbor_menu_480x272_png.data : (void*) openbor_menu_320x240_png.data);
 
-		Source = pngToScreen(isWide ? (void*) openbor_menu_480x272_png.data : (void*) openbor_menu_320x240_png.data);
+	// Depending on which mode we are in (WideScreen/FullScreen)
+	// allocate proper size for final screen.
+	Screen = allocscreen(Source->width, Source->height, PIXEL_32);
 
-		// Depending on which mode we are in (WideScreen/FullScreen)
-		// allocate proper size for final screen.
-		Screen = allocscreen(Source->width, Source->height, PIXEL_32);
-
-		// Allocate Scaler.
-		Scaler = allocscreen(Screen->width, Screen->height, PIXEL_32);
-	}
+	// Allocate Scaler.
+	Scaler = allocscreen(Screen->width, Screen->height, PIXEL_32);
 
 	control_init(2);
 	apply_controls();
@@ -642,6 +642,24 @@ void drawLogs()
 	drawMenu();
 }
 
+void drawLogo()
+{
+	unsigned startTime;
+	initMenu(0);
+	copyScreens(Source);
+	drawScreens(NULL, 0, 0);
+	vga_vwait();
+	startTime = timer_gettick();
+
+	// The logo displays for 2 seconds.  Let's put that time to good use.
+	dListTotal = findPaks();
+
+	while(1) { // display logo for remainder of time
+		if(timer_gettick() - startTime >= 2000) break;
+	}
+	termMenu();
+}
+
 void fillRect(s_screen *dest, Rect *rect, u32 color)
 {
 	u32 *data = (u32*)dest->data;
@@ -695,8 +713,9 @@ void Menu()
 	// Set video mode based on aspect ratio
 	if(CONF_GetAspectRatio() == CONF_ASPECT_16_9) isWide = 1;
 	setVideoMode();
-	dListTotal = findPaks();
+	drawLogo();
 
+	dListTotal = findPaks();
 	dListCurrentPosition = 0;
 	if(dListTotal != 1)
 	{
