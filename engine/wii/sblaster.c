@@ -47,10 +47,8 @@ static void *SB_Thread (void *arg)
 
 static void SB_Callback()
 {
-	AUDIO_StopDMA();
 	DCFlushRange(sb_buffers[sb_which], SB_SAMPLE_SIZE*8);
 	AUDIO_InitDMA((u32)sb_buffers[sb_which], SB_SAMPLE_SIZE*4);
-	AUDIO_StartDMA();
 	LWP_ThreadSignal(sb_queue);
 }
 
@@ -62,6 +60,7 @@ int SB_playstart(int bits, int samplerate)
 	LWP_CreateThread (&sb_thread, SB_Thread, NULL, sb_stack, SB_STACK, 70);
 	AUDIO_RegisterDMACallback(SB_Callback);
 	SB_Callback();
+	AUDIO_StartDMA();
 	return 1;
 }
 
