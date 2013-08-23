@@ -743,4 +743,8 @@ void Menu()
 	}
 	getBasePath(packfile, filelist[dListCurrentPosition+dListScrollPosition].filename, 1);
 	free(filelist);
+
+	// Restore screenformat and pixelformat to their default values
+	screenformat = PIXEL_8;
+	pixelformat = PIXEL_8;
 }
