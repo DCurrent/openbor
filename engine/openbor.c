@@ -17306,7 +17306,7 @@ void update_animation()
                 scrollv = -scrollv;
             }
             self->a -= scrolldy * scrollv;
-            self->base = self->a; // temporary fix otherwise it won't go underground
+            self->base = -99999; // temporary fix otherwise it won't go underground
         }
     }
 
