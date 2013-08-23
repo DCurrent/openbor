@@ -401,9 +401,7 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame)
             sprintf(shotname, "./SShots/s%04u.png", shotnum);
 #elif XBOX
             sprintf(shotname, "d:\\ScreenShots\\%s - %04u.png", modname, shotnum);
-#elif WII && SDL
-            sprintf(shotname, "sd:/apps/OpenBOR/ScreenShots/%s - %04u.png", modname, shotnum);
-#elif SDL
+#elif SDL || WII
             sprintf(shotname, "%s/%s - %04u.png", screenShotsDir, modname, shotnum);
 #else
             sprintf(shotname, "./ScreenShots/%s - %04u.png", modname, shotnum);
