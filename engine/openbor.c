@@ -28628,6 +28628,11 @@ void startup()
         shutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
     }
 
+    if(pixelformat == PIXEL_8)
+    {
+        standard_palette(1);
+    }
+
     printf("Loading menu.txt.............\t");
     load_menu_txt();
     printf("Done!\n");
