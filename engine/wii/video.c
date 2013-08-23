@@ -413,8 +413,8 @@ void vga_setpalette(unsigned char* pal)
 	}
 
 	// upload the palette data to the Flipper
-	GX_LoadTlut(&tlut, GX_TLUT0);
 	DCFlushRange(palette, sizeof(palette));
+	GX_LoadTlut(&tlut, GX_TLUT0);
 }
 
 /************ Functions to convert s_screen objects to textures ***************/
