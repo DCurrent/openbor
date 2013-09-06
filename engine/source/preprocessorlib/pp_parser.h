@@ -76,6 +76,7 @@ typedef struct pp_parser
     pp_lexer lexer;
     const char *filename;
     char *sourceCode;
+    List* params;
     int numParams;                     // parameter macros defined for a function macro parser
     char *macroName;
     bool freeFilename;
@@ -93,7 +94,7 @@ void pp_context_destroy(pp_context *self);
 
 void pp_parser_init(pp_parser *self, pp_context *ctx, const char *filename, char *sourceCode, TEXTPOS initialPosition);
 pp_parser *pp_parser_alloc(pp_parser *parent, const char *filename, char *sourceCode, pp_parser_type type);
-pp_parser *pp_parser_alloc_macro(pp_parser *parent, char *macroContents, int numParams, pp_parser_type type);
+pp_parser* pp_parser_alloc_macro(pp_parser* parent, char* macroContents, List* params, pp_parser_type type);
 
 pp_token *pp_parser_emit_token(pp_parser *self);
 HRESULT pp_parser_lex_token(pp_parser *self, bool skip_whitespace);
@@ -105,6 +106,7 @@ HRESULT pp_parser_include(pp_parser *self, char *filename);
 HRESULT pp_parser_define(pp_parser *self, char *name);
 HRESULT pp_parser_conditional(pp_parser *self, PP_TOKEN_TYPE directive);
 HRESULT pp_parser_eval_conditional(pp_parser *self, PP_TOKEN_TYPE directive, int *result);
+void pp_parser_insert_param(pp_parser* self, char* name);
 void pp_parser_insert_macro(pp_parser *self, char *name);
 HRESULT pp_parser_insert_function_macro(pp_parser *self, char *name);
 bool pp_is_builtin_macro(const char *name);

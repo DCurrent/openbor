@@ -28,19 +28,19 @@
 
 #if PP_TEST // using pp_test.c to test the preprocessor functionality; OpenBOR functionality is not available
 #undef printf
-#define openpackfile(fname, pname)	((int)fopen(fname, "rb"))
-#define readpackfile(hnd, buf, len)	fread(buf, 1, len, (FILE*)hnd)
-#define seekpackfile(hnd, loc, md)	fseek((FILE*)hnd, loc, md)
-#define tellpackfile(hnd)			ftell((FILE*)hnd)
-#define closepackfile(hnd)			fclose((FILE*)hnd)
-#define printf(msg, args...)		fprintf(stderr, msg, ##args)
+#define openpackfile(fname, pname)    ((int)fopen(fname, "rb"))
+#define readpackfile(hnd, buf, len)    fread(buf, 1, len, (FILE*)hnd)
+#define seekpackfile(hnd, loc, md)    fseek((FILE*)hnd, loc, md)
+#define tellpackfile(hnd)            ftell((FILE*)hnd)
+#define closepackfile(hnd)            fclose((FILE*)hnd)
+#define printf(msg, args...)        fprintf(stderr, msg, ##args)
 #define shutdown(ret, msg, args...) { fprintf(stderr, msg, ##args); exit(ret); }
 extern char *get_full_path(char *filename);
 #else // otherwise, we can use OpenBOR functionality like writeToLogFile
 #include "openbor.h"
 #include "globals.h"
 #include "packfile.h"
-#define tellpackfile(hnd)			seekpackfile(hnd, 0, SEEK_CUR)
+#define tellpackfile(hnd)            seekpackfile(hnd, 0, SEEK_CUR)
 #undef time
 #endif
 
@@ -146,6 +146,7 @@ void pp_parser_init(pp_parser *self, pp_context *ctx, const char *filename, char
     self->parent = NULL;
     self->child = NULL;
     self->numParams = 0;
+    self->params = NULL;
     self->macroName = NULL;
     self->newline = true;
     self->overread = false;
@@ -178,10 +179,11 @@ pp_parser *pp_parser_alloc(pp_parser *parent, const char *filename, char *source
  *        when freeing this parser (0 for non-function macros)
  * @return the newly allocated parser
  */
-pp_parser *pp_parser_alloc_macro(pp_parser *parent, char *macroContents, int numParams, pp_parser_type type)
+pp_parser* pp_parser_alloc_macro(pp_parser* parent, char* macroContents, List* params, pp_parser_type type)
 {
     pp_parser *self = pp_parser_alloc(parent, parent->filename, macroContents, type);
-    self->numParams = numParams;
+    self->params = params;
+    self->numParams = params ? List_GetSize(params) : 0;
     return self;
 }
 
@@ -401,11 +403,15 @@ pp_token *pp_parser_emit_token(pp_parser *self)
             if(child_token == NULL || child_token->theType == PP_TOKEN_EOF)
             {
                 // free the parameters of function macros
-                List_Reset(&self->ctx->macros);
-                for(i = 0; i < self->child->numParams; i++)
+                if(self->child->type == PP_FUNCTION_MACRO)
                 {
-                    free(List_Retrieve(&self->ctx->macros));
-                    List_Remove(&self->ctx->macros);
+                    List_Reset(self->child->params);
+                    for(i=0; i<self->child->numParams; i++)
+                    {
+                        free(List_Retrieve(self->child->params));
+                        List_Remove(self->child->params);
+                    }
+                    List_Clear(self->child->params);
                 }
 
                 // free the source code and filename if necessary
@@ -457,18 +463,11 @@ pp_token *pp_parser_emit_token(pp_parser *self)
             // handle token concatenation
             if(self->type == PP_FUNCTION_MACRO || self->type == PP_NORMAL_MACRO)
             {
-                int numParams;
-                pp_parser *p;
-
-                /*memcpy(&token2, &self->token, sizeof(pp_token));
-                success = SUCCEEDED(pp_parser_lex_token(self, false));
-                while(success && self->token.theType == PP_TOKEN_WHITESPACE)
-                {
-                	whitespace = true;
-                	memcpy(&token3, &self->token, sizeof(pp_token));
-                	success = SUCCEEDED(pp_parser_lex_token(self, false));
-                }
-                if(!success) break;*/
+                pp_parser* p;
+                pp_lexer tmpLexer;
+                pp_token tokenA, tokenB;
+                char buf1[1024] = {""}, buf2[1024] = {""};
+                TEXTPOS start = {0,0};
 
                 if(pp_parser_peek_token(self) == PP_TOKEN_CONCATENATE)
                 {
@@ -491,54 +490,59 @@ pp_token *pp_parser_emit_token(pp_parser *self)
                         return NULL;
                     }
 
+                    // expand the token on the left side of the ##
                     param1 = token2.theSource;
-                    numParams = self->numParams;
                     p = self;
                     while(1)
                     {
-                        if(List_FindByName(&self->ctx->macros, param1) &&
-                                List_GetIndex(&self->ctx->macros) < numParams)
+                        if(p->type == PP_FUNCTION_MACRO && List_FindByName(p->params, param1))
                         {
-                            param1 = (char *)List_Retrieve(&self->ctx->macros);
-                        }
-                        else if(List_FindByName(&self->ctx->func_macros, p->macroName) &&
-                                List_FindByName(List_Retrieve(&self->ctx->func_macros), param1))
-                            ;
-                        else
-                        {
-                            break;
-                        }
-                        if(p->parent->type == PP_FUNCTION_MACRO)
-                        {
+                            param1 = (char*)List_Retrieve(p->params);
                             p = p->parent;
-                            numParams += p->numParams;
                         }
+                        else if(List_FindByName(&self->ctx->macros, param1))
+                            param1 = (char*)List_Retrieve(&self->ctx->macros);
+                        else break;
+
+                        // if the expanded form has >1 token, the concatenation is only
+                        // applied to the last token, so only expand it for now
+                        pp_lexer_Init(&tmpLexer, param1, start);
+                        tokenB.theSource[0] = '\0';
+                        do
+                        {
+                            strcat(buf1, tokenB.theSource);
+                            memcpy(&tokenB, &tokenA, sizeof(pp_token));
+                            pp_lexer_GetNextToken(&tmpLexer, &tokenA);
+                        } while(tokenA.theType != PP_TOKEN_EOF);
+                        param1 = param1 + strlen(param1) - strlen(tokenB.theSource);
+                        assert(strcmp(param1, tokenB.theSource) == 0);
                     }
+                    strcat(buf1, param1);
 
                     param2 = self->token.theSource;
-                    numParams = self->numParams;
                     p = self;
                     while(1)
                     {
-                        if(List_FindByName(&self->ctx->macros, param2) &&
-                                List_GetIndex(&self->ctx->macros) < numParams)
+                        if(p->type == PP_FUNCTION_MACRO && List_FindByName(p->params, param2))
                         {
-                            param2 = (char *)List_Retrieve(&self->ctx->macros);
-                        }
-                        else if(List_FindByName(&self->ctx->func_macros, p->macroName) &&
-                                List_FindByName(List_Retrieve(&self->ctx->func_macros), param2))
-                            ;
-                        else
-                        {
-                            break;
-                        }
-                        if(p->parent->type == PP_FUNCTION_MACRO)
-                        {
+                            param2 = (char*)List_Retrieve(p->params);
                             p = p->parent;
-                            numParams += p->numParams;
                         }
+                        else if(List_FindByName(&self->ctx->macros, param2))
+                            param2 = (char*)List_Retrieve(&self->ctx->macros);
+                        else break;
+                        
+                        // this is ugly but works as long as buf2 doesn't overflow
+                        pp_lexer_Init(&tmpLexer, param2, start);
+                        pp_lexer_GetNextToken(&tmpLexer, &tokenA);
+                        memmove(buf2+strlen(tmpLexer.pcurChar), buf2, strlen(buf2)+1);
+                        memcpy(buf2, tmpLexer.pcurChar, strlen(tmpLexer.pcurChar));
+                        param2 = tokenA.theSource; // is this safe?
                     }
-                    pp_parser_concatenate(self, param1, param2);
+                    memmove(buf2+strlen(param2), buf2, strlen(buf2)+1);
+                    memcpy(buf2, param2, strlen(param2));
+                    
+                    pp_parser_concatenate(self, buf1, buf2);
                     emitme = false;
                     continue;
                 }
@@ -596,9 +600,14 @@ pp_token *pp_parser_emit_token(pp_parser *self)
                 // whitespace doesn't affect the newline property
                 break;
             case PP_TOKEN_IDENTIFIER:
-                memcpy(&token2, &self->token, sizeof(pp_token));
+                memcpy(&token2, &self->token, sizeof(pp_token)); // FIXME: this should be moved into the function macro else if block
+                self->newline = false;
 
-                if(!strcmp(self->token.theSource, "__FILE__") || !strcmp(self->token.theSource, "__LINE__"))
+                if(self->type == PP_FUNCTION_MACRO && List_FindByName(self->params, self->token.theSource))
+                {
+                    pp_parser_insert_param(self, self->token.theSource);
+                }
+                else if(!strcmp(self->token.theSource, "__FILE__") || !strcmp(self->token.theSource, "__LINE__"))
                 {
                     pp_parser_insert_builtin_macro(self, token2.theSource);
                 }
@@ -989,7 +998,9 @@ HRESULT pp_parser_define(pp_parser *self, char *name)
     if(List_FindByName(&self->ctx->func_macros, name))
     {
         List *params2 = List_Retrieve(&self->ctx->func_macros);
-        pp_warning(self, "'%s' redefined (previously \"%s\")", name, List_Retrieve(&self->ctx->func_macros));
+        List_GotoLast(params2);
+        pp_warning(self, "'%s' redefined (previously \"%s\")", name, List_Retrieve(params2));
+        List_Reset(params2);
         while(params2->size > 0)
         {
             free(List_Retrieve(params2));
@@ -1206,6 +1217,21 @@ HRESULT pp_parser_eval_conditional(pp_parser *self, PP_TOKEN_TYPE directive, int
 }
 
 /**
+ * Expands a parameter of a function macro.
+ * Pre: the macro is defined
+ */
+void pp_parser_insert_param(pp_parser* self, char* name)
+{
+    // don't waste time searching under normal circumstances
+    if(strcmp((char*)List_Retrieve(self->params), name))
+    {
+        List_FindByName(self->params, name);
+    }
+
+    pp_parser_alloc_macro(self, List_Retrieve(self->params), NULL, PP_NORMAL_MACRO);
+}
+
+/**
  * Expands a regular (i.e. non-function) macro.
  * Pre: the macro is defined
  */
@@ -1217,7 +1243,7 @@ void pp_parser_insert_macro(pp_parser *self, char *name)
         List_FindByName(&self->ctx->macros, name);
     }
 
-    pp_parser_alloc_macro(self, List_Retrieve(&self->ctx->macros), 0, PP_NORMAL_MACRO);
+    pp_parser_alloc_macro(self, List_Retrieve(&self->ctx->macros), NULL, PP_NORMAL_MACRO);
 }
 
 /**
@@ -1228,7 +1254,7 @@ void pp_parser_insert_macro(pp_parser *self, char *name)
 HRESULT pp_parser_insert_function_macro(pp_parser *self, char *name)
 {
     int numParams, paramCount = 0, paramMacros = 0, parenLevel = 0, type;
-    List *params;
+    List* params, *paramDefs; // note that params is different from self->params
     char paramBuffer[1024] = "", *tail;
 
     // find macro and get number of parameters
@@ -1238,6 +1264,9 @@ HRESULT pp_parser_insert_function_macro(pp_parser *self, char *name)
     }
     params = List_Retrieve(&self->ctx->func_macros);
     numParams = List_GetSize(params) - 1;
+
+    paramDefs = malloc(sizeof(List));
+    List_Init(paramDefs);
 
     // read the parameter list and temporarily define a "simple" macro for each parameter
     List_Reset(params);
@@ -1281,7 +1310,7 @@ HRESULT pp_parser_insert_function_macro(pp_parser *self, char *name)
             tail = strchr(paramBuffer, '\0');
             while(--tail >= paramBuffer)
             {
-                if(*tail == ' ' || *tail == '\t' || *tail == '\n')
+                if(*tail == ' ' || *tail == '\t' || *tail == '\n' || *tail == '\r')
                 {
                     *tail = '\0';
                 }
@@ -1290,6 +1319,9 @@ HRESULT pp_parser_insert_function_macro(pp_parser *self, char *name)
                     break;
                 }
             }
+
+            // handle the case of a function with no parameters
+            if(type == PP_TOKEN_RPAREN && paramCount == 0 && paramBuffer[0] == '\0') break;
 
             paramCount++;
             if(paramCount > numParams)
@@ -1302,18 +1334,32 @@ HRESULT pp_parser_insert_function_macro(pp_parser *self, char *name)
             {
                 // add the new macro to the beginning of the macro list
                 paramMacros++;
-                List_InsertBefore(&self->ctx->macros, strdup(paramBuffer), List_GetName(params));
+                List_InsertAfter(paramDefs, strdup(paramBuffer), List_GetName(params));
             }
 
             List_GotoNext(params);
             paramBuffer[0] = '\0';
             break;
-        case PP_TOKEN_WHITESPACE:
-            if(paramBuffer[0] != '\0')
+        case PP_TOKEN_IDENTIFIER:
+            if(self->type == PP_FUNCTION_MACRO && List_FindByName(self->params, self->token.theSource))
             {
-                write = true;
-                break;
+                if((strlen(paramBuffer) + strlen(List_Retrieve(self->params)) + 1) > sizeof(paramBuffer))
+                {
+                    return pp_error(self,
+                                    "parameter %d of function '%s' exceeds max length of %d characters",
+                                    name, sizeof(paramBuffer)-1);
+                }
+                strcat(paramBuffer, List_Retrieve(self->params));
+                write = false;
             }
+            else write = true;
+            break;
+        case PP_TOKEN_WHITESPACE:
+            if(paramBuffer[0] == '\0')
+                write = false;
+            else
+                write = true;
+            break;
         default:
             write = true;
         }
@@ -1334,7 +1380,7 @@ HRESULT pp_parser_insert_function_macro(pp_parser *self, char *name)
 
     // do the actual parsing
     List_GotoLast(params);
-    pp_parser_alloc_macro(self, List_Retrieve(params), paramMacros, PP_FUNCTION_MACRO);
+    pp_parser_alloc_macro(self, List_Retrieve(params), paramDefs, PP_FUNCTION_MACRO);
     self->child->macroName = strdup(name);
 
     return S_OK;
@@ -1391,7 +1437,8 @@ void pp_parser_insert_builtin_macro(pp_parser *self, const char *name)
         assert(!"name parameter not __FILE__ or __LINE__");
     }
 
-    pp_parser_alloc_macro(self, value, 0, PP_NORMAL_MACRO);
+    pp_parser_alloc_macro(self, strdup(value), NULL, PP_NORMAL_MACRO);
+    self->child->freeSourceCode = true;
 }
 
 /**
