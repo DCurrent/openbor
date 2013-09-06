@@ -2110,6 +2110,9 @@ void Parser_Error2(Parser *pparser, PRODUCTION offender, const char *offenderStr
 
     pparser->errorFound = TRUE;
 
+    if (offender == error)
+        return;
+
     //The script is obviously not valid, but it's good to try and find all the
     //errors at one time.  Therefore go into Panic Mode error recovery -- keep
     //grabbing tokens until we find one we can use
