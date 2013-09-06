@@ -1320,5 +1320,6 @@ void Interpreter_Reset(Interpreter *pinterpreter)
     //Reset the main flag
     pinterpreter->bMainCompleted = FALSE;
     pinterpreter->bReset = TRUE;
+    pinterpreter->bCallCompleted = FALSE;
 }
 
