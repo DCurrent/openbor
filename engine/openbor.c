@@ -2532,12 +2532,26 @@ void execute_spawn_script(s_spawn_entry *p, entity *e)
             ScriptVariant_ChangeType(&tempvar, VT_PTR);
             tempvar.ptrVal = (VOID *)e;
             Script_Set_Local_Variant(cs, "self", &tempvar);
+            ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
+            tempvar.dblVal = (DOUBLE)p->x;
+            Script_Set_Local_Variant(cs, "spawnx", &tempvar);
+            tempvar.dblVal = (DOUBLE)p->z;
+            Script_Set_Local_Variant(cs, "spawnz", &tempvar);
+            tempvar.dblVal = (DOUBLE)p->a;
+            Script_Set_Local_Variant(cs, "spawna", &tempvar);
+            ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+            tempvar.lVal = (LONG)p->at;
+            Script_Set_Local_Variant(cs, "spawnat", &tempvar);
         }
         Script_Execute(cs);
         if(e)
         {
             ScriptVariant_Clear(&tempvar);
             Script_Set_Local_Variant(cs, "self", &tempvar);
+            Script_Set_Local_Variant(cs, "spawnx", &tempvar);
+            Script_Set_Local_Variant(cs, "spawnz", &tempvar);
+            Script_Set_Local_Variant(cs, "spawna", &tempvar);
+            Script_Set_Local_Variant(cs, "spawnat", &tempvar);
         }
     }
 }
