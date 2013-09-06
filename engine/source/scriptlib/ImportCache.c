@@ -103,6 +103,7 @@ HRESULT ImportNode_Init(ImportNode *self, const char *path)
     }
     if(FAILED(Interpreter_ParseText(&self->interpreter, scriptText, 1, path)))
     {
+        printf("Script error: failed to import '%s': parsing failed\n", path);
         goto error;
     }
     free(scriptText);
@@ -128,6 +129,7 @@ HRESULT ImportNode_Init(ImportNode *self, const char *path)
     // finish compiling and convert indices to pointers to the function entry points
     if(FAILED(Interpreter_CompileInstructions(&self->interpreter)))
     {
+        printf("Script error: failed to import '%s': failed to compile\n", path);
         goto error;
     }
     assert(list->solidlist != NULL);
