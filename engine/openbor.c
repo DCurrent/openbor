@@ -29417,6 +29417,44 @@ int selectplayer(int *players, char *filename)
     else // without select.txt
     {
         defaultselect = 1;
+        if(!noshare)
+        {
+            credits = CONTINUES;
+        }
+        else for(i = 0; i < set->maxplayers; i++)
+        {
+            if(players[i])
+            {
+                player[i].credits = CONTINUES;
+            }
+        }
+
+        if(skipselect[0][0] || set->noselect)
+        {
+            for(i = 0; i < set->maxplayers; i++)
+            {
+                if(!players[i])
+                {
+                    continue;
+                }
+                strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
+                if(!creditscheat)
+                {
+                    if(noshare)
+                    {
+                        --player[i].credits;
+                    }
+                    else
+                    {
+                        --credits;
+                    }
+                }
+                player[i].lives = PLAYER_LIVES;
+            }
+            selectScreen = 0;
+            return 1;
+        }
+
         if(unlockbg && bonus)
         {
             // New alternative background path for PSP
@@ -29449,43 +29487,6 @@ int selectplayer(int *players, char *filename)
         {
             music("data/music/remix", 1, 0);
         }
-        if(!noshare)
-        {
-            credits = CONTINUES;
-        }
-        else for(i = 0; i < set->maxplayers; i++)
-            {
-                if(players[i])
-                {
-                    player[i].credits = CONTINUES;
-                }
-            }
-    }
-
-    if(defaultselect && (skipselect[0][0] || set->noselect))
-    {
-        for(i = 0; i < set->maxplayers; i++)
-        {
-            if(!players[i])
-            {
-                continue;
-            }
-            strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
-            if(!creditscheat)
-            {
-                if(noshare)
-                {
-                    --player[i].credits;
-                }
-                else
-                {
-                    --credits;
-                }
-            }
-            player[i].lives = PLAYER_LIVES;
-        }
-        selectScreen = 0;
-        return 1;
     }
 
     for(i = 0; i < set->maxplayers; i++)
