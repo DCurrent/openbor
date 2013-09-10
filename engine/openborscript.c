@@ -1909,6 +1909,9 @@ HRESULT system_free(ScriptVariant **varlist , ScriptVariant **pretvar, int param
     if(List_Includes(&scriptheap, varlist[0]->ptrVal))
     {
         _freeheapnode(List_Retrieve(&scriptheap));
+        // a script's ondestroy() may free something else and change the list
+        // position, so set the position to this variant again
+        List_Includes(&scriptheap, varlist[0]->ptrVal);
         List_Remove(&scriptheap);
         return S_OK;
     }
