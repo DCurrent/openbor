@@ -13451,6 +13451,166 @@ changedm_error:
     return E_FAIL;
 }
 
+//getdrawmethod(<entity>, <property>)
+HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    /*
+    getdrawmethod
+    Damon V. Caskey
+    2013-11-09
+
+    Allow module author to read current drawmethod settings.
+    */
+    entity *e;
+    s_drawmethod *pmethod;
+    *pretvar = NULL;
+
+    if(paramCount < 2)
+    {
+        goto getdm_error;
+    }
+
+    mapstrings_drawmethodproperty(varlist, paramCount);
+
+    if(varlist[0]->vt == VT_EMPTY)
+    {
+        e = NULL;
+    }
+    else if(varlist[0]->vt == VT_PTR)
+    {
+        e = (entity *)varlist[0]->ptrVal;
+    }
+    else
+    {
+        goto getdm_error;
+    }
+
+    if(e)
+    {
+        pmethod = &(e->drawmethod);
+    }
+    else
+    {
+        pmethod = &(drawmethod);
+    }
+
+    switch(varlist[1]->lVal)
+    {
+        case _dm_alpha:
+            (*pretvar)->lVal = pmethod->alpha;
+            break;
+        case _dm_amplitude:
+            (*pretvar)->lVal = pmethod->water.amplitude;
+            break;
+        case _dm_beginsize:
+            (*pretvar)->dblVal = pmethod->water.beginsize;
+            break;
+        case _dm_centerx:
+            (*pretvar)->lVal = pmethod->centerx;
+            break;
+        case _dm_centery:
+            (*pretvar)->lVal = pmethod->centery;
+            break;
+        case _dm_channelb:
+            (*pretvar)->lVal = pmethod->channelb;
+            break;
+        case _dm_channelg:
+            (*pretvar)->lVal = pmethod->channelg;
+            break;
+        case _dm_channelr:
+            (*pretvar)->lVal = pmethod->channelr;
+            break;
+        case _dm_clipx:
+            (*pretvar)->lVal = pmethod->clipx;
+            break;
+        case _dm_clipy:
+            (*pretvar)->lVal = pmethod->clipy;
+            break;
+        case _dm_clipw:
+            (*pretvar)->lVal = pmethod->clipw;
+            break;
+        case _dm_cliph:
+            (*pretvar)->lVal = pmethod->cliph;
+            break;
+        case _dm_endsize:
+            (*pretvar)->dblVal = pmethod->water.endsize;
+            break;
+        case _dm_fillcolor:
+            (*pretvar)->lVal = pmethod->fillcolor;
+            break;
+        case _dm_fliprotate:
+            (*pretvar)->lVal = pmethod->fliprotate;
+            break;
+        case _dm_flipx:
+            (*pretvar)->lVal = pmethod->flipx;
+            break;
+        case _dm_perspective:
+            (*pretvar)->lVal = pmethod->water.perspective;
+            break;
+        case _dm_remap:
+            (*pretvar)->lVal = pmethod->remap;
+            break;
+        case _dm_rotate:
+            (*pretvar)->lVal = pmethod->rotate;
+            break;
+        case _dm_scalex:
+            (*pretvar)->lVal = pmethod->scalex;
+            break;
+        case _dm_scaley:
+            (*pretvar)->lVal = pmethod->scaley;
+            break;
+        case _dm_shiftx:
+            (*pretvar)->lVal = pmethod->shiftx;
+            break;
+        case _dm_table:
+            (*pretvar)->ptrVal = pmethod->table;
+            break;
+        case _dm_tintmode:
+            (*pretvar)->lVal = pmethod->tintmode;
+            break;
+        case _dm_tintcolor:
+            (*pretvar)->lVal = pmethod->tintcolor;
+            break;
+        case _dm_transbg:
+            (*pretvar)->lVal = pmethod->transbg;
+            break;
+        case _dm_watermode:
+            (*pretvar)->lVal = pmethod->water.watermode;
+            break;
+        case _dm_wavelength:
+            (*pretvar)->dblVal = pmethod->water.wavelength;
+            break;
+        case _dm_wavespeed:
+            (*pretvar)->dblVal = pmethod->water.wavespeed;
+            break;
+        case _dm_wavetime:
+            (*pretvar)->lVal = pmethod->water.wavetime;
+            break;
+        case _dm_xrepeat:
+            (*pretvar)->lVal = pmethod->xrepeat;
+            break;
+        case _dm_yrepeat:
+            (*pretvar)->lVal = pmethod->yrepeat;
+            break;
+        case _dm_xspan:
+            (*pretvar)->lVal = pmethod->xspan;
+            break;
+        case _dm_yspan:
+            (*pretvar)->lVal = pmethod->yspan;
+            break;
+        default:
+        case _dm_enabled:
+        case _dm_flag:
+            (*pretvar)->lVal = pmethod->flag;
+            break;
+    }
+
+    return S_OK;
+
+getdm_error:
+    printf("Function getdrawmethod must have at least 2 parameters: entity, propertyname\n");
+    return E_FAIL;
+}
 
 //deprecated
 //setdrawmethod(entity, int flag, int scalex, int scaley, int flipx, int flipy, int shiftx, int alpha, int remap, int fillcolor, int rotate, int fliprotate, int transparencybg, void* colourmap, int centerx, int centery);
@@ -14355,7 +14515,6 @@ int mapstrings_gfxproperty(ScriptVariant **varlist, int paramCount)
 
     return 1;
 }
-
 
 // getgfxproperty(handle, propertyname, ...);
 HRESULT openbor_getgfxproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
