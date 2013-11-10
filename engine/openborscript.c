@@ -13035,6 +13035,7 @@ enum drawmethod_enum
     _dm_flag,
     _dm_fliprotate,
     _dm_flipx,
+    _dm_flipy,
     _dm_perspective,
     _dm_remap,
     _dm_reset,
@@ -13084,6 +13085,7 @@ int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
         "flag",
         "fliprotate",
         "flipx",
+        "flipy",
         "perspective",
         "remap",
         "reset",
@@ -13302,6 +13304,13 @@ HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretv
             return E_FAIL;
         }
         pmethod->flipx = (int)temp;
+        break;
+    case _dm_flipy:
+        if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp)))
+        {
+            return E_FAIL;
+        }
+        pmethod->flipy = (int)temp;
         break;
     case _dm_perspective:
         if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp)))
@@ -13543,6 +13552,9 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
             break;
         case _dm_flipx:
             (*pretvar)->lVal = pmethod->flipx;
+            break;
+        case _dm_flipy:
+            (*pretvar)->lVal = pmethod->flipy;
             break;
         case _dm_perspective:
             (*pretvar)->lVal = pmethod->water.perspective;
