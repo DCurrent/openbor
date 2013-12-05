@@ -56,8 +56,9 @@
 
 #define		DEFAULT_SHUTDOWN_MESSAGE \
 			"OpenBOR " VERSION ", Compile Date: " __DATE__ "\n" \
-			"Presented by Senile Team.\n" \
-			"This Version is unofficial and based on the Senile source code.\n" \
+			"Presented by the OpenBOR Team.\n" \
+			"www.chronocrash.com\n"\
+			"OpenBOR is the open source continuation of Beats of Rage by Senile Team.\n" \
 			"\n" \
 			"Special thanks to SEGA and SNK.\n\n"
 
@@ -69,19 +70,6 @@
 #define		COUNTER_SPEED		(GAME_SPEED*2)
 #define		MAX_NAME_LEN		47
 #define		MAX_ENTS			150
-#define		MAX_PANELS			52 //removed
-#define		MAX_WEAPONS			10 //removed
-#define		MAX_COLOUR_MAPS		30 //removed
-#define		LEVEL_MAX_SPAWNS	600 // removed
-#define		LEVEL_MAX_PANELS	100 // removed
-#define		LEVEL_MAX_HOLES		40 // removed
-#define		LEVEL_MAX_WALLS		40 // removed
-#define     LEVEL_MAX_LAYERS  100 // removed
-#define     LEVEL_MAX_TEXTOBJS  50 // removed
-#define     LEVEL_MAX_FILESTREAMS 50 //removed
-#define     LEVEL_MAX_PALETTES  40  // removed                // altered palettes
-#define		MAX_LEVELS			100 //removed
-#define		MAX_DIFFICULTIES	10 //removed
 #define		MAX_SPECIALS		8					// Added for customizable freespecials
 #define     MAX_SPECIAL_INPUTS  27                  // max freespecial input steps, MAX_SPECIAL_INPUTS-1 is reserved, MAX_SPECIAL_INPUTS-2 is animation index, MAX_SPECIAL_INPUTS-3 is reserved. OX -4 , -5 , -6 , -7 , -8 , -9 , -10 also for cancels
 #define		MAX_ATCHAIN			12					// Maximum attack chain length
