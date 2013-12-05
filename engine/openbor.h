@@ -549,7 +549,7 @@ if(n<1) n = 1;
 		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.bmin \
 		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.bmax \
 		  )\
- 
+
 #define check_range_both(self, target, animnum) \
 		 ( target && \
 		  (((int)target->x >= self->x+self->modeldata.animation[animnum]->range.xmin &&\
@@ -564,7 +564,7 @@ if(n<1) n = 1;
 		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.bmin \
 		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.bmax \
 		  )\
- 
+
 
 #define tobounce(e) (e->animation->bounce && diff(0, e->tossv) > 1.5 && \
 					 !((autoland == 1 && e->damage_on_landing == -1) ||e->damage_on_landing == -2))
@@ -1566,6 +1566,23 @@ typedef struct
     float *map;
 } s_basemap;
 
+ typedef struct
+ {
+    /*
+    Wall structure.
+    2013-12-04
+    DC
+    */
+    float depth;
+    float height;
+    float lowerleft;
+    float lowerright;
+    float upperleft;
+    float upperright;
+    float x;
+    float z;
+} s_wall;
+
 typedef struct
 {
     char *name;
@@ -1600,7 +1617,7 @@ typedef struct
     int numwalls;
     int numbasemaps;
     float (*holes)[7];
-    float (*walls)[8]; // Now you can have walls for different walkable areas
+    s_wall *walls;
     s_basemap *basemaps;
     int scrolldir;
     int width;
@@ -1652,6 +1669,7 @@ typedef struct ArgList
     size_t arglen[MAX_ARG_COUNT];
     char *args[MAX_ARG_COUNT];
 } ArgList;
+
 
 
 #define GET_ARG(z) (arglist.count > z ? arglist.args[z] : "")

@@ -8632,7 +8632,7 @@ HRESULT openbor_checkwall(ScriptVariant **varlist , ScriptVariant **pretvar, int
 
     if((wall = checkwall_below((float)x, (float)z, 100000)) >= 0)
     {
-        (*pretvar)->dblVal = (DOUBLE)level->walls[wall][7];
+        (*pretvar)->dblVal = (DOUBLE)level->walls[wall].height;
     }
     return S_OK;
 }
@@ -12069,7 +12069,6 @@ enum levelproperty_enum
     _lp_the_end,
 };
 
-
 enum basemap_enum
 {
     _lp_bm_map,
@@ -12078,6 +12077,19 @@ enum basemap_enum
     _lp_bm_z,
     _lp_bm_zsize,
     _lp_bm_the_end,
+};
+
+enum wall_enum
+{
+    _lp_wall_depth,
+    _lp_wall_height,
+    _lp_wall_lowerleft,
+    _lp_wall_lowerright,
+    _lp_wall_upperleft,
+    _lp_wall_upperright,
+    _lp_wall_x,
+    _lp_wall_z,
+    _lp_wall_the_end,
 };
 
 int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount)
@@ -12111,6 +12123,17 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount)
         "zsize",
     };
 
+    static const char *walllist[] =
+    {
+        "depth",
+        "height",
+        "lowerleft",
+        "lowerright",
+        "upperleft",
+        "upperright",
+        "x",
+        "z",
+    };
 
     if(paramCount < 1)
     {
@@ -12123,6 +12146,12 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount)
     {
         MAPSTRINGS(varlist[2], basemaplist, _lp_bm_the_end,
                    _is_not_supported_by_, "basemap");
+    }
+
+    if(paramCount >= 3 && varlist[0]->vt == VT_INTEGER && varlist[0]->lVal == _lp_wall)
+    {
+        MAPSTRINGS(varlist[2], walllist, _lp_wall_the_end,
+                   _is_not_supported_by_, "wall");
     }
 
     return 1;
@@ -12207,14 +12236,67 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
     case _lp_wall:
     {
         if(paramCount > 2 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp))
-                && SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))
-                && ltemp >= 0 && ltemp < level->numwalls && ltemp2 >= 0 && ltemp2 < 8)
+                && ltemp >= 0 && ltemp < level->numwalls)
         {
+
+            if(varlist[2]->vt != VT_STR)
+                printf("You must provide a string value for wall subproperty.\n");
+                goto getlevelproperty_error;
+
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = level->walls[ltemp][ltemp2];
+
+            switch(varlist[2]->lVal)
+            {
+                case _lp_wall_depth:
+                {
+                    (*pretvar)->dblVal = level->walls[ltemp].depth;
+                    break;
+                }
+                case _lp_wall_height:
+                {
+                    (*pretvar)->dblVal = level->walls[ltemp].height;
+                    break;
+                }
+                case _lp_wall_lowerleft:
+                {
+                    (*pretvar)->dblVal = level->walls[ltemp].lowerleft;
+                    break;
+                }
+                case _lp_wall_lowerright:
+                {
+                    (*pretvar)->dblVal = level->walls[ltemp].lowerright;
+                    break;
+                }
+                case _lp_wall_upperleft:
+                {
+                    (*pretvar)->dblVal = level->walls[ltemp].upperleft;
+                    break;
+                }
+                case _lp_wall_upperright:
+                {
+                    (*pretvar)->dblVal = level->walls[ltemp].upperright;
+                    break;
+                }
+                case _lp_wall_x:
+                {
+                    (*pretvar)->dblVal = level->walls[ltemp].x;
+                    break;
+                }
+                case _lp_wall_z:
+                {
+                    (*pretvar)->dblVal = level->walls[ltemp].z;
+                    break;
+                }
+                default:
+                {
+                    printf("Invalid subproperty for wall.\n");
+                    goto getlevelproperty_error;
+                }
+            }
         }
         else
         {
+            printf("Error in wall property.\n");
             goto getlevelproperty_error;
         }
         break;
@@ -12488,44 +12570,67 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
     }
     case _lp_wall:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp >= 0)
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp >= 0
+           && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
         {
+            if(varlist[2]->vt != VT_STR)
+                printf("You must provide a string value for wall subproperty.\n");
+                goto clperror;
+
             if(ltemp >= level->numwalls)
             {
                 __reallocto(level->walls, level->numwalls, ltemp + 1);
                 level->numwalls = ltemp + 1;
             }
-            if (paramCount == 4 )
+
+            switch(varlist[2]->lVal)
             {
-                if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))	&& ltemp2 >= 0 && ltemp2 < 8
-                        && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)) )
+                case _lp_wall_depth:
                 {
-                    level->walls[ltemp][ltemp2] = (float)dbltemp;
+                    level->walls[ltemp].depth = dbltemp;
+                    break;
                 }
-                else
+                case _lp_wall_height:
                 {
+                    level->walls[ltemp].height = dbltemp;
+                    break;
+                }
+                case _lp_wall_lowerleft:
+                {
+                    level->walls[ltemp].lowerleft = dbltemp;
+                    break;
+                }
+                case _lp_wall_lowerright:
+                {
+                    level->walls[ltemp].lowerright = dbltemp;
+                    break;
+                }
+                case _lp_wall_upperleft:
+                {
+                    level->walls[ltemp].upperleft = dbltemp;
+                    break;
+                }
+                case _lp_wall_upperright:
+                {
+                    level->walls[ltemp].upperright = dbltemp;
+                    break;
+                }
+                case _lp_wall_x:
+                {
+                    level->walls[ltemp].x = dbltemp;
+                    break;
+                }
+                case _lp_wall_z:
+                {
+                    level->walls[ltemp].z = dbltemp;
+                    break;
+                }
+                default:
+                {
+                    printf("Invalid subproperty for wall.\n");
                     goto clperror;
                 }
             }
-            else if (paramCount == 10)
-            {
-                for (i = 0; i < 8; i++)
-                {
-                    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-                    {
-                        level->walls[ltemp][i] = (float)dbltemp;
-                    }
-                    else
-                    {
-                        goto clperror;
-                    }
-                }
-            }
-            else
-            {
-                goto clperror;
-            }
-
         }
         else
         {
