@@ -1,5 +1,5 @@
 @rem
-@rem OpenBOR - http://www.LavaLit.com
+@rem OpenBOR - http://www.chronocrash.com
 @rem -----------------------------------------------------------------------
 @rem All rights reserved, see LICENSE in OpenBOR root for details.
 @rem

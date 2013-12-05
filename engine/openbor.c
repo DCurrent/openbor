@@ -12113,14 +12113,15 @@ static void addhole(float x, float z, float x1, float x2, float x3, float x4, fl
 static void addwall(float x, float z, float x1, float x2, float x3, float x4, float depth, float alt)
 {
     __realloc(level->walls, level->numwalls);
-    level->walls[level->numwalls][0] = x;
-    level->walls[level->numwalls][1] = z;
-    level->walls[level->numwalls][2] = x1;
-    level->walls[level->numwalls][3] = x2;
-    level->walls[level->numwalls][4] = x3;
-    level->walls[level->numwalls][5] = x4;
-    level->walls[level->numwalls][6] = depth;
-    level->walls[level->numwalls][7] = alt;
+    level->walls[level->numwalls].x = x;
+    level->walls[level->numwalls].z = z;
+    level->walls[level->numwalls].upperleft = x1;
+    level->walls[level->numwalls].lowerleft = x2;
+    level->walls[level->numwalls].upperright = x3;
+    level->walls[level->numwalls].lowerright = x4;
+    level->walls[level->numwalls].depth = depth;
+    level->walls[level->numwalls].height = alt;
+
     level->numwalls++;
 }
 
@@ -14383,8 +14384,8 @@ static float find_nearest_wall_x(int wall, float x, float z)
 {
     float x1, x2;
 
-    x1 = level->walls[wall][0] + level->walls[wall][3] + (level->walls[wall][1] - z) * ((level->walls[wall][2] - level->walls[wall][3]) / level->walls[wall][6]);
-    x2 = level->walls[wall][0] + level->walls[wall][5] + (level->walls[wall][1] - z) * ((level->walls[wall][4] - level->walls[wall][5]) / level->walls[wall][6]);
+    x1 = level->walls[wall].x + level->walls[wall].lowerleft + (level->walls[wall].z - z) * ((level->walls[wall].upperleft - level->walls[wall].lowerleft) / level->walls[wall].depth);
+    x2 = level->walls[wall].x + level->walls[wall].lowerright + (level->walls[wall].z - z) * ((level->walls[wall].upperright - level->walls[wall].lowerright) / level->walls[wall].depth);
 
     if(diff(x1, x) > diff(x2, x))
     {
@@ -14682,13 +14683,13 @@ void ent_default_init(entity *e)
     }
     else if(e->modeldata.subject_to_wall > 0 && (wall = checkwall_below(e->x, e->z, 9999999)) >= 0)
     {
-        if(level->walls[wall][7] > MAX_WALL_HEIGHT)
+        if(level->walls[wall].height > MAX_WALL_HEIGHT)
         {
             e->x = find_nearest_wall_x(wall, e->x, e->z);
         }
         else
         {
-            e->base = level->walls[wall][7];
+            e->base = level->walls[wall].height;
         }
     }
 }
@@ -15839,11 +15840,11 @@ int testwall(int wall, float x, float z)
 {
     float coef1, coef2;
 //    if(wall >= level->numwalls || wall < 0) return 0;
-    if(z < level->walls[wall][1] && z > level->walls[wall][1] - level->walls[wall][6])
+    if(z < level->walls[wall].z && z > level->walls[wall].z - level->walls[wall].depth)
     {
-        coef1 = (level->walls[wall][1] - z) * ((level->walls[wall][2] - level->walls[wall][3]) / level->walls[wall][6]);
-        coef2 = (level->walls[wall][1] - z) * ((level->walls[wall][4] - level->walls[wall][5]) / level->walls[wall][6]);
-        if(x > level->walls[wall][0] + level->walls[wall][3] + coef1 && x < level->walls[wall][0] + level->walls[wall][5] + coef2)
+        coef1 = (level->walls[wall].z - z) * ((level->walls[wall].upperleft - level->walls[wall].lowerleft) / level->walls[wall].depth);
+        coef2 = (level->walls[wall].z - z) * ((level->walls[wall].upperright - level->walls[wall].lowerright) / level->walls[wall].depth);
+        if(x > level->walls[wall].x + level->walls[wall].lowerleft + coef1 && x < level->walls[wall].x + level->walls[wall].lowerright + coef2)
         {
             return 1;
         }
@@ -15859,7 +15860,7 @@ int checkwalls(float x, float z, float a1, float a2)
 
     for(i = 0, c = 0; i < level->numwalls; i++)
     {
-        c += (testwall(i, x, z) && level->walls[i][7] >= a1 && level->walls[i][7] <= a2);
+        c += (testwall(i, x, z) && level->walls[i].height >= a1 && level->walls[i].height <= a2);
     }
 
     return c;
@@ -15880,9 +15881,9 @@ int checkwall_below(float x, float z, float a)
     ind = -1;
     for(i = 0; i < level->numwalls; i++)
     {
-        if(testwall(i, x, z) && level->walls[i][7] <= a && level->walls[i][7] > maxa)
+        if(testwall(i, x, z) && level->walls[i].height <= a && level->walls[i].height > maxa)
         {
-            maxa = level->walls[i][7];
+            maxa = level->walls[i].height;
             ind = i;
         }
     }
@@ -16204,13 +16205,13 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-----------end of platform checking------------------
 
     // ------------------ wall checking ---------------------
-    if(ent->modeldata.subject_to_wall > 0 && (wall = checkwall_below(x, z, 999999)) >= 0 && level->walls[wall][7] > ent->a)
+    if(ent->modeldata.subject_to_wall > 0 && (wall = checkwall_below(x, z, 999999)) >= 0 && level->walls[wall].height > ent->a)
     {
-        if(validanim(ent, ANI_JUMP) && sz < level->walls[wall][1] && sz > level->walls[wall][1] - level->walls[wall][6]) //Can jump?
+        if(validanim(ent, ANI_JUMP) && sz < level->walls[wall].z && sz > level->walls[wall].z - level->walls[wall].depth) //Can jump?
         {
             //rmin = (float)ent->modeldata.animation[ANI_JUMP]->range.xmin;
             //rmax = (float)ent->modeldata.animation[ANI_JUMP]->range.xmax;
-            if(level->walls[wall][7] < ent->a + ent->modeldata.animation[ANI_JUMP]->range.xmax)
+            if(level->walls[wall].height < ent->a + ent->modeldata.animation[ANI_JUMP]->range.xmax)
             {
                 return -1;
             }
@@ -17258,7 +17259,7 @@ void adjust_base(entity *e, entity **pla)
             else if(wall >= 0)
             {
                 //self->modeldata.subject_to_wall &&//we move this up to avoid some checking time
-                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + level->walls[wall][7];
+                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + level->walls[wall].height;
             }
             else if(seta >= 0)
             {
@@ -18198,35 +18199,35 @@ void display_ents()
                         }
                         else
                         {
-                            alty = (int)(e->a - level->walls[wall][7]);
-                            temp1 = -1 * (e->a - level->walls[wall][7]) * light[0] / 256; // xshift
+                            alty = (int)(e->a - level->walls[wall].height);
+                            temp1 = -1 * (e->a - level->walls[wall].height) * light[0] / 256; // xshift
                             temp2 = (float)(-alty * light[1] / 256);               // zshift
                             qx = (int)(e->x - scrx/* + temp1*/);
-                            qy = (int)(e->z - scry /*+  temp2*/ - level->walls[wall][7]);
+                            qy = (int)(e->z - scry /*+  temp2*/ - level->walls[wall].height);
                         }
 
                         wall2 = checkwall_below(e->x + temp1, e->z + temp2, e->a); // check if the shadow drop into a hole or fall on another wall
 
                         //TODO check platforms, don't want to go through the entity list again right now
-                        if(!(checkhole(e->x + temp1, e->z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall][7]>e->a))
+                        if(!(checkhole(e->x + temp1, e->z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->a))
                         {
                             if(wall >= 0 && wall2 >= 0)
                             {
-                                alty += (int)(level->walls[wall][7] - level->walls[wall2][7]);
-                                /*qx += -1*(level->walls[wall][7]-level->walls[wall2][7])*light[0]/256;
-                                qy += (level->walls[wall][7]-level->walls[wall2][7]) - (level->walls[wall][7]-level->walls[wall2][7])*light[1]/256;*/
+                                alty += (int)(level->walls[wall].height - level->walls[wall2].height);
+                                /*qx += -1*(level->walls[wall].height-level->walls[wall2].height)*light[0]/256;
+                                qy += (level->walls[wall].height-level->walls[wall2].height) - (level->walls[wall].height-level->walls[wall2].height)*light[1]/256;*/
                             }
                             else if(wall >= 0)
                             {
-                                alty += (int)(level->walls[wall][7]);
-                                /*qx += -1*level->walls[wall][7]*light[0]/256;
-                                qy += level->walls[wall][7] - level->walls[wall][7]*light[1]/256;*/
+                                alty += (int)(level->walls[wall].height);
+                                /*qx += -1*level->walls[wall].height*light[0]/256;
+                                qy += level->walls[wall].height - level->walls[wall].height*light[1]/256;*/
                             }
                             else if(wall2 >= 0)
                             {
-                                alty -= (int)(level->walls[wall2][7]);
-                                /*qx -= -1*level->walls[wall2][7]*light[0]/256;
-                                qy -= level->walls[wall2][7] - level->walls[wall2][7]*light[1]/256;*/
+                                alty -= (int)(level->walls[wall2].height);
+                                /*qx -= -1*level->walls[wall2].height*light[0]/256;
+                                qy -= level->walls[wall2].height - level->walls[wall2].height*light[1]/256;*/
                             }
                             sy = (2 * MIRROR_Z - qy) - 2 * scry;
                             z = shadowz;
@@ -18292,11 +18293,11 @@ void display_ents()
                             z = (int)(other->z + 1);
                             sz = 2 * PANEL_Z - z;
                         }
-                        else if(level && wall >= 0)// && e->a >= level->walls[wall][7])
+                        else if(level && wall >= 0)// && e->a >= level->walls[wall].height)
                         {
                             qx = (int)(e->x - scrx);
-                            qy = (int)(e->z - level->walls[wall][7] - scry);
-                            sy = (int)((2 * MIRROR_Z - e->z)  - level->walls[wall][7] - scry);
+                            qy = (int)(e->z - level->walls[wall].height - scry);
+                            sy = (int)((2 * MIRROR_Z - e->z)  - level->walls[wall].height - scry);
                             z = shadowz;
                             sz = PANEL_Z - HUD_Z;
                         }
@@ -21211,15 +21212,15 @@ int common_trymove(float xdir, float zdir)
     if(self->modeldata.subject_to_wall)
     {
 
-        if(xdir && (wall = checkwall_below(x, self->z, 999999)) >= 0 && level->walls[wall][7] > self->a)
+        if(xdir && (wall = checkwall_below(x, self->z, 999999)) >= 0 && level->walls[wall].height > self->a)
         {
             xdir = 0;
-            execute_onblockw_script(self, 1, (double)level->walls[wall][7]);
+            execute_onblockw_script(self, 1, (double)level->walls[wall].height);
         }
-        if(zdir && (wall = checkwall_below(self->x, z, 999999)) >= 0 && level->walls[wall][7] > self->a)
+        if(zdir && (wall = checkwall_below(self->x, z, 999999)) >= 0 && level->walls[wall].height > self->a)
         {
             zdir = 0;
-            execute_onblockw_script(self, 2, (double)level->walls[wall][7]);
+            execute_onblockw_script(self, 2, (double)level->walls[wall].height);
         }
     }
 
@@ -21493,8 +21494,8 @@ int common_try_jump()
         }
 
         if( (wall = checkwall_below(xdir, zdir, 999999)) >= 0 &&
-                level->walls[wall][7] <= self->a + rmax &&
-                !inair(self) && self->a < level->walls[wall][7]  )
+                level->walls[wall].height <= self->a + rmax &&
+                !inair(self) && self->a < level->walls[wall].height  )
         {
             j = 1;
         }
@@ -21539,8 +21540,8 @@ int common_try_jump()
         }
 
         if( (wall = checkwall_below(xdir, zdir, 999999)) >= 0 &&
-                level->walls[wall][7] <= self->a + rmax &&
-                !inair(self) && self->a < level->walls[wall][7]  )
+                level->walls[wall].height <= self->a + rmax &&
+                !inair(self) && self->a < level->walls[wall].height  )
         {
             j = 2;																				//Set to perform runjump.
         }
@@ -22925,7 +22926,7 @@ int arrow_move()
 
     if(level)
     {
-        if(self->modeldata.subject_to_wall && (wall = checkwall(self->x, self->z)) >= 0 && self->a < level->walls[wall][7])
+        if(self->modeldata.subject_to_wall && (wall = checkwall(self->x, self->z)) >= 0 && self->a < level->walls[wall].height)
         {
             // Added so projectiles bounce off blocked exits
             if(validanim(self, ANI_FALL))
@@ -23016,7 +23017,7 @@ int star_move()
 
     if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
     {
-        if((wall = checkwall(self->x, self->z)) >= 0 && self->a < level->walls[wall][7])
+        if((wall = checkwall(self->x, self->z)) >= 0 && self->a < level->walls[wall].height)
         {
             self->takeaction = common_fall;
             self->attacking = 0;
@@ -25783,7 +25784,7 @@ void dropweapon(int flag)
             }
             else if(wall >= 0)
             {
-                self->weapent->base += level->walls[wall][7];
+                self->weapent->base += level->walls[wall].height;
             }
 
             if(validanim(self->weapent, ANI_RESPAWN))
@@ -26810,11 +26811,11 @@ void spawnplayer(int index)
         if(PLAYER_MIN_Z == PLAYER_MAX_Z)
         {
             wall = checkwall(advancex + p.x, p.z);
-            if(wall >= 0 && level->walls[wall][7] < MAX_WALL_HEIGHT)
+            if(wall >= 0 && level->walls[wall].height < MAX_WALL_HEIGHT)
             {
                 break;    //found
             }
-            if(checkhole(advancex + p.x, p.z) || (wall >= 0 && level->walls[wall][7] >= MAX_WALL_HEIGHT))
+            if(checkhole(advancex + p.x, p.z) || (wall >= 0 && level->walls[wall].height >= MAX_WALL_HEIGHT))
             {
                 find = 0;
             }
@@ -26834,12 +26835,12 @@ void spawnplayer(int index)
                     p.z += PLAYER_MAX_Z - PLAYER_MIN_Z;
                 }
                 wall = checkwall(advancex + p.x, p.z);
-                if(wall >= 0 && level->walls[wall][7] < MAX_WALL_HEIGHT)
+                if(wall >= 0 && level->walls[wall].height < MAX_WALL_HEIGHT)
                 {
                     find = 1;
                     break;
                 }
-                else if(wall >= 0 && level->walls[wall][7] >= MAX_WALL_HEIGHT)
+                else if(wall >= 0 && level->walls[wall].height >= MAX_WALL_HEIGHT)
                 {
                     continue;
                 }
