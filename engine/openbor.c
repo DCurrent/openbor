@@ -8301,7 +8301,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         value2 = "Failed to create colourmap. Image Used Twice!";
                         break;
                     case -1: //should not happen now
-                        value2 = "Failed to create colourmap. MAX_COLOUR_MAPS full!";
+                        value2 = "Failed to create colourmap. Color maps full error (color maps are unlimited by engine - check memory limits of console!";
                         break;
                     case -2:
                         value2 = "Failed to create colourmap. Failed to allocate memory!";
