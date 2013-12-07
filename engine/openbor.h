@@ -671,7 +671,9 @@ typedef struct
     int attack_force;
     int attack_coords[6];
     int staydown[3]; // [0] = Add to rise delay. [1] = Add to rise attack delay.
-    float dropv[3]; // fly height/x/z if the target is knoced down
+    //float dropv[3]; // fly height/x/z if the target is knoced down
+    s_axis dropv;
+
     int hitsound; // Sound effect to be played when attack hits opponent
     int hitflash; // Custom flash for each animation, model id
     int blockflash; // Custom bflash for each animation, model id

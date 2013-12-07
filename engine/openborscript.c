@@ -3205,6 +3205,21 @@ HRESULT openbor_changemodelproperty(ScriptVariant **varlist , ScriptVariant **pr
     return S_OK;
 }
 
+enum _axis_enum
+{
+    _axis_a,
+    _axis_x,
+    _axis_z,
+    _axis_the_end,
+};
+
+static const char *_axis[] =
+{
+    "a",
+    "x",
+    "z",
+};
+
 // ===== getentityproperty =====
 enum entityproperty_enum
 {
@@ -4088,6 +4103,11 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
     {
         MAPSTRINGS(varlist[2], eplist_attack, _ep_attack_the_end,
                    _is_not_a_known_subproperty_of_, eps);
+
+        if(paramCount >= 7 && varlist[2]->lVal == _ep_attack_dropv)
+        {
+            MAPSTRINGS(varlist[6], _axis, _axis_the_end, _is_not_supported_by_, "dropv");
+        }
         break;
     }
     // map subproperties of defense property
@@ -4550,8 +4570,26 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             (*pretvar)->lVal = (LONG)attack->attack_drop;
             break;
         case _ep_attack_dropv:
+
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)attack->dropv[varlist[6]->lVal];
+
+            switch(varlist[6]->lVal)
+            {
+                case _axis_a:
+                    (*pretvar)->dblVal = (DOUBLE)attack->dropv.a;
+                    break;
+                case _axis_x:
+                    (*pretvar)->dblVal = (DOUBLE)attack->dropv.x;
+                    break;
+                case _axis_z:
+                    (*pretvar)->dblVal = (DOUBLE)attack->dropv.z;
+                    break;
+                default:
+                    printf("\n Error, invalid dropv parameter. Use a, y, or z. \n");
+                    *pretvar = NULL;
+                    return E_FAIL;
+            }
+
             break;
         case _ep_attack_force:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -9225,12 +9263,12 @@ HRESULT openbor_changeattackproperty(ScriptVariant **varlist , ScriptVariant **p
         attack.attack_drop = (int)dbltemp;
         break;
     case _ep_attack_dropv:
-        attack.dropv[0] = (float)dbltemp;
+        attack.dropv.a = (float)dbltemp;
         if(paramCount > 2)
         {
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
             {
-                attack.dropv[1] = (float)dbltemp;
+                attack.dropv.x = (float)dbltemp;
             }
             else
             {
@@ -9241,7 +9279,7 @@ HRESULT openbor_changeattackproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
             {
-                attack.dropv[2] = (float)dbltemp;
+                attack.dropv.z = (float)dbltemp;
             }
             else
             {
@@ -9374,9 +9412,9 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
         atk.attack_drop = drop;
         if(drop)
         {
-            atk.dropv[0] = (float)3;
-            atk.dropv[1] = (float)1.2;
-            atk.dropv[2] = (float)0;
+            atk.dropv.a = (float)3;
+            atk.dropv.x = (float)1.2;
+            atk.dropv.z = (float)0;
         }
         atk.attack_type = type;
     }

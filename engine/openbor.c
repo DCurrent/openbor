@@ -109,7 +109,7 @@ const s_attack emptyattack =
 {
     0, // force
     {0, 0, 0, 0, 0}, // coods
-    {0, 0, 0}, // dropv
+    {0, 0, 0}, // drop v
     {0, 0, 0}, //staydown
     -1, // sound
     -1, // flash
@@ -146,6 +146,15 @@ const s_attack emptyattack =
     0 //pain_time
 };
 
+s_axis default_model_dropv =
+{
+    /* Default values for knockdown velocity */
+
+    3.f,    //a
+    1.2f,   //x
+    0.f     //z
+};
+
 //default values
 float default_level_maxtossspeed = 100.0f;
 float default_level_maxfallspeed = -6.0f;
@@ -153,7 +162,6 @@ float default_level_gravity = -0.1f;
 
 float default_model_jumpheight = 4.0f;
 float default_model_jumpspeed = -1;
-float default_model_dropv[3] = {3.0f, 1.2f, 0.0f};
 float default_model_grabdistance = 36.0f;
 
 // AI attack debug stuff for development purpose,
@@ -6669,16 +6677,16 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
     newchar->smartbomb->attack_force = atoi(GET_ARGP(1));			// Special force
     newchar->smartbomb->attack_type = atoi(GET_ARGP(2));			// Special attack type
     newchar->smartbomb->attack_drop = 1; //by default
-    newchar->smartbomb->dropv[0] = default_model_dropv[0];
+    newchar->smartbomb->dropv.a = default_model_dropv.a;
 
     if(newchar->smartbomb->attack_type == ATK_BLAST)
     {
         newchar->smartbomb->blast = 1;
-        newchar->smartbomb->dropv[1] = default_model_dropv[1] * 2.083f;
+        newchar->smartbomb->dropv.x = default_model_dropv.x * 2.083f;
     }
     else
     {
-        newchar->smartbomb->dropv[1] = default_model_dropv[1];
+        newchar->smartbomb->dropv.x = default_model_dropv.x;
     }
 
     if(newchar->smartbomb->attack_type == ATK_FREEZE)
@@ -9036,9 +9044,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 abox[1] = GET_INT_ARG(2);
                 abox[2] = GET_INT_ARG(3);
                 abox[3] = GET_INT_ARG(4);
-                attack.dropv[0] = default_model_dropv[0];
-                attack.dropv[1] = default_model_dropv[1];
-                attack.dropv[2] = default_model_dropv[2];
+                attack.dropv.a = default_model_dropv.a;
+                attack.dropv.x = default_model_dropv.x;
+                attack.dropv.z = default_model_dropv.z;
                 attack.attack_force = GET_INT_ARG(5);
 
                 attack.attack_drop = GET_INT_ARG(6);
@@ -9120,9 +9128,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 abox[1] = GET_INT_ARG(2);
                 abox[2] = GET_INT_ARG(3);
                 abox[3] = GET_INT_ARG(4);
-                attack.dropv[0] = default_model_dropv[0];
-                attack.dropv[1] = default_model_dropv[1] * 2.083f;
-                attack.dropv[2] = 0;
+                attack.dropv.a = default_model_dropv.a;
+                attack.dropv.x = default_model_dropv.x * 2.083f;
+                attack.dropv.z = 0;
                 attack.attack_force = GET_INT_ARG(5);
                 attack.no_block = GET_INT_ARG(6);
                 attack.no_flash = GET_INT_ARG(7);
@@ -9135,9 +9143,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_DROPV:
                 // drop velocity add if the target is knocked down
                 pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->dropv[0] = GET_FLOAT_ARG(1); // height add
-                pattack->dropv[1] = GET_FLOAT_ARG(2); // xdir add
-                pattack->dropv[2] = GET_FLOAT_ARG(3); // zdir add
+                pattack->dropv.a = GET_FLOAT_ARG(1); // height add
+                pattack->dropv.x = GET_FLOAT_ARG(2); // xdir add
+                pattack->dropv.z = GET_FLOAT_ARG(3); // zdir add
                 break;
             case CMD_MODEL_OTG:
                 // Over The Ground hit.
@@ -10408,9 +10416,9 @@ int load_models()
                 }
                 break;
             case CMD_MODELSTXT_DROPV:
-                default_model_dropv[0] =  GET_FLOAT_ARG(1);
-                default_model_dropv[1] =  GET_FLOAT_ARG(2);
-                default_model_dropv[2] =  GET_FLOAT_ARG(3);
+                default_model_dropv.a =  GET_FLOAT_ARG(1);
+                default_model_dropv.x =  GET_FLOAT_ARG(2);
+                default_model_dropv.z =  GET_FLOAT_ARG(3);
                 break;
             case CMD_MODELSTXT_JUMPSPEED:
                 default_model_jumpspeed =  GET_FLOAT_ARG(1);
@@ -14932,9 +14940,9 @@ void update_frame(entity *ent, int f)
         {
             self = self->subentity;
             attack = emptyattack;
-            attack.dropv[0] = default_model_dropv[0];
-            attack.dropv[1] = default_model_dropv[1];
-            attack.dropv[2] = default_model_dropv[2];
+            attack.dropv.a = default_model_dropv.a;
+            attack.dropv.x = default_model_dropv.x;
+            attack.dropv.z = default_model_dropv.z;
             attack.attack_force = self->health;
             attack.attack_type = max_attack_types;
             if(self->takedamage)
@@ -15486,9 +15494,9 @@ void kill(entity *victim)
     {
         attack = emptyattack;
         attack.attack_type = max_attack_types;
-        attack.dropv[0] = default_model_dropv[0];
-        attack.dropv[1] = default_model_dropv[1];
-        attack.dropv[2] = default_model_dropv[2];
+        attack.dropv.a = default_model_dropv.a;
+        attack.dropv.x = default_model_dropv.x;
+        attack.dropv.z = default_model_dropv.z;
     }
     // kill minions
     if(victim->modeldata.summonkill == 1 && victim->subentity)
@@ -17038,9 +17046,9 @@ void check_lost()
         else
         {
             attack          = emptyattack;
-            attack.dropv[0] = default_model_dropv[0];
-            attack.dropv[1] = default_model_dropv[1];
-            attack.dropv[2] = default_model_dropv[2];
+            attack.dropv.a = default_model_dropv.a;
+            attack.dropv.x = default_model_dropv.x;
+            attack.dropv.z = default_model_dropv.z;
             attack.attack_force = self->health;
             attack.attack_type  = ATK_PIT;
             self->takedamage(self, &attack);
@@ -17056,9 +17064,9 @@ void check_lost()
         else
         {
             attack          = emptyattack;
-            attack.dropv[0] = default_model_dropv[0];
-            attack.dropv[1] = default_model_dropv[1];
-            attack.dropv[2] = default_model_dropv[2];
+            attack.dropv.a = default_model_dropv.a;
+            attack.dropv.x = default_model_dropv.x;
+            attack.dropv.z = default_model_dropv.z;
             attack.attack_force = self->health;
             attack.attack_type  = ATK_LIFESPAN;
             self->takedamage(self, &attack);
@@ -17654,9 +17662,9 @@ void common_dot()
                         attack              = emptyattack;                                      //Clear struct.
                         attack.attack_type  = iType;                                            //Set type.
                         attack.attack_force = iForce;                                           //Set force. Use unmodified force here; takedamage applys damage mitigation.
-                        attack.dropv[0]     = default_model_dropv[0];                           //Apply drop Y.
-                        attack.dropv[1]     = default_model_dropv[1];                           //Apply drop X
-                        attack.dropv[2]     = default_model_dropv[2];                           //Apply drop Z
+                        attack.dropv.a     = default_model_dropv.a;                           //Apply drop Y.
+                        attack.dropv.x     = default_model_dropv.x;                           //Apply drop X
+                        attack.dropv.z     = default_model_dropv.z;                           //Apply drop Z
 
                         if(self->takedamage)                                                    //Defender uses takedamage()?
                         {
@@ -20356,13 +20364,13 @@ int common_takedamage(entity *other, s_attack *attack)
         }
         else
         {
-            self->xdir = attack->dropv[1];
-            self->zdir = attack->dropv[2];
+            self->xdir = attack->dropv.x;
+            self->zdir = attack->dropv.z;
             if(self->direction)
             {
                 self->xdir = -self->xdir;
             }
-            toss(self, attack->dropv[0]);
+            toss(self, attack->dropv.a);
             self->damage_on_landing = attack->damage_on_landing;
             self->knockdowncount = self->modeldata.knockdowncount; // reset the knockdowncount
             self->knockdowntime = 0;
@@ -25904,9 +25912,9 @@ void kill_all_enemies()
 
     attack = emptyattack;
     attack.attack_type = max_attack_types;
-    attack.dropv[0] = default_model_dropv[0];
-    attack.dropv[1] = default_model_dropv[1];
-    attack.dropv[2] = default_model_dropv[2];
+    attack.dropv.a = default_model_dropv.a;
+    attack.dropv.x = default_model_dropv.x;
+    attack.dropv.z = default_model_dropv.z;
 
     tmpself = self;
     for(i = 0; i < ent_max; i++)
@@ -26920,9 +26928,9 @@ void time_over()
 
     attack = emptyattack;
     attack.attack_type = ATK_TIMEOVER;
-    attack.dropv[0] = default_model_dropv[0];
-    attack.dropv[1] = default_model_dropv[1];
-    attack.dropv[2] = default_model_dropv[2];
+    attack.dropv.a = default_model_dropv.a;
+    attack.dropv.x = default_model_dropv.x;
+    attack.dropv.z = default_model_dropv.z;
     if(level->type == 1)
     {
         level_completed = 1;    //    Feb 25, 2005 - Used for bonus levels so a life isn't taken away if time expires.level->type == 1 means bonus level, else regular
