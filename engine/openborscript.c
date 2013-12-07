@@ -12070,17 +12070,17 @@ enum basemap_enum
     _lp_bm_the_end,
 };
 
-enum wall_enum
+enum terrain_enum
 {
-    _lp_wall_depth,
-    _lp_wall_height,
-    _lp_wall_lowerleft,
-    _lp_wall_lowerright,
-    _lp_wall_upperleft,
-    _lp_wall_upperright,
-    _lp_wall_x,
-    _lp_wall_z,
-    _lp_wall_the_end,
+    _lp_terrain_depth,
+    _lp_terrain_height,
+    _lp_terrain_lowerleft,
+    _lp_terrain_lowerright,
+    _lp_terrain_upperleft,
+    _lp_terrain_upperright,
+    _lp_terrain_x,
+    _lp_terrain_z,
+    _lp_terrain_the_end,
 };
 
 int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount)
@@ -12114,8 +12114,12 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount)
         "zsize",
     };
 
-    static const char *walllist[] =
+    static const char *terrainlist[] =
     {
+        /*
+        Walls and holes.
+        */
+
         "depth",
         "height",
         "lowerleft",
@@ -12139,10 +12143,10 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount)
                    _is_not_supported_by_, "basemap");
     }
 
-    if(paramCount >= 3 && varlist[0]->vt == VT_INTEGER && varlist[0]->lVal == _lp_wall)
+    if(paramCount >= 3 && varlist[0]->vt == VT_INTEGER && (varlist[0]->lVal == _lp_hole || varlist[0]->lVal == _lp_wall))
     {
-        MAPSTRINGS(varlist[2], walllist, _lp_wall_the_end,
-                   _is_not_supported_by_, "wall");
+        MAPSTRINGS(varlist[2], terrainlist, _lp_terrain_the_end,
+                   _is_not_supported_by_, "wall/hole");
     }
 
     return 1;
@@ -12150,7 +12154,7 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount)
 
 HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    LONG ltemp, ltemp2;
+    LONG ltemp;
     mapstrings_levelproperty(varlist, paramCount);
 
     switch(varlist[0]->lVal)
@@ -12211,18 +12215,68 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
     }
     case _lp_hole:
     {
+
         if(paramCount > 2 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp))
-                && SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))
-                && ltemp >= 0 && ltemp < level->numholes && ltemp2 >= 0 && ltemp2 < 7)
+                && ltemp >= 0 && ltemp < level->numholes)
         {
+
+            if(varlist[2]->vt != VT_STR)
+                printf("You must provide a string value for hole subproperty.\n");
+                goto getlevelproperty_error;
+
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = level->holes[ltemp][ltemp2];
+
+            switch(varlist[2]->lVal)
+            {
+                case _lp_terrain_depth:
+                {
+                    (*pretvar)->dblVal = level->holes[ltemp].depth;
+                    break;
+                }
+                case _lp_terrain_lowerleft:
+                {
+                    (*pretvar)->dblVal = level->holes[ltemp].lowerleft;
+                    break;
+                }
+                case _lp_terrain_lowerright:
+                {
+                    (*pretvar)->dblVal = level->holes[ltemp].lowerright;
+                    break;
+                }
+                case _lp_terrain_upperleft:
+                {
+                    (*pretvar)->dblVal = level->holes[ltemp].upperleft;
+                    break;
+                }
+                case _lp_terrain_upperright:
+                {
+                    (*pretvar)->dblVal = level->holes[ltemp].upperright;
+                    break;
+                }
+                case _lp_terrain_x:
+                {
+                    (*pretvar)->dblVal = level->holes[ltemp].x;
+                    break;
+                }
+                case _lp_terrain_z:
+                {
+                    (*pretvar)->dblVal = level->holes[ltemp].z;
+                    break;
+                }
+                default:
+                {
+                    printf("Invalid subproperty for hole.\n");
+                    goto getlevelproperty_error;
+                }
+            }
         }
         else
         {
+            printf("Error in wall property.\n");
             goto getlevelproperty_error;
         }
         break;
+
     }
     case _lp_wall:
     {
@@ -12238,42 +12292,42 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
 
             switch(varlist[2]->lVal)
             {
-                case _lp_wall_depth:
+                case _lp_terrain_depth:
                 {
                     (*pretvar)->dblVal = level->walls[ltemp].depth;
                     break;
                 }
-                case _lp_wall_height:
+                case _lp_terrain_height:
                 {
                     (*pretvar)->dblVal = level->walls[ltemp].height;
                     break;
                 }
-                case _lp_wall_lowerleft:
+                case _lp_terrain_lowerleft:
                 {
                     (*pretvar)->dblVal = level->walls[ltemp].lowerleft;
                     break;
                 }
-                case _lp_wall_lowerright:
+                case _lp_terrain_lowerright:
                 {
                     (*pretvar)->dblVal = level->walls[ltemp].lowerright;
                     break;
                 }
-                case _lp_wall_upperleft:
+                case _lp_terrain_upperleft:
                 {
                     (*pretvar)->dblVal = level->walls[ltemp].upperleft;
                     break;
                 }
-                case _lp_wall_upperright:
+                case _lp_terrain_upperright:
                 {
                     (*pretvar)->dblVal = level->walls[ltemp].upperright;
                     break;
                 }
-                case _lp_wall_x:
+                case _lp_terrain_x:
                 {
                     (*pretvar)->dblVal = level->walls[ltemp].x;
                     break;
                 }
-                case _lp_wall_z:
+                case _lp_terrain_z:
                 {
                     (*pretvar)->dblVal = level->walls[ltemp].z;
                     break;
@@ -12514,50 +12568,69 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
         break;
     case _lp_hole:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp >= 0)
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp >= 0
+           && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
         {
+            if(varlist[2]->vt != VT_STR)
+                printf("You must provide a string value for hole subproperty.\n");
+                goto clperror;
+
             if(ltemp >= level->numholes)
             {
                 __reallocto(level->holes, level->numholes, ltemp + 1);
                 level->numholes = ltemp + 1;
             }
-            if (paramCount == 4 )
+
+            switch(varlist[2]->lVal)
             {
-                if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp2))	&& ltemp2 >= 0 && ltemp2 < 7
-                        && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)) )
+                case _lp_terrain_depth:
                 {
-                    level->holes[ltemp][ltemp2] = (float)dbltemp;
+                    level->holes[ltemp].depth = dbltemp;
+                    break;
                 }
-                else
+                case _lp_terrain_lowerleft:
                 {
+                    level->holes[ltemp].lowerleft = dbltemp;
+                    break;
+                }
+                case _lp_terrain_lowerright:
+                {
+                    level->holes[ltemp].lowerright = dbltemp;
+                    break;
+                }
+                case _lp_terrain_upperleft:
+                {
+                    level->holes[ltemp].upperleft = dbltemp;
+                    break;
+                }
+                case _lp_terrain_upperright:
+                {
+                    level->holes[ltemp].upperright = dbltemp;
+                    break;
+                }
+                case _lp_terrain_x:
+                {
+                    level->holes[ltemp].x = dbltemp;
+                    break;
+                }
+                case _lp_terrain_z:
+                {
+                    level->holes[ltemp].z = dbltemp;
+                    break;
+                }
+                default:
+                {
+                    printf("Invalid subproperty for hole.\n");
                     goto clperror;
                 }
             }
-            else if (paramCount == 9)
-            {
-                for (i = 0; i < 7; i++)
-                {
-                    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-                    {
-                        level->holes[ltemp][i] = (float)dbltemp;
-                    }
-                    else
-                    {
-                        goto clperror;
-                    }
-                }
-            }
-            else
-            {
-                goto clperror;
-            }
-
         }
         else
         {
             goto clperror;
         }
         break;
+
     }
     case _lp_wall:
     {
@@ -12576,42 +12649,42 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
 
             switch(varlist[2]->lVal)
             {
-                case _lp_wall_depth:
+                case _lp_terrain_depth:
                 {
                     level->walls[ltemp].depth = dbltemp;
                     break;
                 }
-                case _lp_wall_height:
+                case _lp_terrain_height:
                 {
                     level->walls[ltemp].height = dbltemp;
                     break;
                 }
-                case _lp_wall_lowerleft:
+                case _lp_terrain_lowerleft:
                 {
                     level->walls[ltemp].lowerleft = dbltemp;
                     break;
                 }
-                case _lp_wall_lowerright:
+                case _lp_terrain_lowerright:
                 {
                     level->walls[ltemp].lowerright = dbltemp;
                     break;
                 }
-                case _lp_wall_upperleft:
+                case _lp_terrain_upperleft:
                 {
                     level->walls[ltemp].upperleft = dbltemp;
                     break;
                 }
-                case _lp_wall_upperright:
+                case _lp_terrain_upperright:
                 {
                     level->walls[ltemp].upperright = dbltemp;
                     break;
                 }
-                case _lp_wall_x:
+                case _lp_terrain_x:
                 {
                     level->walls[ltemp].x = dbltemp;
                     break;
                 }
-                case _lp_wall_z:
+                case _lp_terrain_z:
                 {
                     level->walls[ltemp].z = dbltemp;
                     break;
