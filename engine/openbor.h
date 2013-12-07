@@ -588,6 +588,19 @@ if(n<1) n = 1;
 
 typedef struct
 {
+    /*
+    Axis structure for general coordinates and velocity use.
+    2013-12-07
+    Damon Caskey
+    */
+
+    float a;    //Altitude/Vertical axis (Y)
+    float x;    //Horizontial axis.
+    float z;    //Lateral Vertical axis.
+} s_axis;
+
+typedef struct
+{
     unsigned compatibleversion;
     int gamma;
     int brightness;
@@ -996,13 +1009,6 @@ typedef struct
 
 typedef struct
 {
-    float x;
-    float z;
-}
-point2d;
-
-typedef struct
-{
     float factor; //basic defense factors: damage = damage*defense
     float pain; //Pain factor (like nopain) for defense type.
     float knockdown; //Knockdowncount (like knockdowncount) for attack type.
@@ -1324,7 +1330,7 @@ typedef struct entity
     int arrowon; // Flag to display parrow/parrow2 or not
     unsigned pathblocked;
 
-    point2d *waypoints;
+    s_axis *waypoints;
     int numwaypoints;
     int animpos;
     int animnum; // animation id
@@ -1628,7 +1634,7 @@ typedef struct
     int nohurt; // Used to specify if you can hurt the other player during bonus levels
     int noslow; // Flag so the level doesn't slow down after a boss is defeated
     int nohit; // Not able to grab / hit other player on a per level basis
-    int spawn[MAX_PLAYERS][4]; // Used to determine the spawn position of players
+    s_axis spawn[MAX_PLAYERS]; // Used to determine the spawn position of players
     int setweap; // Levels can now specified which weapon will be used by default
     int facing; // Force the players to face to ... 0 no effects, 1 right, 2 left, 3 affected by level dir
 //--------------------gravity system-------------------------

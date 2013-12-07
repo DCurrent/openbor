@@ -14473,7 +14473,7 @@ pickup_error:
 HRESULT openbor_waypoints(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     int num, i;
-    point2d *wp = NULL;
+    s_axis *wp = NULL;
     DOUBLE x, z;
 
     entity *e;
