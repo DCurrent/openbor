@@ -1557,8 +1557,8 @@ typedef struct
  typedef struct
  {
     /*
-    Wall structure.
-    2013-12-04
+    Hole/Wall structure.
+    2013-12-07
     Damon Caskey
     */
     float depth;
@@ -1569,24 +1569,7 @@ typedef struct
     float upperright;
     float x;
     float z;
-} s_wall;
-
-typedef struct
-{
-    /*
-    Hole structure
-    2013-12-06
-    Damon Caskey
-    */
-
-    float depth;
-    float lowerleft;
-    float lowerright;
-    float upperleft;
-    float upperright;
-    float x;
-    float z;
-} s_hole;
+} s_terrain;
 
 typedef struct
 {
@@ -1621,9 +1604,8 @@ typedef struct
     int numholes;
     int numwalls;
     int numbasemaps;
-    //float (*holes)[7];
-    s_hole *holes;
-    s_wall *walls;
+    s_terrain *holes;
+    s_terrain *walls;
     s_basemap *basemaps;
     int scrolldir;
     int width;
