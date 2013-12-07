@@ -12100,13 +12100,13 @@ void unload_level()
 static void addhole(float x, float z, float x1, float x2, float x3, float x4, float depth)
 {
     __realloc(level->holes, level->numholes);
-    level->holes[level->numholes][0] = x;
-    level->holes[level->numholes][1] = z;
-    level->holes[level->numholes][2] = x1;
-    level->holes[level->numholes][3] = x2;
-    level->holes[level->numholes][4] = x3;
-    level->holes[level->numholes][5] = x4;
-    level->holes[level->numholes][6] = depth;
+    level->holes[level->numholes].x = x;
+    level->holes[level->numholes].z = z;
+    level->holes[level->numholes].upperleft = x1;
+    level->holes[level->numholes].lowerleft = x2;
+    level->holes[level->numholes].upperright = x3;
+    level->holes[level->numholes].lowerright = x4;
+    level->holes[level->numholes].depth = depth;
     level->numholes++;
 }
 
@@ -15784,11 +15784,11 @@ within the bottom/top and the left/right area.
 int testhole(int hole, float x, float z)
 {
     float coef1, coef2;
-    if(z < level->holes[hole][1] && z > level->holes[hole][1] - level->holes[hole][6])
+    if(z < level->holes[hole].z && z > level->holes[hole].z - level->holes[hole].depth)
     {
-        coef1 = (level->holes[hole][1] - z) * ((level->holes[hole][2] - level->holes[hole][3]) / level->holes[hole][6]);
-        coef2 = (level->holes[hole][1] - z) * ((level->holes[hole][4] - level->holes[hole][5]) / level->holes[hole][6]);
-        if(x > level->holes[hole][0] + level->holes[hole][3] + coef1 && x < level->holes[hole][0] + level->holes[hole][5] + coef2)
+        coef1 = (level->holes[hole].z - z) * ((level->holes[hole].upperleft - level->holes[hole].lowerleft) / level->holes[hole].depth);
+        coef2 = (level->holes[hole].z - z) * ((level->holes[hole].upperright - level->holes[hole].lowerright) / level->holes[hole].depth);
+        if(x > level->holes[hole].x + level->holes[hole].lowerleft + coef1 && x < level->holes[hole].x + level->holes[hole].lowerright + coef2)
         {
             return 1;
         }
@@ -21814,7 +21814,7 @@ int astar(entity *ent, float destx, float destz, float step, point2d **wp)
 
             if(!testmove(ent, (x - sx)*step + ent->x, (z - sz)*step + ent->z,  (tx - sx)*step + ent->x, (tz - sz)*step + ent->z))
             {
-                //(*closed)[tx][tz] = 1; // don't add that to close list just in case the entity can jump
+                // (*closed)[tx][tz] = 1; // don't add that to close list just in case the entity can jump
                 continue;
             }
 
@@ -27657,7 +27657,7 @@ void draw_scrolled_bg()
 
     for(i = 0; i < level->numholes; i++)
     {
-        spriteq_add_sprite((int)(level->holes[i][0] - screenx + gfx_x_offset), (int)(level->holes[i][1] - level->holes[i][6] - screeny + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
+        spriteq_add_sprite((int)(level->holes[i].x - screenx + gfx_x_offset), (int)(level->holes[i].z - level->holes[i].depth - screeny + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
     }
 
     for(index = 0; index < level->numlayersref; index++)
