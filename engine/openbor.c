@@ -12224,7 +12224,7 @@ void load_level(char *filename)
     level->nospecial = 0;    // Default set to specials can be used during bonus levels
     level->nohurt = 0;    // Default set to players can hurt each other during bonus levels
     level->nohit = 0;    // Default able to hit the other player
-    level->spawn[0][2] = level->spawn[1][2] = level->spawn[2][2] = level->spawn[3][2] = 300;    // Set the default spawn a to 300
+    level->spawn[0].a = level->spawn[1].a = level->spawn[2].a = level->spawn[3].a = 300;    // Set the default spawn a to 300
     level->setweap = 0;
     level->maxtossspeed = default_level_maxtossspeed;
     level->maxfallspeed = default_level_maxfallspeed;
@@ -12626,14 +12626,14 @@ void load_level(char *filename)
             default:
                 assert(0);
             }
-            level->spawn[i][0] = GET_INT_ARG(1);
-            level->spawn[i][1] = GET_INT_ARG(2);
-            level->spawn[i][2] = GET_INT_ARG(3);
+            level->spawn[i].x = GET_INT_ARG(1);
+            level->spawn[i].z = GET_INT_ARG(2);
+            level->spawn[i].a = GET_INT_ARG(3);
 
-            //if(level->spawn[i][1] > 232 || level->spawn[i][1] < 0) level->spawn[i][1] = 232;
-            if(level->spawn[i][2] < 0)
+            //if(level->spawn[i].z > 232 || level->spawn[i].z < 0) level->spawn[i].z= 232;
+            if(level->spawn[i].a < 0)
             {
-                level->spawn[i][2] = 300;
+                level->spawn[i].a = 300;
             }
             break;
         case CMD_LEVEL_FRONTPANEL:
@@ -14467,10 +14467,10 @@ void ent_default_init(entity *e)
         }
         else if(!e->animation)
         {
-            if(time && level->spawn[(int)e->playerindex][2] > e->a)
+            if(time && level->spawn[(int)e->playerindex].a > e->a)
             {
                 e->takeaction = common_drop;
-                e->a = (float)level->spawn[(int)e->playerindex][2];
+                e->a = (float)level->spawn[(int)e->playerindex].a;
                 if(validanim(e, ANI_JUMP))
                 {
                     ent_set_anim(e, ANI_JUMP, 0);
@@ -21714,7 +21714,7 @@ int common_try_pick(entity *other)
 // it should be fairly slow due to the complicacy of terrain checking
 // and it doesn't always work since walking from wall to wall
 // requires jump.
-int astar(entity *ent, float destx, float destz, float step, point2d **wp)
+int astar(entity *ent, float destx, float destz, float step, s_axis **wp)
 {
     int (*came_from)[astarw][astarh][2] = malloc(sizeof(*came_from));
     unsigned char (*closed)[astarw][astarh] = malloc(sizeof(*closed));
@@ -22013,7 +22013,7 @@ int checkpathblocked()
     float x, z, r;
     int aitype, wpc;
     entity *target;
-    point2d *wp;
+    s_axis *wp;
     if(self->modeldata.nomove)
     {
         return 0;
@@ -26749,9 +26749,9 @@ void spawnplayer(int index)
 
     if(level->scrolldir & SCROLL_LEFT)
     {
-        if(level->spawn[index][0])
+        if(level->spawn[index].x)
         {
-            p.x = (float)(videomodes.hRes - level->spawn[index][0]);
+            p.x = (float)(videomodes.hRes - level->spawn[index].x);
         }
         else
         {
@@ -26760,9 +26760,9 @@ void spawnplayer(int index)
     }
     else
     {
-        if(level->spawn[index][0])
+        if(level->spawn[index].x)
         {
-            p.x = (float)(level->spawn[index][0]);
+            p.x = (float)(level->spawn[index].x);
         }
         else
         {
@@ -26770,15 +26770,15 @@ void spawnplayer(int index)
         }
         p.flip = 1;
     }
-    if(level->spawn[index][1])
+    if(level->spawn[index].z)
     {
         if(level->scrolldir & (SCROLL_INWARD | SCROLL_OUTWARD))
         {
-            p.z = (float)(level->spawn[index][1]);
+            p.z = (float)(level->spawn[index].z);
         }
         else
         {
-            p.z = (float)(PLAYER_MIN_Z + level->spawn[index][1]);
+            p.z = (float)(PLAYER_MIN_Z + level->spawn[index].z);
         }
     }
     else if(PLAYER_MAX_Z - PLAYER_MIN_Z > 5)
