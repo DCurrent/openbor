@@ -27886,13 +27886,13 @@ void draw_textobjs()
     {
         textobj = level->textobjs + i;
 
-        if(textobj->t && textobj->t <= time)		//If a time was set and passed, remove the text object.
+        if(textobj->time && textobj->time <= time)		//If a time was set and passed, remove the text object.
         {
-            level->textobjs[i].t	= 0;
-            level->textobjs[i].x	= 0;
-            level->textobjs[i].y	= 0;
+            level->textobjs[i].time	= 0;
+            level->textobjs[i].position.x = 0;
+            level->textobjs[i].position.a = 0;
             level->textobjs[i].font = 0;
-            level->textobjs[i].z	= 0;
+            level->textobjs[i].position.z = 0;
             if(level->textobjs[i].text)
             {
                 free(level->textobjs[i].text);
@@ -27903,7 +27903,7 @@ void draw_textobjs()
         {
             if(textobj->text)
             {
-                font_printf(textobj->x, textobj->y, textobj->font, textobj->z, textobj->text);
+                font_printf(textobj->position.x, textobj->position.a, textobj->font, textobj->position.z, textobj->text);
             }
         }
     }

@@ -1538,12 +1538,16 @@ typedef struct
 
 typedef struct
 {
-    char *text;
-    int t;		//Time to expire.
-    int x;
-    int y;
-    int font;
-    int z;
+    /*
+    Text object (display text on screen) struct
+    2013-12-07
+    Damon Caskey (Feature originally added by kbanderson)
+    */
+
+    int font;           //Font index.
+    s_axis position;    //x,y,a location on screen.
+    int time;           //Time to expire.
+    char *text;         //Text to display.
 } s_textobj;
 
 typedef struct
