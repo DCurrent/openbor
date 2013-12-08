@@ -525,30 +525,30 @@ if(n<1) n = 1;
 #define check_range(self, target, animnum) \
 		 ( target && \
 		  (self->direction ? \
-		  (int)target->x >= self->x+self->modeldata.animation[animnum]->range.xmin &&\
-		  (int)target->x <= self->x+self->modeldata.animation[animnum]->range.xmax\
+		  (int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.xmin &&\
+		  (int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.xmax\
 		:\
-		  (int)target->x <= self->x-self->modeldata.animation[animnum]->range.xmin &&\
-		  (int)target->x >= self->x-self->modeldata.animation[animnum]->range.xmax)\
-		  && (int)(target->z - self->z) >= self->modeldata.animation[animnum]->range.zmin \
-		  && (int)(target->z - self->z) <= self->modeldata.animation[animnum]->range.zmax \
-		  && (int)(target->a - self->a) >= self->modeldata.animation[animnum]->range.amin \
-		  && (int)(target->a - self->a) <= self->modeldata.animation[animnum]->range.amax \
+		  (int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.xmin &&\
+		  (int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.xmax)\
+		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.zmin \
+		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.zmax \
+		  && (int)(target->position.a - self->position.a) >= self->modeldata.animation[animnum]->range.amin \
+		  && (int)(target->position.a - self->position.a) <= self->modeldata.animation[animnum]->range.amax \
 		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.bmin \
 		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.bmax \
 		  )\
 
 #define check_range_both(self, target, animnum) \
 		 ( target && \
-		  (((int)target->x >= self->x+self->modeldata.animation[animnum]->range.xmin &&\
-			(int)target->x <= self->x+self->modeldata.animation[animnum]->range.xmax)\
+		  (((int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.xmin &&\
+			(int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.xmax)\
 		||\
-		   ((int)target->x <= self->x-self->modeldata.animation[animnum]->range.xmin &&\
-			(int)target->x >= self->x-self->modeldata.animation[animnum]->range.xmax))\
-		  && (int)(target->z - self->z) >= self->modeldata.animation[animnum]->range.zmin \
-		  && (int)(target->z - self->z) <= self->modeldata.animation[animnum]->range.zmax \
-		  && (int)(target->a - self->a) >= self->modeldata.animation[animnum]->range.amin \
-		  && (int)(target->a - self->a) <= self->modeldata.animation[animnum]->range.amax \
+		   ((int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.xmin &&\
+			(int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.xmax))\
+		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.zmin \
+		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.zmax \
+		  && (int)(target->position.a - self->position.a) >= self->modeldata.animation[animnum]->range.amin \
+		  && (int)(target->position.a - self->position.a) <= self->modeldata.animation[animnum]->range.amax \
 		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.bmin \
 		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.bmax \
 		  )\
@@ -572,7 +572,7 @@ if(n<1) n = 1;
 		  (other->modeldata.paingrab?(other->modeldata.paingrab-other->inpain):0)<=0) &&\
 		 canbegrabbed(self, other) && \
 		 !inair(self) && \
-		 diff(other->a, self->a) <= 0.1)
+		 diff(other->position.a, self->position.a) <= 0.1)
 
 #define unfrozen(e) \
 		ent_set_colourmap(e, e->map);\
@@ -1259,9 +1259,7 @@ typedef struct entity
     int direction; // 0=left 1=right
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
     int movestep;
-    float x; // X
-    float z; // Depth
-    float a; // Altitude
+    s_axis position; //x,a,z location.
     s_axis velocity; //x,a,z movement speed.
     float destx; // temporary values for ai functions
     float destz;
