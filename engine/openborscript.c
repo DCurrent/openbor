@@ -11160,6 +11160,7 @@ enum gtop_enum
     _top_text,
     _top_time,
     _top_x,
+    _top_a,
     _top_y,
     _top_z,
     _top_the_end,
@@ -11176,6 +11177,7 @@ int mapstrings_textobjproperty(ScriptVariant **varlist, int paramCount)
         "text",
         "time"
         "x",
+        "a",
         "y",
         "z",
     };
@@ -11245,25 +11247,26 @@ HRESULT openbor_gettextobjproperty(ScriptVariant **varlist , ScriptVariant **pre
     case _top_time:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)level->textobjs[ind].t;
+        (*pretvar)->lVal = (LONG)level->textobjs[ind].time;
         break;
     }
     case _top_x:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)level->textobjs[ind].x;
+        (*pretvar)->lVal = (LONG)level->textobjs[ind].position.x;
         break;
     }
     case _top_y:
+    case _top_a:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)level->textobjs[ind].y;
+        (*pretvar)->lVal = (LONG)level->textobjs[ind].position.a;
         break;
     }
     case _top_z:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)level->textobjs[ind].z;
+        (*pretvar)->lVal = (LONG)level->textobjs[ind].position.z;
         break;
     }
     default:
@@ -11347,7 +11350,7 @@ HRESULT openbor_changetextobjproperty(ScriptVariant **varlist , ScriptVariant **
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            level->textobjs[ind].t = (int)ltemp;
+            level->textobjs[ind].time = (int)ltemp;
         }
         else
         {
@@ -11359,7 +11362,7 @@ HRESULT openbor_changetextobjproperty(ScriptVariant **varlist , ScriptVariant **
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            level->textobjs[ind].x = (int)ltemp;
+            level->textobjs[ind].position.x = (int)ltemp;
         }
         else
         {
@@ -11367,11 +11370,12 @@ HRESULT openbor_changetextobjproperty(ScriptVariant **varlist , ScriptVariant **
         }
         break;
     }
+    case _top_a:
     case _top_y:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            level->textobjs[ind].y = (int)ltemp;
+            level->textobjs[ind].position.a = (int)ltemp;
         }
         else
         {
@@ -11383,7 +11387,7 @@ HRESULT openbor_changetextobjproperty(ScriptVariant **varlist , ScriptVariant **
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            level->textobjs[ind].z = (int)ltemp;
+            level->textobjs[ind].position.z = (int)ltemp;
         }
         else
         {
@@ -11461,10 +11465,10 @@ HRESULT openbor_settextobj(ScriptVariant **varlist , ScriptVariant **pretvar, in
         goto settextobj_error;
     }
 
-    level->textobjs[ind].t = (int)T;
-    level->textobjs[ind].x = (int)X;
-    level->textobjs[ind].y = (int)Y;
-    level->textobjs[ind].z = (int)Z;
+    level->textobjs[ind].time = (int)T;
+    level->textobjs[ind].position.x = (int)X;
+    level->textobjs[ind].position.a = (int)Y;
+    level->textobjs[ind].position.z = (int)Z;
     level->textobjs[ind].font = (int)F;
 
     if(!level->textobjs[ind].text)
@@ -11504,11 +11508,11 @@ HRESULT openbor_cleartextobj(ScriptVariant **varlist , ScriptVariant **pretvar, 
         return S_OK;
     }
 
-    level->textobjs[ind].t = 0;
-    level->textobjs[ind].x = 0;
-    level->textobjs[ind].y = 0;
+    level->textobjs[ind].time = 0;
+    level->textobjs[ind].position.x = 0;
+    level->textobjs[ind].position.a = 0;
     level->textobjs[ind].font = 0;
-    level->textobjs[ind].z = 0;
+    level->textobjs[ind].position.z = 0;
     if(level->textobjs[ind].text)
     {
         free(level->textobjs[ind].text);
