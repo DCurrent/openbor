@@ -4329,7 +4329,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             (*pretvar)->lVal = (LONG)ent->dead;
             break;
         case _ep_aiflag_jumpid:
-            (*pretvar)->lVal = (LONG)ent->jumpid;
+            (*pretvar)->lVal = (LONG)ent->jump.id;
             break;
         case _ep_aiflag_jumping:
             (*pretvar)->lVal = (LONG)ent->jumping;
@@ -6489,7 +6489,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 ent->dead = (int)ltemp;
                 break;
             case _ep_aiflag_jumpid:
-                ent->jumpid = (int)ltemp;
+                ent->jump.id = (int)ltemp;
                 break;
             case _ep_aiflag_jumping:
                 ent->jumping = (int)ltemp;

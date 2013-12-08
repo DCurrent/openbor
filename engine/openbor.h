@@ -1219,6 +1219,17 @@ typedef struct
     int riseattack_stall; //Total stalltime before riseattack.
 } s_staydown;                                       //2011_04_08, DC: Delay modifiers before rise or riseattack can take place.
 
+typedef struct
+{
+    /*
+    Jumping parameters struct.
+    2013-12-08
+    Damon Caskey
+    */
+    int id; //Jumping ID.
+    s_axis velocity; //x,a,z velocity setting.
+} s_jump;
+
 typedef struct entity
 {
     int spawntype; // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
@@ -1259,10 +1270,7 @@ typedef struct entity
     float speedmul;
     float base; // Default altitude
     float altbase; // Altitude affected by movea
-    float jumpz;
-    float jumpx;
-    float jumpv;
-    int jumpid;
+    s_jump jump;    //Jumping velocity and id.
     unsigned combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
 
     // ---------------------- action times -------------------------------
