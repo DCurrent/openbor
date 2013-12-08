@@ -3466,7 +3466,7 @@ float diff(float a, float b)
 
 int inair(entity *e)
 {
-    return (diff(e->a, e->base) >= 0.1);
+    return (diff(e->position.a, e->base) >= 0.1);
 }
 
 
@@ -14475,10 +14475,10 @@ void ent_default_init(entity *e)
         }
         else if(!e->animation)
         {
-            if(time && level->spawn[(int)e->playerindex].a > e->a)
+            if(time && level->spawn[(int)e->playerindex].a > e->position.a)
             {
                 e->takeaction = common_drop;
-                e->a = (float)level->spawn[(int)e->playerindex].a;
+                e->position.a = (float)level->spawn[(int)e->playerindex].a;
                 if(validanim(e, ANI_JUMP))
                 {
                     ent_set_anim(e, ANI_JUMP, 0);
@@ -14506,7 +14506,7 @@ void ent_default_init(entity *e)
         {
             e->nograb = 1;
             e->attacking = 1;
-            //e->direction = (e->x<0);
+            //e->direction = (e->position.x<0);
             if(e->modeldata.speed)
             {
                 e->velocity.x = (e->direction) ? (e->modeldata.speed) : (-e->modeldata.speed);
@@ -14537,7 +14537,7 @@ void ent_default_init(entity *e)
             }
             else
             {
-                e->base = e->a;
+                e->base = e->position.a;
             }
             e->nograb = 1;
             e->attacking = 1;
@@ -14577,9 +14577,9 @@ void ent_default_init(entity *e)
         {
             dodrop = (e->modeldata.subtype != SUBTYPE_ARROW && level && (level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN));
 
-            if(!nodropspawn && (dodrop || (e->x > advancex - 30 && e->x < advancex + videomodes.hRes + 30 && e->a == 0)) )
+            if(!nodropspawn && (dodrop || (e->position.x > advancex - 30 && e->position.x < advancex + videomodes.hRes + 30 && e->position.a == 0)) )
             {
-                e->a += videomodes.vRes + randf(40);
+                e->position.a += videomodes.vRes + randf(40);
             }
             if(inair(e))
             {
@@ -14608,7 +14608,7 @@ void ent_default_init(entity *e)
     case TYPE_STEAMER:
         e->nograb = 1;
         e->think = steamer_think;
-        e->base = e->a;
+        e->base = e->position.a;
         break;
     case TYPE_TEXTBOX:    // New type for displaying text purposes
         e->nograb = 1;
@@ -14634,7 +14634,7 @@ void ent_default_init(entity *e)
         }
         else
         {
-            e->base = e->a;
+            e->base = e->position.a;
         }
         e->speedmul = 2;
         break;
@@ -14644,7 +14644,7 @@ void ent_default_init(entity *e)
         {
             e->modeldata.subject_to_gravity = 1;
         }
-        //e->base=e->a; //complained?
+        //e->base=e->position.a; //complained?
         if(e->modeldata.no_adjust_base < 0)
         {
             e->modeldata.no_adjust_base = 1;
@@ -14685,15 +14685,15 @@ void ent_default_init(entity *e)
         e->modeldata.multiple = 0;
     }
 
-    if(e->modeldata.subject_to_platform > 0 && (other = check_platform_below(e->x, e->z, e->a, e)))
+    if(e->modeldata.subject_to_platform > 0 && (other = check_platform_below(e->position.x, e->position.z, e->position.a, e)))
     {
-        e->base = other->a + other->animation->platform[other->animpos][7];
+        e->base = other->position.a + other->animation->platform[other->animpos][7];
     }
-    else if(e->modeldata.subject_to_wall > 0 && (wall = checkwall_below(e->x, e->z, 9999999)) >= 0)
+    else if(e->modeldata.subject_to_wall > 0 && (wall = checkwall_below(e->position.x, e->position.z, 9999999)) >= 0)
     {
         if(level->walls[wall].height > MAX_WALL_HEIGHT)
         {
-            e->x = find_nearest_wall_x(wall, e->x, e->z);
+            e->position.x = find_nearest_wall_x(wall, e->position.x, e->position.z);
         }
         else
         {
@@ -14710,7 +14710,7 @@ void ent_spawn_ent(entity *ent)
     // spawn point relative to current entity
     if(spawnframe[4] == 0)
     {
-        s_ent = spawn(ent->x + ((ent->direction) ? spawnframe[1] : -spawnframe[1]), ent->z + spawnframe[2], ent->a + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(ent->position.x + ((ent->direction) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2], ent->position.a + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
     }
     //relative to screen position
     else if(spawnframe[4] == 1)
@@ -14754,7 +14754,7 @@ void ent_summon_ent(entity *ent)
     // spawn point relative to current entity
     if(spawnframe[4] == 0)
     {
-        s_ent = spawn(ent->x + ((ent->direction) ? spawnframe[1] : -spawnframe[1]), ent->z + spawnframe[2],  ent->a + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(ent->position.x + ((ent->direction) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2],  ent->position.a + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
     }
     //relative to screen position
     else if(spawnframe[4] == 1)
@@ -14987,10 +14987,10 @@ void update_frame(entity *ent, int f)
 
         if(anim->jumpframe.ent >= 0)
         {
-            dust = spawn(self->x, self->z, self->a, self->direction, NULL, anim->jumpframe.ent, NULL);
+            dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, anim->jumpframe.ent, NULL);
             if(dust)
             {
-                dust->base = self->a;
+                dust->base = self->position.a;
                 dust->autokill = 2;
                 execute_onspawn_script(dust);
             }
@@ -15004,8 +15004,8 @@ void update_frame(entity *ent, int f)
         // custstar custknife in animation should be checked first
         // then if the entity is jumping, check star first, if failed, try knife instead
         // well, try knife at last, if still failed, try star, or just let if shutdown?
-#define __trystar star_spawn(self->x + (self->direction ? 56 : -56), self->z, self->a+67, self->direction)
-#define __tryknife knife_spawn(NULL, -1, self->x, self->z, self->a + anim->throwa, self->direction, 0, 0)
+#define __trystar star_spawn(self->position.x + (self->direction ? 56 : -56), self->position.z, self->position.a+67, self->direction)
+#define __tryknife knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.a + anim->throwa, self->direction, 0, 0)
         if(anim->custknife >= 0 || anim->custpshotno >= 0)
         {
             __tryknife;
@@ -15030,13 +15030,13 @@ void update_frame(entity *ent, int f)
 
     if(anim->shootframe == f)
     {
-        knife_spawn(NULL, -1, self->x, self->z, self->a, self->direction, 1, 0);
+        knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.a, self->direction, 1, 0);
         self->reactive = 1;
     }
 
     if(anim->tossframe == f)
     {
-        bomb_spawn(NULL, -1, self->x, self->z, self->a + anim->throwa, self->direction, 0);
+        bomb_spawn(NULL, -1, self->position.x, self->position.z, self->position.a + anim->throwa, self->direction, 0);
         self->reactive = 1;
     }
 
@@ -15393,9 +15393,9 @@ entity *spawn(float x, float z, float a, int direction, char *name, int index, s
             e->health = e->modeldata.health;
             e->mp = e->modeldata.mp;
             e->knockdowncount = e->modeldata.knockdowncount;
-            e->x = x;
-            e->z = z;
-            e->a = a;
+            e->position.x = x;
+            e->position.z = z;
+            e->position.a = a;
             e->direction = direction;
             e->nextthink = time + 1;
             e->nextmove = time + 1;
@@ -15639,8 +15639,8 @@ int checkhit(entity *attacker, entity *target, int counter)
         return 0;
     }
 
-    z1 = attacker->z;
-    z2 = target->z;
+    z1 = attacker->position.z;
+    z2 = target->position.z;
     coords1 = attacker->animation->attacks[attacker->animpos]->attack_coords;
 
     if(!counter)
@@ -15686,10 +15686,10 @@ int checkhit(entity *attacker, entity *target, int counter)
         return 0;
     }
 
-    x1 = (int)(attacker->x);
-    y1 = (int)(z1 - attacker->a);
-    x2 = (int)(target->x);
-    y2 = (int)(z2 - target->a);
+    x1 = (int)(attacker->position.x);
+    y1 = (int)(z1 - attacker->position.a);
+    x2 = (int)(target->position.x);
+    y2 = (int)(z2 - target->position.a);
 
 
     if(attacker->direction == 0)
@@ -15766,7 +15766,7 @@ int checkhit(entity *attacker, entity *target, int counter)
     // Now convert these coords to 3D
     lasthitx = medx;
 
-    if(attacker->z > target->z)
+    if(attacker->position.z > target->position.z)
     {
         lasthitz = z1 + 1;    // Changed so flashes always spawn in front
     }
@@ -15935,8 +15935,8 @@ int testplatform(entity *plat, float x, float z, entity *exclude)
     {
         return 0;
     }
-    offz = plat->z + plat->animation->platform[plat->animpos][1];
-    offx = plat->x + plat->animation->platform[plat->animpos][0];
+    offz = plat->position.z + plat->animation->platform[plat->animpos][1];
+    offx = plat->position.x + plat->animation->platform[plat->animpos][0];
     if(z <= offz && z > offz - plat->animation->platform[plat->animpos][6])
     {
         coef1 = (offz - z) * ((plat->animation->platform[plat->animpos][2] -
@@ -15970,7 +15970,7 @@ entity *check_platform_between(float x, float z, float amin, float amax, entity 
         if(ent_list[i]->exists && testplatform(ent_list[i], x, z, exclude) )
         {
             plat = ent_list[i];
-            if(plat->a <= amax && plat->a + plat->animation->platform[plat->animpos][7] > amin)
+            if(plat->position.a <= amax && plat->position.a + plat->animation->platform[plat->animpos][7] > amin)
             {
                 return plat;
             }
@@ -15998,9 +15998,9 @@ entity *check_platform_above(float x, float z, float a, entity *exclude)
         if(ent_list[i]->exists && testplatform(ent_list[i], x, z, exclude) )
         {
             plat = ent_list[i];
-            if(plat->a >= a && plat->a < mina)
+            if(plat->position.a >= a && plat->position.a < mina)
             {
-                mina = plat->a;
+                mina = plat->position.a;
                 ind = i;
             }
         }
@@ -16027,10 +16027,10 @@ entity *check_platform_below(float x, float z, float a, entity *exclude)
         if(ent_list[i]->exists && testplatform(ent_list[i], x, z, exclude) )
         {
             plat = ent_list[i];
-            if(plat->a + plat->animation->platform[plat->animpos][7] <= a &&
-                    plat->a + plat->animation->platform[plat->animpos][7] > maxa)
+            if(plat->position.a + plat->animation->platform[plat->animpos][7] <= a &&
+                    plat->position.a + plat->animation->platform[plat->animpos][7] > maxa)
             {
-                maxa = plat->a + plat->animation->platform[plat->animpos][7];
+                maxa = plat->position.a + plat->animation->platform[plat->animpos][7];
                 ind = i;
             }
         }
@@ -16061,12 +16061,12 @@ entity *check_platform_above_entity(entity *e)
     ind = -1;
     for(i = 0; i < ent_max; i++)
     {
-        if(ent_list[i]->exists && testplatform(ent_list[i], e->x, e->z, e) )
+        if(ent_list[i]->exists && testplatform(ent_list[i], e->position.x, e->position.z, e) )
         {
             plat = ent_list[i];
-            if(plat->a + plat->animation->platform[plat->animpos][7] > e->a + heightvar && plat->a < mina)
+            if(plat->position.a + plat->animation->platform[plat->animpos][7] > e->position.a + heightvar && plat->position.a < mina)
             {
-                mina = plat->a;
+                mina = plat->position.a;
                 ind = i;
             }
         }
@@ -16089,11 +16089,11 @@ entity *check_platform_below_entity(entity *e)
     ind = -1;
     for(i = 0; i < ent_max; i++)
     {
-        if(ent_list[i]->exists && testplatform(ent_list[i], e->x, e->z, e) )
+        if(ent_list[i]->exists && testplatform(ent_list[i], e->position.x, e->position.z, e) )
         {
             plat = ent_list[i];
-            a = plat->a + plat->animation->platform[plat->animpos][7];
-            if(a < e->a + 4 && plat->a < e->a  && a > maxa)
+            a = plat->position.a + plat->animation->platform[plat->animpos][7];
+            if(a < e->position.a + 4 && plat->position.a < e->position.a  && a > maxa)
             {
                 maxa = a;
                 ind = i;
@@ -16176,7 +16176,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-------------hole checking ---------------------
     if(ent->modeldata.subject_to_hole > 0)
     {
-        if(checkhole(x, z) && checkwall(x, z) < 0 && !check_platform_below(x, z, ent->a, ent))
+        if(checkhole(x, z) && checkwall(x, z) < 0 && !check_platform_below(x, z, ent->position.a, ent))
         {
             return -2;
         }
@@ -16206,20 +16206,20 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     }
 
     // Check for obstacles with platform code and adjust base accordingly
-    if(ent->modeldata.subject_to_platform > 0 && (other = check_platform_between(x, z, ent->a, ent->a + heightvar, ent)) )
+    if(ent->modeldata.subject_to_platform > 0 && (other = check_platform_between(x, z, ent->position.a, ent->position.a + heightvar, ent)) )
     {
         return 0;
     }
     //-----------end of platform checking------------------
 
     // ------------------ wall checking ---------------------
-    if(ent->modeldata.subject_to_wall > 0 && (wall = checkwall_below(x, z, 999999)) >= 0 && level->walls[wall].height > ent->a)
+    if(ent->modeldata.subject_to_wall > 0 && (wall = checkwall_below(x, z, 999999)) >= 0 && level->walls[wall].height > ent->position.a)
     {
         if(validanim(ent, ANI_JUMP) && sz < level->walls[wall].z && sz > level->walls[wall].z - level->walls[wall].depth) //Can jump?
         {
             //rmin = (float)ent->modeldata.animation[ANI_JUMP]->range.xmin;
             //rmax = (float)ent->modeldata.animation[ANI_JUMP]->range.xmax;
-            if(level->walls[wall].height < ent->a + ent->modeldata.animation[ANI_JUMP]->range.xmax)
+            if(level->walls[wall].height < ent->position.a + ent->modeldata.animation[ANI_JUMP]->range.xmax)
             {
                 return -1;
             }
@@ -16613,7 +16613,7 @@ void do_attack(entity *e)
                 {
                     if(flash->modeldata.toflip)
                     {
-                        flash->direction = (e->x > self->x);    // Now the flash will flip depending on which side the attacker is on
+                        flash->direction = (e->position.x > self->position.x);    // Now the flash will flip depending on which side the attacker is on
                     }
 
                     flash->base = lasthita;
@@ -16828,7 +16828,7 @@ void check_gravity(entity *e)
 
     if(!is_frozen(self) )// Incase an entity is in the air, don't update animations
     {
-        if((self->falling || self->velocity.a || self->a != self->base) && self->toss_time <= time)
+        if((self->falling || self->velocity.a || self->position.a != self->base) && self->toss_time <= time)
         {
             if(self->animation->height)
             {
@@ -16848,7 +16848,7 @@ void check_gravity(entity *e)
                 other = NULL;
             }
 
-            if( other && other->a <= self->a + heightvar)
+            if( other && other->position.a <= self->position.a + heightvar)
             {
                 if(self->hithead == NULL) // bang! Hit the ceiling.
                 {
@@ -16862,7 +16862,7 @@ void check_gravity(entity *e)
                 self->hithead = NULL;
             }
             // gravity, antigravity factors
-            self->a += self->velocity.a * 100.0 / GAME_SPEED;
+            self->position.a += self->velocity.a * 100.0 / GAME_SPEED;
             if(self->animation->dive)
             {
                 gravity = 0;
@@ -16896,7 +16896,7 @@ void check_gravity(entity *e)
                 execute_onmovea_script(self);    //Move A event.
             }
 
-            if(self->idling && validanim(self, ANI_WALKOFF) && diff(self->a, self->base) > 2)
+            if(self->idling && validanim(self, ANI_WALKOFF) && diff(self->position.a, self->base) > 2)
             {
                 self->idling = 0;
                 self->takeaction = common_walkoff;
@@ -16905,18 +16905,18 @@ void check_gravity(entity *e)
 
             // UTunnels: tossv <= 0 means land, while >0 means still rising, so
             // you wont be stopped if you are passing the edge of a wall
-            if( (self->a <= self->base || !inair(self)) && self->velocity.a <= 0)
+            if( (self->position.a <= self->base || !inair(self)) && self->velocity.a <= 0)
             {
-                self->a = self->base;
+                self->position.a = self->base;
                 self->falling = 0;
                 //self->projectile = 0;
                 // cust dust entity
                 if(self->modeldata.dust[0] >= 0 && self->velocity.a < -1 && self->drop)
                 {
-                    dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[0], NULL);
+                    dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, self->modeldata.dust[0], NULL);
                     if(dust)
                     {
-                        dust->base = self->a;
+                        dust->base = self->position.a;
                         dust->autokill = 2;
                         execute_onspawn_script(dust);
                     }
@@ -16955,7 +16955,7 @@ void check_gravity(entity *e)
                     self->velocity.a = 0;
                 }
 
-                if(plat && !self->landed_on_platform && self->a <= plat->a + plat->animation->platform[plat->animpos][7])
+                if(plat && !self->landed_on_platform && self->position.a <= plat->position.a + plat->animation->platform[plat->animpos][7])
                 {
                     self->landed_on_platform = plat;
                 }
@@ -16966,10 +16966,10 @@ void check_gravity(entity *e)
                 {
                     if(self->animation->landframe.ent >= 0)
                     {
-                        dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->animation->landframe.ent, NULL);
+                        dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, self->animation->landframe.ent, NULL);
                         if(dust)
                         {
-                            dust->base = self->a;
+                            dust->base = self->position.a;
                             dust->autokill = 2;
                             execute_onspawn_script(dust);
                         }
@@ -17020,10 +17020,10 @@ void check_lost()
     s_attack attack;
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
 
-    if((self->z != 100000 && (advancex - self->x > osk || self->x - advancex - videomodes.hRes > osk ||
-                              (level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && (advancey - self->z + self->a > osk || self->z - self->a - advancey - videomodes.vRes > osk)) ||
-                              ((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN) && (self->z - self->a < -osk || self->z - self->a > videomodes.vRes + osk))		) )
-            || self->a < 2 * PIT_DEPTH) //self->z<100000, so weapon item won't be killed
+    if((self->position.z != 100000 && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
+                              (level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && (advancey - self->position.z + self->position.a > osk || self->position.z - self->position.a - advancey - videomodes.vRes > osk)) ||
+                              ((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN) && (self->position.z - self->position.a < -osk || self->position.z - self->position.a > videomodes.vRes + osk))		) )
+            || self->position.a < 2 * PIT_DEPTH) //self->position.z<100000, so weapon item won't be killed
     {
         if(self->modeldata.type & TYPE_PLAYER)
         {
@@ -17037,7 +17037,7 @@ void check_lost()
     }
 
     // fall into a pit
-    if(self->a < PIT_DEPTH)
+    if(self->position.a < PIT_DEPTH)
     {
         if(!self->takedamage)
         {
@@ -17087,23 +17087,23 @@ void check_link_move(float xdir, float zdir)
     float x, z, gx, gz;
     int tryresult;
     entity *tempself = self;
-    gx = self->grabbing->x;
-    gz = self->grabbing->z;
-    x = self->x;
-    z = self->z;
+    gx = self->grabbing->position.x;
+    gz = self->grabbing->position.z;
+    x = self->position.x;
+    z = self->position.z;
     self = self->grabbing;
     tryresult = self->trymove(xdir, zdir);
     self = tempself;
     if(tryresult != 1) // changed
     {
-        xdir = self->grabbing->x - gx;
-        zdir = self->grabbing->z - gz;
+        xdir = self->grabbing->position.x - gx;
+        zdir = self->grabbing->position.z - gz;
     }
     tryresult = self->trymove(xdir, zdir);
     if(tryresult != 1)
     {
-        self->grabbing->x = self->x - x + gx;
-        self->grabbing->z = self->z - z + gz;
+        self->grabbing->position.x = self->position.x - x + gx;
+        self->grabbing->position.z = self->position.z - z + gz;
     }
 }
 
@@ -17196,12 +17196,12 @@ void adjust_base(entity *e, entity **pla)
     }
 
     //no longer underneath?
-    if(self->landed_on_platform && !testplatform(self->landed_on_platform, self->x, self->z, NULL))
+    if(self->landed_on_platform && !testplatform(self->landed_on_platform, self->position.x, self->position.z, NULL))
     {
         self->landed_on_platform = NULL;
     }
 
-    if(other && !self->landed_on_platform && self->a <= other->a + other->animation->platform[other->animpos][7])
+    if(other && !self->landed_on_platform && self->position.a <= other->position.a + other->animation->platform[other->animpos][7])
     {
         self->landed_on_platform = other;
     }
@@ -17212,7 +17212,7 @@ void adjust_base(entity *e, entity **pla)
         {
             check_gravity(plat);
         }
-        self->a = self->base = plat->a + plat->animation->platform[plat->animpos][7];
+        self->position.a = self->base = plat->position.a + plat->animation->platform[plat->animpos][7];
     }
 
     *pla = other;
@@ -17223,22 +17223,22 @@ void adjust_base(entity *e, entity **pla)
         seta = (float)((self->animation->seta) ? (self->animation->seta[self->animpos]) : (-1));
 
         // Checks to see if entity is over a wall and or obstacle, and adjusts the base accordingly
-        //wall = checkwall_below(self->x, self->z);
+        //wall = checkwall_below(self->position.x, self->position.z);
         //find a wall below us
         if(self->modeldata.subject_to_wall > 0)
         {
-            wall = checkwall_below(self->x, self->z, 9999999);
+            wall = checkwall_below(self->position.x, self->position.z, 9999999);
         }
         else
         {
             wall = -1;
         }
 
-        maxbase = check_basemap(self->x, self->z);
+        maxbase = check_basemap(self->position.x, self->position.z);
 
         if(maxbase == -1000 && self->modeldata.subject_to_hole > 0)
         {
-            hole = (wall < 0 && !other) ? checkhole(self->x, self->z) : 0;
+            hole = (wall < 0 && !other) ? checkhole(self->position.x, self->position.z) : 0;
 
             if(seta < 0 && hole)
             {
@@ -17247,7 +17247,7 @@ void adjust_base(entity *e, entity **pla)
             }
             else if(!hole && self->base == -1000)
             {
-                if(self->a >= 0)
+                if(self->position.a >= 0)
                 {
                     self->base = 0;
                 }
@@ -17262,7 +17262,7 @@ void adjust_base(entity *e, entity **pla)
         {
             if(other != NULL && other != self )
             {
-                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + (other->a + other->animation->platform[other->animpos][7]);
+                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + (other->position.a + other->animation->platform[other->animpos][7]);
             }
             else if(wall >= 0)
             {
@@ -17323,12 +17323,12 @@ void update_animation()
         }
         if(scrollv)
         {
-            self->x += scrolldx * scrollv;
+            self->position.x += scrolldx * scrollv;
             if(level->scrolldir == SCROLL_UP)
             {
                 scrollv = -scrollv;
             }
-            self->a -= scrolldy * scrollv;
+            self->position.a -= scrolldy * scrollv;
             self->base = -99999; // temporary fix otherwise it won't go underground
         }
     }
@@ -17724,52 +17724,52 @@ void adjust_bind(entity *e)
             update_frame(e, e->bound->animpos);
         }
     }
-    e->z = e->bound->z + e->bindoffset[1];
-    e->a = e->bound->a + e->bindoffset[2];
+    e->position.z = e->bound->position.z + e->bindoffset[1];
+    e->position.a = e->bound->position.a + e->bindoffset[2];
     switch(e->bindoffset[3])
     {
     case 0:
         if(e->bound->direction)
         {
-            e->x = e->bound->x + e->bindoffset[0];
+            e->position.x = e->bound->position.x + e->bindoffset[0];
         }
         else
         {
-            e->x = e->bound->x - e->bindoffset[0];
+            e->position.x = e->bound->position.x - e->bindoffset[0];
         }
         break;
     case 1:
         e->direction = e->bound->direction;
         if(e->bound->direction)
         {
-            e->x = e->bound->x + e->bindoffset[0];
+            e->position.x = e->bound->position.x + e->bindoffset[0];
         }
         else
         {
-            e->x = e->bound->x - e->bindoffset[0];
+            e->position.x = e->bound->position.x - e->bindoffset[0];
         }
         break;
     case -1:
         e->direction = !e->bound->direction;
         if(e->bound->direction)
         {
-            e->x = e->bound->x + e->bindoffset[0];
+            e->position.x = e->bound->position.x + e->bindoffset[0];
         }
         else
         {
-            e->x = e->bound->x - e->bindoffset[0];
+            e->position.x = e->bound->position.x - e->bindoffset[0];
         }
         break;
     case 2:
         e->direction = 1;
-        e->x = e->bound->x + e->bindoffset[0];
+        e->position.x = e->bound->position.x + e->bindoffset[0];
         break;
     case -2:
         e->direction = 0;
-        e->x = e->bound->x + e->bindoffset[0];
+        e->position.x = e->bound->position.x + e->bindoffset[0];
         break;
     default:
-        e->x = e->bound->x + e->bindoffset[0];
+        e->position.x = e->bound->position.x + e->bindoffset[0];
         break;
         // the default is no change :), just give a value of 12345 or so
     }
@@ -17787,8 +17787,8 @@ void check_move(entity *e)
     tempself = self;
     self = e;
 
-    x = self->x;
-    z = self->z;
+    x = self->position.x;
+    z = self->position.z;
     // check moving platform
     if((plat = self->landed_on_platform) ) // on the platform?
     {
@@ -17812,8 +17812,8 @@ void check_move(entity *e)
             }
             else
             {
-                self->x += plat->movex;
-                self->z += plat->movez;
+                self->position.x += plat->movex;
+                self->position.z += plat->movez;
             }
         }
     }
@@ -17843,8 +17843,8 @@ void check_move(entity *e)
             }
             else
             {
-                self->x += self->movex;
-                self->z += self->movez;
+                self->position.x += self->movex;
+                self->position.z += self->movez;
             }
         }
         if(self->nextmove <= time)
@@ -17853,8 +17853,8 @@ void check_move(entity *e)
         }
 
     }
-    self->movex = self->x - x;
-    self->movez = self->z - z;
+    self->movex = self->position.x - x;
+    self->movez = self->position.z - z;
     self->update_mark |= 4;
     self = tempself;
 }
@@ -18031,8 +18031,8 @@ void display_ents()
                 // If special is being executed, display all entities regardless
                 f = e->animation->sprite[e->animpos];
 
-                other = check_platform(e->x, e->z, e);
-                wall = checkwall(e->x, e->z);
+                other = check_platform(e->position.x, e->position.z, e);
+                wall = checkwall(e->position.x, e->position.z);
 
                 if(f < sprites_loaded)
                 {
@@ -18040,7 +18040,7 @@ void display_ents()
                     // the same "z", in which case there is a layer offset, whether the entity is on an obstacle, and
                     // whether the entity is grabbing someone and has grabback set
 
-                    z = (int)e->z;    // Set the layer offset
+                    z = (int)e->position.z;    // Set the layer offset
 
                     if(e->bound)
                     {
@@ -18062,7 +18062,7 @@ void display_ents()
                     						else                             z++;
                     					}
                     */
-                    if(other && e->a >= other->a + other->animation->platform[other->animpos][7] && !other->modeldata.setlayer)
+                    if(other && e->position.a >= other->position.a + other->animation->platform[other->animpos][7] && !other->modeldata.setlayer)
                     {
                         if(
                             e->link &&
@@ -18073,12 +18073,12 @@ void display_ents()
                              e->grabbing)
                         )
                         {
-                            z = (int)(other->z + 2);    // Make sure entities get displayed in front of obstacle and grabbee
+                            z = (int)(other->position.z + 2);    // Make sure entities get displayed in front of obstacle and grabbee
                         }
 
                         else
                         {
-                            z = (int)(other->z + 1);    // Entity should always display in front of the obstacle
+                            z = (int)(other->position.z + 1);    // Entity should always display in front of the obstacle
                         }
 
                     }
@@ -18094,7 +18094,7 @@ void display_ents()
                     }
 
                     //UT: commented this out, it seems to be some legacy code, ==2 doesn't make sense anymore
-                    //if(checkhole(e->x, e->z)==2) z = PANEL_Z-1;        // place behind panels
+                    //if(checkhole(e->position.x, e->position.z)==2) z = PANEL_Z-1;        // place behind panels
 
                     drawmethod = e->animation->drawmethods ? getDrawMethod(e->animation, e->animpos) : NULL;
                     //drawmethod = e->animation->drawmethods?e->animation->drawmethods[e->animpos]:NULL;
@@ -18177,16 +18177,16 @@ void display_ents()
                         //just a simple check, doesn't work with mirror nor gfxshadow
                         if(drawmethod->clipw)
                         {
-                            drawmethod->clipx += (int)(e->x - scrx);
-                            drawmethod->clipy += (int)(e->z - e->a - scry);
+                            drawmethod->clipx += (int)(e->position.x - scrx);
+                            drawmethod->clipy += (int)(e->position.z - e->position.a - scry);
                         }
-                        spriteq_add_sprite((int)(e->x - scrx), (int)(e->z - e->a - scry), z, f, drawmethod, sortid);
+                        spriteq_add_sprite((int)(e->position.x - scrx), (int)(e->position.z - e->position.a - scry), z, f, drawmethod, sortid);
                     }
 
-                    can_mirror = (use_mirror && self->z > MIRROR_Z);
+                    can_mirror = (use_mirror && self->position.z > MIRROR_Z);
                     if(can_mirror)
                     {
-                        spriteq_add_sprite((int)(e->x - scrx), (int)((2 * MIRROR_Z - e->z) - e->a - scry), 2 * PANEL_Z - z , f, drawmethod, ent_list_size * 100 - sortid);
+                        spriteq_add_sprite((int)(e->position.x - scrx), (int)((2 * MIRROR_Z - e->position.z) - e->position.a - scry), 2 * PANEL_Z - z , f, drawmethod, ent_list_size * 100 - sortid);
                     }
                 }//end of if(f<sprites_loaded)
 
@@ -18194,30 +18194,30 @@ void display_ents()
                 {
                     useshadow = (e->animation->shadow ? e->animation->shadow[e->animpos] : 1) && shadowcolor && light[1];
                     //printf("\n %d, %d, %d\n", shadowcolor, light[0], light[1]);
-                    if(useshadow && e->a >= 0 && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
+                    if(useshadow && e->position.a >= 0 && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                     {
-                        wall = checkwall_below(e->x, e->z, e->a);
+                        wall = checkwall_below(e->position.x, e->position.z, e->position.a);
                         if(wall < 0)
                         {
-                            alty = (int)e->a;
-                            temp1 = -1 * e->a * light[0] / 256; // xshift
+                            alty = (int)e->position.a;
+                            temp1 = -1 * e->position.a * light[0] / 256; // xshift
                             temp2 = (float)(-alty * light[1] / 256);               // zshift
-                            qx = (int)(e->x - scrx/* + temp1*/);
-                            qy = (int)(e->z - scry/* +  temp2*/);
+                            qx = (int)(e->position.x - scrx/* + temp1*/);
+                            qy = (int)(e->position.z - scry/* +  temp2*/);
                         }
                         else
                         {
-                            alty = (int)(e->a - level->walls[wall].height);
-                            temp1 = -1 * (e->a - level->walls[wall].height) * light[0] / 256; // xshift
+                            alty = (int)(e->position.a - level->walls[wall].height);
+                            temp1 = -1 * (e->position.a - level->walls[wall].height) * light[0] / 256; // xshift
                             temp2 = (float)(-alty * light[1] / 256);               // zshift
-                            qx = (int)(e->x - scrx/* + temp1*/);
-                            qy = (int)(e->z - scry /*+  temp2*/ - level->walls[wall].height);
+                            qx = (int)(e->position.x - scrx/* + temp1*/);
+                            qy = (int)(e->position.z - scry /*+  temp2*/ - level->walls[wall].height);
                         }
 
-                        wall2 = checkwall_below(e->x + temp1, e->z + temp2, e->a); // check if the shadow drop into a hole or fall on another wall
+                        wall2 = checkwall_below(e->position.x + temp1, e->position.z + temp2, e->position.a); // check if the shadow drop into a hole or fall on another wall
 
                         //TODO check platforms, don't want to go through the entity list again right now
-                        if(!(checkhole(e->x + temp1, e->z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->a))
+                        if(!(checkhole(e->position.x + temp1, e->position.z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.a))
                         {
                             if(wall >= 0 && wall2 >= 0)
                             {
@@ -18291,29 +18291,29 @@ void display_ents()
                     {
                         useshadow = e->modeldata.shadow;
                     }
-                    if(useshadow && e->a >= 0 && !(checkhole(e->x, e->z) && checkwall_below(e->x, e->z, e->a) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
+                    if(useshadow && e->position.a >= 0 && !(checkhole(e->position.x, e->position.z) && checkwall_below(e->position.x, e->position.z, e->position.a) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                     {
-                        if(other && other != e && e->a >= other->a + other->animation->platform[other->animpos][7])
+                        if(other && other != e && e->position.a >= other->position.a + other->animation->platform[other->animpos][7])
                         {
-                            qx = (int)(e->x - scrx);
-                            qy = (int)(e->z - other->a - other->animation->platform[other->animpos][7] - scry);
-                            sy = (int)((2 * MIRROR_Z - e->z) - other->a - other->animation->platform[other->animpos][7] - scry);
-                            z = (int)(other->z + 1);
+                            qx = (int)(e->position.x - scrx);
+                            qy = (int)(e->position.z - other->position.a - other->animation->platform[other->animpos][7] - scry);
+                            sy = (int)((2 * MIRROR_Z - e->position.z) - other->position.a - other->animation->platform[other->animpos][7] - scry);
+                            z = (int)(other->position.z + 1);
                             sz = 2 * PANEL_Z - z;
                         }
-                        else if(level && wall >= 0)// && e->a >= level->walls[wall].height)
+                        else if(level && wall >= 0)// && e->position.a >= level->walls[wall].height)
                         {
-                            qx = (int)(e->x - scrx);
-                            qy = (int)(e->z - level->walls[wall].height - scry);
-                            sy = (int)((2 * MIRROR_Z - e->z)  - level->walls[wall].height - scry);
+                            qx = (int)(e->position.x - scrx);
+                            qy = (int)(e->position.z - level->walls[wall].height - scry);
+                            sy = (int)((2 * MIRROR_Z - e->position.z)  - level->walls[wall].height - scry);
                             z = shadowz;
                             sz = PANEL_Z - HUD_Z;
                         }
                         else
                         {
-                            qx = (int)(e->x - scrx);
-                            qy = (int)(e->z - scry);
-                            sy = (int)((2 * MIRROR_Z - e->z) - scry);
+                            qx = (int)(e->position.x - scrx);
+                            qy = (int)(e->position.z - scry);
+                            sy = (int)((2 * MIRROR_Z - e->position.z) - scry);
                             z = shadowz;
                             sz = PANEL_Z - HUD_Z;
                         }
@@ -18346,7 +18346,7 @@ void display_ents()
             {
                 if(e->modeldata.parrow[(int)e->playerindex][0] && e->invincible == 1)
                 {
-                    spriteq_add_sprite((int)(e->x - scrx + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->z - e->a - scry + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->z, e->modeldata.parrow[(int)e->playerindex][0], NULL, sortid * 2);
+                    spriteq_add_sprite((int)(e->position.x - scrx + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->position.z - e->position.a - scry + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->position.z, e->modeldata.parrow[(int)e->playerindex][0], NULL, sortid * 2);
                 }
             }
         }// end of if(ent_list[i]->exists)
@@ -18370,7 +18370,7 @@ void toss(entity *ent, float lift)
     }
     ent->toss_time = time + 1;
     ent->velocity.a = lift;
-    ent->a += 0.5;        // Get some altitude (needed for checks)
+    ent->position.a += 0.5;        // Get some altitude (needed for checks)
 }
 
 
@@ -18436,7 +18436,7 @@ int normal_test_item(entity *ent, entity *item)
     return (
                isItem(item) &&
                (item->modeldata.stealth.hide <= ent->modeldata.stealth.detect) &&
-               diff(item->x, ent->x) + diff(item->z, ent->z) < videomodes.hRes / 2 &&
+               diff(item->position.x, ent->position.x) + diff(item->position.z, ent->position.z) < videomodes.hRes / 2 &&
                item->animation->vulnerable[item->animpos] && !item->blink &&
                (validanim(ent, ANI_GET) || (isSubtypeTouch(item) && canBeDamaged(item, ent))) &&
                (
@@ -18483,7 +18483,7 @@ int player_test_pickable(entity *ent, entity *item)
     {
         return 0;
     }
-    if(diff(ent->base , item->a) > 0.1)
+    if(diff(ent->base , item->position.a) > 0.1)
     {
         return 0;
     }
@@ -18500,7 +18500,7 @@ int player_test_touch(entity *ent, entity *item)
     {
         return 0;
     }
-    if(diff(ent->base , item->a) > 1)
+    if(diff(ent->base , item->position.a) > 1)
     {
         return 0;
     }
@@ -18515,8 +18515,8 @@ entity *find_ent_here(entity *exclude, float x, float z, int types, int (*test)(
         if( ent_list[i]->exists
                 && ent_list[i] != exclude
                 && (ent_list[i]->modeldata.type & types)
-                && diff(ent_list[i]->x, x) < (self->modeldata.grabdistance * 0.83333)
-                && diff(ent_list[i]->z, z) < (self->modeldata.grabdistance / 3)
+                && diff(ent_list[i]->position.x, x) < (self->modeldata.grabdistance * 0.83333)
+                && diff(ent_list[i]->position.z, z) < (self->modeldata.grabdistance / 3)
                 && ent_list[i]->animation->vulnerable[ent_list[i]->animpos]
                 && (!test || test(exclude, ent_list[i]))
           )
@@ -18971,7 +18971,7 @@ entity *block_find_target(int anim, int iDetect)
                 && !ent_list[i]->dead &&  ent_list[i]->attacking//must be alive
                 && ent_list[i]->animation->attacks && (!ent_list[i]->animation->attacks[ent_list[i]->animpos]
                         || ent_list[i]->animation->attacks[ent_list[i]->animpos]->no_block == 0)
-                && (diffd = (diffx = diff(ent_list[i]->x, self->x)) + (diffz = diff(ent_list[i]->z, self->z))) >= min
+                && (diffd = (diffx = diff(ent_list[i]->position.x, self->position.x)) + (diffz = diff(ent_list[i]->position.z, self->position.z))) >= min
                 && diffd <= max
                 && (ent_list[i]->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
           )
@@ -19019,7 +19019,7 @@ entity *normal_find_target(int anim, int iDetect)
                 && (ent_list[i]->modeldata.type & self->modeldata.hostile)
                 && (anim < 0 || (anim >= 0 && check_range(self, ent_list[i], anim)))
                 && !ent_list[i]->dead //must be alive
-                && (diffd = (diffx = diff(ent_list[i]->x, self->x)) + (diffz = diff(ent_list[i]->z, self->z))) >= min
+                && (diffd = (diffx = diff(ent_list[i]->position.x, self->position.x)) + (diffz = diff(ent_list[i]->position.z, self->position.z))) >= min
                 && diffd <= max
                 && (ent_list[i]->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
           )
@@ -19027,7 +19027,7 @@ entity *normal_find_target(int anim, int iDetect)
 
             if(index < 0 || (index >= 0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1)) ||
                     (
-                        (self->x < ent_list[i]->x) == (self->direction) && // don't turn to the one on the back
+                        (self->position.x < ent_list[i]->position.x) == (self->direction) && // don't turn to the one on the back
                         //ent_list[i]->x >= advancex-10 && ent_list[i]->x<advancex+videomodes.hRes+10 && // don't turn to an offscreen target
                         //ent_list[i]->z >= advancey-10 && ent_list[i]->z<advancey+videomodes.vRes+10 &&
                         diffd < diffo
@@ -19061,7 +19061,7 @@ entity *normal_find_item()
 
         if( ce->exists && normal_test_item(self, ce) )
         {
-            if(index < 0 || diff(ce->x, self->x) + diff(ce->z, self->z) < diff(ent_list[index]->x, self->x) + diff(ent_list[index]->z, self->z))
+            if(index < 0 || diff(ce->position.x, self->position.x) + diff(ce->position.z, self->position.z) < diff(ent_list[index]->position.x, self->position.x) + diff(ent_list[index]->position.z, self->position.z))
             {
                 index = i;
             }
@@ -19172,7 +19172,7 @@ void normal_prepare()
     //check if target is behind, so we can perform a turn back animation
     if(!self->modeldata.noflip)
     {
-        self->direction = (self->x < target->x);
+        self->direction = (self->position.x < target->position.x);
     }
     if(predir != self->direction && validanim(self, ANI_TURN))
 
@@ -19283,14 +19283,14 @@ void common_jump()
 
     if(inair(self))
     {
-        //printf("%f %f %f %d\n", self->base, self->a, self->velocity.a, self->landed_on_platform);
+        //printf("%f %f %f %d\n", self->base, self->position.a, self->velocity.a, self->landed_on_platform);
         return;
     }
 
     if(self->velocity.a <= 0) // wait if it is still go up
     {
         self->velocity.a = 0;
-        self->a = self->base;
+        self->position.a = self->base;
 
         self->jumping = 0;
         self->attacking = 0;
@@ -19308,10 +19308,10 @@ void common_jump()
             ent_set_anim(self, ANI_JUMPLAND, 0);
             if(self->modeldata.dust[1] >= 0)
             {
-                dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[1], NULL);
+                dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, self->modeldata.dust[1], NULL);
                 if(dust)
                 {
-                    dust->base = self->a;
+                    dust->base = self->position.a;
                     dust->autokill = 2;
                     execute_onspawn_script(dust);
                 }
@@ -19321,10 +19321,10 @@ void common_jump()
         {
             if(self->modeldata.dust[1] >= 0 && self->animation->landframe.frame == -1)
             {
-                dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[1], NULL);
+                dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, self->modeldata.dust[1], NULL);
                 if(dust)
                 {
-                    dust->base = self->a;
+                    dust->base = self->position.a;
                     dust->autokill = 2;
                     execute_onspawn_script(dust);
                 }
@@ -19472,7 +19472,7 @@ void common_try_riseattack()
 
     if(target)
     {
-        self->direction = (target->x > self->x);    // Stands up and swings in the right direction depending on chosen target
+        self->direction = (target->position.x > self->position.x);    // Stands up and swings in the right direction depending on chosen target
         set_riseattack(self, self->damagetype, 0);
     }
 }
@@ -19523,7 +19523,7 @@ void common_lie()
         return;
     }
 
-    if(time < self->stalltime || self->a != self->base || self->velocity.a)
+    if(time < self->stalltime || self->position.a != self->base || self->velocity.a)
     {
         return;
     }
@@ -19643,7 +19643,7 @@ void dovault()
     self->link->velocity.x = self->link->velocity.z = self->velocity.x = self->velocity.z = 0;
 
     self->attacking = 1;
-    self->x = other->x;
+    self->position.x = other->position.x;
 
     if(other->animation->height)
     {
@@ -19670,7 +19670,7 @@ void common_grab_check()
 
     if(self->base != other->base)
     {
-        // Change this from ->a to ->base
+        // Change this from ->position.a to ->base
         self->takeaction = NULL;
         ent_unlink(self);
         set_idle(self);
@@ -19824,7 +19824,7 @@ entity *drop_item(entity *e)
     p.index = e->item;
     p.itemindex = p.weaponindex = -1;
     strcpy(p.alias, e->itemalias);
-    p.a = e->a + 0.01; // for check, or an enemy "item" will drop from the sky
+    p.a = e->position.a + 0.01; // for check, or an enemy "item" will drop from the sky
     p.health[0] = e->itemhealth;
     p.alpha = e->itemtrans;
     p.colourmap = e->itemmap;
@@ -19834,25 +19834,25 @@ entity *drop_item(entity *e)
 
     if(item)
     {
-        item->x = e->x;
-        item->z = e->z;
-        if(item->x < advancex)
+        item->position.x = e->position.x;
+        item->position.z = e->position.z;
+        if(item->position.x < advancex)
         {
-            item->x = advancex + 10;
+            item->position.x = advancex + 10;
         }
-        else if(item->x > advancex + videomodes.hRes)
+        else if(item->position.x > advancex + videomodes.hRes)
         {
-            item->x = advancex + videomodes.hRes - 10;
+            item->position.x = advancex + videomodes.hRes - 10;
         }
         if(!(level->scrolldir & (SCROLL_UP | SCROLL_DOWN)))
         {
-            if(item->z - item->a < advancey)
+            if(item->position.z - item->position.a < advancey)
             {
-                item->z = advancey + 10;
+                item->position.z = advancey + 10;
             }
-            else if(item->z - item->a > advancey + videomodes.vRes)
+            else if(item->position.z - item->position.a > advancey + videomodes.vRes)
             {
-                item->z = advancey + videomodes.vRes - 10;
+                item->position.z = advancey + videomodes.vRes - 10;
             }
         }
         if(e->boss && (item->modeldata.type & TYPE_ENEMY))
@@ -19880,7 +19880,7 @@ entity *drop_driver(entity *e)
     {
         return NULL;    // should not happen, just in case
     }
-    /*p.x = e->x - advancex; p.z = e->z; */p.a = e->a + 10;
+    /*p.x = e->position.x - advancex; p.z = e->position.z; */p.a = e->position.a + 10;
     p.itemindex = e->item;
     p.weaponindex = -1;
     strcpy(p.itemalias, e->itemalias);
@@ -19899,8 +19899,8 @@ entity *drop_driver(entity *e)
     driver = smartspawn(&p);
     if(driver)
     {
-        driver->x = e->x;
-        driver->z = e->z;
+        driver->position.x = e->position.x;
+        driver->position.z = e->position.z;
     }
     return driver;
 }
@@ -19955,11 +19955,11 @@ void checkdamageflip(entity *other, s_attack *attack)
     {
         if(attack->force_direction == 0)
         {
-            if(self->x < other->x)
+            if(self->position.x < other->position.x)
             {
                 self->direction = 1;
             }
-            else if(self->x > other->x)
+            else if(self->position.x > other->position.x)
             {
                 self->direction = 0;
             }
@@ -20203,7 +20203,7 @@ void checkdamage(entity *other, s_attack *attack)
 
     if (self->health <= 0)                                      //Health at 0?
     {
-        if(!(self->a < PIT_DEPTH || self->lifespancountdown < 0)) //Not a pit death or countdown?
+        if(!(self->position.a < PIT_DEPTH || self->lifespancountdown < 0)) //Not a pit death or countdown?
         {
             if (self->invincible == 2)                          //Invincible type 2?
             {
@@ -20226,7 +20226,7 @@ int checkgrab(entity *other, s_attack *attack)
         if(adjust_grabposition(other, self, attack->grab_distance, attack->grab))
         {
             ents_link(other, self);
-            self->a = other->a;
+            self->position.a = other->position.a;
         }
         else
         {
@@ -20307,7 +20307,7 @@ int common_takedamage(entity *other, s_attack *attack)
     {
         control_rumble(self->playerindex, attack->attack_force * 3);
     }
-    if(self->a <= PIT_DEPTH && self->dead)
+    if(self->position.a <= PIT_DEPTH && self->dead)
     {
         if(self->modeldata.type & TYPE_PLAYER)
         {
@@ -20579,7 +20579,7 @@ int check_attack_chance(entity *target, float min, float max)
         return 1;
     }
 
-    chance1 = MIN(1.0f, (diff(self->x, self->destx) + diff(self->z, self->destz)) / (videomodes.hRes + videomodes.vRes) * move_noatk_factor);
+    chance1 = MIN(1.0f, (diff(self->position.x, self->destx) + diff(self->position.z, self->destz)) / (videomodes.hRes + videomodes.vRes) * move_noatk_factor);
     chance2 = MIN(1.0f, (count_ents(self->modeldata.type) - 1) * group_noatk_factor);
 
     chance = (1.0f - chance1) * (1.0f - chance2);
@@ -20595,7 +20595,7 @@ int check_attack_chance(entity *target, float min, float max)
 
     chance *= (1.0 - self->modeldata.attackthrottle);
 
-    if(self->x < screenx - 10 || self->x > screenx + videomodes.hRes + 10)
+    if(self->position.x < screenx - 10 || self->position.x > screenx + videomodes.hRes + 10)
     {
         chance *= (1.0 - offscreen_noatk_factor);
     }
@@ -20765,10 +20765,10 @@ int common_try_jumpattack(entity *target)
 
             if(self->modeldata.dust[2] >= 0)
             {
-                dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[2], NULL);
+                dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, self->modeldata.dust[2], NULL);
                 if(dust)
                 {
-                    dust->base = self->a;
+                    dust->base = self->position.a;
                     dust->autokill = 2;
                     execute_onspawn_script(dust);
                 }
@@ -20788,7 +20788,7 @@ int common_try_grab(entity *other)
     if( (rand() & 7) == 0 &&
             (validanim(self, ANI_THROW) ||
              validanim(self, ANI_GRAB)) && self->idling &&
-            (other || (other = find_ent_here(self, self->x, self->z, self->modeldata.hostile, NULL))) &&
+            (other || (other = find_ent_here(self, self->position.x, self->position.z, self->modeldata.hostile, NULL))) &&
             trygrab(other))
     {
         return 1;
@@ -20920,9 +20920,9 @@ void npc_warp()
     {
         return;
     }
-    self->z = self->parent->z;
-    self->x = self->parent->x;
-    self->a = self->parent->a;
+    self->position.z = self->parent->position.z;
+    self->position.x = self->parent->position.x;
+    self->position.a = self->parent->position.a;
     self->velocity.x = self->velocity.z = 0;
     self->base = self->parent->base;
     self->velocity.a = 0;
@@ -20943,7 +20943,7 @@ int adjust_grabposition(entity *ent, entity *other, float dist, int grabin)
 {
     float x1, z1, x2, z2, x;
 
-    if(ent->a != other->a)
+    if(ent->position.a != other->position.a)
     {
         return 0;
     }
@@ -20954,28 +20954,28 @@ int adjust_grabposition(entity *ent, entity *other, float dist, int grabin)
 
     if(grabin == 1)
     {
-        x1 = ent->x;
-        z1 = z2 = ent->z;
-        x2 = ent->x + ((other->x > ent->x) ? dist : -dist);
+        x1 = ent->position.x;
+        z1 = z2 = ent->position.z;
+        x2 = ent->position.x + ((other->position.x > ent->position.x) ? dist : -dist);
     }
     else
     {
-        x = (ent->x + other->x) / 2;
-        x1 = x + ((ent->x >= other->x) ? (dist / 2) : (-dist / 2));
-        x2 = x + ((other->x > ent->x) ? (dist / 2) : (-dist / 2));
-        z1 = z2 = (ent->z + other->z) / 2;
+        x = (ent->position.x + other->position.x) / 2;
+        x1 = x + ((ent->position.x >= other->position.x) ? (dist / 2) : (-dist / 2));
+        x2 = x + ((other->position.x > ent->position.x) ? (dist / 2) : (-dist / 2));
+        z1 = z2 = (ent->position.z + other->position.z) / 2;
     }
 
-    if(0 >= testmove(ent, ent->x, ent->z, x1, z1) || 0 >= testmove(other, other->x, other->z, x2, z2))
+    if(0 >= testmove(ent, ent->position.x, ent->position.z, x1, z1) || 0 >= testmove(other, other->position.x, other->position.z, x2, z2))
     {
         return 0;
     }
 
-    ent->x = x1;
-    ent->z = z1;
-    other->x = x2;
-    other->z = z2;
-    //other->a = ent->a;
+    ent->position.x = x1;
+    ent->position.z = z1;
+    other->position.x = x2;
+    other->position.z = z2;
+    //other->position.a = ent->position.a;
     //other->base = ent->base;
     return 1;
 }
@@ -20986,7 +20986,7 @@ int trygrab(entity *other)
     {
         if(self->model->grabflip & 1)
         {
-            self->direction = (self->x < other->x);
+            self->direction = (self->position.x < other->position.x);
         }
 
         set_opponent(other, self);
@@ -21054,7 +21054,7 @@ int common_trymove(float xdir, float zdir)
             (rand() & 7) == 0 &&
             (validanim(self, ANI_THROW) ||
              validanim(self, ANI_GRAB)) && self->idling &&
-            (other = find_ent_here(self, self->x, self->z, self->modeldata.hostile, NULL)))
+            (other = find_ent_here(self, self->position.x, self->position.z, self->modeldata.hostile, NULL)))
     {
         if(trygrab(other))
         {
@@ -21073,15 +21073,15 @@ int common_trymove(float xdir, float zdir)
     	return 1; // just return so we don't have to check twice
     }*/
 
-    x = self->x + xdir;
-    z = self->z + zdir;
+    x = self->position.x + xdir;
+    z = self->position.z + zdir;
     // -----------bounds checking---------------
     // Subjec to Z and out of bounds? Return to level!
     if (self->modeldata.subject_to_minz > 0)
     {
         if(z < PLAYER_MIN_Z)
         {
-            zdir = PLAYER_MIN_Z - self->z;
+            zdir = PLAYER_MIN_Z - self->position.z;
             execute_onblockz_script(self);
         }
     }
@@ -21090,7 +21090,7 @@ int common_trymove(float xdir, float zdir)
     {
         if(z > PLAYER_MAX_Z)
         {
-            zdir = PLAYER_MAX_Z - self->z;
+            zdir = PLAYER_MAX_Z - self->position.z;
             execute_onblockz_script(self);
         }
     }
@@ -21100,12 +21100,12 @@ int common_trymove(float xdir, float zdir)
     {
         if(x < advancex + 10)
         {
-            xdir = advancex + 10 - self->x;
+            xdir = advancex + 10 - self->position.x;
             execute_onblocks_script(self);  //Screen block event.
         }
         else if(x > advancex + (videomodes.hRes - 10))
         {
-            xdir = advancex + (videomodes.hRes - 10) - self->x;
+            xdir = advancex + (videomodes.hRes - 10) - self->position.x;
             execute_onblocks_script(self);  //Screen block event.
         }
     }
@@ -21114,8 +21114,8 @@ int common_trymove(float xdir, float zdir)
     {
         return 0;
     }
-    x = self->x + xdir;
-    z = self->z + zdir;
+    x = self->position.x + xdir;
+    z = self->position.z + zdir;
 
     //-----------end of bounds checking-----------
 
@@ -21128,11 +21128,11 @@ int common_trymove(float xdir, float zdir)
     {
 
         needcheckhole = 1;
-        if(zdir && checkhole(self->x, z) && checkwall(self->x, z) < 0 && !check_platform_below(self->x, z, self->a, self))
+        if(zdir && checkhole(self->position.x, z) && checkwall(self->position.x, z) < 0 && !check_platform_below(self->position.x, z, self->position.a, self))
         {
             zdir = 0;
         }
-        if(xdir && checkhole(x, self->z) && checkwall(x, self->z) < 0 && !check_platform_below(x, self->z, self->a, self))
+        if(xdir && checkhole(x, self->position.z) && checkwall(x, self->position.z) < 0 && !check_platform_below(x, self->position.z, self->position.a, self))
         {
             xdir = 0;
         }
@@ -21142,24 +21142,24 @@ int common_trymove(float xdir, float zdir)
     {
         return 0;
     }
-    x = self->x + xdir;
-    z = self->z + zdir;
+    x = self->position.x + xdir;
+    z = self->position.z + zdir;
     //-----------end of hole checking---------------
 
     //--------------obstacle checking ------------------
     if(self->modeldata.subject_to_obstacle > 0 /*&& !inair(self)*/)
     {
         //TODO, check once instead of twice
-        if((other = find_ent_here(self, x, self->z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
-                (xdir > 0 ? other->x > self->x : other->x < self->x) &&
+        if((other = find_ent_here(self, x, self->position.z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
+                (xdir > 0 ? other->position.x > self->position.x : other->position.x < self->position.x) &&
                 (!other->animation->platform || !other->animation->platform[other->animpos][7]))
         {
             xdir    = 0;
             te = other;
             execute_onblocko_script(self, other);
         }
-        if((other = find_ent_here(self, self->x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
-                (zdir > 0 ? other->z > self->z : other->z < self->z) &&
+        if((other = find_ent_here(self, self->position.x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
+                (zdir > 0 ? other->position.z > self->position.z : other->position.z < self->position.z) &&
                 (!other->animation->platform || !other->animation->platform[other->animpos][7]))
         {
             zdir    = 0;
@@ -21174,8 +21174,8 @@ int common_trymove(float xdir, float zdir)
     {
         return 0;
     }
-    x = self->x + xdir;
-    z = self->z + zdir;
+    x = self->position.x + xdir;
+    z = self->position.z + zdir;
 
     //-----------end of obstacle checking--------------
 
@@ -21193,15 +21193,15 @@ int common_trymove(float xdir, float zdir)
     // Check for obstacles with platform code and adjust base accordingly
     if(self->modeldata.subject_to_platform > 0 )
     {
-        //if(xdir>0 ? other->x>self->x : other->x<self->x) {xdir = 0; }
-        //if(zdir>0 ? other->z>self->z : other->z<self->z) {zdir = 0; }
+        //if(xdir>0 ? other->position.x>self->position.x : other->position.x<self->position.x) {xdir = 0; }
+        //if(zdir>0 ? other->position.z>self->position.z : other->position.z<self->position.z) {zdir = 0; }
         //temporary fix for thin platforms (i.e, offset is not between left and right side)
         // TODO: find the collision position, merge with wall code
-        if(xdir && (other = check_platform_between(x, self->z, self->a, self->a + heightvar, self))  )
+        if(xdir && (other = check_platform_between(x, self->position.z, self->position.a, self->position.a + heightvar, self))  )
         {
             xdir = 0;
         }
-        if(zdir && (other = check_platform_between(self->x, z, self->a, self->a + heightvar, self))  )
+        if(zdir && (other = check_platform_between(self->position.x, z, self->position.a, self->position.a + heightvar, self))  )
         {
             zdir = 0;
         }
@@ -21211,8 +21211,8 @@ int common_trymove(float xdir, float zdir)
     {
         return 0;
     }
-    x = self->x + xdir;
-    z = self->z + zdir;
+    x = self->position.x + xdir;
+    z = self->position.z + zdir;
 
     //-----------end of platform checking------------------
 
@@ -21220,12 +21220,12 @@ int common_trymove(float xdir, float zdir)
     if(self->modeldata.subject_to_wall)
     {
 
-        if(xdir && (wall = checkwall_below(x, self->z, 999999)) >= 0 && level->walls[wall].height > self->a)
+        if(xdir && (wall = checkwall_below(x, self->position.z, 999999)) >= 0 && level->walls[wall].height > self->position.a)
         {
             xdir = 0;
             execute_onblockw_script(self, 1, (double)level->walls[wall].height);
         }
-        if(zdir && (wall = checkwall_below(self->x, z, 999999)) >= 0 && level->walls[wall].height > self->a)
+        if(zdir && (wall = checkwall_below(self->position.x, z, 999999)) >= 0 && level->walls[wall].height > self->position.a)
         {
             zdir = 0;
             execute_onblockw_script(self, 2, (double)level->walls[wall].height);
@@ -21237,8 +21237,8 @@ int common_trymove(float xdir, float zdir)
     {
         return 0;
     }
-    x = self->x + xdir;
-    z = self->z + zdir;
+    x = self->position.x + xdir;
+    z = self->position.z + zdir;
     //----------------end of wall checking--------------
 
     /*
@@ -21254,7 +21254,7 @@ int common_trymove(float xdir, float zdir)
     */
     //xdir = zdir = 0;
     // TODO: should we add some checks in testmove to execute those onblockwhatever scripts?
-    t = testmove(self, self->x, self->z, x, z);
+    t = testmove(self, self->position.x, self->position.z, x, z);
     // extra hole check, only avoid hole while idling
     if(t <= 0 && (t != -2 || needcheckhole))
     {
@@ -21262,8 +21262,8 @@ int common_trymove(float xdir, float zdir)
     }
 
     // do move and return
-    self->x += xdir;
-    self->z += zdir;
+    self->position.x += xdir;
+    self->position.z += zdir;
 
     if(xdir)
     {
@@ -21291,7 +21291,7 @@ void common_runoff()
 
     if(!self->modeldata.noflip)
     {
-        self->direction = (self->x < target->x);
+        self->direction = (self->position.x < target->position.x);
     }
     if(self->direction)
     {
@@ -21316,7 +21316,7 @@ void common_runoff()
 void common_stuck_underneath()
 {
     float heightvar = self->animation->height ? self->animation->height : self->modeldata.height;
-    if(!check_platform_between(self->x, self->z, self->a, self->a + heightvar, self) )
+    if(!check_platform_between(self->position.x, self->position.z, self->position.a, self->position.a + heightvar, self) )
     {
         self->takeaction = NULL;
         set_idle(self);
@@ -21372,12 +21372,12 @@ void common_attack_finish()
 
     target = self->opponent;
 
-    if(target && !self->modeldata.nomove && diff(self->x, target->x) < 80 && (rand32() & 3))
+    if(target && !self->modeldata.nomove && diff(self->position.x, target->position.x) < 80 && (rand32() & 3))
     {
         self->takeaction = NULL;//common_runoff;
-        self->destx = self->x > target->x ? MIN(self->x + 40, target->x + 80) : MAX(self->x - 40, target->x - 80);
-        self->destz = self->z;
-        self->velocity.x = self->x > target->x ? self->modeldata.speed : -self->modeldata.speed;
+        self->destx = self->position.x > target->position.x ? MIN(self->position.x + 40, target->position.x + 80) : MAX(self->position.x - 40, target->position.x - 80);
+        self->destz = self->position.z;
+        self->velocity.x = self->position.x > target->position.x ? self->modeldata.speed : -self->modeldata.speed;
         self->velocity.z = 0;
         adjust_walk_animation(target);
         self->idling = 1;
@@ -21401,7 +21401,7 @@ void common_attack_finish()
 void common_attack_proc()
 {
 
-    if(self->animating || diff(self->a, self->base) >= 4)
+    if(self->animating || diff(self->position.a, self->base) >= 4)
     {
         return;
     }
@@ -21485,32 +21485,32 @@ int common_try_jump()
         rmax = (float)self->modeldata.animation[ANI_JUMP]->range.xmax;
         if(self->direction)
         {
-            xdir = self->x + rmin;
+            xdir = self->position.x + rmin;
         }
         else
         {
-            xdir = self->x - rmin;
+            xdir = self->position.x - rmin;
         }
         //check z jump
         if(self->modeldata.jumpmovez)
         {
-            zdir = self->z + self->velocity.z;
+            zdir = self->position.z + self->velocity.z;
         }
         else
         {
-            zdir = self->z;
+            zdir = self->position.z;
         }
 
         if( (wall = checkwall_below(xdir, zdir, 999999)) >= 0 &&
-                level->walls[wall].height <= self->a + rmax &&
-                !inair(self) && self->a < level->walls[wall].height  )
+                level->walls[wall].height <= self->position.a + rmax &&
+                !inair(self) && self->position.a < level->walls[wall].height  )
         {
             j = 1;
         }
-        else if(checkhole(self->x + (self->direction ? 2 : -2), zdir) &&
-                checkwall(self->x + (self->direction ? 2 : -2), zdir) < 0 &&
-                check_platform (self->x + (self->direction ? 2 : -2), zdir, self) == NULL &&
-                !checkhole(self->x + (self->direction ? rmax : -rmax), zdir))
+        else if(checkhole(self->position.x + (self->direction ? 2 : -2), zdir) &&
+                checkwall(self->position.x + (self->direction ? 2 : -2), zdir) < 0 &&
+                check_platform (self->position.x + (self->direction ? 2 : -2), zdir, self) == NULL &&
+                !checkhole(self->position.x + (self->direction ? rmax : -rmax), zdir))
         {
             j = 1;
         }
@@ -21531,33 +21531,33 @@ int common_try_jump()
         rmax = (float)self->modeldata.animation[ANI_RUNJUMP]->range.xmax;
         if(self->direction)
         {
-            xdir = self->x + rmin;
+            xdir = self->position.x + rmin;
         }
         else
         {
-            xdir = self->x - rmin;
+            xdir = self->position.x - rmin;
         }
         //check z jump
         if(self->modeldata.jumpmovez)
         {
-            zdir = self->z + self->velocity.z;
+            zdir = self->position.z + self->velocity.z;
         }
         else
         {
-            zdir = self->z;
+            zdir = self->position.z;
         }
 
         if( (wall = checkwall_below(xdir, zdir, 999999)) >= 0 &&
-                level->walls[wall].height <= self->a + rmax &&
-                !inair(self) && self->a < level->walls[wall].height  )
+                level->walls[wall].height <= self->position.a + rmax &&
+                !inair(self) && self->position.a < level->walls[wall].height  )
         {
             j = 2;																				//Set to perform runjump.
         }
         //Check for pit in range of RUNJUMP.
-        else if(checkhole(self->x + (self->direction ? 2 : -2), zdir) &&
-                checkwall(self->x + (self->direction ? 2 : -2), zdir) < 0 &&
-                check_platform (self->x + (self->direction ? 2 : -2), zdir, self) == NULL &&
-                !checkhole(self->x + (self->direction ? rmax : -rmax), zdir))
+        else if(checkhole(self->position.x + (self->direction ? 2 : -2), zdir) &&
+                checkwall(self->position.x + (self->direction ? 2 : -2), zdir) < 0 &&
+                check_platform (self->position.x + (self->direction ? 2 : -2), zdir, self) == NULL &&
+                !checkhole(self->position.x + (self->direction ? rmax : -rmax), zdir))
         {
             j = 2;																				//Set to perform runjump.
         }
@@ -21639,12 +21639,12 @@ void adjust_walk_animation(entity *other)
     }
 
     //reset the walk animation
-    if(validanim(self, ANI_UP) && ((!other && testup(self->velocity.x, self->velocity.z)) || (other && testup(other->x - self->x, other->z - self->z))))
+    if(validanim(self, ANI_UP) && ((!other && testup(self->velocity.x, self->velocity.z)) || (other && testup(other->position.x - self->position.x, other->position.z - self->position.z))))
     {
         common_up_anim(self); //ent_set_anim(self, ANI_UP, 0);
         dir = 2;
     }
-    else if(validanim(self, ANI_DOWN) && ((!other && testdown(self->velocity.x, self->velocity.z)) || (other && testdown(other->x - self->x, other->z - self->z))))
+    else if(validanim(self, ANI_DOWN) && ((!other && testdown(self->velocity.x, self->velocity.z)) || (other && testdown(other->position.x - self->position.x, other->position.z - self->position.z))))
     {
         common_down_anim(self); //ent_set_anim(self, ANI_DOWN, 0);
         dir = 3;
@@ -21677,8 +21677,8 @@ int common_try_pick(entity *other)
 {
     // if there's an item to pick up, move towards it.
     float maxspeed = self->modeldata.speed * 1.5;
-    float dx = diff(self->x, other->x);
-    float dz = diff(self->z, other->z);
+    float dx = diff(self->position.x, other->position.x);
+    float dz = diff(self->position.z, other->position.z);
 
     if(other == NULL || self->modeldata.nomove)
     {
@@ -21688,21 +21688,21 @@ int common_try_pick(entity *other)
     if(!dz && !dx)
     {
         self->velocity.x = self->velocity.z = 0;
-        self->destz = self->z;
-        self->destx = self->x;
+        self->destz = self->position.z;
+        self->destx = self->position.x;
     }
     else
     {
         self->velocity.x = maxspeed * dx / (dx + dz);
         self->velocity.z = maxspeed * dz / (dx + dz);
-        self->destx = other->x;
-        self->destz = other->z;
+        self->destx = other->position.x;
+        self->destz = other->position.z;
     }
-    if(self->x > other->x)
+    if(self->position.x > other->position.x)
     {
         self->velocity.x = -self->velocity.x;
     }
-    if(self->z > other->z)
+    if(self->position.z > other->position.z)
     {
         self->velocity.z = -self->velocity.z;
     }
@@ -21738,7 +21738,7 @@ int astar(entity *ent, float destx, float destz, float step, s_axis **wp)
     static float score[8] = {1.0, 1.4, 1.0, 1.4, 1.0, 1.4, 1.0, 1.4};
 
     int sx = astarw / 2, sz = astarh / 2;
-    int dx = sx + (destx - ent->x) / step, dz = sz + (destz - ent->z) / step;
+    int dx = sx + (destx - ent->position.x) / step, dz = sz + (destz - ent->position.z) / step;
 
     *wp = NULL;
     if(dx < 0 || dx >= astarw || dz < 0 || dz >= astarh)
@@ -21789,8 +21789,8 @@ int astar(entity *ent, float destx, float destz, float step, s_axis **wp)
             j = 0;
             while(tx >= 0)
             {
-                (*wp)[j].x = (tx - sx) * step + ent->x;
-                (*wp)[j].z = (tz - sz) * step + ent->z;
+                (*wp)[j].x = (tx - sx) * step + ent->position.x;
+                (*wp)[j].z = (tz - sz) * step + ent->position.z;
                 x = (*came_from)[tx][tz][0];
                 z = (*came_from)[tx][tz][1];
                 tx = x;
@@ -21820,7 +21820,7 @@ int astar(entity *ent, float destx, float destz, float step, s_axis **wp)
                 continue;
             }
 
-            if(!testmove(ent, (x - sx)*step + ent->x, (z - sz)*step + ent->z,  (tx - sx)*step + ent->x, (tz - sz)*step + ent->z))
+            if(!testmove(ent, (x - sx)*step + ent->position.x, (z - sz)*step + ent->position.z,  (tx - sx)*step + ent->position.x, (tz - sz)*step + ent->position.z))
             {
                 // (*closed)[tx][tz] = 1; // don't add that to close list just in case the entity can jump
                 continue;
@@ -22035,8 +22035,8 @@ int checkpathblocked()
         }
 
         //be moo tolerable to PLAYER_MAX_Z and PLAYER_MIN_Z
-        if((self->modeldata.subject_to_maxz && self->velocity.z > 0 && !self->velocity.x && self->velocity.z + self->z > PLAYER_MAX_Z) ||
-                (self->modeldata.subject_to_minz && self->velocity.z < 0 && !self->velocity.x && self->velocity.z + self->z < PLAYER_MIN_Z) )
+        if((self->modeldata.subject_to_maxz && self->velocity.z > 0 && !self->velocity.x && self->velocity.z + self->position.z > PLAYER_MAX_Z) ||
+                (self->modeldata.subject_to_minz && self->velocity.z < 0 && !self->velocity.x && self->velocity.z + self->position.z < PLAYER_MIN_Z) )
         {
             self->velocity.z = -self->velocity.z;
             self->pathblocked = 0;
@@ -22053,8 +22053,8 @@ int checkpathblocked()
 
                 if(target)
                 {
-                    //printf("pathfind: (%f %f)-(%f %f) %d steps\n", self->x, self->z, self->destx, self->destz, pathfind(self, self->destx, self->destz));
-                    if((wpc = astar(self, target->x, target->z, self->modeldata.pathfindstep, &wp)) > 0)
+                    //printf("pathfind: (%f %f)-(%f %f) %d steps\n", self->position.x, self->position.z, self->destx, self->destz, pathfind(self, self->destx, self->destz));
+                    if((wpc = astar(self, target->position.x, target->position.z, self->modeldata.pathfindstep, &wp)) > 0)
                     {
                         //printf("wp %d\n", wp);
                         self->numwaypoints = wpc;
@@ -22113,27 +22113,27 @@ int checkpathblocked()
 
             if(self->velocity.z > 0)
             {
-                self->destz = self->z + 40;
+                self->destz = self->position.z + 40;
             }
             else if(self->velocity.z < 0)
             {
-                self->destz = self->z - 40;
+                self->destz = self->position.z - 40;
             }
             else
             {
-                self->destz = self->z;
+                self->destz = self->position.z;
             }
             if(self->velocity.x > 0)
             {
-                self->destx = self->x + 40;
+                self->destx = self->position.x + 40;
             }
             else if(self->velocity.x < 0)
             {
-                self->destx = self->x - 40;
+                self->destx = self->position.x - 40;
             }
             else
             {
-                self->destx = self->x;
+                self->destx = self->position.x;
             }
 
             return 1;
@@ -22155,7 +22155,7 @@ int common_try_chase(entity *target, int dox, int doz)
 
     self->running = 0;
 
-    //adjustspeed(self->modeldata.speed, self->x, self->z, self->x + self->velocity.x, self->z + self->velocity.z, &self->velocity.x, &self->velocity.z);
+    //adjustspeed(self->modeldata.speed, self->position.x, self->position.z, self->position.x + self->velocity.x, self->position.z + self->velocity.z, &self->velocity.x, &self->velocity.z);
 
     if(target == NULL || self->modeldata.nomove)
     {
@@ -22184,15 +22184,15 @@ int common_try_chase(entity *target, int dox, int doz)
 
     if(dox)
     {
-        if(self->x > target->x)
+        if(self->position.x > target->position.x)
         {
-            self->destx = target->x + range - 1;
+            self->destx = target->position.x + range - 1;
         }
         else
         {
-            self->destx = target->x - range + 1;
+            self->destx = target->position.x - range + 1;
         }
-        dx = diff(self->x, self->destx);
+        dx = diff(self->position.x, self->destx);
 
         if(dx > 150 && validanim(self, ANI_RUN))
         {
@@ -22203,7 +22203,7 @@ int common_try_chase(entity *target, int dox, int doz)
         {
             self->velocity.x = self->modeldata.speed;
         }
-        if(self->destx < self->x)
+        if(self->destx < self->position.x)
         {
             self->velocity.x = -self->velocity.x;
         }
@@ -22211,8 +22211,8 @@ int common_try_chase(entity *target, int dox, int doz)
 
     if(doz)
     {
-        self->destz = target->z ;
-        dz = diff(self->z, self->destz);
+        self->destz = target->position.z ;
+        dz = diff(self->position.z, self->destz);
 
         if(dz > 100 && self->modeldata.runupdown && validanim(self, ANI_RUN))
         {
@@ -22223,7 +22223,7 @@ int common_try_chase(entity *target, int dox, int doz)
         {
             self->velocity.z = self->modeldata.speed / 2;
         }
-        if(self->destz < self->z)
+        if(self->destz < self->position.z)
         {
             self->velocity.z = -self->velocity.z;
         }
@@ -22253,10 +22253,10 @@ int common_try_follow(entity *target, int dox, int doz)
         distance = 100.0;
     }
 
-    facing = (self->direction ? self->x < target->x : self->x > target->x);
+    facing = (self->direction ? self->position.x < target->position.x : self->position.x > target->position.x);
 
-    dx = diff(self->x, target->x);
-    dz = diff(self->z, target->z);
+    dx = diff(self->position.x, target->position.x);
+    dz = diff(self->position.z, target->position.z);
 
     if(dox && dx < distance)
     {
@@ -22290,11 +22290,11 @@ int common_try_follow(entity *target, int dox, int doz)
             self->velocity.x = self->modeldata.speed;
             self->running = 0;
         }
-        if(self->x > target->x)
+        if(self->position.x > target->position.x)
         {
             self->velocity.x = -self->velocity.x;
         }
-        self->destx = target->x;
+        self->destx = target->position.x;
     }
 
     if(doz && mz)
@@ -22309,11 +22309,11 @@ int common_try_follow(entity *target, int dox, int doz)
             self->velocity.z = self->modeldata.speed / 2;
             self->running = 0; // not right, to be modified
         }
-        if(self->z > target->z)
+        if(self->position.z > target->position.z)
         {
             self->velocity.z = -self->velocity.z;
         }
-        self->destz = target->z;
+        self->destz = target->position.z;
     }
 
 
@@ -22334,8 +22334,8 @@ int common_try_avoid(entity *target, int dox, int doz)
         return 0;
     }
 
-    dx = diff(self->x, target->x);
-    dz = diff(self->z, target->z);
+    dx = diff(self->position.x, target->position.x);
+    dz = diff(self->position.z, target->position.z);
 
     randomatk = pick_random_attack(NULL, 0);
 
@@ -22364,59 +22364,59 @@ int common_try_avoid(entity *target, int dox, int doz)
 
     if(dox)
     {
-        if(self->x < screenx)
+        if(self->position.x < screenx)
         {
             self->velocity.x = self->modeldata.speed;
             self->destx = screenx + videomodes.hRes / 12.0;
         }
-        else if(self->x > screenx + videomodes.hRes)
+        else if(self->position.x > screenx + videomodes.hRes)
         {
             self->velocity.x = -self->modeldata.speed;
             self->destx = screenx + videomodes.hRes * 11.0 / 12.0;
         }
         else if(dx < mindx)
         {
-            self->velocity.x = (self->x < target->x) ? (-self->modeldata.speed) : self->modeldata.speed;
-            self->destx = (self->x < target->x) ? (target->x - maxdx) : (target->x + maxdx);
+            self->velocity.x = (self->position.x < target->position.x) ? (-self->modeldata.speed) : self->modeldata.speed;
+            self->destx = (self->position.x < target->position.x) ? (target->position.x - maxdx) : (target->position.x + maxdx);
         }
         else if (dx > maxdx)
         {
-            self->velocity.x = (self->x < target->x) ? self->modeldata.speed : (-self->modeldata.speed);
-            self->destx = (self->x < target->x) ? (target->x - mindx) : (target->x + mindx);
+            self->velocity.x = (self->position.x < target->position.x) ? self->modeldata.speed : (-self->modeldata.speed);
+            self->destx = (self->position.x < target->position.x) ? (target->position.x - mindx) : (target->position.x + mindx);
         }
         else
         {
             self->velocity.x = 0;
-            self->destx = self->x;
+            self->destx = self->position.x;
         }
     }
 
     if(doz)
     {
-        if(self->z < screeny)
+        if(self->position.z < screeny)
         {
             self->velocity.z = self->modeldata.speed / 2;
             self->destz = screeny +  videomodes.vRes / 12.0;
         }
-        else if(self->z > screeny + videomodes.vRes)
+        else if(self->position.z > screeny + videomodes.vRes)
         {
             self->velocity.z = -self->modeldata.speed / 2;
             self->destz = screeny +  videomodes.vRes * 11.0 / 12.0;
         }
         else if(dz < mindz)
         {
-            self->velocity.z = (self->z < target->z) ? (-self->modeldata.speed / 2) : (self->modeldata.speed / 2);
-            self->destz = (self->z < target->z) ? (target->z - maxdz) : (target->z + maxdz);
+            self->velocity.z = (self->position.z < target->position.z) ? (-self->modeldata.speed / 2) : (self->modeldata.speed / 2);
+            self->destz = (self->position.z < target->position.z) ? (target->position.z - maxdz) : (target->position.z + maxdz);
         }
         else if(dz > maxdz)
         {
-            self->velocity.z = (self->z < target->z) ? (self->modeldata.speed / 2) : (-self->modeldata.speed / 2);
-            self->destz = (self->z < target->z) ? (target->z - mindz) : (target->z + mindz);
+            self->velocity.z = (self->position.z < target->position.z) ? (self->modeldata.speed / 2) : (-self->modeldata.speed / 2);
+            self->destz = (self->position.z < target->position.z) ? (target->position.z - mindz) : (target->position.z + mindz);
         }
         else
         {
             self->velocity.z = 0;
-            self->destz = self->z;
+            self->destz = self->position.z;
         }
     }
 
@@ -22451,26 +22451,26 @@ int common_try_wandercompletely(int dox, int doz)
         {
             self->velocity.x = 0;
         }
-        if( self->x < screenx - 10)
+        if( self->position.x < screenx - 10)
         {
             self->velocity.x = self->modeldata.speed;
         }
-        else if(self->x > screenx + videomodes.hRes + 10)
+        else if(self->position.x > screenx + videomodes.hRes + 10)
         {
             self->velocity.x = -self->modeldata.speed;
         }
 
         if(self->velocity.x > 0)
         {
-            self->destx = self->x + videomodes.hRes / 5;
+            self->destx = self->position.x + videomodes.hRes / 5;
         }
         else if(self->velocity.x < 0)
         {
-            self->destx = self->x - videomodes.hRes / 5;
+            self->destx = self->position.x - videomodes.hRes / 5;
         }
         else
         {
-            self->destx = self->x;
+            self->destx = self->position.x;
         }
 
     }
@@ -22489,26 +22489,26 @@ int common_try_wandercompletely(int dox, int doz)
         {
             self->velocity.z = 0;
         }
-        if(self->z < screeny - 10)
+        if(self->position.z < screeny - 10)
         {
             self->velocity.z = self->modeldata.speed / 2;
         }
-        else if(self->z > screeny + videomodes.vRes + 10)
+        else if(self->position.z > screeny + videomodes.vRes + 10)
         {
             self->velocity.z = -self->modeldata.speed / 2;
         }
 
         if(self->velocity.z > 0)
         {
-            self->destz = self->z + videomodes.vRes / 5;
+            self->destz = self->position.z + videomodes.vRes / 5;
         }
         else if(self->velocity.z < 0)
         {
-            self->destz = self->z - videomodes.vRes / 5;
+            self->destz = self->position.z - videomodes.vRes / 5;
         }
         else
         {
-            self->destz = self->z;
+            self->destz = self->position.z;
         }
 
     }
@@ -22587,9 +22587,9 @@ int common_try_wander(entity *target, int dox, int doz)
         return 0;
     }
 
-    diffx = diff(self->x, target->x);
-    diffz = diff(self->z, target->z);
-    behind = ((self->x < target->x) == target->direction);
+    diffx = diff(self->position.x, target->position.x);
+    diffz = diff(self->position.z, target->position.z);
+    behind = ((self->position.x < target->position.x) == target->direction);
     grabd = self->modeldata.grabdistance;
     //when entity is behind the target, it has a greater chance to go after the target
     if(behind && diffx < grabd * 4 && diffz < grabd) //right behind, go for it
@@ -22660,13 +22660,13 @@ int common_try_wander(entity *target, int dox, int doz)
 
     if(dox)
     {
-        if(self->x < screenx - borderdx)
+        if(self->position.x < screenx - borderdx)
         {
             self->velocity.x = self->modeldata.speed;
             self->destx = screenx + videomodes.hRes / 8.0;
             walk = 1;
         }
-        else if (self->x > screenx + videomodes.hRes + borderdx)
+        else if (self->position.x > screenx + videomodes.hRes + borderdx)
         {
             self->velocity.x = -self->modeldata.speed;
             self->destx = screenx + videomodes.hRes * 7.0 / 8.0;
@@ -22674,8 +22674,8 @@ int common_try_wander(entity *target, int dox, int doz)
         }
         else if(diffx > returndx)
         {
-            self->velocity.x = (self->x > target->x) ? -self->modeldata.speed : self->modeldata.speed;
-            self->destx = (self->x > target->x) ? (target->x + mindx) : (target->x - mindx);
+            self->velocity.x = (self->position.x > target->position.x) ? -self->modeldata.speed : self->modeldata.speed;
+            self->destx = (self->position.x > target->position.x) ? (target->position.x + mindx) : (target->position.x - mindx);
             walk = 1;
         }
         else
@@ -22683,19 +22683,19 @@ int common_try_wander(entity *target, int dox, int doz)
             switch(mod)
             {
             case 0:
-                self->destx = target->x + grabd;
+                self->destx = target->position.x + grabd;
                 break;
             case 2:
-                self->destx = target->x - grabd;
+                self->destx = target->position.x - grabd;
                 break;
             case 1:
-                self->destx = target->x + videomodes.hRes * 0.4 + (self->health / 3 % 20);
+                self->destx = target->position.x + videomodes.hRes * 0.4 + (self->health / 3 % 20);
                 break;
             case 3:
-                self->destx = target->x - videomodes.hRes * 0.4 - (self->health / 3 % 20);;
+                self->destx = target->position.x - videomodes.hRes * 0.4 - (self->health / 3 % 20);;
                 break;
             }
-            self->velocity.x = self->x > self->destx ? -self->modeldata.speed : self->modeldata.speed;
+            self->velocity.x = self->position.x > self->destx ? -self->modeldata.speed : self->modeldata.speed;
             walk = 1;
             //printf("mod x %d\n", mod);
         }
@@ -22703,13 +22703,13 @@ int common_try_wander(entity *target, int dox, int doz)
 
     if(doz)
     {
-        if(self->z < screeny - borderdz)
+        if(self->position.z < screeny - borderdz)
         {
             self->velocity.z = self->modeldata.speed / 2;
             self->destz = screeny + videomodes.vRes / 12.0;
             walk |= 1;
         }
-        else if (self->z > screeny + videomodes.vRes + borderdz)
+        else if (self->position.z > screeny + videomodes.vRes + borderdz)
         {
             self->velocity.z = -self->modeldata.speed / 2;
             self->destz = screeny + videomodes.vRes * 11.0 / 12.0;
@@ -22717,8 +22717,8 @@ int common_try_wander(entity *target, int dox, int doz)
         }
         else if(diffz > returndz)
         {
-            self->velocity.z = (self->z > target->z) ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
-            self->destz = (self->z > target->z) ? (target->z + mindz) : (target->z - mindz);
+            self->velocity.z = (self->position.z > target->position.z) ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
+            self->destz = (self->position.z > target->position.z) ? (target->position.z + mindz) : (target->position.z - mindz);
             walk |= 1;
         }
         else
@@ -22726,19 +22726,19 @@ int common_try_wander(entity *target, int dox, int doz)
             switch(mod)
             {
             case 1:
-                self->destz = target->z + grabd / 2;
+                self->destz = target->position.z + grabd / 2;
                 break;
             case 3:
-                self->destz = target->z - grabd / 2;
+                self->destz = target->position.z - grabd / 2;
                 break;
             case 2:
-                self->destz = target->z + MIN((PLAYER_MAX_Z - PLAYER_MIN_Z), videomodes.vRes) * 0.25 + (self->health / 3 % 5);
+                self->destz = target->position.z + MIN((PLAYER_MAX_Z - PLAYER_MIN_Z), videomodes.vRes) * 0.25 + (self->health / 3 % 5);
                 break;
             case 0:
-                self->destz = target->z - MIN((PLAYER_MAX_Z - PLAYER_MIN_Z), videomodes.vRes) * 0.25 - (self->health / 3 % 5);
+                self->destz = target->position.z - MIN((PLAYER_MAX_Z - PLAYER_MIN_Z), videomodes.vRes) * 0.25 - (self->health / 3 % 5);
                 break;
             }
-            self->velocity.z = self->z > self->destz ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
+            self->velocity.z = self->position.z > self->destz ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
             walk |= 1;
             //printf("mod z %d\n", mod);
         }
@@ -22763,8 +22763,8 @@ void common_pickupitem(entity *other)
         if(self->modeldata.animal)  // UTunnels: well, ride, not get. :)
         {
             self->direction = other->direction;
-            self->x = other->x;
-            self->z = other->z;
+            self->position.x = other->position.x;
+            self->position.z = other->position.z;
         }
         other->nextanim = other->nextthink = time + GAME_SPEED * 999999;
         ent_set_anim(self, ANI_GET, 0);
@@ -22812,7 +22812,7 @@ void common_pickupitem(entity *other)
     if(pickup)
     {
         execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
-        other->z = 100000;
+        other->position.z = 100000;
     }
 }
 
@@ -22820,11 +22820,11 @@ void common_pickupitem(entity *other)
 int biker_move()
 {
 
-    if((self->direction) ? (self->x > advancex + (videomodes.hRes + 200)) : (self->x < advancex - 200))
+    if((self->direction) ? (self->position.x > advancex + (videomodes.hRes + 200)) : (self->position.x < advancex - 200))
     {
         self->direction = !self->direction;
         self->attack_id = 0;
-        self->z = (float)(PLAYER_MIN_Z + randf((float)(PLAYER_MAX_Z - PLAYER_MIN_Z)));
+        self->position.z = (float)(PLAYER_MIN_Z + randf((float)(PLAYER_MAX_Z - PLAYER_MIN_Z)));
         if(SAMPLE_BIKE >= 0)
         {
             sound_play_sample(SAMPLE_BIKE, 0, savedata.effectvol, savedata.effectvol, 100);
@@ -22860,11 +22860,11 @@ int arrow_move()
         {
             if(!self->modeldata.noflip)
             {
-                self->direction = (target->x > self->x);
+                self->direction = (target->position.x > self->position.x);
             }
             // start chasing the target
-            dx = diff(self->x, target->x);
-            dz = diff(self->z, target->z);
+            dx = diff(self->position.x, target->position.x);
+            dz = diff(self->position.z, target->position.z);
             maxspeed = self->modeldata.speed * 1.5;
 
             if(!dz && !dx)
@@ -22880,7 +22880,7 @@ int arrow_move()
             {
                 self->velocity.x = -self->velocity.x;
             }
-            if(self->z > target->z)
+            if(self->position.z > target->position.z)
             {
                 self->velocity.z = -self->velocity.z;
             }
@@ -22901,11 +22901,11 @@ int arrow_move()
         }
         if(!self->modeldata.nomove)
         {
-            if(target && self->z > target->z && validanim(self, ANI_UP))
+            if(target && self->position.z > target->position.z && validanim(self, ANI_UP))
             {
                 common_up_anim(self);    //ent_set_anim(self, ANI_UP, 0);
             }
-            else if(target && target->z > self->z && validanim(self, ANI_DOWN))
+            else if(target && target->position.z > self->position.z && validanim(self, ANI_DOWN))
             {
                 common_down_anim(self);    //ent_set_anim(self, ANI_DOWN, 0);
             }
@@ -22934,7 +22934,7 @@ int arrow_move()
 
     if(level)
     {
-        if(self->modeldata.subject_to_wall && (wall = checkwall(self->x, self->z)) >= 0 && self->a < level->walls[wall].height)
+        if(self->modeldata.subject_to_wall && (wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.a < level->walls[wall].height)
         {
             // Added so projectiles bounce off blocked exits
             if(validanim(self, ANI_FALL))
@@ -22983,7 +22983,7 @@ int bomb_move()
         self->takeaction = bomb_explode;
         self->velocity.a = 0;    // Stop moving up/down
         self->modeldata.no_adjust_base = 1;    // Stop moving up/down
-        self->base = self->a;
+        self->base = self->position.a;
         self->velocity.x = self->velocity.z = 0;
 
         if(self->modeldata.diesound >= 0)
@@ -23014,18 +23014,18 @@ int star_move()
 {
     int wall;
 
-    if(self->x < advancex - 80 || self->x > advancex + (videomodes.hRes + 80) || (self->base <= 0 && !self->modeldata.falldie))
+    if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80) || (self->base <= 0 && !self->modeldata.falldie))
     {
         kill(self);
         return 0;
     }
 
     self->base -= 4;
-    self->a = self->base;
+    self->position.a = self->base;
 
     if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
     {
-        if((wall = checkwall(self->x, self->z)) >= 0 && self->a < level->walls[wall].height)
+        if((wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.a < level->walls[wall].height)
         {
             self->takeaction = common_fall;
             self->attacking = 0;
@@ -23132,15 +23132,15 @@ int common_move()
         {
             if(other)   //try to pick up an item, if possible
             {
-                self->direction = (self->x < other->x);
+                self->direction = (self->position.x < other->position.x);
             }
             else if(target)
             {
-                self->direction = (self->x < target->x);
+                self->direction = (self->position.x < target->position.x);
             }
             else if(owner)
             {
-                self->direction = (self->x < owner->x);
+                self->direction = (self->position.x < owner->position.x);
             }
         }
         else if(aimove == AIMOVE1_WANDER)
@@ -23163,11 +23163,11 @@ int common_move()
         }
 
         //pick up the item if possible
-        if(other && diff(other->x, self->x) < (self->modeldata.grabdistance * 0.83333)
-                && diff(other->z, self->z) < (self->modeldata.grabdistance / 3) &&
+        if(other && diff(other->position.x, self->position.x) < (self->modeldata.grabdistance * 0.83333)
+                && diff(other->position.z, self->position.z) < (self->modeldata.grabdistance / 3) &&
                 other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
         {
-            if(diff(self->base, other->a) < 0.1)
+            if(diff(self->base, other->position.a) < 0.1)
             {
                 common_pickupitem(other);
                 return 1;
@@ -23360,25 +23360,25 @@ int common_move()
             self->running = 0;
         }
 
-        if(self->direction == (self->destx < self->x))
+        if(self->direction == (self->destx < self->position.x))
         {
             self->running = 0;
         }
 
         // make the entity walks in a straight path instead of flickering here and there
         // acceleration can be added easily based on this logic, if necessary
-        adjustspeed(self->running ? self->modeldata.runspeed : self->modeldata.speed, self->x, self->z, self->destx, self->destz, &self->velocity.x, &self->velocity.z);
+        adjustspeed(self->running ? self->modeldata.runspeed : self->modeldata.speed, self->position.x, self->position.z, self->destx, self->destz, &self->velocity.x, &self->velocity.z);
 
         // fix running animation, if the model doesn't allow running updown then set zdir to 0
         if(self->running && !self->modeldata.runupdown)
         {
             self->velocity.z = 0;
-            self->destz = self->z;
+            self->destz = self->position.z;
         }
 
         // check destination point to make a stop or pop a waypoint from the stack
-        reachx = (diff(self->x, self->destx) < MAX(1, ABS(self->velocity.x)));
-        reachz = (diff(self->z, self->destz) < MAX(1, ABS(self->velocity.z)));
+        reachx = (diff(self->position.x, self->destx) < MAX(1, ABS(self->velocity.x)));
+        reachz = (diff(self->position.z, self->destz) < MAX(1, ABS(self->velocity.z)));
 
         // check destination point to make a stop or pop a waypoint from the stack
         if(reachx && reachz)
@@ -23400,12 +23400,12 @@ int common_move()
             if(reachx)
             {
                 self->velocity.x = 0;
-                self->destx = self->x;
+                self->destx = self->position.x;
             }
             if(reachz)
             {
                 self->velocity.z = 0;
-                self->destz = self->z;
+                self->destz = self->position.z;
             }
         }
 
@@ -23434,11 +23434,11 @@ int common_move()
             {
                 if(ABS(self->velocity.x) > ABS(self->velocity.z))
                 {
-                    stall = diff(self->destx, self->x) / ABS(self->velocity.x) * 2;
+                    stall = diff(self->destx, self->position.x) / ABS(self->velocity.x) * 2;
                 }
                 else if(self->velocity.z)
                 {
-                    stall = diff(self->destz, self->z) / ABS(self->velocity.z) * 2;
+                    stall = diff(self->destz, self->position.z) / ABS(self->velocity.z) * 2;
                 }
                 else
                 {
@@ -23503,7 +23503,7 @@ void decide_stalker()
 
         if(ent->exists && !ent->dead && (ent->modeldata.type & TYPE_ENEMY))
         {
-            if(ent->x > firstplayer->x)
+            if(ent->position.x > firstplayer->position.x)
             {
                 r++;
             }
@@ -23512,7 +23512,7 @@ void decide_stalker()
                 l++;
             }
 
-            if((z = diff(ent->z, firstplayer->z)) >= maxz &&
+            if((z = diff(ent->position.z, firstplayer->position.z)) >= maxz &&
                     (ent->modeldata.aimove == 0 || (ent->modeldata.aimove & AIMOVE1_CHASE))) // 2 mostly used type
             {
                 maxz = z;
@@ -23567,7 +23567,7 @@ void checkstalker()
     self->velocity.x = maxspeed;
     self->velocity.z = 0;
 
-    if(self->x > firstplayer->x)
+    if(self->position.x > firstplayer->position.x)
     {
         self->velocity.x = -self->velocity.x;
     }
@@ -23575,7 +23575,7 @@ void checkstalker()
     self->running = running;
 
 
-    self->stalltime = time + (diff(self->x, firstplayer->x) + 150) / maxspeed * THINK_SPEED;
+    self->stalltime = time + (diff(self->position.x, firstplayer->position.x) + 150) / maxspeed * THINK_SPEED;
 
     adjust_walk_animation(firstplayer);
 
@@ -23597,8 +23597,8 @@ int ai_check_warp()
     }
 
     if(self->modeldata.subtype == SUBTYPE_FOLLOW && self->parent &&
-            (diff(self->z, self->parent->z) > self->modeldata.animation[ANI_IDLE]->range.xmax ||
-             diff(self->x, self->parent->x) > self->modeldata.animation[ANI_IDLE]->range.xmax) )
+            (diff(self->position.z, self->parent->position.z) > self->modeldata.animation[ANI_IDLE]->range.xmax ||
+             diff(self->position.x, self->parent->position.x) > self->modeldata.animation[ANI_IDLE]->range.xmax) )
     {
         self->takeaction = npc_warp;
         return 1;
@@ -23608,7 +23608,7 @@ int ai_check_warp()
 
 int ai_check_lie()
 {
-    if(self->drop && self->a == self->base && !self->velocity.a && validanim(self, ANI_RISEATTACK) && ((rand32() % (self->stalltime - time + 1)) < 3) && (self->health > 0 && time > self->staydown.riseattack_stall))
+    if(self->drop && self->position.a == self->base && !self->velocity.a && validanim(self, ANI_RISEATTACK) && ((rand32() % (self->stalltime - time + 1)) < 3) && (self->health > 0 && time > self->staydown.riseattack_stall))
     {
         common_try_riseattack();
         return 1;
@@ -23964,7 +23964,7 @@ void runanimal()
     common_walk_anim(self);
     //ent_set_anim(self, ANI_WALK, 0);
 
-    if(self->x < advancex - 80 || self->x > advancex + (videomodes.hRes + 80))
+    if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80))
     {
         kill(self);
         return;
@@ -23972,11 +23972,11 @@ void runanimal()
 
     if(self->direction)
     {
-        self->x += self->modeldata.speed;
+        self->position.x += self->modeldata.speed;
     }
     else
     {
-        self->x -= self->modeldata.speed;
+        self->position.x -= self->modeldata.speed;
     }
 }
 
@@ -24040,15 +24040,15 @@ void common_vault()
         self->link->takeaction = common_grabbed;
         self->attacking = 0;
         self->direction = !self->direction;
-        self->a = self->base = self->link->base;
+        self->position.a = self->base = self->link->base;
 
         if(self->direction)
         {
-            self->x = self->link->x - self->modeldata.grabdistance;
+            self->position.x = self->link->position.x - self->modeldata.grabdistance;
         }
         else
         {
-            self->x = self->link->x + self->modeldata.grabdistance;
+            self->position.x = self->link->position.x + self->modeldata.grabdistance;
         }
 
         ent_set_anim(self, ANI_GRAB, 0);
@@ -24120,10 +24120,10 @@ void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
     //Spawn jumpstart dust.
     if(self->modeldata.dust[2] >= 0)
     {
-        dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[2], NULL);
+        dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, self->modeldata.dust[2], NULL);
         if(dust)
         {
-            dust->base = self->a;
+            dust->base = self->position.a;
             dust->autokill = 2;
             execute_onspawn_script(dust);
         }
@@ -24254,8 +24254,8 @@ void didfind_item(entity *other)
         if(self->modeldata.animal)  // UTunnels: well, ride, not get. :)
         {
             self->direction = other->direction;
-            self->x = other->x;
-            self->z = other->z;
+            self->position.x = other->position.x;
+            self->position.z = other->position.z;
         }
 
         if(!other->modeldata.typeshot && self->modeldata.typeshot)
@@ -24317,7 +24317,7 @@ void didfind_item(entity *other)
     {
         other->nextthink = other->nextanim = time + GAME_SPEED * 999999;
     }
-    other->z = 100000;
+    other->position.z = 100000;
 }
 
 void player_fall_check()
@@ -24339,7 +24339,7 @@ void player_grab_check()
 
     if(self->base != other->base)
     {
-        // Change this from ->a to ->base
+        // Change this from ->position.a to ->base
         self->takeaction = NULL;
         ent_unlink(self);
         set_idle(self);
@@ -24378,7 +24378,7 @@ void player_grab_check()
                 self->direction = 1;
                 other->direction = 0;
             }
-            other->x = self->x + (((self->direction * 2) - 1) * self->modeldata.grabdistance);
+            other->position.x = self->position.x + (((self->direction * 2) - 1) * self->modeldata.grabdistance);
             ent_set_anim(self, ANI_GRAB, 0);
             set_pain(other, -1, 0);
             update_frame(self, self->animation->numframes - 1);
@@ -24412,7 +24412,7 @@ void player_grab_check()
                     ent_set_anim(other, ANI_PAIN, 0);
                 }
                 other->velocity.x = other->velocity.z = self->velocity.x = self->velocity.z = 0;
-                other->x = self->x;
+                other->position.x = self->position.x;
                 return;
             }
 
@@ -24433,7 +24433,7 @@ void player_grab_check()
                 set_pain(other, -1, 0);
                 update_frame(self, self->animation->numframes - 1);
                 update_frame(other, other->animation->numframes - 1);
-                other->x = self->x + (((self->direction * 2) - 1) * self->modeldata.grabdistance);
+                other->position.x = self->position.x + (((self->direction * 2) - 1) * self->modeldata.grabdistance);
             }
         }
         else if(!validanim(self, ANI_GRABWALK) && time > self->releasetime)
@@ -24928,7 +24928,7 @@ int check_combo()
             continue;
         }
         else if(!self->animation->cancel &&
-                (com->cancel || !self->idling || diff(self->a, self->base) > 1) )
+                (com->cancel || !self->idling || diff(self->position.a, self->base) > 1) )
         {
             continue;
         }
@@ -24991,7 +24991,7 @@ void player_think()
     }
 
     // check endlevel item
-    if((other = find_ent_here(self, self->x, self->z, TYPE_ENDLEVEL, NULL)) && diff(self->a, other->a) <= 0.1)
+    if((other = find_ent_here(self, self->position.x, self->position.z, TYPE_ENDLEVEL, NULL)) && diff(self->position.a, other->position.a) <= 0.1)
     {
         if(!reached[0] && !reached[1] && !reached[2] && !reached[3])
         {
@@ -25056,7 +25056,7 @@ void player_think()
         goto endthinkcheck;
     }
 
-    if(self->drop && self->a == self->base && !self->velocity.a)
+    if(self->drop && self->position.a == self->base && !self->velocity.a)
     {
         player_lie_check();
         goto endthinkcheck;
@@ -25072,7 +25072,7 @@ void player_think()
 
     // Check if entity is under a platform
     if(self->modeldata.subject_to_platform > 0 && (heightvar = self->animation->height ? self->animation->height : self->modeldata.height) &&
-            validanim(self, ANI_DUCK) && check_platform_between(self->x, self->z, self->a, self->a + heightvar, self))
+            validanim(self, ANI_DUCK) && check_platform_between(self->position.x, self->position.z, self->position.a, self->position.a + heightvar, self))
     {
         self->idling = 0;
         self->takeaction = common_stuck_underneath;
@@ -25080,7 +25080,7 @@ void player_think()
         goto endthinkcheck;
     }
 
-    altdiff = diff(self->a, self->base);
+    altdiff = diff(self->position.a, self->base);
     notinair = (self->landed_on_platform ? altdiff < 5 : altdiff < 2);
 
     if(pl->playkeys & FLAG_MOVEUP)
@@ -25319,7 +25319,7 @@ void player_think()
             }
         }
 
-        if( validanim(self, ANI_GET) && (other = find_ent_here(self, self->x, self->z, TYPE_ITEM, player_test_pickable)) )
+        if( validanim(self, ANI_GET) && (other = find_ent_here(self, self->position.x, self->position.z, TYPE_ITEM, player_test_pickable)) )
         {
             self->velocity.x = self->velocity.z = 0;
             set_getting(self);
@@ -25675,7 +25675,7 @@ void player_think()
         self->turntime = 0;
     }
 
-    if((other = find_ent_here(self, self->x, self->z, TYPE_ITEM, player_test_touch))  )
+    if((other = find_ent_here(self, self->position.x, self->position.z, TYPE_ITEM, player_test_touch))  )
     {
         execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
         didfind_item(other);    // Added function to clean code up a bit
@@ -25780,16 +25780,16 @@ void dropweapon(int flag)
             {
                 self->weapent->modeldata.counter -= flag;
             }
-            self->weapent->z = self->z;
-            self->weapent->x = self->x;
-            self->weapent->a = self->a;
+            self->weapent->position.z = self->position.z;
+            self->weapent->position.x = self->position.x;
+            self->weapent->position.a = self->position.a;
 
-            other = check_platform(self->weapent->x, self->weapent->z, self);
-            wall = checkwall(self->weapent->x, self->weapent->z);
+            other = check_platform(self->weapent->position.x, self->weapent->position.z, self);
+            wall = checkwall(self->weapent->position.x, self->weapent->position.z);
 
             if(other && other != self->weapent)
             {
-                self->weapent->base += other->a + other->animation->platform[other->animpos][7];
+                self->weapent->base += other->position.a + other->animation->platform[other->animpos][7];
             }
             else if(wall >= 0)
             {
@@ -25993,12 +25993,12 @@ void smart_bomb(entity *e, s_attack *attack)    // New method for smartbombs
 
 void anything_walk()
 {
-    if(self->x < advancex - 80 || self->x > advancex + (videomodes.hRes + 80))
+    if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80))
     {
         kill(self);
         return;
     }
-    //self->x += self->velocity.x;
+    //self->position.x += self->velocity.x;
 }
 
 entity *knife_spawn(char *name, int index, float x, float z, float a, int direction, int type, int map)
@@ -26013,7 +26013,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 0;
-        e->a = a;
+        e->position.a = a;
     }
     else if(self->weapent && self->weapent->modeldata.project >= 0)
     {
@@ -26023,7 +26023,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 0;
-        e->a = a;
+        e->position.a = a;
     }
     else if(self->animation->custknife >= 0)
     {
@@ -26033,7 +26033,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 0;
-        e->a = a;
+        e->position.a = a;
     }
     else if(self->animation->custpshotno >= 0)
     {
@@ -26043,7 +26043,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 1;
-        e->a = 0;
+        e->position.a = 0;
     }
     else if(self->modeldata.knife >= 0)
     {
@@ -26053,7 +26053,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 0;
-        e->a = a;
+        e->position.a = a;
     }
     else if(self->modeldata.pshotno >= 0)
     {
@@ -26063,7 +26063,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 1;
-        e->a = 0;
+        e->position.a = 0;
     }
     else if(type)
     {
@@ -26073,7 +26073,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 0;
-        e->a = a;
+        e->position.a = a;
     }
     else
     {
@@ -26083,7 +26083,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 0;
-        e->a = a;
+        e->position.a = a;
     }
 
     if(e == NULL)
@@ -26200,7 +26200,7 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
         return NULL;
     }
 
-    e->a = a + 0.5;
+    e->position.a = a + 0.5;
 
     if(self->animation->energycost.cost > 0 && nocost)
     {
@@ -26298,7 +26298,7 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
         e->modeldata.aimove = AIMOVE1_STAR;
         e->modeldata.aiattack = AIATTACK1_NOATTACK;
         e->remove_on_attack = e->modeldata.remove;
-        e->a = e->base = a;
+        e->position.a = e->base = a;
         e->speedmul = 2;
         //e->direction = direction;
 
@@ -26329,7 +26329,7 @@ void steam_think()
     }
 
     self->base += 1;
-    self->a = self->base;
+    self->position.a = self->base;
 }
 
 
@@ -26364,7 +26364,7 @@ void steam_spawn(float x, float z, float a)
 
 void steamer_think()
 {
-    steam_spawn(self->x, self->z, self->a);
+    steam_spawn(self->position.x, self->position.z, self->position.a);
     self->nextthink = time + (GAME_SPEED / 10) + (rand32() & 31);
 }
 
@@ -26403,11 +26403,11 @@ entity *homing_find_target(int type)
     {
         if( ent_list[i]->exists && ent_list[i] != self //cant target self
                 && (ent_list[i]->modeldata.type & type)
-                && diff(ent_list[i]->x, self->x) + diff(ent_list[i]->z, self->z) >= min
-                && diff(ent_list[i]->x, self->x) + diff(ent_list[i]->z, self->z) <= max
+                && diff(ent_list[i]->position.x, self->position.x) + diff(ent_list[i]->position.z, self->position.z) >= min
+                && diff(ent_list[i]->position.x, self->position.x) + diff(ent_list[i]->position.z, self->position.z) <= max
                 && ent_list[i]->animation->vulnerable[ent_list[i]->animpos]  )
         {
-            if(index < 0 || diff(ent_list[i]->x, self->x) + diff(ent_list[i]->z, self->z) < diff(ent_list[index]->x, self->x) + diff(ent_list[index]->z, self->z))
+            if(index < 0 || diff(ent_list[i]->position.x, self->position.x) + diff(ent_list[i]->position.z, self->position.z) < diff(ent_list[index]->position.x, self->position.x) + diff(ent_list[index]->position.z, self->position.z))
             {
                 index = i;
             }
@@ -26436,7 +26436,7 @@ void bike_crash()
     {
         control_rumble(i, 100);
     }
-    //if(self->x < advancex-100 || self->x > advancex+(videomodes.hRes+100)) kill(self);
+    //if(self->position.x < advancex-100 || self->position.x > advancex+(videomodes.hRes+100)) kill(self);
 }
 
 
@@ -26450,7 +26450,7 @@ int biker_takedamage(entity *other, s_attack *attack)
         return 0;
     }
     // Fell in a hole
-    if(self->a < PIT_DEPTH)
+    if(self->position.a < PIT_DEPTH)
     {
         kill(self);
         return 0;
@@ -26479,7 +26479,7 @@ int biker_takedamage(entity *other, s_attack *attack)
     // well, this is the real entity, the driver who take the damage
     if((driver = drop_driver(self)))
     {
-        driver->a = self->a;
+        driver->position.a = self->position.a;
         tempself = self;
         self = driver;
         self->drop = 1;
@@ -26520,8 +26520,8 @@ void obstacle_fall()
 
 void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
 {
-    //self->x += self->velocity.x * 4;    // Equivelant of speed 40
-    if(self->x > advancex + (videomodes.hRes + 200) || self->x < advancex - 200)
+    //self->position.x += self->velocity.x * 4;    // Equivelant of speed 40
+    if(self->position.x > advancex + (videomodes.hRes + 200) || self->position.x < advancex - 200)
     {
         kill(self);
     }
@@ -26531,7 +26531,7 @@ void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
 
 int obstacle_takedamage(entity *other, s_attack *attack)
 {
-    if(self->a <= PIT_DEPTH)
+    if(self->position.a <= PIT_DEPTH)
     {
         kill(self);
         return 0;
@@ -26552,7 +26552,7 @@ int obstacle_takedamage(entity *other, s_attack *attack)
 
         checkdeath();
 
-        if(other->x < self->x)
+        if(other->position.x < self->position.x)
         {
             self->velocity.x = 1;
         }
@@ -26631,7 +26631,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
         return NULL;
     }
 
-    //printf("%s, (%f, %f, %f) - (%f, %f, %f)", props->name, props->x, props->z, props->a, e->x, e->z, e->a);
+    //printf("%s, (%f, %f, %f) - (%f, %f, %f)", props->name, props->position.x, props->position.z, props->position.a, e->position.x, e->position.z, e->position.a);
 
     // Alias?
     if(props->alias[0])
@@ -26720,7 +26720,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     // give the entity a weapon item
     if(props->weapon)
     {
-        wp = spawn(e->x, 100000, 0, 0, props->weapon, props->weaponindex, props->weaponmodel);
+        wp = spawn(e->position.x, 100000, 0, 0, props->weapon, props->weaponindex, props->weaponmodel);
         if(wp)
         {
             //ent_default_init(wp);
@@ -27106,21 +27106,21 @@ void update_scroller()
     {
         if(player[i].ent)
         {
-            if(player[i].ent->x > rm)
+            if(player[i].ent->position.x > rm)
             {
-                rm = player[i].ent->x;
+                rm = player[i].ent->position.x;
             }
-            if(player[i].ent->x < lm)
+            if(player[i].ent->position.x < lm)
             {
-                lm = player[i].ent->x;
+                lm = player[i].ent->position.x;
             }
-            if(player[i].ent->z > bm)
+            if(player[i].ent->position.z > bm)
             {
-                bm = player[i].ent->z;
+                bm = player[i].ent->position.z;
             }
-            if(player[i].ent->z < tm)
+            if(player[i].ent->position.z < tm)
             {
-                tm = player[i].ent->z;
+                tm = player[i].ent->position.z;
             }
             numplay++;
         }
@@ -27430,13 +27430,13 @@ void update_scroller()
             {
                 if(player[i].ent)
                 {
-                    if(player[i].ent->z - player[i].ent->a > bm)
+                    if(player[i].ent->position.z - player[i].ent->position.a > bm)
                     {
-                        bm = player[i].ent->z - player[i].ent->a;
+                        bm = player[i].ent->position.z - player[i].ent->position.a;
                     }
-                    if(player[i].ent->z - player[i].ent->a < tm)
+                    if(player[i].ent->position.z - player[i].ent->position.a < tm)
                     {
-                        tm = player[i].ent->z - player[i].ent->a;
+                        tm = player[i].ent->position.z - player[i].ent->position.a;
                     }
                 }
             }
@@ -27675,7 +27675,7 @@ void draw_scrolled_bg()
 
         screenmethod = layer->drawmethod;
 
-        //printf("layer %d, handle:%u, z:%d\n", index, layer->gfx.handle, layer->z);
+        //printf("layer %d, handle:%u, z:%d\n", index, layer->gfx.handle, layer->position.z);
 
         if(!layer->drawmethod.xrepeat || !layer->drawmethod.yrepeat || !layer->enabled)
         {
@@ -27759,7 +27759,7 @@ void draw_scrolled_bg()
             spriteq_add_frame(x + vpx, z + vpy, layer->z, layer->gfx.sprite, &screenmethod, index);
         }
 
-        //printf("******%d\t%d\t%d\t%d\t%d*****\n", x+vpx, z+vpy, layer->z, screenmethod.xrepeat, screenmethod.yrepeat);
+        //printf("******%d\t%d\t%d\t%d\t%d*****\n", x+vpx, z+vpy, layer->.z, screenmethod.xrepeat, screenmethod.yrepeat);
     }
 
 

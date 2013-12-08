@@ -4293,7 +4293,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_a:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->a;
+        (*pretvar)->dblVal = (DOUBLE)ent->position.a;
         break;
     }
     case _ep_aggression:
@@ -6326,7 +6326,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_x:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->x;
+        (*pretvar)->dblVal = (DOUBLE)ent->position.x;
         break;
     }
     case _ep_xdir:
@@ -6338,7 +6338,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_z:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->z;
+        (*pretvar)->dblVal = (DOUBLE)ent->position.z;
         break;
     }
     case _ep_zdir:
@@ -7503,15 +7503,15 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->x = (float)dbltemp;
+            ent->position.x = (float)dbltemp;
         }
         if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
         {
-            ent->z = (float)dbltemp;
+            ent->position.z = (float)dbltemp;
         }
         if(paramCount >= 5 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
         {
-            ent->a = (float)dbltemp;
+            ent->position.a = (float)dbltemp;
         }
         break;
     }
@@ -7519,7 +7519,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->x = (float)dbltemp;
+            ent->position.x = (float)dbltemp;
         }
         break;
     }
@@ -7527,7 +7527,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->z = (float)dbltemp;
+            ent->position.z = (float)dbltemp;
         }
         break;
     }
@@ -7535,7 +7535,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->a = (float)dbltemp;
+            ent->position.a = (float)dbltemp;
         }
         break;
     }
@@ -10048,7 +10048,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
     else
     {
-        x = self->x;
+        x = self->position.x;
     }
     if(paramCount >= 3 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &temp)))
     {
@@ -10060,7 +10060,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
     else
     {
-        z = self->z;
+        z = self->position.z;
     }
     if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &temp)))
     {
@@ -10072,7 +10072,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
     else
     {
-        a = self->a + self->animation->throwa;
+        a = self->position.a + self->animation->throwa;
     }
     if(paramCount >= 5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
     {
@@ -10103,15 +10103,15 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     {
         if(self->direction)
         {
-            x += self->x;
+            x += self->position.x;
         }
         else
         {
-            x = self->x - x;
+            x = self->position.x - x;
             direction = !direction;
         }
-        z += self->z;
-        a += self->a;
+        z += self->position.z;
+        a += self->position.a;
     }
 
     switch(type)
@@ -14068,8 +14068,8 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     e->inpain = 0;
     e->blocking = 0;
     e->nograb = 0;
-    e->destx = e->x;
-    e->destz = e->z;
+    e->destx = e->position.x;
+    e->destz = e->position.z;
 
     if(paramCount == 1)
     {
@@ -14630,7 +14630,7 @@ HRESULT openbor_testmove(ScriptVariant **varlist , ScriptVariant **pretvar, int 
         goto testmove_error;
     }
 
-    (*pretvar)->lVal = (LONG) testmove(e, e->x, e->z, x, z);
+    (*pretvar)->lVal = (LONG) testmove(e, e->position.x, e->position.z, x, z);
 
     return S_OK;
 testmove_error:
