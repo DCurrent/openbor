@@ -24081,15 +24081,16 @@ void common_prejump()
     {
         return;
     }
-    dojump(self->jumpv, self->jumpx, self->jumpz, self->jumpid);
+    dojump(self->jump.velocity.a, self->jump.velocity.x, self->jump.velocity.z, self->jump.id);
 }
+
 
 void tryjump(float jumpv, float jumpx, float jumpz, int jumpid)
 {
-    self->jumpv = jumpv;
-    self->jumpx = jumpx;
-    self->jumpz = jumpz;
-    self->jumpid = jumpid;
+    self->jump.velocity.a = jumpv;
+    self->jump.velocity.x = jumpx;
+    self->jump.velocity.z = jumpz;
+    self->jump.id = jumpid;
     if(validanim(self, ANI_JUMPDELAY))
     {
         self->takeaction = common_prejump;
@@ -24671,7 +24672,7 @@ void player_grab_check()
 void player_jump_check()
 {
     int candospecial = 0;
-    if(!noaircancel || !self->animating || self->animnum == self->jumpid)
+    if(!noaircancel || !self->animating || self->animnum == self->jump.id)
     {
         //air special, copied and changed from Fugue's code
         if((!level->nospecial || level->nospecial == 3) && player[self->playerindex].playkeys & FLAG_SPECIAL)
