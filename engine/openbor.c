@@ -8521,7 +8521,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.bmin = -1000;                          //Base min.
                 newanim->range.bmax = 1000;                           //Base max.
 
-                newanim->jumpframe.v = 0;                           // Default disabled
+                newanim->jumpframe.velocity.a = 0;  //Default disabled.
                 //newanim->fastattack = 0;
                 newanim->energycost.mponly = 0;							//MP only.
                 newanim->energycost.disable = 0;							//Disable flag.
@@ -8529,7 +8529,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->shootframe = -1;
                 newanim->throwframe = -1;
                 newanim->tossframe = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
-                newanim->jumpframe.f = -1;
+                newanim->jumpframe.frame = -1;
                 newanim->flipframe = -1;
                 newanim->attackone = -1;
                 newanim->dive = 0;
@@ -8655,59 +8655,59 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // UT: merge dive and jumpframe, because they can't be used at the same time
             case CMD_MODEL_DIVE:	//dive kicks
                 newanim->dive = 1;
-                newanim->jumpframe.f = 0;
-                newanim->jumpframe.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe.v = -GET_FLOAT_ARG(2);
+                newanim->jumpframe.frame = 0;
+                newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
+                newanim->jumpframe.velocity.a = -GET_FLOAT_ARG(2);
                 newanim->jumpframe.ent = -1;
                 break;
             case CMD_MODEL_DIVE1:
                 newanim->dive = 1;
-                newanim->jumpframe.f = 0;
-                newanim->jumpframe.x = GET_FLOAT_ARG(1);
+                newanim->jumpframe.frame = 0;
+                newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
                 newanim->jumpframe.ent = -1;
                 break;
             case CMD_MODEL_DIVE2:
                 newanim->dive = 1;
-                newanim->jumpframe.f = 0;
-                newanim->jumpframe.v = -GET_FLOAT_ARG(1);
+                newanim->jumpframe.frame = 0;
+                newanim->jumpframe.velocity.a = -GET_FLOAT_ARG(1);
                 newanim->jumpframe.ent = -1;
                 break;
             case CMD_MODEL_JUMPFRAME:
             {
-                newanim->jumpframe.f    = GET_FRAME_ARG(1);   //Frame.
-                newanim->jumpframe.v    = GET_FLOAT_ARG(2); //Vertical velocity.
+                newanim->jumpframe.frame    = GET_FRAME_ARG(1);   //Frame.
+                newanim->jumpframe.velocity.a    = GET_FLOAT_ARG(2); //Vertical velocity.
                 value = GET_ARG(3);
                 if(value[0])
                 {
-                    newanim->jumpframe.x = GET_FLOAT_ARG(3);
-                    newanim->jumpframe.z = GET_FLOAT_ARG(4);
+                    newanim->jumpframe.velocity.x = GET_FLOAT_ARG(3);
+                    newanim->jumpframe.velocity.z = GET_FLOAT_ARG(4);
                 }
                 else // k, only for backward compatibility :((((((((((((((((
                 {
-                    if(newanim->jumpframe.v <= 0)
+                    if(newanim->jumpframe.velocity.a <= 0)
                     {
                         if(newchar->type == TYPE_PLAYER)
                         {
-                            newanim->jumpframe.v = newchar->jumpheight / 2;
-                            newanim->jumpframe.z = 0;
-                            newanim->jumpframe.x = 2;
+                            newanim->jumpframe.velocity.a = newchar->jumpheight / 2;
+                            newanim->jumpframe.velocity.z = 0;
+                            newanim->jumpframe.velocity.x = 2;
                         }
                         else
                         {
-                            newanim->jumpframe.v = newchar->jumpheight;
-                            newanim->jumpframe.z = newanim->jumpframe.x = 0;
+                            newanim->jumpframe.velocity.a = newchar->jumpheight;
+                            newanim->jumpframe.velocity.z = newanim->jumpframe.velocity.x = 0;
                         }
                     }
                     else
                     {
                         if(newchar->type != TYPE_ENEMY && newchar->type != TYPE_NPC)
                         {
-                            newanim->jumpframe.z = newanim->jumpframe.x = 0;
+                            newanim->jumpframe.velocity.z = newanim->jumpframe.velocity.x = 0;
                         }
                         else
                         {
-                            newanim->jumpframe.z = 0;
-                            newanim->jumpframe.x = (float)1.3;
+                            newanim->jumpframe.velocity.z = 0;
+                            newanim->jumpframe.velocity.x = (float)1.3;
                         }
                     }
                 }
@@ -14978,12 +14978,12 @@ void update_frame(entity *ent, int f)
         sound_play_sample(anim->soundtoplay[f], 0, savedata.effectvol, savedata.effectvol, 100);
     }
 
-    if(anim->jumpframe.f == f)
+    if(anim->jumpframe.frame == f)
     {
         // Set custom jumpheight for jumpframes
-        /*if(self->animation->jumpframe.v > 0)*/ toss(self, anim->jumpframe.v);
-        self->xdir = self->direction ? anim->jumpframe.x : -anim->jumpframe.x;
-        self->zdir = anim->jumpframe.z;
+        /*if(self->animation->jumpframe.v > 0)*/ toss(self, anim->jumpframe.velocity.a);
+        self->xdir = self->direction ? anim->jumpframe.velocity.x : -anim->jumpframe.velocity.x;
+        self->zdir = anim->jumpframe.velocity.z;
 
         if(anim->jumpframe.ent >= 0)
         {

@@ -671,9 +671,7 @@ typedef struct
     int attack_force;
     int attack_coords[6];
     int staydown[3]; // [0] = Add to rise delay. [1] = Add to rise attack delay.
-    //float dropv[3]; // fly height/x/z if the target is knoced down
-    s_axis dropv;
-
+    s_axis dropv;   //Velocity of target if knocked down.
     int hitsound; // Sound effect to be played when attack hits opponent
     int hitflash; // Custom flash for each animation, model id
     int blockflash; // Custom bflash for each animation, model id
@@ -724,13 +722,17 @@ typedef struct //2011_04_01, DC: HP and/or MP cost to perform special/freespecia
     int mponly; //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
 } s_energycost;
 
-typedef struct //2011_04_01, DC: On frame movement (slide, jump, dive, etc.).
+typedef struct
 {
-    int ent; //Index of entity to spawn on liftoff of jump action.
-    int f; //Frame to begin jump action.
-    float v; //Vertical velocity.
-    float x; //Horizontal velcoty.
-    float z; //Lateral velocity.
+    /*
+    On frame movement (slide, jump, dive, etc.)
+    2011-04-01
+    Damon Caskey
+    */
+
+    int ent;            //Index of entity to spawn on liftoff of jump action.
+    int frame;          //Frame to begin action.
+    s_axis velocity;    //x,a,z velocity.
 } s_jumpframe;
 
 typedef struct //2011_04_01, DC: Behavior when reaching base after jump or fall.
