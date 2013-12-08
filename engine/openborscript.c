@@ -6308,7 +6308,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_tossv:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->tossv;
+        (*pretvar)->dblVal = (DOUBLE)ent->velocity.a;
         break;
     }
     case _ep_type:
@@ -6332,7 +6332,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_xdir:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->xdir;
+        (*pretvar)->dblVal = (DOUBLE)ent->velocity.x;
         break;
     }
     case _ep_z:
@@ -6344,7 +6344,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_zdir:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->zdir;
+        (*pretvar)->dblVal = (DOUBLE)ent->velocity.z;
         break;
     }
     default:
@@ -8071,15 +8071,15 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->xdir = (float)dbltemp;
+            ent->velocity.x = (float)dbltemp;
         }
         if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
         {
-            ent->zdir = (float)dbltemp;
+            ent->velocity.z = (float)dbltemp;
         }
         if(paramCount >= 5 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
         {
-            ent->tossv = (float)dbltemp;
+            ent->velocity.a = (float)dbltemp;
         }
         break;
     }
@@ -8139,8 +8139,8 @@ HRESULT openbor_tossentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         ScriptVariant_DecimalValue(varlist[3], &speedz);
     }
 
-    ent->xdir = (float)speedx;
-    ent->zdir = (float)speedz;
+    ent->velocity.x = (float)speedx;
+    ent->velocity.z = (float)speedz;
     toss(ent, (float)height);
     return S_OK;
 

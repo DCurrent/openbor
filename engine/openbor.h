@@ -554,7 +554,7 @@ if(n<1) n = 1;
 		  )\
 
 
-#define tobounce(e) (e->animation->bounce && diff(0, e->tossv) > 1.5 && \
+#define tobounce(e) (e->animation->bounce && diff(0, e->velocity.a) > 1.5 && \
 					 !((autoland == 1 && e->damage_on_landing == -1) ||e->damage_on_landing == -2))
 
 #define getpal ((current_palette&&level)?(level->palettes[current_palette-1]):pal)
@@ -1251,8 +1251,7 @@ typedef struct entity
     float x; // X
     float z; // Depth
     float a; // Altitude
-    float xdir;
-    float zdir;
+    s_axis velocity; //x,a,z movement speed.
     float destx; // temporary values for ai functions
     float destz;
     float movex;
@@ -1260,7 +1259,6 @@ typedef struct entity
     float speedmul;
     float base; // Default altitude
     float altbase; // Altitude affected by movea
-    float tossv;							// Effect of gravity
     float jumpz;
     float jumpx;
     float jumpv;

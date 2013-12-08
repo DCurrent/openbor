@@ -14347,7 +14347,7 @@ int common_idle_anim(entity *ent)
 
     if (ent->model->subtype != SUBTYPE_BIKER && ent->model->type != TYPE_NONE) // biker fix by Plombo // type none being "idle" prevented contra locked and loaded from working correctly. fixed by anallyst
     {
-        ent->xdir = ent->zdir = 0;    //Stop movement.
+        ent->velocity.x = ent->velocity.z = 0;    //Stop movement.
     }
 
     if(validanim(ent, ANI_FAINT) && ent->health <= ent->modeldata.health / 4)           //ANI_FAINT and health at/below 25%?
@@ -14509,11 +14509,11 @@ void ent_default_init(entity *e)
             //e->direction = (e->x<0);
             if(e->modeldata.speed)
             {
-                e->xdir = (e->direction) ? (e->modeldata.speed) : (-e->modeldata.speed);
+                e->velocity.x = (e->direction) ? (e->modeldata.speed) : (-e->modeldata.speed);
             }
             else
             {
-                e->xdir = (e->direction) ? (1.7 + randf((float)0.6)) : (-(1.7 + randf((float)0.6)));
+                e->velocity.x = (e->direction) ? (1.7 + randf((float)0.6)) : (-(1.7 + randf((float)0.6)));
             }
             e->takedamage = biker_takedamage;
             e->speedmul = 2;
@@ -14654,11 +14654,11 @@ void ent_default_init(entity *e)
         {
             if(e->direction)
             {
-                e->xdir = e->modeldata.speed;
+                e->velocity.x = e->modeldata.speed;
             }
             else
             {
-                e->xdir = -(e->modeldata.speed);
+                e->velocity.x = -(e->modeldata.speed);
             }
             e->think = anything_walk;
 
@@ -14982,8 +14982,8 @@ void update_frame(entity *ent, int f)
     {
         // Set custom jumpheight for jumpframes
         /*if(self->animation->jumpframe.v > 0)*/ toss(self, anim->jumpframe.velocity.a);
-        self->xdir = self->direction ? anim->jumpframe.velocity.x : -anim->jumpframe.velocity.x;
-        self->zdir = anim->jumpframe.velocity.z;
+        self->velocity.x = self->direction ? anim->jumpframe.velocity.x : -anim->jumpframe.velocity.x;
+        self->velocity.z = anim->jumpframe.velocity.z;
 
         if(anim->jumpframe.ent >= 0)
         {
@@ -16414,7 +16414,7 @@ void do_attack(entity *e)
                     execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
                     self->takeaction = common_block;
                     set_blocking(self);
-                    self->xdir = self->zdir = 0;
+                    self->velocity.x = self->velocity.z = 0;
                     ent_set_anim(self, ANI_BLOCK, 0);
                     execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);
                     if(self->modeldata.guardpoints.maximum > 0)
@@ -16828,7 +16828,7 @@ void check_gravity(entity *e)
 
     if(!is_frozen(self) )// Incase an entity is in the air, don't update animations
     {
-        if((self->falling || self->tossv || self->a != self->base) && self->toss_time <= time)
+        if((self->falling || self->velocity.a || self->a != self->base) && self->toss_time <= time)
         {
             if(self->animation->height)
             {
@@ -16839,7 +16839,7 @@ void check_gravity(entity *e)
                 heightvar = self->modeldata.height;
             }
 
-            if(heightvar && self->modeldata.subject_to_platform > 0 && self->tossv > 0)
+            if(heightvar && self->modeldata.subject_to_platform > 0 && self->velocity.a > 0)
             {
                 other = check_platform_above_entity(self);
             }
@@ -16852,7 +16852,7 @@ void check_gravity(entity *e)
             {
                 if(self->hithead == NULL) // bang! Hit the ceiling.
                 {
-                    self->tossv = 0;
+                    self->velocity.a = 0;
                     self->hithead = other;
                     execute_onblocka_script(self, other);
                 }
@@ -16862,7 +16862,7 @@ void check_gravity(entity *e)
                 self->hithead = NULL;
             }
             // gravity, antigravity factors
-            self->a += self->tossv * 100.0 / GAME_SPEED;
+            self->a += self->velocity.a * 100.0 / GAME_SPEED;
             if(self->animation->dive)
             {
                 gravity = 0;
@@ -16873,25 +16873,25 @@ void check_gravity(entity *e)
             }
             if(self->modeldata.subject_to_gravity > 0)
             {
-                self->tossv += gravity * 100.0 / GAME_SPEED;
+                self->velocity.a += gravity * 100.0 / GAME_SPEED;
             }
 
             fmin = (level ? level->maxfallspeed : default_level_maxfallspeed);
             fmax = (level ? level->maxtossspeed : default_level_maxtossspeed);
 
-            if(self->tossv < fmin)
+            if(self->velocity.a < fmin)
             {
-                self->tossv = fmin;
+                self->velocity.a = fmin;
             }
-            else if(self->tossv > fmax)
+            else if(self->velocity.a > fmax)
             {
-                self->tossv = fmax;
+                self->velocity.a = fmax;
             }
-            if(self->animation->dropframe >= 0 && self->tossv <= 0 && self->animpos < self->animation->dropframe) // begin dropping
+            if(self->animation->dropframe >= 0 && self->velocity.a <= 0 && self->animpos < self->animation->dropframe) // begin dropping
             {
                 update_frame(self, self->animation->dropframe);
             }
-            if (self->tossv)
+            if (self->velocity.a)
             {
                 execute_onmovea_script(self);    //Move A event.
             }
@@ -16905,13 +16905,13 @@ void check_gravity(entity *e)
 
             // UTunnels: tossv <= 0 means land, while >0 means still rising, so
             // you wont be stopped if you are passing the edge of a wall
-            if( (self->a <= self->base || !inair(self)) && self->tossv <= 0)
+            if( (self->a <= self->base || !inair(self)) && self->velocity.a <= 0)
             {
                 self->a = self->base;
                 self->falling = 0;
                 //self->projectile = 0;
                 // cust dust entity
-                if(self->modeldata.dust[0] >= 0 && self->tossv < -1 && self->drop)
+                if(self->modeldata.dust[0] >= 0 && self->velocity.a < -1 && self->drop)
                 {
                     dust = spawn(self->x, self->z, self->a, self->direction, NULL, self->modeldata.dust[0], NULL);
                     if(dust)
@@ -16925,9 +16925,9 @@ void check_gravity(entity *e)
                 if(tobounce(self) && self->modeldata.bounce)
                 {
                     int i;
-                    self->xdir /= self->animation->bounce;
-                    self->zdir /= self->animation->bounce;
-                    toss(self, (-self->tossv) / self->animation->bounce);
+                    self->velocity.x /= self->animation->bounce;
+                    self->velocity.z /= self->animation->bounce;
+                    toss(self, (-self->velocity.a) / self->animation->bounce);
                     if(level && !(self->modeldata.noquake & NO_QUAKE))
                     {
                         level->quake = 4;    // Don't shake if specified
@@ -16938,21 +16938,21 @@ void check_gravity(entity *e)
                     }
                     if(self->modeldata.type & TYPE_PLAYER)
                     {
-                        control_rumble(self->playerindex, 100 * (int)self->tossv / 2);
+                        control_rumble(self->playerindex, 100 * (int)self->velocity.a / 2);
                     }
                     for(i = 0; i < MAX_PLAYERS; i++)
                     {
-                        control_rumble(i, 75 * (int)self->tossv / 2);
+                        control_rumble(i, 75 * (int)self->velocity.a / 2);
                     }
                 }
                 else if((!self->animation->seta || self->animation->seta[self->animpos] < 0) &&
                         (!self->animation->movea || self->animation->movea[self->animpos] <= 0))
                 {
-                    self->xdir = self->zdir = self->tossv = 0;
+                    self->velocity.x = self->velocity.z = self->velocity.a = 0;
                 }
                 else
                 {
-                    self->tossv = 0;
+                    self->velocity.a = 0;
                 }
 
                 if(plat && !self->landed_on_platform && self->a <= plat->a + plat->animation->platform[plat->animpos][7])
@@ -17176,7 +17176,7 @@ void adjust_base(entity *e, entity **pla)
     tempself = self;
     self = e;
 
-    if(self->tossv > 0)
+    if(self->velocity.a > 0)
     {
         self->landed_on_platform = NULL;
     }
@@ -17253,7 +17253,7 @@ void adjust_base(entity *e, entity **pla)
                 }
                 else
                 {
-                    self->xdir = self->zdir = 0; // hit the hole border
+                    self->velocity.x = self->velocity.z = 0; // hit the hole border
                 }
             }
         }
@@ -17964,8 +17964,8 @@ void update_ents()
                     continue;
                 }
                 update_health();// Update displayed health
-                self->movex += self->xdir * self->speedmul * (100.0 / GAME_SPEED);
-                self->movez += self->zdir * self->speedmul * (100.0 / GAME_SPEED);
+                self->movex += self->velocity.x * self->speedmul * (100.0 / GAME_SPEED);
+                self->movez += self->velocity.z * self->speedmul * (100.0 / GAME_SPEED);
             }
         }
     }//end of for
@@ -18369,7 +18369,7 @@ void toss(entity *ent, float lift)
         return;    //zero?
     }
     ent->toss_time = time + 1;
-    ent->tossv = lift;
+    ent->velocity.a = lift;
     ent->a += 0.5;        // Get some altitude (needed for checks)
 }
 
@@ -18543,7 +18543,7 @@ int set_idle(entity *ent)
 
 int set_death(entity *iDie, int type, int reset)
 {
-    //iDie->xdir = iDie->zdir = iDie->tossv = 0; // stop the target
+    //iDie->velocity.x = iDie->velocity.z = iDie->velocity.a = 0; // stop the target
     if(iDie->blocking && validanim(iDie, ANI_CHIPDEATH))
     {
         ent_set_anim(iDie, ANI_CHIPDEATH, reset);
@@ -18635,7 +18635,7 @@ int set_rise(entity *iRise, int type, int reset)
     iRise->falling = 0;
     iRise->projectile = 0;
     iRise->nograb = 0;
-    iRise->xdir = self->zdir = self->tossv = 0;
+    iRise->velocity.x = self->velocity.z = self->velocity.a = 0;
     iRise->modeldata.jugglepoints.current = iRise->modeldata.jugglepoints.maximum; //reset jugglepoints
     return 1;
 }
@@ -18699,7 +18699,7 @@ int set_pain(entity *iPain, int type, int reset)
 {
     int pain = 0;
 
-    iPain->xdir = iPain->zdir = iPain->tossv = 0; // stop the target
+    iPain->velocity.x = iPain->velocity.z = iPain->velocity.a = 0; // stop the target
     if(iPain->modeldata.guardpoints.maximum > 0 && iPain->modeldata.guardpoints.current <= 0)
     {
         pain = ANI_GUARDBREAK;
@@ -19160,7 +19160,7 @@ void normal_prepare()
 
     entity *target = normal_find_target(-1, 0);
 
-    self->xdir = self->zdir = 0; //stop
+    self->velocity.x = self->velocity.z = 0; //stop
 
     if(!target)
     {
@@ -19283,13 +19283,13 @@ void common_jump()
 
     if(inair(self))
     {
-        //printf("%f %f %f %d\n", self->base, self->a, self->tossv, self->landed_on_platform);
+        //printf("%f %f %f %d\n", self->base, self->a, self->velocity.a, self->landed_on_platform);
         return;
     }
 
-    if(self->tossv <= 0) // wait if it is still go up
+    if(self->velocity.a <= 0) // wait if it is still go up
     {
-        self->tossv = 0;
+        self->velocity.a = 0;
         self->a = self->base;
 
         self->jumping = 0;
@@ -19300,7 +19300,7 @@ void common_jump()
             self->running = 0;
         }
 
-        self->zdir = self->xdir = 0;
+        self->velocity.z = self->velocity.x = 0;
 
         if(validanim(self, ANI_JUMPLAND) && self->animation->landframe.frame == -1) // check if jumpland animation exists and not using landframe
         {
@@ -19384,7 +19384,7 @@ void common_turn()
     if(!self->animating)
     {
         self->takeaction = NULL;
-        self->xdir = self->zdir = 0;
+        self->velocity.x = self->velocity.z = 0;
         self->direction = !self->direction;
         set_idle(self);
     }
@@ -19393,7 +19393,7 @@ void common_turn()
 // switch to land animation, land safely
 void doland()
 {
-    self->xdir = self->zdir = 0;
+    self->velocity.x = self->velocity.z = 0;
     self->drop = 0;
     self->projectile = 0;
     self->damage_on_landing = 0;
@@ -19413,13 +19413,13 @@ void doland()
 void common_fall()
 {
     // Still falling?
-    if(self->falling ||  inair(self) || self->tossv)
+    if(self->falling ||  inair(self) || self->velocity.a)
     {
         return;
     }
 
 
-    //self->xdir = self->zdir;
+    //self->velocity.x = self->velocity.z;
 
     // Landed
     if(self->projectile > 0)
@@ -19523,7 +19523,7 @@ void common_lie()
         return;
     }
 
-    if(time < self->stalltime || self->a != self->base || self->tossv)
+    if(time < self->stalltime || self->a != self->base || self->velocity.a)
     {
         return;
     }
@@ -19533,7 +19533,7 @@ void common_lie()
     //self->drop = 0;
     //self->falling = 0;
     //self->projectile = 0;
-    //self->xdir = self->zdir = self->tossv = 0;
+    //self->velocity.x = self->velocity.z = self->velocity.a = 0;
 
     set_rise(self, self->damagetype, 0);
 }
@@ -19559,7 +19559,7 @@ void common_rise()
 // pain proc
 void common_pain()
 {
-    //self->xdir = self->zdir = 0; // complained
+    //self->velocity.x = self->velocity.z = 0; // complained
 
     if(self->animating || inair(self))
     {
@@ -19589,7 +19589,7 @@ void doprethrow()
     entity *other = self->link;
     other->takeaction = common_prethrow;
     self->takeaction = common_throw_wait;
-    self->xdir = self->zdir = self->tossv = other->xdir = other->zdir = other->tossv = 0;
+    self->velocity.x = self->velocity.z = self->velocity.a = other->velocity.x = other->velocity.z = other->velocity.a = 0;
     ent_set_anim(self, ANI_THROW, 0);
 }
 
@@ -19600,7 +19600,7 @@ void dograbattack(int which)
     entity *other = self->link;
     self->takeaction = common_grabattack;
     self->attacking = 1;
-    other->xdir = other->zdir = self->xdir = self->zdir = 0;
+    other->velocity.x = other->velocity.z = self->velocity.x = self->velocity.z = 0;
     if(which < 5 && which >= 0)
     {
         ++self->combostep[which];
@@ -19640,7 +19640,7 @@ void dovault()
     int heightvar;
     entity *other = self->link;
     self->takeaction = common_vault;
-    self->link->xdir = self->link->zdir = self->xdir = self->zdir = 0;
+    self->link->velocity.x = self->link->velocity.z = self->velocity.x = self->velocity.z = 0;
 
     self->attacking = 1;
     self->x = other->x;
@@ -20359,16 +20359,16 @@ int common_takedamage(entity *other, s_attack *attack)
 
         if(self->health <= 0 && self->modeldata.falldie == 1)
         {
-            self->xdir = self->zdir = self->tossv = 0;
+            self->velocity.x = self->velocity.z = self->velocity.a = 0;
             set_death(self, self->damagetype, 0);
         }
         else
         {
-            self->xdir = attack->dropv.x;
-            self->zdir = attack->dropv.z;
+            self->velocity.x = attack->dropv.x;
+            self->velocity.z = attack->dropv.z;
             if(self->direction)
             {
-                self->xdir = -self->xdir;
+                self->velocity.x = -self->velocity.x;
             }
             toss(self, attack->dropv.a);
             self->damage_on_landing = attack->damage_on_landing;
@@ -20431,7 +20431,7 @@ int common_try_upper(entity *target)
     {
         self->takeaction = common_attack_proc;
         set_attacking(self);
-        self->zdir = self->xdir = 0;
+        self->velocity.z = self->velocity.x = 0;
         // Don't waste any time!
         ent_set_anim(self, ANI_UPPER, 0);
         return 1;
@@ -20459,7 +20459,7 @@ int common_try_runattack(entity *target)
             return 0;
         }
         self->takeaction = common_attack_proc;
-        self->zdir = self->xdir = 0;
+        self->velocity.z = self->velocity.x = 0;
         set_attacking(self);
         ent_set_anim(self, ANI_RUNATTACK, 0);
         return 1;
@@ -20486,7 +20486,7 @@ int common_try_block(entity *target)
     {
         self->takeaction = common_block;
         set_blocking(self);
-        self->zdir = self->xdir = 0;
+        self->velocity.z = self->velocity.x = 0;
         ent_set_anim(self, ANI_BLOCK, 0);
         return 1;
     }
@@ -20663,7 +20663,7 @@ int common_try_normalattack(entity *target)
             }
         }
         self->takeaction = normal_prepare;
-        self->zdir = self->xdir = 0;
+        self->velocity.z = self->velocity.x = 0;
         set_idle(self);
         self->idling = 0; // not really idle, in fact it is thinking
         self->attacking = -1; // pre-attack, for AI-block check
@@ -20716,13 +20716,13 @@ int common_try_jumpattack(entity *target)
                 ani = ANI_JUMPATTACK;
                 if(self->direction)
                 {
-                    self->xdir = (float)1.3;
+                    self->velocity.x = (float)1.3;
                 }
                 else
                 {
-                    self->xdir = (float) - 1.3;
+                    self->velocity.x = (float) - 1.3;
                 }
-                self->zdir = 0;
+                self->velocity.z = 0;
             }
         }
         else if(rnum == 1 &&
@@ -20747,7 +20747,7 @@ int common_try_jumpattack(entity *target)
                 }
                 //ent_set_anim(self, ANI_JUMPATTACK2, 0);
                 ani = ANI_JUMPATTACK2;
-                self->xdir = self->zdir = 0;
+                self->velocity.x = self->velocity.z = 0;
             }
         }
         else
@@ -20837,7 +20837,7 @@ void common_throw()
 void dothrow()
 {
     entity *other;
-    self->xdir = self->zdir = 0;
+    self->velocity.x = self->velocity.z = 0;
     other = self->link;
     if(other == NULL) //change back to idle, or we will get stuck here
     {
@@ -20857,7 +20857,7 @@ void dothrow()
 
     other->direction = self->direction;
     other->projectile = 2;
-    other->xdir = (other->direction) ? (-other->modeldata.throwdist) : (other->modeldata.throwdist);
+    other->velocity.x = (other->direction) ? (-other->modeldata.throwdist) : (other->modeldata.throwdist);
 
     if(autoland == 1 && validanim(other, ANI_LAND))
     {
@@ -20923,9 +20923,9 @@ void npc_warp()
     self->z = self->parent->z;
     self->x = self->parent->x;
     self->a = self->parent->a;
-    self->xdir = self->zdir = 0;
+    self->velocity.x = self->velocity.z = 0;
     self->base = self->parent->base;
-    self->tossv = 0;
+    self->velocity.a = 0;
 
     if(validanim(self, ANI_RESPAWN))
     {
@@ -20995,8 +20995,8 @@ int trygrab(entity *other)
         self->idling = 0;
         self->running = 0;
 
-        self->xdir = self->zdir =
-                         other->xdir = other->zdir = 0;
+        self->velocity.x = self->velocity.z =
+                         other->velocity.x = other->velocity.z = 0;
         if(validanim(self, ANI_GRAB))
         {
             if(self->model->grabflip & 2)
@@ -21283,7 +21283,7 @@ void common_runoff()
 
     if(target == NULL)   //sealth checking
     {
-        self->zdir = self->xdir = 0;
+        self->velocity.z = self->velocity.x = 0;
         self->takeaction = NULL; // OK, back to A.I. root
         set_idle(self);
         return;
@@ -21295,14 +21295,14 @@ void common_runoff()
     }
     if(self->direction)
     {
-        self->xdir = -self->modeldata.speed / 2;
+        self->velocity.x = -self->modeldata.speed / 2;
     }
     else
     {
-        self->xdir = self->modeldata.speed / 2;
+        self->velocity.x = self->modeldata.speed / 2;
     }
 
-    self->zdir = 0;
+    self->velocity.z = 0;
 
     if(time > self->stalltime)
     {
@@ -21335,7 +21335,7 @@ void common_stuck_underneath()
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
         self->takeaction = common_attack_proc;
         set_attacking(self);
-        self->xdir = self->zdir = 0;
+        self->velocity.x = self->velocity.z = 0;
         self->combostep[0] = 0;
         self->running = 0;
         ent_set_anim(self, ANI_DUCKATTACK, 0);
@@ -21346,7 +21346,7 @@ void common_stuck_underneath()
         player[self->playerindex].playkeys &= ~FLAG_JUMP;
         self->takeaction = common_attack_proc;
         set_attacking(self);
-        self->xdir = self->zdir = 0;
+        self->velocity.x = self->velocity.z = 0;
         self->combostep[0] = 0;
         self->running = 0;
         ent_set_anim(self, ANI_SLIDE, 0);
@@ -21361,7 +21361,7 @@ void common_attack_finish()
     entity *target;
     int stall;
 
-    self->xdir = self->zdir = 0;
+    self->velocity.x = self->velocity.z = 0;
 
     if(self->modeldata.type & TYPE_PLAYER)
     {
@@ -21377,8 +21377,8 @@ void common_attack_finish()
         self->takeaction = NULL;//common_runoff;
         self->destx = self->x > target->x ? MIN(self->x + 40, target->x + 80) : MAX(self->x - 40, target->x - 80);
         self->destz = self->z;
-        self->xdir = self->x > target->x ? self->modeldata.speed : -self->modeldata.speed;
-        self->zdir = 0;
+        self->velocity.x = self->x > target->x ? self->modeldata.speed : -self->modeldata.speed;
+        self->velocity.z = 0;
         adjust_walk_animation(target);
         self->idling = 1;
     }
@@ -21494,7 +21494,7 @@ int common_try_jump()
         //check z jump
         if(self->modeldata.jumpmovez)
         {
-            zdir = self->z + self->zdir;
+            zdir = self->z + self->velocity.z;
         }
         else
         {
@@ -21540,7 +21540,7 @@ int common_try_jump()
         //check z jump
         if(self->modeldata.jumpmovez)
         {
-            zdir = self->z + self->zdir;
+            zdir = self->z + self->velocity.z;
         }
         else
         {
@@ -21569,26 +21569,26 @@ int common_try_jump()
         {
             if(validanim(self, ANI_RUNJUMP))														//Running or only within range of RUNJUMP?
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->zdir : 0, ANI_RUNJUMP);
+                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_RUNJUMP);
             }
             else if(validanim(self, ANI_FORWARDJUMP))
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->zdir : 0, ANI_FORWARDJUMP);
+                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_FORWARDJUMP);
             }
             else
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->zdir : 0, ANI_JUMP);
+                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
             }
         }
         else
         {
             if(validanim(self, ANI_FORWARDJUMP))
             {
-                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->zdir : 0, ANI_FORWARDJUMP);
+                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_FORWARDJUMP);
             }
             else
             {
-                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->zdir : 0, ANI_JUMP);
+                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
             }
         }
 
@@ -21639,17 +21639,17 @@ void adjust_walk_animation(entity *other)
     }
 
     //reset the walk animation
-    if(validanim(self, ANI_UP) && ((!other && testup(self->xdir, self->zdir)) || (other && testup(other->x - self->x, other->z - self->z))))
+    if(validanim(self, ANI_UP) && ((!other && testup(self->velocity.x, self->velocity.z)) || (other && testup(other->x - self->x, other->z - self->z))))
     {
         common_up_anim(self); //ent_set_anim(self, ANI_UP, 0);
         dir = 2;
     }
-    else if(validanim(self, ANI_DOWN) && ((!other && testdown(self->xdir, self->zdir)) || (other && testdown(other->x - self->x, other->z - self->z))))
+    else if(validanim(self, ANI_DOWN) && ((!other && testdown(self->velocity.x, self->velocity.z)) || (other && testdown(other->x - self->x, other->z - self->z))))
     {
         common_down_anim(self); //ent_set_anim(self, ANI_DOWN, 0);
         dir = 3;
     }
-    else if((self->direction ? self->xdir < 0 : self->xdir > 0) && validanim(self, ANI_BACKWALK))
+    else if((self->direction ? self->velocity.x < 0 : self->velocity.x > 0) && validanim(self, ANI_BACKWALK))
     {
         common_backwalk_anim(self);    //ent_set_anim(self, ANI_BACKWALK, 0);
     }
@@ -21659,8 +21659,8 @@ void adjust_walk_animation(entity *other)
         dir = 1;
     }
 
-    if(((self->direction ? self->xdir < 0 : self->xdir > 0) && dir == 1) ||
-            (dir == 2 && self->zdir > 0) || (dir == 3 && self->zdir < 0) )
+    if(((self->direction ? self->velocity.x < 0 : self->velocity.x > 0) && dir == 1) ||
+            (dir == 2 && self->velocity.z > 0) || (dir == 3 && self->velocity.z < 0) )
     {
         self->animating = -1;
     }
@@ -21687,24 +21687,24 @@ int common_try_pick(entity *other)
 
     if(!dz && !dx)
     {
-        self->xdir = self->zdir = 0;
+        self->velocity.x = self->velocity.z = 0;
         self->destz = self->z;
         self->destx = self->x;
     }
     else
     {
-        self->xdir = maxspeed * dx / (dx + dz);
-        self->zdir = maxspeed * dz / (dx + dz);
+        self->velocity.x = maxspeed * dx / (dx + dz);
+        self->velocity.z = maxspeed * dz / (dx + dz);
         self->destx = other->x;
         self->destz = other->z;
     }
     if(self->x > other->x)
     {
-        self->xdir = -self->xdir;
+        self->velocity.x = -self->velocity.x;
     }
     if(self->z > other->z)
     {
-        self->zdir = -self->zdir;
+        self->velocity.z = -self->velocity.z;
     }
 
     self->running = 0;
@@ -22035,12 +22035,12 @@ int checkpathblocked()
         }
 
         //be moo tolerable to PLAYER_MAX_Z and PLAYER_MIN_Z
-        if((self->modeldata.subject_to_maxz && self->zdir > 0 && !self->xdir && self->zdir + self->z > PLAYER_MAX_Z) ||
-                (self->modeldata.subject_to_minz && self->zdir < 0 && !self->xdir && self->zdir + self->z < PLAYER_MIN_Z) )
+        if((self->modeldata.subject_to_maxz && self->velocity.z > 0 && !self->velocity.x && self->velocity.z + self->z > PLAYER_MAX_Z) ||
+                (self->modeldata.subject_to_minz && self->velocity.z < 0 && !self->velocity.x && self->velocity.z + self->z < PLAYER_MIN_Z) )
         {
-            self->zdir = -self->zdir;
+            self->velocity.z = -self->velocity.z;
             self->pathblocked = 0;
-            self->destz = self->zdir > 0 ? (PLAYER_MIN_Z + videomodes.vRes / 10) : (PLAYER_MAX_Z - videomodes.vRes / 10);
+            self->destz = self->velocity.z > 0 ? (PLAYER_MIN_Z + videomodes.vRes / 10) : (PLAYER_MAX_Z - videomodes.vRes / 10);
             adjust_walk_animation(NULL);
             return 1;
         }
@@ -22072,8 +22072,8 @@ int checkpathblocked()
                 }
             }
 
-            x = self->xdir;
-            z = self->zdir;
+            x = self->velocity.x;
+            z = self->velocity.z;
             if(x > 0)
             {
                 x = self->modeldata.speed;
@@ -22093,29 +22093,29 @@ int checkpathblocked()
             r = randf(1);
             if(r > 0.6f)
             {
-                self->zdir = x;
-                self->xdir = -z;
+                self->velocity.z = x;
+                self->velocity.x = -z;
             }
             else if(r > 0.2f)
             {
-                self->zdir = -x;
-                self->xdir = z;
+                self->velocity.z = -x;
+                self->velocity.x = z;
             }
             else
             {
-                self->zdir = (1.0f - randf(2)) * self->modeldata.speed / 2;
-                self->xdir = (1.0f - randf(2)) * self->modeldata.speed;
+                self->velocity.z = (1.0f - randf(2)) * self->modeldata.speed / 2;
+                self->velocity.x = (1.0f - randf(2)) * self->modeldata.speed;
             }
             self->running = 0; // TODO: re-adjust walk speed
             self->stalltime = time + GAME_SPEED / 2;
             adjust_walk_animation(NULL);
             self->pathblocked = 0;
 
-            if(self->zdir > 0)
+            if(self->velocity.z > 0)
             {
                 self->destz = self->z + 40;
             }
-            else if(self->zdir < 0)
+            else if(self->velocity.z < 0)
             {
                 self->destz = self->z - 40;
             }
@@ -22123,11 +22123,11 @@ int checkpathblocked()
             {
                 self->destz = self->z;
             }
-            if(self->xdir > 0)
+            if(self->velocity.x > 0)
             {
                 self->destx = self->x + 40;
             }
-            else if(self->xdir < 0)
+            else if(self->velocity.x < 0)
             {
                 self->destx = self->x - 40;
             }
@@ -22155,7 +22155,7 @@ int common_try_chase(entity *target, int dox, int doz)
 
     self->running = 0;
 
-    //adjustspeed(self->modeldata.speed, self->x, self->z, self->x + self->xdir, self->z + self->zdir, &self->xdir, &self->zdir);
+    //adjustspeed(self->modeldata.speed, self->x, self->z, self->x + self->velocity.x, self->z + self->velocity.z, &self->velocity.x, &self->velocity.z);
 
     if(target == NULL || self->modeldata.nomove)
     {
@@ -22196,16 +22196,16 @@ int common_try_chase(entity *target, int dox, int doz)
 
         if(dx > 150 && validanim(self, ANI_RUN))
         {
-            self->xdir = self->modeldata.runspeed;
+            self->velocity.x = self->modeldata.runspeed;
             self->running = 1;
         }
         else
         {
-            self->xdir = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed;
         }
         if(self->destx < self->x)
         {
-            self->xdir = -self->xdir;
+            self->velocity.x = -self->velocity.x;
         }
     }
 
@@ -22216,16 +22216,16 @@ int common_try_chase(entity *target, int dox, int doz)
 
         if(dz > 100 && self->modeldata.runupdown && validanim(self, ANI_RUN))
         {
-            self->zdir = self->modeldata.runspeed / 2;
+            self->velocity.z = self->modeldata.runspeed / 2;
             self->running = 1;
         }
         else
         {
-            self->zdir = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed / 2;
         }
         if(self->destz < self->z)
         {
-            self->zdir = -self->zdir;
+            self->velocity.z = -self->velocity.z;
         }
     }
 
@@ -22260,7 +22260,7 @@ int common_try_follow(entity *target, int dox, int doz)
 
     if(dox && dx < distance)
     {
-        self->xdir = 0;
+        self->velocity.x = 0;
         mx = 0;
     }
     else
@@ -22270,7 +22270,7 @@ int common_try_follow(entity *target, int dox, int doz)
 
     if(doz && dz < distance / 2)
     {
-        self->zdir = 0;
+        self->velocity.z = 0;
         mz = 0;
     }
     else
@@ -22282,17 +22282,17 @@ int common_try_follow(entity *target, int dox, int doz)
     {
         if(facing && dx > 200 && validanim(self, ANI_RUN))
         {
-            self->xdir = self->modeldata.runspeed;
+            self->velocity.x = self->modeldata.runspeed;
             self->running = 1;
         }
         else
         {
-            self->xdir = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed;
             self->running = 0;
         }
         if(self->x > target->x)
         {
-            self->xdir = -self->xdir;
+            self->velocity.x = -self->velocity.x;
         }
         self->destx = target->x;
     }
@@ -22301,17 +22301,17 @@ int common_try_follow(entity *target, int dox, int doz)
     {
         if(facing && dx > 200 && self->modeldata.runupdown && validanim(self, ANI_RUN))
         {
-            self->zdir = self->modeldata.runspeed / 2;
+            self->velocity.z = self->modeldata.runspeed / 2;
             self->running = 1;
         }
         else
         {
-            self->zdir = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed / 2;
             self->running = 0; // not right, to be modified
         }
         if(self->z > target->z)
         {
-            self->zdir = -self->zdir;
+            self->velocity.z = -self->velocity.z;
         }
         self->destz = target->z;
     }
@@ -22366,27 +22366,27 @@ int common_try_avoid(entity *target, int dox, int doz)
     {
         if(self->x < screenx)
         {
-            self->xdir = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed;
             self->destx = screenx + videomodes.hRes / 12.0;
         }
         else if(self->x > screenx + videomodes.hRes)
         {
-            self->xdir = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed;
             self->destx = screenx + videomodes.hRes * 11.0 / 12.0;
         }
         else if(dx < mindx)
         {
-            self->xdir = (self->x < target->x) ? (-self->modeldata.speed) : self->modeldata.speed;
+            self->velocity.x = (self->x < target->x) ? (-self->modeldata.speed) : self->modeldata.speed;
             self->destx = (self->x < target->x) ? (target->x - maxdx) : (target->x + maxdx);
         }
         else if (dx > maxdx)
         {
-            self->xdir = (self->x < target->x) ? self->modeldata.speed : (-self->modeldata.speed);
+            self->velocity.x = (self->x < target->x) ? self->modeldata.speed : (-self->modeldata.speed);
             self->destx = (self->x < target->x) ? (target->x - mindx) : (target->x + mindx);
         }
         else
         {
-            self->xdir = 0;
+            self->velocity.x = 0;
             self->destx = self->x;
         }
     }
@@ -22395,27 +22395,27 @@ int common_try_avoid(entity *target, int dox, int doz)
     {
         if(self->z < screeny)
         {
-            self->zdir = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed / 2;
             self->destz = screeny +  videomodes.vRes / 12.0;
         }
         else if(self->z > screeny + videomodes.vRes)
         {
-            self->zdir = -self->modeldata.speed / 2;
+            self->velocity.z = -self->modeldata.speed / 2;
             self->destz = screeny +  videomodes.vRes * 11.0 / 12.0;
         }
         else if(dz < mindz)
         {
-            self->zdir = (self->z < target->z) ? (-self->modeldata.speed / 2) : (self->modeldata.speed / 2);
+            self->velocity.z = (self->z < target->z) ? (-self->modeldata.speed / 2) : (self->modeldata.speed / 2);
             self->destz = (self->z < target->z) ? (target->z - maxdz) : (target->z + maxdz);
         }
         else if(dz > maxdz)
         {
-            self->zdir = (self->z < target->z) ? (self->modeldata.speed / 2) : (-self->modeldata.speed / 2);
+            self->velocity.z = (self->z < target->z) ? (self->modeldata.speed / 2) : (-self->modeldata.speed / 2);
             self->destz = (self->z < target->z) ? (target->z - mindz) : (target->z + mindz);
         }
         else
         {
-            self->zdir = 0;
+            self->velocity.z = 0;
             self->destz = self->z;
         }
     }
@@ -22441,30 +22441,30 @@ int common_try_wandercompletely(int dox, int doz)
         rnum = rand32() & 15;
         if(rnum < 4)
         {
-            self->xdir = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed;
         }
         else if(rnum > 11)
         {
-            self->xdir = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed;
         }
         else
         {
-            self->xdir = 0;
+            self->velocity.x = 0;
         }
         if( self->x < screenx - 10)
         {
-            self->xdir = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed;
         }
         else if(self->x > screenx + videomodes.hRes + 10)
         {
-            self->xdir = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed;
         }
 
-        if(self->xdir > 0)
+        if(self->velocity.x > 0)
         {
             self->destx = self->x + videomodes.hRes / 5;
         }
-        else if(self->xdir < 0)
+        else if(self->velocity.x < 0)
         {
             self->destx = self->x - videomodes.hRes / 5;
         }
@@ -22479,30 +22479,30 @@ int common_try_wandercompletely(int dox, int doz)
         rnum = rand32() & 15;
         if(rnum < 4)
         {
-            self->zdir = -self->modeldata.speed / 2;
+            self->velocity.z = -self->modeldata.speed / 2;
         }
         else if(rnum > 11)
         {
-            self->zdir = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed / 2;
         }
         else
         {
-            self->zdir = 0;
+            self->velocity.z = 0;
         }
         if(self->z < screeny - 10)
         {
-            self->zdir = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed / 2;
         }
         else if(self->z > screeny + videomodes.vRes + 10)
         {
-            self->zdir = -self->modeldata.speed / 2;
+            self->velocity.z = -self->modeldata.speed / 2;
         }
 
-        if(self->zdir > 0)
+        if(self->velocity.z > 0)
         {
             self->destz = self->z + videomodes.vRes / 5;
         }
-        else if(self->zdir < 0)
+        else if(self->velocity.z < 0)
         {
             self->destz = self->z - videomodes.vRes / 5;
         }
@@ -22662,19 +22662,19 @@ int common_try_wander(entity *target, int dox, int doz)
     {
         if(self->x < screenx - borderdx)
         {
-            self->xdir = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed;
             self->destx = screenx + videomodes.hRes / 8.0;
             walk = 1;
         }
         else if (self->x > screenx + videomodes.hRes + borderdx)
         {
-            self->xdir = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed;
             self->destx = screenx + videomodes.hRes * 7.0 / 8.0;
             walk = 1;
         }
         else if(diffx > returndx)
         {
-            self->xdir = (self->x > target->x) ? -self->modeldata.speed : self->modeldata.speed;
+            self->velocity.x = (self->x > target->x) ? -self->modeldata.speed : self->modeldata.speed;
             self->destx = (self->x > target->x) ? (target->x + mindx) : (target->x - mindx);
             walk = 1;
         }
@@ -22695,7 +22695,7 @@ int common_try_wander(entity *target, int dox, int doz)
                 self->destx = target->x - videomodes.hRes * 0.4 - (self->health / 3 % 20);;
                 break;
             }
-            self->xdir = self->x > self->destx ? -self->modeldata.speed : self->modeldata.speed;
+            self->velocity.x = self->x > self->destx ? -self->modeldata.speed : self->modeldata.speed;
             walk = 1;
             //printf("mod x %d\n", mod);
         }
@@ -22705,19 +22705,19 @@ int common_try_wander(entity *target, int dox, int doz)
     {
         if(self->z < screeny - borderdz)
         {
-            self->zdir = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed / 2;
             self->destz = screeny + videomodes.vRes / 12.0;
             walk |= 1;
         }
         else if (self->z > screeny + videomodes.vRes + borderdz)
         {
-            self->zdir = -self->modeldata.speed / 2;
+            self->velocity.z = -self->modeldata.speed / 2;
             self->destz = screeny + videomodes.vRes * 11.0 / 12.0;
             walk |= 1;
         }
         else if(diffz > returndz)
         {
-            self->zdir = (self->z > target->z) ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
+            self->velocity.z = (self->z > target->z) ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
             self->destz = (self->z > target->z) ? (target->z + mindz) : (target->z - mindz);
             walk |= 1;
         }
@@ -22738,7 +22738,7 @@ int common_try_wander(entity *target, int dox, int doz)
                 self->destz = target->z - MIN((PLAYER_MAX_Z - PLAYER_MIN_Z), videomodes.vRes) * 0.25 - (self->health / 3 % 5);
                 break;
             }
-            self->zdir = self->z > self->destz ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
+            self->velocity.z = self->z > self->destz ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
             walk |= 1;
             //printf("mod z %d\n", mod);
         }
@@ -22759,7 +22759,7 @@ void common_pickupitem(entity *other)
         self->weapent = other;
         set_weapon(self, other->modeldata.weapnum, 0);
         set_getting(self);
-        self->xdir = self->zdir = 0; //stop moving
+        self->velocity.x = self->velocity.z = 0; //stop moving
         if(self->modeldata.animal)  // UTunnels: well, ride, not get. :)
         {
             self->direction = other->direction;
@@ -22777,7 +22777,7 @@ void common_pickupitem(entity *other)
         dropweapon(0);
         self->weapent = other;
         set_getting(self);
-        self->xdir = self->zdir = 0; //stop moving
+        self->velocity.x = self->velocity.z = 0; //stop moving
         other->nextanim = other->nextthink = time + GAME_SPEED * 999999;
         ent_set_anim(self, ANI_GET, 0);
         pickup = 1;
@@ -22789,7 +22789,7 @@ void common_pickupitem(entity *other)
         {
             self->takeaction = common_get;
             set_getting(self);
-            self->xdir = self->zdir = 0; //stop moving
+            self->velocity.x = self->velocity.z = 0; //stop moving
             ent_set_anim(self, ANI_GET, 0);
         }
         if(other->health)
@@ -22831,11 +22831,11 @@ int biker_move()
         }
         if(self->modeldata.speed)
         {
-            self->xdir = (self->direction) ? (self->modeldata.speed) : (-self->modeldata.speed);
+            self->velocity.x = (self->direction) ? (self->modeldata.speed) : (-self->modeldata.speed);
         }
         else
         {
-            self->xdir = (self->direction) ? ((float)1.7 + randf((float)0.6)) : (-((float)1.7 + randf((float)0.6)));
+            self->velocity.x = (self->direction) ? ((float)1.7 + randf((float)0.6)) : (-((float)1.7 + randf((float)0.6)));
         }
     }
 
@@ -22869,33 +22869,33 @@ int arrow_move()
 
             if(!dz && !dx)
             {
-                self->xdir = self->zdir = 0;
+                self->velocity.x = self->velocity.z = 0;
             }
             else
             {
-                self->xdir = maxspeed * dx / (dx + dz);
-                self->zdir = maxspeed * dz / (dx + dz);
+                self->velocity.x = maxspeed * dx / (dx + dz);
+                self->velocity.z = maxspeed * dz / (dx + dz);
             }
             if(self->direction != 1)
             {
-                self->xdir = -self->xdir;
+                self->velocity.x = -self->velocity.x;
             }
             if(self->z > target->z)
             {
-                self->zdir = -self->zdir;
+                self->velocity.z = -self->velocity.z;
             }
         }
         else
         {
-            if(!self->xdir && !self->zdir)
+            if(!self->velocity.x && !self->velocity.z)
             {
                 if(self->direction == 0)
                 {
-                    self->xdir = -self->modeldata.speed;
+                    self->velocity.x = -self->modeldata.speed;
                 }
                 else if(self->direction == 1)
                 {
-                    self->xdir = self->modeldata.speed;
+                    self->velocity.x = self->modeldata.speed;
                 }
             }
         }
@@ -22924,11 +22924,11 @@ int arrow_move()
         // Now projectiles can have custom speeds
         if(self->direction == 0)
         {
-            self->xdir = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed;
         }
         else if(self->direction == 1)
         {
-            self->xdir = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed;
         }
     }
 
@@ -22945,11 +22945,11 @@ int arrow_move()
                 self->projectile = 0;
                 if(self->direction == 0)
                 {
-                    self->xdir = (float) - 1.2;
+                    self->velocity.x = (float) - 1.2;
                 }
                 else if(self->direction == 1)
                 {
-                    self->xdir = (float)1.2;
+                    self->velocity.x = (float)1.2;
                 }
                 self->damage_on_landing = 0;
                 toss(self, 2.5 + randf(1));
@@ -22970,21 +22970,21 @@ int bomb_move()
     {
         if(self->direction == 0)
         {
-            self->xdir = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed;
         }
         else if(self->direction == 1)
         {
-            self->xdir = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed;
         }
     }
     else if(self->takeaction != bomb_explode)
     {
 
         self->takeaction = bomb_explode;
-        self->tossv = 0;    // Stop moving up/down
+        self->velocity.a = 0;    // Stop moving up/down
         self->modeldata.no_adjust_base = 1;    // Stop moving up/down
         self->base = self->a;
-        self->xdir = self->zdir = 0;
+        self->velocity.x = self->velocity.z = 0;
 
         if(self->modeldata.diesound >= 0)
         {
@@ -23031,7 +23031,7 @@ int star_move()
             self->attacking = 0;
             self->health = 0;
             self->projectile = 0;
-            self->xdir = (self->direction) ? (-1.2) : 1.2;
+            self->velocity.x = (self->direction) ? (-1.2) : 1.2;
             self->damage_on_landing = 0;
             toss(self, 2.5 + randf(1));
             set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0);
@@ -23122,7 +23122,7 @@ int common_move()
 
         // temporary solution to turn off running if xdir is not set
         // unless one day vertical running logic is written
-        if(!self->xdir)
+        if(!self->velocity.x)
         {
             self->running = 0;
         }
@@ -23145,9 +23145,9 @@ int common_move()
         }
         else if(aimove == AIMOVE1_WANDER)
         {
-            if(self->xdir)
+            if(self->velocity.x)
             {
-                self->direction = (self->xdir > 0);
+                self->direction = (self->velocity.x > 0);
             }
         }
 
@@ -23157,7 +23157,7 @@ int common_move()
         {
             self->takeaction = common_turn;
             self->direction = !self->direction;
-            self->xdir = self->zdir = 0;
+            self->velocity.x = self->velocity.z = 0;
             ent_set_anim(self, ANI_TURN, 0);
             return 1;
         }
@@ -23221,7 +23221,7 @@ int common_move()
 
                 if(other != ent)
                 {
-                    self->xdir = self->zdir = 0;
+                    self->velocity.x = self->velocity.z = 0;
                 }
 
                 if(!aimove && target)
@@ -23367,18 +23367,18 @@ int common_move()
 
         // make the entity walks in a straight path instead of flickering here and there
         // acceleration can be added easily based on this logic, if necessary
-        adjustspeed(self->running ? self->modeldata.runspeed : self->modeldata.speed, self->x, self->z, self->destx, self->destz, &self->xdir, &self->zdir);
+        adjustspeed(self->running ? self->modeldata.runspeed : self->modeldata.speed, self->x, self->z, self->destx, self->destz, &self->velocity.x, &self->velocity.z);
 
         // fix running animation, if the model doesn't allow running updown then set zdir to 0
         if(self->running && !self->modeldata.runupdown)
         {
-            self->zdir = 0;
+            self->velocity.z = 0;
             self->destz = self->z;
         }
 
         // check destination point to make a stop or pop a waypoint from the stack
-        reachx = (diff(self->x, self->destx) < MAX(1, ABS(self->xdir)));
-        reachz = (diff(self->z, self->destz) < MAX(1, ABS(self->zdir)));
+        reachx = (diff(self->x, self->destx) < MAX(1, ABS(self->velocity.x)));
+        reachz = (diff(self->z, self->destz) < MAX(1, ABS(self->velocity.z)));
 
         // check destination point to make a stop or pop a waypoint from the stack
         if(reachx && reachz)
@@ -23389,7 +23389,7 @@ int common_move()
                 self->destz = self->waypoints[self->numwaypoints - 1].z;
                 self->numwaypoints--;
             }
-            else if(self->xdir || self->zdir)
+            else if(self->velocity.x || self->velocity.z)
             {
                 makestop = 1;
             }
@@ -23399,18 +23399,18 @@ int common_move()
         {
             if(reachx)
             {
-                self->xdir = 0;
+                self->velocity.x = 0;
                 self->destx = self->x;
             }
             if(reachz)
             {
-                self->zdir = 0;
+                self->velocity.z = 0;
                 self->destz = self->z;
             }
         }
 
         // stoped so play idle, preventinng funny stepping bug, but may cause flickering
-        if(!self->xdir && !self->zdir && !self->waypoints)
+        if(!self->velocity.x && !self->velocity.z && !self->waypoints)
         {
             set_idle(self);
             if(makestop)
@@ -23432,13 +23432,13 @@ int common_move()
             // it should be already handled in checkpathblocked
             if(time > self->stalltime)
             {
-                if(ABS(self->xdir) > ABS(self->zdir))
+                if(ABS(self->velocity.x) > ABS(self->velocity.z))
                 {
-                    stall = diff(self->destx, self->x) / ABS(self->xdir) * 2;
+                    stall = diff(self->destx, self->x) / ABS(self->velocity.x) * 2;
                 }
-                else if(self->zdir)
+                else if(self->velocity.z)
                 {
-                    stall = diff(self->destz, self->z) / ABS(self->zdir) * 2;
+                    stall = diff(self->destz, self->z) / ABS(self->velocity.z) * 2;
                 }
                 else
                 {
@@ -23449,7 +23449,7 @@ int common_move()
         }
 
         //target is moving?  readjust destination sooner
-        if(aimove != AIMOVE1_WANDER && !self->waypoints && ent && (self->xdir || self->zdir) && (ent->xdir || ent->zdir))
+        if(aimove != AIMOVE1_WANDER && !self->waypoints && ent && (self->velocity.x || self->velocity.z) && (ent->velocity.x || ent->velocity.z))
         {
             if(self->running && self->stalltime > time + GAME_SPEED / 2)
             {
@@ -23564,12 +23564,12 @@ void checkstalker()
 
     maxspeed = running ? self->modeldata.runspeed : self->modeldata.speed;
 
-    self->xdir = maxspeed;
-    self->zdir = 0;
+    self->velocity.x = maxspeed;
+    self->velocity.z = 0;
 
     if(self->x > firstplayer->x)
     {
-        self->xdir = -self->xdir;
+        self->velocity.x = -self->velocity.x;
     }
 
     self->running = running;
@@ -23608,7 +23608,7 @@ int ai_check_warp()
 
 int ai_check_lie()
 {
-    if(self->drop && self->a == self->base && !self->tossv && validanim(self, ANI_RISEATTACK) && ((rand32() % (self->stalltime - time + 1)) < 3) && (self->health > 0 && time > self->staydown.riseattack_stall))
+    if(self->drop && self->a == self->base && !self->velocity.a && validanim(self, ANI_RISEATTACK) && ((rand32() % (self->stalltime - time + 1)) < 3) && (self->health > 0 && time > self->staydown.riseattack_stall))
     {
         common_try_riseattack();
         return 1;
@@ -23886,7 +23886,7 @@ int check_special()
         }
 
         self->running = 0;    // If special is executed while running, ceases to run
-        self->xdir = self->zdir = 0;
+        self->velocity.x = self->velocity.z = 0;
         ent_set_anim(self, ANI_SPECIAL, 0);
 
         if(self->modeldata.dofreeze)
@@ -23947,7 +23947,7 @@ int player_check_special()
 
 void common_land()
 {
-    self->xdir = self->zdir = 0;
+    self->velocity.x = self->velocity.z = 0;
     if(self->animating)
     {
         return;
@@ -24069,7 +24069,7 @@ void common_dodge()    // New function so players can dodge with up up or down d
     else    // Once done animating, returns to thinking
     {
         self->takeaction = NULL;
-        self->xdir = self->zdir = 0;
+        self->velocity.x = self->velocity.z = 0;
         set_idle(self);
     }
 }
@@ -24093,7 +24093,7 @@ void tryjump(float jumpv, float jumpx, float jumpz, int jumpid)
     if(validanim(self, ANI_JUMPDELAY))
     {
         self->takeaction = common_prejump;
-        self->xdir = self->zdir = 0;
+        self->velocity.x = self->velocity.z = 0;
 
         self->idling = 0;
         ent_set_anim(self, ANI_JUMPDELAY, 0);
@@ -24134,14 +24134,14 @@ void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
 
     if(self->direction == 0)
     {
-        self->xdir = -jumpx;
+        self->velocity.x = -jumpx;
     }
     else
     {
-        self->xdir = jumpx;
+        self->velocity.x = jumpx;
     }
 
-    self->zdir = jumpz;
+    self->velocity.z = jumpz;
     ent_set_anim(self, jumpid, 0);
 }
 
@@ -24410,7 +24410,7 @@ void player_grab_check()
                 {
                     ent_set_anim(other, ANI_PAIN, 0);
                 }
-                other->xdir = other->zdir = self->xdir = self->zdir = 0;
+                other->velocity.x = other->velocity.z = self->velocity.x = self->velocity.z = 0;
                 other->x = self->x;
                 return;
             }
@@ -24547,27 +24547,27 @@ void player_grab_check()
             {
                 if(self->modeldata.grabwalkspeed)
                 {
-                    self->zdir = -self->modeldata.grabwalkspeed / 2;
+                    self->velocity.z = -self->modeldata.grabwalkspeed / 2;
                 }
                 else
                 {
-                    self->zdir = -self->modeldata.speed / 2;
+                    self->velocity.z = -self->modeldata.speed / 2;
                 }
             }
             else if(player[self->playerindex].keys & FLAG_MOVEDOWN)
             {
                 if(self->modeldata.grabwalkspeed)
                 {
-                    self->zdir = self->modeldata.grabwalkspeed / 2;
+                    self->velocity.z = self->modeldata.grabwalkspeed / 2;
                 }
                 else
                 {
-                    self->zdir = self->modeldata.speed / 2;
+                    self->velocity.z = self->modeldata.speed / 2;
                 }
             }
             else if(!(player[self->playerindex].keys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
             {
-                self->zdir = 0;
+                self->velocity.z = 0;
             }
         }
 
@@ -24576,11 +24576,11 @@ void player_grab_check()
         {
             if(self->modeldata.grabwalkspeed)
             {
-                self->xdir = -self->modeldata.grabwalkspeed;
+                self->velocity.x = -self->modeldata.grabwalkspeed;
             }
             else
             {
-                self->xdir = -self->modeldata.speed;
+                self->velocity.x = -self->modeldata.speed;
             }
         }
 
@@ -24588,30 +24588,30 @@ void player_grab_check()
         {
             if(self->modeldata.grabwalkspeed)
             {
-                self->xdir = self->modeldata.grabwalkspeed;
+                self->velocity.x = self->modeldata.grabwalkspeed;
             }
             else
             {
-                self->xdir = self->modeldata.speed;
+                self->velocity.x = self->modeldata.speed;
             }
         }
         else if(!((player[self->playerindex].keys & FLAG_MOVELEFT) || (player[self->playerindex].keys & FLAG_MOVERIGHT)) )
         {
-            self->xdir = 0;
+            self->velocity.x = 0;
         }
 
         // setting the animations based on the velocity set above
-        if(self->xdir || self->zdir)
+        if(self->velocity.x || self->velocity.z)
         {
-            if(((self->xdir > 0 && !self->direction) || (self->xdir < 0 && self->direction)) && validanim(self, ANI_GRABBACKWALK))
+            if(((self->velocity.x > 0 && !self->direction) || (self->velocity.x < 0 && self->direction)) && validanim(self, ANI_GRABBACKWALK))
             {
                 ent_set_anim(self, ANI_GRABBACKWALK, 0);
             }
-            else if(self->zdir < 0 && validanim(self, ANI_GRABWALKUP))
+            else if(self->velocity.z < 0 && validanim(self, ANI_GRABWALKUP))
             {
                 ent_set_anim(self, ANI_GRABWALKUP, 0);
             }
-            else if(self->zdir > 0 && validanim(self, ANI_GRABWALKDOWN))
+            else if(self->velocity.z > 0 && validanim(self, ANI_GRABWALKDOWN))
             {
                 ent_set_anim(self, ANI_GRABWALKDOWN, 0);
             }
@@ -24657,7 +24657,7 @@ void player_grab_check()
             }
         }
         // use check_link_move to set velocity, don't change it here
-        other->zdir = other->xdir = 0;
+        other->velocity.z = other->velocity.x = 0;
         self->grabwalking = 1;
     }
 
@@ -24698,15 +24698,15 @@ void player_jump_check()
                 else if(validanim(self, ANI_JUMPCANT))
                 {
                     ent_set_anim(self, ANI_JUMPCANT, 0);
-                    self->tossv = 0;
+                    self->velocity.a = 0;
                 }
 
                 if(candospecial)
                 {
                     player[self->playerindex].playkeys &= ~FLAG_SPECIAL;
                     self->attacking = 1;
-                    self->xdir = self->zdir = 0;                         // Kill movement when the special starts
-                    self->tossv = 0;
+                    self->velocity.x = self->velocity.z = 0;                         // Kill movement when the special starts
+                    self->velocity.a = 0;
                     ent_set_anim(self, ANI_JUMPSPECIAL, 0);
                 }
             }
@@ -24730,7 +24730,7 @@ void player_jump_check()
             {
                 ent_set_anim(self, ANI_RUNJUMPATTACK, 0);    // Added so an extra strong jump attack can be executed
             }
-            else if(self->xdir != 0 && validanim(self, ANI_JUMPFORWARD))
+            else if(self->velocity.x != 0 && validanim(self, ANI_JUMPFORWARD))
             {
                 ent_set_anim(self, ANI_JUMPFORWARD, 0);    // If moving and set, do this attack
             }
@@ -24753,35 +24753,35 @@ void player_jump_check()
     }
     if(self->modeldata.jumpmovex & 2) //move?
     {
-        if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->xdir > 0) ||
-                ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->xdir < 0))
+        if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0) ||
+                ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->velocity.x < 0))
         {
-            self->xdir = -self->xdir;
+            self->velocity.x = -self->velocity.x;
         }
     }
     if(self->modeldata.jumpmovex & 4) //Move x if vertical jump?
     {
-        if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->xdir > 0) ||
-                ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->xdir < 0))
+        if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0) ||
+                ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->velocity.x < 0))
         {
-            self->xdir = -self->xdir;
+            self->velocity.x = -self->velocity.x;
         }
 
-        if((player[self->playerindex].keys & FLAG_MOVELEFT) && (!self->xdir))
+        if((player[self->playerindex].keys & FLAG_MOVELEFT) && (!self->velocity.x))
         {
-            self->xdir -= self->modeldata.speed;
+            self->velocity.x -= self->modeldata.speed;
         }
-        else if((player[self->playerindex].keys & FLAG_MOVERIGHT) && (!self->xdir))
+        else if((player[self->playerindex].keys & FLAG_MOVERIGHT) && (!self->velocity.x))
         {
-            self->xdir = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed;
         }
     }
     if(self->modeldata.jumpmovez & 2) //z move?
     {
-        if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->zdir > 0) ||
-                ((player[self->playerindex].keys & FLAG_MOVEDOWN) && self->zdir < 0))
+        if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->velocity.z > 0) ||
+                ((player[self->playerindex].keys & FLAG_MOVEDOWN) && self->velocity.z < 0))
         {
-            self->zdir = -self->zdir;
+            self->velocity.z = -self->velocity.z;
         }
     }
     if(self->modeldata.jumpmovez & 4) //Move z if vertical jump?
@@ -24795,19 +24795,19 @@ void player_jump_check()
             self->direction = 1;
         }
 
-        if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->zdir > 0) ||
-                ((player[self->playerindex].keys & FLAG_MOVEDOWN) && self->zdir < 0))
+        if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->velocity.z > 0) ||
+                ((player[self->playerindex].keys & FLAG_MOVEDOWN) && self->velocity.z < 0))
         {
-            self->zdir = -self->zdir;
+            self->velocity.z = -self->velocity.z;
         }
 
-        if((player[self->playerindex].keys & FLAG_MOVEUP) && (!self->zdir))
+        if((player[self->playerindex].keys & FLAG_MOVEUP) && (!self->velocity.z))
         {
-            self->zdir -= (0.5 * self->modeldata.speed);
+            self->velocity.z -= (0.5 * self->modeldata.speed);
         }
-        else if((player[self->playerindex].keys & FLAG_MOVEDOWN) && (!self->zdir))
+        else if((player[self->playerindex].keys & FLAG_MOVEDOWN) && (!self->velocity.z))
         {
-            self->zdir = (0.5 * self->modeldata.speed);
+            self->velocity.z = (0.5 * self->modeldata.speed);
         }
     }
 
@@ -24879,7 +24879,7 @@ int check_costmove(int s, int fs, int jumphack)
             }
         }
 
-        self->xdir = self->zdir = 0;
+        self->velocity.x = self->velocity.z = 0;
         set_attacking(self);
         self->inpain = 0;
         memset(self->combostep, 0, sizeof(*self->combostep) * 5);
@@ -25055,7 +25055,7 @@ void player_think()
         goto endthinkcheck;
     }
 
-    if(self->drop && self->a == self->base && !self->tossv)
+    if(self->drop && self->a == self->base && !self->velocity.a)
     {
         player_lie_check();
         goto endthinkcheck;
@@ -25098,7 +25098,7 @@ void player_think()
             self->takeaction = common_attack_proc;
             set_attacking(self);
             self->combostep[0] = 0;
-            self->xdir = self->zdir = 0;
+            self->velocity.x = self->velocity.z = 0;
             ent_set_anim(self, ANI_ATTACKUP, 0);
             pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS; // this workaround deals default freespecial2
             goto endthinkcheck;
@@ -25110,8 +25110,8 @@ void player_think()
             self->takeaction = common_dodge;
             self->combostep[0] = 0;
             self->idling = 0;
-            self->zdir = -self->modeldata.speed * 1.75;
-            self->xdir = 0;// OK you can use jumpframe to modify this anyway
+            self->velocity.z = -self->modeldata.speed * 1.75;
+            self->velocity.x = 0;// OK you can use jumpframe to modify this anyway
             ent_set_anim(self, ANI_DODGE, 0);
             pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
             goto endthinkcheck;;
@@ -25133,7 +25133,7 @@ void player_think()
             pl->playkeys &= ~FLAG_MOVEDOWN;
             self->takeaction = common_attack_proc;
             set_attacking(self);
-            self->xdir = self->zdir = 0;
+            self->velocity.x = self->velocity.z = 0;
             self->combostep[0] = 0;
             ent_set_anim(self, ANI_ATTACKDOWN, 0);
             pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
@@ -25146,8 +25146,8 @@ void player_think()
             self->takeaction = common_dodge;
             self->combostep[0] = 0;
             self->idling = 0;
-            self->zdir = self->modeldata.speed * 1.75;
-            self->xdir = 0;
+            self->velocity.z = self->modeldata.speed * 1.75;
+            self->velocity.x = 0;
             ent_set_anim(self, ANI_DODGE, 0);
             pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
             goto endthinkcheck;
@@ -25169,7 +25169,7 @@ void player_think()
             pl->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT);
             self->takeaction = common_attack_proc;
             set_attacking(self);
-            self->xdir = self->zdir = 0;
+            self->velocity.x = self->velocity.z = 0;
             self->combostep[0] = 0;
             ent_set_anim(self, ANI_ATTACKFORWARD, 0);
             pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
@@ -25184,7 +25184,7 @@ void player_think()
             pl->playkeys &= ~FLAG_JUMP;
             self->takeaction = common_attack_proc;
             set_attacking(self);
-            self->xdir = self->zdir = 0;
+            self->velocity.x = self->velocity.z = 0;
             self->combostep[0] = 0;
             self->stalltime = 0;    // If attack is pressed, holding down attack to execute attack3 is no longer valid
             ent_set_anim(self, ANI_ATTACKBOTH, 0);
@@ -25199,7 +25199,7 @@ void player_think()
             pl->playkeys &= ~FLAG_JUMP;
             self->takeaction = common_charge;
             self->combostep[0] = 0;
-            self->xdir = self->zdir = 0;
+            self->velocity.x = self->velocity.z = 0;
             self->stalltime = 0;
             set_charging(self);
             ent_set_anim(self, ANI_CHARGE, 0);
@@ -25225,7 +25225,7 @@ void player_think()
         {
             pl->playkeys &= ~FLAG_SPECIAL;
             self->takeaction = common_block;
-            self->xdir = self->zdir = 0;
+            self->velocity.x = self->velocity.z = 0;
             set_blocking(self);
             self->combostep[0] = 0;
             ent_set_anim(self, ANI_BLOCK, 0);
@@ -25246,7 +25246,7 @@ void player_think()
         {
             self->takeaction = common_attack_proc;
             set_attacking(self);
-            self->xdir = self->zdir = 0;
+            self->velocity.x = self->velocity.z = 0;
 
             self->stalltime = 0;
             self->combostep[0] = 0;
@@ -25278,7 +25278,7 @@ void player_think()
         {
             self->takeaction = common_attack_proc;
             set_attacking(self);
-            self->xdir = self->zdir = 0;
+            self->velocity.x = self->velocity.z = 0;
             self->combostep[0] = 0;
             ent_set_anim(self, ANI_DUCKATTACK, 0);
             goto endthinkcheck;
@@ -25288,7 +25288,7 @@ void player_think()
         {
             self->takeaction = common_attack_proc;
             set_attacking(self);
-            self->xdir = self->zdir = 0;
+            self->velocity.x = self->velocity.z = 0;
             self->combostep[0] = 0;
             self->running = 0;
             ent_set_anim(self, ANI_RUNATTACK, 0);
@@ -25303,7 +25303,7 @@ void player_think()
             {
                 self->takeaction = common_attack_proc;
                 set_attacking(self);
-                self->xdir = self->zdir = 0;
+                self->velocity.x = self->velocity.z = 0;
                 if(!self->direction && (pl->combokey[t2]&FLAG_MOVELEFT))
                 {
                     self->direction = 1;
@@ -25320,7 +25320,7 @@ void player_think()
 
         if( validanim(self, ANI_GET) && (other = find_ent_here(self, self->x, self->z, TYPE_ITEM, player_test_pickable)) )
         {
-            self->xdir = self->zdir = 0;
+            self->velocity.x = self->velocity.z = 0;
             set_getting(self);
             self->takeaction = common_get;
             ent_set_anim(self, ANI_GET, 0);
@@ -25331,7 +25331,7 @@ void player_think()
 
         // Use stalltime to charge end-move
         self->stalltime = time;
-        self->xdir = self->zdir = 0;
+        self->velocity.x = self->velocity.z = 0;
 
         if( self->weapent &&
                 self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
@@ -25366,7 +25366,7 @@ void player_think()
             {
                 self->takeaction = common_attack_proc;
                 set_attacking(self);
-                self->xdir = self->zdir = 0;
+                self->velocity.x = self->velocity.z = 0;
                 self->combostep[0] = 0;
                 self->running = 0;
                 ent_set_anim(self, ANI_RUNSLIDE, 0);
@@ -25375,15 +25375,15 @@ void player_think()
 
             if(validanim(self, ANI_RUNJUMP))
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->zdir : 0, ANI_RUNJUMP);
+                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_RUNJUMP);
             }
             else if(validanim(self, ANI_FORWARDJUMP))
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->zdir : 0, ANI_FORWARDJUMP);
+                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_FORWARDJUMP);
             }
             else if(validanim(self, ANI_JUMP))
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->zdir : 0, ANI_JUMP);
+                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
             }
         }
         else
@@ -25393,7 +25393,7 @@ void player_think()
             {
                 self->takeaction = common_attack_proc;
                 set_attacking(self);
-                self->xdir = self->zdir = 0;
+                self->velocity.x = self->velocity.z = 0;
                 self->combostep[0] = 0;
                 self->running = 0;
                 ent_set_anim(self, ANI_SLIDE, 0);
@@ -25402,7 +25402,7 @@ void player_think()
 
             if(!(pl->keys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) && validanim(self, ANI_JUMP))
             {
-                tryjump(self->modeldata.jumpheight, 0, (self->modeldata.jumpmovez) ? self->zdir : 0, ANI_JUMP);
+                tryjump(self->modeldata.jumpheight, 0, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
                 goto endthinkcheck;
             }
             else if((pl->keys & FLAG_MOVELEFT))
@@ -25416,11 +25416,11 @@ void player_think()
 
             if(validanim(self, ANI_FORWARDJUMP))
             {
-                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->zdir : 0, ANI_FORWARDJUMP);
+                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_FORWARDJUMP);
             }
             else if(validanim(self, ANI_JUMP))
             {
-                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->zdir : 0, ANI_JUMP);
+                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
             }
         }
         return;
@@ -25448,19 +25448,19 @@ void player_think()
         }
         if(oldrunning)
         {
-            if(self->zdir < 0)
+            if(self->velocity.z < 0)
             {
                 runz--;
             }
-            else if(self->zdir > 0)
+            else if(self->velocity.z > 0)
             {
                 runz++;
             }
-            if(self->xdir < 0)
+            if(self->velocity.x < 0)
             {
                 runx--;
             }
-            else if(self->xdir > 0)
+            else if(self->velocity.x > 0)
             {
                 runx++;
             }
@@ -25511,17 +25511,17 @@ void player_think()
             if(validanim(self, ANI_UP) && !self->running)
             {
                 action = 2;
-                self->zdir = -self->modeldata.speed / 2;  // Used for up animation
+                self->velocity.z = -self->modeldata.speed / 2;  // Used for up animation
             }
             else if(self->running)
             {
                 action = 4;
-                self->zdir = -self->modeldata.runspeed / 2;  // Moves up at a faster rate running
+                self->velocity.z = -self->modeldata.runspeed / 2;  // Moves up at a faster rate running
             }
             else
             {
                 action = 1;
-                self->zdir = -self->modeldata.speed / 2;
+                self->velocity.z = -self->modeldata.speed / 2;
             }
         }
         else if(pl->keys & FLAG_MOVEDOWN)
@@ -25531,28 +25531,28 @@ void player_think()
             if(validanim(self, ANI_DOWN) && !self->running )
             {
                 action = 3;
-                self->zdir = self->modeldata.speed / 2;  // Used for down animation
+                self->velocity.z = self->modeldata.speed / 2;  // Used for down animation
             }
             else if(self->running)
             {
                 action = 4;
-                self->zdir = self->modeldata.runspeed / 2;  // Moves down at a faster rate running
+                self->velocity.z = self->modeldata.runspeed / 2;  // Moves down at a faster rate running
             }
             else
             {
                 action = 1;
-                self->zdir = self->modeldata.speed / 2;
+                self->velocity.z = self->modeldata.speed / 2;
             }
         }
         else if(!(pl->keys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
         {
-            self->zdir = 0;
+            self->velocity.z = 0;
         }
     }
     else if(validanim(self, ANI_DUCK) && pl->keys & FLAG_MOVEDOWN  && notinair)
     {
         ent_set_anim(self, ANI_DUCK, 0);
-        self->xdir = self->zdir = 0;
+        self->velocity.x = self->velocity.z = 0;
         goto endthinkcheck;
     }
 
@@ -25572,7 +25572,7 @@ void player_think()
                 {
                     self->takeaction = common_turn;
                     set_turning(self);
-                    self->xdir = self->zdir = 0;
+                    self->velocity.x = self->velocity.z = 0;
                     ent_set_anim(self, ANI_TURN, 0);
                     goto endthinkcheck;
                 }
@@ -25582,7 +25582,7 @@ void player_think()
             {
                 self->takeaction = common_turn;
                 set_turning(self);
-                self->xdir = self->zdir = 0;
+                self->velocity.x = self->velocity.z = 0;
                 ent_set_anim(self, ANI_TURN, 0);
                 goto endthinkcheck;
             }
@@ -25599,16 +25599,16 @@ void player_think()
         if(self->running)
         {
             action = 4;
-            self->xdir = -self->modeldata.runspeed;    // If running, player moves at a faster rate
+            self->velocity.x = -self->modeldata.runspeed;    // If running, player moves at a faster rate
         }
         else if(action != 2 && action != 3)
         {
             action = 1;
-            self->xdir = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed;
         }
         else
         {
-            self->xdir = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed;
         }
     }
     else if(pl->keys & FLAG_MOVERIGHT)
@@ -25627,7 +25627,7 @@ void player_think()
                 {
                     self->takeaction = common_turn;
                     set_turning(self);
-                    self->xdir = self->zdir = 0;
+                    self->velocity.x = self->velocity.z = 0;
                     ent_set_anim(self, ANI_TURN, 0);
                     goto endthinkcheck;
                 }
@@ -25637,7 +25637,7 @@ void player_think()
             {
                 self->takeaction = common_turn;
                 set_turning(self);
-                self->xdir = self->zdir = 0;
+                self->velocity.x = self->velocity.z = 0;
                 ent_set_anim(self, ANI_TURN, 0);
                 goto endthinkcheck;
             }
@@ -25654,23 +25654,23 @@ void player_think()
         if(self->running)
         {
             action = 4;
-            self->xdir = self->modeldata.runspeed;    // If running, player moves at a faster rate
+            self->velocity.x = self->modeldata.runspeed;    // If running, player moves at a faster rate
         }
         else if(action != 2 && action != 3)
         {
             action = 1;
-            self->xdir = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed;
         }
         else
         {
-            self->xdir = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed;
         }
     }
     else if(!((pl->keys & FLAG_MOVELEFT) ||
               (pl->keys & FLAG_MOVERIGHT)) )
     {
         //self->running = 0;    // Player let go of left/right and so quits running
-        self->xdir = 0;
+        self->velocity.x = 0;
         self->turntime = 0;
     }
 
@@ -25889,7 +25889,7 @@ void drop_all_enemies()
             ent_list[i]->damage_on_landing = 0;
             self = ent_list[i];
             ent_unlink(self);
-            ent_list[i]->xdir = (self->direction) ? (-1.2) : 1.2;
+            ent_list[i]->velocity.x = (self->direction) ? (-1.2) : 1.2;
             dropweapon(1);
             toss(ent_list[i], 2.5 + randf(1));
             ent_list[i]->knockdowncount = ent_list[i]->modeldata.knockdowncount;
@@ -25997,7 +25997,7 @@ void anything_walk()
         kill(self);
         return;
     }
-    //self->x += self->xdir;
+    //self->x += self->velocity.x;
 }
 
 entity *knife_spawn(char *name, int index, float x, float z, float a, int direction, int type, int map)
@@ -26289,7 +26289,7 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
         e->owner = self;    // Added so enemy projectiles don't hit the owner
         e->attacking = 1;
         e->nograb = 1;    // Prevents trying to grab a projectile
-        e->xdir = fd * (float)i / 2;
+        e->velocity.x = fd * (float)i / 2;
         e->think = common_think;
         e->nextthink = time + 1;
         e->trymove = NULL;
@@ -26425,11 +26425,11 @@ void bike_crash()
     int i;
     if(self->direction)
     {
-        self->xdir = 2;
+        self->velocity.x = 2;
     }
     else
     {
-        self->xdir = -2;
+        self->velocity.x = -2;
     }
     for(i = 0; i < levelsets[current_set].maxplayers; i++)
     {
@@ -26508,7 +26508,7 @@ void obstacle_fall()
         return;
     }
 
-    self->xdir = self->zdir = 0;
+    self->velocity.x = self->velocity.z = 0;
     if((!self->animating && validanim(self, ANI_DIE)) || !validanim(self, ANI_DIE))
     {
         kill(self);    // Fixed so ANI_DIE can be used
@@ -26519,7 +26519,7 @@ void obstacle_fall()
 
 void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
 {
-    //self->x += self->xdir * 4;    // Equivelant of speed 40
+    //self->x += self->velocity.x * 4;    // Equivelant of speed 40
     if(self->x > advancex + (videomodes.hRes + 200) || self->x < advancex - 200)
     {
         kill(self);
@@ -26553,18 +26553,18 @@ int obstacle_takedamage(entity *other, s_attack *attack)
 
         if(other->x < self->x)
         {
-            self->xdir = 1;
+            self->velocity.x = 1;
         }
         else
         {
-            self->xdir = -1;
+            self->velocity.x = -1;
         }
 
         self->attacking = 1;    // So obstacles can explode and hurt players/enemies
 
         if(self->modeldata.subtype == SUBTYPE_FLYDIE)     // Now obstacles can fly like on Simpsons/TMNT
         {
-            self->xdir *= 4;
+            self->velocity.x *= 4;
             self->think = obstacle_fly;
             ent_set_anim(self, ANI_FALL, 0);
         }
