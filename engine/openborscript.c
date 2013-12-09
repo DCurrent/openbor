@@ -12535,7 +12535,7 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
                 case _lp_bm_x:
                     if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) )
                     {
-                        level->basemaps[ltemp].x = ltemp2;
+                        level->basemaps[ltemp].position.x = ltemp2;
                     }
                     else
                     {
@@ -12545,7 +12545,7 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
                 case _lp_bm_xsize:
                     if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) )
                     {
-                        level->basemaps[ltemp].xsize = ltemp2;
+                        level->basemaps[ltemp].size.x = ltemp2;
                     }
                     else
                     {
@@ -12555,7 +12555,7 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
                 case _lp_bm_z:
                     if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) )
                     {
-                        level->basemaps[ltemp].z = ltemp2;
+                        level->basemaps[ltemp].position.z = ltemp2;
                     }
                     else
                     {
@@ -12565,7 +12565,7 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
                 case _lp_bm_zsize:
                     if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) )
                     {
-                        level->basemaps[ltemp].zsize = ltemp2;
+                        level->basemaps[ltemp].size.z = ltemp2;
                     }
                     else
                     {
@@ -12576,14 +12576,14 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
                     if(paramCount >= 6 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) &&
                             SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp3)) &&
                             SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)) &&
-                            ltemp2 >= 0 && ltemp2 < level->basemaps[ltemp].xsize && ltemp3 >= 0 && ltemp3 < level->basemaps[ltemp].zsize
+                            ltemp2 >= 0 && ltemp2 < level->basemaps[ltemp].size.x && ltemp3 >= 0 && ltemp3 < level->basemaps[ltemp].size.z
                       )
                     {
                         if(!level->basemaps[ltemp].map)
                         {
-                            level->basemaps[ltemp].map = calloc(1, sizeof(*(level->basemaps[ltemp].map)) * level->basemaps[ltemp].xsize * level->basemaps[ltemp].zsize);
+                            level->basemaps[ltemp].map = calloc(1, sizeof(*(level->basemaps[ltemp].map)) * level->basemaps[ltemp].size.x * level->basemaps[ltemp].size.z);
                         }
-                        level->basemaps[ltemp].map[ltemp2 + ltemp3 * level->basemaps[ltemp].xsize] = (float)dbltemp;
+                        level->basemaps[ltemp].map[ltemp2 + ltemp3 * level->basemaps[ltemp].size.x] = (float)dbltemp;
                     }
                     else
                     {

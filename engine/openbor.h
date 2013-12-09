@@ -1564,7 +1564,7 @@ typedef struct
     */
 
     int font;           //Font index.
-    s_axis_f position;    //x,y,a location on screen.
+    s_axis_i position;    //x,y,a location on screen.
     int time;           //Time to expire.
     char *text;         //Text to display.
 } s_textobj;
@@ -1578,10 +1578,8 @@ typedef struct
 
 typedef struct
 {
-    int x;
-    int z;
-    int xsize;
-    int zsize;
+    s_axis_i position;  //only x and z.
+    s_axis_i size;      //Only x and z.
     float *map;
 } s_basemap;
 
