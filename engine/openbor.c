@@ -17154,10 +17154,10 @@ static float check_basemap(int x, int z)
     }
     for(i = 0; i < level->numbasemaps; i++)
     {
-        if(x >= level->basemaps[i].x && x < level->basemaps[i].x + level->basemaps[i].xsize &&
-                z >= level->basemaps[i].z && z < level->basemaps[i].z + level->basemaps[i].zsize)
+        if(x >= level->basemaps[i].position.x && x < level->basemaps[i].position.x + level->basemaps[i].size.x &&
+                z >= level->basemaps[i].position.z && z < level->basemaps[i].position.z + level->basemaps[i].size.z)
         {
-            base = level->basemaps[i].map[x - level->basemaps[i].x + level->basemaps[i].xsize * (z - level->basemaps[i].z)];
+            base = level->basemaps[i].map[x - level->basemaps[i].position.x + level->basemaps[i].size.x * (z - level->basemaps[i].position.z)];
             if(base > maxbase)
             {
                 maxbase = base;
