@@ -525,32 +525,32 @@ if(n<1) n = 1;
 #define check_range(self, target, animnum) \
 		 ( target && \
 		  (self->direction ? \
-		  (int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.xmin &&\
-		  (int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.xmax\
+		  (int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.minimum.x &&\
+		  (int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.maximum.x\
 		:\
-		  (int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.xmin &&\
-		  (int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.xmax)\
-		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.zmin \
-		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.zmax \
-		  && (int)(target->position.a - self->position.a) >= self->modeldata.animation[animnum]->range.amin \
-		  && (int)(target->position.a - self->position.a) <= self->modeldata.animation[animnum]->range.amax \
-		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.bmin \
-		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.bmax \
+		  (int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.minimum.x &&\
+		  (int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.maximum.x)\
+		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.minimum.z \
+		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.maximum.z \
+		  && (int)(target->position.a - self->position.a) >= self->modeldata.animation[animnum]->range.minimum.a \
+		  && (int)(target->position.a - self->position.a) <= self->modeldata.animation[animnum]->range.maximum.a \
+		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.minimum.base \
+		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.maximum.base \
 		  )\
 
 #define check_range_both(self, target, animnum) \
 		 ( target && \
-		  (((int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.xmin &&\
-			(int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.xmax)\
+		  (((int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.minimum.x &&\
+			(int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.maximum.x)\
 		||\
-		   ((int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.xmin &&\
-			(int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.xmax))\
-		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.zmin \
-		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.zmax \
-		  && (int)(target->position.a - self->position.a) >= self->modeldata.animation[animnum]->range.amin \
-		  && (int)(target->position.a - self->position.a) <= self->modeldata.animation[animnum]->range.amax \
-		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.bmin \
-		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.bmax \
+		   ((int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.minimum.x &&\
+			(int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.maximum.x))\
+		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.minimum.z \
+		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.maximum.z \
+		  && (int)(target->position.a - self->position.a) >= self->modeldata.animation[animnum]->range.minimum.a \
+		  && (int)(target->position.a - self->position.a) <= self->modeldata.animation[animnum]->range.maximum.a \
+		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.minimum.base \
+		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.maximum.base \
 		  )\
 
 
@@ -594,10 +594,23 @@ typedef struct
     Damon Caskey
     */
 
-    float a;    //Altitude/Vertical axis (Y)
+    float a;    //Altitude/Vertical axis (Y).
     float x;    //Horizontial axis.
-    float z;    //Lateral Vertical axis.
-} s_axis;
+    float z;    //Lateral axis.
+} s_axis_f;
+
+typedef struct
+{
+    /*
+    Axis structure for general coordinates and velocity use when floats are not needed.
+    2013-12-09
+    Damon Caskey
+    */
+    int a;      //Altitude/Vertical axis (Y).
+    int x;      //Horizontal axis.
+    int z;      //Lateral axis.
+    int base;   //Base altitude.
+} s_axis_i;
 
 typedef struct
 {
@@ -671,7 +684,7 @@ typedef struct
     int attack_force;
     int attack_coords[6];
     int staydown[3]; // [0] = Add to rise delay. [1] = Add to rise attack delay.
-    s_axis dropv;   //Velocity of target if knocked down.
+    s_axis_f dropv;   //Velocity of target if knocked down.
     int hitsound; // Sound effect to be played when attack hits opponent
     int hitflash; // Custom flash for each animation, model id
     int blockflash; // Custom bflash for each animation, model id
@@ -732,7 +745,7 @@ typedef struct
 
     int ent;            //Index of entity to spawn on liftoff of jump action.
     int frame;          //Frame to begin action.
-    s_axis velocity;    //x,a,z velocity.
+    s_axis_f velocity;    //x,a,z velocity.
 } s_jumpframe;
 
 typedef struct //2011_04_01, DC: Behavior when reaching base after jump or fall.
@@ -756,17 +769,17 @@ typedef struct //2011_04_01, DC: Frame based screen shake functionality.
     int v; //Vertical distance of screen movement (in pixels).
 } s_quakeframe;
 
-typedef struct //2011_04_01, DC: Distance to target verification for AI running, jumping, following parent, and combo chains for all entity types.
+typedef struct
 {
-    int xmin; //Minimum horizontal range.
-    int xmax; //Maximum horizontal range.
-    int zmin; //Minimum lateral range.
-    int zmax; //Maximum lateral range.
-    int amin; //Minimum vertical range.
-    int amax; //Maximum vertical range.
-    int bmin; //Minumum base range.
-    int bmax; //Maximum base rnage.
-} s_range; //2011_04_01, DC: Target range verification for various AI and player functions.
+    /*
+    Distance to target verification for AI running, jumping, following parent, and combo chains for all entity types.
+    2011_04_01
+    Damon Caskey
+    */
+
+    s_axis_i maximum;   //Maximum ranges.
+    s_axis_i minimum;   //Minimum ranges.
+} s_range;
 
 typedef struct
 {
@@ -1227,7 +1240,7 @@ typedef struct
     Damon Caskey
     */
     int id; //Jumping ID.
-    s_axis velocity; //x,a,z velocity setting.
+    s_axis_f velocity; //x,a,z velocity setting.
 } s_jump;
 
 typedef struct entity
@@ -1259,8 +1272,8 @@ typedef struct entity
     int direction; // 0=left 1=right
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
     int movestep;
-    s_axis position; //x,a,z location.
-    s_axis velocity; //x,a,z movement speed.
+    s_axis_f position; //x,a,z location.
+    s_axis_f velocity; //x,a,z movement speed.
     float destx; // temporary values for ai functions
     float destz;
     float movex;
@@ -1338,7 +1351,7 @@ typedef struct entity
     int arrowon; // Flag to display parrow/parrow2 or not
     unsigned pathblocked;
 
-    s_axis *waypoints;
+    s_axis_f *waypoints;
     int numwaypoints;
     int animpos;
     int animnum; // animation id
@@ -1551,7 +1564,7 @@ typedef struct
     */
 
     int font;           //Font index.
-    s_axis position;    //x,y,a location on screen.
+    s_axis_f position;    //x,y,a location on screen.
     int time;           //Time to expire.
     char *text;         //Text to display.
 } s_textobj;
@@ -1646,7 +1659,7 @@ typedef struct
     int nohurt; // Used to specify if you can hurt the other player during bonus levels
     int noslow; // Flag so the level doesn't slow down after a boss is defeated
     int nohit; // Not able to grab / hit other player on a per level basis
-    s_axis spawn[MAX_PLAYERS]; // Used to determine the spawn position of players
+    s_axis_f spawn[MAX_PLAYERS]; // Used to determine the spawn position of players
     int setweap; // Levels can now specified which weapon will be used by default
     int facing; // Force the players to face to ... 0 no effects, 1 right, 2 left, 3 affected by level dir
 //--------------------gravity system-------------------------
