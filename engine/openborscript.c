@@ -5882,44 +5882,40 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         {
         case _ep_range_amax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.amax;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.maximum.a;
             break;
         case _ep_range_amin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.amin;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.minimum.a;
             break;
         case _ep_range_bmax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.bmax;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.maximum.base;
             break;
         case _ep_range_bmin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.bmin;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.minimum.base;
             break;
         case _ep_range_xmax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.xmax;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.maximum.x;
             break;
         case _ep_range_xmin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.xmin;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.minimum.x;
             break;
         case _ep_range_zmax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.zmax;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.maximum.z;
             break;
         case _ep_range_zmin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.zmin;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.minimum.z;
             break;
         default:
             *pretvar = NULL;
             return E_FAIL;
         }
-        break;
-
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)coords[varlist[4]->lVal];
         break;
     }
     case _ep_running:
@@ -14515,7 +14511,7 @@ pickup_error:
 HRESULT openbor_waypoints(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     int num, i;
-    s_axis *wp = NULL;
+    s_axis_f *wp = NULL;
     DOUBLE x, z;
 
     entity *e;

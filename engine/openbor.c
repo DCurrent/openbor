@@ -146,7 +146,7 @@ const s_attack emptyattack =
     0 //pain_time
 };
 
-s_axis default_model_dropv =
+s_axis_f default_model_dropv =
 {
     /* Default values for knockdown velocity */
 
@@ -5709,8 +5709,8 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "jump") == 0)
     {
         ani_id = ANI_JUMP;
-        newanim->range.xmin = 50;    // Used for enemies that jump on walls
-        newanim->range.xmax = 60;    // Used for enemies that jump on walls
+        newanim->range.minimum.x = 50;
+        newanim->range.maximum.x = 60;
     }
     else if(stricmp(value, "duck") == 0)
     {
@@ -6048,8 +6048,8 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_UPPER;
         attack->counterattack = 100; //default to 100
-        newanim->range.xmin = -10;
-        newanim->range.xmax = 120;
+        newanim->range.minimum.x = -10;
+        newanim->range.maximum.x = 120;
     }
     else if(stricmp(value, "cant") == 0)
     {
@@ -6094,8 +6094,8 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
         ani_id = ANI_JUMPATTACK;
         if(newchar->jumpheight == 4)
         {
-            newanim->range.xmin = 150;
-            newanim->range.xmax = 200;
+            newanim->range.minimum.x = 150;
+            newanim->range.maximum.x = 200;
         }
     }
     else if(stricmp(value, "jumpattack2") == 0)
@@ -6263,8 +6263,8 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "block") == 0)   // Now enemies can block attacks on occasion
     {
         ani_id = ANI_BLOCK;
-        newanim->range.xmin = 1;
-        newanim->range.xmax = 100;
+        newanim->range.minimum.x = 1;
+        newanim->range.maximum.x = 100;
     }
     else if(starts_with_num(value, "follow"))
     {
@@ -8509,17 +8509,17 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 frameshadow = -1;
                 soundtoplay = -1;
 
-                if(!newanim->range.xmin)
+                if(!newanim->range.minimum.x)
                 {
-                    newanim->range.xmin = -10;
+                    newanim->range.minimum.x = -10;
                 }
-                newanim->range.xmax = (int)newchar->jumpheight * 20;  //30-12-2004 default range affected by jump height
-                newanim->range.zmin = (int) - newchar->grabdistance / 3; //zmin
-                newanim->range.zmax = (int)newchar->grabdistance / 3; //zmax
-                newanim->range.amin = -1000;                          //amin
-                newanim->range.amax = 1000;                           //amax
-                newanim->range.bmin = -1000;                          //Base min.
-                newanim->range.bmax = 1000;                           //Base max.
+                newanim->range.maximum.x = (int)newchar->jumpheight * 20;  //30-12-2004 default range affected by jump height
+                newanim->range.minimum.z = (int) - newchar->grabdistance / 3; //zmin
+                newanim->range.maximum.z = (int)newchar->grabdistance / 3; //zmax
+                newanim->range.minimum.a = -1000;                          //amin
+                newanim->range.maximum.a = 1000;                           //amax
+                newanim->range.minimum.base = -1000;                          //Base min.
+                newanim->range.maximum.base = 1000;                           //Base max.
 
                 newanim->jumpframe.velocity.a = 0;  //Default disabled.
                 //newanim->fastattack = 0;
@@ -9243,11 +9243,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot set range: no animation!";
                     goto lCleanup;
                 }
-                newanim->range.xmin = GET_INT_ARG(1);
-                newanim->range.xmax = GET_INT_ARG(2);
-                if(newanim->range.xmin == newanim->range.xmax)
+                newanim->range.minimum.x = GET_INT_ARG(1);
+                newanim->range.maximum.x = GET_INT_ARG(2);
+                if(newanim->range.minimum.x == newanim->range.maximum.x)
                 {
-                    newanim->range.xmin--;
+                    newanim->range.minimum.x--;
                 }
                 break;
             case CMD_MODEL_RANGEZ:
@@ -9256,8 +9256,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot set rangez: no animation!";
                     goto lCleanup;
                 }
-                newanim->range.zmin = GET_INT_ARG(1);
-                newanim->range.zmax = GET_INT_ARG(2);
+                newanim->range.minimum.z = GET_INT_ARG(1);
+                newanim->range.maximum.z = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_RANGEA:
                 if(!newanim)
@@ -9265,8 +9265,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot set rangea: no animation!";
                     goto lCleanup;
                 }
-                newanim->range.amin = GET_INT_ARG(1);
-                newanim->range.amax = GET_INT_ARG(2);
+                newanim->range.minimum.a = GET_INT_ARG(1);
+                newanim->range.maximum.a = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_RANGEB:
                 if(!newanim)
@@ -9274,8 +9274,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot set rangeb: no animation!";
                     goto lCleanup;
                 }
-                newanim->range.bmin = GET_INT_ARG(1);
-                newanim->range.bmax = GET_INT_ARG(2);
+                newanim->range.minimum.base = GET_INT_ARG(1);
+                newanim->range.maximum.base = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_PATHFINDSTEP:
                 newchar->pathfindstep = GET_FLOAT_ARG(1);
@@ -16217,9 +16217,9 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     {
         if(validanim(ent, ANI_JUMP) && sz < level->walls[wall].z && sz > level->walls[wall].z - level->walls[wall].depth) //Can jump?
         {
-            //rmin = (float)ent->modeldata.animation[ANI_JUMP]->range.xmin;
-            //rmax = (float)ent->modeldata.animation[ANI_JUMP]->range.xmax;
-            if(level->walls[wall].height < ent->position.a + ent->modeldata.animation[ANI_JUMP]->range.xmax)
+            //rmin = (float)ent->modeldata.animation[ANI_JUMP]->range.minimum.x;
+            //rmax = (float)ent->modeldata.animation[ANI_JUMP]->range.maximum.x;
+            if(level->walls[wall].height < ent->position.a + ent->modeldata.animation[ANI_JUMP]->range.maximum.x)
             {
                 return -1;
             }
@@ -21481,8 +21481,8 @@ int common_try_jump()
         //Check to see if there is a wall within jumping distance and within a jumping height
         xdir = 0;
         wall = -1;
-        rmin = (float)self->modeldata.animation[ANI_JUMP]->range.xmin;
-        rmax = (float)self->modeldata.animation[ANI_JUMP]->range.xmax;
+        rmin = (float)self->modeldata.animation[ANI_JUMP]->range.minimum.x;
+        rmax = (float)self->modeldata.animation[ANI_JUMP]->range.maximum.x;
         if(self->direction)
         {
             xdir = self->position.x + rmin;
@@ -21527,8 +21527,8 @@ int common_try_jump()
         //Check for wall in range of RUNJUMP.
         xdir = 0;
         wall = -1;
-        rmin = (float)self->modeldata.animation[ANI_RUNJUMP]->range.xmin;
-        rmax = (float)self->modeldata.animation[ANI_RUNJUMP]->range.xmax;
+        rmin = (float)self->modeldata.animation[ANI_RUNJUMP]->range.minimum.x;
+        rmax = (float)self->modeldata.animation[ANI_RUNJUMP]->range.maximum.x;
         if(self->direction)
         {
             xdir = self->position.x + rmin;
@@ -21722,7 +21722,7 @@ int common_try_pick(entity *other)
 // it should be fairly slow due to the complicacy of terrain checking
 // and it doesn't always work since walking from wall to wall
 // requires jump.
-int astar(entity *ent, float destx, float destz, float step, s_axis **wp)
+int astar(entity *ent, float destx, float destz, float step, s_axis_f **wp)
 {
     int (*came_from)[astarw][astarh][2] = malloc(sizeof(*came_from));
     unsigned char (*closed)[astarw][astarh] = malloc(sizeof(*closed));
@@ -22021,7 +22021,7 @@ int checkpathblocked()
     float x, z, r;
     int aitype, wpc;
     entity *target;
-    s_axis *wp;
+    s_axis_f *wp;
     if(self->modeldata.nomove)
     {
         return 0;
@@ -22166,7 +22166,7 @@ int common_try_chase(entity *target, int dox, int doz)
 
     if(randomatk >= 0)
     {
-        range = (self->modeldata.animation[randomatk]->range.xmin + self->modeldata.animation[randomatk]->range.xmax) / 2;
+        range = (self->modeldata.animation[randomatk]->range.minimum.x + self->modeldata.animation[randomatk]->range.maximum.x) / 2;
         //printf("range picked: ani %d, range %f\n", randomatk, range);
         if(range < 0)
         {
@@ -22246,7 +22246,7 @@ int common_try_follow(entity *target, int dox, int doz)
     {
         return 0;
     }
-    distance = (float)((validanim(self, ANI_IDLE)) ? self->modeldata.animation[ANI_IDLE]->range.xmin : 100);
+    distance = (float)((validanim(self, ANI_IDLE)) ? self->modeldata.animation[ANI_IDLE]->range.minimum.x : 100);
 
     if(distance <= 0)
     {
@@ -22341,13 +22341,13 @@ int common_try_avoid(entity *target, int dox, int doz)
 
     if((rand32() & 15) < 8 && randomatk >= 0)
     {
-        maxdx = self->modeldata.animation[randomatk]->range.xmax - self->modeldata.speed;
+        maxdx = self->modeldata.animation[randomatk]->range.maximum.x - self->modeldata.speed;
         if(maxdx < videomodes.hRes / 5)
         {
             maxdx = videomodes.hRes / 5;
         }
         mindx = maxdx - 10;
-        maxdz = self->modeldata.animation[randomatk]->range.zmax - self->modeldata.speed;
+        maxdz = self->modeldata.animation[randomatk]->range.maximum.z - self->modeldata.speed;
         if(maxdz < videomodes.vRes / 5)
         {
             maxdz = videomodes.vRes / 5;
@@ -22640,7 +22640,7 @@ int common_try_wander(entity *target, int dox, int doz)
 
     if(randomatk >= 0)
     {
-        mindx = self->modeldata.animation[randomatk]->range.xmax - (self->modeldata.animation[randomatk]->range.xmax - self->modeldata.animation[randomatk]->range.xmin) / 4 - 1;
+        mindx = self->modeldata.animation[randomatk]->range.maximum.x - (self->modeldata.animation[randomatk]->range.maximum.x - self->modeldata.animation[randomatk]->range.minimum.x) / 4 - 1;
     }
     else
     {
@@ -23597,8 +23597,8 @@ int ai_check_warp()
     }
 
     if(self->modeldata.subtype == SUBTYPE_FOLLOW && self->parent &&
-            (diff(self->position.z, self->parent->position.z) > self->modeldata.animation[ANI_IDLE]->range.xmax ||
-             diff(self->position.x, self->parent->position.x) > self->modeldata.animation[ANI_IDLE]->range.xmax) )
+            (diff(self->position.z, self->parent->position.z) > self->modeldata.animation[ANI_IDLE]->range.maximum.x ||
+             diff(self->position.x, self->parent->position.x) > self->modeldata.animation[ANI_IDLE]->range.maximum.x) )
     {
         self->takeaction = npc_warp;
         return 1;
@@ -26390,8 +26390,8 @@ entity *homing_find_target(int type)
     //use the walk animation's range
     if(validanim(self, ANI_WALK))
     {
-        min = self->modeldata.animation[ANI_WALK]->range.xmin;
-        max = self->modeldata.animation[ANI_WALK]->range.xmax;
+        min = self->modeldata.animation[ANI_WALK]->range.minimum.x;
+        max = self->modeldata.animation[ANI_WALK]->range.maximum.x;
     }
     else
     {
