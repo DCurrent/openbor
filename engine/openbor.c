@@ -2541,11 +2541,11 @@ void execute_spawn_script(s_spawn_entry *p, entity *e)
             tempvar.ptrVal = (VOID *)e;
             Script_Set_Local_Variant(cs, "self", &tempvar);
             ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
-            tempvar.dblVal = (DOUBLE)p->x;
+            tempvar.dblVal = (DOUBLE)p->position.x;
             Script_Set_Local_Variant(cs, "spawnx", &tempvar);
-            tempvar.dblVal = (DOUBLE)p->z;
+            tempvar.dblVal = (DOUBLE)p->position.z;
             Script_Set_Local_Variant(cs, "spawnz", &tempvar);
-            tempvar.dblVal = (DOUBLE)p->a;
+            tempvar.dblVal = (DOUBLE)p->position.a;
             Script_Set_Local_Variant(cs, "spawna", &tempvar);
             ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
             tempvar.lVal = (LONG)p->at;
@@ -13079,9 +13079,9 @@ void load_level(char *filename)
             next.itemtrans = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_COORDS:
-            next.x = GET_FLOAT_ARG(1);
-            next.z = GET_FLOAT_ARG(2);
-            next.a = GET_FLOAT_ARG(3);
+            next.position.x = GET_FLOAT_ARG(1);
+            next.position.z = GET_FLOAT_ARG(2);
+            next.position.a = GET_FLOAT_ARG(3);
             break;
         case CMD_LEVEL_SPAWNSCRIPT:
             pos += lcmHandleCommandScripts(&arglist, buf + pos, &next.spawnscript, "Level spawn entry script", filename, 0, 1);
@@ -19822,7 +19822,7 @@ entity *drop_item(entity *e)
     p.index = e->item;
     p.itemindex = p.weaponindex = -1;
     strcpy(p.alias, e->itemalias);
-    p.a = e->position.a + 0.01; // for check, or an enemy "item" will drop from the sky
+    p.position.a = e->position.a + 0.01; // for check, or an enemy "item" will drop from the sky
     p.health[0] = e->itemhealth;
     p.alpha = e->itemtrans;
     p.colourmap = e->itemmap;
@@ -19878,7 +19878,7 @@ entity *drop_driver(entity *e)
     {
         return NULL;    // should not happen, just in case
     }
-    /*p.x = e->position.x - advancex; p.z = e->position.z; */p.a = e->position.a + 10;
+    /*p.x = e->position.x - advancex; p.z = e->position.z; */p.position.a = e->position.a + 10;
     p.itemindex = e->item;
     p.weaponindex = -1;
     strcpy(p.itemalias, e->itemalias);
@@ -26616,11 +26616,11 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
 
     if((level->scrolldir & SCROLL_INWARD) || (level->scrolldir & SCROLL_OUTWARD))
     {
-        e = spawn(props->x, props->z + advancey, props->a, props->flip, props->name, props->index, props->model);
+        e = spawn(props->position.x, props->position.z + advancey, props->position.a, props->flip, props->name, props->index, props->model);
     }
     else
     {
-        e = spawn(props->x + advancex, props->z, props->a, props->flip, props->name, props->index, props->model);
+        e = spawn(props->position.x + advancex, props->position.z, props->position.a, props->flip, props->name, props->index, props->model);
     }
 
 
@@ -26758,22 +26758,22 @@ void spawnplayer(int index)
     {
         if(level->spawn[index].x)
         {
-            p.x = (float)(videomodes.hRes - level->spawn[index].x);
+            p.position.x = (float)(videomodes.hRes - level->spawn[index].x);
         }
         else
         {
-            p.x = (float)((videomodes.hRes - 20) - 30 * index);
+            p.position.x = (float)((videomodes.hRes - 20) - 30 * index);
         }
     }
     else
     {
         if(level->spawn[index].x)
         {
-            p.x = (float)(level->spawn[index].x);
+            p.position.x = (float)(level->spawn[index].x);
         }
         else
         {
-            p.x = (float)(20 + 30 * index);
+            p.position.x = (float)(20 + 30 * index);
         }
         p.flip = 1;
     }
@@ -26781,48 +26781,48 @@ void spawnplayer(int index)
     {
         if(level->scrolldir & (SCROLL_INWARD | SCROLL_OUTWARD))
         {
-            p.z = (float)(level->spawn[index].z);
+            p.position.z = (float)(level->spawn[index].z);
         }
         else
         {
-            p.z = (float)(PLAYER_MIN_Z + level->spawn[index].z);
+            p.position.z = (float)(PLAYER_MIN_Z + level->spawn[index].z);
         }
     }
     else if(PLAYER_MAX_Z - PLAYER_MIN_Z > 5)
     {
-        p.z = (float)(PLAYER_MIN_Z + 5);
+        p.position.z = (float)(PLAYER_MIN_Z + 5);
     }
     else
     {
-        p.z = (float)PLAYER_MIN_Z;
+        p.position.z = (float)PLAYER_MIN_Z;
     }
-    if(p.z < PLAYER_MIN_Z)
+    if(p.position.z < PLAYER_MIN_Z)
     {
-        p.z = PLAYER_MIN_Z;
+        p.position.z = PLAYER_MIN_Z;
     }
-    else if(p.z > PLAYER_MAX_Z)
+    else if(p.position.z > PLAYER_MAX_Z)
     {
-        p.z = PLAYER_MAX_Z;
+        p.position.z = PLAYER_MAX_Z;
     }
     //////////////////checking holes/ walls///////////////////////////////////
     for(xc = 0; xc < videomodes.hRes / 4; xc++)
     {
-        if(p.x > videomodes.hRes)
+        if(p.position.x > videomodes.hRes)
         {
-            p.x -= videomodes.hRes;
+            p.position.x -= videomodes.hRes;
         }
-        if(p.x < 0)
+        if(p.position.x < 0)
         {
-            p.x += videomodes.hRes;
+            p.position.x += videomodes.hRes;
         }
         if(PLAYER_MIN_Z == PLAYER_MAX_Z)
         {
-            wall = checkwall(advancex + p.x, p.z);
+            wall = checkwall(advancex + p.position.x, p.position.z);
             if(wall >= 0 && level->walls[wall].height < MAX_WALL_HEIGHT)
             {
                 break;    //found
             }
-            if(checkhole(advancex + p.x, p.z) || (wall >= 0 && level->walls[wall].height >= MAX_WALL_HEIGHT))
+            if(checkhole(advancex + p.position.x, p.position.z) || (wall >= 0 && level->walls[wall].height >= MAX_WALL_HEIGHT))
             {
                 find = 0;
             }
@@ -26831,17 +26831,17 @@ void spawnplayer(int index)
                 break;    // found
             }
         }
-        else for(zc = 0; zc < (PLAYER_MAX_Z - PLAYER_MIN_Z) / 3; zc++, p.z += 3)
+        else for(zc = 0; zc < (PLAYER_MAX_Z - PLAYER_MIN_Z) / 3; zc++, p.position.z += 3)
             {
-                if(p.z > PLAYER_MAX_Z)
+                if(p.position.z > PLAYER_MAX_Z)
                 {
-                    p.z -= PLAYER_MAX_Z - PLAYER_MIN_Z;
+                    p.position.z -= PLAYER_MAX_Z - PLAYER_MIN_Z;
                 }
-                if(p.z < PLAYER_MIN_Z)
+                if(p.position.z < PLAYER_MIN_Z)
                 {
-                    p.z += PLAYER_MAX_Z - PLAYER_MIN_Z;
+                    p.position.z += PLAYER_MAX_Z - PLAYER_MIN_Z;
                 }
-                wall = checkwall(advancex + p.x, p.z);
+                wall = checkwall(advancex + p.position.x, p.position.z);
                 if(wall >= 0 && level->walls[wall].height < MAX_WALL_HEIGHT)
                 {
                     find = 1;
@@ -26851,7 +26851,7 @@ void spawnplayer(int index)
                 {
                     continue;
                 }
-                if(checkhole(advancex + p.x, p.z))
+                if(checkhole(advancex + p.position.x, p.position.z))
                 {
                     continue;
                 }
@@ -26862,7 +26862,7 @@ void spawnplayer(int index)
         {
             break;
         }
-        p.x += (level->scrolldir & SCROLL_LEFT) ? -4 : 4;
+        p.position.x += (level->scrolldir & SCROLL_LEFT) ? -4 : 4;
     }
     ///////////////////////////////////////////////////////////////////////
     currentspawnplayer = index;
