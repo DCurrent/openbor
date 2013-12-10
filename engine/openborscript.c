@@ -9796,7 +9796,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         temp = 1;
         if(SUCCEEDED(ScriptVariant_DecimalValue(arg, &dbltemp)))
         {
-            spawnentry.x = (float)dbltemp;
+            spawnentry.position.x = (float)dbltemp;
         }
         else
         {
@@ -9806,7 +9806,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         {
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
             {
-                spawnentry.z = (float)dbltemp;
+                spawnentry.position.z = (float)dbltemp;
             }
             else
             {
@@ -9817,7 +9817,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         {
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
             {
-                spawnentry.a = (float)dbltemp;
+                spawnentry.position.a = (float)dbltemp;
             }
             else
             {

@@ -1480,10 +1480,7 @@ typedef struct
     int mp; // mp's variable for mpbar by tails
     unsigned score; // So score can be overridden for enemies/obstacles
     int multiple; // So score can be overridden for enemies/obstacles
-    // coords
-    float x;
-    float z;
-    float a;
+    s_axis_f position;  //x, y, z location.
     unsigned credit;
     int aggression; // For enemy A.I.
     int spawntype; // Pass 1 when a level spawn.
