@@ -1538,17 +1538,9 @@ typedef struct
     bgloldtype oldtype;
     int order;	//for panel order
     gfx_entry gfx;
-    //int width;
-    //int height;
     s_axis_i size;  //Only x and a.
-    //float xratio;
-    //float zratio;
     s_axis_f ratio; //Only x and z.
-    //int xoffset;
-    //int zoffset;
     s_axis_i offset; //Only x and z.
-    //int xspacing;
-    //int zspacing;
     s_axis_i spacing; //Only x and z.
     s_drawmethod drawmethod;
     float bgspeedratio;
