@@ -11679,13 +11679,13 @@ HRESULT _getlayerproperty(s_layer *layer, int propind, ScriptVariant **pretvar)
     case _glp_xoffset:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)layer->xoffset;
+        (*pretvar)->lVal = (LONG)layer->offset.x;
         break;
     }
     case _glp_xratio:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)layer->xratio;
+        (*pretvar)->dblVal = (DOUBLE)layer->ratio.x;
         break;
     }
     case _glp_xrepeat:
@@ -11697,7 +11697,7 @@ HRESULT _getlayerproperty(s_layer *layer, int propind, ScriptVariant **pretvar)
     case _glp_xspacing:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)layer->xspacing;
+        (*pretvar)->lVal = (LONG)layer->spacing.x;
         break;
     }
     case _glp_z:
@@ -11709,13 +11709,13 @@ HRESULT _getlayerproperty(s_layer *layer, int propind, ScriptVariant **pretvar)
     case _glp_zoffset:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)layer->zoffset;
+        (*pretvar)->lVal = (LONG)layer->offset.z;
         break;
     }
     case _glp_zratio:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)layer->zratio;
+        (*pretvar)->dblVal = (DOUBLE)layer->ratio.z;
         break;
     }
     case _glp_zrepeat:
@@ -11727,7 +11727,7 @@ HRESULT _getlayerproperty(s_layer *layer, int propind, ScriptVariant **pretvar)
     case _glp_zspacing:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)layer->zspacing;
+        (*pretvar)->lVal = (LONG)layer->spacing.z;
         break;
     }
     default:
@@ -11840,7 +11840,7 @@ HRESULT _changelayerproperty(s_layer *layer, int propind, ScriptVariant *var)
         {
             return E_FAIL;
         }
-        layer->xoffset = temp;
+        layer->offset.x = temp;
         break;
     }
     case _glp_xratio:
@@ -11849,7 +11849,7 @@ HRESULT _changelayerproperty(s_layer *layer, int propind, ScriptVariant *var)
         {
             return E_FAIL;
         }
-        layer->xratio = temp2;
+        layer->ratio.x = temp2;
         break;
     }
     case _glp_xrepeat:
@@ -11867,7 +11867,7 @@ HRESULT _changelayerproperty(s_layer *layer, int propind, ScriptVariant *var)
         {
             return E_FAIL;
         }
-        layer->xspacing = temp;
+        layer->spacing.x = temp;
         break;
     }
     case _glp_z:
@@ -11885,7 +11885,7 @@ HRESULT _changelayerproperty(s_layer *layer, int propind, ScriptVariant *var)
         {
             return E_FAIL;
         }
-        layer->zoffset = temp;
+        layer->offset.z = temp;
         break;
     }
     case _glp_zratio:
@@ -11894,7 +11894,7 @@ HRESULT _changelayerproperty(s_layer *layer, int propind, ScriptVariant *var)
         {
             return E_FAIL;
         }
-        layer->zratio = temp2;
+        layer->ratio.z = temp2;
         break;
     }
     case _glp_zrepeat:
@@ -11912,7 +11912,7 @@ HRESULT _changelayerproperty(s_layer *layer, int propind, ScriptVariant *var)
         {
             return E_FAIL;
         }
-        layer->zspacing = temp;
+        layer->spacing.z = temp;
         break;
     }
     default:

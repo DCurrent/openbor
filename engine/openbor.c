@@ -4238,7 +4238,7 @@ void load_layer(char *filename, int index)
         if ((level->layers[index].drawmethod.alpha > 0 || level->layers[index].drawmethod.transbg) && !level->layers[index].drawmethod.water.watermode)
         {
             // assume sprites are faster than screen when transparency or alpha are specified
-            level->layers[index].gfx.sprite = loadsprite2(filename, &(level->layers[index].width), &(level->layers[index].height));
+            level->layers[index].gfx.sprite = loadsprite2(filename, &(level->layers[index].size.x), &(level->layers[index].size.a));
         }
         else
         {
@@ -4247,8 +4247,8 @@ void load_layer(char *filename, int index)
             //            or, at least it is not slower than a sprite
             if(loadscreen(filename, packfile, NULL, pixelformat, &level->layers[index].gfx.screen))
             {
-                level->layers[index].height = level->layers[index].gfx.screen->height;
-                level->layers[index].width = level->layers[index].gfx.screen->width;
+                level->layers[index].size.a = level->layers[index].gfx.screen->height;
+                level->layers[index].size.x = level->layers[index].gfx.screen->width;
             }
         }
     }
@@ -4261,15 +4261,15 @@ void load_layer(char *filename, int index)
     {
         if(level->layers[index].drawmethod.xrepeat < 0)
         {
-            level->layers[index].xoffset -= level->layers[index].width * 20000;
+            level->layers[index].offset.x -= level->layers[index].size.x * 20000;
             level->layers[index].drawmethod.xrepeat = 40000;
         }
         if(level->layers[index].drawmethod.yrepeat < 0)
         {
-            level->layers[index].zoffset -= level->layers[index].height * 20000;
+            level->layers[index].offset.z -= level->layers[index].size.a * 20000;
             level->layers[index].drawmethod.yrepeat = 40000;
         }
-        //printf("bglayer width=%d height=%d xoffset=%d zoffset=%d xrepeat=%d zrepeat%d\n", level->layers[index].width, level->layers[index].height, level->layers[index].xoffset, level->layers[index].zoffset, level->layers[index].xrepeat, level->layers[index].zrepeat);
+        //printf("bglayer width=%d height=%d xoffset=%d zoffset=%d xrepeat=%d zrepeat%d\n", level->layers[index].size.x, level->layers[index].size.y, level->layers[index].offset.x, level->layers[index].offset.z, level->layers[index].xrepeat, level->layers[index].zrepeat);
     }
 
 }
@@ -12388,12 +12388,12 @@ void load_level(char *filename)
             dm = &(bgl->drawmethod);
             *dm = plainmethod;
 
-            bgl->xratio = GET_FLOAT_ARG(i + 2); // x ratio
-            bgl->zratio = GET_FLOAT_ARG(i + 3); // z ratio
-            bgl->xoffset = GET_INT_ARG(i + 4); // x start
-            bgl->zoffset = GET_INT_ARG(i + 5); // z start
-            bgl->xspacing = GET_INT_ARG(i + 6); // x spacing
-            bgl->zspacing = GET_INT_ARG(i + 7); // z spacing
+            bgl->ratio.x = GET_FLOAT_ARG(i + 2); // x ratio
+            bgl->ratio.z = GET_FLOAT_ARG(i + 3); // z ratio
+            bgl->offset.x = GET_INT_ARG(i + 4); // x start
+            bgl->offset.z = GET_INT_ARG(i + 5); // z start
+            bgl->spacing.x = GET_INT_ARG(i + 6); // x spacing
+            bgl->spacing.z = GET_INT_ARG(i + 7); // z spacing
             dm->xrepeat = GET_INT_ARG(i + 8); // x repeat
             dm->yrepeat = GET_INT_ARG(i + 9); // z repeat
             dm->transbg = GET_INT_ARG(i + 10); // transparency
@@ -12418,11 +12418,11 @@ void load_level(char *filename)
 
             if((GET_ARG(i + 2))[0] == 0)
             {
-                bgl->xratio = (cmd == CMD_LEVEL_FGLAYER ? 1.5 : 0.5);
+                bgl->ratio.x = (cmd == CMD_LEVEL_FGLAYER ? 1.5 : 0.5);
             }
             if((GET_ARG(i + 3))[0] == 0)
             {
-                bgl->zratio = (cmd == CMD_LEVEL_FGLAYER ? 1.5 : 0.5);
+                bgl->ratio.z = (cmd == CMD_LEVEL_FGLAYER ? 1.5 : 0.5);
             }
 
             if((GET_ARG(i + 8))[0] == 0)
@@ -12458,12 +12458,12 @@ void load_level(char *filename)
             bgl->oldtype = bgt_water;
             bgl->z = MIN_INT + 1;
 
-            bgl->xratio = 0.5; // x ratio
-            bgl->zratio = 0.5; // z ratio
-            bgl->xoffset = 0; // x start
-            bgl->zoffset = NaN; // z start
-            bgl->xspacing = 0; // x spacing
-            bgl->zspacing = 0; // z spacing
+            bgl->ratio.x = 0.5; // x ratio
+            bgl->ratio.z = 0.5; // z ratio
+            bgl->offset.x = 0; // x start
+            bgl->offset.z = NaN; // z start
+            bgl->spacing.x = 0; // x spacing
+            bgl->spacing.z = 0; // z spacing
             dm->xrepeat = -1; // x repeat
             dm->yrepeat = 1; // z repeat
             dm->transbg = 0; // transparency
@@ -12665,21 +12665,21 @@ void load_level(char *filename)
                 __realloc(panels, panelcount);
                 panels[panelcount++][0] = level->numlayers;
                 bgl->z = PANEL_Z;
-                bgl->xratio = 0; // x ratio
-                bgl->zratio = 0; // z ratio
+                bgl->ratio.x = 0; // x ratio
+                bgl->ratio.z = 0; // z ratio
                 dm->xrepeat = 1; // x repeat
             }
             else
             {
                 frontpanels_loaded++;
                 bgl->z = FRONTPANEL_Z;
-                bgl->xratio = -0.4; // x ratio
-                bgl->zratio = 1; // z ratio
+                bgl->ratio.x = -0.4; // x ratio
+                bgl->ratio.z = 1; // z ratio
                 dm->xrepeat = -1; // x repeat
             }
 
             bgl->bgspeedratio = 0;
-            bgl->zoffset = 0;
+            bgl->offset.z = 0;
             dm->yrepeat = 1; // z repeat
             dm->transbg = 1; // transparency
             bgl->enabled = 1; // enabled
@@ -13168,30 +13168,30 @@ void load_level(char *filename)
             switch(bgl->oldtype)
             {
             case bgt_water: // default water hack
-                bgl->zoffset = background ? background->height : level->layers[0].height;
+                bgl->offset.z = background ? background->height : level->layers[0].size.a;
                 dm = &(bgl->drawmethod);
                 if(level->rocking)
                 {
                     dm->water.watermode = 3;
                     dm->water.beginsize = 1.0;
-                    dm->water.endsize = 1 + bgl->height / 11.0;
+                    dm->water.endsize = 1 + bgl->size.a / 11.0;
                     dm->water.perspective = 0;
                     bgl->bgspeedratio = 2;
                 }
                 break;
             case bgt_panel:
-                panel_width = bgl->width;
-                panel_height = bgl->height;
+                panel_width = bgl->size.x;
+                panel_height = bgl->size.a;
             case bgt_frontpanel:
                 if(level->scrolldir & (SCROLL_UP | SCROLL_DOWN))
                 {
-                    bgl->zratio = 1;
+                    bgl->ratio.z = 1;
                 }
                 break;
             case bgt_background:
                 bgl->gfx.screen = background;
-                bgl->width = background->width;
-                bgl->height = background->height;
+                bgl->size.x = background->width;
+                bgl->size.a = background->height;
                 level->background = bgl;
                 break;
             default:
@@ -13236,8 +13236,8 @@ void load_level(char *filename)
                     level->genericlayers[level->numgenericlayers++] = (s_layer *)level->numlayersref;
                     break;
                 case bgt_frontpanel:
-                    bgl->xoffset = level->numfrontpanels * bgl->width;
-                    bgl->xspacing = (frontpanels_loaded - 1) * bgl->width;
+                    bgl->offset.x = level->numfrontpanels * bgl->size.x;
+                    bgl->spacing.x = (frontpanels_loaded - 1) * bgl->size.x;
                     __realloc(level->frontpanels, level->numfrontpanels);
                     level->frontpanels[level->numfrontpanels++] = (s_layer *)level->numlayersref;
                     break;
@@ -13258,7 +13258,7 @@ void load_level(char *filename)
                     __realloc(level->layersref, level->numlayersref);
                     level->layersref[level->numlayersref] = level->layers[panels[order[i]][j]];
                     bgl = &(level->layersref[level->numlayersref]);
-                    bgl->xoffset = panel_width * i;
+                    bgl->offset.x = panel_width * i;
                     level->panels[i][j] = (s_layer *)level->numlayersref;
                     level->numlayersref++;
                 }
@@ -27682,20 +27682,20 @@ void draw_scrolled_bg()
             continue;
         }
 
-        width = screenmethod.xspan = layer->width + layer->xspacing;
-        height = screenmethod.yspan = layer->height + layer->zspacing;
+        width = screenmethod.xspan = layer->size.x + layer->spacing.x;
+        height = screenmethod.yspan = layer->size.a + layer->spacing.z;
 
-        x = (int)(layer->xoffset - (advancex + bgtravelled * layer->bgspeedratio) * (1.0 - layer->xratio) ) ;
+        x = (int)(layer->offset.x - (advancex + bgtravelled * layer->bgspeedratio) * (1.0 - layer->ratio.x) ) ;
 
         //printf("layerxratio %f  %d %f\n ", layer->xratio, x, layer->bgspeedratio);
 
         if((level->scrolldir & SCROLL_UP))
         {
-            z = (int)(layer->zoffset + advancey * (1.0 - layer->zratio) ) ;
+            z = (int)(layer->offset.z + advancey * (1.0 - layer->ratio.z) ) ;
         }
         else
         {
-            z = (int)(layer->zoffset - advancey * (1.0 - layer->zratio) ) ;
+            z = (int)(layer->offset.z - advancey * (1.0 - layer->ratio.z) ) ;
         }
 
         if(layer->quake)
