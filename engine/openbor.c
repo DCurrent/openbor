@@ -7821,7 +7821,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 tempdef(if, NORMAL)
-                tempdef(else if, NORMAL1)
                     tempdef(else if, NORMAL2)
                         tempdef(else if, NORMAL3)
                             tempdef(else if, NORMAL4)
@@ -7872,7 +7871,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             {
                 value = GET_ARG(1);
                 tempoff(if,         NORMAL,     offense_factors)
-                tempoff(else if,    NORMAL1,    offense_factors)
                     tempoff(else if,    NORMAL2,    offense_factors)
                         tempoff(else if,    NORMAL3,    offense_factors)
                             tempoff(else if,    NORMAL4,    offense_factors)
