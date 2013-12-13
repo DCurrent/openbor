@@ -207,6 +207,31 @@
 #define		GRAB_DIST			36					// Grabbing ents will be placed this far apart.
 #define		GRAB_STALL			(GAME_SPEED * 8 / 10)
 
+
+
+#define		ATK_NORMAL			0
+#define		ATK_NORMAL1			ATK_NORMAL			// making naming rules easier
+#define		ATK_NORMAL2			1
+#define		ATK_NORMAL3			2
+#define		ATK_NORMAL4			3
+#define		ATK_BLAST			4
+#define		ATK_BURN			5
+#define		ATK_FREEZE			6
+#define		ATK_SHOCK			7
+#define		ATK_STEAL			8					// Steal opponents life
+#define		ATK_NORMAL5			9
+#define		ATK_NORMAL6			10
+#define		ATK_NORMAL7			11
+#define		ATK_NORMAL8			12
+#define		ATK_NORMAL9			13
+#define		ATK_NORMAL10		14
+#define		ATK_ITEM		    15
+#define     ATK_LAND            16
+#define     ATK_PIT             17
+#define     ATK_LIFESPAN        18
+#define     ATK_TIMEOVER        19
+
+#define     MAX_ATKS            20                // default max attack types
 #define     STA_ATKS            (MAX_ATKS-10)     // default special attack types than normal#
 #define     MAX_DOTS            10                // Max active dot effects.
 
@@ -224,6 +249,174 @@
 #define		SCROLL_INOUT		(SCROLL_INWARD|SCROLL_BACK)
 #define		SCROLL_UPWARD       128
 #define     SCROLL_DOWNWARD     256
+// blah, blah,
+
+
+#define		ANI_IDLE			0
+#define		ANI_WALK			1
+#define		ANI_JUMP			2
+#define		ANI_LAND			3
+#define		ANI_PAIN			4
+#define		ANI_FALL			5
+#define		ANI_RISE			6
+#define		ANI_ATTACK1			7
+#define		ANI_ATTACK			ANI_ATTACK1
+#define		ANI_ATTACK2			8
+#define		ANI_ATTACK3			9
+#define		ANI_ATTACK4			10					// Very important
+#define		ANI_UPPER			11
+#define		ANI_BLOCK			12					// New block animation
+#define		ANI_JUMPATTACK		13
+#define		ANI_JUMPATTACK2		14
+#define		ANI_GET				15
+#define		ANI_GRAB			16
+#define		ANI_GRABATTACK		17
+#define		ANI_GRABATTACK2		18
+#define		ANI_THROW			19
+#define		ANI_SPECIAL			20
+#define		ANI_FREESPECIAL		21
+#define		ANI_SPAWN			22 					// 26-12-2004 new animation added here ani_spawn
+#define		ANI_DIE				23					// 29-12-2004 new animation added here ani_die
+#define		ANI_PICK			24					// 7-1-2005 used when players select their character at the select screen
+#define		ANI_FREESPECIAL2	25
+#define		ANI_JUMPATTACK3		26
+#define		ANI_FREESPECIAL3	27
+#define		ANI_UP				28					// Mar 2, 2005 - Animation for when going up
+#define		ANI_DOWN			29					// Mar 2, 2005 - Animation for when going down
+#define		ANI_SHOCK			30					// Animation played when knocked down by shock attack
+#define		ANI_BURN			31					// Animation played when knocked down by burn attack
+#define		ANI_SHOCKPAIN		32					// Animation played when not knocked down by shock attack
+#define		ANI_BURNPAIN		33					// Animation played when not knocked down by shock attack
+#define		ANI_GRABBED			34					// Animation played when grabbed
+#define		ANI_SPECIAL2		35					// Animation played for when pressing forward special
+#define		ANI_RUN				36					// Animation played when a player is running
+#define		ANI_RUNATTACK		37					// Animation played when a player is running and presses attack
+#define		ANI_RUNJUMPATTACK	38					// Animation played when a player is running and jumps and presses attack
+#define		ANI_ATTACKUP		39					// u u animation
+#define		ANI_ATTACKDOWN		40					// d d animation
+#define		ANI_ATTACKFORWARD	41					// f f animation
+#define		ANI_ATTACKBACKWARD	42					// Used for attacking backwards
+#define		ANI_FREESPECIAL4	43					// More freespecials added
+#define		ANI_FREESPECIAL5	44					// More freespecials added
+#define		ANI_FREESPECIAL6	45					// More freespecials added
+#define		ANI_FREESPECIAL7	46					// More freespecials added
+#define		ANI_FREESPECIAL8	47					// More freespecials added
+#define		ANI_RISEATTACK		48					// Attack used for enemies when players are crowding around after knocking them down
+#define		ANI_DODGE			49					// Used for up up / down down SOR3 dodge moves for players
+#define		ANI_ATTACKBOTH		50					// Used for when a player holds down attack and presses jump
+#define		ANI_GRABFORWARD		51					// New grab attack for when a player holds down forward/attack
+#define		ANI_GRABFORWARD2	52					// New second grab attack for when a player holds down forward/attack
+#define		ANI_JUMPFORWARD		53					// Attack when a player is moving and jumps
+#define		ANI_GRABDOWN		54					// Attack when a player has grabbed an opponent and presses down/attack
+#define		ANI_GRABDOWN2		55					// Attack when a player has grabbed an opponent and presses down/attack
+#define		ANI_GRABUP			56					// Attack when a player has grabbed an opponent and presses up/attack
+#define		ANI_GRABUP2			57					// Attack when a player has grabbed an opponent and presses up/attack
+#define		ANI_SELECT			58					// Animation that is displayed at the select screen
+#define		ANI_DUCK			59					// Animation that is played when pressing down in "platform" type levels
+#define		ANI_FAINT			60  				// Faint animations for players/enemys by tails
+#define		ANI_CANT			61  				// Can't animation for players(animation when mp is less than mpcost) by tails.
+#define		ANI_THROWATTACK		62					// Added for subtype projectile
+#define		ANI_CHARGEATTACK	63                  // Plays when player releases attack1 after holding >= chargetime.
+#define		ANI_VAULT			64  				// Now you can flip over people like in SOR.
+#define		ANI_JUMPCANT		65
+#define		ANI_JUMPSPECIAL		66
+#define		ANI_BURNDIE			67
+#define		ANI_SHOCKDIE		68
+#define		ANI_PAIN2			69
+#define		ANI_PAIN3			70
+#define		ANI_PAIN4			71
+#define		ANI_FALL2			72
+#define		ANI_FALL3			73
+#define		ANI_FALL4			74
+#define		ANI_DIE2			75
+#define		ANI_DIE3			76
+#define		ANI_DIE4			77
+#define		ANI_CHARGE			78
+#define		ANI_BACKWALK		79
+#define		ANI_SLEEP			80
+#define		ANI_FOLLOW1			81
+#define		ANI_FOLLOW2			82
+#define		ANI_FOLLOW3			83
+#define		ANI_FOLLOW4			84
+#define		ANI_PAIN5			85
+#define		ANI_PAIN6			86
+#define		ANI_PAIN7			87
+#define		ANI_PAIN8			88
+#define		ANI_PAIN9			89
+#define		ANI_PAIN10			90
+#define		ANI_FALL5			91
+#define		ANI_FALL6			92
+#define		ANI_FALL7			93
+#define		ANI_FALL8			94
+#define		ANI_FALL9			95
+#define		ANI_FALL10			96
+#define		ANI_DIE5			97
+#define		ANI_DIE6			98
+#define		ANI_DIE7			99
+#define		ANI_DIE8			100
+#define		ANI_DIE9			101
+#define		ANI_DIE10			102
+#define     ANI_TURN            103   // turn back/flip
+#define     ANI_RESPAWN         104    //now spawn works for players
+#define     ANI_FORWARDJUMP     105
+#define     ANI_RUNJUMP         106
+#define     ANI_JUMPLAND        107
+#define     ANI_JUMPDELAY       108
+#define     ANI_HITWALL         109
+#define     ANI_GRABBACKWARD    110
+#define     ANI_GRABBACKWARD2   111
+#define     ANI_GRABWALK        112
+#define     ANI_GRABBEDWALK     113
+#define     ANI_GRABWALKUP      114
+#define     ANI_GRABBEDWALKUP   115
+#define     ANI_GRABWALKDOWN    116
+#define     ANI_GRABBEDWALKDOWN 117
+#define     ANI_GRABTURN        118
+#define     ANI_GRABBEDTURN     119
+#define     ANI_GRABBACKWALK    120
+#define     ANI_GRABBEDBACKWALK 121
+#define     ANI_SLIDE           122    //Down + Jump animation.
+#define     ANI_RUNSLIDE        123    //Down + Jump while running.
+#define     ANI_BLOCKPAIN       124    //If entity has this, it will play in place of "pain" when it's blokcpain is 1 and incomming attack is blocked.
+#define     ANI_DUCKATTACK      125
+#define		ANI_RISE2			126
+#define		ANI_RISE3			127
+#define		ANI_RISE4			128
+#define		ANI_RISE5			129
+#define		ANI_RISE6			130
+#define		ANI_RISE7			131
+#define		ANI_RISE8			132
+#define		ANI_RISE9			133
+#define		ANI_RISE10			134
+#define		ANI_RISEB			135
+#define		ANI_RISES			136
+#define		ANI_BLOCKPAIN2		137
+#define		ANI_BLOCKPAIN3		138
+#define		ANI_BLOCKPAIN4		139
+#define		ANI_BLOCKPAIN5		140
+#define		ANI_BLOCKPAIN6		141
+#define		ANI_BLOCKPAIN7		142
+#define		ANI_BLOCKPAIN8		143
+#define		ANI_BLOCKPAIN9		144
+#define		ANI_BLOCKPAIN10		145
+#define		ANI_BLOCKPAINB		146
+#define		ANI_BLOCKPAINS		147
+#define     ANI_CHIPDEATH       148
+#define     ANI_GUARDBREAK      149
+#define		ANI_RISEATTACK2	    150
+#define		ANI_RISEATTACK3		151
+#define		ANI_RISEATTACK4		152
+#define		ANI_RISEATTACK5		153
+#define		ANI_RISEATTACK6		154
+#define		ANI_RISEATTACK7		155
+#define		ANI_RISEATTACK8		156
+#define		ANI_RISEATTACK9		157
+#define		ANI_RISEATTACK10	158
+#define		ANI_RISEATTACKB		159
+#define		ANI_RISEATTACKS		160
+#define		ANI_WALKOFF			161
+
+#define		MAX_ANIS			162    // max_anis increased for new ANIs
 
 #define     ARG_FLOAT            0
 #define     ARG_STRING           1
@@ -237,213 +430,6 @@
 #define     SUBJECT_TO_SCREEN    16
 #define     SUBJECT_TO_MINZ      32
 #define     SUBJECT_TO_MAXZ      48
-
-enum e_attack_type {
-
-    /*
-    Attack types.
-    Replaced #define with enum.
-    2013-12-10
-    Damon Caskey
-    */
-
-    ATK_BLAST = 0,
-    ATK_BURN,
-    ATK_FREEZE,
-    ATK_ITEM,
-    ATK_LAND,
-    ATK_LIFESPAN,
-    ATK_NORMAL,
-    ATK_NORMAL2,
-    ATK_NORMAL3,
-    ATK_NORMAL4,
-    ATK_NORMAL5,
-    ATK_NORMAL6,
-    ATK_NORMAL7,
-    ATK_NORMAL8,
-    ATK_NORMAL9,
-    ATK_NORMAL10,
-    ATK_PIT,
-    ATK_SHOCK,
-    ATK_STEAL,		//Steal opponents life
-    ATK_TIMEOVER,
-    MAX_ATKS        //default max attack types. This must go last.
-};
-
-enum e_ani_id {
-
-    /*
-    Animation IDs.
-    Replaced #define with enum.
-    2013-12-09
-    Damon Caskey
-    */
-
-    ANI_ATTACK = 0,
-    ANI_ATTACK1,
-    ANI_ATTACK2,
-    ANI_ATTACK3,
-    ANI_ATTACK4,
-    ANI_ATTACKBACKWARD,	//Input direction opposite facing, then a quickly.
-    ANI_ATTACKBOTH,		//a+j (when SPECIAL is mapped to s).
-    ANI_ATTACKDOWN,		//d d.
-    ANI_ATTACKFORWARD,	//f f.
-    ANI_ATTACKUP,		//u u.
-    ANI_BACKWALK,
-    ANI_BLOCK,			//Block posture.
-    ANI_BLOCKPAIN,      //Impact recoil from successful block.
-    ANI_BLOCKPAIN2,
-    ANI_BLOCKPAIN3,
-    ANI_BLOCKPAIN4,
-    ANI_BLOCKPAIN5,
-    ANI_BLOCKPAIN6,
-    ANI_BLOCKPAIN7,
-    ANI_BLOCKPAIN8,
-    ANI_BLOCKPAIN9,
-    ANI_BLOCKPAIN10,
-    ANI_BLOCKPAINB,     //Burn.
-    ANI_BLOCKPAINS,     //Shock.
-    ANI_BURN,           //Knocked down by burn attack.
-    ANI_BURNDIE,
-    ANI_BURNPAIN,
-    ANI_CANT,  			//Added by tails; meant to activate when special or freespecial is attempted with insufficient resources. As of 2013-12-10 does not work as intended, but can be activated with script.
-    ANI_CHARGE,         //j + s (hold). Increases mp based on chargerate setting..
-    ANI_CHARGEATTACK,   //a (hold >= chargetime), release.
-    ANI_CHIPDEATH,      //KO by leftover damage when blocking.
-    ANI_DIE,			//KO.
-    ANI_DIE2,
-    ANI_DIE3,
-    ANI_DIE4,
-    ANI_DIE5,
-    ANI_DIE6,
-    ANI_DIE7,
-    ANI_DIE8,
-    ANI_DIE9,
-    ANI_DIE10,
-    ANI_DODGE,			//u u or d d. Adds movement by default.
-    ANI_DOWN,			//Walking toward "camera".
-    ANI_DUCK,			//d (hold) when z axis is unavailable)
-    ANI_DUCKATTACK,     //Duck, a.
-    ANI_FAINT,  		//Replaces Idle when hp <= ~20%.
-    ANI_FALL,           //Knocked down.
-    ANI_FALL2,
-    ANI_FALL3,
-    ANI_FALL4,
-    ANI_FALL5,
-    ANI_FALL6,
-    ANI_FALL7,
-    ANI_FALL8,
-    ANI_FALL9,
-    ANI_FALL10,
-    ANI_FOLLOW1,        //Activated by counter or follow command. Also usful for scripted animations as player commands and AI can never activate directly.
-    ANI_FOLLOW2,
-    ANI_FOLLOW3,
-    ANI_FOLLOW4,
-    ANI_FORWARDJUMP,    //Jump while moving.
-    ANI_FREESPECIAL,    //f f a.
-    ANI_FREESPECIAL2,   //2+ use custom command inputs or range settings for AI.
-    ANI_FREESPECIAL3,
-    ANI_FREESPECIAL4,
-    ANI_FREESPECIAL5,
-    ANI_FREESPECIAL6,
-    ANI_FREESPECIAL7,
-    ANI_FREESPECIAL8,
-    ANI_GET,            //Acquire item.
-    ANI_GRAB,           //Hold opponent.
-    ANI_GRABATTACK,     //Grab, a.
-    ANI_GRABATTACK2,    //Grab, a *3 or J.
-    ANI_GRABBACKWALK,
-    ANI_GRABBACKWARD,   //Grab, b + a. Replaces Throw
-    ANI_GRABBACKWARD2,  //Grab, b + a *3.
-    ANI_GRABBED,		//Held by opponent's Grab.
-    ANI_GRABBEDBACKWALK,
-    ANI_GRABBEDTURN,
-    ANI_GRABBEDWALK,    //Held by opponent walking.
-    ANI_GRABBEDWALKDOWN,
-    ANI_GRABBEDWALKUP,
-    ANI_GRABDOWN,		//Grab, d + a.
-    ANI_GRABDOWN2,		//Grab, d + a *3.
-    ANI_GRABFORWARD,	//Grab, f + a.
-    ANI_GRABFORWARD2,	//Grab, f + a *3.
-    ANI_GRABTURN,       //Change direction with held opponent.
-    ANI_GRABUP,			//Grab, u + a.
-    ANI_GRABUP2,		//Grab, u + a *3.
-    ANI_GRABWALK,       //Walk with held opponent.
-    ANI_GRABWALKDOWN,
-    ANI_GRABWALKUP,
-    ANI_GUARDBREAK,     //Block attack with insufficiant guardpoints.
-    ANI_HITWALL,        //Impact with wall when falling.
-    ANI_IDLE,           //Standard animation when doing nothing else.
-    ANI_JUMP,           //j. AI uses to negotiate terrain based on range setting.
-    ANI_JUMPATTACK,     //Jump, a. AI uses automatically while jumping forward.
-    ANI_JUMPATTACK2,    //Jump, d + a. AI uses while jumping vertically.
-    ANI_JUMPATTACK3,    //Jump, u + a.
-    ANI_JUMPCANT,       //Attempt to use Jumpspecial with insufficiant resources.
-    ANI_JUMPDELAY,      //Posture imediatly before jump.
-    ANI_JUMPFORWARD,	//Jump while moving, a.
-    ANI_JUMPLAND,       //Touch base after jump.
-    ANI_JUMPSPECIAL,    //Jump, s.
-    ANI_LAND,           //u + j when thrown (using default throw system).
-    ANI_PICK,			//Selected at select screen.
-    ANI_PAIN,
-    ANI_PAIN2,
-    ANI_PAIN3,
-    ANI_PAIN4,
-    ANI_PAIN5,
-    ANI_PAIN6,
-    ANI_PAIN7,
-    ANI_PAIN8,
-    ANI_PAIN9,
-    ANI_PAIN10,
-    ANI_RESPAWN,        //Replaces Spawn when entering level after death or NPC warps to parent.
-    ANI_RISE,
-    ANI_RISE2,
-    ANI_RISE3,
-    ANI_RISE4,
-    ANI_RISE5,
-    ANI_RISE6,
-    ANI_RISE7,
-    ANI_RISE8,
-    ANI_RISE9,
-    ANI_RISE10,
-    ANI_RISEATTACK,		//u (+f or +b) + a when knocked down. AI uses and sets direction automatically if opponent is in range.
-    ANI_RISEATTACK2,    //2+ replaces riseattack if entity had been knocked down by matching attack type.
-    ANI_RISEATTACK3,
-    ANI_RISEATTACK4,
-    ANI_RISEATTACK5,
-    ANI_RISEATTACK6,
-    ANI_RISEATTACK7,
-    ANI_RISEATTACK8,
-    ANI_RISEATTACK9,
-    ANI_RISEATTACK10,
-    ANI_RISEATTACKB,    //Burn.
-    ANI_RISEATTACKS,    //Shock.
-    ANI_RISEB,
-    ANI_RISES,
-    ANI_RUN,			//f f (hold).
-    ANI_RUNJUMP,        //Run, Jump.
-    ANI_RUNATTACK,		//Run, a.
-    ANI_RUNJUMPATTACK,	//Run, Jump, a.
-    ANI_RUNSLIDE,       //Run, d + j.
-    ANI_SELECT,			//Replaces IDLE at select screen.
-    ANI_SHOCK,			//Knocked down by shock attack.
-    ANI_SHOCKDIE,
-    ANI_SHOCKPAIN,
-    ANI_SPAWN, 			//Enters playfield.
-    ANI_SPECIAL,        //s or a + j if ajspecial option is in use. Ignores pain status by default. AI uses when held.
-    ANI_SPECIAL2,		//f + s. AI uses after taking (escapehits) # of consecutive hits without being knocked down.
-    ANI_SLEEP,          //Replaces idle after set time has passed.
-    ANI_SLIDE,          //d + j.
-    ANI_THROW,          //Grab, b + a. AI uses instantly. Activates default throwing action.
-    ANI_UP,				//Walking away from "camera".
-    ANI_UPPER,          //AI uses when nearby opponent jumps.
-    ANI_THROWATTACK,	//Added for subtype projectile
-    ANI_TURN,           //Change direction.
-    ANI_VAULT,  		//Intended to replicate vault feature of SOR series. Never worked and is depriciated by script. Should (and may) be removed.
-    ANI_WALK,           //Standard walk.
-    ANI_WALKOFF,        //Walk off platform without jumping.
-    MAX_ANIS            //Maximum # of animations. This must always be last.
-};
 
 //macros for drawing menu text, fits different font size
 #ifdef _MSC_VER
@@ -628,6 +614,19 @@ typedef struct
 
 typedef struct
 {
+    /*
+    Min/current/max cap for integer measurements.
+    2013-12-10
+    Damon Caskey
+    */
+
+    int current;    //Current.
+    int maximum;    //Maximum value.
+    int minimum;    //Minimum value.
+} s_metric_i;
+
+typedef struct
+{
     unsigned compatibleversion;
     int gamma;
     int brightness;
@@ -760,13 +759,7 @@ typedef struct
     int ent;            //Index of entity to spawn on liftoff of jump action.
     int frame;          //Frame to begin action.
     s_axis_f velocity;    //x,a,z velocity.
-} s_jumpframe;
-
-typedef struct //2011_04_01, DC: Behavior when reaching base after jump or fall.
-{
-    int frame; //Frame to assume on landing.
-    int ent; //Index of entity to spawn on landing.
-} s_landframe;
+} s_onframe;
 
 typedef struct //2011_04_01, DC: Animation looping.
 {
@@ -814,7 +807,7 @@ typedef struct
     int subentity; // Store the sub-entity's name for further use
     s_energycost energycost; // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
     float chargetime; // charge time for an animation
-    s_jumpframe jumpframe; // Jumpframe action. 2011_04_01, DC: moved to struct.
+    s_onframe jumpframe; // Jumpframe action. 2011_04_01, DC: moved to struct.
     float bounce; // -tossv/bounce = new tossv
     int *soundtoplay; // each frame can have a sound
     int *sprite; // sprite[set][framenumber]
@@ -844,7 +837,7 @@ typedef struct
     float *spawnframe; // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
     float *summonframe; // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
     int unsummonframe; // Un-summon the entity
-    s_landframe landframe; // Landing behavior. 2011_04_01, DC: Moved to struct.
+    s_onframe landframe; // Landing behavior. 2011_04_01, DC: Moved to struct.
     int dropframe; // if tossv < 0, this frame will be set
     int animhits; // Does the attack need to hit before cancel is allowed?
     int sync; // sychronize frame to previous animation if they matches
