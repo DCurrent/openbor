@@ -72,7 +72,7 @@
 #define		MAX_ENTS			150
 #define		MAX_SPECIALS		8					// Added for customizable freespecials
 #define     MAX_SPECIAL_INPUTS  27                  // max freespecial input steps, MAX_SPECIAL_INPUTS-1 is reserved, MAX_SPECIAL_INPUTS-2 is animation index, MAX_SPECIAL_INPUTS-3 is reserved. OX -4 , -5 , -6 , -7 , -8 , -9 , -10 also for cancels
-#define		MAX_ATCHAIN			12					// Maximum attack chain length
+#define		MAX_ATCHAIN			12					// max attack chain length
 #define     MAX_IDLES           1                   // Idle animations.
 #define     MAX_WALKS           1                   // Walk animations.
 #define     MAX_BACKWALKS       1                   // Backwalk animations.
@@ -185,7 +185,7 @@
 #define     MASK_AIATTACK2        0xFFFF0000
 
 
-// Note: the minimum Z coordinate of the player is important
+// Note: the min Z coordinate of the player is important
 // for several other drawing operations.
 // movement restirctions are here!
 //int			PLAYER_MIN_Z		= 160;				// 2-10-05  adjustable walking area
@@ -525,32 +525,32 @@ if(n<1) n = 1;
 #define check_range(self, target, animnum) \
 		 ( target && \
 		  (self->direction ? \
-		  (int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.minimum.x &&\
-		  (int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.maximum.x\
+		  (int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.min.x &&\
+		  (int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.max.x\
 		:\
-		  (int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.minimum.x &&\
-		  (int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.maximum.x)\
-		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.minimum.z \
-		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.maximum.z \
-		  && (int)(target->position.a - self->position.a) >= self->modeldata.animation[animnum]->range.minimum.a \
-		  && (int)(target->position.a - self->position.a) <= self->modeldata.animation[animnum]->range.maximum.a \
-		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.minimum.base \
-		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.maximum.base \
+		  (int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.min.x &&\
+		  (int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.max.x)\
+		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.min.z \
+		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.max.z \
+		  && (int)(target->position.a - self->position.a) >= self->modeldata.animation[animnum]->range.min.a \
+		  && (int)(target->position.a - self->position.a) <= self->modeldata.animation[animnum]->range.max.a \
+		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.min.base \
+		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.max.base \
 		  )\
 
 #define check_range_both(self, target, animnum) \
 		 ( target && \
-		  (((int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.minimum.x &&\
-			(int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.maximum.x)\
+		  (((int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.min.x &&\
+			(int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.max.x)\
 		||\
-		   ((int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.minimum.x &&\
-			(int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.maximum.x))\
-		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.minimum.z \
-		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.maximum.z \
-		  && (int)(target->position.a - self->position.a) >= self->modeldata.animation[animnum]->range.minimum.a \
-		  && (int)(target->position.a - self->position.a) <= self->modeldata.animation[animnum]->range.maximum.a \
-		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.minimum.base \
-		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.maximum.base \
+		   ((int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.min.x &&\
+			(int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.max.x))\
+		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.min.z \
+		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.max.z \
+		  && (int)(target->position.a - self->position.a) >= self->modeldata.animation[animnum]->range.min.a \
+		  && (int)(target->position.a - self->position.a) <= self->modeldata.animation[animnum]->range.max.a \
+		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.min.base \
+		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.max.base \
 		  )\
 
 
@@ -621,8 +621,8 @@ typedef struct
     */
 
     int current;    //Current.
-    int maximum;    //Maximum value.
-    int minimum;    //Minimum value.
+    int max;    //max value.
+    int min;    //min value.
 } s_metric_i;
 
 typedef struct
@@ -784,8 +784,8 @@ typedef struct
     Damon Caskey
     */
 
-    s_axis_i maximum;   //Maximum ranges.
-    s_axis_i minimum;   //Minimum ranges.
+    s_axis_i max;   //max ranges.
+    s_axis_i min;   //min ranges.
 } s_range;
 
 typedef struct
@@ -847,6 +847,8 @@ typedef struct
 {
     int mode;
     float factor;
+    s_metric_i cap;
+    s_metric_i range;
     int cap_min;
     int cap_max;
     int range_min;
@@ -967,7 +969,7 @@ typedef enum
 typedef struct
 {
     int current; //Current guard points remaining.
-    int maximum; //Maximum guard points.
+    int max; //max guard points.
 } s_guardpoints; //2011_04_05, DC: Guardpoints feature added by OX.
 
 typedef struct
@@ -988,7 +990,7 @@ typedef struct
 typedef struct
 {
     int current; //Current juggle points accumulated.
-    int maximum; //Maximum juggle points possible.
+    int max; //max juggle points possible.
 } s_jugglepoints;                                   //2011_04_05, DC: Jugglepoints feature added by OX.
 
 typedef struct
@@ -1002,12 +1004,12 @@ typedef struct
 
 typedef struct
 {
-    int amax; //Maximum vertical range.
-    int amin; //Minimum vertical range.
-    int xmax; //Maximum horizontal range.
-    int xmin; //Minimum horizontal range.
-    int zmax; //Maximum lateral range.
-    int zmin; //Minimum lateral range.
+    int amax; //max vertical range.
+    int amin; //min vertical range.
+    int xmax; //max horizontal range.
+    int xmin; //min horizontal range.
+    int zmax; //max lateral range.
+    int zmin; //min lateral range.
 } s_sight;                                          //2011_04_05, DC: Range from self AI can detect other entities.
 
 typedef struct
