@@ -2021,6 +2021,7 @@ static const char *svlist[] =
     "in_titlescreen",
     "in_video_options",
     "lasthita",
+    "lasthity",
     "lasthitc",
     "lasthitt",
     "lasthitx",
@@ -4293,7 +4294,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_a:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->position.a;
+        (*pretvar)->dblVal = (DOUBLE)ent->position.y;
         break;
     }
     case _ep_aggression:
@@ -4576,7 +4577,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             switch(varlist[6]->lVal)
             {
                 case _axis_a:
-                    (*pretvar)->dblVal = (DOUBLE)attack->dropv.a;
+                    (*pretvar)->dblVal = (DOUBLE)attack->dropv.y;
                     break;
                 case _axis_x:
                     (*pretvar)->dblVal = (DOUBLE)attack->dropv.x;
@@ -5882,11 +5883,11 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         {
         case _ep_range_amax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.max.a;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.max.y;
             break;
         case _ep_range_amin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.min.a;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.min.y;
             break;
         case _ep_range_bmax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -6304,7 +6305,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_tossv:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->velocity.a;
+        (*pretvar)->dblVal = (DOUBLE)ent->velocity.y;
         break;
     }
     case _ep_type:
@@ -7507,7 +7508,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         if(paramCount >= 5 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
         {
-            ent->position.a = (float)dbltemp;
+            ent->position.y = (float)dbltemp;
         }
         break;
     }
@@ -7531,7 +7532,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->position.a = (float)dbltemp;
+            ent->position.y = (float)dbltemp;
         }
         break;
     }
@@ -8075,7 +8076,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         if(paramCount >= 5 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
         {
-            ent->velocity.a = (float)dbltemp;
+            ent->velocity.y = (float)dbltemp;
         }
         break;
     }
@@ -9259,7 +9260,7 @@ HRESULT openbor_changeattackproperty(ScriptVariant **varlist , ScriptVariant **p
         attack.attack_drop = (int)dbltemp;
         break;
     case _ep_attack_dropv:
-        attack.dropv.a = (float)dbltemp;
+        attack.dropv.y = (float)dbltemp;
         if(paramCount > 2)
         {
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
@@ -9408,7 +9409,7 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
         atk.attack_drop = drop;
         if(drop)
         {
-            atk.dropv.a = (float)3;
+            atk.dropv.y = (float)3;
             atk.dropv.x = (float)1.2;
             atk.dropv.z = (float)0;
         }
@@ -9817,7 +9818,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         {
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
             {
-                spawnentry.position.a = (float)dbltemp;
+                spawnentry.position.y = (float)dbltemp;
             }
             else
             {
@@ -10068,7 +10069,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
     else
     {
-        a = self->position.a + self->animation->throwa;
+        a = self->position.y + self->animation->throwa;
     }
     if(paramCount >= 5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
     {
@@ -10107,7 +10108,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
             direction = !direction;
         }
         z += self->position.z;
-        a += self->position.a;
+        a += self->position.y;
     }
 
     switch(type)
@@ -11256,7 +11257,7 @@ HRESULT openbor_gettextobjproperty(ScriptVariant **varlist , ScriptVariant **pre
     case _top_a:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)level->textobjs[ind].position.a;
+        (*pretvar)->lVal = (LONG)level->textobjs[ind].position.y;
         break;
     }
     case _top_z:
@@ -11371,7 +11372,7 @@ HRESULT openbor_changetextobjproperty(ScriptVariant **varlist , ScriptVariant **
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            level->textobjs[ind].position.a = (int)ltemp;
+            level->textobjs[ind].position.y = (int)ltemp;
         }
         else
         {
@@ -11463,7 +11464,7 @@ HRESULT openbor_settextobj(ScriptVariant **varlist , ScriptVariant **pretvar, in
 
     level->textobjs[ind].time = (int)T;
     level->textobjs[ind].position.x = (int)X;
-    level->textobjs[ind].position.a = (int)Y;
+    level->textobjs[ind].position.y = (int)Y;
     level->textobjs[ind].position.z = (int)Z;
     level->textobjs[ind].font = (int)F;
 
@@ -11506,7 +11507,7 @@ HRESULT openbor_cleartextobj(ScriptVariant **varlist , ScriptVariant **pretvar, 
 
     level->textobjs[ind].time = 0;
     level->textobjs[ind].position.x = 0;
-    level->textobjs[ind].position.a = 0;
+    level->textobjs[ind].position.y = 0;
     level->textobjs[ind].font = 0;
     level->textobjs[ind].position.z = 0;
     if(level->textobjs[ind].text)

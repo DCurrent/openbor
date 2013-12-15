@@ -284,6 +284,7 @@ enum systemvariant_enum
     _sv_in_titlescreen,
     _sv_in_video_options,
     _sv_lasthita,
+    _sv_lasthity,
     _sv_lasthitc,
     _sv_lasthitt,
     _sv_lasthitx,

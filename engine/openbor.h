@@ -532,8 +532,8 @@ if(n<1) n = 1;
 		  (int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.max.x)\
 		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.min.z \
 		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.max.z \
-		  && (int)(target->position.a - self->position.a) >= self->modeldata.animation[animnum]->range.min.a \
-		  && (int)(target->position.a - self->position.a) <= self->modeldata.animation[animnum]->range.max.a \
+		  && (int)(target->position.y - self->position.y) >= self->modeldata.animation[animnum]->range.min.y \
+		  && (int)(target->position.y - self->position.y) <= self->modeldata.animation[animnum]->range.max.y \
 		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.min.base \
 		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.max.base \
 		  )\
@@ -547,14 +547,14 @@ if(n<1) n = 1;
 			(int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.max.x))\
 		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.min.z \
 		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.max.z \
-		  && (int)(target->position.a - self->position.a) >= self->modeldata.animation[animnum]->range.min.a \
-		  && (int)(target->position.a - self->position.a) <= self->modeldata.animation[animnum]->range.max.a \
+		  && (int)(target->position.y - self->position.y) >= self->modeldata.animation[animnum]->range.min.y \
+		  && (int)(target->position.y - self->position.y) <= self->modeldata.animation[animnum]->range.max.y \
 		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.min.base \
 		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.max.base \
 		  )\
 
 
-#define tobounce(e) (e->animation->bounce && diff(0, e->velocity.a) > 1.5 && \
+#define tobounce(e) (e->animation->bounce && diff(0, e->velocity.y) > 1.5 && \
 					 !((autoland == 1 && e->damage_on_landing == -1) ||e->damage_on_landing == -2))
 
 #define getpal ((current_palette&&level)?(level->palettes[current_palette-1]):pal)
@@ -572,7 +572,7 @@ if(n<1) n = 1;
 		  (other->modeldata.paingrab?(other->modeldata.paingrab-other->inpain):0)<=0) &&\
 		 canbegrabbed(self, other) && \
 		 !inair(self) && \
-		 diff(other->position.a, self->position.a) <= 0.1)
+		 diff(other->position.y, self->position.y) <= 0.1)
 
 #define unfrozen(e) \
 		ent_set_colourmap(e, e->map);\
@@ -594,8 +594,8 @@ typedef struct
     Damon Caskey
     */
 
-    float a;    //Altitude/Vertical axis (Y).
     float x;    //Horizontial axis.
+    float y;    //Altitude/Vertical axis (Y).
     float z;    //Lateral axis.
 } s_axis_f;
 
@@ -606,8 +606,9 @@ typedef struct
     2013-12-09
     Damon Caskey
     */
-    int a;      //Altitude/Vertical axis (Y).
+
     int x;      //Horizontal axis.
+    int y;      //Altitude/Vertical axis (Y).
     int z;      //Lateral axis.
     int base;   //Base altitude.
 } s_axis_i;
