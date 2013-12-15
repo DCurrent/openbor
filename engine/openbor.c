@@ -150,8 +150,8 @@ s_axis_f default_model_dropv =
 {
     /* Default values for knockdown velocity */
 
-    3.f,    //a
     1.2f,   //x
+    3.f,    //y
     0.f     //z
 };
 
@@ -217,8 +217,8 @@ float               blockade;                    // Limit x scroll back
 float				scrollminx;
 float				scrollmaxx;
 float               lasthitx;						//Last hit X location.
+float               lasthity;						//Last hit Y location.
 float               lasthitz;						//Last hit Z location.
-float               lasthita;						//Last hit A location.
 int                 lasthitt;                       //Last hit type.
 int                 lasthitc;                       //Last hit confirm (i.e. if engine hit code will be used).
 
@@ -1039,8 +1039,9 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         var->lVal = (LONG)(selectScreen);
         break;
     case _sv_lasthita:
+    case _sv_lasthity:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
-        var->dblVal = (DOUBLE)(lasthita);
+        var->dblVal = (DOUBLE)(lasthity);
         break;
     case _sv_lasthitc:
         ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -1481,9 +1482,10 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         }
         break;
     case _sv_lasthita:
+    case _sv_lasthity:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
-            lasthita = (float)ltemp;
+            lasthity = (float)ltemp;
         }
         break;
     case _sv_lasthitc:
@@ -2545,7 +2547,7 @@ void execute_spawn_script(s_spawn_entry *p, entity *e)
             Script_Set_Local_Variant(cs, "spawnx", &tempvar);
             tempvar.dblVal = (DOUBLE)p->position.z;
             Script_Set_Local_Variant(cs, "spawnz", &tempvar);
-            tempvar.dblVal = (DOUBLE)p->position.a;
+            tempvar.dblVal = (DOUBLE)p->position.y;
             Script_Set_Local_Variant(cs, "spawna", &tempvar);
             ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
             tempvar.lVal = (LONG)p->at;
@@ -3466,7 +3468,7 @@ float diff(float a, float b)
 
 int inair(entity *e)
 {
-    return (diff(e->position.a, e->base) >= 0.1);
+    return (diff(e->position.y, e->base) >= 0.1);
 }
 
 
@@ -4238,7 +4240,7 @@ void load_layer(char *filename, int index)
         if ((level->layers[index].drawmethod.alpha > 0 || level->layers[index].drawmethod.transbg) && !level->layers[index].drawmethod.water.watermode)
         {
             // assume sprites are faster than screen when transparency or alpha are specified
-            level->layers[index].gfx.sprite = loadsprite2(filename, &(level->layers[index].size.x), &(level->layers[index].size.a));
+            level->layers[index].gfx.sprite = loadsprite2(filename, &(level->layers[index].size.x), &(level->layers[index].size.y));
         }
         else
         {
@@ -4247,7 +4249,7 @@ void load_layer(char *filename, int index)
             //            or, at least it is not slower than a sprite
             if(loadscreen(filename, packfile, NULL, pixelformat, &level->layers[index].gfx.screen))
             {
-                level->layers[index].size.a = level->layers[index].gfx.screen->height;
+                level->layers[index].size.y = level->layers[index].gfx.screen->height;
                 level->layers[index].size.x = level->layers[index].gfx.screen->width;
             }
         }
@@ -4266,7 +4268,7 @@ void load_layer(char *filename, int index)
         }
         if(level->layers[index].drawmethod.yrepeat < 0)
         {
-            level->layers[index].offset.z -= level->layers[index].size.a * 20000;
+            level->layers[index].offset.z -= level->layers[index].size.y * 20000;
             level->layers[index].drawmethod.yrepeat = 40000;
         }
         //printf("bglayer width=%d height=%d xoffset=%d zoffset=%d xrepeat=%d zrepeat%d\n", level->layers[index].size.x, level->layers[index].size.y, level->layers[index].offset.x, level->layers[index].offset.z, level->layers[index].xrepeat, level->layers[index].zrepeat);
@@ -6677,7 +6679,7 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
     newchar->smartbomb->attack_force = atoi(GET_ARGP(1));			// Special force
     newchar->smartbomb->attack_type = atoi(GET_ARGP(2));			// Special attack type
     newchar->smartbomb->attack_drop = 1; //by default
-    newchar->smartbomb->dropv.a = default_model_dropv.a;
+    newchar->smartbomb->dropv.y = default_model_dropv.y;
 
     if(newchar->smartbomb->attack_type == ATK_BLAST)
     {
@@ -8514,12 +8516,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.max.x = (int)newchar->jumpheight * 20;  //30-12-2004 default range affected by jump height
                 newanim->range.min.z = (int) - newchar->grabdistance / 3; //zmin
                 newanim->range.max.z = (int)newchar->grabdistance / 3; //zmax
-                newanim->range.min.a = -1000;                          //amin
-                newanim->range.max.a = 1000;                           //amax
+                newanim->range.min.y = -1000;                          //amin
+                newanim->range.max.y = 1000;                           //amax
                 newanim->range.min.base = -1000;                          //Base min.
                 newanim->range.max.base = 1000;                           //Base max.
 
-                newanim->jumpframe.velocity.a = 0;  //Default disabled.
+                newanim->jumpframe.velocity.y = 0;  //Default disabled.
                 //newanim->fastattack = 0;
                 newanim->energycost.mponly = 0;							//MP only.
                 newanim->energycost.disable = 0;							//Disable flag.
@@ -8655,7 +8657,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->dive = 1;
                 newanim->jumpframe.frame = 0;
                 newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe.velocity.a = -GET_FLOAT_ARG(2);
+                newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(2);
                 newanim->jumpframe.ent = -1;
                 break;
             case CMD_MODEL_DIVE1:
@@ -8667,13 +8669,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_DIVE2:
                 newanim->dive = 1;
                 newanim->jumpframe.frame = 0;
-                newanim->jumpframe.velocity.a = -GET_FLOAT_ARG(1);
+                newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(1);
                 newanim->jumpframe.ent = -1;
                 break;
             case CMD_MODEL_JUMPFRAME:
             {
                 newanim->jumpframe.frame    = GET_FRAME_ARG(1);   //Frame.
-                newanim->jumpframe.velocity.a    = GET_FLOAT_ARG(2); //Vertical velocity.
+                newanim->jumpframe.velocity.y    = GET_FLOAT_ARG(2); //Vertical velocity.
                 value = GET_ARG(3);
                 if(value[0])
                 {
@@ -8682,17 +8684,17 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else // k, only for backward compatibility :((((((((((((((((
                 {
-                    if(newanim->jumpframe.velocity.a <= 0)
+                    if(newanim->jumpframe.velocity.y <= 0)
                     {
                         if(newchar->type == TYPE_PLAYER)
                         {
-                            newanim->jumpframe.velocity.a = newchar->jumpheight / 2;
+                            newanim->jumpframe.velocity.y = newchar->jumpheight / 2;
                             newanim->jumpframe.velocity.z = 0;
                             newanim->jumpframe.velocity.x = 2;
                         }
                         else
                         {
-                            newanim->jumpframe.velocity.a = newchar->jumpheight;
+                            newanim->jumpframe.velocity.y = newchar->jumpheight;
                             newanim->jumpframe.velocity.z = newanim->jumpframe.velocity.x = 0;
                         }
                     }
@@ -9042,7 +9044,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 abox[1] = GET_INT_ARG(2);
                 abox[2] = GET_INT_ARG(3);
                 abox[3] = GET_INT_ARG(4);
-                attack.dropv.a = default_model_dropv.a;
+                attack.dropv.y = default_model_dropv.y;
                 attack.dropv.x = default_model_dropv.x;
                 attack.dropv.z = default_model_dropv.z;
                 attack.attack_force = GET_INT_ARG(5);
@@ -9126,7 +9128,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 abox[1] = GET_INT_ARG(2);
                 abox[2] = GET_INT_ARG(3);
                 abox[3] = GET_INT_ARG(4);
-                attack.dropv.a = default_model_dropv.a;
+                attack.dropv.y = default_model_dropv.y;
                 attack.dropv.x = default_model_dropv.x * 2.083f;
                 attack.dropv.z = 0;
                 attack.attack_force = GET_INT_ARG(5);
@@ -9141,7 +9143,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_DROPV:
                 // drop velocity add if the target is knocked down
                 pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->dropv.a = GET_FLOAT_ARG(1); // height add
+                pattack->dropv.y = GET_FLOAT_ARG(1); // height add
                 pattack->dropv.x = GET_FLOAT_ARG(2); // xdir add
                 pattack->dropv.z = GET_FLOAT_ARG(3); // zdir add
                 break;
@@ -9263,8 +9265,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot set rangea: no animation!";
                     goto lCleanup;
                 }
-                newanim->range.min.a = GET_INT_ARG(1);
-                newanim->range.max.a = GET_INT_ARG(2);
+                newanim->range.min.y = GET_INT_ARG(1);
+                newanim->range.max.y = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_RANGEB:
                 if(!newanim)
@@ -10414,7 +10416,7 @@ int load_models()
                 }
                 break;
             case CMD_MODELSTXT_DROPV:
-                default_model_dropv.a =  GET_FLOAT_ARG(1);
+                default_model_dropv.y =  GET_FLOAT_ARG(1);
                 default_model_dropv.x =  GET_FLOAT_ARG(2);
                 default_model_dropv.z =  GET_FLOAT_ARG(3);
                 break;
@@ -12230,7 +12232,7 @@ void load_level(char *filename)
     level->nospecial = 0;    // Default set to specials can be used during bonus levels
     level->nohurt = 0;    // Default set to players can hurt each other during bonus levels
     level->nohit = 0;    // Default able to hit the other player
-    level->spawn[0].a = level->spawn[1].a = level->spawn[2].a = level->spawn[3].a = 300;    // Set the default spawn a to 300
+    level->spawn[0].y = level->spawn[1].y = level->spawn[2].y = level->spawn[3].y = 300;    // Set the default spawn y to 300
     level->setweap = 0;
     level->maxtossspeed = default_level_maxtossspeed;
     level->maxfallspeed = default_level_maxfallspeed;
@@ -12634,12 +12636,12 @@ void load_level(char *filename)
             }
             level->spawn[i].x = GET_INT_ARG(1);
             level->spawn[i].z = GET_INT_ARG(2);
-            level->spawn[i].a = GET_INT_ARG(3);
+            level->spawn[i].y = GET_INT_ARG(3);
 
             //if(level->spawn[i].z > 232 || level->spawn[i].z < 0) level->spawn[i].z= 232;
-            if(level->spawn[i].a < 0)
+            if(level->spawn[i].y < 0)
             {
-                level->spawn[i].a = 300;
+                level->spawn[i].y = 300;
             }
             break;
         case CMD_LEVEL_FRONTPANEL:
@@ -13081,7 +13083,7 @@ void load_level(char *filename)
         case CMD_LEVEL_COORDS:
             next.position.x = GET_FLOAT_ARG(1);
             next.position.z = GET_FLOAT_ARG(2);
-            next.position.a = GET_FLOAT_ARG(3);
+            next.position.y = GET_FLOAT_ARG(3);
             break;
         case CMD_LEVEL_SPAWNSCRIPT:
             pos += lcmHandleCommandScripts(&arglist, buf + pos, &next.spawnscript, "Level spawn entry script", filename, 0, 1);
@@ -13166,20 +13168,20 @@ void load_level(char *filename)
             switch(bgl->oldtype)
             {
             case bgt_water: // default water hack
-                bgl->offset.z = background ? background->height : level->layers[0].size.a;
+                bgl->offset.z = background ? background->height : level->layers[0].size.y;
                 dm = &(bgl->drawmethod);
                 if(level->rocking)
                 {
                     dm->water.watermode = 3;
                     dm->water.beginsize = 1.0;
-                    dm->water.endsize = 1 + bgl->size.a / 11.0;
+                    dm->water.endsize = 1 + bgl->size.y / 11.0;
                     dm->water.perspective = 0;
                     bgl->bgspeedratio = 2;
                 }
                 break;
             case bgt_panel:
                 panel_width = bgl->size.x;
-                panel_height = bgl->size.a;
+                panel_height = bgl->size.y;
             case bgt_frontpanel:
                 if(level->scrolldir & (SCROLL_UP | SCROLL_DOWN))
                 {
@@ -13189,7 +13191,7 @@ void load_level(char *filename)
             case bgt_background:
                 bgl->gfx.screen = background;
                 bgl->size.x = background->width;
-                bgl->size.a = background->height;
+                bgl->size.y = background->height;
                 level->background = bgl;
                 break;
             default:
@@ -14473,10 +14475,10 @@ void ent_default_init(entity *e)
         }
         else if(!e->animation)
         {
-            if(time && level->spawn[(int)e->playerindex].a > e->position.a)
+            if(time && level->spawn[(int)e->playerindex].y > e->position.y)
             {
                 e->takeaction = common_drop;
-                e->position.a = (float)level->spawn[(int)e->playerindex].a;
+                e->position.y = (float)level->spawn[(int)e->playerindex].y;
                 if(validanim(e, ANI_JUMP))
                 {
                     ent_set_anim(e, ANI_JUMP, 0);
@@ -14535,7 +14537,7 @@ void ent_default_init(entity *e)
             }
             else
             {
-                e->base = e->position.a;
+                e->base = e->position.y;
             }
             e->nograb = 1;
             e->attacking = 1;
@@ -14575,9 +14577,9 @@ void ent_default_init(entity *e)
         {
             dodrop = (e->modeldata.subtype != SUBTYPE_ARROW && level && (level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN));
 
-            if(!nodropspawn && (dodrop || (e->position.x > advancex - 30 && e->position.x < advancex + videomodes.hRes + 30 && e->position.a == 0)) )
+            if(!nodropspawn && (dodrop || (e->position.x > advancex - 30 && e->position.x < advancex + videomodes.hRes + 30 && e->position.y == 0)) )
             {
-                e->position.a += videomodes.vRes + randf(40);
+                e->position.y += videomodes.vRes + randf(40);
             }
             if(inair(e))
             {
@@ -14606,7 +14608,7 @@ void ent_default_init(entity *e)
     case TYPE_STEAMER:
         e->nograb = 1;
         e->think = steamer_think;
-        e->base = e->position.a;
+        e->base = e->position.y;
         break;
     case TYPE_TEXTBOX:    // New type for displaying text purposes
         e->nograb = 1;
@@ -14632,7 +14634,7 @@ void ent_default_init(entity *e)
         }
         else
         {
-            e->base = e->position.a;
+            e->base = e->position.y;
         }
         e->speedmul = 2;
         break;
@@ -14642,7 +14644,7 @@ void ent_default_init(entity *e)
         {
             e->modeldata.subject_to_gravity = 1;
         }
-        //e->base=e->position.a; //complained?
+        //e->base=e->position.y; //complained?
         if(e->modeldata.no_adjust_base < 0)
         {
             e->modeldata.no_adjust_base = 1;
@@ -14683,9 +14685,9 @@ void ent_default_init(entity *e)
         e->modeldata.multiple = 0;
     }
 
-    if(e->modeldata.subject_to_platform > 0 && (other = check_platform_below(e->position.x, e->position.z, e->position.a, e)))
+    if(e->modeldata.subject_to_platform > 0 && (other = check_platform_below(e->position.x, e->position.z, e->position.y, e)))
     {
-        e->base = other->position.a + other->animation->platform[other->animpos][7];
+        e->base = other->position.y + other->animation->platform[other->animpos][7];
     }
     else if(e->modeldata.subject_to_wall > 0 && (wall = checkwall_below(e->position.x, e->position.z, 9999999)) >= 0)
     {
@@ -14708,7 +14710,7 @@ void ent_spawn_ent(entity *ent)
     // spawn point relative to current entity
     if(spawnframe[4] == 0)
     {
-        s_ent = spawn(ent->position.x + ((ent->direction) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2], ent->position.a + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(ent->position.x + ((ent->direction) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2], ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
     }
     //relative to screen position
     else if(spawnframe[4] == 1)
@@ -14752,7 +14754,7 @@ void ent_summon_ent(entity *ent)
     // spawn point relative to current entity
     if(spawnframe[4] == 0)
     {
-        s_ent = spawn(ent->position.x + ((ent->direction) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2],  ent->position.a + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(ent->position.x + ((ent->direction) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2],  ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
     }
     //relative to screen position
     else if(spawnframe[4] == 1)
@@ -14938,7 +14940,7 @@ void update_frame(entity *ent, int f)
         {
             self = self->subentity;
             attack = emptyattack;
-            attack.dropv.a = default_model_dropv.a;
+            attack.dropv.y = default_model_dropv.y;
             attack.dropv.x = default_model_dropv.x;
             attack.dropv.z = default_model_dropv.z;
             attack.attack_force = self->health;
@@ -14979,16 +14981,16 @@ void update_frame(entity *ent, int f)
     if(anim->jumpframe.frame == f)
     {
         // Set custom jumpheight for jumpframes
-        /*if(self->animation->jumpframe.v > 0)*/ toss(self, anim->jumpframe.velocity.a);
+        /*if(self->animation->jumpframe.v > 0)*/ toss(self, anim->jumpframe.velocity.y);
         self->velocity.x = self->direction ? anim->jumpframe.velocity.x : -anim->jumpframe.velocity.x;
         self->velocity.z = anim->jumpframe.velocity.z;
 
         if(anim->jumpframe.ent >= 0)
         {
-            dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, anim->jumpframe.ent, NULL);
+            dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, anim->jumpframe.ent, NULL);
             if(dust)
             {
-                dust->base = self->position.a;
+                dust->base = self->position.y;
                 dust->autokill = 2;
                 execute_onspawn_script(dust);
             }
@@ -15002,8 +15004,8 @@ void update_frame(entity *ent, int f)
         // custstar custknife in animation should be checked first
         // then if the entity is jumping, check star first, if failed, try knife instead
         // well, try knife at last, if still failed, try star, or just let if shutdown?
-#define __trystar star_spawn(self->position.x + (self->direction ? 56 : -56), self->position.z, self->position.a+67, self->direction)
-#define __tryknife knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.a + anim->throwa, self->direction, 0, 0)
+#define __trystar star_spawn(self->position.x + (self->direction ? 56 : -56), self->position.z, self->position.y+67, self->direction)
+#define __tryknife knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->throwa, self->direction, 0, 0)
         if(anim->custknife >= 0 || anim->custpshotno >= 0)
         {
             __tryknife;
@@ -15028,13 +15030,13 @@ void update_frame(entity *ent, int f)
 
     if(anim->shootframe == f)
     {
-        knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.a, self->direction, 1, 0);
+        knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y, self->direction, 1, 0);
         self->reactive = 1;
     }
 
     if(anim->tossframe == f)
     {
-        bomb_spawn(NULL, -1, self->position.x, self->position.z, self->position.a + anim->throwa, self->direction, 0);
+        bomb_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->throwa, self->direction, 0);
         self->reactive = 1;
     }
 
@@ -15393,7 +15395,7 @@ entity *spawn(float x, float z, float a, int direction, char *name, int index, s
             e->knockdowncount = e->modeldata.knockdowncount;
             e->position.x = x;
             e->position.z = z;
-            e->position.a = a;
+            e->position.y = a;
             e->direction = direction;
             e->nextthink = time + 1;
             e->nextmove = time + 1;
@@ -15492,7 +15494,7 @@ void kill(entity *victim)
     {
         attack = emptyattack;
         attack.attack_type = max_attack_types;
-        attack.dropv.a = default_model_dropv.a;
+        attack.dropv.y = default_model_dropv.y;
         attack.dropv.x = default_model_dropv.x;
         attack.dropv.z = default_model_dropv.z;
     }
@@ -15685,9 +15687,9 @@ int checkhit(entity *attacker, entity *target, int counter)
     }
 
     x1 = (int)(attacker->position.x);
-    y1 = (int)(z1 - attacker->position.a);
+    y1 = (int)(z1 - attacker->position.y);
     x2 = (int)(target->position.x);
-    y2 = (int)(z2 - target->position.a);
+    y2 = (int)(z2 - target->position.y);
 
 
     if(attacker->direction == 0)
@@ -15773,7 +15775,7 @@ int checkhit(entity *attacker, entity *target, int counter)
         lasthitz = z2 + 1;
     }
 
-    lasthita = lasthitz - medy;
+    lasthity = lasthitz - medy;
     lasthitt = attacker->animation->attacks[attacker->animpos]->attack_type;
     lasthitc = 1;
     return 1;
@@ -15968,7 +15970,7 @@ entity *check_platform_between(float x, float z, float amin, float amax, entity 
         if(ent_list[i]->exists && testplatform(ent_list[i], x, z, exclude) )
         {
             plat = ent_list[i];
-            if(plat->position.a <= amax && plat->position.a + plat->animation->platform[plat->animpos][7] > amin)
+            if(plat->position.y <= amax && plat->position.y + plat->animation->platform[plat->animpos][7] > amin)
             {
                 return plat;
             }
@@ -15996,9 +15998,9 @@ entity *check_platform_above(float x, float z, float a, entity *exclude)
         if(ent_list[i]->exists && testplatform(ent_list[i], x, z, exclude) )
         {
             plat = ent_list[i];
-            if(plat->position.a >= a && plat->position.a < mina)
+            if(plat->position.y >= a && plat->position.y < mina)
             {
-                mina = plat->position.a;
+                mina = plat->position.y;
                 ind = i;
             }
         }
@@ -16025,10 +16027,10 @@ entity *check_platform_below(float x, float z, float a, entity *exclude)
         if(ent_list[i]->exists && testplatform(ent_list[i], x, z, exclude) )
         {
             plat = ent_list[i];
-            if(plat->position.a + plat->animation->platform[plat->animpos][7] <= a &&
-                    plat->position.a + plat->animation->platform[plat->animpos][7] > maxa)
+            if(plat->position.y + plat->animation->platform[plat->animpos][7] <= a &&
+                    plat->position.y + plat->animation->platform[plat->animpos][7] > maxa)
             {
-                maxa = plat->position.a + plat->animation->platform[plat->animpos][7];
+                maxa = plat->position.y + plat->animation->platform[plat->animpos][7];
                 ind = i;
             }
         }
@@ -16062,9 +16064,9 @@ entity *check_platform_above_entity(entity *e)
         if(ent_list[i]->exists && testplatform(ent_list[i], e->position.x, e->position.z, e) )
         {
             plat = ent_list[i];
-            if(plat->position.a + plat->animation->platform[plat->animpos][7] > e->position.a + heightvar && plat->position.a < mina)
+            if(plat->position.y + plat->animation->platform[plat->animpos][7] > e->position.y + heightvar && plat->position.y < mina)
             {
-                mina = plat->position.a;
+                mina = plat->position.y;
                 ind = i;
             }
         }
@@ -16090,8 +16092,8 @@ entity *check_platform_below_entity(entity *e)
         if(ent_list[i]->exists && testplatform(ent_list[i], e->position.x, e->position.z, e) )
         {
             plat = ent_list[i];
-            a = plat->position.a + plat->animation->platform[plat->animpos][7];
-            if(a < e->position.a + 4 && plat->position.a < e->position.a  && a > maxa)
+            a = plat->position.y + plat->animation->platform[plat->animpos][7];
+            if(a < e->position.y + 4 && plat->position.y < e->position.y  && a > maxa)
             {
                 maxa = a;
                 ind = i;
@@ -16174,7 +16176,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-------------hole checking ---------------------
     if(ent->modeldata.subject_to_hole > 0)
     {
-        if(checkhole(x, z) && checkwall(x, z) < 0 && !check_platform_below(x, z, ent->position.a, ent))
+        if(checkhole(x, z) && checkwall(x, z) < 0 && !check_platform_below(x, z, ent->position.y, ent))
         {
             return -2;
         }
@@ -16204,20 +16206,20 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     }
 
     // Check for obstacles with platform code and adjust base accordingly
-    if(ent->modeldata.subject_to_platform > 0 && (other = check_platform_between(x, z, ent->position.a, ent->position.a + heightvar, ent)) )
+    if(ent->modeldata.subject_to_platform > 0 && (other = check_platform_between(x, z, ent->position.y, ent->position.y + heightvar, ent)) )
     {
         return 0;
     }
     //-----------end of platform checking------------------
 
     // ------------------ wall checking ---------------------
-    if(ent->modeldata.subject_to_wall > 0 && (wall = checkwall_below(x, z, 999999)) >= 0 && level->walls[wall].height > ent->position.a)
+    if(ent->modeldata.subject_to_wall > 0 && (wall = checkwall_below(x, z, 999999)) >= 0 && level->walls[wall].height > ent->position.y)
     {
         if(validanim(ent, ANI_JUMP) && sz < level->walls[wall].z && sz > level->walls[wall].z - level->walls[wall].depth) //Can jump?
         {
             //rmin = (float)ent->modeldata.animation[ANI_JUMP]->range.min.x;
             //rmax = (float)ent->modeldata.animation[ANI_JUMP]->range.max.x;
-            if(level->walls[wall].height < ent->position.a + ent->modeldata.animation[ANI_JUMP]->range.max.x)
+            if(level->walls[wall].height < ent->position.y + ent->modeldata.animation[ANI_JUMP]->range.max.x)
             {
                 return -1;
             }
@@ -16429,16 +16431,16 @@ void do_attack(entity *e)
                         {
                             if(attack->blockflash >= 0)
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthita, 0, NULL, attack->blockflash, NULL);    // custom bflash
+                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, attack->blockflash, NULL);    // custom bflash
                             }
                             else
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthita, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
+                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
                             }
                         }
                         else
                         {
-                            flash = spawn(lasthitx, lasthitz, lasthita, 0, NULL, self->modeldata.bflash, NULL);
+                            flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, self->modeldata.bflash, NULL);
                         }
                         //ent_default_init(flash); // initiliaze this because there're no default values now
 
@@ -16483,16 +16485,16 @@ void do_attack(entity *e)
                         {
                             if(attack->blockflash >= 0)
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthita, 0, NULL, attack->blockflash, NULL);    // custom bflash
+                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, attack->blockflash, NULL);    // custom bflash
                             }
                             else
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthita, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
+                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
                             }
                         }
                         else
                         {
-                            flash = spawn(lasthitx, lasthitz, lasthita, 0, NULL, self->modeldata.bflash, NULL);
+                            flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, self->modeldata.bflash, NULL);
                         }
                         //ent_default_init(flash); // initiliaze this because there're no default values now
                         if(flash)
@@ -16532,16 +16534,16 @@ void do_attack(entity *e)
                         {
                             if(attack->blockflash >= 0)
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthita, 0, NULL, attack->blockflash, NULL);    // custom bflash
+                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, attack->blockflash, NULL);    // custom bflash
                             }
                             else
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthita, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
+                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
                             }
                         }
                         else
                         {
-                            flash = spawn(lasthitx, lasthitz, lasthita, 0, NULL, self->modeldata.bflash, NULL);
+                            flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, self->modeldata.bflash, NULL);
                         }
                         //ent_default_init(flash); // initiliaze this because there're no default values now
                         if(flash)
@@ -16565,16 +16567,16 @@ void do_attack(entity *e)
                         {
                             if(attack->hitflash >= 0)
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthita, 0, NULL, attack->hitflash, NULL);
+                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, attack->hitflash, NULL);
                             }
                             else
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthita, 0, NULL, e->modeldata.flash, NULL);
+                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, e->modeldata.flash, NULL);
                             }
                         }
                         else
                         {
-                            flash = spawn(lasthitx, lasthitz, lasthita, 0, NULL, self->modeldata.flash, NULL);
+                            flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, self->modeldata.flash, NULL);
                         }
                         if(flash)
                         {
@@ -16614,7 +16616,7 @@ void do_attack(entity *e)
                         flash->direction = (e->position.x > self->position.x);    // Now the flash will flip depending on which side the attacker is on
                     }
 
-                    flash->base = lasthita;
+                    flash->base = lasthity;
                     flash->autokill = 2;
                 }//end of if #054
 
@@ -16826,7 +16828,7 @@ void check_gravity(entity *e)
 
     if(!is_frozen(self) )// Incase an entity is in the air, don't update animations
     {
-        if((self->falling || self->velocity.a || self->position.a != self->base) && self->toss_time <= time)
+        if((self->falling || self->velocity.y || self->position.y != self->base) && self->toss_time <= time)
         {
             if(self->animation->height)
             {
@@ -16837,7 +16839,7 @@ void check_gravity(entity *e)
                 heightvar = self->modeldata.height;
             }
 
-            if(heightvar && self->modeldata.subject_to_platform > 0 && self->velocity.a > 0)
+            if(heightvar && self->modeldata.subject_to_platform > 0 && self->velocity.y > 0)
             {
                 other = check_platform_above_entity(self);
             }
@@ -16846,11 +16848,11 @@ void check_gravity(entity *e)
                 other = NULL;
             }
 
-            if( other && other->position.a <= self->position.a + heightvar)
+            if( other && other->position.y <= self->position.y + heightvar)
             {
                 if(self->hithead == NULL) // bang! Hit the ceiling.
                 {
-                    self->velocity.a = 0;
+                    self->velocity.y = 0;
                     self->hithead = other;
                     execute_onblocka_script(self, other);
                 }
@@ -16860,7 +16862,7 @@ void check_gravity(entity *e)
                 self->hithead = NULL;
             }
             // gravity, antigravity factors
-            self->position.a += self->velocity.a * 100.0 / GAME_SPEED;
+            self->position.y += self->velocity.y * 100.0 / GAME_SPEED;
             if(self->animation->dive)
             {
                 gravity = 0;
@@ -16871,30 +16873,30 @@ void check_gravity(entity *e)
             }
             if(self->modeldata.subject_to_gravity > 0)
             {
-                self->velocity.a += gravity * 100.0 / GAME_SPEED;
+                self->velocity.y += gravity * 100.0 / GAME_SPEED;
             }
 
             fmin = (level ? level->maxfallspeed : default_level_maxfallspeed);
             fmax = (level ? level->maxtossspeed : default_level_maxtossspeed);
 
-            if(self->velocity.a < fmin)
+            if(self->velocity.y < fmin)
             {
-                self->velocity.a = fmin;
+                self->velocity.y = fmin;
             }
-            else if(self->velocity.a > fmax)
+            else if(self->velocity.y > fmax)
             {
-                self->velocity.a = fmax;
+                self->velocity.y = fmax;
             }
-            if(self->animation->dropframe >= 0 && self->velocity.a <= 0 && self->animpos < self->animation->dropframe) // begin dropping
+            if(self->animation->dropframe >= 0 && self->velocity.y <= 0 && self->animpos < self->animation->dropframe) // begin dropping
             {
                 update_frame(self, self->animation->dropframe);
             }
-            if (self->velocity.a)
+            if (self->velocity.y)
             {
                 execute_onmovea_script(self);    //Move A event.
             }
 
-            if(self->idling && validanim(self, ANI_WALKOFF) && diff(self->position.a, self->base) > 2)
+            if(self->idling && validanim(self, ANI_WALKOFF) && diff(self->position.y, self->base) > 2)
             {
                 self->idling = 0;
                 self->takeaction = common_walkoff;
@@ -16903,18 +16905,18 @@ void check_gravity(entity *e)
 
             // UTunnels: tossv <= 0 means land, while >0 means still rising, so
             // you wont be stopped if you are passing the edge of a wall
-            if( (self->position.a <= self->base || !inair(self)) && self->velocity.a <= 0)
+            if( (self->position.y <= self->base || !inair(self)) && self->velocity.y <= 0)
             {
-                self->position.a = self->base;
+                self->position.y = self->base;
                 self->falling = 0;
                 //self->projectile = 0;
                 // cust dust entity
-                if(self->modeldata.dust[0] >= 0 && self->velocity.a < -1 && self->drop)
+                if(self->modeldata.dust[0] >= 0 && self->velocity.y < -1 && self->drop)
                 {
-                    dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, self->modeldata.dust[0], NULL);
+                    dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust[0], NULL);
                     if(dust)
                     {
-                        dust->base = self->position.a;
+                        dust->base = self->position.y;
                         dust->autokill = 2;
                         execute_onspawn_script(dust);
                     }
@@ -16925,7 +16927,7 @@ void check_gravity(entity *e)
                     int i;
                     self->velocity.x /= self->animation->bounce;
                     self->velocity.z /= self->animation->bounce;
-                    toss(self, (-self->velocity.a) / self->animation->bounce);
+                    toss(self, (-self->velocity.y) / self->animation->bounce);
                     if(level && !(self->modeldata.noquake & NO_QUAKE))
                     {
                         level->quake = 4;    // Don't shake if specified
@@ -16936,24 +16938,24 @@ void check_gravity(entity *e)
                     }
                     if(self->modeldata.type & TYPE_PLAYER)
                     {
-                        control_rumble(self->playerindex, 100 * (int)self->velocity.a / 2);
+                        control_rumble(self->playerindex, 100 * (int)self->velocity.y / 2);
                     }
                     for(i = 0; i < MAX_PLAYERS; i++)
                     {
-                        control_rumble(i, 75 * (int)self->velocity.a / 2);
+                        control_rumble(i, 75 * (int)self->velocity.y / 2);
                     }
                 }
                 else if((!self->animation->seta || self->animation->seta[self->animpos] < 0) &&
                         (!self->animation->movea || self->animation->movea[self->animpos] <= 0))
                 {
-                    self->velocity.x = self->velocity.z = self->velocity.a = 0;
+                    self->velocity.x = self->velocity.z = self->velocity.y = 0;
                 }
                 else
                 {
-                    self->velocity.a = 0;
+                    self->velocity.y = 0;
                 }
 
-                if(plat && !self->landed_on_platform && self->position.a <= plat->position.a + plat->animation->platform[plat->animpos][7])
+                if(plat && !self->landed_on_platform && self->position.y <= plat->position.y + plat->animation->platform[plat->animpos][7])
                 {
                     self->landed_on_platform = plat;
                 }
@@ -16964,10 +16966,10 @@ void check_gravity(entity *e)
                 {
                     if(self->animation->landframe.ent >= 0)
                     {
-                        dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, self->animation->landframe.ent, NULL);
+                        dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->animation->landframe.ent, NULL);
                         if(dust)
                         {
-                            dust->base = self->position.a;
+                            dust->base = self->position.y;
                             dust->autokill = 2;
                             execute_onspawn_script(dust);
                         }
@@ -17019,9 +17021,9 @@ void check_lost()
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
 
     if((self->position.z != 100000 && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
-                              (level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && (advancey - self->position.z + self->position.a > osk || self->position.z - self->position.a - advancey - videomodes.vRes > osk)) ||
-                              ((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN) && (self->position.z - self->position.a < -osk || self->position.z - self->position.a > videomodes.vRes + osk))		) )
-            || self->position.a < 2 * PIT_DEPTH) //self->position.z<100000, so weapon item won't be killed
+                              (level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && (advancey - self->position.z + self->position.y > osk || self->position.z - self->position.y - advancey - videomodes.vRes > osk)) ||
+                              ((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN) && (self->position.z - self->position.y < -osk || self->position.z - self->position.y > videomodes.vRes + osk))		) )
+            || self->position.y < 2 * PIT_DEPTH) //self->position.z<100000, so weapon item won't be killed
     {
         if(self->modeldata.type & TYPE_PLAYER)
         {
@@ -17035,7 +17037,7 @@ void check_lost()
     }
 
     // fall into a pit
-    if(self->position.a < PIT_DEPTH)
+    if(self->position.y < PIT_DEPTH)
     {
         if(!self->takedamage)
         {
@@ -17044,7 +17046,7 @@ void check_lost()
         else
         {
             attack          = emptyattack;
-            attack.dropv.a = default_model_dropv.a;
+            attack.dropv.y = default_model_dropv.y;
             attack.dropv.x = default_model_dropv.x;
             attack.dropv.z = default_model_dropv.z;
             attack.attack_force = self->health;
@@ -17062,7 +17064,7 @@ void check_lost()
         else
         {
             attack          = emptyattack;
-            attack.dropv.a = default_model_dropv.a;
+            attack.dropv.y = default_model_dropv.y;
             attack.dropv.x = default_model_dropv.x;
             attack.dropv.z = default_model_dropv.z;
             attack.attack_force = self->health;
@@ -17174,7 +17176,7 @@ void adjust_base(entity *e, entity **pla)
     tempself = self;
     self = e;
 
-    if(self->velocity.a > 0)
+    if(self->velocity.y > 0)
     {
         self->landed_on_platform = NULL;
     }
@@ -17199,7 +17201,7 @@ void adjust_base(entity *e, entity **pla)
         self->landed_on_platform = NULL;
     }
 
-    if(other && !self->landed_on_platform && self->position.a <= other->position.a + other->animation->platform[other->animpos][7])
+    if(other && !self->landed_on_platform && self->position.y <= other->position.y + other->animation->platform[other->animpos][7])
     {
         self->landed_on_platform = other;
     }
@@ -17210,7 +17212,7 @@ void adjust_base(entity *e, entity **pla)
         {
             check_gravity(plat);
         }
-        self->position.a = self->base = plat->position.a + plat->animation->platform[plat->animpos][7];
+        self->position.y = self->base = plat->position.y + plat->animation->platform[plat->animpos][7];
     }
 
     *pla = other;
@@ -17245,7 +17247,7 @@ void adjust_base(entity *e, entity **pla)
             }
             else if(!hole && self->base == -1000)
             {
-                if(self->position.a >= 0)
+                if(self->position.y >= 0)
                 {
                     self->base = 0;
                 }
@@ -17260,7 +17262,7 @@ void adjust_base(entity *e, entity **pla)
         {
             if(other != NULL && other != self )
             {
-                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + (other->position.a + other->animation->platform[other->animpos][7]);
+                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + (other->position.y + other->animation->platform[other->animpos][7]);
             }
             else if(wall >= 0)
             {
@@ -17326,7 +17328,7 @@ void update_animation()
             {
                 scrollv = -scrollv;
             }
-            self->position.a -= scrolldy * scrollv;
+            self->position.y -= scrolldy * scrollv;
             self->base = -99999; // temporary fix otherwise it won't go underground
         }
     }
@@ -17660,7 +17662,7 @@ void common_dot()
                         attack              = emptyattack;                                      //Clear struct.
                         attack.attack_type  = iType;                                            //Set type.
                         attack.attack_force = iForce;                                           //Set force. Use unmodified force here; takedamage applys damage mitigation.
-                        attack.dropv.a     = default_model_dropv.a;                           //Apply drop Y.
+                        attack.dropv.y     = default_model_dropv.y;                           //Apply drop Y.
                         attack.dropv.x     = default_model_dropv.x;                           //Apply drop X
                         attack.dropv.z     = default_model_dropv.z;                           //Apply drop Z
 
@@ -17723,7 +17725,7 @@ void adjust_bind(entity *e)
         }
     }
     e->position.z = e->bound->position.z + e->bindoffset[1];
-    e->position.a = e->bound->position.a + e->bindoffset[2];
+    e->position.y = e->bound->position.y + e->bindoffset[2];
     switch(e->bindoffset[3])
     {
     case 0:
@@ -18060,7 +18062,7 @@ void display_ents()
                     						else                             z++;
                     					}
                     */
-                    if(other && e->position.a >= other->position.a + other->animation->platform[other->animpos][7] && !other->modeldata.setlayer)
+                    if(other && e->position.y >= other->position.y + other->animation->platform[other->animpos][7] && !other->modeldata.setlayer)
                     {
                         if(
                             e->link &&
@@ -18176,15 +18178,15 @@ void display_ents()
                         if(drawmethod->clipw)
                         {
                             drawmethod->clipx += (int)(e->position.x - scrx);
-                            drawmethod->clipy += (int)(e->position.z - e->position.a - scry);
+                            drawmethod->clipy += (int)(e->position.z - e->position.y - scry);
                         }
-                        spriteq_add_sprite((int)(e->position.x - scrx), (int)(e->position.z - e->position.a - scry), z, f, drawmethod, sortid);
+                        spriteq_add_sprite((int)(e->position.x - scrx), (int)(e->position.z - e->position.y - scry), z, f, drawmethod, sortid);
                     }
 
                     can_mirror = (use_mirror && self->position.z > MIRROR_Z);
                     if(can_mirror)
                     {
-                        spriteq_add_sprite((int)(e->position.x - scrx), (int)((2 * MIRROR_Z - e->position.z) - e->position.a - scry), 2 * PANEL_Z - z , f, drawmethod, ent_list_size * 100 - sortid);
+                        spriteq_add_sprite((int)(e->position.x - scrx), (int)((2 * MIRROR_Z - e->position.z) - e->position.y - scry), 2 * PANEL_Z - z , f, drawmethod, ent_list_size * 100 - sortid);
                     }
                 }//end of if(f<sprites_loaded)
 
@@ -18192,30 +18194,30 @@ void display_ents()
                 {
                     useshadow = (e->animation->shadow ? e->animation->shadow[e->animpos] : 1) && shadowcolor && light[1];
                     //printf("\n %d, %d, %d\n", shadowcolor, light[0], light[1]);
-                    if(useshadow && e->position.a >= 0 && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
+                    if(useshadow && e->position.y >= 0 && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                     {
-                        wall = checkwall_below(e->position.x, e->position.z, e->position.a);
+                        wall = checkwall_below(e->position.x, e->position.z, e->position.y);
                         if(wall < 0)
                         {
-                            alty = (int)e->position.a;
-                            temp1 = -1 * e->position.a * light[0] / 256; // xshift
+                            alty = (int)e->position.y;
+                            temp1 = -1 * e->position.y * light[0] / 256; // xshift
                             temp2 = (float)(-alty * light[1] / 256);               // zshift
                             qx = (int)(e->position.x - scrx/* + temp1*/);
                             qy = (int)(e->position.z - scry/* +  temp2*/);
                         }
                         else
                         {
-                            alty = (int)(e->position.a - level->walls[wall].height);
-                            temp1 = -1 * (e->position.a - level->walls[wall].height) * light[0] / 256; // xshift
+                            alty = (int)(e->position.y - level->walls[wall].height);
+                            temp1 = -1 * (e->position.y - level->walls[wall].height) * light[0] / 256; // xshift
                             temp2 = (float)(-alty * light[1] / 256);               // zshift
                             qx = (int)(e->position.x - scrx/* + temp1*/);
                             qy = (int)(e->position.z - scry /*+  temp2*/ - level->walls[wall].height);
                         }
 
-                        wall2 = checkwall_below(e->position.x + temp1, e->position.z + temp2, e->position.a); // check if the shadow drop into a hole or fall on another wall
+                        wall2 = checkwall_below(e->position.x + temp1, e->position.z + temp2, e->position.y); // check if the shadow drop into a hole or fall on another wall
 
                         //TODO check platforms, don't want to go through the entity list again right now
-                        if(!(checkhole(e->position.x + temp1, e->position.z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.a))
+                        if(!(checkhole(e->position.x + temp1, e->position.z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
                         {
                             if(wall >= 0 && wall2 >= 0)
                             {
@@ -18289,17 +18291,17 @@ void display_ents()
                     {
                         useshadow = e->modeldata.shadow;
                     }
-                    if(useshadow && e->position.a >= 0 && !(checkhole(e->position.x, e->position.z) && checkwall_below(e->position.x, e->position.z, e->position.a) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
+                    if(useshadow && e->position.y >= 0 && !(checkhole(e->position.x, e->position.z) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                     {
-                        if(other && other != e && e->position.a >= other->position.a + other->animation->platform[other->animpos][7])
+                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7])
                         {
                             qx = (int)(e->position.x - scrx);
-                            qy = (int)(e->position.z - other->position.a - other->animation->platform[other->animpos][7] - scry);
-                            sy = (int)((2 * MIRROR_Z - e->position.z) - other->position.a - other->animation->platform[other->animpos][7] - scry);
+                            qy = (int)(e->position.z - other->position.y - other->animation->platform[other->animpos][7] - scry);
+                            sy = (int)((2 * MIRROR_Z - e->position.z) - other->position.y - other->animation->platform[other->animpos][7] - scry);
                             z = (int)(other->position.z + 1);
                             sz = 2 * PANEL_Z - z;
                         }
-                        else if(level && wall >= 0)// && e->position.a >= level->walls[wall].height)
+                        else if(level && wall >= 0)// && e->position.y >= level->walls[wall].height)
                         {
                             qx = (int)(e->position.x - scrx);
                             qy = (int)(e->position.z - level->walls[wall].height - scry);
@@ -18344,7 +18346,7 @@ void display_ents()
             {
                 if(e->modeldata.parrow[(int)e->playerindex][0] && e->invincible == 1)
                 {
-                    spriteq_add_sprite((int)(e->position.x - scrx + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->position.z - e->position.a - scry + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->position.z, e->modeldata.parrow[(int)e->playerindex][0], NULL, sortid * 2);
+                    spriteq_add_sprite((int)(e->position.x - scrx + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->position.z - e->position.y - scry + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->position.z, e->modeldata.parrow[(int)e->playerindex][0], NULL, sortid * 2);
                 }
             }
         }// end of if(ent_list[i]->exists)
@@ -18367,8 +18369,8 @@ void toss(entity *ent, float lift)
         return;    //zero?
     }
     ent->toss_time = time + 1;
-    ent->velocity.a = lift;
-    ent->position.a += 0.5;        // Get some altitude (needed for checks)
+    ent->velocity.y = lift;
+    ent->position.y += 0.5;        // Get some altitude (needed for checks)
 }
 
 
@@ -18481,7 +18483,7 @@ int player_test_pickable(entity *ent, entity *item)
     {
         return 0;
     }
-    if(diff(ent->base , item->position.a) > 0.1)
+    if(diff(ent->base , item->position.y) > 0.1)
     {
         return 0;
     }
@@ -18498,7 +18500,7 @@ int player_test_touch(entity *ent, entity *item)
     {
         return 0;
     }
-    if(diff(ent->base , item->position.a) > 1)
+    if(diff(ent->base , item->position.y) > 1)
     {
         return 0;
     }
@@ -18541,7 +18543,7 @@ int set_idle(entity *ent)
 
 int set_death(entity *iDie, int type, int reset)
 {
-    //iDie->velocity.x = iDie->velocity.z = iDie->velocity.a = 0; // stop the target
+    //iDie->velocity.x = iDie->velocity.z = iDie->velocity.y = 0; // stop the target
     if(iDie->blocking && validanim(iDie, ANI_CHIPDEATH))
     {
         ent_set_anim(iDie, ANI_CHIPDEATH, reset);
@@ -18633,7 +18635,7 @@ int set_rise(entity *iRise, int type, int reset)
     iRise->falling = 0;
     iRise->projectile = 0;
     iRise->nograb = 0;
-    iRise->velocity.x = self->velocity.z = self->velocity.a = 0;
+    iRise->velocity.x = self->velocity.z = self->velocity.y = 0;
     iRise->modeldata.jugglepoints.current = iRise->modeldata.jugglepoints.max; //reset jugglepoints
     return 1;
 }
@@ -18697,7 +18699,7 @@ int set_pain(entity *iPain, int type, int reset)
 {
     int pain = 0;
 
-    iPain->velocity.x = iPain->velocity.z = iPain->velocity.a = 0; // stop the target
+    iPain->velocity.x = iPain->velocity.z = iPain->velocity.y = 0; // stop the target
     if(iPain->modeldata.guardpoints.max > 0 && iPain->modeldata.guardpoints.current <= 0)
     {
         pain = ANI_GUARDBREAK;
@@ -19281,14 +19283,14 @@ void common_jump()
 
     if(inair(self))
     {
-        //printf("%f %f %f %d\n", self->base, self->position.a, self->velocity.a, self->landed_on_platform);
+        //printf("%f %f %f %d\n", self->base, self->position.y, self->velocity.y, self->landed_on_platform);
         return;
     }
 
-    if(self->velocity.a <= 0) // wait if it is still go up
+    if(self->velocity.y <= 0) // wait if it is still go up
     {
-        self->velocity.a = 0;
-        self->position.a = self->base;
+        self->velocity.y = 0;
+        self->position.y = self->base;
 
         self->jumping = 0;
         self->attacking = 0;
@@ -19306,10 +19308,10 @@ void common_jump()
             ent_set_anim(self, ANI_JUMPLAND, 0);
             if(self->modeldata.dust[1] >= 0)
             {
-                dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, self->modeldata.dust[1], NULL);
+                dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust[1], NULL);
                 if(dust)
                 {
-                    dust->base = self->position.a;
+                    dust->base = self->position.y;
                     dust->autokill = 2;
                     execute_onspawn_script(dust);
                 }
@@ -19319,10 +19321,10 @@ void common_jump()
         {
             if(self->modeldata.dust[1] >= 0 && self->animation->landframe.frame == -1)
             {
-                dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, self->modeldata.dust[1], NULL);
+                dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust[1], NULL);
                 if(dust)
                 {
-                    dust->base = self->position.a;
+                    dust->base = self->position.y;
                     dust->autokill = 2;
                     execute_onspawn_script(dust);
                 }
@@ -19411,7 +19413,7 @@ void doland()
 void common_fall()
 {
     // Still falling?
-    if(self->falling ||  inair(self) || self->velocity.a)
+    if(self->falling ||  inair(self) || self->velocity.y)
     {
         return;
     }
@@ -19521,7 +19523,7 @@ void common_lie()
         return;
     }
 
-    if(time < self->stalltime || self->position.a != self->base || self->velocity.a)
+    if(time < self->stalltime || self->position.y != self->base || self->velocity.y)
     {
         return;
     }
@@ -19531,7 +19533,7 @@ void common_lie()
     //self->drop = 0;
     //self->falling = 0;
     //self->projectile = 0;
-    //self->velocity.x = self->velocity.z = self->velocity.a = 0;
+    //self->velocity.x = self->velocity.z = self->velocity.y = 0;
 
     set_rise(self, self->damagetype, 0);
 }
@@ -19587,7 +19589,7 @@ void doprethrow()
     entity *other = self->link;
     other->takeaction = common_prethrow;
     self->takeaction = common_throw_wait;
-    self->velocity.x = self->velocity.z = self->velocity.a = other->velocity.x = other->velocity.z = other->velocity.a = 0;
+    self->velocity.x = self->velocity.z = self->velocity.y = other->velocity.x = other->velocity.z = other->velocity.y = 0;
     ent_set_anim(self, ANI_THROW, 0);
 }
 
@@ -19668,7 +19670,7 @@ void common_grab_check()
 
     if(self->base != other->base)
     {
-        // Change this from ->position.a to ->base
+        // Change this from ->position.y to ->base
         self->takeaction = NULL;
         ent_unlink(self);
         set_idle(self);
@@ -19822,7 +19824,7 @@ entity *drop_item(entity *e)
     p.index = e->item;
     p.itemindex = p.weaponindex = -1;
     strcpy(p.alias, e->itemalias);
-    p.position.a = e->position.a + 0.01; // for check, or an enemy "item" will drop from the sky
+    p.position.y = e->position.y + 0.01; // for check, or an enemy "item" will drop from the sky
     p.health[0] = e->itemhealth;
     p.alpha = e->itemtrans;
     p.colourmap = e->itemmap;
@@ -19844,11 +19846,11 @@ entity *drop_item(entity *e)
         }
         if(!(level->scrolldir & (SCROLL_UP | SCROLL_DOWN)))
         {
-            if(item->position.z - item->position.a < advancey)
+            if(item->position.z - item->position.y < advancey)
             {
                 item->position.z = advancey + 10;
             }
-            else if(item->position.z - item->position.a > advancey + videomodes.vRes)
+            else if(item->position.z - item->position.y > advancey + videomodes.vRes)
             {
                 item->position.z = advancey + videomodes.vRes - 10;
             }
@@ -19878,7 +19880,7 @@ entity *drop_driver(entity *e)
     {
         return NULL;    // should not happen, just in case
     }
-    /*p.x = e->position.x - advancex; p.z = e->position.z; */p.position.a = e->position.a + 10;
+    /*p.x = e->position.x - advancex; p.z = e->position.z; */p.position.y = e->position.y + 10;
     p.itemindex = e->item;
     p.weaponindex = -1;
     strcpy(p.itemalias, e->itemalias);
@@ -20201,7 +20203,7 @@ void checkdamage(entity *other, s_attack *attack)
 
     if (self->health <= 0)                                      //Health at 0?
     {
-        if(!(self->position.a < PIT_DEPTH || self->lifespancountdown < 0)) //Not a pit death or countdown?
+        if(!(self->position.y < PIT_DEPTH || self->lifespancountdown < 0)) //Not a pit death or countdown?
         {
             if (self->invincible == 2)                          //Invincible type 2?
             {
@@ -20224,7 +20226,7 @@ int checkgrab(entity *other, s_attack *attack)
         if(adjust_grabposition(other, self, attack->grab_distance, attack->grab))
         {
             ents_link(other, self);
-            self->position.a = other->position.a;
+            self->position.y = other->position.y;
         }
         else
         {
@@ -20305,7 +20307,7 @@ int common_takedamage(entity *other, s_attack *attack)
     {
         control_rumble(self->playerindex, attack->attack_force * 3);
     }
-    if(self->position.a <= PIT_DEPTH && self->dead)
+    if(self->position.y <= PIT_DEPTH && self->dead)
     {
         if(self->modeldata.type & TYPE_PLAYER)
         {
@@ -20357,7 +20359,7 @@ int common_takedamage(entity *other, s_attack *attack)
 
         if(self->health <= 0 && self->modeldata.falldie == 1)
         {
-            self->velocity.x = self->velocity.z = self->velocity.a = 0;
+            self->velocity.x = self->velocity.z = self->velocity.y = 0;
             set_death(self, self->damagetype, 0);
         }
         else
@@ -20368,7 +20370,7 @@ int common_takedamage(entity *other, s_attack *attack)
             {
                 self->velocity.x = -self->velocity.x;
             }
-            toss(self, attack->dropv.a);
+            toss(self, attack->dropv.y);
             self->damage_on_landing = attack->damage_on_landing;
             self->knockdowncount = self->modeldata.knockdowncount; // reset the knockdowncount
             self->knockdowntime = 0;
@@ -20763,10 +20765,10 @@ int common_try_jumpattack(entity *target)
 
             if(self->modeldata.dust[2] >= 0)
             {
-                dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, self->modeldata.dust[2], NULL);
+                dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust[2], NULL);
                 if(dust)
                 {
-                    dust->base = self->position.a;
+                    dust->base = self->position.y;
                     dust->autokill = 2;
                     execute_onspawn_script(dust);
                 }
@@ -20920,10 +20922,10 @@ void npc_warp()
     }
     self->position.z = self->parent->position.z;
     self->position.x = self->parent->position.x;
-    self->position.a = self->parent->position.a;
+    self->position.y = self->parent->position.y;
     self->velocity.x = self->velocity.z = 0;
     self->base = self->parent->base;
-    self->velocity.a = 0;
+    self->velocity.y = 0;
 
     if(validanim(self, ANI_RESPAWN))
     {
@@ -20941,7 +20943,7 @@ int adjust_grabposition(entity *ent, entity *other, float dist, int grabin)
 {
     float x1, z1, x2, z2, x;
 
-    if(ent->position.a != other->position.a)
+    if(ent->position.y != other->position.y)
     {
         return 0;
     }
@@ -20973,7 +20975,7 @@ int adjust_grabposition(entity *ent, entity *other, float dist, int grabin)
     ent->position.z = z1;
     other->position.x = x2;
     other->position.z = z2;
-    //other->position.a = ent->position.a;
+    //other->position.y = ent->position.y;
     //other->base = ent->base;
     return 1;
 }
@@ -21126,11 +21128,11 @@ int common_trymove(float xdir, float zdir)
     {
 
         needcheckhole = 1;
-        if(zdir && checkhole(self->position.x, z) && checkwall(self->position.x, z) < 0 && !check_platform_below(self->position.x, z, self->position.a, self))
+        if(zdir && checkhole(self->position.x, z) && checkwall(self->position.x, z) < 0 && !check_platform_below(self->position.x, z, self->position.y, self))
         {
             zdir = 0;
         }
-        if(xdir && checkhole(x, self->position.z) && checkwall(x, self->position.z) < 0 && !check_platform_below(x, self->position.z, self->position.a, self))
+        if(xdir && checkhole(x, self->position.z) && checkwall(x, self->position.z) < 0 && !check_platform_below(x, self->position.z, self->position.y, self))
         {
             xdir = 0;
         }
@@ -21195,11 +21197,11 @@ int common_trymove(float xdir, float zdir)
         //if(zdir>0 ? other->position.z>self->position.z : other->position.z<self->position.z) {zdir = 0; }
         //temporary fix for thin platforms (i.e, offset is not between left and right side)
         // TODO: find the collision position, merge with wall code
-        if(xdir && (other = check_platform_between(x, self->position.z, self->position.a, self->position.a + heightvar, self))  )
+        if(xdir && (other = check_platform_between(x, self->position.z, self->position.y, self->position.y + heightvar, self))  )
         {
             xdir = 0;
         }
-        if(zdir && (other = check_platform_between(self->position.x, z, self->position.a, self->position.a + heightvar, self))  )
+        if(zdir && (other = check_platform_between(self->position.x, z, self->position.y, self->position.y + heightvar, self))  )
         {
             zdir = 0;
         }
@@ -21218,12 +21220,12 @@ int common_trymove(float xdir, float zdir)
     if(self->modeldata.subject_to_wall)
     {
 
-        if(xdir && (wall = checkwall_below(x, self->position.z, 999999)) >= 0 && level->walls[wall].height > self->position.a)
+        if(xdir && (wall = checkwall_below(x, self->position.z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
         {
             xdir = 0;
             execute_onblockw_script(self, 1, (double)level->walls[wall].height);
         }
-        if(zdir && (wall = checkwall_below(self->position.x, z, 999999)) >= 0 && level->walls[wall].height > self->position.a)
+        if(zdir && (wall = checkwall_below(self->position.x, z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
         {
             zdir = 0;
             execute_onblockw_script(self, 2, (double)level->walls[wall].height);
@@ -21314,7 +21316,7 @@ void common_runoff()
 void common_stuck_underneath()
 {
     float heightvar = self->animation->height ? self->animation->height : self->modeldata.height;
-    if(!check_platform_between(self->position.x, self->position.z, self->position.a, self->position.a + heightvar, self) )
+    if(!check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self) )
     {
         self->takeaction = NULL;
         set_idle(self);
@@ -21399,7 +21401,7 @@ void common_attack_finish()
 void common_attack_proc()
 {
 
-    if(self->animating || diff(self->position.a, self->base) >= 4)
+    if(self->animating || diff(self->position.y, self->base) >= 4)
     {
         return;
     }
@@ -21500,8 +21502,8 @@ int common_try_jump()
         }
 
         if( (wall = checkwall_below(xdir, zdir, 999999)) >= 0 &&
-                level->walls[wall].height <= self->position.a + rmax &&
-                !inair(self) && self->position.a < level->walls[wall].height  )
+                level->walls[wall].height <= self->position.y + rmax &&
+                !inair(self) && self->position.y < level->walls[wall].height  )
         {
             j = 1;
         }
@@ -21546,8 +21548,8 @@ int common_try_jump()
         }
 
         if( (wall = checkwall_below(xdir, zdir, 999999)) >= 0 &&
-                level->walls[wall].height <= self->position.a + rmax &&
-                !inair(self) && self->position.a < level->walls[wall].height  )
+                level->walls[wall].height <= self->position.y + rmax &&
+                !inair(self) && self->position.y < level->walls[wall].height  )
         {
             j = 2;																				//Set to perform runjump.
         }
@@ -22932,7 +22934,7 @@ int arrow_move()
 
     if(level)
     {
-        if(self->modeldata.subject_to_wall && (wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.a < level->walls[wall].height)
+        if(self->modeldata.subject_to_wall && (wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height)
         {
             // Added so projectiles bounce off blocked exits
             if(validanim(self, ANI_FALL))
@@ -22979,9 +22981,9 @@ int bomb_move()
     {
 
         self->takeaction = bomb_explode;
-        self->velocity.a = 0;    // Stop moving up/down
+        self->velocity.y = 0;    // Stop moving up/down
         self->modeldata.no_adjust_base = 1;    // Stop moving up/down
-        self->base = self->position.a;
+        self->base = self->position.y;
         self->velocity.x = self->velocity.z = 0;
 
         if(self->modeldata.diesound >= 0)
@@ -23019,11 +23021,11 @@ int star_move()
     }
 
     self->base -= 4;
-    self->position.a = self->base;
+    self->position.y = self->base;
 
     if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
     {
-        if((wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.a < level->walls[wall].height)
+        if((wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height)
         {
             self->takeaction = common_fall;
             self->attacking = 0;
@@ -23165,7 +23167,7 @@ int common_move()
                 && diff(other->position.z, self->position.z) < (self->modeldata.grabdistance / 3) &&
                 other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
         {
-            if(diff(self->base, other->position.a) < 0.1)
+            if(diff(self->base, other->position.y) < 0.1)
             {
                 common_pickupitem(other);
                 return 1;
@@ -23606,7 +23608,7 @@ int ai_check_warp()
 
 int ai_check_lie()
 {
-    if(self->drop && self->position.a == self->base && !self->velocity.a && validanim(self, ANI_RISEATTACK) && ((rand32() % (self->stalltime - time + 1)) < 3) && (self->health > 0 && time > self->staydown.riseattack_stall))
+    if(self->drop && self->position.y == self->base && !self->velocity.y && validanim(self, ANI_RISEATTACK) && ((rand32() % (self->stalltime - time + 1)) < 3) && (self->health > 0 && time > self->staydown.riseattack_stall))
     {
         common_try_riseattack();
         return 1;
@@ -24038,7 +24040,7 @@ void common_vault()
         self->link->takeaction = common_grabbed;
         self->attacking = 0;
         self->direction = !self->direction;
-        self->position.a = self->base = self->link->base;
+        self->position.y = self->base = self->link->base;
 
         if(self->direction)
         {
@@ -24079,13 +24081,13 @@ void common_prejump()
     {
         return;
     }
-    dojump(self->jump.velocity.a, self->jump.velocity.x, self->jump.velocity.z, self->jump.id);
+    dojump(self->jump.velocity.y, self->jump.velocity.x, self->jump.velocity.z, self->jump.id);
 }
 
 
 void tryjump(float jumpv, float jumpx, float jumpz, int jumpid)
 {
-    self->jump.velocity.a = jumpv;
+    self->jump.velocity.y = jumpv;
     self->jump.velocity.x = jumpx;
     self->jump.velocity.z = jumpz;
     self->jump.id = jumpid;
@@ -24118,10 +24120,10 @@ void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
     //Spawn jumpstart dust.
     if(self->modeldata.dust[2] >= 0)
     {
-        dust = spawn(self->position.x, self->position.z, self->position.a, self->direction, NULL, self->modeldata.dust[2], NULL);
+        dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust[2], NULL);
         if(dust)
         {
-            dust->base = self->position.a;
+            dust->base = self->position.y;
             dust->autokill = 2;
             execute_onspawn_script(dust);
         }
@@ -24337,7 +24339,7 @@ void player_grab_check()
 
     if(self->base != other->base)
     {
-        // Change this from ->position.a to ->base
+        // Change this from ->position.y to ->base
         self->takeaction = NULL;
         ent_unlink(self);
         set_idle(self);
@@ -24697,7 +24699,7 @@ void player_jump_check()
                 else if(validanim(self, ANI_JUMPCANT))
                 {
                     ent_set_anim(self, ANI_JUMPCANT, 0);
-                    self->velocity.a = 0;
+                    self->velocity.y = 0;
                 }
 
                 if(candospecial)
@@ -24705,7 +24707,7 @@ void player_jump_check()
                     player[self->playerindex].playkeys &= ~FLAG_SPECIAL;
                     self->attacking = 1;
                     self->velocity.x = self->velocity.z = 0;                         // Kill movement when the special starts
-                    self->velocity.a = 0;
+                    self->velocity.y = 0;
                     ent_set_anim(self, ANI_JUMPSPECIAL, 0);
                 }
             }
@@ -24926,7 +24928,7 @@ int check_combo()
             continue;
         }
         else if(!self->animation->cancel &&
-                (com->cancel || !self->idling || diff(self->position.a, self->base) > 1) )
+                (com->cancel || !self->idling || diff(self->position.y, self->base) > 1) )
         {
             continue;
         }
@@ -24989,7 +24991,7 @@ void player_think()
     }
 
     // check endlevel item
-    if((other = find_ent_here(self, self->position.x, self->position.z, TYPE_ENDLEVEL, NULL)) && diff(self->position.a, other->position.a) <= 0.1)
+    if((other = find_ent_here(self, self->position.x, self->position.z, TYPE_ENDLEVEL, NULL)) && diff(self->position.y, other->position.y) <= 0.1)
     {
         if(!reached[0] && !reached[1] && !reached[2] && !reached[3])
         {
@@ -25054,7 +25056,7 @@ void player_think()
         goto endthinkcheck;
     }
 
-    if(self->drop && self->position.a == self->base && !self->velocity.a)
+    if(self->drop && self->position.y == self->base && !self->velocity.y)
     {
         player_lie_check();
         goto endthinkcheck;
@@ -25070,7 +25072,7 @@ void player_think()
 
     // Check if entity is under a platform
     if(self->modeldata.subject_to_platform > 0 && (heightvar = self->animation->height ? self->animation->height : self->modeldata.height) &&
-            validanim(self, ANI_DUCK) && check_platform_between(self->position.x, self->position.z, self->position.a, self->position.a + heightvar, self))
+            validanim(self, ANI_DUCK) && check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self))
     {
         self->idling = 0;
         self->takeaction = common_stuck_underneath;
@@ -25078,7 +25080,7 @@ void player_think()
         goto endthinkcheck;
     }
 
-    altdiff = diff(self->position.a, self->base);
+    altdiff = diff(self->position.y, self->base);
     notinair = (self->landed_on_platform ? altdiff < 5 : altdiff < 2);
 
     if(pl->playkeys & FLAG_MOVEUP)
@@ -25780,14 +25782,14 @@ void dropweapon(int flag)
             }
             self->weapent->position.z = self->position.z;
             self->weapent->position.x = self->position.x;
-            self->weapent->position.a = self->position.a;
+            self->weapent->position.y = self->position.y;
 
             other = check_platform(self->weapent->position.x, self->weapent->position.z, self);
             wall = checkwall(self->weapent->position.x, self->weapent->position.z);
 
             if(other && other != self->weapent)
             {
-                self->weapent->base += other->position.a + other->animation->platform[other->animpos][7];
+                self->weapent->base += other->position.y + other->animation->platform[other->animpos][7];
             }
             else if(wall >= 0)
             {
@@ -25911,7 +25913,7 @@ void kill_all_enemies()
 
     attack = emptyattack;
     attack.attack_type = max_attack_types;
-    attack.dropv.a = default_model_dropv.a;
+    attack.dropv.y = default_model_dropv.y;
     attack.dropv.x = default_model_dropv.x;
     attack.dropv.z = default_model_dropv.z;
 
@@ -26011,7 +26013,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 0;
-        e->position.a = a;
+        e->position.y = a;
     }
     else if(self->weapent && self->weapent->modeldata.project >= 0)
     {
@@ -26021,7 +26023,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 0;
-        e->position.a = a;
+        e->position.y = a;
     }
     else if(self->animation->custknife >= 0)
     {
@@ -26031,7 +26033,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 0;
-        e->position.a = a;
+        e->position.y = a;
     }
     else if(self->animation->custpshotno >= 0)
     {
@@ -26041,7 +26043,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 1;
-        e->position.a = 0;
+        e->position.y = 0;
     }
     else if(self->modeldata.knife >= 0)
     {
@@ -26051,7 +26053,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 0;
-        e->position.a = a;
+        e->position.y = a;
     }
     else if(self->modeldata.pshotno >= 0)
     {
@@ -26061,7 +26063,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 1;
-        e->position.a = 0;
+        e->position.y = 0;
     }
     else if(type)
     {
@@ -26071,7 +26073,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 0;
-        e->position.a = a;
+        e->position.y = a;
     }
     else
     {
@@ -26081,7 +26083,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
             return NULL;
         }
         e->ptype = 0;
-        e->position.a = a;
+        e->position.y = a;
     }
 
     if(e == NULL)
@@ -26198,7 +26200,7 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
         return NULL;
     }
 
-    e->position.a = a + 0.5;
+    e->position.y = a + 0.5;
 
     if(self->animation->energycost.cost > 0 && nocost)
     {
@@ -26296,7 +26298,7 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
         e->modeldata.aimove = AIMOVE1_STAR;
         e->modeldata.aiattack = AIATTACK1_NOATTACK;
         e->remove_on_attack = e->modeldata.remove;
-        e->position.a = e->base = a;
+        e->position.y = e->base = a;
         e->speedmul = 2;
         //e->direction = direction;
 
@@ -26327,7 +26329,7 @@ void steam_think()
     }
 
     self->base += 1;
-    self->position.a = self->base;
+    self->position.y = self->base;
 }
 
 
@@ -26362,7 +26364,7 @@ void steam_spawn(float x, float z, float a)
 
 void steamer_think()
 {
-    steam_spawn(self->position.x, self->position.z, self->position.a);
+    steam_spawn(self->position.x, self->position.z, self->position.y);
     self->nextthink = time + (GAME_SPEED / 10) + (rand32() & 31);
 }
 
@@ -26448,7 +26450,7 @@ int biker_takedamage(entity *other, s_attack *attack)
         return 0;
     }
     // Fell in a hole
-    if(self->position.a < PIT_DEPTH)
+    if(self->position.y < PIT_DEPTH)
     {
         kill(self);
         return 0;
@@ -26477,7 +26479,7 @@ int biker_takedamage(entity *other, s_attack *attack)
     // well, this is the real entity, the driver who take the damage
     if((driver = drop_driver(self)))
     {
-        driver->position.a = self->position.a;
+        driver->position.y = self->position.y;
         tempself = self;
         self = driver;
         self->drop = 1;
@@ -26529,7 +26531,7 @@ void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
 
 int obstacle_takedamage(entity *other, s_attack *attack)
 {
-    if(self->position.a <= PIT_DEPTH)
+    if(self->position.y <= PIT_DEPTH)
     {
         kill(self);
         return 0;
@@ -26616,11 +26618,11 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
 
     if((level->scrolldir & SCROLL_INWARD) || (level->scrolldir & SCROLL_OUTWARD))
     {
-        e = spawn(props->position.x, props->position.z + advancey, props->position.a, props->flip, props->name, props->index, props->model);
+        e = spawn(props->position.x, props->position.z + advancey, props->position.y, props->flip, props->name, props->index, props->model);
     }
     else
     {
-        e = spawn(props->position.x + advancex, props->position.z, props->position.a, props->flip, props->name, props->index, props->model);
+        e = spawn(props->position.x + advancex, props->position.z, props->position.y, props->flip, props->name, props->index, props->model);
     }
 
 
@@ -26629,7 +26631,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
         return NULL;
     }
 
-    //printf("%s, (%f, %f, %f) - (%f, %f, %f)", props->name, props->position.x, props->position.z, props->position.a, e->position.x, e->position.z, e->position.a);
+    //printf("%s, (%f, %f, %f) - (%f, %f, %f)", props->name, props->position.x, props->position.z, props->position.y, e->position.x, e->position.z, e->position.y);
 
     // Alias?
     if(props->alias[0])
@@ -26927,7 +26929,7 @@ void time_over()
 
     attack = emptyattack;
     attack.attack_type = ATK_TIMEOVER;
-    attack.dropv.a = default_model_dropv.a;
+    attack.dropv.y = default_model_dropv.y;
     attack.dropv.x = default_model_dropv.x;
     attack.dropv.z = default_model_dropv.z;
     if(level->type == 1)
@@ -27428,13 +27430,13 @@ void update_scroller()
             {
                 if(player[i].ent)
                 {
-                    if(player[i].ent->position.z - player[i].ent->position.a > bm)
+                    if(player[i].ent->position.z - player[i].ent->position.y > bm)
                     {
-                        bm = player[i].ent->position.z - player[i].ent->position.a;
+                        bm = player[i].ent->position.z - player[i].ent->position.y;
                     }
-                    if(player[i].ent->position.z - player[i].ent->position.a < tm)
+                    if(player[i].ent->position.z - player[i].ent->position.y < tm)
                     {
-                        tm = player[i].ent->position.z - player[i].ent->position.a;
+                        tm = player[i].ent->position.z - player[i].ent->position.y;
                     }
                 }
             }
@@ -27681,7 +27683,7 @@ void draw_scrolled_bg()
         }
 
         width = screenmethod.xspan = layer->size.x + layer->spacing.x;
-        height = screenmethod.yspan = layer->size.a + layer->spacing.z;
+        height = screenmethod.yspan = layer->size.y + layer->spacing.z;
 
         x = (int)(layer->offset.x - (advancex + bgtravelled * layer->bgspeedratio) * (1.0 - layer->ratio.x) ) ;
 
@@ -27889,7 +27891,7 @@ void draw_textobjs()
         {
             level->textobjs[i].time	= 0;
             level->textobjs[i].position.x = 0;
-            level->textobjs[i].position.a = 0;
+            level->textobjs[i].position.y = 0;
             level->textobjs[i].font = 0;
             level->textobjs[i].position.z = 0;
             if(level->textobjs[i].text)
@@ -27902,7 +27904,7 @@ void draw_textobjs()
         {
             if(textobj->text)
             {
-                font_printf(textobj->position.x, textobj->position.a, textobj->font, textobj->position.z, textobj->text);
+                font_printf(textobj->position.x, textobj->position.y, textobj->font, textobj->position.z, textobj->text);
             }
         }
     }
