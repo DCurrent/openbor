@@ -216,11 +216,8 @@ float               scrollmaxz;
 float               blockade;                    // Limit x scroll back
 float				scrollminx;
 float				scrollmaxx;
-float               lasthitx;						//Last hit X location.
-float               lasthity;						//Last hit Y location.
-float               lasthitz;						//Last hit Z location.
-int                 lasthitt;                       //Last hit type.
-int                 lasthitc;                       //Last hit confirm (i.e. if engine hit code will be used).
+
+s_lasthit           lasthit;  //Last collision variables. 2013-12-15, moved to struct.
 
 int					combodelay = GAME_SPEED / 2;		// avoid annoying 112112... infinite combo
 
@@ -1041,23 +1038,23 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
     case _sv_lasthita:
     case _sv_lasthity:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
-        var->dblVal = (DOUBLE)(lasthity);
+        var->dblVal = (DOUBLE)(lasthit.position.y);
         break;
     case _sv_lasthitc:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (LONG)(lasthitc);
+        var->lVal = (LONG)(lasthit.confirm);
         break;
     case _sv_lasthitt:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (LONG)(lasthitt);
+        var->lVal = (LONG)(lasthit.type);
         break;
     case _sv_lasthitx:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
-        var->dblVal = (DOUBLE)(lasthitx);
+        var->dblVal = (DOUBLE)(lasthit.position.x);
         break;
     case _sv_lasthitz:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
-        var->dblVal = (DOUBLE)(lasthitz);
+        var->dblVal = (DOUBLE)(lasthit.position.z);
         break;
     case _sv_xpos:
         if(!level)
@@ -1478,32 +1475,32 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
     case _sv_lasthitx:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
-            lasthitx = (float)ltemp;
+            lasthit.position.x = (float)ltemp;
         }
         break;
     case _sv_lasthita:
     case _sv_lasthity:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
-            lasthity = (float)ltemp;
+            lasthit.position.y = (float)ltemp;
         }
         break;
     case _sv_lasthitc:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
-            lasthitc = (int)ltemp;
+            lasthit.confirm = (int)ltemp;
         }
         break;
     case _sv_lasthitz:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
-            lasthitz = (float)ltemp;
+            lasthit.position.z = (float)ltemp;
         }
         break;
     case _sv_lasthitt:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
-            lasthitt = (int)ltemp;
+            lasthit.type = (int)ltemp;
         }
         break;
     case _sv_smartbomber:
@@ -15764,20 +15761,20 @@ int checkhit(entity *attacker, entity *target, int counter)
     medy = (float)(topleast + bottomleast) / 2;
 
     // Now convert these coords to 3D
-    lasthitx = medx;
+    lasthit.position.x = medx;
 
     if(attacker->position.z > target->position.z)
     {
-        lasthitz = z1 + 1;    // Changed so flashes always spawn in front
+        lasthit.position.z = z1 + 1;    // Changed so flashes always spawn in front
     }
     else
     {
-        lasthitz = z2 + 1;
+        lasthit.position.z = z2 + 1;
     }
 
-    lasthity = lasthitz - medy;
-    lasthitt = attacker->animation->attacks[attacker->animpos]->attack_type;
-    lasthitc = 1;
+    lasthit.position.y = lasthit.position.z - medy;
+    lasthit.type = attacker->animation->attacks[attacker->animpos]->attack_type;
+    lasthit.confirm = 1;
     return 1;
 }
 
@@ -16344,7 +16341,7 @@ void do_attack(entity *e)
             execute_ondoattack_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, current_attack_id);	//Execute on defender.
             execute_ondoattack_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, current_attack_id);	//Execute on attacker.
 
-            if(!lasthitc)
+            if(!lasthit.confirm)
             {
                 return;	   //12312010, DC: Allows modder to cancel engine's attack handling. Useful for parry systems, alternate blocking, or other scripted hit events.
             }
@@ -16431,16 +16428,16 @@ void do_attack(entity *e)
                         {
                             if(attack->blockflash >= 0)
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, attack->blockflash, NULL);    // custom bflash
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
                             }
                             else
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
                             }
                         }
                         else
                         {
-                            flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, self->modeldata.bflash, NULL);
+                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
                         }
                         //ent_default_init(flash); // initiliaze this because there're no default values now
 
@@ -16485,16 +16482,16 @@ void do_attack(entity *e)
                         {
                             if(attack->blockflash >= 0)
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, attack->blockflash, NULL);    // custom bflash
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
                             }
                             else
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
                             }
                         }
                         else
                         {
-                            flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, self->modeldata.bflash, NULL);
+                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
                         }
                         //ent_default_init(flash); // initiliaze this because there're no default values now
                         if(flash)
@@ -16534,16 +16531,16 @@ void do_attack(entity *e)
                         {
                             if(attack->blockflash >= 0)
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, attack->blockflash, NULL);    // custom bflash
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
                             }
                             else
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
                             }
                         }
                         else
                         {
-                            flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, self->modeldata.bflash, NULL);
+                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
                         }
                         //ent_default_init(flash); // initiliaze this because there're no default values now
                         if(flash)
@@ -16567,16 +16564,16 @@ void do_attack(entity *e)
                         {
                             if(attack->hitflash >= 0)
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, attack->hitflash, NULL);
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->hitflash, NULL);
                             }
                             else
                             {
-                                flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, e->modeldata.flash, NULL);
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, e->modeldata.flash, NULL);
                             }
                         }
                         else
                         {
-                            flash = spawn(lasthitx, lasthitz, lasthity, 0, NULL, self->modeldata.flash, NULL);
+                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.flash, NULL);
                         }
                         if(flash)
                         {
@@ -16616,7 +16613,7 @@ void do_attack(entity *e)
                         flash->direction = (e->position.x > self->position.x);    // Now the flash will flip depending on which side the attacker is on
                     }
 
-                    flash->base = lasthity;
+                    flash->base = lasthit.position.y;
                     flash->autokill = 2;
                 }//end of if #054
 

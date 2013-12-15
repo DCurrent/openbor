@@ -628,6 +628,18 @@ typedef struct
 
 typedef struct
 {
+    /*
+    Last hit struct. Populated each time a collision is detected.
+    Damon V. Caskey
+    2013-12-15
+    */
+    int type;           //Attack type of last hit.
+    s_axis_f position;  //X,Y,Z of last hit.
+    int confirm;        //Will engine's default hit handling be used?
+} s_lasthit;
+
+typedef struct
+{
     unsigned compatibleversion;
     int gamma;
     int brightness;
