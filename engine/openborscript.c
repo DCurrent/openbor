@@ -5663,7 +5663,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_maxguardpoints:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.guardpoints.maximum;
+        (*pretvar)->lVal = (LONG)ent->modeldata.guardpoints.max;
         break;
     }
     case _ep_maxhealth:
@@ -5675,7 +5675,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_maxjugglepoints:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.jugglepoints.maximum;
+        (*pretvar)->lVal = (LONG)ent->modeldata.jugglepoints.max;
         break;
     }
     case _ep_maxmp:
@@ -5882,35 +5882,35 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         {
         case _ep_range_amax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.maximum.a;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.max.a;
             break;
         case _ep_range_amin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.minimum.a;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.min.a;
             break;
         case _ep_range_bmax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.maximum.base;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.max.base;
             break;
         case _ep_range_bmin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.minimum.base;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.min.base;
             break;
         case _ep_range_xmax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.maximum.x;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.max.x;
             break;
         case _ep_range_xmin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.minimum.x;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.min.x;
             break;
         case _ep_range_zmax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.maximum.z;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.max.z;
             break;
         case _ep_range_zmin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.minimum.z;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.min.z;
             break;
         default:
             *pretvar = NULL;
@@ -7261,7 +7261,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.guardpoints.maximum = (int)ltemp;
+            ent->modeldata.guardpoints.max = (int)ltemp;
         }
         break;
     }
@@ -7281,7 +7281,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.jugglepoints.maximum = (int)ltemp;
+            ent->modeldata.jugglepoints.max = (int)ltemp;
         }
         break;
     }

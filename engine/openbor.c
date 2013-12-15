@@ -5709,8 +5709,8 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "jump") == 0)
     {
         ani_id = ANI_JUMP;
-        newanim->range.minimum.x = 50;
-        newanim->range.maximum.x = 60;
+        newanim->range.min.x = 50;
+        newanim->range.max.x = 60;
     }
     else if(stricmp(value, "duck") == 0)
     {
@@ -6048,8 +6048,8 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_UPPER;
         attack->counterattack = 100; //default to 100
-        newanim->range.minimum.x = -10;
-        newanim->range.maximum.x = 120;
+        newanim->range.min.x = -10;
+        newanim->range.max.x = 120;
     }
     else if(stricmp(value, "cant") == 0)
     {
@@ -6094,8 +6094,8 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
         ani_id = ANI_JUMPATTACK;
         if(newchar->jumpheight == 4)
         {
-            newanim->range.minimum.x = 150;
-            newanim->range.maximum.x = 200;
+            newanim->range.min.x = 150;
+            newanim->range.max.x = 200;
         }
     }
     else if(stricmp(value, "jumpattack2") == 0)
@@ -6263,8 +6263,8 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "block") == 0)   // Now enemies can block attacks on occasion
     {
         ani_id = ANI_BLOCK;
-        newanim->range.minimum.x = 1;
-        newanim->range.maximum.x = 100;
+        newanim->range.min.x = 1;
+        newanim->range.max.x = 100;
     }
     else if(starts_with_num(value, "follow"))
     {
@@ -7124,8 +7124,8 @@ s_model *init_model(int cacheindex, int unload)
     newchar->chargerate = newchar->guardrate = 2;
     newchar->risetime[0]                = -1;
     newchar->sleepwait                  = 1000;
-    newchar->jugglepoints.current = newchar->jugglepoints.maximum = 0;
-    newchar->guardpoints.current = newchar->guardpoints.maximum = 0;
+    newchar->jugglepoints.current = newchar->jugglepoints.max = 0;
+    newchar->guardpoints.current = newchar->guardpoints.max = 0;
     newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
     newchar->weaploss[0]                = -1;
     newchar->weaploss[1]                = -1;
@@ -7766,7 +7766,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_JUGGLEPOINTS:
                 value = GET_ARG(1);
                 newchar->jugglepoints.current = atoi(value);
-                newchar->jugglepoints.maximum = atoi(value);
+                newchar->jugglepoints.max = atoi(value);
                 break;
             case CMD_MODEL_RISEATTACKTYPE:
                 value = GET_ARG(1);
@@ -7775,7 +7775,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_GUARDPOINTS:
                 value = GET_ARG(1);
                 newchar->guardpoints.current = atoi(value);
-                newchar->guardpoints.maximum = atoi(value);
+                newchar->guardpoints.max = atoi(value);
                 break;
             case CMD_MODEL_DEFENSE:
 #define tempdef(x, y) \
@@ -8507,17 +8507,17 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 frameshadow = -1;
                 soundtoplay = -1;
 
-                if(!newanim->range.minimum.x)
+                if(!newanim->range.min.x)
                 {
-                    newanim->range.minimum.x = -10;
+                    newanim->range.min.x = -10;
                 }
-                newanim->range.maximum.x = (int)newchar->jumpheight * 20;  //30-12-2004 default range affected by jump height
-                newanim->range.minimum.z = (int) - newchar->grabdistance / 3; //zmin
-                newanim->range.maximum.z = (int)newchar->grabdistance / 3; //zmax
-                newanim->range.minimum.a = -1000;                          //amin
-                newanim->range.maximum.a = 1000;                           //amax
-                newanim->range.minimum.base = -1000;                          //Base min.
-                newanim->range.maximum.base = 1000;                           //Base max.
+                newanim->range.max.x = (int)newchar->jumpheight * 20;  //30-12-2004 default range affected by jump height
+                newanim->range.min.z = (int) - newchar->grabdistance / 3; //zmin
+                newanim->range.max.z = (int)newchar->grabdistance / 3; //zmax
+                newanim->range.min.a = -1000;                          //amin
+                newanim->range.max.a = 1000;                           //amax
+                newanim->range.min.base = -1000;                          //Base min.
+                newanim->range.max.base = 1000;                           //Base max.
 
                 newanim->jumpframe.velocity.a = 0;  //Default disabled.
                 //newanim->fastattack = 0;
@@ -9241,11 +9241,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot set range: no animation!";
                     goto lCleanup;
                 }
-                newanim->range.minimum.x = GET_INT_ARG(1);
-                newanim->range.maximum.x = GET_INT_ARG(2);
-                if(newanim->range.minimum.x == newanim->range.maximum.x)
+                newanim->range.min.x = GET_INT_ARG(1);
+                newanim->range.max.x = GET_INT_ARG(2);
+                if(newanim->range.min.x == newanim->range.max.x)
                 {
-                    newanim->range.minimum.x--;
+                    newanim->range.min.x--;
                 }
                 break;
             case CMD_MODEL_RANGEZ:
@@ -9254,8 +9254,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot set rangez: no animation!";
                     goto lCleanup;
                 }
-                newanim->range.minimum.z = GET_INT_ARG(1);
-                newanim->range.maximum.z = GET_INT_ARG(2);
+                newanim->range.min.z = GET_INT_ARG(1);
+                newanim->range.max.z = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_RANGEA:
                 if(!newanim)
@@ -9263,8 +9263,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot set rangea: no animation!";
                     goto lCleanup;
                 }
-                newanim->range.minimum.a = GET_INT_ARG(1);
-                newanim->range.maximum.a = GET_INT_ARG(2);
+                newanim->range.min.a = GET_INT_ARG(1);
+                newanim->range.max.a = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_RANGEB:
                 if(!newanim)
@@ -9272,8 +9272,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot set rangeb: no animation!";
                     goto lCleanup;
                 }
-                newanim->range.minimum.base = GET_INT_ARG(1);
-                newanim->range.maximum.base = GET_INT_ARG(2);
+                newanim->range.min.base = GET_INT_ARG(1);
+                newanim->range.max.base = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_PATHFINDSTEP:
                 newchar->pathfindstep = GET_FLOAT_ARG(1);
@@ -16215,9 +16215,9 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     {
         if(validanim(ent, ANI_JUMP) && sz < level->walls[wall].z && sz > level->walls[wall].z - level->walls[wall].depth) //Can jump?
         {
-            //rmin = (float)ent->modeldata.animation[ANI_JUMP]->range.minimum.x;
-            //rmax = (float)ent->modeldata.animation[ANI_JUMP]->range.maximum.x;
-            if(level->walls[wall].height < ent->position.a + ent->modeldata.animation[ANI_JUMP]->range.maximum.x)
+            //rmin = (float)ent->modeldata.animation[ANI_JUMP]->range.min.x;
+            //rmax = (float)ent->modeldata.animation[ANI_JUMP]->range.max.x;
+            if(level->walls[wall].height < ent->position.a + ent->modeldata.animation[ANI_JUMP]->range.max.x)
             {
                 return -1;
             }
@@ -16279,7 +16279,7 @@ void do_attack(entity *e)
     s_anim *current_anim;
     s_attack *attack = e->animation->attacks[e->animpos];
     static unsigned int new_attack_id = 1;
-    int fdefense_blockthreshold = (int)self->defense[attack->attack_type].blockthreshold; //Maximum damage that can be blocked for attack type.
+    int fdefense_blockthreshold = (int)self->defense[attack->attack_type].blockthreshold; //max damage that can be blocked for attack type.
 
     // Can't get hit after this
     if(level_completed || !attack)
@@ -16396,7 +16396,7 @@ void do_attack(entity *e)
                 //if #053
                 if( !self->modeldata.nopassiveblock && // cant block by itself
                         validanim(self, ANI_BLOCK) && // of course, move it here to avoid some useless checking
-                        ((self->modeldata.guardpoints.maximum == 0) || (self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current > 0)) &&
+                        ((self->modeldata.guardpoints.max == 0) || (self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current > 0)) &&
                         !(self->link ||
                           inair(self) ||
                           self->frozen ||
@@ -16415,7 +16415,7 @@ void do_attack(entity *e)
                     self->velocity.x = self->velocity.z = 0;
                     ent_set_anim(self, ANI_BLOCK, 0);
                     execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);
-                    if(self->modeldata.guardpoints.maximum > 0)
+                    if(self->modeldata.guardpoints.max > 0)
                     {
                         self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
                     }
@@ -16451,7 +16451,7 @@ void do_attack(entity *e)
                 }
                 else if(self->modeldata.nopassiveblock && // can block by itself
                         self->blocking &&  // of course he must be blocking
-                        ((self->modeldata.guardpoints.maximum == 0) || (self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current > 0)) &&
+                        ((self->modeldata.guardpoints.max == 0) || (self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current > 0)) &&
                         !((self->direction == e->direction && self->modeldata.blockback < 1) || self->frozen) &&   // Can't block if facing the wrong direction (unless blockback flag is enabled) or frozen in the block animation or opponent is a projectile
                         attack->no_block <= self->defense[attack->attack_type].blockpower &&    // Make sure you are actually blocking and that the attack is blockable
                         (!self->modeldata.thold ||
@@ -16463,7 +16463,7 @@ void do_attack(entity *e)
                     // Only block if the attack is less than the players threshold
                     //execute the didhit script
                     execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
-                    if(self->modeldata.guardpoints.maximum > 0)
+                    if(self->modeldata.guardpoints.max > 0)
                     {
                         self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
                     }
@@ -17472,22 +17472,22 @@ void check_attack()
 void update_health()
 {
     //12/30/2008: Guardrate by OX. Guardpoints increase over time.
-    if(self->modeldata.guardpoints.maximum > 0 && time >= self->guardtime) // If this is > 0 then guardpoints are set..
+    if(self->modeldata.guardpoints.max > 0 && time >= self->guardtime) // If this is > 0 then guardpoints are set..
     {
         if(self->blocking)
         {
             self->modeldata.guardpoints.current += (self->modeldata.guardrate / 2);
-            if(self->modeldata.guardpoints.current > self->modeldata.guardpoints.maximum)
+            if(self->modeldata.guardpoints.current > self->modeldata.guardpoints.max)
             {
-                self->modeldata.guardpoints.current = self->modeldata.guardpoints.maximum;
+                self->modeldata.guardpoints.current = self->modeldata.guardpoints.max;
             }
         }
         else
         {
             self->modeldata.guardpoints.current += self->modeldata.guardrate;
-            if(self->modeldata.guardpoints.current > self->modeldata.guardpoints.maximum)
+            if(self->modeldata.guardpoints.current > self->modeldata.guardpoints.max)
             {
-                self->modeldata.guardpoints.current = self->modeldata.guardpoints.maximum;
+                self->modeldata.guardpoints.current = self->modeldata.guardpoints.max;
             }
         }
         self->guardtime = time + GAME_SPEED;    //Reset guardtime.
@@ -17681,7 +17681,7 @@ void common_dot()
                         }
                         else
                         {
-                            self->health = 1;                                                   //Set minimum health.
+                            self->health = 1;                                                   //Set min health.
                         }
                         execute_takedamage_script(self, eOpp, iForce, 0, iType, 0, 0, 0, 0);    //Execute the takedamage script.
                     }
@@ -18634,7 +18634,7 @@ int set_rise(entity *iRise, int type, int reset)
     iRise->projectile = 0;
     iRise->nograb = 0;
     iRise->velocity.x = self->velocity.z = self->velocity.a = 0;
-    iRise->modeldata.jugglepoints.current = iRise->modeldata.jugglepoints.maximum; //reset jugglepoints
+    iRise->modeldata.jugglepoints.current = iRise->modeldata.jugglepoints.max; //reset jugglepoints
     return 1;
 }
 
@@ -18658,7 +18658,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     set_attacking(iRiseattack);
     iRiseattack->drop = 0;
     iRiseattack->nograb = 0;
-    iRiseattack->modeldata.jugglepoints.current = iRiseattack->modeldata.jugglepoints.maximum; //reset jugglepoints
+    iRiseattack->modeldata.jugglepoints.current = iRiseattack->modeldata.jugglepoints.max; //reset jugglepoints
     ent_set_anim(iRiseattack, animriseattacks[type], 0);
     return 1;
 }
@@ -18698,10 +18698,10 @@ int set_pain(entity *iPain, int type, int reset)
     int pain = 0;
 
     iPain->velocity.x = iPain->velocity.z = iPain->velocity.a = 0; // stop the target
-    if(iPain->modeldata.guardpoints.maximum > 0 && iPain->modeldata.guardpoints.current <= 0)
+    if(iPain->modeldata.guardpoints.max > 0 && iPain->modeldata.guardpoints.current <= 0)
     {
         pain = ANI_GUARDBREAK;
-        iPain->modeldata.guardpoints.current = iPain->modeldata.guardpoints.maximum;
+        iPain->modeldata.guardpoints.current = iPain->modeldata.guardpoints.max;
     }
     else if(type == -1 || type >= max_attack_types)
     {
@@ -20107,7 +20107,7 @@ void checkdamagedrop(s_attack *attack)
     {
         self->drop = 1;
     }
-    if(self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current <= 0)
+    if(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0)
     {
         attackdrop = 0;    //guardbreak does not knock down.
     }
@@ -20175,7 +20175,7 @@ void checkdamage(entity *other, s_attack *attack)
 {
     int force = attack->attack_force;
     int type = attack->attack_type;
-    if(self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current <= 0)
+    if(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0)
     {
         force = 0;    //guardbreak does not deal damage.
     }
@@ -20286,7 +20286,7 @@ int common_takedamage(entity *other, s_attack *attack)
         dropweapon(1);
     }
     // check effects, e.g., frozen, blast, steal
-    if(!(self->modeldata.guardpoints.maximum > 0 && self->modeldata.guardpoints.current <= 0))
+    if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
     {
         checkdamageeffects(attack);
     }
@@ -21479,8 +21479,8 @@ int common_try_jump()
         //Check to see if there is a wall within jumping distance and within a jumping height
         xdir = 0;
         wall = -1;
-        rmin = (float)self->modeldata.animation[ANI_JUMP]->range.minimum.x;
-        rmax = (float)self->modeldata.animation[ANI_JUMP]->range.maximum.x;
+        rmin = (float)self->modeldata.animation[ANI_JUMP]->range.min.x;
+        rmax = (float)self->modeldata.animation[ANI_JUMP]->range.max.x;
         if(self->direction)
         {
             xdir = self->position.x + rmin;
@@ -21525,8 +21525,8 @@ int common_try_jump()
         //Check for wall in range of RUNJUMP.
         xdir = 0;
         wall = -1;
-        rmin = (float)self->modeldata.animation[ANI_RUNJUMP]->range.minimum.x;
-        rmax = (float)self->modeldata.animation[ANI_RUNJUMP]->range.maximum.x;
+        rmin = (float)self->modeldata.animation[ANI_RUNJUMP]->range.min.x;
+        rmax = (float)self->modeldata.animation[ANI_RUNJUMP]->range.max.x;
         if(self->direction)
         {
             xdir = self->position.x + rmin;
@@ -22164,7 +22164,7 @@ int common_try_chase(entity *target, int dox, int doz)
 
     if(randomatk >= 0)
     {
-        range = (self->modeldata.animation[randomatk]->range.minimum.x + self->modeldata.animation[randomatk]->range.maximum.x) / 2;
+        range = (self->modeldata.animation[randomatk]->range.min.x + self->modeldata.animation[randomatk]->range.max.x) / 2;
         //printf("range picked: ani %d, range %f\n", randomatk, range);
         if(range < 0)
         {
@@ -22244,7 +22244,7 @@ int common_try_follow(entity *target, int dox, int doz)
     {
         return 0;
     }
-    distance = (float)((validanim(self, ANI_IDLE)) ? self->modeldata.animation[ANI_IDLE]->range.minimum.x : 100);
+    distance = (float)((validanim(self, ANI_IDLE)) ? self->modeldata.animation[ANI_IDLE]->range.min.x : 100);
 
     if(distance <= 0)
     {
@@ -22339,13 +22339,13 @@ int common_try_avoid(entity *target, int dox, int doz)
 
     if((rand32() & 15) < 8 && randomatk >= 0)
     {
-        maxdx = self->modeldata.animation[randomatk]->range.maximum.x - self->modeldata.speed;
+        maxdx = self->modeldata.animation[randomatk]->range.max.x - self->modeldata.speed;
         if(maxdx < videomodes.hRes / 5)
         {
             maxdx = videomodes.hRes / 5;
         }
         mindx = maxdx - 10;
-        maxdz = self->modeldata.animation[randomatk]->range.maximum.z - self->modeldata.speed;
+        maxdz = self->modeldata.animation[randomatk]->range.max.z - self->modeldata.speed;
         if(maxdz < videomodes.vRes / 5)
         {
             maxdz = videomodes.vRes / 5;
@@ -22638,7 +22638,7 @@ int common_try_wander(entity *target, int dox, int doz)
 
     if(randomatk >= 0)
     {
-        mindx = self->modeldata.animation[randomatk]->range.maximum.x - (self->modeldata.animation[randomatk]->range.maximum.x - self->modeldata.animation[randomatk]->range.minimum.x) / 4 - 1;
+        mindx = self->modeldata.animation[randomatk]->range.max.x - (self->modeldata.animation[randomatk]->range.max.x - self->modeldata.animation[randomatk]->range.min.x) / 4 - 1;
     }
     else
     {
@@ -23595,8 +23595,8 @@ int ai_check_warp()
     }
 
     if(self->modeldata.subtype == SUBTYPE_FOLLOW && self->parent &&
-            (diff(self->position.z, self->parent->position.z) > self->modeldata.animation[ANI_IDLE]->range.maximum.x ||
-             diff(self->position.x, self->parent->position.x) > self->modeldata.animation[ANI_IDLE]->range.maximum.x) )
+            (diff(self->position.z, self->parent->position.z) > self->modeldata.animation[ANI_IDLE]->range.max.x ||
+             diff(self->position.x, self->parent->position.x) > self->modeldata.animation[ANI_IDLE]->range.max.x) )
     {
         self->takeaction = npc_warp;
         return 1;
@@ -26388,8 +26388,8 @@ entity *homing_find_target(int type)
     //use the walk animation's range
     if(validanim(self, ANI_WALK))
     {
-        min = self->modeldata.animation[ANI_WALK]->range.minimum.x;
-        max = self->modeldata.animation[ANI_WALK]->range.maximum.x;
+        min = self->modeldata.animation[ANI_WALK]->range.min.x;
+        max = self->modeldata.animation[ANI_WALK]->range.max.x;
     }
     else
     {
