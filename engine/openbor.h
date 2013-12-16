@@ -1127,8 +1127,7 @@ typedef struct
     int	steps;
     int anim;
     int	cancel;		//should be fine to have 0 if idle is not a valid choice
-    int	startframe;
-    int endframe;
+    s_metric_i frame;
     int hits;
     int valid;		// should not be global unless nosame is set, but anyway...
     //int (*function)(); //reserved

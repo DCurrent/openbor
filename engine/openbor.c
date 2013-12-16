@@ -8788,8 +8788,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         get_tail_number(tempInt, value, "freespecial");
                         newchar->special[newchar->specials_loaded].anim = animspecials[tempInt - 1];
-                        newchar->special[newchar->specials_loaded].startframe = GET_INT_ARG(1); // stores start frame
-                        newchar->special[newchar->specials_loaded].endframe = GET_INT_ARG(2); // stores end frame
+                        newchar->special[newchar->specials_loaded].frame.min = GET_INT_ARG(1); // stores start frame
+                        newchar->special[newchar->specials_loaded].frame.max = GET_INT_ARG(2); // stores end frame
                         newchar->special[newchar->specials_loaded].cancel = ani_id;                    // stores current anim
                         newchar->special[newchar->specials_loaded].hits = GET_INT_ARG(3);// stores hits
                     }
@@ -24920,8 +24920,8 @@ int check_combo()
 
         if(self->animation->cancel &&
                 (self->animnum != com->cancel ||
-                 com->startframe > self->animpos ||
-                 com->endframe < self->animpos ||
+                 com->frame.min > self->animpos ||
+                 com->frame.max < self->animpos ||
                  self->animation->animhits < com->hits))
         {
             continue;
