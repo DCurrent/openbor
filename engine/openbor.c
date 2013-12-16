@@ -8538,7 +8538,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->counterrange.damaged = 0;		//Counter damage.
                 newanim->unsummonframe = -1;
                 newanim->landframe.frame = -1;
-                newanim->dropframe = -1;
+                newanim->dropframe.frame = -1;
                 newanim->cancel = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
                 newanim->animhits = 0; //OX counts hits on a per anim basis for cancels.
                 newanim->subentity = newanim->custbomb = newanim->custknife = newanim->custstar = newanim->custpshotno = -1;
@@ -8737,7 +8737,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_DROPFRAME:
-                newanim->dropframe = GET_FRAME_ARG(1);
+                newanim->dropframe.frame = GET_FRAME_ARG(1);
                 break;
             case CMD_MODEL_CANCEL:
             {
@@ -16891,9 +16891,9 @@ void check_gravity(entity *e)
             {
                 self->velocity.y = fmax;
             }
-            if(self->animation->dropframe >= 0 && self->velocity.y <= 0 && self->animpos < self->animation->dropframe) // begin dropping
+            if(self->animation->dropframe.frame >= 0 && self->velocity.y <= 0 && self->animpos < self->animation->dropframe.frame) // begin dropping
             {
-                update_frame(self, self->animation->dropframe);
+                update_frame(self, self->animation->dropframe.frame);
             }
             if (self->velocity.y)
             {
