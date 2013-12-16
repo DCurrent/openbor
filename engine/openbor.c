@@ -8194,11 +8194,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_ICONPOSITION:
                 if((value = GET_ARG(1))[0])
                 {
-                    newchar->icon.x = atoi(value);
+                    newchar->icon.position.x = atoi(value);
                 }
                 if((value = GET_ARG(2))[0])
                 {
-                    newchar->icon.y = atoi(value);
+                    newchar->icon.position.y = atoi(value);
                 }
                 break;
             case CMD_MODEL_NAMEPOSITION:
@@ -13994,7 +13994,7 @@ void drawenemystatus(entity *ent)
         font_printf(ent->modeldata.namex, ent->modeldata.namey, 0, 0, "%s", ent->name);
     }
 
-    if(ent->modeldata.icon.x > -1000 &&  ent->modeldata.icon.y > -1000)
+    if(ent->modeldata.icon.position.x > -1000 &&  ent->modeldata.icon.position.y > -1000)
     {
         if(ent->health <= 0)
         {
@@ -14017,7 +14017,7 @@ void drawenemystatus(entity *ent)
         {
             drawmethod = plainmethod;
             drawmethod.table = ent->colourmap;
-            spriteq_add_sprite(ent->modeldata.icon.x, ent->modeldata.icon.y, HUD_Z, icon, &drawmethod, 0);
+            spriteq_add_sprite(ent->modeldata.icon.position.x, ent->modeldata.icon.position.y, HUD_Z, icon, &drawmethod, 0);
         }
     }
 

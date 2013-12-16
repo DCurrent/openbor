@@ -1068,6 +1068,12 @@ typedef struct
 
 typedef struct
 {
+    /*
+    In game icons added 2005_01_20.
+    2011-04-05
+    Damon V. Caskey
+    */
+
     int def; //Default icon.
     int die; //Health depleted.
     int get; //Retrieving item.
@@ -1077,9 +1083,8 @@ typedef struct
     int pain; //Taking damage.
     int weapon; //Weapon model.
     int usemap;
-    int x; //X position.
-    int y; //Y position.
-} s_icon; //2011_04_05, DC: In game icons added 2005_01_20.
+    s_axis_i position;
+} s_icon;
 
 typedef struct
 {
