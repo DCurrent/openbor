@@ -775,6 +775,19 @@ typedef struct
     int pain_time; // pain invincible time
 } s_attack;
 
+typedef enum
+{
+    _always = 1,            //Always perform coutner action.
+    _hostile,               //Only if attacker is hostile entity.
+    _hotsile_front_nofreeze //Attacker is hostile, strikes from front, and uses non-freeze attack.
+} counteraction_condition;
+
+typedef enum
+{
+    _none,  //No damage.
+    _normal //Normal damage.
+} counteraction_damage;
+
 typedef struct
 {
     /*
@@ -783,8 +796,8 @@ typedef struct
     2011-04-01
     */
 
-    int condition;      //Counter conditions. 1 = Always. 2 = Hostile attacker. 3 = Hostile attacker from front not using freeze attack.
-    int damaged;        //Receive damage from attack. 0 = No damage. 1 = Normal damage.
+    counteraction_condition condition; //Counter conditions.
+    counteraction_damage damaged;      //Receive damage from attack.
     s_metric_i frame;   //Frame range.
 } s_counterrange;
 
