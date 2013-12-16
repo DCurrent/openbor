@@ -8532,8 +8532,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->dive = 0;
                 newanim->followanim = 0;			// Default disabled
                 newanim->followcond = 0;
-                newanim->counterrange.framestart = -1;		//Start frame.
-                newanim->counterrange.frameend = -1;		//End frame.
+                newanim->counterrange.frame.min = -1;		//Start frame.
+                newanim->counterrange.frame.max = -1;		//End frame.
                 newanim->counterrange.condition = 0;		//Counter cond.
                 newanim->counterrange.damaged = 0;		//Counter damage.
                 newanim->unsummonframe = -1;
@@ -9451,16 +9451,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->followcond = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COUNTERFRAME:
-                newanim->counterrange.framestart    = GET_FRAME_ARG(1);
-                newanim->counterrange.frameend	    = newanim->counterrange.framestart;
-                newanim->counterrange.condition	    = GET_INT_ARG(2);
-                newanim->counterrange.damaged	    = GET_INT_ARG(3);
+                newanim->counterrange.frame.min = GET_FRAME_ARG(1);
+                newanim->counterrange.frame.max = newanim->counterrange.frame.min;
+                newanim->counterrange.condition	= GET_INT_ARG(2);
+                newanim->counterrange.damaged	= GET_INT_ARG(3);
                 break;
             case CMD_MODEL_COUNTERRANGE:
-                newanim->counterrange.framestart	= GET_FRAME_ARG(1);
-                newanim->counterrange.frameend	    = GET_FRAME_ARG(2);
-                newanim->counterrange.condition	    = GET_INT_ARG(3);
-                newanim->counterrange.damaged	    = GET_INT_ARG(4);
+                newanim->counterrange.frame.min	= GET_FRAME_ARG(1);
+                newanim->counterrange.frame.max = GET_FRAME_ARG(2);
+                newanim->counterrange.condition = GET_INT_ARG(3);
+                newanim->counterrange.damaged   = GET_INT_ARG(4);
                 break;
             case CMD_MODEL_WEAPONFRAME:
                 if(!newanim->weaponframe)
@@ -16506,7 +16506,7 @@ void do_attack(entity *e)
                             }
                         }
                     }
-                    else if((self->animpos >= self->animation->counterrange.framestart && self->animpos <= self->animation->counterrange.frameend)  &&	//Within counter range?
+                    else if((self->animpos >= self->animation->counterrange.frame.min && self->animpos <= self->animation->counterrange.frame.max)  &&	//Within counter range?
                             !self->frozen)// &&																								//Not frozen?
                         //(self->animation->counterrange.condition <= 1 && e->modeldata.type & them)) //&&												//Friend/foe?
                         //(self->animation->counterrange.condition <= 3 && !attack->no_block) &&														//Counter attack self couldn't block?
@@ -16630,7 +16630,7 @@ void do_attack(entity *e)
                     }
                     //if #055
                     if((e->animation->followanim) &&                                        // follow up?
-                            (e->animation->counterrange.framestart == -1) &&                                // This isn't suppossed to be a counter, right?
+                            (e->animation->counterrange.frame.min == -1) &&                                // This isn't suppossed to be a counter, right?
                             ((e->animation->followcond < 2) || (self->modeldata.type & e->modeldata.hostile)) &&    // Does type matter?
                             ((e->animation->followcond < 3) || ((self->health > 0) &&
                                     !didblock)) &&                   // check if health or blocking matters

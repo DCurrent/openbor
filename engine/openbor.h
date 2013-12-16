@@ -775,12 +775,17 @@ typedef struct
     int pain_time; // pain invincible time
 } s_attack;
 
-typedef struct //2011_04_01, DC: Counterstrike when taking hit.
+typedef struct
 {
-    int frameend; //Last frame of counter range.
-    int framestart; //First frame of counter range.
-    int condition; //Counter conditions. 1 = Always. 2 = Hostile attacker. 3 = Hostile attacker from front not using freeze attack.
-    int damaged; //Receive damage from attack. 0 = No damage. 1 = Normal damage.
+    /*
+    Counter action when taking hit.
+    Damon V. Caskey
+    2011-04-01
+    */
+
+    int condition;      //Counter conditions. 1 = Always. 2 = Hostile attacker. 3 = Hostile attacker from front not using freeze attack.
+    int damaged;        //Receive damage from attack. 0 = No damage. 1 = Normal damage.
+    s_metric_i frame;   //Frame range.
 } s_counterrange;
 
 typedef struct //2011_04_01, DC: HP and/or MP cost to perform special/freespecials.
