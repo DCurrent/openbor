@@ -1062,12 +1062,6 @@ typedef enum
 
 typedef struct
 {
-    int current; //Current guard points remaining.
-    int max; //max guard points.
-} s_guardpoints; //2011_04_05, DC: Guardpoints feature added by OX.
-
-typedef struct
-{
     /*
     In game icons added 2005_01_20.
     2011-04-05
@@ -1085,12 +1079,6 @@ typedef struct
     int usemap;
     s_axis_i position;
 } s_icon;
-
-typedef struct
-{
-    int current; //Current juggle points accumulated.
-    int max; //max juggle points possible.
-} s_jugglepoints;                                   //2011_04_05, DC: Jugglepoints feature added by OX.
 
 typedef struct
 {
@@ -1271,8 +1259,8 @@ typedef struct
     int risetime[2]; // 0 = Rise delay, 1 = Riseattack delay.
     unsigned sleepwait;
     int riseattacktype;
-    s_jugglepoints  jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
-    s_guardpoints   guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
+    s_metric_i  jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
+    s_metric_i  guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
     int mpswitch; // switch between reduce or gain mp for mpstabletype 4
     int turndelay; // turn delay
     int lifespan; // lifespan count down
