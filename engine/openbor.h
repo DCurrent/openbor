@@ -697,7 +697,6 @@ typedef struct
     int pColourmap[MAX_PLAYERS];                // colour map
 } s_savelevel;
 
-
 typedef struct
 {
     unsigned compatibleversion;
@@ -707,9 +706,22 @@ typedef struct
 
 typedef struct
 {
+    /*
+    Delay modifiers before rise or riseattack can take place.
+    2011-04-08
+    Damon V. Caskey
+    */
+
+    int rise; //Time modifier before rise.
+    int riseattack; //Time modifier before riseattack.
+    int riseattack_stall; //Total stalltime before riseattack.
+} s_staydown;
+
+typedef struct
+{
     int attack_force;
     int attack_coords[6];
-    int staydown[3]; // [0] = Add to rise delay. [1] = Add to rise attack delay.
+    s_staydown staydown;    //Modify victum's stayodwn properties.
     s_axis_f dropv;   //Velocity of target if knocked down.
     int hitsound; // Sound effect to be played when attack hits opponent
     int hitflash; // Custom flash for each animation, model id
@@ -756,9 +768,9 @@ typedef struct //2011_04_01, DC: Counterstrike when taking hit.
 
 typedef struct //2011_04_01, DC: HP and/or MP cost to perform special/freespecials.
 {
-    int cost; //Amount of energy cost.
-    int disable; //Disable flag. See check_energy function.
-    int mponly; //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
+    int cost;       //Amount of energy cost.
+    int disable;    //Disable flag. See check_energy function.
+    int mponly;     //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
 } s_energycost;
 
 typedef struct
@@ -771,7 +783,7 @@ typedef struct
 
     int ent;            //Index of entity to spawn on liftoff of jump action.
     int frame;          //Frame to begin action.
-    s_axis_f velocity;    //x,a,z velocity.
+    s_axis_f velocity;  //x,a,z velocity.
 } s_onframe;
 
 typedef struct //2011_04_01, DC: Animation looping.
@@ -1249,13 +1261,6 @@ s_modelcache *model_cache;
 
 typedef struct
 {
-    int rise; //Time modifier before rise.
-    int riseattack; //Time modifier before riseattack.
-    int riseattack_stall; //Total stalltime before riseattack.
-} s_staydown;                                       //2011_04_08, DC: Delay modifiers before rise or riseattack can take place.
-
-typedef struct
-{
     /*
     Jumping parameters struct.
     2013-12-08
@@ -1557,7 +1562,7 @@ typedef struct
     bgloldtype oldtype;
     int order;	//for panel order
     gfx_entry gfx;
-    s_axis_i size;  //Only x and a.
+    s_axis_i size;  //Only x and y.
     s_axis_f ratio; //Only x and z.
     s_axis_i offset; //Only x and z.
     s_axis_i spacing; //Only x and z.

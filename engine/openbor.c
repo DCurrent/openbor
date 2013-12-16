@@ -9199,8 +9199,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_STAYDOWN:
                 // Disable special moves for specified time.
                 pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->staydown[0]    = GET_INT_ARG(1); //Risetime modifier.
-                pattack->staydown[1]    = GET_INT_ARG(2); //Riseattack time addition and toggle.
+                pattack->staydown.rise          = GET_INT_ARG(1); //Risetime modifier.
+                pattack->staydown.riseattack    = GET_INT_ARG(2); //Riseattack time addition and toggle.
                 break;
             case CMD_MODEL_DOT:
                 // Cause damage over time effect.
@@ -16341,319 +16341,326 @@ void do_attack(entity *e)
             execute_ondoattack_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, current_attack_id);	//Execute on defender.
             execute_ondoattack_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, current_attack_id);	//Execute on attacker.
 
-            if(!lasthit.confirm)
+            /*
+                2010-12-31
+                Damon V. Caskey
+
+                If lasthit.confirm is not true, it must have been turned off by the author; almost
+                certainly with the ondoattack event scripts above. Skip the engine's
+                default hit handling below. Useful for scripting parry systems, alternate blocking,
+                or other custom collision events.
+            */
+            if(lasthit.confirm)
             {
-                return;	   //12312010, DC: Allows modder to cancel engine's attack handling. Useful for parry systems, alternate blocking, or other scripted hit events.
-            }
+                didhit = 1;
 
-            didhit = 1;
-
-            otherowner = self; // trace top owner for opponent
-            while(otherowner->owner)
-            {
-                otherowner = otherowner->owner;
-            }
-
-            //if #01, if they are fired by the same owner, or the owner itself
-            if(topowner == otherowner)
-            {
-                didhit = 0;
-            }
-
-            //if #02 , ground missle checking, and bullets wont hit each other
-            if( (e->owner && self->owner) ||
-                    (e->modeldata.ground && inair(e))  )
-            {
-                didhit = 0;
-            }//end of if #02
-
-            //if #05,   blocking code section
-            if(didhit)
-            {
-                if(attack->attack_type == ATK_ITEM)
+                otherowner = self; // trace top owner for opponent
+                while(otherowner->owner)
                 {
-                    execute_didhit_script(e, self, force, attack->attack_drop, self->modeldata.subtype, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
-                    didfind_item(e);
-                    return;
-                }
-                //if #051
-                if(self->toexplode == 1)
-                {
-                    self->toexplode = 2;    // Used so the bomb type entity explodes when hit
-                }
-                //if #052
-                if(e->toexplode == 1)
-                {
-                    e->toexplode = 2;    // Used so the bomb type entity explodes when hitting
+                    otherowner = otherowner->owner;
                 }
 
-                if(inair(self))
-                {
-                    self->modeldata.jugglepoints.current = self->modeldata.jugglepoints.current - attack->jugglecost;    //reduce available juggle points.
-                }
-
-                //if #053
-                if( !self->modeldata.nopassiveblock && // cant block by itself
-                        validanim(self, ANI_BLOCK) && // of course, move it here to avoid some useless checking
-                        ((self->modeldata.guardpoints.max == 0) || (self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current > 0)) &&
-                        !(self->link ||
-                          inair(self) ||
-                          self->frozen ||
-                          (self->direction == e->direction && self->modeldata.blockback < 1) ||                       // Can't block an attack that is from behind unless blockback flag is enabled
-                          (!self->idling && self->attacking >= 0)) &&                                                 // Can't block if busy, attack <0 means the character is preparing to attack, he can block during this time
-                        attack->no_block <= self->defense[attack->attack_type].blockpower &&       // If unblockable, will automatically hit
-                        (rand32()&self->modeldata.blockodds) == 1 &&                                                // Randomly blocks depending on blockodds (1 : blockodds ratio)
-                        (!self->modeldata.thold || (self->modeldata.thold > 0 && self->modeldata.thold > force)) &&
-                        (!fdefense_blockthreshold ||                                                                //Specific attack type threshold.
-                         (fdefense_blockthreshold > force)))
-                {
-                    //execute the didhit script
-                    execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
-                    self->takeaction = common_block;
-                    set_blocking(self);
-                    self->velocity.x = self->velocity.z = 0;
-                    ent_set_anim(self, ANI_BLOCK, 0);
-                    execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);
-                    if(self->modeldata.guardpoints.max > 0)
-                    {
-                        self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
-                    }
-                    ++current_anim->animhits;
-                    didblock = 1;    // Used for when playing the block.wav sound
-                    // Spawn a flash
-                    //if #0531
-                    if(!attack->no_flash)
-                    {
-                        if(!self->modeldata.noatflash)
-                        {
-                            if(attack->blockflash >= 0)
-                            {
-                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
-                            }
-                            else
-                            {
-                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
-                            }
-                        }
-                        else
-                        {
-                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
-                        }
-                        //ent_default_init(flash); // initiliaze this because there're no default values now
-
-                        if(flash)
-                        {
-                            execute_onspawn_script(flash);
-                        }
-                    }
-                    //end of if #0531
-                }
-                else if(self->modeldata.nopassiveblock && // can block by itself
-                        self->blocking &&  // of course he must be blocking
-                        ((self->modeldata.guardpoints.max == 0) || (self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current > 0)) &&
-                        !((self->direction == e->direction && self->modeldata.blockback < 1) || self->frozen) &&   // Can't block if facing the wrong direction (unless blockback flag is enabled) or frozen in the block animation or opponent is a projectile
-                        attack->no_block <= self->defense[attack->attack_type].blockpower &&    // Make sure you are actually blocking and that the attack is blockable
-                        (!self->modeldata.thold ||
-                         (self->modeldata.thold > 0 &&
-                          self->modeldata.thold > force)) &&
-                        (!self->defense[attack->attack_type].blockthreshold ||                   //Specific attack type threshold.
-                         (self->defense[attack->attack_type].blockthreshold > force)))
-                {
-                    // Only block if the attack is less than the players threshold
-                    //execute the didhit script
-                    execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
-                    if(self->modeldata.guardpoints.max > 0)
-                    {
-                        self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
-                    }
-                    ++current_anim->animhits;
-                    didblock = 1;    // Used for when playing the block.wav sound
-
-                    if(self->modeldata.blockpain && self->modeldata.blockpain <= force && self->animation == self->modeldata.animation[ANI_BLOCK]) //Blockpain 1 and in block animation?
-                    {
-                        set_blockpain(self, attack->attack_type, 0);
-                    }
-                    execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);
-
-                    // Spawn a flash
-                    if(!attack->no_flash)
-                    {
-                        if(!self->modeldata.noatflash)
-                        {
-                            if(attack->blockflash >= 0)
-                            {
-                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
-                            }
-                            else
-                            {
-                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
-                            }
-                        }
-                        else
-                        {
-                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
-                        }
-                        //ent_default_init(flash); // initiliaze this because there're no default values now
-                        if(flash)
-                        {
-                            execute_onspawn_script(flash);
-                        }
-                    }
-                }
-                else if((self->animpos >= self->animation->counterrange.framestart && self->animpos <= self->animation->counterrange.frameend)  &&	//Within counter range?
-                        !self->frozen)// &&																								//Not frozen?
-                    //(self->animation->counterrange.condition <= 1 && e->modeldata.type & them)) //&&												//Friend/foe?
-                    //(self->animation->counterrange.condition <= 3 && !attack->no_block) &&														//Counter attack self couldn't block?
-                    //self->animation->counterrange.condition <= 2 ||
-                    //self->animation->counterrange.condition <= 2 || !(self->direction == e->direction)) //&&										//Direction check.
-                    //(self->animation->counterrange.condition <= 3 || !attack->freeze))															//Freeze attacks?
-
-                    //&& (!self->animation->counterrange.damaged || self->health > force))													// Does damage matter?
-                {
-                    if(self->animation->counterrange.damaged)
-                    {
-                        self->health -= force;    // Take damage?
-                    }
-                    current_follow_id = animfollows[self->animation->followanim - 1];
-                    if(validanim(self, current_follow_id))
-                    {
-                        if(self->modeldata.animation[current_follow_id]->attackone == -1)
-                        {
-                            self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
-                        }
-                        ent_set_anim(self, current_follow_id, 0);
-                        self->hit_by_attack_id = current_attack_id;
-                    }
-
-                    if(!attack->no_flash)
-                    {
-                        if(!self->modeldata.noatflash)
-                        {
-                            if(attack->blockflash >= 0)
-                            {
-                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
-                            }
-                            else
-                            {
-                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
-                            }
-                        }
-                        else
-                        {
-                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
-                        }
-                        //ent_default_init(flash); // initiliaze this because there're no default values now
-                        if(flash)
-                        {
-                            execute_onspawn_script(flash);
-                        }
-                    }
-                }
-                else if(self->takedamage(e, attack))
-                {
-                    // Didn't block so go ahead and take the damage
-                    execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0);
-                    ++e->animation->animhits;
-
-                    e->lasthit = self;
-
-                    // Spawn a flash
-                    if(!attack->no_flash)
-                    {
-                        if(!self->modeldata.noatflash)
-                        {
-                            if(attack->hitflash >= 0)
-                            {
-                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->hitflash, NULL);
-                            }
-                            else
-                            {
-                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, e->modeldata.flash, NULL);
-                            }
-                        }
-                        else
-                        {
-                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.flash, NULL);
-                        }
-                        if(flash)
-                        {
-                            execute_onspawn_script(flash);
-                        }
-                    }
-                    topowner->combotime = time + combodelay; // well, add to its owner's combo
-
-                    if(e->pausetime < time || (inair(e) && !equalairpause))        // if equalairpause is set, inair(e) is nolonger a condition for extra pausetime
-                    {
-                        // Adds pause to the current animation
-                        e->toss_time += attack->pause_add;      // So jump height pauses in midair
-                        e->nextmove += attack->pause_add;      // xdir, zdir
-                        e->nextanim += attack->pause_add;       //Pause animation for a bit
-                        e->nextthink += attack->pause_add;      // So anything that auto moves will pause
-                        e->pausetime = time + attack->pause_add ; //UT: temporary solution
-                    }
-
-                    self->toss_time += attack->pause_add;       // So jump height pauses in midair
-                    self->nextmove += attack->pause_add;      // xdir, zdir
-                    self->nextanim += attack->pause_add;        //Pause animation for a bit
-                    self->nextthink += attack->pause_add;       // So anything that auto moves will pause
-
-                }
-                else
+                //if #01, if they are fired by the same owner, or the owner itself
+                if(topowner == otherowner)
                 {
                     didhit = 0;
-                    continue;
                 }
-                // end of if #053
 
-                // if #054
-                if(flash)
+                //if #02 , ground missle checking, and bullets wont hit each other
+                if( (e->owner && self->owner) ||
+                        (e->modeldata.ground && inair(e))  )
                 {
-                    if(flash->modeldata.toflip)
+                    didhit = 0;
+                }//end of if #02
+
+                //if #05,   blocking code section
+                if(didhit)
+                {
+                    if(attack->attack_type == ATK_ITEM)
                     {
-                        flash->direction = (e->position.x > self->position.x);    // Now the flash will flip depending on which side the attacker is on
+                        execute_didhit_script(e, self, force, attack->attack_drop, self->modeldata.subtype, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
+                        didfind_item(e);
+                        return;
+                    }
+                    //if #051
+                    if(self->toexplode == 1)
+                    {
+                        self->toexplode = 2;    // Used so the bomb type entity explodes when hit
+                    }
+                    //if #052
+                    if(e->toexplode == 1)
+                    {
+                        e->toexplode = 2;    // Used so the bomb type entity explodes when hitting
                     }
 
-                    flash->base = lasthit.position.y;
-                    flash->autokill = 2;
-                }//end of if #054
-
-                // 2007 3 24, hmm, def should be like this
-                if(didblock && !def)
-                {
-                    def = self;
-                }
-                //if #055
-                if((e->animation->followanim) &&                                        // follow up?
-                        (e->animation->counterrange.framestart == -1) &&                                // This isn't suppossed to be a counter, right?
-                        ((e->animation->followcond < 2) || (self->modeldata.type & e->modeldata.hostile)) &&    // Does type matter?
-                        ((e->animation->followcond < 3) || ((self->health > 0) &&
-                                !didblock)) &&                   // check if health or blocking matters
-                        ((e->animation->followcond < 4) || cangrab(e, self))  ) // check if nograb matters
-                {
-                    current_follow_id = animfollows[e->animation->followanim - 1];
-                    if(validanim(e, current_follow_id))
+                    if(inair(self))
                     {
-                        if(e->modeldata.animation[current_follow_id]->attackone == -1)
+                        self->modeldata.jugglepoints.current = self->modeldata.jugglepoints.current - attack->jugglecost;    //reduce available juggle points.
+                    }
+
+                    //if #053
+                    if( !self->modeldata.nopassiveblock && // cant block by itself
+                            validanim(self, ANI_BLOCK) && // of course, move it here to avoid some useless checking
+                            ((self->modeldata.guardpoints.max == 0) || (self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current > 0)) &&
+                            !(self->link ||
+                              inair(self) ||
+                              self->frozen ||
+                              (self->direction == e->direction && self->modeldata.blockback < 1) ||                       // Can't block an attack that is from behind unless blockback flag is enabled
+                              (!self->idling && self->attacking >= 0)) &&                                                 // Can't block if busy, attack <0 means the character is preparing to attack, he can block during this time
+                            attack->no_block <= self->defense[attack->attack_type].blockpower &&       // If unblockable, will automatically hit
+                            (rand32()&self->modeldata.blockodds) == 1 &&                                                // Randomly blocks depending on blockodds (1 : blockodds ratio)
+                            (!self->modeldata.thold || (self->modeldata.thold > 0 && self->modeldata.thold > force)) &&
+                            (!fdefense_blockthreshold ||                                                                //Specific attack type threshold.
+                             (fdefense_blockthreshold > force)))
+                    {
+                        //execute the didhit script
+                        execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
+                        self->takeaction = common_block;
+                        set_blocking(self);
+                        self->velocity.x = self->velocity.z = 0;
+                        ent_set_anim(self, ANI_BLOCK, 0);
+                        execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);
+                        if(self->modeldata.guardpoints.max > 0)
                         {
-                            e->modeldata.animation[current_follow_id]->attackone = e->animation->attackone;
+                            self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
                         }
-                        ent_set_anim(e, current_follow_id, 1);          // Then go to it!
+                        ++current_anim->animhits;
+                        didblock = 1;    // Used for when playing the block.wav sound
+                        // Spawn a flash
+                        //if #0531
+                        if(!attack->no_flash)
+                        {
+                            if(!self->modeldata.noatflash)
+                            {
+                                if(attack->blockflash >= 0)
+                                {
+                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
+                                }
+                                else
+                                {
+                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
+                                }
+                            }
+                            else
+                            {
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
+                            }
+                            //ent_default_init(flash); // initiliaze this because there're no default values now
+
+                            if(flash)
+                            {
+                                execute_onspawn_script(flash);
+                            }
+                        }
+                        //end of if #0531
                     }
-                    //followed = 1; // quit loop, animation is changed
-                }//end of if #055
+                    else if(self->modeldata.nopassiveblock && // can block by itself
+                            self->blocking &&  // of course he must be blocking
+                            ((self->modeldata.guardpoints.max == 0) || (self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current > 0)) &&
+                            !((self->direction == e->direction && self->modeldata.blockback < 1) || self->frozen) &&   // Can't block if facing the wrong direction (unless blockback flag is enabled) or frozen in the block animation or opponent is a projectile
+                            attack->no_block <= self->defense[attack->attack_type].blockpower &&    // Make sure you are actually blocking and that the attack is blockable
+                            (!self->modeldata.thold ||
+                             (self->modeldata.thold > 0 &&
+                              self->modeldata.thold > force)) &&
+                            (!self->defense[attack->attack_type].blockthreshold ||                   //Specific attack type threshold.
+                             (self->defense[attack->attack_type].blockthreshold > force)))
+                    {
+                        // Only block if the attack is less than the players threshold
+                        //execute the didhit script
+                        execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
+                        if(self->modeldata.guardpoints.max > 0)
+                        {
+                            self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
+                        }
+                        ++current_anim->animhits;
+                        didblock = 1;    // Used for when playing the block.wav sound
 
-                self->hit_by_attack_id = current_attack_id;
-                if(self == def)
-                {
-                    self->blocking = didblock;    // yeah, if get hit, stop blocking
-                }
+                        if(self->modeldata.blockpain && self->modeldata.blockpain <= force && self->animation == self->modeldata.animation[ANI_BLOCK]) //Blockpain 1 and in block animation?
+                        {
+                            set_blockpain(self, attack->attack_type, 0);
+                        }
+                        execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);
 
-                //2011/11/24 UT: move the pain_time logic here,
-                // because block needs this as well otherwise blockratio causes instant death
-                self->pain_time = time + (attack->pain_time ? attack->pain_time : (GAME_SPEED / 5));
-                self->nextattack = 0; // reset this, make it easier to fight back
-            }//end of if #05
-            self = temp;
+                        // Spawn a flash
+                        if(!attack->no_flash)
+                        {
+                            if(!self->modeldata.noatflash)
+                            {
+                                if(attack->blockflash >= 0)
+                                {
+                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
+                                }
+                                else
+                                {
+                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
+                                }
+                            }
+                            else
+                            {
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
+                            }
+                            //ent_default_init(flash); // initiliaze this because there're no default values now
+                            if(flash)
+                            {
+                                execute_onspawn_script(flash);
+                            }
+                        }
+                    }
+                    else if((self->animpos >= self->animation->counterrange.framestart && self->animpos <= self->animation->counterrange.frameend)  &&	//Within counter range?
+                            !self->frozen)// &&																								//Not frozen?
+                        //(self->animation->counterrange.condition <= 1 && e->modeldata.type & them)) //&&												//Friend/foe?
+                        //(self->animation->counterrange.condition <= 3 && !attack->no_block) &&														//Counter attack self couldn't block?
+                        //self->animation->counterrange.condition <= 2 ||
+                        //self->animation->counterrange.condition <= 2 || !(self->direction == e->direction)) //&&										//Direction check.
+                        //(self->animation->counterrange.condition <= 3 || !attack->freeze))															//Freeze attacks?
+
+                        //&& (!self->animation->counterrange.damaged || self->health > force))													// Does damage matter?
+                    {
+                        if(self->animation->counterrange.damaged)
+                        {
+                            self->health -= force;    // Take damage?
+                        }
+                        current_follow_id = animfollows[self->animation->followanim - 1];
+                        if(validanim(self, current_follow_id))
+                        {
+                            if(self->modeldata.animation[current_follow_id]->attackone == -1)
+                            {
+                                self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
+                            }
+                            ent_set_anim(self, current_follow_id, 0);
+                            self->hit_by_attack_id = current_attack_id;
+                        }
+
+                        if(!attack->no_flash)
+                        {
+                            if(!self->modeldata.noatflash)
+                            {
+                                if(attack->blockflash >= 0)
+                                {
+                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
+                                }
+                                else
+                                {
+                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
+                                }
+                            }
+                            else
+                            {
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
+                            }
+                            //ent_default_init(flash); // initiliaze this because there're no default values now
+                            if(flash)
+                            {
+                                execute_onspawn_script(flash);
+                            }
+                        }
+                    }
+                    else if(self->takedamage(e, attack))
+                    {
+                        // Didn't block so go ahead and take the damage
+                        execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0);
+                        ++e->animation->animhits;
+
+                        e->lasthit = self;
+
+                        // Spawn a flash
+                        if(!attack->no_flash)
+                        {
+                            if(!self->modeldata.noatflash)
+                            {
+                                if(attack->hitflash >= 0)
+                                {
+                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->hitflash, NULL);
+                                }
+                                else
+                                {
+                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, e->modeldata.flash, NULL);
+                                }
+                            }
+                            else
+                            {
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.flash, NULL);
+                            }
+                            if(flash)
+                            {
+                                execute_onspawn_script(flash);
+                            }
+                        }
+                        topowner->combotime = time + combodelay; // well, add to its owner's combo
+
+                        if(e->pausetime < time || (inair(e) && !equalairpause))        // if equalairpause is set, inair(e) is nolonger a condition for extra pausetime
+                        {
+                            // Adds pause to the current animation
+                            e->toss_time += attack->pause_add;      // So jump height pauses in midair
+                            e->nextmove += attack->pause_add;      // xdir, zdir
+                            e->nextanim += attack->pause_add;       //Pause animation for a bit
+                            e->nextthink += attack->pause_add;      // So anything that auto moves will pause
+                            e->pausetime = time + attack->pause_add ; //UT: temporary solution
+                        }
+
+                        self->toss_time += attack->pause_add;       // So jump height pauses in midair
+                        self->nextmove += attack->pause_add;      // xdir, zdir
+                        self->nextanim += attack->pause_add;        //Pause animation for a bit
+                        self->nextthink += attack->pause_add;       // So anything that auto moves will pause
+
+                    }
+                    else
+                    {
+                        didhit = 0;
+                        continue;
+                    }
+                    // end of if #053
+
+                    // if #054
+                    if(flash)
+                    {
+                        if(flash->modeldata.toflip)
+                        {
+                            flash->direction = (e->position.x > self->position.x);    // Now the flash will flip depending on which side the attacker is on
+                        }
+
+                        flash->base = lasthit.position.y;
+                        flash->autokill = 2;
+                    }//end of if #054
+
+                    // 2007 3 24, hmm, def should be like this
+                    if(didblock && !def)
+                    {
+                        def = self;
+                    }
+                    //if #055
+                    if((e->animation->followanim) &&                                        // follow up?
+                            (e->animation->counterrange.framestart == -1) &&                                // This isn't suppossed to be a counter, right?
+                            ((e->animation->followcond < 2) || (self->modeldata.type & e->modeldata.hostile)) &&    // Does type matter?
+                            ((e->animation->followcond < 3) || ((self->health > 0) &&
+                                    !didblock)) &&                   // check if health or blocking matters
+                            ((e->animation->followcond < 4) || cangrab(e, self))  ) // check if nograb matters
+                    {
+                        current_follow_id = animfollows[e->animation->followanim - 1];
+                        if(validanim(e, current_follow_id))
+                        {
+                            if(e->modeldata.animation[current_follow_id]->attackone == -1)
+                            {
+                                e->modeldata.animation[current_follow_id]->attackone = e->animation->attackone;
+                            }
+                            ent_set_anim(e, current_follow_id, 1);          // Then go to it!
+                        }
+                        //followed = 1; // quit loop, animation is changed
+                    }//end of if #055
+
+                    self->hit_by_attack_id = current_attack_id;
+                    if(self == def)
+                    {
+                        self->blocking = didblock;    // yeah, if get hit, stop blocking
+                    }
+
+                    //2011/11/24 UT: move the pain_time logic here,
+                    // because block needs this as well otherwise blockratio causes instant death
+                    self->pain_time = time + (attack->pain_time ? attack->pain_time : (GAME_SPEED / 5));
+                    self->nextattack = 0; // reset this, make it easier to fight back
+                }//end of if #05
+                self = temp;
+            }//if lasthit.confirm
         }//end of if #0
 
     }//end of for
@@ -19995,8 +20002,8 @@ void checkdamageeffects(s_attack *attack)
 #define _dot_time       attack->dot_time
 #define _dot_force      attack->dot_force
 #define _dot_rate       attack->dot_rate
-#define _staydown0      attack->staydown[0]
-#define _staydown1		attack->staydown[1]
+#define _staydown0      attack->staydown.rise
+#define _staydown1		attack->staydown.riseattack
 
     entity *opp = self->opponent;
 
