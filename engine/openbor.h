@@ -725,13 +725,13 @@ typedef struct
     Damon V. Caskey
     */
 
-    struct s_attack attack  //Attack data.
-    int index;              //Index (for multiple dots on single target).
-    int mode;               //Dot mode.
-    struct entity *owner;   //Entity causing dot effect.
-    int rate;               //Dot tick delay.
-    u32 time_expire;        //Time to expire.
-    u32 time_next;          //Time of next tick.
+    struct s_attack *attack;    //Attack data.
+    int index;                  //Index (for multiple dots on single target).
+    int mode;                   //Dot mode.
+    struct entity *owner;       //Entity causing dot effect.
+    int rate;                   //Dot tick delay.
+    u32 time_expire;            //Time to expire.
+    u32 time_next;              //Time of next tick.
 } s_dot;
 
 typedef struct
