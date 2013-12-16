@@ -5082,22 +5082,22 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
         case _ep_edelay_cap_min:
         {
-            (*pretvar)->lVal = (LONG)ent->modeldata.edelay.cap_min;
+            (*pretvar)->lVal = (LONG)ent->modeldata.edelay.cap.min;
             break;
         }
         case _ep_edelay_cap_max:
         {
-            (*pretvar)->lVal = (LONG)ent->modeldata.edelay.cap_max;
+            (*pretvar)->lVal = (LONG)ent->modeldata.edelay.cap.max;
             break;
         }
         case _ep_edelay_range_min:
         {
-            (*pretvar)->lVal = (LONG)ent->modeldata.edelay.range_min;
+            (*pretvar)->lVal = (LONG)ent->modeldata.edelay.range.min;
             break;
         }
         case _ep_edelay_range_max:
         {
-            (*pretvar)->lVal = (LONG)ent->modeldata.edelay.range_max;
+            (*pretvar)->lVal = (LONG)ent->modeldata.edelay.range.max;
             break;
         }
         default:
@@ -6884,19 +6884,19 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         if(paramCount >= 4 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
         {
-            ent->modeldata.edelay.cap_min = (int)ltemp;
+            ent->modeldata.edelay.cap.min = (int)ltemp;
         }
         if(paramCount >= 5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
         {
-            ent->modeldata.edelay.cap_max = (int)ltemp;
+            ent->modeldata.edelay.cap.max = (int)ltemp;
         }
         if(paramCount >= 6 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
         {
-            ent->modeldata.edelay.range_min = (int)ltemp;
+            ent->modeldata.edelay.range.min = (int)ltemp;
         }
         if(paramCount >= 7 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[7], &ltemp)))
         {
-            ent->modeldata.edelay.range_max = (int)ltemp;
+            ent->modeldata.edelay.range.max = (int)ltemp;
         }
 
         break;

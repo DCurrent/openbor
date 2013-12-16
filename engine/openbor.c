@@ -8008,10 +8008,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_EDELAY:
                 newchar->edelay.mode        = GET_INT_ARG(1);
                 newchar->edelay.factor      = GET_FLOAT_ARG(2);
-                newchar->edelay.cap_min     = GET_INT_ARG(3);
-                newchar->edelay.cap_max     = GET_INT_ARG(4);
-                newchar->edelay.range_min   = GET_INT_ARG(5);
-                newchar->edelay.range_max   = GET_INT_ARG(6);
+                newchar->edelay.cap.min     = GET_INT_ARG(3);
+                newchar->edelay.cap.max     = GET_INT_ARG(4);
+                newchar->edelay.range.min   = GET_INT_ARG(5);
+                newchar->edelay.range.max   = GET_INT_ARG(6);
                 break;
             case CMD_MODEL_PAINGRAB:
                 newchar->paingrab = GET_INT_ARG(1);
@@ -8534,8 +8534,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->followcond = 0;
                 newanim->counterrange.frame.min = -1;		//Start frame.
                 newanim->counterrange.frame.max = -1;		//End frame.
-                newanim->counterrange.condition = 0;		//Counter cond.
-                newanim->counterrange.damaged = 0;		//Counter damage.
+                newanim->counterrange.condition = _counteraction_condition_none;		//Counter cond.
+                newanim->counterrange.damaged = _counteraction_damage_none;		//Counter damage.
                 newanim->unsummonframe = -1;
                 newanim->landframe.frame = -1;
                 newanim->dropframe.frame = -1;
@@ -14798,21 +14798,23 @@ int calculate_edelay(entity *ent, int f)
     int iDelay, iED_Mode, iED_Capmin, iED_CapMax, iED_RangeMin, iED_RangeMax;
     float fED_Factor;
     s_anim *anim = ent->animation;
+
     iDelay          = anim->delay[f];
     iED_Mode        = ent->modeldata.edelay.mode;
     fED_Factor      = ent->modeldata.edelay.factor;
-    iED_Capmin      = ent->modeldata.edelay.cap_min;
-    iED_CapMax      = ent->modeldata.edelay.cap_max;
-    iED_RangeMin    = ent->modeldata.edelay.range_min;
-    iED_RangeMax    = ent->modeldata.edelay.range_max;
+    iED_Capmin      = ent->modeldata.edelay.cap.min;
+    iED_CapMax      = ent->modeldata.edelay.cap.max;
+    iED_RangeMin    = ent->modeldata.edelay.range.min;
+    iED_RangeMax    = ent->modeldata.edelay.range.max;
 
     if (iDelay >= iED_RangeMin && iDelay <= iED_RangeMax) //Regular delay within ignore ranges?
     {
         switch(iED_Mode)
         {
-        case 1:
+        case _edelay_mode_multiply:
             iDelay = (int)(iDelay * fED_Factor);
             break;
+        case _edelay_mode_add:
         default:
             iDelay += (int)fED_Factor;
             break;
