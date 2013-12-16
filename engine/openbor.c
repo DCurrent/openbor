@@ -8560,9 +8560,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Can't set loop: no animation specified!";
                     goto lCleanup;
                 }
-                newanim->loop.mode          = GET_INT_ARG(1); //0 = Off, 1 = on.
-                newanim->loop.framestart    = GET_INT_ARG(2); //Loop to frame.
-                newanim->loop.frameend      = GET_INT_ARG(3); //Loop end frame.
+                newanim->loop.mode      = GET_INT_ARG(1); //0 = Off, 1 = on.
+                newanim->loop.frame.min = GET_INT_ARG(2); //Loop to frame.
+                newanim->loop.frame.max = GET_INT_ARG(3); //Loop end frame.
                 break;
             case CMD_MODEL_ANIMHEIGHT:
                 newanim->height = GET_INT_ARG(1);
@@ -17379,9 +17379,9 @@ void update_animation()
         f = self->animpos + self->animating;
 
         //Specified loop break frame.
-        if(self->animation->loop.mode && self->animation->loop.frameend)
+        if(self->animation->loop.mode && self->animation->loop.frame.max)
         {
-            if (f == self->animation->loop.frameend)
+            if (f == self->animation->loop.frame.max)
             {
                 if(f < 0)
                 {
@@ -17392,9 +17392,9 @@ void update_animation()
                     f = 0;
                 }
 
-                if (self->animation->loop.framestart)
+                if (self->animation->loop.frame.min)
                 {
-                    f = self->animation->loop.framestart;
+                    f = self->animation->loop.frame.min;
                 }
             }
             else if((unsigned)f >= (unsigned)self->animation->numframes)
@@ -17431,9 +17431,9 @@ void update_animation()
             }
             else
             {
-                if (self->animation->loop.framestart)
+                if (self->animation->loop.frame.min)
                 {
-                    f = self->animation->loop.framestart;
+                    f = self->animation->loop.frame.min;
                 }
             }
         }

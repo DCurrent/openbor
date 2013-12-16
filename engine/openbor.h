@@ -788,8 +788,14 @@ typedef struct
     s_metric_i frame;   //Frame range.
 } s_counterrange;
 
-typedef struct //2011_04_01, DC: HP and/or MP cost to perform special/freespecials.
+typedef struct
 {
+    /*
+    HP and/or MP cost to perform special/freespecials.
+    Damon V. Caskey
+    2011-04-01
+    */
+
     int cost;       //Amount of energy cost.
     int disable;    //Disable flag. See check_energy function.
     int mponly;     //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
@@ -800,18 +806,23 @@ typedef struct
     /*
     On frame movement (slide, jump, dive, etc.)
     2011-04-01
-    Damon Caskey
+    Damon V. Caskey
     */
 
-    int ent;            //Index of entity to spawn on liftoff of jump action.
-    int frame;          //Frame to begin action.
+    int ent;            //Index of entity to spawn.
+    int frame;          //Frame to perform action.
     s_axis_f velocity;  //x,a,z velocity.
 } s_onframe;
 
-typedef struct //2011_04_01, DC: Animation looping.
+typedef struct
 {
-    int frameend; //Frame animation reaches before looping.
-    int framestart; //Frame animation loops back to.
+    /*
+    Animation looping.
+    Damon V. Caskey
+    2011-04-01
+    */
+
+    s_metric_i frame; //max = Frame animation reaches before looping, min = Frame animation loops back to.
     int mode; //0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
 } s_loop;
 
