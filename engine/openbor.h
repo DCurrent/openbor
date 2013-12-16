@@ -896,7 +896,7 @@ typedef struct
     float *summonframe; // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
     int unsummonframe; // Un-summon the entity
     s_onframe landframe; // Landing behavior. 2011_04_01, DC: Moved to struct.
-    int dropframe; // if tossv < 0, this frame will be set
+    s_onframe dropframe; // if tossv < 0, this frame will be set
     int animhits; // Does the attack need to hit before cancel is allowed?
     int sync; // sychronize frame to previous animation if they matches
 } s_anim;
