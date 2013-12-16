@@ -1103,13 +1103,15 @@ typedef struct
 
 typedef struct
 {
-    int amax; //max vertical range.
-    int amin; //min vertical range.
-    int xmax; //max horizontal range.
-    int xmin; //min horizontal range.
-    int zmax; //max lateral range.
-    int zmin; //min lateral range.
-} s_sight;                                          //2011_04_05, DC: Range from self AI can detect other entities.
+    /*
+    Perception distance (range from self AI can detect other entities).
+    Damon V. Caskey
+    2013-12-16
+    */
+
+    s_axis_i max;   //Maximum.
+    s_axis_i min;   //Minimum.
+} s_sight;
 
 typedef struct
 {
