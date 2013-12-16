@@ -719,6 +719,23 @@ typedef struct
 
 typedef struct
 {
+    /*
+    Damage over time struct for attacker and defender.
+    2013-12-15
+    Damon V. Caskey
+    */
+
+    struct s_attack attack  //Attack data.
+    int index;              //Index (for multiple dots on single target).
+    int mode;               //Dot mode.
+    struct entity *owner;   //Entity causing dot effect.
+    int rate;               //Dot tick delay.
+    u32 time_expire;        //Time to expire.
+    u32 time_next;          //Time of next tick.
+} s_dot;
+
+typedef struct
+{
     int attack_force;
     int attack_coords[6];
     s_staydown staydown;    //Modify victum's stayodwn properties.
