@@ -5355,12 +5355,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
         case _ep_icon_x:
         {
-            i = ent->modeldata.icon.x;
+            i = ent->modeldata.icon.position.x;
             break;
         }
         case _ep_icon_y:
         {
-            i = ent->modeldata.icon.y;
+            i = ent->modeldata.icon.position.y;
             break;
         }
         default:
@@ -7111,11 +7111,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.icon.x = (int)ltemp;
+            ent->modeldata.icon.position.x = (int)ltemp;
         }
         if(paramCount > 3 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
         {
-            ent->modeldata.icon.y = (int)ltemp;
+            ent->modeldata.icon.position.y = (int)ltemp;
         }
         break;
     }
