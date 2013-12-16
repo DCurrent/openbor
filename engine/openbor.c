@@ -7166,12 +7166,12 @@ s_model *init_model(int cacheindex, int unload)
     }
 
     //Default sight ranges.
-    newchar->sight.amin = -9999;
-    newchar->sight.amax = 9999;
-    newchar->sight.xmin = -9999;
-    newchar->sight.xmax = 9999;
-    newchar->sight.zmin = -9999;
-    newchar->sight.zmax = 9999;
+    newchar->sight.min.x = -9999;
+    newchar->sight.max.x = 9999;
+    newchar->sight.min.y = -9999;
+    newchar->sight.max.y = 9999;
+    newchar->sight.min.z = -9999;
+    newchar->sight.max.z = 9999;
 
     return newchar;
 }
