@@ -472,11 +472,9 @@ int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a ch
 
 s_barstatus         loadingbarstatus =
 {
-    0,                          //int          offsetx:16;
-    0,                          //int          offsety:16;
-    0,                          //int          sizex:16;
-    10,                          //int          sizey:16;
-    percentagebar,                   //bartype      type:8;
+    {0, 0, 0, 0},               //int          offset:16;
+    {0, 10, 0, 0},              //int          size:16;
+    percentagebar,              //bartype      type:8;
     horizontalbar,              //barorient    orientation:8;
     0,                          //int          noborder:8;
     0,                          //int          direction:8;
@@ -488,10 +486,8 @@ s_barstatus         loadingbarstatus =
 };
 s_barstatus         lbarstatus =                                // Used for customizable lifebar size
 {
-    0,                          //int          offsetx:16;
-    0,                          //int          offsety:16;
-    0,                          //int          sizex:16;
-    0,                          //int          sizey:16;
+    {0, 0, 0, 0},               //int          offset:16;
+    {0, 0, 0, 0},               //int          size:16;
     valuebar,                   //bartype      type:8;
     horizontalbar,              //barorient    orientation:8;
     0,                          //int          noborder:8;
@@ -502,12 +498,11 @@ s_barstatus         lbarstatus =                                // Used for cust
     0,                          //int          shadowlayer;
     &hpcolourtable
 };
+
 s_barstatus         olbarstatus =                               // Used for customizable opponent lifebar size
 {
-    0,                          //int          offsetx:16;
-    0,                          //int          offsety:16;
-    0,                          //int          sizex:16;
-    0,                          //int          sizey:16;
+    {0, 0, 0, 0},               //int          offset:16;
+    {0, 0, 0, 0},               //int          size:16;
     valuebar,                   //bartype      type:8;
     horizontalbar,              //barorient    orientation:8;
     0,                          //int          noborder:8;
@@ -565,10 +560,8 @@ int                 noaircancel         = 0;					// Now, you can make jumping at
 int                 nomaxrushreset[5]   = {0, 0, 0, 0, 0};
 s_barstatus         mpbarstatus =                               // Used for customizable lifebar size
 {
-    0,                          //int          offsetx:16;
-    0,                          //int          offsety:16;
-    0,                          //int          sizex:16;
-    0,                          //int          sizey:16;
+    {0, 0, 0, 0},               //int          offset:16;
+    {0, 0, 0, 0},               //int          size:16;
     valuebar,                   //bartype      type:8;
     horizontalbar,              //barorient    orientation:8;
     0,                          //int          noborder:8;
@@ -10631,7 +10624,7 @@ static void _readbarstatus(char *buf, s_barstatus *pstatus)
     ParseArgs(&arglist, buf, argbuf);
     if((value = GET_ARG(1))[0])
     {
-        pstatus->sizex       = atoi(value);
+        pstatus->size.x       = atoi(value);
     }
     else
     {
@@ -10639,7 +10632,7 @@ static void _readbarstatus(char *buf, s_barstatus *pstatus)
     }
     if((value = GET_ARG(2))[0])
     {
-        pstatus->sizey       = atoi(value);
+        pstatus->size.y       = atoi(value);
     }
     else
     {
@@ -10800,9 +10793,9 @@ void load_levelorder()
     timeloc[3] = 20;
     timeloc[4] = 0;
 
-    lbarstatus.sizex  = mpbarstatus.sizex = 100;
-    lbarstatus.sizey  = 5;
-    mpbarstatus.sizey = 3;
+    lbarstatus.size.x  = mpbarstatus.size.x = 100;
+    lbarstatus.size.y  = 5;
+    mpbarstatus.size.y = 3;
     lbarstatus.noborder = mpbarstatus.noborder = 0;
 
     // Show Complete Default Values
@@ -11636,7 +11629,7 @@ void load_levelorder()
 #undef CHKDEF
 
     // Variables without defaults will be auto populated.
-    if(olbarstatus.sizex == 0)
+    if(olbarstatus.size.x == 0)
     {
         olbarstatus = lbarstatus;
     }
@@ -11719,22 +11712,22 @@ void load_levelorder()
 
     if(!plifeXused[0])
     {
-        plifeX[0][0] = plife[0][0] + lbarstatus.sizex + 4;
+        plifeX[0][0] = plife[0][0] + lbarstatus.size.x + 4;
         plifeX[0][1] = picon[0][1] + 7;
     }
     if(!plifeXused[1])
     {
-        plifeX[1][0] = plife[1][0] + lbarstatus.sizex + 4;
+        plifeX[1][0] = plife[1][0] + lbarstatus.size.x + 4;
         plifeX[1][1] = picon[1][1] + 7;
     }
     if(!plifeXused[2])
     {
-        plifeX[2][0] = plife[2][0] + lbarstatus.sizex + 4;
+        plifeX[2][0] = plife[2][0] + lbarstatus.size.x + 4;
         plifeX[2][1] = picon[2][1] + 7;
     }
     if(!plifeXused[3])
     {
-        plifeX[3][0] = plife[3][0] + lbarstatus.sizex + 4;
+        plifeX[3][0] = plife[3][0] + lbarstatus.size.x + 4;
         plifeX[3][1] = picon[3][1] + 7;
     }
     for(i = 0; i < 4; i++) if(plifeX[i][2] == -1)
@@ -11744,12 +11737,12 @@ void load_levelorder()
 
     if(!plifeNused[0])
     {
-        plifeN[0][0] = plife[0][0] + lbarstatus.sizex + 11;
+        plifeN[0][0] = plife[0][0] + lbarstatus.size.x + 11;
         plifeN[0][1] = picon[0][1];
     }
     if(!plifeNused[1])
     {
-        plifeN[1][0] = plife[1][0] + lbarstatus.sizex + 11;
+        plifeN[1][0] = plife[1][0] + lbarstatus.size.x + 11;
         plifeN[1][1] = picon[1][1];
     }
     if(!plifeNused[2])
@@ -13377,16 +13370,16 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
     int forex, forey, forew, foreh, bkw, bkh;
     s_drawmethod dm = plainmethod;
 
-    x += pstatus->offsetx;
-    y += pstatus->offsety;
+    x += pstatus->offset.x;
+    y += pstatus->offset.y;
 
     if(pstatus->orientation == horizontalbar)
     {
-        max = pstatus->sizex;
+        max = pstatus->size.x;
     }
     else if(pstatus->orientation == verticalbar)
     {
-        max = pstatus->sizey;
+        max = pstatus->size.y;
     }
     else
     {
@@ -13466,13 +13459,13 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
         forey = y;
         forew = len;
         bkw = max;
-        bkh = foreh = pstatus->sizey;
+        bkh = foreh = pstatus->size.y;
     }
     else if(pstatus->orientation == verticalbar)
     {
         forex = x;
         forey = pstatus->direction ? y : (y + max - len);
-        bkw = forew = pstatus->sizex;
+        bkw = forew = pstatus->size.x;
         foreh = len;
         bkh = max;
     }
@@ -14110,7 +14103,7 @@ void update_loading(s_loadingbar *s,  int value, int max)
             }
             if(isLoadingScreenTypeBar(s->set))
             {
-                loadingbarstatus.sizex = size_x;
+                loadingbarstatus.size.x = size_x;
                 bar(pos_x, pos_y, value, max, &loadingbarstatus);
             }
             font_printf(text_x, text_y, s->tf, 0, Tr("Loading..."));
@@ -18024,7 +18017,7 @@ void display_ents()
             }
             //if(!e->exists) continue; // just in case kill is called in the script
 
-            if(e->modeldata.hpbarstatus.sizex)
+            if(e->modeldata.hpbarstatus.size.x)
             {
                 drawenemystatus(e);
 

@@ -881,7 +881,6 @@ typedef enum
     */
     _edelay_mode_add,       //Factor is added directly to edelay.
     _edelay_mode_multiply   //Orginal delay value is multiplied by factor.
-
 } e_edelay_mode;
 
 typedef struct
@@ -974,10 +973,8 @@ typedef enum
 
 typedef struct
 {
-    int offsetx;
-    int offsety;
-    int sizex;
-    int sizey;
+    s_axis_i offset;
+    s_axis_i size;
     bartype type;
     barorient orientation;
     int noborder;
