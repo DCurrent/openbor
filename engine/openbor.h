@@ -777,16 +777,29 @@ typedef struct
 
 typedef enum
 {
-    _always = 1,            //Always perform coutner action.
-    _hostile,               //Only if attacker is hostile entity.
-    _hotsile_front_nofreeze //Attacker is hostile, strikes from front, and uses non-freeze attack.
-} counteraction_condition;
+    /*
+    Counter action conditionals.
+    2012-12-16
+    Damon V. Caskey
+    */
+
+    _counteraction_condition_none,                  //No counter.
+    _counteraction_condition_always,                //Always perform coutner action.
+    _counteraction_condition_hostile,               //Only if attacker is hostile entity.
+    _counteraction_condition_hotsile_front_nofreeze //Attacker is hostile, strikes from front, and uses non-freeze attack.
+} e_counteraction_condition;
 
 typedef enum
 {
-    _none,  //No damage.
-    _normal //Normal damage.
-} counteraction_damage;
+    /*
+    Counteraction damage taking modes.
+    2012-12-16
+    Damon V. Caskey
+    */
+
+    _counteraction_damage_none,  //No damage.
+    _counteraction_damage_normal //Normal damage.
+} e_counteraction_damage;
 
 typedef struct
 {
@@ -796,8 +809,8 @@ typedef struct
     2011-04-01
     */
 
-    counteraction_condition condition; //Counter conditions.
-    counteraction_damage damaged;      //Receive damage from attack.
+    e_counteraction_condition condition; //Counter conditions.
+    e_counteraction_damage damaged;      //Receive damage from attack.
     s_metric_i frame;   //Frame range.
 } s_counterrange;
 
@@ -851,13 +864,38 @@ typedef struct
 {
     /*
     Distance to target verification for AI running, jumping, following parent, and combo chains for all entity types.
-    2011_04_01
-    Damon Caskey
+    2011-04-01
+    Damon V. Caskey
     */
 
     s_axis_i max;   //max ranges.
     s_axis_i min;   //min ranges.
 } s_range;
+
+typedef enum
+{
+    /*
+    Edelay factor modes.
+    2013-12-16
+    Damon V. Caskey
+    */
+    _edelay_mode_add,       //Factor is added directly to edelay.
+    _edelay_mode_multiply   //Orginal delay value is multiplied by factor.
+
+} e_edelay_mode;
+
+typedef struct
+{
+    /*
+    Model/entity level delay modifier.
+    Damon V. Caskey
+    (unknown date) revised 2013-12-16.
+    */
+    s_metric_i cap;
+    float factor;
+    e_edelay_mode mode;
+    s_metric_i range;
+} s_edelay;
 
 typedef struct
 {
@@ -913,18 +951,6 @@ typedef struct
     int animhits; // Does the attack need to hit before cancel is allowed?
     int sync; // sychronize frame to previous animation if they matches
 } s_anim;
-
-typedef struct
-{
-    int mode;
-    float factor;
-    s_metric_i cap;
-    s_metric_i range;
-    int cap_min;
-    int cap_max;
-    int range_min;
-    int range_max;
-} s_edelay;
 
 struct animlist
 {
