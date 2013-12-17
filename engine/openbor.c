@@ -14499,11 +14499,11 @@ void ent_default_init(entity *e)
             //e->direction = (e->position.x<0);
             if(e->modeldata.speed)
             {
-                e->velocity.x = (e->direction) ? (e->modeldata.speed) : (-e->modeldata.speed);
+                e->velocity.x = (e->direction == _direction_right) ? (e->modeldata.speed) : (-e->modeldata.speed);
             }
             else
             {
-                e->velocity.x = (e->direction) ? (1.7 + randf((float)0.6)) : (-(1.7 + randf((float)0.6)));
+                e->velocity.x = (e->direction == _direction_right) ? (1.7 + randf((float)0.6)) : (-(1.7 + randf((float)0.6)));
             }
             e->takedamage = biker_takedamage;
             e->speedmul = 2;
@@ -14642,7 +14642,7 @@ void ent_default_init(entity *e)
 
         if(validanim(e, ANI_WALK))
         {
-            if(e->direction)
+            if(e->direction == _direction_right)
             {
                 e->velocity.x = e->modeldata.speed;
             }
@@ -14700,7 +14700,7 @@ void ent_spawn_ent(entity *ent)
     // spawn point relative to current entity
     if(spawnframe[4] == 0)
     {
-        s_ent = spawn(ent->position.x + ((ent->direction) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2], ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(ent->position.x + ((ent->direction == _direction_right) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2], ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
     }
     //relative to screen position
     else if(spawnframe[4] == 1)
@@ -14744,7 +14744,7 @@ void ent_summon_ent(entity *ent)
     // spawn point relative to current entity
     if(spawnframe[4] == 0)
     {
-        s_ent = spawn(ent->position.x + ((ent->direction) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2],  ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(ent->position.x + ((ent->direction == _direction_right) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2],  ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
     }
     //relative to screen position
     else if(spawnframe[4] == 1)
@@ -14862,7 +14862,7 @@ void update_frame(entity *ent, int f)
     {
         move = (float)(anim->move ? anim->move[f] : 0);
         movez = (float)(anim->movez ? anim->movez[f] : 0);
-        if(self->direction == 0)
+        if(self->direction == _direction_left)
         {
             move = -move;
         }
@@ -14890,7 +14890,7 @@ void update_frame(entity *ent, int f)
 
     if(anim->flipframe == f)
     {
-        self->direction = !self->direction;
+        self->direction = direction_flip(self->direction);
     }
 
     if(anim->weaponframe && anim->weaponframe[0] == f)
@@ -14974,7 +14974,7 @@ void update_frame(entity *ent, int f)
     {
         // Set custom jumpheight for jumpframes
         /*if(self->animation->jumpframe.v > 0)*/ toss(self, anim->jumpframe.velocity.y);
-        self->velocity.x = self->direction ? anim->jumpframe.velocity.x : -anim->jumpframe.velocity.x;
+        self->velocity.x = self->direction == _direction_right ? anim->jumpframe.velocity.x : -anim->jumpframe.velocity.x;
         self->velocity.z = anim->jumpframe.velocity.z;
 
         if(anim->jumpframe.ent >= 0)
@@ -14996,7 +14996,7 @@ void update_frame(entity *ent, int f)
         // custstar custknife in animation should be checked first
         // then if the entity is jumping, check star first, if failed, try knife instead
         // well, try knife at last, if still failed, try star, or just let if shutdown?
-#define __trystar star_spawn(self->position.x + (self->direction ? 56 : -56), self->position.z, self->position.y+67, self->direction)
+#define __trystar star_spawn(self->position.x + (self->direction == _direction_right ? 56 : -56), self->position.z, self->position.y+67, self->direction)
 #define __tryknife knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->throwa, self->direction, 0, 0)
         if(anim->custknife >= 0 || anim->custpshotno >= 0)
         {
@@ -15684,7 +15684,7 @@ int checkhit(entity *attacker, entity *target, int counter)
     y2 = (int)(z2 - target->position.y);
 
 
-    if(attacker->direction == 0)
+    if(attacker->direction == _direction_left)
     {
         debug_coords[0][0] = x1 - coords1[2];
         debug_coords[0][1] = y1 + coords1[1];
@@ -15698,7 +15698,7 @@ int checkhit(entity *attacker, entity *target, int counter)
         debug_coords[0][2] = x1 + coords1[2];
         debug_coords[0][3] = y1 + coords1[3];
     }
-    if(target->direction == 0)
+    if(target->direction == _direction_left)
     {
         debug_coords[1][0] = x2 - coords2[2];
         debug_coords[1][1] = y2 + coords2[1];
@@ -16611,7 +16611,14 @@ void do_attack(entity *e)
                     {
                         if(flash->modeldata.toflip)
                         {
-                            flash->direction = (e->position.x > self->position.x);    // Now the flash will flip depending on which side the attacker is on
+                            if(e->position.x > self->position.x)
+                            {
+                                flash->direction = _direction_right;
+                            }
+                            else
+                            {
+                                flash->direction = _direction_left;
+                            }
                         }
 
                         flash->base = lasthit.position.y;
@@ -17298,19 +17305,19 @@ void update_animation()
     {
         if(self->modeldata.facing == 1 || level->facing == 1)
         {
-            self->direction = 1;
+            self->direction = _direction_right;
         }
         else if(self->modeldata.facing == 2 || level->facing == 2)
         {
-            self->direction = 0;
+            self->direction = _direction_left;
         }
         else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_RIGHT))
         {
-            self->direction = 1;
+            self->direction = _direction_right;
         }
         else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_LEFT))
         {
-            self->direction = 0;
+            self->direction = _direction_left;
         }
         if(self->modeldata.type & TYPE_PANEL)
         {
@@ -17728,7 +17735,7 @@ void adjust_bind(entity *e)
     switch(e->binding.direction)
     {
     case 0:
-        if(e->binding.ent->direction)
+        if(e->binding.ent->direction == _direction_right)
         {
             e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         }
@@ -17739,7 +17746,7 @@ void adjust_bind(entity *e)
         break;
     case 1:
         e->direction = e->binding.ent->direction;
-        if(e->binding.ent->direction)
+        if(e->binding.ent->direction == _direction_right)
         {
             e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         }
@@ -17749,7 +17756,9 @@ void adjust_bind(entity *e)
         }
         break;
     case -1:
-        e->direction = !e->binding.ent->direction;
+
+        e->binding.ent->direction = direction_flip(e->direction);
+
         if(e->binding.ent->direction)
         {
             e->position.x = e->binding.ent->position.x + e->binding.offset.x;
@@ -17760,11 +17769,11 @@ void adjust_bind(entity *e)
         }
         break;
     case 2:
-        e->direction = 1;
+        e->direction = _direction_right;
         e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         break;
     case -2:
-        e->direction = 0;
+        e->direction = _direction_left;
         e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         break;
     default:
@@ -17773,7 +17782,6 @@ void adjust_bind(entity *e)
         // the default is no change :), just give a value of 12345 or so
     }
 }
-
 
 void check_move(entity *e)
 {
@@ -18162,7 +18170,7 @@ void display_ents()
                         }
                     }
 
-                    if(!e->direction)
+                    if(e->direction == _direction_left)
                     {
                         drawmethod->flipx = !drawmethod->flipx;
                         if(drawmethod->fliprotate && drawmethod->rotate)
@@ -18241,7 +18249,7 @@ void display_ents()
                             sz = PANEL_Z - HUD_Z;
                             if(e->animation->shadow_coords)
                             {
-                                if(e->direction)
+                                if(e->direction == _direction_right)
                                 {
                                     qx += e->animation->shadow_coords[e->animpos][0];
                                 }
@@ -18318,7 +18326,7 @@ void display_ents()
                         }
                         if(e->animation->shadow_coords)
                         {
-                            if(e->direction)
+                            if(e->direction == _direction_right)
                             {
                                 qx += e->animation->shadow_coords[e->animpos][0];
                             }
@@ -18331,7 +18339,9 @@ void display_ents()
                         }
                         shadowmethod = plainmethod;
                         shadowmethod.alpha = BLEND_MULTIPLY + 1;
-                        shadowmethod.flipx = !e->direction;
+
+                        shadowmethod.flipx = e->direction == _direction_left ? 0 : 1 ;
+
                         spriteq_add_sprite(qx, qy, z, shadowsprites[useshadow - 1], &shadowmethod, 0);
                         if(use_mirror)
                         {
@@ -19026,7 +19036,7 @@ entity *normal_find_target(int anim, int iDetect)
 
             if(index < 0 || (index >= 0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1)) ||
                     (
-                        (self->position.x < ent_list[i]->position.x) == (self->direction) && // don't turn to the one on the back
+                        ((self->position.x < ent_list[i]->position.x && self->direction == _direction_right) ||  (self->position.x > ent_list[i]->position.x && self->direction == _direction_left)) && // don't turn to the one on the back
                         //ent_list[i]->x >= advancex-10 && ent_list[i]->x<advancex+videomodes.hRes+10 && // don't turn to an offscreen target
                         //ent_list[i]->z >= advancey-10 && ent_list[i]->z<advancey+videomodes.vRes+10 &&
                         diffd < diffo
@@ -19171,7 +19181,14 @@ void normal_prepare()
     //check if target is behind, so we can perform a turn back animation
     if(!self->modeldata.noflip)
     {
-        self->direction = (self->position.x < target->position.x);
+        if(self->position.x < target->position.x)
+        {
+            self->direction = _direction_right;
+        }
+        else
+        {
+            self->direction = _direction_left;
+        }
     }
     if(predir != self->direction && validanim(self, ANI_TURN))
 
@@ -19384,7 +19401,7 @@ void common_turn()
     {
         self->takeaction = NULL;
         self->velocity.x = self->velocity.z = 0;
-        self->direction = !self->direction;
+        self->direction = direction_flip(self->direction);
         set_idle(self);
     }
 }
@@ -19399,7 +19416,7 @@ void doland()
     if(validanim(self, ANI_LAND))
     {
         self->takeaction = common_land;
-        self->direction = !self->direction;
+        self->direction = direction_flip(self->direction);
         ent_set_anim(self, ANI_LAND, 0);
     }
     else
@@ -19464,14 +19481,23 @@ void common_try_riseattack()
     target = normal_find_target(ANI_RISEATTACK, 0);
     if(!target)
     {
-        self->direction = !self->direction;
+        self->direction = direction_flip(self->direction);
         target = normal_find_target(ANI_RISEATTACK, 0);
-        self->direction = !self->direction;
+        self->direction = direction_flip(self->direction);
     }
 
     if(target)
     {
-        self->direction = (target->position.x > self->position.x);    // Stands up and swings in the right direction depending on chosen target
+        // Stands up and swings in the right direction depending on chosen target
+        if(target->position.x > self->position.x)
+        {
+            self->direction = _direction_right;
+        }
+        else
+        {
+            self->direction = _direction_left;
+        }
+
         set_riseattack(self, self->damagetype, 0);
     }
 }
@@ -19956,11 +19982,11 @@ void checkdamageflip(entity *other, s_attack *attack)
         {
             if(self->position.x < other->position.x)
             {
-                self->direction = 1;
+                self->direction = _direction_right;
             }
             else if(self->position.x > other->position.x)
             {
-                self->direction = 0;
+                self->direction = _direction_left;
             }
         }
         else if(attack->force_direction == 1)
@@ -19969,15 +19995,15 @@ void checkdamageflip(entity *other, s_attack *attack)
         }
         else if(attack->force_direction == -1)
         {
-            self->direction = !other->direction;
+            self->direction = direction_flip(other->direction);
         }
         else if(attack->force_direction == 2)
         {
-            self->direction = 1;
+            self->direction = _direction_right;
         }
         else if(attack->force_direction == -2)
         {
-            self->direction = 0;
+            self->direction = _direction_left;
         }
     }
 }
@@ -20365,7 +20391,7 @@ int common_takedamage(entity *other, s_attack *attack)
         {
             self->velocity.x = attack->dropv.x;
             self->velocity.z = attack->dropv.z;
-            if(self->direction)
+            if(self->direction == _direction_right)
             {
                 self->velocity.x = -self->velocity.x;
             }
@@ -20713,7 +20739,7 @@ int common_try_jumpattack(entity *target)
                 }
                 //ent_set_anim(self, ANI_JUMPATTACK, 0);
                 ani = ANI_JUMPATTACK;
-                if(self->direction)
+                if(self->direction == _direction_right)
                 {
                     self->velocity.x = (float)1.3;
                 }
@@ -20856,7 +20882,7 @@ void dothrow()
 
     other->direction = self->direction;
     other->projectile = 2;
-    other->velocity.x = (other->direction) ? (-other->modeldata.throwdist) : (other->modeldata.throwdist);
+    other->velocity.x = (other->direction == _direction_right) ? (-other->modeldata.throwdist) : (other->modeldata.throwdist);
 
     if(autoland == 1 && validanim(other, ANI_LAND))
     {
@@ -20985,7 +21011,14 @@ int trygrab(entity *other)
     {
         if(self->model->grabflip & 1)
         {
-            self->direction = (self->position.x < other->position.x);
+            if(self->position.x < other->position.x)
+            {
+                self->direction = _direction_right;
+            }
+            else
+            {
+                self->direction = _direction_left;
+            }
         }
 
         set_opponent(other, self);
@@ -21000,7 +21033,7 @@ int trygrab(entity *other)
         {
             if(self->model->grabflip & 2)
             {
-                other->direction = !self->direction;
+                other->direction = direction_flip(self->direction);
             }
             self->attacking = 0;
             memset(self->combostep, 0, 5 * sizeof(*self->combostep));
@@ -21021,7 +21054,7 @@ int trygrab(entity *other)
         {
             if(self->model->grabflip & 2)
             {
-                other->direction = !self->direction;
+                other->direction = direction_flip(self->direction);
             }
 
             other->takeaction = common_prethrow;
@@ -21290,9 +21323,9 @@ void common_runoff()
 
     if(!self->modeldata.noflip)
     {
-        self->direction = (self->position.x < target->position.x);
+        self->direction = (self->position.x < target->position.x) ? _direction_right : _direction_left;
     }
-    if(self->direction)
+    if(self->direction == _direction_right)
     {
         self->velocity.x = -self->modeldata.speed / 2;
     }
@@ -21323,11 +21356,11 @@ void common_stuck_underneath()
     }
     if(player[self->playerindex].keys & FLAG_MOVELEFT)
     {
-        self->direction = 0;
+        self->direction = _direction_left;
     }
     else if(player[self->playerindex].keys & FLAG_MOVERIGHT)
     {
-        self->direction = 1;
+        self->direction = _direction_right;
     }
     if(player[self->playerindex].playkeys & FLAG_ATTACK && validanim(self, ANI_DUCKATTACK))
     {
@@ -21482,7 +21515,7 @@ int common_try_jump()
         wall = -1;
         rmin = (float)self->modeldata.animation[ANI_JUMP]->range.min.x;
         rmax = (float)self->modeldata.animation[ANI_JUMP]->range.max.x;
-        if(self->direction)
+        if(self->direction == _direction_right)
         {
             xdir = self->position.x + rmin;
         }
@@ -21506,10 +21539,10 @@ int common_try_jump()
         {
             j = 1;
         }
-        else if(checkhole(self->position.x + (self->direction ? 2 : -2), zdir) &&
-                checkwall(self->position.x + (self->direction ? 2 : -2), zdir) < 0 &&
-                check_platform (self->position.x + (self->direction ? 2 : -2), zdir, self) == NULL &&
-                !checkhole(self->position.x + (self->direction ? rmax : -rmax), zdir))
+        else if(checkhole(self->position.x + (self->direction == _direction_right ? 2 : -2), zdir) &&
+                checkwall(self->position.x + (self->direction == _direction_right ? 2 : -2), zdir) < 0 &&
+                check_platform (self->position.x + (self->direction == _direction_right ? 2 : -2), zdir, self) == NULL &&
+                !checkhole(self->position.x + (self->direction == _direction_right ? rmax : -rmax), zdir))
         {
             j = 1;
         }
@@ -21528,7 +21561,7 @@ int common_try_jump()
         wall = -1;
         rmin = (float)self->modeldata.animation[ANI_RUNJUMP]->range.min.x;
         rmax = (float)self->modeldata.animation[ANI_RUNJUMP]->range.max.x;
-        if(self->direction)
+        if(self->direction == _direction_right)
         {
             xdir = self->position.x + rmin;
         }
@@ -21553,10 +21586,10 @@ int common_try_jump()
             j = 2;																				//Set to perform runjump.
         }
         //Check for pit in range of RUNJUMP.
-        else if(checkhole(self->position.x + (self->direction ? 2 : -2), zdir) &&
-                checkwall(self->position.x + (self->direction ? 2 : -2), zdir) < 0 &&
-                check_platform (self->position.x + (self->direction ? 2 : -2), zdir, self) == NULL &&
-                !checkhole(self->position.x + (self->direction ? rmax : -rmax), zdir))
+        else if(checkhole(self->position.x + (self->direction == _direction_right ? 2 : -2), zdir) &&
+                checkwall(self->position.x + (self->direction == _direction_right ? 2 : -2), zdir) < 0 &&
+                check_platform (self->position.x + (self->direction == _direction_right ? 2 : -2), zdir, self) == NULL &&
+                !checkhole(self->position.x + (self->direction == _direction_right ? rmax : -rmax), zdir))
         {
             j = 2;																				//Set to perform runjump.
         }
@@ -21648,7 +21681,7 @@ void adjust_walk_animation(entity *other)
         common_down_anim(self); //ent_set_anim(self, ANI_DOWN, 0);
         dir = 3;
     }
-    else if((self->direction ? self->velocity.x < 0 : self->velocity.x > 0) && validanim(self, ANI_BACKWALK))
+    else if((self->direction == _direction_right ? self->velocity.x < 0 : self->velocity.x > 0) && validanim(self, ANI_BACKWALK))
     {
         common_backwalk_anim(self);    //ent_set_anim(self, ANI_BACKWALK, 0);
     }
@@ -21658,7 +21691,7 @@ void adjust_walk_animation(entity *other)
         dir = 1;
     }
 
-    if(((self->direction ? self->velocity.x < 0 : self->velocity.x > 0) && dir == 1) ||
+    if(((self->direction == _direction_right ? self->velocity.x < 0 : self->velocity.x > 0) && dir == 1) ||
             (dir == 2 && self->velocity.z > 0) || (dir == 3 && self->velocity.z < 0) )
     {
         self->animating = -1;
@@ -22252,7 +22285,7 @@ int common_try_follow(entity *target, int dox, int doz)
         distance = 100.0;
     }
 
-    facing = (self->direction ? self->position.x < target->position.x : self->position.x > target->position.x);
+    facing = (self->direction == _direction_right ? self->position.x < target->position.x : self->position.x > target->position.x);
 
     dx = diff(self->position.x, target->position.x);
     dz = diff(self->position.z, target->position.z);
@@ -22530,7 +22563,7 @@ int assume_safe_distance(entity* target, int ani, int* minx, int* maxx, int* min
 			for(f=0; f<ta->numframes; f++){
 				if(!ta->attacks[f]) continue;
 				coords = ta->attacks[f]->attack_coords;
-				if(target->direction) {
+				if(target->direction == _direction_right) {
 					tminx = coords[0];
 					tmaxx = coords[2];
 				}else{
@@ -22588,7 +22621,7 @@ int common_try_wander(entity *target, int dox, int doz)
 
     diffx = diff(self->position.x, target->position.x);
     diffz = diff(self->position.z, target->position.z);
-    behind = ((self->position.x < target->position.x) == target->direction);
+    behind = ((self->position.x < target->position.x && target->direction == _direction_right) || (self->position.x > target->position.x && target->direction == _direction_left));
     grabd = self->modeldata.grabdistance;
     //when entity is behind the target, it has a greater chance to go after the target
     if(behind && diffx < grabd * 4 && diffz < grabd) //right behind, go for it
@@ -22819,9 +22852,9 @@ void common_pickupitem(entity *other)
 int biker_move()
 {
 
-    if((self->direction) ? (self->position.x > advancex + (videomodes.hRes + 200)) : (self->position.x < advancex - 200))
+    if((self->direction = _direction_right) ? (self->position.x > advancex + (videomodes.hRes + 200)) : (self->position.x < advancex - 200))
     {
-        self->direction = !self->direction;
+        self->direction = direction_flip(self->direction);
         self->attack_id = 0;
         self->position.z = (float)(PLAYER_MIN_Z + randf((float)(PLAYER_MAX_Z - PLAYER_MIN_Z)));
         if(SAMPLE_BIKE >= 0)
@@ -22830,11 +22863,11 @@ int biker_move()
         }
         if(self->modeldata.speed)
         {
-            self->velocity.x = (self->direction) ? (self->modeldata.speed) : (-self->modeldata.speed);
+            self->velocity.x = (self->direction == _direction_right) ? (self->modeldata.speed) : (-self->modeldata.speed);
         }
         else
         {
-            self->velocity.x = (self->direction) ? ((float)1.7 + randf((float)0.6)) : (-((float)1.7 + randf((float)0.6)));
+            self->velocity.x = (self->direction == _direction_right) ? ((float)1.7 + randf((float)0.6)) : (-((float)1.7 + randf((float)0.6)));
         }
     }
 
@@ -22859,7 +22892,14 @@ int arrow_move()
         {
             if(!self->modeldata.noflip)
             {
-                self->direction = (target->position.x > self->position.x);
+                if(target->position.x > self->position.x)
+                {
+                    self->direction = _direction_right;
+                }
+                else
+                {
+                    self->direction = _direction_left;
+                }
             }
             // start chasing the target
             dx = diff(self->position.x, target->position.x);
@@ -22875,7 +22915,7 @@ int arrow_move()
                 self->velocity.x = maxspeed * dx / (dx + dz);
                 self->velocity.z = maxspeed * dz / (dx + dz);
             }
-            if(self->direction != 1)
+            if(self->direction == _direction_left)
             {
                 self->velocity.x = -self->velocity.x;
             }
@@ -22888,11 +22928,11 @@ int arrow_move()
         {
             if(!self->velocity.x && !self->velocity.z)
             {
-                if(self->direction == 0)
+                if(self->direction == _direction_left)
                 {
                     self->velocity.x = -self->modeldata.speed;
                 }
-                else if(self->direction == 1)
+                else
                 {
                     self->velocity.x = self->modeldata.speed;
                 }
@@ -22921,11 +22961,11 @@ int arrow_move()
     else
     {
         // Now projectiles can have custom speeds
-        if(self->direction == 0)
+        if(self->direction == _direction_left)
         {
             self->velocity.x = -self->modeldata.speed;
         }
-        else if(self->direction == 1)
+        else
         {
             self->velocity.x = self->modeldata.speed;
         }
@@ -22942,11 +22982,11 @@ int arrow_move()
                 self->attacking = 0;
                 self->health = 0;
                 self->projectile = 0;
-                if(self->direction == 0)
+                if(self->direction == _direction_left)
                 {
                     self->velocity.x = (float) - 1.2;
                 }
-                else if(self->direction == 1)
+                else
                 {
                     self->velocity.x = (float)1.2;
                 }
@@ -22967,11 +23007,11 @@ int bomb_move()
 {
     if(inair(self) && self->toexplode == 1)
     {
-        if(self->direction == 0)
+        if(self->direction == _direction_left)
         {
             self->velocity.x = -self->modeldata.speed;
         }
-        else if(self->direction == 1)
+        else
         {
             self->velocity.x = self->modeldata.speed;
         }
@@ -23030,7 +23070,7 @@ int star_move()
             self->attacking = 0;
             self->health = 0;
             self->projectile = 0;
-            self->velocity.x = (self->direction) ? (-1.2) : 1.2;
+            self->velocity.x = (self->direction == _direction_right) ? (-1.2) : 1.2;
             self->damage_on_landing = 0;
             toss(self, 2.5 + randf(1));
             set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0);
@@ -23131,22 +23171,22 @@ int common_move()
         {
             if(other)   //try to pick up an item, if possible
             {
-                self->direction = (self->position.x < other->position.x);
+                self->direction = (self->position.x < other->position.x) ? _direction_right : _direction_left;
             }
             else if(target)
             {
-                self->direction = (self->position.x < target->position.x);
+                self->direction = (self->position.x < target->position.x) ? _direction_right : _direction_left;
             }
             else if(owner)
             {
-                self->direction = (self->position.x < owner->position.x);
+                self->direction = (self->position.x < owner->position.x) ? _direction_right : _direction_left;
             }
         }
         else if(aimove == AIMOVE1_WANDER)
         {
             if(self->velocity.x)
             {
-                self->direction = (self->velocity.x > 0);
+                self->direction = (self->velocity.x > 0) ? _direction_right : _direction_left;
             }
         }
 
@@ -23155,7 +23195,7 @@ int common_move()
         if(self->direction != predir && validanim(self, ANI_TURN))
         {
             self->takeaction = common_turn;
-            self->direction = !self->direction;
+            self->direction = direction_flip(self->direction);
             self->velocity.x = self->velocity.z = 0;
             ent_set_anim(self, ANI_TURN, 0);
             return 1;
@@ -23359,7 +23399,7 @@ int common_move()
             self->running = 0;
         }
 
-        if(self->direction == (self->destx < self->position.x))
+        if((self->direction == _direction_right && self->destx < self->position.x) || (self->direction == _direction_left && self->destx > self->position.x))
         {
             self->running = 0;
         }
@@ -23969,7 +24009,7 @@ void runanimal()
         return;
     }
 
-    if(self->direction)
+    if(self->direction == _direction_right)
     {
         self->position.x += self->modeldata.speed;
     }
@@ -24038,10 +24078,10 @@ void common_vault()
         self->takeaction = common_grab;
         self->link->takeaction = common_grabbed;
         self->attacking = 0;
-        self->direction = !self->direction;
+        self->direction = direction_flip(self->direction);
         self->position.y = self->base = self->link->base;
 
-        if(self->direction)
+        if(self->direction == _direction_right)
         {
             self->position.x = self->link->position.x - self->modeldata.grabdistance;
         }
@@ -24132,7 +24172,7 @@ void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
 
     toss(self, jumpv);
 
-    if(self->direction == 0)
+    if(self->direction == _direction_left)
     {
         self->velocity.x = -jumpx;
     }
@@ -24367,17 +24407,19 @@ void player_grab_check()
         // done turning? switch directions and return to grab animation
         else
         {
-            if(self->direction)
+            if(self->direction == _direction_right)
             {
-                self->direction = 0;
-                other->direction = 1;
+                self->direction = _direction_left;
+                other->direction = _direction_right;
+                other->position.x = self->position.x + (self->modeldata.grabdistance);
             }
             else
             {
-                self->direction = 1;
-                other->direction = 0;
+                self->direction = _direction_right;
+                other->direction = _direction_left;
+                other->position.x = self->position.x + (-self->modeldata.grabdistance);
             }
-            other->position.x = self->position.x + (((self->direction * 2) - 1) * self->modeldata.grabdistance);
+
             ent_set_anim(self, ANI_GRAB, 0);
             set_pain(other, -1, 0);
             update_frame(self, self->animation->numframes - 1);
@@ -24387,7 +24429,7 @@ void player_grab_check()
 
     self->attacking = 0; //for checking
     self->grabwalking = 0;
-    if(self->direction ?
+    if(self->direction == _direction_right ?
             (player[self->playerindex].keys & FLAG_MOVELEFT) :
             (player[self->playerindex].keys & FLAG_MOVERIGHT))
     {
@@ -24418,21 +24460,23 @@ void player_grab_check()
             // otherwise, just turn around
             else
             {
-                if(self->direction)
+                if(self->direction == _direction_right)
                 {
-                    self->direction = 0;
-                    other->direction = 1;
+                    self->direction = _direction_left;
+                    other->direction = _direction_right;
+                    other->position.x = self->position.x + self->modeldata.grabdistance;
                 }
                 else
                 {
-                    self->direction = 1;
-                    other->direction = 0;
+                    self->direction = _direction_right;
+                    other->direction = _direction_left;
+                    other->position.x = self->position.x + (-self->modeldata.grabdistance);
                 }
                 ent_set_anim(self, ANI_GRAB, 0);
                 set_pain(other, -1, 0);
                 update_frame(self, self->animation->numframes - 1);
                 update_frame(other, other->animation->numframes - 1);
-                other->position.x = self->position.x + (((self->direction * 2) - 1) * self->modeldata.grabdistance);
+
             }
         }
         else if(!validanim(self, ANI_GRABWALK) && time > self->releasetime)
@@ -24603,7 +24647,7 @@ void player_grab_check()
         // setting the animations based on the velocity set above
         if(self->velocity.x || self->velocity.z)
         {
-            if(((self->velocity.x > 0 && !self->direction) || (self->velocity.x < 0 && self->direction)) && validanim(self, ANI_GRABBACKWALK))
+            if(((self->velocity.x > 0 && self->direction == _direction_left) || (self->velocity.x < 0 && self->direction == _direction_right)) && validanim(self, ANI_GRABBACKWALK))
             {
                 ent_set_anim(self, ANI_GRABBACKWALK, 0);
             }
@@ -24744,11 +24788,11 @@ void player_jump_check()
     {
         if((player[self->playerindex].keys & FLAG_MOVELEFT))
         {
-            self->direction = 0;
+            self->direction = _direction_left;
         }
         else if((player[self->playerindex].keys & FLAG_MOVERIGHT))
         {
-            self->direction = 1;
+            self->direction = _direction_right;
         }
     }
     if(self->modeldata.jumpmovex & 2) //move?
@@ -24788,11 +24832,11 @@ void player_jump_check()
     {
         if((player[self->playerindex].keys & FLAG_MOVELEFT))
         {
-            self->direction = 0;
+            self->direction = _direction_left;
         }
         else if((player[self->playerindex].keys & FLAG_MOVERIGHT))
         {
-            self->direction = 1;
+            self->direction = _direction_right;
         }
 
         if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->velocity.z > 0) ||
@@ -24832,11 +24876,11 @@ void player_lie_check()
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
         if((player[self->playerindex].keys & FLAG_MOVELEFT))
         {
-            self->direction = 0;
+            self->direction = _direction_left;
         }
         if((player[self->playerindex].keys & FLAG_MOVERIGHT))
         {
-            self->direction = 1;
+            self->direction = _direction_right;
         }
         self->stalltime = 0;
         set_riseattack(self, self->damagetype, 0);
@@ -25156,7 +25200,7 @@ void player_think()
 
     if((pl->playkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)))
     {
-        t = (notinair && ((self->direction && match_combo(rr, pl, 2)) || (!self->direction && match_combo(ll, pl, 2))));
+        t = (notinair && ((self->direction == _direction_right && match_combo(rr, pl, 2)) || (self->direction == _direction_left && match_combo(ll, pl, 2))));
 
         if(t && validanim(self, ANI_RUN))
         {
@@ -25210,7 +25254,7 @@ void player_think()
     if(pl->playkeys & FLAG_SPECIAL )    //    The special button can now be used for freespecials
     {
         if( validanim(self, ANI_SPECIAL2) && notinair &&
-                (!self->direction ?
+                (self->direction == _direction_left ?
                  (pl->keys & FLAG_MOVELEFT) :
                  (pl->keys & FLAG_MOVERIGHT))  )
         {
@@ -25304,13 +25348,13 @@ void player_think()
                 self->takeaction = common_attack_proc;
                 set_attacking(self);
                 self->velocity.x = self->velocity.z = 0;
-                if(!self->direction && (pl->combokey[t2]&FLAG_MOVELEFT))
+                if(self->direction == _direction_left && (pl->combokey[t2]&FLAG_MOVELEFT))
                 {
-                    self->direction = 1;
+                    self->direction = _direction_right;
                 }
-                else if(self->direction && (pl->combokey[t2]&FLAG_MOVERIGHT))
+                else if(self->direction == _direction_right && (pl->combokey[t2]&FLAG_MOVERIGHT))
                 {
-                    self->direction = 0;
+                    self->direction = _direction_left;
                 }
                 self->combostep[0] = 0;
                 ent_set_anim(self, ANI_ATTACKBACKWARD, 0);
@@ -25407,11 +25451,11 @@ void player_think()
             }
             else if((pl->keys & FLAG_MOVELEFT))
             {
-                self->direction = 0;
+                self->direction = _direction_left;
             }
             else if((pl->keys & FLAG_MOVERIGHT))
             {
-                self->direction = 1;
+                self->direction = _direction_right;
             }
 
             if(validanim(self, ANI_FORWARDJUMP))
@@ -25558,7 +25602,7 @@ void player_think()
 
     if(pl->keys & FLAG_MOVELEFT)
     {
-        if(self->direction)
+        if(self->direction == _direction_right)
         {
             //self->running = 0;    // Quits running if player changes direction
             if(self->modeldata.turndelay && !self->turntime)
@@ -25576,7 +25620,7 @@ void player_think()
                     ent_set_anim(self, ANI_TURN, 0);
                     goto endthinkcheck;
                 }
-                self->direction = 0;
+                self->direction = _direction_left;
             }
             else if(!self->modeldata.turndelay && validanim(self, ANI_TURN))
             {
@@ -25588,7 +25632,7 @@ void player_think()
             }
             else if(!self->turntime)
             {
-                self->direction = 0;
+                self->direction = _direction_left;
             }
         }
         else
@@ -25613,7 +25657,7 @@ void player_think()
     }
     else if(pl->keys & FLAG_MOVERIGHT)
     {
-        if(!self->direction)
+        if(self->direction == _direction_left)
         {
             //self->running = 0;    // Quits running if player changes direction
             if(self->modeldata.turndelay && !self->turntime)
@@ -25631,7 +25675,7 @@ void player_think()
                     ent_set_anim(self, ANI_TURN, 0);
                     goto endthinkcheck;
                 }
-                self->direction = 1;
+                self->direction = _direction_right;
             }
             else if(!self->modeldata.turndelay && validanim(self, ANI_TURN))
             {
@@ -25643,7 +25687,7 @@ void player_think()
             }
             else if(!self->turntime)
             {
-                self->direction = 1;
+                self->direction = _direction_right;
             }
         }
         else
@@ -25693,17 +25737,17 @@ void player_think()
         {
             if(self->modeldata.facing == 1 || level->facing == 1)
             {
-                bkwalk = !self->direction;
+                bkwalk = (self->direction == _direction_right);
             }
             else if(self->modeldata.facing == 2 || level->facing == 2)
             {
-                bkwalk = self->direction;
+                bkwalk = (self->direction == _direction_left);
             }
-            else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_LEFT) && !self->direction )
+            else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_LEFT) && self->direction == _direction_left)
             {
                 bkwalk = 1;
             }
-            else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_RIGHT) && self->direction)
+            else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_RIGHT) && self->direction == _direction_right)
             {
                 bkwalk = 1;
             }
@@ -25889,7 +25933,7 @@ void drop_all_enemies()
             ent_list[i]->damage_on_landing = 0;
             self = ent_list[i];
             ent_unlink(self);
-            ent_list[i]->velocity.x = (self->direction) ? (-1.2) : 1.2;
+            ent_list[i]->velocity.x = (self->direction == _direction_right) ? (-1.2) : 1.2;
             dropweapon(1);
             toss(ent_list[i], 2.5 + randf(1));
             ent_list[i]->knockdowncount = ent_list[i]->modeldata.knockdowncount;
@@ -26423,7 +26467,7 @@ entity *homing_find_target(int type)
 void bike_crash()
 {
     int i;
-    if(self->direction)
+    if(self->direction == _direction_right)
     {
         self->velocity.x = 2;
     }
@@ -32484,6 +32528,26 @@ void openborMain(int argc, char **argv)
         update(0, 0);
     }
     shutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
+}
+
+int direction_flip(e_direction direction)
+{
+    /*
+    Return opposite direction of passed parameter.
+    Damon V. Caskey
+    2012-12-16
+
+    direction: Direction to return opposite of.
+    */
+
+    int result = _direction_left;
+
+    if(direction == _direction_left)
+    {
+        result = _direction_right;
+    }
+
+    return result;
 }
 
 #undef GET_ARG

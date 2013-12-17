@@ -524,7 +524,7 @@ if(n<1) n = 1;
 
 #define check_range(self, target, animnum) \
 		 ( target && \
-		  (self->direction ? \
+		  (self->direction == _direction_right ? \
 		  (int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.min.x &&\
 		  (int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.max.x\
 		:\
@@ -1343,7 +1343,7 @@ typedef struct
     */
 
     int ani_bind;           //Animation binding type.
-    int direction;          //Direction fore
+    int direction;          //Direction force
     struct entity *ent;     //Entity to bind.
     s_axis_i offset;        //x,y,z offset.
 } s_bind;
@@ -1359,6 +1359,17 @@ typedef struct
     s_metric_i count;   //Hits counter.
     u32 time;           //Time to perform combo.
 } s_rush;
+
+typedef enum
+{
+    /*
+    Direction (facing) enum.
+    2013-12-16
+    */
+
+  _direction_left,
+  _direction_right
+} e_direction;
 
 typedef struct entity
 {
@@ -1386,7 +1397,7 @@ typedef struct entity
     int dying; // Coresponds with which remap is to be used for the dying flash
     unsigned per1; // Used to store at what health value the entity begins to flash
     unsigned per2; // Used to store at what health value the entity flashes more rapidly
-    int direction; // 0=left 1=right
+    e_direction direction;
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
     int movestep;
     s_axis_f position; //x,a,z location.
@@ -1496,7 +1507,7 @@ typedef struct entity
     struct entity *landed_on_platform;
     s_bind binding;
     int escapecount; // For escapehits
-    s_rush rush;
+    s_rush rush;    //Rush combo display.
     int lifespancountdown; // life span count down
 
     //------------- copy them from model to avoid global effect -------------
@@ -2116,6 +2127,7 @@ void soundcard_options();
 void openborMain(int argc, char **argv);
 int getValidInt(char *text, char *file, char *cmd);
 float getValidFloat(char *text, char *file, char *cmd);
+int direction_flip(e_direction direction);
 
 
 extern s_savedata     savedata;
