@@ -4807,7 +4807,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_bound:
     {
         ScriptVariant_ChangeType(*pretvar, VT_PTR);
-        (*pretvar)->ptrVal = (VOID *)ent->bound;
+        (*pretvar)->ptrVal = (VOID *)ent->binding.ent;
         break;
     }
     case _ep_candamage:
@@ -12821,7 +12821,7 @@ jumptobranch_error:
     return E_FAIL;
 }
 
-//bindentity(entity, target, x, z, a, direction, bindanim);
+//bindentity(entity, target, x, z, a, direction, binding.ani_bind);
 //bindentity(entity, NULL()); // unbind
 HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -12846,11 +12846,11 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
     other = (entity *)(varlist[1])->ptrVal;
     if(!other)
     {
-        ent->bound = NULL;
+        ent->binding.ent = NULL;
         return S_OK;
     }
 
-    ent->bound = other;
+    ent->binding.ent = other;
 
     if(paramCount < 3)
     {
@@ -12865,7 +12865,7 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
             return E_FAIL;
         }
 
-        ent->bindoffset[0] = (int)x;
+        ent->binding.offset.x = (int)x;
     }
     if(paramCount < 4)
     {
@@ -12879,7 +12879,7 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         {
             return E_FAIL;
         }
-        ent->bindoffset[1] = (int)z;
+        ent->binding.offset.z = (int)z;
     }
     if(paramCount < 5)
     {
@@ -12893,7 +12893,7 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         {
             return E_FAIL;
         }
-        ent->bindoffset[2] = (int)a;
+        ent->binding.offset.y = (int)a;
     }
     if(paramCount < 6)
     {
@@ -12907,7 +12907,7 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         {
             return E_FAIL;
         }
-        ent->bindoffset[3] = (int)dir;
+        ent->binding.direction = (int)dir;
     }
     if(paramCount < 7)
     {
@@ -12921,7 +12921,7 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         {
             return E_FAIL;
         }
-        ent->bindanim = (int)anim;
+        ent->binding.ani_bind = (int)anim;
     }
 
 BIND:

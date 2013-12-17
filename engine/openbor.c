@@ -15564,9 +15564,9 @@ void kill(entity *victim)
             {
                 self->opponent = NULL;
             }
-            if(self->bound == victim)
+            if(self->binding.ent == victim)
             {
-                self->bound = NULL;
+                self->binding.ent = NULL;
             }
             if(self->landed_on_platform == victim)
             {
@@ -17703,72 +17703,72 @@ void common_dot()
 
 void adjust_bind(entity *e)
 {
-    if(e->bindanim)
+    if(e->binding.ani_bind)
     {
-        if(e->animnum != e->bound->animnum)
+        if(e->animnum != e->binding.ent->animnum)
         {
-            if(!validanim(e, e->bound->animnum))
+            if(!validanim(e, e->binding.ent->animnum))
             {
-                if(e->bindanim & 4)
+                if(e->binding.ani_bind & 4)
                 {
                     kill(e);
                 }
-                e->bound = NULL;
+                e->binding.ent = NULL;
                 return;
             }
-            ent_set_anim(e, e->bound->animnum, 1);
+            ent_set_anim(e, e->binding.ent->animnum, 1);
         }
-        if(e->animpos != e->bound->animpos && e->bindanim & 2)
+        if(e->animpos != e->binding.ent->animpos && e->binding.ani_bind & 2)
         {
-            update_frame(e, e->bound->animpos);
+            update_frame(e, e->binding.ent->animpos);
         }
     }
-    e->position.z = e->bound->position.z + e->bindoffset[1];
-    e->position.y = e->bound->position.y + e->bindoffset[2];
-    switch(e->bindoffset[3])
+    e->position.z = e->binding.ent->position.z + e->binding.offset.z;
+    e->position.y = e->binding.ent->position.y + e->binding.offset.y;
+    switch(e->binding.direction)
     {
     case 0:
-        if(e->bound->direction)
+        if(e->binding.ent->direction)
         {
-            e->position.x = e->bound->position.x + e->bindoffset[0];
+            e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         }
         else
         {
-            e->position.x = e->bound->position.x - e->bindoffset[0];
+            e->position.x = e->binding.ent->position.x - e->binding.offset.x;
         }
         break;
     case 1:
-        e->direction = e->bound->direction;
-        if(e->bound->direction)
+        e->direction = e->binding.ent->direction;
+        if(e->binding.ent->direction)
         {
-            e->position.x = e->bound->position.x + e->bindoffset[0];
+            e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         }
         else
         {
-            e->position.x = e->bound->position.x - e->bindoffset[0];
+            e->position.x = e->binding.ent->position.x - e->binding.offset.x;
         }
         break;
     case -1:
-        e->direction = !e->bound->direction;
-        if(e->bound->direction)
+        e->direction = !e->binding.ent->direction;
+        if(e->binding.ent->direction)
         {
-            e->position.x = e->bound->position.x + e->bindoffset[0];
+            e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         }
         else
         {
-            e->position.x = e->bound->position.x - e->bindoffset[0];
+            e->position.x = e->binding.ent->position.x - e->binding.offset.x;
         }
         break;
     case 2:
         e->direction = 1;
-        e->position.x = e->bound->position.x + e->bindoffset[0];
+        e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         break;
     case -2:
         e->direction = 0;
-        e->position.x = e->bound->position.x + e->bindoffset[0];
+        e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         break;
     default:
-        e->position.x = e->bound->position.x + e->bindoffset[0];
+        e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         break;
         // the default is no change :), just give a value of 12345 or so
     }
@@ -17863,7 +17863,7 @@ void ent_post_update(entity *e)
     check_gravity(e);// check gravity
     check_move(e);
 
-    if(e->bound)
+    if(e->binding.ent)
     {
         adjust_bind(e);
     }
@@ -18041,9 +18041,9 @@ void display_ents()
 
                     z = (int)e->position.z;    // Set the layer offset
 
-                    if(e->bound)
+                    if(e->binding.ent)
                     {
-                        sortid = e->bound->sortid - 1;
+                        sortid = e->binding.ent->sortid - 1;
                     }
 
                     if(e->grabbing && e->modeldata.grabback)
@@ -18055,9 +18055,9 @@ void display_ents()
                         sortid = e->link->sortid + 1;
                     }
                     /*
-                    					if(e->bound && e->bound->grabbing==e)
+                    					if(e->binding.ent && e->binding.ent->grabbing==e)
                     					{
-                    						if(e->bound->modeldata.grabback) z--;
+                    						if(e->binding.ent->modeldata.grabback) z--;
                     						else                             z++;
                     					}
                     */

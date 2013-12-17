@@ -1329,9 +1329,24 @@ typedef struct
     2013-12-08
     Damon Caskey
     */
+
     int id; //Jumping ID.
     s_axis_f velocity; //x,a,z velocity setting.
 } s_jump;
+
+typedef struct
+{
+    /*
+    Bind struct for linking of entities.
+    2013-12-17
+    Damon V. Caskey
+    */
+
+    int ani_bind;           //Animation binding type.
+    int direction;          //Direction fore
+    struct entity *ent;     //Entity to bind.
+    s_axis_i offset;        //x,y,z offset.
+} s_bind;
 
 typedef struct entity
 {
@@ -1467,10 +1482,8 @@ typedef struct entity
     struct entity *opponent;
     struct entity *lasthit;
     struct entity *hithead; // when a player jumps and hits head on the bottom of a platform
-    struct entity *bound; // ignore trymove method, follow this entity
     struct entity *landed_on_platform;
-    int bindoffset[4]; // x, z, a, dir; int is ok
-    int bindanim; // keep the bound entities same animation id
+    s_bind binding;
     int escapecount; // For escapehits
     unsigned rush[2]; // rush combo and max combo
     int lifespancountdown; // life span count down
