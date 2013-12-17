@@ -10077,7 +10077,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
     else if(relative)
     {
-        direction  = 1;
+        direction  = _direction_right;
     }
     else
     {
@@ -10098,14 +10098,14 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 
     if(relative)
     {
-        if(self->direction)
+        if(self->direction == _direction_right)
         {
             x += self->position.x;
         }
         else
         {
             x = self->position.x - x;
-            direction = !direction;
+            direction = direction_flip(direction);
         }
         z += self->position.z;
         a += self->position.y;
