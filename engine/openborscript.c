@@ -5971,19 +5971,19 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_rush_count:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->rush[0];
+        (*pretvar)->lVal = (LONG)ent->rush.count.current;
         break;
     }
     case _ep_rush_tally:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->rush[1];
+        (*pretvar)->lVal = (LONG)ent->rush.count.max;
         break;
     }
     case _ep_rush_time:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->rushtime;
+        (*pretvar)->lVal = (LONG)ent->rush.time;
         break;
     }
     case _ep_score:
@@ -7600,7 +7600,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->rush[0] = (int)ltemp;
+            ent->rush.count.current = (int)ltemp;
         }
         break;
     }
@@ -7608,7 +7608,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->rush[1] = (int)ltemp;
+            ent->rush.count.max = (int)ltemp;
         }
         break;
     }
@@ -7616,7 +7616,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->rushtime = (int)ltemp;
+            ent->rush.time = (int)ltemp;
         }
         break;
     }
