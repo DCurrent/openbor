@@ -13846,22 +13846,22 @@ void predrawstatus()
             font_printf(videomodes.shiftpos[i] + plifeX[i][0], savedata.windowpos + plifeX[i][1], plifeX[i][2], 0, "x");
             font_printf(videomodes.shiftpos[i] + plifeN[i][0], savedata.windowpos + plifeN[i][1], plifeN[i][2], 0, "%i", player[i].lives);
 
-            if(rush[0] && player[i].ent->rush[0] > 1 && time <= player[i].ent->rushtime)
+            if(rush[0] && player[i].ent->rush.count.current > 1 && time <= player[i].ent->rush.time)
             {
                 font_printf(videomodes.shiftpos[i] + prush[i][0], prush[i][1], rush[2], 0, "%s", rush_names[0]);
-                font_printf(videomodes.shiftpos[i] + prush[i][2], prush[i][3], rush[3], 0, "%i", player[i].ent->rush[0]);
+                font_printf(videomodes.shiftpos[i] + prush[i][2], prush[i][3], rush[3], 0, "%i", player[i].ent->rush.count.current);
 
                 if(rush[0] != 2)
                 {
                     font_printf(videomodes.shiftpos[i] + prush[i][4], prush[i][5], rush[4], 0, "%s", rush_names[1]);
-                    font_printf(videomodes.shiftpos[i] + prush[i][6], prush[i][7], rush[5], 0, "%i", player[i].ent->rush[1]);
+                    font_printf(videomodes.shiftpos[i] + prush[i][6], prush[i][7], rush[5], 0, "%i", player[i].ent->rush.count.max);
                 }
             }
 
             if(rush[0] == 2)
             {
                 font_printf(videomodes.shiftpos[i] + prush[i][4], prush[i][5], rush[4], 0, "%s", rush_names[1]);
-                font_printf(videomodes.shiftpos[i] + prush[i][6], prush[i][7], rush[5], 0, "%i", player[i].ent->rush[1]);
+                font_printf(videomodes.shiftpos[i] + prush[i][6], prush[i][7], rush[5], 0, "%i", player[i].ent->rush.count.max);
             }
 
             if(player[i].ent->opponent && !player[i].ent->opponent->modeldata.nolife)
@@ -16761,11 +16761,11 @@ void do_attack(entity *e)
 
         if(!didblock)
         {
-            topowner->rushtime = time + (GAME_SPEED * rush[1]);
-            topowner->rush[0]++;
-            if(topowner->rush[0] > topowner->rush[1] && topowner->rush[0] > 1)
+            topowner->rush.time = time + (GAME_SPEED * rush[1]);
+            topowner->rush.count.current++;
+            if(topowner->rush.count.current > topowner->rush.count.max && topowner->rush.count.current > 1)
             {
-                topowner->rush[1] = topowner->rush[0];
+                topowner->rush.count.max = topowner->rush.count.current;
             }
         }
 
@@ -23741,7 +23741,7 @@ void player_die()
 
     if(nomaxrushreset[4] >= 1)
     {
-        nomaxrushreset[playerindex] = player[playerindex].ent->rush[1];
+        nomaxrushreset[playerindex] = player[playerindex].ent->rush.count.max;
     }
     player[playerindex].ent = NULL;
     player[playerindex].spawnhealth = self->modeldata.health;
@@ -25011,10 +25011,10 @@ void player_think()
         }
     }
 
-    if(time > self->rushtime)
+    if(time > self->rush.time)
     {
-        self->rush[0] = 0;
-        self->rushtime = 0;
+        self->rush.count.current = 0;
+        self->rush.time = 0;
     }
 
     if(player_preinput())
@@ -26877,11 +26877,11 @@ void spawnplayer(int index)
     player[index].ent->playerindex = index;
     if(nomaxrushreset[4] >= 1)
     {
-        player[index].ent->rush[1] = nomaxrushreset[index];
+        player[index].ent->rush.count.max = nomaxrushreset[index];
     }
     else
     {
-        player[index].ent->rush[1] = 0;
+        player[index].ent->rush.count.max = 0;
     }
 
     memset(player[index].combokey, 0, sizeof(*player[index].combokey)*MAX_SPECIAL_INPUTS);
@@ -29270,7 +29270,7 @@ int playlevel(char *filename)
             player[i].joining = 0;
             player[i].hasplayed = 1;
             spawnplayer(i);
-            player[i].ent->rush[1] = 0;
+            player[i].ent->rush.count.max = 0;
         }
     }
 
@@ -29310,7 +29310,7 @@ int playlevel(char *filename)
     {
         if(player[i].ent)
         {
-            nomaxrushreset[i] = player[i].ent->rush[1];
+            nomaxrushreset[i] = player[i].ent->rush.count.max;
             player[i].spawnhealth = player[i].ent->health;
             player[i].spawnmp = player[i].ent->mp;
         }

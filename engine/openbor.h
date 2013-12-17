@@ -1348,6 +1348,18 @@ typedef struct
     s_axis_i offset;        //x,y,z offset.
 } s_bind;
 
+typedef struct
+{
+    /*
+    Rush combo struct.
+    Damon V. Caskey
+    2013-12-17
+    */
+
+    s_metric_i count;   //Hits counter.
+    u32 time;           //Time to perform combo.
+} s_rush;
+
 typedef struct entity
 {
     int spawntype; // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
@@ -1418,7 +1430,6 @@ typedef struct entity
     u32 pausetime; // 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box.
     u32 mpchargetime; // For the CHARGE animation
     u32 sleeptime; // For the SLEEP animation
-    u32 rushtime; // rush combo timer
     u32 knockdowntime; // count knock down hit
     u32 invinctime; // Used to set time for invincibility to expire
     u32 turntime;
@@ -1485,7 +1496,7 @@ typedef struct entity
     struct entity *landed_on_platform;
     s_bind binding;
     int escapecount; // For escapehits
-    unsigned rush[2]; // rush combo and max combo
+    s_rush rush;
     int lifespancountdown; // life span count down
 
     //------------- copy them from model to avoid global effect -------------
