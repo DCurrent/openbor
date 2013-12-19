@@ -130,7 +130,7 @@ const s_attack emptyattack =
     0, //freezetime
     0, //maptime;
     0, //sealtime;
-    0, //dot
+    _dot_mode_hp, //dot
     0, //dot_index
     0, //dot_time
     0, //dot_force
@@ -17612,7 +17612,7 @@ void common_dot()
     int         iFForce;    //Final force; total damage after defense and offense factors are applied.
     int         iType;      //Attack type.
     int         iIndex;     //Dot index.
-    int         iDot;       //Dot mode.
+    e_dot_mode  iDot;       //Dot mode.
     int         iDot_time;  //Dot expire time.
     int         iDot_cnt;   //Dot next tick time.
     int         iDot_rate;  //Dot tick rate.
@@ -17646,7 +17646,10 @@ void common_dot()
                 iDot    =   self->dot[iIndex];                                                  //Get dot mode.
                 iForce  =   self->dot_force[iIndex];                                            //Get dot force.
 
-                if(iDot == 1 || iDot == 3 || iDot == 4 || iDot == 5)                            //HP?
+                if(iDot == _dot_mode_hp
+                    || iDot == _dot_mode_hp_mp
+                    || iDot == _dot_mode_non_lethal_hp
+                    || iDot == _dot_mode_non_lethal_hp_mp)                            //HP?
                 {
                     eOpp        = self->dot_owner[iIndex];                                      //Get dot effect owner.
                     iType       = self->dot_atk[iIndex];                                        //Get attack type.
@@ -17663,11 +17666,11 @@ void common_dot()
                         iFForce = (int)(iFForce * fDefense);       //Apply defense factors.
                     }
 
-                    if(iFForce >= self->health && (iDot == 4 || iDot == 5))                     //Total force lethal?
+                    if(iFForce >= self->health && (iDot == 4 || iDot == 5))                    //Total force lethal?
                     {
-                        attack              = emptyattack;                                      //Clear struct.
-                        attack.attack_type  = iType;                                            //Set type.
-                        attack.attack_force = iForce;                                           //Set force. Use unmodified force here; takedamage applys damage mitigation.
+                        attack              = emptyattack;                                     //Clear struct.
+                        attack.attack_type  = iType;                                           //Set type.
+                        attack.attack_force = iForce;                                          //Set force. Use unmodified force here; takedamage applys damage mitigation.
                         attack.dropv.y     = default_model_dropv.y;                           //Apply drop Y.
                         attack.dropv.x     = default_model_dropv.x;                           //Apply drop X
                         attack.dropv.z     = default_model_dropv.z;                           //Apply drop Z
@@ -17695,7 +17698,10 @@ void common_dot()
                     }
                 }
 
-                if(iDot == 2 || iDot == 3 || iDot == 5)                                         //MP?
+                /* Drain MP ? */
+                if(iDot == _dot_mode_mp
+                   || iDot == _dot_mode_hp_mp
+                   || iDot == _dot_mode_non_lethal_hp_mp)
                 {
                     self->mp -= iForce;                                                         //Subtract force from MP.
                     if(self->mp < 0)

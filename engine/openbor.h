@@ -1371,6 +1371,15 @@ typedef enum
   _direction_right
 } e_direction;
 
+typedef enum
+{
+    _dot_mode_non_lethal_hp,    //Drain HP, but do not kill entity.
+    _dot_mode_mp,               //Drain mp.
+    _dot_mode_non_lethal_hp_mp, //Drain HP and MP, but do not kill entity.
+    _dot_mode_hp,               //Drain HP.
+    _dot_mode_hp_mp             //Drain HP and MP.
+} e_dot_mode;
+
 typedef struct entity
 {
     int spawntype; // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
