@@ -17279,9 +17279,8 @@ void adjust_base(entity *e, entity **pla)
             {
                 self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase);
             }
-            else if(self->animation != self->modeldata.animation[ANI_VAULT] && (!self->animation->movea || self->animation->movea[self->animpos] == 0))
+            else if(!self->animation->movea || self->animation->movea[self->animpos] == 0)
             {
-                // Don't want to adjust the base if vaulting
                 // No obstacle/wall or seta, so just set to 0
                 self->base = 0;
             }
@@ -19666,29 +19665,6 @@ void dograbattack(int which)
     }
 }
 
-void dovault()
-{
-    int heightvar;
-    entity *other = self->link;
-    self->takeaction = common_vault;
-    self->link->velocity.x = self->link->velocity.z = self->velocity.x = self->velocity.z = 0;
-
-    self->attacking = 1;
-    self->position.x = other->position.x;
-
-    if(other->animation->height)
-    {
-        heightvar = other->animation->height;
-    }
-    else
-    {
-        heightvar = other->modeldata.height;
-    }
-
-    self->base = other->base + heightvar;
-    ent_set_anim(self, ANI_VAULT, 0);
-}
-
 void common_grab_check()
 {
     int rnum, which;
@@ -19756,12 +19732,6 @@ void common_grab_check()
     if(rnum > 12 && validanim(self, grab_attacks[which][0]))
     {
         dograbattack(which);
-        return;
-    }
-    // Vaulting.
-    if(rnum < 8 && validanim(self, ANI_VAULT))
-    {
-        dovault();
         return;
     }
 }
@@ -24070,40 +24040,6 @@ void common_grabattack()
     }
 }
 
-// The vault.
-void common_vault()
-{
-    if(!self->link)
-    {
-        self->takeaction = NULL;
-        set_idle(self);
-        return;
-    }
-    if(!self->animating)
-    {
-        self->takeaction = common_grab;
-        self->link->takeaction = common_grabbed;
-        self->attacking = 0;
-        self->direction = direction_flip(self->direction);
-        self->position.y = self->base = self->link->base;
-
-        if(self->direction == _direction_right)
-        {
-            self->position.x = self->link->position.x - self->modeldata.grabdistance;
-        }
-        else
-        {
-            self->position.x = self->link->position.x + self->modeldata.grabdistance;
-        }
-
-        ent_set_anim(self, ANI_GRAB, 0);
-        set_pain(self->link, -1, 0);
-        update_frame(self, self->animation->numframes - 1);
-        update_frame(self->link, self->link->animation->numframes - 1);
-        return;
-    }
-}
-
 // Function that causes the player to continue to move up or down until the animation has finished playing
 void common_dodge()    // New function so players can dodge with up up or down down
 {
@@ -24555,12 +24491,7 @@ void player_grab_check()
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
         dograbattack(0);
     }
-    // Vaulting.
-    else if((player[self->playerindex].playkeys & FLAG_JUMP) && validanim(self, ANI_VAULT))
-    {
-        player[self->playerindex].playkeys &= ~FLAG_JUMP;
-        dovault();
-    }
+
     // grab attack finisher
     else if(player[self->playerindex].playkeys & (FLAG_JUMP | FLAG_ATTACK))
     {
