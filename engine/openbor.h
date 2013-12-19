@@ -2019,7 +2019,6 @@ void common_fall();
 void common_lie();
 void common_rise();
 void common_pain();
-void common_vault();
 void common_get();
 void common_land();
 void common_grab(void);
