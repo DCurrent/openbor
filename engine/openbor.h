@@ -117,33 +117,51 @@
 #define		SDID_SCREENSHOT		11
 #define		SDID_ESC			12
 
-#define		TYPE_NONE			0
-#define		TYPE_PLAYER			1
-#define		TYPE_ENEMY			2
-#define		TYPE_ITEM			4
-#define		TYPE_OBSTACLE		8
-#define		TYPE_STEAMER		16
-#define		TYPE_SHOT			32					// 7-1-2005 type to use for player projectiles
-#define		TYPE_TRAP			64					// 7-1-2005 lets face it enemies are going to just let you storm in without setting a trap or two!
-#define		TYPE_TEXTBOX		128					// New textbox type for displaying messages
-#define		TYPE_ENDLEVEL		256					// New endlevel type that ends the level when touched
-#define     TYPE_NPC            512                 // A character can be an ally or enemy.
-#define     TYPE_PANEL          1024                // Fake panel, scroll with screen using model speed
-#define		TYPE_MAX			TYPE_PANEL			// For openbor constant check and type hack (i.e., custom hostile and candamage)
-#define	    TYPE_RESERVED       0x40000000			// should not use as a type
+typedef enum
+{
+    /*
+    Entity type enumerator.
+    Damon V. Caskey
+    2013-12-27
+    */
 
-#define		SUBTYPE_NONE		0
-#define		SUBTYPE_BIKER		1
-#define		SUBTYPE_NOTGRAB		2					//7-1-2005 new subtype for those ungrabbable enemies
-#define		SUBTYPE_ARROW		3					//7-1-2005  subtype for an "enemy" that flies across the screen and dies
-#define		SUBTYPE_TOUCH		4					// ltb 1-18-05  new Item subtype for a more platformer feel.
-#define		SUBTYPE_WEAPON		5
-#define		SUBTYPE_NOSKIP		6					// Text type that can't be skipped
-#define		SUBTYPE_FLYDIE		7					// Now obstacles can be hit and fly like on Simpsons/TMNT
-#define		SUBTYPE_BOTH		8					// Used with TYPE_ENDLEVEL to force both players to reach the point before ending level
-#define		SUBTYPE_PROJECTILE	9					// New weapon projectile type that can be picked up by players/enemies
-#define     SUBTYPE_FOLLOW      10                  // Used by NPC character, if set, they will try to follow players
-#define     SUBTYPE_CHASE       11                  // Used by enemy always chasing you
+    TYPE_NONE,
+    TYPE_PLAYER,
+    TYPE_ENEMY,
+    TYPE_ITEM       = 4,
+    TYPE_OBSTACLE	= 8,
+    TYPE_STEAMER	= 16,
+    TYPE_SHOT		= 32,			// 7-1-2005 type to use for player projectiles
+    TYPE_TRAP		= 64,			// 7-1-2005 lets face it enemies are going to just let you storm in without setting a trap or two!
+    TYPE_TEXTBOX    = 128,			// New textbox type for displaying messages
+    TYPE_ENDLEVEL   = 256,			// New endlevel type that ends the level when touched
+    TYPE_NPC        = 512,          // A character can be an ally or enemy.
+    TYPE_PANEL      = 1024,         // Fake panel, scroll with screen using model speed
+    TYPE_MAX		= TYPE_PANEL,	// For openbor constant check and type hack (i.e., custom hostile and candamage)
+    TYPE_RESERVED   = 0x40000000    // should not use as a type
+} e_entity_type;
+
+typedef enum
+{
+    /*
+    Entity subtype enumerator.
+    Damon V. Caskey
+    2013-12-27
+    */
+
+    SUBTYPE_NONE,
+    SUBTYPE_BIKER,
+    SUBTYPE_NOTGRAB,
+    SUBTYPE_ARROW,		//7-1-2005  subtype for an "enemy" that flies across the screen and dies
+    SUBTYPE_TOUCH,		// ltb 1-18-05  new Item subtype for a more platformer feel.
+    SUBTYPE_WEAPON,
+    SUBTYPE_NOSKIP,		// Text type that can't be skipped
+    SUBTYPE_FLYDIE,		// Now obstacles can be hit and fly like on Simpsons/TMNT
+    SUBTYPE_BOTH,		// Used with TYPE_ENDLEVEL to force both players to reach the point before ending level
+    SUBTYPE_PROJECTILE, // New weapon projectile type that can be picked up by players/enemies
+    SUBTYPE_FOLLOW,     // Used by NPC character, if set, they will try to follow players
+    SUBTYPE_CHASE       // Used by enemy always chasing you
+} e_entity_type_sub;
 
 //------------reserved for A.I. types-------------------------
 //  A.I. move1, affect movement path
@@ -1199,8 +1217,8 @@ typedef struct
     int ground; // Flag to determine if enemy projectiles only hit the enemy when hitting the ground
     int multiple; // So you can control how many points are given for hitting opponents
     int bounce; // Flag to determine if bounce/quake is to be used.
-    int type;
-    int subtype;
+    e_entity_type type;
+    e_entity_type_sub subtype;
     s_icon icon; //In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct.
     int parrow[MAX_PLAYERS][3]; // Image to be displayed when player spawns invincible
     int setlayer; // Used for forcing enities to be displayed behind
