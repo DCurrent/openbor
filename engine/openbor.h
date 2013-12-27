@@ -207,8 +207,6 @@
 #define		GRAB_DIST			36					// Grabbing ents will be placed this far apart.
 #define		GRAB_STALL			(GAME_SPEED * 8 / 10)
 
-
-
 #define		ATK_NORMAL			0
 #define		ATK_NORMAL1			ATK_NORMAL			// making naming rules easier
 #define		ATK_NORMAL2			1
@@ -317,106 +315,105 @@
 #define		ANI_CANT			61  				// Can't animation for players(animation when mp is less than mpcost) by tails.
 #define		ANI_THROWATTACK		62					// Added for subtype projectile
 #define		ANI_CHARGEATTACK	63                  // Plays when player releases attack1 after holding >= chargetime.
-#define		ANI_VAULT			64  				// Now you can flip over people like in SOR.
-#define		ANI_JUMPCANT		65
-#define		ANI_JUMPSPECIAL		66
-#define		ANI_BURNDIE			67
-#define		ANI_SHOCKDIE		68
-#define		ANI_PAIN2			69
-#define		ANI_PAIN3			70
-#define		ANI_PAIN4			71
-#define		ANI_FALL2			72
-#define		ANI_FALL3			73
-#define		ANI_FALL4			74
-#define		ANI_DIE2			75
-#define		ANI_DIE3			76
-#define		ANI_DIE4			77
-#define		ANI_CHARGE			78
-#define		ANI_BACKWALK		79
-#define		ANI_SLEEP			80
-#define		ANI_FOLLOW1			81
-#define		ANI_FOLLOW2			82
-#define		ANI_FOLLOW3			83
-#define		ANI_FOLLOW4			84
-#define		ANI_PAIN5			85
-#define		ANI_PAIN6			86
-#define		ANI_PAIN7			87
-#define		ANI_PAIN8			88
-#define		ANI_PAIN9			89
-#define		ANI_PAIN10			90
-#define		ANI_FALL5			91
-#define		ANI_FALL6			92
-#define		ANI_FALL7			93
-#define		ANI_FALL8			94
-#define		ANI_FALL9			95
-#define		ANI_FALL10			96
-#define		ANI_DIE5			97
-#define		ANI_DIE6			98
-#define		ANI_DIE7			99
-#define		ANI_DIE8			100
-#define		ANI_DIE9			101
-#define		ANI_DIE10			102
-#define     ANI_TURN            103   // turn back/flip
-#define     ANI_RESPAWN         104    //now spawn works for players
-#define     ANI_FORWARDJUMP     105
-#define     ANI_RUNJUMP         106
-#define     ANI_JUMPLAND        107
-#define     ANI_JUMPDELAY       108
-#define     ANI_HITWALL         109
-#define     ANI_GRABBACKWARD    110
-#define     ANI_GRABBACKWARD2   111
-#define     ANI_GRABWALK        112
-#define     ANI_GRABBEDWALK     113
-#define     ANI_GRABWALKUP      114
-#define     ANI_GRABBEDWALKUP   115
-#define     ANI_GRABWALKDOWN    116
-#define     ANI_GRABBEDWALKDOWN 117
-#define     ANI_GRABTURN        118
-#define     ANI_GRABBEDTURN     119
-#define     ANI_GRABBACKWALK    120
-#define     ANI_GRABBEDBACKWALK 121
-#define     ANI_SLIDE           122    //Down + Jump animation.
-#define     ANI_RUNSLIDE        123    //Down + Jump while running.
-#define     ANI_BLOCKPAIN       124    //If entity has this, it will play in place of "pain" when it's blokcpain is 1 and incomming attack is blocked.
-#define     ANI_DUCKATTACK      125
-#define		ANI_RISE2			126
-#define		ANI_RISE3			127
-#define		ANI_RISE4			128
-#define		ANI_RISE5			129
-#define		ANI_RISE6			130
-#define		ANI_RISE7			131
-#define		ANI_RISE8			132
-#define		ANI_RISE9			133
-#define		ANI_RISE10			134
-#define		ANI_RISEB			135
-#define		ANI_RISES			136
-#define		ANI_BLOCKPAIN2		137
-#define		ANI_BLOCKPAIN3		138
-#define		ANI_BLOCKPAIN4		139
-#define		ANI_BLOCKPAIN5		140
-#define		ANI_BLOCKPAIN6		141
-#define		ANI_BLOCKPAIN7		142
-#define		ANI_BLOCKPAIN8		143
-#define		ANI_BLOCKPAIN9		144
-#define		ANI_BLOCKPAIN10		145
-#define		ANI_BLOCKPAINB		146
-#define		ANI_BLOCKPAINS		147
-#define     ANI_CHIPDEATH       148
-#define     ANI_GUARDBREAK      149
-#define		ANI_RISEATTACK2	    150
-#define		ANI_RISEATTACK3		151
-#define		ANI_RISEATTACK4		152
-#define		ANI_RISEATTACK5		153
-#define		ANI_RISEATTACK6		154
-#define		ANI_RISEATTACK7		155
-#define		ANI_RISEATTACK8		156
-#define		ANI_RISEATTACK9		157
-#define		ANI_RISEATTACK10	158
-#define		ANI_RISEATTACKB		159
-#define		ANI_RISEATTACKS		160
-#define		ANI_WALKOFF			161
+#define		ANI_JUMPCANT		64
+#define		ANI_JUMPSPECIAL		65
+#define		ANI_BURNDIE			66
+#define		ANI_SHOCKDIE		67
+#define		ANI_PAIN2			68
+#define		ANI_PAIN3			69
+#define		ANI_PAIN4			70
+#define		ANI_FALL2			71
+#define		ANI_FALL3			72
+#define		ANI_FALL4			73
+#define		ANI_DIE2			74
+#define		ANI_DIE3			75
+#define		ANI_DIE4			76
+#define		ANI_CHARGE			77
+#define		ANI_BACKWALK		78
+#define		ANI_SLEEP			79
+#define		ANI_FOLLOW1			80
+#define		ANI_FOLLOW2			81
+#define		ANI_FOLLOW3			82
+#define		ANI_FOLLOW4			83
+#define		ANI_PAIN5			84
+#define		ANI_PAIN6			85
+#define		ANI_PAIN7			86
+#define		ANI_PAIN8			87
+#define		ANI_PAIN9			88
+#define		ANI_PAIN10			89
+#define		ANI_FALL5			90
+#define		ANI_FALL6			91
+#define		ANI_FALL7			92
+#define		ANI_FALL8			93
+#define		ANI_FALL9			94
+#define		ANI_FALL10			95
+#define		ANI_DIE5			96
+#define		ANI_DIE6			97
+#define		ANI_DIE7			98
+#define		ANI_DIE8			99
+#define		ANI_DIE9			100
+#define		ANI_DIE10			101
+#define     ANI_TURN            102   // turn back/flip
+#define     ANI_RESPAWN         103    //now spawn works for players
+#define     ANI_FORWARDJUMP     104
+#define     ANI_RUNJUMP         105
+#define     ANI_JUMPLAND        106
+#define     ANI_JUMPDELAY       107
+#define     ANI_HITWALL         108
+#define     ANI_GRABBACKWARD    109
+#define     ANI_GRABBACKWARD2   110
+#define     ANI_GRABWALK        111
+#define     ANI_GRABBEDWALK     112
+#define     ANI_GRABWALKUP      113
+#define     ANI_GRABBEDWALKUP   114
+#define     ANI_GRABWALKDOWN    115
+#define     ANI_GRABBEDWALKDOWN 116
+#define     ANI_GRABTURN        117
+#define     ANI_GRABBEDTURN     118
+#define     ANI_GRABBACKWALK    119
+#define     ANI_GRABBEDBACKWALK 120
+#define     ANI_SLIDE           121    //Down + Jump animation.
+#define     ANI_RUNSLIDE        122    //Down + Jump while running.
+#define     ANI_BLOCKPAIN       123    //If entity has this, it will play in place of "pain" when it's blokcpain is 1 and incomming attack is blocked.
+#define     ANI_DUCKATTACK      124
+#define		ANI_RISE2			125
+#define		ANI_RISE3			126
+#define		ANI_RISE4			127
+#define		ANI_RISE5			128
+#define		ANI_RISE6			129
+#define		ANI_RISE7			130
+#define		ANI_RISE8			131
+#define		ANI_RISE9			132
+#define		ANI_RISE10			133
+#define		ANI_RISEB			134
+#define		ANI_RISES			135
+#define		ANI_BLOCKPAIN2		136
+#define		ANI_BLOCKPAIN3		137
+#define		ANI_BLOCKPAIN4		138
+#define		ANI_BLOCKPAIN5		139
+#define		ANI_BLOCKPAIN6		140
+#define		ANI_BLOCKPAIN7		141
+#define		ANI_BLOCKPAIN8		142
+#define		ANI_BLOCKPAIN9		143
+#define		ANI_BLOCKPAIN10		144
+#define		ANI_BLOCKPAINB		145
+#define		ANI_BLOCKPAINS		146
+#define     ANI_CHIPDEATH       147
+#define     ANI_GUARDBREAK      148
+#define		ANI_RISEATTACK2	    149
+#define		ANI_RISEATTACK3		150
+#define		ANI_RISEATTACK4		151
+#define		ANI_RISEATTACK5		152
+#define		ANI_RISEATTACK6		153
+#define		ANI_RISEATTACK7		154
+#define		ANI_RISEATTACK8		155
+#define		ANI_RISEATTACK9		156
+#define		ANI_RISEATTACK10	157
+#define		ANI_RISEATTACKB		158
+#define		ANI_RISEATTACKS		159
+#define		ANI_WALKOFF			160
 
-#define		MAX_ANIS			162    // max_anis increased for new ANIs
+#define		MAX_ANIS			161    // max_anis increased for new ANIs
 
 #define     ARG_FLOAT            0
 #define     ARG_STRING           1
@@ -586,6 +583,34 @@ if(n<1) n = 1;
 
 #pragma pack (4)
 
+typedef enum
+{
+    /*
+    Direction (facing) enum.
+    Damon V. Caskey
+    2013-12-16
+    */
+
+  _direction_left,
+  _direction_right
+} e_direction;
+
+typedef enum
+{
+    /*
+    Damage over time mode enum.
+    Damon V. Caskey
+    2013-12-27
+    */
+
+    _dot_mode_off,              //Disable.
+    _dot_mode_hp,               //Drain HP.
+    _dot_mode_hp_mp,            //Drain HP and MP.
+    _dot_mode_mp,               //Drain mp.
+    _dot_mode_non_lethal_hp,    //Drain HP, but do not kill entity.
+    _dot_mode_non_lethal_hp_mp  //Drain HP and MP, but do not kill entity.
+} e_dot_mode;
+
 typedef struct
 {
     /*
@@ -633,6 +658,7 @@ typedef struct
     Damon V. Caskey
     2013-12-15
     */
+
     int type;           //Attack type of last hit.
     s_axis_f position;  //X,Y,Z of last hit.
     int confirm;        //Will engine's default hit handling be used?
@@ -727,7 +753,7 @@ typedef struct
 
     struct s_attack *attack;    //Attack data.
     int index;                  //Index (for multiple dots on single target).
-    int mode;                   //Dot mode.
+    e_dot_mode mode;            //Dot mode.
     struct entity *owner;       //Entity causing dot effect.
     int rate;                   //Dot tick delay.
     u32 time_expire;            //Time to expire.
@@ -756,12 +782,12 @@ typedef struct
     int force_direction; // 0 dont care, 1 same direction as attacker, -1 opposite drection as attacker, 2 right, -2 left
     int forcemap;
     int seal;
-    int freezetime;
-    int maptime;
-    int sealtime;
-    int dot; //Dot mode.
+    u32 freezetime;
+    u32 maptime;
+    u32 sealtime;
+    e_dot_mode dot; //Dot mode.
     int dot_index; //Dot index.
-    int dot_time; //Dot time to expire.
+    u32 dot_time; //Dot time to expire.
     int dot_force; //Dot amount per tick.
     int dot_rate; //Dot tick delay.
     int otg; // Over The Ground. Gives ground projectiles the ability to hit lying ents.
@@ -772,7 +798,7 @@ typedef struct
     int damage_on_landing; // same as throw damage type
     float grab_distance; // suck target near by
     int pause_add; // Flag to determine if an attack adds a pause before updating the animation
-    int pain_time; // pain invincible time
+    u32 pain_time; // pain invincible time
 } s_attack;
 
 typedef enum
@@ -1360,26 +1386,6 @@ typedef struct
     u32 time;           //Time to perform combo.
 } s_rush;
 
-typedef enum
-{
-    /*
-    Direction (facing) enum.
-    2013-12-16
-    */
-
-  _direction_left,
-  _direction_right
-} e_direction;
-
-typedef enum
-{
-    _dot_mode_non_lethal_hp,    //Drain HP, but do not kill entity.
-    _dot_mode_mp,               //Drain mp.
-    _dot_mode_non_lethal_hp_mp, //Drain HP and MP, but do not kill entity.
-    _dot_mode_hp,               //Drain HP.
-    _dot_mode_hp_mp             //Drain HP and MP.
-} e_dot_mode;
-
 typedef struct entity
 {
     int spawntype; // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
@@ -1691,8 +1697,8 @@ typedef struct
     */
 
     int font;           //Font index.
-    s_axis_i position;    //x,y,a location on screen.
-    int time;           //Time to expire.
+    s_axis_i position;  //x,y,a location on screen.
+    u32 time;           //Time to expire.
     char *text;         //Text to display.
 } s_textobj;
 
@@ -2135,7 +2141,6 @@ void soundcard_options();
 void openborMain(int argc, char **argv);
 int getValidInt(char *text, char *file, char *cmd);
 float getValidFloat(char *text, char *file, char *cmd);
-int direction_flip(e_direction direction);
 
 
 extern s_savedata     savedata;

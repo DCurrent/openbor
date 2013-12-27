@@ -130,7 +130,7 @@ const s_attack emptyattack =
     0, //freezetime
     0, //maptime;
     0, //sealtime;
-    _dot_mode_hp, //dot
+    _dot_mode_off, //dot
     0, //dot_index
     0, //dot_time
     0, //dot_force
@@ -6266,10 +6266,6 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "chargeattack") == 0)
     {
         ani_id = ANI_CHARGEATTACK;
-    }
-    else if(stricmp(value, "vault") == 0)
-    {
-        ani_id = ANI_VAULT;
     }
     else if(stricmp(value, "turn") == 0)
     {
@@ -14890,7 +14886,7 @@ void update_frame(entity *ent, int f)
 
     if(anim->flipframe == f)
     {
-        self->direction = direction_flip(self->direction);
+        self->direction = !self->direction;
     }
 
     if(anim->weaponframe && anim->weaponframe[0] == f)
@@ -16611,14 +16607,7 @@ void do_attack(entity *e)
                     {
                         if(flash->modeldata.toflip)
                         {
-                            if(e->position.x > self->position.x)
-                            {
-                                flash->direction = _direction_right;
-                            }
-                            else
-                            {
-                                flash->direction = _direction_left;
-                            }
+                            flash->direction = (e->position.x > self->position.x);    // Now the flash will flip depending on which side the attacker is on
                         }
 
                         flash->base = lasthit.position.y;
@@ -17665,11 +17654,11 @@ void common_dot()
                         iFForce = (int)(iFForce * fDefense);       //Apply defense factors.
                     }
 
-                    if(iFForce >= self->health && (iDot == 4 || iDot == 5))                    //Total force lethal?
+                    if(iFForce >= self->health && (iDot == 4 || iDot == 5))                     //Total force lethal?
                     {
-                        attack              = emptyattack;                                     //Clear struct.
-                        attack.attack_type  = iType;                                           //Set type.
-                        attack.attack_force = iForce;                                          //Set force. Use unmodified force here; takedamage applys damage mitigation.
+                        attack              = emptyattack;                                      //Clear struct.
+                        attack.attack_type  = iType;                                            //Set type.
+                        attack.attack_force = iForce;                                           //Set force. Use unmodified force here; takedamage applys damage mitigation.
                         attack.dropv.y     = default_model_dropv.y;                           //Apply drop Y.
                         attack.dropv.x     = default_model_dropv.x;                           //Apply drop X
                         attack.dropv.z     = default_model_dropv.z;                           //Apply drop Z
@@ -17761,10 +17750,8 @@ void adjust_bind(entity *e)
         }
         break;
     case -1:
-
-        e->binding.ent->direction = direction_flip(e->direction);
-
-        if(e->binding.ent->direction)
+        e->direction = !e->binding.ent->direction;
+        if(e->binding.ent->direction == _direction_right)
         {
             e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         }
@@ -17787,6 +17774,7 @@ void adjust_bind(entity *e)
         // the default is no change :), just give a value of 12345 or so
     }
 }
+
 
 void check_move(entity *e)
 {
@@ -18344,9 +18332,7 @@ void display_ents()
                         }
                         shadowmethod = plainmethod;
                         shadowmethod.alpha = BLEND_MULTIPLY + 1;
-
-                        shadowmethod.flipx = e->direction == _direction_left ? 0 : 1 ;
-
+                        shadowmethod.flipx = !e->direction;
                         spriteq_add_sprite(qx, qy, z, shadowsprites[useshadow - 1], &shadowmethod, 0);
                         if(use_mirror)
                         {
@@ -19041,7 +19027,7 @@ entity *normal_find_target(int anim, int iDetect)
 
             if(index < 0 || (index >= 0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1)) ||
                     (
-                        ((self->position.x < ent_list[i]->position.x && self->direction == _direction_right) ||  (self->position.x > ent_list[i]->position.x && self->direction == _direction_left)) && // don't turn to the one on the back
+                        (self->position.x < ent_list[i]->position.x) == (self->direction == _direction_right) && // don't turn to the one on the back
                         //ent_list[i]->x >= advancex-10 && ent_list[i]->x<advancex+videomodes.hRes+10 && // don't turn to an offscreen target
                         //ent_list[i]->z >= advancey-10 && ent_list[i]->z<advancey+videomodes.vRes+10 &&
                         diffd < diffo
@@ -19186,14 +19172,7 @@ void normal_prepare()
     //check if target is behind, so we can perform a turn back animation
     if(!self->modeldata.noflip)
     {
-        if(self->position.x < target->position.x)
-        {
-            self->direction = _direction_right;
-        }
-        else
-        {
-            self->direction = _direction_left;
-        }
+        self->direction = (self->position.x < target->position.x);
     }
     if(predir != self->direction && validanim(self, ANI_TURN))
 
@@ -19406,7 +19385,7 @@ void common_turn()
     {
         self->takeaction = NULL;
         self->velocity.x = self->velocity.z = 0;
-        self->direction = direction_flip(self->direction);
+        self->direction = !self->direction;
         set_idle(self);
     }
 }
@@ -19421,7 +19400,7 @@ void doland()
     if(validanim(self, ANI_LAND))
     {
         self->takeaction = common_land;
-        self->direction = direction_flip(self->direction);
+        self->direction = !self->direction;
         ent_set_anim(self, ANI_LAND, 0);
     }
     else
@@ -19486,23 +19465,14 @@ void common_try_riseattack()
     target = normal_find_target(ANI_RISEATTACK, 0);
     if(!target)
     {
-        self->direction = direction_flip(self->direction);
+        self->direction = !self->direction;
         target = normal_find_target(ANI_RISEATTACK, 0);
-        self->direction = direction_flip(self->direction);
+        self->direction = !self->direction;
     }
 
     if(target)
     {
-        // Stands up and swings in the right direction depending on chosen target
-        if(target->position.x > self->position.x)
-        {
-            self->direction = _direction_right;
-        }
-        else
-        {
-            self->direction = _direction_left;
-        }
-
+        self->direction = (target->position.x > self->position.x);    // Stands up and swings in the right direction depending on chosen target
         set_riseattack(self, self->damagetype, 0);
     }
 }
@@ -19971,7 +19941,7 @@ void checkdamageflip(entity *other, s_attack *attack)
         }
         else if(attack->force_direction == -1)
         {
-            self->direction = direction_flip(other->direction);
+            self->direction = !other->direction;
         }
         else if(attack->force_direction == 2)
         {
@@ -20987,14 +20957,7 @@ int trygrab(entity *other)
     {
         if(self->model->grabflip & 1)
         {
-            if(self->position.x < other->position.x)
-            {
-                self->direction = _direction_right;
-            }
-            else
-            {
-                self->direction = _direction_left;
-            }
+            self->direction = (self->position.x < other->position.x);
         }
 
         set_opponent(other, self);
@@ -21009,7 +20972,7 @@ int trygrab(entity *other)
         {
             if(self->model->grabflip & 2)
             {
-                other->direction = direction_flip(self->direction);
+                other->direction = !self->direction;
             }
             self->attacking = 0;
             memset(self->combostep, 0, 5 * sizeof(*self->combostep));
@@ -21030,7 +20993,7 @@ int trygrab(entity *other)
         {
             if(self->model->grabflip & 2)
             {
-                other->direction = direction_flip(self->direction);
+                other->direction = !self->direction;
             }
 
             other->takeaction = common_prethrow;
@@ -21299,7 +21262,7 @@ void common_runoff()
 
     if(!self->modeldata.noflip)
     {
-        self->direction = (self->position.x < target->position.x) ? _direction_right : _direction_left;
+        self->direction = (self->position.x < target->position.x);
     }
     if(self->direction == _direction_right)
     {
@@ -22597,7 +22560,7 @@ int common_try_wander(entity *target, int dox, int doz)
 
     diffx = diff(self->position.x, target->position.x);
     diffz = diff(self->position.z, target->position.z);
-    behind = ((self->position.x < target->position.x && target->direction == _direction_right) || (self->position.x > target->position.x && target->direction == _direction_left));
+    behind = ((self->position.x < target->position.x) == target->direction);
     grabd = self->modeldata.grabdistance;
     //when entity is behind the target, it has a greater chance to go after the target
     if(behind && diffx < grabd * 4 && diffz < grabd) //right behind, go for it
@@ -22828,9 +22791,9 @@ void common_pickupitem(entity *other)
 int biker_move()
 {
 
-    if((self->direction = _direction_right) ? (self->position.x > advancex + (videomodes.hRes + 200)) : (self->position.x < advancex - 200))
+    if((self->direction == _direction_right) ? (self->position.x > advancex + (videomodes.hRes + 200)) : (self->position.x < advancex - 200))
     {
-        self->direction = direction_flip(self->direction);
+        self->direction = !self->direction;
         self->attack_id = 0;
         self->position.z = (float)(PLAYER_MIN_Z + randf((float)(PLAYER_MAX_Z - PLAYER_MIN_Z)));
         if(SAMPLE_BIKE >= 0)
@@ -22868,14 +22831,7 @@ int arrow_move()
         {
             if(!self->modeldata.noflip)
             {
-                if(target->position.x > self->position.x)
-                {
-                    self->direction = _direction_right;
-                }
-                else
-                {
-                    self->direction = _direction_left;
-                }
+                self->direction = (target->position.x > self->position.x);
             }
             // start chasing the target
             dx = diff(self->position.x, target->position.x);
@@ -22908,7 +22864,7 @@ int arrow_move()
                 {
                     self->velocity.x = -self->modeldata.speed;
                 }
-                else
+                else if(self->direction == _direction_right)
                 {
                     self->velocity.x = self->modeldata.speed;
                 }
@@ -22941,7 +22897,7 @@ int arrow_move()
         {
             self->velocity.x = -self->modeldata.speed;
         }
-        else
+        else if(self->direction == _direction_right)
         {
             self->velocity.x = self->modeldata.speed;
         }
@@ -22962,7 +22918,7 @@ int arrow_move()
                 {
                     self->velocity.x = (float) - 1.2;
                 }
-                else
+                else if(self->direction == _direction_right)
                 {
                     self->velocity.x = (float)1.2;
                 }
@@ -22987,7 +22943,7 @@ int bomb_move()
         {
             self->velocity.x = -self->modeldata.speed;
         }
-        else
+        else if(self->direction == _direction_right)
         {
             self->velocity.x = self->modeldata.speed;
         }
@@ -23147,22 +23103,22 @@ int common_move()
         {
             if(other)   //try to pick up an item, if possible
             {
-                self->direction = (self->position.x < other->position.x) ? _direction_right : _direction_left;
+                self->direction = (self->position.x < other->position.x);
             }
             else if(target)
             {
-                self->direction = (self->position.x < target->position.x) ? _direction_right : _direction_left;
+                self->direction = (self->position.x < target->position.x);
             }
             else if(owner)
             {
-                self->direction = (self->position.x < owner->position.x) ? _direction_right : _direction_left;
+                self->direction = (self->position.x < owner->position.x);
             }
         }
         else if(aimove == AIMOVE1_WANDER)
         {
             if(self->velocity.x)
             {
-                self->direction = (self->velocity.x > 0) ? _direction_right : _direction_left;
+                self->direction = (self->velocity.x > 0);
             }
         }
 
@@ -23171,7 +23127,7 @@ int common_move()
         if(self->direction != predir && validanim(self, ANI_TURN))
         {
             self->takeaction = common_turn;
-            self->direction = direction_flip(self->direction);
+            self->direction = !self->direction;
             self->velocity.x = self->velocity.z = 0;
             ent_set_anim(self, ANI_TURN, 0);
             return 1;
@@ -23375,7 +23331,7 @@ int common_move()
             self->running = 0;
         }
 
-        if((self->direction == _direction_right && self->destx < self->position.x) || (self->direction == _direction_left && self->destx > self->position.x))
+        if(self->direction == (self->destx < self->position.x))
         {
             self->running = 0;
         }
@@ -24353,15 +24309,13 @@ void player_grab_check()
             {
                 self->direction = _direction_left;
                 other->direction = _direction_right;
-                other->position.x = self->position.x + (self->modeldata.grabdistance);
             }
             else
             {
                 self->direction = _direction_right;
                 other->direction = _direction_left;
-                other->position.x = self->position.x + (-self->modeldata.grabdistance);
             }
-
+            other->position.x = self->position.x + (((self->direction * 2) - 1) * self->modeldata.grabdistance);
             ent_set_anim(self, ANI_GRAB, 0);
             set_pain(other, -1, 0);
             update_frame(self, self->animation->numframes - 1);
@@ -24406,19 +24360,17 @@ void player_grab_check()
                 {
                     self->direction = _direction_left;
                     other->direction = _direction_right;
-                    other->position.x = self->position.x + self->modeldata.grabdistance;
                 }
                 else
                 {
                     self->direction = _direction_right;
                     other->direction = _direction_left;
-                    other->position.x = self->position.x + (-self->modeldata.grabdistance);
                 }
                 ent_set_anim(self, ANI_GRAB, 0);
                 set_pain(other, -1, 0);
                 update_frame(self, self->animation->numframes - 1);
                 update_frame(other, other->animation->numframes - 1);
-
+                other->position.x = self->position.x + (((self->direction * 2) - 1) * self->modeldata.grabdistance);
             }
         }
         else if(!validanim(self, ANI_GRABWALK) && time > self->releasetime)
@@ -24491,7 +24443,6 @@ void player_grab_check()
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
         dograbattack(0);
     }
-
     // grab attack finisher
     else if(player[self->playerindex].playkeys & (FLAG_JUMP | FLAG_ATTACK))
     {
@@ -25674,11 +25625,11 @@ void player_think()
         {
             if(self->modeldata.facing == 1 || level->facing == 1)
             {
-                bkwalk = (self->direction == _direction_right);
+                bkwalk = !self->direction;
             }
             else if(self->modeldata.facing == 2 || level->facing == 2)
             {
-                bkwalk = (self->direction == _direction_left);
+                bkwalk = self->direction;
             }
             else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_LEFT) && self->direction == _direction_left)
             {
@@ -32465,26 +32416,6 @@ void openborMain(int argc, char **argv)
         update(0, 0);
     }
     shutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
-}
-
-int direction_flip(e_direction direction)
-{
-    /*
-    Return opposite direction of passed parameter.
-    Damon V. Caskey
-    2012-12-16
-
-    direction: Direction to return opposite of.
-    */
-
-    int result = _direction_left;
-
-    if(direction == _direction_left)
-    {
-        result = _direction_right;
-    }
-
-    return result;
 }
 
 #undef GET_ARG
