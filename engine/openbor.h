@@ -207,29 +207,38 @@
 #define		GRAB_DIST			36					// Grabbing ents will be placed this far apart.
 #define		GRAB_STALL			(GAME_SPEED * 8 / 10)
 
-#define		ATK_NORMAL			0
-#define		ATK_NORMAL1			ATK_NORMAL			// making naming rules easier
-#define		ATK_NORMAL2			1
-#define		ATK_NORMAL3			2
-#define		ATK_NORMAL4			3
-#define		ATK_BLAST			4
-#define		ATK_BURN			5
-#define		ATK_FREEZE			6
-#define		ATK_SHOCK			7
-#define		ATK_STEAL			8					// Steal opponents life
-#define		ATK_NORMAL5			9
-#define		ATK_NORMAL6			10
-#define		ATK_NORMAL7			11
-#define		ATK_NORMAL8			12
-#define		ATK_NORMAL9			13
-#define		ATK_NORMAL10		14
-#define		ATK_ITEM		    15
-#define     ATK_LAND            16
-#define     ATK_PIT             17
-#define     ATK_LIFESPAN        18
-#define     ATK_TIMEOVER        19
+typedef enum
+{
+    /*
+    Attack type enum
+    Damon V. Caskey
+    2013-12-27
+    */
 
-#define     MAX_ATKS            20                // default max attack types
+    ATK_NORMAL,
+    ATK_NORMAL1			= ATK_NORMAL,
+    ATK_NORMAL2,
+    ATK_NORMAL3,
+    ATK_NORMAL4,
+    ATK_BLAST,
+    ATK_BURN,
+    ATK_FREEZE,
+    ATK_SHOCK,
+    ATK_STEAL,
+    ATK_NORMAL5,
+    ATK_NORMAL6,
+    ATK_NORMAL7,
+    ATK_NORMAL8,
+    ATK_NORMAL9,
+    ATK_NORMAL10,
+    ATK_ITEM,
+    ATK_LAND,
+    ATK_PIT,
+    ATK_LIFESPAN,
+    ATK_TIMEOVER,
+    MAX_ATKS                //Default max attack types (must be last item in enum to get correct value)
+} e_attack_types;
+
 #define     STA_ATKS            (MAX_ATKS-10)     // default special attack types than normal#
 #define     MAX_DOTS            10                // Max active dot effects.
 
