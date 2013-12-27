@@ -9731,6 +9731,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     {
         switch (newchar->type)
         {
+        default:
+            //Do nothing.
+            break;
         case TYPE_ENEMY:
             newchar->hostile = TYPE_PLAYER ;
             break;
@@ -9755,6 +9758,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     {
         switch (newchar->type)
         {
+        default:
+            //Do nothing.
+            break;
         case TYPE_ENEMY:
             newchar->candamage = TYPE_PLAYER | TYPE_SHOT;
             if(newchar->subtype == SUBTYPE_ARROW)
@@ -9786,6 +9792,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     {
         switch (newchar->type)
         {
+        default:
+            //Do nothing.
+            break;
         case TYPE_ENEMY:
             newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
             break;
@@ -14444,6 +14453,9 @@ void ent_default_init(entity *e)
 
     switch(e->modeldata.type)
     {
+    case TYPE_RESERVED:
+        //Do nothing.
+        break;
     case TYPE_ENDLEVEL:
     case TYPE_ITEM:
         e->nograb = 1;
