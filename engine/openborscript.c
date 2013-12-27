@@ -3875,7 +3875,6 @@ enum cep_takeaction_enum
     _ep_ta_common_rise,
     _ep_ta_common_spawn,
     _ep_ta_common_turn,
-    _ep_ta_common_vault,
     _ep_ta_normal_prepare,
     _ep_ta_npc_warp,
     _ep_ta_player_blink,
@@ -10010,7 +10009,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     entity *ent;
     char *name = NULL;
     float x = 0, z = 0, a = 0;
-    int direction = 0;
+    int direction = _direction_left;
     int type = 0;
     int ptype = 0;
     int map = 0;
@@ -10103,7 +10102,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
         else
         {
             x = self->position.x - x;
-            direction = direction_flip(direction);
+            direction = !direction;
         }
         z += self->position.z;
         a += self->position.y;
@@ -10373,7 +10372,6 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_CANT)
         ICMPCONST(ANI_THROWATTACK)
         ICMPCONST(ANI_CHARGEATTACK)
-        ICMPCONST(ANI_VAULT)
         ICMPCONST(ANI_JUMPCANT)
         ICMPCONST(ANI_JUMPSPECIAL)
         ICMPCONST(ANI_BURNDIE)
