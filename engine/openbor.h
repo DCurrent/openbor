@@ -606,9 +606,10 @@ typedef enum
 
 typedef enum
 {
-    LSTYPE_NONE,
-    LSTYPE_BAR,
-    LSTYPE_BACKGROUND
+    LSTYPE_NONE,        //No loading screen.
+    LSTYPE_BOTH,        //Background and status bar.
+    LSTYPE_BACKGROUND,  //Background only.
+    LSTYPE_BAR,         //Status bar only.
 } e_loadingScreenType;
 
 typedef enum
@@ -1162,25 +1163,12 @@ typedef struct
 
 typedef struct
 {
-    e_loadingScreenType set;
-    /*set determines how loading screen would be.
-    - 0 = no loading screen.
-    - 1 = background and status bar.
-    - 2 = background only.
-    - 3 = status bar only.
-    */
-    int tf; //determines used font number for "LOADING" text (last element in command, moved here because of alignment)
-    /*
-    - 0 = font.gif
-    - 1 = font2.gif
-    - 2 = font3.gif
-    - 3 = font4.gif */
-    int bx; //determines x and y coordinates of loading bar top left's location respectively
-    int by;
-    int bsize; // length of bar in pixels
-    int tx; //determines x and y coordinates of "LOADING" text location respectively.
-    int ty;
-    int refreshMs; // modder defined number of milliseconds in which the screen is updated while loading
+    e_loadingScreenType set;    //Loading bar mode.
+    int tf;                     //Font number for "LOADING" text (last element in command, moved here because of alignment)
+    s_axis_i bar_position;      //Loading bar position.
+    s_axis_i text_position;     //Loading text position.
+    int bsize;                  // length of bar in pixels
+    int refreshMs;              // modder defined number of milliseconds in which the screen is updated while loading
 } s_loadingbar;
 
 typedef struct
