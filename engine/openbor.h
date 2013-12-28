@@ -84,6 +84,29 @@
 #define		MAX_ARG_LEN			511
 #define		MAX_PAL_SIZE		1024
 #define		MAX_CACHED_BACKGROUNDS 9
+#define     MAX_DOTS            10                  // Max active dot effects.
+#define     MAX_ARG_COUNT       64
+
+/*
+Note: the min Z coordinate of the player is important
+for several other drawing operations.
+movement restirctions are here!
+*/
+
+#define		FRONTPANEL_Z		(PLAYER_MAX_Z+50)
+#define     HUD_Z               (FRONTPANEL_Z+10000)
+#define		HOLE_Z				(PLAYER_MIN_Z-46)
+#define		NEONPANEL_Z			(PLAYER_MIN_Z-47)
+#define		SHADOW_Z			(PLAYER_MIN_Z-48)
+#define		SCREENPANEL_Z		(PLAYER_MIN_Z-49)
+#define		PANEL_Z				(PLAYER_MIN_Z-50)
+#define		MIRROR_Z			(PLAYER_MIN_Z-5)
+#define		PIT_DEPTH			-250
+#define		P2_STATS_DIST		180
+#define		CONTACT_DIST_H		30					// Distance to make contact
+#define		CONTACT_DIST_V		12
+#define		GRAB_DIST			36					// Grabbing ents will be placed this far apart.
+#define		GRAB_STALL			(GAME_SPEED * 8 / 10)
 
 typedef enum
 {
@@ -250,87 +273,6 @@ typedef enum
     AIATTACK2_DODGEMOVE = 0x00020000,   // Try to move in z direction if a jump attack is about to hit him and try to step back if a melee attack is about to hit him.
     MASK_AIATTACK2      = 0xFFFF0000
 } e_aiattack_2;
-
-// Note: the min Z coordinate of the player is important
-// for several other drawing operations.
-// movement restirctions are here!
-//int			PLAYER_MIN_Z		= 160;				// 2-10-05  adjustable walking area
-//int			PLAYER_MAX_Z		= 232;				// 2-10-05  adjustable walking area
-//int			BGHEIGHT			= 160;				// 2-10-05  adjustable BGHeight
-//int         MAX_WALL_HEIGHT     =  1000;            // max wall height that an entity can be spawned on
-#define		FRONTPANEL_Z		(PLAYER_MAX_Z+50)
-#define     HUD_Z               (FRONTPANEL_Z+10000)
-#define		HOLE_Z				(PLAYER_MIN_Z-46)
-#define		NEONPANEL_Z			(PLAYER_MIN_Z-47)
-#define		SHADOW_Z			(PLAYER_MIN_Z-48)
-#define		SCREENPANEL_Z		(PLAYER_MIN_Z-49)
-#define		PANEL_Z				(PLAYER_MIN_Z-50)
-#define		MIRROR_Z			(PLAYER_MIN_Z-5)
-#define		PIT_DEPTH			-250
-#define		P2_STATS_DIST		180
-#define		CONTACT_DIST_H		30					// Distance to make contact
-#define		CONTACT_DIST_V		12
-#define		GRAB_DIST			36					// Grabbing ents will be placed this far apart.
-#define		GRAB_STALL			(GAME_SPEED * 8 / 10)
-
-typedef enum
-{
-    /*
-    Attack type enum
-    Damon V. Caskey
-    2013-12-27
-    */
-
-    ATK_NORMAL,
-    ATK_NORMAL1			= ATK_NORMAL,
-    ATK_NORMAL2,
-    ATK_NORMAL3,
-    ATK_NORMAL4,
-    ATK_BLAST,
-    ATK_BURN,
-    ATK_FREEZE,
-    ATK_SHOCK,
-    ATK_STEAL,
-    ATK_NORMAL5,
-    ATK_NORMAL6,
-    ATK_NORMAL7,
-    ATK_NORMAL8,
-    ATK_NORMAL9,
-    ATK_NORMAL10,
-    ATK_ITEM,
-    ATK_LAND,
-    ATK_PIT,
-    ATK_LIFESPAN,
-    ATK_TIMEOVER,
-    MAX_ATKS                //Default max attack types (must be last item in enum to get correct value)
-} e_attack_types;
-
-#define     STA_ATKS            (MAX_ATKS-10)     // default special attack types than normal#
-#define     MAX_DOTS            10                // Max active dot effects.
-
-typedef enum
-{
-    /*
-    Scrol enum.
-    Damon V. Caskey
-    2013-12-28
-    */
-
-    SCROLL_RIGHT        = 2,
-    SCROLL_DOWN			= 4,
-    SCROLL_LEFT			= 8,
-    SCROLL_UP			= 16,
-    SCROLL_BACK			= 1,
-    SCROLL_BOTH			= (SCROLL_BACK|SCROLL_RIGHT),
-    SCROLL_RIGHTLEFT    = SCROLL_BOTH,
-    SCROLL_LEFTRIGHT    = (SCROLL_LEFT|SCROLL_BACK),
-    SCROLL_INWARD       = 32,
-    SCROLL_OUTWARD      = 64,
-    SCROLL_OUTIN		= (SCROLL_OUTWARD|SCROLL_BACK),
-    SCROLL_INOUT		= (SCROLL_INWARD|SCROLL_BACK),
-    SCROLL_UPWARD       = 128,
-    SCROLL_DOWNWARD     = 256
-} e_scroll;
 
 typedef enum
 {
@@ -518,6 +460,195 @@ typedef enum
     ARG_INT
 } e_arg_types;
 
+typedef enum
+{
+    /*
+    Attack type enum
+    Damon V. Caskey
+    2013-12-27
+    */
+
+    ATK_NORMAL,
+    ATK_NORMAL1			= ATK_NORMAL,
+    ATK_NORMAL2,
+    ATK_NORMAL3,
+    ATK_NORMAL4,
+    ATK_BLAST,
+    ATK_BURN,
+    ATK_FREEZE,
+    ATK_SHOCK,
+    ATK_STEAL,
+    ATK_NORMAL5,
+    ATK_NORMAL6,
+    ATK_NORMAL7,
+    ATK_NORMAL8,
+    ATK_NORMAL9,
+    ATK_NORMAL10,
+    ATK_ITEM,
+    ATK_LAND,
+    ATK_PIT,
+    ATK_LIFESPAN,
+    ATK_TIMEOVER,
+    MAX_ATKS,                       //Default max attack types (must be below all attack types in enum to get correct value)
+    STA_ATKS        = (MAX_ATKS-10)
+} e_attack_types;
+
+typedef enum
+{
+    horizontalbar,
+    verticalbar
+} e_barorient;
+
+typedef enum
+{
+    valuebar,
+    percentagebar
+} e_bartype;
+
+typedef enum
+{
+    bgt_bglayer,
+    bgt_fglayer,
+    bgt_panel,
+    bgt_frontpanel,
+    bgt_water,
+    bgt_background,
+    bgt_generic
+} e_bgloldtype;
+
+typedef enum
+{
+    /*
+    Counter action conditionals.
+    2012-12-16
+    Damon V. Caskey
+    */
+
+    _counteraction_condition_none,                  //No counter.
+    _counteraction_condition_always,                //Always perform coutner action.
+    _counteraction_condition_hostile,               //Only if attacker is hostile entity.
+    _counteraction_condition_hotsile_front_nofreeze //Attacker is hostile, strikes from front, and uses non-freeze attack.
+} e_counteraction_condition;
+
+typedef enum
+{
+    /*
+    Counteraction damage taking modes.
+    2012-12-16
+    Damon V. Caskey
+    */
+
+    _counteraction_damage_none,  //No damage.
+    _counteraction_damage_normal //Normal damage.
+} e_counteraction_damage;
+
+typedef enum
+{
+    /*
+    Direction (facing) enum.
+    Damon V. Caskey
+    2013-12-16
+    */
+
+  _direction_left,
+  _direction_right
+} e_direction;
+
+typedef enum
+{
+    /*
+    Damage over time mode enum.
+    Damon V. Caskey
+    2013-12-27
+    */
+
+    _dot_mode_off,              //Disable.
+    _dot_mode_hp,               //Drain HP.
+    _dot_mode_hp_mp,            //Drain HP and MP.
+    _dot_mode_mp,               //Drain mp.
+    _dot_mode_non_lethal_hp,    //Drain HP, but do not kill entity.
+    _dot_mode_non_lethal_hp_mp  //Drain HP and MP, but do not kill entity.
+} e_dot_mode;
+
+typedef enum
+{
+    /*
+    Edelay factor modes.
+    2013-12-16
+    Damon V. Caskey
+    */
+    _edelay_mode_add,       //Factor is added directly to edelay.
+    _edelay_mode_multiply   //Orginal delay value is multiplied by factor.
+} e_edelay_mode;
+
+typedef enum
+{
+    normal_level,
+    cut_scene,
+    select_screen
+} e_le_type;
+
+typedef enum
+{
+    LSTYPE_NONE,
+    LSTYPE_BAR,
+    LSTYPE_BACKGROUND
+} e_loadingScreenType;
+
+typedef enum
+{
+    /*
+    Model copy flag enum.
+    Damon V. Caskey
+    2013-12-28
+    */
+
+    MODEL_NO_COPY           = 0x00000001,   //dont copy anything from original model
+    MODEL_NO_WEAPON_COPY    = 0x00000002,   //dont copy weapon list from original model
+    MODEL_NO_SCRIPT_COPY    = 0x00000004    //don't copy scripts
+} e_model_copy;
+
+typedef enum
+{
+    MF_NONE,
+    MF_ANIMLIST,
+    MF_COLOURMAP,
+    MF_PALETTE = 4,
+    MF_WEAPONS = 8,
+    MF_BRANCH = 16,
+    MF_ANIMATION = 32,
+    MF_DEFENSE = 64,
+    MF_OFF_FACTORS = 128,
+    MF_SPECIAL = 256,
+    MF_SMARTBOMB = 512,
+    MF_SCRIPTS = 1024,
+    MF_ALL = 0x7ff
+} e_ModelFreetype;
+
+typedef enum
+{
+    /*
+    Scroll enum.
+    Damon V. Caskey
+    2013-12-28
+    */
+
+    SCROLL_RIGHT        = 2,
+    SCROLL_DOWN			= 4,
+    SCROLL_LEFT			= 8,
+    SCROLL_UP			= 16,
+    SCROLL_BACK			= 1,
+    SCROLL_BOTH			= (SCROLL_BACK|SCROLL_RIGHT),
+    SCROLL_RIGHTLEFT    = SCROLL_BOTH,
+    SCROLL_LEFTRIGHT    = (SCROLL_LEFT|SCROLL_BACK),
+    SCROLL_INWARD       = 32,
+    SCROLL_OUTWARD      = 64,
+    SCROLL_OUTIN		= (SCROLL_OUTWARD|SCROLL_BACK),
+    SCROLL_INOUT		= (SCROLL_INWARD|SCROLL_BACK),
+    SCROLL_UPWARD       = 128,
+    SCROLL_DOWNWARD     = 256
+} e_scroll;
+
 //macros for drawing menu text, fits different font size
 #ifdef _MSC_VER
 #define _strmidx(f,s, ...) ((videomodes.hRes-font_string_width((f), s, __VA_ARGS__))/2)
@@ -541,18 +672,6 @@ typedef enum
 #define get_tail_number(n, a, b) \
 n = atoi(a+strclen(b)); \
 if(n<1) n = 1;
-
-/*
-#define     ICO_NORMAL           0
-#define     ICO_PAIN             1
-#define     ICO_DIE              2
-#define     ICO_GET              3
-#define     ICO_WEAPON           4*/
-
-// model flags
-#define     MODEL_NO_COPY         0x00000001   //dont copy anything from original model
-#define     MODEL_NO_WEAPON_COPY  0x00000002   //dont copy weapon list from original model
-#define		MODEL_NO_SCRIPT_COPY  0x00000004   //don't copy scripts
 
 #define lut_mul ((level && current_palette)?(level->blendings[current_palette-1][BLEND_MULTIPLY]):(blendings[BLEND_MULTIPLY]))
 #define lut_screen ((level && current_palette)?(level->blendings[current_palette-1][BLEND_SCREEN]):(blendings[BLEND_SCREEN]))
@@ -672,34 +791,6 @@ if(n<1) n = 1;
 //#define     MAX_MOVE_STEPS        16
 
 #pragma pack (4)
-
-typedef enum
-{
-    /*
-    Direction (facing) enum.
-    Damon V. Caskey
-    2013-12-16
-    */
-
-  _direction_left,
-  _direction_right
-} e_direction;
-
-typedef enum
-{
-    /*
-    Damage over time mode enum.
-    Damon V. Caskey
-    2013-12-27
-    */
-
-    _dot_mode_off,              //Disable.
-    _dot_mode_hp,               //Drain HP.
-    _dot_mode_hp_mp,            //Drain HP and MP.
-    _dot_mode_mp,               //Drain mp.
-    _dot_mode_non_lethal_hp,    //Drain HP, but do not kill entity.
-    _dot_mode_non_lethal_hp_mp  //Drain HP and MP, but do not kill entity.
-} e_dot_mode;
 
 typedef struct
 {
@@ -891,32 +982,6 @@ typedef struct
     u32 pain_time; // pain invincible time
 } s_attack;
 
-typedef enum
-{
-    /*
-    Counter action conditionals.
-    2012-12-16
-    Damon V. Caskey
-    */
-
-    _counteraction_condition_none,                  //No counter.
-    _counteraction_condition_always,                //Always perform coutner action.
-    _counteraction_condition_hostile,               //Only if attacker is hostile entity.
-    _counteraction_condition_hotsile_front_nofreeze //Attacker is hostile, strikes from front, and uses non-freeze attack.
-} e_counteraction_condition;
-
-typedef enum
-{
-    /*
-    Counteraction damage taking modes.
-    2012-12-16
-    Damon V. Caskey
-    */
-
-    _counteraction_damage_none,  //No damage.
-    _counteraction_damage_normal //Normal damage.
-} e_counteraction_damage;
-
 typedef struct
 {
     /*
@@ -987,17 +1052,6 @@ typedef struct
     s_axis_i max;   //max ranges.
     s_axis_i min;   //min ranges.
 } s_range;
-
-typedef enum
-{
-    /*
-    Edelay factor modes.
-    2013-12-16
-    Damon V. Caskey
-    */
-    _edelay_mode_add,       //Factor is added directly to edelay.
-    _edelay_mode_multiply   //Orginal delay value is multiplied by factor.
-} e_edelay_mode;
 
 typedef struct
 {
@@ -1075,24 +1129,12 @@ struct animlist
 typedef struct animlist s_anim_list;
 s_anim_list *anim_list;
 
-typedef enum
-{
-    horizontalbar = 0,
-    verticalbar = 1,
-} barorient;
-
-typedef enum
-{
-    valuebar = 0,
-    percentagebar = 1,
-} bartype;
-
 typedef struct
 {
     s_axis_i offset;
     s_axis_i size;
-    bartype type;
-    barorient orientation;
+    e_bartype type;
+    e_barorient orientation;
     int noborder;
     int direction;  //0) left to right or botom to top 1) reversed
     int barlayer;
@@ -1102,16 +1144,9 @@ typedef struct
     int (*colourtable)[11]; //0 default backfill 1-10 foreground colours
 } s_barstatus;
 
-typedef enum
-{
-    LSTYPE_NONE = 0,
-    LSTYPE_BAR = 1,
-    LSTYPE_BACKGROUND = 2,
-} loadingScreenType;
-
 typedef struct
 {
-    loadingScreenType set;
+    e_loadingScreenType set;
     /*set determines how loading screen would be.
     - 0 = no loading screen.
     - 1 = background and status bar.
@@ -1158,23 +1193,6 @@ typedef struct
     Script			*onmodelcopy_script;				//execute when set_model_ex is done
     Script			*ondraw_script;					//when update_ents is called
 } s_scripts;
-
-typedef enum
-{
-    MF_NONE = 0,
-    MF_ANIMLIST = 1,
-    MF_COLOURMAP = 2,
-    MF_PALETTE = 4,
-    MF_WEAPONS = 8,
-    MF_BRANCH = 16,
-    MF_ANIMATION = 32,
-    MF_DEFENSE = 64,
-    MF_OFF_FACTORS = 128,
-    MF_SPECIAL = 256,
-    MF_SMARTBOMB = 512,
-    MF_SCRIPTS = 1024,
-} ModelFreetype;
-#define MF_ALL 0x7ff
 
 typedef struct
 {
@@ -1424,7 +1442,7 @@ typedef struct
     int instantitemdeath; // no delay before item suicides
     int	hasPlatforms;
     int isSubclassed;
-    ModelFreetype freetypes;
+    e_ModelFreetype freetypes;
     s_scripts *scripts;
 } s_model;
 
@@ -1705,24 +1723,16 @@ typedef struct
     Script spawnscript;
 } s_spawn_entry;
 
-typedef enum
-{
-    normal_level = 0,
-    cut_scene = 1,
-    select_screen = 2,
-} le_type;
-
 typedef struct
 {
     char *branchname; // Use a name so we can find this level in branches
     char *filename;
-    le_type type; // see le_type
+    e_le_type type; // see e_le_type
     int z_coords[3]; // Used for setting custom "z"
     int gonext; // 0. dont complete this level and display score,
     // 1. complete level and display score,
     // 2. complete game, show hall of fame
 } s_level_entry;
-
 
 typedef struct
 {
@@ -1745,24 +1755,9 @@ typedef struct
 
 } s_set_entry;
 
-
-//
-typedef enum
-{
-    bgt_bglayer,
-    bgt_fglayer,
-    bgt_panel,
-    bgt_frontpanel,
-    bgt_water,
-    bgt_background,
-    bgt_generic
-
-} bgloldtype;
-
-
 typedef struct
 {
-    bgloldtype oldtype;
+    e_bgloldtype oldtype;
     int order;	//for panel order
     gfx_entry gfx;
     s_axis_i size;  //Only x and y.
@@ -1776,7 +1771,6 @@ typedef struct
     int quake;
     int neon;
 } s_layer;
-
 
 typedef struct
 {
@@ -1901,16 +1895,12 @@ typedef struct
 
 } s_level;
 
-#define MAX_ARG_COUNT 64
-
 typedef struct ArgList
 {
     size_t count;
     size_t arglen[MAX_ARG_COUNT];
     char *args[MAX_ARG_COUNT];
 } ArgList;
-
-
 
 #define GET_ARG(z) (arglist.count > z ? arglist.args[z] : "")
 #define GET_ARG_LEN(z) (arglist.count > z ? arglist.arglen[z] : 0)
