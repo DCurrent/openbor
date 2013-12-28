@@ -124,7 +124,7 @@ const s_attack emptyattack =
     0, //freeze
     0, //steal
     0, //blast
-    0, //force_direction
+    _direction_adjust_none, //force_direction
     0, //forcemap
     0, //seal
     0, //freezetime
@@ -17740,7 +17740,7 @@ void adjust_bind(entity *e)
     e->position.y = e->binding.ent->position.y + e->binding.offset.y;
     switch(e->binding.direction)
     {
-    case 0:
+    case _direction_adjust_none:
         if(e->binding.ent->direction == _direction_right)
         {
             e->position.x = e->binding.ent->position.x + e->binding.offset.x;
@@ -17750,7 +17750,7 @@ void adjust_bind(entity *e)
             e->position.x = e->binding.ent->position.x - e->binding.offset.x;
         }
         break;
-    case 1:
+    case _direction_adjust_same:
         e->direction = e->binding.ent->direction;
         if(e->binding.ent->direction == _direction_right)
         {
@@ -17761,7 +17761,7 @@ void adjust_bind(entity *e)
             e->position.x = e->binding.ent->position.x - e->binding.offset.x;
         }
         break;
-    case -1:
+    case _direction_adjust_opposite:
         e->direction = !e->binding.ent->direction;
         if(e->binding.ent->direction == _direction_right)
         {
@@ -17772,11 +17772,11 @@ void adjust_bind(entity *e)
             e->position.x = e->binding.ent->position.x - e->binding.offset.x;
         }
         break;
-    case 2:
+    case _direction_adjust_right:
         e->direction = _direction_right;
         e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         break;
-    case -2:
+    case _direction_adjust_left:
         e->direction = _direction_left;
         e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         break;
@@ -19936,32 +19936,39 @@ void checkdamageflip(entity *other, s_attack *attack)
 
     if(!self->frozen && !self->modeldata.noflip)// && !inair(self))
     {
-        if(attack->force_direction == 0)
+        switch(attack->force_direction)
         {
-            if(self->position.x < other->position.x)
-            {
+            case _direction_adjust_none:
+
+                if(self->position.x < other->position.x)
+                {
+                    self->direction = _direction_right;
+                }
+                else if(self->position.x > other->position.x)
+                {
+                    self->direction = _direction_left;
+                }
+                break;
+
+            case _direction_adjust_same:
+
+                self->direction = other->direction;
+                break;
+
+            case _direction_adjust_opposite:
+
+                self->direction = !other->direction;
+                break;
+
+            case _direction_adjust_right:
+
                 self->direction = _direction_right;
-            }
-            else if(self->position.x > other->position.x)
-            {
+                break;
+
+            case _direction_adjust_left:
+
                 self->direction = _direction_left;
-            }
-        }
-        else if(attack->force_direction == 1)
-        {
-            self->direction = other->direction;
-        }
-        else if(attack->force_direction == -1)
-        {
-            self->direction = !other->direction;
-        }
-        else if(attack->force_direction == 2)
-        {
-            self->direction = _direction_right;
-        }
-        else if(attack->force_direction == -2)
-        {
-            self->direction = _direction_left;
+                break;
         }
     }
 }
