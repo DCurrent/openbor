@@ -557,6 +557,22 @@ typedef enum
 typedef enum
 {
     /*
+    Direction adjustment enum. Used for binding and changing direction of defender when hit.
+    Damon V. Caskey
+    2013-12-28
+    */
+
+    _direction_adjust_none,             //Leave as is.
+    _direction_adjust_same,             //Same as attacker/bind/etc.
+    _direction_adjust_opposite  = -1,   //Opposite attacker/bind/etc.
+    _direction_adjust_right     = 2,    //Always right.
+    _direction_adjust_left      = -2    //Always left.
+
+} e_direction_adjust;
+
+typedef enum
+{
+    /*
     Damage over time mode enum.
     Damon V. Caskey
     2013-12-27
@@ -960,7 +976,7 @@ typedef struct
     int freeze;
     int steal;
     int blast;
-    int force_direction; // 0 dont care, 1 same direction as attacker, -1 opposite drection as attacker, 2 right, -2 left
+    e_direction_adjust force_direction;
     int forcemap;
     int seal;
     u32 freezetime;
@@ -1476,10 +1492,10 @@ typedef struct
     Damon V. Caskey
     */
 
-    int ani_bind;           //Animation binding type.
-    int direction;          //Direction force
-    struct entity *ent;     //Entity to bind.
-    s_axis_i offset;        //x,y,z offset.
+    int ani_bind;                   //Animation binding type.
+    e_direction_adjust direction;   //Direction force
+    struct entity *ent;             //Entity to bind.
+    s_axis_i offset;                //x,y,z offset.
 } s_bind;
 
 typedef struct
