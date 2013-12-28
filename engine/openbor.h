@@ -1,10 +1,10 @@
 /*
- * OpenBOR - http://www.LavaLit.com
+ * OpenBOR - http://www.chronocrash.com
  * -
  ----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2014 OpenBOR Team
  */
 
 /////////////////////////////////////////////////////////////////////////////
@@ -85,37 +85,55 @@
 #define		MAX_PAL_SIZE		1024
 #define		MAX_CACHED_BACKGROUNDS 9
 
-#define		FLAG_ESC			0x00000001
-#define		FLAG_START			0x00000002
-#define		FLAG_MOVELEFT		0x00000004
-#define		FLAG_MOVERIGHT		0x00000008
-#define		FLAG_MOVEUP			0x00000010
-#define		FLAG_MOVEDOWN		0x00000020
-#define		FLAG_ATTACK			0x00000040
-#define		FLAG_JUMP			0x00000080
-#define		FLAG_SPECIAL		0x00000100
-#define		FLAG_SCREENSHOT		0x00000200
-#define		FLAG_ATTACK2		0x00000400
-#define		FLAG_ATTACK3		0x00000800
-#define		FLAG_ATTACK4		0x00001000
-#define		FLAG_ANYBUTTON		(FLAG_START|FLAG_SPECIAL|FLAG_ATTACK|FLAG_ATTACK2|FLAG_ATTACK3|FLAG_ATTACK4|FLAG_JUMP)
-#define		FLAG_CONTROLKEYS	(FLAG_SPECIAL|FLAG_ATTACK|FLAG_ATTACK2|FLAG_ATTACK3|FLAG_ATTACK4|FLAG_JUMP|FLAG_MOVEUP|FLAG_MOVEDOWN|FLAG_MOVELEFT|FLAG_MOVERIGHT)
-#define		FLAG_FORWARD		0x40000000
-#define		FLAG_BACKWARD		0x80000000
+typedef enum
+{
+    /*
+    Key def enum.
+    Damon V. Caskey
+    2013-12-27
+    */
 
-#define		SDID_MOVEUP			0
-#define		SDID_MOVEDOWN		1
-#define		SDID_MOVELEFT		2
-#define		SDID_MOVERIGHT		3
-#define		SDID_ATTACK 		4
-#define		SDID_ATTACK2		5
-#define		SDID_ATTACK3		6
-#define		SDID_ATTACK4		7
-#define		SDID_JUMP			8
-#define		SDID_SPECIAL		9
-#define		SDID_START			10
-#define		SDID_SCREENSHOT		11
-#define		SDID_ESC			12
+    FLAG_ESC			= 0x00000001,
+    FLAG_START			= 0x00000002,
+    FLAG_MOVELEFT		= 0x00000004,
+    FLAG_MOVERIGHT		= 0x00000008,
+    FLAG_MOVEUP			= 0x00000010,
+    FLAG_MOVEDOWN		= 0x00000020,
+    FLAG_ATTACK			= 0x00000040,
+    FLAG_JUMP			= 0x00000080,
+    FLAG_SPECIAL		= 0x00000100,
+    FLAG_SCREENSHOT		= 0x00000200,
+    FLAG_ATTACK2		= 0x00000400,
+    FLAG_ATTACK3		= 0x00000800,
+    FLAG_ATTACK4		= 0x00001000,
+    FLAG_ANYBUTTON		= (FLAG_START|FLAG_SPECIAL|FLAG_ATTACK|FLAG_ATTACK2|FLAG_ATTACK3|FLAG_ATTACK4|FLAG_JUMP),
+    FLAG_CONTROLKEYS    = (FLAG_SPECIAL|FLAG_ATTACK|FLAG_ATTACK2|FLAG_ATTACK3|FLAG_ATTACK4|FLAG_JUMP|FLAG_MOVEUP|FLAG_MOVEDOWN|FLAG_MOVELEFT|FLAG_MOVERIGHT),
+    FLAG_FORWARD		= 0x40000000,
+    FLAG_BACKWARD		= 0x80000000
+} e_key_def;
+
+typedef enum
+{
+    /*
+    Key id enum.
+    Damon V. Caskey
+    2013-12-27
+    */
+
+    SDID_MOVEUP,
+    SDID_MOVEDOWN,
+    SDID_MOVELEFT,
+    SDID_MOVERIGHT,
+    SDID_ATTACK,
+    SDID_ATTACK2,
+    SDID_ATTACK3,
+    SDID_ATTACK4,
+    SDID_JUMP,
+    SDID_SPECIAL,
+    SDID_START,
+    SDID_SCREENSHOT,
+    SDID_ESC
+} e_key_id;
 
 typedef enum
 {
@@ -290,21 +308,29 @@ typedef enum
 #define     STA_ATKS            (MAX_ATKS-10)     // default special attack types than normal#
 #define     MAX_DOTS            10                // Max active dot effects.
 
-#define		SCROLL_RIGHT		2
-#define		SCROLL_DOWN			4
-#define		SCROLL_LEFT			8
-#define		SCROLL_UP			16
-#define		SCROLL_BACK			1
-#define		SCROLL_BOTH			(SCROLL_BACK|SCROLL_RIGHT)
-#define		SCROLL_RIGHTLEFT	SCROLL_BOTH
-#define		SCROLL_LEFTRIGHT    (SCROLL_LEFT|SCROLL_BACK)
-#define		SCROLL_INWARD       32
-#define     SCROLL_OUTWARD      64
-#define		SCROLL_OUTIN		(SCROLL_OUTWARD|SCROLL_BACK)
-#define		SCROLL_INOUT		(SCROLL_INWARD|SCROLL_BACK)
-#define		SCROLL_UPWARD       128
-#define     SCROLL_DOWNWARD     256
-// blah, blah,
+typedef enum
+{
+    /*
+    Scrol enum.
+    Damon V. Caskey
+    2013-12-28
+    */
+
+    SCROLL_RIGHT        = 2,
+    SCROLL_DOWN			= 4,
+    SCROLL_LEFT			= 8,
+    SCROLL_UP			= 16,
+    SCROLL_BACK			= 1,
+    SCROLL_BOTH			= (SCROLL_BACK|SCROLL_RIGHT),
+    SCROLL_RIGHTLEFT    = SCROLL_BOTH,
+    SCROLL_LEFTRIGHT    = (SCROLL_LEFT|SCROLL_BACK),
+    SCROLL_INWARD       = 32,
+    SCROLL_OUTWARD      = 64,
+    SCROLL_OUTIN		= (SCROLL_OUTWARD|SCROLL_BACK),
+    SCROLL_INOUT		= (SCROLL_INWARD|SCROLL_BACK),
+    SCROLL_UPWARD       = 128,
+    SCROLL_DOWNWARD     = 256
+} e_scroll;
 
 typedef enum
 {
@@ -491,15 +517,6 @@ typedef enum
     ARG_STRING,
     ARG_INT
 } e_arg_types;
-
-// perhaps outdated, now use separted flags for entity
-#define     SUBJECT_TO_WALL      1
-#define     SUBJECT_TO_HOLE      2
-#define     SUBJECT_TO_OBSTACLE  4
-#define     SUBJECT_TO_BORDER    8
-#define     SUBJECT_TO_SCREEN    16
-#define     SUBJECT_TO_MINZ      32
-#define     SUBJECT_TO_MAXZ      48
 
 //macros for drawing menu text, fits different font size
 #ifdef _MSC_VER
