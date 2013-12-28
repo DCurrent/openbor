@@ -474,8 +474,8 @@ s_barstatus         loadingbarstatus =
 {
     {0, 0, 0, 0},               //int          offset:16;
     {0, 10, 0, 0},              //int          size:16;
-    percentagebar,              //bartype      type:8;
-    horizontalbar,              //barorient    orientation:8;
+    percentagebar,              //e_bartype      type:8;
+    horizontalbar,              //e_barorient    orientation:8;
     0,                          //int          noborder:8;
     0,                          //int          direction:8;
     0,                          //int          barlayer;
@@ -488,8 +488,8 @@ s_barstatus         lbarstatus =                                // Used for cust
 {
     {0, 0, 0, 0},               //int          offset:16;
     {0, 0, 0, 0},               //int          size:16;
-    valuebar,                   //bartype      type:8;
-    horizontalbar,              //barorient    orientation:8;
+    valuebar,                   //e_bartype      type:8;
+    horizontalbar,              //e_barorient    orientation:8;
     0,                          //int          noborder:8;
     0,                          //int          direction:8;
     0,                          //int          barlayer;
@@ -503,8 +503,8 @@ s_barstatus         olbarstatus =                               // Used for cust
 {
     {0, 0, 0, 0},               //int          offset:16;
     {0, 0, 0, 0},               //int          size:16;
-    valuebar,                   //bartype      type:8;
-    horizontalbar,              //barorient    orientation:8;
+    valuebar,                   //e_bartype      type:8;
+    horizontalbar,              //e_barorient    orientation:8;
     0,                          //int          noborder:8;
     0,                          //int          direction:8;
     0,                          //int          barlayer;
@@ -562,8 +562,8 @@ s_barstatus         mpbarstatus =                               // Used for cust
 {
     {0, 0, 0, 0},               //int          offset:16;
     {0, 0, 0, 0},               //int          size:16;
-    valuebar,                   //bartype      type:8;
-    horizontalbar,              //barorient    orientation:8;
+    valuebar,                   //e_bartype      type:8;
+    horizontalbar,              //e_barorient    orientation:8;
     0,                          //int          noborder:8;
     0,                          //int          direction:8;
     0,                          //int          barlayer;
@@ -667,12 +667,12 @@ s_drawmethod *getDrawMethod(s_anim *a, ptrdiff_t index)
     return a->drawmethods[index];
 }
 
-int isLoadingScreenTypeBg(loadingScreenType what)
+int isLoadingScreenTypeBg(e_loadingScreenType what)
 {
     return (what & LSTYPE_BACKGROUND) == LSTYPE_BACKGROUND;
 }
 
-int isLoadingScreenTypeBar(loadingScreenType what)
+int isLoadingScreenTypeBar(e_loadingScreenType what)
 {
     return (what & LSTYPE_BAR) == LSTYPE_BAR;
 }
@@ -5090,13 +5090,13 @@ void free_anim(s_anim *anim)
     free(anim);
 }
 
-int hasFreetype(s_model *m, ModelFreetype t)
+int hasFreetype(s_model *m, e_ModelFreetype t)
 {
     assert(m);
     return (m->freetypes & t) == t;
 }
 
-void addFreeType(s_model *m, ModelFreetype t)
+void addFreeType(s_model *m, e_ModelFreetype t)
 {
     assert(m);
     m->freetypes |= t;
