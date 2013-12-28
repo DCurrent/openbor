@@ -417,7 +417,7 @@ int                 noslowfx			= 0;           			// Flag to determine if sound s
 int                 equalairpause 		= 0;         			// If set to 1, there will be no extra pausetime for players who hit multiple enemies in midair
 int                 hiscorebg			= 0;					// If set to 1, will look for a background image to display at the highscore screen
 int                 completebg			= 0;           			// If set to 1, will look for a background image to display at the showcomplete screen
-s_loadingbar        loadingbg[2] = {{0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}}; // If set to 1, will look for a background image to display at the loading screen
+s_loadingbar        loadingbg[2] = {{0, 0, {0, 0, 0, 0}, {0, 0, 0, 0}, 0, 0}, {0, 0, {0, 0, 0, 0}, {0, 0, 0, 0}, 0, 0}}; // If set to 1, will look for a background image to display at the loading screen
 int					loadingmusic        = 0;
 int                 unlockbg            = 0;         			// If set to 1, will look for a different background image after defeating the game
 int                 pause               = 0;
@@ -677,32 +677,32 @@ int isLoadingScreenTypeBar(e_loadingScreenType what)
     return (what & LSTYPE_BAR) == LSTYPE_BAR;
 }
 
-char *fill_s_loadingbar(s_loadingbar *s, int set, int bx, int by, int bsize, int tx, int ty, int tf, int ms)
+char *fill_s_loadingbar(s_loadingbar *s, e_loadingScreenType set, int bx, int by, int bsize, int tx, int ty, int tf, int ms)
 {
     switch (set)
     {
-    case 1:
-        s->set = (LSTYPE_BACKGROUND | LSTYPE_BAR);
-        break;
-    case 2:
-        s->set = LSTYPE_BACKGROUND;
-        break;
-    case 3:
-        s->set = LSTYPE_BAR;
-        break;
-    case 0:
-        s->set = LSTYPE_NONE;
-        break;
-    default:
-        s->set = LSTYPE_NONE;
-        printf("invalid loadingbg type %d!\n", set);
+        case LSTYPE_BOTH:
+            s->set = (LSTYPE_BACKGROUND | LSTYPE_BAR);
+            break;
+        case LSTYPE_BACKGROUND:
+            s->set = LSTYPE_BACKGROUND;
+            break;
+        case LSTYPE_BAR:
+            s->set = LSTYPE_BAR;
+            break;
+        case LSTYPE_NONE:
+            s->set = LSTYPE_NONE;
+            break;
+        default:
+            s->set = LSTYPE_NONE;
+            printf("invalid loadingbg type %d!\n", set);
     }
     s->tf = tf;
-    s->bx = bx;
-    s->by = by;
+    s->bar_position.x = bx;
+    s->bar_position.y = by;
     s->bsize = bsize;
-    s->tx = tx;
-    s->ty = ty;
+    s->text_position.x = tx;
+    s->text_position.y = ty;
     s->refreshMs = (ms ? ms : 100);
     return NULL;
 }
@@ -12143,7 +12143,7 @@ void load_level(char *filename)
     int i = 0, j = 0, crlf = 0;
     int usemap[MAX_BLENDINGS];
     char bgPath[128] = {""}, fnbuf[128];
-    s_loadingbar bgPosi = {0, 0, 0, 0, 0, 0, 0};
+    s_loadingbar bgPosi = {0, 0, {0,0,0,0}, {0,0,0,0}, 0, 0};
     char musicPath[128] = {""};
     u32 musicOffset = 0;
 
@@ -14074,11 +14074,11 @@ void update_loading(s_loadingbar *s,  int value, int max)
     static unsigned int lasttick = 0;
     static unsigned int soundtick = 0;
     static unsigned int keybtick = 0;
-    int pos_x = s->bx + videomodes.hShift;
-    int pos_y = s->by + videomodes.vShift;
+    int pos_x = s->bar_position.x + videomodes.hShift;
+    int pos_y = s->bar_position.y + videomodes.vShift;
     int size_x = s->bsize;
-    int text_x = s->tx + videomodes.hShift;
-    int text_y = s->ty + videomodes.vShift;
+    int text_x = s->text_position.x + videomodes.hShift;
+    int text_y = s->text_position.y + videomodes.vShift;
     unsigned int ticks = timer_gettick();
 #ifdef PSP
     ticks /= 1000; //temp solution
