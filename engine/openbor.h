@@ -659,6 +659,19 @@ typedef enum
 typedef enum
 {
     /*
+    Over thr ground enum. Controls ability to hit downed targets.
+    Damon V. Caskey
+    2013-12-28
+    */
+
+   _otg_none,       //Cannot hit grounded targets.
+   _otg_both,       //Can hit grounded targets.
+   _otg_ground_only //Can ONLY hit grounded targets.
+} e_otg;
+
+typedef enum
+{
+    /*
     Scroll enum.
     Damon V. Caskey
     2013-12-28
@@ -1002,7 +1015,7 @@ typedef struct
     u32 dot_time; //Dot time to expire.
     int dot_force; //Dot amount per tick.
     int dot_rate; //Dot tick delay.
-    int otg; // Over The Ground. Gives ground projectiles the ability to hit lying ents.
+    e_otg otg; // Over The Ground. Gives ground projectiles the ability to hit lying ents.
     int jugglecost; // cost for juggling a falling ent
     int guardcost; // cost for blocking an attack
     int attack_drop; // now be a knock-down factor, how many this attack will knock victim down
@@ -1066,10 +1079,10 @@ typedef struct
 
 typedef struct //2011_04_01, DC: Frame based screen shake functionality.
 {
-    int cnt; //Repetition count.
+    int cnt;        //Repetition count.
     int framestart; //Frame to start quake.
-    int repeat; //Repetitons.
-    int v; //Vertical distance of screen movement (in pixels).
+    int repeat;     //Repetitons.
+    int v;          //Vertical distance of screen movement (in pixels).
 } s_quakeframe;
 
 typedef struct
@@ -1290,6 +1303,19 @@ typedef struct
 
 typedef struct
 {
+    /*
+    Dust struct. "Dust" effect entity spawned during certain actions.
+    Damon V. Caskey
+    2013-12-28
+    */
+
+    int fall_land;  //Knockdown landing.
+    int jump_land;  //Jump landing.
+    int jump_start; //Jump lift off.
+} s_dust;
+
+typedef struct
+{
     int index;
     char *name;
     char *path; // Path, so scripts can dynamically get files, sprites, sounds, etc.
@@ -1367,7 +1393,7 @@ typedef struct
     int bomb; // New projectile type for exploding bombs/grenades/dynamite
     int flash; // Now each entity can have their own flash
     int bflash; // Flash that plays when an attack is blocked
-    int dust[3]; // Dust spawn (0 = Fall land, 1 = Jumpland, 2 = Jumpstart.)
+    s_dust dust; //Spawn entity during certain actions.
     int height; // Used to set height of player in pixels
     float speed;
     float grabdistance; // 30-12-2004	grabdistance varirable adder per character
