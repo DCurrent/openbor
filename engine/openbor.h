@@ -545,6 +545,31 @@ typedef enum
 typedef enum
 {
     /*
+    Energy check type enum.
+    Damon V. Caskey
+    2013-12-29
+    */
+
+    _cost_check_hp,
+    _cost_check_mp
+} e_cost_check;
+
+typedef enum
+{
+    /*
+    Energycost type enum.
+    Damon V. Caskey
+    2013-12-29
+    */
+
+    _cost_type_mp_then_hp,
+    _cost_type_mp_only,
+    _cost_type_hp_only
+} e_cost_type;
+
+typedef enum
+{
+    /*
     Counter action conditionals.
     2012-12-16
     Damon V. Caskey
@@ -1084,9 +1109,9 @@ typedef struct
     2011-04-01
     */
 
-    int cost;       //Amount of energy cost.
-    int disable;    //Disable flag. See check_energy function.
-    int mponly;     //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
+    int cost;           //Amount of energy cost.
+    int disable;        //Disable flag. See check_energy function.
+    e_cost_type mponly; //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
 } s_energycost;
 
 typedef struct
@@ -2230,7 +2255,7 @@ void suicide(void);
 void prethrow(void);
 void player_die();
 int player_trymove(float xdir, float zdir);
-int check_energy(int which, int ani);
+int check_energy(e_cost_check which, int ani);
 int player_preinput();
 int player_check_special();
 void runanimal(void);
