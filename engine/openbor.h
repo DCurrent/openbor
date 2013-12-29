@@ -963,9 +963,9 @@ typedef struct
     Damon V. Caskey
     */
 
-    int rise; //Time modifier before rise.
-    int riseattack; //Time modifier before riseattack.
-    int riseattack_stall; //Total stalltime before riseattack.
+    u32 rise;               //Time modifier before rise.
+    u32 riseattack;         //Time modifier before riseattack.
+    u32 riseattack_stall;   //Total stalltime before riseattack.
 } s_staydown;
 
 typedef struct
@@ -1434,7 +1434,7 @@ typedef struct
     int mpstable; // MP stable type.
     int mpstableval; // MP Stable target.
     int aggression; // For enemy A.I.
-    int risetime[2]; // 0 = Rise delay, 1 = Riseattack delay.
+    s_staydown risetime;
     unsigned sleepwait;
     int riseattacktype;
     s_metric_i  jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.

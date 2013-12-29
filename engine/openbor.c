@@ -7110,7 +7110,7 @@ s_model *init_model(int cacheindex, int unload)
         newchar->mprate                = 2;
     }
     newchar->chargerate = newchar->guardrate = 2;
-    newchar->risetime[0]                = -1;
+    newchar->risetime.rise              = -1;
     newchar->sleepwait                  = 1000;
     newchar->jugglepoints.current = newchar->jugglepoints.max = 0;
     newchar->guardpoints.current = newchar->guardpoints.max = 0;
@@ -8158,8 +8158,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_RISETIME:
-                newchar->risetime[0] = GET_INT_ARG(1);
-                newchar->risetime[1] = GET_INT_ARG(2);
+                newchar->risetime.rise = GET_INT_ARG(1);
+                newchar->risetime.riseattack = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_FACING:
                 newchar->facing = GET_INT_ARG(1);
@@ -9708,22 +9708,22 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         newchar->specials_loaded++;
     }
 
-    if(newchar->risetime[0] == -1)
+    if(newchar->risetime.rise == -1)
     {
         if(newchar->type == TYPE_PLAYER)
         {
             if(newchar->animation[ANI_RISEATTACK])
             {
-                newchar->risetime[0] = GAME_SPEED / 2;
+                newchar->risetime.rise = GAME_SPEED / 2;
             }
             else
             {
-                newchar->risetime[0] = GAME_SPEED;
+                newchar->risetime.rise = GAME_SPEED;
             }
         }
         else if(newchar->type == TYPE_ENEMY || newchar->type == TYPE_NPC)
         {
-            newchar->risetime[0] = 0;
+            newchar->risetime.rise = 0;
         }
     }
 
@@ -15208,9 +15208,9 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
     {
         ent->modeldata.mp                   = oldmodel->mp;
     }
-    if(ent->modeldata.risetime[0] == -1)
+    if(ent->modeldata.risetime.rise == -1)
     {
-        ent->modeldata.risetime[0]          = oldmodel->risetime[0];
+        ent->modeldata.risetime.rise          = oldmodel->risetime.rise;
     }
     /*
     if(!ent->modeldata.antigrab)
@@ -19475,8 +19475,8 @@ void common_fall()
 
     // Pause a bit...
     self->takeaction	= common_lie;
-    self->stalltime		= time + MAX(0, (int)(self->staydown.rise + GAME_SPEED - self->modeldata.risetime[0]));	//Set rise delay.
-    self->staydown.riseattack_stall	= time + MAX(0, (int)(self->staydown.riseattack - self->modeldata.risetime[1]));					//Set rise attack delay.
+    self->stalltime		= time + MAX(0, (int)(self->staydown.rise + GAME_SPEED - self->modeldata.risetime.rise));	//Set rise delay.
+    self->staydown.riseattack_stall	= time + MAX(0, (int)(self->staydown.riseattack - self->modeldata.risetime.riseattack));					//Set rise attack delay.
     self->staydown.rise = 0; //Reset staydown.
     self->staydown.riseattack = 0; //Reset staydown atk.
 }
