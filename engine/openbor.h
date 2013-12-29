@@ -519,6 +519,20 @@ typedef enum
 typedef enum
 {
     /*
+    Blocktype enum. Type of resource drained (if any) when attack is blocked.
+    Damon V. Caskey
+    2013-12-28
+    */
+
+    _e_blocktype_hp         = -1,   //HP only.
+    _e_blocktype_mp_first   = 1,    //MP until MP is exhuasted, then HP.
+    _e_blocktype_both,              //Both MP and HP.
+    _e_blocktype_mp_only            //Only MP, even if MP is 0.
+} e_blocktype;
+
+typedef enum
+{
+    /*
     Counter action conditionals.
     2012-12-16
     Damon V. Caskey
@@ -1261,13 +1275,13 @@ typedef struct
 
 typedef struct
 {
-    float factor; //basic defense factors: damage = damage*defense
-    float pain; //Pain factor (like nopain) for defense type.
-    float knockdown; //Knockdowncount (like knockdowncount) for attack type.
-    float blockpower; //If > unblockable, this attack type is blocked.
-    float blockthreshold; //Strongest attack from this attack type that can be blocked.
-    float blockratio; //% of damage still taken from this attack type when blocked.
-    float blocktype; //0 = HP, 1=MP, 2=both taken when this attack type is blocked.
+    float factor;           //basic defense factors: damage = damage*defense
+    float pain;             //Pain factor (like nopain) for defense type.
+    float knockdown;        //Knockdowncount (like knockdowncount) for attack type.
+    float blockpower;       //If > unblockable, this attack type is blocked.
+    float blockthreshold;   //Strongest attack from this attack type that can be blocked.
+    float blockratio;       //% of damage still taken from this attack type when blocked.
+    e_blocktype blocktype;  //Resource drained when attack is blocked.
 } s_defense;
 
 //UT: new bit flags for noquake property

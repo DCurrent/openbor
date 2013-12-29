@@ -6816,7 +6816,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         if(paramCount >= 10 && ltemp2 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[9], &dbltemp)))
         {
-            ent->defense[(int)ltemp].blocktype = (float)dbltemp;
+            ent->defense[(int)ltemp].blocktype = dbltemp;
         }
 
         break;
