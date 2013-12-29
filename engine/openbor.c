@@ -101,7 +101,7 @@ const s_defense default_defense =
     0.f,
     0.f,
     0.f,
-    0.f
+    0
 };
 
 // unknockdown attack
@@ -16268,6 +16268,7 @@ void do_attack(entity *e)
     int them;
     int i, t;
     int force;
+    e_blocktype blocktype;
     entity *temp            = NULL;
     entity *flash           = NULL;    // Used so new flashes can be used
     entity *def             = NULL;
@@ -16714,39 +16715,53 @@ void do_attack(entity *e)
                     force = force / 4;
                 }
 
-                if(mpblock && !def->defense[attack->attack_type].blocktype)                                                                                  // Drain MP bar first?
+                /*
+                Block type handling. For backward compatibility we will use _e_blocktype_mp_first regardless
+                of defense setting if author has enabled mpblock. Otherwise the defender's blocktype
+                for incoming attack type will be used. Once this is determined, we will apply the
+                appropriate blocktype accordingly.
+                */
+                blocktype = mpblock ? _e_blocktype_mp_first : def->defense[attack->attack_type].blocktype;
+
+                switch (blocktype)
                 {
-                    def->mp -= force;
-                    if(def->mp < 0)
-                    {
-                        force = -def->mp;
-                        def->mp = 0;
-                    }
-                    else
-                    {
-                        force = 0;    // Damage removed from MP!
-                    }
-                }
-                else if(def->defense[attack->attack_type].blocktype == 1)                //Damage from MP only for this attack type.
-                {
-                    def->mp -= force;
-                    if(def->mp < 0)
-                    {
-                        force = -def->mp;
-                        def->mp = 0;
-                    }
-                    else
-                    {
-                        force = 0;    // Damage removed from MP!
-                    }
-                }
-                else if(def->defense[attack->attack_type].blocktype == 2)              //Damage from both HP and MP at once.
-                {
-                    def->mp -= force;
-                }
-                else if(def->defense[attack->attack_type].blocktype == -1)             //Health only?
-                {
-                    //Do nothing. This is so modders can overidde energycost.mponly 1 with health only.
+                    case _e_blocktype_hp:
+                        //Do nothing. This is so modders can overidde energycost mponly 1 with health only.
+                        break;
+
+                    case _e_blocktype_mp_only:
+
+                        def->mp -= force;
+                        force = 0;
+
+                        if(def->mp < 0)
+                        {
+                            def->mp = 0;
+                        }
+
+                    case _e_blocktype_mp_first:
+
+                        def->mp -= force;
+
+                        /* If there isn't enough MP to cover force, subtract remaining MP from force and set MP to 0 */
+                        if(def->mp < 0)
+                        {
+                            force = -def->mp;
+                            def->mp = 0;
+                        }
+                        else
+                        {
+                            force = 0;
+                        }
+
+                    case _e_blocktype_both:
+
+                        def->mp -= force;
+
+                        if(def->mp < 0)
+                        {
+                            def->mp = 0;
+                        }
                 }
 
                 if(force < def->health)                    // If an attack won't deal damage, this line won't do anything anyway.
