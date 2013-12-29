@@ -135,7 +135,7 @@ const s_attack emptyattack =
     0, //dot_time
     0, //dot_force
     0, //dot_rate
-    0, //otg
+    _otg_none, //otg
     0, //jugglecost
     0, //guardcost
     0, //attack_drop
@@ -7133,9 +7133,9 @@ s_model *init_model(int cacheindex, int unload)
     newchar->no_adjust_base             = -1;
     newchar->pshotno                    = -1;
     newchar->project                    = -1;
-    newchar->dust[0]                    = -1;
-    newchar->dust[1]                    = -1;
-    newchar->dust[2]                    = -1;
+    newchar->dust.fall_land             = -1;
+    newchar->dust.jump_land             = -1;
+    newchar->dust.jump_start            = -1;
     newchar->bomb                       = -1;
     newchar->star                       = -1;
     newchar->knife                      = -1;
@@ -7654,29 +7654,29 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->dust[0] = -1;
+                    newchar->dust.fall_land = -1;
                 }
                 else
                 {
-                    newchar->dust[0] = get_cached_model_index(value);
+                    newchar->dust.fall_land = get_cached_model_index(value);
                 }
                 value = GET_ARG(2);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->dust[1] = -1;
+                    newchar->dust.jump_land = -1;
                 }
                 else
                 {
-                    newchar->dust[1] = get_cached_model_index(value);
+                    newchar->dust.jump_land = get_cached_model_index(value);
                 }
                 value = GET_ARG(3);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->dust[2] = -1;
+                    newchar->dust.jump_start = -1;
                 }
                 else
                 {
-                    newchar->dust[2] = get_cached_model_index(value);
+                    newchar->dust.jump_start = get_cached_model_index(value);
                 }
                 break;
             case CMD_MODEL_BRANCH: // for endlevel item's level branch
@@ -16334,7 +16334,7 @@ void do_attack(entity *e)
                 ent_list[i]->pain_time < time && //(ent_list[i]->pain_time<time || current_anim->fastattack) &&
                 ent_list[i]->takedamage &&
                 ent_list[i]->hit_by_attack_id != current_attack_id &&
-                ((ent_list[i]->takeaction != common_lie && attack->otg < 2) || (attack->otg >= 1 && ent_list[i]->takeaction == common_lie)) && //over the ground hit
+                ((ent_list[i]->takeaction != common_lie && attack->otg < _otg_ground_only) || (attack->otg >= _otg_both && ent_list[i]->takeaction == common_lie)) && //over the ground hit
                 ((ent_list[i]->falling == 0 && attack->jugglecost >= 0) || (ent_list[i]->falling == 1 && attack->jugglecost <= ent_list[i]->modeldata.jugglepoints.current)) && // juggle system
                 (checkhit(e, ent_list[i], 0) || // normal check bbox
                  (attack->counterattack && checkhit(e, ent_list[i], 1)))  )// check counter, e.g. upper
@@ -16933,9 +16933,9 @@ void check_gravity(entity *e)
                 self->falling = 0;
                 //self->projectile = 0;
                 // cust dust entity
-                if(self->modeldata.dust[0] >= 0 && self->velocity.y < -1 && self->drop)
+                if(self->modeldata.dust.fall_land >= 0 && self->velocity.y < -1 && self->drop)
                 {
-                    dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust[0], NULL);
+                    dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.fall_land, NULL);
                     if(dust)
                     {
                         dust->base = self->position.y;
@@ -18860,13 +18860,13 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
         {
             newmodel->bflash        = model->bflash;
         }
-        if(newmodel->dust[0]        <   0)
+        if(newmodel->dust.fall_land        <   0)
         {
-            newmodel->dust[0]       = model->dust[0];
+            newmodel->dust.fall_land       = model->dust.fall_land;
         }
-        if(newmodel->dust[1]        <   0)
+        if(newmodel->dust.jump_land  <   0)
         {
-            newmodel->dust[1]       = model->dust[1];
+            newmodel->dust.jump_land       = model->dust.jump_land;
         }
         if(newmodel->diesound       <   0)
         {
@@ -19333,9 +19333,9 @@ void common_jump()
         {
             self->takeaction = common_jumpland;
             ent_set_anim(self, ANI_JUMPLAND, 0);
-            if(self->modeldata.dust[1] >= 0)
+            if(self->modeldata.dust.jump_land >= 0)
             {
-                dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust[1], NULL);
+                dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.jump_land, NULL);
                 if(dust)
                 {
                     dust->base = self->position.y;
@@ -19346,9 +19346,9 @@ void common_jump()
         }
         else
         {
-            if(self->modeldata.dust[1] >= 0 && self->animation->landframe.frame == -1)
+            if(self->modeldata.dust.jump_land >= 0 && self->animation->landframe.frame == -1)
             {
-                dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust[1], NULL);
+                dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.jump_land, NULL);
                 if(dust)
                 {
                     dust->base = self->position.y;
@@ -20768,9 +20768,9 @@ int common_try_jumpattack(entity *target)
             self->jumping = 1;
             toss(self, self->modeldata.jumpheight);
 
-            if(self->modeldata.dust[2] >= 0)
+            if(self->modeldata.dust.jump_start >= 0)
             {
-                dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust[2], NULL);
+                dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.jump_start, NULL);
                 if(dust)
                 {
                     dust->base = self->position.y;
@@ -24089,9 +24089,9 @@ void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
     }
 
     //Spawn jumpstart dust.
-    if(self->modeldata.dust[2] >= 0)
+    if(self->modeldata.dust.jump_start >= 0)
     {
-        dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust[2], NULL);
+        dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.jump_start, NULL);
         if(dust)
         {
             dust->base = self->position.y;
