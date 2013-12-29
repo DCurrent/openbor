@@ -1,5 +1,5 @@
 /*
- * OpenBOR - http://www.LavaLit.com
+ * OpenBOR - http://www.chronocrash.com
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
@@ -283,7 +283,7 @@ void joystick_scan(int scan)
 		joysticks[i].NumButtons = SDL_JoystickNumButtons(joystick[i]);
 
 		joysticks[i].Name = SDL_JoystickName(i);
-        
+
 #if PSP
 		joysticks[i].Type = JOY_TYPE_SONY;
 		for(j=0; j<JOY_MAX_INPUTS+1; j++)

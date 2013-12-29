@@ -1,5 +1,5 @@
 /*
- * OpenBOR - http://www.LavaLit.com
+ * OpenBOR - http://www.chronocrash.com
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
@@ -71,7 +71,7 @@ void initSDL()
 {
 	SDL_DisplayMode video_info;
 	int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK;
-	
+
 	if(SDL_Init(init_flags) < 0)
 	{
 		printf("SDL Failed to Init!!!! (%s)\n", SDL_GetError());
@@ -79,7 +79,7 @@ void initSDL()
 	}
 	SDL_ShowCursor(SDL_DISABLE);
 	atexit(SDL_Quit);
-	
+
 	// TODO OpenGL
 #if 0 // WIN || LINUX && !DARWIN && !defined(GLES)
 	if(SDL_GL_LoadLibrary(NULL) < 0)
@@ -157,7 +157,7 @@ SDL_Surface* SetVideoMode(int w, int h, int bpp, bool gl)
 	static bool last_gl = false;
 	if(gl) flags |= SDL_WINDOW_OPENGL;
 	if(savedata.fullscreen) flags |= SDL_WINDOW_FULLSCREEN;
-	
+
 	if(window && gl != last_gl)
 	{
 		SDL_GetWindowPosition(window, &x, &y);
@@ -165,7 +165,7 @@ SDL_Surface* SetVideoMode(int w, int h, int bpp, bool gl)
 		window = NULL;
 	}
 	last_gl = gl;
-	
+
 	if(window)
 	{
 		SDL_SetWindowFullscreen(window, 0);
@@ -180,7 +180,7 @@ SDL_Surface* SetVideoMode(int w, int h, int bpp, bool gl)
 		SDL_SetWindowIcon(window, icon);
 		SDL_FreeSurface(icon);
 	}
-	
+
 	if(gl) return NULL;
 	else return SDL_CreateRGBSurface(0, w, h, bpp, masks[bpp/8-1][2], masks[bpp/8-1][1], masks[bpp/8-1][0], masks[bpp/8-1][3]);
 #elif defined(OPENDINGUX)
@@ -359,7 +359,7 @@ int video_copy_screen(s_screen* src)
 	{
 		//printf(" bscreen ");
 		if(SDL_MUSTLOCK(bscreen)) SDL_UnlockSurface(bscreen);
-		if(bscreen2) 
+		if(bscreen2)
 		{
 			SDL_BlitSurface(bscreen, NULL, bscreen2, &rectsrc);
 			if(SDL_MUSTLOCK(bscreen2)) SDL_LockSurface(bscreen2);

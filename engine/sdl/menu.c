@@ -1,5 +1,5 @@
 /*
- * OpenBOR - http://www.LavaLit.com
+ * OpenBOR - http://www.chronocrash.com
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
@@ -457,7 +457,7 @@ void initMenu(int type)
 
 	screenformat = bpp==32?PIXEL_32:PIXEL_16;
 	pixelformat = PIXEL_x8;
-	
+
 	savedata.fullscreen = isFull;
 	video_stretch(savedata.stretch);
 	videoMode = isWide ? 1 : 0;
@@ -469,7 +469,7 @@ void initMenu(int type)
 	video_set_mode(videomodes);
 
 	// Read Logo or Menu from Array.
-	if(!type) 
+	if(!type)
 		bgscreen = pngToScreen(isWide ? (void*) openbor_logo_480x272_png.data : (void*) openbor_logo_320x240_png.data);
 	else
 		bgscreen = pngToScreen(isWide ? (void*) openbor_menu_480x272_png.data : (void*) openbor_menu_320x240_png.data);
@@ -520,7 +520,7 @@ void drawMenu()
 #else
 				Image = getPreview(filelist[list+dListScrollPosition].filename);
 #endif
-					
+
 			}
 			printText((isWide ? 30 : 7) + shift, (isWide ? 33 : 22)+(11*list) , colors, 0, 0, "%s", listing);
 		}
@@ -532,7 +532,7 @@ void drawMenu()
 	printText((isWide ? 150 : 84),(isWide ? 251 : 226), WHITE, 0, 0, "%s: BGM Player", control_getkeyname(savedata.keys[0][SDID_ATTACK2]));
 	printText((isWide ? 270 : 164),(isWide ? 251 : 226), WHITE, 0, 0, "%s: View Logs", control_getkeyname(savedata.keys[0][SDID_JUMP]));
 	printText((isWide ? 390 : 244),(isWide ? 251 : 226), WHITE, 0, 0, "%s: Quit Game", control_getkeyname(savedata.keys[0][SDID_SPECIAL]));
-   	printText((isWide ? 330 : 197),(isWide ? 170 : 155), BLACK, 0, 0, "www.LavaLit.com");
+   	printText((isWide ? 330 : 197),(isWide ? 170 : 155), BLACK, 0, 0, "www.chronocrash.com");
 	printText((isWide ? 322 : 190),(isWide ? 180 : 165), BLACK, 0, 0, "www.SenileTeam.com");
 
 #ifdef SPK_SUPPORTED
@@ -583,7 +583,7 @@ void drawBGMPlayer()
 	printText((isWide ? 150 : 84),(isWide ? 251 : 226), WHITE, 0, 0, "%s: %s", control_getkeyname(savedata.keys[0][SDID_ATTACK2]), bgmLoop ? "Repeat On" : "Repeat Off");
 	printText((isWide ? 270 : 164),(isWide ? 251 : 226), WHITE, 0, 0, "%s: %s", control_getkeyname(savedata.keys[0][SDID_JUMP]), bgmCycle ? "Cycle On" : "Cycle Off");
 	printText((isWide ? 390 : 244),(isWide ? 251 : 226), WHITE, 0, 0, "%s: Exit Player", control_getkeyname(savedata.keys[0][SDID_SPECIAL]));
-	printText((isWide ? 330 : 197),(isWide ? 170 : 155), BLACK, 0, 0, "www.LavaLit.com");
+	printText((isWide ? 330 : 197),(isWide ? 170 : 155), BLACK, 0, 0, "www.chronocrash.com");
 	printText((isWide ? 322 : 190),(isWide ? 180 : 165), BLACK, 0, 0, "www.SenileTeam.com");
 
 #ifdef SPK_SUPPORTED

@@ -1,5 +1,5 @@
 /*
- * OpenBOR - http://www.LavaLit.com
+ * OpenBOR - http://www.chronocrash.com
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
@@ -213,7 +213,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 	{
 		printf("Warning: can't disable vertical retrace sync (%s)\n", SDL_GetError());
 	}
-	
+
 #if SDL2 && defined(GLES)
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_EGL, 1);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
@@ -407,7 +407,7 @@ int video_gl_copy_screen(s_screen* src)
 
 		if(SDL_MUSTLOCK(bscreen)) SDL_UnlockSurface(bscreen);
 	}
-	
+
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	// update texture contents with new surface contents
