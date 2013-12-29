@@ -495,6 +495,18 @@ typedef enum
 
 typedef enum
 {
+    /*
+    Status bar direction enum.
+    Damon V. Caskey
+    2013-12-29
+    */
+
+    _barstatus_dir_normal,  //Left to Right or Up to Down.
+    _barstatus_dir_invert   //Right to Left or Down to Up.
+} e_bar_dir;
+
+typedef enum
+{
     horizontalbar,
     verticalbar
 } e_barorient;
@@ -1192,7 +1204,7 @@ typedef struct
     e_bartype type;
     e_barorient orientation;
     int noborder;
-    int direction;  //0) left to right or botom to top 1) reversed
+    e_bar_dir direction;
     int barlayer;
     int backlayer;
     int borderlayer;

@@ -1,9 +1,9 @@
 #
-# OpenBOR - http://www.LavaLit.com
+# OpenBOR - http://www.ChronoCrash.com
 # -----------------------------------------------------------------------
 # All rights reserved, see LICENSE in OpenBOR root for details.
 #
-# Copyright (c) 2004 - 2011 OpenBOR Team
+# Copyright (c) 2004 - 2014 OpenBOR Team
 #
 
 #!/bin/bash
@@ -34,7 +34,7 @@ function distribute {
   echo "          Validating Platforms Built w/Bash"
   echo ------------------------------------------------------
   echo
-  
+
   if ! test "releases/PSP/OpenBOR/EBOOT.PBP"; then
     echo "PSP Platform Failed To Build!"
     exit 1
@@ -60,7 +60,7 @@ function distribute {
     cd ../../../engine
   else
     echo "Windows Platform Failed To Build!"
-    exit 1  
+    exit 1
   fi
   if ! test -e "releases/WII/OpenBOR/boot.dol"; then
     echo "Wii Platform Failed To Build!"
@@ -90,11 +90,11 @@ function distribute {
     cp ../scripts/packer ../../../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/
     cp ../scripts/paxplode ../../../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/
     cd ../../../engine
-  else  
+  else
     echo "Darwin Platform Failed To Build!"
     exit 1
   fi
-  
+
   echo "All Platforms Created Successfully"
   if ! test "$BUILDBATCH"; then
     TRIMMED_URL=`svn info | grep "URL:" | sed s/URL:\ svn\+ssh//g`
@@ -149,7 +149,7 @@ function gp2x {
         mkdir ./releases/GP2X
         mkdir ./releases/GP2X/OpenBOR
         mkdir ./releases/GP2X/OpenBOR/Logs
-        mkdir ./releases/GP2X/OpenBOR/Paks  
+        mkdir ./releases/GP2X/OpenBOR/Paks
         mkdir ./releases/GP2X/OpenBOR/Saves
         mkdir ./releases/GP2X/OpenBOR/ScreenShots
       fi
@@ -210,11 +210,11 @@ function linux_amd64 {
 }
 
 function linux_something {
-  if [ ! $1 -o $1 = x86 ]; then 
+  if [ ! $1 -o $1 = x86 ]; then
     linux_x86
-  elif [ $1 = amd64 ]; then 
+  elif [ $1 = amd64 ]; then
     linux_amd64
-  else 
+  else
     echo "Error: unknown Linux architecture '$1'"
   fi
 }
@@ -320,7 +320,7 @@ function wiz {
         mkdir ./releases/WIZ/OpenBOR/Paks
         mkdir ./releases/WIZ/OpenBOR/Saves
         mkdir ./releases/WIZ/OpenBOR/ScreenShots
-      fi  
+      fi
       mv OpenBOR.gpe ./releases/WIZ/OpenBOR/
       if [ `echo $HOST_PLATFORM | grep -o "SVN"` ]; then
         cp $SDKPATH/lib/target/libSDL-1.2.so.0.11.2 ./releases/WIZ/OpenBOR/
@@ -330,7 +330,7 @@ function wiz {
         cp $SDKPATH/lib/libSDL-1.2.so.0.11.2 ./releases/WIZ/OpenBOR/
         cp $SDKPATH/lib/libSDL_gfx.so.0.0.17 ./releases/WIZ/OpenBOR/libSDL_gfx.so.0
       fi
-    fi  
+    fi
     make clean BUILD_WIZ=1
   fi
 }
@@ -414,7 +414,7 @@ case $1 in
     version
     psp
     ;;
-  
+
   2)
     version
     echo "No platform here anymore (used to be PS2)"
@@ -457,7 +457,7 @@ case $1 in
 
   10)
     version
-    darwin 
+    darwin
     ;;
 
   ?)
