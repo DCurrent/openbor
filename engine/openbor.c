@@ -17318,19 +17318,19 @@ void update_animation()
 
     if(level)
     {
-        if(self->modeldata.facing == 1 || level->facing == 1)
+        if(self->modeldata.facing == _facing_adjust_right || level->facing == _facing_adjust_right)
         {
             self->direction = _direction_right;
         }
-        else if(self->modeldata.facing == 2 || level->facing == 2)
+        else if(self->modeldata.facing == _facing_adjust_left || level->facing == _facing_adjust_left)
         {
             self->direction = _direction_left;
         }
-        else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_RIGHT))
+        else if((self->modeldata.facing == _facing_adjust_level || level->facing == _facing_adjust_level) && (level->scrolldir & SCROLL_RIGHT))
         {
             self->direction = _direction_right;
         }
-        else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_LEFT))
+        else if((self->modeldata.facing == _facing_adjust_level || level->facing == _facing_adjust_level) && (level->scrolldir & SCROLL_LEFT))
         {
             self->direction = _direction_left;
         }
@@ -25657,19 +25657,19 @@ void player_think()
         // back walk feature
         if(level && validanim(self, ANI_BACKWALK))
         {
-            if(self->modeldata.facing == 1 || level->facing == 1)
+            if(self->modeldata.facing == _facing_adjust_right || level->facing == _facing_adjust_right)
             {
                 bkwalk = !self->direction;
             }
-            else if(self->modeldata.facing == 2 || level->facing == 2)
+            else if(self->modeldata.facing == _facing_adjust_left || level->facing == _facing_adjust_right)
             {
                 bkwalk = self->direction;
             }
-            else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_LEFT) && self->direction == _direction_left)
+            else if((self->modeldata.facing == _facing_adjust_level || level->facing == _facing_adjust_level) && (level->scrolldir & SCROLL_LEFT) && self->direction == _direction_left)
             {
                 bkwalk = 1;
             }
-            else if((self->modeldata.facing == 3 || level->facing == 3) && (level->scrolldir & SCROLL_RIGHT) && self->direction == _direction_right)
+            else if((self->modeldata.facing == _facing_adjust_level || level->facing == _facing_adjust_level) && (level->scrolldir & SCROLL_RIGHT) && self->direction == _direction_right)
             {
                 bkwalk = 1;
             }

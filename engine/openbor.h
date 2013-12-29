@@ -274,7 +274,7 @@ typedef enum
     MASK_AIATTACK2      = 0xFFFF0000
 } e_aiattack_2;
 
-typedef enum
+typedef enum //Animations
 {
     /*
     Animations enum.
@@ -593,7 +593,6 @@ typedef enum
     _direction_adjust_opposite  = -1,   //Opposite attacker/bind/etc.
     _direction_adjust_right     = 2,    //Always right.
     _direction_adjust_left      = -2    //Always left.
-
 } e_direction_adjust;
 
 typedef enum
@@ -622,6 +621,20 @@ typedef enum
     _edelay_mode_add,       //Factor is added directly to edelay.
     _edelay_mode_multiply   //Orginal delay value is multiplied by factor.
 } e_edelay_mode;
+
+typedef enum
+{
+    /*
+    Facing adjustment enum.
+    Damon V. Caskey
+    2013-12-29
+    */
+
+    _facing_adjust_none,    //No facing adjustment.
+    _facing_adjust_right,   //Always face right.
+    _facing_adjust_left,    //Always face left.
+    _facing_adjust_level    //Face according to level scroll direction.
+} e_facing_adjust;
 
 typedef enum
 {
@@ -1436,7 +1449,7 @@ typedef struct
     int grabfinish; // wait for grab animation to finish before do other actoins
     int antigrab; // anti-grab factor
     int grabforce; // grab factor, antigrab - grabforce <= 0 means can grab
-    int facing; // 0 no effect, 1 alway right, 2 always left, 3, affected by level dir
+    e_facing_adjust facing;
     int grabback; // Flag to determine if entities grab images display behind opponenets
     int grabturn;
     int paingrab; // Can only be grabbed when in pain
@@ -1950,7 +1963,7 @@ typedef struct
     int nohit; // Not able to grab / hit other player on a per level basis
     s_axis_f spawn[MAX_PLAYERS]; // Used to determine the spawn position of players
     int setweap; // Levels can now specified which weapon will be used by default
-    int facing; // Force the players to face to ... 0 no effects, 1 right, 2 left, 3 affected by level dir
+    e_facing_adjust facing; // Force the players to face to ...
 //--------------------gravity system-------------------------
     float maxfallspeed;
     float maxtossspeed;
