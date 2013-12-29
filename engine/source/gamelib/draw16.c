@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2014 OpenBOR Team
  */
 
 // draw functions with 16bit pixel format, with alpha blending

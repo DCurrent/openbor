@@ -1,13 +1,13 @@
 #
-# OpenBOR - http://www.LavaLit.com
+# OpenBOR - http://www.ChronoCrash.com
 # -----------------------------------------------------------------------
-# Licensed under the BSD license, see LICENSE in OpenBOR root for details.
+# All rights reserved. See LICENSE in OpenBOR root for details.
 #
-# Copyright (c) 2004 - 2011 OpenBOR Team
+# Copyright (c) 2004 - 2014 OpenBOR Team
 #
 
 #!/bin/bash
-# Script acquires the verison number from SVN Repository and creates 
+# Script acquires the verison number from SVN Repository and creates
 # a version.h as well as the environment variable to be used.
 
 function check_svn_bin {
@@ -55,11 +55,11 @@ export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD"
 function write_version {
 rm -rf version.h
 echo "/*
- * OpenBOR - http://www.LavaLit.com
+ * OpenBOR - http://www.ChronoCrash.com
  * -----------------------------------------------------------------------
- * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
+ * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2014 OpenBOR Team
  */
 
 #ifndef VERSION_H
@@ -79,9 +79,9 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
 	<name>$VERSION_NAME</name>
 	<version>$VERSION_MAJOR.$VERSION_MINOR.$VERSION_BUILD</version>
 	<release_date>$VERSION_DATE</release_date>
-	<coder>Plombo, SX</coder>
+	<coder>Damon Caskey, Plombo, SX, Utunnels</coder>
 	<short_description>The Ultimate 2D Game Engine</short_description>
-	<long_description>OpenBOR is a highly advanced continuation of Senile Team's semi-2D game engine, Beats Of Rage.  Visit http://www.LavaLit.com for all news, events, and releases of the engine and game modules.
+	<long_description>OpenBOR is a highly advanced continuation of Senile Team's semi-2D game engine, Beats Of Rage.  Visit http://www.ChronoCrash.com for all news, events, and releases of the engine and game modules.
 </app>" >> resources/meta.xml
 
 rm -rf resources/Info.plist
@@ -90,20 +90,20 @@ echo "<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0">
 <dict>
   <key>Author</key>
-  <string>SX</string>
+  <string>Damon Caskey</string>
   <key>Description</key>
-  <string>The Ultimate 2D Game Engine</string>  
+  <string>The Ultimate 2D Game Engine</string>
   <key>ExtendedDescription</key>
-  <string>OpenBOR is a highly advanced continuation of Senile Team's semi-2D game engine, Beats Of Rage.  Visit http://www.LavaLit.com for all news, events, and releases of the engine and game modules.</string>
+  <string>OpenBOR is a highly advanced continuation of Senile Team's semi-2D game engine, Beats Of Rage.  Visit http://www.ChronoCrash.com for all news, events, and releases of the engine and game modules.</string>
   <key>CFBundleIdentifier</key>
-  <string>com.lavalit.openbor</string>
+  <string>com.ChronoCrash.openbor</string>
   <key>CFBundleShortVersionString</key>
   <string>$VERSION_MAJOR.$VERSION_MINOR</string>
   <key>NSHumanReadableCopyright</key>
-  <string>The Ultimate 2D Game Engine Presented by SX
+  <string>The Ultimate 2D Game Engine. Presented by Damon V. Caskey.
 
 Beats of Rage © SenileTeam
-OpenBOR © LavaLit
+OpenBOR © ChronoCrash
 All Rights Reserved</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>

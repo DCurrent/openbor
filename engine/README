@@ -7,22 +7,23 @@ created by the wonderful folks over at http://www.senileteam.com.
 
 History
 ----------------------
-In 2004, Senile Team released Beats of Rage, a free beat-'em-up for DOS inspired 
-by SEGA's Streets of Rage series and using sprites from SNK Playmore's King of 
-Fighters series.  The game spread only by word of mouth, but it nonetheless 
-amassed popularity very quickly.  Senile Team soon released an edit pack allowing 
+In 2004, Senile Team released Beats of Rage, a free beat-'em-up for DOS inspired
+by SEGA's Streets of Rage series and using sprites from SNK Playmore's King of
+Fighters series.  The game spread only by word of mouth, but it nonetheless
+amassed popularity very quickly.  Senile Team soon released an edit pack allowing
 anyone interested to create a mod for the BOR engine.
 
-In 2005, Kirby2000 asked Senile Team to open the source code to BOR.  They 
-agreed, and OpenBOR was born.  Development on the engine was continued by the 
+In 2005, Kirby2000 asked Senile Team to open the source code to BOR.  They
+agreed, and OpenBOR was born.  Development on the engine was continued by the
 community, and still is to this day.
 
 
 Available Platforms
 ----------------------
-OpenBOR has a very modular and portable design inherited from Beats of Rage. Ports 
+OpenBOR has a very modular and portable design inherited from Beats of Rage. Ports
 to the following platforms are currently supported:
 
+* Android
 * Windows
 * Linux
 * Mac OS X
@@ -33,7 +34,7 @@ to the following platforms are currently supported:
 * GP2X Wiz
 * OpenDingux (Dingoo A320 & GCW-Zero)
 
-In addition to the above, the original Beats of Rage engine (downloadable from 
+In addition to the above, the original Beats of Rage engine (downloadable from
 the Senile Team website) is available for the following platforms:
 
 * DOS
@@ -45,33 +46,36 @@ the Senile Team website) is available for the following platforms:
 
 Source Code
 ----------------------
-svn checkout https://lavalit.com/svn/openbor openbor
-
-You may get a security warning from your Subversion client.  This is because 
-LavaLit signs its own SSL certificate, and it can be safely ignored.  If you get 
-a *fatal* error, you should upgrade to a newer version of the Neon HTTP library. 
-This bug is fixed in neon 0.29.5 (released October 14, 2010).
+svn checkout http://www.chronocrash.com/forum/index.php?board=26.0
 
 
 OpenBOR Team
 ----------------------
-SumolX (2006-2011)
-Project Manager, Lead Programmer, Known for porting PSP, PS3, Linux, Wii, GP2X and 
-maintaining all other platforms and code base.
+Damon Caskey (2007-)
+Current project manager, lead programmer and site owner of the OpenBOR community. Primary
+contributions are feature additions to core engine, scripting, general development and organization.
 
-uTunnels (2007-2010)
-Developed the scripting engine for OpenBOR and also added many exciting features.
-
-KBbandressen (2007-2011)
-New developer that is feature rich!
-
-Plombo (2009-2011)
-A developer who prefers to work on OpenBOR's supporting libraries and 
-platform-specific backends.  Known for maintaining the Wii port, writing the 
+Plombo (2009-)
+A developer who prefers to work on OpenBOR's supporting libraries and
+platform-specific backends.  Known for maintaining the Wii port, writing the
 GPU-accelerated video code for Wii and OpenGL, and a few engine features.
 
-Damon Caskey (2007-2011)
-Scripter, Tester and Developer.  What else can I say.
+uTunnels (2007-)
+Among many other powerful additions, contributed the original scripting engine to OpenBOR, single handedly
+breaking nearly every single limitation module authors faced.
+
+
+Former members and contributors
+----------------------
+Anallyst (2011)
+This developer's work centered mainly around trimming the fat and optimizing the codebase.
+
+SumolX (2006-2011)
+Former project manager and lead programmer, retired from the scene in 2011. Known for porting PSP,
+PS3, Linux, Wii, GP2X and maintaining all other platforms and code base.
+
+KBbandressen (2007-2011)
+Contributed a plethora of features, including the powerful text object and filestream capabilities.
 
 CGRemakes (2005-2006)
 Main developer after Kirby2K.  Introduced many exicting features to engine.
@@ -86,9 +90,8 @@ Fugue (2006)
 Developed offshoot engine based on OpenBOR.  Shared features with both engines.
 
 Kirby2K (2004-2005)
-The original developer of OpenBOR who asked Senile Team for permission to open 
+The original developer of OpenBOR who asked Senile Team for permission to open
 up Beats Of Rage.
-
 
 
 Senile Team Members
@@ -107,18 +110,16 @@ Ben
 Senile Team's composer, who is currently working on the soundtrack for Age of the Beast.
 
 Neill
-Neill was the first to port Beats of Rage to other systems, namely Playstation 2 
-and Dreamcast. He now supports Senile Team with advice regarding console hardware 
+Neill was the first to port Beats of Rage to other systems, namely Playstation 2
+and Dreamcast. He now supports Senile Team with advice regarding console hardware
 and code compatibility, and has agreed to port Age of the Beast when it's ready.
 http://www.neillcorlett.com
 
 
-
 Websites
 ----------------------
-LavaLit (home of OpenBOR development) - http://www.lavalit.com
+ChronoCrash (home of OpenBOR development) - http://www.ChronoCrash.com
 Senile Team (original authors of Beats of Rage) - http://www.senileteam.com
-
 
 
 OpenBOR File Layout
@@ -138,7 +139,7 @@ OpenBOR File Layout
       -> Paks/
       -> ScreenShots/
       -> Logs/
-      -> Saves/      
+      -> Saves/
 
 
 ***********************************************************************************
@@ -156,7 +157,7 @@ OpenBOR File Layout
       -> ScreenShots/
       -> Logs/
       -> Saves/
-      
+
 
 ***********************************************************************************
 *                                    Mac OS X                                     *
@@ -169,7 +170,7 @@ OpenBOR File Layout
            -> MacOS
            |   |
            |   -> OpenBOR
-           |  
+           |
            -> Resources
            |   |
            |   -> borpak
@@ -182,14 +183,14 @@ OpenBOR File Layout
            |   -> Saves/
            |
            -> Libraries
-      
+
 
 ***********************************************************************************
 *                                       Wii                                       *
 ***********************************************************************************
 
 -> apps/
-      | 
+      |
       ->OpenBOR/
           |
           -> boot.dol

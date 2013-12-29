@@ -1,20 +1,20 @@
 ------------------------- Compiling using your own SDK(s) -------------------------
 
-Requirements:  Linux (Ubuntu) If you are like me (S.X.) then you like to build your own environments!
+Requirements:  Linux (Ubuntu) If you are like me then you like to build your own environments!
 
 
-PSPSDK:   svn://ps2dev.org/psp/trunk/psptoolchain 
-          svn://ps2dev.org/psp/trunk/zlib 
+PSPSDK:   svn://ps2dev.org/psp/trunk/psptoolchain
+          svn://ps2dev.org/psp/trunk/zlib
           svn://ps2dev.org/psp/trunk/libpng
 
 
-PS2SDK:   svn://ps2dev.org/ps2/trunk/ps2toolchain 
-          svn://ps2dev.org/ps2/trunk/zlib 
+PS2SDK:   svn://ps2dev.org/ps2/trunk/ps2toolchain
+          svn://ps2dev.org/ps2/trunk/zlib
           svn://ps2dev.org/ps2/trunk/libpng
 
 
-Open2X:   http://wiki.open2x.org/open2x/wiki/index.php 
-          Grab Toolchain 
+Open2X:   http://wiki.open2x.org/open2x/wiki/index.php
+          Grab Toolchain
           Grab Prebuilt Libraries
 
 
@@ -30,19 +30,19 @@ Linux:    Install neccessary SDL Components with Synaptic Package Manager
           SDL_image-devel (Debian/Ubuntu name: libsdl-image1.2-dev)
           zlib-devel (Debian/Ubuntu name: zlib1g-dev)
           libpng-devel (Debian/Ubuntu name: libpng12-dev)
-          
-          For 64-bit Ubuntu/Debian, download getlibs 
-          (http://ubuntuforums.org/showthread.php?t=474790) and use it to 
-          install the SDL components listed above instead of Synaptic.
-          
-          For both 32-bit and 64-bit systems, yasm is also needed.
-          
 
-Windows:  http://www.bloodshed.net/ 
+          For 64-bit Ubuntu/Debian, download getlibs
+          (http://ubuntuforums.org/showthread.php?t=474790) and use it to
+          install the SDL components listed above instead of Synaptic.
+
+          For both 32-bit and 64-bit systems, yasm is also needed.
+
+
+Windows:  http://www.bloodshed.net/
           Install necessary SDL Components
 
 
-DOS:      http://www.lavalit.com/download 
+DOS:      http://www.ChronoCrash.com/download
           Grab OpenWatcom v1.1
 
 
@@ -60,7 +60,7 @@ Build.sh  - Script file that compiles using various SDK environments (PSP, PS2, 
 
 Requirements:  Windows/DOS
 
-sdkPack-v1.1.rar:  Located Here @ http://www.lavalit.com/download/Development/Compilers/All-In-One/
+sdkPack-v1.1.rar:  Located Here @ http://www.ChronoCrash.com/download/Development/Compilers/All-In-One/
 
 Execution:
 
@@ -79,7 +79,7 @@ All compilations are moved to Releases folder when using build.sh or built.bat
 Happy Linking.....;p
 
 
-Any questions I can be contacted thru my site http://www.lavalit.com
+For questions I can be contacted @ http://www.ChronoCrash.com
 
 
-By S.X.
+Damon V. Caskey (dc@caskeys.com)
