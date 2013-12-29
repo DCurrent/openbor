@@ -1,5 +1,5 @@
 /*
- * OpenBOR - http://www.LavaLit.com
+ * OpenBOR - http://www.chronocrash.com
  * -----------------------------------------------------------------------
  * All rights reserved. See LICENSE in OpenBOR root for license details.
  *

@@ -1,5 +1,5 @@
 /*
- * OpenBOR - http://www.LavaLit.com
+ * OpenBOR - http://www.chronocrash.com
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
@@ -531,7 +531,7 @@ pp_token *pp_parser_emit_token(pp_parser *self)
                         else if(List_FindByName(&self->ctx->macros, param2))
                             param2 = (char*)List_Retrieve(&self->ctx->macros);
                         else break;
-                        
+
                         // this is ugly but works as long as buf2 doesn't overflow
                         pp_lexer_Init(&tmpLexer, param2, start);
                         pp_lexer_GetNextToken(&tmpLexer, &tokenA);
@@ -541,7 +541,7 @@ pp_token *pp_parser_emit_token(pp_parser *self)
                     }
                     memmove(buf2+strlen(param2), buf2, strlen(buf2)+1);
                     memcpy(buf2, param2, strlen(param2));
-                    
+
                     pp_parser_concatenate(self, buf1, buf2);
                     emitme = false;
                     continue;
