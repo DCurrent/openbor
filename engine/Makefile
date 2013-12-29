@@ -1,14 +1,14 @@
 #
-# OpenBOR - http://www.LavaLit.com
+# OpenBOR - http://www.ChronoCrash.com
 # ---------------------------------------------------------------------------------------------------
 # All rights reserved, see LICENSE in OpenBOR root for details.
 #
-# Copyright (c) 2004 - 2012 OpenBOR Team
+# Copyright (c) 2004 - 2014 OpenBOR Team
 #
 
 #----------------------------------------------------------------------------------------------------
 #
-#               	OpenBOR Makefile for ALL TARGET_PLATFORMs 
+#               	OpenBOR Makefile for ALL TARGET_PLATFORMs
 #
 #             PSP, PS3, Wii, Dreamcast, GP2X, WIZ, Pandora, OpenDingux, Windows, Darwin & Linux
 #
@@ -87,7 +87,7 @@ ifeq ($(findstring 64, $(TARGET_ARCH)), 64)
 BUILD_AMD64     = 1
 ARCHFLAGS       = -m64
 LIBRARIES       = $(SDKPATH)/lib64
-CFLAGS          += -DAMD64 
+CFLAGS          += -DAMD64
 else
 ARCHFLAGS       = -m32
 LIBRARIES       = $(SDKPATH)/lib32
@@ -359,7 +359,7 @@ GFX 	        = source/gfxlib/2xSaI.o                                            
                   source/gfxlib/simple2x.o                                                          \
                   source/gfxlib/tv2x.o
 endif
-		  
+
 ifdef BUILD_MMX
 GFX 	       += source/gfxlib/2xSaImmx.o                                                          \
                   source/gfxlib/bilinearmmx.o                                                       \
@@ -464,7 +464,7 @@ GAME_CONSOLE   += sdl/joysticks.o                                               
                   sdl/timer.o                                                                       \
                   sdl/sdlport.o                                                                     \
                   sdl/video.o                                                                       \
-                  sdl/menu.o                                                                        
+                  sdl/menu.o
 endif
 
 
@@ -502,7 +502,7 @@ OBJS            = $(MAIN)                                                       
                   $(RAM)                                                                            \
                   $(RAND)                                                                           \
                   $(PNG)
-		  
+
 #----------------------------------------------------------------------------------------------------
 # Compiler Flags
 #----------------------------------------------------------------------------------------------------
@@ -524,14 +524,14 @@ CFLAGS 	       += -O9
 else
 CFLAGS 	       += -O2
 endif
-CFLAGS 	       += -fno-ident -freorder-blocks 
+CFLAGS 	       += -fno-ident -freorder-blocks
 ifndef BUILD_AMD64
-CFLAGS         += -fomit-frame-pointer 
+CFLAGS         += -fomit-frame-pointer
 endif
 else
 CFLAGS 	       += -DDEBUG -O0
 ifdef NO_RAM_DEBUGGER
-CFLAGS         += -DNO_RAM_DEBUGGER 
+CFLAGS         += -DNO_RAM_DEBUGGER
 endif
 endif
 
@@ -650,7 +650,7 @@ endif
 
 
 ifdef BUILD_PTHREAD
-LIBS           += -lpthread 
+LIBS           += -lpthread
 endif
 
 
@@ -688,7 +688,7 @@ LIBS           += -lpng -lz -lm
 #----------------------------------------------------------------------------------------------------
 # Rules to manage Files and Libraries for PSP
 #----------------------------------------------------------------------------------------------------
-       
+
 ifdef BUILD_PSP
 %.o : %.c
 	@echo Compiling $(TARGET_PLATFORM) Port: $<...
@@ -757,7 +757,7 @@ all : $(TARGET) $(TARGET_FINAL)
 $(TARGET) : $(OBJS) $(RES)
 	@echo
 	@echo Linking $(TARGET_PLATFORM) Port: $(TARGET)...
-	@$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(TARGET_RESOURCE) $(LIBS) 
+	@$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(TARGET_RESOURCE) $(LIBS)
 $(TARGET_FINAL) : $(TARGET)
 	@echo Stripping $(TARGET_PLATFORM) Port: $(TARGET_FINAL)...
 	@$(STRIP)
@@ -782,7 +782,7 @@ all : $(TARGET) $(TARGET_FINAL)
 $(TARGET) : $(OBJS) $(RES)
 	@echo
 	@echo Linking $(TARGET_PLATFORM) Port: $(TARGET)...
-	@$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(TARGET_RESOURCE) $(LIBS) 
+	@$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(TARGET_RESOURCE) $(LIBS)
 $(TARGET_FINAL) : $(TARGET)
 	@echo Stripping $(TARGET_PLATFORM) Port: $(TARGET_FINAL)...
 	@$(STRIP)
@@ -814,11 +814,11 @@ all:
 	@echo make BUILD_OPENDINGUX=1
 	@echo
 	@echo Cleanup Intermediate Files:
-	@echo 
+	@echo
 	@echo make clean
 	@echo
 	@echo Remove All Files:
-	@echo 
+	@echo
 	@echo make clean-all
 	@echo
 endif
@@ -828,8 +828,8 @@ ifndef BUILD_PSP
 clean-all: clean-releases clean
 
 clean-releases:
-	@rm -rf releases/* 
-	
+	@rm -rf releases/*
+
 clean:
 	@echo
 	@echo "Removing All $(TARGET_PLATFORM) Files..."
@@ -840,11 +840,11 @@ endif
 
 version:
 	@echo "-------------------------------------------------------"
-	@echo "OpenBOR $(VERSION) - http://www.LavaLit.com"
-	@echo 
+	@echo "OpenBOR $(VERSION) - http://www.ChronoCrash.com"
+	@echo
 	@echo "All rights reserved."
 	@echo "See LICENSE and README within OpenBOR root for details."
-	@echo 
-	@echo "Copyright (c) 2004 - 2011 OpenBOR Team"
+	@echo
+	@echo "Copyright (c) 2004 - 2014 OpenBOR Team"
 	@echo "-------------------------------------------------------"
 

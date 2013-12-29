@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved. See LICENSE in OpenBOR root for license details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2014 OpenBOR Team
  */
 
 #ifndef OPENBORSCRIPT_H
