@@ -613,6 +613,18 @@ typedef enum
 
 typedef enum
 {
+    /*
+    Komap application enum. When to apply KO map to entity.
+    Damon V. Caskey
+    2013-12-28
+    */
+
+    _komap_type_immediately,    //Apply instantly.
+    _komap_type_last_fall_frame //Apply on last frame of fall.
+} e_komap_type;
+
+typedef enum
+{
     normal_level,
     cut_scene,
     select_screen
@@ -1247,12 +1259,18 @@ typedef struct
 
 typedef struct
 {
-    signed frozen; //Frozen.
-    signed hide_end; //End range for maps hidden during character selection.
-    signed hide_start; //Start range for maps hidden during character selection.
-    signed ko; //Health depleted.
-    signed kotype; //KO map application. 0 = Immediately. 1 = At last frame of fall/death animation.
-} s_maps; //2011_04_07, DC: Pre defined color map selections and behavior.
+    /*
+    Pre defined color map selections and behavior.
+    Damon V. Caskey
+    2011_04_07
+    */
+
+    int frozen;             //Frozen.
+    int hide_end;           //End range for maps hidden during character selection.
+    int hide_start;         //Start range for maps hidden during character selection.
+    int ko;                 //Health depleted.
+    e_komap_type kotype;   //KO map application.
+} s_maps;
 
 typedef struct
 {

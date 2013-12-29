@@ -19541,7 +19541,7 @@ void common_lie()
 
         if (self->modeldata.maps.ko)   //Have a KO map?
         {
-            if (!self->modeldata.maps.kotype || !self->animating)  //Wait for fall/death animation to finish?
+            if (self->modeldata.maps.kotype == _komap_type_immediately || !self->animating)  //Wait for fall/death animation to finish?
             {
                 self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.ko);    //Apply map.
             }
