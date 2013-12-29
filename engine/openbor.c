@@ -477,7 +477,7 @@ s_barstatus         loadingbarstatus =
     percentagebar,              //e_bartype      type:8;
     horizontalbar,              //e_barorient    orientation:8;
     0,                          //int          noborder:8;
-    0,                          //int          direction:8;
+    _barstatus_dir_normal,      //int          direction:8;
     0,                          //int          barlayer;
     0,                          //int          backlayer;
     0,                          //int          borderlayer;
@@ -491,7 +491,7 @@ s_barstatus         lbarstatus =                                // Used for cust
     valuebar,                   //e_bartype      type:8;
     horizontalbar,              //e_barorient    orientation:8;
     0,                          //int          noborder:8;
-    0,                          //int          direction:8;
+    _barstatus_dir_normal,      //int          direction:8;
     0,                          //int          barlayer;
     0,                          //int          backlayer;
     0,                          //int          borderlayer;
@@ -506,7 +506,7 @@ s_barstatus         olbarstatus =                               // Used for cust
     valuebar,                   //e_bartype      type:8;
     horizontalbar,              //e_barorient    orientation:8;
     0,                          //int          noborder:8;
-    0,                          //int          direction:8;
+    _barstatus_dir_normal,      //int          direction:8;
     0,                          //int          barlayer;
     0,                          //int          backlayer;
     0,                          //int          borderlayer;
@@ -565,7 +565,7 @@ s_barstatus         mpbarstatus =                               // Used for cust
     valuebar,                   //e_bartype      type:8;
     horizontalbar,              //e_barorient    orientation:8;
     0,                          //int          noborder:8;
-    0,                          //int          direction:8;
+    _barstatus_dir_normal,      //int          direction:8;
     0,                          //int          barlayer;
     0,                          //int          backlayer;
     0,                          //int          borderlayer;
@@ -13460,7 +13460,7 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
 
     if(pstatus->orientation == horizontalbar)
     {
-        forex = pstatus->direction ? (x + max - len) : x;
+        forex = pstatus->direction == _barstatus_dir_invert ? (x + max - len) : x;
         forey = y;
         forew = len;
         bkw = max;
@@ -13469,7 +13469,7 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
     else if(pstatus->orientation == verticalbar)
     {
         forex = x;
-        forey = pstatus->direction ? y : (y + max - len);
+        forey = pstatus->direction == _barstatus_dir_invert ? y : (y + max - len);
         bkw = forew = pstatus->size.x;
         foreh = len;
         bkh = max;
