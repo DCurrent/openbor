@@ -623,6 +623,18 @@ typedef enum
 typedef enum
 {
     /*
+    Run adjust_grabposition check on dograb or not.
+    Damon V. Caskey
+    2013-12-30
+    */
+
+    _dograb_adjustcheck_true,
+    _dograb_adjustcheck_false
+} e_dograb_adjustcheck;
+
+typedef enum
+{
+    /*
     Damage over time mode enum.
     Damon V. Caskey
     2013-12-27
@@ -2347,7 +2359,7 @@ void soundcard_options();
 void openborMain(int argc, char **argv);
 int getValidInt(char *text, char *file, char *cmd);
 float getValidFloat(char *text, char *file, char *cmd);
-
+int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck);
 
 extern s_savedata     savedata;
 extern s_savelevel   *savelevel;
