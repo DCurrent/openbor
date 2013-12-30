@@ -20985,59 +20985,112 @@ int adjust_grabposition(entity *ent, entity *other, float dist, int grabin)
     return 1;
 }
 
-int trygrab(entity *other)
+int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
 {
-    if( cangrab(self, other) &&	adjust_grabposition(self, other, self->modeldata.grabdistance, 0))
+    /*
+    Execute grab action. Added by splitting off trygrab
+    so entities can be forced to perform grab by script.
+    Damon V. Caskey
+    2013-12-30
+
+    Attacker: Entity performing grab.
+    target, entity being grabbed.
+    */
+
+    int result  = 0; //Output value.
+    int pass    = 1; //Adjust pass/fail.
+
+    /* If an adjust check is needed, make sure adjusting did not fail. */
+    if(adjustcheck == _dograb_adjustcheck_true)
     {
-        if(self->model->grabflip & 1)
+        pass = adjust_grabposition(attacker, target, attacker->modeldata.grabdistance, 0);
+    }
+
+    /* If adjust_grabposition passed (or wasn't needed) perform grab actions. */
+    if(pass)
+    {
+        if(attacker->model->grabflip & 1)
         {
-            self->direction = (self->position.x < other->position.x);
+            attacker->direction = (attacker->position.x < target->position.x);
         }
 
-        set_opponent(other, self);
-        ents_link(self, other);
-        other->attacking = 0;
-        self->idling = 0;
-        self->running = 0;
+        /* Set flags. */
+        set_opponent(target, attacker);
+        ents_link(attacker, target);
+        target->attacking = 0;
+        attacker->idling = 0;
+        attacker->running = 0;
 
-        self->velocity.x = self->velocity.z =
-                         other->velocity.x = other->velocity.z = 0;
+        /* Stop all movement. */
+        attacker->velocity.x = 0;
+        attacker->velocity.z = 0;
+        target->velocity.x = 0;
+        target->velocity.z = 0;
+
+        /* Check for grab animation, otherwise use orginal throwing system. */
         if(validanim(self, ANI_GRAB))
         {
-            if(self->model->grabflip & 2)
+            if(attacker->model->grabflip & 2)
             {
-                other->direction = !self->direction;
+                target->direction = !attacker->direction;
             }
-            self->attacking = 0;
-            memset(self->combostep, 0, 5 * sizeof(*self->combostep));
-            other->stalltime = time + GRAB_STALL;
-            self->releasetime = time + (GAME_SPEED / 2);
-            other->takeaction = common_grabbed;
-            self->takeaction = common_grab;
-            ent_set_anim(self, ANI_GRAB, 0);
-            set_pain(other, -1, 0); //set grabbed animation
+            attacker->attacking = 0;
+            memset(attacker->combostep, 0, 5 * sizeof(*attacker->combostep));
+            target->stalltime = time + GRAB_STALL;
+            attacker->releasetime = time + (GAME_SPEED / 2);
+            target->takeaction = common_grabbed;
+            attacker->takeaction = common_grab;
+            ent_set_anim(attacker, ANI_GRAB, 0);
+            set_pain(target, -1, 0); //set grabbed animation
         }
-        // use original throw code if throwframewait not present, kbandressen 10/20/06
-        else if(self->modeldata.throwframewait == -1)
-        {
-            dothrow();
-        }
-        // otherwise enemy_throw_wait will be used, kbandressen 10/20/06
         else
         {
-            if(self->model->grabflip & 2)
+            /*
+            If no throwframewait use original throw code immediately.
+            Otherwise use throwframewait.
+            */
+            if(attacker->modeldata.throwframewait == -1)
             {
-                other->direction = !self->direction;
+                dothrow();
             }
+            else
+            {
+                if(self->model->grabflip & 2)
+                {
+                    target->direction = !attacker->direction;
+                }
 
-            other->takeaction = common_prethrow;
-            self->takeaction = common_throw_wait;
-            ent_set_anim(self, ANI_THROW, 0);
-            set_pain(other, -1, 0); // set grabbed animation
+                target->takeaction = common_prethrow;
+                attacker->takeaction = common_throw_wait;
+                ent_set_anim(attacker, ANI_THROW, 0);
+                set_pain(target, -1, 0); // set grabbed animation
+            }
         }
-        return 1;
+
+        result = 1;
     }
-    return 0;
+
+    return result;
+}
+
+int trygrab(entity *other)
+{
+    /*
+    Actions after grab possibility check moved to dograb.
+    Damon V. Caskey
+    2013-12-30
+
+    other: Grab target.
+    */
+
+    int result = 0; //return value.
+
+    if(cangrab(self, other))
+    {
+        result = dograb(self, other, _dograb_adjustcheck_true);
+    }
+
+    return result;
 }
 
 
