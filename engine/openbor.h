@@ -755,6 +755,20 @@ typedef enum
     SCROLL_DOWNWARD     = 256
 } e_scroll;
 
+typedef enum
+{
+    /*
+    Weapon loss type enum.
+    Damon V. Caskey
+    2013-12-29
+    */
+
+    _weaploss_type_any,         //Weapon lost taking any hit.
+    _weaploss_type_knockdown,   //Weapon lost on knockdown.
+    _weaploss_type_death,       //Weapon lost on death.
+    _weaploss_type_change       //weapon is lost only when level ends or character is changed during continue. This depends on the level settings and whether players had weapons on start or not.
+} e_weaploss_type;
+
 //macros for drawing menu text, fits different font size
 #ifdef _MSC_VER
 #define _strmidx(f,s, ...) ((videomodes.hRes-font_string_width((f), s, __VA_ARGS__))/2)

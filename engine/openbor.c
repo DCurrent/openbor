@@ -7115,7 +7115,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->jugglepoints.current = newchar->jugglepoints.max = 0;
     newchar->guardpoints.current = newchar->guardpoints.max = 0;
     newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
-    newchar->weaploss[0]                = -1;
+    newchar->weaploss[0]                = _weaploss_type_any;
     newchar->weaploss[1]                = -1;
     newchar->lifespan                   = 0x7fffffff;
     newchar->summonkill                 = 1;
@@ -18944,7 +18944,7 @@ void set_weapon(entity *ent, int wpnum, int anim_flag) // anim_flag added for sc
 
     if(ent->modeldata.type & TYPE_PLAYER) // save current weapon for player's weaploss 3
     {
-        if(ent->modeldata.weaploss[0] >= 3)
+        if(ent->modeldata.weaploss[0] == _weaploss_type_change)
         {
             player[(int)ent->playerindex].weapnum = wpnum;
         }
@@ -19466,7 +19466,7 @@ void common_fall()
     }
 
     // Drop Weapon due to Enemy Falling.
-    //if(self->modeldata.weaploss[0] == 1) dropweapon(1);
+    //if(self->modeldata.weaploss[0] == _weaploss_type_knockdown) dropweapon(1);
 
     if(self->boss && level_completed)
     {
@@ -19681,7 +19681,7 @@ void common_grab_check()
         return;
     }
 
-    if(!nolost && self->modeldata.weaploss[0] <= 0)
+    if(!nolost && self->modeldata.weaploss[0] == _weaploss_type_any)
     {
         dropweapon(1);
     }
@@ -20288,7 +20288,7 @@ int common_takedamage(entity *other, s_attack *attack)
     // pre-check drop
     checkdamagedrop(attack);
     // Drop Weapon due to being hit.
-    if(self->modeldata.weaploss[0] <= 0)
+    if(self->modeldata.weaploss[0] == _weaploss_type_any)
     {
         dropweapon(1);
     }
@@ -20353,11 +20353,11 @@ int common_takedamage(entity *other, s_attack *attack)
     {
         self->takeaction = common_fall;
         // Drop Weapon due to death.
-        if(self->modeldata.weaploss[0] <= 2 && self->health <= 0)
+        if(self->modeldata.weaploss[0] == _weaploss_type_death && self->health <= 0)
         {
             dropweapon(1);
         }
-        else if(self->modeldata.weaploss[0] <= 1)
+        else if(self->modeldata.weaploss[0] == _weaploss_type_knockdown)
         {
             dropweapon(1);
         }
@@ -23776,7 +23776,7 @@ void player_die()
                 timeleft = COUNTER_SPEED / 2;
             }
         }
-        if(self->modeldata.weaploss[0] <= 3)
+        if(self->modeldata.weaploss[0] == _weaploss_type_change)
         {
             player[playerindex].weapnum = level->setweap;
         }
@@ -24325,7 +24325,7 @@ void player_grab_check()
         return;
     }
 
-    if(!nolost && self->modeldata.weaploss[0] <= 0)
+    if(!nolost && self->modeldata.weaploss[0] == _weaploss_type_any)
     {
         dropweapon(1);
     }
