@@ -703,6 +703,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "killentity";
     }
+    else if (functionRef == ((void *)openbor_dograb))
+    {
+        return "dograb";
+    }
     else if (functionRef == ((void *)openbor_findtarget))
     {
         return "findtarget";
@@ -1547,6 +1551,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_damageentity, "damageentity");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_killentity, "killentity");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_dograb, "dograb");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_findtarget, "findtarget");
     List_InsertAfter(&theFunctionList,
@@ -9461,6 +9467,44 @@ HRESULT openbor_killentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
     kill(ent);
     (*pretvar)->lVal = (LONG)1;
+    return S_OK;
+}
+
+//findtarget(entity (attacker), entity (target));
+HRESULT openbor_dograb(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    int i = 1;
+    entity *attacker = NULL;
+    entity *target = NULL;
+
+    /* Get adjust check. */
+    if(paramCount > 2)
+    {
+        ScriptVariant_IntegerValue(varlist[2], &i);
+    }
+
+    if(paramCount < 2)
+    {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_PTR);
+
+    /* get attacking and target entity. */
+    attacker = (entity *)(varlist[0])->ptrVal;
+    target = (entity *)(varlist[1])->ptrVal;
+
+    /* No reason to continue if either entity is invalid. */
+    if(!attacker || !target)
+    {
+        ScriptVariant_Clear(*pretvar);
+        return S_OK;
+    }
+
+    /* Attempt dograb and report result. */
+    (*pretvar)->lVal = dograb(attacker, target, i);
+
     return S_OK;
 }
 

@@ -132,6 +132,7 @@ HRESULT openbor_changepalette(ScriptVariant **varlist , ScriptVariant **pretvar,
 HRESULT openbor_changeattackproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_killentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_dograb(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_findtarget(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_checkrange(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_gettextobjproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
