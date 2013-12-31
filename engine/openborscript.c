@@ -3395,6 +3395,7 @@ enum entityproperty_enum
     _ep_weapon,
     _ep_x,
     _ep_xdir,
+    _ep_y,
     _ep_z,
     _ep_zdir,
     _ep_the_end,
@@ -3568,6 +3569,7 @@ static const char *eplist[] =
     "weapon",
     "x",
     "xdir",
+    "y",
     "z",
     "zdir",
 };
@@ -4296,6 +4298,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     switch(propind)
     {
     case _ep_a:
+        printf("\nNote: Property 'a' has been depreciated. Use 'y' to access the Y (vertical) axis property.\n");
+    case _ep_y:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
         (*pretvar)->dblVal = (DOUBLE)ent->position.y;
@@ -7532,6 +7536,8 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         break;
     }
     case _ep_a:
+         printf("\nNote: Property 'a' has been depreciated. Use 'y' to access the Y (vertical) axis property.\n");
+    case _ep_y:
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
