@@ -3240,6 +3240,7 @@ enum entityproperty_enum
     _ep_animating,
     _ep_animation,
     _ep_animationid,
+    _ep_animframecount,
     _ep_animheight,
     _ep_animhits,
     _ep_animnum,
@@ -3414,6 +3415,7 @@ static const char *eplist[] =
     "animating",
     "animation",
     "animationid",
+    "animframecount",
     "animheight",
     "animhits",
     "animnum",
@@ -3629,6 +3631,105 @@ static const char *eplist_aiflag[] =
     "walking",
     "walkmode",
 };
+
+/* Animation properties. /
+enum e_anim
+{
+    _anim_animhits,     // Does the attack need to hit before cancel is allowed?
+    _anim_antigrav,     // UT: make dive a similar property as antigravity.
+    _anim_attackone,    // stick on the only one victim
+    _anim_bounce,       //FLOAT -tossv/bounce = new tossv
+    _anim_cancel,       // Cancel anims with freespecial
+    _anim_counterrange, //SUB Auto counter attack. 2011_04_01, DC: Moved to struct.
+    _anim_chargetime,   //FLOAT charge time for an animation
+    _anim_custbomb,
+    _anim_custknife,    //Model index.
+    _anim_custpshotno,
+    _anim_custstar,
+    _anim_dropframe,    // SUB if tossv < 0, this frame will be set
+    _anim_energycost,   //SUB. 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
+    _anim_flipframe,    // Turns entities around on the desired frame
+    _anim_followanim,   // use which FOLLOW anim?
+    _anim_followcond,   // conditions under which to use a followup
+    _anim_height,       // entity's height during animation
+    _anim_index,        //unique id
+    _anim_jumpframe,    //SUB
+    _anim_landframe,    // SUB Landing behavior. 2011_04_01, DC: Moved to struct.
+    _anim_loop,         // Animation looping. 2011_03_31, DC: Moved to struct.
+    _anim_model_index,
+    _anim_numframes,    //Framecount.
+    _anim_quakeframe,   // SUB Screen shake effect. 2011_04_01, DC; Moved to struct.
+    _anim_range,        //SUB Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
+    _anim_shootframe,
+    _anim_spawnframe,   // SUB Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
+    _anim_subentity,    // Store the sub-entity's name for further use
+    _anim_summonframe,  // SUB Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
+    _anim_sync,         // sychronize frame to previous animation if they matches
+    _anim_throwa,       //	Used for setting the "a" at which weapons are spawned various entity model id, knife/star/bomb etc
+    _anim_throwframe,   //When entity is thrown during THROW animation.
+    _anim_tossframe,    // Used to determine which frame will toss a bomb/grenade
+    _anim_unsummonframe,// SUB Un-summon the entity
+    _anim_weaponframe,  // SUB Specify with a frame when to switch to a weapon model
+};
+
+static const char *eplist_anim[] =
+{
+    "animhits",
+    "antigrav",
+    "attackone",
+    "bounce",
+    "cancel",
+    "counterrange",
+    "chargetime",
+    "custbomb",
+    "custknife",
+    "custpshotno",
+    "custstar",
+    "dropframe",
+    "energycost",
+    "flipframe",
+    "followanim",
+    "followcond",
+    "height",
+    "index",
+    "jumpframe",
+    "landframe",
+    "loop",
+    "model_index",
+    "numframes",
+    "quakeframe",
+    "range",
+    "shootframe",
+    "spawnframe",
+    "subentity",
+    "summonframe",
+    "sync",
+    "throwa",
+    "throwframe",
+    "tossframe",
+    "unsummonframe",
+    "weaponframe"
+};
+
+
+    To be made into frame properties.
+
+    //_anim_soundtoplay; // each frame can have a sound
+    //anim_sprite; // sprite[set][framenumber]
+    //int *delay;
+    //int *move;
+    //int *movez;
+    //int *movea;
+    //int *seta; // Now characters can have a custom "a" value
+    //int *vulnerable;
+    //int (*bbox_coords)[6];
+    //int *shadow;
+    //unsigned *idle;  // Allow free move
+    //int (*shadow_coords)[2]; // x, z offset of shadow
+    //s_drawmethod **drawmethods;
+    //s_attack **attacks;
+    //float (*platform)[8]; // Now entities can have others land on them
+*/
 
 static const char *eplist_attack[] =
 {
@@ -4442,6 +4543,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     /*
     case _ep_animationid: See animnum.
     */
+    case _ep_animframecount:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->animation->numframes;
+        break;
+    }
 
     case _ep_animheight:
     {

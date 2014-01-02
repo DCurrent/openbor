@@ -1241,7 +1241,7 @@ typedef struct
     s_counterrange counterrange; // Auto counter attack. 2011_04_01, DC: Moved to struct.
     int cancel; // Cancel anims with freespecial
     int attackone; // stick on the only one victim
-    int dive; // UT: make dive a similar property as antigravity
+    int antigrav; // UT: make dive a similar property as antigravity
     int *weaponframe; // Specify with a frame when to switch to a weapon model
     s_quakeframe quakeframe; // Screen shake effect. 2011_04_01, DC; Moved to struct.
     float *spawnframe; // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}

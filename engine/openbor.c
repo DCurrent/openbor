@@ -8518,7 +8518,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->jumpframe.frame = -1;
                 newanim->flipframe = -1;
                 newanim->attackone = -1;
-                newanim->dive = 0;
+                newanim->antigrav = 0;
                 newanim->followanim = 0;			// Default disabled
                 newanim->followcond = 0;
                 newanim->counterrange.frame.min = -1;		//Start frame.
@@ -8639,21 +8639,21 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
 
                 // UT: merge dive and jumpframe, because they can't be used at the same time
-            case CMD_MODEL_DIVE:	//dive kicks
-                newanim->dive = 1;
+            case CMD_MODEL_DIVE:	//antigrav kicks
+                newanim->antigrav = 1;
                 newanim->jumpframe.frame = 0;
                 newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
                 newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(2);
                 newanim->jumpframe.ent = -1;
                 break;
             case CMD_MODEL_DIVE1:
-                newanim->dive = 1;
+                newanim->antigrav = 1;
                 newanim->jumpframe.frame = 0;
                 newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
                 newanim->jumpframe.ent = -1;
                 break;
             case CMD_MODEL_DIVE2:
-                newanim->dive = 1;
+                newanim->antigrav = 1;
                 newanim->jumpframe.frame = 0;
                 newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(1);
                 newanim->jumpframe.ent = -1;
@@ -16885,7 +16885,7 @@ void check_gravity(entity *e)
             }
             // gravity, antigravity factors
             self->position.y += self->velocity.y * 100.0 / GAME_SPEED;
-            if(self->animation->dive)
+            if(self->animation->antigrav)
             {
                 gravity = 0;
             }
