@@ -676,6 +676,21 @@ typedef enum
 typedef enum
 {
     /*
+    Follow up conditional enumerator.
+    Damon V. Caskey
+    2014-01-04
+    */
+
+    _follow_condition_disabled,                     //No followup (default).
+    _follow_condition_always,                       //Always perform.
+    _follow_condition_hostile,                      //Perform if target is hostile.
+    _follow_condition_hostile_nokill_noblock,       //Perform if target is hostile, will not be killed and didn't block.
+    _follow_condition_hostile_nokill_noblock_nograb //Perform if target is hostile, will not be killed, didn't block, and cannot be grabbed.
+} e_follow_condition;
+
+typedef enum
+{
+    /*
     Komap application enum. When to apply KO map to entity.
     Damon V. Caskey
     2013-12-28
@@ -954,6 +969,18 @@ typedef struct
 typedef struct
 {
     /*
+    Axis structure for general coordinates when only X and Y are needed.
+    2014-01-04
+    Damon Caskey
+    */
+
+    int x;      //Horizontal axis.
+    int y;      //Altitude/Vertical axis (Y).
+} s_axis_i_2d;
+
+typedef struct
+{
+    /*
     Min/current/max cap for integer measurements.
     2013-12-10
     Damon Caskey
@@ -1200,57 +1227,68 @@ typedef struct
 
 typedef struct
 {
+    /*
+    Follow up animation struct.
+    Damon V. caskey
+    2014-01-04
+    */
+
+    int animation;                  //Animation to perform.
+    e_follow_condition condition;   //Condition in which follow up will be performed.
+} s_follow;
+
+typedef struct
+{
     int model_index;
-    int index; //unique id
+    int index;                      //unique id
     int numframes;
-    s_loop loop; // Animation looping. 2011_03_31, DC: Moved to struct.
-    int height; // entity's height during animation
-    int tossframe; // Used to determine which frame will toss a bomb/grenade
+    s_loop loop;                    // Animation looping. 2011_03_31, DC: Moved to struct.
+    s_axis_i size;                  // Demensions (height, width).
+    int tossframe;                  // Used to determine which frame will toss a bomb/grenade
     int shootframe;
     int throwframe;
-    int throwa; //	Used for setting the "a" at which weapons are spawned
-    // various entity model id, knife/star/bomb etc
+    int throwa;                     //	Used for setting the "a" at which weapons are spawned
+                                    // various entity model id, knife/star/bomb etc
     int custknife;
     int custstar;
     int custbomb;
     int custpshotno;
-    int subentity; // Store the sub-entity's name for further use
-    s_energycost energycost; // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-    float chargetime; // charge time for an animation
-    s_onframe jumpframe; // Jumpframe action. 2011_04_01, DC: moved to struct.
-    float bounce; // -tossv/bounce = new tossv
-    int *soundtoplay; // each frame can have a sound
-    int *sprite; // sprite[set][framenumber]
+    int subentity;                  // Store the sub-entity's name for further use
+    s_energycost energycost;        // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
+    float chargetime;               // charge time for an animation
+    s_onframe jumpframe;            // Jumpframe action. 2011_04_01, DC: moved to struct.
+    float bounce;                   // -tossv/bounce = new tossv
+    int *soundtoplay;               // each frame can have a sound
+    int *sprite;                    // sprite[set][framenumber]
     int *delay;
     int *move;
     int *movez;
     int *movea;
-    int *seta; // Now characters can have a custom "a" value
+    int *seta;                      // Now characters can have a custom "a" value
     int *vulnerable;
     int (*bbox_coords)[6];
     int *shadow;
-    unsigned *idle;  // Allow free move
-    int (*shadow_coords)[2]; // x, z offset of shadow
+    unsigned *idle;                 // Allow free move
+    int (*shadow_coords)[2];        // x, z offset of shadow
     s_drawmethod **drawmethods;
     s_attack **attacks;
-    float (*platform)[8]; // Now entities can have others land on them
-    s_range range; // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-    int flipframe; // Turns entities around on the desired frame
-    int followanim; // use which FOLLOW anim?
-    int followcond; // conditions under which to use a followup
-    s_counterrange counterrange; // Auto counter attack. 2011_04_01, DC: Moved to struct.
-    int cancel; // Cancel anims with freespecial
-    int attackone; // stick on the only one victim
-    int antigrav; // UT: make dive a similar property as antigravity
-    int *weaponframe; // Specify with a frame when to switch to a weapon model
-    s_quakeframe quakeframe; // Screen shake effect. 2011_04_01, DC; Moved to struct.
-    float *spawnframe; // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
-    float *summonframe; // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-    int unsummonframe; // Un-summon the entity
-    s_onframe landframe; // Landing behavior. 2011_04_01, DC: Moved to struct.
-    s_onframe dropframe; // if tossv < 0, this frame will be set
-    int animhits; // Does the attack need to hit before cancel is allowed?
-    int sync; // sychronize frame to previous animation if they matches
+    float (*platform)[8];           // Now entities can have others land on them
+    s_range range;                  // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
+    int flipframe;                  // Turns entities around on the desired frame
+    s_follow followup;              //Subsequent animation on hit.
+    s_counterrange counterrange;    // Auto counter attack. 2011_04_01, DC: Moved to struct.
+    int cancel;                     // Cancel anims with freespecial
+    int attackone;                  // stick on the only one victim
+    int antigrav;                   // UT: make dive a similar property as antigravity
+    int *weaponframe;               // Specify with a frame when to switch to a weapon model
+    s_quakeframe quakeframe;        // Screen shake effect. 2011_04_01, DC; Moved to struct.
+    float *spawnframe;              // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
+    float *summonframe;             // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
+    int unsummonframe;              // Un-summon the entity
+    s_onframe landframe;            // Landing behavior. 2011_04_01, DC: Moved to struct.
+    s_onframe dropframe;            // if tossv < 0, this frame will be set
+    int animhits;                   // Does the attack need to hit before cancel is allowed?
+    int sync;                       // sychronize frame to previous animation if they matches
 } s_anim;
 
 struct animlist
@@ -1263,8 +1301,8 @@ s_anim_list *anim_list;
 
 typedef struct
 {
-    s_axis_i offset;
-    s_axis_i size;
+    s_axis_i_2d offset;
+    s_axis_i_2d size;
     e_bartype type;
     e_barorient orientation;
     int noborder;
@@ -1280,8 +1318,8 @@ typedef struct
 {
     e_loadingScreenType set;    //Loading bar mode.
     int tf;                     //Font number for "LOADING" text (last element in command, moved here because of alignment)
-    s_axis_i bar_position;      //Loading bar position.
-    s_axis_i text_position;     //Loading text position.
+    s_axis_i_2d bar_position;   //Loading bar position.
+    s_axis_i_2d text_position;  //Loading text position.
     int bsize;                  // length of bar in pixels
     int refreshMs;              // modder defined number of milliseconds in which the screen is updated while loading
 } s_loadingbar;
@@ -1330,7 +1368,7 @@ typedef struct
     int pain; //Taking damage.
     int weapon; //Weapon model.
     int usemap;
-    s_axis_i position;
+    s_axis_i_2d position;
 } s_icon;
 
 typedef struct
@@ -1488,7 +1526,7 @@ typedef struct
     int flash; // Now each entity can have their own flash
     int bflash; // Flash that plays when an attack is blocked
     s_dust dust; //Spawn entity during certain actions.
-    int height; // Used to set height of player in pixels
+    s_axis_i_2d size; // Used to set height of player in pixels
     float speed;
     float grabdistance; // 30-12-2004	grabdistance varirable adder per character
     float pathfindstep; // UT: how long each step if the entity is trying to find a way
@@ -1898,7 +1936,7 @@ typedef struct
     e_bgloldtype oldtype;
     int order;	//for panel order
     gfx_entry gfx;
-    s_axis_i size;  //Only x and y.
+    s_axis_i_2d size;
     s_axis_f ratio; //Only x and z.
     s_axis_i offset; //Only x and z.
     s_axis_i spacing; //Only x and z.
@@ -1919,7 +1957,7 @@ typedef struct
     */
 
     int font;           //Font index.
-    s_axis_i position;  //x,y,a location on screen.
+    s_axis_i position;  //x,y,z location on screen.
     u32 time;           //Time to expire.
     char *text;         //Text to display.
 } s_textobj;
