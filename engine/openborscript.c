@@ -3236,11 +3236,11 @@ enum entityproperty_enum
     _ep_aiflag,
     _ep_aimove,
     _ep_alpha,
+    _ep_anim,           //Animation properties.
     _ep_animal,
     _ep_animating,
     _ep_animation,
     _ep_animationid,
-    _ep_animframecount,
     _ep_animheight,
     _ep_animhits,
     _ep_animnum,
@@ -3411,11 +3411,11 @@ static const char *eplist[] =
     "aiflag",
     "aimove",
     "alpha",
+    "anim",
     "animal",
     "animating",
     "animation",
     "animationid",
-    "animframecount",
     "animheight",
     "animhits",
     "animnum",
@@ -3632,44 +3632,44 @@ static const char *eplist_aiflag[] =
     "walkmode",
 };
 
-/* Animation properties. /
+/* Animation properties.
 enum e_anim
 {
-    _anim_animhits,     // Does the attack need to hit before cancel is allowed?
-    _anim_antigrav,     // UT: make dive a similar property as antigravity.
-    _anim_attackone,    // stick on the only one victim
-    _anim_bounce,       //FLOAT -tossv/bounce = new tossv
-    _anim_cancel,       // Cancel anims with freespecial
-    _anim_counterrange, //SUB Auto counter attack. 2011_04_01, DC: Moved to struct.
-    _anim_chargetime,   //FLOAT charge time for an animation
-    _anim_custbomb,
-    _anim_custknife,    //Model index.
-    _anim_custpshotno,
-    _anim_custstar,
-    _anim_dropframe,    // SUB if tossv < 0, this frame will be set
-    _anim_energycost,   //SUB. 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-    _anim_flipframe,    // Turns entities around on the desired frame
-    _anim_followanim,   // use which FOLLOW anim?
-    _anim_followcond,   // conditions under which to use a followup
-    _anim_height,       // entity's height during animation
-    _anim_index,        //unique id
-    _anim_jumpframe,    //SUB
-    _anim_landframe,    // SUB Landing behavior. 2011_04_01, DC: Moved to struct.
-    _anim_loop,         // Animation looping. 2011_03_31, DC: Moved to struct.
-    _anim_model_index,
-    _anim_numframes,    //Framecount.
-    _anim_quakeframe,   // SUB Screen shake effect. 2011_04_01, DC; Moved to struct.
-    _anim_range,        //SUB Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-    _anim_shootframe,
-    _anim_spawnframe,   // SUB Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
-    _anim_subentity,    // Store the sub-entity's name for further use
-    _anim_summonframe,  // SUB Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-    _anim_sync,         // sychronize frame to previous animation if they matches
-    _anim_throwa,       //	Used for setting the "a" at which weapons are spawned various entity model id, knife/star/bomb etc
-    _anim_throwframe,   //When entity is thrown during THROW animation.
-    _anim_tossframe,    // Used to determine which frame will toss a bomb/grenade
-    _anim_unsummonframe,// SUB Un-summon the entity
-    _anim_weaponframe,  // SUB Specify with a frame when to switch to a weapon model
+    _ep_anim_animhits,     // Does the attack need to hit before cancel is allowed?
+    _ep_anim_antigrav,     // UT: make dive a similar property as antigravity.
+    _ep_anim_attackone,    // stick on the only one victim
+    _ep_anim_bounce,       //FLOAT -tossv/bounce = new tossv
+    _ep_anim_cancel,       // Cancel anims with freespecial
+    _ep_anim_counterrange, //SUB Auto counter attack. 2011_04_01, DC: Moved to struct.
+    _ep_anim_chargetime,   //FLOAT charge time for an animation
+    _ep_anim_custbomb,
+    _ep_anim_custknife,    //Model index.
+    _ep_anim_custpshotno,
+    _ep_anim_custstar,
+    _ep_anim_dropframe,    // SUB if tossv < 0, this frame will be set
+    _ep_anim_energycost,   //SUB. 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
+    _ep_anim_flipframe,    // Turns entities around on the desired frame
+    _ep_anim_followup,     // use which FOLLOW anim?
+    _ep_anim_index,        //unique id
+    _ep_anim_jumpframe,    //SUB
+    _ep_anim_landframe,    // SUB Landing behavior. 2011_04_01, DC: Moved to struct.
+    _ep_anim_loop,         // Animation looping. 2011_03_31, DC: Moved to struct.
+    _ep_anim_model_index,
+    _ep_anim_numframes,    //Framecount.
+    _ep_anim_quakeframe,   // SUB Screen shake effect. 2011_04_01, DC; Moved to struct.
+    _ep_anim_range,        //SUB Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
+    _ep_anim_shootframe,
+    _ep_anim_height,       // entity's height during animation
+    _ep_anim_spawnframe,   // SUB Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
+    _ep_anim_subentity,    // Store the sub-entity's name for further use
+    _ep_anim_summonframe,  // SUB Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
+    _ep_anim_sync,         // sychronize frame to previous animation if they matches
+    _ep_anim_throwa,       //	Used for setting the "a" at which weapons are spawned various entity model id, knife/star/bomb etc
+    _ep_anim_throwframe,   //When entity is thrown during THROW animation.
+    _ep_anim_tossframe,    // Used to determine which frame will toss a bomb/grenade
+    _ep_anim_unsummonframe,// SUB Un-summon the entity
+    _ep_anim_weaponframe,  // SUB Specify with a frame when to switch to a weapon model
+    _ep_anim_the_end
 };
 
 static const char *eplist_anim[] =
@@ -3688,9 +3688,7 @@ static const char *eplist_anim[] =
     "dropframe",
     "energycost",
     "flipframe",
-    "followanim",
-    "followcond",
-    "height",
+    "followup",
     "index",
     "jumpframe",
     "landframe",
@@ -3700,6 +3698,7 @@ static const char *eplist_anim[] =
     "quakeframe",
     "range",
     "shootframe",
+    "size",
     "spawnframe",
     "subentity",
     "summonframe",
@@ -3711,7 +3710,9 @@ static const char *eplist_anim[] =
     "weaponframe"
 };
 
+*/
 
+/*
     To be made into frame properties.
 
     //_anim_soundtoplay; // each frame can have a sound
@@ -4351,6 +4352,182 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
     return 1;
 }
 
+/*
+HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+
+    Animation specfic properties.
+    Damon V. Caskey
+    2014-01-04 (in progress)
+
+
+    case _ep_anim:
+    {
+
+        // Animation property.
+        // getentityproperty({ent}, "anim", {animation id}, {subproperty})
+
+
+        // Check parameter count.
+        if(paramCount < 4) break;
+
+        // Get paramter values.
+        arg     = varlist[2];   //Animation ID.
+        arg1    = varlist[3];   //Subproperty.
+
+        // Verify parameters.
+        if(arg->vt != VT_INTEGER || arg1->vt != VT_INTEGER)
+        {
+            printf("You must provide an animation ID and sub-property: getentityproperty({ent}, 'anim', {animation id}, {anim sub-property})\n");
+            return E_FAIL;
+        }
+
+        // Set temporary var to animation ID.
+        ltemp = arg->lVal;
+
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        switch(arg1->lVal)
+        {
+            case _ep_anim_animhits:
+                (*pretvar)->lVal = (LONG)ent->animation[ltemp].animhits;
+                break;
+            case _ep_anim_antigrav:
+                (*pretvar)->lVal = (LONG)ent->animation[ltemp].antigrav;
+                break;
+            case _ep_anim_attackone:
+                (*pretvar)->lVal = (LONG)ent->animation[ltemp].attackone;
+                break;
+            case _ep_anim_bounce:
+                (*pretvar)->lVal = (LONG)ent->animation[ltemp].bounce;
+                break;
+            case _ep_anim_cancel:
+                (*pretvar)->lVal = (LONG)ent->animation[ltemp].cancel;
+                break;
+            case _ep_anim_counterrange:
+
+                // Check parameter count.
+                if(paramCount < 5) break;
+
+                // Get paramter value.
+                ltemp2  = varlist[4];
+
+                // Verify parameter.
+                if(ltemp2 != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all sub-properties: getentityproperty({ent}, 'anim', {animation id}, {anim sub-property}, {counterrange sub-property})\n");
+                    return E_FAIL;
+                }
+
+                switch(ltemp2)
+                {
+                    default:
+                        printf("Invalid sub-property: getentityproperty({ent}, 'anim', {animation id}, {anim sub-property}, {counterrange sub-property})\n");
+                        return E_FAIL;
+                        break;
+                    case _ep_counterrange_condition:
+                        (*pretvar)->lVal = (LONG)ent->animation[ltemp].counterrange.condition;
+                        break;
+                    case _ep_counterrange_damaged:
+                        (*pretvar)->lVal = (LONG)ent->animation[ltemp].counterrange.damaged;
+                        break;
+                    case _ep_counterrange_frame:
+                        (*pretvar)->lVal = (LONG)ent->animation[ltemp].counterrange.frame;
+                        break;
+                }
+                break;
+            case _ep_anim_chargetime:
+                ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                (*pretvar)->dblVal = (DOUBLE)ent->animation[ltemp].chargetime;
+                break;
+            case _ep_anim_custbomb:
+                (*pretvar)->lVal = (LONG)ent->animation[ltemp].custbomb;
+                break;
+            case _ep_anim_custknife:
+                (*pretvar)->lVal = (LONG)ent->animation[ltemp].custknife;
+                break;
+            case _ep_anim_custpshotno:
+                (*pretvar)->lVal = (LONG)ent->animation[ltemp].custpshotno;
+                break;
+            case _ep_anim_custstar:
+                (*pretvar)->lVal = (LONG)ent->animation[ltemp].custstar;
+                break;
+            case _ep_anim_dropframe:
+                (*pretvar)->lVal = (LONG)ent->animation[ltemp].dropframe;
+                break;
+            case _ep_energycost:
+
+                // Check parameter count.
+                if(paramCount < 5) break;
+
+                // Get paramter value.
+                ltemp2  = varlist[4];
+
+                // Verify parameter.
+                if(ltemp2 != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all sub-properties: getentityproperty({ent}, 'anim', {animation id}, {anim sub-property}, {energycost sub-property})\n");
+                    return E_FAIL;
+                }
+
+                switch(ltemp2)
+                {
+                    default:
+                        printf("Invalid sub-property: getentityproperty({ent}, 'anim', {animation id}, {anim sub-property}, {energycost sub-property})\n");
+                        return E_FAIL;
+                        break;
+                    case _ep_energycost_cost:
+                        (*pretvar)->lVal = (LONG)ent->animation[ltemp].energycost.cost;
+                        break;
+                    case _ep_energycost_disable:
+                        (*pretvar)->lVal = (LONG)ent->animation[ltemp].energycost.disable;
+                        break;
+                    case _ep_energycost_mponly:
+                        (*pretvar)->lVal = (LONG)ent->animation[ltemp].energycost.mponly;
+                        break;
+                }
+                break;
+            case _ep_anim_flipframe:
+                (*pretvar)->lVal = (LONG)ent->animation[ltemp].flipframe;
+                break;
+            case _ep_anim_followup:
+
+                // Check parameter count.
+                if(paramCount < 5) break;
+
+                // Get paramter value.
+                ltemp2  = varlist[4];
+
+                // Verify parameter.
+                if(ltemp2 != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all sub-properties: getentityproperty({ent}, 'anim', {animation id}, {anim sub-property}, {followup sub-property})\n");
+                    return E_FAIL;
+                }
+
+                switch(ltemp2)
+                {
+                    default:
+                        printf("Invalid sub-property: getentityproperty({ent}, 'anim', {animation id}, {anim sub-property}, {followup sub-property})\n");
+                        return E_FAIL;
+                        break;
+                    case _ep_followup_animation:
+                        (*pretvar)->lVal = (LONG)ent->animation[ltemp].followup.animation;
+                        break;
+                    case _ep_followup_condition:
+                        (*pretvar)->lVal = (LONG)ent->animation[ltemp].followup.condition;
+                        break;
+                }
+                break;
+            case _anim_height:
+                (*pretvar)->lVal = (LONG)ent->animation[ltemp].height;
+                break;
+        }
+
+        break;
+    }
+}
+*/
+
 //getentityproperty(pentity, propname);
 HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -4543,17 +4720,10 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     /*
     case _ep_animationid: See animnum.
     */
-    case _ep_animframecount:
-    {
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->animation->numframes;
-        break;
-    }
-
     case _ep_animheight:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->animation->height;
+        (*pretvar)->lVal = (LONG)ent->animation->size.x;
         break;
     }
     case _ep_animhits:
@@ -5382,7 +5552,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_height:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.height;
+        (*pretvar)->lVal = (LONG)ent->modeldata.size.y;
         break;
     }
     case _ep_hitbyid:

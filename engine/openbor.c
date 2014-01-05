@@ -417,7 +417,7 @@ int                 noslowfx			= 0;           			// Flag to determine if sound s
 int                 equalairpause 		= 0;         			// If set to 1, there will be no extra pausetime for players who hit multiple enemies in midair
 int                 hiscorebg			= 0;					// If set to 1, will look for a background image to display at the highscore screen
 int                 completebg			= 0;           			// If set to 1, will look for a background image to display at the showcomplete screen
-s_loadingbar        loadingbg[2] = {{0, 0, {0, 0, 0, 0}, {0, 0, 0, 0}, 0, 0}, {0, 0, {0, 0, 0, 0}, {0, 0, 0, 0}, 0, 0}}; // If set to 1, will look for a background image to display at the loading screen
+s_loadingbar        loadingbg[2] = {{0, 0, {0, 0}, {0, 0}, 0, 0}, {0, 0, {0, 0}, {0, 0}, 0, 0}}; // If set to 1, will look for a background image to display at the loading screen
 int					loadingmusic        = 0;
 int                 unlockbg            = 0;         			// If set to 1, will look for a different background image after defeating the game
 int                 pause               = 0;
@@ -472,8 +472,8 @@ int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a ch
 
 s_barstatus         loadingbarstatus =
 {
-    {0, 0, 0, 0},               //int          offset:16;
-    {0, 10, 0, 0},              //int          size:16;
+    {0, 0},                     //int          offset:16;
+    {0, 10},                    //int          size:16;
     percentagebar,              //e_bartype      type:8;
     horizontalbar,              //e_barorient    orientation:8;
     0,                          //int          noborder:8;
@@ -486,8 +486,8 @@ s_barstatus         loadingbarstatus =
 };
 s_barstatus         lbarstatus =                                // Used for customizable lifebar size
 {
-    {0, 0, 0, 0},               //int          offset:16;
-    {0, 0, 0, 0},               //int          size:16;
+    {0, 0},                     //int          offset:16;
+    {0, 0},                     //int          size:16;
     valuebar,                   //e_bartype      type:8;
     horizontalbar,              //e_barorient    orientation:8;
     0,                          //int          noborder:8;
@@ -501,8 +501,8 @@ s_barstatus         lbarstatus =                                // Used for cust
 
 s_barstatus         olbarstatus =                               // Used for customizable opponent lifebar size
 {
-    {0, 0, 0, 0},               //int          offset:16;
-    {0, 0, 0, 0},               //int          size:16;
+    {0, 0},                     //int          offset:16;
+    {0, 0},                     //int          size:16;
     valuebar,                   //e_bartype      type:8;
     horizontalbar,              //e_barorient    orientation:8;
     0,                          //int          noborder:8;
@@ -560,8 +560,8 @@ int                 noaircancel         = 0;					// Now, you can make jumping at
 int                 nomaxrushreset[5]   = {0, 0, 0, 0, 0};
 s_barstatus         mpbarstatus =                               // Used for customizable lifebar size
 {
-    {0, 0, 0, 0},               //int          offset:16;
-    {0, 0, 0, 0},               //int          size:16;
+    {0, 0},                     //int          offset:16;
+    {0, 0},                     //int          size:16;
     valuebar,                   //e_bartype      type:8;
     horizontalbar,              //e_barorient    orientation:8;
     0,                          //int          noborder:8;
@@ -7899,7 +7899,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 #undef tempoff
             break;
             case CMD_MODEL_HEIGHT:
-                newchar->height = GET_INT_ARG(1);
+                newchar->size.y = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_JUMPHEIGHT:
                 newchar->jumpheight = GET_FLOAT_ARG(1);
@@ -8519,8 +8519,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->flipframe = -1;
                 newanim->attackone = -1;
                 newanim->antigrav = 0;
-                newanim->followanim = 0;			// Default disabled
-                newanim->followcond = 0;
+                newanim->followup.animation = 0;			// Default disabled
+                newanim->followup.condition = _follow_condition_disabled;
                 newanim->counterrange.frame.min = -1;		//Start frame.
                 newanim->counterrange.frame.max = -1;		//End frame.
                 newanim->counterrange.condition = _counteraction_condition_none;		//Counter cond.
@@ -8554,7 +8554,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->loop.frame.max = GET_INT_ARG(3); //Loop end frame.
                 break;
             case CMD_MODEL_ANIMHEIGHT:
-                newanim->height = GET_INT_ARG(1);
+                newanim->size.y = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_SYNC:
                 //if you want to remove default sync setting for idle or walk, use none
@@ -9426,18 +9426,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->flipframe = GET_FRAME_ARG(1);
                 break;
             case CMD_MODEL_FOLLOWANIM:
-                newanim->followanim = GET_INT_ARG(1);
-                if(newanim->followanim > max_follows)
+                newanim->followup.animation = GET_INT_ARG(1);
+                if(newanim->followup.animation > max_follows)
                 {
-                    newanim->followanim = max_follows;
+                    newanim->followup.animation = max_follows;
                 }
-                if(newanim->followanim < 0)
+                if(newanim->followup.animation < 0)
                 {
-                    newanim->followanim = 0;
+                    newanim->followup.animation = 0;
                 }
                 break;
             case CMD_MODEL_FOLLOWCOND:
-                newanim->followcond = GET_INT_ARG(1);
+                newanim->followup.condition = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COUNTERFRAME:
                 newanim->counterrange.frame.min = GET_FRAME_ARG(1);
@@ -12143,7 +12143,7 @@ void load_level(char *filename)
     int i = 0, j = 0, crlf = 0;
     int usemap[MAX_BLENDINGS];
     char bgPath[128] = {""}, fnbuf[128];
-    s_loadingbar bgPosi = {0, 0, {0,0,0,0}, {0,0,0,0}, 0, 0};
+    s_loadingbar bgPosi = {0, 0, {0,0}, {0,0}, 0, 0};
     char musicPath[128] = {""};
     u32 musicOffset = 0;
 
@@ -16048,13 +16048,13 @@ entity *check_platform_above_entity(entity *e)
     {
         return NULL;
     }
-    if(e->animation->height)
+    if(e->animation->size.y)
     {
-        heightvar = e->animation->height;
+        heightvar = e->animation->size.y;
     }
     else
     {
-        heightvar = e->modeldata.height;
+        heightvar = e->modeldata.size.y;
     }
 
     mina = 9999999;
@@ -16196,13 +16196,13 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
 
     // ---------------- platform checking----------------
 
-    if(ent->animation->height)
+    if(ent->animation->size.y)
     {
-        heightvar = ent->animation->height;
+        heightvar = ent->animation->size.y;
     }
     else
     {
-        heightvar = ent->modeldata.height;
+        heightvar = ent->modeldata.size.y;
     }
 
     // Check for obstacles with platform code and adjust base accordingly
@@ -16524,7 +16524,7 @@ void do_attack(entity *e)
                         {
                             self->health -= force;    // Take damage?
                         }
-                        current_follow_id = animfollows[self->animation->followanim - 1];
+                        current_follow_id = animfollows[self->animation->followup.animation - 1];
                         if(validanim(self, current_follow_id))
                         {
                             if(self->modeldata.animation[current_follow_id]->attackone == -1)
@@ -16633,14 +16633,13 @@ void do_attack(entity *e)
                         def = self;
                     }
                     //if #055
-                    if((e->animation->followanim) &&                                        // follow up?
+                    if((e->animation->followup.animation) &&                                        // follow up?
                             (e->animation->counterrange.frame.min == -1) &&                                // This isn't suppossed to be a counter, right?
-                            ((e->animation->followcond < 2) || (self->modeldata.type & e->modeldata.hostile)) &&    // Does type matter?
-                            ((e->animation->followcond < 3) || ((self->health > 0) &&
-                                    !didblock)) &&                   // check if health or blocking matters
-                            ((e->animation->followcond < 4) || cangrab(e, self))  ) // check if nograb matters
+                            ((e->animation->followup.condition < _follow_condition_hostile) || (self->modeldata.type & e->modeldata.hostile)) &&    // Does type matter?
+                            ((e->animation->followup.condition < _follow_condition_hostile_nokill_noblock) || ((self->health > 0) && !didblock)) &&                   // check if health or blocking matters
+                            ((e->animation->followup.condition < _follow_condition_hostile_nokill_noblock_nograb) || cangrab(e, self))  ) // check if nograb matters
                     {
-                        current_follow_id = animfollows[e->animation->followanim - 1];
+                        current_follow_id = animfollows[e->animation->followup.animation - 1];
                         if(validanim(e, current_follow_id))
                         {
                             if(e->modeldata.animation[current_follow_id]->attackone == -1)
@@ -16852,13 +16851,13 @@ void check_gravity(entity *e)
     {
         if((self->falling || self->velocity.y || self->position.y != self->base) && self->toss_time <= time)
         {
-            if(self->animation->height)
+            if(self->animation->size.y)
             {
-                heightvar = self->animation->height;
+                heightvar = self->animation->size.y;
             }
             else
             {
-                heightvar = self->modeldata.height;
+                heightvar = self->modeldata.size.y;
             }
 
             if(heightvar && self->modeldata.subject_to_platform > 0 && self->velocity.y > 0)
@@ -21239,13 +21238,13 @@ int common_trymove(float xdir, float zdir)
 
     // ---------------- platform checking----------------
 
-    if(self->animation->height)
+    if(self->animation->size.y)
     {
-        heightvar = self->animation->height;
+        heightvar = self->animation->size.y;
     }
     else
     {
-        heightvar = self->modeldata.height;
+        heightvar = self->modeldata.size.y;
     }
 
     // Check for obstacles with platform code and adjust base accordingly
@@ -21373,7 +21372,7 @@ void common_runoff()
 
 void common_stuck_underneath()
 {
-    float heightvar = self->animation->height ? self->animation->height : self->modeldata.height;
+    float heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y;
     if(!check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self) )
     {
         self->takeaction = NULL;
@@ -25092,7 +25091,7 @@ void player_think()
 
 
     // Check if entity is under a platform
-    if(self->modeldata.subject_to_platform > 0 && (heightvar = self->animation->height ? self->animation->height : self->modeldata.height) &&
+    if(self->modeldata.subject_to_platform > 0 && (heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y) &&
             validanim(self, ANI_DUCK) && check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self))
     {
         self->idling = 0;
