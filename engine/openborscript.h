@@ -107,6 +107,7 @@ HRESULT openbor_drawdottoscreen(ScriptVariant **varlist , ScriptVariant **pretva
 HRESULT openbor_drawscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_getanimationproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_clearspawnentry(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
@@ -230,6 +231,7 @@ HRESULT openbor_loadgamefile(ScriptVariant **varlist , ScriptVariant **pretvar, 
 HRESULT openbor_playgame(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getsaveinfo(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
+int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_systemvariant(ScriptVariant **varlist, int paramCount);
 int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount);
