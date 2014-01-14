@@ -4247,7 +4247,13 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
 
     switch (ep)
     {
-        // map subproperties of aiflag property
+    // deprecation warning for "a" property
+    case _ep_a:
+    {
+        printf("\nNote: Property 'a' has been deprecated. Use 'y' to access the Y (vertical) axis property.\n");
+        break;
+    }
+    // map subproperties of aiflag property
     case _ep_aiflag:
     {
         MAPSTRINGS(varlist[2], eplist_aiflag, _ep_aiflag_the_end,
@@ -4607,7 +4613,6 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     switch(propind)
     {
     case _ep_a:
-        printf("\nNote: Property 'a' has been depreciated. Use 'y' to access the Y (vertical) axis property.\n");
     case _ep_y:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
@@ -7844,7 +7849,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         break;
     }
     case _ep_a:
-        printf("\nNote: Property 'a' has been depreciated. Use 'y' to access the Y (vertical) axis property.\n");
     case _ep_y:
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
