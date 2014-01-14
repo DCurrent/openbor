@@ -1048,7 +1048,7 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_systemvariant;
     }
-    else if (functionRef == ((void *)openbor_getanimationproperty()))
+    else if (functionRef == ((void *)openbor_getanimationproperty))
     {
         return (void *)mapstrings_animationproperty;
     }
@@ -3643,7 +3643,7 @@ static const char *eplist_aiflag[] =
 };
 
 // Animation properties.
-enum e_animation_prop
+typedef enum animationprop_enum
 {
     _animation_prop_animhits,     // Does the attack need to hit before cancel is allowed?
     _animation_prop_antigrav,     // UT: make dive a similar property as antigravity.
@@ -3680,7 +3680,7 @@ enum e_animation_prop
     _animation_prop_unsummonframe,// SUB Un-summon the entity
     _animation_prop_weaponframe,  // SUB Specify with a frame when to switch to a weapon model
     _animation_prop_the_end
-};
+} e_animation_properties;
 
 static const char *list_animation_prop[] =
 {
@@ -3719,8 +3719,6 @@ static const char *list_animation_prop[] =
     "unsummonframe",
     "weaponframe"
 };
-
-*/
 
 /*
     To be made into frame properties.
@@ -4016,8 +4014,8 @@ enum cep_think_enum   // 2011_03_03, DC: Think types.
 int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
 {
     char *propname;
-    const char *eps;
-    int prop, i, ep, t;
+    const char *aps;
+    int prop, ap; //int prop, i, ep, t;
     int result = 0;
 
     static const char *proplist_energycost[] =
@@ -4036,13 +4034,15 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
     }
     else
     {
-        switch()
+        ap = varlist[1]->lVal;
+        aps = (ap < _animation_prop_the_end && ap >= 0) ? list_animation_prop[ap] : "";
+        switch(ap)
         {
             // map subproperties of Energycost
-            case _ep_energycost:
+            case _animation_prop_energycost:
             {
                 MAPSTRINGS(varlist[2], proplist_energycost, _ep_energycost_the_end,
-                           _is_not_a_known_subproperty_of_, eps);
+                           _is_not_a_known_subproperty_of_, aps);
                 break;
             }
         }
@@ -4410,9 +4410,10 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     */
 
     int result                      = S_OK; //Pass or fail?
+    entity *ent                     = NULL; //Entity;
     int id                          = 0;    //Animation ID.
     e_animation_properties property = 0;    //Property.
-    int subproperty                 = 0;    //Sub property.
+    //int subproperty                 = 0;    //Sub property.
 
     // Verify incoming parameters.
     if(paramCount < 3
@@ -4425,6 +4426,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     else
     {
         // Set parameter vars.
+        ent         = (entity *)varlist[0]->ptrVal;
         id          = varlist[1]->lVal;
         property    = varlist[2]->lVal;
 
@@ -4459,7 +4461,9 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
-                    switch(varlist[3]->lVal)
+                    printf("Error: 'counterrange' property not implemented yet in getanimationproperty\n");
+                    result = E_FAIL;
+                    /*switch(varlist[3]->lVal)
                     {
                         case _ep_counterrange_condition:
                             (*pretvar)->lVal = (LONG)ent->animation[id].counterrange.condition;
@@ -4470,7 +4474,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                         case _ep_counterrange_frame:
                             (*pretvar)->lVal = (LONG)ent->animation[id].counterrange.frame;
                             break;
-                    }
+                    }*/
                 }
                 break;
             case _animation_prop_chargetime:
@@ -4490,19 +4494,19 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 (*pretvar)->lVal = (LONG)ent->animation[id].custstar;
                 break;
             case _animation_prop_dropframe:
-                (*pretvar)->lVal = (LONG)ent->animation[id].dropframe;
+                (*pretvar)->lVal = (LONG)ent->animation[id].dropframe.frame;
                 break;
-            case _ep_energycost:
+            case _animation_prop_energycost:
 
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
-                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'counterrange', {counterrange sub-property})\n");
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'energycost', {energycost sub-property})\n");
                     result = E_FAIL;
                 }
                 else
                 {
-                    switch(varlist[3]->vt)
+                    switch(varlist[3]->lVal)
                     {
                         case _ep_energycost_cost:
                             (*pretvar)->lVal = (LONG)ent->animation[id].energycost.cost;
@@ -4523,12 +4527,14 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
 
                 if(varlist[3]->vt != VT_INTEGER)
                 {
-                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'counterrange', {counterrange sub-property})\n");
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'followup', {followup sub-property})\n");
                     result = E_FAIL;
                 }
                 else
                 {
-                    switch(varlist[3]->vt)
+                    printf("Error: 'followup' property not implemented yet in getanimationproperty\n");
+                    result = E_FAIL;
+                    /*switch(varlist[3]->lVal)
                     {
                         case _ep_followup_animation:
                             (*pretvar)->lVal = (LONG)ent->animation[id].followup.animation;
@@ -4536,11 +4542,15 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                         case _ep_followup_condition:
                             (*pretvar)->lVal = (LONG)ent->animation[id].followup.condition;
                             break;
-                    }
+                    }*/
                 }
                 break;
-            case _anim_height:
-                (*pretvar)->lVal = (LONG)ent->animation[id].height;
+            case _animation_prop_height:
+                (*pretvar)->lVal = (LONG)ent->animation[id].size.y;
+                break;
+            default:
+                printf("Error: unsupported property in getanimationproperty\n");
+                result = E_FAIL;
                 break;
         }
     }
@@ -7834,7 +7844,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         break;
     }
     case _ep_a:
-         printf("\nNote: Property 'a' has been depreciated. Use 'y' to access the Y (vertical) axis property.\n");
+        printf("\nNote: Property 'a' has been depreciated. Use 'y' to access the Y (vertical) axis property.\n");
     case _ep_y:
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
