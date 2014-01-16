@@ -9788,42 +9788,67 @@ HRESULT openbor_killentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
     return S_OK;
 }
 
-//findtarget(entity (attacker), entity (target));
 HRESULT openbor_dograb(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    int i = 1;
-    entity *attacker = NULL;
-    entity *target = NULL;
+    /*
+    dograb
+    Damon V. Caskey
+    2013-12-30
 
-    /* Get adjust check. */
-    if(paramCount > 2)
+    Enables initiation of the engine's default grab state between attacker and
+    target entities.
+
+    dograb(ptr attacker, ptr target, int adjust);
+
+    attacker: Entity attempting grab.
+    target: Entity to be grabbed.
+    adjustcheck: Engine's dograb adjust check flag.
+    */
+
+    int adjust = 1;             // dograb adjust check.
+    int result = S_OK;          // Function pass/fail result.
+    entity *attacker = NULL;    // Attacker entity (attempting grab)
+    entity *target = NULL;      // Tagret entity (to be grabbed)
+
+    // Validate there are at least two parameters (attacker and target entities).
+    if(paramCount >= 2)
     {
-        ScriptVariant_IntegerValue(varlist[2], &i);
+        // Get adjust check.
+        if(paramCount > 2)
+        {
+            ScriptVariant_IntegerValue(varlist[2], &adjust);
+        }
+
+        // Get attacking and target entity.
+        attacker = (entity *)(varlist[0])->ptrVal;
+        target = (entity *)(varlist[1])->ptrVal;
+
+        // Validate entities; if both are OK, execute engine's dograb function and
+        // send result to script output.
+        if(attacker && target)
+        {
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = dograb(attacker, target, adjust);
+        }
+        else
+        {
+            result = E_FAIL;
+        }
+    }
+    else
+    {
+        result = E_FAIL;
     }
 
-    if(paramCount < 2)
-    {
-        *pretvar = NULL;
-        return E_FAIL;
-    }
-
-    ScriptVariant_ChangeType(*pretvar, VT_PTR);
-
-    /* get attacking and target entity. */
-    attacker = (entity *)(varlist[0])->ptrVal;
-    target = (entity *)(varlist[1])->ptrVal;
-
-    /* No reason to continue if either entity is invalid. */
-    if(!attacker || !target)
+    // If any validation check failed send alert to log.
+    if(result == E_FAIL)
     {
         ScriptVariant_Clear(*pretvar);
-        return S_OK;
+        printf("\nFunction requires two valid entity handles and optional adjustment parameter: dograb(attacker, target, int adjustcheck)\n");
     }
 
-    /* Attempt dograb and report result. */
-    (*pretvar)->lVal = dograb(attacker, target, i);
-
-    return S_OK;
+    // Return result.
+    return result;
 }
 
 //findtarget(entity, int animation);
