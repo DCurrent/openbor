@@ -8512,9 +8512,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->energycost.mponly = _cost_type_mp_then_hp;							//MP only.
                 newanim->energycost.disable = 0;							//Disable flag.
                 newanim->chargetime = 2;			// Default for backwards compatibility
-                newanim->shootframe = -1;
-                newanim->throwframe = -1;
-                newanim->tossframe = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
+                newanim->projectile.shootframe = -1;
+                newanim->projectile.throwframe = -1;
+                newanim->projectile.tossframe = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
                 newanim->jumpframe.frame = -1;
                 newanim->flipframe = -1;
                 newanim->attackone = -1;
@@ -8530,7 +8530,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->dropframe.frame = -1;
                 newanim->cancel = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
                 newanim->animhits = 0; //OX counts hits on a per anim basis for cancels.
-                newanim->subentity = newanim->custbomb = newanim->custknife = newanim->custstar = newanim->custpshotno = -1;
+                newanim->subentity = newanim->projectile.bomb = newanim->projectile.knife = newanim->projectile.star = newanim->projectile.flash = -1;
                 newanim->quakeframe.framestart = 0;
                 newanim->sync = -1;
 
@@ -8594,48 +8594,48 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_PSHOTFRAME:
             case CMD_MODEL_PSHOTFRAMEW:
             case CMD_MODEL_PSHOTFRAMENO:
-                newanim->throwframe = GET_FRAME_ARG(1);
-                newanim->throwa = GET_INT_ARG(2);
-                if(!newanim->throwa)
+                newanim->projectile.throwframe = GET_FRAME_ARG(1);
+                newanim->projectile.position.y = GET_INT_ARG(2);
+                if(!newanim->projectile.position.y)
                 {
-                    newanim->throwa = 70;
+                    newanim->projectile.position.y = 70;
                 }
-                else if(newanim->throwa == -1)
+                else if(newanim->projectile.position.y == -1)
                 {
-                    newanim->throwa = 0;
+                    newanim->projectile.position.y = 0;
                 }
                 break;
             case CMD_MODEL_SHOOTFRAME:
-                newanim->shootframe = GET_FRAME_ARG(1);
-                newanim->throwa = GET_INT_ARG(2);
-                if(newanim->throwa == -1)
+                newanim->projectile.shootframe = GET_FRAME_ARG(1);
+                newanim->projectile.position.y = GET_INT_ARG(2);
+                if(newanim->projectile.position.y == -1)
                 {
-                    newanim->throwa = 0;
+                    newanim->projectile.position.y = 0;
                 }
                 break;
             case CMD_MODEL_TOSSFRAME:
             case CMD_MODEL_PBOMBFRAME:
-                newanim->tossframe = GET_FRAME_ARG(1);
-                newanim->throwa = GET_INT_ARG(2);
-                if(newanim->throwa < 0)
+                newanim->projectile.tossframe = GET_FRAME_ARG(1);
+                newanim->projectile.position.y = GET_INT_ARG(2);
+                if(newanim->projectile.position.y < 0)
                 {
-                    newanim->throwa = -1;
+                    newanim->projectile.position.y = -1;
                 }
                 break;
             case CMD_MODEL_CUSTKNIFE:
             case CMD_MODEL_CUSTPSHOT:
             case CMD_MODEL_CUSTPSHOTW:
-                newanim->custknife = get_cached_model_index(GET_ARG(1));
+                newanim->projectile.knife = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CUSTPSHOTNO:
-                newanim->custpshotno = get_cached_model_index(GET_ARG(1));
+                newanim->projectile.flash = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CUSTBOMB:
             case CMD_MODEL_CUSTPBOMB:
-                newanim->custbomb = get_cached_model_index(GET_ARG(1));
+                newanim->projectile.bomb = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CUSTSTAR:
-                newanim->custstar = get_cached_model_index(GET_ARG(1));
+                newanim->projectile.star = get_cached_model_index(GET_ARG(1));
                 break;
 
                 // UT: merge dive and jumpframe, because they can't be used at the same time
@@ -14997,7 +14997,7 @@ void update_frame(entity *ent, int f)
         }
     }
 
-    if(anim->throwframe == f)
+    if(anim->projectile.throwframe == f)
     {
         // For backward compatible thing
         // throw stars in the air, hmm, strange
@@ -15005,12 +15005,12 @@ void update_frame(entity *ent, int f)
         // then if the entity is jumping, check star first, if failed, try knife instead
         // well, try knife at last, if still failed, try star, or just let if shutdown?
 #define __trystar star_spawn(self->position.x + (self->direction == _direction_right ? 56 : -56), self->position.z, self->position.y+67, self->direction)
-#define __tryknife knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->throwa, self->direction, 0, 0)
-        if(anim->custknife >= 0 || anim->custpshotno >= 0)
+#define __tryknife knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0, 0)
+        if(anim->projectile.knife >= 0 || anim->projectile.flash >= 0)
         {
             __tryknife;
         }
-        else if(anim->custstar >= 0)
+        else if(anim->projectile.star >= 0)
         {
             __trystar;
         }
@@ -15028,15 +15028,15 @@ void update_frame(entity *ent, int f)
         self->reactive = 1;
     }
 
-    if(anim->shootframe == f)
+    if(anim->projectile.shootframe == f)
     {
         knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y, self->direction, 1, 0);
         self->reactive = 1;
     }
 
-    if(anim->tossframe == f)
+    if(anim->projectile.tossframe == f)
     {
-        bomb_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->throwa, self->direction, 0);
+        bomb_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0);
         self->reactive = 1;
     }
 
@@ -26045,9 +26045,9 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->ptype = 0;
         e->position.y = a;
     }
-    else if(self->animation->custknife >= 0)
+    else if(self->animation->projectile.knife >= 0)
     {
-        e = spawn(x, z, a, direction, NULL, self->animation->custknife, NULL);
+        e = spawn(x, z, a, direction, NULL, self->animation->projectile.knife, NULL);
         if(!e)
         {
             return NULL;
@@ -26055,9 +26055,9 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->ptype = 0;
         e->position.y = a;
     }
-    else if(self->animation->custpshotno >= 0)
+    else if(self->animation->projectile.flash >= 0)
     {
-        e = spawn(x, z, 0, direction, NULL, self->animation->custpshotno, NULL);
+        e = spawn(x, z, 0, direction, NULL, self->animation->projectile.flash, NULL);
         if(!e)
         {
             return NULL;
@@ -26206,9 +26206,9 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
     {
         e = spawn(x, z, a, direction, NULL, self->weapent->modeldata.project, NULL);
     }
-    else if(self->animation->custbomb >= 0)
+    else if(self->animation->projectile.bomb >= 0)
     {
-        e = spawn(x, z, a, direction, NULL, self->animation->custbomb, NULL);
+        e = spawn(x, z, a, direction, NULL, self->animation->projectile.bomb, NULL);
     }
     else if(self->modeldata.bomb >= 0)
     {
@@ -26283,9 +26283,9 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
     {
         index = self->weapent->modeldata.project;
     }
-    else if(self->animation->custstar >= 0)
+    else if(self->animation->projectile.star >= 0)
     {
-        index = self->animation->custstar;    //use any star
+        index = self->animation->projectile.star;    //use any star
     }
     else if(self->modeldata.star >= 0)
     {

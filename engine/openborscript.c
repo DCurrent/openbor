@@ -3674,8 +3674,8 @@ typedef enum animationprop_enum
     _animation_prop_subentity,    // Store the sub-entity's name for further use
     _animation_prop_summonframe,  // SUB Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
     _animation_prop_sync,         // sychronize frame to previous animation if they matches
-    _animation_prop_throwa,       //	Used for setting the "a" at which weapons are spawned various entity model id, knife/star/bomb etc
-    _animation_prop_throwframe,   //When entity is thrown during THROW animation.
+    _animation_prop_throwframe,   //
+    _animation_prop_throwposition,// SUB Used for setting the position at which projectiles weapons are spawned.
     _animation_prop_tossframe,    // Used to determine which frame will toss a bomb/grenade
     _animation_prop_unsummonframe,// SUB Un-summon the entity
     _animation_prop_weaponframe,  // SUB Specify with a frame when to switch to a weapon model
@@ -3713,8 +3713,8 @@ static const char *list_animation_prop[] =
     "subentity",
     "summonframe",
     "sync",
-    "throwa",
     "throwframe",
+    "throwposition",
     "tossframe",
     "unsummonframe",
     "weaponframe"
@@ -4488,16 +4488,16 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 (*pretvar)->dblVal = (DOUBLE)ent->animation[id].chargetime;
                 break;
             case _animation_prop_custbomb:
-                (*pretvar)->lVal = (LONG)ent->animation[id].custbomb;
+                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.bomb;
                 break;
             case _animation_prop_custknife:
-                (*pretvar)->lVal = (LONG)ent->animation[id].custknife;
+                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.knife;
                 break;
             case _animation_prop_custpshotno:
-                (*pretvar)->lVal = (LONG)ent->animation[id].custpshotno;
+                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.flash;
                 break;
             case _animation_prop_custstar:
-                (*pretvar)->lVal = (LONG)ent->animation[id].custstar;
+                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.star;
                 break;
             case _animation_prop_dropframe:
                 (*pretvar)->lVal = (LONG)ent->animation[id].dropframe.frame;
@@ -4626,7 +4626,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 break;
             case _animation_prop_shootframe:
-                (*pretvar)->lVal = (LONG)ent->animation[id].shootframe;
+                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.shootframe;
                 break;
             case _animation_prop_size:
                 // Verify incoming parameter.
@@ -4680,14 +4680,23 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
             case _animation_prop_sync:
                 (*pretvar)->lVal = (LONG)ent->animation[id].sync;
                 break;
-            case _animation_prop_throwa:
-                (*pretvar)->lVal = (LONG)ent->animation[id].throwa;
+            case _animation_prop_throwframe:    //
+                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.throwframe;
                 break;
-            case _animation_prop_throwframe:
-                (*pretvar)->lVal = (LONG)ent->animation[id].throwframe;
+            case _animation_prop_throwposition:    //Location of projectile spawn.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'throwposition', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    printf("Error: 'throwposition' property not implemented yet in getanimationproperty\n");
+                    result = E_FAIL;
+                }
                 break;
             case _animation_prop_tossframe:
-                (*pretvar)->lVal = (LONG)ent->animation[id].tossframe;
+                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.tossframe;
                 break;
             case _animation_prop_unsummonframe:
                 (*pretvar)->lVal = (LONG)ent->animation[id].unsummonframe;
@@ -10599,11 +10608,11 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
     else if(relative)
     {
-        a  = self->animation->throwa;
+        a  = self->animation->projectile.position.y;
     }
     else
     {
-        a = self->position.y + self->animation->throwa;
+        a = self->position.y + self->animation->projectile.position.y;
     }
     if(paramCount >= 5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
     {
