@@ -3669,7 +3669,7 @@ typedef enum animationprop_enum
     _animation_prop_quakeframe,   // SUB Screen shake effect. 2011_04_01, DC; Moved to struct.
     _animation_prop_range,        //SUB Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
     _animation_prop_shootframe,
-    _animation_prop_height,       // entity's height during animation
+    _animation_prop_size,         // SUB entity's size (height) during animation
     _animation_prop_spawnframe,   // SUB Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
     _animation_prop_subentity,    // Store the sub-entity's name for further use
     _animation_prop_summonframe,  // SUB Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
@@ -4462,7 +4462,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
-                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'counterrange', {counterrange sub-property})\n");
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'counterrange', {sub-property})\n");
                     result = E_FAIL;
                 }
                 else
@@ -4507,7 +4507,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
-                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'energycost', {energycost sub-property})\n");
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'energycost', {sub-property})\n");
                     result = E_FAIL;
                 }
                 else
@@ -4533,7 +4533,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
 
                 if(varlist[3]->vt != VT_INTEGER)
                 {
-                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'followup', {followup sub-property})\n");
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'followup', {sub-property})\n");
                     result = E_FAIL;
                 }
                 else
@@ -4551,8 +4551,158 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     }*/
                 }
                 break;
-            case _animation_prop_height:
-                (*pretvar)->lVal = (LONG)ent->animation[id].size.y;
+            case _animation_prop_index:
+                (*pretvar)->lVal = (LONG)ent->animation[id].index;
+                break;
+            case _animation_prop_jumpframe:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'jumpframe', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    printf("Error: 'jumpframe' property not implemented yet in getanimationproperty\n");
+                    result = E_FAIL;
+                }
+                break;
+            case _animation_prop_landframe:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'landframe', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    printf("Error: 'landframe' property not implemented yet in getanimationproperty\n");
+                    result = E_FAIL;
+                }
+                break;
+            case _animation_prop_loop:         // Animation looping. 2011_03_31, DC: Moved to struct.
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'loop', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    printf("Error: 'loop' property not implemented yet in getanimationproperty\n");
+                    result = E_FAIL;
+                }
+                break;
+            case _animation_prop_model_index:
+                (*pretvar)->lVal = (LONG)ent->animation[id].model_index;
+                break;
+            case _animation_prop_numframes:
+                (*pretvar)->lVal = (LONG)ent->animation[id].numframes;
+                break;
+            case _animation_prop_quakeframe:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'quakeframe', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    printf("Error: 'quakeframe' property not implemented yet in getanimationproperty\n");
+                    result = E_FAIL;
+                }
+                break;
+            case _animation_prop_range:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'range', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    printf("Error: 'range' property not implemented yet in getanimationproperty\n");
+                    result = E_FAIL;
+                }
+                break;
+            case _animation_prop_shootframe:
+                (*pretvar)->lVal = (LONG)ent->animation[id].shootframe;
+                break;
+            case _animation_prop_size:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'size', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    printf("Error: 'size' property not implemented yet in getanimationproperty\n");
+                    result = E_FAIL;
+                    /*switch(varlist[3]->lVal)
+                    {
+                        case _ep_size_x:
+                            (*pretvar)->lVal = (LONG)ent->animation[id].size.x;
+                            break;
+                        case _ep_size_y:
+                            (*pretvar)->lVal = (LONG)ent->animation[id].size.y;
+                            break;
+                    }*/
+                }
+                break;
+            case _animation_prop_spawnframe:
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'spawnframe', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    printf("Error: 'spawnframe' property not implemented yet in getanimationproperty\n");
+                    result = E_FAIL;
+                }
+                break;
+            case _animation_prop_subentity:
+                (*pretvar)->lVal = (LONG)ent->animation[id].subentity;
+                break;
+            case _animation_prop_summonframe:
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'summonframe', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    printf("Error: 'summonframe' property not implemented yet in getanimationproperty\n");
+                    result = E_FAIL;
+                }
+                break;
+            case _animation_prop_sync:
+                (*pretvar)->lVal = (LONG)ent->animation[id].sync;
+                break;
+            case _animation_prop_throwa:
+                (*pretvar)->lVal = (LONG)ent->animation[id].throwa;
+                break;
+            case _animation_prop_throwframe:
+                (*pretvar)->lVal = (LONG)ent->animation[id].throwframe;
+                break;
+            case _animation_prop_tossframe:
+                (*pretvar)->lVal = (LONG)ent->animation[id].tossframe;
+                break;
+            case _animation_prop_unsummonframe:
+                (*pretvar)->lVal = (LONG)ent->animation[id].unsummonframe;
+                break;
+            case _animation_prop_weaponframe:
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'weaponframe', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    printf("Error: 'weaponframe' property not implemented yet in getanimationproperty\n");
+                    result = E_FAIL;
+                }
                 break;
             default:
                 printf("Error: unsupported property in getanimationproperty\n");
