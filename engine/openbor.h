@@ -1239,20 +1239,30 @@ typedef struct
 
 typedef struct
 {
+    /*
+    Projectile struct
+    Damon V. Caskey
+    2014-01-18
+    */
+
+    int bomb;           //custbomb;
+    int flash;          //custpshotno;
+    int knife;          //custknife;
+    s_axis_i position;  //Location at which projectiles are spawned
+    int star;           //custstar;
+    int shootframe;
+    int throwframe;
+    int tossframe;      // Frame to toss bomb/grenade
+} s_projectile;
+
+typedef struct
+{
     int model_index;
     int index;                      //unique id
     int numframes;
     s_loop loop;                    // Animation looping. 2011_03_31, DC: Moved to struct.
     s_axis_i size;                  // Demensions (height, width).
-    int tossframe;                  // Used to determine which frame will toss a bomb/grenade
-    int shootframe;
-    int throwframe;
-    int throwa;                     //	Used for setting the "a" at which weapons are spawned
-                                    // various entity model id, knife/star/bomb etc
-    int custknife;
-    int custstar;
-    int custbomb;
-    int custpshotno;
+    s_projectile projectile;        // Subentity spawn for knives, stars, bombs, hadoken, etc.
     int subentity;                  // Store the sub-entity's name for further use
     s_energycost energycost;        // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
     float chargetime;               // charge time for an animation
