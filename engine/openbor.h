@@ -120,12 +120,12 @@ typedef enum
     FLAG_START			= 0x00000002,
     FLAG_MOVELEFT		= 0x00000004,
     FLAG_MOVERIGHT		= 0x00000008,
-    FLAG_MOVEUP			= 0x00000010,
+    FLAG_MOVEUP		    = 0x00000010,
     FLAG_MOVEDOWN		= 0x00000020,
-    FLAG_ATTACK			= 0x00000040,
+    FLAG_ATTACK		    = 0x00000040,
     FLAG_JUMP			= 0x00000080,
     FLAG_SPECIAL		= 0x00000100,
-    FLAG_SCREENSHOT		= 0x00000200,
+    FLAG_SCREENSHOT	    = 0x00000200,
     FLAG_ATTACK2		= 0x00000400,
     FLAG_ATTACK3		= 0x00000800,
     FLAG_ATTACK4		= 0x00001000,
@@ -169,17 +169,17 @@ typedef enum
     TYPE_NONE,
     TYPE_PLAYER,
     TYPE_ENEMY,
-    TYPE_ITEM       = 4,
-    TYPE_OBSTACLE	= 8,
+    TYPE_ITEM      = 4,
+    TYPE_OBSTACLE  = 8,
     TYPE_STEAMER	= 16,
     TYPE_SHOT		= 32,			// 7-1-2005 type to use for player projectiles
     TYPE_TRAP		= 64,			// 7-1-2005 lets face it enemies are going to just let you storm in without setting a trap or two!
-    TYPE_TEXTBOX    = 128,			// New textbox type for displaying messages
-    TYPE_ENDLEVEL   = 256,			// New endlevel type that ends the level when touched
-    TYPE_NPC        = 512,          // A character can be an ally or enemy.
-    TYPE_PANEL      = 1024,         // Fake panel, scroll with screen using model speed
+    TYPE_TEXTBOX   = 128,			// New textbox type for displaying messages
+    TYPE_ENDLEVEL  = 256,			// New endlevel type that ends the level when touched
+    TYPE_NPC       = 512,          // A character can be an ally or enemy.
+    TYPE_PANEL     = 1024,         // Fake panel, scroll with screen using model speed
     TYPE_MAX		= TYPE_PANEL,	// For openbor constant check and type hack (i.e., custom hostile and candamage)
-    TYPE_RESERVED   = 0x40000000    // should not use as a type
+    TYPE_RESERVED  = 0x40000000    // should not use as a type
 } e_entity_type;
 
 typedef enum
@@ -455,9 +455,9 @@ typedef enum
     2013-12-27
     */
 
-    ARG_FLOAT,
-    ARG_STRING,
-    ARG_INT
+    _ARG_FLOAT,
+    _ARG_STRING,
+    _ARG_INT
 } e_arg_types;
 
 typedef enum
@@ -501,31 +501,31 @@ typedef enum
     2013-12-29
     */
 
-    _barstatus_dir_normal,  //Left to Right or Up to Down.
-    _barstatus_dir_invert   //Right to Left or Down to Up.
+    _BARSTATUS_DIR_NORMAL,  //Left to Right or Up to Down.
+    _BARSTATUS_DIR_INVERT   //Right to Left or Down to Up.
 } e_bar_dir;
 
 typedef enum
 {
-    horizontalbar,
-    verticalbar
+    _HORIZONTALBAR,
+    _VERTICALBAR
 } e_barorient;
 
 typedef enum
 {
-    valuebar,
-    percentagebar
+    _VALUEBAR,
+    _PERCENTAGEBAR
 } e_bartype;
 
 typedef enum
 {
-    bgt_bglayer,
-    bgt_fglayer,
-    bgt_panel,
-    bgt_frontpanel,
-    bgt_water,
-    bgt_background,
-    bgt_generic
+    _BGT_BGLAYER,
+    _BGT_FGLAYER,
+    _BGT_PANEL,
+    _BGT_FRONTPANEL,
+    _BGT_WATER,
+    _BGT_BACKGROUND,
+    _BGT_GENERIC
 } e_bgloldtype;
 
 typedef enum
@@ -536,10 +536,10 @@ typedef enum
     2013-12-28
     */
 
-    _e_blocktype_hp         = -1,   //HP only.
-    _e_blocktype_mp_first   = 1,    //MP until MP is exhuasted, then HP.
-    _e_blocktype_both,              //Both MP and HP.
-    _e_blocktype_mp_only            //Only MP, even if MP is 0.
+    _BLOCK_TYPE_HP         = -1,   //HP only.
+    _BLOCK_TYPE_MP_FIRST   = 1,    //MP until MP is exhuasted, then HP.
+    _BLOCK_TYPE_BOTH,              //Both MP and HP.
+    _BLOCK_TYPE_MP_ONLY            //Only MP, even if MP is 0.
 } e_blocktype;
 
 typedef enum
@@ -550,8 +550,8 @@ typedef enum
     2013-12-29
     */
 
-    _cost_check_hp,
-    _cost_check_mp
+    _COST_CHECK_HP,
+    _COST_CHECK_MP
 } e_cost_check;
 
 typedef enum
@@ -562,9 +562,9 @@ typedef enum
     2013-12-29
     */
 
-    _cost_type_mp_then_hp,
-    _cost_type_mp_only,
-    _cost_type_hp_only
+    _COST_TYPE_MP_THEN_HP,
+    _COST_TYPE_MP_ONLY,
+    _COST_TYPE_HP_ONLY
 } e_cost_type;
 
 typedef enum
@@ -575,10 +575,10 @@ typedef enum
     Damon V. Caskey
     */
 
-    _counteraction_condition_none,                  //No counter.
-    _counteraction_condition_always,                //Always perform coutner action.
-    _counteraction_condition_hostile,               //Only if attacker is hostile entity.
-    _counteraction_condition_hotsile_front_nofreeze //Attacker is hostile, strikes from front, and uses non-freeze attack.
+    _COUNTERACTION_CONDITION_NONE,                  //No counter.
+    _COUNTERACTION_CONDITION_ALWAYS,                //Always perform coutner action.
+    _COUNTERACTION_CONDITION_HOSTILE,               //Only if attacker is hostile entity.
+    _COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE //Attacker is hostile, strikes from front, and uses non-freeze attack.
 } e_counteraction_condition;
 
 typedef enum
@@ -589,8 +589,8 @@ typedef enum
     Damon V. Caskey
     */
 
-    _counteraction_damage_none,  //No damage.
-    _counteraction_damage_normal //Normal damage.
+    _COUNTERACTION_DAMAGE_NONE,  //No damage.
+    _COUNTERACTION_DAMAGE_NORMAL //Normal damage.
 } e_counteraction_damage;
 
 typedef enum
@@ -601,8 +601,8 @@ typedef enum
     2013-12-16
     */
 
-  _direction_left,
-  _direction_right
+  _DIRECTION_LEFT,
+  _DIRECTION_RIGHT
 } e_direction;
 
 typedef enum
@@ -613,11 +613,11 @@ typedef enum
     2013-12-28
     */
 
-    _direction_adjust_none,             //Leave as is.
-    _direction_adjust_same,             //Same as attacker/bind/etc.
-    _direction_adjust_opposite  = -1,   //Opposite attacker/bind/etc.
-    _direction_adjust_right     = 2,    //Always right.
-    _direction_adjust_left      = -2    //Always left.
+    _DIRECTION_ADJUST_NONE,             //Leave as is.
+    _DIRECTION_ADJUST_SAME,             //Same as attacker/bind/etc.
+    _DIRECTION_ADJUST_OPPOSITE  = -1,   //Opposite attacker/bind/etc.
+    _DIRECTION_ADJUST_RIGHT     = 2,    //Always right.
+    _DIRECTION_ADJUST_LEFT      = -2    //Always left.
 } e_direction_adjust;
 
 typedef enum
@@ -628,8 +628,8 @@ typedef enum
     2013-12-30
     */
 
-    _dograb_adjustcheck_true,
-    _dograb_adjustcheck_false
+    _DOGRAB_ADJUSTCHECK_TRUE,
+    _DOGRAB_ADJUSTCHECK_FALSE
 } e_dograb_adjustcheck;
 
 typedef enum
@@ -640,12 +640,12 @@ typedef enum
     2013-12-27
     */
 
-    _dot_mode_off,              //Disable.
-    _dot_mode_hp,               //Drain HP.
-    _dot_mode_hp_mp,            //Drain HP and MP.
-    _dot_mode_mp,               //Drain mp.
-    _dot_mode_non_lethal_hp,    //Drain HP, but do not kill entity.
-    _dot_mode_non_lethal_hp_mp  //Drain HP and MP, but do not kill entity.
+    _DOT_MODE_OFF,              //Disable.
+    _DOT_MODE_HP,               //Drain HP.
+    _DOT_MODE_HP_MP,            //Drain HP and MP.
+    _DOT_MODE_MP,               //Drain mp.
+    _DOT_MODE_NON_LETHAL_HP,    //Drain HP, but do not kill entity.
+    _DOT_MODE_NON_LETHAL_HP_MP  //Drain HP and MP, but do not kill entity.
 } e_dot_mode;
 
 typedef enum
@@ -655,8 +655,8 @@ typedef enum
     2013-12-16
     Damon V. Caskey
     */
-    _edelay_mode_add,       //Factor is added directly to edelay.
-    _edelay_mode_multiply   //Orginal delay value is multiplied by factor.
+    _EDELAY_MODE_ADD,       //Factor is added directly to edelay.
+    _EDELAY_MODE_MULTIPLY   //Orginal delay value is multiplied by factor.
 } e_edelay_mode;
 
 typedef enum
@@ -667,10 +667,10 @@ typedef enum
     2013-12-29
     */
 
-    _facing_adjust_none,    //No facing adjustment.
-    _facing_adjust_right,   //Always face right.
-    _facing_adjust_left,    //Always face left.
-    _facing_adjust_level    //Face according to level scroll direction.
+    _FACING_ADJUST_NONE,    //No facing adjustment.
+    _FACING_ADJUST_RIGHT,   //Always face right.
+    _FACING_ADJUST_LEFT,    //Always face left.
+    _FACING_ADJUST_LEVEL    //Face according to level scroll direction.
 } e_facing_adjust;
 
 typedef enum
@@ -681,11 +681,11 @@ typedef enum
     2014-01-04
     */
 
-    _follow_condition_disabled,                     //No followup (default).
-    _follow_condition_always,                       //Always perform.
-    _follow_condition_hostile,                      //Perform if target is hostile.
-    _follow_condition_hostile_nokill_noblock,       //Perform if target is hostile, will not be killed and didn't block.
-    _follow_condition_hostile_nokill_noblock_nograb //Perform if target is hostile, will not be killed, didn't block, and cannot be grabbed.
+    _FOLLOW_CONDITION_DISABLED,                     //No followup (default).
+    _FOLLOW_CONDITION_ALWAYS,                       //Always perform.
+    _FOLLOW_CONDITION_HOSTILE,                      //Perform if target is hostile.
+    _FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK,       //Perform if target is hostile, will not be killed and didn't block.
+    _FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK_NOGRAB //Perform if target is hostile, will not be killed, didn't block, and cannot be grabbed.
 } e_follow_condition;
 
 typedef enum
@@ -696,23 +696,23 @@ typedef enum
     2013-12-28
     */
 
-    _komap_type_immediately,    //Apply instantly.
-    _komap_type_last_fall_frame //Apply on last frame of fall.
+    _KOMAP_TYPE_IMMEDIATELY,    //Apply instantly.
+    _KOMAP_TYPE_LAST_FALL_FRAME //Apply on last frame of fall.
 } e_komap_type;
 
 typedef enum
 {
-    normal_level,
-    cut_scene,
-    select_screen
+    _LE_TYPE_NORMAL,
+    _LE_TYPE_CUT_SCENE,
+    _LE_TYPE_SELECT_SCREEN
 } e_le_type;
 
 typedef enum
 {
-    LSTYPE_NONE,        //No loading screen.
-    LSTYPE_BOTH,        //Background and status bar.
-    LSTYPE_BACKGROUND,  //Background only.
-    LSTYPE_BAR,         //Status bar only.
+    _LS_TYPE_NONE,        //No loading screen.
+    _LS_TYPE_BOTH,        //Background and status bar.
+    _LS_TYPE_BACKGROUND,  //Background only.
+    _LS_TYPE_BAR,         //Status bar only.
 } e_loadingScreenType;
 
 typedef enum
@@ -723,26 +723,26 @@ typedef enum
     2013-12-28
     */
 
-    MODEL_NO_COPY           = 0x00000001,   //dont copy anything from original model
-    MODEL_NO_WEAPON_COPY    = 0x00000002,   //dont copy weapon list from original model
-    MODEL_NO_SCRIPT_COPY    = 0x00000004    //don't copy scripts
+    _MODEL_NO_COPY           = 0x00000001,   //dont copy anything from original model
+    _MODEL_NO_WEAPON_COPY    = 0x00000002,   //dont copy weapon list from original model
+    _MODEL_NO_SCRIPT_COPY    = 0x00000004    //don't copy scripts
 } e_model_copy;
 
 typedef enum
 {
-    MF_NONE,
-    MF_ANIMLIST,
-    MF_COLOURMAP,
-    MF_PALETTE = 4,
-    MF_WEAPONS = 8,
-    MF_BRANCH = 16,
-    MF_ANIMATION = 32,
-    MF_DEFENSE = 64,
-    MF_OFF_FACTORS = 128,
-    MF_SPECIAL = 256,
-    MF_SMARTBOMB = 512,
-    MF_SCRIPTS = 1024,
-    MF_ALL = 0x7ff
+    _MF_NONE,
+    _MF_ANIMLIST,
+    _MF_COLOURMAP,
+    _MF_PALETTE = 4,
+    _MF_WEAPONS = 8,
+    _MF_BRANCH = 16,
+    _MF_ANIMATION = 32,
+    _MF_DEFENSE = 64,
+    _MF_OFF_FACTORS = 128,
+    _MF_SPECIAL = 256,
+    _MF_SMARTBOMB = 512,
+    _MF_SCRIPTS = 1024,
+    _MF_ALL = 0x7ff
 } e_ModelFreetype;
 
 typedef enum
@@ -753,9 +753,9 @@ typedef enum
     2013-12-28
     */
 
-   _otg_none,       //Cannot hit grounded targets.
-   _otg_both,       //Can hit grounded targets.
-   _otg_ground_only //Can ONLY hit grounded targets.
+   _OTG_NONE,       //Cannot hit grounded targets.
+   _OTG_BOTH,       //Can hit grounded targets.
+   _OTG_GROUND_ONLY //Can ONLY hit grounded targets.
 } e_otg;
 
 typedef enum
@@ -790,10 +790,10 @@ typedef enum
     2013-12-29
     */
 
-    _weaploss_type_any,         //Weapon lost taking any hit.
-    _weaploss_type_knockdown,   //Weapon lost on knockdown.
-    _weaploss_type_death,       //Weapon lost on death.
-    _weaploss_type_change       //weapon is lost only when level ends or character is changed during continue. This depends on the level settings and whether players had weapons on start or not.
+    _WEAPLOSS_TYPE_ANY,         //Weapon lost taking any hit.
+    _WEAPLOSS_TYPE_KNOCKDOWN,   //Weapon lost on knockdown.
+    _WEAPLOSS_TYPE_DEATH,       //Weapon lost on death.
+    _WEAPLOSS_TYPE_CHANGE       //weapon is lost only when level ends or character is changed during continue. This depends on the level settings and whether players had weapons on start or not.
 } e_weaploss_type;
 
 //macros for drawing menu text, fits different font size
@@ -877,7 +877,7 @@ if(n<1) n = 1;
 
 #define check_range(self, target, animnum) \
 		 ( target && \
-		  (self->direction == _direction_right ? \
+		  (self->direction == _DIRECTION_RIGHT ? \
 		  (int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.min.x &&\
 		  (int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.max.x\
 		:\
@@ -1271,7 +1271,7 @@ typedef struct
     int *soundtoplay;               // each frame can have a sound
     int *sprite;                    // sprite[set][framenumber]
     int *delay;
-    s_axis_i **move;            //base = seta, x = move, y = movea, z = movez
+    s_axis_i **move;                //base = seta, x = move, y = movea, z = movez
     int *vulnerable;
     int (*bbox_coords)[6];
     int *shadow;
@@ -1706,14 +1706,14 @@ typedef struct entity
     e_direction direction;
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
     int movestep;
-    s_axis_f position; //x,a,z location.
-    s_axis_f velocity; //x,a,z movement speed.
+    s_axis_f position; //x,y,z location.
+    s_axis_f velocity; //x,y,z movement speed.
     float destx; // temporary values for ai functions
     float destz;
     float movex;
     float movez;
     float speedmul;
-    float base; // Default altitude
+    float base;     // Default altitude
     float altbase; // Altitude affected by movea
     s_jump jump;    //Jumping velocity and id.
     unsigned combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
