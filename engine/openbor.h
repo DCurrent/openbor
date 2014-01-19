@@ -914,8 +914,8 @@ if(n<1) n = 1;
 
 #define canbegrabbed(self, other) \
 		(other->animation->vulnerable[other->animpos] && \
-		 (!self->animation->move || self->animation->move[self->animpos] == 0) && \
-		 (!self->animation->movez || self->animation->movez[self->animpos] == 0 ) && \
+		 (!self->animation->move || self->animation->move[self->animpos]->x == 0) && \
+		 (!self->animation->move || self->animation->move[self->animpos]->z == 0 ) && \
 		 !(other->nograb || other->invincible || other->link || \
 		   other->model->animal || inair(other) || \
 		  (self->modeldata.type == TYPE_PLAYER && other->modeldata.type == TYPE_PLAYER && savedata.mode)))
@@ -1271,10 +1271,7 @@ typedef struct
     int *soundtoplay;               // each frame can have a sound
     int *sprite;                    // sprite[set][framenumber]
     int *delay;
-    int *move;
-    int *movez;
-    int *movea;
-    int *seta;                      // Now characters can have a custom "a" value
+    s_axis_i **move;            //base = seta, x = move, y = movea, z = movez
     int *vulnerable;
     int (*bbox_coords)[6];
     int *shadow;
@@ -2174,8 +2171,8 @@ void free_anim(s_anim *anim);
 void free_models();
 s_anim *alloc_anim();
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
-             int *bbox, s_attack *attack, int move, int movez,
-             int movea, int seta, float *platform, int frameshadow,
+             int *bbox, s_attack *attack, s_axis_i *move,
+             float *platform, int frameshadow,
              int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod);
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char *name);

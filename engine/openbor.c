@@ -4930,26 +4930,21 @@ void free_frames(s_anim *anim)
         free(anim->idle);
         anim->idle = NULL;
     }
-    if(anim->seta)
-    {
-        free(anim->seta);
-        anim->seta = NULL;
-    }
+
     if(anim->move)
     {
+        for(i = 0; i < anim->numframes; i++)
+        {
+            if(anim->move[i])
+            {
+                free(anim->move[i]);
+                anim->move[i] = NULL;
+            }
+        }
         free(anim->move);
         anim->move = NULL;
     }
-    if(anim->movez)
-    {
-        free(anim->movez);
-        anim->movez = NULL;
-    }
-    if(anim->movea)
-    {
-        free(anim->movea);
-        anim->movea = NULL;
-    }
+
     if(anim->delay)
     {
         free(anim->delay);
@@ -5358,8 +5353,8 @@ s_anim *alloc_anim()
 
 
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
-             int *bbox, s_attack *attack, int move, int movez, int movea,
-             int seta, float *platform, int frameshadow, int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod)
+             int *bbox, s_attack *attack, s_axis_i *move,
+             float *platform, int frameshadow, int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod)
 {
     ptrdiff_t currentframe;
     if(framecount > 0)
@@ -5419,42 +5414,18 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
     {
         a->idle[currentframe] = idle;
     }
-    if(move && !a->move)
+
+    if(move)
     {
-        a->move = malloc(framecount * sizeof(*a->move));
-        memset(a->move, 0, framecount * sizeof(*a->move));
+        if(!a->move)
+        {
+            a->move = malloc(framecount * sizeof(*a->move));
+            memset(a->move, 0, framecount * sizeof(*a->move));
+        }
+        a->move[currentframe] = malloc(sizeof(**a->move));
+        memcpy(a->move[currentframe], move, sizeof(**a->move));
     }
-    if(a->move)
-    {
-        a->move[currentframe] = move;
-    }
-    if(movez && !a->movez)
-    {
-        a->movez = malloc(framecount * sizeof(*a->movez));
-        memset(a->movez, 0, framecount * sizeof(*a->movez));
-    }
-    if(a->movez)
-    {
-        a->movez[currentframe] = movez;    // Move command for the "z" axis
-    }
-    if(movea && !a->movea)
-    {
-        a->movea = malloc(framecount * sizeof(*a->movea));
-        memset(a->movea, 0, framecount * sizeof(*a->movea));
-    }
-    if(a->movea)
-    {
-        a->movea[currentframe] = movea;    // Move command for moving along the "a" axis
-    }
-    if(seta >= 0 && !a->seta)
-    {
-        a->seta = malloc(framecount * sizeof(*a->seta));
-        memset(a->seta, -1, framecount * sizeof(*a->seta)); //default to -1
-    }
-    if(a->seta)
-    {
-        a->seta[currentframe] = seta;    // Sets the "a" for the character on a frame/frame basis
-    }
+
     if(frameshadow >= 0 && !a->shadow)
     {
         a->shadow = malloc(framecount * sizeof(*a->shadow));
@@ -7179,6 +7150,8 @@ void update_model_loadflag(s_model *model, char unload)
 
 s_model *load_cached_model(char *name, char *owner, char unload)
 {
+
+
     s_model *newchar = NULL,
              *tempmodel = NULL;
 
@@ -7215,10 +7188,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         errorVal = 0,
         shadow_set = 0,
         idle = 0,
-        move = 0,
-        movez = 0,
-        movea = 0,
-        seta = -1,			// Used for setting custom "a". Set to -1 to distinguish between disabled and setting "a" to 0
         frameshadow = -1,	// -1 will use default shadow for this entity, otherwise will use this value
         soundtoplay = -1,
         aimoveset = 0,
@@ -7244,6 +7213,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     float platform[8] = { 0, 0, 0, 0, 0, 0, 0, 0 },
                         platform_con[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+    s_axis_i move = {.base = -1,    //-1 = Disabled, 0+ base set
+                        .x = 0,
+                        .y = 0,
+                        .z = 0};
 
     s_attack attack,
              *pattack = NULL;
@@ -8488,10 +8462,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 attack.blocksound = -1;
                 drawmethod = plainmethod;
                 idle = 0;
-                move = 0;
-                movez = 0;
-                movea = 0;
-                seta = -1;
+                move.base = -1;
+                move.x = 0;
+                move.y = 0;
+                move.z = 0;
                 frameshadow = -1;
                 soundtoplay = -1;
 
@@ -9208,17 +9182,17 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_IDLE:
                 idle = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_MOVE:
-                move = GET_INT_ARG(1);
+            case CMD_MODEL_SETA:
+                move.base = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_MOVEZ:
-                movez = GET_INT_ARG(1);
+            case CMD_MODEL_MOVE:
+                move.x = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_MOVEA:
-                movea = GET_INT_ARG(1);
+                move.y = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_SETA:
-                seta = GET_INT_ARG(1);
+            case CMD_MODEL_MOVEZ:
+                move.z = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_FSHADOW:
                 frameshadow = GET_INT_ARG(1);
@@ -9397,8 +9371,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 curframe = addframe(newanim, index, framecount, delay, idle,
-                                    bbox_con, &attack, move, movez,
-                                    movea, seta, platform_con, frameshadow, shadow_coords, soundtoplay, &dm);
+                                    bbox_con, &attack, &move, platform_con, frameshadow, shadow_coords, soundtoplay, &dm);
 
                 memset(bbox_con, 0, sizeof(bbox_con));
                 soundtoplay = -1;
@@ -14839,7 +14812,7 @@ void update_frame(entity *ent, int f)
     entity *tempself;
     entity *dust;
     s_attack attack;
-    float move, movez, movea;
+    s_axis_f move;
     s_anim *anim = ent->animation;
 
     if(f >= anim->numframes) // prevent a crash with invalid frame index.
@@ -14866,29 +14839,29 @@ void update_frame(entity *ent, int f)
         goto uf_interrupted;
     }
 
-    if(level && (anim->move || anim->movez))
+    if(level && (anim->move[f]->x || anim->move[f]->z))
     {
-        move = (float)(anim->move ? anim->move[f] : 0);
-        movez = (float)(anim->movez ? anim->movez[f] : 0);
+        move.x = (float)(anim->move[f]->x ? anim->move[f]->x : 0);
+        move.z = (float)(anim->move[f]->z ? anim->move[f]->z : 0);
         if(self->direction == _direction_left)
         {
-            move = -move;
+            move.x = -move.x;
         }
-        self->movex += move;
-        self->movez += movez;
+        self->movex += move.x;
+        self->movez += move.z;
     }
 
-    if(anim->seta && anim->seta[0] >= 0 && self->base <= 0)
+    if(anim->move[0]->base && anim->move[0]->base >= 0 && self->base <= 0)
     {
-        ent->base = (float)anim->seta[0];
+        ent->base = (float)anim->move[0]->base;
     }
-    else if(!anim->seta || anim->seta[0] < 0)
+    else if(!anim->move[0]->base || anim->move[0]->base < 0)
     {
-        movea = (float)(anim->movea ? anim->movea[f] : 0);
-        self->base += movea;
-        if(movea != 0)
+        move.y = (float)(anim->move[f]->y ? anim->move[f]->y : 0);
+        self->base += move.y;
+        if(move.y != 0)
         {
-            self->altbase += movea;
+            self->altbase += move.y;
         }
         else
         {
@@ -16966,8 +16939,8 @@ void check_gravity(entity *e)
                         control_rumble(i, 75 * (int)self->velocity.y / 2);
                     }
                 }
-                else if((!self->animation->seta || self->animation->seta[self->animpos] < 0) &&
-                        (!self->animation->movea || self->animation->movea[self->animpos] <= 0))
+                else if((!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) &&
+                        (!self->animation->move[self->animpos]->y || self->animation->move[self->animpos]->y <= 0))
                 {
                     self->velocity.x = self->velocity.z = self->velocity.y = 0;
                 }
@@ -17241,7 +17214,7 @@ void adjust_base(entity *e, entity **pla)
     // adjust base
     if(self->modeldata.no_adjust_base <= 0)
     {
-        seta = (float)((self->animation->seta) ? (self->animation->seta[self->animpos]) : (-1));
+        seta = (float)((self->animation->move[self->animpos]->base) ? (self->animation->move[self->animpos]->base) : (-1));
 
         // Checks to see if entity is over a wall and or obstacle, and adjusts the base accordingly
         //wall = checkwall_below(self->position.x, self->position.z);
@@ -17294,7 +17267,7 @@ void adjust_base(entity *e, entity **pla)
             {
                 self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase);
             }
-            else if(!self->animation->movea || self->animation->movea[self->animpos] == 0)
+            else if(!self->animation->move[self->animpos]->y || self->animation->move[self->animpos]->y == 0)
             {
                 // No obstacle/wall or seta, so just set to 0
                 self->base = 0;
@@ -21179,7 +21152,7 @@ int common_trymove(float xdir, float zdir)
     //-------------hole checking ---------------------
     // Don't walk into a hole or walk off platforms into holes
     if( !(self->modeldata.type & TYPE_PLAYER) && self->idling &&
-            (!self->animation->seta || self->animation->seta[self->animpos] < 0) &&
+            (!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) &&
             self->modeldata.subject_to_hole > 0 && !inair(self) &&
             !(self->modeldata.aimove & AIMOVE2_IGNOREHOLES))
     {
