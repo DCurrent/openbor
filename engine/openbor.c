@@ -479,49 +479,57 @@ int                 musicloop           = 0;
 u32                 musicoffset         = 0;
 int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a chance
 
-s_barstatus         loadingbarstatus =
+s_barstatus loadingbarstatus =
 {
-    {0, 0},                     //int          offset:16;
-    {0, 10},                    //int          size:16;
-    _PERCENTAGEBAR,              //e_bartype      type:8;
-    _HORIZONTALBAR,              //e_barorient    orientation:8;
-    0,                          //int          noborder:8;
-    _BARSTATUS_DIR_NORMAL,      //int          direction:8;
-    0,                          //int          barlayer;
-    0,                          //int          backlayer;
-    0,                          //int          borderlayer;
-    0,                          //int          shadowlayer;
-    &ldcolourtable
-};
-s_barstatus         lbarstatus =                                // Used for customizable lifebar size
-{
-    {0, 0},                     //int          offset:16;
-    {0, 0},                     //int          size:16;
-    _VALUEBAR,                   //e_bartype      type:8;
-    _HORIZONTALBAR,              //e_barorient    orientation:8;
-    0,                          //int          noborder:8;
-    _BARSTATUS_DIR_NORMAL,      //int          direction:8;
-    0,                          //int          barlayer;
-    0,                          //int          backlayer;
-    0,                          //int          borderlayer;
-    0,                          //int          shadowlayer;
-    &hpcolourtable
+    .size           = { .x = 0,
+                        .y = 0},
+    .offset         = { .x = 0,
+                        .y = 0},
+    .type           = _PERCENTAGEBAR,
+    .orientation    = _HORIZONTALBAR,
+    .noborder       = 0,
+    .direction      = _BARSTATUS_DIR_NORMAL,
+    .barlayer       = 0,
+    .backlayer      = 0,
+    .borderlayer    = 0,
+    .shadowlayer    = 0,
+    .colourtable    = &ldcolourtable
 };
 
-s_barstatus         olbarstatus =                               // Used for customizable opponent lifebar size
+s_barstatus lbarstatus, olbarstatus =
 {
-    {0, 0},                     //int          offset:16;
-    {0, 0},                     //int          size:16;
-    _VALUEBAR,                   //e_bartype      type:8;
-    _HORIZONTALBAR,              //e_barorient    orientation:8;
-    0,                          //int          noborder:8;
-    _BARSTATUS_DIR_NORMAL,      //int          direction:8;
-    0,                          //int          barlayer;
-    0,                          //int          backlayer;
-    0,                          //int          borderlayer;
-    0,                          //int          shadowlayer;
-    &hpcolourtable
+    .size           = { .x = 0,
+                        .y = 0},
+    .offset         = { .x = 0,
+                        .y = 0},
+    .type           = _VALUEBAR,
+    .orientation    = _HORIZONTALBAR,
+    .noborder       = 0,
+    .direction      = _BARSTATUS_DIR_NORMAL,
+    .barlayer       = 0,
+    .backlayer      = 0,
+    .borderlayer    = 0,
+    .shadowlayer    = 0,
+    .colourtable    = &hpcolourtable
 };
+
+s_barstatus mpbarstatus =
+{
+    .size           = { .x = 0,
+                        .y = 0},
+    .offset         = { .x = 0,
+                        .y = 0},
+    .type           = _VALUEBAR,
+    .orientation    = _HORIZONTALBAR,
+    .noborder       = 0,
+    .direction      = _BARSTATUS_DIR_NORMAL,
+    .barlayer       = 0,
+    .backlayer      = 0,
+    .borderlayer    = 0,
+    .shadowlayer    = 0,
+    .colourtable    = &mpcolourtable
+};
+
 int                 timeloc[6]			= {0, 0, 0, 0, 0, -1};		// Used for customizable timeclock location/size
 int                 timeicon			= -1;
 int                 timeicon_offsets[2] = {0, 0};
@@ -567,20 +575,6 @@ int                 blockratio			= 0;					// Take half-damage while blocking?
 int                 nochipdeath			= 0;					// Prevents entities from dying due to chip damage (damage while blocking)
 int                 noaircancel         = 0;					// Now, you can make jumping attacks uncancellable!
 int                 nomaxrushreset[5]   = {0, 0, 0, 0, 0};
-s_barstatus         mpbarstatus =                               // Used for customizable lifebar size
-{
-    {0, 0},                     //int          offset:16;
-    {0, 0},                     //int          size:16;
-    _VALUEBAR,                   //e_bartype      type:8;
-    _HORIZONTALBAR,              //e_barorient    orientation:8;
-    0,                          //int          noborder:8;
-    _BARSTATUS_DIR_NORMAL,      //int          direction:8;
-    0,                          //int          barlayer;
-    0,                          //int          backlayer;
-    0,                          //int          borderlayer;
-    0,                          //int          shadowlayer;
-    &mpcolourtable
-};
 int			        mpbartext[4]		= { -1, 0, 0, 0};			// Array for adjusting MP status text (font, Xpos, Ypos, Display type).
 int			        lbartext[4]			= { -1, 0, 0, 0};			// Array for adjusting HP status text (font, Xpos, Ypos, Display type).
 int                 pmp[4][2]			= {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player mpbar
