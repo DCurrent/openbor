@@ -11636,7 +11636,7 @@ HRESULT openbor_changelight(ScriptVariant **varlist , ScriptVariant **pretvar, i
         {
             goto changelight_error;
         }
-        light[0] = (int)x;
+        light.x = (int)x;
     }
 
     arg = varlist[1];
@@ -11646,7 +11646,7 @@ HRESULT openbor_changelight(ScriptVariant **varlist , ScriptVariant **pretvar, i
         {
             goto changelight_error;
         }
-        light[1] = (int)z;
+        light.y = (int)z;
     }
 
     return S_OK;
