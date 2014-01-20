@@ -66,93 +66,102 @@ int atkchoices[MAX_ANIS]; //tempory values for ai functions, should be well enou
 //see types.h
 const s_drawmethod plainmethod =
 {
-    NULL, // table
-    NULL, //fp
-    0,    // fillcolor
-    1,    //flag
-    -1,   // alpha
-    -1,   // remap
-    0,    //flipx
-    0,    //flipy
-    0,    //transbg
-    0,    //fliprotate
-    0,    //rotate
-    256,  //scalex
-    256,  //scaley
-    0,    //shiftx
-    0,    //centerx  //currently used only by gfxshadow, do not touch it
-    0,    //centery
-    1,    //xrepeat
-    1,    //yrepeat
-    0,    //xspan
-    0,    //yspan
-    255, 255, 255, //rgb channels
-    0, //tintmode?
-    0, //tintcolor
-    0, 0, 0, 0, //clip
-    {{.beginsize = 0.0}, {.endsize = 0.0}, 0, {.wavespeed = 0}, 0} //water
+    .table      = NULL,
+    .fp         = NULL,
+    .fillcolor  = 0,
+    .flag       = 1,
+    .alpha      = -1,
+    .remap      = -1,
+    .flipx      = 0,
+    .flipy      = 0,
+    .transbg    = 0,
+    .fliprotate = 0,
+    .rotate     = 0,
+    .scalex     = 256,
+    .scaley     = 256,
+    .shiftx     = 0,
+    .centerx    = 0,
+    .centery    = 0,
+    .xrepeat    = 1,
+    .yrepeat    = 1,
+    .xspan      = 0,
+    .yspan      = 0,
+    .channelr   = 255,
+    .channelg   = 255,
+    .channelb   = 255,
+    .tintmode   = 0,
+    .tintcolor  = 0,
+    .clipx      = 0,
+    .clipy      = 0,
+    .clipw      = 0,
+    .cliph      = 0,
+    .water = {{.beginsize = 0.0}, {.endsize = 0.0}, 0, {.wavespeed = 0}, 0}
 };
 
 const s_defense default_defense =
 {
-    1.f,
-    0.f,
-    1.f,
-    0.f,
-    0.f,
-    0.f,
-    0
+    .factor         = 1.f,
+    .pain           = 0.f,
+    .knockdown      = 1.f,
+    .blockpower     = 0.f,
+    .blockthreshold = 0.f,
+    .blockratio     = 0.f,
+    .blocktype      = _BLOCK_TYPE_MP_FIRST
 };
 
 // unknockdown attack
 const s_attack emptyattack =
 {
-    0, // force
-    {0, 0, 0, 0, 0}, // coods
-    {0, 0, 0}, // drop v
-    {0, 0, 0}, //staydown
-    -1, // sound
-    -1, // flash
-    -1, // blockflash
-    -1, // blocksound
-    0, //no_block
-    0, //counterattack;
-    0, //no_pain
-    0, //no_kill
-    0, //no_flash
-    0, //grab
-    0, //freeze
-    0, //steal
-    0, //blast
-    _DIRECTION_ADJUST_NONE, //force_direction
-    0, //forcemap
-    0, //seal
-    0, //freezetime
-    0, //maptime;
-    0, //sealtime;
-    _DOT_MODE_OFF, //dot
-    0, //dot_index
-    0, //dot_time
-    0, //dot_force
-    0, //dot_rate
-    _OTG_NONE, //otg
-    0, //jugglecost
-    0, //guardcost
-    0, //attack_drop
-    0, //attack_type
-    0, //damage_on_landing
-    0, //grab_distance
-    0, //pause_add
-    0 //pain_time
+    .attack_force       = 0,
+    .attack_coords      = {0, 0, 0, 0, 0},
+    .staydown           = { .rise               = 0,
+                            .riseattack         = 0,
+                            .riseattack_stall   = 0},
+    .dropv              = { .x = 0,
+                            .y = 0,
+                            .z = 0},
+    .hitsound           = -1,
+    .hitflash           = -1,
+    .blockflash         = -1,
+    .blocksound         = -1,
+    .no_block           = 0,
+    .counterattack      = 0,
+    .no_pain            = 0,
+    .no_kill            = 0,
+    .no_flash           = 0,
+    .grab               = 0,
+    .freeze             = 0,
+    .steal              = 0,
+    .blast              = 0,
+    .force_direction    = _DIRECTION_ADJUST_NONE,
+    .forcemap           = 0,
+    .seal               = 0,
+    .freezetime         = 0,
+    .maptime            = 0,
+    .sealtime           = 0,
+    .dot                = _DOT_MODE_OFF,
+    .dot_index          = 0,
+    .dot_time           = 0,
+    .dot_force          = 0,
+    .dot_rate           = 0,
+    .otg                = _OTG_NONE,
+    .jugglecost         = 0,
+    .guardcost          = 0,
+    .attack_drop        = 0,
+    .attack_type        = 0,
+    .damage_on_landing  = 0,
+    .grab_distance      = 0,
+    .pause_add          = 0,
+    .pain_time          = 0
 };
 
 s_axis_f default_model_dropv =
 {
     /* Default values for knockdown velocity */
 
-    1.2f,   //x
-    3.f,    //y
-    0.f     //z
+    .x = 1.2f,
+    .y = 3.f,
+    .z = 0.f
 };
 
 //default values
