@@ -955,13 +955,25 @@ typedef struct
 typedef struct
 {
     /*
+    Axis structure for general coordinates and velocity use when only X and Y are needed..
+    2014-01-20
+    Damon Caskey
+    */
+
+    float x;    //Horizontial axis.
+    float y;    //Altitude/Vertical axis.
+} s_axis_f_2d;
+
+typedef struct
+{
+    /*
     Axis structure for general coordinates and velocity use when floats are not needed.
     2013-12-09
     Damon Caskey
     */
 
     int x;      //Horizontal axis.
-    int y;      //Altitude/Vertical axis (Y).
+    int y;      //Altitude/Vertical axis.
     int z;      //Lateral axis.
     int base;   //Base altitude.
 } s_axis_i;
@@ -975,21 +987,45 @@ typedef struct
     */
 
     int x;      //Horizontal axis.
-    int y;      //Altitude/Vertical axis (Y).
+    int y;      //Altitude/Vertical axis.
 } s_axis_i_2d;
 
 typedef struct
 {
     /*
-    Min/current/max cap for integer measurements.
+    Axis structure for general coordinates when only X and Z are needed.
+    2014-01-20
+    Damon Caskey
+    */
+
+    int x;      //Horizontal axis.
+    int z;      //Lateral axis.
+} s_axis_i_plane;
+
+typedef struct
+{
+    /*
+    Min/max cap for integer measurements.
     2013-12-10
+    Damon Caskey
+    */
+
+    int max;    //max value.
+    int min;    //min value.
+} s_metric_i;
+
+typedef struct
+{
+    /*
+    Min/current/max cap for integer measurements.
+    2014-01-20
     Damon Caskey
     */
 
     int current;    //Current.
     int max;    //max value.
     int min;    //min value.
-} s_metric_i;
+} s_metric_i_current;
 
 typedef struct
 {
@@ -1576,8 +1612,8 @@ typedef struct
     s_staydown risetime;
     unsigned sleepwait;
     int riseattacktype;
-    s_metric_i  jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
-    s_metric_i  guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
+    s_metric_i_current jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
+    s_metric_i_current guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
     int mpswitch; // switch between reduce or gain mp for mpstabletype 4
     int turndelay; // turn delay
     int lifespan; // lifespan count down
@@ -1673,7 +1709,7 @@ typedef struct
     2013-12-17
     */
 
-    s_metric_i count;   //Hits counter.
+    s_metric_i_current count;   //Hits counter.
     u32 time;           //Time to perform combo.
 } s_rush;
 
