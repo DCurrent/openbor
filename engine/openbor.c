@@ -230,8 +230,10 @@ s_lasthit           lasthit;  //Last collision variables. 2013-12-15, moved to s
 
 int					combodelay = GAME_SPEED / 2;		// avoid annoying 112112... infinite combo
 
-// used by gfx shadow
-int                 light[2] = {128, 64};
+//Use for gfx_shadow
+s_axis_i_2d light = {   .x = 128,
+                        .y = 64};
+
 int                 shadowcolor = 0;
 int                 shadowalpha = BLEND_MULTIPLY + 1;
 
@@ -1221,11 +1223,11 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_lightx:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (LONG)(light[0]);
+        var->lVal = (LONG)(light.x);
         break;
     case _sv_lightz:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (LONG)(light[1]);
+        var->lVal = (LONG)(light.y);
         break;
     case _sv_self:
         ScriptVariant_ChangeType(var, VT_PTR);
@@ -12070,8 +12072,8 @@ void unload_level()
     neon_time = 0;
     time = 0;
     cameratype = 0;
-    light[0] = 128;
-    light[1] = 64;
+    light.x = 128;
+    light.y = 64;
     gfx_y_offset = gfx_x_offset = gfx_y_offset_adj = 0;    // Added so select screen graphics display correctly
 }
 
@@ -12823,11 +12825,11 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_LIGHT:
             memset(&next, 0, sizeof(next));
-            next.light[0] = GET_INT_ARG(1);
-            next.light[1] = GET_INT_ARG(2);
-            if(next.light[1] == 0)
+            next.light.x = GET_INT_ARG(1);
+            next.light.y = GET_INT_ARG(2);
+            if(next.light.y == 0)
             {
-                next.light[1] = 64;
+                next.light.y = 64;
             }
             break;
         case CMD_LEVEL_SCROLLZ:
@@ -18194,24 +18196,24 @@ void display_ents()
 
                 if(e->modeldata.gfxshadow == 1 && f < sprites_loaded) //gfx shadow
                 {
-                    useshadow = (e->animation->shadow ? e->animation->shadow[e->animpos] : 1) && shadowcolor && light[1];
-                    //printf("\n %d, %d, %d\n", shadowcolor, light[0], light[1]);
+                    useshadow = (e->animation->shadow ? e->animation->shadow[e->animpos] : 1) && shadowcolor && light.y;
+                    //printf("\n %d, %d, %d\n", shadowcolor, light.x, light.y);
                     if(useshadow && e->position.y >= 0 && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                     {
                         wall = checkwall_below(e->position.x, e->position.z, e->position.y);
                         if(wall < 0)
                         {
                             alty = (int)e->position.y;
-                            temp1 = -1 * e->position.y * light[0] / 256; // xshift
-                            temp2 = (float)(-alty * light[1] / 256);               // zshift
+                            temp1 = -1 * e->position.y * light.x / 256; // xshift
+                            temp2 = (float)(-alty * light.y / 256);               // zshift
                             qx = (int)(e->position.x - scrx/* + temp1*/);
                             qy = (int)(e->position.z - scry/* +  temp2*/);
                         }
                         else
                         {
                             alty = (int)(e->position.y - level->walls[wall].height);
-                            temp1 = -1 * (e->position.y - level->walls[wall].height) * light[0] / 256; // xshift
-                            temp2 = (float)(-alty * light[1] / 256);               // zshift
+                            temp1 = -1 * (e->position.y - level->walls[wall].height) * light.x / 256; // xshift
+                            temp2 = (float)(-alty * light.y / 256);               // zshift
                             qx = (int)(e->position.x - scrx/* + temp1*/);
                             qy = (int)(e->position.z - scry /*+  temp2*/ - level->walls[wall].height);
                         }
@@ -18224,20 +18226,20 @@ void display_ents()
                             if(wall >= 0 && wall2 >= 0)
                             {
                                 alty += (int)(level->walls[wall].height - level->walls[wall2].height);
-                                /*qx += -1*(level->walls[wall].height-level->walls[wall2].height)*light[0]/256;
-                                qy += (level->walls[wall].height-level->walls[wall2].height) - (level->walls[wall].height-level->walls[wall2].height)*light[1]/256;*/
+                                /*qx += -1*(level->walls[wall].height-level->walls[wall2].height)*light.x/256;
+                                qy += (level->walls[wall].height-level->walls[wall2].height) - (level->walls[wall].height-level->walls[wall2].height)*light.y/256;*/
                             }
                             else if(wall >= 0)
                             {
                                 alty += (int)(level->walls[wall].height);
-                                /*qx += -1*level->walls[wall].height*light[0]/256;
-                                qy += level->walls[wall].height - level->walls[wall].height*light[1]/256;*/
+                                /*qx += -1*level->walls[wall].height*light.x/256;
+                                qy += level->walls[wall].height - level->walls[wall].height*light.y/256;*/
                             }
                             else if(wall2 >= 0)
                             {
                                 alty -= (int)(level->walls[wall2].height);
-                                /*qx -= -1*level->walls[wall2].height*light[0]/256;
-                                qy -= level->walls[wall2].height - level->walls[wall2].height*light[1]/256;*/
+                                /*qx -= -1*level->walls[wall2].height*light.x/256;
+                                qy -= level->walls[wall2].height - level->walls[wall2].height*light.y/256;*/
                             }
                             sy = (2 * MIRROR_Z - qy) - 2 * scry;
                             z = shadowz;
@@ -18261,7 +18263,7 @@ void display_ents()
                             shadowmethod.table = drawmethod->table;
                             shadowmethod.scalex = drawmethod->scalex;
                             shadowmethod.flipx = drawmethod->flipx;
-                            shadowmethod.scaley = light[1] * drawmethod->scaley / 256;
+                            shadowmethod.scaley = light.y * drawmethod->scaley / 256;
                             shadowmethod.flipy = drawmethod->flipy;
                             shadowmethod.centery += alty;
                             if(shadowmethod.flipy)
@@ -18274,7 +18276,7 @@ void display_ents()
                                 shadowmethod.flipy = !shadowmethod.flipy;
                             }
                             shadowmethod.rotate = drawmethod->rotate;
-                            shadowmethod.shiftx = drawmethod->shiftx + light[0];
+                            shadowmethod.shiftx = drawmethod->shiftx + light.x;
 
                             spriteq_add_sprite(qx, qy, z, f, &shadowmethod, 0);
                             if(use_mirror)
@@ -27065,10 +27067,10 @@ void update_scroller()
                 }
                 change_system_palette(level->spawnpoints[current_spawn].palette);
             }
-            else if(level->spawnpoints[current_spawn].light[1])  // change light direction for gfxshadow
+            else if(level->spawnpoints[current_spawn].light.y)  // change light direction for gfxshadow
             {
-                light[0] = level->spawnpoints[current_spawn].light[0];
-                light[1] = level->spawnpoints[current_spawn].light[1];
+                light.x = level->spawnpoints[current_spawn].light.x;
+                light.y = level->spawnpoints[current_spawn].light.y;
             }
             else if(level->spawnpoints[current_spawn].shadowcolor)  // change color for gfxshadow
             {

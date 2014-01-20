@@ -1902,7 +1902,7 @@ typedef struct
     int scrollminx; // new scroll limit
     int scrollmaxx;
     int blockade; //limit how far you can go back
-    int light[2]; // x, z  light direction, for gfx shadow
+    s_axis_i_2d light; // light direction, for gfx shadow
     int shadowcolor; // -1 no shadow
     int shadowalpha;
     char music[128];
