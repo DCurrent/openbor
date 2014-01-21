@@ -10555,7 +10555,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     entity *ent;
     char *name = NULL;
     float x = 0, z = 0, a = 0;
-    int direction = _DIRECTION_LEFT;
+    int direction = DIRECTION_LEFT;
     int type = 0;
     int ptype = 0;
     int map = 0;
@@ -10620,7 +10620,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
     else if(relative)
     {
-        direction  = _DIRECTION_RIGHT;
+        direction  = DIRECTION_RIGHT;
     }
     else
     {
@@ -10641,7 +10641,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 
     if(relative)
     {
-        if(self->direction == _DIRECTION_RIGHT)
+        if(self->direction == DIRECTION_RIGHT)
         {
             x += self->position.x;
         }
