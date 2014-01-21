@@ -372,8 +372,6 @@ int                 follows[MAX_FOLLOWS] =
     ANI_FOLLOW1, ANI_FOLLOW2, ANI_FOLLOW3, ANI_FOLLOW4
 };
 
-
-
 // background cache to speed up in-game menus
 #if WII
 s_screen           *bg_cache[MAX_CACHED_BACKGROUNDS] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
@@ -386,7 +384,9 @@ int					defaultmaxplayers	= 2;
 u32                 go_time             = 0;
 u32                 time                = 0;
 u32                 newtime             = 0;
-unsigned            slowmotion[3]       = {0, 2, 0};            // [0] = enable/disable; [1] = duration; [2] = counter;
+s_slow_motion       slowmotion          = { .toggle     = _SLOW_MOTION_OFF,
+                                            .counter    = 0,
+                                            .duration   = 2};
 int                 disablelog          = 0;
 int                 currentspawnplayer  = 0;
 int					ent_list_size		= 0;
@@ -1247,11 +1247,11 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_slowmotion:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (LONG)slowmotion[0];
+        var->lVal = (LONG)slowmotion.toggle;
         break;
     case _sv_slowmotion_duration:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (LONG)slowmotion[1];
+        var->lVal = (LONG)slowmotion.duration;
         break;
     case _sv_soundvol:
         ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -1461,13 +1461,13 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
     case _sv_slowmotion:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
-            slowmotion[0] = (unsigned)ltemp;
+            slowmotion.toggle = (unsigned)ltemp;
         }
         break;
     case _sv_slowmotion_duration:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
-            slowmotion[1] = (unsigned)ltemp;
+            slowmotion.duration = (unsigned)ltemp;
         }
         break;
     case _sv_lasthitx:
@@ -27927,9 +27927,9 @@ void update(int ingame, int usevwait)
             execute_keyscripts();
         }
 
-        if((level_completed && !level->noslow && !tospeedup) || slowmotion[0])
+        if((level_completed && !level->noslow && !tospeedup) || slowmotion.toggle > _SLOW_MOTION_OFF)
         {
-            if(slowmotion[1] == slowmotion[2])
+            if(slowmotion.duration == slowmotion.counter)
             {
                 newtime = time + interval;
             }
@@ -27939,13 +27939,13 @@ void update(int ingame, int usevwait)
             newtime = time + interval;
         }
 
-        slowmotion[2]++;
-        if(slowmotion[2] == (slowmotion[1] + 1))
+        slowmotion.counter++;
+        if(slowmotion.counter == (slowmotion.duration + 1))
         {
-            slowmotion[2] = 0;
-            if(slowmotion[0] > 1)
+            slowmotion.counter = 0;
+            if(slowmotion.toggle > _SLOW_MOTION_ON)
             {
-                slowmotion[1] = slowmotion[0];
+                slowmotion.duration = slowmotion.toggle;
             }
         }
         if(newtime > time + 100)
