@@ -785,6 +785,18 @@ typedef enum
 typedef enum
 {
     /*
+    Slow motion switch enum.
+    Damon V. Caskey
+    2014-01-21
+    */
+
+    _SLOW_MOTION_OFF,
+    _SLOW_MOTION_ON
+} e_slow_motion_enable;
+
+typedef enum
+{
+    /*
     Weapon loss type enum.
     Damon V. Caskey
     2013-12-29
@@ -1105,6 +1117,19 @@ typedef struct
     unsigned highsc[10];
     char hscoren[10][MAX_NAME_LEN + 1];
 } s_savescore;
+
+typedef struct
+{
+    /*
+    Slow motion struct
+    Damon V. Caskey
+    2014-01-21
+    */
+
+    int duration;
+    int counter;
+    int toggle;
+} s_slow_motion;
 
 typedef struct
 {
