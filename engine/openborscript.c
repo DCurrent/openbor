@@ -3645,41 +3645,38 @@ static const char *eplist_aiflag[] =
 // Animation properties.
 typedef enum animationprop_enum
 {
-    _animation_prop_animhits,     // Does the attack need to hit before cancel is allowed?
-    _animation_prop_antigrav,     // UT: make dive a similar property as antigravity.
-    _animation_prop_attackone,    // stick on the only one victim
-    _animation_prop_bounce,       //FLOAT -tossv/bounce = new tossv
-    _animation_prop_cancel,       // Cancel anims with freespecial
-    _animation_prop_counterrange, //SUB Auto counter attack. 2011_04_01, DC: Moved to struct.
-    _animation_prop_chargetime,   //FLOAT charge time for an animation
-    _animation_prop_custbomb,
-    _animation_prop_custknife,    //Model index.
-    _animation_prop_custpshotno,
-    _animation_prop_custstar,
-    _animation_prop_dropframe,    // SUB if tossv < 0, this frame will be set
-    _animation_prop_energycost,   //SUB. 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-    _animation_prop_flipframe,    // Turns entities around on the desired frame
-    _animation_prop_followup,     // use which FOLLOW anim?
-    _animation_prop_index,        //unique id
-    _animation_prop_jumpframe,    //SUB
-    _animation_prop_landframe,    // SUB Landing behavior. 2011_04_01, DC: Moved to struct.
-    _animation_prop_loop,         // Animation looping. 2011_03_31, DC: Moved to struct.
-    _animation_prop_model_index,
-    _animation_prop_numframes,    //Framecount.
-    _animation_prop_quakeframe,   // SUB Screen shake effect. 2011_04_01, DC; Moved to struct.
-    _animation_prop_range,        //SUB Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-    _animation_prop_shootframe,
-    _animation_prop_size,         // SUB entity's size (height) during animation
-    _animation_prop_spawnframe,   // SUB Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
-    _animation_prop_subentity,    // Store the sub-entity's name for further use
-    _animation_prop_summonframe,  // SUB Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-    _animation_prop_sync,         // sychronize frame to previous animation if they matches
-    _animation_prop_throwframe,   //
-    _animation_prop_throwposition,// SUB Used for setting the position at which projectiles weapons are spawned.
-    _animation_prop_tossframe,    // Used to determine which frame will toss a bomb/grenade
-    _animation_prop_unsummonframe,// SUB Un-summon the entity
-    _animation_prop_weaponframe,  // SUB Specify with a frame when to switch to a weapon model
-    _animation_prop_the_end
+    _ANI_PROP_ANIMHITS,     // Does the attack need to hit before cancel is allowed?
+    _ANI_PROP_ANTIGRAV,     // UT: make dive a similar property as antigravity.
+    _ANI_PROP_ATTACKONE,    // stick on the only one victim
+    _ANI_PROP_BOUNCE,       //FLOAT -tossv/bounce = new tossv
+    _ANI_PROP_CANCEL,       // Cancel anims with freespecial
+    _ANI_PROP_COUNTERRANGE, //SUB Auto counter attack. 2011_04_01, DC: Moved to struct.
+    _ANI_PROP_CHARGETIME,   //FLOAT charge time for an animation
+    _ANI_PROP_DROPFRAME,    // SUB if tossv < 0, this frame will be set
+    _ANI_PROP_ENERGYCOST,   //SUB. 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
+    _ANI_PROP_FLIPFRAME,    // Turns entities around on the desired frame
+    _ANI_PROP_FOLLOWUP,     // use which FOLLOW anim?
+    _ANI_PROP_INDEX,        //unique id
+    _ANI_PROP_JUMPFRAME,    //SUB
+    _ANI_PROP_LANDFRAME,    // SUB Landing behavior. 2011_04_01, DC: Moved to struct.
+    _ANI_PROP_LOOP,         // Animation looping. 2011_03_31, DC: Moved to struct.
+    _ANI_PROP_MODEL_INDEX,
+    _ANI_PROP_NUMFRAMES,    //Framecount.
+    _ANI_PROP_PROJECTILE,
+    _ANI_PROP_QUAKEFRAME,   // SUB Screen shake effect. 2011_04_01, DC; Moved to struct.
+    _ANI_PROP_range,        //SUB Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
+    _ANI_PROP_shootframe,
+    _ANI_PROP_size,         // SUB entity's size (height) during animation
+    _ANI_PROP_spawnframe,   // SUB Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
+    _ANI_PROP_subentity,    // Store the sub-entity's name for further use
+    _ANI_PROP_summonframe,  // SUB Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
+    _ANI_PROP_sync,         // sychronize frame to previous animation if they matches
+    _ANI_PROP_throwframe,   //
+    _ANI_PROP_throwposition,// SUB Used for setting the position at which projectiles weapons are spawned.
+    _ANI_PROP_tossframe,    // Used to determine which frame will toss a bomb/grenade
+    _ANI_PROP_unsummonframe,// SUB Un-summon the entity
+    _ANI_PROP_weaponframe,  // SUB Specify with a frame when to switch to a weapon model
+    _ANI_PROP_the_end
 } e_animation_properties;
 
 static const char *list_animation_prop[] =
@@ -3822,6 +3819,26 @@ enum gep_attack_enum
     _ep_attack_type,
     _ep_attack_the_end,
 };
+
+enum _prop_counterrange_enum
+{
+    _PROP_COUNTERRANGE_CONDITION,
+    _PROP_COUNTERRANGE_DAMAGED,
+    _PROP_COUNTERRANGE_FRAME
+};
+
+/*switch(varlist[3]->lVal)
+                    {
+                        case _ep_counterrange_condition:
+                            (*pretvar)->lVal = (LONG)ent->animation[id].counterrange.condition;
+                            break;
+                        case _ep_counterrange_damaged:
+                            (*pretvar)->lVal = (LONG)ent->animation[id].counterrange.damaged;
+                            break;
+                        case _ep_counterrange_frame:
+                            (*pretvar)->lVal = (LONG)ent->animation[id].counterrange.frame;
+                            break;
+                    }*/
 
 enum _ep_defense_enum
 {
@@ -4018,6 +4035,13 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
     int prop, ap; //int prop, i, ep, t;
     int result = 0;
 
+    static const char *proplist_counterrange[] =
+    {
+        "condition",
+        "damaged",
+        "frame",
+    };
+
     static const char *proplist_energycost[] =
     {
         "cost",
@@ -4025,7 +4049,7 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
         "mponly",
     };
 
-    MAPSTRINGS(varlist[1], list_animation_prop, _animation_prop_the_end,
+    MAPSTRINGS(varlist[1], list_animation_prop, _ANI_PROP_the_end,
                "Property name '%s' is not supported by function getanimationproperty.\n");
 
     if(paramCount < 3 || varlist[1]->vt != VT_INTEGER)
@@ -4035,11 +4059,11 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
     else
     {
         ap = varlist[1]->lVal;
-        aps = (ap < _animation_prop_the_end && ap >= 0) ? list_animation_prop[ap] : "";
+        aps = (ap < _ANI_PROP_the_end && ap >= 0) ? list_animation_prop[ap] : "";
         switch(ap)
         {
             // map subproperties of Energycost
-            case _animation_prop_energycost:
+            case _ANI_PROP_ENERGYCOST:
             {
                 MAPSTRINGS(varlist[2], proplist_energycost, _ep_energycost_the_end,
                            _is_not_a_known_subproperty_of_, aps);
@@ -4442,22 +4466,22 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
         // Which animation property to get?
         switch(property)
         {
-            case _animation_prop_animhits:
+            case _ANI_PROP_ANIMHITS:
                 (*pretvar)->lVal = (LONG)ent->animation[id].animhits;
                 break;
-            case _animation_prop_antigrav:
+            case _ANI_PROP_ANTIGRAV:
                 (*pretvar)->lVal = (LONG)ent->animation[id].antigrav;
                 break;
-            case _animation_prop_attackone:
+            case _ANI_PROP_ATTACKONE:
                 (*pretvar)->lVal = (LONG)ent->animation[id].attackone;
                 break;
-            case _animation_prop_bounce:
+            case _ANI_PROP_BOUNCE:
                 (*pretvar)->lVal = (LONG)ent->animation[id].bounce;
                 break;
-            case _animation_prop_cancel:
+            case _ANI_PROP_CANCEL:
                 (*pretvar)->lVal = (LONG)ent->animation[id].cancel;
                 break;
-            case _animation_prop_counterrange:
+            case _ANI_PROP_COUNTERRANGE:
 
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
@@ -4483,26 +4507,14 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     }*/
                 }
                 break;
-            case _animation_prop_chargetime:
+            case _ANI_PROP_CHARGETIME:
                 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
                 (*pretvar)->dblVal = (DOUBLE)ent->animation[id].chargetime;
                 break;
-            case _animation_prop_custbomb:
-                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.bomb;
-                break;
-            case _animation_prop_custknife:
-                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.knife;
-                break;
-            case _animation_prop_custpshotno:
-                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.flash;
-                break;
-            case _animation_prop_custstar:
-                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.star;
-                break;
-            case _animation_prop_dropframe:
+            case _ANI_PROP_DROPFRAME:
                 (*pretvar)->lVal = (LONG)ent->animation[id].dropframe.frame;
                 break;
-            case _animation_prop_energycost:
+            case _ANI_PROP_ENERGYCOST:
 
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
@@ -4526,10 +4538,10 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     }
                 }
                 break;
-            case _animation_prop_flipframe:
+            case _ANI_PROP_FLIPFRAME:
                 (*pretvar)->lVal = (LONG)ent->animation[id].flipframe;
                 break;
-            case _animation_prop_followup:
+            case _ANI_PROP_FOLLOWUP:
 
                 if(varlist[3]->vt != VT_INTEGER)
                 {
@@ -4551,10 +4563,10 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     }*/
                 }
                 break;
-            case _animation_prop_index:
+            case _ANI_PROP_INDEX:
                 (*pretvar)->lVal = (LONG)ent->animation[id].index;
                 break;
-            case _animation_prop_jumpframe:
+            case _ANI_PROP_JUMPFRAME:
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
@@ -4567,7 +4579,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     result = E_FAIL;
                 }
                 break;
-            case _animation_prop_landframe:
+            case _ANI_PROP_LANDFRAME:
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
@@ -4580,7 +4592,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     result = E_FAIL;
                 }
                 break;
-            case _animation_prop_loop:         // Animation looping. 2011_03_31, DC: Moved to struct.
+            case _ANI_PROP_LOOP:         // Animation looping. 2011_03_31, DC: Moved to struct.
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
@@ -4593,13 +4605,32 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     result = E_FAIL;
                 }
                 break;
-            case _animation_prop_model_index:
+            case _ANI_PROP_MODEL_INDEX:
                 (*pretvar)->lVal = (LONG)ent->animation[id].model_index;
                 break;
-            case _animation_prop_numframes:
+            case _ANI_PROP_NUMFRAMES:
                 (*pretvar)->lVal = (LONG)ent->animation[id].numframes;
                 break;
-            case _animation_prop_quakeframe:
+            case _ANI_PROP_PROJECTILE:
+                printf("Error: 'counterrange' property not implemented yet in getanimationproperty\n");
+                result = E_FAIL;
+                /*switch(varlist[3]->lVal)
+                {
+                    case _ANI_PROP_CUSTBOMB:
+                        (*pretvar)->lVal = (LONG)ent->animation[id].projectile.bomb;
+                        break;
+                    case _ANI_PROP_CUSTKNIFE:
+                        (*pretvar)->lVal = (LONG)ent->animation[id].projectile.knife;
+                        break;
+                    case _ANI_PROP_CUSTPSHOTNO:
+                        (*pretvar)->lVal = (LONG)ent->animation[id].projectile.flash;
+                        break;
+                    case _ANI_PROP_custstar:
+                        (*pretvar)->lVal = (LONG)ent->animation[id].projectile.star;
+                        break;
+                }*/
+                break;
+            case _ANI_PROP_QUAKEFRAME:
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
@@ -4612,7 +4643,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     result = E_FAIL;
                 }
                 break;
-            case _animation_prop_range:
+            case _ANI_PROP_range:
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
@@ -4625,10 +4656,10 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     result = E_FAIL;
                 }
                 break;
-            case _animation_prop_shootframe:
+            case _ANI_PROP_shootframe:
                 (*pretvar)->lVal = (LONG)ent->animation[id].projectile.shootframe;
                 break;
-            case _animation_prop_size:
+            case _ANI_PROP_size:
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
@@ -4650,7 +4681,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     }*/
                 }
                 break;
-            case _animation_prop_spawnframe:
+            case _ANI_PROP_spawnframe:
                 if(varlist[3]->vt != VT_INTEGER)
                 {
                     printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'spawnframe', {sub-property})\n");
@@ -4662,10 +4693,10 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     result = E_FAIL;
                 }
                 break;
-            case _animation_prop_subentity:
+            case _ANI_PROP_subentity:
                 (*pretvar)->lVal = (LONG)ent->animation[id].subentity;
                 break;
-            case _animation_prop_summonframe:
+            case _ANI_PROP_summonframe:
                 if(varlist[3]->vt != VT_INTEGER)
                 {
                     printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'summonframe', {sub-property})\n");
@@ -4677,13 +4708,13 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     result = E_FAIL;
                 }
                 break;
-            case _animation_prop_sync:
+            case _ANI_PROP_sync:
                 (*pretvar)->lVal = (LONG)ent->animation[id].sync;
                 break;
-            case _animation_prop_throwframe:    //
+            case _ANI_PROP_throwframe:    //
                 (*pretvar)->lVal = (LONG)ent->animation[id].projectile.throwframe;
                 break;
-            case _animation_prop_throwposition:    //Location of projectile spawn.
+            case _ANI_PROP_throwposition:    //Location of projectile spawn.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
                     printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'throwposition', {sub-property})\n");
@@ -4695,13 +4726,13 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     result = E_FAIL;
                 }
                 break;
-            case _animation_prop_tossframe:
+            case _ANI_PROP_tossframe:
                 (*pretvar)->lVal = (LONG)ent->animation[id].projectile.tossframe;
                 break;
-            case _animation_prop_unsummonframe:
+            case _ANI_PROP_unsummonframe:
                 (*pretvar)->lVal = (LONG)ent->animation[id].unsummonframe;
                 break;
-            case _animation_prop_weaponframe:
+            case _ANI_PROP_weaponframe:
                 if(varlist[3]->vt != VT_INTEGER)
                 {
                     printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'weaponframe', {sub-property})\n");
