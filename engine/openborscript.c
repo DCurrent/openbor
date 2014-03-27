@@ -4035,12 +4035,14 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
     int prop, ap; //int prop, i, ep, t;
     int result = 0;
 
+#if 0 // disabled for now because it's unused, so it breaks compilation with -Werror
     static const char *proplist_counterrange[] =
     {
         "condition",
         "damaged",
         "frame",
     };
+#endif
 
     static const char *proplist_energycost[] =
     {
