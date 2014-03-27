@@ -29,7 +29,6 @@ typedef struct Instruction
     Token *theToken;
     CHAR *Label;//[MAX_STR_LEN+1];
     ScriptVariant *theVal;
-    ScriptVariant *theVal2;
     ScriptVariant *theRef;
     ScriptVariant *theRef2;
     List *theRefList;
@@ -49,7 +48,6 @@ void Instruction_Init(Instruction *pins);
 void Instruction_Clear(Instruction *pins);
 
 void Instruction_NewData(Instruction *pins);
-void Instruction_NewData2(Instruction *pins);
 void Instruction_ConvertConstant(Instruction *pins);
 
 void Instruction_ToString(Instruction *pins, LPSTR strRep);

@@ -493,9 +493,8 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
         case CONSTINT:
             //convert to constant first
             Instruction_ConvertConstant(pInstruction);
-            Instruction_NewData2(pInstruction);
-            ScriptVariant_Copy(pInstruction->theVal2, pInstruction->theVal);
-            Stack_Push(&(pinterpreter->theDataStack), (void *)pInstruction->theVal2);
+            Instruction_NewData(pInstruction);
+            Stack_Push(&(pinterpreter->theDataStack), (void *)pInstruction->theVal);
             break;
 
             //Load a value into the data stack
@@ -966,7 +965,6 @@ HRESULT Interpreter_EvalInstruction(Interpreter *pinterpreter)
         case CONSTDBL:
             //Push a constant integer
         case CONSTINT:
-            //ScriptVariant_Copy(pInstruction->theVal2, pInstruction->theVal);
             break;
 
             //Load a value into the data stack

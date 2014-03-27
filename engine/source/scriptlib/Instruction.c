@@ -52,11 +52,6 @@ void Instruction_Clear(Instruction *pins)
         ScriptVariant_Clear(pins->theVal);
         free((void *)pins->theVal);
     }
-    if(pins->theVal2)
-    {
-        ScriptVariant_Clear(pins->theVal2);
-        free((void *)pins->theVal2);
-    }
     if(pins->theRefList)
     {
         List_Clear(pins->theRefList);
@@ -125,16 +120,6 @@ void Instruction_NewData(Instruction *pins)
     }
     pins->theVal = (ScriptVariant *)malloc(sizeof(ScriptVariant));
     ScriptVariant_Init( pins->theVal);
-}
-
-void Instruction_NewData2(Instruction *pins)
-{
-    if(pins->theVal2)
-    {
-        return;
-    }
-    pins->theVal2 = (ScriptVariant *)malloc(sizeof(ScriptVariant));
-    ScriptVariant_Init( pins->theVal2);
 }
 
 //'compile' constant to improve speed
