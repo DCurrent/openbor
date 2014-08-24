@@ -561,6 +561,14 @@ typedef enum
     CMD_MODELSTXT_THE_END,
 } modelstxtCommands;
 
+// 2014-08-23, DC: Let's take a sort of OOP style approach to commands
+// by breaking them down into a single command for each parameter. This
+// will hopefully simply furture exapnasion and use for authors.
+//typedef enum
+//{
+//    CMD_STAGELAYER_SUB
+//}
+
 void freeCommandList(List *list);
 
 List *createModelCommandList(void);
@@ -574,6 +582,10 @@ levelCommands getLevelCommand(List *list, char *usercommand);
 
 List *createLevelOrderCommandList(void);
 levelOrderCommands getLevelOrderCommand(List *list, char *usercommand);
+
+// ip: 2014-08-24
+//List *createStageLayerSubCommandList(void);
+
 
 #endif
 
