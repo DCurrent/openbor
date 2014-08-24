@@ -79,6 +79,7 @@ HRESULT system_isempty(ScriptVariant **varlist , ScriptVariant **pretvar, int pa
 HRESULT system_exit(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT system_NULL(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT system_rand(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT system_srand(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT system_getglobalvar(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT system_setglobalvar(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT system_getlocalvar(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
