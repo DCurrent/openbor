@@ -9,19 +9,19 @@
 #include "rand32.h"
 #include "types.h"
 
-unsigned long seed = 1234567890;
+s_rand random = {.seed = 1234567890};
 
 unsigned int rand32(void)
 {
-    u64 t = seed;
+    u64 t = random.seed;
     t *= 1103515245ull;
     t += 12345ull;
-    seed = t;
+    random.seed = t;
     return (t >> 16) & 0xFFFFFFFF;
 }
 
 void srand32(int n)
 {
-    seed = n;
+    random.seed = n;
 }
 

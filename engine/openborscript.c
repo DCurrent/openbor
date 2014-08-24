@@ -1559,11 +1559,17 @@ HRESULT system_srand(ScriptVariant **varlist , ScriptVariant **pretvar, int para
     int result = E_FAIL;
     LONG ltemp;
 
+    // Make sure were able to parse an interger value to our local variable.
     if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
     {
+        // Populate the global random seed.
         srand32(ltemp);
         result = S_OK;
     }
+
+    // Now run rand32 to get a random number and send back to user.
+     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = (LONG)rand32();
 
     return result;
 }
