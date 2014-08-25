@@ -32284,6 +32284,9 @@ void openborMain(int argc, char **argv)
 
     while(!quit)
     {
+        // Seed the random number generator.
+        srand32(time);
+
         if(skiptoset < 0)
         {
             if(time >= introtime)

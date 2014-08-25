@@ -499,10 +499,6 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "rand";
     }
-    else if (functionRef == ((void *)system_srand))
-    {
-        return "srand";
-    }
     else if (functionRef == ((void *)system_getglobalvar))
     {
         return "getglobalvar";
@@ -1249,8 +1245,6 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)system_rand, "rand");
     List_InsertAfter(&theFunctionList,
-                     (void *)system_srand, "srand");
-    List_InsertAfter(&theFunctionList,
                      (void *)system_getglobalvar, "getglobalvar");
     List_InsertAfter(&theFunctionList,
                      (void *)system_setglobalvar, "setglobalvar");
@@ -1551,27 +1545,6 @@ HRESULT system_exit(ScriptVariant **varlist , ScriptVariant **pretvar, int param
     *pretvar = NULL;
     pcurrentscript->pinterpreter->bReset = FALSE;
     return S_OK;
-}
-
-// Set random number seed.
-HRESULT system_srand(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
-    int result = E_FAIL;
-    LONG ltemp;
-
-    // Make sure were able to parse an interger value to our local variable.
-    if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
-    {
-        // Populate the global random seed.
-        srand32(ltemp);
-        result = S_OK;
-    }
-
-    // Now run rand32 to get a random number and send back to user.
-     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-    (*pretvar)->lVal = (LONG)rand32();
-
-    return result;
 }
 
 HRESULT system_rand(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
