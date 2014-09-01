@@ -3476,7 +3476,9 @@ float randf(float max)
     }
     f = (float)(rand32() % 10000);
     f /= (10000 / max);
+
     return f;
+
 }
 
 
@@ -32284,9 +32286,6 @@ void openborMain(int argc, char **argv)
 
     while(!quit)
     {
-        // Seed the random number generator.
-        srand32(time);
-
         if(skiptoset < 0)
         {
             if(time >= introtime)
