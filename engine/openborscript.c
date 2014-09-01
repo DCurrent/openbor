@@ -1550,6 +1550,7 @@ HRESULT system_exit(ScriptVariant **varlist , ScriptVariant **pretvar, int param
 HRESULT system_rand(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
     (*pretvar)->lVal = (LONG)rand32();
     return S_OK;
 }
