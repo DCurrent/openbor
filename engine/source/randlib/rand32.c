@@ -8,14 +8,14 @@
 
 #include "rand32.h"
 
-s_rand random = { .seed = 0};
+s_rand random_s = { .seed = 0};
 
 unsigned int rand32(void)
 {
     unsigned int result = 0;
 
     // If we haven't seeded for random numbers, use time.
-    if(!random.seed)
+    if(!random_s.seed)
     {
         srand32(time(NULL));
     }
@@ -29,9 +29,9 @@ unsigned int rand32(void)
 void srand32(unsigned long n)
 {
     // Set seed.
-    random.seed = n;
+    random_s.seed = n;
 
     // Apply seed to random number generator.
-    srand(random.seed);
+    srand(random_s.seed);
 }
 
