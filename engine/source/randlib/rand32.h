@@ -9,8 +9,6 @@
 #ifndef RAND32_H
 #define RAND32_H
 
-#include<stdio.h>
-#include<stdlib.h>
 #include<time.h>
 
 // 2014-08-24, DC: Package seed into a stuct so we don't have
