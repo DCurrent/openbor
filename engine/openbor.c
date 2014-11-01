@@ -157,7 +157,7 @@ const s_attack emptyattack =
 
 s_axis_f default_model_dropv =
 {
-    // Default values for knockdown velocity.
+    /* Default values for knockdown velocity */
 
     .x = 1.2f,
     .y = 3.f,
@@ -241,6 +241,7 @@ u64 totalram = 0;
 u64 usedram = 0;
 u64 freeram = 0;
 u32 interval = 0;
+extern unsigned long seed;
 
 int                 SAMPLE_GO			= -1;
 int                 SAMPLE_BEAT			= -1;
@@ -3476,9 +3477,7 @@ float randf(float max)
     }
     f = (float)(rand32() % 10000);
     f /= (10000 / max);
-
     return f;
-
 }
 
 

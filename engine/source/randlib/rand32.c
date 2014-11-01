@@ -7,33 +7,21 @@
  */
 
 #include "rand32.h"
+#include "types.h"
 
-s_rand random_s = { .seed = 0};
+unsigned long seed = 1234567890;
 
 unsigned int rand32(void)
 {
-    unsigned int result = 0;
-
-    // If we haven't seeded for random numbers yet, use time.
-    if(!random_s.seed)
-    {
-        srand32(time(NULL));
-    }
-
-    result = random_s.seed;
-    result *= 1103515245ull;
-    result += 12345ull;
-
-    random_s.seed = result;
-
-    result = (result >> 16) & 0xFFFFFFFF;
-
-    return result;
+    u64 t = seed;
+    t *= 1103515245ull;
+    t += 12345ull;
+    seed = t;
+    return (t >> 16) & 0xFFFFFFFF;
 }
 
-void srand32(unsigned long n)
+void srand32(int n)
 {
-    // Set seed.
-    random_s.seed = n;
+    seed = n;
 }
 
