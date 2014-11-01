@@ -484,7 +484,7 @@ int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a ch
 s_barstatus loadingbarstatus =
 {
     .size           = { .x = 0,
-                        .y = 0},
+                        .y = 10},
     .offset         = { .x = 0,
                         .y = 0},
     .type           = PERCENTAGEBAR,
