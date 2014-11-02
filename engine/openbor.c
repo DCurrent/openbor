@@ -16390,7 +16390,7 @@ void do_attack(entity *e)
                               (self->direction == e->direction && self->modeldata.blockback < 1) ||                       // Can't block an attack that is from behind unless blockback flag is enabled
                               (!self->idling && self->attacking >= 0)) &&                                                 // Can't block if busy, attack <0 means the character is preparing to attack, he can block during this time
                             attack->no_block <= self->defense[attack->attack_type].blockpower &&       // If unblockable, will automatically hit
-                            (rand32()&self->modeldata.blockodds) == 1 &&                                                // Randomly blocks depending on blockodds (1 : blockodds ratio)
+                            (rand32()&self->modeldata.blockodds) == 1 && // Randomly blocks depending on blockodds (1 : blockodds ratio)
                             (!self->modeldata.thold || (self->modeldata.thold > 0 && self->modeldata.thold > force)) &&
                             (!fdefense_blockthreshold ||                                                                //Specific attack type threshold.
                              (fdefense_blockthreshold > force)))
@@ -16436,7 +16436,7 @@ void do_attack(entity *e)
                         }
                         //end of if #0531
                     }
-                    else if(self->modeldata.nopassiveblock && // can block by itself
+                    else if((self->modeldata.nopassiveblock || self->modeldata.type == TYPE_PLAYER) &&  // can block by itself
                             self->blocking &&  // of course he must be blocking
                             ((self->modeldata.guardpoints.max == 0) || (self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current > 0)) &&
                             !((self->direction == e->direction && self->modeldata.blockback < 1) || self->frozen) &&   // Can't block if facing the wrong direction (unless blockback flag is enabled) or frozen in the block animation or opponent is a projectile
