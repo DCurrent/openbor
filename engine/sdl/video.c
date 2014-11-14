@@ -7,7 +7,8 @@
  */
 #if ANDROID
 
-#include "android/jni/video.c"
+// CRxTRDude - changed the directory for neatness.
+#include "android/jni/openbor/video.c"
 
 #else
 

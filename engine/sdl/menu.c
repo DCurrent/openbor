@@ -22,6 +22,9 @@
 #include "../resources/OpenBOR_Logo_320x240_png.h"
 #include "../resources/OpenBOR_Menu_480x272_png.h"
 #include "../resources/OpenBOR_Menu_320x240_png.h"
+// CRxTRDude - Added the log screen pngs
+#include "../resources/logviewer_480x272_png.h"
+#include "../resources/logviewer_320x240_png.h"
 
 #include <dirent.h>
 
@@ -31,6 +34,8 @@ extern s_screen* vscreen;
 extern int nativeHeight;
 extern int nativeWidth;
 s_screen* bgscreen;
+// CRxTRDude - Added the log screen variable.
+s_screen* logscreen;
 
 #define RGB32(R,G,B) ((R) | ((G) << 8) | ((B) << 16))
 #define RGB16(R,G,B) ((B&0xF8)<<8) | ((G&0xFC)<<3) | (R>>3)
@@ -473,6 +478,8 @@ void initMenu(int type)
 		bgscreen = pngToScreen(isWide ? (void*) openbor_logo_480x272_png.data : (void*) openbor_logo_320x240_png.data);
 	else
 		bgscreen = pngToScreen(isWide ? (void*) openbor_menu_480x272_png.data : (void*) openbor_menu_320x240_png.data);
+	// CRxTRDude - Initialize log screen images		
+	logscreen = pngToScreen(isWide ? (void*) logviewer_480x272_png.data : (void*) logviewer_320x240_png.data);
 
 	control_init(2);
 	apply_controls();
@@ -485,6 +492,8 @@ void termMenu()
 	videomodes.hRes = videomodes.vRes = 0;
 	video_set_mode(videomodes);
 	if(bgscreen) freescreen(&bgscreen);
+	// CRxTRDude - Log screen must also be removed as well.
+	if(logscreen) freescreen(&logscreen);
 	if(vscreen) freescreen(&vscreen);
 	sound_exit();
 	control_exit();
@@ -528,12 +537,21 @@ void drawMenu()
 
 	printText((isWide ? 26 : 5), (isWide ? 11 : 4), WHITE, 0, 0, "OpenBoR %s", VERSION);
 	printText((isWide ? 392 : 261),(isWide ? 11 : 4), WHITE, 0, 0, __DATE__);
+		//CRxTRDude - Fix for Android's text - Main menu 
+#ifdef ANDROID
+	printText((isWide ? 23 : 4),(isWide ? 251 : 226), WHITE, 0, 0, "A1: Start Game");
+	printText((isWide ? 150 : 84),(isWide ? 251 : 226), WHITE, 0, 0, "A2: BGM Player");
+	printText((isWide ? 270 : 164),(isWide ? 251 : 226), WHITE, 0, 0, "J: View Logs");
+	printText((isWide ? 390 : 244),(isWide ? 251 : 226), WHITE, 0, 0, "S: Quit Game");
+#else
 	printText((isWide ? 23 : 4),(isWide ? 251 : 226), WHITE, 0, 0, "%s: Start Game", control_getkeyname(savedata.keys[0][SDID_ATTACK]));
 	printText((isWide ? 150 : 84),(isWide ? 251 : 226), WHITE, 0, 0, "%s: BGM Player", control_getkeyname(savedata.keys[0][SDID_ATTACK2]));
 	printText((isWide ? 270 : 164),(isWide ? 251 : 226), WHITE, 0, 0, "%s: View Logs", control_getkeyname(savedata.keys[0][SDID_JUMP]));
 	printText((isWide ? 390 : 244),(isWide ? 251 : 226), WHITE, 0, 0, "%s: Quit Game", control_getkeyname(savedata.keys[0][SDID_SPECIAL]));
-   	printText((isWide ? 330 : 197),(isWide ? 170 : 155), BLACK, 0, 0, "www.chronocrash.com");
-	printText((isWide ? 322 : 190),(isWide ? 180 : 165), BLACK, 0, 0, "www.SenileTeam.com");
+#endif
+	//CRxTRDude - Fixed the placement of these texts and appropriately changed the site for Chrono Crash
+  printText((isWide ? 320 : 188),(isWide ? 175 : 158), BLACK, 0, 0, "www.chronocrash.com");
+	printText((isWide ? 322 : 190),(isWide ? 185 : 168), BLACK, 0, 0, "www.SenileTeam.com");
 
 #ifdef SPK_SUPPORTED
 	printText((isWide ? 324 : 192),(isWide ? 191 : 176), DARK_RED, 0, 0, "SecurePAK Edition");
@@ -579,12 +597,21 @@ void drawBGMPlayer()
 
 	printText((isWide ? 26 : 5), (isWide ? 11 : 4), WHITE, 0, 0, "OpenBoR %s", VERSION);
 	printText((isWide ? 392 : 261),(isWide ? 11 : 4), WHITE, 0, 0, __DATE__);
+//CRxTRDude - Fix for Android's text - BGM MODE
+#ifdef ANDROID
+	printText((isWide ? 23 : 4),(isWide ? 251 : 226), WHITE, 0, 0, "A1: %s", bgmPlay ? "Stop" : "Play");
+	printText((isWide ? 150 : 84),(isWide ? 251 : 226), WHITE, 0, 0, "A2: %s", bgmLoop ? "Repeat On" : "Repeat Off");
+	printText((isWide ? 270 : 164),(isWide ? 251 : 226), WHITE, 0, 0, "J: %s", bgmCycle ? "Cycle On" : "Cycle Off");
+	printText((isWide ? 390 : 244),(isWide ? 251 : 226), WHITE, 0, 0, "S: Exit Player");
+#else
 	printText((isWide ? 23 : 4),(isWide ? 251 : 226), WHITE, 0, 0, "%s: %s", control_getkeyname(savedata.keys[0][SDID_ATTACK]), bgmPlay ? "Stop" : "Play");
 	printText((isWide ? 150 : 84),(isWide ? 251 : 226), WHITE, 0, 0, "%s: %s", control_getkeyname(savedata.keys[0][SDID_ATTACK2]), bgmLoop ? "Repeat On" : "Repeat Off");
 	printText((isWide ? 270 : 164),(isWide ? 251 : 226), WHITE, 0, 0, "%s: %s", control_getkeyname(savedata.keys[0][SDID_JUMP]), bgmCycle ? "Cycle On" : "Cycle Off");
 	printText((isWide ? 390 : 244),(isWide ? 251 : 226), WHITE, 0, 0, "%s: Exit Player", control_getkeyname(savedata.keys[0][SDID_SPECIAL]));
-	printText((isWide ? 330 : 197),(isWide ? 170 : 155), BLACK, 0, 0, "www.chronocrash.com");
-	printText((isWide ? 322 : 190),(isWide ? 180 : 165), BLACK, 0, 0, "www.SenileTeam.com");
+#endif
+	//CRxTRDude - Fixed the placement of these texts and appropriately changed the site for Chrono Crash
+  printText((isWide ? 320 : 188),(isWide ? 175 : 158), BLACK, 0, 0, "www.chronocrash.com");
+	printText((isWide ? 322 : 190),(isWide ? 185 : 168), BLACK, 0, 0, "www.SenileTeam.com");
 
 #ifdef SPK_SUPPORTED
 	printText((isWide ? 324 : 192),(isWide ? 191 : 176), DARK_RED, 0, 0, "SecurePAK Edition");
@@ -620,7 +647,8 @@ void drawLogs()
 
 	while(!done)
 	{
-		putscreen(vscreen,bgscreen,0,0,NULL);
+		// CRxTRDude - replaced bg with a log screen
+		putscreen(vscreen,logscreen,0,0,NULL);
 	    inputrefresh();
 	    sound_update_music();
 #if OPENDINGUX
