@@ -1,3 +1,15 @@
+/*
+ * OpenBOR - http://www.chronocrash.com
+ * -----------------------------------------------------------------------
+ * All rights reserved, see LICENSE in OpenBOR root for details.
+ *
+ * Copyright (c) 2004 - 2014 OpenBOR Team
+ * 
+ * SDLActivity.java - Main code for Android build.
+ * Original by UTunnels (utunnels@hotmail.com).
+ * Modifications by CRxTRDude.     
+ */ 
+
 package org.libsdl.app;
 
 import javax.microedition.khronos.egl.EGL10;
@@ -15,6 +27,7 @@ import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import android.os.*;
+import android.os.PowerManager.*;
 import android.util.Log;
 import android.graphics.*;
 import android.media.*;
@@ -62,10 +75,13 @@ public class SDLActivity extends Activity {
         //System.loadLibrary("SDL2_ttf");
         System.loadLibrary("openbor");
     }
+		
+		private WakeLock wl;      
 
     // Setup
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+    		
         //Log.v("SDL", "onCreate()");
         super.onCreate(savedInstanceState);
         
@@ -80,9 +96,17 @@ public class SDLActivity extends Activity {
 
         setContentView(mLayout);
         CopyPak("BOR");
+        //CRxTRDude - Added FLAG_KEEP_SCREEN_ON to prevent screen timeout.
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        
+        //CRxTRDude - Created a wakelock to prevent the app from being shut down upon screen lock.
+        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+    		wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "BOR");
+				wl.acquire(); 
     }
 
     public static native void setRootDir(String dir);
+		     
     private void CopyPak(String pakName) 
     {
         try
@@ -127,6 +151,8 @@ public class SDLActivity extends Activity {
     @Override
     protected void onPause() {
         Log.v("SDL", "onPause()");
+        //CRxTRDude - Wakelock
+        wl.acquire();
         super.onPause();
         // Don't call SDLActivity.nativePause(); here, it will be called by SDLSurface::surfaceDestroyed
     }
@@ -134,6 +160,8 @@ public class SDLActivity extends Activity {
     @Override
     protected void onResume() {
         Log.v("SDL", "onResume()");
+        //CRxTRDude - Wakelock
+        wl.release();
         super.onResume();
         // Don't call SDLActivity.nativeResume(); here, it will be called via SDLSurface::surfaceChanged->SDLActivity::startApp
     }
@@ -147,6 +175,8 @@ public class SDLActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+    		//CRxTRDude - Release wakelock first before destroying.
+    		wl.release();
         super.onDestroy();
         Log.v("SDL", "onDestroy()");
         // Send a quit message to the application
@@ -578,7 +608,8 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     public void surfaceCreated(SurfaceHolder holder) {
         Log.v("SDL", "surfaceCreated()");
         holder.setType(SurfaceHolder.SURFACE_TYPE_GPU);
-        enableSensor(Sensor.TYPE_ACCELEROMETER, true);
+        //CRxTRDude - Disabled accelerometer once the surface is created. This is a hardcoded attempt to remove accelerometer detection.
+        enableSensor(Sensor.TYPE_ACCELEROMETER, false);
     }
 
     // Called when we lose the surface
@@ -589,7 +620,6 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
             SDLActivity.mIsPaused = true;
             SDLActivity.nativePause();
         }
-        enableSensor(Sensor.TYPE_ACCELEROMETER, false);
     }
 
     // Called when the surface is resized

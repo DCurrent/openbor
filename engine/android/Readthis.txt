@@ -1,10 +1,61 @@
-OpenBOR for android, ported by UTunnels (utunnels@hotmail.com).
+OpenBOR for Android 1.3.0
+----------------------
+Originally ported by ported by UTunnels (utunnels@hotmail.com).
+Modifications by CRxTRDude.
 
+Release notes
+----------------------
+1.3
+- SUCCESSFULLY added a wake lock which prevents OpenBOR to be destroyed by the OS itself during screen lock. (Note that the CPU still keeps running, so you will need to pause your game before you turn off the screen, otherwise the game keeps on going and kill your character.)
+- Fixed the accelerometer by hardcoding it to be disabled in the first place.
+
+1.1.2
+- Added FLAG_KEEP_SCREEN_ON to prevent the game from exiting, so you can watch the cutscenes without the worry about the app exiting on you (on the sacrifice of your battery power of course because the screen keeps on running).
+- Modified androidmanifest.xml to reflect changes (versioning and cleanup)
+- Various directory modifications and minor fixes.
+
+1.1
+- Modified the buttons to make them look better.
+
+1.0
+- Original port by UTunnels.
+
+Developer's notes
+----------------------
 Precompiled libs include sdl 2.0, zlib 1.2.3, libogg 1.3.0, libpng 1.5.6 and libvorbis 1.3.2
 
 Source code for those libs can be found on internet.
 
-To compile this you need to install android sdk and ndk properly, read more at http://developer.android.com/index.html
+Compiling requirements
+----------------------
 
-Make sure you change the sdk path in local.properties according to your own situation.
+To compile this port, you will need to install the Android NDK and SDK properly, as well as installing Apache ANT.
 
+For Windows, you will also need Cygwin to run the various shell scripts in the source.
+
+Further reading:
+- http://developer.android.com/index.html
+- http://www.ntu.edu.sg/home/ehchua/programming/android/android_ndk.html
+
+Compiling instructions
+----------------------
+
+0. Instal and properly configure Android SDK and NDK as well as other dependencies (such as Cygwin in Windows). Then, on a newly downloaded source, you will need to run versions.sh.
+
+1. Copy the file 'copy_and_rename_me_to_local.properties' over and rename it to local.properties and then appropriately edit sdk.dir variable to point to the Android SDK directory.  
+
+2. You can now run build.bat to compile the Android APK.
+
+3. Your newly minted APK will come out on 'bin\' as OpenBOR-debug.apk.
+
+Optional: You can set your private key as well, see http://developer.android.com/tools/publishing/app-signing.html for details.
+
+Issues/bugs
+-----------------------
+External controls & accelerometer - Unless the main build is ported to SDL2 2.0.3, fixing this will be a pain.
+
+Sound delay - Latency is too high, probably is hardware issue.
+
+Special thanks
+-----------------------
+uTunnels for the original Android port, ericavd101 for his take on compiling the APK (and the recipe he used for it), StackOverload users that helped regarding the image edit problem and the entire community for their never-ending support.

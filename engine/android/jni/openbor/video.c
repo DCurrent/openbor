@@ -1,3 +1,14 @@
+/*
+ * OpenBOR - http://www.chronocrash.com
+ * -----------------------------------------------------------------------
+ * All rights reserved, see LICENSE in OpenBOR root for details.
+ *
+ * Copyright (c) 2004 - 2014 OpenBOR Team
+ * 
+ * Video.c - supplement to the main build's video.c.
+ * Made by UTunnels (utunnels@hotmail.com).
+ */
+
 #include <math.h>
 #include "types.h"
 #include "video.h"
@@ -84,6 +95,7 @@ void initSDL()
     }
 
     savedata.fullscreen = 1;
+		    
 }
 
 
@@ -249,7 +261,8 @@ static int setup_touch_txt()
                         }
                     }
                 }
-                else if(stricmp(command, "texture") == 0)
+                // CRxTRDude 11/15/14 - Added 'skin' as a replacement to 'texture' command. Texture is still retained for backwards compatibility.
+                else if((stricmp(command, "texture") == 0) || (stricmp(command, "skin") == 0))
                 {
                     if(buffer_pakfile(GET_ARG(1), &pngb, &pngs))
                     {
