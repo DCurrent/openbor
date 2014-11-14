@@ -44,9 +44,9 @@ Compiling instructions
 
 1. Copy the file 'copy_and_rename_me_to_local.properties' over and rename it to local.properties and then appropriately edit sdk.dir variable to point to the Android SDK directory.  
 
-2. You can now run build.bat to compile the Android APK.
+2. You can now run build.bat to compile the code. This will create a debug APK that you can install on an Android device.
 
-3. Your newly minted APK will come out on 'bin\' as OpenBOR-debug.apk.
+3. Your APK is compiled on 'bin\' as OpenBOR-debug.apk.
 
 Optional: You can set your private key as well, see http://developer.android.com/tools/publishing/app-signing.html for details.
 
@@ -54,8 +54,8 @@ Issues/bugs
 -----------------------
 External controls & accelerometer - Unless the main build is ported to SDL2 2.0.3, fixing this will be a pain.
 
-Sound delay - Latency is too high, probably is hardware issue.
+Sound delay - Just a second though, latency is probably high, probably is hardware issue.
 
 Special thanks
 -----------------------
-uTunnels for the original Android port, ericavd101 for his take on compiling the APK (and the recipe he used for it), StackOverload users that helped regarding the image edit problem and the entire community for their never-ending support.
+uTunnels for the original Android port, ericavd101 for his take on compiling the APK (and the recipe he used for it), Stack Overflow users, especially Jongware, that helped regarding the image edit problem and the entire community for their never-ending support.
