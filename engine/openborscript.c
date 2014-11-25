@@ -4832,7 +4832,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             break;
         case _ep_attack_coords:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->attack_coords[varlist[6]->lVal];
+            (*pretvar)->lVal = (LONG) ((int*)&attack->attack_coords)[varlist[6]->lVal];
             break;
         case _ep_attack_counterattack:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -5058,7 +5058,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             break;
         }
 
-        coords = ent->modeldata.animation[i]->bbox_coords[tempint];
+        coords = (int*) &(ent->modeldata.animation[i]->bbox_coords[tempint]);
 
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)coords[varlist[5]->lVal];
