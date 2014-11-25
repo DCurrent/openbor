@@ -5358,7 +5358,7 @@ s_anim *alloc_anim()
 
 
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
-             int *bbox, s_attack *attack, s_axis_i *move,
+             s_hitbox *bbox, s_attack *attack, s_axis_i *move,
              float *platform, int frameshadow, int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod)
 {
     ptrdiff_t currentframe;
@@ -5377,18 +5377,18 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
     a->sprite[currentframe] = spriteindex;
     a->delay[currentframe] = delay * GAME_SPEED / 100;
 
-    if((bbox[2] - bbox[0]) && (bbox[3] - bbox[1]))
+    if((bbox->width - bbox->x) && (bbox->height - bbox->y))
     {
         if(!a->bbox_coords)
         {
             a->bbox_coords = malloc(framecount * sizeof(*a->bbox_coords));
             memset(a->bbox_coords, 0, framecount * sizeof(*a->bbox_coords));
         }
-        memcpy(a->bbox_coords[currentframe], bbox, sizeof(*a->bbox_coords));
+        memcpy(&a->bbox_coords[currentframe], bbox, sizeof(*a->bbox_coords));
         a->vulnerable[currentframe] = 1;
     }
-    if((attack->attack_coords[2] - attack->attack_coords[0]) &&
-            (attack->attack_coords[3] - attack->attack_coords[1]))
+    if((attack->attack_coords.width - attack->attack_coords.x) &&
+            (attack->attack_coords.height - attack->attack_coords.y))
     {
         if(!a->attacks)
         {
@@ -7209,12 +7209,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     ptrdiff_t pos = 0,
               index = 0;
 
-    int bbox[6] = { 0, 0, 0, 0, 0, 0 },
-                  bbox_con[6] = { 0, 0, 0, 0, 0, 0 },
-                                abox[6] = { 0, 0, 0, 0, 0, 0 },
-                                          offset[2] = { 0, 0 },
-                                                  shadow_xz[2] = {0, 0},
-                                                          shadow_coords[2] = {0, 0};
+    s_hitbox bbox = { 0, 0, 0, 0, 0, 0 },
+             bbox_con = { 0, 0, 0, 0, 0, 0 },
+             abox = { 0, 0, 0, 0, 0, 0 };
+    int offset[2] = { 0, 0 },
+        shadow_xz[2] = {0, 0},
+        shadow_coords[2] = {0, 0};
 
     float platform[8] = { 0, 0, 0, 0, 0, 0, 0, 0 },
                         platform_con[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -8453,8 +8453,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->model_index = newchar->index;
                 // Reset vars
                 curframe = 0;
-                memset(bbox, 0, sizeof(bbox));
-                memset(abox, 0, sizeof(abox));
+                memset(&bbox, 0, sizeof(bbox));
+                memset(&abox, 0, sizeof(abox));
                 memset(offset, 0, sizeof(offset));
                 memset(shadow_coords, 0, sizeof(shadow_coords));
                 memset(shadow_xz, 0, sizeof(shadow_xz));
@@ -8823,16 +8823,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_BBOX:
-                bbox[0] = GET_INT_ARG(1);
-                bbox[1] = GET_INT_ARG(2);
-                bbox[2] = GET_INT_ARG(3);
-                bbox[3] = GET_INT_ARG(4);
-                bbox[4] = GET_INT_ARG(5);
-                bbox[5] = GET_INT_ARG(6);
+                bbox.x = GET_INT_ARG(1);
+                bbox.y = GET_INT_ARG(2);
+                bbox.width = GET_INT_ARG(3);
+                bbox.height = GET_INT_ARG(4);
+                bbox.z1 = GET_INT_ARG(5);
+                bbox.z2 = GET_INT_ARG(6);
                 break;
             case CMD_MODEL_BBOXZ:
-                bbox[4] = GET_INT_ARG(1);
-                bbox[5] = GET_INT_ARG(2);
+                bbox.z1 = GET_INT_ARG(1);
+                bbox.z2 = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_PLATFORM:
                 newchar->hasPlatforms = 1;
@@ -9005,10 +9005,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_FREEZE:
             case CMD_MODEL_ITEMBOX:
             case CMD_MODEL_ATTACK_ETC:
-                abox[0] = GET_INT_ARG(1);
-                abox[1] = GET_INT_ARG(2);
-                abox[2] = GET_INT_ARG(3);
-                abox[3] = GET_INT_ARG(4);
+                abox.x = GET_INT_ARG(1);
+                abox.y = GET_INT_ARG(2);
+                abox.width = GET_INT_ARG(3);
+                abox.height = GET_INT_ARG(4);
                 attack.dropv.y = default_model_dropv.y;
                 attack.dropv.x = default_model_dropv.x;
                 attack.dropv.z = default_model_dropv.z;
@@ -9019,7 +9019,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 attack.no_block = GET_INT_ARG(7);
                 attack.no_flash = GET_INT_ARG(8);
                 attack.pause_add = GET_INT_ARG(9);
-                attack.attack_coords[4] = GET_INT_ARG(10); // depth or z
+                attack.attack_coords.z1 = GET_INT_ARG(10); // depth or z
 
                 switch(cmd)
                 {
@@ -9085,14 +9085,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_ATTACKZ:
             case CMD_MODEL_HITZ:
-                attack.attack_coords[4] = GET_INT_ARG(1);
-                attack.attack_coords[5] = GET_INT_ARG(2);
+                attack.attack_coords.z1 = GET_INT_ARG(1);
+                attack.attack_coords.z2 = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_BLAST:
-                abox[0] = GET_INT_ARG(1);
-                abox[1] = GET_INT_ARG(2);
-                abox[2] = GET_INT_ARG(3);
-                abox[3] = GET_INT_ARG(4);
+                abox.x = GET_INT_ARG(1);
+                abox.y = GET_INT_ARG(2);
+                abox.width = GET_INT_ARG(3);
+                abox.height = GET_INT_ARG(4);
                 attack.dropv.y = default_model_dropv.y;
                 attack.dropv.x = default_model_dropv.x * 2.083f;
                 attack.dropv.z = 0;
@@ -9102,7 +9102,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 attack.pause_add = GET_INT_ARG(8);
                 attack.attack_drop = 1;
                 attack.attack_type = ATK_BLAST;
-                attack.attack_coords[4] = GET_INT_ARG(9); // depth or z
+                attack.attack_coords.z1 = GET_INT_ARG(9); // depth or z
                 attack.blast = 1;
                 break;
             case CMD_MODEL_DROPV:
@@ -9309,27 +9309,27 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     }
                 }
                 // Adjust coords: add offsets and change size to coords
-                bbox_con[0] = bbox[0] - offset[0];
-                bbox_con[1] = bbox[1] - offset[1];
-                bbox_con[2] = bbox[2] + bbox_con[0];
-                bbox_con[3] = bbox[3] + bbox_con[1];
-                bbox_con[4] = bbox[4];
-                bbox_con[5] = bbox[5];
-                if(bbox[5] > bbox[4])
+                bbox_con.x = bbox.x - offset[0];
+                bbox_con.y = bbox.y - offset[1];
+                bbox_con.width = bbox.width + bbox_con.x;
+                bbox_con.height = bbox.height + bbox_con.y;
+                bbox_con.z1 = bbox.z1;
+                bbox_con.z2 = bbox.z2;
+                if(bbox.z2 > bbox.z1)
                 {
-                    bbox[4] -= offset[1];
-                    bbox[5] -= offset[1];
+                    bbox.z1 -= offset[1];
+                    bbox.z2 -= offset[1];
                 }
-                attack.attack_coords[0] = abox[0] - offset[0];
-                attack.attack_coords[1] = abox[1] - offset[1];
-                attack.attack_coords[2] = abox[2] + attack.attack_coords[0];
-                attack.attack_coords[3] = abox[3] + attack.attack_coords[1];
-                if(attack.attack_coords[5] > attack.attack_coords[4])
+                attack.attack_coords.x = abox.x - offset[0];
+                attack.attack_coords.y = abox.y - offset[1];
+                attack.attack_coords.width = abox.width + attack.attack_coords.x;
+                attack.attack_coords.height = abox.height + attack.attack_coords.y;
+                if(attack.attack_coords.z2 > attack.attack_coords.z1)
                 {
-                    attack.attack_coords[4] -= offset[1];
-                    attack.attack_coords[5] -= offset[1];
+                    attack.attack_coords.z1 -= offset[1];
+                    attack.attack_coords.z2 -= offset[1];
                 }
-                //attack.attack_coords[4] = abox[4];
+                //attack.attack_coords.z1 = abox.z1;
                 if(platform[0] == 99999) // old style
                 {
                     platform_con[0] = 0;
@@ -9376,9 +9376,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 curframe = addframe(newanim, index, framecount, delay, idle,
-                                    bbox_con, &attack, &move, platform_con, frameshadow, shadow_coords, soundtoplay, &dm);
+                                    &bbox_con, &attack, &move, platform_con, frameshadow, shadow_coords, soundtoplay, &dm);
 
-                memset(bbox_con, 0, sizeof(bbox_con));
+                memset(&bbox_con, 0, sizeof(bbox_con));
                 soundtoplay = -1;
                 frm_id = -1;
             }
@@ -15603,8 +15603,8 @@ void kill_all()
 
 int checkhit(entity *attacker, entity *target, int counter)
 {
-    int *coords1;
-    int *coords2;
+    s_hitbox coords1;
+    s_hitbox coords2;
     int x1, x2, y1, y2;
     float medx, medy;
     int debug_coords[2][4];
@@ -15634,27 +15634,27 @@ int checkhit(entity *attacker, entity *target, int counter)
         return 0;
     }
 
-    if(coords1[5] > coords1[4])
+    if(coords1.z2 > coords1.z1)
     {
-        z1 += coords1[4] + (coords1[5] - coords1[4]) / 2;
-        zdist += (coords1[5] - coords1[4]) / 2;
+        z1 += coords1.z1 + (coords1.z2 - coords1.z1) / 2;
+        zdist += (coords1.z2 - coords1.z1) / 2;
     }
-    else if(coords1[4])
+    else if(coords1.z1)
     {
-        zdist += coords1[4];
+        zdist += coords1.z1;
     }
     else
     {
         zdist += attacker->modeldata.grabdistance / 3 + 1;    //temporay fix for integer to float conversion
     }
-    if(coords2[5] > coords2[4])
+    if(coords2.z2 > coords2.z1)
     {
-        z2 += coords2[4] + (coords2[5] - coords2[4]) / 2;
-        zdist += (coords2[5] - coords2[4]) / 2;
+        z2 += coords2.z1 + (coords2.z2 - coords2.z1) / 2;
+        zdist += (coords2.z2 - coords2.z1) / 2;
     }
-    else if(coords2[4])
+    else if(coords2.z1)
     {
-        zdist += coords2[4];
+        zdist += coords2.z1;
     }
 
     zdist++; // pass >= <= check
@@ -15672,31 +15672,31 @@ int checkhit(entity *attacker, entity *target, int counter)
 
     if(attacker->direction == DIRECTION_LEFT)
     {
-        debug_coords[0][0] = x1 - coords1[2];
-        debug_coords[0][1] = y1 + coords1[1];
-        debug_coords[0][2] = x1 - coords1[0];
-        debug_coords[0][3] = y1 + coords1[3];
+        debug_coords[0][0] = x1 - coords1.width;
+        debug_coords[0][1] = y1 + coords1.y;
+        debug_coords[0][2] = x1 - coords1.x;
+        debug_coords[0][3] = y1 + coords1.height;
     }
     else
     {
-        debug_coords[0][0] = x1 + coords1[0];
-        debug_coords[0][1] = y1 + coords1[1];
-        debug_coords[0][2] = x1 + coords1[2];
-        debug_coords[0][3] = y1 + coords1[3];
+        debug_coords[0][0] = x1 + coords1.x;
+        debug_coords[0][1] = y1 + coords1.y;
+        debug_coords[0][2] = x1 + coords1.width;
+        debug_coords[0][3] = y1 + coords1.height;
     }
     if(target->direction == DIRECTION_LEFT)
     {
-        debug_coords[1][0] = x2 - coords2[2];
-        debug_coords[1][1] = y2 + coords2[1];
-        debug_coords[1][2] = x2 - coords2[0];
-        debug_coords[1][3] = y2 + coords2[3];
+        debug_coords[1][0] = x2 - coords2.width;
+        debug_coords[1][1] = y2 + coords2.y;
+        debug_coords[1][2] = x2 - coords2.x;
+        debug_coords[1][3] = y2 + coords2.height;
     }
     else
     {
-        debug_coords[1][0] = x2 + coords2[0];
-        debug_coords[1][1] = y2 + coords2[1];
-        debug_coords[1][2] = x2 + coords2[2];
-        debug_coords[1][3] = y2 + coords2[3];
+        debug_coords[1][0] = x2 + coords2.x;
+        debug_coords[1][1] = y2 + coords2.y;
+        debug_coords[1][2] = x2 + coords2.width;
+        debug_coords[1][3] = y2 + coords2.height;
     }
 
     if(debug_coords[0][0] > debug_coords[1][2])

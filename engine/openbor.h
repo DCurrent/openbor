@@ -1163,8 +1163,18 @@ typedef struct
 
 typedef struct
 {
+	int x;
+	int y;
+	int width;
+	int height;
+	int z1;
+	int z2;
+} s_hitbox;
+
+typedef struct
+{
     int attack_force;
-    int attack_coords[6];
+    s_hitbox attack_coords;
     s_staydown staydown;    //Modify victum's stayodwn properties.
     s_axis_f dropv;   //Velocity of target if knocked down.
     int hitsound; // Sound effect to be played when attack hits opponent
@@ -1334,7 +1344,7 @@ typedef struct
     int *delay;
     s_axis_i **move;                //base = seta, x = move, y = movea, z = movez
     int *vulnerable;
-    int (*bbox_coords)[6];
+    s_hitbox *bbox_coords;
     int *shadow;
     unsigned *idle;                 // Allow free move
     int (*shadow_coords)[2];        // x, z offset of shadow
@@ -2232,7 +2242,7 @@ void free_anim(s_anim *anim);
 void free_models();
 s_anim *alloc_anim();
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
-             int *bbox, s_attack *attack, s_axis_i *move,
+             s_hitbox *bbox, s_attack *attack, s_axis_i *move,
              float *platform, int frameshadow,
              int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod);
 void cache_model(char *name, char *path, int flag);
