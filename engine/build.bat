@@ -3,7 +3,7 @@
 @rem -----------------------------------------------------------------------
 @rem All rights reserved, see LICENSE in OpenBOR root for details.
 @rem
-@rem Copyright (c) 2004 - 2011 OpenBOR Team
+@rem Copyright (c) 2004 - 2014 OpenBOR Team
 @rem
 
 @rem ----------------------- Bash NIX Shell Scripts ------------------------
@@ -13,7 +13,7 @@
 set BUILDBATCH=1
 set TOOLS=../tools/bin;../tools/7-Zip;../tools/svn/bin
 set PATH=%TOOLS%
-bash.exe build.sh all
+bash.exe build.sh 5
 @endlocal
 
 @rem ----------------------- Batch CMD Line Scripts ------------------------
