@@ -16,53 +16,23 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE    := SDL2
-ifeq ($(TARGET_ARCH_ABI),armeabi) 
-LOCAL_SRC_FILES := lib/armeabi/libSDL2.so
-endif
-ifeq ($(TARGET_ARCH_ABI),armeabi-v7a) 
 LOCAL_SRC_FILES := lib/armeabi-v7a/libSDL2.so
-endif
 include $(PREBUILT_SHARED_LIBRARY)
-                          
-include $(CLEAR_VARS)
-LOCAL_MODULE    := z
-ifeq ($(TARGET_ARCH_ABI),armeabi) 
-LOCAL_SRC_FILES := lib/armeabi/libz.a
-endif
-ifeq ($(TARGET_ARCH_ABI),armeabi-v7a) 
-LOCAL_SRC_FILES := lib/armeabi-v7a/libz.a
-endif
-include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE    := png
-ifeq ($(TARGET_ARCH_ABI),armeabi) 
-LOCAL_SRC_FILES := lib/armeabi/libpng.a
-endif
-ifeq ($(TARGET_ARCH_ABI),armeabi-v7a) 
+LOCAL_MODULE    := png 
 LOCAL_SRC_FILES := lib/armeabi-v7a/libpng.a
-endif
-LOCAL_STATIC_LIBRARIES := z
+LOCAL_EXPORT_LDLIBS := -lz
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE    := ogg
-ifeq ($(TARGET_ARCH_ABI),armeabi) 
-LOCAL_SRC_FILES := lib/armeabi/libogg.a
-endif
-ifeq ($(TARGET_ARCH_ABI),armeabi-v7a) 
 LOCAL_SRC_FILES := lib/armeabi-v7a/libogg.a
-endif
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE    := vorbis
-ifeq ($(TARGET_ARCH_ABI),armeabi) 
-LOCAL_SRC_FILES := lib/armeabi/libvorbis.a
-endif
-ifeq ($(TARGET_ARCH_ABI),armeabi-v7a) 
 LOCAL_SRC_FILES := lib/armeabi-v7a/libvorbis.a
-endif
 LOCAL_STATIC_LIBRARIES := ogg
 include $(PREBUILT_STATIC_LIBRARY)
 
