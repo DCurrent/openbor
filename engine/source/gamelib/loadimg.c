@@ -21,6 +21,7 @@
 #include "screen.h"
 #include "packfile.h"
 #include "png.h"
+#include "pngdec.h"
 
 #ifndef DC
 #pragma pack (1)
@@ -1100,7 +1101,7 @@ int loadscreen(char *filename, char *packfile, unsigned char *pal, int format, s
         if((*screen) == NULL)
         {
             closeimage();
-            assert(0);
+            //assert(0);
             return 0;
         }
     }
@@ -1117,9 +1118,47 @@ int loadscreen(char *filename, char *packfile, unsigned char *pal, int format, s
     if(!result)
     {
         freescreen(screen);
-        assert(0);
+        //assert(0);
         return 0;
     }
+    return 1;
+}
+
+int loadscreen32(char *filename, char *packfile, s_screen **screen)
+{
+    void *data;
+    int handle, filesize;
+    char fnam[128];
+#ifdef VERBOSE
+    printf("loadscreen called packfile: %s, filename %s\n", packfile, filename);
+#endif
+    if((*screen))
+    {
+        freescreen(screen);
+    }
+
+    if((handle = openpackfile(filename, packfile)) == -1)
+    {
+        sprintf(fnam, "%s.png", filename);
+        if((handle = openpackfile(fnam, packfile)) == -1)
+        {
+            return 0;
+        }
+    }
+    filesize = seekpackfile(handle, 0, SEEK_END);
+    data = malloc(filesize);
+    assert(seekpackfile(handle, 0, SEEK_SET) == 0);
+    if (!data || readpackfile(handle, data, filesize) != filesize)
+    {
+        closepackfile(handle);
+        free(data);
+        return 0;
+    }
+    closepackfile(handle);
+
+    (*screen) = pngToScreen(data);
+    free(data);
+    if (!(*screen)) return 0;
     return 1;
 }
 
