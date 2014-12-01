@@ -3970,10 +3970,18 @@ void load_background(char *filename, int createtables)
     {
         if(!loadscreen(filename, packfile, NULL, PIXEL_x8, &background))
         {
-            shutdown(1, "Error loading background (PIXEL_x8) file '%s'", filename);
+            if (screenformat == PIXEL_32)
+            {
+                if (loadscreen32(filename, packfile, &background)) printf("Loaded 32-bit background '%s'\n", filename);
+                else shutdown(1, "Error loading background (PIXEL_x8/PIXEL_32) file '%s'", filename);
+            }
+            else shutdown(1, "Error loading background (PIXEL_x8) file '%s'", filename);
         }
-        memcpy(pal, background->palette, PAL_BYTES);
-        memcpy(neontable, pal, PAL_BYTES);
+        if (background->pixelformat == PIXEL_x8)
+        {
+            memcpy(pal, background->palette, PAL_BYTES);
+            memcpy(neontable, pal, PAL_BYTES);
+        }
     }
     else
     {
@@ -4100,14 +4108,14 @@ void load_cached_background(char *filename, int createtables)
     {
         freescreen(&background);
     }
-    background = allocscreen(videomodes.hRes, videomodes.vRes, pixelformat);
+    background = allocscreen(videomodes.hRes, videomodes.vRes, bg_cache[index]->pixelformat);
     copyscreen(background, bg_cache[index]);
 
-    if(pixelformat == PIXEL_8)
+    if(background->pixelformat == PIXEL_8)
     {
         memcpy(pal, bg_palette_cache[index], PAL_BYTES);
     }
-    else if(pixelformat == PIXEL_x8)
+    else if(background->pixelformat == PIXEL_x8)
     {
         memcpy(background->palette, bg_cache[index]->palette, PAL_BYTES);
         memcpy(pal, background->palette, PAL_BYTES);
@@ -4149,8 +4157,11 @@ void cache_background(char *filename)
     {
         if(!loadscreen(filename, packfile, NULL, pixelformat, &bg))
         {
-            freescreen(&bg);
-            bg = NULL;
+            if (!(screenformat == PIXEL_32 && loadscreen32(filename, packfile, &bg)))
+            {
+                freescreen(&bg);
+                bg = NULL;
+            }
         }
     }
     else
