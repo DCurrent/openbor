@@ -4238,7 +4238,7 @@ void cache_all_backgrounds()
 }
 #endif
 
-void load_layer(char *filename, int index)
+void load_layer(char *filename, char *maskfilename, int index)
 {
     if(!level)
     {
@@ -4247,11 +4247,15 @@ void load_layer(char *filename, int index)
 
     if(filename && level->layers[index].gfx.handle == NULL)
     {
-
-        if ((level->layers[index].drawmethod.alpha > 0 || level->layers[index].drawmethod.transbg) && !level->layers[index].drawmethod.water.watermode)
+        if(*maskfilename || ((level->layers[index].drawmethod.alpha > 0 || level->layers[index].drawmethod.transbg) && !level->layers[index].drawmethod.water.watermode))
         {
             // assume sprites are faster than screen when transparency or alpha are specified
             level->layers[index].gfx.sprite = loadsprite2(filename, &(level->layers[index].size.x), &(level->layers[index].size.y));
+            if (*maskfilename)
+            {
+                level->layers[index].gfx.sprite->mask = loadsprite2(maskfilename, &(level->layers[index].size.x), &(level->layers[index].size.y));
+                *maskfilename = 0; // clear mask filename so mask is only used for this one sprite
+            }
         }
         else
         {
@@ -12159,6 +12163,7 @@ void load_level(char *filename)
     int *order = NULL;
     int panelcount = 0;
     int exit_blocked = 0, exit_hole = 0;
+    char maskPath[128] = {""};
 
     unload_level();
 
@@ -12328,6 +12333,9 @@ void load_level(char *filename)
                 update_model_loadflag(tempmodel, GET_INT_ARG(2));
             }
             break;
+        case CMD_LEVEL_ALPHAMASK:
+            strncpy(maskPath, GET_ARG(1), 128);
+            break;
         case CMD_LEVEL_BACKGROUND:
         case CMD_LEVEL_BGLAYER:
         case CMD_LEVEL_LAYER:
@@ -12434,7 +12442,7 @@ void load_level(char *filename)
 
             if(cmd != CMD_LEVEL_BACKGROUND)
             {
-                load_layer(GET_ARG(1), level->numlayers);
+                load_layer(GET_ARG(1), maskPath, level->numlayers);
             }
             level->numlayers++;
             break;
@@ -12469,7 +12477,7 @@ void load_level(char *filename)
                 dm->water.amplitude = 1;
             }
 
-            load_layer(GET_ARG(1), level->numlayers);
+            load_layer(GET_ARG(1), maskPath, level->numlayers);
             level->numlayers++;
             break;
         case CMD_LEVEL_DIRECTION:
@@ -12674,7 +12682,7 @@ void load_level(char *filename)
             bgl->enabled = 1; // enabled
             bgl->quake = 1; // accept quake and rock
 
-            load_layer(GET_ARG(1), level->numlayers);
+            load_layer(GET_ARG(1), maskPath, level->numlayers);
             level->numlayers++;
 
             if(stricmp(GET_ARG(2), "none") != 0 && GET_ARG(2)[0])
@@ -12687,7 +12695,7 @@ void load_level(char *filename)
                 bgl->z = NEONPANEL_Z;
                 bgl->neon = 1;
                 bgl->gfx.handle = NULL;
-                load_layer(GET_ARG(2), level->numlayers);
+                load_layer(GET_ARG(2), maskPath, level->numlayers);
                 level->numlayers++;
             }
 
@@ -12703,7 +12711,7 @@ void load_level(char *filename)
                 bgl->neon = 0;
                 dm->alpha = 1;
                 bgl->gfx.handle = NULL;
-                load_layer(GET_ARG(3), level->numlayers);
+                load_layer(GET_ARG(3), maskPath, level->numlayers);
                 level->numlayers++;
             }
             break;
@@ -13186,7 +13194,7 @@ void load_level(char *filename)
             default:
                 break;
             }
-            load_layer(NULL, i);
+            load_layer(NULL, NULL, i);
         }
 
         if(level->background)
