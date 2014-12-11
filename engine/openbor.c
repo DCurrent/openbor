@@ -409,6 +409,7 @@ int					groupmax            = 0;
 int                 selectScreen        = 0;					// Flag to determine if at select screen (used for setting animations)
 int					titleScreen			= 0;
 int					menuScreen			= 0;
+int					enginecreditsScreen		= 0;								// CRxTRDude - Flag to determine if the credits for the engine is shown.
 int					hallOfFame			= 0;
 int					optionsMenu			= 0;
 int					newgameMenu			= 0;
@@ -925,7 +926,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_in_menuscreen:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        if(selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene || level)
+        if(selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene || level || enginecreditsScreen)
         {
             var->lVal = (LONG)0;
         }
@@ -934,6 +935,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
             var->lVal = (LONG)(menuScreen);
         }
         break;
+    case _sv_in_enginecreditsscreen:
+    		ScriptVariant_ChangeType(var, VT_INTEGER);
+    		var->lVal = (LONG)(enginecreditsScreen);
+    		break;
     case _sv_in_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)(optionsMenu);
@@ -28296,7 +28301,7 @@ void display_credits()
         font_printf(col1,  s + v * 11, 0, 0, "Plombo");
         font_printf(col2, s + v * 11, 0, 0, "Orochi_X");
 
-        font_printf(_strmidx(1, "Consoles"), s + v * 12,  1, 0, "Consoles");
+        font_printf(_strmidx(1, "Ports"), s + v * 12,  1, 0, "Ports");
         font_printf(col1,  s + v * 13, 0, 0, "PSP/PS3/Linux/OSX");
         font_printf(col2, s + v * 13, 0, 0, "SX");
         font_printf(col1,  s + v * 14, 0, 0, "OpenDingux");
@@ -28311,6 +28316,8 @@ void display_credits()
         font_printf(col2, s + v * 18, 0, 0, "SX & XPort");
         font_printf(col1,  s + v * 19, 0, 0, "Wii");
         font_printf(col2, s + v * 19, 0, 0, "SX & Plombo");
+        font_printf(col1,  s + v * 20, 0, 0, "Android");
+        font_printf(col2, s + v * 20, 0, 0, "uTunnels & CRxTRDude");
 
         font_printf(_strmidx(1, "Menu Design"), s + v * 21,  1, 0, "Menu Design");
         font_printf(col1, s + v * 22,  0, 0, "SX");
@@ -28369,13 +28376,17 @@ void shutdown(int status, char *msg, ...)
 
     getRamStatus(BYTES);
     savesettings();
-
+    
+		enginecreditsScreen = 1;		//entry point for the engine credits screen.
+		
     if(status != 2)
     {
         display_credits();
     }
+    
     if(startup_done)
     {
+    		enginecreditsScreen = 0; //once the engine credits is done, disable flag.
         term_videomodes();
     }
 

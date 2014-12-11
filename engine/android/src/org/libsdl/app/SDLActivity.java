@@ -96,6 +96,7 @@ public class SDLActivity extends Activity {
 
         setContentView(mLayout);
         CopyPak("BOR");
+        
         //CRxTRDude - Added FLAG_KEEP_SCREEN_ON to prevent screen timeout.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         
@@ -303,6 +304,7 @@ public class SDLActivity extends Activity {
     }
 
     public static void startApp() {
+    		wl.release();
         // Start up the C app thread
         if (mSDLThread == null) {
             mSDLThread = new Thread(new SDLMain(), "SDLThread");

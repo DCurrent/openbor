@@ -1814,6 +1814,7 @@ static const char *svlist[] =
     "in_level",
     "in_load_game",
     "in_menuscreen",
+    "in_enginecreditsscreen",
     "in_new_game",
     "in_options",
     "in_selectscreen",
