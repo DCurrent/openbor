@@ -406,6 +406,7 @@ List *createLevelCommandList(void)
     LIST_ADD(CMD_LEVEL_LOADINGBG, "loadingbg");
     LIST_ADD(CMD_LEVEL_MUSICFADE, "musicfade");
     LIST_ADD(CMD_LEVEL_MUSIC, "music");
+    LIST_ADD(CMD_LEVEL_ALPHAMASK, "alphamask");
     LIST_ADD(CMD_LEVEL_AT, "at");
     LIST_ADD(CMD_LEVEL_AT_SCRIPT, "@script");
     LIST_ADD(CMD_LEVEL_ALLOWSELECT, "allowselect");
