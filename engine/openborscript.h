@@ -277,6 +277,7 @@ enum systemvariant_enum
     _sv_in_level,
     _sv_in_load_game,
     _sv_in_menuscreen,
+    _sv_in_enginecreditsscreen,
     _sv_in_new_game,
     _sv_in_options,
     _sv_in_selectscreen,
