@@ -13,6 +13,9 @@
 # Used for resetting path prior to each platform.
 export OLD_PATH=$PATH
 
+# Use parellel make to speed up compilation
+export MAKEFLAGS=-j4
+
 # Display Version
 function version {
   . ./version.sh
