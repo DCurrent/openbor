@@ -304,7 +304,6 @@ public class SDLActivity extends Activity {
     }
 
     public static void startApp() {
-    		wl.release();
         // Start up the C app thread
         if (mSDLThread == null) {
             mSDLThread = new Thread(new SDLMain(), "SDLThread");
