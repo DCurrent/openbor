@@ -30,11 +30,33 @@
  *  Redefine main() on some platforms so that it is called by SDL.
  */
 
-#if defined(__WIN32__) || defined(__IPHONEOS__) || defined(__ANDROID__)
 #ifndef SDL_MAIN_HANDLED
+#if defined(__WIN32__)
+/* On Windows SDL provides WinMain(), which parses the command line and passes
+   the arguments to your main function.
+
+   If you provide your own WinMain(), you may define SDL_MAIN_HANDLED
+ */
+#define SDL_MAIN_AVAILABLE
+
+#elif defined(__IPHONEOS__)
+/* On iOS SDL provides a main function that creates an application delegate
+   and starts the iOS application run loop.
+
+   See src/video/uikit/SDL_uikitappdelegate.m for more details.
+ */
 #define SDL_MAIN_NEEDED
+
+#elif defined(__ANDROID__)
+/* On Android SDL provides a Java class in SDLActivity.java that is the
+   main activity entry point.
+
+   See README-android.txt for more details on extending that class.
+ */
+#define SDL_MAIN_NEEDED
+
 #endif
-#endif
+#endif /* SDL_MAIN_HANDLED */
 
 #ifdef __cplusplus
 #define C_LINKAGE   "C"
@@ -57,7 +79,7 @@
  *  \endcode
  */
 
-#ifdef SDL_MAIN_NEEDED
+#if defined(SDL_MAIN_NEEDED) || defined(SDL_MAIN_AVAILABLE)
 #define main    SDL_main
 #endif
 
@@ -72,7 +94,7 @@ extern C_LINKAGE int SDL_main(int argc, char *argv[]);
 extern "C" {
 #endif
 
-/*
+/**
  *  This is called by the real SDL main function to let the rest of the
  *  library know that initialization was done properly.
  *

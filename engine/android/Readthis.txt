@@ -1,10 +1,15 @@
-OpenBOR for Android 1.3.2
+OpenBOR for Android 1.3.3
 ----------------------
 Originally ported by ported by UTunnels (utunnels@hotmail.com).
 Modifications by CRxTRDude.
 
 Release notes
 ----------------------
+Note that these are version numbers that are used in the AndroidManifest.xml file. Any OpenBOR version can theoretically be used to compile this Android build.
+
+1.3.3
+- Updated SDL to SDL2 2.0.1, the last of the SDL2 series to support Android 2.3.3 API out of the box. I also figured out the way to finally disable accelerometer without doing additional code, which I've done already in this release. Tested on the phone and it works perfectly.
+
 1.3.2
 - Updated the static library for libpng to 1.6.15. Removed the libz static library because libpng is now set up so it does not need it anymore, (it instead uses the zlib already present in the Android OS)
 
@@ -28,16 +33,14 @@ Release notes
 
 Developer's notes
 ----------------------
-Precompiled static libraries include sdl 2.0, libogg 1.3.2, libpng 1.5.6 and libvorbis 1.6.15
+Precompiled static libraries include sdl 2.0.1, libogg 1.3.2, libpng 1.5.6 and libvorbis 1.6.15
 
 Source code for those libs can be found on internet.
 
-Regarding the feature where you can add a PAK file in the APK, file limit in a APK is 50 MB and is standard for the Android OS. Therefore, you will need to consider this when adding things to the APK. 
+Regarding the feature where you can add a PAK file in the APK, file limit in a APK is 50 MB and is standard for the Android OS. Therefore, you will need to consider this when adding a full pak to the APK. 
 
 Issues
 ----------------------
-- SDL is still not updated, some features such as disabling the accelerometer and better external controls could not be possible (SDL 2.0.3 has a flag which makes it work). But for SDL to be updated, the main code needs to be modified as well. 
-
 - Sound delay - Just a second though, latency is probably high, probably is hardware issue.
 
 - Memory issues - For OGG in particular, it is very dominant, even uTunnels said so:
@@ -51,6 +54,8 @@ Compiling requirements
 
 To compile this port, you will need to install the Android NDK and SDK properly, as well as installing Apache ANT.
 
+This build is designed to be compiled on API 10 (Android 2.3.3), therefore this build requires Android 2.3.3 and up.
+
 For Windows, you will also need Cygwin to run the various shell scripts in the source.
 
 Further reading:
@@ -60,7 +65,7 @@ Further reading:
 Compiling instructions
 ----------------------
 
-0. Install and properly configure Android SDK and NDK as well as other dependencies (such as Apache ANT and Cygwin for Windows users). Then, on a newly downloaded source, you will need to run versions.sh either by compiling/building or running the script via Cygwin.
+0. Install and properly configure Android SDK and NDK as well as other dependencies (such as Apache ANT and Cygwin for Windows users). Then, on a newly downloaded source, you will need to run versions.sh either by compiling/building OpenBOR using tools or running the sh itself through Cygwin.
 
 1. Copy the file 'copy_and_rename_me_to_local.properties' over and rename it to 'local.properties' and then appropriately edit sdk.dir variable to point to your Android SDK directory.  
 
@@ -68,7 +73,7 @@ Compiling instructions
 
 3. Your APK is compiled on 'bin\' as OpenBOR-debug.apk.
 
-Optional: You can set your private key as well, see http://developer.android.com/tools/publishing/app-signing.html for details.
+Optional: You can set your private key as well if you want to distribute it to Google Play, see http://developer.android.com/tools/publishing/app-signing.html for details.
 
 Special thanks
 -----------------------
