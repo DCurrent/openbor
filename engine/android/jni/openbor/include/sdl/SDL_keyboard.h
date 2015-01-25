@@ -41,13 +41,15 @@ extern "C" {
 
 /**
  *  \brief The SDL keysym structure, used in key events.
+ *
+ *  \note  If you are looking for translated character input, see the ::SDL_TEXTINPUT event.
  */
 typedef struct SDL_Keysym
 {
     SDL_Scancode scancode;      /**< SDL physical key code - see ::SDL_Scancode for details */
     SDL_Keycode sym;            /**< SDL virtual key code - see ::SDL_Keycode for details */
     Uint16 mod;                 /**< current key modifiers */
-    Uint32 unicode;             /**< \deprecated use SDL_TextInputEvent instead */
+    Uint32 unused;
 } SDL_Keysym;
 
 /* Function prototypes */

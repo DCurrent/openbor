@@ -13140,7 +13140,7 @@ HRESULT openbor_shutdown(ScriptVariant **varlist , ScriptVariant **pretvar, int 
         goto shutdown_error;
     }
 
-    shutdown((int)ltemp,  paramCount > 1 ? StrCache_Get(varlist[0]->strVal) : (DEFAULT_SHUTDOWN_MESSAGE));
+    shutdown((int)ltemp,  paramCount > 1 ? StrCache_Get(varlist[1]->strVal) : (DEFAULT_SHUTDOWN_MESSAGE));
 
     return S_OK;
 shutdown_error:

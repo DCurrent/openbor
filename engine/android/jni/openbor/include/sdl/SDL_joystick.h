@@ -54,6 +54,10 @@ extern "C" {
  *  In order to use these functions, SDL_Init() must have been called
  *  with the ::SDL_INIT_JOYSTICK flag.  This causes SDL to scan the system
  *  for joysticks, and load appropriate drivers.
+ *
+ *  If you would like to receive joystick updates while the application
+ *  is in the background, you should set the following hint before calling
+ *  SDL_Init(): SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS
  */
 
 /* The joystick structure used to identify an SDL joystick */
@@ -183,7 +187,7 @@ extern DECLSPEC Sint16 SDLCALL SDL_JoystickGetAxis(SDL_Joystick * joystick,
 /**
  *  \name Hat positions
  */
-/*@{*/
+/* @{ */
 #define SDL_HAT_CENTERED    0x00
 #define SDL_HAT_UP      0x01
 #define SDL_HAT_RIGHT       0x02
@@ -193,7 +197,7 @@ extern DECLSPEC Sint16 SDLCALL SDL_JoystickGetAxis(SDL_Joystick * joystick,
 #define SDL_HAT_RIGHTDOWN   (SDL_HAT_RIGHT|SDL_HAT_DOWN)
 #define SDL_HAT_LEFTUP      (SDL_HAT_LEFT|SDL_HAT_UP)
 #define SDL_HAT_LEFTDOWN    (SDL_HAT_LEFT|SDL_HAT_DOWN)
-/*@}*/
+/* @} */
 
 /**
  *  Get the current state of a POV hat on a joystick.
