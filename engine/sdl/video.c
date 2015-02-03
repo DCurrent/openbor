@@ -101,6 +101,7 @@ void initSDL()
 {
 	const SDL_VideoInfo* video_info;
 	int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK;
+	SDL_Surface *icon;
 
 #ifdef CUSTOM_SIGNAL_HANDLER
 	init_flags |= SDL_INIT_NOPARACHUTE;
@@ -115,7 +116,9 @@ void initSDL()
 	atexit(SDL_Quit);
 #ifndef SKIP_CODE
 	SDL_WM_SetCaption("OpenBOR", NULL);
-	SDL_WM_SetIcon((SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data), NULL);
+	icon = (SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data);
+	SDL_WM_SetIcon(icon, NULL);
+	SDL_FreeSurface(icon);
 #endif
 #if WIN || LINUX && !DARWIN && !defined(GLES)
 	if(SDL_GL_LoadLibrary(NULL) < 0)
