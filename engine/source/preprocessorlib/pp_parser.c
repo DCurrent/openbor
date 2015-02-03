@@ -412,6 +412,7 @@ pp_token *pp_parser_emit_token(pp_parser *self)
                         List_Remove(self->child->params);
                     }
                     List_Clear(self->child->params);
+                    free(self->child->params);
                 }
 
                 // free the source code and filename if necessary

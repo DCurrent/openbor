@@ -549,12 +549,15 @@ int pp_expr_eval(pp_expr *self)
  */
 int pp_expr_eval_expression(pp_parser *parser)
 {
+    int result;
     pp_expr *expression = pp_expr_parse(parser, false);
     if(expression == NULL)
     {
         return -1;
     }
     pp_expr_fix_precedence(expression);
-    return pp_expr_eval(expression) ? 1 : 0;
+    result = pp_expr_eval(expression) ? 1 : 0;
+    pp_expr_destroy(expression);
+    return result;
 }
 
