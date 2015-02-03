@@ -4970,8 +4970,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             (*pretvar)->lVal = (LONG)attack->sealtime;
             break;
         case _ep_attack_staydown:
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)attack->staydown.rise;
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)attack->staydown.rise;
             break;
         case _ep_attack_steal:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);

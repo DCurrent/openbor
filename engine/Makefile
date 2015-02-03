@@ -83,16 +83,16 @@ CC  	        = $(LNXDEV)/$(PREFIX)gcc
 OBJTYPE         = elf
 INCLUDES        = $(SDKPATH)/include \
                   $(SDKPATH)/include/SDL
-ifeq ($(findstring 64, $(TARGET_ARCH)), 64)
+ifeq ($(findstring 64, $(GCC_TARGET)), 64)
+TARGET_ARCH     = amd64
 BUILD_AMD64     = 1
 ARCHFLAGS       = -m64
-LIBRARIES       = $(SDKPATH)/lib64
+LIBRARIES       = $(SDKPATH)/lib/$(GCC_TARGET)
 CFLAGS          += -DAMD64
 else
+TARGET_ARCH     = x86
 ARCHFLAGS       = -m32
 LIBRARIES       = $(SDKPATH)/lib32
-endif
-ifeq ($(findstring 86, $(TARGET_ARCH)), 86)
 BUILD_MMX       = 1
 endif
 ifeq ($(BUILD_LINUX), 0)
