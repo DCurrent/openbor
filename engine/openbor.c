@@ -11918,6 +11918,11 @@ void free_level(s_level *lv)
     {
         if(lv->layers[i].gfx.handle && lv->layers[i].gfx.handle != background)
         {
+            if(lv->layers[i].gfx.sprite->magic == sprite_magic &&
+               lv->layers[i].gfx.sprite->mask != NULL)
+            {
+                free(lv->layers[i].gfx.sprite->mask);
+            }
             free(lv->layers[i].gfx.handle);
             lv->layers[i].gfx.handle = NULL;
         }
