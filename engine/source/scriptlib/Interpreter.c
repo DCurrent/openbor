@@ -843,6 +843,9 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
         List_GotoNext(&(pinterpreter->theInstructionList));
     }
 
+    // clear the import list since we no longer need it
+    List_Clear(&(pinterpreter->theImportList));
+
     // make a solid list that can be referenced by index
     List_Solidify(&(pinterpreter->theInstructionList));
     StackedSymbolTable_Clear(&(pinterpreter->theSymbolTable));
