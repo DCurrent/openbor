@@ -1279,9 +1279,23 @@ int tellpackfile_callback(int *handle)
 
 void sound_close_ogg()
 {
+    int i;
+
     ov_clear(oggfile);
+    free(oggfile);
     oggfile = NULL;
     music_type = -1;
+
+    for(i = 0; i < MUSIC_NUM_BUFFERS; i++)
+    {
+        if(musicchannel.buf[i] != NULL)
+        {
+            free(musicchannel.buf[i]);
+            musicchannel.buf[i] = NULL;
+        }
+    }
+
+    memset(&musicchannel, 0, sizeof(musicchannelstruct));
 }
 
 int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 music_offset)
