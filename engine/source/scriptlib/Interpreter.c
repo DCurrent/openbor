@@ -597,7 +597,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
             else if(ImportList_GetFunctionPointer(&(pinterpreter->theImportList), pToken->theSource))
             {
                 pInstruction->ptheJumpTarget = ImportList_GetFunctionPointer(&(pinterpreter->theImportList), pToken->theSource);
-                assert(pInstruction->ptheJumpTarget >= (Instruction **)size); // should be true in any sane environments
+                assert((size_t)pInstruction->ptheJumpTarget >= size); // should be true in any sane environments
             }
             else if(List_FindByName( pinterpreter->ptheFunctionList, pToken->theSource))
             {

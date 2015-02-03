@@ -178,6 +178,11 @@ case $1 in
      export SDKPATH=/usr/i586-mingw32msvc
      export PREFIX=i586-mingw32msvc-
      export PATH=$WINDEV:$PATH
+   elif test -e "/usr/i686-w64-mingw32"; then
+     export WINDEV=/usr/bin
+     export SDKPATH=/usr/i686-w64-mingw32
+     export PREFIX=i686-w64-mingw32-
+     export PATH=$WINDEV:$PATH
    elif test -e "/usr/local/i386-mingw32-3.4.5"; then
      export WINDEV=/usr/local/i386-mingw32-3.4.5/bin
      export SDKPATH=/usr/local/i386-mingw32-3.4.5

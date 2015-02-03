@@ -13201,7 +13201,7 @@ void load_level(char *filename)
         {
             __realloc(level->layersref, level->numlayersref);
             level->layersref[level->numlayersref] = *(level->background);
-            level->background = (s_layer *)level->numlayersref++;
+            level->background = (s_layer *)(size_t)level->numlayersref++;
         }
 
 
@@ -13218,25 +13218,25 @@ void load_level(char *filename)
                 {
                 case BGT_BGLAYER:
                     __realloc(level->bglayers, level->numbglayers);
-                    level->bglayers[level->numbglayers++] = (s_layer *)level->numlayersref;
+                    level->bglayers[level->numbglayers++] = (s_layer *)(size_t)level->numlayersref;
                     break;
                 case BGT_FGLAYER:
                     __realloc(level->fglayers, level->numfglayers);
-                    level->fglayers[level->numfglayers++] = (s_layer *)level->numlayersref;
+                    level->fglayers[level->numfglayers++] = (s_layer *)(size_t)level->numlayersref;
                     break;
                 case BGT_WATER:
                     __realloc(level->waters, level->numwaters);
-                    level->waters[level->numwaters++] = (s_layer *)level->numlayersref;
+                    level->waters[level->numwaters++] = (s_layer *)(size_t)level->numlayersref;
                     break;
                 case BGT_GENERIC:
                     __realloc(level->genericlayers, level->numgenericlayers);
-                    level->genericlayers[level->numgenericlayers++] = (s_layer *)level->numlayersref;
+                    level->genericlayers[level->numgenericlayers++] = (s_layer *)(size_t)level->numlayersref;
                     break;
                 case BGT_FRONTPANEL:
                     bgl->offset.x = level->numfrontpanels * bgl->size.x;
                     bgl->spacing.x = (frontpanels_loaded - 1) * bgl->size.x;
                     __realloc(level->frontpanels, level->numfrontpanels);
-                    level->frontpanels[level->numfrontpanels++] = (s_layer *)level->numlayersref;
+                    level->frontpanels[level->numfrontpanels++] = (s_layer *)(size_t)level->numlayersref;
                     break;
                 default:
                     break;
@@ -13256,7 +13256,7 @@ void load_level(char *filename)
                     level->layersref[level->numlayersref] = level->layers[panels[order[i]][j]];
                     bgl = &(level->layersref[level->numlayersref]);
                     bgl->offset.x = panel_width * i;
-                    level->panels[i][j] = (s_layer *)level->numlayersref;
+                    level->panels[i][j] = (s_layer *)(size_t)level->numlayersref;
                     level->numlayersref++;
                 }
             }
