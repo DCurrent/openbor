@@ -261,7 +261,9 @@ static int setup_touch_txt()
                         }
                     }
                 }
-                // CRxTRDude 11/15/14 - Added 'skin' as a replacement to 'texture' command. Texture is still retained for backwards compatibility.
+                // CRxTRDude 11/15/14 - Added 'skin' as a replacement to
+								//					'texture' command. Texture is still retained
+								//					for backwards compatibility.
                 else if((stricmp(command, "texture") == 0) || (stricmp(command, "skin") == 0))
                 {
                     if(buffer_pakfile(GET_ARG(1), &pngb, &pngs))
@@ -601,7 +603,7 @@ void vga_vwait(void)
 {
     static int prevtick = 0;
     int now = SDL_GetTicks();
-    int wait = 1000 / 60 - (now - prevtick);
+    int wait = (1000 / 60) - (now - prevtick);
     if (wait > 0)
     {
         SDL_Delay(wait);
