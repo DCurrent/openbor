@@ -54,7 +54,7 @@ BUILDING        = 1
 YASM 	        = yasm$(EXTENSION)
 CC              = $(WINDEV)/$(PREFIX)gcc$(EXTENSION)
 INCLUDES        = $(SDKPATH)/include \
-                  $(SDKPATH)/include/SDL
+                  $(SDKPATH)/include/SDL2
 LIBRARIES       = $(SDKPATH)/lib
 ARCHFLAGS       = -m32
 ifeq ($(findstring 86, $(TARGET_ARCH)), 86)
@@ -81,8 +81,7 @@ BUILDING        = 1
 YASM 	        = yasm
 CC  	        = $(LNXDEV)/$(PREFIX)gcc
 OBJTYPE         = elf
-INCLUDES        = $(SDKPATH)/include \
-                  $(SDKPATH)/include/SDL
+INCLUDES        = $(SDKPATH)/include
 ifeq ($(findstring 64, $(GCC_TARGET)), 64)
 TARGET_ARCH     = amd64
 BUILD_AMD64     = 1
@@ -513,7 +512,7 @@ CFLAGS 	       += -g -Wall -Werror -fsigned-char
 ifndef BUILD_GP2X
 ifndef BUILD_DARWIN
 ifdef BUILD_LINUX
-CFLAGS         += -Wno-unused-result
+CFLAGS         += -Wno-unused-result `pkg-config sdl2 --cflags`
 endif
 endif
 endif
@@ -639,13 +638,13 @@ ifdef BUILD_SDL
 ifeq ($(findstring DGE, $(SDKPATH)), DGE)
 LIBS           += -lSDL -lSDL_gfx -lts
 else
-LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL -lSDL_gfx
+LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL2 -lSDL2_gfx
 endif
 endif
 
 
 ifdef BUILD_WIN
-LIBS           += -luser32 -lgdi32 -lwinmm -ldxguid -lpsapi -lopengl32 -mwindows
+LIBS           += -lpsapi -lopengl32 -lwinmm -lole32 -loleaut32 -limm32 -lversion -mwindows
 endif
 
 
