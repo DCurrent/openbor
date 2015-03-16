@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c) 2004 - 2015 OpenBOR Team
  */
 
 #include <ogcsys.h>
@@ -14,15 +14,10 @@
 #include "types.h"
 #include "video.h"
 #include "vga.h"
+#include "globals.h"
 
-#define mult2(X)			((X)<<1)
-#define mult3(X)			(((X)<<1)+X)
-#define mult4(X)			((X)<<2)
 #define DEFAULT_FIFO_SIZE	(256*1024)
 #define STACK_SIZE			16384
-
-#define USEASM 1
-
 static unsigned char gp_fifo[DEFAULT_FIFO_SIZE] ATTRIBUTE_ALIGN(32);
 static GXRModeObj* vmode;
 static void* xfb[2] = {NULL, NULL};
@@ -239,22 +234,23 @@ void video_draw_quad(int x, int y, int width, int height)
 	GX_End();
 }
 
-typedef void (*copyscreen_func)(s_screen*);
-
 /**
  * Blits the game screen to the monitor/TV screen.
  * @param src the source image
  * @return 1 on success, 0 on error
- * TODO: stop using copyscreen_func and reduce function selection to a simple
- * if/else which calls either video_swizzle_simple() or video_swizzle_rgba().
  */
 int video_copy_screen(s_screen* src)
 {
-	static const copyscreen_func copyscreen_funcs[4] = {copyscreen8, copyscreen16, copyscreen32, copyscreen32};
-	copyscreen_func copyscreen = copyscreen_funcs[bytes_per_pixel-1];
-
 	whichtexture ^= 1;
-	copyscreen(src);
+	
+	switch(bytes_per_pixel)
+	{
+	case 1: video_swizzle_simple(src->data, texturemem[whichtexture], src->width, src->height); break;
+	case 2: video_swizzle_simple(src->data, texturemem[whichtexture], src->width * 2, src->height); break;
+	case 4: copyscreen32(src); break;
+	default: assert(!"bytes_per_pixel not 1, 2, or 4");
+	}
+	
 	GX_DrawDone();
 
 	// use the currently inactive video buffer for the next frame
@@ -419,107 +415,11 @@ void vga_setpalette(unsigned char* pal)
 
 /************ Functions to convert s_screen objects to textures ***************/
 
-// TODO: move addition operations out of the copy loop for performance
-// TODO: move this code into video_swizzle_simple()
-// TODO: remove in favor of video_swizzle_simple
-void copyscreen8(s_screen* src)
-{
-	u8* data = (u8*)src->data;
-	u8* dest = (u8*)texturemem[whichtexture];
-#if USEASM
-	video_swizzle_simple(data, dest, src->width * sizeof(u8), src->height);
-#else
-	u16 x, y;
-
-	// CI8 textures in GX are stored in 8x4 tiles
-	for(y=0; y<textureHeight; y+=4)
-	{
-		for(x=0; x<textureWidth; x+=8)
-		{
-			memcpy(dest, data, 8);
-			memcpy(dest+8, data+textureWidth, 8);
-			memcpy(dest+16, data+mult2(textureWidth), 8);
-			memcpy(dest+24, data+mult3(textureWidth), 8);
-			data += 8;
-			dest += 32;
-		}
-		data += mult3(textureWidth); // we're already at the end of the first line
-	}
-#endif
-}
-
-// TODO: move addition operations out of the copy loop for performance
-// TODO: remove in favor of video_swizzle_simple
-void copyscreen16(s_screen* src)
-{
-	u16* data = (u16*)src->data;
-	u16* dest = (u16*)texturemem[whichtexture];
-#if USEASM
-	video_swizzle_simple(data, dest, src->width * sizeof(u16), src->height);
-#else
-	u16 x, y;
-
-	// RGB565 textures in GX are stored in 4x4 tiles
-	for(y=0; y<textureHeight; y+=4)
-	{
-		for(x=0; x<textureWidth; x+=4)
-		{
-			memcpy(dest, data, 8);
-			memcpy(dest+4, data+textureWidth, 8);
-			memcpy(dest+8, data+mult2(textureWidth), 8);
-			memcpy(dest+12, data+mult3(textureWidth), 8);
-			data += 4;
-			dest += 16;
-		}
-		data += mult3(textureWidth); // we're already at the end of the first line
-	}
-#endif
-}
-
-// copies four 32-bit colors from an s_screen structure to texture memory
-// TODO: remove when copyscreen32 is removed
-static inline void memcpy32(u16* dest, u32* src)
-{
-	int i;
-	u32 color;
-	for(i=0; i<4; i++)
-	{
-		color = *(src+i);
-		*(dest+i) = color >> 16; // AR cache line
-		*(dest+i+16) = color; // GB cache line
-	}
-}
-
-/* TODO: remove in favor of video_swizzle_rgba() */
-void copyscreen32(s_screen* src)
-{
-	u16 x, y;
-	u32* data = (u32*)src->data;
-	u16* dest = (u16*)texturemem[whichtexture];
-
-	// RGBA8 textures in GX are stored in 4x4 tiles in two cache lines, AR and GB
-	for(y=0; y<textureHeight; y+=4)
-	{
-		for(x=0; x<textureWidth; x+=4)
-		{
-			memcpy32(dest, data);
-			memcpy32(dest+4, data+textureWidth);
-			memcpy32(dest+8, data+mult2(textureWidth));
-			memcpy32(dest+12, data+mult3(textureWidth));
-			data += 4;
-			dest += 32;
-		}
-		data += mult3(textureWidth); // we're already at the end of the first line
-	}
-}
-
 /**
  * Copies and swizzles an image to texture memory.  Works for 8-bit (GX_TF_CI8)
  * and 16-bit (GX_TF_RGB565) texture formats.  Both formats are divided into tiles
  * containing 4 rows of 8 bytes.
  *
- * FIXME: test new C code imported from copyscreen8()
- * TODO: does the ASM version really even give a performance advantage?
  * @param src - the image
  * @param dest - the texture memory
  * @param width - the width of each row in *BYTES*, i.e. not in pixels; must be a multiple of 8
@@ -527,11 +427,11 @@ void copyscreen32(s_screen* src)
  */
 void video_swizzle_simple(const void* src, void* dst, s32 width, s32 height)
 {
-#if !USEASM
-	u8* data = (u8*)src;
-	u8* dest = (u8*)dst;
-	s32 widthx2 = width * 2;
-	s32 widthx3 = width * 3;
+	u64* data = (u64*)src;
+	u64* dest = (u64*)dst;
+	s32 offset1 = width / 8;
+	s32 offset2 = (width / 8) * 2;
+	s32 offset3 = (width / 8) * 3;
 	int x, y;
 
 	/**
@@ -543,69 +443,29 @@ void video_swizzle_simple(const void* src, void* dst, s32 width, s32 height)
 	{
 		for(x=0; x<width; x+=8)
 		{
-			memcpy(dest, data, 8);
-			memcpy(dest+8, data+width, 8);
-			memcpy(dest+16, data+widthx2, 8);
-			memcpy(dest+24, data+widthx3, 8);
-			data += 8;
-			dest += 32;
+			*dest++ = *(data);
+			*dest++ = *(data+offset1);
+			*dest++ = *(data+offset2);
+			*dest++ = *(data+offset3);
+			data++;
 		}
-		data += widthx3; // we're already at the end of the first line
+		data += offset3; // we're already at the end of the first line
 	}
-#else
-	register u32 tmp0=0,tmp1=0,tmp2=0,tmp3=0,tmp4=0,tmp5=0,tmp6=0,tmp7=0,tmp8=0,tmp9=0,tmp10=0;
+}
 
-	__asm__ __volatile__ (
-		"	srwi		%13,%13,3\n"		// width = width >> 3				[ divide width by 8 due to 8-byte tile width ]
-		"	srwi		%14,%14,2\n"		// height = height >> 2				[ divide height by 4 since each tile has 4 rows ]
-		"	mulli		%4,%13,8\n"			// tmp4 = width * 8					[ calculate 1x row width in bytes ]
-		"	mulli		%5,%13,16\n"		// tmp5 = width * 16				[ calculate 2x row width in bytes ]
-		"	mulli		%6,%13,24\n"		// tmp6 = width * 24				[ calculate 3x row width in bytes ]
-		"	mulli		%7,%13,32\n"		// tmp7 = width * 32				[ calculate 4x row width in bytes ]
-		"	addi		%8,%4,4\n"			// tmp8 = tmp4 + 4					[ calculate 4+1x row width in bytes ]
-		"	addi		%9,%5,4\n"			// tmp9 = tmp5 + 4					[ calculate 4+2x row width in bytes ]
-		"	addi		%10,%6,4\n"			// tmp10 = tmp6 + 4					[ calculate 4+3x row width in bytes ]
-		"	subi		%3,%11,4\n"			// tmp3 = dst - 4
-		"	subi		%11,%11,8\n"		// dst -= 8
-
-		"2:	mtctr		%13\n"				// count = width					[ set loop variable (count) equal to width ]
-		"	mr			%0,%12\n"			// tmp0 = src
-
-		"1:	lwz			%1,0(%12)\n"		// tmp1 = *src						[ copy 8 bytes from first row to texture ]
-		"	stwu		%1,8(%11)\n"		// *(dst+8) = tmp1; dst += 8
-		"	lwz			%2,4(%12)\n"		// tmp2 = *(src+4)
-		"	stwu		%2,8(%3)\n"			// *(tmp3+8) = tmp2; tmp3 += 8
-
-		"	lwzx		%1,%12,%4\n"		// tmp1 = *(src+tmp4)				[ copy 8 bytes from second row to texture ]
-		"	stwu		%1,8(%11)\n"		// *(dst+8) = tmp1; dst += 8
-		"	lwzx		%2,%12,%8\n"		// tmp2 = *(src+tmp8)
-		"	stwu		%2,8(%3)\n"			// *(tmp3+8) = tmp2; tmp3 += 8
-
-		"	lwzx		%1,%12,%5\n"		// tmp1 = *(src+tmp5)				[ copy 8 bytes from third row to texture ]
-		"	stwu		%1,8(%11)\n"		// *(dst+8) = tmp1; dst += 8
-		"	lwzx		%2,%12,%9\n"		// tmp2 = *(src+tmp9)
-		"	stwu		%2,8(%3)\n"			// *(tmp3+8) = tmp2; tmp3 += 8
-
-		"	lwzx		%1,%12,%6\n"		// tmp1 = *(src+tmp6)				[ copy 8 bytes from fourth row to texture ]
-		"	stwu		%1,8(%11)\n"		// *(dst+8) = tmp1; dst += 8
-		"	lwzx		%2,%12,%10\n"		// tmp2 = *(src+tmp10)
-		"	stwu		%2,8(%3)\n"			// *(tmp3+8) = tmp2; tmp3 += 8
-
-		"	addi		%12,%12,8\n"		// src += 8							[ move right by 8 bytes ]
-		"	bdnz		1b\n"				// count--; if(count) goto 1		[ return to "1" if more pixels in this row ]
-
-		"	add			%12,%0,%7\n"		// src = tmp0 + tmp7				[ move down by 4 rows of pixels ]
-		"	subic.		%14,%14,1\n"		// height -= 1						[ decrement height and record to CR0 ]
-		"	bne			2b"					// if(height != 0) goto 2			[ return to "2" if more rows remaining ]
-		//		 0			  1			   2		    3            4            5
-		: "=&b"(tmp0), "=&r"(tmp1), "=&r"(tmp2), "=&r"(tmp3), "=&r"(tmp4), "=&r"(tmp5),
-		//       6            7            8            9            10
-		  "=&r"(tmp6), "=&r"(tmp7), "=&r"(tmp8), "=&r"(tmp9), "=&r"(tmp10)
-		//	   11		 12		   13		   14
-		: "b"(dst), "b"(src), "r"(width), "r"(height)
-		: "memory"
-	);
-#endif
+// copies four 32-bit colors to texture memory
+static inline void memcpy32(void* vdest, void* vsource)
+{
+	int i;
+	u32* source = (u32*)vsource;
+	u16* dest = (u16*)vdest;
+	u32 color;
+	for(i=0; i<4; i++)
+	{
+		color = *(source+i);
+		*(dest+i) = color >> 16; // AR cache line
+		*(dest+i+16) = color; // GB cache line
+	}
 }
 
 /**
@@ -614,50 +474,30 @@ void video_swizzle_simple(const void* src, void* dst, s32 width, s32 height)
  * However, each tile is 64 bytes in size because each tile is divided across two
  * cache lines.  So each 4x4 tile is a 32-byte AR block followed by a 32-byte GB block.
  *
- * TODO: test code imported from copyscreen32()!!
- * TODO: implement in ASM
  * @param src the image
- * @param dest the texture memory
- * @param width the width of each row in *BYTES*, i.e. not in pixels; must be a multiple of 16
- * @param height number of rows; must be a multiple of 4
  */
-void video_swizzle_rgba(const void* src, void* dst, s32 width, s32 height)
+void copyscreen32(s_screen* src)
 {
-	// copies four 32-bit colors to texture memory
-	// FIXME: code is ugly
-	void memcpy32(void* vdest, void* vsource)
-	{
-		int i;
-		u32* source = (u32*)vsource;
-		u16* dest = (u16*)vdest;
-		u32 color;
-		for(i=0; i<4; i++)
-		{
-			color = *(source+i);
-			*(dest+i) = color >> 16; // AR cache line
-			*(dest+i+16) = color; // GB cache line
-		}
-	}
-
-	u8* data = (u8*)src;
-	u8* dest = (u8*)dst;
-	s32 widthx2 = width * 2;
-	s32 widthx3 = width * 3;
 	int x, y;
+	u32* data = (u32*)src->data;
+	u16* dest = (u16*)texturemem[whichtexture];
+	s32 offset1 = textureWidth;
+	s32 offset2 = textureWidth * 2;
+	s32 offset3 = textureWidth * 3;
 
-	// GX_TF_RGBA8 textures are stored in 4x4 tiles in two cache lines, AR and GB
-	for(y=0; y<height; y+=4)
+	// RGBA8 textures in GX are stored in 4x4 tiles in two cache lines, AR and GB
+	for(y=0; y<textureHeight; y+=4)
 	{
-		for(x=0; x<width; x+=16)
+		for(x=0; x<textureWidth; x+=4)
 		{
 			memcpy32(dest, data);
-			memcpy32(dest+16, data+width);
-			memcpy32(dest+32, data+widthx2);
-			memcpy32(dest+48, data+widthx3);
-			data += 16;
-			dest += 64;
+			memcpy32(dest+4, data+offset1);
+			memcpy32(dest+8, data+offset2);
+			memcpy32(dest+12, data+offset3);
+			data += 4;
+			dest += 32;
 		}
-		data += widthx3; // we're already at the end of the first line
+		data += textureWidth * 3; // we're already at the end of the first line
 	}
 }
 
