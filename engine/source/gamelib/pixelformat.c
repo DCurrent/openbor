@@ -31,7 +31,6 @@ typedef struct
             unsigned char g;
             unsigned char r;
 #else
-	#error failsauce
 	        unsigned char r;
             unsigned char g;
             unsigned char b;
