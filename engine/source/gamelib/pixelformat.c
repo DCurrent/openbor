@@ -12,6 +12,7 @@
 
 #include "types.h"
 #include "globals.h"
+#include "borendian.h"
 
 #ifndef NULL
 #define NULL (void*)0
@@ -24,10 +25,18 @@ typedef struct
     {
         struct
         {
+#ifdef BOR_BIG_ENDIAN
+            unsigned char a; //unused
+            unsigned char b;
+            unsigned char g;
             unsigned char r;
+#else
+	#error failsauce
+	        unsigned char r;
             unsigned char g;
             unsigned char b;
             unsigned char a; //unused
+#endif
         } C;
         unsigned c;
     };
@@ -66,10 +75,15 @@ void drawmethod_global_init(s_drawmethod *drawmethod)
     {
         if(drawmethod && drawmethod->flag)
         {
+#if WII
+            channelr = drawmethod->channelb;
+            channelb = drawmethod->channelr;
+#else
             channelr = drawmethod->channelr;
-            channelg = drawmethod->channelg;
             channelb = drawmethod->channelb;
-            tintmode = drawmethod->tintmode;
+#endif
+            channelg = drawmethod->channelg;
+			tintmode = drawmethod->tintmode;
             tintcolor = drawmethod->tintcolor;
             usechannel = (channelr < 255) || (channelg < 255) || (channelb < 255);
         }
