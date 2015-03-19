@@ -25,6 +25,7 @@ void video_clearscreen();
 void video_fullscreen_flip();
 void video_stretch(int);
 void video_set_window_title(const char*);
+void video_set_color_correction(int, int);
 
 #endif
 

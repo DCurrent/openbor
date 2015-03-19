@@ -95,7 +95,7 @@ void video_gx_init()
 	GX_SetTevColorOp(GX_TEVSTAGE0, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV);
 	GX_SetTevAlphaIn(GX_TEVSTAGE0, GX_CA_ZERO, GX_CA_ZERO, GX_CA_ZERO, GX_CA_TEXA);
 	GX_SetTevAlphaOp(GX_TEVSTAGE0, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV);
-	vga_set_color_correction(0, 0);
+	video_set_color_correction(0, 0);
 
 	// set up an orthographic perspective
 	guOrtho(perspective, 0, viewportHeight-1, 0, viewportWidth-1, 0, 300);
@@ -315,7 +315,7 @@ void video_stretch(int enable)
  * @param br the desired brightness
  * @param gm the desired gamma
  */
-void vga_set_color_correction(int gm, int br)
+void video_set_color_correction(int gm, int br)
 {
 	if(br < -255) br = -255;
 	if(br > 255) br = 255;
