@@ -123,7 +123,13 @@ void video_init()
 
 	// widescreen fix
 	viewportHeight = vmode->xfbHeight;
-	viewportWidth = (CONF_GetAspectRatio() == CONF_ASPECT_16_9) ? viewportHeight*16/9 : vmode->fbWidth;
+	viewportWidth = vmode->fbWidth;
+	if(CONF_GetAspectRatio() == CONF_ASPECT_16_9)
+	{
+		viewportWidth = viewportHeight * 16 / 9;
+		vmode->viXOrigin = 5;
+		vmode->viWidth = VI_MAX_WIDTH_NTSC - 10;
+	}
 
 	VIDEO_Configure(vmode);
 
