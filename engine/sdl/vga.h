@@ -12,7 +12,6 @@
 
 // Set VGA-type palette
 void vga_setpalette(unsigned char* palette);
-void vga_set_color_correction(int gm, int br);
 void vga_vwait();
 
 #endif

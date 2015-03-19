@@ -28125,7 +28125,7 @@ void update(int ingame, int usevwait)
 int set_color_correction(int gm, int br)
 {
 #if WII
-    vga_set_color_correction(gm, br);
+    video_set_color_correction(gm, br);
     return 1;
 #elif ANDROID
     if(screenformat == PIXEL_8)
@@ -28140,7 +28140,7 @@ int set_color_correction(int gm, int br)
 #elif SDL
     if(opengl)
     {
-        vga_set_color_correction(gm, br);
+        video_set_color_correction(gm, br);
         return 1;
     }
     else if(screenformat == PIXEL_8)

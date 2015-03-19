@@ -314,6 +314,11 @@ void video_stretch(int enable)
 	stretch = enable;
 }
 
+void video_set_color_correction(int gm, int br)
+{
+	if(opengl) video_gl_set_color_correction(gm, br);
+}
+
 void vga_vwait(void)
 {
 #ifdef GP2X
@@ -345,12 +350,6 @@ void vga_setpalette(unsigned char* palette)
 	{
 		SDL_SetPaletteColors(screenPalette, colors, 0, 256);
 	}
-}
-
-// TODO: give this function a boolean (int) return type denoting success/failure
-void vga_set_color_correction(int gm, int br)
-{
-	if(opengl) video_gl_set_color_correction(gm, br);
 }
 
 #endif

@@ -18,6 +18,7 @@ int   video_copy_screen(s_screen*);
 void  video_clearscreen();
 void  video_draw_quad(int,int,int,int);
 void  video_stretch(int);
+void  video_set_color_correction(int,int);
 void  video_exit();
 
 void  video_swizzle_simple(const void*,void*,int,int);
