@@ -81,7 +81,7 @@ void video_clearscreen()
 	memset(screen->pixels, 0, screen->pitch*screen->h);
 }
 
-void vga_setpalette(char* palette)
+void vga_setpalette(unsigned char* palette)
 {
 	int i;
 	if(bpp>1) return;
