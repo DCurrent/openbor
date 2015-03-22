@@ -31616,7 +31616,7 @@ void video_options()
 
 #if WII
         _menutext((selector == 3), col1, 0, Tr("Display Mode:"));
-        _menutext((selector == 3), col2, 0, (savedata.fullscreen ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
+        _menutext((selector == 3), col2, 0, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
         _menutextm((selector == 4), 6, 0, Tr("Back"));
         if(selector < 0)
         {
