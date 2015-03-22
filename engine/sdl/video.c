@@ -64,8 +64,7 @@ void initSDL()
 	SDL_ShowCursor(SDL_DISABLE);
 	atexit(SDL_Quit);
 
-	// TODO OpenGL
-#if 0 // WIN || LINUX && !DARWIN && !defined(GLES)
+#if WIN || LINUX && !DARWIN
 	if(SDL_GL_LoadLibrary(NULL) < 0)
 	{
 		printf("Warning: couldn't load OpenGL library (%s)\n", SDL_GetError());
@@ -233,10 +232,7 @@ void video_clearscreen()
 void video_stretch(int enable)
 {
 	stretch = enable;
-	if(!window) return;
-	if(opengl)
-		video_clearscreen();
-	else
+	if(window && !opengl)
 	{
 		if(stretch)
 			SDL_RenderSetLogicalSize(renderer, 0, 0);
