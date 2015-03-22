@@ -110,14 +110,17 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 
 	if(window)
 	{
-		if (savedata.fullscreen)
+		if(savedata.fullscreen)
 		{
 			SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 		}
 		else
 		{
+			if(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP)
+				SDL_HideWindow(window);
 			SDL_SetWindowFullscreen(window, 0);
 			SDL_SetWindowSize(window, w, h);
+			SDL_ShowWindow(window);
 		}
 	}
 	else
@@ -229,8 +232,17 @@ void video_clearscreen()
 
 void video_stretch(int enable)
 {
-	if(window || opengl) video_clearscreen();
 	stretch = enable;
+	if(!window) return;
+	if(opengl)
+		video_clearscreen();
+	else
+	{
+		if(stretch)
+			SDL_RenderSetLogicalSize(renderer, 0, 0);
+		else
+			SDL_RenderSetLogicalSize(renderer, stored_videomodes.hRes, stored_videomodes.vRes);
+	}
 }
 
 void video_set_color_correction(int gm, int br)
