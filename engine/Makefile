@@ -463,6 +463,7 @@ GAME_CONSOLE   += sdl/joysticks.o                                               
                   sdl/timer.o                                                                       \
                   sdl/sdlport.o                                                                     \
                   sdl/video.o                                                                       \
+                  sdl/videocommon.o                                                                 \
                   sdl/menu.o
 endif
 

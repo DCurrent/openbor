@@ -16,7 +16,7 @@
 extern u8 pDeltaBuffer[480 * 2592];
 extern int opengl;
 
-SDL_Surface* SetVideoMode(int, int, int, bool);
+int SetVideoMode(int, int, int, bool);
 
 // Frees all VESA shit when returning to textmode
 int video_set_mode(s_videomodes);
