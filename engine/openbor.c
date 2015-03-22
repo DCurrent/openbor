@@ -31651,7 +31651,7 @@ void video_options()
 #else
             if(savedata.glscale == 0)
             {
-                _menutext((selector == 5), col2, 2, "Automatic");
+                _menutext((selector == 5), col2, 2, Tr("Automatic"));
             }
             else
             {
@@ -31667,7 +31667,7 @@ void video_options()
             _menutext((selector == 5), col1, 2, Tr("Screen:"));
             if(savedata.screen[videoMode][0])
             {
-                _menutext((selector == 3), col2, 2, "%ix - %ix%i", savedata.screen[videoMode][0], videomodes.hRes * savedata.screen[videoMode][0], videomodes.vRes * savedata.screen[videoMode][0]);
+                _menutext((selector == 5), col2, 2, "%ix - %ix%i", savedata.screen[videoMode][0], videomodes.hRes * savedata.screen[videoMode][0], videomodes.vRes * savedata.screen[videoMode][0]);
             }
             else
             {
