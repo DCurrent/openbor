@@ -13,19 +13,13 @@
 #else
 
 #include "sdlport.h"
-
-#ifdef SDL2
 #include "SDL2_framerate.h"
-#else
-#include "SDL_framerate.h"
-#endif
 
 #include <math.h>
 #include "types.h"
 #include "video.h"
 #include "vga.h"
 #include "screen.h"
-#include "sdlport.h"
 #include "opengl.h"
 #include "openbor.h"
 #include "gfxtypes.h"
@@ -92,6 +86,9 @@ void initSDL()
 	nativeWidth = video_info.w;
 	nativeHeight = video_info.h;
 	printf("debug:nativeWidth, nativeHeight, bpp, Hz  %d, %d, %d, %d\n", nativeWidth, nativeHeight, SDL_BITSPERPIXEL(video_info.format), video_info.refresh_rate);
+
+	SDL_initFramerate(&framerate_manager);
+	SDL_setFramerate(&framerate_manager, 200);
 }
 
 void video_set_window_title(const char* title)
