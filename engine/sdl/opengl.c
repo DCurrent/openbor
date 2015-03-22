@@ -448,7 +448,7 @@ int video_gl_copy_screen(s_screen* src)
 	// blit the image to the screen
 	SwapBuffers();
 
-#if !SDL2 && (WIN || LINUX)
+#if WIN || LINUX
 	// limit framerate to 200 fps
 	SDL_framerateDelay(&framerate_manager);
 #endif
