@@ -24,6 +24,7 @@
 #include "openbor.h"
 #include "gfxtypes.h"
 #include "gfx.h"
+#include "videocommon.h"
 
 extern int videoMode;
 
@@ -44,21 +45,11 @@ SDL_Palette *screenPalette = NULL;
 FPSmanager framerate_manager;
 
 s_videomodes stored_videomodes;
-static SDL_Surface *screen = NULL;
-static SDL_Surface *bscreen = NULL;
-static SDL_Surface *bscreen2 = NULL;
-static SDL_Color colors[256];
-static int bytes_per_pixel = 1;
-static int brightness = 0;
+SDL_Color colors[256];
 int stretch = 0;
 int opengl = 0; // OpenGL backend currently in use?
 int nativeWidth, nativeHeight; // monitor resolution used in fullscreen mode
-u8 pDeltaBuffer[480 * 2592];
-
-SDL_Surface* getSDLScreen()
-{
-	return screen;
-}
+int brightness = 0;
 
 void initSDL()
 {
@@ -97,12 +88,9 @@ void video_set_window_title(const char* title)
 	if(window) SDL_SetWindowTitle(window, title);
 }
 
-static unsigned masks[4][4] = {{0,0,0,0},{0x1F,0x07E0,0xF800,0},{0xFF,0xFF00,0xFF0000,0},{0xFF,0xFF00,0xFF0000,0}};
-static unsigned pixelformats[4] = {SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_BGR565, SDL_PIXELFORMAT_BGR888, SDL_PIXELFORMAT_ABGR8888};
-static int modebits[4] = {32, 16, 32, 32};
+static unsigned pixelformats[4] = {SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_BGR565, SDL_PIXELFORMAT_BGR888, SDL_PIXELFORMAT_ABGR8888};
 
-// Function approximating SDL 1.2's SDL_SetVideoMode for SDL 2.0
-SDL_Surface* SetVideoMode(int w, int h, int bpp, bool gl)
+int SetVideoMode(int w, int h, int bpp, bool gl)
 {
 	int x = SDL_WINDOWPOS_UNDEFINED;
 	int y = SDL_WINDOWPOS_UNDEFINED;
@@ -122,16 +110,22 @@ SDL_Surface* SetVideoMode(int w, int h, int bpp, bool gl)
 
 	if(window)
 	{
-		SDL_SetWindowFullscreen(window, 0);
-		SDL_SetWindowSize(window, w, h);
-		SDL_SetWindowFullscreen(window, savedata.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+		if (savedata.fullscreen)
+		{
+			SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+		}
+		else
+		{
+			SDL_SetWindowFullscreen(window, 0);
+			SDL_SetWindowSize(window, w, h);
+		}
 	}
 	else
 	{
 		window = SDL_CreateWindow("OpenBOR", x, y, w, h, flags); // FIXME: use previous window title
-		if(!window) return NULL;
+		if(!window) return 0;
 		renderer = SDL_CreateRenderer(window, -1, 0);
-		if(!renderer) return NULL;
+		if(!renderer) return 0;
 		SDL_Surface* icon = (SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data);
 		SDL_SetWindowIcon(window, icon);
 		SDL_FreeSurface(icon);
@@ -150,17 +144,12 @@ SDL_Surface* SetVideoMode(int w, int h, int bpp, bool gl)
 		texture = NULL;
 	}
 
-	if(gl) return NULL;
-	else return SDL_CreateRGBSurface(0, w, h, bpp, masks[bpp/8-1][0], masks[bpp/8-1][1], masks[bpp/8-1][2], masks[bpp/8-1][3]);
+	return 1;
 }
 
 int video_set_mode(s_videomodes videomodes)
 {
 	stored_videomodes = videomodes;
-
-	if(screen) { SDL_FreeSurface(screen); screen=NULL; }
-	if(bscreen) { SDL_FreeSurface(bscreen); bscreen=NULL; }
-	if(bscreen2) { SDL_FreeSurface(bscreen2); bscreen2=NULL; }
 
 	// try OpenGL initialization first
 	if(savedata.usegl[savedata.fullscreen] && video_gl_set_mode(videomodes)) return 1;
@@ -168,62 +157,30 @@ int video_set_mode(s_videomodes videomodes)
 
 	// FIXME: OpenGL surfaces aren't freed when switching from OpenGL to SDL
 
-	bytes_per_pixel = videomodes.pixel;
 	if(videomodes.hRes==0 && videomodes.vRes==0)
 	{
 		Term_Gfx();
 		return 0;
 	}
 
-	if(savedata.screen[videoMode][0] == 2)
-	{
-		screen = SetVideoMode(videomodes.hRes*savedata.screen[videoMode][0], videomodes.vRes*savedata.screen[videoMode][0], 16, false);
-		bscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, videomodes.hRes, videomodes.vRes, 8*bytes_per_pixel, masks[bytes_per_pixel-1][0], masks[bytes_per_pixel-1][1], masks[bytes_per_pixel-1][2], masks[bytes_per_pixel-1][3]); // 24bit mask
-		bscreen2 = SDL_CreateRGBSurface(SDL_SWSURFACE, videomodes.hRes+4, videomodes.vRes+8, 16, masks[1][0], masks[1][1], masks[1][2], masks[1][3]);
-		Init_Gfx(565, 16);
-		memset(pDeltaBuffer, 0x00, 1244160);
-		if(bscreen==NULL || bscreen2==NULL) return 0;
+	videomodes = setupPreBlitProcessing(videomodes);
 
-		SDL_RenderSetLogicalSize(renderer, videomodes.hRes * 2, videomodes.vRes * 2);
-		texture = SDL_CreateTexture(renderer,
-                                    SDL_PIXELFORMAT_BGR565,
-                                    SDL_TEXTUREACCESS_STREAMING,
-                                    videomodes.hRes * 2, videomodes.vRes * 2);
-	}
-	else if(savedata.screen[videoMode][0])
+	if(!SetVideoMode(videomodes.hRes * videomodes.hScale,
+	                 videomodes.vRes * videomodes.vScale,
+	                 videomodes.pixel * 8, false))
 	{
-		screen = SetVideoMode(videomodes.hRes*savedata.screen[videoMode][0], videomodes.vRes*savedata.screen[videoMode][0], modebits[bytes_per_pixel-1], false);
-		SDL_RenderSetLogicalSize(renderer, videomodes.hRes, videomodes.vRes);
-		texture = SDL_CreateTexture(renderer,
-                                    pixelformats[bytes_per_pixel-1],
-                                    SDL_TEXTUREACCESS_STREAMING,
-                                    videomodes.hRes, videomodes.vRes);
+		return 0;
 	}
-	else
-	{
-		screen = SetVideoMode(videomodes.hRes, videomodes.vRes, modebits[bytes_per_pixel-1], false);
-		SDL_RenderSetLogicalSize(renderer, videomodes.hRes, videomodes.vRes);
-		texture = SDL_CreateTexture(renderer,
-                                    pixelformats[bytes_per_pixel-1],
-                                    SDL_TEXTUREACCESS_STREAMING,
-                                    videomodes.hRes, videomodes.vRes);
-	}
+
+	SDL_RenderSetLogicalSize(renderer, videomodes.hRes, videomodes.vRes);
+	texture = SDL_CreateTexture(renderer,
+	                            pixelformats[videomodes.pixel-1],
+	                            SDL_TEXTUREACCESS_STREAMING,
+	                            videomodes.hRes, videomodes.vRes);
 
 	SDL_ShowCursor(SDL_DISABLE);
-
-	if(bytes_per_pixel==1)
-	{
-		//SDL_SetSurfacePalette(screen, screenPalette);
-		if(!bscreen) bscreen = SDL_CreateRGBSurface(0, videomodes.hRes, videomodes.vRes, 8, 0,0,0,0);
-		SDL_SetSurfacePalette(bscreen, screenPalette);
-		SDL_SetPaletteColors(screenPalette, colors, 0, 256);
-	}
-
-	if(screen==NULL) return 0;
-
-	//printf("debug: screen->w:%d screen->h:%d   fullscreen:%d   depth:%d\n", screen->w, screen->h, savedata.fullscreen, screen->format->BitsPerPixel);
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-	video_clearscreen();
+
 	return 1;
 }
 
@@ -235,62 +192,14 @@ void video_fullscreen_flip()
 
 int video_copy_screen(s_screen* src)
 {
-	unsigned char *sp;
-	char *dp;
-	int width, height, linew, slinew;
-	int h;
-	SDL_Surface* ds = NULL;
-	SDL_Rect rectdes, rectsrc;
-
 	// use video_gl_copy_screen if in OpenGL mode
 	if(opengl) return video_gl_copy_screen(src);
 
-	width = screen->w;
-	if(width > src->width) width = src->width;
-	height = screen->h;
-	if(height > src->height) height = src->height;
-	if(!width || !height) return 0;
-	h = height;
+	s_videosurface *surface = getVideoSurface(src);
 
-	if(bscreen)
-	{
-		rectdes.x = rectdes.y = 0;
-		rectdes.w = width*savedata.screen[videoMode][0]; rectdes.h = height*savedata.screen[videoMode][0];
-		if(bscreen2) {rectsrc.x = 2; rectsrc.y = 4;}
-		else         {rectsrc.x = 0; rectsrc.y = 0;}
-		rectsrc.w = width; rectsrc.h = height;
-
-		sp = (unsigned char*)src->data;
-		ds = (bscreen?bscreen:screen);
-		dp = ds->pixels;
-
-		linew = width*bytes_per_pixel;
-		slinew = src->width*bytes_per_pixel;
-
-		do{
-			memcpy(dp, sp, linew);
-			sp += slinew;
-			dp += ds->pitch;
-		}while(--h);
-	}
-
-	if (bscreen2)
-	{
-		assert(savedata.screen[videoMode][0] == 2);
-		SDL_BlitSurface(bscreen, NULL, bscreen2, &rectsrc);
-
-		(*GfxBlitters[(int)savedata.screen[videoMode][1]])((u8*)bscreen2->pixels+bscreen2->pitch*4+4, bscreen2->pitch, pDeltaBuffer+bscreen2->pitch, (u8*)screen->pixels, screen->pitch, screen->w>>1, screen->h>>1);
-	}
-	else if(bscreen)
-	{
-		SDL_BlitSurface(bscreen, NULL, screen, NULL);
-	}
+	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
 
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-
-	int pitch = bscreen ? screen->pitch : width * bytes_per_pixel;
-	SDL_UpdateTexture(texture, NULL, bscreen ? screen->pixels : src->data, pitch);
-
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 
@@ -320,7 +229,7 @@ void video_clearscreen()
 
 void video_stretch(int enable)
 {
-	if(screen || opengl) video_clearscreen();
+	if(window || opengl) video_clearscreen();
 	stretch = enable;
 }
 
