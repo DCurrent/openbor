@@ -49,6 +49,7 @@ static SDL_Surface *bscreen = NULL;
 static SDL_Surface *bscreen2 = NULL;
 static SDL_Color colors[256];
 static int bytes_per_pixel = 1;
+static int brightness = 0;
 int stretch = 0;
 int opengl = 0; // OpenGL backend currently in use?
 int nativeWidth, nativeHeight; // monitor resolution used in fullscreen mode
@@ -221,6 +222,7 @@ int video_set_mode(s_videomodes videomodes)
 	if(screen==NULL) return 0;
 
 	//printf("debug: screen->w:%d screen->h:%d   fullscreen:%d   depth:%d\n", screen->w, screen->h, savedata.fullscreen, screen->format->BitsPerPixel);
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 	video_clearscreen();
 	return 1;
 }
@@ -283,11 +285,21 @@ int video_copy_screen(s_screen* src)
 	{
 		SDL_BlitSurface(bscreen, NULL, screen, NULL);
 	}
-	
+
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+
 	int pitch = bscreen ? screen->pitch : width * bytes_per_pixel;
 	SDL_UpdateTexture(texture, NULL, bscreen ? screen->pixels : src->data, pitch);
+
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+	if (brightness > 0)
+		SDL_SetRenderDrawColor(renderer, 255, 255, 255, brightness-1);
+	else if (brightness < 0)
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0, (-brightness)-1);
+	SDL_RenderFillRect(renderer, NULL);
+
 	SDL_RenderPresent(renderer);
 
 #if WIN || LINUX
@@ -301,6 +313,7 @@ void video_clearscreen()
 {
 	if(opengl) { video_gl_clearscreen(); return; }
 	
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 	SDL_RenderClear(renderer);
 	SDL_RenderPresent(renderer);
 }
@@ -313,6 +326,7 @@ void video_stretch(int enable)
 
 void video_set_color_correction(int gm, int br)
 {
+	brightness = br;
 	if(opengl) video_gl_set_color_correction(gm, br);
 }
 

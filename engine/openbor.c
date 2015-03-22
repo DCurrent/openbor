@@ -28124,34 +28124,9 @@ void update(int ingame, int usevwait)
  * error. */
 int set_color_correction(int gm, int br)
 {
-#if WII
+#if WII || (SDL && !ANDROID)
     video_set_color_correction(gm, br);
     return 1;
-#elif ANDROID
-    if(screenformat == PIXEL_8)
-    {
-        palette_set_corrected(pal, savedata.gamma, savedata.gamma, savedata.gamma, savedata.brightness, savedata.brightness, savedata.brightness);
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
-#elif SDL
-    if(opengl)
-    {
-        video_set_color_correction(gm, br);
-        return 1;
-    }
-    else if(screenformat == PIXEL_8)
-    {
-        palette_set_corrected(pal, savedata.gamma, savedata.gamma, savedata.gamma, savedata.brightness, savedata.brightness, savedata.brightness);
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
 #else
     if(screenformat == PIXEL_8)
     {
