@@ -15,9 +15,7 @@
 #define GL_GLEXT_PROTOTYPES
 #endif
 
-#ifdef GLES
-#include "SDL_opengles.h"
-#elif WIN
+#if WIN
 // SDL_opengl.h in Windows includes <windows.h>, which clashes with several
 // definitions in openbor.h :(
 #define APIENTRY __stdcall
@@ -31,7 +29,6 @@
 // call this immediately after setting an OpenGL video mode in Linux or Windows
 int LoadGLFunctions();
 
-#ifndef GLES
 extern PFNGLCREATESHADEROBJECTARBPROC glCreateShaderObjectARB;
 extern PFNGLSHADERSOURCEARBPROC glShaderSourceARB;
 extern PFNGLCOMPILESHADERARBPROC glCompileShaderARB;
@@ -43,7 +40,6 @@ extern PFNGLGETUNIFORMLOCATIONARBPROC glGetUniformLocationARB;
 extern PFNGLUNIFORM1IARBPROC glUniform1iARB;
 extern PFNGLUNIFORM1FARBPROC glUniform1fARB;
 extern PFNGLUNIFORM4FARBPROC glUniform4fARB;
-#endif
 
 #if WIN
 // <GL/gl.h> in Windows only defines prototypes available in OpenGL 1.1, which

@@ -17,7 +17,6 @@
 int video_gl_set_mode(s_videomodes);
 int video_gl_copy_screen(s_screen*);
 void video_gl_clearscreen();
-void video_gl_fullscreen_flip();
 void video_gl_setpalette(unsigned char*);
 void video_gl_set_color_correction(int, int);
 
@@ -27,7 +26,6 @@ void video_gl_set_color_correction(int, int);
 #define video_gl_set_mode(X)					0
 #define video_gl_copy_screen(X)					0
 #define video_gl_clearscreen()
-#define video_gl_fullscreen_flip()
 #define video_gl_setpalette(X)
 #define video_gl_set_color_correction(X,Y)
 

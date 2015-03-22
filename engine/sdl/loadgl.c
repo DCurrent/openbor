@@ -17,20 +17,11 @@
 
 #ifdef OPENGL
 
+#include "sdlport.h"
 #include "loadgl.h"
 
 #ifndef APIENTRY
 #define APIENTRY
-#endif
-
-// Macros for compatibility between SDL and EGL
-#ifdef SDL // SDL is currently used on all OpenGL-capable platforms
-#include "sdlport.h"
-#define GetProcAddress SDL_GL_GetProcAddress
-#elif EGL // proof of concept for EGL support, especially useful with OpenGL ES
-#define GetProcAddress eglGetProcAddress
-#else
-#error no API for dynamically loading OpenGL functions is defined
 #endif
 
 void (APIENTRY *ptr_glViewport)(GLint x, GLint y, GLsizei width, GLsizei height);
@@ -57,30 +48,17 @@ void (APIENTRY *ptr_glGetIntegerv)(GLenum pname, GLint* params);
 const GLubyte* (APIENTRY *ptr_glGetString)(GLenum name);
 GLenum (APIENTRY *ptr_glGetError)(void);
 
-#ifdef GLES
-void (APIENTRY *ptr_glOrthox)(GLfixed left, GLfixed right, GLfixed bottom, GLfixed top, GLfixed near_val, GLfixed far_val);
-void (APIENTRY *ptr_glTexParameterx)(GLenum target, GLenum pname, GLfixed param);
-
-void (APIENTRY *ptr_glEnableClientState)(GLenum cap);
-void (APIENTRY *ptr_glDisableClientState)(GLenum cap);
-void (APIENTRY *ptr_glTexCoordPointer)(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr);
-void (APIENTRY *ptr_glVertexPointer)(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr);
-void (APIENTRY *ptr_glDrawArrays)(GLenum mode, GLint first, GLsizei count);
-void (APIENTRY *ptr_glDrawElements)(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices);
-#else
 void (APIENTRY *ptr_glOrtho)(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val);
 void (APIENTRY *ptr_glTexParameteri)(GLenum target, GLenum pname, GLint param);
 void (APIENTRY *ptr_glBegin)(GLenum mode);
 void (APIENTRY *ptr_glEnd)(void);
 void (APIENTRY *ptr_glVertex2i)(GLint x, GLint y);
 void (APIENTRY *ptr_glTexCoord2f)(GLfloat s, GLfloat t);
-#endif
 
 // optional multitexturing extension (core in OpenGL 1.3 and OpenGL ES 1.0)
 void (APIENTRY *ptr_glActiveTexture)(GLenum texture);
 void (APIENTRY *ptr_glMultiTexCoord2f)(GLenum texture, GLfloat s, GLfloat t);
 
-#ifndef GLES
 PFNGLCREATESHADEROBJECTARBPROC glCreateShaderObjectARB;
 PFNGLSHADERSOURCEARBPROC glShaderSourceARB;
 PFNGLCOMPILESHADERARBPROC glCompileShaderARB;
@@ -92,10 +70,9 @@ PFNGLGETUNIFORMLOCATIONARBPROC glGetUniformLocationARB;
 PFNGLUNIFORM1IARBPROC glUniform1iARB;
 PFNGLUNIFORM1FARBPROC glUniform1fARB;
 PFNGLUNIFORM4FARBPROC glUniform4fARB;
-#endif
 
-#define LOADFUNC(X,Y) Y = GetProcAddress(X); if(!Y) { printf("Failed to load OpenGL function " X "..."); return 0; }
-#define LOADFUNC2(X) X = GetProcAddress(#X); if(!X) { printf("Failed to load OpenGL function " #X "..."); return 0; }
+#define LOADFUNC(X,Y) Y = SDL_GL_GetProcAddress(X); if(!Y) { printf("Failed to load OpenGL function " X "..."); return 0; }
+#define LOADFUNC2(X) X = SDL_GL_GetProcAddress(#X); if(!X) { printf("Failed to load OpenGL function " #X "..."); return 0; }
 
 int LoadGLFunctions()
 {
@@ -124,46 +101,33 @@ int LoadGLFunctions()
 	LOADFUNC("glGetString", ptr_glGetString);
 	LOADFUNC("glGetError", ptr_glGetError);
 
-#ifdef GLES
-	LOADFUNC("glOrthox", ptr_glOrthox);
-	LOADFUNC("glTexParameterx", ptr_glTexParameterx);
-	LOADFUNC("glEnableClientState", ptr_glEnableClientState);
-	LOADFUNC("glDisableClientState", ptr_glDisableClientState);
-	LOADFUNC("glTexCoordPointer", ptr_glTexCoordPointer);
-	LOADFUNC("glVertexPointer", ptr_glVertexPointer);
-	LOADFUNC("glDrawArrays", ptr_glDrawArrays);
-	LOADFUNC("glDrawElements", ptr_glDrawElements);
-#else
 	LOADFUNC("glOrtho", ptr_glOrtho);
 	LOADFUNC("glTexParameteri", ptr_glTexParameteri);
 	LOADFUNC("glBegin", ptr_glBegin);
 	LOADFUNC("glEnd", ptr_glEnd);
 	LOADFUNC("glVertex2i", ptr_glVertex2i);
 	LOADFUNC("glTexCoord2f", ptr_glTexCoord2f);
-#endif
 
 	// load multisampling functions; try the ARB versions if the core versions are not available
-	ptr_glActiveTexture = GetProcAddress("glActiveTexture");
+	ptr_glActiveTexture = SDL_GL_GetProcAddress("glActiveTexture");
 	if(!ptr_glActiveTexture)
 		LOADFUNC("glActiveTextureARB", ptr_glActiveTexture);
-#ifndef GLES
-	ptr_glMultiTexCoord2f = GetProcAddress("glMultiTexCoord2f");
+	ptr_glMultiTexCoord2f = SDL_GL_GetProcAddress("glMultiTexCoord2f");
 	if(!ptr_glMultiTexCoord2f)
 		LOADFUNC("glMultiTexCoord2fARB", ptr_glMultiTexCoord2f);
 
 	// load optional GLSL extensions
-	glCreateShaderObjectARB = GetProcAddress("glCreateShaderObjectARB");
-	glShaderSourceARB = GetProcAddress("glShaderSourceARB");
-	glCompileShaderARB = GetProcAddress("glCompileShaderARB");
-	glCreateProgramObjectARB = GetProcAddress("glCreateProgramObjectARB");
-	glAttachObjectARB = GetProcAddress("glAttachObjectARB");
-	glLinkProgramARB = GetProcAddress("glLinkProgramARB");
-	glUseProgramObjectARB = GetProcAddress("glUseProgramObjectARB");
-	glGetUniformLocationARB = GetProcAddress("glGetUniformLocationARB");
-	glUniform1iARB = GetProcAddress("glUniform1iARB");
-	glUniform1fARB = GetProcAddress("glUniform1fARB");
-	glUniform4fARB = GetProcAddress("glUniform4fARB");
-#endif
+	glCreateShaderObjectARB = SDL_GL_GetProcAddress("glCreateShaderObjectARB");
+	glShaderSourceARB = SDL_GL_GetProcAddress("glShaderSourceARB");
+	glCompileShaderARB = SDL_GL_GetProcAddress("glCompileShaderARB");
+	glCreateProgramObjectARB = SDL_GL_GetProcAddress("glCreateProgramObjectARB");
+	glAttachObjectARB = SDL_GL_GetProcAddress("glAttachObjectARB");
+	glLinkProgramARB = SDL_GL_GetProcAddress("glLinkProgramARB");
+	glUseProgramObjectARB = SDL_GL_GetProcAddress("glUseProgramObjectARB");
+	glGetUniformLocationARB = SDL_GL_GetProcAddress("glGetUniformLocationARB");
+	glUniform1iARB = SDL_GL_GetProcAddress("glUniform1iARB");
+	glUniform1fARB = SDL_GL_GetProcAddress("glUniform1fARB");
+	glUniform4fARB = SDL_GL_GetProcAddress("glUniform4fARB");
 
 	return 1;
 }
@@ -269,47 +233,6 @@ GLenum APIENTRY glGetError(void)
 	return ptr_glGetError();
 }
 
-#ifdef GLES
-void APIENTRY glOrthox(GLfixed left, GLfixed right, GLfixed bottom, GLfixed top, GLfixed near_val, GLfixed far_val)
-{
-	ptr_glOrthox(left, right, bottom, top, near_val, far_val);
-}
-
-void APIENTRY glTexParameterx(GLenum target, GLenum pname, GLfixed param)
-{
-	ptr_glTexParameterx(target, pname, param);
-}
-
-void APIENTRY glEnableClientState(GLenum cap)
-{
-	ptr_glEnableClientState(cap);
-}
-
-void APIENTRY glDisableClientState(GLenum cap)
-{
-	ptr_glDisableClientState(cap);
-}
-
-void APIENTRY glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
-{
-	ptr_glTexCoordPointer(size, type, stride, ptr);
-}
-
-void APIENTRY glVertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
-{
-	ptr_glVertexPointer(size, type, stride, ptr);
-}
-
-void APIENTRY glDrawArrays(GLenum mode, GLint first, GLsizei count)
-{
-	ptr_glDrawArrays(mode, first, count);
-}
-
-void APIENTRY glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices)
-{
-	ptr_glDrawElements(mode, count, type, indices);
-}
-#else
 void APIENTRY glOrtho(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val)
 {
 	ptr_glOrtho(left, right, bottom, top, near_val, far_val);
@@ -344,7 +267,6 @@ void APIENTRY glMultiTexCoord2f(GLenum texture, GLfloat s, GLfloat t)
 {
 	ptr_glMultiTexCoord2f(texture, s, t);
 }
-#endif
 #endif
 
 #endif
