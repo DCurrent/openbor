@@ -174,6 +174,12 @@ int video_set_mode(s_videomodes videomodes)
 		return 0;
 	}
 
+	if(savedata.glfilter[savedata.fullscreen] ||
+	   (videomodes.hScale == 1 && videomodes.vScale == 1 && !savedata.fullscreen))
+		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
+	else
+		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+
 	SDL_RenderSetLogicalSize(renderer, videomodes.hRes, videomodes.vRes);
 	texture = SDL_CreateTexture(renderer,
 	                            pixelformats[videomodes.pixel-1],

@@ -48,7 +48,7 @@ s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
 	}
 	
 	// set up software scaling
-	if(savedata.glscale >= 2.0 && savedata.screen[videoMode][1])
+	if(savedata.screen[videoMode][1] && (savedata.glscale >= 2.0 || savedata.fullscreen))
 	{
 		if (screen) SDL_FreeSurface(screen);
 		screen = SDL_CreateRGBSurface(0, videomodes.hRes*2, videomodes.vRes*2, 16, masks[1][0], masks[1][1], masks[1][2], masks[1][3]);
