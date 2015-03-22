@@ -31967,6 +31967,7 @@ void video_options()
                         videomodes.filter = BLITTER_MAX - 1;
                     }
                     savedata.screen[videoMode][1] = videomodes.filter;
+                    memset(pDeltaBuffer, 0x00, 1244160);
                 }
                 break;
             case 7:
