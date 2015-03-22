@@ -31636,46 +31636,35 @@ void video_options()
         _menutext((selector == 4), col1, 1, Tr("Video Backend:"));
         _menutext((selector == 4), col2, 1, (opengl ? Tr("OpenGL") : Tr("SDL")));
 
+        _menutext((selector == 5), col1, 2, Tr("Scale:"));
+#ifndef ANDROID
+        if(savedata.fullscreen)
+        {
+            _menutext((selector == 5), col2, 2, Tr("Automatic"));
+        }
+        else
+        {
+            _menutext((selector == 5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes * savedata.glscale), (int)(videomodes.vRes * savedata.glscale));
+        }
+#else
+        if(savedata.glscale == 0)
+        {
+            _menutext((selector == 5), col2, 2, Tr("Automatic"));
+        }
+        else
+        {
+            _menutext((selector == 5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes * savedata.glscale), (int)(videomodes.vRes * savedata.glscale));
+        }
+#endif
         if(opengl)
         {
-            _menutext((selector == 5), col1, 2, Tr("Screen:"));
-#ifndef ANDROID
-            if(savedata.fullscreen)
-            {
-                _menutext((selector == 5), col2, 2, Tr("Automatic"));
-            }
-            else
-            {
-                _menutext((selector == 5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes * savedata.glscale), (int)(videomodes.vRes * savedata.glscale));
-            }
-#else
-            if(savedata.glscale == 0)
-            {
-                _menutext((selector == 5), col2, 2, Tr("Automatic"));
-            }
-            else
-            {
-                _menutext((selector == 5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes * savedata.glscale), (int)(videomodes.vRes * savedata.glscale));
-            }
-#endif
-
             _menutext((selector == 6), col1, 3, Tr("Filters:"));
             _menutext((selector == 6), col2, 3, ((savedata.glscale != 1.0 || savedata.fullscreen) ? (savedata.glfilter[savedata.fullscreen] ? Tr("Simple") : Tr("Bilinear")) : Tr("Disabled")));
         }
         else
         {
-            _menutext((selector == 5), col1, 2, Tr("Screen:"));
-            if(savedata.screen[videoMode][0])
-            {
-                _menutext((selector == 5), col2, 2, "%ix - %ix%i", savedata.screen[videoMode][0], videomodes.hRes * savedata.screen[videoMode][0], videomodes.vRes * savedata.screen[videoMode][0]);
-            }
-            else
-            {
-                _menutext((selector == 5), col2, 2, Tr("Disabled"));
-            }
-
             _menutext((selector == 6), col1, 3, Tr("Filters:"));
-            _menutext((selector == 6), col2, 3, (savedata.screen[videoMode][0] == 2 ? Tr(GfxBlitterNames[(int)savedata.screen[videoMode][1]]) : Tr("Disabled")));
+            _menutext((selector == 6), col2, 3, ((savedata.glscale != 1.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[(int)savedata.screen[videoMode][1]]) : Tr("Disabled")));
         }
 
         if(savedata.fullscreen)
@@ -31915,62 +31904,32 @@ void video_options()
                 set_color_correction(savedata.gamma, savedata.brightness);
                 break;
             case 5:
-                if(opengl)
-                {
 #ifndef ANDROID
-                    if(savedata.fullscreen)
-                    {
-                        break;
-                    }
-                    savedata.glscale += dir * 0.25;
-                    if(savedata.glscale < 0.25)
-                    {
-                        savedata.glscale = 0.25;
-                    }
-                    if(savedata.glscale > 4.00)
-                    {
-                        savedata.glscale = 4.00;
-                    }
-                    video_set_mode(videomodes);
-#else
-                    savedata.glscale += dir * 0.25;
-                    if(savedata.glscale < 0.0)
-                    {
-                        savedata.glscale = 0.0;
-                    }
-                    if(savedata.glscale > 4.00)
-                    {
-                        savedata.glscale = 4.00;
-                    }
-#endif
-                }
-                else
+                if(savedata.fullscreen)
                 {
-                    videomodes.mode += dir * 2;
-#ifdef WII
-                    // Wii with SDL is limited to 640x480
-                    if(videomodes.mode > 2)
-                    {
-                        videomodes.mode = 0;
-                    }
-                    if(videomodes.mode < 0)
-                    {
-                        videomodes.mode = 2;
-                    }
-#else
-                    if(videomodes.mode > 4)
-                    {
-                        videomodes.mode = 0;
-                    }
-                    if(videomodes.mode < 0)
-                    {
-                        videomodes.mode = 4;
-                    }
-#endif
-                    savedata.screen[videoMode][0] = videomodes.mode;
-                    video_set_mode(videomodes);
-                    change_system_palette(current_palette);
+                    break;
                 }
+                savedata.glscale += dir * 0.25;
+                if(savedata.glscale < 0.25)
+                {
+                    savedata.glscale = 0.25;
+                }
+                if(savedata.glscale > 4.00)
+                {
+                    savedata.glscale = 4.00;
+                }
+                video_set_mode(videomodes);
+#else
+                savedata.glscale += dir * 0.25;
+                if(savedata.glscale < 0.0)
+                {
+                    savedata.glscale = 0.0;
+                }
+                if(savedata.glscale > 4.00)
+                {
+                    savedata.glscale = 4.00;
+                }
+#endif
                 break;
             case 6:
                 if(opengl)
@@ -31994,7 +31953,7 @@ void video_options()
                 }
                 else
                 {
-                    if(videomodes.mode != 2)
+                    if(!savedata.fullscreen && savedata.glscale < 2.0)
                     {
                         break;
                     }

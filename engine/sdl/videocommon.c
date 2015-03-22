@@ -34,8 +34,8 @@ s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
 	if(bscreen2) { SDL_FreeSurface(bscreen2); bscreen2=NULL; }
 	
 	// set scale factors to 1 by default
-	videomodes.hScale = 1;
-	videomodes.vScale = 1;
+	videomodes.hScale = savedata.glscale;
+	videomodes.vScale = savedata.glscale;
 	
 	// set up indexed to RGB conversion
 	if(videomodes.pixel == 1)
@@ -47,7 +47,8 @@ s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
 		videomodes.pixel = 4;
 	}
 	
-	if(savedata.screen[videoMode][0] == 2)
+	// set up software scaling
+	if(savedata.glscale >= 2.0 && savedata.screen[videoMode][1])
 	{
 		if (screen) SDL_FreeSurface(screen);
 		screen = SDL_CreateRGBSurface(0, videomodes.hRes*2, videomodes.vRes*2, 16, masks[1][0], masks[1][1], masks[1][2], masks[1][3]);
@@ -61,12 +62,9 @@ s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
 
 		videomodes.hRes *= 2;
 		videomodes.vRes *= 2;
+		videomodes.hScale /= 2;
+		videomodes.vScale /= 2;
 		videomodes.pixel = 2;
-	}
-	else if(savedata.screen[videoMode][0])
-	{
-		videomodes.hScale = savedata.screen[videoMode][0];
-		videomodes.vScale = savedata.screen[videoMode][0];
 	}
 	
 	return videomodes;
@@ -111,7 +109,6 @@ s_videosurface *getVideoSurface(s_screen *src)
 
 		if (bscreen2)
 		{
-			assert(savedata.screen[videoMode][0] == 2);
 			SDL_BlitSurface(bscreen, NULL, bscreen2, &rectsrc);
 
 			(*GfxBlitters[(int)savedata.screen[videoMode][1]])((u8*)bscreen2->pixels+bscreen2->pitch*4+4, bscreen2->pitch, pDeltaBuffer+bscreen2->pitch, (u8*)screen->pixels, screen->pitch, screen->w>>1, screen->h>>1);
