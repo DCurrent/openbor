@@ -15,6 +15,7 @@
 static SDL_Surface *screen = NULL;
 static SDL_Surface *bscreen = NULL;
 static SDL_Surface *bscreen2 = NULL;
+static SDL_Palette *screenPalette = NULL;
 u8 pDeltaBuffer[480 * 2592];
 
 static s_videosurface videoSurface;
@@ -22,8 +23,6 @@ static unsigned masks[4][4] = {{0,0,0,0},{0x1F,0x07E0,0xF800,0},{0xFF,0xFF00,0xF
 static int bytes_per_pixel;
 
 extern int videoMode;
-extern SDL_Color colors[256];
-extern SDL_Palette *screenPalette;
 
 s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
 {
@@ -42,8 +41,8 @@ s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
 	{
 		bscreen = SDL_CreateRGBSurface(0, videomodes.hRes, videomodes.vRes, 8, 0,0,0,0);
 		screen = SDL_CreateRGBSurface(0, videomodes.hRes, videomodes.vRes, 32, masks[3][0], masks[3][1], masks[3][2], masks[3][3]);
+		if(!screenPalette) screenPalette = SDL_AllocPalette(256);
 		SDL_SetSurfacePalette(bscreen, screenPalette);
-		SDL_SetPaletteColors(screenPalette, colors, 0, 256);
 		videomodes.pixel = 4;
 	}
 	
@@ -130,4 +129,18 @@ s_videosurface *getVideoSurface(s_screen *src)
 	return &videoSurface;
 }
 
+void vga_setpalette(unsigned char* palette)
+{
+	SDL_Color colors[256];
+	int i;
+	for(i=0; i<256; i++)
+	{
+		colors[i].r = palette[0];
+		colors[i].g = palette[1];
+		colors[i].b = palette[2];
+		palette += 3;
+	}
+	if(!screenPalette) screenPalette = SDL_AllocPalette(256);
+	SDL_SetPaletteColors(screenPalette, colors, 0, 256);
+}
 

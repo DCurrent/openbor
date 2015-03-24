@@ -40,13 +40,11 @@ extern int videoMode;
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_Texture *texture = NULL;
-SDL_Palette *screenPalette = NULL;
 
 FPSmanager framerate_manager;
 
 s_videomodes stored_videomodes;
 char windowTitle[128] = {"OpenBOR"};
-SDL_Color colors[256];
 int stretch = 0;
 int opengl = 0; // OpenGL backend currently in use?
 int nativeWidth, nativeHeight; // monitor resolution used in fullscreen mode
@@ -71,8 +69,6 @@ void initSDL()
 		printf("Warning: couldn't load OpenGL library (%s)\n", SDL_GetError());
 	}
 #endif
-
-	screenPalette = SDL_AllocPalette(256);
 
 	SDL_GetCurrentDisplayMode(0, &video_info);
 	nativeWidth = video_info.w;
@@ -276,18 +272,6 @@ void vga_vwait(void)
 	else SDL_Delay(1);
 	prevtick = now;
 #endif
-}
-
-void vga_setpalette(unsigned char* palette)
-{
-	int i;
-	for(i=0;i<256;i++){
-		colors[i].r=palette[0];
-		colors[i].g=palette[1];
-		colors[i].b=palette[2];
-		palette+=3;
-	}
-	SDL_SetPaletteColors(screenPalette, colors, 0, 256);
 }
 
 #endif
