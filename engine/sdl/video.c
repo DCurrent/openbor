@@ -45,6 +45,7 @@ SDL_Palette *screenPalette = NULL;
 FPSmanager framerate_manager;
 
 s_videomodes stored_videomodes;
+char windowTitle[128] = {"OpenBOR"};
 SDL_Color colors[256];
 int stretch = 0;
 int opengl = 0; // OpenGL backend currently in use?
@@ -85,23 +86,26 @@ void initSDL()
 void video_set_window_title(const char* title)
 {
 	if(window) SDL_SetWindowTitle(window, title);
+	strncpy(windowTitle, title, sizeof(windowTitle)-1);
 }
 
 static unsigned pixelformats[4] = {SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_BGR565, SDL_PIXELFORMAT_BGR888, SDL_PIXELFORMAT_ABGR8888};
 
 int SetVideoMode(int w, int h, int bpp, bool gl)
 {
-	int x = SDL_WINDOWPOS_UNDEFINED;
-	int y = SDL_WINDOWPOS_UNDEFINED;
 	int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS;
 	static bool last_gl = false;
+	static int last_x = SDL_WINDOWPOS_UNDEFINED;
+	static int last_y = SDL_WINDOWPOS_UNDEFINED;
+
 	if(gl) flags |= SDL_WINDOW_OPENGL;
 	if(savedata.fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
+	if(!(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP))
+		SDL_GetWindowPosition(window, &last_x, &last_y);
+
 	if(window && gl != last_gl)
 	{
-		if (!(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP))
-			SDL_GetWindowPosition(window, &x, &y);
 		SDL_DestroyWindow(window);
 		window = NULL;
 	}
@@ -115,23 +119,26 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 		}
 		else
 		{
+#ifndef WIN
 			if(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP)
 				SDL_HideWindow(window);
+#endif
 			SDL_SetWindowFullscreen(window, 0);
 			SDL_SetWindowSize(window, w, h);
+			SDL_SetWindowPosition(window, last_x, last_y);
 			SDL_ShowWindow(window);
 		}
 	}
 	else
 	{
-		window = SDL_CreateWindow("OpenBOR", x, y, w, h, flags); // FIXME: use previous window title
+		window = SDL_CreateWindow(windowTitle, last_x, last_y, w, h, flags);
 		if(!window) return 0;
 		renderer = SDL_CreateRenderer(window, -1, 0);
 		if(!renderer) return 0;
 		SDL_Surface* icon = (SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data);
 		SDL_SetWindowIcon(window, icon);
 		SDL_FreeSurface(icon);
-		SDL_GetWindowSize(window, &w, &h);
+		if(!savedata.fullscreen) SDL_GetWindowPosition(window, &last_x, &last_y);
 	}
 	
 	if(!gl && !renderer)
@@ -181,7 +188,6 @@ int video_set_mode(s_videomodes videomodes)
 	else
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 
-	SDL_RenderSetLogicalSize(renderer, videomodes.hRes, videomodes.vRes);
 	texture = SDL_CreateTexture(renderer,
 	                            pixelformats[videomodes.pixel-1],
 	                            SDL_TEXTUREACCESS_STREAMING,
@@ -189,6 +195,7 @@ int video_set_mode(s_videomodes videomodes)
 
 	SDL_ShowCursor(SDL_DISABLE);
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+	video_stretch(savedata.stretch);
 
 	return 1;
 }
