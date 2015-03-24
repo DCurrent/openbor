@@ -153,12 +153,6 @@ int video_set_mode(s_videomodes videomodes)
 {
 	stored_videomodes = videomodes;
 
-	// try OpenGL initialization first
-	if(savedata.usegl[savedata.fullscreen] && video_gl_set_mode(videomodes)) return 1;
-	else opengl = 0;
-
-	// FIXME: OpenGL surfaces aren't freed when switching from OpenGL to SDL
-
 	if(videomodes.hRes==0 && videomodes.vRes==0)
 	{
 		Term_Gfx();
@@ -166,6 +160,13 @@ int video_set_mode(s_videomodes videomodes)
 	}
 
 	videomodes = setupPreBlitProcessing(videomodes);
+
+	// 8-bit color should be transparently converted to 32-bit
+	assert(videomodes.pixel == 2 || videomodes.pixel == 4);
+
+	// try OpenGL initialization first
+	if(savedata.usegl[savedata.fullscreen] && video_gl_set_mode(videomodes)) return 1;
+	else opengl = 0;
 
 	if(!SetVideoMode(videomodes.hRes * videomodes.hScale,
 	                 videomodes.vRes * videomodes.vScale,
@@ -200,10 +201,10 @@ void video_fullscreen_flip()
 
 int video_copy_screen(s_screen* src)
 {
-	// use video_gl_copy_screen if in OpenGL mode
-	if(opengl) return video_gl_copy_screen(src);
-
+	// do any needed scaling and color conversion
 	s_videosurface *surface = getVideoSurface(src);
+
+	if(opengl) return video_gl_copy_screen(surface);
 
 	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
 
@@ -273,17 +274,13 @@ void vga_vwait(void)
 void vga_setpalette(unsigned char* palette)
 {
 	int i;
-	video_gl_setpalette(palette);
 	for(i=0;i<256;i++){
 		colors[i].r=palette[0];
 		colors[i].g=palette[1];
 		colors[i].b=palette[2];
 		palette+=3;
 	}
-	if(!opengl)
-	{
-		SDL_SetPaletteColors(screenPalette, colors, 0, 256);
-	}
+	SDL_SetPaletteColors(screenPalette, colors, 0, 256);
 }
 
 #endif

@@ -8,12 +8,8 @@
 
 /************************ OpenGL video backend *************************/
 /*
- * New video backend that uses OpenGL as a cross-platform API for optimized
- * hardware blitting and scaling.  Supports both OpenGL 1.2+ and OpenGL ES 1.x.
-
- * It also offers better fullscreen than software SDL because the picture is
- * guaranteed to display at the correct aspect ratio and not have black bars on
- * all 4 sides.
+ * Video backend that uses OpenGL as a cross-platform API for optimized
+ * hardware blitting and scaling.
  */
 
 #ifdef OPENGL
@@ -32,30 +28,19 @@
 #define abs(x)			((x<0)?-(x):(x))
 
 static SDL_GLContext context = NULL;
-static SDL_Surface* bscreen = NULL; // FIXME: unnecessary SDL dependency; this should be an s_screen
 
-static int textureDepths[4] = {16,16,24,32};
-
-static float ycompress = 1.0;
-
-static GLushort glpalette[256];
 static GLuint gltexture;
-
 static GLint textureTarget;
-static GLint textureInternalColorFormat;
 static GLint textureColorFormat;
 static GLint texturePixelFormat;
 
 static int viewportWidth, viewportHeight;      // dimensions of display area
-static int scaledWidth, scaledHeight;          // dimensions of game screen after scaling
 static int textureWidth, textureHeight;        // dimensions of game screen and GL texture
-static int xOffset, yOffset;                   // offset of game screen on display area
 static int bytesPerPixel;
 
 static GLfloat tcx, tcy; // maximum x and y texture coords in floating-point form
 
 // use some variables declared in video.c that are common to both backends
-extern s_videomodes stored_videomodes;
 extern FPSmanager framerate_manager;
 extern int stretch;
 extern int nativeWidth, nativeHeight;
@@ -81,11 +66,11 @@ void video_gl_setup_screen()
 void video_gl_init_textures()
 {
 	int allocTextureWidth, allocTextureHeight;
+	SDL_Surface *surface;
 
 	// set texture target, format, etc.
 	textureTarget = GL_TEXTURE_2D;
 	textureColorFormat = (bytesPerPixel == 4) ? GL_RGBA : GL_RGB;
-	textureInternalColorFormat = textureColorFormat;
 	texturePixelFormat = (bytesPerPixel <= 2) ? GL_UNSIGNED_SHORT_5_6_5_REV : GL_UNSIGNED_BYTE;
 
 	// enable 2D textures
@@ -107,23 +92,21 @@ void video_gl_init_textures()
 	tcx = (textureWidth == 0) ? 0 : (float)textureWidth / (float)allocTextureWidth;
 	tcy = (textureHeight == 0) ? 0 : (float)textureHeight / (float)allocTextureHeight;
 
-	// allocate a surface to initialize the texture with
-	bscreen = SDL_CreateRGBSurface(0, allocTextureWidth, allocTextureHeight, textureDepths[bytesPerPixel-1], 0,0,0,0);
+	// allocate a temporary surface to initialize the texture with
+	surface = SDL_CreateRGBSurface(0, allocTextureWidth, allocTextureHeight, bytesPerPixel * 8, 0,0,0,0);
 
 	// create texture object
 	glDeleteTextures(1, &gltexture);
 	glGenTextures(1, &gltexture);
 	glBindTexture(textureTarget, gltexture);
-	glTexImage2D(textureTarget, 0, textureInternalColorFormat, allocTextureWidth,
-			allocTextureHeight, 0, textureColorFormat, texturePixelFormat, bscreen->pixels);
+	glTexImage2D(textureTarget, 0, textureColorFormat, allocTextureWidth,
+			allocTextureHeight, 0, textureColorFormat, texturePixelFormat, surface->pixels);
 	glTexParameteri(textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
-	// we don't need bscreen anymore, except in 8-bit mode
-	SDL_FreeSurface(bscreen);
-	bscreen = NULL;
-
-	if(bytesPerPixel == 1) bscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, textureWidth, textureHeight, 16, 0,0,0,0);
+	// free up the temporary surface
+	SDL_FreeSurface(surface);
+	surface = NULL;
 }
 
 int video_gl_set_mode(s_videomodes videomodes)
@@ -135,8 +118,8 @@ int video_gl_set_mode(s_videomodes videomodes)
 	textureHeight = videomodes.vRes;
 
 	// use the current monitor resolution in fullscreen mode to prevent aspect ratio distortion
-	viewportWidth = savedata.fullscreen ? nativeWidth : (int)(videomodes.hRes * MAX(0.25,savedata.glscale));
-	viewportHeight = savedata.fullscreen ? nativeHeight : (int)(videomodes.vRes * MAX(0.25,savedata.glscale));
+	viewportWidth = savedata.fullscreen ? nativeWidth : (int)(videomodes.hRes * MAX(0.25,videomodes.hScale));
+	viewportHeight = savedata.fullscreen ? nativeHeight : (int)(videomodes.vRes * MAX(0.25,videomodes.vScale));
 
 	// zero width/height means close the window, not make it enormous!
 	if((viewportWidth == 0) || (viewportHeight == 0)) return 0;
@@ -156,9 +139,6 @@ int video_gl_set_mode(s_videomodes videomodes)
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_EGL, 0);
 
-	// free existing surfaces
-	if(bscreen) { SDL_FreeSurface(bscreen); bscreen=NULL; }
-
 	// get window and initialize OpenGL context
 	SetVideoMode(viewportWidth, viewportHeight, 0, true);
 	if(!window)
@@ -166,7 +146,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 		printf("Failed to create OpenGL-compatible window (%s)...", SDL_GetError());
 		goto error;
 	}
-	if ((context = SDL_GL_GetCurrentContext()))
+	if((context = SDL_GL_GetCurrentContext()))
 		SDL_GL_DeleteContext(context);
 	context = SDL_GL_CreateContext(window);
 
@@ -223,7 +203,6 @@ int video_gl_set_mode(s_videomodes videomodes)
 	return 1;
 error:
 	printf("falling back on SDL video backend\n");
-	if(bscreen) { SDL_FreeSurface(bscreen); bscreen=NULL; }
 	opengl = 0;
 	savedata.usegl[savedata.fullscreen] = 0;
 	return 0;
@@ -263,47 +242,10 @@ void video_gl_draw_quad(int x, int y, int width, int height)
 	glEnd();
 }
 
-int video_gl_copy_screen(s_screen* src)
+int video_gl_copy_screen(s_videosurface* surface)
 {
-	unsigned char *sp;
-	unsigned char *dp;
-	int width, height, linew, slinew;
-	int h, i;
-	float texScale;
-	SDL_Surface* ds = NULL;
-
-	// Convert 8-bit s_screen to a 16-bit SDL_Surface
-	if(bscreen)
-	{
-		if(SDL_MUSTLOCK(bscreen)) SDL_LockSurface(bscreen);
-
-		width = bscreen->w;
-		if(width > src->width) width = src->width;
-		height = bscreen->h;
-		if(height > src->height) height = src->height;
-		if(!width || !height) return 0;
-		h = height;
-
-		sp = (unsigned char*)src->data;
-		ds = bscreen;
-		dp = ds->pixels;
-
-		linew = width*bytesPerPixel;
-		slinew = src->width*bytesPerPixel;
-
-		do{
-			//u16pcpy((unsigned short*)dp, sp, glpalette, linew);
-			i=linew-1;
-			do
-			{
-			   ((unsigned short*)dp)[i] = glpalette[sp[i]];
-			}while(i--);
-			sp += slinew;
-			dp += ds->pitch;
-		}while(--h);
-
-		if(SDL_MUSTLOCK(bscreen)) SDL_UnlockSurface(bscreen);
-	}
+	int xOffset, yOffset; // offset of game screen on display area
+	int scaledWidth, scaledHeight; // dimensions of game screen after scaling
 
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -311,14 +253,14 @@ int video_gl_copy_screen(s_screen* src)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(textureTarget, gltexture);
 	glTexSubImage2D(textureTarget, 0, 0, 0, textureWidth, textureHeight, textureColorFormat,
-			texturePixelFormat, bscreen ? bscreen->pixels : src->data);
+			texturePixelFormat, surface->data);
 
 	// determine x and y scale factors
-	texScale = MIN((float)viewportWidth/(float)textureWidth, (float)viewportHeight/(float)textureHeight);
+	float texScale = MIN((float)viewportWidth/(float)textureWidth, (float)viewportHeight/(float)textureHeight);
 
 	// determine on-screen dimensions
 	scaledWidth = (int)(textureWidth * texScale);
-	scaledHeight = (int)(textureHeight * texScale) * ycompress;
+	scaledHeight = (int)(textureHeight * texScale);
 
 	// determine offsets
 	xOffset = (viewportWidth - scaledWidth) / 2;
@@ -351,16 +293,6 @@ int video_gl_copy_screen(s_screen* src)
 #endif
 
 	return 1;
-}
-
-void video_gl_setpalette(unsigned char* pal)
-{
-	int i;
-	for(i=0; i<256; i++)
-	{
-		glpalette[i] = colour16(pal[0], pal[1], pal[2]);
-		pal += 3;
-	}
 }
 
 // Set the brightness and gamma values
