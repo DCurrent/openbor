@@ -10,14 +10,14 @@
 #define BOR_OPENGL_H
 
 #include "types.h"
+#include "videocommon.h"
 
 #ifdef OPENGL
 
 // OpenGL video functions
 int video_gl_set_mode(s_videomodes);
-int video_gl_copy_screen(s_screen*);
+int video_gl_copy_screen(s_videosurface*);
 void video_gl_clearscreen();
-void video_gl_setpalette(unsigned char*);
 void video_gl_set_color_correction(int, int);
 
 #else
@@ -26,7 +26,6 @@ void video_gl_set_color_correction(int, int);
 #define video_gl_set_mode(X)					0
 #define video_gl_copy_screen(X)					0
 #define video_gl_clearscreen()
-#define video_gl_setpalette(X)
 #define video_gl_set_color_correction(X,Y)
 
 #endif

@@ -31637,17 +31637,11 @@ void video_options()
         _menutext((selector == 4), col2, 1, (opengl ? Tr("OpenGL") : Tr("SDL")));
 
         _menutext((selector == 5), col1, 2, Tr("Scale:"));
-#ifndef ANDROID
-        if(savedata.fullscreen)
-        {
-            _menutext((selector == 5), col2, 2, Tr("Automatic"));
-        }
-        else
-        {
-            _menutext((selector == 5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes * savedata.glscale), (int)(videomodes.vRes * savedata.glscale));
-        }
-#else
+#ifdef ANDROID
         if(savedata.glscale == 0)
+#else
+		if(savedata.fullscreen)
+#endif
         {
             _menutext((selector == 5), col2, 2, Tr("Automatic"));
         }
@@ -31655,34 +31649,29 @@ void video_options()
         {
             _menutext((selector == 5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes * savedata.glscale), (int)(videomodes.vRes * savedata.glscale));
         }
-#endif
-        if(opengl)
-        {
-            _menutext((selector == 6), col1, 3, Tr("Filters:"));
-            _menutext((selector == 6), col2, 3, ((savedata.glscale != 1.0 || savedata.fullscreen) ? (savedata.glfilter[savedata.fullscreen] ? Tr("Simple") : Tr("Bilinear")) : Tr("Disabled")));
-        }
-        else
-        {
-            _menutext((selector == 6), col1, 3, Tr("Filters:"));
-            _menutext((selector == 6), col2, 3, ((savedata.glscale != 1.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[(int)savedata.screen[videoMode][1]]) : Tr("Disabled")));
-        }
+
+        _menutext((selector == 6), col1, 3, Tr("Hardware Filter:"));
+        _menutext((selector == 6), col2, 3, ((savedata.glscale != 1.0 || savedata.fullscreen) ? (savedata.glfilter[savedata.fullscreen] ? Tr("Simple") : Tr("Bilinear")) : Tr("Disabled")));
+
+        _menutext((selector == 7), col1, 4, Tr("Software Filter:"));
+        _menutext((selector == 7), col2, 4, ((savedata.glscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[(int)savedata.screen[videoMode][1]]) : Tr("Disabled")));
 
         if(savedata.fullscreen)
         {
-            _menutext((selector == 7), col1, 4, Tr("Fullscreen Type:"));
-            _menutext((selector == 7), col2, 4, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
+            _menutext((selector == 8), col1, 5, Tr("Fullscreen Type:"));
+            _menutext((selector == 8), col2, 5, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
         }
-        else if(selector == 7)
+        else if(selector == 8)
         {
-            selector = (bothnewkeys & FLAG_MOVEUP) ? 6 : 8;
+            selector = (bothnewkeys & FLAG_MOVEUP) ? 7 : 9;
         }
 
-        _menutextm((selector == 8), 6, 0, Tr("Back"));
+        _menutextm((selector == 9), 7, 0, Tr("Back"));
         if(selector < 0)
         {
-            selector = 8;
+            selector = 9;
         }
-        if(selector > 8)
+        if(selector > 9)
         {
             selector = 0;
         }
@@ -31932,45 +31921,42 @@ void video_options()
 #endif
                 break;
             case 6:
-                if(opengl)
-                {
 #ifndef ANDROID
-                    if(!savedata.fullscreen && savedata.glscale == 1.0)
-                    {
-                        break;
-                    }
-#endif
-                    savedata.glfilter[savedata.fullscreen] += dir;
-                    if(savedata.glfilter[savedata.fullscreen] < 0)
-                    {
-                        savedata.glfilter[savedata.fullscreen] = 1;
-                    }
-                    if(savedata.glfilter[savedata.fullscreen] > 1)
-                    {
-                        savedata.glfilter[savedata.fullscreen] = 0;
-                    }
-                    video_set_mode(videomodes);
-                }
-                else
+                if(!savedata.fullscreen && savedata.glscale == 1.0)
                 {
-                    if(!savedata.fullscreen && savedata.glscale < 2.0)
-                    {
-                        break;
-                    }
-                    videomodes.filter += dir;
-                    if(videomodes.filter > BLITTER_MAX - 1)
-                    {
-                        videomodes.filter = 0;
-                    }
-                    if(videomodes.filter < 0)
-                    {
-                        videomodes.filter = BLITTER_MAX - 1;
-                    }
-                    savedata.screen[videoMode][1] = videomodes.filter;
-                    memset(pDeltaBuffer, 0x00, 1244160);
+                    break;
                 }
-                break;
+#endif
+                savedata.glfilter[savedata.fullscreen] += dir;
+                if(savedata.glfilter[savedata.fullscreen] < 0)
+                {
+                    savedata.glfilter[savedata.fullscreen] = 1;
+                }
+                if(savedata.glfilter[savedata.fullscreen] > 1)
+                {
+                    savedata.glfilter[savedata.fullscreen] = 0;
+                }
+                video_set_mode(videomodes);
+				break;
             case 7:
+                if(!savedata.fullscreen && savedata.glscale < 2.0)
+                {
+                    break;
+                }
+                videomodes.filter += dir;
+                if(videomodes.filter > BLITTER_MAX - 1)
+                {
+                    videomodes.filter = 0;
+                }
+                if(videomodes.filter < 0)
+                {
+                    videomodes.filter = BLITTER_MAX - 1;
+                }
+                savedata.screen[videoMode][1] = videomodes.filter;
+                memset(pDeltaBuffer, 0x00, 1244160);
+				video_set_mode(videomodes);
+                break;
+            case 8:
                 video_stretch((savedata.stretch ^= 1));
                 break;
 #endif
