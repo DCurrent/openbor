@@ -8,11 +8,6 @@ PSPSDK:   svn://ps2dev.org/psp/trunk/psptoolchain
           svn://ps2dev.org/psp/trunk/libpng
 
 
-PS2SDK:   svn://ps2dev.org/ps2/trunk/ps2toolchain
-          svn://ps2dev.org/ps2/trunk/zlib
-          svn://ps2dev.org/ps2/trunk/libpng
-
-
 Open2X:   http://wiki.open2x.org/open2x/wiki/index.php
           Grab Toolchain
           Grab Prebuilt Libraries
@@ -21,13 +16,10 @@ Open2X:   http://wiki.open2x.org/open2x/wiki/index.php
 KOS:      http://sourceforge.net/projects/cadcdev/
 
 
-PS3:      Refer to Linux components.
 
 Linux:    Install neccessary SDL Components with Synaptic Package Manager
-          SDL-devel (Debian/Ubuntu name: libsdl1.2-dev)
-          SDL_gfx-devel (Debian/Ubuntu name: libsdl-gfx1.2-dev)
-          SDL_mixer-devel (Debian/Ubuntu name: libsdl-mixer1.2-dev)
-          SDL_image-devel (Debian/Ubuntu name: libsdl-image1.2-dev)
+          SDL-devel (Debian/Ubuntu name: libsdl2-dev)
+          SDL_gfx-devel (Debian/Ubuntu name: libsdl2-gfx-dev)
           zlib-devel (Debian/Ubuntu name: zlib1g-dev)
           libpng-devel (Debian/Ubuntu name: libpng12-dev)
 
@@ -38,19 +30,13 @@ Linux:    Install neccessary SDL Components with Synaptic Package Manager
           For both 32-bit and 64-bit systems, yasm is also needed.
 
 
-Windows:  http://www.bloodshed.net/
-          Install necessary SDL Components
+Windows:  http://www.mingw.org/
+          Install necessary SDL components from http://libsdl.org/download-2.0.php
 
-
-DOS:      http://www.ChronoCrash.com/download
-          Grab OpenWatcom v1.1
-
-
-XBoX:     Google Search!
 
 Execution:
 
-Build.sh  - Script file that compiles using various SDK environments (PSP, PS2, Dreamcast, Gp2x, Linux, Windows and XBOX)
+Build.sh  - Script file that compiles using various SDK environments (PSP, Dreamcast, Gp2x, Linux, Windows, and Wii)
 
 
 -----------------------------------------------------------------------------------
@@ -58,9 +44,9 @@ Build.sh  - Script file that compiles using various SDK environments (PSP, PS2, 
 
 ------------------------- Compiling using prebuilt SDK(s) -------------------------
 
-Requirements:  Windows/DOS
+Requirements:  Windows
 
-sdkPack-v1.1.rar:  Located Here @ http://www.ChronoCrash.com/download/Development/Compilers/All-In-One/
+SVN repository @ http://svn.code.sf.net/p/openbor/tools/tools/
 
 Execution:
 
@@ -71,7 +57,7 @@ Build.bat - Batch file that compiles all platforms using prebuilt SDK(s)
 
 ------------------------------------- Notes ---------------------------------------
 
-All compilations are moved to Releases folder when using build.sh or built.bat
+All compilations are moved to Releases folder when using build.sh or build.bat
 
 -----------------------------------------------------------------------------------
 
