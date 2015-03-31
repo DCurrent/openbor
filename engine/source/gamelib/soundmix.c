@@ -55,7 +55,6 @@ Caution: move vorbis headers here otherwise the structs will
 #define stricmp strcasecmp
 #endif
 
-#define		AUDIOCIDE_VERSION	"2.00"
 #define		MIXSHIFT		     3	    // 2 should be OK
 #define		MAXVOLUME		     64	    // 64 for backw. compat.
 //#define		MAX_SAMPLES		     1024	// Should be well enough
@@ -140,14 +139,6 @@ static s32 *mixbuf = NULL;
 static int playbits;
 static int playfrequency;
 static int max_channels = 0;
-
-#ifdef XBOX
-static char *DMAbuf8 = NULL;
-static u16 *DMAbuf16 = NULL;
-#endif
-
-// Global shifter for hardware frequency adjustment (applied to periods)
-static u32 hard_shift;
 
 // Indicates whether the hardware is playing, and if mixing is active
 static int mixing_active = 0;
@@ -457,64 +448,10 @@ static void clearmixbuffer(unsigned int *buf, int n)
     }
 }
 
-#ifdef XBOX
-static int mixtoDMAlow(unsigned int *mbuf, char *dbuf, int dmaoffs, int numbytes)
-{
-    static int u;
-    while((--numbytes) >= 0)
-    {
-        dmaoffs &= SB_BUFFER_SIZE_MASK;
-        u = *mbuf >> (MIXSHIFT + 8);
-        if(u < 0)
-        {
-            u = 0;
-        }
-        else if(u > 0xFF)
-        {
-            u = 0xFF;
-        }
-        dbuf[dmaoffs] = u;
-        ++mbuf;
-        ++dmaoffs;
-    }
-    dmaoffs &= SB_BUFFER_SIZE_MASK;
-    return dmaoffs;
-}
-
-
-
-static int mixtoDMAhigh(unsigned int *mbuf, unsigned short *dbuf, int dmaoffs, int numwords)
-{
-    static unsigned int u;
-    while((--numwords) >= 0)
-    {
-        dmaoffs &= SB_WBUFFER_SIZE_MASK;
-        //u = *mbuf ;
-        u = *mbuf >> MIXSHIFT;
-        if(u < 0)
-        {
-            u = 0;
-        }
-        else if(u > 0xFFFF)
-        {
-            u = 0xFFFF;
-        }
-        dbuf[dmaoffs] = u;
-        ++mbuf;
-        ++dmaoffs;
-    }
-    dmaoffs &= SB_WBUFFER_SIZE_MASK;
-    return dmaoffs;
-}
-#endif
-
-
 
 /////////////////////////////////// Mixers ///////////////////////////////////
 // Mixers: mix (16-bit) in the mixbuffer, then write to DMA memory (see above).
 // The mixing code handles fixed-point conversion and looping.
-
-static int dmamixpos;
 
 // Input: number of input samples to mix
 static void mixaudio(unsigned int todo)
@@ -669,29 +606,6 @@ static void mixaudio(unsigned int todo)
 //////////////////////////////// ISR ///////////////////////////////////
 // Called by Soundblaster ISR
 
-#ifdef XBOX
-
-int get_mixingactive()
-{
-    return mixing_active ;
-}
-
-unsigned char *updatemixing_xbox(unsigned int todo)
-{
-    static int curdmapos;
-    if (!mixing_active)
-    {
-        return NULL;
-    }
-    clearmixbuffer(mixbuf, todo);
-    mixaudio(todo);
-    samplesplayed += (todo >> 1);
-    dmamixpos = mixtoDMAhigh(mixbuf, DMAbuf16, 0, todo);
-    return (unsigned char *)DMAbuf16;
-}
-
-#else
-
 void update_sample(unsigned char *buf, int size)
 {
     int i, u, todo = size;
@@ -740,7 +654,6 @@ void update_sample(unsigned char *buf, int size)
         }
     }
 }
-#endif
 
 ////////////////////////// Sound effects control /////////////////////////////
 // Functions to start, stop, loop, etc.
@@ -1710,17 +1623,6 @@ int sound_start_playback(int bits, int frequency)
     playfrequency = frequency;
 #endif
 
-    hard_shift = 0;
-    if(frequency == 22050)
-    {
-        hard_shift = 1;
-    }
-    if(frequency == 44100)
-    {
-        hard_shift = 2;
-    }
-
-    dmamixpos = PREMIX_SIZE << hard_shift;
     for(i = 0; i < max_channels; i++)
     {
         sound_stop_sample(i);
@@ -1752,13 +1654,6 @@ void sound_exit()
 #ifdef PSP
     SB_exit();
 #endif
-#ifdef XBOX
-    if(DMAbuf8 != NULL)
-    {
-        free(DMAbuf8);
-        DMAbuf8 = NULL;
-    }
-#endif
 
     mixing_inited = 0;
 }
@@ -1777,11 +1672,6 @@ int sound_init(int channels)
         channels = MAX_CHANNELS;
     }
     sound_exit();
-
-#ifdef XBOX
-    DMAbuf8 = (char *)malloc(SB_BUFFER_SIZE << 1 ) ;
-    DMAbuf16 = (void *)DMAbuf8;
-#endif
 
     // Allocate the maximum amount ever possibly needed for mixing
     if((mixbuf = malloc(MIXBUF_SIZE)) == NULL)
