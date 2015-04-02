@@ -38,8 +38,8 @@ extern int videoMode;
 #endif
 
 SDL_Window *window = NULL;
-SDL_Renderer *renderer = NULL;
-SDL_Texture *texture = NULL;
+static SDL_Renderer *renderer = NULL;
+static SDL_Texture *texture = NULL;
 
 FPSmanager framerate_manager;
 
@@ -107,6 +107,11 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 	}
 	last_gl = gl;
 
+	if(renderer) SDL_DestroyRenderer(renderer);
+	if(texture)  SDL_DestroyTexture(texture);
+	renderer = NULL;
+	texture = NULL;
+
 	if(window)
 	{
 		if(savedata.fullscreen)
@@ -128,25 +133,25 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 	else
 	{
 		window = SDL_CreateWindow(windowTitle, last_x, last_y, w, h, flags);
-		if(!window) return 0;
-		renderer = SDL_CreateRenderer(window, -1, 0);
-		if(!renderer) return 0;
+		if(!window)
+		{
+			printf("Error: failed to create window: %s\n", SDL_GetError());
+			return 0;
+		}
 		SDL_Surface* icon = (SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data);
 		SDL_SetWindowIcon(window, icon);
 		SDL_FreeSurface(icon);
 		if(!savedata.fullscreen) SDL_GetWindowPosition(window, &last_x, &last_y);
 	}
 	
-	if(!gl && !renderer)
+	if(!gl)
 	{
 		renderer = SDL_CreateRenderer(window, -1, 0);
-	}
-	else if(gl)
-	{
-		if(renderer) SDL_DestroyRenderer(renderer);
-		if(texture)  SDL_DestroyTexture(texture);
-		renderer = NULL;
-		texture = NULL;
+		if(!renderer)
+		{
+			printf("Error: failed to create renderer: %s\n", SDL_GetError());
+			return 0;
+		}
 	}
 
 	return 1;

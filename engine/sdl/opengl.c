@@ -14,15 +14,13 @@
 
 #ifdef OPENGL
 
-#include "SDL.h"
-#include <math.h>
+#include "sdlport.h"
 #include "openbor.h"
 #include "opengl.h"
 #include "video.h"
-#include "sdlport.h"
 #include "loadgl.h"
-
 #include "SDL2_framerate.h"
+#include <math.h>
 
 #define nextpowerof2(x) pow(2,ceil(log(x)/log(2)))
 #define abs(x)			((x<0)?-(x):(x))
@@ -131,13 +129,8 @@ int video_gl_set_mode(s_videomodes videomodes)
 		goto error;
 	}
 
-	// try to disable vertical retrace syncing (VSync)
-	if(SDL_GL_SetSwapInterval(0) < 0)
-	{
-		printf("Warning: can't disable vertical retrace sync (%s)\n", SDL_GetError());
-	}
-
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_EGL, 0);
+	// create an OpenGL compatibility context, not a core or ES context
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 
 	// get window and initialize OpenGL context
 	SetVideoMode(viewportWidth, viewportHeight, 0, true);
@@ -158,8 +151,17 @@ int video_gl_set_mode(s_videomodes videomodes)
 	}
 
 	// update viewport size based on actual dimensions
-	SDL_GL_MakeCurrent(window, context);
-	SDL_GetWindowSize(window, &viewportWidth, &viewportHeight);
+	if(SDL_GL_MakeCurrent(window, context) < 0)
+	{
+		printf("MakeCurrent on OpenGL context failed (%s)...", SDL_GetError());
+		goto error;
+	}
+
+	// try to disable vertical retrace syncing (VSync)
+	if(SDL_GL_SetSwapInterval(0) < 0)
+	{
+		printf("Warning: can't disable vertical retrace sync (%s)...\n", SDL_GetError());
+	}
 
 #ifdef LOADGL
 	// load OpenGL functions dynamically in Linux/Windows/OSX
