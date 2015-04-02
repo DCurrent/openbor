@@ -34,7 +34,9 @@
 #include "packfile.h"
 #include "filecache.h"
 #include "globals.h"
-#include "openbor.h"
+#include "soundmix.h"
+#include "savedata.h"
+#include "List.h"
 
 #ifdef PS2
 #include <sifdev.h>

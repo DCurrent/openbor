@@ -41,18 +41,13 @@
 #include    "globals.h"
 #include    "ram.h"
 #include    "version.h"
+#include    "savedata.h"
 
 #ifdef SDL
 #include    "gfx.h"
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
-
-#define		exit				borExit
-#define		time				borTime
-#define		kill				borKill
-#define		pause				borPause
-#define		shutdown			borShutdown
 
 #define		DEFAULT_SHUTDOWN_MESSAGE \
 			"OpenBOR " VERSION ", Compile Date: " __DATE__ "\n" \
@@ -80,7 +75,6 @@
 #define     MAX_DOWNS           1                   // Walk down animations.
 #define		MAX_ATTACKS			4					// Total number of attacks players have
 #define     MAX_FOLLOWS         4					// For followup animations
-#define     MAX_PLAYERS         4
 #define		MAX_ARG_LEN			511
 #define		MAX_PAL_SIZE		1024
 #define		MAX_CACHED_BACKGROUNDS 9
@@ -1051,44 +1045,6 @@ typedef struct
     s_axis_f position;  //X,Y,Z of last hit.
     int confirm;        //Will engine's default hit handling be used?
 } s_lasthit;
-
-typedef struct
-{
-    unsigned compatibleversion;
-    int gamma;
-    int brightness;
-    int usesound; // Use SB
-    unsigned soundrate; // SB freq
-    int soundvol; // SB volume
-    int usemusic; // Play music
-    int musicvol; // Music volume
-    int effectvol; // Sound fx volume
-    int soundbits; // SB bits
-    int usejoy;
-    int mode; // Mode now saves
-    int windowpos;
-    int keys[MAX_PLAYERS][12];
-    int showtitles;
-    int videoNTSC;
-    int screen[7][2]; // Screen Filtering/Scaling Effects
-    int logo;
-    int uselog;
-    int debuginfo; // FPS, Memory, etc...
-    int fullscreen; // Window or Full Screen Mode
-    int stretch; // Stretch (1) or preserve aspect ratio (0) in fullscreen mode
-#if SDL
-    int usegl[2]; // 1 if OpenGL is preferred over SDL software blitting
-    float glscale; // Scale factor for OpenGL
-    int glfilter[2]; // Simple or bilinear scaling
-#endif
-#if PSP
-    int pspcpuspeed; // PSP CPU Speed
-    int overscan[4]; // Control TV Overscan
-    int usetv; // Initilize TV at bootup
-#endif
-
-} s_savedata;
-
 
 typedef struct
 {
@@ -2477,7 +2433,6 @@ int getValidInt(char *text, char *file, char *cmd);
 float getValidFloat(char *text, char *file, char *cmd);
 int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck);
 
-extern s_savedata     savedata;
 extern s_savelevel   *savelevel;
 extern s_savescore    savescore;
 
