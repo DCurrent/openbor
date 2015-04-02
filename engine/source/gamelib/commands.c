@@ -1,5 +1,5 @@
+#include <string.h>
 #include "commands.h"
-#include "openbor.h"
 
 
 void freeCommandList(List *list)

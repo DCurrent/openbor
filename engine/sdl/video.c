@@ -21,7 +21,7 @@
 #include "vga.h"
 #include "screen.h"
 #include "opengl.h"
-#include "openbor.h"
+#include "savedata.h"
 #include "gfxtypes.h"
 #include "gfx.h"
 #include "videocommon.h"

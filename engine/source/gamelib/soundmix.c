@@ -34,6 +34,7 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 /*
 Caution: move vorbis headers here otherwise the structs will
@@ -46,9 +47,12 @@ Caution: move vorbis headers here otherwise the structs will
 #else
 #include <vorbis/vorbisfile.h>
 #endif
-#include "openbor.h"
+#include "soundmix.h"
+#include "globals.h"
 #include "adpcm.h"
+#include "sblaster.h"
 #include "borendian.h"
+#include "List.h"
 
 
 #if LINUX || GP2X || OPENDINGUX || SYMBIAN

@@ -15,7 +15,7 @@
 #ifdef OPENGL
 
 #include "sdlport.h"
-#include "openbor.h"
+#include "savedata.h"
 #include "opengl.h"
 #include "video.h"
 #include "loadgl.h"

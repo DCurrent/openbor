@@ -9,7 +9,8 @@
 #include "sdlport.h"
 #include "globals.h"
 #include "video.h"
-#include "openbor.h"
+#include "savedata.h"
+#include "gfx.h"
 #include "videocommon.h"
 
 static SDL_Surface *screen = NULL;
