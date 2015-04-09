@@ -27,22 +27,78 @@
 
 static SDL_GLContext context = NULL;
 
-static GLuint gltexture;
-static GLint textureTarget;
-static GLint textureColorFormat;
-static GLint texturePixelFormat;
+static GLuint gltexture[3];
+static GLint textureColorFormat[3];
+static GLint texturePixelFormat[3];
 
 static int viewportWidth, viewportHeight;      // dimensions of display area
-static int textureWidth, textureHeight;        // dimensions of game screen and GL texture
-static int bytesPerPixel;
+static int textureWidth, textureHeight;        // dimensions of game screen and GL texture 0
+static int displayWidth, displayHeight;
 
 static GLfloat tcx, tcy; // maximum x and y texture coords in floating-point form
+static GLuint shaderProgram; // fragment shader program
 
 // use some variables declared in video.c that are common to both backends
 extern FPSmanager framerate_manager;
 extern int stretch;
 extern int nativeWidth, nativeHeight;
 extern SDL_Window* window;
+
+#define FRAGMENT_SHADER_COMMON                                             \
+	"uniform float brightness;\n"                                          \
+	"uniform float gamma;\n"                                               \
+	"vec3 applyCorrection(vec3 color)\n"                                   \
+	"{\n"                                                                  \
+	"    if (gamma > 0.0)\n"                                               \
+	"        color = 1.0 - ((1.0 - color) * (1.0 - (color * gamma)));\n"   \
+	"    else\n"                                                           \
+	"        color = color * (1.0 - ((1.0 - color) * -gamma));\n"          \
+	"    if (brightness > 0.0)\n"                                          \
+	"        color = mix(color, vec3(1.0), brightness);\n"                 \
+	"    else\n"                                                           \
+	"        color = mix(color, vec3(0.0), -brightness);\n"                \
+	"    return color;\n"                                                  \
+	"}\n"
+
+#define FRAGMENT_SHADER_RGB                                                \
+	"uniform sampler2D tex;\n"                                             \
+	"void main()\n"                                                        \
+	"{\n"                                                                  \
+	"    vec3 color = texture2D(tex, gl_TexCoord[0].xy).xyz;\n"            \
+	"    gl_FragColor.xyz = applyCorrection(color);\n"                     \
+	"    gl_FragColor.w = 1.0;\n"                                          \
+	"}\n"
+
+#define FRAGMENT_SHADER_YUV                                                \
+	"uniform sampler2D tex;\n"                                             \
+	"uniform sampler2D utex;\n"                                            \
+	"uniform sampler2D vtex;\n"                                            \
+	"\n"                                                                   \
+	"vec3 yuv2rgb(vec3 yuv)\n"                                             \
+	"{\n"                                                                  \
+	"	yuv += vec3(-.0625, -.5, -.5);\n"                                  \
+	"	vec3 rgb;\n"                                                       \
+	"	rgb.x = dot(yuv, vec3(1.164, 0, 1.596));\n"                        \
+	"	rgb.y = dot(yuv, vec3(1.164, -.391, -.813));\n"                    \
+	"	rgb.z = dot(yuv, vec3(1.164, 2.018, 0));\n"                        \
+	"	return rgb;\n"                                                     \
+	"}\n"                                                                  \
+	"\n"                                                                   \
+	"void main()\n"                                                        \
+	"{\n"                                                                  \
+	"	vec3 yuv;\n"                                                       \
+	"	yuv.x = texture2D(tex,  gl_TexCoord[0].xy).x; // Y\n"              \
+	"	yuv.y = texture2D(utex, gl_TexCoord[0].xy).x; // U\n"              \
+	"	yuv.z = texture2D(vtex, gl_TexCoord[0].xy).x; // V\n"              \
+	"	gl_FragColor.xyz = applyCorrection(yuv2rgb(yuv));\n"               \
+	"	gl_FragColor.w = 1.0;\n"                                           \
+	"}\n"
+
+
+static const char *fragmentShaderSourceRGB =
+        FRAGMENT_SHADER_COMMON FRAGMENT_SHADER_RGB;
+static const char *fragmentShaderSourceYUV =
+        FRAGMENT_SHADER_COMMON FRAGMENT_SHADER_YUV;
 
 // calculates scale factors and offsets based on viewport and texture sizes
 void video_gl_setup_screen()
@@ -61,46 +117,61 @@ void video_gl_setup_screen()
 }
 
 // initializes the OpenGL texture for the game screen
-void video_gl_init_textures()
+void video_gl_init_texture(int index, int width, int height, int bytesPerPixel)
 {
 	int allocTextureWidth, allocTextureHeight;
 	SDL_Surface *surface;
 
-	// set texture target, format, etc.
-	textureTarget = GL_TEXTURE_2D;
-	textureColorFormat = (bytesPerPixel == 4) ? GL_RGBA : GL_RGB;
-	texturePixelFormat = (bytesPerPixel <= 2) ? GL_UNSIGNED_SHORT_5_6_5_REV : GL_UNSIGNED_BYTE;
+	// set texture format
+	switch(bytesPerPixel)
+	{
+	case 1: // Y/U/V (not indexed!)
+		textureColorFormat[index] = GL_RED;
+		texturePixelFormat[index] = GL_UNSIGNED_BYTE;
+		break;
+	case 2: // BGR565
+		textureColorFormat[index] = GL_RGB;
+		texturePixelFormat[index] = GL_UNSIGNED_SHORT_5_6_5_REV;
+		break;
+	case 4: // XBGR8888
+		textureColorFormat[index] = GL_RGBA;
+		texturePixelFormat[index] = GL_UNSIGNED_BYTE;
+		break;
+	default:
+		assert(!"unknown bytes per pixel; should be 1, 2, or 4");
+	}
 
 	// enable 2D textures
-	glEnable(textureTarget);
+	glActiveTexture(GL_TEXTURE0 + index);
+	glEnable(GL_TEXTURE_2D);
 
 	// use non-power-of-two texture dimensions if they are available
 	if(SDL_GL_ExtensionSupported("GL_ARB_texture_non_power_of_two"))
 	{
-		allocTextureWidth = textureWidth;
-		allocTextureHeight = textureHeight;
+		allocTextureWidth = width;
+		allocTextureHeight = height;
 	}
 	else
 	{
-		allocTextureWidth = nextpowerof2(textureWidth);
-		allocTextureHeight = nextpowerof2(textureHeight);
+		allocTextureWidth = nextpowerof2(width);
+		allocTextureHeight = nextpowerof2(height);
 	}
 
 	// calculate maximum texture coordinates
-	tcx = (textureWidth == 0) ? 0 : (float)textureWidth / (float)allocTextureWidth;
-	tcy = (textureHeight == 0) ? 0 : (float)textureHeight / (float)allocTextureHeight;
+	tcx = (width == 0) ? 0 : (float)width / (float)allocTextureWidth;
+	tcy = (height == 0) ? 0 : (float)height / (float)allocTextureHeight;
 
 	// allocate a temporary surface to initialize the texture with
 	surface = SDL_CreateRGBSurface(0, allocTextureWidth, allocTextureHeight, bytesPerPixel * 8, 0,0,0,0);
 
 	// create texture object
-	glDeleteTextures(1, &gltexture);
-	glGenTextures(1, &gltexture);
-	glBindTexture(textureTarget, gltexture);
-	glTexImage2D(textureTarget, 0, textureColorFormat, allocTextureWidth,
-			allocTextureHeight, 0, textureColorFormat, texturePixelFormat, surface->pixels);
-	glTexParameteri(textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameteri(textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glDeleteTextures(1, &gltexture[index]);
+	glGenTextures(1, &gltexture[index]);
+	glBindTexture(GL_TEXTURE_2D, gltexture[index]);
+	glTexImage2D(GL_TEXTURE_2D, 0, textureColorFormat[index], allocTextureWidth, allocTextureHeight,
+	        0, textureColorFormat[index], texturePixelFormat[index], surface->pixels);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	// free up the temporary surface
 	SDL_FreeSurface(surface);
@@ -111,9 +182,8 @@ int video_gl_set_mode(s_videomodes videomodes)
 {
 	GLint maxTextureSize;
 
-	bytesPerPixel = videomodes.pixel;
-	textureWidth = videomodes.hRes;
-	textureHeight = videomodes.vRes;
+	displayWidth = textureWidth = videomodes.hRes;
+	displayHeight = textureHeight = videomodes.vRes;
 
 	// use the current monitor resolution in fullscreen mode to prevent aspect ratio distortion
 	viewportWidth = savedata.fullscreen ? nativeWidth : (int)(videomodes.hRes * MAX(0.25,videomodes.hScale));
@@ -168,6 +238,12 @@ int video_gl_set_mode(s_videomodes videomodes)
 	if(LoadGLFunctions() == 0) goto error;
 #endif
 
+	if(!SDL_GL_ExtensionSupported("GL_ARB_fragment_shader"))
+	{
+		printf("OpenGL fragment shaders not supported...");
+		goto error;
+	}
+
 	// reject the Mesa software renderer (swrast) because it's slow
 	if(stricmp((const char*)glGetString(GL_RENDERER), "Software Rasterizer") == 0)
 	{
@@ -194,11 +270,20 @@ int video_gl_set_mode(s_videomodes videomodes)
 	glDisable(GL_DITHER);
 
 	// initialize texture object
-	video_gl_init_textures();
+	video_gl_init_texture(0, textureWidth, textureHeight, videomodes.pixel);
 
 	// set up offsets, scale factors, and viewport
 	video_gl_setup_screen();
 
+	// set up a GLSL fragment shader if supported
+	GLuint fragmentShader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
+	glShaderSourceARB(fragmentShader, 1, &fragmentShaderSourceRGB, NULL);
+	glCompileShaderARB(fragmentShader);
+	shaderProgram = glCreateProgramObjectARB();
+	glAttachObjectARB(shaderProgram, fragmentShader);
+	glLinkProgramARB(shaderProgram);
+	glUseProgramObjectARB(shaderProgram);
+	glUniform1iARB(glGetUniformLocationARB(shaderProgram, "tex"), 0);
 	video_gl_set_color_correction(savedata.gamma, savedata.brightness);
 
 	opengl = 1;
@@ -221,72 +306,71 @@ void video_gl_clearscreen()
 
 void video_gl_draw_quad(int x, int y, int width, int height)
 {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glActiveTexture(GL_TEXTURE0);
 	glBegin(GL_QUADS);
 		// Top left
 		glMultiTexCoord2f(GL_TEXTURE0, 0.0, tcy);
-		glMultiTexCoord2f(GL_TEXTURE1, 0.0, tcy);
 		glVertex2i(x, y);
 
 		// Top right
 		glMultiTexCoord2f(GL_TEXTURE0, tcx, tcy);
-		glMultiTexCoord2f(GL_TEXTURE1, tcx, tcy);
 		glVertex2i(x+width-1, y);
 
 		// Bottom right
 		glMultiTexCoord2f(GL_TEXTURE0, tcx, 0.0);
-		glMultiTexCoord2f(GL_TEXTURE1, tcx, 0.0);
 		glVertex2i(x+width-1, y+height-1);
 
 		// Bottom left
 		glMultiTexCoord2f(GL_TEXTURE0, 0.0, 0.0);
-		glMultiTexCoord2f(GL_TEXTURE1, 0.0, 0.0);
 		glVertex2i(x, y+height-1);
 	glEnd();
 }
 
-int video_gl_copy_screen(s_videosurface* surface)
+void render()
 {
-	int xOffset, yOffset; // offset of game screen on display area
-	int scaledWidth, scaledHeight; // dimensions of game screen after scaling
-
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	// update texture contents with new surface contents
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(textureTarget, gltexture);
-	glTexSubImage2D(textureTarget, 0, 0, 0, textureWidth, textureHeight, textureColorFormat,
-			texturePixelFormat, surface->data);
-
 	// determine x and y scale factors
 	float texScale = MIN((float)viewportWidth/(float)textureWidth, (float)viewportHeight/(float)textureHeight);
 
 	// determine on-screen dimensions
-	scaledWidth = (int)(textureWidth * texScale);
-	scaledHeight = (int)(textureHeight * texScale);
+	int scaledWidth = (int)(textureWidth * texScale);
+	int scaledHeight = (int)(textureHeight * texScale);
 
 	// determine offsets
-	xOffset = (viewportWidth - scaledWidth) / 2;
-	yOffset = (viewportHeight - scaledHeight) / 2;
-
-	// set texture scaling type
-	if((savedata.glfilter[savedata.fullscreen]) || (textureWidth == (stretch ? viewportWidth : scaledWidth)))
-	{
-		glTexParameteri(textureTarget, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(textureTarget, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	}
-	else
-	{
-		glTexParameteri(textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	}
+	int xOffset = (viewportWidth - scaledWidth) / 2;
+	int yOffset = (viewportHeight - scaledHeight) / 2;
 
 	// render the quad
 	if(stretch)
 		video_gl_draw_quad(0, 0, viewportWidth, viewportHeight);
 	else
 		video_gl_draw_quad(xOffset, yOffset, scaledWidth, scaledHeight);
+}
 
-	// blit the image to the screen
+int video_gl_copy_screen(s_videosurface* surface)
+{
+	// update texture contents with new surface contents
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, gltexture[0]);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, textureHeight, textureColorFormat[0],
+			texturePixelFormat[0], surface->data);
+
+	// set texture scaling type
+	if(!savedata.glfilter[savedata.fullscreen])
+	{
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
+	else
+	{
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	}
+
+	// render the frame
+	render();
+
+	// display the rendered frame on the screen
 	SDL_GL_SwapWindow(window);
 
 #if WIN || LINUX
@@ -298,125 +382,80 @@ int video_gl_copy_screen(s_videosurface* surface)
 }
 
 // Set the brightness and gamma values
+int lastGamma = 0, lastBrightness = 0;
 void video_gl_set_color_correction(int gamma, int brightness)
 {
-	int numTexEnvStages = 0;
-
+	lastGamma = gamma;
+	lastBrightness = brightness;
+	GLint brightnessLocation, gammaLocation;
 	if(gamma < -256) gamma = -256;
 	if(gamma > 256) gamma = 256;
 	if(brightness < -256) brightness = -256;
 	if(brightness > 256) brightness = 256;
-	glColor4f(abs(gamma / 256.0), abs(gamma / 256.0), abs(gamma / 256.0), abs(brightness / 256.0));
 
-	if(SDL_GL_ExtensionSupported("GL_ARB_texture_env_combine"))
-	{
-		if(gamma > 0)
-		{
-			numTexEnvStages = 3;
+	glUseProgramObjectARB(shaderProgram);
+	brightnessLocation = glGetUniformLocationARB(shaderProgram, "brightness");
+	glUniform1fARB(brightnessLocation, brightness / 256.0);
+	gammaLocation = glGetUniformLocationARB(shaderProgram, "gamma");
+	glUniform1fARB(gammaLocation, gamma / 256.0);
+}
 
-			// first stage: c*g
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(textureTarget, gltexture);
-			glEnable(textureTarget);
-		    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,  GL_COMBINE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_TEXTURE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_PRIMARY_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
+// set up YUV mode
+int video_gl_setup_yuv_overlay(int width, int height, int dispWidth, int dispHeight)
+{
+	textureWidth = width;
+	textureHeight = height;
+	displayWidth = dispWidth;
+	displayHeight = dispHeight;
+	video_gl_init_texture(0, width, height, 1);
+	video_gl_init_texture(1, width/2, height/2, 1);
+	video_gl_init_texture(2, width/2, height/2, 1);
 
-			// second stage: (1.0-c)*(1.0-prev) = (1.0-c)*(1.0-(c*g))
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(textureTarget, gltexture);
-			glEnable(textureTarget);
-		    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,  GL_COMBINE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_TEXTURE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_ONE_MINUS_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_PREVIOUS);
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_ONE_MINUS_SRC_COLOR);
+	// set up shader to do YUV->RGB conversion
+	GLuint fragmentShader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
+	glShaderSourceARB(fragmentShader, 1, &fragmentShaderSourceYUV, NULL);
+	glCompileShaderARB(fragmentShader);
+	shaderProgram = glCreateProgramObjectARB();
+	glAttachObjectARB(shaderProgram, fragmentShader);
+	glLinkProgramARB(shaderProgram);
+	glUseProgramObjectARB(shaderProgram);
+	glUniform1iARB(glGetUniformLocationARB(shaderProgram, "tex"), 0);
+	glUniform1iARB(glGetUniformLocationARB(shaderProgram, "utex"), 1);
+	glUniform1iARB(glGetUniformLocationARB(shaderProgram, "vtex"), 2);
+	video_gl_set_color_correction(lastGamma, lastBrightness);
+	return 1;
+}
 
-			// third stage: 1.0-prev = 1.0-((1.0-c)*(1.0-(c*g)))
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(textureTarget, gltexture);
-			glEnable(textureTarget);
-			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_REPLACE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_PREVIOUS);
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_ONE_MINUS_SRC_COLOR);
-		}
-		else if(gamma < 0)
-		{
-			numTexEnvStages = 2;
+// render the frame
+int video_gl_prepare_yuv_frame(yuv_frame *frame)
+{
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, gltexture[0]);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, textureHeight,
+			textureColorFormat[0], texturePixelFormat[0], frame->lum);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, gltexture[1]);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth/2, textureHeight/2,
+			textureColorFormat[1], texturePixelFormat[1], frame->cr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, gltexture[2]);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth/2, textureHeight/2,
+			textureColorFormat[2], texturePixelFormat[2], frame->cb);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	render();
+	return 1;
+}
 
-			// first stage: (1.0-c)*g
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(textureTarget, gltexture);
-			glEnable(textureTarget);
-		    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,  GL_COMBINE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_TEXTURE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_ONE_MINUS_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_PRIMARY_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-
-			// second stage: c*(1.0-prev) = c*(1.0-((1.0-c)*g))
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(textureTarget, gltexture);
-			glEnable(textureTarget);
-		    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,  GL_COMBINE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_TEXTURE);
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_PREVIOUS);
-			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_ONE_MINUS_SRC_COLOR);
-
-			// third stage: disabled
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(textureTarget, 0);
-			glDisable(textureTarget);
-		}
-		else // gamma == 0 -> no gamma correction
-		{
-			numTexEnvStages = 0;
-
-			// first stage: sampled color from texture
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(textureTarget, gltexture);
-			glEnable(textureTarget);
-			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,  GL_REPLACE);
-
-			// second stage: disabled
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(textureTarget, 0);
-			glDisable(textureTarget);
-
-			// third stage: disabled
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(textureTarget, 0);
-			glDisable(textureTarget);
-		}
-	}
-
-	if(brightness)
-	{
-		// brightness correction
-		GLfloat blendColor = brightness > 0 ? 1.0 : 0.0; // white (positive brightess) or black (0 or negative)
-		GLfloat rgba[4] = {blendColor, blendColor, blendColor, 1.0};
-
-		glActiveTexture(GL_TEXTURE0 + numTexEnvStages);
-		glBindTexture(textureTarget, gltexture);
-		glEnable(textureTarget);
-		glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, rgba);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-		glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_INTERPOLATE);
-		glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, numTexEnvStages > 0 ? GL_PREVIOUS : GL_TEXTURE);
-		glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-		glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_CONSTANT);
-		glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-		glTexEnvi(GL_TEXTURE_ENV, GL_SRC2_RGB, GL_PRIMARY_COLOR);
-		glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND2_RGB, GL_ONE_MINUS_SRC_ALPHA);
-	}
+// display the rendered frame on the screen
+int video_gl_display_yuv_frame(void)
+{
+	SDL_GL_SwapWindow(window);
+	return 1;
 }
 
 #endif

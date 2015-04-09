@@ -92,6 +92,7 @@
 static int *colortab;
 static uint32_t *rgb_2_pix;
 static int bytes_per_pixel;
+static int yuv_initialized = 0;
 
 /*
  * How many 1 bits are there in the Uint32.
@@ -116,6 +117,24 @@ static int free_bits_at_bottom(uint32_t a)
     return 1 + free_bits_at_bottom ( a >> 1);
 }
 
+yuv_frame *yuv_frame_create(int width, int height)
+{
+    yuv_frame *frame = malloc(sizeof(yuv_frame));
+    frame->lum = malloc(width * height);
+    frame->cr = malloc(width * height / 2);
+    frame->cb = malloc(width * height / 2);
+    return frame;
+}
+
+void yuv_frame_destroy(yuv_frame *frame)
+{
+    if(frame == NULL) return;
+    free(frame->lum);
+    free(frame->cr);
+    free(frame->cb);
+    free(frame);
+}
+
 void yuv_init(int pixelbytes)
 {
     int *Cr_r_tab;
@@ -130,6 +149,7 @@ void yuv_init(int pixelbytes)
     uint32_t Rmask, Gmask, Bmask;
 
     yuv_clear();
+    yuv_initialized = 1;
 
     bytes_per_pixel = pixelbytes;
 
@@ -221,6 +241,7 @@ void yuv_clear(void)
     free(rgb_2_pix);
     colortab = NULL;
     rgb_2_pix = NULL;
+    yuv_initialized = 0;
 }
 
 static void Color16DitherYV12Mod1X( unsigned char *lum, unsigned char *cr,
@@ -361,14 +382,15 @@ static void Color32DitherYV12Mod1X( unsigned char *lum, unsigned char *cr,
     }
 }
 
-void yuv_to_rgb(unsigned char *lum, unsigned char *cr,
-                    unsigned char *cb, unsigned char *out,
-                    int rows, int cols, int mod)
+void yuv_to_rgb(yuv_frame *in, s_screen *out)
 {
+    assert(yuv_initialized);
+    assert(bytes_per_pixel == pixelbytes[out->pixelformat]);
     void (*convert)(unsigned char *lum, unsigned char *cr,
                     unsigned char *cb, unsigned char *out,
                     int rows, int cols, int mod);
     convert = (bytes_per_pixel == 2) ? Color16DitherYV12Mod1X : Color32DitherYV12Mod1X;
-    convert(lum, cr, cb, out, rows, cols, mod);
+    // note: to swap red and blue components of output, just swap the cb and cr buffers
+    convert(in->lum, in->cr, in->cb, out->data, out->height, out->width, 0);
 }
 
