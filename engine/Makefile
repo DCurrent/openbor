@@ -50,6 +50,7 @@ BUILD_SDL_IO    = 1
 BUILD_OPENGL    = 1
 BUILD_LOADGL    = 1
 BUILD_VORBIS    = 1
+BUILD_WEBM      = 1
 BUILDING        = 1
 YASM 	        = yasm$(EXTENSION)
 CC              = $(WINDEV)/$(PREFIX)gcc$(EXTENSION)
@@ -77,6 +78,7 @@ BUILD_SDL_IO    = 1
 BUILD_OPENGL    = 1
 BUILD_LOADGL    = 1
 BUILD_VORBIS    = 1
+BUILD_WEBM      = 1
 BUILDING        = 1
 YASM 	        = yasm
 CC  	        = $(LNXDEV)/$(PREFIX)gcc
@@ -339,6 +341,10 @@ ifdef BUILD_GFX
 INCS 	       += source/gfxlib
 endif
 
+ifdef BUILD_WEBM
+INCS 	       += source/webmlib
+endif
+
 INCS += $(INCLUDES)
 
 #----------------------------------------------------------------------------------------------------
@@ -464,6 +470,7 @@ GAME_CONSOLE   += sdl/joysticks.o                                               
                   sdl/sdlport.o                                                                     \
                   sdl/video.o                                                                       \
                   sdl/videocommon.o                                                                 \
+				  sdl/threads.o                                                                     \
                   sdl/menu.o
 endif
 
@@ -488,6 +495,15 @@ GAME_CONSOLE   += sdl/gp2x/gp2xport.o
 endif
 
 
+ifdef BUILD_WEBM
+WEBM 	       += source/webmlib/vidplay.o                                                          \
+                  source/webmlib/vorbis.o                                                           \
+				  source/webmlib/samplecvt.o                                                        \
+                  source/webmlib/yuv.o                                                              \
+				  source/webmlib/halloc/halloc.o                                                    \
+				  source/webmlib/nestegg/nestegg.o
+endif
+
 
 MAIN            = openbor.o					                                                \
                   openborscript.o
@@ -501,7 +517,9 @@ OBJS            = $(MAIN)                                                       
                   $(SCRIPT)                                                                         \
                   $(RAM)                                                                            \
                   $(RAND)                                                                           \
-                  $(PNG)
+                  $(PNG)                                                                            \
+                  $(WEBM)
+				  
 
 #----------------------------------------------------------------------------------------------------
 # Compiler Flags
@@ -680,6 +698,11 @@ endif
 
 ifdef BUILD_TREMOR
 LIBS           += -lvorbisidec
+endif
+
+
+ifdef BUILD_WEBM
+LIBS           += -lvpx
 endif
 
 

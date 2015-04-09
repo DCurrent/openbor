@@ -73,19 +73,6 @@ Caution: move vorbis headers here otherwise the structs will
 #define		PREMIX_SIZE		     1024
 #define		MIX_BLOCK_SIZE		 32
 
-// 20:12 fixed-point conversion macros.
-// The maximum size of a sound is linked directly
-// to the range of the fixed-point variables!
-#define		INT_TO_FIX(i)		((unsigned int)i<<12)
-#define		FIX_TO_INT(f)		((unsigned int)f>>12)
-#define		MAX_SOUND_LEN		0xFFFFF
-#define		CHANNEL_PLAYING		1
-#define		CHANNEL_LOOPING		2
-#define		MUSIC_NUM_BUFFERS	4
-#define		MUSIC_BUF_SIZE		(16*1024)	// In samples
-#define		SOUND_MONO			1
-#define		SOUND_STEREO		2
-
 #ifndef DC
 #pragma pack(4)
 #endif
@@ -119,29 +106,16 @@ typedef struct
     char *filename;
 } s_soundcache;
 
-typedef struct
-{
-    int            active;
-    int            paused;
-    short 		   *buf[MUSIC_NUM_BUFFERS];
-    unsigned int   fp_playto[MUSIC_NUM_BUFFERS];
-    unsigned int   fp_samplepos;  // Position (fixed-point)
-    unsigned int   fp_period;	  // Period (fixed-point)
-    int			   playing_buffer;
-    int            volume[2];
-    int            channels;
-} musicchannelstruct;
-
 
 static List samplelist;
 static s_soundcache *soundcache = NULL;
 static int sound_cached = 0;
 int sample_play_id = 0;
 static channelstruct vchannel[MAX_CHANNELS];
-static musicchannelstruct musicchannel;
+musicchannelstruct musicchannel;
 static s32 *mixbuf = NULL;
 static int playbits;
-static int playfrequency;
+int playfrequency;
 static int max_channels = 0;
 
 // Indicates whether the hardware is playing, and if mixing is active
@@ -1602,10 +1576,6 @@ int sound_start_playback(int bits, int frequency)
     sound_stop_playback();
 
     if(bits != 8 && bits != 16)
-    {
-        return 0;
-    }
-    if(frequency != 11025 && frequency != 22050 && frequency != 44100)
     {
         return 0;
     }
