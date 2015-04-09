@@ -28905,6 +28905,22 @@ void playscene(char *filename)
                     closing = 1;
                 }
             }
+            else if(!closing && stricmp(command, "video") == 0)
+            {
+#ifdef WEBM
+                strcpy(giffile, GET_ARG(1));
+                skipone = GET_INT_ARG(2);
+                noskip = GET_INT_ARG(3);
+                if(playwebm(giffile, savedata.musicvol, noskip) == -1 && !skipone)
+                {
+                    closing = 1;
+                }
+                sound_close_music();
+                video_set_mode(videomodes);
+#else
+                printf("Skipping video %s; WebM playback not supported on this platform\n");
+#endif
+            }
             else if(stricmp(command, "silence") == 0)
             {
                 sound_close_music();

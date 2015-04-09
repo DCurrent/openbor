@@ -627,6 +627,11 @@ CFLAGS         += -DVERBOSE
 endif
 
 
+ifdef BUILD_WEBM
+CFLAGS 	       += -DWEBM
+endif
+
+
 CXXFLAGS        = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS         = $(CFLAGS)
 
