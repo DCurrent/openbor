@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2014 OpenBOR Team
+ * Copyright (c) 2004 - 2015 OpenBOR Team
  */
 
 #include <stdio.h>
@@ -22,6 +22,7 @@
 #include "vpx/vp8dx.h"
 
 // our headers
+#include "vidplay.h"
 #include "vorbis.h"
 #include "yuv.h"
 #include "threads.h"
@@ -30,7 +31,6 @@
 #include "timer.h"
 #include "soundmix.h"
 #include "video.h"
-
 #include "openbor.h"
 
 // lowering these might save a bit of memory but could also cause lag
@@ -77,6 +77,7 @@ typedef struct {
 
 
 static int quit_video;
+extern u32 bothnewkeys; // in openbor.c
 
 int webm_read(void *buffer, size_t length, void *userdata)
 {
@@ -273,7 +274,7 @@ int audio_thread(void *data)
     return 0;
 }
 
-void init_audio(nestegg *ctx, int track, audio_context *audio_ctx)
+void init_audio(nestegg *ctx, int track, audio_context *audio_ctx, int volume)
 {
     nestegg_audio_params audioParams;
     nestegg_track_audio_params(ctx, track, &audioParams);
@@ -285,13 +286,14 @@ void init_audio(nestegg *ctx, int track, audio_context *audio_ctx)
 
     // start playback
     printf("Audio track: %f Hz, %d channels, %d bits/sample\n", audioParams.rate, audioParams.channels, audioParams.depth);
+    sound_close_music();
     sound_start_playback(16, audio_ctx->frequency);
 
     // initialize soundmix music channel
     memset(&musicchannel, 0, sizeof(musicchannel));
     musicchannel.fp_period = INT_TO_FIX(audio_ctx->frequency) / playfrequency;
-    musicchannel.volume[0] = 256;
-    musicchannel.volume[1] = 256;
+    musicchannel.volume[0] = volume;
+    musicchannel.volume[1] = volume;
     musicchannel.channels = audioParams.channels;
     musicchannel.active = 1;
 
@@ -385,7 +387,7 @@ int demux_thread(void *data)
     return 0;
 }
 
-int play_webm(const char *path)
+int playwebm(const char *path, int volume, int noskip)
 {
     int webmfile;
     nestegg_io io;
@@ -393,6 +395,7 @@ int play_webm(const char *path)
     video_context video_ctx;
     audio_context audio_ctx;
     int video_stream = -1, audio_stream = -1;
+    int retval = 0;
 
     quit_video = 0;
 
@@ -464,7 +467,7 @@ int play_webm(const char *path)
         vorbis_headerpacket(&audio_ctx.vorbis_ctx, data, data_size, chunk);
     }
     vorbis_prepare(&audio_ctx.vorbis_ctx);
-    init_audio(demux_ctx, audio_stream, &audio_ctx);
+    init_audio(demux_ctx, audio_stream, &audio_ctx, volume);
     bor_thread *the_audio_thread = thread_create(audio_thread, "audio", &decoder_ctx);
 
     // set up video
@@ -487,6 +490,12 @@ int play_webm(const char *path)
     while(!quit_video)
     {
         inputrefresh();
+        if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)))
+        {
+            quit_video = 1;
+            retval = -1;
+            break;
+        }
 
         myclock = timer_uticks(); //SDL_GetPerformanceCounter();
         uint64_t system_clock = (myclock - starttime) * (1000000000.0 / perfFreq);
@@ -541,13 +550,20 @@ int play_webm(const char *path)
 
     // clean up audio context
     sound_stop_playback();
+    sound_start_playback(savedata.soundbits, savedata.soundrate);
     vorbis_destroy(&audio_ctx.vorbis_ctx);
+    musicchannel.active = 0;
+    for(i = 0; i < MUSIC_NUM_BUFFERS; i++)
+    {
+        free(musicchannel.buf[i]);
+        musicchannel.buf[i] = NULL;
+    }
 
     // free up any memory used by libvpx and nestegg
     if(vpx_codec_destroy(&video_ctx.vpx_ctx))
         printf("Warning: failed to destroy libvpx context: %s\n", vpx_codec_error(&video_ctx.vpx_ctx));
     nestegg_destroy(demux_ctx);
 
-    return 0;
+    return retval;
 }
 

@@ -47,6 +47,10 @@
 #include    "gfx.h"
 #endif
 
+#ifdef WEBM
+#include    "vidplay.h"
+#endif
+
 /////////////////////////////////////////////////////////////////////////////
 
 #define		DEFAULT_SHUTDOWN_MESSAGE \
