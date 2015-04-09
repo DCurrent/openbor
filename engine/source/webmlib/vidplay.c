@@ -502,9 +502,9 @@ int play_webm(const char *path)
     bor_thread *the_video_thread = thread_create(video_thread, "video", &video_ctx);
 
     uint64_t next_frame_time = 0;
-    uint64_t perfFreq = 1000; //SDL_GetPerformanceFrequency();
+    uint64_t perfFreq = 1000000; //SDL_GetPerformanceFrequency();
     uint64_t myclock;
-    uint64_t starttime = timer_gettick(); //SDL_GetPerformanceCounter();
+    uint64_t starttime = timer_uticks(); //SDL_GetPerformanceCounter();
 
     s_screen *surface = allocscreen(video_ctx.width, video_ctx.height, screenformat);
 
@@ -512,7 +512,7 @@ int play_webm(const char *path)
     {
         inputrefresh();
 
-        myclock = timer_gettick(); //SDL_GetPerformanceCounter();
+        myclock = timer_uticks(); //SDL_GetPerformanceCounter();
         uint64_t system_clock = (myclock - starttime) * (1000000000.0 / perfFreq);
 
         if (next_frame_time <= system_clock)
