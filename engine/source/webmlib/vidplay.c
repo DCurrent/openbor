@@ -50,13 +50,6 @@ typedef struct {
 } FixedSizeQueue;
 
 typedef struct {
-    uint64_t timestamp;
-    void *lum;
-    void *cb;
-    void *cr;
-} yuv_frame;
-
-typedef struct {
     FixedSizeQueue *packet_queue;
     vorbis_context vorbis_ctx;
     int frequency;
@@ -179,24 +172,6 @@ void queue_destroy(FixedSizeQueue *queue)
     cond_destroy(queue->not_empty);
     mutex_destroy(queue->mutex);
     free(queue);
-}
-
-yuv_frame *yuv_frame_create(int width, int height)
-{
-    yuv_frame *frame = malloc(sizeof(yuv_frame));
-    frame->lum = malloc(width * height);
-    frame->cr = malloc(width * height / 2);
-    frame->cb = malloc(width * height / 2);
-    return frame;
-}
-
-void yuv_frame_destroy(yuv_frame *frame)
-{
-    if(frame == NULL) return;
-    free(frame->lum);
-    free(frame->cr);
-    free(frame->cb);
-    free(frame);
 }
 
 #if LINUX // usleep has been deprecated in POSIX for a while
@@ -506,7 +481,8 @@ int play_webm(const char *path)
     uint64_t myclock;
     uint64_t starttime = timer_uticks(); //SDL_GetPerformanceCounter();
 
-    s_screen *surface = allocscreen(video_ctx.width, video_ctx.height, screenformat);
+    video_setup_yuv_overlay(video_params.width, video_params.height,
+            video_params.display_width, video_params.display_height);
 
     while(!quit_video)
     {
@@ -518,7 +494,7 @@ int play_webm(const char *path)
         if (next_frame_time <= system_clock)
         {
             // display the new frame
-            video_copy_screen(surface);
+            video_display_yuv_frame();
 
             // prepare the next frame for display
             debug_printf("size=%i\n", video_ctx.frame_queue->size);
@@ -526,8 +502,7 @@ int play_webm(const char *path)
             debug_printf("uc %lli, ", system_clock);
             yuv_frame *frame = (yuv_frame *)queue_get(video_ctx.frame_queue);
             if (frame == NULL) break;
-            // note: to swap red and blue components of output, just swap the cb and cr buffers
-            yuv_to_rgb(frame->lum, frame->cr, frame->cb, surface->data, surface->height, surface->width, 0);
+            video_prepare_yuv_frame(frame);
             next_frame_time = frame->timestamp;
             yuv_frame_destroy(frame);
         }
@@ -542,7 +517,6 @@ int play_webm(const char *path)
     thread_join(the_video_thread);
     thread_join(the_audio_thread);
     yuv_clear();
-    freescreen(&surface);
 
     // clean up anything left in the queues
     nestegg_packet *packet;

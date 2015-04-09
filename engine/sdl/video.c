@@ -207,15 +207,8 @@ void video_fullscreen_flip()
 	if(window) video_set_mode(stored_videomodes);
 }
 
-int video_copy_screen(s_screen* src)
+void blit()
 {
-	// do any needed scaling and color conversion
-	s_videosurface *surface = getVideoSurface(src);
-
-	if(opengl) return video_gl_copy_screen(surface);
-
-	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
-
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
@@ -227,6 +220,17 @@ int video_copy_screen(s_screen* src)
 	SDL_RenderFillRect(renderer, NULL);
 
 	SDL_RenderPresent(renderer);
+}
+
+int video_copy_screen(s_screen* src)
+{
+	// do any needed scaling and color conversion
+	s_videosurface *surface = getVideoSurface(src);
+
+	if(opengl) return video_gl_copy_screen(surface);
+
+	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
+	blit();
 
 #if WIN || LINUX
 	SDL_framerateDelay(&framerate_manager);
@@ -260,6 +264,41 @@ void video_set_color_correction(int gm, int br)
 {
 	brightness = br;
 	if(opengl) video_gl_set_color_correction(gm, br);
+}
+
+static int overlay_pitch;
+
+int video_setup_yuv_overlay(int width, int height, int dispwidth, int dispheight)
+{
+	if(opengl) return video_gl_setup_yuv_overlay(width, height, dispwidth, dispheight);
+
+	overlay_pitch = width;
+	SDL_DestroyTexture(texture);
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+	texture = SDL_CreateTexture(renderer,
+	                            SDL_PIXELFORMAT_YV12,
+	                            SDL_TEXTUREACCESS_STREAMING,
+	                            width, height);
+	if(!stretch)
+		SDL_RenderSetLogicalSize(renderer, dispwidth, dispheight);
+	return texture ? 1 : 0;
+}
+
+int video_prepare_yuv_frame(yuv_frame *src)
+{
+	if(opengl) return video_gl_prepare_yuv_frame(src);
+
+	SDL_UpdateYUVTexture(texture, NULL, src->lum, overlay_pitch,
+	        src->cr, overlay_pitch/2, src->cb, overlay_pitch/2);
+	return 1;
+}
+
+int video_display_yuv_frame(void)
+{
+	if(opengl) return video_gl_display_yuv_frame();
+
+	blit();
+	return 1;
 }
 
 void vga_vwait(void)
