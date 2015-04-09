@@ -37,3 +37,9 @@ unsigned timer_gettick()
 	sceRtcGetCurrentTick(&now);
 	return now;
 }
+
+u64 timer_uticks()
+{
+	return timer_gettick() * 1000LL;
+}
+

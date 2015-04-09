@@ -9,6 +9,8 @@
 #ifndef TIMER_H
 #define TIMER_H
 
+#include "types.h"
+
 void borTimerInit();
 void borTimerExit();
 
@@ -26,6 +28,11 @@ void borTimerExit();
 ;----------------------------------------------------------------
 */
 unsigned timer_getinterval(unsigned freq);
+
+// returns time passed since startup in milliseconds
 unsigned timer_gettick();
+
+// returns time passed since startup in microseconds
+u64 timer_uticks();
 
 #endif

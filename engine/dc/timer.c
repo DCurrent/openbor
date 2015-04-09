@@ -45,3 +45,9 @@ unsigned timer_gettick()
 {
   	return getTicks();
 }
+
+u64 timer_uticks()
+{
+	return timer_gettick() * 1000LL;
+}
+

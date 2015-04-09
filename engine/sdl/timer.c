@@ -8,13 +8,18 @@
 
 #include <SDL.h>
 #include "timer.h"
+#include "types.h"
 
 #define GETTIME_FREQ (1000)
 
 static unsigned lastinterval = 0;
+static u64 startcounter;
 
+void borTimerInit()
+{
+	startcounter = SDL_GetPerformanceCounter();
+}
 
-void borTimerInit(){}
 void borTimerExit(){}
 
 unsigned timer_getinterval(unsigned freq)
@@ -34,3 +39,11 @@ unsigned timer_gettick()
 {
 	return SDL_GetTicks();
 }
+
+u64 timer_uticks()
+{
+	u64 freq = SDL_GetPerformanceFrequency();
+	u64 counter = SDL_GetPerformanceCounter();
+	return counter * (1000000.0 / freq);
+}
+

@@ -34,3 +34,9 @@ unsigned timer_gettick()
 {
 	return gettime() / TB_TIMER_CLOCK;
 }
+
+u64 timer_uticks()
+{
+	return timer_gettick() * 1000LL;
+}
+
