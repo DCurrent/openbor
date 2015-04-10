@@ -200,7 +200,9 @@ int video_gl_set_mode(s_videomodes videomodes)
 	}
 
 	// create an OpenGL compatibility context, not a core or ES context
+#ifndef WIN // except on Windows, where some Nvidia drivers really don't like us doing this
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+#endif
 
 	// get window and initialize OpenGL context
 	SetVideoMode(viewportWidth, viewportHeight, 0, true);
