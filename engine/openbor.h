@@ -48,6 +48,7 @@
 #endif
 
 #ifdef WEBM
+#include    "yuv.h"
 #include    "vidplay.h"
 #endif
 

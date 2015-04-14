@@ -28859,6 +28859,53 @@ playgif_end:
 }
 
 
+#ifdef WEBM
+// Returns 0 on error, -1 on escape
+int playwebm(const char *path, int noskip)
+{
+    int retval = 1;
+
+    webm_context *ctx = webm_start_playback(path, savedata.musicvol);
+    if(ctx == NULL) return 0;
+
+    u64 start_time = timer_uticks();
+    u64 next_frame_time = 0;
+
+    while(1)
+    {
+        inputrefresh();
+        if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)))
+        {
+            retval = -1;
+            break;
+        }
+
+        u64 time_passed = timer_uticks() - start_time;
+
+        if(next_frame_time <= time_passed)
+        {
+            // display the current frame
+            video_display_yuv_frame();
+
+            // prepare the next frame for display
+            yuv_frame *frame = webm_get_next_frame(ctx);
+            if(frame == NULL) break;
+            video_prepare_yuv_frame(frame);
+            next_frame_time = frame->timestamp / 1000;
+            yuv_frame_destroy(frame);
+        }
+        else usleep(next_frame_time - time_passed);
+    }
+
+    webm_close(ctx);
+    sound_close_music();
+    sound_start_playback(savedata.soundbits, savedata.soundrate);
+    video_set_mode(videomodes);
+    return retval;
+}
+#endif
+
+
 
 void playscene(char *filename)
 {
@@ -28866,7 +28913,7 @@ void playscene(char *filename)
     size_t size;
     int pos;
     char *command = NULL;
-    char giffile[256];
+    char videofile[256];
     int x = 0, y = 0, skipone = 0, noskip = 0, i;
     int closing = 0;
 
@@ -28895,12 +28942,12 @@ void playscene(char *filename)
             }
             else if(!closing && stricmp(command, "animation") == 0)
             {
-                strcpy(giffile, GET_ARG(1));
+                strcpy(videofile, GET_ARG(1));
                 x = GET_INT_ARG(2);
                 y = GET_INT_ARG(3);
                 skipone = GET_INT_ARG(4);
                 noskip = GET_INT_ARG(5);
-                if(playgif(giffile, x, y, noskip) == -1 && !skipone)
+                if(playgif(videofile, x, y, noskip) == -1 && !skipone)
                 {
                     closing = 1;
                 }
@@ -28908,15 +28955,13 @@ void playscene(char *filename)
             else if(!closing && stricmp(command, "video") == 0)
             {
 #ifdef WEBM
-                strcpy(giffile, GET_ARG(1));
+                strcpy(videofile, GET_ARG(1));
                 skipone = GET_INT_ARG(2);
                 noskip = GET_INT_ARG(3);
-                if(playwebm(giffile, savedata.musicvol, noskip) == -1 && !skipone)
+                if(playwebm(videofile, noskip) == -1 && !skipone)
                 {
                     closing = 1;
                 }
-                sound_close_music();
-                video_set_mode(videomodes);
 #else
                 printf("Skipping video %s; WebM playback not supported on this platform\n");
 #endif

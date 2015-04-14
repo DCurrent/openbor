@@ -12,8 +12,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
-#include <unistd.h>
-#include <time.h>
 #include "nestegg/nestegg.h"
 
 // libvpx
@@ -28,10 +26,8 @@
 #include "threads.h"
 #include "types.h"
 #include "globals.h"
-#include "timer.h"
 #include "soundmix.h"
 #include "video.h"
-#include "openbor.h"
 
 // lowering these might save a bit of memory but could also cause lag
 #define PACKET_QUEUE_SIZE 20
@@ -63,26 +59,31 @@ typedef struct {
     FixedSizeQueue *frame_queue;
     int width;
     int height;
+    int display_width;
+    int display_height;
     uint64_t frame_delay;
 } video_context;
 
-typedef struct {
-    nestegg *demux_ctx;
-    audio_context *audio_ctx;
-    video_context *video_ctx;
+// see header for typedef
+struct webm_context {
+    int packhandle;
+    nestegg *nestegg_ctx;
+    audio_context audio_ctx;
+    video_context video_ctx;
     FixedSizeQueue *audio_queue;
-    int audio_stream;
-    int video_stream;
-} decoder_context;
+    int audio_track;
+    int video_track;
+    bor_thread *the_demux_thread;
+    bor_thread *the_video_thread;
+    bor_thread *the_audio_thread;
+};
 
 
 static int quit_video;
-extern u32 bothnewkeys; // in openbor.c
 
 int webm_read(void *buffer, size_t length, void *userdata)
 {
-    int webmfile = (int)userdata;
-    int bytesRead = readpackfile(webmfile, buffer, length);
+    int bytesRead = readpackfile((int)userdata, buffer, length);
     if (bytesRead < 0) return -1;
     else if (bytesRead == 0) return 0;
     else return 1;
@@ -111,7 +112,7 @@ FixedSizeQueue *queue_init(int max_size)
     return queue;
 }
 
-#define SPIT(fmt, ...) debug_printf("%s:%i: " fmt, __func__, __LINE__, __VA_ARGS__)
+#define SPIT(fmt, ...) debug_printf("%s:%i(%p): " fmt, __func__, __LINE__, queue, __VA_ARGS__)
 
 // returns 0 on success; <0 means that the caller should clean up
 // and exit
@@ -128,6 +129,7 @@ int queue_insert(FixedSizeQueue *queue, void *data)
                 mutex_unlock(queue->mutex);
                 return -1;
             }
+            else if (queue->size < queue->max_size) break;
         }
     }
     assert(queue->size < queue->max_size);
@@ -155,6 +157,7 @@ void *queue_get(FixedSizeQueue *queue)
                 mutex_unlock(queue->mutex);
                 return NULL;
             }
+            else if (queue->size > 0) break;
         }
     }
     assert(queue->size > 0);
@@ -175,19 +178,7 @@ void queue_destroy(FixedSizeQueue *queue)
     free(queue);
 }
 
-#if LINUX // usleep has been deprecated in POSIX for a while
-// sleeps for the given number of microseconds
-void _usleep(uint64_t time)
-{
-    struct timespec sleeptime;
-    sleeptime.tv_sec = time / 1000000LL;
-    sleeptime.tv_nsec = (time % 1000000LL) * 1000;
-    nanosleep(&sleeptime, NULL);
-}
-#define usleep _usleep
-#endif
-
-int audio_decode_frame(audio_context *audio_ctx, uint8_t *audio_buf, int buf_size)
+static int audio_decode_frame(audio_context *audio_ctx, uint8_t *audio_buf, int buf_size)
 {
     vorbis_context *vorbis_ctx = &audio_ctx->vorbis_ctx;
     //audio_clock += 1000000000LL * audio_ctx->last_samples / audio_ctx->frequency;
@@ -202,7 +193,7 @@ int audio_decode_frame(audio_context *audio_ctx, uint8_t *audio_buf, int buf_siz
             uint64_t timestamp;
             unsigned chunk, num_chunks;
 
-            //fprintf(stderr, "audio queue size=%i\n", audio_ctx->packet_queue->size);
+            debug_printf("audio queue size=%i\n", audio_ctx->packet_queue->size);
             if ((pkt = queue_get(audio_ctx->packet_queue)) == NULL)
                 return -1;
             nestegg_packet_tstamp(pkt, &timestamp);
@@ -227,10 +218,9 @@ int audio_decode_frame(audio_context *audio_ctx, uint8_t *audio_buf, int buf_siz
     return buf_size;
 }
 
-int audio_thread(void *data)
+static int audio_thread(void *data)
 {
-    decoder_context *ctx = (decoder_context *)data;
-    audio_context *audio_ctx = ctx->audio_ctx;
+    audio_context *audio_ctx = (audio_context *)data;
     int i, j;
 
     while(!quit_video)
@@ -274,18 +264,33 @@ int audio_thread(void *data)
     return 0;
 }
 
-void init_audio(nestegg *ctx, int track, audio_context *audio_ctx, int volume)
+static void init_audio(nestegg *ctx, int track, audio_context *audio_ctx, int volume)
 {
-    nestegg_audio_params audioParams;
-    nestegg_track_audio_params(ctx, track, &audioParams);
+    // read vorbis header and initialize vorbis decoding
+    unsigned chunk, chunks;
+    vorbis_init(&(audio_ctx->vorbis_ctx));
+    nestegg_track_codec_data_count(ctx, track, &chunks);
+    assert(chunks == 3);
+    for (chunk=0; chunk<chunks; chunk++)
+    {
+        unsigned char *data;
+        size_t data_size;
+        nestegg_track_codec_data(ctx, track, chunk, &data, &data_size);
+        vorbis_headerpacket(&(audio_ctx->vorbis_ctx), data, data_size, chunk);
+    }
 
     // initialize audio decoding context
+    vorbis_prepare(&(audio_ctx->vorbis_ctx));
+    nestegg_audio_params audioParams;
+    nestegg_track_audio_params(ctx, track, &audioParams);
     audio_ctx->vorbis_ctx.channels = audioParams.channels;
     audio_ctx->frequency = (int)audioParams.rate;
     audio_ctx->avail_samples = audio_ctx->last_samples = 0;
+    audio_ctx->packet_queue = queue_init(PACKET_QUEUE_SIZE);
 
-    // start playback
-    printf("Audio track: %f Hz, %d channels, %d bits/sample\n", audioParams.rate, audioParams.channels, audioParams.depth);
+    // set output sampling rate to that of this audio track for the best quality
+    printf("Audio track: %f Hz, %d channels, %d bits/sample\n",
+            audioParams.rate, audioParams.channels, audioParams.depth / audioParams.channels);
     sound_close_music();
     sound_start_playback(16, audio_ctx->frequency);
 
@@ -305,7 +310,30 @@ void init_audio(nestegg *ctx, int track, audio_context *audio_ctx, int volume)
     }
 }
 
-int video_thread(void *data)
+static void close_audio(audio_context *audio_ctx)
+{
+    // empty and free the packet queue
+    while(audio_ctx->packet_queue->size)
+    {
+        nestegg_packet *packet = queue_get(audio_ctx->packet_queue);
+        if(packet) nestegg_free_packet(packet);
+    }
+    queue_destroy(audio_ctx->packet_queue);
+
+    // close the vorbis decoding context
+    vorbis_destroy(&(audio_ctx->vorbis_ctx));
+
+    // set the state of soundmix to how it was before
+    int i;
+    musicchannel.active = 0;
+    for(i = 0; i < MUSIC_NUM_BUFFERS; i++)
+    {
+        free(musicchannel.buf[i]);
+        musicchannel.buf[i] = NULL;
+    }
+}
+
+static int video_thread(void *data)
 {
     video_context *ctx = (video_context*) data;
     uint64_t timestamp;
@@ -331,7 +359,9 @@ int video_thread(void *data)
             vpx_codec_iter_t iter = NULL;
             if (vpx_codec_decode(&ctx->vpx_ctx, data, data_size, NULL, 0))
             {
-                shutdown(1, "Failed to decode frame\n");
+                printf("Error: libvpx failed to decode chunk\n");
+                quit_video = 1;
+                break;
             }
             while((img = vpx_codec_get_frame(&ctx->vpx_ctx, &iter)))
             {
@@ -365,39 +395,110 @@ int video_thread(void *data)
     return 0;
 }
 
-int demux_thread(void *data)
+// returns 0 on success, -1 on error
+static int init_video(nestegg *nestegg_ctx, int track, video_context *video_ctx)
 {
-    decoder_context *ctx = (decoder_context *)data;
+    nestegg_video_params video_params;
+    nestegg_track_video_params(nestegg_ctx, track, &video_params);
+    assert(video_params.stereo_mode == NESTEGG_VIDEO_MONO);
+
+    if (vpx_codec_dec_init(&(video_ctx->vpx_ctx), vpx_codec_vp8_dx(), NULL, 0))
+    {
+        printf("Error: failed to initialize libvpx\n");
+        return -1;
+    }
+    video_ctx->width = video_params.width;
+    video_ctx->height = video_params.height;
+    video_ctx->display_width = video_params.display_width;
+    video_ctx->display_height = video_params.display_height;
+    nestegg_track_default_duration(nestegg_ctx, track, &(video_ctx->frame_delay));
+    printf("Video track: resolution=%i*%i, display resolution=%i*%i, %.2f frames/second\n",
+            video_params.width, video_params.height,
+            video_params.display_width, video_params.display_height,
+            1000000000.0 / video_ctx->frame_delay);
+
+    int status = video_setup_yuv_overlay(video_ctx->width, video_ctx->height,
+            video_ctx->display_width, video_ctx->display_height);
+    if (!status)
+    {
+        vpx_codec_destroy(&(video_ctx->vpx_ctx));
+        return -1;
+    }
+
+    video_ctx->packet_queue = queue_init(PACKET_QUEUE_SIZE);
+    video_ctx->frame_queue = queue_init(FRAME_QUEUE_SIZE);
+    return 0;
+}
+
+static void close_video(video_context *video_ctx)
+{
+    if(vpx_codec_destroy(&(video_ctx->vpx_ctx)))
+    {
+        printf("Warning: failed to destroy libvpx context: %s\n", vpx_codec_error(&video_ctx->vpx_ctx));
+    }
+    if(video_ctx->packet_queue)
+    {
+        while(video_ctx->packet_queue && video_ctx->packet_queue->size)
+        {
+            nestegg_packet *packet = queue_get(video_ctx->packet_queue);
+            if(packet) nestegg_free_packet(packet);
+        }
+        queue_destroy(video_ctx->packet_queue);
+    }
+    if(video_ctx->frame_queue)
+    {
+        while(video_ctx->frame_queue && video_ctx->frame_queue->size)
+        {
+            yuv_frame_destroy((yuv_frame *) queue_get(video_ctx->frame_queue));
+        }
+        queue_destroy(video_ctx->frame_queue);
+    }
+}
+
+static int demux_thread(void *data)
+{
+    webm_context *ctx = (webm_context *)data;
     nestegg_packet *pkt;
     int r;
-    while ((r = nestegg_read_packet(ctx->demux_ctx, &pkt)) > 0)
+    while ((r = nestegg_read_packet(ctx->nestegg_ctx, &pkt)) > 0)
     {
         unsigned int track;
         nestegg_packet_track(pkt, &track);
 
-        if (track == ctx->audio_stream)
-            queue_insert(ctx->audio_ctx->packet_queue, pkt);
-        else if (track == ctx->video_stream)
-            queue_insert(ctx->video_ctx->packet_queue, pkt);
+        if (track == ctx->audio_track)
+        {
+            if (queue_insert(ctx->audio_ctx.packet_queue, pkt) < 0)
+            {
+                nestegg_free_packet(pkt);
+                break;
+            }
+        }
+        else if (track == ctx->video_track)
+        {
+            if (queue_insert(ctx->video_ctx.packet_queue, pkt) < 0)
+            {
+                nestegg_free_packet(pkt);
+                break;
+            }
+        }
 
         if (quit_video) break;
     }
-    queue_insert(ctx->audio_ctx->packet_queue, NULL);
-    queue_insert(ctx->video_ctx->packet_queue, NULL);
+    queue_insert(ctx->audio_ctx.packet_queue, NULL);
+    queue_insert(ctx->video_ctx.packet_queue, NULL);
     return 0;
 }
 
-int playwebm(const char *path, int volume, int noskip)
+webm_context *webm_start_playback(const char *path, int volume)
 {
-    int webmfile;
+    webm_context *ctx;
     nestegg_io io;
-    nestegg *demux_ctx;
-    video_context video_ctx;
-    audio_context audio_ctx;
-    int video_stream = -1, audio_stream = -1;
-    int retval = 0;
+    int video_track = -1, audio_track = -1;
 
     quit_video = 0;
+    ctx = malloc(sizeof(*ctx));
+    if(!ctx) return NULL;
+    memset(ctx, 0, sizeof(*ctx));
 
     // set up I/O callbacks
     io.read = webm_read;
@@ -405,165 +506,83 @@ int playwebm(const char *path, int volume, int noskip)
     io.tell = webm_tell;
 
     // open video file
-    webmfile = openpackfile(path, "dummy.pak");
-    assert(webmfile >= 0);
-    io.userdata = (void*)webmfile;
-    nestegg_init(&demux_ctx, io, NULL, -1);
+    ctx->packhandle = openpackfile(path, packfile);
+    if(ctx->packhandle < 0) goto error1;
+    io.userdata = (void*)ctx->packhandle;
+    if(nestegg_init(&(ctx->nestegg_ctx), io, NULL, -1) < 0) goto error2;
 
     // get number of tracks
-    unsigned num_tracks, i;
-    if (nestegg_track_count(demux_ctx, &num_tracks) != 0) exit(2);
+    unsigned int num_tracks, i;
+    if(nestegg_track_count(ctx->nestegg_ctx, &num_tracks) < 0) goto error3;
 
     // find the first video and audio tracks
     // TODO: handle files with no audio track
     for (i = 0; i < num_tracks; i++)
     {
-        int track_type = nestegg_track_type(demux_ctx, i);
-        int codec = nestegg_track_codec_id(demux_ctx, i);
+        int track_type = nestegg_track_type(ctx->nestegg_ctx, i);
+        int codec = nestegg_track_codec_id(ctx->nestegg_ctx, i);
         if (track_type == NESTEGG_TRACK_VIDEO)
         {
-            assert(codec == NESTEGG_CODEC_VP8);
-            video_stream = i;
+            if(codec != NESTEGG_CODEC_VP8)
+            {
+                printf("Error: unsupported video codec; only VP8 is supported\n");
+                goto error3;
+            }
+            video_track = i;
         }
         else if (track_type == NESTEGG_TRACK_AUDIO)
         {
-            assert(codec == NESTEGG_CODEC_VORBIS);
-            audio_stream = i;
+            if(codec != NESTEGG_CODEC_VORBIS)
+            {
+                printf("Error: unsupported audio codec; only Vorbis is supported\n");
+                goto error3;
+            }
+            audio_track = i;
         }
     }
 
-    // VP8 params
-    nestegg_video_params video_params;
-    nestegg_track_video_params(demux_ctx, video_stream, &video_params);
-    printf("Video track: resolution=%i*%i, display resolution=%i*%i\n",
-            video_params.width, video_params.height,
-            video_params.display_width, video_params.display_height);
-    assert(video_params.stereo_mode == NESTEGG_VIDEO_MONO);
+    // set up decoding
+    ctx->audio_track = audio_track;
+    ctx->video_track = video_track;
+    init_video(ctx->nestegg_ctx, ctx->video_track, &(ctx->video_ctx));
+    init_audio(ctx->nestegg_ctx, ctx->audio_track, &(ctx->audio_ctx), volume);
 
-    // initialize queues
-    audio_ctx.packet_queue = queue_init(PACKET_QUEUE_SIZE);
-    video_ctx.packet_queue = queue_init(PACKET_QUEUE_SIZE);
-    video_ctx.frame_queue = queue_init(FRAME_QUEUE_SIZE);
+    // start threads
+    ctx->the_demux_thread = thread_create(demux_thread, "demux", ctx);
+    ctx->the_video_thread = thread_create(video_thread, "video", &(ctx->video_ctx));
+    ctx->the_audio_thread = thread_create(audio_thread, "audio", &(ctx->audio_ctx));
+    assert(ctx->the_demux_thread);
+    assert(ctx->the_video_thread);
+    assert(ctx->the_audio_thread);
+    return ctx;
 
-    // set up demux
-    decoder_context decoder_ctx;
-    decoder_ctx.demux_ctx = demux_ctx;
-    decoder_ctx.audio_ctx = &audio_ctx;
-    decoder_ctx.video_ctx = &video_ctx;
-    decoder_ctx.audio_stream = audio_stream;
-    decoder_ctx.video_stream = video_stream;
-    bor_thread *the_demux_thread = thread_create(demux_thread, "demux", &decoder_ctx);
-
-    // set up audio
-    unsigned chunk, chunks;
-    vorbis_init(&audio_ctx.vorbis_ctx);
-    nestegg_track_codec_data_count(demux_ctx, audio_stream, &chunks);
-    assert(chunks == 3);
-    for (chunk=0; chunk<chunks; chunk++)
-    {
-        unsigned char *data;
-        size_t data_size;
-        nestegg_track_codec_data(demux_ctx, audio_stream, chunk, &data, &data_size);
-        vorbis_headerpacket(&audio_ctx.vorbis_ctx, data, data_size, chunk);
-    }
-    vorbis_prepare(&audio_ctx.vorbis_ctx);
-    init_audio(demux_ctx, audio_stream, &audio_ctx, volume);
-    bor_thread *the_audio_thread = thread_create(audio_thread, "audio", &decoder_ctx);
-
-    // set up video
-    if (vpx_codec_dec_init(&video_ctx.vpx_ctx, vpx_codec_vp8_dx(), NULL, 0))
-        shutdown(1, "Failed to initialize libvpx");
-    video_ctx.width = video_params.width;
-    video_ctx.height = video_params.height;
-    yuv_init(pixelbytes[screenformat]);
-    nestegg_track_default_duration(demux_ctx, video_stream, &(video_ctx.frame_delay));
-    bor_thread *the_video_thread = thread_create(video_thread, "video", &video_ctx);
-
-    uint64_t next_frame_time = 0;
-    uint64_t perfFreq = 1000000; //SDL_GetPerformanceFrequency();
-    uint64_t myclock;
-    uint64_t starttime = timer_uticks(); //SDL_GetPerformanceCounter();
-
-    video_setup_yuv_overlay(video_params.width, video_params.height,
-            video_params.display_width, video_params.display_height);
-
-    while(!quit_video)
-    {
-        inputrefresh();
-        if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)))
-        {
-            quit_video = 1;
-            retval = -1;
-            break;
-        }
-
-        myclock = timer_uticks(); //SDL_GetPerformanceCounter();
-        uint64_t system_clock = (myclock - starttime) * (1000000000.0 / perfFreq);
-
-        if (next_frame_time <= system_clock)
-        {
-            // display the new frame
-            video_display_yuv_frame();
-
-            // prepare the next frame for display
-            debug_printf("size=%i\n", video_ctx.frame_queue->size);
-            debug_printf("fc %lli, ac %lli, ", next_frame_time, audio_clock);
-            debug_printf("uc %lli, ", system_clock);
-            yuv_frame *frame = (yuv_frame *)queue_get(video_ctx.frame_queue);
-            if (frame == NULL) break;
-            video_prepare_yuv_frame(frame);
-            next_frame_time = frame->timestamp;
-            yuv_frame_destroy(frame);
-        }
-        else
-        {
-            uint64_t sleeptime_ns = next_frame_time - system_clock;
-            usleep(sleeptime_ns / 1000);
-        }
-    }
-
-    thread_join(the_demux_thread);
-    thread_join(the_video_thread);
-    thread_join(the_audio_thread);
-    yuv_clear();
-
-    // clean up anything left in the queues
-    nestegg_packet *packet;
-    int size;
-    while(audio_ctx.packet_queue->size)
-    {
-        packet = (nestegg_packet *) queue_get(audio_ctx.packet_queue);
-        if(packet) nestegg_free_packet(packet);
-    }
-    while(video_ctx.packet_queue->size)
-    {
-        packet = (nestegg_packet *) queue_get(video_ctx.packet_queue);
-        if(packet) nestegg_free_packet(packet);
-    }
-    for(i=0, size=video_ctx.frame_queue->size; i<size; i++)
-        yuv_frame_destroy((yuv_frame *) queue_get(video_ctx.frame_queue));
-
-    // free the queues
-    queue_destroy(audio_ctx.packet_queue);
-    queue_destroy(video_ctx.packet_queue);
-    queue_destroy(video_ctx.frame_queue);
-
-    // clean up audio context
-    sound_stop_playback();
-    sound_start_playback(savedata.soundbits, savedata.soundrate);
-    vorbis_destroy(&audio_ctx.vorbis_ctx);
-    musicchannel.active = 0;
-    for(i = 0; i < MUSIC_NUM_BUFFERS; i++)
-    {
-        free(musicchannel.buf[i]);
-        musicchannel.buf[i] = NULL;
-    }
-
-    // free up any memory used by libvpx and nestegg
-    if(vpx_codec_destroy(&video_ctx.vpx_ctx))
-        printf("Warning: failed to destroy libvpx context: %s\n", vpx_codec_error(&video_ctx.vpx_ctx));
-    nestegg_destroy(demux_ctx);
-
-    return retval;
+error3:
+    nestegg_destroy(ctx->nestegg_ctx);
+error2:
+    closepackfile(ctx->packhandle);
+error1:
+    free(ctx);
+    return NULL;
 }
+
+void webm_close(webm_context *ctx)
+{
+    quit_video = 1;
+    if (ctx->the_demux_thread) thread_join(ctx->the_demux_thread);
+    if (ctx->the_video_thread) thread_join(ctx->the_video_thread);
+    if (ctx->the_audio_thread) thread_join(ctx->the_audio_thread);
+
+    close_audio(&(ctx->audio_ctx));
+    close_video(&(ctx->video_ctx));
+    nestegg_destroy(ctx->nestegg_ctx);
+    closepackfile(ctx->packhandle);
+    free(ctx);
+}
+
+yuv_frame *webm_get_next_frame(webm_context *ctx)
+{
+    debug_printf("frame queue size=%i\n", ctx->video_ctx.frame_queue->size);
+    return (yuv_frame *)queue_get(ctx->video_ctx.frame_queue);
+}
+
 

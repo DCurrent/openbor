@@ -9,7 +9,14 @@
 #ifndef VIDPLAY_H
 #define VIDPLAY_H
 
-int playwebm(const char *path, int volume, int noskip);
+#include "yuv.h"
+
+struct webm_context;
+typedef struct webm_context webm_context;
+
+webm_context *webm_start_playback(const char *path, int volume);
+void webm_close(webm_context *ctx);
+yuv_frame *webm_get_next_frame(webm_context *ctx);
 
 #endif
 

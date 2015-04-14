@@ -11,6 +11,10 @@
 #include "ram.h"
 #include "video.h"
 #include "menu.h"
+#include <time.h>
+#include <unistd.h>
+
+#undef usleep
 
 #ifdef DARWIN
 #include <CoreFoundation/CoreFoundation.h>
@@ -34,6 +38,17 @@ char paksDir[128] = {"Paks"};
 char savesDir[128] = {"Saves"};
 char logsDir[128] = {"Logs"};
 char screenShotsDir[128] = {"ScreenShots"};
+
+// sleeps for the given number of microseconds
+#if _POSIX_C_SOURCE >= 199309L
+void _usleep(u32 usec)
+{
+    struct timespec sleeptime;
+    sleeptime.tv_sec = usec / 1000000LL;
+    sleeptime.tv_nsec = (usec % 1000000LL) * 1000;
+    nanosleep(&sleeptime, NULL);
+}
+#endif
 
 void borExit(int reset)
 {
