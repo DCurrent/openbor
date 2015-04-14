@@ -31086,6 +31086,7 @@ void sound_options()
     }
     savesettings();
     bothnewkeys = 0;
+    soundoptionsMenu = 0;
 }
 
 void config_settings()     //  OX. Load from / save to default.cfg. Restore OpenBoR "factory" settings.
@@ -31211,7 +31212,6 @@ void config_settings()     //  OX. Load from / save to default.cfg. Restore Open
     }
     savesettings();
     bothnewkeys = 0;
-    soundoptionsMenu = 0;
 }
 
 
