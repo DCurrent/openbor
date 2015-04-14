@@ -14,6 +14,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <string.h>
+#include <unistd.h>
 #include "globals.h"
 
 #if GP2X || LINUX || OPENDINGUX || SYMBIAN
@@ -34,6 +35,11 @@
 #endif
 
 //#define MEMTEST 1
+
+#if _POSIX_C_SOURCE >= 199309L
+void _usleep(u32 usec);
+#define usleep _usleep
+#endif
 
 void initSDL();
 void borExit(int reset);
