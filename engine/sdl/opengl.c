@@ -335,8 +335,8 @@ void render()
 	float texScale = MIN((float)viewportWidth/(float)textureWidth, (float)viewportHeight/(float)textureHeight);
 
 	// determine on-screen dimensions
-	int scaledWidth = (int)(textureWidth * texScale);
-	int scaledHeight = (int)(textureHeight * texScale);
+	int scaledWidth = (int)(displayWidth * texScale);
+	int scaledHeight = (int)(displayHeight * texScale);
 
 	// determine offsets
 	int xOffset = (viewportWidth - scaledWidth) / 2;
