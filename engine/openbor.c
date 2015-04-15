@@ -28898,8 +28898,6 @@ int playwebm(const char *path, int noskip)
     }
 
     webm_close(ctx);
-    sound_close_music();
-    sound_start_playback(savedata.soundbits, savedata.soundrate);
     video_set_mode(videomodes);
     return retval;
 }
