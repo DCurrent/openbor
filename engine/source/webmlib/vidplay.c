@@ -178,6 +178,17 @@ void queue_destroy(FixedSizeQueue *queue)
     free(queue);
 }
 
+// used to keep playing current BGM in videos with no audio track
+static int bgm_update_thread(void *data)
+{
+    while (!quit_video)
+    {
+        sound_update_music();
+        usleep(5000);
+    }
+    return 0;
+}
+
 static int audio_decode_frame(audio_context *audio_ctx, uint8_t *audio_buf, int buf_size)
 {
     vorbis_context *vorbis_ctx = &audio_ctx->vorbis_ctx;
@@ -287,14 +298,11 @@ static void init_audio(nestegg *ctx, int track, audio_context *audio_ctx, int vo
     audio_ctx->frequency = (int)audioParams.rate;
     audio_ctx->avail_samples = audio_ctx->last_samples = 0;
     audio_ctx->packet_queue = queue_init(PACKET_QUEUE_SIZE);
-
-    // set output sampling rate to that of this audio track for the best quality
     printf("Audio track: %f Hz, %d channels, %d bits/sample\n",
             audioParams.rate, audioParams.channels, audioParams.depth / audioParams.channels);
-    sound_close_music();
-    sound_start_playback(16, audio_ctx->frequency);
 
     // initialize soundmix music channel
+    sound_close_music();
     memset(&musicchannel, 0, sizeof(musicchannel));
     musicchannel.fp_period = INT_TO_FIX(audio_ctx->frequency) / playfrequency;
     musicchannel.volume[0] = volume;
@@ -484,8 +492,8 @@ static int demux_thread(void *data)
 
         if (quit_video) break;
     }
-    queue_insert(ctx->audio_ctx.packet_queue, NULL);
     queue_insert(ctx->video_ctx.packet_queue, NULL);
+    if (ctx->audio_track >= 0) queue_insert(ctx->audio_ctx.packet_queue, NULL);
     return 0;
 }
 
@@ -516,7 +524,6 @@ webm_context *webm_start_playback(const char *path, int volume)
     if(nestegg_track_count(ctx->nestegg_ctx, &num_tracks) < 0) goto error3;
 
     // find the first video and audio tracks
-    // TODO: handle files with no audio track
     for (i = 0; i < num_tracks; i++)
     {
         int track_type = nestegg_track_type(ctx->nestegg_ctx, i);
@@ -541,19 +548,31 @@ webm_context *webm_start_playback(const char *path, int volume)
         }
     }
 
-    // set up decoding
-    ctx->audio_track = audio_track;
+    // set up video
     ctx->video_track = video_track;
     init_video(ctx->nestegg_ctx, ctx->video_track, &(ctx->video_ctx));
-    init_audio(ctx->nestegg_ctx, ctx->audio_track, &(ctx->audio_ctx), volume);
-
-    // start threads
-    ctx->the_demux_thread = thread_create(demux_thread, "demux", ctx);
     ctx->the_video_thread = thread_create(video_thread, "video", &(ctx->video_ctx));
-    ctx->the_audio_thread = thread_create(audio_thread, "audio", &(ctx->audio_ctx));
-    assert(ctx->the_demux_thread);
     assert(ctx->the_video_thread);
-    assert(ctx->the_audio_thread);
+
+    // set up audio, if applicable
+    ctx->audio_track = audio_track;
+    if (audio_track >= 0)
+    {
+        // use the audio track of this file
+        init_audio(ctx->nestegg_ctx, ctx->audio_track, &(ctx->audio_ctx), volume);
+        ctx->the_audio_thread = thread_create(audio_thread, "audio", &(ctx->audio_ctx));
+        assert(ctx->the_audio_thread);
+    }
+    else if (sound_query_music(NULL, NULL))
+    {
+        // continue to play the BGM that's already playing
+        ctx->the_audio_thread = thread_create(bgm_update_thread, "bgm", NULL);
+        assert(ctx->the_audio_thread);
+    }
+
+    // finally, start the demuxing thread
+    ctx->the_demux_thread = thread_create(demux_thread, "demux", ctx);
+    assert(ctx->the_demux_thread);
     return ctx;
 
 error3:
@@ -568,12 +587,11 @@ error1:
 void webm_close(webm_context *ctx)
 {
     quit_video = 1;
-    if (ctx->the_demux_thread) thread_join(ctx->the_demux_thread);
-    if (ctx->the_video_thread) thread_join(ctx->the_video_thread);
-    if (ctx->the_audio_thread) thread_join(ctx->the_audio_thread);
-
-    close_audio(&(ctx->audio_ctx));
+    thread_join(ctx->the_demux_thread);
+    thread_join(ctx->the_video_thread);
     close_video(&(ctx->video_ctx));
+    if (ctx->the_audio_thread) thread_join(ctx->the_audio_thread);
+    if (ctx->audio_track >= 0) close_audio(&(ctx->audio_ctx));
     nestegg_destroy(ctx->nestegg_ctx);
     closepackfile(ctx->packhandle);
     free(ctx);
