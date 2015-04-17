@@ -679,9 +679,9 @@ endif
 
 ifdef BUILD_WII
 ifdef BUILD_ELM
-LIBS           += -lelm -lwiiuse -lbte -logc
+LIBS           += -lelm -lwiiuse -lbte -lasnd -logc
 else
-LIBS           += -lwiiuse -lbte -lfat -logc
+LIBS           += -lwiiuse -lbte -lfat -lasnd -logc
 endif
 endif
 

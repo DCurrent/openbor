@@ -1583,12 +1583,6 @@ int sound_start_playback(int bits, int frequency)
 #if WIN || LINUX || DARWIN || SYMBIAN
     playbits = bits;
     playfrequency = frequency;
-#elif WII
-    // Wii only supports 16 bit 32000/48000
-    bits = 16;
-    frequency = 48000;
-    playbits = bits;
-    playfrequency = frequency;
 #else
     // Most consoles support natively 16/44100
     bits = 16;
