@@ -63,7 +63,8 @@ LOCAL_C_INCLUDES  :=  \
 	$(LOCAL_PATH)/../../../source/ramlib \
 	$(LOCAL_PATH)/../../../source/randlib \
 	$(LOCAL_PATH)/../../../source/scriptlib \
-	$(LOCAL_PATH)/../../../source/tracelib2
+	$(LOCAL_PATH)/../../../source/tracelib2 \
+	$(LOCAL_PATH)/../../../source/webmlib
 
 		
 LOCAL_SRC_FILES := \
