@@ -1,4 +1,4 @@
-OpenBOR for Android 1.3.3
+OpenBOR for Android 1.4.0
 ----------------------
 Originally ported by ported by UTunnels (utunnels@hotmail.com).
 Modifications by CRxTRDude.
@@ -6,6 +6,10 @@ Modifications by CRxTRDude.
 Release notes
 ----------------------
 Note that these are version numbers that are used in the AndroidManifest.xml file. Any OpenBOR version can theoretically be used to compile this Android build.
+
+1.4.0
+- Rewritten video.c to add support to new functions by Plombo.
+- Fixed video bugs Android-side brought about by rewrite. 
 
 1.3.4
 - Updated the SDLActivity.java to support external buttons. 
@@ -48,6 +52,8 @@ Issues
 
 - Memory issues - For OGG in particular, it is very dominant, even uTunnels said so:
 "Ogg seems to be a very cpu intensive format, besides openbor doesn't run another thread for audio. Try lower the compression level to see if helps a bit."
+
+- WebM is not yet supported until a static library for libvpx has been compiled, which I'm still having a bit trouble.
 
 - Issues in the main build as well.
 

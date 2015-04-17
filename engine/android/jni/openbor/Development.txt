@@ -1,0 +1,21 @@
+Development.txt - Supplement file for code documentation.
+---------------
+
+Default android touch positions:
+
+Use native width (w) as basic measurement, stretch in a ratio of 480/800,
+put direction buttons and main control buttons in the lower corners,
+a3 and a4 in center bottom, esc and start in upper corners and screenshot
+center of the screen.
+
+    start                       esc
+
+
+
+            (screenshot)
+
+
+
+                               special
+ directions    a3   a4       a1       a2
+                                jump

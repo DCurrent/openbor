@@ -28,7 +28,6 @@
 
 #include <dirent.h>
 
-extern int videoMode;
 extern s_videomodes videomodes;
 extern s_screen* vscreen;
 extern int nativeHeight;
@@ -465,7 +464,6 @@ void initMenu(int type)
 
 	savedata.fullscreen = isFull;
 	video_stretch(savedata.stretch);
-	videoMode = isWide ? 1 : 0;
 	videomodes.hRes = isWide ? 480 :320;
 	videomodes.vRes = isWide ? 272 :240;
 	videomodes.pixel = pixelbytes[PIXEL_32];

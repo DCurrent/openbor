@@ -3,10 +3,11 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2014 OpenBOR Team
+ * Copyright (c) 2004 - 2015 OpenBOR Team
  * 
- * Video.c - supplement to the main build's video.c.
+ * Video.c - adjunct to the main build's video.c.
  * Made by UTunnels (utunnels@hotmail.com).
+ * Modifications by CRxTRDude. 
  */
 
 #include <math.h>
@@ -19,35 +20,43 @@
 #include "openbor.h"
 #include "gfxtypes.h"
 #include "gfx.h"
-#include "pngdec.h"
 #include "SDL_opengles.h"
+#include "videocommon.h"
+
+#include "pngdec.h"
 
 extern int videoMode;
 
 #define nextpowerof2(x) pow(2,ceil(log(x)/log(2)))
-#define abs(x)			((x<0)?-(x):(x))
 
-#define VIDEO_USE_OPENGL (savedata.usegl[savedata.fullscreen])
+
 #define MUST_USE_BSCREEN 1
 
-s_videomodes stored_videomodes;
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_Texture *texture = NULL;
+
+//For Android - Textures and a surface for the buttons
 SDL_Texture *buttons = NULL;
 SDL_Surface *bscreen = NULL;
-static int bytes_per_pixel = 1;
+
+s_videomodes stored_videomodes;
+
+char windowTitle[128] = {"OpenBOR"};
+
 int stretch = 1;
+int opengl = 1; // though using SDL, we force the var for OpenGL ES to work
+
 int nativeWidth, nativeHeight; // monitor resolution used in fullscreen mode
 static unsigned glpalette[256]; // for 8bit
-static int viewportWidth, viewportHeight;      // dimensions of display area
-static int scaledWidth, scaledHeight;          // dimensions of game screen after scaling
-static int textureWidth, textureHeight;        // dimensions of game screen and GL texture
-static int xOffset, yOffset;                   // offset of game screen on display area
-static int bytesPerPixel;
-int opengl = 1; //though using SDL, we need its video setting
 
-#include "button_png_800x480.h"
+int brightness = 0;
+
+static int viewportWidth, viewportHeight;      // dimensions of display area
+static int textureWidth, textureHeight;        // dimensions of game screen and GL texture
+
+#include "button_png_800x480.h" // default button skin
+
 
 void initSDL()
 {
@@ -93,14 +102,13 @@ void initSDL()
         nativeWidth = 640;
         nativeHeight = 480;
     }
-
+		
+		//Hardcode full screen mode
     savedata.fullscreen = 1;
 		    
 }
 
-
-static int textureDepths[4] = {32, 16, 24, 32};
-static unsigned masks[4][4] = {{0xFF, 0xFF00, 0xFF0000, 0}, {0x1F, 0x07E0, 0xF800, 0}, {0xFF, 0xFF00, 0xFF0000, 0}, {0xFF, 0xFF00, 0xFF0000, 0}};
+//Start of touch control UI code
 
 #define DOCKLEFT 8
 #define DOCKRIGHT 2
@@ -124,24 +132,9 @@ SDL_Rect btnsrc[MAXTOUCHB] =
 SDL_Rect btndes[MAXTOUCHB];
 
 /*
-setup android touch positions.
-Use native width (w) as basic measurement, stretch in a ratio of 480/800,
-put direction buttons and main control buttons in the lower corners,
-a3 and a4 in center bottom, esc and start in upper corners and screenshot
-center of the screen.
-
-    start                       esc
-
-
-
-            (screenshot)
-
-
-
-                               special
- directions    a3   a4       a1       a2
-                                jump
+Default touch UI
 */
+
 static void setup_touch_default()
 {
     float w = nativeWidth;
@@ -198,6 +191,10 @@ static void setup_touch_default()
 
     screendocking = DOCKTOP;
 }
+
+/*
+Code to use touch.txt to displace buttons and set up skin.
+*/
 
 static int setup_touch_txt()
 {
@@ -283,7 +280,7 @@ static int setup_touch_txt()
                         }
                     }
                 }
-                else if(stricmp(command, "screendocking") == 0) // change screen position to avoid buttons
+                else if(stricmp(command, "screendocking") == 0) 
                 {
                     screendocking = 0;
                     for(i = 1; ; i++)
@@ -344,51 +341,68 @@ static void setup_touch()
         btndes[i].h = btndes[i].w = 2 * br[i];
     }
 }
+//End of touch control UI code
 
+/*
+Start of video code. Unlike the original code for video, everything is
+incorporated in video_set_mode, since this is isolated from the main
+code.
+*/
+
+static unsigned pixelformats[4] = {SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_BGR565, SDL_PIXELFORMAT_BGR888, SDL_PIXELFORMAT_ABGR8888};
+
+                                 
 int video_set_mode(s_videomodes videomodes)
 {
-    //if(memcmp(&stored_videomodes, &videomodes, sizeof(videomodes))==0) return 1;
     stored_videomodes = videomodes;
+		
+		//hardcode flags    
+    int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL;
 
     int b;
     int allocTextureWidth, allocTextureHeight;
+    int legacyTexWidth, legacyTexHeight;
 
     savedata.screen[videoMode][0] = 0;
     savedata.fullscreen = 1;
-    bytes_per_pixel = videomodes.pixel;
-    b = bytes_per_pixel - 1;
+    
+    videomodes = setupPreBlitProcessing(videomodes);
+
+		// 8-bit color should be transparently converted to 32-bit
+		assert(videomodes.pixel == 2 || videomodes.pixel == 4);
+		
+		
+		// Initialize OpenGL
+		if(savedata.usegl[savedata.fullscreen] && video_gl_set_mode(videomodes)) return 1;
+		else opengl = 0;
 
     //destroy all
     if(bscreen)
     {
         SDL_FreeSurface(bscreen);
+        bscreen = NULL;
     }
-    bscreen = NULL;
     if(texture)
     {
         SDL_DestroyTexture(texture);
-    }
-    texture = NULL;
+        texture = NULL;
+    }    
     if(buttons)
     {
         SDL_DestroyTexture(buttons);
+        buttons = NULL;
     }
-    buttons = NULL;
-    //mysterious crash in sdl 2.0 if these are recreated, so leave them alone for now
-    //if(renderer) SDL_DestroyRenderer(renderer);
-    //renderer = NULL;
-    //if(window) SDL_DestroyWindow(window);
-    //window = NULL;
-
+    
     if(videomodes.hRes == 0 && videomodes.vRes == 0)
     {
-        return 0;
+				Term_Gfx();
+				return 0;
     }
 
     viewportWidth = nativeWidth;
     viewportHeight = nativeHeight;
 
-    if(!window && !(window = SDL_CreateWindow("OpenBOR", 0, 0, nativeWidth, nativeHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN)))
+    if(!window && !(window = SDL_CreateWindow(windowTitle, 0, 0, nativeWidth, nativeHeight, flags)))
     {
         printf("error: %s\n", SDL_GetError());
         return 0;
@@ -400,6 +414,7 @@ int video_set_mode(s_videomodes videomodes)
         return 0;
     }
 
+    //For status
     SDL_RendererInfo info;
     SDL_GetRendererInfo(renderer, &info);
 
@@ -408,14 +423,14 @@ int video_set_mode(s_videomodes videomodes)
     SDL_SetHintWithPriority(SDL_HINT_RENDER_SCALE_QUALITY, savedata.glfilter[savedata.fullscreen] ? "nearest" : "linear", SDL_HINT_DEFAULT);
 
     // now create a texture
-    textureWidth = videomodes.hRes;
-    textureHeight = videomodes.vRes;
+    
+  	textureWidth = videomodes.hRes;
+  	textureHeight = videomodes.vRes;
 
     allocTextureWidth = nextpowerof2(textureWidth);
     allocTextureHeight = nextpowerof2(textureHeight);
-
-    int format = SDL_MasksToPixelFormatEnum (textureDepths[b], masks[b][0], masks[b][1], masks[b][2], masks[b][3]);
-    if(!(texture = SDL_CreateTexture(renderer, format, SDL_TEXTUREACCESS_STREAMING, allocTextureWidth, allocTextureHeight)))
+    
+    if(!(texture = SDL_CreateTexture(renderer,  pixelformats[videomodes.pixel-1], SDL_TEXTUREACCESS_STREAMING, allocTextureWidth, allocTextureHeight)))
     {
         printf("error: %s\n", SDL_GetError());
         return 0;
@@ -435,12 +450,6 @@ int video_set_mode(s_videomodes videomodes)
         bscreen = NULL;
     }
 
-    //create a buffer for 8bit mode, masks don't really matter but anyway set them
-    if(bytes_per_pixel == 1)
-    {
-        bscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, textureWidth, textureHeight, textureDepths[b], masks[b][0], masks[b][1], masks[b][2], masks[b][3]);
-    }
-
     video_clearscreen();
 
     return 1;
@@ -448,7 +457,8 @@ int video_set_mode(s_videomodes videomodes)
 
 void video_fullscreen_flip()
 {
-    //dummy for now
+	//savedata.fullscreen ^= 1;
+	//if(window) video_set_mode(stored_videomodes);
 }
 
 int video_copy_screen(s_screen *src)
@@ -458,16 +468,21 @@ int video_copy_screen(s_screen *src)
     unsigned char *sp;
     unsigned char *dp;
     SDL_Rect rectdes, rectsrc;
-    rectsrc.x = rectsrc.y = 0;
+		
+		rectsrc.x = rectsrc.y = 0;
     rectsrc.w = textureWidth;
     rectsrc.h = textureHeight;
+		
     int hide_touch;
     extern int hide_t;
+    
+    s_videosurface *surface = getVideoSurface(src);
 
-    linew = src->width * bytes_per_pixel;
-    if(bscreen)
+		if(opengl) return video_gl_copy_screen(surface);
+    
+		if(bscreen)
     {
-        if(src->width != bscreen->w || src->height != bscreen->h)
+        if(surface->width != bscreen->w || surface->height != bscreen->h)
         {
             return 0;
         }
@@ -476,19 +491,18 @@ int video_copy_screen(s_screen *src)
         {
             SDL_LockSurface(bscreen);
         }
-        sp = (unsigned char *)src->data;
+        sp = (unsigned char *)surface->data;
         dp = bscreen->pixels;
-        h = src->height;
+        h = surface->height;
         do
         {
-            //u16pcpy((unsigned short*)dp, sp, glpalette, linew);
             i = linew - 1;
             do
             {
                 ((unsigned *)dp)[i] = glpalette[sp[i]];
             }
             while(i--);
-            sp += linew;
+            sp += surface->pitch;
             dp += bscreen->pitch;
         }
         while(--h);
@@ -497,21 +511,15 @@ int video_copy_screen(s_screen *src)
     }
     else
     {
-        data = src->data;
-        pitch = linew;
+        data = surface->data;
+        pitch = surface->pitch;
     }
-    SDL_UpdateTexture(texture, &rectsrc, data, pitch);
-    if(bscreen && SDL_MUSTLOCK(bscreen))
+    
+   	SDL_UpdateTexture(texture, &rectsrc, data, pitch);		
+   	
+   	
+   	if(stretch)
     {
-        SDL_UnlockSurface(bscreen);
-    }
-
-    if(stretch)
-    {
-        //rectdes.w = textureWidth;
-        //rectdes.h = textureHeight;
-        //rectdes.x = (viewportWidth-rectdes.w)/2;
-        //rectdes.y = (viewportHeight-rectdes.h)/2;
         rectdes.w = viewportWidth;
         rectdes.h = viewportHeight;
         rectdes.x = 0;
@@ -560,11 +568,15 @@ int video_copy_screen(s_screen *src)
         rectdes.y = (viewportHeight - rectdes.h) / 2;
         rectdes.x = 0;
     }
-
-    //SDL_SetHintWithPriority(SDL_HINT_RENDER_SCALE_QUALITY, savedata.glfilter[savedata.fullscreen]?"linear":"nearest", SDL_HINT_DEFAULT);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, &rectsrc, &rectdes);
+    
+    if (brightness > 0)
+			SDL_SetRenderDrawColor(renderer, 255, 255, 255, brightness-1);
+		else if (brightness < 0)
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, (-brightness)-1);
 
     hide_touch = (timer_gettick() > hide_t);
     for(i = 0, h = 0; i < MAXTOUCHB; i++)
@@ -588,7 +600,9 @@ int video_copy_screen(s_screen *src)
 
 void video_clearscreen()
 {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		if(opengl) { video_gl_clearscreen(); return; }
+		
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
     //SDL_RenderPresent(renderer);
 }
@@ -601,78 +615,20 @@ void video_stretch(int enable)
 
 void vga_vwait(void)
 {
-    static int prevtick = 0;
-    int now = SDL_GetTicks();
-    int wait = (1000 / 60) - (now - prevtick);
-    if (wait > 0)
-    {
-        SDL_Delay(wait);
-    }
-    else
-    {
-        SDL_Delay(1);
-    }
-    prevtick = now;
+	static int prevtick = 0;
+	int now = SDL_GetTicks();
+	int wait = 1000/60 - (now - prevtick);
+	if (wait>0)
+	{
+		SDL_Delay(wait);
+	}
+	else SDL_Delay(1);
+	prevtick = now;
 }
 
-void vga_setpalette(unsigned char *palette)
-{
-    int i;
-    for(i = 0; i < 256; i++)
-    {
-        glpalette[i] = colour32(palette[0], palette[1], palette[2]);
-        palette += 3;
-    }
-}
-
-//TODO finish this
 void vga_set_color_correction(int gm, int br)
 {
-    /*
-    Uint16 ramp[256];
-    SDL_CalculateGammaRamp((float)gm/256, ramp);
-    SDL_SetWindowGammaRamp(window, ramp, ramp, ramp);*/
+	// Incorporated main code color correction instead.
+	brightness = br;
+	if(opengl) video_gl_set_color_correction(gm, br);
 }
-
-
-
-/*
-	glDisable(GL_BLEND);
-	glDisable(GL_LIGHTING);
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_DITHER);
-
-	glViewport(0, 0, viewportWidth, viewportHeight);
-
-	// set up orthographic projection
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrthof(0, viewportWidth, 0, viewportHeight, -1, 1);
-
-	// reset the model view
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	glEnableClientState(GL_TEXTURE_2D);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-	GLfloat texture_coordinates[] = {0.0f, tcy,
-                                     0.0f, 0.0f,
-                                     tcx, tcy,
-                                     tcx, 0.0f};
-
-	GLfloat vertices[] = {rectdes.x, rectdes.y+rectdes.h,
-                          rectdes.x, rectdes.y,
-                          rectdes.x+rectdes.w, rectdes.y+rectdes.h,
-                          rectdes.x+rectdes.w, rectdes.y};
-
-	SDL_GL_BindTexture(texture, NULL, NULL);
-
-	glTexCoordPointer(2, GL_FLOAT, 0, texture_coordinates);
-    glVertexPointer(2, GL_FLOAT, 0, vertices);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-	SDL_GL_UnbindTexture(texture);
-	SDL_GL_SwapWindow(window);
-*/
