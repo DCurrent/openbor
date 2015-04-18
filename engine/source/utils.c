@@ -28,12 +28,6 @@
 #include <sys/stat.h>
 #endif
 
-#ifdef DOS
-#include <direct.h>
-#include "dosport.h"
-#include "savepng.h"
-#endif
-
 #ifdef SDL
 #include <unistd.h>
 #include "sdlport.h"
@@ -44,17 +38,11 @@
 #include "dcport.h"
 #endif
 
-#ifdef XBOX
-#include "xboxport.h"
-#include "savepng.h"
-#endif
-
 #ifdef PSP
 #include "image.h"
 #endif
 
-
-#if WII && !SDL
+#if WII
 #include "wiiport.h"
 #include "savepng.h"
 #endif
@@ -65,27 +53,13 @@
 #define MKDIR(x) mkdir(x)
 #endif
 
-#ifdef XBOX
-#define CHECK_LOGFILE(type)  type ? fileExists("d:\\Logs\\OpenBorLog.txt") : fileExists("d:\\Logs\\ScriptLog.txt")
-#define OPEN_LOGFILE(type)   type ? fopen("d:\\Logs\\OpenBorLog.txt", "wt") : fopen("d:\\Logs\\ScriptLog.txt", "wt")
-#define APPEND_LOGFILE(type) type ? fopen("d:\\Logs\\OpenBorLog.txt", "at") : fopen("d:\\Logs\\ScriptLog.txt", "at")
-#define READ_LOGFILE(type)   type ? fopen("d:\\Logs\\OpenBorLog.txt", "rt") : fopen("d:\\Logs\\ScriptLog.txt", "rt")
-#define COPY_ROOT_PATH(buf, name) strncpy(buf, "d:\\", 3); strncat(buf, name, strlen(name)); strncat(buf, "\\", 1)
-#define COPY_PAKS_PATH(buf, name) strncpy(buf, "d:\\Paks\\", 8); strncat(buf, name, strlen(name))
-#elif WII && !SDL
+#ifdef WII
 #define CHECK_LOGFILE(type)  type ? fileExists(getFullPath("Logs/OpenBorLog.txt")) : fileExists(getFullPath("Logs/ScriptLog.txt"))
 #define OPEN_LOGFILE(type)   type ? fopen(getFullPath("Logs/OpenBorLog.txt"), "wt") : fopen(getFullPath("Logs/ScriptLog.txt"), "wt")
 #define APPEND_LOGFILE(type) type ? fopen(getFullPath("Logs/OpenBorLog.txt"), "at") : fopen(getFullPath("Logs/ScriptLog.txt"), "at")
 #define READ_LOGFILE(type)   type ? fopen(getFullPath("Logs/OpenBorLog.txt"), "rt") : fopen(getFullPath("Logs/ScriptLog.txt"), "rt")
 #define COPY_ROOT_PATH(buf, name) strcpy(buf, rootDir); strncat(buf, name, strlen(name)); strncat(buf, "/", 1);
 #define COPY_PAKS_PATH(buf, name) strncpy(buf, paksDir, strlen(paksDir)); strncat(buf, "/", 1); strncat(buf, name, strlen(name));
-#elif WII && SDL
-#define CHECK_LOGFILE(type)  type ? fileExists("sd:/apps/OpenBOR/Logs/OpenBorLog.txt") : fileExists("sd:/apps/OpenBOR/Logs/ScriptLog.txt")
-#define OPEN_LOGFILE(type)   type ? fopen("sd:/apps/OpenBOR/Logs/OpenBorLog.txt", "wt") : fopen("sd:/apps/OpenBOR/Logs/ScriptLog.txt", "wt")
-#define APPEND_LOGFILE(type) type ? fopen("sd:/apps/OpenBOR/Logs/OpenBorLog.txt", "at") : fopen("sd:/apps/OpenBOR/Logs/ScriptLog.txt", "at")
-#define READ_LOGFILE(type)   type ? fopen("sd:/apps/OpenBOR/Logs/OpenBorLog.txt", "rt") : fopen("sd:/apps/OpenBOR/Logs/ScriptLog.txt", "rt")
-#define COPY_ROOT_PATH(buf, name) strncpy(buf, "sd:/apps/OpenBOR/", 17); strncat(buf, name, strlen(name)); strncat(buf, "/", 1);
-#define COPY_PAKS_PATH(buf, name) strncpy(buf, "sd:/apps/OpenBOR/Paks/", 22); strncat(buf, name, strlen(name));
 #elif ANDROID
 #define CHECK_LOGFILE(type)  type ? fileExists("/mnt/sdcard/OpenBOR/Logs/OpenBorLog.txt") : fileExists("/mnt/sdcard/OpenBOR/Logs/ScriptLog.txt")
 #define OPEN_LOGFILE(type)   type ? fopen("/mnt/sdcard/OpenBOR/Logs/OpenBorLog.txt", "wt") : fopen("/mnt/sdcard/OpenBOR/Logs/ScriptLog.txt", "wt")
@@ -176,10 +150,6 @@ void getBasePath(char *newName, char *name, int type)
 int dirExists(char *dname, int create)
 {
     char realName[128] = {""};
-#ifdef XBOX
-    getBasePath(realName, dname, 0);
-    return CreateDirectory(realName, NULL);
-#else
     DIR	*fd1 = NULL;
     int  fd2 = -1;
     strncpy(realName, dname, 128);
@@ -201,7 +171,6 @@ int dirExists(char *dname, int create)
 #endif
         return 1;
     }
-#endif
     return 0;
 }
 
@@ -397,10 +366,6 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame)
         {
 #if PSP
             sprintf(shotname, "ms0:/PICTURE/Beats Of Rage/%s - ScreenShot - %02u.png", modname, shotnum);
-#elif DOS
-            sprintf(shotname, "./SShots/s%04u.png", shotnum);
-#elif XBOX
-            sprintf(shotname, "d:\\ScreenShots\\%s - %04u.png", modname, shotnum);
 #elif SDL || WII
             sprintf(shotname, "%s/%s - %04u.png", screenShotsDir, modname, shotnum);
 #else
@@ -430,31 +395,6 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame)
 #endif
 #endif
 }
-
-#ifdef XBOX
-int findmods(void)
-{
-    int i = 0;
-    HANDLE hFind;
-    WIN32_FIND_DATAA oFindData;
-    hFind = FindFirstFile("d:\\Paks\\*", &oFindData);
-    if(hFind == INVALID_HANDLE_VALUE)
-    {
-        return 1;
-    }
-    do
-    {
-        if(stristr(oFindData.cFileName, ".pak") && stricmp(oFindData.cFileName, "menu.pak") != 0)
-        {
-            strncpy(paklist[i].filename, oFindData.cFileName, 128 - strlen(oFindData.cFileName));
-            i++;
-        }
-    }
-    while(FindNextFile(hFind, &oFindData));
-    FindClose(hFind);
-    return i;
-}
-#endif
 
 unsigned readlsb32(const unsigned char *src)
 {

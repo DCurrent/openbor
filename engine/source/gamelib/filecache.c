@@ -6,21 +6,13 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include "utils.h"
 #include "packfile.h"
 #include "filecache.h"
 
 #ifdef PSP
 #include <pspsuspend.h>
-#endif
-
-#ifndef XBOX
-#include <unistd.h>
-#endif
-
-#ifdef PS2
-#include <eekernel.h>
-#include <sifdev.h>
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
@@ -312,23 +304,12 @@ void filecache_process(void)
     int cacheblock_read;
     int pakblock_read;
 
-#ifdef PS2
-    int busy;
-#endif
-
     if(!filecache_ready)
     {
         return;
     }
 
-#ifdef PS2
-    busy = 1;
-    sceIoctl(real_pakfd, SCE_FS_EXECUTING, &busy);
-    if(busy)
-    {
-        return;
-    }
-#elif DC
+#ifdef DC
     // busy?
     if(real_pakfd < 0)
     {
@@ -460,18 +441,8 @@ void filecache_process(void)
         else
 #endif
         {
-#ifdef PS2
-            sceLseek(real_pakfd, pakblock_read * filecache_blocksize, SCE_SEEK_SET);
-            busy = 1;
-            while(busy)
-            {
-                sceIoctl(real_pakfd, SCE_FS_EXECUTING, &busy);
-            }
-            sceRead(real_pakfd, filecache + (cacheblock_read * filecache_blocksize), filecache_blocksize);
-#else
             lseek(real_pakfd, pakblock_read * filecache_blocksize, SEEK_SET);
             read(real_pakfd, (char *) filecache + (cacheblock_read * filecache_blocksize), filecache_blocksize);
-#endif
         }
     }
 }

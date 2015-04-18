@@ -17,7 +17,7 @@
 
 #if SYMBIAN
 #pragma pack(4)
-#elif DOS || SDL
+#elif SDL
 #pragma pack(push,4)
 #endif
 
@@ -294,7 +294,7 @@ typedef struct
 
 #if SYMBIAN
 #pragma pack(0)
-#elif DOS || SDL
+#elif SDL
 #pragma pack(pop)
 #endif
 

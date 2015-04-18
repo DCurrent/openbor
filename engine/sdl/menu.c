@@ -175,11 +175,7 @@ int findPaks(void)
 	int i = 0;
 	DIR* dp = NULL;
 	struct dirent* ds;
-#ifdef WII
-	dp = opendir("sd:/apps/OpenBOR/Paks");
-#else
 	dp = opendir(paksDir);
-#endif
 	if(dp != NULL)
    	{
 		while((ds = readdir(dp)) != NULL)
@@ -522,11 +518,7 @@ void drawMenu()
 			{
 				shift = 2;
 				colors = RED;
-#ifdef WII
-				Image = NULL;
-#else
 				Image = getPreview(filelist[list+dListScrollPosition].filename);
-#endif
 
 			}
 			printText((isWide ? 30 : 7) + shift, (isWide ? 33 : 22)+(11*list) , colors, 0, 0, "%s", listing);
@@ -711,9 +703,7 @@ void Menu()
 	{
 		sortList();
 		getAllLogs();
-#ifndef WII
 		packfile_music_read(filelist, dListTotal);
-#endif
 		initMenu(1);
 		drawMenu();
 		pControl = ControlMenu;

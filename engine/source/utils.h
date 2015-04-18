@@ -31,7 +31,7 @@ int dirExists(char *dname, int create);
 stringptr *readFromLogFile(int which);
 #endif
 
-#if XBOX || DC
+#ifdef DC
 typedef struct
 {
     char filename[80];

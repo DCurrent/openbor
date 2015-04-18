@@ -26,7 +26,7 @@
 #define SDL2 1
 #endif
 
-#if GP2X || DARWIN || OPENDINGUX || WII || ANDROID
+#if GP2X || DARWIN || OPENDINGUX || ANDROID
 #define SKIP_CODE
 #endif
 

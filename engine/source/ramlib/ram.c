@@ -17,9 +17,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Libraries
 
-#ifdef XBOX
-#include <xtl.h>
-#elif WIN
+#ifdef WIN
 #include <windows.h>
 #include <psapi.h>
 #elif DARWIN
@@ -50,24 +48,15 @@
 
 static u64 systemRam = 0x00000000;
 
-#ifndef DARWIN
-#ifndef WIN
-#ifndef XBOX
-#ifndef LINUX
+#if !(defined(WIN) || defined(LINUX) || defined(DARWIN))
 static unsigned long elfOffset = 0x00000000;
 static unsigned long stackSize = 0x00000000;
-#endif
-#endif
-#endif
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
 // Symbols
 
-#ifndef DARWIN
-#ifndef WIN
-#ifndef XBOX
-#ifndef LINUX
+#if !(defined(WIN) || defined(LINUX) || defined(DARWIN))
 #if (__GNUC__ > 3)
 extern unsigned long _end;
 extern unsigned long _start;
@@ -78,16 +67,13 @@ extern unsigned long start;
 #define _start start
 #endif
 #endif
-#endif
-#endif
-#endif
 
 /////////////////////////////////////////////////////////////////////////////
 //  Functions
 
 u64 getFreeRam(int byte_size)
 {
-#if WIN || XBOX
+#if WIN
     MEMORYSTATUS stat;
     memset(&stat, 0, sizeof(MEMORYSTATUS));
     stat.dwLength = sizeof(MEMORYSTATUS);
@@ -141,7 +127,7 @@ u64 getFreeRam(int byte_size)
 
 void setSystemRam()
 {
-#if WIN || XBOX
+#if WIN
     MEMORYSTATUS stat;
     memset(&stat, 0, sizeof(MEMORYSTATUS));
     stat.dwLength = sizeof(MEMORYSTATUS);
@@ -194,16 +180,8 @@ void setSystemRam()
     stackSize = 0x00000000;
     systemRam = getFreeRam(BYTES);
 #endif
-#ifndef DARWIN
-#ifndef WIN
-#ifndef XBOX
-#ifndef LINUX
-#ifndef SYMBIAN
+#if !(defined(WIN) || defined(LINUX) || defined(DARWIN) || defined(SYMBIAN))
     stackSize = (int)&_end - (int)&_start + ((int)&_start - elfOffset);
-#endif
-#endif
-#endif
-#endif
 #endif
     getRamStatus(BYTES);
 }
