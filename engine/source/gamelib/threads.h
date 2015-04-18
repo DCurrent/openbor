@@ -11,6 +11,7 @@
 
 #if WII
 #include <ogcsys.h>
+#include <ogc/cond.h>
 struct bor_thread;
 typedef struct bor_thread bor_thread;
 typedef mutex_t bor_mutex;

@@ -12,7 +12,7 @@
 #include "types.h"
 
 typedef struct {
-    uint64_t timestamp;
+    u64 timestamp;
     void *lum;
     void *cb;
     void *cr;

@@ -10,6 +10,7 @@
 #define VIDEO_H
 
 #include "types.h"
+#include "yuv.h"
 #include <gctypes.h>
 
 void  video_init();
@@ -23,6 +24,11 @@ void  video_exit();
 
 void  video_swizzle_simple(const void*,void*,int,int);
 void  copyscreen32(s_screen*);
+
+// for WebM video playback
+int video_setup_yuv_overlay(int, int, int, int);
+int video_prepare_yuv_frame(yuv_frame*);
+int video_display_yuv_frame(void);
 
 #endif
 

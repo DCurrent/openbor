@@ -15,6 +15,7 @@
 #include "video.h"
 #include "vga.h"
 #include "globals.h"
+#include "screen.h"
 
 #define DEFAULT_FIFO_SIZE	(256*1024)
 #define STACK_SIZE			16384
@@ -46,6 +47,8 @@ int xoffset, yoffset;
 int viewportWidth, viewportHeight; // resolution of TV screen
 int scaledWidth, scaledHeight;
 int textureWidth, textureHeight; // dimensions of game screen
+
+static s_screen *yuvScreen;
 
 static int bytes_per_pixel;
 
@@ -183,9 +186,10 @@ int video_set_mode(s_videomodes videomodes)
 	GX_CopyDisp(xfb[whichbuffer^1], GX_TRUE);
 	GX_Flush();
 
-	// free existing texture memory
+	// free existing memory
 	if(texturemem[0]) { free(texturemem[0]); texturemem[0]=NULL; }
 	if(texturemem[1]) { free(texturemem[1]); texturemem[1]=NULL; }
+    if(yuvScreen) { freescreen(&yuvScreen); yuvScreen=NULL; }
 
 	// allocate memory for new texture
 	textureWidth = videomodes.hRes;
@@ -387,6 +391,35 @@ void video_set_color_correction(int gm, int br)
 			}
 		}
 	}
+}
+
+// TODO accelerated YUV->RGB conversion using TEV hardware
+int video_setup_yuv_overlay(int width, int height, int dispWidth, int dispHeight)
+{
+    s_videomodes videomodes;
+    yuv_init(2);
+    videomodes.hRes = width;
+    videomodes.vRes = height;
+    videomodes.pixel = 2;
+    video_set_mode(videomodes);
+    float texscale = MIN((float)viewportWidth/dispWidth, (float)viewportHeight/dispHeight);
+	scaledWidth = (int)(dispWidth * texscale);
+	scaledHeight = (int)(dispHeight * texscale);
+	xoffset = (viewportWidth - scaledWidth) / 2;
+	yoffset = (viewportHeight - scaledHeight) / 2;
+    yuvScreen = allocscreen(width, height, PIXEL_16);
+    return 1;
+}
+
+int video_prepare_yuv_frame(yuv_frame *src)
+{
+    yuv_to_rgb(src, yuvScreen);
+    return 1;
+}
+
+int video_display_yuv_frame(void)
+{
+    return video_copy_screen(yuvScreen);
 }
 
 /*
