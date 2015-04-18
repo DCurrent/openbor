@@ -24,18 +24,11 @@
 #include "savedata.h"
 #include "gfxtypes.h"
 #include "gfx.h"
+#include "pngdec.h"
 #include "videocommon.h"
+#include "../resources/OpenBOR_Icon_32x32_png.h"
 
 extern int videoMode;
-
-#if GP2X || DARWIN || OPENDINGUX
-#define SKIP_CODE
-#endif
-
-#ifndef SKIP_CODE
-#include "pngdec.h"
-#include "../resources/OpenBOR_Icon_32x32_png.h"
-#endif
 
 SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
@@ -63,7 +56,7 @@ void initSDL()
 	SDL_ShowCursor(SDL_DISABLE);
 	atexit(SDL_Quit);
 
-#if WIN || LINUX && !DARWIN
+#ifdef LOADGL
 	if(SDL_GL_LoadLibrary(NULL) < 0)
 	{
 		printf("Warning: couldn't load OpenGL library (%s)\n", SDL_GetError());
@@ -120,7 +113,7 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 		}
 		else
 		{
-#ifndef WIN
+#ifndef WIN // hiding and showing the window is problematic on Windows
 			if(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP)
 				SDL_HideWindow(window);
 #endif
@@ -303,9 +296,6 @@ int video_display_yuv_frame(void)
 
 void vga_vwait(void)
 {
-#ifdef GP2X
-	gp2x_video_wait_vsync();
-#else
 	static int prevtick = 0;
 	int now = SDL_GetTicks();
 	int wait = 1000/60 - (now - prevtick);
@@ -315,7 +305,6 @@ void vga_vwait(void)
 	}
 	else SDL_Delay(1);
 	prevtick = now;
-#endif
 }
 
 #endif

@@ -55,10 +55,6 @@ Caution: move vorbis headers here otherwise the structs will
 #include "List.h"
 
 
-#if LINUX || GP2X || OPENDINGUX || SYMBIAN
-#define stricmp strcasecmp
-#endif
-
 #define		MIXSHIFT		     3	    // 2 should be OK
 #define		MAXVOLUME		     64	    // 64 for backw. compat.
 //#define		MAX_SAMPLES		     1024	// Should be well enough
@@ -133,12 +129,7 @@ static int music_type = 0;
 //////////////////////////////// WAVE LOADER //////////////////////////////////
 
 #ifndef DC
-#ifdef SDL
-#pragma pack(push, r1, 16)
-#else
-#pragma pack(push)
-#endif
-#pragma pack(1)
+#pragma pack(push, 1)
 #endif
 
 
@@ -404,11 +395,7 @@ void sound_unload_all_samples()
 }
 
 #ifndef DC
-#ifdef SDL
-#pragma pack(pop, r1)
-#else
 #pragma pack(pop)
-#endif
 #endif
 
 /////////////////////////////// Mix to DMA //////////////////////////////////

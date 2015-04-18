@@ -808,20 +808,11 @@ typedef enum
 } e_weaploss_type;
 
 //macros for drawing menu text, fits different font size
-#ifdef _MSC_VER
-#define _strmidx(f,s, ...) ((videomodes.hRes-font_string_width((f), s, __VA_ARGS__))/2)
-#else
 #define _strmidx(f,s, args...) ((videomodes.hRes-font_string_width((f), s, ##args))/2)
-#endif
 #define _colx(f,c) ((int)(videomodes.hRes/2+(c)*(fontmonowidth((f))+1)))
 #define _liney(f,l) ((int)(videomodes.vRes/2+(l)*(fontheight((f))+1)))
-#ifdef _MSC_VER
-#define _menutextm(f, l, shift, s, ...) font_printf(_strmidx(f,s, __VA_ARGS__)+(int)((shift)*(fontmonowidth((f))+1)), _liney(f,l), (f), 0, s, __VA_ARGS__)
-#define _menutext(f, c, l, s, ...) font_printf(_colx(f,c), _liney(f,l), (f), 0, s, __VA_ARGS__)
-#else
 #define _menutextm(f, l, shift, s, args...) font_printf(_strmidx(f,s, ##args)+(int)((shift)*(fontmonowidth((f))+1)), _liney(f,l), (f), 0, s, ##args)
 #define _menutext(f, c, l, s, args...) font_printf(_colx(f,c), _liney(f,l), (f), 0, s, ##args)
-#endif
 
 //string starts with constant, for animation# series
 #define strclen(s) (sizeof(s)-1)
@@ -2169,9 +2160,6 @@ int    saveHighScoreFile(void);
 int    loadHighScoreFile(void);
 int translate_SDID(char *value);
 int music(char *filename, int loop, long offset);
-#if DC
-void check_music_opened(void);
-#endif
 char *findarg(char *command, int which);
 float diff(float a, float b);
 int inair(entity *e);
@@ -2402,11 +2390,9 @@ int ai_check_grabbed();
 int ai_check_grab();
 int ai_check_escape();
 int ai_check_busy();
-#ifndef PSP
 void display_credits(void);
-#endif
 void shutdown(int status, char *msg, ...);
-#ifndef PSP
+#ifdef DC
 void guistartup(void);
 #endif
 void startup(void);

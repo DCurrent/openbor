@@ -575,7 +575,7 @@ endif
 
 
 ifdef BUILD_WII
-CFLAGS 	       += -D__ppc__ $(MACHDEP) -Wl,-Map,$(TARGET_MAP)
+CFLAGS 	       += -DCACHE_BACKGROUNDS -DREVERSE_COLOR -D__ppc__ $(MACHDEP) -Wl,-Map,$(TARGET_MAP)
 ifdef BUILD_ELM
 CFLAGS         += -DUSE_LIBELM
 endif
