@@ -38,7 +38,7 @@
 #include "savedata.h"
 #include "List.h"
 
-#if GP2X || LINUX || OPENDINGUX || SYMBIAN
+#if _POSIX_SOURCE || SYMBIAN
 #define	stricmp	strcasecmp
 #endif
 

@@ -373,7 +373,7 @@ int                 follows[MAX_FOLLOWS] =
 };
 
 // background cache to speed up in-game menus
-#if WII
+#ifdef CACHE_BACKGROUNDS
 s_screen           *bg_cache[MAX_CACHED_BACKGROUNDS] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 unsigned char		bg_palette_cache[MAX_CACHED_BACKGROUNDS][MAX_PAL_SIZE];
 #endif
@@ -4061,7 +4061,7 @@ void load_background(char *filename, int createtables)
 
 void load_cached_background(char *filename, int createtables)
 {
-#if !WII
+#ifndef CACHE_BACKGROUNDS
     load_background(filename, createtables);
 #else
     int index = -1;
@@ -4144,7 +4144,7 @@ void load_cached_background(char *filename, int createtables)
 #endif
 }
 
-#if WII
+#ifdef CACHE_BACKGROUNDS
 void cache_background(char *filename)
 {
     s_screen *bg = allocscreen(videomodes.hRes, videomodes.vRes, pixelformat);
@@ -28425,7 +28425,7 @@ void shutdown(int status, char *msg, ...)
     {
         printf("..");
     }
-#if WII
+#ifdef CACHE_BACKGROUNDS
     if(startup_done) for(i = 0; i < MAX_CACHED_BACKGROUNDS; i++)
         {
             freescreen(&bg_cache[i]);
@@ -28733,7 +28733,7 @@ void startup()
     apply_controls();
     printf("Done!\n");
 
-#if WII
+#ifdef CACHE_BACKGROUNDS
     printf("Caching backgrounds..........\t");
     cache_all_backgrounds();
     printf("Done!\n");
@@ -30796,7 +30796,7 @@ void keyboard_setup(int player)
                     setting = selector;
                     ok = savedata.keys[player][setting];
                     savedata.keys[player][setting] = 0;
-#if SDL || PSP || WII
+#ifndef DC
                     keyboard_getlastkey();
 #endif
                 }

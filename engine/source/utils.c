@@ -20,11 +20,11 @@
 #include "openbor.h"
 #include "packfile.h"
 
-#if PSP || WIN || LINUX || GP2X || OPENDINGUX || SYMBIAN
+#ifndef DC
 #include <dirent.h>
 #endif
 
-#if GP2X || LINUX || OPENDINGUX
+#ifdef _POSIX_SOURCE
 #include <sys/stat.h>
 #endif
 
@@ -47,10 +47,10 @@
 #include "savepng.h"
 #endif
 
-#if PSP || GP2X || LINUX || OPENDINGUX || WII || SYMBIAN
-#define MKDIR(x) mkdir(x, 0777)
-#else
+#ifdef WIN
 #define MKDIR(x) mkdir(x)
+#else
+#define MKDIR(x) mkdir(x, 0777)
 #endif
 
 #ifdef WII

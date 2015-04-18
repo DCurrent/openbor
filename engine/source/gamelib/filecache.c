@@ -11,6 +11,10 @@
 #include "packfile.h"
 #include "filecache.h"
 
+#ifdef DC
+#include "gdrom.h"
+#endif
+
 #ifdef PSP
 #include <pspsuspend.h>
 #endif

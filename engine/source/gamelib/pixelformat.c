@@ -74,7 +74,7 @@ void drawmethod_global_init(s_drawmethod *drawmethod)
     {
         if(drawmethod && drawmethod->flag)
         {
-#if WII
+#if REVERSE_COLOR
             channelr = drawmethod->channelb;
             channelb = drawmethod->channelr;
 #else
@@ -104,7 +104,7 @@ void drawmethod_global_init(s_drawmethod *drawmethod)
 
 unsigned short colour16(unsigned char r, unsigned char g, unsigned char b)
 {
-#if WII
+#if REVERSE_COLOR
     return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
 #else
     return ((b & 0xF8) << 8) | ((g & 0xFC) << 3) | (r >> 3);
@@ -113,7 +113,7 @@ unsigned short colour16(unsigned char r, unsigned char g, unsigned char b)
 
 unsigned colour32(unsigned char r, unsigned char g, unsigned char b)
 {
-#if WII
+#if REVERSE_COLOR
     return ((r << 16) | (g << 8) | b);
 #else
     return ((b << 16) | (g << 8) | r);

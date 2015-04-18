@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <dirent.h>
 
-#if PSP || DC || LINUX || GP2X || OPENDINGUX || WII
+#ifndef WIN
 #include <unistd.h>
 #define O_BINARY 0
 #endif
