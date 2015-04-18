@@ -390,7 +390,10 @@ void yuv_to_rgb(yuv_frame *in, s_screen *out)
                     unsigned char *cb, unsigned char *out,
                     int rows, int cols, int mod);
     convert = (bytes_per_pixel == 2) ? Color16DitherYV12Mod1X : Color32DitherYV12Mod1X;
-    // note: to swap red and blue components of output, just swap the cb and cr buffers
+#if REVERSE_COLOR
+    convert(in->lum, in->cb, in->cr, out->data, out->height, out->width, 0);
+#else
     convert(in->lum, in->cr, in->cb, out->data, out->height, out->width, 0);
+#endif
 }
 

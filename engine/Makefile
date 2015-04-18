@@ -241,6 +241,7 @@ TARGET_MAP      = $(TARGET).map
 TARGET_FINAL    = boot.dol
 TARGET_PLATFORM = WII
 BUILD_TREMOR    = 1
+BUILD_WEBM      = 1
 BUILD_ELM       = 1
 BUILDING        = 1
 INCLUDES        = $(DEVKITPRO)/portlibs/ppc/include \
@@ -451,6 +452,7 @@ GAME_CONSOLE    = wii/control.o                                                 
                   wii/sblaster.o                                                                    \
                   wii/timer.o                                                                       \
                   wii/video.o                                                                       \
+                  wii/threads.o                                                                     \
                   wii/menu.o                                                                        \
                   wii/wiiport.o
 endif
@@ -702,7 +704,7 @@ endif
 
 
 ifdef BUILD_TREMOR
-LIBS           += -lvorbisidec
+LIBS           += -lvorbisidec -logg
 endif
 
 

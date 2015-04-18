@@ -706,21 +706,26 @@ ne_read_float(nestegg_io * io, double * val, uint64_t length)
 {
   union {
     uint64_t u;
-    float f;
     double d;
-  } value;
+  } value64;
+  union {
+    uint32_t u;
+    float f;
+  } value32;
   int r;
 
   /* Length == 10 not implemented. */
   if (length != 4 && length != 8)
     return -1;
-  r = ne_read_uint(io, &value.u, length);
+  r = ne_read_uint(io, &value64.u, length);
   if (r != 1)
     return r;
-  if (length == 4)
-    *val = value.f;
-  else
-    *val = value.d;
+  if (length == 4) {
+    value32.u = value64.u;
+    *val = value32.f;
+  } else {
+    *val = value64.d;
+  }
   return 1;
 }
 
