@@ -73,10 +73,8 @@ typedef struct
 
 
 //Gif file format should be always the same, so no need to use sizeof
-//#if PSP || PS2 || DC
 #define sizeof_gifheaderstruct 13
 #define sizeof_iblock 9
-//#endif
 
 
 // Returns true on succes

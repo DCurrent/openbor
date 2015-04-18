@@ -30,10 +30,6 @@ typedef double DOUBLE;
 typedef int BOOL;
 #endif
 
-#ifndef XBOX
-typedef short WCHAR;
-#endif
-
 #ifdef VOID
 #undef VOID
 #endif
@@ -43,7 +39,6 @@ typedef void VOID;
 #define NULL 0
 #endif
 
-#ifndef XBOX
 #ifdef S_OK
 #undef S_OK
 #endif
@@ -63,7 +58,6 @@ typedef void VOID;
 #undef SUCCEEDED
 #endif
 #define SUCCEEDED(status) (((HRESULT)(status))>=0)
-#endif
 
 #ifndef FALSE
 #define FALSE 0

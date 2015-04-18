@@ -38,10 +38,6 @@
 #include "savedata.h"
 #include "List.h"
 
-#ifdef PS2
-#include <sifdev.h>
-#endif
-
 #if GP2X || LINUX || OPENDINGUX || SYMBIAN
 #define	stricmp	strcasecmp
 #endif
@@ -1050,29 +1046,13 @@ int seekPackfileCached(int handle, int offset, int whence)
     return pak_vfdpos[handle];
 }
 
-#ifdef PS2
-static void flushfd(int fd)
-{
-    int busy = 1;
-    while(busy)
-    {
-        sceIoctl(fd, SCE_FS_EXECUTING, &busy);
-    }
-}
-#endif
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // returns number of sectors read successfully
 //
 static int pak_getsectors(void *dest, int lba, int n)
 {
-#ifdef PS2
-    sceLseek(pakfd, lba << 11, SCE_SEEK_SET);
-    flushfd(pakfd);
-    sceRead(pakfd, dest, n << 11);
-    flushfd(pakfd);
-#elif DC
+#ifdef DC
     if((lba + n) > ((paksize + 0x7FF) / 0x800))
     {
         n = ((paksize + 0x7FF) / 0x800) - lba;
@@ -1260,11 +1240,7 @@ int pak_init()
     {
 #endif
 
-#ifdef PS2
-        pakfd = sceOpen(ps2gethostfilename(packfile), SCE_RDONLY | SCE_NOWAIT, 0);
-#else
         pakfd = open(packfile, O_RDONLY | O_BINARY, 777);
-#endif
 
         if(pakfd < 0)
         {
@@ -1272,24 +1248,15 @@ int pak_init()
             return 0;
         }
 
-#ifdef PS2
-        paksize = sceLseek(pakfd, 0, SCE_SEEK_END);
-#else
         paksize = lseek(pakfd, 0, SEEK_END);
-#endif
 
 #ifdef DC
     }
 #endif
 
     // Is it a valid Packfile
-#ifdef PS2
-    sceClose(pakfd);
-    pakfd = sceOpen(ps2gethostfilename(packfile), SCE_RDONLY, 0);
-#else
     close(pakfd);
     pakfd = open(packfile, O_RDONLY | O_BINARY, 777);
-#endif
 
     // Read magic dword ("PACK")
     if(read(pakfd, &magic, 4) != 4 || magic != SwapLSB32(PACKMAGIC))

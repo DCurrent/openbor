@@ -18,8 +18,6 @@
 
 #ifdef DARWIN
 #include <CoreFoundation/CoreFoundation.h>
-#elif WII
-#include <fat.h>
 #elif WIN
 #undef main
 #endif
@@ -85,8 +83,6 @@ int main(int argc, char *argv[])
 	}
 	CFRelease(resourcesDirectoryURL);
 	chdir(resourcePath);
-#elif WII
-	fatInitDefault();
 #endif
 
 #ifdef CUSTOM_SIGNAL_HANDLER

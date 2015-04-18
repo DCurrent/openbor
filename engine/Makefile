@@ -770,10 +770,6 @@ endif
 #----------------------------------------------------------------------------------------------------
 
 ifdef BUILD_SDL
-ifdef BUILD_WII
-SOURCES = $(INCS)
-include $(DEVKITPPC)/wii_rules
-endif
 all : $(TARGET) $(TARGET_FINAL)
 	@echo
 %.o : %.asm
@@ -798,7 +794,6 @@ endif
 # Rules to manage Files and Libraries for Wii
 #----------------------------------------------------------------------------------------------------
 
-ifndef BUILD_SDL
 ifdef BUILD_WII
 SOURCES = $(INCS)
 include $(DEVKITPPC)/wii_rules
@@ -817,7 +812,6 @@ $(TARGET_FINAL) : $(TARGET)
 	@echo
 	@echo Completed $(TARGET_PLATFORM) Port!
 	@echo $(TARGET_FINAL) is now ready!
-endif
 endif
 
 

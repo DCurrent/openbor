@@ -11,7 +11,7 @@
 
 #include "types.h"
 
-#if _WIN32_ || XBOX
+#if _WIN32_
 #define inline _inline
 #endif
 

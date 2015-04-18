@@ -55,7 +55,7 @@ typedef struct
 
 static s_bmpheader bmp_header;
 
-#if DC || PS2 || GP2X || SYMBIAN
+#if DC || GP2X || SYMBIAN
 static void build_bmp_header(s_bmpheader *h, const unsigned char *s)
 {
 
@@ -81,7 +81,7 @@ static void build_bmp_header(s_bmpheader *h, const unsigned char *s)
 static int openbmp(char *filename, char *packfilename)
 {
 
-#if DC || PS2 || GP2X || SYMBIAN
+#if DC || GP2X || SYMBIAN
     unsigned char mybmpheader[0x36];
 #endif
 
@@ -89,7 +89,7 @@ static int openbmp(char *filename, char *packfilename)
     {
         return 0;
     }
-#if DC || PS2 || GP2X || SYMBIAN
+#if DC || GP2X || SYMBIAN
     if(readpackfile(handle, &mybmpheader, 0x36) != 0x36)
     {
 #else
@@ -100,7 +100,7 @@ static int openbmp(char *filename, char *packfilename)
         return 0;
     }
 
-#if DC || PS2 || GP2X || SYMBIAN
+#if DC || GP2X || SYMBIAN
     build_bmp_header(&bmp_header, mybmpheader);
 #else
     bmp_header.bm = SwapLSB16(bmp_header.bm);
@@ -373,7 +373,7 @@ typedef struct
     unsigned char	aspect;
 } gifheaderstruct;
 
-#if DC || PS2 || GP2X || SYMBIAN
+#if DC || GP2X || SYMBIAN
 #define sizeof_gifheaderstruct 13
 #endif
 
@@ -383,7 +383,7 @@ typedef struct
     unsigned char    flags;
 } gifblockstruct;
 
-#if DC || PS2 || GP2X || SYMBIAN
+#if DC || GP2X || SYMBIAN
 #define sizeof_iblock 9
 #endif
 
@@ -598,7 +598,7 @@ static int opengif(char *filename, char *packfilename)
         return 0;
     }
 
-#if DC || PS2 || GP2X || SYMBIAN
+#if DC || GP2X || SYMBIAN
     if(readpackfile(handle, &gif_header, sizeof_gifheaderstruct) != sizeof_gifheaderstruct)
     {
 #else
@@ -708,7 +708,7 @@ static int readgif(unsigned char *buf, unsigned char *pal, int maxwidth, int max
         {
         case ',':        // An image block
 
-#if DC || PS2 || GP2X || SYMBIAN
+#if DC || GP2X || SYMBIAN
             if(readpackfile(handle, &iblock, sizeof_iblock) != sizeof_iblock)
             {
 #else

@@ -145,16 +145,7 @@ void getPads(Uint8* keystate)
 				{
 					if(ev.jbutton.which == i)
 					{
-						if(joysticks[i].Type == JOY_TYPE_SONY)
-						{
-							if(ev.jbutton.button <= 3 && (joysticks[i].Buttons & JoystickBits[ev.jbutton.button + 5]))
-								joysticks[i].Buttons &= ~(JoystickBits[ev.jbutton.button + 5]);
-							else if(ev.jbutton.button >= 4 && ev.jbutton.button <= 7)
-								joysticks[i].Hats &= ~(JoystickBits[ev.jbutton.button - 3]);
-							else if(ev.jbutton.button >= 8 && ev.jbutton.button <= 16 && (joysticks[i].Buttons & JoystickBits[ev.jbutton.button + 1]))
-								joysticks[i].Buttons &= ~(JoystickBits[ev.jbutton.button + 1]);
-						}
-						else if(joysticks[i].Type == JOY_TYPE_GAMEPARK)
+						if(joysticks[i].Type == JOY_TYPE_GAMEPARK)
 						{
 							if(ev.jbutton.button == 0 || ev.jbutton.button == 7 || ev.jbutton.button == 1) joysticks[i].Hats &= ~(JoystickBits[1]);
 							if(ev.jbutton.button == 6 || ev.jbutton.button == 5 || ev.jbutton.button == 7) joysticks[i].Hats &= ~(JoystickBits[2]);
@@ -167,7 +158,7 @@ void getPads(Uint8* keystate)
 				break;
 
 			case SDL_JOYBUTTONDOWN:
-				// FIXME: restore PSP/GP2X controls
+				// FIXME: restore GP2X controls
 				for(i=0; i<JOY_LIST_TOTAL; i++)
 				{
 					if(ev.jbutton.which == i)
@@ -196,7 +187,7 @@ void getPads(Uint8* keystate)
 			case SDL_JOYAXISMOTION:
 				for(i=0; i<JOY_LIST_TOTAL; i++)
 				{
-					if(ev.jaxis.which == i && joysticks[i].Type != JOY_TYPE_SONY)
+					if(ev.jaxis.which == i)
 					{
 						int axisfirst = 1 + i * JOY_MAX_INPUTS + joysticks[i].NumButtons + 2*ev.jaxis.axis;
 						x = (joysticks[i].Axes >> (2*ev.jaxis.axis)) & 3; // previous state of axis
@@ -210,7 +201,7 @@ void getPads(Uint8* keystate)
 
 	}
 
-	if((joysticks[0].Type != JOY_TYPE_SONY) && (joysticks[0].Type != JOY_TYPE_GAMEPARK))
+	if(joysticks[0].Type != JOY_TYPE_GAMEPARK)
 	{
 		// new PC joystick code - forget about SDL joystick events, just do a state check
 		SDL_JoystickUpdate();
@@ -284,21 +275,7 @@ void joystick_scan(int scan)
 
 		joysticks[i].Name = SDL_JoystickName(i);
 
-#if PSP
-		joysticks[i].Type = JOY_TYPE_SONY;
-		for(j=0; j<JOY_MAX_INPUTS+1; j++)
-		{
-			if(j) joysticks[i].KeyName[j] = SonyKeyName[j + k];
-			else joysticks[i].KeyName[j] = SonyKeyName[j];
-		}
-#elif XBOX
-		joysticks[i].Type = JOY_TYPE_MICROSOFT;
-		for(j=0; j<JOY_MAX_INPUTS+1; j++)
-		{
-			if(j) joysticks[i].KeyName[j] = MicrosoftKeyName[j + k];
-			else joysticks[i].KeyName[j] = MicrosoftKeyName[j];
-		}
-#elif GP2X
+#if GP2X
 		joysticks[i].Type = JOY_TYPE_GAMEPARK;
 		for(j=0; j<JOY_MAX_INPUTS+1; j++)
 		{

@@ -28290,7 +28290,7 @@ void display_credits()
         font_printf(col2, s + v * 11, 0, 0, "Orochi_X");
 
         font_printf(_strmidx(1, "Ports"), s + v * 12,  1, 0, "Ports");
-        font_printf(col1,  s + v * 13, 0, 0, "PSP/PS3/Linux/OSX");
+        font_printf(col1,  s + v * 13, 0, 0, "PSP/Linux/OSX");
         font_printf(col2, s + v * 13, 0, 0, "SX");
         font_printf(col1,  s + v * 14, 0, 0, "OpenDingux");
         font_printf(col2, s + v * 14, 0, 0, "Shin-NiL");
@@ -28300,16 +28300,14 @@ void display_credits()
         font_printf(col2, s + v * 16, 0, 0, "SX & Lemon");
         font_printf(col1,  s + v * 17, 0, 0, "DreamCast");
         font_printf(col2, s + v * 17, 0, 0, "SX & Neill Corlett");
-        font_printf(col1,  s + v * 18, 0, 0, "MS XBoX");
-        font_printf(col2, s + v * 18, 0, 0, "SX & XPort");
-        font_printf(col1,  s + v * 19, 0, 0, "Wii");
-        font_printf(col2, s + v * 19, 0, 0, "SX & Plombo");
-        font_printf(col1,  s + v * 20, 0, 0, "Android");
-        font_printf(col2, s + v * 20, 0, 0, "uTunnels & CRxTRDude");
+        font_printf(col1,  s + v * 18, 0, 0, "Wii");
+        font_printf(col2, s + v * 18, 0, 0, "SX & Plombo");
+        font_printf(col1,  s + v * 19, 0, 0, "Android");
+        font_printf(col2, s + v * 19, 0, 0, "uTunnels & CRxTRDude");
 
-        font_printf(_strmidx(1, "Menu Design"), s + v * 21,  1, 0, "Menu Design");
-        font_printf(col1, s + v * 22,  0, 0, "SX");
-        font_printf(col2, s + v * 22, 0, 0, "Fightn Words");
+        font_printf(_strmidx(1, "Menu Design"), s + v * 20,  1, 0, "Menu Design");
+        font_printf(col1, s + v * 21,  0, 0, "SX");
+        font_printf(col2, s + v * 21, 0, 0, "Fightn Words");
 
         update(2, 0);
 
@@ -28576,7 +28574,7 @@ void shutdown(int status, char *msg, ...)
 }
 
 
-#if XBOX || DC
+#if DC
 void guistartup()
 {
     int i;
@@ -30798,7 +30796,7 @@ void keyboard_setup(int player)
                     setting = selector;
                     ok = savedata.keys[player][setting];
                     savedata.keys[player][setting] = 0;
-#if DOS || SDL || PSP || WII
+#if SDL || PSP || WII
                     keyboard_getlastkey();
 #endif
                 }
@@ -31645,29 +31643,13 @@ void video_options()
         }
 #endif
 
-#if DOS || DC || GP2X
+#if DC || GP2X
         _menutextm((selector == 3), 6, 0, Tr("Back"));
         if(selector < 0)
         {
             selector = 3;
         }
         if(selector > 3)
-        {
-            selector = 0;
-        }
-#endif
-
-#if XBOX
-        _menutext((selector == 3), col1, 0, Tr("Screen Size:"));
-        _menutext((selector == 3), col2, 0, Tr("Guide R/L Thumbsticks"));
-        _menutext((selector == 3), col1, 1, Tr("GFX Filters:"));
-        _menutext((selector == 3), col2, 1, Tr("Press R/L Thumbsticks"));
-        _menutextm((selector == 4), 6, 0, Tr("Back"));
-        if(selector < 0)
-        {
-            selector = 4;
-        }
-        if(selector > 4)
         {
             selector = 0;
         }
@@ -31842,16 +31824,11 @@ void video_options()
                     savedata.windowpos = 20;
                 }
                 break;
-#if SDL || PSP || XBOX || WII
+#if SDL || PSP || WII
             case 3:
 #if OPENDINGUX
                 video_fullscreen_flip();
                 break;
-#endif
-
-#if XBOX
-                update((level != NULL), 0);
-                xbox_resize();
 #endif
 
 #if WII

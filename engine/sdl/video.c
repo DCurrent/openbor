@@ -28,7 +28,7 @@
 
 extern int videoMode;
 
-#if GP2X || DARWIN || OPENDINGUX || WII
+#if GP2X || DARWIN || OPENDINGUX
 #define SKIP_CODE
 #endif
 

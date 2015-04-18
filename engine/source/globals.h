@@ -37,16 +37,8 @@
 #include "gp2xport.h"
 #endif
 
-#ifdef DOS
-#include "dosport.h"
-#endif
-
 #ifdef DC
 #include "dcport.h"
-#endif
-
-#ifdef XBOX
-#include "xboxport.h"
 #endif
 
 #ifdef WII
