@@ -394,21 +394,22 @@ void video_set_color_correction(int gm, int br)
 }
 
 // TODO accelerated YUV->RGB conversion using TEV hardware
-int video_setup_yuv_overlay(int width, int height, int dispWidth, int dispHeight)
+int video_setup_yuv_overlay(const yuv_video_mode *mode)
 {
-    s_videomodes videomodes;
-    yuv_init(2);
-    videomodes.hRes = width;
-    videomodes.vRes = height;
-    videomodes.pixel = 2;
-    video_set_mode(videomodes);
-    float texscale = MIN((float)viewportWidth/dispWidth, (float)viewportHeight/dispHeight);
-	scaledWidth = (int)(dispWidth * texscale);
-	scaledHeight = (int)(dispHeight * texscale);
+	s_videomodes videomodes;
+	yuv_init(2);
+	videomodes.hRes = mode->width;
+	videomodes.vRes = mode->height;
+	videomodes.pixel = 2;
+	video_set_mode(videomodes);
+	float texscale = MIN((float)viewportWidth / mode->display_width,
+						 (float)viewportHeight / mode->display_height);
+	scaledWidth = (int)(mode->display_width * texscale);
+	scaledHeight = (int)(mode->display_height * texscale);
 	xoffset = (viewportWidth - scaledWidth) / 2;
 	yoffset = (viewportHeight - scaledHeight) / 2;
-    yuvScreen = allocscreen(width, height, PIXEL_16);
-    return 1;
+	yuvScreen = allocscreen(mode->width, mode->height, PIXEL_16);
+	return 1;
 }
 
 int video_prepare_yuv_frame(yuv_frame *src)

@@ -18,6 +18,13 @@ typedef struct {
     void *cr;
 } yuv_frame;
 
+typedef struct {
+    int width;
+    int height;
+    int display_width;
+    int display_height;
+} yuv_video_mode;
+
 // Allocates a YUV frame
 yuv_frame *yuv_frame_create(int width, int height);
 

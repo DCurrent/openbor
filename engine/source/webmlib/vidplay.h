@@ -15,6 +15,7 @@ struct webm_context;
 typedef struct webm_context webm_context;
 
 webm_context *webm_start_playback(const char *path, int volume);
+void webm_get_video_info(webm_context *ctx, yuv_video_mode *dims);
 void webm_close(webm_context *ctx);
 yuv_frame *webm_get_next_frame(webm_context *ctx);
 

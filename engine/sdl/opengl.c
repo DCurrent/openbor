@@ -403,15 +403,15 @@ void video_gl_set_color_correction(int gamma, int brightness)
 }
 
 // set up YUV mode
-int video_gl_setup_yuv_overlay(int width, int height, int dispWidth, int dispHeight)
+int video_gl_setup_yuv_overlay(const yuv_video_mode *mode)
 {
-	textureWidth = width;
-	textureHeight = height;
-	displayWidth = dispWidth;
-	displayHeight = dispHeight;
-	video_gl_init_texture(0, width, height, 1);
-	video_gl_init_texture(1, width/2, height/2, 1);
-	video_gl_init_texture(2, width/2, height/2, 1);
+	textureWidth = mode->width;
+	textureHeight = mode->height;
+	displayWidth = mode->display_width;
+	displayHeight = mode->display_height;
+	video_gl_init_texture(0, mode->width, mode->height, 1);
+	video_gl_init_texture(1, mode->width/2, mode->height/2, 1);
+	video_gl_init_texture(2, mode->width/2, mode->height/2, 1);
 
 	// set up shader to do YUV->RGB conversion
 	GLuint fragmentShader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
