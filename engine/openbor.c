@@ -28903,8 +28903,11 @@ int playwebm(const char *path, int noskip)
         if(next_frame_time <= time_passed)
         {
             // display the current frame
-            video_display_yuv_frame();
-            yuv_frame_destroy(frame);
+            if(frame)
+            {
+                video_display_yuv_frame();
+                yuv_frame_destroy(frame);
+            }
 
             // prepare the next frame for display
             frame = webm_get_next_frame(ctx);
