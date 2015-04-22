@@ -28862,12 +28862,26 @@ playgif_end:
 int playwebm(const char *path, int noskip)
 {
     int retval = 1;
+    webm_context *ctx = NULL;
+    yuv_video_mode info;
+    s_screen *rgb_frame = NULL;
 
-    webm_context *ctx = webm_start_playback(path, savedata.musicvol);
-    if(ctx == NULL) return 0;
+    ctx = webm_start_playback(path, savedata.musicvol);
+    if(ctx == NULL) goto quit;
+
+    // set video output to YUV mode
+    webm_get_video_info(ctx, &info);
+    int status = video_setup_yuv_overlay(&info);
+    if(!status) goto quit;
+
+    // allocate s_screen for screenshot capture
+    yuv_init(2);
+    rgb_frame = allocscreen(info.width, info.height, PIXEL_16);
+    if(!rgb_frame) goto quit;
 
     u64 start_time = timer_uticks();
     u64 next_frame_time = 0;
+    yuv_frame *frame = NULL;
 
     while(1)
     {
@@ -28875,7 +28889,13 @@ int playwebm(const char *path, int noskip)
         if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)))
         {
             retval = -1;
+            yuv_frame_destroy(frame);
             break;
+        }
+        else if(frame && !noscreenshot && (bothnewkeys & FLAG_SCREENSHOT))
+        {
+            yuv_to_rgb(frame, rgb_frame);
+            screenshot(rgb_frame, NULL, 0);
         }
 
         u64 time_passed = timer_uticks() - start_time;
@@ -28884,18 +28904,21 @@ int playwebm(const char *path, int noskip)
         {
             // display the current frame
             video_display_yuv_frame();
+            yuv_frame_destroy(frame);
 
             // prepare the next frame for display
-            yuv_frame *frame = webm_get_next_frame(ctx);
+            frame = webm_get_next_frame(ctx);
             if(frame == NULL) break;
             video_prepare_yuv_frame(frame);
             next_frame_time = frame->timestamp / 1000;
-            yuv_frame_destroy(frame);
         }
         else usleep(next_frame_time - time_passed);
     }
 
-    webm_close(ctx);
+quit:
+    if(ctx) webm_close(ctx);
+    if(rgb_frame) freescreen(&rgb_frame);
+    yuv_clear();
     video_set_mode(videomodes);
     return retval;
 }

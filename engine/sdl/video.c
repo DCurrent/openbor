@@ -28,8 +28,6 @@
 #include "videocommon.h"
 #include "../resources/OpenBOR_Icon_32x32_png.h"
 
-extern int videoMode;
-
 SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *texture = NULL;
@@ -37,6 +35,8 @@ static SDL_Texture *texture = NULL;
 FPSmanager framerate_manager;
 
 s_videomodes stored_videomodes;
+yuv_video_mode stored_yuv_mode;
+int yuv_mode = 0;
 char windowTitle[128] = {"OpenBOR"};
 int stretch = 0;
 int opengl = 0; // OpenGL backend currently in use?
@@ -153,6 +153,7 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 int video_set_mode(s_videomodes videomodes)
 {
 	stored_videomodes = videomodes;
+	yuv_mode = 0;
 
 	if(videomodes.hRes==0 && videomodes.vRes==0)
 	{
@@ -196,8 +197,10 @@ int video_set_mode(s_videomodes videomodes)
 
 void video_fullscreen_flip()
 {
+	int restore_yuv = yuv_mode;
 	savedata.fullscreen ^= 1;
 	if(window) video_set_mode(stored_videomodes);
+	if(restore_yuv) video_setup_yuv_overlay(&stored_yuv_mode);
 }
 
 void blit()
@@ -259,21 +262,20 @@ void video_set_color_correction(int gm, int br)
 	if(opengl) video_gl_set_color_correction(gm, br);
 }
 
-static int overlay_pitch;
-
-int video_setup_yuv_overlay(int width, int height, int dispwidth, int dispheight)
+int video_setup_yuv_overlay(const yuv_video_mode *mode)
 {
-	if(opengl) return video_gl_setup_yuv_overlay(width, height, dispwidth, dispheight);
+	stored_yuv_mode = *mode;
+	yuv_mode = 1;
+	if(opengl) return video_gl_setup_yuv_overlay(mode);
 
-	overlay_pitch = width;
 	SDL_DestroyTexture(texture);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	texture = SDL_CreateTexture(renderer,
 	                            SDL_PIXELFORMAT_YV12,
 	                            SDL_TEXTUREACCESS_STREAMING,
-	                            width, height);
+	                            mode->width, mode->height);
 	if(!stretch)
-		SDL_RenderSetLogicalSize(renderer, dispwidth, dispheight);
+		SDL_RenderSetLogicalSize(renderer, mode->display_width, mode->display_height);
 	return texture ? 1 : 0;
 }
 
@@ -281,8 +283,8 @@ int video_prepare_yuv_frame(yuv_frame *src)
 {
 	if(opengl) return video_gl_prepare_yuv_frame(src);
 
-	SDL_UpdateYUVTexture(texture, NULL, src->lum, overlay_pitch,
-	        src->cr, overlay_pitch/2, src->cb, overlay_pitch/2);
+	SDL_UpdateYUVTexture(texture, NULL, src->lum, stored_yuv_mode.width,
+	        src->cr, stored_yuv_mode.width/2, src->cb, stored_yuv_mode.width/2);
 	return 1;
 }
 

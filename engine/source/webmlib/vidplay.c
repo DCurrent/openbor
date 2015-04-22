@@ -27,7 +27,6 @@
 #include "types.h"
 #include "globals.h"
 #include "soundmix.h"
-#include "video.h"
 
 // lowering these might save a bit of memory but could also cause lag
 #define PACKET_QUEUE_SIZE 20
@@ -424,15 +423,6 @@ static int init_video(nestegg *nestegg_ctx, int track, video_context *video_ctx)
             video_params.width, video_params.height,
             video_params.display_width, video_params.display_height,
             1000000000.0 / video_ctx->frame_delay);
-
-    int status = video_setup_yuv_overlay(video_ctx->width, video_ctx->height,
-            video_ctx->display_width, video_ctx->display_height);
-    if (!status)
-    {
-        vpx_codec_destroy(&(video_ctx->vpx_ctx));
-        return -1;
-    }
-
     video_ctx->packet_queue = queue_init(PACKET_QUEUE_SIZE);
     video_ctx->frame_queue = queue_init(FRAME_QUEUE_SIZE);
     return 0;
@@ -595,6 +585,16 @@ void webm_close(webm_context *ctx)
     nestegg_destroy(ctx->nestegg_ctx);
     closepackfile(ctx->packhandle);
     free(ctx);
+}
+
+void webm_get_video_info(webm_context *ctx, yuv_video_mode *dims)
+{
+    assert(ctx);
+    assert(dims);
+    dims->width = ctx->video_ctx.width;
+    dims->height = ctx->video_ctx.height;
+    dims->display_width = ctx->video_ctx.display_width;
+    dims->display_height = ctx->video_ctx.display_height;
 }
 
 yuv_frame *webm_get_next_frame(webm_context *ctx)
