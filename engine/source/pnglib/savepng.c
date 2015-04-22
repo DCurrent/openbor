@@ -8,9 +8,8 @@
 
 #include <png.h>
 #include <malloc.h>
-#include "types.h"
+#include "globals.h"
 #include "screen.h"
-#include <assert.h>
 
 void savepng(const char *filename, s_screen *screen, u8 *pal)
 {
@@ -66,15 +65,27 @@ void savepng(const char *filename, s_screen *screen, u8 *pal)
                 break;
             case PIXEL_16:
                 color = vram16[x + y * screen->width];
+#if REVERSE_COLOR
+                b = (color & 0x1f) << 3;
+                g = ((color >> 5) & 0x3f) << 2;
+                r = ((color >> 11) & 0x1f) << 3;
+#else
                 r = (color & 0x1f) << 3;
                 g = ((color >> 5) & 0x3f) << 2;
                 b = ((color >> 11) & 0x1f) << 3;
+#endif
                 break;
             case PIXEL_32:
                 color = vram32[x + y * screen->width];
+#if REVERSE_COLOR
+                b = color & 0xff;
+                g = (color >> 8) & 0xff;
+                r = (color >> 16) & 0xff;
+#else
                 r = color & 0xff;
                 g = (color >> 8) & 0xff;
                 b = (color >> 16) & 0xff;
+#endif
                 break;
             }
             line[i++] = r;
