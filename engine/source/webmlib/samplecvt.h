@@ -19,9 +19,9 @@
  * @param channels the number of channels (1 for mono, 2 for stereo)
  */
 #if TREMOR
-void pack_samples(ogg_int32_t **pcm, char *buffer, int samples, int channels);
+void pack_samples(ogg_int32_t **pcm, short *buffer, int samples, int channels);
 #else // libvorbis
-void pack_samples(float **pcm, char *buffer, int samples, int channels);
+void pack_samples(float **pcm, short *buffer, int samples, int channels);
 #endif
 
 #endif
