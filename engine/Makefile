@@ -562,7 +562,7 @@ endif
 
 
 ifdef BUILD_SDL
-CFLAGS 	       += -DSDL
+CFLAGS 	       += -DSDL=1
 endif
 
 

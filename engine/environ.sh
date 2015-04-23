@@ -193,6 +193,11 @@ case $1 in
      export SDKPATH=/usr/local/i386-mingw32-4.3.0
      export PREFIX=i386-mingw32-
      export PATH=$WINDEV:$PATH
+   elif test -e "c:/mingw"; then
+     export WINDEV=c:/mingw/bin
+     export SDKPATH=c:/mingw
+     export EXTENSION=.exe
+     export PATH=$TOOLS:$WINDEV:$PATH
    elif [ `echo $HOST_PLATFORM | grep -E "windows|CYGWIN"` ]; then
      if [ ! -d "../tools/win-sdk/bin" ]; then
        echo "-------------------------------------------------------"
