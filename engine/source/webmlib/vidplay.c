@@ -299,6 +299,11 @@ static void init_audio(nestegg *ctx, int track, audio_context *audio_ctx, int vo
     audio_ctx->packet_queue = queue_init(PACKET_QUEUE_SIZE);
     printf("Audio track: %f Hz, %d channels, %d bits/sample\n",
             audioParams.rate, audioParams.channels, audioParams.depth / audioParams.channels);
+    if(audio_ctx->frequency % 11025)
+    {
+        printf("Warning: the audio frequency (%i Hz) is suboptimal; resample to 44100 Hz for best quality\n",
+                audio_ctx->frequency);
+    }
 
     // initialize soundmix music channel
     sound_close_music();
@@ -505,7 +510,11 @@ webm_context *webm_start_playback(const char *path, int volume)
 
     // open video file
     ctx->packhandle = openpackfile(path, packfile);
-    if(ctx->packhandle < 0) goto error1;
+    if(ctx->packhandle < 0)
+    {
+        printf("Error: Unable to open file %s for playback\n", path);
+        goto error1;
+    }
     io.userdata = (void*)ctx->packhandle;
     if(nestegg_init(&(ctx->nestegg_ctx), io, NULL, -1) < 0) goto error2;
 
