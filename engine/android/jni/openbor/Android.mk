@@ -36,6 +36,12 @@ LOCAL_SRC_FILES := lib/armeabi-v7a/libvorbis.a
 LOCAL_STATIC_LIBRARIES := ogg
 include $(PREBUILT_STATIC_LIBRARY)
 
+include $(CLEAR_VARS)
+LOCAL_MODULE    := vpx
+LOCAL_SRC_FILES := lib/armeabi-v7a/libvpx.a
+LOCAL_STATIC_LIBRARIES := vpx cpufeatures
+include $(PREBUILT_STATIC_LIBRARY)
+
 #openbor
 include $(CLEAR_VARS)
 
@@ -86,7 +92,8 @@ LOCAL_SRC_FILES += SDL_android_main.cpp
 
 LOCAL_LDLIBS := -ldl -lGLESv2 -llog
 
-LOCAL_STATIC_LIBRARIES := png vorbis SDL2
+LOCAL_STATIC_LIBRARIES := png vorbis SDL2 vpx
 
 include $(BUILD_SHARED_LIBRARY)
+$(call import-module,android/cpufeatures)
 
