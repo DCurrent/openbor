@@ -28867,17 +28867,17 @@ int playwebm(const char *path, int noskip)
     s_screen *rgb_frame = NULL;
 
     ctx = webm_start_playback(path, savedata.musicvol);
-    if(ctx == NULL) goto quit;
+    if(ctx == NULL) {retval=0; goto quit;}
 
     // set video output to YUV mode
     webm_get_video_info(ctx, &info);
     int status = video_setup_yuv_overlay(&info);
-    if(!status) goto quit;
+    if(!status) {retval=0; goto quit;}
 
     // allocate s_screen for screenshot capture
     yuv_init(2);
     rgb_frame = allocscreen(info.width, info.height, PIXEL_16);
-    if(!rgb_frame) goto quit;
+    if(!rgb_frame) {retval=0; goto quit;}
 
     u64 start_time = timer_uticks();
     u64 next_frame_time = 0;
@@ -28937,7 +28937,7 @@ void playscene(char *filename)
     char *command = NULL;
     char videofile[256];
     int x = 0, y = 0, skipone = 0, noskip = 0, i;
-    int closing = 0;
+    int closing = 0, status;
 
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
@@ -28980,9 +28980,14 @@ void playscene(char *filename)
                 strcpy(videofile, GET_ARG(1));
                 skipone = GET_INT_ARG(2);
                 noskip = GET_INT_ARG(3);
-                if(playwebm(videofile, noskip) == -1 && !skipone)
+                status = playwebm(videofile, noskip);
+                if(status == -1 && !skipone)
                 {
                     closing = 1;
+                }
+                else if(status == 0)
+                {
+                    printf("An error occurred when trying to play the video %s\n", videofile);
                 }
 #else
                 printf("Skipping video %s; WebM playback not supported on this platform\n");
