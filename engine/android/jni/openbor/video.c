@@ -16,11 +16,9 @@
 #include "vga.h"
 #include "screen.h"
 #include "sdlport.h"
-#include "opengl.h"
 #include "openbor.h"
 #include "gfxtypes.h"
 #include "gfx.h"
-#include "SDL_opengles.h"
 #include "videocommon.h"
 
 #include "pngdec.h"
@@ -29,23 +27,19 @@ extern int videoMode;
 
 #define nextpowerof2(x) pow(2,ceil(log(x)/log(2)))
 
-
-#define MUST_USE_BSCREEN 1
-
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_Texture *texture = NULL;
 
 //For Android - Textures and a surface for the buttons
 SDL_Texture *buttons = NULL;
-SDL_Surface *bscreen = NULL;
 
 s_videomodes stored_videomodes;
 
 char windowTitle[128] = {"OpenBOR"};
 
 int stretch = 1;
-int opengl = 1; // though using SDL, we force the var for OpenGL ES to work
+int opengl = 0;
 
 int nativeWidth, nativeHeight; // monitor resolution used in fullscreen mode
 static unsigned glpalette[256]; // for 8bit
@@ -368,20 +362,10 @@ int video_set_mode(s_videomodes videomodes)
     
     videomodes = setupPreBlitProcessing(videomodes);
 
-		// 8-bit color should be transparently converted to 32-bit
-		assert(videomodes.pixel == 2 || videomodes.pixel == 4);
-		
-		
-		// Initialize OpenGL
-		if(savedata.usegl[savedata.fullscreen] && video_gl_set_mode(videomodes)) return 1;
-		else opengl = 0;
+    // 8-bit color should be transparently converted to 32-bit
+    assert(videomodes.pixel == 2 || videomodes.pixel == 4);
 
     //destroy all
-    if(bscreen)
-    {
-        SDL_FreeSurface(bscreen);
-        bscreen = NULL;
-    }
     if(texture)
     {
         SDL_DestroyTexture(texture);
@@ -440,7 +424,7 @@ int video_set_mode(s_videomodes videomodes)
 
     if(!buttons)
     {
-        bscreen = pngToSurface(buttonpng);
+        SDL_Surface *bscreen = pngToSurface(buttonpng);
         if(!bscreen || !(buttons = SDL_CreateTextureFromSurface(renderer, bscreen)))
         {
             printf("error: %s\n", SDL_GetError());
@@ -457,8 +441,6 @@ int video_set_mode(s_videomodes videomodes)
 
 void video_fullscreen_flip()
 {
-	//savedata.fullscreen ^= 1;
-	//if(window) video_set_mode(stored_videomodes);
 }
 
 int video_copy_screen(s_screen *src)
@@ -469,7 +451,7 @@ int video_copy_screen(s_screen *src)
     unsigned char *dp;
     SDL_Rect rectdes, rectsrc;
 		
-		rectsrc.x = rectsrc.y = 0;
+    rectsrc.x = rectsrc.y = 0;
     rectsrc.w = textureWidth;
     rectsrc.h = textureHeight;
 		
@@ -478,42 +460,8 @@ int video_copy_screen(s_screen *src)
     
     s_videosurface *surface = getVideoSurface(src);
 
-		if(opengl) return video_gl_copy_screen(surface);
-    
-		if(bscreen)
-    {
-        if(surface->width != bscreen->w || surface->height != bscreen->h)
-        {
-            return 0;
-        }
-
-        if(SDL_MUSTLOCK(bscreen))
-        {
-            SDL_LockSurface(bscreen);
-        }
-        sp = (unsigned char *)surface->data;
-        dp = bscreen->pixels;
-        h = surface->height;
-        do
-        {
-            i = linew - 1;
-            do
-            {
-                ((unsigned *)dp)[i] = glpalette[sp[i]];
-            }
-            while(i--);
-            sp += surface->pitch;
-            dp += bscreen->pitch;
-        }
-        while(--h);
-        data = bscreen->pixels;
-        pitch = bscreen->pitch;
-    }
-    else
-    {
-        data = surface->data;
-        pitch = surface->pitch;
-    }
+    data = surface->data;
+    pitch = surface->pitch;
     
    	SDL_UpdateTexture(texture, &rectsrc, data, pitch);		
    	
@@ -600,8 +548,6 @@ int video_copy_screen(s_screen *src)
 
 void video_clearscreen()
 {
-		if(opengl) { video_gl_clearscreen(); return; }
-		
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
     //SDL_RenderPresent(renderer);
@@ -609,7 +555,6 @@ void video_clearscreen()
 
 void video_stretch(int enable)
 {
-    //video_clearscreen();
     stretch = enable;
 }
 
@@ -630,5 +575,4 @@ void vga_set_color_correction(int gm, int br)
 {
 	// Incorporated main code color correction instead.
 	brightness = br;
-	if(opengl) video_gl_set_color_correction(gm, br);
 }
