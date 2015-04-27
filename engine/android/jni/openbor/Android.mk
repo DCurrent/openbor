@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
@@ -52,11 +53,11 @@ LOCAL_CPPFLAGS  := ${LOCAL_CFLAGS}
 LOCAL_C_INCLUDES  :=  \
 	$(LOCAL_PATH)/src/ \
 	$(LOCAL_PATH)/include/ \
-  $(LOCAL_PATH)/include/zlib \
+	$(LOCAL_PATH)/include/ogg \
   $(LOCAL_PATH)/include/png \
-  $(LOCAL_PATH)/include/vorbis \
-  $(LOCAL_PATH)/include/ogg \
   $(LOCAL_PATH)/include/sdl \
+  $(LOCAL_PATH)/include/tremor \
+  $(LOCAL_PATH)/include/vpx \
 	$(LOCAL_PATH)/../../.. \
 	$(LOCAL_PATH)/../../../sdl \
 	$(LOCAL_PATH)/../../../resources \
@@ -70,7 +71,9 @@ LOCAL_C_INCLUDES  :=  \
 	$(LOCAL_PATH)/../../../source/randlib \
 	$(LOCAL_PATH)/../../../source/scriptlib \
 	$(LOCAL_PATH)/../../../source/tracelib2 \
-	$(LOCAL_PATH)/../../../source/webmlib
+	$(LOCAL_PATH)/../../../source/webmlib \
+	$(LOCAL_PATH)/../../../source/webmlib/halloc \
+	$(LOCAL_PATH)/../../../source/webmlib/nestegg
 
 		
 LOCAL_SRC_FILES := \
@@ -85,7 +88,11 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/../../../source/preprocessorlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../source/ramlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../source/randlib/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/scriptlib/*.c)) \
+	$(wildcard $(LOCAL_PATH)/../../../source/scriptlib/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../source/tracelib2/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../source/webmlib/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../source/webmlib/halloc/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../source/webmlib/nestegg/*.c)) \
 	jniutils.cpp
 
 LOCAL_SRC_FILES += SDL_android_main.cpp

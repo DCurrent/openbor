@@ -1,4 +1,4 @@
-OpenBOR for Android 1.4.0
+OpenBOR for Android 1.4.2
 ----------------------
 Originally ported by ported by UTunnels (utunnels@hotmail.com).
 Modifications by CRxTRDude.
@@ -6,6 +6,16 @@ Modifications by CRxTRDude.
 Release notes
 ----------------------
 Note that these are version numbers that are used in the AndroidManifest.xml file. Any OpenBOR version can theoretically be used to compile this Android build.
+
+1.4.2
+- Fixed all dependencies (source and includes) in Android.mk especially WebM support
+- Test compile worked as it should and, as shown on logs, WebM was detected and is not played
+
+1.4.1
+- Plombo: Android video code a bit
+- Plombo: Add libvpx to Android port WebM is still not supported yet, but at least the configuration
+side is taken care of now.
+- Plombo:	Migrate from libvorbis to tremor
 
 1.4.0
 - Rewritten video.c to add support to new functions by Plombo.
