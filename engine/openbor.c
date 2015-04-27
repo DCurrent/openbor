@@ -2709,23 +2709,9 @@ void clearsettings()
     savedata.glfilter[1] = 0;
 #endif
 
-    savedata.screen[0][0] = 0;
-    savedata.screen[0][1] = 0;
-    savedata.screen[1][0] = 0;
-    savedata.screen[1][1] = 0;
-    savedata.screen[2][0] = 0;
-    savedata.screen[2][1] = 0;
-    savedata.screen[3][0] = 0;
-    savedata.screen[3][1] = 0;
-    savedata.screen[4][0] = 0;
-    savedata.screen[4][1] = 0;
-    savedata.screen[5][0] = 0;
-    savedata.screen[5][1] = 0;
-    savedata.screen[6][0] = 0;
-    savedata.screen[6][1] = 0;
+    savedata.swfilter = 0;
 
 #ifdef PSP
-    savedata.screen[1][0] = 3;
     savedata.pspcpuspeed = 2;
     savedata.overscan[0] = 0;
     savedata.overscan[1] = 0;
@@ -30487,12 +30473,12 @@ readfile:
 #endif
 
 VIDEOMODES:
+    videomodes.mode    = videoMode;
+    videomodes.filter  = savedata.swfilter;
     switch (videoMode)
     {
         // 320x240 - All Platforms
     case 0:
-        videomodes.mode    = savedata.screen[videoMode][0];
-        videomodes.filter  = savedata.screen[videoMode][1];
         videomodes.hRes    = 320;
         videomodes.vRes    = 240;
         videomodes.hScale  = 1;
@@ -30507,8 +30493,6 @@ VIDEOMODES:
 
         // 480x272 - All Platforms
     case 1:
-        videomodes.mode    = savedata.screen[videoMode][0];
-        videomodes.filter  = savedata.screen[videoMode][1];
         videomodes.hRes    = 480;
         videomodes.vRes    = 272;
         videomodes.hScale  = (float)1.5;
@@ -30523,8 +30507,6 @@ VIDEOMODES:
 
         // 640x480 - PC, Dreamcast, Wii
     case 2:
-        videomodes.mode    = savedata.screen[videoMode][0];
-        videomodes.filter  = savedata.screen[videoMode][1];
         videomodes.hRes    = 640;
         videomodes.vRes    = 480;
         videomodes.hScale  = 2;
@@ -30539,8 +30521,6 @@ VIDEOMODES:
 
         // 720x480 - PC, Wii
     case 3:
-        videomodes.mode    = savedata.screen[videoMode][0];
-        videomodes.filter  = savedata.screen[videoMode][1];
         videomodes.hRes    = 720;
         videomodes.vRes    = 480;
         videomodes.hScale  = 2.25;
@@ -30555,8 +30535,6 @@ VIDEOMODES:
 
         // 800x480 - PC, Wii, Pandora
     case 4:
-        videomodes.mode    = savedata.screen[videoMode][0];
-        videomodes.filter  = savedata.screen[videoMode][1];
         videomodes.hRes    = 800;
         videomodes.vRes    = 480;
         videomodes.hScale  = 2.5;
@@ -30571,8 +30549,6 @@ VIDEOMODES:
 
         // 800x600 - PC, Dreamcast, Wii
     case 5:
-        videomodes.mode    = savedata.screen[videoMode][0];
-        videomodes.filter  = savedata.screen[videoMode][1];
         videomodes.hRes    = 800;
         videomodes.vRes    = 600;
         videomodes.hScale  = 2.5;
@@ -30587,8 +30563,6 @@ VIDEOMODES:
 
         // 960x540 - PC, Wii
     case 6:
-        videomodes.mode    = savedata.screen[videoMode][0];
-        videomodes.filter  = savedata.screen[videoMode][1];
         videomodes.hRes    = 960;
         videomodes.vRes    = 540;
         videomodes.hScale  = 3;
@@ -31727,7 +31701,7 @@ void video_options()
         _menutext((selector == 6), col2, 3, ((savedata.glscale != 1.0 || savedata.fullscreen) ? (savedata.glfilter[savedata.fullscreen] ? Tr("Simple") : Tr("Bilinear")) : Tr("Disabled")));
 
         _menutext((selector == 7), col1, 4, Tr("Software Filter:"));
-        _menutext((selector == 7), col2, 4, ((savedata.glscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[(int)savedata.screen[videoMode][1]]) : Tr("Disabled")));
+        _menutext((selector == 7), col2, 4, ((savedata.glscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[savedata.swfilter]) : Tr("Disabled")));
 
         if(savedata.fullscreen)
         {
@@ -31882,7 +31856,6 @@ void video_options()
                     {
                         videomodes.mode = PSP_DISPLAY_FORMATS - 1;
                     }
-                    savedata.screen[videoMode][0] = videomodes.mode;
                     video_set_mode(videomodes);
                 }
                 break;
@@ -31900,7 +31873,7 @@ void video_options()
                     {
                         videomodes.filter = PSP_DISPLAY_FILTERS - 1;
                     }
-                    savedata.screen[videoMode][1] = videomodes.filter;
+                    savedata.swfilter = videomodes.filter;
                     video_set_mode(videomodes);
                 }
                 break;
@@ -32020,7 +31993,7 @@ void video_options()
                 {
                     videomodes.filter = BLITTER_MAX - 1;
                 }
-                savedata.screen[videoMode][1] = videomodes.filter;
+                savedata.swfilter = videomodes.filter;
                 memset(pDeltaBuffer, 0x00, 1244160);
 				video_set_mode(videomodes);
                 break;

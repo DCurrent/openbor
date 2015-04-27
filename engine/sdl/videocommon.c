@@ -23,8 +23,6 @@ static s_videosurface videoSurface;
 static unsigned masks[4][4] = {{0,0,0,0},{0x1F,0x07E0,0xF800,0},{0xFF,0xFF00,0xFF0000,0},{0xFF,0xFF00,0xFF0000,0}};
 static int bytes_per_pixel;
 
-extern int videoMode;
-
 s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
 {
 	bytes_per_pixel = videomodes.pixel;
@@ -48,7 +46,7 @@ s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
 	}
 	
 	// set up software scaling
-	if(savedata.screen[videoMode][1] && (savedata.glscale >= 2.0 || savedata.fullscreen))
+	if(savedata.swfilter && (savedata.glscale >= 2.0 || savedata.fullscreen))
 	{
 		if (screen) SDL_FreeSurface(screen);
 		screen = SDL_CreateRGBSurface(0, videomodes.hRes*2, videomodes.vRes*2, 16, masks[1][0], masks[1][1], masks[1][2], masks[1][3]);
@@ -89,7 +87,7 @@ s_videosurface *getVideoSurface(s_screen *src)
 		h = height;
 
 		rectdes.x = rectdes.y = 0;
-		rectdes.w = width*savedata.screen[videoMode][0]; rectdes.h = height*savedata.screen[videoMode][0];
+		rectdes.w = width*2; rectdes.h = height*2;
 		if(bscreen2) {rectsrc.x = 2; rectsrc.y = 4;}
 		else         {rectsrc.x = 0; rectsrc.y = 0;}
 		rectsrc.w = width; rectsrc.h = height;
@@ -111,7 +109,7 @@ s_videosurface *getVideoSurface(s_screen *src)
 		{
 			SDL_BlitSurface(bscreen, NULL, bscreen2, &rectsrc);
 
-			(*GfxBlitters[(int)savedata.screen[videoMode][1]])((u8*)bscreen2->pixels+bscreen2->pitch*4+4, bscreen2->pitch, pDeltaBuffer+bscreen2->pitch, (u8*)screen->pixels, screen->pitch, screen->w>>1, screen->h>>1);
+			(*GfxBlitters[savedata.swfilter])((u8*)bscreen2->pixels+bscreen2->pitch*4+4, bscreen2->pitch, pDeltaBuffer+bscreen2->pitch, (u8*)screen->pixels, screen->pitch, screen->w/2, screen->h/2);
 		}
 		else SDL_BlitSurface(bscreen, NULL, screen, NULL);
 		

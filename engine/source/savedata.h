@@ -29,7 +29,7 @@ typedef struct
     int keys[MAX_PLAYERS][12];
     int showtitles;
     int videoNTSC;
-    int screen[7][2]; // Screen Filtering/Scaling Effects
+    int swfilter; // Software scaling filter
     int logo;
     int uselog;
     int debuginfo; // FPS, Memory, etc...

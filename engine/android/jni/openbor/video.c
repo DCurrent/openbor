@@ -348,7 +348,6 @@ int video_set_mode(s_videomodes videomodes)
     //hardcode flags
     int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL;
 
-    savedata.screen[videoMode][0] = 0;
     savedata.fullscreen = 1;
     
     videomodes = setupPreBlitProcessing(videomodes);
