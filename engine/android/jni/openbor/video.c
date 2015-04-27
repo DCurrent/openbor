@@ -25,8 +25,6 @@
 
 extern int videoMode;
 
-#define nextpowerof2(x) pow(2,ceil(log(x)/log(2)))
-
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_Texture *texture = NULL;
@@ -41,13 +39,10 @@ char windowTitle[128] = {"OpenBOR"};
 int stretch = 1;
 int opengl = 0;
 
-int nativeWidth, nativeHeight; // monitor resolution used in fullscreen mode
-static unsigned glpalette[256]; // for 8bit
+int nativeWidth, nativeHeight;           // resolution of device screen
+static int textureWidth, textureHeight;  // dimensions of game screen and texture
 
 int brightness = 0;
-
-static int viewportWidth, viewportHeight;      // dimensions of display area
-static int textureWidth, textureHeight;        // dimensions of game screen and GL texture
 
 #include "button_png_800x480.h" // default button skin
 
@@ -136,7 +131,7 @@ static void setup_touch_default()
     float hh = w * 480 / 800;
     float ra = 0.15f, rb = ra / 1.75f;
     float cx1 = (ra + rb + rb / 5.0f) * hh, cy1 = h - cx1;
-    float cx2 = w - cx1, cy2 = cy1;
+    float cy2 = cy1;
     //dpad
     bx[SDID_MOVEUP] = cx1;
     by[SDID_MOVEUP] = cy1 - ra * hh;
@@ -349,13 +344,9 @@ static unsigned pixelformats[4] = {SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_BGR56
 int video_set_mode(s_videomodes videomodes)
 {
     stored_videomodes = videomodes;
-		
-		//hardcode flags    
-    int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL;
 
-    int b;
-    int allocTextureWidth, allocTextureHeight;
-    int legacyTexWidth, legacyTexHeight;
+    //hardcode flags
+    int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL;
 
     savedata.screen[videoMode][0] = 0;
     savedata.fullscreen = 1;
@@ -379,12 +370,9 @@ int video_set_mode(s_videomodes videomodes)
     
     if(videomodes.hRes == 0 && videomodes.vRes == 0)
     {
-				Term_Gfx();
-				return 0;
+        Term_Gfx();
+        return 0;
     }
-
-    viewportWidth = nativeWidth;
-    viewportHeight = nativeHeight;
 
     if(!window && !(window = SDL_CreateWindow(windowTitle, 0, 0, nativeWidth, nativeHeight, flags)))
     {
@@ -410,11 +398,8 @@ int video_set_mode(s_videomodes videomodes)
     
   	textureWidth = videomodes.hRes;
   	textureHeight = videomodes.vRes;
-
-    allocTextureWidth = nextpowerof2(textureWidth);
-    allocTextureHeight = nextpowerof2(textureHeight);
     
-    if(!(texture = SDL_CreateTexture(renderer,  pixelformats[videomodes.pixel-1], SDL_TEXTUREACCESS_STREAMING, allocTextureWidth, allocTextureHeight)))
+    if(!(texture = SDL_CreateTexture(renderer,  pixelformats[videomodes.pixel-1], SDL_TEXTUREACCESS_STREAMING, textureWidth, textureHeight)))
     {
         printf("error: %s\n", SDL_GetError());
         return 0;
@@ -434,6 +419,7 @@ int video_set_mode(s_videomodes videomodes)
         bscreen = NULL;
     }
 
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     video_clearscreen();
 
     return 1;
@@ -443,89 +429,36 @@ void video_fullscreen_flip()
 {
 }
 
-int video_copy_screen(s_screen *src)
+void blit()
 {
-    void *data;
-    int pitch, linew, i, h;
-    unsigned char *sp;
-    unsigned char *dp;
-    SDL_Rect rectdes, rectsrc;
-		
-    rectsrc.x = rectsrc.y = 0;
-    rectsrc.w = textureWidth;
-    rectsrc.h = textureHeight;
-		
+    int i, h;
     int hide_touch;
     extern int hide_t;
-    
-    s_videosurface *surface = getVideoSurface(src);
 
-    data = surface->data;
-    pitch = surface->pitch;
-    
-   	SDL_UpdateTexture(texture, &rectsrc, data, pitch);		
-   	
-   	
-   	if(stretch)
+    if(stretch)
     {
-        rectdes.w = viewportWidth;
-        rectdes.h = viewportHeight;
-        rectdes.x = 0;
-        rectdes.y = 0;
-    }
-    else if(savedata.glscale > 0)
-    {
-        rectdes.w = textureWidth * savedata.glscale;
-        rectdes.h = textureHeight * savedata.glscale;
-        rectdes.x = (viewportWidth - rectdes.w) / 2;
-        rectdes.y = (viewportHeight - rectdes.h) / 2;
-        if(rectdes.h < viewportHeight - 2)
-        {
-            if(screendocking & DOCKTOP)
-            {
-                rectdes.y = 1;
-            }
-            else if(screendocking & DOCKBOTTOM)
-            {
-                rectdes.y = viewportHeight - 1 - rectdes.h;
-            }
-        }
-        if(rectdes.w < viewportWidth - 2)
-        {
-            if(screendocking & DOCKLEFT)
-            {
-                rectdes.x = 1;
-            }
-            else if(screendocking & DOCKRIGHT)
-            {
-                rectdes.x = viewportWidth - 1 - rectdes.w;
-            }
-        }
-    }
-    else if((float)viewportWidth / (float)viewportHeight > (float)textureWidth / (float)textureHeight)
-    {
-        rectdes.h = viewportHeight;
-        rectdes.w = rectdes.h * textureWidth / textureHeight;
-        rectdes.x = (viewportWidth - rectdes.w) / 2;
-        rectdes.y = 0;
+        SDL_RenderSetLogicalSize(renderer, 0, 0);
     }
     else
     {
-        rectdes.w = viewportWidth;
-        rectdes.h = rectdes.w * textureHeight / textureWidth;
-        rectdes.y = (viewportHeight - rectdes.h) / 2;
-        rectdes.x = 0;
+        SDL_RenderSetLogicalSize(renderer, textureWidth, textureHeight);
     }
-    
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, &rectsrc, &rectdes);
-    
-    if (brightness > 0)
-			SDL_SetRenderDrawColor(renderer, 255, 255, 255, brightness-1);
-		else if (brightness < 0)
-			SDL_SetRenderDrawColor(renderer, 0, 0, 0, (-brightness)-1);
 
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+    if(brightness > 0)
+    {
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, brightness-1);
+    }
+    else if(brightness < 0)
+    {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, (-brightness)-1);
+    }
+    SDL_RenderFillRect(renderer, NULL);
+
+    SDL_RenderSetLogicalSize(renderer, 0, 0);
     hide_touch = (timer_gettick() > hide_t);
     for(i = 0, h = 0; i < MAXTOUCHB; i++)
     {
@@ -541,6 +474,13 @@ int video_copy_screen(s_screen *src)
         hide_t = timer_gettick() + 5000;
     }
     SDL_RenderPresent(renderer);
+}
+
+int video_copy_screen(s_screen *src)
+{
+    s_videosurface *surface = getVideoSurface(src);
+   	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
+    blit();
 
     SDL_Delay(1);
     return 1;
@@ -571,8 +511,7 @@ void vga_vwait(void)
 	prevtick = now;
 }
 
-void vga_set_color_correction(int gm, int br)
+void video_set_color_correction(int gm, int br)
 {
-	// Incorporated main code color correction instead.
 	brightness = br;
 }
