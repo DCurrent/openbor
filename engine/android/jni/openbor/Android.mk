@@ -40,24 +40,22 @@ include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_MODULE    := vpx
 LOCAL_SRC_FILES := lib/armeabi-v7a/libvpx.a
-LOCAL_STATIC_LIBRARIES := vpx cpufeatures
+LOCAL_STATIC_LIBRARIES := cpufeatures
 include $(PREBUILT_STATIC_LIBRARY)
 
 #openbor
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    := openbor
-LOCAL_CFLAGS    := -g -DLINUX -DSDL=1 -DANDROID=1 -DTREMOR=1 -DGL_GLEXT_PROTOTYPES
+LOCAL_CFLAGS    := -g -O2 -Wall -Werror -Wno-unused-result -fsigned-char -fno-ident -freorder-blocks
+LOCAL_CFLAGS    += -DLINUX -DSDL=1 -DANDROID=1 -DTREMOR=1 -DWEBM=1
 LOCAL_CPPFLAGS  := ${LOCAL_CFLAGS}
 
 LOCAL_C_INCLUDES  :=  \
 	$(LOCAL_PATH)/src/ \
 	$(LOCAL_PATH)/include/ \
-	$(LOCAL_PATH)/include/ogg \
-  $(LOCAL_PATH)/include/png \
-  $(LOCAL_PATH)/include/sdl \
-  $(LOCAL_PATH)/include/tremor \
-  $(LOCAL_PATH)/include/vpx \
+	$(LOCAL_PATH)/include/png \
+	$(LOCAL_PATH)/include/sdl \
 	$(LOCAL_PATH)/../../.. \
 	$(LOCAL_PATH)/../../../sdl \
 	$(LOCAL_PATH)/../../../resources \
@@ -89,10 +87,8 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/../../../source/ramlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../source/randlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../source/scriptlib/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/tracelib2/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../source/webmlib/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/webmlib/halloc/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/webmlib/nestegg/*.c)) \
+	$(wildcard $(LOCAL_PATH)/../../../source/webmlib/*/*.c)) \
 	jniutils.cpp
 
 LOCAL_SRC_FILES += SDL_android_main.cpp

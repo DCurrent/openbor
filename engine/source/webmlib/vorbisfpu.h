@@ -34,6 +34,7 @@
 #define VORBISFPU_H
 
 #include <ogg/os_types.h>
+#include <math.h>
 
 /* Special i386 GCC implementation */
 #if defined(__i386__) && defined(__GNUC__) && !defined(__BEOS__)

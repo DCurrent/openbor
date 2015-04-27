@@ -12,12 +12,14 @@
  *	http://www.opensource.org/licenses/bsd-license.php
  */
 
+#undef NDEBUG
 #include <stdlib.h>  /* realloc */
 #include <string.h>  /* memset & co */
 
 #include "halloc.h"
 #include "align.h"
 #include "hlist.h"
+#include "globals.h"
 
 /*
  *	block control header

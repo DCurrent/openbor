@@ -24,14 +24,14 @@
 #include <dirent.h>
 #endif
 
-#ifdef _POSIX_SOURCE
-#include <sys/stat.h>
-#endif
-
 #ifdef SDL
 #include <unistd.h>
 #include "sdlport.h"
 #include "savepng.h"
+#endif
+
+#if _POSIX_VERSION > 0
+#include <sys/stat.h>
 #endif
 
 #ifdef DC
