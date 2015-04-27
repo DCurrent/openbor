@@ -33,6 +33,7 @@ SDL_Texture *texture = NULL;
 SDL_Texture *buttons = NULL;
 
 s_videomodes stored_videomodes;
+yuv_video_mode stored_yuv_mode;
 
 char windowTitle[128] = {"OpenBOR"};
 
@@ -340,7 +341,6 @@ code.
 
 static unsigned pixelformats[4] = {SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_BGR565, SDL_PIXELFORMAT_BGR888, SDL_PIXELFORMAT_ABGR8888};
 
-                                 
 int video_set_mode(s_videomodes videomodes)
 {
     stored_videomodes = videomodes;
@@ -360,7 +360,7 @@ int video_set_mode(s_videomodes videomodes)
     {
         SDL_DestroyTexture(texture);
         texture = NULL;
-    }    
+    }
     if(buttons)
     {
         SDL_DestroyTexture(buttons);
@@ -513,4 +513,32 @@ void vga_vwait(void)
 void video_set_color_correction(int gm, int br)
 {
 	brightness = br;
+}
+
+int video_setup_yuv_overlay(const yuv_video_mode *mode)
+{
+	stored_yuv_mode = *mode;
+
+	SDL_DestroyTexture(texture);
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+	texture = SDL_CreateTexture(renderer,
+	                            SDL_PIXELFORMAT_YV12,
+	                            SDL_TEXTUREACCESS_STREAMING,
+	                            mode->width, mode->height);
+	textureWidth = mode->display_width;
+    textureHeight = mode->display_height;
+	return texture ? 1 : 0;
+}
+
+int video_prepare_yuv_frame(yuv_frame *src)
+{
+	SDL_UpdateYUVTexture(texture, NULL, src->lum, stored_yuv_mode.width,
+	        src->cr, stored_yuv_mode.width/2, src->cb, stored_yuv_mode.width/2);
+	return 1;
+}
+
+int video_display_yuv_frame(void)
+{
+	blit();
+	return 1;
 }

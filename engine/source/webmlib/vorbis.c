@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+#include "globals.h"
 #include "vorbis.h"
 #include "samplecvt.h"
 

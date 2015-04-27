@@ -10,6 +10,7 @@
 
 #include "halloc/halloc.h"
 #include "nestegg/nestegg.h"
+#include "globals.h"
 
 /* EBML Elements */
 #define ID_EBML                 0x1a45dfa3
