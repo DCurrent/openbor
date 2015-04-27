@@ -28124,7 +28124,7 @@ void update(int ingame, int usevwait)
  * error. */
 int set_color_correction(int gm, int br)
 {
-#if WII || (SDL && !ANDROID)
+#if WII || SDL
     video_set_color_correction(gm, br);
     return 1;
 #else
@@ -28969,7 +28969,8 @@ void playscene(char *filename)
                 y = GET_INT_ARG(3);
                 skipone = GET_INT_ARG(4);
                 noskip = GET_INT_ARG(5);
-                if(playgif(videofile, x, y, noskip) == -1 && !skipone)
+                status = playgif(videofile, x, y, noskip);
+                if(status == -1 && !skipone)
                 {
                     closing = 1;
                 }

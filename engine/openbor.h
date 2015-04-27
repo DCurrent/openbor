@@ -2120,6 +2120,7 @@ typedef struct ArgList
 #define GET_FRAME_ARG(z) (stricmp(GET_ARG(z), "this")==0?newanim->numframes:GET_INT_ARG(z))
 
 int     buffer_pakfile(char *filename, char **pbuffer, size_t *psize);
+size_t  ParseArgs(ArgList *list, char *input, char *output);
 int     getsyspropertybyindex(ScriptVariant *var, int index);
 int     changesyspropertybyindex(int index, ScriptVariant *value);
 int     load_script(Script *script, char *path);
