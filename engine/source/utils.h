@@ -45,6 +45,7 @@ void lc(char *buf, size_t size);
 size_t getNewLineStart(char *buf);
 void debugBuf(unsigned char *buf, size_t size, int columns);
 void debug_printf(char *, ...);
+void *checkAlloc(void *ptr, size_t size, const char *func, const char *file, int line);
 void exitIfFalse(int value, const char *assertion, const char *func, const char *file, int line);
 void abortIfFalse(int value, const char *assertion, const char *func, const char *file, int line);
 void getPakName(char *name, int type);

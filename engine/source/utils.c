@@ -268,6 +268,19 @@ void debug_printf(char *format, ...)
     debug_time = 0xFFFFFFFF;
 }
 
+void *checkAlloc(void *ptr, size_t size, const char *func, const char *file, int line)
+{
+    if (size > 0 && ptr == NULL)
+    {
+        writeToLogFile("\n\n********** An Error Occurred **********"
+                       "\n*            Shutting Down            *\n\n");
+        writeToLogFile("Out of memory!\n");
+        writeToLogFile("Allocation of size %i failed in function '%s' at %s:%i.\n", size, func, file, line);
+        exit(2);
+    }
+    return ptr;
+}
+
 // replacement for assert that writes the error to the log file
 void exitIfFalse(int value, const char *assertion, const char *func, const char *file, int line)
 {
