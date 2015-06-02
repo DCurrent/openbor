@@ -21,6 +21,7 @@
 #include <ctype.h>
 
 #include "utils.h"
+#include "safealloc.h"
 
 #ifdef PSP
 #include <stdarg.h>
@@ -60,6 +61,7 @@
 #ifndef PP_TEST
 #define printf writeToLogFile
 
+// redefine assert to write to the log file and exit nicely instead of aborting
 #undef assert
 #define assert(x)    exitIfFalse((x)?1:0, #x, __func__, __FILE__, __LINE__)
 #define sysassert(x) abortIfFalse((x)?1:0, #x, __func__, __FILE__, __LINE__)
