@@ -1,6 +1,6 @@
 #include <string.h>
 #include "commands.h"
-
+#include "globals.h"
 
 void freeCommandList(List *list)
 {
