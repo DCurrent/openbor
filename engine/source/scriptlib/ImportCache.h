@@ -12,7 +12,7 @@
 struct ImportNode;
 typedef struct ImportNode ImportNode;
 
-void ImportCache_Init();
+void ImportCache_Init(List *builtinFunctions);
 ImportNode *ImportCache_ImportFile(const char *path);
 void ImportCache_Clear();
 Instruction **ImportList_GetFunctionPointer(List *list, const char *name);

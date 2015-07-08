@@ -245,7 +245,7 @@ void Script_Global_Init()
     List_Init(&theFunctionList);
     Script_LoadSystemFunctions();
     List_Init(&scriptheap);
-    ImportCache_Init();
+    ImportCache_Init(&theFunctionList);
 }
 
 void _freeheapnode(void *ptr)

@@ -13,7 +13,7 @@
  */
 
 #include <stdio.h>
-#include "openborscript.h"
+#include "globals.h"
 #include "Interpreter.h"
 #include "List.h"
 #include "Instruction.h"
@@ -28,6 +28,7 @@ struct ImportNode
     List functions; // values are Instruction**; names are function names
 };
 
+List *builtins; // builtin script functions (drawstring, getlocalvar, etc.)
 List imports; // values are ImportNode*; names are lowercased, forward-slashed paths
 
 /**
@@ -94,7 +95,7 @@ HRESULT ImportNode_Init(ImportNode *self, const char *path)
     List *list; // more readable than "&self->interpreter.theInstructionList"
 
     List_Init(&self->functions);
-    Interpreter_Init(&self->interpreter, path, &theFunctionList);
+    Interpreter_Init(&self->interpreter, path, builtins);
     self->interpreter.theParser.isImport = TRUE;
     scriptText = readscript(path);
     if(scriptText == NULL)
@@ -206,8 +207,9 @@ Instruction **ImportList_GetFunctionPointer(List *list, const char *name)
 /**
  * Initializes the import cache.
  */
-void ImportCache_Init()
+void ImportCache_Init(List *builtinFunctions)
 {
+    builtins = builtinFunctions;
     List_Init(&imports);
 }
 
