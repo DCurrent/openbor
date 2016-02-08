@@ -28348,14 +28348,14 @@ void shutdown(int status, char *msg, ...)
 
     getRamStatus(BYTES);
     savesettings();
-    
+
 		enginecreditsScreen = 1;		//entry point for the engine credits screen.
-		
+
     if(status != 2)
     {
         display_credits();
     }
-    
+
     if(startup_done)
     {
     		enginecreditsScreen = 0; //once the engine credits is done, disable flag.
@@ -29792,6 +29792,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
             for(i = 0; i < set->maxplayers; i++)
             {
                 player[i].lives = save->pLives[i];
+                player[i].credits = save->pCredits[i];
                 player[i].score = save->pScores[i];
                 player[i].colourmap = save->pColourmap[i];
                 player[i].weapnum = save->pWeapnum[i];
@@ -30099,7 +30100,16 @@ int load_saved_game()
                 _menutext(0, col1, 1, Tr("Level:"));
                 _menutext(0, col2, 1, "%d", savelevel[saveslot].level);
                 _menutext(0, col1, 2, Tr("Credits:"));
-                _menutext(0, col2, 2, "%d", savelevel[saveslot].credits);
+
+                if(noshare){
+                    _menutext(0, col2, 2, "%d/%d/%d/%d",
+                                  savelevel[saveslot].pCredits[0],
+                                  savelevel[saveslot].pCredits[1], savelevel[saveslot].pCredits[2],
+                                  savelevel[saveslot].pCredits[3]);
+                } else {
+                    _menutext(0, col2, 2, "%d", savelevel[saveslot].credits);
+                }
+
                 _menutext(0, col1, 3, Tr("Player Lives:"));
                 _menutext(0, col2, 3, "%d/%d/%d/%d",
                           savelevel[saveslot].pLives[0],
