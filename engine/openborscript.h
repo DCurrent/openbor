@@ -20,6 +20,23 @@
 //vlst
 #define varlist_magic ((int)0x74736c76)
 
+typedef enum
+{
+    //  Array keys for attack entity property.
+    //  Damon V. Caskey
+    //  2016-02-20
+
+    // Used for varlist[KEY] when getting or setting
+    // entity attack property.
+
+    EP_ATTACK_AK_ENTITY,
+    EP_ATTACK_AK_PROPERTY,
+    EP_ATTACK_AK_ANIMATION,
+    EP_ATTACK_AK_FRAME,
+    EP_ATTACK_AK_INDEX
+
+} ep_attack_array_key;
+
 //This structure holds a named variable list (list)
 // and an indexed list (vars).
 typedef struct
@@ -129,8 +146,6 @@ HRESULT openbor_unloadsample(ScriptVariant **varlist , ScriptVariant **pretvar, 
 HRESULT openbor_fadeout(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_playerkeys(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changepalette(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-
-HRESULT openbor_changeattackproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_killentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_dograb(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

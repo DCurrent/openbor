@@ -695,10 +695,6 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "changepalette";
     }
-    else if (functionRef == ((void *)openbor_changeattackproperty))
-    {
-        return "changeattackproperty";
-    }
     else if (functionRef == ((void *)openbor_damageentity))
     {
         return "damageentity";
@@ -1068,10 +1064,6 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_playerproperty;
     }
-    else if (functionRef == ((void *)openbor_changeattackproperty))
-    {
-        return (void *)mapstrings_attackproperty;
-    }
     else if (functionRef == ((void *)openbor_setspawnentry))
     {
         return (void *)mapstrings_setspawnentry;
@@ -1342,8 +1334,6 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_playerkeys, "playerkeys");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_changepalette, "changepalette");
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_changeattackproperty, "changeattackproperty");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_damageentity, "damageentity");
     List_InsertAfter(&theFunctionList,
@@ -3010,21 +3000,6 @@ HRESULT openbor_changemodelproperty(ScriptVariant **varlist , ScriptVariant **pr
     return S_OK;
 }
 
-enum _axis_enum
-{
-    _axis_a,
-    _axis_x,
-    _axis_z,
-    _axis_the_end,
-};
-
-static const char *_axis[] =
-{
-    "a",
-    "x",
-    "z",
-};
-
 // ===== getentityproperty =====
 enum entityproperty_enum
 {
@@ -3046,7 +3021,12 @@ enum entityproperty_enum
     _ep_animvalid,
     _ep_antigrab,
     _ep_antigravity,
-    _ep_attack,
+    _ep_attack_coords_location_x,
+    _ep_attack_coords_location_y,
+    _ep_attack_coords_size_x,
+    _ep_attack_coords_size_y,
+    _ep_attack_coords_size_z_in,
+    _ep_attack_coords_size_z_out,
     _ep_attackid,
     _ep_attacking,
     _ep_attackthrottle,
@@ -3221,7 +3201,12 @@ static const char *eplist[] =
     "animvalid",
     "antigrab",
     "antigravity",
-    "attack",
+    "attack.coords.location.x",
+    "attack.coords.location.y",
+    "attack.coords.size.x",
+    "attack.coords.size.y",
+    "attack.coords.size.z.in",
+    "attack.coords.size.z.out",
     "attackid",
     "attacking",
     "attackthrottle",
@@ -3525,88 +3510,9 @@ static const char *list_animation_prop[] =
     //float (*platform)[8]; // Now entities can have others land on them
 */
 
-static const char *eplist_attack[] =
-{
-    "blast",
-    "blockflash",
-    "blocksound",
-    "coords",
-    "counterattack",
-    "direction",
-    "dol",
-    "dot",
-    "dotforce",
-    "dotindex",
-    "dotrate",
-    "dottime",
-    "drop",
-    "dropv",
-    "force",
-    "forcemap",
-    "freeze",
-    "freezetime",
-    "grab",
-    "grabdistance",
-    "guardcost",
-    "hitflash",
-    "hitsound",
-    "jugglecost",
-    "maptime",
-    "noblock",
-    "noflash",
-    "nokill",
-    "nopain",
-    "otg",
-    "pause",
-    "reset",
-    "seal",
-    "sealtime",
-    "staydown",
-    "steal",
-    "type",
-};
 
-enum gep_attack_enum
-{
-    _ep_attack_blast,
-    _ep_attack_blockflash,
-    _ep_attack_blocksound,
-    _ep_attack_coords,
-    _ep_attack_counterattack,
-    _ep_attack_direction,
-    _ep_attack_dol,
-    _ep_attack_dot,
-    _ep_attack_dotforce,
-    _ep_attack_dotindex,
-    _ep_attack_dotrate,
-    _ep_attack_dottime,
-    _ep_attack_drop,
-    _ep_attack_dropv,
-    _ep_attack_force,
-    _ep_attack_forcemap,
-    _ep_attack_freeze,
-    _ep_attack_freezetime,
-    _ep_attack_grab,
-    _ep_attack_grabdistance,
-    _ep_attack_guardcost,
-    _ep_attack_hitflash,
-    _ep_attack_hitsound,
-    _ep_attack_jugglecost,
-    _ep_attack_maptime,
-    _ep_attack_noblock,
-    _ep_attack_noflash,
-    _ep_attack_nokill,
-    _ep_attack_nopain,
-    _ep_attack_otg,
-    _ep_attack_pause,
-    _ep_attack_reset,
-    _ep_attack_seal,
-    _ep_attack_sealtime,
-    _ep_attack_staydown,
-    _ep_attack_steal,
-    _ep_attack_type,
-    _ep_attack_the_end,
-};
+
+
 
 enum _prop_counterrange_enum
 {
@@ -4074,18 +3980,7 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
                    _is_not_a_known_subproperty_of_, eps);
         break;
     }
-    // map subproperties of Attack
-    case _ep_attack:
-    {
-        MAPSTRINGS(varlist[2], eplist_attack, _ep_attack_the_end,
-                   _is_not_a_known_subproperty_of_, eps);
 
-        if(paramCount >= 7 && varlist[2]->lVal == _ep_attack_dropv)
-        {
-            MAPSTRINGS(varlist[6], _axis, _axis_the_end, _is_not_supported_by_, "dropv");
-        }
-        break;
-    }
     // map subproperties of defense property
     case _ep_defense:
     {
@@ -4558,6 +4453,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     int i				= 0;
     int propind ;
     int tempint			= 0;
+
     int *coords;
 
     if(paramCount < 2)
@@ -4788,205 +4684,174 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->dblVal = (DOUBLE)ent->modeldata.antigravity;
         break;
     }
-    case _ep_attack:
+    case _ep_attack_coords_location_x:
     {
-        if(paramCount < 6)
+        if(paramCount < 4)
         {
             break;
         }
-        arg = varlist[2];
-        if(arg->vt != VT_INTEGER)
-        {
-            printf("Error, getentityproperty({ent}, 'attack', {sub property}, {index}, {animation}, {frame}): You must give a string name for {sub property}.\n");
-            return E_FAIL;
-        }
-        ltemp = arg->lVal;
 
-        if(varlist[3]->vt != VT_INTEGER
-                || varlist[4]->vt != VT_INTEGER
-                || varlist[5]->vt != VT_INTEGER)
+        if(varlist[EP_ATTACK_AK_ANIMATION]->vt != VT_INTEGER
+                || varlist[EP_ATTACK_AK_FRAME]->vt != VT_INTEGER)
+                //|| varlist[_EP_ATTACK_AK_INDEX]->vt != VT_INTEGER)
         {
-            printf("\n Error, getentityproperty({ent}, 'attack', {sub property}, {index}, {animation}, {frame}): {Animation} or {frame} parameter is missing or invalid. \n");
+            printf("\n Error, getentityproperty({ent}, 'attack.coords.location.x', {animation}, {frame}, {index}): {Animation} or {frame} parameter is missing or invalid. \n");
             return E_FAIL;
         }
 
-        //varlist[3]->lval														//Attack box index (multiple attack boxes).
-        i		= varlist[4]->lVal;												//Animation parameter.
-        tempint	= varlist[5]->lVal;												//Frame parameter.
-
-        if(!validanim(ent, i) || !ent->modeldata.animation[i]->attacks || !ent->modeldata.animation[i]->attacks[tempint])	//Verify animation and active attack on frame.
+        // If the animation is invalid or has no attack, then finish.
+        if(!validanim(ent, varlist[EP_ATTACK_AK_ANIMATION]->lVal))
         {
             break;
         }
 
-        attack = ent->modeldata.animation[i]->attacks[tempint];					//Get attack struct.
+        attack = ent->modeldata.animation[varlist[EP_ATTACK_AK_ANIMATION]->lVal]->attacks[varlist[EP_ATTACK_AK_FRAME]->lVal];
 
-        switch(ltemp)
-        {
-        case _ep_attack_blockflash:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->blockflash;
-            break;
-        case _ep_attack_blocksound:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->blocksound;
-            break;
-        case _ep_attack_coords:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG) ((int*)&attack->attack_coords)[varlist[6]->lVal];
-            break;
-        case _ep_attack_counterattack:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->counterattack;
-            break;
-        case _ep_attack_direction:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->force_direction;
-            break;
-        case _ep_attack_dol:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->damage_on_landing;
-            break;
-        case _ep_attack_dot:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->dot;
-            break;
-        case _ep_attack_dotforce:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->dot_force;
-            break;
-        case _ep_attack_dotindex:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->dot_index;
-            break;
-        case _ep_attack_dotrate:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->dot_rate;
-            break;
-        case _ep_attack_dottime:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->dot_time;
-            break;
-        case _ep_attack_drop:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->attack_drop;
-            break;
-        case _ep_attack_dropv:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-
-            switch(varlist[6]->lVal)
-            {
-                case _axis_a:
-                    (*pretvar)->dblVal = (DOUBLE)attack->dropv.y;
-                    break;
-                case _axis_x:
-                    (*pretvar)->dblVal = (DOUBLE)attack->dropv.x;
-                    break;
-                case _axis_z:
-                    (*pretvar)->dblVal = (DOUBLE)attack->dropv.z;
-                    break;
-                default:
-                    printf("\n Error, invalid dropv parameter. Use a, y, or z. \n");
-                    *pretvar = NULL;
-                    return E_FAIL;
-            }
-
-            break;
-        case _ep_attack_force:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->attack_force;
-            break;
-        case _ep_attack_forcemap:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->forcemap;
-            break;
-        case _ep_attack_freeze:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->freeze;
-            break;
-        case _ep_attack_freezetime:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->freezetime;
-            break;
-        case _ep_attack_grab:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->grab;
-            break;
-        case _ep_attack_grabdistance:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->grab_distance;
-            break;
-        case _ep_attack_guardcost:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->guardcost;
-            break;
-        case _ep_attack_hitflash:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->hitflash;
-            break;
-        case _ep_attack_hitsound:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->hitsound;
-            break;
-        case _ep_attack_jugglecost:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->jugglecost;
-            break;
-        case _ep_attack_maptime:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->maptime;
-            break;
-        case _ep_attack_noblock:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->no_block;
-            break;
-        case _ep_attack_noflash:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->no_flash;
-            break;
-        case _ep_attack_nokill:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->no_kill;
-            break;
-        case _ep_attack_nopain:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->no_pain;
-            break;
-        case _ep_attack_otg:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->otg;
-            break;
-        case _ep_attack_pause:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->pause_add;
-            break;
-        case _ep_attack_seal:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->seal;
-            break;
-        case _ep_attack_sealtime:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->sealtime;
-            break;
-        case _ep_attack_staydown:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->staydown.rise;
-            break;
-        case _ep_attack_steal:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->steal;
-            break;
-        case _ep_attack_type:
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)attack->attack_type;
-            break;
-        default:
-            *pretvar = NULL;
-            return E_FAIL;
-        }
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)attack->attack_coords.x;
         break;
     }
+
+    case _ep_attack_coords_location_y:
+    {
+        if(paramCount < 4)
+        {
+            break;
+        }
+
+        if(varlist[EP_ATTACK_AK_ANIMATION]->vt != VT_INTEGER
+                || varlist[EP_ATTACK_AK_FRAME]->vt != VT_INTEGER)
+                //|| varlist[_EP_ATTACK_AK_INDEX]->vt != VT_INTEGER)
+        {
+            printf("\n Error, getentityproperty({ent}, 'attack.coords.location.y', {animation}, {frame}, {index}): {Animation} or {frame} parameter is missing or invalid. \n");
+            return E_FAIL;
+        }
+
+        // If the animation is invalid or has no attack, then finish.
+        if(!validanim(ent, varlist[EP_ATTACK_AK_ANIMATION]->lVal))
+        {
+            break;
+        }
+
+        attack = ent->modeldata.animation[varlist[EP_ATTACK_AK_ANIMATION]->lVal]->attacks[varlist[EP_ATTACK_AK_FRAME]->lVal];
+
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)attack->attack_coords.y;
+        break;
+    }
+
+    case _ep_attack_coords_size_x:
+    {
+        if(paramCount < 4)
+        {
+            break;
+        }
+
+        if(varlist[EP_ATTACK_AK_ANIMATION]->vt != VT_INTEGER
+                || varlist[EP_ATTACK_AK_FRAME]->vt != VT_INTEGER)
+                //|| varlist[_EP_ATTACK_AK_INDEX]->vt != VT_INTEGER)
+        {
+            printf("\n Error, getentityproperty({ent}, 'attack.coords.size.x', {animation}, {frame}, {index}): {Animation} or {frame} parameter is missing or invalid. \n");
+            return E_FAIL;
+        }
+
+        // If the animation is invalid or has no attack, then finish.
+        if(!validanim(ent, varlist[EP_ATTACK_AK_ANIMATION]->lVal))
+        {
+            break;
+        }
+
+        attack = ent->modeldata.animation[varlist[EP_ATTACK_AK_ANIMATION]->lVal]->attacks[varlist[EP_ATTACK_AK_FRAME]->lVal];
+
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)attack->attack_coords.width;
+        break;
+    }
+
+    case _ep_attack_coords_size_y:
+    {
+        if(paramCount < 4)
+        {
+            break;
+        }
+
+        if(varlist[EP_ATTACK_AK_ANIMATION]->vt != VT_INTEGER
+                || varlist[EP_ATTACK_AK_FRAME]->vt != VT_INTEGER)
+                //|| varlist[_EP_ATTACK_AK_INDEX]->vt != VT_INTEGER)
+        {
+            printf("\n Error, getentityproperty({ent}, 'attack.coords.size.y', {animation}, {frame}, {index}): {Animation} or {frame} parameter is missing or invalid. \n");
+            return E_FAIL;
+        }
+
+        // If the animation is invalid or has no attack, then finish.
+        if(!validanim(ent, varlist[EP_ATTACK_AK_ANIMATION]->lVal))
+        {
+            break;
+        }
+
+        attack = ent->modeldata.animation[varlist[EP_ATTACK_AK_ANIMATION]->lVal]->attacks[varlist[EP_ATTACK_AK_FRAME]->lVal];
+
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)attack->attack_coords.height;
+        break;
+    }
+
+    case _ep_attack_coords_size_z_in:
+    {
+        if(paramCount < 4)
+        {
+            break;
+        }
+
+        if(varlist[EP_ATTACK_AK_ANIMATION]->vt != VT_INTEGER
+                || varlist[EP_ATTACK_AK_FRAME]->vt != VT_INTEGER)
+                //|| varlist[_EP_ATTACK_AK_INDEX]->vt != VT_INTEGER)
+        {
+            printf("\n Error, getentityproperty({ent}, 'attack.coords.size.z.in', {animation}, {frame}, {index}): {Animation} or {frame} parameter is missing or invalid. \n");
+            return E_FAIL;
+        }
+
+        // If the animation is invalid or has no attack, then finish.
+        if(!validanim(ent, varlist[EP_ATTACK_AK_ANIMATION]->lVal))
+        {
+            break;
+        }
+
+        attack = ent->modeldata.animation[varlist[EP_ATTACK_AK_ANIMATION]->lVal]->attacks[varlist[EP_ATTACK_AK_FRAME]->lVal];
+
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)attack->attack_coords.z1;
+        break;
+    }
+
+    case _ep_attack_coords_size_z_out:
+    {
+        if(paramCount < 4)
+        {
+            break;
+        }
+
+        if(varlist[EP_ATTACK_AK_ANIMATION]->vt != VT_INTEGER
+                || varlist[EP_ATTACK_AK_FRAME]->vt != VT_INTEGER)
+                //|| varlist[_EP_ATTACK_AK_INDEX]->vt != VT_INTEGER)
+        {
+            printf("\n Error, getentityproperty({ent}, 'attack.coords.size.z.out', {animation}, {frame}, {index}): {Animation} or {frame} parameter is missing or invalid. \n");
+            return E_FAIL;
+        }
+
+        // If the animation is invalid or has no attack, then finish.
+        if(!validanim(ent, varlist[EP_ATTACK_AK_ANIMATION]->lVal))
+        {
+            break;
+        }
+
+        attack = ent->modeldata.animation[varlist[EP_ATTACK_AK_ANIMATION]->lVal]->attacks[varlist[EP_ATTACK_AK_FRAME]->lVal];
+
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)attack->attack_coords.z2;
+        break;
+    }
+
     case _ep_attacking:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -6917,6 +6782,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
+
     case _ep_attacking:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
@@ -9485,165 +9351,6 @@ HRESULT openbor_closefilestream(ScriptVariant **varlist , ScriptVariant **pretva
     }
     return S_OK;
 }
-
-int mapstrings_attackproperty(ScriptVariant **varlist, int paramCount)
-{
-    char *propname;
-    int prop;
-    if(paramCount < 2)
-    {
-        return 1;
-    }
-    MAPSTRINGS(varlist[0], eplist_attack, _ep_attack_the_end,
-               "'%s' is not a valid attack property.\n");
-
-    return 1;
-}
-
-//changeattackproperty(propname, value1[, value2, value3, ...]);
-HRESULT openbor_changeattackproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
-    //LONG ltemp;
-    DOUBLE dbltemp;
-    int prop;
-    ScriptVariant *arg = NULL;
-
-    *pretvar = NULL;
-
-    if(paramCount < 2)
-    {
-        return E_FAIL;
-    }
-
-    mapstrings_attackproperty(varlist, paramCount);
-    if(varlist[0]->vt != VT_INTEGER)
-    {
-        printf("You must give a string value for spawn entry property name.\n");
-        return E_FAIL;
-    }
-
-    prop = varlist[0]->lVal;
-
-    arg = varlist[1];
-
-    if(FAILED(ScriptVariant_DecimalValue(arg, &dbltemp)))
-    {
-        goto cap_error;
-    }
-
-    switch(prop)
-    {
-    case _ep_attack_blast:
-        attack.blast = (int)dbltemp;
-        break;
-    case _ep_attack_direction:
-        attack.force_direction = (int)dbltemp;
-        break;
-    case _ep_attack_dol:
-        attack.damage_on_landing = (int)dbltemp;
-        break;
-    case _ep_attack_dot:
-        attack.dot = (int)dbltemp;
-        break;
-    case _ep_attack_dotforce:
-        attack.dot_force = (int)dbltemp;
-        break;
-    case _ep_attack_dotindex:
-        attack.dot_index = (int)dbltemp;
-        break;
-    case _ep_attack_dotrate:
-        attack.dot_rate = (int)dbltemp;
-        break;
-    case _ep_attack_dottime:
-        attack.dot_time = (int)dbltemp;
-        break;
-    case _ep_attack_drop:
-        attack.attack_drop = (int)dbltemp;
-        break;
-    case _ep_attack_dropv:
-        attack.dropv.y = (float)dbltemp;
-        if(paramCount > 2)
-        {
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
-            {
-                attack.dropv.x = (float)dbltemp;
-            }
-            else
-            {
-                goto cap_error;
-            }
-        }
-        if(paramCount > 3)
-        {
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-            {
-                attack.dropv.z = (float)dbltemp;
-            }
-            else
-            {
-                goto cap_error;
-            }
-        }
-        break;
-    case _ep_attack_force:
-        attack.attack_force = (int)dbltemp;
-        break;
-    case _ep_attack_forcemap:
-        attack.forcemap = (int)dbltemp;
-        break;
-    case _ep_attack_freeze:
-        attack.freeze = (int)dbltemp;
-        break;
-    case _ep_attack_freezetime:
-        attack.freezetime = (int)dbltemp;
-        break;
-    case _ep_attack_grab:
-        attack.grab = (int)dbltemp;
-        break;
-    case _ep_attack_grabdistance:
-        attack.grab_distance = (int)dbltemp;
-        break;
-    case _ep_attack_guardcost:
-        attack.guardcost = (int)dbltemp;
-        break;
-    case _ep_attack_jugglecost:
-        attack.jugglecost = (int)dbltemp;
-        break;
-    case _ep_attack_maptime:
-        attack.maptime = (int)dbltemp;
-        break;
-    case _ep_attack_nokill:
-        attack.no_kill = (int)dbltemp;
-        break;
-    case _ep_attack_nopain:
-        attack.no_pain = (int)dbltemp;
-        break;
-    case _ep_attack_otg:
-        attack.otg = (int)dbltemp;
-        break;
-    case _ep_attack_seal:
-        attack.seal = (int)dbltemp;
-        break;
-    case _ep_attack_sealtime:
-        attack.sealtime = (int)dbltemp;
-        break;
-    case _ep_attack_type:
-        attack.attack_type = (int)dbltemp;
-        break;
-    case _ep_attack_reset:
-        attack = emptyattack;
-        break;
-    default:
-        //printf("Property name '%s' is not supported by setspawnentry.\n", propname);
-        goto cap_error;
-    }
-
-    return S_OK;
-cap_error:
-
-    return E_FAIL;
-}
-
 //damageentity(entity, other, force, drop, type)
 HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
