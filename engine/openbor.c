@@ -19130,13 +19130,16 @@ int perform_atchain()
     if(validanim(self, animattacks[self->modeldata.atchain[self->combostep[0] - 1] - 1]) )
     {
         if(((self->combostep[0] == 1 || !(self->modeldata.combostyle & 1)) && (self->modeldata.type & TYPE_PLAYER)) || // player should use attack 1st step without checking range
+
                 (!(self->modeldata.combostyle & 1) && normal_find_target(animattacks[self->modeldata.atchain[0] - 1], 0)) || // normal chain just checks the first attack in chain(guess no one like it)
+
                 ((self->modeldata.combostyle & 1) && normal_find_target(animattacks[self->modeldata.atchain[self->combostep[0] - 1] - 1], 0))) // combostyle 1 checks all anyway
         {
             pickanim = 1;
         }
         else if((self->modeldata.combostyle & 1) && self->combostep[0] != 1) // ranged combo? search for a valid attack
         {
+
             while(++self->combostep[0] <= self->modeldata.chainlength)
             {
                 if(self->modeldata.atchain[self->combostep[0] - 1] &&
@@ -19208,8 +19211,6 @@ void normal_prepare()
     {
         return;
     }
-
-
     // let go the projectile, well
     if( self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
             validanim(self, ANI_THROWATTACK) &&
