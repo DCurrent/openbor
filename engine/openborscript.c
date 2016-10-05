@@ -603,21 +603,21 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "changeplayerproperty";
     }
+    else if (functionRef == ((void *)openbor_getplayerproperty))
+    {
+        return "getplayerproperty";
+    }
     else if (functionRef == ((void *)openbor_changeentityproperty))
     {
         return "changeentityproperty";
     }
     else if (functionRef == ((void *)openbor_getentityproperty))
     {
-        return "getanimationproperty";
+        return "getentityproperty";
     }
     else if (functionRef == ((void *)openbor_getanimationproperty))
     {
-        return "getplayerproperty";
-    }
-    else if (functionRef == ((void *)openbor_getentityproperty))
-    {
-        return "getentityproperty";
+        return "getanimationproperty";
     }
     else if (functionRef == ((void *)openbor_tossentity))
     {
@@ -3425,6 +3425,10 @@ typedef enum animationprop_enum
     _ANI_PROP_CANCEL,       // Cancel anims with freespecial
     _ANI_PROP_COUNTERRANGE, //SUB Auto counter attack. 2011_04_01, DC: Moved to struct.
     _ANI_PROP_CHARGETIME,   //FLOAT charge time for an animation
+    _ANI_PROP_custbomb,     //
+    _ANI_PROP_custknife,    //
+    _ANI_PROP_custpshotno,  //
+    _ANI_PROP_custstar,     //
     _ANI_PROP_DROPFRAME,    // SUB if tossv < 0, this frame will be set
     _ANI_PROP_ENERGYCOST,   //SUB. 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
     _ANI_PROP_FLIPFRAME,    // Turns entities around on the desired frame
@@ -3435,10 +3439,10 @@ typedef enum animationprop_enum
     _ANI_PROP_LOOP,         // Animation looping. 2011_03_31, DC: Moved to struct.
     _ANI_PROP_MODEL_INDEX,
     _ANI_PROP_NUMFRAMES,    //Framecount.
-    _ANI_PROP_PROJECTILE,
     _ANI_PROP_QUAKEFRAME,   // SUB Screen shake effect. 2011_04_01, DC; Moved to struct.
     _ANI_PROP_range,        //SUB Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
     _ANI_PROP_shootframe,
+    _ANI_PROP_PROJECTILE,
     _ANI_PROP_size,         // SUB entity's size (height) during animation
     _ANI_PROP_spawnframe,   // SUB Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
     _ANI_PROP_subentity,    // Store the sub-entity's name for further use
@@ -3478,6 +3482,7 @@ static const char *list_animation_prop[] =
     "quakeframe",
     "range",
     "shootframe",
+    "projectile",
     "size",
     "spawnframe",
     "subentity",
@@ -3745,7 +3750,7 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
         "mponly",
     };
 
-    MAPSTRINGS(varlist[1], list_animation_prop, _ANI_PROP_the_end,
+    MAPSTRINGS(varlist[2], list_animation_prop, _ANI_PROP_the_end,
                "Property name '%s' is not supported by function getanimationproperty.\n");
 
     if(paramCount < 3 || varlist[1]->vt != VT_INTEGER)
@@ -3754,14 +3759,14 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
     }
     else
     {
-        ap = varlist[1]->lVal;
+        ap = varlist[2]->lVal;
         aps = (ap < _ANI_PROP_the_end && ap >= 0) ? list_animation_prop[ap] : "";
         switch(ap)
         {
             // map subproperties of Energycost
             case _ANI_PROP_ENERGYCOST:
             {
-                MAPSTRINGS(varlist[2], proplist_energycost, _ep_energycost_the_end,
+                MAPSTRINGS(varlist[3], proplist_energycost, _ep_energycost_the_end,
                            _is_not_a_known_subproperty_of_, aps);
                 break;
             }
@@ -4130,6 +4135,10 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     e_animation_properties property = 0;    //Property.
     //int subproperty                 = 0;    //Sub property.
 
+    ScriptVariant_Clear(*pretvar);
+    mapstrings_animationproperty(varlist, paramCount);
+
+
     // Verify incoming parameters.
     if(paramCount < 3
        || varlist[1]->vt != VT_INTEGER
@@ -4147,6 +4156,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
 
         // Most values returned will be integers. Set here for less repetition.
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
 
         // Which animation property to get?
         switch(property)
@@ -4294,7 +4304,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 (*pretvar)->lVal = (LONG)ent->animation[id].model_index;
                 break;
             case _ANI_PROP_NUMFRAMES:
-                (*pretvar)->lVal = (LONG)ent->animation[id].numframes;
+                (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->numframes;
                 break;
             case _ANI_PROP_PROJECTILE:
                 printf("Error: 'counterrange' property not implemented yet in getanimationproperty\n");
@@ -4430,6 +4440,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 break;
             default:
+                *pretvar = NULL;
                 printf("Error: unsupported property in getanimationproperty\n");
                 result = E_FAIL;
                 break;
