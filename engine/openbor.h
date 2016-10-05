@@ -1783,6 +1783,7 @@ typedef struct entity
     int dead;
     int jumping; // Stuff useful for AI
     int idling;
+    int walking;
     int drop;
     int attacking;
     int getting;

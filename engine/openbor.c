@@ -14301,6 +14301,8 @@ static int common_anim_series(entity *ent, int arraya[], int maxa, int forcemode
             if (forcemode || normal_find_target(iAni, 0))                           //Opponent in range of current animation?
             {
                 ent_set_anim(ent, iAni, 0);                                         //Set animation.
+                if ( defaulta == ANI_WALK || defaulta == ANI_UP || defaulta == ANI_DOWN ) ent->walking = 1; // set walking prop
+
                 return 1;                                                           //Return 1 and exit.
             }
         }
@@ -14309,6 +14311,8 @@ static int common_anim_series(entity *ent, int arraya[], int maxa, int forcemode
     if (validanim(ent, defaulta))
     {
         ent_set_anim(ent, defaulta, 0);                                             //No alternates were set. Set default..
+        if ( defaulta == ANI_WALK || defaulta == ANI_UP || defaulta == ANI_DOWN ) ent->walking = 1; // set walking prop
+
         return 1;                                                                   //Return 1 and exit.
     }
 
@@ -15085,6 +15089,7 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
         ent->animnum = aninum;
         ent->animation = ani;
         ent->animpos = animpos;
+        ent->walking = 0;
     }
     else
     {
@@ -15095,6 +15100,7 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
         ent->animating = 1;
         ent->lasthit = ent->grabbing;
         ent->altbase = 0;
+        ent->walking = 0;
 
         update_frame(ent, 0);
     }

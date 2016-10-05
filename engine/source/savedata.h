@@ -35,6 +35,7 @@ typedef struct
     int debuginfo; // FPS, Memory, etc...
     int fullscreen; // Window or Full Screen Mode
     int stretch; // Stretch (1) or preserve aspect ratio (0) in fullscreen mode
+    int screen[1][2];
 #if SDL
     int usegl[2]; // 1 if OpenGL is preferred over SDL software blitting
     float glscale; // Scale factor for OpenGL

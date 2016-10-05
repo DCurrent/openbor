@@ -4591,6 +4591,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             (*pretvar)->lVal = (LONG)ent->walkmode;
             break;
         case _ep_aiflag_walking:
+            (*pretvar)->lVal = (LONG)ent->walking;
             break;
         default:
             ScriptVariant_Clear(*pretvar);
@@ -6714,6 +6715,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 ent->walkmode = (int)ltemp;
                 break;
             case _ep_aiflag_walking:
+                ent->walking = (int)ltemp;
                 break;
             default:
                 printf("Unknown AI flag.\n");
