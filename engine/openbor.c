@@ -257,6 +257,7 @@ int                 SAMPLE_TIMEOVER		= -1;
 int                 SAMPLE_BEEP			= -1;
 int                 SAMPLE_BEEP2		= -1;
 int                 SAMPLE_BIKE			= -1;
+int                 SAMPLE_PAUSE		= -1;
 
 int                 max_downs           = MAX_DOWNS;
 int                 max_ups             = MAX_UPS;
@@ -4721,12 +4722,15 @@ int load_special_sounds()
     SAMPLE_TIMEOVER = sound_load_sample("data/sounds/timeover.wav", packfile,	0);
     SAMPLE_BEEP		= sound_load_sample("data/sounds/beep.wav",		packfile,	0);
     SAMPLE_BEEP2	= sound_load_sample("data/sounds/beep2.wav",	packfile,	0);
+    SAMPLE_PAUSE	= sound_load_sample("data/sounds/pause.wav",	packfile,	0);
     SAMPLE_BIKE		= sound_load_sample("data/sounds/bike.wav",		packfile,	0);
+
+    if ( SAMPLE_PAUSE < 0 ) SAMPLE_PAUSE = SAMPLE_BEEP2;
     if(SAMPLE_GO < 0 || SAMPLE_BEAT < 0 || SAMPLE_BLOCK < 0 ||
             SAMPLE_FALL < 0 || SAMPLE_GET < 0 || SAMPLE_GET2 < 0 ||
             SAMPLE_JUMP < 0 || SAMPLE_INDIRECT < 0 || SAMPLE_PUNCH < 0 ||
             SAMPLE_1UP < 0 || SAMPLE_TIMEOVER < 0 || SAMPLE_BEEP < 0 ||
-            SAMPLE_BEEP2 < 0 || SAMPLE_BIKE < 0)
+            SAMPLE_BEEP2 < 0 || SAMPLE_PAUSE < 0 || SAMPLE_BIKE < 0)
     {
         return 0;
     }
@@ -5365,7 +5369,7 @@ s_anim *alloc_anim()
 
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
              s_hitbox *bbox, s_attack *attack, s_axis_i *move,
-             float *platform, int frameshadow, int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod)
+             float *platform, int frameshadow, int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod, int *offset)
 {
     ptrdiff_t currentframe;
     if(framecount > 0)
@@ -5454,6 +5458,15 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
             memset(a->shadow_coords, 0, framecount * sizeof(*a->shadow_coords));
         }
         memcpy(a->shadow_coords[currentframe], shadow_coords, sizeof(*a->shadow_coords));
+    }
+    if(offset[0] || offset[1])
+    {
+        if(!a->offset)
+        {
+            a->offset = malloc(framecount * sizeof(*a->offset));
+            memset(a->offset, 0, framecount * sizeof(*a->offset));
+        }
+        memcpy(a->offset[currentframe], offset, sizeof(*a->offset));
     }
     if(platform[7]) //height
     {
@@ -9382,7 +9395,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 curframe = addframe(newanim, index, framecount, delay, idle,
-                                    &bbox_con, &attack, &move, platform_con, frameshadow, shadow_coords, soundtoplay, &dm);
+                                    &bbox_con, &attack, &move, platform_con, frameshadow, shadow_coords, soundtoplay, &dm, offset);
 
                 memset(&bbox_con, 0, sizeof(bbox_con));
                 soundtoplay = -1;
@@ -14448,6 +14461,8 @@ void ent_default_init(entity *e)
         return;
     }
 
+    e->nograb_default = 0; // init all entities to 0 by default
+
     switch(e->modeldata.type)
     {
     case TYPE_RESERVED:
@@ -14456,6 +14471,7 @@ void ent_default_init(entity *e)
     case TYPE_ENDLEVEL:
     case TYPE_ITEM:
         e->nograb = 1;
+        e->nograb_default = e->nograb;
         break;
 
     case TYPE_PLAYER:
@@ -14500,6 +14516,7 @@ void ent_default_init(entity *e)
         if(e->modeldata.subtype == SUBTYPE_BIKER)
         {
             e->nograb = 1;
+            e->nograb_default = e->nograb;
             e->attacking = 1;
             //e->direction = (e->position.x<0);
             if(e->modeldata.speed)
@@ -14535,6 +14552,7 @@ void ent_default_init(entity *e)
                 e->base = e->position.y;
             }
             e->nograb = 1;
+            e->nograb_default = e->nograb;
             e->attacking = 1;
             e->takedamage = arrow_takedamage;
             e->speedmul = 2;
@@ -14562,6 +14580,7 @@ void ent_default_init(entity *e)
         if(e->modeldata.subtype == SUBTYPE_NOTGRAB)
         {
             e->nograb = 1;
+            e->nograb_default = e->nograb;
         }
 
         if(validanim(e, ANI_SPAWN) || validanim(e, ANI_RESPAWN))
@@ -14594,6 +14613,7 @@ void ent_default_init(entity *e)
         break;
     case TYPE_OBSTACLE:
         e->nograb = 1;
+        e->nograb_default = e->nograb;
         if(e->health <= 0)
         {
             e->dead = 1;    // so it won't get hit
@@ -14602,16 +14622,19 @@ void ent_default_init(entity *e)
         break;
     case TYPE_STEAMER:
         e->nograb = 1;
+        e->nograb_default = e->nograb;
         e->think = steamer_think;
         e->base = e->position.y;
         break;
     case TYPE_TEXTBOX:    // New type for displaying text purposes
         e->nograb = 1;
+        e->nograb_default = e->nograb;
         e->think = text_think;
         break;
     case TYPE_SHOT:
         e->health = 1;
         e->nograb = 1;
+        e->nograb_default = e->nograb;
         e->think = common_think;
         e->takedamage = arrow_takedamage;
         e->attacking = 1;
@@ -14635,6 +14658,7 @@ void ent_default_init(entity *e)
         break;
     case TYPE_NONE:
         e->nograb = 1;
+        e->nograb_default = e->nograb;
         if(e->modeldata.subject_to_gravity < 0)
         {
             e->modeldata.subject_to_gravity = 1;
@@ -14667,6 +14691,7 @@ void ent_default_init(entity *e)
         break;
     case TYPE_PANEL:
         e->nograb = 1;
+        e->nograb_default = e->nograb;
         break;
     }
 
@@ -18659,7 +18684,7 @@ int set_rise(entity *iRise, int type, int reset)
     iRise->drop = 0;
     iRise->falling = 0;
     iRise->projectile = 0;
-    iRise->nograb = 0;
+    iRise->nograb = iRise->nograb_default; //iRise->nograb = 0;
     iRise->velocity.x = self->velocity.z = self->velocity.y = 0;
     iRise->modeldata.jugglepoints.current = iRise->modeldata.jugglepoints.max; //reset jugglepoints
     return 1;
@@ -18684,7 +18709,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     self->staydown.riseattack_stall = 0;			//Reset riseattack delay.
     set_attacking(iRiseattack);
     iRiseattack->drop = 0;
-    iRiseattack->nograb = 0;
+    iRiseattack->nograb = iRiseattack->nograb_default; //iRiseattack->nograb = 0;
     iRiseattack->modeldata.jugglepoints.current = iRiseattack->modeldata.jugglepoints.max; //reset jugglepoints
     ent_set_anim(iRiseattack, animriseattacks[type], 0);
     return 1;
@@ -28061,7 +28086,7 @@ void update(int ingame, int usevwait)
     {
         sound_pause_music(1);
         sound_pause_sample(1);
-        sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+        sound_play_sample(SAMPLE_PAUSE, 0, savedata.effectvol, savedata.effectvol, 100);
         pausemenu();
         return;
     }
