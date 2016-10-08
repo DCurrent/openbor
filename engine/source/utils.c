@@ -418,8 +418,34 @@ unsigned readlsb32(const unsigned char *src)
         ((((unsigned)(src[3])) & 0xFF) << 24);
 }
 
-// Optimized search in an arranged string table, return the index
+// Binary Search: by Whyte Dragon (old one has a bad computational complexity + bugged)
 int searchList(const char *list[], const char *value, int length)
+{
+    int low = 0, high = length-1, mid = 0;
+
+    while(low <= high)
+    {
+        mid = (low + high)/2;
+        if( stricmp(list[mid], value) < 0 )
+        {
+            low = mid + 1;
+        }
+        else if( stricmp(list[mid], value) == 0 )
+        {
+            return mid;
+        }
+        else if( stricmp(list[mid], value) > 0 )
+        {
+            high = mid-1;
+        }
+
+    }
+
+    return -1;
+}
+
+// Optimized search in an arranged string table, return the index
+/*int searchListB(const char *list[], const char *value, int length)
 {
     int i;
     int a = 0;
@@ -520,7 +546,7 @@ searchListFailed:
     // 4. Is it a typo?
     // 5. Is it a text file error?
     return -1;
-}
+}*/
 
 char *commaprint(u64 n)
 {
