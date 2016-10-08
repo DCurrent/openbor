@@ -3420,124 +3420,365 @@ typedef enum animationprop_enum
 {
     _ANI_PROP_ANIMHITS,     // Does the attack need to hit before cancel is allowed?
     _ANI_PROP_ANTIGRAV,     // UT: make dive a similar property as antigravity.
+    _ANI_PROP_ATTACK,
     _ANI_PROP_ATTACKONE,    // stick on the only one victim
+    _ANI_PROP_BBOX,
     _ANI_PROP_BOUNCE,       //FLOAT -tossv/bounce = new tossv
     _ANI_PROP_CANCEL,       // Cancel anims with freespecial
-    _ANI_PROP_COUNTERRANGE, //SUB Auto counter attack. 2011_04_01, DC: Moved to struct.
     _ANI_PROP_CHARGETIME,   //FLOAT charge time for an animation
-    _ANI_PROP_custbomb,     //
-    _ANI_PROP_custknife,    //
-    _ANI_PROP_custpshotno,  //
-    _ANI_PROP_custstar,     //
+    _ANI_PROP_COUNTERRANGE, //SUB Auto counter attack. 2011_04_01, DC: Moved to struct.
+    _ANI_PROP_DELAY,
+    _ANI_PROP_DRAWMETHODS,
     _ANI_PROP_DROPFRAME,    // SUB if tossv < 0, this frame will be set
+    _ANI_PROP_DROPV,    // SUB if tossv < 0, this frame will be set
     _ANI_PROP_ENERGYCOST,   //SUB. 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
     _ANI_PROP_FLIPFRAME,    // Turns entities around on the desired frame
     _ANI_PROP_FOLLOWUP,     // use which FOLLOW anim?
+    _ANI_PROP_IDLE,
     _ANI_PROP_INDEX,        //unique id
     _ANI_PROP_JUMPFRAME,    //SUB
     _ANI_PROP_LANDFRAME,    // SUB Landing behavior. 2011_04_01, DC: Moved to struct.
     _ANI_PROP_LOOP,         // Animation looping. 2011_03_31, DC: Moved to struct.
     _ANI_PROP_MODEL_INDEX,
+    _ANI_PROP_MOVE,
     _ANI_PROP_NUMFRAMES,    //Framecount.
-    _ANI_PROP_QUAKEFRAME,   // SUB Screen shake effect. 2011_04_01, DC; Moved to struct.
-    _ANI_PROP_range,        //SUB Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-    _ANI_PROP_shootframe,
+    _ANI_PROP_OFFSET,
+    _ANI_PROP_PLATFORM,
     _ANI_PROP_PROJECTILE,
-    _ANI_PROP_size,         // SUB entity's size (height) during animation
-    _ANI_PROP_spawnframe,   // SUB Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
-    _ANI_PROP_subentity,    // Store the sub-entity's name for further use
-    _ANI_PROP_summonframe,  // SUB Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-    _ANI_PROP_sync,         // sychronize frame to previous animation if they matches
-    _ANI_PROP_throwframe,   //
-    _ANI_PROP_throwposition,// SUB Used for setting the position at which projectiles weapons are spawned.
-    _ANI_PROP_tossframe,    // Used to determine which frame will toss a bomb/grenade
-    _ANI_PROP_unsummonframe,// SUB Un-summon the entity
-    _ANI_PROP_weaponframe,  // SUB Specify with a frame when to switch to a weapon model
-    _ANI_PROP_the_end
+    _ANI_PROP_QUAKEFRAME,   // SUB Screen shake effect. 2011_04_01, DC; Moved to struct.
+    _ANI_PROP_RANGE,        //SUB Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
+    _ANI_PROP_SHADOW,
+    _ANI_PROP_SIZE,         // SUB entity's size (height) during animation
+    _ANI_PROP_SOUNDTOPLAY,
+    _ANI_PROP_SPAWNFRAME,   // SUB Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
+    _ANI_PROP_SPRITE,
+    _ANI_PROP_SUBENTITY,    // Store the sub-entity's name for further use
+    _ANI_PROP_SUMMONFRAME,  // SUB Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
+    _ANI_PROP_SYNC,         // sychronize frame to previous animation if they matches
+    _ANI_PROP_UNSUMMONFRAME,// SUB Un-summon the entity
+    _ANI_PROP_VULNERABLE,
+    _ANI_PROP_WEAPONFRAME,  // SUB Specify with a frame when to switch to a weapon model
+    _ANI_PROP_THE_END
 } e_animation_properties;
 
 static const char *list_animation_prop[] =
 {
     "animhits",
     "antigrav",
+    "attack",
     "attackone",
+    "bbox",
     "bounce",
     "cancel",
-    "counterrange",
     "chargetime",
-    "custbomb",
-    "custknife",
-    "custpshotno",
-    "custstar",
+    "counterrange",
+    "delay",
+    "drawmethods",
     "dropframe",
+    "dropv",
     "energycost",
     "flipframe",
     "followup",
+    "idle",
     "index",
     "jumpframe",
     "landframe",
     "loop",
     "model_index",
+    "move",
     "numframes",
+    "offset",
+    "platform",
+    "projectile",
     "quakeframe",
     "range",
-    "shootframe",
-    "projectile",
+    "shadow",
     "size",
+    "soundtoplay",
     "spawnframe",
+    "sprite",
     "subentity",
     "summonframe",
     "sync",
-    "throwframe",
-    "throwposition",
-    "tossframe",
     "unsummonframe",
+    "vulnerable",
     "weaponframe"
 };
 
+// ===== changedrawmethod ======
+enum drawmethod_enum
+{
+    _dm_alpha,
+    _dm_amplitude,
+    _dm_beginsize,
+    _dm_centerx,
+    _dm_centery,
+    _dm_channelb,
+    _dm_channelg,
+    _dm_channelr,
+    _dm_clip,
+    _dm_cliph,
+    _dm_clipw,
+    _dm_clipx,
+    _dm_clipy,
+    _dm_enabled,
+    _dm_endsize,
+    _dm_fillcolor,
+    _dm_flag,
+    _dm_fliprotate,
+    _dm_flipx,
+    _dm_flipy,
+    _dm_perspective,
+    _dm_remap,
+    _dm_reset,
+    _dm_rotate,
+    _dm_scalex,
+    _dm_scaley,
+    _dm_shiftx,
+    _dm_table,
+    _dm_tintcolor,
+    _dm_tintmode,
+    _dm_transbg,
+    _dm_watermode,
+    _dm_wavelength,
+    _dm_wavespeed,
+    _dm_wavetime,
+    _dm_xrepeat,
+    _dm_xspan,
+    _dm_yrepeat,
+    _dm_yspan,
+    _dm_the_end,
+};
+
 /*
-    To be made into frame properties.
+ * Attack Properties
+ */
+ enum _prop_attack_enum
+{
+    _PROP_ATTACK_BLAST,
+    _PROP_ATTACK_BLOCKFLASH,
+    _PROP_ATTACK_BLOCKSOUND,
+    _PROP_ATTACK_COORDS,
+    _PROP_ATTACK_COUNTERATTACK,
+    _PROP_ATTACK_DIRECTION,
+    _PROP_ATTACK_DOL,
+    _PROP_ATTACK_DOT,
+    _PROP_ATTACK_DOTFORCE,
+    _PROP_ATTACK_DOTINDEX,
+    _PROP_ATTACK_DOTRATE,
+    _PROP_ATTACK_DOTTIME,
+    _PROP_ATTACK_DROP,
+    _PROP_ATTACK_DROPV,
+    _PROP_ATTACK_FASTATTACK,
+    _PROP_ATTACK_FORCE,
+    _PROP_ATTACK_FORCEMAP,
+    _PROP_ATTACK_FREEZE,
+    _PROP_ATTACK_FREEZETIME,
+    _PROP_ATTACK_GRAB,
+    _PROP_ATTACK_GRABDISTANCE,
+    _PROP_ATTACK_GUARDCOST,
+    _PROP_ATTACK_HITFLASH,
+    _PROP_ATTACK_HITSOUND,
+    _PROP_ATTACK_JUGGLECOST,
+    _PROP_ATTACK_MAPTIME,
+    _PROP_ATTACK_NOBLOCK,
+    _PROP_ATTACK_NOFLASH,
+    _PROP_ATTACK_NOKILL,
+    _PROP_ATTACK_NOPAIN,
+    _PROP_ATTACK_NOREFLECT,
+    _PROP_ATTACK_OTG,
+    _PROP_ATTACK_PAUSE,
+    _PROP_ATTACK_RESET,
+    _PROP_ATTACK_SEAL,
+    _PROP_ATTACK_SEALTIME,
+    _PROP_ATTACK_STAYDOWN,
+    _PROP_ATTACK_STEAL,
+    _PROP_ATTACK_TYPE,
+    _PROP_ATTACK_THE_END
+};
 
-    //_anim_soundtoplay; // each frame can have a sound
-    //anim_sprite; // sprite[set][framenumber]
-    //int *delay;
-    //int *move;
-    //int *movez;
-    //int *movea;
-    //int *seta; // Now characters can have a custom "a" value
-    //int *vulnerable;
-    //int (*bbox_coords)[6];
-    //int *shadow;
-    //unsigned *idle;  // Allow free move
-    //int (*shadow_coords)[2]; // x, z offset of shadow
-    //s_drawmethod **drawmethods;
-    //s_attack **attacks;
-    //float (*platform)[8]; // Now entities can have others land on them
-*/
+enum _prop_attack_dropv_enum
+{
+    _PROP_ATTACK_DROPV_X,
+    _PROP_ATTACK_DROPV_Y,
+    _PROP_ATTACK_DROPV_Z,
+    _PROP_ATTACK_DROPV_THE_END
+};
+/*
+ * End Attack Properties
+ */
 
-
-
-
+ enum _prop_bbox_enum
+{
+    _PROP_BBOX_HEIGHT,
+    _PROP_BBOX_WIDTH,
+    _PROP_BBOX_X,
+    _PROP_BBOX_Y,
+    _PROP_BBOX_Z1,
+    _PROP_BBOX_Z2,
+    _PROP_BBOX_THE_END
+};
 
 enum _prop_counterrange_enum
 {
     _PROP_COUNTERRANGE_CONDITION,
     _PROP_COUNTERRANGE_DAMAGED,
-    _PROP_COUNTERRANGE_FRAME
+    _PROP_COUNTERRANGE_FRAME_MAX,
+    _PROP_COUNTERRANGE_FRAME_MIN,
+    _PROP_COUNTERRANGE_THE_END
 };
 
-/*switch(varlist[3]->lVal)
-                    {
-                        case _ep_counterrange_condition:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].counterrange.condition;
-                            break;
-                        case _ep_counterrange_damaged:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].counterrange.damaged;
-                            break;
-                        case _ep_counterrange_frame:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].counterrange.frame;
-                            break;
-                    }*/
+enum _prop_dropframe_enum
+{
+    _PROP_DROPFRAME_FRAME,
+    _PROP_DROPFRAME_VELOCITY_X,
+    _PROP_DROPFRAME_VELOCITY_Y,
+    _PROP_DROPFRAME_VELOCITY_Z,
+    _PROP_DROPFRAME_THE_END
+};
+
+enum _prop_followup_enum
+{
+    _PROP_FOLLOWUP_ANIMATION,
+    _PROP_FOLLOWUP_CONDITION,
+    _PROP_FOLLOWUP_THE_END
+};
+
+enum _prop_jumpframe_enum
+{
+    _PROP_JUMPFRAME_FRAME,
+    _PROP_JUMPFRAME_VELOCITY_X,
+    _PROP_JUMPFRAME_VELOCITY_Y,
+    _PROP_JUMPFRAME_VELOCITY_Z,
+    _PROP_JUMPFRAME_THE_END
+};
+
+enum _prop_landframe_enum
+{
+    _PROP_LANDFRAME_FRAME,
+    _PROP_LANDFRAME_VELOCITY_X,
+    _PROP_LANDFRAME_VELOCITY_Y,
+    _PROP_LANDFRAME_VELOCITY_Z,
+    _PROP_LANDFRAME_THE_END
+};
+
+enum _prop_loop_enum
+{
+    _PROP_LOOP_FRAME_MAX,
+    _PROP_LOOP_FRAME_MIN,
+    _PROP_LOOP_MODE,
+    _PROP_LOOP_THE_END
+};
+
+ enum _prop_move_enum
+{
+    _PROP_MOVE_BASE,
+    _PROP_MOVE_X,
+    _PROP_MOVE_Y,
+    _PROP_MOVE_Z,
+    _PROP_MOVE_THE_END
+};
+
+ enum _prop_offset_enum
+{
+    _PROP_OFFSET_X,
+    _PROP_OFFSET_Y,
+    _PROP_OFFSET_THE_END
+};
+
+ enum _prop_platform_enum
+{
+    _PROP_PLATFORM_ALT,
+    _PROP_PLATFORM_DEPTH,
+    _PROP_PLATFORM_LOWERLEFT,
+    _PROP_PLATFORM_LOWERRIGHT,
+    _PROP_PLATFORM_UPPERLEFT,
+    _PROP_PLATFORM_UPPERRIGHT,
+    _PROP_PLATFORM_X,
+    _PROP_PLATFORM_Z,
+    _PROP_PLATFORM_THE_END
+};
+
+enum _prop_projectile_enum
+{
+    _PROP_PROJECTILE_BOMB,
+    _PROP_PROJECTILE_FLASH,
+    _PROP_PROJECTILE_KNIFE,
+    _PROP_PROJECTILE_SHOOTFRAME,
+    _PROP_PROJECTILE_STAR,
+    _PROP_PROJECTILE_THROWFRAME,
+    _PROP_PROJECTILE_THROWPOSITION_BASE,
+    _PROP_PROJECTILE_THROWPOSITION_X,
+    _PROP_PROJECTILE_THROWPOSITION_Y,
+    _PROP_PROJECTILE_THROWPOSITION_Z,
+    _PROP_PROJECTILE_TOSSFRAME,
+    _PROP_PROJECTILE_THE_END
+};
+
+enum _prop_quakeframe_enum
+{
+    _PROP_QUAKEFRAME_FRAMESTART,
+    _PROP_QUAKEFRAME_INTENSITY,
+    _PROP_QUAKEFRAME_REPEAT,
+    _PROP_QUAKEFRAME_THE_END
+};
+
+enum _prop_range_enum
+{
+    _PROP_RANGEA_MAX,
+    _PROP_RANGEA_MIN,
+    _PROP_RANGEB_MAX,
+    _PROP_RANGEB_MIN,
+    _PROP_RANGEX_MAX,
+    _PROP_RANGEX_MIN,
+    _PROP_RANGEZ_MAX,
+    _PROP_RANGEZ_MIN,
+    _PROP_RANGE_THE_END
+};
+
+enum _prop_size_enum
+{
+    _PROP_SIZE_BASE,
+    _PROP_SIZE_X,
+    _PROP_SIZE_Y,
+    _PROP_SIZE_Z,
+    _PROP_SIZE_THE_END
+};
+
+ enum _prop_shadow_enum
+{
+    _PROP_FSHADOW,
+    _PROP_SHADOW_COORDS_X,
+    _PROP_SHADOW_COORDS_Y,
+    _PROP_SHADOW_THE_END
+};
+
+enum _prop_spawnframe_enum
+{
+    _PROP_SPAWNFRAME_FRAME,
+    _PROP_SPAWNFRAME_RELATIVE,
+    _PROP_SPAWNFRAME_X,
+    _PROP_SPAWNFRAME_Y,
+    _PROP_SPAWNFRAME_Z,
+    _PROP_SPAWNFRAME_THE_END
+};
+
+enum _prop_summonframe_enum
+{
+    _PROP_SUMMONFRAME_FRAME,
+    _PROP_SUMMONFRAME_RELATIVE,
+    _PROP_SUMMONFRAME_X,
+    _PROP_SUMMONFRAME_Y,
+    _PROP_SUMMONFRAME_Z,
+    _PROP_SUMMONFRAME_THE_END
+};
+
+enum _prop_weaponframe_enum
+{
+    _PROP_WEAPONFRAME_FRAME,
+    _PROP_WEAPONFRAME_WEAPON,
+    _PROP_WEAPONFRAME_THE_END
+};
 
 enum _ep_defense_enum
 {
@@ -3734,23 +3975,260 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
     int prop, ap; //int prop, i, ep, t;
     int result = 0;
 
-#if 0 // disabled for now because it's unused, so it breaks compilation with -Werror
+    static const char *proplist_attack[] =
+    {
+        "blast",
+        "blockflash",
+        "blocksound",
+        "coords",
+        "counterattack",
+        "direction",
+        "dol",
+        "dot",
+        "dotforce",
+        "dotindex",
+        "dotrate",
+        "dottime",
+        "drop",
+        "dropv",
+        "fastattack",
+        "force",
+        "forcemap",
+        "freeze",
+        "freezetime",
+        "grab",
+        "grabdistance",
+        "guardcost",
+        "hitflash",
+        "hitsound",
+        "jugglecost",
+        "maptime",
+        "noblock",
+        "noflash",
+        "nokill",
+        "nopain",
+        "noreflect",
+        "otg",
+        "pause",
+        "reset",
+        "seal",
+        "sealtime",
+        "staydown",
+        "steal",
+        "type"
+    };
+
+    static const char *proplist_attack_dropv[] =
+    {
+        "velocity.x",
+        "velocity.y",
+        "velocity.z"
+    };
+
+    static const char *proplist_bbox[] =
+    {
+        "height",
+        "width",
+        "x",
+        "y",
+        "z1",
+        "z2"
+    };
+
     static const char *proplist_counterrange[] =
     {
         "condition",
         "damaged",
-        "frame",
+        "frame.max",
+        "frame.min"
     };
-#endif
+
+    static const char *proplist_drawmethods[] =
+    {
+        "alpha",
+        "amplitude",
+        "beginsize",
+        "centerx",
+        "centery",
+        "channelb",
+        "channelg",
+        "channelr",
+        "clip",
+        "cliph",
+        "clipw",
+        "clipx",
+        "clipy",
+        "enabled",
+        "endsize",
+        "fillcolor",
+        "flag",
+        "fliprotate",
+        "flipx",
+        "flipy",
+        "perspective",
+        "remap",
+        "reset",
+        "rotate",
+        "scalex",
+        "scaley",
+        "shiftx",
+        "table",
+        "tintcolor",
+        "tintmode",
+        "transbg",
+        "watermode",
+        "wavelength",
+        "wavespeed",
+        "wavetime",
+        "xrepeat",
+        "xspan",
+        "yrepeat",
+        "yspan"
+    };
 
     static const char *proplist_energycost[] =
     {
         "cost",
         "disable",
-        "mponly",
+        "mponly"
     };
 
-    MAPSTRINGS(varlist[2], list_animation_prop, _ANI_PROP_the_end,
+    static const char *proplist_jumpframe[] =
+    {
+        "frame",
+        "velocity.x",
+        "velocity.y",
+        "velocity.z"
+    };
+
+    static const char *proplist_dropframe[] =
+    {
+        "frame",
+        "velocity.x",
+        "velocity.y",
+        "velocity.z"
+    };
+
+    static const char *proplist_followup[] =
+    {
+        "animation",
+        "condition"
+    };
+
+    static const char *proplist_landframe[] =
+    {
+        "frame",
+        "velocity.x",
+        "velocity.y",
+        "velocity.z"
+    };
+
+    static const char *proplist_loop[] =
+    {
+        "frame.max",
+        "frame.min",
+        "mode"
+    };
+
+    static const char *proplist_move[] =
+    {
+        "base",
+        "x",
+        "y",
+        "z"
+    };
+
+    static const char *proplist_offset[] =
+    {
+        "x",
+        "y"
+    };
+
+    static const char *proplist_platform[] =
+    {
+        "alt",
+        "depth",
+        "lowerleft",
+        "lowerright",
+        "upperleft",
+        "upperright",
+        "x",
+        "z"
+    };
+
+    static const char *proplist_projectile[] =
+    {
+        "bomb",
+        "flash",
+        "knife",
+        "shootframe",
+        "star",
+        "throwframe",
+        "throwframe.base",
+        "throwframe.x",
+        "throwframe.y",
+        "throwframe.z",
+        "tossframe"
+    };
+
+    static const char *proplist_quakeframe[] =
+    {
+        "framestart",
+        "intensity",
+        "repeat"
+    };
+
+    static const char *proplist_range[] =
+    {
+        "a.max",
+        "a.min",
+        "b.max",
+        "b.min",
+        "x.max",
+        "x.min",
+        "z.max",
+        "z.min"
+    };
+
+    static const char *proplist_shadow[] =
+    {
+        "frame",
+        "x",
+        "y"
+    };
+
+    static const char *proplist_size[] =
+    {
+        "x",
+        "y",
+        "z"
+    };
+
+    static const char *proplist_spawnframe[] =
+    {
+        "frame",
+        "relative",
+        "x",
+        "y",
+        "z"
+    };
+
+    static const char *proplist_summonframe[] =
+    {
+        "frame",
+        "relative",
+        "x",
+        "y",
+        "z"
+    };
+
+    static const char *proplist_weaponframe[] =
+    {
+        "frame",
+        "weapon"
+    };
+
+    MAPSTRINGS(varlist[2], list_animation_prop, _ANI_PROP_THE_END,
                "Property name '%s' is not supported by function getanimationproperty.\n");
 
     if(paramCount < 3 || varlist[1]->vt != VT_INTEGER)
@@ -3760,17 +4238,256 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
     else
     {
         ap = varlist[2]->lVal;
-        aps = (ap < _ANI_PROP_the_end && ap >= 0) ? list_animation_prop[ap] : "";
+        aps = (ap < _ANI_PROP_THE_END && ap >= 0) ? list_animation_prop[ap] : "";
         switch(ap)
         {
-            // map subproperties of Energycost
-            case _ANI_PROP_ENERGYCOST:
+            case _ANI_PROP_ATTACK:
             {
-                MAPSTRINGS(varlist[3], proplist_energycost, _ep_energycost_the_end,
-                           _is_not_a_known_subproperty_of_, aps);
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_ATTACK_THE_END && ap >= 0) ? proplist_attack[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_attack, _PROP_ATTACK_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+
+                    switch(ap)
+                    {
+                        case _PROP_ATTACK_DROPV:
+                        {
+                            if(paramCount > 4)
+                            {
+                                ap = varlist[4]->lVal;
+                                aps = (ap < _PROP_ATTACK_DROPV_THE_END && ap >= 0) ? proplist_attack_dropv[ap] : "";
+                                MAPSTRINGS(varlist[4], proplist_attack_dropv, _PROP_ATTACK_DROPV_THE_END,
+                                           _is_not_a_known_subproperty_of_, aps);
+                            }
+                            break;
+                        }
+                    }
+                }
                 break;
             }
-        }
+            case _ANI_PROP_BBOX:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_BBOX_THE_END && ap >= 0) ? proplist_bbox[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_bbox, _PROP_BBOX_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_COUNTERRANGE:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_COUNTERRANGE_THE_END && ap >= 0) ? proplist_counterrange[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_counterrange, _PROP_COUNTERRANGE_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_DRAWMETHODS:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _dm_the_end && ap >= 0) ? proplist_drawmethods[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_drawmethods, _dm_the_end,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_DROPFRAME:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_DROPFRAME_THE_END && ap >= 0) ? proplist_dropframe[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_dropframe, _PROP_DROPFRAME_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_ENERGYCOST:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _ep_energycost_the_end && ap >= 0) ? proplist_energycost[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_energycost, _ep_energycost_the_end,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_FOLLOWUP:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_FOLLOWUP_THE_END && ap >= 0) ? proplist_followup[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_followup, _PROP_FOLLOWUP_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_JUMPFRAME:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_JUMPFRAME_THE_END && ap >= 0) ? proplist_jumpframe[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_jumpframe, _PROP_JUMPFRAME_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_LANDFRAME:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_LANDFRAME_THE_END && ap >= 0) ? proplist_landframe[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_landframe, _PROP_LANDFRAME_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_LOOP:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_LOOP_THE_END && ap >= 0) ? proplist_loop[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_loop, _PROP_LOOP_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_MOVE:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_MOVE_THE_END && ap >= 0) ? proplist_move[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_move, _PROP_MOVE_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_OFFSET:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_OFFSET_THE_END && ap >= 0) ? proplist_offset[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_offset, _PROP_OFFSET_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_PLATFORM:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_PLATFORM_THE_END && ap >= 0) ? proplist_platform[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_platform, _PROP_PLATFORM_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_PROJECTILE:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_PROJECTILE_THE_END && ap >= 0) ? proplist_projectile[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_projectile, _PROP_PROJECTILE_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_QUAKEFRAME:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_QUAKEFRAME_THE_END && ap >= 0) ? proplist_quakeframe[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_quakeframe, _PROP_QUAKEFRAME_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_RANGE:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_RANGE_THE_END && ap >= 0) ? proplist_range[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_range, _PROP_RANGE_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_SHADOW:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_SHADOW_THE_END && ap >= 0) ? proplist_shadow[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_shadow, _PROP_SHADOW_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_SIZE:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_SIZE_THE_END && ap >= 0) ? proplist_size[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_size, _PROP_SIZE_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_SPAWNFRAME:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_SPAWNFRAME_THE_END && ap >= 0) ? proplist_spawnframe[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_spawnframe, _PROP_SPAWNFRAME_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_SUMMONFRAME:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_SUMMONFRAME_THE_END && ap >= 0) ? proplist_summonframe[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_summonframe, _PROP_SUMMONFRAME_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+            case _ANI_PROP_WEAPONFRAME:
+            {
+                if(paramCount > 3)
+                {
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_WEAPONFRAME_THE_END && ap >= 0) ? proplist_weaponframe[ap] : "";
+                    MAPSTRINGS(varlist[3], proplist_weaponframe, _PROP_WEAPONFRAME_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                }
+                break;
+            }
+        } // end base switch
     }
     return result;
 }
@@ -4119,6 +4836,9 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
     return 1;
 }
 
+/*
+ * By White Dragon
+ */
 HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
     /*
@@ -4149,6 +4869,13 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     }
     else
     {
+        s_attack *attack = NULL;
+        s_anim *anim = NULL;
+        s_sprite *spr = NULL;
+        int aid = 0, okf = 0;
+        int tmp_int = 0;
+        //float tmp_float = 0;
+
         // Set parameter vars.
         ent         = (entity *)varlist[0]->ptrVal;
         id          = varlist[1]->lVal;
@@ -4157,27 +4884,324 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
         // Most values returned will be integers. Set here for less repetition.
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
+        //return S_OK;
 
         // Which animation property to get?
         switch(property)
         {
             case _ANI_PROP_ANIMHITS:
-                (*pretvar)->lVal = (LONG)ent->animation[id].animhits;
+                (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->animhits;
                 break;
             case _ANI_PROP_ANTIGRAV:
-                (*pretvar)->lVal = (LONG)ent->animation[id].antigrav;
+                (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->antigrav;
                 break;
+            /*
+             * ################### ATTACK PROPERTY ###################
+             */
+            case _ANI_PROP_ATTACK:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'attack', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_ATTACK_BLOCKFLASH:
+                            okf = -1;
+
+                            // usage getanimationproperty({ent}, {animation id}, 'hitsound', {frame_index}) -> frame is optional
+                            if (paramCount > 4)
+                            {
+                                if(varlist[4]->vt != VT_INTEGER)
+                                {
+                                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'attack', blockflash', {frame_index})\n");
+                                    result = E_FAIL;
+                                    break;
+                                } else
+                                {
+                                    okf = (int)varlist[4]->lVal;
+                                }
+                            }
+
+                            // without a optional frame_index it returns the 1st useful frame if it exists
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                // or sizeof(pointer) / sizeof(structure)
+                                if (okf < 0)
+                                    for (aid = 0; aid < anim->numframes; aid++)
+                                    {
+                                        attack = anim->attacks[aid];
+                                        if (attack) break;
+                                    }
+                                else attack = anim->attacks[okf];
+
+                                if (attack) (*pretvar)->lVal = (LONG)attack->blockflash; // this is the get_cached_model_index(), so use getmodelproperty(i,2) to get the name
+                                else (*pretvar)->lVal = (LONG)-1;
+
+                                /*ScriptVariant_ChangeType(*pretvar, VT_STR);
+                                StrCache_Copy((*pretvar)->strVal, model_cache[(int)attack->hitflash].name);*/
+
+                                /*ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                                (*pretvar)->ptrVal = (VOID *)(model_cache[(int)attack->hitflash].model);*/
+                            } else (*pretvar)->lVal = (LONG)-1;
+
+                            break;
+                        case _PROP_ATTACK_BLOCKSOUND:
+                            okf = -1;
+
+                            // usage getanimationproperty({ent}, {animation id}, 'hitsound', {frame_index}) -> frame is optional
+                            if (paramCount > 4)
+                            {
+                                if(varlist[4]->vt != VT_INTEGER)
+                                {
+                                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'attack', 'blocksound', {frame_index})\n");
+                                    result = E_FAIL;
+                                    break;
+                                } else
+                                {
+                                    okf = (int)varlist[4]->lVal;
+                                }
+                            }
+
+                            // without a optional frame_index it returns the 1st useful frame if it exists
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                // or sizeof(pointer) / sizeof(structure)
+                                if (okf < 0)
+                                    for (aid = 0; aid < anim->numframes; aid++)
+                                    {
+                                        attack = anim->attacks[aid];
+                                        if (attack) break;
+                                    }
+                                else attack = anim->attacks[okf];
+
+                                if (attack) (*pretvar)->lVal = (LONG)attack->blocksound;
+                                else (*pretvar)->lVal = (LONG)-1;
+                            } else (*pretvar)->lVal = (LONG)-1;
+
+                            break;
+                        case _PROP_ATTACK_DROPV:
+                            okf = -1;
+
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'attack', 'dropv', {subproperty}, {frame_index})\n");
+                                result = E_FAIL;
+                                break;
+                            }
+
+                            if (paramCount > 5)
+                            {
+                                if(varlist[5]->vt != VT_INTEGER)
+                                {
+                                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'dropv', {subproperty}, {frame_index})\n");
+                                    result = E_FAIL;
+                                    break;
+                                } else
+                                {
+                                    okf = (int)varlist[5]->lVal;
+                                }
+                            }
+
+                            // without a optional frame_index it returns the 1st useful frame if it exists
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                // or sizeof(pointer) / sizeof(structure)
+                                if (okf < 0)
+                                    for (aid = 0; aid < anim->numframes; aid++)
+                                    {
+                                        attack = anim->attacks[aid];
+                                        if (attack) break;
+                                    }
+                                else attack = anim->attacks[okf];
+
+                                if (attack)
+                                {
+                                    ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                                    switch(varlist[4]->lVal)
+                                    {
+                                        case _PROP_ATTACK_DROPV_X:
+                                            (*pretvar)->dblVal = (DOUBLE)attack->dropv.x;
+                                            break;
+                                        case _PROP_ATTACK_DROPV_Y:
+                                            (*pretvar)->dblVal = (DOUBLE)attack->dropv.y;
+                                            break;
+                                        case _PROP_ATTACK_DROPV_Z:
+                                            (*pretvar)->dblVal = (DOUBLE)attack->dropv.z;
+                                            break;
+                                    }
+                                }
+                                else (*pretvar)->lVal = (LONG)-1;
+                            } else (*pretvar)->lVal = (LONG)-1;
+
+                            break;
+                        case _PROP_ATTACK_FASTATTACK:
+                            anim = ent->modeldata.animation[id];
+                            if (anim->attacks)
+                            {
+                                for (aid = 0; aid < anim->numframes; aid++)
+                                {
+                                    attack = anim->attacks[aid];
+                                    if (attack)
+                                    {
+                                        if (attack->pain_time)
+                                        {
+                                            okf = 1;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            (*pretvar)->lVal = (LONG)okf;
+                            break;
+                        case _PROP_ATTACK_HITFLASH:
+                            okf = -1;
+
+                            // usage getanimationproperty({ent}, {animation id}, 'hitsound', {frame_index}) -> frame is optional
+                            if (paramCount > 4)
+                            {
+                                if(varlist[4]->vt != VT_INTEGER)
+                                {
+                                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'attack', 'hitflash', {frame_index})\n");
+                                    result = E_FAIL;
+                                    break;
+                                } else
+                                {
+                                    okf = (int)varlist[4]->lVal;
+                                }
+                            }
+
+                            // without a optional frame_index it returns the 1st useful frame if it exists
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                // or sizeof(pointer) / sizeof(structure)
+                                if (okf < 0)
+                                    for (aid = 0; aid < anim->numframes; aid++)
+                                    {
+                                        attack = anim->attacks[aid];
+                                        if (attack) break;
+                                    }
+                                else attack = anim->attacks[okf];
+
+                                if (attack) (*pretvar)->lVal = (LONG)attack->hitflash; // this is the get_cached_model_index(), so use getmodelproperty(i,2) to get the name
+                                else (*pretvar)->lVal = (LONG)-1;
+
+                                /*ScriptVariant_ChangeType(*pretvar, VT_STR);
+                                StrCache_Copy((*pretvar)->strVal, model_cache[(int)attack->hitflash].name);*/
+
+                                /*ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                                (*pretvar)->ptrVal = (VOID *)(model_cache[(int)attack->hitflash].model);*/
+                            } else (*pretvar)->lVal = (LONG)-1;
+
+                            break;
+                        case _PROP_ATTACK_HITSOUND:
+                            okf = -1;
+
+                            // usage getanimationproperty({ent}, {animation id}, 'hitsound', {frame_index}) -> frame is optional
+                            if (paramCount > 4)
+                            {
+                                if(varlist[4]->vt != VT_INTEGER)
+                                {
+                                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'attack', 'hitsound', {frame_index})\n");
+                                    result = E_FAIL;
+                                    break;
+                                } else
+                                {
+                                    okf = (int)varlist[4]->lVal;
+                                }
+                            }
+
+                            // without a optional frame_index it returns the 1st useful frame if it exists
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                // or sizeof(pointer) / sizeof(structure)
+                                if (okf < 0)
+                                    for (aid = 0; aid < anim->numframes; aid++)
+                                    {
+                                        attack = anim->attacks[aid];
+                                        if (attack) break;
+                                    }
+                                else attack = anim->attacks[okf];
+
+                                if (attack) (*pretvar)->lVal = (LONG)attack->hitsound;
+                                else (*pretvar)->lVal = (LONG)-1;
+                            } else (*pretvar)->lVal = (LONG)-1;
+
+                            break;
+                    }
+                }
+                break;
+            /*
+             * ################### END ATTACK PROPERTY ###################
+             */
             case _ANI_PROP_ATTACKONE:
-                (*pretvar)->lVal = (LONG)ent->animation[id].attackone;
+                (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->attackone;
+                break;
+            case _ANI_PROP_BBOX:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'bbox', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    okf = 0;
+                    // usage getanimationproperty({ent}, {animation id}, 'delay', {frame_index}) -> frame is optional
+                    if (paramCount == 5)
+                    {
+                        if(varlist[4]->vt != VT_INTEGER)
+                        {
+                            printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'bbox', {sub-property}, {frame_index})\n");
+                            result = E_FAIL;
+                            break;
+                        } else
+                        {
+                            okf = (int)varlist[4]->lVal;
+                        }
+                    }
+
+                    // without a optional frame_index it returns the 1st useful frame if it exists
+                    anim = ent->modeldata.animation[id];
+
+                    if ( !anim->bbox_coords )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
+                        break;
+                    }
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_BBOX_HEIGHT:
+                            (*pretvar)->lVal = (LONG)anim->bbox_coords[okf].height;
+                            break;
+                        case _PROP_BBOX_WIDTH:
+                            (*pretvar)->lVal = (LONG)anim->bbox_coords[okf].width;
+                            break;
+                        case _PROP_BBOX_X:
+                            (*pretvar)->lVal = (LONG)anim->bbox_coords[okf].x;
+                            break;
+                        case _PROP_BBOX_Y:
+                            (*pretvar)->lVal = (LONG)anim->bbox_coords[okf].y;
+                            break;
+                        case _PROP_BBOX_Z1:
+                            (*pretvar)->lVal = (LONG)anim->bbox_coords[okf].z1;
+                            break;
+                        case _PROP_BBOX_Z2:
+                            (*pretvar)->lVal = (LONG)anim->bbox_coords[okf].z2;
+                            break;
+                    }
+                }
                 break;
             case _ANI_PROP_BOUNCE:
-                (*pretvar)->lVal = (LONG)ent->animation[id].bounce;
+                (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->bounce;
                 break;
             case _ANI_PROP_CANCEL:
-                (*pretvar)->lVal = (LONG)ent->animation[id].cancel;
+                (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->cancel;
                 break;
             case _ANI_PROP_COUNTERRANGE:
-
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
@@ -4186,28 +5210,124 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
-                    printf("Error: 'counterrange' property not implemented yet in getanimationproperty\n");
-                    result = E_FAIL;
-                    /*switch(varlist[3]->lVal)
+                    switch(varlist[3]->lVal)
                     {
-                        case _ep_counterrange_condition:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].counterrange.condition;
+                        case _PROP_COUNTERRANGE_CONDITION:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->counterrange.condition;
                             break;
-                        case _ep_counterrange_damaged:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].counterrange.damaged;
+                        case _PROP_COUNTERRANGE_DAMAGED:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->counterrange.damaged;
                             break;
-                        case _ep_counterrange_frame:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].counterrange.frame;
+                        case _PROP_COUNTERRANGE_FRAME_MIN:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->counterrange.frame.min;
                             break;
-                    }*/
+                        case _PROP_COUNTERRANGE_FRAME_MAX:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->counterrange.frame.min;
+                            break;
+                    }
                 }
                 break;
             case _ANI_PROP_CHARGETIME:
                 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-                (*pretvar)->dblVal = (DOUBLE)ent->animation[id].chargetime;
+                (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->chargetime;
+                break;
+            case _ANI_PROP_DELAY:
+                okf = 0;
+
+                // usage getanimationproperty({ent}, {animation id}, 'delay', {frame_index}) -> frame is optional
+                if (paramCount == 4)
+                {
+                    if(varlist[3]->vt != VT_INTEGER)
+                    {
+                        printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'delay', {frame_index})\n");
+                        result = E_FAIL;
+                        break;
+                    } else
+                    {
+                        okf = (int)varlist[3]->lVal;
+                    }
+                }
+
+                // without a optional frame_index it returns the 1st useful frame if it exists
+                anim = ent->modeldata.animation[id];
+                if( anim->delay[okf] ) {
+                    (*pretvar)->lVal = (LONG)anim->delay[okf]; // = delay * GAME_SPEED / 100;
+                } else (*pretvar)->lVal = (LONG)0;
+
+                break;
+            case _ANI_PROP_DRAWMETHODS:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'drawmethods', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    okf = 0;
+                    // usage getanimationproperty({ent}, {animation id}, 'delay', {frame_index}) -> frame is optional
+                    if (paramCount == 5)
+                    {
+                        if(varlist[4]->vt != VT_INTEGER)
+                        {
+                            printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'drawmethods', {sub-property}, {frame_index})\n");
+                            result = E_FAIL;
+                            break;
+                        } else
+                        {
+                            okf = (int)varlist[4]->lVal;
+                        }
+                    }
+
+                    // without a optional frame_index it returns the 1st useful frame if it exists
+                    anim = ent->modeldata.animation[id];
+
+                    if ( !anim->drawmethods )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
+                        break;
+                    }
+                    if ( !anim->drawmethods[okf] )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
+                        break;
+                    }
+                    switch(varlist[3]->lVal)
+                    {
+                        case _dm_alpha:
+                            (*pretvar)->lVal = (LONG)anim->drawmethods[okf]->alpha;
+                            break;
+                    }
+                }
                 break;
             case _ANI_PROP_DROPFRAME:
-                (*pretvar)->lVal = (LONG)ent->animation[id].dropframe.frame;
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'dropframe', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_DROPFRAME_FRAME:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->dropframe.frame;
+                            break;
+                        case _PROP_DROPFRAME_VELOCITY_X:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->dropframe.velocity.x;
+                            break;
+                        case _PROP_DROPFRAME_VELOCITY_Y:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->dropframe.velocity.y;
+                            break;
+                        case _PROP_DROPFRAME_VELOCITY_Z:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->dropframe.velocity.z;
+                            break;
+                    }
+                }
                 break;
             case _ANI_PROP_ENERGYCOST:
 
@@ -4222,22 +5342,22 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     switch(varlist[3]->lVal)
                     {
                         case _ep_energycost_cost:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].energycost.cost;
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->energycost.cost;
                             break;
                         case _ep_energycost_disable:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].energycost.disable;
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->energycost.disable;
                             break;
                         case _ep_energycost_mponly:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].energycost.mponly;
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->energycost.mponly;
                             break;
                     }
                 }
                 break;
             case _ANI_PROP_FLIPFRAME:
-                (*pretvar)->lVal = (LONG)ent->animation[id].flipframe;
+                (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->flipframe;
                 break;
             case _ANI_PROP_FOLLOWUP:
-
+                // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
                     printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'followup', {sub-property})\n");
@@ -4245,21 +5365,43 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
-                    printf("Error: 'followup' property not implemented yet in getanimationproperty\n");
-                    result = E_FAIL;
-                    /*switch(varlist[3]->lVal)
+                    switch(varlist[3]->lVal)
                     {
-                        case _ep_followup_animation:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].followup.animation;
+                        case _PROP_FOLLOWUP_ANIMATION:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->followup.animation;
                             break;
-                        case _ep_followup_condition:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].followup.condition;
+                        case _PROP_FOLLOWUP_CONDITION:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->followup.condition;
                             break;
-                    }*/
+                    }
                 }
                 break;
+            case _ANI_PROP_IDLE:
+                okf = 0;
+
+                // usage getanimationproperty({ent}, {animation id}, 'delay', {frame_index}) -> frame is optional
+                if (paramCount == 4)
+                {
+                    if(varlist[3]->vt != VT_INTEGER)
+                    {
+                        printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'idle', {frame_index})\n");
+                        result = E_FAIL;
+                        break;
+                    } else
+                    {
+                        okf = (int)varlist[3]->lVal;
+                    }
+                }
+
+                // without a optional frame_index it returns the 1st useful frame if it exists
+                anim = ent->modeldata.animation[id];
+                if( anim->idle[okf] ) {
+                    (*pretvar)->lVal = (LONG)anim->idle[okf];
+                } else (*pretvar)->lVal = (LONG)0;
+
+                break;
             case _ANI_PROP_INDEX:
-                (*pretvar)->lVal = (LONG)ent->animation[id].index;
+                (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->index;
                 break;
             case _ANI_PROP_JUMPFRAME:
                 // Verify incoming parameter.
@@ -4270,8 +5412,24 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
-                    printf("Error: 'jumpframe' property not implemented yet in getanimationproperty\n");
-                    result = E_FAIL;
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_JUMPFRAME_FRAME:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->jumpframe.frame;
+                            break;
+                        case _PROP_JUMPFRAME_VELOCITY_X:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->jumpframe.velocity.x;
+                            break;
+                        case _PROP_JUMPFRAME_VELOCITY_Y:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->jumpframe.velocity.y;
+                            break;
+                        case _PROP_JUMPFRAME_VELOCITY_Z:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->jumpframe.velocity.z;
+                            break;
+                    }
                 }
                 break;
             case _ANI_PROP_LANDFRAME:
@@ -4283,8 +5441,24 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
-                    printf("Error: 'landframe' property not implemented yet in getanimationproperty\n");
-                    result = E_FAIL;
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_DROPFRAME_FRAME:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->landframe.frame;
+                            break;
+                        case _PROP_DROPFRAME_VELOCITY_X:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->landframe.velocity.x;
+                            break;
+                        case _PROP_DROPFRAME_VELOCITY_Y:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->landframe.velocity.y;
+                            break;
+                        case _PROP_DROPFRAME_VELOCITY_Z:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->landframe.velocity.z;
+                            break;
+                    }
                 }
                 break;
             case _ANI_PROP_LOOP:         // Animation looping. 2011_03_31, DC: Moved to struct.
@@ -4296,34 +5470,252 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
-                    printf("Error: 'loop' property not implemented yet in getanimationproperty\n");
-                    result = E_FAIL;
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_LOOP_MODE:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->loop.mode;
+                            break;
+                        case _PROP_LOOP_FRAME_MIN:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->loop.frame.min;
+                            break;
+                        case _PROP_LOOP_FRAME_MAX:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->loop.frame.max;
+                            break;
+                    }
                 }
                 break;
             case _ANI_PROP_MODEL_INDEX:
-                (*pretvar)->lVal = (LONG)ent->animation[id].model_index;
+                (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->model_index;
+                break;
+            case _ANI_PROP_MOVE:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'move', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    okf = 0;
+                    // usage getanimationproperty({ent}, {animation id}, 'delay', {frame_index}) -> frame is optional
+                    if (paramCount == 5)
+                    {
+                        if(varlist[4]->vt != VT_INTEGER)
+                        {
+                            printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'move', {sub-property}, {frame_index})\n");
+                            result = E_FAIL;
+                            break;
+                        } else
+                        {
+                            okf = (int)varlist[4]->lVal;
+                        }
+                    }
+
+                    // without a optional frame_index it returns the 1st useful frame if it exists
+                    anim = ent->modeldata.animation[id];
+
+                    if ( !anim->move )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
+                        break;
+                    }
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_MOVE_BASE:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)anim->move[okf]->base; // this is SETA
+                            break;
+                        case _PROP_MOVE_X:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)anim->move[okf]->x;
+                            break;
+                        case _PROP_MOVE_Y:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)anim->move[okf]->y;
+                            break;
+                        case _PROP_MOVE_Z:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)anim->move[okf]->z;
+                            break;
+                    }
+                }
                 break;
             case _ANI_PROP_NUMFRAMES:
                 (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->numframes;
                 break;
-            case _ANI_PROP_PROJECTILE:
-                printf("Error: 'counterrange' property not implemented yet in getanimationproperty\n");
-                result = E_FAIL;
-                /*switch(varlist[3]->lVal)
+            case _ANI_PROP_OFFSET:
+                (*pretvar)->lVal = (LONG)55;break;
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
                 {
-                    case _ANI_PROP_CUSTBOMB:
-                        (*pretvar)->lVal = (LONG)ent->animation[id].projectile.bomb;
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'offset', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    okf = 0;
+                    // usage getanimationproperty({ent}, {animation id}, 'delay', {frame_index}) -> frame is optional
+                    if (paramCount == 5)
+                    {
+                        if(varlist[4]->vt != VT_INTEGER)
+                        {
+                            printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'offset', {sub-property}, {frame_index})\n");
+                            result = E_FAIL;
+                            break;
+                        } else
+                        {
+                            okf = (int)varlist[4]->lVal;
+                        }
+                    }
+
+                    // without a optional frame_index it returns the 1st useful frame if it exists
+                    anim = ent->modeldata.animation[id];
+
+                    if ( !anim->offset )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
                         break;
-                    case _ANI_PROP_CUSTKNIFE:
-                        (*pretvar)->lVal = (LONG)ent->animation[id].projectile.knife;
+                    }
+                    if ( !anim->offset[okf] )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
                         break;
-                    case _ANI_PROP_CUSTPSHOTNO:
-                        (*pretvar)->lVal = (LONG)ent->animation[id].projectile.flash;
+                    }
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_OFFSET_X:
+                            (*pretvar)->lVal = (LONG)anim->offset[okf][0];
+                            break;
+                        case _PROP_OFFSET_Y:
+                            (*pretvar)->lVal = (LONG)anim->offset[okf][1];
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_PLATFORM:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'platform', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    okf = 0;
+                    // usage getanimationproperty({ent}, {animation id}, 'delay', {frame_index}) -> frame is optional
+                    if (paramCount == 5)
+                    {
+                        if(varlist[4]->vt != VT_INTEGER)
+                        {
+                            printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'platform', {sub-property}, {frame_index})\n");
+                            result = E_FAIL;
+                            break;
+                        } else
+                        {
+                            okf = (int)varlist[4]->lVal;
+                        }
+                    }
+
+                    // without a optional frame_index it returns the 1st useful frame if it exists
+                    anim = ent->modeldata.animation[id];
+
+                    if ( !anim->platform )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
                         break;
-                    case _ANI_PROP_custstar:
-                        (*pretvar)->lVal = (LONG)ent->animation[id].projectile.star;
+                    }
+                    if ( !anim->platform[okf] )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
                         break;
-                }*/
+                    }
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_PLATFORM_X:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->platform[okf][0];
+                            break;
+                        case _PROP_PLATFORM_Z:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->platform[okf][1];
+                            break;
+                        case _PROP_PLATFORM_UPPERLEFT:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->platform[okf][2];
+                            break;
+                        case _PROP_PLATFORM_LOWERLEFT:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->platform[okf][3];
+                            break;
+                        case _PROP_PLATFORM_UPPERRIGHT:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->platform[okf][4];
+                            break;
+                        case _PROP_PLATFORM_LOWERRIGHT:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->platform[okf][5];
+                            break;
+                        case _PROP_PLATFORM_DEPTH:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->platform[okf][6];
+                            break;
+                        case _PROP_PLATFORM_ALT:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->platform[okf][7];
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_PROJECTILE:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'projectile', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_PROJECTILE_BOMB:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->projectile.bomb;
+                            break;
+                        case _PROP_PROJECTILE_FLASH:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->projectile.flash;
+                            break;
+                        case _PROP_PROJECTILE_KNIFE:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->projectile.knife;
+                            break;
+                        case _PROP_PROJECTILE_STAR:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->projectile.star;
+                            break;
+                        case _PROP_PROJECTILE_SHOOTFRAME:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->projectile.shootframe;
+                            break;
+                        case _PROP_PROJECTILE_TOSSFRAME:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->projectile.tossframe;
+                            break;
+                        case _PROP_PROJECTILE_THROWFRAME:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->projectile.throwframe;
+                            break;
+                        case _PROP_PROJECTILE_THROWPOSITION_BASE:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->projectile.position.base;
+                            break;
+                        case _PROP_PROJECTILE_THROWPOSITION_X:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->projectile.position.x;
+                            break;
+                        case _PROP_PROJECTILE_THROWPOSITION_Y:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->projectile.position.y;
+                            break;
+                        case _PROP_PROJECTILE_THROWPOSITION_Z:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->projectile.position.z;
+                            break;
+                    }
+                }
                 break;
             case _ANI_PROP_QUAKEFRAME:
                 // Verify incoming parameter.
@@ -4334,11 +5726,22 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
-                    printf("Error: 'quakeframe' property not implemented yet in getanimationproperty\n");
-                    result = E_FAIL;
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_QUAKEFRAME_FRAMESTART:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->quakeframe.framestart;
+                            break;
+                        case _PROP_QUAKEFRAME_REPEAT:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->quakeframe.repeat;
+                            break;
+                        case _PROP_QUAKEFRAME_INTENSITY:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->quakeframe.v;
+                            break;
+                    }
                 }
                 break;
-            case _ANI_PROP_range:
+            case _ANI_PROP_RANGE:
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
@@ -4347,14 +5750,83 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
-                    printf("Error: 'range' property not implemented yet in getanimationproperty\n");
-                    result = E_FAIL;
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_RANGEX_MIN:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->range.min.x;
+                            break;
+                        case _PROP_RANGEX_MAX:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->range.max.x;
+                            break;
+                        case _PROP_RANGEA_MIN:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->range.min.y;
+                            break;
+                        case _PROP_RANGEA_MAX:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->range.max.y;
+                            break;
+                        case _PROP_RANGEB_MIN:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->range.min.base;
+                            break;
+                        case _PROP_RANGEB_MAX:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->range.max.base;
+                            break;
+                        case _PROP_RANGEZ_MIN:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->range.min.z;
+                            break;
+                        case _PROP_RANGEZ_MAX:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->range.max.z;
+                            break;
+                    }
                 }
                 break;
-            case _ANI_PROP_shootframe:
-                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.shootframe;
+            case _ANI_PROP_SHADOW:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'shadow', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    okf = 0;
+                    // usage getanimationproperty({ent}, {animation id}, 'delay', {frame_index}) -> frame is optional
+                    if (paramCount == 5)
+                    {
+                        if(varlist[4]->vt != VT_INTEGER)
+                        {
+                            printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'shadow', {sub-property}, {frame_index})\n");
+                            result = E_FAIL;
+                            break;
+                        } else
+                        {
+                            okf = (int)varlist[4]->lVal;
+                        }
+                    }
+
+                    // without a optional frame_index it returns the 1st useful frame if it exists
+                    anim = ent->modeldata.animation[id];
+
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_FSHADOW:
+                            if( anim->shadow ) {
+                                (*pretvar)->lVal = (LONG)anim->shadow[okf];
+                            } else (*pretvar)->lVal = (LONG)-1;
+                            break;
+                        case _PROP_SHADOW_COORDS_X:
+                            if( anim->shadow_coords[okf] ) {
+                                (*pretvar)->lVal = (LONG)anim->shadow_coords[okf][0];
+                            } else (*pretvar)->lVal = (LONG)-1;
+                            break;
+                        case _PROP_SHADOW_COORDS_Y:
+                            if( anim->shadow_coords[okf] ) {
+                                (*pretvar)->lVal = (LONG)anim->shadow_coords[okf][1];
+                            } else (*pretvar)->lVal = (LONG)-1;
+                            break;
+                    }
+                }
                 break;
-            case _ANI_PROP_size:
+            case _ANI_PROP_SIZE:
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
@@ -4363,20 +5835,53 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
-                    printf("Error: 'size' property not implemented yet in getanimationproperty\n");
-                    result = E_FAIL;
-                    /*switch(varlist[3]->lVal)
+                    switch(varlist[3]->lVal)
                     {
-                        case _ep_size_x:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].size.x;
+                        case _PROP_SIZE_BASE:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->size.base;
                             break;
-                        case _ep_size_y:
-                            (*pretvar)->lVal = (LONG)ent->animation[id].size.y;
+                        case _PROP_SIZE_X:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->size.x;
                             break;
-                    }*/
+                        case _PROP_SIZE_Y:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->size.y;
+                            break;
+                        case _PROP_SIZE_Z:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->size.z;
+                            break;
+                    }
                 }
                 break;
-            case _ANI_PROP_spawnframe:
+            case _ANI_PROP_SOUNDTOPLAY:
+                okf = 0;
+
+                // usage getanimationproperty({ent}, {animation id}, 'delay', {frame_index}) -> frame is optional
+                if (paramCount == 4)
+                {
+                    if(varlist[3]->vt != VT_INTEGER)
+                    {
+                        printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'soundtoplay', {frame_index})\n");
+                        result = E_FAIL;
+                        break;
+                    } else
+                    {
+                        okf = (int)varlist[3]->lVal;
+                    }
+                }
+
+                // without a optional frame_index it returns the 1st useful frame if it exists
+                anim = ent->modeldata.animation[id];
+                if( anim->soundtoplay[okf] ) {
+                    (*pretvar)->lVal = (LONG)anim->soundtoplay[okf];
+                } else (*pretvar)->lVal = (LONG)-1;
+
+                break;
+            case _ANI_PROP_SPAWNFRAME:
+                // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
                     printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'spawnframe', {sub-property})\n");
@@ -4384,14 +5889,64 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
-                    printf("Error: 'spawnframe' property not implemented yet in getanimationproperty\n");
-                    result = E_FAIL;
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_SPAWNFRAME_FRAME:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->spawnframe[0];
+                            break;
+                        case _PROP_SPAWNFRAME_X:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->spawnframe[1];
+                            break;
+                        case _PROP_SPAWNFRAME_Y:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->spawnframe[2];
+                            break;
+                        case _PROP_SPAWNFRAME_Z:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->spawnframe[3];
+                            break;
+                        case _PROP_SPAWNFRAME_RELATIVE:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->spawnframe[4];
+                            break;
+                    }
                 }
                 break;
-            case _ANI_PROP_subentity:
-                (*pretvar)->lVal = (LONG)ent->animation[id].subentity;
+            case _ANI_PROP_SPRITE:
+                okf = 0;
+
+                if (paramCount == 4)
+                {
+                    if(varlist[3]->vt != VT_INTEGER)
+                    {
+                        printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'sprite', {frame_index})\n");
+                        result = E_FAIL;
+                        break;
+                    } else
+                    {
+                        okf = (int)varlist[3]->lVal;
+                    }
+                }
+
+                // without a optional frame_index it returns the 1st useful frame if it exists
+                anim = ent->modeldata.animation[id];
+
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                if( anim->sprite[okf] ) {
+                    //(*pretvar)->lVal = (LONG)anim->sprite[okf];
+                    int ii = anim->sprite[okf];
+                    spr = sprite_map[ii].node->sprite;
+                    spr->centerx = sprite_map[ii].centerx;
+                    spr->centery = sprite_map[ii].centery;
+                    (*pretvar)->ptrVal = (VOID *)(spr);
+                } else (*pretvar)->ptrVal = (VOID *)(NULL);
+
                 break;
-            case _ANI_PROP_summonframe:
+            case _ANI_PROP_SUBENTITY:
+                (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->subentity;
+                break;
+            case _ANI_PROP_SUMMONFRAME:
+                // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
                     printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'summonframe', {sub-property})\n");
@@ -4399,35 +5954,69 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
-                    printf("Error: 'summonframe' property not implemented yet in getanimationproperty\n");
-                    result = E_FAIL;
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_SUMMONFRAME_FRAME:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->summonframe[0];
+                            break;
+                        case _PROP_SUMMONFRAME_X:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->summonframe[1];
+                            break;
+                        case _PROP_SUMMONFRAME_Y:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->summonframe[2];
+                            break;
+                        case _PROP_SUMMONFRAME_Z:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.animation[id]->summonframe[3];
+                            break;
+                        case _PROP_SUMMONFRAME_RELATIVE:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->summonframe[4];
+                            break;
+                    }
                 }
                 break;
-            case _ANI_PROP_sync:
-                (*pretvar)->lVal = (LONG)ent->animation[id].sync;
+            case _ANI_PROP_SYNC:
+                (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->sync;
                 break;
-            case _ANI_PROP_throwframe:    //
-                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.throwframe;
+            case _ANI_PROP_UNSUMMONFRAME:
+                (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->unsummonframe;
                 break;
-            case _ANI_PROP_throwposition:    //Location of projectile spawn.
-                if(varlist[3]->vt != VT_INTEGER)
+            case _ANI_PROP_VULNERABLE:
+                okf = -1;
+
+                // usage getanimationproperty({ent}, {animation id}, 'hitsound', {frame_index}) -> frame is optional
+                if (paramCount > 3)
                 {
-                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'throwposition', {sub-property})\n");
-                    result = E_FAIL;
+                    if(varlist[3]->vt != VT_INTEGER)
+                    {
+                        printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'vulnerable', {frame_index})\n");
+                        result = E_FAIL;
+                        break;
+                    } else
+                    {
+                        okf = (int)varlist[3]->lVal;
+                    }
                 }
-                else
-                {
-                    printf("Error: 'throwposition' property not implemented yet in getanimationproperty\n");
-                    result = E_FAIL;
-                }
+
+                // without a optional frame_index it returns the 1st useful frame if it exists
+                anim = ent->modeldata.animation[id];
+                // or sizeof(pointer) / sizeof(structure)
+                if (okf < 0)
+                    for (aid = 0; aid < anim->numframes; aid++)
+                    {
+                        tmp_int = anim->vulnerable[aid];
+                        if (tmp_int >= 0) break;
+                    }
+                else tmp_int = anim->vulnerable[okf];
+
+                if (tmp_int >= 0) (*pretvar)->lVal = (LONG)tmp_int;
+                else (*pretvar)->lVal = (LONG)-1;
+
                 break;
-            case _ANI_PROP_tossframe:
-                (*pretvar)->lVal = (LONG)ent->animation[id].projectile.tossframe;
-                break;
-            case _ANI_PROP_unsummonframe:
-                (*pretvar)->lVal = (LONG)ent->animation[id].unsummonframe;
-                break;
-            case _ANI_PROP_weaponframe:
+            case _ANI_PROP_WEAPONFRAME:
+                // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
                     printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'weaponframe', {sub-property})\n");
@@ -4435,8 +6024,15 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
-                    printf("Error: 'weaponframe' property not implemented yet in getanimationproperty\n");
-                    result = E_FAIL;
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_WEAPONFRAME_FRAME:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->weaponframe[0];
+                            break;
+                        case _PROP_WEAPONFRAME_WEAPON:
+                            (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->weaponframe[1];
+                            break;
+                    }
                 }
                 break;
             default:
@@ -10994,7 +12590,7 @@ HRESULT openbor_querychannel(ScriptVariant **varlist , ScriptVariant **pretvar, 
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
     (*pretvar)->lVal = sound_query_channel((int)ltemp);
 
-query_error:
+    query_error:
     *pretvar = NULL;
     return E_FAIL;
 }
@@ -11010,7 +12606,7 @@ HRESULT openbor_stopchannel(ScriptVariant **varlist , ScriptVariant **pretvar, i
     }
     sound_stop_sample((int)ltemp);
 
-sc_error:
+    sc_error:
     return E_FAIL;
 }
 
@@ -13304,52 +14900,6 @@ clearscreen_error:
     return E_FAIL;
 }
 
-// ===== changedrawmethod ======
-enum drawmethod_enum
-{
-    _dm_alpha,
-    _dm_amplitude,
-    _dm_beginsize,
-    _dm_centerx,
-    _dm_centery,
-    _dm_channelb,
-    _dm_channelg,
-    _dm_channelr,
-    _dm_clip,
-    _dm_cliph,
-    _dm_clipw,
-    _dm_clipx,
-    _dm_clipy,
-    _dm_enabled,
-    _dm_endsize,
-    _dm_fillcolor,
-    _dm_flag,
-    _dm_fliprotate,
-    _dm_flipx,
-    _dm_flipy,
-    _dm_perspective,
-    _dm_remap,
-    _dm_reset,
-    _dm_rotate,
-    _dm_scalex,
-    _dm_scaley,
-    _dm_shiftx,
-    _dm_table,
-    _dm_tintcolor,
-    _dm_tintmode,
-    _dm_transbg,
-    _dm_watermode,
-    _dm_wavelength,
-    _dm_wavespeed,
-    _dm_wavetime,
-    _dm_xrepeat,
-    _dm_xspan,
-    _dm_yrepeat,
-    _dm_yspan,
-    _dm_the_end,
-};
-
-
 int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
 {
     char *propname = NULL;
@@ -14147,7 +15697,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     e->falling = 0;
     e->inpain = 0;
     e->blocking = 0;
-    e->nograb = 0;
+    e->nograb = e->nograb_default; //e->nograb = 0;
     e->destx = e->position.x;
     e->destz = e->position.z;
 

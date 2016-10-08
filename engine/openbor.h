@@ -1124,7 +1124,7 @@ typedef struct
 } s_hitbox;
 
 typedef struct
-{
+{ //WD-ADD
     int attack_force;
     s_hitbox attack_coords;
     s_staydown staydown;    //Modify victum's stayodwn properties.
@@ -1133,6 +1133,10 @@ typedef struct
     int hitflash; // Custom flash for each animation, model id
     int blockflash; // Custom bflash for each animation, model id
     int blocksound; // Custom sound for when an attack is blocked
+    /*char *hitsound_name; // unused for now WD-ADD
+    char *hitflash_name;
+    char *blockflash_name;
+    char *blocksound_name;*/
     int no_block; // If this is greater than defense block power, make the hit
     int counterattack;
     int no_pain;
@@ -1319,6 +1323,7 @@ typedef struct
     s_onframe dropframe;            // if tossv < 0, this frame will be set
     int animhits;                   // Does the attack need to hit before cancel is allowed?
     int sync;                       // sychronize frame to previous animation if they matches
+    int (*offset)[2];               // original sprite offsets
 } s_anim;
 
 struct animlist
@@ -1728,6 +1733,7 @@ typedef struct entity
     unsigned per2; // Used to store at what health value the entity flashes more rapidly
     e_direction direction;
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
+    int nograb_default; // equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon)
     int movestep;
     s_axis_f position; //x,y,z location.
     s_axis_f velocity; //x,y,z movement speed.
@@ -2195,7 +2201,7 @@ s_anim *alloc_anim();
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
              s_hitbox *bbox, s_attack *attack, s_axis_i *move,
              float *platform, int frameshadow,
-             int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod);
+             int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod, int *offset);
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char *name);
 void free_modelcache();
