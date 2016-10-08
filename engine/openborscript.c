@@ -1796,7 +1796,7 @@ static const char *svlist[] =
     "gfx_x_offset",
     "gfx_y_offset",
     "gfx_y_offset_adj",
-    "hResolution",
+    "hresolution",
     "in_cheat_options",
     "in_control_options",
     "in_gameoverscreen",
@@ -1815,10 +1815,10 @@ static const char *svlist[] =
     "in_titlescreen",
     "in_video_options",
     "lasthita",
-    "lasthity",
     "lasthitc",
     "lasthitt",
     "lasthitx",
+    "lasthity",
     "lasthitz",
     "levelheight",
     "levelpos",
@@ -1868,11 +1868,11 @@ static const char *svlist[] =
     "ticks",
     "totalram",
     "usedram",
-    "vResolution",
     "viewporth",
     "viewportw",
     "viewportx",
     "viewporty",
+    "vresolution",
     "vscreen",
     "waiting",
     "xpos",
@@ -4245,21 +4245,22 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_ATTACK_THE_END && ap >= 0) ? proplist_attack[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_attack, _PROP_ATTACK_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_ATTACK_THE_END && ap >= 0) ? proplist_attack[ap] : "";
 
                     switch(ap)
                     {
                         case _PROP_ATTACK_DROPV:
                         {
+                            printf("crustal\n");
                             if(paramCount > 4)
                             {
-                                ap = varlist[4]->lVal;
-                                aps = (ap < _PROP_ATTACK_DROPV_THE_END && ap >= 0) ? proplist_attack_dropv[ap] : "";
                                 MAPSTRINGS(varlist[4], proplist_attack_dropv, _PROP_ATTACK_DROPV_THE_END,
                                            _is_not_a_known_subproperty_of_, aps);
+                                ap = varlist[4]->lVal;
+                                aps = (ap < _PROP_ATTACK_DROPV_THE_END && ap >= 0) ? proplist_attack_dropv[ap] : "";
                             }
                             break;
                         }
@@ -4271,10 +4272,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_BBOX_THE_END && ap >= 0) ? proplist_bbox[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_bbox, _PROP_BBOX_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_BBOX_THE_END && ap >= 0) ? proplist_bbox[ap] : "";
                 }
                 break;
             }
@@ -4282,10 +4283,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_COUNTERRANGE_THE_END && ap >= 0) ? proplist_counterrange[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_counterrange, _PROP_COUNTERRANGE_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_COUNTERRANGE_THE_END && ap >= 0) ? proplist_counterrange[ap] : "";
                 }
                 break;
             }
@@ -4293,10 +4294,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _dm_the_end && ap >= 0) ? proplist_drawmethods[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_drawmethods, _dm_the_end,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _dm_the_end && ap >= 0) ? proplist_drawmethods[ap] : "";
                 }
                 break;
             }
@@ -4304,10 +4305,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_DROPFRAME_THE_END && ap >= 0) ? proplist_dropframe[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_dropframe, _PROP_DROPFRAME_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_DROPFRAME_THE_END && ap >= 0) ? proplist_dropframe[ap] : "";
                 }
                 break;
             }
@@ -4315,10 +4316,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _ep_energycost_the_end && ap >= 0) ? proplist_energycost[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_energycost, _ep_energycost_the_end,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _ep_energycost_the_end && ap >= 0) ? proplist_energycost[ap] : "";
                 }
                 break;
             }
@@ -4326,10 +4327,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_FOLLOWUP_THE_END && ap >= 0) ? proplist_followup[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_followup, _PROP_FOLLOWUP_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_FOLLOWUP_THE_END && ap >= 0) ? proplist_followup[ap] : "";
                 }
                 break;
             }
@@ -4337,10 +4338,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_JUMPFRAME_THE_END && ap >= 0) ? proplist_jumpframe[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_jumpframe, _PROP_JUMPFRAME_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_JUMPFRAME_THE_END && ap >= 0) ? proplist_jumpframe[ap] : "";
                 }
                 break;
             }
@@ -4348,10 +4349,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_LANDFRAME_THE_END && ap >= 0) ? proplist_landframe[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_landframe, _PROP_LANDFRAME_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_LANDFRAME_THE_END && ap >= 0) ? proplist_landframe[ap] : "";
                 }
                 break;
             }
@@ -4359,10 +4360,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_LOOP_THE_END && ap >= 0) ? proplist_loop[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_loop, _PROP_LOOP_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_LOOP_THE_END && ap >= 0) ? proplist_loop[ap] : "";
                 }
                 break;
             }
@@ -4370,10 +4371,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_MOVE_THE_END && ap >= 0) ? proplist_move[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_move, _PROP_MOVE_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_MOVE_THE_END && ap >= 0) ? proplist_move[ap] : "";
                 }
                 break;
             }
@@ -4381,10 +4382,13 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_OFFSET_THE_END && ap >= 0) ? proplist_offset[ap] : "";
+                    /*printf("START\n");
+                    printf("res: %d %s %s\n",(int)searchList(proplist_offset, (char*)StrCache_Get(varlist[3]->strVal), _PROP_OFFSET_THE_END),(char*)StrCache_Get(varlist[3]->strVal), (char*)varlist[3]);
+                    printf("END\n");*/
                     MAPSTRINGS(varlist[3], proplist_offset, _PROP_OFFSET_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_OFFSET_THE_END && ap >= 0) ? proplist_offset[ap] : "";
                 }
                 break;
             }
@@ -4392,10 +4396,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_PLATFORM_THE_END && ap >= 0) ? proplist_platform[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_platform, _PROP_PLATFORM_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_PLATFORM_THE_END && ap >= 0) ? proplist_platform[ap] : "";
                 }
                 break;
             }
@@ -4403,10 +4407,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_PROJECTILE_THE_END && ap >= 0) ? proplist_projectile[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_projectile, _PROP_PROJECTILE_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_PROJECTILE_THE_END && ap >= 0) ? proplist_projectile[ap] : "";
                 }
                 break;
             }
@@ -4414,10 +4418,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_QUAKEFRAME_THE_END && ap >= 0) ? proplist_quakeframe[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_quakeframe, _PROP_QUAKEFRAME_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_QUAKEFRAME_THE_END && ap >= 0) ? proplist_quakeframe[ap] : "";
                 }
                 break;
             }
@@ -4425,10 +4429,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_RANGE_THE_END && ap >= 0) ? proplist_range[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_range, _PROP_RANGE_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_RANGE_THE_END && ap >= 0) ? proplist_range[ap] : "";
                 }
                 break;
             }
@@ -4436,10 +4440,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_SHADOW_THE_END && ap >= 0) ? proplist_shadow[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_shadow, _PROP_SHADOW_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_SHADOW_THE_END && ap >= 0) ? proplist_shadow[ap] : "";
                 }
                 break;
             }
@@ -4447,10 +4451,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_SIZE_THE_END && ap >= 0) ? proplist_size[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_size, _PROP_SIZE_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_SIZE_THE_END && ap >= 0) ? proplist_size[ap] : "";
                 }
                 break;
             }
@@ -4458,10 +4462,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_SPAWNFRAME_THE_END && ap >= 0) ? proplist_spawnframe[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_spawnframe, _PROP_SPAWNFRAME_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_SPAWNFRAME_THE_END && ap >= 0) ? proplist_spawnframe[ap] : "";
                 }
                 break;
             }
@@ -4469,10 +4473,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_SUMMONFRAME_THE_END && ap >= 0) ? proplist_summonframe[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_summonframe, _PROP_SUMMONFRAME_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_SUMMONFRAME_THE_END && ap >= 0) ? proplist_summonframe[ap] : "";
                 }
                 break;
             }
@@ -4480,10 +4484,10 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
             {
                 if(paramCount > 3)
                 {
-                    ap = varlist[3]->lVal;
-                    aps = (ap < _PROP_WEAPONFRAME_THE_END && ap >= 0) ? proplist_weaponframe[ap] : "";
                     MAPSTRINGS(varlist[3], proplist_weaponframe, _PROP_WEAPONFRAME_THE_END,
                                _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_WEAPONFRAME_THE_END && ap >= 0) ? proplist_weaponframe[ap] : "";
                 }
                 break;
             }
@@ -5264,6 +5268,8 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 else
                 {
+                    s_drawmethod *pmethod = NULL;
+
                     okf = 0;
                     // usage getanimationproperty({ent}, {animation id}, 'delay', {frame_index}) -> frame is optional
                     if (paramCount == 5)
@@ -5292,10 +5298,125 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                         (*pretvar)->lVal = (LONG)-1;
                         break;
                     }
+
+                    pmethod = anim->drawmethods[okf];
+
                     switch(varlist[3]->lVal)
                     {
                         case _dm_alpha:
-                            (*pretvar)->lVal = (LONG)anim->drawmethods[okf]->alpha;
+                            (*pretvar)->lVal = (LONG)pmethod->alpha;
+                            break;
+                        case _dm_amplitude:
+                            (*pretvar)->lVal = (LONG)pmethod->water.amplitude;
+                            break;
+                        case _dm_beginsize:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)pmethod->water.beginsize;
+                            break;
+                        case _dm_centerx:
+                            (*pretvar)->lVal = (LONG)pmethod->centerx;
+                            break;
+                        case _dm_centery:
+                            (*pretvar)->lVal = (LONG)pmethod->centery;
+                            break;
+                        case _dm_channelb:
+                            (*pretvar)->lVal = (LONG)pmethod->channelb;
+                            break;
+                        case _dm_channelg:
+                            (*pretvar)->lVal = (LONG)pmethod->channelg;
+                            break;
+                        case _dm_channelr:
+                            (*pretvar)->lVal = (LONG)pmethod->channelr;
+                            break;
+                        case _dm_clipx:
+                            (*pretvar)->lVal = (LONG)pmethod->clipx;
+                            break;
+                        case _dm_clipy:
+                            (*pretvar)->lVal = (LONG)pmethod->clipy;
+                            break;
+                        case _dm_clipw:
+                            (*pretvar)->lVal = (LONG)pmethod->clipw;
+                            break;
+                        case _dm_cliph:
+                            (*pretvar)->lVal = (LONG)pmethod->cliph;
+                            break;
+                        case _dm_endsize:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)pmethod->water.endsize;
+                            break;
+                        case _dm_fillcolor:
+                            (*pretvar)->lVal = (LONG)pmethod->fillcolor;
+                            break;
+                        case _dm_fliprotate:
+                            (*pretvar)->lVal = (LONG)pmethod->fliprotate;
+                            break;
+                        case _dm_flipx:
+                            (*pretvar)->lVal = (LONG)pmethod->flipx;
+                            break;
+                        case _dm_flipy:
+                            (*pretvar)->lVal = (LONG)pmethod->flipy;
+                            break;
+                        case _dm_perspective:
+                            (*pretvar)->lVal = (LONG)pmethod->water.perspective;
+                            break;
+                        case _dm_remap:
+                            (*pretvar)->lVal = (LONG)pmethod->remap;
+                            break;
+                        case _dm_rotate:
+                            (*pretvar)->lVal = (LONG)pmethod->rotate;
+                            break;
+                        case _dm_scalex:
+                            (*pretvar)->lVal = (LONG)pmethod->scalex;
+                            break;
+                        case _dm_scaley:
+                            (*pretvar)->lVal = (LONG)pmethod->scaley;
+                            break;
+                        case _dm_shiftx:
+                            (*pretvar)->lVal = (LONG)pmethod->shiftx;
+                            break;
+                        case _dm_table:
+                            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                            (*pretvar)->ptrVal = (VOID *)pmethod->table;
+                            break;
+                        case _dm_tintmode:
+                            (*pretvar)->lVal = (LONG)pmethod->tintmode;
+                            break;
+                        case _dm_tintcolor:
+                            (*pretvar)->lVal = (LONG)pmethod->tintcolor;
+                            break;
+                        case _dm_transbg:
+                            (*pretvar)->lVal = (LONG)pmethod->transbg;
+                            break;
+                        case _dm_watermode:
+                            (*pretvar)->lVal = (LONG)pmethod->water.watermode;
+                            break;
+                        case _dm_wavelength:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)pmethod->water.wavelength;
+                            break;
+                        case _dm_wavespeed:
+                            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                            (*pretvar)->dblVal = (DOUBLE)pmethod->water.wavespeed;
+                            break;
+                        case _dm_wavetime:
+                            (*pretvar)->lVal = (LONG)pmethod->water.wavetime;
+                            break;
+                        case _dm_xrepeat:
+                            (*pretvar)->lVal = (LONG)pmethod->xrepeat;
+                            break;
+                        case _dm_yrepeat:
+                            (*pretvar)->lVal = (LONG)pmethod->yrepeat;
+                            break;
+                        case _dm_xspan:
+                            (*pretvar)->lVal = (LONG)pmethod->xspan;
+                            break;
+                        case _dm_yspan:
+                            (*pretvar)->lVal = (LONG)pmethod->yspan;
+                            break;
+                        default:
+                        case _dm_enabled:
+                        case _dm_flag:
+                            (*pretvar)->lVal = (LONG)pmethod->flag;
                             break;
                     }
                 }
@@ -5544,7 +5665,6 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->numframes;
                 break;
             case _ANI_PROP_OFFSET:
-                (*pretvar)->lVal = (LONG)55;break;
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
@@ -9939,9 +10059,9 @@ enum playerproperty_enum
     _pp_score,
     _pp_spawnhealth,
     _pp_spawnmp,
-    _pp_weapon,
     _pp_weapnum,
-    _pp_the_end,
+    _pp_weapon,
+    _pp_the_end
 };
 
 int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount)
@@ -9964,8 +10084,8 @@ int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount)
         "score",
         "spawnhealth",
         "spawnmp",
-        "weapon",
         "weapnum",
+        "weapon",
     };
 
     if(paramCount < 2)
