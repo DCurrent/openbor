@@ -234,6 +234,95 @@ int Varlist_SetByIndex(Varlist *varlist, int index, ScriptVariant *var)
     return 1;
 }
 
+int Varlist_AddByIndex(Varlist *array, int index, ScriptVariant *var)
+{
+    if(index < 0 || index >= array->vars->lVal+1)
+    {
+        return 0;
+    }
+    else
+    {
+        int i = 0;
+        int size = array->vars->lVal;
+
+        __reallocto(array->vars, size+1, size+2);
+        size = ++array->vars->lVal;
+
+        for ( i = size-1; i > index; i-- )
+        {
+            ScriptVariant_Copy(array->vars+1+i, array->vars+1+i-1); // first value of array is his size!
+        }
+        ScriptVariant_Copy(array->vars+1+index, var);
+
+        //printf("aaa: %s\n", (char*)StrCache_Get(elem->strVal) );
+    }
+
+    return 1;
+}
+
+int Varlist_DeleteByIndex(Varlist *array, int index)
+{
+    if(index < 0 || index >= array->vars->lVal)
+    {
+        return 0;
+    }
+    else
+    {
+        int i = 0;
+        int size = array->vars->lVal;
+        ScriptVariant *elem;
+
+        for ( i = index; i < size-1; i++ )
+        {
+            ScriptVariant_Copy(array->vars+1+i, array->vars+1+i+1); // first value of array is his size!
+        }
+        --array->vars->lVal;
+
+        // set last element to NULL
+        elem = array->vars+1+size-1;
+        ScriptVariant_ChangeType(elem, VT_EMPTY);
+        elem->ptrVal = NULL;
+
+        //printf("aaa: %s\n", (char*)StrCache_Get(elem->strVal) );
+    }
+
+    return 1;
+}
+
+int Varlist_DeleteByName(Varlist *array, char *theName)
+{
+    if(!theName || !theName[0])
+    {
+        return 0;
+    }
+    if(List_FindByName(array->list, theName))
+    {
+        Node* node;
+        Node* prev_node;
+        Node* next_node;
+
+        node = array->list->current;
+        prev_node = node->prev;
+        next_node = node->next;
+
+        if ( prev_node ) prev_node->next = next_node;
+        if ( next_node ) next_node->prev = prev_node;
+
+        if ( array->list->last == node ) array->list->last = prev_node;
+        if ( array->list->first == node ) array->list->first = next_node;
+        if ( array->list->first == array->list->last && array->list->first == node ) {
+            array->list->last = NULL;
+            array->list->first = NULL;
+        }
+
+        --array->list->size;
+
+        free(node);
+    } else return 0;
+
+    return 1;
+}
+
 //this function should be called before all script methods, for once
 void Script_Global_Init()
 {
@@ -887,6 +976,14 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set";
     }
+    else if (functionRef == ((void *)openbor_delete))
+    {
+        return "delete";
+    }
+    else if (functionRef == ((void *)openbor_add))
+    {
+        return "add";
+    }
     else if (functionRef == ((void *)openbor_reset))
     {
         return "reset";
@@ -1466,6 +1563,10 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_get, "get");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set, "set");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_delete, "delete");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_add, "add");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_reset, "reset");
     List_InsertAfter(&theFunctionList,
@@ -16109,7 +16210,17 @@ HRESULT openbor_size(ScriptVariant **varlist , ScriptVariant **pretvar, int para
     {
         goto size_error;
     }
-    ScriptVariant_Copy(*pretvar, array->vars);
+
+    //ScriptVariant_Copy(*pretvar, array->vars);
+    if( array->list->size != 0 ) //or array->list->first
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)array->list->size;
+    }
+    else
+    {
+        ScriptVariant_Copy(*pretvar, array->vars);
+    }
 
     return S_OK;
 size_error:
@@ -16188,6 +16299,66 @@ HRESULT openbor_set(ScriptVariant **varlist , ScriptVariant **pretvar, int param
 
 set_error:
     printf("Function requires 1 array handle, 1 int value and 1 value: set(array, int index, value)\n");
+    return E_FAIL;
+}
+
+//delete(array, index);
+HRESULT openbor_delete(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    Varlist *array;
+    LONG index;
+
+    *pretvar = NULL;
+    if(paramCount < 2 || varlist[0]->vt != VT_PTR || !(array = (Varlist *)varlist[0]->ptrVal) || array->magic != varlist_magic)
+    {
+        goto set_error;
+    }
+
+    if(varlist[1]->vt == VT_STR)
+    {
+        if ( !Varlist_DeleteByName(array, StrCache_Get(varlist[1]->strVal)) ) goto set_error;
+    }
+    else if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &index)))
+    {
+        if ( !Varlist_DeleteByIndex(array, (int)index) ) goto set_error;
+    }
+    else
+    {
+        goto set_error;
+    }
+
+    return S_OK;
+
+set_error:
+    printf("Function requires 1 array handle and 1 int value (index): delete(array, index)\n");
+    return E_FAIL;
+}
+
+//add(array, index);
+HRESULT openbor_add(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    Varlist *array;
+    LONG index;
+
+    *pretvar = NULL;
+    if(paramCount < 2 || varlist[0]->vt != VT_PTR || !(array = (Varlist *)varlist[0]->ptrVal) || array->magic != varlist_magic)
+    {
+        goto set_error;
+    }
+
+    if( SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &index)) )
+    {
+        if ( !Varlist_AddByIndex(array, (int)index, varlist[2]) ) goto set_error;
+    }
+    else
+    {
+        goto set_error;
+    }
+
+    return S_OK;
+
+set_error:
+    printf("Function requires 1 array handle and 1 int value (index): add(array, index)\n");
     return E_FAIL;
 }
 
