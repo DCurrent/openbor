@@ -952,6 +952,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)(cheatoptionsMenu);
         break;
+    case _sv_cheats:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = (LONG)(is_cheat_actived());
+        break;
     case _sv_in_control_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)(controloptionsMenu);
@@ -32522,6 +32526,25 @@ void openborMain(int argc, char **argv)
         update(0, 0);
     }
     shutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
+}
+
+int is_cheat_actived()
+{
+    if(!cheats)
+    {
+        return 0;
+    }
+    else
+    {
+        if(!forcecheatsoff)
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
 }
 
 #undef GET_ARG
