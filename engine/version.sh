@@ -79,7 +79,7 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
 	<name>$VERSION_NAME</name>
 	<version>$VERSION_MAJOR.$VERSION_MINOR.$VERSION_BUILD</version>
 	<release_date>$VERSION_DATE</release_date>
-	<coder>Damon Caskey, Plombo, SX, Utunnels</coder>
+	<coder>Damon Caskey, Plombo, SX, Utunnels, White Dragon</coder>
 	<short_description>The Ultimate 2D Game Engine</short_description>
 	<long_description>OpenBOR is a highly advanced continuation of Senile Team's semi-2D game engine, Beats Of Rage.  Visit http://www.ChronoCrash.com for all news, events, and releases of the engine and game modules.
 </app>" >> resources/meta.xml
