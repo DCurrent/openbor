@@ -106,8 +106,14 @@ HRESULT system_clearindexedvar(ScriptVariant **varlist , ScriptVariant **pretvar
 HRESULT system_free(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT system_typeof(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT math_sin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT math_ssin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT math_cos(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT math_scos(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT math_sqrt(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT math_pow(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT math_asin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT math_acos(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT math_atan(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_systemvariant(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changesystemvariant(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_drawstring(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

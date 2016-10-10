@@ -20,6 +20,7 @@
 #include <inttypes.h>
 #include <ctype.h>
 
+#include "omath.h"
 #include "utils.h"
 #include "safealloc.h"
 
