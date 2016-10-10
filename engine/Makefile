@@ -415,7 +415,8 @@ PNG             = source/pnglib/pngdec.o                                        
                   source/pnglib/savepng.o
 SOURCE	        = source/stringptr.o                                                                \
 				  source/utils.o                                                                    \
-                  source/stristr.o
+                  source/stristr.o																	\
+                  source/omath.o
 
 
 
@@ -521,7 +522,7 @@ OBJS            = $(MAIN)                                                       
                   $(RAND)                                                                           \
                   $(PNG)                                                                            \
                   $(WEBM)
-				  
+
 
 #----------------------------------------------------------------------------------------------------
 # Compiler Flags

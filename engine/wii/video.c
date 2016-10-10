@@ -40,8 +40,8 @@ static int stretch = 0;
 
 static int brightness = 0;
 static int brightness_update = 0;
-static int gamma = 0;
-static int gamma_update = 0;
+static int _gamma = 0;
+static int _gamma_update = 0;
 
 int xoffset, yoffset;
 int viewportWidth, viewportHeight; // resolution of TV screen
@@ -88,7 +88,7 @@ void video_gx_init()
 	GX_SetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XY, GX_F32, 0);
 	GX_SetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
 
-	/* set up Texture Environment (TEV), although the brightness/gamma adjustment
+	/* set up Texture Environment (TEV), although the brightness/_gamma adjustment
 	 * in video_render_screen() will override parts of this configuration later */
 	GX_SetNumChans(0);
 	GX_SetNumTexGens(1);
@@ -252,7 +252,7 @@ void video_draw_quad(int x, int y, int width, int height)
 int video_copy_screen(s_screen* src)
 {
 	whichtexture ^= 1;
-	
+
 	switch(bytes_per_pixel)
 	{
 	case 1: video_swizzle_simple(src->data, texturemem[whichtexture], src->width, src->height); break;
@@ -260,7 +260,7 @@ int video_copy_screen(s_screen* src)
 	case 4: copyscreen32(src); break;
 	default: assert(!"bytes_per_pixel not 1, 2, or 4");
 	}
-	
+
 	GX_DrawDone();
 
 	// use the currently inactive video buffer for the next frame
@@ -313,11 +313,11 @@ void video_stretch(int enable)
 }
 
 /**
- * Sets brightness and gamma correction.  Both are implemented using the
+ * Sets brightness and _gamma correction.  Both are implemented using the
  * Flipper/Hollywood's texture environment (TEV) unit.
  *
  * @param br the desired brightness
- * @param gm the desired gamma
+ * @param gm the desired _gamma
  */
 void video_set_color_correction(int gm, int br)
 {
@@ -332,10 +332,10 @@ void video_set_color_correction(int gm, int br)
 		brightness_update = 1;
 	}
 
-	if(gm != gamma)
+	if(gm != _gamma)
 	{
-		gamma = gm;
-		gamma_update = 1;
+		_gamma = gm;
+		_gamma_update = 1;
 	}
 
 	// update brightness correction if changed since last frame
@@ -354,12 +354,12 @@ void video_set_color_correction(int gm, int br)
 		GX_SetTevColorOp(GX_TEVSTAGE0, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV);
 	}
 
-	// update gamma correction if changed since last frame
-	if(gamma_update)
+	// update _gamma correction if changed since last frame
+	if(_gamma_update)
 	{
-		GXColor correction_color = {abs(gamma),abs(gamma),abs(gamma),abs(gamma)};
-		gamma_update = 0;
-		if(gamma == 0) GX_SetNumTevStages(1);
+		GXColor correction_color = {abs(_gamma),abs(_gamma),abs(_gamma),abs(_gamma)};
+		_gamma_update = 0;
+		if(_gamma == 0) GX_SetNumTevStages(1);
 		else
 		{
 			GX_SetNumTevStages(3);
@@ -369,9 +369,9 @@ void video_set_color_correction(int gm, int br)
 			GX_SetTevAlphaOp(GX_TEVSTAGE2, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV);
 			GX_SetTevColor(GX_TEVREG1, correction_color);
 
-			if(gamma > 0)
+			if(_gamma > 0)
 			{
-				// for gamma > 0, gammacorrect(c,g) = 1.0-((1.0-c)*(1.0-(c*g)))
+				// for _gamma > 0, _gammacorrect(c,g) = 1.0-((1.0-c)*(1.0-(c*g)))
 				// Stage 1: (1.0 - ((1.0-c)*0.0 + g*c))  = 1.0-(c*g)
 				// Stage 2: (1.0 - ((1.0-c)*prev + 0*c)) = 1.0-((1.0-c)*(1.0-(c*g)))
 				GX_SetTevColorIn(GX_TEVSTAGE1, GX_CC_ZERO, GX_CC_C1, GX_CC_CPREV, GX_CC_ONE);
@@ -381,7 +381,7 @@ void video_set_color_correction(int gm, int br)
 			}
 			else
 			{
-				// for gamma < 0, gammacorrect(c,g) = c*(1.0-((1.0-c)*g))
+				// for _gamma < 0, _gammacorrect(c,g) = c*(1.0-((1.0-c)*g))
 				// Stage 1: (1.0 - ((1.0-c)*g + 0.0*c))  =    1.0-((1.0-c)*g)
 				// Stage 2: (0.0 + ((1.0-c)*0 + prev*c)) = c*(1.0-((1.0-c)*g))
 				GX_SetTevColorIn(GX_TEVSTAGE1, GX_CC_C1, GX_CC_ZERO, GX_CC_CPREV, GX_CC_ONE);

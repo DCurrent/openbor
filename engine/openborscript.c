@@ -535,13 +535,37 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "sin";
     }
+    else if (functionRef == ((void *)math_ssin))
+    {
+        return "ssin";
+    }
     else if (functionRef == ((void *)math_cos))
     {
         return "cos";
     }
+    else if (functionRef == ((void *)math_scos))
+    {
+        return "scos";
+    }
     else if (functionRef == ((void *)math_sqrt))
     {
         return "sqrt";
+    }
+    else if (functionRef == ((void *)math_pow))
+    {
+        return "pow";
+    }
+    else if (functionRef == ((void *)math_asin))
+    {
+        return "asin";
+    }
+    else if (functionRef == ((void *)math_acos))
+    {
+        return "acos";
+    }
+    else if (functionRef == ((void *)math_atan))
+    {
+        return "atan";
     }
     else if (functionRef == ((void *)openbor_systemvariant))
     {
@@ -1263,9 +1287,21 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)math_sin, "sin");
     List_InsertAfter(&theFunctionList,
+                     (void *)math_ssin, "ssin");
+    List_InsertAfter(&theFunctionList,
                      (void *)math_cos, "cos");
     List_InsertAfter(&theFunctionList,
+                     (void *)math_scos, "scos");
+    List_InsertAfter(&theFunctionList,
                      (void *)math_sqrt, "sqrt");
+    List_InsertAfter(&theFunctionList,
+                     (void *)math_pow, "pow");
+    List_InsertAfter(&theFunctionList,
+                     (void *)math_asin, "asin");
+    List_InsertAfter(&theFunctionList,
+                     (void *)math_acos, "acos");
+    List_InsertAfter(&theFunctionList,
+                     (void *)math_atan, "atan");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_systemvariant, "openborvariant");
     List_InsertAfter(&theFunctionList,
@@ -1760,10 +1796,39 @@ HRESULT math_cos(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCou
     return E_FAIL;
 }
 
+HRESULT math_ssin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    DOUBLE dbltemp;
+
+    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[0], &dbltemp)))
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)sin(dbltemp);
+        return S_OK;
+    }
+    *pretvar = NULL;
+    return E_FAIL;
+}
+
+HRESULT math_scos(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    DOUBLE dbltemp;
+
+    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[0], &dbltemp)))
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)cos(dbltemp);
+        return S_OK;
+    }
+    *pretvar = NULL;
+    return E_FAIL;
+}
+
 HRESULT math_sqrt(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     DOUBLE dbltemp;
     float inv;
+
     if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[0], &dbltemp)))
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
@@ -1773,8 +1838,73 @@ HRESULT math_sqrt(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCo
         return S_OK;
     }
     *pretvar = NULL;
+
     return E_FAIL;
 }
+
+HRESULT math_pow(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    DOUBLE dbltempA, dbltempB;
+
+    if( SUCCEEDED(ScriptVariant_DecimalValue(varlist[0], &dbltempA)) && SUCCEEDED(ScriptVariant_DecimalValue(varlist[1], &dbltempB)) )
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = pow((double)dbltempA,(double)dbltempB);
+        return S_OK;
+    }
+    *pretvar = NULL;
+    return E_FAIL;
+}
+
+HRESULT math_asin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    DOUBLE dbltemp;
+
+    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[0], &dbltemp)))
+    {
+        double PI = 3.14159265;
+
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)(asin((double)dbltemp) * 180.0 / PI);
+        return S_OK;
+    }
+    *pretvar = NULL;
+    return E_FAIL;
+}
+
+HRESULT math_acos(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    DOUBLE dbltemp;
+
+    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[0], &dbltemp)))
+    {
+        double PI = 3.14159265;
+
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)(aacos((double)dbltemp) * 180.0 / PI);
+        return S_OK;
+    }
+    *pretvar = NULL;
+    return E_FAIL;
+}
+
+HRESULT math_atan(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    DOUBLE dbltemp;
+
+    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[0], &dbltemp)))
+    {
+        double PI = 3.14159265;
+
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)(aatan((double)dbltemp) * 180.0 / PI);
+        return S_OK;
+    }
+    *pretvar = NULL;
+    return E_FAIL;
+}
+
+
 //////////////////////////////////////////////////////////
 ////////////   openbor functions
 //////////////////////////////////////////////////////////

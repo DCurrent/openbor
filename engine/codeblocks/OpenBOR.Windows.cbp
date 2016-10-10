@@ -4,21 +4,21 @@
 	<Project>
 		<Option title="OpenBOR" />
 		<Option makefile_is_custom="1" />
-		<Option execution_dir="..\..\engine" />
+		<Option execution_dir="../../engine" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Debug">
-				<Option output="..\OpenBOR" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj\Debug\" />
+				<Option output="../OpenBOR" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
 				<Environment>
-					<Variable name="release" value="0" />
 					<Variable name="platform" value="BUILD_WIN=$(release)" />
+					<Variable name="release" value="0" />
 				</Environment>
 				<MakeCommands>
 					<Build command="..\tools\bin\make $platform" />
@@ -30,8 +30,8 @@
 				</MakeCommands>
 			</Target>
 			<Target title="Release">
-				<Option output="..\OpenBOR" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj\Release\" />
+				<Option output="../OpenBOR" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
@@ -41,8 +41,8 @@
 					<Add option="-s" />
 				</Linker>
 				<Environment>
-					<Variable name="release" value="1" />
 					<Variable name="platform" value="BUILD_WIN=$(release)" />
+					<Variable name="release" value="1" />
 				</Environment>
 				<MakeCommands>
 					<Build command="..\tools\bin\make $platform" />
@@ -57,275 +57,279 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
-		<Unit filename="..\openbor.c">
+		<Unit filename="../openbor.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\openbor.h" />
-		<Unit filename="..\openborscript.c">
+		<Unit filename="../openbor.h" />
+		<Unit filename="../openborscript.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\openborscript.h" />
-		<Unit filename="..\sdl\control.c">
+		<Unit filename="../openborscript.h" />
+		<Unit filename="../sdl/control.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\sdl\control.h" />
-		<Unit filename="..\sdl\hankaku.h" />
-		<Unit filename="..\sdl\joysticks.c">
+		<Unit filename="../sdl/control.h" />
+		<Unit filename="../sdl/hankaku.h" />
+		<Unit filename="../sdl/joysticks.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\sdl\joysticks.h" />
-		<Unit filename="..\sdl\loadgl.c">
+		<Unit filename="../sdl/joysticks.h" />
+		<Unit filename="../sdl/loadgl.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\sdl\loadgl.h" />
-		<Unit filename="..\sdl\menu.c">
+		<Unit filename="../sdl/loadgl.h" />
+		<Unit filename="../sdl/menu.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\sdl\menu.h" />
-		<Unit filename="..\sdl\opengl.c">
+		<Unit filename="../sdl/menu.h" />
+		<Unit filename="../sdl/opengl.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\sdl\opengl.h" />
-		<Unit filename="..\sdl\sblaster.c">
+		<Unit filename="../sdl/opengl.h" />
+		<Unit filename="../sdl/sblaster.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\sdl\sblaster.h" />
-		<Unit filename="..\sdl\sdlport.c">
+		<Unit filename="../sdl/sblaster.h" />
+		<Unit filename="../sdl/sdlport.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\sdl\sdlport.h" />
-		<Unit filename="..\sdl\timer.c">
+		<Unit filename="../sdl/sdlport.h" />
+		<Unit filename="../sdl/timer.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\sdl\vga.h" />
-		<Unit filename="..\sdl\video.c">
+		<Unit filename="../sdl/vga.h" />
+		<Unit filename="../sdl/video.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\sdl\video.h" />
-		<Unit filename="..\source\adpcmlib\adpcm.c">
+		<Unit filename="../sdl/video.h" />
+		<Unit filename="../source/adpcmlib/adpcm.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\adpcmlib\adpcm.h" />
-		<Unit filename="..\source\gamelib\anigif.c">
+		<Unit filename="../source/adpcmlib/adpcm.h" />
+		<Unit filename="../source/gamelib/anigif.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\anigif.h" />
-		<Unit filename="..\source\gamelib\bitmap.c">
+		<Unit filename="../source/gamelib/anigif.h" />
+		<Unit filename="../source/gamelib/bitmap.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\bitmap.h" />
-		<Unit filename="..\source\gamelib\borendian.h" />
-		<Unit filename="..\source\gamelib\draw.c">
+		<Unit filename="../source/gamelib/bitmap.h" />
+		<Unit filename="../source/gamelib/borendian.h" />
+		<Unit filename="../source/gamelib/draw.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\draw.h" />
-		<Unit filename="..\source\gamelib\draw16.c">
+		<Unit filename="../source/gamelib/draw.h" />
+		<Unit filename="../source/gamelib/draw16.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\draw32.c">
+		<Unit filename="../source/gamelib/draw32.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\filecache.c">
+		<Unit filename="../source/gamelib/filecache.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\filecache.h" />
-		<Unit filename="..\source\gamelib\filters.c">
+		<Unit filename="../source/gamelib/filecache.h" />
+		<Unit filename="../source/gamelib/filters.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\filters.h" />
-		<Unit filename="..\source\gamelib\font.c">
+		<Unit filename="../source/gamelib/filters.h" />
+		<Unit filename="../source/gamelib/font.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\font.h" />
-		<Unit filename="..\source\gamelib\loadimg.c">
+		<Unit filename="../source/gamelib/font.h" />
+		<Unit filename="../source/gamelib/loadimg.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\loadimg.h" />
-		<Unit filename="..\source\gamelib\packfile.c">
+		<Unit filename="../source/gamelib/loadimg.h" />
+		<Unit filename="../source/gamelib/packfile.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\packfile.h" />
-		<Unit filename="..\source\gamelib\palette.c">
+		<Unit filename="../source/gamelib/packfile.h" />
+		<Unit filename="../source/gamelib/palette.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\palette.h" />
-		<Unit filename="..\source\gamelib\pixelformat.c">
+		<Unit filename="../source/gamelib/palette.h" />
+		<Unit filename="../source/gamelib/pixelformat.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\screen.c">
+		<Unit filename="../source/gamelib/screen.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\screen.h" />
-		<Unit filename="..\source\gamelib\screen16.c">
+		<Unit filename="../source/gamelib/screen.h" />
+		<Unit filename="../source/gamelib/screen16.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\screen32.c">
+		<Unit filename="../source/gamelib/screen32.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\soundmix.c">
+		<Unit filename="../source/gamelib/soundmix.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\soundmix.h" />
-		<Unit filename="..\source\gamelib\sprite.c">
+		<Unit filename="../source/gamelib/soundmix.h" />
+		<Unit filename="../source/gamelib/sprite.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\sprite.h" />
-		<Unit filename="..\source\gamelib\spritef.c">
+		<Unit filename="../source/gamelib/sprite.h" />
+		<Unit filename="../source/gamelib/spritef.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\spriteq.c">
+		<Unit filename="../source/gamelib/spriteq.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\spriteq.h" />
-		<Unit filename="..\source\gamelib\spritex8p16.c">
+		<Unit filename="../source/gamelib/spriteq.h" />
+		<Unit filename="../source/gamelib/spritex8p16.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\spritex8p32.c">
+		<Unit filename="../source/gamelib/spritex8p32.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\ssprite.c">
+		<Unit filename="../source/gamelib/ssprite.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\ssprite.h" />
-		<Unit filename="..\source\gamelib\texture.c">
+		<Unit filename="../source/gamelib/ssprite.h" />
+		<Unit filename="../source/gamelib/texture.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\texture.h" />
-		<Unit filename="..\source\gamelib\texture16.c">
+		<Unit filename="../source/gamelib/texture.h" />
+		<Unit filename="../source/gamelib/texture16.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\texture32.c">
+		<Unit filename="../source/gamelib/texture32.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gamelib\timer.h" />
-		<Unit filename="..\source\gamelib\types.h" />
-		<Unit filename="..\source\gfxlib\2xSaI.c">
+		<Unit filename="../source/gamelib/timer.h" />
+		<Unit filename="../source/gamelib/types.h" />
+		<Unit filename="../source/gfxlib/2xSaI.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gfxlib\2xSaImmx.asm" />
-		<Unit filename="..\source\gfxlib\bilinear.c">
+		<Unit filename="../source/gfxlib/2xSaImmx.asm" />
+		<Unit filename="../source/gfxlib/bilinear.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gfxlib\bilinearmmx.asm" />
-		<Unit filename="..\source\gfxlib\dotmatrix.c">
+		<Unit filename="../source/gfxlib/bilinearmmx.asm" />
+		<Unit filename="../source/gfxlib/dotmatrix.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gfxlib\gfx.c">
+		<Unit filename="../source/gfxlib/gfx.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gfxlib\gfx.h" />
-		<Unit filename="..\source\gfxlib\gfxtypes.h" />
-		<Unit filename="..\source\gfxlib\hq2x.c">
+		<Unit filename="../source/gfxlib/gfx.h" />
+		<Unit filename="../source/gfxlib/gfxtypes.h" />
+		<Unit filename="../source/gfxlib/hq2x.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gfxlib\hq2x.h" />
-		<Unit filename="..\source\gfxlib\hq2x16mmx.asm" />
-		<Unit filename="..\source\gfxlib\interp.h" />
-		<Unit filename="..\source\gfxlib\lq2x.h" />
-		<Unit filename="..\source\gfxlib\macros.mac" />
-		<Unit filename="..\source\gfxlib\motionblur.c">
+		<Unit filename="../source/gfxlib/hq2x.h" />
+		<Unit filename="../source/gfxlib/hq2x16mmx.asm" />
+		<Unit filename="../source/gfxlib/interp.h" />
+		<Unit filename="../source/gfxlib/lq2x.h" />
+		<Unit filename="../source/gfxlib/macros.mac" />
+		<Unit filename="../source/gfxlib/motionblur.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gfxlib\scale2x.c">
+		<Unit filename="../source/gfxlib/scale2x.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gfxlib\scanline.c">
+		<Unit filename="../source/gfxlib/scanline.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gfxlib\simple2x.c">
+		<Unit filename="../source/gfxlib/simple2x.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\gfxlib\tv2x.c">
+		<Unit filename="../source/gfxlib/tv2x.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\globals.h" />
-		<Unit filename="..\source\pcxlib\savepcx.c">
+		<Unit filename="../source/globals.h" />
+		<Unit filename="../source/math.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\pcxlib\savepcx.h" />
-		<Unit filename="..\source\preprocessorlib\pp_lexer.c">
+		<Unit filename="../source/math.h" />
+		<Unit filename="../source/pcxlib/savepcx.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\preprocessorlib\pp_lexer.h" />
-		<Unit filename="..\source\preprocessorlib\pp_parser.c">
+		<Unit filename="../source/pcxlib/savepcx.h" />
+		<Unit filename="../source/preprocessorlib/pp_lexer.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\preprocessorlib\pp_parser.h" />
-		<Unit filename="..\source\ramlib\ram.c">
+		<Unit filename="../source/preprocessorlib/pp_lexer.h" />
+		<Unit filename="../source/preprocessorlib/pp_parser.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\ramlib\ram.h" />
-		<Unit filename="..\source\randlib\rand32.c">
+		<Unit filename="../source/preprocessorlib/pp_parser.h" />
+		<Unit filename="../source/ramlib/ram.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\randlib\rand32.h" />
-		<Unit filename="..\source\scriptlib\FirstFollow.h" />
-		<Unit filename="..\source\scriptlib\Instruction.c">
+		<Unit filename="../source/ramlib/ram.h" />
+		<Unit filename="../source/randlib/rand32.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\scriptlib\Instruction.h" />
-		<Unit filename="..\source\scriptlib\Interpreter.c">
+		<Unit filename="../source/randlib/rand32.h" />
+		<Unit filename="../source/scriptlib/FirstFollow.h" />
+		<Unit filename="../source/scriptlib/Instruction.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\scriptlib\Interpreter.h" />
-		<Unit filename="..\source\scriptlib\Lexer.c">
+		<Unit filename="../source/scriptlib/Instruction.h" />
+		<Unit filename="../source/scriptlib/Interpreter.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\scriptlib\Lexer.h" />
-		<Unit filename="..\source\scriptlib\List.c">
+		<Unit filename="../source/scriptlib/Interpreter.h" />
+		<Unit filename="../source/scriptlib/Lexer.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\scriptlib\List.h" />
-		<Unit filename="..\source\scriptlib\List_unittest.c">
+		<Unit filename="../source/scriptlib/Lexer.h" />
+		<Unit filename="../source/scriptlib/List.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\scriptlib\Parser.c">
+		<Unit filename="../source/scriptlib/List.h" />
+		<Unit filename="../source/scriptlib/List_unittest.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\scriptlib\Parser.h" />
-		<Unit filename="..\source\scriptlib\ParserSet.c">
+		<Unit filename="../source/scriptlib/Parser.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\scriptlib\ParserSet.h" />
-		<Unit filename="..\source\scriptlib\Productions.h" />
-		<Unit filename="..\source\scriptlib\ScriptVariant.c">
+		<Unit filename="../source/scriptlib/Parser.h" />
+		<Unit filename="../source/scriptlib/ParserSet.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\scriptlib\ScriptVariant.h" />
-		<Unit filename="..\source\scriptlib\Stack.c">
+		<Unit filename="../source/scriptlib/ParserSet.h" />
+		<Unit filename="../source/scriptlib/Productions.h" />
+		<Unit filename="../source/scriptlib/ScriptVariant.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\scriptlib\Stack.h" />
-		<Unit filename="..\source\scriptlib\StackedSymbolTable.c">
+		<Unit filename="../source/scriptlib/ScriptVariant.h" />
+		<Unit filename="../source/scriptlib/Stack.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\scriptlib\StackedSymbolTable.h" />
-		<Unit filename="..\source\scriptlib\SymbolTable.c">
+		<Unit filename="../source/scriptlib/Stack.h" />
+		<Unit filename="../source/scriptlib/StackedSymbolTable.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\scriptlib\SymbolTable.h" />
-		<Unit filename="..\source\scriptlib\depends.h" />
-		<Unit filename="..\source\stringptr.c">
+		<Unit filename="../source/scriptlib/StackedSymbolTable.h" />
+		<Unit filename="../source/scriptlib/SymbolTable.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\stringptr.h" />
-		<Unit filename="..\source\stristr.c">
+		<Unit filename="../source/scriptlib/SymbolTable.h" />
+		<Unit filename="../source/scriptlib/depends.h" />
+		<Unit filename="../source/stringptr.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\stristr.h" />
-		<Unit filename="..\source\tracelib\tracemalloc.c">
+		<Unit filename="../source/stringptr.h" />
+		<Unit filename="../source/stristr.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\tracelib\tracemalloc.h" />
-		<Unit filename="..\source\utils.c">
+		<Unit filename="../source/stristr.h" />
+		<Unit filename="../source/tracelib/tracemalloc.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\utils.h" />
-		<Unit filename="..\source\xpmlib\xpm.c">
+		<Unit filename="../source/tracelib/tracemalloc.h" />
+		<Unit filename="../source/utils.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\source\xpmlib\xpm.h" />
-		<Unit filename="..\version.h" />
+		<Unit filename="../source/utils.h" />
+		<Unit filename="../source/xpmlib/xpm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/xpmlib/xpm.h" />
+		<Unit filename="../version.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />
