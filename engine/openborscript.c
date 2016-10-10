@@ -935,6 +935,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "getentity";
     }
+    else if (functionRef == ((void *)openbor_hallfame))
+    {
+        return "hallfame";
+    }
     else if (functionRef == ((void *)openbor_loadmodel))
     {
         return "loadmodel";
@@ -1491,6 +1495,8 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_loadsprite, "loadsprite");
     List_InsertAfter(&theFunctionList,
+                     (void *)openbor_hallfame, "hallfame");
+    List_InsertAfter(&theFunctionList,
                      (void *)openbor_options, "options");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playgif, "playgif");
@@ -1917,6 +1923,7 @@ static const char *svlist[] =
     "background",
     "blockade",
     "branchname",
+    "cheats",
     "count_enemies",
     "count_entities",
     "count_npcs",
@@ -1939,12 +1946,12 @@ static const char *svlist[] =
     "hresolution",
     "in_cheat_options",
     "in_control_options",
+    "in_enginecreditsscreen",
     "in_gameoverscreen",
     "in_halloffamescreen",
     "in_level",
     "in_load_game",
     "in_menuscreen",
-    "in_enginecreditsscreen",
     "in_new_game",
     "in_options",
     "in_selectscreen",
@@ -17298,8 +17305,19 @@ loadsprite_error:
 // Call options menu, blocked
 HRESULT openbor_options(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    void options();
-    options();
+    //void options();
+
+    if ( is_cheat_actived() ) cheatoptions();
+    else options();
+
+    *pretvar = NULL;
+    return S_OK;
+}
+
+HRESULT openbor_hallfame(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    hallfame(0);
+
     *pretvar = NULL;
     return S_OK;
 }

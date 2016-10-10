@@ -216,6 +216,7 @@ HRESULT openbor_getentity(ScriptVariant **varlist , ScriptVariant **pretvar, int
 
 HRESULT openbor_loadmodel(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_loadsprite(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_hallfame(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_options(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_playgif(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_openanigif(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
@@ -272,6 +273,7 @@ enum systemvariant_enum
     _sv_background,
     _sv_blockade,
     _sv_branchname,
+    _sv_cheats,
     _sv_count_enemies,
     _sv_count_entities,
     _sv_count_npcs,
@@ -294,12 +296,12 @@ enum systemvariant_enum
     _sv_hResolution,
     _sv_in_cheat_options,
     _sv_in_control_options,
+    _sv_in_enginecreditsscreen,
     _sv_in_gameoverscreen,
     _sv_in_halloffamescreen,
     _sv_in_level,
     _sv_in_load_game,
     _sv_in_menuscreen,
-    _sv_in_enginecreditsscreen,
     _sv_in_new_game,
     _sv_in_options,
     _sv_in_selectscreen,
@@ -372,7 +374,7 @@ enum systemvariant_enum
     _sv_waiting,
     _sv_xpos,
     _sv_ypos,
-    _sv_the_end,
+    _sv_the_end
 };
 
 #endif

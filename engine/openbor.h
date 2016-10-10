@@ -2428,6 +2428,7 @@ void video_options();
 void options();
 void soundcard_options();
 void openborMain(int argc, char **argv);
+int is_cheat_actived();
 int getValidInt(char *text, char *file, char *cmd);
 float getValidFloat(char *text, char *file, char *cmd);
 int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck);
