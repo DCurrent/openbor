@@ -4828,7 +4828,7 @@ s_model *nextplayermodeln(s_model *current, int p)
     int i;
     s_set_entry *set = levelsets + current_set;
     s_model *model = nextplayermodel(current);
-    if(set->nosame)
+    if(set->nosame & 1)
     {
         for(i = 0; model && i < set->maxplayers; i++)
         {
@@ -4883,7 +4883,7 @@ s_model *prevplayermodeln(s_model *current, int p)
     int i;
     s_set_entry *set = levelsets + current_set;
     s_model *model = prevplayermodel(current);
-    if(set->nosame)
+    if(set->nosame & 1)
     {
         for(i = 0; model && i < set->maxplayers; i++)
         {
@@ -13662,15 +13662,54 @@ void updatestatus()
             }
             else if(player[i].playkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT))
             {
-                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(model, i - 1) : 0;
                 model = ((player[i].playkeys & FLAG_MOVELEFT) ? prevplayermodeln : nextplayermodeln)(model, i);
                 strcpy(player[i].name, model->name);
+
+                //player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(model, i - 1) : 0;
+                // NOSAME X 2
+                player[i].colourmap = 0;
+                if ( colourselect && (set->nosame & 2) )
+                {
+                    int ii = 0;
+                    for(ii = 0; ii < set->maxplayers; ii++)
+                    {
+                        if ( i != ii && stricmp(player[i].name,player[ii].name) == 0 )
+                        {
+                            if ( player[i].colourmap == player[ii].colourmap  )
+                            {
+                                player[i].colourmap = nextcolourmap(model,player[i].colourmap);
+                                ii = 0;
+                                continue;
+                            }
+                        } else continue;
+                    }
+                }
+                // NOSAME X 2
+
                 player[i].playkeys = 0;
             }
             // don't like a characters color try a new one!
             else if(player[i].playkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect)
             {
                 player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmap : prevcolourmap)(model, player[i].colourmap);
+                // NOSAME X 2
+                if ( colourselect && (set->nosame & 2) )
+                {
+                    int ii = 0;
+                    for(ii = 0; ii < set->maxplayers; ii++)
+                    {
+                        if ( i != ii && stricmp(player[i].name,player[ii].name) == 0 )
+                        {
+                            if ( player[i].colourmap == player[ii].colourmap  )
+                            {
+                                player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmap : prevcolourmap)(model, player[i].colourmap);
+                                ii = 0;
+                                continue;
+                            }
+                        } else continue;
+                    }
+                }
+                // NOSAME X 2
                 player[i].playkeys = 0;
             }
         }
@@ -13681,7 +13720,28 @@ void updatestatus()
                 player[i].lives = 0;
                 model = skipselect[i][0] ? findmodel(skipselect[i]) : nextplayermodeln(NULL, i);
                 strncpy(player[i].name, model->name, MAX_NAME_LEN);
-                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(model, i - 1) : 0;
+
+                //player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(model, i - 1) : 0;
+                // NOSAME X 2
+                player[i].colourmap = 0;
+                if ( colourselect && (set->nosame & 2) )
+                {
+                    int ii = 0;
+                    for(ii = 0; ii < set->maxplayers; ii++)
+                    {
+                        if ( i != ii && stricmp(player[i].name,player[ii].name) == 0 )
+                        {
+                            if ( player[i].colourmap == player[ii].colourmap  )
+                            {
+                                player[i].colourmap = nextcolourmap(model,player[i].colourmap);
+                                ii = 0;
+                                continue;
+                            }
+                        } else continue;
+                    }
+                }
+                // NOSAME X 2
+
                 player[i].joining = 1;
                 player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
 
