@@ -12239,6 +12239,11 @@ HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
         (*pretvar)->dblVal = (DOUBLE)atof(findarg(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos, argument));
     }
+    else if(stricmp(argtype, "byte") == 0)
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)(readByte(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos));
+    }
     else
     {
         printf("Invalid type for argument converted to (getfilestreamargument).\n");
@@ -12362,32 +12367,68 @@ HRESULT openbor_filestreamappend(ScriptVariant **varlist , ScriptVariant **pretv
     }
 
     arg = varlist[1];
-    ScriptVariant_ToString(arg, append);
 
-    len1 = strlen(append);
-    len2 = filestreams[filestreamindex].size;
+    /*
+     * By White Dragon to write a byte
+     */
+    if ( paramCount >= 4 )
+    {
+        char* argtype = NULL;
+        unsigned char byte = (unsigned char)0x00;
+        if ( varlist[3]->vt != VT_STR ) goto append_error;
 
-    filestreams[filestreamindex].buf = realloc(filestreams[filestreamindex].buf, sizeof(*temp) * (len1 + len2 + 4));
+        argtype = (char *)StrCache_Get(varlist[3]->strVal);
 
-    if(appendtype == 0)
+        if( stricmp(argtype, "byte") != 0 ) goto append_error;
+        else
+        {
+            int inc = -1; // if buf > 0 (prev bytes) you need to begin from size-1 (index)
+
+            len1 = 1+1; // +1 is the NULL to close the buffer
+            len2 = filestreams[filestreamindex].size;
+
+            filestreams[filestreamindex].buf = realloc( filestreams[filestreamindex].buf, sizeof(*temp)*(len1+len2+0) );
+
+            byte = (unsigned char)varlist[1]->lVal;
+            //printf("a:%s->%d->%d\n",filestreams[filestreamindex].buf,byte,filestreams[filestreamindex].size);
+
+            if ( len2 <= 0 ) inc = 0;
+
+            filestreams[filestreamindex].buf[filestreams[filestreamindex].size+inc] = byte; // overwrite 0x00 byte
+            filestreams[filestreamindex].buf[filestreams[filestreamindex].size+1+inc] = 0x00;
+            //printf("b:%s\n",filestreams[filestreamindex].buf);
+
+            filestreams[filestreamindex].size = len1 + len2;
+        }
+    } else
     {
-        append[len1] = ' ';
-        append[++len1] = '\0';
-        strcpy(filestreams[filestreamindex].buf + len2, "\r\n");
-        len2 += 2;
-        strcpy(filestreams[filestreamindex].buf + len2, append);
+        ScriptVariant_ToString(arg, append);
+
+        len1 = strlen(append);
+        len2 = filestreams[filestreamindex].size;
+
+        filestreams[filestreamindex].buf = realloc(filestreams[filestreamindex].buf, sizeof(*temp) * (len1 + len2 + 4));
+
+        if(appendtype == 0)
+        {
+            append[len1] = ' ';
+            append[++len1] = '\0';
+            strcpy(filestreams[filestreamindex].buf + len2, "\r\n");
+            len2 += 2;
+            strcpy(filestreams[filestreamindex].buf + len2, append);
+        }
+        else if(appendtype == 1)
+        {
+            append[len1] = ' ';
+            append[++len1] = '\0';
+            strcpy(filestreams[filestreamindex].buf + len2, append);
+        }
+        else
+        {
+            strcpy(filestreams[filestreamindex].buf + len2, append);
+        }
+        filestreams[filestreamindex].size = len1 + len2;
     }
-    else if(appendtype == 1)
-    {
-        append[len1] = ' ';
-        append[++len1] = '\0';
-        strcpy(filestreams[filestreamindex].buf + len2, append);
-    }
-    else
-    {
-        strcpy(filestreams[filestreamindex].buf + len2, append);
-    }
-    filestreams[filestreamindex].size = len1 + len2;
 
     return S_OK;
 
@@ -12431,6 +12472,7 @@ HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar
     int i;
     LONG filestreamindex;
     ScriptVariant *arg = NULL;
+    char *bytearg = NULL, *patharg = NULL;
     FILE *handle = NULL;
     char path[256] = {""};
     char tmpname[256] = {""};
@@ -12456,13 +12498,41 @@ HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar
         return E_FAIL;
     }
 
-    // Get the saves directory
-    getBasePath(path, "Saves", 0);
-    getPakName(tmpname, -1);
-    strcat(path, tmpname);
+    if (paramCount > 3)
+    {
+        patharg = (char *)StrCache_Get(varlist[3]->strVal);
+        if( varlist[3]->vt != VT_STR )
+        {
+            printf("The pathname parameter must be a string.\n");
+            return E_FAIL;
+        }
+    }
 
-    // Add user's filename to path and write the filestream to it
-    strcat(path, "/");
+    if (paramCount > 4)
+    {
+        bytearg = (char *)StrCache_Get(varlist[4]->strVal);
+        if( stricmp(bytearg, "byte") != 0 )
+        {
+            printf("%s parameter does not exist.\n",bytearg);
+            return E_FAIL;
+        }
+    }
+
+    // Get the saves directory
+    if ( paramCount <= 3 )
+    {
+        getBasePath(path, "Saves", 0);
+        getPakName(tmpname, -1);
+        strcat(path, tmpname);
+        // Add user's filename to path and write the filestream to it
+        strcat(path, "/");
+    } else
+    {
+        strcat(path, "./");
+        strcat(path, patharg);
+    }
+    //printf("path:%s\n",path);
+
     strcat(path, (char *)StrCache_Get(arg->strVal));
 
     for(i = strlen(path) - 1; i >= 0; i--)
@@ -12489,7 +12559,7 @@ HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar
     fwrite(filestreams[filestreamindex].buf, 1, strlen(filestreams[filestreamindex].buf), handle);
 
     // add blank line so it can be read successfully
-    fwrite("\r\n", 1, 2, handle);
+    if ( paramCount <= 4 || (paramCount > 4 && stricmp(bytearg, "byte") != 0 ) ) fwrite("\r\n", 1, 2, handle);
     fclose(handle);
 
     return S_OK;
