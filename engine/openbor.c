@@ -13666,7 +13666,7 @@ void updatestatus()
                 strcpy(player[i].name, model->name);
 
                 //player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(model, i - 1) : 0;
-                // NOSAME X 2
+                // NOSAME X 2 // By White Dragon
                 player[i].colourmap = 0;
                 if ( colourselect && (set->nosame & 2) )
                 {
@@ -13695,7 +13695,7 @@ void updatestatus()
             else if(player[i].playkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect)
             {
                 player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmap : prevcolourmap)(model, player[i].colourmap);
-                // NOSAME X 2
+                // NOSAME X 2 // By White Dragon
                 if ( colourselect && (set->nosame & 2) )
                 {
                     int nosamef = -1;
@@ -13728,7 +13728,7 @@ void updatestatus()
                 strncpy(player[i].name, model->name, MAX_NAME_LEN);
 
                 //player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(model, i - 1) : 0;
-                // NOSAME X 2
+                // NOSAME X 2 // By White Dragon
                 player[i].colourmap = 0;
                 if ( colourselect && (set->nosame & 2) )
                 {
@@ -29533,10 +29533,36 @@ int playlevel(char *filename)
 static entity *spawnexample(int i)
 {
     entity *example;
+    s_model *model = NULL;
     s_set_entry *set = levelsets + current_set;
     example = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodeln(NULL, i));
     strcpy(player[i].name, example->model->name);
-    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(example->model, i - 1) : 0;
+    model = example->model;
+
+    //player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(example->model, i - 1) : 0;
+    // NOSAME X 2 // By White Dragon
+    player[i].colourmap = 0;
+    if ( colourselect && (set->nosame & 2) )
+    {
+        int nosamef = -1;
+        int ii = 0;
+        for(ii = 0; ii < set->maxplayers; ii++)
+        {
+            if ( i != ii && stricmp(player[i].name,player[ii].name) == 0 )
+            {
+                if ( player[i].colourmap == player[ii].colourmap  )
+                {
+                    if ( nosamef == player[ii].colourmap ) break; // avoid infinite loop
+                    player[i].colourmap = nextcolourmap(model,player[i].colourmap);
+                    ii = 0;
+                    if ( nosamef == -1 ) nosamef = player[ii].colourmap;
+                    continue;
+                }
+            } else continue;
+        }
+    }
+    // NOSAME X 2
+
     ent_set_colourmap(example, player[i].colourmap);
     return example;
 }
