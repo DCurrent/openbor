@@ -13670,6 +13670,7 @@ void updatestatus()
                 player[i].colourmap = 0;
                 if ( colourselect && (set->nosame & 2) )
                 {
+                    int nosamef = -1;
                     int ii = 0;
                     for(ii = 0; ii < set->maxplayers; ii++)
                     {
@@ -13677,8 +13678,10 @@ void updatestatus()
                         {
                             if ( player[i].colourmap == player[ii].colourmap  )
                             {
+                                if ( nosamef == player[ii].colourmap ) break; // avoid infinite loop
                                 player[i].colourmap = nextcolourmap(model,player[i].colourmap);
                                 ii = 0;
+                                if ( nosamef == -1 ) nosamef = player[ii].colourmap;
                                 continue;
                             }
                         } else continue;
@@ -13695,6 +13698,7 @@ void updatestatus()
                 // NOSAME X 2
                 if ( colourselect && (set->nosame & 2) )
                 {
+                    int nosamef = -1;
                     int ii = 0;
                     for(ii = 0; ii < set->maxplayers; ii++)
                     {
@@ -13702,8 +13706,10 @@ void updatestatus()
                         {
                             if ( player[i].colourmap == player[ii].colourmap  )
                             {
+                                if ( nosamef == player[ii].colourmap ) break; // avoid infinite loop
                                 player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmap : prevcolourmap)(model, player[i].colourmap);
                                 ii = 0;
+                                if ( nosamef == -1 ) nosamef = player[ii].colourmap;
                                 continue;
                             }
                         } else continue;
@@ -13726,6 +13732,7 @@ void updatestatus()
                 player[i].colourmap = 0;
                 if ( colourselect && (set->nosame & 2) )
                 {
+                    int nosamef = -1;
                     int ii = 0;
                     for(ii = 0; ii < set->maxplayers; ii++)
                     {
@@ -13733,8 +13740,10 @@ void updatestatus()
                         {
                             if ( player[i].colourmap == player[ii].colourmap  )
                             {
+                                if ( nosamef == player[ii].colourmap ) break; // avoid infinite loop
                                 player[i].colourmap = nextcolourmap(model,player[i].colourmap);
                                 ii = 0;
+                                if ( nosamef == -1 ) nosamef = player[ii].colourmap;
                                 continue;
                             }
                         } else continue;
