@@ -283,6 +283,9 @@ int Varlist_DeleteByIndex(Varlist *array, int index)
         ScriptVariant_ChangeType(elem, VT_EMPTY);
         elem->ptrVal = NULL;
 
+        //realloc mem
+        array->vars = realloc((array->vars), sizeof(*(array->vars))*(array->vars->lVal+2));
+
         //printf("aaa: %s\n", (char*)StrCache_Get(elem->strVal) );
     }
 
@@ -5173,7 +5176,7 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
     else
     {
         DOUBLE value;
-        LONG lvalue, frame;
+        LONG lvalue; //, frame
         int okf = 0;
         s_attack *attack = NULL;
         s_anim *anim = NULL;
@@ -5192,22 +5195,18 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
             return E_FAIL;
         }
 
-        if(FAILED(ScriptVariant_IntegerValue(varlist[4], &frame)))
+        /*if(FAILED(ScriptVariant_IntegerValue(varlist[3], &frame)))
         {
             printf("You must give an integer value for frame.\n");
             return E_FAIL;
-        }
+        }*/
 
-        if( FAILED(ScriptVariant_DecimalValue(varlist[4], &value)) )
+        if( SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &value)) )
         {
-            if( FAILED(ScriptVariant_IntegerValue(varlist[4], &lvalue)) )
-            {
-                printf("You must give a number for value.\n");
-                return E_FAIL;
-            } else
-            {
-                value = (DOUBLE)lvalue;
-            }
+            //value = (DOUBLE)value;
+        } else if( SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &lvalue)) )
+        {
+            value = (DOUBLE)lvalue;
         }
 
         // Which animation property to get?
@@ -5226,7 +5225,7 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
-                    printf("You must provide a sub-property: changeanimationproperty({ent}, {animation id}, 'attack', {sub-property}, {frame_index})\n");
+                    printf("You must provide a sub-property: changeanimationproperty({ent}, {animation id}, 'attack', {sub-property}, {frame_index}, {value})\n");
                     result = E_FAIL;
                 }
                 else
@@ -5236,12 +5235,79 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                         case _PROP_ATTACK_BLAST:
                             if(varlist[4]->vt != VT_INTEGER)
                             {
-                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'blast', {frame_index})\n");
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'blast', {frame_index}, {value})\n");
                                 result = E_FAIL;
                                 break;
                             } else
                             {
                                 okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->blast = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_BLOCKFLASH:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'blockflash', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->blockflash = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_BLOCKSOUND:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'blocksound', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->blocksound = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_COORDS:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'coords', {subproperty}, {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            }
+
+                            if(varlist[5]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'coords', {subproperty}, {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[5]->lVal;
                             }
 
                             // without a optional frame_index it returns the 1st useful frame if it exists
@@ -5249,19 +5315,38 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                             if( anim->attacks ) {
                                 attack = anim->attacks[okf];
 
-                                if (attack) attack->blast = (LONG)value;
-                                else {
-                                    result = E_FAIL; break;
+                                if (attack)
+                                {
+                                    switch(varlist[4]->lVal)
+                                    {
+                                        case _PROP_ATTACK_COORDS_HEIGHT:
+                                            attack->attack_coords.height = (DOUBLE)value;
+                                            break;
+                                        case _PROP_ATTACK_COORDS_WIDTH:
+                                            attack->attack_coords.width = (DOUBLE)value;
+                                            break;
+                                        case _PROP_ATTACK_COORDS_X:
+                                            attack->attack_coords.x = (DOUBLE)value;
+                                            break;
+                                        case _PROP_ATTACK_COORDS_Y:
+                                            attack->attack_coords.y = (DOUBLE)value;
+                                            break;
+                                        case _PROP_ATTACK_COORDS_Z1:
+                                            attack->attack_coords.z1 = (DOUBLE)value;
+                                            break;
+                                        case _PROP_ATTACK_COORDS_Z2:
+                                            attack->attack_coords.z2 = (DOUBLE)value;
+                                            break;
+                                    }
                                 }
-                            } else {
-                                result = E_FAIL; break;
-                            }
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
 
                             break;
-                        case _PROP_ATTACK_RESET:
+                        case _PROP_ATTACK_COUNTERATTACK:
                             if(varlist[4]->vt != VT_INTEGER)
                             {
-                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'reset', {frame_index})\n");
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'counterattack', {frame_index}, {value})\n");
                                 result = E_FAIL;
                                 break;
                             } else
@@ -5269,21 +5354,781 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 okf = (int)varlist[4]->lVal;
                             }
 
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->counterattack = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_DIRECTION:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'direction', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->force_direction = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_DOL:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'dol', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->damage_on_landing = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_DOT:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'dot', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->dot = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_DOTFORCE:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'dotforce', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->dot_force = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_DOTINDEX:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'dotindex', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->dot_index = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_DOTRATE:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'dotrate', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->dot_rate = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_DOTTIME:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'dottime', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->dot_time = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_DROP:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'drop', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->attack_drop = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_DROPV:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'dropv', {subproperty}, {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            }
+
+                            if(varlist[5]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'dropv', {subproperty}, {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[5]->lVal;
+                            }
+
                             // without a optional frame_index it returns the 1st useful frame if it exists
                             anim = ent->modeldata.animation[id];
                             if( anim->attacks ) {
-                                **(anim->attacks) = emptyattack;
-                            } else {
-                                result = E_FAIL; break;
-                            }
+                                attack = anim->attacks[okf];
+
+                                if (attack)
+                                {
+                                    switch(varlist[4]->lVal)
+                                    {
+                                        case _PROP_ATTACK_DROPV_X:
+                                            attack->dropv.x = (DOUBLE)value;
+                                            break;
+                                        case _PROP_ATTACK_DROPV_Y:
+                                            attack->dropv.y = (DOUBLE)value;
+                                            break;
+                                        case _PROP_ATTACK_DROPV_Z:
+                                            attack->dropv.z = (DOUBLE)value;
+                                            break;
+                                    }
+                                }
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
 
                             break;
+                        case _PROP_ATTACK_FORCE:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'force', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->attack_force = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_FORCEMAP:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'forcemap', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->forcemap = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_FREEZE:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'freeze', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->freeze = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_FREEZETIME:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'freezetime', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->freezetime = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_GRAB:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'grab', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->grab = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_GRABDISTANCE:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'grabdistance', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->grab_distance = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_GUARDCOST:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'guardcost', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->guardcost = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_HITFLASH:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'hitflash', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->hitflash = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_HITSOUND:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'hitsound', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->hitsound = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_JUGGLECOST:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'jugglecost', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->jugglecost = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_MAPTIME:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'maptime', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->maptime = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_NOBLOCK:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'noblock', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->no_block = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_NOFLASH:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'noflash', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->no_flash = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_NOKILL:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'nokill', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->no_kill = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_NOPAIN: // this is NOREFLECT
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'nopain', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->no_pain = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_OTG:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'otg', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->otg = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_PAINTIME:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'paintime', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->pain_time = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_PAUSE:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'pause', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->pause_add = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_RESET:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'reset', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                **(anim->attacks) = emptyattack;
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_SEAL:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'seal', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->seal = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_SEALTIME:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'sealtime', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->sealtime = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_STAYDOWN:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'staydown', {subproperty}, {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            }
+
+                            if(varlist[5]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'staydown', {subproperty}, {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[5]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack)
+                                {
+                                    switch(varlist[4]->lVal)
+                                    {
+                                        case _PROP_ATTACK_STAYDOWN_RISE:
+                                            attack->staydown.rise = (DOUBLE)value;
+                                            break;
+                                        case _PROP_ATTACK_STAYDOWN_RISEATTACK:
+                                            attack->staydown.riseattack = (DOUBLE)value;
+                                            break;
+                                        case _PROP_ATTACK_STAYDOWN_RISEATTACK_STALL:
+                                            attack->staydown.riseattack_stall = (DOUBLE)value;
+                                            break;
+                                    }
+                                }
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_STEAL:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'steal', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->steal = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        case _PROP_ATTACK_TYPE:
+                        {
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'type', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->attack_type = (LONG)value;
+                                else { result = E_FAIL; break; }
+                            } else { result = E_FAIL; break; }
+
+                            break;
+                        }
                     }
                 }
                 break;
             /*
              * ################### END ATTACK PROPERTY ###################
              */
+            case _ANI_PROP_ATTACKONE:
+                ent->modeldata.animation[id]->attackone = (LONG)value;
+                break;
+            case _ANI_PROP_BBOX:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'bbox', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    if(varlist[4]->vt != VT_INTEGER)
+                    {
+                        printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'bbox', {sub-property}, {frame_index}, {value})\n");
+                        result = E_FAIL;
+                        break;
+                    } else
+                    {
+                        okf = (int)varlist[4]->lVal;
+                    }
+
+                    anim = ent->modeldata.animation[id];
+
+                    if ( !anim->bbox_coords )
+                    {
+                        result = E_FAIL;
+                        break;
+                    }
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_BBOX_HEIGHT:
+                            anim->bbox_coords[okf].height = (LONG)value;
+                            break;
+                        case _PROP_BBOX_WIDTH:
+                            anim->bbox_coords[okf].width = (LONG)value;
+                            break;
+                        case _PROP_BBOX_X:
+                            anim->bbox_coords[okf].x = (LONG)value;
+                            break;
+                        case _PROP_BBOX_Y:
+                            anim->bbox_coords[okf].y = (LONG)value;
+                            break;
+                        case _PROP_BBOX_Z1:
+                            anim->bbox_coords[okf].z1 = (LONG)value;
+                            break;
+                        case _PROP_BBOX_Z2:
+                            anim->bbox_coords[okf].z2 = (LONG)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_BOUNCE:
+                ent->modeldata.animation[id]->bounce = (LONG)value;
+                break;
+            case _ANI_PROP_CANCEL:
+                ent->modeldata.animation[id]->cancel = (LONG)value;
+                break;
             default:
                 *pretvar = NULL;
                 printf("Error: unsupported property in changeanimationproperty\n");
@@ -5887,6 +6732,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
 
                             break;
                         case _PROP_ATTACK_FASTATTACK:
+                            okf = 0;
                             anim = ent->modeldata.animation[id];
                             if (anim->attacks)
                             {
@@ -5897,8 +6743,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                                     {
                                         if (attack->pain_time)
                                         {
-                                            okf = 1;
-                                            break;
+                                            if ( attack->pain_time == GAME_SPEED / 20 ) { okf = 1; break; }
                                         }
                                     }
                                 }
@@ -12143,8 +12988,10 @@ HRESULT openbor_checkplatformbelow(ScriptVariant **varlist , ScriptVariant **pre
         return E_FAIL;
     }
 
-    ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-    (*pretvar)->dblVal = (DOUBLE)0;
+    //ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+    //(*pretvar)->dblVal = (DOUBLE)0;
+    ScriptVariant_ChangeType(*pretvar, VT_PTR);
+    (*pretvar)->ptrVal = (VOID *)NULL;
 
     arg = varlist[0];
     if(FAILED(ScriptVariant_DecimalValue(arg, &x)))
