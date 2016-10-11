@@ -3386,6 +3386,15 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
     return item;
 }
 
+int readByte(char *command)
+{
+    int num = 0;
+
+    num = (unsigned int)command[0]&0xFF;
+
+    return num;
+}
+
 char *findarg(char *command, int which)
 {
     static const char comment_mark[] = {"#"};
@@ -28277,7 +28286,8 @@ void display_credits()
     u32 finishtime = time + 10 * GAME_SPEED;
     int done = 0;
     int s = videomodes.vShift / 2 + 3;
-    int v = (videomodes.vRes - videomodes.vShift) / 23;
+    int v = (videomodes.vRes - videomodes.vShift) / 24;
+    int m = 0;
     int h = videomodes.hRes / 2;
     int col1 = h - fontmonowidth(0) * 16;
     int col2 = h + fontmonowidth(0) * 4;
@@ -28294,42 +28304,45 @@ void display_credits()
 
     while(!done)
     {
-        font_printf(_strmidx(2, "Credits"), s,   2, 0, "Credits");
-        font_printf(_strmidx(1, "Beats Of Rage"), s + v * 2,  1, 0, "Beats Of Rage");
-        font_printf(_strmidx(0, "Senile Team"), s + v * 3,  0, 0, "Senile Team");
+        m = 2;
 
-        font_printf(_strmidx(1, "OpenBOR"), s + v * 5,  1, 0, "OpenBOR");
-        font_printf(_strmidx(0, "SX"), s + v * 6,  0, 0, "SX");
-        font_printf(col1,  s + v * 7,  0, 0, "CGRemakes");
-        font_printf(col2, s + v * 7,  0, 0, "Fugue");
-        font_printf(col1,  s + v * 8,  0, 0, "uTunnels");
-        font_printf(col2, s + v * 8,  0, 0, "Kirby");
-        font_printf(col1,  s + v * 9,  0, 0, "LordBall");
-        font_printf(col2, s + v * 9,  0, 0, "Tails");
-        font_printf(col1,  s + v * 10, 0, 0, "KBAndressen");
-        font_printf(col2, s + v * 10, 0, 0, "Damon Caskey");
-        font_printf(col1,  s + v * 11, 0, 0, "Plombo");
-        font_printf(col2, s + v * 11, 0, 0, "Orochi_X");
+        font_printf(_strmidx(2, "Credits"), s,  2, 0, "Credits");
+        font_printf(_strmidx(1, "Beats Of Rage"), s + v * m,  1, 0, "Beats Of Rage"); ++m;
+        font_printf(_strmidx(0, "Senile Team"), s + v * m,  0, 0, "Senile Team"); m+=2;
 
-        font_printf(_strmidx(1, "Ports"), s + v * 12,  1, 0, "Ports");
-        font_printf(col1,  s + v * 13, 0, 0, "PSP/Linux/OSX");
-        font_printf(col2, s + v * 13, 0, 0, "SX");
-        font_printf(col1,  s + v * 14, 0, 0, "OpenDingux");
-        font_printf(col2, s + v * 14, 0, 0, "Shin-NiL");
-        font_printf(col1,  s + v * 15, 0, 0, "Windows");
-        font_printf(col2, s + v * 15, 0, 0, "SX & Nazo");
-        font_printf(col1,  s + v * 16, 0, 0, "GamePark");
-        font_printf(col2, s + v * 16, 0, 0, "SX & Lemon");
-        font_printf(col1,  s + v * 17, 0, 0, "DreamCast");
-        font_printf(col2, s + v * 17, 0, 0, "SX & Neill Corlett");
-        font_printf(col1,  s + v * 18, 0, 0, "Wii");
-        font_printf(col2, s + v * 18, 0, 0, "SX & Plombo");
-        font_printf(col1,  s + v * 19, 0, 0, "Android");
-        font_printf(col2, s + v * 19, 0, 0, "uTunnels & CRxTRDude");
+        font_printf(_strmidx(1, "OpenBOR"), s + v * m,  1, 0, "OpenBOR"); ++m;
+        font_printf(_strmidx(0, "SX"), s + v * m,  0, 0, "SX"); ++m;
+        font_printf(col1,  s + v * m,  0, 0, "CGRemakes");
+        font_printf(col2, s + v * m,  0, 0, "Fugue"); ++m;
+        font_printf(col1,  s + v * m,  0, 0, "uTunnels");
+        font_printf(col2, s + v * m,  0, 0, "Kirby"); ++m;
+        font_printf(col1,  s + v * m,  0, 0, "LordBall");
+        font_printf(col2, s + v * m,  0, 0, "Tails"); ++m;
+        font_printf(col1,  s + v * m, 0, 0, "KBAndressen");
+        font_printf(col2, s + v * m, 0, 0, "Damon Caskey"); ++m;
+        font_printf(col1,  s + v * m, 0, 0, "Plombo");
+        font_printf(col2, s + v * m, 0, 0, "Orochi_X");  ++m;
+        font_printf(col1, s + v * m, 0, 0, "White Dragon");  ++m;
 
-        font_printf(_strmidx(1, "Menu Design"), s + v * 20,  1, 0, "Menu Design");
-        font_printf(col1, s + v * 21,  0, 0, "SX");
-        font_printf(col2, s + v * 21, 0, 0, "Fightn Words");
+        font_printf(_strmidx(1, "Ports"), s + v * m,  1, 0, "Ports"); ++m;
+        font_printf(col1,  s + v * m, 0, 0, "PSP/Linux/OSX");
+        font_printf(col2, s + v * m, 0, 0, "SX"); ++m;
+        font_printf(col1,  s + v * m, 0, 0, "OpenDingux");
+        font_printf(col2, s + v * m, 0, 0, "Shin-NiL"); ++m;
+        font_printf(col1,  s + v * m, 0, 0, "Windows");
+        font_printf(col2, s + v * m, 0, 0, "SX & Nazo"); ++m;
+        font_printf(col1,  s + v * m, 0, 0, "GamePark");
+        font_printf(col2, s + v * m, 0, 0, "SX & Lemon"); ++m;
+        font_printf(col1,  s + v * m, 0, 0, "DreamCast");
+        font_printf(col2, s + v * m, 0, 0, "SX & Neill Corlett"); ++m;
+        font_printf(col1,  s + v * m, 0, 0, "Wii");
+        font_printf(col2, s + v * m, 0, 0, "SX & Plombo"); ++m;
+        font_printf(col1,  s + v * m, 0, 0, "Android");
+        font_printf(col2, s + v * m, 0, 0, "uTunnels & CRxTRDude"); ++m;
+
+        font_printf(_strmidx(1, "Menu Design"), s + v * m,  1, 0, "Menu Design"); ++m;
+        font_printf(col1, s + v * m,  0, 0, "SX");
+        font_printf(col2, s + v * m, 0, 0, "Fightn Words");
 
         update(2, 0);
 
