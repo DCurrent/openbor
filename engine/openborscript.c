@@ -234,6 +234,7 @@ int Varlist_SetByIndex(Varlist *varlist, int index, ScriptVariant *var)
     return 1;
 }
 
+// By White Dragon
 int Varlist_AddByIndex(Varlist *array, int index, ScriptVariant *var)
 {
     if(index < 0 || index >= array->vars->lVal+1)
@@ -260,6 +261,7 @@ int Varlist_AddByIndex(Varlist *array, int index, ScriptVariant *var)
     return 1;
 }
 
+// By White Dragon
 int Varlist_DeleteByIndex(Varlist *array, int index)
 {
     if(index < 0 || index >= array->vars->lVal)
@@ -292,6 +294,7 @@ int Varlist_DeleteByIndex(Varlist *array, int index)
     return 1;
 }
 
+// By White Dragon
 int Varlist_DeleteByName(Varlist *array, char *theName)
 {
     if(!theName || !theName[0])
@@ -1443,7 +1446,7 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getanimationproperty, "getanimationproperty");
     List_InsertAfter(&theFunctionList,
-                     (void *)openbor_getanimationproperty, "changeanimationproperty");
+                     (void *)openbor_changeanimationproperty, "changeanimationproperty");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getentityproperty, "getentityproperty");
     List_InsertAfter(&theFunctionList,
@@ -3703,6 +3706,7 @@ typedef enum animationprop_enum
     _ANI_PROP_SOUNDTOPLAY,
     _ANI_PROP_SPAWNFRAME,   // SUB Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
     _ANI_PROP_SPRITE,
+    _ANI_PROP_SPRITEA,
     _ANI_PROP_SUBENTITY,    // Store the sub-entity's name for further use
     _ANI_PROP_SUMMONFRAME,  // SUB Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
     _ANI_PROP_SYNC,         // sychronize frame to previous animation if they matches
@@ -3748,6 +3752,7 @@ static const char *list_animation_prop[] =
     "soundtoplay",
     "spawnframe",
     "sprite",
+    "spritea",
     "subentity",
     "summonframe",
     "sync",
@@ -4031,6 +4036,17 @@ enum _prop_spawnframe_enum
     _PROP_SPAWNFRAME_Y,
     _PROP_SPAWNFRAME_Z,
     _PROP_SPAWNFRAME_THE_END
+};
+
+enum _prop_spritea_enum
+{
+    _PROP_SPRITEA_CENTERX,
+    _PROP_SPRITEA_CENTERY,
+    _PROP_SPRITEA_FILE,
+    _PROP_SPRITEA_OFFSETX,
+    _PROP_SPRITEA_OFFSETY,
+    _PROP_SPRITEA_SPRITE,
+    _PROP_SPRITEA_THE_END
 };
 
 enum _prop_summonframe_enum
@@ -4500,6 +4516,16 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
         "z"
     };
 
+    static const char *proplist_spritea[] =
+    {
+        "centerx",
+        "centery",
+        "file",
+        "offsetx",
+        "offsety",
+        "sprite"
+    };
+
     static const char *proplist_summonframe[] =
     {
         "frame",
@@ -4774,6 +4800,17 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
                                _is_not_a_known_subproperty_of_, aps);
                     ap = varlist[3]->lVal;
                     aps = (ap < _PROP_SPAWNFRAME_THE_END && ap >= 0) ? proplist_spawnframe[ap] : "";
+                }
+                break;
+            }
+            case _ANI_PROP_SPRITEA:
+            {
+                if(paramCount > 3)
+                {
+                    MAPSTRINGS(varlist[3], proplist_spritea, _PROP_SPRITEA_THE_END,
+                               _is_not_a_known_subproperty_of_, aps);
+                    ap = varlist[3]->lVal;
+                    aps = (ap < _PROP_SPRITEA_THE_END && ap >= 0) ? proplist_spritea[ap] : "";
                 }
                 break;
             }
@@ -5166,7 +5203,7 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
     mapstrings_animationproperty(varlist, paramCount);
 
     // Verify incoming parameters.
-    if(paramCount < 5
+    if(paramCount < 4
        || varlist[1]->vt != VT_INTEGER
        || varlist[2]->vt != VT_INTEGER)
     {
@@ -5177,7 +5214,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
     {
         DOUBLE value;
         LONG lvalue; //, frame
-        int okf = 0;
+        LONG okf = 0;
+        LONG value_index = 0;
         s_attack *attack = NULL;
         s_anim *anim = NULL;
         //s_sprite *spr = NULL;
@@ -5188,6 +5226,9 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
         ent         = (entity *)varlist[0]->ptrVal;
         id          = varlist[1]->lVal;
         property    = varlist[2]->lVal;
+
+        // Most values returned will be integers. Set here for less repetition.
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
         if(varlist[2]->vt != VT_INTEGER)
         {
@@ -5201,10 +5242,12 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
             return E_FAIL;
         }*/
 
-        if( SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &value)) )
+        // search and set the input value
+        value_index = paramCount-1;
+        if( SUCCEEDED(ScriptVariant_DecimalValue(varlist[value_index], &value)) )
         {
             //value = (DOUBLE)value;
-        } else if( SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &lvalue)) )
+        } else if( SUCCEEDED(ScriptVariant_IntegerValue(varlist[value_index], &lvalue)) )
         {
             value = (DOUBLE)lvalue;
         }
@@ -5248,8 +5291,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->blast = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_BLOCKFLASH:
@@ -5268,8 +5311,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->blockflash = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_BLOCKSOUND:
@@ -5288,8 +5331,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->blocksound = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_COORDS:
@@ -5339,8 +5382,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                             break;
                                     }
                                 }
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_COUNTERATTACK:
@@ -5359,8 +5402,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->counterattack = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_DIRECTION:
@@ -5379,8 +5422,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->force_direction = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_DOL:
@@ -5399,8 +5442,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->damage_on_landing = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_DOT:
@@ -5419,8 +5462,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->dot = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_DOTFORCE:
@@ -5439,8 +5482,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->dot_force = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_DOTINDEX:
@@ -5459,8 +5502,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->dot_index = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_DOTRATE:
@@ -5479,8 +5522,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->dot_rate = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_DOTTIME:
@@ -5499,8 +5542,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->dot_time = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_DROP:
@@ -5519,8 +5562,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->attack_drop = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_DROPV:
@@ -5561,8 +5604,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                             break;
                                     }
                                 }
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_FORCE:
@@ -5581,8 +5624,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->attack_force = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_FORCEMAP:
@@ -5601,8 +5644,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->forcemap = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_FREEZE:
@@ -5621,8 +5664,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->freeze = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_FREEZETIME:
@@ -5641,8 +5684,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->freezetime = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_GRAB:
@@ -5661,8 +5704,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->grab = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_GRABDISTANCE:
@@ -5681,8 +5724,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->grab_distance = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_GUARDCOST:
@@ -5701,8 +5744,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->guardcost = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_HITFLASH:
@@ -5721,8 +5764,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->hitflash = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_HITSOUND:
@@ -5741,8 +5784,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->hitsound = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_JUGGLECOST:
@@ -5761,8 +5804,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->jugglecost = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_MAPTIME:
@@ -5781,8 +5824,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->maptime = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_NOBLOCK:
@@ -5801,8 +5844,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->no_block = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_NOFLASH:
@@ -5821,8 +5864,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->no_flash = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_NOKILL:
@@ -5841,8 +5884,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->no_kill = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_NOPAIN: // this is NOREFLECT
@@ -5861,8 +5904,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->no_pain = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_OTG:
@@ -5881,8 +5924,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->otg = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_PAINTIME:
@@ -5901,8 +5944,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->pain_time = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_PAUSE:
@@ -5921,8 +5964,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->pause_add = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_RESET:
@@ -5939,7 +5982,7 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                             anim = ent->modeldata.animation[id];
                             if( anim->attacks ) {
                                 **(anim->attacks) = emptyattack;
-                            } else { result = E_FAIL; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_SEAL:
@@ -5958,8 +6001,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->seal = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_SEALTIME:
@@ -5978,8 +6021,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->sealtime = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_STAYDOWN:
@@ -6019,8 +6062,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                             break;
                                     }
                                 }
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_STEAL:
@@ -6039,8 +6082,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->steal = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         case _PROP_ATTACK_TYPE:
@@ -6060,8 +6103,8 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                                 attack = anim->attacks[okf];
 
                                 if (attack) attack->attack_type = (LONG)value;
-                                else { result = E_FAIL; break; }
-                            } else { result = E_FAIL; break; }
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
                         }
@@ -6097,7 +6140,7 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
 
                     if ( !anim->bbox_coords )
                     {
-                        result = E_FAIL;
+                        (*pretvar)->lVal = (LONG)-1;
                         break;
                     }
                     switch(varlist[3]->lVal)
@@ -6128,6 +6171,933 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                 break;
             case _ANI_PROP_CANCEL:
                 ent->modeldata.animation[id]->cancel = (LONG)value;
+                break;
+            case _ANI_PROP_COUNTERRANGE:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'counterrange', {sub-property}, {frame_index}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_COUNTERRANGE_CONDITION:
+                            ent->modeldata.animation[id]->counterrange.condition = (LONG)value;
+                            break;
+                        case _PROP_COUNTERRANGE_DAMAGED:
+                            ent->modeldata.animation[id]->counterrange.damaged = (LONG)value;
+                            break;
+                        case _PROP_COUNTERRANGE_FRAME_MIN:
+                            ent->modeldata.animation[id]->counterrange.frame.min = (LONG)value;
+                            break;
+                        case _PROP_COUNTERRANGE_FRAME_MAX:
+                            ent->modeldata.animation[id]->counterrange.frame.min = (LONG)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_CHARGETIME:
+                ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+                ent->modeldata.animation[id]->chargetime = (DOUBLE)value;
+                break;
+            case _ANI_PROP_DELAY:
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'delay', {frame_index}, {value})\n");
+                    result = E_FAIL;
+                    break;
+                } else
+                {
+                    okf = (int)varlist[3]->lVal;
+                }
+
+                anim = ent->modeldata.animation[id];
+                if( anim->delay[okf] ) {
+                    anim->delay[okf] = (LONG)value; // = delay * GAME_SPEED / 100;
+                } else { (*pretvar)->lVal = (LONG)-1; break; }
+
+                break;
+            case _ANI_PROP_DRAWMETHODS:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'drawmethods', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    s_drawmethod *pmethod = NULL;
+
+                    if(varlist[4]->vt != VT_INTEGER)
+                    {
+                        printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'drawmethods', {sub-property}, {frame_index}, {value})\n");
+                        result = E_FAIL;
+                        break;
+                    } else
+                    {
+                        okf = (int)varlist[4]->lVal;
+                    }
+
+                    anim = ent->modeldata.animation[id];
+
+                    if ( !anim->drawmethods )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
+                        break;
+                    }
+                    if ( !anim->drawmethods[okf] )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
+                        break;
+                    }
+
+                    pmethod = anim->drawmethods[okf];
+
+                    switch(varlist[3]->lVal)
+                    {
+                        case _dm_alpha:
+                            pmethod->alpha = (LONG)value;
+                            break;
+                        case _dm_amplitude:
+                            pmethod->water.amplitude = (LONG)value;
+                            break;
+                        case _dm_beginsize:
+                            pmethod->water.beginsize = (DOUBLE)value;
+                            break;
+                        case _dm_centerx:
+                            pmethod->centerx = (LONG)value;
+                            break;
+                        case _dm_centery:
+                            pmethod->centery = (LONG)value;
+                            break;
+                        case _dm_channelb:
+                            pmethod->channelb = (LONG)value;
+                            break;
+                        case _dm_channelg:
+                            pmethod->channelg = (LONG)value;
+                            break;
+                        case _dm_channelr:
+                            pmethod->channelr = (LONG)value;
+                            break;
+                        case _dm_clip:
+                            if(paramCount < 9)
+                            {
+                                return E_FAIL;
+                            }
+                            pmethod->clipx = (LONG)varlist[value_index-3]->lVal;
+                            pmethod->clipy = (LONG)varlist[value_index-2]->lVal;
+                            pmethod->clipw = (LONG)varlist[value_index-1]->lVal;
+                            pmethod->cliph = (LONG)varlist[value_index-0]->lVal;
+                            break;
+                        case _dm_clipx:
+                            pmethod->clipx = (LONG)value;
+                            break;
+                        case _dm_clipy:
+                            pmethod->clipy = (LONG)value;
+                            break;
+                        case _dm_clipw:
+                            pmethod->clipw = (LONG)value;
+                            break;
+                        case _dm_cliph:
+                            pmethod->cliph = (LONG)value;
+                            break;
+                        case _dm_enabled:
+                        case _dm_flag:
+                            pmethod->flag = (LONG)value;
+                            break;
+                        case _dm_endsize:
+                            pmethod->water.endsize = (DOUBLE)value;
+                            break;
+                        case _dm_fillcolor:
+                            pmethod->fillcolor = (LONG)value;
+                            break;
+                        case _dm_fliprotate:
+                            pmethod->fliprotate = (LONG)value;
+                            break;
+                        case _dm_flipx:
+                            pmethod->flipx = (LONG)value;
+                            break;
+                        case _dm_flipy:
+                            pmethod->flipy = (LONG)value;
+                            break;
+                        case _dm_perspective:
+                            pmethod->water.perspective = (LONG)value;
+                            break;
+                        case _dm_remap:
+                            pmethod->remap = (LONG)value;
+                            break;
+                        case _dm_reset:
+                            if( (LONG)value )
+                            {
+                                *pmethod = plainmethod;
+                            }
+                            break;
+                        case _dm_rotate:
+                            pmethod->rotate = (LONG)value;
+                            break;
+                        case _dm_scalex:
+                            pmethod->scalex = (LONG)value;
+                            break;
+                        case _dm_scaley:
+                            pmethod->scaley = (LONG)value;
+                            break;
+                        case _dm_shiftx:
+                            pmethod->shiftx = (LONG)value;
+                            break;
+                        case _dm_table:
+                            if(varlist[value_index]->vt != VT_PTR && varlist[value_index]->vt != VT_EMPTY )
+                            {
+                                return E_FAIL;
+                            }
+                            pmethod->table = (void *)varlist[value_index]->ptrVal;
+                            break;
+                        case _dm_tintmode:
+                            pmethod->tintmode = (LONG)value;
+                            break;
+                        case _dm_tintcolor:
+                            pmethod->tintcolor = (LONG)value;
+                            break;
+                        case _dm_transbg:
+                            pmethod->transbg = (LONG)value;
+                            break;
+                        case _dm_watermode:
+                            pmethod->water.watermode = (LONG)value;
+                            break;
+                        case _dm_wavelength:
+                            pmethod->water.wavelength = (DOUBLE)value;
+                            break;
+                        case _dm_wavespeed:
+                            pmethod->water.wavespeed = (DOUBLE)value;
+                            break;
+                        case _dm_wavetime:
+                            pmethod->water.wavetime = (LONG)((LONG)value * pmethod->water.wavespeed);
+                            break;
+                        case _dm_xrepeat:
+                            pmethod->xrepeat = (LONG)value;
+                            break;
+                        case _dm_yrepeat:
+                            pmethod->yrepeat = (LONG)value;
+                            break;
+                        case _dm_xspan:
+                            pmethod->xspan = (LONG)value;
+                            break;
+                        case _dm_yspan:
+                            pmethod->yspan = (LONG)value;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_DROPFRAME:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'dropframe', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_DROPFRAME_FRAME:
+                            ent->modeldata.animation[id]->dropframe.frame = (LONG)value;
+                            break;
+                        case _PROP_DROPFRAME_VELOCITY_X:
+                            ent->modeldata.animation[id]->dropframe.velocity.x = (DOUBLE)value;
+                            break;
+                        case _PROP_DROPFRAME_VELOCITY_Y:
+                            ent->modeldata.animation[id]->dropframe.velocity.y = (DOUBLE)value;
+                            break;
+                        case _PROP_DROPFRAME_VELOCITY_Z:
+                            ent->modeldata.animation[id]->dropframe.velocity.z = (DOUBLE)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_ENERGYCOST:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'energycost', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _ep_energycost_cost:
+                            ent->modeldata.animation[id]->energycost.cost = (LONG)value;
+                            break;
+                        case _ep_energycost_disable:
+                            ent->modeldata.animation[id]->energycost.disable = (LONG)value;
+                            break;
+                        case _ep_energycost_mponly:
+                            ent->modeldata.animation[id]->energycost.mponly = (LONG)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_FLIPFRAME:
+                ent->modeldata.animation[id]->flipframe = (LONG)value;
+                break;
+            case _ANI_PROP_FOLLOWUP:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'followup', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_FOLLOWUP_ANIMATION:
+                            ent->modeldata.animation[id]->followup.animation = (LONG)value;
+                            break;
+                        case _PROP_FOLLOWUP_CONDITION:
+                            ent->modeldata.animation[id]->followup.condition = (LONG)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_IDLE:
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'idle', {frame_index}, {value})\n");
+                    result = E_FAIL;
+                    break;
+                } else
+                {
+                    okf = (int)varlist[3]->lVal;
+                }
+
+                anim = ent->modeldata.animation[id];
+                if( anim->idle[okf] ) {
+                    anim->idle[okf] = (LONG)value;
+                } else { (*pretvar)->lVal = (LONG)-1; break; }
+
+                break;
+            case _ANI_PROP_INDEX:
+                ent->modeldata.animation[id]->index = (LONG)value;
+                break;
+            case _ANI_PROP_JUMPFRAME:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'jumpframe', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_JUMPFRAME_FRAME:
+                            ent->modeldata.animation[id]->jumpframe.frame = (LONG)value;
+                            break;
+                        case _PROP_JUMPFRAME_VELOCITY_X:
+                            ent->modeldata.animation[id]->jumpframe.velocity.x = (DOUBLE)value;
+                            break;
+                        case _PROP_JUMPFRAME_VELOCITY_Y:
+                            ent->modeldata.animation[id]->jumpframe.velocity.y = (DOUBLE)value;
+                            break;
+                        case _PROP_JUMPFRAME_VELOCITY_Z:
+                            ent->modeldata.animation[id]->jumpframe.velocity.z = (DOUBLE)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_LANDFRAME:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'landframe', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_DROPFRAME_FRAME:
+                            ent->modeldata.animation[id]->landframe.frame = (LONG)value;
+                            break;
+                        case _PROP_DROPFRAME_VELOCITY_X:
+                            ent->modeldata.animation[id]->landframe.velocity.x = (DOUBLE)value;
+                            break;
+                        case _PROP_DROPFRAME_VELOCITY_Y:
+                            ent->modeldata.animation[id]->landframe.velocity.y = (DOUBLE)value;
+                            break;
+                        case _PROP_DROPFRAME_VELOCITY_Z:
+                            ent->modeldata.animation[id]->landframe.velocity.z = (DOUBLE)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_LOOP:         // Animation looping. 2011_03_31, DC: Moved to struct.
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'loop', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_LOOP_MODE:
+                            ent->modeldata.animation[id]->loop.mode = (LONG)value;
+                            break;
+                        case _PROP_LOOP_FRAME_MIN:
+                            ent->modeldata.animation[id]->loop.frame.min = (LONG)value;
+                            break;
+                        case _PROP_LOOP_FRAME_MAX:
+                            ent->modeldata.animation[id]->loop.frame.max = (LONG)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_MODEL_INDEX:
+                ent->modeldata.animation[id]->model_index = (LONG)value;
+                break;
+            case _ANI_PROP_MOVE:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'move', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    if(varlist[4]->vt != VT_INTEGER)
+                    {
+                        printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'move', {sub-property}, {frame_index}, {value})\n");
+                        result = E_FAIL;
+                        break;
+                    } else
+                    {
+                        okf = (int)varlist[4]->lVal;
+                    }
+
+                    anim = ent->modeldata.animation[id];
+
+                    if ( !anim->move )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
+                        break;
+                    }
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_MOVE_BASE:
+                            anim->move[okf]->base = (DOUBLE)value; // this is SETA
+                            break;
+                        case _PROP_MOVE_X:
+                            anim->move[okf]->x = (DOUBLE)value;
+                            break;
+                        case _PROP_MOVE_Y:
+                            anim->move[okf]->y = (DOUBLE)value;
+                            break;
+                        case _PROP_MOVE_Z:
+                            anim->move[okf]->z = (DOUBLE)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_NUMFRAMES:
+                ent->modeldata.animation[id]->numframes = (LONG)value;
+                break;
+            case _ANI_PROP_OFFSET:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'offset', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    if(varlist[4]->vt != VT_INTEGER)
+                    {
+                        printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'offset', {sub-property}, {frame_index}, {value})\n");
+                        result = E_FAIL;
+                        break;
+                    } else
+                    {
+                        okf = (int)varlist[4]->lVal;
+                    }
+
+                    anim = ent->modeldata.animation[id];
+
+                    if ( !anim->offset )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
+                        break;
+                    }
+                    if ( !anim->offset[okf] )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
+                        break;
+                    }
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_OFFSET_X:
+                            anim->offset[okf][0] = (LONG)value;
+                            break;
+                        case _PROP_OFFSET_Y:
+                            anim->offset[okf][1] = (LONG)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_PLATFORM:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'platform', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    if(varlist[4]->vt != VT_INTEGER)
+                    {
+                        printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'platform', {sub-property}, {frame_index}, {value})\n");
+                        result = E_FAIL;
+                        break;
+                    } else
+                    {
+                        okf = (int)varlist[4]->lVal;
+                    }
+
+                    anim = ent->modeldata.animation[id];
+
+                    if ( !anim->platform )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
+                        break;
+                    }
+                    if ( !anim->platform[okf] )
+                    {
+                        (*pretvar)->lVal = (LONG)-1;
+                        break;
+                    }
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_PLATFORM_X:
+                            ent->modeldata.animation[id]->platform[okf][0] = (DOUBLE)value;
+                            break;
+                        case _PROP_PLATFORM_Z:
+                            ent->modeldata.animation[id]->platform[okf][1] = (DOUBLE)value;
+                            break;
+                        case _PROP_PLATFORM_UPPERLEFT:
+                            ent->modeldata.animation[id]->platform[okf][2] = (DOUBLE)value;
+                            break;
+                        case _PROP_PLATFORM_LOWERLEFT:
+                            ent->modeldata.animation[id]->platform[okf][3] = (DOUBLE)value;
+                            break;
+                        case _PROP_PLATFORM_UPPERRIGHT:
+                            ent->modeldata.animation[id]->platform[okf][4] = (DOUBLE)value;
+                            break;
+                        case _PROP_PLATFORM_LOWERRIGHT:
+                            ent->modeldata.animation[id]->platform[okf][5] = (DOUBLE)value;
+                            break;
+                        case _PROP_PLATFORM_DEPTH:
+                            ent->modeldata.animation[id]->platform[okf][6] = (DOUBLE)value;
+                            break;
+                        case _PROP_PLATFORM_ALT:
+                            ent->modeldata.animation[id]->platform[okf][7] = (DOUBLE)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_PROJECTILE:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'projectile', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_PROJECTILE_BOMB:
+                            ent->modeldata.animation[id]->projectile.bomb = (LONG)value;
+                            break;
+                        case _PROP_PROJECTILE_FLASH:
+                            ent->modeldata.animation[id]->projectile.flash = (LONG)value;
+                            break;
+                        case _PROP_PROJECTILE_KNIFE:
+                            ent->modeldata.animation[id]->projectile.knife = (LONG)value;
+                            break;
+                        case _PROP_PROJECTILE_STAR:
+                            ent->modeldata.animation[id]->projectile.star = (LONG)value;
+                            break;
+                        case _PROP_PROJECTILE_SHOOTFRAME:
+                            ent->modeldata.animation[id]->projectile.shootframe = (LONG)value;
+                            break;
+                        case _PROP_PROJECTILE_TOSSFRAME:
+                            ent->modeldata.animation[id]->projectile.tossframe = (LONG)value;
+                            break;
+                        case _PROP_PROJECTILE_THROWFRAME:
+                            ent->modeldata.animation[id]->projectile.throwframe = (LONG)value;
+                            break;
+                        case _PROP_PROJECTILE_THROWPOSITION_BASE:
+                            ent->modeldata.animation[id]->projectile.position.base = (DOUBLE)value;
+                            break;
+                        case _PROP_PROJECTILE_THROWPOSITION_X:
+                            ent->modeldata.animation[id]->projectile.position.x = (DOUBLE)value;
+                            break;
+                        case _PROP_PROJECTILE_THROWPOSITION_Y:
+                            ent->modeldata.animation[id]->projectile.position.y = (DOUBLE)value;
+                            break;
+                        case _PROP_PROJECTILE_THROWPOSITION_Z:
+                            ent->modeldata.animation[id]->projectile.position.z = (DOUBLE)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_QUAKEFRAME:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'quakeframe', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_QUAKEFRAME_FRAMESTART:
+                            ent->modeldata.animation[id]->quakeframe.framestart = (LONG)value;
+                            break;
+                        case _PROP_QUAKEFRAME_REPEAT:
+                            ent->modeldata.animation[id]->quakeframe.repeat = (LONG)value;
+                            break;
+                        case _PROP_QUAKEFRAME_INTENSITY:
+                            ent->modeldata.animation[id]->quakeframe.v = (DOUBLE)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_RANGE:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'range', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_RANGEX_MIN:
+                            ent->modeldata.animation[id]->range.min.x = (LONG)value;
+                            break;
+                        case _PROP_RANGEX_MAX:
+                            ent->modeldata.animation[id]->range.max.x = (LONG)value;
+                            break;
+                        case _PROP_RANGEA_MIN:
+                            ent->modeldata.animation[id]->range.min.y = (LONG)value;
+                            break;
+                        case _PROP_RANGEA_MAX:
+                            ent->modeldata.animation[id]->range.max.y = (LONG)value;
+                            break;
+                        case _PROP_RANGEB_MIN:
+                            ent->modeldata.animation[id]->range.min.base = (LONG)value;
+                            break;
+                        case _PROP_RANGEB_MAX:
+                            ent->modeldata.animation[id]->range.max.base = (LONG)value;
+                            break;
+                        case _PROP_RANGEZ_MIN:
+                            ent->modeldata.animation[id]->range.min.z = (LONG)value;
+                            break;
+                        case _PROP_RANGEZ_MAX:
+                            ent->modeldata.animation[id]->range.max.z = (LONG)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_SHADOW:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'shadow', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    if(varlist[4]->vt != VT_INTEGER)
+                    {
+                        printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'shadow', {sub-property}, {frame_index}, {value})\n");
+                        result = E_FAIL;
+                        break;
+                    } else
+                    {
+                        okf = (int)varlist[4]->lVal;
+                    }
+
+                    anim = ent->modeldata.animation[id];
+
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_FSHADOW:
+                            if( anim->shadow ) {
+                                anim->shadow[okf] = (LONG)value;
+                            } else (*pretvar)->lVal = (LONG)-1;
+                            break;
+                        case _PROP_SHADOW_COORDS_X:
+                            if( anim->shadow_coords[okf] ) {
+                                anim->shadow_coords[okf][0] = (LONG)value;
+                            } else (*pretvar)->lVal = (LONG)-1;
+                            break;
+                        case _PROP_SHADOW_COORDS_Y:
+                            if( anim->shadow_coords[okf] ) {
+                                anim->shadow_coords[okf][1] = (LONG)value;
+                            } else (*pretvar)->lVal = (LONG)-1;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_SIZE:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'size', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_SIZE_BASE:
+                            ent->modeldata.animation[id]->size.base = (DOUBLE)value;
+                            break;
+                        case _PROP_SIZE_X:
+                            ent->modeldata.animation[id]->size.x = (DOUBLE)value;
+                            break;
+                        case _PROP_SIZE_Y:
+                            ent->modeldata.animation[id]->size.y = (DOUBLE)value;
+                            break;
+                        case _PROP_SIZE_Z:
+                            ent->modeldata.animation[id]->size.z = (DOUBLE)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_SOUNDTOPLAY:
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'soundtoplay', {frame_index}, {value})\n");
+                    result = E_FAIL;
+                    break;
+                } else
+                {
+                    okf = (int)varlist[3]->lVal;
+                }
+
+                anim = ent->modeldata.animation[id];
+                if( anim->soundtoplay[okf] ) {
+                    anim->soundtoplay[okf] = (LONG)value;
+                } else (*pretvar)->lVal = (LONG)-1;
+
+                break;
+            case _ANI_PROP_SPAWNFRAME:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'spawnframe', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_SPAWNFRAME_FRAME:
+                            ent->modeldata.animation[id]->spawnframe[0] = (LONG)value;
+                            break;
+                        case _PROP_SPAWNFRAME_X:
+                            ent->modeldata.animation[id]->spawnframe[1] = (DOUBLE)value;
+                            break;
+                        case _PROP_SPAWNFRAME_Y:
+                            ent->modeldata.animation[id]->spawnframe[2] = (DOUBLE)value;
+                            break;
+                        case _PROP_SPAWNFRAME_Z:
+                            ent->modeldata.animation[id]->spawnframe[3] = (DOUBLE)value;
+                            break;
+                        case _PROP_SPAWNFRAME_RELATIVE:
+                            ent->modeldata.animation[id]->spawnframe[4] = (LONG)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_SPRITE:
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'sprite', {frame_index}, {value})\n");
+                    result = E_FAIL;
+                    break;
+                } else
+                {
+                    okf = (int)varlist[3]->lVal;
+                }
+
+                anim = ent->modeldata.animation[id];
+
+                if( anim->sprite[okf] ) {
+                    if(varlist[value_index]->vt != VT_PTR && varlist[value_index]->vt != VT_EMPTY )
+                    {
+                        return E_FAIL;
+                    }
+                    //(*pretvar)->lVal = (LONG)anim->sprite[okf];
+                    int ii = anim->sprite[okf];
+                    sprite_map[ii].node->sprite = (VOID *)varlist[value_index]->ptrVal;
+                } else
+                {
+                    printf("No sprite data.\n");
+                    result = E_FAIL;
+                    break;
+                }
+
+                break;
+            case _ANI_PROP_SPRITEA:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'spritea', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    int ii = 0;
+
+                    if(varlist[4]->vt != VT_INTEGER)
+                    {
+                        printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'spritea', {sub-property}, {frame_index}, {value})\n");
+                        result = E_FAIL;
+                        break;
+                    } else
+                    {
+                        okf = (int)varlist[4]->lVal;
+                    }
+
+                    anim = ent->modeldata.animation[id];
+                    ii = anim->sprite[okf];
+                    if (!ii)
+                    {
+                        printf("No sprite data.\n");
+                        result = E_FAIL;
+                        break;
+                    }
+
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_SPRITEA_CENTERX:
+                            sprite_map[ii].centerx = (LONG)value;
+                            break;
+                        case _PROP_SPRITEA_CENTERY:
+                            sprite_map[ii].centery = (LONG)value;
+                            break;
+                        case _PROP_SPRITEA_FILE:
+                            if(varlist[value_index]->vt != VT_PTR && varlist[value_index]->vt != VT_EMPTY )
+                            {
+                                return E_FAIL;
+                            }
+                            //StrCache_Copy(sprite_map[ii].node->filename, (void *)varlist[value_index]->ptrVal);
+                            //sprite_map[ii].node->filename = (void *)varlist[value_index]->ptrVal;
+                            strcpy(sprite_map[ii].node->filename, (char *)StrCache_Get(varlist[value_index]->strVal));
+                            break;
+                        case _PROP_SPRITEA_OFFSETX:
+                            sprite_map[ii].node->sprite->offsetx = (LONG)value;
+                            break;
+                        case _PROP_SPRITEA_OFFSETY:
+                            sprite_map[ii].node->sprite->offsety = (LONG)value;
+                            break;
+                        case _PROP_SPRITEA_SPRITE:
+                        {
+                            if(varlist[value_index]->vt != VT_PTR && varlist[value_index]->vt != VT_EMPTY )
+                            {
+                                return E_FAIL;
+                            }
+                            sprite_map[ii].node->sprite = (VOID *)varlist[value_index]->ptrVal;
+                            break;
+                        }
+                    }
+                }
+                break;
+            case _ANI_PROP_SUBENTITY:
+                ent->modeldata.animation[id]->subentity = (LONG)value;
+                break;
+            case _ANI_PROP_SUMMONFRAME:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'summonframe', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_SUMMONFRAME_FRAME:
+                            ent->modeldata.animation[id]->summonframe[0] = (LONG)value;
+                            break;
+                        case _PROP_SUMMONFRAME_X:
+                            ent->modeldata.animation[id]->summonframe[1] = (DOUBLE)value;
+                            break;
+                        case _PROP_SUMMONFRAME_Y:
+                            ent->modeldata.animation[id]->summonframe[2] = (DOUBLE)value;
+                            break;
+                        case _PROP_SUMMONFRAME_Z:
+                            ent->modeldata.animation[id]->summonframe[3] = (DOUBLE)value;
+                            break;
+                        case _PROP_SUMMONFRAME_RELATIVE:
+                            ent->modeldata.animation[id]->summonframe[4] = (LONG)value;
+                            break;
+                    }
+                }
+                break;
+            case _ANI_PROP_SYNC:
+                ent->modeldata.animation[id]->sync = (LONG)value;
+                break;
+            case _ANI_PROP_UNSUMMONFRAME:
+                ent->modeldata.animation[id]->unsummonframe = (LONG)value;
+                break;
+            case _ANI_PROP_VULNERABLE:
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'vulnerable', {frame_index}, {value})\n");
+                    result = E_FAIL;
+                    break;
+                } else
+                {
+                    okf = (int)varlist[3]->lVal;
+                }
+
+                anim = ent->modeldata.animation[id];
+
+                if (anim->vulnerable[okf] >= 0) anim->vulnerable[okf] = (LONG)value;
+                else (*pretvar)->lVal = (LONG)-1;
+
+                break;
+            case _ANI_PROP_WEAPONFRAME:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'weaponframe', {sub-property}, {value})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_WEAPONFRAME_FRAME:
+                            ent->modeldata.animation[id]->weaponframe[0] = (LONG)value;
+                            break;
+                        case _PROP_WEAPONFRAME_WEAPON:
+                            ent->modeldata.animation[id]->weaponframe[1] = (LONG)value;
+                            break;
+                    }
+                }
                 break;
             default:
                 *pretvar = NULL;
@@ -6173,8 +7143,8 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
         s_attack *attack = NULL;
         s_anim *anim = NULL;
         s_sprite *spr = NULL;
-        int aid = 0, okf = 0;
-        int tmp_int = 0;
+        LONG aid = 0, okf = 0;
+        LONG tmp_int = 0;
         //float tmp_float = 0;
 
         // Set parameter vars.
@@ -7859,7 +8829,6 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 }
                 break;
             case _ANI_PROP_ENERGYCOST:
-
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
@@ -8469,6 +9438,71 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                     (*pretvar)->ptrVal = (VOID *)(spr);
                 } else (*pretvar)->ptrVal = (VOID *)(NULL);
 
+                break;
+            case _ANI_PROP_SPRITEA:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'spritea', {sub-property})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    int ii = 0;
+                    okf = 0;
+                    // usage getanimationproperty({ent}, {animation id}, 'delay', {frame_index}) -> frame is optional
+                    if (paramCount == 5)
+                    {
+                        if(varlist[4]->vt != VT_INTEGER)
+                        {
+                            printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'spritea', {sub-property}, {frame_index})\n");
+                            result = E_FAIL;
+                            break;
+                        } else
+                        {
+                            okf = (int)varlist[4]->lVal;
+                        }
+                    }
+
+                    // without a optional frame_index it returns the 1st useful frame if it exists
+                    anim = ent->modeldata.animation[id];
+                    ii = anim->sprite[okf];
+                    if (!ii)
+                    {
+                        printf("No sprite data.\n");
+                        result = E_FAIL;
+                        break;
+                    }
+
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_SPRITEA_CENTERX:
+                            (*pretvar)->lVal = (LONG)sprite_map[ii].centerx;
+                            break;
+                        case _PROP_SPRITEA_CENTERY:
+                            (*pretvar)->lVal = (LONG)sprite_map[ii].centery;
+                            break;
+                        case _PROP_SPRITEA_FILE:
+                            ScriptVariant_ChangeType(*pretvar, VT_STR);
+                            StrCache_Copy((*pretvar)->strVal, sprite_map[ii].node->filename);
+                            break;
+                        case _PROP_SPRITEA_OFFSETX:
+                            (*pretvar)->lVal = (LONG)sprite_map[ii].node->sprite->offsetx;
+                            break;
+                        case _PROP_SPRITEA_OFFSETY:
+                            (*pretvar)->lVal = (LONG)sprite_map[ii].node->sprite->offsety;
+                            break;
+                        case _PROP_SPRITEA_SPRITE:
+                        {
+                            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                            spr = sprite_map[ii].node->sprite;
+                            spr->centerx = sprite_map[ii].centery;
+                            spr->centery = sprite_map[ii].centery;
+                            (*pretvar)->ptrVal = (VOID *)(spr);
+                            break;
+                        }
+                    }
+                }
                 break;
             case _ANI_PROP_SUBENTITY:
                 (*pretvar)->lVal = (LONG)ent->modeldata.animation[id]->subentity;
@@ -10387,6 +11421,18 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         {
             ScriptVariant_ChangeType(*pretvar, VT_STR);
             StrCache_Copy((*pretvar)->strVal, sprite_map[i].node->filename);
+            break;
+        }
+        case _ep_spritea_offsetx:
+        {
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)sprite_map[i].node->sprite->offsetx;
+            break;
+        }
+        case _ep_spritea_offsety:
+        {
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)sprite_map[i].node->sprite->offsety;
             break;
         }
         case _ep_spritea_sprite:
@@ -13208,7 +14254,7 @@ HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
         (*pretvar)->dblVal = (DOUBLE)atof(findarg(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos, argument));
     }
-    else if(stricmp(argtype, "byte") == 0)
+    else if(stricmp(argtype, "byte") == 0) // By White Dragon
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)(readByte(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos));
@@ -13477,7 +14523,7 @@ HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar
         }
     }
 
-    if (paramCount > 4)
+    if (paramCount > 4) // By White Dragon
     {
         bytearg = (char *)StrCache_Get(varlist[4]->strVal);
         if( stricmp(bytearg, "byte") != 0 )
@@ -13495,7 +14541,7 @@ HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar
         strcat(path, tmpname);
         // Add user's filename to path and write the filestream to it
         strcat(path, "/");
-    } else
+    } else // By White Dragon
     {
         strcat(path, "./");
         strcat(path, patharg);
@@ -17250,7 +18296,7 @@ HRESULT openbor_size(ScriptVariant **varlist , ScriptVariant **pretvar, int para
         goto size_error;
     }
 
-    //ScriptVariant_Copy(*pretvar, array->vars);
+    // By White Dragon
     if( array->list->size != 0 ) //or array->list->first
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -17341,7 +18387,7 @@ set_error:
     return E_FAIL;
 }
 
-//delete(array, index);
+//delete(array, index); // By White Dragon
 HRESULT openbor_delete(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     Varlist *array;
@@ -17373,7 +18419,7 @@ set_error:
     return E_FAIL;
 }
 
-//add(array, index);
+//add(array, index); // By White Dragon
 HRESULT openbor_add(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     Varlist *array;
