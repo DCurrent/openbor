@@ -5145,26 +5145,151 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
     return 1;
 }
 
+/*
+Animation specific properties.
+White Dragon
+11-10-2016
+
+changeanimationproperty({ent}, {animation id}, {property}, ({sub-property}), {frame}, {value})
+*/
 HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
     int result                      = S_OK; //Pass or fail?
-    /*
     entity *ent                     = NULL; //Entity;
     int id                          = 0;    //Animation ID.
     e_animation_properties property = 0;    //Property.
-    */
+
+    ScriptVariant_Clear(*pretvar);
+    mapstrings_animationproperty(varlist, paramCount);
 
     // Verify incoming parameters.
-    if(paramCount < 3
+    if(paramCount < 5
        || varlist[1]->vt != VT_INTEGER
        || varlist[2]->vt != VT_INTEGER)
     {
-        printf("You must provide an animation ID and property: getanimationproperty({ent}, {animation id}, {property})\n");
+        printf("You must provide an animation ID and property: changeanimationproperty({ent}, {animation id}, {property}, {frame}, {value})\n");
         result = E_FAIL;
     }
     else
     {
+        DOUBLE value;
+        LONG lvalue, frame;
+        int okf = 0;
+        s_attack *attack = NULL;
+        s_anim *anim = NULL;
+        //s_sprite *spr = NULL;
+        //int tmp_int = 0;
+        //float tmp_float = 0;*/
 
+        // Set parameter vars.
+        ent         = (entity *)varlist[0]->ptrVal;
+        id          = varlist[1]->lVal;
+        property    = varlist[2]->lVal;
+
+        if(varlist[2]->vt != VT_INTEGER)
+        {
+            printf("You must give a string value for property name.\n");
+            return E_FAIL;
+        }
+
+        if(FAILED(ScriptVariant_IntegerValue(varlist[4], &frame)))
+        {
+            printf("You must give an integer value for frame.\n");
+            return E_FAIL;
+        }
+
+        if( FAILED(ScriptVariant_DecimalValue(varlist[4], &value)) )
+        {
+            if( FAILED(ScriptVariant_IntegerValue(varlist[4], &lvalue)) )
+            {
+                printf("You must give a number for value.\n");
+                return E_FAIL;
+            } else
+            {
+                value = (DOUBLE)lvalue;
+            }
+        }
+
+        // Which animation property to get?
+        switch(property)
+        {
+            case _ANI_PROP_ANIMHITS:
+                ent->modeldata.animation[id]->animhits = (LONG)value;
+                break;
+            case _ANI_PROP_ANTIGRAV:
+                ent->modeldata.animation[id]->antigrav = (LONG)value;
+                break;
+            /*
+             * ################### ATTACK PROPERTY ###################
+             */
+            case _ANI_PROP_ATTACK:
+                // Verify incoming parameter.
+                if(varlist[3]->vt != VT_INTEGER)
+                {
+                    printf("You must provide a sub-property: changeanimationproperty({ent}, {animation id}, 'attack', {sub-property}, {frame_index})\n");
+                    result = E_FAIL;
+                }
+                else
+                {
+                    switch(varlist[3]->lVal)
+                    {
+                        case _PROP_ATTACK_BLAST:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'blast', {frame_index})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            // without a optional frame_index it returns the 1st useful frame if it exists
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->blast = (LONG)value;
+                                else {
+                                    result = E_FAIL; break;
+                                }
+                            } else {
+                                result = E_FAIL; break;
+                            }
+
+                            break;
+                        case _PROP_ATTACK_RESET:
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'reset', {frame_index})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            // without a optional frame_index it returns the 1st useful frame if it exists
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                **(anim->attacks) = emptyattack;
+                            } else {
+                                result = E_FAIL; break;
+                            }
+
+                            break;
+                    }
+                }
+                break;
+            /*
+             * ################### END ATTACK PROPERTY ###################
+             */
+            default:
+                *pretvar = NULL;
+                printf("Error: unsupported property in changeanimationproperty\n");
+                result = E_FAIL;
+                break;
+        }
     }
 
     return result;
@@ -5175,7 +5300,7 @@ Animation specific properties.
 White Dragon
 09-10-2016
 
-getanimationproperty({ent}, {animation id}, {property}, {sub-property}, {frame}) frame: OPTIONAL
+getanimationproperty({ent}, {animation id}, {property}, ({sub-property}), {frame}) frame: OPTIONAL
 */
 HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
@@ -5190,13 +5315,12 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     ScriptVariant_Clear(*pretvar);
     mapstrings_animationproperty(varlist, paramCount);
 
-
     // Verify incoming parameters.
     if(paramCount < 3
        || varlist[1]->vt != VT_INTEGER
        || varlist[2]->vt != VT_INTEGER)
     {
-        printf("You must provide an animation ID and property: getanimationproperty({ent}, {animation id}, {property})\n");
+        printf("You must provide an animation ID and property: getanimationproperty({ent}, {animation id}, {property}, {frame_index})\n");
         result = E_FAIL;
     }
     else
@@ -5216,8 +5340,6 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
         // Most values returned will be integers. Set here for less repetition.
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
-        //return S_OK;
-
         // Which animation property to get?
         switch(property)
         {
@@ -5234,7 +5356,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                 // Verify incoming parameter.
                 if(varlist[3]->vt != VT_INTEGER)
                 {
-                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'attack', {sub-property})\n");
+                    printf("You must provide a sub-property: getanimationproperty({ent}, {animation id}, 'attack', {sub-property}, {frame_index})\n");
                     result = E_FAIL;
                 }
                 else
