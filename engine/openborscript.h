@@ -169,6 +169,8 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
 HRESULT openbor_checkhole(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_checkwall(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_checkplatformbelow(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_checkplatformabove(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_checkplatformbetween(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
 HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getfilestreamline(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

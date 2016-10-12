@@ -2093,6 +2093,34 @@ void execute_onblockw_script(entity *ent, int plane, float height)
     }
 }
 
+void execute_onblockp_script(entity *ent, int plane, entity *platform)
+{
+    ScriptVariant tempvar;
+    Script *cs = ent->scripts->onblockp_script;
+    if(Script_IsInitialized(cs))
+    {
+        ScriptVariant_Init(&tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_PTR);
+        tempvar.ptrVal = (VOID *)ent;
+        Script_Set_Local_Variant(cs, "self", &tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+        tempvar.lVal = (LONG)plane;
+        Script_Set_Local_Variant(cs, "plane",      &tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
+        tempvar.ptrVal = (VOID *)platform;
+        Script_Set_Local_Variant(cs, "platform",      &tempvar);
+        Script_Execute(cs);
+
+        //clear to save variant space
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "self", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "plane", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "platform", &tempvar);
+    }
+}
+
 void execute_onblocko_script(entity *ent, entity *other)
 {
     ScriptVariant tempvar;
@@ -8420,6 +8448,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_ONBLOCKWSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblockw_script, "onblockwscript", filename, 1, 0);
+                break;
+            case CMD_MODEL_ONBLOCKPSCRIPT:
+                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblockp_script, "onblockwscript", filename, 1, 0);
                 break;
             case CMD_MODEL_ONBLOCKOSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblocko_script, "onblockoscript", filename, 1, 0);
@@ -20368,7 +20399,6 @@ int arrow_takedamage(entity *other, s_attack *attack)
 
 int common_takedamage(entity *other, s_attack *attack)
 {
-    // if return 0 == lasthitc effect (speedy)
     if(self->dead)
     {
         return 0;
@@ -21373,10 +21403,12 @@ int common_trymove(float xdir, float zdir)
         if(xdir && (other = check_platform_between(x, self->position.z, self->position.y, self->position.y + heightvar, self))  )
         {
             xdir = 0;
+            execute_onblockp_script(self, 1, other);
         }
         if(zdir && (other = check_platform_between(self->position.x, z, self->position.y, self->position.y + heightvar, self))  )
         {
             zdir = 0;
+            execute_onblockp_script(self, 2, other);
         }
     }
 
