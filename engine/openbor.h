@@ -1152,11 +1152,13 @@ typedef struct
     u32 freezetime;
     u32 maptime;
     u32 sealtime;
+
     e_dot_mode dot; //Dot mode.
     int dot_index; //Dot index.
     u32 dot_time; //Dot time to expire.
     int dot_force; //Dot amount per tick.
     int dot_rate; //Dot tick delay.
+
     e_otg otg; // Over The Ground. Gives ground projectiles the ability to hit lying ents.
     int jugglecost; // cost for juggling a falling ent
     int guardcost; // cost for blocking an attack
@@ -1166,6 +1168,8 @@ typedef struct
     float grab_distance; // suck target near by
     int pause_add; // Flag to determine if an attack adds a pause before updating the animation
     u32 pain_time; // pain invincible time
+    int tag;        // Non engine use tag for scripting.
+    int index;
 } s_attack;
 
 typedef struct
@@ -2136,11 +2140,11 @@ int     load_script(Script *script, char *path);
 void    init_scripts();
 void    load_scripts();
 void    execute_animation_script    (entity *ent);
-void    execute_takedamage_script   (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd);
-void    execute_ondeath_script      (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd);
+void    execute_takedamage_script   (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
+void    execute_ondeath_script      (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
 void    execute_onkill_script       (entity *ent);
 void    execute_onpain_script       (entity *ent, int iType, int iReset);
-void    execute_onfall_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd);
+void    execute_onfall_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
 void    execute_onblocks_script     (entity *ent);
 void    execute_onblockw_script     (entity *ent, int plane, float height);
 void    execute_onblockp_script     (entity *ent, int plane, entity *platform);
@@ -2150,11 +2154,11 @@ void    execute_onblocka_script     (entity *ent, entity *other);
 void    execute_onmovex_script      (entity *ent);
 void    execute_onmovez_script      (entity *ent);
 void    execute_onmovea_script      (entity *ent);
-void    execute_didblock_script     (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd);
-void    execute_ondoattack_script   (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int iWhich, int iAtkID);
+void    execute_didblock_script     (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
+void    execute_ondoattack_script   (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int iWhich, int iAtkID, int tag);
 void    execute_updateentity_script (entity *ent);
 void    execute_think_script        (entity *ent);
-void    execute_didhit_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked);
+void    execute_didhit_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked, int tag);
 void    execute_onspawn_script      (entity *ent);
 void    clearsettings(void);
 void    savesettings(void);
@@ -2295,7 +2299,7 @@ entity *findent(int types);
 int count_ents(int types);
 int set_idle(entity *ent);
 int set_death(entity *iDie, int type, int reset);
-int set_fall(entity *iFall, int type, int reset, entity *other, int force, int drop, int noblock, int guardcost, int jugglecost, int pauseadd);
+int set_fall(entity *iFall, int type, int reset, entity *other, int force, int drop, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
 int set_rise(entity *iRise, int type, int reset);
 int set_riseattack(entity *iRiseattack, int type, int reset);
 int set_blockpain(entity *iBlkpain, int type, int reset);
