@@ -3861,6 +3861,7 @@ enum drawmethod_enum
     _PROP_ATTACK_SEALTIME,
     _PROP_ATTACK_STAYDOWN,
     _PROP_ATTACK_STEAL,
+    _PROP_ATTACK_TAG,
     _PROP_ATTACK_TYPE,
     _PROP_ATTACK_THE_END
 };
@@ -4313,6 +4314,7 @@ int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
         "sealtime",
         "staydown",
         "steal",
+        "tag",
         "type"
     };
 
@@ -6098,6 +6100,28 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                             } else { (*pretvar)->lVal = (LONG)-1; break; }
 
                             break;
+                        case _PROP_ATTACK_TAG:
+                        {
+                            if(varlist[4]->vt != VT_INTEGER)
+                            {
+                                printf("You must provide an animation ID and all properties: changeanimationproperty({ent}, {animation id}, 'attack', 'tag', {frame_index}, {value})\n");
+                                result = E_FAIL;
+                                break;
+                            } else
+                            {
+                                okf = (int)varlist[4]->lVal;
+                            }
+
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                attack = anim->attacks[okf];
+
+                                if (attack) attack->tag = (LONG)value;
+                                else { (*pretvar)->lVal = (LONG)-1; break; }
+                            } else { (*pretvar)->lVal = (LONG)-1; break; }
+
+                            break;
+                        }
                         case _PROP_ATTACK_TYPE:
                         {
                             if(varlist[4]->vt != VT_INTEGER)
@@ -8490,6 +8514,41 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
                             } else (*pretvar)->lVal = (LONG)0;
 
                             break;
+                        case _PROP_ATTACK_TAG:
+                        {
+                            okf = -1;
+
+                            if (paramCount > 4)
+                            {
+                                if(varlist[4]->vt != VT_INTEGER)
+                                {
+                                    printf("You must provide an animation ID and all properties: getanimationproperty({ent}, {animation id}, 'attack', 'tag', {frame_index})\n");
+                                    result = E_FAIL;
+                                    break;
+                                } else
+                                {
+                                    okf = (int)varlist[4]->lVal;
+                                }
+                            }
+
+                            // without a optional frame_index it returns the 1st useful frame if it exists
+                            anim = ent->modeldata.animation[id];
+                            if( anim->attacks ) {
+                                // or sizeof(pointer) / sizeof(structure)
+                                if (okf < 0)
+                                    for (aid = 0; aid < anim->numframes; aid++)
+                                    {
+                                        attack = anim->attacks[aid];
+                                        if (attack) break;
+                                    }
+                                else attack = anim->attacks[okf];
+
+                                if (attack) (*pretvar)->lVal = (LONG)attack->tag;
+                                else (*pretvar)->lVal = (LONG)0;
+                            } else (*pretvar)->lVal = (LONG)0;
+
+                            break;
+                        }
                         case _PROP_ATTACK_TYPE:
                         {
                             okf = -1;

@@ -1940,7 +1940,7 @@ void execute_animation_script(entity *ent)
     }
 }
 
-void execute_takedamage_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd)
+void execute_takedamage_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->takedamage_script;
@@ -1967,6 +1967,8 @@ void execute_takedamage_script(entity *ent, entity *other, int force, int drop, 
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
         tempvar.lVal = (LONG)pauseadd;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
+        tempvar.lVal = (LONG)tag;
+        Script_Set_Local_Variant(cs, "tag",    &tempvar);
         Script_Execute(cs);
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
@@ -1979,6 +1981,7 @@ void execute_takedamage_script(entity *ent, entity *other, int force, int drop, 
         Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
+        Script_Set_Local_Variant(cs, "tag",    &tempvar);
     }
 }
 
@@ -2005,7 +2008,7 @@ void execute_onpain_script(entity *ent, int iType, int iReset)
     }
 }
 
-void execute_onfall_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd)
+void execute_onfall_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onfall_script;
@@ -2032,6 +2035,8 @@ void execute_onfall_script(entity *ent, entity *other, int force, int drop, int 
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
         tempvar.lVal = (LONG)pauseadd;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
+        tempvar.lVal = (LONG)tag;
+        Script_Set_Local_Variant(cs, "tag",    &tempvar);
         Script_Execute(cs);
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
@@ -2044,6 +2049,7 @@ void execute_onfall_script(entity *ent, entity *other, int force, int drop, int 
         Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
+        Script_Set_Local_Variant(cs, "tag",         &tempvar);
     }
 }
 
@@ -2234,7 +2240,7 @@ void execute_onmovea_script(entity *ent)
     }
 }
 
-void execute_ondeath_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd)
+void execute_ondeath_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->ondeath_script;
@@ -2261,6 +2267,8 @@ void execute_ondeath_script(entity *ent, entity *other, int force, int drop, int
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
         tempvar.lVal = (LONG)pauseadd;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
+        tempvar.lVal = (LONG)tag;
+        Script_Set_Local_Variant(cs, "tag",    &tempvar);
         Script_Execute(cs);
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
@@ -2273,6 +2281,7 @@ void execute_ondeath_script(entity *ent, entity *other, int force, int drop, int
         Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
+        Script_Set_Local_Variant(cs, "tag",         &tempvar);
     }
 }
 
@@ -2293,7 +2302,7 @@ void execute_onkill_script(entity *ent)
     }
 }
 
-void execute_didblock_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd)
+void execute_didblock_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->didblock_script;
@@ -2320,6 +2329,8 @@ void execute_didblock_script(entity *ent, entity *other, int force, int drop, in
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
         tempvar.lVal = (LONG)pauseadd;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
+        tempvar.lVal = (LONG)tag;
+        Script_Set_Local_Variant(cs, "tag",    &tempvar);
         Script_Execute(cs);
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
@@ -2332,10 +2343,11 @@ void execute_didblock_script(entity *ent, entity *other, int force, int drop, in
         Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
+        Script_Set_Local_Variant(cs, "tag",         &tempvar);
     }
 }
 
-void execute_ondoattack_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int iWhich, int iAtkID)
+void execute_ondoattack_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int iWhich, int iAtkID, int tag)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->ondoattack_script;
@@ -2366,6 +2378,8 @@ void execute_ondoattack_script(entity *ent, entity *other, int force, int drop, 
         Script_Set_Local_Variant(cs, "which",    &tempvar);
         tempvar.lVal = (LONG)iAtkID;
         Script_Set_Local_Variant(cs, "attackid",    &tempvar);
+        tempvar.lVal = (LONG)tag;
+        Script_Set_Local_Variant(cs, "tag",    &tempvar);
         Script_Execute(cs);
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
@@ -2380,6 +2394,7 @@ void execute_ondoattack_script(entity *ent, entity *other, int force, int drop, 
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
         Script_Set_Local_Variant(cs, "which",		&tempvar);
         Script_Set_Local_Variant(cs, "attackid",	&tempvar);
+        Script_Set_Local_Variant(cs, "tag",	        &tempvar);
     }
 }
 
@@ -2417,7 +2432,7 @@ void execute_think_script(entity *ent)
     }
 }
 
-static void _execute_didhit_script(Script *cs, entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked)
+static void _execute_didhit_script(Script *cs, entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked, int tag)
 {
     ScriptVariant tempvar;
     ScriptVariant_Init(&tempvar);
@@ -2443,6 +2458,8 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, int f
     Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
     tempvar.lVal = (LONG)blocked;
     Script_Set_Local_Variant(cs, "blocked",     &tempvar);
+    tempvar.lVal = (LONG)tag;
+    Script_Set_Local_Variant(cs, "tag",         &tempvar);
     Script_Execute(cs);
     //clear to save variant space
     ScriptVariant_Clear(&tempvar);
@@ -2456,19 +2473,20 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, int f
     Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
     Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
     Script_Set_Local_Variant(cs, "blocked",     &tempvar);
+    Script_Set_Local_Variant(cs, "tag",         &tempvar);
 }
 
-void execute_didhit_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked)
+void execute_didhit_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked, int tag)
 {
     Script *cs;
     s_scripts *gs = global_model_scripts;
     if(gs && (cs = gs->didhit_script) && Script_IsInitialized(cs))
     {
-        _execute_didhit_script(cs, ent, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, blocked);
+        _execute_didhit_script(cs, ent, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, blocked, tag);
     }
     if(Script_IsInitialized(cs = ent->scripts->didhit_script))
     {
-        _execute_didhit_script(cs, ent, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, blocked);
+        _execute_didhit_script(cs, ent, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, blocked, tag);
     }
 }
 
@@ -8020,6 +8038,21 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->runupdown = GET_INT_ARG(4);
                 newchar->runhold = GET_INT_ARG(5);
                 break;
+            case CMD_MODEL_RUNNING_CONTINUE:
+                newchar->runhold = GET_FLOAT_ARG(1);
+                break;
+            case CMD_MODEL_RUNNING_JUMP_VELOCITY_X:
+                newchar->runjumpdist = GET_FLOAT_ARG(1);
+                break;
+            case CMD_MODEL_RUNNING_JUMP_VELOCITY_Y:
+                newchar->runjumpheight = GET_FLOAT_ARG(1);
+                break;
+            case CMD_MODEL_RUNNING_SPEED:
+                newchar->runspeed = GET_FLOAT_ARG(1);
+                break;
+            case CMD_MODEL_RUNNING_Z_MOVE:
+                newchar->runupdown = GET_FLOAT_ARG(1);
+                break;
             case CMD_MODEL_BLOCKODDS:
                 // Odds that an attack will hit an enemy (1 : blockodds)
                 newchar->blockodds = GET_INT_ARG(1);
@@ -8893,6 +8926,27 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 bbox.z1 = GET_INT_ARG(5);
                 bbox.z2 = GET_INT_ARG(6);
                 break;
+            case CMD_MODEL_BBOX_INDEX:
+                // Nothing yet - for future support of multiple boxes.
+                break;
+            case CMD_MODEL_BBOX_POSITION_X:
+                bbox.x = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_BBOX_POSITION_Y:
+                bbox.y = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_BBOX_SIZE_X:
+                bbox.width = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_BBOX_SIZE_Y:
+                bbox.height = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_BBOX_SIZE_Z_1:
+                bbox.z1 = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_BBOX_SIZE_Z_2:
+                bbox.z2 = GET_INT_ARG(1);
+                break;
             case CMD_MODEL_BBOXZ:
                 bbox.z1 = GET_INT_ARG(1);
                 bbox.z2 = GET_INT_ARG(2);
@@ -9050,6 +9104,189 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_NODRAWMETHOD:
                 //disable special effects
                 drawmethod.flag = 0;
+                break;
+
+            // 2016-10-11
+            // Caskey, Damon
+            // Broken down attack commands.
+            case CMD_MODEL_ATTACK_BLOCK_COST:
+                attack.guardcost = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_BLOCK_PENETRATE:
+                attack.no_block = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_COUNTER:
+                attack.counterattack = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_DAMAGE_FORCE:
+                attack.attack_force = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_DAMAGE_LAND_FORCE:
+                attack.damage_on_landing = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_DAMAGE_LAND_MODE:
+                attack.blast = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_DAMAGE_LETHAL_DISABLE:
+                attack.no_kill = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_DAMAGE_STEAL:
+                attack.steal = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_DAMAGE_TYPE:
+                attack.attack_type = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_FORCE:
+                attack.dot_force = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_INDEX:
+                attack.dot_index = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_MODE:
+                attack.dot = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_TIME_RATE:
+                attack.dot_rate = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_TIME_EXPIRE:
+                attack.dot_time = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_REACTION_FALL_FORCE:
+                attack.attack_drop = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_REACTION_FALL_VELOCITY_X:
+                attack.dropv.x = GET_FLOAT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_REACTION_FALL_VELOCITY_Y:
+                attack.dropv.y = GET_FLOAT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_REACTION_FALL_VELOCITY_Z:
+                attack.dropv.z = GET_FLOAT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_EFFECT_BLOCK_FLASH:
+
+                value = GET_ARG(1);
+
+                if(stricmp(value, "none") == 0 || value == 0)
+                {
+                    newchar->bflash = -1;
+                }
+                else
+                {
+                    newchar->bflash = get_cached_model_index(value);
+                }
+                break;
+
+            case CMD_MODEL_ATTACK_EFFECT_BLOCK_SOUND:
+
+                value = GET_ARG(1);
+
+                if(stricmp(value, "none") == 0)
+                {
+                    attack.blocksound = -1;
+                }
+                else
+                {
+                    attack.blocksound = sound_load_sample(value, packfile, 1);
+                }
+                break;
+
+            case CMD_MODEL_ATTACK_EFFECT_HIT_FLASH:
+
+                value = GET_ARG(1);
+
+                if(stricmp(value, "none") == 0 || value == 0)
+                {
+                    newchar->flash = -1;
+                }
+                else
+                {
+                    newchar->flash = get_cached_model_index(value);
+                }
+                break;
+
+            case CMD_MODEL_ATTACK_EFFECT_HIT_FLASH_DISABLE:
+                attack.no_flash = GET_INT_ARG(1);
+                break;
+
+            case CMD_MODEL_ATTACK_EFFECT_HIT_SOUND:
+
+                value = GET_ARG(1);
+
+                if(stricmp(value, "none") == 0)
+                {
+                    attack.hitsound = -1;
+                }
+                else
+                {
+                    attack.hitsound = sound_load_sample(value, packfile, 1);
+                }
+                break;
+            case CMD_MODEL_ATTACK_INDEX:
+                attack.index = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_GROUND:
+                attack.otg = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_MAP_INDEX:
+                attack.forcemap = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_MAP_TIME:
+                attack.maptime = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_POSITION_X:
+                abox.x = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_POSITION_Y:
+                abox.y = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_REACTION_FREEZE_MODE:
+                attack.freeze = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_REACTION_FREEZE_TIME:
+                attack.freezetime = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_REACTION_INVINCIBLE_TIME:
+                attack.pain_time = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_REACTION_REPOSITION_DISTANCE:
+                attack.grab_distance = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_REACTION_REPOSITION_MODE:
+                attack.grab = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_REACTION_PAIN_SKIP:
+                attack.no_pain = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_REACTION_PAUSE_TIME:
+                attack.pause_add = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_SEAL_COST:
+                attack.seal = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_SEAL_TIME:
+                attack.sealtime = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_SIZE_X:
+                abox.width = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_SIZE_Y:
+                abox.height = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_SIZE_Z_1:
+                attack.attack_coords.z1 = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_SIZE_Z_2:
+                attack.attack_coords.z2 = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_STAYDOWN_RISE:
+                attack.staydown.rise = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_STAYDOWN_RISEATTACK:
+                attack.staydown.riseattack = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ATTACK_TAG:
+                attack.tag = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_ATTACK:
             case CMD_MODEL_ATTACK1:
@@ -16478,8 +16715,8 @@ void do_attack(entity *e)
             temp = self;
             self = ent_list[i];
 
-            execute_ondoattack_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, current_attack_id);	//Execute on defender.
-            execute_ondoattack_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, current_attack_id);	//Execute on attacker.
+            execute_ondoattack_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, current_attack_id, attack->tag);	//Execute on defender.
+            execute_ondoattack_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, current_attack_id, attack->tag);	//Execute on attacker.
 
             /*
                 2010-12-31
@@ -16518,7 +16755,7 @@ void do_attack(entity *e)
                 {
                     if(attack->attack_type == ATK_ITEM)
                     {
-                        execute_didhit_script(e, self, force, attack->attack_drop, self->modeldata.subtype, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
+                        execute_didhit_script(e, self, force, attack->attack_drop, self->modeldata.subtype, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, attack->tag);
                         didfind_item(e);
                         return;
                     }
@@ -16554,12 +16791,12 @@ void do_attack(entity *e)
                              (fdefense_blockthreshold > force)))
                     {
                         //execute the didhit script
-                        execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
+                        execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, attack->tag);
                         self->takeaction = common_block;
                         set_blocking(self);
                         self->velocity.x = self->velocity.z = 0;
                         ent_set_anim(self, ANI_BLOCK, 0);
-                        execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);
+                        execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);
                         if(self->modeldata.guardpoints.max > 0)
                         {
                             self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
@@ -16607,7 +16844,7 @@ void do_attack(entity *e)
                     {
                         // Only block if the attack is less than the players threshold
                         //execute the didhit script
-                        execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1);
+                        execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, attack->tag);
                         if(self->modeldata.guardpoints.max > 0)
                         {
                             self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
@@ -16619,7 +16856,7 @@ void do_attack(entity *e)
                         {
                             set_blockpain(self, attack->attack_type, 0);
                         }
-                        execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);
+                        execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);
 
                         // Spawn a flash
                         if(!attack->no_flash)
@@ -16698,7 +16935,7 @@ void do_attack(entity *e)
                     else if(self->takedamage(e, attack))
                     {
                         // Didn't block so go ahead and take the damage
-                        execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0);
+                        execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, attack->tag);
                         ++e->animation->animhits;
 
                         e->lasthit = self;
@@ -17852,7 +18089,7 @@ void common_dot()
                         {
                             self->health = 1;                                                   //Set min health.
                         }
-                        execute_takedamage_script(self, eOpp, iForce, 0, iType, 0, 0, 0, 0);    //Execute the takedamage script.
+                        execute_takedamage_script(self, eOpp, iForce, 0, iType, 0, 0, 0, 0, 0);    //Execute the takedamage script.
                     }
                 }
 
@@ -18752,7 +18989,7 @@ int set_death(entity *iDie, int type, int reset)
 }
 
 
-int set_fall(entity *iFall, int type, int reset, entity *other, int force, int drop, int noblock, int guardcost, int jugglecost, int pauseadd)
+int set_fall(entity *iFall, int type, int reset, entity *other, int force, int drop, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
 {
     if(type < 0 || type >= max_attack_types || !validanim(iFall, animfalls[type]))
     {
@@ -18780,7 +19017,7 @@ int set_fall(entity *iFall, int type, int reset, entity *other, int force, int d
     {
         unfrozen(iFall);
     }
-    execute_onfall_script(iFall, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd);
+    execute_onfall_script(iFall, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, tag);
 
     return 1;
 }
@@ -20349,7 +20586,7 @@ void checkdamage(entity *other, s_attack *attack)
         self->health = 1;
     }
 
-    execute_takedamage_script(self, other, force, attack->attack_drop, type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);                       //Execute the take damage script.
+    execute_takedamage_script(self, other, force, attack->attack_drop, type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);                       //Execute the take damage script.
 
     if (self->health <= 0)                                      //Health at 0?
     {
@@ -20364,7 +20601,7 @@ void checkdamage(entity *other, s_attack *attack)
                 self->health = self->modeldata.health;          //Reset to max health.
             }
         }
-        execute_ondeath_script(self, other, force, attack->attack_drop, type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add);   //Execute ondeath script.
+        execute_ondeath_script(self, other, force, attack->attack_drop, type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);   //Execute ondeath script.
     }
 }
 
@@ -20527,7 +20764,7 @@ int common_takedamage(entity *other, s_attack *attack)
 
             // Now if no fall/die animations exist, entity simply disapears
             //set_fall(entity *iFall, int type, int reset, entity* other, int force, int drop)
-            if(!set_fall(self, self->damagetype, 1, other, attack->attack_force, attack->attack_drop, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add))
+            if(!set_fall(self, self->damagetype, 1, other, attack->attack_force, attack->attack_drop, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag))
             {
                 if(self->modeldata.type & TYPE_PLAYER)
                 {
@@ -21022,7 +21259,7 @@ void dothrow()
 
     other->takeaction = common_fall;
     self->takeaction = common_throw;
-    set_fall(other, ATK_NORMAL, 0, self, 0, 0, 0, 0, 0, 0);
+    set_fall(other, ATK_NORMAL, 0, self, 0, 0, 0, 0, 0, 0, 0);
     ent_set_anim(self, ANI_THROW, 0);
 }
 
@@ -23016,7 +23253,7 @@ void common_pickupitem(entity *other)
     // hide it
     if(pickup)
     {
-        execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
+        execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
         other->position.z = 100000;
     }
 }
@@ -23160,7 +23397,7 @@ int arrow_move()
                 toss(self, 2.5 + randf(1));
                 self->modeldata.no_adjust_base = 0;
                 self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_gravity = 1;
-                set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0);
+                set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
             }
         }
     }
@@ -23239,7 +23476,7 @@ int star_move()
             self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
             self->damage_on_landing = 0;
             toss(self, 2.5 + randf(1));
-            set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0);
+            set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
         }
     }
 
@@ -25493,7 +25730,7 @@ void player_think()
             set_getting(self);
             self->takeaction = common_get;
             ent_set_anim(self, ANI_GET, 0);
-            execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
+            execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
             didfind_item(other);
             goto endthinkcheck;
         }
@@ -25845,7 +26082,7 @@ void player_think()
 
     if((other = find_ent_here(self, self->position.x, self->position.z, TYPE_ITEM, player_test_touch))  )
     {
-        execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
+        execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
         didfind_item(other);    // Added function to clean code up a bit
     }
 
@@ -26064,7 +26301,7 @@ void drop_all_enemies()
             ent_list[i]->knockdowncount = ent_list[i]->modeldata.knockdowncount;
 
             ent_list[i]->knockdowntime = 0;
-            set_fall(ent_list[i], ATK_NORMAL, 1, self, 0, 0, 0, 0, 0, 0);
+            set_fall(ent_list[i], ATK_NORMAL, 1, self, 0, 0, 0, 0, 0, 0, 0);
         }
     }
     self = weapself;
