@@ -264,6 +264,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_ONPAINSCRIPT, "onpainscript");
     LIST_ADD(CMD_MODEL_ONBLOCKSSCRIPT, "onblocksscript");
     LIST_ADD(CMD_MODEL_ONBLOCKWSCRIPT, "onblockwscript");
+    LIST_ADD(CMD_MODEL_ONBLOCKPSCRIPT, "onblockpscript");
     LIST_ADD(CMD_MODEL_ONBLOCKOSCRIPT, "onblockoscript");
     LIST_ADD(CMD_MODEL_ONBLOCKZSCRIPT, "onblockzscript");
     LIST_ADD(CMD_MODEL_ONBLOCKASCRIPT, "onblockascript");
