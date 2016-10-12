@@ -16430,7 +16430,6 @@ void do_attack(entity *e)
 
     for(i = 0; i < ent_max && !followed; i++)
     {
-
         // if #0
         if( ent_list[i]->exists &&
                 !ent_list[i]->dead && // dont hit the dead
@@ -16770,6 +16769,14 @@ void do_attack(entity *e)
                 }//end of if #05
                 self = temp;
             }//if lasthit.confirm
+            else
+            {
+                /*
+                 * By White Dragon
+                 * This line: self = temp; is the fix for !lasthit.confirm bug. Without it when active lasthitc 0 the damagetaker has weird speedy effect
+                 */
+                self = temp;
+            }
         }//end of if #0
 
     }//end of for
@@ -17856,52 +17863,52 @@ void adjust_bind(entity *e)
             update_frame(e, e->binding.ent->animpos);
         }
     }
-    e->position.z = e->binding.ent->position.z + e->binding.offset.z;
-    e->position.y = e->binding.ent->position.y + e->binding.offset.y;
+    if (e->binding.offset_flag.z) e->position.z = e->binding.ent->position.z + e->binding.offset.z;
+    if (e->binding.offset_flag.y) e->position.y = e->binding.ent->position.y + e->binding.offset.y;
     switch(e->binding.direction)
     {
     case DIRECTION_ADJUST_NONE:
         if(e->binding.ent->direction == DIRECTION_RIGHT)
         {
-            e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         }
         else
         {
-            e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
         }
         break;
     case DIRECTION_ADJUST_SAME:
         e->direction = e->binding.ent->direction;
         if(e->binding.ent->direction == DIRECTION_RIGHT)
         {
-            e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         }
         else
         {
-            e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
         }
         break;
     case DIRECTION_ADJUST_OPPOSITE:
         e->direction = !e->binding.ent->direction;
         if(e->binding.ent->direction == DIRECTION_RIGHT)
         {
-            e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         }
         else
         {
-            e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
         }
         break;
     case DIRECTION_ADJUST_RIGHT:
         e->direction = DIRECTION_RIGHT;
-        e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+        if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         break;
     case DIRECTION_ADJUST_LEFT:
         e->direction = DIRECTION_LEFT;
-        e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+        if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         break;
     default:
-        e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+        if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
         break;
         // the default is no change :), just give a value of 12345 or so
     }
@@ -20288,6 +20295,7 @@ void checkdamage(entity *other, s_attack *attack)
 {
     int force = attack->attack_force;
     int type = attack->attack_type;
+
     if(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0)
     {
         force = 0;    //guardbreak does not deal damage.
@@ -20360,6 +20368,7 @@ int arrow_takedamage(entity *other, s_attack *attack)
 
 int common_takedamage(entity *other, s_attack *attack)
 {
+    // if return 0 == lasthitc effect (speedy)
     if(self->dead)
     {
         return 0;

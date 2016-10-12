@@ -1691,6 +1691,7 @@ typedef struct
     e_direction_adjust direction;   //Direction force
     struct entity *ent;             //Entity to bind.
     s_axis_i offset;                //x,y,z offset.
+    s_axis_i offset_flag;           //on/off binding on x,y,z
 } s_bind;
 
 typedef struct
