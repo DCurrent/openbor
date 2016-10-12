@@ -882,6 +882,14 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "checkplatformbelow";
     }
+    else if (functionRef == ((void *)openbor_checkplatformabove))
+    {
+        return "checkplatformabove";
+    }
+    else if (functionRef == ((void *)openbor_checkplatformbetween))
+    {
+        return "checkplatformbetween";
+    }
     else if (functionRef == ((void *)openbor_openfilestream))
     {
         return "openfilestream";
@@ -1519,6 +1527,10 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_checkwall, "checkwall");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_checkplatformbelow, "checkplatformbelow");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_checkplatformbelow, "checkplatformabove");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_checkplatformbelow, "checkplatformbetween");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_openfilestream, "openfilestream");
     List_InsertAfter(&theFunctionList,
@@ -14059,6 +14071,92 @@ HRESULT openbor_checkplatformbelow(ScriptVariant **varlist , ScriptVariant **pre
 
     ScriptVariant_ChangeType(*pretvar, VT_PTR);
     (*pretvar)->ptrVal = (VOID *)check_platform_below((float)x, (float)z, (float)a, NULL);
+    return S_OK;
+}
+
+//checkplatformabove(x,z,a), find a lowest platform above this altitude
+HRESULT openbor_checkplatformabove(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    ScriptVariant *arg = NULL;
+    DOUBLE x, z, a;
+
+    if(paramCount < 3)
+    {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    //ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+    //(*pretvar)->dblVal = (DOUBLE)0;
+    ScriptVariant_ChangeType(*pretvar, VT_PTR);
+    (*pretvar)->ptrVal = (VOID *)NULL;
+
+    arg = varlist[0];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &x)))
+    {
+        return S_OK;
+    }
+
+    arg = varlist[1];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &z)))
+    {
+        return S_OK;
+    }
+
+    arg = varlist[2];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &a)))
+    {
+        return S_OK;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_PTR);
+    (*pretvar)->ptrVal = (VOID *)check_platform_above((float)x, (float)z, (float)a, NULL);
+    return S_OK;
+}
+
+//checkplatformbetween(x,z,a_min,a_max), find the first platform between these 2 altitudes
+HRESULT openbor_checkplatformbetween(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    ScriptVariant *arg = NULL;
+    DOUBLE x, z, amin, amax;
+
+    if(paramCount < 3)
+    {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    //ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+    //(*pretvar)->dblVal = (DOUBLE)0;
+    ScriptVariant_ChangeType(*pretvar, VT_PTR);
+    (*pretvar)->ptrVal = (VOID *)NULL;
+
+    arg = varlist[0];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &x)))
+    {
+        return S_OK;
+    }
+
+    arg = varlist[1];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &z)))
+    {
+        return S_OK;
+    }
+
+    arg = varlist[2];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &amin)))
+    {
+        return S_OK;
+    }
+
+    arg = varlist[3];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &amax)))
+    {
+        return S_OK;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_PTR);
+    (*pretvar)->ptrVal = (VOID *)check_platform_between((float)x, (float)z, (float)amin, (float)amax, NULL);
     return S_OK;
 }
 

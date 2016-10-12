@@ -1371,6 +1371,7 @@ typedef struct
     Script         *onfall_script;                  //execute when falling.
     Script         *onblocks_script;                //execute when blocked by screen.
     Script         *onblockw_script;                //execute when blocked by wall.
+    Script         *onblockp_script;                //execute when blocked by platform.
     Script         *onblocko_script;                //execute when blocked by obstacle.
     Script         *onblockz_script;                //execute when blocked by Z.
     Script         *onblocka_script;                //execute when "hit head".
@@ -2142,6 +2143,7 @@ void    execute_onpain_script       (entity *ent, int iType, int iReset);
 void    execute_onfall_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd);
 void    execute_onblocks_script     (entity *ent);
 void    execute_onblockw_script     (entity *ent, int plane, float height);
+void    execute_onblockp_script     (entity *ent, int plane, entity *platform);
 void    execute_onblocko_script     (entity *ent, entity *other);
 void    execute_onblockz_script     (entity *ent);
 void    execute_onblocka_script     (entity *ent, entity *other);
@@ -2279,6 +2281,8 @@ int checkwall_below(float x, float z, float a);
 int checkwall(float x, float z);
 int testmove(entity *, float, float, float, float);
 entity *check_platform_below(float x, float z, float a, entity *exclude);
+entity *check_platform_above(float x, float z, float a, entity *exclude);
+entity *check_platform_between(float x, float z, float amin, float amax, entity *exclude);
 entity *check_platform(float x, float z, entity *exclude);
 void do_attack(entity *e);
 void adjust_base(entity *e, entity **pla);
