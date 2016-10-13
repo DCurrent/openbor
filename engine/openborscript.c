@@ -286,7 +286,7 @@ int Varlist_DeleteByIndex(Varlist *array, int index)
         elem->ptrVal = NULL;
 
         //realloc mem
-        array->vars = realloc((array->vars), sizeof(*(array->vars))*(array->vars->lVal+2));
+        array->vars = realloc((array->vars), sizeof(*(array->vars))*(array->vars->lVal+1));
 
         //printf("aaa: %s\n", (char*)StrCache_Get(elem->strVal) );
     }
