@@ -15084,6 +15084,8 @@ enum setspawnentry_enum
     _sse_multiple,
     _sse_name,
     _sse_nolife,
+    _sse_parent,
+    _sse_type,
     _sse_weapon,
     _sse_the_end,
 };
@@ -15118,6 +15120,8 @@ int mapstrings_setspawnentry(ScriptVariant **varlist, int paramCount)
         "multiple",
         "name",
         "nolife",
+        "parent",
+        "type",
         "weapon",
     };
 
@@ -15438,6 +15442,26 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
         {
             spawnentry.aggression = (int)ltemp;
+        }
+        else
+        {
+            (*pretvar)->lVal = (LONG)0;
+        }
+        break;
+    case _sse_parent:
+        if( arg->vt != VT_PTR ) //&& arg->vt != VT_EMPTY
+        {
+            spawnentry.parent = (entity *)arg->ptrVal;
+        }
+        else
+        {
+            (*pretvar)->ptrVal = (VOID *)NULL;
+        }
+        break;
+    case _sse_type:
+        if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
+        {
+            spawnentry.entitytype = (int)ltemp;
         }
         else
         {
