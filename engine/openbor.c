@@ -27134,6 +27134,18 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
         }
     }
 
+    // set entity type: player, enemy, npc...
+    if(props->entitytype)
+    {
+        e->modeldata.type = props->entitytype;
+    }
+
+    // set a parent
+    if(props->parent) //->varlist->vars->vt != VT_EMPTY
+    {
+        e->parent = (entity *)props->parent;
+    }
+
     //ent_default_init(e);
     execute_onspawn_script(e);
     execute_spawn_script(props, e);
