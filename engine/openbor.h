@@ -1937,6 +1937,8 @@ typedef struct
     unsigned credit;
     int aggression; // For enemy A.I.
     int spawntype; // Pass 1 when a level spawn.
+    int entitytype; // if it's a enemy, player etc..
+    entity *parent;
     char *weapon; // spawn with a weapon, since it should be in the model list, so the model must be loaded, just reference its name
     s_model *weaponmodel;
     Script spawnscript;
