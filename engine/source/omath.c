@@ -9,7 +9,7 @@
 #include "omath.h"
 
 //#define PI 3.14159265358979323846264338327950288419716939937510
-//#define PI 3.1415926535f
+#define PI 3.1415926535f
 
 
 // Return a + b given |b| < |a|.
@@ -712,6 +712,25 @@ float invsqrt(float x)
     //x = x*(1.5f-xhalf*x*x);
     //x = x*(1.5f-xhalf*x*x);
     return x;
+}
+
+float mantix(float num) {
+    return ( num - trunc(num) );
+}
+
+float degree_sin(float degree)
+{
+    return ( (float)sin(degree*PI/180.0) );
+}
+
+float degree_cos(float degree)
+{
+    return ( (float)cos(degree*PI/180.0) );
+}
+
+float norm_angle(float angle)
+{
+    return (float)( ((((int)(angle) % 360 + 360) % 360) + mantix(angle) ) );
 }
 
 float sin_table[] = //360

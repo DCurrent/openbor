@@ -46,6 +46,10 @@ double atani5(double);
 double aasin(double);
 double aacos(double);
 double aatan(double);
+float degree_sin(float);
+float degree_cos(float);
+float norm_angle(float);
+float mantix(float);
 float invsqrt(float);
 
 
