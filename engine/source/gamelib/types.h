@@ -231,7 +231,7 @@ typedef struct
     int flipy;
     int transbg;
     int fliprotate; // entity only, whether the flip is affected by the entity's facing(not the sprite's flip )
-    int rotate; // 360 degrees
+    float rotate; // 360 degrees
     int scalex;
     int scaley;
     int shiftx;

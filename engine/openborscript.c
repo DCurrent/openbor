@@ -1927,8 +1927,10 @@ HRESULT math_ssin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCo
 
     if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[0], &dbltemp)))
     {
+        double PI = 3.14159265;
+
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)sin(dbltemp);
+        (*pretvar)->dblVal = (DOUBLE)sin(dbltemp*PI/180.0);
         return S_OK;
     }
     *pretvar = NULL;
@@ -1941,8 +1943,10 @@ HRESULT math_scos(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCo
 
     if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[0], &dbltemp)))
     {
+        double PI = 3.14159265;
+
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)cos(dbltemp);
+        (*pretvar)->dblVal = (DOUBLE)cos(dbltemp*PI/180.0);
         return S_OK;
     }
     *pretvar = NULL;
@@ -6371,7 +6375,7 @@ HRESULT openbor_changeanimationproperty(ScriptVariant **varlist, ScriptVariant *
                             }
                             break;
                         case _dm_rotate:
-                            pmethod->rotate = (LONG)value;
+                            pmethod->rotate = (DOUBLE)value;
                             break;
                         case _dm_scalex:
                             pmethod->scalex = (LONG)value;
@@ -19085,7 +19089,7 @@ HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretv
         {
             return E_FAIL;
         }
-        pmethod->rotate = (int)temp;
+        pmethod->rotate = (float)temp;
         break;
     case _dm_scalex:
         if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp)))

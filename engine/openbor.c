@@ -9090,7 +9090,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 if(drawmethod.rotate)
                 {
-                    drawmethod.rotate = (drawmethod.rotate % 360 + 360) % 360;
+                    drawmethod.rotate = ((int)drawmethod.rotate % 360 + 360) % 360;
                 }
                 if(!blendfx_is_set)
                 {
