@@ -379,6 +379,7 @@ s_screen           *bg_cache[MAX_CACHED_BACKGROUNDS] = {NULL, NULL, NULL, NULL, 
 unsigned char		bg_palette_cache[MAX_CACHED_BACKGROUNDS][MAX_PAL_SIZE];
 #endif
 
+s_debug_xy_msg      debug_xy_msg;
 int                 cameratype          = 0;
 int					defaultmaxplayers	= 2;
 
@@ -3245,6 +3246,11 @@ int music(char *filename, int loop, long offset)
     char t[64];
     char a[64];
     int res = 1;
+
+    int v = (videomodes.vRes - videomodes.vShift);
+    int h = videomodes.hRes / 2;
+    int col1 = h - fontmonowidth(0) * 16;
+
     if(!savedata.usemusic)
     {
         return 0;
@@ -3256,6 +3262,9 @@ int music(char *filename, int loop, long offset)
     }
     if(savedata.showtitles && sound_query_music(a, t))
     {
+        debug_xy_msg.x = col1;
+        debug_xy_msg.y = v;
+        debug_xy_msg.font_index = 0;
         if(a[0] && t[0])
         {
             debug_printf("Playing \"%s\" by %s", t, a);
@@ -12374,6 +12383,8 @@ void unload_level()
     endgame = 0;
     go_time = 0;
     debug_time = 0;
+    debug_xy_msg.x = -1;
+    debug_xy_msg.y = -1;
     neon_time = 0;
     time = 0;
     cameratype = 0;
@@ -28479,11 +28490,17 @@ void update(int ingame, int usevwait)
     }
     if(time < debug_time && debug_msg[0])
     {
-        screen_printf(vscreen, 0 , 230, 0, debug_msg);
+        if( debug_xy_msg.x && debug_xy_msg.y && debug_xy_msg.x != -1 && debug_xy_msg.y != -1 )
+        {
+            if ( !debug_xy_msg.font_index ) debug_xy_msg.font_index = 0;
+            screen_printf(vscreen, debug_xy_msg.x, debug_xy_msg.y, debug_xy_msg.font_index, debug_msg);
+        } else screen_printf(vscreen, 0, 230, 0, debug_msg);
     }
     else
     {
         debug_msg[0] = 0;
+        debug_xy_msg.x = -1;
+        debug_xy_msg.y = -1;
 #ifdef DEBUG_MODE
         if(level->pos)
         {
