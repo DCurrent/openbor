@@ -107,6 +107,13 @@ movement restirctions are here!
 #define		GRAB_DIST			36					// Grabbing ents will be placed this far apart.
 #define		GRAB_STALL			(GAME_SPEED * 8 / 10)
 
+typedef struct
+{
+    int x;
+    int y;
+    int font_index;
+} s_debug_xy_msg;
+
 typedef enum
 {
     /*
