@@ -15453,7 +15453,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         }
         break;
     case _sse_parent:
-        if( arg->vt != VT_PTR ) //&& arg->vt != VT_EMPTY
+        if( arg->vt == VT_PTR ) //&& arg->vt != VT_EMPTY
         {
             spawnentry.parent = (entity *)arg->ptrVal;
         }
