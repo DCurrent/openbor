@@ -13585,6 +13585,7 @@ enum playerproperty_enum
     _pp_name,
     _pp_newkeys,
     _pp_playkeys,
+    _pp_releasekeys
     _pp_score,
     _pp_spawnhealth,
     _pp_spawnmp,
@@ -13610,6 +13611,7 @@ int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount)
         "name",
         "newkeys",
         "playkeys",
+        "releasekeys",
         "score",
         "spawnhealth",
         "spawnmp",
@@ -13746,6 +13748,12 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)player[index].newkeys;
+        break;
+    }
+    case _pp_releasekeys:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)player[index].releasekeys;
         break;
     }
     case _pp_credits:
