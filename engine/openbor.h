@@ -1069,6 +1069,7 @@ typedef struct
     int pSpawnmp[MAX_PLAYERS];                  // magic points left
     int pWeapnum[MAX_PLAYERS];                  // weapon
     int pColourmap[MAX_PLAYERS];                // colour map
+    char allowSelectArgs[MAX_ARG_LEN + 1];      // allowselect arguments
 } s_savelevel;
 
 typedef struct
