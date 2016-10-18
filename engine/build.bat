@@ -13,7 +13,7 @@
 set BUILDBATCH=1
 set TOOLS=../tools/bin;../tools/7-Zip;../tools/svn/bin
 set PATH=%TOOLS%
-bash.exe build.sh all
+bash.exe build.sh 5
 @endlocal
 
 @rem ----------------------- Batch CMD Line Scripts ------------------------
