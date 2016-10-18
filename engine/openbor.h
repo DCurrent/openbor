@@ -1133,7 +1133,7 @@ typedef struct
 } s_hitbox;
 
 typedef struct
-{ //WD-ADD
+{
     int attack_force;
     s_hitbox attack_coords;
     s_staydown staydown;    //Modify victum's stayodwn properties.
@@ -1142,10 +1142,6 @@ typedef struct
     int hitflash; // Custom flash for each animation, model id
     int blockflash; // Custom bflash for each animation, model id
     int blocksound; // Custom sound for when an attack is blocked
-    /*char *hitsound_name; // unused for now WD-ADD
-    char *hitflash_name;
-    char *blockflash_name;
-    char *blocksound_name;*/
     int no_block; // If this is greater than defense block power, make the hit
     int counterattack;
     int no_pain;
