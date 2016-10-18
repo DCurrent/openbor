@@ -10777,7 +10777,7 @@ int load_models()
 
 void unload_levelorder()
 {
-    int i, j;
+    int i, j, t;
     s_level_entry *le;
     s_set_entry *se;
 
@@ -10789,13 +10789,6 @@ void unload_levelorder()
             if(se->name)
             {
                 free(se->name);
-            }
-            for(j = 0; j < MAX_PLAYERS; j++)
-            {
-                if(se->skipselect[j])
-                {
-                    free(se->skipselect[j]);
-                }
             }
             if(se->numlevels)
             {
@@ -10809,6 +10802,16 @@ void unload_levelorder()
                     if(le->filename)
                     {
                         free(le->filename);
+                    }
+                    if(le->skipselect)
+                    {
+                        for(t = 0; t < MAX_PLAYERS; t++)
+                        {
+                            if(le->skipselect[t])
+                            {
+                                free(le->skipselect[t]);
+                            }
+                        }
                     }
                 }
                 free(se->levelorder);
@@ -10904,6 +10907,39 @@ s_level_entry *add_select(char *filename, s_set_entry *set)
     }
     le->filename = NAME(filename);
     le->type = LE_TYPE_SELECT_SCREEN;
+    return le;
+}
+
+s_level_entry *add_skipselect(ArgList arglist, s_set_entry *set)
+{
+    s_level_entry *le = NULL;
+    char *arg;
+    int i = 0;
+
+    set->levelorder = realloc(set->levelorder, (++set->numlevels) * sizeof(*set->levelorder));
+    le = set->levelorder + set->numlevels - 1;
+    memset(le, 0, sizeof(*le));
+    if(branch_name[0])
+    {
+        le->branchname = NAME(branch_name);
+    }
+
+    if(arglist.count == 1)
+    {
+        le->noselect = 1;
+    }
+    else
+    {
+        for(i = 0; i < MAX_PLAYERS; i++)
+        {
+            if((arg = GET_ARG(i + 1))[0])
+            {
+                le->skipselect[i] = NAME(arg);
+            }
+        }
+    }
+
+    le->type = LE_TYPE_SKIP_SELECT;
     return le;
 }
 
@@ -11147,20 +11183,7 @@ void load_levelorder()
             break;
         case CMD_LEVELORDER_SKIPSELECT:
             CHKDEF;
-            if(arglist.count == 1)
-            {
-                set->noselect = 1;
-            }
-            else
-            {
-                for(i = 0; i < 4; i++)
-                {
-                    if((arg = GET_ARG(i + 1))[0])
-                    {
-                        set->skipselect[i] = NAME(arg);
-                    }
-                }
-            }
+            le = add_skipselect(arglist, set);
             break;
         case CMD_LEVELORDER_FILE:
             CHKDEF;
@@ -30216,19 +30239,6 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
     }
     sameplayer = set->nosame;
 
-
-    for(i = 0; i < MAX_PLAYERS; i++)
-    {
-        if(set->skipselect[i])
-        {
-            strcpy(skipselect[i], set->skipselect[i]);
-        }
-        else
-        {
-            skipselect[i][0] = 0;
-        }
-    }
-
     if(useSavedGame == 1 && save->flag)
     {
         memset(player, 0, sizeof(*player) * 4);
@@ -30259,6 +30269,20 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 
     nosave = 1;
 
+    le = set->levelorder + current_level;
+    set->noselect = le->noselect;
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        if(le->skipselect[i])
+        {
+            strcpy(skipselect[i], le->skipselect[i]);
+        }
+        else
+        {
+            skipselect[i][0] = 0;
+        }
+    }
+
     if((useSavedGame == 1 && save->flag == 2) || useSavedGame == 2 || selectplayer(players, NULL)) // if save flag is 2 don't select player
     {
         while(current_level < set->numlevels)
@@ -30288,6 +30312,14 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
             }
             else if(le->type == LE_TYPE_SELECT_SCREEN)
             {
+                set->noselect = 0;
+                for(i = 0; i < set->maxplayers; i++) // reset skipselect
+                {
+                    if(le->skipselect[i])
+                    {
+                        skipselect[i][0] = 0;
+                    }
+                }
                 for(i = 0; i < set->maxplayers ; i++)
                 {
                     players[i] = (player[i].lives > 0);
@@ -30296,6 +30328,22 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
                 {
                     break;
                 }
+            }
+            else if(le->type == LE_TYPE_SKIP_SELECT)
+            {
+                set->noselect = le->noselect;
+                for(i = 0; i < MAX_PLAYERS; i++)
+                {
+                    if(le->skipselect[i])
+                    {
+                        strcpy(skipselect[i], le->skipselect[i]);
+                    }
+                    else
+                    {
+                        skipselect[i][0] = 0;
+                    }
+                }
+                selectplayer(players, NULL); // re-select a player
             }
             else if(!playlevel(le->filename))
             {

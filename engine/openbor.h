@@ -710,7 +710,8 @@ typedef enum
 {
     LE_TYPE_NORMAL,
     LE_TYPE_CUT_SCENE,
-    LE_TYPE_SELECT_SCREEN
+    LE_TYPE_SELECT_SCREEN,
+    LE_TYPE_SKIP_SELECT
 } e_le_type;
 
 typedef enum
@@ -1958,6 +1959,8 @@ typedef struct
     e_le_type type; // see e_le_type
     int z_coords[3]; // Used for setting custom "z"
     int gonext; // 0. dont complete this level and display score,
+    char *skipselect[MAX_PLAYERS]; // skipselect level based //[MAX_NAME_LEN]
+    int	noselect;
     // 1. complete level and display score,
     // 2. complete game, show hall of fame
 } s_level_entry;
@@ -1976,11 +1979,10 @@ typedef struct
     int musicoverlap; //** shouldn't it be level based?
     int typemp; //** shouldn't it be model based?
     int continuescore;
-    char *skipselect[MAX_PLAYERS]; //** better if level based
+    //char *skipselect[MAX_PLAYERS]; //** better if level based // depreciated
+    int	noselect;
     int saveflag;
     int nosame;
-    int	noselect;
-
 } s_set_entry;
 
 typedef struct
