@@ -13585,7 +13585,7 @@ enum playerproperty_enum
     _pp_name,
     _pp_newkeys,
     _pp_playkeys,
-    _pp_releasekeys
+    _pp_releasekeys,
     _pp_score,
     _pp_spawnhealth,
     _pp_spawnmp,

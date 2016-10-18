@@ -190,6 +190,7 @@ char                *custModels = NULL;
 char                rush_names[2][MAX_NAME_LEN];
 char				skipselect[MAX_PLAYERS][MAX_NAME_LEN];
 char                branch_name[MAX_NAME_LEN + 1];  // Used for branches
+char                allowselect_args[MAX_ARG_LEN + 1]; // stored allowselect players
 int					useSave = 0;
 int					useSet = -1;
 unsigned char       pal[MAX_PAL_SIZE] = {""};
@@ -2946,17 +2947,22 @@ int saveGameFile()
     FILE *handle = NULL;
     char path[256] = {""};
     char tmpname[256] = {""};
+
     getBasePath(path, "Saves", 0);
     getPakName(tmpname, 0);
     strcat(path, tmpname);
     //if(!savelevel[saveslot].level) return;
     handle = fopen(path, "wb");
+
     if(handle == NULL)
     {
         return 0;
     }
+
     fwrite(savelevel, sizeof(*savelevel), num_difficulties, handle);
+
     fclose(handle);
+
     return 1;
 #else
     return 1;
@@ -2971,15 +2977,24 @@ int loadGameFile()
     FILE *handle = NULL;
     char path[256] = {""};
     char tmpname[256] = {""};
+    //size_t filesize = 0;
+
     getBasePath(path, "Saves", 0);
     getPakName(tmpname, 0);
     strcat(path, tmpname);
     handle = fopen(path, "rb");
+
     if(handle == NULL)
     {
         return 0;
     }
-    if(fread(savelevel, sizeof(*savelevel), num_difficulties, handle) >= sizeof(*savelevel) && savelevel[0].compatibleversion != CV_SAVED_GAME) //TODO: check file length
+
+    //fseek(handle, 0L, SEEK_END);
+    //filesize = ftell(handle);
+    //fseek(handle, 0L, SEEK_SET); // or rewind(handle);
+    //(filesize != sizeof(*savelevel)*num_difficulties)
+
+    if( (fread(savelevel, sizeof(*savelevel), num_difficulties, handle) >= sizeof(*savelevel) && savelevel[0].compatibleversion != CV_SAVED_GAME) )
     {
         clearSavedGame();
         result = 0;
@@ -2992,7 +3007,9 @@ int loadGameFile()
                 bonus += savelevel[i].times_completed;
             }
     }
+
     fclose(handle);
+
     return result;
 #else
     clearSavedGame();
@@ -4975,6 +4992,7 @@ static void load_playable_list(char *buf)
 
     reset_playable_list(0);
     ParseArgs(&arglist, buf, argbuf);
+    for(i = 0; i < sizeof(argbuf); i++) allowselect_args[i] = argbuf[i]; // store allowselect players for savefile
 
     for(i = 1; (value = GET_ARG(i))[0]; i++)
     {
@@ -29764,6 +29782,7 @@ void savelevelinfo()
     save->stage = current_stage;
     save->which_set = current_set;
     strncpy(save->dName, set->name, MAX_NAME_LEN);
+    for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = allowselect_args[i];
 }
 
 
@@ -30262,8 +30281,9 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
                 strncpy(player[i].name, save->pName[i], MAX_NAME_LEN);
             }
             credits = save->credits;
+
+            load_playable_list(save->allowSelectArgs); //TODO: change sav format to support dynamic allowselect list.
             //reset_playable_list(1); // add this because there's no select screen, temporary solution
-            //TODO: change sav format to support custom allowselect list.
         }
     }
 
