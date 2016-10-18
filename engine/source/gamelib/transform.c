@@ -983,7 +983,7 @@ void gfx_draw_rotate(s_screen *dest, gfx_entry *src, int x, int y, int centerx, 
             srcy=srcy_16>>16;\
 			if(srcx<trans_sw && srcy<trans_sh){\
 				src_seek(srcx, srcy);\
-	
+
 #define for2 \
 			}\
 			dest_inc();\
@@ -1411,7 +1411,7 @@ void gfx_draw_scale(s_screen *dest, gfx_entry *src, int x, int y, int centerx, i
 		dest_seek((endx>>8)-1, j>>8);\
 		for(i=endx-256; i>=beginx; i-=256, sx+=stepdx){\
 			src_seek(sx>>8, sy>>8); \
- 
+
 #define for2() \
 			dest_dec();\
 		}\
@@ -1490,7 +1490,7 @@ void gfx_draw_water(s_screen *dest, gfx_entry *src, int x, int y, int centerx, i
     wavelength = 256 / drawmethod->water.wavelength;
     s += sy * wavelength;
 
-    printf("drawing water ... \n");
+    //printf("drawing water ... \n"); // no write on debug
 
     // Copy data
     do

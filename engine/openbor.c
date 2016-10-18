@@ -14429,7 +14429,7 @@ void drawenemystatus(entity *ent)
         if(icon >= 0)
         {
             drawmethod = plainmethod;
-            drawmethod.table = ent->colourmap;
+            drawmethod.table = ent->modeldata.icon.usemap ? ent->colourmap : NULL;
             spriteq_add_sprite(ent->modeldata.icon.position.x, ent->modeldata.icon.position.y, HUD_Z, icon, &drawmethod, 0);
         }
     }
