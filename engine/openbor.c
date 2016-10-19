@@ -16269,6 +16269,27 @@ int checkhole(float x, float z)
     return 0;
 }
 
+// find the 1st hole id here
+int checkhole_index(float x, float z)
+{
+    int i;
+
+    if(level == NULL)
+    {
+        return -1;
+    }
+
+    for(i = 0; i < level->numholes; i++)
+    {
+        if(testhole(i, x, z))
+        {
+            //holez = i;
+            return i;
+        }
+    }
+    return -1;
+}
+
 /*
 Calculates the coef relative to the bottom left point. This is done by figuring out how far the entity is from
 the bottom of the platform and multiplying the result by the difference of the bottom left point and the top
