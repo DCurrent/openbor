@@ -18444,6 +18444,7 @@ void display_ents()
     entity *e = NULL;
     entity *other = NULL;
     int qx, qy, sy, sz, alty;
+    int platz = 0; // on platform z
     int sortid;
     float temp1, temp2;
     int useshadow = 0;
@@ -18532,12 +18533,25 @@ void display_ents()
                              e->grabbing)
                         )
                         {
-                            z = (int)(other->position.z + 2);    // Make sure entities get displayed in front of obstacle and grabbee
+                            int zdepth = (int)( (float)e->position.z - (float)other->position.z + (float)(other->animation->platform[other->animpos][6]/2) + 1 );
+
+                            // Make sure entities get displayed in front of obstacle and grabbee
+                            z = (int)( other->position.z + 2 + zdepth );
+                            platz = z;
                         }
 
                         else
                         {
-                            z = (int)(other->position.z + 1);    // Entity should always display in front of the obstacle
+                            int zdepth = (int)( (float)e->position.z - (float)other->position.z + (float)(other->animation->platform[other->animpos][6]/2) + 1 );
+
+                            // Entity should always display in front of the obstacle
+                            // entity position on platform? pz:(maxz-minz)=Z:depth -> Z =(pz*depth)/(maxz-minz)
+                            z = (int)( other->position.z + 1 + zdepth );
+                            platz = z;
+
+                            //printf("%d %d %d %d\n",(int)other->position.z,(int)e->position.z,(int)other->animation->platform[other->animpos][1],(int)other->animation->platform[other->animpos][6]);
+                            //debug_printf("%d %d %d",(int)e->position.z,PLAYER_MAX_Z,PLAYER_MIN_Z);
+                            //debug_printf("%d %d",zdepth,(int)other->animation->platform[other->animpos][6]);
                         }
 
                     }
@@ -18653,6 +18667,7 @@ void display_ents()
                 {
                     useshadow = (e->animation->shadow ? e->animation->shadow[e->animpos] : 1) && shadowcolor && light.y;
                     //printf("\n %d, %d, %d\n", shadowcolor, light.x, light.y);
+
                     if(useshadow && e->position.y >= 0 && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                     {
                         wall = checkwall_below(e->position.x, e->position.z, e->position.y);
@@ -18675,6 +18690,16 @@ void display_ents()
 
                         wall2 = checkwall_below(e->position.x + temp1, e->position.z + temp2, e->position.y); // check if the shadow drop into a hole or fall on another wall
 
+                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7])
+                        {
+                            alty = (int)(e->position.y - other->position.y + other->animation->platform[other->animpos][7]);
+                            temp1 = -1 * (e->position.y - (other->position.y + other->animation->platform[other->animpos][7])) * light.x / 256; // xshift
+                            temp2 = (float)(-e->position.y * light.y / 256);
+
+                            qx = (int)( e->position.x - scrx + 10 );
+                            qy = (int)( e->position.z - other->position.y - other->animation->platform[other->animpos][7] - scry + 20 );
+                        }
+
                         //TODO check platforms, don't want to go through the entity list again right now
                         if(!(checkhole(e->position.x + temp1, e->position.z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
                         {
@@ -18696,9 +18721,14 @@ void display_ents()
                                 /*qx -= -1*level->walls[wall2].height*light.x/256;
                                 qy -= level->walls[wall2].height - level->walls[wall2].height*light.y/256;*/
                             }
+
                             sy = (2 * MIRROR_Z - qy) - 2 * scry;
-                            z = shadowz;
+
+                            if ( platz && other ) z = other->position.z + 1;
+                            else z = shadowz;
+
                             sz = PANEL_Z - HUD_Z;
+
                             if(e->animation->shadow_coords)
                             {
                                 if(e->direction == DIRECTION_RIGHT)
@@ -18755,9 +18785,11 @@ void display_ents()
                         if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7])
                         {
                             qx = (int)(e->position.x - scrx);
-                            qy = (int)(e->position.z - other->position.y - other->animation->platform[other->animpos][7] - scry);
+                            qy =                 (int)(e->position.z  - other->position.y - other->animation->platform[other->animpos][7] - scry);
                             sy = (int)((2 * MIRROR_Z - e->position.z) - other->position.y - other->animation->platform[other->animpos][7] - scry);
-                            z = (int)(other->position.z + 1);
+
+                            //z = (int)(other->position.z + 1);
+                            z = platz;
                             sz = 2 * PANEL_Z - z;
                         }
                         else if(level && wall >= 0)// && e->position.y >= level->walls[wall].height)
@@ -18789,9 +18821,11 @@ void display_ents()
                             qy += e->animation->shadow_coords[e->animpos][1];
                             sy -= e->animation->shadow_coords[e->animpos][1];
                         }
+
                         shadowmethod = plainmethod;
                         shadowmethod.alpha = BLEND_MULTIPLY + 1;
                         shadowmethod.flipx = !e->direction;
+
                         spriteq_add_sprite(qx, qy, z, shadowsprites[useshadow - 1], &shadowmethod, 0);
                         if(use_mirror)
                         {
@@ -18809,6 +18843,9 @@ void display_ents()
                 }
             }
         }// end of if(ent_list[i]->exists)
+
+        // reset vars for next loop
+        platz = 0;
     }// end of for
 
     //defer ondraw script so it can manage spriteq better
