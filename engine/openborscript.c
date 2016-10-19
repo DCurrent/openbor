@@ -3317,6 +3317,7 @@ enum entityproperty_enum
     _ep_alpha,
     _ep_animal,
     _ep_animating,
+    _ep_animation,
     _ep_animation_handle,
     _ep_animationid,
     _ep_animheight,
@@ -3490,6 +3491,7 @@ static const char *eplist[] =
     "alpha",
     "animal",
     "animating",
+    "animation",
     "animation.handle",
     "animationid",
     "animheight",
@@ -9954,6 +9956,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
     case _ep_animation_handle:
     {
+        #define ARG_ANIMATION_ID 2
+
         // Did the user provide an animation id?
         if(paramCount > 2)
         {
@@ -9973,6 +9977,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         ScriptVariant_ChangeType(*pretvar, VT_PTR);
         (*pretvar)->ptrVal = (VOID *)ent->modeldata.animation[ltemp];
         break;
+
+        #undef ARG_ANIMATION_ID
     }
     /*
     case _ep_animationid: See animnum.
