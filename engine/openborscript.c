@@ -3315,10 +3315,9 @@ enum entityproperty_enum
     _ep_aiflag,
     _ep_aimove,
     _ep_alpha,
-    _ep_anim_handle,           //Animation properties.
     _ep_animal,
     _ep_animating,
-    _ep_animation,
+    _ep_animation_handle,
     _ep_animationid,
     _ep_animheight,
     _ep_animhits,
@@ -3489,10 +3488,9 @@ static const char *eplist[] =
     "aiflag",
     "aimove",
     "alpha",
-    "anim.handle",
     "animal",
     "animating",
-    "animation",
+    "animation.handle",
     "animationid",
     "animheight",
     "animhits",
@@ -9708,6 +9706,71 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
 }
 
 //getentityproperty(pentity, propname);
+
+HRESULT openbor_entity_animation_handle_get(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME           "entity.animation.handle({entity}, {Animation ID})"
+    #define ARG_ENTITY          0
+    #define ARG_ANIMATION_ID    1
+
+    entity          *ent	        = NULL;
+    ScriptVariant   *arg	        = NULL;
+    LONG            animation_id    = 0;
+    int             result          = E_FAIL;
+
+    // First we need to get and verify the owner entity.
+    arg = varlist[ARG_ENTITY];
+
+    if(arg->vt != VT_PTR && arg->vt != VT_EMPTY)
+    {
+        printf(SELF_NAME " - You must provide a valid entity handle for {entity}.\n");
+        *pretvar = NULL;
+
+        return result;
+    }
+
+    // Copy entity to local var, and verify. If the entity is
+    // still missing, it must not exist any more, so we'll
+    // exit the function without a fuss.
+    ent = (entity *)arg->ptrVal;
+    if(!ent)
+    {
+        result = S_OK;
+        return result;
+    }
+
+    // Did the user provide an animation id?
+    if(paramCount > ARG_ANIMATION_ID)
+    {
+        arg = varlist[ARG_ANIMATION_ID];
+
+        // If the argument is invalid, use current animation ID instead.
+        if(FAILED(ScriptVariant_IntegerValue(arg, &animation_id)))
+        {
+            animation_id = (LONG)ent->animnum;
+        }
+    }
+    else
+    {
+        animation_id = (LONG)ent->animnum;
+    }
+
+    // Pass by value.
+    ScriptVariant_ChangeType(*pretvar, VT_PTR);
+    (*pretvar)->ptrVal = (VOID *)ent->modeldata.animation[animation_id];
+
+    // If we made it this far everything is OK.
+    // Set result accordingly and exit function.
+    result = S_OK;
+    return result;
+
+    // Don't want conflicts elsewhere.
+    #undef SELF_NAME
+    #undef ARG_ENTITY
+    #undef ARG_ANIMATION_ID
+}
+
+//getentityproperty(pentity, propname);
 HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     entity *ent			= NULL;
@@ -9889,13 +9952,28 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->animating;
         break;
     }
-    case _ep_animation:
+    case _ep_animation_handle:
     {
+        // Did the user provide an animation id?
+        if(paramCount > 2)
+        {
+            arg = varlist[2];
+
+            // If the argument is invalid, use current animation ID instead.
+            if(FAILED(ScriptVariant_IntegerValue(arg, &ltemp)))
+            {
+                ltemp = (LONG)ent->animnum;
+            }
+        }
+        else
+        {
+            ltemp = (LONG)ent->animnum;
+        }
+
         ScriptVariant_ChangeType(*pretvar, VT_PTR);
-        (*pretvar)->ptrVal = (VOID *)ent->animation;
+        (*pretvar)->ptrVal = (VOID *)ent->modeldata.animation[ltemp];
         break;
     }
-
     /*
     case _ep_animationid: See animnum.
     */
