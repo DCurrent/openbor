@@ -14114,6 +14114,12 @@ HRESULT openbor_getholeproperty(ScriptVariant **varlist, ScriptVariant **pretvar
     }
 
     index = (LONG)varlist[0]->lVal;
+    if(index < 0 || index >= level->numholes )
+    {
+        printf("No hole for index: %d.\n",(int)index);
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
 
     prop = varlist[1]->lVal;
 
@@ -14200,6 +14206,12 @@ HRESULT openbor_changeholeproperty(ScriptVariant **varlist, ScriptVariant **pret
     }
 
     index = (LONG)varlist[0]->lVal;
+    if(index < 0 || index >= level->numholes )
+    {
+        printf("No hole for index: %d.\n",(int)index);
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
 
     prop = varlist[1]->lVal;
     arg = varlist[2];
@@ -14393,6 +14405,12 @@ HRESULT openbor_getwallproperty(ScriptVariant **varlist, ScriptVariant **pretvar
     }
 
     index = (LONG)varlist[0]->lVal;
+    if(index < 0 || index >= level->numwalls )
+    {
+        printf("No wall for index: %d.\n",(int)index);
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
 
     prop = varlist[1]->lVal;
 
@@ -14479,6 +14497,12 @@ HRESULT openbor_changewallproperty(ScriptVariant **varlist, ScriptVariant **pret
     }
 
     index = (LONG)varlist[0]->lVal;
+    if(index < 0 || index >= level->numwalls )
+    {
+        printf("No wall for index: %d.\n",(int)index);
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
 
     prop = varlist[1]->lVal;
     arg = varlist[2];
