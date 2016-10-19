@@ -874,9 +874,33 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "checkhole";
     }
+    else if (functionRef == ((void *)openbor_checkholeindex))
+    {
+        return "checkholeindex";
+    }
+    else if (functionRef == ((void *)openbor_getholeproperty))
+    {
+        return "getholeproperty";
+    }
+    else if (functionRef == ((void *)openbor_changeholeproperty))
+    {
+        return "changeholeproperty";
+    }
     else if (functionRef == ((void *)openbor_checkwall))
     {
         return "checkwall";
+    }
+    else if (functionRef == ((void *)openbor_checkwallindex))
+    {
+        return "checkwallindex";
+    }
+    else if (functionRef == ((void *)openbor_getwallproperty))
+    {
+        return "getwallproperty";
+    }
+    else if (functionRef == ((void *)openbor_changewallproperty))
+    {
+        return "changewallproperty";
     }
     else if (functionRef == ((void *)openbor_checkplatformbelow))
     {
@@ -1524,7 +1548,19 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_checkhole, "checkhole");
     List_InsertAfter(&theFunctionList,
+                     (void *)openbor_checkholeindex, "checkholeindex");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_getholeproperty, "getholeproperty");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_changeholeproperty, "changeholeproperty");
+    List_InsertAfter(&theFunctionList,
                      (void *)openbor_checkwall, "checkwall");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_checkholeindex, "checkwallindex");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_getwallproperty, "getwallproperty");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_changewallproperty, "changewallproperty");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_checkplatformbelow, "checkplatformbelow");
     List_InsertAfter(&theFunctionList,
@@ -13888,6 +13924,250 @@ HRESULT openbor_checkhole(ScriptVariant **varlist , ScriptVariant **pretvar, int
     return S_OK;
 }
 
+//checkholeindex(x,z), return hole index if there's hole here, else it returns -1
+HRESULT openbor_checkholeindex(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    ScriptVariant *arg = NULL;
+    DOUBLE x, z;
+
+    if(paramCount < 2)
+    {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = (LONG)-1;
+
+    arg = varlist[0];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &x)))
+    {
+        return S_OK;
+    }
+
+    arg = varlist[1];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &z)))
+    {
+        return S_OK;
+    }
+
+    if ( checkwall((float)x, (float)z) < 0 )
+    {
+        (*pretvar)->lVal = (LONG)(checkhole_index((float)x, (float)z));
+    }
+
+    return S_OK;
+}
+
+enum holeterrain_enum
+{
+    _holet_depth,
+    _holet_height,
+    _holet_lowerleft,
+    _holet_lowerright,
+    _holet_upperleft,
+    _holet_upperright,
+    _holet_x,
+    _holet_z,
+    _holet_the_end,
+};
+
+int mapstrings_holeterrain(ScriptVariant **varlist, int paramCount)
+{
+    char *propname;
+    int prop;
+    static const char *proplist[] =
+    {
+        "depth",
+        "height",
+        "lowerleft",
+        "lowerright",
+        "upperleft",
+        "upperright",
+        "x",
+        "z",
+    };
+
+    MAPSTRINGS(varlist[1], proplist, _holet_the_end,
+               "Property name '%s' is not supported by holeproperty.\n");
+
+    return 1;
+}
+
+//getholeproperty(index, property);
+HRESULT openbor_getholeproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    LONG index;
+    //DOUBLE dbltemp;
+    LONG ltemp;
+    int prop;
+
+    ltemp = (LONG)0;
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    if(paramCount < 2)
+    {
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
+
+    mapstrings_holeterrain(varlist, paramCount);
+    if(varlist[1]->vt != VT_INTEGER)
+    {
+        if(varlist[1]->vt != VT_STR)
+        {
+            printf("You must give a string value for hole property.\n");
+        }
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
+
+    if(varlist[0]->vt != VT_INTEGER)
+    {
+        printf("You must give an index value for hole property.\n");
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
+
+    index = (LONG)varlist[0]->lVal;
+
+    prop = varlist[1]->lVal;
+
+    switch(prop)
+    {
+    case _holet_depth:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->holes[index].depth;
+        break;
+    case _holet_height:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->holes[index].height;
+        break;
+    case _holet_lowerleft:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->holes[index].lowerleft;
+        break;
+    case _holet_lowerright:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->holes[index].lowerright;
+        break;
+    case _holet_upperleft:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->holes[index].upperleft;
+        break;
+    case _holet_upperright:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->holes[index].upperright;
+        break;
+    case _holet_x:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->holes[index].x;
+        break;
+    case _holet_z:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->holes[index].z;
+        break;
+    default:
+        if ( varlist[1]->vt == VT_STR ) printf("Property name '%s' is not supported by holeproperty.\n", varlist[1]->strVal);
+        goto getholeproperty_error;
+    }
+
+    return S_OK;
+
+    getholeproperty_error:
+    (*pretvar)->lVal = (LONG)ltemp;
+    return E_FAIL;
+}
+
+//changeholeproperty(index, property, value);
+HRESULT openbor_changeholeproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    LONG index;
+    DOUBLE dbltemp;
+    LONG ltemp;
+    int prop;
+    ScriptVariant *arg = NULL;
+
+    ltemp = (LONG)0;
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    if(paramCount < 3)
+    {
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
+
+    mapstrings_holeterrain(varlist, paramCount);
+    if(varlist[1]->vt != VT_INTEGER)
+    {
+        if(varlist[1]->vt != VT_STR)
+        {
+            printf("You must give a string value for hole property.\n");
+        }
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
+
+    if(varlist[0]->vt != VT_INTEGER)
+    {
+        printf("You must give an index value for hole property.\n");
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
+
+    index = (LONG)varlist[0]->lVal;
+
+    prop = varlist[1]->lVal;
+    arg = varlist[2];
+
+    if(arg->vt != VT_DECIMAL)
+    {
+        if(arg->vt != VT_INTEGER)
+        {
+            printf("You must use a decimal value to set a hole property.\n");
+            goto changeholeproperty_error;
+        }
+    }
+    dbltemp = (DOUBLE)arg->dblVal;
+
+    switch(prop)
+    {
+    case _holet_depth:
+        level->holes[index].depth = (DOUBLE)dbltemp;
+        break;
+    case _holet_height:
+        level->holes[index].height = (DOUBLE)dbltemp;
+        break;
+    case _holet_lowerleft:
+        level->holes[index].lowerleft = (DOUBLE)dbltemp;
+        break;
+    case _holet_lowerright:
+        level->holes[index].lowerright = (DOUBLE)dbltemp;
+        break;
+    case _holet_upperleft:
+        level->holes[index].upperleft = (DOUBLE)dbltemp;
+        break;
+    case _holet_upperright:
+        level->holes[index].upperright = (DOUBLE)dbltemp;
+        break;
+    case _holet_x:
+        level->holes[index].x = (DOUBLE)dbltemp;
+        break;
+    case _holet_z:
+        level->holes[index].z = (DOUBLE)dbltemp;
+        break;
+    default:
+        if ( varlist[1]->vt == VT_STR ) printf("Property name '%s' is not supported by holeproperty.\n", varlist[1]->strVal);
+        goto changeholeproperty_error;
+    }
+
+    return S_OK;
+
+    changeholeproperty_error:
+    (*pretvar)->lVal = (LONG)ltemp;
+    return E_FAIL;
+}
+
 //checkwall(x,z), return wall height, or 0
 HRESULT openbor_checkwall(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -13921,6 +14201,250 @@ HRESULT openbor_checkwall(ScriptVariant **varlist , ScriptVariant **pretvar, int
         (*pretvar)->dblVal = (DOUBLE)level->walls[wall].height;
     }
     return S_OK;
+}
+
+//checkwallindex(x,z), return wall index, or -1
+HRESULT openbor_checkwallindex(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    ScriptVariant *arg = NULL;
+    DOUBLE x, z;
+    int wall;
+
+    if(paramCount < 2)
+    {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = (LONG)-1;
+
+    arg = varlist[0];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &x)))
+    {
+        return S_OK;
+    }
+
+    arg = varlist[1];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &z)))
+    {
+        return S_OK;
+    }
+
+    if((wall = checkwall_below((float)x, (float)z, 100000)) >= 0)
+    {
+        (*pretvar)->lVal = (LONG)wall;
+    }
+    return S_OK;
+}
+
+enum wallterrain_enum
+{
+    _wallt_depth,
+    _wallt_height,
+    _wallt_lowerleft,
+    _wallt_lowerright,
+    _wallt_upperleft,
+    _wallt_upperright,
+    _wallt_x,
+    _wallt_z,
+    _wallt_the_end,
+};
+
+int mapstrings_wallterrain(ScriptVariant **varlist, int paramCount)
+{
+    char *propname;
+    int prop;
+    static const char *proplist[] =
+    {
+        "depth",
+        "height",
+        "lowerleft",
+        "lowerright",
+        "upperleft",
+        "upperright",
+        "x",
+        "z",
+    };
+
+    MAPSTRINGS(varlist[1], proplist, _wallt_the_end,
+               "Property name '%s' is not supported by wallproperty.\n");
+
+    return 1;
+}
+
+//getwallproperty(index, property);
+HRESULT openbor_getwallproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    LONG index;
+    //DOUBLE dbltemp;
+    LONG ltemp;
+    int prop;
+
+    ltemp = (LONG)0;
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    if(paramCount < 2)
+    {
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
+
+    mapstrings_wallterrain(varlist, paramCount);
+    if(varlist[1]->vt != VT_INTEGER)
+    {
+        if(varlist[1]->vt != VT_STR)
+        {
+            printf("You must give a string value for wall property.\n");
+        }
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
+
+    if(varlist[0]->vt != VT_INTEGER)
+    {
+        printf("You must give an index value for wall property.\n");
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
+
+    index = (LONG)varlist[0]->lVal;
+
+    prop = varlist[1]->lVal;
+
+    switch(prop)
+    {
+    case _wallt_depth:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->walls[index].depth;
+        break;
+    case _wallt_height:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->walls[index].height;
+        break;
+    case _wallt_lowerleft:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->walls[index].lowerleft;
+        break;
+    case _wallt_lowerright:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->walls[index].lowerright;
+        break;
+    case _wallt_upperleft:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->walls[index].upperleft;
+        break;
+    case _wallt_upperright:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->walls[index].upperright;
+        break;
+    case _wallt_x:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->walls[index].x;
+        break;
+    case _wallt_z:
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)level->walls[index].z;
+        break;
+    default:
+        if ( varlist[1]->vt == VT_STR ) printf("Property name '%s' is not supported by wallproperty.\n", varlist[1]->strVal);
+        goto getwallproperty_error;
+    }
+
+    return S_OK;
+
+    getwallproperty_error:
+    (*pretvar)->lVal = (LONG)ltemp;
+    return E_FAIL;
+}
+
+//changewallproperty(index, property, value);
+HRESULT openbor_changewallproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    LONG index;
+    DOUBLE dbltemp;
+    LONG ltemp;
+    int prop;
+    ScriptVariant *arg = NULL;
+
+    ltemp = (LONG)0;
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    if(paramCount < 3)
+    {
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
+
+    mapstrings_wallterrain(varlist, paramCount);
+    if(varlist[1]->vt != VT_INTEGER)
+    {
+        if(varlist[1]->vt != VT_STR)
+        {
+            printf("You must give a string value for wall property.\n");
+        }
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
+
+    if(varlist[0]->vt != VT_INTEGER)
+    {
+        printf("You must give an index value for wall property.\n");
+        (*pretvar)->lVal = (LONG)ltemp;
+        return E_FAIL;
+    }
+
+    index = (LONG)varlist[0]->lVal;
+
+    prop = varlist[1]->lVal;
+    arg = varlist[2];
+
+    if(arg->vt != VT_DECIMAL)
+    {
+        if(arg->vt != VT_INTEGER)
+        {
+            printf("You must use a decimal value to set a wall property.\n");
+            goto changewallproperty_error;
+        }
+    }
+    dbltemp = (DOUBLE)arg->dblVal;
+
+    switch(prop)
+    {
+    case _wallt_depth:
+        level->walls[index].depth = (DOUBLE)dbltemp;
+        break;
+    case _wallt_height:
+        level->walls[index].height = (DOUBLE)dbltemp;
+        break;
+    case _wallt_lowerleft:
+        level->walls[index].lowerleft = (DOUBLE)dbltemp;
+        break;
+    case _wallt_lowerright:
+        level->walls[index].lowerright = (DOUBLE)dbltemp;
+        break;
+    case _wallt_upperleft:
+        level->walls[index].upperleft = (DOUBLE)dbltemp;
+        break;
+    case _wallt_upperright:
+        level->walls[index].upperright = (DOUBLE)dbltemp;
+        break;
+    case _wallt_x:
+        level->walls[index].x = (DOUBLE)dbltemp;
+        break;
+    case _wallt_z:
+        level->walls[index].z = (DOUBLE)dbltemp;
+        break;
+    default:
+        if ( varlist[1]->vt == VT_STR ) printf("Property name '%s' is not supported by wallproperty.\n", varlist[1]->strVal);
+        goto changewallproperty_error;
+    }
+
+    return S_OK;
+
+    changewallproperty_error:
+    (*pretvar)->lVal = (LONG)ltemp;
+    return E_FAIL;
 }
 
 //checkplatformbelow(x,z,a), return the highest platfrom entity below
