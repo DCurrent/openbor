@@ -3279,7 +3279,7 @@ enum entityproperty_enum
     _ep_aiflag,
     _ep_aimove,
     _ep_alpha,
-    _ep_anim,           //Animation properties.
+    _ep_anim_handle,           //Animation properties.
     _ep_animal,
     _ep_animating,
     _ep_animation,
@@ -3291,12 +3291,6 @@ enum entityproperty_enum
     _ep_animvalid,
     _ep_antigrab,
     _ep_antigravity,
-    _ep_attack_coords_location_x,
-    _ep_attack_coords_location_y,
-    _ep_attack_coords_size_x,
-    _ep_attack_coords_size_y,
-    _ep_attack_coords_size_z_in,
-    _ep_attack_coords_size_z_out,
     _ep_attackid,
     _ep_attacking,
     _ep_attackthrottle,
@@ -3459,7 +3453,7 @@ static const char *eplist[] =
     "aiflag",
     "aimove",
     "alpha",
-    "anim",
+    "anim.handle",
     "animal",
     "animating",
     "animation",
@@ -3471,12 +3465,6 @@ static const char *eplist[] =
     "animvalid",
     "antigrab",
     "antigravity",
-    "attack.coords.location.x",
-    "attack.coords.location.y",
-    "attack.coords.size.x",
-    "attack.coords.size.y",
-    "attack.coords.size.z.in",
-    "attack.coords.size.z.out",
     "attackid",
     "attacking",
     "attackthrottle",
@@ -9683,7 +9671,6 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     return result;
 }
 
-
 //getentityproperty(pentity, propname);
 HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -9929,174 +9916,6 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->dblVal = (DOUBLE)ent->modeldata.antigravity;
         break;
     }
-    case _ep_attack_coords_location_x:
-    {
-        if(paramCount < 4)
-        {
-            break;
-        }
-
-        if(varlist[EP_ATTACK_AK_ANIMATION]->vt != VT_INTEGER
-                || varlist[EP_ATTACK_AK_FRAME]->vt != VT_INTEGER)
-                //|| varlist[_EP_ATTACK_AK_INDEX]->vt != VT_INTEGER)
-        {
-            printf("\n Error, getentityproperty({ent}, 'attack.coords.location.x', {animation}, {frame}, {index}): {Animation} or {frame} parameter is missing or invalid. \n");
-            return E_FAIL;
-        }
-
-        // If the animation is invalid or has no attack, then finish.
-        if(!validanim(ent, varlist[EP_ATTACK_AK_ANIMATION]->lVal))
-        {
-            break;
-        }
-
-        attack = ent->modeldata.animation[varlist[EP_ATTACK_AK_ANIMATION]->lVal]->attacks[varlist[EP_ATTACK_AK_FRAME]->lVal];
-
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)attack->attack_coords.x;
-        break;
-    }
-
-    case _ep_attack_coords_location_y:
-    {
-        if(paramCount < 4)
-        {
-            break;
-        }
-
-        if(varlist[EP_ATTACK_AK_ANIMATION]->vt != VT_INTEGER
-                || varlist[EP_ATTACK_AK_FRAME]->vt != VT_INTEGER)
-                //|| varlist[_EP_ATTACK_AK_INDEX]->vt != VT_INTEGER)
-        {
-            printf("\n Error, getentityproperty({ent}, 'attack.coords.location.y', {animation}, {frame}, {index}): {Animation} or {frame} parameter is missing or invalid. \n");
-            return E_FAIL;
-        }
-
-        // If the animation is invalid or has no attack, then finish.
-        if(!validanim(ent, varlist[EP_ATTACK_AK_ANIMATION]->lVal))
-        {
-            break;
-        }
-
-        attack = ent->modeldata.animation[varlist[EP_ATTACK_AK_ANIMATION]->lVal]->attacks[varlist[EP_ATTACK_AK_FRAME]->lVal];
-
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)attack->attack_coords.y;
-        break;
-    }
-
-    case _ep_attack_coords_size_x:
-    {
-        if(paramCount < 4)
-        {
-            break;
-        }
-
-        if(varlist[EP_ATTACK_AK_ANIMATION]->vt != VT_INTEGER
-                || varlist[EP_ATTACK_AK_FRAME]->vt != VT_INTEGER)
-                //|| varlist[_EP_ATTACK_AK_INDEX]->vt != VT_INTEGER)
-        {
-            printf("\n Error, getentityproperty({ent}, 'attack.coords.size.x', {animation}, {frame}, {index}): {Animation} or {frame} parameter is missing or invalid. \n");
-            return E_FAIL;
-        }
-
-        // If the animation is invalid or has no attack, then finish.
-        if(!validanim(ent, varlist[EP_ATTACK_AK_ANIMATION]->lVal))
-        {
-            break;
-        }
-
-        attack = ent->modeldata.animation[varlist[EP_ATTACK_AK_ANIMATION]->lVal]->attacks[varlist[EP_ATTACK_AK_FRAME]->lVal];
-
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)attack->attack_coords.width;
-        break;
-    }
-
-    case _ep_attack_coords_size_y:
-    {
-        if(paramCount < 4)
-        {
-            break;
-        }
-
-        if(varlist[EP_ATTACK_AK_ANIMATION]->vt != VT_INTEGER
-                || varlist[EP_ATTACK_AK_FRAME]->vt != VT_INTEGER)
-                //|| varlist[_EP_ATTACK_AK_INDEX]->vt != VT_INTEGER)
-        {
-            printf("\n Error, getentityproperty({ent}, 'attack.coords.size.y', {animation}, {frame}, {index}): {Animation} or {frame} parameter is missing or invalid. \n");
-            return E_FAIL;
-        }
-
-        // If the animation is invalid or has no attack, then finish.
-        if(!validanim(ent, varlist[EP_ATTACK_AK_ANIMATION]->lVal))
-        {
-            break;
-        }
-
-        attack = ent->modeldata.animation[varlist[EP_ATTACK_AK_ANIMATION]->lVal]->attacks[varlist[EP_ATTACK_AK_FRAME]->lVal];
-
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)attack->attack_coords.height;
-        break;
-    }
-
-    case _ep_attack_coords_size_z_in:
-    {
-        if(paramCount < 4)
-        {
-            break;
-        }
-
-        if(varlist[EP_ATTACK_AK_ANIMATION]->vt != VT_INTEGER
-                || varlist[EP_ATTACK_AK_FRAME]->vt != VT_INTEGER)
-                //|| varlist[_EP_ATTACK_AK_INDEX]->vt != VT_INTEGER)
-        {
-            printf("\n Error, getentityproperty({ent}, 'attack.coords.size.z.in', {animation}, {frame}, {index}): {Animation} or {frame} parameter is missing or invalid. \n");
-            return E_FAIL;
-        }
-
-        // If the animation is invalid or has no attack, then finish.
-        if(!validanim(ent, varlist[EP_ATTACK_AK_ANIMATION]->lVal))
-        {
-            break;
-        }
-
-        attack = ent->modeldata.animation[varlist[EP_ATTACK_AK_ANIMATION]->lVal]->attacks[varlist[EP_ATTACK_AK_FRAME]->lVal];
-
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)attack->attack_coords.z1;
-        break;
-    }
-
-    case _ep_attack_coords_size_z_out:
-    {
-        if(paramCount < 4)
-        {
-            break;
-        }
-
-        if(varlist[EP_ATTACK_AK_ANIMATION]->vt != VT_INTEGER
-                || varlist[EP_ATTACK_AK_FRAME]->vt != VT_INTEGER)
-                //|| varlist[_EP_ATTACK_AK_INDEX]->vt != VT_INTEGER)
-        {
-            printf("\n Error, getentityproperty({ent}, 'attack.coords.size.z.out', {animation}, {frame}, {index}): {Animation} or {frame} parameter is missing or invalid. \n");
-            return E_FAIL;
-        }
-
-        // If the animation is invalid or has no attack, then finish.
-        if(!validanim(ent, varlist[EP_ATTACK_AK_ANIMATION]->lVal))
-        {
-            break;
-        }
-
-        attack = ent->modeldata.animation[varlist[EP_ATTACK_AK_ANIMATION]->lVal]->attacks[varlist[EP_ATTACK_AK_FRAME]->lVal];
-
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)attack->attack_coords.z2;
-        break;
-    }
-
     case _ep_attacking:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
