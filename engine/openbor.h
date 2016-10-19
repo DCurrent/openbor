@@ -2284,6 +2284,7 @@ void kill(entity *victim);
 void kill_all();
 int checkhit(entity *attacker, entity *target, int counter);
 int checkhole(float x, float z);
+int checkhole_index(float x, float z);
 int testplatform(entity *, float, float, entity *);
 int testhole(int, float, float);
 int testwall(int, float, float);
