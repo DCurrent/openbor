@@ -9679,7 +9679,6 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     ScriptVariant *arg	= NULL;
     ScriptVariant *arg1	= NULL;
     s_sprite *spr;
-    s_attack *attack;
     LONG ltemp, ltemp2;
     int i				= 0;
     int propind ;
