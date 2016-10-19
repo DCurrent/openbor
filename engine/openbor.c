@@ -2073,7 +2073,7 @@ void execute_onblocks_script(entity *ent)
     }
 }
 
-void execute_onblockw_script(entity *ent, int plane, float height)
+void execute_onblockw_script(entity *ent, int plane, float height, int index)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onblockw_script;
@@ -2089,6 +2089,9 @@ void execute_onblockw_script(entity *ent, int plane, float height)
         ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
         tempvar.dblVal = (DOUBLE)height;
         Script_Set_Local_Variant(cs, "height",      &tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+        tempvar.lVal = (LONG)index;
+        Script_Set_Local_Variant(cs, "index",      &tempvar);
         Script_Execute(cs);
 
         //clear to save variant space
@@ -2098,6 +2101,8 @@ void execute_onblockw_script(entity *ent, int plane, float height)
         Script_Set_Local_Variant(cs, "plane", &tempvar);
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "height", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "index", &tempvar);
     }
 }
 
@@ -21754,12 +21759,12 @@ int common_trymove(float xdir, float zdir)
         if(xdir && (wall = checkwall_below(x, self->position.z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
         {
             xdir = 0;
-            execute_onblockw_script(self, 1, (double)level->walls[wall].height);
+            execute_onblockw_script(self, 1, (double)level->walls[wall].height, wall);
         }
         if(zdir && (wall = checkwall_below(self->position.x, z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
         {
             zdir = 0;
-            execute_onblockw_script(self, 2, (double)level->walls[wall].height);
+            execute_onblockw_script(self, 2, (double)level->walls[wall].height, wall);
         }
     }
 
