@@ -212,6 +212,7 @@ int                 current_stage = 1;
 
 int					timevar;
 float               bgtravelled;
+float               vbgtravelled;
 int                 traveltime;
 int                 texttime;
 int					timetoshow;
@@ -12580,6 +12581,7 @@ void load_level(char *filename)
     level->bosses = 0;
     blendfx[BLEND_MULTIPLY] = 1;
     bgtravelled = 0;
+    vbgtravelled = 0;
     traveltime = 0;
     texttime = 0;
     nopause = 0;
@@ -12876,6 +12878,13 @@ void load_level(char *filename)
             if(GET_INT_ARG(2))
             {
                 level->bgspeed *= -1;
+            }
+            break;
+        case CMD_LEVEL_VBGSPEED:
+            level->vbgspeed = GET_FLOAT_ARG(1);
+            if(GET_INT_ARG(2))
+            {
+                level->vbgspeed *= -1;
             }
             break;
         case CMD_LEVEL_SCROLLSPEED:
@@ -28121,7 +28130,8 @@ void update_scrolled_bg()
         {
             rocktravel = -rocktravel;
         }
-        bgtravelled += (time - traveltime) * level->bgspeed / 30 * 4 + rocktravel;
+        bgtravelled  += (time - traveltime) * level->bgspeed  / 30 * 4 + rocktravel;
+        vbgtravelled += (time - traveltime) * level->vbgspeed / 30 * 4;
     }
     else
     {
@@ -28217,17 +28227,19 @@ void draw_scrolled_bg()
         width = screenmethod.xspan = layer->size.x + layer->spacing.x;
         height = screenmethod.yspan = layer->size.y + layer->spacing.z;
 
-        x = (int)(layer->offset.x - (advancex + bgtravelled * layer->bgspeedratio) * (1.0 - layer->ratio.x) ) ;
+        x = (int)(layer->offset.x - (advancex +  bgtravelled * layer->bgspeedratio) * (1.0 - layer->ratio.x) ) ;
 
         //printf("layerxratio %f  %d %f\n ", layer->xratio, x, layer->bgspeedratio);
 
         if((level->scrolldir & SCROLL_UP))
         {
-            z = (int)(layer->offset.z + advancey * (1.0 - layer->ratio.z) ) ;
+            //z = (int)(layer->offset.z + advancey * (1.0 - layer->ratio.z) ) ;
+            z = (int)(layer->offset.z - (advancey + vbgtravelled * layer->bgspeedratio) * (1.0 - layer->ratio.z) ) ;
         }
         else
         {
-            z = (int)(layer->offset.z - advancey * (1.0 - layer->ratio.z) ) ;
+            //z = (int)(layer->offset.z - advancey * (1.0 - layer->ratio.z) ) ;
+            z = (int)(layer->offset.z - (advancey + vbgtravelled * layer->bgspeedratio) * (1.0 - layer->ratio.z) ) ;
         }
 
         if(layer->quake)
