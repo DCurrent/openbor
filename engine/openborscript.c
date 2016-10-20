@@ -13514,12 +13514,19 @@ toss_error:
 enum playerproperty_enum
 {
     _pp_colourmap,
+    _pp_combokey,
+    _pp_combostep,
     _pp_credits,
     _pp_ent,
     _pp_entity,
     _pp_hasplayed,
+    _pp_hmapl,
+    _pp_hmapu,
+    _pp_inputtime,
+    _pp_joining,
     _pp_keys,
     _pp_lives,
+    _pp_mapcount,
     _pp_name,
     _pp_newkeys,
     _pp_playkeys,
@@ -13540,12 +13547,19 @@ int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount)
     static const char *proplist[] =
     {
         "colourmap",
+        "combokey",
+        "combostep",
         "credits",
         "ent",
         "entity",
         "hasplayed",
+        "hmapl",
+        "hmapu",
+        "inputtime",
+        "joining",
         "keys",
         "lives",
+        "mapcount",
         "name",
         "newkeys",
         "playkeys",
@@ -13711,6 +13725,70 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)player[index].weapnum;
+        break;
+    }
+    case _pp_joining:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)player[index].joining;
+        break;
+    }
+    case _pp_combokey:
+    {
+        ScriptVariant *frm = NULL;
+        frm = varlist[2];
+        if(frm->vt != VT_INTEGER)
+        {
+            printf("Need a frame number for this property.\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)player[index].combokey[frm->lVal];
+        break;
+    }
+    case _pp_combostep:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)player[index].combostep;
+        break;
+    }
+    case _pp_inputtime:
+    {
+        ScriptVariant *frm = NULL;
+        frm = varlist[2];
+        if(frm->vt != VT_INTEGER)
+        {
+            printf("Need a frame number for this property.\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)player[index].inputtime[frm->lVal];
+        break;
+    }
+    case _pp_hmapl:
+    {
+        int cacheindex = get_cached_model_index(player[index].name);
+
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->maps.hide_start;
+        break;
+    }
+    case _pp_hmapu:
+    {
+        int cacheindex = get_cached_model_index(player[index].name);
+
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->maps.hide_end;
+        break;
+    }
+    case _pp_mapcount:
+    {
+        int cacheindex = get_cached_model_index(player[index].name);
+
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)(model_cache[cacheindex].model->maps_loaded + 1);
         break;
     }
     //this property is not known
@@ -13958,6 +14036,82 @@ HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **p
             {
                 credits = (int)ltemp;
             }
+        }
+        else
+        {
+            goto cpperror;
+        }
+        break;
+    }
+    case _pp_joining:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
+        {
+            player[index].joining = (int)ltemp;
+        }
+        else
+        {
+            goto cpperror;
+        }
+        break;
+    }
+    case _pp_releasekeys:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
+        {
+            player[index].releasekeys = (int)ltemp;
+        }
+        else
+        {
+            goto cpperror;
+        }
+        break;
+    }
+    case _pp_combokey:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
+        {
+            ScriptVariant *value = NULL;
+            value = varlist[3];
+            if(value->vt != VT_INTEGER)
+            {
+                printf("Need a value and frame number for this property.\n");
+                *pretvar = NULL;
+                return E_FAIL;
+            }
+            player[index].combokey[ltemp] = (int)value->lVal;
+        }
+        else
+        {
+            goto cpperror;
+        }
+        break;
+    }
+    case _pp_combostep:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
+        {
+            player[index].combostep = (int)ltemp;
+        }
+        else
+        {
+            goto cpperror;
+        }
+        break;
+    }
+    case _pp_inputtime:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
+        {
+            ScriptVariant *value = NULL;
+            value = varlist[3];
+            if(value->vt != VT_INTEGER)
+            {
+                printf("Need a value and frame number for this property.\n");
+                *pretvar = NULL;
+                return E_FAIL;
+            }
+            player[index].inputtime[ltemp] = (int)value->lVal;
         }
         else
         {
