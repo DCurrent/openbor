@@ -13769,25 +13769,67 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
     case _pp_hmapl:
     {
-        int cacheindex = get_cached_model_index(player[index].name);
+        int cacheindex;
 
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+        if ( stricmp(player[index].name,"") != 0 ) {
+            cacheindex = get_cached_model_index(player[index].name);
+            if ( cacheindex == -1 )
+            {
+               (*pretvar)->lVal = (LONG)0;
+               break;
+            }
+        } else
+        {
+           (*pretvar)->lVal = (LONG)0;
+           break;
+        }
+
         (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->maps.hide_start;
         break;
     }
     case _pp_hmapu:
     {
-        int cacheindex = get_cached_model_index(player[index].name);
+        int cacheindex;
 
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+        if ( stricmp(player[index].name,"") != 0 ) {
+            cacheindex = get_cached_model_index(player[index].name);
+            if ( cacheindex == -1 )
+            {
+               (*pretvar)->lVal = (LONG)0;
+               break;
+            }
+        } else
+        {
+           (*pretvar)->lVal = (LONG)0;
+           break;
+        }
+
         (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->maps.hide_end;
         break;
     }
     case _pp_mapcount:
     {
-        int cacheindex = get_cached_model_index(player[index].name);
+        int cacheindex;
 
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+        if ( stricmp(player[index].name,"") != 0 ) {
+            cacheindex = get_cached_model_index(player[index].name);
+            if ( cacheindex == -1 )
+            {
+               (*pretvar)->lVal = (LONG)0;
+               break;
+            }
+        } else
+        {
+           (*pretvar)->lVal = (LONG)0;
+           break;
+        }
+
         (*pretvar)->lVal = (LONG)(model_cache[cacheindex].model->maps_loaded + 1);
         break;
     }
