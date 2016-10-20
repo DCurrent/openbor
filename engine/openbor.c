@@ -16320,12 +16320,13 @@ within the bottom/top and the left/right area.
 int testwall(int wall, float x, float z)
 {
     float coef1, coef2;
-//    if(wall >= level->numwalls || wall < 0) return 0;
-    if(z < level->walls[wall].z && z > level->walls[wall].z - level->walls[wall].depth)
+
+    //if(wall >= level->numwalls || wall < 0) return 0;
+    if(z <= level->walls[wall].z && z >= level->walls[wall].z - level->walls[wall].depth)
     {
         coef1 = (level->walls[wall].z - z) * ((level->walls[wall].upperleft - level->walls[wall].lowerleft) / level->walls[wall].depth);
         coef2 = (level->walls[wall].z - z) * ((level->walls[wall].upperright - level->walls[wall].lowerright) / level->walls[wall].depth);
-        if(x > level->walls[wall].x + level->walls[wall].lowerleft + coef1 && x < level->walls[wall].x + level->walls[wall].lowerright + coef2)
+        if(x >= level->walls[wall].x + level->walls[wall].lowerleft + coef1 && x <= level->walls[wall].x + level->walls[wall].lowerright + coef2)
         {
             return 1;
         }
@@ -16410,15 +16411,15 @@ int testplatform(entity *plat, float x, float z, entity *exclude)
     }
     offz = plat->position.z + plat->animation->platform[plat->animpos][1];
     offx = plat->position.x + plat->animation->platform[plat->animpos][0];
-    if(z <= offz && z > offz - plat->animation->platform[plat->animpos][6])
+    if(z <= offz && z >= offz - plat->animation->platform[plat->animpos][6])
     {
         coef1 = (offz - z) * ((plat->animation->platform[plat->animpos][2] -
                                plat->animation->platform[plat->animpos][3]) / plat->animation->platform[plat->animpos][6]);
         coef2 = (offz - z) * ((plat->animation->platform[plat->animpos][4] -
                                plat->animation->platform[plat->animpos][5]) / plat->animation->platform[plat->animpos][6]);
 
-        if(x > offx + plat->animation->platform[plat->animpos][3] + coef1 &&
-                x < offx + plat->animation->platform[plat->animpos][5] + coef2)
+        if(x >= offx + plat->animation->platform[plat->animpos][3] + coef1 &&
+                x <= offx + plat->animation->platform[plat->animpos][5] + coef2)
         {
             return 1;
         }
