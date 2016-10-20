@@ -1201,9 +1201,21 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)noscreenshot;
         break;
+    case _sv_numholes:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = (LONG)(level->numholes);
+        break;
+    case _sv_numlayers:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = (LONG)(level->numlayers);
+        break;
     case _sv_numpalettes:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)(level->numpalettes);
+        break;
+    case _sv_numwalls:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = (LONG)(level->numwalls);
         break;
     case _sv_pixelformat:
         ScriptVariant_ChangeType(var, VT_INTEGER);
