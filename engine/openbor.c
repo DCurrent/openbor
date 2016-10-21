@@ -2119,6 +2119,39 @@ void execute_onblockw_script(entity *ent, int plane, float height, int index)
     }
 }
 
+void execute_inhole_script(entity *ent, int plane, float height, int index)
+{
+    ScriptVariant tempvar;
+    Script *cs = ent->scripts->inhole_script;
+    if(Script_IsInitialized(cs))
+    {
+        ScriptVariant_Init(&tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_PTR);
+        tempvar.ptrVal = (VOID *)ent;
+        Script_Set_Local_Variant(cs, "self", &tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+        tempvar.lVal = (LONG)plane;
+        Script_Set_Local_Variant(cs, "plane",      &tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
+        tempvar.dblVal = (DOUBLE)height;
+        Script_Set_Local_Variant(cs, "height",      &tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+        tempvar.lVal = (LONG)index;
+        Script_Set_Local_Variant(cs, "index",      &tempvar);
+        Script_Execute(cs);
+
+        //clear to save variant space
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "self", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "plane", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "height", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "index", &tempvar);
+    }
+}
+
 void execute_onblockp_script(entity *ent, int plane, entity *platform)
 {
     ScriptVariant tempvar;
@@ -8521,6 +8554,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_ONPAINSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onpain_script, "onpainscript", filename, 1, 0);
                 break;
+            case CMD_MODEL_INHOLESCRIPT:
+                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->inhole_script, "inholescript", filename, 1, 0);
+                break;
             case CMD_MODEL_ONBLOCKSSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblocks_script, "onblocksscript", filename, 1, 0);
                 break;
@@ -8528,7 +8564,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblockw_script, "onblockwscript", filename, 1, 0);
                 break;
             case CMD_MODEL_ONBLOCKPSCRIPT:
-                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblockp_script, "onblockwscript", filename, 1, 0);
+                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblockp_script, "onblockpscript", filename, 1, 0);
                 break;
             case CMD_MODEL_ONBLOCKOSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblocko_script, "onblockoscript", filename, 1, 0);
@@ -12453,7 +12489,7 @@ void unload_level()
 }
 
 
-static void addhole(float x, float z, float x1, float x2, float x3, float x4, float depth)
+static void addhole(float x, float z, float x1, float x2, float x3, float x4, float depth, float alt)
 {
     __realloc(level->holes, level->numholes);
     level->holes[level->numholes].x = x;
@@ -12463,6 +12499,7 @@ static void addhole(float x, float z, float x1, float x2, float x3, float x4, fl
     level->holes[level->numholes].upperright = x3;
     level->holes[level->numholes].lowerright = x4;
     level->holes[level->numholes].depth = depth;
+    level->holes[level->numholes].height = alt;
     level->numholes++;
 }
 
@@ -13124,7 +13161,7 @@ void load_level(char *filename)
                 }
             }
 
-            addhole(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7));
+            addhole(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7), GET_FLOAT_ARG(8));
             break;
         case CMD_LEVEL_WALL:
             addwall(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7), GET_FLOAT_ARG(8));
@@ -13687,7 +13724,7 @@ void load_level(char *filename)
     }
     if(exit_hole)
     {
-        addhole(level->width, PLAYER_MAX_Z, -panel_height, 0, 1000, 1000, panel_height);
+        addhole(level->width, PLAYER_MAX_Z, -panel_height, 0, 1000, 1000, panel_height, 0);
     }
 
     if(crlf)
@@ -16256,7 +16293,7 @@ int testhole(int hole, float x, float z)
     return 0;
 }
 
-/// find all holes here and return the count
+// find all holes here and return the count
 int checkholes(float x, float z)
 {
     int i, c;
@@ -16288,6 +16325,70 @@ int checkhole(float x, float z)
         }
     }
     return 0;
+}
+
+// find all holes here within altitude1 and 2, return the count
+int checkhole_between(float x, float z, float a1, float a2)
+{
+    int i, c;
+
+    for(i = 0, c = 0; i < level->numholes; i++)
+    {
+        c += (testhole(i, x, z) && level->holes[i].height >= a1 && level->holes[i].height <= a2);
+    }
+
+    return c;
+}
+
+// get a highest hole below this altitude
+int checkhole_in(float x, float z, float a)
+{
+    float maxa;
+    int i, ind;
+
+    if(level == NULL)
+    {
+        return -1;
+    }
+
+    maxa = 0;
+    ind = -1;
+    for(i = 0; i < level->numholes; i++)
+    {
+        if(testhole(i, x, z) && level->holes[i].height+2.0 >= a && level->holes[i].height >= maxa)
+        {
+            maxa = level->holes[i].height;
+            ind = i;
+        }
+    }
+
+    if ( ind >= 0 ) return 1;
+    else return 0;
+}
+
+// find the hole id for highest hole
+int checkholeindex_in(float x, float z, float a)
+{
+    float maxa;
+    int i, ind;
+
+    if(level == NULL)
+    {
+        return -1;
+    }
+
+    maxa = 0;
+    ind = -1;
+    for(i = 0; i < level->numholes; i++)
+    {
+        if(testhole(i, x, z) && level->holes[i].height+2.0 >= a && level->holes[i].height >= maxa)
+        {
+            maxa = level->holes[i].height;
+            ind = i;
+        }
+    }
+
+    return ind;
 }
 
 // find the 1st hole id here
@@ -16650,7 +16751,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-------------hole checking ---------------------
     if(ent->modeldata.subject_to_hole > 0)
     {
-        if(checkhole(x, z) && checkwall(x, z) < 0 && !check_platform_below(x, z, ent->position.y, ent))
+        if(checkhole_in(x, z, ent->position.y) && checkwall(x, z) < 0 && !check_platform_below(x, z, ent->position.y, ent))
         {
             return -2;
         }
@@ -17740,7 +17841,7 @@ void adjust_base(entity *e, entity **pla)
 
         if(maxbase == -1000 && self->modeldata.subject_to_hole > 0)
         {
-            hole = (wall < 0 && !other) ? checkhole(self->position.x, self->position.z) : 0;
+            hole = (wall < 0 && !other) ? checkhole_in(self->position.x, self->position.z, self->position.y) : 0;
 
             if(seta < 0 && hole)
             {
@@ -18749,7 +18850,7 @@ void display_ents()
                         }
 
                         //TODO check platforms, don't want to go through the entity list again right now
-                        if(!(checkhole(e->position.x + temp1, e->position.z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
+                        if(!(checkhole_in(e->position.x + temp1, e->position.z + temp2, e->position.y) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
                         {
                             if(wall >= 0 && wall2 >= 0)
                             {
@@ -18828,7 +18929,7 @@ void display_ents()
                     {
                         useshadow = e->modeldata.shadow;
                     }
-                    if(useshadow && e->position.y >= 0 && !(checkhole(e->position.x, e->position.z) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
+                    if(useshadow && e->position.y >= 0 && !(checkhole_in(e->position.x, e->position.z, e->position.y) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                     {
                         if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7])
                         {
@@ -21616,7 +21717,7 @@ int trygrab(entity *other)
 int common_trymove(float xdir, float zdir)
 {
     entity *other = NULL, *te = NULL;
-    int wall, heightvar, t, needcheckhole = 0;
+    int wall, heightvar, t, needcheckhole = 0, holeind = -1;
     float x, z, oxdir, ozdir;
 
     if(!xdir && !zdir)
@@ -21705,11 +21806,11 @@ int common_trymove(float xdir, float zdir)
     {
 
         needcheckhole = 1;
-        if(zdir && checkhole(self->position.x, z) && checkwall(self->position.x, z) < 0 && !check_platform_below(self->position.x, z, self->position.y, self))
+        if(zdir && checkhole_in(self->position.x, z, self->position.y) && checkwall(self->position.x, z) < 0 && !check_platform_below(self->position.x, z, self->position.y, self))
         {
             zdir = 0;
         }
-        if(xdir && checkhole(x, self->position.z) && checkwall(x, self->position.z) < 0 && !check_platform_below(x, self->position.z, self->position.y, self))
+        if(xdir && checkhole_in(x, self->position.z, self->position.y) && checkwall(x, self->position.z) < 0 && !check_platform_below(x, self->position.z, self->position.y, self))
         {
             xdir = 0;
         }
@@ -21811,6 +21912,19 @@ int common_trymove(float xdir, float zdir)
         }
     }
 
+    // ------------------ hole checking ---------------------
+    if(self->modeldata.subject_to_hole)
+    {
+
+        if(xdir && (holeind = checkhole_in(x, self->position.z, self->position.y)) >= 0)
+        {
+            execute_inhole_script(self, 1, (double)level->holes[holeind].height, holeind);
+        }
+        if(zdir && (holeind = checkhole_in(self->position.x, z, self->position.y)) >= 0)
+        {
+            execute_inhole_script(self, 2, (double)level->holes[holeind].height, holeind);
+        }
+    }
 
     if(!xdir && !zdir)
     {

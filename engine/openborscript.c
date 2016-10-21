@@ -14152,11 +14152,11 @@ cpperror:
     return E_FAIL;
 }
 
-//checkhole(x,z), return 1 if there's hole here
+//checkhole(x,z,a), return 1 if there's hole here
 HRESULT openbor_checkhole(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     ScriptVariant *arg = NULL;
-    DOUBLE x, z;
+    DOUBLE x, z, a;
 
     if(paramCount < 2)
     {
@@ -14179,15 +14179,26 @@ HRESULT openbor_checkhole(ScriptVariant **varlist , ScriptVariant **pretvar, int
         return S_OK;
     }
 
-    (*pretvar)->lVal = (LONG)(checkhole((float)x, (float)z) && checkwall((float)x, (float)z) < 0);
+    if ( paramCount >= 3 )
+    {
+        arg = varlist[2];
+        if(FAILED(ScriptVariant_DecimalValue(arg, &a)))
+        {
+            return S_OK;
+        }
+
+        (*pretvar)->lVal = (LONG)(checkhole_in((float)x, (float)z, (float)a) && checkwall((float)x, (float)z) < 0);
+    }
+    else (*pretvar)->lVal = (LONG)(checkhole((float)x, (float)z) && checkwall((float)x, (float)z) < 0);
+
     return S_OK;
 }
 
-//checkholeindex(x,z), return hole index if there's hole here, else it returns -1
+//checkholeindex(x,z,a), return hole index if there's hole here, else it returns -1
 HRESULT openbor_checkholeindex(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     ScriptVariant *arg = NULL;
-    DOUBLE x, z;
+    DOUBLE x, z, a;
 
     if(paramCount < 2)
     {
@@ -14212,7 +14223,17 @@ HRESULT openbor_checkholeindex(ScriptVariant **varlist , ScriptVariant **pretvar
 
     if ( checkwall((float)x, (float)z) < 0 )
     {
-        (*pretvar)->lVal = (LONG)(checkhole_index((float)x, (float)z));
+        if ( paramCount >= 3 )
+        {
+            arg = varlist[2];
+            if(FAILED(ScriptVariant_DecimalValue(arg, &a)))
+            {
+                return S_OK;
+            }
+
+            (*pretvar)->lVal = (LONG)checkholeindex_in((float)x, (float)z, (float)a);
+        }
+        else (*pretvar)->lVal = (LONG)checkhole_index((float)x, (float)z);
     }
 
     return S_OK;
@@ -17983,6 +18004,11 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
 
             switch(varlist[2]->lVal)
             {
+                case _lp_terrain_height:
+                {
+                    (*pretvar)->dblVal = level->holes[ltemp].height;
+                    break;
+                }
                 case _lp_terrain_depth:
                 {
                     (*pretvar)->dblVal = level->holes[ltemp].depth;
@@ -18348,6 +18374,11 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
 
             switch(varlist[2]->lVal)
             {
+                case _lp_terrain_height:
+                {
+                    level->holes[ltemp].height = dbltemp;
+                    break;
+                }
                 case _lp_terrain_depth:
                 {
                     level->holes[ltemp].depth = dbltemp;

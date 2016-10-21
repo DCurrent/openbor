@@ -115,6 +115,10 @@
 		</Unit>
 		<Unit filename="../source/gamelib/bitmap.h" />
 		<Unit filename="../source/gamelib/borendian.h" />
+		<Unit filename="../source/gamelib/commands.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/gamelib/commands.h" />
 		<Unit filename="../source/gamelib/draw.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -141,6 +145,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/gamelib/loadimg.h" />
+		<Unit filename="../source/gamelib/models.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/gamelib/models.h" />
 		<Unit filename="../source/gamelib/packfile.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -197,8 +205,19 @@
 		<Unit filename="../source/gamelib/texture32.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../source/gamelib/threads.h" />
 		<Unit filename="../source/gamelib/timer.h" />
+		<Unit filename="../source/gamelib/transform.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/gamelib/transform.h" />
+		<Unit filename="../source/gamelib/translation.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/gamelib/translation.h" />
 		<Unit filename="../source/gamelib/types.h" />
+		<Unit filename="../source/gamelib/vga.h" />
+		<Unit filename="../source/gamelib/writepixel.h" />
 		<Unit filename="../source/gfxlib/2xSaI.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -243,10 +262,26 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/math.h" />
+		<Unit filename="../source/omath.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/omath.h" />
 		<Unit filename="../source/pcxlib/savepcx.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/pcxlib/savepcx.h" />
+		<Unit filename="../source/pnglib/pngdec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/pnglib/pngdec.h" />
+		<Unit filename="../source/pnglib/savepng.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/pnglib/savepng.h" />
+		<Unit filename="../source/preprocessorlib/pp_expr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/preprocessorlib/pp_expr.h" />
 		<Unit filename="../source/preprocessorlib/pp_lexer.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -255,6 +290,21 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/preprocessorlib/pp_parser.h" />
+		<Unit filename="../source/preprocessorlib/test/calculator.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/preprocessorlib/test/infixparser.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/preprocessorlib/test/pp_test.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/preprocessorlib/test/tmp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/preprocessorlib/test/tokendiff.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../source/ramlib/ram.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -263,7 +313,13 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/randlib/rand32.h" />
+		<Unit filename="../source/safealloc.h" />
+		<Unit filename="../source/savedata.h" />
 		<Unit filename="../source/scriptlib/FirstFollow.h" />
+		<Unit filename="../source/scriptlib/ImportCache.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/scriptlib/ImportCache.h" />
 		<Unit filename="../source/scriptlib/Instruction.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -317,6 +373,13 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/stristr.h" />
+		<Unit filename="../source/tracelib2/tracelib2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/tracelib2/tracelib2.h" />
+		<Unit filename="../source/tracelib2/tracelib2_test.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../source/tracelib/tracemalloc.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -325,6 +388,34 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/utils.h" />
+		<Unit filename="../source/webmlib/halloc/align.h" />
+		<Unit filename="../source/webmlib/halloc/halloc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/webmlib/halloc/halloc.h" />
+		<Unit filename="../source/webmlib/halloc/hlist.h" />
+		<Unit filename="../source/webmlib/halloc/macros.h" />
+		<Unit filename="../source/webmlib/nestegg/nestegg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/webmlib/nestegg/nestegg.h" />
+		<Unit filename="../source/webmlib/samplecvt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/webmlib/samplecvt.h" />
+		<Unit filename="../source/webmlib/vidplay.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/webmlib/vidplay.h" />
+		<Unit filename="../source/webmlib/vorbis.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/webmlib/vorbis.h" />
+		<Unit filename="../source/webmlib/vorbisfpu.h" />
+		<Unit filename="../source/webmlib/yuv.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/webmlib/yuv.h" />
 		<Unit filename="../source/xpmlib/xpm.c">
 			<Option compilerVar="CC" />
 		</Unit>
