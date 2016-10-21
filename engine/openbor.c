@@ -10943,6 +10943,7 @@ s_level_entry *add_level(char *filename, s_set_entry *set)
     le->z_coords[0] = Zs[0];
     le->z_coords[1] = Zs[1];
     le->z_coords[2] = Zs[2];
+
     return le;
 }
 
@@ -18598,7 +18599,6 @@ void display_ents()
     entity *e = NULL;
     entity *other = NULL;
     int qx, qy, sy, sz, alty;
-    int platz = 0; // on platform z
     int sortid;
     float temp1, temp2;
     int useshadow = 0;
@@ -18687,25 +18687,21 @@ void display_ents()
                              e->grabbing)
                         )
                         {
-                            int zdepth = (int)( (float)e->position.z - (float)other->position.z + (float)(other->animation->platform[other->animpos][6]/2) + 1 );
+                            float zdepth = (float)( (float)e->position.z - (float)other->position.z + (float)other->animation->platform[other->animpos][6] - (float)other->animation->platform[other->animpos][1] );
 
                             // Make sure entities get displayed in front of obstacle and grabbee
-                            z = (int)( other->position.z + 2 + zdepth );
-                            platz = z;
+                            z = (int)( other->position.z + 2 );
+                            sortid = other->sortid + 2 + zdepth;
                         }
 
                         else
                         {
-                            int zdepth = (int)( (float)e->position.z - (float)other->position.z + (float)(other->animation->platform[other->animpos][6]/2) + 1 );
+                            float zdepth = (float)( (float)e->position.z - (float)other->position.z + (float)other->animation->platform[other->animpos][6] - (float)other->animation->platform[other->animpos][1] );
+                            //if ( e->model->type == TYPE_PLAYER ) debug_printf("zdepth: %f",zdepth);
 
                             // Entity should always display in front of the obstacle
-                            // entity position on platform? pz:(maxz-minz)=Z:depth -> Z =(pz*depth)/(maxz-minz)
-                            z = (int)( other->position.z + 1 + zdepth );
-                            platz = z;
-
-                            //printf("%d %d %d %d\n",(int)other->position.z,(int)e->position.z,(int)other->animation->platform[other->animpos][1],(int)other->animation->platform[other->animpos][6]);
-                            //debug_printf("%d %d %d",(int)e->position.z,PLAYER_MAX_Z,PLAYER_MIN_Z);
-                            //debug_printf("%d %d",zdepth,(int)other->animation->platform[other->animpos][6]);
+                            z = (int)( other->position.z + 1 );
+                            sortid = other->sortid + 1 + zdepth;
                         }
 
                     }
@@ -18878,7 +18874,7 @@ void display_ents()
 
                             sy = (2 * MIRROR_Z - qy) - 2 * scry;
 
-                            if ( platz && other ) z = other->position.z + 1;
+                            if ( other ) z = other->position.z + 1;
                             else z = shadowz;
 
                             sz = PANEL_Z - HUD_Z;
@@ -18942,8 +18938,7 @@ void display_ents()
                             qy =                 (int)(e->position.z  - other->position.y - other->animation->platform[other->animpos][7] - scry);
                             sy = (int)((2 * MIRROR_Z - e->position.z) - other->position.y - other->animation->platform[other->animpos][7] - scry);
 
-                            //z = (int)(other->position.z + 1);
-                            z = platz;
+                            z = (int)(other->position.z + 1);
                             sz = 2 * PANEL_Z - z;
                         }
                         else if(level && wall >= 0)// && e->position.y >= level->walls[wall].height)
@@ -18999,7 +18994,7 @@ void display_ents()
         }// end of if(ent_list[i]->exists)
 
         // reset vars for next loop
-        platz = 0;
+
     }// end of for
 
     //defer ondraw script so it can manage spriteq better
