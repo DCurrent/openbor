@@ -17803,6 +17803,7 @@ enum levelproperty_enum
     _lp_rocking,
     _lp_scrollspeed,
     _lp_type,
+    _lp_vbgspeed,
     _lp_wall,
     _lp_the_end,
 };
@@ -17849,6 +17850,7 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount)
         "rocking",
         "scrollspeed",
         "type",
+        "vbgspeed",
         "wall",
     };
 
@@ -17908,8 +17910,14 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
     {
     case _lp_bgspeed:
     {
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)level->bgspeed;
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->lVal = (DOUBLE)level->bgspeed;
+        break;
+    }
+    case _lp_vbgspeed:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->lVal = (DOUBLE)level->vbgspeed;
         break;
     }
     case _lp_cameraxoffset:
@@ -18140,9 +18148,19 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
         }
         break;
     case _lp_bgspeed:
-        if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
+        if(SUCCEEDED(ScriptVariant_DecimalValue(arg, &dbltemp)))
         {
-            level->bgspeed = (float)ltemp;
+            level->bgspeed = (float)dbltemp;
+        }
+        else
+        {
+            goto clperror;
+        }
+        break;
+    case _lp_vbgspeed:
+        if(SUCCEEDED(ScriptVariant_DecimalValue(arg, &dbltemp)))
+        {
+            level->vbgspeed = (float)dbltemp;
         }
         else
         {
@@ -18150,9 +18168,9 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
         }
         break;
     case _lp_scrollspeed:
-        if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
+        if(SUCCEEDED(ScriptVariant_DecimalValue(arg, &dbltemp)))
         {
-            level->scrollspeed = (float)ltemp;
+            level->scrollspeed = (float)dbltemp;
         }
         else
         {
