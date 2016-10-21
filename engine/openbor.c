@@ -17842,6 +17842,11 @@ void adjust_base(entity *e, entity **pla)
         if(maxbase == -1000 && self->modeldata.subject_to_hole > 0)
         {
             hole = (wall < 0 && !other) ? checkhole_in(self->position.x, self->position.z, self->position.y) : 0;
+            if ( hole )
+            {
+                int holeind = checkholeindex_in(self->position.x, self->position.z, self->position.y);
+                execute_inhole_script(self, 0, (double)level->holes[holeind].height, holeind);
+            }
 
             if(seta < 0 && hole)
             {
@@ -21717,7 +21722,7 @@ int trygrab(entity *other)
 int common_trymove(float xdir, float zdir)
 {
     entity *other = NULL, *te = NULL;
-    int wall, heightvar, t, needcheckhole = 0, holeind = -1;
+    int wall, heightvar, t, needcheckhole = 0;
     float x, z, oxdir, ozdir;
 
     if(!xdir && !zdir)
@@ -21808,11 +21813,17 @@ int common_trymove(float xdir, float zdir)
         needcheckhole = 1;
         if(zdir && checkhole_in(self->position.x, z, self->position.y) && checkwall(self->position.x, z) < 0 && !check_platform_below(self->position.x, z, self->position.y, self))
         {
+            //int holeind = checkholeindex_in(self->position.x, z, self->position.y);
+
             zdir = 0;
+            //execute_inhole_script(self, 2, (double)level->holes[holeind].height, holeind);
         }
         if(xdir && checkhole_in(x, self->position.z, self->position.y) && checkwall(x, self->position.z) < 0 && !check_platform_below(x, self->position.z, self->position.y, self))
         {
+            //int holeind = checkholeindex_in(x, self->position.z, self->position.y);
+
             xdir = 0;
+            //execute_inhole_script(self, 1, (double)level->holes[holeind].height, holeind);
         }
     }
 
@@ -21909,20 +21920,6 @@ int common_trymove(float xdir, float zdir)
         {
             zdir = 0;
             execute_onblockw_script(self, 2, (double)level->walls[wall].height, wall);
-        }
-    }
-
-    // ------------------ hole checking ---------------------
-    if(self->modeldata.subject_to_hole)
-    {
-
-        if(xdir && (holeind = checkhole_in(x, self->position.z, self->position.y)) >= 0)
-        {
-            execute_inhole_script(self, 1, (double)level->holes[holeind].height, holeind);
-        }
-        if(zdir && (holeind = checkhole_in(self->position.x, z, self->position.y)) >= 0)
-        {
-            execute_inhole_script(self, 2, (double)level->holes[holeind].height, holeind);
         }
     }
 
