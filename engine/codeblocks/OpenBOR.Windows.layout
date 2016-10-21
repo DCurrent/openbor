@@ -1,44 +1,34 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Release" />
-	<File name="..\openborscript.h" open="1" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="12257" topLine="186" />
-		</Cursor>
-	</File>
-	<File name="..\source\gamelib\loadimg.h" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="0" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\source\gamelib\soundmix.c" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="3811" topLine="759" />
-		</Cursor>
-	</File>
 	<File name="..\sdl\loadgl.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="350" topLine="0" />
 		</Cursor>
 	</File>
+	<File name="..\sdl\loadgl.c" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="8085" topLine="219" />
+		</Cursor>
+	</File>
 	<File name="..\openbor.h" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="33995" topLine="1123" />
+			<Cursor1 position="70549" topLine="2104" />
 		</Cursor>
 	</File>
 	<File name="..\openborscript.c" open="1" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="589762" topLine="18476" />
+			<Cursor1 position="479991" topLine="14180" />
 		</Cursor>
 	</File>
 	<File name="..\openbor.c" open="1" top="1" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="464945" topLine="14276" />
+			<Cursor1 position="270070" topLine="8539" />
 		</Cursor>
 	</File>
-	<File name="..\sdl\loadgl.c" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="..\source\gamelib\loadimg.h" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="8085" topLine="219" />
+			<Cursor1 position="0" topLine="0" />
 		</Cursor>
 	</File>
 	<File name="..\sdl\control.c" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -49,6 +39,31 @@
 	<File name="..\sdl\control.h" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="645" topLine="36" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\screen.c" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="583" topLine="9" />
+		</Cursor>
+	</File>
+	<File name="..\openborscript.h" open="1" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="314" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\screen.h" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="328" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\types.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2508" topLine="76" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\soundmix.c" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3811" topLine="759" />
 		</Cursor>
 	</File>
 </CodeBlocks_layout_file>
