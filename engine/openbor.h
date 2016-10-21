@@ -1378,6 +1378,7 @@ typedef struct
     Script         *onkill_script;                  //execute when removed from play.
     Script         *onpain_script;                  //Execute when put in pain animation.
     Script         *onfall_script;                  //execute when falling.
+    Script         *inhole_script;                  //execute when yoy're in a hole
     Script         *onblocks_script;                //execute when blocked by screen.
     Script         *onblockw_script;                //execute when blocked by wall.
     Script         *onblockp_script;                //execute when blocked by platform.
@@ -2154,6 +2155,7 @@ void    execute_ondeath_script      (entity *ent, entity *other, int force, int 
 void    execute_onkill_script       (entity *ent);
 void    execute_onpain_script       (entity *ent, int iType, int iReset);
 void    execute_onfall_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
+void    execute_inhole_script       (entity *ent, int plane, float height, int index);
 void    execute_onblocks_script     (entity *ent);
 void    execute_onblockw_script     (entity *ent, int plane, float height, int index);
 void    execute_onblockp_script     (entity *ent, int plane, entity *platform);
@@ -2286,6 +2288,9 @@ void kill_all();
 int checkhit(entity *attacker, entity *target, int counter);
 int checkhole(float x, float z);
 int checkhole_index(float x, float z);
+int checkhole_in(float x, float z, float a);
+int checkholeindex_in(float x, float z, float a);
+int checkhole_between(float x, float z, float a1, float a2);
 int testplatform(entity *, float, float, entity *);
 int testhole(int, float, float);
 int testwall(int, float, float);
