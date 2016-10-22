@@ -279,6 +279,7 @@ int                *animbackwalks       = NULL;
 int                *animwalks           = NULL;
 int                *animidles           = NULL;
 int                *animpains           = NULL;
+int                *animbackpains       = NULL;
 int                *animdies            = NULL;
 int                *animfalls           = NULL;
 int                *animrises           = NULL;
@@ -329,6 +330,15 @@ int                 pains[MAX_ATKS] =
     ANI_PAIN,  ANI_PAIN5,    ANI_PAIN6, ANI_PAIN7,
     ANI_PAIN8, ANI_PAIN9,    ANI_PAIN10, ANI_PAIN,
     ANI_PAIN, ANI_PAIN, ANI_PAIN, ANI_PAIN,
+};
+
+int                 backpains[MAX_ATKS] =
+{
+    ANI_BACKPAIN,  ANI_BACKPAIN2,    ANI_BACKPAIN3, ANI_BACKPAIN4,
+    ANI_BACKPAIN,  ANI_BURNPAIN, ANI_BACKPAIN,  ANI_SHOCKPAIN,
+    ANI_BACKPAIN,  ANI_BACKPAIN5,    ANI_BACKPAIN6, ANI_BACKPAIN7,
+    ANI_BACKPAIN8, ANI_BACKPAIN9,    ANI_BACKPAIN10, ANI_BACKPAIN,
+    ANI_BACKPAIN, ANI_BACKPAIN, ANI_BACKPAIN, ANI_BACKPAIN,
 };
 
 int                 deaths[MAX_ATKS] =
@@ -5468,6 +5478,11 @@ void free_models()
         free(animpains);
         animpains          = NULL;
     }
+    if(animbackpains)
+    {
+        free(animbackpains);
+        animbackpains          = NULL;
+    }
     if(animfalls)
     {
         free(animfalls);
@@ -5914,6 +5929,58 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
                 tempInt = MAX_ATKS - STA_ATKS + 1;
             }
             ani_id = animpains[tempInt + STA_ATKS - 1];
+        }
+    }
+    else if(starts_with_num(value, "backpain"))
+    {
+        get_tail_number(tempInt, value, "backpain");
+        if(tempInt == 1)
+        {
+            ani_id = ANI_BACKPAIN;
+        }
+        else if(tempInt == 2)
+        {
+            ani_id = ANI_BACKPAIN2;
+        }
+        else if(tempInt == 3)
+        {
+            ani_id = ANI_BACKPAIN3;
+        }
+        else if(tempInt == 4)
+        {
+            ani_id = ANI_BACKPAIN4;
+        }
+        else if(tempInt == 5)
+        {
+            ani_id = ANI_BACKPAIN5;
+        }
+        else if(tempInt == 6)
+        {
+            ani_id = ANI_BACKPAIN6;
+        }
+        else if(tempInt == 7)
+        {
+            ani_id = ANI_BACKPAIN7;
+        }
+        else if(tempInt == 8)
+        {
+            ani_id = ANI_BACKPAIN8;
+        }
+        else if(tempInt == 9)
+        {
+            ani_id = ANI_BACKPAIN9;
+        }
+        else if(tempInt == 10)
+        {
+            ani_id = ANI_BACKPAIN10;
+        }
+        else
+        {
+            if(tempInt < MAX_ATKS - STA_ATKS + 1)
+            {
+                tempInt = MAX_ATKS - STA_ATKS + 1;
+            }
+            ani_id = animbackpains[tempInt + STA_ATKS - 1];
         }
     }
     else if(stricmp(value, "spain") == 0)   // If shock attacks don't knock opponent down, play this
@@ -10389,6 +10456,11 @@ void load_model_constants()
         free(animpains);
         animpains = NULL;
     }
+    if(animbackpains)
+    {
+        free(animbackpains);
+        animbackpains = NULL;
+    }
     if(animfalls)
     {
         free(animfalls);
@@ -10540,7 +10612,7 @@ void load_model_constants()
     }
 
     // calculate max animations
-    max_animations += (max_attack_types - MAX_ATKS) * 6 +// multply by 5, for fall/die/pain/rise/blockpain/riseattack
+    max_animations += (max_attack_types - MAX_ATKS) * 7 +// multply by 5, for fall/die/pain/backpain/rise/blockpain/riseattack
                       (max_follows - MAX_FOLLOWS) +
                       (max_freespecials - MAX_SPECIALS) +
                       (max_attacks - MAX_ATTACKS) +
@@ -10557,6 +10629,7 @@ void load_model_constants()
     animwalks = malloc(sizeof(*animwalks) * max_walks);
     animidles = malloc(sizeof(*animidles) * max_idles);
     animpains = malloc(sizeof(*animpains) * max_attack_types);
+    animbackpains = malloc(sizeof(*animbackpains) * max_attack_types);
     animdies = malloc(sizeof(*animdies) * max_attack_types);
     animfalls = malloc(sizeof(*animfalls) * max_attack_types);
     animrises = malloc(sizeof(*animrises) * max_attack_types);
@@ -10611,6 +10684,11 @@ void load_model_constants()
     for(i = MAX_ATKS; i < max_attack_types; i++)
     {
         animpains[i] = maxanim++;
+    }
+    memcpy(animbackpains,    backpains,          sizeof(*animbackpains)*MAX_ATKS);
+    for(i = MAX_ATKS; i < max_attack_types; i++)
+    {
+        animbackpains[i] = maxanim++;
     }
     memcpy(animfalls,    falls,          sizeof(*animfalls)*MAX_ATKS);
     for(i = MAX_ATKS; i < max_attack_types; i++)
@@ -19211,6 +19289,8 @@ int set_idle(entity *ent)
     ent->idling = 1;
     ent->attacking = 0;
     ent->inpain = 0;
+    ent->inbackpain = 0;
+    ent->falling = 0;
     ent->jumping = 0;
     ent->blocking = 0;
     common_idle_anim(ent);
@@ -19309,6 +19389,7 @@ int set_rise(entity *iRise, int type, int reset)
     // Get up again
     iRise->drop = 0;
     iRise->falling = 0;
+    iRise->inbackpain = 0;
     iRise->projectile = 0;
     iRise->nograb = iRise->nograb_default; //iRise->nograb = 0;
     iRise->velocity.x = self->velocity.z = self->velocity.y = 0;
@@ -19373,7 +19454,7 @@ int set_blockpain(entity *iBlkpain, int type, int reset)
 
 int set_pain(entity *iPain, int type, int reset)
 {
-    int pain = 0;
+    int pain = 0, bp_flag = 0;
 
     iPain->velocity.x = iPain->velocity.z = iPain->velocity.y = 0; // stop the target
     if(iPain->modeldata.guardpoints.max > 0 && iPain->modeldata.guardpoints.current <= 0)
@@ -19387,11 +19468,28 @@ int set_pain(entity *iPain, int type, int reset)
     }
     else
     {
-        pain = animpains[type];
+        if ( ((!iPain->direction && iPain->opponent->position.x > iPain->position.x) || (iPain->direction && iPain->opponent->position.x < iPain->position.x)) )
+        {
+            pain = animbackpains[type];
+            bp_flag = 1;
+        }
+        else pain = animpains[type];
     }
+
+
     if(validanim(iPain, pain))
     {
+        if ( bp_flag ) iPain->inbackpain = 1;
         ent_set_anim(iPain, pain, reset);
+    }
+    else if( bp_flag && validanim(iPain, animbackpains[0]) )
+    {
+        iPain->inbackpain = 1;
+        ent_set_anim(iPain, animbackpains[0], reset);
+    }
+    else if( validanim(iPain, animpains[type]) )
+    {
+        ent_set_anim(iPain, animpains[type], reset);
     }
     else if(validanim(iPain, animpains[0]))
     {
@@ -19411,6 +19509,7 @@ int set_pain(entity *iPain, int type, int reset)
     if(pain == ANI_GRABBED)
     {
         iPain->inpain = 0;
+        iPain->inbackpain = 0;
     }
 
     execute_onpain_script(iPain, type, reset);
@@ -20244,6 +20343,7 @@ void common_pain()
     }
 
     self->inpain = 0;
+    self->inbackpain = 0;
     if(self->link)
     {
 //        set_pain(self, -1, 0);
@@ -20435,6 +20535,7 @@ void common_block()
     if(self->inpain && (self->modeldata.holdblock & 2) && !self->animating && validanim(self, ANI_BLOCK))
     {
         self->inpain = 0;
+        self->inbackpain = 0;
         ent_set_anim(self, ANI_BLOCK, 0);
     }
     else if(
@@ -20605,13 +20706,16 @@ void checkdamageflip(entity *other, s_attack *attack)
         {
             case DIRECTION_ADJUST_NONE:
 
-                if(self->position.x < other->position.x)
+                if ( !self->inbackpain )
                 {
-                    self->direction = DIRECTION_RIGHT;
-                }
-                else if(self->position.x > other->position.x)
-                {
-                    self->direction = DIRECTION_LEFT;
+                    if(self->position.x < other->position.x)
+                    {
+                        self->direction = DIRECTION_RIGHT;
+                    }
+                    else if(self->position.x > other->position.x)
+                    {
+                        self->direction = DIRECTION_LEFT;
+                    }
                 }
                 break;
 
@@ -25105,7 +25209,8 @@ void player_grab_check()
                 }
                 else
                 {
-                    ent_set_anim(other, ANI_PAIN, 0);
+                    if ( ((!other->direction && self->position.x > other->position.x) || (other->direction && self->position.x < other->position.x)) && validanim(other, ANI_BACKPAIN) ) ent_set_anim(other, ANI_BACKPAIN, 0);
+                    else ent_set_anim(other, ANI_PAIN, 0);
                 }
                 other->velocity.x = other->velocity.z = self->velocity.x = self->velocity.z = 0;
                 other->position.x = self->position.x;
@@ -25332,7 +25437,8 @@ void player_grab_check()
             }
             else
             {
-                ent_set_anim(other, ANI_PAIN, 0);
+                if ( ((!other->direction && self->position.x > other->position.x) || (other->direction && self->position.x < other->position.x)) && validanim(other, ANI_BACKPAIN) ) ent_set_anim(other, ANI_BACKPAIN, 0);
+                else ent_set_anim(other, ANI_PAIN, 0);
             }
         }
         else
@@ -25344,7 +25450,8 @@ void player_grab_check()
             }
             else
             {
-                ent_set_anim(other, ANI_PAIN, 0);
+                if ( ((!other->direction && self->position.x > other->position.x) || (other->direction && self->position.x < other->position.x)) && validanim(other, ANI_BACKPAIN) ) ent_set_anim(other, ANI_BACKPAIN, 0);
+                else ent_set_anim(other, ANI_PAIN, 0);
             }
         }
         // use check_link_move to set velocity, don't change it here
@@ -25509,6 +25616,7 @@ void player_pain_check()
     if(player_check_special())
     {
         self->inpain = 0;
+        self->inbackpain = 0;
     }
 }
 
@@ -25573,6 +25681,7 @@ int check_costmove(int s, int fs, int jumphack)
         self->velocity.x = self->velocity.z = 0;
         set_attacking(self);
         self->inpain = 0;
+        self->inbackpain = 0;
         memset(self->combostep, 0, sizeof(*self->combostep) * 5);
         ent_unlink(self);
         ent_set_anim(self, s, 0);
