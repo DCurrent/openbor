@@ -581,6 +581,7 @@ List *createLevelOrderCommandList(void)
     LIST_ADD(CMD_LEVELORDER_END, "end");
     LIST_ADD(CMD_LEVELORDER_LIVES, "lives");
     LIST_ADD(CMD_LEVELORDER_DISABLEHOF, "disablehof");
+    LIST_ADD(CMD_LEVELORDER_DISABLEGAMEOVER, "disablegameover");
     LIST_ADD(CMD_LEVELORDER_CANSAVE, "cansave");
     LIST_ADD(CMD_LEVELORDER_Z, "z");
     LIST_ADD(CMD_LEVELORDER_BRANCH, "branch");

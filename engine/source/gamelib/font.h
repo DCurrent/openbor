@@ -13,7 +13,7 @@
 #define FONT_MBS 2
 #define FONT_MONO 1
 
-#define		MAX_FONTS		8
+#define		MAX_FONTS		10
 #define		FONT_LAYER		0x0FFFFFFF
 
 
