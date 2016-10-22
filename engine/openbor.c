@@ -1357,6 +1357,14 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)timer_gettick();
         break;
+    case _sv_nogameover:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = (LONG)(levelsets[current_set].noshowgameover); // or s_set_entry *set = levelsets + current_set;
+        break;
+    case _sv_nohof:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = (LONG)(levelsets[current_set].noshowhof);
+        break;
     default:
         // We use indices now, but players/modders don't need to be exposed
         // to that implementation detail, so we write "name" and not "index".
@@ -1594,6 +1602,18 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             level->waiting = (int)ltemp;
+        }
+        break;
+    case _sv_nogameover:
+        if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            levelsets[current_set].noshowgameover = (int)ltemp;
+        }
+        break;
+    case _sv_nohof:
+        if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            levelsets[current_set].noshowhof = (int)ltemp;
         }
         break;
     default:
@@ -6422,6 +6442,10 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "hitwall") == 0)
     {
         ani_id = ANI_HITWALL;
+    }
+    else if(stricmp(value, "hitplatform") == 0)
+    {
+        ani_id = ANI_HITPLATFORM;
     }
     else if(stricmp(value, "slide") == 0)
     {
@@ -11296,6 +11320,10 @@ void load_levelorder()
             CHKDEF;
             set->noshowhof = GET_INT_ARG(1);
             break;
+        case CMD_LEVELORDER_DISABLEGAMEOVER:
+            CHKDEF;
+            set->noshowgameover = GET_INT_ARG(1);
+            break;
         case CMD_LEVELORDER_CANSAVE:
             // 07-12-31
             // 0 this set can't be saved
@@ -12490,7 +12518,7 @@ void unload_level()
 }
 
 
-static void addhole(float x, float z, float x1, float x2, float x3, float x4, float depth, float alt)
+static void addhole(float x, float z, float x1, float x2, float x3, float x4, float depth, float alt, int type)
 {
     __realloc(level->holes, level->numholes);
     level->holes[level->numholes].x = x;
@@ -12501,10 +12529,12 @@ static void addhole(float x, float z, float x1, float x2, float x3, float x4, fl
     level->holes[level->numholes].lowerright = x4;
     level->holes[level->numholes].depth = depth;
     level->holes[level->numholes].height = alt;
+    level->holes[level->numholes].type = type;
+
     level->numholes++;
 }
 
-static void addwall(float x, float z, float x1, float x2, float x3, float x4, float depth, float alt)
+static void addwall(float x, float z, float x1, float x2, float x3, float x4, float depth, float alt, int type)
 {
     __realloc(level->walls, level->numwalls);
     level->walls[level->numwalls].x = x;
@@ -12515,6 +12545,7 @@ static void addwall(float x, float z, float x1, float x2, float x3, float x4, fl
     level->walls[level->numwalls].lowerright = x4;
     level->walls[level->numwalls].depth = depth;
     level->walls[level->numwalls].height = alt;
+    level->walls[level->numwalls].type = type;
 
     level->numwalls++;
 }
@@ -13162,10 +13193,10 @@ void load_level(char *filename)
                 }
             }
 
-            addhole(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7), GET_FLOAT_ARG(8));
+            addhole(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7), GET_FLOAT_ARG(8), GET_FLOAT_ARG(9));
             break;
         case CMD_LEVEL_WALL:
-            addwall(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7), GET_FLOAT_ARG(8));
+            addwall(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7), GET_FLOAT_ARG(8), GET_FLOAT_ARG(9));
             break;
         case CMD_LEVEL_PALETTE:
             __realloc(level->palettes, level->numpalettes);
@@ -13721,11 +13752,11 @@ void load_level(char *filename)
 
     if(exit_blocked)
     {
-        addwall(level->width - 30, PLAYER_MAX_Z, -panel_height, 0, 1000, 1000, panel_height, MAX_WALL_HEIGHT + 1);
+        addwall(level->width - 30, PLAYER_MAX_Z, -panel_height, 0, 1000, 1000, panel_height, MAX_WALL_HEIGHT + 1, 0);
     }
     if(exit_hole)
     {
-        addhole(level->width, PLAYER_MAX_Z, -panel_height, 0, 1000, 1000, panel_height, 0);
+        addhole(level->width, PLAYER_MAX_Z, -panel_height, 0, 1000, 1000, panel_height, 0, 0);
     }
 
     if(crlf)
@@ -21877,6 +21908,8 @@ int common_trymove(float xdir, float zdir)
     // Check for obstacles with platform code and adjust base accordingly
     if(self->modeldata.subject_to_platform > 0 )
     {
+        int hit = 0;
+
         //if(xdir>0 ? other->position.x>self->position.x : other->position.x<self->position.x) {xdir = 0; }
         //if(zdir>0 ? other->position.z>self->position.z : other->position.z<self->position.z) {zdir = 0; }
         //temporary fix for thin platforms (i.e, offset is not between left and right side)
@@ -21884,13 +21917,17 @@ int common_trymove(float xdir, float zdir)
         if(xdir && (other = check_platform_between(x, self->position.z, self->position.y, self->position.y + heightvar, self))  )
         {
             xdir = 0;
+            hit |= 1;
             execute_onblockp_script(self, 1, other);
         }
         if(zdir && (other = check_platform_between(self->position.x, z, self->position.y, self->position.y + heightvar, self))  )
         {
             zdir = 0;
+            hit |= 1;
             execute_onblockp_script(self, 2, other);
         }
+
+        if ( hit && validanim(self, ANI_HITPLATFORM) ) ent_set_anim(self, ANI_HITPLATFORM, 0);
     }
 
     if(!xdir && !zdir)
@@ -21905,17 +21942,22 @@ int common_trymove(float xdir, float zdir)
     // ------------------ wall checking ---------------------
     if(self->modeldata.subject_to_wall)
     {
+        int hit = 0;
 
         if(xdir && (wall = checkwall_below(x, self->position.z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
         {
             xdir = 0;
+            hit |= 1;
             execute_onblockw_script(self, 1, (double)level->walls[wall].height, wall);
         }
         if(zdir && (wall = checkwall_below(self->position.x, z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
         {
             zdir = 0;
+            hit |= 1;
             execute_onblockw_script(self, 2, (double)level->walls[wall].height, wall);
         }
+
+        if ( hit && validanim(self, ANI_HITWALL) ) ent_set_anim(self, ANI_HITWALL, 0);
     }
 
     if(!xdir && !zdir)
@@ -30563,7 +30605,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
             {
                 if(player[0].lives <= 0 && player[1].lives <= 0 && player[2].lives <= 0 && player[3].lives <= 0)
                 {
-                    gameover();
+                    if(!set->noshowgameover) gameover();
                     if(!set->noshowhof)
                     {
                         hallfame(1);

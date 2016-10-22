@@ -340,6 +340,8 @@ enum systemvariant_enum
     _sv_models_loaded,
     _sv_musicvol,
     _sv_nofadeout,
+    _sv_nogameover,
+    _sv_nohof,
     _sv_nojoin,
     _sv_nopause,
     _sv_nosave,

@@ -397,6 +397,7 @@ typedef enum //Animations
     ANI_RUNJUMP,
     ANI_JUMPLAND,
     ANI_JUMPDELAY,
+    ANI_HITPLATFORM,
     ANI_HITWALL,
     ANI_GRABBACKWARD,
     ANI_GRABBACKWARD2,
@@ -1971,6 +1972,7 @@ typedef struct
     s_level_entry *levelorder;
     int ifcomplete;
     int noshowhof;
+    int noshowgameover;
     int lives;
     int credits;
     int custfade;
@@ -2043,6 +2045,7 @@ typedef struct
     float upperright;
     float x;
     float z;
+    int type;
 } s_terrain;
 
 typedef struct
