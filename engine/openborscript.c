@@ -3649,6 +3649,7 @@ enum aiflag_enum
     _ep_aiflag_getting,
     _ep_aiflag_idlemode,
     _ep_aiflag_idling,
+    _ep_aiflag_inbackpain,
     _ep_aiflag_inpain,
     _ep_aiflag_invincible,
     _ep_aiflag_jumpid,
@@ -3678,6 +3679,7 @@ static const char *eplist_aiflag[] =
     "getting",
     "idlemode",
     "idling",
+    "inbackpain",
     "inpain",
     "invincible",
     "jumpid",
@@ -9875,6 +9877,9 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         case _ep_aiflag_inpain:
             (*pretvar)->lVal = (LONG)ent->inpain;
             break;
+        case _ep_aiflag_inbackpain:
+            (*pretvar)->lVal = (LONG)ent->inbackpain;
+            break;
         case _ep_aiflag_projectile:
             (*pretvar)->lVal = (LONG)ent->projectile;
             break;
@@ -11861,6 +11866,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 break;
             case _ep_aiflag_inpain:
                 ent->inpain = (int)ltemp;
+                break;
+            case _ep_aiflag_inbackpain:
+                ent->inbackpain = (int)ltemp;
                 break;
             case _ep_aiflag_projectile:
                 ent->projectile = (int)ltemp;
@@ -19815,6 +19823,7 @@ HRESULT openbor_performattack(ScriptVariant **varlist , ScriptVariant **pretvar,
     e->drop = 0;
     e->falling = 0;
     e->inpain = 0;
+    e->inbackpain = 0;
     e->blocking = 0;
 
     if(paramCount == 1)
@@ -19876,6 +19885,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     e->drop = 0;
     e->falling = 0;
     e->inpain = 0;
+    e->inbackpain = 0;
     e->blocking = 0;
     e->nograb = e->nograb_default; //e->nograb = 0;
     e->destx = e->position.x;
