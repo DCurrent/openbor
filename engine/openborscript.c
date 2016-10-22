@@ -2118,6 +2118,8 @@ static const char *svlist[] =
     "models_loaded",
     "musicvol",
     "nofadeout",
+    "nogameover",
+    "nohof",
     "nojoin",
     "nopause",
     "nosave",
@@ -17845,6 +17847,7 @@ enum terrain_enum
     _lp_terrain_height,
     _lp_terrain_lowerleft,
     _lp_terrain_lowerright,
+    _lp_terrain_type,
     _lp_terrain_upperleft,
     _lp_terrain_upperright,
     _lp_terrain_x,
@@ -17894,6 +17897,7 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount)
         "height",
         "lowerleft",
         "lowerright",
+        "type",
         "upperleft",
         "upperright",
         "x",
@@ -18044,6 +18048,12 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
                     (*pretvar)->dblVal = level->holes[ltemp].z;
                     break;
                 }
+                case _lp_terrain_type:
+                {
+                    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                    (*pretvar)->lVal = level->holes[ltemp].type;
+                    break;
+                }
                 default:
                 {
                     printf("Invalid subproperty for hole.\n");
@@ -18113,6 +18123,12 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
                     (*pretvar)->dblVal = level->walls[ltemp].z;
                     break;
                 }
+                case _lp_terrain_type:
+                {
+                    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+                    (*pretvar)->lVal = level->walls[ltemp].type;
+                    break;
+                }
                 default:
                 {
                     printf("Invalid subproperty for wall.\n");
@@ -18143,7 +18159,7 @@ getlevelproperty_error:
 //changelevelproperty(name, value)
 HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    LONG ltemp, ltemp2, ltemp3;
+    LONG ltemp, ltemp1, ltemp2, ltemp3;
     DOUBLE dbltemp;
     static char buf[64];
     int i;
@@ -18359,8 +18375,8 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
         break;
     case _lp_hole:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp >= 0
-           && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+        if( SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp >= 0
+           && ( SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)) || SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp1)) ) )
         {
             if(varlist[2]->vt != VT_STR)
                 printf("You must provide a string value for hole subproperty.\n");
@@ -18414,6 +18430,11 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
                     level->holes[ltemp].z = dbltemp;
                     break;
                 }
+                case _lp_terrain_type:
+                {
+                    level->holes[ltemp].type = ltemp1;
+                    break;
+                }
                 default:
                 {
                     printf("Invalid subproperty for hole.\n");
@@ -18430,8 +18451,8 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
     }
     case _lp_wall:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp >= 0
-           && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+        if( SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp >= 0
+           && ( SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)) || SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp1)) ) )
         {
             if(varlist[2]->vt != VT_STR)
                 printf("You must provide a string value for wall subproperty.\n");
@@ -18483,6 +18504,11 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
                 case _lp_terrain_z:
                 {
                     level->walls[ltemp].z = dbltemp;
+                    break;
+                }
+                case _lp_terrain_type:
+                {
+                    level->walls[ltemp].type = ltemp1;
                     break;
                 }
                 default:
