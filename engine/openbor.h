@@ -461,6 +461,26 @@ typedef enum //Animations
     ANI_BACKPAIN8,
     ANI_BACKPAIN9,
     ANI_BACKPAIN10,
+    ANI_BACKFALL,
+    ANI_BACKFALL2,
+    ANI_BACKFALL3,
+    ANI_BACKFALL4,
+    ANI_BACKFALL5,
+    ANI_BACKFALL6,
+    ANI_BACKFALL7,
+    ANI_BACKFALL8,
+    ANI_BACKFALL9,
+    ANI_BACKFALL10,
+    ANI_BACKDIE,
+    ANI_BACKDIE2,
+    ANI_BACKDIE3,
+    ANI_BACKDIE4,
+    ANI_BACKDIE5,
+    ANI_BACKDIE6,
+    ANI_BACKDIE7,
+    ANI_BACKDIE8,
+    ANI_BACKDIE9,
+    ANI_BACKDIE10,
     MAX_ANIS                // Maximum # of animations. This must always be last.
 } e_animations;
 
@@ -1824,6 +1844,7 @@ typedef struct entity
     int grabwalking; // a flag for grabwalk check
     int inpain; // playing pain animation
     int inbackpain; // playing pain/fall/die animation
+    int prevdir; // store dir before checkdamageflip()
     int frozen; // Flag to determine if an entity is frozen
     int blink;
     int invincible; // Flag used to determine if player is currently invincible
