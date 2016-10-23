@@ -7739,6 +7739,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             switch(cmd)
             {
+            case CMD_MODEL_BACKPAIN:
+                value = GET_ARG(1);
+                newchar->backpain = atoi(value);
+                break;
             case CMD_MODEL_SUBCLASS:
                 //inherit everything from an existing, cached model
                 tempmodel = findmodel(GET_ARG(1));
@@ -19456,6 +19460,8 @@ int set_idle(entity *ent)
 
 int set_death(entity *iDie, int type, int reset)
 {
+    int die = 0;
+
     //iDie->velocity.x = iDie->velocity.z = iDie->velocity.y = 0; // stop the target
     if(iDie->blocking && validanim(iDie, ANI_CHIPDEATH))
     {
@@ -19468,13 +19474,32 @@ int set_death(entity *iDie, int type, int reset)
         iDie->blocking = 0;
         return 1;
     }
-    if(type < 0 || type >= max_attack_types || !validanim(iDie, animdies[type]))
+
+    if(type < 0 || type >= max_attack_types)
     {
         type = 0;
     }
-    if(validanim(iDie, animdies[type]))
+
+    if ( iDie->inbackpain ) die = animbackdies[type];
+    else die = animdies[type];
+
+    if(validanim(iDie, die))
     {
+        ent_set_anim(iDie, die, reset);
+    }
+    else if( iDie->inbackpain && validanim(iDie, animbackdies[0]) )
+    {
+        ent_set_anim(iDie, animbackdies[0], reset);
+    }
+    else if(validanim(iDie, animdies[type]))
+    {
+        iDie->inbackpain = 0;
         ent_set_anim(iDie, animdies[type], reset);
+    }
+    else if(validanim(iDie, animdies[0]))
+    {
+        iDie->inbackpain = 0;
+        ent_set_anim(iDie, animdies[0], reset);
     }
     else
     {
@@ -19497,18 +19522,39 @@ int set_death(entity *iDie, int type, int reset)
 
 int set_fall(entity *iFall, int type, int reset, entity *other, int force, int drop, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
 {
-    if(type < 0 || type >= max_attack_types || !validanim(iFall, animfalls[type]))
+    int fall = 0;
+
+    if( type < 0 || type >= max_attack_types )
     {
         type = 0;
     }
-    if(validanim(iFall, animfalls[type]))
+
+    if ( iFall->inbackpain ) fall = animbackfalls[type];
+    else fall = animfalls[type];
+
+    if(validanim(iFall, fall))
     {
+        ent_set_anim(iFall, fall, reset);
+    }
+    else if( iFall->inbackpain && validanim(iFall, animbackfalls[0]) )
+    {
+        ent_set_anim(iFall, animbackfalls[0], reset);
+    }
+    else if( validanim(iFall, animfalls[type]) )
+    {
+        iFall->inbackpain = 0;
         ent_set_anim(iFall, animfalls[type], reset);
+    }
+    else if(validanim(iFall, animfalls[0]))
+    {
+        iFall->inbackpain = 0;
+        ent_set_anim(iFall, animfalls[0], reset);
     }
     else
     {
         return 0;
     }
+
     iFall->drop = 1;
     iFall->inpain = 0;
     iFall->idling = 0;
@@ -19519,6 +19565,7 @@ int set_fall(entity *iFall, int type, int reset, entity *other, int force, int d
     iFall->attacking = 0;
     iFall->blocking = 0;
     iFall->nograb = 1;
+
     if(iFall->frozen)
     {
         unfrozen(iFall);
@@ -19609,9 +19656,22 @@ int set_blockpain(entity *iBlkpain, int type, int reset)
     return 0;
 }
 
+int check_backpain(entity* attacker, entity* defender) {
+    if ( !defender->modeldata.backpain ) return 0;
+    if ( defender->inpain ) return 0;
+    if ( defender->falling ) return 0;
+    if ( ((!defender->direction && attacker->position.x > defender->position.x) || (defender->direction && attacker->position.x < defender->position.x)) )
+    {
+        defender->inbackpain = 1;
+        return 1;
+    } else defender->inbackpain = 0;
+
+    return 0;
+}
+
 int set_pain(entity *iPain, int type, int reset)
 {
-    int pain = 0, bp_flag = 0;
+    int pain = 0;
 
     iPain->velocity.x = iPain->velocity.z = iPain->velocity.y = 0; // stop the target
     if(iPain->modeldata.guardpoints.max > 0 && iPain->modeldata.guardpoints.current <= 0)
@@ -19625,35 +19685,32 @@ int set_pain(entity *iPain, int type, int reset)
     }
     else
     {
-        if ( ((!iPain->prevdir && iPain->opponent->position.x > iPain->position.x) || (iPain->prevdir && iPain->opponent->position.x < iPain->position.x)) )
-        {
-            pain = animbackpains[type];
-            bp_flag = 1;
-        }
+        if ( iPain->inbackpain ) pain = animbackpains[type];
         else pain = animpains[type];
     }
 
 
     if(validanim(iPain, pain))
     {
-        if ( bp_flag ) iPain->inbackpain = 1;
         ent_set_anim(iPain, pain, reset);
     }
-    else if( bp_flag && validanim(iPain, animbackpains[0]) )
+    else if( iPain->inbackpain && validanim(iPain, animbackpains[0]) )
     {
-        iPain->inbackpain = 1;
         ent_set_anim(iPain, animbackpains[0], reset);
     }
     else if( validanim(iPain, animpains[type]) )
     {
+        iPain->inbackpain = 0;
         ent_set_anim(iPain, animpains[type], reset);
     }
     else if(validanim(iPain, animpains[0]))
     {
+        iPain->inbackpain = 0;
         ent_set_anim(iPain, animpains[0], reset);
     }
     else if(validanim(iPain, ANI_IDLE))
     {
+        iPain->inbackpain = 0;
         ent_set_anim(iPain, ANI_IDLE, reset);
     }
     else
@@ -20862,14 +20919,16 @@ void checkdamageflip(entity *other, s_attack *attack)
         switch(attack->force_direction)
         {
             case DIRECTION_ADJUST_NONE:
-                self->prevdir = self->direction;
-                if(self->position.x < other->position.x)
+                if( !self->inbackpain )
                 {
-                    self->direction = DIRECTION_RIGHT;
-                }
-                else if(self->position.x > other->position.x)
-                {
-                    self->direction = DIRECTION_LEFT;
+                    if(self->position.x < other->position.x)
+                    {
+                        self->direction = DIRECTION_RIGHT;
+                    }
+                    else if(self->position.x > other->position.x)
+                    {
+                        self->direction = DIRECTION_LEFT;
+                    }
                 }
                 break;
 
@@ -21206,6 +21265,8 @@ int common_takedamage(entity *other, s_attack *attack)
     {
         checkdamageeffects(attack);
     }
+    // check backpain
+    check_backpain(other,self);
     // check flip direction
     checkdamageflip(other, attack);
     // mprate can also control the MP recovered per hit.
@@ -21284,6 +21345,7 @@ int common_takedamage(entity *other, s_attack *attack)
             {
                 self->velocity.x = -self->velocity.x;
             }
+            if(self->inbackpain) self->velocity.x *= -1;
             toss(self, attack->dropv.y);
             self->damage_on_landing = attack->damage_on_landing;
             self->knockdowncount = self->modeldata.knockdowncount; // reset the knockdowncount
@@ -25591,8 +25653,7 @@ void player_grab_check()
             }
             else
             {
-                if ( ((!other->prevdir && self->position.x > other->position.x) || (other->prevdir && self->position.x < other->position.x)) && validanim(other, ANI_BACKPAIN) ) ent_set_anim(other, ANI_BACKPAIN, 0);
-                else ent_set_anim(other, ANI_PAIN, 0);
+                ent_set_anim(other, ANI_PAIN, 0);
             }
         }
         else
@@ -25604,8 +25665,7 @@ void player_grab_check()
             }
             else
             {
-                if ( ((!other->prevdir && self->position.x > other->position.x) || (other->prevdir && self->position.x < other->position.x)) && validanim(other, ANI_BACKPAIN) ) ent_set_anim(other, ANI_BACKPAIN, 0);
-                else ent_set_anim(other, ANI_PAIN, 0);
+                ent_set_anim(other, ANI_PAIN, 0);
             }
         }
         // use check_link_move to set velocity, don't change it here
@@ -27422,6 +27482,7 @@ int biker_takedamage(entity *other, s_attack *attack)
         }
     }
 
+    check_backpain(other,self);
     set_pain(self,  self->damagetype, 1);
     self->attacking = 1;
     if(!self->modeldata.offscreenkill)
