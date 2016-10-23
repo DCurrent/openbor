@@ -1170,6 +1170,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "loadgamefile";
     }
+    else if (functionRef == ((void *)openbor_finishlevel))
+    {
+        return "finishlevel";
+    }
     else if (functionRef == ((void *)openbor_playgame))
     {
         return "playgame";
@@ -1680,6 +1684,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_executescript, "executescript");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_loadgamefile, "loadgamefile");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_finishlevel, "finishlevel");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playgame, "playgame");
     List_InsertAfter(&theFunctionList,
@@ -3353,6 +3359,7 @@ enum entityproperty_enum
     _ep_health,
     _ep_height,
     _ep_hitbyid,
+    _ep_hitwall,
     _ep_hmapl,
     _ep_hmapu,
     _ep_hostile,
@@ -3527,6 +3534,7 @@ static const char *eplist[] =
     "health",
     "height",
     "hitbyid",
+    "hitwall",
     "hmapl",
     "hmapu",
     "hostile",
@@ -10611,6 +10619,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->hit_by_attack_id;
         break;
     }
+    case _ep_hitwall:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->hitwall;
+        break;
+    }
     case _ep_hmapl:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -12413,6 +12427,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
             ent->hit_by_attack_id = (int)ltemp;
+        }
+        break;
+    }
+    case _ep_hitwall:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->hitwall = (int)ltemp;
         }
         break;
     }
@@ -20943,6 +20965,14 @@ HRESULT openbor_loadgamefile(ScriptVariant **varlist , ScriptVariant **pretvar, 
 {
     loadGameFile();
     *pretvar = NULL;
+    return S_OK;
+}
+
+//finishlevel()
+HRESULT openbor_finishlevel(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    *pretvar = NULL;
+    level->forcefinishlevel = 1;
     return S_OK;
 }
 

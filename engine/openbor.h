@@ -1874,6 +1874,7 @@ typedef struct entity
     int (*trymove)(float, float);
     int attack_id;
     int hit_by_attack_id;
+    int hitwall; // == 1 in the instant that hit the wall/platform/obstacle, else == 0
     unsigned char *colourmap;
     //struct entity   *thrower;
     struct entity *link; // Used to link 2 entities together.
@@ -2138,6 +2139,7 @@ typedef struct
     int nohurt; // Used to specify if you can hurt the other player during bonus levels
     int noslow; // Flag so the level doesn't slow down after a boss is defeated
     int nohit; // Not able to grab / hit other player on a per level basis
+    int forcefinishlevel; // flag to forca to finish a level
     s_axis_f spawn[MAX_PLAYERS]; // Used to determine the spawn position of players
     int setweap; // Levels can now specified which weapon will be used by default
     e_facing_adjust facing; // Force the players to face to ...
