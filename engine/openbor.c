@@ -17783,6 +17783,16 @@ void check_gravity(entity *e)
             {
                 self->position.y = self->base;
                 self->falling = 0;
+                // White Dragon: turn-off the hitwall flag  if you're not near a obstacle. this help to avoid a hit loop
+                if (self->hitwall)
+                {
+                    int w;
+                    entity *hito = find_ent_here(self, self->position.x, self->position.z, (TYPE_OBSTACLE | TYPE_TRAP), NULL);
+                    entity *hitp = check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self);
+                    int     hitw = (int)( (w = checkwall_below(self->position.x, self->position.z, 999999)) >= 0 && level->walls[w].height > self->position.y );
+                    if ( !hito && !hitp && !hitw ) self->hitwall = 0;
+                }
+
                 //self->projectile = 0;
                 // cust dust entity
                 if(self->modeldata.dust.fall_land >= 0 && self->velocity.y < -1 && self->drop)
@@ -22184,12 +22194,15 @@ int common_trymove(float xdir, float zdir)
     //--------------obstacle checking ------------------
     if(self->modeldata.subject_to_obstacle > 0 /*&& !inair(self)*/)
     {
+        int hit = 0;
+
         //TODO, check once instead of twice
         if((other = find_ent_here(self, x, self->position.z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
                 (xdir > 0 ? other->position.x > self->position.x : other->position.x < self->position.x) &&
                 (!other->animation->platform || !other->animation->platform[other->animpos][7]))
         {
             xdir    = 0;
+            hit |= 1;
             te = other;
             execute_onblocko_script(self, other);
         }
@@ -22198,11 +22211,14 @@ int common_trymove(float xdir, float zdir)
                 (!other->animation->platform || !other->animation->platform[other->animpos][7]))
         {
             zdir    = 0;
+            hit |= 1;
             if(te != other) //just in case they are the same obstacle
             {
                 execute_onblocko_script(self, other);
             }
         }
+
+        if ( hit ) self->hitwall = 1;
     }
 
     if(!xdir && !zdir)
@@ -22247,7 +22263,8 @@ int common_trymove(float xdir, float zdir)
             execute_onblockp_script(self, 2, other);
         }
 
-        if ( hit && validanim(self, ANI_HITPLATFORM) ) ent_set_anim(self, ANI_HITPLATFORM, 0);
+        if ( hit && !self->hitwall && validanim(self, ANI_HITPLATFORM) ) ent_set_anim(self, ANI_HITPLATFORM, 0);
+        if ( hit ) self->hitwall = 1;
     }
 
     if(!xdir && !zdir)
@@ -22277,7 +22294,8 @@ int common_trymove(float xdir, float zdir)
             execute_onblockw_script(self, 2, (double)level->walls[wall].height, wall);
         }
 
-        if ( hit && validanim(self, ANI_HITWALL) ) ent_set_anim(self, ANI_HITWALL, 0);
+        if ( hit && !self->hitwall && validanim(self, ANI_HITWALL) ) ent_set_anim(self, ANI_HITWALL, 0);
+        if ( hit ) self->hitwall = 1;
     }
 
     if(!xdir && !zdir)
@@ -28808,13 +28826,13 @@ u32 getinterval()
     return interval;
 }
 
-void inputrefresh()
+void inputrefresh(int playrecmode)
 {
     int p;
     s_player *pl;
     u32 k;
 
-    control_update(playercontrolpointers, MAX_PLAYERS);
+    if ( !playrecmode ) control_update(playercontrolpointers, MAX_PLAYERS);
 
     bothkeys = 0;
     bothnewkeys = 0;
@@ -28822,11 +28840,14 @@ void inputrefresh()
     for(p = 0; p < MAX_PLAYERS; p++)
     {
         pl = player + p;
-        pl->releasekeys = (playercontrolpointers[p]->keyflags | pl->keys) - playercontrolpointers[p]->keyflags;
-        pl->keys = playercontrolpointers[p]->keyflags;
-        pl->newkeys = playercontrolpointers[p]->newkeyflags;
-        pl->playkeys |= pl->newkeys;
-        pl->playkeys &= pl->keys;
+        if ( !playrecmode )
+        {
+            pl->releasekeys = (playercontrolpointers[p]->keyflags | pl->keys) - playercontrolpointers[p]->keyflags;
+            pl->keys = playercontrolpointers[p]->keyflags;
+            pl->newkeys = playercontrolpointers[p]->newkeyflags;
+            pl->playkeys |= pl->newkeys;
+            pl->playkeys &= pl->keys;
+        }
 
         if(pl->ent && pl->ent->movetime < time)
         {
@@ -28939,11 +28960,13 @@ void draw_textobjs()
     }
 }
 
-
 void update(int ingame, int usevwait)
 {
     getinterval();
-    inputrefresh();
+
+
+    inputrefresh(0);
+
 
     if ((!pause && ingame == 1) || alwaysupdate)
     {
@@ -29897,7 +29920,7 @@ int playwebm(const char *path, int noskip)
 
     while(1)
     {
-        inputrefresh();
+        inputrefresh(0);
         if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)))
         {
             retval = -1;
@@ -30398,6 +30421,12 @@ int playlevel(char *filename)
     while(!endgame)
     {
         update(1, 0);
+        if ( level->forcefinishlevel )
+        {
+            level_completed = 1;
+            endgame |= 1;
+            level->forcefinishlevel = 0;
+        }
         if(level_completed)
         {
             endgame |= (!findent(TYPE_ENEMY) || level->type || findent(TYPE_ENDLEVEL));    // Ends when all enemies die or a bonus level
