@@ -10,6 +10,7 @@
 #define SAVEDATA_H
 
 #define     MAX_PLAYERS         4
+#define     MAX_BTN_NUM         12
 
 typedef struct
 {
@@ -26,7 +27,7 @@ typedef struct
     int usejoy;
     int mode; // Mode now saves
     int windowpos;
-    int keys[MAX_PLAYERS][12];
+    int keys[MAX_PLAYERS][MAX_BTN_NUM];
     int showtitles;
     int videoNTSC;
     int swfilter; // Software scaling filter

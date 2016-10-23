@@ -670,6 +670,7 @@ s_playercontrols    playercontrols3;
 s_playercontrols    playercontrols4;
 s_playercontrols   *playercontrolpointers[] = {&playercontrols1, &playercontrols2, &playercontrols3, &playercontrols4};
 
+size_t attracttime = 0;
 
 //global script
 Script level_script;    //execute when level start
@@ -2885,6 +2886,9 @@ void clearsettings()
     savedata.keys[0][SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
     savedata.keys[0][SDID_START]     = CONTROL_DEFAULT1_START;
     savedata.keys[0][SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
+    #ifdef SDL
+        savedata.keys[0][SDID_ESC]       = CONTROL_DEFAULT1_ESC;
+    #endif
 
     savedata.keys[1][SDID_MOVEUP]    = CONTROL_DEFAULT2_UP;
     savedata.keys[1][SDID_MOVEDOWN]  = CONTROL_DEFAULT2_DOWN;
@@ -2898,6 +2902,9 @@ void clearsettings()
     savedata.keys[1][SDID_SPECIAL]   = CONTROL_DEFAULT2_FIRE6;
     savedata.keys[1][SDID_START]     = CONTROL_DEFAULT2_START;
     savedata.keys[1][SDID_SCREENSHOT] = CONTROL_DEFAULT2_SCREENSHOT;
+    #ifdef SDL
+        savedata.keys[1][SDID_ESC]       = CONTROL_DEFAULT2_ESC;
+    #endif
 
     savedata.keys[2][SDID_MOVEUP]    = CONTROL_DEFAULT3_UP;
     savedata.keys[2][SDID_MOVEDOWN]  = CONTROL_DEFAULT3_DOWN;
@@ -2911,6 +2918,9 @@ void clearsettings()
     savedata.keys[2][SDID_SPECIAL]   = CONTROL_DEFAULT3_FIRE6;
     savedata.keys[2][SDID_START]     = CONTROL_DEFAULT3_START;
     savedata.keys[2][SDID_SCREENSHOT] = CONTROL_DEFAULT3_SCREENSHOT;
+    #ifdef SDL
+        savedata.keys[2][SDID_ESC]       = CONTROL_DEFAULT3_ESC;
+    #endif
 
     savedata.keys[3][SDID_MOVEUP]    = CONTROL_DEFAULT4_UP;
     savedata.keys[3][SDID_MOVEDOWN]  = CONTROL_DEFAULT4_DOWN;
@@ -2924,6 +2934,9 @@ void clearsettings()
     savedata.keys[3][SDID_SPECIAL]   = CONTROL_DEFAULT4_FIRE6;
     savedata.keys[3][SDID_START]     = CONTROL_DEFAULT4_START;
     savedata.keys[3][SDID_SCREENSHOT] = CONTROL_DEFAULT4_SCREENSHOT;
+    #ifdef SDL
+        savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
+    #endif
 }
 
 
@@ -28963,9 +28976,7 @@ void draw_textobjs()
 void update(int ingame, int usevwait)
 {
     getinterval();
-
-
-    inputrefresh(0);
+    inputrefresh(playrecstatus.status);
 
 
     if ((!pause && ingame == 1) || alwaysupdate)
@@ -29920,7 +29931,7 @@ int playwebm(const char *path, int noskip)
 
     while(1)
     {
-        inputrefresh(0);
+        inputrefresh(playrecstatus.status);
         if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)))
         {
             retval = -1;
@@ -31749,18 +31760,19 @@ void safe_set(int *arr, int index, int newkey, int oldkey)
 
 void keyboard_setup(int player)
 {
+    const int btnnum = MAX_BTN_NUM;
     int quit = 0, sdid,
         selector = 0,
         setting = -1,
         i, k, ok = 0,
-              disabledkey[13] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+              disabledkey[btnnum+1] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                                 col1 = -8, col2 = 6;
     ptrdiff_t pos, voffset;
     size_t size;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
     char *buf, *command, *filename = "data/menu.txt",
-                          buttonnames[12][16];
+                          buttonnames[btnnum][16];
 
     printf("Loading control settings.......\t");
 
@@ -31776,6 +31788,7 @@ void keyboard_setup(int player)
     strncpy(buttonnames[SDID_SPECIAL], "Special", 16);
     strncpy(buttonnames[SDID_START], "Start", 16);
     strncpy(buttonnames[SDID_SCREENSHOT], "Screenshot", 16);
+    strncpy(buttonnames[SDID_ESC], "Exit", 16);
 
     savesettings();
     bothnewkeys = 0;
@@ -31819,7 +31832,7 @@ void keyboard_setup(int player)
         }
     }
 
-    while(disabledkey[selector]) if(++selector > 11)
+    while(disabledkey[selector]) if(++selector > btnnum-1)
         {
             break;
         }
@@ -31828,7 +31841,7 @@ void keyboard_setup(int player)
     {
         voffset = -6;
         _menutextm(2, -8, 0, Tr("Player %i"), player + 1);
-        for(i = 0; i < 12; i++)
+        for(i = 0; i < btnnum; i++)
         {
             if(!disabledkey[i])
             {
@@ -31837,8 +31850,8 @@ void keyboard_setup(int player)
                 voffset++;
             }
         }
-        _menutextm((selector == 12), ++voffset, 0, Tr("OK"));
-        _menutextm((selector == 13), ++voffset, 0, Tr("Cancel"));
+        _menutextm((selector == btnnum), ++voffset, 0, Tr("OK"));
+        _menutextm((selector == btnnum+1), ++voffset, 0, Tr("Cancel"));
         update((level != NULL), 0);
 
         if(setting > -1)
@@ -31884,7 +31897,7 @@ void keyboard_setup(int player)
             {
                 do
                 {
-                    if(++selector > 11)
+                    if(++selector > btnnum-1)
                     {
                         break;
                     }
@@ -31894,12 +31907,12 @@ void keyboard_setup(int player)
             }
             if(selector < 0)
             {
-                selector = 13;
+                selector = btnnum+1;
             }
-            if(selector > 13)
+            if(selector > btnnum+1)
             {
                 selector = 0;
-                while(disabledkey[selector]) if(++selector > 11)
+                while(disabledkey[selector]) if(++selector > btnnum-1)
                     {
                         break;
                     }
@@ -31907,11 +31920,11 @@ void keyboard_setup(int player)
             if(bothnewkeys & FLAG_ANYBUTTON)
             {
                 sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
-                if(selector == 12)
+                if(selector == btnnum)
                 {
                     quit = 2;
                 }
-                else if(selector == 13)
+                else if(selector == btnnum+1)
                 {
                     quit = 1;
                 }

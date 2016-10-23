@@ -107,6 +107,21 @@ movement restirctions are here!
 #define		GRAB_DIST			36					// Grabbing ents will be placed this far apart.
 #define		GRAB_STALL			(GAME_SPEED * 8 / 10)
 
+
+// PLAY/REC INPUT vars
+typedef struct InputKeys
+{
+    u32 keys[MAX_PLAYERS];
+    u32 newkeys[MAX_PLAYERS];
+    u32 releasekeys[MAX_PLAYERS];
+    u32 playkeys[MAX_PLAYERS];
+} RecKeys;
+struct PlayRecStatus {
+  char* filename;
+  int status; // 0=stop/1=rec/2=play
+} playrecstatus;
+
+
 typedef struct
 {
     int x;
