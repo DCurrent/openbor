@@ -454,6 +454,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_MPCOST, "mpcost");
     LIST_ADD(CMD_MODEL_ATTACKTHROTTLE, "attackthrottle");
     LIST_ADD(CMD_MODEL_SUBCLASS, "subclass");
+    LIST_ADD(CMD_MODEL_BACKPAIN, "backpain");
 
 #undef LIST_ADD
     return result;
