@@ -1695,6 +1695,7 @@ typedef struct
     int instantitemdeath; // no delay before item suicides
     int	hasPlatforms;
     int isSubclassed;
+    int backpain;
     e_ModelFreetype freetypes;
     s_scripts *scripts;
 } s_model;
@@ -1844,7 +1845,6 @@ typedef struct entity
     int grabwalking; // a flag for grabwalk check
     int inpain; // playing pain animation
     int inbackpain; // playing pain/fall/die animation
-    int prevdir; // store dir before checkdamageflip()
     int frozen; // Flag to determine if an entity is frozen
     int blink;
     int invincible; // Flag used to determine if player is currently invincible
