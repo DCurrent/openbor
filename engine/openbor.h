@@ -116,10 +116,27 @@ typedef struct InputKeys
     u32 releasekeys[MAX_PLAYERS];
     u32 playkeys[MAX_PLAYERS];
 } RecKeys;
-struct PlayRecStatus {
-  char* filename;
-  int status; // 0=stop/1=rec/2=play
-} playrecstatus;
+
+typedef enum
+{
+    A_REC_STOP,
+    A_REC_REC,
+    A_REC_PLAY,
+    A_REC_FREE,
+} a_recstatus;
+
+typedef struct PlayRecStatus {
+  char filename[MAX_ARG_LEN + 1];
+  char path[MAX_ARG_LEN + 1];
+  int status; // 0 = stop / 1 = rec / 2 = play
+  size_t time;
+  size_t rectime;
+  FILE *handle;
+  RecKeys *buffer;
+} a_playrecstatus;
+
+extern a_playrecstatus *playrecstatus;
+
 
 
 typedef struct
@@ -2509,6 +2526,10 @@ int is_cheat_actived();
 int getValidInt(char *text, char *file, char *cmd);
 float getValidFloat(char *text, char *file, char *cmd);
 int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck);
+int stopRecordInputs(void);
+int recordInputs(void);
+int playRecordedInputs(void);
+int freeRecordedInputs(void);
 
 extern s_savelevel   *savelevel;
 extern s_savescore    savescore;

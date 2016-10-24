@@ -33,6 +33,8 @@ s_savedata savedata;
 //  Global Variables                                                        //
 /////////////////////////////////////////////////////////////////////////////
 
+a_playrecstatus *playrecstatus = NULL;
+
 s_set_entry *levelsets = NULL;
 int        num_difficulties;
 
@@ -669,8 +671,6 @@ s_playercontrols    playercontrols2;
 s_playercontrols    playercontrols3;
 s_playercontrols    playercontrols4;
 s_playercontrols   *playercontrolpointers[] = {&playercontrols1, &playercontrols2, &playercontrols3, &playercontrols4};
-
-size_t attracttime = 0;
 
 //global script
 Script level_script;    //execute when level start
@@ -28845,7 +28845,7 @@ void inputrefresh(int playrecmode)
     s_player *pl;
     u32 k;
 
-    if ( !playrecmode ) control_update(playercontrolpointers, MAX_PLAYERS);
+    if ( playrecmode != A_REC_PLAY ) control_update(playercontrolpointers, MAX_PLAYERS);
 
     bothkeys = 0;
     bothnewkeys = 0;
@@ -28853,7 +28853,7 @@ void inputrefresh(int playrecmode)
     for(p = 0; p < MAX_PLAYERS; p++)
     {
         pl = player + p;
-        if ( !playrecmode )
+        if ( playrecmode != A_REC_PLAY )
         {
             pl->releasekeys = (playercontrolpointers[p]->keyflags | pl->keys) - playercontrolpointers[p]->keyflags;
             pl->keys = playercontrolpointers[p]->keyflags;
@@ -28973,10 +28973,202 @@ void draw_textobjs()
     }
 }
 
+int recordInputs()
+{
+    int p = 0;
+    RecKeys reckey;
+    unsigned int window = 4096;
+    size_t max_rec_time = GAME_SPEED*60*5; // protection
+
+    if(playrecstatus->status != A_REC_REC) return 0;
+    if ( playrecstatus->time <= 0 )
+    {
+        if (playrecstatus->buffer)
+        {
+            free(playrecstatus->buffer);
+            playrecstatus->buffer = NULL;
+        }
+        playrecstatus->buffer = (RecKeys*)calloc(window,sizeof(RecKeys));
+        if (playrecstatus->buffer == NULL)
+        {
+            printf("Error to allocate buffer in record inputs mode.\n");
+            return 0;
+        } //else memset(playrecstatus->buffer+playrecstatus->time,0,(window-1));
+    }
+    else
+    {
+        if ( playrecstatus->time%(window) >= window-2 ) // last is NULL bytes
+        {
+            playrecstatus->buffer = (RecKeys*)realloc(playrecstatus->buffer,sizeof(RecKeys)*((int)(trunc(playrecstatus->time/window)+1)*window+window));
+            if (playrecstatus->buffer == NULL)
+            {
+                printf("Error to allocate buffer in record inputs mode.\n");
+                return 0;
+            } else memset(playrecstatus->buffer+playrecstatus->time+1,5,(int)(trunc(playrecstatus->time/window)+1)*window+window-playrecstatus->time-1);
+        }
+    }
+
+    if(playrecstatus->buffer)
+    {
+        for ( p = 0; p < MAX_PLAYERS; p++ )
+        {
+            reckey.keys[p]        = (u32)player[p].keys;
+            reckey.newkeys[p]     = (u32)player[p].newkeys;
+            reckey.releasekeys[p] = (u32)player[p].releasekeys;
+            reckey.playkeys[p]    = (u32)player[p].playkeys;
+        }
+        memcpy( &playrecstatus->buffer[playrecstatus->time], &reckey, sizeof(reckey) );
+    }
+    ++playrecstatus->time;
+
+    if ( playrecstatus->time >= max_rec_time ) stopRecordInputs();
+
+    //debug_printf("%s/%s",playrecstatus->path,playrecstatus->filename);
+
+    return 1;
+}
+
+int playRecordedInputs()
+{
+    int p = 0;
+    RecKeys reckey;
+    char path[MAX_ARG_LEN + 1];
+    size_t filesize = 0;
+
+    if(playrecstatus->status != A_REC_PLAY) return 0;
+    if ( playrecstatus->time <= 0 )
+    {
+        if ( strlen(playrecstatus->path) <= 0 ) getBasePath(path, "Saves", 0);
+        else strcpy(path,playrecstatus->path);
+        if ( path[strlen(path)-1] != '/' ) strcpy(path,"/");
+
+        if (playrecstatus->buffer)
+        {
+            free(playrecstatus->buffer);
+            playrecstatus->buffer = NULL;
+        }
+        if(playrecstatus->handle)
+        {
+            fclose(playrecstatus->handle);
+        }
+
+        playrecstatus->handle = fopen(strcat(path,playrecstatus->filename), "rb+");
+        if(playrecstatus->handle)
+        {
+            fseek(playrecstatus->handle, 0L, SEEK_END);
+            filesize = ftell(playrecstatus->handle);
+            fseek(playrecstatus->handle, 0L, SEEK_SET); // or rewind(playrecstatus->handle)
+
+            if (filesize <= 0)
+            {
+                printf("Empty recorded inputs file.\n");
+                return 0;
+            }
+            playrecstatus->buffer = (RecKeys*)calloc(1,filesize+1);
+        } else
+        {
+            printf("Error to open recorded inputs file.\n");
+            return 0;
+        }
+        fread(&playrecstatus->rectime, sizeof(size_t), 1, playrecstatus->handle);
+        fread(playrecstatus->buffer, sizeof(RecKeys)*playrecstatus->rectime, 1, playrecstatus->handle);
+    }
+
+    if(playrecstatus->buffer)
+    {
+        memcpy( &reckey, &playrecstatus->buffer[playrecstatus->time], sizeof(reckey) );
+        for ( p = 0; p < MAX_PLAYERS; p++ )
+        {
+            player[p].keys        = (u32)reckey.keys[p];
+            player[p].newkeys     = (u32)reckey.newkeys[p];
+            player[p].releasekeys = (u32)reckey.releasekeys[p];
+            player[p].playkeys    = (u32)reckey.playkeys[p];
+        }
+    }
+    ++playrecstatus->time;
+
+    if ( playrecstatus->time >= playrecstatus->rectime ) stopRecordInputs();
+
+    //debug_printf("%d %d",playrecstatus->time,playrecstatus->rectime);
+
+    return 1;
+}
+
+int stopRecordInputs()
+{
+    switch(playrecstatus->status)
+    {
+        case A_REC_REC:
+        {
+            char path[MAX_ARG_LEN + 1];
+
+            if ( strlen(playrecstatus->path) <= 0 ) getBasePath(path, "Saves", 0);
+            else strcpy(path,playrecstatus->path);
+            if ( path[strlen(path)-1] != '/' ) strcpy(path,"/");
+
+            if (playrecstatus->buffer)
+            {
+                playrecstatus->handle = fopen(strcat(path,playrecstatus->filename), "wb+");
+                if(playrecstatus->handle)
+                {
+                    fwrite(&playrecstatus->time, sizeof(size_t), 1, playrecstatus->handle);
+                    fwrite(playrecstatus->buffer, sizeof(RecKeys)*playrecstatus->time, 1, playrecstatus->handle);
+                    fflush(playrecstatus->handle); // safe
+                    fclose(playrecstatus->handle);
+                } else return 0;
+                playrecstatus->rectime = playrecstatus->time;
+
+                free(playrecstatus->buffer);
+                playrecstatus->buffer = NULL;
+            } else return 0;
+            break;
+        }
+        case A_REC_PLAY:
+        {
+            if(playrecstatus->handle)
+            {
+                if (playrecstatus->handle) fclose(playrecstatus->handle);
+                else return 0;
+            }
+            break;
+        }
+        case A_REC_STOP:
+        {
+            if(playrecstatus->handle)
+            {
+                if (playrecstatus->handle) fclose(playrecstatus->handle);
+                else return 0;
+            }
+            break;
+        }
+    }
+    playrecstatus->time = 0;
+    playrecstatus->status = A_REC_STOP;
+
+    return 1;
+}
+
+int freeRecordedInputs()
+{
+    playrecstatus->status = A_REC_STOP;
+    if(playrecstatus->handle) fclose(playrecstatus->handle);
+    if(playrecstatus->buffer)
+    {
+        free(playrecstatus->buffer);
+        playrecstatus->buffer = NULL;
+        return 1;
+    }
+
+    return 0;
+}
+
 void update(int ingame, int usevwait)
 {
     getinterval();
-    inputrefresh(playrecstatus.status);
+    if(playrecstatus->status == A_REC_PLAY) playRecordedInputs();
+    inputrefresh(playrecstatus->status);
+    if(playrecstatus->status == A_REC_REC) recordInputs();
+    //debug_printf("%d",playrecstatus->status);
 
 
     if ((!pause && ingame == 1) || alwaysupdate)
@@ -29409,7 +29601,7 @@ void shutdown(int status, char *msg, ...)
     getRamStatus(BYTES);
     savesettings();
 
-		enginecreditsScreen = 1;		//entry point for the engine credits screen.
+    enginecreditsScreen = 1;		//entry point for the engine credits screen.
 
     if(status != 2)
     {
@@ -29418,7 +29610,7 @@ void shutdown(int status, char *msg, ...)
 
     if(startup_done)
     {
-    		enginecreditsScreen = 0; //once the engine credits is done, disable flag.
+        enginecreditsScreen = 0; //once the engine credits is done, disable flag.
         term_videomodes();
     }
 
@@ -29432,7 +29624,7 @@ void shutdown(int status, char *msg, ...)
     }
     if(!disablelog)
     {
-        printf("...........");
+        printf("...........\n");
     }
     if(startup_done)
     {
@@ -29602,6 +29794,19 @@ void shutdown(int status, char *msg, ...)
     freefilenamecache();
     ob_termtrans();
 
+    // free input recorder
+    if(playrecstatus)
+    {
+        if(playrecstatus->buffer)
+        {
+            if(playrecstatus->handle) fclose(playrecstatus->handle);
+            free(playrecstatus->buffer);
+            playrecstatus->buffer = NULL;
+        }
+        free(playrecstatus);
+        playrecstatus = NULL;
+    }
+
     if(!disablelog)
     {
         printf("\n**************** Done *****************\n\n");
@@ -29743,6 +29948,9 @@ void startup()
     {
         shutdown(1, "Unable to Initialize Sound.\n");
     }
+
+    // init. input recorder
+    playrecstatus = (a_playrecstatus*)calloc(1,sizeof(*playrecstatus));
 
     printf("Loading sprites..............\t");
     load_special_sprites();
@@ -29931,7 +30139,7 @@ int playwebm(const char *path, int noskip)
 
     while(1)
     {
-        inputrefresh(playrecstatus.status);
+        inputrefresh(playrecstatus->status);
         if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)))
         {
             retval = -1;
