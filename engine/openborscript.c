@@ -1178,6 +1178,14 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "playgame";
     }
+    else if (functionRef == ((void *)openbor_getrecordingstatus))
+    {
+        return "getrecordingstatus";
+    }
+    else if (functionRef == ((void *)openbor_recordinputs))
+    {
+        return "recordinputs";
+    }
     else if (functionRef == ((void *)openbor_getsaveinfo))
     {
         return "getsaveinfo";
@@ -1688,6 +1696,10 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_finishlevel, "finishlevel");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playgame, "playgame");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_getrecordingstatus, "getrecordingstatus");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_recordinputs, "recordinputs");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getsaveinfo, "getsaveinfo");
 
@@ -21001,6 +21013,64 @@ HRESULT openbor_playgame(ScriptVariant **varlist , ScriptVariant **pretvar, int 
 pg_error:
     *pretvar = NULL;
     return E_FAIL;
+}
+
+//getrecordingstatus() it returns 0 = stop, 1 = rec, 2 = play, 4 = free buffer
+HRESULT openbor_getrecordingstatus(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
+    ScriptVariant_Clear(*pretvar);
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = (LONG)playrecstatus->status;
+    return S_OK;
+}
+
+//recordinputs(value) -> 0 = stop, 1 = rec, 2 = play, 4 = free buffer
+HRESULT openbor_recordinputs(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    int ltemp;
+
+    *pretvar = NULL;
+    if( paramCount < 1 && varlist[0]->vt != VT_INTEGER )
+    {
+        return E_FAIL;
+    }
+
+    ltemp = (int)varlist[0]->lVal;
+    switch(ltemp)
+    {
+        case A_REC_STOP:
+            stopRecordInputs();
+            break;
+        case A_REC_REC:
+            if( paramCount < 3 || varlist[1]->vt != VT_STR || varlist[2]->vt != VT_STR )
+            {
+                printf("Function recordinputs requires a pathname and filename parameters.\n");
+                return E_FAIL;
+            }
+            strcpy(playrecstatus->path,(char*)StrCache_Get(varlist[1]->strVal));
+            strcpy(playrecstatus->filename,(char*)StrCache_Get(varlist[2]->strVal));
+            //debug_printf("%s/%s",(char*)StrCache_Get(varlist[1]->strVal),(char*)StrCache_Get(varlist[2]->strVal));
+            stopRecordInputs();
+            playrecstatus->status = A_REC_REC;
+            recordInputs();
+            break;
+        case A_REC_PLAY:
+            if( paramCount < 3 || varlist[1]->vt != VT_STR || varlist[2]->vt != VT_STR )
+            {
+                printf("Function recordinputs requires a pathname and filename parameters.\n");
+                return E_FAIL;
+            }
+            strcpy(playrecstatus->path,(char*)StrCache_Get(varlist[1]->strVal));
+            strcpy(playrecstatus->filename,(char*)StrCache_Get(varlist[2]->strVal));
+            stopRecordInputs();
+            playrecstatus->status = A_REC_PLAY;
+            playRecordedInputs();
+            break;
+        case A_REC_FREE:
+            freeRecordedInputs();
+            break;
+    }
+
+    return S_OK;
 }
 
 //getsaveinfo(set, prop);
