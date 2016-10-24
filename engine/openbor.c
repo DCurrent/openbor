@@ -28860,6 +28860,10 @@ void inputrefresh(int playrecmode)
             pl->newkeys = playercontrolpointers[p]->newkeyflags;
             pl->playkeys |= pl->newkeys;
             pl->playkeys &= pl->keys;
+        } else
+        {
+            playercontrolpointers[p]->keyflags = 0;
+            playercontrolpointers[p]->newkeyflags = 0;
         }
 
         if(pl->ent && pl->ent->movetime < time)
@@ -28981,8 +28985,9 @@ int recordInputs()
     size_t max_rec_time = GAME_SPEED*60*5; // protection
 
     if(playrecstatus->status != A_REC_REC) return 0;
-    if ( playrecstatus->time <= 0 )
+    if ( !playrecstatus->starttime )
     {
+        playrecstatus->starttime = time;
         if (playrecstatus->buffer)
         {
             free(playrecstatus->buffer);
@@ -28993,18 +28998,18 @@ int recordInputs()
         {
             printf("Error to allocate buffer in record inputs mode.\n");
             return 0;
-        } //else memset(playrecstatus->buffer+playrecstatus->time,0,(window-1));
+        }
     }
     else
     {
-        if ( playrecstatus->time%(window) >= window-2 ) // last is NULL bytes
+        if ( time%(window) >= window-2 ) // last is NULL bytes
         {
-            playrecstatus->buffer = (RecKeys*)realloc(playrecstatus->buffer,sizeof(RecKeys)*((int)(trunc(playrecstatus->time/window)+1)*window+window));
+            playrecstatus->buffer = (RecKeys*)realloc(playrecstatus->buffer,sizeof(RecKeys)*((int)(trunc(time/window)+1)*window+window));
             if (playrecstatus->buffer == NULL)
             {
                 printf("Error to allocate buffer in record inputs mode.\n");
                 return 0;
-            } else memset(playrecstatus->buffer+playrecstatus->time+1,5,(int)(trunc(playrecstatus->time/window)+1)*window+window-playrecstatus->time-1);
+            } else memset(playrecstatus->buffer+time+1,5,(int)(trunc(time/window)+1)*window+window-time-1);
         }
     }
 
@@ -29017,13 +29022,12 @@ int recordInputs()
             reckey.releasekeys[p] = (u32)player[p].releasekeys;
             reckey.playkeys[p]    = (u32)player[p].playkeys;
         }
-        memcpy( &playrecstatus->buffer[playrecstatus->time], &reckey, sizeof(reckey) );
+        memcpy( &playrecstatus->buffer[time], &reckey, sizeof(reckey) );
     }
-    ++playrecstatus->time;
 
-    if ( playrecstatus->time >= max_rec_time ) stopRecordInputs();
+    if ( time >= max_rec_time ) stopRecordInputs();
 
-    //debug_printf("%s/%s",playrecstatus->path,playrecstatus->filename);
+    //debug_printf("%d",time);
 
     return 1;
 }
@@ -29034,9 +29038,10 @@ int playRecordedInputs()
     RecKeys reckey;
     char path[MAX_ARG_LEN + 1];
     size_t filesize = 0;
+    char header[6];
 
     if(playrecstatus->status != A_REC_PLAY) return 0;
-    if ( playrecstatus->time <= 0 )
+    if ( time == playrecstatus->starttime )
     {
         if ( strlen(playrecstatus->path) <= 0 ) getBasePath(path, "Saves", 0);
         else strcpy(path,playrecstatus->path);
@@ -29070,13 +29075,16 @@ int playRecordedInputs()
             printf("Error to open recorded inputs file.\n");
             return 0;
         }
-        fread(&playrecstatus->rectime, sizeof(size_t), 1, playrecstatus->handle);
-        fread(playrecstatus->buffer, sizeof(RecKeys)*playrecstatus->rectime, 1, playrecstatus->handle);
+        fread(&header, 6, 1, playrecstatus->handle);
+        fread(&playrecstatus->starttime, sizeof(size_t), 1, playrecstatus->handle);
+        fread(&playrecstatus->endtime, sizeof(size_t), 1, playrecstatus->handle);
+        fread(playrecstatus->buffer, sizeof(RecKeys)*playrecstatus->endtime, 1, playrecstatus->handle);
+        playrecstatus->begin = 1;
     }
 
-    if(playrecstatus->buffer)
+    if(playrecstatus->buffer && playrecstatus->begin)
     {
-        memcpy( &reckey, &playrecstatus->buffer[playrecstatus->time], sizeof(reckey) );
+        memcpy( &reckey, &playrecstatus->buffer[time], sizeof(reckey) );
         for ( p = 0; p < MAX_PLAYERS; p++ )
         {
             player[p].keys        = (u32)reckey.keys[p];
@@ -29085,11 +29093,10 @@ int playRecordedInputs()
             player[p].playkeys    = (u32)reckey.playkeys[p];
         }
     }
-    ++playrecstatus->time;
 
-    if ( playrecstatus->time >= playrecstatus->rectime ) stopRecordInputs();
+    if ( time >= playrecstatus->endtime ) stopRecordInputs();
 
-    //debug_printf("%d %d",playrecstatus->time,playrecstatus->rectime);
+    //debug_printf("%d %d",time,playrecstatus->endtime);
 
     return 1;
 }
@@ -29101,6 +29108,7 @@ int stopRecordInputs()
         case A_REC_REC:
         {
             char path[MAX_ARG_LEN + 1];
+            char header[6] = "INP10";
 
             if ( strlen(playrecstatus->path) <= 0 ) getBasePath(path, "Saves", 0);
             else strcpy(path,playrecstatus->path);
@@ -29111,12 +29119,14 @@ int stopRecordInputs()
                 playrecstatus->handle = fopen(strcat(path,playrecstatus->filename), "wb+");
                 if(playrecstatus->handle)
                 {
-                    fwrite(&playrecstatus->time, sizeof(size_t), 1, playrecstatus->handle);
-                    fwrite(playrecstatus->buffer, sizeof(RecKeys)*playrecstatus->time, 1, playrecstatus->handle);
+                    fwrite(header, 6, 1, playrecstatus->handle);
+                    fwrite(&playrecstatus->starttime, sizeof(size_t), 1, playrecstatus->handle);
+                    fwrite(&time, sizeof(size_t), 1, playrecstatus->handle);
+                    fwrite(playrecstatus->buffer, sizeof(RecKeys)*time, 1, playrecstatus->handle);
                     fflush(playrecstatus->handle); // safe
                     fclose(playrecstatus->handle);
                 } else return 0;
-                playrecstatus->rectime = playrecstatus->time;
+                playrecstatus->endtime = time;
 
                 free(playrecstatus->buffer);
                 playrecstatus->buffer = NULL;
@@ -29142,7 +29152,7 @@ int stopRecordInputs()
             break;
         }
     }
-    playrecstatus->time = 0;
+    playrecstatus->begin = 0;
     playrecstatus->status = A_REC_STOP;
 
     return 1;
