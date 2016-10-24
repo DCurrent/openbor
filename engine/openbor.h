@@ -115,6 +115,8 @@ typedef struct InputKeys
     u32 newkeys[MAX_PLAYERS];
     u32 releasekeys[MAX_PLAYERS];
     u32 playkeys[MAX_PLAYERS];
+    u32 time;
+    u32 interval;
 } RecKeys;
 
 typedef enum
@@ -130,8 +132,10 @@ typedef struct PlayRecStatus {
   char path[MAX_ARG_LEN + 1];
   int status; // 0 = stop / 1 = rec / 2 = play
   int begin;
-  size_t starttime;
-  size_t endtime;
+  u32 starttime;
+  u32 endtime;
+  u32 synctime; // used to sync rec time with game time
+  u32 totsynctime;
   FILE *handle;
   RecKeys *buffer;
 } a_playrecstatus;
