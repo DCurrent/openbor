@@ -297,6 +297,7 @@ enum systemvariant_enum
     _sv_effectvol,
     _sv_elapsed_time,
     _sv_ent_max,
+    _sv_fps,
     _sv_freeram,
     _sv_game_paused,
     _sv_game_speed,

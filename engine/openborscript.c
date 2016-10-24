@@ -2090,6 +2090,7 @@ static const char *svlist[] =
     "effectvol",
     "elapsed_time",
     "ent_max",
+    "fps",
     "freeram",
     "game_paused",
     "game_speed",
