@@ -129,8 +129,9 @@ typedef struct PlayRecStatus {
   char filename[MAX_ARG_LEN + 1];
   char path[MAX_ARG_LEN + 1];
   int status; // 0 = stop / 1 = rec / 2 = play
-  size_t time;
-  size_t rectime;
+  int begin;
+  size_t starttime;
+  size_t endtime;
   FILE *handle;
   RecKeys *buffer;
 } a_playrecstatus;
