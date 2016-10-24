@@ -1396,6 +1396,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)(levelsets[current_set].noshowhof);
         break;
+    case _sv_fps:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = (LONG)(getFPS());
+        break;
     default:
         // We use indices now, but players/modders don't need to be exposed
         // to that implementation detail, so we write "name" and not "index".
@@ -28845,8 +28849,7 @@ void inputrefresh(int playrecmode)
     s_player *pl;
     u32 k;
 
-    //if ( playrecmode != A_REC_PLAY )
-        control_update(playercontrolpointers, MAX_PLAYERS);
+    control_update(playercontrolpointers, MAX_PLAYERS);
 
     bothkeys = 0;
     bothnewkeys = 0;
@@ -28861,7 +28864,8 @@ void inputrefresh(int playrecmode)
             pl->newkeys = playercontrolpointers[p]->newkeyflags;
             pl->playkeys |= pl->newkeys;
             pl->playkeys &= pl->keys;
-        } else
+        }
+        else
         {
             // in play mode: add pressed keys to rec keys
             pl->releasekeys |= (playercontrolpointers[p]->keyflags | pl->keys) - playercontrolpointers[p]->keyflags;
@@ -28900,7 +28904,6 @@ void inputrefresh(int playrecmode)
 
         bothkeys |= player[p].keys;
         bothnewkeys |= player[p].newkeys;
-
     }
 
 }
@@ -29016,7 +29019,7 @@ int recordInputs()
             {
                 printf("Error to allocate buffer in record inputs mode.\n");
                 return 0;
-            } else memset(playrecstatus->buffer+time+1,5,(int)(trunc(time/window)+1)*window+window-time-2); // -2 becouse -1 is to 0 to size-1
+            } else memset(playrecstatus->buffer+(time+1),0,(int)(trunc(time/window)+1)*window+window-(time+1)-1); // -2 becouse -1 is to 0 to size-1
         }
     }
 
@@ -29095,7 +29098,7 @@ int playRecordedInputs()
         fread(&playrecstatus->starttime, sizeof(u32), 1, playrecstatus->handle);
         fread(&playrecstatus->endtime, sizeof(u32), 1, playrecstatus->handle);
         fread(&playrecstatus->totsynctime, sizeof(u32), 1, playrecstatus->handle);
-        fread(playrecstatus->buffer, sizeof(RecKeys)*playrecstatus->totsynctime, 1, playrecstatus->handle);
+        fread(playrecstatus->buffer, sizeof(RecKeys)*(playrecstatus->endtime+1), 1, playrecstatus->handle);
 
         playrecstatus->synctime = 0;
         time = playrecstatus->starttime;
@@ -29110,16 +29113,25 @@ int playRecordedInputs()
         // IMPORTANT: sync!!
         if ( time != reckey.time )
         {
+            int nexttime = time;
+
             //time = (u32)reckey.time;
+            printf("Play recorded inputs: Out of sync! Time: %d, RecTime: %d\n",time,reckey.time);
             if ( interval != reckey.interval )
             {
                 //interval = (u32)reckey.interval;
+                printf("Play recorded inputs: Out of sync! Interval: %d, RecInterval: %d\n",interval,reckey.interval);
             }
-            printf("Play recorded inputs: Out of sync!\n");
+
+            while( nexttime != reckey.time && nexttime < playrecstatus->endtime ) {
+                memcpy( &reckey, &playrecstatus->buffer[++nexttime], sizeof(reckey) );
+            }
+            time = nexttime;
         }
 
         if ( time == reckey.time )
         {
+            interval = (u32)reckey.interval;
             for ( p = 0; p < MAX_PLAYERS; p++ )
             {
                 player[p].keys        = (u32)reckey.keys[p];
@@ -29127,7 +29139,7 @@ int playRecordedInputs()
                 player[p].releasekeys = (u32)reckey.releasekeys[p];
                 player[p].playkeys    = (u32)reckey.playkeys[p];
             }
-            inputrefresh(playrecstatus->status);
+            //inputrefresh(playrecstatus->status);
         }
     }
 
@@ -29135,6 +29147,7 @@ int playRecordedInputs()
     if(playrecstatus->status == A_REC_PLAY) ++playrecstatus->synctime;
 
     //debug_printf("time: %d sync: %d",(u32)time,(u32)playrecstatus->synctime);
+    //debug_printf("keys: %d",player[0].keys);
 
     return 1;
 }
@@ -29161,7 +29174,7 @@ int stopRecordInputs()
                     fwrite(&playrecstatus->starttime, sizeof(u32), 1, playrecstatus->handle);
                     fwrite(&time, sizeof(u32), 1, playrecstatus->handle);
                     fwrite(&playrecstatus->synctime, sizeof(u32), 1, playrecstatus->handle);
-                    fwrite(playrecstatus->buffer, sizeof(RecKeys)*time, 1, playrecstatus->handle);
+                    fwrite(playrecstatus->buffer, sizeof(RecKeys)*(time+1), 1, playrecstatus->handle);
                     fflush(playrecstatus->handle); // safe
                     fclose(playrecstatus->handle);
                 } else return 0;
@@ -29216,10 +29229,9 @@ int freeRecordedInputs()
 void update(int ingame, int usevwait)
 {
     getinterval();
-    if(playrecstatus->status == A_REC_PLAY) if ( !playRecordedInputs() ) stopRecordInputs();
-    if(playrecstatus->status != A_REC_PLAY) inputrefresh(playrecstatus->status);
-    if(playrecstatus->status == A_REC_REC) if ( !recordInputs() ) stopRecordInputs();
-    //debug_printf("%d",playrecstatus->status);
+    if(playrecstatus->status == A_REC_PLAY && !pause && level) if ( !playRecordedInputs() ) stopRecordInputs();
+    inputrefresh(playrecstatus->status);
+    if(playrecstatus->status == A_REC_REC && !pause && level) if ( !recordInputs() ) stopRecordInputs();
 
 
     if ((!pause && ingame == 1) || alwaysupdate)
@@ -30691,6 +30703,7 @@ int playlevel(char *filename)
     while(!endgame)
     {
         update(1, 0);
+
         if ( level->forcefinishlevel )
         {
             level_completed = 1;
