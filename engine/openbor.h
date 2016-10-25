@@ -117,6 +117,7 @@ typedef struct InputKeys
     u32 playkeys[MAX_PLAYERS];
     u32 time;
     u32 interval;
+    u32 synctime;
 } RecKeys;
 
 typedef enum
@@ -1957,6 +1958,10 @@ typedef struct
     u32 releasekeys;
     u32 combokey[MAX_SPECIAL_INPUTS];
     u32 inputtime[MAX_SPECIAL_INPUTS];
+    u32 keyflags;
+    u32 newkeyflags;
+    u32 getkeyflags;
+    u32 getnewkeyflags;
     int combostep;
     int spawnhealth;
     int spawnmp;
@@ -2204,6 +2209,7 @@ typedef struct ArgList
     size_t arglen[MAX_ARG_COUNT];
     char *args[MAX_ARG_COUNT];
 } ArgList;
+
 
 #define GET_ARG(z) (arglist.count > z ? arglist.args[z] : "")
 #define GET_ARG_LEN(z) (arglist.count > z ? arglist.arglen[z] : 0)
