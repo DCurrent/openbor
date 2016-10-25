@@ -2891,7 +2891,7 @@ void clearsettings()
     savedata.keys[0][SDID_START]     = CONTROL_DEFAULT1_START;
     savedata.keys[0][SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
     #ifdef SDL
-        savedata.keys[0][SDID_ESC]       = CONTROL_DEFAULT1_ESC;
+        //savedata.keys[0][SDID_ESC]       = CONTROL_DEFAULT1_ESC;
     #endif
 
     savedata.keys[1][SDID_MOVEUP]    = CONTROL_DEFAULT2_UP;
@@ -2907,7 +2907,7 @@ void clearsettings()
     savedata.keys[1][SDID_START]     = CONTROL_DEFAULT2_START;
     savedata.keys[1][SDID_SCREENSHOT] = CONTROL_DEFAULT2_SCREENSHOT;
     #ifdef SDL
-        savedata.keys[1][SDID_ESC]       = CONTROL_DEFAULT2_ESC;
+        //savedata.keys[1][SDID_ESC]       = CONTROL_DEFAULT2_ESC;
     #endif
 
     savedata.keys[2][SDID_MOVEUP]    = CONTROL_DEFAULT3_UP;
@@ -2923,7 +2923,7 @@ void clearsettings()
     savedata.keys[2][SDID_START]     = CONTROL_DEFAULT3_START;
     savedata.keys[2][SDID_SCREENSHOT] = CONTROL_DEFAULT3_SCREENSHOT;
     #ifdef SDL
-        savedata.keys[2][SDID_ESC]       = CONTROL_DEFAULT3_ESC;
+        //savedata.keys[2][SDID_ESC]       = CONTROL_DEFAULT3_ESC;
     #endif
 
     savedata.keys[3][SDID_MOVEUP]    = CONTROL_DEFAULT4_UP;
@@ -2939,7 +2939,7 @@ void clearsettings()
     savedata.keys[3][SDID_START]     = CONTROL_DEFAULT4_START;
     savedata.keys[3][SDID_SCREENSHOT] = CONTROL_DEFAULT4_SCREENSHOT;
     #ifdef SDL
-        savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
+        //savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
     #endif
 }
 
@@ -14318,7 +14318,7 @@ void updatestatus()
 
                 execute_join_script(i);
 
-                player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
+                player[i].keyflags = player[i].newkeyflags = player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
 
                 if(!nodropen)
                 {
@@ -14423,7 +14423,7 @@ void updatestatus()
                 // NOSAME X 2
 
                 player[i].joining = 1;
-                player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
+                player[i].keyflags = player[i].newkeyflags = player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
 
                 if(!level->noreset)
                 {
@@ -26289,7 +26289,7 @@ void player_think()
 
     if((pl->releasekeys & FLAG_ATTACK))
     {
-        if(self->stalltime  && notinair &&
+        if(self->stalltime && notinair &&
                 ((validanim(self, ANI_CHARGEATTACK) && self->stalltime + (GAME_SPEED * self->modeldata.animation[ANI_CHARGEATTACK]->chargetime) < time) ||
                  (!validanim(self, ANI_CHARGEATTACK) && self->modeldata.chainlength > 0 && self->stalltime + (GAME_SPEED * self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1]]->chargetime) < time)))
         {
@@ -28857,6 +28857,14 @@ void inputrefresh(int playrecmode)
     for(p = 0; p < MAX_PLAYERS; p++)
     {
         pl = player + p;
+
+        // to handle it via script
+        if ( pl->keyflags ) playercontrolpointers[p]->keyflags = pl->keyflags;
+        if ( pl->newkeyflags ) playercontrolpointers[p]->newkeyflags = pl->newkeyflags;
+        pl->getkeyflags = playercontrolpointers[p]->keyflags;
+        pl->getnewkeyflags = playercontrolpointers[p]->newkeyflags;
+        // // //
+
         if ( playrecmode != A_REC_PLAY )
         {
             pl->releasekeys = (playercontrolpointers[p]->keyflags | pl->keys) - playercontrolpointers[p]->keyflags;
@@ -28990,7 +28998,7 @@ int recordInputs()
     int p = 0;
     RecKeys reckey;
     unsigned int window = 4096;
-    u32 max_rec_time = GAME_SPEED*60*5; // protection
+    u32 max_rec_time = GAME_SPEED*60*10; // protection
 
     if(playrecstatus->status != A_REC_REC) return 0;
     if ( !playrecstatus->begin )
@@ -29026,15 +29034,28 @@ int recordInputs()
     // now rec!
     if(playrecstatus->buffer && playrecstatus->begin)
     {
+        // the time unit can last longer than 1 tick/synctime and so we need to OR a possible backdata
+        //RETRIEVE POSSIBLE BACKDATA
+        memcpy( &reckey, &playrecstatus->buffer[time], sizeof(reckey) );
         for ( p = 0; p < MAX_PLAYERS; p++ )
         {
-            reckey.keys[p]        = (u32)player[p].keys;
-            reckey.newkeys[p]     = (u32)player[p].newkeys;
-            reckey.releasekeys[p] = (u32)player[p].releasekeys;
-            reckey.playkeys[p]    = (u32)player[p].playkeys;
+            player[p].keys        |= reckey.keys[p];
+            player[p].newkeys     |= reckey.newkeys[p];
+            player[p].releasekeys |= reckey.releasekeys[p];
+            player[p].playkeys    |= reckey.playkeys[p];
         }
-        reckey.time     = (u32)time;
-        reckey.interval = (u32)interval;
+
+        // ATTACH DATA
+        for ( p = 0; p < MAX_PLAYERS; p++ )
+        {
+            reckey.keys[p]        |= player[p].keys;
+            reckey.newkeys[p]     |= player[p].newkeys;
+            reckey.releasekeys[p] |= player[p].releasekeys;
+            reckey.playkeys[p]    |= player[p].playkeys;
+        }
+        reckey.time     = time;
+        reckey.interval = interval;
+        reckey.synctime = playrecstatus->synctime;
         memcpy( &playrecstatus->buffer[time], &reckey, sizeof(reckey) );
     }
 
@@ -29042,6 +29063,7 @@ int recordInputs()
     if(playrecstatus->status == A_REC_REC) ++playrecstatus->synctime;
 
     //debug_printf("time: %d sync: %d",(u32)time,(u32)playrecstatus->synctime);
+    //debug_printf("keys: %d",player[0].releasekeys&FLAG_ATTACK);
 
     return 1;
 }
@@ -29100,8 +29122,9 @@ int playRecordedInputs()
         fread(&playrecstatus->totsynctime, sizeof(u32), 1, playrecstatus->handle);
         fread(playrecstatus->buffer, sizeof(RecKeys)*(playrecstatus->endtime+1), 1, playrecstatus->handle);
 
-        playrecstatus->synctime = 0;
+        // sync at start time
         time = playrecstatus->starttime;
+        playrecstatus->synctime = 0;
         playrecstatus->begin = 1;
     }
 
@@ -29113,7 +29136,7 @@ int playRecordedInputs()
         // IMPORTANT: sync!!
         if ( time != reckey.time )
         {
-            int nexttime = time;
+            u32 nexttime = time;
 
             //time = (u32)reckey.time;
             printf("Play recorded inputs: Out of sync! Time: %d, RecTime: %d\n",time,reckey.time);
@@ -29131,13 +29154,31 @@ int playRecordedInputs()
 
         if ( time == reckey.time )
         {
-            interval = (u32)reckey.interval;
+            /*if ( playrecstatus->synctime != reckey.synctime )
+            {
+                u32 nexttime = time;
+
+                while( playrecstatus->synctime < reckey.synctime && nexttime > 0 ) {
+                    memcpy( &reckey, &playrecstatus->buffer[--nexttime], sizeof(reckey) );
+                }
+                time = nexttime;
+
+                while( playrecstatus->synctime > reckey.synctime && nexttime < playrecstatus->endtime ) {
+                    memcpy( &reckey, &playrecstatus->buffer[++nexttime], sizeof(reckey) );
+                }
+                time = nexttime;
+
+                printf("Play recorded inputs: Out of sync! SyncTime: %d, RecSyncTime: %d\n",playrecstatus->synctime,reckey.synctime);
+            }*/
+
+            interval = reckey.interval;
+            //playrecstatus->synctime = reckey.synctime;
             for ( p = 0; p < MAX_PLAYERS; p++ )
             {
-                player[p].keys        = (u32)reckey.keys[p];
-                player[p].newkeys     = (u32)reckey.newkeys[p];
-                player[p].releasekeys = (u32)reckey.releasekeys[p];
-                player[p].playkeys    = (u32)reckey.playkeys[p];
+                player[p].keys        = reckey.keys[p];
+                player[p].newkeys     = reckey.newkeys[p];
+                player[p].releasekeys = reckey.releasekeys[p];
+                player[p].playkeys    = reckey.playkeys[p];
             }
             //inputrefresh(playrecstatus->status);
         }
@@ -29147,7 +29188,7 @@ int playRecordedInputs()
     if(playrecstatus->status == A_REC_PLAY) ++playrecstatus->synctime;
 
     //debug_printf("time: %d sync: %d",(u32)time,(u32)playrecstatus->synctime);
-    //debug_printf("keys: %d",player[0].keys);
+    //debug_printf("keys: %d",player[0].releasekeys&FLAG_ATTACK);
 
     return 1;
 }
@@ -29232,7 +29273,6 @@ void update(int ingame, int usevwait)
     if(playrecstatus->status == A_REC_PLAY && !pause && level) if ( !playRecordedInputs() ) stopRecordInputs();
     inputrefresh(playrecstatus->status);
     if(playrecstatus->status == A_REC_REC && !pause && level) if ( !recordInputs() ) stopRecordInputs();
-
 
     if ((!pause && ingame == 1) || alwaysupdate)
     {
@@ -30327,7 +30367,7 @@ void playscene(char *filename)
     currentScene = NULL;
     for(i = 0; i < MAX_PLAYERS; i++)
     {
-        player[i].newkeys = player[i].playkeys = 0;
+        player[i].keyflags = player[i].newkeyflags = player[i].newkeys = player[i].playkeys = 0;
     }
 }
 
@@ -30681,7 +30721,7 @@ int playlevel(char *filename)
     {
         if(player[i].lives > 0)
         {
-            player[i].newkeys = player[i].playkeys = 0;
+            player[i].keyflags = player[i].newkeyflags = player[i].newkeys = player[i].playkeys = 0;
             player[i].weapnum = level->setweap;
             player[i].joining = 0;
             player[i].hasplayed = 1;
@@ -32037,7 +32077,7 @@ void keyboard_setup(int player)
         selector = 0,
         setting = -1,
         i, k, ok = 0,
-              disabledkey[btnnum+1] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+              disabledkey[MAX_BTN_NUM+1] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                                 col1 = -8, col2 = 6;
     ptrdiff_t pos, voffset;
     size_t size;
