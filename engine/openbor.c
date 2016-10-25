@@ -29207,60 +29207,63 @@ int playRecordedInputs()
 
 int stopRecordInputs()
 {
-    switch(playrecstatus->status)
+    if(playrecstatus)
     {
-        case A_REC_REC:
+        switch(playrecstatus->status)
         {
-            char path[MAX_ARG_LEN + 1];
-            char header[6] = "INP10";
-
-            if ( strlen(playrecstatus->path) <= 0 ) getBasePath(path, "Saves", 0);
-            else strcpy(path,playrecstatus->path);
-            if ( path[strlen(path)-1] != '/' ) strcpy(path,"/");
-
-            if (playrecstatus->buffer)
+            case A_REC_REC:
             {
-                playrecstatus->handle = fopen(strcat(path,playrecstatus->filename), "wb+");
+                char path[MAX_ARG_LEN + 1];
+                char header[6] = "INP10";
+
+                if ( strlen(playrecstatus->path) <= 0 ) getBasePath(path, "Saves", 0);
+                else strcpy(path,playrecstatus->path);
+                if ( path[strlen(path)-1] != '/' ) strcpy(path,"/");
+
+                if (playrecstatus->buffer)
+                {
+                    playrecstatus->handle = fopen(strcat(path,playrecstatus->filename), "wb+");
+                    if(playrecstatus->handle)
+                    {
+                        fwrite(header, 6, 1, playrecstatus->handle);
+                        fwrite(&playrecstatus->starttime, sizeof(u32), 1, playrecstatus->handle);
+                        fwrite(&time, sizeof(u32), 1, playrecstatus->handle);
+                        fwrite(&playrecstatus->synctime, sizeof(u32), 1, playrecstatus->handle);
+                        fwrite(playrecstatus->buffer, sizeof(RecKeys)*(time+1), 1, playrecstatus->handle);
+                        fflush(playrecstatus->handle); // safe
+                        fclose(playrecstatus->handle);
+                    } else return 0;
+                    playrecstatus->endtime = time;
+
+                    free(playrecstatus->buffer);
+                    playrecstatus->buffer = NULL;
+                } else return 0;
+                break;
+            }
+            case A_REC_PLAY:
+            {
                 if(playrecstatus->handle)
                 {
-                    fwrite(header, 6, 1, playrecstatus->handle);
-                    fwrite(&playrecstatus->starttime, sizeof(u32), 1, playrecstatus->handle);
-                    fwrite(&time, sizeof(u32), 1, playrecstatus->handle);
-                    fwrite(&playrecstatus->synctime, sizeof(u32), 1, playrecstatus->handle);
-                    fwrite(playrecstatus->buffer, sizeof(RecKeys)*(time+1), 1, playrecstatus->handle);
-                    fflush(playrecstatus->handle); // safe
-                    fclose(playrecstatus->handle);
-                } else return 0;
-                playrecstatus->endtime = time;
-
-                free(playrecstatus->buffer);
-                playrecstatus->buffer = NULL;
-            } else return 0;
-            break;
-        }
-        case A_REC_PLAY:
-        {
-            if(playrecstatus->handle)
-            {
-                if (playrecstatus->handle) fclose(playrecstatus->handle);
-                else return 0;
+                    if (playrecstatus->handle) fclose(playrecstatus->handle);
+                    else return 0;
+                }
+                break;
             }
-            break;
-        }
-        case A_REC_STOP:
-        {
-            if(playrecstatus->handle)
+            case A_REC_STOP:
             {
-                if (playrecstatus->handle) fclose(playrecstatus->handle);
-                else return 0;
+                if(playrecstatus->handle)
+                {
+                    if (playrecstatus->handle) fclose(playrecstatus->handle);
+                    else return 0;
+                }
+                break;
             }
-            break;
         }
-    }
-    playrecstatus->begin = 0;
-    playrecstatus->synctime = 0;
-    playrecstatus->status = A_REC_STOP;
-    freeRecordedInputs();
+        playrecstatus->begin = 0;
+        playrecstatus->synctime = 0;
+        playrecstatus->status = A_REC_STOP;
+        freeRecordedInputs();
+    } return 0;
 
     return 1;
 }
