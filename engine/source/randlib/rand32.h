@@ -14,6 +14,7 @@ extern unsigned long seed;
 unsigned int rand32(void);
 
 void srand32(int n);
+unsigned long getseed();
 
 #endif
 

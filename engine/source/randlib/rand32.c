@@ -25,3 +25,7 @@ void srand32(int n)
     seed = n;
 }
 
+unsigned long getseed()
+{
+    return seed;
+}

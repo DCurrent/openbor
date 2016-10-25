@@ -119,6 +119,7 @@ typedef struct InputKeys
     u32 time;
     u32 interval;
     u32 synctime;
+    unsigned long seed;
 } RecKeys;
 
 typedef enum
