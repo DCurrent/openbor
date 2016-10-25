@@ -13541,6 +13541,7 @@ enum playerproperty_enum
     _pp_combokey,
     _pp_combostep,
     _pp_credits,
+    _pp_disablekeys,
     _pp_ent,
     _pp_entity,
     _pp_hasplayed,
@@ -13548,12 +13549,10 @@ enum playerproperty_enum
     _pp_hmapu,
     _pp_inputtime,
     _pp_joining,
-    _pp_keyflags,
     _pp_keys,
     _pp_lives,
     _pp_mapcount,
     _pp_name,
-    _pp_newkeyflags,
     _pp_newkeys,
     _pp_playkeys,
     _pp_releasekeys,
@@ -13576,6 +13575,7 @@ int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount)
         "combokey",
         "combostep",
         "credits",
+        "disablekeys",
         "ent",
         "entity",
         "hasplayed",
@@ -13583,12 +13583,10 @@ int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount)
         "hmapu",
         "inputtime",
         "joining",
-        "keyflags",
         "keys",
         "lives",
         "mapcount",
         "name",
-        "newkeyflags",
         "newkeys",
         "playkeys",
         "releasekeys",
@@ -13712,16 +13710,10 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)player[index].lives;
         break;
     }
-    case _pp_keyflags:
+    case _pp_disablekeys:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)player[index].getkeyflags;
-        break;
-    }
-    case _pp_newkeyflags:
-    {
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)player[index].getnewkeyflags;
+        (*pretvar)->lVal = (LONG)player[index].disablekeys;
         break;
     }
     case _pp_playkeys:
@@ -14070,23 +14062,11 @@ HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
-    case _pp_keyflags:
+    case _pp_disablekeys:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
         {
-            player[index].keyflags = (int)ltemp;
-        }
-        else
-        {
-            goto cpperror;
-        }
-        break;
-    }
-    case _pp_newkeyflags:
-    {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
-        {
-            player[index].newkeyflags = (int)ltemp;
+            player[index].disablekeys = (int)ltemp;
         }
         else
         {
