@@ -29065,6 +29065,7 @@ int recordInputs()
         reckey.time     = time;
         reckey.interval = interval;
         reckey.synctime = playrecstatus->synctime;
+        reckey.seed = getseed();
         memcpy( &playrecstatus->buffer[time], &reckey, sizeof(reckey) );
     }
 
@@ -29181,6 +29182,7 @@ int playRecordedInputs()
             }*/
 
             interval = reckey.interval;
+            srand32(reckey.seed);
             //playrecstatus->synctime = reckey.synctime;
             for ( p = 0; p < MAX_PLAYERS; p++ )
             {
