@@ -13548,10 +13548,12 @@ enum playerproperty_enum
     _pp_hmapu,
     _pp_inputtime,
     _pp_joining,
+    _pp_keyflags,
     _pp_keys,
     _pp_lives,
     _pp_mapcount,
     _pp_name,
+    _pp_newkeyflags,
     _pp_newkeys,
     _pp_playkeys,
     _pp_releasekeys,
@@ -13581,10 +13583,12 @@ int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount)
         "hmapu",
         "inputtime",
         "joining",
+        "keyflags",
         "keys",
         "lives",
         "mapcount",
         "name",
+        "newkeyflags",
         "newkeys",
         "playkeys",
         "releasekeys",
@@ -13706,6 +13710,18 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)player[index].lives;
+        break;
+    }
+    case _pp_keyflags:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)player[index].getkeyflags;
+        break;
+    }
+    case _pp_newkeyflags:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)player[index].getnewkeyflags;
         break;
     }
     case _pp_playkeys:
@@ -14047,6 +14063,30 @@ HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
         {
             player[index].lives = (int)ltemp;
+        }
+        else
+        {
+            goto cpperror;
+        }
+        break;
+    }
+    case _pp_keyflags:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
+        {
+            player[index].keyflags = (int)ltemp;
+        }
+        else
+        {
+            goto cpperror;
+        }
+        break;
+    }
+    case _pp_newkeyflags:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
+        {
+            player[index].newkeyflags = (int)ltemp;
         }
         else
         {
