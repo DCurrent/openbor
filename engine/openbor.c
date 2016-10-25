@@ -5110,7 +5110,14 @@ static void load_playable_list(char *buf)
 
     reset_playable_list(0);
     ParseArgs(&arglist, buf, argbuf);
-    for(i = 0; i < sizeof(argbuf); i++) allowselect_args[i] = argbuf[i]; // store allowselect players for savefile
+    for(i = 0; i < sizeof(argbuf); i++) allowselect_args[i] = ' ';
+    for(i = 0; i < sizeof(argbuf); i++)
+    {
+        if ( argbuf[i] != '\0' ) allowselect_args[i] = argbuf[i]; // store allowselect players for savefile
+        else allowselect_args[i] = ' ';
+    }
+    allowselect_args[sizeof(argbuf)-1] = '\0';
+
 
     for(i = 1; (value = GET_ARG(i))[0]; i++)
     {
@@ -30702,7 +30709,9 @@ void savelevelinfo()
     save->stage = current_stage;
     save->which_set = current_set;
     strncpy(save->dName, set->name, MAX_NAME_LEN);
+    for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = ' ';
     for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = allowselect_args[i];
+    allowselect_args[sizeof(allowselect_args)-1] = '\0';
 }
 
 
@@ -31208,7 +31217,6 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
                 strncpy(player[i].name, save->pName[i], MAX_NAME_LEN);
             }
             credits = save->credits;
-
             load_playable_list(save->allowSelectArgs); //TODO: change sav format to support dynamic allowselect list.
             //reset_playable_list(1); // add this because there's no select screen, temporary solution
         }
