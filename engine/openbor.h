@@ -111,6 +111,7 @@ movement restirctions are here!
 // PLAY/REC INPUT vars
 typedef struct InputKeys
 {
+    u32 prevkeys[MAX_PLAYERS];
     u32 keys[MAX_PLAYERS];
     u32 newkeys[MAX_PLAYERS];
     u32 releasekeys[MAX_PLAYERS];
@@ -1958,10 +1959,8 @@ typedef struct
     u32 releasekeys;
     u32 combokey[MAX_SPECIAL_INPUTS];
     u32 inputtime[MAX_SPECIAL_INPUTS];
-    u32 keyflags;
-    u32 newkeyflags;
-    u32 getkeyflags;
-    u32 getnewkeyflags;
+    u32 disablekeys;
+    u32 prevkeys; // used for play/rec mode
     int combostep;
     int spawnhealth;
     int spawnmp;
