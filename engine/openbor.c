@@ -14318,7 +14318,7 @@ void updatestatus()
 
                 execute_join_script(i);
 
-                player[i].keyflags = player[i].newkeyflags = player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
+                player[i].disablekeys = player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
 
                 if(!nodropen)
                 {
@@ -14423,7 +14423,7 @@ void updatestatus()
                 // NOSAME X 2
 
                 player[i].joining = 1;
-                player[i].keyflags = player[i].newkeyflags = player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
+                player[i].disablekeys = player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
 
                 if(!level->noreset)
                 {
@@ -28858,29 +28858,27 @@ void inputrefresh(int playrecmode)
     {
         pl = player + p;
 
-        // to handle it via script
-        if ( pl->keyflags ) playercontrolpointers[p]->keyflags = pl->keyflags;
-        if ( pl->newkeyflags ) playercontrolpointers[p]->newkeyflags = pl->newkeyflags;
-        pl->getkeyflags = playercontrolpointers[p]->keyflags;
-        pl->getnewkeyflags = playercontrolpointers[p]->newkeyflags;
-        // // //
-
         if ( playrecmode != A_REC_PLAY )
         {
+
             pl->releasekeys = (playercontrolpointers[p]->keyflags | pl->keys) - playercontrolpointers[p]->keyflags;
-            pl->keys = playercontrolpointers[p]->keyflags;
-            pl->newkeys = playercontrolpointers[p]->newkeyflags;
+            pl->releasekeys &= ~pl->disablekeys;
+            pl->keys = playercontrolpointers[p]->keyflags & ~pl->disablekeys;
+            pl->newkeys = playercontrolpointers[p]->newkeyflags & ~pl->disablekeys;
             pl->playkeys |= pl->newkeys;
             pl->playkeys &= pl->keys;
+            pl->playkeys &= ~pl->disablekeys;
         }
         else
         {
             // in play mode: add pressed keys to rec keys
-            pl->releasekeys |= (playercontrolpointers[p]->keyflags | pl->keys) - playercontrolpointers[p]->keyflags;
-            pl->keys |= playercontrolpointers[p]->keyflags;
-            pl->newkeys |= playercontrolpointers[p]->newkeyflags;
+            pl->releasekeys |= (playercontrolpointers[p]->keyflags | pl->prevkeys) - playercontrolpointers[p]->keyflags;
+            pl->releasekeys &= ~pl->disablekeys;
+            pl->keys |= playercontrolpointers[p]->keyflags & ~pl->disablekeys;
+            pl->newkeys |= playercontrolpointers[p]->newkeyflags & ~pl->disablekeys;
             pl->playkeys |= pl->newkeys;
             pl->playkeys &= pl->keys;
+            pl->playkeys &= ~pl->disablekeys;
         }
 
         if(pl->ent && pl->ent->movetime < time)
@@ -29034,6 +29032,17 @@ int recordInputs()
     // now rec!
     if(playrecstatus->buffer && playrecstatus->begin)
     {
+        if( time > 0 )
+        {
+            RecKeys prevreckey;
+
+            memcpy( &prevreckey, &playrecstatus->buffer[time-1], sizeof(prevreckey) );
+            for ( p = 0; p < MAX_PLAYERS; p++ )
+            {
+                reckey.prevkeys[p] = prevreckey.keys[p];
+            }
+        }
+
         // the time unit can last longer than 1 tick/synctime and so we need to OR a possible backdata
         //RETRIEVE POSSIBLE BACKDATA
         memcpy( &reckey, &playrecstatus->buffer[time], sizeof(reckey) );
@@ -29179,6 +29188,7 @@ int playRecordedInputs()
                 player[p].newkeys     = reckey.newkeys[p];
                 player[p].releasekeys = reckey.releasekeys[p];
                 player[p].playkeys    = reckey.playkeys[p];
+                player[p].prevkeys    = reckey.prevkeys[p];
             }
             //inputrefresh(playrecstatus->status);
         }
@@ -30367,7 +30377,7 @@ void playscene(char *filename)
     currentScene = NULL;
     for(i = 0; i < MAX_PLAYERS; i++)
     {
-        player[i].keyflags = player[i].newkeyflags = player[i].newkeys = player[i].playkeys = 0;
+        player[i].disablekeys = player[i].newkeys = player[i].playkeys = 0;
     }
 }
 
@@ -30721,7 +30731,7 @@ int playlevel(char *filename)
     {
         if(player[i].lives > 0)
         {
-            player[i].keyflags = player[i].newkeyflags = player[i].newkeys = player[i].playkeys = 0;
+            player[i].disablekeys = player[i].newkeys = player[i].playkeys = 0;
             player[i].weapnum = level->setweap;
             player[i].joining = 0;
             player[i].hasplayed = 1;
