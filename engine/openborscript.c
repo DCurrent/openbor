@@ -5130,7 +5130,7 @@ HRESULT openbor_setattackproperty(ScriptVariant **varlist, ScriptVariant **pretv
 
     int                     result      = S_OK; // Success or error?
     s_attack                *handle     = NULL; // Property handle.
-    e_animation_properties  property    = 0;    // Property to access.
+    e_attack_properties     property    = 0;    // Property to access.
 
     // Value carriers to apply on properties after
     // taken from argument.
