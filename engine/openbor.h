@@ -526,6 +526,51 @@ typedef enum //Animations
 
 typedef enum
 {
+    ANI_PROP_ANIMHITS,     // Does the attack need to hit before cancel is allowed?
+    ANI_PROP_ANTIGRAV,     // UT: make dive a similar property as antigravity.
+    ANI_PROP_ATTACK,
+    ANI_PROP_ATTACKONE,    // stick on the only one victim
+    ANI_PROP_BBOX,
+    ANI_PROP_BOUNCE,       //FLOAT -tossv/bounce = new tossv
+    ANI_PROP_CANCEL,       // Cancel anims with freespecial
+    ANI_PROP_CHARGETIME,   //FLOAT charge time for an animation
+    ANI_PROP_COUNTERRANGE, //SUB Auto counter attack. 2011_04_01, DC: Moved to struct.
+    ANI_PROP_DELAY,
+    ANI_PROP_DRAWMETHODS,
+    ANI_PROP_DROPFRAME,    // SUB if tossv < 0, this frame will be set
+    ANI_PROP_DROPV,    // SUB if tossv < 0, this frame will be set
+    ANI_PROP_ENERGYCOST,   //SUB. 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
+    ANI_PROP_FLIPFRAME,    // Turns entities around on the desired frame
+    ANI_PROP_FOLLOWUP,     // use which FOLLOW anim?
+    ANI_PROP_IDLE,
+    ANI_PROP_INDEX,        //unique id
+    ANI_PROP_JUMPFRAME,    //SUB
+    ANI_PROP_LANDFRAME,    // SUB Landing behavior. 2011_04_01, DC: Moved to struct.
+    ANI_PROP_LOOP,         // Animation looping. 2011_03_31, DC: Moved to struct.
+    ANI_PROP_MODEL_INDEX,
+    ANI_PROP_MOVE,
+    ANI_PROP_NUMFRAMES,    //Framecount.
+    ANI_PROP_OFFSET,
+    ANI_PROP_PLATFORM,
+    ANI_PROP_PROJECTILE,
+    ANI_PROP_QUAKEFRAME,   // SUB Screen shake effect. 2011_04_01, DC; Moved to struct.
+    ANI_PROP_RANGE,        //SUB Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
+    ANI_PROP_SHADOW,
+    ANI_PROP_SIZE,         // SUB entity's size (height) during animation
+    ANI_PROP_SOUNDTOPLAY,
+    ANI_PROP_SPAWNFRAME,   // SUB Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
+    ANI_PROP_SPRITE,
+    ANI_PROP_SPRITEA,
+    ANI_PROP_SUBENTITY,    // Store the sub-entity's name for further use
+    ANI_PROP_SUMMONFRAME,  // SUB Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
+    ANI_PROP_SYNC,         // sychronize frame to previous animation if they matches
+    ANI_PROP_UNSUMMONFRAME,// SUB Un-summon the entity
+    ANI_PROP_VULNERABLE,
+    ANI_PROP_WEAPONFRAME    // SUB Specify with a frame when to switch to a weapon model
+} e_animation_properties;
+
+typedef enum
+{
     /*
     Argument type enum.
     Damon V. Caskey
@@ -569,6 +614,59 @@ typedef enum
     MAX_ATKS,                       //Default max attack types (must be below all attack types in enum to get correct value)
     STA_ATKS        = (MAX_ATKS-10)
 } e_attack_types;
+
+// Attack box properties.
+// Caskey, Damon V.
+// 2016-10-26
+typedef enum
+{
+    ATTACK_PROP_BLOCK_COST,
+    ATTACK_PROP_BLOCK_PENETRATE,
+    ATTACK_PROP_COUNTER,
+    ATTACK_PROP_DAMAGE_FORCE,
+    ATTACK_PROP_DAMAGE_LAND_FORCE,
+    ATTACK_PROP_DAMAGE_LAND_MODE,
+    ATTACK_PROP_DAMAGE_LETHAL_DISABLE,
+    ATTACK_PROP_DAMAGE_RECURSIVE_FORCE,
+    ATTACK_PROP_DAMAGE_RECURSIVE_INDEX,
+    ATTACK_PROP_DAMAGE_RECURSIVE_MODE,
+    ATTACK_PROP_DAMAGE_RECURSIVE_TIME_RATE,
+    ATTACK_PROP_DAMAGE_RECURSIVE_TIME_EXPIRE,
+    ATTACK_PROP_DAMAGE_STEAL,
+    ATTACK_PROP_DAMAGE_TYPE,
+    ATTACK_PROP_EFFECT_BLOCK_FLASH,
+    ATTACK_PROP_EFFECT_BLOCK_SOUND,
+    ATTACK_PROP_EFFECT_HIT_FLASH,
+    ATTACK_PROP_EFFECT_HIT_FLASH_DISABLE,
+    ATTACK_PROP_EFFECT_HIT_SOUND,
+    ATTACK_PROP_INDEX,
+    ATTACK_PROP_GROUND,
+    ATTACK_PROP_MAP_INDEX,
+    ATTACK_PROP_MAP_TIME,
+    ATTACK_PROP_POSITION_X,
+    ATTACK_PROP_POSITION_Y,
+    ATTACK_PROP_REACTION_FALL_FORCE,
+    ATTACK_PROP_REACTION_FALL_VELOCITY_X,
+    ATTACK_PROP_REACTION_FALL_VELOCITY_Y,
+    ATTACK_PROP_REACTION_FALL_VELOCITY_Z,
+    ATTACK_PROP_REACTION_FREEZE_MODE,
+    ATTACK_PROP_REACTION_FREEZE_TIME,
+    ATTACK_PROP_REACTION_INVINCIBLE_TIME,
+    ATTACK_PROP_REACTION_REPOSITION_DIRECTION,
+    ATTACK_PROP_REACTION_REPOSITION_DISTANCE,
+    ATTACK_PROP_REACTION_REPOSITION_MODE,
+    ATTACK_PROP_REACTION_PAIN_SKIP,
+    ATTACK_PROP_REACTION_PAUSE_TIME,
+    ATTACK_PROP_SEAL_COST,
+    ATTACK_PROP_SEAL_TIME,
+    ATTACK_PROP_SIZE_X,
+    ATTACK_PROP_SIZE_Y,
+    ATTACK_PROP_SIZE_Z_1,
+    ATTACK_PROP_SIZE_Z_2,
+    ATTACK_PROP_STAYDOWN_RISE,
+    ATTACK_PROP_STAYDOWN_RISEATTACK,
+    ATTACK_PROP_TAG
+} e_attack_properties;
 
 typedef enum
 {
