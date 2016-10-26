@@ -31224,6 +31224,12 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 
     nosave = 1;
 
+    // fix bug save an inexistent level
+    if ( current_set >= set->numlevels )
+    {
+        --current_level;
+    }
+
     le = set->levelorder + current_level;
     set->noselect = le->noselect;
     for(i = 0; i < MAX_PLAYERS; i++)
