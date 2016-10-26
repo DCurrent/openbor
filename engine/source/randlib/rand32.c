@@ -14,9 +14,12 @@ unsigned long seed = 1234567890;
 unsigned int rand32(void)
 {
     u64 t = seed;
+
     t *= 1103515245ull;
     t += 12345ull;
+
     seed = t;
+
     return (t >> 16) & 0xFFFFFFFF;
 }
 
