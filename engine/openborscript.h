@@ -131,8 +131,10 @@ HRESULT openbor_drawscreen(ScriptVariant **varlist , ScriptVariant **pretvar, in
 
 HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_changeanimationproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getanimationproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_setanimationproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_getattackproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_setattackproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_clearspawnentry(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
