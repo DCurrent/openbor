@@ -31225,7 +31225,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
     nosave = 1;
 
     // fix bug save an inexistent level
-    if ( current_set >= set->numlevels )
+    if ( current_level >= set->numlevels )
     {
         --current_level;
     }
