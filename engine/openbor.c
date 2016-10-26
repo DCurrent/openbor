@@ -5108,8 +5108,13 @@ static void load_playable_list(char *buf)
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
 
-    reset_playable_list(0);
     ParseArgs(&arglist, buf, argbuf);
+
+    // avoid to load characters if there isn't an allowselect
+    if ( stricmp(value = GET_ARG(0), "allowselect") != 0 ) return;
+
+    reset_playable_list(0);
+
     for(i = 0; i < sizeof(argbuf); i++) allowselect_args[i] = ' ';
     for(i = 0; i < sizeof(argbuf); i++)
     {
@@ -5130,6 +5135,8 @@ static void load_playable_list(char *buf)
         }
         model_cache[index].selectable = 1;
     }
+
+    return;
 }
 
 void alloc_specials(s_model *newchar)
@@ -29022,6 +29029,9 @@ int recordInputs()
             return 0;
         }
         playrecstatus->begin = 1;
+        playrecstatus->seed = getseed();
+        playrecstatus->cseed = time;
+        srand(time);
     }
     else
     {
@@ -29072,7 +29082,6 @@ int recordInputs()
         reckey.time     = time;
         reckey.interval = interval;
         reckey.synctime = playrecstatus->synctime;
-        reckey.seed = getseed();
         memcpy( &playrecstatus->buffer[time], &reckey, sizeof(reckey) );
     }
 
@@ -29137,12 +29146,16 @@ int playRecordedInputs()
         fread(&playrecstatus->starttime, sizeof(u32), 1, playrecstatus->handle);
         fread(&playrecstatus->endtime, sizeof(u32), 1, playrecstatus->handle);
         fread(&playrecstatus->totsynctime, sizeof(u32), 1, playrecstatus->handle);
+        fread(&playrecstatus->cseed, sizeof(u32), 1, playrecstatus->handle);
+        fread(&playrecstatus->seed, sizeof(unsigned long), 1, playrecstatus->handle);
         fread(playrecstatus->buffer, sizeof(RecKeys)*(playrecstatus->endtime+1), 1, playrecstatus->handle);
 
         // sync at start time
         time = playrecstatus->starttime;
         playrecstatus->synctime = 0;
         playrecstatus->begin = 1;
+        srand(playrecstatus->cseed);
+        srand32(playrecstatus->seed);
     }
 
     // now play!
@@ -29189,7 +29202,6 @@ int playRecordedInputs()
             }*/
 
             interval = reckey.interval;
-            srand32(reckey.seed);
             //playrecstatus->synctime = reckey.synctime;
             for ( p = 0; p < MAX_PLAYERS; p++ )
             {
@@ -29236,6 +29248,8 @@ int stopRecordInputs()
                         fwrite(&playrecstatus->starttime, sizeof(u32), 1, playrecstatus->handle);
                         fwrite(&time, sizeof(u32), 1, playrecstatus->handle);
                         fwrite(&playrecstatus->synctime, sizeof(u32), 1, playrecstatus->handle);
+                        fwrite(&playrecstatus->cseed, sizeof(u32), 1, playrecstatus->handle);
+                        fwrite(&playrecstatus->seed, sizeof(unsigned long), 1, playrecstatus->handle);
                         fwrite(playrecstatus->buffer, sizeof(RecKeys)*(time+1), 1, playrecstatus->handle);
                         fflush(playrecstatus->handle); // safe
                         fclose(playrecstatus->handle);
@@ -29287,6 +29301,28 @@ int freeRecordedInputs()
     }
 
     return 0;
+}
+
+a_playrecstatus* init_input_recorder()
+{
+    playrecstatus = (a_playrecstatus*)calloc(1,sizeof(*playrecstatus));
+
+    return playrecstatus;
+}
+
+void free_input_recorder()
+{
+    if(playrecstatus)
+    {
+        if(playrecstatus->buffer)
+        {
+            if(playrecstatus->handle) fclose(playrecstatus->handle);
+            free(playrecstatus->buffer);
+            playrecstatus->buffer = NULL;
+        }
+        free(playrecstatus);
+        playrecstatus = NULL;
+    }
 }
 
 void update(int ingame, int usevwait)
@@ -29920,17 +29956,7 @@ void shutdown(int status, char *msg, ...)
     ob_termtrans();
 
     // free input recorder
-    if(playrecstatus)
-    {
-        if(playrecstatus->buffer)
-        {
-            if(playrecstatus->handle) fclose(playrecstatus->handle);
-            free(playrecstatus->buffer);
-            playrecstatus->buffer = NULL;
-        }
-        free(playrecstatus);
-        playrecstatus = NULL;
-    }
+    free_input_recorder();
 
     if(!disablelog)
     {
@@ -30075,7 +30101,7 @@ void startup()
     }
 
     // init. input recorder
-    playrecstatus = (a_playrecstatus*)calloc(1,sizeof(*playrecstatus));
+    init_input_recorder();
 
     printf("Loading sprites..............\t");
     load_special_sprites();

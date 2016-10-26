@@ -119,7 +119,6 @@ typedef struct InputKeys
     u32 time;
     u32 interval;
     u32 synctime;
-    unsigned long seed;
 } RecKeys;
 
 typedef enum
@@ -139,6 +138,8 @@ typedef struct PlayRecStatus {
   u32 endtime;
   u32 synctime; // used to sync rec time with game time
   u32 totsynctime;
+  u32 cseed;
+  unsigned long seed;
   FILE *handle;
   RecKeys *buffer;
 } a_playrecstatus;
@@ -2640,6 +2641,8 @@ int stopRecordInputs(void);
 int recordInputs(void);
 int playRecordedInputs(void);
 int freeRecordedInputs(void);
+a_playrecstatus* init_input_recorder(void);
+void free_input_recorder(void);
 
 extern s_savelevel   *savelevel;
 extern s_savescore    savescore;
