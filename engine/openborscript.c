@@ -21132,6 +21132,10 @@ HRESULT openbor_getsaveinfo(ScriptVariant **varlist , ScriptVariant **pretvar, i
     {
         (*pretvar)->lVal = (LONG)slot->stage;
     }
+    else if(0 == stricmp(prop, "set"))
+    {
+        (*pretvar)->lVal = (LONG)slot->which_set;
+    }
     else if(0 == stricmp(prop, "times_completed"))
     {
         (*pretvar)->lVal = (LONG)slot->times_completed;
