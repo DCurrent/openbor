@@ -1833,6 +1833,7 @@ typedef struct
     int	hasPlatforms;
     int isSubclassed;
     int backpain;
+    int nohithead; // used to hit or not a platform with head also when you set a height
     e_ModelFreetype freetypes;
     s_scripts *scripts;
 } s_model;

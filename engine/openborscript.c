@@ -3418,6 +3418,7 @@ enum entityproperty_enum
     _ep_nodieblink,
     _ep_nodrop,
     _ep_nograb,
+    _ep_nohithead,
     _ep_nolife,
     _ep_nopain,
     _ep_offense,
@@ -3593,6 +3594,7 @@ static const char *eplist[] =
     "nodieblink",
     "nodrop",
     "nograb",
+    "nohithead",
     "nolife",
     "nopain",
     "offense",
@@ -6915,6 +6917,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->nograb;
         break;
     }
+    case _ep_nohithead:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.nohithead;
+        break;
+    }
     case _ep_nolife:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -8607,6 +8615,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
             ent->nograb = (int)ltemp;
+        }
+        break;
+    }
+    case _ep_nohithead:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.nohithead = (int)ltemp;
         }
         break;
     }
