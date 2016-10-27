@@ -114,52 +114,53 @@ const s_defense default_defense =
 // unknockdown attack
 const s_attack emptyattack =
 {
-    .attack_force       = 0,
     .attack_coords      = { .x      = 0,
                             .y      = 0,
                             .width  = 0,
                             .height = 0,
                             .z1     = 0,
                             .z2     = 0},
-    .staydown           = { .rise               = 0,
-                            .riseattack         = 0,
-                            .riseattack_stall   = 0},
+    .attack_drop        = 0,
+    .attack_force       = 0,
+    .attack_type        = 0,
+    .blast              = 0,
+    .blockflash         = -1,
+    .blocksound         = -1,
+    .counterattack      = 0,
+    .damage_on_landing  = 0,
+    .dot                = DOT_MODE_OFF,
+    .dot_force          = 0,
+    .dot_index          = 0,
+    .dot_time           = 0,
+    .dot_rate           = 0,
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
-    .hitsound           = -1,
-    .hitflash           = -1,
-    .blockflash         = -1,
-    .blocksound         = -1,
-    .no_block           = 0,
-    .counterattack      = 0,
-    .no_pain            = 0,
-    .no_kill            = 0,
-    .no_flash           = 0,
-    .grab               = 0,
-    .freeze             = 0,
-    .steal              = 0,
-    .blast              = 0,
     .force_direction    = DIRECTION_ADJUST_NONE,
     .forcemap           = 0,
-    .seal               = 0,
+    .freeze             = 0,
     .freezetime         = 0,
-    .maptime            = 0,
-    .sealtime           = 0,
-    .dot                = DOT_MODE_OFF,
-    .dot_index          = 0,
-    .dot_time           = 0,
-    .dot_force          = 0,
-    .dot_rate           = 0,
-    .otg                = OTG_NONE,
-    .jugglecost         = 0,
-    .guardcost          = 0,
-    .attack_drop        = 0,
-    .attack_type        = 0,
-    .damage_on_landing  = 0,
+    .grab               = 0,
     .grab_distance      = 0,
+    .guardcost          = 0,
+    .hitflash           = -1,
+    .hitsound           = -1,
+    .jugglecost         = 0,
+    .maptime            = 0,
+    .no_block           = 0,
+    .no_flash           = 0,
+    .no_kill            = 0,
+    .no_pain            = 0,
+    .otg                = OTG_NONE,
+    .pain_time          = 0,
     .pause_add          = 0,
-    .pain_time          = 0
+    .seal               = 0,
+    .sealtime           = 0,
+    .staydown           = { .rise               = 0,
+                            .riseattack         = 0,
+                            .riseattack_stall   = 0},
+    .steal              = 0,
+    .tag                = 0
 };
 
 s_axis_f default_model_dropv =
@@ -9585,9 +9586,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     attack.hitsound = sound_load_sample(value, packfile, 1);
                 }
-                break;
-            case CMD_MODEL_ATTACK_INDEX:
-                attack.index = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_ATTACK_GROUND:
                 attack.otg = GET_INT_ARG(1);
