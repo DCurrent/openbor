@@ -18936,6 +18936,8 @@ void display_ents()
         if(ent_list[i] && ent_list[i]->exists)
         {
             e = ent_list[i];
+            // in a loop need to initialize to reset prev val. to avoid bugs.
+            z = qx = qy = sy = sz = alty = sortid = temp1 = temp2 = 0;
 
             if(Script_IsInitialized(e->scripts->ondraw_script))
             {
@@ -19001,8 +19003,9 @@ void display_ents()
                             float zdepth = (float)( (float)e->position.z - (float)other->position.z + (float)other->animation->platform[other->animpos][6] - (float)other->animation->platform[other->animpos][1] );
 
                             // Make sure entities get displayed in front of obstacle and grabbee
+                            sortid = other->sortid + zdepth + 2;
+                            e->sortid = sortid;
                             z = (int)( other->position.z + 2 );
-                            sortid = other->sortid + 2 + zdepth;
                         }
 
                         else
@@ -19011,8 +19014,9 @@ void display_ents()
                             //if ( e->model->type == TYPE_PLAYER ) debug_printf("zdepth: %f",zdepth);
 
                             // Entity should always display in front of the obstacle
+                            sortid = other->sortid + zdepth + 1;
+                            e->sortid = sortid;
                             z = (int)( other->position.z + 1 );
-                            sortid = other->sortid + 1 + zdepth;
                         }
 
                     }
@@ -19153,15 +19157,16 @@ void display_ents()
 
                         if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7])
                         {
-                            alty = (int)(e->position.y - other->position.y + other->animation->platform[other->animpos][7]);
+                            alty = (int)(e->position.y - (other->position.y + other->animation->platform[other->animpos][7]));
                             temp1 = -1 * (e->position.y - (other->position.y + other->animation->platform[other->animpos][7])) * light.x / 256; // xshift
                             temp2 = (float)(-e->position.y * light.y / 256);
 
-                            qx = (int)( e->position.x - scrx + 10 );
-                            qy = (int)( e->position.z - other->position.y - other->animation->platform[other->animpos][7] - scry + 20 );
+                            qx = (int)( e->position.x - scrx );
+                            qy = (int)( e->position.z - scry - other->position.y - other->animation->platform[other->animpos][7] ); // + (other->animation->platform[other->animpos][6]/2)
+                            //qy = (int)( e->position.z - e->position.y - scry + (e->position.y-e->base) );
                         }
 
-                        //TODO check platforms, don't want to go through the entity list again right now
+                        //TODO check platforms, don't want to go through the entity list again right now // && !other after wall2
                         if(!(checkhole_in(e->position.x + temp1, e->position.z + temp2, e->position.y) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
                         {
                             if(wall >= 0 && wall2 >= 0)
@@ -19182,6 +19187,11 @@ void display_ents()
                                 /*qx -= -1*level->walls[wall2].height*light.x/256;
                                 qy -= level->walls[wall2].height - level->walls[wall2].height*light.y/256;*/
                             }
+
+                            /*if (other)
+                            {
+                                alty += (int)(other->position.y + other->animation->platform[other->animpos][7]);
+                            }*/
 
                             sy = (2 * MIRROR_Z - qy) - 2 * scry;
 
