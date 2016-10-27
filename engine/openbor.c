@@ -1120,11 +1120,11 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = (DOUBLE)advancey;
         break;
-    case _sv_hResolution:
+    case _sv_hresolution:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)videomodes.hRes;
         break;
-    case _sv_vResolution:
+    case _sv_vresolution:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)videomodes.vRes;
         break;
@@ -27860,7 +27860,19 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     return e;
 }   // 7-1-2005 replaced section ends here
 
+int is_incam(float x, float z, float a, float threshold)
+{
+    if (level)
+    {
+        if ( x >= advancex+threshold && x <= advancex+videomodes.hRes-threshold && z-a >= advancey+threshold && z-a <= advancey+videomodes.vRes-4 ) {
+            if ( x >= scrollminx && x <= scrollmaxx+videomodes.hRes && z >= PLAYER_MIN_Z && z <= PLAYER_MAX_Z ) {
+                return 1;
+            }
+        }
+    }
 
+    return 0;
+}
 
 void spawnplayer(int index)
 {
@@ -27942,12 +27954,13 @@ void spawnplayer(int index)
         {
             p.position.x += videomodes.hRes;
         }
+
         if(PLAYER_MIN_Z == PLAYER_MAX_Z)
         {
             wall = checkwall(advancex + p.position.x, p.position.z);
             if(wall >= 0 && level->walls[wall].height < MAX_WALL_HEIGHT)
             {
-                break;    //found
+                if ( is_incam(advancex + p.position.x,p.position.z,p.position.y,0) ) break;    //found
             }
             if(checkhole(advancex + p.position.x, p.position.z) || (wall >= 0 && level->walls[wall].height >= MAX_WALL_HEIGHT))
             {
@@ -27955,7 +27968,7 @@ void spawnplayer(int index)
             }
             else
             {
-                break;    // found
+                if ( is_incam(advancex + p.position.x,p.position.z,p.position.y,0) ) break;    // found
             }
         }
         else for(zc = 0; zc < (PLAYER_MAX_Z - PLAYER_MIN_Z) / 3; zc++, p.position.z += 3)
@@ -27968,11 +27981,15 @@ void spawnplayer(int index)
                 {
                     p.position.z += PLAYER_MAX_Z - PLAYER_MIN_Z;
                 }
+
                 wall = checkwall(advancex + p.position.x, p.position.z);
                 if(wall >= 0 && level->walls[wall].height < MAX_WALL_HEIGHT)
                 {
-                    find = 1;
-                    break;
+                    if ( is_incam(advancex + p.position.x,p.position.z,p.position.y,0) )
+                    {
+                        find = 1;
+                        break;
+                    }
                 }
                 else if(wall >= 0 && level->walls[wall].height >= MAX_WALL_HEIGHT)
                 {
@@ -27982,8 +27999,11 @@ void spawnplayer(int index)
                 {
                     continue;
                 }
-                find = 1;
-                break;
+                if ( is_incam(advancex + p.position.x,p.position.z,p.position.y,0) )
+                {
+                    find = 1;
+                    break;
+                }
             }
         if(find)
         {

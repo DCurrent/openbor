@@ -10084,12 +10084,13 @@ HRESULT openbor_checkholeindex(ScriptVariant **varlist , ScriptVariant **pretvar
     return S_OK;
 }
 
-//checkwall(x,z), return wall height, or 0
+//checkwall(x,z), return wall height, or 0 | accept checkwall(x,z,y) too
 HRESULT openbor_checkwall(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     ScriptVariant *arg = NULL;
-    DOUBLE x, z;
+    DOUBLE x, z, y;
     int wall;
+    float h = 100000;
 
     if(paramCount < 2)
     {
@@ -10112,19 +10113,30 @@ HRESULT openbor_checkwall(ScriptVariant **varlist , ScriptVariant **pretvar, int
         return S_OK;
     }
 
-    if((wall = checkwall_below((float)x, (float)z, 100000)) >= 0)
+    if (paramCount > 2)
+    {
+        arg = varlist[2];
+        if(FAILED(ScriptVariant_DecimalValue(arg, &y)))
+        {
+            return S_OK;
+        }
+        h = (float)arg->dblVal;
+    }
+
+    if((wall = checkwall_below((float)x, (float)z, (float)h)) >= 0)
     {
         (*pretvar)->dblVal = (DOUBLE)level->walls[wall].height;
     }
     return S_OK;
 }
 
-//checkwallindex(x,z), return wall index, or -1
+//checkwallindex(x,z), return wall index, or -1 | accept checkwallindex(x,z,y) too
 HRESULT openbor_checkwallindex(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     ScriptVariant *arg = NULL;
-    DOUBLE x, z;
+    DOUBLE x, z, y;
     int wall;
+    float h = 100000;
 
     if(paramCount < 2)
     {
@@ -10147,7 +10159,17 @@ HRESULT openbor_checkwallindex(ScriptVariant **varlist , ScriptVariant **pretvar
         return S_OK;
     }
 
-    if((wall = checkwall_below((float)x, (float)z, 100000)) >= 0)
+    if (paramCount > 2)
+    {
+        arg = varlist[2];
+        if(FAILED(ScriptVariant_DecimalValue(arg, &y)))
+        {
+            return S_OK;
+        }
+        h = (float)arg->dblVal;
+    }
+
+    if((wall = checkwall_below((float)x, (float)z, (float)h)) >= 0)
     {
         (*pretvar)->lVal = (LONG)wall;
     }
