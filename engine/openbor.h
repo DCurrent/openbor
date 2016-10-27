@@ -1314,12 +1314,11 @@ typedef struct
     int                 counterattack;      // Treat other attack boxes as body box.
     int                 damage_on_landing;  // same as throw damage type
     e_dot_mode          dot;                // Dot mode.
-    int                 dot_index;          // Dot index.
-    u32                 dot_time;           // Dot time to expire.
     int                 dot_force;          // Dot amount per tick.
+    int                 dot_index;          // Dot index.
     int                 dot_rate;           // Dot tick delay.
+    u32                 dot_time;           // Dot time to expire.
     s_axis_f            dropv;              // Velocity of target if knocked down.
-    s_staydown          staydown;           // Modify victum's stayodwn properties.
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 forcemap;           // Set target's palette on hit.
     int                 freeze;             // Lock target in place and set freeze time.
@@ -1327,20 +1326,21 @@ typedef struct
     int                 grab;               // Not a grab as in grapple - behavior on hit for setting target's position
     float               grab_distance;      // Distance used by "grab".
     int                 guardcost;          // cost for blocking an attack
-    int                 hitsound;           // Sound effect to be played when attack hits opponent
     int                 hitflash;           // Custom flash for each animation, model id
-    int                 index;              // Possible future support of multiple attack boxes per frame. Probably won't be needed even if said support is added.
+    int                 hitsound;           // Sound effect to be played when attack hits opponent
+    int                 index;              // Possible future support of multiple boxes - it's doubt even if support is added this property will be needed.
     int                 jugglecost;         // cost for juggling a falling ent
     u32                 maptime;            // Time for forcemap to remain in effect.
     int                 no_block;           // If this is greater than defense block power, make the hit
-    int                 no_pain;            // No animation reaction on hit.
-    int                 no_kill;            // this attack won't kill target (leave 1 HP)
     int                 no_flash;           // Flag to determine if an attack spawns a flash or not
+    int                 no_kill;            // this attack won't kill target (leave 1 HP)
+    int                 no_pain;            // No animation reaction on hit.
     e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
-    int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
     u32                 pain_time;          // pain invincible time
+    int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
     int                 seal;               // Disable target's animations with energycost > seal.
     u32                 sealtime;           // Time for seal to remain in effect.
+    s_staydown          staydown;           // Modify victum's stayodwn properties.
     int                 steal;              // Add damage to owner's hp.
     int                 tag;                // Non engine use tag for scripting.
 } s_attack;

@@ -4942,12 +4942,6 @@ HRESULT openbor_getattackproperty(ScriptVariant **varlist, ScriptVariant **pretv
             (*pretvar)->lVal = (LONG)handle->otg;
             break;
 
-        case ATTACK_PROP_INDEX:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->index;
-            break;
-
         case ATTACK_PROP_MAP_INDEX:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -5315,14 +5309,6 @@ HRESULT openbor_setattackproperty(ScriptVariant **varlist, ScriptVariant **pretv
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->otg = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_INDEX:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->index = temp_int;
             }
             break;
 
@@ -12161,7 +12147,6 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ATTACK_PROP_EFFECT_HIT_FLASH)
         ICMPCONST(ATTACK_PROP_EFFECT_HIT_FLASH_DISABLE)
         ICMPCONST(ATTACK_PROP_EFFECT_HIT_SOUND)
-        ICMPCONST(ATTACK_PROP_INDEX)
         ICMPCONST(ATTACK_PROP_GROUND)
         ICMPCONST(ATTACK_PROP_MAP_INDEX)
         ICMPCONST(ATTACK_PROP_MAP_TIME)
