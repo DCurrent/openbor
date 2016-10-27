@@ -1461,46 +1461,46 @@ typedef struct
 
 typedef struct
 {
-    int model_index;
-    int index;                      //unique id
-    int numframes;
-    s_loop loop;                    // Animation looping. 2011_03_31, DC: Moved to struct.
-    s_axis_i size;                  // Demensions (height, width).
-    s_projectile projectile;        // Subentity spawn for knives, stars, bombs, hadoken, etc.
-    int subentity;                  // Store the sub-entity's name for further use
-    s_energycost energycost;        // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-    float chargetime;               // charge time for an animation
-    s_onframe jumpframe;            // Jumpframe action. 2011_04_01, DC: moved to struct.
-    float bounce;                   // -tossv/bounce = new tossv
-    int *soundtoplay;               // each frame can have a sound
-    int *sprite;                    // sprite[set][framenumber]
-    int *delay;
-    s_axis_i **move;                //base = seta, x = move, y = movea, z = movez
-    int *vulnerable;
-    s_hitbox *bbox_coords;
-    int *shadow;
-    unsigned *idle;                 // Allow free move
-    int (*shadow_coords)[2];        // x, z offset of shadow
-    s_drawmethod **drawmethods;
-    s_attack **attacks;
-    float (*platform)[8];           // Now entities can have others land on them
-    s_range range;                  // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-    int flipframe;                  // Turns entities around on the desired frame
-    s_follow followup;              //Subsequent animation on hit.
-    s_counterrange counterrange;    // Auto counter attack. 2011_04_01, DC: Moved to struct.
-    int cancel;                     // Cancel anims with freespecial
-    int attackone;                  // stick on the only one victim
-    int antigrav;                   // UT: make dive a similar property as antigravity
-    int *weaponframe;               // Specify with a frame when to switch to a weapon model
-    s_quakeframe quakeframe;        // Screen shake effect. 2011_04_01, DC; Moved to struct.
-    float *spawnframe;              // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
-    float *summonframe;             // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-    int unsummonframe;              // Un-summon the entity
-    s_onframe landframe;            // Landing behavior. 2011_04_01, DC: Moved to struct.
-    s_onframe dropframe;            // if tossv < 0, this frame will be set
-    int animhits;                   // Does the attack need to hit before cancel is allowed?
-    int sync;                       // sychronize frame to previous animation if they matches
-    int (*offset)[2];               // original sprite offsets
+    int             animhits;               // Does the attack need to hit before cancel is allowed?
+    int             antigrav;               // UT: make dive a similar property as antigravity
+    int             attackone;              // stick on the only one victim
+    s_attack        **attacks;
+    s_hitbox        *bbox_coords;
+    float           bounce;                 // -tossv/bounce = new tossv
+    int             cancel;                 // Cancel anims with freespecial
+    float           chargetime;             // charge time for an animation
+    s_counterrange  counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
+    int             *delay;
+    s_drawmethod    **drawmethods;
+    s_onframe       dropframe;              // if tossv < 0, this frame will be set
+    s_energycost    energycost;             // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
+    int             flipframe;              // Turns entities around on the desired frame
+    s_follow        followup;               // Subsequent animation on hit.
+    unsigned        *idle;                  // Allow free move
+    int             index;                  // unique id
+    s_onframe       jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
+    s_onframe       landframe;              // Landing behavior. 2011_04_01, DC: Moved to struct.
+    s_loop          loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
+    int             model_index;
+    s_axis_i        **move;                 //base = seta, x = move, y = movea, z = movez
+    int             numframes;
+    int             (*offset)[2];           // original sprite offsets
+    float           (*platform)[8];         // Now entities can have others land on them
+    s_projectile    projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
+    s_quakeframe    quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
+    s_range         range;                  // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
+    int             *shadow;
+    int             (*shadow_coords)[2];    // x, z offset of shadow
+    s_axis_i        size;                   // Demensions (height, width).
+    int             *soundtoplay;           // each frame can have a sound
+    float           *spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
+    int             *sprite;                // sprite[set][framenumber]
+    int             subentity;              // Store the sub-entity's name for further use
+    float           *summonframe;           // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
+    int             sync;                   // sychronize frame to previous animation if they matches
+    int             unsummonframe;          // Un-summon the entity
+    int             *vulnerable;
+    int             *weaponframe;           // Specify with a frame when to switch to a weapon model
 } s_anim;
 
 struct animlist
@@ -1580,8 +1580,8 @@ typedef struct
     int mplow; //MP bar icon; at or between 0% and 32%.
     int mpmed; //MP bar icon; at or between 33% and 65%.
     int pain; //Taking damage.
-    int weapon; //Weapon model.
     int usemap;
+    int weapon; //Weapon model.
     s_axis_i_2d position;
 } s_icon;
 
@@ -1634,13 +1634,13 @@ typedef struct
 
 typedef struct
 {
-    float factor;           //basic defense factors: damage = damage*defense
-    float pain;             //Pain factor (like nopain) for defense type.
-    float knockdown;        //Knockdowncount (like knockdowncount) for attack type.
-    float blockpower;       //If > unblockable, this attack type is blocked.
-    float blockthreshold;   //Strongest attack from this attack type that can be blocked.
-    float blockratio;       //% of damage still taken from this attack type when blocked.
-    e_blocktype blocktype;  //Resource drained when attack is blocked.
+    float       blockpower;     // If > unblockable, this attack type is blocked.
+    float       blockthreshold; // Strongest attack from this attack type that can be blocked.
+    float       blockratio;     // % of damage still taken from this attack type when blocked.
+    e_blocktype blocktype;      // Resource drained when attack is blocked.
+    float       factor;         // basic defense factors: damage = damage*defense
+    float       knockdown;      // Knockdowncount (like knockdowncount) for attack type.
+    float       pain;           // Pain factor (like nopain) for defense type.
 } s_defense;
 
 //UT: new bit flags for noquake property
