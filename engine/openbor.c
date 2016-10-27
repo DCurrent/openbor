@@ -10137,6 +10137,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_UNSUMMONFRAME:
                 newanim->unsummonframe = GET_FRAME_ARG(1);
                 break;
+            case CMD_MODEL_NOHITHEAD:
+                value = GET_ARG(1);
+                newchar->nohithead = atoi(value);
+                break;
             case CMD_MODEL_AT_SCRIPT:
                 if(!scriptbuf[0])  // if empty, paste the main function text here
                 {
@@ -17775,7 +17779,7 @@ void check_gravity(entity *e)
                 other = NULL;
             }
 
-            if( other && other->position.y <= self->position.y + heightvar)
+            if( other && other->position.y <= self->position.y + heightvar && !other->modeldata.nohithead)
             {
                 if(self->hithead == NULL) // bang! Hit the ceiling.
                 {
@@ -18977,10 +18981,26 @@ void display_ents()
             scry = o_scry - ((e->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
             if(freezeall || !(e->blink && (time % (GAME_SPEED / 10)) < (GAME_SPEED / 20)))
             {
+                float eheight = 2.0, eplatheight = 0;
+
+                // get the height of the entity
+                if ( e->animation->platform )
+                {
+                    s_anim *anim = e->animation;
+
+                    if ( anim->platform[e->animpos] )
+                    {
+                        if ( anim->platform[e->animpos][7] ) eplatheight += anim->platform[e->animpos][7];
+                    }
+                }
+                if ( e->modeldata.size.y && eplatheight <= 0 ) eheight += e->modeldata.size.y;
+                else eheight += eplatheight;
+
                 // If special is being executed, display all entities regardless
                 f = e->animation->sprite[e->animpos];
 
-                other = check_platform(e->position.x, e->position.z, e);
+                //other = check_platform(e->position.x, e->position.z, e);
+                other = check_platform_below(e->position.x, e->position.z, e->position.y+eheight, e);
                 wall = checkwall(e->position.x, e->position.z);
 
                 if(f < sprites_loaded)
