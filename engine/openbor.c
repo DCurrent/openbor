@@ -115,7 +115,12 @@ const s_defense default_defense =
 const s_attack emptyattack =
 {
     .attack_force       = 0,
-    .attack_coords      = {0, 0, 0, 0, 0},
+    .attack_coords      = { .x      = 0,
+                            .y      = 0,
+                            .width  = 0,
+                            .height = 0,
+                            .z1     = 0,
+                            .z2     = 0},
     .staydown           = { .rise               = 0,
                             .riseattack         = 0,
                             .riseattack_stall   = 0},
@@ -7622,9 +7627,26 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     ptrdiff_t pos = 0,
               index = 0;
 
-    s_hitbox bbox = { 0, 0, 0, 0, 0, 0 },
-             bbox_con = { 0, 0, 0, 0, 0, 0 },
-             abox = { 0, 0, 0, 0, 0, 0 };
+    s_hitbox bbox = {   .x = 0,
+                        .y = 0,
+                        .width = 0,
+                        .height = 0,
+                        .z1 = 0,
+                        .z2 = 0},
+
+             bbox_con = {   .x = 0,
+                        .y = 0,
+                        .width = 0,
+                        .height = 0,
+                        .z1 = 0,
+                        .z2 = 0},
+
+             abox = {   .x = 0,
+                        .y = 0,
+                        .width = 0,
+                        .height = 0,
+                        .z1 = 0,
+                        .z2 = 0};
     int offset[2] = { 0, 0 },
         shadow_xz[2] = {0, 0},
         shadow_coords[2] = {0, 0};
