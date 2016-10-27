@@ -375,7 +375,6 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_ATTACK_EFFECT_HIT_FLASH,                 "attack.effect.hit.flash.model");
     LIST_ADD(CMD_MODEL_ATTACK_EFFECT_HIT_FLASH_DISABLE,         "attack.effect.hit.flash.disable");
     LIST_ADD(CMD_MODEL_ATTACK_EFFECT_HIT_SOUND,                 "attack.effect.hit.sound.path");
-    LIST_ADD(CMD_MODEL_ATTACK_INDEX,                            "attack.index");
     LIST_ADD(CMD_MODEL_ATTACK_GROUND,                           "attack.ground.mode");                       // otg
     LIST_ADD(CMD_MODEL_ATTACK_MAP_INDEX,                        "attack.map.index");                        // Forcemap.
     LIST_ADD(CMD_MODEL_ATTACK_MAP_TIME,                         "attack.map.time");                         // Forcemap time.
