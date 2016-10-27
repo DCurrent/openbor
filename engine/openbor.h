@@ -2588,6 +2588,7 @@ void bike_crash(void);
 void obstacle_fall(void);
 void obstacle_fly(void);
 entity *smartspawn(s_spawn_entry *props);
+int is_incam(float x, float z, float a, float threshold);
 void spawnplayer(int index);
 void time_over();
 void update_scroller();
