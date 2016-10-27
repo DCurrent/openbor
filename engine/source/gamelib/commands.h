@@ -576,6 +576,7 @@ typedef enum modelCommand
     CMD_MODEL_ATTACKTHROTTLE,
     CMD_MODEL_SUBCLASS,
     CMD_MODEL_BACKPAIN,
+    CMD_MODEL_NOHITHEAD,
 
 } modelCommands;
 
