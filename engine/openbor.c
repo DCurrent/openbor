@@ -19789,7 +19789,7 @@ int set_pain(entity *iPain, int type, int reset)
     {
         ent_set_anim(iPain, animbackpains[0], reset);
     }
-    else if( validanim(iPain, animpains[type]) )
+    else if( (type != -1 && type < max_attack_types) && validanim(iPain, animpains[type]) )
     {
         iPain->inbackpain = 0;
         ent_set_anim(iPain, animpains[type], reset);
