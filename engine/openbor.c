@@ -27954,13 +27954,12 @@ void spawnplayer(int index)
         {
             p.position.x += videomodes.hRes;
         }
-
         if(PLAYER_MIN_Z == PLAYER_MAX_Z)
         {
             wall = checkwall(advancex + p.position.x, p.position.z);
             if(wall >= 0 && level->walls[wall].height < MAX_WALL_HEIGHT)
             {
-                if ( is_incam(advancex + p.position.x,p.position.z,p.position.y,0) ) break;    //found
+                break;    //found
             }
             if(checkhole(advancex + p.position.x, p.position.z) || (wall >= 0 && level->walls[wall].height >= MAX_WALL_HEIGHT))
             {
@@ -27968,7 +27967,7 @@ void spawnplayer(int index)
             }
             else
             {
-                if ( is_incam(advancex + p.position.x,p.position.z,p.position.y,0) ) break;    // found
+                break;    // found
             }
         }
         else for(zc = 0; zc < (PLAYER_MAX_Z - PLAYER_MIN_Z) / 3; zc++, p.position.z += 3)
@@ -27981,15 +27980,11 @@ void spawnplayer(int index)
                 {
                     p.position.z += PLAYER_MAX_Z - PLAYER_MIN_Z;
                 }
-
                 wall = checkwall(advancex + p.position.x, p.position.z);
                 if(wall >= 0 && level->walls[wall].height < MAX_WALL_HEIGHT)
                 {
-                    if ( is_incam(advancex + p.position.x,p.position.z,p.position.y,0) )
-                    {
-                        find = 1;
-                        break;
-                    }
+                    find = 1;
+                    break;
                 }
                 else if(wall >= 0 && level->walls[wall].height >= MAX_WALL_HEIGHT)
                 {
@@ -27999,11 +27994,8 @@ void spawnplayer(int index)
                 {
                     continue;
                 }
-                if ( is_incam(advancex + p.position.x,p.position.z,p.position.y,0) )
-                {
-                    find = 1;
-                    break;
-                }
+                find = 1;
+                break;
             }
         if(find)
         {
@@ -28062,10 +28054,6 @@ void spawnplayer(int index)
         set_weapon(player[index].ent, level->setweap, 0);
     }
 }
-
-
-
-
 
 void time_over()
 {
