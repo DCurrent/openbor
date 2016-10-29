@@ -111,6 +111,15 @@ const s_defense default_defense =
     .blocktype      = BLOCK_TYPE_MP_FIRST
 };
 
+const s_body empty_body =   {   .coords = { .x      = 0,
+                                            .y      = 0,
+                                            .width  = 0,
+                                            .height = 0,
+                                            .z1     = 0,
+                                            .z2     = 0},
+                                .tag = 0
+                            };
+
 // unknockdown attack
 const s_attack emptyattack =
 {
@@ -5204,10 +5213,18 @@ void free_frames(s_anim *anim)
         free(anim->vulnerable);
         anim->vulnerable = NULL;
     }
-    if(anim->bbox_coords)
+    if(anim->body_collision)
     {
-        free(anim->bbox_coords);
-        anim->bbox_coords = NULL;
+        for(i = 0; i < anim->numframes; i++)
+        {
+            if(anim->body_collision[i])
+            {
+                free(anim->body_collision[i]);
+                anim->body_collision[i] = NULL;
+            }
+        }
+        free(anim->body_collision);
+        anim->body_collision = NULL;
     }
     if(anim->shadow)
     {
@@ -5607,7 +5624,7 @@ s_anim *alloc_anim()
 
 
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
-             s_hitbox *bbox, s_attack *attack, s_axis_i *move,
+             s_body *bbox, s_attack *attack, s_axis_i *move,
              float *platform, int frameshadow, int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod, int *offset)
 {
     ptrdiff_t currentframe;
@@ -5626,16 +5643,20 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
     a->sprite[currentframe] = spriteindex;
     a->delay[currentframe] = delay * GAME_SPEED / 100;
 
-    if((bbox->width - bbox->x) && (bbox->height - bbox->y))
+    if((bbox->coords.width - bbox->coords.x)
+        && (bbox->coords.height - bbox->coords.y))
     {
-        if(!a->bbox_coords)
+        if(!a->body_collision)
         {
-            a->bbox_coords = malloc(framecount * sizeof(*a->bbox_coords));
-            memset(a->bbox_coords, 0, framecount * sizeof(*a->bbox_coords));
+            a->body_collision = malloc(framecount * sizeof(*a->body_collision));
+            memset(a->body_collision, 0, framecount * sizeof(*a->body_collision));
         }
-        memcpy(&a->bbox_coords[currentframe], bbox, sizeof(*a->bbox_coords));
+        a->body_collision[currentframe] = malloc(sizeof(**a->body_collision));
+        memcpy(a->body_collision[currentframe], bbox, sizeof(**a->body_collision));
+
         a->vulnerable[currentframe] = 1;
     }
+
     if((attack->attack_coords.width - attack->attack_coords.x) &&
             (attack->attack_coords.height - attack->attack_coords.y))
     {
@@ -5647,6 +5668,7 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
         a->attacks[currentframe] = malloc(sizeof(**a->attacks));
         memcpy(a->attacks[currentframe], attack, sizeof(**a->attacks));
     }
+
     if(drawmethod->flag)
     {
         if(!a->drawmethods)
@@ -7635,13 +7657,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         .z1 = 0,
                         .z2 = 0},
 
-             bbox_con = {   .x = 0,
-                        .y = 0,
-                        .width = 0,
-                        .height = 0,
-                        .z1 = 0,
-                        .z2 = 0},
-
              abox = {   .x = 0,
                         .y = 0,
                         .width = 0,
@@ -7662,6 +7677,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     s_attack attack,
              *pattack = NULL;
+    s_body bbox_con;
     s_defense defense;
     char *shutdownmessage = NULL;
 
@@ -7775,6 +7791,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     addModel(newchar);
 
     attack = emptyattack;      // empty attack
+    bbox_con = empty_body;
+
     drawmethod = plainmethod;  // better than memset it to 0
 
 
@@ -8921,6 +8939,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 memset(shadow_xz, 0, sizeof(shadow_xz));
                 memset(platform, 0, sizeof(platform));
                 shadow_set = 0;
+                bbox_con = empty_body;
                 attack = emptyattack;
                 attack.hitsound = SAMPLE_BEAT;
                 attack.hitflash = -1;
@@ -9971,26 +9990,30 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     }
                 }
                 // Adjust coords: add offsets and change size to coords
-                bbox_con.x = bbox.x - offset[0];
-                bbox_con.y = bbox.y - offset[1];
-                bbox_con.width = bbox.width + bbox_con.x;
-                bbox_con.height = bbox.height + bbox_con.y;
-                bbox_con.z1 = bbox.z1;
-                bbox_con.z2 = bbox.z2;
-                if(bbox.z2 > bbox.z1)
+                bbox_con.coords.x      = bbox.x - offset[0];
+                bbox_con.coords.y      = bbox.y - offset[1];
+                bbox_con.coords.width  = bbox.width + bbox_con.coords.x;
+                bbox_con.coords.height = bbox.height + bbox_con.coords.y;
+                bbox_con.coords.z1     = bbox.z1;
+                bbox_con.coords.z2     = bbox.z2;
+
+                if(bbox_con.coords.z2 > bbox_con.coords.z1)
                 {
-                    bbox.z1 -= offset[1];
-                    bbox.z2 -= offset[1];
+                    bbox_con.coords.z1 -= offset[1];
+                    bbox_con.coords.z2 -= offset[1];
                 }
-                attack.attack_coords.x = abox.x - offset[0];
-                attack.attack_coords.y = abox.y - offset[1];
-                attack.attack_coords.width = abox.width + attack.attack_coords.x;
+
+                attack.attack_coords.x      = abox.x - offset[0];
+                attack.attack_coords.y      = abox.y - offset[1];
+                attack.attack_coords.width  = abox.width + attack.attack_coords.x;
                 attack.attack_coords.height = abox.height + attack.attack_coords.y;
+
                 if(attack.attack_coords.z2 > attack.attack_coords.z1)
                 {
                     attack.attack_coords.z1 -= offset[1];
                     attack.attack_coords.z2 -= offset[1];
                 }
+
                 //attack.attack_coords.z1 = abox.z1;
                 if(platform[0] == 99999) // old style
                 {
@@ -10040,7 +10063,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 curframe = addframe(newanim, index, framecount, delay, idle,
                                     &bbox_con, &attack, &move, platform_con, frameshadow, shadow_coords, soundtoplay, &dm, offset);
 
-                memset(&bbox_con, 0, sizeof(bbox_con));
                 soundtoplay = -1;
                 frm_id = -1;
             }
@@ -16448,7 +16470,7 @@ int checkhit(entity *attacker, entity *target, int counter)
     int topleast, bottomleast, leftleast, rightleast;
     float zdist = 0, z1, z2;
 
-    if(attacker == target || !target->animation->bbox_coords ||
+    if(attacker == target || !target->animation->body_collision ||
             !attacker->animation->attacks || !target->animation->vulnerable[target->animpos] )
     {
         return 0;
@@ -16460,7 +16482,7 @@ int checkhit(entity *attacker, entity *target, int counter)
 
     if(!counter)
     {
-        coords2 = target->animation->bbox_coords[target->animpos];
+        coords2 = target->animation->body_collision[target->animpos]->coords;
     }
     else if((target->animation->attacks && target->animation->attacks[target->animpos]) && target->animation->attacks[target->animpos]->counterattack <= attacker->animation->attacks[attacker->animpos]->counterattack)
     {
@@ -23698,8 +23720,8 @@ int assume_safe_distance(entity* target, int ani, int* minx, int* maxx, int* min
 				set = 1;
 			}
 
-			if(set && self->animation->bbox_coords && self->animation->bbox_coords[self->animpos]){
-				coords = self->animation->bbox_coords[self->animpos];
+			if(set && self->animation->body_collision->coords && self->animation->body_collision[self->animpos]->coords){
+				coords = self->animation->body_collision[self->animpos]->coords;
 				*minx -= coords[2] - coords[0];
 				*minz -= coords[4];
 				*maxx += coords[2] - coords[0];
