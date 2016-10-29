@@ -4587,10 +4587,10 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
 //
 // Access animation property by handle (pointer).
 //
-// setanimationproperty({handle}, {property}, {value})
+// setanimationproperty(void handle, int property, value)
 HRESULT openbor_setanimationproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-    #define SELF_NAME           "setanimationproperty({handle}, {property}, {value})"
+    #define SELF_NAME           "setanimationproperty(void handle, int property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
     #define ARG_HANDLE          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
@@ -4673,19 +4673,20 @@ HRESULT openbor_setanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
 //
 // Access animation property by handle (pointer).
 //
-// getanimationproperty({handle}, {property}, {frame (optional)})
+// getanimationproperty(void handle, int frame, int property)
 HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-    #define SELF_NAME       "getanimationproperty({handle}, {property}, {frame (optional)})"
-    #define ARG_MINIMUM     2   // Minimum required arguments.
+    #define SELF_NAME       "getanimationproperty(void handle, int frame, int property)"
+    #define ARG_MINIMUM     3   // Minimum required arguments.
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
-    #define ARG_PROPERTY    1   // Property to access.
-    #define ARG_FRAME       2   // Optional animation frame.
+    #define ARG_FRAME       1   // Animation frame.
+    #define ARG_PROPERTY    2   // Property to access.
+
 
     int                     result      = S_OK; // Success or error?
     s_anim                  *handle     = NULL; // Property handle.
     e_animation_properties  property    = 0;    // Property argument.
-    LONG                    frame       = 0;    // Optional frame for properties with per frame instances.
+    LONG                    frame       = 0;    // Frame for properties with per frame instances.
 
     // Clear pass by value argument used to send
     // property data back to calling script.     .
@@ -4696,6 +4697,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
        || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_FRAME]->vt != VT_INTEGER
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -4704,21 +4706,8 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     else
     {
         handle      = (s_anim *)varlist[ARG_HANDLE]->ptrVal;
+        frame       = (LONG)varlist[ARG_FRAME]->lVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
-    }
-
-    // Get and verify frame (frame) argument
-    // if provided.
-    if(paramCount > ARG_FRAME)
-    {
-        if(varlist[ARG_FRAME]->vt != VT_INTEGER)
-        {
-            goto error_local;
-        }
-        else
-        {
-            frame = (int)varlist[ARG_FRAME]->lVal;
-        }
     }
 
     // Which property to get?
@@ -4751,6 +4740,27 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
 
             break;
 
+        case ANI_PROP_ATTACKONE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->attackone;
+            break;
+
+        case ANI_PROP_BBOX:
+
+            // Verify animation has any attacks at all.
+            if(handle->body_collision)
+            {
+                // Verify attack exists on this frame.
+                if(handle->body_collision[frame])
+                {
+                    ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                    (*pretvar)->ptrVal = (VOID *)handle->body_collision[frame];
+                }
+            }
+
+            break;
+
         case ANI_PROP_NUMFRAMES:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -4769,7 +4779,7 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     // Error trapping.
     error_local:
 
-    printf("You must provide a valid handle and property: " SELF_NAME "\n");
+    printf("You must provide a valid handle, frame, and property: " SELF_NAME "\n");
 
     result = E_FAIL;
     return result;
@@ -4777,8 +4787,9 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     #undef SELF_NAME
     #undef ARG_MINIMUM
     #undef ARG_HANDLE
-    #undef ARG_PROPERTY
     #undef ARG_FRAME
+    #undef ARG_PROPERTY
+
 }
 
 // Attack specific properties.
@@ -5550,8 +5561,6 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     int propind ;
     int tempint			= 0;
 
-    int *coords;
-
     if(paramCount < 2)
     {
         *pretvar = NULL;
@@ -5854,36 +5863,6 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->vulnerable[tempint];
-        break;
-    }
-    case _ep_bbox:
-    {
-        if(paramCount < 6
-                || varlist[2]->vt != VT_INTEGER
-                || varlist[3]->vt != VT_INTEGER
-                || varlist[4]->vt != VT_INTEGER
-                || varlist[5]->vt != VT_INTEGER)
-        {
-            printf("\n Error, getentityproperty({ent}, \"bbox\", {index}, {animation}, {frame}, {arg}): parameters  missing or invalid. \n");
-            *pretvar = NULL;
-            return E_FAIL;
-        }
-
-        //varlist[2]->lval;														//bbox index (multiple bbox support).
-        i		= varlist[3]->lVal;												//Animation parameter.
-        tempint	= varlist[4]->lVal;												//Frame parameter.
-
-        if(!ent->modeldata.animation[i]->vulnerable[tempint])
-        {
-
-            ScriptVariant_Clear(*pretvar);
-            break;
-        }
-
-        coords = (int*) &(ent->modeldata.animation[i]->bbox_coords[tempint]);
-
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)coords[varlist[5]->lVal];
         break;
     }
     case _ep_blink:

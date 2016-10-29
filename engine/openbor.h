@@ -1304,6 +1304,14 @@ typedef struct
 
 typedef struct
 {
+    s_hitbox    coords;
+    //s_defense   *defense;
+    int         tag;
+
+} s_body;
+
+typedef struct
+{
     s_hitbox            attack_coords;
     int                 attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
     int                 attack_force;
@@ -1459,13 +1467,15 @@ typedef struct
     int tossframe;      // Frame to toss bomb/grenade
 } s_projectile;
 
+
+
 typedef struct
 {
     int             animhits;               // Does the attack need to hit before cancel is allowed?
     int             antigrav;               // UT: make dive a similar property as antigravity
     int             attackone;              // stick on the only one victim
     s_attack        **attacks;
-    s_hitbox        *bbox_coords;
+    s_body          **body_collision;
     float           bounce;                 // -tossv/bounce = new tossv
     int             cancel;                 // Cancel anims with freespecial
     float           chargetime;             // charge time for an animation
@@ -1482,7 +1492,7 @@ typedef struct
     s_onframe       landframe;              // Landing behavior. 2011_04_01, DC: Moved to struct.
     s_loop          loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
     int             model_index;
-    s_axis_i        **move;                 //base = seta, x = move, y = movea, z = movez
+    s_axis_i        **move;                 // base = seta, x = move, y = movea, z = movez
     int             numframes;
     int             (*offset)[2];           // original sprite offsets
     float           (*platform)[8];         // Now entities can have others land on them
@@ -1491,7 +1501,7 @@ typedef struct
     s_range         range;                  // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
     int             *shadow;
     int             (*shadow_coords)[2];    // x, z offset of shadow
-    s_axis_i        size;                   // Demensions (height, width).
+    s_axis_i        size;                   // Dimensions (height, width).
     int             *soundtoplay;           // each frame can have a sound
     float           *spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
     int             *sprite;                // sprite[set][framenumber]
@@ -2396,7 +2406,7 @@ void free_anim(s_anim *anim);
 void free_models();
 s_anim *alloc_anim();
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
-             s_hitbox *bbox, s_attack *attack, s_axis_i *move,
+             s_body *bbox, s_attack *attack, s_axis_i *move,
              float *platform, int frameshadow,
              int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod, int *offset);
 void cache_model(char *name, char *path, int flag);
