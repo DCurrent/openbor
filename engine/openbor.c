@@ -8663,6 +8663,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             {
                 // Section for custom freespecials starts here
                 int i, t;
+                int add_flag = 0;
                 alloc_specials(newchar);
                 for(i = 0, t = 1; i < MAX_SPECIAL_INPUTS - 3; i++, t++)
                 {
@@ -8673,43 +8674,93 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     }
                     if(stricmp(value, "u") == 0)
                     {
-                        newchar->special[newchar->specials_loaded].input[i] = FLAG_MOVEUP;
+                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_MOVEUP;
+                        else
+                        {
+                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_MOVEUP;
+                            add_flag = 0;
+                        }
                     }
                     else if(stricmp(value, "d") == 0)
                     {
-                        newchar->special[newchar->specials_loaded].input[i] = FLAG_MOVEDOWN;
+                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_MOVEDOWN;
+                        else
+                        {
+                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_MOVEDOWN;
+                            add_flag = 0;
+                        }
                     }
                     else if(stricmp(value, "f") == 0)
                     {
-                        newchar->special[newchar->specials_loaded].input[i] = FLAG_FORWARD;
+                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_FORWARD;
+                        else
+                        {
+                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_FORWARD;
+                            add_flag = 0;
+                        }
                     }
                     else if(stricmp(value, "b") == 0)
                     {
-                        newchar->special[newchar->specials_loaded].input[i] = FLAG_BACKWARD;
+                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_BACKWARD;
+                        else
+                        {
+                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_BACKWARD;
+                            add_flag = 0;
+                        }
                     }
                     else if(stricmp(value, "a") == 0)
                     {
-                        newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK;
+                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK;
+                        else
+                        {
+                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK;
+                            add_flag = 0;
+                        }
                     }
                     else if(stricmp(value, "a2") == 0)
                     {
-                        newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK2;
+                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK2;
+                        else
+                        {
+                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK2;
+                            add_flag = 0;
+                        }
                     }
                     else if(stricmp(value, "a3") == 0)
                     {
-                        newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK3;
+                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK3;
+                        else
+                        {
+                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK3;
+                            add_flag = 0;
+                        }
                     }
                     else if(stricmp(value, "a4") == 0)
                     {
-                        newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK4;
+                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK4;
+                        else
+                        {
+                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK4;
+                            add_flag = 0;
+                        }
                     }
                     else if(stricmp(value, "j") == 0)
                     {
-                        newchar->special[newchar->specials_loaded].input[i] = FLAG_JUMP;
+                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_JUMP;
+                        else
+                        {
+                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_JUMP;
+                            add_flag = 0;
+                        }
                     }
                     else if(stricmp(value, "s") == 0 || stricmp(value, "k") == 0)
                     {
-                        newchar->special[newchar->specials_loaded].input[i] = FLAG_SPECIAL;
+                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_SPECIAL;
+                        else
+                        {
+                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_SPECIAL;
+                            add_flag = 0;
+                        }
                     }
                     else if(starts_with_num(value, "freespecial"))
                     {
@@ -8719,6 +8770,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                             tempInt = 1;
                         }
                         newchar->special[newchar->specials_loaded].anim = animspecials[tempInt - 1];
+                        add_flag = 0;
+                    }
+                    else if(stricmp(value, "+") == 0 && i > 0)
+                    {
+                        add_flag = 1;
                     }
                     else
                     {
