@@ -1634,6 +1634,7 @@ typedef struct
 {
     int input[MAX_SPECIAL_INPUTS];
     int	steps;
+    int numkeys; // num keys pressed
     int anim;
     int	cancel;		//should be fine to have 0 if idle is not a valid choice
     s_metric_i frame;
