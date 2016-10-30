@@ -14,6 +14,7 @@
 
 static unsigned lastinterval = 0;
 static u64 startcounter;
+unsigned newticks = 0;
 
 void borTimerInit()
 {
@@ -25,7 +26,7 @@ void borTimerExit(){}
 unsigned timer_getinterval(unsigned freq)
 {
 	unsigned tickspassed,ebx,blocksize,now;
-	now=SDL_GetTicks();
+	now=SDL_GetTicks()-newticks;
 	ebx=now-lastinterval;
 	blocksize=GETTIME_FREQ/freq;
 	ebx+=GETTIME_FREQ%freq;
@@ -55,6 +56,11 @@ unsigned get_last_interval()
 void set_last_interval(unsigned value)
 {
 	lastinterval = value;
+}
+
+void set_ticks(unsigned value)
+{
+    newticks = value;
 }
 
 
