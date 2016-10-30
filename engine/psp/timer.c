@@ -13,6 +13,7 @@
 #define GETTIME_FREQ (sceRtcGetTickResolution())
 
 static unsigned lastinterval;
+unsigned newticks = 0;
 
 void borTimerInit(void){}
 void borTimerExit(void){}
@@ -51,6 +52,11 @@ unsigned get_last_interval()
 void set_last_interval(unsigned value)
 {
 	lastinterval = value;
+}
+
+void set_ticks(unsigned value)
+{
+    newticks = value;
 }
 
 
