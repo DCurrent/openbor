@@ -37,5 +37,6 @@ u64 timer_uticks();
 
 unsigned get_last_interval();
 void set_last_interval(unsigned);
+void set_ticks(unsigned);
 
 #endif

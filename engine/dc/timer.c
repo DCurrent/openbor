@@ -11,6 +11,7 @@
 
 static unsigned lastinterval = 0;
 static unsigned tickinit = 0;
+unsigned newticks = 0;
 
 unsigned getTicks()
 {
@@ -59,6 +60,11 @@ unsigned get_last_interval()
 void set_last_interval(unsigned value)
 {
 	lastinterval = value;
+}
+
+void set_ticks(unsigned value)
+{
+    newticks = value;
 }
 
 
