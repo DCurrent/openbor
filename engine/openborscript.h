@@ -133,6 +133,8 @@ HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **p
 HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getanimationproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_setanimationproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_getattackcollection(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_getattackinstance(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getattackproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_setattackproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
