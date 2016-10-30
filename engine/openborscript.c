@@ -742,6 +742,14 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "setanimationproperty";
     }
+    else if (functionRef == ((void *)openbor_getattackcollection))
+    {
+        return "getattackcollection";
+    }
+    else if (functionRef == ((void *)openbor_getattackinstance))
+    {
+        return "getattackinstance";
+    }
     else if (functionRef == ((void *)openbor_getattackproperty))
     {
         return "getattackproperty";
@@ -1475,6 +1483,10 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_getanimationproperty, "getanimationproperty");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_setanimationproperty, "setanimationproperty");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_getattackcollection, "getattackcollection");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_getattackinstance, "getattackinstance");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getattackproperty, "getattackproperty");
     List_InsertAfter(&theFunctionList,
@@ -4676,19 +4688,17 @@ HRESULT openbor_setanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
 // getanimationproperty(void handle, int frame, int property)
 HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-    #define SELF_NAME       "getanimationproperty(void handle, int frame, int property)"
-    #define ARG_MINIMUM     3   // Minimum required arguments.
+    #define SELF_NAME       "getanimationproperty(void handle, int property)"
+    #define ARG_MINIMUM     2   // Minimum required arguments.
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
-    #define ARG_FRAME       1   // Animation frame.
-    #define ARG_PROPERTY    2   // Property to access.
+    #define ARG_PROPERTY    1   // Property to access.
 
 
     int                     result      = S_OK; // Success or error?
     s_anim                  *handle     = NULL; // Property handle.
     e_animation_properties  property    = 0;    // Property argument.
-    LONG                    frame       = 0;    // Frame for properties with per frame instances.
 
-    // Clear pass by value argument used to send
+    // Clear pass by reference argument used to send
     // property data back to calling script.     .
     ScriptVariant_Clear(*pretvar);
 
@@ -4697,7 +4707,6 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
        || varlist[ARG_HANDLE]->vt != VT_PTR
-       || varlist[ARG_FRAME]->vt != VT_INTEGER
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -4706,7 +4715,6 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     else
     {
         handle      = (s_anim *)varlist[ARG_HANDLE]->ptrVal;
-        frame       = (LONG)varlist[ARG_FRAME]->lVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -4727,15 +4735,11 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
 
         case ANI_PROP_ATTACK:
 
-            // Verify animation has any attacks at all.
+            // Verify animation has attacks.
             if(handle->attacks)
             {
-                // Verify attack exists on this frame.
-                if(handle->attacks[frame])
-                {
-                    ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                    (*pretvar)->ptrVal = (VOID *)handle->attacks[frame];
-                }
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->attacks;
             }
 
             break;
@@ -4748,15 +4752,11 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
 
         case ANI_PROP_BBOX:
 
-            // Verify animation has any attacks at all.
+            // Verify animation has any attacks.
             if(handle->body_collision)
             {
-                // Verify attack exists on this frame.
-                if(handle->body_collision[frame])
-                {
-                    ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                    (*pretvar)->ptrVal = (VOID *)handle->body_collision[frame];
-                }
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->body_collision;
             }
 
             break;
@@ -4779,7 +4779,77 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     // Error trapping.
     error_local:
 
-    printf("You must provide a valid handle, frame, and property: " SELF_NAME "\n");
+    printf("You must provide a valid handle and property: " SELF_NAME "\n");
+
+    result = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_PROPERTY
+}
+
+
+
+// Attack specific properties.
+// Caskey, Damon V.
+// 2016-10-20
+
+// getattackcollection(void handle, int frame)
+//
+// Get item handle for an animation frame. When
+// multiple items per frame support is implemented,
+// this will return the collection of items. It is therefore
+// imperative this function NOT be used to access a single
+// item handle directly. You should instead use
+// get<item>instance(), and pass it the result from
+// this function.
+HRESULT openbor_getattackcollection(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME       "getattackcollection(void handle, int frame)"
+    #define ARG_MINIMUM     2   // Minimum required arguments.
+    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_FRAME       1   // Frame to access.
+
+
+    int         result      = S_OK;     // Success or error?
+    s_attack    **handle     = NULL;    // Property handle.
+    int         frame       = 0;        // Property argument.
+
+    // Clear pass by reference argument used to send
+    // property data back to calling script.     .
+    ScriptVariant_Clear(*pretvar);
+
+    // Verify incoming arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which frame is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_FRAME]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        handle  = (s_attack **)varlist[ARG_HANDLE]->ptrVal;
+        frame   = (LONG)varlist[ARG_FRAME]->lVal;
+    }
+
+    // If this frame has property, send value back to user.
+    if(handle[frame])
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_PTR);
+        (*pretvar)->ptrVal = handle[frame];
+    }
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid handle and frame: " SELF_NAME "\n");
 
     result = E_FAIL;
     return result;
@@ -4788,16 +4858,70 @@ HRESULT openbor_getanimationproperty(ScriptVariant **varlist, ScriptVariant **pr
     #undef ARG_MINIMUM
     #undef ARG_HANDLE
     #undef ARG_FRAME
-    #undef ARG_PROPERTY
-
 }
 
-// Attack specific properties.
-// Caskey, Damon V.
-// 2016-10-20
+// getattackinstance(void handle, int index)
 //
-// Access attack property by handle (pointer).
-//
+// Get single item handle from item collection.
+// As of 2016-10-30, this function is a placeholder and
+// simply returns the handle given. It is in place for future
+// support of multiple instances per frame.
+HRESULT openbor_getattackinstance(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME       "getattackinstance(void handle, int index)"
+    #define ARG_MINIMUM     2   // Minimum required arguments.
+    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_INDEX       1   // Index to access.
+
+    int         result      = S_OK; // Success or error?
+    s_attack    *handle    = NULL; // Property handle.
+    int         index       = 0;    // Property argument.
+
+    // Clear pass by reference argument used to send
+    // property data back to calling script.     .
+    ScriptVariant_Clear(*pretvar);
+
+    // Verify incoming arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which index is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_INDEX]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        handle  = (s_attack *)varlist[ARG_HANDLE]->ptrVal;
+        index   = (LONG)varlist[ARG_INDEX]->lVal;
+    }
+
+    // If this index has property, send value back to user.
+    //if(handle[index])
+    //{
+        ScriptVariant_ChangeType(*pretvar, VT_PTR);
+        //(*pretvar)->ptrVal = handle[index];
+
+        (*pretvar)->ptrVal = handle;
+    //}
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid handle and index: " SELF_NAME "\n");
+
+    result = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_INDEX
+}
+
 // getattackproperty({handle}, {property})
 HRESULT openbor_getattackproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
@@ -4810,7 +4934,7 @@ HRESULT openbor_getattackproperty(ScriptVariant **varlist, ScriptVariant **pretv
     s_attack                *handle     = NULL; // Property handle.
     e_attack_properties     property    = 0;    // Property argument.
 
-    // Clear pass by value argument used to send
+    // Clear pass by reference argument used to send
     // property data back to calling script.     .
     ScriptVariant_Clear(*pretvar);
 
