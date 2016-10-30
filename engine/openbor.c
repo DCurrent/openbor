@@ -8663,8 +8663,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             {
                 // Section for custom freespecials starts here
                 int i, t;
-                int add_flag = 0, plus_count = 0;
+                int add_flag = 0;
                 alloc_specials(newchar);
+                newchar->special[newchar->specials_loaded].numkeys = 0;
                 for(i = 0, t = 1; i < MAX_SPECIAL_INPUTS - 3; i++, t++)
                 {
                     value = GET_ARG(t);
@@ -8675,92 +8676,62 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     if(stricmp(value, "u") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_MOVEUP;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_MOVEUP;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_MOVEUP;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "d") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_MOVEDOWN;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_MOVEDOWN;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_MOVEDOWN;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "f") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_FORWARD;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_FORWARD;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_FORWARD;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "b") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_BACKWARD;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_BACKWARD;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_BACKWARD;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
-                    else if(stricmp(value, "a") == 0)
+                    else if(stricmp(value, "a") == 0 || stricmp(value, "a1") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "a2") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK2;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK2;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK2;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "a3") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK3;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK3;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK3;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "a4") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK4;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK4;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK4;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "j") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_JUMP;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_JUMP;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_JUMP;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "s") == 0 || stricmp(value, "k") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_SPECIAL;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_SPECIAL;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_SPECIAL;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(starts_with_num(value, "freespecial"))
                     {
@@ -8770,20 +8741,22 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                             tempInt = 1;
                         }
                         newchar->special[newchar->specials_loaded].anim = animspecials[tempInt - 1];
-                        add_flag = 0;
                     }
-                    else if(stricmp(value, "+") == 0 && i > 0)
+                    else if(stricmp(value, "+") == 0 && i >= 1)
                     {
                         add_flag = 1;
-                        ++plus_count;
+                        i -= 2;
+                        continue;
                     }
                     else
                     {
                         shutdownmessage = "Invalid freespecial command";
                         goto lCleanup;
                     }
+                    add_flag = 0;
+                    //printf("insert:%s in %d, numkeys:%d for special n.:%d\n",value,i,newchar->special[newchar->specials_loaded].numkeys,newchar->specials_loaded);
                 }
-                newchar->special[newchar->specials_loaded].steps = i - 1 - plus_count; // max steps
+                newchar->special[newchar->specials_loaded].steps = i - 1; // max steps
                 newchar->specials_loaded++;
             }
             // End section for custom freespecials
@@ -9247,9 +9220,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_CANCEL:
             {
                 int i, t;
-                int add_flag = 0, plus_count = 0;
+                int add_flag = 0;
                 alloc_specials(newchar);
                 newanim->cancel = 3;
+                newchar->special[newchar->specials_loaded].numkeys = 0;
                 for(i = 0, t = 4; i < MAX_SPECIAL_INPUTS - 6; i++, t++)
                 {
                     value = GET_ARG(t);
@@ -9260,92 +9234,62 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     if(stricmp(value, "u") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_MOVEUP;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_MOVEUP;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_MOVEUP;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "d") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_MOVEDOWN;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_MOVEDOWN;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_MOVEDOWN;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "f") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_FORWARD;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_FORWARD;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_FORWARD;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "b") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_BACKWARD;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_BACKWARD;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_BACKWARD;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
-                    else if(stricmp(value, "a") == 0)
+                    else if(stricmp(value, "a") == 0 || stricmp(value, "a1") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "a2") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK2;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK2;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK2;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "a3") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK3;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK3;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK3;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "a4") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK4;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK4;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK4;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "j") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_JUMP;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_JUMP;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_JUMP;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(stricmp(value, "s") == 0 || stricmp(value, "k") == 0)
                     {
                         if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_SPECIAL;
-                        else
-                        {
-                            newchar->special[newchar->specials_loaded].input[i] |= FLAG_SPECIAL;
-                            add_flag = 0;
-                        }
+                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_SPECIAL;
+                        ++newchar->special[newchar->specials_loaded].numkeys;
                     }
                     else if(starts_with_num(value, "freespecial"))
                     {
@@ -9356,18 +9300,20 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         newchar->special[newchar->specials_loaded].cancel = ani_id;                    // stores current anim
                         newchar->special[newchar->specials_loaded].hits = GET_INT_ARG(3);// stores hits
                     }
-                    else if(stricmp(value, "+") == 0 && i > 0)
+                    else if(stricmp(value, "+") == 0 && i > 1)
                     {
                         add_flag = 1;
-                        ++plus_count;
+                        i -= 2;
+                        continue;
                     }
                     else
                     {
                         shutdownmessage = "Invalid cancel command!";
                         goto lCleanup;
                     }
+                    add_flag = 0;
                 }
-                newchar->special[newchar->specials_loaded].steps = i - 1 - plus_count; // max steps
+                newchar->special[newchar->specials_loaded].steps = i - 1; // max steps
                 newchar->specials_loaded++;
             }
             break;
@@ -26141,22 +26087,26 @@ int check_costmove(int s, int fs, int jumphack)
 int match_combo(int a[], s_player *p, int l)
 {
     int j, step;
+
     for(j = 0; j < l; j++)
     {
         step = p->combostep - 1 - j;
         step = (step + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
-        if(!(a[l - 1 - j]&p->combokey[step]))
+
+        // old: !(a[l - 1 - j]&p->combokey[step])
+        if( ((a[l - 1 - j]&p->combokey[step]) ^ a[l - 1 - j]) ) // if input&combokey == 0 then not good btn
         {
             return 0;
         }
     }
+
     return 1;
 }
 
 
 int check_combo()
 {
-    int i, maxstep = -1, valid = -1;
+    int i, maxstep = -1, maxkeys = -1, valid = -1;
     s_com *com;
     s_player *p;
 
@@ -26180,13 +26130,16 @@ int check_combo()
             continue;
         }
 
-        if( com->steps > maxstep && // find the longest possible combo
+        // find the longest possible combo with more keys pressed concurrently
+        if( com->steps >= maxstep && com->numkeys > maxkeys &&
                 validanim(self, com->anim) &&
                 (check_energy(COST_CHECK_MP, com->anim) || check_energy(COST_CHECK_HP, com->anim)) &&
                 match_combo(com->input, p, com->steps))
         {
+            // combo valid! but which better? The longest combo that has with more keys pressed concurrently
             valid = com->anim;
             maxstep = com->steps;
+            maxkeys = com->numkeys;
         }
     }//end of for
 
