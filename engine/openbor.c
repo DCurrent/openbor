@@ -19666,11 +19666,13 @@ int set_death(entity *iDie, int type, int reset)
     else if(validanim(iDie, animdies[type]))
     {
         iDie->inbackpain = 0;
+        reset_backpain(iDie);
         ent_set_anim(iDie, animdies[type], reset);
     }
     else if(validanim(iDie, animdies[0]))
     {
         iDie->inbackpain = 0;
+        reset_backpain(iDie);
         ent_set_anim(iDie, animdies[0], reset);
     }
     else
@@ -19715,11 +19717,13 @@ int set_fall(entity *iFall, int type, int reset, entity *other, int force, int d
     else if( validanim(iFall, animfalls[type]) )
     {
         iFall->inbackpain = 0;
+        reset_backpain(iFall);
         ent_set_anim(iFall, animfalls[type], reset);
     }
     else if(validanim(iFall, animfalls[0]))
     {
         iFall->inbackpain = 0;
+        reset_backpain(iFall);
         ent_set_anim(iFall, animfalls[0], reset);
     }
     else
@@ -19828,6 +19832,22 @@ int set_blockpain(entity *iBlkpain, int type, int reset)
     return 0;
 }
 
+int reset_backpain(entity *ent)
+{
+    if (ent->normaldamageflipdir >= 0)
+    {
+        if (ent->normaldamageflipdir == DIRECTION_RIGHT) ent->direction = DIRECTION_RIGHT;
+        else ent->direction = DIRECTION_LEFT;
+
+        if(ent->direction == DIRECTION_RIGHT) ent->velocity.x = -1*abs(ent->velocity.x);
+        else ent->velocity.x = abs(ent->velocity.x);
+
+        return 1;
+    }
+
+    return 0;
+}
+
 int check_backpain(entity* attacker, entity* defender) {
     if ( !defender->modeldata.backpain ) return 0;
     if ( defender->inpain ) return 0;
@@ -19873,16 +19893,19 @@ int set_pain(entity *iPain, int type, int reset)
     else if( (type != -1 && type < max_attack_types) && validanim(iPain, animpains[type]) )
     {
         iPain->inbackpain = 0;
+        reset_backpain(iPain);
         ent_set_anim(iPain, animpains[type], reset);
     }
     else if(validanim(iPain, animpains[0]))
     {
         iPain->inbackpain = 0;
+        reset_backpain(iPain);
         ent_set_anim(iPain, animpains[0], reset);
     }
     else if(validanim(iPain, ANI_IDLE))
     {
         iPain->inbackpain = 0;
+        reset_backpain(iPain);
         ent_set_anim(iPain, ANI_IDLE, reset);
     }
     else
@@ -19896,6 +19919,7 @@ int set_pain(entity *iPain, int type, int reset)
     {
         iPain->inpain = 0;
         iPain->inbackpain = 0;
+        reset_backpain(iPain);
     }
 
     execute_onpain_script(iPain, type, reset);
@@ -21081,6 +21105,8 @@ void checkdeath()
 
 void checkdamageflip(entity *other, s_attack *attack)
 {
+    self->normaldamageflipdir = -1;
+
     if(other == NULL || other == self || (!self->drop && (attack->no_pain || self->modeldata.nopain || (self->defense[attack->attack_type].pain && attack->attack_force < self->defense[attack->attack_type].pain))))
     {
         return;
@@ -21100,6 +21126,17 @@ void checkdamageflip(entity *other, s_attack *attack)
                     else if(self->position.x > other->position.x)
                     {
                         self->direction = DIRECTION_LEFT;
+                    }
+                }
+                else
+                {
+                    if(self->position.x < other->position.x)
+                    {
+                        self->normaldamageflipdir = DIRECTION_RIGHT;
+                    }
+                    else if(self->position.x > other->position.x)
+                    {
+                        self->normaldamageflipdir = DIRECTION_LEFT;
                     }
                 }
                 break;
