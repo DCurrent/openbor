@@ -1994,6 +1994,7 @@ typedef struct entity
     int grabwalking; // a flag for grabwalk check
     int inpain; // playing pain animation
     int inbackpain; // playing pain/fall/die animation
+    int normaldamageflipdir; // used to reset backpain direction
     int frozen; // Flag to determine if an entity is frozen
     int blink;
     int invincible; // Flag used to determine if player is currently invincible
@@ -2509,6 +2510,8 @@ int set_rise(entity *iRise, int type, int reset);
 int set_riseattack(entity *iRiseattack, int type, int reset);
 int set_blockpain(entity *iBlkpain, int type, int reset);
 int set_pain(entity *iPain, int type, int reset);
+int reset_backpain(entity *ent);
+int check_backpain(entity* attacker, entity* defender);
 void set_weapon(entity *ent, int wpnum, int anim_flag);
 entity *melee_find_target();
 entity *long_find_target();
