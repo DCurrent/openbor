@@ -35,4 +35,7 @@ unsigned timer_gettick();
 // returns time passed since startup in microseconds
 u64 timer_uticks();
 
+unsigned get_last_interval();
+void set_last_interval(unsigned);
+
 #endif

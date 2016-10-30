@@ -34,3 +34,15 @@ unsigned timer_gettick()
 {
 	return GetTickCount();
 }
+
+unsigned get_last_interval()
+{
+	return lastinterval;
+}
+
+void set_last_interval(unsigned value)
+{
+	lastinterval = value;
+}
+
+
