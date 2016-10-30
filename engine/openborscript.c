@@ -4873,9 +4873,9 @@ HRESULT openbor_getattackinstance(ScriptVariant **varlist, ScriptVariant **pretv
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_INDEX       1   // Index to access.
 
-    int         result      = S_OK; // Success or error?
+    int         result     = S_OK; // Success or error?
     s_attack    *handle    = NULL; // Property handle.
-    int         index       = 0;    // Property argument.
+    //int         index      = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
@@ -4894,7 +4894,7 @@ HRESULT openbor_getattackinstance(ScriptVariant **varlist, ScriptVariant **pretv
     else
     {
         handle  = (s_attack *)varlist[ARG_HANDLE]->ptrVal;
-        index   = (LONG)varlist[ARG_INDEX]->lVal;
+        //index   = (LONG)varlist[ARG_INDEX]->lVal;
     }
 
     // If this index has property, send value back to user.

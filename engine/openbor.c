@@ -8748,6 +8748,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         i -= 2;
                         continue;
                     }
+                    else if(stricmp(value, "->") == 0 && i > 0)
+                    {
+                        // just for better reading
+                        --i;
+                        continue;
+                    }
                     else
                     {
                         shutdownmessage = "Invalid freespecial command";
@@ -9304,6 +9310,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         add_flag = 1;
                         i -= 2;
+                        continue;
+                    }
+                    else if(stricmp(value, "->") == 0 && i > 0)
+                    {
+                        // just for better reading
+                        --i;
                         continue;
                     }
                     else
