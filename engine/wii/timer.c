@@ -40,3 +40,14 @@ u64 timer_uticks()
 	return timer_gettick() * 1000LL;
 }
 
+unsigned get_last_interval()
+{
+	return lastinterval;
+}
+
+void set_last_interval(unsigned value)
+{
+	lastinterval = value;
+}
+
+
