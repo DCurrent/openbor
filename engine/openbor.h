@@ -1710,6 +1710,7 @@ typedef struct
     int toflip; // Flag to determine if flashes flip or not
     int shadow;
     int gfxshadow; // use current frame to create a shadow
+    int shadowbase;
     int aironly; // Used to determine if shadows will be shown when jumping only
     int nomove; // Flag for static enemies
     int noflip; // Flag to determine if static enemies flip or stay facing the same direction
