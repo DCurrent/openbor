@@ -10180,8 +10180,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->followup.condition = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COUNTERRANGE:
-                newanim->counterrange    = malloc(4 * sizeof(*newanim->counterrange));
-                memset(newanim->counterrange, 0, 4 * sizeof(*newanim->counterrange));
+                newanim->counterrange    = malloc(sizeof(*newanim->counterrange));
+                memset(newanim->counterrange, 0, sizeof(*newanim->counterrange));
 
                 newanim->counterrange->frame.min    = GET_FRAME_ARG(1);
                 newanim->counterrange->frame.max    = GET_FRAME_ARG(2);
@@ -17510,8 +17510,8 @@ void do_attack(entity *e)
                     else if(self->animation->counterrange  &&	// Has counter range?
                             !self->frozen){
                         // Current frame within counter range frames?
-                        if(self->animpos <= self->animation->counterrange->frame.min
-                           && self->animpos >= self->animation->counterrange->frame.max)
+                        if(self->animpos >= self->animation->counterrange->frame.min
+                           && self->animpos <= self->animation->counterrange->frame.max)
                         {
                             // Take damage from attack?
                             if(self->animation->counterrange->damaged == COUNTERACTION_DAMAGE_NORMAL)
