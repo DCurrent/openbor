@@ -531,7 +531,7 @@ typedef enum
     ANI_PROP_ANTIGRAV,     // UT: make dive a similar property as antigravity.
     ANI_PROP_ATTACK,
     ANI_PROP_ATTACKONE,    // stick on the only one victim
-    ANI_PROP_BBOX,
+    ANI_PROP_BODY_COLLISION,
     ANI_PROP_BOUNCE,       //FLOAT -tossv/bounce = new tossv
     ANI_PROP_CANCEL,       // Cancel anims with freespecial
     ANI_PROP_CHARGETIME,   //FLOAT charge time for an animation
@@ -668,6 +668,21 @@ typedef enum
     ATTACK_PROP_STAYDOWN_RISEATTACK,
     ATTACK_PROP_TAG
 } e_attack_properties;
+
+// Body collision (bbox) properties.
+// Caskey, Damon V.
+// 2016-10-31
+typedef enum
+{
+    BODY_COLLISION_PROP_DEFENSE,
+    BODY_COLLISION_PROP_POSITION_X,
+    BODY_COLLISION_PROP_POSISTION_Y,
+    BODY_COLLISION_PROP_SIZE_X,
+    BODY_COLLISION_PROP_SIZE_Y,
+    BODY_COLLISION_PROP_SIZE_Z_1,
+    BODY_COLLISION_PROP_SIZE_Z_2,
+    BODY_COLLISION_PROP_TAG
+} e_body_collision_properties;
 
 typedef enum
 {
