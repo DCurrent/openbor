@@ -5342,6 +5342,11 @@ void free_anim(s_anim *anim)
         free(anim->summonframe);
         anim->summonframe = NULL;
     }
+    if(anim->counterrange)
+    {
+        free(anim->counterrange);
+        anim->counterrange = NULL;
+    }
     free(anim);
 }
 
@@ -9022,10 +9027,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->antigrav = 0;
                 newanim->followup.animation = 0;			// Default disabled
                 newanim->followup.condition = FOLLOW_CONDITION_DISABLED;
-                newanim->counterrange.frame.min = -1;		//Start frame.
-                newanim->counterrange.frame.max = -1;		//End frame.
-                newanim->counterrange.condition = COUNTERACTION_CONDITION_NONE;		//Counter cond.
-                newanim->counterrange.damaged = COUNTERACTION_DAMAGE_NONE;		//Counter damage.
                 newanim->unsummonframe = -1;
                 newanim->landframe.frame = -1;
                 newanim->dropframe.frame = -1;
@@ -10178,17 +10179,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_FOLLOWCOND:
                 newanim->followup.condition = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_COUNTERFRAME:
-                newanim->counterrange.frame.min = GET_FRAME_ARG(1);
-                newanim->counterrange.frame.max = newanim->counterrange.frame.min;
-                newanim->counterrange.condition	= GET_INT_ARG(2);
-                newanim->counterrange.damaged	= GET_INT_ARG(3);
-                break;
             case CMD_MODEL_COUNTERRANGE:
-                newanim->counterrange.frame.min	= GET_FRAME_ARG(1);
-                newanim->counterrange.frame.max = GET_FRAME_ARG(2);
-                newanim->counterrange.condition = GET_INT_ARG(3);
-                newanim->counterrange.damaged   = GET_INT_ARG(4);
+                newanim->counterrange    = malloc(4 * sizeof(*newanim->counterrange));
+                memset(newanim->counterrange, 0, 4 * sizeof(*newanim->counterrange));
+
+                newanim->counterrange->frame.min    = GET_FRAME_ARG(1);
+                newanim->counterrange->frame.max    = GET_FRAME_ARG(2);
+                newanim->counterrange->condition    = GET_INT_ARG(3);
+                newanim->counterrange->damaged      = GET_INT_ARG(4);
                 break;
             case CMD_MODEL_WEAPONFRAME:
                 if(!newanim->weaponframe)
@@ -17509,53 +17507,67 @@ void do_attack(entity *e)
                             }
                         }
                     }
-                    else if((self->animpos >= self->animation->counterrange.frame.min && self->animpos <= self->animation->counterrange.frame.max)  &&	//Within counter range?
-                            !self->frozen)// &&																								//Not frozen?
-                        //(self->animation->counterrange.condition <= COUNTERACTION_CONDITION_ALWAYS && e->modeldata.type & them)) //&&												//Friend/foe?
-                        //(self->animation->counterrange.condition <= COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE && !attack->no_block) &&														//Counter attack self couldn't block?
-                        //self->animation->counterrange.condition <= COUNTERACTION_CONDITION_HOSTILE ||
-                        //self->animation->counterrange.condition <= COUNTERACTION_CONDITION_HOSTILE || !(self->direction == e->direction)) //&&										//Direction check.
-                        //(self->animation->counterrange.condition <= COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE || !attack->freeze))															//Freeze attacks?
-
-                        //&& (!self->animation->counterrange.damaged || self->health > force))													// Does damage matter?
-                    {
-                        if(self->animation->counterrange.damaged == COUNTERACTION_DAMAGE_NORMAL)
+                    else if(self->animation->counterrange  &&	// Has counter range?
+                            !self->frozen){
+                        // Current frame within counter range frames?
+                        if(self->animpos <= self->animation->counterrange->frame.min
+                           && self->animpos >= self->animation->counterrange->frame.max)
                         {
-                            self->health -= force;    // Take damage?
-                        }
-                        current_follow_id = animfollows[self->animation->followup.animation - 1];
-                        if(validanim(self, current_follow_id))
-                        {
-                            if(self->modeldata.animation[current_follow_id]->attackone == -1)
+                            // Take damage from attack?
+                            if(self->animation->counterrange->damaged == COUNTERACTION_DAMAGE_NORMAL)
                             {
-                                self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
+                                self->health -= force;
                             }
-                            ent_set_anim(self, current_follow_id, 0);
-                            self->hit_by_attack_id = current_attack_id;
-                        }
 
-                        if(!attack->no_flash)
-                        {
-                            if(!self->modeldata.noatflash)
+                            // Conditions.
+                            // 2016-10-31
+                            // Not sure when these were disabled, but it has been at least two years
+                            // as of this writing. There's really no point in restoring them since
+                            // it's a clumsy system that never really worked anyway and the concept
+                            // is more easily implemented with script. Leaving them here just
+                            // in case though. - DC
+                            //(self->animation->counterrange.condition <= COUNTERACTION_CONDITION_ALWAYS && e->modeldata.type & them)) //&&			    // Friend/foe?
+                            //(self->animation->counterrange.condition <= COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE && !attack->no_block) &&	    // Counter attack self couldn't block?
+                            //self->animation->counterrange.condition <= COUNTERACTION_CONDITION_HOSTILE ||
+                            //self->animation->counterrange.condition <= COUNTERACTION_CONDITION_HOSTILE || !(self->direction == e->direction)) //&&	// Direction check.
+                            //(self->animation->counterrange.condition <= COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE || !attack->freeze))			// Freeze attacks?
+                            //&& (!self->animation->counterrange.damaged || self->health > force))													    // Does damage matter?
+
+                            current_follow_id = animfollows[self->animation->followup.animation - 1];
+                            if(validanim(self, current_follow_id))
                             {
-                                if(attack->blockflash >= 0)
+                                if(self->modeldata.animation[current_follow_id]->attackone == -1)
                                 {
-                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
+                                    self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
+                                }
+                                ent_set_anim(self, current_follow_id, 0);
+                                self->hit_by_attack_id = current_attack_id;
+                            }
+
+                            if(!attack->no_flash)
+                            {
+                                if(!self->modeldata.noatflash)
+                                {
+                                    if(attack->blockflash >= 0)
+                                    {
+                                        flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
+                                    }
+                                    else
+                                    {
+                                        flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
+                                    }
                                 }
                                 else
                                 {
-                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
+                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
+                                }
+                                //ent_default_init(flash); // initiliaze this because there're no default values now
+                                if(flash)
+                                {
+                                    execute_onspawn_script(flash);
                                 }
                             }
-                            else
-                            {
-                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
-                            }
-                            //ent_default_init(flash); // initiliaze this because there're no default values now
-                            if(flash)
-                            {
-                                execute_onspawn_script(flash);
-                            }
+
                         }
                     }
                     else if(self->takedamage(e, attack))
@@ -17633,7 +17645,7 @@ void do_attack(entity *e)
                     }
                     //if #055
                     if((e->animation->followup.animation) &&                                        // follow up?
-                            (e->animation->counterrange.frame.min == -1) &&                                // This isn't suppossed to be a counter, right?
+                            (!e->animation->counterrange) &&                                // This isn't suppossed to be a counter, right?
                             ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE) || (self->modeldata.type & e->modeldata.hostile)) &&    // Does type matter?
                             ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK) || ((self->health > 0) && !didblock)) &&                   // check if health or blocking matters
                             ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK_NOGRAB) || cangrab(e, self))  ) // check if nograb matters
