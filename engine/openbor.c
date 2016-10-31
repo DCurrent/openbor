@@ -18178,7 +18178,7 @@ void check_ai()
     }
 }
 
-static float check_basemap(int x, int z)
+float check_basemap(int x, int z)
 {
     float maxbase = 0, base = -1000;
     int i;
@@ -18322,6 +18322,11 @@ void adjust_base(entity *e, entity **pla)
         if(self->base != -1000 && maxbase > self->base)
         {
             self->base = maxbase;
+            if (self->position.y - self->base <= 2.0)
+            {
+                self->position.y = self->base;
+            }
+            //debug_printf("y:%f maxbase:%f",self->position.y,maxbase);
         }
     }
 
@@ -19030,6 +19035,7 @@ void display_ents()
     entity *other = NULL;
     int qx, qy, sy, sz, alty;
     int sortid;
+    float basemap;
     float temp1, temp2;
     int useshadow = 0;
     int can_mirror = 0;
@@ -19056,7 +19062,7 @@ void display_ents()
         {
             e = ent_list[i];
             // in a loop need to initialize to reset prev val. to avoid bugs.
-            z = qx = qy = sy = sz = alty = sortid = temp1 = temp2 = 0;
+            z = basemap = qx = qy = sy = sz = alty = sortid = temp1 = temp2 = 0;
 
             if(Script_IsInitialized(e->scripts->ondraw_script))
             {
@@ -19095,6 +19101,7 @@ void display_ents()
                 //other = check_platform(e->position.x, e->position.z, e);
                 other = check_platform_below(e->position.x, e->position.z, e->position.y+eheight, e);
                 wall = checkwall(e->position.x, e->position.z);
+                basemap = check_basemap(e->position.x, e->position.z);
 
                 if(f < sprites_loaded)
                 {
@@ -19301,6 +19308,15 @@ void display_ents()
                             //qy = (int)( e->position.z - e->position.y - scry + (e->position.y-e->base) );
                         }
 
+                        if(basemap > 0 && !e->modeldata.shadowbase)
+                        {
+                            alty = (int)(e->position.y - basemap);
+                            temp1 = -1 * (e->position.y - basemap) * light.x / 256; // xshift
+                            temp2 = (float)(-alty * light.y / 256);               // zshift
+                            qx = (int)(e->position.x - scrx);
+                            qy = (int)(e->position.z - scry - basemap);
+                        }
+
                         //TODO check platforms, don't want to go through the entity list again right now // && !other after wall2
                         if(!(checkhole_in(e->position.x + temp1, e->position.z + temp2, e->position.y) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
                         {
@@ -19401,7 +19417,15 @@ void display_ents()
                         {
                             qx = (int)(e->position.x - scrx);
                             qy = (int)(e->position.z - level->walls[wall].height - scry);
-                            sy = (int)((2 * MIRROR_Z - e->position.z)  - level->walls[wall].height - scry);
+                            sy = (int)((2 * MIRROR_Z - e->position.z) - level->walls[wall].height - scry);
+                            z = shadowz;
+                            sz = PANEL_Z - HUD_Z;
+                        }
+                        else if(level && basemap > 0 && !e->modeldata.shadowbase)
+                        {
+                            qx = (int)(e->position.x - scrx);
+                            qy = (int)(e->position.z - basemap - scry);
+                            sy = (int)((2 * MIRROR_Z - e->position.z) - basemap - scry);
                             z = shadowz;
                             sz = PANEL_Z - HUD_Z;
                         }
