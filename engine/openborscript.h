@@ -365,6 +365,7 @@ enum systemvariant_enum
     _sv_nopause,
     _sv_nosave,
     _sv_noscreenshot,
+    _sv_numbasemaps,
     _sv_numholes,
     _sv_numlayers,
     _sv_numpalettes,
