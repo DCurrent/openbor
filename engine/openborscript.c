@@ -11167,7 +11167,7 @@ HRESULT openbor_dograb(ScriptVariant **varlist , ScriptVariant **pretvar, int pa
     int adjust          = ARG_ADJUST_DEFAULT;   // dograb adjust check.
     int result          = S_OK;                 // Function pass/fail result.
     entity *attacker    = NULL;                 // Attacker entity (attempting grab)
-    entity *target      = NULL;                 // Tagret entity (to be grabbed)
+    entity *target      = NULL;                 // Target entity (to be grabbed)
 
     ScriptVariant_Clear(*pretvar);
 
