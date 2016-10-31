@@ -914,6 +914,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "checkplatformbetween";
     }
+    else if (functionRef == ((void *)openbor_checkbasemap))
+    {
+        return "checkbasemap";
+    }
     else if (functionRef == ((void *)openbor_openfilestream))
     {
         return "openfilestream";
@@ -1571,6 +1575,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_checkplatformbelow, "checkplatformabove");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_checkplatformbelow, "checkplatformbetween");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_checkbasemap, "checkbasemap");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_openfilestream, "openfilestream");
     List_InsertAfter(&theFunctionList,
@@ -10434,6 +10440,38 @@ HRESULT openbor_checkplatformbetween(ScriptVariant **varlist , ScriptVariant **p
 
     ScriptVariant_ChangeType(*pretvar, VT_PTR);
     (*pretvar)->ptrVal = (VOID *)check_platform_between((float)x, (float)z, (float)amin, (float)amax, NULL);
+    return S_OK;
+}
+
+//checkbasemap(x,z), return basemap height (float)
+HRESULT openbor_checkbasemap(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    ScriptVariant *arg = NULL;
+    DOUBLE x, z;
+
+    if(paramCount < 2)
+    {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+    (*pretvar)->dblVal = (DOUBLE)0;
+
+    arg = varlist[0];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &x)))
+    {
+        return S_OK;
+    }
+
+    arg = varlist[1];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &z)))
+    {
+        return S_OK;
+    }
+
+    (*pretvar)->dblVal = (DOUBLE)check_basemap((float)x, (float)z);
+
     return S_OK;
 }
 
