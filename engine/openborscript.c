@@ -3385,6 +3385,7 @@ enum entityproperty_enum
     _ep_grabbing,
     _ep_grabforce,
     _ep_guardpoints,
+    _ep_hasplatforms,
     _ep_health,
     _ep_height,
     _ep_hitbyid,
@@ -3455,6 +3456,7 @@ enum entityproperty_enum
     _ep_seal,
     _ep_sealtime,
     _ep_setlayer,
+    _ep_shadowbase,
     _ep_sortid,
     _ep_spawntype,
     _ep_speed,
@@ -3561,6 +3563,7 @@ static const char *eplist[] =
     "grabbing",
     "grabforce",
     "guardpoints",
+    "hasplatforms",
     "health",
     "height",
     "hitbyid",
@@ -3631,6 +3634,7 @@ static const char *eplist[] =
     "seal",
     "sealtime",
     "setlayer",
+    "shadowbase",
     "sortid",
     "spawntype",
     "speed",
@@ -6462,6 +6466,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->modeldata.gfxshadow;
         break;
     }
+    case _ep_shadowbase:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.shadowbase;
+        break;
+    }
     case _ep_grabbing:
     {
         if(ent->grabbing) // always return an empty var if it is NULL
@@ -6481,6 +6491,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->modeldata.guardpoints.current;
+        break;
+    }
+    case _ep_hasplatforms:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.hasPlatforms;
         break;
     }
     case _ep_health:
@@ -8278,6 +8294,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
+    case _ep_shadowbase:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.shadowbase = (int)ltemp;
+        }
+        break;
+    }
     case _ep_grabforce:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
@@ -8291,6 +8315,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
             ent->modeldata.guardpoints.current = (int)ltemp;
+        }
+        break;
+    }
+    case _ep_hasplatforms:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.hasPlatforms = (int)ltemp;
         }
         break;
     }

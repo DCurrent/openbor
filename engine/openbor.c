@@ -8362,9 +8362,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_SHADOW:
                 newchar->shadow = GET_INT_ARG(1);
+                newchar->shadowbase = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_GFXSHADOW:
                 newchar->gfxshadow = GET_INT_ARG(1);
+                newchar->shadowbase = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_AIRONLY:	// Shadows display in air only?
                 newchar->aironly = GET_INT_ARG(1);
@@ -19288,7 +19290,7 @@ void display_ents()
 
                         wall2 = checkwall_below(e->position.x + temp1, e->position.z + temp2, e->position.y); // check if the shadow drop into a hole or fall on another wall
 
-                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7])
+                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7] && !e->modeldata.shadowbase)
                         {
                             alty = (int)(e->position.y - (other->position.y + other->animation->platform[other->animpos][7]));
                             temp1 = -1 * (e->position.y - (other->position.y + other->animation->platform[other->animpos][7])) * light.x / 256; // xshift
@@ -19328,7 +19330,7 @@ void display_ents()
 
                             sy = (2 * MIRROR_Z - qy) - 2 * scry;
 
-                            if ( other ) z = other->position.z + 1;
+                            if ( other && !e->modeldata.shadowbase ) z = other->position.z + 1;
                             else z = shadowz;
 
                             sz = PANEL_Z - HUD_Z;
@@ -19386,7 +19388,7 @@ void display_ents()
                     }
                     if(useshadow && e->position.y >= 0 && !(checkhole_in(e->position.x, e->position.z, e->position.y) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                     {
-                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7])
+                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7] && !e->modeldata.shadowbase)
                         {
                             qx = (int)(e->position.x - scrx);
                             qy =                 (int)(e->position.z  - other->position.y - other->animation->platform[other->animpos][7] - scry);
