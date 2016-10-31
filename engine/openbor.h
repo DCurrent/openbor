@@ -1307,6 +1307,18 @@ typedef struct
     u32 time_next;              //Time of next tick.
 } s_dot;
 
+// 2016-10-31
+// Recursive damage structure
+// for attack boxes only.
+typedef struct
+{
+    int                 force;  // Damage force per tick.
+    int                 index;  // Index.
+    e_dot_mode          mode;   // Mode.
+    int                 rate;   // Tick delay.
+    u32                 time;   // Time to expire.
+} s_damage_recursive;
+
 typedef struct
 {
 	int x;
@@ -1336,11 +1348,6 @@ typedef struct
     int                 blocksound;         // Custom sound for when an attack is blocked
     int                 counterattack;      // Treat other attack boxes as body box.
     int                 damage_on_landing;  // same as throw damage type
-    e_dot_mode          dot;                // Dot mode.
-    int                 dot_force;          // Dot amount per tick.
-    int                 dot_index;          // Dot index.
-    int                 dot_rate;           // Dot tick delay.
-    u32                 dot_time;           // Dot time to expire.
     s_axis_f            dropv;              // Velocity of target if knocked down.
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 forcemap;           // Set target's palette on hit.
@@ -1361,6 +1368,7 @@ typedef struct
     e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
     u32                 pain_time;          // pain invincible time
     int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
+    s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
     int                 seal;               // Disable target's animations with energycost > seal.
     u32                 sealtime;           // Time for seal to remain in effect.
     s_staydown          staydown;           // Modify victum's stayodwn properties.
@@ -2426,7 +2434,7 @@ s_anim *alloc_anim();
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
              s_body *bbox, s_attack *attack, s_axis_i *move,
              float *platform, int frameshadow,
-             int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod, int *offset);
+             int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod, int *offset, s_damage_recursive *recursive);
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char *name);
 void free_modelcache();

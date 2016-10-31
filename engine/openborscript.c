@@ -5084,35 +5084,35 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
             (*pretvar)->lVal = (LONG)handle->attack_type;
             break;
 
-        case ATTACK_PROP_DAMAGE_RECURSIVE_FORCE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->dot_force;
-            break;
-
-        case ATTACK_PROP_DAMAGE_RECURSIVE_INDEX:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->dot_index;
-            break;
-
-        case ATTACK_PROP_DAMAGE_RECURSIVE_MODE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->dot;
-            break;
-
-        case ATTACK_PROP_DAMAGE_RECURSIVE_TIME_EXPIRE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->dot_time;
-            break;
-
-        case ATTACK_PROP_DAMAGE_RECURSIVE_TIME_RATE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->dot_rate;
-            break;
+//        case ATTACK_PROP_DAMAGE_RECURSIVE_FORCE:
+//
+//            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+//            (*pretvar)->lVal = (LONG)handle->dot_force;
+//            break;
+//
+//        case ATTACK_PROP_DAMAGE_RECURSIVE_INDEX:
+//
+//            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+//            (*pretvar)->lVal = (LONG)handle->dot_index;
+//            break;
+//
+//        case ATTACK_PROP_DAMAGE_RECURSIVE_MODE:
+//
+//            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+//            (*pretvar)->lVal = (LONG)handle->dot;
+//            break;
+//
+//        case ATTACK_PROP_DAMAGE_RECURSIVE_TIME_EXPIRE:
+//
+//            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+//            (*pretvar)->lVal = (LONG)handle->dot_time;
+//            break;
+//
+//        case ATTACK_PROP_DAMAGE_RECURSIVE_TIME_RATE:
+//
+//            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+//            (*pretvar)->lVal = (LONG)handle->dot_rate;
+//            break;
 
         case ATTACK_PROP_EFFECT_BLOCK_FLASH:
 
@@ -5432,45 +5432,45 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
             }
             break;
 
-        case ATTACK_PROP_DAMAGE_RECURSIVE_FORCE:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->dot_force = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_DAMAGE_RECURSIVE_INDEX:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->dot_index = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_DAMAGE_RECURSIVE_MODE:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->dot = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_DAMAGE_RECURSIVE_TIME_EXPIRE:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->dot_time = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_DAMAGE_RECURSIVE_TIME_RATE:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->dot_rate = temp_int;
-            }
-            break;
+//        case ATTACK_PROP_DAMAGE_RECURSIVE_FORCE:
+//
+//            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+//            {
+//                handle->dot_force = temp_int;
+//            }
+//            break;
+//
+//        case ATTACK_PROP_DAMAGE_RECURSIVE_INDEX:
+//
+//            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+//            {
+//                handle->dot_index = temp_int;
+//            }
+//            break;
+//
+//        case ATTACK_PROP_DAMAGE_RECURSIVE_MODE:
+//
+//            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+//            {
+//                handle->dot = temp_int;
+//            }
+//            break;
+//
+//        case ATTACK_PROP_DAMAGE_RECURSIVE_TIME_EXPIRE:
+//
+//            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+//            {
+//                handle->dot_time = temp_int;
+//            }
+//            break;
+//
+//        case ATTACK_PROP_DAMAGE_RECURSIVE_TIME_RATE:
+//
+//            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+//            {
+//                handle->dot_rate = temp_int;
+//            }
+//            break;
 
         case ATTACK_PROP_EFFECT_BLOCK_FLASH:
 
