@@ -439,7 +439,6 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_FLIPFRAME, "flipframe");
     LIST_ADD(CMD_MODEL_FOLLOWANIM, "followanim");
     LIST_ADD(CMD_MODEL_FOLLOWCOND, "followcond");
-    LIST_ADD(CMD_MODEL_COUNTERFRAME, "counterframe");
     LIST_ADD(CMD_MODEL_COUNTERRANGE, "counterrange");
     LIST_ADD(CMD_MODEL_WEAPONFRAME, "weaponframe");
     LIST_ADD(CMD_MODEL_QUAKEFRAME, "quakeframe");

@@ -4804,6 +4804,36 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
             break;
 
+        case ANI_PROP_BOUNCE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->bounce;
+
+            break;
+
+        case ANI_PROP_CANCEL:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->cancel;
+            break;
+
+        case ANI_PROP_CHARGETIME:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->chargetime;
+            break;
+
+        case ANI_PROP_COUNTERRANGE:
+
+            // Verify animation has item.
+            if(handle->counterrange)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->counterrange;
+            }
+
+            break;
+
         case ANI_PROP_NUMFRAMES:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);

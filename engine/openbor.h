@@ -1494,7 +1494,7 @@ typedef struct
     float           bounce;                 // -tossv/bounce = new tossv
     int             cancel;                 // Cancel anims with freespecial
     float           chargetime;             // charge time for an animation
-    s_counterrange  counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
+    s_counterrange  *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
     int             *delay;
     s_drawmethod    **drawmethods;
     s_onframe       dropframe;              // if tossv < 0, this frame will be set
