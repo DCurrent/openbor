@@ -4932,10 +4932,10 @@ HRESULT openbor_getattackinstance(ScriptVariant **varlist, ScriptVariant **pretv
     #undef ARG_INDEX
 }
 
-// getattackproperty({handle}, {property})
+// getattackproperty(void handle, int property)
 HRESULT openbor_getattackproperty(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-    #define SELF_NAME       "getattackproperty({handle}, {property})"
+    #define SELF_NAME       "getattackproperty(void handle, int property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
@@ -11143,67 +11143,77 @@ HRESULT openbor_killentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
     return S_OK;
 }
 
+// dograb
+// Damon V. Caskey
+// 2013-12-30
+//
+// Enables initiation of the engine's default grab state between attacker and
+// target entities.
+//
+// dograb(ptr attacker, ptr target, int adjust);
+//
+// attacker: Entity attempting grab.
+// target: Entity to be grabbed.
+// adjustcheck: Engine's dograb adjust check flag.
 HRESULT openbor_dograb(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    /*
-    dograb
-    Damon V. Caskey
-    2013-12-30
+    #define SELF_NAME           "dograb(void attacker, void target, int adjust)
+    #define ARG_MINIMUM         2
+    #define ARG_ATTACKER        0
+    #define ARG_TARGET          1
+    #define ARG_ADJUST          2
+    #define ARG_ADJUST_DEFAULT  1
 
-    Enables initiation of the engine's default grab state between attacker and
-    target entities.
+    int adjust          = ARG_ADJUST_DEFAULT;   // dograb adjust check.
+    int result          = S_OK;                 // Function pass/fail result.
+    entity *attacker    = NULL;                 // Attacker entity (attempting grab)
+    entity *target      = NULL;                 // Tagret entity (to be grabbed)
 
-    dograb(ptr attacker, ptr target, int adjust);
-
-    attacker: Entity attempting grab.
-    target: Entity to be grabbed.
-    adjustcheck: Engine's dograb adjust check flag.
-    */
-
-    int adjust = 1;             // dograb adjust check.
-    int result = S_OK;          // Function pass/fail result.
-    entity *attacker = NULL;    // Attacker entity (attempting grab)
-    entity *target = NULL;      // Tagret entity (to be grabbed)
+    ScriptVariant_Clear(*pretvar);
 
     // Validate there are at least two parameters (attacker and target entities).
-    if(paramCount >= 2)
+    if(paramCount < ARG_MINIMUM)
     {
-        // Get adjust check.
-        if(paramCount > 2)
-        {
-            ScriptVariant_IntegerValue(varlist[2], &adjust);
-        }
-
-        // Get attacking and target entity.
-        attacker = (entity *)(varlist[0])->ptrVal;
-        target = (entity *)(varlist[1])->ptrVal;
-
-        // Validate entities; if both are OK, execute engine's dograb function and
-        // send result to script output.
-        if(attacker && target)
-        {
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = dograb(attacker, target, adjust);
-        }
-        else
-        {
-            result = E_FAIL;
-        }
-    }
-    else
-    {
-        result = E_FAIL;
+        goto error;
     }
 
-    // If any validation check failed send alert to log.
-    if(result == E_FAIL)
+    // Get adjust check.
+    if(paramCount > ARG_ADJUST)
     {
-        ScriptVariant_Clear(*pretvar);
-        printf("\nFunction requires two valid entity handles and optional adjustment parameter: dograb(attacker, target, int adjustcheck)\n");
+        ScriptVariant_IntegerValue(varlist[ARG_ADJUST], &adjust);
     }
+
+    // Get attacking and target entity.
+    attacker = (entity *)(varlist[ARG_ATTACKER])->ptrVal;
+    target = (entity *)(varlist[ARG_TARGET])->ptrVal;
+
+    // Validate entities.
+    if(!attacker && !target)
+    {
+        goto error:
+    }
+
+    // Execute engine's grab function.
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = dograb(attacker, target, adjust);
+
+    return result;
+
+    // Error trap
+    error:
+
+    result = E_FAIL;
+    printf("\nYou must provide valid entity handles and an optional adjustment: " SELF_NAME);
 
     // Return result.
     return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_ATTACKER
+    #undef ARG_TARGET
+    #undef ARG_ADJUST
+    #undef ARG_ADJUST_DEFAULT
 }
 
 //findtarget(entity, int animation);
