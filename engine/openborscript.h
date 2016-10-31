@@ -129,14 +129,24 @@ HRESULT openbor_drawlinetoscreen(ScriptVariant **varlist , ScriptVariant **pretv
 HRESULT openbor_drawdottoscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_drawscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
+// Animation properties.
 HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_getanimationproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_setanimationproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_getattackcollection(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_getattackinstance(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_getattackproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_setattackproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_animation_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_set_animation_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+
+// Attack properties
+HRESULT openbor_get_attack_collection(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_attack_instance(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_attack_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_set_attack_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+
+// Body collision (bbox) properties
+HRESULT openbor_get_body_collision_collection(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_body_collision_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_set_body_collision_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+
 HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_clearspawnentry(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
