@@ -2197,6 +2197,7 @@ static const char *svlist[] =
     "nopause",
     "nosave",
     "noscreenshot",
+    "numbasemaps",
     "numholes",
     "numlayers",
     "numpalettes",
@@ -14469,7 +14470,7 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount)
 
 HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    LONG ltemp;
+    LONG ltemp, ltemp2, ltemp3;
     mapstrings_levelproperty(varlist, paramCount);
 
     switch(varlist[0]->lVal)
@@ -14684,6 +14685,63 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
         }
         break;
     }
+    case _lp_basemap:
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp >= 0 && ltemp < level->numbasemaps)
+        {
+            if(paramCount >= 3)
+            {
+
+                if(varlist[2]->vt != VT_STR)
+                    printf("You must provide a string value for basemap subproperty.\n");
+                    goto getlevelproperty_error;
+
+                ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+
+                switch(varlist[2]->lVal)
+                {
+                case _lp_bm_x:
+                    (*pretvar)->dblVal = level->basemaps[ltemp].position.x;
+                    break;
+                case _lp_bm_xsize:
+                    (*pretvar)->dblVal = level->basemaps[ltemp].size.x;
+                    break;
+                case _lp_bm_z:
+                    (*pretvar)->dblVal = level->basemaps[ltemp].position.z;
+                    break;
+                case _lp_bm_zsize:
+                    (*pretvar)->dblVal = level->basemaps[ltemp].size.z;
+                    break;
+                case _lp_bm_map:
+                    if(paramCount >= 5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) &&
+                            SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp3)) &&
+                            ltemp2 >= 0 && ltemp2 < level->basemaps[ltemp].size.x && ltemp3 >= 0 && ltemp3 < level->basemaps[ltemp].size.z
+                      )
+                    {
+                        if(!level->basemaps[ltemp].map)
+                        {
+                            (*pretvar)->dblVal = (DOUBLE)0;
+                        }
+                        else (*pretvar)->dblVal = (DOUBLE)level->basemaps[ltemp].map[ltemp2 + ltemp3 * level->basemaps[ltemp].size.x];
+                    }
+                    else
+                    {
+                        goto getlevelproperty_error;
+                    }
+                    break;
+                default:
+                    goto getlevelproperty_error;
+                }
+            }
+            else
+            {
+                goto getlevelproperty_error;
+            }
+        }
+        else
+        {
+            goto getlevelproperty_error;
+        }
+        break;
     default:
         printf("Property is not supported by function getlevelproperty yet. %d\n", varlist[0]->lVal);
         goto getlevelproperty_error;

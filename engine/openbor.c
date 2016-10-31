@@ -1247,6 +1247,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)noscreenshot;
         break;
+    case _sv_numbasemaps:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = (LONG)(level->numbasemaps);
+        break;
     case _sv_numholes:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)(level->numholes);
