@@ -120,6 +120,13 @@ const s_body empty_body =   {   .coords = { .x      = 0,
                                 .tag = 0
                             };
 
+// Recursive damage (dot).
+const s_damage_recursive empty_recursive = {    .force  = 0,
+                                                .index  = 0,
+                                                .mode   = 0,
+                                                .rate   = 0,
+                                                .time   = 0};
+
 // unknockdown attack
 const s_attack emptyattack =
 {
@@ -137,11 +144,6 @@ const s_attack emptyattack =
     .blocksound         = -1,
     .counterattack      = 0,
     .damage_on_landing  = 0,
-    .dot                = DOT_MODE_OFF,
-    .dot_force          = 0,
-    .dot_index          = 0,
-    .dot_time           = 0,
-    .dot_rate           = 0,
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
@@ -163,6 +165,7 @@ const s_attack emptyattack =
     .otg                = OTG_NONE,
     .pain_time          = 0,
     .pause_add          = 0,
+    .recursive          = NULL,
     .seal               = 0,
     .sealtime           = 0,
     .staydown           = { .rise               = 0,
@@ -5251,6 +5254,13 @@ void free_frames(s_anim *anim)
         {
             if(anim->attacks[i])
             {
+                // First free any pointers allocated
+                // to attack structure.
+                if(anim->attacks[i]->recursive)
+                {
+                    free(anim->attacks[i]->recursive);
+                }
+
                 free(anim->attacks[i]);
                 anim->attacks[i] = NULL;
             }
@@ -5634,7 +5644,7 @@ s_anim *alloc_anim()
 
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
              s_body *bbox, s_attack *attack, s_axis_i *move,
-             float *platform, int frameshadow, int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod, int *offset)
+             float *platform, int frameshadow, int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod, int *offset, s_damage_recursive *recursive)
 {
     ptrdiff_t currentframe;
     if(framecount > 0)
@@ -5676,6 +5686,15 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
         }
         a->attacks[currentframe] = malloc(sizeof(**a->attacks));
         memcpy(a->attacks[currentframe], attack, sizeof(**a->attacks));
+
+        // Add attack sub-properties.
+
+        // Recursive damage set?
+        if(!a->attacks[currentframe]->recursive && recursive->mode)
+        {
+            a->attacks[currentframe]->recursive = malloc(sizeof(*recursive));
+            memcpy(a->attacks[currentframe]->recursive, recursive, sizeof(*recursive));
+        }
     }
 
     if(drawmethod->flag)
@@ -7684,6 +7703,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         .y = 0,
                         .z = 0};
 
+    s_damage_recursive recursive;
     s_attack attack,
              *pattack = NULL;
     s_body bbox_con;
@@ -8986,8 +9006,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 memset(shadow_xz, 0, sizeof(shadow_xz));
                 memset(platform, 0, sizeof(platform));
                 shadow_set = 0;
-                bbox_con = empty_body;
-                attack = emptyattack;
+                bbox_con    = empty_body;
+                attack      = emptyattack;
+                recursive   = empty_recursive;
                 attack.hitsound = SAMPLE_BEAT;
                 attack.hitflash = -1;
                 attack.blockflash = -1;
@@ -9599,19 +9620,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 attack.attack_type = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_FORCE:
-                attack.dot_force = GET_INT_ARG(1);
+                recursive.force = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_INDEX:
-                attack.dot_index = GET_INT_ARG(1);
+                recursive.index = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_MODE:
-                attack.dot = GET_INT_ARG(1);
+                recursive.mode = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_TIME_RATE:
-                attack.dot_rate = GET_INT_ARG(1);
+                recursive.rate = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_TIME_EXPIRE:
-                attack.dot_time = GET_INT_ARG(1);
+                recursive.time = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_ATTACK_REACTION_FALL_FORCE:
                 attack.attack_drop = GET_INT_ARG(1);
@@ -9930,13 +9951,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 pattack->staydown.riseattack    = GET_INT_ARG(2); //Riseattack time addition and toggle.
                 break;
             case CMD_MODEL_DOT:
-                // Cause damage over time effect.
-                attack.dot_index  = GET_INT_ARG(1);  //Index.
-                attack.dot_time   = GET_INT_ARG(2);  //Time to expiration.
-                attack.dot        = GET_INT_ARG(3);  //Mode, see common_dot.
-                attack.dot_force  = GET_INT_ARG(4);  //Amount per tick.
-                attack.dot_rate   = GET_INT_ARG(5);  //Tick delay.
+
+                recursive.index  = GET_INT_ARG(1);  //Index.
+                recursive.time   = GET_INT_ARG(2);  //Time to expiration.
+                recursive.mode   = GET_INT_ARG(3);  //Mode, see common_dot.
+                recursive.force  = GET_INT_ARG(4);  //Amount per tick.
+                recursive.rate   = GET_INT_ARG(5);  //Tick delay.
                 break;
+
             case CMD_MODEL_FORCEMAP:
                 // force color map change for specified time
                 pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
@@ -10139,7 +10161,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 curframe = addframe(newanim, index, framecount, delay, idle,
-                                    &bbox_con, &attack, &move, platform_con, frameshadow, shadow_coords, soundtoplay, &dm, offset);
+                                    &bbox_con, &attack, &move, platform_con, frameshadow, shadow_coords, soundtoplay, &dm, offset, &recursive);
 
                 soundtoplay = -1;
                 frm_id = -1;
@@ -21228,11 +21250,11 @@ void checkdamageeffects(s_attack *attack)
 #define _steal          attack->steal
 #define _seal           attack->seal
 #define _sealtime       attack->sealtime
-#define _dot            attack->dot
-#define _dot_index      attack->dot_index
-#define _dot_time       attack->dot_time
-#define _dot_force      attack->dot_force
-#define _dot_rate       attack->dot_rate
+#define _dot            attack->recursive->mode
+#define _dot_index      attack->recursive->index
+#define _dot_time       attack->recursive->time
+#define _dot_force      attack->recursive->force
+#define _dot_rate       attack->recursive->rate
 #define _staydown0      attack->staydown.rise
 #define _staydown1		attack->staydown.riseattack
 
@@ -21285,15 +21307,19 @@ void checkdamageeffects(s_attack *attack)
         self->seal      = _seal;                                                    //Set seal. Any animation with energycost > seal is disabled.
     }
 
-    if(_dot)                                                                        //dot: Damage over time effect.
+    if(attack->recursive)
     {
-        self->dot_owner[_dot_index] = opp ? opp : self;			                    //dot owner.
-        self->dot[_dot_index]       = _dot;                                         //Mode: 1. HP (non lethal), 2. MP, 3. HP (non lethal) & MP, 4. HP, 5. HP & MP.
-        self->dot_time[_dot_index]  = time + (_dot_time * GAME_SPEED / 100);        //Gametime dot will expire.
-        self->dot_force[_dot_index] = _dot_force;                                   //How much to dot each tick.
-        self->dot_rate[_dot_index]  = _dot_rate;                                    //Delay between dot ticks.
-        self->dot_atk[_dot_index]   = attack->attack_type;                          //dot attack type.
+        if(_dot)                                                                        //dot: Damage over time effect.
+        {
+            self->dot_owner[_dot_index] = opp ? opp : self;			                    //dot owner.
+            self->dot[_dot_index]       = _dot;                                         //Mode: 1. HP (non lethal), 2. MP, 3. HP (non lethal) & MP, 4. HP, 5. HP & MP.
+            self->dot_time[_dot_index]  = time + (_dot_time * GAME_SPEED / 100);        //Gametime dot will expire.
+            self->dot_force[_dot_index] = _dot_force;                                   //How much to dot each tick.
+            self->dot_rate[_dot_index]  = _dot_rate;                                    //Delay between dot ticks.
+            self->dot_atk[_dot_index]   = attack->attack_type;                          //dot attack type.
+        }
     }
+
 
 
     if(self->modeldata.nodrop)
