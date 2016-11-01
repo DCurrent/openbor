@@ -106,6 +106,7 @@ movement restirctions are here!
 #define		CONTACT_DIST_V		12
 #define		GRAB_DIST			36					// Grabbing ents will be placed this far apart.
 #define		GRAB_STALL			(GAME_SPEED * 8 / 10)
+#define		T_YDIST 			2.0
 
 
 // PLAY/REC INPUT vars
@@ -2516,13 +2517,14 @@ int checkwalls(float x, float z, float a1, float a2);
 int checkholes(float, float);
 int checkwall_below(float x, float z, float a);
 int checkwall(float x, float z);
+float check_basemap(int x, int z);
+void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont);
 int testmove(entity *, float, float, float, float);
 entity *check_platform_below(float x, float z, float a, entity *exclude);
 entity *check_platform_above(float x, float z, float a, entity *exclude);
 entity *check_platform_between(float x, float z, float amin, float amax, entity *exclude);
 entity *check_platform(float x, float z, entity *exclude);
 void do_attack(entity *e);
-float check_basemap(int x, int z);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
 void update_ents();

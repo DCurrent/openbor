@@ -511,6 +511,7 @@ List *createLevelCommandList(void)
     LIST_ADD(CMD_LEVEL_ORDER, "order");
     LIST_ADD(CMD_LEVEL_HOLE, "hole");
     LIST_ADD(CMD_LEVEL_WALL, "wall");
+    LIST_ADD(CMD_LEVEL_BASEMAP, "basemap");
     LIST_ADD(CMD_LEVEL_PALETTE, "palette");
     LIST_ADD(CMD_LEVEL_UPDATESCRIPT, "updatescript");
     LIST_ADD(CMD_LEVEL_UPDATEDSCRIPT, "updatedscript");
