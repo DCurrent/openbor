@@ -12987,16 +12987,16 @@ static void addwall(float x, float z, float x1, float x2, float x3, float x4, fl
     level->numwalls++;
 }
 
-static void addbasemap(float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont)
+static void addbasemap(float rx, float rz, float x_size, float z_size, float min_y, float max_y, int x_cont)
 {
     __realloc(level->basemaps, level->numbasemaps);
     level->numbasemaps++;
-    generate_basemap(level->numbasemaps-1, rx, rz, x_size, z_size, min_a, max_a, x_cont);
+    generate_basemap(level->numbasemaps-1, rx, rz, x_size, z_size, min_y, max_y, x_cont);
 }
 
-void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont) {
+void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_y, float max_y, int x_cont) {
     float x,z;
-	float delta,a,tmp;
+	float delta,y,tmp;
 	int dir = 0;
 
     if(map_index >= level->numbasemaps)
@@ -13015,40 +13015,40 @@ void generate_basemap(int map_index, float rx, float rz, float x_size, float z_s
         level->basemaps[map_index].map = calloc(1, sizeof(*(level->basemaps[map_index].map)) * (int)(x_size+1) * (int)(z_size+1));
     }
 
-    if (min_a <= max_a) dir = 1;
+    if (min_y <= max_y) dir = 1;
     else dir = 0;
 
-    if (min_a > max_a)
+    if (min_y > max_y)
     {
-        tmp = min_a;
-        min_a = max_a;
-        max_a = tmp;
+        tmp = min_y;
+        min_y = max_y;
+        max_y = tmp;
     }
 
-	delta = (max_a-min_a)/x_size;
+	delta = (max_y-min_y)/x_size;
 
 	for( x = 0; x <= (int)x_size; x++)
     {
-		if ( dir ) a = x*delta + min_a;
-		else a = max_a - (x*delta);
+		if ( dir ) y = x*delta + min_y;
+		else y = max_y - (x*delta);
 
 		if ( x_cont != 0 )
         {
             if ( dir > 0 )
             {
-                if ( x+rx > x_cont ) a = max_a; // connect with the wall more smoothly
+                if ( x+rx > x_cont ) y = max_y; // connect with the wall more smoothly
             }
             else
             {
-                if ( x < x_cont ) a = max_a;
+                if ( x < x_cont ) y = max_y;
             }
 		}
 
 		for ( z = 0; z <= (int)z_size; z++)
         {
-			level->basemaps[map_index].map[(int)((int)x + (int)z * (int)x_size)] = a;
+			level->basemaps[map_index].map[(int)((int)x + (int)z * (int)x_size)] = y;
 		}
-		//printf("a:%f\n",a);
+		//printf("y:%f\n",y);
 	}
 
 	return;

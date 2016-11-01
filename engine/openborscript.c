@@ -10806,10 +10806,10 @@ HRESULT openbor_checkbasemap(ScriptVariant **varlist , ScriptVariant **pretvar, 
     return S_OK;
 }
 
-//generatebasemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont) to generate an inclined terrain
+//generatebasemap(int map_index, float rx, float rz, float x_size, float z_size, float min_y, float max_y, int x_cont) to generate an inclined terrain
 HRESULT openbor_generatebasemap(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    DOUBLE rx, rz, x_size, z_size, min_a, max_a;
+    DOUBLE rx, rz, x_size, z_size, min_y, max_y;
     LONG index;
     LONG x_cont = (LONG)0;
 
@@ -10834,14 +10834,14 @@ HRESULT openbor_generatebasemap(ScriptVariant **varlist , ScriptVariant **pretva
     }
     if ( FAILED(ScriptVariant_DecimalValue(varlist[1], &rx)) || FAILED(ScriptVariant_DecimalValue(varlist[2], &rz)) ||
          FAILED(ScriptVariant_DecimalValue(varlist[3], &x_size)) || FAILED(ScriptVariant_DecimalValue(varlist[4], &z_size)) ||
-         FAILED(ScriptVariant_DecimalValue(varlist[5], &min_a)) || FAILED(ScriptVariant_DecimalValue(varlist[6], &max_a))
+         FAILED(ScriptVariant_DecimalValue(varlist[5], &min_y)) || FAILED(ScriptVariant_DecimalValue(varlist[6], &max_y))
     )
     {
         *pretvar = NULL;
         return E_FAIL;
     }
 
-    generate_basemap(index, rx, rz, x_size, z_size, min_a, max_a, x_cont);
+    generate_basemap(index, rx, rz, x_size, z_size, min_y, max_y, x_cont);
 
     return S_OK;
 }
