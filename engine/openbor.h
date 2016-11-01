@@ -80,7 +80,7 @@
 #define     MAX_DOWNS           1                   // Walk down animations.
 #define		MAX_ATTACKS			4					// Total number of attacks players have
 #define     MAX_FOLLOWS         4					// For followup animations
-#define     MAX_COLLISIONS      3                   // Collision boxes.
+#define     MAX_COLLISIONS      2                   // Collision boxes.
 #define		MAX_ARG_LEN			511
 #define		MAX_PAL_SIZE		1024
 #define		MAX_CACHED_BACKGROUNDS 9
