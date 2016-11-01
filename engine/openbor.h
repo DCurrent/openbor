@@ -1298,7 +1298,7 @@ typedef struct
     Damon V. Caskey
     */
 
-    struct s_attack *attack;    //Attack data.
+    struct s_collision *attack;    //Attack data.
     int index;                  //Index (for multiple dots on single target).
     e_dot_mode mode;            //Dot mode.
     struct entity *owner;       //Entity causing dot effect.
@@ -1331,6 +1331,17 @@ typedef struct
 
 typedef struct
 {
+    float       blockpower;     // If > unblockable, this attack type is blocked.
+    float       blockthreshold; // Strongest attack from this attack type that can be blocked.
+    float       blockratio;     // % of damage still taken from this attack type when blocked.
+    e_blocktype blocktype;      // Resource drained when attack is blocked.
+    float       factor;         // basic defense factors: damage = damage*defense
+    float       knockdown;      // Knockdowncount (like knockdowncount) for attack type.
+    float       pain;           // Pain factor (like nopain) for defense type.
+} s_defense;
+
+typedef struct
+{
     s_hitbox    coords;
     //s_defense   *defense;
     int         tag;
@@ -1339,7 +1350,7 @@ typedef struct
 
 typedef struct
 {
-    s_hitbox            attack_coords;
+    s_hitbox            coords;
     int                 attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
     int                 attack_force;
     int                 attack_type;        // Reaction animation, death, etc.
@@ -1348,6 +1359,7 @@ typedef struct
     int                 blocksound;         // Custom sound for when an attack is blocked
     int                 counterattack;      // Treat other attack boxes as body box.
     int                 damage_on_landing;  // same as throw damage type
+    s_defense           *defense;
     s_axis_f            dropv;              // Velocity of target if knocked down.
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 forcemap;           // Set target's palette on hit.
@@ -1368,13 +1380,15 @@ typedef struct
     e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
     u32                 pain_time;          // pain invincible time
     int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
+    int                 priority_give;
+    int                 priority_take;
     s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
     int                 seal;               // Disable target's animations with energycost > seal.
     u32                 sealtime;           // Time for seal to remain in effect.
     s_staydown          staydown;           // Modify victum's stayodwn properties.
     int                 steal;              // Add damage to owner's hp.
     int                 tag;                // Non engine use tag for scripting.
-} s_attack;
+} s_collision;
 
 typedef struct
 {
@@ -1497,7 +1511,7 @@ typedef struct
     int             animhits;               // Does the attack need to hit before cancel is allowed?
     int             antigrav;               // UT: make dive a similar property as antigravity
     int             attackone;              // stick on the only one victim
-    s_attack        **attacks;
+    s_collision        **collision;
     s_body          **body_collision;
     float           bounce;                 // -tossv/bounce = new tossv
     int             cancel;                 // Cancel anims with freespecial
@@ -1665,17 +1679,6 @@ typedef struct
     int valid;		// should not be global unless nosame is set, but anyway...
     //int (*function)(); //reserved
 } s_com;
-
-typedef struct
-{
-    float       blockpower;     // If > unblockable, this attack type is blocked.
-    float       blockthreshold; // Strongest attack from this attack type that can be blocked.
-    float       blockratio;     // % of damage still taken from this attack type when blocked.
-    e_blocktype blocktype;      // Resource drained when attack is blocked.
-    float       factor;         // basic defense factors: damage = damage*defense
-    float       knockdown;      // Knockdowncount (like knockdowncount) for attack type.
-    float       pain;           // Pain factor (like nopain) for defense type.
-} s_defense;
 
 //UT: new bit flags for noquake property
 #define NO_QUAKE 1  //do not make screen quake
@@ -1845,7 +1848,7 @@ typedef struct
 
     s_defense *defense; //defense related, make a struct to aid copying
     float *offense_factors; //basic offense factors: damage = damage*offense
-    s_attack *smartbomb;
+    s_collision *smartbomb;
 
     // e.g., boss
     s_barstatus hpbarstatus;
@@ -2044,7 +2047,7 @@ typedef struct entity
     int map; // Stores the colourmap for restoring purposes
     void (*think)();
     void (*takeaction)();
-    int (*takedamage)(struct entity *, s_attack *);
+    int (*takedamage)(struct entity *, s_collision *);
     int (*trymove)(float, float);
     int attack_id;
     int hit_by_attack_id;
@@ -2432,7 +2435,7 @@ void free_anim(s_anim *anim);
 void free_models();
 s_anim *alloc_anim();
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
-             s_body *bbox, s_attack *attack, s_axis_i *move,
+             s_body *bbox, s_collision *attack, s_axis_i *move,
              float *platform, int frameshadow,
              int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod, int *offset, s_damage_recursive *recursive);
 void cache_model(char *name, char *path, int flag);
@@ -2478,9 +2481,9 @@ void text_think(void);
 void anything_walk(void);
 void adjust_walk_animation(entity *other);
 void kill(entity *);
-int player_takedamage(entity *other, s_attack *attack);
-int biker_takedamage(entity *other, s_attack *attack);
-int obstacle_takedamage(entity *other, s_attack *attack);
+int player_takedamage(entity *other, s_collision *attack);
+int biker_takedamage(entity *other, s_collision *attack);
+int obstacle_takedamage(entity *other, s_collision *attack);
 void ent_set_anim(entity *, int, int);
 void suicide(void);
 void player_blink(void);
@@ -2565,8 +2568,8 @@ void common_grab(void);
 void common_grabattack();
 void common_grabbed();
 void common_block(void);
-int arrow_takedamage(entity *other, s_attack *attack);
-int common_takedamage(entity *other, s_attack *attack);
+int arrow_takedamage(entity *other, s_collision *attack);
+int common_takedamage(entity *other, s_collision *attack);
 int normal_attack();
 void common_throw(void);
 void common_throw_wait(void);
@@ -2610,7 +2613,7 @@ void subtract_shot();
 void dropweapon(int flag);
 void drop_all_enemies();
 void kill_all_enemies();
-void smart_bomb(entity *e, s_attack *attack);
+void smart_bomb(entity *e, s_collision *attack);
 void anything_walk(void);
 entity *knife_spawn(char *name, int index, float x, float z, float a, int direction, int type, int map);
 entity *bomb_spawn(char *name, int index, float x, float z, float a, int direction, int map);
