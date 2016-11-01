@@ -284,6 +284,17 @@ int                 SAMPLE_BEEP2		= -1;
 int                 SAMPLE_BIKE			= -1;
 int                 SAMPLE_PAUSE		= -1;
 
+// 2016-11-01
+// Caskey, Damon V.
+//
+// Collision indexes. Only using globals while
+// building multiple collision box support.
+// Once we get this working, variables should
+// be moved into a structure. Globals BAD!
+int                 max_collisons       = MAX_COLLISIONS;
+int                 *collisions         = NULL;
+
+
 int                 max_downs           = MAX_DOWNS;
 int                 max_ups             = MAX_UPS;
 int                 max_backwalks       = MAX_BACKWALKS;
