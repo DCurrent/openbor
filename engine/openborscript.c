@@ -937,6 +937,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "checkbasemap";
     }
+    else if (functionRef == ((void *)openbor_generatebasemap))
+    {
+        return "generatebasemap";
+    }
     else if (functionRef == ((void *)openbor_openfilestream))
     {
         return "openfilestream";
@@ -1609,6 +1613,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_checkplatformbelow, "checkplatformbetween");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_checkbasemap, "checkbasemap");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_generatebasemap, "generatebasemap");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_openfilestream, "openfilestream");
     List_InsertAfter(&theFunctionList,
@@ -10796,6 +10802,46 @@ HRESULT openbor_checkbasemap(ScriptVariant **varlist , ScriptVariant **pretvar, 
     }
 
     (*pretvar)->dblVal = (DOUBLE)check_basemap((float)x, (float)z);
+
+    return S_OK;
+}
+
+//generatebasemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont) to generate an inclined terrain
+HRESULT openbor_generatebasemap(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    DOUBLE rx, rz, x_size, z_size, min_a, max_a;
+    LONG index;
+    LONG x_cont = (LONG)0;
+
+    if(paramCount < 7)
+    {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    if ( FAILED(ScriptVariant_IntegerValue(varlist[0], &index)) )
+    {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+    if(paramCount > 7)
+    {
+        if ( FAILED(ScriptVariant_IntegerValue(varlist[7], &index)) )
+        {
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+    }
+    if ( FAILED(ScriptVariant_DecimalValue(varlist[1], &rx)) || FAILED(ScriptVariant_DecimalValue(varlist[2], &rz)) ||
+         FAILED(ScriptVariant_DecimalValue(varlist[3], &x_size)) || FAILED(ScriptVariant_DecimalValue(varlist[4], &z_size)) ||
+         FAILED(ScriptVariant_DecimalValue(varlist[5], &min_a)) || FAILED(ScriptVariant_DecimalValue(varlist[6], &max_a))
+    )
+    {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    generate_basemap(index, rx, rz, x_size, z_size, min_a, max_a, x_cont);
 
     return S_OK;
 }

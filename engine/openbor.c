@@ -12966,6 +12966,73 @@ static void addwall(float x, float z, float x1, float x2, float x3, float x4, fl
     level->numwalls++;
 }
 
+static void addbasemap(float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont)
+{
+    __realloc(level->basemaps, level->numbasemaps);
+    level->numbasemaps++;
+    generate_basemap(level->numbasemaps-1, rx, rz, x_size, z_size, min_a, max_a, x_cont);
+}
+
+void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont) {
+    float x,z;
+	float delta,a,tmp;
+	int dir = 0;
+
+    if(map_index >= level->numbasemaps)
+    {
+        __reallocto(level->basemaps, level->numbasemaps, map_index + 1);
+        level->numbasemaps = map_index + 1;
+    }
+
+    level->basemaps[map_index].position.x = rx;
+    level->basemaps[map_index].position.z = rz;
+    level->basemaps[map_index].size.x = x_size;
+    level->basemaps[map_index].size.z = z_size;
+
+    if(!level->basemaps[map_index].map)
+    {
+        level->basemaps[map_index].map = calloc(1, sizeof(*(level->basemaps[map_index].map)) * (int)(x_size+1) * (int)(z_size+1));
+    }
+
+    if (min_a <= max_a) dir = 1;
+    else dir = 0;
+
+    if (min_a > max_a)
+    {
+        tmp = min_a;
+        min_a = max_a;
+        max_a = tmp;
+    }
+
+	delta = (max_a-min_a)/x_size;
+
+	for( x = 0; x <= (int)x_size; x++)
+    {
+		if ( dir ) a = x*delta + min_a;
+		else a = max_a - (x*delta);
+
+		if ( x_cont != 0 )
+        {
+            if ( dir > 0 )
+            {
+                if ( x+rx > x_cont ) a = max_a; // connect with the wall more smoothly
+            }
+            else
+            {
+                if ( x < x_cont ) a = max_a;
+            }
+		}
+
+		for ( z = 0; z <= (int)z_size; z++)
+        {
+			level->basemaps[map_index].map[(int)((int)x + (int)z * (int)x_size)] = a;
+		}
+		//printf("a:%f\n",a);
+	}
+
+	return;
+}
+
 void load_level(char *filename)
 {
     char *buf;
@@ -13613,6 +13680,9 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_WALL:
             addwall(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7), GET_FLOAT_ARG(8), GET_FLOAT_ARG(9));
+            break;
+        case CMD_LEVEL_BASEMAP:
+            addbasemap(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7));
             break;
         case CMD_LEVEL_PALETTE:
             __realloc(level->palettes, level->numpalettes);
@@ -16803,7 +16873,7 @@ int checkhole_in(float x, float z, float a)
     ind = -1;
     for(i = 0; i < level->numholes; i++)
     {
-        if(testhole(i, x, z) && level->holes[i].height+2.0 >= a && level->holes[i].height >= maxa)
+        if(testhole(i, x, z) && level->holes[i].height+T_YDIST >= a && level->holes[i].height >= maxa)
         {
             maxa = level->holes[i].height;
             ind = i;
@@ -16829,7 +16899,7 @@ int checkholeindex_in(float x, float z, float a)
     ind = -1;
     for(i = 0; i < level->numholes; i++)
     {
-        if(testhole(i, x, z) && level->holes[i].height+2.0 >= a && level->holes[i].height >= maxa)
+        if(testhole(i, x, z) && level->holes[i].height+T_YDIST >= a && level->holes[i].height >= maxa)
         {
             maxa = level->holes[i].height;
             ind = i;
@@ -18363,7 +18433,8 @@ void adjust_base(entity *e, entity **pla)
         if(self->base != -1000 && maxbase > self->base)
         {
             self->base = maxbase;
-            if (self->position.y - self->base <= 2.0)
+            // White Dragon: fix bug for floating entity on basemaps using a threshold
+            if (self->velocity.y <= 0 && self->position.y - self->base <= T_YDIST)
             {
                 self->position.y = self->base;
             }
@@ -19121,7 +19192,7 @@ void display_ents()
             scry = o_scry - ((e->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
             if(freezeall || !(e->blink && (time % (GAME_SPEED / 10)) < (GAME_SPEED / 20)))
             {
-                float eheight = 2.0, eplatheight = 0;
+                float eheight = T_YDIST, eplatheight = 0;
 
                 // get the height of the entity
                 if ( e->animation->platform )
