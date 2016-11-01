@@ -126,73 +126,73 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_AT_CMD, "@cmd");
     LIST_ADD(CMD_MODEL_AT_SCRIPT, "@script");
     LIST_ADD(CMD_MODEL_ATCHAIN, "atchain");
-    LIST_ADD(CMD_MODEL_ATTACK, "attack");
-    LIST_ADD(CMD_MODEL_ATTACK_BLOCK_COST,                       "attack.block.cost");                       // guardcost
-    LIST_ADD(CMD_MODEL_ATTACK_BLOCK_PENETRATE,                  "attack.block.penetrate");                  // no_block
-    LIST_ADD(CMD_MODEL_ATTACK_COUNTER,                          "attack.counter");
-    LIST_ADD(CMD_MODEL_ATTACK_DAMAGE_FORCE,                     "attack.damage.force");
-    LIST_ADD(CMD_MODEL_ATTACK_DAMAGE_LAND_FORCE,                "attack.damage.land.force");
-    LIST_ADD(CMD_MODEL_ATTACK_DAMAGE_LAND_MODE,                 "attack.damage.land.mode");
-    LIST_ADD(CMD_MODEL_ATTACK_DAMAGE_LETHAL_DISABLE,            "attack.damage.lethal.disable");            // No_kill / Only fall to 1 HP.
-    LIST_ADD(CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_FORCE,           "attack.damage.recursive.force");
-    LIST_ADD(CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_INDEX,           "attack.damage.recursive.index");
-    LIST_ADD(CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_MODE,            "attack.damage.recursive.mode");
-    LIST_ADD(CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_TIME_EXPIRE,     "attack.damage.recursive.time");
-    LIST_ADD(CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_TIME_RATE,       "attack.damage.recursive.rate");
-    LIST_ADD(CMD_MODEL_ATTACK_DAMAGE_STEAL,                     "attack.damage.steal");
-    LIST_ADD(CMD_MODEL_ATTACK_DAMAGE_TYPE,                      "attack.damage.type");
-    LIST_ADD(CMD_MODEL_ATTACK_EFFECT_BLOCK_FLASH,               "attack.effect.block.flash.model");
-    LIST_ADD(CMD_MODEL_ATTACK_EFFECT_BLOCK_SOUND,               "attack.effect.block.sound.path");
-    LIST_ADD(CMD_MODEL_ATTACK_EFFECT_HIT_FLASH,                 "attack.effect.hit.flash.model");
-    LIST_ADD(CMD_MODEL_ATTACK_EFFECT_HIT_FLASH_DISABLE,         "attack.effect.hit.flash.disable");
-    LIST_ADD(CMD_MODEL_ATTACK_EFFECT_HIT_SOUND,                 "attack.effect.hit.sound.path");
-    LIST_ADD(CMD_MODEL_ATTACK_GROUND,                           "attack.ground.mode");                       // otg
-    LIST_ADD(CMD_MODEL_ATTACK_MAP_INDEX,                        "attack.map.index");                        // Forcemap.
-    LIST_ADD(CMD_MODEL_ATTACK_MAP_TIME,                         "attack.map.time");                         // Forcemap time.
-    LIST_ADD(CMD_MODEL_ATTACK_POSITION_X,                       "attack.position.x");
-    LIST_ADD(CMD_MODEL_ATTACK_POSITION_Y,                       "attack.position.y");
-    LIST_ADD(CMD_MODEL_ATTACK_REACTION_FALL_FORCE,              "attack.reaction.fall.force");              // Knockdown power
-    LIST_ADD(CMD_MODEL_ATTACK_REACTION_FALL_VELOCITY_X,         "attack.reaction.fall.velocity.x");
-    LIST_ADD(CMD_MODEL_ATTACK_REACTION_FALL_VELOCITY_Y,         "attack.reaction.fall.velocity.y");
-    LIST_ADD(CMD_MODEL_ATTACK_REACTION_FALL_VELOCITY_Z,         "attack.reaction.fall.velocity.z");
-    LIST_ADD(CMD_MODEL_ATTACK_REACTION_FREEZE_MODE,             "attack.reaction.freeze.mode");             // Freeze
-    LIST_ADD(CMD_MODEL_ATTACK_REACTION_FREEZE_TIME,             "attack.reaction.freeze.time");             // Freeze time
-    LIST_ADD(CMD_MODEL_ATTACK_REACTION_INVINCIBLE_TIME,         "attack.reaction.invincible.time");
-    LIST_ADD(CMD_MODEL_ATTACK_REACTION_PAIN_SKIP,               "attack.reaction.pain.disable");            // No reflect / No pain
-    LIST_ADD(CMD_MODEL_ATTACK_REACTION_PAUSE_TIME,              "attack.reaction.pause.time");              // Pause add
-    LIST_ADD(CMD_MODEL_ATTACK_REACTION_REPOSITION_DIRECTION,    "attack.reaction.reposition.direction");
-    LIST_ADD(CMD_MODEL_ATTACK_REACTION_REPOSITION_DISTANCE,     "attack.reaction.reposition.distance");     // Grabin distance
-    LIST_ADD(CMD_MODEL_ATTACK_REACTION_REPOSITION_MODE,         "attack.reaction.reposition.mode");         // Grabin
-    LIST_ADD(CMD_MODEL_ATTACK_SEAL_COST,                        "attack.seal.cost");                        // Seal max cost.
-    LIST_ADD(CMD_MODEL_ATTACK_SEAL_TIME,                        "attack.seal.time");
-    LIST_ADD(CMD_MODEL_ATTACK_SIZE_X,                           "attack.size.x");
-    LIST_ADD(CMD_MODEL_ATTACK_SIZE_Y,                           "attack.size.y");
-    LIST_ADD(CMD_MODEL_ATTACK_SIZE_Z_1,                         "attack.size.z.1");
-    LIST_ADD(CMD_MODEL_ATTACK_SIZE_Z_2,                         "attack.size.z.2");
-    LIST_ADD(CMD_MODEL_ATTACK_STAYDOWN_RISE,                    "attack.staydown.rise.time");
-    LIST_ADD(CMD_MODEL_ATTACK_STAYDOWN_RISEATTACK,              "attack.staydown.attack.time");
-    LIST_ADD(CMD_MODEL_ATTACK_TAG,                              "attack.tag");
-    LIST_ADD(CMD_MODEL_ATTACK1, "attack1");
-    LIST_ADD(CMD_MODEL_ATTACK2, "attack2");
-    LIST_ADD(CMD_MODEL_ATTACK3, "attack3");
-    LIST_ADD(CMD_MODEL_ATTACK4, "attack4");
-    LIST_ADD(CMD_MODEL_ATTACK5, "attack5");
-    LIST_ADD(CMD_MODEL_ATTACK6, "attack6");
-    LIST_ADD(CMD_MODEL_ATTACK7, "attack7");
-    LIST_ADD(CMD_MODEL_ATTACK8, "attack8");
-    LIST_ADD(CMD_MODEL_ATTACK9, "attack9");
-    LIST_ADD(CMD_MODEL_ATTACK10, "attack10");
+    LIST_ADD(CMD_MODEL_COLLISION, "attack");
+    LIST_ADD(CMD_MODEL_COLLISION_BLOCK_COST,                       "attack.block.cost");                       // guardcost
+    LIST_ADD(CMD_MODEL_COLLISION_BLOCK_PENETRATE,                  "attack.block.penetrate");                  // no_block
+    LIST_ADD(CMD_MODEL_COLLISION_COUNTER,                          "attack.counter");
+    LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_FORCE,                     "attack.damage.force");
+    LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_LAND_FORCE,                "attack.damage.land.force");
+    LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_LAND_MODE,                 "attack.damage.land.mode");
+    LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_LETHAL_DISABLE,            "attack.damage.lethal.disable");            // No_kill / Only fall to 1 HP.
+    LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_FORCE,           "attack.damage.recursive.force");
+    LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_INDEX,           "attack.damage.recursive.index");
+    LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_MODE,            "attack.damage.recursive.mode");
+    LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_EXPIRE,     "attack.damage.recursive.time");
+    LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_RATE,       "attack.damage.recursive.rate");
+    LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_STEAL,                     "attack.damage.steal");
+    LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_TYPE,                      "attack.damage.type");
+    LIST_ADD(CMD_MODEL_COLLISION_EFFECT_BLOCK_FLASH,               "attack.effect.block.flash.model");
+    LIST_ADD(CMD_MODEL_COLLISION_EFFECT_BLOCK_SOUND,               "attack.effect.block.sound.path");
+    LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_FLASH,                 "attack.effect.hit.flash.model");
+    LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_DISABLE,         "attack.effect.hit.flash.disable");
+    LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_SOUND,                 "attack.effect.hit.sound.path");
+    LIST_ADD(CMD_MODEL_COLLISION_GROUND,                           "attack.ground.mode");                       // otg
+    LIST_ADD(CMD_MODEL_COLLISION_MAP_INDEX,                        "attack.map.index");                        // Forcemap.
+    LIST_ADD(CMD_MODEL_COLLISION_MAP_TIME,                         "attack.map.time");                         // Forcemap time.
+    LIST_ADD(CMD_MODEL_COLLISION_POSITION_X,                       "attack.position.x");
+    LIST_ADD(CMD_MODEL_COLLISION_POSITION_Y,                       "attack.position.y");
+    LIST_ADD(CMD_MODEL_COLLISION_REACTION_FALL_FORCE,              "attack.reaction.fall.force");              // Knockdown power
+    LIST_ADD(CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_X,         "attack.reaction.fall.velocity.x");
+    LIST_ADD(CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Y,         "attack.reaction.fall.velocity.y");
+    LIST_ADD(CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Z,         "attack.reaction.fall.velocity.z");
+    LIST_ADD(CMD_MODEL_COLLISION_REACTION_FREEZE_MODE,             "attack.reaction.freeze.mode");             // Freeze
+    LIST_ADD(CMD_MODEL_COLLISION_REACTION_FREEZE_TIME,             "attack.reaction.freeze.time");             // Freeze time
+    LIST_ADD(CMD_MODEL_COLLISION_REACTION_INVINCIBLE_TIME,         "attack.reaction.invincible.time");
+    LIST_ADD(CMD_MODEL_COLLISION_REACTION_PAIN_SKIP,               "attack.reaction.pain.disable");            // No reflect / No pain
+    LIST_ADD(CMD_MODEL_COLLISION_REACTION_PAUSE_TIME,              "attack.reaction.pause.time");              // Pause add
+    LIST_ADD(CMD_MODEL_COLLISION_REACTION_REPOSITION_DIRECTION,    "attack.reaction.reposition.direction");
+    LIST_ADD(CMD_MODEL_COLLISION_REACTION_REPOSITION_DISTANCE,     "attack.reaction.reposition.distance");     // Grabin distance
+    LIST_ADD(CMD_MODEL_COLLISION_REACTION_REPOSITION_MODE,         "attack.reaction.reposition.mode");         // Grabin
+    LIST_ADD(CMD_MODEL_COLLISION_SEAL_COST,                        "attack.seal.cost");                        // Seal max cost.
+    LIST_ADD(CMD_MODEL_COLLISION_SEAL_TIME,                        "attack.seal.time");
+    LIST_ADD(CMD_MODEL_COLLISION_SIZE_X,                           "attack.size.x");
+    LIST_ADD(CMD_MODEL_COLLISION_SIZE_Y,                           "attack.size.y");
+    LIST_ADD(CMD_MODEL_COLLISION_SIZE_Z_1,                         "attack.size.z.1");
+    LIST_ADD(CMD_MODEL_COLLISION_SIZE_Z_2,                         "attack.size.z.2");
+    LIST_ADD(CMD_MODEL_COLLISION_STAYDOWN_RISE,                    "attack.staydown.rise.time");
+    LIST_ADD(CMD_MODEL_COLLISION_STAYDOWN_RISEATTACK,              "attack.staydown.attack.time");
+    LIST_ADD(CMD_MODEL_COLLISION_TAG,                              "attack.tag");
+    LIST_ADD(CMD_MODEL_COLLISION1, "attack1");
+    LIST_ADD(CMD_MODEL_COLLISION2, "attack2");
+    LIST_ADD(CMD_MODEL_COLLISION3, "attack3");
+    LIST_ADD(CMD_MODEL_COLLISION4, "attack4");
+    LIST_ADD(CMD_MODEL_COLLISION5, "attack5");
+    LIST_ADD(CMD_MODEL_COLLISION6, "attack6");
+    LIST_ADD(CMD_MODEL_COLLISION7, "attack7");
+    LIST_ADD(CMD_MODEL_COLLISION8, "attack8");
+    LIST_ADD(CMD_MODEL_COLLISION9, "attack9");
+    LIST_ADD(CMD_MODEL_COLLISION10, "attack10");
 
     // Attacks 10+
     for(i = 11; i <= amax; i++)
     {
         sprintf(buf, "attack%d", i);
-        LIST_ADD(CMD_MODEL_ATTACK_ETC, buf);
+        LIST_ADD(CMD_MODEL_COLLISION_ETC, buf);
     }
 
-    LIST_ADD(CMD_MODEL_ATTACKONE, "attackone");
+    LIST_ADD(CMD_MODEL_COLLISIONONE, "attackone");
     LIST_ADD(CMD_MODEL_ATTACKTHROTTLE, "attackthrottle");
-    LIST_ADD(CMD_MODEL_ATTACKZ, "attackz");
+    LIST_ADD(CMD_MODEL_COLLISIONZ, "attackz");
     LIST_ADD(CMD_MODEL_BACKPAIN, "backpain");
     LIST_ADD(CMD_MODEL_BACKPAIN, "nohithead");
     LIST_ADD(CMD_MODEL_BBOX, "bbox");

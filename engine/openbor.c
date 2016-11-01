@@ -9121,7 +9121,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_CHARGETIME:
                 newanim->chargetime = GET_FLOAT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACKONE:
+            case CMD_MODEL_COLLISIONONE:
                 newanim->attackone = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COUNTERATTACK:
@@ -9606,61 +9606,61 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             // 2016-10-11
             // Caskey, Damon
             // Broken down attack commands.
-            case CMD_MODEL_ATTACK_BLOCK_COST:
+            case CMD_MODEL_COLLISION_BLOCK_COST:
                 attack.guardcost = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_BLOCK_PENETRATE:
+            case CMD_MODEL_COLLISION_BLOCK_PENETRATE:
                 attack.no_block = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_COUNTER:
+            case CMD_MODEL_COLLISION_COUNTER:
                 attack.counterattack = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_DAMAGE_FORCE:
+            case CMD_MODEL_COLLISION_DAMAGE_FORCE:
                 attack.attack_force = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_DAMAGE_LAND_FORCE:
+            case CMD_MODEL_COLLISION_DAMAGE_LAND_FORCE:
                 attack.damage_on_landing = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_DAMAGE_LAND_MODE:
+            case CMD_MODEL_COLLISION_DAMAGE_LAND_MODE:
                 attack.blast = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_DAMAGE_LETHAL_DISABLE:
+            case CMD_MODEL_COLLISION_DAMAGE_LETHAL_DISABLE:
                 attack.no_kill = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_DAMAGE_STEAL:
+            case CMD_MODEL_COLLISION_DAMAGE_STEAL:
                 attack.steal = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_DAMAGE_TYPE:
+            case CMD_MODEL_COLLISION_DAMAGE_TYPE:
                 attack.attack_type = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_FORCE:
+            case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_FORCE:
                 recursive.force = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_INDEX:
+            case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_INDEX:
                 recursive.index = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_MODE:
+            case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_MODE:
                 recursive.mode = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_TIME_RATE:
+            case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_RATE:
                 recursive.rate = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_DAMAGE_RECURSIVE_TIME_EXPIRE:
+            case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_EXPIRE:
                 recursive.time = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_REACTION_FALL_FORCE:
+            case CMD_MODEL_COLLISION_REACTION_FALL_FORCE:
                 attack.attack_drop = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_REACTION_FALL_VELOCITY_X:
+            case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_X:
                 attack.dropv.x = GET_FLOAT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_REACTION_FALL_VELOCITY_Y:
+            case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Y:
                 attack.dropv.y = GET_FLOAT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_REACTION_FALL_VELOCITY_Z:
+            case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Z:
                 attack.dropv.z = GET_FLOAT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_EFFECT_BLOCK_FLASH:
+            case CMD_MODEL_COLLISION_EFFECT_BLOCK_FLASH:
 
                 value = GET_ARG(1);
 
@@ -9674,7 +9674,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
 
-            case CMD_MODEL_ATTACK_EFFECT_BLOCK_SOUND:
+            case CMD_MODEL_COLLISION_EFFECT_BLOCK_SOUND:
 
                 value = GET_ARG(1);
 
@@ -9688,7 +9688,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
 
-            case CMD_MODEL_ATTACK_EFFECT_HIT_FLASH:
+            case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH:
 
                 value = GET_ARG(1);
 
@@ -9702,11 +9702,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
 
-            case CMD_MODEL_ATTACK_EFFECT_HIT_FLASH_DISABLE:
+            case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_DISABLE:
                 attack.no_flash = GET_INT_ARG(1);
                 break;
 
-            case CMD_MODEL_ATTACK_EFFECT_HIT_SOUND:
+            case CMD_MODEL_COLLISION_EFFECT_HIT_SOUND:
 
                 value = GET_ARG(1);
 
@@ -9719,86 +9719,86 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     attack.hitsound = sound_load_sample(value, packfile, 1);
                 }
                 break;
-            case CMD_MODEL_ATTACK_GROUND:
+            case CMD_MODEL_COLLISION_GROUND:
                 attack.otg = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_MAP_INDEX:
+            case CMD_MODEL_COLLISION_MAP_INDEX:
                 attack.forcemap = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_MAP_TIME:
+            case CMD_MODEL_COLLISION_MAP_TIME:
                 attack.maptime = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_POSITION_X:
+            case CMD_MODEL_COLLISION_POSITION_X:
                 abox.x = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_POSITION_Y:
+            case CMD_MODEL_COLLISION_POSITION_Y:
                 abox.y = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_REACTION_FREEZE_MODE:
+            case CMD_MODEL_COLLISION_REACTION_FREEZE_MODE:
                 attack.freeze = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_REACTION_FREEZE_TIME:
+            case CMD_MODEL_COLLISION_REACTION_FREEZE_TIME:
                 attack.freezetime = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_REACTION_INVINCIBLE_TIME:
+            case CMD_MODEL_COLLISION_REACTION_INVINCIBLE_TIME:
                 attack.pain_time = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_REACTION_REPOSITION_DISTANCE:
+            case CMD_MODEL_COLLISION_REACTION_REPOSITION_DISTANCE:
                 attack.grab_distance = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_REACTION_REPOSITION_MODE:
+            case CMD_MODEL_COLLISION_REACTION_REPOSITION_MODE:
                 attack.grab = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_REACTION_PAIN_SKIP:
+            case CMD_MODEL_COLLISION_REACTION_PAIN_SKIP:
                 attack.no_pain = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_REACTION_PAUSE_TIME:
+            case CMD_MODEL_COLLISION_REACTION_PAUSE_TIME:
                 attack.pause_add = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_SEAL_COST:
+            case CMD_MODEL_COLLISION_SEAL_COST:
                 attack.seal = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_SEAL_TIME:
+            case CMD_MODEL_COLLISION_SEAL_TIME:
                 attack.sealtime = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_SIZE_X:
+            case CMD_MODEL_COLLISION_SIZE_X:
                 abox.width = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_SIZE_Y:
+            case CMD_MODEL_COLLISION_SIZE_Y:
                 abox.height = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_SIZE_Z_1:
+            case CMD_MODEL_COLLISION_SIZE_Z_1:
                 attack.coords.z1 = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_SIZE_Z_2:
+            case CMD_MODEL_COLLISION_SIZE_Z_2:
                 attack.coords.z2 = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_STAYDOWN_RISE:
+            case CMD_MODEL_COLLISION_STAYDOWN_RISE:
                 attack.staydown.rise = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_STAYDOWN_RISEATTACK:
+            case CMD_MODEL_COLLISION_STAYDOWN_RISEATTACK:
                 attack.staydown.riseattack = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK_TAG:
+            case CMD_MODEL_COLLISION_TAG:
                 attack.tag = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_ATTACK:
-            case CMD_MODEL_ATTACK1:
-            case CMD_MODEL_ATTACK2:
-            case CMD_MODEL_ATTACK3:
-            case CMD_MODEL_ATTACK4:
-            case CMD_MODEL_ATTACK5:
-            case CMD_MODEL_ATTACK6:
-            case CMD_MODEL_ATTACK7:
-            case CMD_MODEL_ATTACK8:
-            case CMD_MODEL_ATTACK9:
-            case CMD_MODEL_ATTACK10:
+            case CMD_MODEL_COLLISION:
+            case CMD_MODEL_COLLISION1:
+            case CMD_MODEL_COLLISION2:
+            case CMD_MODEL_COLLISION3:
+            case CMD_MODEL_COLLISION4:
+            case CMD_MODEL_COLLISION5:
+            case CMD_MODEL_COLLISION6:
+            case CMD_MODEL_COLLISION7:
+            case CMD_MODEL_COLLISION8:
+            case CMD_MODEL_COLLISION9:
+            case CMD_MODEL_COLLISION10:
             case CMD_MODEL_SHOCK:
             case CMD_MODEL_BURN:
             case CMD_MODEL_STEAL:
             case CMD_MODEL_FREEZE:
             case CMD_MODEL_ITEMBOX:
-            case CMD_MODEL_ATTACK_ETC:
+            case CMD_MODEL_COLLISION_ETC:
                 abox.x = GET_INT_ARG(1);
                 abox.y = GET_INT_ARG(2);
                 abox.width = GET_INT_ARG(3);
@@ -9817,35 +9817,35 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 switch(cmd)
                 {
-                case CMD_MODEL_ATTACK:
-                case CMD_MODEL_ATTACK1:
+                case CMD_MODEL_COLLISION:
+                case CMD_MODEL_COLLISION1:
                     attack.attack_type = ATK_NORMAL;
                     break;
-                case CMD_MODEL_ATTACK2:
+                case CMD_MODEL_COLLISION2:
                     attack.attack_type  = ATK_NORMAL2;
                     break;
-                case CMD_MODEL_ATTACK3:
+                case CMD_MODEL_COLLISION3:
                     attack.attack_type  = ATK_NORMAL3;
                     break;
-                case CMD_MODEL_ATTACK4:
+                case CMD_MODEL_COLLISION4:
                     attack.attack_type  = ATK_NORMAL4;
                     break;
-                case CMD_MODEL_ATTACK5:
+                case CMD_MODEL_COLLISION5:
                     attack.attack_type  = ATK_NORMAL5;
                     break;
-                case CMD_MODEL_ATTACK6:
+                case CMD_MODEL_COLLISION6:
                     attack.attack_type  = ATK_NORMAL6;
                     break;
-                case CMD_MODEL_ATTACK7:
+                case CMD_MODEL_COLLISION7:
                     attack.attack_type  = ATK_NORMAL7;
                     break;
-                case CMD_MODEL_ATTACK8:
+                case CMD_MODEL_COLLISION8:
                     attack.attack_type  = ATK_NORMAL8;
                     break;
-                case CMD_MODEL_ATTACK9:
+                case CMD_MODEL_COLLISION9:
                     attack.attack_type  = ATK_NORMAL9;
                     break;
-                case CMD_MODEL_ATTACK10:
+                case CMD_MODEL_COLLISION10:
                     attack.attack_type  = ATK_NORMAL10;
                     break;
                 case CMD_MODEL_SHOCK:
@@ -9877,7 +9877,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     attack.attack_type = tempInt + STA_ATKS - 1;
                 }
                 break;
-            case CMD_MODEL_ATTACKZ:
+            case CMD_MODEL_COLLISIONZ:
             case CMD_MODEL_HITZ:
                 attack.coords.z1 = GET_INT_ARG(1);
                 attack.coords.z2 = GET_INT_ARG(2);
