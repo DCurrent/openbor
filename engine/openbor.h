@@ -532,7 +532,7 @@ typedef enum
     ANI_PROP_ANIMHITS,     // Does the attack need to hit before cancel is allowed?
     ANI_PROP_ANTIGRAV,     // UT: make dive a similar property as antigravity.
     ANI_PROP_ATTACK,
-    ANI_PROP_ATTACKONE,    // stick on the only one victim
+    ANI_PROP_COLLISIONONE,    // stick on the only one victim
     ANI_PROP_BODY_COLLISION,
     ANI_PROP_BOUNCE,       //FLOAT -tossv/bounce = new tossv
     ANI_PROP_CANCEL,       // Cancel anims with freespecial

@@ -4695,7 +4695,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
             break;
 
-        case ANI_PROP_ATTACKONE:
+        case ANI_PROP_COLLISIONONE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->attackone;
@@ -12664,7 +12664,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_PROP_ANIMHITS)
         ICMPCONST(ANI_PROP_ANTIGRAV)
         ICMPCONST(ANI_PROP_ATTACK)
-        ICMPCONST(ANI_PROP_ATTACKONE)
+        ICMPCONST(ANI_PROP_COLLISIONONE)
         ICMPCONST(ANI_PROP_BODY_COLLISION)
         ICMPCONST(ANI_PROP_BOUNCE)
         ICMPCONST(ANI_PROP_CANCEL)
