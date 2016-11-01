@@ -10762,6 +10762,8 @@ void load_model_constants()
     max_attacks      = MAX_ATTACKS;
     max_animations   = MAX_ANIS;
 
+    max_collisons    = MAX_COLLISIONS;
+
     // free old values
     if(animspecials)
     {
@@ -10865,6 +10867,14 @@ void load_model_constants()
             cmd = getModelCommand(modelstxtcmdlist, command);
             switch(cmd)
             {
+            case CMD_MODELSTXT_MAX_COLLISIONS:
+                // max collision boxes.
+                max_collisons = GET_INT_ARG(1);
+                if(max_collisons < MAX_COLLISIONS)
+                {
+                    max_collisons = MAX_COLLISIONS;
+                }
+                break;
             case CMD_MODELSTXT_MAXIDLES:
                 // max idle stances
                 max_idles = GET_INT_ARG(1);
