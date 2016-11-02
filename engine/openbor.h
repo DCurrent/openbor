@@ -113,7 +113,6 @@ movement restirctions are here!
 // PLAY/REC INPUT vars
 typedef struct InputKeys
 {
-    u32 prevkeys[MAX_PLAYERS];
     u32 keys[MAX_PLAYERS];
     u32 newkeys[MAX_PLAYERS];
     u32 releasekeys[MAX_PLAYERS];
@@ -121,6 +120,7 @@ typedef struct InputKeys
     u32 time;
     u32 interval;
     u32 synctime;
+    unsigned long seed;
 } RecKeys;
 
 typedef enum
