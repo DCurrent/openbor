@@ -29380,7 +29380,7 @@ int recordInputs()
             free(playrecstatus->buffer);
             playrecstatus->buffer = NULL;
         }
-        playrecstatus->buffer = (RecKeys*)calloc(window+time*sizeof(RecKeys),sizeof(RecKeys));
+        playrecstatus->buffer = (RecKeys*)calloc(window+playrecstatus->synctime*sizeof(RecKeys),sizeof(RecKeys));
         if (playrecstatus->buffer == NULL)
         {
             printf("Error to allocate buffer in record inputs mode.\n");
@@ -29393,57 +29393,35 @@ int recordInputs()
     }
     else
     {
-        if ( time%window >= window-2 ) // last is NULL bytes
+        if ( playrecstatus->synctime%window >= window-2 ) // last is NULL bytes
         {
-            playrecstatus->buffer = (RecKeys*)realloc(playrecstatus->buffer,sizeof(RecKeys)*((int)(trunc(time/window)+1)*window+window));
+            playrecstatus->buffer = (RecKeys*)realloc(playrecstatus->buffer,sizeof(RecKeys)*((int)(trunc(playrecstatus->synctime/window)+1)*window+window));
             if (playrecstatus->buffer == NULL)
             {
                 printf("Error to allocate buffer in record inputs mode.\n");
                 return 0;
-            } else memset(playrecstatus->buffer+(time+1),0,(int)(trunc(time/window)+1)*window+window-(time+1)-1); // -2 becouse -1 is to 0 to size-1
+            } else memset(playrecstatus->buffer+(playrecstatus->synctime+1),0,(int)(trunc(playrecstatus->synctime/window)+1)*window+window-(playrecstatus->synctime+1)-1); // -2 becouse -1 is to 0 to size-1
         }
     }
 
     // now rec!
     if(playrecstatus->buffer && playrecstatus->begin)
     {
-        if( time > 0 )
-        {
-            RecKeys prevreckey;
-
-            memcpy( &prevreckey, &playrecstatus->buffer[time-1], sizeof(prevreckey) );
-            for ( p = 0; p < MAX_PLAYERS; p++ )
-            {
-                reckey.prevkeys[p] = prevreckey.keys[p];
-            }
-        }
-
-        // the time unit can last longer than 1 tick/synctime and so we need to OR a possible backdata
-        //RETRIEVE POSSIBLE BACKDATA
-        memcpy( &reckey, &playrecstatus->buffer[time], sizeof(reckey) );
         for ( p = 0; p < MAX_PLAYERS; p++ )
         {
-            player[p].keys        |= reckey.keys[p];
-            player[p].newkeys     |= reckey.newkeys[p];
-            player[p].releasekeys |= reckey.releasekeys[p];
-            player[p].playkeys    |= reckey.playkeys[p];
-        }
-
-        // ATTACH DATA
-        for ( p = 0; p < MAX_PLAYERS; p++ )
-        {
-            reckey.keys[p]        |= player[p].keys;
-            reckey.newkeys[p]     |= player[p].newkeys;
-            reckey.releasekeys[p] |= player[p].releasekeys;
-            reckey.playkeys[p]    |= player[p].playkeys;
+            reckey.keys[p]        = player[p].keys;
+            reckey.newkeys[p]     = player[p].newkeys;
+            reckey.releasekeys[p] = player[p].releasekeys;
+            reckey.playkeys[p]    = player[p].playkeys;
         }
         reckey.time     = time;
         reckey.interval = interval;
         reckey.synctime = playrecstatus->synctime;
-        memcpy( &playrecstatus->buffer[time], &reckey, sizeof(reckey) );
+        reckey.seed     = getseed();
+        memcpy( &playrecstatus->buffer[playrecstatus->synctime], &reckey, sizeof(reckey) );
     }
 
-    if ( time >= max_rec_time ) stopRecordInputs();
+    if ( time >= max_rec_time ) stopRecordInputs(); // safe
     if(playrecstatus->status == A_REC_REC) ++playrecstatus->synctime;
 
     //debug_printf("time: %d sync: %d",(u32)time,(u32)playrecstatus->synctime);
@@ -29461,7 +29439,7 @@ int playRecordedInputs()
     char header[6];
 
     if(playrecstatus->status != A_REC_PLAY) return 0;
-    if ( time >= playrecstatus->starttime && !playrecstatus->begin )
+    if ( !playrecstatus->begin ) //time >= playrecstatus->starttime &&
     {
         if ( strlen(playrecstatus->path) <= 0 ) getBasePath(path, "Saves", 0);
         else strcpy(path,playrecstatus->path);
@@ -29519,62 +29497,66 @@ int playRecordedInputs()
     // now play!
     if(playrecstatus->buffer && playrecstatus->begin)
     {
-        memcpy( &reckey, &playrecstatus->buffer[time], sizeof(reckey) );
+        memcpy( &reckey, &playrecstatus->buffer[playrecstatus->synctime], sizeof(reckey) );
 
-        // IMPORTANT: sync!!
-        if ( time != reckey.time )
+        if( time != reckey.time )
         {
-            u32 nexttime = time;
+            u32 nextsynctime = reckey.synctime;
 
             //time = (u32)reckey.time;
             printf("Play recorded inputs: Out of sync! Time: %d, RecTime: %d\n",time,reckey.time);
-            if ( interval != reckey.interval )
+            /*if ( interval != reckey.interval )
             {
                 //interval = (u32)reckey.interval;
                 printf("Play recorded inputs: Out of sync! Interval: %d, RecInterval: %d\n",interval,reckey.interval);
-            }
+            }*/
 
-            while( nexttime != reckey.time && nexttime < playrecstatus->endtime ) {
-                memcpy( &reckey, &playrecstatus->buffer[++nexttime], sizeof(reckey) );
+            while( time > reckey.time && nextsynctime > 0 ) {
+                memcpy( &reckey, &playrecstatus->buffer[--nextsynctime], sizeof(reckey) );
             }
-            time = nexttime;
+            time = reckey.time;
+
+            while( time < reckey.time && nextsynctime < playrecstatus->totsynctime ) {
+                memcpy( &reckey, &playrecstatus->buffer[++nextsynctime], sizeof(reckey) );
+            }
+            time = reckey.time;
         }
 
         if ( time == reckey.time )
         {
-            /*if ( playrecstatus->synctime != reckey.synctime )
+            if ( playrecstatus->synctime != reckey.synctime )
             {
-                u32 nexttime = time;
-
-                while( playrecstatus->synctime < reckey.synctime && nexttime > 0 ) {
-                    memcpy( &reckey, &playrecstatus->buffer[--nexttime], sizeof(reckey) );
-                }
-                time = nexttime;
-
-                while( playrecstatus->synctime > reckey.synctime && nexttime < playrecstatus->endtime ) {
-                    memcpy( &reckey, &playrecstatus->buffer[++nexttime], sizeof(reckey) );
-                }
-                time = nexttime;
+                u32 nextsynctime = reckey.synctime;
 
                 printf("Play recorded inputs: Out of sync! SyncTime: %d, RecSyncTime: %d\n",playrecstatus->synctime,reckey.synctime);
-            }*/
 
-            interval = reckey.interval;
-            //playrecstatus->synctime = reckey.synctime;
+                while( playrecstatus->synctime > reckey.synctime && nextsynctime > 0 ) {
+                    memcpy( &reckey, &playrecstatus->buffer[--nextsynctime], sizeof(reckey) );
+                }
+                playrecstatus->synctime = reckey.synctime;
+
+                while( playrecstatus->synctime < reckey.synctime && nextsynctime < playrecstatus->totsynctime ) {
+                    memcpy( &reckey, &playrecstatus->buffer[++nextsynctime], sizeof(reckey) );
+                }
+                playrecstatus->synctime = reckey.synctime;
+            }
+
+            if ( interval != reckey.interval ) interval = reckey.interval;
+            srand32(reckey.seed);
             for ( p = 0; p < MAX_PLAYERS; p++ )
             {
                 player[p].keys        = reckey.keys[p];
                 player[p].newkeys     = reckey.newkeys[p];
                 player[p].releasekeys = reckey.releasekeys[p];
                 player[p].playkeys    = reckey.playkeys[p];
-                player[p].prevkeys    = reckey.prevkeys[p];
             }
             //inputrefresh(playrecstatus->status);
         }
     }
 
-    if ( time >= playrecstatus->endtime ) stopRecordInputs();
+    if ( playrecstatus->synctime >= playrecstatus->totsynctime ) stopRecordInputs();
     if(playrecstatus->status == A_REC_PLAY) ++playrecstatus->synctime;
+    //debug_printf("synctim: %d totsync: %d status:%d",playrecstatus->synctime,playrecstatus->totsynctime,playrecstatus->status);
 
     //debug_printf("time: %d sync: %d",(u32)time,(u32)playrecstatus->synctime);
     //debug_printf("keys: %d",player[0].releasekeys&FLAG_ATTACK);
@@ -29602,17 +29584,18 @@ int stopRecordInputs()
                     playrecstatus->handle = fopen(strcat(path,playrecstatus->filename), "wb+");
                     if(playrecstatus->handle)
                     {
+                        playrecstatus->endtime = time;
+
                         fwrite(header, 6, 1, playrecstatus->handle);
                         fwrite(&playrecstatus->starttime, sizeof(u32), 1, playrecstatus->handle);
-                        fwrite(&time, sizeof(u32), 1, playrecstatus->handle);
+                        fwrite(&playrecstatus->endtime, sizeof(u32), 1, playrecstatus->handle);
                         fwrite(&playrecstatus->synctime, sizeof(u32), 1, playrecstatus->handle);
                         fwrite(&playrecstatus->cseed, sizeof(u32), 1, playrecstatus->handle);
                         fwrite(&playrecstatus->seed, sizeof(unsigned long), 1, playrecstatus->handle);
-                        fwrite(playrecstatus->buffer, sizeof(RecKeys)*(time+1), 1, playrecstatus->handle);
+                        fwrite(playrecstatus->buffer, sizeof(RecKeys)*(playrecstatus->synctime+1), 1, playrecstatus->handle);
                         fflush(playrecstatus->handle); // safe
                         fclose(playrecstatus->handle);
                     } else return 0;
-                    playrecstatus->endtime = time;
 
                     free(playrecstatus->buffer);
                     playrecstatus->buffer = NULL;
@@ -29638,9 +29621,10 @@ int stopRecordInputs()
                 break;
             }
         }
+
+        playrecstatus->status = A_REC_STOP;
         playrecstatus->begin = 0;
         playrecstatus->synctime = 0;
-        playrecstatus->status = A_REC_STOP;
         freeRecordedInputs();
     } return 0;
 
