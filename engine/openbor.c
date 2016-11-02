@@ -29495,7 +29495,7 @@ int playRecordedInputs()
     }
 
     // now play!
-    if(playrecstatus->buffer && playrecstatus->begin)
+    if(playrecstatus->buffer && playrecstatus->begin && playrecstatus->synctime < playrecstatus->totsynctime)
     {
         memcpy( &reckey, &playrecstatus->buffer[playrecstatus->synctime], sizeof(reckey) );
 
@@ -29554,9 +29554,9 @@ int playRecordedInputs()
         }
     }
 
-    if ( playrecstatus->synctime >= playrecstatus->totsynctime ) stopRecordInputs();
-    if(playrecstatus->status == A_REC_PLAY) ++playrecstatus->synctime;
     //debug_printf("synctim: %d totsync: %d status:%d",playrecstatus->synctime,playrecstatus->totsynctime,playrecstatus->status);
+    if(playrecstatus->status == A_REC_PLAY) ++playrecstatus->synctime;
+    if ( playrecstatus->synctime >= playrecstatus->totsynctime || time >= playrecstatus->endtime ) stopRecordInputs();
 
     //debug_printf("time: %d sync: %d",(u32)time,(u32)playrecstatus->synctime);
     //debug_printf("keys: %d",player[0].releasekeys&FLAG_ATTACK);
@@ -29585,6 +29585,8 @@ int stopRecordInputs()
                     if(playrecstatus->handle)
                     {
                         playrecstatus->endtime = time;
+                        if (playrecstatus->synctime < 2) playrecstatus->synctime = 2;
+                        else playrecstatus->synctime -= 2;
 
                         fwrite(header, 6, 1, playrecstatus->handle);
                         fwrite(&playrecstatus->starttime, sizeof(u32), 1, playrecstatus->handle);
