@@ -3413,6 +3413,8 @@ enum entityproperty_enum
     _ep_defaultmodel,
     _ep_defaultname,
     _ep_defense,
+    _ep_destx,
+    _ep_destz,
     _ep_detect,
     _ep_direction,
     _ep_dot,
@@ -3591,6 +3593,8 @@ static const char *eplist[] =
     "defaultmodel",
     "defaultname",
     "defense",
+    "destx",
+    "destz",
     "detect",
     "direction",
     "dot",
@@ -6522,6 +6526,16 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
         break;
     }
+    case _ep_destx:
+    {
+        (*pretvar)->dblVal = (DOUBLE)ent->destx;
+        break;
+    }
+    case _ep_destz:
+    {
+        (*pretvar)->dblVal = (DOUBLE)ent->destz;
+        break;
+    }
     case _ep_detect:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -8428,6 +8442,22 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
             ent->defense[(int)ltemp].blocktype = dbltemp;
         }
 
+        break;
+    }
+    case _ep_destx:
+    {
+        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+        {
+            ent->destx = (int)dbltemp;
+        }
+        break;
+    }
+    case _ep_destz:
+    {
+        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+        {
+            ent->destz = (int)dbltemp;
+        }
         break;
     }
     case _ep_detect:
