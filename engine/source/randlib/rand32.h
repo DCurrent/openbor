@@ -9,12 +9,20 @@
 #ifndef RAND32_H
 #define RAND32_H
 
-extern unsigned long seed;
+// *** INCLUDES ***
+#include <limits.h>   // for CHAR_BIT
+#include <stdlib.h>   // for abs()
+#include "types.h"
+
+extern u64 seed;
 
 unsigned int rand32(void);
+void srand32(u64);
+float randf(float);
 
-void srand32(int n);
-unsigned long getseed();
+u64 getseed();
+u64 rotl64(u64, unsigned int);
+u64 rotr64(u64, unsigned int);
 
 #endif
 

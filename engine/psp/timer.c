@@ -23,6 +23,7 @@ unsigned timer_getinterval(unsigned freq)
 	unsigned tickspassed,ebx,blocksize;
 	u64 now;
 	sceRtcGetCurrentTick(&now);
+	now-=newticks;
 	ebx=now-lastinterval;
 	blocksize=GETTIME_FREQ/freq;
 	ebx+=GETTIME_FREQ%freq;
