@@ -266,7 +266,7 @@ u64 totalram = 0;
 u64 usedram = 0;
 u64 freeram = 0;
 u32 interval = 0;
-extern unsigned long seed;
+//extern u64 seed;
 
 int                 SAMPLE_GO			= -1;
 int                 SAMPLE_BEAT			= -1;
@@ -3696,21 +3696,6 @@ int inair(entity *e)
 {
     return (diff(e->position.y, e->base) >= 0.1);
 }
-
-
-
-float randf(float max)
-{
-    float f;
-    if(max == 0)
-    {
-        return 0;
-    }
-    f = (float)(rand32() % 10000);
-    f /= (10000 / max);
-    return f;
-}
-
 
 
 // ----------------------- Loaders ------------------------------
@@ -22145,7 +22130,9 @@ int common_try_jumpattack(entity *target)
 int common_try_grab(entity *other)
 {
     int trygrab(entity * t);
-    if( (rand() & 7) == 0 &&
+
+    // old rand()
+    if( (rand32() & 7) == 0 &&
             (validanim(self, ANI_THROW) ||
              validanim(self, ANI_GRAB)) && self->idling &&
             (other || (other = find_ent_here(self, self->position.x, self->position.z, self->modeldata.hostile, NULL))) &&
@@ -22462,9 +22449,12 @@ int common_trymove(float xdir, float zdir)
 
     // UT: move player grab logic here to bypass some extra checks
     // it used to be at the very end of this function
-    //------------------ grab/throw checking------------------
+    //------------------ grab/throw checking ------------------
+
+    //printf("rand(): %d rand32(): %d\n",rand(),rand32());
+    // old rand()
     if((self->modeldata.type & TYPE_PLAYER) &&
-            (rand() & 7) == 0 &&
+            (rand32() & 7) == 0 &&
             (validanim(self, ANI_THROW) ||
              validanim(self, ANI_GRAB)) && self->idling &&
             (other = find_ent_here(self, self->position.x, self->position.z, self->modeldata.hostile, NULL)))
