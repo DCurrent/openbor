@@ -20,7 +20,7 @@ void borTimerExit(){}
 unsigned timer_getinterval(unsigned freq)
 {
 	unsigned tickspassed,ebx,blocksize,now;
-	now=GetTickCount();
+	now=GetTickCount()-newticks;
 	ebx=now-lastinterval;
 	blocksize=GETTIME_FREQ/freq;
 	ebx+=GETTIME_FREQ%freq;
