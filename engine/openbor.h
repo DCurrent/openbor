@@ -120,7 +120,6 @@ typedef struct InputKeys
     u32 time;
     u32 interval;
     u32 synctime;
-    unsigned long seed;
 } RecKeys;
 
 typedef enum
@@ -142,6 +141,7 @@ typedef struct PlayRecStatus {
   u32 totsynctime;
   u32 cseed;
   unsigned long seed;
+  unsigned ticks;
   FILE *handle;
   RecKeys *buffer;
 } a_playrecstatus;
