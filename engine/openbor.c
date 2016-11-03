@@ -29380,6 +29380,7 @@ int recordInputs()
         playrecstatus->seed = getseed();
         playrecstatus->cseed = time;
         srand(time);
+        playrecstatus->ticks = timer_gettick();
     }
     else
     {
@@ -29407,7 +29408,7 @@ int recordInputs()
         reckey.time     = time;
         reckey.interval = interval;
         reckey.synctime = playrecstatus->synctime;
-        reckey.seed     = getseed();
+        //reckey.seed     = getseed();
         memcpy( &playrecstatus->buffer[playrecstatus->synctime], &reckey, sizeof(reckey) );
     }
 
@@ -29474,6 +29475,7 @@ int playRecordedInputs()
         fread(&playrecstatus->totsynctime, sizeof(u32), 1, playrecstatus->handle);
         fread(&playrecstatus->cseed, sizeof(u32), 1, playrecstatus->handle);
         fread(&playrecstatus->seed, sizeof(unsigned long), 1, playrecstatus->handle);
+        fread(&playrecstatus->ticks, sizeof(unsigned), 1, playrecstatus->handle);
         fread(playrecstatus->buffer, sizeof(RecKeys)*(playrecstatus->endtime+1), 1, playrecstatus->handle);
 
         // sync at start time
@@ -29482,6 +29484,7 @@ int playRecordedInputs()
         playrecstatus->begin = 1;
         srand(playrecstatus->cseed);
         srand32(playrecstatus->seed);
+        //set_ticks(timer_gettick()-playrecstatus->ticks);
     }
 
     // now play!
@@ -29532,7 +29535,7 @@ int playRecordedInputs()
             }
 
             if ( interval != reckey.interval ) interval = reckey.interval;
-            srand32(reckey.seed);
+            //srand32(reckey.seed);
             for ( p = 0; p < MAX_PLAYERS; p++ )
             {
                 player[p].keys        = reckey.keys[p];
@@ -29584,6 +29587,7 @@ int stopRecordInputs()
                         fwrite(&playrecstatus->synctime, sizeof(u32), 1, playrecstatus->handle);
                         fwrite(&playrecstatus->cseed, sizeof(u32), 1, playrecstatus->handle);
                         fwrite(&playrecstatus->seed, sizeof(unsigned long), 1, playrecstatus->handle);
+                        fwrite(&playrecstatus->ticks, sizeof(unsigned), 1, playrecstatus->handle);
                         fwrite(playrecstatus->buffer, sizeof(RecKeys)*(playrecstatus->synctime+1), 1, playrecstatus->handle);
                         fflush(playrecstatus->handle); // safe
                         fclose(playrecstatus->handle);
