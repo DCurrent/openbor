@@ -19821,14 +19821,14 @@ int set_death(entity *iDie, int type, int reset)
     }
     else if(validanim(iDie, animdies[type]))
     {
+        if ( iDie->inbackpain ) reset_backpain(iDie);
         iDie->inbackpain = 0;
-        reset_backpain(iDie);
         ent_set_anim(iDie, animdies[type], reset);
     }
     else if(validanim(iDie, animdies[0]))
     {
+        if ( iDie->inbackpain ) reset_backpain(iDie);
         iDie->inbackpain = 0;
-        reset_backpain(iDie);
         ent_set_anim(iDie, animdies[0], reset);
     }
     else
@@ -19872,14 +19872,14 @@ int set_fall(entity *iFall, int type, int reset, entity *other, int force, int d
     }
     else if( validanim(iFall, animfalls[type]) )
     {
+        if ( iFall->inbackpain ) reset_backpain(iFall);
         iFall->inbackpain = 0;
-        reset_backpain(iFall);
         ent_set_anim(iFall, animfalls[type], reset);
     }
     else if(validanim(iFall, animfalls[0]))
     {
+        if ( iFall->inbackpain ) reset_backpain(iFall);
         iFall->inbackpain = 0;
-        reset_backpain(iFall);
         ent_set_anim(iFall, animfalls[0], reset);
     }
     else
@@ -20008,11 +20008,12 @@ int check_backpain(entity* attacker, entity* defender) {
     if ( !defender->modeldata.backpain ) return 0;
     if ( defender->inpain ) return 0;
     if ( defender->falling ) return 0;
+    if ( defender->dead ) return 0;
     if ( ((!defender->direction && attacker->position.x > defender->position.x) || (defender->direction && attacker->position.x < defender->position.x)) )
     {
         defender->inbackpain = 1;
         return 1;
-    } else defender->inbackpain = 0;
+    } else if ( defender->inbackpain ) defender->inbackpain = 0;
 
     return 0;
 }
@@ -20048,20 +20049,20 @@ int set_pain(entity *iPain, int type, int reset)
     }
     else if( (type != -1 && type < max_attack_types) && validanim(iPain, animpains[type]) )
     {
+        if ( iPain->inbackpain ) reset_backpain(iPain);
         iPain->inbackpain = 0;
-        reset_backpain(iPain);
         ent_set_anim(iPain, animpains[type], reset);
     }
     else if(validanim(iPain, animpains[0]))
     {
+        if ( iPain->inbackpain ) reset_backpain(iPain);
         iPain->inbackpain = 0;
-        reset_backpain(iPain);
         ent_set_anim(iPain, animpains[0], reset);
     }
     else if(validanim(iPain, ANI_IDLE))
     {
+        if ( iPain->inbackpain ) reset_backpain(iPain);
         iPain->inbackpain = 0;
-        reset_backpain(iPain);
         ent_set_anim(iPain, ANI_IDLE, reset);
     }
     else
@@ -20074,8 +20075,8 @@ int set_pain(entity *iPain, int type, int reset)
     if(pain == ANI_GRABBED)
     {
         iPain->inpain = 0;
+        if ( iPain->inbackpain ) reset_backpain(iPain);
         iPain->inbackpain = 0;
-        reset_backpain(iPain);
     }
 
     execute_onpain_script(iPain, type, reset);
