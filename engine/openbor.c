@@ -24077,12 +24077,14 @@ int common_try_wander(entity *target, int dox, int doz)
     }
     mindz = grabd / 4;
 
-    mod = ((int)(time / (videomodes.hRes / self->modeldata.speed)) + self->sortid / 100 + self->health / 3 + self->pathblocked + self->modeldata.aggression / 10) % 4;
+    //mod = ((int)(time / (videomodes.hRes / self->modeldata.speed)) + self->sortid / 100 + self->health / 3 + self->pathblocked + self->modeldata.aggression / 10) % 4;
+    mod = ((int)(time / (videomodes.hRes / self->modeldata.speed)) + rand32() + self->health / 3 + self->pathblocked + self->modeldata.aggression / 10) % 4;
     if(mod < 0)
     {
         mod = -mod;
     }
-    if ((self->sortid / 100) % 2)
+    //if ((self->sortid / 100) % 2)
+    if (rand32() % 2)
     {
         mod = 3 - mod;
     }
@@ -24121,7 +24123,7 @@ int common_try_wander(entity *target, int dox, int doz)
                 self->destx = target->position.x + videomodes.hRes * 0.4 + (self->health / 3 % 20);
                 break;
             case 3:
-                self->destx = target->position.x - videomodes.hRes * 0.4 - (self->health / 3 % 20);;
+                self->destx = target->position.x - videomodes.hRes * 0.4 - (self->health / 3 % 20);
                 break;
             }
             self->velocity.x = self->position.x > self->destx ? -self->modeldata.speed : self->modeldata.speed;
@@ -24546,7 +24548,8 @@ int common_move()
         // find all possible entities for target
         // bad for optimization, but makes better sense
         target = normal_find_target(-1, 0); // confirm the target again
-        other = ((time / GAME_SPEED + self->health / 3 + self->sortid) % 15 < 10) ? normal_find_item() : NULL; // find an item
+        //other = ((time / GAME_SPEED + self->health / 3 + self->sortid) % 15 < 10) ? normal_find_item() : NULL; // find an item
+        other = ((time / GAME_SPEED + self->health / 3 + rand32()) % 15 < 10) ? normal_find_item() : NULL; // find an item
         owner = self->parent;
 
         // temporary solution to turn off running if xdir is not set
@@ -26517,7 +26520,7 @@ void player_think()
             self->velocity.x = 0;// OK you can use jumpframe to modify this anyway
             ent_set_anim(self, ANI_DODGE, 0);
             pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
-            goto endthinkcheck;;
+            goto endthinkcheck;
         }
     }
 
