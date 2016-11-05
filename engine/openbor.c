@@ -6727,13 +6727,17 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_JUMPDELAY;
     }
-    else if(stricmp(value, "hitwall") == 0)
+    else if(stricmp(value, "hitobstacle") == 0)
     {
-        ani_id = ANI_HITWALL;
+        ani_id = ANI_HITOBSTACLE;
     }
     else if(stricmp(value, "hitplatform") == 0)
     {
         ani_id = ANI_HITPLATFORM;
+    }
+    else if(stricmp(value, "hitwall") == 0)
+    {
+        ani_id = ANI_HITWALL;
     }
     else if(stricmp(value, "slide") == 0)
     {
@@ -7822,6 +7826,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     bbox_con = empty_body;
 
     drawmethod = plainmethod;  // better than memset it to 0
+
+    newchar->hitwalltype = -1; // init to -1
 
 
     //char* test = "load   knife 0";
@@ -9861,6 +9867,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     }
                     attack.attack_type = tempInt + STA_ATKS - 1;
                 }
+                break;
+            case CMD_MODEL_HITWALLTYPE:
+                value = GET_ARG(1);
+                newchar->hitwalltype = atoi(value);
                 break;
             case CMD_MODEL_COLLISIONZ:
             case CMD_MODEL_HITZ:
@@ -17948,6 +17958,35 @@ void do_attack(entity *e)
 #undef followed
 }
 
+static int is_obstacle_around(entity* ent, float threshold)
+{
+    int i, j;
+    int heightvar;
+
+    if(ent->animation->size.y)
+    {
+        heightvar = ent->animation->size.y;
+    }
+    else
+    {
+        heightvar = ent->modeldata.size.y;
+    }
+
+    for(i = -1; i <= 1; i++ )
+    {
+        for(j = -1; j <= 1; j++ )
+        {
+            int w;
+            entity *hito = find_ent_here(ent, ent->position.x+(i*threshold), ent->position.z+(j*threshold), (TYPE_OBSTACLE | TYPE_TRAP), NULL);
+            entity *hitp = check_platform_between(ent->position.x+(i*threshold), ent->position.z+(j*threshold), ent->position.y, ent->position.y + heightvar, ent);
+            int     hitw = (int)( (w = checkwall_below(ent->position.x+(i*threshold), ent->position.z+(j*threshold), 999999)) >= 0 && level->walls[w].height > ent->position.y );
+
+            if ( hito || hitp || hitw ) return 1;
+        }
+    }
+
+    return 0;
+}
 
 void check_gravity(entity *e)
 {
@@ -17969,17 +18008,23 @@ void check_gravity(entity *e)
 
     if(!is_frozen(self) )// Incase an entity is in the air, don't update animations
     {
+        if(self->animation->size.y)
+        {
+            heightvar = self->animation->size.y;
+        }
+        else
+        {
+            heightvar = self->modeldata.size.y;
+        }
+
+        // White Dragon: turn-off the hitwall flag  if you're not near a obstacle. this help to avoid a hit loop
+        if( (self->position.y <= self->base || !inair(self)) && self->velocity.y <= 0)
+        {
+            if ( self->hitwall && !is_obstacle_around(self,1.0) ) self->hitwall = 0;
+        }
+
         if((self->falling || self->velocity.y || self->position.y != self->base) && self->toss_time <= time)
         {
-            if(self->animation->size.y)
-            {
-                heightvar = self->animation->size.y;
-            }
-            else
-            {
-                heightvar = self->modeldata.size.y;
-            }
-
             if(heightvar && self->modeldata.subject_to_platform > 0 && self->velocity.y > 0)
             {
                 other = check_platform_above_entity(self);
@@ -18050,15 +18095,6 @@ void check_gravity(entity *e)
             {
                 self->position.y = self->base;
                 self->falling = 0;
-                // White Dragon: turn-off the hitwall flag  if you're not near a obstacle. this help to avoid a hit loop
-                if (self->hitwall)
-                {
-                    int w;
-                    entity *hito = find_ent_here(self, self->position.x, self->position.z, (TYPE_OBSTACLE | TYPE_TRAP), NULL);
-                    entity *hitp = check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self);
-                    int     hitw = (int)( (w = checkwall_below(self->position.x, self->position.z, 999999)) >= 0 && level->walls[w].height > self->position.y );
-                    if ( !hito && !hitp && !hitw ) self->hitwall = 0;
-                }
 
                 //self->projectile = 0;
                 // cust dust entity
@@ -22567,7 +22603,7 @@ int common_trymove(float xdir, float zdir)
                 (!other->animation->platform || !other->animation->platform[other->animpos][7]))
         {
             xdir    = 0;
-            hit |= 1;
+            if ( self->falling ) hit |= 1;
             te = other;
             execute_onblocko_script(self, other);
         }
@@ -22576,14 +22612,15 @@ int common_trymove(float xdir, float zdir)
                 (!other->animation->platform || !other->animation->platform[other->animpos][7]))
         {
             zdir    = 0;
-            hit |= 1;
+            if ( self->falling ) hit |= 1;
             if(te != other) //just in case they are the same obstacle
             {
                 execute_onblocko_script(self, other);
             }
         }
 
-        if ( hit ) self->hitwall = 1;
+        if ( hit && !self->hitwall && validanim(self, ANI_HITOBSTACLE) ) ent_set_anim(self, ANI_HITOBSTACLE, 0);
+        if ( hit && !self->hitwall ) self->hitwall = 1;
     }
 
     if(!xdir && !zdir)
@@ -22618,18 +22655,18 @@ int common_trymove(float xdir, float zdir)
         if(xdir && (other = check_platform_between(x, self->position.z, self->position.y, self->position.y + heightvar, self))  )
         {
             xdir = 0;
-            hit |= 1;
+            if ( self->falling ) hit |= 1;
             execute_onblockp_script(self, 1, other);
         }
         if(zdir && (other = check_platform_between(self->position.x, z, self->position.y, self->position.y + heightvar, self))  )
         {
             zdir = 0;
-            hit |= 1;
+            if ( self->falling ) hit |= 1;
             execute_onblockp_script(self, 2, other);
         }
 
         if ( hit && !self->hitwall && validanim(self, ANI_HITPLATFORM) ) ent_set_anim(self, ANI_HITPLATFORM, 0);
-        if ( hit ) self->hitwall = 1;
+        if ( hit && !self->hitwall ) self->hitwall = 1;
     }
 
     if(!xdir && !zdir)
@@ -22649,18 +22686,18 @@ int common_trymove(float xdir, float zdir)
         if(xdir && (wall = checkwall_below(x, self->position.z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
         {
             xdir = 0;
-            hit |= 1;
+            if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
             execute_onblockw_script(self, 1, (double)level->walls[wall].height, wall);
         }
         if(zdir && (wall = checkwall_below(self->position.x, z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
         {
             zdir = 0;
-            hit |= 1;
+            if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
             execute_onblockw_script(self, 2, (double)level->walls[wall].height, wall);
         }
 
         if ( hit && !self->hitwall && validanim(self, ANI_HITWALL) ) ent_set_anim(self, ANI_HITWALL, 0);
-        if ( hit ) self->hitwall = 1;
+        if ( hit && !self->hitwall ) self->hitwall = 1;
     }
 
     if(!xdir && !zdir)
