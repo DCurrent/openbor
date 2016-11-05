@@ -440,6 +440,7 @@ typedef enum //Animations
     ANI_RUNJUMP,
     ANI_JUMPLAND,
     ANI_JUMPDELAY,
+    ANI_HITOBSTACLE,
     ANI_HITPLATFORM,
     ANI_HITWALL,
     ANI_GRABBACKWARD,
@@ -1879,6 +1880,7 @@ typedef struct
     int isSubclassed;
     int backpain;
     int nohithead; // used to hit or not a platform with head also when you set a height
+    int hitwalltype; // wall type to toggle hitwall animations
     e_ModelFreetype freetypes;
     s_scripts *scripts;
 } s_model;

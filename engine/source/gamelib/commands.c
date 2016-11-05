@@ -285,6 +285,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_HITENEMY, "hitenemy");
     LIST_ADD(CMD_MODEL_HITFLASH, "hitflash");
     LIST_ADD(CMD_MODEL_HITFX, "hitfx");
+    LIST_ADD(CMD_MODEL_HITWALLTYPE, "hitwalltype");
     LIST_ADD(CMD_MODEL_HITZ, "hitz");
     LIST_ADD(CMD_MODEL_HMAP, "hmap");
     LIST_ADD(CMD_MODEL_HOLDBLOCK, "holdblock");
