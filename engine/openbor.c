@@ -18018,10 +18018,10 @@ void check_gravity(entity *e)
         }
 
         // White Dragon: turn-off the hitwall flag  if you're not near a obstacle. this help to avoid a hit loop
-        if( (self->position.y <= self->base || !inair(self)) && self->velocity.y <= 0)
+        /*if( (self->position.y <= self->base || !inair(self)) && self->velocity.y <= 0)
         {
             if ( self->hitwall && !is_obstacle_around(self,1.0) ) self->hitwall = 0;
-        }
+        }*/
 
         if((self->falling || self->velocity.y || self->position.y != self->base) && self->toss_time <= time)
         {
@@ -18095,6 +18095,8 @@ void check_gravity(entity *e)
             {
                 self->position.y = self->base;
                 self->falling = 0;
+
+                if ( self->hitwall ) self->hitwall = 0;
 
                 //self->projectile = 0;
                 // cust dust entity
