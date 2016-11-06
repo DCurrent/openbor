@@ -17958,7 +17958,8 @@ void do_attack(entity *e)
 #undef followed
 }
 
-static int is_obstacle_around(entity* ent, float threshold)
+// it can be useful for next changes
+/*static int is_obstacle_around(entity* ent, float threshold)
 {
     int i, j;
     int heightvar;
@@ -17986,7 +17987,7 @@ static int is_obstacle_around(entity* ent, float threshold)
     }
 
     return 0;
-}
+}*/
 
 void check_gravity(entity *e)
 {
