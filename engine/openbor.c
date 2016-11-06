@@ -3697,6 +3697,11 @@ int inair(entity *e)
     return (diff(e->position.y, e->base) >= 0.1);
 }
 
+int inair_range(entity *e)
+{
+    return (diff(e->position.y, e->base) > T_WALKOFF);
+}
+
 
 // ----------------------- Loaders ------------------------------
 
@@ -16889,7 +16894,7 @@ int checkhole_in(float x, float z, float a)
     ind = -1;
     for(i = 0; i < level->numholes; i++)
     {
-        if(testhole(i, x, z) && level->holes[i].height+T_YDIST >= a && level->holes[i].height >= maxa)
+        if(testhole(i, x, z) && level->holes[i].height+T_WALKOFF >= a && level->holes[i].height >= maxa)
         {
             maxa = level->holes[i].height;
             ind = i;
@@ -16915,7 +16920,7 @@ int checkholeindex_in(float x, float z, float a)
     ind = -1;
     for(i = 0; i < level->numholes; i++)
     {
-        if(testhole(i, x, z) && level->holes[i].height+T_YDIST >= a && level->holes[i].height >= maxa)
+        if(testhole(i, x, z) && level->holes[i].height+T_WALKOFF >= a && level->holes[i].height >= maxa)
         {
             maxa = level->holes[i].height;
             ind = i;
@@ -17062,6 +17067,15 @@ int testplatform(entity *plat, float x, float z, entity *exclude)
     return 0;
 }
 
+float get_platform_base(entity *plat)
+{
+    float alt = 0;
+
+    alt = plat->position.y;
+    alt += plat->animation->platform[plat->animpos][7];
+
+    return alt;
+}
 
 //find the first platform between these 2 altitudes
 entity *check_platform_between(float x, float z, float amin, float amax, entity *exclude)
@@ -17238,7 +17252,7 @@ entity *check_platform(float x, float z, entity *exclude)
 // -2: for hole ai reaction check
 int testmove(entity *ent, float sx, float sz, float x, float z)
 {
-    entity *other = NULL;
+    entity *other = NULL, *platbelow = NULL;
     int wall, heightvar;
     float xdir, zdir;
 
@@ -17317,7 +17331,13 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     // Check for obstacles with platform code and adjust base accordingly
     if(ent->modeldata.subject_to_platform > 0 && (other = check_platform_between(x, z, ent->position.y, ent->position.y + heightvar, ent)) )
     {
-        return 0;
+        platbelow = check_platform_below(x, z, ent->position.y+T_WALKOFF, ent);
+        if ( !platbelow ) return 0;
+        else
+        {
+            float palt = get_platform_base(platbelow);
+            if ( other != platbelow && diff(ent->position.y,palt) > T_WALKOFF ) return 0;
+        }
     }
     //-----------end of platform checking------------------
 
@@ -18083,7 +18103,7 @@ void check_gravity(entity *e)
                 execute_onmovea_script(self);    //Move A event.
             }
 
-            if(self->idling && validanim(self, ANI_WALKOFF) && diff(self->position.y, self->base) > 2)
+            if(self->idling && validanim(self, ANI_WALKOFF) && diff(self->position.y, self->base) > T_WALKOFF)
             {
                 self->idling = 0;
                 self->takeaction = common_walkoff;
@@ -18277,6 +18297,7 @@ void check_link_move(float xdir, float zdir)
     float x, z, gx, gz;
     int tryresult;
     entity *tempself = self;
+
     gx = self->grabbing->position.x;
     gz = self->grabbing->position.z;
     x = self->position.x;
@@ -18284,6 +18305,7 @@ void check_link_move(float xdir, float zdir)
     self = self->grabbing;
     tryresult = self->trymove(xdir, zdir);
     self = tempself;
+
     if(tryresult != 1) // changed
     {
         xdir = self->grabbing->position.x - gx;
@@ -18479,7 +18501,7 @@ void adjust_base(entity *e, entity **pla)
         {
             self->base = maxbase;
             // White Dragon: fix bug for floating entity on basemaps using a threshold
-            if (self->velocity.y <= 0 && self->position.y - self->base <= T_YDIST)
+            if (self->velocity.y <= 0 && self->position.y - self->base <= T_WALKOFF)
             {
                 self->position.y = self->base;
             }
@@ -18986,6 +19008,7 @@ void check_move(entity *e)
 {
     float x, z;
     entity *plat, *tempself;
+
     if((e->update_mark & 4))
     {
         return;
@@ -18995,6 +19018,7 @@ void check_move(entity *e)
 
     x = self->position.x;
     z = self->position.z;
+
     // check moving platform
     if((plat = self->landed_on_platform) ) // on the platform?
     {
@@ -19237,7 +19261,7 @@ void display_ents()
             scry = o_scry - ((e->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
             if(freezeall || !(e->blink && (time % (GAME_SPEED / 10)) < (GAME_SPEED / 20)))
             {
-                float eheight = T_YDIST, eplatheight = 0;
+                float eheight = T_WALKOFF, eplatheight = 0;
 
                 // get the height of the entity
                 if ( e->animation->platform )
@@ -22330,11 +22354,13 @@ int adjust_grabposition(entity *ent, entity *other, float dist, int grabin)
 {
     float x1, z1, x2, z2, x;
 
-    if(ent->position.y != other->position.y)
+    //if(ent->position.y != other->position.y)
+    if(diff(ent->position.y,other->position.y) > T_WALKOFF)
     {
         return 0;
     }
-    if(ent->base != other->base)
+    //if(ent->base != other->base)
+    if(diff(ent->base,other->base) > T_WALKOFF)
     {
         return 0;
     }
@@ -26417,7 +26443,7 @@ void player_think()
     int runx, runz, movex, movez;
     int t, t2;
     entity *other = NULL;
-    float altdiff , heightvar;
+    float altdiff;
     int notinair;
 
     static int ll[] = {FLAG_MOVELEFT, FLAG_MOVELEFT};
@@ -26517,14 +26543,14 @@ void player_think()
 
 
     // Check if entity is under a platform
-    if(self->modeldata.subject_to_platform > 0 && (heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y) &&
+    /*if(self->modeldata.subject_to_platform > 0 && (heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y) &&
             validanim(self, ANI_DUCK) && check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self))
     {
         self->idling = 0;
         self->takeaction = common_stuck_underneath;
         ent_set_anim(self, ANI_DUCK, 0);
         goto endthinkcheck;
-    }
+    }*/
 
     altdiff = diff(self->position.y, self->base);
     notinair = (self->landed_on_platform ? altdiff < 5 : altdiff < 2);
