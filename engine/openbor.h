@@ -107,7 +107,7 @@ movement restirctions are here!
 #define		CONTACT_DIST_V		12
 #define		GRAB_DIST			36					// Grabbing ents will be placed this far apart.
 #define		GRAB_STALL			(GAME_SPEED * 8 / 10)
-#define		T_YDIST 			2.0
+#define		T_WALKOFF 			2.0
 
 
 // PLAY/REC INPUT vars
@@ -1122,8 +1122,9 @@ if(n<1) n = 1;
 		((other->modeldata.antigrab - self->modeldata.grabforce + \
 		  (other->modeldata.paingrab?(other->modeldata.paingrab-other->inpain):0)<=0) &&\
 		 canbegrabbed(self, other) && \
-		 !inair(self) && \
-		 diff(other->position.y, self->position.y) <= 0.1)
+		 !inair_range(self) && \
+		 diff(other->position.y, self->position.y) <= T_WALKOFF)
+		 //diff(other->position.y, self->position.y) <= 0.1)
 
 #define unfrozen(e) \
 		ent_set_colourmap(e, e->map);\
@@ -2416,6 +2417,7 @@ int readByte(char* command);
 char *findarg(char *command, int which);
 float diff(float a, float b);
 int inair(entity *e);
+int inair_range(entity *e);
 float randf(float max);
 int _makecolour(int r, int g, int b);
 int load_colourmap(s_model *model, char *image1, char *image2);
@@ -2532,6 +2534,7 @@ entity *check_platform_below(float x, float z, float a, entity *exclude);
 entity *check_platform_above(float x, float z, float a, entity *exclude);
 entity *check_platform_between(float x, float z, float amin, float amax, entity *exclude);
 entity *check_platform(float x, float z, entity *exclude);
+float get_platform_base(entity *);
 void do_attack(entity *e);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
