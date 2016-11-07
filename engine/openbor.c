@@ -18016,7 +18016,7 @@ void do_attack(entity *e)
 void check_gravity(entity *e)
 {
     int heightvar;
-    entity *other, *dust, *tempself, *plat = NULL;
+    entity *other = NULL, *dust, *tempself, *plat = NULL;
     s_collision attack;
     float gravity;
     float fmin, fmax;
@@ -18107,11 +18107,18 @@ void check_gravity(entity *e)
                 execute_onmovea_script(self);    //Move A event.
             }
 
-            if(self->idling && validanim(self, ANI_WALKOFF) && diff(self->position.y, self->base) > T_WALKOFF)
+            if( self->idling && validanim(self, ANI_WALKOFF) && diff(self->position.y, self->base) > T_WALKOFF )
             {
-                self->idling = 0;
-                self->takeaction = common_walkoff;
-                ent_set_anim(self, ANI_WALKOFF, 0);
+                entity *cplat = check_platform_below(self->position.x,self->position.z-1.0,self->position.y,self);
+
+                // White Dragon: fix for too low velocityz
+                if ( !cplat || (cplat && diff(get_platform_base(cplat),self->position.y) > T_WALKOFF) )
+                {
+                    self->idling = 0;
+                    self->takeaction = common_walkoff;
+                    ent_set_anim(self, ANI_WALKOFF, 0);
+                    self->landed_on_platform = plat = NULL;
+                }
             }
 
             // UTunnels: tossv <= 0 means land, while >0 means still rising, so
@@ -18400,10 +18407,14 @@ void adjust_base(entity *e, entity **pla)
     if(self->modeldata.subject_to_platform > 0)
     {
         other = check_platform_below_entity(self);
+        if(!other && self->landed_on_platform)
+        {
+            *pla = self->landed_on_platform = NULL;
+        }
     }
     else
     {
-        other = self->landed_on_platform = NULL;
+        *pla = other = self->landed_on_platform = NULL;
     }
 
     if(other && !(other->update_mark & 8))
@@ -18414,7 +18425,7 @@ void adjust_base(entity *e, entity **pla)
     //no longer underneath?
     if(self->landed_on_platform && !testplatform(self->landed_on_platform, self->position.x, self->position.z, NULL))
     {
-        self->landed_on_platform = NULL;
+        *pla = self->landed_on_platform = NULL;
     }
 
     if(other && !self->landed_on_platform && self->position.y <= other->position.y + other->animation->platform[other->animpos][7])
@@ -26601,16 +26612,16 @@ void player_think()
         goto endthinkcheck;
     }
 
-    if(self->animnum == ANI_WALKOFF)
-    {
-        player_walkoff_check();
-        goto endthinkcheck;
-    }
-
     // jump section
     if(self->jumping)
     {
         player_jump_check();
+        goto endthinkcheck;
+    }
+
+    if(self->animnum == ANI_WALKOFF)
+    {
+        player_walkoff_check();
         goto endthinkcheck;
     }
 
