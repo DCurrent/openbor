@@ -1796,6 +1796,8 @@ typedef struct
     float jumpheight; // 28-12-2004	Jump height variable added per character
     int jumpmovex; // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
     int jumpmovez; // 2nd byte: 0 default 1 zjump with flip(not implemented yet) 2 z jump move in air, 3 1+2
+    int walkoffmovex; // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
+    int walkoffmovez; // 2nd byte: 0 default 1 zjump with flip(not implemented yet) 2 z jump move in air, 3 1+2
     int grabfinish; // wait for grab animation to finish before do other actoins
     int antigrab; // anti-grab factor
     int grabforce; // grab factor, antigrab - grabforce <= 0 means can grab
