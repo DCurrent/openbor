@@ -455,6 +455,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_TYPE, "type");
     LIST_ADD(CMD_MODEL_TYPESHOT, "typeshot");
     LIST_ADD(CMD_MODEL_UNSUMMONFRAME, "unsummonframe");
+    LIST_ADD(CMD_MODEL_WALKOFFMOVE, "walkoffmove");
     LIST_ADD(CMD_MODEL_WEAPLOSS, "weaploss");
     LIST_ADD(CMD_MODEL_WEAPNUM, "weapnum");
     LIST_ADD(CMD_MODEL_WEAPONFRAME, "weaponframe");

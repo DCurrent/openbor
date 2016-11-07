@@ -8384,6 +8384,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->jumpmovex = GET_INT_ARG(1);
                 newchar->jumpmovez = GET_INT_ARG(2);
                 break;
+            case CMD_MODEL_WALKOFFMOVE:
+                newchar->walkoffmovex = GET_INT_ARG(1);
+                newchar->walkoffmovez = GET_INT_ARG(2);
+                break;
             case CMD_MODEL_KNOCKDOWNCOUNT:
                 newchar->knockdowncount = GET_FLOAT_ARG(1);
                 break;
@@ -26131,6 +26135,81 @@ void player_grab_check()
     }
 }
 
+void player_walkoff_check()
+{
+    if(self->modeldata.walkoffmovex & 1) //flip?
+    {
+        if((player[self->playerindex].keys & FLAG_MOVELEFT))
+        {
+            self->direction = DIRECTION_LEFT;
+        }
+        else if((player[self->playerindex].keys & FLAG_MOVERIGHT))
+        {
+            self->direction = DIRECTION_RIGHT;
+        }
+    }
+    if(self->modeldata.walkoffmovex & 2) //move?
+    {
+        if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0) ||
+                ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->velocity.x < 0))
+        {
+            self->velocity.x = -self->velocity.x;
+        }
+    }
+    if(self->modeldata.walkoffmovex & 4) //Move x if vertical jump?
+    {
+        if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0) ||
+                ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->velocity.x < 0))
+        {
+            self->velocity.x = -self->velocity.x;
+        }
+
+        if((player[self->playerindex].keys & FLAG_MOVELEFT) && (!self->velocity.x))
+        {
+            self->velocity.x -= self->modeldata.speed;
+        }
+        else if((player[self->playerindex].keys & FLAG_MOVERIGHT) && (!self->velocity.x))
+        {
+            self->velocity.x = self->modeldata.speed;
+        }
+    }
+    if(self->modeldata.walkoffmovez & 2) //z move?
+    {
+        if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->velocity.z > 0) ||
+                ((player[self->playerindex].keys & FLAG_MOVEDOWN) && self->velocity.z < 0))
+        {
+            self->velocity.z = -self->velocity.z;
+        }
+    }
+    if(self->modeldata.walkoffmovez & 4) //Move z if vertical jump?
+    {
+        if((player[self->playerindex].keys & FLAG_MOVELEFT))
+        {
+            self->direction = DIRECTION_LEFT;
+        }
+        else if((player[self->playerindex].keys & FLAG_MOVERIGHT))
+        {
+            self->direction = DIRECTION_RIGHT;
+        }
+
+        if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->velocity.z > 0) ||
+                ((player[self->playerindex].keys & FLAG_MOVEDOWN) && self->velocity.z < 0))
+        {
+            self->velocity.z = -self->velocity.z;
+        }
+
+        if((player[self->playerindex].keys & FLAG_MOVEUP) && (!self->velocity.z))
+        {
+            self->velocity.z -= (0.5 * self->modeldata.speed);
+        }
+        else if((player[self->playerindex].keys & FLAG_MOVEDOWN) && (!self->velocity.z))
+        {
+            self->velocity.z = (0.5 * self->modeldata.speed);
+        }
+    }
+
+    return;
+}
 
 void player_jump_check()
 {
@@ -26275,6 +26354,7 @@ void player_jump_check()
         }
     }
 
+    return;
 }
 
 void player_pain_check()
@@ -26518,6 +26598,12 @@ void player_think()
     if(self->grabbing && !self->attacking && self->takeaction != common_throw_wait)
     {
         player_grab_check();
+        goto endthinkcheck;
+    }
+
+    if(self->animnum == ANI_WALKOFF)
+    {
+        player_walkoff_check();
         goto endthinkcheck;
     }
 
