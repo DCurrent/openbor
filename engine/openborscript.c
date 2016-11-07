@@ -3436,6 +3436,7 @@ enum entityproperty_enum
     _ep_health,
     _ep_height,
     _ep_hitbyid,
+    _ep_hitheadplatform,
     _ep_hitwall,
     _ep_hmapl,
     _ep_hmapu,
@@ -3448,6 +3449,7 @@ enum entityproperty_enum
     _ep_jumpheight,
     _ep_knockdowncount,
     _ep_komap,
+    _ep_landedplatform,
     _ep_landframe,
     _ep_lifeposition,
     _ep_lifespancountdown,
@@ -3616,6 +3618,7 @@ static const char *eplist[] =
     "health",
     "height",
     "hitbyid",
+    "hitheadplatform",
     "hitwall",
     "hmapl",
     "hmapu",
@@ -3628,6 +3631,7 @@ static const char *eplist[] =
     "jumpheight",
     "knockdowncount",
     "komap",
+    "landedplatform",
     "landframe",
     "lifeposition",
     "lifespancountdown",
@@ -6868,6 +6872,18 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->hit_by_attack_id;
         break;
     }
+    case _ep_hitheadplatform:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_PTR);
+        (*pretvar)->ptrVal = (VOID *)ent->hithead;
+        break;
+    }
+    case _ep_landedplatform:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_PTR);
+        (*pretvar)->ptrVal = (VOID *)ent->landed_on_platform;
+        break;
+    }
     case _ep_hitwall:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -8715,6 +8731,16 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             ent->hit_by_attack_id = (int)ltemp;
         }
+        break;
+    }
+    case _ep_hitheadplatform:
+    {
+        ent->hithead = (entity *)varlist[2]->ptrVal;
+        break;
+    }
+    case _ep_landedplatform:
+    {
+        ent->landed_on_platform = (entity *)varlist[2]->ptrVal;
         break;
     }
     case _ep_hitwall:
