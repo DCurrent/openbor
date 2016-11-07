@@ -17069,16 +17069,6 @@ int testplatform(entity *plat, float x, float z, entity *exclude)
     return 0;
 }
 
-float get_platform_base(entity *plat)
-{
-    float alt = 0;
-
-    alt = plat->position.y;
-    alt += plat->animation->platform[plat->animpos][7];
-
-    return alt;
-}
-
 //find the first platform between these 2 altitudes
 entity *check_platform_between(float x, float z, float amin, float amax, entity *exclude)
 {
@@ -17244,6 +17234,38 @@ entity *check_platform(float x, float z, entity *exclude)
             return ent_list[i];
         }
     }
+    return NULL;
+}
+
+float get_platform_base(entity *plat)
+{
+    float alt = 0;
+
+    alt = plat->position.y;
+    alt += plat->animation->platform[plat->animpos][7];
+
+    return alt;
+}
+
+int is_on_platform(entity *ent)
+{
+    entity *plat = check_platform_below(ent->position.x,ent->position.z,ent->position.y+T_WALKOFF,ent);
+    if (plat)
+    {
+        if ( diff(ent->base,get_platform_base(plat)) <= T_WALKOFF ) return 1;
+    }
+
+    return 0;
+}
+
+entity *get_platform_on(entity *ent)
+{
+    entity *plat = check_platform_below(ent->position.x,ent->position.z,ent->position.y+T_WALKOFF,ent);
+    if (plat)
+    {
+        if ( diff(ent->base,get_platform_base(plat)) <= T_WALKOFF ) return plat;
+    }
+
     return NULL;
 }
 
