@@ -2537,6 +2537,8 @@ entity *check_platform_above(float x, float z, float a, entity *exclude);
 entity *check_platform_between(float x, float z, float amin, float amax, entity *exclude);
 entity *check_platform(float x, float z, entity *exclude);
 float get_platform_base(entity *);
+int is_on_platform(entity *);
+entity *get_platform_on(entity *);
 void do_attack(entity *e);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
