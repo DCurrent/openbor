@@ -19531,9 +19531,6 @@ void display_ents()
                             qy = (int)(e->position.z - scry - basemap);
                         }
 
-                        // set 2D-LIKE shadow
-                        if ( (e->modeldata.shadowbase&2) ) alty = temp1 = temp2 = 0;
-
                         //TODO check platforms, don't want to go through the entity list again right now // && !other after wall2
                         if(!(checkhole_in(e->position.x + temp1, e->position.z + temp2, e->position.y) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
                         {
@@ -19560,6 +19557,9 @@ void display_ents()
                             {
                                 alty += (int)(other->position.y + other->animation->platform[other->animpos][7]);
                             }*/
+
+                            // set 2D-LIKE shadow
+                            if ( (e->modeldata.shadowbase&2) ) alty = temp1 = temp2 = 0;
 
                             sy = (2 * MIRROR_Z - qy) - 2 * scry;
 
