@@ -17830,14 +17830,12 @@ void do_attack(entity *e)
                 }//end of if #05
                 self = temp;
             }//if lasthit.confirm
-            else
-            {
-                /*
-                 * By White Dragon
-                 * This line: self = temp; is the fix for !lasthit.confirm bug. Without it when active lasthitc 0 the damagetaker has weird speedy effect
-                 */
-                self = temp;
-            }
+            /*
+             * By White Dragon
+             * This line: self = temp; is the fix for !lasthit.confirm bug. Without it when active lasthitc 0 the damagetaker has weird speedy effect
+             */
+            self = temp;
+
         }//end of if #0
 
     }//end of for
@@ -19513,7 +19511,7 @@ void display_ents()
 
                         wall2 = checkwall_below(e->position.x + temp1, e->position.z + temp2, e->position.y); // check if the shadow drop into a hole or fall on another wall
 
-                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7] && !e->modeldata.shadowbase)
+                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7] && !(e->modeldata.shadowbase&1) )
                         {
                             alty = (int)(e->position.y - (other->position.y + other->animation->platform[other->animpos][7]));
                             temp1 = -1 * (e->position.y - (other->position.y + other->animation->platform[other->animpos][7])) * light.x / 256; // xshift
@@ -19524,7 +19522,7 @@ void display_ents()
                             //qy = (int)( e->position.z - e->position.y - scry + (e->position.y-e->base) );
                         }
 
-                        if(basemap > 0 && !e->modeldata.shadowbase)
+                        if(basemap > 0 && !(e->modeldata.shadowbase&1))
                         {
                             alty = (int)(e->position.y - basemap);
                             temp1 = -1 * (e->position.y - basemap) * light.x / 256; // xshift
@@ -19532,6 +19530,9 @@ void display_ents()
                             qx = (int)(e->position.x - scrx);
                             qy = (int)(e->position.z - scry - basemap);
                         }
+
+                        // set 2D-LIKE shadow
+                        if ( (e->modeldata.shadowbase&2) ) alty = temp1 = temp2 = 0;
 
                         //TODO check platforms, don't want to go through the entity list again right now // && !other after wall2
                         if(!(checkhole_in(e->position.x + temp1, e->position.z + temp2, e->position.y) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
@@ -19562,7 +19563,7 @@ void display_ents()
 
                             sy = (2 * MIRROR_Z - qy) - 2 * scry;
 
-                            if ( other && !e->modeldata.shadowbase ) z = other->position.z + 1;
+                            if ( other && !(e->modeldata.shadowbase&1) ) z = other->position.z + 1;
                             else z = shadowz;
 
                             sz = PANEL_Z - HUD_Z;
@@ -19620,7 +19621,7 @@ void display_ents()
                     }
                     if(useshadow && e->position.y >= 0 && !(checkhole_in(e->position.x, e->position.z, e->position.y) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                     {
-                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7] && !e->modeldata.shadowbase)
+                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7] && !(e->modeldata.shadowbase&1))
                         {
                             qx = (int)(e->position.x - scrx);
                             qy =                 (int)(e->position.z  - other->position.y - other->animation->platform[other->animpos][7] - scry);
@@ -19637,7 +19638,7 @@ void display_ents()
                             z = shadowz;
                             sz = PANEL_Z - HUD_Z;
                         }
-                        else if(level && basemap > 0 && !e->modeldata.shadowbase)
+                        else if(level && basemap > 0 && !(e->modeldata.shadowbase&1))
                         {
                             qx = (int)(e->position.x - scrx);
                             qy = (int)(e->position.z - basemap - scry);
