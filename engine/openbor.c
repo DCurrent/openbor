@@ -2256,7 +2256,7 @@ void execute_onblockp_script(entity *ent, int plane, entity *platform)
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
         tempvar.lVal = (LONG)plane;
         Script_Set_Local_Variant(cs, "plane",      &tempvar);
-        ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
+        ScriptVariant_ChangeType(&tempvar, VT_PTR);
         tempvar.ptrVal = (VOID *)platform;
         Script_Set_Local_Variant(cs, "platform",      &tempvar);
         Script_Execute(cs);
