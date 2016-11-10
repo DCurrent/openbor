@@ -5181,7 +5181,7 @@ void alloc_frames(s_anim *anim, int fcount)
 
 void free_frames(s_anim *anim)
 {
-    int i;
+    int i, instance;
     if(anim->idle)
     {
         free(anim->idle);
@@ -5256,6 +5256,16 @@ void free_frames(s_anim *anim)
         {
             if(anim->collision[i])
             {
+                // Check each attack instance and free memory as needed.
+                // Momma always said put your toys away when you're done!
+                for(instance = 0; instance < max_collisons; instance++)
+                {
+                    if(anim->collision[i]->instance[instance])
+                    {
+                        free(anim->collision[i]->instance[instance]);
+                    }
+                }
+
                 // First free any pointers allocated
                 // to attack structure.
                 if(anim->collision[i]->recursive)
@@ -5678,19 +5688,61 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
         a->vulnerable[currentframe] = 1;
     }
 
+    int         i;
+    unsigned    size_col_on_frame,
+                size_col_on_frame_struct,
+                size_col_list,
+                size_col_list_struct;
+
     if((attack->coords.width - attack->coords.x) &&
             (attack->coords.height - attack->coords.y))
     {
         if(!a->collision)
         {
-            a->collision = malloc(framecount * sizeof(*a->collision));
-            memset(a->collision, 0, framecount * sizeof(*a->collision));
+            // Get memory size.
+            size_col_on_frame = framecount * sizeof(*a->collision);
+
+            // Allocate memory.
+            a->collision = malloc(size_col_on_frame);
+            memset(a->collision, 0, size_col_on_frame);
         }
-        a->collision[currentframe] = malloc(sizeof(**a->collision));
-        memcpy(a->collision[currentframe], attack, sizeof(**a->collision));
+
+        // Get memory size.
+        size_col_on_frame_struct = sizeof(**a->collision);
+
+        // Allocate memory.
+        a->collision[currentframe] = malloc(size_col_on_frame_struct);
+
+        // Apply user collision settings.
+        memcpy(a->collision[currentframe], attack, size_col_on_frame_struct);
+
+
+        // In progress.
+
+        // Allocate a list of collision pointers for each frame.
+
+        // Get memory size of collision list pointer.
+        size_col_list = max_collisons * sizeof(*a->collision[currentframe]->instance);
+
+        // Allocate memory and set empty default.
+        a->collision[currentframe]->instance = malloc(size_col_list);
+        memset(a->collision[currentframe]->instance, 0, size_col_list);
+
+        // Allocate collision structure for each frame.
+
+        // Get memory size of collision list structure.
+        size_col_list_struct = max_collisons * sizeof(**a->collision[currentframe]->instance);
+
+        // Loop instances, allocate memory, and assign
+        // user values.
+        for(i=0; i<max_collisons; i++)
+        {
+            a->collision[currentframe]->instance[i] = malloc(size_col_list_struct);
+            memcpy(a->collision[currentframe]->instance[i], attack, size_col_list_struct);
+        }
+
 
         // Add attack sub-properties.
-
         // Recursive damage set?
         if(!a->collision[currentframe]->recursive && recursive->mode)
         {
