@@ -6,9 +6,9 @@
  */
 
 /*
- *	The program is distributed under terms of BSD license. 
+ *	The program is distributed under terms of BSD license.
  *	You can obtain the copy of the license by visiting:
- *	
+ *
  *	http://www.opensource.org/licenses/bsd-license.php
  */
 
@@ -22,7 +22,7 @@
  */
 typedef double max_align_t;
 
-#else
+#elif !defined(__CLANG_MAX_ALIGN_T_DEFINED) && !defined(_GCC_MAX_ALIGN_T)
 
 /*
  *	a type with the most strict alignment requirements
