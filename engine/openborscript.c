@@ -937,6 +937,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "checkbasemap";
     }
+    else if (functionRef == ((void *)openbor_checkbasemapindex))
+    {
+        return "checkbasemapindex";
+    }
     else if (functionRef == ((void *)openbor_generatebasemap))
     {
         return "generatebasemap";
@@ -1613,6 +1617,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_checkplatformbelow, "checkplatformbetween");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_checkbasemap, "checkbasemap");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_checkbasemap, "checkbasemapindex");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_generatebasemap, "generatebasemap");
     List_InsertAfter(&theFunctionList,
@@ -10832,6 +10838,38 @@ HRESULT openbor_checkplatformbetween(ScriptVariant **varlist , ScriptVariant **p
 
 //checkbasemap(x,z), return basemap height (float)
 HRESULT openbor_checkbasemap(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    ScriptVariant *arg = NULL;
+    DOUBLE x, z;
+
+    if(paramCount < 2)
+    {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+    (*pretvar)->dblVal = (DOUBLE)0;
+
+    arg = varlist[0];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &x)))
+    {
+        return S_OK;
+    }
+
+    arg = varlist[1];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &z)))
+    {
+        return S_OK;
+    }
+
+    (*pretvar)->dblVal = (DOUBLE)check_basemap((float)x, (float)z);
+
+    return S_OK;
+}
+
+//checkbasemapindex(x,z), return basemap index in (x,z)
+HRESULT openbor_checkbasemapindex(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     ScriptVariant *arg = NULL;
     DOUBLE x, z;
