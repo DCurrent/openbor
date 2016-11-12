@@ -10895,7 +10895,7 @@ HRESULT openbor_checkbasemapindex(ScriptVariant **varlist , ScriptVariant **pret
         return S_OK;
     }
 
-    (*pretvar)->dblVal = (DOUBLE)check_basemap((float)x, (float)z);
+    (*pretvar)->dblVal = (DOUBLE)check_basemap_index((float)x, (float)z);
 
     return S_OK;
 }
