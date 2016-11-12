@@ -1221,6 +1221,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "finishlevel";
     }
+    else if (functionRef == ((void *)openbor_gotomainmenu))
+    {
+        return "gotomainmenu";
+    }
     else if (functionRef == ((void *)openbor_playgame))
     {
         return "playgame";
@@ -1760,6 +1764,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_loadgamefile, "loadgamefile");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_finishlevel, "finishlevel");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_gotomainmenu, "gotomainmenu");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playgame, "playgame");
     List_InsertAfter(&theFunctionList,
@@ -17614,6 +17620,23 @@ HRESULT openbor_finishlevel(ScriptVariant **varlist , ScriptVariant **pretvar, i
 {
     *pretvar = NULL;
     level->forcefinishlevel = 1;
+    return S_OK;
+}
+
+//gotomainmenu(flag); flag: 1 = no gameover, 2 = no halloffame, 3 = 1+2
+HRESULT openbor_gotomainmenu(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    LONG ltemp = 0;
+
+    *pretvar = NULL;
+
+    if(paramCount >= 1 && FAILED(ScriptVariant_IntegerValue(varlist[0], &ltemp)) )
+    {
+        return E_FAIL;
+    }
+
+    goto_mainmenu((int)ltemp);
+
     return S_OK;
 }
 
