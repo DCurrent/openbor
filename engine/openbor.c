@@ -501,6 +501,7 @@ s_loadingbar        loadingbg[2] = {{0, 0, {0, 0}, {0, 0}, 0, 0}, {0, 0, {0, 0},
 int					loadingmusic        = 0;
 int                 unlockbg            = 0;         			// If set to 1, will look for a different background image after defeating the game
 int                 pause               = 0;
+int                 goto_mainmenu_flag  = 0;
 int					nofadeout			= 0;
 int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
@@ -1077,9 +1078,11 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)GAME_SPEED;
         break;
+    case _sv_game_paused:
     case _sv_pause:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (LONG)pause;
+        if( !(goto_mainmenu_flag&1) ) var->lVal = (LONG)(pause);
+        var->lVal = (LONG)0;
         break;
     case _sv_gfx_x_offset:
         if(!level)
@@ -1353,10 +1356,6 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
     case _sv_soundvol:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (LONG)savedata.soundvol;
-        break;
-    case _sv_game_paused:
-        ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (LONG)pause;
         break;
     case _sv_totalram:
         ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -14493,6 +14492,45 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
     }
 }
 
+void goto_mainmenu(int flag)
+{
+    goto_mainmenu_flag = 1|(flag<<1);
+}
+
+void static backto_mainmenu()
+{
+    int i = 0;
+    s_screen *pausebuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
+
+    copyscreen(pausebuffer, vscreen);
+    spriteq_draw(pausebuffer, 0, MIN_INT, MAX_INT, 0, 0);
+    spriteq_clear();
+    spriteq_add_screen(0, 0, MIN_INT, pausebuffer, NULL, 0);
+    spriteq_lock();
+
+    sound_pause_music(1);
+    sound_pause_sample(1);
+    pause = 2;
+
+    //update(1, 0);
+
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        player[i].lives = 0;
+    }
+    endgame = 2;
+    //sound_pause_music(0);
+    //sound_pause_sample(0);
+
+    if ( (goto_mainmenu_flag&1) ) goto_mainmenu_flag -= 1;
+    pause = 0;
+    bothnewkeys = 0;
+    spriteq_unlock();
+    spriteq_clear();
+    freescreen(&pausebuffer);
+
+    return;
+}
 
 void pausemenu()
 {
@@ -14539,7 +14577,10 @@ void pausemenu()
         {
             if(pauselector)
             {
-                player[0].lives = player[1].lives = player[2].lives = player[3].lives = 0; //4player
+                for(i = 0; i < MAX_PLAYERS; i++)
+                {
+                    player[i].lives = 0;
+                }
                 endgame = 2;
             }
             quit = 1;
@@ -30077,10 +30118,18 @@ void update(int ingame, int usevwait)
              (player[3].ent && (player[3].newkeys & FLAG_START)))
       )
     {
-        sound_pause_music(1);
-        sound_pause_sample(1);
-        sound_play_sample(SAMPLE_PAUSE, 0, savedata.effectvol, savedata.effectvol, 100);
-        pausemenu();
+        if ( !(goto_mainmenu_flag&1) )
+        {
+            sound_pause_music(1);
+            sound_pause_sample(1);
+            sound_play_sample(SAMPLE_PAUSE, 0, savedata.effectvol, savedata.effectvol, 100);
+            pausemenu();
+            return;
+        }
+    }
+    if( ingame == 1 && (goto_mainmenu_flag&1) )
+    {
+        backto_mainmenu();
         return;
     }
 
@@ -31958,8 +32007,8 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
             {
                 if(player[0].lives <= 0 && player[1].lives <= 0 && player[2].lives <= 0 && player[3].lives <= 0)
                 {
-                    if(!set->noshowgameover) gameover();
-                    if(!set->noshowhof)
+                    if(!set->noshowgameover && !(goto_mainmenu_flag&2)) gameover();
+                    if(!set->noshowhof && !(goto_mainmenu_flag&4))
                     {
                         hallfame(1);
                     }
@@ -31968,6 +32017,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
                         player[i].hasplayed = 0;
                         player[i].weapnum = 0;
                     }
+                    goto_mainmenu_flag = 0;
                 }
                 break;
             }

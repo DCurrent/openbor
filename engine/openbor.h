@@ -2746,6 +2746,7 @@ int playRecordedInputs(void);
 int freeRecordedInputs(void);
 a_playrecstatus* init_input_recorder(void);
 void free_input_recorder(void);
+void goto_mainmenu(int);
 
 extern s_savelevel   *savelevel;
 extern s_savescore    savescore;
