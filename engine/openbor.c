@@ -32017,7 +32017,6 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
                         player[i].hasplayed = 0;
                         player[i].weapnum = 0;
                     }
-                    goto_mainmenu_flag = 0;
                 }
                 break;
             }
@@ -34452,7 +34451,7 @@ void openborMain(int argc, char **argv)
 
     while(!quit)
     {
-        if(skiptoset < 0)
+        if(skiptoset < 0 || (goto_mainmenu_flag&8))
         {
             if(time >= introtime)
             {
@@ -34482,6 +34481,7 @@ void openborMain(int argc, char **argv)
         {
             started = 1;
             relback = 0;
+            goto_mainmenu_flag = 0;
         }
 
         if(!started)
