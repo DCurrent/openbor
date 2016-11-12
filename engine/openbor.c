@@ -16744,9 +16744,15 @@ void kill_all()
     }
 }
 
-
 int checkhit(entity *attacker, entity *target, int counter)
 {
+    #define KEY_ATTACKER    0
+    #define KEY_TARGET      1
+    #define KEY_POS_X       0
+    #define KEY_POS_Y       1
+    #define KEY_SIZE_X      2
+    #define KEY_SIZE_Y      3
+
     s_hitbox coords1;
     s_hitbox coords2;
     int x1, x2, y1, y2;
@@ -16816,70 +16822,70 @@ int checkhit(entity *attacker, entity *target, int counter)
 
     if(attacker->direction == DIRECTION_LEFT)
     {
-        debug_coords[0][0] = x1 - coords1.width;
-        debug_coords[0][1] = y1 + coords1.y;
-        debug_coords[0][2] = x1 - coords1.x;
-        debug_coords[0][3] = y1 + coords1.height;
+        debug_coords[KEY_ATTACKER][KEY_POS_X] = x1 - coords1.width;
+        debug_coords[KEY_ATTACKER][KEY_POS_Y] = y1 + coords1.y;
+        debug_coords[KEY_ATTACKER][KEY_SIZE_X] = x1 - coords1.x;
+        debug_coords[KEY_ATTACKER][KEY_SIZE_Y] = y1 + coords1.height;
     }
     else
     {
-        debug_coords[0][0] = x1 + coords1.x;
-        debug_coords[0][1] = y1 + coords1.y;
-        debug_coords[0][2] = x1 + coords1.width;
-        debug_coords[0][3] = y1 + coords1.height;
+        debug_coords[KEY_ATTACKER][KEY_POS_X] = x1 + coords1.x;
+        debug_coords[KEY_ATTACKER][KEY_POS_Y] = y1 + coords1.y;
+        debug_coords[KEY_ATTACKER][KEY_SIZE_X] = x1 + coords1.width;
+        debug_coords[KEY_ATTACKER][KEY_SIZE_Y] = y1 + coords1.height;
     }
     if(target->direction == DIRECTION_LEFT)
     {
-        debug_coords[1][0] = x2 - coords2.width;
-        debug_coords[1][1] = y2 + coords2.y;
-        debug_coords[1][2] = x2 - coords2.x;
-        debug_coords[1][3] = y2 + coords2.height;
+        debug_coords[KEY_TARGET][KEY_POS_X] = x2 - coords2.width;
+        debug_coords[KEY_TARGET][KEY_POS_Y] = y2 + coords2.y;
+        debug_coords[KEY_TARGET][KEY_SIZE_X] = x2 - coords2.x;
+        debug_coords[KEY_TARGET][KEY_SIZE_Y] = y2 + coords2.height;
     }
     else
     {
-        debug_coords[1][0] = x2 + coords2.x;
-        debug_coords[1][1] = y2 + coords2.y;
-        debug_coords[1][2] = x2 + coords2.width;
-        debug_coords[1][3] = y2 + coords2.height;
+        debug_coords[KEY_TARGET][KEY_POS_X] = x2 + coords2.x;
+        debug_coords[KEY_TARGET][KEY_POS_Y] = y2 + coords2.y;
+        debug_coords[KEY_TARGET][KEY_SIZE_X] = x2 + coords2.width;
+        debug_coords[KEY_TARGET][KEY_SIZE_Y] = y2 + coords2.height;
     }
 
-    if(debug_coords[0][0] > debug_coords[1][2])
+    if(debug_coords[KEY_ATTACKER][KEY_POS_X] > debug_coords[KEY_TARGET][KEY_SIZE_X])
     {
         return 0;
     }
-    if(debug_coords[1][0] > debug_coords[0][2])
+    if(debug_coords[KEY_TARGET][KEY_POS_X] > debug_coords[KEY_ATTACKER][KEY_SIZE_X])
     {
         return 0;
     }
-    if(debug_coords[0][1] > debug_coords[1][3])
+    if(debug_coords[KEY_ATTACKER][KEY_POS_Y] > debug_coords[KEY_TARGET][KEY_SIZE_Y])
     {
         return 0;
     }
-    if(debug_coords[1][1] > debug_coords[0][3])
+    if(debug_coords[KEY_TARGET][KEY_POS_Y] > debug_coords[KEY_ATTACKER][KEY_SIZE_Y])
     {
         return 0;
     }
 
     // Find center of attack area
-    leftleast = debug_coords[0][0];
-    if(leftleast < debug_coords[1][0])
+    leftleast = debug_coords[KEY_ATTACKER][KEY_POS_X];
+    if(leftleast < debug_coords[KEY_TARGET][KEY_POS_X])
     {
-        leftleast = debug_coords[1][0];
+        leftleast = debug_coords[KEY_TARGET][KEY_POS_X];
     }
-    topleast = debug_coords[0][1];
-    if(topleast < debug_coords[1][1])
+    topleast = debug_coords[KEY_ATTACKER][KEY_POS_Y];
+    if(topleast < debug_coords[KEY_TARGET][KEY_POS_Y])
     {
-        topleast = debug_coords[1][1];
+        topleast = debug_coords[KEY_TARGET][KEY_POS_Y];
     }
-    rightleast = debug_coords[0][2];
-    if(rightleast > debug_coords[1][2])
+    rightleast = debug_coords[KEY_ATTACKER][KEY_SIZE_X];
+    if(rightleast > debug_coords[KEY_TARGET][KEY_SIZE_X])
     {
-        rightleast = debug_coords[1][2];
+        rightleast = debug_coords[KEY_TARGET][KEY_SIZE_X];
     }
-    bottomleast = debug_coords[0][3];
-    if(bottomleast > debug_coords[1][3])
+    bottomleast = debug_coords[KEY_ATTACKER][KEY_SIZE_Y];
+    if(bottomleast > debug_coords[KEY_TARGET][KEY_SIZE_Y])
     {
-        bottomleast = debug_coords[1][3];
+        bottomleast = debug_coords[KEY_TARGET][KEY_SIZE_Y];
     }
 
     medx = (float)(leftleast + rightleast) / 2;
@@ -16902,6 +16908,13 @@ int checkhit(entity *attacker, entity *target, int counter)
     lasthit.position.y = lasthit.position.z - medy;
     lasthit.confirm = 1;
     return 1;
+
+    #undef KEY_ATTACKER
+    #undef KEY_TARGET
+    #undef KEY_POS_X
+    #undef KEY_POS_Y
+    #undef KEY_SIZE_X
+    #undef KEY_SIZE_Y
 }
 
 
