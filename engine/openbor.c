@@ -34481,9 +34481,9 @@ void openborMain(int argc, char **argv)
         {
             started = 1;
             relback = 0;
-            goto_mainmenu_flag = 0;
         }
 
+        if (goto_mainmenu_flag != 0) goto_mainmenu_flag = 0;
         if(!started)
         {
             if((time % GAME_SPEED) < (GAME_SPEED / 2))
