@@ -17623,7 +17623,7 @@ HRESULT openbor_finishlevel(ScriptVariant **varlist , ScriptVariant **pretvar, i
     return S_OK;
 }
 
-//gotomainmenu(flag); flag: 1 = no gameover, 2 = no halloffame, 3 = 1+2
+//gotomainmenu(flag); flag: 1 = no gameover, 2 = no halloffame, 4 = no intro.txt; you can use a combination like 1+2 = 3 or all 1+2+4 = 7
 HRESULT openbor_gotomainmenu(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     LONG ltemp = 0;
