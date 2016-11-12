@@ -1228,19 +1228,6 @@ typedef struct
 
 typedef struct
 {
-    /*
-    Last hit struct. Populated each time a collision is detected.
-    Damon V. Caskey
-    2013-12-15
-    */
-
-    int type;           //Attack type of last hit.
-    s_axis_f position;  //X,Y,Z of last hit.
-    int confirm;        //Will engine's default hit handling be used?
-} s_lasthit;
-
-typedef struct
-{
     unsigned compatibleversion;
     char dName[MAX_NAME_LEN + 1]; // Difficulty Name
     unsigned level; // Level Number
@@ -1444,6 +1431,16 @@ typedef struct
 } s_collision;
 
 
+// Last hit structure. Populated each time a collision is detected.
+// Caskey, Damon V.
+// 2013-12-15
+typedef struct
+{
+    s_collision *attack;    // Collision attacking box.
+    s_body      *body;      // Collision detect box.
+    int         confirm;    // Will engine's default hit handling be used?
+    s_axis_f    position;   // X,Y,Z of last hit.
+} s_lasthit;
 
 typedef struct
 {
