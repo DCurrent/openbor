@@ -34451,7 +34451,7 @@ void openborMain(int argc, char **argv)
 
     while(!quit)
     {
-        if(skiptoset < 0 || (goto_mainmenu_flag&8))
+        if(skiptoset < 0 && !(goto_mainmenu_flag&8))
         {
             if(time >= introtime)
             {
