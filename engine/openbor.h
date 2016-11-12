@@ -2576,6 +2576,7 @@ int checkholes(float, float);
 int checkwall_below(float x, float z, float a);
 int checkwall(float x, float z);
 float check_basemap(int x, int z);
+int check_basemap_index(int x, int z);
 void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont);
 int testmove(entity *, float, float, float, float);
 entity *check_platform_below(float x, float z, float a, entity *exclude);

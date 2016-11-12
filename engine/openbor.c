@@ -18441,10 +18441,12 @@ float check_basemap(int x, int z)
 {
     float maxbase = 0, base = -1000;
     int i;
+
     if(!level)
     {
         return 0;
     }
+
     for(i = 0; i < level->numbasemaps; i++)
     {
         if(x >= level->basemaps[i].position.x && x < level->basemaps[i].position.x + level->basemaps[i].size.x &&
@@ -18458,6 +18460,32 @@ float check_basemap(int x, int z)
         }
     }
     return base == -1000 ? base : maxbase;
+}
+
+int check_basemap_index(int x, int z)
+{
+    float maxbase = 0, base = -1000;
+    int i, index = -1;
+
+    if(!level)
+    {
+        return 0;
+    }
+
+    for(i = 0; i < level->numbasemaps; i++)
+    {
+        if(x >= level->basemaps[i].position.x && x < level->basemaps[i].position.x + level->basemaps[i].size.x &&
+                z >= level->basemaps[i].position.z && z < level->basemaps[i].position.z + level->basemaps[i].size.z)
+        {
+            base = level->basemaps[i].map[x - level->basemaps[i].position.x + level->basemaps[i].size.x * (z - level->basemaps[i].position.z)];
+            if(base > maxbase)
+            {
+                maxbase = base;
+                index = i;
+            }
+        }
+    }
+    return base == -1000 ? -1 : index;
 }
 
 void adjust_base(entity *e, entity **pla)
