@@ -5659,6 +5659,12 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
              s_body *bbox, s_collision *attack, s_axis_i *move,
              float *platform, int frameshadow, int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod, int *offset, s_damage_recursive *recursive)
 {
+    int         i;
+    unsigned    size_col_on_frame,
+                size_col_on_frame_struct,
+                size_col_list,
+                size_col_list_struct;
+
     ptrdiff_t currentframe;
     if(framecount > 0)
     {
@@ -5689,12 +5695,6 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
         a->vulnerable[currentframe] = 1;
     }
 
-    int         i;
-    unsigned    size_col_on_frame,
-                size_col_on_frame_struct,
-                size_col_list,
-                size_col_list_struct;
-
     if((attack->coords.width - attack->coords.x) &&
             (attack->coords.height - attack->coords.y))
     {
@@ -5713,12 +5713,6 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
 
         // Allocate memory.
         a->collision[currentframe] = malloc(size_col_on_frame_struct);
-
-        // Apply user collision settings.
-        memcpy(a->collision[currentframe], attack, size_col_on_frame_struct);
-
-
-        // In progress.
 
         // Allocate a list of collision pointers for each frame.
 
@@ -5741,14 +5735,12 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
             a->collision[currentframe]->instance[i] = malloc(size_col_list_struct);
             memcpy(a->collision[currentframe]->instance[i], attack, size_col_list_struct);
 
-            attack = a->collision[currentframe]->instance[i];
-
             // Add attack sub-properties.
             // Recursive damage set?
-            if(attack->recursive && recursive->mode)
+            if(!a->collision[currentframe]->instance[i]->recursive && recursive->mode)
             {
-                attack->recursive = malloc(sizeof(*recursive));
-                memcpy(attack->recursive, recursive, sizeof(*recursive));
+                a->collision[currentframe]->instance[i]->recursive = malloc(sizeof(*recursive));
+                memcpy(a->collision[currentframe]->instance[i]->recursive, recursive, sizeof(*recursive));
             }
         }
     }
