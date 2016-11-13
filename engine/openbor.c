@@ -6033,6 +6033,10 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_RUN;
     }
+    else if(stricmp(value, "backrun") == 0)
+    {
+        ani_id = ANI_BACKRUN;
+    }
     else if(starts_with_num(value, "up"))
     {
         get_tail_number(tempInt, value, "up");
@@ -23469,7 +23473,12 @@ void adjust_walk_animation(entity *other)
     int dir = 0;
     if(self->running)
     {
-        ent_set_anim(self, ANI_RUN, 0);
+        if (validanim(self, ANI_BACKRUN))
+        {
+            if(is_in_backrun(self)) ent_set_anim(self, ANI_BACKRUN, 0);
+            else ent_set_anim(self, ANI_RUN, 0);
+        }
+        else ent_set_anim(self, ANI_RUN, 0); // Set to run animation if exists
         return;
     }
 
@@ -27050,9 +27059,18 @@ void player_think()
 
     if((pl->playkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)))
     {
+        int t3;
+
         t = (notinair && ((self->direction == DIRECTION_RIGHT && match_combo(rr, pl, 2)) || (self->direction == DIRECTION_LEFT && match_combo(ll, pl, 2))));
+        t3 = (notinair && self->modeldata.facing && ((self->direction == DIRECTION_RIGHT && match_combo(ll, pl, 2)) || (self->direction == DIRECTION_LEFT && match_combo(rr, pl, 2))));
 
         if(t && validanim(self, ANI_RUN))
+        {
+            pl->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
+            pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            self->running = 1;    // Player begins to run
+        }
+        else if(t3 && validanim(self, ANI_BACKRUN))
         {
             pl->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
             pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
@@ -27626,7 +27644,13 @@ void player_think()
         common_down_anim(self); //ent_set_anim(self, ANI_DOWN, 0);    // Set to down animation if exists
         break;
     case 4:
-        ent_set_anim(self, ANI_RUN, 0);    // Set to run animation if exists
+        if (validanim(self, ANI_BACKRUN))
+        {
+            if (is_in_backrun(self)) ent_set_anim(self, ANI_BACKRUN, 0);
+            else ent_set_anim(self, ANI_RUN, 0);
+        }
+        else ent_set_anim(self, ANI_RUN, 0); // Set to run animation if exists
+
         break;
     default:
         if(self->idling)
@@ -27640,7 +27664,16 @@ void player_think()
 endthinkcheck:
     //insert check here
     return;
+}
 
+int is_in_backrun(entity* self)
+{
+    if ( ((self->modeldata.facing == FACING_ADJUST_RIGHT || level->facing == FACING_ADJUST_RIGHT) && self->velocity.x < 0) ||
+         ((self->modeldata.facing == FACING_ADJUST_LEFT  || level->facing == FACING_ADJUST_LEFT)  && self->velocity.x > 0) ||
+         (((self->modeldata.facing == FACING_ADJUST_LEVEL || level->facing == FACING_ADJUST_LEVEL) && (level->scrolldir & SCROLL_RIGHT)) && self->velocity.x > 0) ||
+         (((self->modeldata.facing == FACING_ADJUST_LEVEL || level->facing == FACING_ADJUST_LEVEL) && (level->scrolldir & SCROLL_LEFT))  && self->velocity.x > 0)
+       ) return 1;
+    else return 0;
 }
 
 //ammo count goes down

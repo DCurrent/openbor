@@ -525,6 +525,7 @@ typedef enum //Animations
     ANI_BACKDIE8,
     ANI_BACKDIE9,
     ANI_BACKDIE10,
+    ANI_BACKRUN,
     MAX_ANIS                // Maximum # of animations. This must always be last.
 } e_animations;
 
@@ -2652,6 +2653,7 @@ void update(int ingame, int usevwait);
 void fade_out(int type, int speed);
 void apply_controls();
 void plan();
+int is_in_backrun(entity*);
 int ai_check_warp();
 int ai_check_lie();
 int ai_check_grabbed();
