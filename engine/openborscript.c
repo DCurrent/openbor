@@ -3459,6 +3459,8 @@ enum entityproperty_enum
     _ep_invinctime,
     _ep_jugglepoints,
     _ep_jumpheight,
+    _ep_jumpmovex,
+    _ep_jumpmovez,
     _ep_knockdowncount,
     _ep_komap,
     _ep_landedplatform,
@@ -3551,6 +3553,8 @@ enum entityproperty_enum
     _ep_type,
     _ep_velocity,
     _ep_vulnerable,
+    _ep_walkoffmovex,
+    _ep_walkoffmovez,
     _ep_weapent,
     _ep_weapon,
     _ep_x,
@@ -3641,6 +3645,8 @@ static const char *eplist[] =
     "invinctime",
     "jugglepoints",
     "jumpheight",
+    "jumpmovex",
+    "jumpmovez",
     "knockdowncount",
     "komap",
     "landedplatform",
@@ -3733,6 +3739,8 @@ static const char *eplist[] =
     "type",
     "velocity",
     "vulnerable",
+    "walkoffmovex",
+    "walkoffmovez",
     "weapent",
     "weapon",
     "x",
@@ -6544,11 +6552,13 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
     case _ep_destx:
     {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
         (*pretvar)->dblVal = (DOUBLE)ent->destx;
         break;
     }
     case _ep_destz:
     {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
         (*pretvar)->dblVal = (DOUBLE)ent->destz;
         break;
     }
@@ -7033,6 +7043,18 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
         (*pretvar)->dblVal = (DOUBLE)ent->modeldata.jumpheight;
+        break;
+    }
+    case _ep_jumpmovex:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.jumpmovex;
+        break;
+    }
+    case _ep_jumpmovez:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.jumpmovez;
         break;
     }
     case _ep_knockdowncount:
@@ -7958,6 +7980,18 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->modeldata.type;
         break;
     }
+    case _ep_walkoffmovex:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.walkoffmovex;
+        break;
+    }
+    case _ep_walkoffmovez:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.walkoffmovez;
+        break;
+    }
     case _ep_weapent:
     {
         ScriptVariant_ChangeType(*pretvar, VT_PTR);
@@ -8476,7 +8510,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->destx = (int)dbltemp;
+            ent->destx = (float)dbltemp;
         }
         break;
     }
@@ -8484,7 +8518,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->destz = (int)dbltemp;
+            ent->destz = (float)dbltemp;
         }
         break;
     }
@@ -8846,6 +8880,22 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
             ent->modeldata.jumpheight = (float)dbltemp;
+        }
+        break;
+    }
+    case _ep_jumpmovex:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.jumpmovex = (int)ltemp;
+        }
+        break;
+    }
+    case _ep_jumpmovez:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.jumpmovex = (int)ltemp;
         }
         break;
     }
@@ -9784,6 +9834,22 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(paramCount >= 5 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
         {
             ent->velocity.y = (float)dbltemp;
+        }
+        break;
+    }
+    case _ep_walkoffmovex:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.walkoffmovex = (int)ltemp;
+        }
+        break;
+    }
+    case _ep_walkoffmovez:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.walkoffmovez = (int)ltemp;
         }
         break;
     }
