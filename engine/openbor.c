@@ -14524,7 +14524,9 @@ void static backto_mainmenu()
     sound_pause_sample(1);
     pause = 2;
 
-    //update(1, 0);
+    if ( (goto_mainmenu_flag&1) ) goto_mainmenu_flag -= 1;
+
+    update(1, 0);
 
     for(i = 0; i < MAX_PLAYERS; i++)
     {
@@ -14534,7 +14536,6 @@ void static backto_mainmenu()
     //sound_pause_music(0);
     //sound_pause_sample(0);
 
-    if ( (goto_mainmenu_flag&1) ) goto_mainmenu_flag -= 1;
     pause = 0;
     bothnewkeys = 0;
     spriteq_unlock();
@@ -17590,7 +17591,7 @@ void do_attack(entity *e)
     static unsigned int new_attack_id = 1;
     int fdefense_blockthreshold; //max damage that can be blocked for attack type.
 
-    printf("\n dc_debug do_attack");
+    //printf("\n dc_debug do_attack");
 
     // Can't get hit after this
     if(level_completed)
@@ -19005,7 +19006,7 @@ void check_attack()
     if(!is_frozen(self) && self->animation->collision_attack &&
             self->animation->collision_attack[self->animpos])
     {
-        printf("\n dc_debug run do_attack");
+        //printf("\n dc_debug run do_attack");
         do_attack(self);
         return;
     }
