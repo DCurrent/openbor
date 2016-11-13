@@ -3449,6 +3449,7 @@ enum entityproperty_enum
     _ep_escapecount,
     _ep_escapehits,
     _ep_exists,
+    _ep_facing,
     _ep_falldie,
     _ep_flash,
     _ep_freezetime,
@@ -3635,6 +3636,7 @@ static const char *eplist[] =
     "escapecount",
     "escapehits",
     "exists",
+    "facing",
     "falldie",
     "flash",
     "freezetime",
@@ -6787,6 +6789,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->exists;
         break;
     }
+    case _ep_facing:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.facing;
+        break;
+    }
     case _ep_falldie:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -8685,6 +8693,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
             ent->modeldata.escapehits = (int)ltemp;
+        }
+        break;
+    }
+    case _ep_facing:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.facing = (int)ltemp;
         }
         break;
     }
