@@ -732,6 +732,12 @@ int sound_query_channel(int playid)
     return -1;
 }
 
+int sound_is_active(int channel)
+{
+    if( vchannel[channel].active ) return 1;
+    return 0;
+}
+
 void sound_stop_sample(int channel)
 {
     if(channel < 0 || channel >= max_channels)

@@ -833,6 +833,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "stopchannel";
     }
+    else if (functionRef == ((void *)openbor_isactivesample))
+    {
+        return "isactivesample";
+    }
     else if (functionRef == ((void *)openbor_playsample))
     {
         return "playsample";
@@ -1573,6 +1577,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_querychannel, "querychannel");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_stopchannel, "stopchannel");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_isactivesample, "isactivesample");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playsample, "playsample");
     List_InsertAfter(&theFunctionList,
@@ -13355,7 +13361,6 @@ HRESULT openbor_querychannel(ScriptVariant **varlist , ScriptVariant **pretvar, 
     return E_FAIL;
 }
 
-
 HRESULT openbor_stopchannel(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     LONG ltemp;
@@ -13367,6 +13372,21 @@ HRESULT openbor_stopchannel(ScriptVariant **varlist , ScriptVariant **pretvar, i
     sound_stop_sample((int)ltemp);
 
     sc_error:
+    return E_FAIL;
+}
+
+HRESULT openbor_isactivesample(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    LONG ltemp;
+    if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
+    {
+        goto error;
+    }
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = sound_is_active((int)ltemp);
+
+    error:
+    *pretvar = NULL;
     return E_FAIL;
 }
 

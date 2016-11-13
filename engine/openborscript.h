@@ -163,6 +163,7 @@ HRESULT openbor_pausemusic(ScriptVariant **varlist , ScriptVariant **pretvar, in
 HRESULT openbor_pausesamples(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_querychannel(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_stopchannel(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_isactivesample(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_playsample(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_loadsample(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_unloadsample(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
