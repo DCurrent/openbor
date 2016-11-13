@@ -160,6 +160,7 @@ HRESULT openbor_fademusic(ScriptVariant **varlist , ScriptVariant **pretvar, int
 HRESULT openbor_setmusicvolume(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_setmusictempo(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_pausemusic(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_pausesamples(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_querychannel(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_stopchannel(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_playsample(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
@@ -358,6 +359,7 @@ enum systemvariant_enum
     _sv_maxindexedvars,
     _sv_maxplayers,
     _sv_maxscriptvars,
+    _sv_maxsoundchannels,
     _sv_models_cached,
     _sv_models_loaded,
     _sv_musicvol,

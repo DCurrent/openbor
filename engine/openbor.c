@@ -15,6 +15,7 @@
 #include "commands.h"
 #include "models.h"
 #include "translation.h"
+#include "soundmix.h"
 
 #define NaN 0xAAAAAAAA
 
@@ -1220,6 +1221,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
     case _sv_pakname:
         ScriptVariant_ChangeType(var, VT_STR);
         getPakName(StrCache_Get(var->strVal), -1);
+        break;
+    case _sv_maxsoundchannels:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = (LONG)maxchannels();
         break;
     case _sv_maxentityvars:
         ScriptVariant_ChangeType(var, VT_INTEGER);

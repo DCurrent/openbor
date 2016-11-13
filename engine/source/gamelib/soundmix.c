@@ -1669,3 +1669,8 @@ u32 sound_getinterval()
     return msecs;
 }
 
+int maxchannels()
+{
+    return MAX_CHANNELS;
+}
+
