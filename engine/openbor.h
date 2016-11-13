@@ -1380,55 +1380,12 @@ typedef struct
     s_staydown          staydown;           // Modify victum's stayodwn properties.
     int                 steal;              // Add damage to owner's hp.
     int                 tag;                // Non engine use tag for scripting.
-} s_collision_new;
-
-typedef struct
-{
-    s_collision_new *collision;
-} s_collision_list;
-
-typedef struct
-{
-    s_collision_list    **instance;    // This does not belong in attack - it's here while gradually building mallocs for multiple boxes.
-    s_hitbox            coords;
-    int                 attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
-    int                 attack_force;
-    int                 attack_type;        // Reaction animation, death, etc.
-    int                 blast;              // Attack box active on hit opponent's fall animation.
-    int                 blockflash;         // Custom bflash for each animation, model id
-    int                 blocksound;         // Custom sound for when an attack is blocked
-    int                 counterattack;      // Treat other attack boxes as body box.
-    int                 damage_on_landing;  // same as throw damage type
-    s_defense           *defense;
-    s_axis_f            dropv;              // Velocity of target if knocked down.
-    e_direction_adjust  force_direction;    // Adjust target's direction on hit.
-    int                 forcemap;           // Set target's palette on hit.
-    int                 freeze;             // Lock target in place and set freeze time.
-    u32                 freezetime;         // Time for target to remain frozen.
-    int                 grab;               // Not a grab as in grapple - behavior on hit for setting target's position
-    float               grab_distance;      // Distance used by "grab".
-    int                 guardcost;          // cost for blocking an attack
-    int                 hitflash;           // Custom flash for each animation, model id
-    int                 hitsound;           // Sound effect to be played when attack hits opponent
-    int                 index;              // Possible future support of multiple boxes - it's doubt even if support is added this property will be needed.
-    int                 jugglecost;         // cost for juggling a falling ent
-    u32                 maptime;            // Time for forcemap to remain in effect.
-    int                 no_block;           // If this is greater than defense block power, make the hit
-    int                 no_flash;           // Flag to determine if an attack spawns a flash or not
-    int                 no_kill;            // this attack won't kill target (leave 1 HP)
-    int                 no_pain;            // No animation reaction on hit.
-    e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
-    u32                 pain_time;          // pain invincible time
-    int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
-    int                 priority_give;
-    int                 priority_take;
-    s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
-    int                 seal;               // Disable target's animations with energycost > seal.
-    u32                 sealtime;           // Time for seal to remain in effect.
-    s_staydown          staydown;           // Modify victum's stayodwn properties.
-    int                 steal;              // Add damage to owner's hp.
-    int                 tag;                // Non engine use tag for scripting.
 } s_collision;
+
+typedef struct
+{
+    s_collision **instance;    // This does not belong in attack - it's here while gradually building mallocs for multiple boxes.
+} s_collision_frame;
 
 
 // Last hit structure. Populated each time a collision is detected.
@@ -1556,14 +1513,12 @@ typedef struct
     int tossframe;      // Frame to toss bomb/grenade
 } s_projectile;
 
-
-
 typedef struct
 {
     int             animhits;               // Does the attack need to hit before cancel is allowed?
     int             antigrav;               // UT: make dive a similar property as antigravity
     int             attackone;              // stick on the only one victim
-    s_collision        **collision;
+    s_collision_frame     **collision;
     s_body          **body_collision;
     float           bounce;                 // -tossv/bounce = new tossv
     int             cancel;                 // Cancel anims with freespecial
@@ -2559,7 +2514,7 @@ void ent_unlink(entity *e);
 void ents_link(entity *e1, entity *e2);
 void kill(entity *victim);
 void kill_all();
-int checkhit(entity *attacker, entity *target, int counter);
+int checkhit(entity *attacker, entity *target);
 int checkhole(float x, float z);
 int checkhole_index(float x, float z);
 int checkhole_in(float x, float z, float a);

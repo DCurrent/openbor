@@ -5260,15 +5260,15 @@ void free_frames(s_anim *anim)
                 {
                     if(anim->collision[i]->instance[instance])
                     {
+                        // First free any pointers allocated
+                        // to attack structure.
+                        if(anim->collision[i]->instance[instance]->recursive)
+                        {
+                            free(anim->collision[i]->instance[instance]->recursive);
+                        }
+
                         free(anim->collision[i]->instance[instance]);
                     }
-                }
-
-                // First free any pointers allocated
-                // to attack structure.
-                if(anim->collision[i]->recursive)
-                {
-                    free(anim->collision[i]->recursive);
                 }
 
                 free(anim->collision[i]);
@@ -5384,7 +5384,7 @@ void addFreeType(s_model *m, e_ModelFreetype t)
 
 void cache_model_sprites(s_model *m, int ld)
 {
-    int i, f;
+    int i, f, instance;
     s_anim *anim;
     cachesprite(m->icon.def, ld);
     cachesprite(m->icon.die, ld);
@@ -5415,8 +5415,11 @@ void cache_model_sprites(s_model *m, int ld)
                 }
                 if(anim->collision && anim->collision[f])
                 {
-                    cachesound(anim->collision[f]->hitsound, ld);
-                    cachesound(anim->collision[f]->blocksound, ld);
+                    for(instance = 0; instance < max_collisons; instance++)
+                    {
+                        cachesound(anim->collision[f]->instance[instance]->hitsound, ld);
+                        cachesound(anim->collision[f]->instance[instance]->blocksound, ld);
+                    }
                 }
             }
         }
@@ -5737,15 +5740,16 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
         {
             a->collision[currentframe]->instance[i] = malloc(size_col_list_struct);
             memcpy(a->collision[currentframe]->instance[i], attack, size_col_list_struct);
-        }
 
+            attack = a->collision[currentframe]->instance[i];
 
-        // Add attack sub-properties.
-        // Recursive damage set?
-        if(!a->collision[currentframe]->recursive && recursive->mode)
-        {
-            a->collision[currentframe]->recursive = malloc(sizeof(*recursive));
-            memcpy(a->collision[currentframe]->recursive, recursive, sizeof(*recursive));
+            // Add attack sub-properties.
+            // Recursive damage set?
+            if(attack->recursive && recursive->mode)
+            {
+                attack->recursive = malloc(sizeof(*recursive));
+                memcpy(attack->recursive, recursive, sizeof(*recursive));
+            }
         }
     }
 
@@ -16744,7 +16748,7 @@ void kill_all()
     }
 }
 
-int checkhit(entity *attacker, entity *target, int counter)
+int checkhit(entity *attacker, entity *target)
 {
     #define KEY_ATTACKER    0
     #define KEY_TARGET      1
@@ -16753,139 +16757,170 @@ int checkhit(entity *attacker, entity *target, int counter)
     #define KEY_SIZE_X      2
     #define KEY_SIZE_Y      3
 
-    s_hitbox coords1;
-    s_hitbox coords2;
-    int x1, x2, y1, y2;
-    float medx, medy;
-    int debug_coords[2][4];
-    int topleast, bottomleast, leftleast, rightleast;
-    float zdist = 0, z1, z2;
+    s_hitbox coords_attack;
+    s_hitbox coords_detect;
+    s_collision *attack  = NULL;
+    int x1,
+        x2,
+        y1,
+        y2,
+        attack_instance;
+    float medx,
+        medy;
+    int attack_pos_x    = 0,
+        attack_pos_y    = 0,
+        attack_size_x   = 0,
+        attack_size_y   = 0,
+        detect_pos_x    = 0,
+        detect_pos_y    = 0,
+        detect_size_x   = 0,
+        detect_size_y   = 0;
+    int topleast,
+        bottomleast,
+        leftleast,
+        rightleast;
+    float zdist = 0,
+        z1,
+        z2;
 
-    if(attacker == target || !target->animation->body_collision ||
-            !attacker->animation->collision || !target->animation->vulnerable[target->animpos] )
+    if(attacker == target
+       || !target->animation->body_collision
+       || !attacker->animation->collision
+       || !target->animation->vulnerable[target->animpos])
     {
         return 0;
     }
 
     z1 = attacker->position.z;
     z2 = target->position.z;
-    coords1 = attacker->animation->collision[attacker->animpos]->coords;
 
-    if(!counter)
+    for(attack_instance = 0; attack_instance < max_collisons; attack_instance++)
     {
-        coords2 = target->animation->body_collision[target->animpos]->coords;
-    }
-    else if((target->animation->collision && target->animation->collision[target->animpos]) && target->animation->collision[target->animpos]->counterattack <= attacker->animation->collision[attacker->animpos]->counterattack)
-    {
-        coords2 = target->animation->collision[target->animpos]->coords;
-    }
-    else
-    {
-        return 0;
-    }
+        attack          = attacker->animation->collision[attacker->animpos]->instance[attack_instance];
+        coords_attack   = attack->coords;
 
-    if(coords1.z2 > coords1.z1)
-    {
-        z1 += coords1.z1 + (coords1.z2 - coords1.z1) / 2;
-        zdist += (coords1.z2 - coords1.z1) / 2;
-    }
-    else if(coords1.z1)
-    {
-        zdist += coords1.z1;
-    }
-    else
-    {
-        zdist += attacker->modeldata.grabdistance / 3 + 1;    //temporay fix for integer to float conversion
-    }
-    if(coords2.z2 > coords2.z1)
-    {
-        z2 += coords2.z1 + (coords2.z2 - coords2.z1) / 2;
-        zdist += (coords2.z2 - coords2.z1) / 2;
-    }
-    else if(coords2.z1)
-    {
-        zdist += coords2.z1;
-    }
+        //if(!attack->counterattack)
+        //{
+            coords_detect = target->animation->body_collision[target->animpos]->coords;
+        //}
+        //else if((target->animation->collision && target->animation->collision[target->animpos]) && target->animation->collision[target->animpos]->counterattack <= attacker->animation->collision[attacker->animpos]->counterattack)
+        //{
+            //coords_detect = target->animation->collision[target->animpos]->coords;
+        //}
+        //else
+        //{
+        //    return 0;
+        //}
 
-    zdist++; // pass >= <= check
+        if(coords_attack.z2 > coords_attack.z1)
+        {
+            z1 += coords_attack.z1 + (coords_attack.z2 - coords_attack.z1) / 2;
+            zdist += (coords_attack.z2 - coords_attack.z1) / 2;
+        }
+        else if(coords_attack.z1)
+        {
+            zdist += coords_attack.z1;
+        }
+        else
+        {
+            zdist += attacker->modeldata.grabdistance / 3 + 1;    //temporay fix for integer to float conversion
+        }
+        if(coords_detect.z2 > coords_detect.z1)
+        {
+            z2 += coords_detect.z1 + (coords_detect.z2 - coords_detect.z1) / 2;
+            zdist += (coords_detect.z2 - coords_detect.z1) / 2;
+        }
+        else if(coords_detect.z1)
+        {
+            zdist += coords_detect.z1;
+        }
 
-    if(diff(z1, z2) > zdist)
-    {
-        return 0;
-    }
+        zdist++; // pass >= <= check
 
-    x1 = (int)(attacker->position.x);
-    y1 = (int)(z1 - attacker->position.y);
-    x2 = (int)(target->position.x);
-    y2 = (int)(z2 - target->position.y);
+        if(diff(z1, z2) > zdist)
+        {
+            return 0;
+        }
 
+        x1 = (int)(attacker->position.x);
+        y1 = (int)(z1 - attacker->position.y);
+        x2 = (int)(target->position.x);
+        y2 = (int)(z2 - target->position.y);
 
-    if(attacker->direction == DIRECTION_LEFT)
-    {
-        debug_coords[KEY_ATTACKER][KEY_POS_X] = x1 - coords1.width;
-        debug_coords[KEY_ATTACKER][KEY_POS_Y] = y1 + coords1.y;
-        debug_coords[KEY_ATTACKER][KEY_SIZE_X] = x1 - coords1.x;
-        debug_coords[KEY_ATTACKER][KEY_SIZE_Y] = y1 + coords1.height;
-    }
-    else
-    {
-        debug_coords[KEY_ATTACKER][KEY_POS_X] = x1 + coords1.x;
-        debug_coords[KEY_ATTACKER][KEY_POS_Y] = y1 + coords1.y;
-        debug_coords[KEY_ATTACKER][KEY_SIZE_X] = x1 + coords1.width;
-        debug_coords[KEY_ATTACKER][KEY_SIZE_Y] = y1 + coords1.height;
-    }
-    if(target->direction == DIRECTION_LEFT)
-    {
-        debug_coords[KEY_TARGET][KEY_POS_X] = x2 - coords2.width;
-        debug_coords[KEY_TARGET][KEY_POS_Y] = y2 + coords2.y;
-        debug_coords[KEY_TARGET][KEY_SIZE_X] = x2 - coords2.x;
-        debug_coords[KEY_TARGET][KEY_SIZE_Y] = y2 + coords2.height;
-    }
-    else
-    {
-        debug_coords[KEY_TARGET][KEY_POS_X] = x2 + coords2.x;
-        debug_coords[KEY_TARGET][KEY_POS_Y] = y2 + coords2.y;
-        debug_coords[KEY_TARGET][KEY_SIZE_X] = x2 + coords2.width;
-        debug_coords[KEY_TARGET][KEY_SIZE_Y] = y2 + coords2.height;
-    }
+        if(attacker->direction == DIRECTION_LEFT)
+        {
+            attack_pos_x   = x1 - coords_attack.width;
+            attack_pos_y   = y1 + coords_attack.y;
+            attack_size_x  = x1 - coords_attack.x;
+            attack_size_y  = y1 + coords_attack.height;
+        }
+        else
+        {
+            attack_pos_x    = x1 + coords_attack.x;
+            attack_pos_y    = y1 + coords_attack.y;
+            attack_size_x   = x1 + coords_attack.width;
+            attack_size_y   = y1 + coords_attack.height;
+        }
+        if(target->direction == DIRECTION_LEFT)
+        {
+            detect_pos_x    = x2 - coords_detect.width;
+            detect_pos_y    = y2 + coords_detect.y;
+            detect_size_x   = x2 - coords_detect.x;
+            detect_size_y   = y2 + coords_detect.height;
+        }
+        else
+        {
+            detect_pos_x    = x2 + coords_detect.x;
+            detect_pos_y    = y2 + coords_detect.y;
+            detect_size_x   = x2 + coords_detect.width;
+            detect_size_y   = y2 + coords_detect.height;
+        }
 
-    if(debug_coords[KEY_ATTACKER][KEY_POS_X] > debug_coords[KEY_TARGET][KEY_SIZE_X])
-    {
-        return 0;
-    }
-    if(debug_coords[KEY_TARGET][KEY_POS_X] > debug_coords[KEY_ATTACKER][KEY_SIZE_X])
-    {
-        return 0;
-    }
-    if(debug_coords[KEY_ATTACKER][KEY_POS_Y] > debug_coords[KEY_TARGET][KEY_SIZE_Y])
-    {
-        return 0;
-    }
-    if(debug_coords[KEY_TARGET][KEY_POS_Y] > debug_coords[KEY_ATTACKER][KEY_SIZE_Y])
-    {
-        return 0;
+        if(attack_pos_x > detect_size_x)
+        {
+            return 0;
+        }
+        if(detect_pos_x > attack_size_x)
+        {
+            return 0;
+        }
+        if(attack_pos_y > detect_size_y)
+        {
+            return 0;
+        }
+        if(detect_pos_y > attack_size_y)
+        {
+            return 0;
+        }
     }
 
     // Find center of attack area
-    leftleast = debug_coords[KEY_ATTACKER][KEY_POS_X];
-    if(leftleast < debug_coords[KEY_TARGET][KEY_POS_X])
+    leftleast = attack_pos_x;
+
+    if(leftleast < detect_pos_x)
     {
-        leftleast = debug_coords[KEY_TARGET][KEY_POS_X];
+        leftleast = detect_pos_x;
     }
-    topleast = debug_coords[KEY_ATTACKER][KEY_POS_Y];
-    if(topleast < debug_coords[KEY_TARGET][KEY_POS_Y])
+
+    topleast = attack_pos_y;
+
+    if(topleast < detect_pos_y)
     {
-        topleast = debug_coords[KEY_TARGET][KEY_POS_Y];
+        topleast = detect_pos_y;
     }
-    rightleast = debug_coords[KEY_ATTACKER][KEY_SIZE_X];
-    if(rightleast > debug_coords[KEY_TARGET][KEY_SIZE_X])
+
+    rightleast = attack_size_x;
+
+    if(rightleast > detect_size_x)
     {
-        rightleast = debug_coords[KEY_TARGET][KEY_SIZE_X];
+        rightleast = detect_size_x;
     }
-    bottomleast = debug_coords[KEY_ATTACKER][KEY_SIZE_Y];
-    if(bottomleast > debug_coords[KEY_TARGET][KEY_SIZE_Y])
+
+    bottomleast = attack_size_y;
+
+    if(bottomleast > detect_size_y)
     {
-        bottomleast = debug_coords[KEY_TARGET][KEY_SIZE_Y];
+        bottomleast = detect_size_y;
     }
 
     medx = (float)(leftleast + rightleast) / 2;
@@ -16903,10 +16938,10 @@ int checkhit(entity *attacker, entity *target, int counter)
         lasthit.position.z = z2 + 1;
     }
 
-    lasthit.attack = attacker->animation->collision[attacker->animpos];
-    lasthit.body = target->animation->body_collision[target->animpos];
-    lasthit.position.y = lasthit.position.z - medy;
-    lasthit.confirm = 1;
+    lasthit.attack      = attack;
+    lasthit.body        = target->animation->body_collision[target->animpos];
+    lasthit.position.y  = lasthit.position.z - medy;
+    lasthit.confirm     = 1;
     return 1;
 
     #undef KEY_ATTACKER
@@ -17526,7 +17561,7 @@ void do_attack(entity *e)
 {
     int them;
     int i, t;
-    int force;
+    int force = 0;
     e_blocktype blocktype;
     entity *temp            = NULL;
     entity *flash           = NULL;    // Used so new flashes can be used
@@ -17535,7 +17570,7 @@ void do_attack(entity *e)
     entity *otherowner      = NULL;
     entity *target          = NULL;
     s_anim      *current_anim;
-    s_collision *attack;
+    s_collision *attack = NULL;
     int didhit              = 0;
     int didblock            = 0;    // So a different sound effect can be played when an attack is blocked
     int current_attack_id;
@@ -17547,11 +17582,10 @@ void do_attack(entity *e)
     static unsigned int new_attack_id = 1;
     int fdefense_blockthreshold; //max damage that can be blocked for attack type.
 
-    attack = e->animation->collision[e->animpos];
-    fdefense_blockthreshold = (int)self->defense[attack->attack_type].blockthreshold; //max damage that can be blocked for attack type.
+    printf("\n dc_debug do_attack");
 
     // Can't get hit after this
-    if(level_completed || !attack)
+    if(level_completed)
     {
         return;
     }
@@ -17585,37 +17619,131 @@ void do_attack(entity *e)
         e->attack_id = current_attack_id = new_attack_id;
     }
 
-    force = attack->attack_force;
+
     current_anim = e->animation;
 
     for(i = 0; i < ent_max && !followed; i++)
     {
         target = ent_list[i];
 
-        // if #0
-        if( target->exists &&
-                !target->dead && // dont hit the dead
-                (target->invincible != 1 || attack->attack_type == ATK_ITEM) && // so invincible people can get items
-                !(current_anim->attackone > 0 && e->lasthit && target != e->lasthit) &&
-                (target->modeldata.type & them) &&
-                target->pain_time < time && //(target->pain_time<time || current_anim->fastattack) &&
-                target->takedamage &&
-                target->hit_by_attack_id != current_attack_id &&
-                ((target->takeaction != common_lie && attack->otg < OTG_GROUND_ONLY) || (attack->otg >= OTG_BOTH && target->takeaction == common_lie)) && //over the ground hit
-                ((target->falling == 0 && attack->jugglecost >= 0) || (target->falling == 1 && attack->jugglecost <= target->modeldata.jugglepoints.current)) && // juggle system
-                (checkhit(e, target, 0) || // normal check bbox
-                 (attack->counterattack && checkhit(e, target, 1)))  )// check counter, e.g. upper
-        {
-            temp = self;
-            self = target;
-
-            execute_ondoattack_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, current_attack_id, attack->tag);	//Execute on defender.
-            execute_ondoattack_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, current_attack_id, attack->tag);	//Execute on attacker.
-        }
-        else
+        if(!target->exists)
         {
             continue;
         }
+
+        // Check collision. If a collision
+        // is found, lasthit the impacting
+        // collision pointers are also
+        // populated into lasthit, which
+        // we will use below.
+        if(!checkhit(e, target))
+        {
+            continue;
+        }
+
+        attack = lasthit.attack;
+        fdefense_blockthreshold = (int)self->defense[attack->attack_type].blockthreshold; //max damage that can be blocked for attack type.
+        force = attack->attack_force;
+
+        // Verify target is alive.
+        if(target->dead)
+        {
+            continue;
+        }
+
+        // Verify target is invincible,
+        // or attack type is an item.
+        // This is too allow item collection
+        // even while invincible.
+        if(target->invincible)
+        {
+            if(attack->attack_type != ATK_ITEM)
+            {
+                continue;
+            }
+        }
+
+        // If attack is set to only hit
+        // one entity at a time (attackone),
+        // we verify last hit (lasthit) is
+        // set. If last hit is set and
+        // differs from current target,
+        // then we are trying to hit
+        // another entity and should exit.
+        if(current_anim->attackone > 0)
+        {
+            if(e->lasthit)
+            {
+                if(target != e->lasthit)
+                {
+                    continue;
+                }
+            }
+        }
+
+        // Verify target has a match to
+        // projectile hit or can damage.
+        if(!(target->modeldata.type & them))
+        {
+            continue;
+        }
+
+        // Pain time must have expired.
+        // This is to allow reasonable delay
+        // between hits so engine will not
+        // run hit on every update.
+        if(target->pain_time >= time)
+        {
+            continue;
+        }
+
+        // Target takedamage flag
+        // must be set.
+        if(!target->takedamage)
+        {
+            continue;
+        }
+
+        // Attack IDs must be different.
+        if(target->hit_by_attack_id == current_attack_id)
+        {
+            continue;
+        }
+
+        // Target laying down? Exit if
+        // attack only hits standing targets.
+        if(target->takeaction == common_lie)
+        {
+            if(attack->otg == OTG_NONE)
+            {
+                continue;
+            }
+        }
+
+        // Target NOT laying down? Exit if
+        // attack only hits grounded targets.
+        if(target->takeaction != common_lie)
+        {
+            if(attack->otg == OTG_GROUND_ONLY)
+            {
+                continue;
+            }
+        }
+
+        // If falling, then check the juggle cost.
+        if(target->falling == 1)
+        {
+            if(attack->jugglecost >= target->modeldata.jugglepoints.current)
+            {
+                continue;
+            }
+        }
+
+        temp = self;
+        self = target;
+
+        execute_ondoattack_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, current_attack_id, attack->tag);	//Execute on defender.
+        execute_ondoattack_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, current_attack_id, attack->tag);	//Execute on attacker.
 
         // 2010-12-31
         // Damon V. Caskey
@@ -18869,6 +18997,7 @@ void check_attack()
     if(!is_frozen(self) && self->animation->collision &&
             self->animation->collision[self->animpos])
     {
+        printf("\n dc_debug run do_attack");
         do_attack(self);
         return;
     }
@@ -20545,33 +20674,43 @@ entity *long_find_target()
 
 entity *block_find_target(int anim, int iDetect)
 {
-    int i , min, max;
+    int i , min, max, instance;
     int index = -1;
     min = 0;
     max = 9999;
     float diffx, diffz, diffd, diffo = 0;
+    entity      *attacker;
+    s_collision *collision_attack;
 
     iDetect += self->modeldata.stealth.detect;
 
     //find the 'nearest' attacking one
     for(i = 0; i < ent_max; i++)
     {
-        if( ent_list[i]->exists && ent_list[i] != self //cant target self
-                && (ent_list[i]->modeldata.candamage & self->modeldata.type)
-                && (anim < 0 || (anim >= 0 && check_range(self, ent_list[i], anim)))
-                && !ent_list[i]->dead &&  ent_list[i]->attacking//must be alive
-                && ent_list[i]->animation->collision && (!ent_list[i]->animation->collision[ent_list[i]->animpos]
-                        || ent_list[i]->animation->collision[ent_list[i]->animpos]->no_block == 0)
-                && (diffd = (diffx = diff(ent_list[i]->position.x, self->position.x)) + (diffz = diff(ent_list[i]->position.z, self->position.z))) >= min
-                && diffd <= max
-                && (ent_list[i]->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
-          )
-        {
+        attacker = ent_list[i];
 
-            if(index < 0 || diffd < diffo)
+        for(instance = 0; instance < max_collisons; instance++)
+        {
+            collision_attack = attacker->animation->collision[attacker->animpos]->instance[instance];
+
+            if( attacker->exists && attacker != self //cant target self
+                && (attacker->modeldata.candamage & self->modeldata.type)
+                && (anim < 0 || (anim >= 0 && check_range(self, attacker, anim)))
+                && !attacker->dead && attacker->attacking//must be alive
+                && attacker->animation->collision && (!collision_attack
+                    || collision_attack->no_block == 0)
+                && (diffd = (diffx = diff(attacker->position.x, self->position.x)) + (diffz = diff(attacker->position.z, self->position.z))) >= min
+                && diffd <= max
+                && (attacker->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
+              )
             {
-                index = i;
-                diffo = diffd;
+                if(index < 0 || diffd < diffo)
+                {
+                    index = i;
+                    diffo = diffd;
+
+                    continue;
+                }
             }
         }
     }
