@@ -111,7 +111,7 @@ const s_defense default_defense =
     .blocktype      = BLOCK_TYPE_MP_FIRST
 };
 
-const s_body empty_body =   {   .coords = { .x      = 0,
+const s_collision_body empty_body =   {   .coords = { .x      = 0,
                                             .y      = 0,
                                             .width  = 0,
                                             .height = 0,
@@ -128,14 +128,14 @@ const s_damage_recursive empty_recursive = {    .force  = 0,
                                                 .time   = 0};
 
 // unknockdown attack
-const s_collision emptyattack =
+const s_collision_attack emptyattack =
 {
     .coords      = { .x      = 0,
-                            .y      = 0,
-                            .width  = 0,
-                            .height = 0,
-                            .z1     = 0,
-                            .z2     = 0},
+                    .y      = 0,
+                    .width  = 0,
+                    .height = 0,
+                    .z1     = 0,
+                    .z2     = 0},
     .attack_drop        = 0,
     .attack_force       = 0,
     .attack_type        = 0,
@@ -144,7 +144,6 @@ const s_collision emptyattack =
     .blocksound         = -1,
     .counterattack      = 0,
     .damage_on_landing  = 0,
-    .defense            = NULL,
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
@@ -166,8 +165,6 @@ const s_collision emptyattack =
     .otg                = OTG_NONE,
     .pain_time          = 0,
     .pause_add          = 0,
-    .priority_give      = 0,
-    .priority_take      = 0,
     .recursive          = NULL,
     .seal               = 0,
     .sealtime           = 0,
@@ -5220,18 +5217,18 @@ void free_frames(s_anim *anim)
         free(anim->vulnerable);
         anim->vulnerable = NULL;
     }
-    if(anim->body_collision)
+    if(anim->collision_body)
     {
         for(i = 0; i < anim->numframes; i++)
         {
-            if(anim->body_collision[i])
+            if(anim->collision_body[i])
             {
-                free(anim->body_collision[i]);
-                anim->body_collision[i] = NULL;
+                free(anim->collision_body[i]);
+                anim->collision_body[i] = NULL;
             }
         }
-        free(anim->body_collision);
-        anim->body_collision = NULL;
+        free(anim->collision_body);
+        anim->collision_body = NULL;
     }
     if(anim->shadow)
     {
@@ -5248,35 +5245,35 @@ void free_frames(s_anim *anim)
         free(anim->soundtoplay);
         anim->soundtoplay = NULL;
     }
-    if(anim->collision)
+    if(anim->collision_attack)
     {
         for(i = 0; i < anim->numframes; i++)
         {
-            if(anim->collision[i])
+            if(anim->collision_attack[i])
             {
                 // Check each attack instance and free memory as needed.
                 // Momma always said put your toys away when you're done!
                 for(instance = 0; instance < max_collisons; instance++)
                 {
-                    if(anim->collision[i]->instance[instance])
+                    if(anim->collision_attack[i]->instance[instance])
                     {
                         // First free any pointers allocated
                         // to attack structure.
-                        if(anim->collision[i]->instance[instance]->recursive)
+                        if(anim->collision_attack[i]->instance[instance]->recursive)
                         {
-                            free(anim->collision[i]->instance[instance]->recursive);
+                            free(anim->collision_attack[i]->instance[instance]->recursive);
                         }
 
-                        free(anim->collision[i]->instance[instance]);
+                        free(anim->collision_attack[i]->instance[instance]);
                     }
                 }
 
-                free(anim->collision[i]);
-                anim->collision[i] = NULL;
+                free(anim->collision_attack[i]);
+                anim->collision_attack[i] = NULL;
             }
         }
-        free(anim->collision);
-        anim->collision = NULL;
+        free(anim->collision_attack);
+        anim->collision_attack = NULL;
     }
     if(anim->drawmethods)
     {
@@ -5413,12 +5410,12 @@ void cache_model_sprites(s_model *m, int ld)
                 {
                     cachesound(anim->soundtoplay[f], ld);
                 }
-                if(anim->collision && anim->collision[f])
+                if(anim->collision_attack && anim->collision_attack[f])
                 {
                     for(instance = 0; instance < max_collisons; instance++)
                     {
-                        cachesound(anim->collision[f]->instance[instance]->hitsound, ld);
-                        cachesound(anim->collision[f]->instance[instance]->blocksound, ld);
+                        cachesound(anim->collision_attack[f]->instance[instance]->hitsound, ld);
+                        cachesound(anim->collision_attack[f]->instance[instance]->blocksound, ld);
                     }
                 }
             }
@@ -5654,16 +5651,18 @@ s_anim *alloc_anim()
     return anim_list->anim;
 }
 
-
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
-             s_body *bbox, s_collision *attack, s_axis_i *move,
-             float *platform, int frameshadow, int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod, int *offset, s_damage_recursive *recursive)
+             s_collision_body *bbox, s_collision_attack *attack, s_axis_i *move,
+             float *platform, int frameshadow, int *shadow_coords, int soundtoplay,
+             s_drawmethod *drawmethod, int *offset, s_damage_recursive *recursive)
 {
     int         i;
     unsigned    size_col_on_frame,
                 size_col_on_frame_struct,
                 size_col_list,
                 size_col_list_struct;
+
+    s_collision_attack *collision_attack;
 
     ptrdiff_t currentframe;
     if(framecount > 0)
@@ -5684,13 +5683,13 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
     if((bbox->coords.width - bbox->coords.x)
         && (bbox->coords.height - bbox->coords.y))
     {
-        if(!a->body_collision)
+        if(!a->collision_body)
         {
-            a->body_collision = malloc(framecount * sizeof(*a->body_collision));
-            memset(a->body_collision, 0, framecount * sizeof(*a->body_collision));
+            a->collision_body = malloc(framecount * sizeof(*a->collision_body));
+            memset(a->collision_body, 0, framecount * sizeof(*a->collision_body));
         }
-        a->body_collision[currentframe] = malloc(sizeof(**a->body_collision));
-        memcpy(a->body_collision[currentframe], bbox, sizeof(**a->body_collision));
+        a->collision_body[currentframe] = malloc(sizeof(**a->collision_body));
+        memcpy(a->collision_body[currentframe], bbox, sizeof(**a->collision_body));
 
         a->vulnerable[currentframe] = 1;
     }
@@ -5698,49 +5697,66 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
     if((attack->coords.width - attack->coords.x) &&
             (attack->coords.height - attack->coords.y))
     {
-        if(!a->collision)
+        if(!a->collision_attack)
         {
             // Get memory size.
-            size_col_on_frame = framecount * sizeof(*a->collision);
+            size_col_on_frame = framecount * sizeof(*a->collision_attack);
 
             // Allocate memory.
-            a->collision = malloc(size_col_on_frame);
-            memset(a->collision, 0, size_col_on_frame);
+            a->collision_attack = malloc(size_col_on_frame);
+            memset(a->collision_attack, 0, size_col_on_frame);
         }
 
         // Get memory size.
-        size_col_on_frame_struct = sizeof(**a->collision);
+        size_col_on_frame_struct = sizeof(**a->collision_attack);
 
         // Allocate memory.
-        a->collision[currentframe] = malloc(size_col_on_frame_struct);
+        a->collision_attack[currentframe] = malloc(size_col_on_frame_struct);
 
-        // Allocate a list of collision pointers for each frame.
+        // Get memory size of pointer for each instance.
+        size_col_list = max_collisons * sizeof(*a->collision_attack[currentframe]->instance);
 
-        // Get memory size of collision list pointer.
-        size_col_list = max_collisons * sizeof(*a->collision[currentframe]->instance);
+        // Allocate memory for a pointer to each instance
+        // and set empty default.
+        a->collision_attack[currentframe]->instance = malloc(size_col_list);
+        memset(a->collision_attack[currentframe]->instance, 0, size_col_list);
 
-        // Allocate memory and set empty default.
-        a->collision[currentframe]->instance = malloc(size_col_list);
-        memset(a->collision[currentframe]->instance, 0, size_col_list);
-
-        // Allocate collision structure for each frame.
-
-        // Get memory size of collision list structure.
-        size_col_list_struct = max_collisons * sizeof(**a->collision[currentframe]->instance);
+        // Get memory size of for the structure
+        // in each instance.
+        size_col_list_struct = max_collisons * sizeof(**a->collision_attack[currentframe]->instance);
 
         // Loop instances, allocate memory, and assign
         // user values.
         for(i=0; i<max_collisons; i++)
         {
-            a->collision[currentframe]->instance[i] = malloc(size_col_list_struct);
-            memcpy(a->collision[currentframe]->instance[i], attack, size_col_list_struct);
+            // Allocate memory for this instance structure,
+            // then copy the pointer to local var for readability.
+            a->collision_attack[currentframe]->instance[i] = malloc(size_col_list_struct);
+            collision_attack = a->collision_attack[currentframe]->instance[i];
 
-            // Add attack sub-properties.
-            // Recursive damage set?
-            if(!a->collision[currentframe]->instance[i]->recursive && recursive->mode)
+            // Apply primary properties
+            // read in by load_cached_model.
+            memcpy(collision_attack, attack, size_col_list_struct);
+
+            // Set index. Engine does not need this,
+            // but will allow scripts to identify
+            // which item instance has been acquired
+            // by handle (pointer).
+            collision_attack->index = i;
+
+            // Now let's add sub-properties. By
+            // adding pointers to main structure
+            // and allocating them here as needed
+            // instead of just bolting them on as
+            // several variables or sub-structures,
+            // we avoid wasting tons of memory on
+            // properties that are not in use.
+
+            // Recursive damage.
+            if(!collision_attack->recursive && recursive->mode)
             {
-                a->collision[currentframe]->instance[i]->recursive = malloc(sizeof(*recursive));
-                memcpy(a->collision[currentframe]->instance[i]->recursive, recursive, sizeof(*recursive));
+                collision_attack->recursive = malloc(sizeof(*recursive));
+                memcpy(collision_attack->recursive, recursive, sizeof(*recursive));
             }
         }
     }
@@ -5968,13 +5984,13 @@ char *get_cached_model_path(char *name)
 static void _readbarstatus(char *, s_barstatus *);
 
 //move here to ease animation name to id logic
-static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim, s_collision *attack)
+static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim, s_collision_attack *attack)
 {
     int ani_id = -1, tempInt;
     //those are dummy values to simplify code
     static s_model mdl;
     static s_anim ani;
-    static s_collision atk;
+    static s_collision_attack atk;
     if(!newchar)
     {
         newchar = &mdl;
@@ -7756,9 +7772,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         .z = 0};
 
     s_damage_recursive recursive;
-    s_collision attack,
+    s_collision_attack attack,
              *pattack = NULL;
-    s_body bbox_con;
+    s_collision_body bbox_con;
     s_defense defense;
     char *shutdownmessage = NULL;
 
@@ -10916,7 +10932,7 @@ void load_model_constants()
             switch(cmd)
             {
             case CMD_MODELSTXT_MAX_COLLISIONS:
-                // max collision boxes.
+                // max collision_attack boxes.
                 max_collisons = GET_INT_ARG(1);
                 if(max_collisons < MAX_COLLISIONS)
                 {
@@ -15954,7 +15970,7 @@ void update_frame(entity *ent, int f)
 {
     entity *tempself;
     entity *dust;
-    s_collision attack;
+    s_collision_attack attack;
     s_axis_f move;
     s_anim *anim = ent->animation;
 
@@ -16579,7 +16595,7 @@ void ents_link(entity *e1, entity *e2)
 void kill(entity *victim)
 {
     int i = 0;
-    s_collision attack;
+    s_collision_attack attack;
     entity *tempent = self;
 
     execute_onkill_script(victim);
@@ -16751,7 +16767,7 @@ int checkhit(entity *attacker, entity *target)
 
     s_hitbox coords_attack;
     s_hitbox coords_detect;
-    s_collision *attack  = NULL;
+    s_collision_attack *attack  = NULL;
     int x1,
         x2,
         y1,
@@ -16776,8 +16792,8 @@ int checkhit(entity *attacker, entity *target)
         z2;
 
     if(attacker == target
-       || !target->animation->body_collision
-       || !attacker->animation->collision
+       || !target->animation->collision_body
+       || !attacker->animation->collision_attack
        || !target->animation->vulnerable[target->animpos])
     {
         return 0;
@@ -16788,16 +16804,16 @@ int checkhit(entity *attacker, entity *target)
 
     for(attack_instance = 0; attack_instance < max_collisons; attack_instance++)
     {
-        attack          = attacker->animation->collision[attacker->animpos]->instance[attack_instance];
+        attack          = attacker->animation->collision_attack[attacker->animpos]->instance[attack_instance];
         coords_attack   = attack->coords;
 
         //if(!attack->counterattack)
         //{
-            coords_detect = target->animation->body_collision[target->animpos]->coords;
+            coords_detect = target->animation->collision_body[target->animpos]->coords;
         //}
-        //else if((target->animation->collision && target->animation->collision[target->animpos]) && target->animation->collision[target->animpos]->counterattack <= attacker->animation->collision[attacker->animpos]->counterattack)
+        //else if((target->animation->collision_attack && target->animation->collision_attack[target->animpos]) && target->animation->collision_attack[target->animpos]->counterattack <= attacker->animation->collision_attack[attacker->animpos]->counterattack)
         //{
-            //coords_detect = target->animation->collision[target->animpos]->coords;
+            //coords_detect = target->animation->collision_attack[target->animpos]->coords;
         //}
         //else
         //{
@@ -16931,7 +16947,7 @@ int checkhit(entity *attacker, entity *target)
     }
 
     lasthit.attack      = attack;
-    lasthit.body        = target->animation->body_collision[target->animpos];
+    lasthit.body        = target->animation->collision_body[target->animpos];
     lasthit.position.y  = lasthit.position.z - medy;
     lasthit.confirm     = 1;
     return 1;
@@ -17562,7 +17578,7 @@ void do_attack(entity *e)
     entity *otherowner      = NULL;
     entity *target          = NULL;
     s_anim      *current_anim;
-    s_collision *attack = NULL;
+    s_collision_attack *attack = NULL;
     int didhit              = 0;
     int didblock            = 0;    // So a different sound effect can be played when an attack is blocked
     int current_attack_id;
@@ -18277,7 +18293,7 @@ void check_gravity(entity *e)
 {
     int heightvar;
     entity *other = NULL, *dust, *tempself, *plat = NULL;
-    s_collision attack;
+    s_collision_attack attack;
     float gravity;
     float fmin, fmax;
 
@@ -18498,7 +18514,7 @@ void check_gravity(entity *e)
 
 void check_lost()
 {
-    s_collision attack;
+    s_collision_attack attack;
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
 
     if((self->position.z != 100000 && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
@@ -18986,8 +19002,8 @@ void check_attack()
     }
 
     // Can't hit an opponent if you are frozen
-    if(!is_frozen(self) && self->animation->collision &&
-            self->animation->collision[self->animpos])
+    if(!is_frozen(self) && self->animation->collision_attack &&
+            self->animation->collision_attack[self->animpos])
     {
         printf("\n dc_debug run do_attack");
         do_attack(self);
@@ -19140,7 +19156,7 @@ void common_dot()
     float       fOffense;   //Owner's offense.
     float       fDefense;   //Self defense.
     entity     *eOpp;       //Owner of dot effect.
-    s_collision    attack;     //Attack struct.
+    s_collision_attack    attack;     //Attack struct.
 
     for(iIndex = 0; iIndex <= MAX_DOTS; iIndex++)                                               //Loop through all DOT indexes.
     {
@@ -20672,7 +20688,7 @@ entity *block_find_target(int anim, int iDetect)
     max = 9999;
     float diffx, diffz, diffd, diffo = 0;
     entity      *attacker;
-    s_collision *collision_attack;
+    s_collision_attack *collision_attack;
 
     iDetect += self->modeldata.stealth.detect;
 
@@ -20683,13 +20699,13 @@ entity *block_find_target(int anim, int iDetect)
 
         for(instance = 0; instance < max_collisons; instance++)
         {
-            collision_attack = attacker->animation->collision[attacker->animpos]->instance[instance];
+            collision_attack = attacker->animation->collision_attack[attacker->animpos]->instance[instance];
 
             if( attacker->exists && attacker != self //cant target self
                 && (attacker->modeldata.candamage & self->modeldata.type)
                 && (anim < 0 || (anim >= 0 && check_range(self, attacker, anim)))
                 && !attacker->dead && attacker->attacking//must be alive
-                && attacker->animation->collision && (!collision_attack
+                && attacker->animation->collision_attack && (!collision_attack
                     || collision_attack->no_block == 0)
                 && (diffd = (diffx = diff(attacker->position.x, self->position.x)) + (diffz = diff(attacker->position.z, self->position.z))) >= min
                 && diffd <= max
@@ -21640,7 +21656,7 @@ void checkdeath()
     }
 }
 
-void checkdamageflip(entity *other, s_collision *attack)
+void checkdamageflip(entity *other, s_collision_attack *attack)
 {
     self->normaldamageflipdir = -1;
 
@@ -21701,7 +21717,7 @@ void checkdamageflip(entity *other, s_collision *attack)
     }
 }
 
-void checkdamageeffects(s_collision *attack)
+void checkdamageeffects(s_collision_attack *attack)
 {
 #define _freeze         attack->freeze
 #define _maptime        attack->maptime
@@ -21823,7 +21839,7 @@ void checkdamageeffects(s_collision *attack)
 #undef _staydown1
 }
 
-void checkdamagedrop(s_collision *attack)
+void checkdamagedrop(s_collision_attack *attack)
 {
     int attackdrop = attack->attack_drop;
     float fdefense_knockdown = self->defense[attack->attack_type].knockdown;
@@ -21873,7 +21889,7 @@ void checkmpadd()
     }
 }
 
-void checkhitscore(entity *other, s_collision *attack)
+void checkhitscore(entity *other, s_collision_attack *attack)
 {
     entity *opp = self->opponent;
     if(!opp)
@@ -21895,7 +21911,7 @@ void checkhitscore(entity *other, s_collision *attack)
     }
 }
 
-void checkdamage(entity *other, s_collision *attack)
+void checkdamage(entity *other, s_collision_attack *attack)
 {
     int force = attack->attack_force;
     int type = attack->attack_type;
@@ -21941,7 +21957,7 @@ void checkdamage(entity *other, s_collision *attack)
     }
 }
 
-int checkgrab(entity *other, s_collision *attack)
+int checkgrab(entity *other, s_collision_attack *attack)
 {
     //if(attack->no_pain) return  0; //no effect, let modders to deside, don't bother check it here
     if(self != other && attack->grab && cangrab(other, self))
@@ -21959,7 +21975,7 @@ int checkgrab(entity *other, s_collision *attack)
     return 1;
 }
 
-int arrow_takedamage(entity *other, s_collision *attack)
+int arrow_takedamage(entity *other, s_collision_attack *attack)
 {
     self->modeldata.no_adjust_base = 0;
     self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_gravity = 1;
@@ -21970,7 +21986,7 @@ int arrow_takedamage(entity *other, s_collision *attack)
     return 0;
 }
 
-int common_takedamage(entity *other, s_collision *attack)
+int common_takedamage(entity *other, s_collision_attack *attack)
 {
     if(self->dead)
     {
@@ -24340,10 +24356,10 @@ int assume_safe_distance(entity* target, int ani, int* minx, int* maxx, int* min
 		ta = target->modeldata.animation[ani];
 		*minx = *minz = 9999;
 		*maxx = *maxz = -9999;
-		if(ta->collision){
+		if(ta->collision_attack){
 			for(f=0; f<ta->numframes; f++){
-				if(!ta->collision[f]) continue;
-				coords = ta->collision[f]->coords;
+				if(!ta->collision_attack[f]) continue;
+				coords = ta->collision_attack[f]->coords;
 				if(target->direction == DIRECTION_RIGHT) {
 					tminx = coords[0];
 					tmaxx = coords[2];
@@ -24365,8 +24381,8 @@ int assume_safe_distance(entity* target, int ani, int* minx, int* maxx, int* min
 				set = 1;
 			}
 
-			if(set && self->animation->body_collision->coords && self->animation->body_collision[self->animpos]->coords){
-				coords = self->animation->body_collision[self->animpos]->coords;
+			if(set && self->animation->collision_body->coords && self->animation->collision_body[self->animpos]->coords){
+				coords = self->animation->collision_body[self->animpos]->coords;
 				*minx -= coords[2] - coords[0];
 				*minz -= coords[4];
 				*maxx += coords[2] - coords[0];
@@ -27723,9 +27739,9 @@ void dropweapon(int flag)
 }
 
 
-int player_takedamage(entity *other, s_collision *attack)
+int player_takedamage(entity *other, s_collision_attack *attack)
 {
-    s_collision atk = *attack;
+    s_collision_attack atk = *attack;
     //printf("damaged by: '%s' %d\n", other->name, attack->attack_force);
     if(healthcheat || (level->nohurt && (other->modeldata.type & TYPE_ENEMY)))
     {
@@ -27779,7 +27795,7 @@ void drop_all_enemies()
 void kill_all_enemies()
 {
     int i;
-    s_collision attack;
+    s_collision_attack attack;
     entity *tmpself = NULL;
 
     attack = emptyattack;
@@ -27807,7 +27823,7 @@ void kill_all_enemies()
 
 
 
-void smart_bomb(entity *e, s_collision *attack)    // New method for smartbombs
+void smart_bomb(entity *e, s_collision_attack *attack)    // New method for smartbombs
 {
     int i, hostile, hit = 0;
     entity *tmpself = NULL;
@@ -28312,7 +28328,7 @@ void bike_crash()
 
 
 
-int biker_takedamage(entity *other, s_collision *attack)
+int biker_takedamage(entity *other, s_collision_attack *attack)
 {
     entity *driver = NULL;
     entity *tempself = NULL;
@@ -28401,7 +28417,7 @@ void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
 
 
 
-int obstacle_takedamage(entity *other, s_collision *attack)
+int obstacle_takedamage(entity *other, s_collision_attack *attack)
 {
     if(self->position.y <= PIT_DEPTH)
     {
@@ -28817,7 +28833,7 @@ void spawnplayer(int index)
 void time_over()
 {
     int i;
-    s_collision attack;
+    s_collision_attack attack;
 
     attack = emptyattack;
     attack.attack_type = ATK_TIMEOVER;
