@@ -83,4 +83,6 @@ void sound_pause_music(int toggle);
 
 void update_sample(unsigned char *buf, int size);
 
+int maxchannels(void);
+
 #endif

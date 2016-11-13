@@ -821,6 +821,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "pausemusic";
     }
+    else if (functionRef == ((void *)openbor_pausesamples))
+    {
+        return "pausesamples";
+    }
     else if (functionRef == ((void *)openbor_querychannel))
     {
         return "querychannel";
@@ -1564,6 +1568,8 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_pausemusic, "pausemusic");
     List_InsertAfter(&theFunctionList,
+                     (void *)openbor_pausesamples, "pausesamples");
+    List_InsertAfter(&theFunctionList,
                      (void *)openbor_querychannel, "querychannel");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_stopchannel, "stopchannel");
@@ -2205,6 +2211,7 @@ static const char *svlist[] =
     "maxindexedvars",
     "maxplayers",
     "maxscriptvars",
+    "maxsoundchannels",
     "models_cached",
     "models_loaded",
     "musicvol",
@@ -13303,7 +13310,7 @@ HRESULT openbor_setmusictempo(ScriptVariant **varlist , ScriptVariant **pretvar,
     return S_OK;
 }
 
-//pausemusic(value)
+//pausemusic(togglr)
 HRESULT openbor_pausemusic(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     int pause = 0;
@@ -13315,6 +13322,21 @@ HRESULT openbor_pausemusic(ScriptVariant **varlist , ScriptVariant **pretvar, in
     pause = (int)ScriptVariant_IsTrue(varlist[0]);
 
     sound_pause_music(pause);
+    return S_OK;
+}
+
+//pausesamples(toggle)
+HRESULT openbor_pausesamples(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    int pause = 0;
+    if(paramCount < 1)
+    {
+        return S_OK;
+    }
+
+    pause = (int)ScriptVariant_IsTrue(varlist[0]);
+
+    sound_pause_sample(pause);
     return S_OK;
 }
 
