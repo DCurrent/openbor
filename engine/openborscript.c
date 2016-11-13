@@ -102,14 +102,14 @@ extern s_sprite_map *sprite_map;
 
 extern unsigned char *blendings[MAX_BLENDINGS];
 extern int            current_palette;
-extern s_collision emptyattack;
+extern s_collision_attack emptyattack;
 Varlist global_var_list;
 Script *pcurrentscript = NULL;//used by local script functions
 List theFunctionList;
 static List   scriptheap;
 static s_spawn_entry spawnentry;
 static s_drawmethod drawmethod;
-static s_collision attack ;
+static s_collision_attack attack ;
 
 int            max_indexed_vars = 0;
 int            max_entity_vars = 0;
@@ -4707,10 +4707,10 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
         case ANI_PROP_ATTACK:
 
             // Verify animation has attacks.
-            if(handle->collision)
+            if(handle->collision_attack)
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->collision;
+                (*pretvar)->ptrVal = (VOID *)handle->collision_attack;
             }
 
             break;
@@ -4724,10 +4724,10 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
         case ANI_PROP_BODY_COLLISION:
 
             // Verify animation has any bbox.
-            if(handle->body_collision)
+            if(handle->collision_body)
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->body_collision;
+                (*pretvar)->ptrVal = (VOID *)handle->collision_body;
             }
 
             break;
@@ -4815,7 +4815,7 @@ HRESULT openbor_get_attack_collection(ScriptVariant **varlist, ScriptVariant **p
 
 
     int         result      = S_OK;     // Success or error?
-    s_collision    **handle     = NULL;    // Property handle.
+    s_collision_attack    **handle     = NULL;    // Property handle.
     int         frame       = 0;        // Property argument.
 
     // Clear pass by reference argument used to send
@@ -4834,7 +4834,7 @@ HRESULT openbor_get_attack_collection(ScriptVariant **varlist, ScriptVariant **p
     }
     else
     {
-        handle  = (s_collision **)varlist[ARG_HANDLE]->ptrVal;
+        handle  = (s_collision_attack **)varlist[ARG_HANDLE]->ptrVal;
         frame   = (LONG)varlist[ARG_FRAME]->lVal;
     }
 
@@ -4875,7 +4875,7 @@ HRESULT openbor_get_attack_instance(ScriptVariant **varlist, ScriptVariant **pre
     #define ARG_INDEX       1   // Index to access.
 
     int         result     = S_OK; // Success or error?
-    s_collision    *handle    = NULL; // Property handle.
+    s_collision_attack    *handle    = NULL; // Property handle.
     //int         index      = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
@@ -4894,7 +4894,7 @@ HRESULT openbor_get_attack_instance(ScriptVariant **varlist, ScriptVariant **pre
     }
     else
     {
-        handle  = (s_collision *)varlist[ARG_HANDLE]->ptrVal;
+        handle  = (s_collision_attack *)varlist[ARG_HANDLE]->ptrVal;
         //index   = (LONG)varlist[ARG_INDEX]->lVal;
     }
 
@@ -4932,7 +4932,7 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
     #define ARG_PROPERTY    1   // Property to access.
 
     int                     result      = S_OK; // Success or error?
-    s_collision                *handle     = NULL; // Property handle.
+    s_collision_attack                *handle     = NULL; // Property handle.
     e_attack_properties     property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
@@ -4951,7 +4951,7 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
     }
     else
     {
-        handle      = (s_collision *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_collision_attack *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -5261,7 +5261,7 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
     #define ARG_VALUE           2   // New value to apply.
 
     int                     result      = S_OK; // Success or error?
-    s_collision                *handle     = NULL; // Property handle.
+    s_collision_attack                *handle     = NULL; // Property handle.
     e_attack_properties     property    = 0;    // Property to access.
 
     // Value carriers to apply on properties after
@@ -5281,7 +5281,7 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
     }
     else
     {
-        handle      = (s_collision *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_collision_attack *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -5691,7 +5691,7 @@ HRESULT openbor_get_body_collision_collection(ScriptVariant **varlist, ScriptVar
 
 
     int         result      = S_OK; // Success or error?
-    s_body      **handle    = NULL; // Property handle.
+    s_collision_body      **handle    = NULL; // Property handle.
     int         frame       = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
@@ -5710,7 +5710,7 @@ HRESULT openbor_get_body_collision_collection(ScriptVariant **varlist, ScriptVar
     }
     else
     {
-        handle  = (s_body **)varlist[ARG_HANDLE]->ptrVal;
+        handle  = (s_collision_body **)varlist[ARG_HANDLE]->ptrVal;
         frame   = (LONG)varlist[ARG_FRAME]->lVal;
     }
 
@@ -5746,7 +5746,7 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
     #define ARG_INDEX       1   // Index to access.
 
     int         result     = S_OK; // Success or error?
-    s_body      *handle    = NULL; // Property handle.
+    s_collision_body      *handle    = NULL; // Property handle.
     //int         index      = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
@@ -5765,7 +5765,7 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
     }
     else
     {
-        handle  = (s_body *)varlist[ARG_HANDLE]->ptrVal;
+        handle  = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
         //index   = (LONG)varlist[ARG_INDEX]->lVal;
     }
 
@@ -5803,7 +5803,7 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
     #define ARG_PROPERTY    1   // Property to access.
 
     int                         result      = S_OK; // Success or error?
-    s_body                      *handle     = NULL; // Property handle.
+    s_collision_body                      *handle     = NULL; // Property handle.
     e_body_collision_properties property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
@@ -5822,7 +5822,7 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
     }
     else
     {
-        handle      = (s_body *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -5917,7 +5917,7 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
     #define ARG_VALUE           2   // New value to apply.
 
     int                         result      = S_OK; // Success or error?
-    s_body                      *handle     = NULL; // Property handle.
+    s_collision_body                      *handle     = NULL; // Property handle.
     e_body_collision_properties property    = 0;    // Property to access.
 
 
@@ -5938,7 +5938,7 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
     }
     else
     {
-        handle      = (s_body *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -11497,7 +11497,7 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
     entity *other = NULL;
     entity *temp = NULL;
     LONG force, drop, type;
-    s_collision atk;
+    s_collision_attack atk;
 
     if(paramCount < 1)
     {
