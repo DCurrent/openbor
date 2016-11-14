@@ -1343,13 +1343,13 @@ typedef struct
 // Collision, for attacks.
 typedef struct
 {
-    s_hitbox            coords;
     int                 attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
     int                 attack_force;
     int                 attack_type;        // Reaction animation, death, etc.
     int                 blast;              // Attack box active on hit opponent's fall animation.
     int                 blockflash;         // Custom bflash for each animation, model id
     int                 blocksound;         // Custom sound for when an attack is blocked
+    s_hitbox            coords;
     int                 counterattack;      // Treat other attack boxes as body box.
     int                 damage_on_landing;  // same as throw damage type
     s_axis_f            dropv;              // Velocity of target if knocked down.
@@ -2606,6 +2606,7 @@ int common_try_wandercompletely(int dox, int doz);
 int common_try_wander(entity *target, int dox, int doz);
 void common_pickupitem(entity *other);
 int common_backwalk_anim(entity *ent);
+void draw_visual_debug();
 int bomb_move(void);
 int arrow_move(void);
 int common_move(void);
