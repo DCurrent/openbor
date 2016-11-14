@@ -837,6 +837,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "isactivesample";
     }
+    else if (functionRef == ((void *)openbor_sampleid))
+    {
+        return "sampleid";
+    }
     else if (functionRef == ((void *)openbor_playsample))
     {
         return "playsample";
@@ -1579,6 +1583,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_stopchannel, "stopchannel");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_isactivesample, "isactivesample");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_sampleid, "sampleid");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playsample, "playsample");
     List_InsertAfter(&theFunctionList,
@@ -13391,6 +13397,7 @@ HRESULT openbor_stopchannel(ScriptVariant **varlist , ScriptVariant **pretvar, i
     return E_FAIL;
 }
 
+//isactivesample(channel): returns 1 is sample is active, returns 0 otherwise
 HRESULT openbor_isactivesample(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     LONG ltemp;
@@ -13400,6 +13407,22 @@ HRESULT openbor_isactivesample(ScriptVariant **varlist , ScriptVariant **pretvar
     }
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
     (*pretvar)->lVal = sound_is_active((int)ltemp);
+
+    error:
+    *pretvar = NULL;
+    return E_FAIL;
+}
+
+//sampleid(channel): returns sample id in channel if sample is active, it returns -1 otherwise
+HRESULT openbor_sampleid(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    LONG ltemp;
+    if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
+    {
+        goto error;
+    }
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = sound_id((int)ltemp);
 
     error:
     *pretvar = NULL;

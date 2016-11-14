@@ -732,6 +732,12 @@ int sound_query_channel(int playid)
     return -1;
 }
 
+int sound_id(int channel)
+{
+    if(vchannel[channel].active) return vchannel[channel].playid;
+    else return -1;
+}
+
 int sound_is_active(int channel)
 {
     if( vchannel[channel].active ) return 1;
