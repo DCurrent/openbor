@@ -1080,7 +1080,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
     case _sv_pause:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         if( !(goto_mainmenu_flag&1) ) var->lVal = (LONG)(pause);
-        var->lVal = (LONG)0;
+        else var->lVal = (LONG)0;
         break;
     case _sv_gfx_x_offset:
         if(!level)
