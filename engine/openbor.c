@@ -131,18 +131,18 @@ const s_damage_recursive empty_recursive = {    .force  = 0,
 // unknockdown attack
 const s_collision_attack emptyattack =
 {
-    .coords      = { .x      = 0,
-                    .y      = 0,
-                    .width  = 0,
-                    .height = 0,
-                    .z1     = 0,
-                    .z2     = 0},
     .attack_drop        = 0,
     .attack_force       = 0,
     .attack_type        = 0,
     .blast              = 0,
     .blockflash         = -1,
     .blocksound         = -1,
+    .coords      = { .x      = 0,
+                    .y      = 0,
+                    .width  = 0,
+                    .height = 0,
+                    .z1     = 0,
+                    .z2     = 0},
     .counterattack      = 0,
     .damage_on_landing  = 0,
     .dropv              = { .x = 0,
@@ -14881,6 +14881,89 @@ void updatestatus()
 
 }
 
+void draw_visual_debug()
+{
+    int i;
+    int instance;
+    int display_offset_x = 0,
+        display_offset_y = 0,
+        pos_x   = 0,
+        pos_y   = 0,
+        pos_z   = 0,
+        size_x  = 0,
+        size_y  = 0;
+    s_hitbox            coords;
+    s_collision_attack  *collision_attack;
+    s_drawmethod        drawmethod = plainmethod;
+    entity              *entity;
+
+    drawmethod.alpha = 1;
+
+    for(i=0; i<ent_max; i++)
+    {
+        entity = ent_list[i];
+
+        // Entity must exist.
+        if(!entity)
+        {
+            continue;
+        }
+
+        // Entity must be alive.
+        if(entity->dead)
+        {
+            continue;
+        }
+
+        // Has collision?
+        if(!entity->animation->collision_attack)
+        {
+            continue;
+        }
+
+        if(!entity->animation->collision_attack[entity->animpos])
+        {
+            continue;
+        }
+
+        for(instance = 0; instance < max_collisons; instance++)
+        {
+            collision_attack = entity->animation->collision_attack[entity->animpos]->instance[instance];
+
+            if(!collision_attack)
+            {
+                continue;
+            }
+
+            coords = collision_attack->coords;
+
+            display_offset_x = screenx - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
+            display_offset_y = screeny - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
+
+            size_x = coords.width - coords.x;
+            size_y = coords.height;
+
+            pos_x = (int)((entity->position.x - display_offset_x) + coords.x);
+            pos_y = (int)((entity->position.z - entity->position.y - display_offset_y) + coords.y);
+            pos_z = (int)entity->position.z;
+
+            size_y = (int)(((entity->position.z - entity->position.y - display_offset_y) + coords.height) - pos_y);
+
+            printf("\n");
+            printf("\n size_x: %d", size_x);
+            printf("\n coords.y: %d", coords.y);
+            printf("\n pos_y: %d", pos_y);
+            printf("\n coords.height: %d", coords.height);
+            printf("\n size_y: %d", size_y);
+
+            //spriteq_add_box(coords.x, coords.y, coords.width, coords.height, HUD_Z+1, color_red, &drawmethod);
+            spriteq_add_box(pos_x, pos_y, size_x, size_y, pos_z, color_red, &drawmethod);
+            //spriteq_add_sprite((int)(e->position.x - scrx + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->position.z - e->position.y - scry + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->position.z, e->modeldata.parrow[(int)e->playerindex][0], NULL, sortid * 2);
+
+        }
+    }
+}
+
 void predrawstatus()
 {
 
@@ -15071,6 +15154,9 @@ void predrawstatus()
 
     if(savedata.debuginfo)
     {
+        // Collision boxes
+        //draw_visual_debug();
+
         spriteq_add_box(0, videomodes.dOffset - 12, videomodes.hRes, videomodes.dOffset + 12, 0x0FFFFFFE, 0, NULL);
         font_printf(2,                   videomodes.dOffset - 10, 0, 0, Tr("FPS: %03d"), getFPS());
         font_printf(videomodes.hRes / 2, videomodes.dOffset - 10, 0, 0, Tr("Free Ram: %s KBytes"), commaprint(freeram / 1000));
@@ -17600,8 +17686,6 @@ void do_attack(entity *e)
     static unsigned int new_attack_id = 1;
     int fdefense_blockthreshold; //max damage that can be blocked for attack type.
 
-    //printf("\n dc_debug do_attack");
-
     // Can't get hit after this
     if(level_completed)
     {
@@ -19015,8 +19099,7 @@ void check_attack()
     if(!is_frozen(self) && self->animation->collision_attack &&
             self->animation->collision_attack[self->animpos])
     {
-        //printf("\n dc_debug run do_attack");
-        do_attack(self);
+                do_attack(self);
         return;
     }
     self->attack_id = 0;
