@@ -61,6 +61,7 @@ int sound_reload_sample(int index);
 void sound_unload_sample(int index);
 void sound_unload_all_samples();
 int sound_query_channel(int playid);
+int sound_id(int channel);
 int sound_is_active(int channel);
 int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed);
 int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed);
