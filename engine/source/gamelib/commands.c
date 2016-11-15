@@ -430,6 +430,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_STUN, "stun");
     LIST_ADD(CMD_MODEL_SUBCLASS, "subclass");
     LIST_ADD(CMD_MODEL_SUBENTITY, "subentity");
+    LIST_ADD(CMD_MODEL_SUBJECT_TO_BASEMAP, "subject_to_basemap");
     LIST_ADD(CMD_MODEL_SUBJECT_TO_GRAVITY, "subject_to_gravity");
     LIST_ADD(CMD_MODEL_SUBJECT_TO_HOLE, "subject_to_hole");
     LIST_ADD(CMD_MODEL_SUBJECT_TO_MAXZ, "subject_to_maxz");
