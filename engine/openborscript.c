@@ -3551,6 +3551,7 @@ enum entityproperty_enum
     _ep_staydownatk,
     _ep_stealth,
     _ep_subentity,
+    _ep_subject_to_basemap,
     _ep_subject_to_gravity,
     _ep_subject_to_hole,
     _ep_subject_to_maxz,
@@ -3738,6 +3739,7 @@ static const char *eplist[] =
     "staydownatk",
     "stealth",
     "subentity",
+    "subject_to_basemap",
     "subject_to_gravity",
     "subject_to_hole",
     "subject_to_maxz",
@@ -7905,6 +7907,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
         break;
     }
+    case _ep_subject_to_basemap:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.subject_to_basemap;
+        break;
+    }
     case _ep_subject_to_gravity:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -9662,6 +9670,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(ent->subentity)
         {
             ent->subentity->parent = ent;
+        }
+        break;
+    }
+    case _ep_subject_to_basemap:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.subject_to_basemap = (int)ltemp;
         }
         break;
     }

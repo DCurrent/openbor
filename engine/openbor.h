@@ -1865,6 +1865,7 @@ typedef struct
     int namey;
 
     // movement flags
+    int subject_to_basemap;
     int subject_to_wall;
     int subject_to_platform;
     int subject_to_obstacle;

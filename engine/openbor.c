@@ -6938,6 +6938,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
         }
         newchar->chainlength            = 4;
         newchar->bounce                 = 1;
+        newchar->subject_to_basemap     = 1;
         newchar->subject_to_wall        = 1;
         newchar->subject_to_platform    = 1;
         newchar->subject_to_obstacle    = 1;
@@ -6952,6 +6953,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     {
         newchar->type                   = TYPE_ENEMY;
         newchar->bounce                 = 1;
+        newchar->subject_to_basemap     = 1;
         newchar->subject_to_wall        = 1;
         newchar->subject_to_platform    = 1;
         newchar->subject_to_hole        = 1;
@@ -6964,6 +6966,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     else if(stricmp(value, "item") == 0)
     {
         newchar->type                   = TYPE_ITEM;
+        newchar->subject_to_basemap     = 1;
         newchar->subject_to_wall        = 1;
         newchar->subject_to_platform    = 1;
         newchar->subject_to_hole        = 1;
@@ -6986,6 +6989,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
             newchar->aiattack = 0;
         }
         newchar->aimove |= AIATTACK1_NOATTACK;
+        newchar->subject_to_basemap     = 1;
         newchar->subject_to_wall        = 1;
         newchar->subject_to_platform    = 1;
         newchar->subject_to_hole        = 1;
@@ -7014,6 +7018,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
         }
         newchar->subject_to_hole                = 0;
         newchar->subject_to_gravity             = 1;
+        newchar->subject_to_basemap             = 0;
         newchar->subject_to_wall                = 0;
         newchar->subject_to_platform            = 0;
         newchar->subject_to_screen              = 0;
@@ -7025,6 +7030,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     else if(stricmp(value, "trap") == 0)
     {
         newchar->type                   = TYPE_TRAP;
+        newchar->subject_to_basemap     = 1;
         newchar->subject_to_wall        = 1;
         newchar->subject_to_platform    = 1;
         newchar->subject_to_hole        = 1;
@@ -7043,6 +7049,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     else if(stricmp(value, "endlevel") == 0)   // Used for ending the level when the players reach a certain point
     {
         newchar->type                   = TYPE_ENDLEVEL;
+        newchar->subject_to_basemap     = 1;
         newchar->subject_to_wall        = 1;
         newchar->subject_to_platform    = 1;
         newchar->subject_to_hole        = 1;
@@ -7053,6 +7060,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     {
         newchar->type                   = TYPE_NPC;
         newchar->bounce                 = 1;
+        newchar->subject_to_basemap     = 1;
         newchar->subject_to_wall        = 1;
         newchar->subject_to_platform    = 1;
         newchar->subject_to_hole        = 1;
@@ -7097,12 +7105,12 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
         }
         newchar->subject_to_hole                                = 1;
         newchar->subject_to_gravity                             = 1;
+        newchar->subject_to_basemap                             = 0;
         newchar->subject_to_wall                                = 0;
         newchar->subject_to_platform                            = 0;
         newchar->subject_to_screen                              = 0;
         newchar->subject_to_minz                                = 1;
         newchar->subject_to_maxz                                = 1;
-        newchar->subject_to_platform                            = 0;
         newchar->no_adjust_base                                 = 0;
     }
     else if(stricmp(value, "arrow") == 0) // 7-1-2005 Arrow type
@@ -7119,12 +7127,12 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
         }
         newchar->subject_to_hole        = 0;
         newchar->subject_to_gravity     = 1;
+        newchar->subject_to_basemap     = 0;
         newchar->subject_to_wall        = 0;
         newchar->subject_to_platform    = 0;
         newchar->subject_to_screen      = 0;
         newchar->subject_to_minz        = 1;
         newchar->subject_to_maxz        = 1;
-        newchar->subject_to_platform    = 0;
         newchar->no_adjust_base         = 1;
     }
     else if(stricmp(value, "notgrab") == 0)
@@ -7744,6 +7752,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->candamage                  = -1;
     newchar->hostile                    = -1;
     newchar->projectilehit              = -1;
+    newchar->subject_to_basemap         = -1;
     newchar->subject_to_wall            = -1;
     newchar->subject_to_platform        = -1;
     newchar->subject_to_obstacle        = -1;
@@ -8140,6 +8149,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_AIATTACK:
                 lcmHandleCommandAiattack(&arglist, newchar, &aiattackset, filename);
+                break;
+            case CMD_MODEL_SUBJECT_TO_BASEMAP:
+                newchar->subject_to_basemap = (0 != GET_INT_ARG(1));
                 break;
             case CMD_MODEL_SUBJECT_TO_WALL:
                 newchar->subject_to_wall = (0 != GET_INT_ARG(1));
@@ -16507,6 +16519,10 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
     {
         ent->modeldata.multiple             = oldmodel->multiple;
     }
+    if(ent->modeldata.subject_to_basemap < 0)
+    {
+        ent->modeldata.subject_to_basemap   = oldmodel->subject_to_basemap;
+    }
     if(ent->modeldata.subject_to_wall < 0)
     {
         ent->modeldata.subject_to_wall      = oldmodel->subject_to_wall;
@@ -18924,7 +18940,7 @@ int check_basemap_index(int x, int z)
 void adjust_base(entity *e, entity **pla)
 {
     int wall, hole = -1;
-    float seta, maxbase;
+    float seta = 0, maxbase = 0;
     entity *other = NULL, *plat, *tempself;
 
     tempself = self;
@@ -18992,7 +19008,8 @@ void adjust_base(entity *e, entity **pla)
             wall = -1;
         }
 
-        maxbase = check_basemap(self->position.x, self->position.z);
+        //printf("stb:%d\n",self->modeldata.subject_to_basemap);
+        if(self->modeldata.subject_to_basemap > 0) maxbase = check_basemap(self->position.x, self->position.z);
 
         if(maxbase == -1000 && self->modeldata.subject_to_hole > 0)
         {
@@ -19828,7 +19845,8 @@ void display_ents()
                 //other = check_platform(e->position.x, e->position.z, e);
                 other = check_platform_below(e->position.x, e->position.z, e->position.y+eheight, e);
                 wall = checkwall(e->position.x, e->position.z);
-                basemap = check_basemap(e->position.x, e->position.z);
+
+                if(e->modeldata.subject_to_basemap > 0) basemap = check_basemap(e->position.x, e->position.z);
 
                 if(f < sprites_loaded)
                 {
