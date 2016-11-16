@@ -7572,6 +7572,275 @@ size_t lcmHandleCommandScripts(ArgList *arglist, char *buf, Script *script, char
     return pos;
 }
 
+ptrdiff_t lcmScriptGetMainPos(char *buf)
+{
+    size_t len = 0;
+    ptrdiff_t pos = 0;
+    enum {START,PRE0,PRE1,PRE2,PRE3,M0,M1,M2,M3,P0,P1,PIT,END} current_state = START;
+    unsigned char c = '\0';
+    //void main() {
+
+    if ( buf && buf[0] )
+    {
+        len = strlen(buf);
+
+        c = (unsigned char)tolower((int)buf[pos]);
+        while ( pos < len && current_state != END )
+        {
+            switch(current_state)
+            {
+                case START:
+                {
+                    if ( c == 'v' ) current_state = PRE0;
+                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0A || c == 0x0D || c == '\t' ) current_state = START;
+                    else if ( c == '\0' ) return -1;
+                    else {
+                        current_state = PIT;
+                        ++pos;
+                        c = (unsigned char)tolower((int)buf[pos]);
+                    }
+                    break;
+                }
+                case PRE0:
+                {
+                    if ( c == 'o' ) current_state = PRE1;
+                    else if ( c == '\0' ) return -1;
+                    else current_state = PIT;
+                    break;
+                }
+                case PRE1:
+                {
+                    if ( c == 'i' ) current_state = PRE2;
+                    else if ( c == '\0' ) return -1;
+                    else current_state = PIT;
+                    break;
+                }
+                case PRE2:
+                {
+                    if ( c == 'd' ) current_state = PRE3;
+                    else if ( c == '\0' ) return -1;
+                    else current_state = PIT;
+                    break;
+                }
+                case PRE3:
+                {
+                    if ( c == 'm' ) current_state = M0;
+                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0A || c == 0x0D || c == '\t' ) current_state = PRE3;
+                    else if ( c == '\0' ) return -1;
+                    else current_state = PIT;
+                    break;
+                }
+                case M0:
+                {
+                    if ( c == 'a' ) current_state = M1;
+                    else if ( c == '\0' ) return -1;
+                    else current_state = PIT;
+                    break;
+                }
+                case M1:
+                {
+                    if ( c == 'i' ) current_state = M2;
+                    else if ( c == '\0' ) return -1;
+                    else current_state = PIT;
+                    break;
+                }
+                case M2:
+                {
+                    if ( c == 'n' ) current_state = M3;
+                    else if ( c == '\0' ) return -1;
+                    else current_state = PIT;
+                    break;
+                }
+                case M3:
+                {
+                    if ( c == '(' ) current_state = P0;
+                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0A || c == 0x0D || c == '\t' ) current_state = M3;
+                    else if ( c == '\0' ) return -1;
+                    else current_state = PIT;
+                    break;
+                }
+                case P0:
+                {
+                    if ( c == ')' ) current_state = P1;
+                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0A || c == 0x0D || c == '\t' ) current_state = P0;
+                    else if ( c == '\0' ) return -1;
+                    else current_state = PIT;
+                    break;
+                }
+                case P1:
+                {
+                    if ( c == '{' )
+                    {
+                        current_state = END;
+                        if (++pos < len) return pos;
+                        else return -1;
+                    }
+                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0A || c == 0x0D || c == '\t' ) current_state = P1;
+                    else if ( c == '\0' ) return -1;
+                    else current_state = PIT;
+                    break;
+                }
+                case PIT:
+                {
+                    current_state = START;
+                    continue;
+                }
+                case END:
+                default:
+                    break;
+            }
+            ++pos; // at the end position after the '{'
+            if (current_state == END)
+            {
+                if (pos < len) return pos;
+                else return -1;
+            }
+            c = (unsigned char)tolower((int)buf[pos]);
+        }
+        if (current_state == PIT) return -1;
+        else if (current_state == END)
+        {
+            if (pos < len) return pos;
+            else return -1;
+        }
+    }
+
+    return -1;
+}
+
+size_t lcmScriptSearchForMain(char **buf)
+{
+    size_t len = 0, len2 = 0;
+    ptrdiff_t pos = 0;
+    char* newbuf = NULL;
+
+    if ( (*buf) && (*buf)[0] )
+    {
+        len = strlen(*buf);
+
+        pos = lcmScriptGetMainPos(*buf);
+        if ( pos == -1 ) // main() not found!
+        {
+            char mtxt[] = "\n\nvoid main()\n{\n    int frame = getlocalvar(\"frame\");\n    int animhandle = getlocalvar(\"animhandle\");\n\n}\n\n";
+
+            pos = len-1; // pos before '\0' (at last char)
+            len2 = strlen(mtxt);
+            newbuf = malloc(sizeof(**buf)*len + sizeof(mtxt)*len2 + 1 );
+            strncpy(newbuf, *buf, pos);
+            strncpy(newbuf+pos, mtxt, len2);
+            newbuf[len+len2-1] = '\0';
+
+            free( (*buf) );
+            (*buf) = newbuf;
+            //printf("written main in buffer\n%s\n",newbuf);
+        }
+
+        //printf("search for main in buffer\n%s pos:%d\n",*buf,pos);
+    }
+
+    return len;
+}
+
+size_t lcmScriptInsertInMain(char **buf, char *first_buf)
+{
+    size_t len = 0, len2 = 0;
+    ptrdiff_t pos = 0;
+    int pcount = 0;
+    char* newbuf = NULL;
+
+    if ( (*buf) && first_buf && (*buf)[0] && first_buf[0] )
+    {
+        len = strlen(*buf);
+        len2 = strlen(first_buf);
+
+        pos = lcmScriptGetMainPos(*buf);
+
+        pcount = 1;
+        while(pcount > 0)
+        {
+            if( (*buf)[pos] == '{' ) ++pcount;
+            else if( (*buf)[pos] == '}' ) --pcount;
+            pos++;
+        }
+        --pos; // back to last '}' of main()
+
+        //buf = realloc(*buf, sizeof(**buf)*len + sizeof(*first_buf)*len2 + 1 );
+        newbuf = malloc(sizeof(**buf)*len + sizeof(*first_buf)*len2 + 1 );
+        strncpy(newbuf, *buf, pos);
+        strncpy(newbuf+pos, first_buf, len2);
+        strncpy(newbuf+pos+len2, *buf+pos, len-pos);
+        newbuf[len+len2] = '\0';
+
+        free( (*buf) );
+        (*buf) = newbuf;
+
+        //printf("test inserted buffer\n%s\n",*buf);
+    }
+
+    //don't forget to free first_buf after call
+    return len;
+}
+
+size_t lcmScriptCopyBuffer(ArgList *arglist, char *buf, char **script_buffer)
+{
+    ptrdiff_t pos = 0;
+    size_t len = 0;
+
+    if(stricmp(GET_ARGP(1), "@script") == 0)
+    {
+        fetchInlineScript(buf, script_buffer, &pos, &len);
+    }
+    else
+    {
+        buffer_pakfile(GET_ARGP(1), script_buffer, &len);
+    }
+
+    //printf("test buffer\n%s\n",*script_buffer);
+    return pos;
+}
+
+size_t lcmScriptDeleteMain(char **buf)
+{
+    size_t len = 0, i = 0;
+    ptrdiff_t pos = 0;
+    char *newbuf = NULL;
+
+    if ((*buf) && (*buf)[0])
+    {
+        len = strlen(*buf);
+
+        while(!starts_with((*buf) + pos, "main()")) pos++;
+        pos += strclen("main()");
+        while(!starts_with(*buf + pos, "{")) pos++;
+        pos += strclen("{");
+        while(!starts_with(*buf + pos, "int frame = getlocalvar(\"frame\");")) pos++;
+        pos += strclen("int frame = getlocalvar(\"frame\");");
+        while(!starts_with(*buf + pos, "int animhandle = getlocalvar(\"animhandle\");\n")) pos++;
+        pos += strclen("int animhandle = getlocalvar(\"animhandle\");\n");
+
+        for(i = len-1; i >= 0; i--)
+        {
+            if ( (*buf)[i] == '}' )
+            {
+                len = i;
+                break;
+            } else continue;
+        }
+
+        len = len-pos;
+        newbuf = malloc(sizeof(newbuf) * (len) + 1);
+        strncpy(newbuf, *buf+pos, len);
+        newbuf[len] = '\0';
+
+        free( (*buf) );
+        (*buf) = newbuf;
+
+        //printf("test delete main\n%s\n",newbuf);
+    }
+
+    return len;
+}
+
 //alloc a new model, and everything thats required,
 //set all values to defaults
 s_model *init_model(int cacheindex, int unload)
@@ -7713,17 +7982,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
 
     s_model *newchar = NULL,
-             *tempmodel = NULL;
+            *tempmodel = NULL;
 
     s_anim *newanim = NULL;
 
     char *filename = NULL,
-          *buf = NULL,
-           *scriptbuf = NULL,
-            *command = NULL,
-             *value = NULL,
-              *value2 = NULL,
-               *value3 = NULL;
+         *buf = NULL,
+         *animscriptbuf = NULL,
+         *scriptbuf = NULL,
+         *command = NULL,
+         *value = NULL,
+         *value2 = NULL,
+         *value3 = NULL;
 
     char fnbuf[128] = {""},
                       namebuf[256] = {""},
@@ -7816,7 +8086,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     static const char ifid_text[] =  // if expression to check animation id
     {
-        "    if(animhandle==%d)\n"
+        "    if(getlocalvar(\"animhandle\")==%d)\n"
         "    {\n"
         "        return;\n"
         "    }\n"
@@ -7830,7 +8100,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     static const char if_text[] =  // this is the if expression of frame function
     {
-        "        if(frame==%d)\n"
+        "        if(getlocalvar(\"frame\")==%d)\n"
         "        {\n"
     };
 
@@ -9073,7 +9343,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->ondraw_script, "ondrawscript", filename, 1, 0);
                 break;
             case CMD_MODEL_ANIMATIONSCRIPT:
-                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->animation_script, "animationscript", filename, 0, 0);
+                //pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->animation_script, "animationscript", filename, 0, 0);
+                pos += lcmScriptCopyBuffer(&arglist, buf + pos, &animscriptbuf);
                 //dont compile, until at end of this function
                 break;
             case CMD_MODEL_KEYSCRIPT:
@@ -10502,7 +10773,33 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
 
     tempInt = 1;
-    if(scriptbuf[0])
+
+    if(scriptbuf && animscriptbuf && scriptbuf[0] && animscriptbuf[0])
+    {
+        writeToScriptLog("\n#### animationscript function main #####\n# ");
+        writeToScriptLog(filename);
+        writeToScriptLog("\n########################################\n");
+        writeToScriptLog(scriptbuf);
+
+        lcmScriptDeleteMain(&scriptbuf);
+        lcmScriptSearchForMain(&animscriptbuf);
+        lcmScriptInsertInMain(&animscriptbuf,scriptbuf);
+
+        if(!Script_IsInitialized(newchar->scripts->animation_script))
+        {
+            Script_Init(newchar->scripts->animation_script, newchar->name, filename, 0);
+        }
+        tempInt = Script_AppendText(newchar->scripts->animation_script, animscriptbuf, filename);
+    }
+    else if(animscriptbuf && animscriptbuf[0])
+    {
+        if(!Script_IsInitialized(newchar->scripts->animation_script))
+        {
+            Script_Init(newchar->scripts->animation_script, newchar->name, filename, 0);
+        }
+        tempInt = Script_AppendText(newchar->scripts->animation_script, animscriptbuf, filename);
+    }
+    else if(scriptbuf && scriptbuf[0])
     {
         //printf("\n%s\n", scriptbuf);
         if(!Script_IsInitialized(newchar->scripts->animation_script))
@@ -10511,11 +10808,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         }
         tempInt = Script_AppendText(newchar->scripts->animation_script, scriptbuf, filename);
         //Interpreter_OutputPCode(newchar->scripts->animation_script.pinterpreter, "code");
-        writeToScriptLog("\n####animationscript function main#####\n# ");
+        writeToScriptLog("\n#### animationscript function main #####\n# ");
         writeToScriptLog(filename);
         writeToScriptLog("\n########################################\n");
         writeToScriptLog(scriptbuf);
     }
+
     if(!newchar->isSubclassed)
     {
         Script_Compile(newchar->scripts->animation_script);
@@ -10713,6 +11011,11 @@ lCleanup:
     {
         free(scriptbuf);
         scriptbuf = NULL;
+    }
+    if(animscriptbuf)
+    {
+        free(animscriptbuf);
+        animscriptbuf = NULL;
     }
     if(mapflag)
     {
