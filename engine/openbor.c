@@ -15196,19 +15196,113 @@ void updatestatus()
 
 }
 
+// Draw box onto screen base on entity position.
+void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod)
+{
+    #define FONT            0
+    #define OFFSET_LAYER    0
+
+    s_axis_i_2d screen_offset;  // Base location calculated from screen offsets.
+    s_axis_i    base_pos;       // Entity position with screen offsets applied.
+
+    typedef struct
+    {
+        s_axis_i position;
+        s_axis_i_2d size;
+    } draw_coords;
+
+    draw_coords box;
+    int text_offset;
+
+    // Initialize
+    box.position.x = 0;
+    box.position.y = 0;
+    box.position.z = 0;
+
+    // Get our base offsets from screen vs. location.
+    screen_offset.x = screenx - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
+    screen_offset.y = screeny - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
+
+    // Get entity position with screen offsets.
+    base_pos.x = entity->position.x - screen_offset.x;
+    base_pos.y = (entity->position.z - offset_z) - entity->position.y - screen_offset.y;
+
+    // Get a value of half the text width.
+    // We can use this to center our text
+    // on the entity.
+    text_offset = font_string_width(FONT, Tr("X: %f"), entity->position.x) / 2;
+
+    // Apply text offset.
+    box.position.x = base_pos.x - text_offset;
+
+    box.position.y = base_pos.y;
+    box.position.z += offset_z;
+
+    spriteq_add_dot(base_pos.x, base_pos.y, box.position.z, color, drawmethod);
+
+    // Print out position.
+    font_printf(box.position.x, base_pos.y + 5, FONT, OFFSET_LAYER, Tr("X: %f"), entity->position.x);
+    font_printf(box.position.x, base_pos.y + 14, FONT, OFFSET_LAYER, Tr("Y: %f"), entity->position.y);
+    font_printf(box.position.x, base_pos.y + 23, FONT, OFFSET_LAYER, Tr("Z: %f"), entity->position.z);
+
+    #undef FONT
+    #undef OFFSET_LAYER
+}
+
+// Draw box onto screen base on entity position.
+void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int size_w, int size_h, int offset_z, int color, s_drawmethod *drawmethod)
+{
+    s_axis_i_2d screen_offset;  // Base location calculated from screen offsets.
+    s_axis_i    base_pos;       // Entity position with screen offsets applied.
+
+    typedef struct
+    {
+        s_axis_i position;
+        s_axis_i_2d size;
+    } draw_coords;
+
+    draw_coords box;
+
+    // Get our base offsets from screen vs. location.
+    screen_offset.x = screenx - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
+    screen_offset.y = screeny - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
+
+    // Get entity position with screen offsets.
+    base_pos.x = entity->position.x - screen_offset.x;
+    base_pos.y = (entity->position.z - offset_z) - entity->position.y - screen_offset.y;
+
+    // Now apply drawing coords to position.
+    box.size.x = size_w - pos_x;
+
+    if(entity->direction == DIRECTION_RIGHT)
+    {
+        box.position.x = base_pos.x + pos_x;
+    }
+    else
+    {
+        box.position.x = base_pos.x - (box.size.x + pos_x);
+    }
+
+    box.position.y = base_pos.y + pos_y;
+    box.size.y = (base_pos.y + size_h) - box.position.y;
+
+    box.position.z = pos_z + offset_z;
+
+    spriteq_add_box(box.position.x, box.position.y, box.size.x, box.size.y, box.position.z, color, drawmethod);
+}
+
 void draw_visual_debug()
 {
+    #define LOCAL_COLOR_BLUE  _makecolour(0, 0, 255)
+    #define LOCAL_COLOR_GREEN _makecolour(0, 255, 0)
+    #define LOCAL_COLOR_RED   _makecolour(255, 0, 255)
+    #define LOCAL_COLOR_WHITE _makecolour(255, 255, 255)
+
     int i;
     int instance;
-    int display_offset_x = 0,
-        display_offset_y = 0,
-        pos_x   = 0,
-        pos_y   = 0,
-        pos_z   = 0,
-        size_x  = 0,
-        size_y  = 0;
     s_hitbox            coords;
     s_collision_attack  *collision_attack;
+    s_collision_body    *collision_body;
     s_drawmethod        drawmethod = plainmethod;
     entity              *entity;
 
@@ -15230,54 +15324,78 @@ void draw_visual_debug()
             continue;
         }
 
-        // Has collision?
-        if(!entity->animation->collision_attack)
+        // Show offset and position.
+        if(savedata.debug_position)
         {
-            continue;
+            draw_position_entity(entity, 0, LOCAL_COLOR_WHITE, NULL);
         }
 
-        if(!entity->animation->collision_attack[entity->animpos])
+        // Collision body debug requested?
+        if(savedata.debug_collision_range)
         {
-            continue;
+            coords.x        = entity->animation->range.min.x;
+            coords.y        = entity->animation->range.min.y;
+            coords.width    = entity->animation->range.max.x;
+            coords.height   = entity->animation->range.max.y;
+
+            draw_box_on_entity(entity, coords.x, coords.y, entity->position.z, coords.width, coords.height, -1, LOCAL_COLOR_GREEN, &drawmethod);
         }
 
-        for(instance = 0; instance < max_collisons; instance++)
+        // Collision body debug requested?
+        if(savedata.debug_collision_body)
         {
-            collision_attack = entity->animation->collision_attack[entity->animpos]->instance[instance];
-
-            if(!collision_attack)
+            // Animation has collision?
+            if(entity->animation->collision_body)
             {
-                continue;
+                // Frame has collision?
+                if(entity->animation->collision_body[entity->animpos])
+                {
+                    // Get collision instance pointer.
+                    collision_body = entity->animation->collision_body[entity->animpos];
+
+                    // Valid collision instance pointer found?
+                    if(collision_body)
+                    {
+                        coords = collision_body->coords;
+                        draw_box_on_entity(entity, coords.x, coords.y, entity->position.z, coords.width, coords.height, 1, LOCAL_COLOR_BLUE, &drawmethod);
+                    }
+                }
             }
+        }
 
-            coords = collision_attack->coords;
+        // Collision attack requested?
+        if(savedata.debug_collision_attack)
+        {
+            // Animation has collision?
+            if(entity->animation->collision_attack)
+            {
+                // Frame has collision?
+                if(entity->animation->collision_attack[entity->animpos])
+                {
+                    // Loop instances of collision.
+                    for(instance = 0; instance < max_collisons; instance++)
+                    {
+                        // Get collision instance pointer.
+                        collision_attack = entity->animation->collision_attack[entity->animpos]->instance[instance];
 
-            display_offset_x = screenx - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
-            display_offset_y = screeny - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
-
-            size_x = coords.width - coords.x;
-            size_y = coords.height;
-
-            pos_x = (int)((entity->position.x - display_offset_x) + coords.x);
-            pos_y = (int)((entity->position.z - entity->position.y - display_offset_y) + coords.y);
-            pos_z = (int)entity->position.z;
-
-            size_y = (int)(((entity->position.z - entity->position.y - display_offset_y) + coords.height) - pos_y);
-
-            printf("\n");
-            printf("\n size_x: %d", size_x);
-            printf("\n coords.y: %d", coords.y);
-            printf("\n pos_y: %d", pos_y);
-            printf("\n coords.height: %d", coords.height);
-            printf("\n size_y: %d", size_y);
-
-            //spriteq_add_box(coords.x, coords.y, coords.width, coords.height, HUD_Z+1, color_red, &drawmethod);
-            spriteq_add_box(pos_x, pos_y, size_x, size_y, pos_z, color_red, &drawmethod);
-            //spriteq_add_sprite((int)(e->position.x - scrx + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->position.z - e->position.y - scry + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->position.z, e->modeldata.parrow[(int)e->playerindex][0], NULL, sortid * 2);
-
+                        // Valid collision instance pointer found?
+                        if(collision_attack)
+                        {
+                            coords = collision_attack->coords;
+                            draw_box_on_entity(entity, coords.x, coords.y, entity->position.z, coords.width, coords.height, 2, LOCAL_COLOR_RED, &drawmethod);
+                        }
+                    }
+                }
+            }
         }
     }
+
+    #undef LOCAL_COLOR_BLUE
+    #undef LOCAL_COLOR_GREEN
+    #undef LOCAL_COLOR_RED
+    #undef LOCAL_COLOR_WHITE
 }
+
 
 void predrawstatus()
 {
@@ -15469,14 +15587,20 @@ void predrawstatus()
 
     if(savedata.debuginfo)
     {
-        // Collision boxes
-        //draw_visual_debug();
-
         spriteq_add_box(0, videomodes.dOffset - 12, videomodes.hRes, videomodes.dOffset + 12, 0x0FFFFFFE, 0, NULL);
         font_printf(2,                   videomodes.dOffset - 10, 0, 0, Tr("FPS: %03d"), getFPS());
         font_printf(videomodes.hRes / 2, videomodes.dOffset - 10, 0, 0, Tr("Free Ram: %s KBytes"), commaprint(freeram / 1000));
         font_printf(2,                   videomodes.dOffset,    0, 0, Tr("Total Ram: %s KBytes"), commaprint(totalram / 1000));
         font_printf(videomodes.hRes / 2, videomodes.dOffset,    0, 0, Tr("Used Ram: %s KBytes"), commaprint(usedram / 1000));
+    }
+
+    if(savedata.debuginfo
+       || savedata.debug_collision_attack
+       || savedata.debug_collision_body
+       || savedata.debug_collision_range)
+    {
+        // Collision boxes
+        draw_visual_debug();
     }
 
     if(timeicon >= 0)
@@ -34168,15 +34292,145 @@ void cheatoptions()     //  LTB 1-13-05 took out sameplayer option
     cheatoptionsMenu = 0;
 }
 
+void debug_options()
+{
+    #define TITLE_POS_Y             -5
+    #define PREVIOUS_MENU_POS_Y     6
+    #define POS_Y_OFFSET            -3
+    #define COLUMN_1_POS_X          -12
+    #define COLUMN_2_POS_X          4
+
+    typedef enum
+    {
+        POS_Y_0,
+        POS_Y_1,
+        POS_Y_2,
+        POS_Y_3,
+        POS_Y_4,
+        POS_Y_5
+    } e_items_pos_y;
+
+    typedef enum
+    {
+        PERFORMANCE,
+        POSITION,
+        COL_ATTACK,
+        COL_BODY,
+        COL_RANGE,
+        PREVIOUS_MENU
+    } e_selections;
+
+
+    int quit                = 0;
+    e_selections selector   = 0;
+    bothnewkeys             = 0;
+
+    while(!quit)
+    {
+        _menutextm(2, TITLE_POS_Y, 0, Tr("Debug Settings"));
+
+        _menutext((selector == PERFORMANCE),    COLUMN_1_POS_X, POS_Y_0 + POS_Y_OFFSET, Tr("Performance:"));
+        _menutext((selector == PERFORMANCE),    COLUMN_2_POS_X, POS_Y_0 + POS_Y_OFFSET, (savedata.debuginfo ? Tr("Enabled") : Tr("Disabled")));
+
+        _menutext((selector == POSITION),       COLUMN_1_POS_X, POS_Y_1 + POS_Y_OFFSET, Tr("Position:"));
+        _menutext((selector == POSITION),       COLUMN_2_POS_X, POS_Y_1 + POS_Y_OFFSET, (savedata.debug_position ? Tr("Enabled") : Tr("Disabled")));
+
+        _menutext((selector == COL_ATTACK),     COLUMN_1_POS_X, POS_Y_2 + POS_Y_OFFSET, Tr("Collision Attack:"));
+        _menutext((selector == COL_ATTACK),     COLUMN_2_POS_X, POS_Y_2 + POS_Y_OFFSET, (savedata.debug_collision_attack ? Tr("Enabled") : Tr("Disabled")));
+
+        _menutext((selector == COL_BODY),       COLUMN_1_POS_X, POS_Y_3 + POS_Y_OFFSET, Tr("Collision Body:"));
+        _menutext((selector == COL_BODY),       COLUMN_2_POS_X, POS_Y_3 + POS_Y_OFFSET, (savedata.debug_collision_body ? Tr("Enabled") : Tr("Disabled")));
+
+        _menutext((selector == COL_RANGE),      COLUMN_1_POS_X, POS_Y_4 + POS_Y_OFFSET, Tr("Range:"));
+        _menutext((selector == COL_RANGE),      COLUMN_2_POS_X, POS_Y_4 + POS_Y_OFFSET, (savedata.debug_collision_range ? Tr("Enabled") : Tr("Disabled")));
+
+        _menutextm((selector == PREVIOUS_MENU), PREVIOUS_MENU_POS_Y, 0, Tr("Back"));
+
+        update((level != NULL), 0);
+
+        if(bothnewkeys & FLAG_ESC)
+        {
+            quit = 1;
+        }
+        if(bothnewkeys & FLAG_MOVEUP)
+        {
+            --selector;
+
+            if(SAMPLE_BEEP >= 0)
+            {
+                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            }
+        }
+        if(bothnewkeys & FLAG_MOVEDOWN)
+        {
+            ++selector;
+
+            if(SAMPLE_BEEP >= 0)
+            {
+                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            }
+        }
+
+        // Loop selection back to
+        // first or last item respectively.
+        if(selector < 0)
+        {
+            selector = PREVIOUS_MENU;
+        }
+        if(selector > PREVIOUS_MENU)
+        {
+            selector = 0;
+        }
+
+        // Toggle selection value on left/right or
+        // trigger button press.
+        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        {
+            if(SAMPLE_BEEP2 >= 0)
+            {
+                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+            }
+
+            switch(selector)
+            {
+                case PERFORMANCE:
+                    savedata.debuginfo = !savedata.debuginfo;
+                    break;
+                case POSITION:
+                    savedata.debug_position = !savedata.debug_position;
+                    break;
+                case COL_ATTACK:
+                    savedata.debug_collision_attack = !savedata.debug_collision_attack;
+                    break;
+                case COL_BODY:
+                    savedata.debug_collision_body = !savedata.debug_collision_body;
+                    break;
+                case COL_RANGE:
+                    savedata.debug_collision_range = !savedata.debug_collision_range;
+                    break;
+                default:
+                    quit = 1;
+            }
+        }
+    }
+    savesettings();
+    bothnewkeys = 0;
+
+    #undef TITLE_POS_Y
+    #undef PREVIOUS_MENU_POS_Y
+    #undef POS_Y_OFFSET
+    #undef COLUMN_1_POS_X
+    #undef COLUMN_2_POS_X
+}
 
 void system_options()
 {
 
     int quit = 0;
     int selector = 0;
-    int ret = 6;
-    int col1 = -8;
-    int col2 = 5;
+    int ret = 5;
+    int col1 = -15;
+    int col2 = 1;
 
 #if PSP
     int dir = 0;
@@ -34199,49 +34453,47 @@ void system_options()
         _menutext(0, col1, -3, Tr("Used RAM:"));
         _menutext(0, col2, -3, Tr("%s KBytes"), commaprint(getUsedRam(KBYTES)));
 
-        _menutext((selector == 0), col1, -2, Tr("Debug Info:"));
-        _menutext((selector == 0), col2, -2, (savedata.debuginfo ? Tr("Enabled") : Tr("Disabled")));
+        _menutext(0, col1, -2, Tr("Max Players:"));
+        _menutext(0, col2, -2, Tr("%i"), levelsets[current_set].maxplayers);
 
-        _menutext((selector == 1), col1, -1, Tr("File Logging:"));
-        _menutext((selector == 1), col2, -1, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == 0), col1, -1, Tr("File Logging:"));
+        _menutext((selector == 0), col2, -1, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
 
-        _menutext((selector == 2), col1, 0, Tr("Players:"));
-        _menutext((selector == 2), col2, 0, Tr("%i by Mod"), levelsets[current_set].maxplayers);
-
-        _menutext((selector == 3), col1, 1, Tr("Versus Damage:"), 0);
+        _menutext((selector == 1), col1, 0, Tr("Versus Damage:"), 0);
         if(versusdamage == 0)
         {
-            _menutext((selector == 3), col2, 1, Tr("Disabled by Mod"));
+            _menutext((selector == 1), col2, 0, Tr("Disabled by Module"));
         }
         else if(versusdamage == 1)
         {
-            _menutext((selector == 3), col2, 1, Tr("Enabled by Mod"));
+            _menutext((selector == 1), col2, 0, Tr("Enabled by Module"));
         }
         else
         {
             if(savedata.mode)
             {
-                _menutext((selector == 3), col2, 1, Tr("Disabled"));    //Mode 1 - Players CAN'T attack each other
+                _menutext((selector == 1), col2, 0, Tr("Disabled"));    //Mode 1 - Players CAN'T attack each other
             }
             else
             {
-                _menutext((selector == 3), col2, 1, Tr("Enabled"));    //Mode 2 - Players CAN attack each other
+                _menutext((selector == 1), col2, 0, Tr("Enabled"));    //Mode 2 - Players CAN attack each other
             }
         }
 
-        _menutext((selector == 4), col1, 2, Tr("Cheats:"));
-        _menutext((selector == 4), col2, 2, forcecheatsoff ? Tr("Disabled by Mod") : (cheats ? Tr("On") : Tr("Off")));
+        _menutext((selector == 2), col1, 1, Tr("Cheats:"));
+        _menutext((selector == 2), col2, 1, forcecheatsoff ? Tr("Disabled by Module") : (cheats ? Tr("On") : Tr("Off")));
+        _menutext((selector == 3), col1, 2, Tr("Debug Settings..."));
 
 #ifndef DC
 
-        _menutext((selector == 5), col1, 3, Tr("Config Settings"));
+        _menutext((selector == 4), col1, 3, Tr("Config Settings..."));
 
 #endif
 
 #if PSP
         externalPower = scePowerIsPowerOnline();
-        _menutext((selector == 6), col1, 4, Tr("CPU Speed:"));
-        _menutext((selector == 6), col2, 4, "%d MHz", scePowerGetCpuClockFrequency());
+        _menutext((selector == 5), col1, 4, Tr("CPU Speed:"));
+        _menutext((selector == 5), col2, 4, "%d MHz", scePowerGetCpuClockFrequency());
         if(!externalPower)
         {
             batteryPercentage = scePowerGetBatteryLifePercent();
@@ -34261,7 +34513,7 @@ void system_options()
             _menutext(0, col1, 5, Tr("Charging:"));
             _menutext(0, col2, 5, Tr("%d%% AC Power"), scePowerGetBatteryLifePercent());
         }
-        ret = 7;
+        ret = 6;
 #endif
 
         _menutextm((selector == ret), 6, 0, Tr("Back"));
@@ -34312,18 +34564,10 @@ void system_options()
             switch(selector)
             {
             case 0:
-                savedata.debuginfo = !savedata.debuginfo;
-                break;
-
-            case 1:
                 savedata.uselog =  !savedata.uselog;
                 break;
 
-            case 2:
-
-                break;
-
-            case 3:
+            case 1:
                 if(versusdamage > 1)
                 {
                     if(savedata.mode)
@@ -34337,20 +34581,24 @@ void system_options()
                 }
                 break;
 
-            case 4:
+            case 2:
                 cheats = !cheats;
+                break;
+
+            case 3:
+                debug_options();
                 break;
 
 #ifndef DC
 
-            case 5:
+            case 4:
                 config_settings();
                 break;
 
 #endif
 
 #ifdef PSP
-            case 6:
+            case 5:
                 savedata.pspcpuspeed += dir;
                 if(savedata.pspcpuspeed < 0)
                 {
@@ -34392,7 +34640,7 @@ void video_options()
     int quit = 0;
     int selector = 0;
     int dir;
-    int col1 = -8, col2 = 6;
+    int col1 = -15, col2 = 1;
 
     videooptionsMenu = 1;
     bothnewkeys = 0;
