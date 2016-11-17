@@ -34296,22 +34296,12 @@ void cheatoptions()     //  LTB 1-13-05 took out sameplayer option
 void debug_options()
 {
     #define TITLE_POS_Y             -5
-    #define PREVIOUS_MENU_POS_Y     6
     #define POS_Y_OFFSET            -3
     #define COLUMN_1_POS_X          -12
     #define COLUMN_2_POS_X          4
+    #define TOT_LABELS              6
 
-    typedef enum
-    {
-        POS_Y_0,
-        POS_Y_1,
-        POS_Y_2,
-        POS_Y_3,
-        POS_Y_4,
-        POS_Y_5
-    } e_items_pos_y;
-
-    typedef enum
+    enum e_selector
     {
         PERFORMANCE,
         POSITION,
@@ -34319,33 +34309,32 @@ void debug_options()
         COL_BODY,
         COL_RANGE,
         PREVIOUS_MENU
-    } e_selections;
-
+    };
 
     int quit                = 0;
-    e_selections selector   = 0;
+    int selector            = 0;
     bothnewkeys             = 0;
 
     while(!quit)
     {
         _menutextm(2, TITLE_POS_Y, 0, Tr("Debug Settings"));
 
-        _menutext((selector == PERFORMANCE),    COLUMN_1_POS_X, POS_Y_0 + POS_Y_OFFSET, Tr("Performance:"));
-        _menutext((selector == PERFORMANCE),    COLUMN_2_POS_X, POS_Y_0 + POS_Y_OFFSET, (savedata.debuginfo ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == PERFORMANCE),    COLUMN_1_POS_X, 0 + POS_Y_OFFSET, Tr("Performance:"));
+        _menutext((selector == PERFORMANCE),    COLUMN_2_POS_X, 0 + POS_Y_OFFSET, (savedata.debuginfo ? Tr("Enabled") : Tr("Disabled")));
 
-        _menutext((selector == POSITION),       COLUMN_1_POS_X, POS_Y_1 + POS_Y_OFFSET, Tr("Position:"));
-        _menutext((selector == POSITION),       COLUMN_2_POS_X, POS_Y_1 + POS_Y_OFFSET, (savedata.debug_position ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == POSITION),       COLUMN_1_POS_X, 1 + POS_Y_OFFSET, Tr("Position:"));
+        _menutext((selector == POSITION),       COLUMN_2_POS_X, 1 + POS_Y_OFFSET, (savedata.debug_position ? Tr("Enabled") : Tr("Disabled")));
 
-        _menutext((selector == COL_ATTACK),     COLUMN_1_POS_X, POS_Y_2 + POS_Y_OFFSET, Tr("Collision Attack:"));
-        _menutext((selector == COL_ATTACK),     COLUMN_2_POS_X, POS_Y_2 + POS_Y_OFFSET, (savedata.debug_collision_attack ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == COL_ATTACK),     COLUMN_1_POS_X, 2 + POS_Y_OFFSET, Tr("Collision Attack:"));
+        _menutext((selector == COL_ATTACK),     COLUMN_2_POS_X, 2 + POS_Y_OFFSET, (savedata.debug_collision_attack ? Tr("Enabled") : Tr("Disabled")));
 
-        _menutext((selector == COL_BODY),       COLUMN_1_POS_X, POS_Y_3 + POS_Y_OFFSET, Tr("Collision Body:"));
-        _menutext((selector == COL_BODY),       COLUMN_2_POS_X, POS_Y_3 + POS_Y_OFFSET, (savedata.debug_collision_body ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == COL_BODY),       COLUMN_1_POS_X, 3 + POS_Y_OFFSET, Tr("Collision Body:"));
+        _menutext((selector == COL_BODY),       COLUMN_2_POS_X, 3 + POS_Y_OFFSET, (savedata.debug_collision_body ? Tr("Enabled") : Tr("Disabled")));
 
-        _menutext((selector == COL_RANGE),      COLUMN_1_POS_X, POS_Y_4 + POS_Y_OFFSET, Tr("Range:"));
-        _menutext((selector == COL_RANGE),      COLUMN_2_POS_X, POS_Y_4 + POS_Y_OFFSET, (savedata.debug_collision_range ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == COL_RANGE),      COLUMN_1_POS_X, 4 + POS_Y_OFFSET, Tr("Range:"));
+        _menutext((selector == COL_RANGE),      COLUMN_2_POS_X, 4 + POS_Y_OFFSET, (savedata.debug_collision_range ? Tr("Enabled") : Tr("Disabled")));
 
-        _menutextm((selector == PREVIOUS_MENU), PREVIOUS_MENU_POS_Y, 0, Tr("Back"));
+        _menutextm((selector == PREVIOUS_MENU), TOT_LABELS, 0, Tr("Back"));
 
         update((level != NULL), 0);
 
