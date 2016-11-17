@@ -15236,7 +15236,7 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     box.position.x = base_pos.x - text_offset;
 
     box.position.y = base_pos.y;
-    box.position.z += offset_z;
+    box.position.z = entity->position.z + offset_z;
 
     spriteq_add_dot(base_pos.x, base_pos.y, box.position.z, color, drawmethod);
 
