@@ -7723,12 +7723,12 @@ size_t lcmScriptSearchForMain(char **buf)
         {
             char mtxt[] = "\n\nvoid main()\n{\n    int frame = getlocalvar(\"frame\");\n    int animhandle = getlocalvar(\"animhandle\");\n\n}\n\n";
 
-            pos = len-1; // pos before '\0' (at last char)
+            pos = len; // pos before '\0' (at last char)
             len2 = strlen(mtxt);
             newbuf = malloc(sizeof(**buf)*len + sizeof(mtxt)*len2 + 1 );
             strncpy(newbuf, *buf, pos);
             strncpy(newbuf+pos, mtxt, len2);
-            newbuf[len+len2-1] = '\0';
+            newbuf[len+len2] = '\0';
 
             free( (*buf) );
             (*buf) = newbuf;
