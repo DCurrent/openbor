@@ -7723,13 +7723,12 @@ size_t lcmScriptSearchForMain(char **buf)
         {
             char mtxt[] = "\n\nvoid main()\n{\n    int frame = getlocalvar(\"frame\");\n    int animhandle = getlocalvar(\"animhandle\");\n\n}\n\n";
 
-            //printf("before buffer\n%s pos:%d\n",*buf,pos);
-            pos = len; // pos before '\0' (at last char)
+            pos = len-1; // pos before '\0' (at last char)
             len2 = strlen(mtxt);
             newbuf = malloc(sizeof(**buf)*len + sizeof(mtxt)*len2 + 1 );
             strncpy(newbuf, *buf, pos);
             strncpy(newbuf+pos, mtxt, len2);
-            newbuf[len+len2] = '\0';
+            newbuf[len+len2-1] = '\0';
 
             free( (*buf) );
             (*buf) = newbuf;
@@ -15200,25 +15199,101 @@ void updatestatus()
 // Draw box onto screen base on entity position.
 void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod)
 {
-    #define FONT            0
-    #define OFFSET_LAYER    0
-
-    s_axis_i_2d screen_offset;  // Base location calculated from screen offsets.
-    s_axis_i    base_pos;       // Entity position with screen offsets applied.
+    #define FONT                0
+    #define TEXT_MARGIN_Y       1
+    #define POSITION_MARGIN_Y   5
+    #define OFFSET_LAYER        0
+    #define POS_ARRAY_SIZE      4
+    #define KEY_BASE            0
+    #define KEY_X               1
+    #define KEY_Y               2
+    #define KEY_Z               3
 
     typedef struct
     {
-        s_axis_i position;
+        s_axis_i    position;
         s_axis_i_2d size;
     } draw_coords;
 
-    draw_coords box;
-    int text_offset;
+    s_axis_i_2d screen_offset;          // Base location calculated from screen offsets.
+    s_axis_i    base_pos;               // Entity position with screen offsets applied.
+    draw_coords box;                    // On screen coords for display elements.
 
-    // Initialize
+    int truncated_pos[POS_ARRAY_SIZE];  // Entity position for display - truncated to int.
+    int i;                              // Counter.
+    int str_offset_x;                   // Calculated offset of text for centering.
+    int str_width_temp;                 // Temporary string width for finding max width.
+    int str_width_max;                  // largest string width.
+    int str_height_max;                 // Largest string height.
+    int str_size;                       // Memory size of string.
+
+    char *str_pos[POS_ARRAY_SIZE];      // Final string to display position.
+
+    // Initialize box.
     box.position.x = 0;
     box.position.y = 0;
     box.position.z = 0;
+
+    // Get position strings here so we can reuse
+    // them and calculate offsets based on the
+    // largest string size.
+
+    truncated_pos[KEY_BASE]  = (int)entity->base;
+    truncated_pos[KEY_X]     = (int)entity->position.x;
+    truncated_pos[KEY_Y]     = (int)entity->position.y;
+    truncated_pos[KEY_Z]     = (int)entity->position.z;
+
+    // Allocate memory for strings.
+    str_size = (sizeof(char) * (strlen("B: ") + 1)) + sizeof(truncated_pos[KEY_BASE]);
+    str_pos[KEY_BASE] = malloc(str_size);
+    if(str_pos[KEY_BASE] == NULL)
+    {
+        goto error_local;
+    }
+
+    str_size = (sizeof(char) * (strlen("X: ") + 1)) + sizeof(truncated_pos[KEY_X]);
+    str_pos[KEY_X] = malloc(str_size);
+    if(str_pos[KEY_X] == NULL)
+    {
+        goto error_local;
+    }
+
+    str_size = (sizeof(char) * (strlen("Y: ") + 1)) + sizeof(truncated_pos[KEY_Y]);
+    str_pos[KEY_Y] = malloc(str_size);
+    if(str_pos[KEY_Y] == NULL)
+    {
+        goto error_local;
+    }
+
+    str_size = (sizeof(char) * (strlen("Z: ") + 1)) + sizeof(truncated_pos[KEY_Z]);
+    str_pos[KEY_Z] = malloc(str_size);
+    if(str_pos[KEY_Z] == NULL)
+    {
+        goto error_local;
+    }
+
+    // Concatenate labels with position values
+    // and copy to pointer.
+    sprintf(str_pos[KEY_BASE],  "B: %d", truncated_pos[KEY_BASE]);
+    sprintf(str_pos[KEY_X],     "X: %d", truncated_pos[KEY_X]);
+    sprintf(str_pos[KEY_Y],     "Y: %d", truncated_pos[KEY_Y]);
+    sprintf(str_pos[KEY_Z],     "Z: %d", truncated_pos[KEY_Z]);
+
+    // Get the largest string X and Y space.
+    str_width_max   = 0;
+    str_width_temp  = 0;
+
+    for(i=0; i<POS_ARRAY_SIZE; i++)
+    {
+        str_width_temp = font_string_width(FONT, str_pos[i]);
+
+        if(str_width_temp > str_width_max)
+        {
+            str_width_max = str_width_temp;
+        }
+    }
+
+    str_height_max  = fontheight(FONT);
 
     // Get our base offsets from screen vs. location.
     screen_offset.x = screenx - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
@@ -15231,22 +15306,43 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     // Get a value of half the text width.
     // We can use this to center our text
     // on the entity.
-    text_offset = font_string_width(FONT, Tr("X: %f"), entity->position.x) / 2;
+    str_offset_x = str_width_max / 2;
 
     // Apply text offset.
-    box.position.x = base_pos.x - text_offset;
+    box.position.x = base_pos.x - str_offset_x;
 
     box.position.y = base_pos.y;
     box.position.z = entity->position.z + offset_z;
 
-    spriteq_add_dot(base_pos.x, base_pos.y, box.position.z, color, drawmethod);
+    // Draw position dot.
+    // The +1 to Z is a quick fix - offset_z
+    // distorts the dot's vertical position
+    // instead of just adjusting Z.
+    spriteq_add_dot(base_pos.x, base_pos.y, box.position.z+1, color, drawmethod);
 
-    // Print out position.
-    font_printf(box.position.x, base_pos.y + 5, FONT, OFFSET_LAYER, Tr("X: %f"), entity->position.x);
-    font_printf(box.position.x, base_pos.y + 14, FONT, OFFSET_LAYER, Tr("Y: %f"), entity->position.y);
-    font_printf(box.position.x, base_pos.y + 23, FONT, OFFSET_LAYER, Tr("Z: %f"), entity->position.z);
+    // Print each position text.
+    for(i=0; i<POS_ARRAY_SIZE; i++)
+    {
+        // Add font height and margin to Y position.
+        base_pos.y += (str_height_max + TEXT_MARGIN_Y);
 
+        // Print position text.
+        font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER, str_pos[i]);
+
+        // Release memory allocated for the string.
+        free(str_pos[i]);
+    }
+
+    return;
+
+    // Error trapping.
+    error_local:
+    shutdown(1, "\n Unable to allocate memory for debug - Position.");
+
+    // Remove local constants.
     #undef FONT
+    #undef TEXT_MARGIN_Y
+    #undef POSITION_MARGIN_Y
     #undef OFFSET_LAYER
 }
 
@@ -34295,82 +34391,132 @@ void cheatoptions()     //  LTB 1-13-05 took out sameplayer option
 
 void debug_options()
 {
-    #define TITLE_POS_Y             -5
-    #define POS_Y_OFFSET            -3
+    #define MENU_POS_Y              -5
+    #define MENU_ITEMS_MARGIN_Y     2
     #define COLUMN_1_POS_X          -12
     #define COLUMN_2_POS_X          4
-    #define TOT_LABELS              6
+    #define MENU_ITEM_FIRST_INDEX   0
 
-    enum e_selector
+    // Selections enumerator. All
+    // selection items should be placed
+    // here first.
+    typedef enum
     {
-        PERFORMANCE,
-        POSITION,
-        COL_ATTACK,
-        COL_BODY,
-        COL_RANGE,
-        PREVIOUS_MENU
-    };
+        // First item can be
+        // whatever we like,
+        // but it must be set
+        // to the MENU_ITEM_FIRST_INDEX
+        // constant.
+        ITEM_PERFORMANCE = MENU_ITEM_FIRST_INDEX,
 
+        // Items between the first
+        // and last can go in any
+        // order.
+        ITEM_POSITION,
+        ITEM_COL_ATTACK,
+        ITEM_COL_BODY,
+        ITEM_COL_RANGE,
+
+        // This is the "Back"
+        // selection and should
+        // always be last.
+        ITEM_EXIT
+    } e_selections;
+
+    int pos_y;
     int quit                = 0;
-    int selector            = 0;
+    e_selections selector   = 0;
     bothnewkeys             = 0;
 
     while(!quit)
     {
-        _menutextm(2, TITLE_POS_Y, 0, Tr("Debug Settings"));
+        // Display menu title.
+        _menutextm(2, MENU_POS_Y, 0, Tr("Debug Settings"));
 
-        _menutext((selector == PERFORMANCE),    COLUMN_1_POS_X, 0 + POS_Y_OFFSET, Tr("Performance:"));
-        _menutext((selector == PERFORMANCE),    COLUMN_2_POS_X, 0 + POS_Y_OFFSET, (savedata.debuginfo ? Tr("Enabled") : Tr("Disabled")));
+        // Menu items.
+        // Y position is controlled by a incremented integer.
+        // Integer has a base value of the Menu title Y
+        // plus static offset. Below each item, this Y value
+        // increments by one. We can then add or remove
+        // menu items here and the on screen position will
+        // take care of itself without us needing to mess
+        // with a bunch of hard constants.
 
-        _menutext((selector == POSITION),       COLUMN_1_POS_X, 1 + POS_Y_OFFSET, Tr("Position:"));
-        _menutext((selector == POSITION),       COLUMN_2_POS_X, 1 + POS_Y_OFFSET, (savedata.debug_position ? Tr("Enabled") : Tr("Disabled")));
+        // Reset menu item position Y.
+        pos_y = MENU_POS_Y + MENU_ITEMS_MARGIN_Y;
 
-        _menutext((selector == COL_ATTACK),     COLUMN_1_POS_X, 2 + POS_Y_OFFSET, Tr("Collision Attack:"));
-        _menutext((selector == COL_ATTACK),     COLUMN_2_POS_X, 2 + POS_Y_OFFSET, (savedata.debug_collision_attack ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == ITEM_PERFORMANCE),    COLUMN_1_POS_X, pos_y, Tr("Performance:"));
+        _menutext((selector == ITEM_PERFORMANCE),    COLUMN_2_POS_X, pos_y, (savedata.debuginfo ? Tr("Enabled") : Tr("Disabled")));
+        pos_y++;
 
-        _menutext((selector == COL_BODY),       COLUMN_1_POS_X, 3 + POS_Y_OFFSET, Tr("Collision Body:"));
-        _menutext((selector == COL_BODY),       COLUMN_2_POS_X, 3 + POS_Y_OFFSET, (savedata.debug_collision_body ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == ITEM_POSITION),       COLUMN_1_POS_X, pos_y, Tr("Position:"));
+        _menutext((selector == ITEM_POSITION),       COLUMN_2_POS_X, pos_y, (savedata.debug_position ? Tr("Enabled") : Tr("Disabled")));
+        pos_y++;
 
-        _menutext((selector == COL_RANGE),      COLUMN_1_POS_X, 4 + POS_Y_OFFSET, Tr("Range:"));
-        _menutext((selector == COL_RANGE),      COLUMN_2_POS_X, 4 + POS_Y_OFFSET, (savedata.debug_collision_range ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == ITEM_COL_ATTACK),     COLUMN_1_POS_X, pos_y, Tr("Collision Attack:"));
+        _menutext((selector == ITEM_COL_ATTACK),     COLUMN_2_POS_X, pos_y, (savedata.debug_collision_attack ? Tr("Enabled") : Tr("Disabled")));
+        pos_y++;
 
-        _menutextm((selector == PREVIOUS_MENU), TOT_LABELS, 0, Tr("Back"));
+        _menutext((selector == ITEM_COL_BODY),       COLUMN_1_POS_X, pos_y, Tr("Collision Body:"));
+        _menutext((selector == ITEM_COL_BODY),       COLUMN_2_POS_X, pos_y, (savedata.debug_collision_body ? Tr("Enabled") : Tr("Disabled")));
+        pos_y++;
 
+        _menutext((selector == ITEM_COL_RANGE),      COLUMN_1_POS_X, pos_y, Tr("Range:"));
+        _menutext((selector == ITEM_COL_RANGE),      COLUMN_2_POS_X, pos_y, (savedata.debug_collision_range ? Tr("Enabled") : Tr("Disabled")));
+        pos_y++;
+
+        // Display exit title
+        _menutextm((selector == ITEM_EXIT), pos_y + (MENU_ITEMS_MARGIN_Y-1), 0, Tr("Back"));
+
+        // Run an engine update.
         update((level != NULL), 0);
 
-        if(bothnewkeys & FLAG_ESC)
+        // If user presses up/down or esc, let's act accordingly.
+        if(bothnewkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN | FLAG_ESC))
         {
-            quit = 1;
-        }
-        if(bothnewkeys & FLAG_MOVEUP)
-        {
-            --selector;
-
+            // Play beep if available.
             if(SAMPLE_BEEP >= 0)
             {
                 sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
             }
-        }
-        if(bothnewkeys & FLAG_MOVEDOWN)
-        {
-            ++selector;
 
-            if(SAMPLE_BEEP >= 0)
+            // If user presses escape, then set quit
+            // flag immediately. Else wise, increment
+            // or decrement selector as needed.
+            if(bothnewkeys & FLAG_ESC)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                quit = 1;
+            }
+            else if(bothnewkeys & FLAG_MOVEUP)
+            {
+                // If we are at the top item, loop
+                // to last. Otherwise, move one up.
+                if(selector <= MENU_ITEM_FIRST_INDEX)
+                {
+                    selector = ITEM_EXIT;
+                }
+                else
+                {
+                    --selector;
+                }
+            }
+            else if(bothnewkeys & FLAG_MOVEDOWN)
+            {
+                // If we are at the last item
+                // (which should be "back"), then
+                // loop back to first. Otherwise
+                // move one down.
+                if(selector >= ITEM_EXIT)
+                {
+                    selector = MENU_ITEM_FIRST_INDEX;
+                }
+                else
+                {
+                    ++selector;
+                }
             }
         }
 
-        // Loop selection back to
-        // first or last item respectively.
-        if(selector < 0)
-        {
-            selector = PREVIOUS_MENU;
-        }
-        if(selector > PREVIOUS_MENU)
-        {
-            selector = 0;
-        }
 
         // Toggle selection value on left/right or
         // trigger button press.
@@ -34381,24 +34527,25 @@ void debug_options()
                 sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
+            // This is where menu items are executed.
             switch(selector)
             {
-                case PERFORMANCE:
+                case ITEM_PERFORMANCE:
                     savedata.debuginfo = !savedata.debuginfo;
                     break;
-                case POSITION:
+                case ITEM_POSITION:
                     savedata.debug_position = !savedata.debug_position;
                     break;
-                case COL_ATTACK:
+                case ITEM_COL_ATTACK:
                     savedata.debug_collision_attack = !savedata.debug_collision_attack;
                     break;
-                case COL_BODY:
+                case ITEM_COL_BODY:
                     savedata.debug_collision_body = !savedata.debug_collision_body;
                     break;
-                case COL_RANGE:
+                case ITEM_COL_RANGE:
                     savedata.debug_collision_range = !savedata.debug_collision_range;
                     break;
-                default:
+                case ITEM_EXIT:
                     quit = 1;
             }
         }
@@ -34406,12 +34553,13 @@ void debug_options()
     savesettings();
     bothnewkeys = 0;
 
-    #undef TITLE_POS_Y
-    #undef PREVIOUS_MENU_POS_Y
-    #undef POS_Y_OFFSET
+    #undef MENU_POS_Y
+    #undef MENU_ITEMS_MARGIN_Y
     #undef COLUMN_1_POS_X
     #undef COLUMN_2_POS_X
+    #undef MENU_ITEM_FIRST_INDEX
 }
+
 
 void system_options()
 {
