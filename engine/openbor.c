@@ -15704,9 +15704,9 @@ void predrawstatus()
     {
         spriteq_add_box(0, videomodes.dOffset - 12, videomodes.hRes, videomodes.dOffset + 12, 0x0FFFFFFE, 0, NULL);
         font_printf(2,                   videomodes.dOffset - 10, 0, 0, Tr("FPS: %03d"), getFPS());
-        font_printf(videomodes.hRes / 2, videomodes.dOffset - 10, 0, 0, Tr("Free Ram: %s KBytes"), commaprint(freeram / 1000));
-        font_printf(2,                   videomodes.dOffset,    0, 0, Tr("Total Ram: %s KBytes"), commaprint(totalram / 1000));
-        font_printf(videomodes.hRes / 2, videomodes.dOffset,    0, 0, Tr("Used Ram: %s KBytes"), commaprint(usedram / 1000));
+        font_printf(videomodes.hRes / 2, videomodes.dOffset - 10, 0, 0, Tr("Free Ram: %s KB"), commaprint(freeram / 1000));
+        font_printf(2,                   videomodes.dOffset,    0, 0, Tr("Total Ram: %s KB"), commaprint(totalram / 1000));
+        font_printf(videomodes.hRes / 2, videomodes.dOffset,    0, 0, Tr("Used Ram: %s KB"), commaprint(usedram / 1000));
     }
 
     if(savedata.debuginfo
@@ -34305,7 +34305,7 @@ void menu_options_debug()
         pos_y++;
 
         // Display exit title
-        _menutextm((selector == ITEM_EXIT), pos_y + (MENU_ITEMS_MARGIN_Y-1), 0, Tr("Back"));
+        _menutextm((selector == ITEM_EXIT), pos_y + (MENU_ITEMS_MARGIN_Y), 0, Tr("Back"));
 
         // Run an engine update.
         update((level != NULL), 0);
@@ -34402,6 +34402,7 @@ void menu_options_debug()
 
 void menu_options_system()
 {
+    #define SYS_OPT_Y_POS -4
 
     int quit = 0;
     int selector = 0;
@@ -34422,48 +34423,48 @@ void menu_options_system()
 
     while(!quit)
     {
-        _menutextm(2, -6, 0, Tr("System Options"));
+        _menutextm(2, SYS_OPT_Y_POS-2, 0, Tr("System Options"));
 
-        _menutext(0, col1, -4, Tr("Total RAM:"));
-        _menutext(0, col2, -4, Tr("%s KBytes"), commaprint(getSystemRam(KBYTES)));
+        _menutext(0, col1, SYS_OPT_Y_POS, Tr("Total RAM:"));
+        _menutext(0, col2, SYS_OPT_Y_POS, Tr("%s KB"), commaprint(getSystemRam(KBYTES)));
 
-        _menutext(0, col1, -3, Tr("Used RAM:"));
-        _menutext(0, col2, -3, Tr("%s KBytes"), commaprint(getUsedRam(KBYTES)));
+        _menutext(0, col1, SYS_OPT_Y_POS+1, Tr("Used RAM:"));
+        _menutext(0, col2, SYS_OPT_Y_POS+1, Tr("%s KB"), commaprint(getUsedRam(KBYTES)));
 
-        _menutext(0, col1, -2, Tr("Max Players:"));
-        _menutext(0, col2, -2, Tr("%i"), levelsets[current_set].maxplayers);
+        _menutext(0, col1, SYS_OPT_Y_POS+2, Tr("Max Players:"));
+        _menutext(0, col2, SYS_OPT_Y_POS+2, Tr("%i"), levelsets[current_set].maxplayers);
 
-        _menutext((selector == 0), col1, -1, Tr("File Logging:"));
-        _menutext((selector == 0), col2, -1, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == 0), col1, SYS_OPT_Y_POS+4, Tr("File Logging:"));
+        _menutext((selector == 0), col2, SYS_OPT_Y_POS+4, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
 
-        _menutext((selector == 1), col1, 0, Tr("Versus Damage:"), 0);
+        _menutext((selector == 1), col1, SYS_OPT_Y_POS+5, Tr("Versus Damage:"), 0);
         if(versusdamage == 0)
         {
-            _menutext((selector == 1), col2, 0, Tr("Disabled by Module"));
+            _menutext((selector == 1), col2, SYS_OPT_Y_POS+5, Tr("Disabled by Module"));
         }
         else if(versusdamage == 1)
         {
-            _menutext((selector == 1), col2, 0, Tr("Enabled by Module"));
+            _menutext((selector == 1), col2, SYS_OPT_Y_POS+5, Tr("Enabled by Module"));
         }
         else
         {
             if(savedata.mode)
             {
-                _menutext((selector == 1), col2, 0, Tr("Disabled"));    //Mode 1 - Players CAN'T attack each other
+                _menutext((selector == 1), col2, SYS_OPT_Y_POS+5, Tr("Disabled"));    //Mode 1 - Players CAN'T attack each other
             }
             else
             {
-                _menutext((selector == 1), col2, 0, Tr("Enabled"));    //Mode 2 - Players CAN attack each other
+                _menutext((selector == 1), col2, SYS_OPT_Y_POS+5, Tr("Enabled"));    //Mode 2 - Players CAN attack each other
             }
         }
 
-        _menutext((selector == 2), col1, 1, Tr("Cheats:"));
-        _menutext((selector == 2), col2, 1, forcecheatsoff ? Tr("Disabled by Module") : (cheats ? Tr("On") : Tr("Off")));
-        _menutext((selector == 3), col1, 2, Tr("Debug Settings..."));
+        _menutext((selector == 2), col1, SYS_OPT_Y_POS+6, Tr("Cheats:"));
+        _menutext((selector == 2), col2, SYS_OPT_Y_POS+6, forcecheatsoff ? Tr("Disabled by Module") : (cheats ? Tr("On") : Tr("Off")));
+        _menutext((selector == 3), col1, SYS_OPT_Y_POS+7, Tr("Debug Settings..."));
 
 #ifndef DC
 
-        _menutext((selector == 4), col1, 3, Tr("Config Settings..."));
+        _menutext((selector == 4), col1, SYS_OPT_Y_POS+8, Tr("Config Settings..."));
 
 #endif
 
@@ -34493,7 +34494,7 @@ void menu_options_system()
         ret = 6;
 #endif
 
-        _menutextm((selector == ret), 6, 0, Tr("Back"));
+        _menutextm((selector == ret), SYS_OPT_Y_POS+11, 0, Tr("Back"));
 
         update((level != NULL), 0);
 
@@ -35013,8 +35014,8 @@ void menu_options_video()
 void menu_options()
 {
     #define TOT_CHEATS  3
-    #define Y_POS      -1
-    #define X_POS      -7
+    #define OPT_Y_POS      -1
+    #define OPT_X_POS      -7
 
     typedef enum {
         VIDEO_OPTION,
@@ -35030,8 +35031,9 @@ void menu_options()
     } e_selector;
 
     int quit = 0;
-    int y_offset = Y_POS;
+    int y_offset = OPT_Y_POS;
     int BACK_OPTION = END_OPTION-TOT_CHEATS;
+    int cheat_opt_offset = 0;
     e_selector selector = VIDEO_OPTION;
 
     optionsMenu = 1;
@@ -35039,7 +35041,8 @@ void menu_options()
     if (cheats && !forcecheatsoff)
     {
         y_offset -= TOT_CHEATS;
-        BACK_OPTION +=TOT_CHEATS;
+        cheat_opt_offset += 1;
+        BACK_OPTION += TOT_CHEATS;
     }
 
     while(!quit)
@@ -35053,12 +35056,12 @@ void menu_options()
 
         if (cheats && !forcecheatsoff)
         {
-            _menutext((selector == LIVES_CHEAT), X_POS, y_offset+LIVES_CHEAT, (livescheat)?Tr("Infinite Lives On"):Tr("Infinite Lives Off"));
-            _menutext((selector == CREDITS_CHEAT), X_POS, y_offset+CREDITS_CHEAT, (creditscheat)?Tr("Infinite Credits On"):Tr("Infinite Credits Off"));    // Enemies fall/don't fall down when you respawn
-            _menutext((selector == HEALTH_CHEAT), X_POS, y_offset+HEALTH_CHEAT, (healthcheat)?Tr("Infinite Health On"):Tr("Infinite Health Off"));    // Enemies fall/don't down when you respawn
+            _menutext((selector == LIVES_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+LIVES_CHEAT, (livescheat)?Tr("Infinite Lives On"):Tr("Infinite Lives Off"));
+            _menutext((selector == CREDITS_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+CREDITS_CHEAT, (creditscheat)?Tr("Infinite Credits On"):Tr("Infinite Credits Off"));    // Enemies fall/don't fall down when you respawn
+            _menutext((selector == HEALTH_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+HEALTH_CHEAT, (healthcheat)?Tr("Infinite Health On"):Tr("Infinite Health Off"));    // Enemies fall/don't down when you respawn
         }
 
-        _menutextm((selector == BACK_OPTION), y_offset+BACK_OPTION+2, 0, Tr("Back"));
+        _menutextm((selector == BACK_OPTION), y_offset+cheat_opt_offset+BACK_OPTION+2, 0, Tr("Back"));
 
         update((level != NULL), 0);
 
@@ -35109,8 +35112,15 @@ void menu_options()
                 menu_options_system();
                 if (cheats && !forcecheatsoff)
                 {
-                    y_offset -= TOT_CHEATS;
-                    BACK_OPTION +=TOT_CHEATS;
+                    y_offset = OPT_Y_POS-TOT_CHEATS;
+                    cheat_opt_offset = 1;
+                    BACK_OPTION = END_OPTION-TOT_CHEATS+TOT_CHEATS;
+                }
+                else
+                {
+                    y_offset = OPT_Y_POS;
+                    cheat_opt_offset = 0;
+                    BACK_OPTION = END_OPTION-TOT_CHEATS;
                 }
            }
            else if(selector==LIVES_CHEAT) livescheat = !livescheat;

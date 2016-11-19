@@ -3504,6 +3504,7 @@ enum entityproperty_enum
     _ep_jumpheight,
     _ep_jumpmovex,
     _ep_jumpmovez,
+    _ep_jumpspeed,
     _ep_knockdowncount,
     _ep_komap,
     _ep_landedplatform,
@@ -3692,6 +3693,7 @@ static const char *eplist[] =
     "jumpheight",
     "jumpmovex",
     "jumpmovez",
+    "jumpspeed",
     "knockdowncount",
     "komap",
     "landedplatform",
@@ -7109,6 +7111,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->modeldata.jumpmovez;
         break;
     }
+    case _ep_jumpspeed:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)ent->modeldata.jumpspeed;
+        break;
+    }
     case _ep_knockdowncount:
     {
         /*
@@ -8962,6 +8970,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
             ent->modeldata.jumpmovex = (int)ltemp;
+        }
+        break;
+    }
+    case _ep_jumpspeed:
+    {
+        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+        {
+            ent->modeldata.jumpspeed = (float)dbltemp;
         }
         break;
     }
