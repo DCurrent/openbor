@@ -505,6 +505,7 @@ int                 nopause             = 0;                    // OX. If set to
 int                 noscreenshot        = 0;                    // OX. If set to 1 , taking screenshots is disabled.
 int                 endgame             = 0;
 int                 forcecheatsoff      = 0;
+int                 nodebugoptions      = 0;
 int                 cheats              = 0;
 int                 livescheat          = 0;
 int                 keyscriptrate       = 0;
@@ -11575,6 +11576,10 @@ int load_models()
                 //disable cheat option in menu
                 forcecheatsoff =  GET_INT_ARG(1);
                 break;
+            case CMD_MODELSTXT_NODEBUG:
+                //disable debug option in menu
+                nodebugoptions =  GET_INT_ARG(1);
+                break;
             case CMD_MODELSTXT_NODROPEN:
                 nodropen = 1;
                 break;
@@ -15340,7 +15345,7 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
         base_pos.y += (str_height_max + TEXT_MARGIN_Y);
 
         // Print position text.
-        font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER, str_pos[i]);
+        font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER-2, str_pos[i]);
 
         // Release memory allocated for the string.
         free(str_pos[i]);
@@ -34404,11 +34409,22 @@ void menu_options_system()
 {
     #define SYS_OPT_Y_POS -4
 
+    enum {
+        SYS_OPT_LOG,
+        SYS_OPT_VSDAMAGE,
+        SYS_OPT_CHEATS,
+        SYS_OPT_DEBUG,
+        SYS_OPT_CONFIG,
+        SYS_OPT_PSP_CPUSPEED,
+        SYS_OPT_BACK
+    };
+
     int quit = 0;
     int selector = 0;
-    int ret = 5;
-    int col1 = -15;
-    int col2 = 1;
+    int col1 = -12;
+    int col2 = col1+15;
+    int ex_labels = 0;
+    int RET = SYS_OPT_BACK-1;
 
 #if PSP
     int dir = 0;
@@ -34418,8 +34434,9 @@ void menu_options_system()
 #endif
 
     systemoptionsMenu = 1;
-
     bothnewkeys = 0;
+    if (nodebugoptions) ex_labels = 1;
+    RET -= ex_labels;
 
     while(!quit)
     {
@@ -34434,67 +34451,67 @@ void menu_options_system()
         _menutext(0, col1, SYS_OPT_Y_POS+2, Tr("Max Players:"));
         _menutext(0, col2, SYS_OPT_Y_POS+2, Tr("%i"), levelsets[current_set].maxplayers);
 
-        _menutext((selector == 0), col1, SYS_OPT_Y_POS+4, Tr("File Logging:"));
-        _menutext((selector == 0), col2, SYS_OPT_Y_POS+4, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == SYS_OPT_LOG), col1, SYS_OPT_Y_POS+4, Tr("File Logging:"));
+        _menutext((selector == SYS_OPT_LOG), col2, SYS_OPT_Y_POS+4, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
 
-        _menutext((selector == 1), col1, SYS_OPT_Y_POS+5, Tr("Versus Damage:"), 0);
+        _menutext((selector == SYS_OPT_VSDAMAGE), col1, SYS_OPT_Y_POS+5, Tr("Versus Damage:"), 0);
         if(versusdamage == 0)
         {
-            _menutext((selector == 1), col2, SYS_OPT_Y_POS+5, Tr("Disabled by Module"));
+            _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS+5, Tr("Disabled by Module"));
         }
         else if(versusdamage == 1)
         {
-            _menutext((selector == 1), col2, SYS_OPT_Y_POS+5, Tr("Enabled by Module"));
+            _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS+5, Tr("Enabled by Module"));
         }
         else
         {
             if(savedata.mode)
             {
-                _menutext((selector == 1), col2, SYS_OPT_Y_POS+5, Tr("Disabled"));    //Mode 1 - Players CAN'T attack each other
+                _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS+5, Tr("Disabled"));    //Mode 1 - Players CAN'T attack each other
             }
             else
             {
-                _menutext((selector == 1), col2, SYS_OPT_Y_POS+5, Tr("Enabled"));    //Mode 2 - Players CAN attack each other
+                _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS+5, Tr("Enabled"));    //Mode 2 - Players CAN attack each other
             }
         }
 
-        _menutext((selector == 2), col1, SYS_OPT_Y_POS+6, Tr("Cheats:"));
-        _menutext((selector == 2), col2, SYS_OPT_Y_POS+6, forcecheatsoff ? Tr("Disabled by Module") : (cheats ? Tr("On") : Tr("Off")));
-        _menutext((selector == 3), col1, SYS_OPT_Y_POS+7, Tr("Debug Settings..."));
+        _menutext((selector == SYS_OPT_CHEATS), col1, SYS_OPT_Y_POS+6, Tr("Cheats:"));
+        _menutext((selector == SYS_OPT_CHEATS), col2, SYS_OPT_Y_POS+6, forcecheatsoff ? Tr("Disabled by Module") : (cheats ? Tr("On") : Tr("Off")));
+        if(!nodebugoptions) _menutext((selector == SYS_OPT_DEBUG), col1, SYS_OPT_Y_POS+7, Tr("Debug Settings..."));
 
 #ifndef DC
 
-        _menutext((selector == 4), col1, SYS_OPT_Y_POS+8, Tr("Config Settings..."));
+        _menutext((selector == SYS_OPT_CONFIG-ex_labels), col1, SYS_OPT_Y_POS+8-ex_labels, Tr("Config Settings..."));
 
 #endif
 
 #if PSP
         externalPower = scePowerIsPowerOnline();
-        _menutext((selector == 5), col1, 4, Tr("CPU Speed:"));
-        _menutext((selector == 5), col2, 4, "%d MHz", scePowerGetCpuClockFrequency());
+        _menutext((selector == SYS_OPT_PSP_CPUSPEED), col1, 4-ex_labels, Tr("CPU Speed:"));
+        _menutext((selector == SYS_OPT_PSP_CPUSPEED), col2, 4-ex_labels, "%d MHz", scePowerGetCpuClockFrequency());
         if(!externalPower)
         {
             batteryPercentage = scePowerGetBatteryLifePercent();
             batteryLifeTime = scePowerGetBatteryLifeTime();
-            _menutext(0, col1, 5, Tr("Battery:"));
+            _menutext(0, col1, 5-ex_labels, Tr("Battery:"));
             if(batteryPercentage < 0 || batteryLifeTime < 0)
             {
-                _menutext(0, col2, 5, Tr("Calculating..."));
+                _menutext(0, col2, 5-ex_labels, Tr("Calculating..."));
             }
             else
             {
-                _menutext(0, col2, 5, "%d%% - %02d:%02d", batteryPercentage, batteryLifeTime / 60, batteryLifeTime - (batteryLifeTime / 60 * 60));
+                _menutext(0, col2, 5-ex_labels, "%d%% - %02d:%02d", batteryPercentage, batteryLifeTime / 60, batteryLifeTime - (batteryLifeTime / 60 * 60));
             }
         }
         else
         {
-            _menutext(0, col1, 5, Tr("Charging:"));
-            _menutext(0, col2, 5, Tr("%d%% AC Power"), scePowerGetBatteryLifePercent());
+            _menutext(0, col1, 5-ex_labels, Tr("Charging:"));
+            _menutext(0, col2, 5-ex_labels, Tr("%d%% AC Power"), scePowerGetBatteryLifePercent());
         }
-        ret = 6;
+        RET = 6-ex_labels;
 #endif
 
-        _menutextm((selector == ret), SYS_OPT_Y_POS+11, 0, Tr("Back"));
+        _menutextm((selector == RET), SYS_OPT_Y_POS+11-ex_labels, 0, Tr("Back"));
 
         update((level != NULL), 0);
 
@@ -34515,9 +34532,9 @@ void menu_options_system()
 
         if(selector < 0)
         {
-            selector = ret;
+            selector = RET;
         }
-        if(selector > ret)
+        if(selector > RET)
         {
             selector = 0;
         }
@@ -34539,13 +34556,10 @@ void menu_options_system()
 
             sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
 
-            switch(selector)
+                 if (selector==RET) quit = 1;
+            else if (selector==SYS_OPT_LOG) savedata.uselog =  !savedata.uselog;
+            else if (selector==SYS_OPT_VSDAMAGE)
             {
-            case 0:
-                savedata.uselog =  !savedata.uselog;
-                break;
-
-            case 1:
                 if(versusdamage > 1)
                 {
                     if(savedata.mode)
@@ -34557,26 +34571,16 @@ void menu_options_system()
                         savedata.mode = 1;
                     }
                 }
-                break;
-
-            case 2:
-                cheats = !cheats;
-                break;
-
-            case 3:
-                menu_options_debug();
-                break;
-
+            }
+            else if (selector==SYS_OPT_CHEATS) cheats = !cheats;
+            else if (selector==SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
 #ifndef DC
-
-            case 4:
-                menu_options_config();
-                break;
-
+            else if (selector==SYS_OPT_CONFIG-ex_labels) menu_options_config();
 #endif
 
 #ifdef PSP
-            case 5:
+            else if (selector==SYS_OPT_PSP_CPUSPEED-ex_labels)
+            {
                 savedata.pspcpuspeed += dir;
                 if(savedata.pspcpuspeed < 0)
                 {
@@ -34586,6 +34590,7 @@ void menu_options_system()
                 {
                     savedata.pspcpuspeed = 0;
                 }
+
                 switch(savedata.pspcpuspeed)
                 {
                 case 0:
@@ -34598,13 +34603,9 @@ void menu_options_system()
                     scePowerSetClockFrequency(333, 333, 166);
                     break;
                 }
-                break;
-#endif
-
-            default:
-                quit = 1;
-                break;
             }
+#endif
+            else quit = 1;
         }
     }
     savesettings();
