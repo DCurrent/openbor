@@ -93,6 +93,7 @@ List *createModelstxtCommandList(void)
     LIST_ADD(CMD_MODELSTXT_NOCHEATS, "nocheats");
     LIST_ADD(CMD_MODELSTXT_NOCHIPDEATH, "nochipdeath");
     LIST_ADD(CMD_MODELSTXT_NOCOST, "nocost");
+    LIST_ADD(CMD_MODELSTXT_NODEBUG, "nodebug");
     LIST_ADD(CMD_MODELSTXT_NODROPEN, "nodropen");
     LIST_ADD(CMD_MODELSTXT_NODROPSPAWN, "nodropspawn");
     LIST_ADD(CMD_MODELSTXT_NOLOST, "nolost");
