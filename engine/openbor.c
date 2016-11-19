@@ -15237,36 +15237,47 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     // Get position strings here so we can reuse
     // them and calculate offsets based on the
     // largest string size.
-
     truncated_pos[KEY_BASE]  = (int)entity->base;
     truncated_pos[KEY_X]     = (int)entity->position.x;
     truncated_pos[KEY_Y]     = (int)entity->position.y;
     truncated_pos[KEY_Z]     = (int)entity->position.z;
 
     // Allocate memory for strings.
-    str_size = (sizeof(char) * (strlen("B: ") + 1)) + sizeof(truncated_pos[KEY_BASE]);
+    str_size =  sizeof(char) * (strlen("B: ") + 1);
+    str_size += sizeof(truncated_pos[KEY_BASE]);
+
     str_pos[KEY_BASE] = malloc(str_size);
+
     if(str_pos[KEY_BASE] == NULL)
     {
         goto error_local;
     }
 
-    str_size = (sizeof(char) * (strlen("X: ") + 1)) + sizeof(truncated_pos[KEY_X]);
+    str_size =  sizeof(char) * (strlen("X: ") + 1);
+    str_size += sizeof(truncated_pos[KEY_X]);
+
     str_pos[KEY_X] = malloc(str_size);
+
     if(str_pos[KEY_X] == NULL)
     {
         goto error_local;
     }
 
-    str_size = (sizeof(char) * (strlen("Y: ") + 1)) + sizeof(truncated_pos[KEY_Y]);
+    str_size =  sizeof(char) * (strlen("Y: ") + 1);
+    str_size += sizeof(truncated_pos[KEY_Y]);
+
     str_pos[KEY_Y] = malloc(str_size);
+
     if(str_pos[KEY_Y] == NULL)
     {
         goto error_local;
     }
 
-    str_size = (sizeof(char) * (strlen("Z: ") + 1)) + sizeof(truncated_pos[KEY_Z]);
+    str_size =  sizeof(char) * (strlen("Z: ") + 1);
+    str_size += sizeof(truncated_pos[KEY_Z]);
+
     str_pos[KEY_Z] = malloc(str_size);
+
     if(str_pos[KEY_Z] == NULL)
     {
         goto error_local;
@@ -15285,8 +15296,11 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
     for(i=0; i<POS_ARRAY_SIZE; i++)
     {
+        // Get width of current string in loop.
         str_width_temp = font_string_width(FONT, str_pos[i]);
 
+        // Is length greater than current max,
+        // then make that the new max.
         if(str_width_temp > str_width_max)
         {
             str_width_max = str_width_temp;
@@ -15344,6 +15358,11 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     #undef TEXT_MARGIN_Y
     #undef POSITION_MARGIN_Y
     #undef OFFSET_LAYER
+    #undef POS_ARRAY_SIZE
+    #undef KEY_BASE
+    #undef KEY_X
+    #undef KEY_Y
+    #undef KEY_Z
 }
 
 // Draw box onto screen base on entity position.
