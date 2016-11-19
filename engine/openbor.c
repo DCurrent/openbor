@@ -15243,7 +15243,7 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
     // Allocate memory for strings.
     str_size =  sizeof(char) * (strlen("B: ") + 1);
-    str_size += sizeof(truncated_pos[KEY_BASE]);
+    str_size += sizeof(char) * (sizeof(truncated_pos[KEY_BASE])+1);
 
     str_pos[KEY_BASE] = malloc(str_size);
 
@@ -15253,7 +15253,7 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     }
 
     str_size =  sizeof(char) * (strlen("X: ") + 1);
-    str_size += sizeof(truncated_pos[KEY_X]);
+    str_size += sizeof(char) * (sizeof(truncated_pos[KEY_X])+1);
 
     str_pos[KEY_X] = malloc(str_size);
 
@@ -15263,7 +15263,7 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     }
 
     str_size =  sizeof(char) * (strlen("Y: ") + 1);
-    str_size += sizeof(truncated_pos[KEY_Y]);
+    str_size += sizeof(char) * (sizeof(truncated_pos[KEY_Y])+1);
 
     str_pos[KEY_Y] = malloc(str_size);
 
@@ -15273,7 +15273,7 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     }
 
     str_size =  sizeof(char) * (strlen("Z: ") + 1);
-    str_size += sizeof(truncated_pos[KEY_Z]);
+    str_size += sizeof(char) * (sizeof(truncated_pos[KEY_Z])+1);
 
     str_pos[KEY_Z] = malloc(str_size);
 
