@@ -594,6 +594,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "rand";
     }
+    else if (functionRef == ((void *)system_srand))
+    {
+        return "srand";
+    }
     else if (functionRef == ((void *)system_getglobalvar))
     {
         return "getglobalvar";
@@ -1459,6 +1463,8 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)system_rand, "rand");
     List_InsertAfter(&theFunctionList,
+                     (void *)system_srand, "srand");
+    List_InsertAfter(&theFunctionList,
                      (void *)system_getglobalvar, "getglobalvar");
     List_InsertAfter(&theFunctionList,
                      (void *)system_setglobalvar, "setglobalvar");
@@ -1831,6 +1837,23 @@ HRESULT system_rand(ScriptVariant **varlist , ScriptVariant **pretvar, int param
 {
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
     (*pretvar)->lVal = (LONG)rand32();
+    return S_OK;
+}
+HRESULT system_srand(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    LONG ltemp;
+
+    *pretvar = NULL;
+    if(paramCount != 1)
+    {
+        return E_FAIL;
+    }
+    if(FAILED(ScriptVariant_IntegerValue(varlist[0], &ltemp)))
+    {
+        return E_FAIL;
+    }
+
+    srand32(ltemp);
     return S_OK;
 }
 //getglobalvar(varname);
@@ -16869,8 +16892,7 @@ HRESULT openbor_options(ScriptVariant **varlist , ScriptVariant **pretvar, int p
 {
     //void options();
 
-    if ( is_cheat_actived() ) cheatoptions();
-    else options();
+    options();
 
     *pretvar = NULL;
     return S_OK;
