@@ -484,7 +484,6 @@ int					controloptionsMenu	= 0;
 int					videooptionsMenu	= 0;
 int					soundoptionsMenu	= 0;
 int					systemoptionsMenu	= 0;
-int					cheatoptionsMenu	= 0;
 int					startgameMenu		= 0;
 int					gameOver			= 0;
 int					showComplete		= 0;
@@ -1015,7 +1014,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_in_cheat_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (LONG)(cheatoptionsMenu);
+        var->lVal = (LONG)(optionsMenu && is_cheat_actived())?1:0;
         break;
     case _sv_cheats:
         ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -33842,13 +33841,14 @@ void input_options()
 {
     int quit = 0;
     int selector = 1; // 0
+    int x_pos = -6;
 
     controloptionsMenu = 1;
     bothnewkeys = 0;
 
     while(!quit)
     {
-        _menutextm(2, -5, 0, Tr("Control Options"));
+        _menutextm(2, x_pos-1, 0, Tr("Control Options"));
 
 #if PSP
         if(savedata.usejoy)
@@ -33871,23 +33871,23 @@ void input_options()
 #else
         if(savedata.usejoy)
         {
-            _menutext((selector == 0),  -4, -2, Tr("GamePads Enabled"));
+            _menutext((selector == 0),  x_pos, -2, Tr("GamePads Enabled"));
             if(!control_getjoyenabled())
             {
-                _menutext((selector == 0), 7, -2, Tr(" - Device Not Ready"));
+                _menutext((selector == 0), x_pos+11, -2, Tr(" - Device Not Ready"));
             }
         }
         else
         {
-            _menutext((selector == 0),  -4, -2, Tr("GamePads Disabled"));
+            _menutext((selector == 0),  x_pos, -2, Tr("GamePads Disabled"));
         }
 #endif
 
-        _menutext((selector == 1), -4, -1, Tr("Setup Player 1..."));
-        _menutext((selector == 2), -4, 0, Tr("Setup Player 2..."));
-        _menutext((selector == 3), -4, 1, Tr("Setup Player 3..."));
-        _menutext((selector == 4), -4, 2, Tr("Setup Player 4..."));
-        _menutextm((selector == 5), 6, 0, Tr("Back"));
+        _menutext((selector == 1), x_pos,-1, Tr("Setup Player 1..."));
+        _menutext((selector == 2), x_pos, 0, Tr("Setup Player 2..."));
+        _menutext((selector == 3), x_pos, 1, Tr("Setup Player 3..."));
+        _menutext((selector == 4), x_pos, 2, Tr("Setup Player 4..."));
+        _menutextm((selector == 5), 5, 0, Tr("Back"));
         update((level != NULL), 0);
 
         if(bothnewkeys & FLAG_ESC)
@@ -34226,186 +34226,6 @@ void config_settings()     //  OX. Load from / save to default.cfg. Restore Open
     }
     savesettings();
     bothnewkeys = 0;
-}
-
-
-void cheatoptions()     //  LTB 1-13-05 took out sameplayer option
-{
-    int quit = 0;
-    int selector = 0;
-    int dir;
-    int col1 = -8;
-    int col2 = 6;
-
-    cheatoptionsMenu = 1;
-    bothnewkeys = 0;
-
-    while(!quit)
-    {
-        _menutextm(2, -5, 0, Tr("Cheat Options"));
-        _menutext((selector == 0), col1, -3, Tr("Brightness:"));
-        _menutext((selector == 0), col2, -3, "%i", savedata.brightness);
-        _menutext((selector == 1), col1, -2, Tr("Gamma:"));
-        _menutext((selector == 1), col2, -2, "%i", savedata.gamma);
-        _menutext((selector == 2), col1, -1, Tr("Control Options..."));
-        _menutext((selector == 3), col1, 0, Tr("Sound Options..."));
-        _menutext((selector == 4), col1, 1, Tr("System Options..."));
-
-        if(livescheat)
-        {
-            _menutext((selector == 5), col1, 2, Tr("Infinite Lives On"));
-        }
-        else if(!livescheat)
-        {
-            _menutext((selector == 5), col1, 2, Tr("Infinite Lives Off"));
-        }
-        if(creditscheat)
-        {
-            _menutext((selector == 6), col1, 3, Tr("Infinite Credits On"));    // Enemies fall down when you respawn
-        }
-        else if(!creditscheat)
-        {
-            _menutext((selector == 6), col1, 3, Tr("Infinite Credits Off"));    //Enemies don't fall down when you respawn
-        }
-        if(healthcheat)
-        {
-            _menutext((selector == 7), col1, 4, Tr("Infinite Health On"));    // Enemies fall down when you respawn
-        }
-        else if(!healthcheat)
-        {
-            _menutext((selector == 7), col1, 4, Tr("Infinite Health Off"));    //Enemies don't fall down when you respawn
-        }
-
-        _menutextm((selector == 8), 6, 0, Tr("Back"));
-
-        update((level != NULL), 0);
-
-        if(bothnewkeys & FLAG_ESC)
-        {
-            quit = 1;
-        }
-        if(bothnewkeys & FLAG_MOVEUP)
-        {
-            --selector;
-
-            if(SAMPLE_BEEP >= 0)
-            {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
-            }
-        }
-        if(bothnewkeys & FLAG_MOVEDOWN)
-        {
-            ++selector;
-
-            if(SAMPLE_BEEP >= 0)
-            {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
-            }
-        }
-
-        if(selector < 0)
-        {
-            selector = 8;    // 7-1-2005 //13-1-2005 changed to 11
-        }
-        if(selector > 8)
-        {
-            selector = 0;    //    7-1-2005 6 changed to 10 //13-1-2005 changed to 11
-        }
-
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
-        {
-            dir = 0;
-
-            if(bothnewkeys & FLAG_MOVELEFT)
-            {
-                dir = -1;
-            }
-            else if(bothnewkeys & FLAG_MOVERIGHT)
-            {
-                dir = 1;
-            }
-
-            if(SAMPLE_BEEP2 >= 0)
-            {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
-            }
-
-            switch(selector)
-            {
-            case 0:
-                savedata.brightness += 8 * dir;
-                if(savedata.brightness < -256)
-                {
-                    savedata.brightness = -256;
-                }
-                if(savedata.brightness > 256)
-                {
-                    savedata.brightness = 256;
-                }
-                vga_vwait();
-                palette_set_corrected(pal, savedata.gamma, savedata.gamma, savedata.gamma, savedata.brightness, savedata.brightness, savedata.brightness);
-                break;
-            case 1:
-                savedata.gamma += 8 * dir;
-                if(savedata.gamma < -256)
-                {
-                    savedata.gamma = -256;
-                }
-                if(savedata.gamma > 256)
-                {
-                    savedata.gamma = 256;
-                }
-                vga_vwait();
-                palette_set_corrected(pal, savedata.gamma, savedata.gamma, savedata.gamma, savedata.brightness, savedata.brightness, savedata.brightness);
-                break;
-            case 2:
-                input_options();
-                break;
-            case 3:
-                sound_options();
-                break;
-            case 4:
-                system_options();
-                break;
-            case 5:
-                if(!livescheat)
-                {
-                    livescheat = 1;
-                }
-                else if(livescheat)
-                {
-                    livescheat = 0;
-                }
-                break;
-            case 6:
-                if(!creditscheat)
-                {
-                    creditscheat = 1;
-                }
-                else if(creditscheat)
-                {
-                    creditscheat = 0;
-                }
-                break;
-            case 7:
-                if(!healthcheat)
-                {
-                    healthcheat = 1;
-                }
-                else if(healthcheat)
-                {
-                    healthcheat = 0;
-                }
-                break;
-
-            default:
-                quit = 1;
-            }
-        }
-    }
-    savesettings();
-    bothnewkeys = 0;
-    cheatoptionsMenu = 0;
 }
 
 void debug_options()
@@ -35192,29 +35012,53 @@ void video_options()
 
 void options()
 {
+    #define TOT_CHEATS  3
+    #define Y_POS      -1
+    #define X_POS      -7
+
+    typedef enum {
+        VIDEO_OPTION,
+        SOUND_OPTION,
+        CONTROL_OPTION,
+        SYSTEM_OPTION,
+
+        LIVES_CHEAT,
+        CREDITS_CHEAT,
+        HEALTH_CHEAT,
+
+        END_OPTION
+    } e_selector;
+
     int quit = 0;
-    int selector = 0;
+    int y_offset = Y_POS;
+    int BACK_OPTION = END_OPTION-TOT_CHEATS;
+    e_selector selector = VIDEO_OPTION;
 
     optionsMenu = 1;
     bothnewkeys = 0;
+    if (cheats && !forcecheatsoff)
+    {
+        y_offset -= TOT_CHEATS;
+        BACK_OPTION +=TOT_CHEATS;
+    }
 
     while(!quit)
     {
-        _menutextm(2, -1, 0, Tr("Options"));
-        _menutextm((selector == 0), 1, 0, Tr("Video Options..."));
-        _menutextm((selector == 1), 2, 0, Tr("Sound Options..."));
-        _menutextm((selector == 2), 3, 0, Tr("Control Options..."));
-        _menutextm((selector == 3), 4, 0, Tr("System Options..."));
-        _menutextm((selector == 4), 6, 0, Tr("Back"));
+        if (!cheats || forcecheatsoff) _menutextm(2, y_offset-1, 0, Tr("Options")); else _menutextm(2, y_offset-1, 0, Tr("Cheat Options"));
 
-        if(selector < 0)
+        _menutextm((selector == VIDEO_OPTION), y_offset+VIDEO_OPTION, 0, Tr("Video Options..."));
+        _menutextm((selector == SOUND_OPTION), y_offset+SOUND_OPTION, 0, Tr("Sound Options..."));
+        _menutextm((selector == CONTROL_OPTION), y_offset+CONTROL_OPTION, 0, Tr("Control Options..."));
+        _menutextm((selector == SYSTEM_OPTION), y_offset+SYSTEM_OPTION, 0, Tr("System Options..."));
+
+        if (cheats && !forcecheatsoff)
         {
-            selector = 4;
+            _menutext((selector == LIVES_CHEAT), X_POS, y_offset+LIVES_CHEAT, (livescheat)?Tr("Infinite Lives On"):Tr("Infinite Lives Off"));
+            _menutext((selector == CREDITS_CHEAT), X_POS, y_offset+CREDITS_CHEAT, (creditscheat)?Tr("Infinite Credits On"):Tr("Infinite Credits Off"));    // Enemies fall/don't fall down when you respawn
+            _menutext((selector == HEALTH_CHEAT), X_POS, y_offset+HEALTH_CHEAT, (healthcheat)?Tr("Infinite Health On"):Tr("Infinite Health Off"));    // Enemies fall/don't down when you respawn
         }
-        if(selector > 4)
-        {
-            selector = 0;
-        }
+
+        _menutextm((selector == BACK_OPTION), y_offset+BACK_OPTION+2, 0, Tr("Back"));
 
         update((level != NULL), 0);
 
@@ -35224,7 +35068,11 @@ void options()
         }
         if(bothnewkeys & FLAG_MOVEUP)
         {
-            --selector;
+            if(selector <= VIDEO_OPTION)
+            {
+                selector = BACK_OPTION;
+            }
+            else --selector;
 
             if(SAMPLE_BEEP >= 0)
             {
@@ -35234,6 +35082,10 @@ void options()
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
+            if(selector > BACK_OPTION)
+            {
+                selector = VIDEO_OPTION;
+            }
 
             if(SAMPLE_BEEP >= 0)
             {
@@ -35248,23 +35100,23 @@ void options()
                 sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
-            switch(selector)
-            {
-            case 0:
-                video_options();
-                break;
-            case 1:
-                sound_options();
-                break;
-            case 2:
-                input_options();
-                break;
-            case 3:
+                if(selector==BACK_OPTION) quit = 1;
+           else if(selector==VIDEO_OPTION) video_options();
+           else if(selector==SOUND_OPTION) sound_options();
+           else if(selector==CONTROL_OPTION) input_options();
+           else if(selector==SYSTEM_OPTION)
+           {
                 system_options();
-                break;
-            default:
-                quit = 1;
-            }
+                if (cheats && !forcecheatsoff)
+                {
+                    y_offset -= TOT_CHEATS;
+                    BACK_OPTION +=TOT_CHEATS;
+                }
+           }
+           else if(selector==LIVES_CHEAT) livescheat = !livescheat;
+           else if(selector==CREDITS_CHEAT) creditscheat = !creditscheat;
+           else if(selector==HEALTH_CHEAT) healthcheat = !healthcheat;
+           else quit = 1;
         }
     }
     savesettings();
@@ -35566,21 +35418,7 @@ void openborMain(int argc, char **argv)
                     }
                     break;
                 case 1:
-                    if(!cheats)
-                    {
-                        options();
-                    }
-                    else
-                    {
-                        if(!forcecheatsoff)
-                        {
-                            cheatoptions();
-                        }
-                        else
-                        {
-                            options();
-                        }
-                    }
+                    options();
                     break;
                 case 2:
                 {
