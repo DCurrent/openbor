@@ -1129,7 +1129,7 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "loadsprite";
     }
-    else if (functionRef == ((void *)openbor_options))
+    else if (functionRef == ((void *)openbor_menu_options))
     {
         return "options";
     }
@@ -1734,7 +1734,7 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_hallfame, "hallfame");
     List_InsertAfter(&theFunctionList,
-                     (void *)openbor_options, "options");
+                     (void *)openbor_menu_options, "options");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playgif, "playgif");
     List_InsertAfter(&theFunctionList,
@@ -16888,11 +16888,11 @@ loadsprite_error:
 }
 
 // Call options menu, blocked
-HRESULT openbor_options(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+HRESULT openbor_menu_options(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    //void options();
+    //void menu_options();
 
-    options();
+    menu_options();
 
     *pretvar = NULL;
     return S_OK;
