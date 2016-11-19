@@ -14939,7 +14939,7 @@ void pausemenu()
             sound_pause_music(1);
             sound_pause_sample(1);
             sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
-            options();
+            menu_options();
         }
     }
     pause = 0;
@@ -32908,7 +32908,7 @@ endgame:
     sound_close_music();
 }
 
-int choose_difficulty()
+int menu_difficulty()
 {
     int quit = 0;
     int selector = 0;
@@ -33257,7 +33257,7 @@ int choose_mode(int *players)
             switch(selector)
             {
             case 0:
-                status = choose_difficulty();
+                status = menu_difficulty();
                 if(status != -1)
                 {
                     playgame(players, status, 0);
@@ -33837,7 +33837,7 @@ void keyboard_setup(int player)
     printf("Done!\n");
 }
 
-void input_options()
+void menu_options_input()
 {
     int quit = 0;
     int selector = 1; // 0
@@ -33955,7 +33955,7 @@ void input_options()
 
 
 
-void sound_options()
+void menu_options_sound()
 {
 
     int quit = 0;
@@ -34091,7 +34091,7 @@ void sound_options()
                 savedata.showtitles = !savedata.showtitles;
                 break;
             case 5:
-                soundcard_options();
+                menu_options_soundcard();
                 break;
             default:
                 quit = 1;
@@ -34103,7 +34103,7 @@ void sound_options()
     soundoptionsMenu = 0;
 }
 
-void config_settings()     //  OX. Load from / save to default.cfg. Restore OpenBoR "factory" settings.
+void menu_options_config()     //  OX. Load from / save to default.cfg. Restore OpenBoR "factory" settings.
 {
     int quit = 0;
     int selector = 0;
@@ -34228,7 +34228,7 @@ void config_settings()     //  OX. Load from / save to default.cfg. Restore Open
     bothnewkeys = 0;
 }
 
-void debug_options()
+void menu_options_debug()
 {
     #define MENU_POS_Y              -5
     #define MENU_ITEMS_MARGIN_Y     2
@@ -34400,7 +34400,7 @@ void debug_options()
 }
 
 
-void system_options()
+void menu_options_system()
 {
 
     int quit = 0;
@@ -34563,13 +34563,13 @@ void system_options()
                 break;
 
             case 3:
-                debug_options();
+                menu_options_debug();
                 break;
 
 #ifndef DC
 
             case 4:
-                config_settings();
+                menu_options_config();
                 break;
 
 #endif
@@ -34612,7 +34612,7 @@ void system_options()
 }
 
 
-void video_options()
+void menu_options_video()
 {
     int quit = 0;
     int selector = 0;
@@ -35010,7 +35010,7 @@ void video_options()
 }
 
 
-void options()
+void menu_options()
 {
     #define TOT_CHEATS  3
     #define Y_POS      -1
@@ -35101,12 +35101,12 @@ void options()
             }
 
                 if(selector==BACK_OPTION) quit = 1;
-           else if(selector==VIDEO_OPTION) video_options();
-           else if(selector==SOUND_OPTION) sound_options();
-           else if(selector==CONTROL_OPTION) input_options();
+           else if(selector==VIDEO_OPTION) menu_options_video();
+           else if(selector==SOUND_OPTION) menu_options_sound();
+           else if(selector==CONTROL_OPTION) menu_options_input();
            else if(selector==SYSTEM_OPTION)
            {
-                system_options();
+                menu_options_system();
                 if (cheats && !forcecheatsoff)
                 {
                     y_offset -= TOT_CHEATS;
@@ -35128,7 +35128,7 @@ void options()
     optionsMenu = 0;
 }
 
-void soundcard_options()
+void menu_options_soundcard()
 {
     int quit = 0;
     int selector = 0;
@@ -35418,7 +35418,7 @@ void openborMain(int argc, char **argv)
                     }
                     break;
                 case 1:
-                    options();
+                    menu_options();
                     break;
                 case 2:
                 {

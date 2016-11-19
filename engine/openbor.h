@@ -2678,21 +2678,24 @@ void showcomplete(int num);
 int playlevel(char *filename);
 int selectplayer(int *players, char *filename);
 void playgame(int *players,  unsigned which_set, int useSavedGame);
-int choose_difficulty();
 int load_saved_game();
 void term_videomodes();
 void init_videomodes(int log);
 void safe_set(int *arr, int index, int newkey, int oldkey);
+
 void keyboard_setup(int player);
-void input_options();
 void inputrefresh();
-void soundvol_options();
-void config_options();
-void debug_options();
-void system_options();
-void video_options();
-void options();
-void soundcard_options();
+
+int menu_difficulty();
+void menu_options();
+void menu_options_config();
+void menu_options_debug();
+void menu_options_input();
+void menu_options_sound();
+void menu_options_soundcard();
+void menu_options_system();
+void menu_options_video();
+
 void openborMain(int argc, char **argv);
 int is_cheat_actived();
 int getValidInt(char *text, char *file, char *cmd);
