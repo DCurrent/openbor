@@ -2688,7 +2688,6 @@ void input_options();
 void inputrefresh();
 void soundvol_options();
 void config_options();
-void cheatoptions();
 void debug_options();
 void system_options();
 void video_options();

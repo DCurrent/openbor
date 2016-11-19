@@ -32,7 +32,7 @@ unsigned int rand32(void)
 
     seed = t;
 
-    return abs( (t >> 16) & 0xFFFFFFFF );
+    return ( (t >> 16) & 0xFFFFFFFF );
 }
 
 void srand32(u64 n)
