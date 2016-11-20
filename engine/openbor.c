@@ -8086,7 +8086,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     static const char ifid_text[] =  // if expression to check animation id
     {
-        "    if(getlocalvar(\"animhandle\")==%d)\n"
+        "    if(animhandle==%d)\n"
         "    {\n"
         "        return;\n"
         "    }\n"
@@ -8100,7 +8100,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     static const char if_text[] =  // this is the if expression of frame function
     {
-        "        if(getlocalvar(\"frame\")==%d)\n"
+        "        if(frame==%d)\n"
         "        {\n"
     };
 
@@ -25141,13 +25141,13 @@ int common_try_wander(entity *target, int dox, int doz)
     mindz = grabd / 4;
 
     //mod = ((int)(time / (videomodes.hRes / self->modeldata.speed)) + self->sortid / 100 + self->health / 3 + self->pathblocked + self->modeldata.aggression / 10) % 4;
-    mod = ((int)(time / (videomodes.hRes / self->modeldata.speed)) + rand32() + self->health / 3 + self->pathblocked + self->modeldata.aggression / 10) % 4;
+    mod = ((int)(time / (videomodes.hRes / self->modeldata.speed)) + 1000 + self->health / 3 + self->pathblocked + self->modeldata.aggression / 10) % 4;
     if(mod < 0)
     {
         mod = -mod;
     }
     //if ((self->sortid / 100) % 2)
-    if (rand32() % 2)
+    if (abs(rand32()) % 2)
     {
         mod = 3 - mod;
     }
@@ -25612,7 +25612,7 @@ int common_move()
         // bad for optimization, but makes better sense
         target = normal_find_target(-1, 0); // confirm the target again
         //other = ((time / GAME_SPEED + self->health / 3 + self->sortid) % 15 < 10) ? normal_find_item() : NULL; // find an item
-        other = ((time / GAME_SPEED + self->health / 3 + rand32()) % 15 < 10) ? normal_find_item() : NULL; // find an item
+        other = ( (time / GAME_SPEED + self->health / 3 + 1000) % 15 < 10) ? normal_find_item() : NULL; // find an item
         owner = self->parent;
 
         // temporary solution to turn off running if xdir is not set
