@@ -25,6 +25,10 @@ void spriteq_add_box(int x, int y, int width, int height, int z, int colour, s_d
 void spriteq_add_screen(int x, int y, int z, s_screen *ps, s_drawmethod *pdrawmethod, int sortid);
 void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz, int dx, int dy);
 
+// Quantity readouts.
+int spriteq_get_sprite_count();
+int spriteq_get_sprite_max();
+
 void spriteq_lock();
 void spriteq_unlock();
 int  spriteq_islocked();
