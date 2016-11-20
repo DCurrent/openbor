@@ -15705,16 +15705,7 @@ void predrawstatus()
         }
     }// end of for
 
-    if(savedata.debuginfo)
-    {
-        spriteq_add_box(0, videomodes.dOffset - 12, videomodes.hRes, videomodes.dOffset + 12, 0x0FFFFFFE, 0, NULL);
-        font_printf(2,                   videomodes.dOffset - 10, 0, 0, Tr("FPS: %03d"), getFPS());
-        font_printf(videomodes.hRes / 2, videomodes.dOffset - 10, 0, 0, Tr("Free Ram: %s KB"), commaprint(freeram / 1000));
-        font_printf(2,                   videomodes.dOffset,    0, 0, Tr("Sprites: %d / %d"), spriteq_get_sprite_count(), spriteq_get_sprite_max());
-        font_printf(videomodes.hRes / 2, videomodes.dOffset,    0, 0, Tr("Used Ram: %s KB"), commaprint(usedram / 1000));
-    }
-
-    if(savedata.debuginfo
+    if(savedata.debug_position
        || savedata.debug_collision_attack
        || savedata.debug_collision_body
        || savedata.debug_collision_range)
@@ -15756,6 +15747,16 @@ void predrawstatus()
         {
             spriteq_add_sprite(videomodes.hRes - 40, 60 + videomodes.vShift, 10000, gosprite, NULL, 0);
         }
+    }
+
+    // Performance info.
+    if(savedata.debuginfo)
+    {
+        spriteq_add_box(0, videomodes.dOffset - 12, videomodes.hRes, videomodes.dOffset + 12, 0x0FFFFFFE, 0, NULL);
+        font_printf(2,                   videomodes.dOffset - 10, 0, 0, Tr("FPS: %03d"), getFPS());
+        font_printf(videomodes.hRes / 2, videomodes.dOffset - 10, 0, 0, Tr("Free Ram: %s KB"), commaprint(freeram / 1000));
+        font_printf(2,                   videomodes.dOffset,    0, 0, Tr("Sprites: %d / %d"), spriteq_get_sprite_count(), spriteq_get_sprite_max());
+        font_printf(videomodes.hRes / 2, videomodes.dOffset,    0, 0, Tr("Used Ram: %s KB"), commaprint(usedram / 1000));
     }
 }
 
