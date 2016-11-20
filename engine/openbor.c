@@ -35014,9 +35014,10 @@ void menu_options_video()
 
 void menu_options()
 {
-    #define TOT_CHEATS  3
-    #define OPT_Y_POS      -1
-    #define OPT_X_POS      -7
+    #define TOT_CHEATS          3
+    #define OPT_Y_POS          -1
+    #define OPT_X_POS          -7
+    #define CHEAT_PAUSE_POSY    3
 
     typedef enum {
         VIDEO_OPTION,
@@ -35039,8 +35040,10 @@ void menu_options()
 
     optionsMenu = 1;
     bothnewkeys = 0;
+
     if (cheats && !forcecheatsoff)
     {
+        if(level != NULL && pause > 0) y_offset += CHEAT_PAUSE_POSY;
         y_offset -= TOT_CHEATS;
         cheat_opt_offset += 1;
         BACK_OPTION += TOT_CHEATS;
@@ -35114,6 +35117,7 @@ void menu_options()
                 if (cheats && !forcecheatsoff)
                 {
                     y_offset = OPT_Y_POS-TOT_CHEATS;
+                    if(level != NULL && pause > 0) y_offset += CHEAT_PAUSE_POSY;
                     cheat_opt_offset = 1;
                     BACK_OPTION = END_OPTION-TOT_CHEATS+TOT_CHEATS;
                 }
