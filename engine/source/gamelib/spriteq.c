@@ -16,7 +16,7 @@
 #include "globals.h"
 // This should be enough for most games...
 // But bear in mind that text is also composed of sprites!
-#define			MAXQSPRITES		1000 // DEFAULT 500
+#define			MAXQSPRITES		2000 // DEFAULT 500
 
 #define         SQT_SPRITE      0
 #define         SQT_DOT         1
