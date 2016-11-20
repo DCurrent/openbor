@@ -14,9 +14,10 @@
 #include "sprite.h"
 #include "draw.h"
 #include "globals.h"
+
 // This should be enough for most games...
 // But bear in mind that text is also composed of sprites!
-#define			MAXQSPRITES		2000 // DEFAULT 500
+#define			MAXQSPRITES		5000 // DEFAULT 5000
 
 #define         SQT_SPRITE      0
 #define         SQT_DOT         1
@@ -27,7 +28,6 @@
 #define         SQT_SCREEN      6
 
 #define         SQ_MAX_PARAMS   3
-
 
 typedef struct
 {
@@ -47,6 +47,18 @@ static qstruct *order[MAXQSPRITES];
 static int spritequeue_len = 0;
 static int spriteq_old_len = 0;
 static int spriteq_locked = 0;
+
+// Return the current sprite count.
+int spriteq_get_sprite_count()
+{
+    return spritequeue_len;
+}
+
+// Return the current sprite .
+int spriteq_get_sprite_max()
+{
+    return MAXQSPRITES;
+}
 
 void spriteq_add_frame(int x, int y, int z, s_sprite *frame, s_drawmethod *pdrawmethod, int sortid)
 {

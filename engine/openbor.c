@@ -15710,7 +15710,7 @@ void predrawstatus()
         spriteq_add_box(0, videomodes.dOffset - 12, videomodes.hRes, videomodes.dOffset + 12, 0x0FFFFFFE, 0, NULL);
         font_printf(2,                   videomodes.dOffset - 10, 0, 0, Tr("FPS: %03d"), getFPS());
         font_printf(videomodes.hRes / 2, videomodes.dOffset - 10, 0, 0, Tr("Free Ram: %s KB"), commaprint(freeram / 1000));
-        font_printf(2,                   videomodes.dOffset,    0, 0, Tr("Total Ram: %s KB"), commaprint(totalram / 1000));
+        font_printf(2,                   videomodes.dOffset,    0, 0, Tr("Sprite Que: %d / %d"), spriteq_get_sprite_count(), spriteq_get_sprite_max());
         font_printf(videomodes.hRes / 2, videomodes.dOffset,    0, 0, Tr("Used Ram: %s KB"), commaprint(usedram / 1000));
     }
 
