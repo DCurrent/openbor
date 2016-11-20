@@ -29176,7 +29176,12 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     entity *wp = NULL;
     int playercount;
 
-    if(props == NULL || level == NULL)
+    if( props == NULL /*||
+        (level == NULL &&
+         (!selectScreen && !titleScreen && !hallOfFame && !gameOver && !showComplete && !currentScene && !enginecreditsScreen && !menuScreen && !startgameMenu && !newgameMenu && !loadgameMenu &&
+          !optionsMenu && !controloptionsMenu && !soundoptionsMenu && !videooptionsMenu && !systemoptionsMenu)
+        )*/
+      )
     {
         return NULL;
     }
@@ -29184,14 +29189,14 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     // Now you can make it so enemies/obstacles/etc only spawn if there are 2 players
     if(props->spawnplayer_count >= (playercount = MAX(1, count_ents(TYPE_PLAYER))))
     {
-        if(props->boss)
+        if(props->boss && level != NULL)
         {
             --level->bosses;
         }
         return NULL;
     }
 
-    if((level->scrolldir & SCROLL_INWARD) || (level->scrolldir & SCROLL_OUTWARD))
+    if( level != NULL && ((level->scrolldir & SCROLL_INWARD) || (level->scrolldir & SCROLL_OUTWARD)) )
     {
         e = spawn(props->position.x, props->position.z + advancey, props->position.y, props->flip, props->name, props->index, props->model);
     }
@@ -29287,7 +29292,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     }
     e->boss = props->boss;
 
-    if(props->boss && level && level->bossmusic[0])
+    if(props->boss && level != NULL && level->bossmusic[0])
     {
         music(level->bossmusic, 1, level->bossmusic_offset);
     }
