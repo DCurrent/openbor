@@ -15201,8 +15201,11 @@ void updatestatus()
 }
 
 
-
-// Draw box onto screen base on entity position.
+// Caskey, Damon V.
+// 2016-11-16
+//
+// Draw dot onto screen to indicate actual entity position,
+// with text readout of Base, X, Y, and Z coordinates directly below.
 void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod)
 {
     #define FONT                0
@@ -15229,60 +15232,51 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     s_axis_i    base_pos;               // Entity position with screen offsets applied.
     draw_coords box;                    // On screen coords for display elements.
 
-    int truncated_pos[POS_ARRAY_SIZE];  // Entity position for display - truncated to int.
+    int pos_value[POS_ARRAY_SIZE];      // Entity position for display - truncated to int.
     int i;                              // Counter.
     int str_offset_x;                   // Calculated offset of text for centering.
     int str_width_max;                  // largest string width.
     int str_height_max;                 // Largest string height.
     size_t str_size;                    // Memory size of string.
 
-    char *str_pos[POS_ARRAY_SIZE];      // Final string to display position.
+    const char *str_pos_label[POS_ARRAY_SIZE];  // Labels for string position values.
+    char *str_pos[POS_ARRAY_SIZE];              // Final string to display position.
 
     // Initialize box.
     box.position.x = 0;
     box.position.y = 0;
     box.position.z = 0;
 
-    // Get position strings here so we can reuse
-    // them and calculate offsets based on the
-    // largest string size.
-    truncated_pos[KEY_BASE]  = (int)entity->base;
-    truncated_pos[KEY_X]     = (int)entity->position.x;
-    truncated_pos[KEY_Y]     = (int)entity->position.y;
-    truncated_pos[KEY_Z]     = (int)entity->position.z;
+    // Populate position labels.
+    str_pos_label[KEY_BASE] = "B: %d";
+    str_pos_label[KEY_X]    = "X: %d";
+    str_pos_label[KEY_Y]    = "Y: %d";
+    str_pos_label[KEY_Z]    = "Z: %d";
 
-    // Allocate memory for strings.
-    str_size =  sizeof(char) * (strlen("B: ") + 1);
-    str_size += sizeof(char) * (sizeof(truncated_pos[KEY_BASE])+1);
+    // Populate position values - truncated to int.
+    pos_value[KEY_BASE]  = (int)entity->base;
+    pos_value[KEY_X]     = (int)entity->position.x;
+    pos_value[KEY_Y]     = (int)entity->position.y;
+    pos_value[KEY_Z]     = (int)entity->position.z;
 
-    str_pos[KEY_BASE] = malloc(str_size);
-
-    str_size =  sizeof(char) * (strlen("X: ") + 1);
-    str_size += sizeof(char) * (sizeof(truncated_pos[KEY_X])+1);
-
-    str_pos[KEY_X] = malloc(str_size);
-
-    str_size =  sizeof(char) * (strlen("Y: ") + 1);
-    str_size += sizeof(char) * (sizeof(truncated_pos[KEY_Y])+1);
-
-    str_pos[KEY_Y] = malloc(str_size);
-
-    str_size =  sizeof(char) * (strlen("Z: ") + 1);
-    str_size += sizeof(char) * (sizeof(truncated_pos[KEY_Z])+1);
-
-    str_pos[KEY_Z] = malloc(str_size);
-
-    if(str_pos[KEY_Z] == NULL)
+    // Allocate memory and create finished
+    // strings.
+    for(i=0; i<POS_ARRAY_SIZE; i++)
     {
-        goto error_local;
-    }
+        // Get the total memory size we will need.
+        str_size =  sizeof(char) * (sizeof(str_pos_label[i]) + 1);
+        str_size += sizeof(char) * (sizeof(pos_value[i]) + 1);
 
-    // Concatenate labels with position values
-    // and copy to pointer.
-    sprintf(str_pos[KEY_BASE],  "B: %d", truncated_pos[KEY_BASE]);
-    sprintf(str_pos[KEY_X],     "X: %d", truncated_pos[KEY_X]);
-    sprintf(str_pos[KEY_Y],     "Y: %d", truncated_pos[KEY_Y]);
-    sprintf(str_pos[KEY_Z],     "Z: %d", truncated_pos[KEY_Z]);
+        // Allocate memory.
+        str_pos[i] = malloc(str_size);
+
+        // If allocation was successful, concatenate
+        // position label and position value.
+        if(str_pos[i])
+        {
+            sprintf(str_pos[i],  str_pos_label[i], pos_value[i]);
+        }
+    }
 
     // Get the largest string X and Y space.
     str_width_max   = font_string_width_max(*str_pos, FONT);
@@ -15316,21 +15310,23 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     // Print each position text.
     for(i=0; i<POS_ARRAY_SIZE; i++)
     {
-        // Add font height and margin to Y position.
-        base_pos.y += (str_height_max + TEXT_MARGIN_Y);
+        // If the position string exists then
+        // we can find a position, print it to
+        // the screen, and free up allocated memory.
+        if(str_pos[i])
+        {
+           // Add font height and margin to Y position.
+            base_pos.y += (str_height_max + TEXT_MARGIN_Y);
 
-        // Print position text.
-        font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER-2, str_pos[i]);
+            // Print position text.
+            font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER-2, str_pos[i]);
 
-        // Release memory allocated for the string.
-        free(str_pos[i]);
+            // Release memory allocated for the string.
+            free(str_pos[i]);
+        }
     }
 
     return;
-
-    // Error trapping.
-    error_local:
-    shutdown(1, "\n Unable to allocate memory for debug - Position.");
 
     // Remove local constants.
     #undef FONT
@@ -15339,7 +15335,11 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     #undef OFFSET_LAYER
 }
 
-// Draw box onto screen base on entity position.
+// Caskey, Damon V.
+// 2016-11-16
+//
+// Convert entity's world position to screen
+// position and draw a box.
 void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int size_w, int size_h, int offset_z, int color, s_drawmethod *drawmethod)
 {
     s_axis_i_2d screen_offset;  // Base location calculated from screen offsets.
@@ -15364,6 +15364,8 @@ void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int siz
     // Now apply drawing coords to position.
     box.size.x = size_w - pos_x;
 
+    // Don't forget to accommodate for
+    // entity direction.
     if(entity->direction == DIRECTION_RIGHT)
     {
         box.position.x = base_pos.x + pos_x;
@@ -15378,6 +15380,7 @@ void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int siz
 
     box.position.z = pos_z + offset_z;
 
+    // Add box to que.
     spriteq_add_box(box.position.x, box.position.y, box.size.x, box.size.y, box.position.z, color, drawmethod);
 }
 
