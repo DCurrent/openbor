@@ -1893,14 +1893,13 @@ void Parser_Unary_expr(Parser *pparser )
         Parser_Match(pparser);
         Parser_Unary_expr(pparser );
         pInstruction = (Instruction *)List_Retrieve(pparser->pIList);
-        if(pInstruction->OpCode == CONSTINT)
+        if(pInstruction->OpCode == CONSTINT || pInstruction->OpCode == CONSTDBL)
         {
             int constvar = !(atoi(pInstruction->theToken->theSource));
-            itoa(constvar,buf,10);
+            sprintf(buf, "%d", constvar);
             strcpy(pInstruction->theToken->theSource, buf);
         }
-        else if(pInstruction->OpCode == CONSTDBL ||
-                pInstruction->OpCode == CONSTSTR)
+        else if(pInstruction->OpCode == CONSTSTR)
         {
             //convert to negative constant
             sprintf(buf, "!%s", pInstruction->theToken->theSource);
