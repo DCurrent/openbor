@@ -15245,14 +15245,14 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
     // Position array keys
     // and size constants.
-    typedef enum
+    enum
     {
         KEY_BASE,
         KEY_X,
         KEY_Y,
         KEY_Z,
         POS_ARRAY_SIZE
-    } position_key;
+    };
 
     typedef struct
     {
