@@ -31,6 +31,7 @@ void font_unload(int which);
 int font_load(int which, char *filename, char *packfile, int flags);
 int font_loadmask(int which, char *filename, char *packfile, int flags);
 int font_string_width(int which, char *buf, ...);
+int font_string_width_max(char *strings, int font);
 void font_printf(int x, int y, int which, int layeroffset, char *format, ...);
 void screen_printf(s_screen *screen, int x, int y, int which, char *format, ...);
 int fontmonowidth(int which);

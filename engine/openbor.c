@@ -5661,11 +5661,11 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
              float *platform, int frameshadow, int *shadow_coords, int soundtoplay,
              s_drawmethod *drawmethod, int *offset, s_damage_recursive *recursive)
 {
-    int         i;
-    unsigned    size_col_on_frame,
-                size_col_on_frame_struct,
-                size_col_list,
-                size_col_list_struct;
+    int     i;
+    size_t  size_col_on_frame,
+            size_col_on_frame_struct,
+            size_col_list,
+            size_col_list_struct;
 
     s_collision_attack *collision_attack;
 
@@ -15200,6 +15200,8 @@ void updatestatus()
 
 }
 
+
+
 // Draw box onto screen base on entity position.
 void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod)
 {
@@ -15207,11 +15209,15 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     #define TEXT_MARGIN_Y       1
     #define POSITION_MARGIN_Y   5
     #define OFFSET_LAYER        0
-    #define POS_ARRAY_SIZE      4
-    #define KEY_BASE            0
-    #define KEY_X               1
-    #define KEY_Y               2
-    #define KEY_Z               3
+
+    typedef enum
+    {
+        KEY_BASE,
+        KEY_X,
+        KEY_Y,
+        KEY_Z,
+        POS_ARRAY_SIZE
+    } position_key;
 
     typedef struct
     {
@@ -15226,10 +15232,9 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     int truncated_pos[POS_ARRAY_SIZE];  // Entity position for display - truncated to int.
     int i;                              // Counter.
     int str_offset_x;                   // Calculated offset of text for centering.
-    int str_width_temp;                 // Temporary string width for finding max width.
     int str_width_max;                  // largest string width.
     int str_height_max;                 // Largest string height.
-    int str_size;                       // Memory size of string.
+    size_t str_size;                    // Memory size of string.
 
     char *str_pos[POS_ARRAY_SIZE];      // Final string to display position.
 
@@ -15252,30 +15257,15 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
     str_pos[KEY_BASE] = malloc(str_size);
 
-    if(str_pos[KEY_BASE] == NULL)
-    {
-        goto error_local;
-    }
-
     str_size =  sizeof(char) * (strlen("X: ") + 1);
     str_size += sizeof(char) * (sizeof(truncated_pos[KEY_X])+1);
 
     str_pos[KEY_X] = malloc(str_size);
 
-    if(str_pos[KEY_X] == NULL)
-    {
-        goto error_local;
-    }
-
     str_size =  sizeof(char) * (strlen("Y: ") + 1);
     str_size += sizeof(char) * (sizeof(truncated_pos[KEY_Y])+1);
 
     str_pos[KEY_Y] = malloc(str_size);
-
-    if(str_pos[KEY_Y] == NULL)
-    {
-        goto error_local;
-    }
 
     str_size =  sizeof(char) * (strlen("Z: ") + 1);
     str_size += sizeof(char) * (sizeof(truncated_pos[KEY_Z])+1);
@@ -15295,22 +15285,7 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     sprintf(str_pos[KEY_Z],     "Z: %d", truncated_pos[KEY_Z]);
 
     // Get the largest string X and Y space.
-    str_width_max   = 0;
-    str_width_temp  = 0;
-
-    for(i=0; i<POS_ARRAY_SIZE; i++)
-    {
-        // Get width of current string in loop.
-        str_width_temp = font_string_width(FONT, str_pos[i]);
-
-        // Is length greater than current max,
-        // then make that the new max.
-        if(str_width_temp > str_width_max)
-        {
-            str_width_max = str_width_temp;
-        }
-    }
-
+    str_width_max   = font_string_width_max(*str_pos, FONT);
     str_height_max  = fontheight(FONT);
 
     // Get our base offsets from screen vs. location.
@@ -15362,11 +15337,6 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     #undef TEXT_MARGIN_Y
     #undef POSITION_MARGIN_Y
     #undef OFFSET_LAYER
-    #undef POS_ARRAY_SIZE
-    #undef KEY_BASE
-    #undef KEY_X
-    #undef KEY_Y
-    #undef KEY_Z
 }
 
 // Draw box onto screen base on entity position.
