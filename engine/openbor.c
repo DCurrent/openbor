@@ -7578,6 +7578,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
     ptrdiff_t pos = 0;
     enum {START,PRE0,PRE1,PRE2,PRE3,M0,M1,M2,M3,P0,P1,PIT,END} current_state = START;
     unsigned char c = '\0';
+    int index_res = -1;
     //void main() {
 
     if ( buf && buf[0] )
@@ -7591,7 +7592,11 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
             {
                 case START:
                 {
-                    if ( c == 'v' ) current_state = PRE0;
+                    if ( c == 'v' )
+                    {
+                        index_res = pos;
+                        current_state = PRE0;
+                    }
                     else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0A || c == 0x0D || c == '\t' ) current_state = START;
                     else if ( c == '\0' ) return -1;
                     else {
@@ -7672,7 +7677,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
                     if ( c == '{' )
                     {
                         current_state = END;
-                        if (++pos < len) return pos;
+                        if (++pos < len) return index_res; // pos)
                         else return -1;
                     }
                     else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0A || c == 0x0D || c == '\t' ) current_state = P1;
@@ -7692,7 +7697,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
             ++pos; // at the end position after the '{'
             if (current_state == END)
             {
-                if (pos < len) return pos;
+                if (pos < len) return index_res;
                 else return -1;
             }
             c = (unsigned char)tolower((int)buf[pos]);
@@ -7700,7 +7705,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
         if (current_state == PIT) return -1;
         else if (current_state == END)
         {
-            if (pos < len) return pos;
+            if (pos < len) return index_res;
             else return -1;
         }
     }
@@ -7723,6 +7728,9 @@ size_t lcmScriptSearchForMain(char **buf)
         {
             char mtxt[] = "\n\nvoid main()\n{\n    int frame = getlocalvar(\"frame\");\n    int animhandle = getlocalvar(\"animhandle\");\n\n}\n\n";
 
+            while( (*buf)[pos] != '{' ) ++pos;
+            ++pos;
+
             pos = len; // pos before '\0' (at last char)
             len2 = strlen(mtxt);
             newbuf = malloc(sizeof(**buf)*len + sizeof(mtxt)*len2 + 1 );
@@ -7733,6 +7741,27 @@ size_t lcmScriptSearchForMain(char **buf)
             free( (*buf) );
             (*buf) = newbuf;
             //printf("written main in buffer\n%s\n",newbuf);
+        }
+        else
+        {
+            int pos2 = 0;
+            char mtxt[] = "\n\nvoid main()\n{\n    int frame = getlocalvar(\"frame\");\n    int animhandle = getlocalvar(\"animhandle\");\n\n";
+
+            len2 = strlen(mtxt);
+            pos2 = pos;
+            while( (*buf)[pos2] != '{' ) ++pos2;
+            ++pos2;
+
+            newbuf = malloc(sizeof(**buf)*pos + sizeof(mtxt)*len2 + sizeof(**buf)*(len-pos2) + 1 );
+            strncpy(newbuf, *buf, pos);
+            strncpy(newbuf+pos, mtxt, len2);
+            strncpy(newbuf+pos+len2, *buf+pos2, len-pos2);
+            newbuf[pos+len2+len-pos2] = '\0';
+
+            free( (*buf) );
+            (*buf) = newbuf;
+
+            //printf("search for main in buffer\n%s pos:%d\n",*buf,pos);
         }
 
         //printf("search for main in buffer\n%s pos:%d\n",*buf,pos);
@@ -7754,6 +7783,8 @@ size_t lcmScriptInsertInMain(char **buf, char *first_buf)
         len2 = strlen(first_buf);
 
         pos = lcmScriptGetMainPos(*buf);
+        while( (*buf)[pos] != '{' ) ++pos;
+        ++pos;
 
         pcount = 1;
         while(pcount > 0)
@@ -17604,11 +17635,11 @@ within the bottom/top and the left/right area.
 int testhole(int hole, float x, float z)
 {
     float coef1, coef2;
-    if(z < level->holes[hole].z && z > level->holes[hole].z - level->holes[hole].depth)
+    if(z <= level->holes[hole].z && z >= level->holes[hole].z - level->holes[hole].depth)
     {
         coef1 = (level->holes[hole].z - z) * ((level->holes[hole].upperleft - level->holes[hole].lowerleft) / level->holes[hole].depth);
         coef2 = (level->holes[hole].z - z) * ((level->holes[hole].upperright - level->holes[hole].lowerright) / level->holes[hole].depth);
-        if(x > level->holes[hole].x + level->holes[hole].lowerleft + coef1 && x < level->holes[hole].x + level->holes[hole].lowerright + coef2)
+        if(x >= level->holes[hole].x + level->holes[hole].lowerleft + coef1 && x <= level->holes[hole].x + level->holes[hole].lowerright + coef2)
         {
             return 1;
         }
@@ -17748,11 +17779,11 @@ int testwall(int wall, float x, float z)
     float coef1, coef2;
 
     //if(wall >= level->numwalls || wall < 0) return 0;
-    if(z < level->walls[wall].z && z > level->walls[wall].z - level->walls[wall].depth)
+    if(z <= level->walls[wall].z && z >= level->walls[wall].z - level->walls[wall].depth)
     {
         coef1 = (level->walls[wall].z - z) * ((level->walls[wall].upperleft - level->walls[wall].lowerleft) / level->walls[wall].depth);
         coef2 = (level->walls[wall].z - z) * ((level->walls[wall].upperright - level->walls[wall].lowerright) / level->walls[wall].depth);
-        if(x > level->walls[wall].x + level->walls[wall].lowerleft + coef1 && x < level->walls[wall].x + level->walls[wall].lowerright + coef2)
+        if(x >= level->walls[wall].x + level->walls[wall].lowerleft + coef1 && x <= level->walls[wall].x + level->walls[wall].lowerright + coef2)
         {
             return 1;
         }
@@ -17837,15 +17868,15 @@ int testplatform(entity *plat, float x, float z, entity *exclude)
     }
     offz = plat->position.z + plat->animation->platform[plat->animpos][1];
     offx = plat->position.x + plat->animation->platform[plat->animpos][0];
-    if(z < offz && z > offz - plat->animation->platform[plat->animpos][6])
+    if(z <= offz && z >= offz - plat->animation->platform[plat->animpos][6])
     {
         coef1 = (offz - z) * ((plat->animation->platform[plat->animpos][2] -
                                plat->animation->platform[plat->animpos][3]) / plat->animation->platform[plat->animpos][6]);
         coef2 = (offz - z) * ((plat->animation->platform[plat->animpos][4] -
                                plat->animation->platform[plat->animpos][5]) / plat->animation->platform[plat->animpos][6]);
 
-        if(x > offx + plat->animation->platform[plat->animpos][3] + coef1 &&
-                x < offx + plat->animation->platform[plat->animpos][5] + coef2)
+        if(x >= offx + plat->animation->platform[plat->animpos][3] + coef1 &&
+                x <= offx + plat->animation->platform[plat->animpos][5] + coef2)
         {
             return 1;
         }
