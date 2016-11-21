@@ -17701,19 +17701,21 @@ int checkhole_in(float x, float z, float a)
         return -1;
     }
 
-    maxa = 0;
+    maxa = -1;
     ind = -1;
     for(i = 0; i < level->numholes; i++)
     {
-        if(testhole(i, x, z) && level->holes[i].height+T_WALKOFF >= a && level->holes[i].height >= maxa)
+        if(testhole(i, x, z) && level->holes[i].height+T_WALKOFF >= a && level->holes[i].height > maxa) // && level->holes[i].height+T_WALKOFF >= a
         {
             maxa = level->holes[i].height;
             ind = i;
         }
     }
 
-    if ( ind >= 0 ) return 1;
-    else return 0;
+    if ( ind >= 0 ) {
+        holez = ind;
+        return 1;
+    } else return 0;
 }
 
 // find the hole id for highest hole
@@ -17727,11 +17729,11 @@ int checkholeindex_in(float x, float z, float a)
         return -1;
     }
 
-    maxa = 0;
+    maxa = -1;
     ind = -1;
     for(i = 0; i < level->numholes; i++)
     {
-        if(testhole(i, x, z) && level->holes[i].height+T_WALKOFF >= a && level->holes[i].height >= maxa)
+        if(testhole(i, x, z) && level->holes[i].height+T_WALKOFF >= a && level->holes[i].height > maxa) // && level->holes[i].height+T_WALKOFF >= a
         {
             maxa = level->holes[i].height;
             ind = i;
@@ -23589,14 +23591,15 @@ int common_trymove(float xdir, float zdir)
     {
 
         needcheckhole = 1;
-        if(zdir && checkhole_in(self->position.x, z, self->position.y) && checkwall(self->position.x, z) < 0 && !check_platform_below(self->position.x, z, self->position.y, self))
+        // checkhole or checkhole_in() ???
+        if(zdir && checkhole(self->position.x, z) && checkwall(self->position.x, z) < 0 && !check_platform_below(self->position.x, z, self->position.y, self))
         {
             //int holeind = checkholeindex_in(self->position.x, z, self->position.y);
 
             zdir = 0;
             //execute_inhole_script(self, 2, (double)level->holes[holeind].height, holeind);
         }
-        if(xdir && checkhole_in(x, self->position.z, self->position.y) && checkwall(x, self->position.z) < 0 && !check_platform_below(x, self->position.z, self->position.y, self))
+        if(xdir && checkhole(x, self->position.z) && checkwall(x, self->position.z) < 0 && !check_platform_below(x, self->position.z, self->position.y, self))
         {
             //int holeind = checkholeindex_in(x, self->position.z, self->position.y);
 
