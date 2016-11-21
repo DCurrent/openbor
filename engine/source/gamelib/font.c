@@ -417,6 +417,10 @@ int font_string_width(int which, char *format, ...)
     return w;
 }
 
+
+// Caskey, Damon V.
+// 2016-11-21
+//
 // Accepts pointer to an array of
 // strings, and font. Returns the width of
 // largest string.
