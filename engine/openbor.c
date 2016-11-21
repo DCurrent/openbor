@@ -15239,8 +15239,8 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     int str_height_max;                 // Largest string height.
     size_t str_size;                    // Memory size of string.
 
-    const char *str_pos_label[POS_ARRAY_SIZE];  // Labels for string position values.
-    char *str_pos[POS_ARRAY_SIZE];              // Final string to display position.
+    const char  *pos_label[POS_ARRAY_SIZE];  // Labels for string position values.
+    char        *pos_final[POS_ARRAY_SIZE];  // Final string to display position.
 
     // Initialize box.
     box.position.x = 0;
@@ -15248,38 +15248,38 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     box.position.z = 0;
 
     // Populate position labels.
-    str_pos_label[KEY_BASE] = "B: %d";
-    str_pos_label[KEY_X]    = "X: %d";
-    str_pos_label[KEY_Y]    = "Y: %d";
-    str_pos_label[KEY_Z]    = "Z: %d";
+    pos_label[KEY_BASE] = "B: %d";
+    pos_label[KEY_X]    = "X: %d";
+    pos_label[KEY_Y]    = "Y: %d";
+    pos_label[KEY_Z]    = "Z: %d";
 
     // Populate position values - truncated to int.
-    pos_value[KEY_BASE]  = (int)entity->base;
-    pos_value[KEY_X]     = (int)entity->position.x;
-    pos_value[KEY_Y]     = (int)entity->position.y;
-    pos_value[KEY_Z]     = (int)entity->position.z;
+    pos_value[KEY_BASE] = (int)entity->base;
+    pos_value[KEY_X]    = (int)entity->position.x;
+    pos_value[KEY_Y]    = (int)entity->position.y;
+    pos_value[KEY_Z]    = (int)entity->position.z;
 
     // Allocate memory and create finished
     // strings.
     for(i=0; i<POS_ARRAY_SIZE; i++)
     {
         // Get the total memory size we will need.
-        str_size =  sizeof(char) * (sizeof(str_pos_label[i]) + 1);
+        str_size =  sizeof(char) * (sizeof(pos_label[i]) + 1);
         str_size += sizeof(char) * (sizeof(pos_value[i]) + 1);
 
         // Allocate memory.
-        str_pos[i] = malloc(str_size);
+        pos_final[i] = malloc(str_size);
 
         // If allocation was successful, concatenate
         // position label and position value.
-        if(str_pos[i])
+        if(pos_final[i])
         {
-            sprintf(str_pos[i],  str_pos_label[i], pos_value[i]);
+            sprintf(pos_final[i], pos_label[i], pos_value[i]);
         }
     }
 
     // Get the largest string X and Y space.
-    str_width_max   = font_string_width_max(*str_pos, FONT);
+    str_width_max   = font_string_width_max(*pos_final, FONT);
     str_height_max  = fontheight(FONT);
 
     // Get our base offsets from screen vs. location.
@@ -15313,16 +15313,16 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
         // If the position string exists then
         // we can find a position, print it to
         // the screen, and free up allocated memory.
-        if(str_pos[i])
+        if(pos_final[i])
         {
            // Add font height and margin to Y position.
             base_pos.y += (str_height_max + TEXT_MARGIN_Y);
 
             // Print position text.
-            font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER-2, str_pos[i]);
+            font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER-2, pos_final[i]);
 
             // Release memory allocated for the string.
-            free(str_pos[i]);
+            free(pos_final[i]);
         }
     }
 
