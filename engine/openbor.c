@@ -15241,9 +15241,10 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 {
     #define FONT                0
     #define TEXT_MARGIN_Y       1
-    #define POSITION_MARGIN_Y   5
-    #define OFFSET_LAYER        0
+    #define OFFSET_LAYER        -2
 
+    // Position array keys
+    // and size constants.
     typedef enum
     {
         KEY_BASE,
@@ -15350,7 +15351,7 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
             base_pos.y += (str_height_max + TEXT_MARGIN_Y);
 
             // Print position text.
-            font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER-2, pos_final[i]);
+            font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER, pos_final[i]);
 
             // Release memory allocated for the string.
             free(pos_final[i]);
@@ -15362,7 +15363,6 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     // Remove local constants.
     #undef FONT
     #undef TEXT_MARGIN_Y
-    #undef POSITION_MARGIN_Y
     #undef OFFSET_LAYER
 }
 
