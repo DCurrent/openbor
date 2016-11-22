@@ -21412,7 +21412,6 @@ entity *block_find_target(int anim, int iDetect)
     max = 9999;
     float diffx, diffz, diffd, diffo = 0;
     entity      *attacker;
-    s_collision_attack *collision_attack;
 
     iDetect += self->modeldata.stealth.detect;
 
@@ -21423,14 +21422,12 @@ entity *block_find_target(int anim, int iDetect)
 
         for(instance = 0; instance < max_collisons; instance++)
         {
-            collision_attack = attacker->animation->collision_attack[attacker->animpos]->instance[instance];
-
-            if( attacker->exists && attacker != self //cant target self
+            if( attacker && attacker->exists && attacker != self //cant target self
                 && (attacker->modeldata.candamage & self->modeldata.type)
                 && (anim < 0 || (anim >= 0 && check_range(self, attacker, anim)))
                 && !attacker->dead && attacker->attacking//must be alive
-                && attacker->animation->collision_attack && (!collision_attack
-                    || collision_attack->no_block == 0)
+                && attacker->animation->collision_attack && attacker->animation->collision_attack[attacker->animpos] && attacker->animation->collision_attack[attacker->animpos]->instance
+                && ( !attacker->animation->collision_attack[attacker->animpos]->instance[instance] || (attacker->animation->collision_attack[attacker->animpos]->instance[instance] && attacker->animation->collision_attack[attacker->animpos]->instance[instance]->no_block == 0) )
                 && (diffd = (diffx = diff(attacker->position.x, self->position.x)) + (diffz = diff(attacker->position.z, self->position.z))) >= min
                 && diffd <= max
                 && (attacker->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
