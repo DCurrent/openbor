@@ -7572,6 +7572,61 @@ size_t lcmHandleCommandScripts(ArgList *arglist, char *buf, Script *script, char
     return pos;
 }
 
+ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
+{
+    if ( buf && buf[0] )
+    {
+        unsigned char c = '\0';
+        size_t len = strlen(buf);
+
+        c = (unsigned char)tolower((int)buf[pos]);
+        if (c == '/')
+        {
+            if ( pos+1 < len-1 )
+            {
+                if (c == '/')
+                {
+                    while( pos < len && c != 0x0A && c != 0x0D )
+                    {
+                        ++pos;
+                        c = (unsigned char)tolower((int)buf[pos]);
+                    }
+                    pos = lcmScriptAvoidComment(buf,pos);
+                    return pos;
+                }
+                else if (c == '*')
+                {
+                    ++pos;
+                    if ( pos >= len ) return pos;
+                    c = (unsigned char)tolower((int)buf[pos]);
+                    while( pos+1 < len )
+                    {
+                        if ( c == '*' )
+                        {
+                            unsigned char c2 = (unsigned char)tolower((int)buf[pos+1]);
+
+                            if ( c2 == '/' )
+                            {
+                                pos += 2;
+                                pos = lcmScriptAvoidComment(buf,pos);
+                                return pos;
+                            }
+                        }
+                        ++pos;
+                        c = (unsigned char)tolower((int)buf[pos]);
+                    }
+                }
+                else
+                {
+                    return pos;
+                }
+            }
+        } else return pos;
+    }
+
+    return pos;
+}
+
 ptrdiff_t lcmScriptGetMainPos(char *buf)
 {
     size_t len = 0;
@@ -7585,6 +7640,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
     {
         len = strlen(buf);
 
+        pos = lcmScriptAvoidComment(buf,pos);
         c = (unsigned char)tolower((int)buf[pos]);
         while ( pos < len && current_state != END )
         {
@@ -7602,6 +7658,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
                     else {
                         current_state = PIT;
                         ++pos;
+                        pos = lcmScriptAvoidComment(buf,pos);
                         c = (unsigned char)tolower((int)buf[pos]);
                     }
                     break;
@@ -7700,6 +7757,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
                 if (pos < len) return index_res;
                 else return -1;
             }
+            pos = lcmScriptAvoidComment(buf,pos);
             c = (unsigned char)tolower((int)buf[pos]);
         }
         if (current_state == PIT) return -1;
@@ -10828,6 +10886,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         {
             Script_Init(newchar->scripts->animation_script, newchar->name, filename, 0);
         }
+        lcmScriptSearchForMain(&animscriptbuf);
         tempInt = Script_AppendText(newchar->scripts->animation_script, animscriptbuf, filename);
     }
     else if(scriptbuf && scriptbuf[0])
@@ -29213,7 +29272,6 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
         e = spawn(props->position.x + advancex, props->position.z, props->position.y, props->flip, props->name, props->index, props->model);
     }
 
-
     if(e == NULL)
     {
         return NULL;
@@ -30922,7 +30980,10 @@ void update(int ingame, int usevwait)
                     updatestatus();
                 }
             }
-            if(ingame == 1 || selectScreen)
+            if(ingame == 1 || selectScreen ||
+                  titleScreen || hallOfFame || gameOver || showComplete || currentScene || enginecreditsScreen || menuScreen || startgameMenu ||
+                  newgameMenu || loadgameMenu || optionsMenu || controloptionsMenu || soundoptionsMenu || videooptionsMenu || systemoptionsMenu
+              )
             {
                 update_ents();
             }
@@ -30958,7 +31019,10 @@ void update(int ingame, int usevwait)
     }
 
     // entity sprites queueing
-    if(ingame == 1 || selectScreen)
+    if(ingame == 1 || selectScreen ||
+          titleScreen || hallOfFame || gameOver || showComplete || currentScene || enginecreditsScreen || menuScreen || startgameMenu ||
+          newgameMenu || loadgameMenu || optionsMenu || controloptionsMenu || soundoptionsMenu || videooptionsMenu || systemoptionsMenu
+      )
         if(!pause)
         {
             display_ents();
