@@ -1082,6 +1082,36 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         if( !(goto_mainmenu_flag&1) ) var->lVal = (LONG)(pause);
         else var->lVal = (LONG)0;
         break;
+    case _sv_porting:
+    {
+        char portname[128] = "";
+
+        #if WIN
+            strcpy(portname, "windows");
+        #elif WII
+            strcpy(portname, "wii");
+        #elif ANDROID
+            strcpy(portname, "android");
+        #elif PSP
+            strcpy(portname, "psp");
+        #elif LINUX
+            strcpy(portname, "linux");
+        #elif DC
+            strcpy(portname, "dreamcast");
+        #elif GPX2
+            strcpy(portname, "gpx2");
+        #elif OPENDINGUX
+            strcpy(portname, "opendingux");
+        #elif WIZ
+            strcpy(portname, "wiz");
+        #elif DARWIN
+            strcpy(portname, "darwin");
+        #endif
+
+        ScriptVariant_ChangeType(var, VT_STR);
+        strcpy(StrCache_Get(var->strVal), portname);
+        break;
+    }
     case _sv_gfx_x_offset:
         if(!level)
         {
