@@ -18231,7 +18231,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-------------hole checking ---------------------
     if(ent->modeldata.subject_to_hole > 0)
     {
-        if(checkhole_in(x, z, ent->position.y) && checkwall(x, z) < 0 && !check_platform_below(x, z, ent->position.y, ent))
+        if(checkhole(x, z) && checkwall(x, z) < 0 && !check_platform_below(x, z, ent->position.y, ent))
         {
             return -2;
         }
@@ -19453,7 +19453,7 @@ int check_basemap_index(int x, int z)
 
 void adjust_base(entity *e, entity **pla)
 {
-    int wall, hole = -1;
+    int wall = -1, hole = -1;
     float seta = 0, maxbase = 0;
     entity *other = NULL, *plat, *tempself;
 
@@ -19527,7 +19527,7 @@ void adjust_base(entity *e, entity **pla)
 
         if(maxbase == -1000 && self->modeldata.subject_to_hole > 0)
         {
-            hole = (wall < 0 && !other) ? checkhole_in(self->position.x, self->position.z, self->position.y) : 0;
+            hole = (wall <= 0 && !other) ? checkhole_in(self->position.x, self->position.z, self->position.y) : 0;
             if ( hole )
             {
                 int holeind = checkholeindex_in(self->position.x, self->position.z, self->position.y);
@@ -20577,7 +20577,7 @@ void display_ents()
                         }
 
                         //TODO check platforms, don't want to go through the entity list again right now // && !other after wall2
-                        if(!(checkhole_in(e->position.x + temp1, e->position.z + temp2, e->position.y) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
+                        if(!(checkhole(e->position.x + temp1, e->position.z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
                         {
                             if(wall >= 0 && wall2 >= 0)
                             {
@@ -20664,7 +20664,7 @@ void display_ents()
                     {
                         useshadow = e->modeldata.shadow;
                     }
-                    if(useshadow && e->position.y >= 0 && !(checkhole_in(e->position.x, e->position.z, e->position.y) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
+                    if(useshadow && e->position.y >= 0 && !(checkhole(e->position.x, e->position.z) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                     {
                         if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7] && !(e->modeldata.shadowbase&1))
                         {
