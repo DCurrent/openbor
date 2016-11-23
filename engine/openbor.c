@@ -1106,6 +1106,8 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
             porting = PORTING_WINDOWS;
         #elif WIZ
             porting = PORTING_WIZ;
+        #elif XBOX
+            porting = PORTING_XBOX;
         #else
             porting = PORTING_UNKNOWN;
         #endif
@@ -7618,7 +7620,7 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
             {
                 if (c == '/')
                 {
-                    while( pos < len && c != 0x0A && c != 0x0D )
+                    while( pos < len && c != 0x0D && c != 0x0A )
                     {
                         ++pos;
                         c = (unsigned char)tolower((int)buf[pos]);
@@ -7685,7 +7687,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
                         index_res = pos;
                         current_state = PRE0;
                     }
-                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0A || c == 0x0D || c == '\t' ) current_state = START;
+                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0D || c == 0x0A || c == '\t' ) current_state = START;
                     else if ( c == '\0' ) return -1;
                     else {
                         current_state = PIT;
@@ -7719,7 +7721,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
                 case PRE3:
                 {
                     if ( c == 'm' ) current_state = M0;
-                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0A || c == 0x0D || c == '\t' ) current_state = PRE3;
+                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0D || c == 0x0A || c == '\t' ) current_state = PRE3;
                     else if ( c == '\0' ) return -1;
                     else current_state = PIT;
                     break;
@@ -7748,7 +7750,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
                 case M3:
                 {
                     if ( c == '(' ) current_state = P0;
-                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0A || c == 0x0D || c == '\t' ) current_state = M3;
+                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0D || c == 0x0A || c == '\t' ) current_state = M3;
                     else if ( c == '\0' ) return -1;
                     else current_state = PIT;
                     break;
@@ -7756,7 +7758,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
                 case P0:
                 {
                     if ( c == ')' ) current_state = P1;
-                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0A || c == 0x0D || c == '\t' ) current_state = P0;
+                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0D || c == 0x0A || c == '\t' ) current_state = P0;
                     else if ( c == '\0' ) return -1;
                     else current_state = PIT;
                     break;
@@ -7769,7 +7771,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
                         if (++pos < len) return index_res; // pos)
                         else return -1;
                     }
-                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0A || c == 0x0D || c == '\t' ) current_state = P1;
+                    else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0D || c == 0x0A || c == '\t' ) current_state = P1;
                     else if ( c == '\0' ) return -1;
                     else current_state = PIT;
                     break;
