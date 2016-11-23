@@ -1106,6 +1106,8 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
             strcpy(portname, "wiz");
         #elif DARWIN
             strcpy(portname, "darwin");
+        #else
+            strcpy(portname, "unknown");
         #endif
 
         ScriptVariant_ChangeType(var, VT_STR);
