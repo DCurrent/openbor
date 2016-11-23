@@ -1580,15 +1580,15 @@ int sound_start_playback(int bits, int frequency)
     }
 
 #if WIN || LINUX || DARWIN || SYMBIAN
-    playbits = bits;
-    playfrequency = frequency;
+    //
 #else
     // Most consoles support natively 16/44100
     bits = 16;
     frequency = 44100;
+#endif
+
     playbits = bits;
     playfrequency = frequency;
-#endif
 
     for(i = 0; i < max_channels; i++)
     {
