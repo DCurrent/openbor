@@ -1084,34 +1084,34 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_porting:
     {
-        char portname[128] = "";
+        e_porting porting;
 
-        #if WIN
-            strcpy(portname, "windows");
-        #elif WII
-            strcpy(portname, "wii");
-        #elif ANDROID
-            strcpy(portname, "android");
-        #elif PSP
-            strcpy(portname, "psp");
-        #elif LINUX
-            strcpy(portname, "linux");
-        #elif DC
-            strcpy(portname, "dreamcast");
-        #elif GPX2
-            strcpy(portname, "gpx2");
-        #elif OPENDINGUX
-            strcpy(portname, "opendingux");
-        #elif WIZ
-            strcpy(portname, "wiz");
+        #if ANDROID
+            porting = PORTING_ANDROID;
         #elif DARWIN
-            strcpy(portname, "darwin");
+            porting = PORTING_DARWIN;
+        #elif DC
+            porting = PORTING_DREAMCAST;
+        #elif GPX2
+            porting = PORTING_GPX2;
+        #elif LINUX
+            porting = PORTING_LINUX;
+        #elif OPENDINGUX
+            porting = PORTING_OPENDINGUX;
+        #elif PSP
+            porting = PORTING_PSP;
+        #elif WII
+            porting = PORTING_WII;
+        #elif WIN
+            porting = PORTING_WINDOWS;
+        #elif WIZ
+            porting = PORTING_WIZ;
         #else
-            strcpy(portname, "unknown");
+            porting = PORTING_UNKNOWN;
         #endif
 
-        ScriptVariant_ChangeType(var, VT_STR);
-        strcpy(StrCache_Get(var->strVal), portname);
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = porting;
         break;
     }
     case _sv_gfx_x_offset:

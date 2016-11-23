@@ -148,6 +148,20 @@ typedef struct PlayRecStatus {
 
 extern a_playrecstatus *playrecstatus;
 
+typedef enum
+{
+    PORTING_ANDROID,
+    PORTING_DARWIN,
+    PORTING_DREAMCAST,
+    PORTING_GPX2,
+    PORTING_LINUX,
+    PORTING_OPENDINGUX,
+    PORTING_PSP,
+    PORTING_UNKNOWN,
+    PORTING_WII,
+    PORTING_WINDOWS,
+    PORTING_WIZ
+} e_porting;
 
 
 typedef struct
