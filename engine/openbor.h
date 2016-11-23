@@ -160,7 +160,8 @@ typedef enum
     PORTING_UNKNOWN,
     PORTING_WII,
     PORTING_WINDOWS,
-    PORTING_WIZ
+    PORTING_WIZ,
+    PORTING_XBOX
 } e_porting;
 
 

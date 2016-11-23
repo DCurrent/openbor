@@ -13029,6 +13029,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(PORTING_WII)
         ICMPCONST(PORTING_WINDOWS)
         ICMPCONST(PORTING_WIZ)
+        ICMPCONST(PORTING_XBOX)
 
         else
         {
