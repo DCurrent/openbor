@@ -19527,7 +19527,7 @@ void adjust_base(entity *e, entity **pla)
 
         if(maxbase == -1000 && self->modeldata.subject_to_hole > 0)
         {
-            hole = (wall <= 0 && !other) ? checkhole_in(self->position.x, self->position.z, self->position.y) : 0;
+            hole = (wall < 0 && !other) ? checkhole_in(self->position.x, self->position.z, self->position.y) : 0;
             if ( hole )
             {
                 int holeind = checkholeindex_in(self->position.x, self->position.z, self->position.y);
