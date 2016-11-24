@@ -1149,6 +1149,9 @@ if(n<1) n = 1;
 
 #define validanim(e, a) ((e)->modeldata.animation[a]&&(e)->modeldata.animation[a]->numframes)
 
+#define inScreen ( selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene || enginecreditsScreen || menuScreen || startgameMenu || \
+                  newgameMenu || loadgameMenu || optionsMenu || controloptionsMenu || soundoptionsMenu || videooptionsMenu || systemoptionsMenu )
+
 //#define     MAX_MOVES             16
 //#define     MAX_MOVE_STEPS        16
 

@@ -30555,7 +30555,7 @@ void execute_keyscripts()
     int p;
     for(p = 0; p < levelsets[current_set].maxplayers; p++)
     {
-        if(!pause && (level || selectScreen) && (player[p].newkeys || (keyscriptrate && player[p].keys) || player[p].releasekeys))
+        if(!pause && (level || inScreen) && (player[p].newkeys || (keyscriptrate && player[p].keys) || player[p].releasekeys))
         {
             if(level)
             {
@@ -30952,7 +30952,7 @@ void update(int ingame, int usevwait)
     newtime = 0;
     if(!pause)
     {
-        if(ingame == 1 || selectScreen)
+        if(ingame == 1 || inScreen)
         {
             execute_keyscripts();
         }
@@ -31011,10 +31011,7 @@ void update(int ingame, int usevwait)
                     updatestatus();
                 }
             }
-            if(ingame == 1 || selectScreen ||
-                  titleScreen || hallOfFame || gameOver || showComplete || currentScene || enginecreditsScreen || menuScreen || startgameMenu ||
-                  newgameMenu || loadgameMenu || optionsMenu || controloptionsMenu || soundoptionsMenu || videooptionsMenu || systemoptionsMenu
-              )
+            if(ingame == 1 || inScreen)
             {
                 update_ents();
             }
@@ -31050,10 +31047,7 @@ void update(int ingame, int usevwait)
     }
 
     // entity sprites queueing
-    if(ingame == 1 || selectScreen ||
-          titleScreen || hallOfFame || gameOver || showComplete || currentScene || enginecreditsScreen || menuScreen || startgameMenu ||
-          newgameMenu || loadgameMenu || optionsMenu || controloptionsMenu || soundoptionsMenu || videooptionsMenu || systemoptionsMenu
-      )
+    if(ingame == 1 || inScreen)
         if(!pause)
         {
             display_ents();
