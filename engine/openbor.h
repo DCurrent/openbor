@@ -1354,6 +1354,7 @@ typedef struct
 {
     s_hitbox    coords;
     s_defense   *defense;
+    int         index;
     int         tag;
 
 } s_collision_body;
@@ -1544,7 +1545,7 @@ typedef struct
     int             cancel;                 // Cancel anims with freespecial
     float           chargetime;             // charge time for an animation
     s_collision_attack_list **collision_attack;
-    s_collision_body        **collision_body;
+    s_collision_body_list   **collision_body;
     s_counterrange  *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
     int             *delay;
     s_drawmethod    **drawmethods;

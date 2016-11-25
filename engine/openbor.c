@@ -118,8 +118,9 @@ const s_collision_body empty_body =   {   .coords = { .x      = 0,
                                             .height = 0,
                                             .z1     = 0,
                                             .z2     = 0},
-                                .defense = NULL,
-                                .tag = 0
+                                .index      = 0,
+                                .defense    = NULL,
+                                .tag        = 0
                             };
 
 // Recursive damage (dot).
@@ -5263,6 +5264,17 @@ void free_frames(s_anim *anim)
         {
             if(anim->collision_body[i])
             {
+                // Check each instance and free memory as needed.
+                // Momma always said put your toys away when you're done!
+                for(instance = 0; instance < max_collisons; instance++)
+                {
+                    if(anim->collision_body[i]->instance[instance])
+                    {
+                        free(anim->collision_body[i]->instance[instance]);
+                        anim->collision_body[i]->instance[instance] = NULL;
+                    }
+                }
+
                 free(anim->collision_body[i]);
                 anim->collision_body[i] = NULL;
             }
@@ -5302,9 +5314,11 @@ void free_frames(s_anim *anim)
                         if(anim->collision_attack[i]->instance[instance]->recursive)
                         {
                             free(anim->collision_attack[i]->instance[instance]->recursive);
+                            anim->collision_attack[i]->instance[instance]->recursive = NULL;
                         }
 
                         free(anim->collision_attack[i]->instance[instance]);
+                        anim->collision_attack[i]->instance[instance] = NULL;
                     }
                 }
 
@@ -5702,7 +5716,8 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
             size_col_list,
             size_col_list_struct;
 
-    s_collision_attack *collision_attack;
+    s_collision_attack  *collision_attack;
+    s_collision_body    *collision_body;
 
     ptrdiff_t currentframe;
     if(framecount > 0)
@@ -5734,36 +5749,43 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
         a->vulnerable[currentframe] = 1;
     }
 
-    if((attack->coords.width - attack->coords.x) &&
-            (attack->coords.height - attack->coords.y))
+    // Allocate body boxes.
+    if((bbox->coords.width - bbox->coords.x)
+        && (bbox->coords.height - bbox->coords.y))
     {
-        if(!a->collision_attack)
+        // If there is no previous collision
+        // list on this animation's frames,
+        // we need to allocate space.
+        if(!a->collision_body)
         {
             // Get memory size.
-            size_col_on_frame = framecount * sizeof(*a->collision_attack);
+            size_col_on_frame = framecount * sizeof(*a->collision_body);
 
             // Allocate memory.
-            a->collision_attack = malloc(size_col_on_frame);
-            memset(a->collision_attack, 0, size_col_on_frame);
+            a->collision_body = malloc(size_col_on_frame);
+            memset(a->collision_body, 0, size_col_on_frame);
         }
 
-        // Get memory size.
-        size_col_on_frame_struct = sizeof(**a->collision_attack);
+        // Get memory size for the collision
+        // list structure.
+        size_col_on_frame_struct = sizeof(**a->collision_body);
 
-        // Allocate memory.
-        a->collision_attack[currentframe] = malloc(size_col_on_frame_struct);
+        // Allocate memory for collision list
+        // structure and store resulting pointer
+        // on current frame.
+        a->collision_body[currentframe] = malloc(size_col_on_frame_struct);
 
         // Get memory size of pointer for each instance.
-        size_col_list = max_collisons * sizeof(*a->collision_attack[currentframe]->instance);
+        size_col_list = max_collisons * sizeof(*a->collision_body[currentframe]->instance);
 
         // Allocate memory for a pointer to each instance
         // and set empty default.
-        a->collision_attack[currentframe]->instance = malloc(size_col_list);
-        memset(a->collision_attack[currentframe]->instance, 0, size_col_list);
+        a->collision_body[currentframe]->instance = malloc(size_col_list);
+        memset(a->collision_body[currentframe]->instance, 0, size_col_list);
 
         // Get memory size of for the structure
         // in each instance.
-        size_col_list_struct = max_collisons * sizeof(**a->collision_attack[currentframe]->instance);
+        size_col_list_struct = max_collisons * sizeof(**a->collision_body[currentframe]->instance);
 
         // Loop instances, allocate memory, and assign
         // user values.
@@ -5771,17 +5793,51 @@ int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idl
         {
             // Allocate memory for this instance structure,
             // then copy the pointer to local var for readability.
-            a->collision_attack[currentframe]->instance[i] = malloc(size_col_list_struct);
-            collision_attack = a->collision_attack[currentframe]->instance[i];
+            a->collision_body[currentframe]->instance[i] = malloc(size_col_list_struct);
+            collision_body = a->collision_body[currentframe]->instance[i];
 
             // Apply primary properties
             // read in by load_cached_model.
-            memcpy(collision_attack, attack, size_col_list_struct);
+            memcpy(collision_body, bbox, size_col_list_struct);
 
             // Set index. Engine does not need this,
             // but will allow scripts to identify
             // which item instance has been acquired
             // by handle (pointer).
+            collision_body->index = i;
+        }
+    }
+
+    // Allocate attack boxes. See body box
+    // for notes.
+    if((attack->coords.width - attack->coords.x) &&
+            (attack->coords.height - attack->coords.y))
+    {
+        if(!a->collision_attack)
+        {
+            size_col_on_frame = framecount * sizeof(*a->collision_attack);
+
+            a->collision_attack = malloc(size_col_on_frame);
+            memset(a->collision_attack, 0, size_col_on_frame);
+        }
+
+        size_col_on_frame_struct = sizeof(**a->collision_attack);
+        a->collision_attack[currentframe] = malloc(size_col_on_frame_struct);
+
+
+        size_col_list = max_collisons * sizeof(*a->collision_attack[currentframe]->instance);
+        a->collision_attack[currentframe]->instance = malloc(size_col_list);
+        memset(a->collision_attack[currentframe]->instance, 0, size_col_list);
+
+        size_col_list_struct = max_collisons * sizeof(**a->collision_attack[currentframe]->instance);
+
+        for(i=0; i<max_collisons; i++)
+        {
+            a->collision_attack[currentframe]->instance[i] = malloc(size_col_list_struct);
+            collision_attack = a->collision_attack[currentframe]->instance[i];
+
+            memcpy(collision_attack, attack, size_col_list_struct);
+
             collision_attack->index = i;
 
             // Now let's add sub-properties. By
@@ -15568,14 +15624,18 @@ void draw_visual_debug()
                 // Frame has collision?
                 if(entity->animation->collision_body[entity->animpos])
                 {
-                    // Get collision instance pointer.
-                    collision_body = entity->animation->collision_body[entity->animpos];
-
-                    // Valid collision instance pointer found?
-                    if(collision_body)
+                    // Loop instances of collision.
+                    for(instance = 0; instance < max_collisons; instance++)
                     {
-                        coords = collision_body->coords;
-                        draw_box_on_entity(entity, coords.x, coords.y, entity->position.z, coords.width, coords.height, 1, LOCAL_COLOR_BLUE, &drawmethod);
+                        // Get collision instance pointer.
+                        collision_body = entity->animation->collision_body[entity->animpos]->instance[instance];
+
+                        // Valid collision instance pointer found?
+                        if(collision_body)
+                        {
+                            coords = collision_body->coords;
+                            draw_box_on_entity(entity, coords.x, coords.y, entity->position.z, coords.width, coords.height, 2, LOCAL_COLOR_BLUE, &drawmethod);
+                        }
                     }
                 }
             }
@@ -17525,7 +17585,8 @@ int checkhit(entity *attacker, entity *target)
 
     s_hitbox coords_attack;
     s_hitbox coords_detect;
-    s_collision_attack *attack  = NULL;
+    s_collision_attack  *attack = NULL;
+    s_collision_body    *detect = NULL;
     int x1,
         x2,
         y1,
@@ -17546,8 +17607,8 @@ int checkhit(entity *attacker, entity *target)
         leftleast,
         rightleast;
     float zdist = 0,
-        z1,
-        z2;
+        z1 = 0,
+        z2 = 0;
 
     if(attacker == target
        || !target->animation->collision_body
@@ -17557,107 +17618,134 @@ int checkhit(entity *attacker, entity *target)
         return 0;
     }
 
-    z1 = attacker->position.z;
-    z2 = target->position.z;
+    int detect_instance = 0;
+    int collision_found = 0;
 
     for(attack_instance = 0; attack_instance < max_collisons; attack_instance++)
     {
         attack          = attacker->animation->collision_attack[attacker->animpos]->instance[attack_instance];
         coords_attack   = attack->coords;
 
-        //if(!attack->counterattack)
-        //{
-            coords_detect = target->animation->collision_body[target->animpos]->coords;
-        //}
-        //else if((target->animation->collision_attack && target->animation->collision_attack[target->animpos]) && target->animation->collision_attack[target->animpos]->counterattack <= attacker->animation->collision_attack[attacker->animpos]->counterattack)
-        //{
-            //coords_detect = target->animation->collision_attack[target->animpos]->coords;
-        //}
-        //else
-        //{
-        //    return 0;
-        //}
+        for(detect_instance = 0; detect_instance < max_collisons; detect_instance++)
+        {
+            z1 = attacker->position.z;
+            z2 = target->position.z;
 
-        if(coords_attack.z2 > coords_attack.z1)
-        {
-            z1 += coords_attack.z1 + (coords_attack.z2 - coords_attack.z1) / 2;
-            zdist += (coords_attack.z2 - coords_attack.z1) / 2;
-        }
-        else if(coords_attack.z1)
-        {
-            zdist += coords_attack.z1;
-        }
-        else
-        {
-            zdist += attacker->modeldata.grabdistance / 3 + 1;    //temporay fix for integer to float conversion
-        }
-        if(coords_detect.z2 > coords_detect.z1)
-        {
-            z2 += coords_detect.z1 + (coords_detect.z2 - coords_detect.z1) / 2;
-            zdist += (coords_detect.z2 - coords_detect.z1) / 2;
-        }
-        else if(coords_detect.z1)
-        {
-            zdist += coords_detect.z1;
+            //if(!attack->counterattack)
+            //{
+                detect          = target->animation->collision_body[target->animpos]->instance[detect_instance];
+                coords_detect   = detect->coords;
+
+            //}
+            //else if((target->animation->collision_attack && target->animation->collision_attack[target->animpos]) && target->animation->collision_attack[target->animpos]->counterattack <= attacker->animation->collision_attack[attacker->animpos]->counterattack)
+            //{
+                //coords_detect = target->animation->collision_attack[target->animpos]->coords;
+            //}
+            //else
+            //{
+            //    return 0;
+            //}
+
+            if(coords_attack.z2 > coords_attack.z1)
+            {
+                z1 += coords_attack.z1 + (coords_attack.z2 - coords_attack.z1) / 2;
+                zdist = (coords_attack.z2 - coords_attack.z1) / 2;
+            }
+            else if(coords_attack.z1)
+            {
+                zdist += coords_attack.z1;
+            }
+            else
+            {
+                zdist += attacker->modeldata.grabdistance / 3 + 1;    //temporay fix for integer to float conversion
+            }
+
+            if(coords_detect.z2 > coords_detect.z1)
+            {
+                z2 += coords_detect.z1 + (coords_detect.z2 - coords_detect.z1) / 2;
+                zdist += (coords_detect.z2 - coords_detect.z1) / 2;
+            }
+            else if(coords_detect.z1)
+            {
+                zdist += coords_detect.z1;
+            }
+
+            zdist++; // pass >= <= check
+
+            if(diff(z1, z2) > zdist)
+            {
+                continue;
+            }
+
+            x1 = (int)(attacker->position.x);
+            y1 = (int)(z1 - attacker->position.y);
+            x2 = (int)(target->position.x);
+            y2 = (int)(z2 - target->position.y);
+
+            if(attacker->direction == DIRECTION_LEFT)
+            {
+                attack_pos_x   = x1 - coords_attack.width;
+                attack_pos_y   = y1 + coords_attack.y;
+                attack_size_x  = x1 - coords_attack.x;
+                attack_size_y  = y1 + coords_attack.height;
+            }
+            else
+            {
+                attack_pos_x    = x1 + coords_attack.x;
+                attack_pos_y    = y1 + coords_attack.y;
+                attack_size_x   = x1 + coords_attack.width;
+                attack_size_y   = y1 + coords_attack.height;
+            }
+
+            if(target->direction == DIRECTION_LEFT)
+            {
+                detect_pos_x    = x2 - coords_detect.width;
+                detect_pos_y    = y2 + coords_detect.y;
+                detect_size_x   = x2 - coords_detect.x;
+                detect_size_y   = y2 + coords_detect.height;
+            }
+            else
+            {
+                detect_pos_x    = x2 + coords_detect.x;
+                detect_pos_y    = y2 + coords_detect.y;
+                detect_size_x   = x2 + coords_detect.width;
+                detect_size_y   = y2 + coords_detect.height;
+            }
+
+            if(attack_pos_x > detect_size_x)
+            {
+                continue;
+            }
+            if(detect_pos_x > attack_size_x)
+            {
+                continue;
+            }
+            if(attack_pos_y > detect_size_y)
+            {
+                continue;
+            }
+            if(detect_pos_y > attack_size_y)
+            {
+                continue;
+            }
+
+            // If we got this far, set collision flag
+            // and break this loop.
+            collision_found = 1;
+            break;
         }
 
-        zdist++; // pass >= <= check
+        // If a collision was found
+        // break out of loop.
+        if(collision_found)
+        {
+            break;
+        }
+    }
 
-        if(diff(z1, z2) > zdist)
-        {
-            return 0;
-        }
-
-        x1 = (int)(attacker->position.x);
-        y1 = (int)(z1 - attacker->position.y);
-        x2 = (int)(target->position.x);
-        y2 = (int)(z2 - target->position.y);
-
-        if(attacker->direction == DIRECTION_LEFT)
-        {
-            attack_pos_x   = x1 - coords_attack.width;
-            attack_pos_y   = y1 + coords_attack.y;
-            attack_size_x  = x1 - coords_attack.x;
-            attack_size_y  = y1 + coords_attack.height;
-        }
-        else
-        {
-            attack_pos_x    = x1 + coords_attack.x;
-            attack_pos_y    = y1 + coords_attack.y;
-            attack_size_x   = x1 + coords_attack.width;
-            attack_size_y   = y1 + coords_attack.height;
-        }
-        if(target->direction == DIRECTION_LEFT)
-        {
-            detect_pos_x    = x2 - coords_detect.width;
-            detect_pos_y    = y2 + coords_detect.y;
-            detect_size_x   = x2 - coords_detect.x;
-            detect_size_y   = y2 + coords_detect.height;
-        }
-        else
-        {
-            detect_pos_x    = x2 + coords_detect.x;
-            detect_pos_y    = y2 + coords_detect.y;
-            detect_size_x   = x2 + coords_detect.width;
-            detect_size_y   = y2 + coords_detect.height;
-        }
-
-        if(attack_pos_x > detect_size_x)
-        {
-            return 0;
-        }
-        if(detect_pos_x > attack_size_x)
-        {
-            return 0;
-        }
-        if(attack_pos_y > detect_size_y)
-        {
-            return 0;
-        }
-        if(detect_pos_y > attack_size_y)
-        {
-            return 0;
-        }
+    if(!collision_found)
+    {
+        return 0;
     }
 
     // Find center of attack area
@@ -17705,7 +17793,7 @@ int checkhit(entity *attacker, entity *target)
     }
 
     lasthit.attack      = attack;
-    lasthit.body        = target->animation->collision_body[target->animpos];
+    lasthit.body        = detect;
     lasthit.position.y  = lasthit.position.z - medy;
     lasthit.confirm     = 1;
     return 1;
