@@ -118,6 +118,7 @@ const s_collision_body empty_body =   {   .coords = { .x      = 0,
                                             .height = 0,
                                             .z1     = 0,
                                             .z2     = 0},
+                                .defense = NULL,
                                 .tag = 0
                             };
 
