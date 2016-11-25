@@ -1353,10 +1353,16 @@ typedef struct
 typedef struct
 {
     s_hitbox    coords;
-    //s_defense   *defense;
+    s_defense   *defense;
     int         tag;
 
 } s_collision_body;
+
+typedef struct
+{
+    s_collision_body **instance;    // This does not belong in attack - it's here while gradually building mallocs for multiple boxes.
+} s_collision_body_list;
+
 
 // Collision, for attacks.
 typedef struct
