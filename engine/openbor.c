@@ -21438,16 +21438,16 @@ entity *long_find_target()
     return NULL;
 }
 
-entity *block_find_target(int anim, int iDetect)
+entity *block_find_target(int anim, int detect_adj)
 {
-    int i , min, max, instance;
+    int i , min, max, instance, detect;
     int index = -1;
     min = 0;
     max = 9999;
     float diffx, diffz, diffd, diffo = 0;
     entity      *attacker;
 
-    iDetect += self->modeldata.stealth.detect;
+    detect = detect_adj + self->modeldata.stealth.detect;
 
     //find the 'nearest' attacking one
     for(i = 0; i < ent_max; i++)
@@ -21464,7 +21464,7 @@ entity *block_find_target(int anim, int iDetect)
                 && ( !attacker->animation->collision_attack[attacker->animpos]->instance[instance] || (attacker->animation->collision_attack[attacker->animpos]->instance[instance] && attacker->animation->collision_attack[attacker->animpos]->instance[instance]->no_block == 0) )
                 && (diffd = (diffx = diff(attacker->position.x, self->position.x)) + (diffz = diff(attacker->position.z, self->position.z))) >= min
                 && diffd <= max
-                && (attacker->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
+                && (attacker->modeldata.stealth.hide <= detect) //Stealth factor less then perception factor (allows invisibility).
               )
             {
                 if(index < 0 || diffd < diffo)
@@ -21484,7 +21484,7 @@ entity *block_find_target(int anim, int iDetect)
     return NULL;
 }
 
-entity *normal_find_target(int anim, int iDetect)
+entity *normal_find_target(int anim, int detect_adj)
 {
 
     /*
@@ -21493,17 +21493,17 @@ entity *normal_find_target(int anim, int iDetect)
     Date unknown
     ~Damon Caskey, 2011_07_22: Add support for detect adjustment.
 
-    int anim:       Animation find range will be calculated by. Default to current animation if not passed.
-    int iDetect:    Local detection adjustment. Allows lesser or greater penetration of target's stealth for location.
+    int anim:           Animation find range will be calculated by. Default to current animation if not passed.
+    int detect_adj:     Local detection adjustment. Allows lesser or greater penetration of target's stealth for location.
     */
 
-    int i , min, max;
+    int i , min, max, detect;
     int index = -1;
     min = 0;
     max = 9999;
     float diffx, diffz, diffd, diffo = 0;
 
-    iDetect += self->modeldata.stealth.detect;
+    detect = detect_adj + self->modeldata.stealth.detect;
 
     //find the 'nearest' one
     for(i = 0; i < ent_max; i++)
@@ -21514,7 +21514,7 @@ entity *normal_find_target(int anim, int iDetect)
                 && !ent_list[i]->dead //must be alive
                 && (diffd = (diffx = diff(ent_list[i]->position.x, self->position.x)) + (diffz = diff(ent_list[i]->position.z, self->position.z))) >= min
                 && diffd <= max
-                && (ent_list[i]->modeldata.stealth.hide <= iDetect) //Stealth factor less then perception factor (allows invisibility).
+                && (ent_list[i]->modeldata.stealth.hide <= detect) //Stealth factor less then perception factor (allows invisibility).
           )
         {
 
@@ -34337,10 +34337,10 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
 
 void menu_options_debug()
 {
-    #define MENU_POS_Y              -5
+    #define MENU_POS_Y              -4
     #define MENU_ITEMS_MARGIN_Y     2
-    #define COLUMN_1_POS_X          -12
-    #define COLUMN_2_POS_X          4
+    #define COLUMN_1_POS_X          -11
+    #define COLUMN_2_POS_X          COLUMN_1_POS_X + 14
     #define MENU_ITEM_FIRST_INDEX   0
 
     // Selections enumerator. All
@@ -34523,8 +34523,8 @@ void menu_options_system()
 
     int quit = 0;
     int selector = 0;
-    int col1 = -12;
-    int col2 = col1+15;
+    int col1 = -11;
+    int col2 = col1+14;
     int ex_labels = 0;
     int RET = SYS_OPT_BACK-1;
 
