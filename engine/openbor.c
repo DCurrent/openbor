@@ -655,6 +655,7 @@ int                 bonus				= 0;					// Used for unlocking Bonus difficulties
 int                 versusdamage		= 2;					// Used for setting mode. (ability to hit other players)
 int                 z_coords[3]			= {0, 0, 0};				// Used for setting customizable walkable area
 int                 rush[6]				= {0, 2, 3, 3, 3, 3};
+int                 pauseoffset[7]  	= {0, 1, 0, 0, 3, 0, 0};		// Used for customizable pause menu location (font0, font1, xpos, ypos, font_pause, xpos_pause, ypos_pause)
 int                 color_black			= 0;
 int                 color_red			= 0;
 int                 color_orange		= 0;
@@ -12855,6 +12856,13 @@ void load_levelorder()
                     timeloc[i] = atoi(arg);
                 }
             break;
+        case CMD_LEVELORDER_PAUSEOFFSET:
+            for(i = 0; i < 7; i++)
+                if((arg = GET_ARG(i + 1))[0])
+                {
+                    pauseoffset[i] = atoi(arg);
+                }
+            break;
         case CMD_LEVELORDER_LBARSIZE:
             _readbarstatus(buf + pos, &lbarstatus);
             break;
@@ -15082,9 +15090,9 @@ void pausemenu()
     bothnewkeys = 0;
     while(!quit)
     {
-        _menutextm(3, -2, 0, Tr("Pause"));
-        _menutextm((pauselector == 0), -1, 0, Tr("Continue"));
-        _menutextm((pauselector == 1), 0, 0, Tr("End Game"));
+        _menutextmshift(pauseoffset[4], -2, 0, pauseoffset[5], pauseoffset[6], Tr("Pause"));
+        _menutextmshift((pauselector == 0)?pauseoffset[1]:pauseoffset[0], -1, 0, pauseoffset[2], pauseoffset[3], Tr("Continue"));
+        _menutextmshift((pauselector == 1)?pauseoffset[1]:pauseoffset[0],  0, 0, pauseoffset[2], pauseoffset[3], Tr("End Game"));
 
         update(1, 0);
 

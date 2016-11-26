@@ -676,6 +676,7 @@ List *createLevelOrderCommandList(void)
     LIST_ADD(CMD_LEVELORDER_P4SCORE, "p4score");
     LIST_ADD(CMD_LEVELORDER_P4SHOOT, "p4shoot");
     LIST_ADD(CMD_LEVELORDER_P4SMENU, "p4smenu");
+    LIST_ADD(CMD_LEVELORDER_PAUSEOFFSET, "pauseoffset");
     LIST_ADD(CMD_LEVELORDER_RUSH, "rush");
     LIST_ADD(CMD_LEVELORDER_RUSHBONUS, "rushbonus");
     LIST_ADD(CMD_LEVELORDER_SCBONUSES, "scbonuses");
