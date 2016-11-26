@@ -29622,7 +29622,7 @@ void spawnplayer(int index)
             {
                 break;    //found
             }
-            if(checkhole(advancex + p.position.x, p.position.z) || (wall >= 0 && level->walls[wall].height >= MAX_WALL_HEIGHT))
+            if(checkhole_in(advancex + p.position.x, p.position.z, p.position.y) || (wall >= 0 && level->walls[wall].height >= MAX_WALL_HEIGHT))
             {
                 find = 0;
             }
@@ -29651,7 +29651,7 @@ void spawnplayer(int index)
                 {
                     continue;
                 }
-                if(checkhole(advancex + p.position.x, p.position.z))
+                if(checkhole_in(advancex + p.position.x, p.position.z, p.position.y))
                 {
                     continue;
                 }
