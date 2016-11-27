@@ -2470,13 +2470,15 @@ s_model *nextplayermodel(s_model *current);
 s_model *prevplayermodel(s_model *current);
 void free_anim(s_anim *anim);
 void free_models();
-s_anim *alloc_anim();
-s_hitbox *collision_alloc_coords(s_hitbox *coords);
-int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
-             s_collision_body *bbox, s_collision_attack *attack, s_axis_i *move,
-             float *platform, int frameshadow,
-             int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod,
-             int *offset, s_damage_recursive *recursive, s_hitbox *attack_coords, s_hitbox *body_coords);
+s_anim              *alloc_anim();
+s_collision_attack  *collision_alloc_attack_instance(s_collision_attack* properties);
+s_collision_body    *collision_alloc_body_instance(s_collision_body *properties);
+s_hitbox            *collision_alloc_coords(s_hitbox *coords);
+int                 addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
+                             s_collision_body *bbox, s_collision_attack *attack, s_axis_i *move,
+                             float *platform, int frameshadow,
+                             int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod,
+                             int *offset, s_damage_recursive *recursive, s_hitbox *attack_coords, s_hitbox *body_coords);
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char *name);
 void free_modelcache();
