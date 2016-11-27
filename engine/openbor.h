@@ -2471,6 +2471,7 @@ s_model *prevplayermodel(s_model *current);
 void free_anim(s_anim *anim);
 void free_models();
 s_anim *alloc_anim();
+s_hitbox *collision_alloc_coords(s_hitbox *coords);
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
              s_collision_body *bbox, s_collision_attack *attack, s_axis_i *move,
              float *platform, int frameshadow,
