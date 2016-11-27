@@ -5722,6 +5722,29 @@ s_anim *alloc_anim()
     return anim_list->anim;
 }
 
+// Caskey, Damon V.
+// 2016-11-26
+//
+// Allocate collision coordinates, copy coords
+// data if present, and return pointer.
+s_hitbox *collision_alloc_coords(s_hitbox *coords)
+{
+    s_hitbox    *result;
+    size_t      alloc_size;
+
+    // Get memory we'll need size in bytes.
+    alloc_size = sizeof(s_hitbox);
+
+    // Allocate memory and get pointer.
+    result = malloc(alloc_size);
+
+    // Copy coords data into new allocation.
+    memcpy(result, coords, alloc_size);
+
+    // Return result.
+    return result;
+}
+
 int addframe(s_anim             *a,
              int                spriteindex,
              int                framecount,
@@ -5836,8 +5859,7 @@ int addframe(s_anim             *a,
             // Coordinates.
             if(!collision_body->coords)
             {
-                collision_body->coords = malloc(sizeof(*body_coords));
-                memcpy(collision_body->coords, body_coords, sizeof(*body_coords));
+                collision_body->coords = collision_alloc_coords(body_coords);
             }
         }
     }
@@ -5877,8 +5899,7 @@ int addframe(s_anim             *a,
             // Coordinates.
             if(!collision_attack->coords)
             {
-                collision_attack->coords = malloc(sizeof(*attack_coords));
-                memcpy(collision_attack->coords, attack_coords, sizeof(*attack_coords));
+                collision_attack->coords = collision_alloc_coords(attack_coords);
             }
 
             // Recursive damage.
