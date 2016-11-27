@@ -5752,6 +5752,28 @@ s_collision_attack *collision_alloc_attack_instance(s_collision_attack *properti
 // Caskey, Damon V.
 // 2016-11-27
 //
+// Allocate an empty collision attack list.
+s_collision_attack **collision_alloc_attack_list()
+{
+    s_collision_attack **result;
+    size_t             alloc_size;
+
+    // Get amount of memory we'll need.
+    alloc_size = sizeof(*result);
+
+    // Allocate memory and get pointer.
+    result = malloc(alloc_size);
+
+    // Make sure the list is blank.
+    memset(result, 0, alloc_size);
+
+    // return result.
+    return result;
+}
+
+// Caskey, Damon V.
+// 2016-11-27
+//
 // Allocate a collision body instance, copy
 // property data if present, and return pointer.
 s_collision_body *collision_alloc_body_instance(s_collision_body *properties)
@@ -5771,6 +5793,28 @@ s_collision_body *collision_alloc_body_instance(s_collision_body *properties)
     {
         memcpy(result, properties, alloc_size);
     }
+
+    // return result.
+    return result;
+}
+
+// Caskey, Damon V.
+// 2016-11-27
+//
+// Allocate an empty collision attack list.
+s_collision_body **collision_alloc_body_list()
+{
+    s_collision_body **result;
+    size_t             alloc_size;
+
+    // Get amount of memory we'll need.
+    alloc_size = sizeof(*result);
+
+    // Allocate memory and get pointer.
+    result = malloc(alloc_size);
+
+    // Make sure the list is blank.
+    memset(result, 0, alloc_size);
 
     // return result.
     return result;
@@ -5823,8 +5867,7 @@ int addframe(s_anim             *a,
 {
     int     i;
     size_t  size_col_on_frame,
-            size_col_on_frame_struct,
-            size_col_list;
+            size_col_on_frame_struct;
 
     s_collision_attack  *collision_attack;
     s_collision_body    *collision_body;
@@ -5874,13 +5917,9 @@ int addframe(s_anim             *a,
         // on current frame.
         a->collision_body[currentframe] = malloc(size_col_on_frame_struct);
 
-        // Get memory size of pointer for each instance.
-        size_col_list = max_collisons * sizeof(*a->collision_body[currentframe]->instance);
-
         // Allocate memory for a pointer to each instance
         // and set empty default.
-        a->collision_body[currentframe]->instance = malloc(size_col_list);
-        memset(a->collision_body[currentframe]->instance, 0, size_col_list);
+        a->collision_body[currentframe]->instance = collision_alloc_body_list();
 
         // Loop instances, allocate memory, and assign
         // user values.
@@ -5923,10 +5962,7 @@ int addframe(s_anim             *a,
         size_col_on_frame_struct = sizeof(**a->collision_attack);
         a->collision_attack[currentframe] = malloc(size_col_on_frame_struct);
 
-
-        size_col_list = max_collisons * sizeof(*a->collision_attack[currentframe]->instance);
-        a->collision_attack[currentframe]->instance = malloc(size_col_list);
-        memset(a->collision_attack[currentframe]->instance, 0, size_col_list);
+        a->collision_attack[currentframe]->instance = collision_alloc_attack_list();
 
         for(i=0; i<max_collisons; i++)
         {
