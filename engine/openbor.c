@@ -5738,8 +5738,12 @@ s_hitbox *collision_alloc_coords(s_hitbox *coords)
     // Allocate memory and get pointer.
     result = malloc(alloc_size);
 
-    // Copy coords data into new allocation.
-    memcpy(result, coords, alloc_size);
+    // If coordinates data is provided,
+    // copy into new allocation.
+    if(coords)
+    {
+        memcpy(result, coords, alloc_size);
+    }
 
     // Return result.
     return result;
