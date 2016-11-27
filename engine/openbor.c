@@ -5723,6 +5723,60 @@ s_anim *alloc_anim()
 }
 
 // Caskey, Damon V.
+// 2016-11-27
+//
+// Allocate a collision attack instance, copy
+// property data if present, and return pointer.
+s_collision_attack *collision_alloc_attack_instance(s_collision_attack *properties)
+{
+    s_collision_attack  *result;
+    size_t              alloc_size;
+
+    // Get amount of memory we'll need.
+    alloc_size = sizeof(*result);
+
+    // Allocate memory and get pointer.
+    result = malloc(alloc_size);
+
+    // If previous data is provided,
+    // copy into new allocation.
+    if(properties)
+    {
+        memcpy(result, properties, alloc_size);
+    }
+
+    // return result.
+    return result;
+}
+
+// Caskey, Damon V.
+// 2016-11-27
+//
+// Allocate a collision body instance, copy
+// property data if present, and return pointer.
+s_collision_body *collision_alloc_body_instance(s_collision_body *properties)
+{
+    s_collision_body    *result;
+    size_t              alloc_size;
+
+    // Get amount of memory we'll need.
+    alloc_size = sizeof(*result);
+
+    // Allocate memory and get pointer.
+    result = malloc(alloc_size);
+
+    // If previous data is provided,
+    // copy into new allocation.
+    if(properties)
+    {
+        memcpy(result, properties, alloc_size);
+    }
+
+    // return result.
+    return result;
+}
+
+// Caskey, Damon V.
 // 2016-11-26
 //
 // Allocate collision coordinates, copy coords
@@ -5732,13 +5786,13 @@ s_hitbox *collision_alloc_coords(s_hitbox *coords)
     s_hitbox    *result;
     size_t      alloc_size;
 
-    // Get memory we'll need size in bytes.
-    alloc_size = sizeof(s_hitbox);
+    // Get amount of memory we'll need.
+    alloc_size = sizeof(*result);
 
     // Allocate memory and get pointer.
     result = malloc(alloc_size);
 
-    // If coordinates data is provided,
+    // If previous data is provided,
     // copy into new allocation.
     if(coords)
     {
@@ -5770,8 +5824,7 @@ int addframe(s_anim             *a,
     int     i;
     size_t  size_col_on_frame,
             size_col_on_frame_struct,
-            size_col_list,
-            size_col_list_struct;
+            size_col_list;
 
     s_collision_attack  *collision_attack;
     s_collision_body    *collision_body;
@@ -5829,22 +5882,14 @@ int addframe(s_anim             *a,
         a->collision_body[currentframe]->instance = malloc(size_col_list);
         memset(a->collision_body[currentframe]->instance, 0, size_col_list);
 
-        // Get memory size of for the structure
-        // in each instance.
-        size_col_list_struct = max_collisons * sizeof(**a->collision_body[currentframe]->instance);
-
         // Loop instances, allocate memory, and assign
         // user values.
         for(i=0; i<max_collisons; i++)
         {
-            // Allocate memory for this instance structure,
-            // then copy the pointer to local var for readability.
-            a->collision_body[currentframe]->instance[i] = malloc(size_col_list_struct);
-            collision_body = a->collision_body[currentframe]->instance[i];
-
-            // Apply primary properties
-            // read in by load_cached_model.
-            memcpy(collision_body, bbox, size_col_list_struct);
+            // Allocate memory for this instance structure.
+            // We're also using a local pointer for readability.
+            collision_body = collision_alloc_body_instance(bbox);
+            a->collision_body[currentframe]->instance[i] = collision_body;
 
             // Set index. Engine does not need this,
             // but will allow scripts to identify
@@ -5852,13 +5897,7 @@ int addframe(s_anim             *a,
             // by handle (pointer).
             collision_body->index = i;
 
-            // Now let's add sub-properties. By
-            // adding pointers to main structure
-            // and allocating them here as needed
-            // instead of just bolting them on as
-            // several variables or sub-structures,
-            // we avoid wasting tons of memory on
-            // properties that are not in use.
+            // Now let's allocate sub-properties.
 
             // Coordinates.
             if(!collision_body->coords)
@@ -5889,14 +5928,10 @@ int addframe(s_anim             *a,
         a->collision_attack[currentframe]->instance = malloc(size_col_list);
         memset(a->collision_attack[currentframe]->instance, 0, size_col_list);
 
-        size_col_list_struct = max_collisons * sizeof(**a->collision_attack[currentframe]->instance);
-
         for(i=0; i<max_collisons; i++)
         {
-            a->collision_attack[currentframe]->instance[i] = malloc(size_col_list_struct);
-            collision_attack = a->collision_attack[currentframe]->instance[i];
-
-            memcpy(collision_attack, attack, size_col_list_struct);
+            collision_attack = collision_alloc_attack_instance(attack);
+            a->collision_attack[currentframe]->instance[i] = collision_attack;
 
             collision_attack->index = i;
 
