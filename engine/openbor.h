@@ -1354,7 +1354,7 @@ typedef struct
 
 typedef struct
 {
-    s_hitbox    coords;
+    s_hitbox    *coords;
     s_defense   *defense;
     int         index;
     int         tag;
@@ -1376,9 +1376,9 @@ typedef struct
     int                 blast;              // Attack box active on hit opponent's fall animation.
     int                 blockflash;         // Custom bflash for each animation, model id
     int                 blocksound;         // Custom sound for when an attack is blocked
-    s_hitbox            coords;
+    s_hitbox            *coords;            // Collision detection coordinates.
     int                 counterattack;      // Treat other attack boxes as body box.
-    int                 damage_on_landing;  // same as throw damage type
+    int                 damage_on_landing;  // Same as throw damage type
     s_axis_f            dropv;              // Velocity of target if knocked down.
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 forcemap;           // Set target's palette on hit.
@@ -2474,7 +2474,8 @@ s_anim *alloc_anim();
 int addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
              s_collision_body *bbox, s_collision_attack *attack, s_axis_i *move,
              float *platform, int frameshadow,
-             int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod, int *offset, s_damage_recursive *recursive);
+             int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod,
+             int *offset, s_damage_recursive *recursive, s_hitbox *attack_coords, s_hitbox *body_coords);
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char *name);
 void free_modelcache();
