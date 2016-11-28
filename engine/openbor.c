@@ -15547,7 +15547,7 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 {
     #define FONT                0
     #define TEXT_MARGIN_Y       1
-    #define OFFSET_LAYER        -2
+    #define OFFSET_LAYER       -2
 
     // Position array keys
     // and size constants.
@@ -15586,23 +15586,22 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     box.position.z = 0;
 
     // Populate position labels.
-    pos_label[KEY_BASE] = "B: %d";
-    pos_label[KEY_X]    = "X: %d";
-    pos_label[KEY_Y]    = "Y: %d";
-    pos_label[KEY_Z]    = "Z: %d";
+    pos_label[KEY_BASE]          = "B: %d";
+    pos_label[KEY_X]             = "X: %d";
+    pos_label[KEY_Y]             = "Y: %d";
+    pos_label[KEY_Z]             = "Z: %d";
 
     // Populate position values - truncated to int.
-    pos_value[KEY_BASE] = (int)entity->base;
-    pos_value[KEY_X]    = (int)entity->position.x;
-    pos_value[KEY_Y]    = (int)entity->position.y;
-    pos_value[KEY_Z]    = (int)entity->position.z;
+    pos_value[KEY_BASE]         = (int)entity->base;
+    pos_value[KEY_X]            = (int)entity->position.x;
+    pos_value[KEY_Y]            = (int)entity->position.y;
+    pos_value[KEY_Z]            = (int)entity->position.z;
 
-    // Allocate memory and create finished
-    // strings.
-    for(i=0; i<POS_ARRAY_SIZE; i++)
+    // Allocate memory and create finished strings.
+    for(i = 0; i < POS_ARRAY_SIZE; i++)
     {
         // Get the total memory size we will need.
-        str_size =  sizeof(char) * (sizeof(pos_label[i]) + 1);
+        str_size  = sizeof(char) * (strlen(pos_label[i]) + 1);
         str_size += sizeof(char) * (sizeof(pos_value[i]) + 1);
 
         // Allocate memory.
@@ -15646,7 +15645,7 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     spriteq_add_dot(base_pos.x, base_pos.y, box.position.z+1, color, drawmethod);
 
     // Print each position text.
-    for(i=0; i<POS_ARRAY_SIZE; i++)
+    for(i = 0; i < POS_ARRAY_SIZE; i++)
     {
         // If the position string exists then
         // we can find a position, print it to
@@ -15661,6 +15660,133 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
             // Release memory allocated for the string.
             free(pos_final[i]);
+        }
+    }
+
+    return;
+
+    // Remove local constants.
+    #undef FONT
+    #undef TEXT_MARGIN_Y
+    #undef OFFSET_LAYER
+}
+
+// White Dragon
+// 2016-11-28
+//
+// Draw entity features
+void draw_features_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod)
+{
+    #define FONT                0
+    #define TEXT_MARGIN_Y       1
+    #define OFFSET_LAYER       -2
+
+    // Features array keys
+    // and size constants.
+    enum
+    {
+        KEY_MODELNAME,
+        CHAR_ARRAY_SIZE
+    };
+
+    typedef struct
+    {
+        s_axis_i    position;
+        s_axis_i_2d size;
+    } draw_coords;
+
+    s_axis_i_2d screen_offset;          // Base location calculated from screen offsets.
+    s_axis_i    base_pos;               // Entity position with screen offsets applied.
+    draw_coords box;                    // On screen coords for display elements.
+
+    char *char_value[CHAR_ARRAY_SIZE];  // Entity features for display
+    int i;                              // Counter.
+    int str_offset_x;                   // Calculated offset of text for centering.
+    int str_width_max;                  // largest string width.
+    int str_height_max;                 // Largest string height.
+    size_t str_size;                    // Memory size of string.
+
+    const char  *char_label[CHAR_ARRAY_SIZE];  // Labels for string features
+    char        *char_final[CHAR_ARRAY_SIZE];  // Final string to display.
+
+    // Initialize box.
+    box.position.x = 0;
+    box.position.y = 0;
+    box.position.z = 0;
+
+    // Populate position labels.
+    char_label[KEY_MODELNAME]    = "%s";
+
+    // Populate position values - truncated to int.
+    char_value[KEY_MODELNAME] = malloc( sizeof(char) * (strlen(entity->model->name)+1) );
+    memcpy( char_value[KEY_MODELNAME], entity->model->name, (strlen(entity->model->name)+1) );
+
+    // Allocate memory and create finished strings.
+    for(i = 0; i < CHAR_ARRAY_SIZE; i++)
+    {
+        // Get the total memory size we will need.
+        str_size  = sizeof(char) * (strlen(char_label[i]) + 1);
+        str_size += sizeof(char) * (strlen(char_value[i]) + 1);
+
+        // Allocate memory.
+        char_final[i] = malloc(str_size);
+
+        // If allocation was successful, concatenate
+        // position label and position value.
+        if(char_final[i])
+        {
+            sprintf(char_final[i], char_label[i], char_value[i]);
+        }
+
+        free(char_value[i]);
+    }
+
+    // Get the largest string X and Y space.
+    str_width_max   = font_string_width_max(*char_final, FONT);
+    str_height_max  = fontheight(FONT);
+
+    // Get our base offsets from screen vs. location.
+    screen_offset.x = screenx - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
+    screen_offset.y = screeny - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
+
+    // Get entity position with screen offsets.
+    base_pos.x = entity->position.x - screen_offset.x;
+    base_pos.y = (entity->position.z - offset_z) - entity->position.y - screen_offset.y;
+
+    // Get a value of half the text width.
+    // We can use this to center our text
+    // on the entity.
+    str_offset_x = (str_width_max - font_string_width(FONT, "0")) / 2;
+
+    // Apply text offset.
+    box.position.x = base_pos.x - str_offset_x;
+
+    box.position.y = base_pos.y;
+    box.position.z = entity->position.z + offset_z;
+
+    // Draw position dot.
+    // The +1 to Z is a quick fix - offset_z
+    // distorts the dot's vertical position
+    // instead of just adjusting Z.
+    if (!savedata.debug_position) spriteq_add_dot(base_pos.x, base_pos.y, box.position.z+1, color, drawmethod);
+
+    // Print each feature text.
+    if (savedata.debug_position) base_pos.y += (str_height_max + TEXT_MARGIN_Y)*(3+1);
+    for(i = 0; i < CHAR_ARRAY_SIZE; i++)
+    {
+        // If the position string exists then
+        // we can find a position, print it to
+        // the screen, and free up allocated memory.
+        if(char_final[i])
+        {
+           // Add font height and margin to Y position.
+            base_pos.y += (str_height_max + TEXT_MARGIN_Y);
+
+            // Print position text.
+            font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER, char_final[i]);
+
+            // Release memory allocated for the string.
+            free(char_final[i]);
         }
     }
 
@@ -15758,6 +15884,12 @@ void draw_visual_debug()
         if(savedata.debug_position)
         {
             draw_position_entity(entity, 0, LOCAL_COLOR_WHITE, NULL);
+        }
+
+        // Show features.
+        if(savedata.debug_features)
+        {
+            draw_features_entity(entity, 0, LOCAL_COLOR_WHITE, NULL);
         }
 
         // Collision body debug requested?
@@ -16015,6 +16147,7 @@ void predrawstatus()
     }// end of for
 
     if(savedata.debug_position
+       || savedata.debug_features
        || savedata.debug_collision_attack
        || savedata.debug_collision_body
        || savedata.debug_collision_range)
@@ -34604,6 +34737,7 @@ void menu_options_debug()
         // and last can go in any
         // order.
         ITEM_POSITION,
+        ITEM_FEATURES,
         ITEM_COL_ATTACK,
         ITEM_COL_BODY,
         ITEM_COL_RANGE,
@@ -34642,6 +34776,10 @@ void menu_options_debug()
 
         _menutext((selector == ITEM_POSITION),       COLUMN_1_POS_X, pos_y, Tr("Position:"));
         _menutext((selector == ITEM_POSITION),       COLUMN_2_POS_X, pos_y, (savedata.debug_position ? Tr("Enabled") : Tr("Disabled")));
+        pos_y++;
+
+        _menutext((selector == ITEM_FEATURES),       COLUMN_1_POS_X, pos_y, Tr("Features:"));
+        _menutext((selector == ITEM_FEATURES),       COLUMN_2_POS_X, pos_y, (savedata.debug_features ? Tr("Enabled") : Tr("Disabled")));
         pos_y++;
 
         _menutext((selector == ITEM_COL_ATTACK),     COLUMN_1_POS_X, pos_y, Tr("Collision Attack:"));
@@ -34726,6 +34864,9 @@ void menu_options_debug()
                     break;
                 case ITEM_POSITION:
                     savedata.debug_position = !savedata.debug_position;
+                    break;
+                case ITEM_FEATURES:
+                    savedata.debug_features = !savedata.debug_features;
                     break;
                 case ITEM_COL_ATTACK:
                     savedata.debug_collision_attack = !savedata.debug_collision_attack;
@@ -34958,6 +35099,8 @@ void menu_options_system()
     savesettings();
     bothnewkeys = 0;
     systemoptionsMenu = 0;
+
+    #undef SYS_OPT_Y_POS
 }
 
 
@@ -35488,6 +35631,11 @@ void menu_options()
     }
     bothnewkeys = 0;
     optionsMenu = 0;
+
+    #undef TOT_CHEATS
+    #undef OPT_Y_POS
+    #undef OPT_X_POS
+    #undef CHEAT_PAUSE_POSY
 }
 
 void menu_options_soundcard()
