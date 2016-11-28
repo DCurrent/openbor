@@ -7799,17 +7799,18 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
         unsigned char c = '\0';
         size_t len = strlen(buf);
 
-        c = (unsigned char)tolower((int)buf[pos]);
+        c = buf[pos];
         if (c == '/')
         {
             if ( pos+1 < len-1 )
             {
+                c = buf[pos];
                 if (c == '/')
                 {
                     while( pos < len && c != 0x0D && c != 0x0A )
                     {
                         ++pos;
-                        c = (unsigned char)tolower((int)buf[pos]);
+                        c = buf[pos];
                     }
                     pos = lcmScriptAvoidComment(buf,pos);
                     return pos;
@@ -7818,12 +7819,12 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
                 {
                     ++pos;
                     if ( pos >= len ) return pos;
-                    c = (unsigned char)tolower((int)buf[pos]);
+                    c = buf[pos];
                     while( pos+1 < len )
                     {
                         if ( c == '*' )
                         {
-                            unsigned char c2 = (unsigned char)tolower((int)buf[pos+1]);
+                            unsigned char c2 = buf[pos+1];
 
                             if ( c2 == '/' )
                             {
@@ -7833,7 +7834,7 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
                             }
                         }
                         ++pos;
-                        c = (unsigned char)tolower((int)buf[pos]);
+                        c = buf[pos];
                     }
                 }
                 else
@@ -7847,7 +7848,7 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
     return pos;
 }
 
-ptrdiff_t lcmScriptGetMainPos(char *buf)
+ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
 {
     size_t len = 0;
     ptrdiff_t pos = 0;
@@ -7870,16 +7871,17 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
                 {
                     if ( c == 'v' )
                     {
-                        index_res = pos;
+                        index_res = pos; // store void main() start pos
                         current_state = PRE0;
                     }
                     else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0D || c == 0x0A || c == '\t' ) current_state = START;
                     else if ( c == '\0' ) return -1;
                     else {
-                        current_state = PIT;
+                        current_state = START;
                         ++pos;
                         pos = lcmScriptAvoidComment(buf,pos);
                         c = (unsigned char)tolower((int)buf[pos]);
+                        continue;
                     }
                     break;
                 }
@@ -7954,7 +7956,11 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
                     if ( c == '{' )
                     {
                         current_state = END;
-                        if (++pos < len) return index_res; // pos)
+                        if (++pos < len)
+                        {
+                            *str_width = pos-index_res;
+                            return index_res;
+                        }
                         else return -1;
                     }
                     else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0D || c == 0x0A || c == '\t' ) current_state = P1;
@@ -7964,6 +7970,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
                 }
                 case PIT:
                 {
+                    // to begin from 'v' of void
                     current_state = START;
                     continue;
                 }
@@ -7974,16 +7981,24 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
             ++pos; // at the end position after the '{'
             if (current_state == END)
             {
-                if (pos < len) return index_res;
+                if (pos < len)
+                {
+                    *str_width = pos-index_res;
+                    return index_res;
+                }
                 else return -1;
             }
             pos = lcmScriptAvoidComment(buf,pos);
             c = (unsigned char)tolower((int)buf[pos]);
-        }
+        } // end while loop
         if (current_state == PIT) return -1;
         else if (current_state == END)
         {
-            if (pos < len) return index_res;
+            if (pos < len)
+            {
+                *str_width = pos-index_res;
+                return index_res;
+            }
             else return -1;
         }
     }
@@ -7991,9 +8006,10 @@ ptrdiff_t lcmScriptGetMainPos(char *buf)
     return -1;
 }
 
-size_t lcmScriptSearchForMain(char **buf)
+// add main (or add vars in main) - used for animationscript file
+size_t lcmScriptAddMain(char **buf)
 {
-    size_t len = 0, len2 = 0;
+    size_t len = 0, len2 = 0, buf_len = 0;
     ptrdiff_t pos = 0;
     char* newbuf = NULL;
 
@@ -8001,14 +8017,12 @@ size_t lcmScriptSearchForMain(char **buf)
     {
         len = strlen(*buf);
 
-        pos = lcmScriptGetMainPos(*buf);
+        pos = lcmScriptGetMainPos(*buf,&buf_len);
         if ( pos == -1 ) // main() not found!
         {
             char mtxt[] = "\n\nvoid main()\n{\n    int frame = getlocalvar(\"frame\");\n    int animhandle = getlocalvar(\"animhandle\");\n\n}\n\n";
 
-            while( (*buf)[pos] != '{' ) ++pos;
-            ++pos;
-
+            pos += buf_len;
             pos = len; // pos before '\0' (at last char)
             len2 = strlen(mtxt);
             newbuf = malloc(sizeof(**buf)*len + sizeof(mtxt)*len2 + 1 );
@@ -8018,6 +8032,7 @@ size_t lcmScriptSearchForMain(char **buf)
 
             free( (*buf) );
             (*buf) = newbuf;
+
             //printf("written main in buffer\n%s\n",newbuf);
         }
         else
@@ -8026,9 +8041,7 @@ size_t lcmScriptSearchForMain(char **buf)
             char mtxt[] = "\n\nvoid main()\n{\n    int frame = getlocalvar(\"frame\");\n    int animhandle = getlocalvar(\"animhandle\");\n\n";
 
             len2 = strlen(mtxt);
-            pos2 = pos;
-            while( (*buf)[pos2] != '{' ) ++pos2;
-            ++pos2;
+            pos2 = pos + buf_len;
 
             newbuf = malloc(sizeof(**buf)*pos + sizeof(mtxt)*len2 + sizeof(**buf)*(len-pos2) + 1 );
             strncpy(newbuf, *buf, pos);
@@ -8048,9 +8061,10 @@ size_t lcmScriptSearchForMain(char **buf)
     return len;
 }
 
-size_t lcmScriptInsertInMain(char **buf, char *first_buf)
+// used to join animationscript @scrip/@cmd width animationscript file main()
+size_t lcmScriptJoinMain(char **buf, char *first_buf)
 {
-    size_t len = 0, len2 = 0;
+    size_t len = 0, len2 = 0, buf_len = 0;
     ptrdiff_t pos = 0;
     int pcount = 0;
     char* newbuf = NULL;
@@ -8060,9 +8074,8 @@ size_t lcmScriptInsertInMain(char **buf, char *first_buf)
         len = strlen(*buf);
         len2 = strlen(first_buf);
 
-        pos = lcmScriptGetMainPos(*buf);
-        while( (*buf)[pos] != '{' ) ++pos;
-        ++pos;
+        pos = lcmScriptGetMainPos(*buf,&buf_len);
+        pos += buf_len;
 
         pcount = 1;
         while(pcount > 0)
@@ -8073,7 +8086,6 @@ size_t lcmScriptInsertInMain(char **buf, char *first_buf)
         }
         --pos; // back to last '}' of main()
 
-        //buf = realloc(*buf, sizeof(**buf)*len + sizeof(*first_buf)*len2 + 1 );
         newbuf = malloc(sizeof(**buf)*len + sizeof(*first_buf)*len2 + 1 );
         strncpy(newbuf, *buf, pos);
         strncpy(newbuf+pos, first_buf, len2);
@@ -8083,10 +8095,9 @@ size_t lcmScriptInsertInMain(char **buf, char *first_buf)
         free( (*buf) );
         (*buf) = newbuf;
 
-        //printf("test inserted buffer\n%s\n",*buf);
+        //printf("test joined buffer\n%s\n",*buf);
     }
 
-    //don't forget to free first_buf after call
     return len;
 }
 
@@ -11100,8 +11111,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         writeToScriptLog(scriptbuf);
 
         lcmScriptDeleteMain(&scriptbuf);
-        lcmScriptSearchForMain(&animscriptbuf);
-        lcmScriptInsertInMain(&animscriptbuf,scriptbuf);
+        lcmScriptAddMain(&animscriptbuf);
+        lcmScriptJoinMain(&animscriptbuf,scriptbuf);
 
         if(!Script_IsInitialized(newchar->scripts->animation_script))
         {
@@ -11115,7 +11126,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         {
             Script_Init(newchar->scripts->animation_script, newchar->name, filename, 0);
         }
-        lcmScriptSearchForMain(&animscriptbuf);
+        lcmScriptAddMain(&animscriptbuf);
         tempInt = Script_AppendText(newchar->scripts->animation_script, animscriptbuf, filename);
     }
     else if(scriptbuf && scriptbuf[0])
