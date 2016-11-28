@@ -38,6 +38,7 @@ typedef struct
     int debug_collision_body;
     int debug_collision_range;
     int debug_position;
+    int debug_features;
     int fullscreen; // Window or Full Screen Mode
     int stretch; // Stretch (1) or preserve aspect ratio (0) in fullscreen mode
     int screen[1][2];
