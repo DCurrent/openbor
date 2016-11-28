@@ -7802,7 +7802,8 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
         c = buf[pos];
         if (c == '/')
         {
-            if ( pos+1 < len-1 )
+            ++pos;
+            if ( pos < len-1 )
             {
                 c = buf[pos];
                 if (c == '/')
