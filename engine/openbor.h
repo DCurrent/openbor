@@ -1289,46 +1289,30 @@ typedef struct
     int toggle;
 } s_slow_motion;
 
+// Caskey, Damon V.
+// 2011-04-08
+//
+// Delay modifiers before rise or
+// riseattack can take place.
 typedef struct
 {
-    /*
-    Delay modifiers before rise or riseattack can take place.
-    2011-04-08
-    Damon V. Caskey
-    */
-
-    u32 rise;               //Time modifier before rise.
-    u32 riseattack;         //Time modifier before riseattack.
-    u32 riseattack_stall;   //Total stalltime before riseattack.
+    unsigned int rise;               // Time modifier before rise.
+    unsigned int riseattack;         // Time modifier before riseattack.
+    unsigned int riseattack_stall;   // Total stalltime before riseattack.
 } s_staydown;
 
-typedef struct
-{
-    /*
-    Damage over time struct for attacker and defender.
-    2013-12-15
-    Damon V. Caskey
-    */
-
-    struct s_collision_attack *attack;    //Attack data.
-    int index;                  //Index (for multiple dots on single target).
-    e_dot_mode mode;            //Dot mode.
-    struct entity *owner;       //Entity causing dot effect.
-    int rate;                   //Dot tick delay.
-    u32 time_expire;            //Time to expire.
-    u32 time_next;              //Time of next tick.
-} s_dot;
-
+// Caskey, Damon V.
 // 2016-10-31
+//
 // Recursive damage structure
 // for attack boxes only.
 typedef struct
 {
-    int                 force;  // Damage force per tick.
-    int                 index;  // Index.
-    e_dot_mode          mode;   // Mode.
-    int                 rate;   // Tick delay.
-    u32                 time;   // Time to expire.
+    int             force;  // Damage force per tick.
+    int             index;  // Index.
+    e_dot_mode      mode;   // Mode.
+    int             rate;   // Tick delay.
+    unsigned int    time;   // Time to expire.
 } s_damage_recursive;
 
 typedef struct
@@ -1352,22 +1336,31 @@ typedef struct
     float       pain;           // Pain factor (like nopain) for defense type.
 } s_defense;
 
+// Caskey, Damon V.
+// 2016-10~
+//
+// Collision box for detecting
+// attack boxes.
 typedef struct
 {
-    s_hitbox    *coords;
-    s_defense   *defense;
-    int         index;
-    int         tag;
-
+    s_hitbox    *coords;        // Collision box dimensions.
+    s_defense   *defense;       // Defense properties for this collision box only.
+    int         index;          // To enable user tracking of this box's index when multiple instances are in use.
+    int         tag;            // User defined tag for scripts. No hard coded purpose.
 } s_collision_body;
 
+// Caskey, Damon V.
+// 2016-10~
+//
+// List of collision body boxes
+// per animation frame.
 typedef struct
 {
-    s_collision_body **instance;    // This does not belong in attack - it's here while gradually building mallocs for multiple boxes.
+    s_collision_body **instance;
 } s_collision_body_list;
 
-
-// Collision, for attacks.
+// Collision box for active
+// attacks.
 typedef struct
 {
     int                 attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
@@ -1383,7 +1376,7 @@ typedef struct
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 forcemap;           // Set target's palette on hit.
     int                 freeze;             // Lock target in place and set freeze time.
-    u32                 freezetime;         // Time for target to remain frozen.
+    unsigned int        freezetime;         // Time for target to remain frozen.
     int                 grab;               // Not a grab as in grapple - behavior on hit for setting target's position
     float               grab_distance;      // Distance used by "grab".
     int                 guardcost;          // cost for blocking an attack
@@ -1391,37 +1384,42 @@ typedef struct
     int                 hitsound;           // Sound effect to be played when attack hits opponent
     int                 index;              // Possible future support of multiple boxes - it's doubt even if support is added this property will be needed.
     int                 jugglecost;         // cost for juggling a falling ent
-    u32                 maptime;            // Time for forcemap to remain in effect.
+    unsigned int        maptime;            // Time for forcemap to remain in effect.
     int                 no_block;           // If this is greater than defense block power, make the hit
     int                 no_flash;           // Flag to determine if an attack spawns a flash or not
     int                 no_kill;            // this attack won't kill target (leave 1 HP)
     int                 no_pain;            // No animation reaction on hit.
     e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
-    u32                 pain_time;          // pain invincible time
+    unsigned int        pain_time;          // pain invincible time
     int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
     s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
     int                 seal;               // Disable target's animations with energycost > seal.
-    u32                 sealtime;           // Time for seal to remain in effect.
+    unsigned int        sealtime;           // Time for seal to remain in effect.
     s_staydown          staydown;           // Modify victum's stayodwn properties.
     int                 steal;              // Add damage to owner's hp.
-    int                 tag;                // Non engine use tag for scripting.
+    int                 tag;                // User defined tag for scripts. No hard coded purpose.
 } s_collision_attack;
 
+// Caskey, Damon V.
+// 2016-10~
+//
+// List of collision attack boxes
+// per animation frame.
 typedef struct
 {
-    s_collision_attack **instance;    // This does not belong in attack - it's here while gradually building mallocs for multiple boxes.
+    s_collision_attack **instance;
 } s_collision_attack_list;
 
-
-// Last hit structure. Populated each time a collision is detected.
 // Caskey, Damon V.
 // 2013-12-15
+//
+// Last hit structure. Populated each time a collision is detected.
 typedef struct
 {
-    s_collision_attack *attack;    // Collision attacking box.
-    s_collision_body      *body;      // Collision detect box.
-    int         confirm;    // Will engine's default hit handling be used?
-    s_axis_f    position;   // X,Y,Z of last hit.
+    s_collision_attack  *attack;    // Collision attacking box.
+    s_collision_body    *body;      // Collision detect box.
+    int                 confirm;    // Will engine's default hit handling be used?
+    s_axis_f            position;   // X,Y,Z of last hit.
 } s_lasthit;
 
 typedef struct
@@ -1458,9 +1456,9 @@ typedef struct
     Damon V. Caskey
     */
 
-    int ent;            //Index of entity to spawn.
-    int frame;          //Frame to perform action.
-    s_axis_f velocity;  //x,a,z velocity.
+    int ent;            // Index of entity to spawn.
+    int frame;          // Frame to perform action.
+    s_axis_f velocity;  // x,a,z velocity.
 } s_onframe;
 
 typedef struct
@@ -1471,8 +1469,8 @@ typedef struct
     2011-04-01
     */
 
-    s_metric_i frame; //max = Frame animation reaches before looping, min = Frame animation loops back to.
-    int mode; //0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
+    s_metric_i frame;   // max = Frame animation reaches before looping, min = Frame animation loops back to.
+    int mode;           // 0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
 } s_loop;
 
 typedef struct //2011_04_01, DC: Frame based screen shake functionality.
