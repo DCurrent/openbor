@@ -5591,7 +5591,7 @@ int free_model(s_model *model)
     deleteModel(model->name);
     printf(".");
 
-    printf("done.\n");
+    printf("Done.\n");
 
     return models_loaded--;
 }
@@ -7798,6 +7798,7 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
     {
         unsigned char c = '\0';
         size_t len = strlen(buf);
+        ptrdiff_t pre_pos = pos;
 
         c = buf[pos];
         if (c == '/')
@@ -7840,7 +7841,7 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
                 }
                 else
                 {
-                    return pos;
+                    return pre_pos;
                 }
             }
         } else return pos;
@@ -7853,7 +7854,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
 {
     size_t len = 0;
     ptrdiff_t pos = 0;
-    enum {START,PRE0,PRE1,PRE2,PRE3,M0,M1,M2,M3,P0,P1,PIT,END} current_state = START;
+    enum {START,PRE0,PRE1,PRE2,PRE3,M0,M1,M2,M3,P0,P1,END} current_state = START;
     unsigned char c = '\0';
     int index_res = -1;
     //void main() {
@@ -7877,34 +7878,28 @@ ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
                     }
                     else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0D || c == 0x0A || c == '\t' ) current_state = START;
                     else if ( c == '\0' ) return -1;
-                    else {
-                        current_state = START;
-                        ++pos;
-                        pos = lcmScriptAvoidComment(buf,pos);
-                        c = (unsigned char)tolower((int)buf[pos]);
-                        continue;
-                    }
+                    else current_state = START;
                     break;
                 }
                 case PRE0:
                 {
                     if ( c == 'o' ) current_state = PRE1;
                     else if ( c == '\0' ) return -1;
-                    else current_state = PIT;
+                    else current_state = START;
                     break;
                 }
                 case PRE1:
                 {
                     if ( c == 'i' ) current_state = PRE2;
                     else if ( c == '\0' ) return -1;
-                    else current_state = PIT;
+                    else current_state = START;
                     break;
                 }
                 case PRE2:
                 {
                     if ( c == 'd' ) current_state = PRE3;
                     else if ( c == '\0' ) return -1;
-                    else current_state = PIT;
+                    else current_state = START;
                     break;
                 }
                 case PRE3:
@@ -7912,28 +7907,28 @@ ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
                     if ( c == 'm' ) current_state = M0;
                     else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0D || c == 0x0A || c == '\t' ) current_state = PRE3;
                     else if ( c == '\0' ) return -1;
-                    else current_state = PIT;
+                    else current_state = START;
                     break;
                 }
                 case M0:
                 {
                     if ( c == 'a' ) current_state = M1;
                     else if ( c == '\0' ) return -1;
-                    else current_state = PIT;
+                    else current_state = START;
                     break;
                 }
                 case M1:
                 {
                     if ( c == 'i' ) current_state = M2;
                     else if ( c == '\0' ) return -1;
-                    else current_state = PIT;
+                    else current_state = START;
                     break;
                 }
                 case M2:
                 {
                     if ( c == 'n' ) current_state = M3;
                     else if ( c == '\0' ) return -1;
-                    else current_state = PIT;
+                    else current_state = START;
                     break;
                 }
                 case M3:
@@ -7941,7 +7936,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
                     if ( c == '(' ) current_state = P0;
                     else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0D || c == 0x0A || c == '\t' ) current_state = M3;
                     else if ( c == '\0' ) return -1;
-                    else current_state = PIT;
+                    else current_state = START;
                     break;
                 }
                 case P0:
@@ -7949,7 +7944,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
                     if ( c == ')' ) current_state = P1;
                     else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0D || c == 0x0A || c == '\t' ) current_state = P0;
                     else if ( c == '\0' ) return -1;
-                    else current_state = PIT;
+                    else current_state = START;
                     break;
                 }
                 case P1:
@@ -7966,14 +7961,8 @@ ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
                     }
                     else if ( c == ' ' || c == '\n' || c == '\r' || c == 0x0D || c == 0x0A || c == '\t' ) current_state = P1;
                     else if ( c == '\0' ) return -1;
-                    else current_state = PIT;
+                    else current_state = START;
                     break;
-                }
-                case PIT:
-                {
-                    // to begin from 'v' of void
-                    current_state = START;
-                    continue;
                 }
                 case END:
                 default:
@@ -7992,8 +7981,8 @@ ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
             pos = lcmScriptAvoidComment(buf,pos);
             c = (unsigned char)tolower((int)buf[pos]);
         } // end while loop
-        if (current_state == PIT) return -1;
-        else if (current_state == END)
+
+        if (current_state == END)
         {
             if (pos < len)
             {
@@ -8001,7 +7990,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
                 return index_res;
             }
             else return -1;
-        }
+        } else return -1;
     }
 
     return -1;
@@ -13649,7 +13638,7 @@ void unload_level()
             }
         }
         while(temp);
-        printf("Done.\n");
+        printf("RAM Status:\n");
         getRamStatus(BYTES);
 
 
@@ -31792,7 +31781,7 @@ void shutdown(int status, char *msg, ...)
     }
     if(!disablelog)
     {
-        printf("\tDone!\n");
+        printf("Done!\n\n");
     }
 
     if(!disablelog)
