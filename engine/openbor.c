@@ -7797,12 +7797,13 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
     if ( buf && buf[0] )
     {
         unsigned char c = '\0';
-        size_t len = strlen(buf);
         ptrdiff_t pre_pos = pos;
 
         c = buf[pos];
         if (c == '/')
         {
+            size_t len = strlen(buf);
+
             ++pos;
             if ( pos < len-1 )
             {
@@ -7814,6 +7815,7 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
                         ++pos;
                         c = buf[pos];
                     }
+                    if (pos < len) ++pos;
                     pos = lcmScriptAvoidComment(buf,pos);
                     return pos;
                 }
@@ -7844,7 +7846,7 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
                     return pre_pos;
                 }
             }
-        } else return pos;
+        } else return pre_pos;
     }
 
     return pos;
@@ -11112,11 +11114,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     }
     else if(animscriptbuf && animscriptbuf[0])
     {
+        lcmScriptAddMain(&animscriptbuf);
+
         if(!Script_IsInitialized(newchar->scripts->animation_script))
         {
             Script_Init(newchar->scripts->animation_script, newchar->name, filename, 0);
         }
-        lcmScriptAddMain(&animscriptbuf);
         tempInt = Script_AppendText(newchar->scripts->animation_script, animscriptbuf, filename);
     }
     else if(scriptbuf && scriptbuf[0])
