@@ -6795,25 +6795,15 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         {
         case _ep_energycost_cost:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            if(ent->modeldata.animation[i]->energycost)
-            {
-                (*pretvar)->lVal = ent->modeldata.animation[i]->energycost->cost;
-            }
-
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.cost;
             break;
         case _ep_energycost_disable:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            if(ent->modeldata.animation[i]->energycost)
-            {
-                (*pretvar)->lVal = ent->modeldata.animation[i]->energycost->disable;
-            }
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.disable;
             break;
         case _ep_energycost_mponly:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            if(ent->modeldata.animation[i]->energycost)
-            {
-                (*pretvar)->lVal = ent->modeldata.animation[i]->energycost->mponly;
-            }
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->energycost.mponly;
             break;
         default:
             *pretvar = NULL;
@@ -8716,11 +8706,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
             {
-                if(ent->modeldata.animation[i]->energycost)
-                {
-                    ent->modeldata.animation[i]->energycost->cost = ltemp;
-                }
-
+                ent->modeldata.animation[i]->energycost.cost = (int)ltemp;
             }
             break;
         }
@@ -8728,10 +8714,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
             {
-                if(ent->modeldata.animation[i]->energycost)
-                {
-                    ent->modeldata.animation[i]->energycost->disable = ltemp;
-                }
+                ent->modeldata.animation[i]->energycost.disable = (int)ltemp;
             }
             break;
         }
@@ -8739,10 +8722,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
             {
-                if(ent->modeldata.animation[i]->energycost)
-                {
-                    ent->modeldata.animation[i]->energycost->mponly = ltemp;
-                }
+                ent->modeldata.animation[i]->energycost.mponly = (int)ltemp;
             }
             break;
         }
