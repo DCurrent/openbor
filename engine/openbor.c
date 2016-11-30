@@ -5450,6 +5450,11 @@ void free_anim(s_anim *anim)
         free(anim->counterrange);
         anim->counterrange = NULL;
     }
+    if(anim->dropframe)
+    {
+        free(anim->dropframe);
+        anim->dropframe = NULL;
+    }
     free(anim);
 }
 
@@ -9750,7 +9755,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->followup.condition     = FOLLOW_CONDITION_DISABLED;
                 newanim->unsummonframe          = -1;
                 newanim->landframe.frame        = -1;
-                newanim->dropframe.frame        = -1;
+                newanim->dropframe              = NULL;
                 newanim->cancel                 = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
                 newanim->animhits               = 0; //OX counts hits on a per anim basis for cancels.
                 newanim->subentity              = newanim->projectile.bomb = newanim->projectile.knife = newanim->projectile.star = newanim->projectile.flash = -1;
@@ -9949,7 +9954,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_DROPFRAME:
-                newanim->dropframe.frame = GET_FRAME_ARG(1);
+                newanim->dropframe    = malloc(sizeof(*newanim->dropframe));
+                memset(newanim->dropframe, 0, sizeof(*newanim->dropframe));
+
+                newanim->dropframe->frame = GET_FRAME_ARG(1);
                 break;
             case CMD_MODEL_CANCEL:
             {
@@ -19518,10 +19526,18 @@ void check_gravity(entity *e)
             {
                 self->velocity.y = fmax;
             }
-            if(self->animation->dropframe.frame >= 0 && self->velocity.y <= 0 && self->animpos < self->animation->dropframe.frame) // begin dropping
+
+            // Dropframe set?
+            if(self->animation->dropframe)
             {
-                update_frame(self, self->animation->dropframe.frame);
+                // If falling and frame has not
+                // passed dropframe, set frame to dropframe.
+                if(self->velocity.y <= 0 && self->animpos < self->animation->dropframe->frame) // begin dropping
+                {
+                    update_frame(self, self->animation->dropframe->frame);
+                }
             }
+
             if (self->velocity.y)
             {
                 execute_onmovea_script(self);    //Move A event.
