@@ -6067,7 +6067,7 @@ int addframe(s_anim             *a,
             memset(a->offset, 0, framecount * sizeof(*a->offset));
         }
         a->offset[currentframe] = malloc(sizeof(**a->offset));
-        memcpy(a->offset[currentframe], offset, sizeof(*a->offset));
+        memcpy(a->offset[currentframe], offset, sizeof(**a->offset));
     }
 
     if(platform[7]) //height
