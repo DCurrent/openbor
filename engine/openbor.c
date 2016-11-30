@@ -5450,19 +5450,11 @@ void free_anim(s_anim *anim)
         free(anim->counterrange);
         anim->counterrange = NULL;
     }
-
     if(anim->dropframe)
     {
         free(anim->dropframe);
         anim->dropframe = NULL;
     }
-
-    if(anim->energycost)
-    {
-        free(anim->energycost);
-        anim->energycost = NULL;
-    }
-
     free(anim);
 }
 
@@ -6832,15 +6824,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "special") == 0 || stricmp(value, "special1") == 0)
     {
         ani_id = ANI_SPECIAL;
-
-        if(!newanim->energycost)
-        {
-            newanim->energycost    = malloc(sizeof(*newanim->energycost));
-            memset(newanim->energycost, 0, sizeof(*newanim->energycost));
-
-            newanim->energycost->cost   = ENERGYCOST_DEFAULT_COST;
-            newanim->energycost->mponly = COST_TYPE_MP_THEN_HP;
-        }
+        newanim->energycost.cost = 6;
     }
     else if(stricmp(value, "special2") == 0)
     {
@@ -9757,7 +9741,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.max.base         = 1000;                             //Base max.
 
                 newanim->jumpframe.velocity.y   = 0;  //Default disabled.
-                newanim->energycost             = NULL;						        // Energy required for perform this animation.
+                newanim->energycost.mponly      = COST_TYPE_MP_THEN_HP;							//MP only.
+                newanim->energycost.disable     = 0;							//Disable flag.
                 newanim->chargetime             = 2;			// Default for backwards compatibility
                 newanim->projectile.shootframe  = -1;
                 newanim->projectile.throwframe  = -1;
@@ -9817,27 +9802,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_ENERGYCOST:
             case CMD_MODEL_MPCOST:
-
-                if(!newanim->energycost)
-                {
-                    newanim->energycost    = malloc(sizeof(*newanim->energycost));
-                    memset(newanim->energycost, 0, sizeof(*newanim->energycost));
-                }
-
-                newanim->energycost->cost    = GET_INT_ARG(1);
-                newanim->energycost->mponly  = GET_INT_ARG(2);
-                newanim->energycost->disable = GET_INT_ARG(3);
-
+                newanim->energycost.cost    = GET_INT_ARG(1);
+                newanim->energycost.mponly  = GET_INT_ARG(2);
+                newanim->energycost.disable = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_MPONLY:
-
-                if(!newanim->energycost)
-                {
-                    newanim->energycost    = malloc(sizeof(*newanim->energycost));
-                    memset(newanim->energycost, 0, sizeof(*newanim->energycost));
-                }
-
-                newanim->energycost->mponly = GET_INT_ARG(1);
+                newanim->energycost.mponly = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_CHARGETIME:
                 newanim->chargetime = GET_FLOAT_ARG(1);
@@ -19283,38 +19253,33 @@ void do_attack(entity *e)
     // if ###
     if(didhit)
     {
-        // Is there an energycost defined?
-        if(current_anim->energycost)
+        // well, dont check player or not - UTunnels. TODO: take care of that healthcheat
+        if(e == topowner && current_anim->energycost.cost > 0 && nocost && !healthcheat)
         {
-            // well, dont check player or not - UTunnels. TODO: take care of that healthcheat
-            if(e == topowner && current_anim->energycost->cost > 0 && nocost && !healthcheat)
-            {
-                e->tocost = 1;    // Set flag so life is subtracted when animation is finished
-            }
-            else if(e != topowner && current_anim->energycost->cost > 0 && nocost && !healthcheat && !e->tocost) // if it is not top, then must be a shot
-            {
-                if(current_anim->energycost->mponly != COST_TYPE_MP_THEN_HP && topowner->mp > 0)
-                {
-                    topowner->mp -= current_anim->energycost->cost;
-                    if(topowner->mp < 0)
-                    {
-                        topowner->mp = 0;
-                    }
-                }
-                else
-                {
-                    topowner->health -= current_anim->energycost->cost;
-                    if(topowner->health <= 0)
-                    {
-                        topowner->health = 1;
-                    }
-                }
-
-                topowner->cantfire = 0;    // Life subtracted, so go ahead and allow firing
-                e->tocost = 1;    // Little backwards, but set to 1 so cost doesn't get subtracted multiple times
-            }
+            e->tocost = 1;    // Set flag so life is subtracted when animation is finished
         }
+        else if(e != topowner && current_anim->energycost.cost > 0 && nocost && !healthcheat && !e->tocost) // if it is not top, then must be a shot
+        {
+            if(current_anim->energycost.mponly != COST_TYPE_MP_THEN_HP && topowner->mp > 0)
+            {
+                topowner->mp -= current_anim->energycost.cost;
+                if(topowner->mp < 0)
+                {
+                    topowner->mp = 0;
+                }
+            }
+            else
+            {
+                topowner->health -= current_anim->energycost.cost;
+                if(topowner->health <= 0)
+                {
+                    topowner->health = 1;
+                }
+            }
 
+            topowner->cantfire = 0;    // Life subtracted, so go ahead and allow firing
+            e->tocost = 1;    // Little backwards, but set to 1 so cost doesn't get subtracted multiple times
+        }
         // New blocking checks
         //04/27/2008 Damon Caskey: Added checks for defense property specfic blockratio and type. Could probably use some cleaning.
         if(didblock && !level->nohurt)
@@ -24423,6 +24388,7 @@ void common_attack_finish()
 //while playing attack animation
 void common_attack_proc()
 {
+
     if(self->animating || diff(self->position.y, self->base) >= 4)
     {
         return;
@@ -24430,20 +24396,15 @@ void common_attack_proc()
 
     if(self->tocost)
     {
-        // Energycost defined?
-        if(self->animation->energycost)
+        // Enemy was hit with a special so go ahead and subtract life
+        if(check_energy(COST_CHECK_MP, self->animnum))
         {
-           // Enemy was hit with a special so go ahead and subtract life
-            if(check_energy(COST_CHECK_MP, self->animnum))
-            {
-                self->mp -= self->animation->energycost->cost;
-            }
-            else
-            {
-                self->health -= self->animation->energycost->cost;
-            }
+            self->mp -= self->animation->energycost.cost;
         }
-
+        else
+        {
+            self->health -= self->animation->energycost.cost;
+        }
         self->tocost = 0;    // Life is subtracted, so go ahead and reset the flag
     }
 
@@ -26844,48 +26805,39 @@ int player_trymove(float xdir, float zdir)
 int check_energy(e_cost_check which, int ani)
 {
     int result = FALSE;
-    e_entity_type type;        //Entity type.
-    s_energycost energycost;
+    e_entity_type iType;        //Entity type.
+    int ecost_amt;              //Energy cost amount
+    int ecost_disable;          //Energy cost disable flag.
+    e_cost_type ecost_mponly;   //Energy cost mponly flag.
 
-    energycost.cost     = 0;
-    energycost.disable  = 0;
-    energycost.mponly   = COST_TYPE_MP_THEN_HP;
-
-    // Get animation's energycost if available.
-    if(self->modeldata.animation[ani]->energycost)
+    if(self->modeldata.animation[ani])											//Does animation exist?
     {
-        energycost = *self->modeldata.animation[ani]->energycost;
-    }
+        ecost_disable   = self->modeldata.animation[ani]->energycost.disable;		//Get disable flag.
+        iType		    = self->modeldata.type;										//Get entity type.
 
-    // Does animation exist?
-    if(self->modeldata.animation[ani])
-    {
-        // Get entity type.
-        type		    = self->modeldata.type;
+        /* DC 2010-05-08: It is now possible to individualy disable specials. In
+        many cases (weapons in particular) this can	help cut down the need for
+        superflous models when differing abilities are desired for players,
 
-        // Caskey, Damon V.
-        // 2010-05-08
-        //
-        // It is now possible to individually disable specials. In
-        // many cases (weapons in particular) this can	help cut down the need for
-        // superfluous models when differing abilities are desired for players,
-        // enemies, or npcs.
-        if(!(energycost.disable == type													// Disabled by type?
-                || (energycost.disable == -1)											    // Disabled for all?
-                || (energycost.disable == -2 && (type & (TYPE_ENEMY | TYPE_NPC)))		    // Disabled for all AI?
-                || (energycost.disable == -3 && (type & (TYPE_PLAYER | TYPE_NPC)))	        // Disabled for players & NPCs?
-                || (energycost.disable == -4 && (type & (TYPE_PLAYER | TYPE_ENEMY)))))     // Disabled for all AI?
+        enemies, or npcs. */
+        if(!(ecost_disable == iType													//Disabled by type?
+                || (ecost_disable == -1)											//Disabled for all?
+                || (ecost_disable == -2 && (iType & (TYPE_ENEMY | TYPE_NPC)))		//Disabled for all AI?
+                || (ecost_disable == -3 && (iType & (TYPE_PLAYER | TYPE_NPC)))	    //Disabled for players & NPCs?
+                || (ecost_disable == -4 && (iType & (TYPE_PLAYER | TYPE_ENEMY)))))  //Disabled for all AI?
         {
-            // No seal or seal is less/same as energy cost?
-            if(!self->seal || self->seal >= energycost.cost)
+            ecost_amt = self->modeldata.animation[ani]->energycost.cost;			//Get energy cost amount
+            ecost_mponly = self->modeldata.animation[ani]->energycost.mponly;		//Get energy cost type.
+
+            if(!self->seal || self->seal >= ecost_amt)							    //No seal or seal is less/same as energy cost?
             {
-                if(validanim(self, ani) &&										// Validate the animation one more time.
+                if(validanim(self, ani) &&										    //Validate the animation one more time.
                         ((which == COST_CHECK_MP &&			                    //Check magic validity
-                          (energycost.mponly != COST_TYPE_HP_ONLY) &&
-                          (self->mp >= energycost.cost)) ||
+                          (ecost_mponly != COST_TYPE_HP_ONLY) &&
+                          (self->mp >= ecost_amt)) ||
                          (which == COST_CHECK_HP &&			                    //Check health validity
-                          (energycost.mponly != COST_TYPE_MP_ONLY) &&
-                          (self->health > energycost.cost))))
+                          (ecost_mponly != COST_TYPE_MP_ONLY) &&
+                          (self->health > ecost_amt))))
                 {
                     result = TRUE;
                 }
@@ -26910,7 +26862,6 @@ int check_energy(e_cost_check which, int ani)
 int check_special()
 {
     entity *e;
-
     if((!level->nospecial || level->nospecial == 3) &&
             !self->cantfire &&
             (check_energy(COST_CHECK_HP, ANI_SPECIAL) ||
@@ -26944,17 +26895,13 @@ int check_special()
 
         if(!nocost && !healthcheat)
         {
-            // Energycost defined?
-            if(self->modeldata.animation[ANI_SPECIAL]->energycost)
+            if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
             {
-                if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
-                {
-                    self->mp -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
-                }
-                else
-                {
-                    self->health -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
-                }
+                self->mp -= self->modeldata.animation[ANI_SPECIAL]->energycost.cost;
+            }
+            else
+            {
+                self->health -= self->modeldata.animation[ANI_SPECIAL]->energycost.cost;
             }
         }
 
@@ -27768,36 +27715,27 @@ void player_jump_check()
 
             if(validanim(self, ANI_JUMPSPECIAL))
             {
-                // Energycost defined?
-                if(self->modeldata.animation[ANI_JUMPSPECIAL]->energycost)
+                if(check_energy(COST_CHECK_MP, ANI_JUMPSPECIAL))
                 {
-                    if(check_energy(COST_CHECK_MP, ANI_JUMPSPECIAL))
+                    if(!healthcheat)
                     {
-                        if(!healthcheat)
-                        {
-                            self->mp -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost->cost;
-                        }
-                        candospecial = 1;
+                        self->mp -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost.cost;
                     }
-                    else if(check_energy(COST_CHECK_HP, ANI_JUMPSPECIAL))
-                    {
-                        if(!healthcheat)
-                        {
-                            self->health -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost->cost;
-                        }
-                        candospecial = 1;
-                    }
-                    else if(validanim(self, ANI_JUMPCANT))
-                    {
-                        ent_set_anim(self, ANI_JUMPCANT, 0);
-                        self->velocity.y = 0;
-                    }
-                }
-                else
-                {
                     candospecial = 1;
                 }
-
+                else if(check_energy(COST_CHECK_HP, ANI_JUMPSPECIAL))
+                {
+                    if(!healthcheat)
+                    {
+                        self->health -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost.cost;
+                    }
+                    candospecial = 1;
+                }
+                else if(validanim(self, ANI_JUMPCANT))
+                {
+                    ent_set_anim(self, ANI_JUMPCANT, 0);
+                    self->velocity.y = 0;
+                }
 
                 if(candospecial)
                 {
@@ -27969,17 +27907,13 @@ int check_costmove(int s, int fs, int jumphack)
         }
         if(!nocost && !healthcheat)
         {
-            // Energycost defined?
-            if(self->modeldata.animation[s]->energycost)
+            if(check_energy(COST_CHECK_MP, s))
             {
-                if(check_energy(COST_CHECK_MP, s))
-                {
-                    self->mp -= self->modeldata.animation[s]->energycost->cost;
-                }
-                else
-                {
-                    self->health -= self->modeldata.animation[s]->energycost->cost;
-                }
+                self->mp -= self->modeldata.animation[s]->energycost.cost;
+            }
+            else
+            {
+                self->health -= self->modeldata.animation[s]->energycost.cost;
             }
         }
 
@@ -29116,18 +29050,13 @@ void smart_bomb(entity *e, s_collision_attack *attack)    // New method for smar
     if(nocost && hit && smartbomber) // don't use e, because this can be an item-bomb
     {
         self = smartbomber;
-
-        // Energycost defined?
-        if(self->modeldata.animation[ANI_SPECIAL]->energycost)
+        if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
         {
-            if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
-            {
-                self->mp -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
-            }
-            else
-            {
-                self->health -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
-            }
+            self->mp -= self->modeldata.animation[ANI_SPECIAL]->energycost.cost;
+        }
+        else
+        {
+            self->health -= self->modeldata.animation[ANI_SPECIAL]->energycost.cost;
         }
     }
     self = tmpself;
@@ -29245,12 +29174,9 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->modeldata.type = self->modeldata.type;
     }
 
-    if(self->animation->energycost)
+    if(self->animation->energycost.cost > 0 && nocost)
     {
-        if(self->animation->energycost->cost > 0 && nocost)
-        {
-            self->cantfire = 1;    // Can't fire if still exists on screen
-        }
+        self->cantfire = 1;    // Can't fire if still exists on screen
     }
 
     if(!e->model->speed && !e->modeldata.nomove)
@@ -29351,12 +29277,9 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
 
     e->position.y = a + 0.5;
 
-    if(self->animation->energycost)
+    if(self->animation->energycost.cost > 0 && nocost)
     {
-        if(self->animation->energycost->cost > 0 && nocost)
-        {
-            self->cantfire = 1;    // Can't fire if still exists on screen
-        }
+        self->cantfire = 1;    // Can't fire if still exists on screen
     }
 
     if(!e->model->speed && !e->modeldata.nomove)
