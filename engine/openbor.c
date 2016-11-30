@@ -7811,7 +7811,7 @@ size_t lcmHandleCommandScripts(ArgList *arglist, char *buf, Script *script, char
     return pos;
 }
 
-ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
+ptrdiff_t lcmScriptAvoidComment(char *buf, size_t buf_len, ptrdiff_t pos)
 {
     if ( buf && buf[0] )
     {
@@ -7821,29 +7821,27 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
         c = buf[pos];
         if (c == '/')
         {
-            size_t len = strlen(buf);
-
             ++pos;
-            if ( pos < len-1 )
+            if ( pos < buf_len-1 )
             {
                 c = buf[pos];
                 if (c == '/')
                 {
-                    while( pos < len && c != 0x0D && c != 0x0A )
+                    while( pos < buf_len && c != 0x0D && c != 0x0A )
                     {
                         ++pos;
                         c = buf[pos];
                     }
-                    if (pos < len) ++pos;
-                    pos = lcmScriptAvoidComment(buf,pos);
+                    if (pos < buf_len) ++pos;
+                    pos = lcmScriptAvoidComment(buf,buf_len,pos);
                     return pos;
                 }
                 else if (c == '*')
                 {
                     ++pos;
-                    if ( pos >= len ) return pos;
+                    if ( pos >= buf_len ) return pos;
                     c = buf[pos];
-                    while( pos+1 < len )
+                    while( pos+1 < buf_len )
                     {
                         if ( c == '*' )
                         {
@@ -7852,7 +7850,7 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
                             if ( c2 == '/' )
                             {
                                 pos += 2;
-                                pos = lcmScriptAvoidComment(buf,pos);
+                                pos = lcmScriptAvoidComment(buf,buf_len,pos);
                                 return pos;
                             }
                         }
@@ -7871,20 +7869,17 @@ ptrdiff_t lcmScriptAvoidComment(char *buf, ptrdiff_t pos)
     return pos;
 }
 
-ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
+ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *buf_len)
 {
-    size_t len = 0;
-    ptrdiff_t pos = 0;
-    enum {START,PRE0,PRE1,PRE2,PRE3,M0,M1,M2,M3,P0,P1,END} current_state = START;
-    unsigned char c = '\0';
-    int index_res = -1;
-    //void main() {
-
     if ( buf && buf[0] )
     {
-        len = strlen(buf);
+        size_t len = *buf_len;
+        ptrdiff_t pos = 0;
+        enum {START,PRE0,PRE1,PRE2,PRE3,M0,M1,M2,M3,P0,P1,END} current_state = START;
+        unsigned char c = '\0';
+        int index_res = -1;
 
-        pos = lcmScriptAvoidComment(buf,pos);
+        pos = lcmScriptAvoidComment(buf,len,pos);
         c = (unsigned char)tolower((int)buf[pos]);
         while ( pos < len && current_state != END )
         {
@@ -7975,7 +7970,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
                         current_state = END;
                         if (++pos < len)
                         {
-                            *str_width = pos-index_res;
+                            *buf_len = pos-index_res;
                             return index_res;
                         }
                         else return -1;
@@ -7994,12 +7989,12 @@ ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
             {
                 if (pos < len)
                 {
-                    *str_width = pos-index_res;
+                    *buf_len = pos-index_res;
                     return index_res;
                 }
                 else return -1;
             }
-            pos = lcmScriptAvoidComment(buf,pos);
+            pos = lcmScriptAvoidComment(buf,len,pos);
             c = (unsigned char)tolower((int)buf[pos]);
         } // end while loop
 
@@ -8007,7 +8002,7 @@ ptrdiff_t lcmScriptGetMainPos(char *buf, size_t *str_width)
         {
             if (pos < len)
             {
-                *str_width = pos-index_res;
+                *buf_len = pos-index_res;
                 return index_res;
             }
             else return -1;
@@ -8026,7 +8021,7 @@ size_t lcmScriptAddMain(char **buf)
 
     if ( (*buf) && (*buf)[0] )
     {
-        len = strlen(*buf);
+        buf_len = len = strlen(*buf);
 
         pos = lcmScriptGetMainPos(*buf,&buf_len);
         if ( pos == -1 ) // main() not found!
@@ -8082,7 +8077,7 @@ size_t lcmScriptJoinMain(char **buf, char *first_buf)
 
     if ( (*buf) && first_buf && (*buf)[0] && first_buf[0] )
     {
-        len = strlen(*buf);
+        buf_len = len = strlen(*buf);
         len2 = strlen(first_buf);
 
         pos = lcmScriptGetMainPos(*buf,&buf_len);
