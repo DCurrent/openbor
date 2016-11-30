@@ -5216,6 +5216,21 @@ void alloc_frames(s_anim *anim, int fcount)
 void free_frames(s_anim *anim)
 {
     int i, instance;
+
+    if(anim->offset)
+    {
+        for(i = 0; i < anim->numframes; i++)
+        {
+            if(anim->offset[i])
+            {
+                free(anim->offset[i]);
+                anim->offset[i] = NULL;
+            }
+        }
+        free(anim->offset);
+        anim->offset = NULL;
+    }
+
     if(anim->idle)
     {
         free(anim->idle);
@@ -5860,7 +5875,7 @@ int addframe(s_anim             *a,
              int                *shadow_coords,
              int                soundtoplay,
              s_drawmethod       *drawmethod,
-             int                *offset,
+             s_axis_i_2d        *offset,
              s_damage_recursive *recursive,
              s_hitbox           *attack_coords,
              s_hitbox           *body_coords)
@@ -6037,15 +6052,19 @@ int addframe(s_anim             *a,
         }
         memcpy(a->shadow_coords[currentframe], shadow_coords, sizeof(*a->shadow_coords));
     }
-    if(offset[0] || offset[1])
+
+    // Offset
+    if(offset->x || offset->y)
     {
         if(!a->offset)
         {
             a->offset = malloc(framecount * sizeof(*a->offset));
             memset(a->offset, 0, framecount * sizeof(*a->offset));
         }
+        a->offset[currentframe] = malloc(sizeof(**a->offset));
         memcpy(a->offset[currentframe], offset, sizeof(*a->offset));
     }
+
     if(platform[7]) //height
     {
         if(!a->platform)
@@ -8346,30 +8365,32 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     ptrdiff_t pos = 0,
               index = 0;
 
-    s_hitbox bbox = {   .x = 0,
-                        .y = 0,
-                        .width = 0,
-                        .height = 0,
-                        .z1 = 0,
-                        .z2 = 0},
+    s_hitbox            bbox = {    .x      = 0,
+                                    .y      = 0,
+                                    .width  = 0,
+                                    .height = 0,
+                                    .z1     = 0,
+                                    .z2     = 0};
 
-             abox = {   .x = 0,
-                        .y = 0,
-                        .width = 0,
-                        .height = 0,
-                        .z1 = 0,
-                        .z2 = 0};
-    int offset[2] = { 0, 0 },
-        shadow_xz[2] = {0, 0},
-        shadow_coords[2] = {0, 0};
+    s_hitbox            abox = {    .x = 0,
+                                    .y = 0,
+                                    .width = 0,
+                                    .height = 0,
+                                    .z1 = 0,
+                                    .z2 = 0};
 
-    float platform[8] = { 0, 0, 0, 0, 0, 0, 0, 0 },
+    s_axis_i_2d         offset = {  .x = 0,
+                                    .y = 0 };
+    int                 shadow_xz[2] = {0, 0};
+    int                 shadow_coords[2] = {0, 0};
+
+    float               platform[8] = { 0, 0, 0, 0, 0, 0, 0, 0 },
                         platform_con[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-    s_axis_i move = {.base = -1,    //-1 = Disabled, 0+ base set
-                        .x = 0,
-                        .y = 0,
-                        .z = 0};
+    s_axis_i            move = {    .base = -1,    //-1 = Disabled, 0+ base set
+                                    .x = 0,
+                                    .y = 0,
+                                    .z = 0};
 
     s_damage_recursive  recursive;
     s_hitbox            attack_coords;
@@ -9684,7 +9705,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 curframe = 0;
                 memset(&bbox, 0, sizeof(bbox));
                 memset(&abox, 0, sizeof(abox));
-                memset(offset, 0, sizeof(offset));
+                memset(&offset, 0, sizeof(offset));
                 memset(shadow_coords, 0, sizeof(shadow_coords));
                 memset(shadow_xz, 0, sizeof(shadow_xz));
                 memset(platform, 0, sizeof(platform));
@@ -9771,8 +9792,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 delay = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_OFFSET:
-                offset[0] = GET_INT_ARG(1);
-                offset[1] = GET_INT_ARG(2);
+                offset.x = GET_INT_ARG(1);
+                offset.y = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_SHADOWCOORDS:
                 shadow_xz[0] = GET_INT_ARG(1);
@@ -10750,7 +10771,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 //printf("frame count: %d\n",framecount);
                 //printf("Load sprite '%s'...\n", value);
-                index = stricmp(value, "none") == 0 ? -1 : loadsprite(value, offset[0], offset[1], nopalette ? PIXEL_x8 : PIXEL_8); //don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
+                index = stricmp(value, "none") == 0 ? -1 : loadsprite(value, offset.x, offset.y, nopalette ? PIXEL_x8 : PIXEL_8); //don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
                 if(index >= 0)
                 {
                     if(pixelformat == PIXEL_x8 && !nopalette)
@@ -10778,8 +10799,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     }
                 }
                 // Adjust coords: add offsets and change size to coords
-                body_coords.x      = bbox.x - offset[0];
-                body_coords.y      = bbox.y - offset[1];
+                body_coords.x      = bbox.x - offset.x;
+                body_coords.y      = bbox.y - offset.y;
                 body_coords.width  = bbox.width + body_coords.x;
                 body_coords.height = bbox.height + body_coords.y;
                 body_coords.z1     = bbox.z1;
@@ -10787,19 +10808,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(body_coords.z2 > body_coords.z1)
                 {
-                    body_coords.z1 -= offset[1];
-                    body_coords.z2 -= offset[1];
+                    body_coords.z1 -= offset.y;
+                    body_coords.z2 -= offset.y;
                 }
 
-                attack_coords.x      = abox.x - offset[0];
-                attack_coords.y      = abox.y - offset[1];
+                attack_coords.x      = abox.x - offset.x;
+                attack_coords.y      = abox.y - offset.y;
                 attack_coords.width  = abox.width + attack_coords.x;
                 attack_coords.height = abox.height + attack_coords.y;
 
                 if(attack_coords.z2 > attack_coords.z1)
                 {
-                    attack_coords.z1 -= offset[1];
-                    attack_coords.z2 -= offset[1];
+                    attack_coords.z1 -= offset.y;
+                    attack_coords.z2 -= offset.y;
                 }
 
                 //attack.coords.z1 = abox.z1;
@@ -10807,16 +10828,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     platform_con[0] = 0;
                     platform_con[1] = 3;
-                    platform_con[2] = platform[2] - offset[0];
-                    platform_con[3] = platform[3] - offset[0];
-                    platform_con[4] = platform[4] - offset[0];
-                    platform_con[5] = platform[5] - offset[0];
+                    platform_con[2] = platform[2] - offset.x;
+                    platform_con[3] = platform[3] - offset.x;
+                    platform_con[4] = platform[4] - offset.x;
+                    platform_con[5] = platform[5] - offset.x;
                     platform_con[6] = platform[6] + 3;
                 }
                 else // wall style
                 {
-                    platform_con[0] = platform[0] - offset[0];
-                    platform_con[1] = platform[1] - offset[1];
+                    platform_con[0] = platform[0] - offset.x;
+                    platform_con[1] = platform[1] - offset.y;
                     platform_con[2] = platform[2];
                     platform_con[3] = platform[3];
                     platform_con[4] = platform[4];
@@ -10826,8 +10847,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 platform_con[7] = platform[7];
                 if(shadow_set)
                 {
-                    shadow_coords[0] = shadow_xz[0] - offset[0];
-                    shadow_coords[1] = shadow_xz[1] - offset[1];
+                    shadow_coords[0] = shadow_xz[0] - offset.x;
+                    shadow_coords[1] = shadow_xz[1] - offset.y;
                 }
                 else
                 {
@@ -10839,8 +10860,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     dm = drawmethod;
                     if(dm.clipw)
                     {
-                        dm.clipx -= offset[0];
-                        dm.clipy -= offset[1];
+                        dm.clipx -= offset.x;
+                        dm.clipy -= offset.y;
                     }
                 }
                 else
@@ -10851,7 +10872,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 curframe = addframe(newanim, index, framecount, delay, idle,
                                     &bbox_con, &attack, &move, platform_con,
                                     frameshadow, shadow_coords, soundtoplay,
-                                    &dm, offset, &recursive, &attack_coords,
+                                    &dm, &offset, &recursive, &attack_coords,
                                     &body_coords);
 
                 soundtoplay = -1;
@@ -10872,7 +10893,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 //printf("frame count: %d\n",framecount);
                 //printf("Load sprite '%s'...\n", value);
-                index = loadsprite(value, offset[0], offset[1], PIXEL_8); //don't use palette for the mask
+                index = loadsprite(value, offset.x, offset.y, PIXEL_8); //don't use palette for the mask
                 maskindex = index;
                 break;
             case CMD_MODEL_FLIPFRAME:
