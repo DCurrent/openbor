@@ -1549,7 +1549,7 @@ typedef struct
     s_counterrange  *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
     int             *delay;
     s_drawmethod    **drawmethods;
-    s_onframe       dropframe;              // if tossv < 0, this frame will be set
+    s_onframe       *dropframe;             // if tossv < 0, this frame will be set
     s_energycost    energycost;             // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
     int             flipframe;              // Turns entities around on the desired frame
     s_follow        followup;               // Subsequent animation on hit.
@@ -2474,11 +2474,23 @@ s_collision_attack      **collision_alloc_attack_list();
 s_collision_body        *collision_alloc_body_instance(s_collision_body *properties);
 s_collision_body        **collision_alloc_body_list();
 s_hitbox                *collision_alloc_coords(s_hitbox *coords);
-int                     addframe(s_anim *a, int spriteindex, int framecount, int delay, unsigned idle,
-                             s_collision_body *bbox, s_collision_attack *attack, s_axis_i *move,
-                             float *platform, int frameshadow,
-                             int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod,
-                             s_axis_i_2d *offset, s_damage_recursive *recursive, s_hitbox *attack_coords, s_hitbox *body_coords);
+int                     addframe(s_anim             *a,
+                                int                 spriteindex,
+                                int                 framecount,
+                                int                 delay,
+                                unsigned            idle,
+                                s_collision_body    *bbox,
+                                s_collision_attack  *attack,
+                                s_axis_i            *move,
+                                float               *platform,
+                                int                 frameshadow,
+                                int                 *shadow_coords,
+                                int                 soundtoplay,
+                                s_drawmethod        *drawmethod,
+                                s_axis_i_2d         *offset,
+                                s_damage_recursive  *recursive,
+                                s_hitbox            *attack_coords,
+                                s_hitbox            *body_coords);
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char *name);
 void free_modelcache();

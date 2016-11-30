@@ -6698,11 +6698,17 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             arg = varlist[2];
             if(FAILED(ScriptVariant_IntegerValue(arg, &ltemp)))
             {
-                ltemp = (LONG)0;
+                ltemp = 0;
             }
         }
+
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.animation[ltemp]->dropframe.frame;
+
+        if(ent->modeldata.animation[ltemp]->dropframe)
+        {
+            (*pretvar)->lVal = ent->modeldata.animation[ltemp]->dropframe->frame;
+        }
+
         break;
     }
     case _ep_edelay:
