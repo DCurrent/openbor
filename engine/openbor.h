@@ -109,7 +109,6 @@ movement restirctions are here!
 #define		GRAB_STALL			(GAME_SPEED * 8 / 10)
 #define		T_WALKOFF 			2.0
 
-#define     ENERGYCOST_DEFAULT_COST  6   // Default cost for using special.
 
 // PLAY/REC INPUT vars
 typedef struct InputKeys
@@ -1551,7 +1550,7 @@ typedef struct
     int             *delay;
     s_drawmethod    **drawmethods;
     s_onframe       *dropframe;             // if tossv < 0, this frame will be set
-    s_energycost    *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
+    s_energycost    energycost;             // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
     int             flipframe;              // Turns entities around on the desired frame
     s_follow        followup;               // Subsequent animation on hit.
     unsigned        *idle;                  // Allow free move
