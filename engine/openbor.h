@@ -1561,7 +1561,7 @@ typedef struct
     int             model_index;
     s_axis_i        **move;                 // base = seta, x = move, y = movea, z = movez
     int             numframes;
-    int             (*offset)[2];           // original sprite offsets
+    s_axis_i_2d     **offset;               // original sprite offsets
     float           (*platform)[8];         // Now entities can have others land on them
     s_projectile    projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
     s_quakeframe    quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
@@ -2478,7 +2478,7 @@ int                     addframe(s_anim *a, int spriteindex, int framecount, int
                              s_collision_body *bbox, s_collision_attack *attack, s_axis_i *move,
                              float *platform, int frameshadow,
                              int *shadow_coords, int soundtoplay, s_drawmethod *drawmethod,
-                             int *offset, s_damage_recursive *recursive, s_hitbox *attack_coords, s_hitbox *body_coords);
+                             s_axis_i_2d *offset, s_damage_recursive *recursive, s_hitbox *attack_coords, s_hitbox *body_coords);
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char *name);
 void free_modelcache();
