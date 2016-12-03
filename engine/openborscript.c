@@ -13747,11 +13747,11 @@ changeshadowcolor_error:
 // ===== gettextobjproperty(name, value) =====
 enum gtop_enum
 {
+    _top_a,
     _top_font,
     _top_text,
     _top_time,
     _top_x,
-    _top_a,
     _top_y,
     _top_z,
     _top_the_end,
@@ -13764,11 +13764,11 @@ int mapstrings_textobjproperty(ScriptVariant **varlist, int paramCount)
 
     static const char *proplist[] =
     {
+        "a",
         "font",
         "text",
         "time"
         "x",
-        "a",
         "y",
         "z",
     };
