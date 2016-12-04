@@ -19115,7 +19115,7 @@ void do_attack(entity *e)
             else if(self->animation->counterrange  &&	// Has counter range?
                     !self->frozen){
 
-                if ( (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS) ||
+                if ( (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS) || (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE) ||
                      (self->animation->counterrange->condition == COUNTERACTION_CONDITION_HOSTILE && e->modeldata.type & them) ||
                      (self->animation->counterrange->condition == COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE && !attack->no_block && !(self->direction == e->direction) && !attack->freeze )
                     )
@@ -19123,7 +19123,8 @@ void do_attack(entity *e)
                     // Current frame within counter range frames?
                     if(self->animpos >= self->animation->counterrange->frame.min
                        && self->animpos <= self->animation->counterrange->frame.max
-                       && self->health > force)
+                       && (self->health > force || (self->health-force <= 0 && COUNTERACTION_CONDITION_ALWAYS_RAGE) )
+                       )
                     {
                         // Take damage from attack?
                         if(self->animation->counterrange->damaged == COUNTERACTION_DAMAGE_NORMAL)

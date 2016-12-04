@@ -792,7 +792,8 @@ typedef enum
     COUNTERACTION_CONDITION_NONE,                  //No counter.
     COUNTERACTION_CONDITION_ALWAYS,                //Always perform coutner action.
     COUNTERACTION_CONDITION_HOSTILE,               //Only if attacker is hostile entity.
-    COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE //Attacker is hostile, strikes from front, and uses non-freeze attack.
+    COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE, //Attacker is hostile, strikes from front, and uses non-freeze attack.
+    COUNTERACTION_CONDITION_ALWAYS_RAGE,           //Always perform coutner action and if health - attack_damage <= 0, set health to 1
 } e_counteraction_condition;
 
 typedef enum
