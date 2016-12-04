@@ -11739,9 +11739,9 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
         atk.attack_drop = drop;
         if(drop)
         {
-            atk.dropv.y = (float)3;
-            atk.dropv.x = (float)1.2;
-            atk.dropv.z = (float)0;
+            atk.dropv.y = (float)DEFAULT_ATK_DROPV_Y;
+            atk.dropv.x = (float)DEFAULT_ATK_DROPV_X;
+            atk.dropv.z = (float)DEFAULT_ATK_DROPV_Z;
         }
         atk.attack_type = type;
     }

@@ -108,6 +108,9 @@ movement restirctions are here!
 #define		GRAB_DIST			36					// Grabbing ents will be placed this far apart.
 #define		GRAB_STALL			(GAME_SPEED * 8 / 10)
 #define		T_WALKOFF 			2.0
+#define		DEFAULT_ATK_DROPV_Y 3.0
+#define		DEFAULT_ATK_DROPV_X 1.2
+#define		DEFAULT_ATK_DROPV_Z 0
 
 #define     ENERGYCOST_DEFAULT_COST  6   // Default cost for using special.
 
