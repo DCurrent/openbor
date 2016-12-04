@@ -10136,6 +10136,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     attack.pain_time = GAME_SPEED / 20;
                 }
                 break;
+            case CMD_MODEL_IGNOREATTACKID:
+                if(GET_INT_ARG(1))
+                {
+                    attack.ignore_attack_id = 1;
+                }
+                break;
             case CMD_MODEL_BBOX:
                 bbox.x = GET_INT_ARG(1);
                 bbox.y = GET_INT_ARG(2);
@@ -18892,7 +18898,7 @@ void do_attack(entity *e)
         }
 
         // Attack IDs must be different.
-        if(target->hit_by_attack_id == current_attack_id)
+        if(target->hit_by_attack_id == current_attack_id && !attack->ignore_attack_id)
         {
             continue;
         }
