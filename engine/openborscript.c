@@ -1133,6 +1133,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "options";
     }
+    else if (functionRef == ((void *)openbor_playwebm))
+    {
+        return "playwebm";
+    }
     else if (functionRef == ((void *)openbor_playgif))
     {
         return "playgif";
@@ -1735,6 +1739,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_hallfame, "hallfame");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_menu_options, "options");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_playwebm, "playwebm");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playgif, "playgif");
     List_InsertAfter(&theFunctionList,
@@ -16963,6 +16969,46 @@ HRESULT openbor_hallfame(ScriptVariant **varlist , ScriptVariant **pretvar, int 
     return S_OK;
 }
 
+//playwebm(path, int noskip)
+HRESULT openbor_playwebm(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    LONG temp = 0; //noskip
+    extern int playwebm(char * filename, int noskip); // avoid implicit declaration
+
+    if(paramCount < 1)
+    {
+        goto playwebm_error;
+    }
+
+    if(varlist[0]->vt != VT_STR)
+    {
+        goto playwebm_error;
+    }
+
+    if(paramCount > 1)
+    {
+        if(FAILED(ScriptVariant_IntegerValue(varlist[1], &temp)))
+        {
+            goto playwebm_error;
+        }
+    }
+
+    #ifdef WEBM
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)playwebm(StrCache_Get(varlist[0]->strVal), (int)temp);
+    #else
+        printf("Skipping video %s; WebM playback not supported on this platform\n");
+        *pretvar = NULL;
+    #endif
+
+    return S_OK;
+
+playwebm_error:
+    printf("Function need a string parameter, other parameters are optional: playwebm(path, int noskip)\n");
+    *pretvar = NULL;
+    return E_FAIL;
+}
+
 //playgif(path, int x, int y, int noskip)
 HRESULT openbor_playgif(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -16970,6 +17016,7 @@ HRESULT openbor_playgif(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     int i;
     extern unsigned char pal[1024];
     extern int playgif(char * filename, int x, int y, int noskip);
+
     if(paramCount < 1)
     {
         goto playgif_error;
@@ -16980,7 +17027,6 @@ HRESULT openbor_playgif(ScriptVariant **varlist , ScriptVariant **pretvar, int p
         goto playgif_error;
     }
 
-    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
     for(i = 0; i < 3 && i < paramCount - 1; i++)
     {
         if(FAILED(ScriptVariant_IntegerValue(varlist[i + 1], temp + i)))
@@ -16988,6 +17034,8 @@ HRESULT openbor_playgif(ScriptVariant **varlist , ScriptVariant **pretvar, int p
             goto playgif_error;
         }
     }
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
     (*pretvar)->lVal = (LONG)playgif(StrCache_Get(varlist[0]->strVal), (int)(temp[0]), (int)(temp[1]), (int)(temp[2]));
     palette_set_corrected(pal, savedata.gamma, savedata.gamma, savedata.gamma, savedata.brightness, savedata.brightness, savedata.brightness);
     return S_OK;
