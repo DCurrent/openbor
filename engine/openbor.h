@@ -1386,6 +1386,7 @@ typedef struct
     int                 guardcost;          // cost for blocking an attack
     int                 hitflash;           // Custom flash for each animation, model id
     int                 hitsound;           // Sound effect to be played when attack hits opponent
+    int                 ignore_attack_id;   // Ignore attack ID to attack in every frame
     int                 index;              // Possible future support of multiple boxes - it's doubt even if support is added this property will be needed.
     int                 jugglecost;         // cost for juggling a falling ent
     unsigned int        maptime;            // Time for forcemap to remain in effect.
