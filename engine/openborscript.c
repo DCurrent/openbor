@@ -13773,7 +13773,7 @@ int mapstrings_textobjproperty(ScriptVariant **varlist, int paramCount)
         "a",
         "font",
         "text",
-        "time"
+        "time",
         "x",
         "y",
         "z",
