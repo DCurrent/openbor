@@ -1614,17 +1614,23 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
             slowmotion.duration = (unsigned)ltemp;
         }
         break;
+    case _sv_lasthita:
+    case _sv_lasthity:
+        if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            lasthit.position.y = (float)ltemp;
+        }
+        break;
     case _sv_lasthitx:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             lasthit.position.x = (float)ltemp;
         }
         break;
-    case _sv_lasthita:
-    case _sv_lasthity:
+    case _sv_lasthitz:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
-            lasthit.position.y = (float)ltemp;
+            lasthit.position.z = (float)ltemp;
         }
         break;
     case _sv_lasthitc:
@@ -1633,10 +1639,10 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
             lasthit.confirm = (int)ltemp;
         }
         break;
-    case _sv_lasthitz:
+    case _sv_lasthitt:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
-            lasthit.position.z = (float)ltemp;
+            lasthit.attack->attack_type = (int)ltemp;
         }
         break;
     case _sv_smartbomber:
