@@ -9758,11 +9758,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.min.base         = -1000;                            //Base min.
                 newanim->range.max.base         = 1000;                             //Base max.
                 newanim->jumpframe.velocity.y   = 0;  //Default disabled.
-                if (newanim->energycost)
-                {
-                    newanim->energycost->mponly      = COST_TYPE_MP_THEN_HP;							//MP only.
-                    newanim->energycost->disable     = 0;
-                }
+                newanim->energycost             = NULL;
                 newanim->chargetime             = 2;			// Default for backwards compatibility
                 newanim->projectile.shootframe  = -1;
                 newanim->projectile.throwframe  = -1;
@@ -9775,7 +9771,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->followup.condition     = FOLLOW_CONDITION_DISABLED;
                 newanim->unsummonframe          = -1;
                 newanim->landframe.frame        = -1;
-                if(newanim->dropframe) newanim->dropframe->frame = -1;
+                newanim->dropframe              = NULL;
                 newanim->cancel                 = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
                 newanim->animhits               = 0; //OX counts hits on a per anim basis for cancels.
                 newanim->subentity              = newanim->projectile.bomb = newanim->projectile.knife = newanim->projectile.star = newanim->projectile.flash = -1;
@@ -26873,8 +26869,19 @@ int check_energy(e_cost_check which, int ani)
 {
     int result = FALSE;
     e_entity_type type;        //Entity type.
+    s_energycost energycost;
 
-    if (!self->modeldata.animation[ani]->energycost) return TRUE;
+    energycost.cost     = 0;
+    energycost.disable  = 0;
+    energycost.mponly   = COST_TYPE_MP_THEN_HP;
+
+    // Get animation's energycost if available.
+    if(self->modeldata.animation[ani]->energycost)
+    {
+        energycost = *self->modeldata.animation[ani]->energycost;
+    }
+
+    //if (!self->modeldata.animation[ani]->energycost) return TRUE;
 
     if(self->modeldata.animation[ani])
     {
@@ -26888,22 +26895,22 @@ int check_energy(e_cost_check which, int ani)
         // many cases (weapons in particular) this can	help cut down the need for
         // superfluous models when differing abilities are desired for players,
         // enemies, or npcs.
-        if(!(self->modeldata.animation[ani]->energycost->disable == type													// Disabled by type?
-                || (self->modeldata.animation[ani]->energycost->disable == -1)											    // Disabled for all?
-                || (self->modeldata.animation[ani]->energycost->disable == -2 && (type & (TYPE_ENEMY  | TYPE_NPC)))		    // Disabled for all AI?
-                || (self->modeldata.animation[ani]->energycost->disable == -3 && (type & (TYPE_PLAYER | TYPE_NPC)))	        // Disabled for players & NPCs?
-                || (self->modeldata.animation[ani]->energycost->disable == -4 && (type & (TYPE_PLAYER | TYPE_ENEMY)))))     // Disabled for all AI?
+        if(!(energycost.disable == type													// Disabled by type?
+                || (energycost.disable == -1)											    // Disabled for all?
+                || (energycost.disable == -2 && (type & (TYPE_ENEMY  | TYPE_NPC)))		    // Disabled for all AI?
+                || (energycost.disable == -3 && (type & (TYPE_PLAYER | TYPE_NPC)))	        // Disabled for players & NPCs?
+                || (energycost.disable == -4 && (type & (TYPE_PLAYER | TYPE_ENEMY)))))     // Disabled for all AI?
         {
             // No seal or seal is less/same as energy cost?
-            if(!self->seal || self->seal >= self->modeldata.animation[ani]->energycost->cost)
+            if(!self->seal || self->seal >= energycost.cost)
             {
                 if(validanim(self, ani) &&										    //Validate the animation one more time.
                         ((which == COST_CHECK_MP &&			                    //Check magic validity
-                          (self->modeldata.animation[ani]->energycost->mponly != COST_TYPE_HP_ONLY) &&
-                          (self->mp >= self->modeldata.animation[ani]->energycost->cost)) ||
+                          (energycost.mponly != COST_TYPE_HP_ONLY) &&
+                          (self->mp >= energycost.cost)) ||
                          (which == COST_CHECK_HP &&			                    //Check health validity
-                          (self->modeldata.animation[ani]->energycost->mponly != COST_TYPE_MP_ONLY) &&
-                          (self->health > self->modeldata.animation[ani]->energycost->cost))))
+                          (energycost.mponly != COST_TYPE_MP_ONLY) &&
+                          (self->health > energycost.cost))))
                 {
                     result = TRUE;
                 }
