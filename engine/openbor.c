@@ -18920,7 +18920,7 @@ void do_attack(entity *e)
         // If falling, then check the juggle cost.
         if(target->falling == 1)
         {
-            if(attack->jugglecost >= target->modeldata.jugglepoints.current)
+            if(attack->jugglecost > target->modeldata.jugglepoints.current)
             {
                 continue;
             }
