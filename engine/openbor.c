@@ -19114,89 +19114,82 @@ void do_attack(entity *e)
                     }
                 }
             }
-            else if(self->animation->counterrange  &&	// Has counter range?
-                    !self->frozen){
+            else if(self->animation->counterrange &&	// Has counter range?
+                    (self->animpos >= self->animation->counterrange->frame.min && self->animpos <= self->animation->counterrange->frame.max) &&  // Current frame within counter range frames?
+                    !self->frozen &&
+                    (self->health > force || (self->health-force <= 0 && COUNTERACTION_CONDITION_ALWAYS_RAGE)) &&   // Rage or not?
+                    // counterrange conditions
+                    ( (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS) || (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE) ||
+                    (self->animation->counterrange->condition == COUNTERACTION_CONDITION_HOSTILE && e->modeldata.type & them) ||
+                    (self->animation->counterrange->condition == COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE && !attack->no_block && !(self->direction == e->direction) && !attack->freeze ) )
 
-                if ( (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS) || (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE) ||
-                     (self->animation->counterrange->condition == COUNTERACTION_CONDITION_HOSTILE && e->modeldata.type & them) ||
-                     (self->animation->counterrange->condition == COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE && !attack->no_block && !(self->direction == e->direction) && !attack->freeze )
-                    )
-                {
-                    // Current frame within counter range frames?
-                    if(self->animpos >= self->animation->counterrange->frame.min
-                       && self->animpos <= self->animation->counterrange->frame.max
-                       && (self->health > force || (self->health-force <= 0 && COUNTERACTION_CONDITION_ALWAYS_RAGE) )
-                       )
+                    ) {
+
+                    // Take damage from attack?
+                    if(self->animation->counterrange->damaged == COUNTERACTION_DAMAGE_NORMAL)
                     {
-                        // Take damage from attack?
-                        if(self->animation->counterrange->damaged == COUNTERACTION_DAMAGE_NORMAL)
+                        if (self->health-force <= 0)
                         {
-                            if (self->health-force <= 0)
+                            // White Dragon: commented the alternative method
+                            /*s_collision_attack atk;
+
+                            atk = emptyattack;
+                            atk.attack_force = force;
+                            atk.attack_drop = attack->attack_drop;
+                            atk.attack_type = attack->attack_type;
+
+                            atk.dropv.y = (float)DEFAULT_ATK_DROPV_Y;
+                            atk.dropv.x = (float)DEFAULT_ATK_DROPV_X;
+                            atk.dropv.z = (float)DEFAULT_ATK_DROPV_Z;
+
+                            if (e) self->takedamage(e, &atk);
+                            else self->takedamage(self, &atk);
+
+                            self = temp;
+                            return;*/
+
+                            self->health = 1; // rage
+                        }
+                        else
+                        {
+                            self->health -= force;
+                        }
+                    }
+
+                    current_follow_id = animfollows[self->animation->followup.animation - 1];
+                    if(validanim(self, current_follow_id))
+                    {
+                        if(self->modeldata.animation[current_follow_id]->attackone == -1)
+                        {
+                            self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
+                        }
+                        ent_set_anim(self, current_follow_id, 0);
+                        self->hit_by_attack_id = current_attack_id;
+                    }
+
+                    if(!attack->no_flash)
+                    {
+                        if(!self->modeldata.noatflash)
+                        {
+                            if(attack->blockflash >= 0)
                             {
-                                // White Dragon: commented the alternative method
-                                /*s_collision_attack atk;
-
-                                atk = emptyattack;
-                                atk.attack_force = force;
-                                atk.attack_drop = attack->attack_drop;
-                                atk.attack_type = attack->attack_type;
-
-                                atk.dropv.y = (float)DEFAULT_ATK_DROPV_Y;
-                                atk.dropv.x = (float)DEFAULT_ATK_DROPV_X;
-                                atk.dropv.z = (float)DEFAULT_ATK_DROPV_Z;
-
-                                if (e) self->takedamage(e, &atk);
-                                else self->takedamage(self, &atk);
-
-                                self = temp;
-                                return;*/
-
-                                self->health = 1; // rage
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
                             }
                             else
                             {
-                                self->health -= force;
+                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
                             }
                         }
-
-                        current_follow_id = animfollows[self->animation->followup.animation - 1];
-                        if(validanim(self, current_follow_id))
+                        else
                         {
-                            if(self->modeldata.animation[current_follow_id]->attackone == -1)
-                            {
-                                self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
-                            }
-                            ent_set_anim(self, current_follow_id, 0);
-                            self->hit_by_attack_id = current_attack_id;
+                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
                         }
-
-                        if(!attack->no_flash)
+                        //ent_default_init(flash); // initiliaze this because there're no default values now
+                        if(flash)
                         {
-                            if(!self->modeldata.noatflash)
-                            {
-                                if(attack->blockflash >= 0)
-                                {
-                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
-                                }
-                                else
-                                {
-                                    flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
-                                }
-                            }
-                            else
-                            {
-                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
-                            }
-                            //ent_default_init(flash); // initiliaze this because there're no default values now
-                            if(flash)
-                            {
-                                execute_onspawn_script(flash);
-                            }
+                            execute_onspawn_script(flash);
                         }
-
-                    } // end follow anim
-                } // end conditions
-
+                    }
             }
             else if(self->takedamage(e, attack))
             {
