@@ -22087,7 +22087,7 @@ int perform_atchain()
     {
         self->combostep[0] = 0;
     }
-    if(pickanim)
+    if(pickanim && validanim(self, animattacks[self->modeldata.atchain[self->combostep[0] - 1] - 1]))
     {
         self->takeaction = common_attack_proc;
         set_attacking(self);
@@ -22555,7 +22555,7 @@ void dograbattack(int which)
     if(which < 5 && which >= 0)
     {
         ++self->combostep[which];
-        if(self->combostep[which] < 3)
+        if(self->combostep[which] < 3 && validanim(self, grab_attacks[which][0]))
         {
             ent_set_anim(self, grab_attacks[which][0], 0);
         }
@@ -22566,7 +22566,7 @@ void dograbattack(int which)
             {
                 ent_set_anim(self, grab_attacks[which][1], 0);
             }
-            else
+            else if(validanim(self, ANI_ATTACK3))
             {
                 ent_set_anim(self, ANI_ATTACK3, 0);
             }
@@ -26046,12 +26046,9 @@ int bomb_move()
         {
             ent_set_anim(self, ANI_ATTACK2, 0);    // If bomb never reaces the ground, play this
         }
-        else
+        else if (validanim(self, ANI_ATTACK1))
         {
-            if (validanim(self, ANI_ATTACK1))
-            {
-                ent_set_anim(self, ANI_ATTACK1, 0);
-            }
+            ent_set_anim(self, ANI_ATTACK1, 0);
         }
         // hit something, just make it an explosion animation.
         self->modeldata.subject_to_wall = 0;
@@ -26929,9 +26926,9 @@ int check_special()
 {
     entity *e;
     if((!level->nospecial || level->nospecial == 3) &&
-            !self->cantfire &&
-            (check_energy(COST_CHECK_HP, ANI_SPECIAL) ||
-             check_energy(COST_CHECK_MP, ANI_SPECIAL)))
+            !self->cantfire && validanim(self, ANI_SPECIAL) &&
+            (check_energy(COST_CHECK_HP, ANI_SPECIAL) || check_energy(COST_CHECK_MP, ANI_SPECIAL))
+       )
     {
         self->takeaction = common_attack_proc;
         set_attacking(self);
@@ -28376,7 +28373,8 @@ void player_think()
     {
         if(self->stalltime && notinair &&
                 ((validanim(self, ANI_CHARGEATTACK) && self->stalltime + (GAME_SPEED * self->modeldata.animation[ANI_CHARGEATTACK]->chargetime) < time) ||
-                 (!validanim(self, ANI_CHARGEATTACK) && self->modeldata.chainlength > 0 && self->stalltime + (GAME_SPEED * self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1]]->chargetime) < time)))
+                 (!validanim(self, ANI_CHARGEATTACK) && validanim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1])
+                  && self->modeldata.chainlength > 0 && self->stalltime + (GAME_SPEED * self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1]]->chargetime) < time)))
         {
             self->takeaction = common_attack_proc;
             set_attacking(self);
@@ -28394,7 +28392,7 @@ void player_think()
             {
                 ent_set_anim(self, ANI_CHARGEATTACK, 0);
             }
-            else
+            else if(validanim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1]))
             {
                 ent_set_anim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1], 0);
             }
