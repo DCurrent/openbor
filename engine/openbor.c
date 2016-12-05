@@ -15947,7 +15947,7 @@ void draw_visual_debug()
         // Collision body debug requested?
         if(savedata.debug_collision_range)
         {
-            draw_box_on_entity(entity, entity->animation->range.min.x, entity->animation->range.min.y, entity->position.z, entity->animation->range.max.x, entity->animation->range.max.y, -1, LOCAL_COLOR_GREEN, &drawmethod);
+            draw_box_on_entity(entity, entity->animation->range.min.x, entity->animation->range.min.y, entity->position.z+1, entity->animation->range.max.x, entity->animation->range.max.y, -1, LOCAL_COLOR_GREEN, &drawmethod);
         }
 
         // Collision body debug requested?
@@ -15969,7 +15969,7 @@ void draw_visual_debug()
                         if(collision_body)
                         {
                             coords = collision_body->coords;
-                            draw_box_on_entity(entity, coords->x, coords->y, entity->position.z, coords->width, coords->height, 2, LOCAL_COLOR_BLUE, &drawmethod);
+                            draw_box_on_entity(entity, coords->x, coords->y, entity->position.z+1, coords->width, coords->height, 2, LOCAL_COLOR_BLUE, &drawmethod);
                         }
                     }
                 }
@@ -15995,7 +15995,7 @@ void draw_visual_debug()
                         if(collision_attack)
                         {
                             coords = collision_attack->coords;
-                            draw_box_on_entity(entity, coords->x, coords->y, entity->position.z, coords->width, coords->height, 2, LOCAL_COLOR_RED, &drawmethod);
+                            draw_box_on_entity(entity, coords->x, coords->y, entity->position.z+1, coords->width, coords->height, 2, LOCAL_COLOR_RED, &drawmethod);
                         }
                     }
                 }
