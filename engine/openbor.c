@@ -13817,11 +13817,11 @@ void generate_basemap(int map_index, float rx, float rz, float x_size, float z_s
         {
             if ( dir > 0 )
             {
-                if ( x+rx > x_cont ) y = max_y; // connect with the wall more smoothly
+                if ( x+rx >= x_cont ) y = max_y; // connect with the wall more smoothly
             }
             else
             {
-                if ( x < x_cont ) y = max_y;
+                if ( x+rx <= x_cont ) y = max_y;
             }
 		}
 
