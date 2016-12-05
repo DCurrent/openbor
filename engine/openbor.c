@@ -13787,7 +13787,7 @@ void generate_basemap(int map_index, float rx, float rz, float x_size, float z_s
     }
 
     level->basemaps[map_index].position.x = rx;
-    level->basemaps[map_index].position.z = rz;
+    level->basemaps[map_index].position.z = rz-z_size;
     level->basemaps[map_index].size.x = x_size;
     level->basemaps[map_index].size.z = z_size;
 
