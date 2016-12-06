@@ -11115,7 +11115,7 @@ HRESULT openbor_generatebasemap(ScriptVariant **varlist , ScriptVariant **pretva
     }
     if(paramCount > 7)
     {
-        if ( FAILED(ScriptVariant_IntegerValue(varlist[7], &index)) )
+        if ( FAILED(ScriptVariant_IntegerValue(varlist[7], &x_cont)) )
         {
             *pretvar = NULL;
             return E_FAIL;
@@ -14797,7 +14797,8 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount)
 
 HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    LONG ltemp, ltemp2, ltemp3;
+    LONG ltemp;
+    DOUBLE dbltemp2, dbltemp3;
     mapstrings_levelproperty(varlist, paramCount);
 
     switch(varlist[0]->lVal)
@@ -15039,16 +15040,16 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
                     (*pretvar)->dblVal = level->basemaps[ltemp].size.z;
                     break;
                 case _lp_bm_map:
-                    if(paramCount >= 5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) &&
-                            SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp3)) &&
-                            ltemp2 >= 0 && ltemp2 < level->basemaps[ltemp].size.x && ltemp3 >= 0 && ltemp3 < level->basemaps[ltemp].size.z
+                    if(paramCount >= 5 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp2)) &&
+                            SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp3)) &&
+                            dbltemp2 >= 0 && dbltemp2 < level->basemaps[ltemp].size.x && dbltemp3 >= 0 && dbltemp3 < level->basemaps[ltemp].size.z
                       )
                     {
                         if(!level->basemaps[ltemp].map)
                         {
                             (*pretvar)->dblVal = (DOUBLE)0;
                         }
-                        else (*pretvar)->dblVal = (DOUBLE)level->basemaps[ltemp].map[ltemp2 + ltemp3 * level->basemaps[ltemp].size.x];
+                        else (*pretvar)->dblVal = (DOUBLE)level->basemaps[ltemp].map[(LONG)(dbltemp2 + dbltemp3 * level->basemaps[ltemp].size.x)];
                     }
                     else
                     {
@@ -15085,8 +15086,8 @@ getlevelproperty_error:
 //changelevelproperty(name, value)
 HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    LONG ltemp, ltemp1, ltemp2, ltemp3;
-    DOUBLE dbltemp;
+    LONG ltemp, ltemp1;
+    DOUBLE dbltemp, dbltemp2, dbltemp3;
     static char buf[64];
     int i;
     ScriptVariant *arg = NULL;
@@ -15228,9 +15229,9 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
                 switch(varlist[2]->lVal)
                 {
                 case _lp_bm_x:
-                    if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) )
+                    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp2)) )
                     {
-                        level->basemaps[ltemp].position.x = ltemp2;
+                        level->basemaps[ltemp].position.x = dbltemp2;
                     }
                     else
                     {
@@ -15238,9 +15239,9 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
                     }
                     break;
                 case _lp_bm_xsize:
-                    if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) )
+                    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp2)) )
                     {
-                        level->basemaps[ltemp].size.x = ltemp2;
+                        level->basemaps[ltemp].size.x = dbltemp2;
                     }
                     else
                     {
@@ -15248,9 +15249,9 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
                     }
                     break;
                 case _lp_bm_z:
-                    if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) )
+                    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp2)) )
                     {
-                        level->basemaps[ltemp].position.z = ltemp2;
+                        level->basemaps[ltemp].position.z = dbltemp2;
                     }
                     else
                     {
@@ -15258,9 +15259,9 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
                     }
                     break;
                 case _lp_bm_zsize:
-                    if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) )
+                    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp2)) )
                     {
-                        level->basemaps[ltemp].size.z = ltemp2;
+                        level->basemaps[ltemp].size.z = dbltemp2;
                     }
                     else
                     {
@@ -15268,17 +15269,17 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
                     }
                     break;
                 case _lp_bm_map:
-                    if(paramCount >= 6 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)) &&
-                            SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp3)) &&
+                    if(paramCount >= 6 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp2)) &&
+                            SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp3)) &&
                             SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)) &&
-                            ltemp2 >= 0 && ltemp2 < level->basemaps[ltemp].size.x && ltemp3 >= 0 && ltemp3 < level->basemaps[ltemp].size.z
+                            dbltemp2 >= 0 && dbltemp2 < level->basemaps[ltemp].size.x && dbltemp3 >= 0 && dbltemp3 < level->basemaps[ltemp].size.z
                       )
                     {
                         if(!level->basemaps[ltemp].map)
                         {
-                            level->basemaps[ltemp].map = calloc(1, sizeof(*(level->basemaps[ltemp].map)) * level->basemaps[ltemp].size.x * level->basemaps[ltemp].size.z);
+                            level->basemaps[ltemp].map = calloc( 1, (LONG)(sizeof(*(level->basemaps[ltemp].map)) * (level->basemaps[ltemp].size.x+1)*(level->basemaps[ltemp].size.z+1)) );
                         }
-                        level->basemaps[ltemp].map[ltemp2 + ltemp3 * level->basemaps[ltemp].size.x] = (float)dbltemp;
+                        level->basemaps[ltemp].map[(LONG)(dbltemp2 + dbltemp3 * level->basemaps[ltemp].size.x)] = (float)dbltemp;
                     }
                     else
                     {
