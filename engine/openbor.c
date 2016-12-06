@@ -13776,8 +13776,8 @@ static void addbasemap(float rx, float rz, float x_size, float z_size, float min
 }
 
 void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_y, float max_y, int x_cont) {
-    float x,z;
-	float delta,y,tmp;
+    float x, z;
+	float delta, y, tmp;
 	int dir = 0;
 
     if(map_index >= level->numbasemaps)
@@ -13793,25 +13793,31 @@ void generate_basemap(int map_index, float rx, float rz, float x_size, float z_s
 
     if(!level->basemaps[map_index].map)
     {
-        level->basemaps[map_index].map = calloc(1, sizeof(*(level->basemaps[map_index].map)) * (int)(x_size+1) * (int)(z_size+1));
+        level->basemaps[map_index].map = calloc( 1, (int)(sizeof(*(level->basemaps[map_index].map)) * (x_size+1)*(z_size+1)) );
     }
 
     if (min_y <= max_y) dir = 1;
-    else dir = 0;
-
-    if (min_y > max_y)
+    else
     {
+        dir = 0;
         tmp = min_y;
         min_y = max_y;
         max_y = tmp;
     }
 
-	delta = (max_y-min_y)/x_size;
+	delta = (max_y - min_y) / ( (x_size <= 0) ? 1 : (x_size-1) );
 
-	for( x = 0; x <= (int)x_size; x++)
+	for( x = 0; x < x_size; x++)
     {
-		if ( dir ) y = x*delta + min_y;
-		else y = max_y - (x*delta);
+		if ( dir )
+        {
+            if ( x == x_size-1 ) y = max_y;
+            else y = x*delta + min_y;
+        }
+		else
+        {
+            y = max_y - (x*delta);
+        }
 
 		if ( x_cont != 0 )
         {
@@ -13825,11 +13831,13 @@ void generate_basemap(int map_index, float rx, float rz, float x_size, float z_s
             }
 		}
 
-		for ( z = 0; z <= (int)z_size; z++)
+		for ( z = 0; z < z_size; z++)
         {
-			level->basemaps[map_index].map[(int)((int)x + (int)z * (int)x_size)] = y;
+			level->basemaps[map_index].map[(int)(x + z*x_size)] = y;
+			//printf("map[%d] = %f\n",(int)(x + z*x_size),y);
 		}
-		//printf("y:%f\n",y);
+		//printf("x:%f y:%f delta:%f\n",x,y,delta);
+		//printf("y: %f\n",y);
 	}
 
 	return;
