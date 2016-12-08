@@ -1271,7 +1271,13 @@ typedef struct
     int pSpawnmp[MAX_PLAYERS];                  // magic points left
     int pWeapnum[MAX_PLAYERS];                  // weapon
     int pColourmap[MAX_PLAYERS];                // colour map
+
+    int selectFlag;                             // saved a select.txt infos
     char allowSelectArgs[MAX_ARG_LEN + 1];      // allowselect arguments
+    char selectMusic[MAX_ARG_LEN + 1];          // select music arguments
+    char selectBackground[MAX_ARG_LEN + 1];     // select background arguments
+    char selectLoad[MAX_ARG_LEN + 1][MAX_ARG_LEN + 1];           // select load arguments
+    int selectLoadCount;
 } s_savelevel;
 
 typedef struct
@@ -2725,7 +2731,7 @@ void gameover();
 void hallfame(int addtoscore);
 void showcomplete(int num);
 int playlevel(char *filename);
-int selectplayer(int *players, char *filename);
+int selectplayer(int *players, char *filename, int useSavedGame);
 void playgame(int *players,  unsigned which_set, int useSavedGame);
 int load_saved_game();
 void term_videomodes();
