@@ -1243,7 +1243,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_current_branch:
         ScriptVariant_ChangeType(var, VT_STR);
-        if(levelsets[current_set].levelorder[current_level].branchname)
+        if(level != NULL && levelsets && levelsets[current_set].levelorder && levelsets[current_set].levelorder[current_level].branchname)
         {
             strcpy(StrCache_Get(var->strVal), levelsets[current_set].levelorder[current_level].branchname);
         }
