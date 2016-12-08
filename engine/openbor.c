@@ -5187,7 +5187,6 @@ static void load_playable_list(char *buf)
     }
     allowselect_args[sizeof(argbuf)-1] = '\0';
 
-
     for(i = 1; (value = GET_ARG(i))[0]; i++)
     {
         playermodels = findmodel(value);
@@ -32848,9 +32847,8 @@ void savelevelinfo()
     save->stage = current_stage;
     save->which_set = current_set;
     strncpy(save->dName, set->name, MAX_NAME_LEN);
-    for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = ' ';
+    for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = '\0'; // clear
     for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = allowselect_args[i];
-    allowselect_args[sizeof(allowselect_args)-1] = '\0';
 }
 
 
@@ -32991,7 +32989,42 @@ static entity *spawnexample(int i)
     return example;
 }
 
-int selectplayer(int *players, char *filename)
+// load saved select screen
+static void load_select_screen_info(s_savelevel *save)
+{
+    int i = 0;
+    ArgList arglist;
+    char argbuf[MAX_ARG_LEN + 1] = "";
+    char *filename = ""; // not used, just fused into GET_INT_ARG()
+    char *command = ""; // not used, just fused into GET_INT_ARG()
+
+    for(i = 0; i < save->selectLoadCount; i++)
+    {
+        s_model *tempmodel;
+        command = GET_ARG(0);
+
+        if(!command || !command[0]) continue;
+        ParseArgs(&arglist, save->selectLoad[i], argbuf);
+
+        tempmodel = findmodel(GET_ARG(1));
+        if (tempmodel)
+        {
+            update_model_loadflag(tempmodel, GET_INT_ARG(2));
+        }
+    }
+
+    ParseArgs(&arglist, save->selectMusic, argbuf);
+    command = GET_ARG(0);
+    if(command && command[0]) music(GET_ARG(1), GET_INT_ARG(2), atol(GET_ARG(3)));
+
+    ParseArgs(&arglist, save->selectBackground, argbuf);
+    command = GET_ARG(0);
+    if(command && command[0]) load_background(GET_ARG(1), 1);
+
+    return;
+}
+
+int selectplayer(int *players, char *filename, int useSavedGame)
 {
     s_model *tempmodel;
     entity *example[4] = {NULL, NULL, NULL, NULL};
@@ -33010,13 +33043,25 @@ int selectplayer(int *players, char *filename)
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
     s_set_entry *set = levelsets + current_set;
+    s_savelevel *save = savelevel + current_set;
+    int load_count = 0, saved_select_screen = 0;
 
     savelevelinfo();
 
     selectScreen = 1;
     kill_all();
-    reset_playable_list(1);
+    if(allowselect_args[0] != 'a') reset_playable_list(1); // 'a' is the first char of allowselect, if there's 'a' then there is allowselect
     memset(player, 0, sizeof(*player) * 4);
+
+    if(useSavedGame && save)
+    {
+        if (save->selectFlag)
+        {
+            load_select_screen_info(save);
+            load_playable_list(save->allowSelectArgs);
+            saved_select_screen = 1;
+        }
+    }
 
     //loadGameFile();
 
@@ -33040,14 +33085,23 @@ int selectplayer(int *players, char *filename)
                 if(stricmp(command, "music") == 0)
                 {
                     music(GET_ARG(1), GET_INT_ARG(2), atol(GET_ARG(3)));
+                    // SAVE
+                    strcpy(save->selectMusic,command);
+                    strcat(save->selectMusic," "); strcat(save->selectMusic,GET_ARG(1));
+                    strcat(save->selectMusic," "); strcat(save->selectMusic,GET_ARG(2));
+                    strcat(save->selectMusic," "); strcat(save->selectMusic,GET_ARG(3));
                 }
                 else if(stricmp(command, "allowselect") == 0)
                 {
                     load_playable_list(buf + pos);
+                    memcpy(&save->allowSelectArgs, &allowselect_args, sizeof(allowselect_args)); // SAVE
                 }
                 else if(stricmp(command, "background") == 0)
                 {
                     load_background(GET_ARG(1), 1);
+                    // SAVE
+                    strcpy(save->selectBackground,command);
+                    strcat(save->selectBackground," "); strcat(save->selectBackground,GET_ARG(1));
                 }
                 else if(stricmp(command, "load") == 0)
                 {
@@ -33060,6 +33114,14 @@ int selectplayer(int *players, char *filename)
                     {
                         update_model_loadflag(tempmodel, GET_INT_ARG(2));
                     }
+                    // SAVE
+                    if(load_count < MAX_ARG_LEN + 1)
+                    {
+                        strcpy(save->selectLoad[load_count],command);
+                        strcat(save->selectLoad[load_count]," "); strcat(save->selectLoad[load_count],GET_ARG(1));
+                        strcat(save->selectLoad[load_count]," "); strcat(save->selectLoad[load_count],GET_ARG(2));
+                        load_count++;
+                    }
                 }
                 else if(command && command[0])
                 {
@@ -33069,6 +33131,9 @@ int selectplayer(int *players, char *filename)
 
             pos += getNewLineStart(buf + pos);
         }
+        save->selectLoadCount = load_count; // SAVE number of LOAD command
+        save->selectFlag = 1;
+
         if(buf != NULL)
         {
             free(buf);
@@ -33116,37 +33181,40 @@ int selectplayer(int *players, char *filename)
             return 1;
         }
 
-        if(unlockbg && bonus)
+        if (!saved_select_screen)
         {
-            // New alternative background path for PSP
-            if(custBkgrds != NULL)
+            if(unlockbg && bonus)
             {
-                strcpy(string, custBkgrds);
-                strncat(string, "unlockbg", 8);
-                load_background(string, 1);
+                // New alternative background path for PSP
+                if(custBkgrds != NULL)
+                {
+                    strcpy(string, custBkgrds);
+                    strncat(string, "unlockbg", 8);
+                    load_background(string, 1);
+                }
+                else
+                {
+                    load_cached_background("data/bgs/unlockbg", 1);
+                }
             }
             else
             {
-                load_cached_background("data/bgs/unlockbg", 1);
+                // New alternative background path for PSP
+                if(custBkgrds != NULL)
+                {
+                    strncpy(string, custBkgrds, 128);
+                    strncat(string, "select", 6);
+                    load_background(string, 1);
+                }
+                else
+                {
+                    load_cached_background("data/bgs/select", 1);
+                }
             }
-        }
-        else
-        {
-            // New alternative background path for PSP
-            if(custBkgrds != NULL)
+            if(!music("data/music/menu", 1, 0))
             {
-                strncpy(string, custBkgrds, 128);
-                strncat(string, "select", 6);
-                load_background(string, 1);
+                music("data/music/remix", 1, 0);
             }
-            else
-            {
-                load_cached_background("data/bgs/select", 1);
-            }
-        }
-        if(!music("data/music/menu", 1, 0))
-        {
-            music("data/music/remix", 1, 0);
         }
     }
 
@@ -33356,9 +33424,9 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
                 strncpy(player[i].name, save->pName[i], MAX_NAME_LEN);
             }
             credits = save->credits;
-            load_playable_list(save->allowSelectArgs); //TODO: change sav format to support dynamic allowselect list.
-            //reset_playable_list(1); // add this because there's no select screen, temporary solution
         }
+        load_playable_list(save->allowSelectArgs); //TODO: change sav format to support dynamic allowselect list.
+        //reset_playable_list(1); // add this because there's no select screen, temporary solution
     }
 
     nosave = 1;
@@ -33383,7 +33451,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
         }
     }
 
-    if((useSavedGame == 1 && save->flag == 2) || useSavedGame == 2 || selectplayer(players, NULL)) // if save flag is 2 don't select player
+    if((useSavedGame == 1 && save->flag == 2) || useSavedGame == 2 || selectplayer(players, NULL, useSavedGame)) // if save flag is 2 don't select player
     {
         while(current_level < set->numlevels)
         {
@@ -33424,7 +33492,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
                 {
                     players[i] = (player[i].lives > 0);
                 }
-                if(selectplayer(players, le->filename) == 0)
+                if(selectplayer(players, le->filename, useSavedGame) == 0)
                 {
                     break;
                 }
@@ -33443,7 +33511,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
                         skipselect[i][0] = 0;
                     }
                 }
-                selectplayer(players, NULL); // re-select a player
+                selectplayer(players, NULL, useSavedGame); // re-select a player
             }
             else if(!playlevel(le->filename))
             {
