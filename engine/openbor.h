@@ -1278,6 +1278,7 @@ typedef struct
     char selectBackground[MAX_ARG_LEN + 1];     // select background arguments
     char selectLoad[MAX_ARG_LEN + 1][MAX_ARG_LEN + 1];           // select load arguments
     int selectLoadCount;
+    char selectSkipSelect[MAX_ARG_LEN + 1];     // skipselect arguments
 } s_savelevel;
 
 typedef struct
