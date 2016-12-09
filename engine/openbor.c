@@ -12250,6 +12250,30 @@ s_level_entry *add_skipselect(ArgList arglist, s_set_entry *set)
     return le;
 }
 
+s_level_entry *load_skipselect(char *buf, s_set_entry *set)
+{
+    ArgList arglist;
+    char argbuf[MAX_ARG_LEN + 1];
+
+    ParseArgs(&arglist, buf, argbuf);
+
+    return add_skipselect(arglist, set);
+}
+
+void save_skipselect(char *buf, char skipselect[MAX_PLAYERS][MAX_NAME_LEN])
+{
+    int i = 0;
+
+    strcpy(buf,"skipselect");
+
+    for (i = 0; i < MAX_PLAYERS; i++)
+    {
+        strcat(buf," "); strcat(buf,skipselect[i]);
+    }
+
+    return;
+}
+
 static void _readbarstatus(char *buf, s_barstatus *pstatus)
 {
     char *value;
@@ -33431,7 +33455,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 
     nosave = 1;
 
-    // fix bug save an inexistent level
+    // fix save an inexistent level
     if ( current_level >= set->numlevels )
     {
         current_level = set->numlevels-1;
@@ -33439,6 +33463,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 
     le = set->levelorder + current_level;
     set->noselect = le->noselect;
+    if (save->selectSkipSelect[0]) le = load_skipselect(save->selectSkipSelect, set); // LOAD skipselect
     for(i = 0; i < MAX_PLAYERS; i++)
     {
         if(le->skipselect[i])
@@ -33480,6 +33505,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
             }
             else if(le->type == LE_TYPE_SELECT_SCREEN)
             {
+                memset(save->selectSkipSelect,0,sizeof(save->selectSkipSelect)); // RESET skipselect
                 set->noselect = 0;
                 for(i = 0; i < set->maxplayers; i++) // reset skipselect
                 {
@@ -33511,6 +33537,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
                         skipselect[i][0] = 0;
                     }
                 }
+                save_skipselect(save->selectSkipSelect, skipselect); // TO SAVE FILE
                 selectplayer(players, NULL, useSavedGame); // re-select a player
             }
             else if(!playlevel(le->filename))
