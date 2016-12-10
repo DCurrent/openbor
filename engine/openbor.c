@@ -1308,6 +1308,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = noscreenshot;
         break;
+    case _sv_noshowcomplete:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = levelsets[current_set].noshowcomplete;
+        break;
     case _sv_numbasemaps:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = level->numbasemaps;
@@ -1679,6 +1683,12 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             noscreenshot = (int)ltemp;
+        }
+        break;
+    case _sv_noshowcomplete:
+        if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            levelsets[current_set].noshowcomplete = (int)ltemp;
         }
         break;
     case _sv_viewportx:
@@ -13265,6 +13275,10 @@ void load_levelorder()
             break;
         case CMD_LEVELORDER_SKIPTOSET:
             skiptoset = GET_INT_ARG(1);
+            break;
+        case CMD_LEVELORDER_NOSHOWCOMPLETE:
+            CHKDEF;
+            set->noshowcomplete = GET_INT_ARG(1);
             break;
         case CMD_LEVELORDER_SPAWNOVERRIDE:
             spawnoverride = GET_INT_ARG(1);
@@ -33559,7 +33573,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
             }
             if(le->gonext == 1)
             {
-                showcomplete(current_stage);
+                if (!set->noshowcomplete) showcomplete(current_stage);
                 for(i = 0; i < set->maxplayers; i++)
                 {
                     player[i].spawnhealth = 0;

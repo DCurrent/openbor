@@ -2242,6 +2242,7 @@ typedef struct
     int	noselect;
     int saveflag;
     int nosame;
+    int noshowcomplete;
 } s_set_entry;
 
 typedef struct

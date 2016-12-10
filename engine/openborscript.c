@@ -2263,6 +2263,7 @@ static const char *svlist[] =
     "nopause",
     "nosave",
     "noscreenshot",
+    "noshowcomplete",
     "numbasemaps",
     "numholes",
     "numlayers",
