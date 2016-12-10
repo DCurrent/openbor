@@ -630,6 +630,7 @@ List *createLevelOrderCommandList(void)
     LIST_ADD(CMD_LEVELORDER_NEXT, "next");
     LIST_ADD(CMD_LEVELORDER_NOSAME, "nosame");
     LIST_ADD(CMD_LEVELORDER_NOSHARE, "noshare");
+    LIST_ADD(CMD_LEVELORDER_NOSHOWCOMPLETE, "noshowcomplete");
     LIST_ADD(CMD_LEVELORDER_NOSLOWFX, "noslowfx");
     LIST_ADD(CMD_LEVELORDER_OLBARSIZE, "olbarsize");
     LIST_ADD(CMD_LEVELORDER_OLICON, "olicon");
