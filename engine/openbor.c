@@ -20873,10 +20873,10 @@ void display_ents()
 
                     z = (int)e->position.z;    // Set the layer offset
 
-                    if(e->binding.ent)
+                    /*if(e->binding.ent)
                     {
                         sortid = e->binding.ent->sortid + e->binding.sortid;
-                    }
+                    }*/
 
                     if(e->grabbing && e->modeldata.grabback)
                     {
