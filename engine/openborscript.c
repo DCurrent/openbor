@@ -15540,7 +15540,7 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
     entity *other = NULL;
     ScriptVariant *arg = NULL;
     void adjust_bind(entity * e);
-    LONG x = 0, z = 0, a = 0, dir = 0, anim = 0;
+    LONG x = 0, z = 0, a = 0, dir = 0, anim = 0, sortid = -1;
 
     *pretvar = NULL;
     if(paramCount < 2)
@@ -15565,6 +15565,7 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
 
     ent->binding.ent = other;
+    ent->binding.sortid = sortid;
 
     if(paramCount < 3)
     {
@@ -15639,6 +15640,20 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
             return E_FAIL;
         }
         ent->binding.ani_bind = (int)anim;
+    }
+    if(paramCount < 8)
+    {
+        goto BIND;
+    }
+    // sortid
+    arg = varlist[7];
+    if(arg->vt != VT_EMPTY)
+    {
+        if(FAILED(ScriptVariant_IntegerValue(arg, &sortid)))
+        {
+            return E_FAIL;
+        }
+        ent->binding.sortid = (int)sortid;
     }
 
 BIND:

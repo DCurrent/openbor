@@ -591,6 +591,30 @@ char *commaprint(u64 n)
     return p;
 }
 
+char* multistrcatsp(char* buf, ...)
+{
+    va_list vl;
+    int c = 0;
+    char* str;
+
+    va_start(vl,buf);
+
+    while( (str = va_arg(vl,char*)) != NULL )
+    {
+        if(c == 0) strcpy(buf,str);
+        else
+        {
+            strcat(buf," ");
+            strcat(buf,str);
+        }
+        ++c;
+    }
+
+    va_end(vl);
+
+    return buf;
+}
+
 //! Increase or Decrease an array à la \e vector
 /**
 	\param f_caller : name of the calling function for logging purpose
