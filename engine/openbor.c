@@ -20510,74 +20510,79 @@ void common_dot()
 
 void adjust_bind(entity *e)
 {
-    if(e->binding.ani_bind)
+    if(e->binding.ent)
     {
-        if(e->animnum != e->binding.ent->animnum)
+        if(e->binding.ani_bind)
         {
-            if(!validanim(e, e->binding.ent->animnum))
+            if(e->animnum != e->binding.ent->animnum)
             {
-                if(e->binding.ani_bind & 4)
+                if(!validanim(e, e->binding.ent->animnum))
                 {
-                    kill(e);
+                    if(e->binding.ani_bind & 4)
+                    {
+                        kill(e);
+                    }
+                    e->binding.ent = NULL;
+                    return;
                 }
-                e->binding.ent = NULL;
-                return;
+                ent_set_anim(e, e->binding.ent->animnum, 1);
             }
-            ent_set_anim(e, e->binding.ent->animnum, 1);
+            if(e->animpos != e->binding.ent->animpos && e->binding.ani_bind & 2)
+            {
+                update_frame(e, e->binding.ent->animpos);
+            }
         }
-        if(e->animpos != e->binding.ent->animpos && e->binding.ani_bind & 2)
+        if (e->binding.offset_flag.z) e->position.z = e->binding.ent->position.z + e->binding.offset.z;
+        if (e->binding.offset_flag.y) e->position.y = e->binding.ent->position.y + e->binding.offset.y;
+        e->sortid = e->binding.ent->sortid + e->binding.sortid;
+
+        switch(e->binding.direction)
         {
-            update_frame(e, e->binding.ent->animpos);
-        }
-    }
-    if (e->binding.offset_flag.z) e->position.z = e->binding.ent->position.z + e->binding.offset.z;
-    if (e->binding.offset_flag.y) e->position.y = e->binding.ent->position.y + e->binding.offset.y;
-    switch(e->binding.direction)
-    {
-    case DIRECTION_ADJUST_NONE:
-        if(e->binding.ent->direction == DIRECTION_RIGHT)
-        {
+        case DIRECTION_ADJUST_NONE:
+            if(e->binding.ent->direction == DIRECTION_RIGHT)
+            {
+                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            }
+            else
+            {
+                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+            }
+            break;
+        case DIRECTION_ADJUST_SAME:
+            e->direction = e->binding.ent->direction;
+            if(e->binding.ent->direction == DIRECTION_RIGHT)
+            {
+                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            }
+            else
+            {
+                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+            }
+            break;
+        case DIRECTION_ADJUST_OPPOSITE:
+            e->direction = !e->binding.ent->direction;
+            if(e->binding.ent->direction == DIRECTION_RIGHT)
+            {
+                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            }
+            else
+            {
+                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+            }
+            break;
+        case DIRECTION_ADJUST_RIGHT:
+            e->direction = DIRECTION_RIGHT;
             if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-        }
-        else
-        {
-            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-        }
-        break;
-    case DIRECTION_ADJUST_SAME:
-        e->direction = e->binding.ent->direction;
-        if(e->binding.ent->direction == DIRECTION_RIGHT)
-        {
+            break;
+        case DIRECTION_ADJUST_LEFT:
+            e->direction = DIRECTION_LEFT;
             if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-        }
-        else
-        {
-            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-        }
-        break;
-    case DIRECTION_ADJUST_OPPOSITE:
-        e->direction = !e->binding.ent->direction;
-        if(e->binding.ent->direction == DIRECTION_RIGHT)
-        {
+            break;
+        default:
             if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            break;
+            // the default is no change :), just give a value of 12345 or so
         }
-        else
-        {
-            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-        }
-        break;
-    case DIRECTION_ADJUST_RIGHT:
-        e->direction = DIRECTION_RIGHT;
-        if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-        break;
-    case DIRECTION_ADJUST_LEFT:
-        e->direction = DIRECTION_LEFT;
-        if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-        break;
-    default:
-        if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-        break;
-        // the default is no change :), just give a value of 12345 or so
     }
 }
 
@@ -20672,10 +20677,7 @@ void ent_post_update(entity *e)
     check_gravity(e);// check gravity
     check_move(e);
 
-    if(e->binding.ent)
-    {
-        adjust_bind(e);
-    }
+    adjust_bind(e);
 }
 
 // arrenge the list reduce its length
@@ -20873,7 +20875,7 @@ void display_ents()
 
                     if(e->binding.ent)
                     {
-                        sortid = e->binding.ent->sortid - 1;
+                        sortid = e->binding.ent->sortid + e->binding.sortid;
                     }
 
                     if(e->grabbing && e->modeldata.grabback)
@@ -33124,10 +33126,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                 {
                     music(GET_ARG(1), GET_INT_ARG(2), atol(GET_ARG(3)));
                     // SAVE
-                    strcpy(save->selectMusic,command);
-                    strcat(save->selectMusic," "); strcat(save->selectMusic,GET_ARG(1));
-                    strcat(save->selectMusic," "); strcat(save->selectMusic,GET_ARG(2));
-                    strcat(save->selectMusic," "); strcat(save->selectMusic,GET_ARG(3));
+                    multistrcatsp(save->selectMusic, command,GET_ARG(1),GET_ARG(2),GET_ARG(3),NULL);
                 }
                 else if(stricmp(command, "allowselect") == 0)
                 {
@@ -33138,8 +33137,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                 {
                     load_background(GET_ARG(1), 1);
                     // SAVE
-                    strcpy(save->selectBackground,command);
-                    strcat(save->selectBackground," "); strcat(save->selectBackground,GET_ARG(1));
+                    multistrcatsp(save->selectBackground, command,GET_ARG(1),NULL);
                 }
                 else if(stricmp(command, "load") == 0)
                 {
@@ -33155,9 +33153,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                     // SAVE
                     if(load_count < MAX_ARG_LEN + 1)
                     {
-                        strcpy(save->selectLoad[load_count],command);
-                        strcat(save->selectLoad[load_count]," "); strcat(save->selectLoad[load_count],GET_ARG(1));
-                        strcat(save->selectLoad[load_count]," "); strcat(save->selectLoad[load_count],GET_ARG(2));
+                        multistrcatsp(save->selectLoad[load_count], command,GET_ARG(1),GET_ARG(2),NULL);
                         load_count++;
                     }
                 }
