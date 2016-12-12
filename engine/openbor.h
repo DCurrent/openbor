@@ -1958,6 +1958,7 @@ typedef struct
     struct entity *ent;             //Entity to bind.
     s_axis_i offset;                //x,y,z offset.
     s_axis_i offset_flag;           //on/off binding on x,y,z
+    int sortid;                     //relative binding sortid. default = -1
 } s_bind;
 
 typedef struct
