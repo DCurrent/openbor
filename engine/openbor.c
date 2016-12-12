@@ -1409,6 +1409,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = getUsedRam(KBYTES);
         break;
+    case _sv_textbox:
+        ScriptVariant_ChangeType(var, VT_PTR);
+        var->ptrVal = textbox;
+        break;
     case _sv_background:
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = background;
@@ -1654,6 +1658,9 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         break;
     case _sv_textbox:
         textbox = (entity *)value->ptrVal;
+        break;
+    case _sv_background:
+        background = (entity *)value->ptrVal;
         break;
     case _sv_nofadeout:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
