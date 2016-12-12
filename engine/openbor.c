@@ -1660,7 +1660,10 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         textbox = (entity *)value->ptrVal;
         break;
     case _sv_background:
-        background = (entity *)value->ptrVal;
+        background = (s_screen *)value->ptrVal;
+        break;
+    case _sv_vscreen:
+        vscreen = (s_screen *)value->ptrVal;
         break;
     case _sv_nofadeout:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
