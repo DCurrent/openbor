@@ -11484,7 +11484,7 @@ HRESULT openbor_filestreamappend(ScriptVariant **varlist , ScriptVariant **pretv
             if ( len2 <= 0 ) inc = 0;
 
             filestreams[filestreamindex].buf[filestreams[filestreamindex].size+inc] = byte; // overwrite 0x00 byte
-            filestreams[filestreamindex].buf[filestreams[filestreamindex].size+1+inc] = 0x00;
+            if (appendtype <= 1) filestreams[filestreamindex].buf[filestreams[filestreamindex].size+1+inc] = 0x00;
             //printf("b:%s\n",filestreams[filestreamindex].buf);
 
             filestreams[filestreamindex].size = len1 + len2;
@@ -11587,19 +11587,19 @@ HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar
         return E_FAIL;
     }
 
-    if (paramCount > 3)
+    if (paramCount > 2)
     {
-        patharg = (char *)StrCache_Get(varlist[3]->strVal);
-        if( varlist[3]->vt != VT_STR )
+        patharg = (char *)StrCache_Get(varlist[2]->strVal);
+        if( varlist[2]->vt != VT_STR )
         {
             printf("The pathname parameter must be a string.\n");
             return E_FAIL;
         }
     }
 
-    if (paramCount > 4) // By White Dragon
+    if (paramCount > 3) // By White Dragon
     {
-        bytearg = (char *)StrCache_Get(varlist[4]->strVal);
+        bytearg = (char *)StrCache_Get(varlist[3]->strVal);
         if( stricmp(bytearg, "byte") != 0 )
         {
             printf("%s parameter does not exist.\n",bytearg);
@@ -11608,7 +11608,7 @@ HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar
     }
 
     // Get the saves directory
-    if ( paramCount <= 3 )
+    if ( paramCount <= 2 || patharg == NULL )
     {
         getBasePath(path, "Saves", 0);
         getPakName(tmpname, -1);
@@ -11648,7 +11648,7 @@ HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar
     fwrite(filestreams[filestreamindex].buf, 1, strlen(filestreams[filestreamindex].buf), handle);
 
     // add blank line so it can be read successfully
-    if ( paramCount <= 4 || (paramCount > 4 && stricmp(bytearg, "byte") != 0 ) ) fwrite("\r\n", 1, 2, handle);
+    if ( paramCount <= 3 || (paramCount > 3 && stricmp(bytearg, "byte") != 0 ) ) fwrite("\r\n", 1, 2, handle);
     fclose(handle);
 
     return S_OK;

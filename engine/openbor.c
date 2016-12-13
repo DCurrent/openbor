@@ -3670,11 +3670,11 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
     return item;
 }
 
-int readByte(char *command)
+int readByte(char *buf)
 {
     int num = 0;
 
-    num = (unsigned int)command[0]&0xFF;
+    num = (unsigned int)buf[0]&0xFF;
 
     return num;
 }
@@ -3732,6 +3732,7 @@ char *findarg(char *command, int which)
         }
         ++d;
     }
+    arg[d] = 0;
 
     return arg;
 }
