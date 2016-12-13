@@ -2452,7 +2452,7 @@ int    saveHighScoreFile(void);
 int    loadHighScoreFile(void);
 int translate_SDID(char *value);
 int music(char *filename, int loop, long offset);
-int readByte(char* command);
+int readByte(char* buf);
 char *findarg(char *command, int which);
 float diff(float a, float b);
 int inair(entity *e);
