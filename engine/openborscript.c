@@ -3549,6 +3549,7 @@ enum entityproperty_enum
     _ep_nohithead,
     _ep_nolife,
     _ep_nopain,
+    _ep_numweapons,
     _ep_offense,
     _ep_opponent,
     _ep_owner,
@@ -3609,6 +3610,7 @@ enum entityproperty_enum
     _ep_walkoffmovex,
     _ep_walkoffmovez,
     _ep_weapent,
+    _ep_weapnum,
     _ep_weapon,
     _ep_x,
     _ep_xdir,
@@ -3738,6 +3740,7 @@ static const char *eplist[] =
     "nohithead",
     "nolife",
     "nopain",
+    "numweapons",
     "offense",
     "opponent",
     "owner",
@@ -3798,6 +3801,7 @@ static const char *eplist[] =
     "walkoffmovex",
     "walkoffmovez",
     "weapent",
+    "weapnum",
     "weapon",
     "x",
     "xdir",
@@ -8088,6 +8092,18 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->ptrVal = (VOID *)ent->weapent;
         break;
     }
+    case _ep_numweapons:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.numweapons;
+        break;
+    }
+    case _ep_weapnum:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.weapnum;
+        break;
+    }
     case _ep_x:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
@@ -10064,6 +10080,7 @@ enum playerproperty_enum
     _pp_mapcount,
     _pp_name,
     _pp_newkeys,
+    _pp_numweapons,
     _pp_playkeys,
     _pp_releasekeys,
     _pp_score,
@@ -10098,6 +10115,7 @@ int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount)
         "mapcount",
         "name",
         "newkeys",
+        "numweapons",
         "playkeys",
         "releasekeys",
         "score",
@@ -10269,6 +10287,28 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)player[index].weapnum;
         break;
     }
+    case _pp_numweapons:
+    {
+        int cacheindex;
+
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+        if ( stricmp(player[index].name,"") != 0 ) {
+            cacheindex = get_cached_model_index(player[index].name);
+            if ( cacheindex == -1 )
+            {
+               (*pretvar)->lVal = (LONG)0;
+               break;
+            }
+        } else
+        {
+           (*pretvar)->lVal = (LONG)0;
+           break;
+        }
+
+        (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->numweapons;
+        break;
+    }
     case _pp_joining:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -10281,7 +10321,7 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
         frm = varlist[2];
         if(frm->vt != VT_INTEGER)
         {
-            printf("Need a frame number for this property.\n");
+            printf("Need a combostep value number for this property.\n");
             *pretvar = NULL;
             return E_FAIL;
         }
@@ -10301,7 +10341,7 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
         frm = varlist[2];
         if(frm->vt != VT_INTEGER)
         {
-            printf("Need a frame number for this property.\n");
+            printf("Need a combostep value number for this property.\n");
             *pretvar = NULL;
             return E_FAIL;
         }
@@ -10671,7 +10711,7 @@ HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **p
             value = varlist[3];
             if(value->vt != VT_INTEGER)
             {
-                printf("Need a value and frame number for this property.\n");
+                printf("Need a value and combostep value for this property.\n");
                 *pretvar = NULL;
                 return E_FAIL;
             }
@@ -10703,7 +10743,7 @@ HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **p
             value = varlist[3];
             if(value->vt != VT_INTEGER)
             {
-                printf("Need a value and frame number for this property.\n");
+                printf("Need a value and combostep value number for this property.\n");
                 *pretvar = NULL;
                 return E_FAIL;
             }
