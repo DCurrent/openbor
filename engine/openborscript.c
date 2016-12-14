@@ -3610,6 +3610,7 @@ enum entityproperty_enum
     _ep_walkoffmovex,
     _ep_walkoffmovez,
     _ep_weapent,
+    _ep_weaploss,
     _ep_weapnum,
     _ep_weapon,
     _ep_x,
@@ -3801,6 +3802,7 @@ static const char *eplist[] =
     "walkoffmovex",
     "walkoffmovez",
     "weapent",
+    "weaploss",
     "weapnum",
     "weapon",
     "x",
@@ -8104,6 +8106,25 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->modeldata.weapnum;
         break;
     }
+    case _ep_weaploss:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        if(paramCount >= 3)
+        {
+            if(FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+            {
+                printf("You must specify the flag value.\n");
+                *pretvar = NULL;
+                return E_FAIL;
+            }
+
+            if (ltemp == 0) (*pretvar)->lVal = (LONG)ent->modeldata.weaploss[0];
+            else (*pretvar)->lVal = (LONG)ent->modeldata.weaploss[1];
+        }
+        else (*pretvar)->lVal = (LONG)ent->modeldata.weaploss[0];
+
+        break;
+    }
     case _ep_x:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
@@ -9990,6 +10011,33 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
             ent->modeldata.walkoffmovez = (int)ltemp;
+        }
+        break;
+    }
+    case _ep_weapnum:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.weapnum = (int)ltemp;
+        }
+        break;
+    }
+    case _ep_weaploss:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.weaploss[0] = (int)ltemp;
+        }
+
+        if(paramCount >= 4)
+        {
+            if(FAILED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
+            {
+                printf("You must specify the flag value.\n");
+                *pretvar = NULL;
+                return E_FAIL;
+            }
+            ent->modeldata.weaploss[1] = (int)ltemp2;
         }
         break;
     }
