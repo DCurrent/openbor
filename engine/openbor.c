@@ -15521,7 +15521,7 @@ void updatestatus()
                 player[i].playkeys = 0;
             }
         }
-        else if(player[i].credits || credits || (!player[i].hasplayed && noshare))
+        else if( !nojoin && (player[i].credits || credits || (!player[i].hasplayed && noshare)) )
         {
             if(player[i].playkeys & FLAG_START)
             {
