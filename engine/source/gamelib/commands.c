@@ -57,7 +57,7 @@ List *createModelstxtCommandList(void)
 {
     List *result = prepareList();
 #define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
-        LIST_ADD(CMD_MODELSTXT_AJSPECIAL, "ajspecial");
+    LIST_ADD(CMD_MODELSTXT_AJSPECIAL, "ajspecial");
     LIST_ADD(CMD_MODELSTXT_AUTOLAND, "autoland");
     LIST_ADD(CMD_MODELSTXT_BLOCKRATIO, "blockratio");
     LIST_ADD(CMD_MODELSTXT_COLOURSELECT, "colourselect");
@@ -350,6 +350,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_NOTGRAB, "notgrab");
     LIST_ADD(CMD_MODEL_OFFENSE, "offense");
     LIST_ADD(CMD_MODEL_OFFSCREENKILL, "offscreenkill");
+    LIST_ADD(CMD_MODEL_ONAF, "offscreen_noatk_factor");
     LIST_ADD(CMD_MODEL_OFFSET, "offset");
     LIST_ADD(CMD_MODEL_ONBLOCKASCRIPT, "onblockascript");
     LIST_ADD(CMD_MODEL_ONBLOCKOSCRIPT, "onblockoscript");

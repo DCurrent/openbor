@@ -1750,6 +1750,7 @@ typedef struct
     int health;
     float scroll; // Autoscroll like panel entity.
     unsigned offscreenkill;                  // for biker, arrow, etc
+    float offscreen_noatk_factor;
     int	priority;
     //unsigned offscreenkillz;
     //unsigned offscreeenkila;
@@ -1997,6 +1998,7 @@ typedef struct entity
     int itemplayer_count;
     int boss;
     int dying; // Coresponds with which remap is to be used for the dying flash
+    int dying2; // Coresponds with which remap is to be used for the dying flash for per2
     unsigned per1; // Used to store at what health value the entity begins to flash
     unsigned per2; // Used to store at what health value the entity flashes more rapidly
     e_direction direction;
@@ -2186,6 +2188,7 @@ typedef struct
     int itemmap;
     int colourmap;
     int dying; // Used for the dying flash animation
+    int dying2; // Used for the dying flash animation health 25% (optional)
     unsigned per1; // Used to store at what health value the entity begins to flash
     unsigned per2; // Used to store at what health value the entity flashes more rapidly
     int nolife; // So nolife can be overriden for all characters
