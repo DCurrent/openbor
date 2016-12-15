@@ -1319,6 +1319,7 @@ void Parser_Assignment_expr2(Parser *pparser )
         {
             Parser_AddInstructionViaToken(pparser, code, (Token *)NULL, NULL );
         }
+        else Parser_Assignment_expr2(pparser );
 
         if (token.theType != END_OF_TOKENS)
         {
