@@ -3551,6 +3551,7 @@ enum entityproperty_enum
     _ep_nopain,
     _ep_numweapons,
     _ep_offense,
+    _ep_offscreenkill,
     _ep_opponent,
     _ep_owner,
     _ep_pain_time,
@@ -3743,6 +3744,7 @@ static const char *eplist[] =
     "nopain",
     "numweapons",
     "offense",
+    "offscreenkill",
     "opponent",
     "owner",
     "pain_time",
@@ -7546,6 +7548,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->dblVal = (DOUBLE)ent->offense_factors[(int)ltemp];
         break;
     }
+    case _ep_offscreenkill:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.offscreenkill;
+        break;
+    }
     case _ep_opponent:
     {
         if(ent->opponent) // always return an empty var if it is NULL
@@ -9379,6 +9387,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
         {
             ent->offense_factors[(int)ltemp] = (float)dbltemp;
+        }
+        break;
+    }
+    case _ep_offscreenkill:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.offscreenkill = (int)ltemp;
         }
         break;
     }

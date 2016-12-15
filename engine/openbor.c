@@ -7688,6 +7688,10 @@ void lcmHandleCommandAimove(ArgList *arglist, s_model *newchar, int *aimoveset, 
         {
             newchar->aimove |= AIMOVE1_NOMOVE;
         }
+        else if(stricmp(value, "boomrang") == 0)
+        {
+            newchar->aimove |= AIMOVE1_BOOMRANG;
+        }
         else
         {
             shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
@@ -8914,6 +8918,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_OFFSCREENKILL:
                 newchar->offscreenkill = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_ONAF:
+                newchar->offscreen_noatk_factor = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_FALLDIE:
             case CMD_MODEL_DEATH:
@@ -14776,6 +14783,7 @@ void load_level(char *filename)
             next.dying = GET_INT_ARG(1);
             next.per1 = GET_INT_ARG(2);
             next.per2 = GET_INT_ARG(3);
+            next.dying2 = GET_INT_ARG(4);
             break;
         case CMD_LEVEL_ITEM:
         case CMD_LEVEL_2PITEM:
@@ -21011,7 +21019,18 @@ void display_ents()
                         {
                             if(e->health > 0 )
                             {
-                                drawmethod->table = model_get_colourmap(&(e->modeldata), e->dying);
+                                if(e->dying2 > 0)
+                                {
+                                    if(e->health <= e->per1 && e->health > e->per2)
+                                    {
+                                        drawmethod->table = model_get_colourmap(&(e->modeldata), e->dying);
+                                    }
+                                    else if(e->health <= e->per2)
+                                    {
+                                        drawmethod->table = model_get_colourmap(&(e->modeldata), e->dying2);
+                                    }
+                                }
+                                else drawmethod->table = model_get_colourmap(&(e->modeldata), e->dying);
                             }
                         }
                     }
@@ -23608,7 +23627,8 @@ int check_attack_chance(entity *target, float min, float max)
 
     if(self->position.x < screenx - 10 || self->position.x > screenx + videomodes.hRes + 10)
     {
-        chance *= (1.0 - offscreen_noatk_factor);
+        if (self->modeldata.offscreen_noatk_factor != 0) chance *= (1.0 - self->modeldata.offscreen_noatk_factor);
+        else chance *= (1.0 - offscreen_noatk_factor);
     }
 
     return (randf(1) <= chance);
@@ -26072,6 +26092,12 @@ int arrow_move()
     return 1;
 }
 
+// for common boomrang types
+int boomrang_move()
+{
+    return 1;
+}
+
 // for common bomb types
 int bomb_move()
 {
@@ -26200,6 +26226,11 @@ int common_move()
     {
         // for a bomb, travel in a arc
         return bomb_move();
+    }
+    else if(aimove & AIMOVE1_BOOMRANG)
+    {
+        // for a bomb, travel in a arc
+        return boomrang_move();
     }
     else if(aimove & AIMOVE1_NOMOVE)
     {
@@ -29924,6 +29955,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
         e->dying = props->dying;    // Feb 26, 2005 - Used to define which colourmap is used for the dying flash
         e->per1 = props->per1;    // Mar 21, 2005 - Used to store custom percentages
         e->per2 = props->per2;    // Mar 21, 2005 - Used to store custom percentages
+        e->dying2 = props->dying2;    // Dec 15, 2016 - Used to define which colourmap is used for the dying flash for per2 By White Dragon
     }
 
     if(props->nolife)
