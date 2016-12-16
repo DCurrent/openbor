@@ -8823,6 +8823,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     newchar->star = get_cached_model_index(value);
                 }
                 break;
+            case CMD_MODEL_BOOMRANG_ACC:
+                newchar->boomrang_acc = GET_FLOAT_ARG(1);
             case CMD_MODEL_BOMB:
             case CMD_MODEL_PLAYBOMB:
                 value = GET_ARG(1);
@@ -26044,7 +26046,7 @@ int arrow_move()
             }
             else
             {
-                ent_set_anim(self, ANI_IDLE, 0);
+                if(validanim(self, ANI_IDLE)) ent_set_anim(self, ANI_IDLE, 0);
             }
         }
     }
@@ -26095,6 +26097,61 @@ int arrow_move()
 // for common boomrang types
 int boomrang_move()
 {
+    if(!self->modeldata.nomove)
+    {
+        //int xspace = videomodes.hRes*(1/4);
+        float acc;
+        if(self->modeldata.boomrang_acc != 0) acc = self->modeldata.boomrang_acc;
+        else acc = self->modeldata.speed/(GAME_SPEED*0.5); // acceleration
+
+        // init
+        if(self->velocity.x == 0 && self->boomrang_dest_vel == 0)
+        {
+            if(self->direction == DIRECTION_LEFT)
+            {
+                self->velocity.x = -self->modeldata.speed;
+                self->boomrang_dest_vel = self->modeldata.speed;
+            }
+            else if(self->direction == DIRECTION_RIGHT)
+            {
+                self->velocity.x = self->modeldata.speed;
+                self->boomrang_dest_vel = -self->modeldata.speed;
+            }
+        }
+        if(self->velocity.z != 0) self->velocity.z = 0;
+
+        // moving
+        if (self->velocity.x <= self->boomrang_dest_vel && self->boomrang_dest_vel > 0)
+        {
+            self->velocity.x += acc;
+            if (self->velocity.x > self->modeldata.speed) self->velocity.x = self->modeldata.speed;
+            if (self->velocity.x >= self->boomrang_dest_vel) self->boomrang_dest_vel = -self->modeldata.speed;
+        }
+        else if (self->velocity.x >= self->boomrang_dest_vel && self->boomrang_dest_vel < 0)
+        {
+            self->velocity.x -= acc;
+            if (self->velocity.x < -self->modeldata.speed) self->velocity.x = -self->modeldata.speed;
+            if (self->velocity.x <= self->boomrang_dest_vel) self->boomrang_dest_vel = self->modeldata.speed;
+        }
+        //debug_printf("vel:%f vdest:%f",self->velocity.x,self->boomrang_dest_vel);
+    }
+
+
+    if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
+    {
+        if((wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height)
+        {
+            self->takeaction = common_fall;
+            self->attacking = 0;
+            self->health = 0;
+            self->projectile = 0;
+            self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
+            self->damage_on_landing = 0;
+            toss(self, 2.5 + randf(1));
+            set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
+        }
+    }
+
     return 1;
 }
 
@@ -26229,7 +26286,7 @@ int common_move()
     }
     else if(aimove & AIMOVE1_BOOMRANG)
     {
-        // for a bomb, travel in a arc
+        // for a boomrang, acceleration backward, forward
         return boomrang_move();
     }
     else if(aimove & AIMOVE1_NOMOVE)

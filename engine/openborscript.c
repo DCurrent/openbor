@@ -3461,6 +3461,7 @@ enum entityproperty_enum
     _ep_blockback,
     _ep_blockodds,
     _ep_blockpain,
+    _ep_boomrang_acc,
     _ep_boss,
     _ep_bounce,
     _ep_bound,
@@ -3551,6 +3552,7 @@ enum entityproperty_enum
     _ep_nopain,
     _ep_numweapons,
     _ep_offense,
+    _ep_offscreen_noatk_factor,
     _ep_offscreenkill,
     _ep_opponent,
     _ep_owner,
@@ -3654,6 +3656,7 @@ static const char *eplist[] =
     "blockback",
     "blockodds",
     "blockpain",
+    "boomrangacc",
     "boss",
     "bounce",
     "bound",
@@ -3744,6 +3747,7 @@ static const char *eplist[] =
     "nopain",
     "numweapons",
     "offense",
+    "offscreennoatkfactor",
     "offscreenkill",
     "opponent",
     "owner",
@@ -6450,6 +6454,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
         break;
     }
+    case _ep_boomrang_acc:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomrang_acc;
+        break;
+    }
     case _ep_boss:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -7336,7 +7346,24 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         case _ep_maps_dying:
         {
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)(ent->dying);
+            if(paramCount >= 3)
+            {
+                if(FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+                {
+                    printf("You must specify the integer value form remap.\n");
+                    *pretvar = NULL;
+                    return E_FAIL;
+                }
+                else
+                {
+                    if (ltemp == 0) (*pretvar)->lVal = (LONG)(ent->dying);
+                    else (*pretvar)->lVal = (LONG)(ent->dying2);
+                }
+            }
+            else
+            {
+                (*pretvar)->lVal = (LONG)(ent->dying);
+            }
             break;
         }
         case _ep_maps_dying_critical:
@@ -7546,6 +7573,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
         (*pretvar)->dblVal = (DOUBLE)ent->offense_factors[(int)ltemp];
+        break;
+    }
+    case _ep_offscreen_noatk_factor:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)ent->modeldata.offscreen_noatk_factor;
         break;
     }
     case _ep_offscreenkill:
@@ -8498,6 +8531,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
+    case _ep_boomrang_acc:
+    {
+        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.boomrang_acc = (float)ltemp;
+        }
+        break;
+    }
     case _ep_boss:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
@@ -9387,6 +9428,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
         {
             ent->offense_factors[(int)ltemp] = (float)dbltemp;
+        }
+        break;
+    }
+    case _ep_offscreen_noatk_factor:
+    {
+        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.offscreen_noatk_factor = (float)ltemp;
         }
         break;
     }
