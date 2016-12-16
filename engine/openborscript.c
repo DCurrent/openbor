@@ -1109,6 +1109,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "performattack";
     }
+    else if (functionRef == ((void *)openbor_executeanimation))
+    {
+        return "executeanimation";
+    }
     else if (functionRef == ((void *)openbor_setidle))
     {
         return "setidle";
@@ -1727,6 +1731,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_updateframe, "updateframe");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_performattack, "performattack");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_executeanimation, "executeanimation");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_setidle, "setidle");
     List_InsertAfter(&theFunctionList,
@@ -16909,6 +16915,67 @@ HRESULT openbor_updateframe(ScriptVariant **varlist , ScriptVariant **pretvar, i
 
 updateframe_error:
     printf("Function need a valid entity handle and at an interger parameter: updateframe(entity, int frame)\n");
+    return E_FAIL;
+}
+
+//performattack(entity, int anim, int resetable);
+HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    LONG anim, resetable = 0;
+    entity *e;
+
+    *pretvar = NULL;
+    if(paramCount < 1)
+    {
+        goto executeanimation_error;
+    }
+
+    if(varlist[0]->vt == VT_EMPTY)
+    {
+        e = NULL;
+    }
+    else if(varlist[0]->vt == VT_PTR)
+    {
+        e = (entity *)varlist[0]->ptrVal;
+    }
+    else
+    {
+        goto executeanimation_error;
+    }
+
+    if(!e)
+    {
+        goto executeanimation_error;
+    }
+
+    e->takeaction = common_animation_normal;
+    e->attacking = 0;
+    e->idling = 0;
+    e->drop = 0;
+    e->falling = 0;
+    e->inpain = 0;
+    e->inbackpain = 0;
+    e->blocking = 0;
+
+    if(paramCount == 1)
+    {
+        return S_OK;
+    }
+
+    if(paramCount > 1 && FAILED(ScriptVariant_IntegerValue(varlist[1], &anim)))
+    {
+        goto executeanimation_error;
+    }
+    if(paramCount > 2 && FAILED(ScriptVariant_IntegerValue(varlist[2], &resetable)))
+    {
+        goto executeanimation_error;
+    }
+    ent_set_anim(e, (int)anim, (int)resetable);
+
+    return S_OK;
+
+executeanimation_error:
+    printf("Function need a valid entity handle, the other 2 integer parameters are optional: performattack(entity, int anim, int resetable)\n");
     return E_FAIL;
 }
 
