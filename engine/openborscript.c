@@ -4238,6 +4238,7 @@ enum cep_hostile_candamage_enum
 enum cep_takeaction_enum
 {
     _ep_ta_bomb_explode,
+    _ep_ta_common_animation_normal,
     _ep_ta_common_attack_proc,
     _ep_ta_common_block,
     _ep_ta_common_drop,
@@ -4442,6 +4443,7 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
     static const char *proplist_takeaction[] =
     {
         "bomb_explode",
+        "common_animation_normal",
         "common_attack_proc",
         "common_block",
         "common_drop",
@@ -8230,6 +8232,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     static const void *actions[] =   // for takeaction
     {
         bomb_explode,
+        common_animation_normal,
         common_attack_proc,
         common_block,
         common_drop,

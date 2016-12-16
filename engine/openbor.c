@@ -17659,7 +17659,7 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
             }
             else
             {
-                ent_set_anim(ent, ANI_IDLE, 0);
+                if( validanim(ent, ANI_IDLE)) ent_set_anim(ent, ANI_IDLE, 0);
             }
         }
         else if(!selectScreen && time && (ent->modeldata.type & TYPE_PLAYER))
@@ -17675,7 +17675,7 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
             }
             else
             {
-                ent_set_anim(ent, ANI_IDLE, 0);
+                if( validanim(ent, ANI_IDLE)) ent_set_anim(ent, ANI_IDLE, 0);
             }
         }
         else if(selectScreen && validanim(ent, ANI_SELECT))
@@ -17684,7 +17684,7 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
         }
         else
         {
-            ent_set_anim(ent, ANI_IDLE, 0);
+            if( validanim(ent, ANI_IDLE)) ent_set_anim(ent, ANI_IDLE, 0);
         }
     }
 }
@@ -24548,11 +24548,23 @@ void common_attack_finish()
     self->stalltime = time + MAX(0, stall);
 }
 
+//while playing any simple animation
+void common_animation_normal()
+{
+    if(self->animating)
+    {
+        return;
+    }
+
+    self->takeaction = NULL;
+    set_idle(self);
+
+    return;
+}
 
 //while playing attack animation
 void common_attack_proc()
 {
-
     if(self->animating || diff(self->position.y, self->base) >= 4)
     {
         return;
@@ -26222,23 +26234,29 @@ int boomerang_move()
                     {
                         if( current_distx >= self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.min.x && current_distx <= self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.max.x )
                         {
-                            debug_printf("range:%d",self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.max.x);
+                            self->parent->takeaction = common_animation_normal;
+                            self->parent->attacking = 0;
+                            self->parent->idling = 0;
                             ent_set_anim(self->parent, ANI_GETBOOMERANG, 0);
                             kill(self);
-                            return 0;
+                            return 1;
                         }
                     }
                     else if(inair(self->parent) && validanim(self->parent, ANI_GETBOOMERANGINAIR))
                     {
                         if( current_distx >= self->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.min.x && current_distx <= self->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.max.x )
                         {
+                            self->parent->takeaction = common_animation_normal;
+                            self->parent->attacking = 0;
+                            self->parent->idling = 0;
                             ent_set_anim(self->parent, ANI_GETBOOMERANGINAIR, 0);
                             kill(self);
-                            return 0;
+                            return 1;
                         }
                     }
                 }
             }
+
 
             //debug_printf("cur_distx:%f velx:%f",current_distx,self->velocity.x);
             //debug_printf("acc:%f speed:%f",acc,self->modeldata.speed);
@@ -26903,7 +26921,7 @@ int ai_check_warp()
         return 0;
     }
 
-    if(self->modeldata.subtype == SUBTYPE_FOLLOW && self->parent &&
+    if(self->modeldata.subtype == SUBTYPE_FOLLOW && self->parent && validanim(self, ANI_IDLE) &&
             (diff(self->position.z, self->parent->position.z) > self->modeldata.animation[ANI_IDLE]->range.max.x ||
              diff(self->position.x, self->parent->position.x) > self->modeldata.animation[ANI_IDLE]->range.max.x) )
     {
@@ -29210,7 +29228,7 @@ void dropweapon(int flag)
             }
             else
             {
-                ent_set_anim(self->weapent, ANI_IDLE, 1);
+                if(validanim(self->weapent, ANI_IDLE)) ent_set_anim(self->weapent, ANI_IDLE, 1);
             }
 
             if(!self->weapent->modeldata.counter)
