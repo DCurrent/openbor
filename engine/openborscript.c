@@ -8533,9 +8533,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_boomrang_acc:
     {
-        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &ltemp)))
+        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->modeldata.boomrang_acc = (float)ltemp;
+            ent->modeldata.boomrang_acc = (float)dbltemp;
         }
         break;
     }
@@ -9433,9 +9433,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_offscreen_noatk_factor:
     {
-        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &ltemp)))
+        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->modeldata.offscreen_noatk_factor = (float)ltemp;
+            ent->modeldata.offscreen_noatk_factor = (float)dbltemp;
         }
         break;
     }

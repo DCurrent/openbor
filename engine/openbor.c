@@ -26139,6 +26139,8 @@ int boomrang_move()
 
     if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
     {
+        int wall;
+
         if((wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height)
         {
             self->takeaction = common_fall;
@@ -26201,8 +26203,6 @@ int bomb_move()
 
 int star_move()
 {
-    int wall;
-
     if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80) || (self->base <= 0 && !self->modeldata.falldie))
     {
         kill(self);
@@ -26214,6 +26214,8 @@ int star_move()
 
     if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
     {
+        int wall;
+
         if((wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height)
         {
             self->takeaction = common_fall;
