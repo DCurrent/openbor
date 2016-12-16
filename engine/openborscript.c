@@ -3461,7 +3461,7 @@ enum entityproperty_enum
     _ep_blockback,
     _ep_blockodds,
     _ep_blockpain,
-    _ep_boomrang,
+    _ep_boomerang,
     _ep_boss,
     _ep_bounce,
     _ep_bound,
@@ -3656,7 +3656,7 @@ static const char *eplist[] =
     "blockback",
     "blockodds",
     "blockpain",
-    "boomrang",
+    "boomerang",
     "boss",
     "bounce",
     "bound",
@@ -6450,11 +6450,11 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->modeldata.blockpain;
         break;
     }
-    case _ep_boomrang:
+    case _ep_boomerang:
     {
         if (paramCount < 3)
         {
-            printf("You must specify a flag value for boomrang property (0 = acceleration, 1 = distance_x).\n");
+            printf("You must specify a flag value for boomerang property (0 = acceleration, 1 = distance_x).\n");
             *pretvar = NULL;
             return E_FAIL;
         }
@@ -6463,14 +6463,14 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             if(FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
             {
-                printf("You must specify a flag value for boomrang property (0 = acceleration, 1 = distance_x).\n");
+                printf("You must specify a flag value for boomerang property (0 = acceleration, 1 = distance_x).\n");
                 *pretvar = NULL;
                 return E_FAIL;
             }
             else
             {
-                if (ltemp == 0) (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomrang_acc;
-                else (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomrang_distx;
+                if (ltemp == 0) (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomerang_acc;
+                else (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomerang_distx;
             }
         }
         break;
@@ -8546,11 +8546,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
-    case _ep_boomrang:
+    case _ep_boomerang:
     {
         if (paramCount < 4)
         {
-            printf("You must specify 2 float values to change boomrang property (acceleration anddistance_x).\n");
+            printf("You must specify 2 float values to change boomerang property (acceleration anddistance_x).\n");
             *pretvar = NULL;
             return E_FAIL;
         }
@@ -8561,14 +8561,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             if( FAILED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)) || FAILED(ScriptVariant_DecimalValue(varlist[3], &dbltemp2)) )
             {
-                printf("You must specify 2 float values to change boomrang property (acceleration anddistance_x).\n");
+                printf("You must specify 2 float values to change boomerang property (acceleration anddistance_x).\n");
                 *pretvar = NULL;
                 return E_FAIL;
             }
             else
             {
-                ent->modeldata.boomrang_acc     = (float)dbltemp;
-                ent->modeldata.boomrang_distx   = (float)dbltemp2;
+                ent->modeldata.boomerang_acc     = (float)dbltemp;
+                ent->modeldata.boomerang_distx   = (float)dbltemp2;
             }
         }
         break;

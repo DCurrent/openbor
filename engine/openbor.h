@@ -262,7 +262,7 @@ typedef enum
     SUBTYPE_BIKER,
     SUBTYPE_NOTGRAB,
     SUBTYPE_ARROW,		//7-1-2005  subtype for an "enemy" that flies across the screen and dies
-    SUBTYPE_BOOMRANG,
+    SUBTYPE_BOOMERANG,
     SUBTYPE_TOUCH,		// ltb 1-18-05  new Item subtype for a more platformer feel.
     SUBTYPE_WEAPON,
     SUBTYPE_NOSKIP,		// Text type that can't be skipped
@@ -295,7 +295,7 @@ typedef enum
     AIMOVE1_STAR        = 0x00000200,   // fly like a star, subject to ground
     AIMOVE1_BOMB        = 0x00000400,   // fly like a bomb, subject to ground/wall etc
     AIMOVE1_NOMOVE      = 0x00000800,   // don't move at all
-    AIMOVE1_BOOMRANG    = 0x00001000,   // boomrang
+    AIMOVE1_BOOMERANG   = 0x00001000,   // boomerang
     MASK_AIMOVE1        = 0x0000FFFF
 } e_aimove_1;
 
@@ -546,7 +546,8 @@ typedef enum //Animations
     ANI_BACKDIE9,
     ANI_BACKDIE10,
     ANI_BACKRUN,
-    ANI_GETBOOMRANG,
+    ANI_GETBOOMERANG,
+    ANI_GETBOOMERANGINAIR,
     MAX_ANIS                // Maximum # of animations. This must always be last.
 } e_animations;
 
@@ -1093,7 +1094,7 @@ if(n<1) n = 1;
 
 #define freezeall        (smartbomber || textbox)
 
-#define is_projectile(e) (e->modeldata.type == TYPE_SHOT || e->model->subtype == SUBTYPE_ARROW || e->model->subtype == SUBTYPE_BOOMRANG || e->owner)
+#define is_projectile(e) (e->modeldata.type == TYPE_SHOT || e->model->subtype == SUBTYPE_ARROW || e->model->subtype == SUBTYPE_BOOMERANG || e->owner)
 
 #define screeny (level?((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN )? 0:advancey ):0)
 #define screenx (level?advancex:0)
@@ -1821,8 +1822,8 @@ typedef struct
     int pshotno; // 7-1-2005 now every enemy can have their own "knife" projectile
     int star; // 7-1-2005 now every enemy can have their own "ninja star" projectiles
     int bomb; // New projectile type for exploding bombs/grenades/dynamite
-    float boomrang_acc;
-    float boomrang_distx;
+    float boomerang_acc;
+    float boomerang_distx;
     int flash; // Now each entity can have their own flash
     int bflash; // Flash that plays when an attack is blocked
     s_dust dust; //Spawn entity during certain actions.
@@ -2005,7 +2006,7 @@ typedef struct entity
     int dying2; // Coresponds with which remap is to be used for the dying flash for per2
     unsigned per1; // Used to store at what health value the entity begins to flash
     unsigned per2; // Used to store at what health value the entity flashes more rapidly
-    int boomrang_loop;
+    int boomerang_loop;
     e_direction direction;
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
     int nograb_default; // equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon)
