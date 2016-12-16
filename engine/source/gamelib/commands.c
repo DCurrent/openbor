@@ -213,7 +213,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_BLOCKODDS, "blockodds");
     LIST_ADD(CMD_MODEL_BLOCKPAIN, "blockpain");
     LIST_ADD(CMD_MODEL_BOMB, "bomb");
-    LIST_ADD(CMD_MODEL_BOOMRANG_ACC, "boomrangacc");
+    LIST_ADD(CMD_MODEL_BOOMRANG, "boomrang");
     LIST_ADD(CMD_MODEL_BOUNCE, "bounce");
     LIST_ADD(CMD_MODEL_BOUNCEFACTOR, "bouncefactor");
     LIST_ADD(CMD_MODEL_BRANCH, "branch");
