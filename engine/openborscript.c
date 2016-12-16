@@ -1648,9 +1648,9 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_checkplatformbelow, "checkplatformbelow");
     List_InsertAfter(&theFunctionList,
-                     (void *)openbor_checkplatformbelow, "checkplatformabove");
+                     (void *)openbor_checkplatformabove, "checkplatformabove");
     List_InsertAfter(&theFunctionList,
-                     (void *)openbor_checkplatformbelow, "checkplatformbetween");
+                     (void *)openbor_checkplatformbetween, "checkplatformbetween");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_checkbasemap, "checkbasemap");
     List_InsertAfter(&theFunctionList,
@@ -11046,7 +11046,7 @@ HRESULT openbor_checkwall(ScriptVariant **varlist , ScriptVariant **pretvar, int
         {
             return S_OK;
         }
-        h = (float)arg->dblVal;
+        h = (float)y;
     }
 
     if((wall = checkwall_below((float)x, (float)z, (float)h)) >= 0)
@@ -16918,7 +16918,7 @@ updateframe_error:
     return E_FAIL;
 }
 
-//performattack(entity, int anim, int resetable);
+//executeanimation(entity, int anim, int resetable);
 HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     LONG anim, resetable = 0;
