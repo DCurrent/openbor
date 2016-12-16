@@ -238,6 +238,7 @@ HRESULT openbor_allocscreen(ScriptVariant **varlist , ScriptVariant **pretvar, i
 HRESULT openbor_clearscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_setdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_updateframe(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_performattack(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
