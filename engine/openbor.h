@@ -262,6 +262,7 @@ typedef enum
     SUBTYPE_BIKER,
     SUBTYPE_NOTGRAB,
     SUBTYPE_ARROW,		//7-1-2005  subtype for an "enemy" that flies across the screen and dies
+    SUBTYPE_BOOMRANG,
     SUBTYPE_TOUCH,		// ltb 1-18-05  new Item subtype for a more platformer feel.
     SUBTYPE_WEAPON,
     SUBTYPE_NOSKIP,		// Text type that can't be skipped
@@ -545,6 +546,7 @@ typedef enum //Animations
     ANI_BACKDIE9,
     ANI_BACKDIE10,
     ANI_BACKRUN,
+    ANI_GETBOOMRANG,
     MAX_ANIS                // Maximum # of animations. This must always be last.
 } e_animations;
 
@@ -1091,7 +1093,7 @@ if(n<1) n = 1;
 
 #define freezeall        (smartbomber || textbox)
 
-#define is_projectile(e) (e->modeldata.type == TYPE_SHOT || e->model->subtype == SUBTYPE_ARROW || e->owner)
+#define is_projectile(e) (e->modeldata.type == TYPE_SHOT || e->model->subtype == SUBTYPE_ARROW || e->model->subtype == SUBTYPE_BOOMRANG || e->owner)
 
 #define screeny (level?((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN )? 0:advancey ):0)
 #define screenx (level?advancex:0)
@@ -1820,6 +1822,7 @@ typedef struct
     int star; // 7-1-2005 now every enemy can have their own "ninja star" projectiles
     int bomb; // New projectile type for exploding bombs/grenades/dynamite
     float boomrang_acc;
+    float boomrang_distx;
     int flash; // Now each entity can have their own flash
     int bflash; // Flash that plays when an attack is blocked
     s_dust dust; //Spawn entity during certain actions.
@@ -2002,6 +2005,7 @@ typedef struct entity
     int dying2; // Coresponds with which remap is to be used for the dying flash for per2
     unsigned per1; // Used to store at what health value the entity begins to flash
     unsigned per2; // Used to store at what health value the entity flashes more rapidly
+    int boomrang_loop;
     e_direction direction;
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
     int nograb_default; // equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon)
@@ -2015,7 +2019,6 @@ typedef struct entity
     float speedmul;
     float base;     // Default altitude
     float altbase; // Altitude affected by movea
-    float boomrang_dest_vel;
     s_jump jump;    //Jumping velocity and id.
     unsigned combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
 

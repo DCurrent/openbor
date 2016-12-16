@@ -6312,6 +6312,10 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_BACKRUN;
     }
+    else if(stricmp(value, "getboomrang") == 0)
+    {
+        ani_id = ANI_GETBOOMRANG;
+    }
     else if(starts_with_num(value, "up"))
     {
         get_tail_number(tempInt, value, "up");
@@ -7403,6 +7407,28 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
             newchar->aimove = 0;
         }
         newchar->aimove |= AIMOVE1_ARROW;
+        if(!newchar->offscreenkill)
+        {
+            newchar->offscreenkill = 200;
+        }
+        newchar->subject_to_hole        = 0;
+        newchar->subject_to_gravity     = 1;
+        newchar->subject_to_basemap     = 0;
+        newchar->subject_to_wall        = 0;
+        newchar->subject_to_platform    = 0;
+        newchar->subject_to_screen      = 0;
+        newchar->subject_to_minz        = 1;
+        newchar->subject_to_maxz        = 1;
+        newchar->no_adjust_base         = 1;
+    }
+    else if(stricmp(value, "boomrang") == 0) // 16-12-2016 Boomrang type
+    {
+        newchar->subtype = SUBTYPE_BOOMRANG;   // 16-12-2016 Boomrang type
+        if(newchar->aimove == -1)
+        {
+            newchar->aimove = 0;
+        }
+        newchar->aimove |= AIMOVE1_BOOMRANG;
         if(!newchar->offscreenkill)
         {
             newchar->offscreenkill = 200;
@@ -8823,8 +8849,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     newchar->star = get_cached_model_index(value);
                 }
                 break;
-            case CMD_MODEL_BOOMRANG_ACC:
+            case CMD_MODEL_BOOMRANG:
                 newchar->boomrang_acc = GET_FLOAT_ARG(1);
+                newchar->boomrang_distx = GET_FLOAT_ARG(2);
             case CMD_MODEL_BOMB:
             case CMD_MODEL_PLAYBOMB:
                 value = GET_ARG(1);
@@ -11334,7 +11361,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             break;
         case TYPE_ENEMY:
             newchar->candamage = TYPE_PLAYER | TYPE_SHOT;
-            if(newchar->subtype == SUBTYPE_ARROW)
+            if(newchar->subtype == SUBTYPE_ARROW || newchar->subtype == SUBTYPE_BOOMRANG)
             {
                 newchar->candamage |= TYPE_OBSTACLE;
             }
@@ -16858,7 +16885,7 @@ void ent_default_init(entity *e)
             break;
         }
         // define new subtypes
-        else if(e->modeldata.subtype == SUBTYPE_ARROW)
+        else if(e->modeldata.subtype == SUBTYPE_ARROW || e->modeldata.subtype == SUBTYPE_BOOMRANG)
         {
             e->health = 1;
             if(!e->modeldata.speed && !e->modeldata.nomove)
@@ -16915,7 +16942,7 @@ void ent_default_init(entity *e)
         }
         else
         {
-            dodrop = (e->modeldata.subtype != SUBTYPE_ARROW && level && (level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN));
+            dodrop = (e->modeldata.subtype != SUBTYPE_ARROW && e->modeldata.subtype != SUBTYPE_BOOMRANG && level && (level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN));
 
             if(!nodropspawn && (dodrop || (e->position.x > advancex - 30 && e->position.x < advancex + videomodes.hRes + 30 && e->position.y == 0)) )
             {
@@ -17083,7 +17110,7 @@ void ent_spawn_ent(entity *ent)
         {
             s_ent->playerindex = ent->playerindex;
         }
-        if(s_ent->modeldata.subtype == SUBTYPE_ARROW)
+        if(s_ent->modeldata.subtype == SUBTYPE_ARROW || s_ent->modeldata.subtype == SUBTYPE_BOOMRANG)
         {
             s_ent->owner = ent;
         }
@@ -17131,7 +17158,7 @@ void ent_summon_ent(entity *ent)
         {
             s_ent->playerindex = ent->playerindex;
         }
-        if(s_ent->modeldata.subtype == SUBTYPE_ARROW)
+        if(s_ent->modeldata.subtype == SUBTYPE_ARROW || s_ent->modeldata.subtype == SUBTYPE_BOOMRANG)
         {
             s_ent->owner = ent;
         }
@@ -17820,7 +17847,7 @@ void kill(entity *victim)
 
     execute_onkill_script(victim);
 
-    if(!victim || !victim->exists)
+    if(victim == NULL || !victim->exists)
     {
         return;
     }
@@ -23268,7 +23295,7 @@ int checkgrab(entity *other, s_collision_attack *attack)
 int arrow_takedamage(entity *other, s_collision_attack *attack)
 {
     self->modeldata.no_adjust_base = 0;
-    self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_gravity = 1;
+    self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_basemap = self->modeldata.subject_to_gravity = 1;
     if( common_takedamage(other, attack) && self->dead)
     {
         return 1;
@@ -26099,41 +26126,76 @@ int boomrang_move()
 {
     if(!self->modeldata.nomove)
     {
-        //int xspace = videomodes.hRes*(1/4);
-        float acc;
+        float acc, distx, current_distx;
+
         if(self->modeldata.boomrang_acc != 0) acc = self->modeldata.boomrang_acc;
-        else acc = self->modeldata.speed/(GAME_SPEED*0.5); // acceleration
+        else acc = self->modeldata.speed/(4); // acceleration
+        if(self->modeldata.boomrang_distx > 0) distx = self->modeldata.boomrang_distx;
+        else distx = videomodes.hRes/(3); // horizontal distance
 
         // init
-        if(self->velocity.x == 0 && self->boomrang_dest_vel == 0)
+        if(self->velocity.x == 0 && !self->boomrang_loop)
         {
+            self->modeldata.noflip = 1;
+
+            if(self->parent)
+            {
+                self->modeldata.hostile &= ~(self->parent->modeldata.type);
+                if (self->parent->modeldata.type == TYPE_PLAYER) self->modeldata.hostile |= TYPE_ENEMY;
+                else if(self->parent->modeldata.type == TYPE_ENEMY) self->modeldata.hostile |= (TYPE_PLAYER | TYPE_NPC);
+
+                self->direction = self->parent->direction;
+            }
+
             if(self->direction == DIRECTION_LEFT)
             {
                 self->velocity.x = -self->modeldata.speed;
-                self->boomrang_dest_vel = self->modeldata.speed;
             }
             else if(self->direction == DIRECTION_RIGHT)
             {
                 self->velocity.x = self->modeldata.speed;
-                self->boomrang_dest_vel = -self->modeldata.speed;
             }
+
+            self->modeldata.antigrab = 1;
+            self->modeldata.grabforce = -999999;
+
+            ++self->boomrang_loop;
         }
         if(self->velocity.z != 0) self->velocity.z = 0;
 
-        // moving
-        if (self->velocity.x <= self->boomrang_dest_vel && self->boomrang_dest_vel > 0)
+        if( (!self->parent && (self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80))) )
         {
-            self->velocity.x += acc;
-            if (self->velocity.x > self->modeldata.speed) self->velocity.x = self->modeldata.speed;
-            if (self->velocity.x >= self->boomrang_dest_vel) self->boomrang_dest_vel = -self->modeldata.speed;
+            kill(self);
+            return 0;
         }
-        else if (self->velocity.x >= self->boomrang_dest_vel && self->boomrang_dest_vel < 0)
+
+        if(self->parent)
         {
-            self->velocity.x -= acc;
-            if (self->velocity.x < -self->modeldata.speed) self->velocity.x = -self->modeldata.speed;
-            if (self->velocity.x <= self->boomrang_dest_vel) self->boomrang_dest_vel = self->modeldata.speed;
+            current_distx = diff(self->position.x,self->parent->position.x);
+            self->position.z = self->parent->position.z;
+
+            // moving
+            if (self->position.x > self->parent->position.x)
+            {
+                if ( current_distx > distx )
+                {
+                    if(self->velocity.x - acc <= 0) ++self->boomrang_loop;
+                    self->velocity.x -= acc;
+                    if (self->velocity.x < -self->modeldata.speed) self->velocity.x = -self->modeldata.speed;
+                }
+            }
+            else if (self->position.x < self->parent->position.x)
+            {
+                if ( current_distx > distx )
+                {
+                    if(self->velocity.x + acc >= 0) ++self->boomrang_loop;
+                    self->velocity.x += acc;
+                    if (self->velocity.x > self->modeldata.speed) self->velocity.x = self->modeldata.speed;
+                }
+            }
+            debug_printf("cur_distx:%f velx:%f",current_distx,self->velocity.x);
+            //debug_printf("boomrang_loop:%d",self->boomrang_loop);
         }
-        //debug_printf("vel:%f vdest:%f",self->velocity.x,self->boomrang_dest_vel);
     }
 
 
@@ -26141,7 +26203,7 @@ int boomrang_move()
     {
         int wall;
 
-        if((wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height)
+        if((wall = checkwall(self->position.x, self->position.z)) > 0 && self->position.y < level->walls[wall].height)
         {
             self->takeaction = common_fall;
             self->attacking = 0;
@@ -26288,7 +26350,7 @@ int common_move()
     }
     else if(aimove & AIMOVE1_BOOMRANG)
     {
-        // for a boomrang, acceleration backward, forward
+        // for a boomrang, boomrang move
         return boomrang_move();
     }
     else if(aimove & AIMOVE1_NOMOVE)
@@ -26426,7 +26488,7 @@ int common_move()
                     common_try_wander(target, 1, 1);
                     ent = target;
                 }
-                else if (target)
+                else if ( target && (!(self->modeldata.aimove&AIMOVE2_NOTARGETIDLE) || ((self->modeldata.aimove&AIMOVE2_NOTARGETIDLE) && target->animnum != ANI_IDLE)) )
                 {
                     ent = target;
                     pxc = pzc = 0;

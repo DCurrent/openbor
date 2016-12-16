@@ -3461,7 +3461,7 @@ enum entityproperty_enum
     _ep_blockback,
     _ep_blockodds,
     _ep_blockpain,
-    _ep_boomrang_acc,
+    _ep_boomrang,
     _ep_boss,
     _ep_bounce,
     _ep_bound,
@@ -3656,7 +3656,7 @@ static const char *eplist[] =
     "blockback",
     "blockodds",
     "blockpain",
-    "boomrangacc",
+    "boomrang",
     "boss",
     "bounce",
     "bound",
@@ -6434,10 +6434,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
     case _ep_blockback:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-        {
-            ent->modeldata.blockback = (int)ltemp;
-        }
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.blockback;
         break;
     }
     case _ep_blockodds:
@@ -6448,16 +6446,33 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
     case _ep_blockpain:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-        {
-            ent->modeldata.blockpain = (int)ltemp;
-        }
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.blockpain;
         break;
     }
-    case _ep_boomrang_acc:
+    case _ep_boomrang:
     {
-        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomrang_acc;
+        if (paramCount < 3)
+        {
+            printf("You must specify a flag value for boomrang property (0 = acceleration, 1 = distance_x).\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+        else
+        {
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            if(FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+            {
+                printf("You must specify a flag value for boomrang property (0 = acceleration, 1 = distance_x).\n");
+                *pretvar = NULL;
+                return E_FAIL;
+            }
+            else
+            {
+                if (ltemp == 0) (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomrang_acc;
+                else (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomrang_distx;
+            }
+        }
         break;
     }
     case _ep_boss:
@@ -7350,7 +7365,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             {
                 if(FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
                 {
-                    printf("You must specify the integer value form remap.\n");
+                    printf("You must specify the integer value for remap.\n");
                     *pretvar = NULL;
                     return E_FAIL;
                 }
@@ -8531,11 +8546,30 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
-    case _ep_boomrang_acc:
+    case _ep_boomrang:
     {
-        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+        if (paramCount < 4)
         {
-            ent->modeldata.boomrang_acc = (float)dbltemp;
+            printf("You must specify 2 float values to change boomrang property (acceleration anddistance_x).\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+        else
+        {
+            DOUBLE dbltemp2;
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            if( FAILED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)) || FAILED(ScriptVariant_DecimalValue(varlist[3], &dbltemp2)) )
+            {
+                printf("You must specify 2 float values to change boomrang property (acceleration anddistance_x).\n");
+                *pretvar = NULL;
+                return E_FAIL;
+            }
+            else
+            {
+                ent->modeldata.boomrang_acc     = (float)dbltemp;
+                ent->modeldata.boomrang_distx   = (float)dbltemp2;
+            }
         }
         break;
     }
@@ -11947,7 +11981,7 @@ HRESULT openbor_killentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
     ent = (entity *)(varlist[0])->ptrVal; //retrieve the entity
-    if(!ent)
+    if(ent == NULL)
     {
         (*pretvar)->lVal = (LONG)0;
         return S_OK;
