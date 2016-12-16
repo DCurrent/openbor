@@ -1819,6 +1819,7 @@ typedef struct
     int pshotno; // 7-1-2005 now every enemy can have their own "knife" projectile
     int star; // 7-1-2005 now every enemy can have their own "ninja star" projectiles
     int bomb; // New projectile type for exploding bombs/grenades/dynamite
+    float boomrang_acc;
     int flash; // Now each entity can have their own flash
     int bflash; // Flash that plays when an attack is blocked
     s_dust dust; //Spawn entity during certain actions.
@@ -2014,6 +2015,7 @@ typedef struct entity
     float speedmul;
     float base;     // Default altitude
     float altbase; // Altitude affected by movea
+    float boomrang_dest_vel;
     s_jump jump;    //Jumping velocity and id.
     unsigned combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
 
