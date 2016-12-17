@@ -26265,7 +26265,7 @@ int boomerang_move()
         }
     }
 
-    if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
+    if(self->modeldata.subject_to_wall && validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
     {
         int wall;
 
