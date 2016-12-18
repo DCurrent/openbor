@@ -17979,6 +17979,8 @@ void kill(entity *victim)
             }
         }
     }
+
+    victim = NULL;
     self = tempent;
 }
 
