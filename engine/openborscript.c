@@ -9963,6 +9963,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
+    case _ep_subtype:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.subtype = (int)ltemp;
+        }
+        break;
+    }
     case _ep_takeaction:
     {
         //if(varlist[2]->vt == VT_STRING)
