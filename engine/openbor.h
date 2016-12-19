@@ -570,6 +570,7 @@ typedef enum
     ANI_PROP_FLIPFRAME,    // Turns entities around on the desired frame
     ANI_PROP_FOLLOWUP,     // use which FOLLOW anim?
     ANI_PROP_IDLE,
+    ANI_PROP_IGNOREATTACKID,
     ANI_PROP_INDEX,        //unique id
     ANI_PROP_JUMPFRAME,    //SUB
     ANI_PROP_LANDFRAME,    // SUB Landing behavior. 2011_04_01, DC: Moved to struct.
@@ -2117,6 +2118,7 @@ typedef struct entity
     struct entity *parent; //Its spawner
     struct entity *subentity; //store the sub entity
     struct entity *opponent;
+    struct entity *custom_target; // target forced by modder via script
     struct entity *lasthit;
     struct entity *hithead; // when a player jumps and hits head on the bottom of a platform
     struct entity *landed_on_platform;
