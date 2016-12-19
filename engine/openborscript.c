@@ -85,6 +85,10 @@ extern int            *animwalks;
 extern int            *animbackwalks;
 extern int            *animups;
 extern int            *animdowns;
+extern int            *animbackpains;
+extern int            *animbackfalls;
+extern int            *animbackdies;
+
 extern int            noshare;
 extern int            credits;
 extern char           musicname[128];
@@ -3477,6 +3481,7 @@ enum entityproperty_enum
     _ep_colourtable,
     _ep_combostep,
     _ep_combotime,
+    _ep_custom_target,
     _ep_damage_on_landing,
     _ep_dead,
     _ep_defaultmodel,
@@ -3672,6 +3677,7 @@ static const char *eplist[] =
     "colourtable",
     "combostep",
     "combotime",
+    "custom_target",
     "damage_on_landing",
     "dead",
     "defaultmodel",
@@ -4705,6 +4711,15 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->antigrav = (int)temp_int;
+            }
+
+            break;
+
+        case ANI_PROP_NUMFRAMES:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->numframes = (int)temp_int;
             }
 
             break;
@@ -7619,6 +7634,15 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
         break;
     }
+    case _ep_custom_target:
+    {
+        if(ent->custom_target) // always return an empty var if it is NULL
+        {
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)ent->custom_target;
+        }
+        break;
+    }
     case _ep_owner:
     {
         if(ent->owner) // always return an empty var if it is NULL
@@ -9493,6 +9517,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     case _ep_opponent:
     {
         ent->opponent = (entity *)varlist[2]->ptrVal;
+        break;
+    }
+    case _ep_custom_target:
+    {
+        ent->custom_target = (entity *)varlist[2]->ptrVal;
         break;
     }
     case _ep_owner:
@@ -12891,6 +12920,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(SUBTYPE_BIKER)
         ICMPCONST(SUBTYPE_NOTGRAB)
         ICMPCONST(SUBTYPE_ARROW)
+        ICMPCONST(SUBTYPE_BOOMERANG)
         ICMPCONST(SUBTYPE_TOUCH)
         ICMPCONST(SUBTYPE_WEAPON)
         ICMPCONST(SUBTYPE_NOSKIP)
@@ -12912,6 +12942,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(AIMOVE1_STAR)
         ICMPCONST(AIMOVE1_ARROW)
         ICMPCONST(AIMOVE1_BOMB)
+        ICMPCONST(AIMOVE1_BOOMERANG)
         ICMPCONST(AIMOVE2_NORMAL)
         ICMPCONST(AIMOVE2_IGNOREHOLES)
         ICMPCONST(AIATTACK1_NORMAL)
@@ -13137,6 +13168,43 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_WALKOFF)
         ICMPCONST(ANI_FREESPECIAL)
         ICMPCONST(ANI_ATTACK)
+        ICMPCONST(ANI_BACKPAIN)
+        ICMPCONST(ANI_BACKPAIN2)
+        ICMPCONST(ANI_BACKPAIN3)
+        ICMPCONST(ANI_BACKPAIN4)
+        ICMPCONST(ANI_BACKPAIN5)
+        ICMPCONST(ANI_BACKPAIN6)
+        ICMPCONST(ANI_BACKPAIN7)
+        ICMPCONST(ANI_BACKPAIN8)
+        ICMPCONST(ANI_BACKPAIN9)
+        ICMPCONST(ANI_BACKPAIN10)
+        ICMPCONST(ANI_BACKFALL)
+        ICMPCONST(ANI_BACKFALL2)
+        ICMPCONST(ANI_BACKFALL3)
+        ICMPCONST(ANI_BACKFALL4)
+        ICMPCONST(ANI_BACKFALL5)
+        ICMPCONST(ANI_BACKFALL6)
+        ICMPCONST(ANI_BACKFALL7)
+        ICMPCONST(ANI_BACKFALL8)
+        ICMPCONST(ANI_BACKFALL9)
+        ICMPCONST(ANI_BACKFALL10)
+        ICMPCONST(ANI_BACKDIE)
+        ICMPCONST(ANI_BACKDIE2)
+        ICMPCONST(ANI_BACKDIE3)
+        ICMPCONST(ANI_BACKDIE4)
+        ICMPCONST(ANI_BACKDIE5)
+        ICMPCONST(ANI_BACKDIE6)
+        ICMPCONST(ANI_BACKDIE7)
+        ICMPCONST(ANI_BACKDIE8)
+        ICMPCONST(ANI_BACKDIE9)
+        ICMPCONST(ANI_BACKDIE10)
+        ICMPCONST(ANI_BACKRUN)
+        ICMPCONST(ANI_HITOBSTACLE)
+        ICMPCONST(ANI_HITPLATFORM)
+        ICMPCONST(ANI_HITWALL)
+        ICMPCONST(ANI_GETBOOMERANG)
+        ICMPCONST(ANI_GETBOOMERANGINAIR)
+
 
         // for the extra animation ids
         ICMPSCONSTC(ATK_NORMAL)
@@ -13153,6 +13221,9 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPSCONSTA(ANI_ATTACK, animattacks)
         ICMPSCONSTA(ANI_FOLLOW, animfollows)
         ICMPSCONSTA(ANI_FREESPECIAL, animspecials)
+        ICMPSCONSTA(ANI_BACKPAIN, animbackpains)
+        ICMPSCONSTA(ANI_BACKFALL, animbackfalls)
+        ICMPSCONSTA(ANI_BACKDIE, animbackdies)
 
         // Animation properties.
         ICMPCONST(ANI_PROP_ANIMHITS)
