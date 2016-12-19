@@ -17045,6 +17045,7 @@ void ent_default_init(entity *e)
         {
             e->speedmul = 2;
         }
+        e->trymove = common_trymove;
         break;
     case TYPE_PANEL:
         e->nograb = 1;
@@ -26442,7 +26443,9 @@ int common_move()
 
         // find all possible entities for target
         // bad for optimization, but makes better sense
-        target = normal_find_target(-1, 0); // confirm the target again
+        if(self->custom_target == NULL || !self->custom_target->exists ) target = normal_find_target(-1, 0); // confirm the target again
+        else target = self->custom_target;
+
         //other = ((time / GAME_SPEED + self->health / 3 + self->sortid) % 15 < 10) ? normal_find_item() : NULL; // find an item
         other = ( (time / GAME_SPEED + self->health / 3 + 1000) % 15 < 10) ? normal_find_item() : NULL; // find an item
         owner = self->parent;
