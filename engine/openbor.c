@@ -7210,14 +7210,14 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     if(stricmp(value, "none") == 0)
     {
         newchar->type = TYPE_NONE;
-        newchar->subject_to_basemap     = 1;
-        newchar->subject_to_wall        = 1;
-        newchar->subject_to_platform    = 1;
-        newchar->subject_to_hole        = 1;
-        newchar->subject_to_obstacle    = 1;
-        newchar->subject_to_gravity     = 1;
-        newchar->subject_to_minz        = 1;
-        newchar->subject_to_maxz        = 1;
+        newchar->subject_to_basemap     = 0;
+        newchar->subject_to_wall        = 0;
+        newchar->subject_to_platform    = 0;
+        newchar->subject_to_hole        = 0;
+        newchar->subject_to_obstacle    = 0;
+        newchar->subject_to_gravity     = 0;
+        newchar->subject_to_minz        = 0;
+        newchar->subject_to_maxz        = 0;
         newchar->no_adjust_base         = 0;
     }
     else if(stricmp(value, "player") == 0)
