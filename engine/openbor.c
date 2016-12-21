@@ -7215,10 +7215,8 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
         newchar->subject_to_platform    = 0;
         newchar->subject_to_hole        = 0;
         newchar->subject_to_obstacle    = 0;
-        newchar->subject_to_gravity     = 0;
         newchar->subject_to_minz        = 0;
         newchar->subject_to_maxz        = 0;
-        newchar->no_adjust_base         = 0;
     }
     else if(stricmp(value, "player") == 0)
     {
