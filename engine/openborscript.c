@@ -1081,6 +1081,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "next";
     }
+    else if (functionRef == ((void *)openbor_previous))
+    {
+        return "previous";
+    }
     else if (functionRef == ((void *)openbor_key))
     {
         return "key";
@@ -1088,6 +1092,14 @@ const char *Script_GetFunctionName(void *functionRef)
     else if (functionRef == ((void *)openbor_value))
     {
         return "value";
+    }
+    else if (functionRef == ((void *)openbor_islast))
+    {
+        return "islast";
+    }
+    else if (functionRef == ((void *)openbor_isfirst))
+    {
+        return "isfirst";
     }
     else if (functionRef == ((void *)openbor_allocscreen))
     {
@@ -1720,9 +1732,15 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_next, "next");
     List_InsertAfter(&theFunctionList,
+                     (void *)openbor_previous, "previous");
+    List_InsertAfter(&theFunctionList,
                      (void *)openbor_key, "key");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_value, "value");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_islast, "islast");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_isfirst, "isfirst");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_allocscreen, "allocscreen");
     List_InsertAfter(&theFunctionList,
@@ -16111,21 +16129,25 @@ HRESULT openbor_add(ScriptVariant **varlist , ScriptVariant **pretvar, int param
     *pretvar = NULL;
     if(paramCount < 2 || varlist[0]->vt != VT_PTR || !(array = (Varlist *)varlist[0]->ptrVal) || array->magic != varlist_magic)
     {
-        goto set_error;
+        goto add_error;
     }
 
-    if( SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &index)) )
+    if(varlist[1]->vt == VT_STR)
     {
-        if ( !Varlist_AddByIndex(array, (int)index, varlist[2]) ) goto set_error;
+        Varlist_SetByName(array, StrCache_Get(varlist[1]->strVal), varlist[2]);
+    }
+    else if( SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &index)) )
+    {
+        if ( !Varlist_AddByIndex(array, (int)index, varlist[2]) ) goto add_error;
     }
     else
     {
-        goto set_error;
+        goto add_error;
     }
 
     return S_OK;
 
-set_error:
+add_error:
     printf("Function requires 1 array handle and 1 int value (index): add(array, index)\n");
     return E_FAIL;
 }
@@ -16165,6 +16187,63 @@ HRESULT openbor_next(ScriptVariant **varlist , ScriptVariant **pretvar, int para
     return S_OK;
 next_error:
     printf("Function requires 1 array handle: %s(array)\n", "next");
+    (*pretvar) = NULL;
+    return E_FAIL;
+}
+
+//previous(array)
+HRESULT openbor_previous(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    Varlist *array;
+    if(paramCount < 1 || varlist[0]->vt != VT_PTR || !(array = (Varlist *)varlist[0]->ptrVal) || array->magic != varlist_magic)
+    {
+        goto previous_error;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = (LONG)(List_GotoPrevious(array->list));
+
+    return S_OK;
+previous_error:
+    printf("Function requires 1 array handle: %s(array)\n", "previous");
+    (*pretvar) = NULL;
+    return E_FAIL;
+}
+
+//islast(array)
+HRESULT openbor_islast(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    Varlist *array;
+    if(paramCount < 1 || varlist[0]->vt != VT_PTR || !(array = (Varlist *)varlist[0]->ptrVal) || array->magic != varlist_magic)
+    {
+        goto islast_error;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = (LONG)(  List_Retrieve(array->list) == List_GetLast(array->list) );
+
+    return S_OK;
+islast_error:
+    printf("Function requires 1 array handle: %s(array)\n", "islast");
+    (*pretvar) = NULL;
+    return E_FAIL;
+}
+
+//isfirst(array)
+HRESULT openbor_isfirst(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    Varlist *array;
+    if(paramCount < 1 || varlist[0]->vt != VT_PTR || !(array = (Varlist *)varlist[0]->ptrVal) || array->magic != varlist_magic)
+    {
+        goto isfirst_error;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = (LONG)(  List_Retrieve(array->list) == List_GetFirst(array->list) );
+
+    return S_OK;
+isfirst_error:
+    printf("Function requires 1 array handle: %s(array)\n", "isfirst");
     (*pretvar) = NULL;
     return E_FAIL;
 }
