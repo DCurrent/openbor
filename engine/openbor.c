@@ -7210,13 +7210,6 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     if(stricmp(value, "none") == 0)
     {
         newchar->type = TYPE_NONE;
-        newchar->subject_to_basemap     = 0;
-        newchar->subject_to_wall        = 0;
-        newchar->subject_to_platform    = 0;
-        newchar->subject_to_hole        = 0;
-        newchar->subject_to_obstacle    = 0;
-        newchar->subject_to_minz        = 0;
-        newchar->subject_to_maxz        = 0;
     }
     else if(stricmp(value, "player") == 0)
     {
@@ -24255,9 +24248,8 @@ int common_trymove(float xdir, float zdir)
 
     //-------------hole checking ---------------------
     // Don't walk into a hole or walk off platforms into holes
-    if( !(self->modeldata.type & TYPE_PLAYER) && self->idling &&
+    if( self->modeldata.subject_to_hole > 0 && !inair(self) && !(self->modeldata.type & TYPE_PLAYER) && self->idling &&
             (!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) &&
-            self->modeldata.subject_to_hole > 0 && !inair(self) &&
             !(self->modeldata.aimove & AIMOVE2_IGNOREHOLES))
     {
 
@@ -24374,7 +24366,7 @@ int common_trymove(float xdir, float zdir)
     //-----------end of platform checking------------------
 
     // ------------------ wall checking ---------------------
-    if(self->modeldata.subject_to_wall)
+    if(self->modeldata.subject_to_wall > 0)
     {
         int hit = 0;
 
