@@ -231,8 +231,11 @@ HRESULT openbor_delete(ScriptVariant **varlist , ScriptVariant **pretvar, int pa
 HRESULT openbor_add(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_reset(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_next(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_previous(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_key(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_value(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_islast(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_isfirst(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
 HRESULT openbor_allocscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_clearscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
