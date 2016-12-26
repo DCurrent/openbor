@@ -530,9 +530,6 @@ OBJS            = $(MAIN)                                                       
 
 CFLAGS 	       += $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TARGET_PLATFORM)
 CFLAGS 	       += -g -Wall -Werror -fsigned-char
-ifdef BUILD_PSP
-CFLAGS		   += -Wno-array-bounds
-endif
 
 
 ifndef BUILD_GP2X
