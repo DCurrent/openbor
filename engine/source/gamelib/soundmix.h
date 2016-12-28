@@ -68,6 +68,7 @@ int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvo
 void sound_stop_sample(int channel);
 void sound_stopall_sample();
 void sound_pause_sample(int toggle);
+void sound_pause_single_sample(int toggle, int channel);
 void sound_volume_sample(int channel, int lvolume, int rvolume);
 int sound_getpos_sample(int channel);
 
