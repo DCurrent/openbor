@@ -771,6 +771,11 @@ void sound_pause_sample(int toggle)
     }
 }
 
+void sound_pause_single_sample(int toggle, int channel)
+{
+    vchannel[channel].paused = toggle;
+}
+
 void sound_volume_sample(int channel, int lvolume, int rvolume)
 {
     if(channel < 0 || channel >= max_channels)
