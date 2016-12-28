@@ -670,6 +670,14 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "atan";
     }
+    else if (functionRef == ((void *)math_trunc))
+    {
+        return "trunc";
+    }
+    else if (functionRef == ((void *)math_round))
+    {
+        return "round";
+    }
     else if (functionRef == ((void *)openbor_systemvariant))
     {
         return "openborvariant";
@@ -1527,6 +1535,10 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)math_atan, "atan");
     List_InsertAfter(&theFunctionList,
+                     (void *)math_trunc, "trunc");
+    List_InsertAfter(&theFunctionList,
+                     (void *)math_round, "round");
+    List_InsertAfter(&theFunctionList,
                      (void *)openbor_systemvariant, "openborvariant");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_changesystemvariant, "changeopenborvariant");
@@ -2210,6 +2222,34 @@ HRESULT math_atan(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCo
 
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
         (*pretvar)->dblVal = (DOUBLE)(aatan((double)dbltemp) * 180.0 / PI);
+        return S_OK;
+    }
+    *pretvar = NULL;
+    return E_FAIL;
+}
+
+HRESULT math_trunc(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    DOUBLE dbltemp;
+
+    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[0], &dbltemp)))
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)(trunc(dbltemp));
+        return S_OK;
+    }
+    *pretvar = NULL;
+    return E_FAIL;
+}
+
+HRESULT math_round(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    DOUBLE dbltemp;
+
+    if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[0], &dbltemp)))
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)(round(dbltemp));
         return S_OK;
     }
     *pretvar = NULL;
