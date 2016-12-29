@@ -904,7 +904,7 @@ typedef enum
     FOLLOW_CONDITION_ALWAYS,                       //Always perform.
     FOLLOW_CONDITION_HOSTILE,                      //Perform if target is hostile.
     FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK,       //Perform if target is hostile, will not be killed and didn't block.
-    FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK_NOGRAB //Perform if target is hostile, will not be killed, didn't block, and cannot be grabbed.
+    FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK_NOGRAB, //Perform if target is hostile, will not be killed, didn't block, and cannot be grabbed.
     FOLLOW_CONDITION_HOSTILE_NOKILL_BLOCK,         //Perform if target is hostile, will not be killed and block.
 } e_follow_condition;
 
