@@ -19365,11 +19365,13 @@ void do_attack(entity *e)
                 def = self;
             }
             //if #055
-            if((e->animation->followup.animation) &&                                        // follow up?
-                    (!e->animation->counterrange) &&                                // This isn't suppossed to be a counter, right?
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE) || (self->modeldata.type & e->modeldata.hostile)) &&    // Does type matter?
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK) || ((self->health > 0) && !didblock)) &&                   // check if health or blocking matters
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK_NOGRAB) || cangrab(e, self))  ) // check if nograb matters
+            if((e->animation->followup.animation) && // follow up?
+                    (!e->animation->counterrange) && // This isn't suppossed to be a counter, right?
+                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE) || (self->modeldata.type & e->modeldata.hostile)) &&                                // Does type matter?
+                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK) || ((self->health > 0) && !didblock)) &&                             // check if health or not blocking matters
+                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK_NOGRAB) || ((self->health > 0) && !didblock && cangrab(e, self)) ) && // check if nograb matters
+                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_BLOCK) || ((self->health > 0) && didblock))                                   // check if health or blocking matters
+              )
             {
                 current_follow_id = animfollows[e->animation->followup.animation - 1];
                 if(validanim(e, current_follow_id))
