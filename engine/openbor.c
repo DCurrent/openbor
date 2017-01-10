@@ -17850,12 +17850,12 @@ void kill(entity *victim)
     s_collision_attack attack;
     entity *tempent = self;
 
-    execute_onkill_script(victim);
-
     if(victim == NULL || !victim->exists)
     {
         return;
     }
+
+    execute_onkill_script(victim);
 
     if((victim->modeldata.type & TYPE_SHOT) && victim->owner && (victim->owner->modeldata.type & TYPE_PLAYER))
     {
@@ -17902,21 +17902,11 @@ void kill(entity *victim)
     }
     victim->subentity = NULL;
 
-    if(victim == player[0].ent)
-    {
-        player[0].ent = NULL;
-    }
-    else if(victim == player[1].ent)
-    {
-        player[1].ent = NULL;
-    }
-    else if(victim == player[2].ent)
-    {
-        player[2].ent = NULL;
-    }
-    else if(victim == player[3].ent)
-    {
-        player[3].ent = NULL;
+    for (i = 0; i < MAX_PLAYERS; i++) {
+        if(victim == player[i].ent) {
+            player[i].ent = NULL;
+            break;
+        }
     }
 
     if(victim == smartbomber)
@@ -17981,7 +17971,6 @@ void kill(entity *victim)
         }
     }
 
-    victim = NULL;
     self = tempent;
 }
 
