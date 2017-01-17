@@ -82,6 +82,7 @@
 #define     MAX_FOLLOWS         4					// For followup animations
 #define     MAX_COLLISIONS      2                   // Collision boxes.
 #define		MAX_ARG_LEN			511
+#define		MAX_ALLOWSELECT_LEN	511
 #define		MAX_PAL_SIZE		1024
 #define		MAX_CACHED_BACKGROUNDS 9
 #define     MAX_DOTS            10                  // Max active dot effects.
@@ -1278,7 +1279,7 @@ typedef struct
     int pColourmap[MAX_PLAYERS];                // colour map
 
     int selectFlag;                             // saved a select.txt infos
-    char allowSelectArgs[MAX_ARG_LEN + 1];      // allowselect arguments
+    char allowSelectArgs[MAX_ALLOWSELECT_LEN + 1];      // allowselect arguments
     char selectMusic[MAX_ARG_LEN + 1];          // select music arguments
     char selectBackground[MAX_ARG_LEN + 1];     // select background arguments
     char selectLoad[MAX_ARG_LEN + 1][MAX_ARG_LEN + 1];           // select load arguments
