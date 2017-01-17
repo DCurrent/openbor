@@ -210,7 +210,7 @@ char                *custModels = NULL;
 char                rush_names[2][MAX_NAME_LEN];
 char				skipselect[MAX_PLAYERS][MAX_NAME_LEN];
 char                branch_name[MAX_NAME_LEN + 1];  // Used for branches
-char                allowselect_args[MAX_ARG_LEN + 1]; // stored allowselect players
+char                allowselect_args[MAX_ALLOWSELECT_LEN + 1]; // stored allowselect players
 int					useSave = 0;
 int					useSet = -1;
 unsigned char       pal[MAX_PAL_SIZE] = {""};
@@ -5191,7 +5191,7 @@ static void load_playable_list(char *buf)
     char *value;
     s_model *playermodels = NULL;
     ArgList arglist;
-    char argbuf[MAX_ARG_LEN + 1] = "";
+    char argbuf[MAX_ALLOWSELECT_LEN + 1] = "";
 
     ParseArgs(&arglist, buf, argbuf);
 
