@@ -68,7 +68,7 @@
 #define     GAME_SPEED          200
 #define		THINK_SPEED			2
 #define		COUNTER_SPEED		(GAME_SPEED*2)
-#define		MAX_NAME_LEN		47
+#define		MAX_NAME_LEN		50 //47
 #define		MAX_ENTS			150
 #define		MAX_SPECIALS		8					// Added for customizable freespecials
 #define     MAX_SPECIAL_INPUTS  27                  // max freespecial input steps, MAX_SPECIAL_INPUTS-1 is reserved, MAX_SPECIAL_INPUTS-2 is animation index, MAX_SPECIAL_INPUTS-3 is reserved. OX -4 , -5 , -6 , -7 , -8 , -9 , -10 also for cancels
@@ -81,8 +81,9 @@
 #define		MAX_ATTACKS			4					// Total number of attacks players have
 #define     MAX_FOLLOWS         4					// For followup animations
 #define     MAX_COLLISIONS      2                   // Collision boxes.
-#define		MAX_ARG_LEN			511
-#define		MAX_ALLOWSELECT_LEN	511
+#define		MAX_ARG_LEN			512 //511
+#define		MAX_ALLOWSELECT_LEN	1024
+#define		MAX_SELECT_LOADS   	512
 #define		MAX_PAL_SIZE		1024
 #define		MAX_CACHED_BACKGROUNDS 9
 #define     MAX_DOTS            10                  // Max active dot effects.
@@ -1279,10 +1280,10 @@ typedef struct
     int pColourmap[MAX_PLAYERS];                // colour map
 
     int selectFlag;                             // saved a select.txt infos
-    char allowSelectArgs[MAX_ALLOWSELECT_LEN + 1];      // allowselect arguments
+    char allowSelectArgs[MAX_ALLOWSELECT_LEN];      // allowselect arguments
     char selectMusic[MAX_ARG_LEN + 1];          // select music arguments
     char selectBackground[MAX_ARG_LEN + 1];     // select background arguments
-    char selectLoad[MAX_ARG_LEN + 1][MAX_ARG_LEN + 1];           // select load arguments
+    char selectLoad[MAX_SELECT_LOADS][MAX_ARG_LEN + 1];           // select load arguments
     int selectLoadCount;
     char selectSkipSelect[MAX_ARG_LEN + 1];     // skipselect arguments
 } s_savelevel;
