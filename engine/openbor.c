@@ -210,7 +210,7 @@ char                *custModels = NULL;
 char                rush_names[2][MAX_NAME_LEN];
 char				skipselect[MAX_PLAYERS][MAX_NAME_LEN];
 char                branch_name[MAX_NAME_LEN + 1];  // Used for branches
-char                allowselect_args[MAX_ALLOWSELECT_LEN + 1]; // stored allowselect players
+char                allowselect_args[MAX_ALLOWSELECT_LEN]; // stored allowselect players
 int					useSave = 0;
 int					useSet = -1;
 unsigned char       pal[MAX_PAL_SIZE] = {""};
@@ -5191,7 +5191,7 @@ static void load_playable_list(char *buf)
     char *value;
     s_model *playermodels = NULL;
     ArgList arglist;
-    char argbuf[MAX_ALLOWSELECT_LEN + 1] = "";
+    char argbuf[MAX_ALLOWSELECT_LEN] = "";
 
     ParseArgs(&arglist, buf, argbuf);
 
@@ -33263,6 +33263,7 @@ static void load_select_screen_info(s_savelevel *save)
     char *filename = ""; // not used, just fused into GET_INT_ARG()
     char *command = ""; // not used, just fused into GET_INT_ARG()
 
+    // load model_loads
     for(i = 0; i < save->selectLoadCount; i++)
     {
         s_model *tempmodel;
@@ -33376,7 +33377,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                         update_model_loadflag(tempmodel, GET_INT_ARG(2));
                     }
                     // SAVE
-                    if(load_count < MAX_ARG_LEN + 1)
+                    if(load_count < MAX_SELECT_LOADS)
                     {
                         multistrcatsp(save->selectLoad[load_count], command,GET_ARG(1),GET_ARG(2),NULL);
                         load_count++;
