@@ -31378,7 +31378,7 @@ void draw_textobjs()
         {
             if(textobj->text)
             {
-                font_printf(textobj->position.x, textobj->position.y, textobj->font, textobj->position.z, textobj->text);
+                font_printf(textobj->position.x, textobj->position.y, textobj->font, textobj->position.z, "%s", textobj->text);
             }
         }
     }
