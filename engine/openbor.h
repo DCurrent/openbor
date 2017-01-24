@@ -114,8 +114,6 @@ movement restirctions are here!
 #define		DEFAULT_ATK_DROPV_X 1.2
 #define		DEFAULT_ATK_DROPV_Z 0
 
-#define     ENERGYCOST_DEFAULT_COST  6   // Default cost for using special.
-
 // PLAY/REC INPUT vars
 typedef struct InputKeys
 {
@@ -786,6 +784,16 @@ typedef enum
     COST_TYPE_MP_ONLY,
     COST_TYPE_HP_ONLY
 } e_cost_type;
+
+typedef enum
+{
+    /*
+    Energycost value enum.
+    */
+
+    ENERGYCOST_NOCOST = 0,
+    ENERGYCOST_DEFAULT_COST = 6,
+} e_cost_value;
 
 typedef enum
 {
