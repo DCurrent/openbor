@@ -6875,10 +6875,26 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "special2") == 0)
     {
         ani_id = ANI_SPECIAL2;
+        if(!newanim->energycost)
+        {
+            newanim->energycost         = malloc(sizeof(*newanim->energycost));
+            memset(newanim->energycost, 0, sizeof(*newanim->energycost));
+
+            newanim->energycost->cost   = ENERGYCOST_NOCOST;
+            newanim->energycost->mponly = COST_TYPE_MP_THEN_HP;
+        }
     }
     else if(stricmp(value, "special3") == 0 || stricmp(value, "jumpspecial") == 0)
     {
         ani_id = ANI_JUMPSPECIAL;
+        if(!newanim->energycost)
+        {
+            newanim->energycost         = malloc(sizeof(*newanim->energycost));
+            memset(newanim->energycost, 0, sizeof(*newanim->energycost));
+
+            newanim->energycost->cost   = ENERGYCOST_NOCOST;
+            newanim->energycost->mponly = COST_TYPE_MP_THEN_HP;
+        }
     }
     else if(starts_with_num(value, "freespecial"))
     {
@@ -28045,6 +28061,7 @@ void player_walkoff_check()
 void player_jump_check()
 {
     int candospecial = 0;
+
     if(!noaircancel || !self->animating || self->animnum == self->jump.id)
     {
         //air special, copied and changed from Fugue's code
