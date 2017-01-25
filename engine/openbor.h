@@ -2193,6 +2193,7 @@ typedef struct
     s_axis_i_2d light; // light direction, for gfx shadow
     int shadowcolor; // -1 no shadow
     int shadowalpha;
+    int shadowopacity;
     char music[128];
     float musicfade;
     u32 musicoffset;

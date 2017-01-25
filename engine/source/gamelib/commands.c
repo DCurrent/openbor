@@ -559,6 +559,7 @@ List *createLevelCommandList(void)
     LIST_ADD(CMD_LEVEL_SETWEAP, "setweap");
     LIST_ADD(CMD_LEVEL_SHADOWALPHA, "shadowalpha");
     LIST_ADD(CMD_LEVEL_SHADOWCOLOR, "shadowcolor");
+    LIST_ADD(CMD_LEVEL_SHADOWOPACITY, "shadowopacity");
     LIST_ADD(CMD_LEVEL_SPAWN, "spawn");
     LIST_ADD(CMD_LEVEL_SPAWN1, "spawn1");
     LIST_ADD(CMD_LEVEL_SPAWN2, "spawn2");

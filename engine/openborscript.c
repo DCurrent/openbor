@@ -2362,6 +2362,7 @@ static const char *svlist[] =
     "self",
     "shadowalpha",
     "shadowcolor",
+    "shadowopacity",
     "skiptoset",
     "slowmotion",
     "slowmotion_duration",
