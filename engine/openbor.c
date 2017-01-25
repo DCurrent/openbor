@@ -258,6 +258,7 @@ s_axis_i_2d light = {   .x = 128,
 
 int                 shadowcolor = 0;
 int                 shadowalpha = BLEND_MULTIPLY + 1;
+int                 shadowopacity = 255;
 
 u64 totalram = 0;
 u64 usedram = 0;
@@ -1381,6 +1382,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = shadowcolor;
         break;
+    case _sv_shadowopacity:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = shadowopacity;
+        break;
     case _sv_skiptoset:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = skiptoset;
@@ -1602,6 +1607,12 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             shadowalpha = (int)ltemp;
+        }
+        break;
+    case _sv_shadowopacity:
+        if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            shadowopacity = (int)ltemp;
         }
         break;
     case _sv_skiptoset:
@@ -4120,6 +4131,7 @@ void lifebar_colors()
         color_magic2 = 0;
         shadowcolor = 0;
         shadowalpha = BLEND_MULTIPLY + 1;
+        shadowopacity = 255;
         return;
     }
 
@@ -4185,6 +4197,10 @@ void lifebar_colors()
                 else if(stricmp(command, "shadowalpha") == 0) //gfxshadow alpha
                 {
                     shadowalpha = GET_INT_ARG(1);
+                }
+                else if(stricmp(command, "shadowopacity") == 0)
+                {
+                    shadowopacity = GET_INT_ARG(1);
                 }
                 else if(command && command[0])
                 {
@@ -14679,6 +14695,10 @@ void load_level(char *filename)
                 blendfx[next.shadowalpha - 1] = 1;
             }
             break;
+        case CMD_LEVEL_SHADOWOPACITY:
+            memset(&next, 0, sizeof(next));
+            next.shadowopacity = GET_INT_ARG(1);
+            break;
         case CMD_LEVEL_LIGHT:
             memset(&next, 0, sizeof(next));
             next.light.x = GET_INT_ARG(1);
@@ -21205,6 +21225,7 @@ void display_ents()
                             shadowmethod = plainmethod;
                             shadowmethod.fillcolor = (shadowcolor > 0 ? shadowcolor : 0);
                             shadowmethod.alpha = shadowalpha;
+                            shadowmethod.channelb = shadowmethod.channelg = shadowmethod.channelr = shadowopacity;
                             shadowmethod.table = drawmethod->table;
                             shadowmethod.scalex = drawmethod->scalex;
                             shadowmethod.flipx = drawmethod->flipx;
@@ -30563,6 +30584,18 @@ void update_scroller()
                 if(shadowalpha == -1)
                 {
                     shadowalpha = 0;
+                }
+            }
+            else if(level->spawnpoints[current_spawn].shadowopacity)  // change color for gfxshadow
+            {
+                shadowopacity = level->spawnpoints[current_spawn].shadowopacity;
+                if(shadowopacity == -1)
+                {
+                    shadowopacity = 0;
+                }
+                if(shadowopacity == -2)
+                {
+                    shadowopacity = -1;
                 }
             }
             else

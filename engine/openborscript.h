@@ -406,6 +406,7 @@ enum systemvariant_enum
     _sv_self,
     _sv_shadowalpha,
     _sv_shadowcolor,
+    _sv_shadowopacity,
     _sv_skiptoset,
     _sv_slowmotion,
     _sv_slowmotion_duration,
