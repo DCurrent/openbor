@@ -20498,7 +20498,7 @@ void common_dot()
     entity     *eOpp;       //Owner of dot effect.
     s_collision_attack    attack;     //Attack struct.
 
-    for(iIndex = 0; iIndex <= MAX_DOTS; iIndex++)                                               //Loop through all DOT indexes.
+    for(iIndex = 0; iIndex < MAX_DOTS; iIndex++)                                               //Loop through all DOT indexes.
     {
         iDot_time   =   self->dot_time[iIndex];                                                 //Get expire time.
         iDot_cnt    =   self->dot_cnt[iIndex];                                                  //Get next tick time.
@@ -34626,7 +34626,7 @@ void keyboard_setup(int player)
         selector = 0,
         setting = -1,
         i, k, ok = 0,
-              disabledkey[MAX_BTN_NUM+1] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+              disabledkey[MAX_BTN_NUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                                 col1 = -8, col2 = 6;
     ptrdiff_t pos, voffset;
     size_t size;

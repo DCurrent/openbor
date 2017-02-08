@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h> // for strlen
 #include "utils.h" // for checkAlloc
+#undef strdup
 
 #define MALLOCLIKE __attribute__((__malloc__))
 
