@@ -346,7 +346,7 @@ void copy_pixel_block(int bytes)
 #if 1
 #include "writepixel.h"
 
-__attribute__((always_inline)) void write_pixel()
+inline void write_pixel()
 {
     writepixelswitch(,)
 
@@ -354,7 +354,7 @@ __attribute__((always_inline)) void write_pixel()
 #endif
 
 #if 0
-__attribute__((always_inline)) void write_pixel()
+inline void write_pixel()
 {
     unsigned char ps8;
     unsigned short ps16;
@@ -522,7 +522,7 @@ quit:
 
 }
 
-__attribute__((always_inline)) void src_seek(int x, int y)
+inline void src_seek(int x, int y)
 {
     switch(handle_src->screen->magic)
     {

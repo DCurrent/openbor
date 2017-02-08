@@ -529,7 +529,7 @@ OBJS            = $(MAIN)                                                       
 #----------------------------------------------------------------------------------------------------
 
 CFLAGS 	       += $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TARGET_PLATFORM)
-CFLAGS 	       += -g -Wall -Werror -fsigned-char
+CFLAGS 	       += -g -Wall -Werror -fsigned-char -std=gnu99
 
 
 ifndef BUILD_GP2X
