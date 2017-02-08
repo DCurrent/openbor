@@ -62,8 +62,8 @@ HRESULT Interpreter_GetValueByRef(Interpreter *pinterpreter, LPCSTR variable, Sc
 HRESULT Interpreter_EvaluateImmediate(Interpreter *pinterpreter);
 HRESULT Interpreter_EvaluateCall(Interpreter *pinterpreter);
 HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter);
-inline HRESULT Interpreter_Call(Interpreter *pinterpreter);
-inline HRESULT Interpreter_EvalInstruction(Interpreter *pinterpreter);
+HRESULT Interpreter_Call(Interpreter *pinterpreter);
+HRESULT Interpreter_EvalInstruction(Interpreter *pinterpreter);
 void Interpreter_OutputPCode(Interpreter *pinterpreter, LPCSTR fileName );
 void Interpreter_Reset(Interpreter *pinterpreter);
 

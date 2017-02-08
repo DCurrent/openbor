@@ -10,7 +10,7 @@
 #define SAVEDATA_H
 
 #define     MAX_PLAYERS         4
-#define     MAX_BTN_NUM         12
+#define     MAX_BTN_NUM         13
 
 typedef struct
 {
