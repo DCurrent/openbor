@@ -32394,9 +32394,6 @@ void shutdown(int status, char *msg, ...)
     {
         printf("%s", buf);
     }
-#ifdef DEBUG
-    sysassert(status == 0); // this way we can get a backtrace.
-#endif
 
     shuttingdown = 0;
     exit(status);
