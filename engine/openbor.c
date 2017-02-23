@@ -34629,7 +34629,7 @@ void keyboard_setup(int player)
         selector = 0,
         setting = -1,
         i, k, ok = 0,
-              disabledkey[MAX_BTN_NUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+              disabledkey[MAX_BTN_NUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
                                 col1 = -8, col2 = 6;
     ptrdiff_t pos, voffset;
     size_t size;
@@ -34754,7 +34754,7 @@ void keyboard_setup(int player)
                         break;
                     }
                 }
-                while(disabledkey[selector]);
+                while(selector < btnnum && disabledkey[selector]);
                 sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
             }
             if(bothnewkeys & FLAG_MOVEDOWN)
