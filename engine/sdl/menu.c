@@ -180,7 +180,7 @@ int findPaks(void)
    	{
 		while((ds = readdir(dp)) != NULL)
 		{
-			if(packfile_supported(ds))
+			if(packfile_supported(ds->d_name))
 			{
 				fileliststruct *copy = NULL;
 				if(filelist == NULL) filelist = malloc(sizeof(fileliststruct));

@@ -31946,7 +31946,7 @@ void update(int ingame, int usevwait)
  * error. */
 int set_color_correction(int gm, int br)
 {
-#if WII || SDL
+#if WII || SDL || VITA
     video_set_color_correction(gm, br);
     return 1;
 #else
@@ -32122,14 +32122,14 @@ void display_credits()
         font_printf(col2, s + v * m, 0, 0, "Shin-NiL"); ++m;
         font_printf(col1,  s + v * m, 0, 0, "Windows");
         font_printf(col2, s + v * m, 0, 0, "SX & Nazo"); ++m;
-        font_printf(col1,  s + v * m, 0, 0, "GamePark");
-        font_printf(col2, s + v * m, 0, 0, "SX & Lemon"); ++m;
         font_printf(col1,  s + v * m, 0, 0, "DreamCast");
         font_printf(col2, s + v * m, 0, 0, "SX & Neill Corlett"); ++m;
         font_printf(col1,  s + v * m, 0, 0, "Wii");
         font_printf(col2, s + v * m, 0, 0, "SX & Plombo"); ++m;
         font_printf(col1,  s + v * m, 0, 0, "Android");
         font_printf(col2, s + v * m, 0, 0, "uTunnels & CRxTRDude"); ++m;
+        font_printf(col1,  s + v * m, 0, 0, "PS Vita");
+        font_printf(col2, s + v * m, 0, 0, "Plombo"); ++m;
 
         font_printf(_strmidx(1, "Menu Design"), s + v * m,  1, 0, "Menu Design"); ++m;
         font_printf(col1, s + v * m,  0, 0, "SX");
@@ -34342,6 +34342,9 @@ void init_videomodes(int log)
     tryfile("data/video43.txt");
 #elif SYMBIAN
     tryfile("data/videosymbian.txt");
+#elif VITA
+    tryfile("data/videovita.txt");
+    tryfile("data/video169.txt");
 #endif
 #undef tryfile
 
@@ -35634,7 +35637,7 @@ void menu_options_video()
         }
 #endif
 
-#if DC || GP2X
+#if DC || GP2X || VITA
         _menutextm((selector == 3), 6, 0, Tr("Back"));
         if(selector < 0)
         {
