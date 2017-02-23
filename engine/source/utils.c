@@ -20,7 +20,7 @@
 #include "openbor.h"
 #include "packfile.h"
 
-#ifndef DC
+#if !DC && !VITA
 #include <dirent.h>
 #endif
 
@@ -47,8 +47,20 @@
 #include "savepng.h"
 #endif
 
+#if VITA
+#include "vitaport.h"
+#include "savepng.h"
+#include <sys/stat.h>
+#include <psp2/io/dirent.h>
+typedef void DIR;
+#define opendir(X) ((DIR*)sceIoDopen(X))
+#define closedir(X) sceIoDclose((SceUID)(X))
+#endif
+
 #ifdef WIN
 #define MKDIR(x) mkdir(x)
+#elif VITA
+#define MKDIR(x) sceIoMkdir(x, 0777)
 #else
 #define MKDIR(x) mkdir(x, 0777)
 #endif
@@ -60,6 +72,13 @@
 #define READ_LOGFILE(type)   type ? fopen(getFullPath("Logs/OpenBorLog.txt"), "rt") : fopen(getFullPath("Logs/ScriptLog.txt"), "rt")
 #define COPY_ROOT_PATH(buf, name) strcpy(buf, rootDir); strncat(buf, name, strlen(name)); strncat(buf, "/", 1);
 #define COPY_PAKS_PATH(buf, name) strncpy(buf, paksDir, strlen(paksDir)); strncat(buf, "/", 1); strncat(buf, name, strlen(name));
+#elif VITA
+#define CHECK_LOGFILE(type)  type ? fileExists("ux0:/data/OpenBOR/Logs/OpenBorLog.txt") : fileExists("./Logs/ScriptLog.txt")
+#define OPEN_LOGFILE(type)   type ? fopen("ux0:/data/OpenBOR/Logs/OpenBorLog.txt", "wt") : fopen("ux0:/data/OpenBOR/Logs/ScriptLog.txt", "wt")
+#define APPEND_LOGFILE(type) type ? fopen("ux0:/data/OpenBOR/Logs/OpenBorLog.txt", "at") : fopen("ux0:/data/OpenBOR/Logs/ScriptLog.txt", "at")
+#define READ_LOGFILE(type)   type ? fopen("ux0:/data/OpenBOR/Logs/OpenBorLog.txt", "rt") : fopen("ux0:/data/OpenBOR/Logs/ScriptLog.txt", "rt")
+#define COPY_ROOT_PATH(buf, name) strcpy(buf, "ux0:/data/OpenBOR/"); strcat(buf, name); strncat(buf, "/", 1);
+#define COPY_PAKS_PATH(buf, name) strcpy(buf, "ux0:/data/OpenBOR/Paks/"); strcat(buf, name);
 #elif ANDROID
 #define CHECK_LOGFILE(type)  type ? fileExists("/mnt/sdcard/OpenBOR/Logs/OpenBorLog.txt") : fileExists("/mnt/sdcard/OpenBOR/Logs/ScriptLog.txt")
 #define OPEN_LOGFILE(type)   type ? fopen("/mnt/sdcard/OpenBOR/Logs/OpenBorLog.txt", "wt") : fopen("/mnt/sdcard/OpenBOR/Logs/ScriptLog.txt", "wt")
@@ -276,6 +295,9 @@ void *checkAlloc(void *ptr, size_t size, const char *func, const char *file, int
                        "\n*            Shutting Down            *\n\n");
         writeToLogFile("Out of memory!\n");
         writeToLogFile("Allocation of size %i failed in function '%s' at %s:%i.\n", size, func, file, line);
+#ifndef WIN
+        writeToLogFile("Memory usage at exit: %u\n", mallinfo().arena);
+#endif
         exit(2);
     }
     return ptr;

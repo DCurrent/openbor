@@ -132,6 +132,28 @@ function psp {
   fi
 }
 
+# PS Vita Environment && Compile
+function vita {
+  export PATH=$OLD_PATH
+  . ./environ.sh 2
+  if test $VITASDK; then
+    make clean BUILD_VITA=1
+    make BUILD_VITA=1
+    if test -f "./OpenBOR.vpk"; then
+      if test ! -e "./releases/VITA"; then
+        mkdir ./releases/VITA
+        mkdir ./releases/VITA/OpenBOR
+        mkdir ./releases/VITA/OpenBOR/Logs
+        mkdir ./releases/VITA/OpenBOR/Paks
+        mkdir ./releases/VITA/OpenBOR/Saves
+        mkdir ./releases/VITA/OpenBOR/ScreenShots
+      fi
+      mv OpenBOR.vpk ./releases/VITA/OpenBOR/
+    fi
+    make clean BUILD_VITA=1
+  fi
+}
+
 # Gp2x Environment && Compile
 function gp2x {
   export PATH=$OLD_PATH
@@ -365,6 +387,7 @@ function build_all {
     . ./buildspec.sh
   else
     psp
+    vita
     linux_x86
     linux_amd64
     windows
@@ -382,7 +405,7 @@ function print_help {
   echo "-------------------------------------------------------"
   echo "    0 = Distribute"
   echo "    1 = PSP"
-  echo "    2 = (unused)"
+  echo "    2 = PS Vita"
   echo "    3 = Gp2x"
   echo "    4 = Linux (x86, amd64) Example: $0 4 amd64"
   echo "    5 = Windows"
@@ -410,7 +433,7 @@ case $1 in
 
   2)
     version
-    echo "No platform here anymore (used to be PS2)"
+    vita
     ;;
 
   3)

@@ -38,6 +38,10 @@
 #include "savedata.h"
 #include "List.h"
 
+#if WIN || LINUX
+#include <dirent.h>
+#endif
+
 #if _POSIX_SOURCE || SYMBIAN
 #define	stricmp	strcasecmp
 #endif
@@ -369,6 +373,7 @@ void packfile_mode(int mode)
 
 /////////////////////////////////////////////////////////////////////////////
 
+#if WIN || LINUX
 int isRawData()
 {
     DIR *d;
@@ -379,6 +384,7 @@ int isRawData()
     closedir(d);
     return 1;
 }
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -1211,7 +1217,7 @@ int pak_init()
         return 0;
     }
 
-#ifndef WII
+#if WIN || LINUX
     if(isRawData())
     {
         pak_initialized = 1;
@@ -1353,11 +1359,11 @@ int packfileeof(int handle)
 
 /////////////////////////////////////////////////////////////////////////////
 
-int packfile_supported(struct dirent *ds)
+int packfile_supported(const char *filename)
 {
-    if(stricmp(ds->d_name, "menu.pak") != 0)
+    if(stricmp(filename, "menu.pak") != 0)
     {
-        if (stristr(ds->d_name, ".pak"))
+        if (stristr(filename, ".pak"))
         {
             return 1;
         }

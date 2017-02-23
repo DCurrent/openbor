@@ -49,6 +49,13 @@
 #include "wiiport.h"
 #endif
 
+#ifdef VITA
+#include <stdarg.h>
+#include "vitaport.h"
+#define stricmp strcasecmp
+#define strnicmp strncasecmp
+#endif
+
 #include "packfile.h"
 
 /////////////////////////////////////////////////////////////////////////////
