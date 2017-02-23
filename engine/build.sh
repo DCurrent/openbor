@@ -142,13 +142,8 @@ function vita {
     if test -f "./OpenBOR.vpk"; then
       if test ! -e "./releases/VITA"; then
         mkdir ./releases/VITA
-        mkdir ./releases/VITA/OpenBOR
-        mkdir ./releases/VITA/OpenBOR/Logs
-        mkdir ./releases/VITA/OpenBOR/Paks
-        mkdir ./releases/VITA/OpenBOR/Saves
-        mkdir ./releases/VITA/OpenBOR/ScreenShots
       fi
-      mv OpenBOR.vpk ./releases/VITA/OpenBOR/
+      mv OpenBOR.vpk ./releases/VITA/
     fi
     make clean BUILD_VITA=1
   fi
