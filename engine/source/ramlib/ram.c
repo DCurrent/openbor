@@ -175,12 +175,15 @@ void setSystemRam()
     // 88 MBytes with 16 Mbytes reserved for ISO System
     systemRam = 0x817FFFFF - 0x80000000 + ((64 - 16) * 1024 * 1024);
     elfOffset = 0x80000000;
+#elif VITA
+    systemRam = 0x0f000000;
+    elfOffset = 0x00000000;
 #else
     elfOffset = 0x00000000;
     stackSize = 0x00000000;
     systemRam = getFreeRam(BYTES);
 #endif
-#if !(defined(WIN) || defined(LINUX) || defined(DARWIN) || defined(SYMBIAN))
+#if !(defined(WIN) || defined(LINUX) || defined(DARWIN) || defined(SYMBIAN) || defined(VITA))
     stackSize = (int)&_end - (int)&_start + ((int)&_start - elfOffset);
 #endif
     getRamStatus(BYTES);

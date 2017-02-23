@@ -253,6 +253,19 @@ BUILD_DEBUG     = 1
 endif
 endif
 
+ifdef BUILD_VITA
+TARGET 	        = $(VERSION_NAME).elf
+TARGET_FINAL    = $(VERSION_NAME).vpk
+TITLE_ID        = OPENBOR30
+TARGET_PLATFORM = VITA
+CC  	        = arm-vita-eabi-gcc
+BUILD_TREMOR    = 1
+BUILDING        = 1
+ifeq ($(BUILD_VITA), 0)
+BUILD_DEBUG     = 1
+endif
+endif
+
 
 STRIP           = cp $(TARGET) $(TARGET_FINAL)
 ifndef BUILD_DEBUG
@@ -301,6 +314,11 @@ endif
 
 ifdef BUILD_WII
 INCS           += wii
+endif
+
+
+ifdef BUILD_VITA
+INCS           += vita
 endif
 
 
@@ -458,6 +476,15 @@ GAME_CONSOLE    = wii/control.o                                                 
                   wii/wiiport.o
 endif
 
+ifdef BUILD_VITA
+GAME_CONSOLE    = vita/control.o                                                                     \
+                  vita/sblaster.o                                                                    \
+                  vita/timer.o                                                                       \
+                  vita/video.o                                                                       \
+                  vita/vitaport.o                                                                    \
+                  vita/menu.o
+endif
+
 
 ifdef BUILD_SDL
 GAME	       += source/gamelib/filters.o
@@ -586,6 +613,11 @@ endif
 endif
 
 
+ifdef BUILD_VITA
+CFLAGS 	       += -DCACHE_BACKGROUNDS -Wl,-q
+endif
+
+
 ifdef BUILD_WIZ
 CFLAGS 	       += -DGP2X
 endif
@@ -687,6 +719,13 @@ LIBS           += -lelm -lwiiuse -lbte -lasnd -logc
 else
 LIBS           += -lwiiuse -lbte -lfat -lasnd -logc
 endif
+endif
+
+
+ifdef BUILD_VITA
+LIBS           += -lvita2d -lSceKernel_stub -lSceDisplay_stub -lSceGxm_stub \
+	              -lSceSysmodule_stub -lSceCtrl_stub -lScePgf_stub \
+	              -lSceCommonDialog_stub -lSceAudio_stub -lfreetype -ljpeg
 endif
 
 
@@ -818,6 +857,33 @@ $(TARGET_FINAL) : $(TARGET)
 	@echo $(TARGET_FINAL) is now ready!
 endif
 
+#----------------------------------------------------------------------------------------------------
+# Rules to manage Files and Libraries for Vita
+#----------------------------------------------------------------------------------------------------
+
+ifdef BUILD_VITA
+all : OpenBOR.vpk
+	@echo
+%.o : %.c
+	@echo Compiling $(TARGET_PLATFORM) Port: $<...
+	@$(CC) $(CFLAGS) -c $< -o $@
+OpenBOR.elf : $(OBJS) $(RES)
+	@echo
+	@echo Linking $(TARGET_PLATFORM) Port: $(TARGET)...
+	@$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(TARGET_RESOURCE) $(LIBS)
+%.velf: %.elf
+	vita-elf-create $< $@
+eboot.bin: $(VERSION_NAME).velf
+	vita-make-fself -s $< $@
+OpenBOR.vpk: eboot.bin
+	@echo Stripping $(TARGET_PLATFORM) Port: $(TARGET_FINAL)...
+	vita-mksfoex -s TITLE_ID=$(TITLE_ID) "OpenBOR" param.sfo
+	vita-pack-vpk -s param.sfo -b eboot.bin --add resources/vita_icon.png=sce_sys/icon0.png $@
+	@echo
+	@echo Completed $(TARGET_PLATFORM) Port!
+	@echo $(TARGET_FINAL) is now ready!
+endif
+
 
 #----------------------------------------------------------------------------------------------------
 # Rules to CleanUp Files for All Platforms
@@ -859,7 +925,7 @@ clean-releases:
 clean:
 	@echo
 	@echo "Removing All $(TARGET_PLATFORM) Files..."
-	@rm -f $(TARGET) $(TARGET_FINAL) $(TARGET_MAP) PARAM.SFO linkmap $(OBJS)
+	@rm -f $(TARGET) $(TARGET_FINAL) $(TARGET_MAP) PARAM.SFO param.sfo eboot.bin OpenBOR.velf linkmap $(OBJS)
 	@echo Done!
 	@echo
 endif
