@@ -1,0 +1,42 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenBoR", "OpenBoR.vcproj", "{4706D9A1-9595-495C-B98C-E00F6AD44DA8}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Profile = Profile
+		Profile_FastCap = Profile_FastCap
+		Release = Release
+		Release_LTCG = Release_LTCG
+		StaticDebug Win32 = StaticDebug Win32
+		StaticDebug Xbox = StaticDebug Xbox
+		StaticRelease Win32 = StaticRelease Win32
+		StaticRelease Xbox = StaticRelease Xbox
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Debug.ActiveCfg = Debug|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Debug.Build.0 = Debug|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Profile.ActiveCfg = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Profile.Build.0 = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Profile_FastCap.ActiveCfg = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Profile_FastCap.Build.0 = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Release.ActiveCfg = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Release.Build.0 = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Release_LTCG.ActiveCfg = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Release_LTCG.Build.0 = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticDebug Win32.ActiveCfg = Debug|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticDebug Win32.Build.0 = Debug|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticDebug Xbox.ActiveCfg = Debug|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticDebug Xbox.Build.0 = Debug|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticRelease Win32.ActiveCfg = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticRelease Win32.Build.0 = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticRelease Xbox.ActiveCfg = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticRelease Xbox.Build.0 = Release|Xbox
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal
