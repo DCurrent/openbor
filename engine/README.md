@@ -16,7 +16,6 @@ agreed, and OpenBOR was born.  Development on the engine was continued by the
 community, and still is to this day.
 
 ## Available Platforms
-----------------------
 OpenBOR has a very modular and portable design inherited from Beats of Rage. Ports
 to the following platforms are currently supported:
 
@@ -112,152 +111,9 @@ http://www.neillcorlett.com
 
 
 ## Websites
-
-ChronoCrash (home of OpenBOR development) - http://www.ChronoCrash.com
-Senile Team (original authors of Beats of Rage) - http://www.senileteam.com
-
-
-OpenBOR File Layout
-----------------------
-
-***********************************************************************************
-*                                     Windows                                     *
-***********************************************************************************
-
--> OpenBOR/
-      |
-      -> OpenBOR.exe
-      -> borpak.exe
-      -> packer.bat
-      -> paxplode.bat
-      |
-      -> Paks/
-      -> ScreenShots/
-      -> Logs/
-      -> Saves/
+* ChronoCrash (Main openBOR community and home of OpenBOR Team) - http://www.ChronoCrash.com
+* Senile Team (original authors of Beats of Rage) - http://www.senileteam.com
 
 
-***********************************************************************************
-*                                     Linux                                       *
-***********************************************************************************
-
--> OpenBOR/
-      |
-      -> OpenBOR
-      -> borpak
-      -> packer
-      -> paxplode
-      |
-      -> Paks/
-      -> ScreenShots/
-      -> Logs/
-      -> Saves/
-
-
-***********************************************************************************
-*                                    Mac OS X                                     *
-***********************************************************************************
-
--> OpenBOR.app/
-      |
-      -> Contents
-           |
-           -> MacOS
-           |   |
-           |   -> OpenBOR
-           |
-           -> Resources
-           |   |
-           |   -> borpak
-           |   -> packer
-           |   -> paxplode
-           |   |
-           |   -> Paks/
-           |   -> ScreenShots/
-           |   -> Logs/
-           |   -> Saves/
-           |
-           -> Libraries
-
-
-***********************************************************************************
-*                                       Wii                                       *
-***********************************************************************************
-
--> apps/
-      |
-      ->OpenBOR/
-          |
-          -> boot.dol
-          -> meta.xml
-          -> icon.png
-          |
-          -> Paks/
-          -> ScreenShots/
-          -> Logs/
-          -> Saves/
-
-
-***********************************************************************************
-*                                   Dreamcast                                     *
-***********************************************************************************
-
--> 1st_READ.bin
-   bor.pak
-
-
-
-***********************************************************************************
-*                             PSP 3.71 m33-4 Required                             *
-***********************************************************************************
-
--> ms0:/PSP/GAME/OpenBOR/
-                    |
-                    -> EBOOT.PBP
-                    |
-                    -> Images/
-                    |     |
-                    |     -> Menu.png
-                    |
-                    -> Modules/
-                    |     |
-                    |     -> ctrlhook.prx
-                    |     -> dvemgr.prx
-                    |     -> exception.prx
-                    |
-                    -> Logs/
-                    -> Saves/
-
-
-***********************************************************************************
-*                                 GamePark GP2X                                   *
-***********************************************************************************
-
--> OpenBOR/
-      |
-      -> OpenBOR.gpe
-      -> mmuhack.o
-      |
-      -> Paks/
-      -> ScreenShots/
-      -> Logs/
-      -> Saves/
-
-
-***********************************************************************************
-*                                       XBOX                                      *
-***********************************************************************************
-
--> OpenBOR/
-      |
-      -> default.xbe
-      |
-      -> Paks/
-      |     |
-      |     -> menu.pak
-      |
-      -> ScreenShots/
-      -> Logs/
-      -> Saves/
 
 
