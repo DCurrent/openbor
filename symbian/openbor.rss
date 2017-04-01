@@ -1,0 +1,44 @@
+// OpenBor.RSS
+
+NAME  OBOR
+
+// Include definitions of resource STRUCTS used by this
+// resource script 
+#include <eikon.rh>
+// Include the standard Eikon resource ids 
+#include <eikon.rsg>
+#include <uikon.rh>
+#include <AppInfo.rh>
+
+RESOURCE RSS_SIGNATURE
+	{
+	}
+
+RESOURCE TBUF16 { buf=""; }
+
+RESOURCE EIK_APP_INFO
+	{
+	
+	}
+
+// This file localise the applications icons and caption
+RESOURCE LOCALISABLE_APP_INFO r_appinfo
+	{
+	short_caption = "OpenBoR";
+	caption_and_icon =
+		{
+		CAPTION_AND_ICON_INFO
+			{
+			// The caption text is defined in the rls file
+			caption = "OpenBoR";
+			// Icons are used to represent applications in the 
+			// application launcher and application title bar.
+			// The number_of_icons value identifies how many icons 
+			// that exist in the icon_file.
+			number_of_icons = 1;
+			// Using the application icons.
+			icon_file = "\\Resource\\Apps\\OpenBor.mif";
+			}
+		};
+	}
+

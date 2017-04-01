@@ -1,0 +1,42 @@
+; This is an auto-generated PKG file by Carbide.
+; This file uses variables specific to Carbide builds that will not work
+; on command-line builds. If you want to use this generated PKG file from the
+; command-line tools you will need to modify the variables with the appropriate
+; values: , $(PLATFORM), $(TARGET)
+;
+;Language - standard language definitions
+&EN
+
+; standard SIS file header
+#{"OpenBOR"},(0xA000E813),3,0,3
+
+;Localised Vendor name
+%{"AnotherGuest"}
+
+;Unique Vendor name
+:"AnotherGuest"
+
+; ProductID for UIQ 3.0
+; Product/platform version UID, Major, Minor, Build, Product ID
+(0x101F6300), 3, 0, 0, {"UIQ30ProductID"}
+
+;
+; Display GNU Public Licence
+;
+
+;Files to install
+;You should change the source paths to match that of your environment
+;<source> <destination>
+"..\..\License"-"C:\shared\OpenBOR\License.TXT", FT, TC
+"..\..\Readme"-"C:\shared\OpenBOR\Readme.TXT", FT, TC
+
+"\Epoc32\release\gcce\urel\OpenBOR.exe"    -"!:\sys\bin\OpenBOR.exe"
+"\Epoc32\data\z\resource\apps\OpenBOR.rsc"             -"!:\resource\apps\OpenBOR.rsc"
+"\Epoc32\data\z\private\10003a3f\apps\OpenBOR_reg.rsc" -"!:\private\10003a3f\import\apps\OpenBOR_reg.rsc"
+"\Epoc32\data\z\resource\apps\OpenBOR.mbm"             -"!:\resource\apps\OpenBOR.mbm"
+
+
+;User created data
+""-"c:\shared\OpenBOR\sdl.ini",FN
+""-"c:\shared\OpenBOR\stdout.txt",FN
+""-"c:\shared\OpenBOR\stderr.txt",FN

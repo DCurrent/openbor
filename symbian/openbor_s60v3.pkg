@@ -1,0 +1,41 @@
+; This is an auto-generated PKG file by Carbide.
+; This file uses variables specific to Carbide builds that will not work
+; on command-line builds. If you want to use this generated PKG file from the
+; command-line tools you will need to modify the variables with the appropriate
+; values: , $(PLATFORM), $(TARGET)
+;
+;Language - standard language definitions
+&EN
+
+; standard SIS file header
+#{"OpenBOR"},(0xA000E813),3,0,3
+
+;Localised Vendor name
+%{"AnotherGuest"}
+
+;Unique Vendor name
+:"AnotherGuest"
+
+;Supports Series 60 v 3.0
+[0x101F7961], 0, 0, 0, {"Series60ProductID"}
+
+;
+; Display GNU Public Licence
+;
+
+;Files to install
+;You should change the source paths to match that of your environment
+;<source> <destination>
+"..\License"-"C:\DATA\OpenBOR\License.TXT", FT, TC
+"..\Readme"-"C:\DATA\OpenBOR\Readme.TXT", FT, TC
+
+"\Epoc32\release\gcce\urel\OpenBOR.exe"    -"!:\sys\bin\OpenBOR.exe"
+"\Epoc32\data\z\resource\apps\OpenBOR.rsc"             -"!:\resource\apps\OpenBOR.rsc"
+"\Epoc32\data\z\private\10003a3f\apps\OpenBOR_reg.rsc" -"!:\private\10003a3f\import\apps\OpenBOR_reg.rsc"
+"\Epoc32\data\z\resource\apps\OpenBOR.mif"             -"!:\resource\apps\OpenBOR.mif"
+
+
+;User created data
+""-"c:\data\OpenBOR\sdl.ini",FN
+""-"c:\data\OpenBOR\stdout.txt",FN
+""-"c:\data\OpenBOR\stderr.txt",FN
