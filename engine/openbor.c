@@ -3831,78 +3831,6 @@ int load_colourmap(s_model *model, char *image1, char *image2)
     return 1;
 }
 
-//PIXEL_x8
-// This function is used to enable remap command in 24bit mode
-// So old mods can still run under 16/24/32bit color system
-// This function should be called when all colourmaps are loaded, e.g.,
-// at the end of load_cached_model
-// map flag is used to determine whether a colourmap is a real colourmap
-int convert_map_to_palette(s_model *model, unsigned mapflag[])
-{
-    int i, c;
-    unsigned char *newmap, *oldmap;
-    unsigned char *p1, *p2;
-    unsigned pb = pixelbytes[(int)screenformat];
-    if(model->palette == NULL)
-    {
-        return 0;
-    }
-    for(c = 0; c < model->maps_loaded; c++)
-    {
-        if(mapflag[c] == 0)
-        {
-            continue;
-        }
-        if((newmap = malloc(PAL_BYTES)) == NULL)
-        {
-            shutdown(1, "Error convert_map_to_palette for model: %s\n", model->name);
-        }
-        // Create new colour map
-        memcpy(newmap, model->palette, PAL_BYTES);
-        oldmap = model->colourmap[c];
-        for(i = 0; i < MAX_PAL_SIZE / 4; i++)
-        {
-            if(oldmap[i] == i)
-            {
-                continue;
-            }
-            p1 = newmap + i * pb;
-            p2 = model->palette + oldmap[i] * pb;
-            memcpy(p1, p2, pb);
-        }
-        model->colourmap[c] = newmap;
-        free(oldmap);
-        oldmap = NULL;
-    }
-    return 1;
-}
-
-static int _load_palette16(unsigned char *palette, char *filename)
-{
-    int handle, i;
-    unsigned char tp[3];
-    handle = openpackfile(filename, packfile);
-    if(handle < 0)
-    {
-        return 0;
-    }
-    memset(palette, 0, MAX_PAL_SIZE / 2);
-    for(i = 0; i < MAX_PAL_SIZE / 4; i++)
-    {
-        if(readpackfile(handle, tp, 3) != 3)
-        {
-            closepackfile(handle);
-            return 0;
-        }
-        ((unsigned short *)palette)[i] = colour16(tp[0], tp[1], tp[2]);
-    }
-    closepackfile(handle);
-    *(unsigned short *)palette = 0;
-
-    return 1;
-}
-
-
 static int _load_palette32(unsigned char *palette, char *filename)
 {
     int handle, i;
@@ -3934,30 +3862,7 @@ static int _load_palette32(unsigned char *palette, char *filename)
 //load a 256 colors' palette
 int load_palette(unsigned char *palette, char *filename)
 {
-    int handle;
-    if(screenformat == PIXEL_32)
-    {
-        return _load_palette32(palette, filename);
-    }
-    else if(screenformat == PIXEL_16)
-    {
-        return _load_palette16(palette, filename);
-    }
-
-    handle = openpackfile(filename, packfile);
-    if(handle < 0)
-    {
-        return 0;
-    }
-    if(readpackfile(handle, palette, 768) != 768)
-    {
-        closepackfile(handle);
-        return 0;
-    }
-    closepackfile(handle);
-    palette[0] = palette[1] = palette[2] = 0;
-
-    return 1;
+    return _load_palette32(palette, filename);
 }
 
 // create blending tables for the palette
@@ -3994,15 +3899,7 @@ void create_blend_tables_x8(unsigned char *tables[])
     int i;
     for(i = 0; i < MAX_BLENDINGS; i++)
     {
-        switch(screenformat)
-        {
-        case PIXEL_16:
-            tables[i] = blending_table_functions16[i] ? (blending_table_functions16[i])() : NULL;
-            break;
-        case PIXEL_32:
-            tables[i] = blending_table_functions32[i] ? (blending_table_functions32[i])() : NULL;
-            break;
-        }
+        tables[i] = blending_table_functions32[i] ? (blending_table_functions32[i])() : NULL;
     }
 
 }
@@ -4021,20 +3918,10 @@ void change_system_palette(int palindex)
     if(!level || palindex == 0 || palindex > level->numpalettes)
     {
         current_palette = 0;
-        if(screenformat == PIXEL_8)
-        {
-            palette_set_corrected(pal, savedata.gamma, savedata.gamma, savedata.gamma, savedata.brightness, savedata.brightness, savedata.brightness);
-            set_blendtables(blendings); // set global blending tables
-        }
     }
     else if(level)
     {
         current_palette = palindex;
-        if(screenformat == PIXEL_8)
-        {
-            palette_set_corrected(level->palettes[palindex - 1], savedata.gamma, savedata.gamma, savedata.gamma, savedata.brightness, savedata.brightness, savedata.brightness);
-            set_blendtables(level->blendings[palindex - 1]);
-        }
     }
 }
 
@@ -4073,16 +3960,7 @@ void unload_background()
 
 int _makecolour(int r, int g, int b)
 {
-    switch(screenformat)
-    {
-    case PIXEL_8:
-        return palette_find(pal, r, g, b);
-    case PIXEL_16:
-        return colour16(r, g, b);
-    case PIXEL_32:
-        return colour32(r, g, b);
-    }
-    return 0;
+    return colour32(r, g, b);
 }
 
 // parses a color string in the format "R_G_B" or as a raw integer
@@ -4266,12 +4144,8 @@ void load_background(char *filename, int createtables)
     {
         if(!loadscreen(filename, packfile, NULL, PIXEL_x8, &background))
         {
-            if (screenformat == PIXEL_32)
-            {
-                if (loadscreen32(filename, packfile, &background)) printf("Loaded 32-bit background '%s'\n", filename);
-                else shutdown(1, "Error loading background (PIXEL_x8/PIXEL_32) file '%s'", filename);
-            }
-            else shutdown(1, "Error loading background (PIXEL_x8) file '%s'", filename);
+            if (loadscreen32(filename, packfile, &background)) printf("Loaded 32-bit background '%s'\n", filename);
+            else shutdown(1, "Error loading background (PIXEL_x8/PIXEL_32) file '%s'", filename);
         }
         if (background->pixelformat == PIXEL_x8)
         {
@@ -4453,7 +4327,7 @@ void cache_background(char *filename)
     {
         if(!loadscreen(filename, packfile, NULL, pixelformat, &bg))
         {
-            if (!(screenformat == PIXEL_32 && loadscreen32(filename, packfile, &bg)))
+            if(!loadscreen32(filename, packfile, &bg))
             {
                 freescreen(&bg);
                 bg = NULL;
@@ -11466,12 +11340,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         }
     }
 
-    // we need to convert 8bit colourmap into 24bit palette
-    if(pixelformat == PIXEL_x8)
-    {
-        convert_map_to_palette(newchar, mapflag);
-    }
-
     printf("Loading '%s' from %s\n", newchar->name, filename);
 
 lCleanup:
@@ -15362,7 +15230,7 @@ void goto_mainmenu(int flag)
 void static backto_mainmenu()
 {
     int i = 0;
-    s_screen *pausebuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
+    s_screen *pausebuffer = allocscreen(videomodes.hRes, videomodes.vRes, PIXEL_32);
 
     copyscreen(pausebuffer, vscreen);
     spriteq_draw(pausebuffer, 0, MIN_INT, MAX_INT, 0, 0);
@@ -15402,7 +15270,7 @@ void pausemenu()
     int controlp = 0, i;
     int newkeys;
     s_set_entry *set = levelsets + current_set;
-    s_screen *pausebuffer = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
+    s_screen *pausebuffer = allocscreen(videomodes.hRes, videomodes.vRes, PIXEL_32);
 
     copyscreen(pausebuffer, vscreen);
     spriteq_draw(pausebuffer, 0, MIN_INT, MAX_INT, 0, 0);
@@ -31065,7 +30933,7 @@ void update_scrolled_bg()
         2, 2, 3, 3, 2, 2, 3, 3,
         2, 2, 3, 3, 2, 3, 2, 3,
     };   // fast, constant rumbling, like in/on a van or trailer
-    int pb = pixelbytes[(int)screenformat];
+    int pb = pixelbytes[(int)PIXEL_32];
 
     if(time >= neon_time && !freezeall)   // Added freezeall so neon lights don't update if animations are frozen
     {
@@ -31950,15 +31818,7 @@ int set_color_correction(int gm, int br)
     video_set_color_correction(gm, br);
     return 1;
 #else
-    if(screenformat == PIXEL_8)
-    {
-        palette_set_corrected(pal, savedata.gamma, savedata.gamma, savedata.gamma, savedata.brightness, savedata.brightness, savedata.brightness);
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
+    return 0;
 #endif
 }
 
@@ -32639,10 +32499,6 @@ int playgif(char *filename, int x, int y, int noskip)
         if(info->frame == 0)
         {
             vga_vwait();
-            if(screenformat == PIXEL_8)
-            {
-                palette_set_corrected(backbuffer->palette, savedata.gamma, savedata.gamma, savedata.gamma, savedata.brightness, savedata.brightness, savedata.brightness);
-            }
             update(0, 0);
         }
         else
@@ -34303,6 +34159,8 @@ void init_videomodes(int log)
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
 
+    //
+
     if(log)
     {
         printf("Initializing video............\n");
@@ -34409,31 +34267,7 @@ readfile:
             }
             else if(stricmp(command, "colourdepth") == 0)
             {
-                pixelformat = PIXEL_x8;
-                value = GET_ARG(1);
-                if(stricmp(value, "8bit") == 0)
-                {
-                    screenformat = PIXEL_8;
-                    pixelformat = PIXEL_8;
-                }
-                else if(stricmp(value, "16bit") == 0)
-                {
-                    screenformat = PIXEL_16;
-                    bits = 16;
-                }
-                else if(stricmp(value, "32bit") == 0)
-                {
-                    screenformat = PIXEL_32;
-                    bits = 32;
-                }
-                else if(value[0] == 0)
-                {
-                    screenformat = PIXEL_32;
-                }
-                else
-                {
-                    shutdown(1, "Screen colour depth can only be either 8bit, 16bit or 32bit.");
-                }
+                printf("\nColordepth is depreciated. All modules are displayed with a 32bit color screen.\n\n");
             }
             else if(stricmp(command, "forcemode") == 0) {}
             else if(command && command[0])
@@ -34585,7 +34419,7 @@ VIDEOMODES:
     video_stretch(savedata.stretch);
 #endif
 
-    if((vscreen = allocscreen(videomodes.hRes, videomodes.vRes, screenformat)) == NULL)
+    if((vscreen = allocscreen(videomodes.hRes, videomodes.vRes, PIXEL_32)) == NULL)
     {
         shutdown(1, "Not enough memory!\n");
     }

@@ -35,16 +35,16 @@
 #define BLEND_HALF       5
 
 #define MAX_BLENDINGS    6
+
 /*
 #define _copy24bitp(pd, ps) (pd)[0] = (ps)[0]; (pd)[1] = (ps)[1]; (pd)[2] = (ps)[2];
 #define _copy24bit(pd, v) (pd)[0] = ((unsigned char*)(&(v)))[0]; (pd)[1] = ((unsigned char*)(&(v)))[1]; (pd)[2] = ((unsigned char*)(&(v)))[2];
 */
 extern int pixelformat;
-extern int screenformat;
 // in bitmap.c
 extern int pixelbytes[(int)5];
 
-#define PAL_BYTES (screenformat==PIXEL_8?768:(pixelbytes[(int)screenformat]*256))
+#define PAL_BYTES ((pixelbytes[(int)PIXEL_32]*256))
 
 // Define fixed-size integer types - these used to be in gfxtypes.h
 // TODO: use these for throughout the engine where fixed-length types are needed

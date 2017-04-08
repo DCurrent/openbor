@@ -452,10 +452,8 @@ void initMenu(int type)
 	isFull = 1;
 	bpp = 32;
 	savedata.glscale = 0.0f;
-	screenformat = PIXEL_32;
 #endif
 
-	screenformat = bpp==32?PIXEL_32:PIXEL_16;
 	pixelformat = PIXEL_x8;
 
 	savedata.fullscreen = isFull;
@@ -463,7 +461,7 @@ void initMenu(int type)
 	videomodes.hRes = isWide ? 480 :320;
 	videomodes.vRes = isWide ? 272 :240;
 	videomodes.pixel = pixelbytes[PIXEL_32];
-	vscreen = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
+	vscreen = allocscreen(videomodes.hRes, videomodes.vRes, PIXEL_32);
 
 	video_set_mode(videomodes);
 
@@ -472,7 +470,7 @@ void initMenu(int type)
 		bgscreen = pngToScreen(isWide ? (void*) openbor_logo_480x272_png.data : (void*) openbor_logo_320x240_png.data);
 	else
 		bgscreen = pngToScreen(isWide ? (void*) openbor_menu_480x272_png.data : (void*) openbor_menu_320x240_png.data);
-	// CRxTRDude - Initialize log screen images		
+	// CRxTRDude - Initialize log screen images
 	logscreen = pngToScreen(isWide ? (void*) logviewer_480x272_png.data : (void*) logviewer_320x240_png.data);
 
 	control_init(2);
@@ -527,7 +525,7 @@ void drawMenu()
 
 	printText((isWide ? 26 : 5), (isWide ? 11 : 4), WHITE, 0, 0, "OpenBoR %s", VERSION);
 	printText((isWide ? 392 : 261),(isWide ? 11 : 4), WHITE, 0, 0, __DATE__);
-		//CRxTRDude - Fix for Android's text - Main menu 
+		//CRxTRDude - Fix for Android's text - Main menu
 #ifdef ANDROID
 	printText((isWide ? 23 : 4),(isWide ? 251 : 226), WHITE, 0, 0, "A1: Start Game");
 	printText((isWide ? 150 : 84),(isWide ? 251 : 226), WHITE, 0, 0, "A2: BGM Player");
@@ -760,7 +758,6 @@ void Menu()
 	getBasePath(packfile, filelist[dListCurrentPosition+dListScrollPosition].filename, 1);
 	free(filelist);
 
-	// Restore screenformat and pixelformat to their default values
-	screenformat = PIXEL_8;
-	pixelformat = PIXEL_8;
+	// Restore pixelformat default value.
+	pixelformat = PIXEL_x8;
 }

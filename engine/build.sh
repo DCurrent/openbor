@@ -42,11 +42,8 @@ function distribute {
     echo "PSP Platform Failed To Build!"
     exit 1
   fi
-  if ! test -e "releases/DC/OpenBOR/1ST_READ.BIN"; then
-    echo "Dreamcast Platform Failed To Build!"
-    exit 1
-  fi
-  if test -e "releases/WINDOWS/OpenBOR/OpenBOR.exe"; then
+  
+if test -e "releases/WINDOWS/OpenBOR/OpenBOR.exe"; then
     cd ../tools/borpak/source/
     . build.sh win
     cp borpak.exe ../../../engine/releases/WINDOWS/OpenBOR/
@@ -149,29 +146,6 @@ function vita {
   fi
 }
 
-# Gp2x Environment && Compile
-function gp2x {
-  export PATH=$OLD_PATH
-  . ./environ.sh 3
-  if test $GP2XDEV; then
-    make clean BUILD_GP2X=1
-    make BUILD_GP2X=1
-    if test -f "./OpenBOR.gpe"; then
-      if test ! -e "./releases/GP2X"; then
-        mkdir ./releases/GP2X
-        mkdir ./releases/GP2X/OpenBOR
-        mkdir ./releases/GP2X/OpenBOR/Logs
-        mkdir ./releases/GP2X/OpenBOR/Paks
-        mkdir ./releases/GP2X/OpenBOR/Saves
-        mkdir ./releases/GP2X/OpenBOR/ScreenShots
-      fi
-      cp ./sdl/gp2x/modules/mmuhack.o ./releases/GP2X/OpenBOR/
-      mv OpenBOR.gpe ./releases/GP2X/OpenBOR/
-    fi
-    make clean BUILD_GP2X=1
-  fi
-}
-
 # Linux Environment && Compile (common to all architectures)
 function linux {
   export PATH=$OLD_PATH
@@ -253,24 +227,6 @@ function windows {
   fi
 }
 
-# Dreamcast Environment && Compile
-function dreamcast {
-  export PATH=$OLD_PATH
-  . ./environ.sh 6
-  if test $KOS_BASE; then
-    make clean BUILD_DC=1
-    make BUILD_DC=1
-    if test -f "./1ST_READ.BIN"; then
-      if test ! -e "./releases/DC" ; then
-        mkdir ./releases/DC
-        mkdir ./releases/DC/OpenBOR
-      fi
-      mv 1ST_READ.BIN ./releases/DC/OpenBOR/
-    fi
-    make clean BUILD_DC=1
-  fi
-}
-
 # Wii Environment && Compile
 function wii {
   export PATH=$OLD_PATH
@@ -317,36 +273,6 @@ function opendingux {
   fi
 }
 
-# WIZ Environment && Compile
-function wiz {
-  export PATH=$OLD_PATH
-  . ./environ.sh 9
-  if test $WIZDEV; then
-    make clean BUILD_WIZ=1
-    make BUILD_WIZ=1
-    if test -f "./OpenBOR.gpe"; then
-      if test ! -e "./releases/WIZ"; then
-        mkdir ./releases/WIZ
-        mkdir ./releases/WIZ/OpenBOR
-        mkdir ./releases/WIZ/OpenBOR/Logs
-        mkdir ./releases/WIZ/OpenBOR/Paks
-        mkdir ./releases/WIZ/OpenBOR/Saves
-        mkdir ./releases/WIZ/OpenBOR/ScreenShots
-      fi
-      mv OpenBOR.gpe ./releases/WIZ/OpenBOR/
-      if [ `echo $HOST_PLATFORM | grep -o "SVN"` ]; then
-        cp $SDKPATH/lib/target/libSDL-1.2.so.0.11.2 ./releases/WIZ/OpenBOR/
-        cp $SDKPATH/lib/target/libSDL_gfx.so.0.0.17 ./releases/WIZ/OpenBOR/libSDL_gfx.so.0
-      else
-        cp $SDKPATH/lib/warm_2.6.24.ko ./releases/WIZ/OpenBOR/
-        cp $SDKPATH/lib/libSDL-1.2.so.0.11.2 ./releases/WIZ/OpenBOR/
-        cp $SDKPATH/lib/libSDL_gfx.so.0.0.17 ./releases/WIZ/OpenBOR/libSDL_gfx.so.0
-      fi
-    fi
-    make clean BUILD_WIZ=1
-  fi
-}
-
 # Darwin Environment && Compile
 function darwin {
   export PATH=$OLD_PATH
@@ -386,7 +312,6 @@ function build_all {
     linux_x86
     linux_amd64
     windows
-    dreamcast
     wii
     opendingux
     darwin
@@ -401,13 +326,10 @@ function print_help {
   echo "    0 = Distribute"
   echo "    1 = PSP"
   echo "    2 = PS Vita"
-  echo "    3 = Gp2x"
   echo "    4 = Linux (x86, amd64) Example: $0 4 amd64"
   echo "    5 = Windows"
-  echo "    6 = Dreamcast"
   echo "    7 = Wii"
   echo "    8 = OpenDingux"
-  echo "    9 = Wiz"
   echo "   10 = Darwin"
   echo "  all = build for all applicable targets"
   echo "-------------------------------------------------------"
@@ -431,11 +353,6 @@ case $1 in
     vita
     ;;
 
-  3)
-    version
-    gp2x
-    ;;
-
   4)
     version
     linux_something $2
@@ -446,11 +363,6 @@ case $1 in
     windows
     ;;
 
-  6)
-    version
-    dreamcast
-    ;;
-
   7)
     version
     wii
@@ -459,11 +371,6 @@ case $1 in
   8)
     version
     opendingux
-    ;;
-
-  9)
-    version
-    wiz
     ;;
 
   10)
