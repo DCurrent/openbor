@@ -470,12 +470,12 @@ int anigif_open(char *filename, char *packfilename, anigif_info *info)
 
     if(info->isRGB)
     {
-        info->backbuffer = allocscreen(info->info[0].gif_header.screenwidth, info->info[0].gif_header.screenheight, screenformat);
+        info->backbuffer = allocscreen(info->info[0].gif_header.screenwidth, info->info[0].gif_header.screenheight, PIXEL_32);
         clearscreen(info->backbuffer);
     }
     for(i = info->isRGB ? 2 : 0; i >= 0; i--)
     {
-        info->gifbuffer[i] = allocscreen(info->info[0].gif_header.screenwidth, info->info[0].gif_header.screenheight, screenformat);
+        info->gifbuffer[i] = allocscreen(info->info[0].gif_header.screenwidth, info->info[0].gif_header.screenheight, PIXEL_32);
         clearscreen(info->gifbuffer[i]);
     }
     info->frame = -1;
@@ -586,31 +586,16 @@ static void anigif_updatebuffer(anigif_info *info)
     s_screen *backbuffer = info->backbuffer;
     s_screen **gifbuffer = info->gifbuffer;
     int i, l = backbuffer->width * backbuffer->height;
-    unsigned short *ps16, *ppr16, *ppg16, *ppb16;
     unsigned int *ps32, *ppr32, *ppg32, *ppb32;
-    switch(screenformat)
+
+    ps32 = (unsigned int *)(backbuffer->data);
+    ppr32 = (unsigned int *)(gifbuffer[0]->data);
+    ppg32 = (unsigned int *)(gifbuffer[1]->data);
+    ppb32 = (unsigned int *)(gifbuffer[2]->data);
+    for(i = 0; i < l; i++)
     {
-    case PIXEL_16:
-        ps16 = (unsigned short *)(backbuffer->data);
-        ppr16 = (unsigned short *)(gifbuffer[0]->data);
-        ppg16 = (unsigned short *)(gifbuffer[1]->data);
-        ppb16 = (unsigned short *)(gifbuffer[2]->data);
-        for(i = 0; i < l; i++)
-        {
-            ps16[i] =  ppr16[i] | ppg16[i] | ppb16[i];
-        }
-        break;
-    case PIXEL_32:
-        ps32 = (unsigned int *)(backbuffer->data);
-        ppr32 = (unsigned int *)(gifbuffer[0]->data);
-        ppg32 = (unsigned int *)(gifbuffer[1]->data);
-        ppb32 = (unsigned int *)(gifbuffer[2]->data);
-        for(i = 0; i < l; i++)
-        {
-            ps32[i] = ppr32[i] | ppg32[i] | ppb32[i];
-            //printf(" %u %u %u\n", ppr32[i], ppg32[i], ppb32[i]);
-        }
-        break;
+        ps32[i] = ppr32[i] | ppg32[i] | ppb32[i];
+        //printf(" %u %u %u\n", ppr32[i], ppg32[i], ppb32[i]);
     }
 
 }
