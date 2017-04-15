@@ -3831,6 +3831,52 @@ int load_colourmap(s_model *model, char *image1, char *image2)
     return 1;
 }
 
+//PIXEL_x8
+// This function is used to enable remap command in 24bit mode
+// So old mods can still run under 16/24/32bit color system
+// This function should be called when all colourmaps are loaded, e.g.,
+// at the end of load_cached_model
+// map flag is used to determine whether a colourmap is a real colourmap
+int convert_map_to_palette(s_model *model, unsigned mapflag[])
+{
+    int i, c;
+    unsigned char *newmap, *oldmap;
+    unsigned char *p1, *p2;
+    unsigned pb = pixelbytes[(int)PIXEL_32];
+    if(model->palette == NULL)
+    {
+        return 0;
+    }
+    for(c = 0; c < model->maps_loaded; c++)
+    {
+        if(mapflag[c] == 0)
+        {
+            continue;
+        }
+        if((newmap = malloc(PAL_BYTES)) == NULL)
+        {
+            shutdown(1, "Error convert_map_to_palette for model: %s\n", model->name);
+        }
+        // Create new colour map
+        memcpy(newmap, model->palette, PAL_BYTES);
+        oldmap = model->colourmap[c];
+        for(i = 0; i < MAX_PAL_SIZE / 4; i++)
+        {
+            if(oldmap[i] == i)
+            {
+                continue;
+            }
+            p1 = newmap + i * pb;
+            p2 = model->palette + oldmap[i] * pb;
+            memcpy(p1, p2, pb);
+        }
+        model->colourmap[c] = newmap;
+        free(oldmap);
+        oldmap = NULL;
+    }
+    return 1;
+}
+
 static int _load_palette32(unsigned char *palette, char *filename)
 {
     int handle, i;
@@ -11338,6 +11384,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         {
             blendfx[BLEND_MULTIPLY] = 1;
         }
+    }
+
+    // we need to convert 8bit colourmap into 32bit palette
+    if(pixelformat == PIXEL_x8)
+    {
+        convert_map_to_palette(newchar, mapflag);
     }
 
     printf("Loading '%s' from %s\n", newchar->name, filename);
