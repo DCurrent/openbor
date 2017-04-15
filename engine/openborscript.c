@@ -1129,6 +1129,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "changedrawmethod";
     }
+    else if (functionRef == ((void *)openbor_getdrawmethod))
+    {
+        return "getdrawmethod";
+    }
     else if (functionRef == ((void *)openbor_updateframe))
     {
         return "updateframe";
@@ -1767,6 +1771,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_setdrawmethod, "setdrawmethod");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_changedrawmethod, "changedrawmethod");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_getdrawmethod, "getdrawmethod");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_updateframe, "updateframe");
     List_InsertAfter(&theFunctionList,
@@ -16857,13 +16863,13 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
     */
     entity *e;
     s_drawmethod *pmethod;
-    *pretvar = NULL;
 
     if(paramCount < 2)
     {
         goto getdm_error;
     }
 
+    ScriptVariant_Clear(*pretvar);
     mapstrings_drawmethodproperty(varlist, paramCount);
 
     if(varlist[0]->vt == VT_EMPTY)
@@ -16888,109 +16894,116 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
         pmethod = &(drawmethod);
     }
 
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
     switch(varlist[1]->lVal)
     {
         case _dm_alpha:
-            (*pretvar)->lVal = pmethod->alpha;
+            (*pretvar)->lVal = (int)pmethod->alpha;
             break;
         case _dm_amplitude:
-            (*pretvar)->lVal = pmethod->water.amplitude;
+            (*pretvar)->lVal = (int)pmethod->water.amplitude;
             break;
         case _dm_beginsize:
-            (*pretvar)->dblVal = pmethod->water.beginsize;
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (float)pmethod->water.beginsize;
             break;
         case _dm_centerx:
-            (*pretvar)->lVal = pmethod->centerx;
+            (*pretvar)->lVal = (int)pmethod->centerx;
             break;
         case _dm_centery:
-            (*pretvar)->lVal = pmethod->centery;
+            (*pretvar)->lVal = (int)pmethod->centery;
             break;
         case _dm_channelb:
-            (*pretvar)->lVal = pmethod->channelb;
+            (*pretvar)->lVal = (int)pmethod->channelb;
             break;
         case _dm_channelg:
-            (*pretvar)->lVal = pmethod->channelg;
+            (*pretvar)->lVal = (int)pmethod->channelg;
             break;
         case _dm_channelr:
-            (*pretvar)->lVal = pmethod->channelr;
+            (*pretvar)->lVal = (int)pmethod->channelr;
             break;
         case _dm_clipx:
-            (*pretvar)->lVal = pmethod->clipx;
+            (*pretvar)->lVal = (int)pmethod->clipx;
             break;
         case _dm_clipy:
-            (*pretvar)->lVal = pmethod->clipy;
+            (*pretvar)->lVal = (int)pmethod->clipy;
             break;
         case _dm_clipw:
-            (*pretvar)->lVal = pmethod->clipw;
+            (*pretvar)->lVal = (int)pmethod->clipw;
             break;
         case _dm_cliph:
-            (*pretvar)->lVal = pmethod->cliph;
+            (*pretvar)->lVal = (int)pmethod->cliph;
             break;
         case _dm_endsize:
-            (*pretvar)->dblVal = pmethod->water.endsize;
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (float)pmethod->water.endsize;
             break;
         case _dm_fillcolor:
-            (*pretvar)->lVal = pmethod->fillcolor;
+            (*pretvar)->lVal = (int)pmethod->fillcolor;
             break;
         case _dm_fliprotate:
-            (*pretvar)->lVal = pmethod->fliprotate;
+            (*pretvar)->lVal = (int)pmethod->fliprotate;
             break;
         case _dm_flipx:
-            (*pretvar)->lVal = pmethod->flipx;
+            (*pretvar)->lVal = (int)pmethod->flipx;
             break;
         case _dm_flipy:
-            (*pretvar)->lVal = pmethod->flipy;
+            (*pretvar)->lVal = (int)pmethod->flipy;
             break;
         case _dm_perspective:
-            (*pretvar)->lVal = pmethod->water.perspective;
+            (*pretvar)->lVal = (int)pmethod->water.perspective;
             break;
         case _dm_remap:
-            (*pretvar)->lVal = pmethod->remap;
+            (*pretvar)->lVal = (int)pmethod->remap;
             break;
         case _dm_rotate:
-            (*pretvar)->lVal = pmethod->rotate;
+            (*pretvar)->lVal = (int)pmethod->rotate;
             break;
         case _dm_scalex:
-            (*pretvar)->lVal = pmethod->scalex;
+            (*pretvar)->lVal = (int)pmethod->scalex;
             break;
         case _dm_scaley:
-            (*pretvar)->lVal = pmethod->scaley;
+            (*pretvar)->lVal = (int)pmethod->scaley;
             break;
         case _dm_shiftx:
-            (*pretvar)->lVal = pmethod->shiftx;
+            (*pretvar)->lVal = (int)pmethod->shiftx;
             break;
         case _dm_table:
-            (*pretvar)->ptrVal = pmethod->table;
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (void *)pmethod->table;
             break;
         case _dm_tintmode:
-            (*pretvar)->lVal = pmethod->tintmode;
+            (*pretvar)->lVal = (int)pmethod->tintmode;
             break;
         case _dm_tintcolor:
-            (*pretvar)->lVal = pmethod->tintcolor;
+            (*pretvar)->lVal = (int)pmethod->tintcolor;
             break;
         case _dm_transbg:
-            (*pretvar)->lVal = pmethod->transbg;
+            (*pretvar)->lVal = (int)pmethod->transbg;
             break;
         case _dm_watermode:
-            (*pretvar)->lVal = pmethod->water.watermode;
+            (*pretvar)->lVal = (int)pmethod->water.watermode;
             break;
         case _dm_wavelength:
-            (*pretvar)->dblVal = pmethod->water.wavelength;
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (float)pmethod->water.wavelength;
             break;
         case _dm_wavespeed:
-            (*pretvar)->dblVal = pmethod->water.wavespeed;
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (float)pmethod->water.wavespeed;
             break;
         case _dm_wavetime:
-            (*pretvar)->lVal = pmethod->water.wavetime;
+            (*pretvar)->lVal = (int)pmethod->water.wavetime;
             break;
         case _dm_xrepeat:
-            (*pretvar)->lVal = pmethod->xrepeat;
+            (*pretvar)->lVal = (int)pmethod->xrepeat;
             break;
         case _dm_yrepeat:
-            (*pretvar)->lVal = pmethod->yrepeat;
+            (*pretvar)->lVal = (int)pmethod->yrepeat;
             break;
         case _dm_xspan:
-            (*pretvar)->lVal = pmethod->xspan;
+            (*pretvar)->lVal = (int)pmethod->xspan;
             break;
         case _dm_yspan:
             (*pretvar)->lVal = pmethod->yspan;
@@ -16998,7 +17011,7 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
         default:
         case _dm_enabled:
         case _dm_flag:
-            (*pretvar)->lVal = pmethod->flag;
+            (*pretvar)->lVal = (int)pmethod->flag;
             break;
     }
 
@@ -17006,6 +17019,7 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
 
 getdm_error:
     printf("Function getdrawmethod must have at least 2 parameters: entity, propertyname\n");
+    *pretvar = NULL;
     return E_FAIL;
 }
 
