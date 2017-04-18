@@ -331,6 +331,7 @@ enum systemvariant_enum
     _sv_freeram,
     _sv_game_paused,
     _sv_game_speed,
+    _sv_game_time,
     _sv_gfx_x_offset,
     _sv_gfx_y_offset,
     _sv_gfx_y_offset_adj,
