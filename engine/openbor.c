@@ -1083,6 +1083,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         if( !(goto_mainmenu_flag&1) ) var->lVal = (pause);
         else var->lVal = 0;
         break;
+    case _sv_game_time:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = timeleft;
+        break;
     case _sv_porting:
     {
         e_porting porting;
@@ -1529,6 +1533,12 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             current_level = (int)ltemp;
+        }
+        break;
+    case _sv_game_time:
+        if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            timeleft = (int)ltemp;
         }
         break;
     case _sv_gfx_x_offset:

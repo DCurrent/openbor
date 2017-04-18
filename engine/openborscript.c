@@ -2293,6 +2293,7 @@ static const char *svlist[] =
     "freeram",
     "game_paused",
     "game_speed",
+    "game_time",
     "gfx_x_offset",
     "gfx_y_offset",
     "gfx_y_offset_adj",
