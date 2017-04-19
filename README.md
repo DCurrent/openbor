@@ -1,4 +1,4 @@
-# OpenBOR
+ # OpenBOR
 OpenBOR is a continuation of the Beats Of Rage 2D game engine, which was originally
 created by the wonderful folks over at http://www.senileteam.com. 
 
@@ -14,9 +14,11 @@ In 2005, Kirby2000 asked Senile Team to open the source code to BOR.  They
 agreed, and OpenBOR was born.  Development on the engine was continued by the
 community, and still is to this day.
 
-## Available Platforms
-OpenBOR has a very modular and portable design inherited from Beats of Rage. Ports
-to the following platforms are currently supported:
+## Platforms
+OpenBOR has a very modular and portable design inherited from Beats of Rage - several ports have been made available.
+
+### Current
+These platforms are actively supported and may be compiled with the latest OpenBOR engine.
 
 * Android
 * Windows
@@ -24,19 +26,15 @@ to the following platforms are currently supported:
 * Mac OS X
 * Wii
 * PSP
+
+### Discontinued
+
+The following platforms are still available as legacy binaries, but are no longer supported and may not be compatible with current iterations of OpenBOR.
+
 * Dreamcast
 * GP2X
 * GP2X Wiz
 * OpenDingux (Dingoo A320 & GCW-Zero)
-
-In addition to the above, the original Beats of Rage engine (downloadable from
-the Senile Team website) is available for the following platforms:
-
-* DOS
-* Playstation 2
-* Xbox
-* GP32
-* Palmtop
 
 ## OpenBOR Team
 
