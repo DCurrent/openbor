@@ -8351,14 +8351,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     s_anim *newanim = NULL;
 
-    char *filename = NULL,
-         *buf = NULL,
+    char *filename      = NULL,
+         *fileext       = NULL,
+         *buf           = NULL,
          *animscriptbuf = NULL,
-         *scriptbuf = NULL,
-         *command = NULL,
-         *value = NULL,
-         *value2 = NULL,
-         *value3 = NULL;
+         *scriptbuf     = NULL,
+         *command       = NULL,
+         *value         = NULL,
+         *value2        = NULL,
+         *value3        = NULL;
 
     char fnbuf[128] = {""},
                       namebuf[256] = {""},
@@ -8368,7 +8369,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     float tempFloat;
 
-    int ani_id = -1,
+    int length = 0,     // For string length.
+        ani_id = -1,
         script_id = -1,
         frm_id = -1,
         i = 0,
@@ -9587,51 +9589,73 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             }
             break;
             case CMD_MODEL_PALETTE:
-                // main palette for the entity under 24bit mode
-                if(pixelformat != PIXEL_x8)
-                {
-                    printf("Warning: command '%s' is not available under 8bit mode\n", command);
-                }
-                else if(newchar->palette == NULL)
+
+                if(newchar->palette == NULL)
                 {
                     value = GET_ARG(1);
-                    if(stricmp(value, "none") == 0)
+
+                    newchar->palette = malloc(PAL_BYTES);
+
+                    // Extract the file extension so we can
+                    // use stricmp on it.
+                    length = strlen(value);
+                    fileext = value + length - 4;
+
+                    // Load color table directly if .act path given,
+                    // else read in palette from an image.
+                    if(stricmp(fileext, ".act") == 0)
                     {
-                        if(pixelformat == PIXEL_x8)
+                        if(load_palette(newchar->palette, value) == 0)
                         {
-                            nopalette = 1;
+                            shutdownmessage = "Palette failed to load color table from .act!";
+                            goto lCleanup;
                         }
                     }
                     else
                     {
-                        newchar->palette = malloc(PAL_BYTES);
                         if(loadimagepalette(value, packfile, newchar->palette) == 0)
                         {
-                            shutdownmessage = "Failed to load palette!";
+                            shutdownmessage = "Palette failed to load color table from image!";
                             goto lCleanup;
                         }
                     }
                 }
+
                 break;
             case CMD_MODEL_ALTERNATEPAL:
-                // remap for the entity under 24bit mode, this method can replace remap command
-                if(pixelformat != PIXEL_x8)
+
+                __realloc(mapflag, newchar->maps_loaded);
+                __realloc(newchar->colourmap, newchar->maps_loaded);
+                value = GET_ARG(1);
+
+                newchar->colourmap[newchar->maps_loaded] = malloc(PAL_BYTES);
+
+                // Extract the file extension so we can
+                // use stricmp on it.
+                length = strlen(value);
+                fileext = value + length - 4;
+
+                // Load color table directly if .act path given,
+                // else read in palette from an image.
+                if(stricmp(fileext, ".act") == 0)
                 {
-                    printf("Warning: command '%s' is not available under 8bit mode\n", command);
+                    if(load_palette(newchar->colourmap[newchar->maps_loaded], value) == 0)
+                    {
+                        shutdownmessage = "Alternatepal failed to load color table from .act!";
+                        goto lCleanup;
+                    }
                 }
                 else
                 {
-                    __realloc(mapflag, newchar->maps_loaded);
-                    __realloc(newchar->colourmap, newchar->maps_loaded);
-                    value = GET_ARG(1);
-                    newchar->colourmap[newchar->maps_loaded] = malloc(PAL_BYTES);
                     if(loadimagepalette(value, packfile, newchar->colourmap[newchar->maps_loaded]) == 0)
                     {
-                        shutdownmessage = "Failed to load palette!";
+                        shutdownmessage = "Alternatepal failed to load color table from image!";
                         goto lCleanup;
                     }
-                    newchar->maps_loaded++;
                 }
+
+                newchar->maps_loaded++;
+
                 break;
             case CMD_MODEL_GLOBALMAP:
                 // use global palette under 24bit mode, so some entity/panel/bg can still use palette feature, that saves some memory
