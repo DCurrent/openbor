@@ -118,7 +118,7 @@ HRESULT math_atan(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCo
 HRESULT math_trunc(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT math_round(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_systemvariant(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_changesystemvariant(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_setsystemvariant(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_drawstring(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_drawstringtoscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_drawsprite(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
