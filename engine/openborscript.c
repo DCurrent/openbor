@@ -682,9 +682,13 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "openborvariant";
     }
-    else if (functionRef == ((void *)openbor_changesystemvariant))
+    else if (functionRef == ((void *)openbor_setsystemvariant))
     {
         return "changeopenborvariant";
+    }
+    else if (functionRef == ((void *)openbor_setsystemvariant))
+    {
+        return "setopenborvariant";
     }
     else if (functionRef == ((void *)openbor_drawstring))
     {
@@ -1310,7 +1314,7 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_systemvariant;
     }
-    else if (functionRef == ((void *)openbor_changesystemvariant))
+    else if (functionRef == ((void *)openbor_setsystemvariant))
     {
         return (void *)mapstrings_systemvariant;
     }
@@ -1545,7 +1549,9 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_systemvariant, "openborvariant");
     List_InsertAfter(&theFunctionList,
-                     (void *)openbor_changesystemvariant, "changeopenborvariant");
+                     (void *)openbor_setsystemvariant, "changeopenborvariant");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_setsystemvariant, "setopenborvariant");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_drawstring, "drawstring");
     List_InsertAfter(&theFunctionList,
@@ -2444,8 +2450,8 @@ systemvariant_error:
 
 
 //used for changing a system variant
-//changeopenborvariant(varname, value);
-HRESULT openbor_changesystemvariant(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+//setopenborvariant(varname, value);
+HRESULT openbor_setsystemvariant(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     //used for getting the enum constant corresponding to the desired variable
     int variantindex = 0;
