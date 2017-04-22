@@ -1463,8 +1463,8 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         var->dblVal = scrollmaxz;
         break;
     case _sv_blockade:
-        ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = blockade;
+        ScriptVariant_ChangeType(var, VT_DECIMAL);
+        var->dblVal = blockade;
         break;
     case _sv_waiting:
         ScriptVariant_ChangeType(var, VT_INTEGER);
