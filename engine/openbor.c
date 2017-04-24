@@ -31204,7 +31204,14 @@ void draw_scrolled_bg()
         }
         else
         {
-            screenmethod.table = (pixelformat == PIXEL_x8) ? (current_palette > 0 ? (level->palettes[current_palette - 1]) : NULL) : NULL;
+            if(current_palette > 0)
+            {
+                screenmethod.table = level->palettes[current_palette - 1];
+            }
+            else
+            {
+                screenmethod.table = NULL;
+            }
         }
         screenmethod.water.wavetime =  (int)(timevar * screenmethod.water.wavespeed);
         screenmethod.xrepeat = screenmethod.yrepeat = 0;
