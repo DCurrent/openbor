@@ -599,6 +599,31 @@ typedef enum
 
 typedef enum
 {
+    LEVEL_PROP_AUTO_SCROLL_X,
+    LEVEL_PROP_AUTO_SCROLL_Y,
+    LEVEL_PROP_BASEMAP_COUNT,
+    LEVEL_PROP_BASEMAP_HANDLE,
+    LEVEL_PROP_CAMERA_OFFSET_X,
+    LEVEL_PROP_CAMERA_OFFSET_Z,
+    LEVEL_PROP_GRAVITY,
+    LEVEL_PROP_HOLE_COUNT,
+    LEVEL_PROP_HOLE_HANDLE,
+    LEVEL_PROP_LAYER_COUNT,
+    LEVEL_PROP_LAYER_HANDLE,
+    LEVEL_PROP_MAX_FALL_VELOCITY,
+    LEVEL_PROP_MAX_TOSS_VELOCITY,
+    LEVEL_PROP_QUAKE,
+    LEVEL_PROP_PALETTE_COUNT,
+    LEVEL_PROP_PALETTE_HANDLE,
+    LEVEL_PROP_ROCKING,
+    LEVEL_PROP_SCROLL_VELOCITY,
+    LEVEL_PROP_TYPE,
+    LEVEL_PROP_WALL_COUNT,
+    LEVEL_PROP_WALL_HANDLE
+} e_level_properties;
+
+typedef enum
+{
     /*
     Argument type enum.
     Damon V. Caskey
@@ -2271,19 +2296,19 @@ typedef struct
 
 typedef struct
 {
-    e_bgloldtype oldtype;
-    int order;	//for panel order
-    gfx_entry gfx;
-    s_axis_i_2d size;
-    s_axis_f ratio; //Only x and z.
-    s_axis_i offset; //Only x and z.
-    s_axis_i spacing; //Only x and z.
-    s_drawmethod drawmethod;
-    float bgspeedratio;
-    int enabled;
-    int z;
-    int quake;
-    int neon;
+    e_bgloldtype    oldtype;
+    int             order;	        // for panel order
+    gfx_entry       gfx;
+    s_axis_i_2d     size;
+    s_axis_f        ratio;          // Only x and z.
+    s_axis_i        offset;         // Only x and z.
+    s_axis_i        spacing;        // Only x and z.
+    s_drawmethod    drawmethod;
+    float           bgspeedratio;
+    int             enabled;
+    int             z;
+    int             quake;
+    int             neon;
 } s_layer;
 
 typedef struct
