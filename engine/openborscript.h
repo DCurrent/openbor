@@ -413,6 +413,7 @@ enum systemvariant_enum
     _sv_scrollminx,
     _sv_scrollminz,
     _sv_self,
+    _sv_sets_count,
     _sv_shadowalpha,
     _sv_shadowcolor,
     _sv_shadowopacity,

@@ -2396,6 +2396,7 @@ static const char *svlist[] =
     "scrollminx",
     "scrollminz",
     "self",
+    "sets_count",
     "shadowalpha",
     "shadowcolor",
     "shadowopacity",

@@ -1046,6 +1046,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = loadgameMenu;
         break;
+    case _sv_sets_count:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = num_difficulties;
+        break;
     case _sv_in_showcomplete:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = showComplete;
