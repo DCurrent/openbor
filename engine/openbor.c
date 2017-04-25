@@ -9660,7 +9660,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_GLOBALMAP:
                 // use global palette under 24bit mode, so some entity/panel/bg can still use palette feature, that saves some memory
                 newchar->globalmap = GET_INT_ARG(1);
-
                 break;
             case CMD_MODEL_ALPHA:
                 newchar->alpha = GET_INT_ARG(1);
@@ -31182,10 +31181,7 @@ void draw_scrolled_bg()
         }
         if(layer->neon)
         {
-            if(pixelformat != PIXEL_x8 || current_palette <= 0)
-            {
-                screenmethod.table = neontable;
-            }
+            screenmethod.table = neontable;
         }
         else
         {
