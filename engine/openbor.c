@@ -9659,14 +9659,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_GLOBALMAP:
                 // use global palette under 24bit mode, so some entity/panel/bg can still use palette feature, that saves some memory
-                if(pixelformat != PIXEL_x8)
-                {
-                    printf("Warning: command '%s' is not available under 8bit mode\n", command);
-                }
-                else
-                {
-                    newchar->globalmap = GET_INT_ARG(1);
-                }
+                newchar->globalmap = GET_INT_ARG(1);
+
                 break;
             case CMD_MODEL_ALPHA:
                 newchar->alpha = GET_INT_ARG(1);
