@@ -186,6 +186,11 @@ HRESULT openbor_settextobj(ScriptVariant **varlist , ScriptVariant **pretvar, in
 HRESULT openbor_cleartextobj(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getlayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changelayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+
+// 2017-04-25, DC
+HRESULT openbor_get_level_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_set_level_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+
 HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_checkhole(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
@@ -306,6 +311,7 @@ int mapstrings_layerproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_gfxproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount);
+
 int mapstrings_attackproperty(ScriptVariant **varlist, int paramCount);
 
 enum systemvariant_enum

@@ -933,9 +933,13 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "changelayerproperty";
     }
-    else if (functionRef == ((void *)openbor_getlevelproperty))
+    else if (functionRef == ((void *)openbor_get_level_property))
     {
-        return "getlevelproperty";
+        return "get_level_property";
+    }
+    else if (functionRef == ((void *)openbor_set_level_property))
+    {
+        return "set_level_property";
     }
     else if (functionRef == ((void *)openbor_changelevelproperty))
     {
@@ -1677,6 +1681,13 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_getlayerproperty, "getlayerproperty");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_changelayerproperty, "changelayerproperty");
+
+    // 2017-04-25, DC
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_level_property, "get_level_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_level_property, "set_level_property");
+
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getlevelproperty, "getlevelproperty");
     List_InsertAfter(&theFunctionList,
@@ -15876,6 +15887,293 @@ clperror:
     return E_FAIL;
 }
 
+// Level specific properties.
+// Caskey, Damon V.
+// 2017-04-25
+//
+// Access level property by handle.
+//
+// get_level_property(void handle, int frame, int property)
+HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME       "get_level_property(void handle, int property)"
+    #define ARG_MINIMUM     2   // Minimum required arguments.
+    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY    1   // Property to access.
+
+
+    int                     result      = S_OK; // Success or error?
+    s_level                 *handle     = NULL; // Property handle.
+    e_level_properties      property    = 0;    // Property argument.
+
+    // Clear pass by reference argument used to send
+    // property data back to calling script.     .
+    ScriptVariant_Clear(*pretvar);
+
+    // Verify incoming arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        handle      = (s_level *)varlist[ARG_HANDLE]->ptrVal;
+        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+    }
+
+    // Which property to get?
+    switch(property)
+    {
+        case LEVEL_PROP_AUTO_SCROLL_X:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->bgspeed;
+            break;
+
+        case LEVEL_PROP_AUTO_SCROLL_Y:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->vbgspeed;
+            break;
+
+        case LEVEL_PROP_BASEMAP_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numbasemaps;
+            break;
+
+        case LEVEL_PROP_BASEMAP_HANDLE:
+
+            // Verify the handle is populated.
+            if(handle->basemaps)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->basemaps;
+            }
+
+            break;
+
+        case LEVEL_PROP_CAMERA_OFFSET_X:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->cameraxoffset;
+            break;
+
+        case LEVEL_PROP_CAMERA_OFFSET_Z:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->camerazoffset;
+            break;
+
+        case LEVEL_PROP_GRAVITY:
+
+           ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->gravity;
+            break;
+
+        case LEVEL_PROP_HOLE_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numholes;
+            break;
+
+        case LEVEL_PROP_HOLE_HANDLE:
+
+            // Verify the handle is populated.
+            if(handle->holes)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->holes;
+            }
+
+            break;
+
+        case LEVEL_PROP_LAYER_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numlayers;
+            break;
+
+        case LEVEL_PROP_LAYER_HANDLE:
+
+            // Verify animation has item.
+            if(handle->layers)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->layers;
+            }
+
+            break;
+
+        case LEVEL_PROP_MAX_FALL_VELOCITY:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->maxfallspeed;
+            break;
+
+        case LEVEL_PROP_MAX_TOSS_VELOCITY:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->maxtossspeed;
+            break;
+
+        case LEVEL_PROP_PALETTE_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numpalettes;
+            break;
+
+        case LEVEL_PROP_PALETTE_HANDLE:
+
+            // Verify animation has item.
+            if(handle->palettes)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->palettes;
+            }
+
+            break;
+
+        case LEVEL_PROP_QUAKE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->quake;
+            break;
+
+        case LEVEL_PROP_ROCKING:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->rocking;
+            break;
+
+        case LEVEL_PROP_SCROLL_VELOCITY:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->lVal = (DOUBLE)handle->scrollspeed;
+            break;
+
+        case LEVEL_PROP_TYPE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->type;
+            break;
+
+        case LEVEL_PROP_WALL_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numwalls;
+            break;
+
+        case LEVEL_PROP_WALL_HANDLE:
+
+            // Verify animation has item.
+            if(handle->walls)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->walls;
+            }
+
+            break;
+
+        default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+            break;
+    }
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid handle and property: " SELF_NAME "\n");
+
+    result = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_PROPERTY
+}
+
+// Level specific properties.
+// Caskey, Damon V.
+// 2017-04-25
+//
+// Access level property by handle (pointer).
+//
+// set_level_property(void handle, int property, value)
+HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME           "set_level_property(void handle, int property, value)"
+    #define ARG_MINIMUM         3   // Minimum required arguments.
+    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY        1   // Property to access.
+    #define ARG_VALUE           2   // New value to apply.
+
+    int                     result      = S_OK; // Success or error?
+    s_level                 *handle     = NULL; // Property handle.
+    e_level_properties      property    = 0;    // Property to access.
+
+    // Value carriers to apply on properties after
+    // taken from argument.
+    //int     temp_int;
+    //DOUBLE  temp_float;
+
+    // Verify incoming arguments. There must be a
+    // pointer for the animation handle, an integer
+    // property, and a new value to apply.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        handle      = (s_level *)varlist[ARG_HANDLE]->ptrVal;
+        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+    }
+
+    // Which property to modify?
+    switch(property)
+    {
+
+        // 2017-04-25
+        // IN PROGRESS
+
+        default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+
+            break;
+    }
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid handle and property: " SELF_NAME "\n");
+
+    result = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_PROPERTY
+    #undef ARG_VALUE
+}
 
 //shutdown(status, message)
 HRESULT openbor_shutdown(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
