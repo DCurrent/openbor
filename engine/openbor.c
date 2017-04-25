@@ -4186,33 +4186,33 @@ void init_colourtable()
 
 void load_background(char *filename, int createtables)
 {
-    //if(pixelformat!=PIXEL_8) createtables = 0;
+    // Clean up any previous background.
     unload_background();
 
-    if(pixelformat == PIXEL_8)
+    // Attempt to load 8bit color depth background. If it fails,
+    // then attempt to load 24bit color depth background. If THAT
+    // fails, something is wrong and we better shut down to avoid
+    // a crash.
+    if(!loadscreen(filename, packfile, NULL, PIXEL_x8, &background))
     {
-        if(!loadscreen(filename, packfile, pal, PIXEL_8, &background))
+        if (loadscreen32(filename, packfile, &background))
         {
-            shutdown(1, "Error loading background (PIXEL_8) file '%s'", filename);
+            printf("Loaded 32-bit background '%s'\n", filename);
+        }
+        else
+        {
+            shutdown(1, "Error loading background (PIXEL_x8/PIXEL_32) file '%s'", filename);
         }
     }
-    else if(pixelformat == PIXEL_x8)
+
+    // If background is 8bit color depth, use its color
+    // table to populate the global and global neon palettes.
+    if (background->pixelformat == PIXEL_x8)
     {
-        if(!loadscreen(filename, packfile, NULL, PIXEL_x8, &background))
-        {
-            if (loadscreen32(filename, packfile, &background)) printf("Loaded 32-bit background '%s'\n", filename);
-            else shutdown(1, "Error loading background (PIXEL_x8/PIXEL_32) file '%s'", filename);
-        }
-        if (background->pixelformat == PIXEL_x8)
-        {
-            memcpy(pal, background->palette, PAL_BYTES);
-            memcpy(neontable, pal, PAL_BYTES);
-        }
+        memcpy(pal, background->palette, PAL_BYTES);
+        memcpy(neontable, pal, PAL_BYTES);
     }
-    else
-    {
-        shutdown(1, "Error loading background, Unknown Pixel Format!\n");
-    }
+
 
     if(createtables)
     {
