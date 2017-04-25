@@ -30993,7 +30993,6 @@ void update_scroller()
 
 void update_scrolled_bg()
 {
-    int i = 0;
     float rocktravel;
     unsigned char neonp[32];//3*8
     static int neon_count = 0;
@@ -31021,21 +31020,13 @@ void update_scrolled_bg()
     };   // fast, constant rumbling, like in/on a van or trailer
     int pb = pixelbytes[(int)PIXEL_32];
 
-    if(time >= neon_time && !freezeall)   // Added freezeall so neon lights don't update if animations are frozen
+    // Time to update neon and screen all flag false?
+    if(time >= neon_time && !freezeall)
     {
-        if(pixelformat == PIXEL_8) // under 8bit mode just cycle the palette from 128 to 135
-        {
-            for(i = 0; i < 8; i++)
-            {
-                neontable[128 + i] = 128 + ((i + neon_count) & 7);
-            }
-        }
-        else if(pixelformat == PIXEL_x8) // copy palette under 16/32bit mode
-        {
-            memcpy(neonp, neontable + 128 * pb, 8 * pb);
-            memcpy(neontable + 128 * pb, neonp + 2 * pb, 6 * pb);
-            memcpy(neontable + (128 + 6)*pb, neonp, 2 * pb);
-        }
+        memcpy(neonp, neontable + 128 * pb, 8 * pb);
+        memcpy(neontable + 128 * pb, neonp + 2 * pb, 6 * pb);
+        memcpy(neontable + (128 + 6)*pb, neonp, 2 * pb);
+
         neon_time = time + (GAME_SPEED / 3);
         neon_count += 2;
     }
