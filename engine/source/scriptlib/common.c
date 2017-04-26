@@ -27,8 +27,8 @@
 
 */
 
-#ifndef OPENBOR_SCRIPT_INITIALIZE
-#define OPENBOR_SCRIPT_INITIALIZE 1
+#ifndef SCRIPT_COMMON
+#define SCRIPT_COMMON 1
 
 #include "config.h"
 #include "../../openbor.h"
@@ -1899,4 +1899,4 @@ void Script_LoadSystemFunctions()
 
 }
 
-#endif // OPENBOR_SCRIPT_INITIALIZE
+#endif // SCRIPT_COMMON
