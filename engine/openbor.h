@@ -37,7 +37,7 @@
 #include	"packfile.h"
 #include	"palette.h"
 #include	"anigif.h"
-#include    "openborscript.h"
+#include    "config.h"
 #include    "globals.h"
 #include    "ram.h"
 #include    "version.h"

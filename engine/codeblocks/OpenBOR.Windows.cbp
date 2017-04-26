@@ -364,7 +364,17 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/scriptlib/SymbolTable.h" />
+		<Unit filename="../source/scriptlib/common.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/scriptlib/config.h" />
 		<Unit filename="../source/scriptlib/depends.h" />
+		<Unit filename="../source/scriptlib/level.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/scriptlib/main.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../source/stringptr.c">
 			<Option compilerVar="CC" />
 		</Unit>
