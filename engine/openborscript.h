@@ -192,6 +192,7 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist , ScriptVariant **pre
 HRESULT openbor_set_level_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_get_set_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_set_set_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_set_handle(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
 HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

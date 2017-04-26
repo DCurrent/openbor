@@ -69,7 +69,7 @@ extern int			  SAMPLE_BIKE;
 extern int            current_palette;
 extern s_player       player[4];
 extern s_level        *level;
-extern s_filestream  *filestreams;
+extern s_filestream   *filestreams;
 extern int			  numfilestreams;
 extern entity         *self;
 extern int            *animspecials;
@@ -88,6 +88,7 @@ extern int            *animdowns;
 extern int            *animbackpains;
 extern int            *animbackfalls;
 extern int            *animbackdies;
+
 
 extern int            noshare;
 extern int            credits;
@@ -949,6 +950,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set_set_property";
     }
+    else if (functionRef == ((void *)openbor_get_set_handle))
+    {
+        return "get_set_handle";
+    }
     else if (functionRef == ((void *)openbor_changelevelproperty))
     {
         return "changelevelproperty";
@@ -1699,7 +1704,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_get_set_property, "get_set_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set_set_property, "set_set_property");
-
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_set_handle, "get_set_handle");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getlevelproperty, "getlevelproperty");
     List_InsertAfter(&theFunctionList,
@@ -15907,6 +15913,57 @@ clperror:
     return E_FAIL;
 }
 
+
+HRESULT openbor_get_set_handle(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME       "get_set_handle(int index)"
+    #define ARG_MINIMUM     1   // Minimum required arguments.
+    #define ARG_INDEX       0   // Array index.
+
+    int         result;
+    LONG        index;
+    extern s_set_entry *levelsets;
+    extern int  num_difficulties;
+
+    if(paramCount != ARG_MINIMUM)
+    {
+        goto error_local;
+    }
+
+    if(FAILED(ScriptVariant_IntegerValue(varlist[ARG_INDEX], &index)))
+    {
+        goto error_local;
+    }
+
+    ScriptVariant_Clear(*pretvar);
+
+    if((int)index < num_difficulties && (int)index >= 0)
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_PTR);
+        //(*pretvar)->ptrVal = (s_set_entry *)levelsets[(int)index];
+        (*pretvar)->ptrVal = &levelsets[index];
+    }
+
+    result = S_OK;
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid index: " SELF_NAME "\n");
+
+    *pretvar    = NULL;
+    result      = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_PROPERTY
+}
+
+
 // Set specific properties.
 // Caskey, Damon V.
 // 2017-04-25
@@ -15951,7 +16008,7 @@ HRESULT openbor_get_set_property(ScriptVariant **varlist, ScriptVariant **pretva
     {
         case SET_PROP_LEVELS_COUNT:
 
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->numlevels;
             break;
 
