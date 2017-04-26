@@ -15913,17 +15913,23 @@ clperror:
     return E_FAIL;
 }
 
-
+// Set Handle
+// Caskey, Damon V.
+// 2017-04-26
+//
+// Get the handle (pointer) of a level set.
+//
+// get_set_handle(int index)
 HRESULT openbor_get_set_handle(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     #define SELF_NAME       "get_set_handle(int index)"
     #define ARG_MINIMUM     1   // Minimum required arguments.
     #define ARG_INDEX       0   // Array index.
 
-    int         result;
-    LONG        index;
+    int                 result;
+    LONG                index;
     extern s_set_entry *levelsets;
-    extern int  num_difficulties;
+    extern int          num_difficulties;
 
     if(paramCount != ARG_MINIMUM)
     {
@@ -15937,10 +15943,11 @@ HRESULT openbor_get_set_handle(ScriptVariant **varlist , ScriptVariant **pretvar
 
     ScriptVariant_Clear(*pretvar);
 
-    if((int)index < num_difficulties && (int)index >= 0)
+    // Verify the index is within bounds, and
+    // if so, dereference the array element pointer.
+    if(index < num_difficulties && index >= 0)
     {
         ScriptVariant_ChangeType(*pretvar, VT_PTR);
-        //(*pretvar)->ptrVal = (s_set_entry *)levelsets[(int)index];
         (*pretvar)->ptrVal = &levelsets[index];
     }
 
@@ -16108,7 +16115,7 @@ HRESULT openbor_set_set_property(ScriptVariant **varlist, ScriptVariant **pretva
     // Error trapping.
     error_local:
 
-    printf("You must provide a valid handle and property: " SELF_NAME "\n");
+    printf("You must provide a valid handle, property and value: " SELF_NAME "\n");
 
     result = E_FAIL;
     return result;
