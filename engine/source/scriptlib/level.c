@@ -4,8 +4,8 @@
 //
 // Access to level and level set properties.
 
-#ifndef OPENBOR_SCRIPT_LEVEL
-#define OPENBOR_SCRIPT_LEVEL 1
+#ifndef SCRIPT_LEVEL
+#define SCRIPT_LEVEL 1
 
 #include "common.c"
 
