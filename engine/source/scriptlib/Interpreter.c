@@ -6,7 +6,7 @@
  * Copyright (c) 2004 - 2013 OpenBOR Team
  */
 
-#include "openborscript.h"
+#include "config.h"
 #include "Interpreter.h"
 #include "ImportCache.h"
 #include <string.h>

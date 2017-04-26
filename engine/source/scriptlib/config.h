@@ -10,7 +10,7 @@
 #define OPENBORSCRIPT_H
 
 #include "Interpreter.h"
-#include "pp_parser.h"
+#include "../preprocessorlib/pp_parser.h"
 
 #define MAX_GLOBAL_VAR 2048
 #define MAX_KEY_LEN    24
