@@ -364,6 +364,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/scriptlib/SymbolTable.h" />
+		<Unit filename="../source/scriptlib/animation.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../source/scriptlib/common.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -376,6 +379,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/scriptlib/math.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/scriptlib/string.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/stringptr.c">

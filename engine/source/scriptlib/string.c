@@ -4,8 +4,8 @@
 //
 // String manipulation and concatenation.
 
-#ifndef SCRIPT_LEVEL
-#define SCRIPT_LEVEL 1
+#ifndef SCRIPT_STRING
+#define SCRIPT_STRING 1
 
 #include "common.c"
 
@@ -173,4 +173,4 @@ sr_error:
     return E_FAIL;
 }
 
-#endif  SCRIPT_STRING
+#endif  // SCRIPT_STRING
