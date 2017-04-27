@@ -495,7 +495,7 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
         case SET_PROP_LEVELS_HANDLE:
 
-            handle->levelorder = (s_level_entry *)varlist[ARG_VALUE]->ptrVal;
+            handle->bglayers = (s_level_entry *)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
