@@ -1,5 +1,5 @@
 // Script constants
-// 2017-04-26
+// 2017-04-27
 // Caskey, Damon V.
 //
 // Mapping constants for use in script.
@@ -104,6 +104,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(LEVEL_PROP_AUTO_SCROLL_Y)
         ICMPCONST(LEVEL_PROP_BASEMAPS_COUNT)
         ICMPCONST(LEVEL_PROP_BASEMAPS_HANDLE)
+        ICMPCONST(LEVEL_PROP_BGLAYERS_HANDLE)
         ICMPCONST(LEVEL_PROP_CAMERA_OFFSET_X)
         ICMPCONST(LEVEL_PROP_CAMERA_OFFSET_Z)
         ICMPCONST(LEVEL_PROP_GRAVITY)

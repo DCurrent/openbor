@@ -293,6 +293,17 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
             break;
 
+        case LEVEL_PROP_BGLAYERS_HANDLE:
+
+            // Verify the handle is populated.
+            if(handle->basemaps)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->bglayers;
+            }
+
+            break;
+
         case LEVEL_PROP_CAMERA_OFFSET_X:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -482,8 +493,11 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
     switch(property)
     {
 
-        // 2017-04-25
-        // IN PROGRESS
+        case SET_PROP_LEVELS_HANDLE:
+
+            handle->levelorder = (s_level_entry *)varlist[ARG_VALUE]->ptrVal;
+
+            break;
 
         default:
 
