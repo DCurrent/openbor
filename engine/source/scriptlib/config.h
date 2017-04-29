@@ -106,6 +106,7 @@ HRESULT system_clearglobalvar(ScriptVariant **varlist , ScriptVariant **pretvar,
 HRESULT system_clearindexedvar(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT system_free(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT system_typeof(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+
 HRESULT math_sin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT math_ssin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT math_cos(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
@@ -117,6 +118,7 @@ HRESULT math_acos(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCo
 HRESULT math_atan(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT math_trunc(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT math_round(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+
 HRESULT openbor_systemvariant(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_setsystemvariant(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_drawstring(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
@@ -193,6 +195,9 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist , ScriptVariant **pre
 HRESULT openbor_get_set_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_set_set_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_get_set_handle(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+
+// 2017-04-27, DC - bglayer,fglayer, etc.
+HRESULT openbor_get_layer_handle(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
 HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

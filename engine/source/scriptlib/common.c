@@ -957,6 +957,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "get_set_handle";
     }
+    else if (functionRef == ((void *)openbor_get_layer_handle))
+    {
+        return "get_layer_handle";
+    }
     else if (functionRef == ((void *)openbor_changelevelproperty))
     {
         return "changelevelproperty";
@@ -1709,6 +1713,11 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_set_set_property, "set_set_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_get_set_handle, "get_set_handle");
+
+    // 2017-04-27, DC, Layers
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_layer_handle, "get_layer_handle");
+
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getlevelproperty, "getlevelproperty");
     List_InsertAfter(&theFunctionList,

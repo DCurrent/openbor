@@ -65,6 +65,69 @@ HRESULT openbor_get_set_handle(ScriptVariant **varlist , ScriptVariant **pretvar
     #undef ARG_INDEX
 }
 
+// Level Handle
+// Caskey, Damon V.
+// 2017-04-26
+//
+// Get the handle (pointer) from a collection of levels.
+//
+/* get_level_handle(void collection_handle, int index)
+HRESULT openbor_get_level_handle(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME       "openbor_get_level_handle(void levels_handle, int index)"
+    #define ARG_MINIMUM     2   // Minimum required arguments.
+    #define ARG_LEVEL       0   // Level handle.
+    #define ARG_INDEX       1   // Array index.
+
+    int             result;
+    LONG            index;
+    s_level_entry   *collection;
+    extern int      num_;
+
+    // Verify arguments and populate local
+    // variables as needed.
+    if(paramCount != ARG_MINIMUM)
+    {
+        goto error_local;
+    }
+
+    if(varlist[ARG_LEVEL]->vt != VT_PTR && varlist[ARG_LEVEL]->vt != VT_EMPTY)
+    {
+        goto error_local;
+    }
+
+    if(FAILED(ScriptVariant_IntegerValue(varlist[ARG_INDEX], &index)))
+    {
+        goto error_local;
+    }
+
+    // Clear pass by var value.
+    ScriptVariant_Clear(*pretvar);
+
+    // Get collection pointer.
+    collection = varlist[ARG_LEVEL]->ptrVal;
+
+    ScriptVariant_ChangeType(*pretvar, VT_PTR);
+    (*pretvar)->ptrVal = &level->collection[index];
+
+    result = S_OK;
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid index: " SELF_NAME "\n");
+
+    *pretvar    = NULL;
+    result      = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_LEVEL
+    #undef ARG_INDEX
+}*/
 
 // Set specific properties.
 // Caskey, Damon V.
@@ -108,6 +171,40 @@ HRESULT openbor_get_set_property(ScriptVariant **varlist, ScriptVariant **pretva
     // Which property to get?
     switch(property)
     {
+        case SET_PROP_CREDITS:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->credits;
+            break;
+
+        case SET_PROP_GAME_OVER_SKIP:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->noshowgameover;
+            break;
+
+        case SET_PROP_HOF_DISABLE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->noshowhof;
+            break;
+
+        case SET_PROP_COMPLETE_FLAG:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->ifcomplete;
+            break;
+
+        case SET_PROP_COMPLETE_SKIP:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->noshowcomplete;
+
+        case SET_PROP_CONTINUE_SCORE_TYPE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->continuescore;
+
         case SET_PROP_LEVELS_COUNT:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -123,6 +220,60 @@ HRESULT openbor_get_set_property(ScriptVariant **varlist, ScriptVariant **pretva
                 (*pretvar)->ptrVal = (VOID *)handle->levelorder;
             }
 
+            break;
+
+        case SET_PROP_LIVES:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->lives;
+            break;
+
+        case SET_PROP_MP_RECOVER_TYPE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->typemp;
+            break;
+
+        case SET_PROP_MUSIC_FADE_TIME:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->custfade;
+            break;
+
+        case SET_PROP_MUSIC_OVERLAP:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->musicoverlap;
+            break;
+
+        case SET_PROP_NAME:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            StrCache_Copy((*pretvar)->strVal, handle->name);
+            break;
+
+        case SET_PROP_PLAYER_MAX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->maxplayers;
+            break;
+
+        case SET_PROP_SAVE_TYPE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->saveflag;
+            break;
+
+        case SET_PROP_SELECT_DISABLE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->noselect;
+            break;
+
+        case SET_PROP_SELECT_NO_SAME:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->nosame;
             break;
 
         default:
@@ -222,6 +373,8 @@ HRESULT openbor_set_set_property(ScriptVariant **varlist, ScriptVariant **pretva
     #undef ARG_VALUE
 }
 
+
+
 // Level specific properties.
 // Caskey, Damon V.
 // 2017-04-25
@@ -290,6 +443,14 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
                 (*pretvar)->ptrVal = (VOID *)handle->basemaps;
             }
+
+            break;
+
+        case LEVEL_PROP_BGLAYERS_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numbglayers;
+            break;
 
             break;
 

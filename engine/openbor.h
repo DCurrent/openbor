@@ -603,6 +603,7 @@ typedef enum
     LEVEL_PROP_AUTO_SCROLL_Y,
     LEVEL_PROP_BASEMAPS_COUNT,
     LEVEL_PROP_BASEMAPS_HANDLE,
+    LEVEL_PROP_BGLAYERS_COUNT,
     LEVEL_PROP_BGLAYERS_HANDLE,
     LEVEL_PROP_CAMERA_OFFSET_X,
     LEVEL_PROP_CAMERA_OFFSET_Z,
@@ -625,8 +626,23 @@ typedef enum
 
 typedef enum
 {
-    SET_PROP_LEVELS_COUNT,
-    SET_PROP_LEVELS_HANDLE
+    SET_PROP_CREDITS,               // int credits;
+    SET_PROP_GAME_OVER_SKIP,        // int noshowgameover;
+    SET_PROP_HOF_DISABLE,           // int noshowhof;
+    SET_PROP_COMPLETE_FLAG,         // int ifcomplete;
+    SET_PROP_COMPLETE_SKIP,         // int noshowcomplete;
+    SET_PROP_CONTINUE_SCORE_TYPE,   // int continuescore;
+    SET_PROP_LEVELS_COUNT,          // int numlevels;
+    SET_PROP_LEVELS_HANDLE,         // s_level_entry *levelorder;
+    SET_PROP_LIVES,                 // int lives;
+    SET_PROP_MP_RECOVER_TYPE,       // int typemp;
+    SET_PROP_MUSIC_FADE_TIME,       // int custfade;
+    SET_PROP_MUSIC_OVERLAP,         // int musicoverlap;
+    SET_PROP_NAME,                  // char *name;
+    SET_PROP_PLAYER_MAX,            // int maxplayers;
+    SET_PROP_SAVE_TYPE,             // int saveflag;
+    SET_PROP_SELECT_DISABLE,        // int noselect;
+    SET_PROP_SELECT_NO_SAME         // int nosame;
 } e_set_properties;
 
 typedef enum

@@ -367,11 +367,23 @@
 		<Unit filename="../source/scriptlib/animation.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../source/scriptlib/collision_attack.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/scriptlib/collision_body.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../source/scriptlib/common.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/scriptlib/config.h" />
+		<Unit filename="../source/scriptlib/constant.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../source/scriptlib/depends.h" />
+		<Unit filename="../source/scriptlib/layer.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../source/scriptlib/level.c">
 			<Option compilerVar="CC" />
 		</Unit>

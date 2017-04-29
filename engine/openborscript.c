@@ -8,6 +8,7 @@
 #include "source/scriptlib/collision_attack.c"
 #include "source/scriptlib/collision_body.c"
 #include "source/scriptlib/level.c"
+#include "source/scriptlib/layer.c"
 #include "source/scriptlib/math.c"
 #include "source/scriptlib/string.c"
 
