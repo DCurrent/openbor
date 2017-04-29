@@ -10,6 +10,7 @@
 
 #include "common.c"
 
+
 HRESULT math_sin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     LONG ltemp;
