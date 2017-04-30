@@ -599,29 +599,75 @@ typedef enum
 
 typedef enum
 {
-    LEVEL_PROP_AUTO_SCROLL_X,
-    LEVEL_PROP_AUTO_SCROLL_Y,
-    LEVEL_PROP_BASEMAPS_COUNT,
-    LEVEL_PROP_BASEMAPS_HANDLE,
-    LEVEL_PROP_BGLAYERS_COUNT,
-    LEVEL_PROP_BGLAYERS_HANDLE,
-    LEVEL_PROP_CAMERA_OFFSET_X,
-    LEVEL_PROP_CAMERA_OFFSET_Z,
-    LEVEL_PROP_GRAVITY,
-    LEVEL_PROP_HOLES_COUNT,
-    LEVEL_PROP_HOLES_HANDLE,
-    LEVEL_PROP_LAYERS_COUNT,
-    LEVEL_PROP_LAYERS_HANDLE,
-    LEVEL_PROP_MAX_FALL_VELOCITY,
-    LEVEL_PROP_MAX_TOSS_VELOCITY,
-    LEVEL_PROP_QUAKE,
-    LEVEL_PROP_PALETTES_COUNT,
-    LEVEL_PROP_PALETTES_HANDLE,
-    LEVEL_PROP_ROCKING,
-    LEVEL_PROP_SCROLL_VELOCITY,
-    LEVEL_PROP_TYPE,
-    LEVEL_PROP_WALLS_COUNT,
-    LEVEL_PROP_WALLS_HANDLE
+    LEVEL_PROP_AUTO_SCROLL_DIRECTION,           // int bgdir;
+    LEVEL_PROP_AUTO_SCROLL_X,                   // float bgspeed;
+    LEVEL_PROP_AUTO_SCROLL_Y,                   // float vbgspeed;
+    LEVEL_PROP_BASEMAP_COLLECTION,              // s_basemap *basemaps;
+    LEVEL_PROP_BASEMAP_COUNT,                   // int numbasemaps;
+    LEVEL_PROP_BGLAYER_COLLECTION,              // s_layer **bglayers;
+    LEVEL_PROP_BGLAYER_COUNT,                   // int numbglayers;
+    LEVEL_PROP_BOSS_COUNT,                      // int bosses;
+    LEVEL_PROP_BOSS_MUSIC_NAME,                 // char bossmusic[256];
+    LEVEL_PROP_BOSS_MUSIC_OFFSET,               // unsigned bossmusic_offset;
+    LEVEL_PROP_BOSS_SLOW,                       // int noslow;
+    LEVEL_PROP_CAMERA_OFFSET_X,                 // int cameraxoffset;
+    LEVEL_PROP_CAMERA_OFFSET_Z,                 // int camerazoffset;
+    LEVEL_PROP_COMPLETE_FORCE,                  // int forcefinishlevel;
+    LEVEL_PROP_DAMAGE_FROM_ENEMY,               // int nohurt;
+    LEVEL_PROP_DAMAGE_FROM_PLAYER,              // int nohit;
+    LEVEL_PROP_FACING,                          // e_facing_adjust facing;
+    LEVEL_PROP_GRAVITY,                         // float gravity;
+    LEVEL_PROP_HOLE_COLLECTION,                 // s_terrain *holes;
+    LEVEL_PROP_HOLE_COUNT,                      // int numholes;
+    LEVEL_PROP_LAYER_BACKGROUND_DEFAULT_HANDLE, // s_layer *background;
+    LEVEL_PROP_LAYER_COLLECTION,                // s_layer *layers;
+    LEVEL_PROP_LAYER_COUNT,                     // int numlayers;
+    LEVEL_PROP_LAYER_FOREGROUND_COLLECTION,     // s_layer **fglayers;
+    LEVEL_PROP_LAYER_FOREGROUND_COUNT,          // int numfglayers;
+    LEVEL_PROP_LAYER_FRONTPANEL_COLLECTION,     // s_layer **frontpanels;
+    LEVEL_PROP_LAYER_FRONTPANEL_COUNT,          // int numfrontpanels;
+    LEVEL_PROP_LAYER_GENERIC_COLLECTION,        // s_layer **genericlayers;
+    LEVEL_PROP_LAYER_GENERIC_COUNT,             // int numgenericlayers;
+    LEVEL_PROP_LAYER_PANEL_COLLECTION,          // s_layer *(*panels)[3]; //normal neon screen
+    LEVEL_PROP_LAYER_PANEL_COUNT,               // int numpanels;
+    LEVEL_PROP_LAYER_REF_COLLECTION,            // s_layer *layersref;
+    LEVEL_PROP_LAYER_REF_COUNT,                 // int numlayersref;
+    LEVEL_PROP_LAYER_WATER_COLLECTION,          // s_layer **waters;
+    LEVEL_PROP_LAYER_WATER_COUNT,               // int numwaters;
+    LEVEL_PROP_MAX_FALL_VELOCITY,               // float maxfallspeed;
+    LEVEL_PROP_MAX_TOSS_VELOCITY,               // float maxtossspeed;
+    LEVEL_PROP_MIRROR,                          // int mirror;
+    LEVEL_PROP_NAME,                            // char *name;
+    LEVEL_PROP_QUAKE,                           // int quake;
+    LEVEL_PROP_QUAKE_TIME,                      // u32 quaketime;
+    LEVEL_PROP_PALETTE_BLENDING_COLLECTION,     // unsigned char *(*blendings)[MAX_BLENDINGS];
+    LEVEL_PROP_PALETTE_COLLECTION,              // unsigned char (*palettes)[1024];
+    LEVEL_PROP_PALETTE_COUNT,                   // int numpalettes;
+    LEVEL_PROP_POSITION_X,                      // int pos;
+    LEVEL_PROP_ROCKING,                         // int rocking;
+    LEVEL_PROP_SCRIPT_LEVEL_END,                // Script endlevel_script;
+    LEVEL_PROP_SCRIPT_LEVEL_START,              // Script level_script;
+    LEVEL_PROP_SCRIPT_KEY,                      // Script key_script;
+    LEVEL_PROP_SCRIPT_UPDATE,                   // Script update_script;
+    LEVEL_PROP_SCRIPT_UPDATED,                  // Script updated_script;
+    LEVEL_PROP_SCROLL_DIRECTION,                // int scrolldir;
+    LEVEL_PROP_SCROLL_VELOCITY,                 // float scrollspeed;
+    LEVEL_PROP_SIZE_X,                          // int width;
+    LEVEL_PROP_SPAWN_COLLECTION,                // s_spawn_entry *spawnpoints;
+    LEVEL_PROP_SPAWN_COUNT,                     // int numspawns;
+    LEVEL_PROP_SPAWN_PLAYER_COLLECTION,         // s_axis_f spawn[MAX_PLAYERS];
+    LEVEL_PROP_SPECIAL_DISABLE,                 // int nospecial;
+    LEVEL_PROP_TEXT_OBJECT_COLLECTION,          // s_textobj *textobjs;
+    LEVEL_PROP_TEXT_OBJECT_COUNT,               // int numtextobjs;
+    LEVEL_PROP_TIME_ADVANCE,                    // u32 advancetime;
+    LEVEL_PROP_TIME_SET,                        // int settime;
+    LEVEL_PROP_TIME_DISPLAY,                    // int notime;
+    LEVEL_PROP_TIME_RESET,                      // int noreset;
+    LEVEL_PROP_TYPE,                            // int type;
+    LEVEL_PROP_WALL_COLLECTION,                 // s_terrain *walls;
+    LEVEL_PROP_WALL_COUNT,                      // int numwalls;
+    LEVEL_PROP_WEAPON,                          // int setweap;
+    LEVEL_PROP_WAITING                          // int waiting;
 } e_level_properties;
 
 typedef enum
