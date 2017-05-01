@@ -785,7 +785,7 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
             if(&handle->spawn)
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = &handle->spawn;
+                (*pretvar)->ptrVal = (VOID *)handle->spawn;
             }
 
         case LEVEL_PROP_SPECIAL_DISABLE:
@@ -1493,12 +1493,12 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
         case LEVEL_PROP_SPAWN_PLAYER_COLLECTION:
 
-            //if(invalid_pointer_input)
-            //{
-            //    goto error_local;
-            //}
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
 
-            //handle->spawn = (s_axis_f *)arg_value->ptrVal;
+            handle->spawn = (s_axis_f *)arg_value->ptrVal;
             break;
 
         case LEVEL_PROP_SPECIAL_DISABLE:
