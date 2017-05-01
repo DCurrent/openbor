@@ -107,6 +107,22 @@ HRESULT openbor_get_set_property(ScriptVariant **varlist, ScriptVariant **pretva
     // Which property to get?
     switch(property)
     {
+        case SET_PROP_COMPLETE_FLAG:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->ifcomplete;
+            break;
+
+        case SET_PROP_COMPLETE_SKIP:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->noshowcomplete;
+
+        case SET_PROP_CONTINUE_SCORE_TYPE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->continuescore;
+
         case SET_PROP_CREDITS:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -125,29 +141,7 @@ HRESULT openbor_get_set_property(ScriptVariant **varlist, ScriptVariant **pretva
             (*pretvar)->lVal = (LONG)handle->noshowhof;
             break;
 
-        case SET_PROP_COMPLETE_FLAG:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->ifcomplete;
-            break;
-
-        case SET_PROP_COMPLETE_SKIP:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->noshowcomplete;
-
-        case SET_PROP_CONTINUE_SCORE_TYPE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->continuescore;
-
-        case SET_PROP_LEVELS_COUNT:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->numlevels;
-            break;
-
-        case SET_PROP_LEVELS_HANDLE:
+        case SET_PROP_LEVELSET_COLLECTION:
 
             // Verify the handle is populated.
             if(handle->levelorder)
@@ -156,6 +150,12 @@ HRESULT openbor_get_set_property(ScriptVariant **varlist, ScriptVariant **pretva
                 (*pretvar)->ptrVal = (VOID *)handle->levelorder;
             }
 
+            break;
+
+        case SET_PROP_LEVELSET_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numlevels;
             break;
 
         case SET_PROP_LIVES:
@@ -278,7 +278,7 @@ HRESULT openbor_set_set_property(ScriptVariant **varlist, ScriptVariant **pretva
     // Which property to modify?
     switch(property)
     {
-        case SET_PROP_LEVELS_HANDLE:
+        case SET_PROP_LEVELSET_COLLECTION:
 
             handle->levelorder = (s_level_entry *)varlist[ARG_VALUE]->ptrVal;
 
@@ -933,7 +933,7 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
     switch(property)
     {
 
-        case SET_PROP_LEVELS_HANDLE:
+        case SET_PROP_LEVELSET_COLLECTION:
 
             handle->bglayers = (s_layer **)varlist[ARG_VALUE]->ptrVal;
 
