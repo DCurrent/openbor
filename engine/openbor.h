@@ -604,8 +604,6 @@ typedef enum
     LEVEL_PROP_AUTO_SCROLL_Y,                   // float vbgspeed;
     LEVEL_PROP_BASEMAP_COLLECTION,              // s_basemap *basemaps;
     LEVEL_PROP_BASEMAP_COUNT,                   // int numbasemaps;
-    LEVEL_PROP_BGLAYER_COLLECTION,              // s_layer **bglayers;
-    LEVEL_PROP_BGLAYER_COUNT,                   // int numbglayers;
     LEVEL_PROP_BOSS_COUNT,                      // int bosses;
     LEVEL_PROP_BOSS_MUSIC_NAME,                 // char bossmusic[256];
     LEVEL_PROP_BOSS_MUSIC_OFFSET,               // unsigned bossmusic_offset;
@@ -620,6 +618,8 @@ typedef enum
     LEVEL_PROP_HOLE_COLLECTION,                 // s_terrain *holes;
     LEVEL_PROP_HOLE_COUNT,                      // int numholes;
     LEVEL_PROP_LAYER_BACKGROUND_DEFAULT_HANDLE, // s_layer *background;
+    LEVEL_PROP_LAYER_BACKGROUND_COLLECTION,     // s_layer **bglayers;
+    LEVEL_PROP_LAYER_BACKGROUND_COUNT,          // int numbglayers;
     LEVEL_PROP_LAYER_COLLECTION,                // s_layer *layers;
     LEVEL_PROP_LAYER_COUNT,                     // int numlayers;
     LEVEL_PROP_LAYER_FOREGROUND_COLLECTION,     // s_layer **fglayers;

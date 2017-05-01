@@ -9,6 +9,8 @@
 
 #include "common.c"
 
+#define invalid_pointer_input arg_value->vt != VT_PTR && arg_value->vt != VT_EMPTY
+
 // Set Handle
 // Caskey, Damon V.
 // 2017-04-26
@@ -401,23 +403,6 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
             (*pretvar)->lVal = (LONG)handle->numbasemaps;
             break;
 
-        case LEVEL_PROP_BGLAYER_COLLECTION:
-
-            // Verify the handle is populated.
-            if(handle->basemaps)
-            {
-                ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->bglayers;
-            }
-
-            break;
-
-        case LEVEL_PROP_BGLAYER_COUNT:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->numbglayers;
-            break;
-
         case LEVEL_PROP_BOSS_COUNT:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -511,6 +496,23 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
                 (*pretvar)->ptrVal = (VOID *)handle->background;
             }
 
+            break;
+
+        case LEVEL_PROP_LAYER_BACKGROUND_COLLECTION:
+
+            // Verify the handle is populated.
+            if(handle->bglayers)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->bglayers;
+            }
+
+            break;
+
+        case LEVEL_PROP_LAYER_BACKGROUND_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numbglayers;
             break;
 
         case LEVEL_PROP_LAYER_COLLECTION:
@@ -840,7 +842,7 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
         case LEVEL_PROP_WAITING:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->numwalls;
+            (*pretvar)->lVal = (LONG)handle->waiting;
             break;
 
         case LEVEL_PROP_WALL_COLLECTION:
@@ -904,18 +906,20 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
-    int                     result      = S_OK; // Success or error?
-    s_level                 *handle     = NULL; // Property handle.
-    e_level_properties      property    = 0;    // Property to access.
+    int                     result;     // Success or error?
+    s_level                 *handle;    // Property handle.
+    e_level_properties      property;   // Property to access.
 
     // Value carriers to apply on properties after
-    // taken from argument.
-    //int     temp_int;
-    //DOUBLE  temp_float;
+    // taken from value argument.
+    int             temp_int;   // Integer type argument.
+    DOUBLE          temp_float; // Float type argument.
+    ScriptVariant   *arg_value; // Argument input carrier.
 
-    // Verify incoming arguments. There must be a
-    // pointer for the animation handle, an integer
-    // property, and a new value to apply.
+    // Verify incoming arguments. There should at least
+    // be a pointer for the property handle, an integer
+    // to determine which property is accessed and a
+    // new value to apply.
     if(paramCount < ARG_MINIMUM
        || varlist[ARG_HANDLE]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
@@ -927,25 +931,703 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
     {
         handle      = (s_level *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+        arg_value   = varlist[ARG_VALUE];
     }
 
     // Which property to modify?
     switch(property)
     {
+        case LEVEL_PROP_AUTO_SCROLL_DIRECTION:
 
-        case SET_PROP_LEVELSET_COLLECTION:
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->bgdir = temp_int;
+            break;
+
+        case LEVEL_PROP_AUTO_SCROLL_X:
+
+            if(FAILED(ScriptVariant_DecimalValue(arg_value, &temp_float)))
+            {
+                goto error_local;
+            }
+
+            handle->bgspeed = temp_float;
+            break;
+
+        case LEVEL_PROP_AUTO_SCROLL_Y:
+
+            if(FAILED(ScriptVariant_DecimalValue(arg_value, &temp_float)))
+            {
+                goto error_local;
+            }
+
+            handle->vbgspeed = temp_float;
+            break;
+
+        case LEVEL_PROP_BASEMAP_COLLECTION:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->basemaps = (s_basemap *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_BASEMAP_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numbasemaps = temp_int;
+            break;
+
+        case LEVEL_PROP_BOSS_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->bosses = temp_int;
+            break;
+
+        case LEVEL_PROP_BOSS_MUSIC_NAME:
+
+            if(arg_value->vt != VT_STR)
+            {
+                goto error_local;
+            }
+            strcpy(handle->bossmusic, (char *)StrCache_Get(arg_value->strVal));
+            break;
+
+        case LEVEL_PROP_BOSS_MUSIC_OFFSET:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->bossmusic_offset = temp_int;
+            break;
+
+        case LEVEL_PROP_BOSS_SLOW:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->noslow = temp_int;
+            break;
+
+        case LEVEL_PROP_CAMERA_OFFSET_X:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->cameraxoffset = temp_int;
+            break;
+
+        case LEVEL_PROP_CAMERA_OFFSET_Z:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->camerazoffset = temp_int;
+            break;
+
+        case LEVEL_PROP_COMPLETE_FORCE:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->forcefinishlevel = temp_int;
+            break;
+
+        case LEVEL_PROP_DAMAGE_FROM_ENEMY:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->nohurt = temp_int;
+            break;
+
+        case LEVEL_PROP_DAMAGE_FROM_PLAYER:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->nohit = temp_int;
+            break;
+
+        case LEVEL_PROP_FACING:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->facing = temp_int;
+            break;
+
+        case LEVEL_PROP_GRAVITY:
+
+            if(FAILED(ScriptVariant_DecimalValue(arg_value, &temp_float)))
+            {
+                goto error_local;
+            }
+
+            handle->gravity = temp_float;
+            break;
+
+        case LEVEL_PROP_HOLE_COLLECTION:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->holes = (s_terrain *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_HOLE_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numholes = temp_int;
+            break;
+
+        case LEVEL_PROP_LAYER_BACKGROUND_DEFAULT_HANDLE:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->background = (s_layer *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_LAYER_BACKGROUND_COLLECTION:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
 
             handle->bglayers = (s_layer **)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
-        default:
+        case LEVEL_PROP_LAYER_BACKGROUND_COUNT:
 
-            printf("Unsupported property.\n");
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numbglayers = temp_int;
+            break;
+
+        case LEVEL_PROP_LAYER_COLLECTION:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->layers = (s_layer *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_LAYER_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numlayers = temp_int;
+            break;
+
+        case LEVEL_PROP_LAYER_FOREGROUND_COLLECTION:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->fglayers = (s_layer **)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_LAYER_FOREGROUND_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numfglayers = temp_int;
+            break;
+
+        case LEVEL_PROP_LAYER_FRONTPANEL_COLLECTION:
+
+           if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->frontpanels = (s_layer **)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_LAYER_FRONTPANEL_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numfrontpanels = temp_int;
+            break;
+
+        case LEVEL_PROP_LAYER_GENERIC_COLLECTION:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->genericlayers = (s_layer **)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_LAYER_GENERIC_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numgenericlayers = temp_int;
+            break;
+
+        case LEVEL_PROP_LAYER_PANEL_COLLECTION:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->panels = (VOID *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_LAYER_PANEL_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numpanels = temp_int;
+            break;
+
+        case LEVEL_PROP_LAYER_REF_COLLECTION:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->layersref = (s_layer *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_LAYER_REF_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numlayersref = temp_int;
+            break;
+
+        case LEVEL_PROP_LAYER_WATER_COLLECTION:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->waters = (s_layer **)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_LAYER_WATER_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numwaters = temp_int;
+            break;
+
+        case LEVEL_PROP_MAX_FALL_VELOCITY:
+
+            if(FAILED(ScriptVariant_DecimalValue(arg_value, &temp_float)))
+            {
+                goto error_local;
+            }
+
+            handle->maxfallspeed = temp_float;
+            break;
+
+        case LEVEL_PROP_MAX_TOSS_VELOCITY:
+
+            if(FAILED(ScriptVariant_DecimalValue(arg_value, &temp_float)))
+            {
+                goto error_local;
+            }
+
+            handle->maxtossspeed = temp_float;
+            break;
+
+        case LEVEL_PROP_MIRROR:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->mirror = temp_int;
+            break;
+
+        case LEVEL_PROP_NAME:
+
+            if(arg_value->vt != VT_STR)
+            {
+                goto error_local;
+            }
+            strcpy(handle->name, (char *)StrCache_Get(arg_value->strVal));
+            break;
+
+        case LEVEL_PROP_PALETTE_BLENDING_COLLECTION:
+
+            // This property is read only.
             goto error_local;
+            break;
+
+        case LEVEL_PROP_PALETTE_COLLECTION:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->palettes = (VOID *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_PALETTE_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numpalettes = temp_int;
+            break;
+
+        case LEVEL_PROP_POSITION_X:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->pos = temp_int;
+            break;
+
+        case LEVEL_PROP_QUAKE:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->quake = temp_int;
+            break;
+
+        case LEVEL_PROP_QUAKE_TIME:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->quaketime = temp_int;
+            break;
+
+        case LEVEL_PROP_ROCKING:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->rocking = temp_int;
+            break;
+
+        case LEVEL_PROP_SCRIPT_LEVEL_END:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->endlevel_script = *(Script *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_SCRIPT_LEVEL_START:              // Script level_script;
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+            handle->level_script = *(Script *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_SCRIPT_KEY:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->key_script = *(Script *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_SCRIPT_UPDATE:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->update_script = *(Script *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_SCRIPT_UPDATED:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->updated_script = *(Script *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_SCROLL_DIRECTION:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->scrolldir = temp_int;
+            break;
+
+        case LEVEL_PROP_SCROLL_VELOCITY:
+
+            if(FAILED(ScriptVariant_DecimalValue(arg_value, &temp_float)))
+            {
+                goto error_local;
+            }
+
+            handle->scrollspeed = temp_float;
+            break;
+
+        case LEVEL_PROP_SIZE_X:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->width = temp_int;
+            break;
+
+        case LEVEL_PROP_SPAWN_COLLECTION:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->spawnpoints = (s_spawn_entry *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_SPAWN_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numspawns = temp_int;
+            break;
+
+        case LEVEL_PROP_SPAWN_PLAYER_COLLECTION:
+
+            //if(invalid_pointer_input)
+            //{
+            //    goto error_local;
+            //}
+
+            //handle->spawn = (s_axis_f *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_SPECIAL_DISABLE:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->nospecial = temp_int;
+            break;
+
+        case LEVEL_PROP_TEXT_OBJECT_COLLECTION:
+
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+
+            handle->textobjs = (s_textobj *)arg_value->ptrVal;
+            break;
+
+        case LEVEL_PROP_TEXT_OBJECT_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numtextobjs = temp_int;
+            break;
+
+        case LEVEL_PROP_TIME_ADVANCE:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->advancetime = temp_int;
+            break;
+
+        case LEVEL_PROP_TIME_DISPLAY:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->notime = temp_int;
+            break;
+
+        case LEVEL_PROP_TIME_RESET:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->noreset = temp_int;
+            break;
+
+        case LEVEL_PROP_TIME_SET:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->settime = temp_int;
+            break;
+
+        case LEVEL_PROP_TYPE:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->type = temp_int;
+            break;
+
+
+        case LEVEL_PROP_WAITING:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->waiting = temp_int;
+            break;
+
+        case LEVEL_PROP_WALL_COLLECTION:
+
+            // Verify animation has item.
+            if(handle->walls)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->walls;
+            }
 
             break;
+
+        case LEVEL_PROP_WALL_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numwalls = temp_int;
+            break;
+
+        case LEVEL_PROP_WEAPON:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->setweap = temp_int;
+            break;
+
+
     }
+
+
+    result = S_OK;
 
     return result;
 
