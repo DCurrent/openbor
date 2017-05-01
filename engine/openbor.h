@@ -638,12 +638,12 @@ typedef enum
     LEVEL_PROP_MAX_TOSS_VELOCITY,               // float maxtossspeed;
     LEVEL_PROP_MIRROR,                          // int mirror;
     LEVEL_PROP_NAME,                            // char *name;
-    LEVEL_PROP_QUAKE,                           // int quake;
-    LEVEL_PROP_QUAKE_TIME,                      // u32 quaketime;
     LEVEL_PROP_PALETTE_BLENDING_COLLECTION,     // unsigned char *(*blendings)[MAX_BLENDINGS];
     LEVEL_PROP_PALETTE_COLLECTION,              // unsigned char (*palettes)[1024];
     LEVEL_PROP_PALETTE_COUNT,                   // int numpalettes;
     LEVEL_PROP_POSITION_X,                      // int pos;
+    LEVEL_PROP_QUAKE,                           // int quake;
+    LEVEL_PROP_QUAKE_TIME,                      // u32 quaketime;
     LEVEL_PROP_ROCKING,                         // int rocking;
     LEVEL_PROP_SCRIPT_LEVEL_END,                // Script endlevel_script;
     LEVEL_PROP_SCRIPT_LEVEL_START,              // Script level_script;
@@ -660,14 +660,14 @@ typedef enum
     LEVEL_PROP_TEXT_OBJECT_COLLECTION,          // s_textobj *textobjs;
     LEVEL_PROP_TEXT_OBJECT_COUNT,               // int numtextobjs;
     LEVEL_PROP_TIME_ADVANCE,                    // u32 advancetime;
-    LEVEL_PROP_TIME_SET,                        // int settime;
     LEVEL_PROP_TIME_DISPLAY,                    // int notime;
     LEVEL_PROP_TIME_RESET,                      // int noreset;
+    LEVEL_PROP_TIME_SET,                        // int settime;
     LEVEL_PROP_TYPE,                            // int type;
+    LEVEL_PROP_WAITING,                          // int waiting;
     LEVEL_PROP_WALL_COLLECTION,                 // s_terrain *walls;
     LEVEL_PROP_WALL_COUNT,                      // int numwalls;
-    LEVEL_PROP_WEAPON,                          // int setweap;
-    LEVEL_PROP_WAITING                          // int waiting;
+    LEVEL_PROP_WEAPON                           // int setweap;
 } e_level_properties;
 
 typedef enum

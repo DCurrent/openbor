@@ -365,6 +365,13 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
     // Which property to get?
     switch(property)
     {
+
+        case LEVEL_PROP_AUTO_SCROLL_DIRECTION:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->bgdir;
+            break;
+
         case LEVEL_PROP_AUTO_SCROLL_X:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
@@ -411,6 +418,28 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
             (*pretvar)->lVal = (LONG)handle->numbglayers;
             break;
 
+        case LEVEL_PROP_BOSS_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->bosses;
+            break;
+
+        case LEVEL_PROP_BOSS_MUSIC_NAME:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            StrCache_Copy((*pretvar)->strVal, handle->bossmusic);
+            break;
+
+        case LEVEL_PROP_BOSS_MUSIC_OFFSET:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->bossmusic_offset;
+            break;
+
+        case LEVEL_PROP_BOSS_SLOW:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->bossmusic_offset;
             break;
 
         case LEVEL_PROP_CAMERA_OFFSET_X:
@@ -425,11 +454,36 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
             (*pretvar)->lVal = (LONG)handle->camerazoffset;
             break;
 
+        case LEVEL_PROP_COMPLETE_FORCE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->forcefinishlevel;
+            break;
+
+        case LEVEL_PROP_DAMAGE_FROM_ENEMY:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->nohurt;
+            break;
+
+        case LEVEL_PROP_DAMAGE_FROM_PLAYER:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->nohit;
+            break;
+
+        case LEVEL_PROP_FACING:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->facing;
+            break;
+
         case LEVEL_PROP_GRAVITY:
 
            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->gravity;
             break;
+
 
         case LEVEL_PROP_HOLE_COLLECTION:
 
@@ -446,6 +500,17 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->numholes;
+            break;
+
+        case LEVEL_PROP_LAYER_BACKGROUND_DEFAULT_HANDLE:
+
+            // Verify the handle is populated.
+            if(handle->background)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->background;
+            }
+
             break;
 
         case LEVEL_PROP_LAYER_COLLECTION:
@@ -465,6 +530,108 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
             (*pretvar)->lVal = (LONG)handle->numlayers;
             break;
 
+        case LEVEL_PROP_LAYER_FOREGROUND_COLLECTION:
+
+            // Verify the handle is populated.
+            if(handle->fglayers)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->fglayers;
+            }
+
+            break;
+
+        case LEVEL_PROP_LAYER_FOREGROUND_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numfglayers;
+            break;
+
+        case LEVEL_PROP_LAYER_FRONTPANEL_COLLECTION:
+
+            // Verify the handle is populated.
+            if(handle->frontpanels)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->frontpanels;
+            }
+
+            break;
+
+        case LEVEL_PROP_LAYER_FRONTPANEL_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numfrontpanels;
+            break;
+
+        case LEVEL_PROP_LAYER_GENERIC_COLLECTION:
+
+            // Verify the handle is populated.
+            if(handle->genericlayers)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->genericlayers;
+            }
+
+            break;
+
+        case LEVEL_PROP_LAYER_GENERIC_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numgenericlayers;
+            break;
+
+        case LEVEL_PROP_LAYER_PANEL_COLLECTION:          // s_layer *(*panels)[3]; //normal neon screen
+
+            // Verify the handle is populated.
+            if(handle->panels)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->panels;
+            }
+
+            break;
+
+        case LEVEL_PROP_LAYER_PANEL_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numpanels;
+            break;
+
+        case LEVEL_PROP_LAYER_REF_COLLECTION:
+
+            // Verify the handle is populated.
+            if(handle->layersref)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->layersref;
+            }
+
+            break;
+
+        case LEVEL_PROP_LAYER_REF_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numlayersref;
+            break;
+
+        case LEVEL_PROP_LAYER_WATER_COLLECTION:
+
+            // Verify the handle is populated.
+            if(handle->waters)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->waters;
+            }
+
+            break;
+
+        case LEVEL_PROP_LAYER_WATER_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numwaters;
+            break;
+
         case LEVEL_PROP_MAX_FALL_VELOCITY:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
@@ -477,15 +644,30 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
             (*pretvar)->dblVal = (DOUBLE)handle->maxtossspeed;
             break;
 
+        case LEVEL_PROP_MIRROR:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->mirror;
+            break;
+
         case LEVEL_PROP_NAME:
 
             ScriptVariant_ChangeType(*pretvar, VT_STR);
             StrCache_Copy((*pretvar)->strVal, handle->name);
             break;
 
+        case LEVEL_PROP_PALETTE_BLENDING_COLLECTION:
+
+            if(handle->blendings)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->blendings;
+            }
+
+            break;
+
         case LEVEL_PROP_PALETTE_COLLECTION:
 
-            // Verify animation has item.
             if(handle->palettes)
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
@@ -496,11 +678,14 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
         case LEVEL_PROP_PALETTE_COUNT:
 
-            //ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->numpalettes;
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numpalettes;
+            break;
 
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)level;
+        case LEVEL_PROP_POSITION_X:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->pos;
             break;
 
         case LEVEL_PROP_QUAKE:
@@ -509,10 +694,62 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
             (*pretvar)->lVal = (LONG)handle->quake;
             break;
 
+        case LEVEL_PROP_QUAKE_TIME:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->quaketime;
+            break;
+
         case LEVEL_PROP_ROCKING:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->rocking;
+            break;
+
+        case LEVEL_PROP_SCRIPT_LEVEL_END:
+
+            if(&handle->endlevel_script)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = &handle->endlevel_script;
+            }
+
+        case LEVEL_PROP_SCRIPT_LEVEL_START:              // Script level_script;
+
+            if(&handle->level_script)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = &handle->level_script;
+            }
+
+        case LEVEL_PROP_SCRIPT_KEY:
+
+            if(&handle->key_script)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = &handle->key_script;
+            }
+
+        case LEVEL_PROP_SCRIPT_UPDATE:
+
+            if(&handle->update_script)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = &handle->update_script;
+            }
+
+        case LEVEL_PROP_SCRIPT_UPDATED:
+
+            if(&handle->updated_script)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = &handle->updated_script;
+            }
+
+        case LEVEL_PROP_SCROLL_DIRECTION:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->scrolldir;
             break;
 
         case LEVEL_PROP_SCROLL_VELOCITY:
@@ -521,10 +758,89 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
             (*pretvar)->lVal = (DOUBLE)handle->scrollspeed;
             break;
 
+        case LEVEL_PROP_SIZE_X:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->width;
+            break;
+
+        case LEVEL_PROP_SPAWN_COLLECTION:
+
+            if(handle->spawnpoints)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->spawnpoints;
+            }
+
+        case LEVEL_PROP_SPAWN_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numspawns;
+            break;
+
+        case LEVEL_PROP_SPAWN_PLAYER_COLLECTION:
+
+            if(&handle->spawn)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = &handle->spawn;
+            }
+
+        case LEVEL_PROP_SPECIAL_DISABLE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->nospecial;
+            break;
+
+        case LEVEL_PROP_TEXT_OBJECT_COLLECTION:          // s_textobj *textobjs;
+
+            if(handle->textobjs)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->textobjs;
+            }
+
+        case LEVEL_PROP_TEXT_OBJECT_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numtextobjs;
+            break;
+
+        case LEVEL_PROP_TIME_ADVANCE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->advancetime;
+            break;
+
+        case LEVEL_PROP_TIME_DISPLAY:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->notime;
+            break;
+
+        case LEVEL_PROP_TIME_RESET:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->noreset;
+            break;
+
+        case LEVEL_PROP_TIME_SET:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->settime;
+            break;
+
         case LEVEL_PROP_TYPE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->type;
+            break;
+
+
+        case LEVEL_PROP_WAITING:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numwalls;
             break;
 
         case LEVEL_PROP_WALL_COLLECTION:
@@ -542,6 +858,12 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->numwalls;
+            break;
+
+        case LEVEL_PROP_WEAPON:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->setweap;
             break;
 
         default:
