@@ -439,7 +439,7 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
         case LEVEL_PROP_BOSS_SLOW:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->bossmusic_offset;
+            (*pretvar)->lVal = (LONG)handle->noslow;
             break;
 
         case LEVEL_PROP_CAMERA_OFFSET_X:
