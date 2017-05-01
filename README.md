@@ -1,10 +1,10 @@
  # OpenBOR
 OpenBOR is a continuation of the Beats Of Rage 2D game engine, which was originally
-created by the wonderful folks over at http://www.senileteam.com. 
+created by the wonderful folks over at [Senile Team](http://www.senileteam.com). 
 
 
 ## History
-In 2004, Senile Team released Beats of Rage, a free beat-'em-up for DOS inspired
+In 2004, [Senile Team](http://www.senileteam.com) released Beats of Rage, a free beat-'em-up for DOS inspired
 by SEGA's Streets of Rage series and using sprites from SNK Playmore's King of
 Fighters series.  The game spread only by word of mouth, but it nonetheless
 amassed popularity very quickly.  Senile Team soon released an edit pack allowing
@@ -84,14 +84,13 @@ Developed offshoot engine based on OpenBOR.  Shared features with both engines.
 The original developer of OpenBOR who asked Senile Team for permission to open
 up Beats Of Rage.
 
-### Senile Team
+### [Senile Team](http://www.senileteam.com)
 Senile team was not directly involved with developing OpenBOR, but their opening
 of the orginal Beats of Rage codebase was vital. Parts of the orginal BOR still
 reside in OpenBORto this day.
 
-#### Roel (credited as "Opla" in BoR)
+#### [Roel](http://www.roelvanmastbergen.nl) (credited as "Opla" in BoR)
 The team's chieftain. Does most of the game design, programming and artwork.
-http://www.roelvanmastbergen.nl
 
 #### Jeroen (credited as "Leila" in BoR)
 Does all the things no one else does.
@@ -100,15 +99,18 @@ Does all the things no one else does.
 3D artist and animation sequence editor.
 
 #### Ben
-Senile Team's composer, who is currently working on the soundtrack for Age of the Beast.
+Senile Team's composer.
 
-#### Neill
+#### [Neill](http://www.neillcorlett.com)
 Neill was the first to port Beats of Rage to other systems, namely Playstation 2
 and Dreamcast. He now supports Senile Team with advice regarding console hardware
-and code compatibility, and has agreed to port Age of the Beast when it's ready.
-http://www.neillcorlett.com
-
+and code compatibility.
 
 ## Websites
-* ChronoCrash (Main openBOR community and home of OpenBOR Team) - http://www.ChronoCrash.com
-* Senile Team (original authors of Beats of Rage) - http://www.senileteam.com
+### [ChronoCrash](http://www.ChronoCrash.com)
+
+Home of the OpenBOR community and OpenBOR team. This is the place to go if you want to discuss discuss OpenBOR development, find ready to play game modules, or get started building one of your own. 
+
+### [Senile Team](http://www.senileteam.com)
+
+Senile Team is not responsible for OpenBOR, and has also dropped all support for the original Beats of Rage. Instead you should stop in to see their latest projects - you’ll no doubt find something interesting!
