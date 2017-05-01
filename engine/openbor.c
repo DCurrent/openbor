@@ -13705,6 +13705,10 @@ void free_level(s_level *lv)
     {
         free(lv->holes);
     }
+    if(lv->spawn)
+    {
+        free(lv->spawn);
+    }
     if(lv->walls)
     {
         free(lv->walls);
@@ -13927,6 +13931,7 @@ void load_level(char *filename)
     s_model *tempmodel, *cached_model;
 
     int i = 0, j = 0, crlf = 0;
+    int player_max;
     int usemap[MAX_BLENDINGS];
     char bgPath[128] = {""}, fnbuf[128];
     s_loadingbar bgPosi = {0, 0, {0,0}, {0,0}, 0, 0};
@@ -14004,34 +14009,43 @@ void load_level(char *filename)
     }
     strcpy(level->name, filename);
 
+    // Allocate memory for player spawn - only as much as we need.
+    player_max = levelsets[current_set].maxplayers;
+    level->spawn = malloc(sizeof(*level->spawn) * player_max);
+
     if(buffer_pakfile(filename, &buf, &size) != 1)
     {
         errormessage = "Unable to load level file!";
         goto lCleanup;
     }
 
-    level->settime = 100;    // Feb 25, 2005 - Default time limit set to 100
-    level->nospecial = 0;    // Default set to specials can be used during bonus levels
-    level->nohurt = 0;    // Default set to players can hurt each other during bonus levels
-    level->nohit = 0;    // Default able to hit the other player
-    level->spawn[0].y = level->spawn[1].y = level->spawn[2].y = level->spawn[3].y = 300;    // Set the default spawn y to 300
-    level->setweap = 0;
-    level->maxtossspeed = default_level_maxtossspeed;
-    level->maxfallspeed = default_level_maxfallspeed;
-    level->gravity = default_level_gravity;
-    level->scrolldir = SCROLL_RIGHT;
-    level->scrollspeed = 1;
-    level->cameraxoffset = 0;
-    level->camerazoffset = 0;
-    level->bosses = 0;
+    // Default player spawn Y position just above the screen top.
+    for(i=0; i < player_max; i++)
+    {
+        level->spawn[i].y = videomodes.vRes + 60;
+    }
+
+    level->settime          = 100;    // Feb 25, 2005 - Default time limit set to 100
+    level->nospecial        = 0;    // Default set to specials can be used during bonus levels
+    level->nohurt           = 0;    // Default set to players can hurt each other during bonus levels
+    level->nohit            = 0;    // Default able to hit the other player
+    level->setweap          = 0;
+    level->maxtossspeed     = default_level_maxtossspeed;
+    level->maxfallspeed     = default_level_maxfallspeed;
+    level->gravity          = default_level_gravity;
+    level->scrolldir        = SCROLL_RIGHT;
+    level->scrollspeed      = 1;
+    level->cameraxoffset    = 0;
+    level->camerazoffset    = 0;
+    level->bosses           = 0;
     blendfx[BLEND_MULTIPLY] = 1;
-    bgtravelled = 0;
-    vbgtravelled = 0;
-    traveltime = 0;
-    texttime = 0;
-    nopause = 0;
-    nofadeout = 0;
-    noscreenshot = 0;
+    bgtravelled             = 0;
+    vbgtravelled            = 0;
+    traveltime              = 0;
+    texttime                = 0;
+    nopause                 = 0;
+    nofadeout               = 0;
+    noscreenshot            = 0;
     panel_width = panel_height = frontpanels_loaded = 0;
 
     //reset_playable_list(1);
@@ -14427,15 +14441,16 @@ void load_level(char *filename)
             default:
                 assert(0);
             }
-            level->spawn[i].x = GET_INT_ARG(1);
-            level->spawn[i].z = GET_INT_ARG(2);
-            level->spawn[i].y = GET_INT_ARG(3);
 
-            //if(level->spawn[i].z > 232 || level->spawn[i].z < 0) level->spawn[i].z= 232;
-            if(level->spawn[i].y < 0)
+            // Verify specified player index exists,
+            // then set values.
+            if(i <= player_max)
             {
-                level->spawn[i].y = 300;
+                level->spawn[i].x = GET_INT_ARG(1);
+                level->spawn[i].z = GET_INT_ARG(2);
+                level->spawn[i].y = GET_INT_ARG(3);
             }
+
             break;
         case CMD_LEVEL_FRONTPANEL:
         case CMD_LEVEL_PANEL:

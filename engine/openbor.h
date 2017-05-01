@@ -2485,7 +2485,7 @@ typedef struct
     int noslow; // Flag so the level doesn't slow down after a boss is defeated
     int nohit; // Not able to grab / hit other player on a per level basis
     int forcefinishlevel; // flag to forca to finish a level
-    s_axis_f spawn[MAX_PLAYERS]; // Used to determine the spawn position of players
+    s_axis_f *spawn; // Used to determine the spawn position of players
     int setweap; // Levels can now specified which weapon will be used by default
     e_facing_adjust facing; // Force the players to face to ...
 //--------------------gravity system-------------------------
