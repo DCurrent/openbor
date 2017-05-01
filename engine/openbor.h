@@ -672,14 +672,14 @@ typedef enum
 
 typedef enum
 {
-    SET_PROP_CREDITS,               // int credits;
-    SET_PROP_GAME_OVER_SKIP,        // int noshowgameover;
-    SET_PROP_HOF_DISABLE,           // int noshowhof;
     SET_PROP_COMPLETE_FLAG,         // int ifcomplete;
     SET_PROP_COMPLETE_SKIP,         // int noshowcomplete;
     SET_PROP_CONTINUE_SCORE_TYPE,   // int continuescore;
-    SET_PROP_LEVELS_COUNT,          // int numlevels;
-    SET_PROP_LEVELS_HANDLE,         // s_level_entry *levelorder;
+    SET_PROP_CREDITS,               // int credits;
+    SET_PROP_GAME_OVER_SKIP,        // int noshowgameover;
+    SET_PROP_HOF_DISABLE,           // int noshowhof;
+    SET_PROP_LEVELSET_COLLECTION,   // s_level_entry *levelorder;
+    SET_PROP_LEVELSET_COUNT,        // int numlevels;
     SET_PROP_LIVES,                 // int lives;
     SET_PROP_MP_RECOVER_TYPE,       // int typemp;
     SET_PROP_MUSIC_FADE_TIME,       // int custfade;
