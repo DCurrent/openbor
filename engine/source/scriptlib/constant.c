@@ -105,8 +105,6 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(LEVEL_PROP_AUTO_SCROLL_Y)
         ICMPCONST(LEVEL_PROP_BASEMAP_COLLECTION)
         ICMPCONST(LEVEL_PROP_BASEMAP_COUNT)
-        ICMPCONST(LEVEL_PROP_BGLAYER_COLLECTION)
-        ICMPCONST(LEVEL_PROP_BGLAYER_COUNT)
         ICMPCONST(LEVEL_PROP_BOSS_COUNT)
         ICMPCONST(LEVEL_PROP_BOSS_MUSIC_NAME)
         ICMPCONST(LEVEL_PROP_BOSS_MUSIC_OFFSET)
@@ -121,6 +119,8 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(LEVEL_PROP_HOLE_COLLECTION)
         ICMPCONST(LEVEL_PROP_HOLE_COUNT)
         ICMPCONST(LEVEL_PROP_LAYER_BACKGROUND_DEFAULT_HANDLE)
+        ICMPCONST(LEVEL_PROP_LAYER_BACKGROUND_COLLECTION)
+        ICMPCONST(LEVEL_PROP_LAYER_BACKGROUND_COUNT)
         ICMPCONST(LEVEL_PROP_LAYER_COLLECTION)
         ICMPCONST(LEVEL_PROP_LAYER_COUNT)
         ICMPCONST(LEVEL_PROP_LAYER_FOREGROUND_COLLECTION)
@@ -675,6 +675,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 
     return 1;
 }
+
 //openborconstant(constname);
 //translate a constant by string, used to retrieve a constant or macro of openbor
 HRESULT openbor_transconst(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
