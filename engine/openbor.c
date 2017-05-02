@@ -27465,10 +27465,7 @@ void didfind_item(entity *other)
         if(self->weapent && self->weapent->modeldata.typeshot)
         {
             self->weapent->modeldata.shootnum += other->modeldata.reload;
-            if(self->weapent->modeldata.shootnum > self->weapent->modeldata.shootnum)
-            {
-                self->weapent->modeldata.shootnum = self->weapent->modeldata.shootnum;
-            }
+
             if(SAMPLE_GET >= 0)
             {
                 sound_play_sample(SAMPLE_GET, 0, savedata.effectvol, savedata.effectvol, 100);

@@ -64,7 +64,6 @@
 		<Unit filename="../openborscript.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../openborscript.h" />
 		<Unit filename="../sdl/control.c">
 			<Option compilerVar="CC" />
 		</Unit>
