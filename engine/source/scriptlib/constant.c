@@ -99,6 +99,10 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(FLAG_FORWARD)
         ICMPCONST(FLAG_BACKWARD)
 
+        // Boss no slow flags.
+        ICMPCONST(BOSS_SLOW_OFF)
+        ICMPCONST(BOSS_SLOW_ON)
+
         // Level Properties.
         ICMPCONST(LEVEL_PROP_AUTO_SCROLL_DIRECTION)
         ICMPCONST(LEVEL_PROP_AUTO_SCROLL_X)

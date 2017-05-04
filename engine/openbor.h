@@ -599,6 +599,12 @@ typedef enum
 
 typedef enum
 {
+    BOSS_SLOW_OFF,
+    BOSS_SLOW_ON
+} e_boss_slow_flag;
+
+typedef enum
+{
     LEVEL_PROP_AUTO_SCROLL_DIRECTION,           // int bgdir;
     LEVEL_PROP_AUTO_SCROLL_X,                   // float bgspeed;
     LEVEL_PROP_AUTO_SCROLL_Y,                   // float vbgspeed;
@@ -607,7 +613,7 @@ typedef enum
     LEVEL_PROP_BOSS_COUNT,                      // int bosses;
     LEVEL_PROP_BOSS_MUSIC_NAME,                 // char bossmusic[256];
     LEVEL_PROP_BOSS_MUSIC_OFFSET,               // unsigned bossmusic_offset;
-    LEVEL_PROP_BOSS_SLOW,                       // int noslow;
+    LEVEL_PROP_BOSS_SLOW,                       // int boss_slow;
     LEVEL_PROP_CAMERA_OFFSET_X,                 // int cameraxoffset;
     LEVEL_PROP_CAMERA_OFFSET_Z,                 // int camerazoffset;
     LEVEL_PROP_COMPLETE_FORCE,                  // int forcefinishlevel;
@@ -2482,7 +2488,7 @@ typedef struct
     int type; // Used to specify which level type (1 = bonus, else regular)
     int nospecial; // Used to specify if you can use your special during bonus levels
     int nohurt; // Used to specify if you can hurt the other player during bonus levels
-    int noslow; // Flag so the level doesn't slow down after a boss is defeated
+    int boss_slow; // Flag so the level doesn't slow down after a boss is defeated
     int nohit; // Not able to grab / hit other player on a per level basis
     int forcefinishlevel; // flag to forca to finish a level
     s_axis_f *spawn; // Used to determine the spawn position of players

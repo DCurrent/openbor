@@ -424,7 +424,7 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
         case LEVEL_PROP_BOSS_SLOW:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->noslow;
+            (*pretvar)->lVal = (LONG)handle->boss_slow;
             break;
 
         case LEVEL_PROP_CAMERA_OFFSET_X:
@@ -1023,7 +1023,7 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
                 goto error_local;
             }
 
-            handle->noslow = temp_int;
+            handle->boss_slow = temp_int;
             break;
 
         case LEVEL_PROP_CAMERA_OFFSET_X:
