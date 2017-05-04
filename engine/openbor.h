@@ -605,6 +605,18 @@ typedef enum
 
 typedef enum
 {
+    DAMAGE_FROM_ENEMY_OFF,
+    DAMAGE_FROM_ENEMY_ON
+} e_damage_from_enemy_flag;
+
+typedef enum
+{
+    DAMAGE_FROM_PLAYER_OFF,
+    DAMAGE_FROM_PLAYER_ON
+} e_damage_from_player_flag;
+
+typedef enum
+{
     LEVEL_PROP_AUTO_SCROLL_DIRECTION,           // int bgdir;
     LEVEL_PROP_AUTO_SCROLL_X,                   // float bgspeed;
     LEVEL_PROP_AUTO_SCROLL_Y,                   // float vbgspeed;
