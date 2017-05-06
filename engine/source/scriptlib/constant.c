@@ -103,7 +103,13 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(BOSS_SLOW_OFF)
         ICMPCONST(BOSS_SLOW_ON)
 
-        // Level Properties.
+        // Damage control flags.
+        ICMPCONST(DAMAGE_FROM_ENEMY_OFF)
+        ICMPCONST(DAMAGE_FROM_ENEMY_ON)
+        ICMPCONST(DAMAGE_FROM_PLAYER_OFF)
+        ICMPCONST(DAMAGE_FROM_PLAYER_ON)
+
+        // Level properties
         ICMPCONST(LEVEL_PROP_AUTO_SCROLL_DIRECTION)
         ICMPCONST(LEVEL_PROP_AUTO_SCROLL_X)
         ICMPCONST(LEVEL_PROP_AUTO_SCROLL_Y)
