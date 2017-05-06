@@ -14025,10 +14025,10 @@ void load_level(char *filename)
         level->spawn[i].y = videomodes.vRes + 60;
     }
 
-    level->settime          = 100;    // Feb 25, 2005 - Default time limit set to 100
-    level->nospecial        = 0;    // Default set to specials can be used during bonus levels
-    level->nohurt           = 0;    // Default set to players can hurt each other during bonus levels
-    level->nohit            = 0;    // Default able to hit the other player
+    level->settime          = 100;                          // Feb 25, 2005 - Default time limit set to 100
+    level->nospecial        = 0;                            // Default set to specials can be used during bonus levels
+    level->nohurt           = DAMAGE_FROM_ENEMY_ON;
+    level->nohit            = DAMAGE_FROM_PLAYER_ON;        // Default able to hit the other player
     level->setweap          = 0;
     level->maxtossspeed     = default_level_maxtossspeed;
     level->maxfallspeed     = default_level_maxfallspeed;
@@ -14037,6 +14037,7 @@ void load_level(char *filename)
     level->scrollspeed      = 1;
     level->cameraxoffset    = 0;
     level->camerazoffset    = 0;
+    level->boss_slow        = BOSS_SLOW_ON;
     level->bosses           = 0;
     blendfx[BLEND_MULTIPLY] = 1;
     bgtravelled             = 0;
@@ -14390,16 +14391,30 @@ void load_level(char *filename)
             level->noreset = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_NOSLOW:
-            // If set, level will not slow down when bosses are defeated
-            level->noslow = GET_INT_ARG(1);
+
+            if(GET_INT_ARG(1))
+            {
+                level->boss_slow = BOSS_SLOW_OFF;
+            }
+
             break;
         case CMD_LEVEL_TYPE:
             level->type = GET_INT_ARG(1);    // Level type - 1 = bonus, else regular
             level->nospecial = GET_INT_ARG(2);    // Can use specials during bonus levels (default 0 - yes)
-            level->nohurt = GET_INT_ARG(3);    // Can hurt other players during bonus levels (default 0 - yes)
+
+            if(GET_INT_ARG(3))
+            {
+                level->nohurt = DAMAGE_FROM_ENEMY_OFF;
+            }
+
             break;
         case CMD_LEVEL_NOHIT:
-            level->nohit = GET_INT_ARG(1);
+
+            if(GET_INT_ARG(1))
+            {
+                level->nohit = DAMAGE_FROM_PLAYER_OFF;
+            }
+
             break;
         case CMD_LEVEL_GRAVITY:
             level->gravity = GET_FLOAT_ARG(1);
@@ -17790,7 +17805,7 @@ entity *spawn(float x, float z, float a, int direction, char *name, int index, s
             e->speedmul = 1;
             ent_set_colourmap(e, 0);
             e->lifespancountdown = model->lifespan; // new life span countdown
-            if((e->modeldata.type & TYPE_PLAYER) && ((level && level->nohit) || savedata.mode))
+            if((e->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_ON) || savedata.mode))
             {
                 e->modeldata.hostile &= ~TYPE_PLAYER;
                 e->modeldata.candamage &= ~TYPE_PLAYER;
@@ -19428,7 +19443,7 @@ void do_attack(entity *e)
 
         // New blocking checks
         //04/27/2008 Damon Caskey: Added checks for defense property specfic blockratio and type. Could probably use some cleaning.
-        if(didblock && !level->nohurt)
+        if(didblock && level->nohurt == DAMAGE_FROM_ENEMY_ON)
         {
             if(blockratio || def->defense[attack->attack_type].blockratio) // Is damage reduced?
             {
@@ -29274,7 +29289,7 @@ int player_takedamage(entity *other, s_collision_attack *attack)
 {
     s_collision_attack atk = *attack;
     //printf("damaged by: '%s' %d\n", other->name, attack->attack_force);
-    if(healthcheat || (level->nohurt && (other->modeldata.type & TYPE_ENEMY)))
+    if(healthcheat || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
     {
         atk.attack_force = 0;
     }
@@ -29577,7 +29592,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
     {
         e->modeldata.candamage = self->modeldata.candamage;
     }
-    if((self->modeldata.type & TYPE_PLAYER) && ((level && level->nohit) || savedata.mode))
+    if((self->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_ON) || savedata.mode))
     {
         e->modeldata.hostile &= ~TYPE_PLAYER;
         e->modeldata.candamage &= ~TYPE_PLAYER;
@@ -31722,7 +31737,7 @@ void update(int ingame, int usevwait)
             execute_keyscripts();
         }
 
-        if((level_completed && !level->noslow && !tospeedup) || slowmotion.toggle > SLOW_MOTION_OFF)
+        if((level_completed && level->boss_slow == BOSS_SLOW_ON && !tospeedup) || slowmotion.toggle > SLOW_MOTION_OFF)
         {
             if(slowmotion.duration == slowmotion.counter)
             {
