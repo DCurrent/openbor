@@ -11013,7 +11013,7 @@ HRESULT openbor_array(ScriptVariant **varlist , ScriptVariant **pretvar, int par
         goto array_error;
     }
 
-    Varlist_Init(array, size);
+    Varlist_Init(array);
 
     List_InsertAfter(&scriptheap, (void *)(array), "openbor_array");
     return S_OK;
