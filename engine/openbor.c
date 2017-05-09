@@ -1269,21 +1269,13 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = maxchannels();
         break;
-    case _sv_maxentityvars:
-        ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = max_entity_vars;
-        break;
-    case _sv_maxindexedvars:
-        ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = max_indexed_vars;
-        break;
     case _sv_maxplayers:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = levelsets[current_set].maxplayers;
         break;
     case _sv_maxscriptvars:
-        ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = max_script_vars;
+        //ScriptVariant_ChangeType(var, VT_INTEGER);
+        //var->lVal = max_script_vars;
         break;
     case _sv_models_cached:
         ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -11495,29 +11487,17 @@ int load_script_setting()
             command = GET_ARG(0);
             if(command && command[0])
             {
-                if(stricmp(command, "maxscriptvars") == 0) // each script can have a variable list that can be accessed by index
+                if(stricmp(command, "maxscriptvars") == 0)
                 {
-                    max_script_vars = GET_INT_ARG(1) ;
-                    if(max_script_vars < 0)
-                    {
-                        max_script_vars = 0;
-                    }
+                    printf("\n maxscriptvars is depreciated. All variables are dynamically allocated.\n\n");
                 }
-                else if(stricmp(command, "maxentityvars") == 0) // each entity can have a variable list that can be accessed by index
+                else if(stricmp(command, "maxentityvars") == 0)
                 {
-                    max_entity_vars = GET_INT_ARG(1) ;
-                    if(max_entity_vars < 0)
-                    {
-                        max_entity_vars = 0;
-                    }
+                    printf("\n maxentityvars is depreciated. All variables are dynamically allocated.\n\n");
                 }
-                else if(stricmp(command, "maxindexedvars") == 0) // a global variable list that can be accessed by index
+                else if(stricmp(command, "maxindexedvars") == 0)
                 {
-                    max_indexed_vars = GET_INT_ARG(1);
-                    if(max_indexed_vars < 0)
-                    {
-                        max_indexed_vars = 0;
-                    }
+                    printf("\n maxindexedvars is depreciated. All variables are dynamically allocated.\n\n Indexed vars are depreciated - Use Global vars instead. \n\n");
                 }
                 else if(stricmp(command, "keyscriptrate") == 0) // Rate that keyscripts fire when holding a key.
                 {
@@ -16639,7 +16619,7 @@ entity *alloc_ent()
     memset(ent->offense_factors, 0, sizeof(*ent->offense_factors)*max_attack_types);
     ent->varlist = calloc(1, sizeof(*ent->varlist));
     // memset should be OK by know, because VT_EMPTY is zero by value, or else we should use ScriptVariant_Init
-    Varlist_Init(ent->varlist, max_entity_vars);
+    Varlist_Init(ent->varlist);
     alloc_all_scripts(&ent->scripts);
     return ent;
 }
