@@ -353,6 +353,7 @@ INCS 	       += .                                                               
                   source/ramlib                                                                     \
                   source/randlib                                                                    \
                   source/scriptlib                                                                  \
+                  source/openborscript                                                              \
                   source/pnglib                                                                     \
 
 
