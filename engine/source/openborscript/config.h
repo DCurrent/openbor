@@ -9,7 +9,7 @@
 #ifndef OPENBORSCRIPT_H
 #define OPENBORSCRIPT_H
 
-#include "Interpreter.h"
+#include "../scriptlib/Interpreter.h"
 #include "../preprocessorlib/pp_parser.h"
 
 #define MAX_KEY_LEN    24
