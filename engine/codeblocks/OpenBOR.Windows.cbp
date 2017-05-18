@@ -272,6 +272,7 @@
 		<Unit filename="../source/openborscript/common.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../source/openborscript/config.h" />
 		<Unit filename="../source/openborscript/constant.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -385,7 +386,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/scriptlib/SymbolTable.h" />
-		<Unit filename="../source/scriptlib/config.h" />
 		<Unit filename="../source/scriptlib/depends.h" />
 		<Unit filename="../source/stringptr.c">
 			<Option compilerVar="CC" />
