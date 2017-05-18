@@ -112,12 +112,11 @@ extern unsigned char *blendings[MAX_BLENDINGS];
 extern int            current_palette;
 extern s_collision_attack emptyattack;
 Varlist global_var_list;
-Script *pcurrentscript = NULL;//used by local script functions
+Script *pcurrentscript = NULL; //used by local script functions
 List theFunctionList;
 static List   scriptheap;
 static s_spawn_entry spawnentry;
 static s_drawmethod drawmethod;
-static s_collision_attack attack ;
 
 int            max_indexed_vars = 0;
 int            max_entity_vars = 0;
@@ -333,7 +332,7 @@ int Varlist_DeleteByName(Varlist *array, char *theName)
 //this function should be called before all script methods, for once
 void Script_Global_Init()
 {
-    memset(&spawnentry, 0, sizeof(spawnentry));//clear up the spawn entry
+    memset(&spawnentry, 0, sizeof(spawnentry)); //clear up the spawn entry
     drawmethod = plainmethod;
 
     Varlist_Init(&global_var_list);

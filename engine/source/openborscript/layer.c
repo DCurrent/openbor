@@ -7,6 +7,8 @@
 #ifndef SCRIPT_LAYER
 #define SCRIPT_LAYER 1
 
+#include "common.c"
+
 // Layer handle.
 // Caskey, Damon V.
 //
@@ -73,7 +75,5 @@ HRESULT openbor_get_layer_handle(ScriptVariant **varlist, ScriptVariant **pretva
     #undef ARG_LEVEL
     #undef ARG_INDEX
 }
-
-#include "common.c"
 
 #endif // SCRIPT_LAYER
