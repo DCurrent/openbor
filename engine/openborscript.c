@@ -1,16 +1,18 @@
 #ifndef OPENBOR_SCRIPT_MAIN
 #define OPENBOR_SCRIPT_MAIN 1
 
-#include "source/scriptlib/common.c"
+#include "source/openborscript/common.c"
 
-#include "source/scriptlib/animation.c"
-#include "source/scriptlib/constant.c"
-#include "source/scriptlib/collision_attack.c"
-#include "source/scriptlib/collision_body.c"
-#include "source/scriptlib/level.c"
-#include "source/scriptlib/layer.c"
-#include "source/scriptlib/math.c"
-#include "source/scriptlib/string.c"
+#include "source/openborscript/constant.c"
+#include "source/openborscript/animation.c"
+#include "source/openborscript/collision_attack.c"
+#include "source/openborscript/collision_body.c"
+#include "source/openborscript/level.c"
+#include "source/openborscript/layer.c"
+#include "source/openborscript/math.c"
+#include "source/openborscript/string.c"
+
+static s_collision_attack attack;
 
 //////////////////////////////////////////////////////////
 ////////////   system functions
