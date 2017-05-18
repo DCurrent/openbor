@@ -21,7 +21,7 @@ LOCAL_SRC_FILES := lib/armeabi-v7a/libSDL2.so
 include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE    := png 
+LOCAL_MODULE    := png
 LOCAL_SRC_FILES := lib/armeabi-v7a/libpng.a
 LOCAL_EXPORT_LDLIBS := -lz
 include $(PREBUILT_STATIC_LIBRARY)
@@ -68,12 +68,13 @@ LOCAL_C_INCLUDES  :=  \
 	$(LOCAL_PATH)/../../../source/ramlib \
 	$(LOCAL_PATH)/../../../source/randlib \
 	$(LOCAL_PATH)/../../../source/scriptlib \
+	$(LOCAL_PATH)/../../../source/openborscript \
 	$(LOCAL_PATH)/../../../source/tracelib2 \
 	$(LOCAL_PATH)/../../../source/webmlib \
 	$(LOCAL_PATH)/../../../source/webmlib/halloc \
 	$(LOCAL_PATH)/../../../source/webmlib/nestegg
 
-		
+
 LOCAL_SRC_FILES := \
 	$(subst $(LOCAL_PATH)/,, \
 	$(wildcard $(LOCAL_PATH)/../../../sdl/*.c) \
