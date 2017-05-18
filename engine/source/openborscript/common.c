@@ -141,12 +141,20 @@ static void clear_named_var_list(List *list, int level)
     }
 }
 
-void Varlist_Init(Varlist *varlist)
+void Varlist_Init(Varlist *varlist, int size)
 {
+    int i;
+
     varlist->magic = varlist_magic;
     varlist->list = calloc(1, sizeof(*varlist->list));
     List_Init(varlist->list);
-    varlist->vars = calloc(1, sizeof(*varlist->vars));
+    varlist->vars = calloc(size + 1, sizeof(*varlist->vars));
+    for(i = 0; i <= size; i++)
+    {
+        ScriptVariant_Init(varlist->vars + i);
+        ScriptVariant_ChangeType(varlist->vars, VT_INTEGER);
+        varlist->vars->lVal = (LONG)size;
+    }
 }
 
 void Varlist_Clear(Varlist *varlist)
@@ -335,7 +343,7 @@ void Script_Global_Init()
     memset(&spawnentry, 0, sizeof(spawnentry)); //clear up the spawn entry
     drawmethod = plainmethod;
 
-    Varlist_Init(&global_var_list);
+    Varlist_Init(&global_var_list, max_indexed_vars);
 
     List_Init(&theFunctionList);
     Script_LoadSystemFunctions();
@@ -421,7 +429,7 @@ Script *alloc_script()
     Script *pscript = calloc(1, sizeof(*pscript));
     pscript->magic = script_magic;
     pscript->varlist = calloc(1, sizeof(*pscript->varlist));
-    Varlist_Init(pscript->varlist);
+    Varlist_Init(pscript->varlist, max_script_vars);
     return pscript;
 }
 
@@ -432,7 +440,7 @@ void Script_Init(Script *pscript, char *theName, char *comment, int first)
         memset(pscript, 0, sizeof(*pscript));
         pscript->magic = script_magic;
         pscript->varlist = calloc(1, sizeof(*pscript->varlist));
-        Varlist_Init(pscript->varlist);
+        Varlist_Init(pscript->varlist, max_script_vars);
     }
     if(!theName || !theName[0])
     {
