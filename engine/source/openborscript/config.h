@@ -12,6 +12,7 @@
 #include "../scriptlib/Interpreter.h"
 #include "../preprocessorlib/pp_parser.h"
 
+#define MAX_GLOBAL_VAR 2048
 #define MAX_KEY_LEN    24
 
 //osc
@@ -66,7 +67,7 @@ extern int no_nested_script;
 extern int global_var_count;
 
 //these functions can be used by openbor.c
-void Varlist_Init(Varlist *varlist);
+void Varlist_Init(Varlist *varlist, int size);
 void Varlist_Clear(Varlist *varlist);
 void Varlist_Cleanup(Varlist *varlist);
 int Varlist_SetByName(Varlist *varlist, char *theName, ScriptVariant *var);
