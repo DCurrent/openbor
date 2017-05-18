@@ -96,7 +96,6 @@
 		<Unit filename="../sdl/timer.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../sdl/vga.h" />
 		<Unit filename="../sdl/video.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -257,14 +256,37 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/globals.h" />
-		<Unit filename="../source/math.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../source/math.h" />
 		<Unit filename="../source/omath.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/omath.h" />
+		<Unit filename="../source/openborscript/animation.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/openborscript/collision_attack.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/openborscript/collision_body.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/openborscript/common.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/openborscript/constant.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/openborscript/layer.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/openborscript/level.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/openborscript/math.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/openborscript/string.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../source/pcxlib/savepcx.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -363,38 +385,8 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/scriptlib/SymbolTable.h" />
-		<Unit filename="../source/scriptlib/animation.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../source/scriptlib/collision_attack.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../source/scriptlib/collision_body.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../source/scriptlib/common.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="../source/scriptlib/config.h" />
-		<Unit filename="../source/scriptlib/constant.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="../source/scriptlib/depends.h" />
-		<Unit filename="../source/scriptlib/layer.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../source/scriptlib/level.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../source/scriptlib/main.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../source/scriptlib/math.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../source/scriptlib/string.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="../source/stringptr.c">
 			<Option compilerVar="CC" />
 		</Unit>
