@@ -9605,9 +9605,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     length = strlen(value);
                     fileext = value + length - 4;
 
-                    // Load color table directly if .act path given,
-                    // else read in palette from an image.
-                    if(stricmp(fileext, ".act") == 0)
+                    // If "none" then set nopalette, meaning each
+                    // frame retains its own color table as is.
+                    // Otherwise load color table directly from
+                    // an .act table or extract from image file.
+                    if(stricmp(value, "none") == 0)
+                    {
+                        nopalette = 1;
+                    }
+                    else if(stricmp(fileext, ".act") == 0)
                     {
                         if(load_palette(newchar->palette, value) == 0)
                         {
