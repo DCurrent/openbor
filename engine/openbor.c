@@ -8349,6 +8349,7 @@ void update_model_loadflag(s_model *model, char unload)
 s_model *load_cached_model(char *name, char *owner, char unload)
 {
 
+    #define LOG_CMD_TITLE   "%-20s"
 
     s_model *newchar = NULL,
             *tempmodel = NULL;
@@ -8514,6 +8515,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     printf("load_cached_model: %s, unload: %d\n", name, unload);
 #endif
 
+    // Start up the standard log entry.
+    printf("%s%s\n", "Loading model: ", name);
+
     // Model already loaded but we might want to unload after level is completed.
     if((tempmodel = findmodel(name)) != NULL)
     {
@@ -8528,7 +8532,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         shutdown(1, "Fatal: No cache entry for '%s' within '%s'\n\n", name, owner);
     }
 
+    // Get the text file name of model.
     filename = model_cache[cacheindex].path;
+    printf("\t"LOG_CMD_TITLE"%s%s\n", "Path", " - ", filename);
 
     if(buffer_pakfile(filename, &buf, &size) != 1)
     {
@@ -9596,43 +9602,69 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(newchar->palette == NULL)
                 {
+
+                    // Command title for log. Details will be added blow accordingly.
+                    // Forced character length is to line up with Alternatepal logs.
+                    printf("\t"LOG_CMD_TITLE"%s", "Palette", " - ");
+
+                    // Get argument.
                     value = GET_ARG(1);
-
-                    newchar->palette = malloc(PAL_BYTES);
-
-                    // Extract the file extension so we can
-                    // use stricmp on it.
-                    length = strlen(value);
-                    fileext = value + length - 4;
 
                     // If "none" then set nopalette, meaning each
                     // frame retains its own color table as is.
-                    // Otherwise load color table directly from
-                    // an .act table or extract from image file.
+                    // Otherwise we will set up the model level
+                    // color table.
                     if(stricmp(value, "none") == 0)
                     {
                         nopalette = 1;
-                    }
-                    else if(stricmp(fileext, ".act") == 0)
-                    {
-                        if(load_palette(newchar->palette, value) == 0)
-                        {
-                            shutdownmessage = "Palette failed to load color table from .act!";
-                            goto lCleanup;
-                        }
+
+                        printf("%s\n", "'None' option active. All sprites for this model will be loaded with independent color tables.");
                     }
                     else
                     {
-                        if(loadimagepalette(value, packfile, newchar->palette) == 0)
+                        // Set up the model level color table.
+                        // We can load either directly from
+                        // an .act file or read the color table
+                        // from an image.
+
+                        // Allocate space for the color table.
+                        newchar->palette = malloc(PAL_BYTES);
+
+                        // Extract the file extension so we can
+                        // use stricmp on it.
+                        length = strlen(value);
+                        fileext = value + length - 4;
+
+                        // Determine whether the author is using
+                        // an .act or image file, and verify the
+                        // file content is valid to load a color
+                        // table from.
+                        if(stricmp(fileext, ".act") == 0)
                         {
-                            shutdownmessage = "Palette failed to load color table from image!";
-                            goto lCleanup;
+                            if(load_palette(newchar->palette, value) == 0)
+                            {
+                                printf("%s%s\n", "Failed to load color table from .act file: ", value);
+                                goto lCleanup;
+                            }
                         }
+                        else
+                        {
+                            if(loadimagepalette(value, packfile, newchar->palette) == 0)
+                            {
+                                printf("%s%s\n", "Failed to load color table from image: ", value);
+                                goto lCleanup;
+                            }
+                        }
+
+                        printf("%s%s\n", "Loaded color selection 0: ", value);
                     }
                 }
 
                 break;
             case CMD_MODEL_ALTERNATEPAL:
+
+                // Command title for log. Details will be added blow accordingly.
+                printf("\t"LOG_CMD_TITLE"%s", "Alternatepal", " - ");
 
                 __realloc(mapflag, newchar->maps_loaded);
                 __realloc(newchar->colourmap, newchar->maps_loaded);
@@ -9651,7 +9683,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     if(load_palette(newchar->colourmap[newchar->maps_loaded], value) == 0)
                     {
-                        shutdownmessage = "Alternatepal failed to load color table from .act!";
+                        printf("%s%s\n", "Failed to load color table from .act file: ", value);
                         goto lCleanup;
                     }
                 }
@@ -9659,17 +9691,26 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     if(loadimagepalette(value, packfile, newchar->colourmap[newchar->maps_loaded]) == 0)
                     {
-                        shutdownmessage = "Alternatepal failed to load color table from image!";
+                        printf("%s%s\n", "Failed to load color table from image: ", value);
                         goto lCleanup;
                     }
                 }
 
                 newchar->maps_loaded++;
 
+                printf("Loaded color selection %i: %s\n", newchar->maps_loaded, value);
+
                 break;
             case CMD_MODEL_GLOBALMAP:
+
+                // Command title for log. Details will be added blow accordingly.
+                printf("\t"LOG_CMD_TITLE"%s", "Globalmap", " - ");
+
                 // use global palette under 24bit mode, so some entity/panel/bg can still use palette feature, that saves some memory
                 newchar->globalmap = GET_INT_ARG(1);
+
+                printf("%i: %s\n", newchar->globalmap, value);
+
                 break;
             case CMD_MODEL_ALPHA:
                 newchar->alpha = GET_INT_ARG(1);
@@ -11429,8 +11470,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         convert_map_to_palette(newchar, mapflag);
     }
 
-    printf("Loading '%s' from %s\n", newchar->name, filename);
-
 lCleanup:
 
     if(buf != NULL)
@@ -11461,6 +11500,8 @@ lCleanup:
 
     shutdown(1, "Fatal Error in load_cached_model, file: %s, line %d, message: %s\n", filename, line, shutdownmessage);
     return NULL;
+
+    #undef LOG_CMD_TITLE
 }
 
 
