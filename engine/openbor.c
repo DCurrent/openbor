@@ -10865,6 +10865,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_FRAME:
             {
+                // Command title for log. Details will be added blow accordingly.
+                printf("\t\t\t"LOG_CMD_TITLE, "Frame", " - ");
+
                 if(!newanim)
                 {
                     shutdownmessage = "Cannot add frame: animation not specified!";
@@ -10897,29 +10900,46 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     }
                 }
                 value = GET_ARG(1);
-                //printf("frame count: %d\n",framecount);
-                //printf("Load sprite '%s'...\n", value);
+
+                // Log info.
+                printf("%s\n", framecount);
+                printf("\t\t\t\t"LOG_CMD_TITLE"%s%s\n", "Sprite Path", " - ", value);
+
                 index = stricmp(value, "none") == 0 ? -1 : loadsprite(value, offset.x, offset.y, nopalette ? PIXEL_x8 : PIXEL_8); //don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
                 if(index >= 0)
                 {
+                    // If the model does not have a designated palette
+                    // yet and the author did not specify palette none
+                    // or global palette, then we will use this frame's
+                    // sprite to load a color table. Effectively the first
+                    // frame of a model becomes its palette base.
                     if(pixelformat == PIXEL_x8 && !nopalette)
                     {
-                        // for old mod just give it a default palette
+                        // No master color table assigned yet?
                         if(newchar->palette == NULL)
                         {
+                            printf("\t\t\t\t"LOG_CMD_TITLE"%s", "Auto Palette", " - 'Palette' not defined. Attempting to load color table from this frame: ");
+
+                            // Allocate memory for color table.
                             newchar->palette = malloc(PAL_BYTES);
+                            //
                             if(loadimagepalette(value, packfile, newchar->palette) == 0)
                             {
-                                shutdownmessage = "Failed to load palette!";
+                                printf("%s%s\n", "Failed to load color table from image: ", value);
                                 goto lCleanup;
                             }
                         }
+
+                        printf("%s\n", "Success. Loaded color selection 0 from frame.");
+
+                        // Assign the color table to sprite.
                         if(!nopalette)
                         {
                             sprite_map[index].node->sprite->palette = newchar->palette;
                             sprite_map[index].node->sprite->pixelformat = pixelformat;
                         }
                     }
+
                     if(maskindex >= 0)
                     {
                         sprite_map[index].node->sprite->mask = sprite_map[maskindex].node->sprite;
