@@ -10902,7 +10902,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
 
                 // Log info.
-                printf("%s\n", framecount);
+                printf("%d\n", framecount);
                 printf("\t\t\t\t"LOG_CMD_TITLE"%s%s\n", "Sprite Path", " - ", value);
 
                 index = stricmp(value, "none") == 0 ? -1 : loadsprite(value, offset.x, offset.y, nopalette ? PIXEL_x8 : PIXEL_8); //don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
