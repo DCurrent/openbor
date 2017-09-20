@@ -2,13 +2,12 @@
 OpenBOR is a continuation of the Beats Of Rage 2D game engine, which was originally
 created by the wonderful folks over at [Senile Team](http://www.senileteam.com). 
 
-
 ## History
 In 2004, [Senile Team](http://www.senileteam.com) released Beats of Rage, a free beat-'em-up for DOS inspired
 by SEGA's Streets of Rage series and using sprites from SNK Playmore's King of
 Fighters series.  The game spread only by word of mouth, but it nonetheless
 amassed popularity very quickly.  Senile Team soon released an edit pack allowing
-anyone interested to create a mod for the BOR engine.
+anyone interested to create a module for the BOR engine.
 
 In 2005, Kirby2000 asked Senile Team to open the source code to BOR.  They
 agreed, and OpenBOR was born.  Development on the engine was continued by the
@@ -56,7 +55,7 @@ A long time module author and extremely knowledgeable coder who joined the devel
 
 #### uTunnels (2007-2014)
 Among many other powerful additions, contributed the original scripting engine to OpenBOR, single handedly
-breaking nearly every single limitation module authors faced. While not officially retired, uTunnels presence became gradually more infrequent before stopping altogether in early 2014.
+breaking nearly every limitation module authors faced. While not officially retired, uTunnels' presence became gradually more infrequent before stopping altogether in early 2014.
 
 #### Anallyst (2011)
 This developer's work centered mainly around trimming the fat and optimizing the codebase.
@@ -87,7 +86,7 @@ up Beats Of Rage.
 ### [Senile Team](http://www.senileteam.com)
 Senile team was not directly involved with developing OpenBOR, but their opening
 of the orginal Beats of Rage codebase was vital. Parts of the orginal BOR still
-reside in OpenBORto this day.
+reside in OpenBOR to this day.
 
 #### [Roel](http://www.roelvanmastbergen.nl) (credited as "Opla" in BoR)
 The team's chieftain. Does most of the game design, programming and artwork.
