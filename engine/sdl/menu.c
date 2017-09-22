@@ -454,6 +454,12 @@ static void initMenu(int type)
 	videomodes.hRes = isWide ? 480 :320;
 	videomodes.vRes = isWide ? 272 :240;
 	videomodes.pixel = pixelbytes[PIXEL_32];
+#ifndef ANDROID
+	videomodes.hScale = 2.0f;
+	videomodes.vScale = 2.0f;
+	savedata.glscale = 2.0f;
+	savedata.glfilter[0] = savedata.glfilter[1] = 1;
+#endif
 	vscreen = allocscreen(videomodes.hRes, videomodes.vRes, PIXEL_32);
 
 	video_set_mode(videomodes);
