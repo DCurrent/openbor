@@ -32,9 +32,9 @@ extern s_videomodes videomodes;
 extern s_screen* vscreen;
 extern int nativeHeight;
 extern int nativeWidth;
-s_screen* bgscreen;
+static s_screen* bgscreen;
 // CRxTRDude - Added the log screen variable.
-s_screen* logscreen;
+static s_screen* logscreen;
 
 #define RGB32(R,G,B) ((R) | ((G) << 8) | ((B) << 16))
 #define RGB16(R,G,B) ((B&0xF8)<<8) | ((G&0xFC)<<3) | (R>>3)
@@ -57,18 +57,17 @@ s_screen* logscreen;
 #define LOG_SCREEN_TOP 2
 #define LOG_SCREEN_END (isWide ? 26 : 23)
 
-int bpp = 32;
-int isWide = 0;
-int isFull = 0;
-int flags;
-int dListTotal;
-int dListCurrentPosition;
-int dListScrollPosition;
-int which_logfile = OPENBOR_LOG;
-FILE *bgmFile = NULL;
-unsigned int bgmPlay = 0, bgmLoop = 0, bgmCycle = 0, bgmCurrent = 0, bgmStatus = 0;
+static int bpp = 32;
+static int isWide = 0;
+static int isFull = 0;
+static int dListTotal;
+static int dListCurrentPosition;
+static int dListScrollPosition;
+static int which_logfile = OPENBOR_LOG;
+static FILE *bgmFile = NULL;
+static unsigned int bgmPlay = 0, bgmLoop = 0, bgmCycle = 0, bgmCurrent = 0, bgmStatus = 0;
+static fileliststruct *filelist;
 extern u32 bothkeys, bothnewkeys;
-fileliststruct *filelist;
 extern const s_drawmethod plainmethod;
 
 typedef struct{
@@ -78,22 +77,22 @@ typedef struct{
 	int rows;
 	char ready;
 }s_logfile;
-s_logfile logfile[2];
+static s_logfile logfile[2];
 
 typedef int (*ControlInput)();
 
-int ControlMenu();
-int ControlBGM();
-void PlayBGM();
-void StopBGM();
+static int ControlMenu();
+static int ControlBGM();
+static void PlayBGM();
+static void StopBGM();
 static ControlInput pControl;
 
-int Control()
+static int Control()
 {
 	return pControl();
 }
 
-void getAllLogs()
+static void getAllLogs()
 {
 	ptrdiff_t i, j, k;
 	for(i=0; i<2; i++)
@@ -136,7 +135,7 @@ void getAllLogs()
 	}
 }
 
-void freeAllLogs()
+static void freeAllLogs()
 {
 	int i;
 	for(i=0; i<2; i++)
@@ -151,7 +150,7 @@ void freeAllLogs()
 	}
 }
 
-void sortList()
+static void sortList()
 {
 	int i, j;
 	fileliststruct temp;
@@ -170,7 +169,7 @@ void sortList()
 	}
 }
 
-int findPaks(void)
+static int findPaks(void)
 {
 	int i = 0;
 	DIR* dp = NULL;
@@ -203,13 +202,7 @@ int findPaks(void)
 	return i;
 }
 
-void drawScreens(s_screen *Image)
-{
-	putscreen(vscreen, Image, 0, 0, NULL);
-	video_copy_screen(vscreen);
-}
-
-void printText(int x, int y, int col, int backcol, int fill, char *format, ...)
+static void printText(int x, int y, int col, int backcol, int fill, char *format, ...)
 {
 	int x1, y1, i;
 	u32 data;
@@ -265,7 +258,7 @@ void printText(int x, int y, int col, int backcol, int fill, char *format, ...)
 	}
 }
 
-s_screen *getPreview(char *filename)
+static s_screen *getPreview(char *filename)
 {
 	s_screen *title = NULL;
 	s_screen *scale = NULL;
@@ -282,7 +275,7 @@ s_screen *getPreview(char *filename)
 	return scale;
 }
 
-void StopBGM()
+static void StopBGM()
 {
 	sound_close_music();
 	if (bgmFile)
@@ -293,12 +286,12 @@ void StopBGM()
 	bgmPlay = 0;
 }
 
-void PlayBGM()
+static void PlayBGM()
 {
 	bgmPlay = packfile_music_play(filelist, bgmFile, bgmLoop, dListCurrentPosition, dListScrollPosition);
 }
 
-int ControlMenu()
+static int ControlMenu()
 {
 	int status = -1;
 	int dListMaxDisplay = 17;
@@ -362,7 +355,7 @@ int ControlMenu()
 	return status;
 }
 
-int ControlBGM()
+static int ControlBGM()
 {
 	int status = -2;
 	int dListMaxDisplay = 17;
@@ -444,7 +437,7 @@ int ControlBGM()
 	return status;
 }
 
-void initMenu(int type)
+static void initMenu(int type)
 {
 
 #ifdef ANDROID
@@ -479,7 +472,7 @@ void initMenu(int type)
 	sound_start_playback(savedata.soundbits,savedata.soundrate);
 }
 
-void termMenu()
+static void termMenu()
 {
 	videomodes.hRes = videomodes.vRes = 0;
 	video_set_mode(videomodes);
@@ -491,7 +484,7 @@ void termMenu()
 	control_exit();
 }
 
-void drawMenu()
+static void drawMenu()
 {
 	char listing[45] = {""};
 	int list = 0;
@@ -556,7 +549,7 @@ void drawMenu()
 	video_copy_screen(vscreen);
 }
 
-void drawBGMPlayer()
+static void drawBGMPlayer()
 {
 	char listing[45] = {""}, bgmListing[25] = {""};
 	char t1[64] = "", t2[25] = "Unknown";
@@ -628,7 +621,7 @@ void drawBGMPlayer()
 	video_copy_screen(vscreen);
 }
 
-void drawLogs()
+static void drawLogs()
 {
 	int i=which_logfile, j, k, l, done=0;
 	bothkeys = bothnewkeys = 0;
@@ -681,7 +674,7 @@ void drawLogs()
 	drawMenu();
 }
 
-void drawLogo()
+static void drawLogo()
 {
     if(savedata.logo) return;
 	initMenu(0);
@@ -761,3 +754,4 @@ void Menu()
 	// Restore pixelformat default value.
 	pixelformat = PIXEL_x8;
 }
+
