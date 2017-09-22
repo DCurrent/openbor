@@ -1,5 +1,6 @@
 *.o
 OpenBOR.elf
+meta.xml
 engine/releases/
 tools/
 
