@@ -38,6 +38,7 @@ void StrCache_Clear();
 //void StrCache_Init();
 void StrCache_Collect(int index);
 int StrCache_Pop();
+int StrCache_CreateNewFrom(const CHAR *str);
 CHAR *StrCache_Get(int index);
 void StrCache_Copy(int index, CHAR *str);
 void StrCache_NCopy(int index, CHAR *str, int n);

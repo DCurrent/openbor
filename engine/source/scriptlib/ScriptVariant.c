@@ -60,9 +60,7 @@ void StrCache_Init()
     strcache_index = malloc(sizeof(*strcache_index) * STRCACHE_INC);
     for(i = 0; i < STRCACHE_INC; i++)
     {
-        strcache[i].str = malloc(sizeof(CHAR) * (MAX_STR_VAR_LEN + 1));
-        strcache[i].str[0] = 0;
-        strcache[i].len = MAX_STR_VAR_LEN;
+        strcache[i].str = NULL;
         strcache_index[i] = i;
     }
     strcache_size = STRCACHE_INC;
@@ -87,11 +85,13 @@ void StrCache_Collect(int index)
         //if(strcache[index].len > MAX_STR_VAR_LEN)
         //	StrCache_Resize(index, MAX_STR_VAR_LEN);
         //assert(strcache_top+1<strcache_size);
+        free(strcache[index].str);
+        strcache[index].str = NULL;
         strcache_index[++strcache_top] = index;
     }
 }
 
-int StrCache_Pop()
+int StrCache_Pop(int length)
 {
     int i;
     if(strcache_size == 0)
@@ -105,9 +105,6 @@ int StrCache_Pop()
         for(i = 0; i < STRCACHE_INC; i++)
         {
             strcache_index[i] = strcache_size + i;
-            strcache[i + strcache_size].str = malloc(sizeof(CHAR) * (MAX_STR_VAR_LEN + 1));
-            strcache[i + strcache_size].str[0] = 0;
-            strcache[i + strcache_size].len = MAX_STR_VAR_LEN;
         }
 
         //printf("debug: dumping string cache....\n");
@@ -120,8 +117,19 @@ int StrCache_Pop()
         //printf("debug: string cache resized to %d \n", strcache_size);
     }
     i = strcache_index[strcache_top--];
+    strcache[i].str = malloc(length + 1);
+    strcache[i].str[0] = 0;
+    strcache[i].len = length;
     strcache[i].ref = 1;
     return i;
+}
+
+int StrCache_CreateNewFrom(const CHAR *str)
+{
+    int len = strlen(str);
+    int strVal = StrCache_Pop(len);
+    memcpy(StrCache_Get(strVal), str, len + 1);
+    return strVal;
 }
 
 void StrCache_Copy(int index, CHAR *str)
@@ -189,12 +197,7 @@ void ScriptVariant_ChangeType(ScriptVariant *var, VARTYPE cvt)
     {
         StrCache_Collect(var->strVal);
     }
-    if(cvt == VT_STR)
-    {
-        var->strVal = StrCache_Pop();
-    }
     var->vt = cvt;
-
 }
 
 // find an existing constant before copy
@@ -210,12 +213,12 @@ void ScriptVariant_ParseStringConstant(ScriptVariant *var, CHAR *str)
             var->strVal = i;
             strcache[i].ref++;
             var->vt = VT_STR;
-            break;
+            return;
         }
     }
 
     ScriptVariant_ChangeType(var, VT_STR);
-    StrCache_Copy(var->strVal, str);
+    var->strVal = StrCache_CreateNewFrom(str);
 }
 
 HRESULT ScriptVariant_IntegerValue(ScriptVariant *var, LONG *pVal)
@@ -294,6 +297,26 @@ void ScriptVariant_ToString(ScriptVariant *svar, LPSTR buffer )
     default:
         sprintf(buffer, "<Unprintable VARIANT type.>" );
         break;
+    }
+}
+
+static int ScriptVariant_LengthAsString(ScriptVariant *svar)
+{
+    switch (svar->vt)
+    {
+    case VT_EMPTY:
+        return snprintf(NULL, 0, "<VT_EMPTY>   Unitialized");
+    case VT_INTEGER:
+        return snprintf(NULL, 0, "%d", svar->lVal);
+    case VT_DECIMAL:
+        return snprintf(NULL, 0, "%lf", svar->dblVal);
+    case VT_PTR:
+        return snprintf(NULL, 0, "#%ld", (long)(svar->ptrVal));
+    case VT_STR:
+        // could use StrCache_Len instead to improve speed
+        return snprintf(NULL, 0, "%s", StrCache_Get(svar->strVal));
+    default:
+        return snprintf(NULL, 0, "<Unprintable VARIANT type.>");
     }
 }
 
@@ -672,7 +695,6 @@ ScriptVariant *ScriptVariant_Add( ScriptVariant *svar, ScriptVariant *rightChild
 {
     static ScriptVariant retvar = {{.ptrVal = NULL}, VT_EMPTY};
     DOUBLE dbl1, dbl2;
-    CHAR buf[MAX_STR_VAR_LEN + 1];
     if(ScriptVariant_DecimalValue(svar, &dbl1) == S_OK &&
             ScriptVariant_DecimalValue(rightChild, &dbl2) == S_OK)
     {
@@ -689,10 +711,16 @@ ScriptVariant *ScriptVariant_Add( ScriptVariant *svar, ScriptVariant *rightChild
     }
     else if(svar->vt == VT_STR || rightChild->vt == VT_STR)
     {
+        CHAR *dst;
+        int len1 = ScriptVariant_LengthAsString(svar),
+            len2 = ScriptVariant_LengthAsString(rightChild);
+
         ScriptVariant_ChangeType(&retvar, VT_STR);
-        ScriptVariant_ToString(svar, StrCache_Get(retvar.strVal));
-        ScriptVariant_ToString(rightChild, buf);
-        strcat(StrCache_Get(retvar.strVal), buf);
+        retvar.strVal = StrCache_Pop(len1 + len2);
+        dst = StrCache_Get(retvar.strVal);
+        ScriptVariant_ToString(svar, dst);
+        ScriptVariant_ToString(rightChild, dst + len1);
+        dst[len1 + len2] = '\0'; // shouldn't be needed, but just in case
     }
     else
     {

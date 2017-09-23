@@ -1207,7 +1207,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         if(currentScene)
         {
             ScriptVariant_ChangeType(var, VT_STR);
-            strcpy(StrCache_Get(var->strVal), currentScene);
+            var->strVal = StrCache_CreateNewFrom(currentScene);
         }
         else
         {
@@ -1248,13 +1248,13 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_branchname:
         ScriptVariant_ChangeType(var, VT_STR);
-        strcpy(StrCache_Get(var->strVal), branch_name);
+        var->strVal = StrCache_CreateNewFrom(branch_name);
         break;
     case _sv_current_branch:
         ScriptVariant_ChangeType(var, VT_STR);
         if(level != NULL && levelsets && levelsets[current_set].levelorder && levelsets[current_set].levelorder[current_level].branchname)
         {
-            strcpy(StrCache_Get(var->strVal), levelsets[current_set].levelorder[current_level].branchname);
+            var->strVal = StrCache_CreateNewFrom(levelsets[current_set].levelorder[current_level].branchname);
         }
         else
         {
@@ -1262,9 +1262,13 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         }
         break;
     case _sv_pakname:
+    {
+        char tempstr[256];
+        getPakName(tempstr, -1);
         ScriptVariant_ChangeType(var, VT_STR);
-        getPakName(StrCache_Get(var->strVal), -1);
+        var->strVal = StrCache_CreateNewFrom(tempstr);
         break;
+    }
     case _sv_maxsoundchannels:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = maxchannels();

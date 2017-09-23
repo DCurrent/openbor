@@ -187,7 +187,7 @@ HRESULT openbor_get_set_property(ScriptVariant **varlist, ScriptVariant **pretva
         case SET_PROP_NAME:
 
             ScriptVariant_ChangeType(*pretvar, VT_STR);
-            StrCache_Copy((*pretvar)->strVal, handle->name);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->name);
             break;
 
         case SET_PROP_PLAYER_MAX:
@@ -412,7 +412,7 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
         case LEVEL_PROP_BOSS_MUSIC_NAME:
 
             ScriptVariant_ChangeType(*pretvar, VT_STR);
-            StrCache_Copy((*pretvar)->strVal, handle->bossmusic);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->bossmusic);
             break;
 
         case LEVEL_PROP_BOSS_MUSIC_OFFSET:
@@ -655,7 +655,7 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
         case LEVEL_PROP_NAME:
 
             ScriptVariant_ChangeType(*pretvar, VT_STR);
-            StrCache_Copy((*pretvar)->strVal, handle->name);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->name);
             break;
 
         case LEVEL_PROP_PALETTE_BLENDING_COLLECTION:
