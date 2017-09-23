@@ -30,7 +30,7 @@ HRESULT openbor_strinfirst(ScriptVariant **varlist , ScriptVariant **pretvar, in
     if (tempstr != NULL)
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, tempstr);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(tempstr);
     }
     else
     {
@@ -60,12 +60,13 @@ HRESULT openbor_strinlast(ScriptVariant **varlist , ScriptVariant **pretvar, int
         goto sil_error;
     }
 
+    // this definitely doesn't work??? it interprets a string cache index as a character
     tempstr = strrchr((char *)StrCache_Get(varlist[0]->strVal), varlist[1]->strVal);
 
     if (tempstr != NULL)
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, tempstr);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(tempstr);
     }
     else
     {
@@ -81,6 +82,10 @@ sil_error:
 //strleft(char string, int i);
 HRESULT openbor_strleft(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
+    const char *src;
+    char *dst;
+    int srcLength, dstLength;
+
     if(paramCount < 2)
     {
         goto sl_error;
@@ -91,8 +96,15 @@ HRESULT openbor_strleft(ScriptVariant **varlist , ScriptVariant **pretvar, int p
         printf("\n Error, strleft({string}, {characters}): Invalid or missing parameter. Strleft must be passed valid {string} and number of {characters}.\n");
         goto sl_error;
     }
+
+    src = StrCache_Get(varlist[0]->strVal);
+    srcLength = strlen(src);
+    dstLength = (srcLength < varlist[1]->lVal) ? srcLength : varlist[1]->lVal;
     ScriptVariant_ChangeType(*pretvar, VT_STR);
-    StrCache_NCopy((*pretvar)->strVal, (char *)StrCache_Get(varlist[0]->strVal), varlist[1]->lVal);
+    (*pretvar)->strVal = StrCache_Pop(dstLength);
+    dst = StrCache_Get((*pretvar)->strVal);
+    memcpy(dst, src, dstLength);
+    dst[dstLength] = '\0';
 
     return S_OK;
 sl_error:
@@ -159,7 +171,7 @@ HRESULT openbor_strright(ScriptVariant **varlist , ScriptVariant **pretvar, int 
     if (tempstr && tempstr[0])
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, &tempstr[varlist[1]->lVal]);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(&tempstr[varlist[1]->lVal]);
     }
     else
     {

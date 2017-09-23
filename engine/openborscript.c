@@ -1224,13 +1224,13 @@ HRESULT openbor_getmodelproperty(ScriptVariant **varlist , ScriptVariant **pretv
     case 2:
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, model_cache[iArg].name);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(model_cache[iArg].name);
         break;
     }
     case 3:
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, model_cache[iArg].path);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(model_cache[iArg].path);
         break;
     }
     case 4:                                                    //Loaded?
@@ -2553,7 +2553,6 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
 HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     entity *ent			= NULL;
-    char *tempstr		= NULL;
     ScriptVariant *arg	= NULL;
     ScriptVariant *arg1	= NULL;
     s_sprite *spr;
@@ -3009,7 +3008,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_defaultname:
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, ent->defaultmodel->name);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(ent->defaultmodel->name);
         break;
     }
     case _ep_defense:
@@ -3910,7 +3909,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_model:
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, ent->model->name);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(ent->model->name);
         break;
     }
     case _ep_mp:
@@ -3946,7 +3945,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_name:
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, ent->name);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(ent->name);
         break;
     }
     case _ep_nextanim:
@@ -4081,9 +4080,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_path:
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        tempstr = ent->modeldata.path;
-
-        StrCache_Copy((*pretvar)->strVal, tempstr);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(ent->modeldata.path);
         break;
     }
     case _ep_pathfindstep:
@@ -4333,7 +4330,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         case _ep_spritea_file:
         {
             ScriptVariant_ChangeType(*pretvar, VT_STR);
-            StrCache_Copy((*pretvar)->strVal, sprite_map[i].node->filename);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(sprite_map[i].node->filename);
             break;
         }
         case _ep_spritea_offsetx:
@@ -6809,7 +6806,7 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _pp_name:
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, (char *)player[index].name);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(player[index].name);
         break;
     }
     case _pp_colourmap:
@@ -7902,6 +7899,7 @@ HRESULT openbor_getfilestreamline(ScriptVariant **varlist , ScriptVariant **pret
 {
     int length;
     char *buf;
+    char *dst;
     ScriptVariant *arg = NULL;
     LONG filestreamindex;
 
@@ -7926,7 +7924,10 @@ HRESULT openbor_getfilestreamline(ScriptVariant **varlist , ScriptVariant **pret
         ++length;
     }
 
-    StrCache_NCopy((*pretvar)->strVal, buf, length);
+    (*pretvar)->strVal = StrCache_Pop(length);
+    dst = StrCache_Get((*pretvar)->strVal);
+    memcpy(dst, buf, length);
+    dst[length] = '\0';
 
     return S_OK;
 }
@@ -7966,7 +7967,7 @@ HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **
     if(stricmp(argtype, "string") == 0)
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, (char *)findarg(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos, argument));
+        (*pretvar)->strVal = StrCache_CreateNewFrom(findarg(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos, argument));
     }
     else if(stricmp(argtype, "int") == 0)
     {
@@ -9962,7 +9963,7 @@ HRESULT openbor_gettextobjproperty(ScriptVariant **varlist , ScriptVariant **pre
     case _top_text:
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, level->textobjs[ind].text);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(level->textobjs[ind].text);
         break;
     }
     case _top_time:
@@ -11299,7 +11300,7 @@ HRESULT openbor_key(ScriptVariant **varlist , ScriptVariant **pretvar, int param
     if(name)
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, name);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(name);
     }
     else
     {
@@ -13566,7 +13567,7 @@ HRESULT openbor_getsaveinfo(ScriptVariant **varlist , ScriptVariant **pretvar, i
     else if(0 == stricmp(prop, "name"))
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, slot->dName);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(slot->dName);
     }
     else if(0 == stricmp(prop, "playername"))
     {
@@ -13575,7 +13576,7 @@ HRESULT openbor_getsaveinfo(ScriptVariant **varlist , ScriptVariant **pretvar, i
             goto gsi_error;
         }
         ScriptVariant_ChangeType(*pretvar, VT_STR);
-        StrCache_Copy((*pretvar)->strVal, slot->pName[ltemp]);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(slot->pName[ltemp]);
     }
     else if(0 == stricmp(prop, "health"))
     {
