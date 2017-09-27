@@ -9847,9 +9847,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.max.x            = (int)newchar->jumpheight * 20;       //30-12-2004 default range affected by jump height
                 newanim->range.min.z            = (int) - newchar->grabdistance / 3;   //zmin
                 newanim->range.max.z            = (int)newchar->grabdistance / 3;      //zmax
-                newanim->range.min.y            = -1000;                               //amin
+                newanim->range.min.y            = T_MIN_BASEMAP;                               //amin
                 newanim->range.max.y            = 1000;                                //amax
-                newanim->range.min.base         = -1000;                            //Base min.
+                newanim->range.min.base         = T_MIN_BASEMAP;                            //Base min.
                 newanim->range.max.base         = 1000;                             //Base max.
                 newanim->jumpframe.velocity.y   = 0;  //Default disabled.
                 newanim->energycost             = NULL;
@@ -18670,7 +18670,8 @@ entity *check_platform_below(float x, float z, float a, entity *exclude)
 
 entity *check_platform_above_entity(entity *e)
 {
-    float mina, heightvar;
+    float mina;
+    int heightvar;
     entity *plat = NULL;
     int i, ind;
 
@@ -20037,7 +20038,7 @@ void check_ai()
 
 float check_basemap(int x, int z)
 {
-    float maxbase = 0, base = -1000;
+    float maxbase = 0, base = T_MIN_BASEMAP;
     int i;
 
     if(!level)
@@ -20057,12 +20058,12 @@ float check_basemap(int x, int z)
             }
         }
     }
-    return base == -1000 ? base : maxbase;
+    return base == T_MIN_BASEMAP ? base : maxbase;
 }
 
 int check_basemap_index(int x, int z)
 {
-    float maxbase = 0, base = -1000;
+    float maxbase = 0, base = T_MIN_BASEMAP;
     int i, index = -1;
 
     if(!level)
@@ -20083,7 +20084,7 @@ int check_basemap_index(int x, int z)
             }
         }
     }
-    return base == -1000 ? -1 : index;
+    return base == T_MIN_BASEMAP ? -1 : index;
 }
 
 void adjust_base(entity *e, entity **pla)
@@ -20160,7 +20161,8 @@ void adjust_base(entity *e, entity **pla)
         //printf("stb:%d\n",self->modeldata.subject_to_basemap);
         if(self->modeldata.subject_to_basemap > 0) maxbase = check_basemap(self->position.x, self->position.z);
 
-        if(maxbase == -1000 && self->modeldata.subject_to_hole > 0)
+        printf("model: %s, subject to basemap: %d, subject hole: %d, check hole: %d\n",self->modeldata.name,self->modeldata.subject_to_basemap,self->modeldata.subject_to_hole,checkhole(self->position.x, self->position.z));
+        if(maxbase == T_MIN_BASEMAP && self->modeldata.subject_to_hole > 0)
         {
             hole = (wall < 0 && !other) ? checkhole_in(self->position.x, self->position.z, self->position.y) : 0;
             if ( hole )
@@ -20171,10 +20173,10 @@ void adjust_base(entity *e, entity **pla)
 
             if(seta < 0 && hole)
             {
-                self->base = -1000;
+                self->base = T_MIN_BASEMAP;
                 ent_unlink(self);
             }
-            else if(!hole && self->base == -1000)
+            else if(!hole && self->base == T_MIN_BASEMAP)
             {
                 if(self->position.y >= 0)
                 {
@@ -20187,7 +20189,7 @@ void adjust_base(entity *e, entity **pla)
             }
         }
 
-        if(self->base != -1000 || wall >= 0)
+        if(self->base != T_MIN_BASEMAP || wall >= 0)
         {
             if(other != NULL && other != self )
             {
@@ -20209,7 +20211,7 @@ void adjust_base(entity *e, entity **pla)
             }
         }
 
-        if(self->base != -1000 && maxbase > self->base)
+        if(self->base != T_MIN_BASEMAP && maxbase > self->base)
         {
             self->base = maxbase;
             // White Dragon: fix bug for floating entity on basemaps using a threshold
@@ -24549,7 +24551,7 @@ void common_runoff()
 
 void common_stuck_underneath()
 {
-    float heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y;
+    int heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y;
     if(!check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self) )
     {
         self->takeaction = NULL;
@@ -26101,7 +26103,8 @@ int biker_move()
 // for common arrow types
 int arrow_move()
 {
-    int wall;
+    int wall, heightvar;
+    entity *other = NULL;
     float dx;
     float dz;
     float maxspeed;
@@ -26190,7 +26193,19 @@ int arrow_move()
 
     if(level)
     {
-        if(self->modeldata.subject_to_wall && (wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height)
+        if(self->animation->size.y)
+        {
+            heightvar = self->animation->size.y;
+        }
+        else
+        {
+            heightvar = self->modeldata.size.y;
+        }
+
+        if(
+           ( self->modeldata.subject_to_wall && (wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height) ||
+           ( self->modeldata.subject_to_platform && (other = check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self)) )
+           )
         {
             // Added so projectiles bounce off blocked exits
             if(validanim(self, ANI_FALL))
@@ -26347,11 +26362,25 @@ int boomerang_move()
         }
     }
 
-    if(self->modeldata.subject_to_wall && validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
+    if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
     {
         int wall;
+        entity *other = NULL;
+        int heightvar;
 
-        if((wall = checkwall(self->position.x, self->position.z)) > 0 && self->position.y < level->walls[wall].height)
+        if(self->animation->size.y)
+        {
+            heightvar = self->animation->size.y;
+        }
+        else
+        {
+            heightvar = self->modeldata.size.y;
+        }
+
+        if(
+           ( self->modeldata.subject_to_wall && (wall = checkwall(self->position.x, self->position.z)) > 0 && self->position.y < level->walls[wall].height) ||
+           ( self->modeldata.subject_to_platform > 0 && (other = check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self)) )
+           )
         {
             self->takeaction = common_fall;
             self->attacking = 0;
@@ -26386,7 +26415,8 @@ int bomb_move()
 
         self->takeaction = bomb_explode;
         self->velocity.y = 0;    // Stop moving up/down
-        self->modeldata.no_adjust_base = 1;    // Stop moving up/down
+        //self->modeldata.no_adjust_base = 1;    // Stop moving up/down
+        self->modeldata.subject_to_basemap = 1;
         self->base = self->position.y;
         self->velocity.x = self->velocity.z = 0;
 
@@ -26413,20 +26443,34 @@ int bomb_move()
 
 int star_move()
 {
-    if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80) || (self->base <= 0 && !self->modeldata.falldie))
+    if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80) || (self->position.y <= self->base && !self->modeldata.falldie))
     {
         kill(self);
         return 0;
     }
 
-    self->base -= 4;
-    self->position.y = self->base;
+    //self->base -= 4;
+    //self->position.y = self->base;
 
     if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
     {
         int wall;
+        entity *other = NULL;
+        int heightvar;
 
-        if((wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height)
+        if(self->animation->size.y)
+        {
+            heightvar = self->animation->size.y;
+        }
+        else
+        {
+            heightvar = self->modeldata.size.y;
+        }
+
+        if(
+           ( self->modeldata.subject_to_wall > 0 && (wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height ) ||
+           ( self->modeldata.subject_to_platform > 0 && (other = check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self)) )
+           )
         {
             self->takeaction = common_fall;
             self->attacking = 0;
@@ -26439,7 +26483,7 @@ int star_move()
         }
     }
 
-    if(self->landed_on_platform || self->base <= 0)
+    if(self->landed_on_platform || self->position.y <= self->base)
     {
         self->takeaction = common_lie;
         self->health = 0;
@@ -29828,7 +29872,7 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
 
         e->modeldata.subject_to_wall = e->modeldata.subject_to_platform =
                                            e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
-        e->modeldata.no_adjust_base = 1;
+        e->modeldata.no_adjust_base = 0;
     }
     return 1;
 }
