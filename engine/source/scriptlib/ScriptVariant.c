@@ -69,8 +69,7 @@ void StrCache_Resize(int index, int size)
 {
     //assert(index<strcache_size);
     //assert(size>0);
-    ///if (strcache[index].str == NULL) strcache[index].str = malloc(0);
-    strcache[index].str = realloc(strcache[index].str, size + 1); /*EDIT*/
+    strcache[index].str = realloc(strcache[index].str, size + 1);
     strcache[index].str[size] = 0;
     strcache[index].len = size;
 }
