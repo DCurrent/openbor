@@ -33,10 +33,7 @@ void StrCache_Clear()
     {
         for(i = 0; i < strcache_size; i++)
         {
-            if(strcache[i].str)
-            {
-                free(strcache[i].str);
-            }
+            if(strcache[i].str) free(strcache[i].str);
             strcache[i].str = NULL;
         }
         free(strcache);
@@ -60,6 +57,7 @@ void StrCache_Init()
     strcache_index = malloc(sizeof(*strcache_index) * STRCACHE_INC);
     for(i = 0; i < STRCACHE_INC; i++)
     {
+        if (strcache[i].str) free(strcache[i].str);
         strcache[i].str = NULL;
         strcache_index[i] = i;
     }
@@ -71,7 +69,8 @@ void StrCache_Resize(int index, int size)
 {
     //assert(index<strcache_size);
     //assert(size>0);
-    strcache[index].str = realloc(strcache[index].str, size + 1);
+    ///if (strcache[index].str == NULL) strcache[index].str = malloc(0);
+    strcache[index].str = realloc(strcache[index].str, size + 1); /*EDIT*/
     strcache[index].str[size] = 0;
     strcache[index].len = size;
 }
@@ -85,7 +84,7 @@ void StrCache_Collect(int index)
         //if(strcache[index].len > MAX_STR_VAR_LEN)
         //	StrCache_Resize(index, MAX_STR_VAR_LEN);
         //assert(strcache_top+1<strcache_size);
-        free(strcache[index].str);
+        if (strcache[index].str) free(strcache[index].str);
         strcache[index].str = NULL;
         strcache_index[++strcache_top] = index;
     }
@@ -208,7 +207,7 @@ void ScriptVariant_ParseStringConstant(ScriptVariant *var, CHAR *str)
     int i;
     for(i = 0; i < strcache_size; i++)
     {
-        if(strcache[i].ref && strcmp(str, strcache[i].str) == 0)
+        if(strcache[i].ref && strcache[i].str && strcmp(str, strcache[i].str) == 0)
         {
             var->strVal = i;
             strcache[i].ref++;
