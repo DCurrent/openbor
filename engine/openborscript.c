@@ -1984,6 +1984,14 @@ enum _prop_summonframe_enum
     _PROP_SUMMONFRAME_THE_END
 };
 
+enum _prop_starvelocity_enum
+{
+    _PROP_STARVELOCITY_1,
+    _PROP_STARVELOCITY_2,
+    _PROP_STARVELOCITY_3,
+    _PROP_STARVELOCITY_THE_END
+};
+
 enum _prop_weaponframe_enum
 {
     _PROP_WEAPONFRAME_FRAME,
