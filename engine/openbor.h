@@ -1713,6 +1713,7 @@ typedef struct
     s_axis_i        size;                   // Dimensions (height, width).
     int             *soundtoplay;           // each frame can have a sound
     float           *spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
+    float           *starvelocity;          // 3 velocities for the start projectile
     int             *sprite;                // sprite[set][framenumber]
     int             subentity;              // Store the sub-entity's name for further use
     float           *summonframe;           // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}

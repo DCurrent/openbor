@@ -427,6 +427,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_SPEED, "speed");
     LIST_ADD(CMD_MODEL_SPEEDF, "speedf");
     LIST_ADD(CMD_MODEL_STAR, "star");
+    LIST_ADD(CMD_MODEL_STAR_VELOCITY, "starvelocity");
     LIST_ADD(CMD_MODEL_STATS, "stats");
     LIST_ADD(CMD_MODEL_STAYDOWN, "staydown");
     LIST_ADD(CMD_MODEL_STEAL, "steal");

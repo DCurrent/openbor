@@ -5410,6 +5410,11 @@ void free_anim(s_anim *anim)
         return;
     }
     free_frames(anim);
+    if(anim->starvelocity)
+    {
+        free(anim->starvelocity);
+        anim->starvelocity = NULL;
+    }
     if(anim->weaponframe)
     {
         free(anim->weaponframe);
@@ -11114,6 +11119,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->summonframe[2] = GET_FLOAT_ARG(3);
                 newanim->summonframe[3] = GET_FLOAT_ARG(4);
                 newanim->summonframe[4] = GET_FLOAT_ARG(5);
+                break;
+            case CMD_MODEL_STAR_VELOCITY:
+                newanim->starvelocity    = malloc(3 * sizeof(*newanim->starvelocity));
+                memset(newanim->starvelocity, 0, 3 * sizeof(*newanim->starvelocity));
+                newanim->starvelocity[0] = GET_FLOAT_ARG(1);
+                newanim->starvelocity[1] = GET_FLOAT_ARG(2);
+                newanim->starvelocity[2] = GET_FLOAT_ARG(3);
                 break;
             case CMD_MODEL_UNSUMMONFRAME:
                 newanim->unsummonframe = GET_FRAME_ARG(1);
@@ -20161,7 +20173,6 @@ void adjust_base(entity *e, entity **pla)
         //printf("stb:%d\n",self->modeldata.subject_to_basemap);
         if(self->modeldata.subject_to_basemap > 0) maxbase = check_basemap(self->position.x, self->position.z);
 
-        printf("model: %s, subject to basemap: %d, subject hole: %d, check hole: %d\n",self->modeldata.name,self->modeldata.subject_to_basemap,self->modeldata.subject_to_hole,checkhole(self->position.x, self->position.z));
         if(maxbase == T_MIN_BASEMAP && self->modeldata.subject_to_hole > 0)
         {
             hole = (wall < 0 && !other) ? checkhole_in(self->position.x, self->position.z, self->position.y) : 0;
@@ -21063,7 +21074,10 @@ void display_ents()
 
                     if(e->owner)
                     {
-                        if ( !(self->modeldata.aimove & AIMOVE1_BOOMERANG) ) sortid = e->owner->sortid + 1;    // Always in front
+                        // WD: This is for projectile or entity spawned by owner: general rule: Always in front
+                        if ( !(self->modeldata.aimove & AIMOVE1_BOOMERANG) &&
+                             !(self->modeldata.aimove & AIMOVE1_STAR)
+                             ) sortid = e->owner->sortid + 1;
                     }
 
                     if(e->modeldata.setlayer)
@@ -29816,6 +29830,8 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
     int i, index = -1;
     char *starname = NULL;
     float fd = (float)((direction ? 2 : -2));
+    int max_stars = 3;
+    int first_sortid = 0;
 
     //merge enemy/player together, use the same rules
     if(self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && self->weapent->modeldata.project >= 0)
@@ -29835,7 +29851,7 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
         starname = "Star";    // this is default star
     }
 
-    for(i = 0; i < 3; i++)
+    for(i = 0; i < max_stars; i++)
     {
         e = spawn(x, z, a, direction, starname, index, NULL);
         if(e == NULL)
@@ -29845,11 +29861,17 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
 
         self->attacking = 0;
 
+        if (i <= 0) first_sortid = e->sortid;
+        e->sortid = first_sortid - i;
         e->takedamage = arrow_takedamage;//enemy_takedamage;    // Players can now hit projectiles
         e->owner = self;    // Added so enemy projectiles don't hit the owner
         e->attacking = 1;
         e->nograb = 1;    // Prevents trying to grab a projectile
-        e->velocity.x = fd * (float)i / 2;
+        if (self->animation->starvelocity)
+        {
+            e->velocity.x = fd * (float)self->animation->starvelocity[i];
+        }
+        else e->velocity.x = fd * (float)i / 2;
         e->think = common_think;
         e->nextthink = time + 1;
         e->trymove = NULL;
