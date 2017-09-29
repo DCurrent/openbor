@@ -88,6 +88,7 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/../../../source/ramlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../source/randlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../source/scriptlib/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../source/openborscript/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../source/webmlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../source/webmlib/*/*.c)) \
 	jniutils.cpp
