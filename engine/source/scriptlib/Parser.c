@@ -589,71 +589,33 @@ void Parser_Param_list2(Parser *pparser )
     }
 }
 
-void Parser_Decl_list(Parser *pparser )
-{
-    if (ParserSet_First(&(pparser->theParserSet), decl, pparser->theNextToken.theType ))
-    {
-        Parser_Decl(pparser );
-        Parser_Decl_list2(pparser );
-    }
-    else
-    {
-        Parser_Error(pparser, decl_list );
-    }
-}
-
-void Parser_Decl_list2(Parser *pparser )
-{
-    if (ParserSet_First(&(pparser->theParserSet), decl, pparser->theNextToken.theType ))
-    {
-        Parser_Decl(pparser );
-        Parser_Decl_list2(pparser );
-    }
-    if (ParserSet_First(&(pparser->theParserSet), stmt, pparser->theNextToken.theType ))
-    {
-        Parser_Stmt(pparser );
-        Parser_Stmt_list2(pparser );
-    }
-    else if (ParserSet_Follow(&(pparser->theParserSet), decl_list2, pparser->theNextToken.theType )) {}
-    else
-    {
-        Parser_Error(pparser, decl_list2 );
-    }
-}
-
 /******************************************************************************
 *  Statement evaluation -- These methods translate statements into
 *  appropriate instructions.
 ******************************************************************************/
 void Parser_Stmt_list(Parser *pparser )
 {
-    if (ParserSet_First(&(pparser->theParserSet), stmt, pparser->theNextToken.theType ))
+    // Use iteration instead of recursion here to guard against stack overflows.
+    while (1)
     {
-        Parser_Stmt(pparser );
-        Parser_Stmt_list2(pparser );
+        if (ParserSet_First(&(pparser->theParserSet), stmt, pparser->theNextToken.theType))
+        {
+            Parser_Stmt(pparser);
+        }
+        else if (ParserSet_First(&(pparser->theParserSet), decl, pparser->theNextToken.theType))
+        {
+            Parser_Decl(pparser);
+        }
+        else
+        {
+            break;
+        }
     }
-    else
-    {
-        Parser_Error(pparser, stmt_list );
-    }
-}
 
-void Parser_Stmt_list2(Parser *pparser )
-{
-    if (ParserSet_First(&(pparser->theParserSet), stmt, pparser->theNextToken.theType ))
-    {
-        Parser_Stmt(pparser );
-        Parser_Stmt_list2(pparser );
-    }
-    else if (ParserSet_First(&(pparser->theParserSet), decl, pparser->theNextToken.theType ))
-    {
-        Parser_Decl(pparser);
-        Parser_Decl_list2(pparser);
-    }
-    else if (ParserSet_Follow(&(pparser->theParserSet), stmt_list2, pparser->theNextToken.theType )) {}
+    if (ParserSet_Follow(&(pparser->theParserSet), stmt_list, pparser->theNextToken.theType)) {}
     else
     {
-        Parser_Error(pparser, stmt_list2 );
+        Parser_Error(pparser, stmt_list);
     }
 }
 
@@ -719,8 +681,7 @@ void Parser_Comp_stmt_Label(Parser *pparser, Label theLabel )
         Parser_AddInstructionViaToken(pparser, PUSH, (Token *)NULL, NULL );
         label = Parser_CreateLabel(pparser);
         strcpy((CHAR *)theLabel, label);
-        Parser_Comp_stmt2(pparser );
-        Parser_Comp_stmt3(pparser );
+        Parser_Stmt_list(pparser);
         Parser_AddInstructionViaToken(pparser, NOOP, (Token *)NULL, label );
         free(label);//dont forget to free the label
         Parser_AddInstructionViaToken(pparser, POP, (Token *)NULL, NULL );
@@ -741,8 +702,7 @@ void Parser_Comp_stmt(Parser *pparser )
         Parser_Match(pparser);
         Parser_AddInstructionViaToken(pparser, PUSH, (Token *)NULL, NULL );
         jumpLabel = Parser_CreateLabel(pparser);
-        Parser_Comp_stmt2(pparser );
-        Parser_Comp_stmt3(pparser );
+        Parser_Stmt_list(pparser);
         Parser_AddInstructionViaToken(pparser, NOOP, (Token *)NULL, jumpLabel );
         free(jumpLabel);
         Parser_AddInstructionViaToken(pparser, POP, (Token *)NULL, NULL );
@@ -752,32 +712,6 @@ void Parser_Comp_stmt(Parser *pparser )
     else
     {
         Parser_Error(pparser, comp_stmt );
-    }
-}
-
-void Parser_Comp_stmt2(Parser *pparser )
-{
-    if (ParserSet_First(&(pparser->theParserSet), decl_list, pparser->theNextToken.theType ))
-    {
-        Parser_Decl_list(pparser );
-    }
-    else if (ParserSet_Follow(&(pparser->theParserSet), comp_stmt2, pparser->theNextToken.theType )) {}
-    else
-    {
-        Parser_Error(pparser, comp_stmt2 );
-    }
-}
-
-void Parser_Comp_stmt3(Parser *pparser )
-{
-    if (ParserSet_First(&(pparser->theParserSet), stmt_list, pparser->theNextToken.theType ))
-    {
-        Parser_Stmt_list(pparser );
-    }
-    else if (ParserSet_Follow(&(pparser->theParserSet), comp_stmt3, pparser->theNextToken.theType )) {}
-    else
-    {
-        Parser_Error(pparser, comp_stmt3 );
     }
 }
 
@@ -912,15 +846,9 @@ void Parser_Switch_body(Parser *pparser, List *pCases )
         {
             Parser_Case_label(pparser, pCases );
         }
-        else if (ParserSet_First(&(pparser->theParserSet), stmt, pparser->theNextToken.theType ))
+        else if (ParserSet_First(&(pparser->theParserSet), stmt_list, pparser->theNextToken.theType))
         {
-            Parser_Stmt(pparser );
-            Parser_Stmt_list2(pparser );
-        }
-        else if (ParserSet_First(&(pparser->theParserSet), decl, pparser->theNextToken.theType ))
-        {
-            Parser_Decl(pparser );
-            Parser_Decl_list2(pparser );
+            Parser_Stmt_list(pparser);
         }
         else if (ParserSet_Follow(&(pparser->theParserSet), switch_body, pparser->theNextToken.theType ))
         {
