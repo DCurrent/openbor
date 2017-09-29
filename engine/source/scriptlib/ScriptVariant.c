@@ -6,10 +6,11 @@
  * Copyright (c) 2004 - 2014 OpenBOR Team
  */
 
-#include "ScriptVariant.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "globals.h"
+#include "ScriptVariant.h"
 
 typedef struct
 {
@@ -33,7 +34,10 @@ void StrCache_Clear()
     {
         for(i = 0; i < strcache_size; i++)
         {
-            if(strcache[i].str) free(strcache[i].str);
+            if(strcache[i].str)
+            {
+                free(strcache[i].str);
+            }
             strcache[i].str = NULL;
         }
         free(strcache);
@@ -57,7 +61,6 @@ void StrCache_Init()
     strcache_index = malloc(sizeof(*strcache_index) * STRCACHE_INC);
     for(i = 0; i < STRCACHE_INC; i++)
     {
-        if (strcache[i].str) free(strcache[i].str);
         strcache[i].str = NULL;
         strcache_index[i] = i;
     }
@@ -76,6 +79,9 @@ void StrCache_Resize(int index, int size)
 
 void StrCache_Collect(int index)
 {
+    assert(index >= 0);
+    assert(strcache[index].ref > 0);
+
     strcache[index].ref--;
     //assert(strcache[index].ref>=0);
     if(!strcache[index].ref)
@@ -83,7 +89,7 @@ void StrCache_Collect(int index)
         //if(strcache[index].len > MAX_STR_VAR_LEN)
         //	StrCache_Resize(index, MAX_STR_VAR_LEN);
         //assert(strcache_top+1<strcache_size);
-        if (strcache[index].str) free(strcache[index].str);
+        free(strcache[index].str);
         strcache[index].str = NULL;
         strcache_index[++strcache_top] = index;
     }
@@ -104,6 +110,8 @@ int StrCache_Pop(int length)
         {
             strcache_index[i] = strcache_size + i;
         }
+
+        memset(strcache + strcache_size, 0, sizeof(*strcache) * STRCACHE_INC);
 
         //printf("debug: dumping string cache....\n");
         //for(i=0; i<strcache_size; i++)
@@ -156,18 +164,22 @@ void StrCache_NCopy(int index, CHAR *str, int n)
 
 CHAR *StrCache_Get(int index)
 {
+    assert(index >= 0);
     //assert(index<strcache_size);
     return strcache[index].str;
 }
 
 int StrCache_Len(int index)
 {
+    assert(index >= 0);
     //assert(index<strcache_size);
     return strcache[index].len;
 }
 
 void StrCache_Grab(int index)
 {
+    assert(index >= 0);
+    assert(strcache[index].ref > 0);
     ++strcache[index].ref;
 }
 
@@ -196,6 +208,10 @@ void ScriptVariant_ChangeType(ScriptVariant *var, VARTYPE cvt)
         StrCache_Collect(var->strVal);
     }
     var->vt = cvt;
+    if (cvt == VT_STR)
+    {
+        var->strVal = -1;
+    }
 }
 
 // find an existing constant before copy
@@ -206,7 +222,7 @@ void ScriptVariant_ParseStringConstant(ScriptVariant *var, CHAR *str)
     int i;
     for(i = 0; i < strcache_size; i++)
     {
-        if(strcache[i].ref && strcache[i].str && strcmp(str, strcache[i].str) == 0)
+        if (strcache[i].ref && strcmp(str, strcache[i].str) == 0)
         {
             var->strVal = i;
             strcache[i].ref++;

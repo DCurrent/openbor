@@ -1251,9 +1251,9 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         var->strVal = StrCache_CreateNewFrom(branch_name);
         break;
     case _sv_current_branch:
-        ScriptVariant_ChangeType(var, VT_STR);
         if(level != NULL && levelsets && levelsets[current_set].levelorder && levelsets[current_set].levelorder[current_level].branchname)
         {
+            ScriptVariant_ChangeType(var, VT_STR);
             var->strVal = StrCache_CreateNewFrom(levelsets[current_set].levelorder[current_level].branchname);
         }
         else
