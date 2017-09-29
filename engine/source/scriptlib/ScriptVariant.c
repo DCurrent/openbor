@@ -52,7 +52,7 @@ void StrCache_Clear()
     strcache_top = -1;
 }
 
-// int the string cache
+// init the string cache
 void StrCache_Init()
 {
     int i;
@@ -68,26 +68,15 @@ void StrCache_Init()
     strcache_top = strcache_size - 1;
 }
 
-void StrCache_Resize(int index, int size)
-{
-    //assert(index<strcache_size);
-    //assert(size>0);
-    strcache[index].str = realloc(strcache[index].str, size + 1);
-    strcache[index].str[size] = 0;
-    strcache[index].len = size;
-}
-
+// unrefs a string
 void StrCache_Collect(int index)
 {
     assert(index >= 0);
     assert(strcache[index].ref > 0);
 
     strcache[index].ref--;
-    //assert(strcache[index].ref>=0);
     if(!strcache[index].ref)
     {
-        //if(strcache[index].len > MAX_STR_VAR_LEN)
-        //	StrCache_Resize(index, MAX_STR_VAR_LEN);
         //assert(strcache_top+1<strcache_size);
         free(strcache[index].str);
         strcache[index].str = NULL;
@@ -138,30 +127,6 @@ int StrCache_CreateNewFrom(const CHAR *str)
     return strVal;
 }
 
-void StrCache_Copy(int index, CHAR *str)
-{
-    //assert(index<strcache_size);
-    //assert(size>0);
-    int len = strlen(str);
-    if(strcache[index].len < len)
-    {
-        StrCache_Resize(index, len);
-    }
-    strcpy(strcache[index].str, str);
-}
-
-void StrCache_NCopy(int index, CHAR *str, int n)
-{
-    //assert(index<strcache_size);
-    //assert(size>0);
-    if(strcache[index].len < n)
-    {
-        StrCache_Resize(index, n);
-    }
-    strncpy(strcache[index].str, str, n);
-    strcache[index].str[n] = 0;
-}
-
 CHAR *StrCache_Get(int index)
 {
     assert(index >= 0);
@@ -176,6 +141,7 @@ int StrCache_Len(int index)
     return strcache[index].len;
 }
 
+// increments the refcount of a string
 void StrCache_Grab(int index)
 {
     assert(index >= 0);
