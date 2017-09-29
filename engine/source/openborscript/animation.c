@@ -1,13 +1,18 @@
+/*
+ * OpenBOR - http://www.chronocrash.com
+ * -----------------------------------------------------------------------
+ * All rights reserved. See LICENSE in OpenBOR root for license details.
+ *
+ * Copyright (c) 2004 - 2017 OpenBOR Team
+ */
+
 // Animation
 // 2017-04-26
 // Caskey, Damon V.
 //
 // Access animation properties.
 
-#ifndef SCRIPT_ANIMATION
-#define SCRIPT_ANIMATION 1
-
-#include "common.c"
+#include "scriptcommon.h"
 
 // Get animation property.
 // Caskey, Damon V.
@@ -245,4 +250,3 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
     #undef ARG_VALUE
 }
 
-#endif // SCRIPT_ANIMATION

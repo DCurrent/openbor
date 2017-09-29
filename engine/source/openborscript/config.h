@@ -3,14 +3,14 @@
  * -----------------------------------------------------------------------
  * All rights reserved. See LICENSE in OpenBOR root for license details.
  *
- * Copyright (c) 2004 - 2014 OpenBOR Team
+ * Copyright (c) 2004 - 2017 OpenBOR Team
  */
 
 #ifndef OPENBORSCRIPT_H
 #define OPENBORSCRIPT_H
 
-#include "../scriptlib/Interpreter.h"
-#include "../preprocessorlib/pp_parser.h"
+#include "Interpreter.h"
+#include "pp_parser.h"
 
 #define MAX_GLOBAL_VAR 2048
 #define MAX_KEY_LEN    24
@@ -86,6 +86,7 @@ int Script_Save_Local_Variant(Script *cs, char *namelist[]);
 void Script_Load_Local_Variant(Script *cs, int handle);
 
 void Script_LoadSystemFunctions();
+void *Script_GetStringMapFunction(void *functionRef);
 int Script_MapStringConstants(Instruction *pInstruction);
 
 #ifndef COMPILED_SCRIPT

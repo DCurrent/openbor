@@ -1,13 +1,18 @@
+/*
+ * OpenBOR - http://www.chronocrash.com
+ * -----------------------------------------------------------------------
+ * All rights reserved. See LICENSE in OpenBOR root for license details.
+ *
+ * Copyright (c) 2004 - 2017 OpenBOR Team
+ */
+
 // Level Properties
 // 2017-04-27
 // Caskey, Damon V.
 //
 // Access to layer (panel, bglayer, fglayer, etc) properties.
 
-#ifndef SCRIPT_LAYER
-#define SCRIPT_LAYER 1
-
-#include "common.c"
+#include "scriptcommon.h"
 
 // Layer handle.
 // Caskey, Damon V.
@@ -76,4 +81,3 @@ HRESULT openbor_get_layer_handle(ScriptVariant **varlist, ScriptVariant **pretva
     #undef ARG_INDEX
 }
 
-#endif // SCRIPT_LAYER

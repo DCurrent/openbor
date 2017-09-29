@@ -1,13 +1,18 @@
+/*
+ * OpenBOR - http://www.chronocrash.com
+ * -----------------------------------------------------------------------
+ * All rights reserved. See LICENSE in OpenBOR root for license details.
+ *
+ * Copyright (c) 2004 - 2017 OpenBOR Team
+ */
+
 // Level Properties
 // 2017-04-26
 // Caskey, Damon V.
 //
 // Access to level and level set properties.
 
-#ifndef SCRIPT_LEVEL
-#define SCRIPT_LEVEL 1
-
-#include "common.c"
+#include "scriptcommon.h"
 
 #define invalid_pointer_input arg_value->vt != VT_PTR && arg_value->vt != VT_EMPTY
 
@@ -2446,4 +2451,3 @@ clperror:
 }
 
 
-#endif // OPENBOR_SCRIPT_MAIN

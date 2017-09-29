@@ -1,13 +1,18 @@
+/*
+ * OpenBOR - http://www.chronocrash.com
+ * -----------------------------------------------------------------------
+ * All rights reserved. See LICENSE in OpenBOR root for license details.
+ *
+ * Copyright (c) 2004 - 2017 OpenBOR Team
+ */
+
 // Attack Properties
 // 2017-04-26
 // Caskey, Damon V.
 //
 // Access to attack and attack collision properties.
 
-#ifndef SCRIPT_COLLISION_ATTACK
-#define SCRIPT_COLLISION_ATTACK 1
-
-#include "common.c"
+#include "scriptcommon.h"
 
 // Attack specific properties.
 // Caskey, Damon V.
@@ -890,4 +895,3 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 }
 
 
-#endif // SCRIPT_COLLISION_ATTACK
