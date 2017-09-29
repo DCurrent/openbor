@@ -1,13 +1,18 @@
+/*
+ * OpenBOR - http://www.chronocrash.com
+ * -----------------------------------------------------------------------
+ * All rights reserved. See LICENSE in OpenBOR root for license details.
+ *
+ * Copyright (c) 2004 - 2017 OpenBOR Team
+ */
+
 // Script constants
 // 2017-04-27
 // Caskey, Damon V.
 //
 // Mapping constants for use in script.
 
-#ifndef SCRIPT_CONSTANT
-#define SCRIPT_CONSATNT 1
-
-#include "common.c"
+#include "scriptcommon.h"
 
 // ===== openborconstant =====
 #define IICMPCONST(x) \
@@ -729,4 +734,3 @@ transconst_error:
     return E_FAIL;
 }
 
-#endif // Script_CONSTANT

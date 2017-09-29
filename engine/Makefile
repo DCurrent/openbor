@@ -428,6 +428,15 @@ SCRIPT          = source/scriptlib/StackedSymbolTable.o                         
                   source/preprocessorlib/pp_lexer.o                                                 \
                   source/preprocessorlib/pp_parser.o                                                \
                   source/preprocessorlib/pp_expr.o
+SCRIPT_BUILTINS = source/openborscript/animation.o                                                  \
+                  source/openborscript/collision_attack.o                                           \
+                  source/openborscript/collision_body.o                                             \
+                  source/openborscript/constant.o                                                   \
+                  source/openborscript/index.o                                                      \
+                  source/openborscript/layer.o                                                      \
+                  source/openborscript/level.o                                                      \
+                  source/openborscript/math.o                                                       \
+                  source/openborscript/string.o
 RAM             = source/ramlib/ram.o
 RAND	        = source/randlib/rand32.o
 PNG             = source/pnglib/pngdec.o                                                            \
@@ -546,6 +555,7 @@ OBJS            = $(MAIN)                                                       
                   $(GAME)                                                                           \
                   $(SOURCE)                                                                         \
                   $(SCRIPT)                                                                         \
+                  $(SCRIPT_BUILTINS)                                                                \
                   $(RAM)                                                                            \
                   $(RAND)                                                                           \
                   $(PNG)                                                                            \

@@ -1,3 +1,11 @@
+/*
+ * OpenBOR - http://www.chronocrash.com
+ * -----------------------------------------------------------------------
+ * All rights reserved. See LICENSE in OpenBOR root for license details.
+ *
+ * Copyright (c) 2004 - 2017 OpenBOR Team
+ */
+
 // Body Properties
 // 2017-04-26
 // Caskey, Damon V.
@@ -7,10 +15,7 @@
 // their attack property counterparts. See the attack
 // versions of each for details.
 
-#ifndef SCRIPT_COLLISION_BODY
-#define SCRIPT_COLLISION_BODY 1
-
-#include "common.c"
+#include "scriptcommon.h"
 
 // Body collision properties.
 // Caskey, Damon V.
@@ -366,5 +371,4 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
     #undef ARG_VALUE
 }
 
-#endif // SCRIPT_COLLISION_BODY
 

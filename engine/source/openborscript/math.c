@@ -1,3 +1,11 @@
+/*
+ * OpenBOR - http://www.chronocrash.com
+ * -----------------------------------------------------------------------
+ * All rights reserved. See LICENSE in OpenBOR root for license details.
+ *
+ * Copyright (c) 2004 - 2017 OpenBOR Team
+ */
+
 // Math
 // 2017-04-26
 // Caskey, Damon V.
@@ -5,11 +13,7 @@
 // Mathematical operations. Ordinal functions
 // written by White Dragon.
 
-#ifndef SCRIPT_MATH
-#define SCRIPT_MATH 1
-
-#include "common.c"
-
+#include "scriptcommon.h"
 
 HRESULT math_sin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -177,4 +181,3 @@ HRESULT math_round(ScriptVariant **varlist , ScriptVariant **pretvar, int paramC
     return E_FAIL;
 }
 
-#endif // SCRIPT_MATH

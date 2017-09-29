@@ -1,13 +1,18 @@
+/*
+ * OpenBOR - http://www.chronocrash.com
+ * -----------------------------------------------------------------------
+ * All rights reserved. See LICENSE in OpenBOR root for license details.
+ *
+ * Copyright (c) 2004 - 2017 OpenBOR Team
+ */
+
 // String
 // 2017-04-26
 // Caskey, Damon V.
 //
 // String manipulation and concatenation.
 
-#ifndef SCRIPT_STRING
-#define SCRIPT_STRING 1
-
-#include "common.c"
+#include "scriptcommon.h"
 
 //strinfirst(char string, char search_string);
 HRESULT openbor_strinfirst(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
@@ -185,4 +190,3 @@ sr_error:
     return E_FAIL;
 }
 
-#endif  // SCRIPT_STRING
