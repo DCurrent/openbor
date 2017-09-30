@@ -8391,6 +8391,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         j = 0,
         tempInt = 0,
         framecount = 0,
+        framenum = 0,
         frameset = 0,
         peek = 0,
         cacheindex = 0,
@@ -8525,7 +8526,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 #endif
 
     // Start up the standard log entry.
-    printf("%s%s\n", "Loading model: ", name);
+    printf("Loaded '%s'", name);
 
     // Model already loaded but we might want to unload after level is completed.
     if((tempmodel = findmodel(name)) != NULL)
@@ -8543,7 +8544,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     // Get the text file name of model.
     filename = model_cache[cacheindex].path;
-    printf("\t"LOG_CMD_TITLE"%s%s\n", "Path", " - ", filename);
+    printf(" from %s \n", filename);
 
     if(buffer_pakfile(filename, &buf, &size) != 1)
     {
@@ -8588,6 +8589,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         {
             command = GET_ARG(0);
             cmd = getModelCommand(modelcmdlist, command);
+
+            if (cmd != CMD_MODEL_FRAME) framenum = 0;
 
             switch(cmd)
             {
@@ -9614,7 +9617,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                     // Command title for log. Details will be added blow accordingly.
                     // Forced character length is to line up with Alternatepal logs.
-                    printf("\t"LOG_CMD_TITLE"%s", "Palette", " - ");
+                    printf("\t\t\tPalette - \t");
 
                     // Get argument.
                     value = GET_ARG(1);
@@ -9692,7 +9695,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     if(load_palette(newchar->colourmap[newchar->maps_loaded], value) == 0)
                     {
-                        printf("%s%s\n", "Failed to load color table from .act file: ", value);
+                        printf("%s%s", "Failed to load color table from .act file: ", value);
                         goto lCleanup;
                     }
                 }
@@ -9700,14 +9703,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     if(loadimagepalette(value, packfile, newchar->colourmap[newchar->maps_loaded]) == 0)
                     {
-                        printf("%s%s\n", "Failed to load color table from image: ", value);
+                        printf("%s%s", "Failed to load color table from image: ", value);
                         goto lCleanup;
                     }
                 }
 
                 newchar->maps_loaded++;
 
-                printf("Loaded color selection %i: %s\n", newchar->maps_loaded, value);
+                printf("Loaded color selection %i: %s", newchar->maps_loaded, value);
 
                 break;
             case CMD_MODEL_GLOBALMAP:
@@ -10875,7 +10878,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_FRAME:
             {
                 // Command title for log. Details will be added blow accordingly.
-                printf("\t\t\t"LOG_CMD_TITLE, "Frame", " - ");
+                printf("\t\t\tFrame: ");
 
                 if(!newanim)
                 {
@@ -10911,8 +10914,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
 
                 // Log info.
-                printf("%d\n", framecount);
-                printf("\t\t\t\t"LOG_CMD_TITLE"%s%s\n", "Sprite Path", " - ", value);
+                printf("%d", ++framenum);
+                printf("\tSprite Path: %s\n", value);
 
                 index = stricmp(value, "none") == 0 ? -1 : loadsprite(value, offset.x, offset.y, nopalette ? PIXEL_x8 : PIXEL_8); //don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
                 if(index >= 0)
@@ -10927,19 +10930,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         // No master color table assigned yet?
                         if(newchar->palette == NULL)
                         {
-                            printf("\t\t\t\t"LOG_CMD_TITLE"%s", "Auto Palette", " - 'Palette' not defined. Attempting to load color table from this frame: ");
+                            printf("\t\t\tAuto Palette - 'Palette' not defined. Attempting to load color table from this frame: ");
 
                             // Allocate memory for color table.
                             newchar->palette = malloc(PAL_BYTES);
                             //
                             if(loadimagepalette(value, packfile, newchar->palette) == 0)
                             {
-                                printf("%s%s\n", "Failed to load color table from image: ", value);
+                                printf("\t\t\t%s%s\n", "Failed to load color table from image: ", value);
                                 goto lCleanup;
                             }
                         }
 
-                        printf("%s\n", "Success. Loaded color selection 0 from frame.");
+                        printf("\t\t\t%s\n", "Success. Loaded color selection 0 from frame.");
 
                         // Assign the color table to sprite.
                         if(!nopalette)
