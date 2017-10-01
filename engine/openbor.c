@@ -8526,7 +8526,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 #endif
 
     // Start up the standard log entry.
-    printf("Loaded '%s'", name);
+    printf("Loading model '%s'", name);
 
     // Model already loaded but we might want to unload after level is completed.
     if((tempmodel = findmodel(name)) != NULL)
