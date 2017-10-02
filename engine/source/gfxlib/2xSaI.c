@@ -258,7 +258,7 @@ static inline u32 Q__INTERPOLATE (u32 A, u32 B, u32 C, u32 D)
     return x + y;
 }
 
-static inline int GetResult1_32 (u32 A, u32 B, u32 C, u32 D, u32 E)
+/*static inline int GetResult1_32 (u32 A, u32 B, u32 C, u32 D, u32 E)
 {
     int x = 0;
     int y = 0;
@@ -322,7 +322,7 @@ static inline int GetResult2_32 (u32 A, u32 B, u32 C, u32 D, u32 E)
         r += 1;
     }
     return r;
-}
+}*/
 
 #define BLUE_MASK565  0x001F001F
 #define RED_MASK565   0xF800F800
