@@ -21,11 +21,11 @@
     </application>
 
     <!-- Android 2.3.3 -->
-    <uses-sdk android:minSdkVersion="14" /> 
+    <uses-sdk android:minSdkVersion="10" />
 
     <!-- Allow writing to external storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    
+
     <!-- CRxTRDude - Allows the use of a wake lock -->
-		<uses-permission android:name="android.permission.WAKE_LOCK" />    
-</manifest> 
+		<uses-permission android:name="android.permission.WAKE_LOCK" />
+</manifest>
