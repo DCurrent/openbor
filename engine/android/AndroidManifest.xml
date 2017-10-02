@@ -21,7 +21,7 @@
     </application>
 
     <!-- Android 2.3.3 -->
-    <uses-sdk android:minSdkVersion="10" /> 
+    <uses-sdk android:minSdkVersion="14" /> 
 
     <!-- Allow writing to external storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />

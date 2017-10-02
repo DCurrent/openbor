@@ -715,43 +715,43 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
         case LEVEL_PROP_SCRIPT_LEVEL_END:
 
-            if(&handle->endlevel_script)
-            {
+            //if(&handle->endlevel_script)
+            //{
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
                 (*pretvar)->ptrVal = &handle->endlevel_script;
-            }
+            //}
 
         case LEVEL_PROP_SCRIPT_LEVEL_START:              // Script level_script;
 
-            if(&handle->level_script)
-            {
+            //if(&handle->level_script)
+            //{
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
                 (*pretvar)->ptrVal = &handle->level_script;
-            }
+            //}
 
         case LEVEL_PROP_SCRIPT_KEY:
 
-            if(&handle->key_script)
-            {
+            //if(&handle->key_script)
+            //{
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
                 (*pretvar)->ptrVal = &handle->key_script;
-            }
+            //}
 
         case LEVEL_PROP_SCRIPT_UPDATE:
 
-            if(&handle->update_script)
-            {
+            //if(&handle->update_script)
+            //{
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
                 (*pretvar)->ptrVal = &handle->update_script;
-            }
+            //}
 
         case LEVEL_PROP_SCRIPT_UPDATED:
 
-            if(&handle->updated_script)
-            {
+            //if(&handle->updated_script)
+            //{
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
                 (*pretvar)->ptrVal = &handle->updated_script;
-            }
+            //}
 
         case LEVEL_PROP_SCROLL_DIRECTION:
 
@@ -787,11 +787,11 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
         case LEVEL_PROP_SPAWN_PLAYER_COLLECTION:
 
-            if(&handle->spawn)
-            {
+            //if(&handle->spawn)
+            //{
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
                 (*pretvar)->ptrVal = (VOID *)handle->spawn;
-            }
+            //}
 
         case LEVEL_PROP_SPECIAL_DISABLE:
 

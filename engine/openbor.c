@@ -8196,13 +8196,14 @@ size_t lcmScriptDeleteMain(char **buf)
         while(!starts_with(*buf + pos, "int animhandle = getlocalvar(\"animhandle\");\n")) pos++;
         pos += strclen("int animhandle = getlocalvar(\"animhandle\");\n");
 
-        for(i = len-1; i >= 0; i--)
+        for(i = len-1; ; i--)
         {
             if ( (*buf)[i] == '}' )
             {
                 len = i;
                 break;
             } else continue;
+            if (i <= 0) break;
         }
 
         len = len-pos;
@@ -8526,7 +8527,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 #endif
 
     // Start up the standard log entry.
-    printf("Loading model '%s'", name);
+    printf("Loaded '%s'", name);
 
     // Model already loaded but we might want to unload after level is completed.
     if((tempmodel = findmodel(name)) != NULL)
@@ -11763,7 +11764,7 @@ void load_model_constants()
         if(ParseArgs(&arglist, buf + pos, argbuf))
         {
             command = GET_ARG(0);
-            cmd = getModelCommand(modelstxtcmdlist, command);
+            cmd = (modelstxtCommands)getModelCommand(modelstxtcmdlist, command);
             switch(cmd)
             {
             case CMD_MODELSTXT_MAX_COLLISIONS:
@@ -12042,7 +12043,7 @@ int load_models()
         if(ParseArgs(&arglist, buf + pos, argbuf))
         {
             command = GET_ARG(0);
-            cmd = getModelCommand(modelstxtcmdlist, command);
+            cmd = (modelstxtCommands)getModelCommand(modelstxtcmdlist, command);
             switch(cmd)
             {
             case CMD_MODELSTXT_COMBODELAY:
@@ -12239,8 +12240,8 @@ void unload_levelorder()
                     {
                         free(le->filename);
                     }
-                    if(le->skipselect)
-                    {
+                    //if(le->skipselect)
+                    //{
                         for(t = 0; t < MAX_PLAYERS; t++)
                         {
                             if(le->skipselect[t])
@@ -12248,7 +12249,7 @@ void unload_levelorder()
                                 free(le->skipselect[t]);
                             }
                         }
-                    }
+                    //}
                 }
                 free(se->levelorder);
             }
@@ -14006,7 +14007,7 @@ void generate_basemap(int map_index, float rx, float rz, float x_size, float z_s
 
 void load_level(char *filename)
 {
-    char *buf;
+    char *buf = NULL;
     size_t size, len, sblen;
     ptrdiff_t pos, oldpos;
     char *command;
@@ -19310,7 +19311,7 @@ void do_attack(entity *e)
             else if(self->animation->counterrange &&	// Has counter range?
                     (self->animpos >= self->animation->counterrange->frame.min && self->animpos <= self->animation->counterrange->frame.max) &&  // Current frame within counter range frames?
                     !self->frozen &&
-                    (self->health > force || (self->health-force <= 0 && COUNTERACTION_CONDITION_ALWAYS_RAGE)) &&   // Rage or not?
+                    (self->health > force || (self->health-force <= 0 && (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE))) &&   // Rage or not?
                     // counterrange conditions
                     ( (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS) || (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE) ||
                     (self->animation->counterrange->condition == COUNTERACTION_CONDITION_HOSTILE && e->modeldata.type & them) ||
