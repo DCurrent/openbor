@@ -19,6 +19,7 @@
 // SDL_opengl.h in Windows includes <windows.h>, which clashes with several
 // definitions in openbor.h :(
 #define APIENTRY __stdcall
+#define WINGDIAPI
 #include <GL/gl.h>
 #include <GL/glext.h>
 #else
