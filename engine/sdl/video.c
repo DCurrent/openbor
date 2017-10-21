@@ -167,7 +167,7 @@ int video_set_mode(s_videomodes videomodes)
 	assert(videomodes.pixel == 2 || videomodes.pixel == 4);
 
 	// try OpenGL initialization first
-	if(savedata.usegl[savedata.fullscreen] && video_gl_set_mode(videomodes)) return 1;
+	if(savedata.usegl && video_gl_set_mode(videomodes)) return 1;
 	else opengl = 0;
 
 	if(!SetVideoMode(videomodes.hRes * videomodes.hScale,
@@ -177,7 +177,7 @@ int video_set_mode(s_videomodes videomodes)
 		return 0;
 	}
 
-	if(savedata.glfilter[savedata.fullscreen] ||
+	if(savedata.hwfilter ||
 	   (videomodes.hScale == 1 && videomodes.vScale == 1 && !savedata.fullscreen))
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
 	else

@@ -45,8 +45,11 @@ extern int nativeWidth, nativeHeight;
 extern SDL_Window* window;
 
 #define FRAGMENT_SHADER_COMMON                                             \
+    "uniform sampler2D tex;\n"                                             \
 	"uniform float brightness;\n"                                          \
 	"uniform float gamma;\n"                                               \
+	"uniform vec2 texDims;\n"                                              \
+	"uniform float scaleFactor;\n"                                         \
 	"vec3 applyCorrection(vec3 color)\n"                                   \
 	"{\n"                                                                  \
 	"    if (gamma > 0.0)\n"                                               \
@@ -60,8 +63,7 @@ extern SDL_Window* window;
 	"    return color;\n"                                                  \
 	"}\n"
 
-#define FRAGMENT_SHADER_RGB                                                \
-	"uniform sampler2D tex;\n"                                             \
+#define FRAGMENT_SHADER_RGB_BASIC                                          \
 	"void main()\n"                                                        \
 	"{\n"                                                                  \
 	"    vec3 color = texture2D(tex, gl_TexCoord[0].xy).xyz;\n"            \
@@ -69,8 +71,23 @@ extern SDL_Window* window;
 	"    gl_FragColor.w = 1.0;\n"                                          \
 	"}\n"
 
+#define FRAGMENT_SHADER_RGB_HIGH_QUALITY                                   \
+	"vec3 getPixel(vec2 coord)\n"                                          \
+    "{\n"                                                                  \
+    "   vec2 texel = coord * texDims;\n"                                   \
+    "   float region_range = 0.5 - 0.5 / scaleFactor;\n"                   \
+    "   vec2 distFromCenter = fract(texel) - 0.5;\n"                       \
+    "   vec2 f = (distFromCenter - clamp(distFromCenter, -region_range, region_range)) * scaleFactor + 0.5;\n" \
+    "   return texture2D(tex, (floor(texel) + f) / texDims).xyz;\n"        \
+    "}\n"                                                                  \
+	"void main()\n"                                                        \
+	"{\n"                                                                  \
+	"    vec3 color = getPixel(gl_TexCoord[0].xy).xyz;\n"                  \
+	"    gl_FragColor.xyz = applyCorrection(color);\n"                     \
+	"    gl_FragColor.w = 1.0;\n"                                          \
+	"}\n"
+
 #define FRAGMENT_SHADER_YUV                                                \
-	"uniform sampler2D tex;\n"                                             \
 	"uniform sampler2D utex;\n"                                            \
 	"uniform sampler2D vtex;\n"                                            \
 	"\n"                                                                   \
@@ -95,10 +112,17 @@ extern SDL_Window* window;
 	"}\n"
 
 
-static const char *fragmentShaderSourceRGB =
-        FRAGMENT_SHADER_COMMON FRAGMENT_SHADER_RGB;
+static const char *fragmentShaderSourceHighQualityRGB =
+        FRAGMENT_SHADER_COMMON FRAGMENT_SHADER_RGB_HIGH_QUALITY;
 static const char *fragmentShaderSourceYUV =
         FRAGMENT_SHADER_COMMON FRAGMENT_SHADER_YUV;
+/*static const char *vertexShaderSource =
+        "varying vec2 texCoord;\n"
+        "void main()\n"
+        "{\n"
+        "    gl_TexCoord[0] = gl_MultiTexCoord0;\n"
+        "    gl_Position = ftransform();\n"
+        "}\n";*/
 
 // calculates scale factors and offsets based on viewport and texture sizes
 void video_gl_setup_screen()
@@ -279,21 +303,24 @@ int video_gl_set_mode(s_videomodes videomodes)
 
 	// set up a GLSL fragment shader if supported
 	GLuint fragmentShader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
-	glShaderSourceARB(fragmentShader, 1, &fragmentShaderSourceRGB, NULL);
+	glShaderSourceARB(fragmentShader, 1, &fragmentShaderSourceHighQualityRGB, NULL);
 	glCompileShaderARB(fragmentShader);
 	shaderProgram = glCreateProgramObjectARB();
 	glAttachObjectARB(shaderProgram, fragmentShader);
 	glLinkProgramARB(shaderProgram);
 	glUseProgramObjectARB(shaderProgram);
 	glUniform1iARB(glGetUniformLocationARB(shaderProgram, "tex"), 0);
+	glUniform2fARB(glGetUniformLocationARB(shaderProgram, "texDims"), textureWidth, textureHeight);
+	float scaleFactor = MIN((float)viewportWidth / textureWidth, (float)viewportHeight / textureHeight);
+	glUniform1fARB(glGetUniformLocationARB(shaderProgram, "scaleFactor"), ceilf(scaleFactor));
 	video_gl_set_color_correction(savedata.gamma, savedata.brightness);
 
 	opengl = 1;
 	return 1;
 error:
-	printf("falling back on SDL video backend\n");
+	printf("falling back to SDL video backend\n");
 	opengl = 0;
-	savedata.usegl[savedata.fullscreen] = 0;
+	savedata.usegl = 0;
 	return 0;
 }
 
@@ -357,17 +384,9 @@ int video_gl_copy_screen(s_videosurface* surface)
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, textureHeight, textureColorFormat[0],
 			texturePixelFormat[0], surface->data);
 
-	// set texture scaling type
-	if(!savedata.glfilter[savedata.fullscreen])
-	{
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	}
-	else
-	{
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	}
+	// set linear filtering
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	// render the frame
 	render();

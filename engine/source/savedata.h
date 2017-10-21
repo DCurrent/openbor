@@ -43,9 +43,9 @@ typedef struct
     int stretch; // Stretch (1) or preserve aspect ratio (0) in fullscreen mode
     int screen[1][2];
 #if SDL
-    int usegl[2]; // 1 if OpenGL is preferred over SDL software blitting
-    float glscale; // Scale factor for OpenGL
-    int glfilter[2]; // Simple or bilinear scaling
+    int usegl; // 1 if OpenGL is preferred over SDL software blitting
+    float hwscale; // Scale factor for OpenGL
+    int hwfilter; // Simple or bilinear scaling
 #endif
 #if PSP
     int pspcpuspeed; // PSP CPU Speed

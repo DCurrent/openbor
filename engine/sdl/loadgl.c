@@ -68,7 +68,9 @@ PFNGLLINKPROGRAMARBPROC glLinkProgramARB;
 PFNGLUSEPROGRAMOBJECTARBPROC glUseProgramObjectARB;
 PFNGLGETUNIFORMLOCATIONARBPROC glGetUniformLocationARB;
 PFNGLUNIFORM1IARBPROC glUniform1iARB;
+PFNGLUNIFORM2IARBPROC glUniform2iARB;
 PFNGLUNIFORM1FARBPROC glUniform1fARB;
+PFNGLUNIFORM2FARBPROC glUniform2fARB;
 PFNGLUNIFORM4FARBPROC glUniform4fARB;
 
 #define LOADFUNC(X,Y) Y = SDL_GL_GetProcAddress(X); if(!Y) { printf("Failed to load OpenGL function " X "..."); return 0; }
@@ -117,16 +119,18 @@ int LoadGLFunctions()
 		LOADFUNC("glMultiTexCoord2fARB", ptr_glMultiTexCoord2f);
 
 	// load optional GLSL extensions
-	glCreateShaderObjectARB = SDL_GL_GetProcAddress("glCreateShaderObjectARB");
-	glShaderSourceARB = SDL_GL_GetProcAddress("glShaderSourceARB");
-	glCompileShaderARB = SDL_GL_GetProcAddress("glCompileShaderARB");
-	glCreateProgramObjectARB = SDL_GL_GetProcAddress("glCreateProgramObjectARB");
-	glAttachObjectARB = SDL_GL_GetProcAddress("glAttachObjectARB");
-	glLinkProgramARB = SDL_GL_GetProcAddress("glLinkProgramARB");
-	glUseProgramObjectARB = SDL_GL_GetProcAddress("glUseProgramObjectARB");
-	glGetUniformLocationARB = SDL_GL_GetProcAddress("glGetUniformLocationARB");
+	glCreateShaderObjectARB = SDL_GL_GetProcAddress("glCreateShader");
+	glShaderSourceARB = SDL_GL_GetProcAddress("glShaderSource");
+	glCompileShaderARB = SDL_GL_GetProcAddress("glCompileShader");
+	glCreateProgramObjectARB = SDL_GL_GetProcAddress("glCreateProgram");
+	glAttachObjectARB = SDL_GL_GetProcAddress("glAttachShader");
+	glLinkProgramARB = SDL_GL_GetProcAddress("glLinkProgram");
+	glUseProgramObjectARB = SDL_GL_GetProcAddress("glUseProgram");
+	glGetUniformLocationARB = SDL_GL_GetProcAddress("glGetUniformLocation");
 	glUniform1iARB = SDL_GL_GetProcAddress("glUniform1iARB");
+	glUniform2iARB = SDL_GL_GetProcAddress("glUniform2iARB");
 	glUniform1fARB = SDL_GL_GetProcAddress("glUniform1fARB");
+	glUniform2fARB = SDL_GL_GetProcAddress("glUniform2fARB");
 	glUniform4fARB = SDL_GL_GetProcAddress("glUniform4fARB");
 
 	return 1;
