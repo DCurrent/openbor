@@ -32,8 +32,8 @@ s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
 	if(bscreen2) { SDL_FreeSurface(bscreen2); bscreen2=NULL; }
 	
 	// set scale factors to 1 by default
-	videomodes.hScale = savedata.glscale;
-	videomodes.vScale = savedata.glscale;
+	videomodes.hScale = savedata.hwscale;
+	videomodes.vScale = savedata.hwscale;
 	
 	// set up indexed to RGB conversion
 	if(videomodes.pixel == 1)
@@ -46,7 +46,7 @@ s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
 	}
 	
 	// set up software scaling
-	if(savedata.swfilter && (savedata.glscale >= 2.0 || savedata.fullscreen))
+	if(savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen))
 	{
 		if (screen) SDL_FreeSurface(screen);
 		screen = SDL_CreateRGBSurface(0, videomodes.hRes*2, videomodes.vRes*2, 16, masks[1][0], masks[1][1], masks[1][2], masks[1][3]);

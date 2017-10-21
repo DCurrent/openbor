@@ -457,8 +457,8 @@ static void initMenu(int type)
 #ifndef ANDROID
 	videomodes.hScale = 2.0f;
 	videomodes.vScale = 2.0f;
-	savedata.glscale = 2.0f;
-	savedata.glfilter[0] = savedata.glfilter[1] = 1;
+	savedata.hwscale = 2.0f;
+	savedata.hwfilter = 1;
 #endif
 	vscreen = allocscreen(videomodes.hRes, videomodes.vRes, PIXEL_32);
 

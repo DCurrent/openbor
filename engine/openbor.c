@@ -2982,15 +2982,13 @@ void clearsettings()
 
 
 #ifdef SDL
-    savedata.usegl[0] = 0;
-    savedata.usegl[1] = 1;
+    savedata.usegl = 1;
+    savedata.hwfilter = 1;
 #ifdef ANDROID
-    savedata.glscale = 0.0;
+    savedata.hwscale = 0.0;
 #else
-    savedata.glscale = 1.0;
+    savedata.hwscale = 1.0;
 #endif
-    savedata.glfilter[0] = 1;
-    savedata.glfilter[1] = 0;
 #endif
 
     savedata.swfilter = 0;
@@ -35750,7 +35748,7 @@ void menu_options_video()
 
         _menutext((selector == 5), col1, 2, Tr("Scale:"));
 #ifdef ANDROID
-        if(savedata.glscale == 0)
+        if(savedata.hwscale == 0)
 #else
 		if(savedata.fullscreen)
 #endif
@@ -35759,14 +35757,25 @@ void menu_options_video()
         }
         else
         {
-            _menutext((selector == 5), col2, 2, "%4.2fx - %ix%i", savedata.glscale, (int)(videomodes.hRes * savedata.glscale), (int)(videomodes.vRes * savedata.glscale));
+            _menutext((selector == 5), col2, 2, "%4.2fx - %ix%i", savedata.hwscale, (int)(videomodes.hRes * savedata.hwscale), (int)(videomodes.vRes * savedata.hwscale));
         }
 
         _menutext((selector == 6), col1, 3, Tr("Hardware Filter:"));
-        _menutext((selector == 6), col2, 3, ((savedata.glscale != 1.0 || savedata.fullscreen) ? (savedata.glfilter[savedata.fullscreen] ? Tr("Simple") : Tr("Bilinear")) : Tr("Disabled")));
+        {
+            char *filterName;
+            if (savedata.hwscale == 1.0 && !savedata.fullscreen)
+                filterName = "Disabled";
+            else if (opengl)
+                filterName = "High Quality";
+            else if (savedata.hwfilter)
+                filterName = "Simple";
+            else
+                filterName = "Bilinear";
+            _menutext((selector == 6), col2, 3, Tr(filterName));
+        }
 
         _menutext((selector == 7), col1, 4, Tr("Software Filter:"));
-        _menutext((selector == 7), col2, 4, ((savedata.glscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[savedata.swfilter]) : Tr("Disabled")));
+        _menutext((selector == 7), col2, 4, ((savedata.hwscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[savedata.swfilter]) : Tr("Disabled")));
 
         if(savedata.fullscreen)
         {
@@ -35994,7 +36003,7 @@ void menu_options_video()
                 video_fullscreen_flip();
                 break;
             case 4:
-                savedata.usegl[savedata.fullscreen] ^= 1;
+                savedata.usegl = !savedata.usegl;
                 video_set_mode(videomodes);
                 set_color_correction(savedata.gamma, savedata.brightness);
                 break;
@@ -36004,48 +36013,48 @@ void menu_options_video()
                 {
                     break;
                 }
-                savedata.glscale += dir * 0.25;
-                if(savedata.glscale < 0.25)
+                savedata.hwscale += dir * 0.25;
+                if(savedata.hwscale < 0.25)
                 {
-                    savedata.glscale = 0.25;
+                    savedata.hwscale = 0.25;
                 }
-                if(savedata.glscale > 4.00)
+                if(savedata.hwscale > 4.00)
                 {
-                    savedata.glscale = 4.00;
+                    savedata.hwscale = 4.00;
                 }
                 video_set_mode(videomodes);
 #else
-                savedata.glscale += dir * 0.25;
-                if(savedata.glscale < 0.0)
+                savedata.hwscale += dir * 0.25;
+                if(savedata.hwscale < 0.0)
                 {
-                    savedata.glscale = 0.0;
+                    savedata.hwscale = 0.0;
                 }
-                if(savedata.glscale > 4.00)
+                if(savedata.hwscale > 4.00)
                 {
-                    savedata.glscale = 4.00;
+                    savedata.hwscale = 4.00;
                 }
 #endif
                 break;
             case 6:
 #ifndef ANDROID
-                if(!savedata.fullscreen && savedata.glscale == 1.0)
+                if (opengl || (!savedata.fullscreen && savedata.hwscale == 1.0))
                 {
                     break;
                 }
 #endif
-                savedata.glfilter[savedata.fullscreen] += dir;
-                if(savedata.glfilter[savedata.fullscreen] < 0)
+                savedata.hwfilter += dir;
+                if(savedata.hwfilter < 0)
                 {
-                    savedata.glfilter[savedata.fullscreen] = 1;
+                    savedata.hwfilter = 1;
                 }
-                if(savedata.glfilter[savedata.fullscreen] > 1)
+                if(savedata.hwfilter > 1)
                 {
-                    savedata.glfilter[savedata.fullscreen] = 0;
+                    savedata.hwfilter = 0;
                 }
                 video_set_mode(videomodes);
 				break;
             case 7:
-                if(!savedata.fullscreen && savedata.glscale < 2.0)
+                if(!savedata.fullscreen && savedata.hwscale < 2.0)
                 {
                     break;
                 }
