@@ -33582,7 +33582,8 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                         --credits;
                     }
                 }
-                player[i].lives = PLAYER_LIVES;
+                if (set->noselect) player[i].lives = PLAYER_LIVES;
+                else player[i].lives = savelevel[current_set].pLives[i];
             }
             selectScreen = 0;
             return 1;

@@ -4,10 +4,10 @@
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
  * Copyright (c) 2004 - 2015 OpenBOR Team
- * 
+ *
  * Video.c - adjunct to the main build's video.c.
  * Made by UTunnels (utunnels@hotmail.com).
- * Modifications by CRxTRDude. 
+ * Modifications by CRxTRDude.
  */
 
 #include <math.h>
@@ -92,10 +92,10 @@ void initSDL()
         nativeWidth = 640;
         nativeHeight = 480;
     }
-		
+
 		//Hardcode full screen mode
     savedata.fullscreen = 1;
-		    
+
 }
 
 //Start of touch control UI code
@@ -270,7 +270,7 @@ static int setup_touch_txt()
                         }
                     }
                 }
-                else if(stricmp(command, "screendocking") == 0) 
+                else if(stricmp(command, "screendocking") == 0)
                 {
                     screendocking = 0;
                     for(i = 1; ; i++)
@@ -349,7 +349,7 @@ int video_set_mode(s_videomodes videomodes)
     int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL;
 
     savedata.fullscreen = 1;
-    
+
     videomodes = setupPreBlitProcessing(videomodes);
 
     // 8-bit color should be transparently converted to 32-bit
@@ -366,7 +366,7 @@ int video_set_mode(s_videomodes videomodes)
         SDL_DestroyTexture(buttons);
         buttons = NULL;
     }
-    
+
     if(videomodes.hRes == 0 && videomodes.vRes == 0)
     {
         Term_Gfx();
@@ -391,13 +391,13 @@ int video_set_mode(s_videomodes videomodes)
 
     printf("SDL video Renderer: %s \n", info.name);
 
-    SDL_SetHintWithPriority(SDL_HINT_RENDER_SCALE_QUALITY, savedata.glfilter[savedata.fullscreen] ? "nearest" : "linear", SDL_HINT_DEFAULT);
+    SDL_SetHintWithPriority(SDL_HINT_RENDER_SCALE_QUALITY, savedata.hwfilter ? "nearest" : "linear", SDL_HINT_DEFAULT);
 
     // now create a texture
-    
+
   	textureWidth = videomodes.hRes;
   	textureHeight = videomodes.vRes;
-    
+
     if(!(texture = SDL_CreateTexture(renderer,  pixelformats[videomodes.pixel-1], SDL_TEXTUREACCESS_STREAMING, textureWidth, textureHeight)))
     {
         printf("error: %s\n", SDL_GetError());
