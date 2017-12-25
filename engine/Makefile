@@ -568,7 +568,6 @@ OBJS            = $(MAIN)                                                       
 
 CFLAGS 	       += $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TARGET_PLATFORM)
 CFLAGS 	       += -g -Wall -Werror -fsigned-char -std=gnu99
-CFLAGS 	       += -MT $@ -MMD -MP -MF $*.Td
 
 
 ifndef BUILD_GP2X
@@ -682,7 +681,6 @@ endif
 
 CXXFLAGS        = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS         = $(CFLAGS)
-POSTCOMPILE     = mv -f $*.Td $*.d && touch $@
 
 #----------------------------------------------------------------------------------------------------
 # Library
@@ -775,10 +773,8 @@ LIBS           += -lpng -lz -lm
 
 ifdef BUILD_PSP
 %.o : %.c
-%.o : %.c %.d
 	@echo Compiling $(TARGET_PLATFORM) Port: $<...
 	@$(CC) $(CFLAGS) -c $< -o $@
-	@$(POSTCOMPILE)
 %.o : %.S
 	@echo Compiling $(TARGET_PLATFORM) Port: $<...
 	@$(CC) $(CFLAGS) -c $< -o $@
@@ -834,10 +830,8 @@ all : $(TARGET) $(TARGET_FINAL)
 	@echo Compiling $(TARGET_PLATFORM) Port: $<...
 	@$(YASM) -D $(TARGET_PLATFORM) -f $(OBJTYPE) -m $(TARGET_ARCH) -o $@ $<
 %.o : %.c
-%.o : %.c %.d
 	@echo Compiling $(TARGET_PLATFORM) Port: $<...
 	@$(CC) $(CFLAGS) -c $< -o $@
-	@$(POSTCOMPILE)
 $(TARGET) : $(OBJS) $(RES)
 	@echo
 	@echo Linking $(TARGET_PLATFORM) Port: $(TARGET)...
@@ -860,10 +854,8 @@ include $(DEVKITPPC)/wii_rules
 all : $(TARGET) $(TARGET_FINAL)
 	@echo
 %.o : %.c
-%.o : %.c %.d
 	@echo Compiling $(TARGET_PLATFORM) Port: $<...
 	@$(CC) $(CFLAGS) -c $< -o $@
-	@$(POSTCOMPILE)
 $(TARGET) : $(OBJS) $(RES)
 	@echo
 	@echo Linking $(TARGET_PLATFORM) Port: $(TARGET)...
@@ -884,10 +876,8 @@ ifdef BUILD_VITA
 all : OpenBOR.vpk
 	@echo
 %.o : %.c
-%.o : %.c %.d
 	@echo Compiling $(TARGET_PLATFORM) Port: $<...
 	@$(CC) $(CFLAGS) -c $< -o $@
-	@$(POSTCOMPILE)
 OpenBOR.elf : $(OBJS) $(RES)
 	@echo
 	@echo Linking $(TARGET_PLATFORM) Port: $(TARGET)...
@@ -904,15 +894,6 @@ OpenBOR.vpk: eboot.bin
 	@echo Completed $(TARGET_PLATFORM) Port!
 	@echo $(TARGET_FINAL) is now ready!
 endif
-
-
-#----------------------------------------------------------------------------------------------------
-# Rules to manage dependencies
-#----------------------------------------------------------------------------------------------------
-%.d: ;
-.PRECIOUS: %.d
-
-include $(wildcard $(patsubst %,%.d,$(basename $(OBJS))))
 
 
 #----------------------------------------------------------------------------------------------------
@@ -955,8 +936,7 @@ clean-releases:
 clean:
 	@echo
 	@echo "Removing All $(TARGET_PLATFORM) Files..."
-	@rm -f $(TARGET) $(TARGET_FINAL) $(TARGET_MAP) PARAM.SFO param.sfo eboot.bin OpenBOR.velf linkmap $(OBJS) \
-	       $(patsubst %,%.d,$(basename $(OBJS))) $(patsubst %,%.Td,$(basename $(OBJS)))
+	@rm -f $(TARGET) $(TARGET_FINAL) $(TARGET_MAP) PARAM.SFO param.sfo eboot.bin OpenBOR.velf linkmap $(OBJS)
 	@echo Done!
 	@echo
 endif
