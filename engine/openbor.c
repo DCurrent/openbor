@@ -8390,7 +8390,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         j = 0,
         tempInt = 0,
         framecount = 0,
-        framenum = 0,
+        //framenum = 0,
         frameset = 0,
         peek = 0,
         cacheindex = 0,
@@ -8589,7 +8589,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             command = GET_ARG(0);
             cmd = getModelCommand(modelcmdlist, command);
 
-            if (cmd != CMD_MODEL_FRAME) framenum = 0;
+            //if (cmd != CMD_MODEL_FRAME) framenum = 0;
 
             switch(cmd)
             {
