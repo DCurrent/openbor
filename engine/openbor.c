@@ -670,7 +670,7 @@ int                 lifebarbgalpha      = 2;
 int                 shadowsprites[6]	= { -1, -1, -1, -1, -1, -1};
 int                 gosprite			= -1;
 int                 golsprite			= -1;
-int                 holesprite			= -1;
+//int                 holesprite			= -1;
 int                 videoMode			= 0;
 int                 scoreformat			= 0;					// If set fill score values with 6 Zeros
 
@@ -3599,7 +3599,7 @@ int isNumeric(char *text)
 
 int getValidInt(char *text, char *file, char *cmd)
 {
-    static const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a nonnumeric value at %s, where a number is expected!\nerroneus string: %s\n";
+    static const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
     if(!text || !*text)
     {
         return 0;
@@ -3618,7 +3618,7 @@ int getValidInt(char *text, char *file, char *cmd)
 
 float getValidFloat(char *text, char *file, char *cmd)
 {
-    static const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a nonnumeric value at %s, where a number is expected!\nerroneus string: %s\n";
+    static const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
     if(!text || !*text)
     {
         return 0.0f;
@@ -10877,7 +10877,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_FRAME:
             {
                 // Command title for log. Details will be added blow accordingly.
-                printf("\t\t\tFrame: ");
+                //printf("\t\t\tFrame: ");
 
                 if(!newanim)
                 {
@@ -10913,8 +10913,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
 
                 // Log info.
-                printf("%d", ++framenum);
-                printf("\tSprite Path: %s\n", value);
+                //printf("%d", ++framenum);
+                //printf("\tSprite Path: %s\n", value);
 
                 index = stricmp(value, "none") == 0 ? -1 : loadsprite(value, offset.x, offset.y, nopalette ? PIXEL_x8 : PIXEL_8); //don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
                 if(index >= 0)
@@ -10929,19 +10929,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         // No master color table assigned yet?
                         if(newchar->palette == NULL)
                         {
-                            printf("\t\t\tAuto Palette - 'Palette' not defined. Attempting to load color table from this frame: ");
+                            //printf("\t\t\tAuto Palette - 'Palette' not defined. Attempting to load color table from this frame: ");
 
                             // Allocate memory for color table.
                             newchar->palette = malloc(PAL_BYTES);
                             //
                             if(loadimagepalette(value, packfile, newchar->palette) == 0)
                             {
-                                printf("\t\t\t%s%s\n", "Failed to load color table from image: ", value);
+                                //printf("\t\t\t%s%s\n", "Failed to load color table from image: ", value);
                                 goto lCleanup;
                             }
                         }
 
-                        printf("\t\t\t%s\n", "Success. Loaded color selection 0 from frame.");
+                        //printf("\t\t\t%s\n", "Success. Loaded color selection 0 from frame.");
 
                         // Assign the color table to sprite.
                         if(!nopalette)
@@ -14658,7 +14658,7 @@ void load_level(char *filename)
             }
             break;
         case CMD_LEVEL_HOLE:
-            value = GET_ARG(1);    // ltb    1-18-05  adjustable hole sprites
+            /*value = GET_ARG(1);    // ltb    1-18-05  adjustable hole sprites
 
             if(holesprite < 0)
             {
@@ -14670,7 +14670,7 @@ void load_level(char *filename)
                 {
                     holesprite = loadsprite("data/sprites/hole", 0, 0, pixelformat);    // ltb 1-18-05  no new sprite load the default
                 }
-            }
+            }*/
 
             addhole(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7), GET_FLOAT_ARG(8), GET_FLOAT_ARG(9));
             break;
@@ -31276,12 +31276,13 @@ void draw_scrolled_bg()
 
     //if(level) printf("%d %d %d %d\n", vpx, vpy, vpw, vph);
 
-    s_drawmethod screenmethod = plainmethod, *pscreenmethod = &screenmethod;
+    s_drawmethod screenmethod = plainmethod;
 
+    /*s_drawmethod *pscreenmethod = &screenmethod;
     for(i = 0; i < level->numholes; i++)
     {
         spriteq_add_sprite((int)(level->holes[i].x - screenx + gfx_x_offset), (int)(level->holes[i].z - level->holes[i].depth - screeny + gfx_y_offset), HOLE_Z, holesprite, pscreenmethod, 0);
-    }
+    }*/
 
     for(index = 0; index < level->numlayersref; index++)
     {
