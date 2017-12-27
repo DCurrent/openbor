@@ -19885,7 +19885,6 @@ void check_gravity(entity *e)
                 if(self->damage_on_landing > 0 && !self->dead)
                 {
                     if(self->takedamage)
-
                     {
                         attack              = emptyattack;
                         attack.attack_force = self->damage_on_landing;
@@ -19894,7 +19893,6 @@ void check_gravity(entity *e)
                     }
                     else
                     {
-
                         self->health -= (self->damage_on_landing * self->defense[ATK_LAND].factor);
                         if(self->health <= 0 )
                         {
@@ -26428,13 +26426,20 @@ int bomb_move()
     }
     else if(self->takeaction != bomb_explode)
     {
-
         self->takeaction = bomb_explode;
-        self->velocity.y = 0;    // Stop moving up/down
+
+        // hit something, just make it an explosion animation.
+        self->modeldata.subject_to_wall = 1;
+        self->modeldata.subject_to_platform = 1;
+        self->modeldata.subject_to_hole = 1;
         //self->modeldata.no_adjust_base = 1;    // Stop moving up/down
         self->modeldata.subject_to_basemap = 1;
-        self->base = self->position.y;
-        self->velocity.x = self->velocity.z = 0;
+
+        if ( !checkhole(self->position.x, self->position.z) ) {
+            self->velocity.y = 0;    // Stop moving up/down
+            self->base = self->position.y;
+            self->velocity.x = self->velocity.z = 0;
+        }
 
         if(self->modeldata.diesound >= 0)
         {
@@ -26449,10 +26454,6 @@ int bomb_move()
         {
             ent_set_anim(self, ANI_ATTACK1, 0);
         }
-        // hit something, just make it an explosion animation.
-        self->modeldata.subject_to_wall = 0;
-        self->modeldata.subject_to_platform = 1;
-        self->modeldata.subject_to_hole = 0;
     }
     return 1;
 }
@@ -29821,7 +29822,7 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
         e->modeldata.candamage = self->modeldata.candamage;
     }
     e->modeldata.no_adjust_base = 0;
-    e->modeldata.subject_to_wall = e->modeldata.subject_to_platform = e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
+    e->modeldata.subject_to_basemap = e->modeldata.subject_to_wall = e->modeldata.subject_to_platform = e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
     return e;
 }
 
@@ -29894,7 +29895,7 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
             e->modeldata.candamage = self->modeldata.candamage;
         }
 
-        e->modeldata.subject_to_wall = e->modeldata.subject_to_platform =
+        e->modeldata.subject_to_basemap = e->modeldata.subject_to_wall = e->modeldata.subject_to_platform =
                                            e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
         e->modeldata.no_adjust_base = 0;
     }
