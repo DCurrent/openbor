@@ -19889,7 +19889,8 @@ void check_gravity(entity *e)
                         attack              = emptyattack;
                         attack.attack_force = self->damage_on_landing;
                         attack.attack_type  = ATK_LAND;
-                        self->takedamage(self, &attack);
+                        self->takedamage(self->opponent, &attack);
+                        if(self->health > 0 ) self->damage_on_landing = 0;
                     }
                     else
                     {
@@ -19898,8 +19899,8 @@ void check_gravity(entity *e)
                         {
                             kill(self);
                         }
-                        self->damage_on_landing = 0;
                     }
+                    self->damage_on_landing = 0;
                 }
                 // in case landing, set hithead to NULL
                 self->hithead = NULL;
@@ -22572,7 +22573,7 @@ void doland()
 void common_fall()
 {
     // Still falling?
-    if(self->falling ||  inair(self) || self->velocity.y)
+    if(self->falling || inair(self) || self->velocity.y)
     {
         return;
     }
@@ -23481,11 +23482,11 @@ int common_takedamage(entity *other, s_collision_attack *attack)
         return 1;
     }
     // fall to the ground so dont fall again
-    if(self->damage_on_landing)
+    /*if(self->damage_on_landing)
     {
         self->damage_on_landing = 0;
         return 1;
-    }
+    }*/
     // unlink due to being hit
     if((self->opponent && self->opponent->grabbing != self) ||
             self->dead || self->frozen || self->drop)
@@ -23504,6 +23505,7 @@ int common_takedamage(entity *other, s_collision_attack *attack)
             self->escapecount++;
         }
     }
+
     // New pain, fall, and death animations. Also, the nopain flag.
     if(self->drop || self->health <= 0)
     {
@@ -23571,6 +23573,7 @@ int common_takedamage(entity *other, s_collision_attack *attack)
         self->takeaction = common_pain;
         set_pain(self, self->damagetype, 1);
     }
+
     return 1;
 }
 
