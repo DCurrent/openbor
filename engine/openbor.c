@@ -3643,57 +3643,120 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
     assert(list);
     assert(input);
     assert(output);
-    //static const char diff = 'a' - 'A';
+
+    memset(output,'\0',MAX_ARG_LEN);
 
     size_t pos = 0;
     size_t wordstart = 0;
     size_t item = 0;
-    int done = 0;
-    int space = 0;
-    //int makelower = 0;
+    // flags
+    int done_flag = 0;
+    int space_flag = 0; // can find more psaces
+    int double_apex_flag = 0;
+    int single_apex_flag = 0;
 
     while(pos < MAX_ARG_LEN - 1 && item < MAX_ARG_COUNT)
     {
         switch(input[pos])
         {
-        case '\r':
-        case '\n':
-        case '#':
-        case '\0':
-            done = 1;
-        case ' ':
-        case '\t':
-            output[pos] = '\0';
-            if(!space && wordstart != pos)
-            {
-                list->args[item] = output + wordstart;
-                list->arglen[item] = pos - wordstart;
-                item++;
-            }
-            space = 1;
-            break; /*
-			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I':
-			case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R':
-			case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-				makelower = 1; */
+            // read strings
+            case '"':
+                if ( (pos > 0 && input[pos-1] != '\\') || pos <= 0 )
+                {
+                    if (!double_apex_flag)
+                    {
+                        double_apex_flag = 1;
+                        space_flag = 0;
+                        wordstart = pos;
+                        output[pos] = input[pos];
+                        break;
+                    }
+                    else
+                    {
+                        double_apex_flag = 0;
+                        output[pos] = input[pos];
+                        if (wordstart != pos)
+                        {
+                            list->args[item] = output + wordstart;
+                            list->arglen[item] = pos - wordstart + 1;
+                            item++;
+                        }
+                        space_flag = 1; // simulate space to add new arg
+                        break;
+                    }
+                }
+            case '\'':
+                if ( (pos > 0 && input[pos-1] != '\\') || pos <= 0 )
+                {
+                    if (!single_apex_flag)
+                    {
+                        single_apex_flag = 1;
+                        space_flag = 0;
+                        wordstart = pos;
+                        output[pos] = input[pos];
+                        break;
+                    }
+                    else
+                    {
+                        single_apex_flag = 0;
+                        output[pos] = input[pos];
+                        if (wordstart != pos)
+                        {
+                            list->args[item] = output + wordstart;
+                            list->arglen[item] = pos - wordstart + 1;
+                            item++;
+                        }
+                        space_flag = 1; // simulate space to add new arg
+                        break;
+                    }
+                }
 
-        default:
-            if(space)
-            {
-                wordstart = pos;
-            }
-            /*output[pos] = makelower ? input[pos] + diff : input[pos];*/
-            output[pos] = input[pos];
-            space = 0;
-            //makelower = 0;
+            // complete item
+            case '\r':
+            case '\n':
+            case '#': // mettere se è apex
+                if (double_apex_flag || single_apex_flag)
+                {
+                    output[pos] = input[pos];
+                    break;
+                }
+            case '\0':
+                done_flag = 1;
+
+            // skip spaces
+            case ' ':
+            case '\t':
+                if (!double_apex_flag && !single_apex_flag)
+                {
+                    output[pos] = '\0';
+                    if(!space_flag && wordstart != pos)
+                    {
+                        list->args[item] = output + wordstart;
+                        list->arglen[item] = pos - wordstart;
+                        item++;
+                    }
+                    space_flag = 1;
+                    break;
+                }
+
+            // read character
+            default:
+                if(space_flag)
+                {
+                    wordstart = pos;
+                }
+                output[pos] = input[pos];
+                space_flag = 0;
         }
-        if(done)
+
+        if(done_flag)
         {
             break;
         }
         pos++;
     }
     list->count = item;
+
     return item;
 }
 
@@ -11240,6 +11303,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     }
                     sprintf(namebuf, call_text, value);
                     buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
+
                     do  //argument and comma
                     {
                         j++;
