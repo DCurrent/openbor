@@ -154,52 +154,6 @@ BUILD_DEBUG     = 1
 endif
 endif
 
-ifdef BUILD_GP2X
-TARGET 	        = $(VERSION_NAME).elf
-TARGET_FINAL    = $(VERSION_NAME).gpe
-TARGET_PLATFORM = GP2X
-BUILD_SDL       = 1
-BUILD_GFX       = 1
-BUILD_STATIC    = 1
-BUILD_PTHREAD   = 1
-BUILD_SDL_IO    = 1
-BUILD_TREMOR    = 1
-BUILDING        = 1
-CC              = $(GP2XDEV)/arm-open2x-linux-gcc
-UNAME          := $(shell uname)
-INCLUDES        = $(SDKPATH)/include \
-                  $(SDKPATH)/include/SDL
-LIBRARIES       = $(SDKPATH)/lib
-ifeq ($(BUILD_GP2X), 0)
-BUILD_DEBUG     = 1
-endif
-endif
-
-ifdef BUILD_WIZ
-TARGET 	        = $(VERSION_NAME).elf
-TARGET_FINAL    = $(VERSION_NAME).gpe
-TARGET_PLATFORM = WIZ
-BUILD_SDL       = 1
-BUILD_GFX       = 1
-BUILD_PTHREAD   = 1
-BUILD_SDL_IO    = 1
-BUILD_TREMOR    = 1
-BUILDING        = 1
-CC              = $(WIZDEV)/$(PREFIX)gcc$(EXTENSION)
-UNAME          := $(shell uname)
-INCLUDES        = $(SDKPATH)/include \
-                  $(SDKPATH)/include/SDL
-LIBRARIES       = $(SDKPATH)/lib
-ifeq ($(findstring wiz-sdk, $(SDKPATH)), wiz-sdk)
-INCLUDES       += $(SDKPATH)/../include
-LIBRARIES      += $(SDKPATH)/../lib/target \
-                  $(SDKPATH)/lib/target
-endif
-ifeq ($(BUILD_WIZ), 0)
-BUILD_DEBUG     = 1
-endif
-endif
-
 ifdef BUILD_OPENDINGUX
 TARGET 	        = $(VERSION_NAME).elf
 TARGET_FINAL    = $(VERSION_NAME).dge
@@ -215,22 +169,6 @@ INCLUDES        = $(OPENDINGUX_TOOLCHAIN_PREFIX)/include \
                   $(OPENDINGUX_TOOLCHAIN_PREFIX)/include/SDL
 LIBRARIES       = $(OPENDINGUX_TOOLCHAIN_PREFIX)/lib
 ifeq ($(BUILD_OPENDINGUX), 0)
-BUILD_DEBUG     = 1
-endif
-endif
-
-ifdef BUILD_DC
-TARGET 	        = $(VERSION_NAME).elf
-TARGET_FINAL    = 1ST_READ.BIN
-TARGET_PLATFORM = DC
-BUILDING        = 1
-INCLUDES        = $(KOS_BASE)/../kos-ports/include/SDL \
-                  $(KOS_BASE)/../kos-ports/include/SDL-1.2.9 \
-                  $(KOS_BASE)/../kos-ports/include/png \
-                  $(KOS_BASE)/../kos-ports/include/zlib \
-                  $(KOS_BASE)/../kos-ports/include/liboggvorbis \
-                  $(KOS_BASE)/../kos-ports/libtremor/xiph
-ifeq ($(BUILD_DC), 0)
 BUILD_DEBUG     = 1
 endif
 endif
@@ -282,12 +220,6 @@ endif
 ifdef BUILD_PANDORA
 STRIP 	        = $(PNDDEV)/bin/arm-none-linux-gnueabi-strip $(TARGET) -o $(TARGET_FINAL)
 endif
-ifdef BUILD_GP2X
-STRIP 	        = $(GP2XDEV)/arm-open2x-linux-strip $(TARGET) -o $(TARGET_FINAL)
-endif
-ifdef BUILD_WIZ
-STRIP 	        = $(WIZDEV)/$(PREFIX)strip$(EXTENSION) $(TARGET) -o $(TARGET_FINAL)
-endif
 ifdef BUILD_OPENDINGUX
 STRIP           = $(OPENDINGUX_TOOLCHAIN_PREFIX)/bin/mipsel-linux-strip $(TARGET) -o $(TARGET_FINAL)
 endif
@@ -304,11 +236,6 @@ endif
 
 ifdef BUILD_PSP
 INCS           += psp
-endif
-
-
-ifdef BUILD_DC
-INCS           += dc
 endif
 
 
@@ -331,14 +258,6 @@ ifdef BUILD_LINUX
 INCS           += 'libpng-config --prefix'/include/libpng
 endif
 
-
-ifdef BUILD_GP2X
-INCS 	       += sdl/gp2x
-endif
-
-ifdef BUILD_WIZ
-INCS 	       += sdl/gp2x
-endif
 
 ifdef BUILD_OPENDINGUX
 INCS           += '$(OPENDINGUX_TOOLCHAIN_PREFIX)/bin/libpng-config --prefix'/include/libpng
@@ -465,17 +384,6 @@ GAME_CONSOLE    = psp/control/control.o                                         
 endif
 
 
-ifdef BUILD_DC
-GAME_CONSOLE    = dc/dcport.o                                                                       \
-                  dc/bios.o                                                                         \
-                  dc/gdrom.o                                                                        \
-                  dc/timer.o                                                                        \
-                  dc/sblaster.o                                                                     \
-                  dc/control.o                                                                      \
-                  dc/video.o
-endif
-
-
 ifdef BUILD_WII
 GAME_CONSOLE    = wii/control.o                                                                     \
                   wii/sblaster.o                                                                    \
@@ -525,16 +433,6 @@ GAME_CONSOLE   += sdl/loadgl.o
 endif
 
 
-ifdef BUILD_GP2X
-GAME_CONSOLE   += sdl/gp2x/gp2xport.o
-endif
-
-
-ifdef BUILD_WIZ
-GAME_CONSOLE   += sdl/gp2x/gp2xport.o
-endif
-
-
 ifdef BUILD_WEBM
 WEBM 	       += source/webmlib/vidplay.o                                                          \
                   source/webmlib/vorbis.o                                                           \
@@ -570,20 +468,14 @@ CFLAGS 	       += $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TAR
 CFLAGS 	       += -g -Wall -Werror -fsigned-char -std=gnu99
 
 
-ifndef BUILD_GP2X
 ifndef BUILD_DARWIN
 ifdef BUILD_LINUX
 CFLAGS         += -Wno-unused-result `pkg-config sdl2 --cflags`
 endif
 endif
-endif
 
 ifndef BUILD_DEBUG
-ifdef BUILD_DC
-CFLAGS 	       += -O9
-else
 CFLAGS 	       += -O2
-endif
 CFLAGS 	       += -fno-ident -freorder-blocks
 ifndef BUILD_AMD64
 CFLAGS         += -fomit-frame-pointer
@@ -626,11 +518,6 @@ endif
 
 ifdef BUILD_VITA
 CFLAGS 	       += -DCACHE_BACKGROUNDS -Wl,-q
-endif
-
-
-ifdef BUILD_WIZ
-CFLAGS 	       += -DGP2X
 endif
 
 
@@ -745,11 +632,6 @@ LIBS           += -static
 endif
 
 
-ifdef BUILD_DC
-LIBS           += -lc -lgcc -lSDL_129 -ltremor
-endif
-
-
 ifdef BUILD_VORBIS
 LIBS           += -lvorbisfile -lvorbis -logg
 endif
@@ -788,35 +670,6 @@ BUILD_PRX       = 1
 include psp/build.mak
 endif
 
-
-#----------------------------------------------------------------------------------------------------
-# Rules to manage Files and Libraries for Dreamcast
-#----------------------------------------------------------------------------------------------------
-
-ifdef BUILD_DC
-all : $(TARGET) $(TARGET_FINAL)
-KOS_LOCAL_CFLAGS = -I$(KOS_BASE)/../kos-ports/include -ffast-math
-include $(KOS_BASE)/Makefile.rules
-%.o : %.c
-	@echo Compiling $(TARGET_PLATFORM) Port: $<...
-	@$(KOS_CC) $(KOS_CFLAGS) $(CFLAGS) -c $< -o $@
-%.o : %.s
-	@echo Compiling $(TARGET_PLATFORM) Port: $<...
-	@$(KOS_AS) $(KOS_AFLAGS) $< -o $@
-%.o : %.S
-	@echo Compiling $(TARGET_PLATFORM) Port: $<...
-	@$(KOS_AS) $(KOS_AFLAGS) $< -o $@
-$(TARGET) : $(OBJS)
-	@echo
-	@echo Linking $(TARGET_PLATFORM) Port: $(TARGET)...
-	@$(KOS_CC) $(KOS_CFLAGS) $(KOS_LOCAL_CFLAGS) $(KOS_LDFLAGS) -o $@ $(KOS_START) $^ $(LIBS) $(KOS_LIBS)
-$(TARGET_FINAL) : $(TARGET)
-	@echo Creating $(TARGET_PLATFORM) Port: $(TARGET_FINAL)...
-	@$(KOS_OBJCOPY) -R .stack -O binary $(TARGET) $(TARGET_FINAL)
-	@echo
-	@echo Completed $(TARGET_PLATFORM) Port!
-	@echo $(TARGET_FINAL) is now ready!
-endif
 
 
 #----------------------------------------------------------------------------------------------------
@@ -905,13 +758,10 @@ all:
 	@echo
 	@echo Build A TARGET_PLATFORM:
 	@echo
-	@echo make BUILD_DC=1
 	@echo make BUILD_PSP=1
 	@echo make BUILD_PS2=1
 	@echo make BUILD_WII=1
 	@echo make BUILD_WIN=1
-	@echo make BUILD_GP2X=1
-	@echo make BUILD_WIZ=1
 	@echo make BUILD_PANDORA=1
 	@echo make BUILD_LINUX=1
 	@echo make BUILD_OPENDINGUX=1
@@ -948,6 +798,6 @@ version:
 	@echo "All rights reserved."
 	@echo "See LICENSE and README within OpenBOR root for details."
 	@echo
-	@echo "Copyright (c) 2004 - 2014 OpenBOR Team"
+	@echo "Copyright (c) 2004 - 2017 OpenBOR Team"
 	@echo "-------------------------------------------------------"
 
