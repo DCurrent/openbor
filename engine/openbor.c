@@ -3644,7 +3644,7 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
     assert(input);
     assert(output);
 
-    memset(output,'\0',MAX_ARG_LEN);
+    memset(output,0,MAX_ARG_LEN);
 
     size_t pos = 0;
     size_t wordstart = 0;
@@ -3663,7 +3663,7 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
             case '"':
                 if ( (pos > 0 && input[pos-1] != '\\') || pos <= 0 )
                 {
-                    if (!double_apex_flag)
+                    if (space_flag && !double_apex_flag)
                     {
                         double_apex_flag = 1;
                         space_flag = 0;
@@ -3671,7 +3671,7 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
                         output[pos] = input[pos];
                         break;
                     }
-                    else
+                    else if (double_apex_flag)
                     {
                         double_apex_flag = 0;
                         output[pos] = input[pos];
@@ -3681,14 +3681,34 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
                             list->arglen[item] = pos - wordstart + 1;
                             item++;
                         }
-                        space_flag = 1; // simulate space to add new arg
+                        wordstart = pos + 1;
                         break;
                     }
+                    else
+                    {
+                        if(space_flag)
+                        {
+                            wordstart = pos;
+                        }
+                        output[pos] = input[pos];
+                        space_flag = 0;
+                        break;
+                    }
+                }
+                else
+                {
+                    if(space_flag)
+                    {
+                        wordstart = pos;
+                    }
+                    output[pos] = input[pos];
+                    space_flag = 0;
+                    break;
                 }
             case '\'':
                 if ( (pos > 0 && input[pos-1] != '\\') || pos <= 0 )
                 {
-                    if (!single_apex_flag)
+                    if (space_flag && !single_apex_flag)
                     {
                         single_apex_flag = 1;
                         space_flag = 0;
@@ -3696,7 +3716,7 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
                         output[pos] = input[pos];
                         break;
                     }
-                    else
+                    else if (single_apex_flag)
                     {
                         single_apex_flag = 0;
                         output[pos] = input[pos];
@@ -3706,11 +3726,30 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
                             list->arglen[item] = pos - wordstart + 1;
                             item++;
                         }
-                        space_flag = 1; // simulate space to add new arg
+                        wordstart = pos + 1;
+                        break;
+                    }
+                    else
+                    {
+                        if(space_flag)
+                        {
+                            wordstart = pos;
+                        }
+                        output[pos] = input[pos];
+                        space_flag = 0;
                         break;
                     }
                 }
-
+                else
+                {
+                    if(space_flag)
+                    {
+                        wordstart = pos;
+                    }
+                    output[pos] = input[pos];
+                    space_flag = 0;
+                    break;
+                }
             // complete item
             case '\r':
             case '\n':
@@ -3741,7 +3780,7 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
 
             // read character
             default:
-                if(space_flag)
+                if(space_flag && !double_apex_flag && !single_apex_flag)
                 {
                     wordstart = pos;
                 }
@@ -11319,6 +11358,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     }
                     while(value && value[0]);
                 }
+
                 buffer_append(&scriptbuf, endcall_text, 0xffffff, &sbsize, &scriptlen);
                 if(no_cmd_compatible)
                 {
