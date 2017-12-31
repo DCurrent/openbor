@@ -3675,13 +3675,7 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
                     {
                         double_apex_flag = 0;
                         output[pos] = input[pos];
-                        if (wordstart != pos)
-                        {
-                            list->args[item] = output + wordstart;
-                            list->arglen[item] = pos - wordstart + 1;
-                            item++;
-                        }
-                        wordstart = pos + 1;
+                        // continue to get inputs
                         break;
                     }
                     else
@@ -3720,13 +3714,7 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
                     {
                         single_apex_flag = 0;
                         output[pos] = input[pos];
-                        if (wordstart != pos)
-                        {
-                            list->args[item] = output + wordstart;
-                            list->arglen[item] = pos - wordstart + 1;
-                            item++;
-                        }
-                        wordstart = pos + 1;
+                        // continue to get inputs
                         break;
                     }
                     else
@@ -3795,6 +3783,15 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
         pos++;
     }
     list->count = item;
+
+    // TEST
+    /*printf("found: ");
+    int i;
+    for (i = 0; i < list->count; i++) {
+        printf("|%s|:%d",list->args[i],list->arglen[i]);
+        if (i < list->count - 1) printf(" ");
+    }
+    printf("\n");*/
 
     return item;
 }
