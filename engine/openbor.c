@@ -18520,7 +18520,7 @@ int checkhole_in(float x, float z, float a)
 
     if(level == NULL)
     {
-        return -1;
+        return 0;
     }
 
     maxa = -1;
@@ -20185,7 +20185,7 @@ int check_basemap_index(int x, int z)
 
     if(!level)
     {
-        return 0;
+        return -1;
     }
 
     for(i = 0; i < level->numbasemaps; i++)
@@ -20278,13 +20278,15 @@ void adjust_base(entity *e, entity **pla)
         //printf("stb:%d\n",self->modeldata.subject_to_basemap);
         if(self->modeldata.subject_to_basemap > 0) maxbase = check_basemap(self->position.x, self->position.z);
 
-        if(maxbase == T_MIN_BASEMAP && self->modeldata.subject_to_hole > 0)
+        if(self->modeldata.subject_to_hole > 0 &&
+           ( (self->modeldata.subject_to_basemap > 0 && maxbase == T_MIN_BASEMAP) || (self->modeldata.subject_to_basemap <= 0) )
+           )
         {
             hole = (wall < 0 && !other) ? checkhole_in(self->position.x, self->position.z, self->position.y) : 0;
             if ( hole )
             {
                 int holeind = checkholeindex_in(self->position.x, self->position.z, self->position.y);
-                execute_inhole_script(self, 0, (double)level->holes[holeind].height, holeind);
+                if (holeind >= 0) execute_inhole_script(self, 0, (double)level->holes[holeind].height, holeind);
             }
 
             if(seta < 0 && hole)
@@ -24457,7 +24459,6 @@ int common_trymove(float xdir, float zdir)
     {
 
         needcheckhole = 1;
-        // checkhole or checkhole_in() ???
         if(zdir && checkhole(self->position.x, z) && checkwall(self->position.x, z) < 0 && !check_platform_below(self->position.x, z, self->position.y, self))
         {
             //int holeind = checkholeindex_in(self->position.x, z, self->position.y);
