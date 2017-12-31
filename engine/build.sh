@@ -43,7 +43,7 @@ function distribute {
     echo "PSP Platform Failed To Build!"
     exit 1
   fi
-  
+
 if test -e "releases/WINDOWS/OpenBOR/OpenBOR.exe"; then
     cd ../tools/borpak/source/
     . build.sh win
@@ -252,28 +252,6 @@ function wii {
   fi
 }
 
-# OpenDingux Environment && Compile
-function opendingux {
-  export PATH=$OLD_PATH
-  . ./environ.sh 8
-  if test $OPENDINGUX_TOOLCHAIN; then
-    make clean BUILD_OPENDINGUX=1
-    make BUILD_OPENDINGUX=1
-    if test -f "OpenBOR.dge"; then
-      if test ! -e "./releases/OPENDINGUX" ; then
-        mkdir ./releases/OPENDINGUX
-        mkdir ./releases/OPENDINGUX/OpenBOR
-        mkdir ./releases/OPENDINGUX/OpenBOR/Logs
-        mkdir ./releases/OPENDINGUX/OpenBOR/Paks
-        mkdir ./releases/OPENDINGUX/OpenBOR/Saves
-        mkdir ./releases/OPENDINGUX/OpenBOR/ScreenShots
-      fi
-      mv OpenBOR.dge ./releases/OPENDINGUX/OpenBOR/
-    fi
-    make clean BUILD_OPENDINGUX=1
-  fi
-}
-
 # Darwin Environment && Compile
 function darwin {
   export PATH=$OLD_PATH
@@ -314,7 +292,6 @@ function build_all {
     linux_amd64
     windows
     wii
-    opendingux
     darwin
   fi
   distribute
@@ -330,7 +307,6 @@ function print_help {
   echo "    4 = Linux (x86, amd64) Example: $0 4 amd64"
   echo "    5 = Windows"
   echo "    7 = Wii"
-  echo "    8 = OpenDingux"
   echo "   10 = Darwin"
   echo "  all = build for all applicable targets"
   echo "-------------------------------------------------------"
@@ -367,11 +343,6 @@ case $1 in
   7)
     version
     wii
-    ;;
-
-  8)
-    version
-    opendingux
     ;;
 
   10)
