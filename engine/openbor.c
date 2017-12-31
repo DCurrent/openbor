@@ -14197,7 +14197,7 @@ void load_level(char *filename)
 
     // Allocate memory for player spawn - only as much as we need.
     player_max = levelsets[current_set].maxplayers;
-    level->spawn = malloc( (sizeof(*level->spawn) * MAX_PLAYERS) );
+    level->spawn = calloc(player_max, sizeof(*level->spawn));
 
     // Default player spawn Y position just above the screen top.
     for(i = 0; i < player_max && level->spawn; i++)
