@@ -10,7 +10,7 @@
 #
 #               	OpenBOR Makefile for ALL TARGET_PLATFORMs
 #
-#             PSP, PS3, Wii, Dreamcast, GP2X, WIZ, Pandora, OpenDingux, Windows, Darwin & Linux
+#             PSP, PS3, Wii, Pandora, Windows, Darwin & Linux
 #
 #----------------------------------------------------------------------------------------------------
 
@@ -154,25 +154,6 @@ BUILD_DEBUG     = 1
 endif
 endif
 
-ifdef BUILD_OPENDINGUX
-TARGET 	        = $(VERSION_NAME).elf
-TARGET_FINAL    = $(VERSION_NAME).dge
-TARGET_PLATFORM = OPENDINGUX
-BUILD_SDL       = 1
-BUILD_GFX       = 1
-BUILD_PTHREAD   = 1
-BUILD_SDL_IO    = 1
-BUILD_TREMOR    = 1
-BUILDING        = 1
-CC              = $(OPENDINGUX_TOOLCHAIN_PREFIX)/bin/mipsel-linux-gcc
-INCLUDES        = $(OPENDINGUX_TOOLCHAIN_PREFIX)/include \
-                  $(OPENDINGUX_TOOLCHAIN_PREFIX)/include/SDL
-LIBRARIES       = $(OPENDINGUX_TOOLCHAIN_PREFIX)/lib
-ifeq ($(BUILD_OPENDINGUX), 0)
-BUILD_DEBUG     = 1
-endif
-endif
-
 ifdef BUILD_WII
 TARGET 	        = $(VERSION_NAME).elf
 TARGET_MAP      = $(TARGET).map
@@ -220,9 +201,6 @@ endif
 ifdef BUILD_PANDORA
 STRIP 	        = $(PNDDEV)/bin/arm-none-linux-gnueabi-strip $(TARGET) -o $(TARGET_FINAL)
 endif
-ifdef BUILD_OPENDINGUX
-STRIP           = $(OPENDINGUX_TOOLCHAIN_PREFIX)/bin/mipsel-linux-strip $(TARGET) -o $(TARGET_FINAL)
-endif
 ifdef BUILD_WII
 STRIP           = elf2dol $< $@
 endif
@@ -256,11 +234,6 @@ endif
 
 ifdef BUILD_LINUX
 INCS           += 'libpng-config --prefix'/include/libpng
-endif
-
-
-ifdef BUILD_OPENDINGUX
-INCS           += '$(OPENDINGUX_TOOLCHAIN_PREFIX)/bin/libpng-config --prefix'/include/libpng
 endif
 
 
@@ -521,11 +494,6 @@ CFLAGS 	       += -DCACHE_BACKGROUNDS -Wl,-q
 endif
 
 
-ifdef BUILD_OPENDINGUX
-CFLAGS 	       += -D_REENTRANT -DOPENDINGUX -O2 -fomit-frame-pointer -ffunction-sections -ffast-math -fsingle-precision-constant -G0 -mbranch-likely
-endif
-
-
 ifdef BUILD_MMX
 CFLAGS 	       += -DMMX
 endif
@@ -764,7 +732,6 @@ all:
 	@echo make BUILD_WIN=1
 	@echo make BUILD_PANDORA=1
 	@echo make BUILD_LINUX=1
-	@echo make BUILD_OPENDINGUX=1
 	@echo
 	@echo Cleanup Intermediate Files:
 	@echo

@@ -14196,8 +14196,14 @@ void load_level(char *filename)
     strcpy(level->name, filename);
 
     // Allocate memory for player spawn - only as much as we need.
-    //player_max = levelsets[current_set].maxplayers;
-    level->spawn = malloc( (sizeof(*level->spawn) * player_max) );
+    player_max = levelsets[current_set].maxplayers;
+    level->spawn = malloc( (sizeof(*level->spawn) * MAX_PLAYERS) );
+
+    // Default player spawn Y position just above the screen top.
+    for(i = 0; i < player_max && level->spawn; i++)
+    {
+        level->spawn[i].y = videomodes.vRes + 60;
+    }
 
     if(buffer_pakfile(filename, &buf, &size) != 1)
     {
@@ -14230,12 +14236,6 @@ void load_level(char *filename)
     panel_width = panel_height = frontpanels_loaded = 0;
 
     //reset_playable_list(1);
-
-    // Default player spawn Y position just above the screen top.
-    for(i = 0; i < player_max; i++)
-    {
-        level->spawn[i].y = videomodes.vRes + 60;
-    }
 
     // Now interpret the contents of buf line by line
     pos = 0;
@@ -14645,7 +14645,7 @@ void load_level(char *filename)
 
             // Verify specified player index exists,
             // then set values.
-            if(i < player_max)
+            if(level->spawn && i < player_max)
             {
                 level->spawn[i].x = GET_INT_ARG(1);
                 level->spawn[i].z = GET_INT_ARG(2);
@@ -17049,9 +17049,8 @@ void ent_default_init(entity *e)
         else if(!e->animation)
         {
             int player_index = (int)e->playerindex;
-            //int max_players = levelsets[current_set].maxplayers;
 
-            if(time && level->spawn[player_index].y > e->position.y)//player_index < max_players &&
+            if(player_index < levelsets[current_set].maxplayers && level->spawn && time && level->spawn[player_index].y > e->position.y)
             {
                 e->takeaction = common_drop;
                 e->position.y = (float)level->spawn[player_index].y;
@@ -30482,7 +30481,7 @@ void spawnplayer(int index)
 
     if(level->scrolldir & SCROLL_LEFT)
     {
-        if(level->spawn[index].x)
+        if(level->spawn && level->spawn[index].x)
         {
             p.position.x = (float)(videomodes.hRes - level->spawn[index].x);
         }
@@ -30493,7 +30492,7 @@ void spawnplayer(int index)
     }
     else
     {
-        if(level->spawn[index].x)
+        if(level->spawn && level->spawn[index].x)
         {
             p.position.x = (float)(level->spawn[index].x);
         }
@@ -30504,7 +30503,7 @@ void spawnplayer(int index)
         p.flip = 1;
     }
 
-    if(level->spawn[index].z)
+    if(level->spawn && level->spawn[index].z)
     {
         if(level->scrolldir & (SCROLL_INWARD | SCROLL_OUTWARD))
         {
