@@ -9715,7 +9715,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                     // Command title for log. Details will be added blow accordingly.
                     // Forced character length is to line up with Alternatepal logs.
-                    printf("\t\t\tPalette - \t");
+                    //printf("\t\t\tPalette: \t");
 
                     // Get argument.
                     value = GET_ARG(1);
@@ -9728,7 +9728,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         nopalette = 1;
 
-                        printf("%s\n", "'None' option active. All sprites for this model will be loaded with independent color tables.");
+                        //printf("%s\n", "'None' option active. All sprites for this model will be loaded with independent color tables.");
                     }
                     else
                     {
@@ -9753,7 +9753,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         {
                             if(load_palette(newchar->palette, value) == 0)
                             {
-                                printf("%s%s\n", "Failed to load color table from .act file: ", value);
+                                //printf("%s%s\n", "Failed to load color table from .act file: ", value);
                                 goto lCleanup;
                             }
                         }
@@ -9761,12 +9761,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         {
                             if(loadimagepalette(value, packfile, newchar->palette) == 0)
                             {
-                                printf("%s%s\n", "Failed to load color table from image: ", value);
+                                //printf("%s%s\n", "Failed to load color table from image: ", value);
                                 goto lCleanup;
                             }
                         }
 
-                        printf("%s%s\n", "Loaded color selection 0: ", value);
+                        //printf("%s%s\n", "Loaded color selection 0: ", value);
                     }
                 }
 
@@ -14117,7 +14117,7 @@ void load_level(char *filename)
     s_model *tempmodel, *cached_model;
 
     int i = 0, j = 0, crlf = 0;
-    int player_max;
+    int player_max = MAX_PLAYERS;
     int usemap[MAX_BLENDINGS];
     char bgPath[128] = {""}, fnbuf[128];
     s_loadingbar bgPosi = {0, 0, {0,0}, {0,0}, 0, 0};
@@ -14196,19 +14196,13 @@ void load_level(char *filename)
     strcpy(level->name, filename);
 
     // Allocate memory for player spawn - only as much as we need.
-    player_max = levelsets[current_set].maxplayers;
-    level->spawn = malloc(sizeof(*level->spawn) * player_max);
+    //player_max = levelsets[current_set].maxplayers;
+    level->spawn = malloc( (sizeof(*level->spawn) * player_max) );
 
     if(buffer_pakfile(filename, &buf, &size) != 1)
     {
         errormessage = "Unable to load level file!";
         goto lCleanup;
-    }
-
-    // Default player spawn Y position just above the screen top.
-    for(i=0; i < player_max; i++)
-    {
-        level->spawn[i].y = videomodes.vRes + 60;
     }
 
     level->settime          = 100;                          // Feb 25, 2005 - Default time limit set to 100
@@ -14236,6 +14230,12 @@ void load_level(char *filename)
     panel_width = panel_height = frontpanels_loaded = 0;
 
     //reset_playable_list(1);
+
+    // Default player spawn Y position just above the screen top.
+    for(i = 0; i < player_max; i++)
+    {
+        level->spawn[i].y = videomodes.vRes + 60;
+    }
 
     // Now interpret the contents of buf line by line
     pos = 0;
@@ -14645,11 +14645,13 @@ void load_level(char *filename)
 
             // Verify specified player index exists,
             // then set values.
-            if(i <= player_max)
+            if(i < player_max)
             {
                 level->spawn[i].x = GET_INT_ARG(1);
                 level->spawn[i].z = GET_INT_ARG(2);
                 level->spawn[i].y = GET_INT_ARG(3);
+
+                if(level->spawn[i].y < 0) level->spawn[i].y = videomodes.vRes + 60;
             }
 
             break;
@@ -17046,10 +17048,13 @@ void ent_default_init(entity *e)
         }
         else if(!e->animation)
         {
-            if(time && level->spawn[(int)e->playerindex].y > e->position.y)
+            int player_index = (int)e->playerindex;
+            //int max_players = levelsets[current_set].maxplayers;
+
+            if(time && level->spawn[player_index].y > e->position.y)//player_index < max_players &&
             {
                 e->takeaction = common_drop;
-                e->position.y = (float)level->spawn[(int)e->playerindex].y;
+                e->position.y = (float)level->spawn[player_index].y;
                 if(validanim(e, ANI_JUMP))
                 {
                     ent_set_anim(e, ANI_JUMP, 0);
@@ -30498,6 +30503,7 @@ void spawnplayer(int index)
         }
         p.flip = 1;
     }
+
     if(level->spawn[index].z)
     {
         if(level->scrolldir & (SCROLL_INWARD | SCROLL_OUTWARD))
@@ -30517,6 +30523,7 @@ void spawnplayer(int index)
     {
         p.position.z = (float)PLAYER_MIN_Z;
     }
+
     if(p.position.z < PLAYER_MIN_Z)
     {
         p.position.z = PLAYER_MIN_Z;
@@ -30525,6 +30532,7 @@ void spawnplayer(int index)
     {
         p.position.z = PLAYER_MAX_Z;
     }
+
     //////////////////checking holes/ walls///////////////////////////////////
     for(xc = 0; xc < videomodes.hRes / 4; xc++)
     {
