@@ -10901,7 +10901,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 recursive.index  = GET_INT_ARG(1);  //Index.
                 recursive.time   = GET_INT_ARG(2);  //Time to expiration.
-                recursive.mode   = GET_INT_ARG(3);  //Mode, see common_dot.
+                recursive.mode   = GET_INT_ARG(3);  //Mode, see damage_recursive.
                 recursive.force  = GET_INT_ARG(4);  //Amount per tick.
                 recursive.rate   = GET_INT_ARG(5);  //Tick delay.
                 break;
@@ -20550,7 +20550,8 @@ void update_health()
         self->guardtime = time + GAME_SPEED;    //Reset guardtime.
     }
 
-    common_dot();   //Damage over time.
+    //Damage over time.
+    damage_recursive(self);
 
     // this is for restoring mp by time by tails
     // Cleaning and addition of mpstable by DC, 08172008.
@@ -20651,112 +20652,207 @@ void update_health()
     }
 }
 
-void common_dot()
+// damage_recursive
+// Caskey, Damon V.
+// 2009-06-17
+// --2018-01-02 retooled from former common_dot.
+//
+// Apply recursive damage (damage over time (dot)).
+//
+// When an entity is hit with a recursive damage
+// enabled attack, an array keyed from 0 to
+// MAX_DOTS on the target will be populated
+// with recursive damage values. Which key
+// will be populated is module author's choice,
+// determined an argument in the recursive attack.
+// This function operates by reviewing all keys
+// of the target's recursive damage array, and
+// applying any values found accordingly.
+void damage_recursive(entity *target)
 {
-    //common_dot
-    //Damon V. Caskey
-    //06172009
-    //Mitigates damage over time (dot). Moved here from update_health().
+    int         force_final;    // Final force; total damage after defense and offense factors are applied.
+    int         attack_type;    // Attack type.
+    int         index;          // Dot index.
+    e_dot_mode  mode;           // Dot mode.
+    int         time_expire;    // Dot expire time.
+    int         time_tick;      // Dot next tick time.
+    int         time_rate;      // Dot tick rate.
+    int         force;          // Unmodified force.
+    float       offense;        // Owner's offense.
+    float       defense;        // target defense.
+    entity     *owner;          // Owner of dot effect.
+    s_collision_attack attack;  // Attack structure.
 
-    int         iFForce;    //Final force; total damage after defense and offense factors are applied.
-    int         iType;      //Attack type.
-    int         iIndex;     //Dot index.
-    e_dot_mode  iDot;       //Dot mode.
-    int         iDot_time;  //Dot expire time.
-    int         iDot_cnt;   //Dot next tick time.
-    int         iDot_rate;  //Dot tick rate.
-    int         iForce;     //Unmodified force.
-    float       fOffense;   //Owner's offense.
-    float       fDefense;   //Self defense.
-    entity     *eOpp;       //Owner of dot effect.
-    s_collision_attack    attack;     //Attack struct.
-
-    for(iIndex = 0; iIndex < MAX_DOTS; iIndex++)                                               //Loop through all DOT indexes.
+    // Loop through all DOT indexes.
+    for(index = 0; index < MAX_DOTS; index++)
     {
-        iDot_time   =   self->dot_time[iIndex];                                                 //Get expire time.
-        iDot_cnt    =   self->dot_cnt[iIndex];                                                  //Get next tick time.
-        iDot_rate   =   self->dot_rate[iIndex];                                                 //Get tick rate.
+        // Populate local time vars.
+        time_expire =   target->dot_time[index];
+        time_tick   =   target->dot_cnt[index];
+        time_rate   =   target->dot_rate[index];
 
-        if(iDot_time)                                                                           //Dot time present?
+        // Is there a recursive damage expire time? If so we
+        // know there is a recursive damage active on this index.
+        if(time_expire)
         {
-            if(time > iDot_time)                                                                //Dot effect expired? Then clear variants.
+            // If time has expired, clear out other values
+            // and exit this iteration of the loop.
+            if(time > time_expire)
             {
-                self->dot[iIndex]       = 0;
-                self->dot_atk[iIndex]   = 0;
-                self->dot_cnt[iIndex]   = 0;
-                self->dot_rate[iIndex]  = 0;
-                self->dot_time[iIndex]  = 0;
-                self->dot_force[iIndex] = 0;
+                target->dot[index]       = 0;
+                target->dot_atk[index]   = 0;
+                target->dot_cnt[index]   = 0;
+                target->dot_rate[index]  = 0;
+                target->dot_time[index]  = 0;
+                target->dot_force[index] = 0;
+
+                continue;
             }
-            else if(time >= iDot_cnt && self->health >= 0)                                      //Time for a dot tick and alive?
+
+            // If it is not yet time for a tick, exit
+            // this iteration of loop.
+            if(!(time >= time_tick))
             {
-                self->dot_cnt[iIndex] = time + (iDot_rate * GAME_SPEED / 100);                  //Reset next tick time.
+                continue;
+            }
 
-                iDot    =   self->dot[iIndex];                                                  //Get dot mode.
-                iForce  =   self->dot_force[iIndex];                                            //Get dot force.
+            // If target is not alive, exit this iteration of loop.
+            if(target->health <= 0)
+            {
+                continue;
+            }
 
-                if(iDot == DOT_MODE_HP
-                    || iDot == DOT_MODE_HP_MP
-                    || iDot == DOT_MODE_NON_LETHAL_HP
-                    || iDot == DOT_MODE_NON_LETHAL_HP_MP)                            //HP?
+            // Reset next tick time.
+            target->dot_cnt[index] = time + (time_rate * GAME_SPEED / 100);
+
+            // Populate local recursive type and force vars.
+            mode  = target->dot[index];
+            force = target->dot_force[index];
+
+            // Does this recursive damage affect HP?
+            if(mode == DOT_MODE_HP
+                || mode == DOT_MODE_HP_MP
+                || mode == DOT_MODE_NON_LETHAL_HP
+                || mode == DOT_MODE_NON_LETHAL_HP_MP)
+            {
+                // Recursive HP Damage Logic:
+                //
+                // Normally it is preferable to apply takedamage(),
+                // any time we want to damage a target, but because
+                // it breaks grabs and would spam the HUD,
+                // takedamage() is not tenable for every tick
+                // of a recursive damage effect. However, we DO want
+                // the owner to get credit, grabs to be broken, HUD
+                // to react, etc., if the target is KO'd.
+
+                // To handle both needs, we will first factor offense
+                // and defense manually to get a calculated force. If
+                // the calculated force is sufficient to KO target, and
+                // this recursive tick is allowed to KO, we will go ahead
+                // and apply takedamage() using the original recursive
+                // force (takedamage() automatically calculates offense
+                // and defense). This way the engine will treat KO tick as
+                // if it were a direct hit with all appropriate reactions
+                // and credit. Otherwise, we'll just subject the calculated
+                // force directly from target's HP for a 'silent' damage effect.
+
+                // Populate remaining local vars we'll need
+                // to apply recursive HP damage.
+                owner        = target->dot_owner[index];
+                attack_type  = target->dot_atk[index];
+                force_final  = force;
+
+                // Get owner's offense and target's defense
+                // factors for the recursive damage type.
+                offense      = owner->offense_factors[attack_type];
+                defense      = target->defense[attack_type].factor;
+
+                // Calculate resulting force from any existing owner
+                // offense and target defense factors.
+                if (offense)
                 {
-                    eOpp        = self->dot_owner[iIndex];                                      //Get dot effect owner.
-                    iType       = self->dot_atk[iIndex];                                        //Get attack type.
-                    iFForce     = iForce;                                                       //Initialize final force.
-                    fOffense    = eOpp->offense_factors[iType];									//Get owner's offense.
-                    fDefense    = self->defense[iType].factor;									//Get Self defense.
-
-                    if (fOffense)
-                    {
-                        iFForce = (int)(iForce  * fOffense);       //Apply offense factors.
-                    }
-                    if (fDefense)
-                    {
-                        iFForce = (int)(iFForce * fDefense);       //Apply defense factors.
-                    }
-
-                    if(iFForce >= self->health && (iDot == 4 || iDot == 5))                     //Total force lethal?
-                    {
-                        attack              = emptyattack;                                      //Clear struct.
-                        attack.attack_type  = iType;                                            //Set type.
-                        attack.attack_force = iForce;                                           //Set force. Use unmodified force here; takedamage applys damage mitigation.
-                        attack.dropv.y     = default_model_dropv.y;                           //Apply drop Y.
-                        attack.dropv.x     = default_model_dropv.x;                           //Apply drop X
-                        attack.dropv.z     = default_model_dropv.z;                           //Apply drop Z
-
-                        if(self->takedamage)                                                    //Defender uses takedamage()?
-                        {
-                            self->takedamage(eOpp, &attack);                                    //Apply attack to kill defender.
-                        }
-                        else
-                        {
-                            kill(self);                                                         //Kill defender instantly.
-                        }
-                    }
-                    else                                                                        //Total force less then health or using non lethal setting.
-                    {
-                        if (self->health > iFForce)                                             //Final force less then health?
-                        {
-                            self->health -= iFForce;                                            //Reduce health directly. Using takedamage() breaks grabs and spams defender's status in HUD.
-                        }
-                        else
-                        {
-                            self->health = 1;                                                   //Set min health.
-                        }
-                        execute_takedamage_script(self, eOpp, iForce, 0, iType, 0, 0, 0, 0, 0);    //Execute the takedamage script.
-                    }
+                    force_final = (int)(force * offense);
                 }
 
-                /* Drain MP ? */
-                if(iDot == DOT_MODE_MP
-                   || iDot == DOT_MODE_HP_MP
-                   || iDot == DOT_MODE_NON_LETHAL_HP_MP)
+                if (defense)
                 {
-                    self->mp -= iForce;                                                         //Subtract force from MP.
-                    if(self->mp < 0)
+                    force_final = (int)(force_final * defense);
+                }
+
+                // Is calculated force enough to KO target?
+                // Is this recursive damage allowed to KO?
+                if(force_final >= target->health)
+                {
+                    // Is this recursive damage allowed to KO?
+                    if(mode == DOT_MODE_HP || mode == DOT_MODE_HP_MP)
                     {
-                        self->mp = 0;    //Stablize MP at 0.
+                        // Does target have a takedamage structure? If so
+                        // we can use takedamage() for the finishing damage.
+                        // Otherwise it must be a none type or some other
+                        // exceptional entity like a projectile. In that case
+                        // we will simply kill it.
+                        if(target->takedamage)
+                        {
+                            // Populate attack structure with
+                            // our recursive damage values.
+                            attack              = emptyattack;
+                            attack.attack_type  = attack_type;
+                            attack.attack_force = force;
+                            attack.dropv.y      = default_model_dropv.y;
+                            attack.dropv.x      = default_model_dropv.x;
+                            attack.dropv.z      = default_model_dropv.z;
+
+                            // Apply takedamage(). The engine will
+                            // take care of everything else damage
+                            // related.
+                            target->takedamage(owner, &attack);
+                        }
+                        else
+                        {
+                            // Kill target instantly.
+                            kill(target);
+                        }
                     }
+                    else
+                    {
+                        // Recursive damage is not allowed to KO
+                        // just set target's HP to minimum value.
+                        target->health = 1;
+
+                        // Execute the target's takedamage script.
+                        execute_takedamage_script(target, owner, force, 0, attack_type, 0, 0, 0, 0, 0);
+                    }
+                }
+                else
+                {
+                    // Calculated damage is insufficient to KO.
+                    // Subtract directly from target's HP.
+                    target->health -= force_final;
+
+                    // Execute the target's takedamage script.
+                    execute_takedamage_script(target, owner, force, 0, attack_type, 0, 0, 0, 0, 0);
+                }
+
+            }
+
+            // Does this recursive damage affect MP?
+            if(mode == DOT_MODE_MP
+               || mode == DOT_MODE_HP_MP
+               || mode == DOT_MODE_NON_LETHAL_HP_MP)
+            {
+                // Recursive HP Damage Logic:
+
+                // Could not be more simple. Subtract
+                // recursive force from MP. If MP would
+                // end with negative value, set 0.
+
+                // Subtract force from MP.
+                target->mp -= force;
+
+                // Stabilize MP at 0.
+                if(target->mp < 0)
+                {
+                    target->mp = 0;
                 }
             }
         }
