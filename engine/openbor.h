@@ -2693,7 +2693,7 @@ int obstacle_takedamage(entity *other, s_collision_attack *attack);
 void suicide(void);
 void player_blink(void);
 void common_prejump();
-void common_dot();
+void damage_recursive(entity *target);
 void tryjump(float, float, float, int);
 void dojump(float, float, float, int);
 void biker_drive(void);
