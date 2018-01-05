@@ -169,6 +169,15 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
     // Which property to get?
     switch(property)
     {
+    case BODY_COLLISION_PROP_COORDINATES:
+
+            // Verify handle and pass it on.
+            if(handle->coords)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->coords;
+            }
+
         case BODY_COLLISION_PROP_DEFENSE:
 
             /*
@@ -180,42 +189,6 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
             }
             */
 
-            break;
-
-        case BODY_COLLISION_PROP_POSITION_X:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.x;
-            break;
-
-        case BODY_COLLISION_PROP_POSISTION_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.y;
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_X:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.width;
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.height;
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Z_1:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.z1;
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Z_2:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.z2;
             break;
 
         case BODY_COLLISION_PROP_TAG:
