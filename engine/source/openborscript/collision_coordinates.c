@@ -14,19 +14,17 @@
 
 #include "scriptcommon.h"
 
-
-
-// get_coordinate_property(void handle, int property)
-HRESULT openbor_get_coordinate_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+// get_collision_coordinates_property(void handle, int property)
+HRESULT openbor_get_collision_coordinates_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-    #define SELF_NAME       "get_body_collision_property(void handle, int property)"
+    #define SELF_NAME       "get_collision_coordinates_property(void handle, int property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
-    int                         result      = S_OK; // Success or error?
-    s_collision_body                      *handle     = NULL; // Property handle.
-    e_body_collision_properties property    = 0;    // Property argument.
+    int                     result      = S_OK; // Success or error?
+    s_hitbox                *handle     = NULL; // Property handle.
+    e_collision_coordinates property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
@@ -44,66 +42,48 @@ HRESULT openbor_get_coordinate_property(ScriptVariant **varlist, ScriptVariant *
     }
     else
     {
-        handle      = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_hitbox *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
     // Which property to get?
     switch(property)
     {
-        case BODY_COLLISION_PROP_DEFENSE:
+        case COLLISION_COORDINATES_PROP_DEPTH_BACKGROUND:
 
-            /*
-            // Verify animation has any defense.
-            if(handle->defense)
-            {
-                ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->defense;
-            }
-            */
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->z1;
 
             break;
 
-        case BODY_COLLISION_PROP_POSITION_X:
+        case COLLISION_COORDINATES_PROP_DEPTH_FOREGROUND:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.x;
+            (*pretvar)->lVal = (LONG)handle->z2;
             break;
 
-        case BODY_COLLISION_PROP_POSISTION_Y:
+        case COLLISION_COORDINATES_PROP_HEIGHT:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.y;
+            (*pretvar)->lVal = (LONG)handle->height;
             break;
 
-        case BODY_COLLISION_PROP_SIZE_X:
+        case COLLISION_COORDINATES_PROP_WIDTH:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.width;
+            (*pretvar)->lVal = (LONG)handle->width;
             break;
 
-        case BODY_COLLISION_PROP_SIZE_Y:
+        case COLLISION_COORDINATES_PROP_X:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.height;
+            (*pretvar)->lVal = (LONG)handle->x;
             break;
 
-        case BODY_COLLISION_PROP_SIZE_Z_1:
+        case COLLISION_COORDINATES_PROP_Y:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.z1;
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Z_2:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.z2;
-            break;
-
-        case BODY_COLLISION_PROP_TAG:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->tag;
+            (*pretvar)->lVal = (LONG)handle->y;
             break;
 
         default:
@@ -130,7 +110,7 @@ HRESULT openbor_get_coordinate_property(ScriptVariant **varlist, ScriptVariant *
 }
 
 // set_coordinate_property(void handle, int property, value)
-HRESULT openbor_set_coordinate_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+HRESULT openbor_set_collision_coordinates_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
     #define SELF_NAME           "set_coordinate_property(void handle, int property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
@@ -138,9 +118,9 @@ HRESULT openbor_set_coordinate_property(ScriptVariant **varlist, ScriptVariant *
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
-    int                         result      = S_OK; // Success or error?
-    s_collision_body                      *handle     = NULL; // Property handle.
-    e_body_collision_properties property    = 0;    // Property to access.
+    int                     result      = S_OK; // Success or error?
+    s_hitbox                *handle     = NULL; // Property handle.
+    e_collision_coordinates property    = 0;    // Property to access.
 
 
     // Value carriers to apply on properties after
@@ -160,16 +140,19 @@ HRESULT openbor_set_coordinate_property(ScriptVariant **varlist, ScriptVariant *
     }
     else
     {
-        handle      = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_hitbox *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
     // Which property to modify?
     switch(property)
     {
-        case BODY_COLLISION_PROP_DEFENSE:
+        case COLLISION_COORDINATES_PROP_DEPTH_BACKGROUND:
 
-                //handle->defense = (temp_defense *)varlist[ARG_VALUE]->ptrVal;
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->z1 = temp_int;
+            }
 
             break;
 
