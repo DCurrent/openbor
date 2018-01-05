@@ -291,54 +291,6 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
 
             break;
 
-        case BODY_COLLISION_PROP_POSITION_X:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.x = temp_int;
-            }
-            break;
-
-        case BODY_COLLISION_PROP_POSISTION_Y:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.y = temp_int;
-            }
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_X:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.width = temp_int;
-            }
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Y:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.height = temp_int;
-            }
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Z_1:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.z1 = temp_int;
-            }
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Z_2:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.z2 = temp_int;
-            }
-            break;
-
         case BODY_COLLISION_PROP_TAG:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))

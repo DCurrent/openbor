@@ -311,18 +311,6 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
             (*pretvar)->lVal = (LONG)handle->maptime;
             break;
 
-        case ATTACK_PROP_POSITION_X:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.x;
-            break;
-
-        case ATTACK_PROP_POSITION_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.y;
-            break;
-
         case ATTACK_PROP_REACTION_FALL_FORCE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -405,30 +393,6 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->sealtime;
-            break;
-
-        case ATTACK_PROP_SIZE_X:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.width;
-            break;
-
-        case ATTACK_PROP_SIZE_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.height;
-            break;
-
-        case ATTACK_PROP_SIZE_Z_1:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.z1;
-            break;
-
-        case ATTACK_PROP_SIZE_Z_2:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.z2;
             break;
 
         case ATTACK_PROP_STAYDOWN_RISE:
@@ -685,22 +649,6 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
             }
             break;
 
-        case ATTACK_PROP_POSITION_X:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.x = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_POSITION_Y:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.y = temp_int;
-            }
-            break;
-
         case ATTACK_PROP_REACTION_FALL_FORCE:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -811,38 +759,6 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->sealtime = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_SIZE_X:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.width = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_SIZE_Y:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.height = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_SIZE_Z_1:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.z1 = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_SIZE_Z_2:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.z2 = temp_int;
             }
             break;
 
