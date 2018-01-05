@@ -923,15 +923,15 @@
 			<Option compilerVar="CC" />
 			<Option target="Release" />
 		</Unit>
+		<Unit filename="../source/openborscript/collision_coordinates.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../source/openborscript/config.h">
 			<Option target="Release" />
 		</Unit>
 		<Unit filename="../source/openborscript/constant.c">
 			<Option compilerVar="CC" />
 			<Option target="Release" />
-		</Unit>
-		<Unit filename="../source/openborscript/coordinates.c">
-			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/openborscript/index.c">
 			<Option compilerVar="CC" />
