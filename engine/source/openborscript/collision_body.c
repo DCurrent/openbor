@@ -11,9 +11,6 @@
 // Caskey, Damon V.
 //
 // Access to body collision properties.
-// All body collision functions are identical to
-// their attack property counterparts. See the attack
-// versions of each for details.
 
 #include "scriptcommon.h"
 
@@ -86,8 +83,8 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
     #define ARG_INDEX       1   // Index to access.
 
     int         result     = S_OK; // Success or error?
-    s_collision_body      *handle    = NULL; // Property handle.
-    //int         index      = 0;    // Property argument.
+    s_collision_body      **handle    = NULL; // Property handle.
+    int         index      = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
@@ -105,18 +102,16 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
     }
     else
     {
-        handle  = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
-        //index   = (LONG)varlist[ARG_INDEX]->lVal;
+        handle  = (s_collision_body **)varlist[ARG_HANDLE]->ptrVal;
+        index   = (LONG)varlist[ARG_INDEX]->lVal;
     }
 
     // If this index has property, send value back to user.
-    //if(handle[index])
-    //{
+    if(handle[index])
+    {
         ScriptVariant_ChangeType(*pretvar, VT_PTR);
-        //(*pretvar)->ptrVal = handle[index];
-
-        (*pretvar)->ptrVal = handle;
-    //}
+        (*pretvar)->ptrVal = handle[index];
+    }
 
     return result;
 
