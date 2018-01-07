@@ -8350,7 +8350,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->runjumpdist        = 1; // Default jump distane if a player is running
     newchar->grabdistance       = default_model_grabdistance; //  30-12-2004 Default grabdistance is same as originally set
     newchar->grabflip		    = 3;
-    newchar->throwdamage        = 21; // default throw damage
+    newchar->throwdamage        = 21; //21 // default throw damage
     newchar->icon.def			= -1;
     newchar->icon.die           = -1;
     newchar->icon.pain          = -1;
@@ -19991,21 +19991,28 @@ void check_gravity(entity *e)
                 {
                     if(self->takedamage)
                     {
+                        entity *other;
+
                         attack              = emptyattack;
                         attack.attack_force = self->damage_on_landing;
                         attack.attack_type  = ATK_LAND;
-                        self->takedamage(self->opponent, &attack);
-                        if(self->health > 0 ) self->damage_on_landing = 0;
+
+                        if (self->opponent && self->opponent->exists) other = self->opponent;
+                        else other = self;
+
+                        self->takedamage(other, &attack);
                     }
                     else
                     {
-                        self->health -= (self->damage_on_landing * self->defense[ATK_LAND].factor);
+                        int damage_factor = (self->damage_on_landing * self->defense[ATK_LAND].factor);
+
+                        self->health -= damage_factor;
                         if(self->health <= 0 )
                         {
                             kill(self);
                         }
                     }
-                    self->damage_on_landing = 0;
+                    if (self) self->damage_on_landing = 0;
                 }
                 // in case landing, set hithead to NULL
                 self->hithead = NULL;
@@ -23685,11 +23692,11 @@ int common_takedamage(entity *other, s_collision_attack *attack)
         return 1;
     }
     // fall to the ground so dont fall again
-    /*if(self->damage_on_landing)
+    if(self->damage_on_landing && self->health > 0)
     {
         self->damage_on_landing = 0;
         return 1;
-    }*/
+    }
     // unlink due to being hit
     if((self->opponent && self->opponent->grabbing != self) ||
             self->dead || self->frozen || self->drop)
