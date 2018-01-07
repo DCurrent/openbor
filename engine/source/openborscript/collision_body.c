@@ -175,14 +175,13 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
 
         case BODY_COLLISION_PROP_DEFENSE:
 
-            /*
+
             // Verify animation has any defense.
             if(handle->defense)
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
                 (*pretvar)->ptrVal = (VOID *)handle->defense;
             }
-            */
 
             break;
 
