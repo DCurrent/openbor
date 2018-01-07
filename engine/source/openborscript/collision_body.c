@@ -27,9 +27,9 @@ HRESULT openbor_get_body_collision_collection(ScriptVariant **varlist, ScriptVar
     #define ARG_FRAME       1   // Frame to access.
 
 
-    int         result      = S_OK; // Success or error?
-    s_collision_body      **handle    = NULL; // Property handle.
-    int         frame       = 0;    // Property argument.
+    int                 result      = S_OK; // Success or error?
+    s_collision_body    **handle    = NULL; // Property handle.
+    int                 frame       = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
@@ -45,11 +45,10 @@ HRESULT openbor_get_body_collision_collection(ScriptVariant **varlist, ScriptVar
         *pretvar = NULL;
         goto error_local;
     }
-    else
-    {
-        handle  = (s_collision_body **)varlist[ARG_HANDLE]->ptrVal;
-        frame   = (LONG)varlist[ARG_FRAME]->lVal;
-    }
+
+    // Populate local handle and frame vars.
+    handle  = (s_collision_body **)varlist[ARG_HANDLE]->ptrVal;
+    frame   = (LONG)varlist[ARG_FRAME]->lVal;
 
     // If this frame has property, send value back to user.
     if(handle[frame])
@@ -82,9 +81,9 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_INDEX       1   // Index to access.
 
-    int         result     = S_OK; // Success or error?
-    s_collision_body      **handle    = NULL; // Property handle.
-    int         index      = 0;    // Property argument.
+    int                 result      = S_OK; // Success or error?
+    s_collision_body    **handle    = NULL; // Property handle.
+    int                 index       = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
@@ -92,7 +91,7 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
 
     // Verify incoming arguments. There should at least
     // be a pointer for the property handle and an integer
-    // to determine which index is accessed.
+    // to determine which frame is accessed.
     if(paramCount < ARG_MINIMUM
        || varlist[ARG_HANDLE]->vt != VT_PTR
        || varlist[ARG_INDEX]->vt != VT_INTEGER)
@@ -100,11 +99,10 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
         *pretvar = NULL;
         goto error_local;
     }
-    else
-    {
-        handle  = (s_collision_body **)varlist[ARG_HANDLE]->ptrVal;
-        index   = (LONG)varlist[ARG_INDEX]->lVal;
-    }
+
+    // Populate local handle and property vars.
+    handle  = (s_collision_body **)varlist[ARG_HANDLE]->ptrVal;
+    index   = (LONG)varlist[ARG_INDEX]->lVal;
 
     // If this index has property, send value back to user.
     if(handle[index])
@@ -138,7 +136,7 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
     #define ARG_PROPERTY    1   // Property to access.
 
     int                         result      = S_OK; // Success or error?
-    s_collision_body                      *handle     = NULL; // Property handle.
+    s_collision_body            *handle     = NULL; // Property handle.
     e_body_collision_properties property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
@@ -155,16 +153,15 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
         *pretvar = NULL;
         goto error_local;
     }
-    else
-    {
-        handle      = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
-        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
-    }
+
+    // Populate local handle and property vars.
+    handle      = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
+    property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // Which property to get?
     switch(property)
     {
-    case BODY_COLLISION_PROP_COORDINATES:
+        case BODY_COLLISION_PROP_COORDINATES:
 
             // Verify handle and pass it on.
             if(handle->coords)
@@ -226,7 +223,6 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
     int                         result      = S_OK; // Success or error?
     s_collision_body            *handle     = NULL; // Property handle.
     e_body_collision_properties property    = 0;    // Property to access.
-
 
     // Value carriers to apply on properties after
     // taken from argument.
