@@ -170,6 +170,8 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
                 (*pretvar)->ptrVal = (VOID *)handle->coords;
             }
 
+            break;
+
         case BODY_COLLISION_PROP_DEFENSE:
 
 
@@ -248,7 +250,7 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
     {
         case BODY_COLLISION_PROP_COORDINATES:
 
-            handle->defense = (s_hitbox *)varlist[ARG_VALUE]->ptrVal;
+            handle->coords = (s_hitbox *)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
