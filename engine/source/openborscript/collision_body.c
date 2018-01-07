@@ -224,18 +224,17 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
     #define ARG_VALUE           2   // New value to apply.
 
     int                         result      = S_OK; // Success or error?
-    s_collision_body                      *handle     = NULL; // Property handle.
+    s_collision_body            *handle     = NULL; // Property handle.
     e_body_collision_properties property    = 0;    // Property to access.
 
 
     // Value carriers to apply on properties after
     // taken from argument.
     int         temp_int;
-    //s_defense   *temp_defense;
 
-    // Verify incoming arguments. There must be a
-    // pointer for the animation handle, an integer
-    // property, and a new value to apply.
+    // Verify incoming arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
        || varlist[ARG_HANDLE]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
@@ -243,18 +242,17 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
         *pretvar = NULL;
         goto error_local;
     }
-    else
-    {
-        handle      = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
-        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
-    }
+
+    // Populate local handle and property vars.
+    handle      = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
+    property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // Which property to modify?
     switch(property)
     {
         case BODY_COLLISION_PROP_DEFENSE:
 
-                handle->defense = (temp_defense *)varlist[ARG_VALUE]->ptrVal;
+                handle->defense = (s_defense *)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
