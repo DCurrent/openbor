@@ -246,9 +246,15 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
     // Which property to modify?
     switch(property)
     {
+        case BODY_COLLISION_PROP_COORDINATES:
+
+            handle->defense = (s_hitbox *)varlist[ARG_VALUE]->ptrVal;
+
+            break;
+
         case BODY_COLLISION_PROP_DEFENSE:
 
-                handle->defense = (s_defense *)varlist[ARG_VALUE]->ptrVal;
+            handle->defense = (s_defense *)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
