@@ -254,7 +254,7 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
     {
         case BODY_COLLISION_PROP_DEFENSE:
 
-                //handle->defense = (temp_defense *)varlist[ARG_VALUE]->ptrVal;
+                handle->defense = (temp_defense *)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
