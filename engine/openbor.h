@@ -818,7 +818,7 @@ typedef enum
 // Caskey, Damon V.
 // 2018-01-04
 //
-// Coordinate structure, mainly for
+// Collision structure, mainly for accessing
 // collision box position and dimensions.
 typedef enum
 {
