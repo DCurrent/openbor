@@ -16724,7 +16724,8 @@ void addscore(int playerindex, int add)
     s = player[playerindex].score;
     cs = score_script + playerindex;
 
-    next1up = ((s / lifescore) + 1) * lifescore;
+    if (lifescore > 0) next1up = ((s / lifescore) + 1) * lifescore;
+	else lifescore = 0;
 
     s += add;
     if(s > 999999999)
