@@ -16709,8 +16709,8 @@ void update_loading(s_loadingbar *s,  int value, int max)
 
 void addscore(int playerindex, int add)
 {
-    unsigned int s ;
-    unsigned int next1up;
+    unsigned int s = 0;
+    unsigned int next1up = 0;
     ScriptVariant var; // used for execute script
     Script *cs;
 
