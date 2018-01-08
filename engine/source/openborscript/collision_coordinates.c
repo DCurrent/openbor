@@ -14,6 +14,8 @@
 
 #include "scriptcommon.h"
 
+
+
 // get_collision_coordinates_property(void handle, int property)
 HRESULT openbor_get_collision_coordinates_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
@@ -40,13 +42,11 @@ HRESULT openbor_get_collision_coordinates_property(ScriptVariant **varlist, Scri
         *pretvar = NULL;
         goto error_local;
     }
-    else
-    {
-        handle      = (s_hitbox *)varlist[ARG_HANDLE]->ptrVal;
-        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
-    }
 
-    // Which property to get?
+    handle      = (s_hitbox *)varlist[ARG_HANDLE]->ptrVal;
+    property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+
+    // Which property to access?
     switch(property)
     {
         case COLLISION_COORDINATES_PROP_DEPTH_BACKGROUND:
