@@ -317,22 +317,15 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
             (*pretvar)->lVal = (LONG)handle->attack_drop;
             break;
 
-        case ATTACK_PROP_REACTION_FALL_VELOCITY_X:
+        case ATTACK_PROP_REACTION_FALL_VELOCITY:
 
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->dropv.x;
-            break;
+            // Verify handle and pass it on.
+            if(handle->dropv)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->dropv;
+            }
 
-        case ATTACK_PROP_REACTION_FALL_VELOCITY_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->dropv.y;
-            break;
-
-        case ATTACK_PROP_REACTION_FALL_VELOCITY_Z:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->dropv.z;
             break;
 
         case ATTACK_PROP_REACTION_FREEZE_MODE:
@@ -658,28 +651,10 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case ATTACK_PROP_REACTION_FALL_VELOCITY_X:
+        case ATTACK_PROP_REACTION_FALL_VELOCITY:
 
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_dbl)))
-            {
-                handle->dropv.x = temp_dbl;
-            }
-            break;
+            handle->dropv = (s_axis_f *)varlist[ARG_VALUE]->ptrVal;
 
-        case ATTACK_PROP_REACTION_FALL_VELOCITY_Y:
-
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_dbl)))
-            {
-                handle->dropv.y = temp_dbl;
-            }
-            break;
-
-        case ATTACK_PROP_REACTION_FALL_VELOCITY_Z:
-
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_dbl)))
-            {
-                handle->dropv.y = temp_dbl;
-            }
             break;
 
         case ATTACK_PROP_REACTION_FREEZE_MODE:
