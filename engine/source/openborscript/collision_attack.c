@@ -319,12 +319,10 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 
         case ATTACK_PROP_REACTION_FALL_VELOCITY:
 
-            // Verify handle and pass it on.
-            if(handle->dropv)
-            {
-                ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->dropv;
-            }
+            // Get memory address of sub structure
+            // and pass it on as a handle.
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)&handle->dropv;
 
             break;
 
@@ -445,7 +443,6 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
     // Value carriers to apply on properties after
     // taken from argument.
     int     temp_int;
-    DOUBLE  temp_dbl;
 
     // Verify incoming arguments. There must be a
     // pointer for the animation handle, an integer
@@ -653,7 +650,9 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 
         case ATTACK_PROP_REACTION_FALL_VELOCITY:
 
-            handle->dropv = (s_axis_f *)varlist[ARG_VALUE]->ptrVal;
+            // Reassign sub structure memory address
+            // to new handle.
+            handle->dropv = *(s_axis_f *)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
