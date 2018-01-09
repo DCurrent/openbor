@@ -16709,8 +16709,8 @@ void update_loading(s_loadingbar *s,  int value, int max)
 
 void addscore(int playerindex, int add)
 {
-    unsigned int s ;
-    unsigned int next1up;
+    unsigned int s = 0;
+    unsigned int next1up = 0;
     ScriptVariant var; // used for execute script
     Script *cs;
 
@@ -16724,7 +16724,8 @@ void addscore(int playerindex, int add)
     s = player[playerindex].score;
     cs = score_script + playerindex;
 
-    next1up = ((s / lifescore) + 1) * lifescore;
+    if (lifescore > 0) next1up = ((s / lifescore) + 1) * lifescore;
+	else lifescore = 0;
 
     s += add;
     if(s > 999999999)
@@ -17568,7 +17569,8 @@ void update_frame(entity *ent, int f)
     if(anim->jumpframe.frame == f)
     {
         // Set custom jumpheight for jumpframes
-        /*if(self->animation->jumpframe.v > 0)*/ toss(self, anim->jumpframe.velocity.y);
+        /*if(self->animation->jumpframe.v > 0)*/
+			toss(self, anim->jumpframe.velocity.y);
         self->velocity.x = self->direction == DIRECTION_RIGHT ? anim->jumpframe.velocity.x : -anim->jumpframe.velocity.x;
         self->velocity.z = anim->jumpframe.velocity.z;
 
@@ -19822,7 +19824,7 @@ void check_gravity(entity *e)
             heightvar = self->modeldata.size.y;
         }
 
-        // White Dragon: turn-off the hitwall flag  if you're not near a obstacle. this help to avoid a hit loop
+        // White Dragon: turn-off the hitwall flag if you're not near a obstacle. this help to avoid a hit loop
         /*if( (self->position.y <= self->base || !inair(self)) && self->velocity.y <= 0)
         {
             if ( self->hitwall && !is_obstacle_around(self,1.0) ) self->hitwall = 0;
@@ -19911,7 +19913,7 @@ void check_gravity(entity *e)
 
             // UTunnels: tossv <= 0 means land, while >0 means still rising, so
             // you wont be stopped if you are passing the edge of a wall
-            if( (self->position.y <= self->base || !inair(self)) && self->velocity.y <= 0)
+            if( (self->position.y <= self->base || !inair(self)) && self->velocity.y <= 0 )
             {
                 self->position.y = self->base;
                 self->falling = 0;
@@ -23691,12 +23693,20 @@ int common_takedamage(entity *other, s_collision_attack *attack)
         }
         return 1;
     }
-    // fall to the ground so dont fall again
-    if(self->damage_on_landing && self->health > 0)
+	
+    // fall to the ground so don't fall again
+    /*if(self->damage_on_landing)
     {
         self->damage_on_landing = 0;
         return 1;
-    }
+    }*/
+	// White Dragon: fix damage_on_landing bug
+	if(self->damage_on_landing && self->health <= 0 && attack->attack_type == ATK_LAND)
+	{
+		self->modeldata.falldie = 1;
+		self->damage_on_landing = 0;
+	}
+	
     // unlink due to being hit
     if((self->opponent && self->opponent->grabbing != self) ||
             self->dead || self->frozen || self->drop)
