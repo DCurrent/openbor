@@ -22105,6 +22105,24 @@ int set_pain(entity *iPain, int type, int reset)
     return 1;
 }
 
+/*
+ * Copy animations from newmodel to model. If newmodel has anim that is not in model,
+ * then copy that anim (but no frames with alloc_anim()) from newmodel to model
+ */
+void normalize_anim_models(s_model *model, s_model *newmodel)
+{
+	int i = 0;
+
+	for(i = 0; i < max_animations; i++)
+	{
+		if(!model->animation[i] && newmodel->animation[i])
+		{
+			model->animation[i] = alloc_anim();
+		}
+	}
+
+	return;
+}
 
 //change model, anim_flag 1: reset animation 0: use original animation
 void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, int anim_flag)
@@ -22217,6 +22235,8 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
                 newmodel->animation[i] = model->animation[i];
             }
         }
+		//normalize_anim_models(model, newmodel);
+
         // copy the weapon list if model flag is not set to use its own weapon list
         if(!(newmodel->model_flag & MODEL_NO_WEAPON_COPY))
         {
@@ -23693,7 +23713,7 @@ int common_takedamage(entity *other, s_collision_attack *attack)
         }
         return 1;
     }
-	
+
     // fall to the ground so don't fall again
     /*if(self->damage_on_landing)
     {
@@ -23706,7 +23726,7 @@ int common_takedamage(entity *other, s_collision_attack *attack)
 		self->modeldata.falldie = 1;
 		self->damage_on_landing = 0;
 	}
-	
+
     // unlink due to being hit
     if((self->opponent && self->opponent->grabbing != self) ||
             self->dead || self->frozen || self->drop)
@@ -29678,7 +29698,10 @@ void drop_all_enemies()
             self = ent_list[i];
             ent_unlink(self);
             ent_list[i]->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
-            dropweapon(1);
+            if(ent_list[i]->modeldata.weaploss[0] != WEAPLOSS_TYPE_CHANGE)
+            {
+                dropweapon(1);
+            }
             toss(ent_list[i], 2.5 + randf(1));
             ent_list[i]->knockdowncount = ent_list[i]->modeldata.knockdowncount;
 
