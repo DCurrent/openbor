@@ -1258,7 +1258,7 @@ if(n<1) n = 1;
 
 
 #define tobounce(e) (e->animation->bounce && diff(0, e->velocity.y) > 1.5 && \
-					 !((autoland == 1 && e->damage_on_landing == -1) ||e->damage_on_landing == -2))
+					 !((autoland == 1 && e->damage_on_landing == -1) || e->damage_on_landing == -2))
 
 #define getpal ((current_palette&&level)?(level->palettes[current_palette-1]):pal)
 
@@ -1513,6 +1513,7 @@ typedef struct
     s_hitbox            *coords;            // Collision detection coordinates.
     int                 counterattack;      // Treat other attack boxes as body box.
     int                 damage_on_landing;  // Same as throw damage type
+    int                 dol_type;           // damageonlanding attack type
     s_axis_f            dropv;              // Velocity of target if knocked down.
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 forcemap;           // Set target's palette on hit.
@@ -2226,11 +2227,12 @@ typedef struct entity
     s_anim *animation;
     float knockdowncount;
     int damage_on_landing;
+    int dol_type;
     int damagetype; // used for set death animation or pain animation
     int map; // Stores the colourmap for restoring purposes
     void (*think)();
     void (*takeaction)();
-    int (*takedamage)(struct entity *, s_collision_attack *);
+    int (*takedamage)(struct entity *, s_collision_attack *, int);
     int (*trymove)(float, float);
     int attack_id;
     int hit_by_attack_id;
@@ -2687,9 +2689,9 @@ void text_think(void);
 void anything_walk(void);
 void adjust_walk_animation(entity *other);
 void kill(entity *);
-int player_takedamage(entity *other, s_collision_attack *attack);
-int biker_takedamage(entity *other, s_collision_attack *attack);
-int obstacle_takedamage(entity *other, s_collision_attack *attack);
+int player_takedamage(entity *other, s_collision_attack *attack, int);
+int biker_takedamage(entity *other, s_collision_attack *attack, int);
+int obstacle_takedamage(entity *other, s_collision_attack *attack, int);
 void suicide(void);
 void player_blink(void);
 void common_prejump();
@@ -2778,8 +2780,8 @@ void common_grab(void);
 void common_grabattack();
 void common_grabbed();
 void common_block(void);
-int arrow_takedamage(entity *other, s_collision_attack *attack);
-int common_takedamage(entity *other, s_collision_attack *attack);
+int arrow_takedamage(entity *other, s_collision_attack *attack, int fall_flag);
+int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag);
 int normal_attack();
 void common_throw(void);
 void common_throw_wait(void);

@@ -144,6 +144,7 @@ const s_collision_attack emptyattack =
     .coords             = NULL,
     .counterattack      = 0,
     .damage_on_landing  = 0,
+    .dol_type           = -1,
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
@@ -6319,6 +6320,72 @@ char *get_cached_model_path(char *name)
 
 static void _readbarstatus(char *, s_barstatus *);
 
+static int translate_attack_type(char *command)
+{
+    int atk_id = -1, tempInt;
+
+    modelCommands cmd = getModelCommand(modelcmdlist, command);
+
+    switch(cmd)
+    {
+    case CMD_MODEL_COLLISION:
+    case CMD_MODEL_COLLISION1:
+        atk_id = ATK_NORMAL;
+        break;
+    case CMD_MODEL_COLLISION2:
+        atk_id   = ATK_NORMAL2;
+        break;
+    case CMD_MODEL_COLLISION3:
+        atk_id  = ATK_NORMAL3;
+        break;
+    case CMD_MODEL_COLLISION4:
+        atk_id  = ATK_NORMAL4;
+        break;
+    case CMD_MODEL_COLLISION5:
+        atk_id  = ATK_NORMAL5;
+        break;
+    case CMD_MODEL_COLLISION6:
+        atk_id  = ATK_NORMAL6;
+        break;
+    case CMD_MODEL_COLLISION7:
+        atk_id  = ATK_NORMAL7;
+        break;
+    case CMD_MODEL_COLLISION8:
+        atk_id  = ATK_NORMAL8;
+        break;
+    case CMD_MODEL_COLLISION9:
+        atk_id  = ATK_NORMAL9;
+        break;
+    case CMD_MODEL_COLLISION10:
+        atk_id  = ATK_NORMAL10;
+        break;
+    case CMD_MODEL_SHOCK:
+        atk_id  = ATK_SHOCK;
+        break;
+    case CMD_MODEL_BURN:
+        atk_id  = ATK_BURN;
+        break;
+    case CMD_MODEL_STEAL:
+        atk_id  = ATK_STEAL;
+        break;
+    case CMD_MODEL_FREEZE:
+        atk_id  = ATK_FREEZE;
+        break;
+    case CMD_MODEL_ITEMBOX:
+        atk_id  = ATK_ITEM;
+        break;
+    default:
+        tempInt = atoi(command + 6);
+        if(tempInt < MAX_ATKS - STA_ATKS + 1)
+        {
+            tempInt = MAX_ATKS - STA_ATKS + 1;
+        }
+        atk_id = tempInt + STA_ATKS - 1;
+    }
+
+    return atk_id;
+}
+
 //move here to ease animation name to id logic
 static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim, s_collision_attack *attack)
 {
@@ -10884,6 +10951,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
                 pattack->damage_on_landing = GET_INT_ARG(1);
                 pattack->blast = GET_INT_ARG(2);
+                pattack->dol_type = translate_attack_type(GET_ARG(3));
                 break;
             case CMD_MODEL_SEAL:
                 // Disable special moves for specified time.
@@ -17535,7 +17603,7 @@ void update_frame(entity *ent, int f)
             attack.attack_type = max_attack_types;
             if(self->takedamage)
             {
-                self->takedamage(self, &attack);
+                self->takedamage(self, &attack, 0);
             }
             else
             {
@@ -18102,7 +18170,7 @@ void kill(entity *victim)
         attack.attack_force = self->health;
         if(self->takedamage && !level_completed)
         {
-            self->takedamage(self, &attack);
+            self->takedamage(self, &attack, 0);
         }
         else
         {
@@ -18141,7 +18209,7 @@ void kill(entity *victim)
                     attack.attack_force = self->health;
                     if(self->takedamage && !level_completed)
                     {
-                        self->takedamage(self, &attack);
+                        self->takedamage(self, &attack, 0);
                     }
                     else
                     {
@@ -19441,8 +19509,8 @@ void do_attack(entity *e)
                             atk.dropv.x = (float)DEFAULT_ATK_DROPV_X;
                             atk.dropv.z = (float)DEFAULT_ATK_DROPV_Z;
 
-                            if (e) self->takedamage(e, &atk);
-                            else self->takedamage(self, &atk);
+                            if (e) self->takedamage(e, &atk, 0);
+                            else self->takedamage(self, &atk, 0);
 
                             self = temp;
                             return;*/
@@ -19490,7 +19558,7 @@ void do_attack(entity *e)
                         }
                     }
             }
-            else if(self->takedamage(e, attack))
+            else if(self->takedamage(e, attack, 0))
             {
                 // Didn't block so go ahead and take the damage
                 execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, attack->tag);
@@ -19710,7 +19778,7 @@ void do_attack(entity *e)
                 {
                     temp = self;
                     self = def;
-                    self->takedamage(e, attack);           // Must be a fatal attack, then!
+                    self->takedamage(e, attack, 0);           // Must be a fatal attack, then!
                     self = temp;
                 }
             }
@@ -19932,6 +20000,7 @@ void check_gravity(entity *e)
                         execute_onspawn_script(dust);
                     }
                 }
+
                 // bounce/quake
                 if(tobounce(self) && self->modeldata.bounce)
                 {
@@ -19989,7 +20058,10 @@ void check_gravity(entity *e)
                 }
 
                 // takedamage if thrown or basted
-                if(self->damage_on_landing > 0 && !self->dead)
+                if( (self->damage_on_landing > 0 && !self->dead) &&
+                    ((!tobounce(self) && self->modeldata.bounce) || !self->modeldata.bounce) &&
+                   self->velocity.x == self->velocity.z == self->velocity.y == 0
+                  )
                 {
                     if(self->takedamage)
                     {
@@ -19997,12 +20069,13 @@ void check_gravity(entity *e)
 
                         attack              = emptyattack;
                         attack.attack_force = self->damage_on_landing;
-                        attack.attack_type  = ATK_LAND;
+                        if (attack.dol_type >= 0) attack.attack_type  = self->dol_type;
+                        else attack.attack_type  = ATK_LAND;
 
                         if (self->opponent && self->opponent->exists) other = self->opponent;
                         else other = self;
 
-                        self->takedamage(other, &attack);
+                        self->takedamage(other, &attack, 1);
                     }
                     else
                     {
@@ -20014,7 +20087,11 @@ void check_gravity(entity *e)
                             kill(self);
                         }
                     }
-                    if (self) self->damage_on_landing = 0;
+                    if (self)
+                    {
+                        self->damage_on_landing = 0;
+                        self->dol_type = -1;
+                    }
                 }
                 // in case landing, set hithead to NULL
                 self->hithead = NULL;
@@ -20068,7 +20145,7 @@ void check_lost()
             attack.dropv.z = default_model_dropv.z;
             attack.attack_force = self->health;
             attack.attack_type  = ATK_PIT;
-            self->takedamage(self, &attack);
+            self->takedamage(self, &attack, 0);
         }
         return;
     }
@@ -20086,7 +20163,7 @@ void check_lost()
             attack.dropv.z = default_model_dropv.z;
             attack.attack_force = self->health;
             attack.attack_type  = ATK_LIFESPAN;
-            self->takedamage(self, &attack);
+            self->takedamage(self, &attack, 0);
         }
         return;
     }//else
@@ -20814,7 +20891,7 @@ void damage_recursive(entity *target)
                             // Apply takedamage(). The engine will
                             // take care of everything else damage
                             // related.
-                            target->takedamage(owner, &attack);
+                            target->takedamage(owner, &attack, 0);
                         }
                         else
                         {
@@ -22789,6 +22866,7 @@ void doland()
     self->drop = 0;
     self->projectile = 0;
     self->damage_on_landing = 0;
+    self->dol_type = -1;
     if(validanim(self, ANI_LAND))
     {
         self->takeaction = common_land;
@@ -23628,18 +23706,18 @@ int checkgrab(entity *other, s_collision_attack *attack)
     return 1;
 }
 
-int arrow_takedamage(entity *other, s_collision_attack *attack)
+int arrow_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 {
     self->modeldata.no_adjust_base = 0;
     self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_basemap = self->modeldata.subject_to_gravity = 1;
-    if( common_takedamage(other, attack) && self->dead)
+    if( common_takedamage(other, attack, 0) && self->dead)
     {
         return 1;
     }
     return 0;
 }
 
-int common_takedamage(entity *other, s_collision_attack *attack)
+int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 {
     if(self->dead)
     {
@@ -23720,11 +23798,11 @@ int common_takedamage(entity *other, s_collision_attack *attack)
         self->damage_on_landing = 0;
         return 1;
     }*/
+
 	// White Dragon: fix damage_on_landing bug
-	if(self->damage_on_landing && self->health <= 0 && attack->attack_type == ATK_LAND)
+	if(self->damage_on_landing > 0 && self->health <= 0)
 	{
 		self->modeldata.falldie = 1;
-		self->damage_on_landing = 0;
 	}
 
     // unlink due to being hit
@@ -23767,6 +23845,7 @@ int common_takedamage(entity *other, s_collision_attack *attack)
         }
         else
         {
+            if (fall_flag >= 1) return 1;
             self->velocity.x = attack->dropv.x;
             self->velocity.z = attack->dropv.z;
             if(self->direction == DIRECTION_RIGHT)
@@ -23776,6 +23855,7 @@ int common_takedamage(entity *other, s_collision_attack *attack)
             if(self->inbackpain) self->velocity.x *= -1;
             toss(self, attack->dropv.y);
             self->damage_on_landing = attack->damage_on_landing;
+            self->dol_type = attack->dol_type;
             self->knockdowncount = self->modeldata.knockdowncount; // reset the knockdowncount
             self->knockdowntime = 0;
 
@@ -26479,6 +26559,7 @@ int arrow_move()
                     self->velocity.x = (float)1.2;
                 }
                 self->damage_on_landing = 0;
+                self->dol_type = -1;
                 toss(self, 2.5 + randf(1));
                 self->modeldata.no_adjust_base = 0;
                 self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_gravity = 1;
@@ -26644,6 +26725,7 @@ int boomerang_move()
             self->projectile = 0;
             self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
             self->damage_on_landing = 0;
+            self->dol_type = -1;
             toss(self, 2.5 + randf(1));
             set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
         }
@@ -26737,6 +26819,7 @@ int star_move()
             self->projectile = 0;
             self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
             self->damage_on_landing = 0;
+            self->dol_type = -1;
             toss(self, 2.5 + randf(1));
             set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
         }
@@ -29659,7 +29742,7 @@ void dropweapon(int flag)
 }
 
 
-int player_takedamage(entity *other, s_collision_attack *attack)
+int player_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 {
     s_collision_attack atk = *attack;
     //printf("damaged by: '%s' %d\n", other->name, attack->attack_force);
@@ -29668,7 +29751,7 @@ int player_takedamage(entity *other, s_collision_attack *attack)
         atk.attack_force = 0;
     }
 
-    return common_takedamage(other, &atk);
+    return common_takedamage(other, &atk, 0);
 }
 
 
@@ -29695,6 +29778,7 @@ void drop_all_enemies()
             ent_list[i]->projectile = 0;
             ent_list[i]->takeaction = common_fall;//enemy_fall;
             ent_list[i]->damage_on_landing = 0;
+            ent_list[i]->dol_type = -1;
             self = ent_list[i];
             ent_unlink(self);
             ent_list[i]->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
@@ -29737,7 +29821,7 @@ void kill_all_enemies()
         {
             self = ent_list[i];
             attack.attack_force = self->health;
-            self->takedamage(tmpself, &attack);
+            self->takedamage(tmpself, &attack, 0);
             self->dead = 1;
         }
     }
@@ -29770,7 +29854,7 @@ void smart_bomb(entity *e, s_collision_attack *attack)    // New method for smar
             if(self->takedamage)
             {
                 //attack.attack_drop = self->modeldata.knockdowncount+1;
-                self->takedamage(e, attack);
+                self->takedamage(e, attack, 0);
             }
             else
             {
@@ -30270,7 +30354,7 @@ void bike_crash()
 
 
 
-int biker_takedamage(entity *other, s_collision_attack *attack)
+int biker_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 {
     entity *driver = NULL;
     entity *tempself = NULL;
@@ -30316,7 +30400,7 @@ int biker_takedamage(entity *other, s_collision_attack *attack)
         self->direction = tempself->direction;
         if(self->takedamage)
         {
-            self->takedamage(other, attack);
+            self->takedamage(other, attack, 0);
         }
         else
         {
@@ -30359,7 +30443,7 @@ void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
 
 
 
-int obstacle_takedamage(entity *other, s_collision_attack *attack)
+int obstacle_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 {
     if(self->position.y <= PIT_DEPTH)
     {
@@ -30804,7 +30888,7 @@ void time_over()
                 endgame = 0;
                 self = player[i].ent;
                 attack.attack_force = self->health;
-                self->takedamage(self, &attack);
+                self->takedamage(self, &attack, 0);
             }
         }
 
