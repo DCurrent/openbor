@@ -1974,6 +1974,7 @@ enum entityproperty_enum
     _ep_destz,
     _ep_detect,
     _ep_direction,
+    _ep_dol_type,
     _ep_dot,
     _ep_dropframe,
     _ep_edelay,
@@ -2170,6 +2171,7 @@ static const char *eplist[] =
     "destz",
     "detect",
     "direction",
+    "dol_type",
     "dot",
     "dropframe",
     "edelay",
@@ -3696,6 +3698,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->direction;
+        break;
+    }
+    case _ep_dol_type:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->dol_type;
         break;
     }
     case _ep_dot:
@@ -5788,6 +5796,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
             ent->direction = (int)dbltemp;
+        }
+        break;
+    }
+    case _ep_dol_type:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->dol_type = (int)ltemp;
         }
         break;
     }
@@ -9017,7 +9033,7 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
     {
         temp = self;
         self = ent;
-        (*pretvar)->lVal = (LONG)self->takedamage(other, &atk);
+        (*pretvar)->lVal = (LONG)self->takedamage(other, &atk, 0);
         self = temp;
     }
     return S_OK;
