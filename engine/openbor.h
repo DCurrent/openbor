@@ -1258,7 +1258,7 @@ if(n<1) n = 1;
 
 
 #define tobounce(e) (e->animation->bounce && diff(0, e->velocity.y) > 1.5 && \
-					 !((autoland == 1 && e->damage_on_landing == -1) || e->damage_on_landing == -2))
+					 !((autoland == 1 && e->damage_on_landing[0] == -1) || e->damage_on_landing[0] == -2))
 
 #define getpal ((current_palette&&level)?(level->palettes[current_palette-1]):pal)
 
@@ -1512,8 +1512,7 @@ typedef struct
     int                 blocksound;         // Custom sound for when an attack is blocked
     s_hitbox            *coords;            // Collision detection coordinates.
     int                 counterattack;      // Treat other attack boxes as body box.
-    int                 damage_on_landing;  // Same as throw damage type
-    int                 dol_type;           // damageonlanding attack type
+    int                 damage_on_landing[2];  // Same as throw damage type (gamage in index 0 and the attak type in index 1)
     s_axis_f            dropv;              // Velocity of target if knocked down.
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 forcemap;           // Set target's palette on hit.
@@ -2226,8 +2225,7 @@ typedef struct entity
     int animnum; // animation id
     s_anim *animation;
     float knockdowncount;
-    int damage_on_landing;
-    int dol_type;
+    int damage_on_landing[2];
     int damagetype; // used for set death animation or pain animation
     int map; // Stores the colourmap for restoring purposes
     void (*think)();

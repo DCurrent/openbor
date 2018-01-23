@@ -143,8 +143,8 @@ const s_collision_attack emptyattack =
     .blocksound         = -1,
     .coords             = NULL,
     .counterattack      = 0,
-    .damage_on_landing  = 0,
-    .dol_type           = -1,
+    .damage_on_landing[0] =  0,
+    .damage_on_landing[1] = -1,
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
@@ -10618,7 +10618,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 attack.attack_force = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_LAND_FORCE:
-                attack.damage_on_landing = GET_INT_ARG(1);
+                attack.damage_on_landing[0] = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_LAND_MODE:
                 attack.blast = GET_INT_ARG(1);
@@ -10952,9 +10952,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_DAMAGEONLANDING:
                 // fake throw damage on landing
                 pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->damage_on_landing = GET_INT_ARG(1);
+                pattack->damage_on_landing[0] = GET_INT_ARG(1);
                 pattack->blast = GET_INT_ARG(2);
-                pattack->dol_type = translate_attack_type(GET_ARG(3));
+                pattack->damage_on_landing[1] = translate_attack_type(GET_ARG(3));
                 break;
             case CMD_MODEL_SEAL:
                 // Disable special moves for specified time.
@@ -20061,7 +20061,7 @@ void check_gravity(entity *e)
                 }
 
                 // takedamage if thrown or basted
-                if( (self->damage_on_landing > 0 && !self->dead) &&
+                if( (self->damage_on_landing[0] > 0 && !self->dead) &&
                     ((!tobounce(self) && self->modeldata.bounce) || !self->modeldata.bounce) &&
                    self->velocity.x == self->velocity.z == self->velocity.y == 0
                   )
@@ -20071,8 +20071,8 @@ void check_gravity(entity *e)
                         entity *other;
 
                         attack              = emptyattack;
-                        attack.attack_force = self->damage_on_landing;
-                        if (attack.dol_type >= 0) attack.attack_type  = self->dol_type;
+                        attack.attack_force = self->damage_on_landing[0];
+                        if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
                         else attack.attack_type  = ATK_LAND;
 
                         if (self->opponent && self->opponent->exists) other = self->opponent;
@@ -20082,7 +20082,7 @@ void check_gravity(entity *e)
                     }
                     else
                     {
-                        int damage_factor = (self->damage_on_landing * self->defense[ATK_LAND].factor);
+                        int damage_factor = (self->damage_on_landing[0] * self->defense[ATK_LAND].factor);
 
                         self->health -= damage_factor;
                         if(self->health <= 0 )
@@ -20092,8 +20092,8 @@ void check_gravity(entity *e)
                     }
                     if (self)
                     {
-                        self->damage_on_landing = 0;
-                        self->dol_type = -1;
+                        self->damage_on_landing[0] = 0;
+                        self->damage_on_landing[1] = -1;
                     }
                 }
                 // in case landing, set hithead to NULL
@@ -22868,8 +22868,8 @@ void doland()
     self->velocity.x = self->velocity.z = 0;
     self->drop = 0;
     self->projectile = 0;
-    self->damage_on_landing = 0;
-    self->dol_type = -1;
+    self->damage_on_landing[0] = 0;
+    self->damage_on_landing[1] = -1;
     if(validanim(self, ANI_LAND))
     {
         self->takeaction = common_land;
@@ -22899,8 +22899,8 @@ void common_fall()
     {
         if(self->projectile == 2)
         {
-            // damage_on_landing==-2 means a player has pressed up+jump and has a land animation
-            if((autoland == 1 && self->damage_on_landing == -1) || self->damage_on_landing == -2)
+            // damage_on_landing[0]==-2 means a player has pressed up+jump and has a land animation
+            if((autoland == 1 && self->damage_on_landing[0] == -1) || self->damage_on_landing[0] == -2)
             {
                 // Added autoland option for landing
                 doland();
@@ -23639,7 +23639,7 @@ void checkhitscore(entity *other, s_collision_attack *attack)
     // Don't animate or fall if hurt by self, since
     // it means self fell to the ground already. :)
     // Add throw score to the player
-    else if(other == self && self->damage_on_landing > 0)
+    else if(other == self && self->damage_on_landing[0] > 0)
     {
         addscore(opp->playerindex, attack->attack_force);
     }
@@ -23796,14 +23796,14 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     }
 
     // fall to the ground so don't fall again
-    /*if(self->damage_on_landing)
+    /*if(self->damage_on_landing[0])
     {
-        self->damage_on_landing = 0;
+        self->damage_on_landing[0] = 0;
         return 1;
     }*/
 
 	// White Dragon: fix damage_on_landing bug
-	if(self->damage_on_landing > 0 && self->health <= 0)
+	if(self->damage_on_landing[0] > 0 && self->health <= 0)
 	{
 		self->modeldata.falldie = 1;
 	}
@@ -23857,8 +23857,8 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
             }
             if(self->inbackpain) self->velocity.x *= -1;
             toss(self, attack->dropv.y);
-            self->damage_on_landing = attack->damage_on_landing;
-            self->dol_type = attack->dol_type;
+            self->damage_on_landing[0] = attack->damage_on_landing[0];
+            self->damage_on_landing[1] = attack->damage_on_landing[1];
             self->knockdowncount = self->modeldata.knockdowncount; // reset the knockdowncount
             self->knockdowntime = 0;
 
@@ -24352,11 +24352,11 @@ void dothrow()
 
     if(autoland == 1 && validanim(other, ANI_LAND))
     {
-        other->damage_on_landing = -1;
+        other->damage_on_landing[0] = -1;
     }
     else
     {
-        other->damage_on_landing = self->modeldata.throwdamage;
+        other->damage_on_landing[0] = self->modeldata.throwdamage;
     }
 
     ent_unlink(other);
@@ -26561,8 +26561,8 @@ int arrow_move()
                 {
                     self->velocity.x = (float)1.2;
                 }
-                self->damage_on_landing = 0;
-                self->dol_type = -1;
+                self->damage_on_landing[0] = 0;
+                self->damage_on_landing[1] = -1;
                 toss(self, 2.5 + randf(1));
                 self->modeldata.no_adjust_base = 0;
                 self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_gravity = 1;
@@ -26727,8 +26727,8 @@ int boomerang_move()
             self->health = 0;
             self->projectile = 0;
             self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
-            self->damage_on_landing = 0;
-            self->dol_type = -1;
+            self->damage_on_landing[0] = 0;
+            self->damage_on_landing[1] = -1;
             toss(self, 2.5 + randf(1));
             set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
         }
@@ -26821,8 +26821,8 @@ int star_move()
             self->health = 0;
             self->projectile = 0;
             self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
-            self->damage_on_landing = 0;
-            self->dol_type = -1;
+            self->damage_on_landing[0] = 0;
+            self->damage_on_landing[1] = -1;
             toss(self, 2.5 + randf(1));
             set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
         }
@@ -28102,7 +28102,7 @@ void player_fall_check()
 {
     if(autoland != 2 && (player[self->playerindex].keys & (FLAG_MOVEUP | FLAG_JUMP)) == (FLAG_MOVEUP | FLAG_JUMP))
     {
-        self->damage_on_landing = -2; // mark it, so we will play land animation when hit the ground
+        self->damage_on_landing[0] = -2; // mark it, so we will play land animation when hit the ground
     }
 }
 
@@ -29780,8 +29780,8 @@ void drop_all_enemies()
             ent_list[i]->attacking = 0;
             ent_list[i]->projectile = 0;
             ent_list[i]->takeaction = common_fall;//enemy_fall;
-            ent_list[i]->damage_on_landing = 0;
-            ent_list[i]->dol_type = -1;
+            ent_list[i]->damage_on_landing[0] = 0;
+            ent_list[i]->damage_on_landing[1] = -1;
             self = ent_list[i];
             ent_unlink(self);
             ent_list[i]->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;

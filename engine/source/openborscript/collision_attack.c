@@ -545,7 +545,7 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->damage_on_landing = temp_int;
+                handle->damage_on_landing[0] = temp_int;
             }
             break;
 
