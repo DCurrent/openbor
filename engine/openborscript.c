@@ -1974,7 +1974,6 @@ enum entityproperty_enum
     _ep_destz,
     _ep_detect,
     _ep_direction,
-    _ep_dol_type,
     _ep_dot,
     _ep_dropframe,
     _ep_edelay,
@@ -2171,7 +2170,6 @@ static const char *eplist[] =
     "destz",
     "detect",
     "direction",
-    "dol_type",
     "dot",
     "dropframe",
     "edelay",
@@ -3593,7 +3591,21 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_damage_on_landing:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->damage_on_landing;
+        if(paramCount >= 3)
+        {
+            if(FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp2)))
+            {
+                printf("You must specify the index (0 or 1).\n");
+                *pretvar = NULL;
+                return E_FAIL;
+            }
+            (*pretvar)->lVal = (LONG)ent->damage_on_landing[ltemp2];
+        }
+        else
+        {
+            (*pretvar)->lVal = (LONG)ent->damage_on_landing[0];
+        }
+
         break;
     }
     case _ep_dead:
@@ -3698,12 +3710,6 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->direction;
-        break;
-    }
-    case _ep_dol_type:
-    {
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->dol_type;
         break;
     }
     case _ep_dot:
@@ -5700,7 +5706,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->damage_on_landing = (int)ltemp;
+            ent->damage_on_landing[0] = (int)ltemp;
+        }
+        if(paramCount >= 4)
+        {
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
+            {
+                ent->damage_on_landing[1] = (int)ltemp2;
+            }
         }
         break;
     }
@@ -5796,14 +5809,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
             ent->direction = (int)dbltemp;
-        }
-        break;
-    }
-    case _ep_dol_type:
-    {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-        {
-            ent->dol_type = (int)ltemp;
         }
         break;
     }
