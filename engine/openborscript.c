@@ -5712,7 +5712,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
             {
-                ent->damage_on_landing[1] = (int)ltemp2;
+                ent->damage_on_landing[ltemp2] = (int)ltemp2;
             }
         }
         break;
