@@ -6374,13 +6374,16 @@ static int translate_attack_type(char *command)
     case CMD_MODEL_ITEMBOX:
         atk_id  = ATK_ITEM;
         break;
-    default:
+    case CMD_MODEL_COLLISION_ETC:
         tempInt = atoi(command + 6);
         if(tempInt < MAX_ATKS - STA_ATKS + 1)
         {
             tempInt = MAX_ATKS - STA_ATKS + 1;
         }
         atk_id = tempInt + STA_ATKS - 1;
+        break;
+    default:
+        break;
     }
 
     return atk_id;
