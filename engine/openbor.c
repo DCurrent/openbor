@@ -3652,7 +3652,7 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
     size_t item = 0;
     // flags
     int done_flag = 0;
-    int space_flag = 0; // can find more psaces
+    int space_flag = 0; // can find more spaces
     int double_apex_flag = 0;
     int single_apex_flag = 0;
 
@@ -3739,10 +3739,11 @@ size_t ParseArgs(ArgList *list, char *input, char *output)
                     space_flag = 0;
                     break;
                 }
+
             // complete item
             case '\r':
             case '\n':
-            case '#': // mettere se è apex
+            case '#':
                 if (double_apex_flag || single_apex_flag)
                 {
                     output[pos] = input[pos];
@@ -33919,8 +33920,9 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                         --credits;
                     }
                 }
-                if (set->noselect) player[i].lives = PLAYER_LIVES;
-                else player[i].lives = savelevel[current_set].pLives[i];
+                /*if lives <= 0 then it means you start a new game and so.. take all lives a*/
+                if (player[i].lives <= 0) player[i].lives = PLAYER_LIVES;
+                else player[i].lives = savelevel[current_set].pLives[i]; /*used for skipselect*/
             }
             selectScreen = 0;
             return 1;
