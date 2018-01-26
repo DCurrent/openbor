@@ -630,7 +630,8 @@ typedef enum
     LEVEL_PROP_BOSS_SLOW,                       // int boss_slow;
     LEVEL_PROP_CAMERA_OFFSET_X,                 // int cameraxoffset;
     LEVEL_PROP_CAMERA_OFFSET_Z,                 // int camerazoffset;
-    LEVEL_PROP_COMPLETE_FORCE,                  // int forcefinishlevel;
+    LEVEL_PROP_COMPLETE_FORCE,                  // int force_finishlevel;
+    LEVEL_PROP_GAMEOVER,                        // int force_gameover;
     LEVEL_PROP_DAMAGE_FROM_ENEMY,               // int nohurt;
     LEVEL_PROP_DAMAGE_FROM_PLAYER,              // int nohit;
     LEVEL_PROP_FACING,                          // e_facing_adjust facing;
@@ -684,7 +685,7 @@ typedef enum
     LEVEL_PROP_TIME_RESET,                      // int noreset;
     LEVEL_PROP_TIME_SET,                        // int settime;
     LEVEL_PROP_TYPE,                            // int type;
-    LEVEL_PROP_WAITING,                          // int waiting;
+    LEVEL_PROP_WAITING,                         // int waiting;
     LEVEL_PROP_WALL_COLLECTION,                 // s_terrain *walls;
     LEVEL_PROP_WALL_COUNT,                      // int numwalls;
     LEVEL_PROP_WEAPON                           // int setweap;
@@ -2505,7 +2506,8 @@ typedef struct
     int nohurt; // Used to specify if you can hurt the other player during bonus levels
     int boss_slow; // Flag so the level doesn't slow down after a boss is defeated
     int nohit; // Not able to grab / hit other player on a per level basis
-    int forcefinishlevel; // flag to forca to finish a level
+    int force_finishlevel; // flag to force to finish a level
+    int force_gameover; // flag to force game over
     s_axis_f *spawn; // Used to determine the spawn position of players
     int setweap; // Levels can now specified which weapon will be used by default
     e_facing_adjust facing; // Force the players to face to ...

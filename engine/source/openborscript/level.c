@@ -447,7 +447,13 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
         case LEVEL_PROP_COMPLETE_FORCE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->forcefinishlevel;
+            (*pretvar)->lVal = (LONG)handle->force_finishlevel;
+            break;
+
+        case LEVEL_PROP_GAMEOVER:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->force_gameover;
             break;
 
         case LEVEL_PROP_DAMAGE_FROM_ENEMY:
@@ -1058,7 +1064,17 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
                 goto error_local;
             }
 
-            handle->forcefinishlevel = temp_int;
+            handle->force_finishlevel = temp_int;
+            break;
+
+        case LEVEL_PROP_GAMEOVER:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->force_gameover = temp_int;
             break;
 
         case LEVEL_PROP_DAMAGE_FROM_ENEMY:

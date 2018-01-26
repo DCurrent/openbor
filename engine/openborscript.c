@@ -14005,7 +14005,15 @@ HRESULT openbor_loadgamefile(ScriptVariant **varlist , ScriptVariant **pretvar, 
 HRESULT openbor_finishlevel(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     *pretvar = NULL;
-    level->forcefinishlevel = 1;
+    level->force_finishlevel = 1;
+    return S_OK;
+}
+
+//gameover()
+HRESULT openbor_gameover(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    *pretvar = NULL;
+    level->force_gameover = 1;
     return S_OK;
 }
 
