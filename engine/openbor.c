@@ -33655,11 +33655,29 @@ int playlevel(char *filename)
     {
         update(1, 0);
 
-        if ( level->forcefinishlevel )
+        if (level->force_finishlevel)
         {
             level_completed = 1;
             endgame |= 1;
-            level->forcefinishlevel = 0;
+            level->force_finishlevel = 0;
+        }
+        if (level->force_gameover)
+        {
+            for(i = 0; i < levelsets[current_set].maxplayers; i++) //MAX_PLAYERS
+            {
+                player[i].lives = 0;
+                if(noshare)
+                {
+                    player[i].credits = 0;
+                }
+                else
+                {
+                    credits = 0;
+                }
+                kill(player[i].ent);
+            }
+            //endgame |= 1;
+            level->force_gameover = 0;
         }
         if(level_completed)
         {
@@ -33698,7 +33716,7 @@ int playlevel(char *filename)
 
     unload_level();
 
-    return (type == 2 && endgame != 2) || (player[0].lives > 0 || player[1].lives > 0 || player[2].lives > 0 || player[3].lives > 0); //4player
+    return ( (type == 2 && endgame != 2) || (player[0].lives > 0 || player[1].lives > 0 || player[2].lives > 0 || player[3].lives > 0) );
 }
 
 
@@ -34265,9 +34283,12 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
             }
             else if(!playlevel(le->filename))
             {
-                if(player[0].lives <= 0 && player[1].lives <= 0 && player[2].lives <= 0 && player[3].lives <= 0)
+                if( (player[0].lives <= 0 && player[1].lives <= 0 && player[2].lives <= 0 && player[3].lives <= 0) )
                 {
-                    if(!set->noshowgameover && !(goto_mainmenu_flag&2)) gameover();
+                    if( (!set->noshowgameover && !(goto_mainmenu_flag&2)) )
+                    {
+                        gameover();
+                    }
                     if(!set->noshowhof && !(goto_mainmenu_flag&4))
                     {
                         hallfame(1);
