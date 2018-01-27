@@ -20064,7 +20064,7 @@ void check_gravity(entity *e)
                 // takedamage if thrown or basted
                 if( (self->damage_on_landing[0] > 0 && !self->dead) &&
                     ((!tobounce(self) && self->modeldata.bounce) || !self->modeldata.bounce) &&
-                   self->velocity.x == self->velocity.z == self->velocity.y == 0
+                   self->velocity.x == 0 && self->velocity.z == 0 && self->velocity.y == 0
                   )
                 {
                     if(self->takedamage)
