@@ -630,7 +630,8 @@ typedef enum
     LEVEL_PROP_BOSS_SLOW,                       // int boss_slow;
     LEVEL_PROP_CAMERA_OFFSET_X,                 // int cameraxoffset;
     LEVEL_PROP_CAMERA_OFFSET_Z,                 // int camerazoffset;
-    LEVEL_PROP_COMPLETE_FORCE,                  // int forcefinishlevel;
+    LEVEL_PROP_COMPLETE_FORCE,                  // int force_finishlevel;
+    LEVEL_PROP_GAMEOVER,                        // int force_gameover;
     LEVEL_PROP_DAMAGE_FROM_ENEMY,               // int nohurt;
     LEVEL_PROP_DAMAGE_FROM_PLAYER,              // int nohit;
     LEVEL_PROP_FACING,                          // e_facing_adjust facing;
@@ -684,7 +685,7 @@ typedef enum
     LEVEL_PROP_TIME_RESET,                      // int noreset;
     LEVEL_PROP_TIME_SET,                        // int settime;
     LEVEL_PROP_TYPE,                            // int type;
-    LEVEL_PROP_WAITING,                          // int waiting;
+    LEVEL_PROP_WAITING,                         // int waiting;
     LEVEL_PROP_WALL_COLLECTION,                 // s_terrain *walls;
     LEVEL_PROP_WALL_COUNT,                      // int numwalls;
     LEVEL_PROP_WEAPON                           // int setweap;
@@ -1261,7 +1262,7 @@ if(n<1) n = 1;
 
 
 #define tobounce(e) (e->animation->bounce && diff(0, e->velocity.y) > 1.5 && \
-					 !((autoland == 1 && e->damage_on_landing == -1) ||e->damage_on_landing == -2))
+					 !((autoland == 1 && e->damage_on_landing[0] == -1) || e->damage_on_landing[0] == -2))
 
 #define getpal ((current_palette&&level)?(level->palettes[current_palette-1]):pal)
 
@@ -1515,7 +1516,7 @@ typedef struct
     int                 blocksound;         // Custom sound for when an attack is blocked
     s_hitbox            *coords;            // Collision detection coordinates.
     int                 counterattack;      // Treat other attack boxes as body box.
-    int                 damage_on_landing;  // Same as throw damage type
+    int                 damage_on_landing[2];  // Same as throw damage type (gamage in index 0 and the attak type in index 1)
     s_axis_f            dropv;              // Velocity of target if knocked down.
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 forcemap;           // Set target's palette on hit.
@@ -2228,12 +2229,12 @@ typedef struct entity
     int animnum; // animation id
     s_anim *animation;
     float knockdowncount;
-    int damage_on_landing;
+    int damage_on_landing[2];
     int damagetype; // used for set death animation or pain animation
     int map; // Stores the colourmap for restoring purposes
     void (*think)();
     void (*takeaction)();
-    int (*takedamage)(struct entity *, s_collision_attack *);
+    int (*takedamage)(struct entity *, s_collision_attack *, int);
     int (*trymove)(float, float);
     int attack_id;
     int hit_by_attack_id;
@@ -2508,7 +2509,8 @@ typedef struct
     int nohurt; // Used to specify if you can hurt the other player during bonus levels
     int boss_slow; // Flag so the level doesn't slow down after a boss is defeated
     int nohit; // Not able to grab / hit other player on a per level basis
-    int forcefinishlevel; // flag to forca to finish a level
+    int force_finishlevel; // flag to force to finish a level
+    int force_gameover; // flag to force game over
     s_axis_f *spawn; // Used to determine the spawn position of players
     int setweap; // Levels can now specified which weapon will be used by default
     e_facing_adjust facing; // Force the players to face to ...
@@ -2690,9 +2692,9 @@ void text_think(void);
 void anything_walk(void);
 void adjust_walk_animation(entity *other);
 void kill(entity *);
-int player_takedamage(entity *other, s_collision_attack *attack);
-int biker_takedamage(entity *other, s_collision_attack *attack);
-int obstacle_takedamage(entity *other, s_collision_attack *attack);
+int player_takedamage(entity *other, s_collision_attack *attack, int);
+int biker_takedamage(entity *other, s_collision_attack *attack, int);
+int obstacle_takedamage(entity *other, s_collision_attack *attack, int);
 void suicide(void);
 void player_blink(void);
 void common_prejump();
@@ -2781,8 +2783,8 @@ void common_grab(void);
 void common_grabattack();
 void common_grabbed();
 void common_block(void);
-int arrow_takedamage(entity *other, s_collision_attack *attack);
-int common_takedamage(entity *other, s_collision_attack *attack);
+int arrow_takedamage(entity *other, s_collision_attack *attack, int fall_flag);
+int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag);
 int normal_attack();
 void common_throw(void);
 void common_throw_wait(void);

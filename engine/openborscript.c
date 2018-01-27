@@ -3591,7 +3591,21 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_damage_on_landing:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->damage_on_landing;
+        if(paramCount >= 3)
+        {
+            if(FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp2)))
+            {
+                printf("You must specify the index (0 or 1).\n");
+                *pretvar = NULL;
+                return E_FAIL;
+            }
+            (*pretvar)->lVal = (LONG)ent->damage_on_landing[ltemp2];
+        }
+        else
+        {
+            (*pretvar)->lVal = (LONG)ent->damage_on_landing[0];
+        }
+
         break;
     }
     case _ep_dead:
@@ -5692,7 +5706,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->damage_on_landing = (int)ltemp;
+            ent->damage_on_landing[0] = (int)ltemp;
+        }
+        if(paramCount >= 4)
+        {
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
+            {
+                ent->damage_on_landing[ltemp2] = (int)ltemp2;
+            }
         }
         break;
     }
@@ -9017,7 +9038,7 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
     {
         temp = self;
         self = ent;
-        (*pretvar)->lVal = (LONG)self->takedamage(other, &atk);
+        (*pretvar)->lVal = (LONG)self->takedamage(other, &atk, 0);
         self = temp;
     }
     return S_OK;
@@ -13984,7 +14005,15 @@ HRESULT openbor_loadgamefile(ScriptVariant **varlist , ScriptVariant **pretvar, 
 HRESULT openbor_finishlevel(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     *pretvar = NULL;
-    level->forcefinishlevel = 1;
+    level->force_finishlevel = 1;
+    return S_OK;
+}
+
+//gameover()
+HRESULT openbor_gameover(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    *pretvar = NULL;
+    level->force_gameover = 1;
     return S_OK;
 }
 

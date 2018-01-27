@@ -730,6 +730,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "finishlevel";
     }
+    else if (functionRef == ((void *)openbor_gameover))
+    {
+        return "gameover";
+    }
     else if (functionRef == ((void *)openbor_gotomainmenu))
     {
         return "gotomainmenu";
@@ -1211,6 +1215,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_loadgamefile, "loadgamefile");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_finishlevel, "finishlevel");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_gameover, "gameover");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_gotomainmenu, "gotomainmenu");
     List_InsertAfter(&theFunctionList,
