@@ -2227,6 +2227,7 @@ typedef struct entity
     s_anim *animation;
     float knockdowncount;
     int damage_on_landing[2];
+    int die_on_landing;
     int damagetype; // used for set death animation or pain animation
     int map; // Stores the colourmap for restoring purposes
     void (*think)();
@@ -2710,6 +2711,12 @@ void ent_unlink(entity *e);
 void ents_link(entity *e1, entity *e2);
 void kill(entity *victim);
 void kill_all();
+void checkdamageeffects(s_collision_attack *attack);
+void checkdamagedrop(s_collision_attack *attack);
+void checkmpadd();
+void checkhitscore(entity *other, s_collision_attack *attack);
+int calculate_force_damage(entity *other, s_collision_attack *attack);
+void checkdamage(entity *other, s_collision_attack *attack);
 int checkhit(entity *attacker, entity *target);
 int checkhole(float x, float z);
 int checkhole_index(float x, float z);

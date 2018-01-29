@@ -18252,6 +18252,9 @@ void kill(entity *victim)
         }
     }
 
+    //free_ent(victim);
+    //victim = alloc_ent();
+
     self = tempent;
 }
 
@@ -20061,10 +20064,52 @@ void check_gravity(entity *e)
                     update_frame(self, self->animation->landframe.frame);
                 }
 
+                if( (self->damage_on_landing[0] > 0 && !self->dead) )
+                {
+                    int atk_force = 0;
+                    entity *other;
+
+                    attack              = emptyattack;
+                    attack.attack_force = self->damage_on_landing[0];
+                    if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
+                    else attack.attack_type  = ATK_LAND;
+
+                    if (self->opponent && self->opponent->exists) other = self->opponent;
+                    else other = self;
+
+                    // pre-check drop
+                    checkdamagedrop(&attack);
+                    // Drop Weapon due to being hit.
+                    if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+                    {
+                        dropweapon(1);
+                    }
+                    // check effects, e.g., frozen, blast, steal
+                    if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
+                    {
+                        checkdamageeffects(&attack);
+                    }
+
+                    // mprate can also control the MP recovered per hit.
+                    checkmpadd();
+                    //damage score
+                    checkhitscore(other, &attack);
+                    atk_force = calculate_force_damage(other, &attack);
+
+                    self->health -= atk_force;
+                    if (self->health - atk_force <= 0)
+                    {
+                        self->die_on_landing = 1;
+                    }
+
+                    self->damage_on_landing[0] = 0;
+                }
+
                 // takedamage if thrown or basted
-                if( (self->damage_on_landing[0] > 0 && !self->dead) &&
+                //if( (self->damage_on_landing[0] > 0 && !self->dead) &&
+                if( (self->die_on_landing && !self->dead) &&
                     ((!tobounce(self) && self->modeldata.bounce) || !self->modeldata.bounce) &&
-                   self->velocity.x == 0 && self->velocity.z == 0 && self->velocity.y == 0
+                    (self->velocity.x == 0 && self->velocity.z == 0 && self->velocity.y == 0)
                   )
                 {
                     if(self->takedamage)
@@ -23646,7 +23691,7 @@ void checkhitscore(entity *other, s_collision_attack *attack)
     }
 }
 
-void checkdamage(entity *other, s_collision_attack *attack)
+int calculate_force_damage(entity *other, s_collision_attack *attack)
 {
     int force = attack->attack_force;
     int type = attack->attack_type;
@@ -23660,6 +23705,16 @@ void checkdamage(entity *other, s_collision_attack *attack)
         force = (int)(force * other->offense_factors[type]);
         force = (int)(force * self->defense[type].factor);
     }
+
+    return force;
+}
+
+void checkdamage(entity *other, s_collision_attack *attack)
+{
+    int force = attack->attack_force;
+    int type = attack->attack_type;
+
+    force = calculate_force_damage(other, attack);
 
     self->health -= force; //Apply damage.
 
@@ -23802,6 +23857,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         self->damage_on_landing[0] = 0;
         return 1;
     }*/
+    self->die_on_landing = 0;
 
 	// White Dragon: fix damage_on_landing bug
 	if(self->damage_on_landing[0] > 0 && self->health <= 0)
