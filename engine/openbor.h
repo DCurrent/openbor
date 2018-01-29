@@ -2717,6 +2717,7 @@ void checkmpadd();
 void checkhitscore(entity *other, s_collision_attack *attack);
 int calculate_force_damage(entity *other, s_collision_attack *attack);
 void checkdamage(entity *other, s_collision_attack *attack);
+void checkdamageonlanding();
 int checkhit(entity *attacker, entity *target);
 int checkhole(float x, float z);
 int checkhole_index(float x, float z);

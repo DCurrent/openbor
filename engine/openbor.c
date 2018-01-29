@@ -19874,7 +19874,6 @@ void check_gravity(entity *e)
 {
     int heightvar;
     entity *other = NULL, *dust, *tempself, *plat = NULL;
-    s_collision_attack attack;
     float gravity;
     float fmin, fmax;
 
@@ -20064,87 +20063,8 @@ void check_gravity(entity *e)
                     update_frame(self, self->animation->landframe.frame);
                 }
 
-                if( (self->damage_on_landing[0] > 0 && !self->dead) )
-                {
-                    int atk_force = 0;
-                    entity *other;
+                checkdamageonlanding();
 
-                    attack              = emptyattack;
-                    attack.attack_force = self->damage_on_landing[0];
-                    if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
-                    else attack.attack_type  = ATK_LAND;
-
-                    if (self->opponent && self->opponent->exists) other = self->opponent;
-                    else other = self;
-
-                    atk_force = calculate_force_damage(other, &attack);
-
-                    if (self->health - atk_force <= 0)
-                    {
-                        self->die_on_landing = 1;
-                    }
-                    else
-                    {
-                        // pre-check drop
-                        checkdamagedrop(&attack);
-                        // Drop Weapon due to being hit.
-                        if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
-                        {
-                            dropweapon(1);
-                        }
-                        // check effects, e.g., frozen, blast, steal
-                        if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
-                        {
-                            checkdamageeffects(&attack);
-                        }
-
-                        // mprate can also control the MP recovered per hit.
-                        checkmpadd();
-                        //damage score
-                        checkhitscore(other, &attack);
-                    }
-                    self->health -= atk_force;
-
-                    self->damage_on_landing[0] = 0;
-                }
-
-                // takedamage if thrown or basted
-                //if( (self->damage_on_landing[0] > 0 && !self->dead) &&
-                if( (self->die_on_landing && !self->dead) &&
-                    ((!tobounce(self) && self->modeldata.bounce) || !self->modeldata.bounce) &&
-                    (self->velocity.x == 0 && self->velocity.z == 0 && self->velocity.y == 0)
-                  )
-                {
-                    if(self->takedamage)
-                    {
-                        entity *other;
-
-                        attack              = emptyattack;
-                        attack.attack_force = self->damage_on_landing[0];
-                        if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
-                        else attack.attack_type  = ATK_LAND;
-
-                        if (self->opponent && self->opponent->exists) other = self->opponent;
-                        else other = self;
-
-                        self->takedamage(other, &attack, 1);
-                    }
-                    else
-                    {
-                        int damage_factor = (self->damage_on_landing[0] * self->defense[ATK_LAND].factor);
-
-                        self->health -= damage_factor;
-                        if(self->health <= 0 )
-                        {
-                            kill(self);
-                        }
-                    }
-                    if (self)
-                    {
-                        self->damage_on_landing[0] = 0;
-                        self->damage_on_landing[1] = -1;
-                    }
-                }
                 // in case landing, set hithead to NULL
                 self->hithead = NULL;
             }// end of if - land checking
@@ -23710,6 +23630,93 @@ int calculate_force_damage(entity *other, s_collision_attack *attack)
     }
 
     return force;
+}
+
+void checkdamageonlanding()
+{
+    s_collision_attack attack;
+
+    if( (self->damage_on_landing[0] > 0 && !self->dead) )
+    {
+        int atk_force = 0;
+        entity *other;
+
+        attack              = emptyattack;
+        attack.attack_force = self->damage_on_landing[0];
+        if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
+        else attack.attack_type  = ATK_LAND;
+
+        if (self->opponent && self->opponent->exists) other = self->opponent;
+        else other = self;
+
+        atk_force = calculate_force_damage(other, &attack);
+
+        if (self->health - atk_force <= 0)
+        {
+            self->die_on_landing = 1;
+        }
+        else
+        {
+            // pre-check drop
+            checkdamagedrop(&attack);
+            // Drop Weapon due to being hit.
+            if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+            {
+                dropweapon(1);
+            }
+            // check effects, e.g., frozen, blast, steal
+            if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
+            {
+                checkdamageeffects(&attack);
+            }
+
+            // mprate can also control the MP recovered per hit.
+            checkmpadd();
+            //damage score
+            checkhitscore(other, &attack);
+        }
+        self->health -= atk_force;
+
+        self->damage_on_landing[0] = 0;
+    }
+
+    // takedamage if thrown or basted
+    //if( (self->damage_on_landing[0] > 0 && !self->dead) &&
+    if( (self->die_on_landing && !self->dead) &&
+        ((!tobounce(self) && self->modeldata.bounce) || !self->modeldata.bounce) &&
+        (self->velocity.x == 0 && self->velocity.z == 0 && self->velocity.y == 0)
+      )
+    {
+        if(self->takedamage)
+        {
+            entity *other;
+
+            attack              = emptyattack;
+            attack.attack_force = self->damage_on_landing[0];
+            if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
+            else attack.attack_type  = ATK_LAND;
+
+            if (self->opponent && self->opponent->exists) other = self->opponent;
+            else other = self;
+
+            self->takedamage(other, &attack, 1);
+        }
+        else
+        {
+            int damage_factor = (self->damage_on_landing[0] * self->defense[ATK_LAND].factor);
+
+            self->health -= damage_factor;
+            if(self->health <= 0 )
+            {
+                kill(self);
+            }
+        }
+        if (self)
+        {
+            self->damage_on_landing[0] = 0;
+            self->damage_on_landing[1] = -1;
+        }
+    }
 }
 
 void checkdamage(entity *other, s_collision_attack *attack)
