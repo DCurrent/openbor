@@ -20077,30 +20077,33 @@ void check_gravity(entity *e)
                     if (self->opponent && self->opponent->exists) other = self->opponent;
                     else other = self;
 
-                    // pre-check drop
-                    checkdamagedrop(&attack);
-                    // Drop Weapon due to being hit.
-                    if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
-                    {
-                        dropweapon(1);
-                    }
-                    // check effects, e.g., frozen, blast, steal
-                    if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
-                    {
-                        checkdamageeffects(&attack);
-                    }
-
-                    // mprate can also control the MP recovered per hit.
-                    checkmpadd();
-                    //damage score
-                    checkhitscore(other, &attack);
                     atk_force = calculate_force_damage(other, &attack);
 
-                    self->health -= atk_force;
                     if (self->health - atk_force <= 0)
                     {
                         self->die_on_landing = 1;
                     }
+                    else
+                    {
+                        // pre-check drop
+                        checkdamagedrop(&attack);
+                        // Drop Weapon due to being hit.
+                        if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+                        {
+                            dropweapon(1);
+                        }
+                        // check effects, e.g., frozen, blast, steal
+                        if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
+                        {
+                            checkdamageeffects(&attack);
+                        }
+
+                        // mprate can also control the MP recovered per hit.
+                        checkmpadd();
+                        //damage score
+                        checkhitscore(other, &attack);
+                    }
+                    self->health -= atk_force;
 
                     self->damage_on_landing[0] = 0;
                 }
