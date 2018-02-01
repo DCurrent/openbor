@@ -2227,7 +2227,7 @@ typedef struct entity
     s_anim *animation;
     float knockdowncount;
     int damage_on_landing[2];
-    int die_on_landing;
+    int die_on_landing; // flag for damageonlanding (active if self->health <= 0)
     int damagetype; // used for set death animation or pain animation
     int map; // Stores the colourmap for restoring purposes
     void (*think)();

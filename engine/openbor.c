@@ -23675,7 +23675,8 @@ void checkdamageonlanding()
             //damage score
             checkhitscore(other, &attack);
         }
-        self->health -= atk_force;
+        //self->health -= atk_force;
+        checkdamage(other, &attack);
 
         self->damage_on_landing[0] = 0;
     }
@@ -23724,6 +23725,8 @@ void checkdamage(entity *other, s_collision_attack *attack)
     int force = attack->attack_force;
     int type = attack->attack_type;
 
+    if (self->die_on_landing) return; // self has health <= 0 yet. just set animations
+
     force = calculate_force_damage(other, attack);
 
     self->health -= force; //Apply damage.
@@ -23755,6 +23758,8 @@ void checkdamage(entity *other, s_collision_attack *attack)
         }
         execute_ondeath_script(self, other, force, attack->attack_drop, type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);   //Execute ondeath script.
     }
+
+    return;
 }
 
 int checkgrab(entity *other, s_collision_attack *attack)
@@ -23819,28 +23824,38 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     {
         self->damagetype = ATK_NORMAL;
     }
-    // pre-check drop
-    checkdamagedrop(attack);
-    // Drop Weapon due to being hit.
-    if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+
+    if (!self->die_on_landing)
     {
-        dropweapon(1);
+        // pre-check drop
+        checkdamagedrop(attack);
+        // Drop Weapon due to being hit.
+        if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+        {
+            dropweapon(1);
+        }
+        // check effects, e.g., frozen, blast, steal
+        if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
+        {
+            checkdamageeffects(attack);
+        }
     }
-    // check effects, e.g., frozen, blast, steal
-    if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
-    {
-        checkdamageeffects(attack);
-    }
+
     // check backpain
     check_backpain(other,self);
     // check flip direction
     checkdamageflip(other, attack);
-    // mprate can also control the MP recovered per hit.
-    checkmpadd();
-    //damage score
-    checkhitscore(other, attack);
-    // check damage, cost hp.
-    checkdamage(other, attack);
+
+    if (!self->die_on_landing)
+    {
+        // mprate can also control the MP recovered per hit.
+        checkmpadd();
+        //damage score
+        checkhitscore(other, attack);
+        // check damage, cost hp.
+        checkdamage(other, attack);
+    }
+
     // is it dead now?
     checkdeath();
 
@@ -23867,7 +23882,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         self->damage_on_landing[0] = 0;
         return 1;
     }*/
-    self->die_on_landing = 0;
+    self->die_on_landing = 0; // reset damageonlanding
 
 	// White Dragon: fix damage_on_landing bug
 	if(self->damage_on_landing[0] > 0 && self->health <= 0)
