@@ -23635,19 +23635,39 @@ int calculate_force_damage(entity *other, s_collision_attack *attack)
 void checkdamageonlanding()
 {
     s_collision_attack attack;
+    entity *other;
+
+    attack              = emptyattack;
+    attack.attack_force = self->damage_on_landing[0];
+    if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
+    else attack.attack_type  = ATK_LAND;
+
+    if (self->opponent && self->opponent->exists) other = self->opponent;
+    else other = self;
+
+
+    if(self->dead)
+    {
+        return;
+    }
+    if(self->toexplode == 2)
+    {
+        return;
+    }
+    // fake 'grab', if failed, return as the attack hit nothing
+    if(!checkgrab(other, &attack))
+    {
+        return;    // try to grab but failed, so return 0 means attack missed
+    }
+
+    if(self != other)
+    {
+        set_opponent(self, other);
+    }
 
     if( (self->damage_on_landing[0] > 0 && !self->dead) )
     {
         int atk_force = 0;
-        entity *other;
-
-        attack              = emptyattack;
-        attack.attack_force = self->damage_on_landing[0];
-        if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
-        else attack.attack_type  = ATK_LAND;
-
-        if (self->opponent && self->opponent->exists) other = self->opponent;
-        else other = self;
 
         atk_force = calculate_force_damage(other, &attack);
 
@@ -23690,16 +23710,6 @@ void checkdamageonlanding()
     {
         if(self->takedamage)
         {
-            entity *other;
-
-            attack              = emptyattack;
-            attack.attack_force = self->damage_on_landing[0];
-            if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
-            else attack.attack_type  = ATK_LAND;
-
-            if (self->opponent && self->opponent->exists) other = self->opponent;
-            else other = self;
-
             self->takedamage(other, &attack, 1);
         }
         else

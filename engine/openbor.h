@@ -2711,6 +2711,7 @@ void ent_unlink(entity *e);
 void ents_link(entity *e1, entity *e2);
 void kill(entity *victim);
 void kill_all();
+int checkgrab(entity *other, s_collision_attack *attack);
 void checkdamageeffects(s_collision_attack *attack);
 void checkdamagedrop(s_collision_attack *attack);
 void checkmpadd();
