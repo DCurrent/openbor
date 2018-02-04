@@ -23672,11 +23672,7 @@ void checkdamageonlanding()
 
         atk_force = calculate_force_damage(other, &attack);
 
-        if (self->health - atk_force <= 0)
-        {
-            self->die_on_landing = 1;
-        }
-        else
+        if (self->health - atk_force > 0)
         {
             // pre-check drop
             checkdamagedrop(&attack);
@@ -23698,6 +23694,11 @@ void checkdamageonlanding()
         }
         //self->health -= atk_force;
         checkdamage(other, &attack);
+
+        if (self->health <= 0)
+        {
+            self->die_on_landing = 1;
+        }
 
         self->damage_on_landing[0] = 0;
     }
@@ -23767,8 +23768,6 @@ void checkdamage(entity *other, s_collision_attack *attack)
 {
     int force = attack->attack_force;
     int type = attack->attack_type;
-
-    if (self->die_on_landing) return; // self has health <= 0 yet. just set animations
 
     force = calculate_force_damage(other, attack);
 
