@@ -23650,6 +23650,9 @@ void checkdamageonlanding()
         if (self->opponent && self->opponent->exists) other = self->opponent;
         else other = self;
 
+        execute_ondoattack_script(self, other, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, other->attack_id, attack.tag);	//Execute on defender.
+        execute_ondoattack_script(other, self, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 1, other->attack_id, attack.tag);	//Execute on attacker.
+
         if(self->dead)
         {
             return;
@@ -23694,6 +23697,8 @@ void checkdamageonlanding()
         }
         //self->health -= atk_force;
         checkdamage(other, &attack);
+
+        execute_didhit_script(other, self, attack.attack_force, attack.attack_drop, other->modeldata.subtype, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, attack.tag);
 
         if (self->health <= 0)
         {
