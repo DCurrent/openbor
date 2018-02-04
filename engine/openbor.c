@@ -9845,7 +9845,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_ALTERNATEPAL:
 
                 // Command title for log. Details will be added blow accordingly.
-                printf("\t"LOG_CMD_TITLE"%s", "Alternatepal", " - ");
+                //printf("\t"LOG_CMD_TITLE"%s", "Alternatepal", " - ");
 
                 __realloc(mapflag, newchar->maps_loaded);
                 __realloc(newchar->colourmap, newchar->maps_loaded);
@@ -9864,7 +9864,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     if(load_palette(newchar->colourmap[newchar->maps_loaded], value) == 0)
                     {
-                        printf("%s%s", "Failed to load color table from .act file: ", value);
+                        //printf("%s%s", "Failed to load color table from .act file: ", value);
                         goto lCleanup;
                     }
                 }
@@ -9872,25 +9872,25 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     if(loadimagepalette(value, packfile, newchar->colourmap[newchar->maps_loaded]) == 0)
                     {
-                        printf("%s%s", "Failed to load color table from image: ", value);
+                        //printf("%s%s", "Failed to load color table from image: ", value);
                         goto lCleanup;
                     }
                 }
 
                 newchar->maps_loaded++;
 
-                printf("Loaded color selection %i: %s", newchar->maps_loaded, value);
+                //printf("Loaded color selection %i: %s", newchar->maps_loaded, value);
 
                 break;
             case CMD_MODEL_GLOBALMAP:
 
                 // Command title for log. Details will be added blow accordingly.
-                printf("\t"LOG_CMD_TITLE"%s", "Globalmap", " - ");
+                //printf("\t"LOG_CMD_TITLE"%s", "Globalmap", " - ");
 
                 // use global palette under 24bit mode, so some entity/panel/bg can still use palette feature, that saves some memory
                 newchar->globalmap = GET_INT_ARG(1);
 
-                printf("%i: %s\n", newchar->globalmap, value);
+                //printf("%i: %s\n", newchar->globalmap, value);
 
                 break;
             case CMD_MODEL_ALPHA:
