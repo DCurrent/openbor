@@ -9845,7 +9845,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_ALTERNATEPAL:
 
                 // Command title for log. Details will be added blow accordingly.
-                printf("\t"LOG_CMD_TITLE"%s", "Alternatepal", " - ");
+                //printf("\t"LOG_CMD_TITLE"%s", "Alternatepal", " - ");
 
                 __realloc(mapflag, newchar->maps_loaded);
                 __realloc(newchar->colourmap, newchar->maps_loaded);
@@ -9864,7 +9864,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     if(load_palette(newchar->colourmap[newchar->maps_loaded], value) == 0)
                     {
-                        printf("%s%s", "Failed to load color table from .act file: ", value);
+                        //printf("%s%s", "Failed to load color table from .act file: ", value);
                         goto lCleanup;
                     }
                 }
@@ -9872,25 +9872,25 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     if(loadimagepalette(value, packfile, newchar->colourmap[newchar->maps_loaded]) == 0)
                     {
-                        printf("%s%s", "Failed to load color table from image: ", value);
+                        //printf("%s%s", "Failed to load color table from image: ", value);
                         goto lCleanup;
                     }
                 }
 
                 newchar->maps_loaded++;
 
-                printf("Loaded color selection %i: %s", newchar->maps_loaded, value);
+                //printf("Loaded color selection %i: %s", newchar->maps_loaded, value);
 
                 break;
             case CMD_MODEL_GLOBALMAP:
 
                 // Command title for log. Details will be added blow accordingly.
-                printf("\t"LOG_CMD_TITLE"%s", "Globalmap", " - ");
+                //printf("\t"LOG_CMD_TITLE"%s", "Globalmap", " - ");
 
                 // use global palette under 24bit mode, so some entity/panel/bg can still use palette feature, that saves some memory
                 newchar->globalmap = GET_INT_ARG(1);
 
-                printf("%i: %s\n", newchar->globalmap, value);
+                //printf("%i: %s\n", newchar->globalmap, value);
 
                 break;
             case CMD_MODEL_ALPHA:
@@ -18252,6 +18252,9 @@ void kill(entity *victim)
         }
     }
 
+    //free_ent(victim);
+    //victim = alloc_ent();
+
     self = tempent;
 }
 
@@ -19871,7 +19874,6 @@ void check_gravity(entity *e)
 {
     int heightvar;
     entity *other = NULL, *dust, *tempself, *plat = NULL;
-    s_collision_attack attack;
     float gravity;
     float fmin, fmax;
 
@@ -20061,42 +20063,8 @@ void check_gravity(entity *e)
                     update_frame(self, self->animation->landframe.frame);
                 }
 
-                // takedamage if thrown or basted
-                if( (self->damage_on_landing[0] > 0 && !self->dead) &&
-                    ((!tobounce(self) && self->modeldata.bounce) || !self->modeldata.bounce) &&
-                   self->velocity.x == self->velocity.z == self->velocity.y == 0
-                  )
-                {
-                    if(self->takedamage)
-                    {
-                        entity *other;
+                checkdamageonlanding();
 
-                        attack              = emptyattack;
-                        attack.attack_force = self->damage_on_landing[0];
-                        if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
-                        else attack.attack_type  = ATK_LAND;
-
-                        if (self->opponent && self->opponent->exists) other = self->opponent;
-                        else other = self;
-
-                        self->takedamage(other, &attack, 1);
-                    }
-                    else
-                    {
-                        int damage_factor = (self->damage_on_landing[0] * self->defense[ATK_LAND].factor);
-
-                        self->health -= damage_factor;
-                        if(self->health <= 0 )
-                        {
-                            kill(self);
-                        }
-                    }
-                    if (self)
-                    {
-                        self->damage_on_landing[0] = 0;
-                        self->damage_on_landing[1] = -1;
-                    }
-                }
                 // in case landing, set hithead to NULL
                 self->hithead = NULL;
             }// end of if - land checking
@@ -23646,7 +23614,7 @@ void checkhitscore(entity *other, s_collision_attack *attack)
     }
 }
 
-void checkdamage(entity *other, s_collision_attack *attack)
+int calculate_force_damage(entity *other, s_collision_attack *attack)
 {
     int force = attack->attack_force;
     int type = attack->attack_type;
@@ -23660,6 +23628,163 @@ void checkdamage(entity *other, s_collision_attack *attack)
         force = (int)(force * other->offense_factors[type]);
         force = (int)(force * self->defense[type].factor);
     }
+
+    return force;
+}
+
+void checkdamageonlanding()
+{
+    if( (self->damage_on_landing[0] > 0 && !self->dead) )
+    {
+        int atk_force = 0;
+        int didhit = 0;
+
+        //##################
+        s_collision_attack attack;
+        entity *other;
+
+        attack              = emptyattack;
+        attack.attack_force = self->damage_on_landing[0];
+        if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
+        else attack.attack_type  = ATK_LAND;
+
+        if (self->opponent && self->opponent->exists) other = self->opponent;
+        else other = self;
+
+        execute_ondoattack_script(self, other, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, other->attack_id, attack.tag);	//Execute on defender.
+        execute_ondoattack_script(other, self, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 1, other->attack_id, attack.tag);	//Execute on attacker.
+
+        checkhit(other, self);
+        if(lasthit.confirm)
+        {
+            didhit = 1;
+        }
+
+        if(self->dead)
+        {
+            return;
+        }
+        if(self->toexplode == 2)
+        {
+            return;
+        }
+        // fake 'grab', if failed, return as the attack hit nothing
+        if(!checkgrab(other, &attack))
+        {
+            return;    // try to grab but failed, so return 0 means attack missed
+        }
+
+        if(self != other)
+        {
+            set_opponent(self, other);
+        }
+        //##################
+
+        if (didhit)
+        {
+            atk_force = calculate_force_damage(other, &attack);
+
+            if (self->health - atk_force > 0)
+            {
+                // pre-check drop
+                checkdamagedrop(&attack);
+                // Drop Weapon due to being hit.
+                if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+                {
+                    dropweapon(1);
+                }
+                // check effects, e.g., frozen, blast, steal
+                if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
+                {
+                    checkdamageeffects(&attack);
+                }
+
+                // mprate can also control the MP recovered per hit.
+                checkmpadd();
+                //damage score
+                checkhitscore(other, &attack);
+            }
+            //self->health -= atk_force;
+            checkdamage(other, &attack);
+
+            execute_didhit_script(other, self, attack.attack_force, attack.attack_drop, other->modeldata.subtype, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, attack.tag);
+        }
+
+        if (self->health <= 0)
+        {
+            self->die_on_landing = 1;
+        }
+
+        self->damage_on_landing[0] = 0;
+    }
+
+    // takedamage if thrown or basted
+    //if( (self->damage_on_landing[0] > 0 && !self->dead) &&
+    if( (self->die_on_landing && !self->dead) &&
+        ((!tobounce(self) && self->modeldata.bounce) || !self->modeldata.bounce) &&
+        (self->velocity.x == 0 && self->velocity.z == 0 && self->velocity.y == 0)
+      )
+    {
+        if(self->takedamage)
+        {
+            //##################
+            s_collision_attack attack;
+            entity *other;
+
+            attack              = emptyattack;
+            attack.attack_force = self->damage_on_landing[0];
+            if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
+            else attack.attack_type  = ATK_LAND;
+
+            if (self->opponent && self->opponent->exists) other = self->opponent;
+            else other = self;
+
+            if(self->dead)
+            {
+                return;
+            }
+            if(self->toexplode == 2)
+            {
+                return;
+            }
+            // fake 'grab', if failed, return as the attack hit nothing
+            if(!checkgrab(other, &attack))
+            {
+                return;    // try to grab but failed, so return 0 means attack missed
+            }
+
+            if(self != other)
+            {
+                set_opponent(self, other);
+            }
+            //##################
+
+            self->takedamage(other, &attack, 1);
+        }
+        else
+        {
+            int damage_factor = (self->damage_on_landing[0] * self->defense[ATK_LAND].factor);
+
+            self->health -= damage_factor;
+            if(self->health <= 0 )
+            {
+                kill(self);
+            }
+        }
+        if (self)
+        {
+            self->damage_on_landing[0] = 0;
+            self->damage_on_landing[1] = -1;
+        }
+    }
+}
+
+void checkdamage(entity *other, s_collision_attack *attack)
+{
+    int force = attack->attack_force;
+    int type = attack->attack_type;
+
+    force = calculate_force_damage(other, attack);
 
     self->health -= force; //Apply damage.
 
@@ -23690,6 +23815,8 @@ void checkdamage(entity *other, s_collision_attack *attack)
         }
         execute_ondeath_script(self, other, force, attack->attack_drop, type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);   //Execute ondeath script.
     }
+
+    return;
 }
 
 int checkgrab(entity *other, s_collision_attack *attack)
@@ -23754,28 +23881,38 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     {
         self->damagetype = ATK_NORMAL;
     }
-    // pre-check drop
-    checkdamagedrop(attack);
-    // Drop Weapon due to being hit.
-    if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+
+    if (!self->die_on_landing)
     {
-        dropweapon(1);
+        // pre-check drop
+        checkdamagedrop(attack);
+        // Drop Weapon due to being hit.
+        if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+        {
+            dropweapon(1);
+        }
+        // check effects, e.g., frozen, blast, steal
+        if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
+        {
+            checkdamageeffects(attack);
+        }
     }
-    // check effects, e.g., frozen, blast, steal
-    if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
-    {
-        checkdamageeffects(attack);
-    }
+
     // check backpain
     check_backpain(other,self);
     // check flip direction
     checkdamageflip(other, attack);
-    // mprate can also control the MP recovered per hit.
-    checkmpadd();
-    //damage score
-    checkhitscore(other, attack);
-    // check damage, cost hp.
-    checkdamage(other, attack);
+
+    if (!self->die_on_landing)
+    {
+        // mprate can also control the MP recovered per hit.
+        checkmpadd();
+        //damage score
+        checkhitscore(other, attack);
+        // check damage, cost hp.
+        checkdamage(other, attack);
+    }
+
     // is it dead now?
     checkdeath();
 
@@ -23802,6 +23939,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         self->damage_on_landing[0] = 0;
         return 1;
     }*/
+    self->die_on_landing = 0; // reset damageonlanding
 
 	// White Dragon: fix damage_on_landing bug
 	if(self->damage_on_landing[0] > 0 && self->health <= 0)
