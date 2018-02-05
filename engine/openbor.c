@@ -23637,6 +23637,7 @@ void checkdamageonlanding()
     if( (self->damage_on_landing[0] > 0 && !self->dead) )
     {
         int atk_force = 0;
+        int didhit = 0;
 
         //##################
         s_collision_attack attack;
@@ -23652,6 +23653,12 @@ void checkdamageonlanding()
 
         execute_ondoattack_script(self, other, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, other->attack_id, attack.tag);	//Execute on defender.
         execute_ondoattack_script(other, self, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 1, other->attack_id, attack.tag);	//Execute on attacker.
+
+        checkhit(other, self);
+        if(lasthit.confirm)
+        {
+            didhit = 1;
+        }
 
         if(self->dead)
         {
@@ -23673,32 +23680,35 @@ void checkdamageonlanding()
         }
         //##################
 
-        atk_force = calculate_force_damage(other, &attack);
-
-        if (self->health - atk_force > 0)
+        if (didhit)
         {
-            // pre-check drop
-            checkdamagedrop(&attack);
-            // Drop Weapon due to being hit.
-            if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
-            {
-                dropweapon(1);
-            }
-            // check effects, e.g., frozen, blast, steal
-            if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
-            {
-                checkdamageeffects(&attack);
-            }
+            atk_force = calculate_force_damage(other, &attack);
 
-            // mprate can also control the MP recovered per hit.
-            checkmpadd();
-            //damage score
-            checkhitscore(other, &attack);
+            if (self->health - atk_force > 0)
+            {
+                // pre-check drop
+                checkdamagedrop(&attack);
+                // Drop Weapon due to being hit.
+                if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+                {
+                    dropweapon(1);
+                }
+                // check effects, e.g., frozen, blast, steal
+                if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
+                {
+                    checkdamageeffects(&attack);
+                }
+
+                // mprate can also control the MP recovered per hit.
+                checkmpadd();
+                //damage score
+                checkhitscore(other, &attack);
+            }
+            //self->health -= atk_force;
+            checkdamage(other, &attack);
+
+            execute_didhit_script(other, self, attack.attack_force, attack.attack_drop, other->modeldata.subtype, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, attack.tag);
         }
-        //self->health -= atk_force;
-        checkdamage(other, &attack);
-
-        execute_didhit_script(other, self, attack.attack_force, attack.attack_drop, other->modeldata.subtype, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, attack.tag);
 
         if (self->health <= 0)
         {

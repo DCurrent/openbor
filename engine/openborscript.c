@@ -1973,6 +1973,7 @@ enum entityproperty_enum
     _ep_destx,
     _ep_destz,
     _ep_detect,
+    _ep_die_on_landing,
     _ep_direction,
     _ep_dot,
     _ep_dropframe,
@@ -2169,6 +2170,7 @@ static const char *eplist[] =
     "destx",
     "destz",
     "detect",
+    "die_on_landing",
     "direction",
     "dot",
     "dropframe",
@@ -3704,6 +3706,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->modeldata.stealth.detect;
+        break;
+    }
+    case _ep_die_on_landing:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->die_on_landing;
         break;
     }
     case _ep_direction:
