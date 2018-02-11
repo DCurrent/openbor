@@ -608,14 +608,15 @@ static s_collision_attack attack;
 //isempty(var);
 HRESULT system_isempty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    *pretvar = NULL;
     if(paramCount != 1)
     {
+        *pretvar = NULL;
         return E_FAIL;
     }
 
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-    (*pretvar)->lVal = (LONG)((varlist[0])->vt == VT_EMPTY );
+
+    (*pretvar)->lVal = (LONG)( (varlist[0])->vt == VT_EMPTY );
 
     return S_OK;
 }
@@ -9052,6 +9053,86 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
     return S_OK;
 
 de_error:
+    *pretvar = NULL;
+    return E_FAIL;
+}
+
+//getcomputeddamage(defender, attacker, force, drop, type), it returns the real damage. Minimum 3 params (defender, attacker, force)
+HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    entity *defender = NULL;
+    entity *attacker = NULL;
+    entity *temp = NULL;
+    LONG force, drop, type;
+    s_collision_attack atk;
+
+    if(paramCount < 3)
+    {
+        printf("Function requires at least 3 parameters.\n");
+        goto gcd_error;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = (LONG)0;
+
+    force = (LONG)0;
+    drop = (LONG)0;
+    type = (LONG)ATK_NORMAL;
+
+    defender = (entity *)(varlist[0])->ptrVal; //retrieve the entity
+    if(!defender)
+    {
+        printf("Invalid entity parameter.\n");
+        goto gcd_error;
+    }
+
+    if(varlist[1]->ptrVal)
+    {
+        attacker = (entity *)(varlist[1])->ptrVal;
+    }
+
+    if(FAILED(ScriptVariant_IntegerValue((varlist[2]), &force)))
+    {
+        printf("Wrong force value.\n");
+        goto gcd_error;
+    }
+
+    if(paramCount >= 4)
+    {
+        if(FAILED(ScriptVariant_IntegerValue((varlist[3]), &drop)))
+        {
+            printf("Wrong drop value.\n");
+            goto gcd_error;
+        }
+    }
+    if(paramCount >= 5)
+    {
+        if(FAILED(ScriptVariant_IntegerValue((varlist[4]), &type)))
+        {
+            printf("Wrong type value.\n");
+            goto gcd_error;
+        }
+    }
+
+    atk = emptyattack;
+    atk.attack_force = force;
+    atk.attack_drop = drop;
+    if(drop)
+    {
+        atk.dropv.y = (float)DEFAULT_ATK_DROPV_Y;
+        atk.dropv.x = (float)DEFAULT_ATK_DROPV_X;
+        atk.dropv.z = (float)DEFAULT_ATK_DROPV_Z;
+    }
+    atk.attack_type = type;
+
+    temp = self;
+    self = defender;
+    (*pretvar)->lVal = (LONG)calculate_force_damage(attacker, &atk);
+    self = temp;
+
+    return S_OK;
+
+gcd_error:
     *pretvar = NULL;
     return E_FAIL;
 }
