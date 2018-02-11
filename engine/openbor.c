@@ -12681,7 +12681,7 @@ void load_levelorder()
     static const char *defaulterr = "Error in level order: a set must be specified.";
 #define CHKDEF if(!set) { errormessage = (char*) defaulterr; goto lCleanup; }
     char filename[128] = "";
-    int i = 0, j = 0;
+    int i = 0, j = 0, err = 0;
     char *buf;
     size_t size;
     int pos;
@@ -13581,7 +13581,9 @@ void load_levelorder()
         default:
             if (command && command[0])
             {
-                printf("Command '%s' not understood in level order!", command);
+                if (err <= 0) printf("\n");
+                ++err;
+                printf("Command '%s' not understood in level order!\n", command);
             }
         }
 
@@ -34027,7 +34029,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                 }
                 else if(command && command[0])
                 {
-                    printf("Command '%s' is not understood in file '%s'", command, filename);
+                    printf("Command '%s' is not understood in file '%s'\n", command, filename);
                 }
             }
 
@@ -35016,7 +35018,7 @@ readfile:
             else if(stricmp(command, "forcemode") == 0) {}
             else if(command && command[0])
             {
-                printf("Command '%s' not understood in file '%s'!", command, filename);
+                printf("Command '%s' not understood in file '%s'!\n", command, filename);
             }
         }
         // Go to next line
