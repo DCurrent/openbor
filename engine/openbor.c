@@ -23763,13 +23763,14 @@ void checkdamageonlanding()
         }
         else
         {
-            int damage_factor = (self->damage_on_landing[0] * self->defense[ATK_LAND].factor);
+            /*int damage_factor = (self->damage_on_landing[0] * self->defense[attack.attack_type].factor);
 
             self->health -= damage_factor;
             if(self->health <= 0 )
             {
                 kill(self);
-            }
+            }*/
+            kill(self);
         }
         if (self)
         {

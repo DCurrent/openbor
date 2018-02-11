@@ -322,6 +322,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "damageentity";
     }
+    else if (functionRef == ((void *)openbor_getcomputeddamage))
+    {
+        return "getcomputeddamage";
+    }
     else if (functionRef == ((void *)openbor_killentity))
     {
         return "killentity";
@@ -1003,6 +1007,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_changepalette, "changepalette");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_damageentity, "damageentity");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_getcomputeddamage, "getcomputeddamage");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_killentity, "killentity");
     List_InsertAfter(&theFunctionList,
