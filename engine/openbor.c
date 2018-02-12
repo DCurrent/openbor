@@ -23636,6 +23636,8 @@ int calculate_force_damage(entity *other, s_collision_attack *attack)
 
 void checkdamageonlanding()
 {
+    if (self->health <= 0) return;
+
     if( (self->damage_on_landing[0] > 0 && !self->dead) )
     {
         int atk_force = 0;
@@ -23708,6 +23710,8 @@ void checkdamageonlanding()
             }
             //self->health -= atk_force;
             checkdamage(other, &attack);
+            // is it dead now?
+            checkdeath();
 
             execute_didhit_script(other, self, attack.attack_force, attack.attack_drop, other->modeldata.subtype, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, attack.tag);
         }
@@ -23716,6 +23720,7 @@ void checkdamageonlanding()
         {
             self->die_on_landing = 1;
         }
+
 
         self->damage_on_landing[0] = 0;
     }
@@ -23778,8 +23783,11 @@ void checkdamageonlanding()
         {
             self->damage_on_landing[0] = 0;
             self->damage_on_landing[1] = -1;
+            self->die_on_landing = 0;
         }
     }
+
+    return;
 }
 
 void checkdamage(entity *other, s_collision_attack *attack)
@@ -23914,10 +23922,9 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         checkhitscore(other, attack);
         // check damage, cost hp.
         checkdamage(other, attack);
+        // is it dead now?
+        checkdeath();
     }
-
-    // is it dead now?
-    checkdeath();
 
     if(self->modeldata.type & TYPE_PLAYER)
     {
@@ -23942,10 +23949,12 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         self->damage_on_landing[0] = 0;
         return 1;
     }*/
-    self->die_on_landing = 0; // reset damageonlanding
+    // reset damageonlanding
+    self->damage_on_landing[0] = 0;
+    self->damage_on_landing[1] = -1;
 
 	// White Dragon: fix damage_on_landing bug
-	if(self->damage_on_landing[0] > 0 && self->health <= 0)
+	if(self->die_on_landing && self->health <= 0)
 	{
 		self->modeldata.falldie = 1;
 	}
