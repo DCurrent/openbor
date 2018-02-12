@@ -23656,9 +23656,9 @@ void checkdamageonlanding()
 
         lasthit.confirm = 1;
         lasthit.attack = &attack;
-        lasthit.position.x = other->position.x;
-        lasthit.position.y = other->position.y;
-        lasthit.position.z = other->position.z;
+        lasthit.position.x = self->position.x;
+        lasthit.position.y = self->position.y;
+        lasthit.position.z = self->position.z;
 
         execute_ondoattack_script(self, other, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, other->attack_id, attack.tag);	//Execute on defender.
         execute_ondoattack_script(other, self, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 1, other->attack_id, attack.tag);	//Execute on attacker.
