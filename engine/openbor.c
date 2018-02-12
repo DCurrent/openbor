@@ -23640,7 +23640,6 @@ void checkdamageonlanding()
 
     if( (self->damage_on_landing[0] > 0 && !self->dead) )
     {
-        int atk_force = 0;
         int didhit = 0;
 
         //##################
@@ -23686,28 +23685,23 @@ void checkdamageonlanding()
 
         if (didhit)
         {
-            atk_force = calculate_force_damage(other, &attack);
-
-            if (self->health - atk_force > 0)
+            // pre-check drop
+            checkdamagedrop(&attack);
+            // Drop Weapon due to being hit.
+            if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
             {
-                // pre-check drop
-                checkdamagedrop(&attack);
-                // Drop Weapon due to being hit.
-                if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
-                {
-                    dropweapon(1);
-                }
-                // check effects, e.g., frozen, blast, steal
-                if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
-                {
-                    checkdamageeffects(&attack);
-                }
-
-                // mprate can also control the MP recovered per hit.
-                checkmpadd();
-                //damage score
-                checkhitscore(other, &attack);
+                dropweapon(1);
             }
+            // check effects, e.g., frozen, blast, steal
+            if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
+            {
+                checkdamageeffects(&attack);
+            }
+
+            // mprate can also control the MP recovered per hit.
+            checkmpadd();
+            //damage score
+            checkhitscore(other, &attack);
             //self->health -= atk_force;
             checkdamage(other, &attack);
             // is it dead now?
@@ -23744,25 +23738,6 @@ void checkdamageonlanding()
 
             if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->health > 0) other = self->opponent;
             else other = self;
-
-            if(self->dead)
-            {
-                return;
-            }
-            if(self->toexplode == 2)
-            {
-                return;
-            }
-            // fake 'grab', if failed, return as the attack hit nothing
-            if(!checkgrab(other, &attack))
-            {
-                return;    // try to grab but failed, so return 0 means attack missed
-            }
-
-            if(self != other)
-            {
-                set_opponent(self, other);
-            }
             //##################
 
             self->takedamage(other, &attack, 1);
