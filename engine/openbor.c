@@ -23652,7 +23652,7 @@ void checkdamageonlanding()
         if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
         else attack.attack_type  = ATK_LAND;
 
-        if (self->opponent && self->opponent->exists) other = self->opponent;
+        if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->health > 0) other = self->opponent;
         else other = self;
 
         execute_ondoattack_script(self, other, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, other->attack_id, attack.tag);	//Execute on defender.
@@ -23721,7 +23721,6 @@ void checkdamageonlanding()
             self->die_on_landing = 1;
         }
 
-
         self->damage_on_landing[0] = 0;
     }
 
@@ -23743,7 +23742,7 @@ void checkdamageonlanding()
             if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
             else attack.attack_type  = ATK_LAND;
 
-            if (self->opponent && self->opponent->exists) other = self->opponent;
+            if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->health > 0) other = self->opponent;
             else other = self;
 
             if(self->dead)
