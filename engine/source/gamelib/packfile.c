@@ -280,8 +280,8 @@ char *casesearch(const char *dir, const char *filepath)
 {
     DIR *d;
     struct dirent *entry;;
-    char filename[256] = {""}, *rest_of_path;
-    static char fullpath[256];
+    char filename[1024] = {""}, *rest_of_path;
+    static char fullpath[1024];
     int i = 0;
 #ifdef VERBOSE
     printf("casesearch: %s, %s\n", dir, filepath);
