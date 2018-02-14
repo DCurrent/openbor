@@ -1824,23 +1824,23 @@ void init_scripts()
     Script_Init(&key_script_all,    "keyall",   NULL,  1);
     Script_Init(&timetick_script,   "timetick",  NULL, 1);
     Script_Init(&loading_script,    "loading",   NULL, 1);
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Init(&score_script[i],    "score",    NULL,  1);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Init(&key_script[i],      "key",      NULL,  1);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Init(&join_script[i],     "join",      NULL, 1);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Init(&respawn_script[i],  "respawn",   NULL, 1);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Init(&pdie_script[i],     "die",       NULL, 1);
     }
@@ -1969,23 +1969,23 @@ void load_scripts()
     Script_Compile(&key_script_all);
     Script_Compile(&timetick_script);
     Script_Compile(&loading_script);
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Compile(&score_script[i]);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Compile(&key_script[i]);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Compile(&join_script[i]);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Compile(&respawn_script[i]);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Compile(&pdie_script[i]);
     }
@@ -2004,23 +2004,23 @@ void clear_scripts()
     Script_Clear(&key_script_all,   2);
     Script_Clear(&timetick_script,  2);
     Script_Clear(&loading_script,   2);
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Clear(&score_script[i],      2);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Clear(&key_script[i],        2);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Clear(&join_script[i],       2);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Clear(&respawn_script[i],    2);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Clear(&pdie_script[i],       2);
     }
@@ -13316,7 +13316,7 @@ void load_levelorder()
             default:
                 assert(0);
             }
-            for(i = 0; i < 4; i++)
+            for(i = 0; i < MAX_PLAYERS; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
                     psmenu[j][i] = atoi(arg);
@@ -13695,7 +13695,7 @@ void load_levelorder()
         plifeX[3][0] = plife[3][0] + lbarstatus.size.x + 4;
         plifeX[3][1] = picon[3][1] + 7;
     }
-    for(i = 0; i < 4; i++) if(plifeX[i][2] == -1)
+    for(i = 0; i < MAX_PLAYERS; i++) if(plifeX[i][2] == -1)
         {
             plifeX[i][2] = 0;
         }
@@ -13720,7 +13720,7 @@ void load_levelorder()
         plifeN[3][0] = plifeN[1][0];
         plifeN[3][1] = picon[3][1];
     }
-    for(i = 0; i < 4; i++) if(plifeN[i][2] == -1)
+    for(i = 0; i < MAX_PLAYERS; i++) if(plifeN[i][2] == -1)
         {
             plifeN[i][2] = 3;
         }
@@ -13749,7 +13749,7 @@ void load_levelorder()
         pnameJ[3][5] = pnameJ[3][1] = picon[3][1];
         pnameJ[3][3] = 10 + pnameJ[3][5];
     }
-    for(i = 0; i < 4; i++) if(pnameJ[i][6] == -1)
+    for(i = 0; i < MAX_PLAYERS; i++) if(pnameJ[i][6] == -1)
         {
             pnameJ[i][6] = 0;
         }
@@ -13774,7 +13774,7 @@ void load_levelorder()
         pscore[3][0] = plife[3][0] + 1;
         pscore[3][1] = picon[3][1];
     }
-    for(i = 0; i < 4; i++) if(pscore[i][6] == -1)
+    for(i = 0; i < MAX_PLAYERS; i++) if(pscore[i][6] == -1)
         {
             pscore[i][6] = 0;
         }
@@ -13799,14 +13799,14 @@ void load_levelorder()
         ename[3][0] = ename[1][0];
         ename[3][1] = eicon[3][1];
     }
-    for(i = 0; i < 4; i++) if(ename[i][2] == -1)
+    for(i = 0; i < MAX_PLAYERS; i++) if(ename[i][2] == -1)
         {
             ename[i][2] = 0;
         }
 
     branch_name[0] = 0; //clear up branch name, so we can use it in game
 
-    for(i = 0; i < 4; i++) if(pshoot[i][2] == -1)
+    for(i = 0; i < MAX_PLAYERS; i++) if(pshoot[i][2] == -1)
         {
             pshoot[i][2] = 2;
         }
@@ -27411,7 +27411,7 @@ void decide_stalker()
 
     firstplayer = NULL;
 
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         if(player[i].ent)
         {
@@ -31014,7 +31014,7 @@ void time_over()
     else if(!level_completed)
     {
         endgame = 1;
-        for(i = 0; i < 4; i++)
+        for(i = 0; i < MAX_PLAYERS; i++)
         {
             if(player[i].ent)
             {
@@ -32621,7 +32621,7 @@ void apply_controls()
 {
     int p;
 
-    for(p = 0; p < 4; p++)
+    for(p = 0; p < MAX_PLAYERS; p++)
     {
         control_setkey(playercontrolpointers[p], FLAG_ESC,        CONTROL_ESC);
         control_setkey(playercontrolpointers[p], FLAG_MOVEUP,     savedata.keys[p][SDID_MOVEUP]);
@@ -33803,9 +33803,10 @@ int playlevel(char *filename)
                 {
                     credits = 0;
                 }
-                kill(player[i].ent);
+                if (player[i].ent) kill(player[i].ent);
             }
-            //endgame |= 1;
+            //kill_all();
+            endgame |= 1;
             level->force_gameover = 0;
         }
         if(level_completed)
