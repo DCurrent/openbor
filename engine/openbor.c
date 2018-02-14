@@ -490,7 +490,7 @@ int					gameOver			= 0;
 int					showComplete		= 0;
 char				*currentScene		= NULL;
 int                 tospeedup           = 0;          			// If set will speed the level back up after a boss hits the ground
-int                 reached[4]          = {0, 0, 0, 0};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
+int                 reached[MAX_PLAYERS]          = {0, 0, 0, 0};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
 int                 noslowfx			= 0;           			// Flag to determine if sound speed when hitting opponent slows or not
 int                 equalairpause 		= 0;         			// If set to 1, there will be no extra pausetime for players who hit multiple enemies in midair
 int                 hiscorebg			= 0;					// If set to 1, will look for a background image to display at the highscore screen
@@ -529,17 +529,17 @@ entity				*stalker				= NULL;					// an enemy (usually) tries to go behind the p
 entity				*firstplayer			= NULL;
 int					stalking			= 0;
 int					nextplan			= 0;
-int                 plife[4][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player lifebar
-int                 plifeX[4][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player lifebar 'x'
-int                 plifeN[4][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player lifebar number of lives
-int                 picon[4][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player icon
-int                 piconw[4][2]        = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player weapon icons
-int                 mpicon[4][2]        = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable magicbar player icon
-int                 pnameJ[4][7]        = {{0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}}; // Used for customizable player name, Select Hero, (Credits, Press Start, Game Over) when joining
-int                 pscore[4][7]        = {{0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}}; // Used for customizable player name, dash, score
-int                 pshoot[4][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player shootnum
-int                 prush[4][8]         = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}}; // Used for customizable player combo/rush system
-int                 psmenu[4][4]        = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}; // Used for customizable player placement in select menu
+int                 plife[MAX_PLAYERS][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player lifebar
+int                 plifeX[MAX_PLAYERS][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player lifebar 'x'
+int                 plifeN[MAX_PLAYERS][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player lifebar number of lives
+int                 picon[MAX_PLAYERS][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player icon
+int                 piconw[MAX_PLAYERS][2]        = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player weapon icons
+int                 mpicon[MAX_PLAYERS][2]        = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable magicbar player icon
+int                 pnameJ[MAX_PLAYERS][7]        = {{0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}}; // Used for customizable player name, Select Hero, (Credits, Press Start, Game Over) when joining
+int                 pscore[MAX_PLAYERS][7]        = {{0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}}; // Used for customizable player name, dash, score
+int                 pshoot[MAX_PLAYERS][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player shootnum
+int                 prush[MAX_PLAYERS][8]         = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}}; // Used for customizable player combo/rush system
+int                 psmenu[MAX_PLAYERS][4]        = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}; // Used for customizable player placement in select menu
 int                 mpcolourtable[11]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int                 hpcolourtable[11]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int                 ldcolourtable[11]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -696,7 +696,7 @@ entity             *self;
 int                 ent_count			= 0;					// log count of entites
 int                 ent_max				= 0;
 
-s_player            player[4];
+s_player            player[MAX_PLAYERS];
 u32                 bothkeys, bothnewkeys;
 
 s_playercontrols    playercontrols1;
@@ -715,11 +715,11 @@ Script key_script_all;  //keyscript for all players
 Script timetick_script; //time tick script.
 
 //player script
-Script score_script[4];     //execute when add score, 4 players
-Script key_script[4];       //key listeners, lol
-Script join_script[4];      //player join scripts
-Script respawn_script[4];   //player respawn scripts
-Script pdie_script[4];      //player death scripts
+Script score_script[MAX_PLAYERS];     //execute when add score, 4 players
+Script key_script[MAX_PLAYERS];       //key listeners
+Script join_script[MAX_PLAYERS];      //player join scripts
+Script respawn_script[MAX_PLAYERS];   //player respawn scripts
+Script pdie_script[MAX_PLAYERS];      //player death scripts
 
 extern Script *pcurrentscript;//used by local script functions
 //-------------------------methods-------------------------------
@@ -33734,7 +33734,7 @@ void savelevelinfo()
 
 int playlevel(char *filename)
 {
-    int i, type;
+    int i, type, p_alive = 0;
 
     kill_all();
 
@@ -33792,7 +33792,8 @@ int playlevel(char *filename)
         }
         if (level->force_gameover)
         {
-            for(i = 0; i < levelsets[current_set].maxplayers; i++) //MAX_PLAYERS
+            //entity* temp = self;
+            for(i = 0; i < MAX_PLAYERS; i++) //levelsets[current_set].maxplayers
             {
                 player[i].lives = 0;
                 if(noshare)
@@ -33804,7 +33805,10 @@ int playlevel(char *filename)
                     credits = 0;
                 }
                 if (player[i].ent) kill(player[i].ent);
+                //self = player[i].ent;
+                //player_die();
             }
+            //self = temp;
             //kill_all();
             endgame |= 1;
             level->force_gameover = 0;
@@ -33846,7 +33850,15 @@ int playlevel(char *filename)
 
     unload_level();
 
-    return ( (type == 2 && endgame != 2) || (player[0].lives > 0 || player[1].lives > 0 || player[2].lives > 0 || player[3].lives > 0) );
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        if (player[0].lives > 0)
+        {
+            p_alive = 1;
+        }
+    }
+
+    return ( (type == 2 && endgame != 2) || p_alive );
 }
 
 
