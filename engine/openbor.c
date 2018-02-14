@@ -27656,6 +27656,8 @@ void suicide()
 void player_die()
 {
     int playerindex = self->playerindex;
+    int i = 0;
+
     if(!livescheat)
     {
         --player[playerindex].lives;
@@ -27690,11 +27692,33 @@ void player_die()
 
     if(player[playerindex].lives <= 0)
     {
-        if(!player[0].ent && !player[1].ent && !player[2].ent && !player[3].ent)
+        int all_p_alive = 0;
+
+        for(i = 0; i < MAX_PLAYERS; i++)
         {
+            if (!player[i].ent) ++all_p_alive;
+        }
+        all_p_alive = (all_p_alive >= MAX_PLAYERS) ? 1 : 0;
+
+        //if(!player[0].ent && !player[1].ent && !player[2].ent && !player[3].ent)
+        if(all_p_alive)
+        {
+            int all_p_nojoin = 0, all_p_nocredits = 0;
+
+            for(i = 0; i < MAX_PLAYERS; i++)
+            {
+                if (!player[i].joining) ++all_p_nojoin;
+            }
+            all_p_nojoin = (all_p_nojoin >= MAX_PLAYERS) ? 1 : 0;
+
+            for(i = 0; i < MAX_PLAYERS; i++)
+            {
+                if (player[i].credits < 1) ++all_p_nocredits;
+            }
+            all_p_nocredits = (all_p_nocredits >= MAX_PLAYERS) ? 1 : 0;
+
             timeleft = 10 * COUNTER_SPEED;
-            if(!player[0].joining && !player[1].joining && !player[0].joining && !player[0].joining &&
-                    ((!noshare && credits < 1) || (noshare && player[0].credits < 1 && player[1].credits < 1 && player[2].credits < 1 && player[3].credits < 1)) )
+            if(all_p_nojoin && ((!noshare && credits < 1) || all_p_nocredits) )
             {
                 timeleft = COUNTER_SPEED / 2;
             }
@@ -31050,6 +31074,7 @@ void update_scroller()
     float rm = -9999, lm = 999999, bm = -9999, tm = 999999; //player boundary box
     static int scrolladd = 0;
     scrolldx = scrolldy = 0;
+    int p_alive = 0;
 
     if(time < level->advancetime || freezeall)
     {
@@ -31071,9 +31096,19 @@ void update_scroller()
         return;
     }
 
-    if(current_spawn >= level->numspawns && !findent(TYPE_ENEMY) &&
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        if (player[i].ent && !player[i].ent->dead)
+        {
+            p_alive = 1;
+            break;
+        }
+    }
+
+    if(current_spawn >= level->numspawns && !findent(TYPE_ENEMY) && p_alive)
+    /*if(current_spawn >= level->numspawns && !findent(TYPE_ENEMY) &&
             ((player[0].ent && !player[0].ent->dead) || (player[1].ent && !player[1].ent->dead) || (player[2].ent && !player[2].ent->dead) || (player[3].ent && !player[3].ent->dead))
-      )
+      )*/
     {
         if(!findent(TYPE_ENDLEVEL) && ((!findent(TYPE_ITEM | TYPE_OBSTACLE) && level->type == 1) || level->type == 0)) // Feb 25, 2005 - Added so obstacles
         {
@@ -32325,6 +32360,9 @@ void free_input_recorder()
 
 void update(int ingame, int usevwait)
 {
+    int i = 0;
+    int p_keys = 0;
+
     getinterval();
     if(playrecstatus->status == A_REC_PLAY && !pause && level) if ( !playRecordedInputs() ) stopRecordInputs();
     inputrefresh(playrecstatus->status);
@@ -32376,15 +32414,38 @@ void update(int ingame, int usevwait)
                 update_scroller();
                 if(!freezeall)
                 {
-                    if(level->settime > 0 || (level->type != 2 && !player[0].ent && !player[1].ent && !player[2].ent && !player[3].ent))
+                    int all_p_alive = 0;
+
+                    for(i = 0; i < MAX_PLAYERS; i++)
                     {
+                        if (!player[i].ent) ++all_p_alive;
+                    }
+                    all_p_alive = (all_p_alive >= MAX_PLAYERS) ? 1 : 0;
+
+                    if(level->settime > 0 || (level->type != 2 && all_p_alive))
+                    //if(level->settime > 0 || (level->type != 2 && !player[0].ent && !player[1].ent && !player[2].ent && !player[3].ent))
+                    {
+                        int all_p_nojoin = 0, all_p_nocredits = 0;
+
+                        for(i = 0; i < MAX_PLAYERS; i++)
+                        {
+                            if (!player[i].joining) ++all_p_nojoin;
+                        }
+                        all_p_nojoin = (all_p_nojoin >= MAX_PLAYERS) ? 1 : 0;
+
+                        for(i = 0; i < MAX_PLAYERS; i++)
+                        {
+                            if (player[i].credits < 1) ++all_p_nocredits;
+                        }
+                        all_p_nocredits = (all_p_nocredits >= MAX_PLAYERS) ? 1 : 0;
+
                         if(timeleft > 0)
                         {
                             --timeleft;
                         }
-                        else if((level->settime > 0 && !player[0].joining && !player[1].joining && !player[2].joining && !player[3].joining) ||
-                                (((!noshare && credits < 1) || (noshare && player[0].credits < 1 && player[1].credits < 1 && player[2].credits < 1 && player[3].credits < 1))
-                                 && !player[0].joining && !player[1].joining && !player[2].joining && !player[3].joining )
+                        else if((level->settime > 0 && all_p_nojoin) ||
+                                ( ((!noshare && credits < 1) || (noshare && all_p_nocredits))
+                                 && all_p_nojoin )
                                )
                         {
                             time_over();
@@ -32445,13 +32506,23 @@ void update(int ingame, int usevwait)
         execute_updatedscripts();
     }
 
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        if (player[i].ent && (player[i].newkeys & FLAG_START))
+        {
+            p_keys = 1;
+            break;
+        }
+    }
+
     // 2011/10/22 UT: move pause menu logic here
-    if(ingame == 1 && !pause && !nopause &&
+    /*if(ingame == 1 && !pause && !nopause &&
             ((player[0].ent && (player[0].newkeys & FLAG_START)) ||
              (player[1].ent && (player[1].newkeys & FLAG_START)) ||
              (player[2].ent && (player[2].newkeys & FLAG_START)) ||
              (player[3].ent && (player[3].newkeys & FLAG_START)))
-      )
+      )*/
+    if(ingame == 1 && !pause && !nopause && p_keys)
     {
         if ( !(goto_mainmenu_flag&1) )
         {
@@ -33850,11 +33921,13 @@ int playlevel(char *filename)
 
     unload_level();
 
+    //|| (player[0].lives > 0 || player[1].lives > 0 || player[2].lives > 0 || player[3].lives > 0)
     for(i = 0; i < MAX_PLAYERS; i++)
     {
-        if (player[0].lives > 0)
+        if (player[i].lives > 0)
         {
             p_alive = 1;
+            break;
         }
     }
 
@@ -34425,7 +34498,15 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
             }
             else if(!playlevel(le->filename))
             {
-                if( (player[0].lives <= 0 && player[1].lives <= 0 && player[2].lives <= 0 && player[3].lives <= 0) )
+                int all_p_lives_zero = 0;
+                for(i = 0; i < MAX_PLAYERS; i++)
+                {
+                    if (player[i].lives <= 0) ++all_p_lives_zero;
+                }
+                all_p_lives_zero = (all_p_lives_zero >= MAX_PLAYERS) ? 1 : 0;
+
+                //if( (player[0].lives <= 0 && player[1].lives <= 0 && player[2].lives <= 0 && player[3].lives <= 0) )
+                if(all_p_lives_zero)
                 {
                     if( (!set->noshowgameover && !(goto_mainmenu_flag&2)) )
                     {
