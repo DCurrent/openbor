@@ -33875,7 +33875,11 @@ int playlevel(char *filename)
                 {
                     credits = 0;
                 }
-                if (player[i].ent) kill(player[i].ent);
+                if (player[i].ent)
+				{
+					kill(player[i].ent);
+					player[i].ent = NULL;
+				}
                 //self = player[i].ent;
                 //player_die();
             }
