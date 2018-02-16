@@ -34033,12 +34033,13 @@ int selectplayer(int *players, char *filename, int useSavedGame)
     s_set_entry *set = levelsets + current_set;
     s_savelevel *save = savelevel + current_set;
     int load_count = 0, saved_select_screen = 0;
+    int is_first_select = 1;
 
     savelevelinfo();
 
     selectScreen = 1;
     kill_all();
-    if(allowselect_args[0] != 'a') reset_playable_list(1); // 'a' is the first char of allowselect, if there's 'a' then there is allowselect
+    if(!skipselect[0][0] && !set->noselect) reset_playable_list(1); // or (allowselect_args[0] != 'a') 'a' is the first char of allowselect, if there's 'a' then there is allowselect
     memset(player, 0, sizeof(*player) * 4);
 
     if(useSavedGame && save)
@@ -34056,6 +34057,15 @@ int selectplayer(int *players, char *filename, int useSavedGame)
     for(i = 0; i < set->maxplayers; i++)
     {
         player[i].hasplayed = players[i];
+    }
+
+    for(i = 0; i < set->maxplayers; i++)
+    {
+        if (savelevel[current_set].pLives[i] > 0)
+        {
+            is_first_select = 0;
+            break;
+        }
     }
 
     if(filename && filename[0])
@@ -34124,7 +34134,11 @@ int selectplayer(int *players, char *filename, int useSavedGame)
     }
     else // without select.txt
     {
-        defaultselect = 1;
+        if(is_first_select || (!skipselect[0][0] && !set->noselect)) // no select is skipselect without names
+        {
+            defaultselect = 1; // normal select or skipselect/noselect? 1 == normal select
+        }
+
         if(!noshare)
         {
             credits = CONTINUES;
@@ -34146,22 +34160,32 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                     continue;
                 }
                 strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
-                if(!creditscheat)
+
+                if(defaultselect)
                 {
-                    if(noshare)
+                    player[i].lives = PLAYER_LIVES;
+                    if(!creditscheat)
                     {
-                        --player[i].credits;
-                    }
-                    else
-                    {
-                        --credits;
+                        if(noshare)
+                        {
+                            --player[i].credits;
+                        }
+                        else
+                        {
+                            --credits;
+                        }
                     }
                 }
-                /*if lives <= 0 then it means you start a new game and so.. take all lives a*/
-                if (player[i].lives <= 0) player[i].lives = PLAYER_LIVES;
-                else player[i].lives = savelevel[current_set].pLives[i]; /*used for skipselect*/
+                else
+                {
+                    player[i].lives = savelevel[current_set].pLives[i];
+                    player[i].score = savelevel[current_set].pScores[i];
+                    if(noshare) player[i].credits = savelevel[current_set].pCredits[i];
+                    else credits = savelevel[current_set].credits;
+                }
             }
             selectScreen = 0;
+
             return 1;
         }
 
@@ -34226,8 +34250,9 @@ int selectplayer(int *players, char *filename, int useSavedGame)
             else
             {
                 player[i].lives = savelevel[current_set].pLives[i];
-                player[i].credits = savelevel[current_set].pCredits[i];
                 player[i].score = savelevel[current_set].pScores[i];
+                if(noshare) player[i].credits = savelevel[current_set].pCredits[i];
+                else credits = savelevel[current_set].credits;
             }
         }
     }
