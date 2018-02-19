@@ -474,6 +474,7 @@ static void setVideoMode()
     videomodes.vRes  = 272;
     videomodes.pixel = 4;
     video_set_mode(videomodes);
+    screenformat = PIXEL_32;
 }
 
 void Menu()
@@ -525,5 +526,6 @@ void Menu()
     }
     getBasePath(packfile, filelist[dListCurrentPosition+dListScrollPosition].filename, 1);
     free(filelist);
+    screenformat = PIXEL_8;
 }
 

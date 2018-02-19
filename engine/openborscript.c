@@ -12069,7 +12069,7 @@ HRESULT openbor_allocscreen(ScriptVariant **varlist , ScriptVariant **pretvar, i
 
 
     ScriptVariant_ChangeType(*pretvar, VT_PTR);
-    screen = allocscreen((int)w, (int)h, PIXEL_32);
+    screen = allocscreen((int)w, (int)h, screenformat);
     if(screen)
     {
         clearscreen(screen);
