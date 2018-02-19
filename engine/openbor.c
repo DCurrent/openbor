@@ -35007,7 +35007,7 @@ void term_videomodes()
 void init_videomodes(int log)
 {
     char *filename = "data/video.txt";
-    int bits = 8, tmp;
+    int tmp;
     ptrdiff_t pos, len;
     size_t size;
     char *buf = NULL;
@@ -35286,7 +35286,7 @@ VIDEOMODES:
 
     if(log)
     {
-        printf("Initialized video.............\t%dx%d (Mode: %d, Depth: %d Bit)\n\n", videomodes.hRes, videomodes.vRes, videoMode, bits);
+        printf("Initialized video.............\t%dx%d (Mode: %d)\n\n", videomodes.hRes, videomodes.vRes, videoMode);
     }
 }
 
