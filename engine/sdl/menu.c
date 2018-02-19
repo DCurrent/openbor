@@ -445,8 +445,10 @@ static void initMenu(int type)
 	isFull = 1;
 	bpp = 32;
 	savedata.hwscale = 0.0f;
+	screenformat = PIXEL_32;
 #endif
 
+    screenformat = bpp==32?PIXEL_32:PIXEL_16;
 	pixelformat = PIXEL_x8;
 
 	savedata.fullscreen = isFull;
@@ -460,7 +462,7 @@ static void initMenu(int type)
 	savedata.hwscale = 2.0f;
 	savedata.hwfilter = 1;
 #endif
-	vscreen = allocscreen(videomodes.hRes, videomodes.vRes, PIXEL_32);
+	vscreen = allocscreen(videomodes.hRes, videomodes.vRes, screenformat);
 
 	video_set_mode(videomodes);
 
@@ -757,7 +759,8 @@ void Menu()
 	getBasePath(packfile, filelist[dListCurrentPosition+dListScrollPosition].filename, 1);
 	free(filelist);
 
-	// Restore pixelformat default value.
+    // Restore screenformat and pixelformat to their default values
+	screenformat = PIXEL_8;
 	pixelformat = PIXEL_x8;
 }
 

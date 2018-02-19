@@ -57,6 +57,7 @@ typedef struct
 } RGB16;
 
 int pixelformat = PIXEL_x8;
+int screenformat = PIXEL_8;
 int pixelbytes[(int)5] = {1, 1, 2, 3, 4};
 
 unsigned channelr, channelg, channelb, tintcolor, tintmode;
@@ -69,26 +70,27 @@ int clipx1, clipy1, clipx2, clipy2;
 //may be used many time so make a function
 void drawmethod_global_init(s_drawmethod *drawmethod)
 {
-
-    if(drawmethod && drawmethod->flag)
+    if(screenformat != PIXEL_8)
     {
+        if(drawmethod && drawmethod->flag)
+        {
 #if REVERSE_COLOR
-        channelr = drawmethod->channelb;
-        channelb = drawmethod->channelr;
+            channelr = drawmethod->channelb;
+            channelb = drawmethod->channelr;
 #else
-        channelr = drawmethod->channelr;
-        channelb = drawmethod->channelb;
+            channelr = drawmethod->channelr;
+            channelb = drawmethod->channelb;
 #endif
-        channelg = drawmethod->channelg;
-        tintmode = drawmethod->tintmode;
-        tintcolor = drawmethod->tintcolor;
-        usechannel = (channelr < 255) || (channelg < 255) || (channelb < 255);
+            channelg = drawmethod->channelg;
+			tintmode = drawmethod->tintmode;
+            tintcolor = drawmethod->tintcolor;
+            usechannel = (channelr < 255) || (channelg < 255) || (channelb < 255);
+        }
+        else
+        {
+            usechannel = tintmode = 0;
+        }
     }
-    else
-    {
-        usechannel = tintmode = 0;
-    }
-
 
     if((useclip = drawmethod && drawmethod->flag && drawmethod->clipw > 0 && drawmethod->cliph > 0))
     {
@@ -98,7 +100,6 @@ void drawmethod_global_init(s_drawmethod *drawmethod)
         clipy2 = clipy1 + drawmethod->cliph;
     }
 }
-
 
 unsigned short colour16(unsigned char r, unsigned char g, unsigned char b)
 {
