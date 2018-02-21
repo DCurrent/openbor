@@ -87,7 +87,7 @@ Image *getPreview(char *filename)
 	int x, y;
 	int width = 160;
 	int height = 120;
-	unsigned char pal[768];
+	unsigned char pal[PAL_BYTES];
 	unsigned char *sp;
 	Color *dp;
 	s_screen *title = NULL;
@@ -100,7 +100,7 @@ Image *getPreview(char *filename)
 
 	// Create & Load & Scale Image
 	if(!loadscreen("data/bgs/title.gif", packfile, pal, pixelformat, &title)) return NULL;
-	if((scaledown = allocscreen(width, height, pixelformat==PIXEL_x8?PIXEL_32:PIXEL_8)) == NULL) return NULL;
+	if((scaledown = allocscreen(width, height, PIXEL_32)) == NULL) return NULL;
 	if((preview = createImage(width, height)) == NULL) return NULL;
 	scalescreen(scaledown, title);
 

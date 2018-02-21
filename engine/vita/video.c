@@ -15,7 +15,7 @@
 #include "video.h"
 
 static vita2d_texture *vitaTexture[2] = {NULL, NULL};
-static unsigned char vitaPalette[768];
+static unsigned char vitaPalette[PAL_BYTES];
 static int vitaBrightness = 0;
 static unsigned char vitaBytesPerPixel = 1;
 
@@ -166,9 +166,9 @@ static void setPalette(void)
 
 void vga_setpalette(unsigned char* pal)
 {
-    if (memcmp(pal, vitaPalette, 768) != 0)
+    if (memcmp(pal, vitaPalette, PAL_BYTES) != 0)
     {
-        memcpy(vitaPalette, pal, 768);
+        memcpy(vitaPalette, pal, PAL_BYTES);
         setPalette();
 	}
 }
