@@ -45,6 +45,7 @@ extern int pixelformat;
 extern int pixelbytes[(int)5];
 
 #define PAL_BYTES ((pixelbytes[(int)PIXEL_32]*256))
+#define PAL_BYTES_MUL PAL_BYTES / 256
 
 // Define fixed-size integer types - these used to be in gfxtypes.h
 // TODO: use these for throughout the engine where fixed-length types are needed
