@@ -30,6 +30,8 @@
 #define NULL 0L
 #endif
 
+#define PAL_BYTES_MUL 3
+
 
 // Basic bamma correction: ((v*(255+(((255-v)*(g-255))/255)))/255)
 //			= ((v*(65025+((255-v)*(g-255))))/65025)
