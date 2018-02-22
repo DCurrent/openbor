@@ -100,7 +100,7 @@ Image *getPreview(char *filename)
 
 	// Create & Load & Scale Image
 	if(!loadscreen("data/bgs/title.gif", packfile, pal, PIXEL_x8, &title)) return NULL;
-	if((scaledown = allocscreen(width, height, PIXEL_x8)) == NULL) return NULL;
+	if((scaledown = allocscreen(width, height, title->pixelformat)) == NULL) return NULL;
 	if((preview = createImage(width, height)) == NULL) return NULL;
 	scalescreen(scaledown, title);
 	//memcpy(scaledown->palette, title->palette, PAL_BYTES);

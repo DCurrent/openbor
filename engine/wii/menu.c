@@ -419,10 +419,11 @@ s_screen *getPreview(char *filename)
 	getBasePath(packfile, filename, 1);
 
 	// Create & Load & Scale Image
-	return NULL; //if(!loadscreen("data/bgs/title.gif", packfile, realPal, PIXEL_8, &title)) return NULL;
+	if(!loadscreen("data/bgs/title.gif", packfile, pal, PIXEL_x8, &title)) return NULL;
 	if((scale = allocscreen(width, height, title->pixelformat)) == NULL) return NULL;
 
 	scalescreen(scale, title);
+	memcpy(scale->palette, scale->palette, PAL_BYTES);
 
 	// Free Images and Terminate FileCaching
 	freescreen(&title);
