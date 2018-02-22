@@ -30,8 +30,6 @@
 #define NULL 0L
 #endif
 
-#define PAL_BYTES_MUL 3
-
 
 // Basic bamma correction: ((v*(255+(((255-v)*(g-255))/255)))/255)
 //			= ((v*(65025+((255-v)*(g-255))))/65025)
@@ -48,7 +46,7 @@
 // Valid values range between -255 and 255, where 0 is normal.
 void palette_set_corrected(unsigned char *pal, int gr, int gg, int gb, int br, int bg, int bb)
 {
-    unsigned char pal2[PAL_BYTES];
+    unsigned char pal2[768];
     int i;
 
     if(gr < -255)
@@ -103,9 +101,9 @@ void palette_set_corrected(unsigned char *pal, int gr, int gg, int gb, int br, i
 
     for(i = 0; i < 256; i++)
     {
-        pal2[i * PAL_BYTES_MUL] =   gbcorrect(pal[i * PAL_BYTES_MUL],   gr, br);
-        pal2[i * PAL_BYTES_MUL + 1] = gbcorrect(pal[i * PAL_BYTES_MUL + 1], gg, bg);
-        pal2[i * PAL_BYTES_MUL + 2] = gbcorrect(pal[i * PAL_BYTES_MUL + 2], gb, bb);
+        pal2[i * 3] =   gbcorrect(pal[i * 3],   gr, br);
+        pal2[i * 3 + 1] = gbcorrect(pal[i * 3 + 1], gg, bg);
+        pal2[i * 3 + 2] = gbcorrect(pal[i * 3 + 2], gb, bb);
     }
     vga_setpalette(pal2);
 }
@@ -188,9 +186,9 @@ unsigned char *palette_table_multiply(unsigned char *pal)
     {
         for(bg = fg; bg < 256; bg++)
         {
-            red = pal[bg * PAL_BYTES_MUL] * pal[fg * PAL_BYTES_MUL] / 255;
-            green = pal[bg * PAL_BYTES_MUL + 1] * pal[fg * PAL_BYTES_MUL + 1] / 255;
-            blue = pal[bg * PAL_BYTES_MUL + 2] * pal[fg * PAL_BYTES_MUL + 2] / 255;
+            red = pal[bg * 3] * pal[fg * 3] / 255;
+            green = pal[bg * 3 + 1] * pal[fg * 3 + 1] / 255;
+            blue = pal[bg * 3 + 2] * pal[fg * 3 + 2] / 255;
 
             lut[(fg << 8) + bg] = palette_find(pal, red, green, blue);
             lut[(bg << 8) + fg] = lut[(fg << 8) + bg];
@@ -225,9 +223,9 @@ unsigned char *palette_table_screen(unsigned char *pal)
     {
         for(bg = fg; bg < 256; bg++)
         {
-            red =   ((pal[fg * PAL_BYTES_MUL] * (255 - pal[bg * PAL_BYTES_MUL])) / 255) + pal[bg * PAL_BYTES_MUL];
-            green = ((pal[fg * PAL_BYTES_MUL + 1] * (255 - pal[bg * PAL_BYTES_MUL + 1])) / 255) + pal[bg * PAL_BYTES_MUL + 1];
-            blue =  ((pal[fg * PAL_BYTES_MUL + 2] * (255 - pal[bg * PAL_BYTES_MUL + 2])) / 255) + pal[bg * PAL_BYTES_MUL + 2];
+            red =   ((pal[fg * 3] * (255 - pal[bg * 3])) / 255) + pal[bg * 3];
+            green = ((pal[fg * 3 + 1] * (255 - pal[bg * 3 + 1])) / 255) + pal[bg * 3 + 1];
+            blue =  ((pal[fg * 3 + 2] * (255 - pal[bg * 3 + 2])) / 255) + pal[bg * 3 + 2];
 
             lut[(fg << 8) + bg] = palette_find(pal, red, green, blue);
             lut[(bg << 8) + fg] = lut[(fg << 8) + bg];
@@ -262,9 +260,9 @@ unsigned char *palette_table_overlay(unsigned char *pal)
     {
         for(bg = fg; bg < 256; bg++)
         {
-            red = overlay(pal[bg * PAL_BYTES_MUL], pal[fg * PAL_BYTES_MUL]);
-            green = overlay(pal[bg * PAL_BYTES_MUL + 1], pal[fg * PAL_BYTES_MUL + 1]);
-            blue = overlay(pal[bg * PAL_BYTES_MUL + 2], pal[fg * PAL_BYTES_MUL + 2]);
+            red = overlay(pal[bg * 3], pal[fg * 3]);
+            green = overlay(pal[bg * 3 + 1], pal[fg * 3 + 1]);
+            blue = overlay(pal[bg * 3 + 2], pal[fg * 3 + 2]);
 
             lut[(fg << 8) + bg] = palette_find(pal, red, green, blue);
             lut[(bg << 8) + fg] = lut[(fg << 8) + bg];
@@ -296,9 +294,9 @@ unsigned char *palette_table_hardlight(unsigned char *pal)
     {
         for(bg = fg; bg < 256; bg++)
         {
-            red = hardlight(pal[bg * PAL_BYTES_MUL], pal[fg * PAL_BYTES_MUL]);
-            green = hardlight(pal[bg * PAL_BYTES_MUL + 1], pal[fg * PAL_BYTES_MUL + 1]);
-            blue = hardlight(pal[bg * PAL_BYTES_MUL + 2], pal[fg * PAL_BYTES_MUL + 2]);
+            red = hardlight(pal[bg * 3], pal[fg * 3]);
+            green = hardlight(pal[bg * 3 + 1], pal[fg * 3 + 1]);
+            blue = hardlight(pal[bg * 3 + 2], pal[fg * 3 + 2]);
 
             lut[(fg << 8) + bg] = palette_find(pal, red, green, blue);
             lut[(bg << 8) + fg] = lut[(fg << 8) + bg];
@@ -392,9 +390,9 @@ unsigned char *palette_table_half(unsigned char *pal)
     {
         for(bg = fg; bg < 256; bg++)
         {
-            red = (pal[bg * PAL_BYTES_MUL] + pal[fg * PAL_BYTES_MUL] + (++dither & 1)) / 2;
-            green = (pal[bg * PAL_BYTES_MUL + 1] + pal[fg * PAL_BYTES_MUL + 1] + (++dither & 1)) / 2;
-            blue = (pal[bg * PAL_BYTES_MUL + 2] + pal[fg * PAL_BYTES_MUL + 2] + (++dither & 1)) / 2;
+            red = (pal[bg * 3] + pal[fg * 3] + (++dither & 1)) / 2;
+            green = (pal[bg * 3 + 1] + pal[fg * 3 + 1] + (++dither & 1)) / 2;
+            blue = (pal[bg * 3 + 2] + pal[fg * 3 + 2] + (++dither & 1)) / 2;
 
             lut[(fg << 8) + bg] = palette_find(pal, red, green, blue);
             lut[(bg << 8) + fg] = lut[(fg << 8) + bg];

@@ -99,10 +99,11 @@ Image *getPreview(char *filename)
 	strncat(packfile, filename, strlen(filename));
 
 	// Create & Load & Scale Image
-	if(!loadscreen("data/bgs/title.gif", packfile, pal, pixelformat, &title)) return NULL;
-	if((scaledown = allocscreen(width, height, PIXEL_32)) == NULL) return NULL;
+	if(!loadscreen("data/bgs/title.gif", packfile, pal, PIXEL_x8, &title)) return NULL;
+	if((scaledown = allocscreen(width, height, PIXEL_x8)) == NULL) return NULL;
 	if((preview = createImage(width, height)) == NULL) return NULL;
 	scalescreen(scaledown, title);
+	//memcpy(scaledown->palette, title->palette, PAL_BYTES);
 
 	// Load Pallete for preview
 	pal[0] = pal[1] = pal[2] = 0;
@@ -110,7 +111,7 @@ Image *getPreview(char *filename)
 
 	// Apply Pallete for preview then blit
 	sp = scaledown->data;
-   	dp = (void*)preview->data + 512 * 2;
+   	dp = (void*)preview->data;
 	for(y=0; y<height; y++)
 	{
    		for(x=0; x<width; x++) dp[x] = palette[((int)(sp[x])) & 0xFF];
