@@ -39,6 +39,10 @@ function get_revnum {
     fi
   elif git svn info >/dev/null 2>&1; then
     VERSION_BUILD=`git svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
+  elif test -d "../.git" || test -d ".git"; then
+    VERSION_BUILD=`git rev-list --count HEAD`
+  elif test -d "../.hg" || test -d ".hg"; then
+    VERSION_BUILD=$((`hg id -n` + 1))
   fi
 }
 
