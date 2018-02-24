@@ -4,11 +4,11 @@
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
  * Copyright (c) 2004 - 2014 OpenBOR Team
- * 
+ *
  * SDLActivity.java - Main code for Android build.
  * Original by UTunnels (utunnels@hotmail.com).
- * Modifications by CRxTRDude.     
- */ 
+ * Modifications by CRxTRDude.
+ */
 
 package org.libsdl.app;
 
@@ -64,15 +64,15 @@ public class SDLActivity extends Activity {
         //System.loadLibrary("SDL2_ttf");
         System.loadLibrary("openbor");
     }
-    
+
     private WakeLock wl;
 
     // Setup
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        //Log.v("SDL", "onCreate()");
+        Log.v("SDL", "onCreate()");
         super.onCreate(savedInstanceState);
-        
+
         // So we can call stuff from static callbacks
         mSingleton = this;
 
@@ -84,19 +84,19 @@ public class SDLActivity extends Activity {
 
         setContentView(mLayout);
         CopyPak("BOR");
-        
+
         //CRxTRDude - Added FLAG_KEEP_SCREEN_ON to prevent screen timeout.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        
+
         //CRxTRDude - Created a wakelock to prevent the app from being shut down upon screen lock.
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-    		wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "BOR");
-				wl.acquire(); 
+        wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "BOR");
+        if (!wl.isHeld()) wl.acquire();
     }
 
     public static native void setRootDir(String dir);
-		     
-    private void CopyPak(String pakName) 
+
+    private void CopyPak(String pakName)
     {
         try
         {
@@ -122,7 +122,7 @@ public class SDLActivity extends Activity {
                     if(Arrays.binarySearch(Files, fn) < 0)
                         break;
                     InputStream is = am.open(fn);
-                    if(null==os) 
+                    if(null==os)
                         os = new FileOutputStream(pakFile);
                     while((r = is.read(b)) != -1)
                         os.write(b, 0, r);
@@ -140,21 +140,26 @@ public class SDLActivity extends Activity {
     @Override
     protected void onPause() {
         Log.v("SDL", "onPause()");
-        //CRxTRDude - Wakelock
-        wl.acquire();
         super.onPause();
-        SDLActivity.handlePause();
+        if (wl.isHeld()) wl.release();
+        //SDLActivity.handlePause();
     }
 
     @Override
     protected void onResume() {
         Log.v("SDL", "onResume()");
-        //CRxTRDude - Wakelock
-        wl.release();
         super.onResume();
-        SDLActivity.handleResume();
+        if (!wl.isHeld()) wl.acquire();
+        //SDLActivity.handleResume();
     }
 
+    /*@Override
+    protected void onUserLeaveHint() {
+        Log.v("SDL", "onUserLeaveHint()");
+        super.onUserLeaveHint();
+        if (wl.isHeld()) wl.release();
+        SDLActivity.handlePause();
+    }*/
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
@@ -163,7 +168,11 @@ public class SDLActivity extends Activity {
 
         SDLActivity.mHasFocus = hasFocus;
         if (hasFocus) {
-            SDLActivity.handleResume();
+            if (!wl.isHeld()) wl.acquire();
+            //SDLActivity.handleResume();
+        } else {
+            if (wl.isHeld()) wl.release();
+            //SDLActivity.handlePause();
         }
     }
 
@@ -176,10 +185,12 @@ public class SDLActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-    		//CRxTRDude - Release wakelock first before destroying.
-    		wl.release();
-        super.onDestroy();
         Log.v("SDL", "onDestroy()");
+        super.onDestroy();
+
+        //CRxTRDude - Release wakelock first before destroying.
+        if (wl.isHeld()) wl.release();
+
         // Send a quit message to the application
         SDLActivity.nativeQuit();
 
@@ -313,7 +324,7 @@ public class SDLActivity extends Activity {
     public static native void onNativeKeyUp(int keycode);
     public static native void onNativeKeyboardFocusLost();
     public static native void onNativeTouch(int touchDevId, int pointerFingerId,
-                                            int action, float x, 
+                                            int action, float x,
                                             float y, float p);
     public static native void onNativeAccel(float x, float y, float z);
     public static native void onNativeSurfaceChanged();
@@ -379,7 +390,7 @@ public class SDLActivity extends Activity {
         // Transfer the task to the main thread as a Runnable
         return mSingleton.commandHandler.post(new ShowTextInputTask(x, y, w, h));
     }
-            
+
     public static Surface getNativeSurface() {
         return SDLActivity.mSurface.getNativeSurface();
     }
@@ -389,36 +400,36 @@ public class SDLActivity extends Activity {
         int channelConfig = isStereo ? AudioFormat.CHANNEL_CONFIGURATION_STEREO : AudioFormat.CHANNEL_CONFIGURATION_MONO;
         int audioFormat = is16Bit ? AudioFormat.ENCODING_PCM_16BIT : AudioFormat.ENCODING_PCM_8BIT;
         int frameSize = (isStereo ? 2 : 1) * (is16Bit ? 2 : 1);
-        
+
         Log.v("SDL", "SDL audio: wanted " + (isStereo ? "stereo" : "mono") + " " + (is16Bit ? "16-bit" : "8-bit") + " " + (sampleRate / 1000f) + "kHz, " + desiredFrames + " frames buffer");
-        
+
         // Let the user pick a larger buffer if they really want -- but ye
         // gods they probably shouldn't, the minimums are horrifyingly high
         // latency already
         desiredFrames = Math.max(desiredFrames, (AudioTrack.getMinBufferSize(sampleRate, channelConfig, audioFormat) + frameSize - 1) / frameSize);
-        
+
         if (mAudioTrack == null) {
             mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate,
                     channelConfig, audioFormat, desiredFrames * frameSize, AudioTrack.MODE_STREAM);
-            
+
             // Instantiating AudioTrack can "succeed" without an exception and the track may still be invalid
             // Ref: https://android.googlesource.com/platform/frameworks/base/+/refs/heads/master/media/java/android/media/AudioTrack.java
             // Ref: http://developer.android.com/reference/android/media/AudioTrack.html#getState()
-            
+
             if (mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
                 Log.e("SDL", "Failed during initialization of Audio Track");
                 mAudioTrack = null;
                 return -1;
             }
-            
+
             mAudioTrack.play();
         }
-       
+
         Log.v("SDL", "SDL audio: got " + ((mAudioTrack.getChannelCount() >= 2) ? "stereo" : "mono") + " " + ((mAudioTrack.getAudioFormat() == AudioFormat.ENCODING_PCM_16BIT) ? "16-bit" : "8-bit") + " " + (mAudioTrack.getSampleRate() / 1000f) + "kHz, " + desiredFrames + " frames buffer");
-        
+
         return 0;
     }
-    
+
     public static void audioWriteShortBuffer(short[] buffer) {
         for (int i = 0; i < buffer.length; ) {
             int result = mAudioTrack.write(buffer, i, buffer.length - i);
@@ -436,7 +447,7 @@ public class SDLActivity extends Activity {
             }
         }
     }
-    
+
     public static void audioWriteByteBuffer(byte[] buffer) {
         for (int i = 0; i < buffer.length; ) {
             int result = mAudioTrack.write(buffer, i, buffer.length - i);
@@ -497,11 +508,11 @@ class SDLMain implements Runnable {
 
 /**
     SDLSurface. This is what we draw on, so we need to know when it's created
-    in order to do anything useful. 
+    in order to do anything useful.
 
     Because of this, that's where we set up the SDL thread
 */
-class SDLSurface extends SurfaceView implements SurfaceHolder.Callback, 
+class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     View.OnKeyListener, View.OnTouchListener, SensorEventListener  {
 
     // Sensors
@@ -511,16 +522,16 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     // Keep track of the surface size to normalize touch events
     protected static float mWidth, mHeight;
 
-    // Startup    
+    // Startup
     public SDLSurface(Context context) {
         super(context);
-        getHolder().addCallback(this); 
-    
+        getHolder().addCallback(this);
+
         setFocusable(true);
         setFocusableInTouchMode(true);
         requestFocus();
-        setOnKeyListener(this); 
-        setOnTouchListener(this);   
+        setOnKeyListener(this);
+        setOnTouchListener(this);
 
         mDisplay = ((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         mSensorManager = (SensorManager)context.getSystemService(Context.SENSOR_SERVICE);
@@ -529,7 +540,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         mWidth = 1.0f;
         mHeight = 1.0f;
     }
-    
+
     public Surface getNativeSurface() {
         return getHolder().getSurface();
     }
@@ -546,7 +557,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     public void surfaceDestroyed(SurfaceHolder holder) {
         Log.v("SDL", "surfaceDestroyed()");
         // Call this *before* setting mIsSurfaceReady to 'false'
-        SDLActivity.handlePause();
+        //SDLActivity.handlePause();
         SDLActivity.mIsSurfaceReady = false;
         SDLActivity.onNativeSurfaceDestroyed();
     }
@@ -630,13 +641,13 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     // Key events
     @Override
     public boolean onKey(View  v, int keyCode, KeyEvent event) {
-        
+
         //uTunnels: remap keys, for sdl doesn't support them
         switch(keyCode)
         {
             /*
             case KeyEvent.KEYCODE_BUTTON_1://	Key code constant: Generic Game Pad Button #1.
-                keyCode=KeyEvent.KEYCODE_1; break;                
+                keyCode=KeyEvent.KEYCODE_1; break;
             case KeyEvent.KEYCODE_BUTTON_10: //key code constant: Generic Game Pad Button #10.
                 keyCode=KeyEvent.KEYCODE_2; break;
             case KeyEvent.KEYCODE_BUTTON_11: //key code constant: Generic Game Pad Button #11.
@@ -698,7 +709,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
             case KeyEvent.KEYCODE_BUTTON_Z: //key code constant: Z Button key.
                 keyCode=KeyEvent.KEYCODE_U; break;
         }
-        
+
 				if (event.getAction() == KeyEvent.ACTION_DOWN) {
             //Log.v("SDL", "key down: " + keyCode);
             SDLActivity.onNativeKeyDown(keyCode);
@@ -709,7 +720,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
             SDLActivity.onNativeKeyUp(keyCode);
             return true;
         }
-        
+
         return false;
     }
 
@@ -741,21 +752,21 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                 SDLActivity.onNativeTouch(touchDevId, pointerFingerId, action, x, y, p);
              }
       return true;
-   } 
+   }
 
     // Sensor events
     public void enableSensor(int sensortype, boolean enabled) {
         // TODO: This uses getDefaultSensor - what if we have >1 accels?
         if (enabled) {
-            mSensorManager.registerListener(this, 
-                            mSensorManager.getDefaultSensor(sensortype), 
+            mSensorManager.registerListener(this,
+                            mSensorManager.getDefaultSensor(sensortype),
                             SensorManager.SENSOR_DELAY_GAME, null);
         } else {
-            mSensorManager.unregisterListener(this, 
+            mSensorManager.unregisterListener(this,
                             mSensorManager.getDefaultSensor(sensortype));
         }
     }
-    
+
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         // TODO
@@ -788,7 +799,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                                       event.values[2] / SensorManager.GRAVITY_EARTH - 1);
         }
     }
-    
+
 }
 
 /* This is a fake invisible editor view that receives the input and defines the
@@ -830,7 +841,7 @@ class DummyEdit extends View implements View.OnKeyListener {
 
         return false;
     }
-        
+
     //
     @Override
     public boolean onKeyPreIme (int keyCode, KeyEvent event) {
