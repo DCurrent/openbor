@@ -65,7 +65,7 @@ public class SDLActivity extends Activity {
         System.loadLibrary("openbor");
     }
 
-    private WakeLock wl;
+    protected static WakeLock wakeLock;
 
     // Setup
     @Override
@@ -90,8 +90,8 @@ public class SDLActivity extends Activity {
 
         //CRxTRDude - Created a wakelock to prevent the app from being shut down upon screen lock.
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-        wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "BOR");
-        if (!wl.isHeld()) wl.acquire();
+        SDLActivity.wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "BOR");
+        if (!SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.acquire();
     }
 
     public static native void setRootDir(String dir);
@@ -141,7 +141,7 @@ public class SDLActivity extends Activity {
     protected void onPause() {
         Log.v("SDL", "onPause()");
         super.onPause();
-        if (wl.isHeld()) wl.release();
+        if (SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.release();
         //SDLActivity.handlePause();
     }
 
@@ -149,7 +149,7 @@ public class SDLActivity extends Activity {
     protected void onResume() {
         Log.v("SDL", "onResume()");
         super.onResume();
-        if (!wl.isHeld()) wl.acquire();
+        if (!SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.acquire();
         //SDLActivity.handleResume();
     }
 
@@ -157,7 +157,7 @@ public class SDLActivity extends Activity {
     protected void onUserLeaveHint() {
         Log.v("SDL", "onUserLeaveHint()");
         super.onUserLeaveHint();
-        if (wl.isHeld()) wl.release();
+        if (SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.release();
         SDLActivity.handlePause();
     }*/
 
@@ -168,10 +168,10 @@ public class SDLActivity extends Activity {
 
         SDLActivity.mHasFocus = hasFocus;
         if (hasFocus) {
-            if (!wl.isHeld()) wl.acquire();
+            if (!SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.acquire();
             //SDLActivity.handleResume();
         } else {
-            if (wl.isHeld()) wl.release();
+            if (SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.release();
             //SDLActivity.handlePause();
         }
     }
@@ -189,7 +189,7 @@ public class SDLActivity extends Activity {
         super.onDestroy();
 
         //CRxTRDude - Release wakelock first before destroying.
-        if (wl.isHeld()) wl.release();
+        if (SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.release();
 
         // Send a quit message to the application
         SDLActivity.nativeQuit();
@@ -557,6 +557,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     public void surfaceDestroyed(SurfaceHolder holder) {
         Log.v("SDL", "surfaceDestroyed()");
         // Call this *before* setting mIsSurfaceReady to 'false'
+        if (SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.release();
         //SDLActivity.handlePause();
         SDLActivity.mIsSurfaceReady = false;
         SDLActivity.onNativeSurfaceDestroyed();
