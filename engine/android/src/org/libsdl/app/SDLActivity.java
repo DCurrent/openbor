@@ -195,13 +195,13 @@ public class SDLActivity extends Activity {
         SDLActivity.nativeQuit();
 
         // Now wait for the SDL thread to quit
-        if (mSDLThread != null) {
+        if (SDLActivity.mSDLThread != null) {
             try {
-                mSDLThread.join();
+                SDLActivity.mSDLThread.join();
             } catch(Exception e) {
                 Log.v("SDL", "Problem stopping thread: " + e);
             }
-            mSDLThread = null;
+            SDLActivity.mSDLThread = null;
 
             //Log.v("SDL", "Finished waiting for SDL thread");
         }
@@ -558,7 +558,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         Log.v("SDL", "surfaceDestroyed()");
         // Call this *before* setting mIsSurfaceReady to 'false'
         if (SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.release();
-        //SDLActivity.handlePause();
+        SDLActivity.handlePause();
         SDLActivity.mIsSurfaceReady = false;
         SDLActivity.onNativeSurfaceDestroyed();
     }
@@ -623,7 +623,6 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         SDLActivity.mIsSurfaceReady = true;
         SDLActivity.onNativeSurfaceChanged();
 
-
         if (SDLActivity.mSDLThread == null) {
             // This is the entry point to the C app.
             // Start up the C app thread and enable sensor input for the first time
@@ -631,6 +630,9 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
             SDLActivity.mSDLThread = new Thread(new SDLMain(), "SDLThread");
             enableSensor(Sensor.TYPE_ACCELEROMETER, false);
             SDLActivity.mSDLThread.start();
+        } else {
+            if (!SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.acquire();
+            SDLActivity.handleResume();
         }
     }
 
