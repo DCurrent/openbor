@@ -137,7 +137,7 @@ public class SDLActivity extends Activity {
     }
 
     // Events
-    @Override
+    /*@Override
     protected void onPause() {
         Log.v("SDL", "onPause()");
         super.onPause();
@@ -151,7 +151,7 @@ public class SDLActivity extends Activity {
         super.onResume();
         if (!SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.acquire();
         //SDLActivity.handleResume();
-    }
+    }*/
 
     /*@Override
     protected void onUserLeaveHint() {
@@ -214,6 +214,8 @@ public class SDLActivity extends Activity {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
             keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
             keyCode == KeyEvent.KEYCODE_CAMERA ||
+			keyCode == KeyEvent.KEYCODE_HOME ||
+			keyCode == KeyEvent.KEYCODE_POWER ||
             keyCode == 168 || /* API 11: KeyEvent.KEYCODE_ZOOM_IN */
             keyCode == 169 /* API 11: KeyEvent.KEYCODE_ZOOM_OUT */
             ) {
@@ -550,6 +552,8 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     public void surfaceCreated(SurfaceHolder holder) {
         Log.v("SDL", "surfaceCreated()");
         holder.setType(SurfaceHolder.SURFACE_TYPE_GPU);
+        if (!SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.acquire();
+        SDLActivity.handleResume();
     }
 
     // Called when we lose the surface
@@ -630,10 +634,10 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
             SDLActivity.mSDLThread = new Thread(new SDLMain(), "SDLThread");
             enableSensor(Sensor.TYPE_ACCELEROMETER, false);
             SDLActivity.mSDLThread.start();
-        } else {
+        } /*else {
             if (!SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.acquire();
             SDLActivity.handleResume();
-        }
+        }*/
     }
 
     // unused
@@ -713,7 +717,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                 keyCode=KeyEvent.KEYCODE_U; break;
         }
 
-				if (event.getAction() == KeyEvent.ACTION_DOWN) {
+		if (event.getAction() == KeyEvent.ACTION_DOWN) {
             //Log.v("SDL", "key down: " + keyCode);
             SDLActivity.onNativeKeyDown(keyCode);
             return true;
