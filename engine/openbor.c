@@ -2267,7 +2267,7 @@ void execute_onblocks_script(entity *ent)
     }
 }
 
-void execute_onblockw_script(entity *ent, int plane, float height, int index)
+void execute_onblockw_script(entity *ent, int plane, float height, int index, float depth, int type)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onblockw_script;
@@ -2286,6 +2286,10 @@ void execute_onblockw_script(entity *ent, int plane, float height, int index)
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
         tempvar.lVal = (LONG)index;
         Script_Set_Local_Variant(cs, "index",      &tempvar);
+        tempvar.dblVal = (DOUBLE)depth;
+        Script_Set_Local_Variant(cs, "depth",      &tempvar);
+        tempvar.lVal = (LONG)type;
+        Script_Set_Local_Variant(cs, "type",      &tempvar);
         Script_Execute(cs);
 
         //clear to save variant space
@@ -2297,10 +2301,14 @@ void execute_onblockw_script(entity *ent, int plane, float height, int index)
         Script_Set_Local_Variant(cs, "height", &tempvar);
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "index", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "depth", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "type", &tempvar);
     }
 }
 
-void execute_inhole_script(entity *ent, int plane, float height, int index)
+void execute_inhole_script(entity *ent, int plane, float height, int index, float depth, int type)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->inhole_script;
@@ -2319,6 +2327,10 @@ void execute_inhole_script(entity *ent, int plane, float height, int index)
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
         tempvar.lVal = (LONG)index;
         Script_Set_Local_Variant(cs, "index",      &tempvar);
+        tempvar.dblVal = (DOUBLE)depth;
+        Script_Set_Local_Variant(cs, "depth",      &tempvar);
+        tempvar.lVal = (LONG)type;
+        Script_Set_Local_Variant(cs, "type",      &tempvar);
         Script_Execute(cs);
 
         //clear to save variant space
@@ -2330,6 +2342,10 @@ void execute_inhole_script(entity *ent, int plane, float height, int index)
         Script_Set_Local_Variant(cs, "height", &tempvar);
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "index", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "depth", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "type", &tempvar);
     }
 }
 
@@ -20347,7 +20363,7 @@ void adjust_base(entity *e, entity **pla)
             if ( hole )
             {
                 int holeind = checkholeindex_in(self->position.x, self->position.z, self->position.y);
-                if (holeind >= 0) execute_inhole_script(self, 0, (double)level->holes[holeind].height, holeind);
+                if (holeind >= 0) execute_inhole_script(self, 0, (double)level->holes[holeind].height, holeind, (double)level->holes[holeind].depth, level->holes[holeind].type);
             }
 
             if(seta < 0 && hole)
@@ -24925,13 +24941,13 @@ int common_trymove(float xdir, float zdir)
         {
             xdir = 0;
             if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
-            execute_onblockw_script(self, 1, (double)level->walls[wall].height, wall);
+            execute_onblockw_script(self, 1, (double)level->walls[wall].height, wall, (double)level->walls[wall].depth, level->walls[wall].type);
         }
         if(zdir && (wall = checkwall_below(self->position.x, z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
         {
             zdir = 0;
             if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
-            execute_onblockw_script(self, 2, (double)level->walls[wall].height, wall);
+            execute_onblockw_script(self, 2, (double)level->walls[wall].height, wall, (double)level->walls[wall].depth, level->walls[wall].type);
         }
 
         if ( hit && !self->hitwall && validanim(self, ANI_HITWALL) ) ent_set_anim(self, ANI_HITWALL, 0);
