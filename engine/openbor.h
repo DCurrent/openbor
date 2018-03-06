@@ -2562,9 +2562,9 @@ void    execute_ondeath_script      (entity *ent, entity *other, int force, int 
 void    execute_onkill_script       (entity *ent);
 void    execute_onpain_script       (entity *ent, int iType, int iReset);
 void    execute_onfall_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
-void    execute_inhole_script       (entity *ent, int plane, float height, int index);
+void    execute_inhole_script       (entity *ent, int plane, float height, int index, float depth, int type);
 void    execute_onblocks_script     (entity *ent);
-void    execute_onblockw_script     (entity *ent, int plane, float height, int index);
+void    execute_onblockw_script     (entity *ent, int plane, float height, int index, float depth, int type);
 void    execute_onblockp_script     (entity *ent, int plane, entity *platform);
 void    execute_onblocko_script     (entity *ent, entity *other);
 void    execute_onblockz_script     (entity *ent);
