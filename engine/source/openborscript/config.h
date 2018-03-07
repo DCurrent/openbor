@@ -179,6 +179,7 @@ HRESULT openbor_fadeout(ScriptVariant **varlist , ScriptVariant **pretvar, int p
 HRESULT openbor_playerkeys(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changepalette(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_killentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_dograb(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_findtarget(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

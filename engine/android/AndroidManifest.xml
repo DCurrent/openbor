@@ -20,7 +20,7 @@
         </activity>
     </application>
 
-    <!-- Android 2.3.3 -->
+    <!-- Android 4.0 -->
     <uses-sdk android:minSdkVersion="14" />
 
     <!-- Allow writing to external storage -->

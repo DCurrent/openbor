@@ -490,7 +490,7 @@ int					gameOver			= 0;
 int					showComplete		= 0;
 char				*currentScene		= NULL;
 int                 tospeedup           = 0;          			// If set will speed the level back up after a boss hits the ground
-int                 reached[4]          = {0, 0, 0, 0};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
+int                 reached[MAX_PLAYERS]          = {0, 0, 0, 0};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
 int                 noslowfx			= 0;           			// Flag to determine if sound speed when hitting opponent slows or not
 int                 equalairpause 		= 0;         			// If set to 1, there will be no extra pausetime for players who hit multiple enemies in midair
 int                 hiscorebg			= 0;					// If set to 1, will look for a background image to display at the highscore screen
@@ -529,17 +529,17 @@ entity				*stalker				= NULL;					// an enemy (usually) tries to go behind the p
 entity				*firstplayer			= NULL;
 int					stalking			= 0;
 int					nextplan			= 0;
-int                 plife[4][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player lifebar
-int                 plifeX[4][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player lifebar 'x'
-int                 plifeN[4][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player lifebar number of lives
-int                 picon[4][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player icon
-int                 piconw[4][2]        = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player weapon icons
-int                 mpicon[4][2]        = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable magicbar player icon
-int                 pnameJ[4][7]        = {{0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}}; // Used for customizable player name, Select Hero, (Credits, Press Start, Game Over) when joining
-int                 pscore[4][7]        = {{0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}}; // Used for customizable player name, dash, score
-int                 pshoot[4][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player shootnum
-int                 prush[4][8]         = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}}; // Used for customizable player combo/rush system
-int                 psmenu[4][4]        = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}; // Used for customizable player placement in select menu
+int                 plife[MAX_PLAYERS][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player lifebar
+int                 plifeX[MAX_PLAYERS][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player lifebar 'x'
+int                 plifeN[MAX_PLAYERS][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player lifebar number of lives
+int                 picon[MAX_PLAYERS][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player icon
+int                 piconw[MAX_PLAYERS][2]        = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player weapon icons
+int                 mpicon[MAX_PLAYERS][2]        = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable magicbar player icon
+int                 pnameJ[MAX_PLAYERS][7]        = {{0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}}; // Used for customizable player name, Select Hero, (Credits, Press Start, Game Over) when joining
+int                 pscore[MAX_PLAYERS][7]        = {{0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}}; // Used for customizable player name, dash, score
+int                 pshoot[MAX_PLAYERS][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player shootnum
+int                 prush[MAX_PLAYERS][8]         = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}}; // Used for customizable player combo/rush system
+int                 psmenu[MAX_PLAYERS][4]        = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}; // Used for customizable player placement in select menu
 int                 mpcolourtable[11]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int                 hpcolourtable[11]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int                 ldcolourtable[11]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -696,7 +696,7 @@ entity             *self;
 int                 ent_count			= 0;					// log count of entites
 int                 ent_max				= 0;
 
-s_player            player[4];
+s_player            player[MAX_PLAYERS];
 u32                 bothkeys, bothnewkeys;
 
 s_playercontrols    playercontrols1;
@@ -715,11 +715,11 @@ Script key_script_all;  //keyscript for all players
 Script timetick_script; //time tick script.
 
 //player script
-Script score_script[4];     //execute when add score, 4 players
-Script key_script[4];       //key listeners, lol
-Script join_script[4];      //player join scripts
-Script respawn_script[4];   //player respawn scripts
-Script pdie_script[4];      //player death scripts
+Script score_script[MAX_PLAYERS];     //execute when add score, 4 players
+Script key_script[MAX_PLAYERS];       //key listeners
+Script join_script[MAX_PLAYERS];      //player join scripts
+Script respawn_script[MAX_PLAYERS];   //player respawn scripts
+Script pdie_script[MAX_PLAYERS];      //player death scripts
 
 extern Script *pcurrentscript;//used by local script functions
 //-------------------------methods-------------------------------
@@ -1824,23 +1824,23 @@ void init_scripts()
     Script_Init(&key_script_all,    "keyall",   NULL,  1);
     Script_Init(&timetick_script,   "timetick",  NULL, 1);
     Script_Init(&loading_script,    "loading",   NULL, 1);
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Init(&score_script[i],    "score",    NULL,  1);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Init(&key_script[i],      "key",      NULL,  1);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Init(&join_script[i],     "join",      NULL, 1);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Init(&respawn_script[i],  "respawn",   NULL, 1);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Init(&pdie_script[i],     "die",       NULL, 1);
     }
@@ -1969,23 +1969,23 @@ void load_scripts()
     Script_Compile(&key_script_all);
     Script_Compile(&timetick_script);
     Script_Compile(&loading_script);
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Compile(&score_script[i]);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Compile(&key_script[i]);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Compile(&join_script[i]);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Compile(&respawn_script[i]);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Compile(&pdie_script[i]);
     }
@@ -2004,23 +2004,23 @@ void clear_scripts()
     Script_Clear(&key_script_all,   2);
     Script_Clear(&timetick_script,  2);
     Script_Clear(&loading_script,   2);
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Clear(&score_script[i],      2);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Clear(&key_script[i],        2);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Clear(&join_script[i],       2);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Clear(&respawn_script[i],    2);
     }
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         Script_Clear(&pdie_script[i],       2);
     }
@@ -2267,7 +2267,7 @@ void execute_onblocks_script(entity *ent)
     }
 }
 
-void execute_onblockw_script(entity *ent, int plane, float height, int index)
+void execute_onblockw_script(entity *ent, int plane, float height, int index, float depth, int type)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onblockw_script;
@@ -2286,6 +2286,10 @@ void execute_onblockw_script(entity *ent, int plane, float height, int index)
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
         tempvar.lVal = (LONG)index;
         Script_Set_Local_Variant(cs, "index",      &tempvar);
+        tempvar.dblVal = (DOUBLE)depth;
+        Script_Set_Local_Variant(cs, "depth",      &tempvar);
+        tempvar.lVal = (LONG)type;
+        Script_Set_Local_Variant(cs, "type",      &tempvar);
         Script_Execute(cs);
 
         //clear to save variant space
@@ -2297,10 +2301,14 @@ void execute_onblockw_script(entity *ent, int plane, float height, int index)
         Script_Set_Local_Variant(cs, "height", &tempvar);
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "index", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "depth", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "type", &tempvar);
     }
 }
 
-void execute_inhole_script(entity *ent, int plane, float height, int index)
+void execute_inhole_script(entity *ent, int plane, float height, int index, float depth, int type)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->inhole_script;
@@ -2319,6 +2327,10 @@ void execute_inhole_script(entity *ent, int plane, float height, int index)
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
         tempvar.lVal = (LONG)index;
         Script_Set_Local_Variant(cs, "index",      &tempvar);
+        tempvar.dblVal = (DOUBLE)depth;
+        Script_Set_Local_Variant(cs, "depth",      &tempvar);
+        tempvar.lVal = (LONG)type;
+        Script_Set_Local_Variant(cs, "type",      &tempvar);
         Script_Execute(cs);
 
         //clear to save variant space
@@ -2330,6 +2342,10 @@ void execute_inhole_script(entity *ent, int plane, float height, int index)
         Script_Set_Local_Variant(cs, "height", &tempvar);
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "index", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "depth", &tempvar);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "type", &tempvar);
     }
 }
 
@@ -12681,7 +12697,7 @@ void load_levelorder()
     static const char *defaulterr = "Error in level order: a set must be specified.";
 #define CHKDEF if(!set) { errormessage = (char*) defaulterr; goto lCleanup; }
     char filename[128] = "";
-    int i = 0, j = 0;
+    int i = 0, j = 0, err = 0;
     char *buf;
     size_t size;
     int pos;
@@ -13316,7 +13332,7 @@ void load_levelorder()
             default:
                 assert(0);
             }
-            for(i = 0; i < 4; i++)
+            for(i = 0; i < MAX_PLAYERS; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
                     psmenu[j][i] = atoi(arg);
@@ -13581,7 +13597,9 @@ void load_levelorder()
         default:
             if (command && command[0])
             {
-                printf("Command '%s' not understood in level order!", command);
+                if (err <= 0) printf("\n");
+                ++err;
+                printf("Command '%s' not understood in level order!\n", command);
             }
         }
 
@@ -13693,7 +13711,7 @@ void load_levelorder()
         plifeX[3][0] = plife[3][0] + lbarstatus.size.x + 4;
         plifeX[3][1] = picon[3][1] + 7;
     }
-    for(i = 0; i < 4; i++) if(plifeX[i][2] == -1)
+    for(i = 0; i < MAX_PLAYERS; i++) if(plifeX[i][2] == -1)
         {
             plifeX[i][2] = 0;
         }
@@ -13718,7 +13736,7 @@ void load_levelorder()
         plifeN[3][0] = plifeN[1][0];
         plifeN[3][1] = picon[3][1];
     }
-    for(i = 0; i < 4; i++) if(plifeN[i][2] == -1)
+    for(i = 0; i < MAX_PLAYERS; i++) if(plifeN[i][2] == -1)
         {
             plifeN[i][2] = 3;
         }
@@ -13747,7 +13765,7 @@ void load_levelorder()
         pnameJ[3][5] = pnameJ[3][1] = picon[3][1];
         pnameJ[3][3] = 10 + pnameJ[3][5];
     }
-    for(i = 0; i < 4; i++) if(pnameJ[i][6] == -1)
+    for(i = 0; i < MAX_PLAYERS; i++) if(pnameJ[i][6] == -1)
         {
             pnameJ[i][6] = 0;
         }
@@ -13772,7 +13790,7 @@ void load_levelorder()
         pscore[3][0] = plife[3][0] + 1;
         pscore[3][1] = picon[3][1];
     }
-    for(i = 0; i < 4; i++) if(pscore[i][6] == -1)
+    for(i = 0; i < MAX_PLAYERS; i++) if(pscore[i][6] == -1)
         {
             pscore[i][6] = 0;
         }
@@ -13797,14 +13815,14 @@ void load_levelorder()
         ename[3][0] = ename[1][0];
         ename[3][1] = eicon[3][1];
     }
-    for(i = 0; i < 4; i++) if(ename[i][2] == -1)
+    for(i = 0; i < MAX_PLAYERS; i++) if(ename[i][2] == -1)
         {
             ename[i][2] = 0;
         }
 
     branch_name[0] = 0; //clear up branch name, so we can use it in game
 
-    for(i = 0; i < 4; i++) if(pshoot[i][2] == -1)
+    for(i = 0; i < MAX_PLAYERS; i++) if(pshoot[i][2] == -1)
         {
             pshoot[i][2] = 2;
         }
@@ -20345,7 +20363,7 @@ void adjust_base(entity *e, entity **pla)
             if ( hole )
             {
                 int holeind = checkholeindex_in(self->position.x, self->position.z, self->position.y);
-                if (holeind >= 0) execute_inhole_script(self, 0, (double)level->holes[holeind].height, holeind);
+                if (holeind >= 0) execute_inhole_script(self, 0, (double)level->holes[holeind].height, holeind, (double)level->holes[holeind].depth, level->holes[holeind].type);
             }
 
             if(seta < 0 && hole)
@@ -23634,9 +23652,10 @@ int calculate_force_damage(entity *other, s_collision_attack *attack)
 
 void checkdamageonlanding()
 {
+    if (self->health <= 0) return;
+
     if( (self->damage_on_landing[0] > 0 && !self->dead) )
     {
-        int atk_force = 0;
         int didhit = 0;
 
         //##################
@@ -23648,13 +23667,18 @@ void checkdamageonlanding()
         if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
         else attack.attack_type  = ATK_LAND;
 
-        if (self->opponent && self->opponent->exists) other = self->opponent;
+        if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->health > 0) other = self->opponent;
         else other = self;
+
+        lasthit.confirm = 1;
+        lasthit.attack = &attack;
+        lasthit.position.x = self->position.x;
+        lasthit.position.y = self->position.y;
+        lasthit.position.z = self->position.z;
 
         execute_ondoattack_script(self, other, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, other->attack_id, attack.tag);	//Execute on defender.
         execute_ondoattack_script(other, self, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 1, other->attack_id, attack.tag);	//Execute on attacker.
 
-        checkhit(other, self);
         if(lasthit.confirm)
         {
             didhit = 1;
@@ -23682,30 +23706,27 @@ void checkdamageonlanding()
 
         if (didhit)
         {
-            atk_force = calculate_force_damage(other, &attack);
-
-            if (self->health - atk_force > 0)
+            // pre-check drop
+            checkdamagedrop(&attack);
+            // Drop Weapon due to being hit.
+            if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
             {
-                // pre-check drop
-                checkdamagedrop(&attack);
-                // Drop Weapon due to being hit.
-                if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
-                {
-                    dropweapon(1);
-                }
-                // check effects, e.g., frozen, blast, steal
-                if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
-                {
-                    checkdamageeffects(&attack);
-                }
-
-                // mprate can also control the MP recovered per hit.
-                checkmpadd();
-                //damage score
-                checkhitscore(other, &attack);
+                dropweapon(1);
             }
+            // check effects, e.g., frozen, blast, steal
+            if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
+            {
+                checkdamageeffects(&attack);
+            }
+
+            // mprate can also control the MP recovered per hit.
+            checkmpadd();
+            //damage score
+            checkhitscore(other, &attack);
             //self->health -= atk_force;
             checkdamage(other, &attack);
+            // is it dead now?
+            checkdeath();
 
             execute_didhit_script(other, self, attack.attack_force, attack.attack_drop, other->modeldata.subtype, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, attack.tag);
         }
@@ -23736,47 +23757,32 @@ void checkdamageonlanding()
             if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
             else attack.attack_type  = ATK_LAND;
 
-            if (self->opponent && self->opponent->exists) other = self->opponent;
+            if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->health > 0) other = self->opponent;
             else other = self;
-
-            if(self->dead)
-            {
-                return;
-            }
-            if(self->toexplode == 2)
-            {
-                return;
-            }
-            // fake 'grab', if failed, return as the attack hit nothing
-            if(!checkgrab(other, &attack))
-            {
-                return;    // try to grab but failed, so return 0 means attack missed
-            }
-
-            if(self != other)
-            {
-                set_opponent(self, other);
-            }
             //##################
 
             self->takedamage(other, &attack, 1);
         }
         else
         {
-            int damage_factor = (self->damage_on_landing[0] * self->defense[ATK_LAND].factor);
+            /*int damage_factor = (self->damage_on_landing[0] * self->defense[attack.attack_type].factor);
 
             self->health -= damage_factor;
             if(self->health <= 0 )
             {
                 kill(self);
-            }
+            }*/
+            kill(self);
         }
         if (self)
         {
             self->damage_on_landing[0] = 0;
             self->damage_on_landing[1] = -1;
+            self->die_on_landing = 0;
         }
     }
+
+    return;
 }
 
 void checkdamage(entity *other, s_collision_attack *attack)
@@ -23911,10 +23917,9 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         checkhitscore(other, attack);
         // check damage, cost hp.
         checkdamage(other, attack);
+        // is it dead now?
+        checkdeath();
     }
-
-    // is it dead now?
-    checkdeath();
 
     if(self->modeldata.type & TYPE_PLAYER)
     {
@@ -23939,10 +23944,12 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         self->damage_on_landing[0] = 0;
         return 1;
     }*/
-    self->die_on_landing = 0; // reset damageonlanding
+    // reset damageonlanding
+    self->damage_on_landing[0] = 0;
+    self->damage_on_landing[1] = -1;
 
 	// White Dragon: fix damage_on_landing bug
-	if(self->damage_on_landing[0] > 0 && self->health <= 0)
+	if(self->die_on_landing && self->health <= 0)
 	{
 		self->modeldata.falldie = 1;
 	}
@@ -24934,13 +24941,13 @@ int common_trymove(float xdir, float zdir)
         {
             xdir = 0;
             if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
-            execute_onblockw_script(self, 1, (double)level->walls[wall].height, wall);
+            execute_onblockw_script(self, 1, (double)level->walls[wall].height, wall, (double)level->walls[wall].depth, level->walls[wall].type);
         }
         if(zdir && (wall = checkwall_below(self->position.x, z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
         {
             zdir = 0;
             if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
-            execute_onblockw_script(self, 2, (double)level->walls[wall].height, wall);
+            execute_onblockw_script(self, 2, (double)level->walls[wall].height, wall, (double)level->walls[wall].depth, level->walls[wall].type);
         }
 
         if ( hit && !self->hitwall && validanim(self, ANI_HITWALL) ) ent_set_anim(self, ANI_HITWALL, 0);
@@ -27420,7 +27427,7 @@ void decide_stalker()
 
     firstplayer = NULL;
 
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
         if(player[i].ent)
         {
@@ -27665,6 +27672,8 @@ void suicide()
 void player_die()
 {
     int playerindex = self->playerindex;
+    int i = 0;
+
     if(!livescheat)
     {
         --player[playerindex].lives;
@@ -27699,11 +27708,33 @@ void player_die()
 
     if(player[playerindex].lives <= 0)
     {
-        if(!player[0].ent && !player[1].ent && !player[2].ent && !player[3].ent)
+        int all_p_alive = 0;
+
+        for(i = 0; i < MAX_PLAYERS; i++)
         {
+            if (!player[i].ent) ++all_p_alive;
+        }
+        all_p_alive = (all_p_alive >= MAX_PLAYERS) ? 1 : 0;
+
+        //if(!player[0].ent && !player[1].ent && !player[2].ent && !player[3].ent)
+        if(all_p_alive)
+        {
+            int all_p_nojoin = 0, all_p_nocredits = 0;
+
+            for(i = 0; i < MAX_PLAYERS; i++)
+            {
+                if (!player[i].joining) ++all_p_nojoin;
+            }
+            all_p_nojoin = (all_p_nojoin >= MAX_PLAYERS) ? 1 : 0;
+
+            for(i = 0; i < MAX_PLAYERS; i++)
+            {
+                if (player[i].credits < 1) ++all_p_nocredits;
+            }
+            all_p_nocredits = (all_p_nocredits >= MAX_PLAYERS) ? 1 : 0;
+
             timeleft = 10 * COUNTER_SPEED;
-            if(!player[0].joining && !player[1].joining && !player[0].joining && !player[0].joining &&
-                    ((!noshare && credits < 1) || (noshare && player[0].credits < 1 && player[1].credits < 1 && player[2].credits < 1 && player[3].credits < 1)) )
+            if(all_p_nojoin && ((!noshare && credits < 1) || all_p_nocredits) )
             {
                 timeleft = COUNTER_SPEED / 2;
             }
@@ -31023,7 +31054,7 @@ void time_over()
     else if(!level_completed)
     {
         endgame = 1;
-        for(i = 0; i < 4; i++)
+        for(i = 0; i < MAX_PLAYERS; i++)
         {
             if(player[i].ent)
             {
@@ -31059,6 +31090,7 @@ void update_scroller()
     float rm = -9999, lm = 999999, bm = -9999, tm = 999999; //player boundary box
     static int scrolladd = 0;
     scrolldx = scrolldy = 0;
+    int p_alive = 0;
 
     if(time < level->advancetime || freezeall)
     {
@@ -31080,9 +31112,19 @@ void update_scroller()
         return;
     }
 
-    if(current_spawn >= level->numspawns && !findent(TYPE_ENEMY) &&
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        if (player[i].ent && !player[i].ent->dead)
+        {
+            p_alive = 1;
+            break;
+        }
+    }
+
+    if(current_spawn >= level->numspawns && !findent(TYPE_ENEMY) && p_alive)
+    /*if(current_spawn >= level->numspawns && !findent(TYPE_ENEMY) &&
             ((player[0].ent && !player[0].ent->dead) || (player[1].ent && !player[1].ent->dead) || (player[2].ent && !player[2].ent->dead) || (player[3].ent && !player[3].ent->dead))
-      )
+      )*/
     {
         if(!findent(TYPE_ENDLEVEL) && ((!findent(TYPE_ITEM | TYPE_OBSTACLE) && level->type == 1) || level->type == 0)) // Feb 25, 2005 - Added so obstacles
         {
@@ -32334,6 +32376,9 @@ void free_input_recorder()
 
 void update(int ingame, int usevwait)
 {
+    int i = 0;
+    int p_keys = 0;
+
     getinterval();
     if(playrecstatus->status == A_REC_PLAY && !pause && level) if ( !playRecordedInputs() ) stopRecordInputs();
     inputrefresh(playrecstatus->status);
@@ -32385,15 +32430,38 @@ void update(int ingame, int usevwait)
                 update_scroller();
                 if(!freezeall)
                 {
-                    if(level->settime > 0 || (level->type != 2 && !player[0].ent && !player[1].ent && !player[2].ent && !player[3].ent))
+                    int all_p_alive = 0;
+
+                    for(i = 0; i < MAX_PLAYERS; i++)
                     {
+                        if (!player[i].ent) ++all_p_alive;
+                    }
+                    all_p_alive = (all_p_alive >= MAX_PLAYERS) ? 1 : 0;
+
+                    if(level->settime > 0 || (level->type != 2 && all_p_alive))
+                    //if(level->settime > 0 || (level->type != 2 && !player[0].ent && !player[1].ent && !player[2].ent && !player[3].ent))
+                    {
+                        int all_p_nojoin = 0, all_p_nocredits = 0;
+
+                        for(i = 0; i < MAX_PLAYERS; i++)
+                        {
+                            if (!player[i].joining) ++all_p_nojoin;
+                        }
+                        all_p_nojoin = (all_p_nojoin >= MAX_PLAYERS) ? 1 : 0;
+
+                        for(i = 0; i < MAX_PLAYERS; i++)
+                        {
+                            if (player[i].credits < 1) ++all_p_nocredits;
+                        }
+                        all_p_nocredits = (all_p_nocredits >= MAX_PLAYERS) ? 1 : 0;
+
                         if(timeleft > 0)
                         {
                             --timeleft;
                         }
-                        else if((level->settime > 0 && !player[0].joining && !player[1].joining && !player[2].joining && !player[3].joining) ||
-                                (((!noshare && credits < 1) || (noshare && player[0].credits < 1 && player[1].credits < 1 && player[2].credits < 1 && player[3].credits < 1))
-                                 && !player[0].joining && !player[1].joining && !player[2].joining && !player[3].joining )
+                        else if((level->settime > 0 && all_p_nojoin) ||
+                                ( ((!noshare && credits < 1) || (noshare && all_p_nocredits))
+                                 && all_p_nojoin )
                                )
                         {
                             time_over();
@@ -32454,13 +32522,23 @@ void update(int ingame, int usevwait)
         execute_updatedscripts();
     }
 
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        if (player[i].ent && (player[i].newkeys & FLAG_START))
+        {
+            p_keys = 1;
+            break;
+        }
+    }
+
     // 2011/10/22 UT: move pause menu logic here
-    if(ingame == 1 && !pause && !nopause &&
+    /*if(ingame == 1 && !pause && !nopause &&
             ((player[0].ent && (player[0].newkeys & FLAG_START)) ||
              (player[1].ent && (player[1].newkeys & FLAG_START)) ||
              (player[2].ent && (player[2].newkeys & FLAG_START)) ||
              (player[3].ent && (player[3].newkeys & FLAG_START)))
-      )
+      )*/
+    if(ingame == 1 && !pause && !nopause && p_keys)
     {
         if ( !(goto_mainmenu_flag&1) )
         {
@@ -32630,7 +32708,7 @@ void apply_controls()
 {
     int p;
 
-    for(p = 0; p < 4; p++)
+    for(p = 0; p < MAX_PLAYERS; p++)
     {
         control_setkey(playercontrolpointers[p], FLAG_ESC,        CONTROL_ESC);
         control_setkey(playercontrolpointers[p], FLAG_MOVEUP,     savedata.keys[p][SDID_MOVEUP]);
@@ -33743,7 +33821,7 @@ void savelevelinfo()
 
 int playlevel(char *filename)
 {
-    int i, type;
+    int i, type, p_alive = 0;
 
     kill_all();
 
@@ -33801,7 +33879,8 @@ int playlevel(char *filename)
         }
         if (level->force_gameover)
         {
-            for(i = 0; i < levelsets[current_set].maxplayers; i++) //MAX_PLAYERS
+            //entity* temp = self;
+            for(i = 0; i < MAX_PLAYERS; i++) //levelsets[current_set].maxplayers
             {
                 player[i].lives = 0;
                 if(noshare)
@@ -33812,9 +33891,17 @@ int playlevel(char *filename)
                 {
                     credits = 0;
                 }
-                kill(player[i].ent);
+                if (player[i].ent)
+				{
+					kill(player[i].ent);
+					player[i].ent = NULL;
+				}
+                //self = player[i].ent;
+                //player_die();
             }
-            //endgame |= 1;
+            //self = temp;
+            //kill_all();
+            endgame |= 1;
             level->force_gameover = 0;
         }
         if(level_completed)
@@ -33854,7 +33941,17 @@ int playlevel(char *filename)
 
     unload_level();
 
-    return ( (type == 2 && endgame != 2) || (player[0].lives > 0 || player[1].lives > 0 || player[2].lives > 0 || player[3].lives > 0) );
+    //|| (player[0].lives > 0 || player[1].lives > 0 || player[2].lives > 0 || player[3].lives > 0)
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        if (player[i].lives > 0)
+        {
+            p_alive = 1;
+            break;
+        }
+    }
+
+    return ( (type == 2 && endgame != 2) || p_alive );
 }
 
 
@@ -33952,12 +34049,13 @@ int selectplayer(int *players, char *filename, int useSavedGame)
     s_set_entry *set = levelsets + current_set;
     s_savelevel *save = savelevel + current_set;
     int load_count = 0, saved_select_screen = 0;
+    int is_first_select = 1;
 
     savelevelinfo();
 
     selectScreen = 1;
     kill_all();
-    if(allowselect_args[0] != 'a') reset_playable_list(1); // 'a' is the first char of allowselect, if there's 'a' then there is allowselect
+    if(!skipselect[0][0] && !set->noselect) reset_playable_list(1); // or (allowselect_args[0] != 'a') 'a' is the first char of allowselect, if there's 'a' then there is allowselect
     memset(player, 0, sizeof(*player) * 4);
 
     if(useSavedGame && save)
@@ -33975,6 +34073,15 @@ int selectplayer(int *players, char *filename, int useSavedGame)
     for(i = 0; i < set->maxplayers; i++)
     {
         player[i].hasplayed = players[i];
+    }
+
+    for(i = 0; i < set->maxplayers; i++)
+    {
+        if (savelevel[current_set].pLives[i] > 0)
+        {
+            is_first_select = 0;
+            break;
+        }
     }
 
     if(filename && filename[0])
@@ -34026,7 +34133,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                 }
                 else if(command && command[0])
                 {
-                    printf("Command '%s' is not understood in file '%s'", command, filename);
+                    printf("Command '%s' is not understood in file '%s'\n", command, filename);
                 }
             }
 
@@ -34043,7 +34150,11 @@ int selectplayer(int *players, char *filename, int useSavedGame)
     }
     else // without select.txt
     {
-        defaultselect = 1;
+        if(is_first_select || (!skipselect[0][0] && !set->noselect)) // no select is skipselect without names
+        {
+            defaultselect = 1; // normal select or skipselect/noselect? 1 == normal select
+        }
+
         if(!noshare)
         {
             credits = CONTINUES;
@@ -34065,22 +34176,32 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                     continue;
                 }
                 strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
-                if(!creditscheat)
+
+                if(defaultselect)
                 {
-                    if(noshare)
+                    player[i].lives = PLAYER_LIVES;
+                    if(!creditscheat)
                     {
-                        --player[i].credits;
-                    }
-                    else
-                    {
-                        --credits;
+                        if(noshare)
+                        {
+                            --player[i].credits;
+                        }
+                        else
+                        {
+                            --credits;
+                        }
                     }
                 }
-                /*if lives <= 0 then it means you start a new game and so.. take all lives a*/
-                if (player[i].lives <= 0) player[i].lives = PLAYER_LIVES;
-                else player[i].lives = savelevel[current_set].pLives[i]; /*used for skipselect*/
+                else
+                {
+                    player[i].lives = savelevel[current_set].pLives[i];
+                    player[i].score = savelevel[current_set].pScores[i];
+                    if(noshare) player[i].credits = savelevel[current_set].pCredits[i];
+                    else credits = savelevel[current_set].credits;
+                }
             }
             selectScreen = 0;
+
             return 1;
         }
 
@@ -34145,8 +34266,9 @@ int selectplayer(int *players, char *filename, int useSavedGame)
             else
             {
                 player[i].lives = savelevel[current_set].pLives[i];
-                player[i].credits = savelevel[current_set].pCredits[i];
                 player[i].score = savelevel[current_set].pScores[i];
+                if(noshare) player[i].credits = savelevel[current_set].pCredits[i];
+                else credits = savelevel[current_set].credits;
             }
         }
     }
@@ -34421,7 +34543,15 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
             }
             else if(!playlevel(le->filename))
             {
-                if( (player[0].lives <= 0 && player[1].lives <= 0 && player[2].lives <= 0 && player[3].lives <= 0) )
+                int all_p_lives_zero = 0;
+                for(i = 0; i < MAX_PLAYERS; i++)
+                {
+                    if (player[i].lives <= 0) ++all_p_lives_zero;
+                }
+                all_p_lives_zero = (all_p_lives_zero >= MAX_PLAYERS) ? 1 : 0;
+
+                //if( (player[0].lives <= 0 && player[1].lives <= 0 && player[2].lives <= 0 && player[3].lives <= 0) )
+                if(all_p_lives_zero)
                 {
                     if( (!set->noshowgameover && !(goto_mainmenu_flag&2)) )
                     {
@@ -34893,7 +35023,7 @@ void term_videomodes()
 void init_videomodes(int log)
 {
     char *filename = "data/video.txt";
-    int bits = 8, tmp;
+    int tmp;
     ptrdiff_t pos, len;
     size_t size;
     char *buf = NULL;
@@ -35015,7 +35145,7 @@ readfile:
             else if(stricmp(command, "forcemode") == 0) {}
             else if(command && command[0])
             {
-                printf("Command '%s' not understood in file '%s'!", command, filename);
+                printf("Command '%s' not understood in file '%s'!\n", command, filename);
             }
         }
         // Go to next line
@@ -35172,7 +35302,7 @@ VIDEOMODES:
 
     if(log)
     {
-        printf("Initialized video.............\t%dx%d (Mode: %d, Depth: %d Bit)\n\n", videomodes.hRes, videomodes.vRes, videoMode, bits);
+        printf("Initialized video.............\t%dx%d (Mode: %d)\n\n", videomodes.hRes, videomodes.vRes, videoMode);
     }
 }
 
