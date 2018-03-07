@@ -1866,9 +1866,11 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
                 && ltemp >= 0 && ltemp < level->numholes)
         {
 
-            if(varlist[2]->vt != VT_STR)
+            if(varlist[2]->vt != VT_INTEGER)
+            {
                 printf("You must provide a string value for hole subproperty.\n");
                 goto getlevelproperty_error;
+            }
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 
@@ -1941,9 +1943,11 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
                 && ltemp >= 0 && ltemp < level->numwalls)
         {
 
-            if(varlist[2]->vt != VT_STR)
+            if(varlist[2]->vt != VT_INTEGER)
+            {
                 printf("You must provide a string value for wall subproperty.\n");
                 goto getlevelproperty_error;
+            }
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 
@@ -2015,9 +2019,11 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
             if(paramCount >= 3)
             {
 
-                if(varlist[2]->vt != VT_STR)
+                if(varlist[2]->vt != VT_INTEGER)
+                {
                     printf("You must provide a string value for basemap subproperty.\n");
                     goto getlevelproperty_error;
+                }
 
                 ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 
@@ -2301,9 +2307,11 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
         if( SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp >= 0
            && ( SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)) || SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp1)) ) )
         {
-            if(varlist[2]->vt != VT_STR)
+            if(varlist[2]->vt != VT_INTEGER)
+            {
                 printf("You must provide a string value for hole subproperty.\n");
                 goto clperror;
+            }
 
             if(ltemp >= level->numholes)
             {
@@ -2377,9 +2385,11 @@ HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pr
         if( SUCCEEDED(ScriptVariant_IntegerValue(varlist[1], &ltemp)) && ltemp >= 0
            && ( SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)) || SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp1)) ) )
         {
-            if(varlist[2]->vt != VT_STR)
+            if(varlist[2]->vt != VT_INTEGER)
+            {
                 printf("You must provide a string value for wall subproperty.\n");
                 goto clperror;
+            }
 
             if(ltemp >= level->numwalls)
             {

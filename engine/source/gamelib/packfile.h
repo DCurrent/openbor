@@ -38,14 +38,14 @@ typedef struct pnamestruct
     unsigned int pns_len;	    // Length of the struct in bytes
     unsigned int filestart;	    // Start position of referenced file
     unsigned int filesize;	    // Size of referenced file
-    char		 namebuf[80];	// Buffer to hold the file's name
+    char		 namebuf[256];	// Buffer to hold the file's name
 } pnamestruct;
 
 typedef struct fileliststruct
 {
-    char filename[128];
+    char filename[256];
     int nTracks;
-    char bgmFileName[80][256];
+    char bgmFileName[256][256];
     int bgmTrack;
     unsigned int bgmTracks[256];
 #ifdef SDL

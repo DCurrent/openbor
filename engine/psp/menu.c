@@ -87,7 +87,7 @@ Image *getPreview(char *filename)
 	int x, y;
 	int width = 160;
 	int height = 120;
-	unsigned char pal[768];
+	unsigned char pal[PAL_BYTES];
 	unsigned char *sp;
 	Color *dp;
 	s_screen *title = NULL;
@@ -99,10 +99,11 @@ Image *getPreview(char *filename)
 	strncat(packfile, filename, strlen(filename));
 
 	// Create & Load & Scale Image
-	if(!loadscreen("data/bgs/title.gif", packfile, pal, pixelformat, &title)) return NULL;
-	if((scaledown = allocscreen(width, height, pixelformat==PIXEL_x8?PIXEL_32:PIXEL_8)) == NULL) return NULL;
+	if(!loadscreen("data/bgs/title.gif", packfile, pal, PIXEL_x8, &title)) return NULL;
+	if((scaledown = allocscreen(width, height, title->pixelformat)) == NULL) return NULL;
 	if((preview = createImage(width, height)) == NULL) return NULL;
 	scalescreen(scaledown, title);
+	//memcpy(scaledown->palette, title->palette, PAL_BYTES);
 
 	// Load Pallete for preview
 	pal[0] = pal[1] = pal[2] = 0;
@@ -110,7 +111,7 @@ Image *getPreview(char *filename)
 
 	// Apply Pallete for preview then blit
 	sp = scaledown->data;
-   	dp = (void*)preview->data + 512 * 2;
+   	dp = (void*)preview->data;
 	for(y=0; y<height; y++)
 	{
    		for(x=0; x<width; x++) dp[x] = palette[((int)(sp[x])) & 0xFF];
@@ -758,7 +759,7 @@ void menu(char *path)
 	{
 		sortList();
 		getAllLogs();
-		getAllPreviews();
+		//getAllPreviews();
 		packfile_music_read(filelist, dListTotal);
 		sound_init(12);
 		sound_start_playback(savedata.soundbits, savedata.soundrate);
