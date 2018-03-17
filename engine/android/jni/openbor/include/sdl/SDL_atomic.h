@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2013 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2018 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -56,20 +56,13 @@
  * All of the atomic operations that modify memory are full memory barriers.
  */
 
-#ifndef _SDL_atomic_h_
-#define _SDL_atomic_h_
+#ifndef SDL_atomic_h_
+#define SDL_atomic_h_
 
 #include "SDL_stdinc.h"
 #include "SDL_platform.h"
 
 #include "begin_code.h"
-
-/* Need to do this here because intrin.h has C++ code in it */
-/* Visual Studio 2005 has a bug where intrin.h conflicts with winnt.h */
-#if defined(_MSC_VER) && (_MSC_VER >= 1500)
-#include <intrin.h>
-#define HAVE_MSC_ATOMICS 1
-#endif
 
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
@@ -125,12 +118,16 @@ extern DECLSPEC void SDLCALL SDL_AtomicUnlock(SDL_SpinLock *lock);
  * The compiler barrier prevents the compiler from reordering
  * reads and writes to globally visible variables across the call.
  */
-#if defined(_MSC_VER) && (_MSC_VER > 1200)
+#if defined(_MSC_VER) && (_MSC_VER > 1200) && !defined(__clang__)
 void _ReadWriteBarrier(void);
 #pragma intrinsic(_ReadWriteBarrier)
 #define SDL_CompilerBarrier()   _ReadWriteBarrier()
-#elif defined(__GNUC__)
+#elif (defined(__GNUC__) && !defined(__EMSCRIPTEN__)) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x5120))
+/* This is correct for all CPUs when using GCC or Solaris Studio 12.1+. */
 #define SDL_CompilerBarrier()   __asm__ __volatile__ ("" : : : "memory")
+#elif defined(__WATCOMC__)
+extern _inline void SDL_CompilerBarrier (void);
+#pragma aux SDL_CompilerBarrier = "" parm [] modify exact [];
 #else
 #define SDL_CompilerBarrier()   \
 { SDL_SpinLock _tmp = 0; SDL_AtomicLock(&_tmp); SDL_AtomicUnlock(&_tmp); }
@@ -155,18 +152,24 @@ void _ReadWriteBarrier(void);
  * For more information on these semantics, take a look at the blog post:
  * http://preshing.com/20120913/acquire-and-release-semantics
  */
+extern DECLSPEC void SDLCALL SDL_MemoryBarrierReleaseFunction(void);
+extern DECLSPEC void SDLCALL SDL_MemoryBarrierAcquireFunction(void);
+
 #if defined(__GNUC__) && (defined(__powerpc__) || defined(__ppc__))
 #define SDL_MemoryBarrierRelease()   __asm__ __volatile__ ("lwsync" : : : "memory")
 #define SDL_MemoryBarrierAcquire()   __asm__ __volatile__ ("lwsync" : : : "memory")
+#elif defined(__GNUC__) && defined(__aarch64__)
+#define SDL_MemoryBarrierRelease()   __asm__ __volatile__ ("dmb ish" : : : "memory")
+#define SDL_MemoryBarrierAcquire()   __asm__ __volatile__ ("dmb ish" : : : "memory")
 #elif defined(__GNUC__) && defined(__arm__)
 #if defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_7EM__) || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7S__)
 #define SDL_MemoryBarrierRelease()   __asm__ __volatile__ ("dmb ish" : : : "memory")
 #define SDL_MemoryBarrierAcquire()   __asm__ __volatile__ ("dmb ish" : : : "memory")
-#elif defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__)
+#elif defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) || defined(__ARM_ARCH_5TE__)
 #ifdef __thumb__
 /* The mcr instruction isn't available in thumb mode, use real functions */
-extern DECLSPEC void SDLCALL SDL_MemoryBarrierRelease();
-extern DECLSPEC void SDLCALL SDL_MemoryBarrierAcquire();
+#define SDL_MemoryBarrierRelease()   SDL_MemoryBarrierReleaseFunction()
+#define SDL_MemoryBarrierAcquire()   SDL_MemoryBarrierAcquireFunction()
 #else
 #define SDL_MemoryBarrierRelease()   __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 5" : : "r"(0) : "memory")
 #define SDL_MemoryBarrierAcquire()   __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 5" : : "r"(0) : "memory")
@@ -176,62 +179,23 @@ extern DECLSPEC void SDLCALL SDL_MemoryBarrierAcquire();
 #define SDL_MemoryBarrierAcquire()   __asm__ __volatile__ ("" : : : "memory")
 #endif /* __GNUC__ && __arm__ */
 #else
+#if (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x5120))
+/* This is correct for all CPUs on Solaris when using Solaris Studio 12.1+. */
+#include <mbarrier.h>
+#define SDL_MemoryBarrierRelease()  __machine_rel_barrier()
+#define SDL_MemoryBarrierAcquire()  __machine_acq_barrier()
+#else
 /* This is correct for the x86 and x64 CPUs, and we'll expand this over time. */
 #define SDL_MemoryBarrierRelease()  SDL_CompilerBarrier()
 #define SDL_MemoryBarrierAcquire()  SDL_CompilerBarrier()
 #endif
-
-
-/* Platform specific optimized versions of the atomic functions,
- * you can disable these by defining SDL_DISABLE_ATOMIC_INLINE
- */
-#if defined(SDL_ATOMIC_DISABLED) && SDL_ATOMIC_DISABLED
-#define SDL_DISABLE_ATOMIC_INLINE
 #endif
-#ifndef SDL_DISABLE_ATOMIC_INLINE
-
-#ifdef HAVE_MSC_ATOMICS
-
-#define SDL_AtomicSet(a, v)     _InterlockedExchange((long*)&(a)->value, (v))
-#define SDL_AtomicAdd(a, v)     _InterlockedExchangeAdd((long*)&(a)->value, (v))
-#define SDL_AtomicCAS(a, oldval, newval) (_InterlockedCompareExchange((long*)&(a)->value, (newval), (oldval)) == (oldval))
-#define SDL_AtomicSetPtr(a, v)  _InterlockedExchangePointer((a), (v))
-#if _M_IX86
-#define SDL_AtomicCASPtr(a, oldval, newval) (_InterlockedCompareExchange((long*)(a), (long)(newval), (long)(oldval)) == (long)(oldval))
-#else
-#define SDL_AtomicCASPtr(a, oldval, newval) (_InterlockedCompareExchangePointer((a), (newval), (oldval)) == (oldval))
-#endif
-
-#elif defined(__MACOSX__)
-#include <libkern/OSAtomic.h>
-
-#define SDL_AtomicCAS(a, oldval, newval) OSAtomicCompareAndSwap32Barrier((oldval), (newval), &(a)->value)
-#ifdef __LP64__
-#define SDL_AtomicCASPtr(a, oldval, newval) OSAtomicCompareAndSwap64Barrier((int64_t)(oldval), (int64_t)(newval), (int64_t*)(a))
-#else
-#define SDL_AtomicCASPtr(a, oldval, newval) OSAtomicCompareAndSwap32Barrier((int32_t)(oldval), (int32_t)(newval), (int32_t*)(a))
-#endif
-
-#elif defined(HAVE_GCC_ATOMICS)
-
-#define SDL_AtomicSet(a, v)     __sync_lock_test_and_set(&(a)->value, v)
-#define SDL_AtomicAdd(a, v)     __sync_fetch_and_add(&(a)->value, v)
-#define SDL_AtomicSetPtr(a, v)  __sync_lock_test_and_set(a, v)
-#define SDL_AtomicCAS(a, oldval, newval) __sync_bool_compare_and_swap(&(a)->value, oldval, newval)
-#define SDL_AtomicCASPtr(a, oldval, newval) __sync_bool_compare_and_swap(a, oldval, newval)
-
-#endif
-
-#endif /* !SDL_DISABLE_ATOMIC_INLINE */
-
 
 /**
  * \brief A type representing an atomic integer value.  It is a struct
  *        so people don't accidentally use numeric operations on it.
  */
-#ifndef SDL_atomic_t_defined
 typedef struct { int value; } SDL_atomic_t;
-#endif
 
 /**
  * \brief Set an atomic variable to a new value if it is currently an old value.
@@ -240,37 +204,19 @@ typedef struct { int value; } SDL_atomic_t;
  *
  * \note If you don't know what this function is for, you shouldn't use it!
 */
-#ifndef SDL_AtomicCAS
 extern DECLSPEC SDL_bool SDLCALL SDL_AtomicCAS(SDL_atomic_t *a, int oldval, int newval);
-#endif
 
 /**
  * \brief Set an atomic variable to a value.
  *
  * \return The previous value of the atomic variable.
  */
-#ifndef SDL_AtomicSet
-SDL_FORCE_INLINE int SDL_AtomicSet(SDL_atomic_t *a, int v)
-{
-    int value;
-    do {
-        value = a->value;
-    } while (!SDL_AtomicCAS(a, value, v));
-    return value;
-}
-#endif
+extern DECLSPEC int SDLCALL SDL_AtomicSet(SDL_atomic_t *a, int v);
 
 /**
  * \brief Get the value of an atomic variable
  */
-#ifndef SDL_AtomicGet
-SDL_FORCE_INLINE int SDL_AtomicGet(SDL_atomic_t *a)
-{
-    int value = a->value;
-    SDL_CompilerBarrier();
-    return value;
-}
-#endif
+extern DECLSPEC int SDLCALL SDL_AtomicGet(SDL_atomic_t *a);
 
 /**
  * \brief Add to an atomic variable.
@@ -279,16 +225,7 @@ SDL_FORCE_INLINE int SDL_AtomicGet(SDL_atomic_t *a)
  *
  * \note This same style can be used for any number operation
  */
-#ifndef SDL_AtomicAdd
-SDL_FORCE_INLINE int SDL_AtomicAdd(SDL_atomic_t *a, int v)
-{
-    int value;
-    do {
-        value = a->value;
-    } while (!SDL_AtomicCAS(a, value, (value + v)));
-    return value;
-}
-#endif
+extern DECLSPEC int SDLCALL SDL_AtomicAdd(SDL_atomic_t *a, int v);
 
 /**
  * \brief Increment an atomic variable used as a reference count.
@@ -314,38 +251,19 @@ SDL_FORCE_INLINE int SDL_AtomicAdd(SDL_atomic_t *a, int v)
  *
  * \note If you don't know what this function is for, you shouldn't use it!
 */
-#ifndef SDL_AtomicCASPtr
-extern DECLSPEC SDL_bool SDLCALL SDL_AtomicCASPtr(void* *a, void *oldval, void *newval);
-#endif
+extern DECLSPEC SDL_bool SDLCALL SDL_AtomicCASPtr(void **a, void *oldval, void *newval);
 
 /**
  * \brief Set a pointer to a value atomically.
  *
  * \return The previous value of the pointer.
  */
-#ifndef SDL_AtomicSetPtr
-SDL_FORCE_INLINE void* SDL_AtomicSetPtr(void* *a, void* v)
-{
-    void* value;
-    do {
-        value = *a;
-    } while (!SDL_AtomicCASPtr(a, value, v));
-    return value;
-}
-#endif
+extern DECLSPEC void* SDLCALL SDL_AtomicSetPtr(void **a, void* v);
 
 /**
  * \brief Get the value of a pointer atomically.
  */
-#ifndef SDL_AtomicGetPtr
-SDL_FORCE_INLINE void* SDL_AtomicGetPtr(void* *a)
-{
-    void* value = *a;
-    SDL_CompilerBarrier();
-    return value;
-}
-#endif
-
+extern DECLSPEC void* SDLCALL SDL_AtomicGetPtr(void **a);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
@@ -354,6 +272,6 @@ SDL_FORCE_INLINE void* SDL_AtomicGetPtr(void* *a)
 
 #include "close_code.h"
 
-#endif /* _SDL_atomic_h_ */
+#endif /* SDL_atomic_h_ */
 
 /* vi: set ts=4 sw=4 expandtab: */
