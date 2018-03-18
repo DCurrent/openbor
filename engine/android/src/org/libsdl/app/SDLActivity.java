@@ -391,6 +391,19 @@ public class SDLActivity extends Activity {
         // Reset everything in case the user re opens the app
         SDLActivity.initialize();
     }
+	
+	public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        //int orientation = this.getResources().getConfiguration().orientation;
+
+        /*if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            setContentView(R.layout.settings);
+        } else if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            setContentView(R.layout.settings);
+        }*/
+
+    }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
