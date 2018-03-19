@@ -4748,7 +4748,7 @@ void cachesound(int index, int load)
 
 // Cachesprite
 // Unknown original date & author
-// Rewritten by Caskey, Damon V.
+// Rewrite by Caskey, Damon V.
 // 2018-03-19
 //
 // Add or remove a sprite to the the sprite list
@@ -4771,7 +4771,7 @@ void cachesprite(int index, int load)
             // the number of sprites loaded.
             if(index < sprites_loaded)
             {
-                // Gut the sprite list node from sprite maps
+                // Get the sprite list node from sprite maps
                 // using our target index.
                 map_node = sprite_map[index].node;
 
