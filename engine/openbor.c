@@ -4746,19 +4746,70 @@ void cachesound(int index, int load)
     }
 }
 
+// Cachesprite
+// Unknown original date & author
+// Rewritten by Caskey, Damon V.
+// 2018-03-19
+//
+// Add or remove a sprite to the the sprite list
+// by index.
+//
+// index: Target index in the sprite list.
+// load: Load 1, or unload 0 the target sprite index.
 void cachesprite(int index, int load)
 {
-    if(sprite_map && index >= 0 && index < sprites_loaded)
+    s_sprite *sprite;           // Sprite placeholder.
+    s_sprite_list *map_node;    // Sprite map node placeholder.
+
+    // Valid sprite list?
+    if(sprite_map)
     {
-        if(!load && sprite_map[index].node->sprite)
+        // Index argument valid?
+        if(index >= 0)
         {
-            free(sprite_map[index].node->sprite);
-            sprite_map[index].node->sprite = NULL;
-            //printf("uncached sprite: %s\n", sprite_map[index].node->filename);
-        }
-        else if(load && !sprite_map[index].node->sprite)
-        {
-            sprite_map[index].node->sprite = loadsprite2(sprite_map[index].node->filename, NULL, NULL);
+            // Index argument should be more than
+            // the number of sprites loaded.
+            if(index < sprites_loaded)
+            {
+                // Gut the sprite list node from sprite maps
+                // using our target index.
+                map_node = sprite_map[index].node;
+
+                // If load is true, then we want to load
+                // a sprite and assign it the target index.
+                // Otherwise, we want to free a sprite with
+                // target index.
+                if(load)
+                {
+                    // Make sure there is not already
+                    // a sprite with our target index.
+                    sprite = map_node->sprite;
+
+                    if(!sprite)
+                    {
+                        // Load the sprite file, then assign its
+                        // new pointer to the sprite map using our
+                        // index for the sprite map position.
+                        sprite = loadsprite2(map_node->filename, NULL, NULL);
+                        map_node->sprite = sprite;
+                    }
+                }
+                else if(!load)
+                {
+                    // Does the target sprite exist?
+                    sprite = map_node->sprite;
+
+                    if(sprite)
+                    {
+                        // Free the target sprite's resources, then remove
+                        // its pointer from sprite map.
+                        free(sprite);
+                        map_node->sprite = NULL;
+
+                        //printf("uncached sprite: %s\n", map_node->filename);
+                    }
+                }
+            }
         }
     }
 }
