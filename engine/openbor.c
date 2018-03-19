@@ -4641,36 +4641,65 @@ s_sprite *loadsprite2(char *filename, int *width, int *height)
     size_t size;
     s_bitmap *bitmap = NULL;
     s_sprite *sprite = NULL;
-    int clipl, clipr, clipt, clipb;
+    int clip_left;
+    int clip_right;
+    int clip_top;
+    int clip_bottom;
 
+    // Load raw bitmap (image) file from pack. If this
+    // fails, then we return NULL.
     bitmap = loadbitmap(filename, packfile, pixelformat);
+
     if(!bitmap)
     {
         return NULL;
     }
+
+    // Apply width and height adjustments, if any.
     if(width)
     {
         *width = bitmap->width;
     }
+
     if(height)
     {
         *height = bitmap->height;
     }
-    clipbitmap(bitmap, &clipl, &clipr, &clipt, &clipb);
+
+    // Trim empty pixels from the bitmap to save memory.
+    // We will pass the arguments by reference - they will
+    // be modified by the clipping function to tell us
+    // exactly how much trim work on each axis was done.
+    clipbitmap(bitmap, &clip_left, &clip_right, &clip_top, &clip_bottom);
+
+    // Get size of trimmed bitmap and allocate memory for
+    // use as a sprite. If this fails, then free the memory
+    // bitmap occupies, and return NULL.
     size = fakey_encodesprite(bitmap);
     sprite = (s_sprite *)malloc(size);
+
     if(!sprite)
     {
         freebitmap(bitmap);
         return NULL;
     }
-    encodesprite(-clipl, -clipt, bitmap, sprite);
-    sprite->offsetx = clipl;
-    sprite->offsety = clipt;
+
+    // Transpose bitmap to a sprite, using the memory
+    // we allocated for it above. The trim arguments
+    // from our trimming function will be used as an
+    // offset. We'll also store/ the bitmap's trimmed
+    // dimensions for later use.
+    encodesprite(-clip_left, -clip_top, bitmap, sprite);
+    sprite->offsetx = clip_left;
+    sprite->offsety = clip_top;
     sprite->srcwidth = bitmap->width;
     sprite->srcheight = bitmap->height;
+
+    // Delete the raw bitmap, we don't need it
+    // any more.
     freebitmap(bitmap);
 
+    // Return encoded sprite.
     return sprite;
 }
 
