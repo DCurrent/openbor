@@ -198,17 +198,17 @@ void flipbitmap(s_bitmap *bitmap)
 
 
 // Clipbitmap: cuts off transparent edges to optimize a bitmap.
-void clipbitmap(s_bitmap *bitmap, int *clipl, int *clipr, int *clipt, int *clipb)
+void clipbitmap(s_bitmap *bitmap, int *clip_left, int *clip_right, int *clip_top, int *clip_bottom)
 {
 
     int x, y, i;
     int clip, clear;
     int xsize = bitmap->width;
     int ysize = bitmap->height;
-    int tclipmove = 0;
-    int lclipmove = 0;
-    int bclipmove = 0;
-    int rclipmove = 0;
+    int top_clipmove = 0;
+    int left_clipmove = 0;
+    int bottom_clipmove = 0;
+    int right_clipmove = 0;
 
 
 
@@ -241,21 +241,21 @@ void clipbitmap(s_bitmap *bitmap, int *clipl, int *clipr, int *clipt, int *clipb
         if(ysize < 1)
         {
             // If nothing is left of the bitmap, return...
-            if(clipl)
+            if(clip_left)
             {
-                *clipl = 0;
+                *clip_left = 0;
             }
-            if(clipr)
+            if(clip_right)
             {
-                *clipr = 0;
+                *clip_right = 0;
             }
-            if(clipt)
+            if(clip_top)
             {
-                *clipt = 0;
+                *clip_top = 0;
             }
-            if(clipb)
+            if(clip_bottom)
             {
-                *clipb = 0;
+                *clip_bottom = 0;
             }
             bitmap->width = 0;
             bitmap->height = 0;
@@ -266,7 +266,7 @@ void clipbitmap(s_bitmap *bitmap, int *clipl, int *clipr, int *clipt, int *clipb
         {
             bitmap->data[i] = bitmap->data[i + (clip * xsize)];
         }
-        tclipmove = clip;
+        top_clipmove = clip;
     }
 
 
@@ -296,7 +296,7 @@ void clipbitmap(s_bitmap *bitmap, int *clipl, int *clipr, int *clipt, int *clipb
     // Cut off empty bottom
     ysize -= clip;
     bitmap->height = ysize;
-    bclipmove = clip;
+    bottom_clipmove = clip;
 
 
     // Determine size of empty left side
@@ -330,7 +330,7 @@ void clipbitmap(s_bitmap *bitmap, int *clipl, int *clipr, int *clipt, int *clipb
                 bitmap->data[y * xsize + x] = bitmap->data[y * xsize + x + (clip * (y + 1))];
             }
         }
-        lclipmove = clip;
+        left_clipmove = clip;
     }
 
     // Determine size of empty right side
@@ -364,24 +364,24 @@ void clipbitmap(s_bitmap *bitmap, int *clipl, int *clipr, int *clipt, int *clipb
                 bitmap->data[y * xsize + x] = bitmap->data[y * xsize + x + (clip * y)];
             }
         }
-        rclipmove = clip;
+        right_clipmove = clip;
     }
 
-    if(clipl)
+    if(clip_left)
     {
-        *clipl = lclipmove;
+        *clip_left = left_clipmove;
     }
-    if(clipr)
+    if(clip_right)
     {
-        *clipr = rclipmove;
+        *clip_right = right_clipmove;
     }
-    if(clipt)
+    if(clip_top)
     {
-        *clipt = tclipmove;
+        *clip_top = top_clipmove;
     }
-    if(clipb)
+    if(clip_bottom)
     {
-        *clipb = bclipmove;
+        *clip_bottom = bottom_clipmove;
     }
 }
 
