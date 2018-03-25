@@ -123,14 +123,16 @@ void getPads(Uint8* keystate)
 			case SDL_WINDOWEVENT:
 				if(ev.window.event==SDL_WINDOWEVENT_MINIMIZED)
 				{
-					SDL_PauseAudio(1);
+					//SDL_PauseAudio(1);
+					SDL_PauseAudioDevice(audio_dev, 1);
 					while(true)
 					{
 						if(SDL_PollEvent(&ev))
 						{
 							if(ev.type==SDL_WINDOWEVENT && ev.window.event==SDL_WINDOWEVENT_RESTORED)
 							{
-								SDL_PauseAudio(0);
+								//SDL_PauseAudio(0);
+								SDL_PauseAudioDevice(audio_dev, 0);
 								extern s_videomodes videomodes;
 								video_set_mode(videomodes);
 								//extern SDL_Surface* getSDLScreen();
