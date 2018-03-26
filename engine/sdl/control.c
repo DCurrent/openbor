@@ -108,14 +108,6 @@ void getPads(Uint8* keystate)
 				control_update_android_touch(px, py, pid, MAX_POINTERS);
 			}
 				break;
-
-            //case SDL_APP_TERMINATING:
-            case SDL_APP_LOWMEMORY:
-            case SDL_APP_WILLENTERBACKGROUND:
-            case SDL_APP_DIDENTERBACKGROUND:
-            case SDL_APP_WILLENTERFOREGROUND:
-            case SDL_APP_DIDENTERFOREGROUND:
-                break;
 #endif
 #if 0
 			// sdl 1.3 pause hack
