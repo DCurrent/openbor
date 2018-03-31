@@ -310,6 +310,11 @@ HRESULT openbor_getrecordingstatus(ScriptVariant **varlist , ScriptVariant **pre
 HRESULT openbor_recordinputs(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getsaveinfo(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
+// Binding properties.
+HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+int mapstrings_binding(ScriptVariant **varlist, int paramCount);
+
+
 int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_systemvariant(ScriptVariant **varlist, int paramCount);
 int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount);
@@ -324,6 +329,7 @@ int mapstrings_gfxproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount);
 
 int mapstrings_attackproperty(ScriptVariant **varlist, int paramCount);
+
 
 enum systemvariant_enum
 {
