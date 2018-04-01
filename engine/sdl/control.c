@@ -396,6 +396,7 @@ void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 	float tx, ty, tr;
 	float r[MAXTOUCHB];
 	float dirx, diry, circlea, circleb, tan;
+
 	memset(touchstates, 0, sizeof(touchstates));
 	for(j=0; j<MAXTOUCHB; j++)
 	{
@@ -464,7 +465,11 @@ void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 			if(tr<=r[j]) touchstates[j] = 1;
 		}
 	}
+	#undef tana
+	#undef tanb
+
 	hide_t = timer_gettick() + 5000;
+
 	//map to current user settings
 	extern s_savedata savedata;
 	#define pc(x) savedata.keys[0][x]
