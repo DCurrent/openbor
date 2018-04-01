@@ -22164,8 +22164,8 @@ int reset_backpain(entity *ent)
         if (ent->normaldamageflipdir == DIRECTION_RIGHT) ent->direction = DIRECTION_RIGHT;
         else ent->direction = DIRECTION_LEFT;
 
-        if(ent->direction == DIRECTION_RIGHT) ent->velocity.x = -1*abs(ent->velocity.x);
-        else ent->velocity.x = abs(ent->velocity.x);
+        if(ent->direction == DIRECTION_RIGHT) ent->velocity.x = -1*fabsf(ent->velocity.x);
+        else ent->velocity.x = fabsf(ent->velocity.x);
 
         return 1;
     }
@@ -26476,7 +26476,7 @@ int common_try_wander(entity *target, int dox, int doz)
         mod = -mod;
     }
     //if ((self->sortid / 100) % 2)
-    if (abs(rand32()) % 2)
+    if (rand32() % 2)
     {
         mod = 3 - mod;
     }
