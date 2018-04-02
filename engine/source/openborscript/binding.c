@@ -29,6 +29,7 @@ typedef enum
 
 int mapstrings_binding(ScriptVariant **varlist, int paramCount)
 {
+    #define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
     #define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
 
     char *propname = NULL;
@@ -49,7 +50,7 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
     };
 
 
-    if(paramCount < 2)
+    if(paramCount < ARG_MINIMUM)
     {
         return 1;
     }
@@ -59,7 +60,8 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
 
     return 1;
 
-    #undef ARG_PROPERTY 1
+    #undef ARG_MINIMUM
+    #undef ARG_PROPERTY
 }
 
 // Caskey, Damon  V.
