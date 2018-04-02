@@ -121,6 +121,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
+        case _entity_position_x:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+
+            break;
+
+
         default:
 
             printf("Unsupported property.\n");
