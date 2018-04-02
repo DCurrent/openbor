@@ -37,6 +37,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
     {
         "position_alternate_base",
         "position_base",
+        "position_direction",
         "position_x",
         "position_y",
         "position_z",
