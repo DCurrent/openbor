@@ -11,9 +11,6 @@
 // Caskey, Damon V.
 //
 // Access to body collision properties.
-// All body collision functions are identical to
-// their attack property counterparts. See the attack
-// versions of each for details.
 
 #include "scriptcommon.h"
 
@@ -30,9 +27,9 @@ HRESULT openbor_get_body_collision_collection(ScriptVariant **varlist, ScriptVar
     #define ARG_FRAME       1   // Frame to access.
 
 
-    int         result      = S_OK; // Success or error?
-    s_collision_body      **handle    = NULL; // Property handle.
-    int         frame       = 0;    // Property argument.
+    int                 result      = S_OK; // Success or error?
+    s_collision_body    **handle    = NULL; // Property handle.
+    int                 frame       = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
@@ -48,11 +45,10 @@ HRESULT openbor_get_body_collision_collection(ScriptVariant **varlist, ScriptVar
         *pretvar = NULL;
         goto error_local;
     }
-    else
-    {
-        handle  = (s_collision_body **)varlist[ARG_HANDLE]->ptrVal;
-        frame   = (LONG)varlist[ARG_FRAME]->lVal;
-    }
+
+    // Populate local handle and frame vars.
+    handle  = (s_collision_body **)varlist[ARG_HANDLE]->ptrVal;
+    frame   = (LONG)varlist[ARG_FRAME]->lVal;
 
     // If this frame has property, send value back to user.
     if(handle[frame])
@@ -85,9 +81,9 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_INDEX       1   // Index to access.
 
-    int         result     = S_OK; // Success or error?
-    s_collision_body      *handle    = NULL; // Property handle.
-    //int         index      = 0;    // Property argument.
+    int                 result      = S_OK; // Success or error?
+    s_collision_body    **handle    = NULL; // Property handle.
+    int                 index       = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
@@ -95,7 +91,7 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
 
     // Verify incoming arguments. There should at least
     // be a pointer for the property handle and an integer
-    // to determine which index is accessed.
+    // to determine which frame is accessed.
     if(paramCount < ARG_MINIMUM
        || varlist[ARG_HANDLE]->vt != VT_PTR
        || varlist[ARG_INDEX]->vt != VT_INTEGER)
@@ -103,20 +99,17 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
         *pretvar = NULL;
         goto error_local;
     }
-    else
-    {
-        handle  = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
-        //index   = (LONG)varlist[ARG_INDEX]->lVal;
-    }
+
+    // Populate local handle and property vars.
+    handle  = (s_collision_body **)varlist[ARG_HANDLE]->ptrVal;
+    index   = (LONG)varlist[ARG_INDEX]->lVal;
 
     // If this index has property, send value back to user.
-    //if(handle[index])
-    //{
+    if(handle[index])
+    {
         ScriptVariant_ChangeType(*pretvar, VT_PTR);
-        //(*pretvar)->ptrVal = handle[index];
-
-        (*pretvar)->ptrVal = handle;
-    //}
+        (*pretvar)->ptrVal = handle[index];
+    }
 
     return result;
 
@@ -143,7 +136,7 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
     #define ARG_PROPERTY    1   // Property to access.
 
     int                         result      = S_OK; // Success or error?
-    s_collision_body                      *handle     = NULL; // Property handle.
+    s_collision_body            *handle     = NULL; // Property handle.
     e_body_collision_properties property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
@@ -160,62 +153,35 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
         *pretvar = NULL;
         goto error_local;
     }
-    else
-    {
-        handle      = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
-        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
-    }
+
+    // Populate local handle and property vars.
+    handle      = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
+    property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // Which property to get?
     switch(property)
     {
+        case BODY_COLLISION_PROP_COORDINATES:
+
+            // Verify handle and pass it on.
+            if(handle->coords)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->coords;
+            }
+
+            break;
+
         case BODY_COLLISION_PROP_DEFENSE:
 
-            /*
+
             // Verify animation has any defense.
             if(handle->defense)
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
                 (*pretvar)->ptrVal = (VOID *)handle->defense;
             }
-            */
 
-            break;
-
-        case BODY_COLLISION_PROP_POSITION_X:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.x;
-            break;
-
-        case BODY_COLLISION_PROP_POSISTION_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.y;
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_X:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.width;
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.height;
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Z_1:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.z1;
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Z_2:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.z2;
             break;
 
         case BODY_COLLISION_PROP_TAG:
@@ -257,18 +223,16 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
     #define ARG_VALUE           2   // New value to apply.
 
     int                         result      = S_OK; // Success or error?
-    s_collision_body                      *handle     = NULL; // Property handle.
+    s_collision_body            *handle     = NULL; // Property handle.
     e_body_collision_properties property    = 0;    // Property to access.
-
 
     // Value carriers to apply on properties after
     // taken from argument.
     int         temp_int;
-    //s_defense   *temp_defense;
 
-    // Verify incoming arguments. There must be a
-    // pointer for the animation handle, an integer
-    // property, and a new value to apply.
+    // Verify incoming arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
        || varlist[ARG_HANDLE]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
@@ -276,67 +240,24 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
         *pretvar = NULL;
         goto error_local;
     }
-    else
-    {
-        handle      = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
-        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
-    }
+
+    // Populate local handle and property vars.
+    handle      = (s_collision_body *)varlist[ARG_HANDLE]->ptrVal;
+    property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // Which property to modify?
     switch(property)
     {
+        case BODY_COLLISION_PROP_COORDINATES:
+
+            handle->coords = (s_hitbox *)varlist[ARG_VALUE]->ptrVal;
+
+            break;
+
         case BODY_COLLISION_PROP_DEFENSE:
 
-                //handle->defense = (temp_defense *)varlist[ARG_VALUE]->ptrVal;
+            handle->defense = (s_defense *)varlist[ARG_VALUE]->ptrVal;
 
-            break;
-
-        case BODY_COLLISION_PROP_POSITION_X:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.x = temp_int;
-            }
-            break;
-
-        case BODY_COLLISION_PROP_POSISTION_Y:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.y = temp_int;
-            }
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_X:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.width = temp_int;
-            }
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Y:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.height = temp_int;
-            }
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Z_1:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.z1 = temp_int;
-            }
-            break;
-
-        case BODY_COLLISION_PROP_SIZE_Z_2:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.z2 = temp_int;
-            }
             break;
 
         case BODY_COLLISION_PROP_TAG:

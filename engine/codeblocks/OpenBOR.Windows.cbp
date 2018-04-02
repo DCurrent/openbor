@@ -918,6 +918,7 @@
 		<Unit filename="../source/openborscript/binding.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../source/openborscript/binding.h" />
 		<Unit filename="../source/openborscript/collision_attack.c">
 			<Option compilerVar="CC" />
 			<Option target="Release" />
@@ -925,6 +926,9 @@
 		<Unit filename="../source/openborscript/collision_body.c">
 			<Option compilerVar="CC" />
 			<Option target="Release" />
+		</Unit>
+		<Unit filename="../source/openborscript/collision_coordinates.c">
+			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../source/openborscript/config.h">
 			<Option target="Release" />

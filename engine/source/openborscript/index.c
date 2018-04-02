@@ -175,6 +175,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "get_binding_property";
     }
+    else if (functionRef == ((void *)openbor_set_binding_property))
+    {
+        return "set_binding_property";
+    }
     else if (functionRef == ((void *)openbor_getplayerproperty))
     {
         return "getplayerproperty";
@@ -799,6 +803,10 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_binding;
     }
+    else if (functionRef == ((void *)openbor_set_binding_property))
+    {
+        return (void *)mapstrings_binding;
+    }
     else if (functionRef == ((void *)openbor_setspawnentry))
     {
         return (void *)mapstrings_setspawnentry;
@@ -938,8 +946,13 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_changeplayerproperty, "changeplayerproperty");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_changeentityproperty, "changeentityproperty");
+
+    // Binding
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_get_binding_property, "get_binding_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_binding_property, "set_binding_property");
+
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getplayerproperty, "getplayerproperty");
     List_InsertAfter(&theFunctionList,
