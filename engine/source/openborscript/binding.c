@@ -35,8 +35,8 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
     #define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
     #define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
 
-    char *propname = NULL;
-    int prop;
+    char *propname = NULL;  // Placeholder for string property name from varlist.
+    int prop;               // Placeholder for integer constant located by string.
 
     static const char *proplist[] =
     {
