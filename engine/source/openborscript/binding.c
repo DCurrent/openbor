@@ -27,6 +27,9 @@ typedef enum
     _binding_the_end,
 } e_binding_properties;
 
+// Use string property argument to find an
+// integer property constant and populate
+// varlist->lval.
 int mapstrings_binding(ScriptVariant **varlist, int paramCount)
 {
     #define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
@@ -49,15 +52,22 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
         "sort_id",
     };
 
-
+    // If the minimum argument count
+    // was not passed, then there is
+    // nothing to map. Return true - we'll
+    // catch the mistake in property access
+    // functions.
     if(paramCount < ARG_MINIMUM)
     {
         return 1;
     }
 
+    // See macro - will return 0 on fail.
     MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _binding_the_end,
                "Property name '%s' is not supported by binding.\n");
 
+
+    // If we made it this far everything should be OK.
     return 1;
 
     #undef ARG_MINIMUM
