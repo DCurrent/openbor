@@ -4641,36 +4641,65 @@ s_sprite *loadsprite2(char *filename, int *width, int *height)
     size_t size;
     s_bitmap *bitmap = NULL;
     s_sprite *sprite = NULL;
-    int clipl, clipr, clipt, clipb;
+    int clip_left;
+    int clip_right;
+    int clip_top;
+    int clip_bottom;
 
+    // Load raw bitmap (image) file from pack. If this
+    // fails, then we return NULL.
     bitmap = loadbitmap(filename, packfile, pixelformat);
+
     if(!bitmap)
     {
         return NULL;
     }
+
+    // Apply width and height adjustments, if any.
     if(width)
     {
         *width = bitmap->width;
     }
+
     if(height)
     {
         *height = bitmap->height;
     }
-    clipbitmap(bitmap, &clipl, &clipr, &clipt, &clipb);
+
+    // Trim empty pixels from the bitmap to save memory.
+    // We will pass the arguments by reference - they will
+    // be modified by the clipping function to tell us
+    // exactly how much trim work on each axis was done.
+    clipbitmap(bitmap, &clip_left, &clip_right, &clip_top, &clip_bottom);
+
+    // Get size of trimmed bitmap and allocate memory for
+    // use as a sprite. If this fails, then free the memory
+    // bitmap occupies, and return NULL.
     size = fakey_encodesprite(bitmap);
     sprite = (s_sprite *)malloc(size);
+
     if(!sprite)
     {
         freebitmap(bitmap);
         return NULL;
     }
-    encodesprite(-clipl, -clipt, bitmap, sprite);
-    sprite->offsetx = clipl;
-    sprite->offsety = clipt;
+
+    // Transpose bitmap to a sprite, using the memory
+    // we allocated for it above. The trim arguments
+    // from our trimming function will be used as an
+    // offset. We'll also store/ the bitmap's trimmed
+    // dimensions for later use.
+    encodesprite(-clip_left, -clip_top, bitmap, sprite);
+    sprite->offsetx = clip_left;
+    sprite->offsety = clip_top;
     sprite->srcwidth = bitmap->width;
     sprite->srcheight = bitmap->height;
+
+    // Delete the raw bitmap, we don't need it
+    // any more.
     freebitmap(bitmap);
 
+    // Return encoded sprite.
     return sprite;
 }
 
@@ -4746,19 +4775,70 @@ void cachesound(int index, int load)
     }
 }
 
+// Cachesprite
+// Unknown original date & author
+// Rewrite by Caskey, Damon V.
+// 2018-03-19
+//
+// Add or remove a sprite to the the sprite list
+// by index.
+//
+// index: Target index in the sprite list.
+// load: Load 1, or unload 0 the target sprite index.
 void cachesprite(int index, int load)
 {
-    if(sprite_map && index >= 0 && index < sprites_loaded)
+    s_sprite *sprite;           // Sprite placeholder.
+    s_sprite_list *map_node;    // Sprite map node placeholder.
+
+    // Valid sprite list?
+    if(sprite_map)
     {
-        if(!load && sprite_map[index].node->sprite)
+        // Index argument valid?
+        if(index >= 0)
         {
-            free(sprite_map[index].node->sprite);
-            sprite_map[index].node->sprite = NULL;
-            //printf("uncached sprite: %s\n", sprite_map[index].node->filename);
-        }
-        else if(load && !sprite_map[index].node->sprite)
-        {
-            sprite_map[index].node->sprite = loadsprite2(sprite_map[index].node->filename, NULL, NULL);
+            // Index argument should be more than
+            // the number of sprites loaded.
+            if(index < sprites_loaded)
+            {
+                // Get the sprite list node from sprite maps
+                // using our target index.
+                map_node = sprite_map[index].node;
+
+                // If load is true, then we want to load
+                // a sprite and assign it the target index.
+                // Otherwise, we want to free a sprite with
+                // target index.
+                if(load)
+                {
+                    // Make sure there is not already
+                    // a sprite with our target index.
+                    sprite = map_node->sprite;
+
+                    if(!sprite)
+                    {
+                        // Load the sprite file, then assign its
+                        // new pointer to the sprite map using our
+                        // index for the sprite map position.
+                        sprite = loadsprite2(map_node->filename, NULL, NULL);
+                        map_node->sprite = sprite;
+                    }
+                }
+                else if(!load)
+                {
+                    // Does the target sprite exist?
+                    sprite = map_node->sprite;
+
+                    if(sprite)
+                    {
+                        // Free the target sprite's resources, then remove
+                        // its pointer from sprite map.
+                        free(sprite);
+                        map_node->sprite = NULL;
+
+                        //printf("uncached sprite: %s\n", map_node->filename);
+                    }
+                }
+            }
         }
     }
 }
@@ -22084,8 +22164,8 @@ int reset_backpain(entity *ent)
         if (ent->normaldamageflipdir == DIRECTION_RIGHT) ent->direction = DIRECTION_RIGHT;
         else ent->direction = DIRECTION_LEFT;
 
-        if(ent->direction == DIRECTION_RIGHT) ent->velocity.x = -1*abs(ent->velocity.x);
-        else ent->velocity.x = abs(ent->velocity.x);
+        if(ent->direction == DIRECTION_RIGHT) ent->velocity.x = -1*fabsf(ent->velocity.x);
+        else ent->velocity.x = fabsf(ent->velocity.x);
 
         return 1;
     }
@@ -26396,7 +26476,7 @@ int common_try_wander(entity *target, int dox, int doz)
         mod = -mod;
     }
     //if ((self->sortid / 100) % 2)
-    if (abs(rand32()) % 2)
+    if (rand32() % 2)
     {
         mod = 3 - mod;
     }
@@ -32756,42 +32836,54 @@ void display_credits()
         m = 2;
 
         font_printf(_strmidx(2, "Credits"), s,  2, 0, "Credits");
-        font_printf(_strmidx(1, "Beats Of Rage"), s + v * m,  1, 0, "Beats Of Rage"); ++m;
-        font_printf(_strmidx(0, "Senile Team"), s + v * m,  0, 0, "Senile Team"); m+=2;
 
         font_printf(_strmidx(1, "OpenBOR"), s + v * m,  1, 0, "OpenBOR"); ++m;
-        font_printf(_strmidx(0, "SX"), s + v * m,  0, 0, "SX"); ++m;
-        font_printf(col1,  s + v * m,  0, 0, "CGRemakes");
+
+        font_printf(col1,  s + v * m,  0, 0, "Caskey, Damon V.");
+        font_printf(col2, s + v * m,  0, 0, "Project Lead"); ++m;
+
+        font_printf(col1,  s + v * m,  0, 0, "White Dragon");
+        font_printf(col2, s + v * m,  0, 0, "Developer"); ++m;
+
+        font_printf(col1,  s + v * m,  0, 0, "Plombo");
+        font_printf(col2, s + v * m,  0, 0, "Developer"); ++m;
+
+        font_printf(_strmidx(1, "Former Staff"), s + v * m,  1, 0, "OpenBOR"); ++m;
+
+        font_printf(col1, s + v * m, 0, 0, "Fightn Words");
         font_printf(col2, s + v * m,  0, 0, "Fugue"); ++m;
-        font_printf(col1,  s + v * m,  0, 0, "uTunnels");
+        font_printf(col1,  s + v * m, 0, 0, "KBAndressen");
         font_printf(col2, s + v * m,  0, 0, "Kirby"); ++m;
         font_printf(col1,  s + v * m,  0, 0, "LordBall");
-        font_printf(col2, s + v * m,  0, 0, "Tails"); ++m;
-        font_printf(col1,  s + v * m, 0, 0, "KBAndressen");
-        font_printf(col2, s + v * m, 0, 0, "Damon Caskey"); ++m;
-        font_printf(col1,  s + v * m, 0, 0, "Plombo");
         font_printf(col2, s + v * m, 0, 0, "Orochi_X");  ++m;
-        font_printf(col1, s + v * m, 0, 0, "White Dragon");  ++m;
+        font_printf(col1, s + v * m,  0, 0, "Tails");
+        font_printf(col2,  s + v * m,  0, 0, "uTunnels"); ++m;
 
         font_printf(_strmidx(1, "Ports"), s + v * m,  1, 0, "Ports"); ++m;
         font_printf(col1,  s + v * m, 0, 0, "PSP/Linux/OSX");
         font_printf(col2, s + v * m, 0, 0, "SX"); ++m;
+
         font_printf(col1,  s + v * m, 0, 0, "OpenDingux");
         font_printf(col2, s + v * m, 0, 0, "Shin-NiL"); ++m;
-        font_printf(col1,  s + v * m, 0, 0, "Windows");
-        font_printf(col2, s + v * m, 0, 0, "SX & Nazo"); ++m;
+
         font_printf(col1,  s + v * m, 0, 0, "DreamCast");
-        font_printf(col2, s + v * m, 0, 0, "SX & Neill Corlett"); ++m;
+        font_printf(col2, s + v * m, 0, 0, "SX, Neill Corlett"); ++m;
+
         font_printf(col1,  s + v * m, 0, 0, "Wii");
-        font_printf(col2, s + v * m, 0, 0, "SX & Plombo"); ++m;
+        font_printf(col2, s + v * m, 0, 0, "SX, Plombo"); ++m;
+
         font_printf(col1,  s + v * m, 0, 0, "Android");
-        font_printf(col2, s + v * m, 0, 0, "uTunnels & CRxTRDude"); ++m;
+        font_printf(col2, s + v * m, 0, 0, "uTunnels, CRxTRDude, Plombo, White Dragon"); ++m;
+
         font_printf(col1,  s + v * m, 0, 0, "PS Vita");
         font_printf(col2, s + v * m, 0, 0, "Plombo"); ++m;
 
         font_printf(_strmidx(1, "Menu Design"), s + v * m,  1, 0, "Menu Design"); ++m;
         font_printf(col1, s + v * m,  0, 0, "SX");
         font_printf(col2, s + v * m, 0, 0, "Fightn Words");
+
+        font_printf(_strmidx(1, "Beats Of Rage"), s + v * m,  1, 0, "Beats Of Rage"); ++m;
+        font_printf(_strmidx(0, "Senile Team"), s + v * m,  0, 0, "Senile Team"); m+=2;
 
         update(2, 0);
 

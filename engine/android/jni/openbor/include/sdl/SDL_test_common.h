@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2013 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2018 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -29,8 +29,8 @@
 
 /* Ported from original test\common.h file. */
 
-#ifndef _SDL_test_common_h
-#define _SDL_test_common_h
+#ifndef SDL_test_common_h_
+#define SDL_test_common_h_
 
 #include "SDL.h"
 
@@ -82,6 +82,7 @@ typedef struct
     Uint32 render_flags;
     SDL_bool skip_renderer;
     SDL_Renderer **renderers;
+    SDL_Texture **targets;
 
     /* Audio info */
     const char *audiodriver;
@@ -182,6 +183,6 @@ void SDLTest_CommonQuit(SDLTest_CommonState * state);
 #endif
 #include "close_code.h"
 
-#endif /* _SDL_test_common_h */
+#endif /* SDL_test_common_h_ */
 
 /* vi: set ts=4 sw=4 expandtab: */
