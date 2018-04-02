@@ -14,6 +14,7 @@ typedef enum
 {
     _entity_position_alternate_base,
     _entity_position_base,
+    _entity_position_direction,
     _entity_position_x,
     _entity_position_y,
     _entity_position_z,
