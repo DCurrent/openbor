@@ -123,6 +123,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
+        case _entity_position_direction:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->direction;
+
+            break;
+
         case _entity_position_x:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
