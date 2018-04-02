@@ -25,7 +25,7 @@ typedef enum
     _binding_offset_z,
     _binding_sort_id,
     _binding_the_end,
-} _binding_enum;
+} e_binding_properties;
 
 int mapstrings_binding(ScriptVariant **varlist, int paramCount)
 {
@@ -71,8 +71,8 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
-    s_bind          *handle     = NULL; // Property handle.
-    _binding_enum   property    = 0;    // Property argument.
+    s_bind                  *handle     = NULL; // Property handle.
+    e_binding_properties    property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
@@ -214,9 +214,9 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
-    int           result      = S_OK; // Success or error?
-    s_bind        *handle     = NULL; // Property handle.
-    _binding_enum property    = 0;    // Property to access.
+    int                     result      = S_OK; // Success or error?
+    s_bind                  *handle     = NULL; // Property handle.
+    e_binding_properties    property    = 0;    // Property to access.
 
     // Value carriers to apply on properties after
     // taken from argument.
