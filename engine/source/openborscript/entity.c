@@ -124,9 +124,16 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
         case _entity_position_x:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->position.x;
 
             break;
 
+        case _entity_position_y:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->position.y;
+
+            break;
 
         default:
 
