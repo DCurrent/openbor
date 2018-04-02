@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2013 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2018 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,11 +25,12 @@
  *  Include file for SDL game controller event handling
  */
 
-#ifndef _SDL_gamecontroller_h
-#define _SDL_gamecontroller_h
+#ifndef SDL_gamecontroller_h_
+#define SDL_gamecontroller_h_
 
 #include "SDL_stdinc.h"
 #include "SDL_error.h"
+#include "SDL_rwops.h"
 #include "SDL_joystick.h"
 
 #include "begin_code.h"
@@ -42,7 +43,7 @@ extern "C" {
  *  \file SDL_gamecontroller.h
  *
  *  In order to use these functions, SDL_Init() must have been called
- *  with the ::SDL_INIT_JOYSTICK flag.  This causes SDL to scan the system
+ *  with the ::SDL_INIT_GAMECONTROLLER flag.  This causes SDL to scan the system
  *  for game controllers, and load appropriate drivers.
  *
  *  If you would like to receive controller updates while the application
@@ -50,7 +51,9 @@ extern "C" {
  *  SDL_Init(): SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS
  */
 
-/* The gamecontroller structure used to identify an SDL game controller */
+/**
+ * The gamecontroller structure used to identify an SDL game controller
+ */
 struct _SDL_GameController;
 typedef struct _SDL_GameController SDL_GameController;
 
@@ -86,13 +89,13 @@ typedef struct SDL_GameControllerButtonBind
  *  To count the number of game controllers in the system for the following:
  *  int nJoysticks = SDL_NumJoysticks();
  *  int nGameControllers = 0;
- *  for ( int i = 0; i < nJoysticks; i++ ) {
- *      if ( SDL_IsGameController(i) ) {
+ *  for (int i = 0; i < nJoysticks; i++) {
+ *      if (SDL_IsGameController(i)) {
  *          nGameControllers++;
  *      }
  *  }
  *
- *  Using the SDL_HINT_GAMECONTROLLERCONFIG hint or the SDL_GameControllerAddMapping you can add support for controllers SDL is unaware of or cause an existing controller to have a different binding. The format is:
+ *  Using the SDL_HINT_GAMECONTROLLERCONFIG hint or the SDL_GameControllerAddMapping() you can add support for controllers SDL is unaware of or cause an existing controller to have a different binding. The format is:
  *  guid,name,mappings
  *
  *  Where GUID is the string value from SDL_JoystickGetGUIDString(), name is the human readable string for the device and mappings are controller mappings to joystick ones.
@@ -104,36 +107,66 @@ typedef struct SDL_GameControllerButtonBind
  *  Buttons can be used as a controller axis and vice versa.
  *
  *  This string shows an example of a valid mapping for a controller
- *  "341a3608000000000000504944564944,Afterglow PS3 Controller,a:b1,b:b2,y:b3,x:b0,start:b9,guide:b12,back:b8,dpup:h0.1,dpleft:h0.8,dpdown:h0.4,dpright:h0.2,leftshoulder:b4,rightshoulder:b5,leftstick:b10,rightstick:b11,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:b6,righttrigger:b7",
+ *  "03000000341a00003608000000000000,PS3 Controller,a:b1,b:b2,y:b3,x:b0,start:b9,guide:b12,back:b8,dpup:h0.1,dpleft:h0.8,dpdown:h0.4,dpright:h0.2,leftshoulder:b4,rightshoulder:b5,leftstick:b10,rightstick:b11,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:b6,righttrigger:b7",
  *
  */
+
+/**
+ *  Load a set of mappings from a seekable SDL data stream (memory or file), filtered by the current SDL_GetPlatform()
+ *  A community sourced database of controllers is available at https://raw.github.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt
+ *
+ *  If \c freerw is non-zero, the stream will be closed after being read.
+ * 
+ * \return number of mappings added, -1 on error
+ */
+extern DECLSPEC int SDLCALL SDL_GameControllerAddMappingsFromRW(SDL_RWops * rw, int freerw);
+
+/**
+ *  Load a set of mappings from a file, filtered by the current SDL_GetPlatform()
+ *
+ *  Convenience macro.
+ */
+#define SDL_GameControllerAddMappingsFromFile(file)   SDL_GameControllerAddMappingsFromRW(SDL_RWFromFile(file, "rb"), 1)
 
 /**
  *  Add or update an existing mapping configuration
  *
  * \return 1 if mapping is added, 0 if updated, -1 on error
  */
-extern DECLSPEC int SDLCALL SDL_GameControllerAddMapping( const char* mappingString );
+extern DECLSPEC int SDLCALL SDL_GameControllerAddMapping(const char* mappingString);
+
+/**
+ *  Get the number of mappings installed
+ *
+ *  \return the number of mappings
+ */
+extern DECLSPEC int SDLCALL SDL_GameControllerNumMappings(void);
+
+/**
+ *  Get the mapping at a particular index.
+ *
+ *  \return the mapping string.  Must be freed with SDL_free().  Returns NULL if the index is out of range.
+ */
+extern DECLSPEC char * SDLCALL SDL_GameControllerMappingForIndex(int mapping_index);
 
 /**
  *  Get a mapping string for a GUID
  *
- *  \return the mapping string.  Must be freed with SDL_free.  Returns NULL if no mapping is available
+ *  \return the mapping string.  Must be freed with SDL_free().  Returns NULL if no mapping is available
  */
-extern DECLSPEC char * SDLCALL SDL_GameControllerMappingForGUID( SDL_JoystickGUID guid );
+extern DECLSPEC char * SDLCALL SDL_GameControllerMappingForGUID(SDL_JoystickGUID guid);
 
 /**
  *  Get a mapping string for an open GameController
  *
- *  \return the mapping string.  Must be freed with SDL_free.  Returns NULL if no mapping is available
+ *  \return the mapping string.  Must be freed with SDL_free().  Returns NULL if no mapping is available
  */
-extern DECLSPEC char * SDLCALL SDL_GameControllerMapping( SDL_GameController * gamecontroller );
+extern DECLSPEC char * SDLCALL SDL_GameControllerMapping(SDL_GameController * gamecontroller);
 
 /**
  *  Is the joystick on this index supported by the game controller interface?
  */
 extern DECLSPEC SDL_bool SDLCALL SDL_IsGameController(int joystick_index);
-
 
 /**
  *  Get the implementation dependent name of a game controller.
@@ -145,17 +178,41 @@ extern DECLSPEC const char *SDLCALL SDL_GameControllerNameForIndex(int joystick_
 /**
  *  Open a game controller for use.
  *  The index passed as an argument refers to the N'th game controller on the system.
- *  This index is the value which will identify this controller in future controller
- *  events.
+ *  This index is not the value which will identify this controller in future
+ *  controller events.  The joystick's instance id (::SDL_JoystickID) will be
+ *  used there instead.
  *
  *  \return A controller identifier, or NULL if an error occurred.
  */
 extern DECLSPEC SDL_GameController *SDLCALL SDL_GameControllerOpen(int joystick_index);
 
 /**
+ * Return the SDL_GameController associated with an instance id.
+ */
+extern DECLSPEC SDL_GameController *SDLCALL SDL_GameControllerFromInstanceID(SDL_JoystickID joyid);
+
+/**
  *  Return the name for this currently opened controller
  */
 extern DECLSPEC const char *SDLCALL SDL_GameControllerName(SDL_GameController *gamecontroller);
+
+/**
+ *  Get the USB vendor ID of an opened controller, if available.
+ *  If the vendor ID isn't available this function returns 0.
+ */
+extern DECLSPEC Uint16 SDLCALL SDL_GameControllerGetVendor(SDL_GameController * gamecontroller);
+
+/**
+ *  Get the USB product ID of an opened controller, if available.
+ *  If the product ID isn't available this function returns 0.
+ */
+extern DECLSPEC Uint16 SDLCALL SDL_GameControllerGetProduct(SDL_GameController * gamecontroller);
+
+/**
+ *  Get the product version of an opened controller, if available.
+ *  If the product version isn't available this function returns 0.
+ */
+extern DECLSPEC Uint16 SDLCALL SDL_GameControllerGetProductVersion(SDL_GameController * gamecontroller);
 
 /**
  *  Returns SDL_TRUE if the controller has been opened and currently connected,
@@ -190,6 +247,12 @@ extern DECLSPEC void SDLCALL SDL_GameControllerUpdate(void);
 
 /**
  *  The list of axes available from a controller
+ *
+ *  Thumbstick axis values range from SDL_JOYSTICK_AXIS_MIN to SDL_JOYSTICK_AXIS_MAX,
+ *  and are centered within ~8000 of zero, though advanced UI will allow users to set
+ *  or autodetect the dead zone, which varies between controllers.
+ *
+ *  Trigger axis values range from 0 to SDL_JOYSTICK_AXIS_MAX.
  */
 typedef enum
 {
@@ -223,7 +286,8 @@ SDL_GameControllerGetBindForAxis(SDL_GameController *gamecontroller,
 /**
  *  Get the current state of an axis control on a game controller.
  *
- *  The state is a value ranging from -32768 to 32767.
+ *  The state is a value ranging from -32768 to 32767 (except for the triggers,
+ *  which range from 0 to 32767).
  *
  *  The axis indices start at index 0.
  */
@@ -293,6 +357,6 @@ extern DECLSPEC void SDLCALL SDL_GameControllerClose(SDL_GameController *gamecon
 #endif
 #include "close_code.h"
 
-#endif /* _SDL_gamecontroller_h */
+#endif /* SDL_gamecontroller_h_ */
 
 /* vi: set ts=4 sw=4 expandtab: */

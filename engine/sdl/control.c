@@ -115,14 +115,16 @@ void getPads(Uint8* keystate)
 			case SDL_WINDOWEVENT:
 				if(ev.window.event==SDL_WINDOWEVENT_MINIMIZED)
 				{
-					SDL_PauseAudio(1);
+					//SDL_PauseAudio(1);
+					SDL_PauseAudioDevice(audio_dev, 1);
 					while(true)
 					{
 						if(SDL_PollEvent(&ev))
 						{
 							if(ev.type==SDL_WINDOWEVENT && ev.window.event==SDL_WINDOWEVENT_RESTORED)
 							{
-								SDL_PauseAudio(0);
+								//SDL_PauseAudio(0);
+								SDL_PauseAudioDevice(audio_dev, 0);
 								extern s_videomodes videomodes;
 								video_set_mode(videomodes);
 								//extern SDL_Surface* getSDLScreen();
@@ -394,6 +396,7 @@ void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 	float tx, ty, tr;
 	float r[MAXTOUCHB];
 	float dirx, diry, circlea, circleb, tan;
+
 	memset(touchstates, 0, sizeof(touchstates));
 	for(j=0; j<MAXTOUCHB; j++)
 	{
@@ -462,7 +465,11 @@ void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 			if(tr<=r[j]) touchstates[j] = 1;
 		}
 	}
+	#undef tana
+	#undef tanb
+
 	hide_t = timer_gettick() + 5000;
+
 	//map to current user settings
 	extern s_savedata savedata;
 	#define pc(x) savedata.keys[0][x]

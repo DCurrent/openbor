@@ -1951,6 +1951,7 @@ enum entityproperty_enum
     _ep_autokill,
     _ep_base,
     _ep_bbox,
+    _ep_binding,
     _ep_blink,
     _ep_blockback,
     _ep_blockodds,
@@ -2148,6 +2149,7 @@ static const char *eplist[] =
     "autokill",
     "base",
     "bbox",
+    "binding",
     "blink",
     "blockback",
     "blockodds",
@@ -3529,6 +3531,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_PTR);
         (*pretvar)->ptrVal = (VOID *)ent->binding.ent;
+        break;
+    }
+    case _ep_binding:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_PTR);
+        (*pretvar)->ptrVal = (VOID *)&ent->binding;
         break;
     }
     case _ep_candamage:

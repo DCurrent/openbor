@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2013 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2018 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -45,8 +45,8 @@
  *  See this bug for details: http://bugzilla.libsdl.org/show_bug.cgi?id=1995
  */
 
-#ifndef _SDL_render_h
-#define _SDL_render_h
+#ifndef SDL_render_h_
+#define SDL_render_h_
 
 #include "SDL_stdinc.h"
 #include "SDL_rect.h"
@@ -81,8 +81,8 @@ typedef struct SDL_RendererInfo
     Uint32 flags;               /**< Supported ::SDL_RendererFlags */
     Uint32 num_texture_formats; /**< The number of available texture formats */
     Uint32 texture_formats[16]; /**< The available texture formats */
-    int max_texture_width;      /**< The maximimum texture width */
-    int max_texture_height;     /**< The maximimum texture height */
+    int max_texture_width;      /**< The maximum texture width */
+    int max_texture_height;     /**< The maximum texture height */
 } SDL_RendererInfo;
 
 /**
@@ -215,7 +215,7 @@ extern DECLSPEC int SDLCALL SDL_GetRendererInfo(SDL_Renderer * renderer,
                                                 SDL_RendererInfo * info);
 
 /**
- *  \brief Get the output size of a rendering context.
+ *  \brief Get the output size in pixels of a rendering context.
  */
 extern DECLSPEC int SDLCALL SDL_GetRendererOutputSize(SDL_Renderer * renderer,
                                                       int *w, int *h);
@@ -229,9 +229,11 @@ extern DECLSPEC int SDLCALL SDL_GetRendererOutputSize(SDL_Renderer * renderer,
  *  \param w      The width of the texture in pixels.
  *  \param h      The height of the texture in pixels.
  *
- *  \return The created texture is returned, or 0 if no rendering context was
+ *  \return The created texture is returned, or NULL if no rendering context was
  *          active,  the format was unsupported, or the width or height were out
  *          of range.
+ *
+ *  \note The contents of the texture are not defined at creation.
  *
  *  \sa SDL_QueryTexture()
  *  \sa SDL_UpdateTexture()
@@ -248,7 +250,7 @@ extern DECLSPEC SDL_Texture * SDLCALL SDL_CreateTexture(SDL_Renderer * renderer,
  *  \param renderer The renderer.
  *  \param surface The surface containing pixel data used to fill the texture.
  *
- *  \return The created texture is returned, or 0 on error.
+ *  \return The created texture is returned, or NULL on error.
  *
  *  \note The surface is not modified or freed by this function.
  *
@@ -370,8 +372,11 @@ extern DECLSPEC int SDLCALL SDL_GetTextureBlendMode(SDL_Texture * texture,
  *  \param texture   The texture to update
  *  \param rect      A pointer to the rectangle of pixels to update, or NULL to
  *                   update the entire texture.
- *  \param pixels    The raw pixel data.
- *  \param pitch     The number of bytes between rows of pixel data.
+ *  \param pixels    The raw pixel data in the format of the texture.
+ *  \param pitch     The number of bytes in a row of pixel data, including padding between lines.
+ *
+ *  The pixel data must be in the format of the texture. The pixel format can be
+ *  queried with SDL_QueryTexture.
  *
  *  \return 0 on success, or -1 if the texture is not valid.
  *
@@ -500,6 +505,30 @@ extern DECLSPEC int SDLCALL SDL_RenderSetLogicalSize(SDL_Renderer * renderer, in
 extern DECLSPEC void SDLCALL SDL_RenderGetLogicalSize(SDL_Renderer * renderer, int *w, int *h);
 
 /**
+ *  \brief Set whether to force integer scales for resolution-independent rendering
+ *
+ *  \param renderer The renderer for which integer scaling should be set.
+ *  \param enable   Enable or disable integer scaling
+ *
+ *  This function restricts the logical viewport to integer values - that is, when
+ *  a resolution is between two multiples of a logical size, the viewport size is
+ *  rounded down to the lower multiple.
+ *
+ *  \sa SDL_RenderSetLogicalSize()
+ */
+extern DECLSPEC int SDLCALL SDL_RenderSetIntegerScale(SDL_Renderer * renderer,
+                                                      SDL_bool enable);
+
+/**
+ *  \brief Get whether integer scales are forced for resolution-independent rendering
+ *
+ *  \param renderer The renderer from which integer scaling should be queried.
+ *
+ *  \sa SDL_RenderSetIntegerScale()
+ */
+extern DECLSPEC SDL_bool SDLCALL SDL_RenderGetIntegerScale(SDL_Renderer * renderer);
+
+/**
  *  \brief Set the drawing area for rendering on the current target.
  *
  *  \param renderer The renderer for which the drawing area should be set.
@@ -552,6 +581,16 @@ extern DECLSPEC void SDLCALL SDL_RenderGetClipRect(SDL_Renderer * renderer,
                                                    SDL_Rect * rect);
 
 /**
+ *  \brief Get whether clipping is enabled on the given renderer.
+ *
+ *  \param renderer The renderer from which clip state should be queried.
+ *
+ *  \sa SDL_RenderGetClipRect()
+ */
+extern DECLSPEC SDL_bool SDLCALL SDL_RenderIsClipEnabled(SDL_Renderer * renderer);
+
+
+/**
  *  \brief Set the drawing scale for rendering on the current target.
  *
  *  \param renderer The renderer for which the drawing scale should be set.
@@ -596,7 +635,7 @@ extern DECLSPEC void SDLCALL SDL_RenderGetScale(SDL_Renderer * renderer,
  *
  *  \return 0 on success, or -1 on error
  */
-extern DECLSPEC int SDL_SetRenderDrawColor(SDL_Renderer * renderer,
+extern DECLSPEC int SDLCALL SDL_SetRenderDrawColor(SDL_Renderer * renderer,
                                            Uint8 r, Uint8 g, Uint8 b,
                                            Uint8 a);
 
@@ -612,7 +651,7 @@ extern DECLSPEC int SDL_SetRenderDrawColor(SDL_Renderer * renderer,
  *
  *  \return 0 on success, or -1 on error
  */
-extern DECLSPEC int SDL_GetRenderDrawColor(SDL_Renderer * renderer,
+extern DECLSPEC int SDLCALL SDL_GetRenderDrawColor(SDL_Renderer * renderer,
                                            Uint8 * r, Uint8 * g, Uint8 * b,
                                            Uint8 * a);
 
@@ -648,7 +687,8 @@ extern DECLSPEC int SDLCALL SDL_GetRenderDrawBlendMode(SDL_Renderer * renderer,
 /**
  *  \brief Clear the current rendering target with the drawing color
  *
- *  This function clears the entire rendering target, ignoring the viewport.
+ *  This function clears the entire rendering target, ignoring the viewport and
+ *  the clip rectangle.
  *
  *  \return 0 on success, or -1 on error
  */
@@ -781,8 +821,8 @@ extern DECLSPEC int SDLCALL SDL_RenderCopy(SDL_Renderer * renderer,
  *                   texture.
  *  \param dstrect   A pointer to the destination rectangle, or NULL for the
  *                   entire rendering target.
- *  \param angle    An angle in degrees that indicates the rotation that will be applied to dstrect
- *  \param center   A pointer to a point indicating the point around which dstrect will be rotated (if NULL, rotation will be done aroud dstrect.w/2, dstrect.h/2)
+ *  \param angle    An angle in degrees that indicates the rotation that will be applied to dstrect, rotating it in a clockwise direction
+ *  \param center   A pointer to a point indicating the point around which dstrect will be rotated (if NULL, rotation will be done around dstrect.w/2, dstrect.h/2).
  *  \param flip     An SDL_RendererFlip value stating which flipping actions should be performed on the texture
  *
  *  \return 0 on success, or -1 on error
@@ -858,6 +898,27 @@ extern DECLSPEC int SDLCALL SDL_GL_BindTexture(SDL_Texture *texture, float *texw
  */
 extern DECLSPEC int SDLCALL SDL_GL_UnbindTexture(SDL_Texture *texture);
 
+/**
+ *  \brief Get the CAMetalLayer associated with the given Metal renderer
+ *
+ *  \param renderer The renderer to query
+ *
+ *  \return CAMetalLayer* on success, or NULL if the renderer isn't a Metal renderer
+ *
+ *  \sa SDL_RenderGetMetalCommandEncoder()
+ */
+extern DECLSPEC void *SDLCALL SDL_RenderGetMetalLayer(SDL_Renderer * renderer);
+
+/**
+ *  \brief Get the Metal command encoder for the current frame
+ *
+ *  \param renderer The renderer to query
+ *
+ *  \return id<MTLRenderCommandEncoder> on success, or NULL if the renderer isn't a Metal renderer
+ *
+ *  \sa SDL_RenderGetMetalLayer()
+ */
+extern DECLSPEC void *SDLCALL SDL_RenderGetMetalCommandEncoder(SDL_Renderer * renderer);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
@@ -865,6 +926,6 @@ extern DECLSPEC int SDLCALL SDL_GL_UnbindTexture(SDL_Texture *texture);
 #endif
 #include "close_code.h"
 
-#endif /* _SDL_render_h */
+#endif /* SDL_render_h_ */
 
 /* vi: set ts=4 sw=4 expandtab: */

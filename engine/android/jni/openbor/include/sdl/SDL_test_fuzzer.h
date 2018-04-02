@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2013 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2018 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -33,8 +33,8 @@
 
 */
 
-#ifndef _SDL_test_fuzzer_h
-#define _SDL_test_fuzzer_h
+#ifndef SDL_test_fuzzer_h_
+#define SDL_test_fuzzer_h_
 
 #include "begin_code.h"
 /* Set up for C function definitions, even when using C++ */
@@ -57,7 +57,7 @@ extern "C" {
 /**
  * Initializes the fuzzer for a test
  *
- * /param execKey Execution "Key" that initializes the random number generator uniquely for the test.
+ * \param execKey Execution "Key" that initializes the random number generator uniquely for the test.
  *
  */
 void SDLTest_FuzzerInit(Uint64 execKey);
@@ -68,14 +68,14 @@ void SDLTest_FuzzerInit(Uint64 execKey);
  *
  * \returns Generated integer
  */
-Uint8 SDLTest_RandomUint8();
+Uint8 SDLTest_RandomUint8(void);
 
 /**
  * Returns a random Sint8
  *
  * \returns Generated signed integer
  */
-Sint8 SDLTest_RandomSint8();
+Sint8 SDLTest_RandomSint8(void);
 
 
 /**
@@ -83,14 +83,14 @@ Sint8 SDLTest_RandomSint8();
  *
  * \returns Generated integer
  */
-Uint16 SDLTest_RandomUint16();
+Uint16 SDLTest_RandomUint16(void);
 
 /**
  * Returns a random Sint16
  *
  * \returns Generated signed integer
  */
-Sint16 SDLTest_RandomSint16();
+Sint16 SDLTest_RandomSint16(void);
 
 
 /**
@@ -98,7 +98,7 @@ Sint16 SDLTest_RandomSint16();
  *
  * \returns Generated integer
  */
-Sint32 SDLTest_RandomSint32();
+Sint32 SDLTest_RandomSint32(void);
 
 
 /**
@@ -106,14 +106,14 @@ Sint32 SDLTest_RandomSint32();
  *
  * \returns Generated integer
  */
-Uint32 SDLTest_RandomUint32();
+Uint32 SDLTest_RandomUint32(void);
 
 /**
  * Returns random Uint64.
  *
  * \returns Generated integer
  */
-Uint64 SDLTest_RandomUint64();
+Uint64 SDLTest_RandomUint64(void);
 
 
 /**
@@ -121,29 +121,29 @@ Uint64 SDLTest_RandomUint64();
  *
  * \returns Generated signed integer
  */
-Sint64 SDLTest_RandomSint64();
+Sint64 SDLTest_RandomSint64(void);
 
 /**
  * \returns random float in range [0.0 - 1.0[
  */
-float SDLTest_RandomUnitFloat();
+float SDLTest_RandomUnitFloat(void);
 
 /**
  * \returns random double in range [0.0 - 1.0[
  */
-double SDLTest_RandomUnitDouble();
+double SDLTest_RandomUnitDouble(void);
 
 /**
  * \returns random float.
  *
  */
-float SDLTest_RandomFloat();
+float SDLTest_RandomFloat(void);
 
 /**
  * \returns random double.
  *
  */
-double SDLTest_RandomDouble();
+double SDLTest_RandomDouble(void);
 
 /**
  * Returns a random boundary value for Uint8 within the given boundaries.
@@ -318,7 +318,7 @@ Sint64 SDLTest_RandomSint64BoundaryValue(Sint64 boundary1, Sint64 boundary2, SDL
 /**
  * Returns integer in range [min, max] (inclusive).
  * Min and max values can be negative values.
- * If Max in smaller tham min, then the values are swapped.
+ * If Max in smaller than min, then the values are swapped.
  * Min and max are the same value, that value will be returned.
  *
  * \param min Minimum inclusive value of returned random number
@@ -338,7 +338,7 @@ Sint32 SDLTest_RandomIntegerInRange(Sint32 min, Sint32 max);
  *
  * \returns Newly allocated random string; or NULL if length was invalid or string could not be allocated.
  */
-char * SDLTest_RandomAsciiString();
+char * SDLTest_RandomAsciiString(void);
 
 
 /**
@@ -371,7 +371,7 @@ char * SDLTest_RandomAsciiStringOfSize(int size);
 /**
  * Returns the invocation count for the fuzzer since last ...FuzzerInit.
  */
-int SDLTest_GetFuzzerInvocationCount();
+int SDLTest_GetFuzzerInvocationCount(void);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
@@ -379,6 +379,6 @@ int SDLTest_GetFuzzerInvocationCount();
 #endif
 #include "close_code.h"
 
-#endif /* _SDL_test_fuzzer_h */
+#endif /* SDL_test_fuzzer_h_ */
 
 /* vi: set ts=4 sw=4 expandtab: */
