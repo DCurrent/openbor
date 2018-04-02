@@ -6,15 +6,13 @@
  * Copyright (c) 2004 - 2017 OpenBOR Team
  */
 
-// Attack Properties
-// 2017-04-26
+// Binding Properties
+// 2018-03-31
 // Caskey, Damon V.
-//
-// Access to attack and attack collision properties.
 
 #include "scriptcommon.h"
 
-enum _binding_enum
+typedef enum
 {
     _binding_animation,
     _binding_bind_x,
@@ -27,7 +25,7 @@ enum _binding_enum
     _binding_offset_z,
     _binding_sort_id,
     _binding_the_end,
-};
+} _binding_enum;
 
 int mapstrings_binding(ScriptVariant **varlist, int paramCount)
 {
@@ -68,7 +66,7 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
     #define ARG_PROPERTY    1   // Property to access.
 
     s_bind          *handle     = NULL; // Property handle.
-    int   property    = 0;    // Property argument.
+    _binding_enum   property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
