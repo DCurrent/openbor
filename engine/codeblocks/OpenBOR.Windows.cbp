@@ -918,6 +918,7 @@
 		<Unit filename="../source/openborscript/binding.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../source/openborscript/binding.h" />
 		<Unit filename="../source/openborscript/collision_attack.c">
 			<Option compilerVar="CC" />
 			<Option target="Release" />
