@@ -29,6 +29,8 @@ typedef enum
 
 int mapstrings_binding(ScriptVariant **varlist, int paramCount)
 {
+    #define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
+
     char *propname = NULL;
     int prop;
 
@@ -51,10 +53,13 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
     {
         return 1;
     }
-    MAPSTRINGS(varlist[1], proplist, _binding_the_end,
+
+    MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _binding_the_end,
                "Property name '%s' is not supported by binding.\n");
 
     return 1;
+
+    #undef ARG_PROPERTY 1
 }
 
 // Caskey, Damon  V.
