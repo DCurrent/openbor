@@ -6,15 +6,13 @@
  * Copyright (c) 2004 - 2017 OpenBOR Team
  */
 
-// Attack Properties
-// 2017-04-26
+// Binding Properties
+// 2018-03-31
 // Caskey, Damon V.
-//
-// Access to attack and attack collision properties.
 
 #include "scriptcommon.h"
 
-enum _binding_enum
+typedef enum
 {
     _binding_animation,
     _binding_bind_x,
@@ -27,7 +25,7 @@ enum _binding_enum
     _binding_offset_z,
     _binding_sort_id,
     _binding_the_end,
-};
+} _binding_enum;
 
 int mapstrings_binding(ScriptVariant **varlist, int paramCount)
 {
@@ -59,16 +57,22 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
     return 1;
 }
 
-// get_binding_property(handle, propertyname);
+// Caskey, Damon  V.
+// 2018-03-31
+//
+// Return a binding property. Requires
+// the handle from binding entity
+// property and property name to
+// access.
 HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    #define SELF_NAME       "openbor_get_binding_property(void handle, int property)"
+    #define SELF_NAME       "openbor_get_binding_property(void handle, char property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
     s_bind          *handle     = NULL; // Property handle.
-    int   property    = 0;    // Property argument.
+    _binding_enum   property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
@@ -173,6 +177,10 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
             break;
 
         default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+
             break;
     }
 
@@ -180,7 +188,7 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
 
     error_local:
 
-    printf("You must provide a valid handle and property name: " SELF_NAME "\n");
+    printf("You must provide a valid binding handle and property name: " SELF_NAME "\n");
     *pretvar = NULL;
 
     return E_FAIL;
@@ -189,4 +197,163 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
     #undef ARG_MINIMUM
     #undef ARG_HANDLE
     #undef ARG_INDEX
+}
+
+// Caskey, Damon  V.
+// 2018-04-01
+//
+// Mutate a binding property. Requires
+// the handle from binding entity
+// property, property name to modify,
+// and the new value.
+HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME           "set_binding_property(void handle, char property, value)"
+    #define ARG_MINIMUM         3   // Minimum required arguments.
+    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY        1   // Property to access.
+    #define ARG_VALUE           2   // New value to apply.
+
+    int           result      = S_OK; // Success or error?
+    s_bind        *handle     = NULL; // Property handle.
+    _binding_enum property    = 0;    // Property to access.
+
+    // Value carriers to apply on properties after
+    // taken from argument.
+    int         temp_int;
+
+    // Map string property name to a
+    // matching integer constant.
+    mapstrings_binding(varlist, paramCount);
+
+    // Verify incoming arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+
+    // Populate local handle and property vars.
+    handle      = (s_bind *)varlist[ARG_HANDLE]->ptrVal;
+    property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+
+    // Which property to modify?
+    switch(property)
+    {
+
+        case _binding_animation:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->ani_bind = temp_int;
+            }
+
+            break;
+
+        case _binding_bind_x:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->offset_flag.x = temp_int;
+
+            }
+
+            break;
+
+        case _binding_bind_y:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->offset_flag.y = temp_int;
+            }
+
+            break;
+
+        case _binding_bind_z:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->offset_flag.z = temp_int;
+            }
+
+            break;
+
+        case _binding_direction:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->direction = temp_int;
+            }
+
+            break;
+
+        case _binding_entity:
+
+            handle->ent = (entity *)varlist[ARG_VALUE]->ptrVal;
+
+            break;
+
+        case _binding_offset_x:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->offset.x = temp_int;
+            }
+
+            break;
+
+        case _binding_offset_y:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->offset.y = temp_int;
+            }
+
+            break;
+
+        case _binding_offset_z:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->offset.z = temp_int;
+            }
+
+            break;
+
+        case _binding_sort_id:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->sortid = temp_int;
+            }
+
+            break;
+
+        default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+
+            break;
+    }
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid binding handle, property, and new value: " SELF_NAME "\n");
+
+    result = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_PROPERTY
+    #undef ARG_VALUE
 }

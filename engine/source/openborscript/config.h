@@ -12,6 +12,8 @@
 #include "Interpreter.h"
 #include "pp_parser.h"
 
+#include "binding.h"
+
 #define MAX_GLOBAL_VAR 2048
 #define MAX_KEY_LEN    24
 
@@ -19,6 +21,8 @@
 #define script_magic ((int)0x73636f)
 //vlst
 #define varlist_magic ((int)0x74736c76)
+
+
 
 typedef enum
 {
@@ -309,11 +313,6 @@ HRESULT openbor_playgame(ScriptVariant **varlist , ScriptVariant **pretvar, int 
 HRESULT openbor_getrecordingstatus(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_recordinputs(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getsaveinfo(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-
-// Binding properties.
-HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-int mapstrings_binding(ScriptVariant **varlist, int paramCount);
-
 
 int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_systemvariant(ScriptVariant **varlist, int paramCount);

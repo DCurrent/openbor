@@ -28,7 +28,6 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
-
     int                     result      = S_OK; // Success or error?
     s_anim                  *handle     = NULL; // Property handle.
     e_animation_properties  property    = 0;    // Property argument.

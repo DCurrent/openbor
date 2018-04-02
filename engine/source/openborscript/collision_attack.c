@@ -311,40 +311,19 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
             (*pretvar)->lVal = (LONG)handle->maptime;
             break;
 
-        case ATTACK_PROP_POSITION_X:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.x;
-            break;
-
-        case ATTACK_PROP_POSITION_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.y;
-            break;
-
         case ATTACK_PROP_REACTION_FALL_FORCE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->attack_drop;
             break;
 
-        case ATTACK_PROP_REACTION_FALL_VELOCITY_X:
+        case ATTACK_PROP_REACTION_FALL_VELOCITY:
 
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->dropv.x;
-            break;
+            // Get memory address of sub structure
+            // and pass it on as a handle.
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)&handle->dropv;
 
-        case ATTACK_PROP_REACTION_FALL_VELOCITY_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->dropv.y;
-            break;
-
-        case ATTACK_PROP_REACTION_FALL_VELOCITY_Z:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->dropv.z;
             break;
 
         case ATTACK_PROP_REACTION_FREEZE_MODE:
@@ -407,30 +386,6 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
             (*pretvar)->lVal = (LONG)handle->sealtime;
             break;
 
-        case ATTACK_PROP_SIZE_X:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.width;
-            break;
-
-        case ATTACK_PROP_SIZE_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.height;
-            break;
-
-        case ATTACK_PROP_SIZE_Z_1:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.z1;
-            break;
-
-        case ATTACK_PROP_SIZE_Z_2:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            //(*pretvar)->lVal = (LONG)handle->coords.z2;
-            break;
-
         case ATTACK_PROP_STAYDOWN_RISE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -488,7 +443,6 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
     // Value carriers to apply on properties after
     // taken from argument.
     int     temp_int;
-    DOUBLE  temp_dbl;
 
     // Verify incoming arguments. There must be a
     // pointer for the animation handle, an integer
@@ -685,22 +639,6 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
             }
             break;
 
-        case ATTACK_PROP_POSITION_X:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.x = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_POSITION_Y:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.y = temp_int;
-            }
-            break;
-
         case ATTACK_PROP_REACTION_FALL_FORCE:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -710,28 +648,12 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case ATTACK_PROP_REACTION_FALL_VELOCITY_X:
+        case ATTACK_PROP_REACTION_FALL_VELOCITY:
 
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_dbl)))
-            {
-                handle->dropv.x = temp_dbl;
-            }
-            break;
+            // Reassign sub structure memory address
+            // to new handle.
+            handle->dropv = *(s_axis_f *)varlist[ARG_VALUE]->ptrVal;
 
-        case ATTACK_PROP_REACTION_FALL_VELOCITY_Y:
-
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_dbl)))
-            {
-                handle->dropv.y = temp_dbl;
-            }
-            break;
-
-        case ATTACK_PROP_REACTION_FALL_VELOCITY_Z:
-
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_dbl)))
-            {
-                handle->dropv.y = temp_dbl;
-            }
             break;
 
         case ATTACK_PROP_REACTION_FREEZE_MODE:
@@ -811,38 +733,6 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->sealtime = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_SIZE_X:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.width = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_SIZE_Y:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.height = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_SIZE_Z_1:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.z1 = temp_int;
-            }
-            break;
-
-        case ATTACK_PROP_SIZE_Z_2:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                //handle->coords.z2 = temp_int;
             }
             break;
 
