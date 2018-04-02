@@ -62,3 +62,77 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
     #undef ARG_MINIMUM
     #undef ARG_PROPERTY
 }
+
+
+// Caskey, Damon  V.
+// 2018-04-02
+//
+// Return an entity property. Requires
+// an entity handle and property name to
+// access.
+HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME       "openbor_get_entity_property(void handle, char property)"
+    #define ARG_MINIMUM     2   // Minimum required arguments.
+    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY    1   // Property to access.
+
+    entity                  *handle     = NULL; // Property handle.
+    e_entity_properties    property    = 0;    // Property argument.
+
+    // Clear pass by reference argument used to send
+    // property data back to calling script.     .
+    ScriptVariant_Clear(*pretvar);
+
+    // Map string property name to a
+    // matching integer constant.
+    mapstrings_binding(varlist, paramCount);
+
+    // Verify arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property constant is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        // Populate local vars for readability.
+        handle      = (entity *)varlist[ARG_HANDLE]->ptrVal;
+        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+    }
+
+    switch(property)
+    {
+        case _entity_position_alternate_base:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->altbase;
+
+            break;
+
+        default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+
+            break;
+    }
+
+    return S_OK;
+
+    error_local:
+
+    printf("You must provide a valid handle and property name: " SELF_NAME "\n");
+    *pretvar = NULL;
+
+    return E_FAIL;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_INDEX
+}
