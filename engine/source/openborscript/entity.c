@@ -216,3 +216,73 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
     #undef ARG_HANDLE
     #undef ARG_INDEX
 }
+
+// Caskey, Damon  V.
+// 2018-04-03
+//
+// Mutate an entity property. Requires
+// the entity handle, a string property
+// name, and new value.
+HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME           "openbor_set_entity_property(void handle, char property, value)"
+    #define ARG_MINIMUM         3   // Minimum required arguments.
+    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY        1   // Property to access.
+    #define ARG_VALUE           2   // New value to apply.
+
+    int                 result      = S_OK; // Success or error?
+    entity              *handle     = NULL; // Property handle.
+    e_entity_properties property    = 0;    // Property to access.
+
+    // Value carriers to apply on properties after
+    // taken from argument.
+    int         temp_int;
+
+    // Map string property name to a
+    // matching integer constant.
+    mapstrings_binding(varlist, paramCount);
+
+    // Verify incoming arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+
+    // Populate local handle and property vars.
+    handle      = (entity *)varlist[ARG_HANDLE]->ptrVal;
+    property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+
+    // Which property to modify?
+    switch(property)
+    {
+
+        default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+
+            break;
+    }
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid handle, property, and new value: " SELF_NAME "\n");
+
+    result = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_PROPERTY
+    #undef ARG_VALUE
+}
