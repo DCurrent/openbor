@@ -237,7 +237,8 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
     // Value carriers to apply on properties after
     // taken from argument.
-    int         temp_int;
+    int temp_int;
+    int temp_float;
 
     // Map string property name to a
     // matching integer constant.
@@ -297,7 +298,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
         case _entity_position_alternate_base:
 
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
                 handle->altbase = temp_int;
             }
@@ -306,9 +307,18 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
         case _entity_position_base:
 
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
                 handle->base = temp_int;
+            }
+
+            break;
+
+        case _entity_position_direction:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->direction = temp_int;
             }
 
             break;
