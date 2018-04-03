@@ -25,7 +25,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "animation_frame",
         "arrow_on",
         "attacking",
-        "attack_id",
+        "attack_id_outgoing",
         "position_alternate_base",
         "position_base",
         "position_direction",
@@ -314,15 +314,6 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->attacking = temp_int;
-            }
-
-            break;
-
-        case _entity_attack_id:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->attack_id = temp_int;
             }
 
             break;
