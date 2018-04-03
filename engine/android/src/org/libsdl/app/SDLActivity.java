@@ -391,7 +391,7 @@ public class SDLActivity extends Activity {
         // Reset everything in case the user re opens the app
         SDLActivity.initialize();
     }
-	
+
 	public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
@@ -464,7 +464,7 @@ public class SDLActivity extends Activity {
                     // FIXME: Why aren't we enabling sensor input at start?
 
                     mSDLThread = new Thread(new SDLMain(), "SDLThread");
-                    mSurface.enableSensor(Sensor.TYPE_ACCELEROMETER, false); // default: true
+                    mSurface.enableSensor(Sensor.TYPE_ACCELEROMETER, true);
                     mSDLThread.start();
                 }
 
@@ -1219,7 +1219,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     }
 
     public void handlePause() {
-        //enableSensor(Sensor.TYPE_ACCELEROMETER, false);
+        enableSensor(Sensor.TYPE_ACCELEROMETER, false);
     }
 
     public void handleResume() {
@@ -1228,7 +1228,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         requestFocus();
         setOnKeyListener(this);
         setOnTouchListener(this);
-        //enableSensor(Sensor.TYPE_ACCELEROMETER, true);
+        enableSensor(Sensor.TYPE_ACCELEROMETER, true);
     }
 
     public Surface getNativeSurface() {
