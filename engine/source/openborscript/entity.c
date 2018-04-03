@@ -262,6 +262,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
     switch(property)
     {
 
+        case _entity_animation_animating:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->animating = temp_int;
+            }
+
+            break;
+
         default:
 
             printf("Unsupported property.\n");
