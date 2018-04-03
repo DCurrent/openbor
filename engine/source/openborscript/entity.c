@@ -17,6 +17,7 @@ typedef enum
     _entity_animation_collection,
     _entity_animation_frame,
     _entity_arrow_on,
+    _entity_attacking,
     _entity_position_alternate_base,
     _entity_position_base,
     _entity_position_direction,
