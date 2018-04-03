@@ -131,6 +131,20 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
+        case _entity_animation_collection:
+
+            // Verify entity has an animation collection
+            // before getting the pointer. All entities
+            // should, but there might be rare special
+            // cases depending on future development.
+            if(handle->animation)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->animation;
+            }
+
+            break;
+
         case _entity_position_alternate_base:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
