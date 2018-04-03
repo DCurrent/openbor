@@ -300,7 +300,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
-                handle->altbase = temp_int;
+                handle->altbase = temp_float;
             }
 
             break;
@@ -309,7 +309,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
-                handle->base = temp_int;
+                handle->base = temp_float;
             }
 
             break;
@@ -327,7 +327,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
-                handle->position.x = temp_int;
+                handle->position.x = temp_float;
             }
 
             break;
@@ -336,6 +336,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
+                handle->position.y = temp_float;
             }
 
             break;
