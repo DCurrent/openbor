@@ -341,6 +341,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
+        case _entity_position_z:
+
+            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+            {
+                handle->position.z = temp_float;
+            }
+
+            break;
+
         default:
 
             printf("Unsupported property.\n");
