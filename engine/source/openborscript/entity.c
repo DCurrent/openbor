@@ -280,6 +280,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
+        case _entity_animation_collection:
+
+            handle->ent = (s_anim **)varlist[ARG_VALUE]->ptrVal;
+
+            break;
+
         default:
 
             printf("Unsupported property.\n");
