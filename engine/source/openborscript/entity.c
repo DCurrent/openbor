@@ -12,6 +12,7 @@
 
 typedef enum
 {
+    _entity_animation_animating,
     _entity_position_alternate_base,
     _entity_position_base,
     _entity_position_direction,
@@ -35,6 +36,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 
     static const char *proplist[] =
     {
+        "animation_animating",
         "position_alternate_base",
         "position_base",
         "position_direction",
