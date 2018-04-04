@@ -19274,7 +19274,7 @@ void do_attack(entity *e)
 
     // Every attack gets a unique ID to make sure no one
     // gets hit more than once by the same attack
-    current_attack_id = e->attack_id;
+    current_attack_id = e->attack_id_outgoing;
 
     if(!current_attack_id)
     {
@@ -19283,7 +19283,7 @@ void do_attack(entity *e)
         {
             new_attack_id = 1;
         }
-        e->attack_id = current_attack_id = new_attack_id;
+        e->attack_id_outgoing = current_attack_id = new_attack_id;
     }
 
 
@@ -20661,13 +20661,13 @@ void check_attack()
     // a normal fall
     if(self->falling && !self->projectile)
     {
-        self->attack_id = 0;
+        self->attack_id_outgoing = 0;
         return;
     }
     // on ground
     if(self->drop && !self->falling)
     {
-        self->attack_id = 0;
+        self->attack_id_outgoing = 0;
         return;
     }
 
@@ -20678,7 +20678,7 @@ void check_attack()
                 do_attack(self);
         return;
     }
-    self->attack_id = 0;
+    self->attack_id_outgoing = 0;
 }
 
 
@@ -23756,8 +23756,8 @@ void checkdamageonlanding()
         lasthit.position.y = self->position.y;
         lasthit.position.z = self->position.z;
 
-        execute_ondoattack_script(self, other, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, other->attack_id, attack.tag);	//Execute on defender.
-        execute_ondoattack_script(other, self, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 1, other->attack_id, attack.tag);	//Execute on attacker.
+        execute_ondoattack_script(self, other, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, other->attack_id_outgoing, attack.tag);	//Execute on defender.
+        execute_ondoattack_script(other, self, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 1, other->attack_id_outgoing, attack.tag);	//Execute on attacker.
 
         if(lasthit.confirm)
         {
@@ -26646,7 +26646,7 @@ int biker_move()
     if((self->direction == DIRECTION_RIGHT) ? (self->position.x > advancex + (videomodes.hRes + 200)) : (self->position.x < advancex - 200))
     {
         self->direction = !self->direction;
-        self->attack_id = 0;
+        self->attack_id_outgoing = 0;
         self->position.z = (float)(PLAYER_MIN_Z + randf((float)(PLAYER_MAX_Z - PLAYER_MIN_Z)));
         if(SAMPLE_BIKE >= 0)
         {
