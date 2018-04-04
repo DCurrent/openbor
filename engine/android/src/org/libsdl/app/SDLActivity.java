@@ -76,6 +76,7 @@ public class SDLActivity extends Activity {
     protected static ViewGroup mLayout;
     protected static SDLClipboardHandler mClipboardHandler;
 	protected static WakeLock wakeLock;
+	protected static View decorView;
 
 
     // This is what SDL runs in. It invokes SDL_main(), eventually
@@ -228,7 +229,23 @@ public class SDLActivity extends Activity {
 
         setContentView(mLayout);
         setWindowStyle(false);
+
 		CopyPak("BOR");
+
+        //White Dragon: hide navigation bar programmatically
+        SDLActivity.decorView = getWindow().getDecorView();
+        hideSystemUI();
+
+        SDLActivity.decorView.setOnSystemUiVisibilityChangeListener
+                (new View.OnSystemUiVisibilityChangeListener() {
+            @Override
+            public void onSystemUiVisibilityChange(int visibility) {
+                if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+                    hideSystemUI();
+                }
+            }
+        });
+
 
         //CRxTRDude - Added FLAG_KEEP_SCREEN_ON to prevent screen timeout.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -251,6 +268,20 @@ public class SDLActivity extends Activity {
     }
 
     public static native void setRootDir(String dir);
+
+    private void hideSystemUI() {
+        // Set the IMMERSIVE flag.
+        // Set the content to appear under the system bars so that the content
+        // doesn't resize when the system bars hide and show.
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
+                | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
+                | View.SYSTEM_UI_FLAG_IMMERSIVE);
+    }
+
 
     private void CopyPak(String pakName)
     {
@@ -334,6 +365,8 @@ public class SDLActivity extends Activity {
         SDLActivity.mHasFocus = hasFocus;
         if (hasFocus) {
 			mNextNativeState = NativeState.RESUMED;
+
+            hideSystemUI();
         } else {
 			mNextNativeState = NativeState.PAUSED;
         }
