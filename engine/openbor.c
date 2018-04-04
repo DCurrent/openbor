@@ -26803,6 +26803,9 @@ int arrow_move()
 // for common boomerang types
 int boomerang_move()
 {
+    #define OFF_SCREEN_LIMIT    80
+    #define GRABFORCE           -99999
+
     if(!self->modeldata.nomove)
     {
         float acc, distx, current_distx;
@@ -26839,16 +26842,23 @@ int boomerang_move()
             self->position.y = self->parent->position.y;
 
             self->modeldata.antigrab = 1;
-            self->modeldata.grabforce = -999999;
+            self->modeldata.grabforce = GRABFORCE;
 
             ++self->boomerang_loop;
         }
         if(self->velocity.z != 0) self->velocity.z = 0;
 
-        if( (!self->parent && (self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80))) )
+        // If our boomerang has no parent and gets
+        // too far off the screen, then we will
+        // destroy it and exit the function.
+        if(!self->parent)
         {
-            kill(self);
-            return 0;
+            if(self->position.x < advancex - OFF_SCREEN_LIMIT ||
+               self->position.x > advancex + (videomodes.hRes + OFF_SCREEN_LIMIT))
+            {
+                kill(self);
+                return 0;
+            }
         }
 
         if(self->parent)
@@ -26961,6 +26971,9 @@ int boomerang_move()
     }
 
     return 1;
+
+    #undef OFF_SCREEN_LIMIT
+    #undef GRABFORCE
 }
 
 // for common bomb types
