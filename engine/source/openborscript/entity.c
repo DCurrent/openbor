@@ -29,6 +29,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "attack_id_outgoing",
         "autokill",
         "binding",
+        "blink",
         "position_alternate_base",
         "position_base",
         "position_direction",
