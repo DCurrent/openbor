@@ -3427,7 +3427,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_attackid:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->attack_id;
+        (*pretvar)->lVal = (LONG)ent->attack_id_outgoing;
         break;
     }
     case _ep_autokill:
@@ -5568,7 +5568,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->attack_id = (int)ltemp;
+            ent->attack_id_outgoing = (int)ltemp;
         }
         break;
     }
