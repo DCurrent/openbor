@@ -19372,7 +19372,7 @@ void do_attack(entity *e)
         }
 
         // Attack IDs must be different.
-        if(target->hit_by_attack_id == current_attack_id && !attack->ignore_attack_id)
+        if(target->attack_id_incoming == current_attack_id && !attack->ignore_attack_id)
         {
             continue;
         }
@@ -19636,7 +19636,7 @@ void do_attack(entity *e)
                             self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
                         }
                         ent_set_anim(self, current_follow_id, 0);
-                        self->hit_by_attack_id = current_attack_id;
+                        self->attack_id_incoming = current_attack_id;
                     }
 
                     if(!attack->no_flash)
@@ -19757,7 +19757,7 @@ void do_attack(entity *e)
                 //followed = 1; // quit loop, animation is changed
             }//end of if #055
 
-            self->hit_by_attack_id = current_attack_id;
+            self->attack_id_incoming = current_attack_id;
             if(self == def)
             {
                 self->blocking = didblock;    // yeah, if get hit, stop blocking
