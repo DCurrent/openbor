@@ -30,6 +30,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "autokill",
         "binding",
         "blink",
+        "blocking",
         "position_alternate_base",
         "position_base",
         "position_direction",
