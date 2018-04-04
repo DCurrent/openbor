@@ -28,6 +28,7 @@ extern int videoMode;
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_Texture *texture = NULL;
+SDL_Texture *texture_base = NULL;
 
 //For Android - Textures and a surface for the buttons
 SDL_Texture *buttons = NULL;
@@ -356,6 +357,11 @@ int video_set_mode(s_videomodes videomodes)
     assert(videomodes.pixel == 2 || videomodes.pixel == 4);
 
     //destroy all
+    if(texture_base)
+    {
+        SDL_DestroyTexture(texture_base);
+        texture_base = NULL;
+    }
     if(texture)
     {
         SDL_DestroyTexture(texture);
@@ -398,6 +404,20 @@ int video_set_mode(s_videomodes videomodes)
   	textureWidth = videomodes.hRes;
   	textureHeight = videomodes.vRes;
 
+    if(!texture_base)
+    {
+        SDL_Surface *tmp_surface = SDL_CreateRGBSurface(0, 800, 480, 32, 0, 0, 0, 0);
+        SDL_FillRect(tmp_surface, NULL, SDL_MapRGB(tmp_surface->format, 0, 0, 0));
+        SDL_SetSurfaceBlendMode(tmp_surface, SDL_BLENDMODE_NONE);
+        if(!tmp_surface || !(texture_base = SDL_CreateTextureFromSurface(renderer, tmp_surface)))
+        {
+            printf("error: %s\n", SDL_GetError());
+            return 0;
+        }
+        SDL_FreeSurface(tmp_surface);
+        tmp_surface = NULL;
+    }
+
     if(!(texture = SDL_CreateTexture(renderer,  pixelformats[videomodes.pixel-1], SDL_TEXTUREACCESS_STREAMING, textureWidth, textureHeight)))
     {
         printf("error: %s\n", SDL_GetError());
@@ -408,14 +428,14 @@ int video_set_mode(s_videomodes videomodes)
 
     if(!buttons)
     {
-        SDL_Surface *bscreen = pngToSurface(buttonpng);
-        if(!bscreen || !(buttons = SDL_CreateTextureFromSurface(renderer, bscreen)))
+        SDL_Surface *btn_screen = pngToSurface(buttonpng);
+        if(!btn_screen || !(buttons = SDL_CreateTextureFromSurface(renderer, btn_screen)))
         {
             printf("error: %s\n", SDL_GetError());
             return 0;
         }
-        SDL_FreeSurface(bscreen);
-        bscreen = NULL;
+        SDL_FreeSurface(btn_screen);
+        btn_screen = NULL;
     }
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -434,6 +454,13 @@ void blit()
     int hide_touch;
     extern int hide_t;
 
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    SDL_RenderClear(renderer);
+
+    SDL_RenderSetLogicalSize(renderer, 0, 0);
+    SDL_SetTextureBlendMode(texture_base, SDL_BLENDMODE_NONE);
+    SDL_RenderCopy(renderer, texture_base, NULL, NULL);
+
     if(stretch)
     {
         SDL_RenderSetLogicalSize(renderer, 0, 0);
@@ -442,9 +469,6 @@ void blit()
     {
         SDL_RenderSetLogicalSize(renderer, textureWidth, textureHeight);
     }
-
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-    SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
 
     if(brightness > 0)
