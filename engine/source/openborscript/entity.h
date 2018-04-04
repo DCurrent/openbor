@@ -22,6 +22,7 @@ typedef enum
     _entity_attack_id_outgoing,
     _entity_autokill,
     _entity_binding,
+    _entity_blink,
     _entity_position_alternate_base,
     _entity_position_base,
     _entity_position_direction,
