@@ -407,9 +407,14 @@ int video_set_mode(s_videomodes videomodes)
     if(!texture_base)
     {
         SDL_Surface *tmp_surface = SDL_CreateRGBSurface(0, 800, 480, 32, 0, 0, 0, 0);
+        if(!tmp_surface)
+        {
+            printf("error: %s\n", SDL_GetError());
+            return 0;
+        }
         SDL_FillRect(tmp_surface, NULL, SDL_MapRGB(tmp_surface->format, 0, 0, 0));
         SDL_SetSurfaceBlendMode(tmp_surface, SDL_BLENDMODE_NONE);
-        if(!tmp_surface || !(texture_base = SDL_CreateTextureFromSurface(renderer, tmp_surface)))
+        if(!(texture_base = SDL_CreateTextureFromSurface(renderer, tmp_surface)))
         {
             printf("error: %s\n", SDL_GetError());
             return 0;
