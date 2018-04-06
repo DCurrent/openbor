@@ -2715,6 +2715,7 @@ void ents_link(entity *e1, entity *e2);
 void kill(entity *victim);
 void kill_all();
 
+void boomerang_catch(entity *entity);
 void boomerang_initialize(entity *entity);
 int boomerang_move();
 void sort_invert(entity *entity);
