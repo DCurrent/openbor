@@ -26803,6 +26803,64 @@ int arrow_move()
 }
 
 // Caskey, Damon V.
+// 2-18-04-06
+//
+// Invert current sorting position vs. parent.
+void sort_invert(entity *entity)
+{
+    if(entity->sortid <= entity->parent->sortid)
+    {
+        entity->sortid = entity->parent->sortid + 1;
+    }
+    else
+    {
+        entity->sortid = entity->parent->sortid - 1;
+    }
+}
+
+// Caskey, Damon V.
+// 2018-04-06
+//
+// Broken off from White Dragon's boomerang_move() function.
+// Triggers a catch animation while destroying
+// boomerang projectile if the boomerang is returning
+// and within range of catch animation.
+void boomerang_catch(entity *entity, float distance_x_current)
+{
+    if( (self->position.x >= self->parent->position.x && self->parent->direction == DIRECTION_RIGHT && self->velocity.x <= 0) ||
+                (self->position.x <= self->parent->position.x && self->parent->direction == DIRECTION_LEFT  && self->velocity.x >= 0) )
+    {
+       if(!self->parent->inpain && !self->parent->falling && !self->parent->dead && self->boomerang_loop > 1 )
+       {
+            if(self->parent->position.y <= self->parent->base && validanim(self->parent, ANI_GETBOOMERANG))
+            {
+                if( distance_x_current >= self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.min.x && distance_x_current <= self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.max.x )
+                {
+                    self->parent->takeaction = common_animation_normal;
+                    self->parent->attacking = 0;
+                    self->parent->idling = 0;
+                    ent_set_anim(self->parent, ANI_GETBOOMERANG, 0);
+                    kill(self);
+                    return 1;
+                }
+            }
+            else if(inair(self->parent) && validanim(self->parent, ANI_GETBOOMERANGINAIR))
+            {
+                if( distance_x_current >= self->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.min.x && distance_x_current <= self->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.max.x )
+                {
+                    self->parent->takeaction = common_animation_normal;
+                    self->parent->attacking = 0;
+                    self->parent->idling = 0;
+                    ent_set_anim(self->parent, ANI_GETBOOMERANGINAIR, 0);
+                    kill(self);
+                    return 1;
+                }
+            }
+        }
+    }
+}
+
+// Caskey, Damon V.
 // 2018-04-06
 //
 // Offloaded from boomerang_move().
@@ -26872,22 +26930,6 @@ void boomerang_initialize(entity *entity)
 
     #undef GRABFORCE
     #undef OFF_SCREEN_LIMIT
-}
-
-// Caskey, Damon V.
-// 2-18-04-06
-//
-// Invert current sorting position vs. parent.
-void sort_invert(entity *entity)
-{
-    if(entity->sortid <= entity->parent->sortid)
-    {
-        entity->sortid = entity->parent->sortid + 1;
-    }
-    else
-    {
-        entity->sortid = entity->parent->sortid - 1;
-    }
 }
 
 // for common boomerang types
@@ -27048,39 +27090,8 @@ int boomerang_move()
                 }
             }
 
-            // grab the boomerang
-            if( (self->position.x >= self->parent->position.x && self->parent->direction == DIRECTION_RIGHT && self->velocity.x <= 0) ||
-                (self->position.x <= self->parent->position.x && self->parent->direction == DIRECTION_LEFT  && self->velocity.x >= 0) )
-            {
-               if( !self->parent->inpain && !self->parent->falling && !self->parent->dead && self->boomerang_loop > 1 )
-               {
-                    if(self->parent->position.y <= self->parent->base && validanim(self->parent, ANI_GETBOOMERANG))
-                    {
-                        if( distance_x_current >= self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.min.x && distance_x_current <= self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.max.x )
-                        {
-                            self->parent->takeaction = common_animation_normal;
-                            self->parent->attacking = 0;
-                            self->parent->idling = 0;
-                            ent_set_anim(self->parent, ANI_GETBOOMERANG, 0);
-                            kill(self);
-                            return 1;
-                        }
-                    }
-                    else if(inair(self->parent) && validanim(self->parent, ANI_GETBOOMERANGINAIR))
-                    {
-                        if( distance_x_current >= self->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.min.x && distance_x_current <= self->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.max.x )
-                        {
-                            self->parent->takeaction = common_animation_normal;
-                            self->parent->attacking = 0;
-                            self->parent->idling = 0;
-                            ent_set_anim(self->parent, ANI_GETBOOMERANGINAIR, 0);
-                            kill(self);
-                            return 1;
-                        }
-                    }
-                }
-            }
-
+            // Catch the boomerang.
+            boomerang_catch(self, distance_x_current);
 
             //debug_printf("cur_distx:%f velx:%f",distance_x_current,self->velocity.x);
             //debug_printf("acceleration:%f speed:%f",acceleration,self->modeldata.speed);
