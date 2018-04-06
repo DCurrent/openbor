@@ -26877,9 +26877,14 @@ void boomerang_initialize(entity *entity)
 // for common boomerang types
 int boomerang_move()
 {
+    float acceleration;         // Rate of velocity difference per update.
+    float distance_x_max;       // Maximum X axis distance allowed from parent.
+    float distance_x_current;   // Current X axis distance from parent.
+    float velocity_x_next;      // New velocity to apply after acceleration.
+
     if(!self->modeldata.nomove)
     {
-        float acceleration, distx, current_distx, acceleration_difference;
+        float acceleration, distance_x_max, distance_x_current, velocity_x_next;
 
         // Populate local vars with acceleration and
         // maximum horizontal distance from modeldata.
@@ -26899,11 +26904,11 @@ int boomerang_move()
         // Maximum X distance from parent.
         if(self->modeldata.boomerang_distx > 0)
         {
-            distx = self->modeldata.boomerang_distx;
+            distance_x_max = self->modeldata.boomerang_distx;
         }
         else
         {
-            distx = videomodes.hRes/(3);
+            distance_x_max = videomodes.hRes/(3);
         }
 
         // If not moving on X axis and loop count
@@ -26935,7 +26940,7 @@ int boomerang_move()
 
         if(self->parent)
         {
-            current_distx = diff(self->position.x,self->parent->position.x);
+            distance_x_current = diff(self->position.x,self->parent->position.x);
             self->position.z = self->parent->position.z;
             self->position.y = self->parent->position.y;
 
@@ -26945,12 +26950,12 @@ int boomerang_move()
             if (self->position.x >= self->parent->position.x)
             {
                 // Exceeded maximum distance from parent?
-                if (current_distx >= distx)
+                if (distance_x_current >= distance_x_max)
                 {
                     // Have we stopped accelerating?
-                    acceleration_difference = self->velocity.x - acceleration;
+                    velocity_x_next = self->velocity.x - acceleration;
 
-                    if(acceleration_difference <= 0)
+                    if(velocity_x_next <= 0)
                     {
                         // Moving right along X axis?
                         if(self->velocity.x > 0)
@@ -26973,13 +26978,13 @@ int boomerang_move()
                         }
                     }
 
-                    if(acceleration_difference < -self->modeldata.speed)
+                    if(velocity_x_next < -self->modeldata.speed)
                     {
                         self->velocity.x = -self->modeldata.speed;
                     }
                     else
                     {
-                        self->velocity.x = acceleration_difference;
+                        self->velocity.x = velocity_x_next;
                     }
                 }
                 else if (self->velocity.x <= 0)
@@ -26989,7 +26994,7 @@ int boomerang_move()
             }
             else if (self->position.x <= self->parent->position.x)
             {
-                if ( current_distx >= distx )
+                if ( distance_x_current >= distance_x_max )
                 {
                     if(self->velocity.x + acceleration >= 0 && self->velocity.x < 0)
                     {
@@ -27010,7 +27015,7 @@ int boomerang_move()
                {
                     if(self->parent->position.y <= self->parent->base && validanim(self->parent, ANI_GETBOOMERANG))
                     {
-                        if( current_distx >= self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.min.x && current_distx <= self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.max.x )
+                        if( distance_x_current >= self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.min.x && distance_x_current <= self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.max.x )
                         {
                             self->parent->takeaction = common_animation_normal;
                             self->parent->attacking = 0;
@@ -27022,7 +27027,7 @@ int boomerang_move()
                     }
                     else if(inair(self->parent) && validanim(self->parent, ANI_GETBOOMERANGINAIR))
                     {
-                        if( current_distx >= self->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.min.x && current_distx <= self->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.max.x )
+                        if( distance_x_current >= self->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.min.x && distance_x_current <= self->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.max.x )
                         {
                             self->parent->takeaction = common_animation_normal;
                             self->parent->attacking = 0;
@@ -27036,7 +27041,7 @@ int boomerang_move()
             }
 
 
-            //debug_printf("cur_distx:%f velx:%f",current_distx,self->velocity.x);
+            //debug_printf("cur_distx:%f velx:%f",distance_x_current,self->velocity.x);
             //debug_printf("acceleration:%f speed:%f",acceleration,self->modeldata.speed);
             //debug_printf("boomerang_loop:%d",self->boomerang_loop);
             //debug_printf("sortid:%d",self->sortid);
