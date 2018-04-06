@@ -26874,6 +26874,22 @@ void boomerang_initialize(entity *entity)
     #undef OFF_SCREEN_LIMIT
 }
 
+// Caskey, Damon V.
+// 2-18-04-06
+//
+// Invert current sorting position vs. parent.
+void sort_invert(entity *entity)
+{
+    if(entity->sortid <= entity->parent->sortid)
+    {
+        entity->sortid = entity->parent->sortid + 1;
+    }
+    else
+    {
+        entity->sortid = entity->parent->sortid - 1;
+    }
+}
+
 // for common boomerang types
 int boomerang_move()
 {
@@ -26965,17 +26981,7 @@ int boomerang_move()
                             ++self->boomerang_loop;
 
                             // Reverse sorting in relation to parent.
-                            // Not sure what the point of this is. presumably,
-                            // it is to simulate a slightly lateral veering
-                            // as the boomerang reverses direction.
-                            if(self->sortid <= self->parent->sortid)
-                            {
-                                self->sortid = self->parent->sortid + 1;
-                            }
-                            else
-                            {
-                                self->sortid = self->parent->sortid - 1;
-                            }
+                            sort_invert(self);
                         }
                     }
 
@@ -27023,14 +27029,8 @@ int boomerang_move()
                     {
                         ++self->boomerang_loop;
 
-                        if(self->sortid <= self->parent->sortid)
-                        {
-                            self->sortid = self->parent->sortid + 1;
-                        }
-                        else
-                        {
-                            self->sortid = self->parent->sortid - 1;
-                        }
+                        // Reverse sorting in relation to parent.
+                        sort_invert(self);
                     }
 
                     self->velocity.x = (velocity_x_accelerated > self->modeldata.speed)?(self->modeldata.speed):(velocity_x_accelerated);
