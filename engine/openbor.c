@@ -26823,8 +26823,19 @@ int boomerang_move()
             if(self->parent)
             {
                 self->modeldata.hostile &= ~(self->parent->modeldata.type);
-                if (self->parent->modeldata.type == TYPE_PLAYER) self->modeldata.hostile |= TYPE_ENEMY;
-                else if(self->parent->modeldata.type == TYPE_ENEMY) self->modeldata.hostile |= (TYPE_PLAYER | TYPE_NPC);
+
+                // If we were thrown by an enemy or player faction
+                // then make sure we're hostile to the opposite
+                // faction.
+                if (self->parent->modeldata.type == TYPE_PLAYER
+                    || self->parent->modeldata.type == TYPE_NPC)
+                {
+                    self->modeldata.hostile |= TYPE_ENEMY;
+                }
+                else if(self->parent->modeldata.type == TYPE_ENEMY)
+                {
+                    self->modeldata.hostile |= (TYPE_PLAYER | TYPE_NPC);
+                }
 
                 self->direction = self->parent->direction;
                 self->sortid = self->parent->sortid + 1;
@@ -26846,6 +26857,7 @@ int boomerang_move()
 
             ++self->boomerang_loop;
         }
+
         if(self->velocity.z != 0) self->velocity.z = 0;
 
         // If our boomerang has no parent and gets
