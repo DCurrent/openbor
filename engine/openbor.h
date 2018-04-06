@@ -2715,6 +2715,8 @@ void ents_link(entity *e1, entity *e2);
 void kill(entity *victim);
 void kill_all();
 
+int projectile_wall_deflect(entity *entity);
+
 void boomerang_catch(entity *entity, float distance_x_current);
 void boomerang_initialize(entity *entity);
 int boomerang_move();
