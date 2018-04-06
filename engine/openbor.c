@@ -26884,8 +26884,6 @@ int boomerang_move()
 
     if(!self->modeldata.nomove)
     {
-        float acceleration, distance_x_max, distance_x_current, velocity_x_next;
-
         // Populate local vars with acceleration and
         // maximum horizontal distance from modeldata.
         // If there is no model data defined then we'll
@@ -26949,12 +26947,14 @@ int boomerang_move()
             // Right of parent on X axis?
             if (self->position.x >= self->parent->position.x)
             {
+                // Get a possible X velocity to apply that
+                // will slightly decelerate us.
+                velocity_x_next = self->velocity.x - acceleration;
+
                 // Exceeded maximum distance from parent?
                 if (distance_x_current >= distance_x_max)
                 {
                     // Have we stopped accelerating?
-                    velocity_x_next = self->velocity.x - acceleration;
-
                     if(velocity_x_next <= 0)
                     {
                         // Moving right along X axis?
@@ -27001,7 +27001,14 @@ int boomerang_move()
                 }
                 else if (self->velocity.x <= 0)
                 {
-                    self->velocity.x = (self->velocity.x-acceleration < -self->modeldata.speed)?(-self->modeldata.speed):(self->velocity.x-acceleration);
+                    if(velocity_x_next < -self->modeldata.speed)
+                    {
+                        self->velocity.x = -self->modeldata.speed;
+                    }
+                    else
+                    {
+                        self->velocity.x = velocity_x_next;
+                    }
                 }
             }
             else if (self->position.x <= self->parent->position.x)
