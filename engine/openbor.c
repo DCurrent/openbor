@@ -26885,6 +26885,8 @@ int boomerang_move()
         // maximum horizontal distance from modeldata.
         // If there is no model data defined then we'll
         // need to use some default values instead.
+
+        // Acceleration.
         if(self->modeldata.boomerang_acc != 0)
         {
             acceleration = self->modeldata.boomerang_acc;
@@ -26894,7 +26896,7 @@ int boomerang_move()
             acceleration = self->modeldata.speed/(GAME_SPEED/20);
         }
 
-        // Apply
+        // Maximum X distance from parent.
         if(self->modeldata.boomerang_distx > 0)
         {
             distx = self->modeldata.boomerang_distx;
