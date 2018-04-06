@@ -26879,7 +26879,7 @@ int boomerang_move()
 {
     if(!self->modeldata.nomove)
     {
-        float acceleration, distx, current_distx;
+        float acceleration, distx, current_distx, acceleration_difference;
 
         // Populate local vars with acceleration and
         // maximum horizontal distance from modeldata.
@@ -26939,20 +26939,46 @@ int boomerang_move()
             self->position.z = self->parent->position.z;
             self->position.y = self->parent->position.y;
 
-            // moving
+            // Movement.
+
+            // Right of parent on X axis?
             if (self->position.x >= self->parent->position.x)
             {
-                if ( current_distx >= distx )
+                // Exceeded maximum distance from parent?
+                if (current_distx >= distx)
                 {
-                    if(self->velocity.x - acceleration <= 0 && self->velocity.x > 0)
+                    // Have we stopped accelerating?
+                    acceleration_difference = self->velocity.x - acceleration;
+
+                    if(acceleration_difference <= 0)
                     {
-                        ++self->boomerang_loop;
-                        if(self->sortid <= self->parent->sortid) self->sortid = self->parent->sortid + 1;
-                        else self->sortid = self->parent->sortid - 1;
+                        // Moving right along X axis?
+                        if(self->velocity.x > 0)
+                        {
+                            // Increment tracking loop
+                            ++self->boomerang_loop;
+
+                            // Reverse sorting in relation to parent.
+                            // Not sure what the point of this is. presumably,
+                            // it is to simulate a slightly lateral veering
+                            // as the boomerang reverses direction.
+                            if(self->sortid <= self->parent->sortid)
+                            {
+                                self->sortid = self->parent->sortid + 1;
+                            }
+                            else
+                            {
+                                self->sortid = self->parent->sortid - 1;
+                            }
+                        }
                     }
+
                     self->velocity.x = (self->velocity.x-acceleration < -self->modeldata.speed)?(-self->modeldata.speed):(self->velocity.x-acceleration);
                 }
-                else if (self->velocity.x <= 0) self->velocity.x = (self->velocity.x-acceleration < -self->modeldata.speed)?(-self->modeldata.speed):(self->velocity.x-acceleration);
+                else if (self->velocity.x <= 0)
+                {
+                    self->velocity.x = (self->velocity.x-acceleration < -self->modeldata.speed)?(-self->modeldata.speed):(self->velocity.x-acceleration);
+                }
             }
             else if (self->position.x <= self->parent->position.x)
             {
