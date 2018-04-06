@@ -27035,7 +27035,17 @@ int boomerang_move()
 
                     self->velocity.x = (velocity_x_accelerated > self->modeldata.speed)?(self->modeldata.speed):(velocity_x_accelerated);
                 }
-                else if (self->velocity.x >= 0) self->velocity.x = (velocity_x_accelerated > self->modeldata.speed)?(self->modeldata.speed):(velocity_x_accelerated);
+                else if (self->velocity.x >= 0)
+                {
+                    if(velocity_x_accelerated > self->modeldata.speed)
+                    {
+                        self->velocity.x = self->modeldata.speed;
+                    }
+                    else
+                    {
+                        self->velocity.x = velocity_x_accelerated;
+                    }
+                }
             }
 
             // grab the boomerang
