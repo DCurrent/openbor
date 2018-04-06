@@ -26802,6 +26802,69 @@ int arrow_move()
     return 1;
 }
 
+// Caskey, Damon V
+// 2018-04-06
+//
+// Ricochet a projectile off of walls and platforms.
+// Returns 1 on successful ricochet. 0 otherwise.
+int projectile_wall_deflect(entity *entity)
+{
+    #define FALL_FORCE                  1000    // Knockdown force that will be applied to projectile entity.
+    #define RICHOCHET_VELOCITY_X_FACTOR 0.25    // This value is multiplied by current velocity to get an X velocity value to bounce off wall..
+    #define RICHOCHET_VELOCITY_Y        2.5     // Base Y velocity applied when projectile bounces off wall.
+    #define RICHOCHET_VELOCITY_Y_RAND   1       // Random seed for Y variance added to base Y velocity when bouncing off wall.
+
+    float richochet_velocity_x;
+
+    if(validanim(entity, ANI_FALL))   // Added so projectiles bounce off blocked exits
+    {
+        int wall;
+        entity *other = NULL;
+        int heightvar;
+
+        if(entity->animation->size.y)
+        {
+            heightvar = entity->animation->size.y;
+        }
+        else
+        {
+            heightvar = entity->modeldata.size.y;
+        }
+
+        if(
+           ( entity->modeldata.subject_to_wall && (wall = checkwall(entity->position.x, entity->position.z)) > 0 && entity->position.y < level->walls[wall].height) ||
+           ( entity->modeldata.subject_to_platform > 0 && (other = check_platform_between(entity->position.x, entity->position.z, entity->position.y, entity->position.y + heightvar, entity)) )
+           )
+        {
+
+            // Use the projectiles speed and our factor to see how
+            // hard it will bounce off wall.
+            richochet_velocity_x = entity->velocity.x * RICHOCHET_VELOCITY_X_FACTOR;
+
+            entity->takeaction = common_fall;
+            entity->attacking = 0;
+            entity->health = 0;
+            entity->projectile = 0;
+            entity->velocity.x = (entity->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
+            entity->damage_on_landing[0] = 0;
+            entity->damage_on_landing[1] = -1;
+            toss(entity, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
+            set_fall(entity, ATK_NORMAL, 0, entity, FALL_FORCE, 0, 0, 0, 0, 0, 0);
+
+            return 1;
+        }
+    }
+
+    // Did not ricochet, so return false.
+    return 0;
+
+    #undef FALL_FORCE
+    #undef RICHOCHET_VELOCITY_X_FACTOR
+    #undef RICHOCHET_VELOCITY_Y
+    #undef RICHOCHET_VELOCITY_Y_RAND
+}
+
+
 // Caskey, Damon V.
 // 2-18-04-06
 //
