@@ -2715,8 +2715,10 @@ void ents_link(entity *e1, entity *e2);
 void kill(entity *victim);
 void kill_all();
 
-int boomerang_move();
 void boomerang_initialize(entity *entity);
+int boomerang_move();
+void sort_invert(entity *entity);
+
 
 int checkgrab(entity *other, s_collision_attack *attack);
 void checkdamageeffects(s_collision_attack *attack);
