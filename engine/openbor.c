@@ -26822,6 +26822,8 @@ int boomerang_move()
 
             if(self->parent)
             {
+                // Make sure we're not hostile to our parent
+                // model type.
                 self->modeldata.hostile &= ~(self->parent->modeldata.type);
 
                 // If we were thrown by an enemy or player faction
@@ -26841,6 +26843,8 @@ int boomerang_move()
                 self->sortid = self->parent->sortid + 1;
             }
 
+            // Move along X axis according to the direction
+            // we're facing.
             if(self->direction == DIRECTION_LEFT)
             {
                 self->velocity.x = -self->modeldata.speed;
@@ -26849,9 +26853,13 @@ int boomerang_move()
             {
                 self->velocity.x = self->modeldata.speed;
             }
+
+            // Synchronize with parent's vertical
+            // and lateral position.
             self->position.z = self->parent->position.z;
             self->position.y = self->parent->position.y;
 
+            // Make sure that we can't grab or be grabbed.
             self->modeldata.antigrab = 1;
             self->modeldata.grabforce = GRABFORCE;
 
