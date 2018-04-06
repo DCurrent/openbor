@@ -26973,7 +26973,14 @@ int boomerang_move()
                         }
                     }
 
-                    self->velocity.x = (self->velocity.x-acceleration < -self->modeldata.speed)?(-self->modeldata.speed):(self->velocity.x-acceleration);
+                    if(acceleration_difference < -self->modeldata.speed)
+                    {
+                        self->velocity.x = -self->modeldata.speed;
+                    }
+                    else
+                    {
+                        self->velocity.x = acceleration_difference;
+                    }
                 }
                 else if (self->velocity.x <= 0)
                 {
