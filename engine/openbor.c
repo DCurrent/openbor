@@ -26877,10 +26877,11 @@ void boomerang_initialize(entity *entity)
 // for common boomerang types
 int boomerang_move()
 {
-    float acceleration;         // Rate of velocity difference per update.
-    float distance_x_max;       // Maximum X axis distance allowed from parent.
-    float distance_x_current;   // Current X axis distance from parent.
-    float velocity_x_next;      // New velocity to apply after acceleration.
+    float acceleration;             // Rate of velocity difference per update.
+    float distance_x_max;           // Maximum X axis distance allowed from parent.
+    float distance_x_current;       // Current X axis distance from parent.
+    float velocity_x_accelerated;   // X velocity after acceleration applied as an addition vs. current velocity.
+    float velocity_x_decelerated;   // X velocity after acceleration applied as a reduction vs. current velocity.
 
     if(!self->modeldata.nomove)
     {
@@ -26949,13 +26950,13 @@ int boomerang_move()
             {
                 // Get a possible X velocity to apply that
                 // will slightly decelerate us.
-                velocity_x_next = self->velocity.x - acceleration;
+                velocity_x_decelerated = self->velocity.x - acceleration;
 
                 // Exceeded maximum distance from parent?
                 if (distance_x_current >= distance_x_max)
                 {
                     // Have we stopped accelerating?
-                    if(velocity_x_next <= 0)
+                    if(velocity_x_decelerated <= 0)
                     {
                         // Moving right along X axis?
                         if(self->velocity.x > 0)
@@ -26990,40 +26991,51 @@ int boomerang_move()
                     // have the effect of reducing the X velocity
                     // until it falls below inverted model speed, at
                     // which point our reversed condition will be true.
-                    if(velocity_x_next < -self->modeldata.speed)
+                    if(velocity_x_decelerated < -self->modeldata.speed)
                     {
                         self->velocity.x = -self->modeldata.speed;
                     }
                     else
                     {
-                        self->velocity.x = velocity_x_next;
+                        self->velocity.x = velocity_x_decelerated;
                     }
                 }
                 else if (self->velocity.x <= 0)
                 {
-                    if(velocity_x_next < -self->modeldata.speed)
+                    if(velocity_x_decelerated < -self->modeldata.speed)
                     {
                         self->velocity.x = -self->modeldata.speed;
                     }
                     else
                     {
-                        self->velocity.x = velocity_x_next;
+                        self->velocity.x = velocity_x_decelerated;
                     }
                 }
             }
             else if (self->position.x <= self->parent->position.x)
             {
-                if ( distance_x_current >= distance_x_max )
+                // Calculate an X velocity with acceleration added.
+                velocity_x_accelerated = self->velocity.x + acceleration;
+
+                if(distance_x_current >= distance_x_max)
                 {
-                    if(self->velocity.x + acceleration >= 0 && self->velocity.x < 0)
+                    if(velocity_x_accelerated >= 0 && self->velocity.x < 0)
                     {
                         ++self->boomerang_loop;
-                        if(self->sortid <= self->parent->sortid) self->sortid = self->parent->sortid + 1;
-                        else self->sortid = self->parent->sortid - 1;
+
+                        if(self->sortid <= self->parent->sortid)
+                        {
+                            self->sortid = self->parent->sortid + 1;
+                        }
+                        else
+                        {
+                            self->sortid = self->parent->sortid - 1;
+                        }
                     }
-                    self->velocity.x = (self->velocity.x+acceleration > self->modeldata.speed)?(self->modeldata.speed):(self->velocity.x+acceleration);
+
+                    self->velocity.x = (velocity_x_accelerated > self->modeldata.speed)?(self->modeldata.speed):(velocity_x_accelerated);
                 }
-                else if (self->velocity.x >= 0) self->velocity.x = (self->velocity.x+acceleration > self->modeldata.speed)?(self->modeldata.speed):(self->velocity.x+acceleration);
+                else if (self->velocity.x >= 0) self->velocity.x = (velocity_x_accelerated > self->modeldata.speed)?(self->modeldata.speed):(velocity_x_accelerated);
             }
 
             // grab the boomerang
