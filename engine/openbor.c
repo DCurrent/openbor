@@ -26878,8 +26878,8 @@ void boomerang_initialize(entity *entity)
 int boomerang_move()
 {
     float acceleration;             // Rate of velocity difference per update.
-    float distance_x_max;           // Maximum X axis distance allowed from parent.
     float distance_x_current;       // Current X axis distance from parent.
+    float distance_x_max;           // Maximum X axis distance allowed from parent.
     float velocity_x_accelerated;   // X velocity after acceleration applied as an addition vs. current velocity.
     float velocity_x_decelerated;   // X velocity after acceleration applied as a reduction vs. current velocity.
 
