@@ -26760,44 +26760,10 @@ int arrow_move()
 
     if(level)
     {
-        if(self->animation->size.y)
-        {
-            heightvar = self->animation->size.y;
-        }
-        else
-        {
-            heightvar = self->modeldata.size.y;
-        }
-
-        if(
-           ( self->modeldata.subject_to_wall && (wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height) ||
-           ( self->modeldata.subject_to_platform && (other = check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self)) )
-           )
-        {
-            // Added so projectiles bounce off blocked exits
-            if(validanim(self, ANI_FALL))
-            {
-                self->takeaction = common_fall;
-                self->attacking = 0;
-                self->health = 0;
-                self->projectile = 0;
-                if(self->direction == DIRECTION_LEFT)
-                {
-                    self->velocity.x = (float) - 1.2;
-                }
-                else if(self->direction == DIRECTION_RIGHT)
-                {
-                    self->velocity.x = (float)1.2;
-                }
-                self->damage_on_landing[0] = 0;
-                self->damage_on_landing[1] = -1;
-                toss(self, 2.5 + randf(1));
-                self->modeldata.no_adjust_base = 0;
-                self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_gravity = 1;
-                set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
-            }
-        }
+        // Bounce off walls or platforms.
+        projectile_wall_deflect(self);
     }
+
     self->autokill |= self->ptype;
     return 1;
 }
@@ -26816,7 +26782,7 @@ int projectile_wall_deflect(entity *entity)
 
     float richochet_velocity_x;
 
-    if(validanim(entity, ANI_FALL))   // Added so projectiles bounce off blocked exits
+    if(validanim(entity, ANI_FALL))
     {
         int wall;
         entity *other = NULL;
@@ -27163,37 +27129,8 @@ int boomerang_move()
         }
     }
 
-    if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
-    {
-        int wall;
-        entity *other = NULL;
-        int heightvar;
-
-        if(self->animation->size.y)
-        {
-            heightvar = self->animation->size.y;
-        }
-        else
-        {
-            heightvar = self->modeldata.size.y;
-        }
-
-        if(
-           ( self->modeldata.subject_to_wall && (wall = checkwall(self->position.x, self->position.z)) > 0 && self->position.y < level->walls[wall].height) ||
-           ( self->modeldata.subject_to_platform > 0 && (other = check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self)) )
-           )
-        {
-            self->takeaction = common_fall;
-            self->attacking = 0;
-            self->health = 0;
-            self->projectile = 0;
-            self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
-            self->damage_on_landing[0] = 0;
-            self->damage_on_landing[1] = -1;
-            toss(self, 2.5 + randf(1));
-            set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
-        }
-    }
+    // Bounce off walls or platforms.
+    projectile_wall_deflect(self);
 
     return 1;
 }
@@ -27257,37 +27194,8 @@ int star_move()
     //self->base -= 4;
     //self->position.y = self->base;
 
-    if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
-    {
-        int wall;
-        entity *other = NULL;
-        int heightvar;
-
-        if(self->animation->size.y)
-        {
-            heightvar = self->animation->size.y;
-        }
-        else
-        {
-            heightvar = self->modeldata.size.y;
-        }
-
-        if(
-           ( self->modeldata.subject_to_wall > 0 && (wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height ) ||
-           ( self->modeldata.subject_to_platform > 0 && (other = check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self)) )
-           )
-        {
-            self->takeaction = common_fall;
-            self->attacking = 0;
-            self->health = 0;
-            self->projectile = 0;
-            self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
-            self->damage_on_landing[0] = 0;
-            self->damage_on_landing[1] = -1;
-            toss(self, 2.5 + randf(1));
-            set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
-        }
-    }
+    // Bounce off walls or platforms.
+    projectile_wall_deflect(self);
 
     if(self->landed_on_platform || self->position.y <= self->base)
     {
