@@ -26808,10 +26808,10 @@ int boomerang_move()
 
     if(!self->modeldata.nomove)
     {
-        float acc, distx, current_distx;
+        float acceleration, distx, current_distx;
 
-        if(self->modeldata.boomerang_acc != 0) acc = self->modeldata.boomerang_acc;
-        else acc = self->modeldata.speed/(GAME_SPEED/20); // acceleration
+        if(self->modeldata.boomerang_acc != 0) acceleration = self->modeldata.boomerang_acc;
+        else acceleration = self->modeldata.speed/(GAME_SPEED/20); // acceleration
         if(self->modeldata.boomerang_distx > 0) distx = self->modeldata.boomerang_distx;
         else distx = videomodes.hRes/(3); // horizontal distance
 
@@ -26872,29 +26872,29 @@ int boomerang_move()
             {
                 if ( current_distx >= distx )
                 {
-                    if(self->velocity.x - acc <= 0 && self->velocity.x > 0)
+                    if(self->velocity.x - acceleration <= 0 && self->velocity.x > 0)
                     {
                         ++self->boomerang_loop;
                         if(self->sortid <= self->parent->sortid) self->sortid = self->parent->sortid + 1;
                         else self->sortid = self->parent->sortid - 1;
                     }
-                    self->velocity.x = (self->velocity.x-acc < -self->modeldata.speed)?(-self->modeldata.speed):(self->velocity.x-acc);
+                    self->velocity.x = (self->velocity.x-acceleration < -self->modeldata.speed)?(-self->modeldata.speed):(self->velocity.x-acceleration);
                 }
-                else if (self->velocity.x <= 0) self->velocity.x = (self->velocity.x-acc < -self->modeldata.speed)?(-self->modeldata.speed):(self->velocity.x-acc);
+                else if (self->velocity.x <= 0) self->velocity.x = (self->velocity.x-acceleration < -self->modeldata.speed)?(-self->modeldata.speed):(self->velocity.x-acceleration);
             }
             else if (self->position.x <= self->parent->position.x)
             {
                 if ( current_distx >= distx )
                 {
-                    if(self->velocity.x + acc >= 0 && self->velocity.x < 0)
+                    if(self->velocity.x + acceleration >= 0 && self->velocity.x < 0)
                     {
                         ++self->boomerang_loop;
                         if(self->sortid <= self->parent->sortid) self->sortid = self->parent->sortid + 1;
                         else self->sortid = self->parent->sortid - 1;
                     }
-                    self->velocity.x = (self->velocity.x+acc > self->modeldata.speed)?(self->modeldata.speed):(self->velocity.x+acc);
+                    self->velocity.x = (self->velocity.x+acceleration > self->modeldata.speed)?(self->modeldata.speed):(self->velocity.x+acceleration);
                 }
-                else if (self->velocity.x >= 0) self->velocity.x = (self->velocity.x+acc > self->modeldata.speed)?(self->modeldata.speed):(self->velocity.x+acc);
+                else if (self->velocity.x >= 0) self->velocity.x = (self->velocity.x+acceleration > self->modeldata.speed)?(self->modeldata.speed):(self->velocity.x+acceleration);
             }
 
             // grab the boomerang
@@ -26932,7 +26932,7 @@ int boomerang_move()
 
 
             //debug_printf("cur_distx:%f velx:%f",current_distx,self->velocity.x);
-            //debug_printf("acc:%f speed:%f",acc,self->modeldata.speed);
+            //debug_printf("acceleration:%f speed:%f",acceleration,self->modeldata.speed);
             //debug_printf("boomerang_loop:%d",self->boomerang_loop);
             //debug_printf("sortid:%d",self->sortid);
         }
