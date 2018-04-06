@@ -26978,6 +26978,18 @@ int boomerang_move()
                         }
                     }
 
+                    // This is where we reverse our X velocity and
+                    // return to thrower.
+                    //
+                    // If we're already reversed, then we just make sure
+                    // our X axis velocity is equal to our model
+                    // speed (inverted).
+                    //
+                    // If we're still moving forward (away from parent)
+                    // then apply the next velocity. This will
+                    // have the effect of reducing the X velocity
+                    // until it falls below inverted model speed, at
+                    // which point our reversed condition will be true.
                     if(velocity_x_next < -self->modeldata.speed)
                     {
                         self->velocity.x = -self->modeldata.speed;
