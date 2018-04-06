@@ -26881,10 +26881,28 @@ int boomerang_move()
     {
         float acceleration, distx, current_distx;
 
-        if(self->modeldata.boomerang_acc != 0) acceleration = self->modeldata.boomerang_acc;
-        else acceleration = self->modeldata.speed/(GAME_SPEED/20); // acceleration
-        if(self->modeldata.boomerang_distx > 0) distx = self->modeldata.boomerang_distx;
-        else distx = videomodes.hRes/(3); // horizontal distance
+        // Populate local vars with acceleration and
+        // maximum horizontal distance from modeldata.
+        // If there is no model data defined then we'll
+        // need to use some default values instead.
+        if(self->modeldata.boomerang_acc != 0)
+        {
+            acceleration = self->modeldata.boomerang_acc;
+        }
+        else
+        {
+            acceleration = self->modeldata.speed/(GAME_SPEED/20);
+        }
+
+        // Apply
+        if(self->modeldata.boomerang_distx > 0)
+        {
+            distx = self->modeldata.boomerang_distx;
+        }
+        else
+        {
+            distx = videomodes.hRes/(3);
+        }
 
         // If not moving on X axis and loop count
         // is 0, then this must be a new boomerang.
