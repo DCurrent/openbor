@@ -26800,11 +26800,70 @@ int arrow_move()
     return 1;
 }
 
+void boomerang_initialize(entity *entity)
+{
+    #define GRABFORCE           -99999
+
+    // We don't want our directional facing
+    // changing automatically.
+    entity->modeldata.noflip = 1;
+
+    // If we have a parent entity, then we need
+    // should set up to match the parent's attributes.
+    if(entity->parent)
+    {
+        // Make sure we're not hostile to our parent
+        // model type.
+        entity->modeldata.hostile &= ~(entity->parent->modeldata.type);
+
+        // If we were thrown by an enemy or player faction
+        // then make sure we're hostile to the opposite
+        // faction.
+        if (entity->parent->modeldata.type == TYPE_PLAYER
+            || entity->parent->modeldata.type == TYPE_NPC)
+        {
+            entity->modeldata.hostile |= TYPE_ENEMY;
+        }
+        else if(entity->parent->modeldata.type == TYPE_ENEMY)
+        {
+            entity->modeldata.hostile |= (TYPE_PLAYER | TYPE_NPC);
+        }
+
+        // Match the parent's direction and drawing order
+        // layer position in the sprite que.
+        entity->direction = entity->parent->direction;
+        entity->sortid = entity->parent->sortid + 1;
+    }
+
+    // Move along X axis according to the direction
+    // we're facing.
+    if(entity->direction == DIRECTION_LEFT)
+    {
+        entity->velocity.x = -entity->modeldata.speed;
+    }
+    else if(entity->direction == DIRECTION_RIGHT)
+    {
+        entity->velocity.x = entity->modeldata.speed;
+    }
+
+    // Synchronize with parent's vertical
+    // and lateral position.
+    entity->position.z = entity->parent->position.z;
+    entity->position.y = entity->parent->position.y;
+
+    // Make sure that we can't grab or be grabbed.
+    entity->modeldata.antigrab = 1;
+    entity->modeldata.grabforce = GRABFORCE;
+
+    ++entity->boomerang_loop;
+
+    #undef GRABFORCE
+}
+
 // for common boomerang types
 int boomerang_move()
 {
     #define OFF_SCREEN_LIMIT    80
-    #define GRABFORCE           -99999
 
     if(!self->modeldata.nomove)
     {
@@ -26815,55 +26874,16 @@ int boomerang_move()
         if(self->modeldata.boomerang_distx > 0) distx = self->modeldata.boomerang_distx;
         else distx = videomodes.hRes/(3); // horizontal distance
 
-        // init
-        if(self->velocity.x == 0 && !self->boomerang_loop)
+        // If not moving on X axis and loop count
+        // is 0, then this must be a new boomerang.
+        // Run the initialize function to set up
+        // all of the attributes we'll need.
+        if(self->velocity.x == 0)
         {
-            self->modeldata.noflip = 1;
-
-            if(self->parent)
+            if(!self->boomerang_loop)
             {
-                // Make sure we're not hostile to our parent
-                // model type.
-                self->modeldata.hostile &= ~(self->parent->modeldata.type);
-
-                // If we were thrown by an enemy or player faction
-                // then make sure we're hostile to the opposite
-                // faction.
-                if (self->parent->modeldata.type == TYPE_PLAYER
-                    || self->parent->modeldata.type == TYPE_NPC)
-                {
-                    self->modeldata.hostile |= TYPE_ENEMY;
-                }
-                else if(self->parent->modeldata.type == TYPE_ENEMY)
-                {
-                    self->modeldata.hostile |= (TYPE_PLAYER | TYPE_NPC);
-                }
-
-                self->direction = self->parent->direction;
-                self->sortid = self->parent->sortid + 1;
+               boomerang_initialize(self);
             }
-
-            // Move along X axis according to the direction
-            // we're facing.
-            if(self->direction == DIRECTION_LEFT)
-            {
-                self->velocity.x = -self->modeldata.speed;
-            }
-            else if(self->direction == DIRECTION_RIGHT)
-            {
-                self->velocity.x = self->modeldata.speed;
-            }
-
-            // Synchronize with parent's vertical
-            // and lateral position.
-            self->position.z = self->parent->position.z;
-            self->position.y = self->parent->position.y;
-
-            // Make sure that we can't grab or be grabbed.
-            self->modeldata.antigrab = 1;
-            self->modeldata.grabforce = GRABFORCE;
-
-            ++self->boomerang_loop;
         }
 
         if(self->velocity.z != 0) self->velocity.z = 0;
@@ -26993,7 +27013,6 @@ int boomerang_move()
     return 1;
 
     #undef OFF_SCREEN_LIMIT
-    #undef GRABFORCE
 }
 
 // for common bomb types
