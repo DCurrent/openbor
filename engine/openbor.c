@@ -20197,7 +20197,7 @@ void check_lost()
         {
             kill(self);
         }
-        return;
+        return 1;
     }
 
     // fall into a pit
@@ -20217,7 +20217,7 @@ void check_lost()
             attack.attack_type  = ATK_PIT;
             self->takedamage(self, &attack, 0);
         }
-        return;
+        return 1;
     }
     else if(self->lifespancountdown < 0) //Lifespan expired.
     {
@@ -20235,7 +20235,7 @@ void check_lost()
             attack.attack_type  = ATK_LIFESPAN;
             self->takedamage(self, &attack, 0);
         }
-        return;
+        return 1;
     }//else
 
     // Doom count down
@@ -20243,6 +20243,8 @@ void check_lost()
     {
         self->lifespancountdown--;
     }
+
+    return 0;
 }
 
 // grab walk check
@@ -26800,13 +26802,24 @@ int arrow_move()
     return 1;
 }
 
+// Caskey, Damon V.
+// 2018-04-06
+//
+// Offloaded from boomerang_move().
+// Gets a boomerang type projectile set up when
+// first thrown.
 void boomerang_initialize(entity *entity)
 {
     #define GRABFORCE           -99999
+    #define OFF_SCREEN_LIMIT    80
 
     // We don't want our directional facing
     // changing automatically.
     entity->modeldata.noflip = 1;
+
+    // Populate offscreenkill in case our
+    // boomerang gets out of bounds.
+    entity->modeldata.offscreenkill = OFF_SCREEN_LIMIT;
 
     // If we have a parent entity, then we need
     // should set up to match the parent's attributes.
@@ -26858,13 +26871,12 @@ void boomerang_initialize(entity *entity)
     ++entity->boomerang_loop;
 
     #undef GRABFORCE
+    #undef OFF_SCREEN_LIMIT
 }
 
 // for common boomerang types
 int boomerang_move()
 {
-    #define OFF_SCREEN_LIMIT    80
-
     if(!self->modeldata.nomove)
     {
         float acceleration, distx, current_distx;
@@ -26886,6 +26898,7 @@ int boomerang_move()
             }
         }
 
+        // No lateral movement.
         if(self->velocity.z != 0) self->velocity.z = 0;
 
         // If our boomerang has no parent and gets
@@ -26893,11 +26906,10 @@ int boomerang_move()
         // destroy it and exit the function.
         if(!self->parent)
         {
-            if(self->position.x < advancex - OFF_SCREEN_LIMIT ||
-               self->position.x > advancex + (videomodes.hRes + OFF_SCREEN_LIMIT))
+            // Did check_lost() kill us?
+            if (check_lost())
             {
-                kill(self);
-                return 0;
+               return 0;
             }
         }
 
@@ -27011,8 +27023,6 @@ int boomerang_move()
     }
 
     return 1;
-
-    #undef OFF_SCREEN_LIMIT
 }
 
 // for common bomb types
