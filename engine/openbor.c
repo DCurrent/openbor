@@ -25023,6 +25023,7 @@ int common_trymove(float xdir, float zdir)
         {
             xdir = 0;
             if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
+
             execute_onblockw_script(self, 1, (double)level->walls[wall].height, wall, (double)level->walls[wall].depth, level->walls[wall].type);
         }
         if(zdir && (wall = checkwall_below(self->position.x, z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
@@ -26766,6 +26767,40 @@ int arrow_move()
 
     self->autokill |= self->ptype;
     return 1;
+}
+
+// Caskey, Damon V.
+// 2018-04-07
+//
+// Find out if there is a wall blocking target entity, and
+// if so return its array key. Returns 0 if no blocking
+// wall is found.
+int check_wall_block(entity *entity)
+{
+    int wall;
+
+    // target entity affected by walls?
+    if(entity->modeldata.subject_to_wall)
+    {
+        // Get wall number at our X and Z axis (if any).
+        wall = checkwall(entity->position.x, entity->position.z);
+
+        // Did we find a wall?
+        if (wall > 0)
+        {
+            // Compare wall height to our current
+            // Y axis position. If the wall is
+            // higher, then it's blocking our way.
+            // We can return the wall number.
+            if(entity->position.y < level->walls[wall].height)
+            {
+                return wall;
+            }
+        }
+    }
+
+    // Got this far? Then there's no wall blocking our way.
+    return 0;
 }
 
 // Caskey, Damon V
