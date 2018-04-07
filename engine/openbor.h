@@ -2744,6 +2744,7 @@ int checkwalls(float x, float z, float a1, float a2);
 int checkholes(float, float);
 int checkwall_below(float x, float z, float a);
 int checkwall(float x, float z);
+int check_wall_block(entity *entity);
 float check_basemap(int x, int z);
 int check_basemap_index(int x, int z);
 void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont);
