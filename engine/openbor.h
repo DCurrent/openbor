@@ -2717,7 +2717,7 @@ void kill_all();
 
 int projectile_wall_deflect(entity *entity);
 
-void boomerang_catch(entity *entity, float distance_x_current);
+int boomerang_catch(entity *entity, float distance_x_current);
 void boomerang_initialize(entity *entity);
 int boomerang_move();
 void sort_invert(entity *entity);
