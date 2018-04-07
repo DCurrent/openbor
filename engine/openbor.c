@@ -26954,67 +26954,67 @@ int boomerang_catch(entity *ent, float distance_x_current)
 // Offloaded from boomerang_move().
 // Gets a boomerang type projectile set up when
 // first thrown.
-void boomerang_initialize(entity *entity)
+void boomerang_initialize(entity *ent)
 {
     #define GRABFORCE           -99999
     #define OFF_SCREEN_LIMIT    80
 
     // We don't want our directional facing
     // changing automatically.
-    entity->modeldata.noflip = 1;
+    ent->modeldata.noflip = 1;
 
     // Populate offscreenkill in case our
     // boomerang gets out of bounds.
-    entity->modeldata.offscreenkill = OFF_SCREEN_LIMIT;
+    ent->modeldata.offscreenkill = OFF_SCREEN_LIMIT;
 
     // If we have a parent entity, then we need
     // should set up to match the parent's attributes.
-    if(entity->parent)
+    if(ent->parent)
     {
         // Make sure we're not hostile to our parent
         // model type.
-        entity->modeldata.hostile &= ~(entity->parent->modeldata.type);
+        ent->modeldata.hostile &= ~(ent->parent->modeldata.type);
 
         // If we were thrown by an enemy or player faction
         // then make sure we're hostile to the opposite
         // faction.
-        if (entity->parent->modeldata.type == TYPE_PLAYER
-            || entity->parent->modeldata.type == TYPE_NPC)
+        if (ent->parent->modeldata.type == TYPE_PLAYER
+            || ent->parent->modeldata.type == TYPE_NPC)
         {
-            entity->modeldata.hostile |= TYPE_ENEMY;
+            ent->modeldata.hostile |= TYPE_ENEMY;
         }
-        else if(entity->parent->modeldata.type == TYPE_ENEMY)
+        else if(ent->parent->modeldata.type == TYPE_ENEMY)
         {
-            entity->modeldata.hostile |= (TYPE_PLAYER | TYPE_NPC);
+            ent->modeldata.hostile |= (TYPE_PLAYER | TYPE_NPC);
         }
 
         // Match the parent's direction and drawing order
         // layer position in the sprite que.
-        entity->direction = entity->parent->direction;
-        entity->sortid = entity->parent->sortid + 1;
+        ent->direction = ent->parent->direction;
+        ent->sortid = ent->parent->sortid + 1;
     }
 
     // Move along X axis according to the direction
     // we're facing.
-    if(entity->direction == DIRECTION_LEFT)
+    if(ent->direction == DIRECTION_LEFT)
     {
-        entity->velocity.x = -entity->modeldata.speed;
+        ent->velocity.x = -ent->modeldata.speed;
     }
-    else if(entity->direction == DIRECTION_RIGHT)
+    else if(ent->direction == DIRECTION_RIGHT)
     {
-        entity->velocity.x = entity->modeldata.speed;
+        ent->velocity.x = ent->modeldata.speed;
     }
 
     // Synchronize with parent's vertical
     // and lateral position.
-    entity->position.z = entity->parent->position.z;
-    entity->position.y = entity->parent->position.y;
+    ent->position.z = ent->parent->position.z;
+    ent->position.y = ent->parent->position.y;
 
     // Make sure that we can't grab or be grabbed.
-    entity->modeldata.antigrab = 1;
-    entity->modeldata.grabforce = GRABFORCE;
+    ent->modeldata.antigrab = 1;
+    ent->modeldata.grabforce = GRABFORCE;
 
-    ++entity->boomerang_loop;
+    ++ent->boomerang_loop;
 
     #undef GRABFORCE
     #undef OFF_SCREEN_LIMIT
