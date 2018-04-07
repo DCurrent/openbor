@@ -26913,7 +26913,7 @@ void sort_invert(entity *entity)
 // Triggers a catch animation while destroying
 // boomerang projectile if the boomerang is returning
 // and within range of catch animation.
-void boomerang_catch(entity *entity, float distance_x_current)
+int boomerang_catch(entity *entity, float distance_x_current)
 {
     if( (self->position.x >= self->parent->position.x && self->parent->direction == DIRECTION_RIGHT && self->velocity.x <= 0) ||
                 (self->position.x <= self->parent->position.x && self->parent->direction == DIRECTION_LEFT  && self->velocity.x >= 0) )
