@@ -26946,6 +26946,8 @@ int boomerang_catch(entity *ent, float distance_x_current)
             }
         }
     }
+
+    return 0;
 }
 
 // Caskey, Damon V.
