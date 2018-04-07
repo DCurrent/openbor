@@ -26807,36 +26807,35 @@ int check_block_wall(entity *entity)
 // Return obstacle entity that is blocking target
 // entity (if any). Returns NULL if not blocking
 // obstacle found.
-entity *check_block_obstacle(entity *entity)
+entity *check_block_obstacle(entity *ent)
 {
     entity *obstacle = NULL;
     int height;
 
     // Target entity affected by obstacles?
-    if(entity->modeldata.subject_to_platform)
+    if(ent->modeldata.subject_to_platform)
     {
         // Get the height. if entity does not have an
         // animation height defined, then use its
         // the entity height instead.
-        if(entity->animation->size.y)
+        if(ent->animation->size.y)
         {
-            height = entity->animation->size.y;
+            height = ent->animation->size.y;
         }
         else
         {
-            height = entity->modeldata.size.y;
+            height = ent->modeldata.size.y;
         }
 
         // Add Y position to get the exact Y axis
         // height of the entity's top edge.
-        height += entity->position.y;
+        height += ent->position.y;
 
         // Find obstacle at entitiy's position (if any).
-        obstacle = check_platform_between(entity->position.x, entity->position.z, entity->position.y, height, entity);
+        obstacle = check_platform_between(ent->position.x, ent->position.z, ent->position.y, height, ent);
     }
 
     return obstacle;
-
 }
 
 // Caskey, Damon V
@@ -26844,7 +26843,7 @@ entity *check_block_obstacle(entity *entity)
 //
 // Ricochet a projectile off of walls and platforms.
 // Returns 1 on successful ricochet. 0 otherwise.
-int projectile_wall_deflect(entity *entity)
+int projectile_wall_deflect(entity *ent)
 {
     #define FALL_FORCE                  1000    // Knockdown force that will be applied to projectile entity.
     #define RICHOCHET_VELOCITY_X_FACTOR 0.25    // This value is multiplied by current velocity to get an X velocity value to bounce off wall..
@@ -26853,11 +26852,10 @@ int projectile_wall_deflect(entity *entity)
 
     float richochet_velocity_x;
 
-    if(validanim(entity, ANI_FALL))
+    if(validanim(ent, ANI_FALL))
     {
         int blocking_wall;
-        int blocking_obstacle;
-        entity *other = NULL;
+        entity *blocking_obstacle = NULL;
 
         blocking_wall = check_block_wall(self);
         blocking_obstacle = check_block_obstacle(self);
@@ -26866,17 +26864,17 @@ int projectile_wall_deflect(entity *entity)
 
             // Use the projectiles speed and our factor to see how
             // hard it will bounce off wall.
-            richochet_velocity_x = entity->velocity.x * RICHOCHET_VELOCITY_X_FACTOR;
+            richochet_velocity_x = ent->velocity.x * RICHOCHET_VELOCITY_X_FACTOR;
 
-            entity->takeaction = common_fall;
-            entity->attacking = 0;
-            entity->health = 0;
-            entity->projectile = 0;
-            entity->velocity.x = (entity->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
-            entity->damage_on_landing[0] = 0;
-            entity->damage_on_landing[1] = -1;
-            toss(entity, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
-            set_fall(entity, ATK_NORMAL, 0, entity, FALL_FORCE, 0, 0, 0, 0, 0, 0);
+            ent->takeaction = common_fall;
+            ent->attacking = 0;
+            ent->health = 0;
+            ent->projectile = 0;
+            ent->velocity.x = (ent->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
+            ent->damage_on_landing[0] = 0;
+            ent->damage_on_landing[1] = -1;
+            toss(ent, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
+            set_fall(ent, ATK_NORMAL, 0, ent, FALL_FORCE, 0, 0, 0, 0, 0, 0);
 
             return 1;
         }
