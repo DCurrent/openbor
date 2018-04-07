@@ -26779,7 +26779,7 @@ int check_block_wall(entity *entity)
 {
     int wall;
 
-    // target entity affected by walls?
+    // Target entity affected by walls?
     if(entity->modeldata.subject_to_wall)
     {
         // Get wall number at our X and Z axis (if any).
@@ -26803,6 +26803,44 @@ int check_block_wall(entity *entity)
     return 0;
 }
 
+// Caskey, Damon V.
+// 2018-04-07
+//
+// Return obstacle entity that is blocking target
+// entity (if any). Returns NULL if not blocking
+// obstacle found.
+entity *check_block_obstacle(entity *entity)
+{
+    entity *obstacle = NULL;
+    int height;
+
+    // Target entity affected by obstacles?
+    if(entity->modeldata.subject_to_platform)
+    {
+        // Get the height. if entity does not have an
+        // animation height defined, then use its
+        // the entity height instead.
+        if(entity->animation->size.y)
+        {
+            height = entity->animation->size.y;
+        }
+        else
+        {
+            height = entity->modeldata.size.y;
+        }
+
+        // Add Y position to get the exact Y axis
+        // height of the entity's top edge.
+        height += entity->position.y;
+
+        // Find obstacle at entitiy's position (if any).
+        obstacle = check_platform_between(entity->position.x, entity->position.z, entity->position.y, height, entity);
+    }
+
+    return obstacle;
+
+}
+
 // Caskey, Damon V
 // 2018-04-06
 //
@@ -26822,22 +26860,11 @@ int projectile_wall_deflect(entity *entity)
         int blocking_wall;
         int blocking_obstacle;
         entity *other = NULL;
-        int heightvar;
-
-        if(entity->animation->size.y)
-        {
-            heightvar = entity->animation->size.y;
-        }
-        else
-        {
-            heightvar = entity->modeldata.size.y;
-        }
 
         blocking_wall = check_block_wall(self);
+        blocking_obstacle = check_block_obstacle(self);
 
-        if(blocking_wall
-           ||(entity->modeldata.subject_to_platform > 0 && (other = check_platform_between(entity->position.x, entity->position.z, entity->position.y, entity->position.y + heightvar, entity))))
-        {
+        if(blocking_wall || blocking_obstacle) {
 
             // Use the projectiles speed and our factor to see how
             // hard it will bounce off wall.
