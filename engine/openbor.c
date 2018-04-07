@@ -26775,7 +26775,7 @@ int arrow_move()
 // Find out if there is a wall blocking target entity, and
 // if so return its array key. Returns 0 if no blocking
 // wall is found.
-int check_wall_block(entity *entity)
+int check_block_wall(entity *entity)
 {
     int wall;
 
@@ -26833,7 +26833,7 @@ int projectile_wall_deflect(entity *entity)
             heightvar = entity->modeldata.size.y;
         }
 
-        blocking_wall = check_wall_block(self);
+        blocking_wall = check_block_wall(self);
 
         if(blocking_wall
            ||(entity->modeldata.subject_to_platform > 0 && (other = check_platform_between(entity->position.x, entity->position.z, entity->position.y, entity->position.y + heightvar, entity))))
