@@ -20179,7 +20179,7 @@ void check_gravity(entity *e)
     self = tempself;
 }
 
-void check_lost()
+int check_lost()
 {
     s_collision_attack attack;
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
