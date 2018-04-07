@@ -26671,8 +26671,6 @@ int biker_move()
 // for common arrow types
 int arrow_move()
 {
-    int wall, heightvar;
-    entity *other = NULL;
     float dx;
     float dz;
     float maxspeed;
