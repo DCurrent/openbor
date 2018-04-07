@@ -26819,7 +26819,8 @@ int projectile_wall_deflect(entity *entity)
 
     if(validanim(entity, ANI_FALL))
     {
-        int wall;
+        int blocking_wall;
+        int blocking_obstacle;
         entity *other = NULL;
         int heightvar;
 
@@ -26832,10 +26833,10 @@ int projectile_wall_deflect(entity *entity)
             heightvar = entity->modeldata.size.y;
         }
 
-        if(
-           ( entity->modeldata.subject_to_wall && (wall = checkwall(entity->position.x, entity->position.z)) > 0 && entity->position.y < level->walls[wall].height) ||
-           ( entity->modeldata.subject_to_platform > 0 && (other = check_platform_between(entity->position.x, entity->position.z, entity->position.y, entity->position.y + heightvar, entity)) )
-           )
+        blocking_wall = check_wall_block(self);
+
+        if(blocking_wall
+           ||(entity->modeldata.subject_to_platform > 0 && (other = check_platform_between(entity->position.x, entity->position.z, entity->position.y, entity->position.y + heightvar, entity))))
         {
 
             // Use the projectiles speed and our factor to see how
