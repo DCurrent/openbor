@@ -2715,13 +2715,13 @@ void ents_link(entity *e1, entity *e2);
 void kill(entity *victim);
 void kill_all();
 
-int projectile_catch(entity *ent, ent *target, int animation_catch);
-int projectile_wall_deflect(entity *entity);
 
-int boomerang_catch(entity *entity, float distance_x_current);
-void boomerang_initialize(entity *entity);
+int projectile_wall_deflect(entity *ent);
+
+int boomerang_catch(entity *ent, float distance_x_current);
+void boomerang_initialize(entity *ent);
 int boomerang_move();
-void sort_invert(entity *entity);
+void sort_invert(entity *ent);
 
 
 int checkgrab(entity *other, s_collision_attack *attack);
@@ -2761,6 +2761,7 @@ float get_platform_base(entity *);
 int is_on_platform(entity *);
 entity *get_platform_on(entity *);
 void do_attack(entity *e);
+int do_catch(entity *ent, entity *target, int animation_catch);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
 void update_ents();
