@@ -27239,7 +27239,16 @@ int boomerang_move()
                         sort_invert(self);
                     }
 
-                    self->velocity.x = (velocity_x_accelerated > self->modeldata.speed)?(self->modeldata.speed):(velocity_x_accelerated);
+                    // Make sure X velocity is no greater than
+                    // the model speed setting.
+                    if(velocity_x_accelerated > self->modeldata.speed)
+                    {
+                        self->velocity.x = self->modeldata.speed;
+                    }
+                    else
+                    {
+                        self->velocity.x = velocity_x_accelerated;
+                    }
                 }
                 else if (self->velocity.x >= 0)
                 {
