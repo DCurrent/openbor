@@ -26947,14 +26947,21 @@ int boomerang_catch(entity *ent, float distance_x_current)
         }
     }
 
+    // Can't catch if under any sort of duress.
 
+    // Pain?
     if(ent->parent->inpain)
     {
         return 0;
     }
 
+    // Knocked down?
+    if(ent->parent->falling)
+    {
+        return 0;
+    }
 
-    if(!ent->parent->falling && !ent->parent->dead && ent->boomerang_loop > 1 )
+    if(!ent->parent->dead && ent->boomerang_loop > 1)
     {
         // Parent has a catch animation?
         if(validanim(ent->parent, ANI_GETBOOMERANG))
