@@ -519,6 +519,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
+        case _entity_colorset_table:
+
+            // Read only.
+
+            break;
+
         case _entity_position_alternate_base:
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
