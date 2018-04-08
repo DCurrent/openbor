@@ -36,6 +36,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "charging",
         "colorset_default",
         "colorset_dying_1",
+        "colorset_dying_2",
         "position_alternate_base",
         "position_base",
         "position_direction",
