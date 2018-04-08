@@ -34,6 +34,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "boomerang_loop",
         "boss",
         "charging",
+        "colorset_default",
         "position_alternate_base",
         "position_base",
         "position_direction",
