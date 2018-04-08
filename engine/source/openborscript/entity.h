@@ -26,7 +26,6 @@ typedef enum
     _entity_blocking,
     _entity_boomerang_loop,
     _entity_boss,
-    _entity_cantfire,
     _entity_position_alternate_base,
     _entity_position_base,
     _entity_position_direction,

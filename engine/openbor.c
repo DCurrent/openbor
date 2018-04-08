@@ -18236,11 +18236,6 @@ void kill(entity *victim)
 
     execute_onkill_script(victim);
 
-    if((victim->modeldata.type & TYPE_SHOT) && victim->owner && (victim->owner->modeldata.type & TYPE_PLAYER))
-    {
-        victim->owner->cantfire = 0;
-    }
-
     ent_unlink(victim);
     victim->weapent = NULL;
     victim->health = 0;
@@ -19802,7 +19797,6 @@ void do_attack(entity *e)
                     }
                 }
 
-                topowner->cantfire = 0;    // Life subtracted, so go ahead and allow firing
                 e->tocost = 1;    // Little backwards, but set to 1 so cost doesn't get subtracted multiple times
             }
         }
@@ -28211,8 +28205,7 @@ int check_energy(e_cost_check which, int ani)
 int check_special()
 {
     entity *e;
-    if((!level->nospecial || level->nospecial == 3) &&
-            !self->cantfire && validanim(self, ANI_SPECIAL) &&
+    if((!level->nospecial || level->nospecial == 3) && validanim(self, ANI_SPECIAL) &&
             (check_energy(COST_CHECK_HP, ANI_SPECIAL) || check_energy(COST_CHECK_MP, ANI_SPECIAL))
        )
     {
@@ -30538,14 +30531,6 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->modeldata.type = self->modeldata.type;
     }
 
-    if(self->animation->energycost)
-    {
-        if(self->animation->energycost->cost > 0 && nocost)
-        {
-            self->cantfire = 1;    // Can't fire if still exists on screen
-        }
-    }
-
     if(!e->model->speed && !e->modeldata.nomove)
     {
         e->modeldata.speed = 2;
@@ -30643,14 +30628,6 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
     }
 
     e->position.y = a + 0.5;
-
-    if(self->animation->energycost)
-    {
-        if(self->animation->energycost->cost > 0 && nocost)
-        {
-            self->cantfire = 1;    // Can't fire if still exists on screen
-        }
-    }
 
     if(!e->model->speed && !e->modeldata.nomove)
     {

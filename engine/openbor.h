@@ -2214,7 +2214,6 @@ typedef struct entity
     int invincible; // Flag used to determine if player is currently invincible
     int autokill; // Kill on end animation
     int remove_on_attack;
-    int cantfire; // Flag to determine if another shot can be fired that costs energy
     int tocost; // Flag to determine if special costs life if doesn't hit an enemy
     int noaicontrol; // pause A.I. control
     int projectile;

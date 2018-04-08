@@ -33,7 +33,6 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "blocking",
         "boomerang_loop",
         "boss",
-        "cantfire",
         "position_alternate_base",
         "position_base",
         "position_direction",
@@ -210,13 +209,6 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->boss;
-
-            break;
-
-        case _entity_cantfire:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->cantfire;
 
             break;
 
@@ -447,15 +439,6 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->boss = temp_int;
-            }
-
-            break;
-
-        case _entity_cantfire:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->cantfire = temp_int;
             }
 
             break;
