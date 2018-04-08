@@ -2722,7 +2722,6 @@ void boomerang_initialize(entity *ent);
 int boomerang_move();
 void sort_invert(entity *ent);
 
-
 int checkgrab(entity *other, s_collision_attack *attack);
 void checkdamageeffects(s_collision_attack *attack);
 void checkdamagedrop(s_collision_attack *attack);
@@ -2761,6 +2760,7 @@ int is_on_platform(entity *);
 entity *get_platform_on(entity *);
 void do_attack(entity *e);
 int do_catch(entity *ent, entity *target, int animation_catch);
+int do_energy_charge(entity *ent);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
 void update_ents();
