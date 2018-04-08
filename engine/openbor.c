@@ -20809,11 +20809,10 @@ void update_health()
             self->magictime = time + GAME_SPEED;    //Reset magictime.
         }
     }
-    if(self->charging && time >= self->mpchargetime)
-    {
-        self->mp += self->modeldata.chargerate;
-        self->mpchargetime = time + (GAME_SPEED / 4);
-    }
+
+    // Active MP charging?
+    do_energy_charge(self);
+
     if(self->mp > self->modeldata.mp)
     {
         self->mp = self->modeldata.mp;    // Don't want to add more than the max
