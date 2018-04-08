@@ -26943,11 +26943,12 @@ void sort_invert(entity *entity)
 // 2018-04-06
 //
 // Broken off from White Dragon's boomerang_move() function.
-// Triggers a catch animation while destroying
-// boomerang projectile if the boomerang is returning
-// and within range of catch animation.
+// Verify boomerang is in catchable state and attempt
+// catch action.
 int boomerang_catch(entity *ent, float distance_x_current)
 {
+    int animation_catch; // Animation for parent catching boomerang.
+
     // Only catch if in front of parent and traveling
     // back toward them. Otherwise exit function since
     // any further checks are pointless.
@@ -27007,41 +27008,20 @@ int boomerang_catch(entity *ent, float distance_x_current)
         return 0;
     }
 
+    // In air? Then use air catch. Otherwise use ground catch.
     if(inair(ent->parent))
     {
-        if(validanim(ent->parent, ANI_GETBOOMERANGINAIR))
-        {
-            // In parent's air catch range?
-            if(check_range(ent->parent, ent, ANI_GETBOOMERANGINAIR))
-            {
-                ent->parent->takeaction = common_animation_normal;
-                ent->parent->attacking = 0;
-                ent->parent->idling = 0;
-                ent_set_anim(ent->parent, ANI_GETBOOMERANGINAIR, 0);
-                kill(ent);
-                return 1;
-            }
-        }
+        animation_catch = ANI_GETBOOMERANGINAIR;
     }
     else
     {
-        // Parent has a catch animation?
-        if(validanim(ent->parent, ANI_GETBOOMERANG))
-        {
-            // In parent's catch range?
-            if(check_range(ent->parent, ent, ANI_GETBOOMERANG))
-            {
-                ent->parent->takeaction = common_animation_normal;
-                ent->parent->attacking = 0;
-                ent->parent->idling = 0;
-                ent_set_anim(ent->parent, ANI_GETBOOMERANG, 0);
-                kill(ent);
-                return 1;
-            }
-        }
+        animation_catch = ANI_GETBOOMERANG;
     }
 
-    return 0;
+    // Verify parent has catch animation and that we
+    // are in catch animation range, attempt to
+    // perform catch, and return result.
+    return do_catch(ent->parent, ent, animation_catch);
 }
 
 // Caskey, Damon V.
