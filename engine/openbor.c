@@ -26915,48 +26915,78 @@ void sort_invert(entity *entity)
 // and within range of catch animation.
 int boomerang_catch(entity *ent, float distance_x_current)
 {
-    if( (ent->position.x >= ent->parent->position.x && ent->parent->direction == DIRECTION_RIGHT && ent->velocity.x <= 0) ||
-                (ent->position.x <= ent->parent->position.x && ent->parent->direction == DIRECTION_LEFT  && ent->velocity.x >= 0) )
+    // Only catch if in front of parent and traveling
+    // back toward them. Otherwise exit function since
+    // any further checks are pointless.
+    if(ent->parent->direction == DIRECTION_RIGHT)
     {
-        if(!ent->parent->inpain && !ent->parent->falling && !ent->parent->dead && ent->boomerang_loop > 1 )
+        // Traveling right?
+        if(ent->velocity.x >= 0)
         {
-            // Parent has a catch animation?
-            if(validanim(ent->parent, ANI_GETBOOMERANG))
+            return 0;
+        }
+
+        // At or to left of parent?
+        if(ent->position.x <= ent->parent->position.x)
+        {
+            return 0;
+        }
+    }
+    else if(ent->parent->direction == DIRECTION_LEFT)
+    {
+        // Traveling left?
+        if(ent->velocity.x <= 0)
+        {
+            return 0;
+        }
+
+        // At or to right of parent?
+        if(ent->position.x >= ent->parent->position.x)
+        {
+            return 0;
+        }
+    }
+
+
+    if(!ent->parent->inpain && !ent->parent->falling && !ent->parent->dead && ent->boomerang_loop > 1 )
+    {
+        // Parent has a catch animation?
+        if(validanim(ent->parent, ANI_GETBOOMERANG))
+        {
+            // Parent at or below floor level?
+            if(ent->parent->position.y <= ent->parent->base)
             {
-                // Parent at or below floor level?
-                if(ent->parent->position.y <= ent->parent->base)
+                // In parent's catch range?
+                if(check_range(ent->parent, ent, ANI_GETBOOMERANG))
                 {
-                    // In parent's catch range?
-                    if(check_range(ent->parent, ent, ANI_GETBOOMERANG))
-                    {
-                        ent->parent->takeaction = common_animation_normal;
-                        ent->parent->attacking = 0;
-                        ent->parent->idling = 0;
-                        ent_set_anim(ent->parent, ANI_GETBOOMERANG, 0);
-                        kill(ent);
-                        return 1;
-                    }
+                    ent->parent->takeaction = common_animation_normal;
+                    ent->parent->attacking = 0;
+                    ent->parent->idling = 0;
+                    ent_set_anim(ent->parent, ANI_GETBOOMERANG, 0);
+                    kill(ent);
+                    return 1;
                 }
             }
-            else if(validanim(ent->parent, ANI_GETBOOMERANGINAIR))
+        }
+        else if(validanim(ent->parent, ANI_GETBOOMERANGINAIR))
+        {
+            // Parent in air?
+            if(inair(ent->parent))
             {
-                // Parent in air?
-                if(inair(ent->parent))
+                // In parent's air catch range?
+                if(check_range(ent->parent, ent, ANI_GETBOOMERANGINAIR))
                 {
-                    // In parent's air catch range?
-                    if(check_range(ent->parent, ent, ANI_GETBOOMERANGINAIR))
-                    {
-                        ent->parent->takeaction = common_animation_normal;
-                        ent->parent->attacking = 0;
-                        ent->parent->idling = 0;
-                        ent_set_anim(ent->parent, ANI_GETBOOMERANGINAIR, 0);
-                        kill(ent);
-                        return 1;
-                    }
+                    ent->parent->takeaction = common_animation_normal;
+                    ent->parent->attacking = 0;
+                    ent->parent->idling = 0;
+                    ent_set_anim(ent->parent, ANI_GETBOOMERANGINAIR, 0);
+                    kill(ent);
+                    return 1;
                 }
             }
         }
     }
+
 
     return 0;
 }
