@@ -26918,30 +26918,41 @@ int boomerang_catch(entity *ent, float distance_x_current)
     if( (ent->position.x >= ent->parent->position.x && ent->parent->direction == DIRECTION_RIGHT && ent->velocity.x <= 0) ||
                 (ent->position.x <= ent->parent->position.x && ent->parent->direction == DIRECTION_LEFT  && ent->velocity.x >= 0) )
     {
-       if(!ent->parent->inpain && !ent->parent->falling && !ent->parent->dead && ent->boomerang_loop > 1 )
-       {
-            if(ent->parent->position.y <= ent->parent->base && validanim(ent->parent, ANI_GETBOOMERANG))
+        if(!ent->parent->inpain && !ent->parent->falling && !ent->parent->dead && ent->boomerang_loop > 1 )
+        {
+            // Parent has a catch animation?
+            if(validanim(ent->parent, ANI_GETBOOMERANG))
             {
-                if( distance_x_current >= ent->parent->modeldata.animation[ANI_GETBOOMERANG]->range.min.x && distance_x_current <= ent->parent->modeldata.animation[ANI_GETBOOMERANG]->range.max.x )
+                // Parent at or below floor level?
+                if(ent->parent->position.y <= ent->parent->base)
                 {
-                    ent->parent->takeaction = common_animation_normal;
-                    ent->parent->attacking = 0;
-                    ent->parent->idling = 0;
-                    ent_set_anim(ent->parent, ANI_GETBOOMERANG, 0);
-                    kill(ent);
-                    return 1;
+                    // In parent's catch range?
+                    if(check_range(ent->parent, ent, ANI_GETBOOMERANG))
+                    {
+                        ent->parent->takeaction = common_animation_normal;
+                        ent->parent->attacking = 0;
+                        ent->parent->idling = 0;
+                        ent_set_anim(ent->parent, ANI_GETBOOMERANG, 0);
+                        kill(ent);
+                        return 1;
+                    }
                 }
             }
-            else if(inair(ent->parent) && validanim(ent->parent, ANI_GETBOOMERANGINAIR))
+            else if(validanim(ent->parent, ANI_GETBOOMERANGINAIR))
             {
-                if( distance_x_current >= ent->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.min.x && distance_x_current <= ent->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.max.x )
+                // Parent in air?
+                if(inair(ent->parent))
                 {
-                    ent->parent->takeaction = common_animation_normal;
-                    ent->parent->attacking = 0;
-                    ent->parent->idling = 0;
-                    ent_set_anim(ent->parent, ANI_GETBOOMERANGINAIR, 0);
-                    kill(ent);
-                    return 1;
+                    // In parent's air catch range?
+                    if(check_range(ent->parent, ent, ANI_GETBOOMERANGINAIR))
+                    {
+                        ent->parent->takeaction = common_animation_normal;
+                        ent->parent->attacking = 0;
+                        ent->parent->idling = 0;
+                        ent_set_anim(ent->parent, ANI_GETBOOMERANGINAIR, 0);
+                        kill(ent);
+                        return 1;
+                    }
                 }
             }
         }
