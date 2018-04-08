@@ -20677,6 +20677,40 @@ void check_attack()
     self->attack_id_outgoing = 0;
 }
 
+// Caskey, Damon V.
+// 2018-04-08
+//
+// If actively charging, add energy to
+// entity based on chargerate property
+// and elapsed time. Returns 1 if
+// energy was added, 0 otherwise.
+int do_energy_charge(entity *ent)
+{
+    #define SPEED_RATE  0.25   // How much GAME_SPEED will be added onto elapsed time to know when we can next add energy.
+
+    // not charging? Nothing else to do.
+    if(ent->charging)
+    {
+        return 0;
+    }
+
+    // Have we surpassed the next allowed charge time?
+    // If so, we add the amount of energy from chargerate
+    // and reset the next available time.
+    if(time >= ent->mpchargetime)
+    {
+        ent->mp += ent->modeldata.chargerate;
+        ent->mpchargetime = time + (GAME_SPEED * SPEED_RATE);
+
+        return 1;
+    }
+
+    // Didn't charge.
+    return 0;
+
+    #undef SPEED_RATE
+}
+
 
 void update_health()
 {
