@@ -29,6 +29,7 @@ typedef enum
     _entity_charging,
     _entity_drawing_dying_1_index,
     _entity_drawing_dying_2_index,
+    _entity_drawing_map_index_default,
     _entity_position_alternate_base,
     _entity_position_base,
     _entity_position_direction,
