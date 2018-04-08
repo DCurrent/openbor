@@ -33,6 +33,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "blocking",
         "boomerang_loop",
         "boss",
+        "cantfire",
         "position_alternate_base",
         "position_base",
         "position_direction",
