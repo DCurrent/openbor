@@ -28,6 +28,7 @@ typedef enum
     _entity_boss,
     _entity_charging,
     _entity_colorset_default,
+    _entity_colorset_dying_1,
     _entity_position_alternate_base,
     _entity_position_base,
     _entity_position_direction,
