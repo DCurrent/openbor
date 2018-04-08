@@ -27,6 +27,10 @@ typedef enum
     _entity_boomerang_loop,
     _entity_boss,
     _entity_charging,
+    _entity_colormaps_dying_1_health,
+    _entity_colormaps_dying_1_index
+    _entity_colormaps_dying_2_health,
+    _entity_colormaps_dying_2_index,
     _entity_position_alternate_base,
     _entity_position_base,
     _entity_position_direction,
