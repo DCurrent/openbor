@@ -237,6 +237,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
+        case _entity_colorset_dying_2:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->dying2;
+
+            break;
+
         case _entity_position_alternate_base:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
