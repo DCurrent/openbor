@@ -2715,7 +2715,7 @@ void ents_link(entity *e1, entity *e2);
 void kill(entity *victim);
 void kill_all();
 
-int projectile_catch(entity *entity);
+int projectile_catch(entity *ent, ent *target, int animation_catch);
 int projectile_wall_deflect(entity *entity);
 
 int boomerang_catch(entity *entity, float distance_x_current);
