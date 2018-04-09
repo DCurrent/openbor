@@ -137,7 +137,7 @@ const s_collision_attack emptyattack =
 {
     .attack_drop        = 0,
     .attack_force       = 0,
-    .attack_type        = 0,
+    .attack_type        = ATK_NORMAL,
     .blast              = 0,
     .blockflash         = -1,
     .blocksound         = -1,
