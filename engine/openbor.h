@@ -2563,7 +2563,7 @@ void    execute_takedamage_script   (entity *ent, entity *other, s_collision_att
 void    execute_ondeath_script      (entity *ent, entity *other, s_collision_attack *attack);
 void    execute_onkill_script       (entity *ent);
 void    execute_onpain_script       (entity *ent, int iType, int iReset);
-void    execute_onfall_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
+void    execute_onfall_script       (entity *ent, entity *other, s_collision_attack *attack);
 void    execute_inhole_script       (entity *ent, int plane, float height, int index, float depth, int type);
 void    execute_onblocks_script     (entity *ent);
 void    execute_onblockw_script     (entity *ent, int plane, float height, int index, float depth, int type);
