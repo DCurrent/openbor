@@ -22116,17 +22116,12 @@ int set_death(entity *iDie, int type, int reset)
 }
 
 
-int set_fall(entity *iFall, int type, int reset, entity *other, int force, int drop, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
+int set_fall(entity *iFall, s_collision_attack *attack, int reset)
 {
     int fall = 0;
 
-    if( type < 0 || type >= max_attack_types )
-    {
-        type = 0;
-    }
-
-    if ( iFall->inbackpain ) fall = animbackfalls[type];
-    else fall = animfalls[type];
+    if ( iFall->inbackpain ) fall = animbackfalls[attack->attack_type];
+    else fall = animfalls[attack->attack_type];
 
     if(validanim(iFall, fall))
     {
@@ -22136,11 +22131,11 @@ int set_fall(entity *iFall, int type, int reset, entity *other, int force, int d
     {
         ent_set_anim(iFall, animbackfalls[0], reset);
     }
-    else if( validanim(iFall, animfalls[type]) )
+    else if( validanim(iFall, animfalls[attack->attack_type]) )
     {
         if ( iFall->inbackpain ) reset_backpain(iFall);
         iFall->inbackpain = 0;
-        ent_set_anim(iFall, animfalls[type], reset);
+        ent_set_anim(iFall, animfalls[attack->attack_type], reset);
     }
     else if(validanim(iFall, animfalls[0]))
     {
@@ -22168,7 +22163,7 @@ int set_fall(entity *iFall, int type, int reset, entity *other, int force, int d
     {
         unfrozen(iFall);
     }
-    execute_onfall_script(iFall, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, tag);
+    execute_onfall_script(iFall, other, attack);
 
     return 1;
 }
