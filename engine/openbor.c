@@ -19568,7 +19568,7 @@ void do_attack(entity *e)
                      (fdefense_blockthreshold > force)))
             {
                 //execute the didhit script
-                execute_didhit_script(e, self, force, attack, 1);
+                execute_didhit_script(e, self, attack, 1);
                 self->takeaction = common_block;
                 set_blocking(self);
                 self->velocity.x = self->velocity.z = 0;
@@ -19623,7 +19623,7 @@ void do_attack(entity *e)
             {
                 // Only block if the attack is less than the players threshold
                 //execute the didhit script
-                execute_didhit_script(e, self, force, attack, 1);
+                execute_didhit_script(e, self, attack, 1);
                 if(self->modeldata.guardpoints.max > 0)
                 {
                     self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
@@ -19742,7 +19742,7 @@ void do_attack(entity *e)
             else if(self->takedamage(e, attack, 0))
             {
                 // Didn't block so go ahead and take the damage
-                execute_didhit_script(e, self, force, attack, 0);
+                execute_didhit_script(e, self, attack, 0);
                 ++e->animation->animhits;
 
                 e->lasthit = self;
@@ -26770,9 +26770,9 @@ int common_try_wander(entity *target, int dox, int doz)
 // to allow easy item scripting.
 void do_item_script(entity *ent, entity *item)
 {
-    s_collision_attack = attack;
+    s_collision_attack attack;
     attack = emptyattack;
-    attack = ATK_ITEM;
+    attack.attack_type = ATK_ITEM;
 
     execute_didhit_script(item, ent, &attack, 0);
 }
