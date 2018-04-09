@@ -22630,8 +22630,17 @@ entity *normal_find_target(int anim, int detect_adj)
             continue;
         }
 
-        if((anim < 0 || (anim >= 0 && check_range(self, ent_list[i], anim)))
-                && !ent_list[i]->dead //must be alive
+        // If anim is defined, then then target must be
+        // in range of animation.
+        if(anim >= 0)
+        {
+            if(!check_range(self, ent_list[i], anim))
+            {
+                continue;
+            }
+        }
+
+        if(!ent_list[i]->dead //must be alive
                 && (diffd = (diffx = diff(ent_list[i]->position.x, self->position.x)) + (diffz = diff(ent_list[i]->position.z, self->position.z))) >= min
                 && diffd <= max
                 && (ent_list[i]->modeldata.stealth.hide <= detect) //Stealth factor less then perception factor (allows invisibility).
