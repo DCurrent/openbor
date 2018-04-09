@@ -19543,7 +19543,9 @@ void do_attack(entity *e)
                 set_blocking(self);
                 self->velocity.x = self->velocity.z = 0;
                 ent_set_anim(self, ANI_BLOCK, 0);
-                execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);
+
+                execute_didblock_script(self, e, attack);
+
                 if(self->modeldata.guardpoints.max > 0)
                 {
                     self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
@@ -19603,7 +19605,7 @@ void do_attack(entity *e)
                 {
                     set_blockpain(self, attack->attack_type, 0);
                 }
-                execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);
+                execute_didblock_script(self, e, attack);
 
                 // Spawn a flash
                 if(!attack->no_flash)
