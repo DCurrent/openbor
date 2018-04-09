@@ -24232,9 +24232,8 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
             self->knockdowncount = self->modeldata.knockdowncount; // reset the knockdowncount
             self->knockdowntime = 0;
 
-            // Now if no fall/die animations exist, entity simply disapears
-            //set_fall(entity *iFall, int type, int reset, entity* other, int force, int drop)
-            if(!set_fall(self, self->damagetype, 1, other, attack->attack_force, attack->attack_drop, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag))
+            // If no fall/die animations exist, entity simply disappears.
+            if(!set_fall(self, other, attack, 1))
             {
                 if(self->modeldata.type & TYPE_PLAYER)
                 {
@@ -24697,6 +24696,7 @@ void common_throw()
 // toss the grabbed one
 void dothrow()
 {
+    s_collision_attack attack;
     entity *other;
     self->velocity.x = self->velocity.z = 0;
     other = self->link;
@@ -24733,7 +24733,10 @@ void dothrow()
 
     other->takeaction = common_fall;
     self->takeaction = common_throw;
-    set_fall(other, ATK_NORMAL, 0, self, 0, 0, 0, 0, 0, 0, 0);
+
+    // Use default attack values.
+    attack = emptyattack;
+    set_fall(other, self, &attack, 0);
     ent_set_anim(self, ANI_THROW, 0);
 }
 
@@ -26993,6 +26996,7 @@ int projectile_wall_deflect(entity *ent)
     #define RICHOCHET_VELOCITY_Y_RAND   1       // Random seed for Y variance added to base Y velocity when bouncing off wall.
 
     float richochet_velocity_x;
+    s_collision_attack attack;
 
     if(validanim(ent, ANI_FALL))
     {
@@ -27016,7 +27020,10 @@ int projectile_wall_deflect(entity *ent)
             ent->damage_on_landing[0] = 0;
             ent->damage_on_landing[1] = -1;
             toss(ent, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
-            set_fall(ent, ATK_NORMAL, 0, ent, FALL_FORCE, 0, 0, 0, 0, 0, 0);
+
+            // Use default attack values.
+            attack = emptyattack
+            set_fall(ent, ent, &attack, 0);
 
             return 1;
         }
@@ -30444,6 +30451,8 @@ void drop_all_enemies()
 {
     int i;
     entity *weapself = self;
+    s_collision_attack attack;
+
     for(i = 0; i < ent_max; i++)
     {
         if(ent_list[i]->exists &&
@@ -30471,7 +30480,10 @@ void drop_all_enemies()
             ent_list[i]->knockdowncount = ent_list[i]->modeldata.knockdowncount;
 
             ent_list[i]->knockdowntime = 0;
-            set_fall(ent_list[i], ATK_NORMAL, 1, self, 0, 0, 0, 0, 0, 0, 0);
+
+            // Use default attack values.
+            attack = emptyattack;
+            set_fall(ent_list[i], self, &attack, 1);
         }
     }
     self = weapself;
