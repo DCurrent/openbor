@@ -116,6 +116,16 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
     switch(property)
     {
+        case _entity_ai_target_entity:
+
+            if(handle->custom_target)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->custom_target;
+            }
+
+            break;
+
         case _entity_animation_animating:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
