@@ -275,6 +275,12 @@ typedef enum
     SUBTYPE_CHASE       // Used by enemy always chasing you
 } e_entity_type_sub;
 
+typedef enum
+{
+    EXCHANGE_CONFERRER,
+    EXCHANGE_RECIPIANT
+} e_exchange;
+
 //------------reserved for A.I. types-------------------------
 typedef enum
 {
@@ -2575,7 +2581,7 @@ void    execute_onmovex_script      (entity *ent);
 void    execute_onmovez_script      (entity *ent);
 void    execute_onmovea_script      (entity *ent);
 void    execute_didblock_script     (entity *ent, entity *other, s_collision_attack *attack);
-void    execute_ondoattack_script   (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int iWhich, int iAtkID, int tag);
+void    execute_ondoattack_script   (entity *ent, entity *other, s_collision_attack *attack, e_exchange which, int attack_id);
 void    execute_updateentity_script (entity *ent);
 void    execute_think_script        (entity *ent);
 void    execute_didhit_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked, int tag);
