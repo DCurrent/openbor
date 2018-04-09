@@ -2745,7 +2745,7 @@ void execute_think_script(entity *ent)
     }
 }
 
-static void _execute_didhit_script(Script *cs, entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked, int tag)
+static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_collision_attack *attack)
 {
     ScriptVariant tempvar;
     ScriptVariant_Init(&tempvar);
@@ -2754,25 +2754,35 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, int f
     Script_Set_Local_Variant(cs, "self",        &tempvar);
     tempvar.ptrVal = (VOID *)other;
     Script_Set_Local_Variant(cs, "damagetaker", &tempvar);
+
     ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-    tempvar.lVal = (LONG)force;
+
+    tempvar.lVal = (LONG)attack->attack_force;
     Script_Set_Local_Variant(cs, "damage",      &tempvar);
-    tempvar.lVal = (LONG)drop;
+
+    tempvar.lVal = (LONG)attack->attack_drop;
     Script_Set_Local_Variant(cs, "drop",        &tempvar);
-    tempvar.lVal = (LONG)type;
+
+    tempvar.lVal = (LONG)attack->attack_type;
     Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
-    tempvar.lVal = (LONG)noblock;
+
+    tempvar.lVal = (LONG)attack->no_block;
     Script_Set_Local_Variant(cs, "noblock",     &tempvar);
-    tempvar.lVal = (LONG)guardcost;
+
+    tempvar.lVal = (LONG)attack->guardcost;
     Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
-    tempvar.lVal = (LONG)jugglecost;
+
+    tempvar.lVal = (LONG)attack->jugglecost;
     Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
-    tempvar.lVal = (LONG)pauseadd;
+
+    tempvar.lVal = (LONG)attack->pause_add;
     Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-    tempvar.lVal = (LONG)blocked;
-    Script_Set_Local_Variant(cs, "blocked",     &tempvar);
-    tempvar.lVal = (LONG)tag;
-    Script_Set_Local_Variant(cs, "tag",         &tempvar);
+
+    tempvar.lVal = (LONG)attack->tag;
+    Script_Set_Local_Variant(cs, "tag",    &tempvar);
+
+    Script_Execute(cs);
+
     Script_Execute(cs);
     //clear to save variant space
     ScriptVariant_Clear(&tempvar);
@@ -2789,17 +2799,17 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, int f
     Script_Set_Local_Variant(cs, "tag",         &tempvar);
 }
 
-void execute_didhit_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked, int tag)
+void execute_didhit_script(entity *ent, entity *other, s_collision_attack *attack)
 {
     Script *cs;
     s_scripts *gs = global_model_scripts;
     if(gs && (cs = gs->didhit_script) && Script_IsInitialized(cs))
     {
-        _execute_didhit_script(cs, ent, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, blocked, tag);
+        _execute_didhit_script(cs, ent, other, attack);
     }
     if(Script_IsInitialized(cs = ent->scripts->didhit_script))
     {
-        _execute_didhit_script(cs, ent, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, blocked, tag);
+        _execute_didhit_script(cs, ent, other, attack);
     }
 }
 
