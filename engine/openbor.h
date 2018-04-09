@@ -2747,7 +2747,9 @@ float check_basemap(int x, int z);
 int check_basemap_index(int x, int z);
 entity *check_block_obstacle(entity *entity);
 int check_block_wall(entity *entity);
+int check_colorset_time(entity *ent);
 int check_lost();
+
 
 void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont);
 int testmove(entity *, float, float, float, float);
