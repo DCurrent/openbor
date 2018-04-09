@@ -2490,7 +2490,7 @@ void execute_onmovea_script(entity *ent)
     }
 }
 
-void execute_ondeath_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
+void execute_ondeath_script(entity *ent, entity *other, s_collision_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->ondeath_script;
@@ -2498,29 +2498,42 @@ void execute_ondeath_script(entity *ent, entity *other, int force, int drop, int
     {
         ScriptVariant_Init(&tempvar);
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
+
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self",        &tempvar);
+
         tempvar.ptrVal = (VOID *)other;
         Script_Set_Local_Variant(cs, "attacker",    &tempvar);
+
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-        tempvar.lVal = (LONG)force;
+
+        tempvar.lVal = (LONG)attack->attack_force;
         Script_Set_Local_Variant(cs, "damage",      &tempvar);
-        tempvar.lVal = (LONG)drop;
+
+        tempvar.lVal = (LONG)attack->attack_drop;
         Script_Set_Local_Variant(cs, "drop",        &tempvar);
-        tempvar.lVal = (LONG)type;
+
+        tempvar.lVal = (LONG)attack->type;
         Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
-        tempvar.lVal = (LONG)noblock;
+
+        tempvar.lVal = (LONG)attack->no_block;
         Script_Set_Local_Variant(cs, "noblock",     &tempvar);
-        tempvar.lVal = (LONG)guardcost;
+
+        tempvar.lVal = (LONG)attack->guardcost;
         Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
-        tempvar.lVal = (LONG)jugglecost;
+
+        tempvar.lVal = (LONG)attack->jugglecost;
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
-        tempvar.lVal = (LONG)pauseadd;
+
+        tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-        tempvar.lVal = (LONG)tag;
+
+        tempvar.lVal = (LONG)attack->tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
+
         Script_Execute(cs);
         //clear to save variant space
+
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self",        &tempvar);
         Script_Set_Local_Variant(cs, "attacker",    &tempvar);
