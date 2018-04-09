@@ -2745,7 +2745,7 @@ void execute_think_script(entity *ent)
     }
 }
 
-static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_collision_attack *attack)
+static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_collision_attack *attack, int blocked)
 {
     ScriptVariant tempvar;
     ScriptVariant_Init(&tempvar);
@@ -2781,6 +2781,9 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_col
     tempvar.lVal = (LONG)attack->tag;
     Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
+    tempvar.lVal = (LONG)blocked;
+    Script_Set_Local_Variant(cs, "blocked",    &tempvar);
+
     Script_Execute(cs);
 
     Script_Execute(cs);
@@ -2799,17 +2802,17 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_col
     Script_Set_Local_Variant(cs, "tag",         &tempvar);
 }
 
-void execute_didhit_script(entity *ent, entity *other, s_collision_attack *attack)
+void execute_didhit_script(entity *ent, entity *other, s_collision_attack *attack, int blocked)
 {
     Script *cs;
     s_scripts *gs = global_model_scripts;
     if(gs && (cs = gs->didhit_script) && Script_IsInitialized(cs))
     {
-        _execute_didhit_script(cs, ent, other, attack);
+        _execute_didhit_script(cs, ent, other, attack, blocked);
     }
     if(Script_IsInitialized(cs = ent->scripts->didhit_script))
     {
-        _execute_didhit_script(cs, ent, other, attack);
+        _execute_didhit_script(cs, ent, other, attack, blocked);
     }
 }
 
@@ -19528,7 +19531,7 @@ void do_attack(entity *e)
         {
             if(attack->attack_type == ATK_ITEM)
             {
-                execute_didhit_script(e, self, force, attack->attack_drop, self->modeldata.subtype, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, attack->tag);
+                execute_didhit_script(e, self, force, attack, 0);
                 didfind_item(e);
                 return;
             }
@@ -19564,7 +19567,7 @@ void do_attack(entity *e)
                      (fdefense_blockthreshold > force)))
             {
                 //execute the didhit script
-                execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, attack->tag);
+                execute_didhit_script(e, self, force, attack, 1);
                 self->takeaction = common_block;
                 set_blocking(self);
                 self->velocity.x = self->velocity.z = 0;
@@ -19619,7 +19622,7 @@ void do_attack(entity *e)
             {
                 // Only block if the attack is less than the players threshold
                 //execute the didhit script
-                execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, attack->tag);
+                execute_didhit_script(e, self, force, attack, 1);
                 if(self->modeldata.guardpoints.max > 0)
                 {
                     self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
@@ -19738,7 +19741,7 @@ void do_attack(entity *e)
             else if(self->takedamage(e, attack, 0))
             {
                 // Didn't block so go ahead and take the damage
-                execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, attack->tag);
+                execute_didhit_script(e, self, force, attack, 0);
                 ++e->animation->animhits;
 
                 e->lasthit = self;
@@ -23990,7 +23993,8 @@ void checkdamageonlanding()
             // is it dead now?
             checkdeath();
 
-            execute_didhit_script(other, self, attack.attack_force, attack.attack_drop, other->modeldata.subtype, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, attack.tag);
+
+            execute_didhit_script(other, self, &attack, 0);
         }
 
         if (self->health <= 0)
@@ -26758,6 +26762,20 @@ int common_try_wander(entity *target, int dox, int doz)
     return walk;
 }
 
+// Caskey, Damon V.
+// 208-04-09
+//
+// Set up attack by item and execute didhit script as if item "hit" collector
+// to allow easy item scripting.
+void do_item_script(entity *ent, entity *item)
+{
+    s_collision_attack = attack;
+    attack = emptyattack;
+    attack = ATK_ITEM;
+
+    execute_didhit_script(item, ent, &attack, 0);
+}
+
 //A.I chracter pickup an item
 void common_pickupitem(entity *other)
 {
@@ -26822,7 +26840,14 @@ void common_pickupitem(entity *other)
     // hide it
     if(pickup)
     {
-        execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
+        // Set up attack by item and execute didhit script as if item "hit" collector
+        // to allow easy item scripting.
+
+        s_collision_attack = attack;
+        attack = emptyattack;
+        attack = ATK_ITEM;
+
+        execute_didhit_script(other, self, &attack, 0);
         other->position.z = 100000;
     }
 }
@@ -29928,7 +29953,15 @@ void player_think()
             set_getting(self);
             self->takeaction = common_get;
             ent_set_anim(self, ANI_GET, 0);
-            execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
+
+            // Item "attacks" collector to make it
+            // easy to script actions on item pick up.
+            s_collision_attack = attack;
+            attack = emptyattack;
+            attack.attack_type = ATK_ITEM;
+
+            execute_didhit_script(other, self, &attack, 0);
+
             didfind_item(other);
             goto endthinkcheck;
         }
