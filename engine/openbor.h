@@ -2560,7 +2560,7 @@ void    init_scripts();
 void    load_scripts();
 void    execute_animation_script    (entity *ent);
 void    execute_takedamage_script   (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
-void    execute_ondeath_script      (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
+void    execute_ondeath_script      (entity *ent, entity *other, s_collision_attack *attack);
 void    execute_onkill_script       (entity *ent);
 void    execute_onpain_script       (entity *ent, int iType, int iReset);
 void    execute_onfall_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
