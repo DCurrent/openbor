@@ -19531,7 +19531,8 @@ void do_attack(entity *e)
         {
             if(attack->attack_type == ATK_ITEM)
             {
-                execute_didhit_script(e, self, force, attack, 0);
+                do_item_script(self, e);
+
                 didfind_item(e);
                 return;
             }
@@ -26840,14 +26841,8 @@ void common_pickupitem(entity *other)
     // hide it
     if(pickup)
     {
-        // Set up attack by item and execute didhit script as if item "hit" collector
-        // to allow easy item scripting.
+        do_item_script(self, other);
 
-        s_collision_attack = attack;
-        attack = emptyattack;
-        attack = ATK_ITEM;
-
-        execute_didhit_script(other, self, &attack, 0);
         other->position.z = 100000;
     }
 }
@@ -29956,11 +29951,7 @@ void player_think()
 
             // Item "attacks" collector to make it
             // easy to script actions on item pick up.
-            s_collision_attack = attack;
-            attack = emptyattack;
-            attack.attack_type = ATK_ITEM;
-
-            execute_didhit_script(other, self, &attack, 0);
+            do_item_script(self, other);
 
             didfind_item(other);
             goto endthinkcheck;
@@ -30313,7 +30304,7 @@ void player_think()
 
     if((other = find_ent_here(self, self->position.x, self->position.z, TYPE_ITEM, player_test_touch))  )
     {
-        execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
+        do_item_script(self, other);
         didfind_item(other);    // Added function to clean code up a bit
     }
 
