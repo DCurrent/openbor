@@ -27022,7 +27022,7 @@ int projectile_wall_deflect(entity *ent)
             toss(ent, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
 
             // Use default attack values.
-            attack = emptyattack
+            attack = emptyattack;
             set_fall(ent, ent, &attack, 0);
 
             return 1;
