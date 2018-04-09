@@ -2574,7 +2574,7 @@ void    execute_onblocka_script     (entity *ent, entity *other);
 void    execute_onmovex_script      (entity *ent);
 void    execute_onmovez_script      (entity *ent);
 void    execute_onmovea_script      (entity *ent);
-void    execute_didblock_script     (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
+void    execute_didblock_script     (entity *ent, entity *other, s_collision_attack *attack);
 void    execute_ondoattack_script   (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int iWhich, int iAtkID, int tag);
 void    execute_updateentity_script (entity *ent);
 void    execute_think_script        (entity *ent);
