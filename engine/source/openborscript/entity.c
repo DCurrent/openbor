@@ -19,6 +19,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 
     static const char *proplist[] =
     {
+        "ai_target_entity",
         "animation_animating",
         "animation_animation",
         "animation_collection",
