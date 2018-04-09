@@ -22601,11 +22601,18 @@ entity *normal_find_target(int anim, int detect_adj)
     int detect_adj:     Local detection adjustment. Allows lesser or greater penetration of target's stealth for location.
     */
 
-    int i , min, max, detect;
+    int i;
+    int min;
+    int max;
+    int detect;
     int index = -1;
+    float diffx = 0;
+    float diffz = 0;
+    float diffd = 0;
+    float diffo = 0;
+
     min = 0;
     max = 9999;
-    float diffx, diffz, diffd, diffo = 0;
 
     detect = detect_adj + self->modeldata.stealth.detect;
 
@@ -22640,25 +22647,42 @@ entity *normal_find_target(int anim, int detect_adj)
             }
         }
 
-        if(!ent_list[i]->dead //must be alive
-                && (diffd = (diffx = diff(ent_list[i]->position.x, self->position.x)) + (diffz = diff(ent_list[i]->position.z, self->position.z))) >= min
-                && diffd <= max
-                && (ent_list[i]->modeldata.stealth.hide <= detect) //Stealth factor less then perception factor (allows invisibility).
+        // Can't be dead.
+        if(ent_list[i]->dead)
+        {
+            continue;
+        }
+
+        // Get X and Z differences between us and target. We then
+        // add them up to get a total distance.
+        diffx = diff(ent_list[i]->position.x, self->position.x);
+        diffz = diff(ent_list[i]->position.z, self->position.z);
+        diffd = diffx + diffd;
+
+        // Distance must be within min and max.
+        if(diffd <= min || diffd >= max)
+        {
+            continue;
+        }
+
+        // Stealth must not be greater than perception.
+        if(ent_list[i]->modeldata.stealth.hide > detect)
+        {
+            continue;
+        }
+
+
+        if(index < 0 || (index >= 0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1)) ||
+                (
+                    (self->position.x < ent_list[i]->position.x) == (self->direction == DIRECTION_RIGHT) && // don't turn to the one on the back
+                    //ent_list[i]->x >= advancex-10 && ent_list[i]->x<advancex+videomodes.hRes+10 && // don't turn to an offscreen target
+                    //ent_list[i]->z >= advancey-10 && ent_list[i]->z<advancey+videomodes.vRes+10 &&
+                    diffd < diffo
+                )
           )
         {
-
-            if(index < 0 || (index >= 0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1)) ||
-                    (
-                        (self->position.x < ent_list[i]->position.x) == (self->direction == DIRECTION_RIGHT) && // don't turn to the one on the back
-                        //ent_list[i]->x >= advancex-10 && ent_list[i]->x<advancex+videomodes.hRes+10 && // don't turn to an offscreen target
-                        //ent_list[i]->z >= advancey-10 && ent_list[i]->z<advancey+videomodes.vRes+10 &&
-                        diffd < diffo
-                    )
-              )
-            {
-                index = i;
-                diffo = diffd;
-            }
+            index = i;
+            diffo = diffd;
         }
     }
     if( index >= 0)
