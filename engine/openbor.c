@@ -22116,54 +22116,54 @@ int set_death(entity *iDie, int type, int reset)
 }
 
 
-int set_fall(entity *iFall, s_collision_attack *attack, int reset)
+int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
 {
     int fall = 0;
 
-    if ( iFall->inbackpain ) fall = animbackfalls[attack->attack_type];
+    if ( ent->inbackpain ) fall = animbackfalls[attack->attack_type];
     else fall = animfalls[attack->attack_type];
 
-    if(validanim(iFall, fall))
+    if(validanim(ent, fall))
     {
-        ent_set_anim(iFall, fall, reset);
+        ent_set_anim(ent, fall, reset);
     }
-    else if( iFall->inbackpain && validanim(iFall, animbackfalls[0]) )
+    else if( ent->inbackpain && validanim(ent, animbackfalls[0]) )
     {
-        ent_set_anim(iFall, animbackfalls[0], reset);
+        ent_set_anim(ent, animbackfalls[0], reset);
     }
-    else if( validanim(iFall, animfalls[attack->attack_type]) )
+    else if( validanim(ent, animfalls[attack->attack_type]) )
     {
-        if ( iFall->inbackpain ) reset_backpain(iFall);
-        iFall->inbackpain = 0;
-        ent_set_anim(iFall, animfalls[attack->attack_type], reset);
+        if ( ent->inbackpain ) reset_backpain(ent);
+        ent->inbackpain = 0;
+        ent_set_anim(ent, animfalls[attack->attack_type], reset);
     }
-    else if(validanim(iFall, animfalls[0]))
+    else if(validanim(ent, animfalls[0]))
     {
-        if ( iFall->inbackpain ) reset_backpain(iFall);
-        iFall->inbackpain = 0;
-        ent_set_anim(iFall, animfalls[0], reset);
+        if ( ent->inbackpain ) reset_backpain(ent);
+        ent->inbackpain = 0;
+        ent_set_anim(ent, animfalls[0], reset);
     }
     else
     {
         return 0;
     }
 
-    iFall->drop = 1;
-    iFall->inpain = 0;
-    iFall->idling = 0;
-    iFall->falling = 1;
-    iFall->jumping = 0;
-    iFall->getting = 0;
-    iFall->charging = 0;
-    iFall->attacking = 0;
-    iFall->blocking = 0;
-    iFall->nograb = 1;
+    ent->drop = 1;
+    ent->inpain = 0;
+    ent->idling = 0;
+    ent->falling = 1;
+    ent->jumping = 0;
+    ent->getting = 0;
+    ent->charging = 0;
+    ent->attacking = 0;
+    ent->blocking = 0;
+    ent->nograb = 1;
 
-    if(iFall->frozen)
+    if(ent->frozen)
     {
-        unfrozen(iFall);
+        unfrozen(ent);
     }
-    execute_onfall_script(iFall, other, attack);
+    execute_onfall_script(ent, other, attack);
 
     return 1;
 }
@@ -24101,6 +24101,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     {
         set_opponent(self, other);
     }
+
     // adjust type
     if(attack->attack_type >= 0 && attack->attack_type < max_attack_types)
     {
@@ -24213,7 +24214,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         if(self->health <= 0 && self->modeldata.falldie == 1)
         {
             self->velocity.x = self->velocity.z = self->velocity.y = 0;
-            set_death(self, self->damagetype, 0);
+            set_death(self, attack->attack_type, 0);
         }
         else
         {
