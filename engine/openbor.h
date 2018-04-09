@@ -2747,7 +2747,7 @@ float check_basemap(int x, int z);
 int check_basemap_index(int x, int z);
 entity *check_block_obstacle(entity *entity);
 int check_block_wall(entity *entity);
-int check_colorset_time(entity *ent);
+int colorset_timed_expire(entity *ent);
 int check_lost();
 
 
