@@ -24003,7 +24003,6 @@ void checkdamageonlanding()
 void checkdamage(entity *other, s_collision_attack *attack)
 {
     int force = attack->attack_force;
-    int type = attack->attack_type;
 
     force = calculate_force_damage(other, attack);
 
