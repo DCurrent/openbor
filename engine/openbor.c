@@ -19467,8 +19467,10 @@ void do_attack(entity *e)
         temp = self;
         self = target;
 
-        execute_ondoattack_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, current_attack_id, attack->tag);	//Execute on defender.
-        execute_ondoattack_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, current_attack_id, attack->tag);	//Execute on attacker.
+        // Execute the doattack scripts so author can set take action
+        // before the hit code below does.
+        execute_ondoattack_script(self, e, attack, EXCHANGE_RECIPIANT, current_attack_id);
+        execute_ondoattack_script(e, self, attack, EXCHANGE_CONFERRER, current_attack_id);
 
         // 2010-12-31
         // Damon V. Caskey
@@ -23924,8 +23926,10 @@ void checkdamageonlanding()
         lasthit.position.y = self->position.y;
         lasthit.position.z = self->position.z;
 
-        execute_ondoattack_script(self, other, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, other->attack_id_outgoing, attack.tag);	//Execute on defender.
-        execute_ondoattack_script(other, self, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 1, other->attack_id_outgoing, attack.tag);	//Execute on attacker.
+        // Execute the doattack functions before damage is
+        // processed.
+        execute_ondoattack_script(self, other, &attack, EXCHANGE_RECIPIANT, other->attack_id_outgoing);
+        execute_ondoattack_script(other, self, &attack, EXCHANGE_CONFERRER, other->attack_id_outgoing);
 
         if(lasthit.confirm)
         {
