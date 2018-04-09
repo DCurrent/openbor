@@ -12,6 +12,7 @@
 
 typedef enum
 {
+    _entity_ai_target_entity,
     _entity_animation_animating,
     _entity_animation_animation,
     _entity_animation_collection,
