@@ -33,6 +33,7 @@ typedef enum
     _entity_colorset_table,
     _entity_colorset_time,
     _entity_combo_step,
+    _entity_combo_time,
     _entity_position_alternate_base,
     _entity_position_base,
     _entity_position_direction,
