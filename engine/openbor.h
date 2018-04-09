@@ -2584,7 +2584,7 @@ void    execute_didblock_script     (entity *ent, entity *other, s_collision_att
 void    execute_ondoattack_script   (entity *ent, entity *other, s_collision_attack *attack, e_exchange which, int attack_id);
 void    execute_updateentity_script (entity *ent);
 void    execute_think_script        (entity *ent);
-void    execute_didhit_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked, int tag);
+void    execute_didhit_script       (entity *ent, entity *other, s_collision_attack *attack);
 void    execute_onspawn_script      (entity *ent);
 void    clearsettings(void);
 void    savesettings(void);
