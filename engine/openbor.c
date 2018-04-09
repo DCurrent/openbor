@@ -2513,7 +2513,7 @@ void execute_ondeath_script(entity *ent, entity *other, s_collision_attack *atta
         tempvar.lVal = (LONG)attack->attack_drop;
         Script_Set_Local_Variant(cs, "drop",        &tempvar);
 
-        tempvar.lVal = (LONG)attack->type;
+        tempvar.lVal = (LONG)attack->attack_type;
         Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
 
         tempvar.lVal = (LONG)attack->no_block;
