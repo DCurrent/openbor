@@ -24020,7 +24020,9 @@ void checkdamage(entity *other, s_collision_attack *attack)
                 self->health = self->modeldata.health;          //Reset to max health.
             }
         }
-        execute_ondeath_script(self, other, force, attack->attack_drop, type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);   //Execute ondeath script.
+
+        // Execute ondeath script.
+        execute_ondeath_script(self, other, attack);
     }
 
     return;
