@@ -22612,9 +22612,25 @@ entity *normal_find_target(int anim, int detect_adj)
     //find the 'nearest' one
     for(i = 0; i < ent_max; i++)
     {
-        if( ent_list[i]->exists && ent_list[i] != self //cant target self
-                && (ent_list[i]->modeldata.type & self->modeldata.hostile)
-                && (anim < 0 || (anim >= 0 && check_range(self, ent_list[i], anim)))
+        // Must exist.
+        if(!ent_list[i]->exists)
+        {
+            continue;
+        }
+
+        // Can't be self.
+        if(ent_list[i] == self)
+        {
+            continue;
+        }
+
+        // Must be hostile.
+        if(!(ent_list[i]->modeldata.type & self->modeldata.hostile))
+        {
+            continue;
+        }
+
+        if((anim < 0 || (anim >= 0 && check_range(self, ent_list[i], anim)))
                 && !ent_list[i]->dead //must be alive
                 && (diffd = (diffx = diff(ent_list[i]->position.x, self->position.x)) + (diffz = diff(ent_list[i]->position.z, self->position.z))) >= min
                 && diffd <= max
