@@ -398,6 +398,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
     switch(property)
     {
 
+        case _entity_ai_target_entity:
+
+            handle->custom_target = (entity *)varlist[ARG_VALUE]->ptrVal;
+
+            break;
+
         case _entity_animation_animating:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
