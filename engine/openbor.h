@@ -2766,7 +2766,7 @@ entity *check_platform(float x, float z, entity *exclude);
 float get_platform_base(entity *);
 int is_on_platform(entity *);
 entity *get_platform_on(entity *);
-int do_item_script(entity *ent, entity *item);
+void do_item_script(entity *ent, entity *item);
 void do_attack(entity *e);
 int do_catch(entity *ent, entity *target, int animation_catch);
 int do_energy_charge(entity *ent);
