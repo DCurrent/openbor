@@ -20497,6 +20497,38 @@ void adjust_base(entity *e, entity **pla)
     self = tempself;
 }
 
+// Caskey Damon V.
+// 2018-04-08
+//
+// If entity has a timed color set, check
+// to see if colorset has expired. If so,
+// revert to default colorset and clear
+// the timer.
+int colorset_timed_expire(entity *ent)
+{
+    // No color set time? Nothing to do.
+    if(!ent->maptime)
+    {
+        return 0;
+    }
+
+    // If elapsed time has surpassed color
+    // set time, then color set time is expired.
+    // Revert entity back to default color set
+    // and reset the color set timer.
+    if(time >= ent->maptime)
+    {
+        ent_set_colourmap(ent, ent->map);
+        ent->maptime = 0;
+
+        return 1;
+    }
+
+    // Color set time was not expired.
+    return 0;
+}
+
+
 void update_animation()
 {
     int f;
@@ -20558,10 +20590,8 @@ void update_animation()
         unfrozen(self);
     }
 
-    if(self->maptime && time >= self->maptime)
-    {
-        ent_set_colourmap(self, self->map);
-    }
+    // Check for forced color set expiring.
+    colorset_timed_expire(self);
 
     if(self->sealtime && time >= self->sealtime) //Remove seal, special moves are available again.
     {
