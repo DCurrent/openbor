@@ -22672,20 +22672,20 @@ entity *normal_find_target(int anim, int detect_adj)
         }
 
 
-        if(index < 0 || (index >= 0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1)) ||
-                (
-                    (self->position.x < ent_list[i]->position.x) == (self->direction == DIRECTION_RIGHT) && // don't turn to the one on the back
-                    //ent_list[i]->x >= advancex-10 && ent_list[i]->x<advancex+videomodes.hRes+10 && // don't turn to an offscreen target
-                    //ent_list[i]->z >= advancey-10 && ent_list[i]->z<advancey+videomodes.vRes+10 &&
-                    diffd < diffo
-                )
+        if(index < 0
+           || (index >= 0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1))
+           // don't turn to the one on the back
+           || ((self->position.x < ent_list[i]->position.x) == (self->direction == DIRECTION_RIGHT) && diffd < diffo)
           )
         {
             index = i;
             diffo = diffd;
         }
+
+
     }
-    if( index >= 0)
+
+    if(index >= 0)
     {
         return ent_list[index];
     }
