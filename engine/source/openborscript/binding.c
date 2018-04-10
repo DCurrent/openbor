@@ -25,12 +25,18 @@ typedef enum
     _binding_offset_z,
     _binding_sort_id,
     _binding_the_end,
-} _binding_enum;
+} e_binding_properties;
 
+// Use string property argument to find an
+// integer property constant and populate
+// varlist->lval.
 int mapstrings_binding(ScriptVariant **varlist, int paramCount)
 {
-    char *propname = NULL;
-    int prop;
+    #define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
+    #define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
+
+    char *propname = NULL;  // Placeholder for string property name from varlist.
+    int prop;               // Placeholder for integer constant located by string.
 
     static const char *proplist[] =
     {
@@ -46,15 +52,26 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
         "sort_id",
     };
 
-
-    if(paramCount < 2)
+    // If the minimum argument count
+    // was not passed, then there is
+    // nothing to map. Return true - we'll
+    // catch the mistake in property access
+    // functions.
+    if(paramCount < ARG_MINIMUM)
     {
         return 1;
     }
-    MAPSTRINGS(varlist[1], proplist, _binding_the_end,
+
+    // See macro - will return 0 on fail.
+    MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _binding_the_end,
                "Property name '%s' is not supported by binding.\n");
 
+
+    // If we made it this far everything should be OK.
     return 1;
+
+    #undef ARG_MINIMUM
+    #undef ARG_PROPERTY
 }
 
 // Caskey, Damon  V.
@@ -71,8 +88,8 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
-    s_bind          *handle     = NULL; // Property handle.
-    _binding_enum   property    = 0;    // Property argument.
+    s_bind                  *handle     = NULL; // Property handle.
+    e_binding_properties    property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
@@ -214,9 +231,9 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
-    int           result      = S_OK; // Success or error?
-    s_bind        *handle     = NULL; // Property handle.
-    _binding_enum property    = 0;    // Property to access.
+    int                     result      = S_OK; // Success or error?
+    s_bind                  *handle     = NULL; // Property handle.
+    e_binding_properties    property    = 0;    // Property to access.
 
     // Value carriers to apply on properties after
     // taken from argument.

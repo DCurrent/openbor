@@ -275,6 +275,12 @@ typedef enum
     SUBTYPE_CHASE       // Used by enemy always chasing you
 } e_entity_type_sub;
 
+typedef enum
+{
+    EXCHANGE_CONFERRER,
+    EXCHANGE_RECIPIANT
+} e_exchange;
+
 //------------reserved for A.I. types-------------------------
 typedef enum
 {
@@ -1262,7 +1268,7 @@ if(n<1) n = 1;
 
 
 #define tobounce(e) (e->animation->bounce && diff(0, e->velocity.y) > 1.5 && \
-					 !((autoland == 1 && e->damage_on_landing[0] == -1) || e->damage_on_landing[0] == -2))
+					 !((autoland == 1 && e->damage_on_landing.attack_force == -1) || e->damage_on_landing.attack_force == -2))
 
 #define getpal ((current_palette&&level)?(level->palettes[current_palette-1]):pal)
 
@@ -1482,6 +1488,17 @@ typedef struct
 } s_defense;
 
 // Caskey, Damon V.
+// 2018-04-10
+//
+// Causing damage when an entity lands from
+// a fall.
+typedef struct
+{
+    int attack_force;
+    e_attack_types attack_type;
+} s_damage_on_landing;
+
+// Caskey, Damon V.
 // 2016-10~
 //
 // Collision box for detecting
@@ -1516,7 +1533,7 @@ typedef struct
     int                 blocksound;         // Custom sound for when an attack is blocked
     s_hitbox            *coords;            // Collision detection coordinates.
     int                 counterattack;      // Treat other attack boxes as body box.
-    int                 damage_on_landing[2];  // Same as throw damage type (gamage in index 0 and the attak type in index 1)
+    s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
     s_axis_f            dropv;              // Velocity of target if knocked down.
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 forcemap;           // Set target's palette on hit.
@@ -2214,7 +2231,6 @@ typedef struct entity
     int invincible; // Flag used to determine if player is currently invincible
     int autokill; // Kill on end animation
     int remove_on_attack;
-    int cantfire; // Flag to determine if another shot can be fired that costs energy
     int tocost; // Flag to determine if special costs life if doesn't hit an enemy
     int noaicontrol; // pause A.I. control
     int projectile;
@@ -2229,16 +2245,16 @@ typedef struct entity
     int animnum; // animation id
     s_anim *animation;
     float knockdowncount;
-    int damage_on_landing[2];
+    s_damage_on_landing damage_on_landing;
     int die_on_landing; // flag for damageonlanding (active if self->health <= 0)
-    int damagetype; // used for set death animation or pain animation
+    int last_damage_type; // used for set death animation or pain animation
     int map; // Stores the colourmap for restoring purposes
     void (*think)();
     void (*takeaction)();
     int (*takedamage)(struct entity *, s_collision_attack *, int);
     int (*trymove)(float, float);
-    int attack_id;
-    int hit_by_attack_id;
+    int attack_id_incoming;
+    int attack_id_outgoing;
     int hitwall; // == 1 in the instant that hit the wall/platform/obstacle, else == 0
     unsigned char *colourmap;
     //struct entity   *thrower;
@@ -2560,11 +2576,11 @@ int     load_script(Script *script, char *path);
 void    init_scripts();
 void    load_scripts();
 void    execute_animation_script    (entity *ent);
-void    execute_takedamage_script   (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
-void    execute_ondeath_script      (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
+void    execute_takedamage_script   (entity *ent, entity *other, s_collision_attack *attack);
+void    execute_ondeath_script      (entity *ent, entity *other, s_collision_attack *attack);
 void    execute_onkill_script       (entity *ent);
 void    execute_onpain_script       (entity *ent, int iType, int iReset);
-void    execute_onfall_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
+void    execute_onfall_script       (entity *ent, entity *other, s_collision_attack *attack);
 void    execute_inhole_script       (entity *ent, int plane, float height, int index, float depth, int type);
 void    execute_onblocks_script     (entity *ent);
 void    execute_onblockw_script     (entity *ent, int plane, float height, int index, float depth, int type);
@@ -2575,11 +2591,11 @@ void    execute_onblocka_script     (entity *ent, entity *other);
 void    execute_onmovex_script      (entity *ent);
 void    execute_onmovez_script      (entity *ent);
 void    execute_onmovea_script      (entity *ent);
-void    execute_didblock_script     (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
-void    execute_ondoattack_script   (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int iWhich, int iAtkID, int tag);
+void    execute_didblock_script     (entity *ent, entity *other, s_collision_attack *attack);
+void    execute_ondoattack_script   (entity *ent, entity *other, s_collision_attack *attack, e_exchange which, int attack_id);
 void    execute_updateentity_script (entity *ent);
 void    execute_think_script        (entity *ent);
-void    execute_didhit_script       (entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked, int tag);
+void    execute_didhit_script       (entity *ent, entity *other, s_collision_attack *attack, int blocked);
 void    execute_onspawn_script      (entity *ent);
 void    clearsettings(void);
 void    savesettings(void);
@@ -2714,6 +2730,15 @@ void ent_unlink(entity *e);
 void ents_link(entity *e1, entity *e2);
 void kill(entity *victim);
 void kill_all();
+
+
+int projectile_wall_deflect(entity *ent);
+
+int boomerang_catch(entity *ent, float distance_x_current);
+void boomerang_initialize(entity *ent);
+int boomerang_move();
+void sort_invert(entity *ent);
+
 int checkgrab(entity *other, s_collision_attack *attack);
 void checkdamageeffects(s_collision_attack *attack);
 void checkdamagedrop(s_collision_attack *attack);
@@ -2737,6 +2762,12 @@ int checkwall_below(float x, float z, float a);
 int checkwall(float x, float z);
 float check_basemap(int x, int z);
 int check_basemap_index(int x, int z);
+entity *check_block_obstacle(entity *entity);
+int check_block_wall(entity *entity);
+int colorset_timed_expire(entity *ent);
+int check_lost();
+
+
 void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont);
 int testmove(entity *, float, float, float, float);
 entity *check_platform_below(float x, float z, float a, entity *exclude);
@@ -2746,7 +2777,10 @@ entity *check_platform(float x, float z, entity *exclude);
 float get_platform_base(entity *);
 int is_on_platform(entity *);
 entity *get_platform_on(entity *);
+void do_item_script(entity *ent, entity *item);
 void do_attack(entity *e);
+int do_catch(entity *ent, entity *target, int animation_catch);
+int do_energy_charge(entity *ent);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
 void update_ents();
@@ -2757,7 +2791,7 @@ entity *findent(int types);
 int count_ents(int types);
 int set_idle(entity *ent);
 int set_death(entity *iDie, int type, int reset);
-int set_fall(entity *iFall, int type, int reset, entity *other, int force, int drop, int noblock, int guardcost, int jugglecost, int pauseadd, int tag);
+int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset);
 int set_rise(entity *iRise, int type, int reset);
 int set_riseattack(entity *iRiseattack, int type, int reset);
 int set_blockpain(entity *iBlkpain, int type, int reset);

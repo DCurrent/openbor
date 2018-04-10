@@ -14,7 +14,31 @@
 #define _is_not_a_known_subproperty_of_  "'%s' is not a known subproperty of '%s'.\n"
 #define _is_not_supported_by_ "'%s' is not supported by '%s'.\n"
 
-// Define macro for string mapping
+// Define macro for string mapping.
+    //
+    // 1. Is property argument a string?
+    //      a. True
+    //          1. Populate 'propname' with string.
+    //          2. Use searchlist function to populate
+    //          'prop' with integer constant matching
+    //          string from propname.
+    //
+    //          c. Is prop a 0+ integer?
+    //              1. True
+    //                  a. Use prop to populate varlist->lval.
+    //                  We now have a property constant ready
+    //                  to be processed  by property access
+    //                  functions.
+    //
+    //              2. False
+    //                  a. Send a failed message to the log.
+    //                  User most likely made a typo error
+    //                  and tried to access a property that
+    //                  does not exist.
+    //                  b. Return 0.
+    //
+    //      b. False.
+    //          1. Do nothing and allow function to continue.
 #define MAPSTRINGS(VAR, LIST, MAXINDEX, FAILMSG, args...) \
 if(VAR->vt == VT_STR) { \
 	propname = (char*)StrCache_Get(VAR->strVal); \
