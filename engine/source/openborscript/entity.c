@@ -265,7 +265,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
         case _entity_colorset_table:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)(ent->colourmap);
+            (*pretvar)->ptrVal = (VOID *)(handle->colourmap);
 
             break;
 
