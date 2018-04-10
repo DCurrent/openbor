@@ -6,6 +6,9 @@
  * Copyright (c) 2004 - 2018 OpenBOR Team
  */
 
+ #include "scriptcommon.h"
+ #include "entity.h"
+
 // Use string property argument to find an
 // integer property constant and populate
 // varlist->lval.
