@@ -1268,7 +1268,7 @@ if(n<1) n = 1;
 
 
 #define tobounce(e) (e->animation->bounce && diff(0, e->velocity.y) > 1.5 && \
-					 !((autoland == 1 && e->damage_on_landing[0] == -1) || e->damage_on_landing[0] == -2))
+					 !((autoland == 1 && e->damage_on_landing.attack_force == -1) || e->damage_on_landing.attack_force == -2))
 
 #define getpal ((current_palette&&level)?(level->palettes[current_palette-1]):pal)
 
@@ -1488,6 +1488,17 @@ typedef struct
 } s_defense;
 
 // Caskey, Damon V.
+// 2018-04-10
+//
+// Causing damage when an entity lands from
+// a fall.
+typedef struct
+{
+    int attack_force;
+    e_attack_types attack_type;
+} s_damage_on_landing;
+
+// Caskey, Damon V.
 // 2016-10~
 //
 // Collision box for detecting
@@ -1522,7 +1533,7 @@ typedef struct
     int                 blocksound;         // Custom sound for when an attack is blocked
     s_hitbox            *coords;            // Collision detection coordinates.
     int                 counterattack;      // Treat other attack boxes as body box.
-    int                 damage_on_landing[2];  // Same as throw damage type (gamage in index 0 and the attak type in index 1)
+    s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
     s_axis_f            dropv;              // Velocity of target if knocked down.
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 forcemap;           // Set target's palette on hit.
@@ -2234,7 +2245,7 @@ typedef struct entity
     int animnum; // animation id
     s_anim *animation;
     float knockdowncount;
-    int damage_on_landing[2];
+    s_damage_on_landing damage_on_landing;
     int die_on_landing; // flag for damageonlanding (active if self->health <= 0)
     int last_damage_type; // used for set death animation or pain animation
     int map; // Stores the colourmap for restoring purposes
