@@ -137,14 +137,14 @@ const s_collision_attack emptyattack =
 {
     .attack_drop        = 0,
     .attack_force       = 0,
-    .attack_type        = 0,
+    .attack_type        = ATK_NORMAL,
     .blast              = 0,
     .blockflash         = -1,
     .blocksound         = -1,
     .coords             = NULL,
     .counterattack      = 0,
-    .damage_on_landing[0] =  0,
-    .damage_on_landing[1] = -1,
+    .damage_on_landing.attack_force =  0,
+    .damage_on_landing.attack_type = -1,
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
@@ -2136,7 +2136,7 @@ void execute_animation_script(entity *ent)
     }
 }
 
-void execute_takedamage_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
+void execute_takedamage_script(entity *ent, entity *other, s_collision_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->takedamage_script;
@@ -2144,28 +2144,42 @@ void execute_takedamage_script(entity *ent, entity *other, int force, int drop, 
     {
         ScriptVariant_Init(&tempvar);
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
+
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self",        &tempvar);
+
         tempvar.ptrVal = (VOID *)other;
         Script_Set_Local_Variant(cs, "attacker",    &tempvar);
+
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-        tempvar.lVal = (LONG)force;
+
+        tempvar.lVal = (LONG)attack->attack_force;
         Script_Set_Local_Variant(cs, "damage",      &tempvar);
-        tempvar.lVal = (LONG)drop;
+
+        tempvar.lVal = (LONG)attack->attack_drop;
         Script_Set_Local_Variant(cs, "drop",        &tempvar);
-        tempvar.lVal = (LONG)type;
+
+        tempvar.lVal = (LONG)attack->attack_type;
         Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
-        tempvar.lVal = (LONG)noblock;
+
+        tempvar.lVal = (LONG)attack->no_block;
         Script_Set_Local_Variant(cs, "noblock",     &tempvar);
-        tempvar.lVal = (LONG)guardcost;
+
+        tempvar.lVal = (LONG)attack->guardcost;
         Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
-        tempvar.lVal = (LONG)jugglecost;
+
+        tempvar.lVal = (LONG)attack->jugglecost;
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
-        tempvar.lVal = (LONG)pauseadd;
+
+        tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-        tempvar.lVal = (LONG)tag;
+
+        tempvar.lVal = (LONG)attack->tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
+
+
         Script_Execute(cs);
+
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self",        &tempvar);
@@ -2204,7 +2218,7 @@ void execute_onpain_script(entity *ent, int iType, int iReset)
     }
 }
 
-void execute_onfall_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
+void execute_onfall_script(entity *ent, entity *other, s_collision_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onfall_script;
@@ -2214,25 +2228,36 @@ void execute_onfall_script(entity *ent, entity *other, int force, int drop, int 
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self",        &tempvar);
+
         tempvar.ptrVal = (VOID *)other;
         Script_Set_Local_Variant(cs, "attacker",    &tempvar);
+
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-        tempvar.lVal = (LONG)force;
+
+        tempvar.lVal = (LONG)attack->attack_force;
         Script_Set_Local_Variant(cs, "damage",      &tempvar);
-        tempvar.lVal = (LONG)drop;
+
+        tempvar.lVal = (LONG)attack->attack_drop;
         Script_Set_Local_Variant(cs, "drop",        &tempvar);
-        tempvar.lVal = (LONG)type;
+
+        tempvar.lVal = (LONG)attack->attack_type;
         Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
-        tempvar.lVal = (LONG)noblock;
+
+        tempvar.lVal = (LONG)attack->no_block;
         Script_Set_Local_Variant(cs, "noblock",     &tempvar);
-        tempvar.lVal = (LONG)guardcost;
+
+        tempvar.lVal = (LONG)attack->guardcost;
         Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
-        tempvar.lVal = (LONG)jugglecost;
+
+        tempvar.lVal = (LONG)attack->jugglecost;
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
-        tempvar.lVal = (LONG)pauseadd;
+
+        tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-        tempvar.lVal = (LONG)tag;
+
+        tempvar.lVal = (LONG)attack->tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
+
         Script_Execute(cs);
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
@@ -2490,7 +2515,7 @@ void execute_onmovea_script(entity *ent)
     }
 }
 
-void execute_ondeath_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
+void execute_ondeath_script(entity *ent, entity *other, s_collision_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->ondeath_script;
@@ -2498,29 +2523,42 @@ void execute_ondeath_script(entity *ent, entity *other, int force, int drop, int
     {
         ScriptVariant_Init(&tempvar);
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
+
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self",        &tempvar);
+
         tempvar.ptrVal = (VOID *)other;
         Script_Set_Local_Variant(cs, "attacker",    &tempvar);
+
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-        tempvar.lVal = (LONG)force;
+
+        tempvar.lVal = (LONG)attack->attack_force;
         Script_Set_Local_Variant(cs, "damage",      &tempvar);
-        tempvar.lVal = (LONG)drop;
+
+        tempvar.lVal = (LONG)attack->attack_drop;
         Script_Set_Local_Variant(cs, "drop",        &tempvar);
-        tempvar.lVal = (LONG)type;
+
+        tempvar.lVal = (LONG)attack->attack_type;
         Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
-        tempvar.lVal = (LONG)noblock;
+
+        tempvar.lVal = (LONG)attack->no_block;
         Script_Set_Local_Variant(cs, "noblock",     &tempvar);
-        tempvar.lVal = (LONG)guardcost;
+
+        tempvar.lVal = (LONG)attack->guardcost;
         Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
-        tempvar.lVal = (LONG)jugglecost;
+
+        tempvar.lVal = (LONG)attack->jugglecost;
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
-        tempvar.lVal = (LONG)pauseadd;
+
+        tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-        tempvar.lVal = (LONG)tag;
+
+        tempvar.lVal = (LONG)attack->tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
+
         Script_Execute(cs);
         //clear to save variant space
+
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self",        &tempvar);
         Script_Set_Local_Variant(cs, "attacker",    &tempvar);
@@ -2552,7 +2590,7 @@ void execute_onkill_script(entity *ent)
     }
 }
 
-void execute_didblock_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
+void execute_didblock_script(entity *ent, entity *other, s_collision_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->didblock_script;
@@ -2560,27 +2598,39 @@ void execute_didblock_script(entity *ent, entity *other, int force, int drop, in
     {
         ScriptVariant_Init(&tempvar);
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
+
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self",        &tempvar);
+
         tempvar.ptrVal = (VOID *)other;
         Script_Set_Local_Variant(cs, "attacker",    &tempvar);
+
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-        tempvar.lVal = (LONG)force;
+
+        tempvar.lVal = (LONG)attack->attack_force;
         Script_Set_Local_Variant(cs, "damage",      &tempvar);
-        tempvar.lVal = (LONG)drop;
+
+        tempvar.lVal = (LONG)attack->attack_drop;
         Script_Set_Local_Variant(cs, "drop",        &tempvar);
-        tempvar.lVal = (LONG)type;
+
+        tempvar.lVal = (LONG)attack->attack_type;
         Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
-        tempvar.lVal = (LONG)noblock;
+
+        tempvar.lVal = (LONG)attack->no_block;
         Script_Set_Local_Variant(cs, "noblock",     &tempvar);
-        tempvar.lVal = (LONG)guardcost;
+
+        tempvar.lVal = (LONG)attack->guardcost;
         Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
-        tempvar.lVal = (LONG)jugglecost;
+
+        tempvar.lVal = (LONG)attack->jugglecost;
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
-        tempvar.lVal = (LONG)pauseadd;
+
+        tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-        tempvar.lVal = (LONG)tag;
+
+        tempvar.lVal = (LONG)attack->tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
+
         Script_Execute(cs);
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
@@ -2597,7 +2647,7 @@ void execute_didblock_script(entity *ent, entity *other, int force, int drop, in
     }
 }
 
-void execute_ondoattack_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int iWhich, int iAtkID, int tag)
+void execute_ondoattack_script(entity *ent, entity *other, s_collision_attack *attack, e_exchange which, int attack_id)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->ondoattack_script;
@@ -2607,29 +2657,42 @@ void execute_ondoattack_script(entity *ent, entity *other, int force, int drop, 
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self",        &tempvar);
+
         tempvar.ptrVal = (VOID *)other;
-        Script_Set_Local_Variant(cs, "other",    &tempvar);
+        Script_Set_Local_Variant(cs, "attacker",    &tempvar);
+
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-        tempvar.lVal = (LONG)force;
+
+        tempvar.lVal = (LONG)attack->attack_force;
         Script_Set_Local_Variant(cs, "damage",      &tempvar);
-        tempvar.lVal = (LONG)drop;
+
+        tempvar.lVal = (LONG)attack->attack_drop;
         Script_Set_Local_Variant(cs, "drop",        &tempvar);
-        tempvar.lVal = (LONG)type;
+
+        tempvar.lVal = (LONG)attack->attack_type;
         Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
-        tempvar.lVal = (LONG)noblock;
+
+        tempvar.lVal = (LONG)attack->no_block;
         Script_Set_Local_Variant(cs, "noblock",     &tempvar);
-        tempvar.lVal = (LONG)guardcost;
+
+        tempvar.lVal = (LONG)attack->guardcost;
         Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
-        tempvar.lVal = (LONG)jugglecost;
+
+        tempvar.lVal = (LONG)attack->jugglecost;
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
-        tempvar.lVal = (LONG)pauseadd;
+
+        tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
-        tempvar.lVal = (LONG)iWhich;
-        Script_Set_Local_Variant(cs, "which",    &tempvar);
-        tempvar.lVal = (LONG)iAtkID;
-        Script_Set_Local_Variant(cs, "attackid",    &tempvar);
-        tempvar.lVal = (LONG)tag;
+
+        tempvar.lVal = (LONG)attack->tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
+
+        tempvar.lVal = (LONG)which;
+        Script_Set_Local_Variant(cs, "which",    &tempvar);
+
+        tempvar.lVal = (LONG)attack_id;
+        Script_Set_Local_Variant(cs, "attack_id",    &tempvar);
+
         Script_Execute(cs);
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
@@ -2682,7 +2745,7 @@ void execute_think_script(entity *ent)
     }
 }
 
-static void _execute_didhit_script(Script *cs, entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked, int tag)
+static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_collision_attack *attack, int blocked)
 {
     ScriptVariant tempvar;
     ScriptVariant_Init(&tempvar);
@@ -2691,25 +2754,38 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, int f
     Script_Set_Local_Variant(cs, "self",        &tempvar);
     tempvar.ptrVal = (VOID *)other;
     Script_Set_Local_Variant(cs, "damagetaker", &tempvar);
+
     ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-    tempvar.lVal = (LONG)force;
+
+    tempvar.lVal = (LONG)attack->attack_force;
     Script_Set_Local_Variant(cs, "damage",      &tempvar);
-    tempvar.lVal = (LONG)drop;
+
+    tempvar.lVal = (LONG)attack->attack_drop;
     Script_Set_Local_Variant(cs, "drop",        &tempvar);
-    tempvar.lVal = (LONG)type;
+
+    tempvar.lVal = (LONG)attack->attack_type;
     Script_Set_Local_Variant(cs, "attacktype",  &tempvar);
-    tempvar.lVal = (LONG)noblock;
+
+    tempvar.lVal = (LONG)attack->no_block;
     Script_Set_Local_Variant(cs, "noblock",     &tempvar);
-    tempvar.lVal = (LONG)guardcost;
+
+    tempvar.lVal = (LONG)attack->guardcost;
     Script_Set_Local_Variant(cs, "guardcost",   &tempvar);
-    tempvar.lVal = (LONG)jugglecost;
+
+    tempvar.lVal = (LONG)attack->jugglecost;
     Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
-    tempvar.lVal = (LONG)pauseadd;
+
+    tempvar.lVal = (LONG)attack->pause_add;
     Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
+
+    tempvar.lVal = (LONG)attack->tag;
+    Script_Set_Local_Variant(cs, "tag",    &tempvar);
+
     tempvar.lVal = (LONG)blocked;
-    Script_Set_Local_Variant(cs, "blocked",     &tempvar);
-    tempvar.lVal = (LONG)tag;
-    Script_Set_Local_Variant(cs, "tag",         &tempvar);
+    Script_Set_Local_Variant(cs, "blocked",    &tempvar);
+
+    Script_Execute(cs);
+
     Script_Execute(cs);
     //clear to save variant space
     ScriptVariant_Clear(&tempvar);
@@ -2726,17 +2802,17 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, int f
     Script_Set_Local_Variant(cs, "tag",         &tempvar);
 }
 
-void execute_didhit_script(entity *ent, entity *other, int force, int drop, int type, int noblock, int guardcost, int jugglecost, int pauseadd, int blocked, int tag)
+void execute_didhit_script(entity *ent, entity *other, s_collision_attack *attack, int blocked)
 {
     Script *cs;
     s_scripts *gs = global_model_scripts;
     if(gs && (cs = gs->didhit_script) && Script_IsInitialized(cs))
     {
-        _execute_didhit_script(cs, ent, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, blocked, tag);
+        _execute_didhit_script(cs, ent, other, attack, blocked);
     }
     if(Script_IsInitialized(cs = ent->scripts->didhit_script))
     {
-        _execute_didhit_script(cs, ent, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, blocked, tag);
+        _execute_didhit_script(cs, ent, other, attack, blocked);
     }
 }
 
@@ -10715,7 +10791,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 attack.attack_force = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_LAND_FORCE:
-                attack.damage_on_landing[0] = GET_INT_ARG(1);
+                attack.damage_on_landing.attack_force = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_LAND_MODE:
                 attack.blast = GET_INT_ARG(1);
@@ -11049,9 +11125,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_DAMAGEONLANDING:
                 // fake throw damage on landing
                 pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->damage_on_landing[0] = GET_INT_ARG(1);
+                pattack->damage_on_landing.attack_force = GET_INT_ARG(1);
                 pattack->blast = GET_INT_ARG(2);
-                pattack->damage_on_landing[1] = translate_attack_type(GET_ARG(3));
+                pattack->damage_on_landing.attack_type = translate_attack_type(GET_ARG(3));
                 break;
             case CMD_MODEL_SEAL:
                 // Disable special moves for specified time.
@@ -18236,11 +18312,6 @@ void kill(entity *victim)
 
     execute_onkill_script(victim);
 
-    if((victim->modeldata.type & TYPE_SHOT) && victim->owner && (victim->owner->modeldata.type & TYPE_PLAYER))
-    {
-        victim->owner->cantfire = 0;
-    }
-
     ent_unlink(victim);
     victim->weapent = NULL;
     victim->health = 0;
@@ -19274,7 +19345,7 @@ void do_attack(entity *e)
 
     // Every attack gets a unique ID to make sure no one
     // gets hit more than once by the same attack
-    current_attack_id = e->attack_id;
+    current_attack_id = e->attack_id_outgoing;
 
     if(!current_attack_id)
     {
@@ -19283,7 +19354,7 @@ void do_attack(entity *e)
         {
             new_attack_id = 1;
         }
-        e->attack_id = current_attack_id = new_attack_id;
+        e->attack_id_outgoing = current_attack_id = new_attack_id;
     }
 
 
@@ -19372,7 +19443,7 @@ void do_attack(entity *e)
         }
 
         // Attack IDs must be different.
-        if(target->hit_by_attack_id == current_attack_id && !attack->ignore_attack_id)
+        if(target->attack_id_incoming == current_attack_id && !attack->ignore_attack_id)
         {
             continue;
         }
@@ -19409,8 +19480,10 @@ void do_attack(entity *e)
         temp = self;
         self = target;
 
-        execute_ondoattack_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, current_attack_id, attack->tag);	//Execute on defender.
-        execute_ondoattack_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, current_attack_id, attack->tag);	//Execute on attacker.
+        // Execute the doattack scripts so author can set take action
+        // before the hit code below does.
+        execute_ondoattack_script(self, e, attack, EXCHANGE_RECIPIANT, current_attack_id);
+        execute_ondoattack_script(e, self, attack, EXCHANGE_CONFERRER, current_attack_id);
 
         // 2010-12-31
         // Damon V. Caskey
@@ -19458,7 +19531,8 @@ void do_attack(entity *e)
         {
             if(attack->attack_type == ATK_ITEM)
             {
-                execute_didhit_script(e, self, force, attack->attack_drop, self->modeldata.subtype, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, attack->tag);
+                do_item_script(self, e);
+
                 didfind_item(e);
                 return;
             }
@@ -19494,12 +19568,14 @@ void do_attack(entity *e)
                      (fdefense_blockthreshold > force)))
             {
                 //execute the didhit script
-                execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, attack->tag);
+                execute_didhit_script(e, self, attack, 1);
                 self->takeaction = common_block;
                 set_blocking(self);
                 self->velocity.x = self->velocity.z = 0;
                 ent_set_anim(self, ANI_BLOCK, 0);
-                execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);
+
+                execute_didblock_script(self, e, attack);
+
                 if(self->modeldata.guardpoints.max > 0)
                 {
                     self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
@@ -19547,7 +19623,7 @@ void do_attack(entity *e)
             {
                 // Only block if the attack is less than the players threshold
                 //execute the didhit script
-                execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 1, attack->tag);
+                execute_didhit_script(e, self, attack, 1);
                 if(self->modeldata.guardpoints.max > 0)
                 {
                     self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
@@ -19559,7 +19635,7 @@ void do_attack(entity *e)
                 {
                     set_blockpain(self, attack->attack_type, 0);
                 }
-                execute_didblock_script(self, e, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);
+                execute_didblock_script(self, e, attack);
 
                 // Spawn a flash
                 if(!attack->no_flash)
@@ -19636,7 +19712,7 @@ void do_attack(entity *e)
                             self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
                         }
                         ent_set_anim(self, current_follow_id, 0);
-                        self->hit_by_attack_id = current_attack_id;
+                        self->attack_id_incoming = current_attack_id;
                     }
 
                     if(!attack->no_flash)
@@ -19666,7 +19742,7 @@ void do_attack(entity *e)
             else if(self->takedamage(e, attack, 0))
             {
                 // Didn't block so go ahead and take the damage
-                execute_didhit_script(e, self, force, attack->attack_drop, attack->attack_type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, 0, attack->tag);
+                execute_didhit_script(e, self, attack, 0);
                 ++e->animation->animhits;
 
                 e->lasthit = self;
@@ -19757,7 +19833,7 @@ void do_attack(entity *e)
                 //followed = 1; // quit loop, animation is changed
             }//end of if #055
 
-            self->hit_by_attack_id = current_attack_id;
+            self->attack_id_incoming = current_attack_id;
             if(self == def)
             {
                 self->blocking = didblock;    // yeah, if get hit, stop blocking
@@ -19802,7 +19878,6 @@ void do_attack(entity *e)
                     }
                 }
 
-                topowner->cantfire = 0;    // Life subtracted, so go ahead and allow firing
                 e->tocost = 1;    // Little backwards, but set to 1 so cost doesn't get subtracted multiple times
             }
         }
@@ -20179,7 +20254,7 @@ void check_gravity(entity *e)
     self = tempself;
 }
 
-void check_lost()
+int check_lost()
 {
     s_collision_attack attack;
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
@@ -20197,7 +20272,7 @@ void check_lost()
         {
             kill(self);
         }
-        return;
+        return 1;
     }
 
     // fall into a pit
@@ -20217,7 +20292,7 @@ void check_lost()
             attack.attack_type  = ATK_PIT;
             self->takedamage(self, &attack, 0);
         }
-        return;
+        return 1;
     }
     else if(self->lifespancountdown < 0) //Lifespan expired.
     {
@@ -20235,7 +20310,7 @@ void check_lost()
             attack.attack_type  = ATK_LIFESPAN;
             self->takedamage(self, &attack, 0);
         }
-        return;
+        return 1;
     }//else
 
     // Doom count down
@@ -20243,6 +20318,8 @@ void check_lost()
     {
         self->lifespancountdown--;
     }
+
+    return 0;
 }
 
 // grab walk check
@@ -20501,6 +20578,38 @@ void adjust_base(entity *e, entity **pla)
     self = tempself;
 }
 
+// Caskey Damon V.
+// 2018-04-08
+//
+// If entity has a timed color set, check
+// to see if colorset has expired. If so,
+// revert to default colorset and clear
+// the timer.
+int colorset_timed_expire(entity *ent)
+{
+    // No color set time? Nothing to do.
+    if(!ent->maptime)
+    {
+        return 0;
+    }
+
+    // If elapsed time has surpassed color
+    // set time, then color set time is expired.
+    // Revert entity back to default color set
+    // and reset the color set timer.
+    if(time >= ent->maptime)
+    {
+        ent_set_colourmap(ent, ent->map);
+        ent->maptime = 0;
+
+        return 1;
+    }
+
+    // Color set time was not expired.
+    return 0;
+}
+
+
 void update_animation()
 {
     int f;
@@ -20562,10 +20671,8 @@ void update_animation()
         unfrozen(self);
     }
 
-    if(self->maptime && time >= self->maptime)
-    {
-        ent_set_colourmap(self, self->map);
-    }
+    // Check for forced color set expiring.
+    colorset_timed_expire(self);
 
     if(self->sealtime && time >= self->sealtime) //Remove seal, special moves are available again.
     {
@@ -20661,13 +20768,13 @@ void check_attack()
     // a normal fall
     if(self->falling && !self->projectile)
     {
-        self->attack_id = 0;
+        self->attack_id_outgoing = 0;
         return;
     }
     // on ground
     if(self->drop && !self->falling)
     {
-        self->attack_id = 0;
+        self->attack_id_outgoing = 0;
         return;
     }
 
@@ -20678,7 +20785,41 @@ void check_attack()
                 do_attack(self);
         return;
     }
-    self->attack_id = 0;
+    self->attack_id_outgoing = 0;
+}
+
+// Caskey, Damon V.
+// 2018-04-08
+//
+// If actively charging, add energy to
+// entity based on chargerate property
+// and elapsed time. Returns 1 if
+// energy was added, 0 otherwise.
+int do_energy_charge(entity *ent)
+{
+    #define SPEED_RATE  0.25   // How much GAME_SPEED will be added onto elapsed time to know when we can next add energy.
+
+    // not charging? Nothing else to do.
+    if(ent->charging)
+    {
+        return 0;
+    }
+
+    // Have we surpassed the next allowed charge time?
+    // If so, we add the amount of energy from chargerate
+    // and reset the next available time.
+    if(time >= ent->mpchargetime)
+    {
+        ent->mp += ent->modeldata.chargerate;
+        ent->mpchargetime = time + (GAME_SPEED * SPEED_RATE);
+
+        return 1;
+    }
+
+    // Didn't charge.
+    return 0;
+
+    #undef SPEED_RATE
 }
 
 
@@ -20779,11 +20920,10 @@ void update_health()
             self->magictime = time + GAME_SPEED;    //Reset magictime.
         }
     }
-    if(self->charging && time >= self->mpchargetime)
-    {
-        self->mp += self->modeldata.chargerate;
-        self->mpchargetime = time + (GAME_SPEED / 4);
-    }
+
+    // Active MP charging?
+    do_energy_charge(self);
+
     if(self->mp > self->modeldata.mp)
     {
         self->mp = self->modeldata.mp;    // Don't want to add more than the max
@@ -20976,7 +21116,7 @@ void damage_recursive(entity *target)
                         target->health = 1;
 
                         // Execute the target's takedamage script.
-                        execute_takedamage_script(target, owner, force, 0, attack_type, 0, 0, 0, 0, 0);
+                        execute_takedamage_script(target, owner, &attack);
                     }
                 }
                 else
@@ -20986,7 +21126,7 @@ void damage_recursive(entity *target)
                     target->health -= force_final;
 
                     // Execute the target's takedamage script.
-                    execute_takedamage_script(target, owner, force, 0, attack_type, 0, 0, 0, 0, 0);
+                    execute_takedamage_script(target, owner, &attack);
                 }
 
             }
@@ -22019,59 +22159,54 @@ int set_death(entity *iDie, int type, int reset)
 }
 
 
-int set_fall(entity *iFall, int type, int reset, entity *other, int force, int drop, int noblock, int guardcost, int jugglecost, int pauseadd, int tag)
+int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
 {
     int fall = 0;
 
-    if( type < 0 || type >= max_attack_types )
-    {
-        type = 0;
-    }
+    if ( ent->inbackpain ) fall = animbackfalls[attack->attack_type];
+    else fall = animfalls[attack->attack_type];
 
-    if ( iFall->inbackpain ) fall = animbackfalls[type];
-    else fall = animfalls[type];
-
-    if(validanim(iFall, fall))
+    if(validanim(ent, fall))
     {
-        ent_set_anim(iFall, fall, reset);
+        ent_set_anim(ent, fall, reset);
     }
-    else if( iFall->inbackpain && validanim(iFall, animbackfalls[0]) )
+    else if( ent->inbackpain && validanim(ent, animbackfalls[0]) )
     {
-        ent_set_anim(iFall, animbackfalls[0], reset);
+        ent_set_anim(ent, animbackfalls[0], reset);
     }
-    else if( validanim(iFall, animfalls[type]) )
+    else if( validanim(ent, animfalls[attack->attack_type]) )
     {
-        if ( iFall->inbackpain ) reset_backpain(iFall);
-        iFall->inbackpain = 0;
-        ent_set_anim(iFall, animfalls[type], reset);
+        if ( ent->inbackpain ) reset_backpain(ent);
+        ent->inbackpain = 0;
+        ent_set_anim(ent, animfalls[attack->attack_type], reset);
     }
-    else if(validanim(iFall, animfalls[0]))
+    else if(validanim(ent, animfalls[0]))
     {
-        if ( iFall->inbackpain ) reset_backpain(iFall);
-        iFall->inbackpain = 0;
-        ent_set_anim(iFall, animfalls[0], reset);
+        if ( ent->inbackpain ) reset_backpain(ent);
+        ent->inbackpain = 0;
+        ent_set_anim(ent, animfalls[0], reset);
     }
     else
     {
         return 0;
     }
 
-    iFall->drop = 1;
-    iFall->inpain = 0;
-    iFall->idling = 0;
-    iFall->falling = 1;
-    iFall->jumping = 0;
-    iFall->getting = 0;
-    iFall->charging = 0;
-    iFall->attacking = 0;
-    iFall->blocking = 0;
-    iFall->nograb = 1;
+    ent->drop = 1;
+    ent->inpain = 0;
+    ent->idling = 0;
+    ent->falling = 1;
+    ent->jumping = 0;
+    ent->getting = 0;
+    ent->charging = 0;
+    ent->attacking = 0;
+    ent->blocking = 0;
+    ent->nograb = 1;
 
-    if(iFall->frozen)
+    if(ent->frozen)
     {
-        unfrozen(iFall);
+        unfrozen(ent);
     }
-    execute_onfall_script(iFall, other, force, drop, type, noblock, guardcost, jugglecost, pauseadd, tag);
+    execute_onfall_script(ent, other, attack);
 
     return 1;
 }
@@ -22542,42 +22677,91 @@ entity *normal_find_target(int anim, int detect_adj)
     int detect_adj:     Local detection adjustment. Allows lesser or greater penetration of target's stealth for location.
     */
 
-    int i , min, max, detect;
+    int i;
+    int min;
+    int max;
+    int detect;
     int index = -1;
+    float diffx = 0;
+    float diffz = 0;
+    float diffd = 0;
+    float diffo = 0;
+
     min = 0;
     max = 9999;
-    float diffx, diffz, diffd, diffo = 0;
 
     detect = detect_adj + self->modeldata.stealth.detect;
 
     //find the 'nearest' one
     for(i = 0; i < ent_max; i++)
     {
-        if( ent_list[i]->exists && ent_list[i] != self //cant target self
-                && (ent_list[i]->modeldata.type & self->modeldata.hostile)
-                && (anim < 0 || (anim >= 0 && check_range(self, ent_list[i], anim)))
-                && !ent_list[i]->dead //must be alive
-                && (diffd = (diffx = diff(ent_list[i]->position.x, self->position.x)) + (diffz = diff(ent_list[i]->position.z, self->position.z))) >= min
-                && diffd <= max
-                && (ent_list[i]->modeldata.stealth.hide <= detect) //Stealth factor less then perception factor (allows invisibility).
-          )
+        // Must exist.
+        if(!ent_list[i]->exists)
         {
+            continue;
+        }
 
-            if(index < 0 || (index >= 0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1)) ||
-                    (
-                        (self->position.x < ent_list[i]->position.x) == (self->direction == DIRECTION_RIGHT) && // don't turn to the one on the back
-                        //ent_list[i]->x >= advancex-10 && ent_list[i]->x<advancex+videomodes.hRes+10 && // don't turn to an offscreen target
-                        //ent_list[i]->z >= advancey-10 && ent_list[i]->z<advancey+videomodes.vRes+10 &&
-                        diffd < diffo
-                    )
-              )
+        // Can't be self.
+        if(ent_list[i] == self)
+        {
+            continue;
+        }
+
+        // Must be hostile.
+        if(!(ent_list[i]->modeldata.type & self->modeldata.hostile))
+        {
+            continue;
+        }
+
+        // If anim is defined, then then target must be
+        // in range of animation.
+        if(anim >= 0)
+        {
+            if(!check_range(self, ent_list[i], anim))
             {
-                index = i;
-                diffo = diffd;
+                continue;
             }
         }
+
+        // Can't be dead.
+        if(ent_list[i]->dead)
+        {
+            continue;
+        }
+
+        // Get X and Z differences between us and target. We then
+        // add them up to get a total distance.
+        diffx = diff(ent_list[i]->position.x, self->position.x);
+        diffz = diff(ent_list[i]->position.z, self->position.z);
+        diffd = diffx + diffd;
+
+        // Distance must be within min and max.
+        if(diffd <= min || diffd >= max)
+        {
+            continue;
+        }
+
+        // Stealth must not be greater than perception.
+        if(ent_list[i]->modeldata.stealth.hide > detect)
+        {
+            continue;
+        }
+
+
+        if(index < 0
+           || (index >= 0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1))
+           // don't turn to the one on the back
+           || ((self->position.x < ent_list[i]->position.x) == (self->direction == DIRECTION_RIGHT) && diffd < diffo)
+          )
+        {
+            index = i;
+            diffo = diffd;
+        }
+
+
     }
-    if( index >= 0)
+
+    if(index >= 0)
     {
         return ent_list[index];
     }
@@ -22935,8 +23119,8 @@ void doland()
     self->velocity.x = self->velocity.z = 0;
     self->drop = 0;
     self->projectile = 0;
-    self->damage_on_landing[0] = 0;
-    self->damage_on_landing[1] = -1;
+    self->damage_on_landing.attack_force = 0;
+    self->damage_on_landing.attack_type = -1;
     if(validanim(self, ANI_LAND))
     {
         self->takeaction = common_land;
@@ -22966,8 +23150,8 @@ void common_fall()
     {
         if(self->projectile == 2)
         {
-            // damage_on_landing[0]==-2 means a player has pressed up+jump and has a land animation
-            if((autoland == 1 && self->damage_on_landing[0] == -1) || self->damage_on_landing[0] == -2)
+            // damage_on_landing.attack_force==-2 means a player has pressed up+jump and has a land animation
+            if((autoland == 1 && self->damage_on_landing.attack_force == -1) || self->damage_on_landing.attack_force == -2)
             {
                 // Added autoland option for landing
                 doland();
@@ -23013,7 +23197,7 @@ void common_try_riseattack()
     if(target)
     {
         self->direction = (target->position.x > self->position.x);    // Stands up and swings in the right direction depending on chosen target
-        set_riseattack(self, self->damagetype, 0);
+        set_riseattack(self, self->last_damage_type, 0);
     }
 }
 
@@ -23024,7 +23208,7 @@ void common_lie()
     {
         if(self->modeldata.falldie == 2)
         {
-            set_death(self, self->damagetype, 0);
+            set_death(self, self->last_damage_type, 0);
         }
         if(!self->modeldata.nodieblink || (self->modeldata.nodieblink == 1 && !self->animating))
         {
@@ -23075,7 +23259,7 @@ void common_lie()
     //self->projectile = 0;
     //self->velocity.x = self->velocity.z = self->velocity.y = 0;
 
-    set_rise(self, self->damagetype, 0);
+    set_rise(self, self->last_damage_type, 0);
 }
 
 // rise proc
@@ -23706,7 +23890,7 @@ void checkhitscore(entity *other, s_collision_attack *attack)
     // Don't animate or fall if hurt by self, since
     // it means self fell to the ground already. :)
     // Add throw score to the player
-    else if(other == self && self->damage_on_landing[0] > 0)
+    else if(other == self && self->damage_on_landing.attack_force > 0)
     {
         addscore(opp->playerindex, attack->attack_force);
     }
@@ -23734,7 +23918,7 @@ void checkdamageonlanding()
 {
     if (self->health <= 0) return;
 
-    if( (self->damage_on_landing[0] > 0 && !self->dead) )
+    if( (self->damage_on_landing.attack_force > 0 && !self->dead) )
     {
         int didhit = 0;
 
@@ -23743,8 +23927,8 @@ void checkdamageonlanding()
         entity *other;
 
         attack              = emptyattack;
-        attack.attack_force = self->damage_on_landing[0];
-        if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
+        attack.attack_force = self->damage_on_landing.attack_force;
+        if (attack.damage_on_landing.attack_type >= 0) attack.attack_type  = self->damage_on_landing.attack_type;
         else attack.attack_type  = ATK_LAND;
 
         if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->health > 0) other = self->opponent;
@@ -23756,8 +23940,10 @@ void checkdamageonlanding()
         lasthit.position.y = self->position.y;
         lasthit.position.z = self->position.z;
 
-        execute_ondoattack_script(self, other, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, other->attack_id, attack.tag);	//Execute on defender.
-        execute_ondoattack_script(other, self, attack.attack_force, attack.attack_drop, attack.attack_type, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 1, other->attack_id, attack.tag);	//Execute on attacker.
+        // Execute the doattack functions before damage is
+        // processed.
+        execute_ondoattack_script(self, other, &attack, EXCHANGE_RECIPIANT, other->attack_id_outgoing);
+        execute_ondoattack_script(other, self, &attack, EXCHANGE_CONFERRER, other->attack_id_outgoing);
 
         if(lasthit.confirm)
         {
@@ -23808,7 +23994,8 @@ void checkdamageonlanding()
             // is it dead now?
             checkdeath();
 
-            execute_didhit_script(other, self, attack.attack_force, attack.attack_drop, other->modeldata.subtype, attack.no_block, attack.guardcost, attack.jugglecost, attack.pause_add, 0, attack.tag);
+
+            execute_didhit_script(other, self, &attack, 0);
         }
 
         if (self->health <= 0)
@@ -23816,11 +24003,11 @@ void checkdamageonlanding()
             self->die_on_landing = 1;
         }
 
-        self->damage_on_landing[0] = 0;
+        self->damage_on_landing.attack_force = 0;
     }
 
     // takedamage if thrown or basted
-    //if( (self->damage_on_landing[0] > 0 && !self->dead) &&
+    //if( (self->damage_on_landing.attack_force > 0 && !self->dead) &&
     if( (self->die_on_landing && !self->dead) &&
         ((!tobounce(self) && self->modeldata.bounce) || !self->modeldata.bounce) &&
         (self->velocity.x == 0 && self->velocity.z == 0 && self->velocity.y == 0)
@@ -23833,8 +24020,8 @@ void checkdamageonlanding()
             entity *other;
 
             attack              = emptyattack;
-            attack.attack_force = self->damage_on_landing[0];
-            if (attack.damage_on_landing[1] >= 0) attack.attack_type  = self->damage_on_landing[1];
+            attack.attack_force = self->damage_on_landing.attack_force;
+            if (attack.damage_on_landing.attack_type >= 0) attack.attack_type  = self->damage_on_landing.attack_type;
             else attack.attack_type  = ATK_LAND;
 
             if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->health > 0) other = self->opponent;
@@ -23845,7 +24032,7 @@ void checkdamageonlanding()
         }
         else
         {
-            /*int damage_factor = (self->damage_on_landing[0] * self->defense[attack.attack_type].factor);
+            /*int damage_factor = (self->damage_on_landing.attack_force * self->defense[attack.attack_type].factor);
 
             self->health -= damage_factor;
             if(self->health <= 0 )
@@ -23856,8 +24043,8 @@ void checkdamageonlanding()
         }
         if (self)
         {
-            self->damage_on_landing[0] = 0;
-            self->damage_on_landing[1] = -1;
+            self->damage_on_landing.attack_force = 0;
+            self->damage_on_landing.attack_type = -1;
             self->die_on_landing = 0;
         }
     }
@@ -23868,7 +24055,6 @@ void checkdamageonlanding()
 void checkdamage(entity *other, s_collision_attack *attack)
 {
     int force = attack->attack_force;
-    int type = attack->attack_type;
 
     force = calculate_force_damage(other, attack);
 
@@ -23884,7 +24070,8 @@ void checkdamage(entity *other, s_collision_attack *attack)
         self->health = 1;
     }
 
-    execute_takedamage_script(self, other, force, attack->attack_drop, type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);                       //Execute the take damage script.
+    // Execute the take damage script.
+    execute_takedamage_script(self, other, attack);
 
     if (self->health <= 0)                                      //Health at 0?
     {
@@ -23899,7 +24086,9 @@ void checkdamage(entity *other, s_collision_attack *attack)
                 self->health = self->modeldata.health;          //Reset to max health.
             }
         }
-        execute_ondeath_script(self, other, force, attack->attack_drop, type, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag);   //Execute ondeath script.
+
+        // Execute ondeath script.
+        execute_ondeath_script(self, other, attack);
     }
 
     return;
@@ -23958,14 +24147,15 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     {
         set_opponent(self, other);
     }
+
     // adjust type
     if(attack->attack_type >= 0 && attack->attack_type < max_attack_types)
     {
-        self->damagetype = attack->attack_type;
+        self->last_damage_type = attack->attack_type;
     }
     else
     {
-        self->damagetype = ATK_NORMAL;
+        self->last_damage_type = ATK_NORMAL;
     }
 
     if (!self->die_on_landing)
@@ -24019,14 +24209,14 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     }
 
     // fall to the ground so don't fall again
-    /*if(self->damage_on_landing[0])
+    /*if(self->damage_on_landing.attack_force)
     {
-        self->damage_on_landing[0] = 0;
+        self->damage_on_landing.attack_force = 0;
         return 1;
     }*/
     // reset damageonlanding
-    self->damage_on_landing[0] = 0;
-    self->damage_on_landing[1] = -1;
+    self->damage_on_landing.attack_force = 0;
+    self->damage_on_landing.attack_type = -1;
 
 	// White Dragon: fix damage_on_landing bug
 	if(self->die_on_landing && self->health <= 0)
@@ -24070,7 +24260,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         if(self->health <= 0 && self->modeldata.falldie == 1)
         {
             self->velocity.x = self->velocity.z = self->velocity.y = 0;
-            set_death(self, self->damagetype, 0);
+            set_death(self, attack->attack_type, 0);
         }
         else
         {
@@ -24083,14 +24273,13 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
             }
             if(self->inbackpain) self->velocity.x *= -1;
             toss(self, attack->dropv.y);
-            self->damage_on_landing[0] = attack->damage_on_landing[0];
-            self->damage_on_landing[1] = attack->damage_on_landing[1];
+            self->damage_on_landing.attack_force = attack->damage_on_landing.attack_force;
+            self->damage_on_landing.attack_type = attack->damage_on_landing.attack_type;
             self->knockdowncount = self->modeldata.knockdowncount; // reset the knockdowncount
             self->knockdowntime = 0;
 
-            // Now if no fall/die animations exist, entity simply disapears
-            //set_fall(entity *iFall, int type, int reset, entity* other, int force, int drop)
-            if(!set_fall(self, self->damagetype, 1, other, attack->attack_force, attack->attack_drop, attack->no_block, attack->guardcost, attack->jugglecost, attack->pause_add, attack->tag))
+            // If no fall/die animations exist, entity simply disappears.
+            if(!set_fall(self, other, attack, 1))
             {
                 if(self->modeldata.type & TYPE_PLAYER)
                 {
@@ -24114,13 +24303,13 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         other->takeaction = common_grabattack;
         other->stalltime = time + GRAB_STALL;
         self->releasetime = time + (GAME_SPEED / 2);
-        set_pain(self, self->damagetype, 0);
+        set_pain(self, self->last_damage_type, 0);
     }
     // Don't change to pain animation if frozen
     else if(!self->frozen && !self->modeldata.nopain && !attack->no_pain && !(self->defense[attack->attack_type].pain && attack->attack_force < self->defense[attack->attack_type].pain))
     {
         self->takeaction = common_pain;
-        set_pain(self, self->damagetype, 1);
+        set_pain(self, self->last_damage_type, 1);
     }
 
     return 1;
@@ -24553,6 +24742,7 @@ void common_throw()
 // toss the grabbed one
 void dothrow()
 {
+    s_collision_attack attack;
     entity *other;
     self->velocity.x = self->velocity.z = 0;
     other = self->link;
@@ -24578,18 +24768,21 @@ void dothrow()
 
     if(autoland == 1 && validanim(other, ANI_LAND))
     {
-        other->damage_on_landing[0] = -1;
+        other->damage_on_landing.attack_force = -1;
     }
     else
     {
-        other->damage_on_landing[0] = self->modeldata.throwdamage;
+        other->damage_on_landing.attack_force = self->modeldata.throwdamage;
     }
 
     ent_unlink(other);
 
     other->takeaction = common_fall;
     self->takeaction = common_throw;
-    set_fall(other, ATK_NORMAL, 0, self, 0, 0, 0, 0, 0, 0, 0);
+
+    // Use default attack values.
+    attack = emptyattack;
+    set_fall(other, self, &attack, 0);
     ent_set_anim(self, ANI_THROW, 0);
 }
 
@@ -26570,6 +26763,20 @@ int common_try_wander(entity *target, int dox, int doz)
     return walk;
 }
 
+// Caskey, Damon V.
+// 208-04-09
+//
+// Set up attack by item and execute didhit script as if item "hit" collector
+// to allow easy item scripting.
+void do_item_script(entity *ent, entity *item)
+{
+    s_collision_attack attack;
+    attack = emptyattack;
+    attack.attack_type = ATK_ITEM;
+
+    execute_didhit_script(item, ent, &attack, 0);
+}
+
 //A.I chracter pickup an item
 void common_pickupitem(entity *other)
 {
@@ -26634,7 +26841,8 @@ void common_pickupitem(entity *other)
     // hide it
     if(pickup)
     {
-        execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
+        do_item_script(self, other);
+
         other->position.z = 100000;
     }
 }
@@ -26646,7 +26854,7 @@ int biker_move()
     if((self->direction == DIRECTION_RIGHT) ? (self->position.x > advancex + (videomodes.hRes + 200)) : (self->position.x < advancex - 200))
     {
         self->direction = !self->direction;
-        self->attack_id = 0;
+        self->attack_id_outgoing = 0;
         self->position.z = (float)(PLAYER_MIN_Z + randf((float)(PLAYER_MAX_Z - PLAYER_MIN_Z)));
         if(SAMPLE_BIKE >= 0)
         {
@@ -26668,8 +26876,6 @@ int biker_move()
 // for common arrow types
 int arrow_move()
 {
-    int wall, heightvar;
-    entity *other = NULL;
     float dx;
     float dz;
     float maxspeed;
@@ -26758,207 +26964,526 @@ int arrow_move()
 
     if(level)
     {
-        if(self->animation->size.y)
-        {
-            heightvar = self->animation->size.y;
-        }
-        else
-        {
-            heightvar = self->modeldata.size.y;
-        }
+        // Bounce off walls or platforms.
+        projectile_wall_deflect(self);
+    }
 
-        if(
-           ( self->modeldata.subject_to_wall && (wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height) ||
-           ( self->modeldata.subject_to_platform && (other = check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self)) )
-           )
+    self->autokill |= self->ptype;
+    return 1;
+}
+
+// Caskey, Damon V.
+// 2018-04-07
+//
+// Find out if there is a wall blocking target entity, and
+// if so return its array key. Returns 0 if no blocking
+// wall is found.
+int check_block_wall(entity *entity)
+{
+    int wall;
+
+    // Target entity affected by walls?
+    if(entity->modeldata.subject_to_wall)
+    {
+        // Get wall number at our X and Z axis (if any).
+        wall = checkwall(entity->position.x, entity->position.z);
+
+        // Did we find a wall?
+        if (wall > 0)
         {
-            // Added so projectiles bounce off blocked exits
-            if(validanim(self, ANI_FALL))
+            // Compare wall height to our current
+            // Y axis position. If the wall is
+            // higher, then it's blocking our way.
+            // We can return the wall number.
+            if(entity->position.y < level->walls[wall].height)
             {
-                self->takeaction = common_fall;
-                self->attacking = 0;
-                self->health = 0;
-                self->projectile = 0;
-                if(self->direction == DIRECTION_LEFT)
-                {
-                    self->velocity.x = (float) - 1.2;
-                }
-                else if(self->direction == DIRECTION_RIGHT)
-                {
-                    self->velocity.x = (float)1.2;
-                }
-                self->damage_on_landing[0] = 0;
-                self->damage_on_landing[1] = -1;
-                toss(self, 2.5 + randf(1));
-                self->modeldata.no_adjust_base = 0;
-                self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_gravity = 1;
-                set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
+                return wall;
             }
         }
     }
-    self->autokill |= self->ptype;
-    return 1;
+
+    // Got this far? Then there's no wall blocking our way.
+    return 0;
+}
+
+// Caskey, Damon V.
+// 2018-04-07
+//
+// Return obstacle entity that is blocking target
+// entity (if any). Returns NULL if not blocking
+// obstacle found.
+entity *check_block_obstacle(entity *ent)
+{
+    entity *obstacle = NULL;
+    int height;
+
+    // Target entity affected by obstacles?
+    if(ent->modeldata.subject_to_platform)
+    {
+        // Get the height. if entity does not have an
+        // animation height defined, then use its
+        // the entity height instead.
+        if(ent->animation->size.y)
+        {
+            height = ent->animation->size.y;
+        }
+        else
+        {
+            height = ent->modeldata.size.y;
+        }
+
+        // Add Y position to get the exact Y axis
+        // height of the entity's top edge.
+        height += ent->position.y;
+
+        // Find obstacle at entitiy's position (if any).
+        obstacle = check_platform_between(ent->position.x, ent->position.z, ent->position.y, height, ent);
+    }
+
+    return obstacle;
+}
+
+// Caskey, Damon V
+// 2018-04-06
+//
+// Ricochet a projectile off of walls and platforms.
+// Returns 1 on successful ricochet. 0 otherwise.
+int projectile_wall_deflect(entity *ent)
+{
+    #define FALL_FORCE                  1000    // Knockdown force that will be applied to projectile entity.
+    #define RICHOCHET_VELOCITY_X_FACTOR 0.25    // This value is multiplied by current velocity to get an X velocity value to bounce off wall..
+    #define RICHOCHET_VELOCITY_Y        2.5     // Base Y velocity applied when projectile bounces off wall.
+    #define RICHOCHET_VELOCITY_Y_RAND   1       // Random seed for Y variance added to base Y velocity when bouncing off wall.
+
+    float richochet_velocity_x;
+    s_collision_attack attack;
+
+    if(validanim(ent, ANI_FALL))
+    {
+        int blocking_wall;
+        entity *blocking_obstacle = NULL;
+
+        blocking_wall = check_block_wall(self);
+        blocking_obstacle = check_block_obstacle(self);
+
+        if(blocking_wall || blocking_obstacle) {
+
+            // Use the projectiles speed and our factor to see how
+            // hard it will bounce off wall.
+            richochet_velocity_x = ent->velocity.x * RICHOCHET_VELOCITY_X_FACTOR;
+
+            ent->takeaction = common_fall;
+            ent->attacking = 0;
+            ent->health = 0;
+            ent->projectile = 0;
+            ent->velocity.x = (ent->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
+            ent->damage_on_landing.attack_force = 0;
+            ent->damage_on_landing.attack_type = -1;
+            toss(ent, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
+
+            // Use default attack values.
+            attack = emptyattack;
+            set_fall(ent, ent, &attack, 0);
+
+            return 1;
+        }
+    }
+
+    // Did not ricochet, so return false.
+    return 0;
+
+    #undef FALL_FORCE
+    #undef RICHOCHET_VELOCITY_X_FACTOR
+    #undef RICHOCHET_VELOCITY_Y
+    #undef RICHOCHET_VELOCITY_Y_RAND
+}
+
+// Caskey, Damon V.
+// 2018-04-08
+//
+// Destroy target and while ent plays catch animation
+// if ent has the catch animation and target is in range.
+// Mainly for boomerang projectiles but useful for any
+// time one entity should "catch" another out of the air.
+//
+// Returns true on successful catch, false otherwise.
+int do_catch(entity *ent, entity *target, int animation_catch)
+{
+    // Valid catch animation?
+    if(validanim(ent, animation_catch))
+    {
+        // If target is in range, then destroy it
+        // while we play the catch animation,
+        // and return true.
+        if(check_range(ent, target, animation_catch))
+        {
+            ent->takeaction = common_animation_normal;
+            ent->attacking = 0;
+            ent->idling = 0;
+            ent_set_anim(ent, animation_catch, 0);
+            kill(target);
+
+            return 1;
+        }
+    }
+
+    // Did not catch anything.
+    return 0;
+}
+
+
+// Caskey, Damon V.
+// 2-18-04-06
+//
+// Invert current sorting position vs. parent.
+void sort_invert(entity *entity)
+{
+    if(entity->sortid <= entity->parent->sortid)
+    {
+        entity->sortid = entity->parent->sortid + 1;
+    }
+    else
+    {
+        entity->sortid = entity->parent->sortid - 1;
+    }
+}
+
+// Caskey, Damon V.
+// 2018-04-06
+//
+// Broken off from White Dragon's boomerang_move() function.
+// Verify boomerang is in catchable state and attempt
+// catch action.
+int boomerang_catch(entity *ent, float distance_x_current)
+{
+    int animation_catch; // Animation for parent catching boomerang.
+
+    // Only catch if in front of parent and traveling
+    // back toward them. Otherwise exit function since
+    // any further checks are pointless.
+    if(ent->parent->direction == DIRECTION_RIGHT)
+    {
+        // Traveling right?
+        if(ent->velocity.x >= 0)
+        {
+            return 0;
+        }
+
+        // At or to left of parent?
+        if(ent->position.x <= ent->parent->position.x)
+        {
+            return 0;
+        }
+    }
+    else if(ent->parent->direction == DIRECTION_LEFT)
+    {
+        // Traveling left?
+        if(ent->velocity.x <= 0)
+        {
+            return 0;
+        }
+
+        // At or to right of parent?
+        if(ent->position.x >= ent->parent->position.x)
+        {
+            return 0;
+        }
+    }
+
+    // Can't catch if parent is under any sort of duress.
+
+    // Pain?
+    if(ent->parent->inpain)
+    {
+        return 0;
+    }
+
+    // Knocked down?
+    if(ent->parent->falling)
+    {
+        return 0;
+    }
+
+    // Dead?
+    if(ent->parent->dead)
+    {
+        return 0;
+    }
+
+    // Have to be beyond first cycle of
+    // boomerang logic.
+    if(ent->boomerang_loop <= 1)
+    {
+        return 0;
+    }
+
+    // In air? Then use air catch. Otherwise use ground catch.
+    if(inair(ent->parent))
+    {
+        animation_catch = ANI_GETBOOMERANGINAIR;
+    }
+    else
+    {
+        animation_catch = ANI_GETBOOMERANG;
+    }
+
+    // Verify parent has catch animation and that we
+    // are in catch animation range, attempt to
+    // perform catch, and return result.
+    return do_catch(ent->parent, ent, animation_catch);
+}
+
+// Caskey, Damon V.
+// 2018-04-06
+//
+// Offloaded from boomerang_move().
+// Gets a boomerang type projectile set up when
+// first thrown.
+void boomerang_initialize(entity *ent)
+{
+    #define GRABFORCE           -99999
+    #define OFF_SCREEN_LIMIT    80
+
+    // We don't want our directional facing
+    // changing automatically.
+    ent->modeldata.noflip = 1;
+
+    // Populate offscreenkill in case our
+    // boomerang gets out of bounds.
+    ent->modeldata.offscreenkill = OFF_SCREEN_LIMIT;
+
+    // If we have a parent entity, then we need
+    // should set up to match the parent's attributes.
+    if(ent->parent)
+    {
+        // Make sure we're not hostile to our parent
+        // model type.
+        ent->modeldata.hostile &= ~(ent->parent->modeldata.type);
+
+        // If we were thrown by an enemy or player faction
+        // then make sure we're hostile to the opposite
+        // faction.
+        if (ent->parent->modeldata.type == TYPE_PLAYER
+            || ent->parent->modeldata.type == TYPE_NPC)
+        {
+            ent->modeldata.hostile |= TYPE_ENEMY;
+        }
+        else if(ent->parent->modeldata.type == TYPE_ENEMY)
+        {
+            ent->modeldata.hostile |= (TYPE_PLAYER | TYPE_NPC);
+        }
+
+        // Match the parent's direction and drawing order
+        // layer position in the sprite que.
+        ent->direction = ent->parent->direction;
+        ent->sortid = ent->parent->sortid + 1;
+    }
+
+    // Move along X axis according to the direction
+    // we're facing.
+    if(ent->direction == DIRECTION_LEFT)
+    {
+        ent->velocity.x = -ent->modeldata.speed;
+    }
+    else if(ent->direction == DIRECTION_RIGHT)
+    {
+        ent->velocity.x = ent->modeldata.speed;
+    }
+
+    // Synchronize with parent's vertical
+    // and lateral position.
+    ent->position.z = ent->parent->position.z;
+    ent->position.y = ent->parent->position.y;
+
+    // Make sure that we can't grab or be grabbed.
+    ent->modeldata.antigrab = 1;
+    ent->modeldata.grabforce = GRABFORCE;
+
+    ++ent->boomerang_loop;
+
+    #undef GRABFORCE
+    #undef OFF_SCREEN_LIMIT
 }
 
 // for common boomerang types
 int boomerang_move()
 {
+    float acceleration;             // Rate of velocity difference per update.
+    float distance_x_current;       // Current X axis distance from parent.
+    float distance_x_max;           // Maximum X axis distance allowed from parent.
+    float velocity_x_accelerated;   // X velocity after acceleration applied as an addition vs. current velocity.
+    float velocity_x_decelerated;   // X velocity after acceleration applied as a reduction vs. current velocity.
+
     if(!self->modeldata.nomove)
     {
-        float acc, distx, current_distx;
+        // Populate local vars with acceleration and
+        // maximum horizontal distance from modeldata.
+        // If there is no model data defined then we'll
+        // need to use some default values instead.
 
-        if(self->modeldata.boomerang_acc != 0) acc = self->modeldata.boomerang_acc;
-        else acc = self->modeldata.speed/(GAME_SPEED/20); // acceleration
-        if(self->modeldata.boomerang_distx > 0) distx = self->modeldata.boomerang_distx;
-        else distx = videomodes.hRes/(3); // horizontal distance
-
-        // init
-        if(self->velocity.x == 0 && !self->boomerang_loop)
+        // Acceleration.
+        if(self->modeldata.boomerang_acc != 0)
         {
-            self->modeldata.noflip = 1;
-
-            if(self->parent)
-            {
-                self->modeldata.hostile &= ~(self->parent->modeldata.type);
-                if (self->parent->modeldata.type == TYPE_PLAYER) self->modeldata.hostile |= TYPE_ENEMY;
-                else if(self->parent->modeldata.type == TYPE_ENEMY) self->modeldata.hostile |= (TYPE_PLAYER | TYPE_NPC);
-
-                self->direction = self->parent->direction;
-                self->sortid = self->parent->sortid + 1;
-            }
-
-            if(self->direction == DIRECTION_LEFT)
-            {
-                self->velocity.x = -self->modeldata.speed;
-            }
-            else if(self->direction == DIRECTION_RIGHT)
-            {
-                self->velocity.x = self->modeldata.speed;
-            }
-            self->position.z = self->parent->position.z;
-            self->position.y = self->parent->position.y;
-
-            self->modeldata.antigrab = 1;
-            self->modeldata.grabforce = -999999;
-
-            ++self->boomerang_loop;
+            acceleration = self->modeldata.boomerang_acc;
         }
+        else
+        {
+            acceleration = self->modeldata.speed/(GAME_SPEED/20);
+        }
+
+        // Maximum X distance from parent.
+        if(self->modeldata.boomerang_distx > 0)
+        {
+            distance_x_max = self->modeldata.boomerang_distx;
+        }
+        else
+        {
+            distance_x_max = videomodes.hRes/(3);
+        }
+
+        // If not moving on X axis and loop count
+        // is 0, then this must be a new boomerang.
+        // Run the initialize function to set up
+        // all of the attributes we'll need.
+        if(self->velocity.x == 0)
+        {
+            if(!self->boomerang_loop)
+            {
+               boomerang_initialize(self);
+            }
+        }
+
+        // No lateral movement.
         if(self->velocity.z != 0) self->velocity.z = 0;
 
-        if( (!self->parent && (self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80))) )
+        // If our boomerang has no parent and gets
+        // too far off the screen, then we will
+        // destroy it and exit the function.
+        if(!self->parent)
         {
-            kill(self);
-            return 0;
+            // Did check_lost() kill us?
+            if (check_lost())
+            {
+               return 0;
+            }
         }
 
         if(self->parent)
         {
-            current_distx = diff(self->position.x,self->parent->position.x);
+            distance_x_current = diff(self->position.x,self->parent->position.x);
             self->position.z = self->parent->position.z;
             self->position.y = self->parent->position.y;
 
-            // moving
+            // Movement.
+
+            // Right of parent on X axis?
             if (self->position.x >= self->parent->position.x)
             {
-                if ( current_distx >= distx )
+                // Get a possible X velocity to apply that
+                // will slightly decelerate us.
+                velocity_x_decelerated = self->velocity.x - acceleration;
+
+                // Exceeded maximum distance from parent?
+                if (distance_x_current >= distance_x_max)
                 {
-                    if(self->velocity.x - acc <= 0 && self->velocity.x > 0)
+                    // Have we stopped accelerating?
+                    if(velocity_x_decelerated <= 0)
                     {
-                        ++self->boomerang_loop;
-                        if(self->sortid <= self->parent->sortid) self->sortid = self->parent->sortid + 1;
-                        else self->sortid = self->parent->sortid - 1;
+                        // Moving right along X axis?
+                        if(self->velocity.x > 0)
+                        {
+                            // Increment tracking loop
+                            ++self->boomerang_loop;
+
+                            // Reverse sorting in relation to parent.
+                            sort_invert(self);
+                        }
                     }
-                    self->velocity.x = (self->velocity.x-acc < -self->modeldata.speed)?(-self->modeldata.speed):(self->velocity.x-acc);
+
+                    // This is where we reverse our X velocity and
+                    // return to thrower.
+                    //
+                    // If we're already reversed, then we just make sure
+                    // our X axis velocity is equal to our model
+                    // speed (inverted).
+                    //
+                    // If we're still moving forward (away from parent)
+                    // then apply the next velocity. This will
+                    // have the effect of reducing the X velocity
+                    // until it falls below inverted model speed, at
+                    // which point our reversed condition will be true.
+                    if(velocity_x_decelerated < -self->modeldata.speed)
+                    {
+                        self->velocity.x = -self->modeldata.speed;
+                    }
+                    else
+                    {
+                        self->velocity.x = velocity_x_decelerated;
+                    }
                 }
-                else if (self->velocity.x <= 0) self->velocity.x = (self->velocity.x-acc < -self->modeldata.speed)?(-self->modeldata.speed):(self->velocity.x-acc);
+                else if (self->velocity.x <= 0)
+                {
+                    if(velocity_x_decelerated < -self->modeldata.speed)
+                    {
+                        self->velocity.x = -self->modeldata.speed;
+                    }
+                    else
+                    {
+                        self->velocity.x = velocity_x_decelerated;
+                    }
+                }
             }
             else if (self->position.x <= self->parent->position.x)
             {
-                if ( current_distx >= distx )
+                // Calculate an X velocity with acceleration added.
+                velocity_x_accelerated = self->velocity.x + acceleration;
+
+                if(distance_x_current >= distance_x_max)
                 {
-                    if(self->velocity.x + acc >= 0 && self->velocity.x < 0)
+                    if(velocity_x_accelerated >= 0 && self->velocity.x < 0)
                     {
                         ++self->boomerang_loop;
-                        if(self->sortid <= self->parent->sortid) self->sortid = self->parent->sortid + 1;
-                        else self->sortid = self->parent->sortid - 1;
-                    }
-                    self->velocity.x = (self->velocity.x+acc > self->modeldata.speed)?(self->modeldata.speed):(self->velocity.x+acc);
-                }
-                else if (self->velocity.x >= 0) self->velocity.x = (self->velocity.x+acc > self->modeldata.speed)?(self->modeldata.speed):(self->velocity.x+acc);
-            }
 
-            // grab the boomerang
-            if( (self->position.x >= self->parent->position.x && self->parent->direction == DIRECTION_RIGHT && self->velocity.x <= 0) ||
-                (self->position.x <= self->parent->position.x && self->parent->direction == DIRECTION_LEFT  && self->velocity.x >= 0) )
-            {
-               if( !self->parent->inpain && !self->parent->falling && !self->parent->dead && self->boomerang_loop > 1 )
-               {
-                    if(self->parent->position.y <= self->parent->base && validanim(self->parent, ANI_GETBOOMERANG))
-                    {
-                        if( current_distx >= self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.min.x && current_distx <= self->parent->modeldata.animation[ANI_GETBOOMERANG]->range.max.x )
-                        {
-                            self->parent->takeaction = common_animation_normal;
-                            self->parent->attacking = 0;
-                            self->parent->idling = 0;
-                            ent_set_anim(self->parent, ANI_GETBOOMERANG, 0);
-                            kill(self);
-                            return 1;
-                        }
+                        // Reverse sorting in relation to parent.
+                        sort_invert(self);
                     }
-                    else if(inair(self->parent) && validanim(self->parent, ANI_GETBOOMERANGINAIR))
+
+                    // Make sure X velocity is no greater than
+                    // the model speed setting.
+                    if(velocity_x_accelerated > self->modeldata.speed)
                     {
-                        if( current_distx >= self->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.min.x && current_distx <= self->parent->modeldata.animation[ANI_GETBOOMERANGINAIR]->range.max.x )
-                        {
-                            self->parent->takeaction = common_animation_normal;
-                            self->parent->attacking = 0;
-                            self->parent->idling = 0;
-                            ent_set_anim(self->parent, ANI_GETBOOMERANGINAIR, 0);
-                            kill(self);
-                            return 1;
-                        }
+                        self->velocity.x = self->modeldata.speed;
+                    }
+                    else
+                    {
+                        self->velocity.x = velocity_x_accelerated;
+                    }
+                }
+                else if (self->velocity.x >= 0)
+                {
+                    if(velocity_x_accelerated > self->modeldata.speed)
+                    {
+                        self->velocity.x = self->modeldata.speed;
+                    }
+                    else
+                    {
+                        self->velocity.x = velocity_x_accelerated;
                     }
                 }
             }
 
+            // Catch the boomerang.
+            boomerang_catch(self, distance_x_current);
 
-            //debug_printf("cur_distx:%f velx:%f",current_distx,self->velocity.x);
-            //debug_printf("acc:%f speed:%f",acc,self->modeldata.speed);
+            //debug_printf("cur_distx:%f velx:%f",distance_x_current,self->velocity.x);
+            //debug_printf("acceleration:%f speed:%f",acceleration,self->modeldata.speed);
             //debug_printf("boomerang_loop:%d",self->boomerang_loop);
             //debug_printf("sortid:%d",self->sortid);
         }
     }
 
-    if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
-    {
-        int wall;
-        entity *other = NULL;
-        int heightvar;
-
-        if(self->animation->size.y)
-        {
-            heightvar = self->animation->size.y;
-        }
-        else
-        {
-            heightvar = self->modeldata.size.y;
-        }
-
-        if(
-           ( self->modeldata.subject_to_wall && (wall = checkwall(self->position.x, self->position.z)) > 0 && self->position.y < level->walls[wall].height) ||
-           ( self->modeldata.subject_to_platform > 0 && (other = check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self)) )
-           )
-        {
-            self->takeaction = common_fall;
-            self->attacking = 0;
-            self->health = 0;
-            self->projectile = 0;
-            self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
-            self->damage_on_landing[0] = 0;
-            self->damage_on_landing[1] = -1;
-            toss(self, 2.5 + randf(1));
-            set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
-        }
-    }
+    // Bounce off walls or platforms.
+    projectile_wall_deflect(self);
 
     return 1;
 }
@@ -27022,37 +27547,8 @@ int star_move()
     //self->base -= 4;
     //self->position.y = self->base;
 
-    if(validanim(self, ANI_FALL))   // Added so projectiles bounce off blocked exits
-    {
-        int wall;
-        entity *other = NULL;
-        int heightvar;
-
-        if(self->animation->size.y)
-        {
-            heightvar = self->animation->size.y;
-        }
-        else
-        {
-            heightvar = self->modeldata.size.y;
-        }
-
-        if(
-           ( self->modeldata.subject_to_wall > 0 && (wall = checkwall(self->position.x, self->position.z)) >= 0 && self->position.y < level->walls[wall].height ) ||
-           ( self->modeldata.subject_to_platform > 0 && (other = check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self)) )
-           )
-        {
-            self->takeaction = common_fall;
-            self->attacking = 0;
-            self->health = 0;
-            self->projectile = 0;
-            self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
-            self->damage_on_landing[0] = 0;
-            self->damage_on_landing[1] = -1;
-            toss(self, 2.5 + randf(1));
-            set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0, 0);
-        }
-    }
+    // Bounce off walls or platforms.
+    projectile_wall_deflect(self);
 
     if(self->landed_on_platform || self->position.y <= self->base)
     {
@@ -27924,8 +28420,7 @@ int check_energy(e_cost_check which, int ani)
 int check_special()
 {
     entity *e;
-    if((!level->nospecial || level->nospecial == 3) &&
-            !self->cantfire && validanim(self, ANI_SPECIAL) &&
+    if((!level->nospecial || level->nospecial == 3) && validanim(self, ANI_SPECIAL) &&
             (check_energy(COST_CHECK_HP, ANI_SPECIAL) || check_energy(COST_CHECK_MP, ANI_SPECIAL))
        )
     {
@@ -28352,7 +28847,7 @@ void player_fall_check()
 {
     if(autoland != 2 && (player[self->playerindex].keys & (FLAG_MOVEUP | FLAG_JUMP)) == (FLAG_MOVEUP | FLAG_JUMP))
     {
-        self->damage_on_landing[0] = -2; // mark it, so we will play land animation when hit the ground
+        self->damage_on_landing.attack_force = -2; // mark it, so we will play land animation when hit the ground
     }
 }
 
@@ -28941,7 +29436,7 @@ void player_lie_check()
             self->direction = DIRECTION_RIGHT;
         }
         self->stalltime = 0;
-        set_riseattack(self, self->damagetype, 0);
+        set_riseattack(self, self->last_damage_type, 0);
     }
 }
 
@@ -29453,7 +29948,11 @@ void player_think()
             set_getting(self);
             self->takeaction = common_get;
             ent_set_anim(self, ANI_GET, 0);
-            execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
+
+            // Item "attacks" collector to make it
+            // easy to script actions on item pick up.
+            do_item_script(self, other);
+
             didfind_item(other);
             goto endthinkcheck;
         }
@@ -29805,7 +30304,7 @@ void player_think()
 
     if((other = find_ent_here(self, self->position.x, self->position.z, TYPE_ITEM, player_test_touch))  )
     {
-        execute_didhit_script(other, self, 0, 0, other->modeldata.subtype, 0, 0, 0, 0, 0, 0); //Execute didhit script as if item "hit" collecter to allow easy item scripting.
+        do_item_script(self, other);
         didfind_item(other);    // Added function to clean code up a bit
     }
 
@@ -30016,6 +30515,8 @@ void drop_all_enemies()
 {
     int i;
     entity *weapself = self;
+    s_collision_attack attack;
+
     for(i = 0; i < ent_max; i++)
     {
         if(ent_list[i]->exists &&
@@ -30030,8 +30531,8 @@ void drop_all_enemies()
             ent_list[i]->attacking = 0;
             ent_list[i]->projectile = 0;
             ent_list[i]->takeaction = common_fall;//enemy_fall;
-            ent_list[i]->damage_on_landing[0] = 0;
-            ent_list[i]->damage_on_landing[1] = -1;
+            ent_list[i]->damage_on_landing.attack_force = 0;
+            ent_list[i]->damage_on_landing.attack_type = -1;
             self = ent_list[i];
             ent_unlink(self);
             ent_list[i]->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
@@ -30043,7 +30544,10 @@ void drop_all_enemies()
             ent_list[i]->knockdowncount = ent_list[i]->modeldata.knockdowncount;
 
             ent_list[i]->knockdowntime = 0;
-            set_fall(ent_list[i], ATK_NORMAL, 1, self, 0, 0, 0, 0, 0, 0, 0);
+
+            // Use default attack values.
+            attack = emptyattack;
+            set_fall(ent_list[i], self, &attack, 1);
         }
     }
     self = weapself;
@@ -30251,14 +30755,6 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->modeldata.type = self->modeldata.type;
     }
 
-    if(self->animation->energycost)
-    {
-        if(self->animation->energycost->cost > 0 && nocost)
-        {
-            self->cantfire = 1;    // Can't fire if still exists on screen
-        }
-    }
-
     if(!e->model->speed && !e->modeldata.nomove)
     {
         e->modeldata.speed = 2;
@@ -30356,14 +30852,6 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
     }
 
     e->position.y = a + 0.5;
-
-    if(self->animation->energycost)
-    {
-        if(self->animation->energycost->cost > 0 && nocost)
-        {
-            self->cantfire = 1;    // Can't fire if still exists on screen
-        }
-    }
 
     if(!e->model->speed && !e->modeldata.nomove)
     {
@@ -30636,7 +31124,7 @@ int biker_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     }
 
     check_backpain(other,self);
-    set_pain(self,  self->damagetype, 1);
+    set_pain(self,  self->last_damage_type, 1);
     self->attacking = 1;
     if(!self->modeldata.offscreenkill)
     {

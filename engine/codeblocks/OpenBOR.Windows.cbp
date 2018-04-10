@@ -937,6 +937,10 @@
 			<Option compilerVar="CC" />
 			<Option target="Release" />
 		</Unit>
+		<Unit filename="../source/openborscript/entity.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/openborscript/entity.h" />
 		<Unit filename="../source/openborscript/index.c">
 			<Option compilerVar="CC" />
 			<Option target="Release" />
