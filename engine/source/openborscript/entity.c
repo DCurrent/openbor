@@ -375,8 +375,8 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
     // Value carriers to apply on properties after
     // taken from argument.
-    int temp_int;
-    int temp_float;
+    LONG    temp_int;
+    DOUBLE  temp_float;
 
     // Map string property name to a
     // matching integer constant.
