@@ -427,7 +427,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
         case _entity_animation_collection:
 
-            handle->ent = (s_anim **)varlist[ARG_VALUE]->ptrVal;
+            handle->animation = (s_anim **)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
