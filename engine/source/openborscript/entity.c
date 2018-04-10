@@ -202,7 +202,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
         case _entity_binding:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)&ent->binding;
+            (*pretvar)->ptrVal = (VOID *)&handle->binding;
 
             break;
 
