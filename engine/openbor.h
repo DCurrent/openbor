@@ -2236,7 +2236,7 @@ typedef struct entity
     float knockdowncount;
     int damage_on_landing[2];
     int die_on_landing; // flag for damageonlanding (active if self->health <= 0)
-    int damagetype; // used for set death animation or pain animation
+    int last_damage_type; // used for set death animation or pain animation
     int map; // Stores the colourmap for restoring purposes
     void (*think)();
     void (*takeaction)();
