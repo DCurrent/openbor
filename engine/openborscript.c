@@ -3602,20 +3602,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_damage_on_landing:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        if(paramCount >= 3)
-        {
-            if(FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp2)))
-            {
-                printf("You must specify the index (0 or 1).\n");
-                *pretvar = NULL;
-                return E_FAIL;
-            }
-            (*pretvar)->lVal = (LONG)ent->damage_on_landing[ltemp2];
-        }
-        else
-        {
-            (*pretvar)->lVal = (LONG)ent->damage_on_landing[0];
-        }
+        (*pretvar)->lVal = (LONG)ent->damage_on_landing.attack_force;
+
 
         break;
     }
@@ -5723,14 +5711,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->damage_on_landing[0] = (int)ltemp;
-        }
-        if(paramCount >= 4)
-        {
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp2)))
-            {
-                ent->damage_on_landing[ltemp2] = (int)ltemp2;
-            }
+            ent->damage_on_landing.attack_force = (int)ltemp;
         }
         break;
     }
