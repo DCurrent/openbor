@@ -325,6 +325,7 @@ SCRIPT_BUILTINS = source/openborscript/animation.o                              
                   source/openborscript/collision_attack.o                                           \
                   source/openborscript/collision_body.o                                             \
                   source/openborscript/constant.o                                                   \
+                  source/openborscript/entity.o                                                   	\
                   source/openborscript/index.o                                                      \
                   source/openborscript/layer.o                                                      \
                   source/openborscript/level.o                                                      \
