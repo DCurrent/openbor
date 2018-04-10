@@ -23197,7 +23197,7 @@ void common_try_riseattack()
     if(target)
     {
         self->direction = (target->position.x > self->position.x);    // Stands up and swings in the right direction depending on chosen target
-        set_riseattack(self, self->damagetype, 0);
+        set_riseattack(self, self->last_damage_type, 0);
     }
 }
 
@@ -23208,7 +23208,7 @@ void common_lie()
     {
         if(self->modeldata.falldie == 2)
         {
-            set_death(self, self->damagetype, 0);
+            set_death(self, self->last_damage_type, 0);
         }
         if(!self->modeldata.nodieblink || (self->modeldata.nodieblink == 1 && !self->animating))
         {
@@ -23259,7 +23259,7 @@ void common_lie()
     //self->projectile = 0;
     //self->velocity.x = self->velocity.z = self->velocity.y = 0;
 
-    set_rise(self, self->damagetype, 0);
+    set_rise(self, self->last_damage_type, 0);
 }
 
 // rise proc
@@ -24151,11 +24151,11 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     // adjust type
     if(attack->attack_type >= 0 && attack->attack_type < max_attack_types)
     {
-        self->damagetype = attack->attack_type;
+        self->last_damage_type = attack->attack_type;
     }
     else
     {
-        self->damagetype = ATK_NORMAL;
+        self->last_damage_type = ATK_NORMAL;
     }
 
     if (!self->die_on_landing)
@@ -24303,13 +24303,13 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         other->takeaction = common_grabattack;
         other->stalltime = time + GRAB_STALL;
         self->releasetime = time + (GAME_SPEED / 2);
-        set_pain(self, self->damagetype, 0);
+        set_pain(self, self->last_damage_type, 0);
     }
     // Don't change to pain animation if frozen
     else if(!self->frozen && !self->modeldata.nopain && !attack->no_pain && !(self->defense[attack->attack_type].pain && attack->attack_force < self->defense[attack->attack_type].pain))
     {
         self->takeaction = common_pain;
-        set_pain(self, self->damagetype, 1);
+        set_pain(self, self->last_damage_type, 1);
     }
 
     return 1;
@@ -29436,7 +29436,7 @@ void player_lie_check()
             self->direction = DIRECTION_RIGHT;
         }
         self->stalltime = 0;
-        set_riseattack(self, self->damagetype, 0);
+        set_riseattack(self, self->last_damage_type, 0);
     }
 }
 
@@ -31124,7 +31124,7 @@ int biker_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     }
 
     check_backpain(other,self);
-    set_pain(self,  self->damagetype, 1);
+    set_pain(self,  self->last_damage_type, 1);
     self->attacking = 1;
     if(!self->modeldata.offscreenkill)
     {
