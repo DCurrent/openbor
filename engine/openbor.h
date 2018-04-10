@@ -2237,8 +2237,6 @@ typedef struct entity
     int damage_on_landing[2];
     int die_on_landing; // flag for damageonlanding (active if self->health <= 0)
     int damagetype; // used for set death animation or pain animation
-    s_collision_attack *last_damage_attack;  // Attack that caused most recent damage. Mainly used for setting reaction animations (fall, death, rise, etc.)
-
     int map; // Stores the colourmap for restoring purposes
     void (*think)();
     void (*takeaction)();
