@@ -291,6 +291,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
+        case _entity_damage_on_landing:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)&handle->damage_on_landing;
+
+            break;
+
         case _entity_position_alternate_base:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
