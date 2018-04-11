@@ -23372,7 +23372,7 @@ e_animations do_grab_attack_finish(entity *ent, int which)
         ent_set_anim(ent, animation, 0);
         return animation;
     }
-    else(validanim(ent, ANI_ATTACK3))
+    else if(validanim(ent, ANI_ATTACK3))
     {
         // Get the finisher animation.
         ent_set_anim(ent, ANI_ATTACK3, 0);
