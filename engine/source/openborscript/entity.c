@@ -45,6 +45,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "colorset_time",
         "combo_step",
         "combo_time",
+        "damage_on_landing",
         "position_alternate_base",
         "position_base",
         "position_direction",
