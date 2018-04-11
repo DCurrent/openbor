@@ -2807,7 +2807,7 @@ int melee_attack();
 void dothrow();
 void doprethrow();
 void dograbattack(int which);
-void do_grab_attack_finish(int which);
+void do_grab_attack_finish(entity *ent, int which);
 int check_special();
 void normal_prepare();
 void common_jump();
