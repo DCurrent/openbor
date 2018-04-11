@@ -23335,31 +23335,21 @@ void dograbattack(int which)
         }
         else
         {
-            memset(self->combostep, 0, sizeof(*self->combostep) * 5);
-            if(validanim(self, grab_attacks[which][1]))
-            {
-                ent_set_anim(self, grab_attacks[which][1], 0);
-            }
-            else if(validanim(self, ANI_ATTACK3))
-            {
-                ent_set_anim(self, ANI_ATTACK3, 0);
-            }
+            do_grab_attack_finish(self, which);
         }
     }
     else
     {
-        memset(self->combostep, 0, sizeof(*self->combostep) * 5);
-        if(validanim(self, grab_attacks[0][1]))
-        {
-            ent_set_anim(self, grab_attacks[0][1], 0);
-        }
-        else if(validanim(self, ANI_ATTACK3))
-        {
-            ent_set_anim(self, ANI_ATTACK3, 0);
-        }
+        do_grab_attack_finish(self, 0);
     }
 }
 
+// Caskey, Damon V.
+// 2018-04-11
+//
+// Choose appropriate grab finish animation
+// or do nothing if we can't find one. Returns
+// selected animation.
 e_animations do_grab_attack_finish(entity *ent, int which)
 {
     e_animations animation;
