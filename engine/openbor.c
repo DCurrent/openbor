@@ -144,7 +144,7 @@ const s_collision_attack emptyattack =
     .coords             = NULL,
     .counterattack      = 0,
     .damage_on_landing.attack_force =  0,
-    .damage_on_landing.attack_type = -1,
+    .damage_on_landing.attack_type = ATK_NONE,
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
@@ -23120,7 +23120,7 @@ void doland()
     self->drop = 0;
     self->projectile = 0;
     self->damage_on_landing.attack_force = 0;
-    self->damage_on_landing.attack_type = -1;
+    self->damage_on_landing.attack_type = ATK_NONE;
     if(validanim(self, ANI_LAND))
     {
         self->takeaction = common_land;
@@ -24044,7 +24044,7 @@ void checkdamageonlanding()
         if (self)
         {
             self->damage_on_landing.attack_force = 0;
-            self->damage_on_landing.attack_type = -1;
+            self->damage_on_landing.attack_type = ATK_NONE;
             self->die_on_landing = 0;
         }
     }
@@ -24216,7 +24216,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     }*/
     // reset damageonlanding
     self->damage_on_landing.attack_force = 0;
-    self->damage_on_landing.attack_type = -1;
+    self->damage_on_landing.attack_type = ATK_NONE;
 
 	// White Dragon: fix damage_on_landing bug
 	if(self->die_on_landing && self->health <= 0)
@@ -27078,7 +27078,7 @@ int projectile_wall_deflect(entity *ent)
             ent->projectile = 0;
             ent->velocity.x = (ent->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
             ent->damage_on_landing.attack_force = 0;
-            ent->damage_on_landing.attack_type = -1;
+            ent->damage_on_landing.attack_type = ATK_NONE;
             toss(ent, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
 
             // Use default attack values.
@@ -30532,7 +30532,7 @@ void drop_all_enemies()
             ent_list[i]->projectile = 0;
             ent_list[i]->takeaction = common_fall;//enemy_fall;
             ent_list[i]->damage_on_landing.attack_force = 0;
-            ent_list[i]->damage_on_landing.attack_type = -1;
+            ent_list[i]->damage_on_landing.attack_type = ATK_NONE;
             self = ent_list[i];
             ent_unlink(self);
             ent_list[i]->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;

@@ -738,7 +738,7 @@ typedef enum
     Damon V. Caskey
     2013-12-27
     */
-
+    ATK_NONE            = -1,   // When we want no attack at all, such as damage_on_landing's default.
     ATK_NORMAL,
     ATK_NORMAL1			= ATK_NORMAL,
     ATK_NORMAL2,
@@ -2238,7 +2238,6 @@ typedef struct entity
     int animating; // Set by animation code
     int arrowon; // Flag to display parrow/parrow2 or not
     unsigned pathblocked;
-
     s_axis_f *waypoints;
     int numwaypoints;
     int animpos;
