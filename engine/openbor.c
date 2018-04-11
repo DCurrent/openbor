@@ -23360,6 +23360,39 @@ void dograbattack(int which)
     }
 }
 
+e_animations do_grab_attack_finish(entity *ent, int which)
+{
+    e_animations animation;
+
+    // Clear out the combostep array since this is
+    // the finishing attack.
+    memset(ent->combostep, 0, sizeof(*ent->combostep) * 5);
+
+    // Get the finisher animation.
+    animation = grab_attacks[which][1];
+
+    // If selected attack animation exists then
+    // that's what we use. Otherwise default to
+    // attack3. If THAT fails, we don't do anything.
+    // The target entity is already unlinked from
+    // grab before this function was called, so in
+    // game they are let go with no finishing attack.
+    if(validanim(ent, animation))
+    {
+        ent_set_anim(ent, animation, 0);
+        return animation;
+    }
+    else(validanim(ent, ANI_ATTACK3))
+    {
+        // Get the finisher animation.
+        ent_set_anim(ent, ANI_ATTACK3, 0);
+        return ANI_ATTACK3;
+    }
+
+    // Could not find a valid finisher. Return none.
+    return ATK_NONE;
+}
+
 void common_grab_check()
 {
     int rnum, which;
