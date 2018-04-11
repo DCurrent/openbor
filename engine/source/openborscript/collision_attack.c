@@ -206,7 +206,7 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
         case ATTACK_PROP_DAMAGE_LAND_FORCE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->damage_on_landing[0];
+            (*pretvar)->lVal = (LONG)handle->damage_on_landing.attack_force;
             break;
 
         case ATTACK_PROP_DAMAGE_LAND_MODE:
@@ -499,7 +499,7 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->damage_on_landing[0] = temp_int;
+                handle->damage_on_landing.attack_force = temp_int;
             }
             break;
 
