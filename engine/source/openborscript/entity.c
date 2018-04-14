@@ -7,7 +7,6 @@
  */
 
  #include "scriptcommon.h"
- #include "entity.h"
 
 // Use string property argument to find an
 // integer property constant and populate
@@ -66,7 +65,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 
     // See macro - will return 0 on fail.
     MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _entity_the_end,
-               "Property name '%s' is not supported by entities.\n");
+               "\n\n Error: '%s' is not a known entity property.\n");
 
 
     // If we made it this far everything should be OK.
