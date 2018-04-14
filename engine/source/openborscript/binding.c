@@ -20,9 +20,7 @@ typedef enum
     _binding_bind_z,
     _binding_direction,
     _binding_entity,
-    _binding_offset_x,
-    _binding_offset_y,
-    _binding_offset_z,
+    _binding_offset,
     _binding_sort_id,
     _binding_the_end,
 } e_binding_properties;
@@ -46,9 +44,7 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
         "bind_z",
         "direction",
         "entity",
-        "offset_x",
-        "offset_y",
-        "offset_z",
+        "offset",
         "sort_id",
     };
 
@@ -165,24 +161,10 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
 
             break;
 
-        case _binding_offset_x:
+        case _binding_offset:
 
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->offset.x;
-
-            break;
-
-        case _binding_offset_y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->offset.y;
-
-            break;
-
-        case _binding_offset_z:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->offset.z;
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)&handle->offset;
 
             break;
 
@@ -314,31 +296,9 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
 
             break;
 
-        case _binding_offset_x:
+        case _binding_offset:
 
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->offset.x = temp_int;
-            }
-
-            break;
-
-        case _binding_offset_y:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->offset.y = temp_int;
-            }
-
-            break;
-
-        case _binding_offset_z:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->offset.z = temp_int;
-            }
-
+            // Read only.
             break;
 
         case _binding_sort_id:
