@@ -13,6 +13,7 @@
 #include "pp_parser.h"
 
 #include "binding.h"
+#include "entity.h"
 
 #define MAX_GLOBAL_VAR 2048
 #define MAX_KEY_LEN    24
