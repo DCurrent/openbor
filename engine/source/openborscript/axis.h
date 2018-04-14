@@ -12,24 +12,17 @@
 
 typedef enum
 {
-    _axis_bi_x,
-    _axis_bi_y,
-    _axis_bi_the_end,
-} e_axis_bi_properties;
+    _axis_x,
+    _axis_y,
+    _axis_z,
+    _axis_the_end,
+} e_axis_properties;
 
-typedef enum
-{
-    _axis_tri_x,
-    _axis_tri_y,
-    _axis_tri_z,
-    _axis_tri_the_end,
-} e_axis_tri_properties;
+HRESULT openbor_get_axis_bi_int_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_set_axis_bi_int_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 
-HRESULT openbor_get_axis_tri_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_axis_tri_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-
-HRESULT openbor_get_axis_tri_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_axis_tri_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_axis_tri_int_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_set_axis_tri_int_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 
 int mapstrings_axis_bi_property(ScriptVariant **varlist, int paramCount);
 int mapstrings_axis_tri_property(ScriptVariant **varlist, int paramCount);
