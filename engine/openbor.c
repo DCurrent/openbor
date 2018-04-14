@@ -22733,7 +22733,7 @@ entity *normal_find_target(int anim, int detect_adj)
         // add them up to get a total distance.
         diffx = diff(ent_list[i]->position.x, self->position.x);
         diffz = diff(ent_list[i]->position.z, self->position.z);
-        diffd = diffx + diffd;
+        diffd = diffx + diffz;
 
         // Distance must be within min and max.
         if(diffd <= min || diffd >= max)
