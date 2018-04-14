@@ -12,6 +12,7 @@
 #include "Interpreter.h"
 #include "pp_parser.h"
 
+#include "axis.h"
 #include "binding.h"
 #include "entity.h"
 
