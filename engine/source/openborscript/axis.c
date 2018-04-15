@@ -100,7 +100,7 @@ HRESULT openbor_get_axis_bi_int_property(ScriptVariant **varlist , ScriptVariant
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
-    s_axis_f_2d            *handle     = NULL; // Property handle.
+    s_axis_i_2d            *handle     = NULL; // Property handle.
     e_axis_properties       property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
@@ -124,7 +124,7 @@ HRESULT openbor_get_axis_bi_int_property(ScriptVariant **varlist , ScriptVariant
     else
     {
         // Populate local vars for readability.
-        handle      = (s_axis_f_2d *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_axis_i_2d *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -132,15 +132,15 @@ HRESULT openbor_get_axis_bi_int_property(ScriptVariant **varlist , ScriptVariant
     {
         case _axis_x:
 
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->x;
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->x;
 
             break;
 
         case _axis_y:
 
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->y;
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->y;
 
             break;
 
@@ -187,7 +187,7 @@ HRESULT openbor_set_axis_bi_int_property(ScriptVariant **varlist, ScriptVariant 
 
     // Value carriers to apply on properties after
     // taken from argument.
-    DOUBLE  temp_float;
+    LONG  temp_int;
 
     // Map string property name to a
     // matching integer constant.
@@ -214,18 +214,18 @@ HRESULT openbor_set_axis_bi_int_property(ScriptVariant **varlist, ScriptVariant 
 
         case _axis_x:
 
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->x = temp_float;
+                handle->x = temp_int;
             }
 
             break;
 
         case _axis_y:
 
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->y = temp_float;
+                handle->y = temp_int;
             }
 
             break;
