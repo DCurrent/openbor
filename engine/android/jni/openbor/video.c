@@ -379,7 +379,7 @@ int video_set_mode(s_videomodes videomodes)
         return 0;
     }
 
-    if(!window && !(window = SDL_CreateWindow(windowTitle, 0, 0, nativeWidth, nativeHeight, flags)))
+    if(!window && !(window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, nativeWidth, nativeHeight, flags)))
     {
         printf("error: %s\n", SDL_GetError());
         return 0;
