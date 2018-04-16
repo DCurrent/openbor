@@ -30,14 +30,14 @@ extern int nativeHeight;
 #define MAX_POINTERS 30
 typedef enum
 {
-    TOUCH_HOLD_DOWN,
-    TOUCH_HOLD_UP
-} touch_hold;
+    TOUCH_STATUS_DOWN,
+    TOUCH_STATUS_UP
+} touch_status;
 typedef struct TouchStatus {
     float px[MAX_POINTERS];
     float py[MAX_POINTERS];
     SDL_FingerID pid[MAX_POINTERS];
-    touch_hold phold[MAX_POINTERS];
+    touch_status pstatus[MAX_POINTERS];
 } TouchStatus;
 static TouchStatus touch_info;
 void control_update_android_touch(TouchStatus *touch_info, int maxp);
@@ -79,12 +79,12 @@ void getPads(Uint8* keystate)
 			{
 				for(i=0; i<MAX_POINTERS; i++)
 				{
-					if(touch_info.phold[i] == TOUCH_HOLD_UP)
+					if(touch_info.pstatus[i] == TOUCH_STATUS_UP)
 					{
 						touch_info.pid[i] = ev.tfinger.fingerId;
 						touch_info.px[i] = ev.tfinger.x*nativeWidth;
 						touch_info.py[i] = ev.tfinger.y*nativeHeight;
-						touch_info.phold[i] = TOUCH_HOLD_DOWN;
+						touch_info.pstatus[i] = TOUCH_STATUS_DOWN;
 						break;
 					}
 				}
@@ -97,7 +97,7 @@ void getPads(Uint8* keystate)
 				{
 					if(touch_info.pid[i] == ev.tfinger.fingerId)
 					{
-						touch_info.phold[i] = TOUCH_HOLD_UP;
+						touch_info.pstatus[i] = TOUCH_STATUS_UP;
 						break;
 					}
 				}
@@ -112,7 +112,7 @@ void getPads(Uint8* keystate)
 					{
 						touch_info.px[i] = ev.tfinger.x*nativeWidth;
 						touch_info.py[i] = ev.tfinger.y*nativeHeight;
-						touch_info.phold[i] = TOUCH_HOLD_DOWN;
+						touch_info.pstatus[i] = TOUCH_STATUS_DOWN;
 						break;
 					}
 				}
@@ -357,7 +357,7 @@ void control_init(int joy_enable)
 	joystick_scan(usejoy);
 #ifdef ANDROID
 	for(i = 0; i < MAX_POINTERS; i++)
-		touch_info.phold[i] = TOUCH_HOLD_UP;
+		touch_info.pstatus[i] = TOUCH_STATUS_UP;
 #endif
 }
 
@@ -423,7 +423,7 @@ void control_update_android_touch(TouchStatus *touch_info, int maxp)
 	#define tanb 1.732051f
 	for (i=0; i<maxp; i++)
 	{
-		if(touch_info->phold[i] == TOUCH_HOLD_UP) continue;
+		if(touch_info->pstatus[i] == TOUCH_STATUS_UP) continue;
 		tx = touch_info->px[i]-dirx;
 		ty = touch_info->py[i]-diry;
 		tr = tx*tx + ty*ty;
