@@ -28,10 +28,19 @@ int sdl_game_started  = 0;
 extern int nativeWidth;
 extern int nativeHeight;
 #define MAX_POINTERS 30
-static float px[MAX_POINTERS];
-static float py[MAX_POINTERS];
-static int pid[MAX_POINTERS];
-void control_update_android_touch(float* px, float* py, int* pid, int maxp);
+typedef enum
+{
+    TOUCH_STATUS_DOWN,
+    TOUCH_STATUS_UP
+} touch_status;
+typedef struct TouchStatus {
+    float px[MAX_POINTERS];
+    float py[MAX_POINTERS];
+    SDL_FingerID pid[MAX_POINTERS];
+    touch_status pstatus[MAX_POINTERS];
+} TouchStatus;
+static TouchStatus touch_info;
+void control_update_android_touch(TouchStatus *touch_info, int maxp);
 #endif
 
 /*
@@ -70,42 +79,44 @@ void getPads(Uint8* keystate)
 			{
 				for(i=0; i<MAX_POINTERS; i++)
 				{
-					if(pid[i]<0)
+					if(touch_info.pstatus[i] == TOUCH_STATUS_UP)
 					{
-						pid[i] = (int)ev.tfinger.fingerId;
-						px[i] = ev.tfinger.x*nativeWidth;
-						py[i] = ev.tfinger.y*nativeHeight;
+						touch_info.pid[i] = ev.tfinger.fingerId;
+						touch_info.px[i] = ev.tfinger.x*nativeWidth;
+						touch_info.py[i] = ev.tfinger.y*nativeHeight;
+						touch_info.pstatus[i] = TOUCH_STATUS_DOWN;
 						break;
 					}
 				}
-				control_update_android_touch(px, py, pid, MAX_POINTERS);
+				control_update_android_touch(&touch_info, MAX_POINTERS);
 			}
 				break;
 			case SDL_FINGERUP:
 			{
 				for(i=0; i<MAX_POINTERS; i++)
 				{
-					if(pid[i]==(int)ev.tfinger.fingerId)
+					if(touch_info.pid[i] == ev.tfinger.fingerId)
 					{
-						pid[i] = -1;
+						touch_info.pstatus[i] = TOUCH_STATUS_UP;
 						break;
 					}
 				}
-				control_update_android_touch(px, py, pid, MAX_POINTERS);
+				control_update_android_touch(&touch_info, MAX_POINTERS);
 			}
 				break;
 			case SDL_FINGERMOTION:
 			{
 				for(i=0; i<MAX_POINTERS; i++)
 				{
-					if(pid[i]==(int)ev.tfinger.fingerId)
+					if(touch_info.pid[i] == ev.tfinger.fingerId)
 					{
-						px[i] = ev.tfinger.x*nativeWidth;
-						py[i] = ev.tfinger.y*nativeHeight;
+						touch_info.px[i] = ev.tfinger.x*nativeWidth;
+						touch_info.py[i] = ev.tfinger.y*nativeHeight;
+						touch_info.pstatus[i] = TOUCH_STATUS_DOWN;
 						break;
 					}
 				}
-				control_update_android_touch(px, py, pid, MAX_POINTERS);
+				control_update_android_touch(&touch_info, MAX_POINTERS);
 			}
 				break;
 #endif
@@ -345,8 +356,8 @@ void control_init(int joy_enable)
 	}
 	joystick_scan(usejoy);
 #ifdef ANDROID
-	for(i=0; i<MAX_POINTERS; i++)
-		pid[i] = -1;
+	for(i = 0; i < MAX_POINTERS; i++)
+		touch_info.pstatus[i] = TOUCH_STATUS_UP;
 #endif
 }
 
@@ -389,7 +400,7 @@ extern float by[MAXTOUCHB];
 extern float br[MAXTOUCHB];
 extern unsigned touchstates[MAXTOUCHB];
 int hide_t = 5000;
-void control_update_android_touch(float* px, float* py, int* pid, int maxp)
+void control_update_android_touch(TouchStatus *touch_info, int maxp)
 {
 	Uint8* keystate = (Uint8*)SDL_GetKeyState(NULL);
 	int i, j;
@@ -412,9 +423,9 @@ void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 	#define tanb 1.732051f
 	for (i=0; i<maxp; i++)
 	{
-		if(pid[i]<0) continue;
-		tx = px[i]-dirx;
-		ty = py[i]-diry;
+		if(touch_info->pstatus[i] == TOUCH_STATUS_UP) continue;
+		tx = touch_info->px[i]-dirx;
+		ty = touch_info->py[i]-diry;
 		tr = tx*tx + ty*ty;
 		//direction button logic is different, check a ring instead of individual buttons
 		if(tr>circlea && tr<=circleb)
@@ -459,8 +470,8 @@ void control_update_android_touch(float* px, float* py, int* pid, int maxp)
 			if(j==SDID_MOVERIGHT || j==SDID_MOVEUP ||
 				j==SDID_MOVELEFT || j==SDID_MOVEDOWN)
 				continue;
-			tx = px[i]-bx[j];
-			ty = py[i]-by[j];
+			tx = touch_info->px[i]-bx[j];
+			ty = touch_info->py[i]-by[j];
 			tr = tx*tx + ty*ty;
 			if(tr<=r[j]) touchstates[j] = 1;
 		}
