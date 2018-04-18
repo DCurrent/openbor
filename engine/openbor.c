@@ -2305,41 +2305,36 @@ void execute_onblockw_script(entity *ent, s_terrain *wall, int index, e_plane pl
 
         ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
         tempvar.dblVal = (DOUBLE)wall->height;
-        Script_Set_Local_Variant(cs, "height",      &tempvar);
+        Script_Set_Local_Variant(cs, "height", &tempvar);
 
         tempvar.dblVal = (DOUBLE)wall->depth;
-        Script_Set_Local_Variant(cs, "depth",      &tempvar);
+        Script_Set_Local_Variant(cs, "depth", &tempvar);
 
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
 
         tempvar.lVal = (LONG)wall->type;
-        Script_Set_Local_Variant(cs, "type",      &tempvar);
+        Script_Set_Local_Variant(cs, "type", &tempvar);
 
         tempvar.lVal = (LONG)index;
-        Script_Set_Local_Variant(cs, "index",      &tempvar);
+        Script_Set_Local_Variant(cs, "index", &tempvar);
 
         tempvar.lVal = (LONG)plane;
-        Script_Set_Local_Variant(cs, "plane",      &tempvar);
+        Script_Set_Local_Variant(cs, "plane", &tempvar);
 
         Script_Execute(cs);
 
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "plane", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "height", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "index", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "depth", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "type", &tempvar);
     }
 }
 
-void execute_inhole_script(entity *ent, int plane, float height, int index, float depth, int type)
+void execute_inhole_script(entity *ent, s_terrain *hole, int index)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->inhole_script;
@@ -2349,33 +2344,30 @@ void execute_inhole_script(entity *ent, int plane, float height, int index, floa
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self", &tempvar);
-        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-        tempvar.lVal = (LONG)plane;
-        Script_Set_Local_Variant(cs, "plane",      &tempvar);
+
         ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
-        tempvar.dblVal = (DOUBLE)height;
-        Script_Set_Local_Variant(cs, "height",      &tempvar);
+        tempvar.dblVal = (DOUBLE)hole->height;
+        Script_Set_Local_Variant(cs, "height", &tempvar);
+
+        tempvar.dblVal = (DOUBLE)hole->depth;
+        Script_Set_Local_Variant(cs, "depth", &tempvar);
+
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+
+        tempvar.lVal = (LONG)hole->type;
+        Script_Set_Local_Variant(cs, "type", &tempvar);
+
         tempvar.lVal = (LONG)index;
-        Script_Set_Local_Variant(cs, "index",      &tempvar);
-        tempvar.dblVal = (DOUBLE)depth;
-        Script_Set_Local_Variant(cs, "depth",      &tempvar);
-        tempvar.lVal = (LONG)type;
-        Script_Set_Local_Variant(cs, "type",      &tempvar);
+        Script_Set_Local_Variant(cs, "index", &tempvar);
+
         Script_Execute(cs);
 
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self", &tempvar);
-        ScriptVariant_Clear(&tempvar);
-        Script_Set_Local_Variant(cs, "plane", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "height", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "index", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "depth", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "type", &tempvar);
     }
 }
@@ -2401,9 +2393,7 @@ void execute_onblockp_script(entity *ent, int plane, entity *platform)
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "plane", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "platform", &tempvar);
     }
 }
@@ -20526,7 +20516,7 @@ void adjust_base(entity *e, entity **pla)
             if ( hole )
             {
                 int holeind = checkholeindex_in(self->position.x, self->position.z, self->position.y);
-                if (holeind >= 0) execute_inhole_script(self, 0, (double)level->holes[holeind].height, holeind, (double)level->holes[holeind].depth, level->holes[holeind].type);
+                if (holeind >= 0) execute_inhole_script(self, &level->holes[holeind], holeind);
             }
 
             if(seta < 0 && hole)
