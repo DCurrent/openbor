@@ -321,7 +321,6 @@ SCRIPT          = source/scriptlib/StackedSymbolTable.o                         
                   source/preprocessorlib/pp_parser.o                                                \
                   source/preprocessorlib/pp_expr.o
 SCRIPT_BUILTINS = source/openborscript/animation.o                                                  \
-				  source/openborscript/axis.o                                           			\
 				  source/openborscript/binding.o                                           			\
                   source/openborscript/collision_attack.o                                           \
                   source/openborscript/collision_body.o                                             \
