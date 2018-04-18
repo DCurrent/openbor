@@ -185,6 +185,11 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(LEVEL_PROP_WALL_COUNT)
         ICMPCONST(LEVEL_PROP_WEAPON)
 
+        // Plane access flags.
+        ICMPCONST(PLANE_X)
+        ICMPCONST(PLANE_Y)
+        ICMPCONST(PLANE_Z)
+
         // Scrolling type flags.
         ICMPCONST(SCROLL_RIGHT)
         ICMPCONST(SCROLL_DOWN)
