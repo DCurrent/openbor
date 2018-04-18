@@ -1,15 +1,15 @@
 
 typedef enum
 {
-    _binding_animation,
-    _binding_bind_x,
-    _binding_bind_y,
-    _binding_bind_z,
-    _binding_direction,
-    _binding_entity,
-    _binding_offset,
-    _binding_sort_id,
-    _binding_the_end,
+    _BINDING_ANIMATION,
+    _BINDING_BIND_X,
+    _BINDING_BIND_Y,
+    _BINDING_BIND_Z,
+    _BINDING_DIRECTION,
+    _BINDING_OFFSET,
+    _BINDING_SORT_ID,
+    _BINDING_TARGET,
+    _BINDING_END,
 } e_binding_properties;
 
 // Binding properties.
