@@ -2470,7 +2470,7 @@ typedef struct
     float upperright;
     float x;
     float z;
-    int   type;
+    int type;
 } s_terrain;
 
 typedef struct
@@ -2586,7 +2586,7 @@ void    execute_ondeath_script      (entity *ent, entity *other, s_collision_att
 void    execute_onkill_script       (entity *ent);
 void    execute_onpain_script       (entity *ent, int iType, int iReset);
 void    execute_onfall_script       (entity *ent, entity *other, s_collision_attack *attack);
-void    execute_inhole_script       (entity *ent, int plane, float height, int index, float depth, int type);
+void    execute_inhole_script       (entity *ent, s_terrain *hole, int index);
 void    execute_onblocks_script     (entity *ent);
 void    execute_onblockw_script     (entity *ent, s_terrain *wall, int index, e_plane plane);
 void    execute_onblockp_script     (entity *ent, int plane, entity *platform);
