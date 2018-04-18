@@ -114,6 +114,10 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(DAMAGE_FROM_PLAYER_OFF)
         ICMPCONST(DAMAGE_FROM_PLAYER_ON)
 
+        // Exchange Flags. Indicate taking or delivering and attack.
+        ICMPCONST(EXCHANGE_CONFERRER)
+        ICMPCONST(EXCHANGE_RECIPIANT)
+
         // Level properties
         ICMPCONST(LEVEL_PROP_AUTO_SCROLL_DIRECTION)
         ICMPCONST(LEVEL_PROP_AUTO_SCROLL_X)
