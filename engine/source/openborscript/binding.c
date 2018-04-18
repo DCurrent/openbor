@@ -30,9 +30,11 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
         "bind_y",
         "bind_z",
         "direction",
-        "entity",
-        "offset",
+        "offset_x",
+        "offset_y",
+        "offset_z",
         "sort_id",
+        "target"
     };
 
     // If the minimum argument count
@@ -46,7 +48,7 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
     }
 
     // See macro - will return 0 on fail.
-    MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _binding_the_end,
+    MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _BINDING_END,
                "Property name '%s' is not supported by binding.\n");
 
 
@@ -101,42 +103,70 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
 
     switch(property)
     {
-        case _binding_animation:
+        case _BINDING_ANIMATION:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->ani_bind;
 
             break;
 
-        case _binding_bind_x:
+        case _BINDING_BIND_X:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->offset_flag.x;
 
             break;
 
-        case _binding_bind_y:
+        case _BINDING_BIND_Y:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->offset_flag.y;
 
             break;
 
-        case _binding_bind_z:
+        case _BINDING_BIND_Z:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->offset_flag.z;
 
             break;
 
-        case _binding_direction:
+        case _BINDING_DIRECTION:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->direction;
 
             break;
 
-        case _binding_entity:
+        case _BINDING_OFFSET_X:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->offset.x;
+
+            break;
+
+        case _BINDING_OFFSET_Y:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->offset.x;
+
+            break;
+
+        case _BINDING_OFFSET_Z:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->offset.x;
+
+            break;
+
+        case _BINDING_SORT_ID:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->sortid;
+
+            break;
+
+        case _BINDING_TARGET:
 
             // If there is no entity bound, we just
             // leave the return var empty.
@@ -145,20 +175,6 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
                 (*pretvar)->ptrVal = (VOID *)handle->ent;
             }
-
-            break;
-
-        case _binding_offset:
-
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)&handle->offset;
-
-            break;
-
-        case _binding_sort_id:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->sortid;
 
             break;
 
@@ -231,7 +247,7 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
     switch(property)
     {
 
-        case _binding_animation:
+        case _BINDING_ANIMATION:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -240,7 +256,7 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
 
             break;
 
-        case _binding_bind_x:
+        case _BINDING_BIND_X:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -250,7 +266,7 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
 
             break;
 
-        case _binding_bind_y:
+        case _BINDING_BIND_Y:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -259,7 +275,7 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
 
             break;
 
-        case _binding_bind_z:
+        case _BINDING_BIND_Z:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -268,7 +284,7 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
 
             break;
 
-        case _binding_direction:
+        case _BINDING_DIRECTION:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -277,23 +293,45 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
 
             break;
 
-        case _binding_entity:
+        case _BINDING_OFFSET_X:
 
-            handle->ent = (entity *)varlist[ARG_VALUE]->ptrVal;
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->offset.x = temp_int;
+            }
 
             break;
 
-        case _binding_offset:
+        case _BINDING_OFFSET_Y:
 
-            // Read only.
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->offset.x = temp_int;
+            }
+
             break;
 
-        case _binding_sort_id:
+        case _BINDING_OFFSET_Z:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->offset.x = temp_int;
+            }
+
+            break;
+
+        case _BINDING_SORT_ID:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->sortid = temp_int;
             }
+
+            break;
+
+        case _BINDING_TARGET:
+
+            handle->ent = (entity *)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
