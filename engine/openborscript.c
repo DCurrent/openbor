@@ -2079,7 +2079,6 @@ enum entityproperty_enum
     _ep_sprite,
     _ep_spritea,
     _ep_stalltime,
-    _ep_stats,
     _ep_staydown,
     _ep_staydownatk,
     _ep_stealth,
@@ -2277,7 +2276,6 @@ static const char *eplist[] =
     "sprite",
     "spritea",
     "stalltime",
-    "stats",
     "staydown",
     "staydownatk",
     "stealth",
@@ -4991,41 +4989,6 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->releasetime;
         break;
     }
-    case _ep_stats:
-    {
-        if(paramCount < 4)
-        {
-            break;
-        }
-        arg = varlist[2];
-        arg1 = varlist[3];
-
-        if(arg->vt != VT_INTEGER || arg1->vt != VT_INTEGER)
-        {
-            printf("Incorrect parameters: getentityproperty({ent}, 'stats', {type}, {index}) \n {type}: \n 0 = Model. \n 1 = Entity. \n");
-            *pretvar = NULL;
-            return E_FAIL;
-        }
-
-        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-
-        switch(arg->lVal)
-        {
-        default:
-            if (ent->modeldata.stats[arg1->lVal])
-            {
-                (*pretvar)->dblVal = (DOUBLE)ent->modeldata.stats[arg1->lVal];
-            }
-            break;
-        case 1:
-            if (ent->stats[arg1->lVal])
-            {
-                (*pretvar)->dblVal = (DOUBLE)ent->stats[arg1->lVal];
-            }
-            break;
-        }
-        break;
-    }
     case _ep_staydown:
     {
         arg = varlist[2];
@@ -6852,30 +6815,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
             ent->releasetime = (int)ltemp;
-        }
-        break;
-    }
-    case _ep_stats:
-    {
-        if(paramCount < 4)
-        {
-            break;
-        }
-
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
-        {
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
-            {
-                switch(varlist[2]->lVal)
-                {
-                default:
-                    ent->modeldata.stats[(int)ltemp] = (float)dbltemp;
-                    break;
-                case 1:
-                    ent->stats[(int)ltemp] = (float)dbltemp;
-                    break;
-                }
-            }
         }
         break;
     }

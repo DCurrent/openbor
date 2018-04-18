@@ -1903,7 +1903,6 @@ typedef struct
     char *name;
     char *path; // Path, so scripts can dynamically get files, sprites, sounds, etc.
     unsigned score;
-    float stats[20]; // Parameters that do nothing on their own.
     int health;
     float scroll; // Autoscroll like panel entity.
     unsigned offscreenkill;                  // for biker, arrow, etc
@@ -2164,7 +2163,6 @@ typedef struct entity
     int reactive; // Used for setting the "a" at which weapons are spawned
     int ptype;
     int playerindex;
-    float stats[20]; // Parameters that do nothing on their own.
     int health; // current hp
     int mp; // current mp
     int oldhealth;

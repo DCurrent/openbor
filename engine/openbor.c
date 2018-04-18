@@ -8959,10 +8959,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_SUBTYPE:
                 lcmHandleCommandSubtype(&arglist, newchar, filename);
                 break;
-            case CMD_MODEL_STATS:
-                value = GET_ARG(1);
-                newchar->stats[atoi(value)] = GET_FLOAT_ARG(2);
-                break;
             case CMD_MODEL_HEALTH:
                 value = GET_ARG(1);
                 newchar->health = atoi(value);
