@@ -1531,42 +1531,42 @@ typedef struct
 // attacks.
 typedef struct
 {
-    int                 attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
+    unsigned int        blast:1;            // Attack box active on hit opponent's fall animation.
+    unsigned int        steal:1;            // Add damage to owner's hp.
+    unsigned int        ignore_attack_id:1; // Ignore attack ID to attack in every frame
+    unsigned int        no_flash:1;         // Flag to determine if an attack spawns a flash or not
+    unsigned int        no_kill:1;          // this attack won't kill target (leave 1 HP)
+    unsigned int        no_pain:1;          // No animation reaction on hit.
+    e_otg               otg:3;              // Over The Ground. Gives ground projectiles the ability to hit lying ents.
+    e_direction_adjust  force_direction:3;  // Adjust target's direction on hit.
+    short int           attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
+    short int           attack_type;        // Reaction animation, death, etc.
+    short int           counterattack;      // Treat other attack boxes as body box.
+    short int           freeze;             // Lock target in place and set freeze time.
+    short int           jugglecost;         // cost for juggling a falling ent
+    short int           no_block;           // If this is greater than defense block power, make the hit
+    short int           pause_add;          // Flag to determine if an attack adds a pause before updating the animation
+    short int           seal;               // Disable target's animations with energycost > seal.
     int                 attack_force;
-    int                 attack_type;        // Reaction animation, death, etc.
-    int                 blast;              // Attack box active on hit opponent's fall animation.
     int                 blockflash;         // Custom bflash for each animation, model id
     int                 blocksound;         // Custom sound for when an attack is blocked
-    s_hitbox            *coords;            // Collision detection coordinates.
-    int                 counterattack;      // Treat other attack boxes as body box.
-    s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
-    s_axis_f            dropv;              // Velocity of target if knocked down.
-    e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 forcemap;           // Set target's palette on hit.
-    int                 freeze;             // Lock target in place and set freeze time.
     unsigned int        freezetime;         // Time for target to remain frozen.
     int                 grab;               // Not a grab as in grapple - behavior on hit for setting target's position
-    float               grab_distance;      // Distance used by "grab".
     int                 guardcost;          // cost for blocking an attack
     int                 hitflash;           // Custom flash for each animation, model id
     int                 hitsound;           // Sound effect to be played when attack hits opponent
-    int                 ignore_attack_id;   // Ignore attack ID to attack in every frame
     int                 index;              // Possible future support of multiple boxes - it's doubt even if support is added this property will be needed.
-    int                 jugglecost;         // cost for juggling a falling ent
     unsigned int        maptime;            // Time for forcemap to remain in effect.
-    int                 no_block;           // If this is greater than defense block power, make the hit
-    int                 no_flash;           // Flag to determine if an attack spawns a flash or not
-    int                 no_kill;            // this attack won't kill target (leave 1 HP)
-    int                 no_pain;            // No animation reaction on hit.
-    e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
     unsigned int        pain_time;          // pain invincible time
-    int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
-    s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
-    int                 seal;               // Disable target's animations with energycost > seal.
     unsigned int        sealtime;           // Time for seal to remain in effect.
-    s_staydown          staydown;           // Modify victum's stayodwn properties.
-    int                 steal;              // Add damage to owner's hp.
     int                 tag;                // User defined tag for scripts. No hard coded purpose.
+    float               grab_distance;      // Distance used by "grab".
+    s_axis_f            dropv;              // Velocity of target if knocked down.
+    s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
+    s_staydown          staydown;           // Modify victum's stayodwn properties.
+    s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
+    s_hitbox            *coords;            // Collision detection coordinates.
 } s_collision_attack;
 
 // Caskey, Damon V.
