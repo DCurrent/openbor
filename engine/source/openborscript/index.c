@@ -172,23 +172,6 @@ const char *Script_GetFunctionName(void *functionRef)
         return "changeplayerproperty";
     }
 
-    // Axis
-    else if (functionRef == ((void *)openbor_get_axis_bi_int_property))
-    {
-        return "get_axis_bi_int_property";
-    }
-    else if (functionRef == ((void *)openbor_set_axis_bi_int_property))
-    {
-        return "set_axis_bi_int_property";
-    }
-    else if (functionRef == ((void *)openbor_get_axis_tri_int_property))
-    {
-        return "get_axis_tri_int_property";
-    }
-    else if (functionRef == ((void *)openbor_set_axis_tri_int_property))
-    {
-        return "set_axis_tri_int_property";
-    }
 
     // Binding
     else if (functionRef == ((void *)openbor_get_binding_property))
@@ -836,24 +819,6 @@ void *Script_GetStringMapFunction(void *functionRef)
         return (void *)mapstrings_playerproperty;
     }
 
-    // Axis
-    else if (functionRef == ((void *)openbor_get_axis_bi_int_property))
-    {
-        return (void *)mapstrings_axis_bi_property;
-    }
-    else if (functionRef == ((void *)openbor_set_axis_bi_int_property))
-    {
-        return (void *)mapstrings_axis_bi_property;
-    }
-    else if (functionRef == ((void *)openbor_get_axis_tri_int_property))
-    {
-        return (void *)mapstrings_axis_tri_property;
-    }
-    else if (functionRef == ((void *)openbor_set_axis_tri_int_property))
-    {
-        return (void *)mapstrings_axis_tri_property;
-    }
-
     // Binding
     else if (functionRef == ((void *)openbor_get_binding_property))
     {
@@ -1000,16 +965,6 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_drawscreen, "drawscreen");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_changeplayerproperty, "changeplayerproperty");
-
-    // Axis
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_get_axis_bi_int_property, "get_axis_bi_int_property");
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_set_axis_bi_int_property, "set_axis_bi_int_property");
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_get_axis_tri_int_property, "get_axis_tri_int_property");
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_set_axis_tri_int_property, "set_axis_tri_int_property");
 
     // Binding
     List_InsertAfter(&theFunctionList,
