@@ -1474,12 +1474,12 @@ typedef struct
 
 typedef struct
 {
-	int x;
-	int y;
-	int width;
-	int height;
-	int z1;
-	int z2;
+	short int x;
+	short int y;
+	short int width;
+	short int height;
+	short int z1;
+	short int z2;
 } s_hitbox;
 
 typedef struct
