@@ -2105,20 +2105,44 @@ typedef struct
     s_axis_f velocity; //x,a,z velocity setting.
 } s_jump;
 
+
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Axis bit fields for switching flags
+// that involve the three main axes.
 typedef struct
 {
-    /*
-    Bind struct for linking of entities.
-    2013-12-17
-    Damon V. Caskey
-    */
+    unsigned int x:1;
+    unsigned int y:1;
+    unsigned int z:1;
+} s_axis_principal_bit;
 
-    int ani_bind;                   // Animation binding type.
-    e_direction_adjust direction;   // Direction force
-    struct entity *ent;             // Entity to bind.
-    s_axis_i offset;                // x,y,z offset.
-    s_axis_i offset_flag;           // on/off binding on x,y,z
-    int sortid;                     // relative binding sortid. default = -1
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Axis short fields for adjustments that
+// don't need full size integers.
+typedef struct
+{
+    short int x;
+    short int y;
+    short int z;
+} s_axis_principal_short;
+
+// Caskey, Damon V.
+// 2013-12-17
+//
+// Binding struct. Control linking
+// of entity to a target entity.
+typedef struct
+{
+    unsigned int ani_bind:2;            // Animation binding type.
+    e_direction_adjust direction:3;     // Direction force
+    s_axis_principal_bit bind_toggle;   // Toggle binding on X, Y and Z axis.
+    s_axis_principal_short offset;      // x,y,z offset.
+    short int sortid;                   // Relative binding sortid. Default = -1
+    struct entity *ent;                 // Entity to bind.
 } s_bind;
 
 typedef struct

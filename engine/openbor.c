@@ -21175,8 +21175,8 @@ void adjust_bind(entity *e)
                 update_frame(e, e->binding.ent->animpos);
             }
         }
-        if (e->binding.offset_flag.z) e->position.z = e->binding.ent->position.z + e->binding.offset.z;
-        if (e->binding.offset_flag.y) e->position.y = e->binding.ent->position.y + e->binding.offset.y;
+        if (e->binding.bind_toggle.z) e->position.z = e->binding.ent->position.z + e->binding.offset.z;
+        if (e->binding.bind_toggle.y) e->position.y = e->binding.ent->position.y + e->binding.offset.y;
         e->sortid = e->binding.ent->sortid + e->binding.sortid;
 
         switch(e->binding.direction)
@@ -21184,45 +21184,45 @@ void adjust_bind(entity *e)
         case DIRECTION_ADJUST_NONE:
             if(e->binding.ent->direction == DIRECTION_RIGHT)
             {
-                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+                if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
             }
             else
             {
-                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+                if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
             }
             break;
         case DIRECTION_ADJUST_SAME:
             e->direction = e->binding.ent->direction;
             if(e->binding.ent->direction == DIRECTION_RIGHT)
             {
-                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+                if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
             }
             else
             {
-                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+                if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
             }
             break;
         case DIRECTION_ADJUST_OPPOSITE:
             e->direction = !e->binding.ent->direction;
             if(e->binding.ent->direction == DIRECTION_RIGHT)
             {
-                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+                if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
             }
             else
             {
-                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+                if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
             }
             break;
         case DIRECTION_ADJUST_RIGHT:
             e->direction = DIRECTION_RIGHT;
-            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
             break;
         case DIRECTION_ADJUST_LEFT:
             e->direction = DIRECTION_LEFT;
-            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
             break;
         default:
-            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
             break;
             // the default is no change :), just give a value of 12345 or so
         }
