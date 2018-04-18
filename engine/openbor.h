@@ -1380,8 +1380,8 @@ typedef struct
     Damon Caskey
     */
 
-    int max;    //max value.
-    int min;    //min value.
+    short int max;    //max value.
+    short int min;    //min value.
 } s_metric_i;
 
 typedef struct
@@ -1392,9 +1392,9 @@ typedef struct
     Damon Caskey
     */
 
-    int current;    //Current.
-    int max;    //max value.
-    int min;    //min value.
+    short int current;    //Current.
+    short int max;    //max value.
+    short int min;    //min value.
 } s_metric_i_current;
 
 typedef struct
