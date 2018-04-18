@@ -2292,7 +2292,7 @@ void execute_onblocks_script(entity *ent)
     }
 }
 
-void execute_onblockw_script(entity *ent, s_terrain *wall, int index, int plane)
+void execute_onblockw_script(entity *ent, s_terrain *wall, int index, e_plane plane)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onblockw_script;
