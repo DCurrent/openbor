@@ -11585,9 +11585,9 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
     if(!other)
     {
         ent->binding.ent = NULL;
-        ent->binding.offset_flag.x = 0;
-        ent->binding.offset_flag.z = 0;
-        ent->binding.offset_flag.y = 0;
+        ent->binding.bind_toggle.x = 0;
+        ent->binding.bind_toggle.z = 0;
+        ent->binding.bind_toggle.y = 0;
         return S_OK;
     }
 
@@ -11608,8 +11608,8 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         }
 
         ent->binding.offset.x = (int)x;
-        ent->binding.offset_flag.x = 1;
-    } else ent->binding.offset_flag.x = 0;
+        ent->binding.bind_toggle.x = 1;
+    } else ent->binding.bind_toggle.x = 0;
     if(paramCount < 4)
     {
         goto BIND;
@@ -11623,8 +11623,8 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
             return E_FAIL;
         }
         ent->binding.offset.z = (int)z;
-        ent->binding.offset_flag.z = 1;
-    } else ent->binding.offset_flag.z = 0;
+        ent->binding.bind_toggle.z = 1;
+    } else ent->binding.bind_toggle.z = 0;
     if(paramCount < 5)
     {
         goto BIND;
@@ -11638,8 +11638,8 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
             return E_FAIL;
         }
         ent->binding.offset.y = (int)a;
-        ent->binding.offset_flag.y = 1;
-    } else ent->binding.offset_flag.y = 0;
+        ent->binding.bind_toggle.y = 1;
+    } else ent->binding.bind_toggle.y = 0;
     if(paramCount < 6)
     {
         goto BIND;
