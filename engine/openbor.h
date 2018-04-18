@@ -170,6 +170,12 @@ typedef enum
     PORTING_XBOX
 } e_porting;
 
+typedef enum
+{
+    PLANE_X,
+    PLANE_Y,
+    PLANE_Z
+} e_plane;
 
 typedef struct
 {
