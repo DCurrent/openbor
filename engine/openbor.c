@@ -10274,7 +10274,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->energycost->mponly = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_CHARGETIME:
-                newanim->chargetime = GET_FLOAT_ARG(1);
+                newanim->chargetime = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISIONONE:
                 newanim->attackone = GET_INT_ARG(1);

@@ -574,7 +574,7 @@ typedef enum
     ANI_PROP_BODY_COLLISION,
     ANI_PROP_BOUNCE,       //FLOAT -tossv/bounce = new tossv
     ANI_PROP_CANCEL,       // Cancel anims with freespecial
-    ANI_PROP_CHARGETIME,   //FLOAT charge time for an animation
+    ANI_PROP_CHARGETIME,   //INT charge time for an animation
     ANI_PROP_COUNTERRANGE, //SUB Auto counter attack. 2011_04_01, DC: Moved to struct.
     ANI_PROP_DELAY,
     ANI_PROP_DRAWMETHODS,
@@ -1712,7 +1712,7 @@ typedef struct
     unsigned int            attackone:1;            // stick on the only one victim
     float                   bounce;                 // -tossv/bounce = new tossv
     int                     cancel;                 // Cancel anims with freespecial
-    float                   chargetime;             // charge time for an animation
+    unsigned short int      chargetime;             // charge time for an animation
     s_collision_attack_list **collision_attack;
     s_collision_body_list   **collision_body;
     s_counterrange          *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
