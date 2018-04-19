@@ -250,14 +250,28 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-        case _ENTITY_COLORSET_DYING_1:
+        case _ENTITY_COLORSET_DYING_HEALTH_1:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->per1;
+
+            break;
+
+        case _ENTITY_COLORSET_DYING_HEALTH_2:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->per2;
+
+            break;
+
+        case _ENTITY_COLORSET_DYING_INDEX_1:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->dying;
 
             break;
 
-        case _ENTITY_COLORSET_DYING_2:
+        case _ENTITY_COLORSET_DYING_INDEX_2:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->dying2;
