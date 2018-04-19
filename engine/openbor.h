@@ -1531,14 +1531,12 @@ typedef struct
 // attacks.
 typedef struct
 {
-    unsigned int        blast:1;            // Attack box active on hit opponent's fall animation.
-    unsigned int        steal:1;            // Add damage to owner's hp.
-    unsigned int        ignore_attack_id:1; // Ignore attack ID to attack in every frame
-    unsigned int        no_flash:1;         // Flag to determine if an attack spawns a flash or not
-    unsigned int        no_kill:1;          // this attack won't kill target (leave 1 HP)
-    unsigned int        no_pain:1;          // No animation reaction on hit.
-    e_otg               otg:3;              // Over The Ground. Gives ground projectiles the ability to hit lying ents.
-    e_direction_adjust  force_direction:3;  // Adjust target's direction on hit.
+    unsigned short int  blast;              // Attack box active on hit opponent's fall animation.
+    unsigned short int  steal;              // Add damage to owner's hp.
+    unsigned short int  ignore_attack_id;   // Ignore attack ID to attack in every frame
+    unsigned short int  no_flash;           // Flag to determine if an attack spawns a flash or not
+    unsigned short int  no_kill;            // this attack won't kill target (leave 1 HP)
+    unsigned short int  no_pain;            // No animation reaction on hit.
     short int           attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
     short int           attack_type;        // Reaction animation, death, etc.
     short int           counterattack;      // Treat other attack boxes as body box.
@@ -1547,6 +1545,8 @@ typedef struct
     short int           no_block;           // If this is greater than defense block power, make the hit
     short int           pause_add;          // Flag to determine if an attack adds a pause before updating the animation
     short int           seal;               // Disable target's animations with energycost > seal.
+    e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
+    e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 attack_force;
     int                 blockflash;         // Custom bflash for each animation, model id
     int                 blocksound;         // Custom sound for when an attack is blocked
@@ -1683,37 +1683,59 @@ typedef struct
     2014-01-04
     */
 
-    int animation;                  //Animation to perform.
     e_follow_condition condition;   //Condition in which follow up will be performed.
+    unsigned short int animation;                  //Animation to perform.
 } s_follow;
 
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Axis switching flags
+// that involve the three main axes.
 typedef struct
 {
-    /*
-    Projectile struct
-    Damon V. Caskey
-    2014-01-18
-    */
+    unsigned short int x;
+    unsigned short int y;
+    unsigned short int z;
+} s_axis_principal_toggle;
 
-    int bomb;           //custbomb;
-    int flash;          //custpshotno;
-    int knife;          //custknife;
-    s_axis_i position;  //Location at which projectiles are spawned
-    int star;           //custstar;
-    int shootframe;
-    int throwframe;
-    int tossframe;      // Frame to toss bomb/grenade
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Axis short fields for adjustments that
+// don't need full size integers.
+typedef struct
+{
+    short int x;
+    short int y;
+    short int z;
+} s_axis_principal_short;
+
+// Caskey, Damon V.
+// 2014-01-18
+//
+// Projectile spawning.
+typedef struct
+{
+    unsigned short int      shootframe;
+    unsigned short int      throwframe;
+    unsigned short int      tossframe;  // Frame to toss bomb/grenade
+    int                     bomb;       // custbomb;
+    int                     flash;      // custpshotno;
+    int                     knife;      // custknife;
+    s_axis_principal_short  position;   // Location at which projectiles are spawned
+    int                     star;       // custstar;
 } s_projectile;
 
 typedef struct
 {
-    unsigned int            animhits:1;             // Does the attack need to hit before cancel is allowed?
-    unsigned int            attackone:1;            // stick on the only one victim
-    unsigned int            antigrav:1;               // UT: make dive a similar property as antigravity
+    unsigned short int      animhits;               // How many consecutive hits have been made? Used for canceling.
+    unsigned short int      antigrav;               // UT: make dive a similar property as antigravity
     unsigned short int      chargetime;             // charge time for an animation
-    unsigned short int      numframes;
     unsigned short int      flipframe;              // Turns entities around on the desired frame
+    unsigned short int      numframes;              // Count of frames in the animation.
     unsigned short int      unsummonframe;          // Un-summon the entity
+    short int               attackone;              // Attack hits only one target.
     int                     cancel;                 // Cancel anims with freespecial
     int                     index;                  // unique id
     int                     model_index;
@@ -2107,42 +2129,18 @@ typedef struct
 
 
 // Caskey, Damon V.
-// 2018-04-18
-//
-// Axis bit fields for switching flags
-// that involve the three main axes.
-typedef struct
-{
-    unsigned int x:1;
-    unsigned int y:1;
-    unsigned int z:1;
-} s_axis_principal_bit;
-
-// Caskey, Damon V.
-// 2018-04-18
-//
-// Axis short fields for adjustments that
-// don't need full size integers.
-typedef struct
-{
-    short int x;
-    short int y;
-    short int z;
-} s_axis_principal_short;
-
-// Caskey, Damon V.
 // 2013-12-17
 //
 // Binding struct. Control linking
 // of entity to a target entity.
 typedef struct
 {
-    unsigned int ani_bind:2;            // Animation binding type.
-    e_direction_adjust direction:3;     // Direction force
-    s_axis_principal_bit bind_toggle;   // Toggle binding on X, Y and Z axis.
-    s_axis_principal_short offset;      // x,y,z offset.
-    short int sortid;                   // Relative binding sortid. Default = -1
-    struct entity *ent;                 // Entity to bind.
+    unsigned short int      ani_bind;       // Animation binding type.
+    short int               sortid;         // Relative binding sortid. Default = -1
+    s_axis_principal_toggle bind_toggle;    // Toggle binding on X, Y and Z axis.
+    s_axis_principal_short  offset;         // x,y,z offset.
+    e_direction_adjust      direction;      // Direction force
+    struct entity *ent;                     // Entity to bind.
 } s_bind;
 
 typedef struct

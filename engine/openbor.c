@@ -11399,10 +11399,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     newanim->followup.animation = max_follows;
                 }
-                if(newanim->followup.animation < 0)
-                {
-                    newanim->followup.animation = 0;
-                }
                 break;
             case CMD_MODEL_FOLLOWCOND:
                 newanim->followup.condition = GET_INT_ARG(1);
