@@ -7,7 +7,6 @@
  */
 
  #include "scriptcommon.h"
- #include "entity.h"
 
 // Use string property argument to find an
 // integer property constant and populate
@@ -39,12 +38,15 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "boss",
         "charging",
         "colorset_default",
-        "colorset_dying_1",
-        "colorset_dying_2",
+        "colorset_dying_health_1",
+        "colorset_dying_health_2",
+        "colorset_dying_index_1",
+        "colorset_dying_index_2",
         "colorset_table",
         "colorset_time",
         "combo_step",
         "combo_time",
+        "damage_on_landing",
         "position_alternate_base",
         "position_base",
         "position_direction",
@@ -64,8 +66,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
     }
 
     // See macro - will return 0 on fail.
-    MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _entity_the_end,
-               "Property name '%s' is not supported by entities.\n");
+    MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _ENTITY_END,
+               "\n\n Error: '%s' is not a known entity property.\n");
 
 
     // If we made it this far everything should be OK.
@@ -119,7 +121,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
     switch(property)
     {
-        case _entity_ai_target_entity:
+        case _ENTITY_AI_TARGET_ENTITY:
 
             if(handle->custom_target)
             {
@@ -129,21 +131,21 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-        case _entity_animation_animating:
+        case _ENTITY_ANIMATION_ANIMATING:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->animating;
 
             break;
 
-        case _entity_animation_animation:
+        case _ENTITY_ANIMATION_ANIMATION:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->animnum;
 
             break;
 
-        case _entity_animation_collection:
+        case _ENTITY_ANIMATION_COLLECTION:
 
             // Verify entity has an animation collection
             // before getting the pointer. All entities
@@ -157,175 +159,196 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-        case _entity_animation_frame:
+        case _ENTITY_ANIMATION_FRAME:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->animpos;
 
             break;
 
-        case _entity_arrow_on:
+        case _ENTITY_ARROW_ON:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->arrowon;
 
             break;
 
-        case _entity_attacking:
+        case _ENTITY_ATTACKING:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->attacking;
 
             break;
 
-        case _entity_attack_id_incoming:
+        case _ENTITY_ATTACK_ID_INCOMING:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->attack_id_incoming;
 
             break;
 
-        case _entity_attack_id_outgoing:
+        case _ENTITY_ATTACK_ID_OUTGOING:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->attack_id_outgoing;
 
             break;
 
-        case _entity_autokill:
+        case _ENTITY_AUTOKILL:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->autokill;
 
             break;
 
-        case _entity_binding:
+        case _ENTITY_BINDING:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
             (*pretvar)->ptrVal = (VOID *)&handle->binding;
 
             break;
 
-        case _entity_blink:
+        case _ENTITY_BLINK:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->blink;
 
             break;
 
-        case _entity_blocking:
+        case _ENTITY_BLOCKING:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->blocking;
 
             break;
 
-        case _entity_boomerang_loop:
+        case _ENTITY_BOOMERANG_LOOP:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->boomerang_loop;
 
             break;
 
-        case _entity_boss:
+        case _ENTITY_BOSS:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->boss;
 
             break;
 
-        case _entity_charging:
+        case _ENTITY_CHARGING:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->charging;
 
             break;
 
-        case _entity_colorset_default:
+        case _ENTITY_COLORSET_DEFAULT:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->map;
 
             break;
 
-        case _entity_colorset_dying_1:
+        case _ENTITY_COLORSET_DYING_HEALTH_1:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->per1;
+
+            break;
+
+        case _ENTITY_COLORSET_DYING_HEALTH_2:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->per2;
+
+            break;
+
+        case _ENTITY_COLORSET_DYING_INDEX_1:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->dying;
 
             break;
 
-        case _entity_colorset_dying_2:
+        case _ENTITY_COLORSET_DYING_INDEX_2:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->dying2;
 
             break;
 
-        case _entity_colorset_table:
+        case _ENTITY_COLORSET_TABLE:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
             (*pretvar)->ptrVal = (VOID *)(handle->colourmap);
 
             break;
 
-        case _entity_colorset_time:
+        case _ENTITY_COLORSET_TIME:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->maptime;
 
             break;
 
-        case _entity_combo_step:
+        case _ENTITY_COMBO_STEP:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
             (*pretvar)->ptrVal = (VOID *)&handle->combostep;
 
             break;
 
-        case _entity_combo_time:
+        case _ENTITY_COMBO_TIME:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->combotime;
 
             break;
 
-        case _entity_position_alternate_base:
+        case _ENTITY_DAMAGE_ON_LANDING:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)&handle->damage_on_landing;
+
+            break;
+
+        case _ENTITY_POSITION_ALTERNATE_BASE:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->altbase;
 
             break;
 
-        case _entity_position_base:
+        case _ENTITY_POSITION_BASE:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->base;
 
             break;
 
-        case _entity_position_direction:
+        case _ENTITY_POSITION_DIRECTION:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->direction;
 
             break;
 
-        case _entity_position_x:
+        case _ENTITY_POSITION_X:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->position.x;
 
             break;
 
-        case _entity_position_y:
+        case _ENTITY_POSITION_Y:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->position.y;
 
             break;
 
-        case _entity_position_z:
+        case _ENTITY_POSITION_Z:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->position.z;
@@ -401,13 +424,13 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
     switch(property)
     {
 
-        case _entity_ai_target_entity:
+        case _ENTITY_AI_TARGET_ENTITY:
 
             handle->custom_target = (entity *)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
-        case _entity_animation_animating:
+        case _ENTITY_ANIMATION_ANIMATING:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -416,7 +439,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_animation_animation:
+        case _ENTITY_ANIMATION_ANIMATION:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -425,13 +448,13 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_animation_collection:
+        case _ENTITY_ANIMATION_COLLECTION:
 
             //handle->animation = (s_anim **)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
-        case _entity_animation_frame:
+        case _ENTITY_ANIMATION_FRAME:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -440,7 +463,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_arrow_on:
+        case _ENTITY_ARROW_ON:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -449,7 +472,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_attacking:
+        case _ENTITY_ATTACKING:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -458,7 +481,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_attack_id_incoming:
+        case _ENTITY_ATTACK_ID_INCOMING:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -467,7 +490,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_attack_id_outgoing:
+        case _ENTITY_ATTACK_ID_OUTGOING:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -476,7 +499,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_autokill:
+        case _ENTITY_AUTOKILL:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -485,13 +508,13 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_binding:
+        case _ENTITY_BINDING:
 
             // Read only.
 
             break;
 
-        case _entity_blink:
+        case _ENTITY_BLINK:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -500,7 +523,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_blocking:
+        case _ENTITY_BLOCKING:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -509,7 +532,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_boomerang_loop:
+        case _ENTITY_BOOMERANG_LOOP:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -518,7 +541,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_boss:
+        case _ENTITY_BOSS:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -527,7 +550,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_charging:
+        case _ENTITY_CHARGING:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -536,7 +559,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_colorset_default:
+        case _ENTITY_COLORSET_DEFAULT:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -545,7 +568,25 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_colorset_dying_1:
+        case _ENTITY_COLORSET_DYING_HEALTH_1:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->per1 = temp_int;
+            }
+
+            break;
+
+        case _ENTITY_COLORSET_DYING_HEALTH_2:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->per2 = temp_int;
+            }
+
+            break;
+
+        case _ENTITY_COLORSET_DYING_INDEX_1:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -554,7 +595,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_colorset_dying_2:
+        case _ENTITY_COLORSET_DYING_INDEX_2:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -563,13 +604,13 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_colorset_table:
+        case _ENTITY_COLORSET_TABLE:
 
             // Read only.
 
             break;
 
-        case _entity_colorset_time:
+        case _ENTITY_COLORSET_TIME:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -578,13 +619,13 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_combo_step:
+        case _ENTITY_COMBO_STEP:
 
             // Read only.
 
             break;
 
-        case _entity_combo_time:
+        case _ENTITY_COMBO_TIME:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -593,7 +634,13 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_position_alternate_base:
+        case _ENTITY_DAMAGE_ON_LANDING:
+
+            // Read only.
+
+            break;
+
+        case _ENTITY_POSITION_ALTERNATE_BASE:
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
@@ -602,7 +649,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_position_base:
+        case _ENTITY_POSITION_BASE:
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
@@ -611,7 +658,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_position_direction:
+        case _ENTITY_POSITION_DIRECTION:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -620,7 +667,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_position_x:
+        case _ENTITY_POSITION_X:
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
@@ -629,7 +676,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_position_y:
+        case _ENTITY_POSITION_Y:
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
@@ -638,7 +685,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _entity_position_z:
+        case _ENTITY_POSITION_Z:
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
