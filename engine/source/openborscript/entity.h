@@ -49,7 +49,7 @@ typedef enum
     _ENTITY_POSITION_X,
     _ENTITY_POSITION_Y,
     _ENTITY_POSITION_Z,
-    _ENTITY_THE_END,
+    _ENTITY_END,
 } e_entity_properties;
 
 HRESULT openbor_get_entity_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
