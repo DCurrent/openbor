@@ -2176,11 +2176,11 @@ typedef struct entity
     char itemalias[MAX_NAME_LEN + 1]; // Now items spawned can have their properties changed
     int itemhealth; // Now items spawned can have their properties changed
     int itemplayer_count;
-    int boss;
-    int dying; // Coresponds with which remap is to be used for the dying flash
-    int dying2; // Coresponds with which remap is to be used for the dying flash for per2
-    unsigned per1; // Used to store at what health value the entity begins to flash
-    unsigned per2; // Used to store at what health value the entity flashes more rapidly
+    unsigned short int boss;
+    unsigned short int dying;   // Corresponds with which remap is to be used for the dying flash
+    unsigned short int dying2;  // Corresponds with which remap is to be used for the dying flash for per2
+    unsigned short int per1;    // Used to store at what health value the entity begins to flash
+    unsigned short int per2;    // Used to store at what health value the entity flashes more rapidly
     int boomerang_loop;
     e_direction direction;
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
