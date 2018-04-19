@@ -66,7 +66,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
     }
 
     // See macro - will return 0 on fail.
-    MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _entity_the_end,
+    MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _ENTITY_END,
                "\n\n Error: '%s' is not a known entity property.\n");
 
 
@@ -424,7 +424,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
     switch(property)
     {
 
-        case _entity_ai_target_entity:
+        case _ENTITY_AI_TARGET_ENTITY:
 
             handle->custom_target = (entity *)varlist[ARG_VALUE]->ptrVal;
 
