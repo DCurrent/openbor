@@ -2292,7 +2292,7 @@ void execute_onblocks_script(entity *ent)
     }
 }
 
-void execute_onblockw_script(entity *ent, int plane, float height, int index, float depth, int type)
+void execute_onblockw_script(entity *ent, s_terrain *wall, int index, e_plane plane)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onblockw_script;
@@ -2302,38 +2302,39 @@ void execute_onblockw_script(entity *ent, int plane, float height, int index, fl
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self", &tempvar);
-        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-        tempvar.lVal = (LONG)plane;
-        Script_Set_Local_Variant(cs, "plane",      &tempvar);
+
         ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
-        tempvar.dblVal = (DOUBLE)height;
-        Script_Set_Local_Variant(cs, "height",      &tempvar);
+        tempvar.dblVal = (DOUBLE)wall->height;
+        Script_Set_Local_Variant(cs, "height", &tempvar);
+
+        tempvar.dblVal = (DOUBLE)wall->depth;
+        Script_Set_Local_Variant(cs, "depth", &tempvar);
+
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+
+        tempvar.lVal = (LONG)wall->type;
+        Script_Set_Local_Variant(cs, "type", &tempvar);
+
         tempvar.lVal = (LONG)index;
-        Script_Set_Local_Variant(cs, "index",      &tempvar);
-        tempvar.dblVal = (DOUBLE)depth;
-        Script_Set_Local_Variant(cs, "depth",      &tempvar);
-        tempvar.lVal = (LONG)type;
-        Script_Set_Local_Variant(cs, "type",      &tempvar);
+        Script_Set_Local_Variant(cs, "index", &tempvar);
+
+        tempvar.lVal = (LONG)plane;
+        Script_Set_Local_Variant(cs, "plane", &tempvar);
+
         Script_Execute(cs);
 
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "plane", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "height", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "index", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "depth", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "type", &tempvar);
     }
 }
 
-void execute_inhole_script(entity *ent, int plane, float height, int index, float depth, int type)
+void execute_inhole_script(entity *ent, s_terrain *hole, int index)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->inhole_script;
@@ -2343,33 +2344,30 @@ void execute_inhole_script(entity *ent, int plane, float height, int index, floa
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self", &tempvar);
-        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
-        tempvar.lVal = (LONG)plane;
-        Script_Set_Local_Variant(cs, "plane",      &tempvar);
+
         ScriptVariant_ChangeType(&tempvar, VT_DECIMAL);
-        tempvar.dblVal = (DOUBLE)height;
-        Script_Set_Local_Variant(cs, "height",      &tempvar);
+        tempvar.dblVal = (DOUBLE)hole->height;
+        Script_Set_Local_Variant(cs, "height", &tempvar);
+
+        tempvar.dblVal = (DOUBLE)hole->depth;
+        Script_Set_Local_Variant(cs, "depth", &tempvar);
+
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+
+        tempvar.lVal = (LONG)hole->type;
+        Script_Set_Local_Variant(cs, "type", &tempvar);
+
         tempvar.lVal = (LONG)index;
-        Script_Set_Local_Variant(cs, "index",      &tempvar);
-        tempvar.dblVal = (DOUBLE)depth;
-        Script_Set_Local_Variant(cs, "depth",      &tempvar);
-        tempvar.lVal = (LONG)type;
-        Script_Set_Local_Variant(cs, "type",      &tempvar);
+        Script_Set_Local_Variant(cs, "index", &tempvar);
+
         Script_Execute(cs);
 
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self", &tempvar);
-        ScriptVariant_Clear(&tempvar);
-        Script_Set_Local_Variant(cs, "plane", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "height", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "index", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "depth", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "type", &tempvar);
     }
 }
@@ -2395,9 +2393,7 @@ void execute_onblockp_script(entity *ent, int plane, entity *platform)
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "plane", &tempvar);
-        ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "platform", &tempvar);
     }
 }
@@ -8963,10 +8959,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_SUBTYPE:
                 lcmHandleCommandSubtype(&arglist, newchar, filename);
                 break;
-            case CMD_MODEL_STATS:
-                value = GET_ARG(1);
-                newchar->stats[atoi(value)] = GET_FLOAT_ARG(2);
-                break;
             case CMD_MODEL_HEALTH:
                 value = GET_ARG(1);
                 newchar->health = atoi(value);
@@ -10282,7 +10274,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->energycost->mponly = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_CHARGETIME:
-                newanim->chargetime = GET_FLOAT_ARG(1);
+                newanim->chargetime = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISIONONE:
                 newanim->attackone = GET_INT_ARG(1);
@@ -11406,10 +11398,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 if(newanim->followup.animation > max_follows)
                 {
                     newanim->followup.animation = max_follows;
-                }
-                if(newanim->followup.animation < 0)
-                {
-                    newanim->followup.animation = 0;
                 }
                 break;
             case CMD_MODEL_FOLLOWCOND:
@@ -20520,7 +20508,7 @@ void adjust_base(entity *e, entity **pla)
             if ( hole )
             {
                 int holeind = checkholeindex_in(self->position.x, self->position.z, self->position.y);
-                if (holeind >= 0) execute_inhole_script(self, 0, (double)level->holes[holeind].height, holeind, (double)level->holes[holeind].depth, level->holes[holeind].type);
+                if (holeind >= 0) execute_inhole_script(self, &level->holes[holeind], holeind);
             }
 
             if(seta < 0 && hole)
@@ -21179,8 +21167,8 @@ void adjust_bind(entity *e)
                 update_frame(e, e->binding.ent->animpos);
             }
         }
-        if (e->binding.offset_flag.z) e->position.z = e->binding.ent->position.z + e->binding.offset.z;
-        if (e->binding.offset_flag.y) e->position.y = e->binding.ent->position.y + e->binding.offset.y;
+        if (e->binding.bind_toggle.z) e->position.z = e->binding.ent->position.z + e->binding.offset.z;
+        if (e->binding.bind_toggle.y) e->position.y = e->binding.ent->position.y + e->binding.offset.y;
         e->sortid = e->binding.ent->sortid + e->binding.sortid;
 
         switch(e->binding.direction)
@@ -21188,45 +21176,45 @@ void adjust_bind(entity *e)
         case DIRECTION_ADJUST_NONE:
             if(e->binding.ent->direction == DIRECTION_RIGHT)
             {
-                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+                if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
             }
             else
             {
-                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+                if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
             }
             break;
         case DIRECTION_ADJUST_SAME:
             e->direction = e->binding.ent->direction;
             if(e->binding.ent->direction == DIRECTION_RIGHT)
             {
-                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+                if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
             }
             else
             {
-                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+                if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
             }
             break;
         case DIRECTION_ADJUST_OPPOSITE:
             e->direction = !e->binding.ent->direction;
             if(e->binding.ent->direction == DIRECTION_RIGHT)
             {
-                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+                if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
             }
             else
             {
-                if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+                if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
             }
             break;
         case DIRECTION_ADJUST_RIGHT:
             e->direction = DIRECTION_RIGHT;
-            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
             break;
         case DIRECTION_ADJUST_LEFT:
             e->direction = DIRECTION_LEFT;
-            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
             break;
         default:
-            if (e->binding.offset_flag.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            if (e->binding.bind_toggle.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
             break;
             // the default is no change :), just give a value of 12345 or so
         }
@@ -23335,29 +23323,52 @@ void dograbattack(int which)
         }
         else
         {
-            memset(self->combostep, 0, sizeof(*self->combostep) * 5);
-            if(validanim(self, grab_attacks[which][1]))
-            {
-                ent_set_anim(self, grab_attacks[which][1], 0);
-            }
-            else if(validanim(self, ANI_ATTACK3))
-            {
-                ent_set_anim(self, ANI_ATTACK3, 0);
-            }
+            do_grab_attack_finish(self, which);
         }
     }
     else
     {
-        memset(self->combostep, 0, sizeof(*self->combostep) * 5);
-        if(validanim(self, grab_attacks[0][1]))
-        {
-            ent_set_anim(self, grab_attacks[0][1], 0);
-        }
-        else if(validanim(self, ANI_ATTACK3))
-        {
-            ent_set_anim(self, ANI_ATTACK3, 0);
-        }
+        do_grab_attack_finish(self, 0);
     }
+}
+
+// Caskey, Damon V.
+// 2018-04-11
+//
+// Choose appropriate grab finish animation
+// or do nothing if we can't find one. Returns
+// selected animation.
+e_animations do_grab_attack_finish(entity *ent, int which)
+{
+    e_animations animation;
+
+    // Clear out the combostep array since this is
+    // the finishing attack.
+    memset(ent->combostep, 0, sizeof(*ent->combostep) * 5);
+
+    // Get the finisher animation.
+    animation = grab_attacks[which][1];
+
+    // If selected attack animation exists then
+    // that's what we use. Otherwise default to
+    // attack3. If THAT fails, we don't do anything.
+    // The target entity is already unlinked from
+    // grab before this function was called, so in
+    // game they are let go with no finishing attack.
+    if(validanim(ent, animation))
+    {
+        ent_set_anim(ent, animation, 0);
+        return animation;
+    }
+    else if(validanim(ent, ANI_ATTACK3))
+    {
+        // Get the finisher animation.
+        ent_set_anim(ent, ANI_ATTACK3, 0);
+        return ANI_ATTACK3;
+    }
+
+    // Could not find a valid finisher. Return none.
+    return ATK_NONE;
 }
 
 void common_grab_check()
@@ -25214,13 +25225,13 @@ int common_trymove(float xdir, float zdir)
         {
             xdir = 0;
             if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
-            execute_onblockw_script(self, 1, (double)level->walls[wall].height, wall, (double)level->walls[wall].depth, level->walls[wall].type);
+            execute_onblockw_script(self, &level->walls[wall], PLANE_X, wall);
         }
         if(zdir && (wall = checkwall_below(self->position.x, z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
         {
             zdir = 0;
             if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
-            execute_onblockw_script(self, 2, (double)level->walls[wall].height, wall, (double)level->walls[wall].depth, level->walls[wall].type);
+            execute_onblockw_script(self, &level->walls[wall], PLANE_Z, wall);
         }
 
         if ( hit && !self->hitwall && validanim(self, ANI_HITWALL) ) ent_set_anim(self, ANI_HITWALL, 0);

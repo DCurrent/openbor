@@ -15,38 +15,56 @@
 #define _is_not_supported_by_ "'%s' is not supported by '%s'.\n"
 
 // Define macro for string mapping.
-    //
-    // 1. Is property argument a string?
-    //      a. True
-    //          1. Populate 'propname' with string.
-    //          2. Use searchlist function to populate
-    //          'prop' with integer constant matching
-    //          string from propname.
-    //
-    //          c. Is prop a 0+ integer?
-    //              1. True
-    //                  a. Use prop to populate varlist->lval.
-    //                  We now have a property constant ready
-    //                  to be processed  by property access
-    //                  functions.
-    //
-    //              2. False
-    //                  a. Send a failed message to the log.
-    //                  User most likely made a typo error
-    //                  and tried to access a property that
-    //                  does not exist.
-    //                  b. Return 0.
-    //
-    //      b. False.
-    //          1. Do nothing and allow function to continue.
+//
+// 1. Is property argument a string?
+//      a. True
+//          1. Populate 'propname' with string.
+//          2. Use searchlist function to populate
+//          'prop' with integer constant matching
+//          position in propstring list. So if a
+//          propname matches the second item in
+//          propstring list, then searchlist will
+//          return 1.
+//
+//          c. Is prop a 0+ integer?
+//              1. True
+//                  a. Use prop to populate varlist->lval.
+//                  We now have a property integer we can
+//                  compare to enumerated property constant
+//                  list and take action as needed by property
+//                  access functions.
+//
+//              2. False
+//                  a. Send a failed message to the log.
+//                  User most likely made a typo error
+//                  and tried to access a property that
+//                  does not exist.
+//                  b. Return 0.
+//
+//      b. False.
+//          1. Do nothing and allow function to continue.
 #define MAPSTRINGS(VAR, LIST, MAXINDEX, FAILMSG, args...) \
-if(VAR->vt == VT_STR) { \
-	propname = (char*)StrCache_Get(VAR->strVal); \
-	prop = searchList(LIST, propname, MAXINDEX); \
-	if(prop >= 0) { \
-		ScriptVariant_ChangeType(VAR, VT_INTEGER); \
-		VAR->lVal = prop; \
-	} else { printf(FAILMSG, propname, ##args); return 0;} \
+{\
+    int proplist_cursor; \
+    if(VAR->vt == VT_STR) { \
+        propname = (char*)StrCache_Get(VAR->strVal); \
+        prop = searchList(LIST, propname, MAXINDEX); \
+        if(prop >= 0) { \
+            ScriptVariant_ChangeType(VAR, VT_INTEGER); \
+            VAR->lVal = prop; \
+        } else { \
+            \
+            printf(FAILMSG, propname, ##args);  \
+            printf("\n Available properties:"); \
+            \
+            for(proplist_cursor = 0; LIST[proplist_cursor] != '\0'; proplist_cursor++){ \
+               printf("\n\t%s", LIST[proplist_cursor]); \
+            } \
+            \
+            printf("\n\n"); \
+            return 0; \
+        }\
+    }\
 }
 
 extern int			  PLAYER_MIN_Z;

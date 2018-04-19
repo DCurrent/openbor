@@ -171,6 +171,9 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "changeplayerproperty";
     }
+
+
+    // Binding
     else if (functionRef == ((void *)openbor_get_binding_property))
     {
         return "get_binding_property";
@@ -190,6 +193,14 @@ const char *Script_GetFunctionName(void *functionRef)
     else if (functionRef == ((void *)openbor_getentityproperty))
     {
         return "getentityproperty";
+    }
+    else if (functionRef == ((void *)openbor_get_entity_property))
+    {
+        return "get_entity_property";
+    }
+    else if (functionRef == ((void *)openbor_set_entity_property))
+    {
+        return "set_entity_property";
     }
     else if (functionRef == ((void *)openbor_get_animation_property))
     {
@@ -791,6 +802,14 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_entityproperty;
     }
+    else if (functionRef == ((void *)openbor_get_entity_property))
+    {
+        return (void *)mapstrings_entity_property;
+    }
+    else if (functionRef == ((void *)openbor_set_entity_property))
+    {
+        return (void *)mapstrings_entity_property;
+    }
     else if (functionRef == ((void *)openbor_getplayerproperty))
     {
         return (void *)mapstrings_playerproperty;
@@ -799,6 +818,8 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_playerproperty;
     }
+
+    // Binding
     else if (functionRef == ((void *)openbor_get_binding_property))
     {
         return (void *)mapstrings_binding;
@@ -944,8 +965,6 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_drawscreen, "drawscreen");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_changeplayerproperty, "changeplayerproperty");
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_changeentityproperty, "changeentityproperty");
 
     // Binding
     List_InsertAfter(&theFunctionList,
@@ -980,6 +999,14 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set_body_collision_property, "set_body_collision_property");
 
+    // Entity properties.
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_entity_property, "get_entity_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_entity_property, "set_entity_property");
+
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_changeentityproperty, "changeentityproperty");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getentityproperty, "getentityproperty");
     List_InsertAfter(&theFunctionList,

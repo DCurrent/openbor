@@ -170,6 +170,12 @@ typedef enum
     PORTING_XBOX
 } e_porting;
 
+typedef enum
+{
+    PLANE_X,
+    PLANE_Y,
+    PLANE_Z
+} e_plane;
 
 typedef struct
 {
@@ -568,7 +574,7 @@ typedef enum
     ANI_PROP_BODY_COLLISION,
     ANI_PROP_BOUNCE,       //FLOAT -tossv/bounce = new tossv
     ANI_PROP_CANCEL,       // Cancel anims with freespecial
-    ANI_PROP_CHARGETIME,   //FLOAT charge time for an animation
+    ANI_PROP_CHARGETIME,   //INT charge time for an animation
     ANI_PROP_COUNTERRANGE, //SUB Auto counter attack. 2011_04_01, DC: Moved to struct.
     ANI_PROP_DELAY,
     ANI_PROP_DRAWMETHODS,
@@ -1374,8 +1380,8 @@ typedef struct
     Damon Caskey
     */
 
-    int max;    //max value.
-    int min;    //min value.
+    short int max;    //max value.
+    short int min;    //min value.
 } s_metric_i;
 
 typedef struct
@@ -1386,9 +1392,9 @@ typedef struct
     Damon Caskey
     */
 
-    int current;    //Current.
-    int max;    //max value.
-    int min;    //min value.
+    short int current;    //Current.
+    short int max;    //max value.
+    short int min;    //min value.
 } s_metric_i_current;
 
 typedef struct
@@ -1468,12 +1474,12 @@ typedef struct
 
 typedef struct
 {
-	int x;
-	int y;
-	int width;
-	int height;
-	int z1;
-	int z2;
+	short int x;
+	short int y;
+	short int width;
+	short int height;
+	short int z1;
+	short int z2;
 } s_hitbox;
 
 typedef struct
@@ -1525,42 +1531,42 @@ typedef struct
 // attacks.
 typedef struct
 {
-    int                 attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
+    unsigned short int  blast;              // Attack box active on hit opponent's fall animation.
+    unsigned short int  steal;              // Add damage to owner's hp.
+    unsigned short int  ignore_attack_id;   // Ignore attack ID to attack in every frame
+    unsigned short int  no_flash;           // Flag to determine if an attack spawns a flash or not
+    unsigned short int  no_kill;            // this attack won't kill target (leave 1 HP)
+    unsigned short int  no_pain;            // No animation reaction on hit.
+    short int           attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
+    short int           attack_type;        // Reaction animation, death, etc.
+    short int           counterattack;      // Treat other attack boxes as body box.
+    short int           freeze;             // Lock target in place and set freeze time.
+    short int           jugglecost;         // cost for juggling a falling ent
+    short int           no_block;           // If this is greater than defense block power, make the hit
+    short int           pause_add;          // Flag to determine if an attack adds a pause before updating the animation
+    short int           seal;               // Disable target's animations with energycost > seal.
+    e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
+    e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 attack_force;
-    int                 attack_type;        // Reaction animation, death, etc.
-    int                 blast;              // Attack box active on hit opponent's fall animation.
     int                 blockflash;         // Custom bflash for each animation, model id
     int                 blocksound;         // Custom sound for when an attack is blocked
-    s_hitbox            *coords;            // Collision detection coordinates.
-    int                 counterattack;      // Treat other attack boxes as body box.
-    s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
-    s_axis_f            dropv;              // Velocity of target if knocked down.
-    e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 forcemap;           // Set target's palette on hit.
-    int                 freeze;             // Lock target in place and set freeze time.
     unsigned int        freezetime;         // Time for target to remain frozen.
     int                 grab;               // Not a grab as in grapple - behavior on hit for setting target's position
-    float               grab_distance;      // Distance used by "grab".
     int                 guardcost;          // cost for blocking an attack
     int                 hitflash;           // Custom flash for each animation, model id
     int                 hitsound;           // Sound effect to be played when attack hits opponent
-    int                 ignore_attack_id;   // Ignore attack ID to attack in every frame
     int                 index;              // Possible future support of multiple boxes - it's doubt even if support is added this property will be needed.
-    int                 jugglecost;         // cost for juggling a falling ent
     unsigned int        maptime;            // Time for forcemap to remain in effect.
-    int                 no_block;           // If this is greater than defense block power, make the hit
-    int                 no_flash;           // Flag to determine if an attack spawns a flash or not
-    int                 no_kill;            // this attack won't kill target (leave 1 HP)
-    int                 no_pain;            // No animation reaction on hit.
-    e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
     unsigned int        pain_time;          // pain invincible time
-    int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
-    s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
-    int                 seal;               // Disable target's animations with energycost > seal.
     unsigned int        sealtime;           // Time for seal to remain in effect.
-    s_staydown          staydown;           // Modify victum's stayodwn properties.
-    int                 steal;              // Add damage to owner's hp.
     int                 tag;                // User defined tag for scripts. No hard coded purpose.
+    float               grab_distance;      // Distance used by "grab".
+    s_axis_f            dropv;              // Velocity of target if knocked down.
+    s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
+    s_staydown          staydown;           // Modify victum's stayodwn properties.
+    s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
+    s_hitbox            *coords;            // Collision detection coordinates.
 } s_collision_attack;
 
 // Caskey, Damon V.
@@ -1579,10 +1585,10 @@ typedef struct
 // Last hit structure. Populated each time a collision is detected.
 typedef struct
 {
-    s_collision_attack  *attack;    // Collision attacking box.
-    s_collision_body    *body;      // Collision detect box.
     int                 confirm;    // Will engine's default hit handling be used?
     s_axis_f            position;   // X,Y,Z of last hit.
+    s_collision_attack  *attack;    // Collision attacking box.
+    s_collision_body    *body;      // Collision detect box.
 } s_lasthit;
 
 typedef struct
@@ -1677,71 +1683,93 @@ typedef struct
     2014-01-04
     */
 
-    int animation;                  //Animation to perform.
-    e_follow_condition condition;   //Condition in which follow up will be performed.
+    e_follow_condition condition;   // Condition in which follow up will be performed.
+    unsigned short int animation;   // Follow animation to perform.
 } s_follow;
 
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Axis switching flags
+// that involve the three main axes.
 typedef struct
 {
-    /*
-    Projectile struct
-    Damon V. Caskey
-    2014-01-18
-    */
+    bool x;
+    bool y;
+    bool z;
+} s_axis_principal_toggle;
 
-    int bomb;           //custbomb;
-    int flash;          //custpshotno;
-    int knife;          //custknife;
-    s_axis_i position;  //Location at which projectiles are spawned
-    int star;           //custstar;
-    int shootframe;
-    int throwframe;
-    int tossframe;      // Frame to toss bomb/grenade
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Axis short fields for adjustments that
+// don't need full size integers.
+typedef struct
+{
+    short int x;
+    short int y;
+    short int z;
+} s_axis_principal_short;
+
+// Caskey, Damon V.
+// 2014-01-18
+//
+// Projectile spawning.
+typedef struct
+{
+    unsigned short int      shootframe;
+    unsigned short int      throwframe;
+    unsigned short int      tossframe;  // Frame to toss bomb/grenade
+    int                     bomb;       // custbomb;
+    int                     flash;      // custpshotno;
+    int                     knife;      // custknife;
+    s_axis_principal_short  position;   // Location at which projectiles are spawned
+    int                     star;       // custstar;
 } s_projectile;
 
 typedef struct
 {
-    int             animhits;               // Does the attack need to hit before cancel is allowed?
-    int             antigrav;               // UT: make dive a similar property as antigravity
-    int             attackone;              // stick on the only one victim
-    float           bounce;                 // -tossv/bounce = new tossv
-    int             cancel;                 // Cancel anims with freespecial
-    float           chargetime;             // charge time for an animation
+    bool                    antigrav;               // This animation ignores gravity.
+    unsigned short int      animhits;               // How many consecutive hits have been made? Used for canceling.
+    unsigned short int      chargetime;             // charge time for an animation
+    unsigned short int      flipframe;              // Turns entities around on the desired frame
+    unsigned short int      numframes;              // Count of frames in the animation.
+    unsigned short int      unsummonframe;          // Un-summon the entity
+    short int               attackone;              // Attack hits only one target.
+    int                     cancel;                 // Cancel anims with freespecial
+    int                     index;                  // unique id
+    int                     model_index;
+    int                     subentity;              // Store the sub-entity's name for further use
+    int                     sync;                   // Synchronize frame to previous animation if they matches
+    float                   bounce;                 // -tossv/bounce = new tossv
+    s_follow                followup;               // Subsequent animation on hit.
+    s_onframe               jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
+    s_onframe               landframe;              // Landing behavior. 2011_04_01, DC: Moved to struct.
+    s_loop                  loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
+    s_projectile            projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
+    s_quakeframe            quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
+    s_range                 range;                  // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
+    s_axis_i                size;                   // Dimensions (height, width).
+    unsigned                *idle;                  // Allow free move
+    int                     *delay;
+    float                   (*platform)[8];         // Now entities can have others land on them
+    int                     *shadow;
+    int                     (*shadow_coords)[2];    // x, z offset of shadow
+    int                     *soundtoplay;           // each frame can have a sound
+    float                   *spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
+    float                   *starvelocity;          // 3 velocities for the start projectile
+    int                     *sprite;                // sprite[set][framenumber]
+    float                   *summonframe;           // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
+    unsigned short int      *vulnerable;
+    unsigned short int      *weaponframe;           // Specify with a frame when to switch to a weapon model
     s_collision_attack_list **collision_attack;
     s_collision_body_list   **collision_body;
-    s_counterrange  *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
-    int             *delay;
-    s_drawmethod    **drawmethods;
-    s_onframe       *dropframe;             // if tossv < 0, this frame will be set
-    s_energycost    *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-    int             flipframe;              // Turns entities around on the desired frame
-    s_follow        followup;               // Subsequent animation on hit.
-    unsigned        *idle;                  // Allow free move
-    int             index;                  // unique id
-    s_onframe       jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
-    s_onframe       landframe;              // Landing behavior. 2011_04_01, DC: Moved to struct.
-    s_loop          loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
-    int             model_index;
-    s_axis_i        **move;                 // base = seta, x = move, y = movea, z = movez
-    int             numframes;
-    s_axis_i_2d     **offset;               // original sprite offsets
-    float           (*platform)[8];         // Now entities can have others land on them
-    s_projectile    projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
-    s_quakeframe    quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
-    s_range         range;                  // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-    int             *shadow;
-    int             (*shadow_coords)[2];    // x, z offset of shadow
-    s_axis_i        size;                   // Dimensions (height, width).
-    int             *soundtoplay;           // each frame can have a sound
-    float           *spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
-    float           *starvelocity;          // 3 velocities for the start projectile
-    int             *sprite;                // sprite[set][framenumber]
-    int             subentity;              // Store the sub-entity's name for further use
-    float           *summonframe;           // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-    int             sync;                   // sychronize frame to previous animation if they matches
-    int             unsummonframe;          // Un-summon the entity
-    int             *vulnerable;
-    int             *weaponframe;           // Specify with a frame when to switch to a weapon model
+    s_counterrange          *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
+    s_drawmethod            **drawmethods;
+    s_onframe               *dropframe;             // if tossv < 0, this frame will be set
+    s_energycost            *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
+    s_axis_i                **move;                 // base = seta, x = move, y = movea, z = movez
+    s_axis_i_2d             **offset;               // original sprite offsets
 } s_anim;
 
 struct animlist
@@ -1897,7 +1925,6 @@ typedef struct
     char *name;
     char *path; // Path, so scripts can dynamically get files, sprites, sounds, etc.
     unsigned score;
-    float stats[20]; // Parameters that do nothing on their own.
     int health;
     float scroll; // Autoscroll like panel entity.
     unsigned offscreenkill;                  // for biker, arrow, etc
@@ -2099,20 +2126,20 @@ typedef struct
     s_axis_f velocity; //x,a,z velocity setting.
 } s_jump;
 
+
+// Caskey, Damon V.
+// 2013-12-17
+//
+// Binding struct. Control linking
+// of entity to a target entity.
 typedef struct
 {
-    /*
-    Bind struct for linking of entities.
-    2013-12-17
-    Damon V. Caskey
-    */
-
-    int ani_bind;                   //Animation binding type.
-    e_direction_adjust direction;   //Direction force
-    struct entity *ent;             //Entity to bind.
-    s_axis_i offset;                //x,y,z offset.
-    s_axis_i offset_flag;           //on/off binding on x,y,z
-    int sortid;                     //relative binding sortid. default = -1
+    unsigned short int      ani_bind;       // Animation binding type.
+    short int               sortid;         // Relative binding sortid. Default = -1
+    s_axis_principal_toggle bind_toggle;    // Toggle binding on X, Y and Z axis.
+    s_axis_principal_short  offset;         // x,y,z offset.
+    e_direction_adjust      direction;      // Direction force
+    struct entity *ent;                     // Entity to bind.
 } s_bind;
 
 typedef struct
@@ -2134,7 +2161,6 @@ typedef struct entity
     int reactive; // Used for setting the "a" at which weapons are spawned
     int ptype;
     int playerindex;
-    float stats[20]; // Parameters that do nothing on their own.
     int health; // current hp
     int mp; // current mp
     int oldhealth;
@@ -2149,27 +2175,27 @@ typedef struct entity
     char itemalias[MAX_NAME_LEN + 1]; // Now items spawned can have their properties changed
     int itemhealth; // Now items spawned can have their properties changed
     int itemplayer_count;
-    int boss;
-    int dying; // Coresponds with which remap is to be used for the dying flash
-    int dying2; // Coresponds with which remap is to be used for the dying flash for per2
-    unsigned per1; // Used to store at what health value the entity begins to flash
-    unsigned per2; // Used to store at what health value the entity flashes more rapidly
-    int boomerang_loop;
-    e_direction direction;
+        bool boss;
+        unsigned short int dying;   // Corresponds with which remap is to be used for the dying flash
+        unsigned short int dying2;  // Corresponds with which remap is to be used for the dying flash for per2
+        unsigned short int per1;    // Used to store at what health value the entity begins to flash
+        unsigned short int per2;    // Used to store at what health value the entity flashes more rapidly
+        unsigned short int boomerang_loop;  // Count of boomerang passes.
+        e_direction direction;
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
     int nograb_default; // equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon)
     int movestep;
-    s_axis_f position; //x,y,z location.
+        s_axis_f position; //x,y,z location.
     s_axis_f velocity; //x,y,z movement speed.
     float destx; // temporary values for ai functions
     float destz;
     float movex;
     float movez;
     float speedmul;
-    float base;     // Default altitude
-    float altbase; // Altitude affected by movea
+        float base;     // Default altitude
+        float altbase; // Altitude affected by movea
     s_jump jump;    //Jumping velocity and id.
-    unsigned combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
+        unsigned combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
 
     // ---------------------- action times -------------------------------
     u32	lastmove;
@@ -2179,10 +2205,10 @@ typedef struct entity
     u32 toss_time; // Used by gravity code
     u32 nextmove;
     u32 stalltime;
-    u32 combotime; // For multiple-hit combo
+        u32 combotime; // For multiple-hit combo
     u32 movetime; // For special move
     u32 freezetime; // Used to store at what point the a frozen entity becomes unfrozen
-    u32 maptime; // used by forcemap
+        u32 maptime; // used by forcemap
     u32 sealtime; // used by seal (stops special moves).
     u32 dot_time[MAX_DOTS]; //Dot time to expire.
     int dot[MAX_DOTS]; //Dot mode.
@@ -2215,11 +2241,11 @@ typedef struct entity
     int idling;
     int walking;
     int drop;
-    int attacking;
+        short int attacking;
     int getting;
     int turning;
-    int charging;
-    int blocking;
+        bool charging;
+        unsigned short int blocking;
     int falling;
     int running; // Flag to determine if a player is running
     int grabwalking; // a flag for grabwalk check
@@ -2227,24 +2253,24 @@ typedef struct entity
     int inbackpain; // playing pain/fall/die animation
     int normaldamageflipdir; // used to reset backpain direction
     int frozen; // Flag to determine if an entity is frozen
-    int blink;
+        bool blink;
     int invincible; // Flag used to determine if player is currently invincible
-    int autokill; // Kill on end animation
+        bool autokill; // Kill on end animation
     int remove_on_attack;
     int tocost; // Flag to determine if special costs life if doesn't hit an enemy
     int noaicontrol; // pause A.I. control
     int projectile;
     int toexplode; // Needed to determine if the projectile is a type that will explode (bombs, dynamite, etc)
-    int animating; // Set by animation code
-    int arrowon; // Flag to display parrow/parrow2 or not
+        bool animating; // Set by animation code
+        bool arrowon; // Flag to display parrow/parrow2 or not
     unsigned pathblocked;
     s_axis_f *waypoints;
     int numwaypoints;
-    int animpos;
-    int animnum; // animation id
-    s_anim *animation;
+        unsigned short int animpos; // Current animation frame.
+        unsigned short int animnum; // animation id.
+        s_anim *animation;
     float knockdowncount;
-    s_damage_on_landing damage_on_landing;
+        s_damage_on_landing damage_on_landing;
     int die_on_landing; // flag for damageonlanding (active if self->health <= 0)
     int last_damage_type; // used for set death animation or pain animation
     int map; // Stores the colourmap for restoring purposes
@@ -2252,10 +2278,10 @@ typedef struct entity
     void (*takeaction)();
     int (*takedamage)(struct entity *, s_collision_attack *, int);
     int (*trymove)(float, float);
-    int attack_id_incoming;
-    int attack_id_outgoing;
+        unsigned int attack_id_incoming;
+        unsigned int attack_id_outgoing;
     int hitwall; // == 1 in the instant that hit the wall/platform/obstacle, else == 0
-    unsigned char *colourmap;
+        unsigned char *colourmap;
     //struct entity   *thrower;
     struct entity *link; // Used to link 2 entities together.
     struct entity *owner; // Added for "hitenemy" flag so projectile recognizes its owner
@@ -2264,11 +2290,11 @@ typedef struct entity
     struct entity *parent; //Its spawner
     struct entity *subentity; //store the sub entity
     struct entity *opponent;
-    struct entity *custom_target; // target forced by modder via script
+        struct entity *custom_target; // target forced by modder via script
     struct entity *lasthit;
     struct entity *hithead; // when a player jumps and hits head on the bottom of a platform
     struct entity *landed_on_platform;
-    s_bind binding;
+        s_bind binding;
     int escapecount; // For escapehits
     s_rush rush;    //Rush combo display.
     int lifespancountdown; // life span count down
@@ -2580,9 +2606,9 @@ void    execute_ondeath_script      (entity *ent, entity *other, s_collision_att
 void    execute_onkill_script       (entity *ent);
 void    execute_onpain_script       (entity *ent, int iType, int iReset);
 void    execute_onfall_script       (entity *ent, entity *other, s_collision_attack *attack);
-void    execute_inhole_script       (entity *ent, int plane, float height, int index, float depth, int type);
+void    execute_inhole_script       (entity *ent, s_terrain *hole, int index);
 void    execute_onblocks_script     (entity *ent);
-void    execute_onblockw_script     (entity *ent, int plane, float height, int index, float depth, int type);
+void    execute_onblockw_script     (entity *ent, s_terrain *wall, int index, e_plane plane);
 void    execute_onblockp_script     (entity *ent, int plane, entity *platform);
 void    execute_onblocko_script     (entity *ent, entity *other);
 void    execute_onblockz_script     (entity *ent);
@@ -2806,7 +2832,8 @@ int long_attack();
 int melee_attack();
 void dothrow();
 void doprethrow();
-void dograbattack(int);
+void dograbattack(int which);
+e_animations do_grab_attack_finish(entity *ent, int which);
 int check_special();
 void normal_prepare();
 void common_jump();

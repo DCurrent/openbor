@@ -10,39 +10,46 @@
 // 2018-04-02
 // Caskey, Damon V.
 
+HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_set_entity_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+
+int mapstrings_entity_property(ScriptVariant **varlist, int paramCount);
+
 typedef enum
 {
-    _entity_ai_target_entity,
-    _entity_animation_animating,
-    _entity_animation_animation,
-    _entity_animation_collection,
-    _entity_animation_frame,
-    _entity_arrow_on,
-    _entity_attacking,
-    _entity_attack_id_incoming,
-    _entity_attack_id_outgoing,
-    _entity_autokill,
-    _entity_binding,
-    _entity_blink,
-    _entity_blocking,
-    _entity_boomerang_loop,
-    _entity_boss,
-    _entity_charging,
-    _entity_colorset_default,
-    _entity_colorset_dying_1,
-    _entity_colorset_dying_2,
-    _entity_colorset_table,
-    _entity_colorset_time,
-    _entity_combo_step,
-    _entity_combo_time,
-    _entity_position_alternate_base,
-    _entity_position_base,
-    _entity_position_direction,
-    _entity_position_x,
-    _entity_position_y,
-    _entity_position_z,
-    _entity_the_end,
-
+    _ENTITY_AI_TARGET_ENTITY,
+    _ENTITY_ANIMATION_ANIMATING,
+    _ENTITY_ANIMATION_ANIMATION,
+    _ENTITY_ANIMATION_COLLECTION,
+    _ENTITY_ANIMATION_FRAME,
+    _ENTITY_ARROW_ON,
+    _ENTITY_ATTACKING,
+    _ENTITY_ATTACK_ID_INCOMING,
+    _ENTITY_ATTACK_ID_OUTGOING,
+    _ENTITY_AUTOKILL,
+    _ENTITY_BINDING,
+    _ENTITY_BLINK,
+    _ENTITY_BLOCKING,
+    _ENTITY_BOOMERANG_LOOP,
+    _ENTITY_BOSS,
+    _ENTITY_CHARGING,
+    _ENTITY_COLORSET_DEFAULT,
+    _ENTITY_COLORSET_DYING_HEALTH_1,
+    _ENTITY_COLORSET_DYING_HEALTH_2,
+    _ENTITY_COLORSET_DYING_INDEX_1,
+    _ENTITY_COLORSET_DYING_INDEX_2,
+    _ENTITY_COLORSET_TABLE,
+    _ENTITY_COLORSET_TIME,
+    _ENTITY_COMBO_STEP,
+    _ENTITY_COMBO_TIME,
+    _ENTITY_DAMAGE_ON_LANDING,
+    _ENTITY_POSITION_ALTERNATE_BASE,
+    _ENTITY_POSITION_BASE,
+    _ENTITY_POSITION_DIRECTION,
+    _ENTITY_POSITION_X,
+    _ENTITY_POSITION_Y,
+    _ENTITY_POSITION_Z,
+    _ENTITY_END,
 } e_entity_properties;
 
 HRESULT openbor_get_entity_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
