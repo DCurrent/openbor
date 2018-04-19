@@ -568,7 +568,25 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _ENTITY_COLORSET_DYING_1:
+        case _ENTITY_COLORSET_DYING_HEALTH_1:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->per1 = temp_int;
+            }
+
+            break;
+
+        case _ENTITY_COLORSET_DYING_HEALTH_2:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->per2 = temp_int;
+            }
+
+            break;
+
+        case _ENTITY_COLORSET_DYING_INDEX_1:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -577,7 +595,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _ENTITY_COLORSET_DYING_2:
+        case _ENTITY_COLORSET_DYING_INDEX_2:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
