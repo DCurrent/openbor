@@ -1709,7 +1709,7 @@ typedef struct
 {
     unsigned int            animhits:1;               // Does the attack need to hit before cancel is allowed?
     int                     antigrav;               // UT: make dive a similar property as antigravity
-    int                     attackone;              // stick on the only one victim
+    unsigned int            attackone:1;            // stick on the only one victim
     float                   bounce;                 // -tossv/bounce = new tossv
     int                     cancel;                 // Cancel anims with freespecial
     float                   chargetime;             // charge time for an animation
