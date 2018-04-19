@@ -1744,8 +1744,8 @@ typedef struct
     int                     *sprite;                // sprite[set][framenumber]
     int                     subentity;              // Store the sub-entity's name for further use
     float                   *summonframe;           // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-    int                     sync;                   // sychronize frame to previous animation if they matches
-    int                     unsummonframe;          // Un-summon the entity
+     int                     sync;                   // sychronize frame to previous animation if they matches
+    unsigned short int      unsummonframe;          // Un-summon the entity
     unsigned short int      *vulnerable;
     unsigned short int      *weaponframe;           // Specify with a frame when to switch to a weapon model
 } s_anim;
