@@ -356,6 +356,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
+        case _ENTITY_SPAWN_TYPE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (LONG)handle->spawntype;
+
+            break;
+
         default:
 
             printf("Unsupported property.\n");
