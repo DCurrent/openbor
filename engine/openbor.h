@@ -1629,9 +1629,9 @@ typedef struct
 // On frame movement (slide, jump, dive, etc.).
 typedef struct
 {
-    unsigned short int  frame;      // Frame to perform action.
-    int                 ent;        // Index of entity to spawn.
-    s_axis_f            velocity;   // x,a,z velocity.
+    int         frame;      // Frame to perform action.
+    int         ent;        // Index of entity to spawn.
+    s_axis_f    velocity;   // x,a,z velocity.
 } s_onframe;
 
 typedef struct
@@ -2160,8 +2160,8 @@ typedef struct
 
 typedef struct entity
 {
-        e_spawn_type spawntype; // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
-    int exists; // flag to determine if it is a valid entity.
+        e_spawn_type spawntype; // Type of spawn (level spawn, script spawn, ...)
+        bool exists; // flag to determine if it is a valid entity.
     int reactive; // Used for setting the "a" at which weapons are spawned
     int ptype;
     int playerindex;
