@@ -358,8 +358,8 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
         case _ENTITY_SPAWN_TYPE:
 
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (LONG)handle->spawntype;
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->spawntype;
 
             break;
 
