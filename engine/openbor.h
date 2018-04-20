@@ -2160,7 +2160,7 @@ typedef struct
 
 typedef struct entity
 {
-        bool spawntype; // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
+        e_spawn_type spawntype; // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
     int exists; // flag to determine if it is a valid entity.
     int reactive; // Used for setting the "a" at which weapons are spawned
     int ptype;
