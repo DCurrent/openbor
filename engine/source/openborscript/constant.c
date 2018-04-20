@@ -476,6 +476,10 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(SET_PROP_SELECT_DISABLE)
         ICMPCONST(SET_PROP_SELECT_NO_SAME)
 
+        // Spawning types.
+        ICMPCONST(SPAWN_TYPE_UNDEFINED)
+        ICMPCONST(SPAWN_TYPE_LEVEL)
+
         ICMPCONST(ANI_RISE2)
         ICMPCONST(ANI_RISE3)
         ICMPCONST(ANI_RISE4)
