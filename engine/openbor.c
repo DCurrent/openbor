@@ -5709,6 +5709,12 @@ void free_anim(s_anim *anim)
         anim->dropframe = NULL;
     }
 
+    if(anim->jumpframe)
+    {
+        free(anim->jumpframe);
+        anim->jumpframe = NULL;
+    }
+
     if(anim->landframe)
     {
         free(anim->landframe);
@@ -10200,13 +10206,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.max.y            = 1000;                                //amax
                 newanim->range.min.base         = T_MIN_BASEMAP;                            //Base min.
                 newanim->range.max.base         = 1000;                             //Base max.
-                newanim->jumpframe.velocity.y   = 0;  //Default disabled.
                 newanim->energycost             = NULL;
                 newanim->chargetime             = 2;			// Default for backwards compatibility
                 newanim->projectile.shootframe  = -1;
                 newanim->projectile.throwframe  = -1;
                 newanim->projectile.tossframe   = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
-                newanim->jumpframe.frame        = -1;
                 newanim->flipframe              = -1;
                 newanim->attackone              = -1;
                 newanim->antigrav               = 0;
@@ -10214,6 +10218,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->followup.condition     = FOLLOW_CONDITION_DISABLED;
                 newanim->unsummonframe          = -1;
                 newanim->landframe              = NULL;
+                newanim->jumpframe              = NULL;
                 newanim->dropframe              = NULL;
                 newanim->cancel                 = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
                 newanim->animhits               = 0; //OX counts hits on a per anim basis for cancels.
@@ -10341,59 +10346,79 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // UT: merge dive and jumpframe, because they can't be used at the same time
             case CMD_MODEL_DIVE:	//antigrav kicks
                 newanim->antigrav = 1;
-                newanim->jumpframe.frame = 0;
-                newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(2);
-                newanim->jumpframe.ent = -1;
+
+                // Allocate jumpframe and use it to set movement.
+                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
+                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+
+                newanim->jumpframe->frame = 0;
+                newanim->jumpframe->velocity.x = GET_FLOAT_ARG(1);
+                newanim->jumpframe->velocity.y = -GET_FLOAT_ARG(2);
+                newanim->jumpframe->ent = -1;
                 break;
             case CMD_MODEL_DIVE1:
                 newanim->antigrav = 1;
-                newanim->jumpframe.frame = 0;
-                newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe.ent = -1;
+
+                // Allocate jumpframe and use it to set movement.
+                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
+                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+
+                newanim->jumpframe->frame = 0;
+                newanim->jumpframe->velocity.x = GET_FLOAT_ARG(1);
+                newanim->jumpframe->ent = -1;
                 break;
             case CMD_MODEL_DIVE2:
                 newanim->antigrav = 1;
-                newanim->jumpframe.frame = 0;
-                newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(1);
-                newanim->jumpframe.ent = -1;
+
+                // Allocate jumpframe and use it to set movement.
+                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
+                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+
+                newanim->jumpframe->frame = 0;
+                newanim->jumpframe->velocity.y = -GET_FLOAT_ARG(1);
+                newanim->jumpframe->ent = -1;
                 break;
             case CMD_MODEL_JUMPFRAME:
             {
-                newanim->jumpframe.frame    = GET_FRAME_ARG(1);   //Frame.
-                newanim->jumpframe.velocity.y    = GET_FLOAT_ARG(2); //Vertical velocity.
+                // Allocate jumpframe.
+                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
+                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+
+                newanim->jumpframe->frame        = GET_FRAME_ARG(1);
+                newanim->jumpframe->velocity.y   = GET_FLOAT_ARG(2);
+
                 value = GET_ARG(3);
                 if(value[0])
                 {
-                    newanim->jumpframe.velocity.x = GET_FLOAT_ARG(3);
-                    newanim->jumpframe.velocity.z = GET_FLOAT_ARG(4);
+                    newanim->jumpframe->velocity.x = GET_FLOAT_ARG(3);
+                    newanim->jumpframe->velocity.z = GET_FLOAT_ARG(4);
                 }
                 else // k, only for backward compatibility :((((((((((((((((
                 {
-                    if(newanim->jumpframe.velocity.y <= 0)
+                    if(newanim->jumpframe->velocity.y <= 0)
                     {
                         if(newchar->type == TYPE_PLAYER)
                         {
-                            newanim->jumpframe.velocity.y = newchar->jumpheight / 2;
-                            newanim->jumpframe.velocity.z = 0;
-                            newanim->jumpframe.velocity.x = 2;
+                            newanim->jumpframe->velocity.y = newchar->jumpheight / 2;
+                            newanim->jumpframe->velocity.z = 0;
+                            newanim->jumpframe->velocity.x = 2;
                         }
                         else
                         {
-                            newanim->jumpframe.velocity.y = newchar->jumpheight;
-                            newanim->jumpframe.velocity.z = newanim->jumpframe.velocity.x = 0;
+                            newanim->jumpframe->velocity.y = newchar->jumpheight;
+                            newanim->jumpframe->velocity.z = newanim->jumpframe->velocity.x = 0;
                         }
                     }
                     else
                     {
                         if(newchar->type != TYPE_ENEMY && newchar->type != TYPE_NPC)
                         {
-                            newanim->jumpframe.velocity.z = newanim->jumpframe.velocity.x = 0;
+                            newanim->jumpframe->velocity.z = newanim->jumpframe->velocity.x = 0;
                         }
                         else
                         {
-                            newanim->jumpframe.velocity.z = 0;
-                            newanim->jumpframe.velocity.x = (float)1.3;
+                            newanim->jumpframe->velocity.z = 0;
+                            newanim->jumpframe->velocity.x = (float)1.3;
                         }
                     }
                 }
@@ -10401,13 +10426,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(5);
                 if(value[0])
                 {
-                    newanim->jumpframe.ent = get_cached_model_index(value);
+                    newanim->jumpframe->ent = get_cached_model_index(value);
                 }
                 else
                 {
-                    newanim->jumpframe.ent = -1;
+                    newanim->jumpframe->ent = -1;
                 }
-
             }
             break;
             case CMD_MODEL_BOUNCEFACTOR:
@@ -17670,11 +17694,66 @@ int calculate_edelay(entity *ent, int f)
     return iDelay;
 }
 
+// Caskey, Damon V.
+// 2018-04-20
+//
+// Set up jumping velocity for an animation
+// that has jump frame defined and is at the
+// designated jump frame. Also spawns effect
+// entity if one is defined.
+bool check_jumpframe(entity *ent, unsigned short int frame)
+{
+    entity *effect;
+
+    // Must have jump frame allocated.
+    if(!ent->animation->jumpframe)
+    {
+        return 0;
+    }
+
+    // Must be on assigned jump frame.
+    if(ent->animation->jumpframe->frame != frame)
+    {
+        return 0;
+    }
+
+    // Chuck entity into the air.
+    toss(ent, ent->animation->jumpframe->velocity.y);
+
+    // Set left or right horizontal velocity depending on
+    // current direction.
+    if(ent->direction == DIRECTION_RIGHT)
+    {
+        ent->velocity.x = ent->animation->jumpframe->velocity.x;
+    }
+    else
+    {
+        ent->velocity.x = -ent->animation->jumpframe->velocity.x;
+    }
+
+    // Lateral velocity.
+    ent->velocity.z = ent->animation->jumpframe->velocity.z;
+
+    // Spawn an effect entity if defined.
+    if(ent->animation->jumpframe->ent >= 0)
+    {
+        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->jumpframe->ent, NULL);
+        if(effect)
+        {
+            effect->base = ent->position.y;
+            effect->autokill = 2;
+            execute_onspawn_script(effect);
+        }
+    }
+
+    return 1;
+
+}
+
 // move here to prevent some duplicated code in ent_sent_anim and update_ents
-void update_frame(entity *ent, int f)
+void update_frame(entity *ent, unsigned short int f)
 {
     entity *tempself;
-    entity *dust;
     s_collision_attack attack;
     s_axis_f move;
     s_anim *anim = ent->animation;
@@ -17815,25 +17894,9 @@ void update_frame(entity *ent, int f)
         sound_play_sample(anim->soundtoplay[f], 0, savedata.effectvol, savedata.effectvol, 100);
     }
 
-    if(anim->jumpframe.frame == f)
-    {
-        // Set custom jumpheight for jumpframes
-        /*if(self->animation->jumpframe.v > 0)*/
-			toss(self, anim->jumpframe.velocity.y);
-        self->velocity.x = self->direction == DIRECTION_RIGHT ? anim->jumpframe.velocity.x : -anim->jumpframe.velocity.x;
-        self->velocity.z = anim->jumpframe.velocity.z;
+    // Perform jumping if on a jumpframe.
+    check_jumpframe(self, f);
 
-        if(anim->jumpframe.ent >= 0)
-        {
-            dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, anim->jumpframe.ent, NULL);
-            if(dust)
-            {
-                dust->base = self->position.y;
-                dust->autokill = 2;
-                execute_onspawn_script(dust);
-            }
-        }
-    }
 
     if(anim->projectile.throwframe == f)
     {
