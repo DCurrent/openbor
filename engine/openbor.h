@@ -1617,17 +1617,15 @@ typedef struct
     e_cost_type mponly; //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
 } s_energycost;
 
+// Caskey, Damon V.
+// 2011-04-01
+//
+// On frame movement (slide, jump, dive, etc.).
 typedef struct
 {
-    /*
-    On frame movement (slide, jump, dive, etc.)
-    2011-04-01
-    Damon V. Caskey
-    */
-
-    int ent;            // Index of entity to spawn.
-    int frame;          // Frame to perform action.
-    s_axis_f velocity;  // x,a,z velocity.
+    unsigned short int  frame;      // Frame to perform action.
+    int                 ent;        // Index of entity to spawn.
+    s_axis_f            velocity;   // x,a,z velocity.
 } s_onframe;
 
 typedef struct
@@ -1683,8 +1681,8 @@ typedef struct
     2014-01-04
     */
 
-    e_follow_condition condition;   // Condition in which follow up will be performed.
     unsigned short int animation;   // Follow animation to perform.
+    e_follow_condition condition;   // Condition in which follow up will be performed.
 } s_follow;
 
 // Caskey, Damon V.
@@ -2156,7 +2154,7 @@ typedef struct
 
 typedef struct entity
 {
-    int spawntype; // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
+        bool spawntype; // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
     int exists; // flag to determine if it is a valid entity.
     int reactive; // Used for setting the "a" at which weapons are spawned
     int ptype;
