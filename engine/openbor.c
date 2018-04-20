@@ -15175,7 +15175,7 @@ void load_level(char *filename)
             {
                 next.name = tempmodel->name;
                 next.index = get_cached_model_index(next.name);
-                next.spawntype = 1;     //2011_03_23, DC; Spawntype 1 (level spawn).
+                next.spawntype = SPAWN_TYPE_LEVEL;  //2011_03_23, DC; Spawntype SPAWN_TYPE_LEVEL.
                 crlf = 1;
             }
             break;
