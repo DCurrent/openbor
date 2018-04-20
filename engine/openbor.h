@@ -172,6 +172,12 @@ typedef enum
 
 typedef enum
 {
+    SPAWN_TYPE_UNDEFINED,
+    SPAWN_TYPE_LEVEL
+} e_spawn_type;
+
+typedef enum
+{
     PLANE_X,
     PLANE_Y,
     PLANE_Z
