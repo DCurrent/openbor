@@ -702,6 +702,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
+        case _ENTITY_SPAWN_TYPE:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->spawntype = temp_int;
+            }
+
+            break;
+
         default:
 
             printf("Unsupported property.\n");
