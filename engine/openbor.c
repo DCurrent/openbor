@@ -5702,11 +5702,19 @@ void free_anim(s_anim *anim)
         free(anim->counterrange);
         anim->counterrange = NULL;
     }
+
     if(anim->dropframe)
     {
         free(anim->dropframe);
         anim->dropframe = NULL;
     }
+
+    if(anim->landframe)
+    {
+        free(anim->landframe);
+        anim->landframe = NULL;
+    }
+
     if(anim->energycost)
     {
         free(anim->energycost);
@@ -10205,7 +10213,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->followup.animation     = 0;			// Default disabled
                 newanim->followup.condition     = FOLLOW_CONDITION_DISABLED;
                 newanim->unsummonframe          = -1;
-                newanim->landframe.frame        = -1;
+                newanim->landframe              = NULL;
                 newanim->dropframe              = NULL;
                 newanim->cancel                 = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
                 newanim->animhits               = 0; //OX counts hits on a per anim basis for cancels.
@@ -10406,16 +10414,23 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->bounce = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_LANDFRAME:
-                newanim->landframe.frame = GET_FRAME_ARG(1);
+                newanim->landframe    = malloc(sizeof(*newanim->landframe));
+                memset(newanim->landframe, 0, sizeof(*newanim->landframe));
+
+                // Landing frame.
+                newanim->landframe->frame = GET_FRAME_ARG(1);
+
+                // Entity to spawn when land frame triggers.
                 value = GET_ARG(2);
                 if(value[0])
                 {
-                    newanim->landframe.ent = get_cached_model_index(value);
+                    newanim->landframe->ent = get_cached_model_index(value);
                 }
                 else
                 {
-                    newanim->landframe.ent = -1;
+                    newanim->landframe->ent = -1;
                 }
+
                 break;
             case CMD_MODEL_DROPFRAME:
                 newanim->dropframe    = malloc(sizeof(*newanim->dropframe));
@@ -20031,6 +20046,50 @@ void do_attack(entity *e)
     return 0;
 }*/
 
+// Caskey, Damon V.
+// 2018-04-20
+//
+// Go to landing frame if available. Also spawns an effect ("dust") entity if set.
+bool check_landframe(entity *ent)
+{
+    entity *effect;
+
+    // Must have a landframe.
+    if(!ent->animation->landframe)
+    {
+        return 0;
+    }
+    // Can't be passed over current animation's frame count.
+    if(ent->animation->landframe->frame > ent->animation->numframes)
+    {
+        return 0;
+    }
+
+    // Can't be already at or passed land frame.
+    if(ent->animpos >= ent->animation->landframe->frame)
+    {
+        return 0;
+    }
+
+    // If a land frame dust effect entity is set, let's spawn it here.
+    if(ent->animation->landframe->ent >= 0)
+    {
+        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->landframe->ent, NULL);
+
+        if(effect)
+        {
+            effect->base = ent->position.y;
+            effect->autokill = 2;
+            execute_onspawn_script(effect);
+        }
+    }
+
+    update_frame(ent, ent->animation->landframe->frame);
+
+    return 1;
+}
+
+
 void check_gravity(entity *e)
 {
     int heightvar;
@@ -20121,9 +20180,12 @@ void check_gravity(entity *e)
             {
                 // If falling and frame has not
                 // passed dropframe, set frame to dropframe.
-                if(self->velocity.y <= 0 && self->animpos < self->animation->dropframe->frame) // begin dropping
+                if(self->velocity.y <= 0)
                 {
-                    update_frame(self, self->animation->dropframe->frame);
+                    if(self->animpos < self->animation->dropframe->frame)
+                    {
+                        update_frame(self, self->animation->dropframe->frame);
+                    }
                 }
             }
 
@@ -20207,23 +20269,10 @@ void check_gravity(entity *e)
                     self->landed_on_platform = plat;
                 }
 
-                if(self->animation->landframe.frame >= 0                               //Has landframe?
-                        && self->animation->landframe.frame <= self->animation->numframes  //Not over animation frame count?
-                        && self->animpos < self->animation->landframe.frame)               //Not already past landframe?
-                {
-                    if(self->animation->landframe.ent >= 0)
-                    {
-                        dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->animation->landframe.ent, NULL);
-                        if(dust)
-                        {
-                            dust->base = self->position.y;
-                            dust->autokill = 2;
-                            execute_onspawn_script(dust);
-                        }
-                    }
-                    update_frame(self, self->animation->landframe.frame);
-                }
+                // Set landing frame if we have one.
+                check_landframe(self);
 
+                // Taking damage on a landing?
                 checkdamageonlanding();
 
                 // in case landing, set hithead to NULL
@@ -23013,7 +23062,8 @@ void common_jump()
 
         self->velocity.z = self->velocity.x = 0;
 
-        if(validanim(self, ANI_JUMPLAND) && self->animation->landframe.frame == -1) // check if jumpland animation exists and not using landframe
+        // check if jumpland animation exists and not using landframe
+        if(validanim(self, ANI_JUMPLAND) && !self->animation->landframe)
         {
             self->takeaction = common_jumpland;
             ent_set_anim(self, ANI_JUMPLAND, 0);
@@ -23030,7 +23080,7 @@ void common_jump()
         }
         else
         {
-            if(self->modeldata.dust.jump_land >= 0 && self->animation->landframe.frame == -1)
+            if(self->modeldata.dust.jump_land >= 0 && !self->animation->landframe)
             {
                 dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.jump_land, NULL);
                 if(dust)
@@ -23040,7 +23090,7 @@ void common_jump()
                     execute_onspawn_script(dust);
                 }
             }
-            if(self->animation->landframe.frame >= 0 && self->animating)
+            if(self->animation->landframe && self->animating)
             {
                 return;
             }
