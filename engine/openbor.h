@@ -1629,9 +1629,9 @@ typedef struct
 // On frame movement (slide, jump, dive, etc.).
 typedef struct
 {
-    int         frame;      // Frame to perform action.
-    int         ent;        // Index of entity to spawn.
-    s_axis_f    velocity;   // x,a,z velocity.
+    unsigned short int  frame;      // Frame to perform action.
+    int                 ent;        // Index of entity to spawn.
+    s_axis_f            velocity;   // x,a,z velocity.
 } s_onframe_move;
 
 // Caskey, Damon V.
@@ -1757,7 +1757,6 @@ typedef struct
     int                     sync;                   // Synchronize frame to previous animation if they matches
     float                   bounce;                 // -tossv/bounce = new tossv
     s_follow                followup;               // Subsequent animation on hit.
-    s_onframe_move          jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
     s_loop                  loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
     s_projectile            projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
     s_quakeframe            quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
@@ -1780,6 +1779,7 @@ typedef struct
     s_counterrange          *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
     s_drawmethod            **drawmethods;
     s_onframe_set           *dropframe;             // if tossv < 0, this frame will be set
+    s_onframe_move          *jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
     s_onframe_set           *landframe;             // Landing behavior.
     s_energycost            *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
     s_axis_i                **move;                 // base = seta, x = move, y = movea, z = movez
@@ -2822,6 +2822,7 @@ int do_catch(entity *ent, entity *target, int animation_catch);
 int do_energy_charge(entity *ent);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
+bool check_jumpframe(entity *ent, unsigned short int frame);
 bool check_landframe(entity *ent);
 void update_ents();
 entity *find_ent_here(entity *exclude, float x, float z, int types, int (*test)(entity *, entity *));
