@@ -462,19 +462,26 @@ void blit()
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
 
+    //SDL_SetRenderTarget(renderer, NULL);
     SDL_RenderSetLogicalSize(renderer, 0, 0);
     SDL_SetTextureBlendMode(texture_base, SDL_BLENDMODE_NONE);
     SDL_RenderCopy(renderer, texture_base, NULL, NULL);
 
     if(stretch)
     {
-        SDL_RenderSetLogicalSize(renderer, 0, 0);
+        //SDL_RenderSetLogicalSize(renderer, 0, 0);
+        SDL_RenderCopy(renderer, texture, NULL, NULL);
     }
     else
     {
-        SDL_RenderSetLogicalSize(renderer, textureWidth, textureHeight);
+        //SDL_RenderSetLogicalSize(renderer, textureWidth, textureHeight);
+        float aspectRatio = (float)textureWidth / (float)textureHeight;
+        float newWidth = nativeHeight * aspectRatio;
+
+        //SDL_Log("aspect: from %d/%d con %f, orig: %d/%d -> %d",textureWidth,textureHeight,aspectRatio,nativeWidth,nativeHeight,(int)newWidth);
+        SDL_Rect d_rect = {(int)(nativeWidth/2.0f - newWidth/2.0f), 0, (int)newWidth, nativeHeight};
+        SDL_RenderCopy(renderer, texture, NULL, &d_rect);
     }
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
 
     if(brightness > 0)
     {
@@ -486,7 +493,7 @@ void blit()
     }
     SDL_RenderFillRect(renderer, NULL);
 
-    SDL_RenderSetLogicalSize(renderer, 0, 0);
+    //SDL_RenderSetLogicalSize(renderer, 0, 0);
     hide_touch = (timer_gettick() > hide_t);
     for(i = 0, h = 0; i < MAXTOUCHB; i++)
     {
