@@ -436,6 +436,12 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_BLOCKPAIN)
         ICMPCONST(ANI_DUCKATTACK)
         ICMPCONST(MAX_ANIS)
+
+        // Attacking state.
+        ICMPCONST(ATTACKING_ACTIVE)
+        ICMPCONST(ATTACKING_INACTIVE)
+        ICMPCONST(ATTACKING_PREPARED)
+
         ICMPCONST(PLAYER_MIN_Z)
         ICMPCONST(PLAYER_MAX_Z)
         ICMPCONST(BGHEIGHT)
