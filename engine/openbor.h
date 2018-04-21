@@ -1758,7 +1758,7 @@ typedef struct
     unsigned short int      flipframe;              // Turns entities around on the desired frame
     unsigned short int      numframes;              // Count of frames in the animation.
     unsigned short int      unsummonframe;          // Un-summon the entity
-    short int               attackone;              // Attack hits only one target.
+    bool                    attackone;              // Attack hits only one target.
     int                     cancel;                 // Cancel anims with freespecial
     int                     index;                  // unique id
     int                     model_index;
@@ -1959,7 +1959,7 @@ typedef struct
     int counter; // counter of weapons by tails
     unsigned shootnum; // counter of shots by tails
     unsigned reload; // reload max shots by tails
-    int reactive; // Used for setting the "a" at which weapons are spawned
+    int deduct_ammo; // Used for setting the "a" at which weapons are spawned
     int typeshot; // see if weapon is a gun or knife by tails
     int animal; // see is the weapon is a animal by tails
     int nolife; // Feb 25, 2005 - Variable flag to show life 0 = no, else yes
@@ -2181,7 +2181,7 @@ typedef struct entity
 {
         e_spawn_type spawntype; // Type of spawn (level spawn, script spawn, ...)
         bool exists; // flag to determine if it is a valid entity.
-    int reactive; // Used for setting the "a" at which weapons are spawned
+        bool deduct_ammo; // Check for ammo count?
     int ptype;
     int playerindex;
     int health; // current hp

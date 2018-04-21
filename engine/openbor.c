@@ -17926,19 +17926,19 @@ void update_frame(entity *ent, unsigned short int f)
         {
             __trystar;
         }
-        self->reactive = 1;
+        self->deduct_ammo = 1;
     }
 
     if(anim->projectile.shootframe == f)
     {
         knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y, self->direction, 1, 0);
-        self->reactive = 1;
+        self->deduct_ammo = 1;
     }
 
     if(anim->projectile.tossframe == f)
     {
         bomb_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0);
-        self->reactive = 1;
+        self->deduct_ammo = 1;
     }
 
 uf_interrupted:
@@ -25560,10 +25560,10 @@ void common_attack_proc()
         smart_bomb(self, self->modeldata.smartbomb);
         smartbomber = NULL;
     }
-    if(self->reactive == 1)
+    if(self->deduct_ammo == 1)
     {
         subtract_shot();
-        self->reactive = 0;
+        self->deduct_ammo = 0;
     }
     self->attacking = ATTACKING_INACTIVE;
     // end of attack proc
