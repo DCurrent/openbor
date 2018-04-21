@@ -154,6 +154,15 @@ typedef struct PlayRecStatus {
 
 extern a_playrecstatus *playrecstatus;
 
+// State of attack boxes.
+typedef enum
+{
+    ATTACKING_INACTIVE,
+    ATTACKING_PREPARED,
+    ATTACKING_ACTIVE
+    // Next should be 4, 8, ... for bitwise evaluations.
+} e_attacking_state;
+
 typedef enum
 {
     PORTING_ANDROID,
@@ -169,6 +178,12 @@ typedef enum
     PORTING_WIZ,
     PORTING_XBOX
 } e_porting;
+
+typedef enum
+{
+    SPAWN_TYPE_UNDEFINED,
+    SPAWN_TYPE_LEVEL
+} e_spawn_type;
 
 typedef enum
 {
@@ -1617,18 +1632,26 @@ typedef struct
     e_cost_type mponly; //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
 } s_energycost;
 
+// Caskey, Damon V.
+// 2011-04-01
+//
+// On frame movement (slide, jump, dive, etc.).
 typedef struct
 {
-    /*
-    On frame movement (slide, jump, dive, etc.)
-    2011-04-01
-    Damon V. Caskey
-    */
+    unsigned short int  frame;      // Frame to perform action.
+    int                 ent;        // Index of entity to spawn.
+    s_axis_f            velocity;   // x,a,z velocity.
+} s_onframe_move;
 
-    int ent;            // Index of entity to spawn.
-    int frame;          // Frame to perform action.
-    s_axis_f velocity;  // x,a,z velocity.
-} s_onframe;
+// Caskey, Damon V.
+// 2018-04-20
+//
+// On frame action, where no movement is needed. (Landing, starting to fall...).
+typedef struct
+{
+    unsigned short int  frame;  // Frame to perform action.
+    int         ent;        // Index of entity to spawn.
+} s_onframe_set;
 
 typedef struct
 {
@@ -1683,8 +1706,8 @@ typedef struct
     2014-01-04
     */
 
-    e_follow_condition condition;   // Condition in which follow up will be performed.
     unsigned short int animation;   // Follow animation to perform.
+    e_follow_condition condition;   // Condition in which follow up will be performed.
 } s_follow;
 
 // Caskey, Damon V.
@@ -1743,8 +1766,6 @@ typedef struct
     int                     sync;                   // Synchronize frame to previous animation if they matches
     float                   bounce;                 // -tossv/bounce = new tossv
     s_follow                followup;               // Subsequent animation on hit.
-    s_onframe               jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
-    s_onframe               landframe;              // Landing behavior. 2011_04_01, DC: Moved to struct.
     s_loop                  loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
     s_projectile            projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
     s_quakeframe            quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
@@ -1766,7 +1787,9 @@ typedef struct
     s_collision_body_list   **collision_body;
     s_counterrange          *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
     s_drawmethod            **drawmethods;
-    s_onframe               *dropframe;             // if tossv < 0, this frame will be set
+    s_onframe_set           *dropframe;             // if tossv < 0, this frame will be set
+    s_onframe_move          *jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
+    s_onframe_set           *landframe;             // Landing behavior.
     s_energycost            *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
     s_axis_i                **move;                 // base = seta, x = move, y = movea, z = movez
     s_axis_i_2d             **offset;               // original sprite offsets
@@ -2156,8 +2179,8 @@ typedef struct
 
 typedef struct entity
 {
-    int spawntype; // Type of spawn. 1 = Level spawn. 0 for all else (subject to change).
-    int exists; // flag to determine if it is a valid entity.
+        e_spawn_type spawntype; // Type of spawn (level spawn, script spawn, ...)
+        bool exists; // flag to determine if it is a valid entity.
     int reactive; // Used for setting the "a" at which weapons are spawned
     int ptype;
     int playerindex;
@@ -2241,7 +2264,7 @@ typedef struct entity
     int idling;
     int walking;
     int drop;
-        short int attacking;
+        e_attacking_state attacking;
     int getting;
     int turning;
         bool charging;
@@ -2808,6 +2831,8 @@ int do_catch(entity *ent, entity *target, int animation_catch);
 int do_energy_charge(entity *ent);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
+bool check_jumpframe(entity *ent, unsigned short int frame);
+bool check_landframe(entity *ent);
 void update_ents();
 entity *find_ent_here(entity *exclude, float x, float z, int types, int (*test)(entity *, entity *));
 void display_ents();

@@ -436,6 +436,12 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_BLOCKPAIN)
         ICMPCONST(ANI_DUCKATTACK)
         ICMPCONST(MAX_ANIS)
+
+        // Attacking state.
+        ICMPCONST(ATTACKING_ACTIVE)
+        ICMPCONST(ATTACKING_INACTIVE)
+        ICMPCONST(ATTACKING_PREPARED)
+
         ICMPCONST(PLAYER_MIN_Z)
         ICMPCONST(PLAYER_MAX_Z)
         ICMPCONST(BGHEIGHT)
@@ -475,6 +481,10 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(SET_PROP_SAVE_TYPE)
         ICMPCONST(SET_PROP_SELECT_DISABLE)
         ICMPCONST(SET_PROP_SELECT_NO_SAME)
+
+        // Spawning types.
+        ICMPCONST(SPAWN_TYPE_UNDEFINED)
+        ICMPCONST(SPAWN_TYPE_LEVEL)
 
         ICMPCONST(ANI_RISE2)
         ICMPCONST(ANI_RISE3)

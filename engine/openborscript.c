@@ -4306,15 +4306,21 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             break;
         }
 
+        // entity must have a land frame set.
+        if(!ent->modeldata.animation[i]->landframe)
+        {
+            break;
+        }
+
         switch(ltemp)
         {
         case _ep_landframe_ent:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.ent;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe->ent;
             break;
         case _ep_landframe_frame:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.frame;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe->frame;
             break;
         default:
             *pretvar = NULL;
@@ -12788,7 +12794,7 @@ HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretv
     }
 
     e->takeaction = common_animation_normal;
-    e->attacking = 0;
+    e->attacking = ATTACKING_INACTIVE;
     e->idling = 0;
     e->drop = 0;
     e->falling = 0;
@@ -12849,7 +12855,7 @@ HRESULT openbor_performattack(ScriptVariant **varlist , ScriptVariant **pretvar,
     }
 
     e->takeaction = common_attack_proc;
-    e->attacking = 1;
+    e->attacking = ATTACKING_ACTIVE;
     e->idling = 0;
     e->drop = 0;
     e->falling = 0;
@@ -12911,7 +12917,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     }
 
     e->takeaction = NULL;
-    e->attacking = 0;
+    e->attacking = ATTACKING_INACTIVE;
     e->idling = 1;
     e->drop = 0;
     e->falling = 0;

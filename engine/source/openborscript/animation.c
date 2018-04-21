@@ -110,8 +110,8 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
         case ANI_PROP_CHARGETIME:
 
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->chargetime;
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->chargetime;
             break;
 
         case ANI_PROP_COUNTERRANGE:

@@ -5702,11 +5702,25 @@ void free_anim(s_anim *anim)
         free(anim->counterrange);
         anim->counterrange = NULL;
     }
+
     if(anim->dropframe)
     {
         free(anim->dropframe);
         anim->dropframe = NULL;
     }
+
+    if(anim->jumpframe)
+    {
+        free(anim->jumpframe);
+        anim->jumpframe = NULL;
+    }
+
+    if(anim->landframe)
+    {
+        free(anim->landframe);
+        anim->landframe = NULL;
+    }
+
     if(anim->energycost)
     {
         free(anim->energycost);
@@ -10192,20 +10206,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.max.y            = 1000;                                //amax
                 newanim->range.min.base         = T_MIN_BASEMAP;                            //Base min.
                 newanim->range.max.base         = 1000;                             //Base max.
-                newanim->jumpframe.velocity.y   = 0;  //Default disabled.
                 newanim->energycost             = NULL;
                 newanim->chargetime             = 2;			// Default for backwards compatibility
                 newanim->projectile.shootframe  = -1;
                 newanim->projectile.throwframe  = -1;
                 newanim->projectile.tossframe   = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
-                newanim->jumpframe.frame        = -1;
                 newanim->flipframe              = -1;
                 newanim->attackone              = -1;
                 newanim->antigrav               = 0;
                 newanim->followup.animation     = 0;			// Default disabled
                 newanim->followup.condition     = FOLLOW_CONDITION_DISABLED;
                 newanim->unsummonframe          = -1;
-                newanim->landframe.frame        = -1;
+                newanim->landframe              = NULL;
+                newanim->jumpframe              = NULL;
                 newanim->dropframe              = NULL;
                 newanim->cancel                 = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
                 newanim->animhits               = 0; //OX counts hits on a per anim basis for cancels.
@@ -10333,59 +10346,79 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // UT: merge dive and jumpframe, because they can't be used at the same time
             case CMD_MODEL_DIVE:	//antigrav kicks
                 newanim->antigrav = 1;
-                newanim->jumpframe.frame = 0;
-                newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(2);
-                newanim->jumpframe.ent = -1;
+
+                // Allocate jumpframe and use it to set movement.
+                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
+                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+
+                newanim->jumpframe->frame = 0;
+                newanim->jumpframe->velocity.x = GET_FLOAT_ARG(1);
+                newanim->jumpframe->velocity.y = -GET_FLOAT_ARG(2);
+                newanim->jumpframe->ent = -1;
                 break;
             case CMD_MODEL_DIVE1:
                 newanim->antigrav = 1;
-                newanim->jumpframe.frame = 0;
-                newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe.ent = -1;
+
+                // Allocate jumpframe and use it to set movement.
+                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
+                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+
+                newanim->jumpframe->frame = 0;
+                newanim->jumpframe->velocity.x = GET_FLOAT_ARG(1);
+                newanim->jumpframe->ent = -1;
                 break;
             case CMD_MODEL_DIVE2:
                 newanim->antigrav = 1;
-                newanim->jumpframe.frame = 0;
-                newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(1);
-                newanim->jumpframe.ent = -1;
+
+                // Allocate jumpframe and use it to set movement.
+                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
+                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+
+                newanim->jumpframe->frame = 0;
+                newanim->jumpframe->velocity.y = -GET_FLOAT_ARG(1);
+                newanim->jumpframe->ent = -1;
                 break;
             case CMD_MODEL_JUMPFRAME:
             {
-                newanim->jumpframe.frame    = GET_FRAME_ARG(1);   //Frame.
-                newanim->jumpframe.velocity.y    = GET_FLOAT_ARG(2); //Vertical velocity.
+                // Allocate jumpframe.
+                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
+                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+
+                newanim->jumpframe->frame        = GET_FRAME_ARG(1);
+                newanim->jumpframe->velocity.y   = GET_FLOAT_ARG(2);
+
                 value = GET_ARG(3);
                 if(value[0])
                 {
-                    newanim->jumpframe.velocity.x = GET_FLOAT_ARG(3);
-                    newanim->jumpframe.velocity.z = GET_FLOAT_ARG(4);
+                    newanim->jumpframe->velocity.x = GET_FLOAT_ARG(3);
+                    newanim->jumpframe->velocity.z = GET_FLOAT_ARG(4);
                 }
                 else // k, only for backward compatibility :((((((((((((((((
                 {
-                    if(newanim->jumpframe.velocity.y <= 0)
+                    if(newanim->jumpframe->velocity.y <= 0)
                     {
                         if(newchar->type == TYPE_PLAYER)
                         {
-                            newanim->jumpframe.velocity.y = newchar->jumpheight / 2;
-                            newanim->jumpframe.velocity.z = 0;
-                            newanim->jumpframe.velocity.x = 2;
+                            newanim->jumpframe->velocity.y = newchar->jumpheight / 2;
+                            newanim->jumpframe->velocity.z = 0;
+                            newanim->jumpframe->velocity.x = 2;
                         }
                         else
                         {
-                            newanim->jumpframe.velocity.y = newchar->jumpheight;
-                            newanim->jumpframe.velocity.z = newanim->jumpframe.velocity.x = 0;
+                            newanim->jumpframe->velocity.y = newchar->jumpheight;
+                            newanim->jumpframe->velocity.z = newanim->jumpframe->velocity.x = 0;
                         }
                     }
                     else
                     {
                         if(newchar->type != TYPE_ENEMY && newchar->type != TYPE_NPC)
                         {
-                            newanim->jumpframe.velocity.z = newanim->jumpframe.velocity.x = 0;
+                            newanim->jumpframe->velocity.z = newanim->jumpframe->velocity.x = 0;
                         }
                         else
                         {
-                            newanim->jumpframe.velocity.z = 0;
-                            newanim->jumpframe.velocity.x = (float)1.3;
+                            newanim->jumpframe->velocity.z = 0;
+                            newanim->jumpframe->velocity.x = (float)1.3;
                         }
                     }
                 }
@@ -10393,29 +10426,35 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(5);
                 if(value[0])
                 {
-                    newanim->jumpframe.ent = get_cached_model_index(value);
+                    newanim->jumpframe->ent = get_cached_model_index(value);
                 }
                 else
                 {
-                    newanim->jumpframe.ent = -1;
+                    newanim->jumpframe->ent = -1;
                 }
-
             }
             break;
             case CMD_MODEL_BOUNCEFACTOR:
                 newanim->bounce = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_LANDFRAME:
-                newanim->landframe.frame = GET_FRAME_ARG(1);
+                newanim->landframe    = malloc(sizeof(*newanim->landframe));
+                memset(newanim->landframe, 0, sizeof(*newanim->landframe));
+
+                // Landing frame.
+                newanim->landframe->frame = GET_FRAME_ARG(1);
+
+                // Entity to spawn when land frame triggers.
                 value = GET_ARG(2);
                 if(value[0])
                 {
-                    newanim->landframe.ent = get_cached_model_index(value);
+                    newanim->landframe->ent = get_cached_model_index(value);
                 }
                 else
                 {
-                    newanim->landframe.ent = -1;
+                    newanim->landframe->ent = -1;
                 }
+
                 break;
             case CMD_MODEL_DROPFRAME:
                 newanim->dropframe    = malloc(sizeof(*newanim->dropframe));
@@ -15175,7 +15214,7 @@ void load_level(char *filename)
             {
                 next.name = tempmodel->name;
                 next.index = get_cached_model_index(next.name);
-                next.spawntype = 1;     //2011_03_23, DC; Spawntype 1 (level spawn).
+                next.spawntype = SPAWN_TYPE_LEVEL;  //2011_03_23, DC; Spawntype SPAWN_TYPE_LEVEL.
                 crlf = 1;
             }
             break;
@@ -17316,7 +17355,7 @@ void ent_default_init(entity *e)
         {
             e->nograb = 1;
             e->nograb_default = e->nograb;
-            e->attacking = 1;
+            e->attacking = ATTACKING_ACTIVE;
             //e->direction = (e->position.x<0);
             if(e->modeldata.speed)
             {
@@ -17352,7 +17391,7 @@ void ent_default_init(entity *e)
             }
             e->nograb = 1;
             e->nograb_default = e->nograb;
-            e->attacking = 1;
+            e->attacking = ATTACKING_ACTIVE;
             e->takedamage = arrow_takedamage;
             e->speedmul = 2;
             break;
@@ -17436,7 +17475,7 @@ void ent_default_init(entity *e)
         e->nograb_default = e->nograb;
         e->think = common_think;
         e->takedamage = arrow_takedamage;
-        e->attacking = 1;
+        e->attacking = ATTACKING_ACTIVE;
         if(!e->model->speed && !e->modeldata.nomove)
         {
             e->modeldata.speed = 2;    // Set default speed to 2 for arrows
@@ -17655,11 +17694,66 @@ int calculate_edelay(entity *ent, int f)
     return iDelay;
 }
 
+// Caskey, Damon V.
+// 2018-04-20
+//
+// Set up jumping velocity for an animation
+// that has jump frame defined and is at the
+// designated jump frame. Also spawns effect
+// entity if one is defined.
+bool check_jumpframe(entity *ent, unsigned short int frame)
+{
+    entity *effect;
+
+    // Must have jump frame allocated.
+    if(!ent->animation->jumpframe)
+    {
+        return 0;
+    }
+
+    // Must be on assigned jump frame.
+    if(ent->animation->jumpframe->frame != frame)
+    {
+        return 0;
+    }
+
+    // Chuck entity into the air.
+    toss(ent, ent->animation->jumpframe->velocity.y);
+
+    // Set left or right horizontal velocity depending on
+    // current direction.
+    if(ent->direction == DIRECTION_RIGHT)
+    {
+        ent->velocity.x = ent->animation->jumpframe->velocity.x;
+    }
+    else
+    {
+        ent->velocity.x = -ent->animation->jumpframe->velocity.x;
+    }
+
+    // Lateral velocity.
+    ent->velocity.z = ent->animation->jumpframe->velocity.z;
+
+    // Spawn an effect entity if defined.
+    if(ent->animation->jumpframe->ent >= 0)
+    {
+        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->jumpframe->ent, NULL);
+        if(effect)
+        {
+            effect->base = ent->position.y;
+            effect->autokill = 2;
+            execute_onspawn_script(effect);
+        }
+    }
+
+    return 1;
+
+}
+
 // move here to prevent some duplicated code in ent_sent_anim and update_ents
-void update_frame(entity *ent, int f)
+void update_frame(entity *ent, unsigned short int f)
 {
     entity *tempself;
-    entity *dust;
     s_collision_attack attack;
     s_axis_f move;
     s_anim *anim = ent->animation;
@@ -17800,25 +17894,9 @@ void update_frame(entity *ent, int f)
         sound_play_sample(anim->soundtoplay[f], 0, savedata.effectvol, savedata.effectvol, 100);
     }
 
-    if(anim->jumpframe.frame == f)
-    {
-        // Set custom jumpheight for jumpframes
-        /*if(self->animation->jumpframe.v > 0)*/
-			toss(self, anim->jumpframe.velocity.y);
-        self->velocity.x = self->direction == DIRECTION_RIGHT ? anim->jumpframe.velocity.x : -anim->jumpframe.velocity.x;
-        self->velocity.z = anim->jumpframe.velocity.z;
+    // Perform jumping if on a jumpframe.
+    check_jumpframe(self, f);
 
-        if(anim->jumpframe.ent >= 0)
-        {
-            dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, anim->jumpframe.ent, NULL);
-            if(dust)
-            {
-                dust->base = self->position.y;
-                dust->autokill = 2;
-                execute_onspawn_script(dust);
-            }
-        }
-    }
 
     if(anim->projectile.throwframe == f)
     {
@@ -18092,7 +18170,7 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
     }
     else
     {
-        ent->attacking = 0;
+        ent->attacking = ATTACKING_INACTIVE;
 
         if((!selectScreen && !time) || !(ent->modeldata.type & TYPE_PLAYER))
         {
@@ -19548,7 +19626,7 @@ void do_attack(entity *e)
                       inair(self) ||
                       self->frozen ||
                       (self->direction == e->direction && self->modeldata.blockback < 1) ||                       // Can't block an attack that is from behind unless blockback flag is enabled
-                      (!self->idling && self->attacking >= 0)) &&                                                 // Can't block if busy, attack <0 means the character is preparing to attack, he can block during this time
+                      (!self->idling && self->attacking != ATTACKING_INACTIVE)) &&                                                 // Can't block if busy, attack <0 means the character is preparing to attack, he can block during this time
                     attack->no_block <= self->defense[attack->attack_type].blockpower &&       // If unblockable, will automatically hit
                     (rand32()&self->modeldata.blockodds) == 1 && // Randomly blocks depending on blockodds (1 : blockodds ratio)
                     (!self->modeldata.thold || (self->modeldata.thold > 0 && self->modeldata.thold > force)) &&
@@ -20031,6 +20109,50 @@ void do_attack(entity *e)
     return 0;
 }*/
 
+// Caskey, Damon V.
+// 2018-04-20
+//
+// Go to landing frame if available. Also spawns an effect ("dust") entity if set.
+bool check_landframe(entity *ent)
+{
+    entity *effect;
+
+    // Must have a landframe.
+    if(!ent->animation->landframe)
+    {
+        return 0;
+    }
+    // Can't be passed over current animation's frame count.
+    if(ent->animation->landframe->frame > ent->animation->numframes)
+    {
+        return 0;
+    }
+
+    // Can't be already at or passed land frame.
+    if(ent->animpos >= ent->animation->landframe->frame)
+    {
+        return 0;
+    }
+
+    // If a land frame dust effect entity is set, let's spawn it here.
+    if(ent->animation->landframe->ent >= 0)
+    {
+        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->landframe->ent, NULL);
+
+        if(effect)
+        {
+            effect->base = ent->position.y;
+            effect->autokill = 2;
+            execute_onspawn_script(effect);
+        }
+    }
+
+    update_frame(ent, ent->animation->landframe->frame);
+
+    return 1;
+}
+
+
 void check_gravity(entity *e)
 {
     int heightvar;
@@ -20121,9 +20243,12 @@ void check_gravity(entity *e)
             {
                 // If falling and frame has not
                 // passed dropframe, set frame to dropframe.
-                if(self->velocity.y <= 0 && self->animpos < self->animation->dropframe->frame) // begin dropping
+                if(self->velocity.y <= 0)
                 {
-                    update_frame(self, self->animation->dropframe->frame);
+                    if(self->animpos < self->animation->dropframe->frame)
+                    {
+                        update_frame(self, self->animation->dropframe->frame);
+                    }
                 }
             }
 
@@ -20207,23 +20332,10 @@ void check_gravity(entity *e)
                     self->landed_on_platform = plat;
                 }
 
-                if(self->animation->landframe.frame >= 0                               //Has landframe?
-                        && self->animation->landframe.frame <= self->animation->numframes  //Not over animation frame count?
-                        && self->animpos < self->animation->landframe.frame)               //Not already past landframe?
-                {
-                    if(self->animation->landframe.ent >= 0)
-                    {
-                        dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->animation->landframe.ent, NULL);
-                        if(dust)
-                        {
-                            dust->base = self->position.y;
-                            dust->autokill = 2;
-                            execute_onspawn_script(dust);
-                        }
-                    }
-                    update_frame(self, self->animation->landframe.frame);
-                }
+                // Set landing frame if we have one.
+                check_landframe(self);
 
+                // Taking damage on a landing?
                 checkdamageonlanding();
 
                 // in case landing, set hithead to NULL
@@ -22073,7 +22185,7 @@ int set_idle(entity *ent)
     //if(validanim(ent,ANI_FAINT) && ent->health <= ent->modeldata.health / 4) ani = ANI_FAINT;
     //if(validanim(ent,ani)) ent_set_anim(ent, ani, 0);
     ent->idling = 1;
-    ent->attacking = 0;
+    ent->attacking = ATTACKING_INACTIVE;
     ent->inpain = 0;
     ent->inbackpain = 0;
     ent->falling = 0;
@@ -22095,7 +22207,7 @@ int set_death(entity *iDie, int type, int reset)
         iDie->getting = 0;
         iDie->jumping = 0;
         iDie->charging = 0;
-        iDie->attacking = 0;
+        iDie->attacking = ATTACKING_INACTIVE;
         iDie->blocking = 0;
         return 1;
     }
@@ -22137,7 +22249,7 @@ int set_death(entity *iDie, int type, int reset)
     iDie->getting = 0;
     iDie->jumping = 0;
     iDie->charging = 0;
-    iDie->attacking = 0;
+    iDie->attacking = ATTACKING_INACTIVE;
     iDie->blocking = 0;
     if(iDie->frozen)
     {
@@ -22186,7 +22298,7 @@ int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
     ent->jumping = 0;
     ent->getting = 0;
     ent->charging = 0;
-    ent->attacking = 0;
+    ent->attacking = ATTACKING_INACTIVE;
     ent->blocking = 0;
     ent->nograb = 1;
 
@@ -22255,7 +22367,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
 	iPain->falling = 0;\
 	iPain->projectile = 0;\
 	iPain->drop = 0;\
-	iPain->attacking = 0;\
+	iPain->attacking = ATTACKING_INACTIVE;\
 	iPain->getting = 0;\
 	iPain->charging = 0;\
 	iPain->jumping = 0;\
@@ -22627,7 +22739,8 @@ entity *block_find_target(int anim, int detect_adj)
             if( attacker && attacker->exists && attacker != self //cant target self
                 && (attacker->modeldata.candamage & self->modeldata.type)
                 && (anim < 0 || (anim >= 0 && check_range(self, attacker, anim)))
-                && !attacker->dead && attacker->attacking//must be alive
+                && !attacker->dead //must be alive
+                && attacker->attacking != ATTACKING_INACTIVE
                 && attacker->animation->collision_attack && attacker->animation->collision_attack[attacker->animpos] && attacker->animation->collision_attack[attacker->animpos]->instance
                 && ( !attacker->animation->collision_attack[attacker->animpos]->instance[instance] || (attacker->animation->collision_attack[attacker->animpos]->instance[instance] && attacker->animation->collision_attack[attacker->animpos]->instance[instance]->no_block == 0) )
                 && (diffd = (diffx = diff(attacker->position.x, self->position.x)) + (diffz = diff(attacker->position.z, self->position.z))) >= min
@@ -23004,7 +23117,7 @@ void common_jump()
         self->position.y = self->base;
 
         self->jumping = 0;
-        self->attacking = 0;
+        self->attacking = ATTACKING_INACTIVE;
 
         if(!self->modeldata.runhold)
         {
@@ -23013,7 +23126,8 @@ void common_jump()
 
         self->velocity.z = self->velocity.x = 0;
 
-        if(validanim(self, ANI_JUMPLAND) && self->animation->landframe.frame == -1) // check if jumpland animation exists and not using landframe
+        // check if jumpland animation exists and not using landframe
+        if(validanim(self, ANI_JUMPLAND) && !self->animation->landframe)
         {
             self->takeaction = common_jumpland;
             ent_set_anim(self, ANI_JUMPLAND, 0);
@@ -23030,7 +23144,7 @@ void common_jump()
         }
         else
         {
-            if(self->modeldata.dust.jump_land >= 0 && self->animation->landframe.frame == -1)
+            if(self->modeldata.dust.jump_land >= 0 && !self->animation->landframe)
             {
                 dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.jump_land, NULL);
                 if(dust)
@@ -23040,7 +23154,7 @@ void common_jump()
                     execute_onspawn_script(dust);
                 }
             }
-            if(self->animation->landframe.frame >= 0 && self->animating)
+            if(self->animation->landframe && self->animating)
             {
                 return;
             }
@@ -23312,7 +23426,7 @@ void dograbattack(int which)
 {
     entity *other = self->link;
     self->takeaction = common_grabattack;
-    self->attacking = 1;
+    self->attacking = ATTACKING_ACTIVE;
     other->velocity.x = other->velocity.z = self->velocity.x = self->velocity.z = 0;
     if(which < 5 && which >= 0)
     {
@@ -23395,7 +23509,7 @@ void common_grab_check()
         dropweapon(1);
     }
 
-    self->attacking = 0; //for checking
+    self->attacking = ATTACKING_INACTIVE; //for checking
 
     rnum = rand32() & 31;
 
@@ -23452,7 +23566,7 @@ void common_grab()
     }
 
     self->takeaction = NULL;
-    self->attacking = 0;
+    self->attacking = ATTACKING_INACTIVE;
     memset(self->combostep, 0, sizeof(*self->combostep) * 5);
     set_idle(self);
 }
@@ -24368,7 +24482,7 @@ int common_try_runattack(entity *target)
 
     if(target)
     {
-        if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
+        if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking != ATTACKING_INACTIVE))
         {
             return 0;
         }
@@ -24396,7 +24510,7 @@ int common_try_block(entity *target)
     }
 
     // no passive block, so block by himself :)
-    if(target && target->attacking)
+    if(target && target->attacking != ATTACKING_INACTIVE)
     {
         self->takeaction = common_block;
         set_blocking(self);
@@ -24526,7 +24640,7 @@ u32 recheck_nextattack(entity *target)
     {
         self->nextattack = 0;
     }
-    else if(target->attacking && self->nextattack > 4)
+    else if(target->attacking != ATTACKING_INACTIVE && self->nextattack > 4)
     {
         self->nextattack -= 4;
     }
@@ -24554,7 +24668,7 @@ int common_try_normalattack(entity *target)
         return 0;
     }
 
-    if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking || target->takeaction == common_rise))
+    if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking != ATTACKING_INACTIVE || target->takeaction == common_rise))
     {
         return 0;
     }
@@ -24581,7 +24695,7 @@ int common_try_normalattack(entity *target)
         self->velocity.z = self->velocity.x = 0;
         set_idle(self);
         self->idling = 0; // not really idle, in fact it is thinking
-        self->attacking = -1; // pre-attack, for AI-block check
+        self->attacking = ATTACKING_PREPARED; // pre-attack, for AI-block check
         return 1;
     }
 
@@ -24616,7 +24730,7 @@ int common_try_jumpattack(entity *target)
                 return 0;
             }
 
-            if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
+            if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking != ATTACKING_INACTIVE))
             {
                 rnum = -1;
             }
@@ -24649,7 +24763,7 @@ int common_try_jumpattack(entity *target)
                 return 0;
             }
 
-            if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking))
+            if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking != ATTACKING_INACTIVE))
             {
                 rnum = -1;
             }
@@ -24935,7 +25049,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
         /* Set flags. */
         set_opponent(target, attacker);
         ents_link(attacker, target);
-        target->attacking = 0;
+        target->attacking = ATTACKING_INACTIVE;
         attacker->idling = 0;
         attacker->running = 0;
 
@@ -24952,7 +25066,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
             {
                 target->direction = !attacker->direction;
             }
-            attacker->attacking = 0;
+            attacker->attacking = ATTACKING_INACTIVE;
             memset(attacker->combostep, 0, 5 * sizeof(*attacker->combostep));
             target->stalltime = time + GRAB_STALL;
             attacker->releasetime = time + (GAME_SPEED / 2);
@@ -25451,7 +25565,7 @@ void common_attack_proc()
         subtract_shot();
         self->reactive = 0;
     }
-    self->attacking = 0;
+    self->attacking = ATTACKING_INACTIVE;
     // end of attack proc
     common_attack_finish();
 }
@@ -26630,7 +26744,7 @@ int common_try_wander(entity *target, int dox, int doz)
         t = 2;
     }
 
-    if(behind && target->attacking)
+    if(behind && target->attacking != ATTACKING_INACTIVE)
     {
         t += 5;
     }
@@ -26669,7 +26783,7 @@ int common_try_wander(entity *target, int dox, int doz)
     }
     else
     {
-        mindx = (!behind && target->attacking) ? grabd * 3 : grabd * 1.2;
+        mindx = (!behind && target->attacking != ATTACKING_INACTIVE) ? grabd * 3 : grabd * 1.2;
     }
     mindz = grabd / 4;
 
@@ -27084,7 +27198,7 @@ int projectile_wall_deflect(entity *ent)
             richochet_velocity_x = ent->velocity.x * RICHOCHET_VELOCITY_X_FACTOR;
 
             ent->takeaction = common_fall;
-            ent->attacking = 0;
+            ent->attacking = ATTACKING_INACTIVE;
             ent->health = 0;
             ent->projectile = 0;
             ent->velocity.x = (ent->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
@@ -27129,7 +27243,7 @@ int do_catch(entity *ent, entity *target, int animation_catch)
         if(check_range(ent, target, animation_catch))
         {
             ent->takeaction = common_animation_normal;
-            ent->attacking = 0;
+            ent->attacking = ATTACKING_INACTIVE;
             ent->idling = 0;
             ent_set_anim(ent, animation_catch, 0);
             kill(target);
@@ -28160,7 +28274,7 @@ int ai_check_grabbed()
 
 int ai_check_grab()
 {
-    if(self->grabbing && !self->attacking)
+    if(self->grabbing && self->attacking == ATTACKING_INACTIVE)
     {
         common_grab_check();
         return 1;
@@ -28569,7 +28683,7 @@ void common_grabattack()
         return;
     }
 
-    self->attacking = 0;
+    self->attacking = ATTACKING_INACTIVE;
 
     if(!(self->combostep[0] || self->combostep[1] ||
             self->combostep[2] || self->combostep[3] ||
@@ -28582,7 +28696,7 @@ void common_grabattack()
     {
         self->takeaction = common_grab;
         self->link->takeaction = common_grabbed;
-        self->attacking = 0;
+        self->attacking = ATTACKING_INACTIVE;
         ent_set_anim(self, ANI_GRAB, 0);
         set_pain(self->link, -1, 0);
         update_frame(self, self->animation->numframes - 1);
@@ -28920,7 +29034,7 @@ void player_grab_check()
         }
     }
 
-    self->attacking = 0; //for checking
+    self->attacking = ATTACKING_INACTIVE; //for checking
     self->grabwalking = 0;
     if(self->direction == DIRECTION_RIGHT ?
             (player[self->playerindex].keys & FLAG_MOVELEFT) :
@@ -29053,7 +29167,7 @@ void player_grab_check()
         }
         else
         {
-            self->attacking = 1;
+            self->attacking = ATTACKING_ACTIVE;
             memset(self->combostep, 0, sizeof(*self->combostep) * 5);
             self->takeaction = common_grabattack;
             tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, 0, ANI_JUMP);
@@ -29191,7 +29305,7 @@ void player_grab_check()
         self->grabwalking = 1;
     }
 
-    if(self->attacking)
+    if(self->attacking != ATTACKING_INACTIVE)
     {
         self->releasetime = time + (GAME_SPEED / 2);    // reset releasetime when do collision
     }
@@ -29310,7 +29424,7 @@ void player_jump_check()
                 if(candospecial)
                 {
                     player[self->playerindex].playkeys &= ~FLAG_SPECIAL;
-                    self->attacking = 1;
+                    self->attacking = ATTACKING_ACTIVE;
                     self->velocity.x = self->velocity.z = 0;                         // Kill movement when the special starts
                     self->velocity.y = 0;
                     ent_set_anim(self, ANI_JUMPSPECIAL, 0);
@@ -29322,7 +29436,7 @@ void player_jump_check()
         else if(player[self->playerindex].playkeys & FLAG_ATTACK)
         {
             player[self->playerindex].playkeys &= ~FLAG_ATTACK;
-            self->attacking = 1;
+            self->attacking = ATTACKING_ACTIVE;
 
             if((player[self->playerindex].keys & FLAG_MOVEDOWN) && validanim(self, ANI_JUMPATTACK2))
             {
@@ -29661,7 +29775,7 @@ void player_think()
     }
 
     // grab section, dont move if still animating
-    if(self->grabbing && !self->attacking && self->takeaction != common_throw_wait)
+    if(self->grabbing && self->attacking == ATTACKING_INACTIVE && self->takeaction != common_throw_wait)
     {
         player_grab_check();
         goto endthinkcheck;
@@ -29983,7 +30097,7 @@ void player_think()
         }
         else if(perform_atchain())
         {
-            if(SAMPLE_PUNCH >= 0 && self->attacking)
+            if(SAMPLE_PUNCH >= 0 && self->attacking != ATTACKING_INACTIVE)
             {
                 sound_play_sample(SAMPLE_PUNCH, 0, savedata.effectvol, savedata.effectvol, 100);
             }
@@ -30539,7 +30653,7 @@ void drop_all_enemies()
                 !ent_list[i]->modeldata.nodrop &&
                 validanim(ent_list[i], ANI_FALL) )
         {
-            ent_list[i]->attacking = 0;
+            ent_list[i]->attacking = ATTACKING_INACTIVE;
             ent_list[i]->projectile = 0;
             ent_list[i]->takeaction = common_fall;//enemy_fall;
             ent_list[i]->damage_on_landing.attack_force = 0;
@@ -30777,7 +30891,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
 
     e->owner = self;                                                     // Added so projectiles don't hit the owner
     e->nograb = 1;                                                       // Prevents trying to grab a projectile
-    e->attacking = 1;
+    e->attacking = ATTACKING_ACTIVE;
     //e->direction = direction;
     e->think = common_think;
     e->nextthink = time + 1;
@@ -30873,7 +30987,7 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
         e->modeldata.speed = 0;
     }
 
-    e->attacking = 1;
+    e->attacking = ATTACKING_ACTIVE;
     e->owner = self;                                                     // Added so projectiles don't hit the owner
     e->nograb = 1;                                                       // Prevents trying to grab a projectile
     e->toexplode = 1;                                                    // Set to distinguish exploding projectiles and also so stops falling when hitting an opponent
@@ -30943,13 +31057,13 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
             return 0;
         }
 
-        self->attacking = 0;
+        self->attacking = ATTACKING_INACTIVE;
 
         if (i <= 0) first_sortid = e->sortid;
         e->sortid = first_sortid - i;
         e->takedamage = arrow_takedamage;//enemy_takedamage;    // Players can now hit projectiles
         e->owner = self;    // Added so enemy projectiles don't hit the owner
-        e->attacking = 1;
+        e->attacking = ATTACKING_ACTIVE;
         e->nograb = 1;    // Prevents trying to grab a projectile
         if (self->animation->starvelocity)
         {
@@ -31002,7 +31116,7 @@ void steam_think()
 // for the "trap" type   7-1-2005  trap start
 void trap_think()
 {
-    self->attacking = 1;
+    self->attacking = ATTACKING_ACTIVE;
 }
 //    7-1-2005  trap end
 
@@ -31136,7 +31250,7 @@ int biker_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 
     check_backpain(other,self);
     set_pain(self,  self->last_damage_type, 1);
-    self->attacking = 1;
+    self->attacking = ATTACKING_ACTIVE;
     if(!self->modeldata.offscreenkill)
     {
         self->modeldata.offscreenkill = 100;
@@ -31227,7 +31341,7 @@ int obstacle_takedamage(entity *other, s_collision_attack *attack, int fall_flag
             self->velocity.x = -1;
         }
 
-        self->attacking = 1;    // So obstacles can explode and hurt players/enemies
+        self->attacking = ATTACKING_ACTIVE;    // So obstacles can explode and hurt players/enemies
 
         if(self->modeldata.subtype == SUBTYPE_FLYDIE)     // Now obstacles can fly like on Simpsons/TMNT
         {
