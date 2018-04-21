@@ -462,8 +462,8 @@ void blit()
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
 
-    SDL_SetRenderTarget(renderer, NULL);
-    //SDL_RenderSetLogicalSize(renderer, 0, 0);
+    //SDL_SetRenderTarget(renderer, NULL);
+    SDL_RenderSetLogicalSize(renderer, 0, 0);
     SDL_SetTextureBlendMode(texture_base, SDL_BLENDMODE_NONE);
     SDL_RenderCopy(renderer, texture_base, NULL, NULL);
 
@@ -475,9 +475,11 @@ void blit()
     else
     {
         //SDL_RenderSetLogicalSize(renderer, textureWidth, textureHeight);
-        float propHeightRatio = nativeHeight / textureHeight;
-        int newWidth = textureWidth * propHeightRatio;
-        SDL_Rect d_rect = {(int)(nativeWidth/2 - newWidth/2), 0, newWidth, nativeHeight};
+        float aspectRatio = (float)textureWidth / (float)textureHeight;
+        float newWidth = nativeHeight * aspectRatio;
+
+        //SDL_Log("aspect: from %d/%d con %f, orig: %d/%d -> %d",textureWidth,textureHeight,aspectRatio,nativeWidth,nativeHeight,(int)newWidth);
+        SDL_Rect d_rect = {(int)(nativeWidth/2.0f - newWidth/2.0f), 0, (int)newWidth, nativeHeight};
         SDL_RenderCopy(renderer, texture, NULL, &d_rect);
     }
 
