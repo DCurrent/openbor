@@ -53,6 +53,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "position_x",
         "position_y",
         "position_z",
+        "spawn_type",
     };
 
     // If the minimum argument count
@@ -352,6 +353,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->position.z;
+
+            break;
+
+        case _ENTITY_SPAWN_TYPE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->spawntype;
 
             break;
 
@@ -690,6 +698,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
                 handle->position.z = temp_float;
+            }
+
+            break;
+
+        case _ENTITY_SPAWN_TYPE:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->spawntype = temp_int;
             }
 
             break;
