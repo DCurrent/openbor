@@ -154,6 +154,15 @@ typedef struct PlayRecStatus {
 
 extern a_playrecstatus *playrecstatus;
 
+// State of attack boxes.
+typedef enum
+{
+    ATTACKING_INACTIVE,
+    ATTACKING_PREPARED,
+    ATTACKING_ACTIVE
+    // Next should be 4, 8, ... for bitwise evaluations.
+} e_attacking_state;
+
 typedef enum
 {
     PORTING_ANDROID,
@@ -2255,7 +2264,7 @@ typedef struct entity
     int idling;
     int walking;
     int drop;
-        short int attacking;
+        e_attacking_state attacking;
     int getting;
     int turning;
         bool charging;

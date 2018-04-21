@@ -12794,7 +12794,7 @@ HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretv
     }
 
     e->takeaction = common_animation_normal;
-    e->attacking = 0;
+    e->attacking = ATTACKING_INACTIVE;
     e->idling = 0;
     e->drop = 0;
     e->falling = 0;
@@ -12855,7 +12855,7 @@ HRESULT openbor_performattack(ScriptVariant **varlist , ScriptVariant **pretvar,
     }
 
     e->takeaction = common_attack_proc;
-    e->attacking = 1;
+    e->attacking = ATTACKING_ACTIVE;
     e->idling = 0;
     e->drop = 0;
     e->falling = 0;
@@ -12917,7 +12917,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     }
 
     e->takeaction = NULL;
-    e->attacking = 0;
+    e->attacking = ATTACKING_INACTIVE;
     e->idling = 1;
     e->drop = 0;
     e->falling = 0;
