@@ -462,19 +462,24 @@ void blit()
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
 
-    SDL_RenderSetLogicalSize(renderer, 0, 0);
+    SDL_SetRenderTarget(renderer, NULL);
+    //SDL_RenderSetLogicalSize(renderer, 0, 0);
     SDL_SetTextureBlendMode(texture_base, SDL_BLENDMODE_NONE);
     SDL_RenderCopy(renderer, texture_base, NULL, NULL);
 
     if(stretch)
     {
-        SDL_RenderSetLogicalSize(renderer, 0, 0);
+        //SDL_RenderSetLogicalSize(renderer, 0, 0);
+        SDL_RenderCopy(renderer, texture, NULL, NULL);
     }
     else
     {
-        SDL_RenderSetLogicalSize(renderer, textureWidth, textureHeight);
+        //SDL_RenderSetLogicalSize(renderer, textureWidth, textureHeight);
+        float propHeightRatio = nativeHeight / textureHeight;
+        int newWidth = textureWidth * propHeightRatio;
+        SDL_Rect d_rect = {(int)(nativeWidth/2 - newWidth/2), 0, newWidth, nativeHeight};
+        SDL_RenderCopy(renderer, texture, NULL, &d_rect);
     }
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
 
     if(brightness > 0)
     {
@@ -486,7 +491,7 @@ void blit()
     }
     SDL_RenderFillRect(renderer, NULL);
 
-    SDL_RenderSetLogicalSize(renderer, 0, 0);
+    //SDL_RenderSetLogicalSize(renderer, 0, 0);
     hide_touch = (timer_gettick() > hide_t);
     for(i = 0, h = 0; i < MAXTOUCHB; i++)
     {
