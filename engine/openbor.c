@@ -10212,7 +10212,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->projectile.throwframe  = -1;
                 newanim->projectile.tossframe   = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
                 newanim->flipframe              = -1;
-                newanim->attackone              = -1;
+                newanim->attackone              = 0;
                 newanim->antigrav               = 0;
                 newanim->followup.animation     = 0;			// Default disabled
                 newanim->followup.condition     = FOLLOW_CONDITION_DISABLED;
@@ -19474,7 +19474,7 @@ void do_attack(entity *e)
         // differs from current target,
         // then we are trying to hit
         // another entity and should exit.
-        if(current_anim->attackone > 0)
+        if(current_anim->attackone)
         {
             if(e->lasthit)
             {
@@ -19773,7 +19773,7 @@ void do_attack(entity *e)
                     current_follow_id = animfollows[self->animation->followup.animation - 1];
                     if(validanim(self, current_follow_id))
                     {
-                        if(self->modeldata.animation[current_follow_id]->attackone == -1)
+                        if(!self->modeldata.animation[current_follow_id]->attackone)
                         {
                             self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
                         }
@@ -19890,7 +19890,7 @@ void do_attack(entity *e)
                 current_follow_id = animfollows[e->animation->followup.animation - 1];
                 if(validanim(e, current_follow_id))
                 {
-                    if(e->modeldata.animation[current_follow_id]->attackone == -1)
+                    if(!e->modeldata.animation[current_follow_id]->attackone)
                     {
                         e->modeldata.animation[current_follow_id]->attackone = e->animation->attackone;
                     }
