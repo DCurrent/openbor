@@ -463,7 +463,7 @@ void blit()
     SDL_RenderClear(renderer);
 
     //SDL_SetRenderTarget(renderer, NULL);
-    SDL_RenderSetLogicalSize(renderer, 0, 0);
+    //SDL_RenderSetLogicalSize(renderer, 0, 0);
     SDL_SetTextureBlendMode(texture_base, SDL_BLENDMODE_NONE);
     SDL_RenderCopy(renderer, texture_base, NULL, NULL);
 
