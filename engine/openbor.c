@@ -17381,7 +17381,7 @@ void ent_default_init(entity *e)
             {
                 e->modeldata.speed = 0;
             }
-            if(e->ptype)
+            if(e->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
             {
                 e->base = 0;
             }
@@ -17484,7 +17484,7 @@ void ent_default_init(entity *e)
         {
             e->modeldata.speed = 0;
         }
-        if(e->ptype)
+        if(e->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
         {
             e->base = 0;
         }
@@ -27093,7 +27093,11 @@ int arrow_move()
         projectile_wall_deflect(self);
     }
 
-    self->autokill |= self->ptype;
+    if(self->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
+    {
+        self->autokill = 2;
+    }
+
     return 1;
 }
 
@@ -30793,7 +30797,22 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         {
             return NULL;
         }
-        e->ptype = 0;
+
+        // Index takes priority in spawning, so if it's here
+        // then we'll type this as an index spawn source.
+        if(index < 0)
+        {
+            e->projectile_prime = PROJECTILE_PRIME_SOURCE_INDEX;
+        }
+        else
+        {
+            e->projectile_prime = PROJECTILE_PRIME_SOURCE_NAME;
+        }
+
+        e->projectile_prime += PROJECTILE_PRIME_BASE_Y;
+        e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
+        e->projectile_prime += PROJECTILE_PRIME_TYPE_CUSTOM;
+
         e->position.y = a;
     }
     else if(self->weapent && self->weapent->modeldata.project >= 0)
@@ -30803,7 +30822,12 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         {
             return NULL;
         }
-        e->ptype = 0;
+
+        e->projectile_prime = PROJECTILE_PRIME_BASE_Y;
+        e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
+        e->projectile_prime += PROJECTILE_PRIME_SOURCE_WEAPON;
+        e->projectile_prime += PROJECTILE_PRIME_TYPE_PROJECTILE;
+
         e->position.y = a;
     }
     else if(self->animation->projectile.knife >= 0)
@@ -30813,7 +30837,12 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         {
             return NULL;
         }
-        e->ptype = 0;
+
+        e->projectile_prime = PROJECTILE_PRIME_BASE_Y;
+        e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
+        e->projectile_prime += PROJECTILE_PRIME_SOURCE_ANIMATION;
+        e->projectile_prime += PROJECTILE_PRIME_TYPE_KNIFE;
+
         e->position.y = a;
     }
     else if(self->animation->projectile.flash >= 0)
@@ -30823,7 +30852,12 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         {
             return NULL;
         }
-        e->ptype = 1;
+
+        e->projectile_prime = PROJECTILE_PRIME_BASE_FLOOR;
+        e->projectile_prime += PROJECTILE_PRIME_LAUNCH_STATIONARY;
+        e->projectile_prime += PROJECTILE_PRIME_SOURCE_ANIMATION;
+        e->projectile_prime += PROJECTILE_PRIME_TYPE_FLASH;
+
         e->position.y = 0;
     }
     else if(self->modeldata.knife >= 0)
@@ -30833,7 +30867,12 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         {
             return NULL;
         }
-        e->ptype = 0;
+
+        e->projectile_prime = PROJECTILE_PRIME_BASE_Y;
+        e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
+        e->projectile_prime += PROJECTILE_PRIME_SOURCE_HEADER;
+        e->projectile_prime += PROJECTILE_PRIME_TYPE_KNIFE;
+
         e->position.y = a;
     }
     else if(self->modeldata.pshotno >= 0)
@@ -30843,7 +30882,12 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         {
             return NULL;
         }
-        e->ptype = 1;
+
+        e->projectile_prime = PROJECTILE_PRIME_BASE_FLOOR;
+        e->projectile_prime += PROJECTILE_PRIME_LAUNCH_STATIONARY;
+        e->projectile_prime += PROJECTILE_PRIME_SOURCE_HEADER;
+        e->projectile_prime += PROJECTILE_PRIME_TYPE_PSHOTNO;
+
         e->position.y = 0;
     }
     else if(type)
@@ -30853,7 +30897,12 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         {
             return NULL;
         }
-        e->ptype = 0;
+
+        e->projectile_prime = PROJECTILE_PRIME_BASE_Y;
+        e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
+        e->projectile_prime += PROJECTILE_PRIME_SOURCE_GLOBAL;
+        e->projectile_prime += PROJECTILE_PRIME_TYPE_SHOT;
+
         e->position.y = a;
     }
     else
@@ -30863,7 +30912,12 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         {
             return NULL;
         }
-        e->ptype = 0;
+
+        e->projectile_prime = PROJECTILE_PRIME_BASE_Y;
+        e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
+        e->projectile_prime += PROJECTILE_PRIME_SOURCE_GLOBAL;
+        e->projectile_prime += PROJECTILE_PRIME_TYPE_KNIFE;
+
         e->position.y = a;
     }
 
@@ -30910,7 +30964,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
 
     ent_set_colourmap(e, map);
 
-    if(e->ptype)
+    if(e->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
     {
         e->base = 0;
     }
