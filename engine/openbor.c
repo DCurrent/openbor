@@ -17701,7 +17701,7 @@ int calculate_edelay(entity *ent, int f)
 // that has jump frame defined and is at the
 // designated jump frame. Also spawns effect
 // entity if one is defined.
-bool check_jumpframe(entity *ent, unsigned short int frame)
+bool check_jumpframe(entity *ent, unsigned int frame)
 {
     entity *effect;
 
@@ -17751,7 +17751,7 @@ bool check_jumpframe(entity *ent, unsigned short int frame)
 }
 
 // move here to prevent some duplicated code in ent_sent_anim and update_ents
-void update_frame(entity *ent, unsigned short int f)
+void update_frame(entity *ent, unsigned int f)
 {
     entity *tempself;
     s_collision_attack attack;
