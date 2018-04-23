@@ -1576,7 +1576,7 @@ typedef struct
     unsigned int        pain_time;          // pain invincible time
     unsigned int        sealtime;           // Time for seal to remain in effect.
     int                 tag;                // User defined tag for scripts. No hard coded purpose.
-    float               grab_distance;      // Distance used by "grab".
+    int                 grab_distance;      // Distance used by "grab".
     s_axis_f            dropv;              // Velocity of target if knocked down.
     s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
     s_staydown          staydown;           // Modify victum's stayodwn properties.
