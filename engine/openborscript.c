@@ -9739,7 +9739,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     float x = 0, z = 0, a = 0;
     int direction = DIRECTION_LEFT;
     int type = 0;
-    int ptype = 0;
+    int projectile_prime = 0;
     int map = 0;
 
     int relative;
@@ -9810,7 +9810,20 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
     if(paramCount >= 6 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
     {
-        ptype = (int)ltemp;
+
+        // Backwards compatibility for modules made before bitwise update
+        // of projectile_prime and expect base vs. floor and moving
+        // behavior to both be tied to a single 0 or 1 value.
+        if((int)ltemp)
+        {
+            projectile_prime = PROJECTILE_PRIME_BASE_FLOOR;
+            projectile_prime += PROJECTILE_PRIME_LAUNCH_STATIONARY;
+        }
+        else
+        {
+            projectile_prime = PROJECTILE_PRIME_BASE_Y;
+            projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
+        }
     }
     if(paramCount >= 7 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
     {
@@ -9840,7 +9853,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     {
     default:
     case 0:
-        ent = knife_spawn(name, -1, x, z, a, direction, ptype, map);
+        ent = knife_spawn(name, -1, x, z, a, direction, projectile_prime, map);
         break;
     case 1:
         ent = bomb_spawn(name, -1, x, z, a, direction, map);
