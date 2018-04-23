@@ -154,6 +154,40 @@ typedef struct PlayRecStatus {
 
 extern a_playrecstatus *playrecstatus;
 
+// Caskey, Damon V.
+// 2018-04-23
+//
+// Initial values for projectile spawns.
+typedef enum
+{
+    // Use bitwise ready values here so we can cram
+    // different types of data into one value.
+
+    // Source for projectiles base.
+    PROJECTILE_PRIME_BASE_FLOOR         = 0x00000001,
+    PROJECTILE_PRIME_BASE_Y             = 0x00000002,
+
+    // Movement behavior on launch.
+    PROJECTILE_PRIME_LAUNCH_MOVING      = 0x00000004,
+    PROJECTILE_PRIME_LAUNCH_STATIONARY  = 0x00000008,
+
+    // How was projectile model determined?
+    PROJECTILE_PRIME_SOURCE_ANIMATION   = 0x00000010,   //  Animation setting.
+    PROJECTILE_PRIME_SOURCE_GLOBAL      = 0x00000020,   //  Global "knife" or global "shot".
+    PROJECTILE_PRIME_SOURCE_INDEX       = 0x00000040,   //  By projectile's model index.
+    PROJECTILE_PRIME_SOURCE_HEADER      = 0x00000080,   //  Model header setting.
+    PROJECTILE_PRIME_SOURCE_NAME        = 0x00000100,   //  By projectile's model name.
+    PROJECTILE_PRIME_SOURCE_WEAPON      = 0x00000200,   //  From a SUBTYPE_PROJECTLE weapon pickup.
+
+    // Type of projectile as determined by launch method.
+    PROJECTILE_PRIME_TYPE_CUSTOM        = 0x00000400,
+    PROJECTILE_PRIME_TYPE_FLASH         = 0x00000800,
+    PROJECTILE_PRIME_TYPE_KNIFE         = 0x00001000,
+    PROJECTILE_PRIME_TYPE_PROJECTILE    = 0x00002000,
+    PROJECTILE_PRIME_TYPE_PSHOTNO       = 0x00004000,
+    PROJECTILE_PRIME_TYPE_SHOT          = 0x00008000
+} e_projectile_prime;
+
 // State of attack boxes.
 typedef enum
 {
@@ -2179,10 +2213,10 @@ typedef struct
 
 typedef struct entity
 {
-        e_spawn_type spawntype; // Type of spawn (level spawn, script spawn, ...)
-        bool exists; // flag to determine if it is a valid entity.
-        bool deduct_ammo; // Check for ammo count?
-    int ptype;
+        e_spawn_type spawntype;                 // Type of spawn (level spawn, script spawn, ...)
+        bool exists;                            // flag to determine if it is a valid entity.
+        bool deduct_ammo;                       // Check for ammo count?
+        e_projectile_prime projectile_prime;    // If this entity is a projectile, several priming values go here to set up its behavior.
     int playerindex;
     int health; // current hp
     int mp; // current mp
@@ -2278,7 +2312,7 @@ typedef struct entity
     int frozen; // Flag to determine if an entity is frozen
         bool blink;
     int invincible; // Flag used to determine if player is currently invincible
-        bool autokill; // Kill on end animation
+        int autokill; // Kill on end animation
     int remove_on_attack;
     int tocost; // Flag to determine if special costs life if doesn't hit an enemy
     int noaicontrol; // pause A.I. control
