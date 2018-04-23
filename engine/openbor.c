@@ -10212,7 +10212,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->projectile.throwframe  = -1;
                 newanim->projectile.tossframe   = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
                 newanim->flipframe              = -1;
-                newanim->attackone              = -1;
+                newanim->attackone              = 0;
                 newanim->antigrav               = 0;
                 newanim->followup.animation     = 0;			// Default disabled
                 newanim->followup.condition     = FOLLOW_CONDITION_DISABLED;
@@ -17926,19 +17926,19 @@ void update_frame(entity *ent, unsigned short int f)
         {
             __trystar;
         }
-        self->reactive = 1;
+        self->deduct_ammo = 1;
     }
 
     if(anim->projectile.shootframe == f)
     {
         knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y, self->direction, 1, 0);
-        self->reactive = 1;
+        self->deduct_ammo = 1;
     }
 
     if(anim->projectile.tossframe == f)
     {
         bomb_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0);
-        self->reactive = 1;
+        self->deduct_ammo = 1;
     }
 
 uf_interrupted:
@@ -19474,7 +19474,7 @@ void do_attack(entity *e)
         // differs from current target,
         // then we are trying to hit
         // another entity and should exit.
-        if(current_anim->attackone > 0)
+        if(current_anim->attackone)
         {
             if(e->lasthit)
             {
@@ -19773,7 +19773,7 @@ void do_attack(entity *e)
                     current_follow_id = animfollows[self->animation->followup.animation - 1];
                     if(validanim(self, current_follow_id))
                     {
-                        if(self->modeldata.animation[current_follow_id]->attackone == -1)
+                        if(!self->modeldata.animation[current_follow_id]->attackone)
                         {
                             self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
                         }
@@ -19890,7 +19890,7 @@ void do_attack(entity *e)
                 current_follow_id = animfollows[e->animation->followup.animation - 1];
                 if(validanim(e, current_follow_id))
                 {
-                    if(e->modeldata.animation[current_follow_id]->attackone == -1)
+                    if(!e->modeldata.animation[current_follow_id]->attackone)
                     {
                         e->modeldata.animation[current_follow_id]->attackone = e->animation->attackone;
                     }
@@ -25560,10 +25560,10 @@ void common_attack_proc()
         smart_bomb(self, self->modeldata.smartbomb);
         smartbomber = NULL;
     }
-    if(self->reactive == 1)
+    if(self->deduct_ammo == 1)
     {
         subtract_shot();
-        self->reactive = 0;
+        self->deduct_ammo = 0;
     }
     self->attacking = ATTACKING_INACTIVE;
     // end of attack proc

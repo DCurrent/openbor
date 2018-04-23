@@ -497,7 +497,7 @@ public class SDLActivity extends Activity {
                     // FIXME: Why aren't we enabling sensor input at start?
 
                     mSDLThread = new Thread(new SDLMain(), "SDLThread");
-                    mSurface.enableSensor(Sensor.TYPE_ACCELEROMETER, true);
+                    mSurface.enableSensor(Sensor.TYPE_ACCELEROMETER, false); // DEFAULT: true
                     mSDLThread.start();
                 }
 
@@ -1261,7 +1261,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         requestFocus();
         setOnKeyListener(this);
         setOnTouchListener(this);
-        enableSensor(Sensor.TYPE_ACCELEROMETER, true);
+        enableSensor(Sensor.TYPE_ACCELEROMETER, false); // DEFAULT: true
     }
 
     public Surface getNativeSurface() {
