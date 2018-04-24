@@ -2745,9 +2745,12 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_col
 {
     ScriptVariant tempvar;
     ScriptVariant_Init(&tempvar);
+
     ScriptVariant_ChangeType(&tempvar, VT_PTR);
+
     tempvar.ptrVal = (VOID *)ent;
     Script_Set_Local_Variant(cs, "self",        &tempvar);
+
     tempvar.ptrVal = (VOID *)other;
     Script_Set_Local_Variant(cs, "damagetaker", &tempvar);
 
@@ -2780,7 +2783,6 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_col
     tempvar.lVal = (LONG)blocked;
     Script_Set_Local_Variant(cs, "blocked",    &tempvar);
 
-    Script_Execute(cs);
 
     Script_Execute(cs);
     //clear to save variant space
