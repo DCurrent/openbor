@@ -2228,10 +2228,10 @@ typedef struct
 
 typedef struct entity
 {
-        e_spawn_type spawntype;                 // Type of spawn (level spawn, script spawn, ...)
-        bool exists;                            // flag to determine if it is a valid entity.
-        bool deduct_ammo;                       // Check for ammo count?
-        e_projectile_prime projectile_prime;    // If this entity is a projectile, several priming values go here to set up its behavior.
+    e_spawn_type spawntype;                 // Type of spawn (level spawn, script spawn, ...)
+    bool exists;                            // flag to determine if it is a valid entity.
+    bool deduct_ammo;                       // Check for ammo count?
+    e_projectile_prime projectile_prime;    // If this entity is a projectile, several priming values go here to set up its behavior.
     int playerindex;
     int health; // current hp
     int mp; // current mp
@@ -2241,33 +2241,33 @@ typedef struct entity
     s_model *defaultmodel; // this is the default model
     s_model *model; // current model
     s_model modeldata; // model data copyied here
-    int item; // item model id
+    int itemindex; // item model index
     int itemmap; // Now items spawned can have their properties changed
     int itemtrans; // alpha effect of item
     char itemalias[MAX_NAME_LEN + 1]; // Now items spawned can have their properties changed
     int itemhealth; // Now items spawned can have their properties changed
     int itemplayer_count;
-        bool boss;
-        unsigned int dying;   // Corresponds with which remap is to be used for the dying flash
-        unsigned int dying2;  // Corresponds with which remap is to be used for the dying flash for per2
-        unsigned int per1;    // Used to store at what health value the entity begins to flash
-        unsigned int per2;    // Used to store at what health value the entity flashes more rapidly
-        unsigned int boomerang_loop;  // Count of boomerang passes.
-        e_direction direction;
+    bool boss;
+    unsigned int dying;   // Corresponds with which remap is to be used for the dying flash
+    unsigned int dying2;  // Corresponds with which remap is to be used for the dying flash for per2
+    unsigned int per1;    // Used to store at what health value the entity begins to flash
+    unsigned int per2;    // Used to store at what health value the entity flashes more rapidly
+    unsigned int boomerang_loop;  // Count of boomerang passes.
+    e_direction direction;
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
     int nograb_default; // equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon)
     int movestep;
-        s_axis_f position; //x,y,z location.
+    s_axis_f position; //x,y,z location.
     s_axis_f velocity; //x,y,z movement speed.
     float destx; // temporary values for ai functions
     float destz;
     float movex;
     float movez;
     float speedmul;
-        float base;     // Default altitude
-        float altbase; // Altitude affected by movea
+    float base;     // Default altitude
+    float altbase; // Altitude affected by movea
     s_jump jump;    //Jumping velocity and id.
-        unsigned combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
+    unsigned combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
 
     // ---------------------- action times -------------------------------
     u32	lastmove;
@@ -2277,10 +2277,10 @@ typedef struct entity
     u32 toss_time; // Used by gravity code
     u32 nextmove;
     u32 stalltime;
-        u32 combotime; // For multiple-hit combo
+    u32 combotime; // For multiple-hit combo
     u32 movetime; // For special move
     u32 freezetime; // Used to store at what point the a frozen entity becomes unfrozen
-        u32 maptime; // used by forcemap
+    u32 maptime; // used by forcemap
     u32 sealtime; // used by seal (stops special moves).
     u32 dot_time[MAX_DOTS]; //Dot time to expire.
     int dot[MAX_DOTS]; //Dot mode.
@@ -2313,11 +2313,11 @@ typedef struct entity
     int idling;
     int walking;
     int drop;
-        e_attacking_state attacking;
+    e_attacking_state attacking;
     int getting;
     int turning;
-        bool charging;
-        unsigned int blocking;
+    bool charging;
+    unsigned int blocking;
     int falling;
     int running; // Flag to determine if a player is running
     int grabwalking; // a flag for grabwalk check
@@ -2325,24 +2325,24 @@ typedef struct entity
     int inbackpain; // playing pain/fall/die animation
     int normaldamageflipdir; // used to reset backpain direction
     int frozen; // Flag to determine if an entity is frozen
-        bool blink;
+    bool blink;
     int invincible; // Flag used to determine if player is currently invincible
-        int autokill; // Kill on end animation
+    int autokill; // Kill on end animation
     int remove_on_attack;
     int tocost; // Flag to determine if special costs life if doesn't hit an enemy
     int noaicontrol; // pause A.I. control
     int projectile;
     int toexplode; // Needed to determine if the projectile is a type that will explode (bombs, dynamite, etc)
-        bool animating; // Set by animation code
-        bool arrowon; // Flag to display parrow/parrow2 or not
+    bool animating; // Set by animation code
+    bool arrowon; // Flag to display parrow/parrow2 or not
     unsigned pathblocked;
     s_axis_f *waypoints;
     int numwaypoints;
-        unsigned int animpos; // Current animation frame.
-        unsigned int animnum; // animation id.
-        s_anim *animation;
+    unsigned int animpos; // Current animation frame.
+    unsigned int animnum; // animation id.
+    s_anim *animation;
     float knockdowncount;
-        s_damage_on_landing damage_on_landing;
+    s_damage_on_landing damage_on_landing;
     int die_on_landing; // flag for damageonlanding (active if self->health <= 0)
     int last_damage_type; // used for set death animation or pain animation
     int map; // Stores the colourmap for restoring purposes
@@ -2350,10 +2350,10 @@ typedef struct entity
     void (*takeaction)();
     int (*takedamage)(struct entity *, s_collision_attack *, int);
     int (*trymove)(float, float);
-        unsigned int attack_id_incoming;
-        unsigned int attack_id_outgoing;
+    unsigned int attack_id_incoming;
+    unsigned int attack_id_outgoing;
     int hitwall; // == 1 in the instant that hit the wall/platform/obstacle, else == 0
-        unsigned char *colourmap;
+    unsigned char *colourmap;
     //struct entity   *thrower;
     struct entity *link; // Used to link 2 entities together.
     struct entity *owner; // Added for "hitenemy" flag so projectile recognizes its owner
@@ -2366,7 +2366,7 @@ typedef struct entity
     struct entity *lasthit;
     struct entity *hithead; // when a player jumps and hits head on the bottom of a platform
     struct entity *landed_on_platform;
-        s_bind binding;
+    s_bind binding;
     int escapecount; // For escapehits
     s_rush rush;    //Rush combo display.
     int lifespancountdown; // life span count down
@@ -2431,9 +2431,9 @@ typedef struct
     float musicfade;
     u32 musicoffset;
     char *name; // must be a name in the model list, so just reference
-    int index; // model id
-    int itemindex; // item model id
-    int weaponindex; // the spawned entity with an weapon item, this is the id of the item model
+    int index; // model index
+    int itemindex; // item model index
+    int weaponindex; // the spawned entity with an weapon item, this is the index of the item model
     int alpha; // Used for alpha effects
     int boss;
     int flip;
