@@ -17602,6 +17602,7 @@ void ent_spawn_ent(entity *ent)
         {
             s_ent->owner = ent;
         }
+        s_ent->spawntype = SPAWN_TYPE_CMD_SPAWN;
         s_ent->parent = ent;  //maybe used by A.I.
         execute_onspawn_script(s_ent);
     }
@@ -17651,6 +17652,7 @@ void ent_summon_ent(entity *ent)
             s_ent->owner = ent;
         }
         //maybe used by A.I.
+        s_ent->spawntype = SPAWN_TYPE_CMD_SUMMON;
         s_ent->parent = ent;
         ent->subentity = s_ent;
         execute_onspawn_script(s_ent);
@@ -17742,6 +17744,7 @@ bool check_jumpframe(entity *ent, unsigned int frame)
         effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->jumpframe->ent, NULL);
         if(effect)
         {
+            effect->spawntype = SPAWN_TYPE_DUST_JUMP;
             effect->base = ent->position.y;
             effect->autokill = 2;
             execute_onspawn_script(effect);
@@ -19673,6 +19676,7 @@ void do_attack(entity *e)
 
                     if(flash)
                     {
+                        flash->spawntype = SPAWN_TYPE_FLASH;
                         execute_onspawn_script(flash);
                     }
                 }
@@ -19726,6 +19730,7 @@ void do_attack(entity *e)
                     //ent_default_init(flash); // initiliaze this because there're no default values now
                     if(flash)
                     {
+                        flash->spawntype = SPAWN_TYPE_FLASH;
                         execute_onspawn_script(flash);
                     }
                 }
@@ -19803,6 +19808,7 @@ void do_attack(entity *e)
                         //ent_default_init(flash); // initiliaze this because there're no default values now
                         if(flash)
                         {
+                            flash->spawntype = SPAWN_TYPE_FLASH;
                             execute_onspawn_script(flash);
                         }
                     }
@@ -19835,6 +19841,7 @@ void do_attack(entity *e)
                     }
                     if(flash)
                     {
+                        flash->spawntype = SPAWN_TYPE_FLASH;
                         execute_onspawn_script(flash);
                     }
                 }
@@ -20143,6 +20150,7 @@ bool check_landframe(entity *ent)
 
         if(effect)
         {
+            effect->spawntype = SPAWN_TYPE_DUST_LAND;
             effect->base = ent->position.y;
             effect->autokill = 2;
             execute_onspawn_script(effect);
@@ -20289,6 +20297,7 @@ void check_gravity(entity *e)
                     dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.fall_land, NULL);
                     if(dust)
                     {
+                        dust->spawntype = SPAWN_TYPE_DUST_FALL;
                         dust->base = self->position.y;
                         dust->autokill = 2;
                         execute_onspawn_script(dust);
@@ -23138,6 +23147,7 @@ void common_jump()
                 dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.jump_land, NULL);
                 if(dust)
                 {
+                    dust->spawntype = SPAWN_TYPE_DUST_LAND;
                     dust->base = self->position.y;
                     dust->autokill = 2;
                     execute_onspawn_script(dust);
@@ -23151,6 +23161,7 @@ void common_jump()
                 dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.jump_land, NULL);
                 if(dust)
                 {
+                    dust->spawntype = SPAWN_TYPE_DUST_LAND;
                     dust->base = self->position.y;
                     dust->autokill = 2;
                     execute_onspawn_script(dust);
@@ -23658,6 +23669,8 @@ entity *drop_item(entity *e)
 
     if(item)
     {
+        item->spawntype = SPAWN_TYPE_ITEM;
+
         item->position.x = e->position.x;
         item->position.z = e->position.z;
         if(item->position.x < advancex)
@@ -23723,6 +23736,7 @@ entity *drop_driver(entity *e)
     driver = smartspawn(&p);
     if(driver)
     {
+        driver->spawntype = SPAWN_TYPE_BIKER;
         driver->position.x = e->position.x;
         driver->position.z = e->position.z;
     }
@@ -24799,6 +24813,7 @@ int common_try_jumpattack(entity *target)
                 dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.jump_start, NULL);
                 if(dust)
                 {
+                    dust->spawntype = SPAWN_TYPE_DUST_JUMP;
                     dust->base = self->position.y;
                     dust->autokill = 2;
                     execute_onspawn_script(dust);
@@ -28780,6 +28795,7 @@ void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
         dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.jump_start, NULL);
         if(dust)
         {
+            dust->spawntype = SPAWN_TYPE_DUST_JUMP;
             dust->base = self->position.y;
             dust->autokill = 2;
             execute_onspawn_script(dust);
@@ -30945,6 +30961,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->modeldata.speed = 0;
     }
 
+    e->spawntype = SPAWN_TYPE_PROJECTILE_NORMAL;
     e->owner = self;                                                     // Added so projectiles don't hit the owner
     e->nograb = 1;                                                       // Prevents trying to grab a projectile
     e->attacking = ATTACKING_ACTIVE;
@@ -31043,6 +31060,7 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
         e->modeldata.speed = 0;
     }
 
+    e->spawntype = SPAWN_TYPE_PROJECTILE_BOMB;
     e->attacking = ATTACKING_ACTIVE;
     e->owner = self;                                                     // Added so projectiles don't hit the owner
     e->nograb = 1;                                                       // Prevents trying to grab a projectile
@@ -31149,6 +31167,8 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
         e->modeldata.subject_to_basemap = e->modeldata.subject_to_wall = e->modeldata.subject_to_platform =
                                            e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
         e->modeldata.no_adjust_base = 0;
+
+        e->spawntype = SPAWN_TYPE_PROJECTILE_STAR;
     }
     return 1;
 }
@@ -31190,6 +31210,7 @@ void steam_spawn(float x, float z, float a)
         return;
     }
 
+    e->spawntype = SPAWN_TYPE_STEAM;
     e->base = a;
     e->modeldata.no_adjust_base = 1;
     e->think = steam_think;
@@ -31567,6 +31588,8 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
             //ent_default_init(wp);
             set_weapon(e, wp->modeldata.weapnum, 0);
             e->weapent = wp;
+
+            e->weapent->spawntype = SPAWN_TYPE_WEAPON;
         }
     }
 
@@ -31744,6 +31767,7 @@ void spawnplayer(int index)
     }
 
     player[index].ent->playerindex = index;
+    player[index].ent->spawntype = SPAWN_TYPE_PLAYER_MAIN;
     if(nomaxrushreset[4] >= 1)
     {
         player[index].ent->rush.count.max = nomaxrushreset[index];
@@ -34745,6 +34769,7 @@ static entity *spawnexample(int i)
     // NOSAME X 2
 
     ent_set_colourmap(example, player[i].colourmap);
+    example->spawntype = SPAWN_TYPE_PLAYER_SELECT;
     return example;
 }
 
