@@ -727,6 +727,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
+        case _ENTITY_PROJECTILE_PRIME:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->projectile_prime = temp_int;
+            }
+
+            break;
+
         case _ENTITY_SPAWN_TYPE:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
