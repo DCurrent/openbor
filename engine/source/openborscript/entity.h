@@ -50,6 +50,7 @@ typedef enum
     _ENTITY_POSITION_X,
     _ENTITY_POSITION_Y,
     _ENTITY_POSITION_Z,
+    _ENTITY_PROJECTILE_PRIME,
     _ENTITY_SPAWN_TYPE,
     _ENTITY_END,
 } e_entity_properties;
