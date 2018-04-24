@@ -54,6 +54,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "position_x",
         "position_y",
         "position_z",
+        "projectile_prime",
         "spawn_type",
     };
 
