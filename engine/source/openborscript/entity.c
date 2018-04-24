@@ -365,6 +365,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
+        case _ENTITY_PROJECTILE_PRIME:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->projectile_prime;
+
+            break;
+
         case _ENTITY_SPAWN_TYPE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
